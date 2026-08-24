@@ -114,11 +114,19 @@
     + '#clightbox img{max-width:100%; max-height:88vh;}\n'
     /* With the note box under it the picture can't have the whole screen, or
        the box you type in falls off the bottom. It gets more room than it used
-       to: the thread below the box only peeks now (Aug 2026). */
-    + '#clightbox.hastalk img{max-height:52vh;}\n'
+       to: the thread below the box only peeks now (Aug 2026).
+       AND AN IMAGE WITH NO NOTES YET PAYS FOR NOTHING (Aug 2026, Sophie's
+       ask that went unanswered for days: "it applies even when the image has
+       no notes yet — the peek is reserved anyway, so you're paying for an
+       empty strip"). `hasmsgs` is written by paintThread from the thread it
+       just drew, so the picture gives the peek its room the moment her first
+       letter lands and takes it back if the thread empties. */
+    + '#clightbox.hastalk img{max-height:62vh;}\n'
+    + '#clightbox.hastalk.hasmsgs img{max-height:52vh;}\n'
     /* an actions row under the picture is one more thing between it and the
        bottom of the screen, so the picture yields that much again */
-    + '#clightbox.hastalk.hasacts img{max-height:46vh;}\n'
+    + '#clightbox.hastalk.hasacts img{max-height:56vh;}\n'
+    + '#clightbox.hastalk.hasacts.hasmsgs img{max-height:46vh;}\n'
     /* THE ACTIONS ROW - small circles, one glyph each, directly under the
        picture. Drawn only when the caller passes `actions`. */
     + '.lbacts{display:flex; gap:14px; margin-top:10px; justify-content:center;}\n'
@@ -205,6 +213,7 @@
     lb.setAttribute('data-nostop', '');
     lb.innerHTML = '<div class="clwrap"><img alt="" src="' + url.replace(/"/g, '&quot;') + '"></div>';
     lb.classList.remove('hastalk');   // last image's thread must not shrink this one
+    lb.classList.remove('hasmsgs');   // ...nor whether that thread had letters in it
     lb.classList.remove('hasacts');   // ...nor its actions row
     // The caller's own buttons, directly under the picture (Meta Assets: open
     // the chat, the Playground, Save to Photos). The empty space beside them
@@ -295,6 +304,9 @@
           th.appendChild(b);
         });
         th.style.display = msgs.length ? '' : 'none';
+        // The picture only yields room for a thread that EXISTS — an image with
+        // no notes keeps the taller cap (see the CSS note above).
+        lb.classList.toggle('hasmsgs', msgs.length > 0);
         th.scrollTop = th.scrollHeight;   // newest letter in view
         if (more) syncMore();   // a new letter may push it past the peek
       }
@@ -455,6 +467,7 @@
         if (lb.style.display !== 'none') return;         // reopened in between
         lb.innerHTML = '';                               // .big dies with it
         lb.classList.remove('hastalk');
+        lb.classList.remove('hasmsgs');
         lb.classList.remove('hasacts');
       });
       window.scrollTo(0, lbY);

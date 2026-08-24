@@ -47,6 +47,18 @@ cat > /home/user/.claude/hooks/post-to-feed.sh << 'HOOK'
 # its image deliverables into the iOS "My Creations" gallery — zero model
 # tokens, nothing to remember. Runs as a Stop hook after every reply.
 #
+# v15 (2026-08-24) — A BACKFILLED REPLY KEEPS ITS REAL TIME. Every post now
+# carries `created`, the turn's own first-assistant-record timestamp. Her
+# messages have carried `at` since July 2026 and the server has accepted
+# `created` on replies for just as long — its own comment names this exact
+# case ("every backfilled reply would pile up at the top") — but the hook
+# never sent it, so a chat recovered with backfill-chat-history.sh came back
+# with her half in the right order and Claude's half stacked at the moment of
+# the backfill. Found in the 2026-08-24 audit of "want me to fix that?" offers
+# nobody ever answered; the offer was made 2026-08-15 and left.
+# Live turns are unchanged: the server keeps a doc's FIRST `created`, which a
+# draft has already stamped.
+#
 # v14 (Aug 2026) — A TURN STARTED BY A BACKGROUND EVENT IS STILL A TURN.
 # Sophie, across several chats in one week: "your last message didn't show up
 # in my chat app." The pattern was exact — every turn that answered HER posted,
@@ -402,6 +414,17 @@ def gooddesc(t):
 # the live-draft pass posts with, so the final post lands on the draft's doc.
 turns = []
 cur_parts = []; cur_mid = None; cur_turnkey = None
+# When this turn STARTED — the first assistant record's own timestamp. It is
+# posted as `created`, which is what keeps a BACKFILLED thread in order: the
+# server stamps NOW when nothing is sent, so every recovered reply used to pile
+# up at the moment of the backfill while her own messages (which have always
+# carried `at`) sat at their real times. The server has accepted `created`
+# since July 2026 and its own comment names this exact case; only the hook
+# never sent it (found in the 2026-08-24 audit of unanswered fix offers).
+# The turn's START rather than its end, deliberately: `bornAt` on the server
+# is documented as the turn's start so that a turn ALREADY RUNNING when she
+# sent a message loses the push gate's comparison.
+cur_at = None
 # THE WORKING FOLD (Aug 2026, Sophie: "it's supposed to find when the message
 # is done coding … unless there's some internal signal, that would be the
 # best"). There is one: the turn's TOOL CALLS. cur_t0/cur_t1 count how many
@@ -446,11 +469,13 @@ def her_words(rec, txt):
     return t
 
 def flush():
-    global cur_parts, cur_mid, cur_t0, cur_t1
+    global cur_parts, cur_mid, cur_t0, cur_t1, cur_at
     raw = "\n\n".join(cur_parts)
     txt = raw.strip()
     if txt and cur_mid:
         tn = {'text': txt, 'mid': cur_mid, 'turn': cur_turnkey}
+        if cur_at:
+            tn['at'] = cur_at
         # Offsets are measured in the STRIPPED text the post carries, so a
         # leading blank line can't shift them by two characters.
         if cur_t0 is not None:
@@ -460,7 +485,7 @@ def flush():
             tn['head'] = at(cur_t0)
             tn['tail'] = at(cur_t1)
         turns.append(tn)
-    cur_parts = []; cur_mid = None; cur_t0 = None; cur_t1 = None
+    cur_parts = []; cur_mid = None; cur_t0 = None; cur_t1 = None; cur_at = None
 
 with open(path, encoding='utf-8') as f:
     for ln in f:
@@ -509,6 +534,8 @@ with open(path, encoding='utf-8') as f:
         if t.strip():
             cur_parts.append(t)
             cur_mid = (r.get('message') or {}).get('id')
+            if cur_at is None:
+                cur_at = r.get('timestamp') or None
         for b in blocks(r):
             if isinstance(b, dict) and b.get('type') == 'tool_use':
                 # text blocks of this record were appended above, so the count
@@ -692,6 +719,11 @@ for tn in turns:
     if tn['mid'] in new_posted:
         continue
     out = {"chat": os.environ['NAME'], "text": tn['text'][:20000], "tldr": tldr_of(tn['text'])}
+    # when the reply was actually written (see cur_at above) — the server keeps
+    # a doc's FIRST `created`, so on a live turn this changes nothing a draft
+    # has already stamped, and on a backfill it is the whole point
+    if tn.get('at'):
+        out["created"] = tn['at']
     # the turn key (no `working`) finalizes any live draft this turn posted:
     # the server lands this on the SAME message doc and clears the marker
     if tn.get('turn'):

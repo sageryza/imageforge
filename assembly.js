@@ -196,7 +196,13 @@ function mergeIntoTray(tray, clips, items, cap) {
 function itemsFromDrops(files, bundleName) {
   const name = String(bundleName || 'Dump').trim();
   return (Array.isArray(files) ? files : [])
-    .filter((f) => f && f.id && /^https:\/\//.test(String(f.url || '')))
+    // AUDIO IS SKIPPED, not imported as a picture (2026-08-24, when the Dump
+    // learned to take audio). An assembly item is a clip or a still and there
+    // is no audio track here — the Film Editor is the surface with one — and
+    // every reader written before audio existed asks `!== 'video'` and calls
+    // the rest an image, which would put a silent black tile on the timeline.
+    .filter((f) => f && f.id && /^https:\/\//.test(String(f.url || ''))
+      && (f.media || 'image') !== 'audio')
     .slice()
     .sort((a, b) => (Number(a.photoIndex) || 0) - (Number(b.photoIndex) || 0))
     .map((f, i) => {

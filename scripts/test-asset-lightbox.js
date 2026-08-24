@@ -239,12 +239,69 @@ window.__open = function () {
   // and an actions row must not push the note box off the bottom
   await open();
   const lbCls = await page.$eval('#clightbox', (e) => [...e.classList].sort().join(' '));
-  is('both shrink classes are on', lbCls, 'hasacts hastalk');
+  // `hasmsgs` rides along here because this fixture's asset carries a thread —
+  // the empty-thread case is its own check further down.
+  is('both shrink classes are on', lbCls, 'hasacts hasmsgs hastalk');
   const fits = await page.evaluate(() => {
     const n = document.querySelector('#clightbox .lbnote');
     return n.getBoundingClientRect().bottom <= window.innerHeight + 1;
   });
   ok('the note box still fits on screen with the actions row above it', fits);
+  // AN IMAGE WITH NO NOTES YET PAYS FOR NOTHING (Sophie, 2026-08-21, offered
+  // and never answered until the audit): the peek used to be reserved even on
+  // a picture nobody had ever written on. `hasmsgs` is what buys the room, and
+  // it comes from the thread that was actually drawn — so the SAME picture
+  // must come out taller with an empty thread than with letters in it.
+  // A TALL picture, because `max-height` is what is being measured — the
+  // wide fixture above never reaches its cap, so both states render identical.
+  const TALL = 'data:image/svg+xml,' + encodeURIComponent(
+    "<svg xmlns='http://www.w3.org/2000/svg' width='800' height='1200'>"
+    + "<rect width='800' height='1200' fill='#c9a'/></svg>");
+  const openTall = (px, thread) => page.evaluate((a) => window.__assetLightbox(a.px, {
+    description: 'Penny — the blue Kleenex',
+    vote: null,
+    thread: a.thread,
+    _cast: function () {},
+    _noteSend: function (t, cb) { cb && cb(true); },
+  }), { px, thread });
+  await openTall(TALL, [{ from: 'sophie', text: 'the hands are wrong', at: '2026-08-19T00:00:00Z' }]);
+  await page.waitForTimeout(80);
+  const withMsgs = await page.$eval('#clightbox img', (e) => e.getBoundingClientRect().height);
+  await page.evaluate((px) => window.__assetLightbox(px, {
+    description: 'Penny — the blue Kleenex',
+    vote: null,
+    thread: [],
+    _cast: function () {},
+    _noteSend: function (t, cb) { cb && cb(true); },
+  }), TALL);
+  await page.waitForTimeout(80);
+  const empty = await page.evaluate(() => {
+    const lb = document.getElementById('clightbox');
+    return {
+      hastalk: lb.classList.contains('hastalk'),
+      hasmsgs: lb.classList.contains('hasmsgs'),
+      note: !!lb.querySelector('.lbnote'),
+      h: lb.querySelector('img').getBoundingClientRect().height,
+      fits: lb.querySelector('.lbnote').getBoundingClientRect().bottom <= window.innerHeight + 1,
+    };
+  });
+  ok('an empty thread still gets the note box', empty.note && empty.hastalk);
+  ok('…but not the thread\'s room', !empty.hasmsgs);
+  ok('…so the picture is bigger than it is with letters in it', empty.h > withMsgs);
+  ok('…and the note box still fits on screen', empty.fits);
+  // and the first letter she sends takes that room back, live
+  await page.evaluate(() => {
+    const lb = document.getElementById('clightbox');
+    lb.querySelector('.lbnote input').value = 'the hands are wrong';
+    lb.querySelector('.lbnote .notesend').click();
+  });
+  await page.waitForTimeout(80);
+  const after = await page.evaluate(() => {
+    const lb = document.getElementById('clightbox');
+    return { hasmsgs: lb.classList.contains('hasmsgs'), h: lb.querySelector('img').getBoundingClientRect().height };
+  });
+  ok('her first letter takes the room back', after.hasmsgs && after.h < empty.h);
+
   // an image opened with NO extras is untouched — every existing caller
   await page.evaluate(() => window.__assetLightbox('data:image/gif;base64,R0lGODlhAQABAAAAACw=', {}));
   await page.waitForTimeout(80);
