@@ -226,31 +226,41 @@ const refCount = (st) => Math.max(
 function buildPrompt({ plan, panels, prefix, suffix, cells }) {
   const names = cells && cells.length ? cells : sheetGrid.cellNames(
     Object.keys(sheetGrid.GRIDS).find((k) => sheetGrid.GRIDS[k].across * sheetGrid.GRIDS[k].down === plan.count));
-  const shape = plan.down === 1
-    ? `a single row of ${plan.count} separate illustrations, side by side`
-    : `a ${plan.across}x${plan.down} grid of ${plan.count} separate illustrations`;
-  // THE GRID SENTENCE STATES THE GEOMETRY THE CUT NEEDS, AND NOTHING ELSE.
-  // The page is sliced along exact halves/thirds, so what actually matters is
-  // that each illustration FILLS its own cell edge to edge — a gutter or a
-  // page margin puts the art out of register with the cut lines and every
-  // panel comes out with a slice of its neighbour.
-  // It deliberately says nothing about borders, caption boxes or palette:
-  // those are the STYLE's business, and a sentence here arguing with a
-  // style's own tail is the exact failure this module's header warns about
-  // (Dreamy asks for a hand-drawn frame, which is right per panel).
   const lines = [
     prefix,
     '',
-    `Draw ${shape} on one page, in reading order. They fill the page in equal `
-      + `${plan.count === 2 ? 'halves' : plan.count === 4 ? 'quarters' : 'parts'}`
-      + ' with no gutters and no page margin: each illustration must completely '
-      + 'fill its own part, edge to edge, because the page is going to be cut '
-      + 'along those lines. Each is a separate picture with its own subject — '
-      + 'do not continue one scene across them.',
+    gridLine(plan),
     ...panels.map((p, i) => `${names[i] || `panel ${i + 1}`}: ${String(p).trim()}`),
   ];
   if (suffix) lines.push('', suffix);
   return lines.filter((l, i) => l !== '' || i > 0).join('\n').trim();
+}
+
+/**
+ * THE GRID SENTENCE STATES THE GEOMETRY THE CUT NEEDS, AND NOTHING ELSE.
+ * The page is sliced along exact halves/thirds, so what actually matters is
+ * that each illustration FILLS its own cell edge to edge — a gutter or a page
+ * margin puts the art out of register with the cut lines and every panel comes
+ * out with a slice of its neighbour.
+ * It deliberately says nothing about borders, caption boxes or palette: those
+ * are the STYLE's business, and a sentence here arguing with a style's own tail
+ * is the exact failure this module's header warns about (Dreamy asks for a
+ * hand-drawn frame, which is right per panel).
+ *
+ * It is its own function because it is part of the WRAPPER around her words,
+ * so the stored style half has to carry it — see fileRun. Built in one place
+ * so the sentence that is filed cannot drift from the sentence that is sent.
+ */
+function gridLine(plan) {
+  const shape = plan.down === 1
+    ? `a single row of ${plan.count} separate illustrations, side by side`
+    : `a ${plan.across}x${plan.down} grid of ${plan.count} separate illustrations`;
+  return `Draw ${shape} on one page, in reading order. They fill the page in equal `
+    + `${plan.count === 2 ? 'halves' : plan.count === 4 ? 'quarters' : 'parts'}`
+    + ' with no gutters and no page margin: each illustration must completely '
+    + 'fill its own part, edge to edge, because the page is going to be cut '
+    + 'along those lines. Each is a separate picture with its own subject — '
+    + 'do not continue one scene across them.';
 }
 
 // A style's suffix, with any "one single illustration / not a grid" clause
@@ -401,11 +411,28 @@ function fileRun(sheetUrl, images, cfg, skip) {
   const cut = sizeTier.cutSize(cfg.plan.sheet, cfg.plan.count);
   const model = (deps.gpt && deps.gpt.id) || 'gpt-image-2';
   const label = st.label || cfg.styleId;
+  // THE WHOLE PROMPT RIDES ALONG (Sophie's hard rule, 2026-08-24: "anytime an
+  // image is made ANYWHERE the whole prompt shud be stored"). This module
+  // shipped without it, so every sheet and every cut panel filed with no style
+  // prompt at all — the exact hole the rule was written to close, reopened by
+  // the one tool that draws N pictures at once.
+  //
+  // `cfg.fullPrompt` is the literal page-sized text that was sent, and it is
+  // the honest answer for a PANEL too: that text is what drew it, because it
+  // was drawn as part of the sheet. The style half is the real wrapper —
+  // her prefix, the GRID SENTENCE this module adds, and the tail — so the
+  // seam shows everything that was put around her words, the added sentence
+  // included.
   const shared = { source: 'panels', style: `${label} · ${cfg.quality}`, model,
-    quality: cfg.quality };
+    quality: cfg.quality, fullPrompt: cfg.fullPrompt,
+    promptPrefix: [cfg.prefix, gridLine(cfg.plan)].filter(Boolean).join('\n\n'),
+    promptSuffix: cfg.suffix };
   if (!skip) {
     deps.fileCreation(Object.assign({ url: sheetUrl,
       prompt: `the sheet — ${cfg.plan.count} panels: ${(cfg.panels || []).join(' · ')}`,
+      // The sheet's caption names what it is; its CONTENT half is her words,
+      // one cell per line, verbatim — never that caption line, which is ours.
+      promptContent: (cfg.panels || []).map((p) => String(p).trim()).filter(Boolean).join('\n'),
       canvas: cfg.plan.sheet, sizeSlot: tier }, shared));
   }
   images.slice(skip || 0).forEach((im) => deps.fileCreation(Object.assign({
@@ -509,8 +536,12 @@ async function recut(ref, d, plan) {
     const r = await fetch(d.sheetUrl);
     if (!r.ok) throw new Error(`could not fetch the sheet (${r.status})`);
     const sheet = Buffer.from(await r.arrayBuffer());
+    // fullPrompt/prefix/suffix come off the stored run — without them a
+    // resumed panel would file with no prompt while its first-pass siblings
+    // carry one, which is the same picture described two different ways.
     const cfg = { plan, panels: d.panels || [], gridId: d.grid,
-      quality: d.quality, styleId: d.style };
+      quality: d.quality, styleId: d.style,
+      fullPrompt: d.fullPrompt || '', prefix: d.prefix || '', suffix: d.suffix || '' };
     const images = await cutSheet(sheet, cfg, patch, d.images || []);
     if (!images.length) throw new Error('every cut failed');
     await patch({ status: 'done', images,
@@ -571,5 +602,5 @@ function clean(d) {
   return o;
 }
 
-module.exports = { router, init, __setDeps, buildPrompt, sheetSuffix, sheetCents,
-  hay, cutSheet, isStale, STALE_MS, COLLECTION };
+module.exports = { router, init, __setDeps, buildPrompt, gridLine, sheetSuffix, sheetCents,
+  hay, cutSheet, fileRun, isStale, STALE_MS, COLLECTION };

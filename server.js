@@ -5564,7 +5564,7 @@ setInterval(sweepStuckPromptlabRuns, 10 * 60 * 1000);
 // frame to decode, so without one it would tile as a blank square. Best-effort
 // throughout and de-duped by url: filing must never fail the work that made the
 // thing, and re-filing the same url must never add a second tile.
-async function fileCreationDoc({ url, type, prompt, poster, model, quality, style, source, createdMs, canvas, sizeSlot, fullPrompt, promptPrefix, promptSuffix } = {}) {
+async function fileCreationDoc({ url, type, prompt, poster, model, quality, style, source, createdMs, canvas, sizeSlot, fullPrompt, promptPrefix, promptSuffix, promptContent } = {}) {
   try {
     if (!url) return null;
     await storyDb();
@@ -5588,8 +5588,14 @@ async function fileCreationDoc({ url, type, prompt, poster, model, quality, styl
     // typed words, capped at 500 for the caption; these are the literal text
     // that reached the model and the two halves the PROMPT overlay reads.
     // Built by ONE shared module so no surface invents its own seam.
+    // `prompt` above is the CAPTION, and for most callers it is also her
+    // words — but not always: the Panels sheet's caption is "the sheet — 4
+    // panels: …", a line this repo wrote. `promptContent` lets a caller say
+    // what her words really were rather than filing ours as hers.
     Object.assign(doc, promptRecord.promptFields({
-      full: fullPrompt, content: prompt, prefix: promptPrefix, suffix: promptSuffix,
+      full: fullPrompt,
+      content: promptContent != null ? promptContent : prompt,
+      prefix: promptPrefix, suffix: promptSuffix,
     }));
     if (model) doc.model = String(model).slice(0, 80);
     if (quality) doc.quality = String(quality).slice(0, 40);

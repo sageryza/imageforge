@@ -89,8 +89,21 @@ const ok = (cond, name) => { assert.ok(cond, name); n++; };
   const pan = fs.readFileSync(root('panels.js'), 'utf8');
   const panCalls = callArgs(pan, 'fileCreation');
   ok(panCalls.length >= 2, 'panels files the sheet and each cut panel');
+  // A call may carry the prompt through a shared object it spreads —
+  // `Object.assign({ … }, shared)` — which is the right way to write two
+  // filings of one run. So a call that names no fullPrompt itself is followed
+  // ONE level into the object it spreads, and the field has to be there.
+  // (Only one level: a chain of spreads would hide the field again.)
+  const carries = (src, args) => {
+    if (/fullPrompt/.test(args)) return true;
+    // …\)\) — the args end with the Object.assign close AND the call's own.
+    const spread = args.match(/,\s*([A-Za-z_$][\w$]*)\s*\)+\s*$/);
+    if (!spread) return false;
+    const decl = src.match(new RegExp(`const\\s+${spread[1]}\\s*=[\\s\\S]*?;`));
+    return !!decl && /fullPrompt/.test(decl[0]);
+  };
   panCalls.forEach((a, i) =>
-    ok(/fullPrompt/.test(a), `panels fileCreation call ${i} passes fullPrompt`));
+    ok(carries(pan, a), `panels fileCreation call ${i} passes fullPrompt`));
 
   ok(/require\('\.\/prompt-record'\)/.test(srv), 'server.js uses the shared builder');
   // The require must be at module scope: fileCreationDoc is defined above
