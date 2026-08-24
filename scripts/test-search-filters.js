@@ -280,10 +280,15 @@ const server = http.createServer((req, res) => {
   is('the toggle moved one notch', (await stops())[0], '1');
   is('and says so', (await words())[0], 'Mine');
   is('her two messages, and no chat-name row above them', await results(), 2);
-  // THE CHIP WEARS THE STATE — a filter she cannot see must never be one she
-  // has forgotten she set.
-  is('the closed-drawer chip would show what is narrowed', await chipText(), 'Mine');
-  is('and it is lit', await chipLit(), true);
+  // THE CHIP IS LIT THE MOMENT ANYTHING IS NARROWED — but while the drawer is
+  // OPEN it does not repeat the words the rows below already spell out.
+  is('open, the chip does not say the same thing twice', await chipText(), 'Filters');
+  is('but it is lit, which is the part that is not redundant', await chipLit(), true);
+  // …and SHUT it carries the state, because that is when nothing else does.
+  await page.click('#searchfilters .filtchip');
+  await page.waitForTimeout(150);
+  is('shut, the chip wears what is narrowed', await chipText(), 'Mine');
+  await page.click('#searchfilters .filtchip');   // back open for the rest
 
   await tapWho();
   await page.waitForFunction(() => document.querySelectorAll('#searchresults .sres').length === 3,
@@ -313,7 +318,12 @@ const server = http.createServer((req, res) => {
   await tapWho();
   await page.waitForTimeout(350);
   is('both filters travel on the one request', [last().from, last().arch], ['me', 'only']);
-  is('and the chip wears both', await chipText(), 'Mine · Archive only');
+  // Shut, both are on the chip, joined — the one place she sees the whole
+  // state without opening anything.
+  await page.click('#searchfilters .filtchip');
+  await page.waitForTimeout(150);
+  is('shut, the chip wears both', await chipText(), 'Mine · Archive only');
+  await page.click('#searchfilters .filtchip');
 
   // ---- nothing tappable may sit under the injected pill -------------------
   // The pill is fixed over x 326-374 on a 390pt phone and this row is inside
@@ -328,7 +338,10 @@ const server = http.createServer((req, res) => {
   await page.click('#searchbtn');                 // …and back, inside the minute
   await page.waitForFunction(() => (document.getElementById('qsearch') || {}).value === 'image',
     null, { timeout: 4000 }).catch(() => fail('the remembered words did not come back'));
-  is('the same hunt comes back with the same filters', await chipText(), 'Mine · Archive only');
+  // Restored NARROWED, so the drawer comes back open and the chip is calm —
+  // the rows are on screen saying it.
+  is('the same hunt comes back lit', await chipLit(), true);
+  is('and its toggles are where she left them', await stops(), ['1', '2']);
   // …and the drawer comes back OPEN, because the control shaping her results
   // should be in front of her rather than folded behind a chip.
   if (!await shown('#searchfilters .filtdrawer')) fail('a restored narrowed search hid the filters that are shaping it');

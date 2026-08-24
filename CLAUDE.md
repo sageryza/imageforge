@@ -1757,7 +1757,17 @@ them off the reference sheet, not off the old filenames.
   - **The value is spelled out BESIDE the knob, and the knob carries no
     letter.** "Claude's" and "Archive only" are not initials, and a code to
     learn is a worse control than a word. Tapping the word moves the knob too:
-    a label beside a switch is what a thumb aims at.
+    a label beside a switch is what a thumb aims at. **They take the Playground's
+    78px track, not the account switcher's 48**, and that is measured: at 48
+    the three stops are 11px apart, which the account switcher's own note
+    calls the floor — it can afford the floor because a toast names the
+    account after every tap, and here the stop is something she has to read
+    off the control. Two sizes in the house, not three.
+  - **The chip carries the state only while the drawer is SHUT.** Open, the
+    rows already say "Mine" and "Archive only" in full, and repeating them in
+    the heaviest treatment on the screen is the same answer twice — the lesson
+    the archive summary's one line already learned. It stays LIT either way,
+    because lit is the half that is not redundant.
   - **WHO — hers is `from === 'sophie'` EXACTLY; everything else is
     Claude's.** The asymmetry is load-bearing and is the rule the app already
     used in three places (`renderMsg`'s own me/claude label among them). A

@@ -412,8 +412,15 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 /* The COLOUR is the per-instance option /tritoggle.css exists to offer, and
    this is what it buys: a filter at rest is muted chrome, and one that is
    actually narrowing her search takes the rose the app uses everywhere else
-   for "this has been changed". Nothing else about the control moves. */
-.filtrow .tri{--tri-track:var(--ink2);}
+   for "this has been changed". Nothing else about the control moves.
+   THE WIDTH IS THE PLAYGROUND'S, NOT THE ACCOUNT SWITCHER'S, and that is
+   measured rather than picked: at 48px the three stops are 11px apart, which
+   the account switcher's own note calls the floor — and it can afford the
+   floor because a toast names the account after every tap. Here the stops
+   carry meaning she has to READ off the control, so it takes the size Sophie
+   asked for when that was true of the Playground ("a little bit wider so it's
+   easier to change it"). Two sizes in the house, not three. */
+.filtrow .tri{--tri-track:var(--ink2); --tri-w:78px; --tri-k:26px;}
 .filtrow.on .tri{--tri-track:var(--chg);}
 .filtrow.on .filtval{color:var(--chg);}
 .sres{display:block; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:12px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
@@ -8338,8 +8345,15 @@ function buildFilters(mount, keys, onChange){
       r.val.textContent=def.words[i];
       r.row.classList.toggle('on', state[k]!=='all');
     });
+    // THE CHIP CARRIES THE STATE ONLY WHILE THE DRAWER IS SHUT. Open, the
+    // rows below it already say "Mine" and "Archive only" in full, and
+    // repeating them in the heaviest treatment on the screen is the same
+    // answer twice — the lesson the archive summary's one line already
+    // learned (the line she reads can never repeat what is under it). It
+    // stays LIT either way, because lit is the part that is not redundant:
+    // it says something is narrowed even when the words are elsewhere.
     var on=narrowed();
-    chip.textContent = on.length
+    chip.textContent = (on.length && drawer.hidden)
       ? on.map(function(k){ var d=FILTERS[k]; return d.words[d.vals.indexOf(state[k])]; }).join(' \u00b7 ')
       : 'Filters';
     chip.classList.toggle('on', !!on.length);
@@ -8347,6 +8361,7 @@ function buildFilters(mount, keys, onChange){
   function setOpen(open){
     drawer.hidden=!open;
     chip.setAttribute('aria-expanded', open?'true':'false');
+    paint();   // the chip's WORDS depend on whether the drawer is shut
   }
   chip.onclick=function(){ setOpen(drawer.hidden); };
   paint();
