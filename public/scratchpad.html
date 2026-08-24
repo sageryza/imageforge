@@ -404,9 +404,25 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 .bulkrow #bulkyes{background:var(--ink); color:var(--paper); border-color:var(--ink); font-weight:600;}
 #popblank.c-mustard{border-color:var(--mustard);} #popblank.c-green{border-color:var(--green);}
 #popblank.c-blue{border-color:var(--blue);} #popblank.c-pink{border-color:var(--pink);}
-#lightbox{position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
-  background:rgba(20,17,12,.94); padding:3vw;}
+#lightbox{position:fixed; inset:0; z-index:60; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:12px; background:rgba(20,17,12,.94); padding:3vw;}
 #lightbox img{max-width:94vw; max-height:88vh; border-radius:4px;}
+/* Picking an older picture happens HERE, looking at it big — the row's
+   thumbnails are 44px, which is not enough to choose by (Sophie,
+   2026-08-24: "make the past picture thumbnails so that I can actually pick
+   one"). Shown only for a picture that is NOT the current one, so the button
+   never offers her what she is already looking at. */
+/* Cream on the dark, in BOTH themes — the backdrop above is a fixed dark
+   wash, so the tokens are the wrong tool here: --paper is nearly the
+   backdrop's own colour on a dark phone. The page's serif, like the confirm
+   box's buttons, never a pill. */
+#lbuse{background:#f6f2e9; color:#26221c; border:1.5px solid #f6f2e9;
+  border-radius:6px; padding:9px 18px; font-family:'EBGaramond',Georgia,serif;
+  font-size:16px; font-weight:600; cursor:pointer;}
+#lbuse.busy{opacity:.45;}
+/* Only the picking state gives up height for the button — a plain look at a
+   picture keeps every pixel it always had. */
+#lightbox.pick img{max-height:78vh;}
 /* Listen rows — every recording attached to this story, behind the waveform
    button on the title row (Aug 2026, Sophie: "a story can hold multiple
    audios … hide them all behind a single icon that has a wave form"). Two
@@ -596,7 +612,8 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   </div></div>
 </div>
 
-<div id="lightbox" hidden><img id="lbimg" alt=""></div>
+<div id="lightbox" hidden><img id="lbimg" alt="">
+  <button id="lbuse" hidden>Use this one</button></div>
 
 <div id="delask" hidden>
   <div class="bulkbox">
@@ -1568,10 +1585,12 @@ function openBeat(b){
     vers.forEach(function(u,i){
       var t=document.createElement('button'); if(i===0&&su.url)t.className='cur';
       var ti=document.createElement('img'); ti.src=u; ti.alt=''; ti.loading='lazy'; t.appendChild(ti);
+      // Tapping a thumbnail opens it BIG with a way to take it — the
+      // current one opens plain, since "use this one" for the picture
+      // already on the card is a button that does nothing.
       t.onclick=function(ev){
         ev.stopPropagation();
-        document.getElementById('lbimg').src=u;
-        document.getElementById('lightbox').hidden=false;
+        openLb(u, (i===0&&su.url)?null:u);
       };
       vr.appendChild(t);
     });
@@ -1818,16 +1837,53 @@ document.getElementById('speak').onclick=function(ev){
   btn.classList.add('busy');
   saveNote().then(function(){ speakBeat(b, btn); });
 };
+/* ── the lightbox ──────────────────────────────────────────────────
+   ONE open and ONE close path, because the Use button's state has to be
+   right every single time: `pick` is the url this picture WOULD become the
+   beat's art from, or null for the picture that already is. */
+var lbPick=null;
+function openLb(url,pick){
+  lbPick=pick||null;
+  document.getElementById('lbimg').src=url;
+  var u=document.getElementById('lbuse');
+  u.hidden=!lbPick; u.classList.remove('busy');
+  var lb=document.getElementById('lightbox');
+  lb.classList.toggle('pick',Boolean(lbPick));
+  lb.hidden=false;
+}
+function closeLb(){
+  lbPick=null;
+  document.getElementById('lbuse').hidden=true;
+  var lb=document.getElementById('lightbox');
+  lb.classList.remove('pick'); lb.hidden=true;
+}
 /* Tapping the thumbnail opens it big — a lightbox over the popup. */
 document.getElementById('popimg').onclick=function(ev){
   ev.stopPropagation();
   if(!popBeat)return;
-  document.getElementById('lbimg').src=slotOf(popBeat).url;
-  document.getElementById('lightbox').hidden=false;
+  openLb(slotOf(popBeat).url,null);
 };
 document.getElementById('lightbox').onclick=function(ev){
   ev.stopPropagation();
-  this.hidden=true;
+  closeLb();
+};
+/* Take this older picture back as the beat's art. The same POST the inbox
+   makes — /image swaps it in, banks the one it replaces in the past-pictures
+   row and lifts this one OUT of that row (pad-art.js), so nothing is lost
+   and nothing shows twice. */
+document.getElementById('lbuse').onclick=function(ev){
+  ev.stopPropagation();
+  var url=lbPick, b=popBeat; if(!url||!b)return;
+  this.classList.add('busy');
+  api('/image',{method:'POST',body:JSON.stringify({id:b.id,url:url,style:padStyle})})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(d.beats){ beats=d.beats; render(); }
+      closeLb();
+      var fresh=beats.find(function(x){return x.id===b.id;});
+      if(fresh){ popBeat=fresh; openBeat(fresh); }
+    })
+    .catch(function(){ document.getElementById('lbuse').classList.remove('busy'); });
 };
 /* Make this beat's art the story's cover on the shelf. The button fills in
    dark as the ack and the popup stays open (same manner as the color chips). */
@@ -1905,7 +1961,7 @@ window.__navBack=function(){
   var el=document.getElementById('filmplay');
   if(!el.hidden){ document.getElementById('filmvid').pause(); el.hidden=true; lock(false); return true; }
   el=document.getElementById('lightbox');
-  if(!el.hidden){ el.hidden=true; return true; }
+  if(!el.hidden){ closeLb(); return true; }
   el=document.getElementById('delask');
   if(!el.hidden){ el.hidden=true; return true; }
   el=document.getElementById('bulkask');

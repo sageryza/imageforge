@@ -181,6 +181,11 @@ function clearSlot(slot) { SLOT_KEYS.forEach((k) => { delete slot[k]; }); }
 // not drawn on the side she removed it from. Giving that side art again
 // clears the mark — putting something back is what brings it back.
 const slotOff = (s) => Boolean(s && s.off);
+// Swapping a picture into a slot — the past-pictures bookkeeping lives in
+// its own dependency-free file so it can be tested without a node_modules,
+// and so /image and a finished draw share ONE copy of the rules.
+const { swapArt } = require('./pad-art');
+
 // DREAMY's recipe is the Playground's Dreamy tile — refs/dream-mystery.jpg
 // with HER OWN dictated prefix and suffix (2026-08-22), bookending her words
 // exactly as the Playground sends them (prefix\n\nwords\n\nsuffix). These two
@@ -701,14 +706,11 @@ router.post('/image', async (req, res) => {
       const slot = artSlot(b, style, true);
       // Swapping a picture into a clip SLOT makes that side a picture again —
       // leaving `kind` behind would render an image url as a film. Only this
-      // side: the other style's clip (or picture) is untouched.
-      if (slotClip(slot)) { delete slot.kind; delete slot.poster; delete slot.seconds; delete slot.title; delete slot.clipId; delete slot.url; }
-      // The picture this side already had is kept, never destroyed.
-      if (slot.url && slot.url !== url) slot.imageHistory = (slot.imageHistory || []).concat([{ url: slot.url, at: Date.now() }]);
-      slot.url = url;
-      if (src) slot.src = src;
-      // Art here again un-deletes this side (see `off` above).
-      delete slot.off;
+      // side: the other style's clip (or picture) is untouched. swapArt owns
+      // that, the history bookkeeping, and the provenance — this route is
+      // both a fresh pick from the inbox AND her picking an older version
+      // back off the past-pictures row, and they must behave identically.
+      swapArt(slot, url, src);
       tx.set(padRef(pid), { beats: cur, updatedAt: Date.now() }, { merge: true });
       return cur;
     });
@@ -864,15 +866,14 @@ async function runArtJob(padId, id, { prompt, quality, character, style }) {
     const url = `https://storage.googleapis.com/${bucket.name}/${dest}`;
     await patchBeat(padId, id, (b) => {
       const slot = artSlot(b, style, true);
-      if (slot.url && slot.url !== url) slot.imageHistory = (slot.imageHistory || []).concat([{ url: slot.url, at: Date.now() }]);
-      slot.url = url;
-      slot.src = {
+      // Through swapArt so the picture this draw replaces is banked WITH the
+      // run that made it — that is what lets her pick it back later and get
+      // its own prompt with it, rather than this draw's.
+      swapArt(slot, url, {
         engine: 'gptimage', model: 'gpt-image-2', prompt, quality,
         character: Boolean(character) && !dreamy, style: dreamy ? 'dreamy' : 'watercolor', promptUsed: full,
-      };
+      });
       slot.gen = { status: 'done', at: Date.now() };
-      // Art here again un-deletes this side (see `off` above).
-      delete slot.off;
     });
     // Every draw also lands in My Creations (house rule — the gallery is the
     // hand-off surface for every image made for Sophie). Through the server's
