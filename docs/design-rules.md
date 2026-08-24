@@ -39,6 +39,28 @@ The house rules that only bite when you are actually building a page, an iOS scr
   pattern").** Wherever a page cuts text and offers a way to see the rest, the
   way in is **a word with a line under it**, sitting at the end of the text it
   opens.
+  - **IT SITS ON THE LAST LINE OF THE WORDS, NOT BESIDE THEM (Aug 2026,
+    Sophie: "Button should be part of the text, not separated from it on the
+    side").** Part of the sentence it opens, at the end of the last visible
+    line — never parked at the far end of the row the text happens to be in.
+    She asked for this once before, on the dream cards ("I want the see more
+    button to be on the same last line of the text rather than underneath
+    it"), and `.dbody` in `dreamapp.html` is the settled implementation:
+    - `-webkit-line-clamp` CANNOT hold the control — anything inside that box
+      after the cut is clipped with the text. That is why the first attempt
+      made it a SIBLING, and a sibling in a flex header row lands wherever
+      the row puts it, which was the complaint.
+    - So the clamp is a plain `max-height`, and the opener is a right float
+      with `clear: both` sitting below a **zero-width float one line SHORT of
+      the cap** (`::before`, `height: calc((lines - 1) * lh)`). The only line
+      it can land on is the last one, and the words wrap around it. Both
+      floats come BEFORE the text in DOM order, so neither is "after the
+      clamped text" and neither is clipped.
+    - The `fold` class that adds that `::before` is set by JS and only where
+      the words really were cut: `overflow: hidden` makes the block a BFC, so
+      the float would otherwise stretch a one-line prompt to the full cap.
+    - OPEN, the control moves to the END of the words (`float: none`), because
+      unfloated at the front it would read before the first word.
   - **The mark:** `…`, `… more`, `more`, or `see more` — whichever reads best
     where it sits. Underlined. Inline. Inherits the surrounding font, size and
     colour. `border: 0; background: none; padding: 0; margin: 0`. Opened, the
@@ -65,12 +87,9 @@ The house rules that only bite when you are actually building a page, an iOS scr
     a big empty box in the middle of a run's header. Nothing was wrong with
     the opener; it lost a name fight. The paging button keeps `.morebtn`, the
     opener is `.moretxt`.
-  - **The opener goes OUTSIDE the clamped box.** `-webkit-line-clamp` clips
-    everything inside it after the cut, so a control nested in the clamped
-    element disappears with the text it was meant to open. Add it after
-    layout, as a SIBLING (`applyClamps` in `promptlab.html` is the reference),
-    and measure `scrollHeight` against `clientHeight` rather than counting
-    characters — only the browser knows whether the text really overflowed.
+  - **Add it after layout, and measure** `scrollHeight` against `clientHeight`
+    rather than counting characters — only the browser knows whether the text
+    really overflowed. `applyClamps` in `promptlab.html` is the reference.
   - **Text that is cut with no way to open it is a different thing** and this
     rule does not reach it (a card title clipped to one line, a caption cut to
     three). If you add a way in, it takes this shape.
