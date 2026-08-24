@@ -255,8 +255,19 @@ router.post('/image', express.json({ limit: '256kb' }), async (req, res) => {
     const store = db();
     if (store && req.body?.id) {
       try {
+        // THE WHOLE PROMPT (Sophie's hard rule, 2026-08-24). `images[]` is a
+        // bare url array that says nothing about how a picture was made, so
+        // the prompt rides a parallel record keyed by url — the array keeps
+        // its shape for every existing reader.
         await store.collection('forge-blog').doc(req.body.id).update({
           images: admin.firestore.FieldValue.arrayUnion(out.url),
+          imagePrompts: admin.firestore.FieldValue.arrayUnion({
+            url: out.url,
+            // Nothing is wrapped around a blog prompt — it goes verbatim — so
+            // the whole prompt IS her text and there is no style half.
+            fullPrompt: String(req.body.prompt || '').slice(0, 6000),
+            at: Date.now(),
+          }),
         });
       } catch (e) { console.warn('blog: image save failed —', e.message); }
     }

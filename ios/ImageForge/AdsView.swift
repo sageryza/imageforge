@@ -146,7 +146,7 @@ struct AdsView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("CAPTION")
                     .font(.caption2.weight(.semibold)).tracking(1).foregroundColor(Theme.textDim)
-                TextField("A little magic for your everyday. ✨", text: $caption, axis: .vertical)
+                TextField("…", text: $caption, axis: .vertical)
                     .lineLimit(1...4).font(.body).foregroundColor(Theme.text)
                     .padding(12).background(Theme.surface)
                     .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
@@ -260,6 +260,7 @@ struct AdsView: View {
 
     private var canBuild: Bool {
         !creating && !promoting.trimmingCharacters(in: .whitespaces).isEmpty && adImage != nil
+            && !caption.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     private func loadPickedImage() {
@@ -283,7 +284,7 @@ struct AdsView: View {
             do {
                 lastCampaign = try await ForgeService.shared.adsCreateCampaign(
                     promoting: what, dailyBudgetCents: dailyBudget * 100,
-                    imageData: jpeg, primaryText: text.isEmpty ? "A little magic for your everyday. ✨" : text)
+                    imageData: jpeg, primaryText: text)
             } catch {
                 errorText = error.localizedDescription
             }

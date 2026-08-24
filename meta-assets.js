@@ -106,11 +106,21 @@ function buildMetaAssets(docs, creations) {
       // without this a LoRA picture reads "WTR · WTR · medium · 1K".
       .filter((v, i, a) => a.indexOf(v) === i)
       .join(' · ');
+    // THE PROMPT OVERLAY'S TWO HALVES (2026-08-24, Sophie's hard rule: the
+    // whole prompt is stored wherever an image is made). A creation filed
+    // since that landed carries `promptStyle` / `promptContent` — the real
+    // wrapper with [content] marking the seam, and her words verbatim — so
+    // the STYLE half of the overlay finally has honest text to show. Older
+    // records have neither and fall back to the typed prompt as content
+    // only, exactly as before: an absent style half stays absent rather
+    // than being reconstructed from the style's LABEL.
+    const isImage = (c.type || 'image') === 'image';
     appRecs.push({
       url: c.url, ms: c.ms || 0,
-      prompt: made,                          // the MODEL · QUALITY · SIZE caption slot
+      prompt: made,                          // the STYLE · MODEL · QUALITY · SIZE caption slot
       description: p,                        // what she reviews it by
-      promptContent: (c.type || 'image') === 'image' ? p : '',
+      promptStyle: String(c.promptStyle || ''),
+      promptContent: String(c.promptContent || (isImage ? p : '')),
       compressedAtBirth: c.compressedAtBirth === true,
     });
   });
