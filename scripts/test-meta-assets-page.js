@@ -92,6 +92,12 @@ const server = http.createServer((req, res) => {
     });
     return;
   }
+  if (url.pathname === '/asset-lightbox.js') {
+    // THE lightbox, shared — the page has no copy of its own any more, so
+    // without this every lightbox assertion below times out on an empty overlay
+    res.writeHead(200, { 'Content-Type': 'text/javascript' });
+    return res.end(fs.readFileSync(path.join(PUB, 'asset-lightbox.js'), 'utf8'));
+  }
   if (url.pathname === '/playground-port.js') {
     // the real routing script — its ForgePlaygroundPort is what builds the
     // lightbox's Playground button; without it the icon silently vanishes
@@ -131,6 +137,22 @@ const server = http.createServer((req, res) => {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   const fail = (m) => { console.error('FAIL:', m); process.exit(1); };
   try {
+    // 0 — A SOURCE PIN, and it is the one that keeps the rest honest: this
+    // page must OPEN the shared lightbox, never carry one. It was a third
+    // hand copy of /asset-lightbox.js for months, and every bug that file had
+    // already fixed reached Sophie here a second time — the close rule she
+    // reported on 2026-08-24 among them. If a surface needs something the
+    // shared file has no place for, give that file a hook (it grew `actions`
+    // and `who` for exactly this page), never a fourth copy.
+    const src = fs.readFileSync(path.join(PUB, 'assets.html'), 'utf8');
+    if (!/<script src="\/asset-lightbox\.js"><\/script>/.test(src)) {
+      fail('assets.html no longer loads the shared /asset-lightbox.js');
+    }
+    if (!/window\.__assetLightbox\(/.test(src)) fail('assets.html does not call __assetLightbox');
+    for (const own of ["className='lbtop'", "className='lbtalk'", "className='lbp'", 'lb.onclick=']) {
+      if (src.includes(own)) fail('assets.html is building its own lightbox again: ' + own);
+    }
+
     await page.goto(`http://127.0.0.1:${port}/assets`);
     await page.waitForSelector('.assetgrid .acell');
 

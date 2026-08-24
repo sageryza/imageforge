@@ -1170,17 +1170,29 @@ them off the reference sheet, not off the old filenames.
   answered").** Keeping either one opens the same box straight away and focuses
   it — the reason is in her head at that moment and nowhere else — and it stays
   under the thing for as long as it is kept.
-  - **ONE RENDERER, AND THE TAGS ARE THE KEEPING STEP ONLY (Aug 2026, her
-    correction the day after they shipped: "those tags were supposed to only
-    show up in the step when I'm actively bookmarking it. Either a chat or an
-    artifact").** `mkBmkEdit(m, kind, keeping)` draws the note always and the
-    tags only on the tap that keeps the thing — so a message she kept last week
-    shows her sentence back and nothing else, and the keep-pile's rows carry no
-    chips at all. The first cut painted them under every kept thing and on every
-    row of that pile, which put four chips and a meter under things she was
-    only trying to read. One node so un-keeping takes the whole editor with it;
-    one renderer so a message and an artifact can never end up with two
-    different sets of controls.
+  - **ONE RENDERER, AND THE WHOLE EDITOR IS THE KEEPING STEP ONLY (Aug 2026,
+    two corrections, the second the settled rule).** First the tags: "those tags
+    were supposed to only show up in the step when I'm actively bookmarking it.
+    Either a chat or an artifact" — so they came off every later paint while the
+    note box stayed. Then the box itself: **"the why keep this bookmark button
+    should only show up at the time that I'm bookmarking it or if I un bookmark
+    and bookmark again"** — the same sentence about the other half of the same
+    node. So `mkBmkEdit(m, kind)` is drawn on ONE event, the tap that keeps the
+    thing, and a message or artifact she kept last week carries NOTHING under
+    it. An empty "Why keep this?" field under every kept thing is a box asking a
+    question she already answered, sitting under things she is only trying to
+    read.
+    - **UN-KEEPING AND KEEPING AGAIN IS THE WAY BACK IN, and it loses nothing** —
+      the bookmark toggle sends `bookmarked` alone, so her note survives and the
+      re-opened box holds it. That re-keep is her own named gesture, not a
+      workaround.
+    - **NOTHING IS HIDDEN FOR GOOD:** her note leads that thing's row in the
+      keep-pile in its own editable field (`.sr-note-in`), so naming a backlog
+      never means opening each message. The pile is where a note is READ BACK;
+      the keeping tap is where it is WRITTEN.
+    - One node so un-keeping takes the whole editor with it; one renderer so a
+      message and an artifact can never end up with two different sets of
+      controls.
   - **THE READ BOX IS WHAT THE KEEP-PILE'S ROWS CARRY INSTEAD (Aug 2026,
     Sophie: "a rounded square check box that is empty with a gray outline and
     becomes red with a check in it when I read it I'll mark it manually").**
@@ -1358,6 +1370,27 @@ them off the reference sheet, not off the old filenames.
   apply — the auto-sorter is forbidden from filing into either — and the rules
   live in ONE table (`TAG_RULES` in `chats.html`) so her next one is a row in
   it. Full rules in `docs/chats-app.md`; test `node scripts/test-tag-rules.js`.
+  **AND `waiting for a response` WEARS A MARK WHEREVER THE CHAT APPEARS
+  (2026-08-24, Sophie: "are there any extra instructions for if I tag a chat
+  waiting for a response? Since I'm waiting for it I'd like a chat that's
+  tagged like that to come with some extra indication").** The pin was the
+  whole of the rule, and a pin only exists on the Update tab — so on the home
+  list, and inside the thread itself, a chat she was owed an answer from
+  looked like every other chat. It is a Lucide **hourglass** in the marks' red
+  at the front of the row, beside the star and the bookmark (the slot for a
+  state with no control of its own), and in the thread's `<h1>`. Three things
+  worth not undoing: it follows the **TAG**, not the Update tab's card — her ✓
+  there settles the CARD and the debt is over when the word comes off, the
+  same rule the sibling `Waiting for:` line has always followed; it reads the
+  rule off `TAG_RULES` rather than off the string, so the mark and the pin can
+  never disagree about which word means this; and it is a `<span>`, because a
+  row is a `<button>` and a nested button would eat the tap. `waitMarkHtml` is
+  the one renderer and `syncWaitMark` repaints the thread header, which is
+  built once — the Organize sheet opens from inside that same thread, so
+  without it the screen she is standing on is the last to know. **Nothing
+  tells the CHAT** — `GET /api/chatfeed/status` carries no labels, so a chat
+  cannot see that she is waiting on it. Test:
+  `node scripts/test-chats-waiting-mark.js`.
   **ALL THREE UPDATE BOXES WEAR A CHIP ON THIS ROW (Aug 2026, Sophie: "'maybe
   never' isn't on the tag list in the account area" → "give them both a
   chip").** `come back to` had one because it was already a folder of hers;
@@ -1854,8 +1887,10 @@ them off the reference sheet, not off the old filenames.
     not or just the archive" — are that shape exactly.
   - **The value is spelled out BESIDE the knob, and the knob carries no
     letter.** "Claude's" and "Archive only" are not initials, and a code to
-    learn is a worse control than a word. Tapping the word moves the knob too:
-    a label beside a switch is what a thumb aims at. **They take the Playground's
+    learn is a worse control than a word. **Tapping the word CLEARS that
+    filter** (2026-08-24) — it used to step to the next value, which is the
+    cycle she retired; the word cannot aim at a stop it sits nowhere near, and
+    the one thing it can mean unambiguously is "put this back to Everyone". **They take the Playground's
     78px track, not the account switcher's 48**, and that is measured: at 48
     the three stops are 11px apart, which the account switcher's own note
     calls the floor — it can afford the floor because a toast names the
@@ -1876,6 +1911,13 @@ them off the reference sheet, not off the old filenames.
     the safe direction for the smaller pile. (Measured: she posts about 40
     messages to every 220 replies, which is why a search across both buries
     the shorter one.)
+  - **THE NEUTRAL STOP IS THE MIDDLE ONE, on both filters (2026-08-24, her
+    ask: "the middle should be the both option or everyone or whatever …
+    that way I can get to either way with one tap").** The row reads `Mine ·
+    Everyone · Claude's` and `Not archived · Everywhere · Archive only`, so
+    either narrowing is one aimed tap from rest and one tap back. `FILTERS`
+    carries `neutral` by NAME — see the design rules; the server's own lists
+    still lead with `all` and are untouched.
   - **ARCHIVE — `all` · `live` · `only`, filtering by CHAT.** `archived` is a
     flag on the registry doc, so the set is one read of the 5-minute cache the
     route already takes. A chat with no flag at all is live.
@@ -2488,10 +2530,32 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   - **A tap with NO coordinate still cycles** — a keyboard activation (a
     click with `detail === 0`) and the WORD beside a search-filter row, which
     is part of the control but sits nowhere near the stop it names.
-  - **A BLANK-KNOB toggle keeps cycling, deliberately** — the account
-    switcher in chats.html has no letter and no words beside it, so there is
-    nothing on screen to aim AT; a toast names the account after the tap.
-    Aim needs something legible to aim at.
+  - **NO TOGGLE CYCLES ON A TAP — NOT ONE (2026-08-24, her second pass: "it
+    also applies to the account thing because none of them should cycle —
+    that's a really stupid pattern … Cycling is a bad idea").** This rule
+    shipped hours earlier carving out the account switcher on the reasoning
+    that a blank knob gives her nothing to aim at; she overruled it, and she
+    is right — the stops are ordered 1·2·3 left to right and the knob shows
+    which one it is on, and a control where account 3 costs two taps from
+    account 1 is the identical complaint in a narrower box. Its zones are
+    16px on a 48px track, which is small; widening it is hers to ask for.
+  - **A LABEL BESIDE A ROW CLEARS, it does not step.** The search filters
+    spell their value out next to the knob and that word cannot aim (it is
+    nowhere near the stop it names), so tapping it returns that filter to its
+    neutral stop. A step there would be the cycle coming back in through the
+    label.
+  - **THE NEUTRAL STOP GOES IN THE MIDDLE (2026-08-24, Sophie: "the filters
+    for searching chats should start in the middle. The middle should be the
+    both option or everyone or whatever … that way I can get to either way
+    with one tap").** A three-way filter is `everything` plus two OPPOSITE
+    narrowings, so the neutral one belongs between them; leading with it put
+    one narrowing two stops out at the far end. In `FILTERS` (chats.html) the
+    neutral value is **NAMED** (`neutral:'all'`), never positional — every
+    reader used to ask `vals.indexOf(v) > 0`, i.e. "not the first one", which
+    stopped meaning "not neutral" the moment it moved. **The server's lists
+    are untouched and still lead with `all`**, because `pickOne` in
+    chatfeed.js leans on exactly that index-0 rule to widen an unknown value:
+    this is a display ORDER and the values on the wire never changed.
   - **A stub test server must serve BOTH `/tritoggle.css` and
     `/tritoggle.js`** — express.static does it in production. Without the CSS
     the toggle renders as a 4px sliver; without the JS the page falls back to
@@ -2612,27 +2676,38 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     `[hidden]` and was never affected — that is the difference between the two.
     Test: `node scripts/test-lightbox-nostop.js` (verified failing against the
     pre-fix file).
-  - **AND `/assets` (Meta Assets) IS A THIRD COPY OF THAT LIGHTBOX, STILL
-    UNMIGRATED — it drifts, and both of these bugs reached Sophie there a
-    second time (2026-08-24: "I can't get out of the light box in Meta assets
-    I think with tapping it's considering too many things part of the row").**
-    `asset-lightbox.js` exists precisely to end this and `public/assets.html`
-    was never moved onto it, because it grew extras the shared file has no
-    hook for (the action icons — open the chat · Playground · Save to Photos —
-    and the `clwho` origin line). So it kept the OLD close rule: a blanket
+  - **`/assets` (Meta Assets) WAS A THIRD COPY OF THAT LIGHTBOX, AND IS NOW
+    MIGRATED — the copy is what made both of these bugs reach Sophie a second
+    time (2026-08-24: "I can't get out of the light box in Meta assets I think
+    with tapping it's considering too many things part of the row").**
+    `asset-lightbox.js` was written to end exactly this and `public/assets.html`
+    was never moved onto it, so it kept the OLD close rule — a blanket
     `stopPropagation` on each row, which swallows the tap for the row's WHOLE
-    width — the ♥/✕ strip is `left:22px; right:22px`, the action icons and the
-    note block are full-width flex rows — leaving her with almost nowhere to
-    tap that closes. Both settled rules are ported now (target-based close,
-    innerHTML wiped a frame later, `data-nostop` on the overlay), but they are
-    a HAND COPY: **fix one and fix the other**, and the real repair is giving
-    the shared file an extras hook and deleting this copy. It also still runs
-    the OLD thread layout (letters above the box, no CHAT button) — the same
-    drift, visible.
-    Test: `node scripts/test-meta-assets-page.js` (step 11, the real page
-    headless — the dead space found by scanning the row with
-    `elementFromPoint`, which is the only honest way to ask what a tap reaches;
-    verified failing against the pre-fix page).
+    width (the ♥/✕ strip is `left:22px; right:22px`; the action icons and the
+    note block are full-width flex rows) — leaving her with almost nowhere to
+    tap that closes. **The reason nobody had migrated it is the lesson:** it had
+    grown two things the shared file had no place for, so every chat that looked
+    at it chose to patch the copy. The shared file grew HOOKS for them instead,
+    and 226 lines of duplicate came out of the page:
+    - **`actions:[{label, icon, onClick}]`** — a row of small circular icon
+      buttons directly under the picture (open the chat · Playground · Save to
+      Photos). `label` becomes the aria-label AND the title; the empty space
+      between them closes the lightbox, because the close rule asks the tap's
+      TARGET. `.hasacts` shrinks the picture to 46vh so the note box still fits.
+    - **`who`** — the small uppercase origin-chat line under the caption, for a
+      surface that mixes many chats.
+    Both optional and additive, so no existing caller changed. **The next
+    surface that needs something extra gets a hook, never a fourth copy.**
+    Three things came free with the move: the picture is no longer rounded (her
+    rule), the note thread is the settled box-first layout with the CHAT button,
+    and the note input's 16px iOS floor — which that copy had and the shared
+    file did not — now protects every caller.
+    Tests: `node scripts/test-asset-lightbox.js` (the two hooks, and that an
+    asset passing neither is untouched) and `node
+    scripts/test-meta-assets-page.js` (step 0 is a SOURCE PIN that the page
+    opens the shared lightbox and builds none of its own; step 11 taps the dead
+    space, found by scanning each row with `elementFromPoint` — the only honest
+    way to ask what a tap reaches; verified failing against the pre-fix page).
 - **iOS: pin bottom bars below the keyboard (never floating above it).** A
   custom bottom nav/tab bar laid out in a `VStack` rides UP and hovers above the
   keyboard, because SwiftUI's keyboard safe-area inset shrinks the stack. This
@@ -2816,6 +2891,16 @@ out. The headlines, so you know when to go and look:
   copy-paste into a new module fails there instead of silently costing a batch
   of originals. Need a smaller file for a page? Derive one — `webp-assets.js`,
   or the `thumbs/` service in `server.js`.
+- **THE HEADER TOP IS ONE NUMBER AND `pagehead.js` ENFORCES IT (2026-08-23,
+  Sophie: "the header is different in both, and not at the top").** Measured
+  that day: across all 39 gated pages the gap above the header ran 0 to 42px,
+  because every page improvised its own status-bar clearance and new pages
+  copied their neighbour's. `levelRow()` in `pagehead.js` now measures the
+  real box and corrects the row to `var(--headtop)` (safe area + 4px) / left
+  16 — so a page writes NO top-inset code of its own, and
+  `node scripts/test-header-top.js` measures every `serveGated` page (the
+  list is derived from server.js, so a new page is covered the day it is
+  registered). Full rules in `docs/design-rules.md`.
 - **The hairline `.acctabs` rows measure their own underline** — no row anywhere
   declares a tab count. Add a tab and the line still lands under the word.
 - **Custom icons are framed at 1.11x the SF Symbol point size**, and every
@@ -3124,26 +3209,30 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (promptlab.html, the picker) and `PORT_STYLES` (playground-port.js, the
   routing) — pinned equal by `node scripts/test-playground-port.js`, which also
   checks every prefix fragment is verbatim in the real prefix.
-  **THE TILE WALL IS THREE TO A ROW, AND THE LIGHTBOX'S SIDE ARROWS ARE A
-  SMALL BAR IN A BIG ZONE (Aug 2026, Sophie: "make playground thumbnails 3 to
-  a row not 4" · "the side arrow bars - buttons shud be smaller, tap targets
+  **THE TILE WALL IS THREE TO A ROW, AND THE LIGHTBOX'S SIDE ARROWS ARE A TAP
+  WITH NOTHING DRAWN (2026-08-24, Sophie: "make playground thumbnails 3 to a
+  row not 4" · "the side arrow bars - buttons shud be smaller, tap targets
   bigger. tap anywhere on the right or left of the screen in the image area
-  and it switches left or right. arrow bars are just about an inch tall").**
-  Four across stopped being enough to judge a picture by once the tiles were
-  no longer cropped squares. In the lightbox the two are now separate things:
-  `.lbnav` is a transparent 28% strip running the full height of the image
-  area — **over the picture, which is the point** — and `.lbbar` is the 26x96
-  chip drawn at its outer edge. The 52px of side padding the old 58vh bars
-  needed went with them, so the picture is bigger too. The stage
-  (`.lbstage`) exists so "the image area" is a real box: the zones are sized
-  to the picture, never to the window, so the caption and the ♥/✕ row under it
-  are never covered. Hidden at the ends of the feed takes the ZONE with it, so
-  a tap there closes exactly as it did before. Test:
-  `node scripts/test-playground-liked-arrows.js` — the chip measured small,
-  the zone measured over the picture, and the edge tap asked with
-  `elementFromPoint`; its fixture had to become a REAL-SIZED 2:3 picture,
-  because the lightbox sizes itself to the picture and a 1x1 pixel put the
-  zones nowhere near it.
+  and it switches left or right" · **"the top left and right bars cover part
+  of the image. Can you just make it tap and no buttons showing"**).** Four
+  across stopped being enough to judge a picture by once the tiles were no
+  longer cropped squares. In the lightbox `.lbnav` is a transparent 28% strip
+  running the full height of the image area — **over the picture, which is the
+  point** — and **that is the whole control: no chip, no glyph, no plate, no
+  background.** The 26x96 `.lbbar` chip that used to be drawn at each zone's
+  outer edge is GONE; the zone was always what she was tapping, so the mark
+  was buying nothing and paying for it in a covered strip of a portrait 2:3.
+  **A tap zone over a picture stays invisible** — the whole point of a big
+  target is that it does not have to be shown. The stage (`.lbstage`) exists
+  so "the image area" is a real box: the zones are sized to the picture, never
+  to the window, so the caption and the ♥/✕ row under it are never covered.
+  Hidden at the ends of the feed takes the ZONE with it, so a tap there
+  closes. Test: `node scripts/test-playground-liked-arrows.js` — nothing drawn
+  (child nodes, text, background and border all measured off the real
+  buttons), the zone measured over the picture, and the edge tap asked with
+  `elementFromPoint`; verified failing 3 against the pre-fix page. Its fixture
+  had to become a REAL-SIZED 2:3 picture, because the lightbox sizes itself to
+  the picture and a 1x1 pixel put the zones nowhere near it.
   **THE ✕ FILTER BESIDE THE HEART (Aug 2026, Sophie: "can u also add a button
   next to the heart that hides anything i've 'exed'").** The heart's opposite
   and its twin — a filter over PICTURES in whichever view she is in, sticky,
@@ -3725,10 +3814,29 @@ before working on that module. Nothing was deleted — the moved text is verbati
     the place that already knows how. Assembly's "Add from the Dump" and the
     Film Editor read those two libraries already, so a grab is usable the
     moment it lands.
-  - **`to:"none"` for MUSIC.** The audio library transcribes unconditionally
-    (~$0.006/min) and files into her voice-memo archive — right for an
-    interview, wrong for a song, which would put lyrics in among her memos.
-    `none` keeps the only copy under `ytdl/` and just hands back the url.
+  - **AUDIO DEFAULTS TO `none`, AND THAT IS THE POINT (Aug 2026 v2, Sophie:
+    "are you meaning to ask a chat about it?").** This first shipped defaulting
+    audio into the audio library with a note saying to pass `to:"none"` for
+    music — i.e. a flag someone had to remember, which is not a fix. The audio
+    library transcribes everything it receives and files it into her voice-memo
+    archive: right for an interview, wrong for a song, and the two are NOT
+    tellable apart from the metadata (`categories`/`artist`/`track` all come
+    back `NA` on the player client yt-dlp uses here, measured 2026-08-24). So
+    the default is the mistake that is cheap to undo — `none` keeps the file
+    under `ytdl/` and hands back a url — and a chat grabbing an INTERVIEW asks
+    for `to:"audio"` deliberately. The other way round, a music grab nobody
+    thought about puts lyrics in among the notes she searches, with no undo
+    beyond hunting the memo down.
+  - **THE BOT-BLOCK IS INTERMITTENT AND IS RETRIED, NEVER REPORTED FIRST TIME
+    (measured 2026-08-24).** The same video read fine, then was refused twice
+    in a row a second later, same box and same IP — so it is rate-limiting, not
+    a standing ban. A grab retries a block 3 times over ~46s and only calls it
+    `blocked:true` once that ladder is exhausted; anything else (a dead url, a
+    private video) fails at once rather than wasting her time. Reporting the
+    first refusal as a block would send her to her computer for something that
+    works on the next attempt — the worst failure this module can have.
+    Render measured 6/6 clean at ~4s the same day, so its IP is in better
+    standing than a session container's, but neither is immune.
   - **The 300MB cap is a MEMORY fact, not a preference** — both sibling routes
     sit behind `express.raw`, which buffers the whole body, and the box has
     512MB. Raise `YTDL_MAX_MB` only if that changes.

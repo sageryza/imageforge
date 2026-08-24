@@ -991,17 +991,17 @@
   - **Session-only, always starting CLOSED**, like the hidden pile and every
     other filter here: a fold that remembered itself would hide half her
     chats one morning with no memory of having asked.
-  - **AND IT KEEPS HER SPOT (Aug 2026, Sophie: "when I click more, it takes me
-    all the way back to the top and should stay where I am").** Nothing was
-    scrolling her, which is why this read as unexplainable: `renderHome`
-    empties `#grid`, so for that instant the page is nothing tall and the
-    BROWSER clamps `scrollY` to 0 — the rebuild puts the height back but not
-    the position. Every other `renderHome` caller follows it with a deliberate
-    `scrollTo(0,0)` and so never noticed. `renderHomeKeepingSpot()` reads the
-    position, rebuilds, and puts her back. **The HIDDEN bar deliberately does
-    NOT use it** — the open pile replaces the whole screen, so that one is
-    going somewhere and lands at the top, exactly as the way back out already
-    did (it was relying on the same clamp; it says so out loud now).
+  - **AND IT KEEPS HER SPOT — `repaintKeepingBar` (Aug 2026, Sophie: "when I
+    click more, it takes me all the way back to the top and should stay where
+    I am").** Nothing was scrolling her, which is why this read as
+    unexplainable: `renderHome` empties `#grid`, so for that instant the page
+    is nothing tall and the BROWSER clamps `scrollY` to 0 — the rebuild puts
+    the height back but not the position. Every other `renderHome` caller
+    follows it with a deliberate `scrollTo(0,0)` (a filter, a tab and a pile
+    change what the list IS), so nothing else ever showed it. The tapped bar
+    is put back at its own **viewport offset**, never the old `scrollY`, which
+    is already wrong if any chrome above it changed height in the repaint; and
+    the hidden bar goes through the same helper.
   - **The split happens in `renderHome`, not inside `renderList`** — so the
     hidden pile, the archive, ★ and Status keep showing their piles whole.
     Those are places she went on purpose, and a second fold inside one is a
@@ -2208,6 +2208,44 @@
       would show the pin only where it is not needed. `pinLive` is
       `filedAt > notifSeenAt` and nothing else — the tag written after the
       last time she settled the chat.
+      - **AND THE CHAT WEARS A MARK, EVERYWHERE (2026-08-24, Sophie: "are
+        there any extra instructions for if I tag a chat waiting for a
+        response? Since I'm waiting for it I'd like a chat that's tagged like
+        that to come with some extra indication").** The pin above was the
+        whole of the rule, and a pin only exists on the Update tab — so on the
+        home list, and inside the thread itself, a chat she was owed an answer
+        from looked like every other chat, and the one screen that knew she
+        was waiting was the one screen she had to already be on.
+        `waitMarkHtml` is a Lucide **hourglass** in the marks' red (`--chg`),
+        drawn at the front of the row beside the star and the bookmark — the
+        slot this file already reserves for a state with no control of its own
+        — and inside the thread's `<h1>`. One renderer, so the three row
+        builders that share `starHtml` (the home list, the Status row and the
+        Update card) cannot draw it three ways.
+        - **IT FOLLOWS THE TAG, NOT THE CARD.** Her ✓ on the Update tab
+          settles the CARD (`pinLive` goes out); the mark stays until the WORD
+          comes off, which is the same rule the sibling tag's `Waiting for:`
+          line has always followed. Two different questions — "have I dealt
+          with this card" and "am I still waiting" — so they end at two
+          different moments.
+        - **IT READS `TAG_RULES`, NOT THE STRING** (`waitingReply` asks
+          `tagRuleOf(name).rule === 'pin'`), so the mark and the pin can never
+          disagree about which word means this. First-match ordering means a
+          chat wearing both rule words still answers `pin`, which is the right
+          answer here for the same reason it is right on the tab.
+        - **IT IS A `<span>`.** A row is a `<button>`; a nested button is
+          invalid markup and the tap would bubble into opening the chat. The
+          word rides `title` + `aria-label` instead.
+        - **`syncWaitMark` repaints the THREAD header**, which is built once
+          in `openChat` — and the Organize sheet opens from inside that same
+          thread, so without it the screen she is standing on is the last to
+          know. The lists need no such thing: `saveLabels` mutates `chats`
+          synchronously before its callers redraw.
+        - **Nothing tells the CHAT.** `GET /api/chatfeed/status` returns her
+          note, the status card and the pinned link — no labels — so a chat
+          cannot see that she is waiting on it. That half is unbuilt.
+        - Test: `node scripts/test-chats-waiting-mark.js` (the real page,
+          headless — verified failing 8 of 14 against the pre-fix page).
     - **`to be reviewed` → THE REVIEW ROW** ("movies that are done, images
       waiting on my decision, go into a `review` button (which links to the
       review queue) at the top of the updates tab, and get hidden from the

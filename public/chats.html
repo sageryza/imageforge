@@ -654,6 +654,21 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    told apart at a glance on a row that carries both. */
 .cr-kept{flex:none; display:flex; align-items:center; color:var(--chg); margin-right:-3px;}
 .cr-kept svg{width:13px; height:13px; display:block; fill:currentColor;}
+/* WAITING FOR A RESPONSE — the mark for the one tag that says a chat owes HER
+   something (Aug 2026, Sophie: "since I'm waiting for it I'd like a chat
+   that's tagged like that to come with some extra indication").
+   The tag already pinned the chat's CARD to the top of the Update tab, and
+   that was the whole of it: on the home list, in Tiles, and inside the thread
+   the chat looked like every other chat, so the one screen that knew she was
+   waiting was the one screen she had to be on to find out.
+   It rides the front of the row beside the star and the bookmark — the slot
+   for a state with no control of its own — and `inline-flex` rather than
+   `flex` so the SAME class also sits inside the tile's name and the thread's
+   <h1>, which are text and not flex rows. */
+.cr-wait{flex:none; display:inline-flex; align-items:center; vertical-align:-2px;
+  color:var(--chg); margin-right:-1px;}
+.cr-wait svg{width:14px; height:14px; display:block;}
+.t-name .cr-wait,h1 .cr-wait{margin-right:4px;}
 /* PINNED TO THE TOP — the pushpin is a CONTROL on the row (Aug 2026, Sophie:
    "I was assuming it would go right on the main page not inside of it"), so it
    sits with the hide button rather than being a mark at the front of the row.
@@ -2395,8 +2410,45 @@ function statusLinesHtml(name, fallback){
 // the chat is pinned — a second copy of the same glyph at the front of the row
 // was showing the state twice. The star and the bookmark are marks here
 // because they have no control on the row.
+// Lucide `hourglass`. A line glyph, the house's chrome voice — and the one
+// mark on a row that means SHE is owed something rather than that she filed
+// something. Deliberately not the bell (that is notifications), not the star
+// (hers, "I am working on this") and not a clock with an arrow (WAITPAST, the
+// reasons list) — three marks in one colour already live on these rows, so the
+// shape is what has to carry the difference.
+var WAITREPLY='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg>';
+// IS SHE WAITING ON THIS CHAT? — read off TAG_RULES rather than off the string,
+// so the mark and the Update tab's pin can never disagree about which word
+// means this. The pin rule is first in that table, so a chat wearing both rule
+// words still answers `pin` here, which is the right answer: an answer she is
+// owed outranks a queue she can visit whenever.
+function waitingReply(name){ var r=tagRuleOf(name); return !!(r && r.rule==='pin'); }
+// THE MARK, one renderer. It follows the TAG, not the Update tab's card: her ✓
+// there settles the CARD, and the debt is over when the word comes off — the
+// same rule the sibling tag's "Waiting for:" line has always followed. So a
+// chat she dismissed on the Update tab still says she is waiting, and taking
+// the tag off is what puts the mark out.
+function waitMarkHtml(name){
+  return waitingReply(name)
+    ? '<span class="cr-wait" title="Waiting for a response" aria-label="Waiting for a response">'+WAITREPLY+'</span>'
+    : '';
+}
+// The thread's copy of the mark is built ONCE with the header, and the tag is
+// put on from the Organize sheet — which opens from inside that same thread. So
+// the tap has to repaint it, or the one screen she is standing on is the last
+// to know. The lists repaint themselves (saveLabels mutates `chats` before its
+// callers redraw), so this is the only copy that needs telling.
+function syncWaitMark(name){
+  if(cur!==name) return;
+  var h=document.querySelector('#thread .thread-head h1');
+  if(!h) return;
+  var m=h.querySelector('.cr-wait');
+  if(waitingReply(name)){ if(!m) h.insertAdjacentHTML('afterbegin', waitMarkHtml(name)); }
+  else if(m) m.remove();
+}
 function starHtml(name){
-  return (chatKept(name) ? '<span class="cr-kept">'+BMK_SVG+'</span>' : '')
+  return waitMarkHtml(name)
+       + (chatKept(name) ? '<span class="cr-kept">'+BMK_SVG+'</span>' : '')
        + (chatStar(name) ? '<span class="cr-star">'+STAR+'</span>' : '');
 }
 function acctHtml(name){
@@ -5133,10 +5185,7 @@ function renderHiddenBar(el,g,hid){
   // so the count must be refreshable without a renderHome.
   bar.dataset.hid=hid.join(',');
   paintHideWork(bar,g,hid);
-  // Deliberately NOT renderHomeKeepingSpot: the open pile is the WHOLE screen
-  // (see THE OPEN PILE IS THE WHOLE SCREEN below), so this is going somewhere,
-  // not continuing a list — and the way back out already lands at the top.
-  bar.onclick=function(){ hideOpen=!hideOpen; renderHome(); window.scrollTo(0,0); };
+  bar.onclick=function(){ hideOpen=!hideOpen; repaintKeepingBar('.hidebar'); };
   el.appendChild(bar);
   function sep(){ el.appendChild(Object.assign(document.createElement('div'),{className:'hbsep'})); }
   if(!hideOpen){ sep(); return; }
@@ -5154,6 +5203,31 @@ function renderHiddenBar(el,g,hid){
 //     fold can answer her in silence;
 //   * with the fold OPEN the rows are the ordinary list, so every control on
 //     them (hide, filing, select mode) works exactly as it does above.
+// A FOLD THAT OPENS IN PLACE MUST NOT MOVE THE SCREEN (Aug 2026, Sophie: "when
+// I clicked the more button in the chat app, it takes me all the way back to
+// the top. It should stay where I am"). Both bars below open UNDERNEATH the
+// list rather than replacing the screen, but their tap goes through
+// `renderHome`, which empties #grid and rebuilds it — the page height collapses
+// mid-repaint and the browser clamps her scroll to 0. The bar is at the BOTTOM
+// of a long list, so that is the whole list scrolled away under her thumb.
+//
+// Every OTHER renderHome caller scrolls to the top on purpose (a filter, a tab
+// and a pile change what the list IS). Here the tapped bar is put back exactly
+// where it was on screen — by its own viewport offset, never the old scrollY,
+// which is already wrong if any chrome above it changed height in the repaint.
+function repaintKeepingBar(sel){
+  var before=document.querySelector(sel);
+  var was=before?before.getBoundingClientRect().top:null;
+  renderHome();
+  if(was===null) return;
+  var after=document.querySelector(sel);
+  if(!after) return;   // the bar itself went away — nothing to hold still
+  // Closing the fold shortens the page, so this can ask for more scroll than
+  // there is; the browser clamps, which lands her at the bottom with the bar
+  // in view. That is the honest answer, not a jump.
+  var y=window.scrollY+(after.getBoundingClientRect().top-was);
+  window.scrollTo(0, Math.max(0,y));
+}
 function renderMoreBar(el,g,old){
   if(!old.length) return;
   var fresh=old.filter(function(n){
@@ -5164,29 +5238,12 @@ function renderMoreBar(el,g,old){
   bar.setAttribute('aria-expanded', moreOpen?'true':'false');
   bar.innerHTML='<span class="mb-n">More '+old.length
     +(fresh? ' <span class="mb-new">&middot; '+fresh+' new</span>':'')+'</span>'+CHEV.replace('hb-chev','mb-chev');
-  bar.onclick=function(){ moreOpen=!moreOpen; renderHomeKeepingSpot(); };
+  bar.onclick=function(){ moreOpen=!moreOpen; repaintKeepingBar('.morebar'); };
   el.appendChild(bar);
   if(!moreOpen) return;
   var box=document.createElement('div'); box.className='morelist';
   el.appendChild(box);
   if(view==='list') renderList(box,g,old); else renderTiles(box,g,old);
-}
-// MORE KEEPS HER SPOT (Aug 2026, Sophie: "when I click more, it takes me all
-// the way back to the top and should stay where I am"). NOTHING was scrolling
-// her, which is why it read as unexplainable: renderHome empties #grid, so for
-// that instant the page is nothing tall and the browser CLAMPS scrollY to 0 —
-// the rebuild puts the height back but not the position. It only ever showed
-// on MORE because every other renderHome caller follows it with a deliberate
-// scrollTo(0,0), and those are all places she GOES (a category, the archive,
-// the hidden pile). More is the same list continuing — she asked for it
-// "underneath all the chats" — so the row she was reading has to stay under
-// her thumb. Opening it appends below her, so her spot is still there; closing
-// it can leave less page than that and the browser clamps for us, which is the
-// right answer rather than a jump to the top.
-function renderHomeKeepingSpot(){
-  var y=window.scrollY;
-  renderHome();
-  window.scrollTo(0,y);
 }
 function renderHome(){
   clearNew();   // a full rebuild shows everything, so nothing is pending
@@ -5605,7 +5662,7 @@ function renderTiles(el,g,names){
     var tline=st.note || st.need || st.doing || status || '';
     var lineHtml=tline?'<span class="t-tldr t-note">'+esc(tline)+'</span>':'';
     b.innerHTML='<span class="t-cover">'+iconHtml(name,'',true)+(unread?'<span class="t-new"></span>':'')+'</span>'
-      +'<span class="t-name">'+esc(dispName(name))+'</span>'
+      +'<span class="t-name">'+waitMarkHtml(name)+esc(dispName(name))+'</span>'
       +(about? '<span class="t-about">'+esc(about)+'</span>':'')
       +lineHtml
       +'<span class="t-meta">'+(last? ago(last.created) : 'no messages')+'</span>';
@@ -6055,10 +6112,9 @@ function renderMsg(m){
   ob.appendChild(bookmarkBtn(m, row));
   var murl=m.url||openUrl;
   if(murl){ ob.appendChild(openClaudeBtn(openHref(m.chat, murl))); }
-  // an already-bookmarked message carries its note box from the first paint,
-  // so what she wrote is visible and editable without hunting for a gesture.
-  // The TAGS are not here: this is not the moment she is keeping it.
-  if(m.bookmarked) ob.appendChild(mkBmkEdit(m,'msg'));
+  // NOTHING is drawn here for a message she kept earlier — not the tags and
+  // not the note box either (see mkBmkEdit): the editor belongs to the tap
+  // that keeps it. Her note is still hers to read and rename in the keep-pile.
   row.appendChild(ob);
   return row;
 }
@@ -6068,15 +6124,12 @@ function renderMsg(m){
 // what Sophie marked to keep.
 // The bookmark, plus the NOTE that says why she kept it (Aug 2026, Sophie: "I
 // want to leave a note or title the message so I remember what it was and why
-// I bookmarked it"). Bookmarking opens the box straight away — the reason is
-// in her head at that moment and nowhere else — and the box stays reachable
-// afterwards by tapping the lit bookmark. It saves on tap-away, the same
-// contract as everything else she dictates into.
-// The note box lives under a bookmarked message for as long as it IS
-// bookmarked — appearing when she saves it and going when she un-saves it.
-// That is why there is no separate "edit the note" gesture: the box is simply
-// there, holding whatever she wrote, and it saves on tap-away like everything
-// else she dictates into.
+// I bookmarked it"). Bookmarking opens the box straight away and focuses it —
+// the reason is in her head at that moment and nowhere else — and it saves on
+// tap-away, the same contract as everything else she dictates into.
+// The box goes with the tap that made it: it is NOT redrawn under a message
+// she kept earlier (see mkBmkEdit for her ask and for where the note is read
+// back). Un-keeping and keeping again is the way to open it on an old one.
 // ---- WHAT A KEPT THING IS — the tag row (Aug 2026, Sophie: "both shud now
 // have a set of tag buttons: to read, and 'important' level (1-3) - icons, and
 // review finished feature, review bug fix or information/question answered")
@@ -6235,21 +6288,30 @@ function mkBmkNote(m, kind){
 // now have a set of tag buttons"). One node so a bookmark toggled off takes
 // its whole editor with it, and so a message and an artifact can never end up
 // with two different sets of controls.
-// THE TAGS BELONG TO THE ACT OF KEEPING, NOT TO THE KEPT THING (Aug 2026,
-// Sophie, the day after they shipped: "those tags were supposed to only show
+// THE WHOLE EDITOR BELONGS TO THE ACT OF KEEPING, NOT TO THE KEPT THING (Aug
+// 2026, Sophie, twice). First the tags: "those tags were supposed to only show
 // up in the step when I'm actively bookmarking it. Either a chat or an
-// artifact"). They went out under EVERY kept message and artifact and on every
-// row of the keep-pile, which put four chips and a meter under things she was
-// only trying to read.
+// artifact" — so they came off every later paint. Then the note box itself:
+// "the why keep this bookmark button should only show up at the time that I'm
+// bookmarking it or if I un bookmark and bookmark again", which is the same
+// sentence about the other half of the same node. An empty "Why keep this?"
+// field under every kept message and every kept artifact is a box asking a
+// question she already answered, sitting under things she is only trying to
+// read.
 //
-// So `keeping` is the tap that just happened: the box that opens on the
-// bookmark carries the note AND the tags, and every later paint of the same
-// thing carries the note alone — the note is a sentence she wrote and wants
-// back, the tags are a decision she already made.
-function mkBmkEdit(m, kind, keeping){
+// So this node is drawn on ONE event: the tap that keeps the thing. Un-keeping
+// takes it away, and keeping again brings it back — with whatever she wrote
+// still in it, because un-keeping never clears the note (the bookmark toggle
+// sends `bookmarked` alone). That re-keep is her own named way back in.
+//
+// NOTHING IS LOST BY HIDING IT: the note she wrote leads that thing's row in
+// the keep-pile, in its own field, where it can be read and renamed without
+// opening the message. The pile is where a note is read back; this is where it
+// is written.
+function mkBmkEdit(m, kind){
   var w=document.createElement('div'); w.className='bmkedit';
   w.appendChild(mkBmkNote(m, kind));
-  if(keeping) w.appendChild(mkBmkMarks(m, kind));
+  w.appendChild(mkBmkMarks(m, kind));
   return w;
 }
 // The tick inside the read box — Lucide `check`, exact path.
@@ -6307,7 +6369,7 @@ function bookmarkBtn(m, row){
     var nv=!m.bookmarked; m.bookmarked=nv; b.classList.toggle('on',nv);
     var open=row.querySelector('.bmkedit');
     if(nv && !open){
-      var box=mkBmkEdit(m,'msg',true);      // she is keeping it right now
+      var box=mkBmkEdit(m,'msg');           // she is keeping it right now
       row.querySelector('.openrow').appendChild(box);
       box.querySelector('input').focus();   // the reason is in her head NOW
     } else if(!nv && open) open.remove();
@@ -6474,7 +6536,7 @@ function openChat(name, keepScroll, focusId, noFetch){
   var list=(groups()[name])||[];
   var head=document.createElement('header');
   head.innerHTML='<div class="no"></div>'
-    +'<div class="thread-head">'+iconHtml(name)+'<h1>'+esc(dispName(name))+'</h1><button class="renamebtn" aria-label="Rename this chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div>'
+    +'<div class="thread-head">'+iconHtml(name)+'<h1>'+waitMarkHtml(name)+esc(dispName(name))+'</h1><button class="renamebtn" aria-label="Rename this chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div>'
     +'<div class="headbtns"><div class="viewtog" style="margin:0"><button class="tg-chat on">Chat</button><button class="tg-assets">Assets</button><button class="tg-compare">Compare</button></div>'
     +'<button class="tbtn threadsearch" aria-label="Search this chat" style="padding:6px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>'
     +'<button class="tbtn threadrefresh" aria-label="Refresh" style="padding:6px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button></div><div class="rule"></div>';
@@ -7278,7 +7340,7 @@ function openChat(name, keepScroll, focusId, noFetch){
               // it — the reason is in her head at that moment and nowhere else.
               var open=row.querySelector('.bmkedit');
               if(nv && !open){
-                var ed=mkBmkEdit(p,'page',true);   // she is keeping it right now
+                var ed=mkBmkEdit(p,'page');        // she is keeping it right now
                 row.appendChild(ed);
                 ed.querySelector('input').focus();
               } else if(!nv && open) open.remove();
@@ -7305,9 +7367,9 @@ function openChat(name, keepScroll, focusId, noFetch){
                 .then(function(){ loadPages(true); }).catch(function(){});
             };
             row.appendChild(sup);
-            // an artifact she already keeps carries its note and its tags from
-            // the first paint, exactly as a kept message does
-            if(p.bookmarked) row.appendChild(mkBmkEdit(p,'page'));
+            // an artifact she already keeps carries NO editor on a fresh
+            // paint, exactly as a kept message carries none — the box belongs
+            // to the tap that keeps it (see mkBmkEdit)
             list.appendChild(row);
           });
         }
@@ -8001,7 +8063,7 @@ function askOrganize(name){
   }
   function setLabel(c, on){
     saveLabels([name], on?{add:[c],repaint:paintLabels}:{remove:[c],repaint:paintLabels});
-    paintLabels();
+    paintLabels(); syncWaitMark(name);
     // ONE WORD ASKS A QUESTION — `waiting for something` wants to know what.
     // The box opens on the tap that puts it on; taking the tag off clears the
     // answer (the server does that in labelPatch, and so does saveLabels here).
@@ -8018,7 +8080,7 @@ function askOrganize(name){
   }
   function clearLabels(){
     saveLabels([name], {set:[], repaint:paintLabels});
-    paintLabels(); paintWait();
+    paintLabels(); paintWait(); syncWaitMark(name);
     toast('Out of every pile');
   }
   paintLabels();
@@ -8384,19 +8446,34 @@ var triNext = window.triNext || function (el, count, ev, cur) {
   return ((cur | 0) + 1 + count) % count;
 };
 
+// THE NEUTRAL STOP SITS IN THE MIDDLE (2026-08-24, Sophie: "the filters for
+// searching chats should start in the middle. The middle should be the both
+// option or everyone or whatever change that way I can get to either way with
+// one tap"). It used to be `all · me · claude` — everything at the LEFT end, so
+// Claude's side was two stops away and, before the toggle learned to aim, two
+// taps. The two narrowings are OPPOSITES of each other and `all` is the middle
+// ground between them, so this is also what the control was always saying.
+//
+// `neutral` is NAMED rather than positional. Every reader used to ask
+// `vals.indexOf(v) > 0`, i.e. "not the first one" — true only while `all` led
+// the list, and silently wrong the moment it moved. The server's own lists
+// (SEARCH_WHO / SEARCH_ARCH in chatfeed.js) are UNTOUCHED and still lead with
+// `all`, because `pickOne` there leans on exactly that index-0 rule to widen an
+// unknown value: this is a display ORDER, and the values on the wire are the
+// same strings they always were.
 var FILTERS = {
   // `param` is the query-string name, kept next to the values so a caller can
   // never send a filter under a name the server does not read.
-  who: { param:'from', vals:['all','me','claude'],
-         words:['Everyone','Mine','Claude\u2019s'],
+  who: { param:'from', vals:['me','all','claude'], neutral:'all',
+         words:['Mine','Everyone','Claude\u2019s'],
          label:'Whose messages to search' },
-  arch:{ param:'arch', vals:['all','live','only'],
-         words:['Everywhere','Not archived','Archive only'],
+  arch:{ param:'arch', vals:['live','all','only'], neutral:'all',
+         words:['Not archived','Everywhere','Archive only'],
          label:'Whether to search the archive' },
 };
 function buildFilters(mount, keys, onChange){
   var state={};
-  keys.forEach(function(k){ state[k]='all'; });
+  keys.forEach(function(k){ state[k]=FILTERS[k].neutral; });
   mount.innerHTML='';
   var chip=document.createElement('button');
   chip.type='button'; chip.className='catchip filtchip';
@@ -8409,7 +8486,7 @@ function buildFilters(mount, keys, onChange){
     var def=FILTERS[k];
     var row=document.createElement('div'); row.className='filtrow';
     var tog=document.createElement('button'); tog.type='button'; tog.className='tri';
-    tog.setAttribute('data-n','0');
+    tog.setAttribute('data-n', String(def.vals.indexOf(def.neutral)));
     var val=document.createElement('span'); val.className='filtval';
     row.appendChild(tog); row.appendChild(val); drawer.appendChild(row);
     rows[k]={row:row, tog:tog, val:val};
@@ -8424,20 +8501,27 @@ function buildFilters(mount, keys, onChange){
       state[k]=def.vals[i];
       paint(); if(onChange) onChange(state);
     }
-    // The word is part of the control, not a caption — a label beside a
-    // switch is the thing a thumb aims at, so it moves the knob too. It sits
-    // nowhere near the stop it names, so tapping it CYCLES: no coordinate
-    // reaches triNext from here, which is exactly what the fallback is for.
-    tog.onclick=step; val.onclick=function(){ step(null); };
+    // THE WORD CLEARS THE FILTER — it does NOT cycle (2026-08-24, Sophie:
+    // "none of them should cycle ... Cycling is a bad idea"). It is still part
+    // of the control rather than a caption, but it sits nowhere near the stop
+    // it names, so there is nothing there to aim at: the one destination it can
+    // mean unambiguously is the neutral middle, which is what the word reads
+    // when nothing is narrowed. Tapping "Mine" gives her Everyone back; tapping
+    // "Everyone" is already there and does nothing.
+    tog.onclick=step;
+    val.onclick=function(){
+      if(state[k]===def.neutral) return;
+      state[k]=def.neutral; paint(); if(onChange) onChange(state);
+    };
   });
-  function narrowed(){ return keys.filter(function(k){ return state[k]!=='all'; }); }
+  function narrowed(){ return keys.filter(function(k){ return state[k]!==FILTERS[k].neutral; }); }
   function paint(){
     keys.forEach(function(k){
       var def=FILTERS[k], r=rows[k], i=Math.max(def.vals.indexOf(state[k]),0);
       r.tog.setAttribute('data-n', String(i));
       r.tog.setAttribute('aria-label', def.label+' \u2014 '+def.words[i]+', tap a side to pick one');
       r.val.textContent=def.words[i];
-      r.row.classList.toggle('on', state[k]!=='all');
+      r.row.classList.toggle('on', state[k]!==def.neutral);
     });
     // THE CHIP CARRIES THE STATE ONLY WHILE THE DRAWER IS SHUT. Open, the
     // rows below it already say "Mine" and "Archive only" in full, and
@@ -8468,21 +8552,24 @@ function buildFilters(mount, keys, onChange){
     // meaning "everything".
     query: function(){
       return keys.map(function(k){
-        return state[k]==='all' ? ''
+        return state[k]===FILTERS[k].neutral ? ''
           : '&'+FILTERS[k].param+'='+encodeURIComponent(state[k]);
       }).join('');
     },
     // A stamp to compare a landing response against — see the in-flight guard.
     stamp: function(){ return keys.map(function(k){ return state[k]; }).join('|'); },
     narrowed: function(){ return narrowed().length>0; },
-    reset: function(){ keys.forEach(function(k){ state[k]='all'; }); setOpen(false); paint(); },
+    reset: function(){ keys.forEach(function(k){ state[k]=FILTERS[k].neutral; }); setOpen(false); paint(); },
     // Restoring a remembered hunt OPENS the drawer when it is narrowed: she is
     // coming back to the same search, and the control that is shaping it
     // should be in front of her, not folded away behind a chip.
     setAll: function(o){
       keys.forEach(function(k){
         var def=FILTERS[k], v=o&&o[k];
-        state[k]= def.vals.indexOf(v)>0 ? v : 'all';
+        // MEMBERSHIP, never a position — `indexOf(v) > 0` meant "not the
+        // first one", which stopped being "not neutral" the day the neutral
+        // stop moved to the middle.
+        state[k]= def.vals.indexOf(v)>=0 ? v : def.neutral;
       });
       setOpen(narrowed().length>0); paint();
     },
@@ -8804,9 +8891,14 @@ document.getElementById('iglink').onclick=function(){ location.href='/instagram'
 
 // Which Claude account is signed into the iOS app right now \u2014 the switch on
 // the header's title line. Its knob has one notch per account (ACCOUNTS) and
-// tapping moves to the next one, wrapping at the end, exactly the way the
-// two-state version flipped; the toast names where it landed, so the control
-// needs no label. The account it points at is the one she is SIGNED IN ON \u2014
+// A TAP LANDS ON THE ACCOUNT UNDER IT (2026-08-24, Sophie: "it also applies to
+// the account thing because none of them should cycle \u2014 that's a really stupid
+// pattern ... Cycling is a bad idea"). This used to move to the next one and
+// wrap, which meant account 3 was two taps from account 1 and there was no way
+// to say "that one" \u2014 the same complaint she made about the Playground's
+// quality toggle, in a control half the width. The aim rule is /tritoggle.js,
+// shared; the toast still names where it landed, so the blank knob needs no
+// label. The account it points at is the one she is SIGNED IN ON \u2014
 // every other account's chats open on the WEB instead, which openHref does by
 // appending #no_universal_links so iOS hands the link to the browser rather
 // than to the Claude app.
@@ -8820,14 +8912,17 @@ function paintAcct(){
   // switch has never heard of lands on the first notch instead of nowhere.
   acctog.setAttribute('data-n', String(Math.max(ACCOUNTS.indexOf(cur), 0)));
   acctog.setAttribute('data-a', cur);   // still the account itself, for readers
-  acctog.setAttribute('aria-label', 'Signed into account '+cur+' on this phone \u2014 tap for the next one');
+  acctog.setAttribute('aria-label', 'Signed into account '+cur+' on this phone \u2014 tap an account to switch');
 }
-acctog.onclick=function(){
-  var prev=appAccount(), i=ACCOUNTS.indexOf(prev);
+acctog.onclick=function(e){
+  var prev=appAccount();
   // an account the switch has never heard of (a hand-set tag, a future one)
-  // still has somewhere to go: indexOf is -1, so the next tap lands on the
-  // first notch rather than doing nothing at all
-  var next=ACCOUNTS[(i+1) % ACCOUNTS.length];
+  // still has somewhere to go: indexOf is -1, so a tap with no position lands
+  // on the first notch rather than doing nothing at all
+  var next=ACCOUNTS[triNext(acctog, ACCOUNTS.length, e, ACCOUNTS.indexOf(prev))];
+  // Tapping the account she is already on is not a switch — and it must not
+  // spend a write or a toast saying nothing changed.
+  if(next===prev) return;
   settings=settings||{}; settings.appAccount=next; paintAcct(); saveCache();
   // The account tabs default to whichever account the app is on, so moving
   // this switch moves the list too \u2014 unless she has already picked a tab by

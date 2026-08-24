@@ -55,11 +55,15 @@ ok(triNext(T, 3, tap(172), 1) === 2, 'and a tap on the high side answers high');
 ok(triNext(T, 3, tap(139), 1) === 1,
   'a tap on the stop she is already on stays there, never advances past it');
 
-console.log('a tap with no position still moves it');
+console.log('the KEYBOARD, and nothing else, still steps');
+// NO CONTROL CYCLES ON A TAP — not one, since Sophie's second pass ("none of
+// them should cycle ... Cycling is a bad idea"). The step survives only where
+// there is no coordinate to aim with, or the toggle would be unreachable
+// without a pointer.
 ok(triNext(T, 3, { detail: 0, clientX: 0 }, 1) === 2,
-  'a keyboard activation (detail 0) cycles to the next stop');
-ok(triNext(T, 3, null, 1) === 2, 'so does a call with no event — the label beside a filter row');
-ok(triNext(T, 3, null, 2) === 0, 'and the cycle still wraps');
+  'a keyboard activation (detail 0) steps to the next stop');
+ok(triNext(T, 3, null, 1) === 2, 'so does a call with no event at all');
+ok(triNext(T, 3, null, 2) === 0, 'and that step still wraps');
 ok(triNext(T, 3, null, -1) === 0,
   'an unknown value (indexOf -1) lands on the first notch rather than nowhere');
 ok(triStop(el(0, 0), 3, tap(5)) === null, 'a zero-width element aims at nothing');
@@ -74,6 +78,37 @@ for (const f of ['promptlab.html', 'panels.html', 'chats.html']) {
   ok(!/function triStop/.test(src), f + ' keeps no aim rule of its own');
   ok(/var triNext = window\.triNext \|\| function/.test(src),
     f + ' falls back to the cycle, and only to the cycle, when the file is missing');
+}
+
+console.log('nothing wearing the shell cycles on a tap');
+{
+  const chats = fs.readFileSync(path.join(PUB, 'chats.html'), 'utf8');
+  // THE ACCOUNT SWITCHER (2026-08-24, Sophie's second pass: "it also applies to
+  // the account thing because none of them should cycle"). It was carved out
+  // for a few hours on the reasoning that a blank knob gives her nothing to aim
+  // at; she overruled that.
+  ok(/triNext\(acctog, ACCOUNTS\.length, e, ACCOUNTS\.indexOf\(prev\)\)/.test(chats),
+    'the account switcher aims, off ACCOUNTS rather than a typed count');
+  ok(!/ACCOUNTS\[\(i ?\+ ?1\) ?% ?ACCOUNTS\.length\]/.test(chats),
+    'and its old cycle is gone, not left beside it');
+  // The word beside a search-filter row cannot aim — it sits nowhere near the
+  // stop it names — so it CLEARS rather than stepping.
+  ok(/val\.onclick=function\(\)\{[\s\S]{0,220}state\[k\]=def\.neutral/.test(chats),
+    'the filter label clears its filter instead of cycling it');
+
+  // THE NEUTRAL STOP SITS IN THE MIDDLE of every search filter (her ask: "the
+  // middle should be the both option ... so I can get to either way with one
+  // tap"), and it is NAMED rather than positional.
+  const table = /var FILTERS = \{[\s\S]*?\n\};/.exec(chats)[0];
+  for (const key of ['who', 'arch']) {
+    const row = new RegExp(key + '\\s*:?\\s*\\{[\\s\\S]*?\\},').exec(table)[0];
+    const vals = /vals:\[([^\]]*)\]/.exec(row)[1].split(',').map((v) => v.trim().replace(/'/g, ''));
+    const neutral = /neutral:'([^']*)'/.exec(row)[1];
+    ok(vals.indexOf(neutral) === 1,
+      key + ': the neutral stop (' + neutral + ') is the MIDDLE one of ' + vals.join('·'));
+  }
+  ok(!/state\[k\]='all'/.test(chats) && !/vals\.indexOf\(v\)>0/.test(chats),
+    'and nothing still reads "not the first stop" as "narrowed"');
 }
 
 // ---- the real page --------------------------------------------------------
