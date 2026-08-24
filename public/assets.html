@@ -325,6 +325,9 @@ function lightbox(url, asset){
   scrollStop();
   var lbY=window.scrollY;
   var lb=document.getElementById('clightbox');
+  // A TAP IN HERE IS NEVER A REQUEST TO AUTOSCROLL — the host asks
+  // `t.closest('[data-nostop],img,figure,.cmp-lb')` on a bubbling click.
+  lb.setAttribute('data-nostop','');
   lb.innerHTML='<div class="clwrap"><img alt="" src="'+url.replace(/"/g,'&quot;')+'"></div>';
   lb.classList.remove('hastalk');
   prefetchBlob(url);   // so Save has the bytes in hand by the time she taps
@@ -332,7 +335,6 @@ function lightbox(url, asset){
   // Playground with this prompt prefilled, save to Photos.
   if(asset){
     var acts=document.createElement('div'); acts.className='lbacts';
-    acts.onclick=function(e){ e.stopPropagation(); };
     if(asset.chat && !asset.app){
       var cbn=document.createElement('button'); cbn.innerHTML=CHATICON;
       cbn.setAttribute('aria-label','Open the chat');
@@ -356,7 +358,6 @@ function lightbox(url, asset){
   if(asset && (asset.promptStyle||asset.promptContent)){
     var wrap=lb.querySelector('.clwrap');
     var ov=document.createElement('div'); ov.className='lbp'; ov.style.display='none';
-    ov.onclick=function(e){ e.stopPropagation(); };
     var tog=document.createElement('div'); tog.className='lbptog';
     var sb=document.createElement('button'); sb.textContent='Style';
     var cb=document.createElement('button'); cb.textContent='Content';
@@ -394,11 +395,9 @@ function lightbox(url, asset){
   }
   if(asset && asset._cast){
     var row=document.createElement('div'); row.className='lbtop';
-    row.onclick=function(e){ e.stopPropagation(); };
     var hb=document.createElement('button'); hb.className='vote heart'; hb.innerHTML=HEART;
     var xb=document.createElement('button'); xb.className='vote nope'; xb.innerHTML=XMARK;
     var talk=document.createElement('div'); talk.className='lbtalk';
-    talk.onclick=function(e){ e.stopPropagation(); };
     var th=document.createElement('div'); th.className='lbthread';
     function paintThread(){
       th.innerHTML='';
@@ -457,7 +456,6 @@ function lightbox(url, asset){
   if(promptBtn && !promptBtn.parentNode){
     var prow=document.createElement('div'); prow.className='lbtop';
     prow.style.justifyContent='center';
-    prow.onclick=function(e){ e.stopPropagation(); };
     prow.appendChild(promptBtn); lb.appendChild(prow);
   }
   var tag=asset?String(asset.prompt||''):'';
@@ -479,12 +477,35 @@ function lightbox(url, asset){
   var who=asset?whoLabel(asset):'';
   if(who){ var wc=document.createElement('div'); wc.className='clwho'; wc.textContent=who; lb.appendChild(wc); }
   lb.style.display='flex'; document.body.style.overflow='hidden';
-  lb.onclick=function(){ if(asset) asset._lbPaint=null;
+  // ANYWHERE THAT ISN'T A CONTROL, THE PICTURE OR THE CHAT CLOSES IT (Aug
+  // 2026, Sophie: "I can't get out of the light box in Meta assets, I think
+  // with tapping it's considering too many things part of the row"). Each row
+  // used to swallow the tap for its WHOLE width — the ♥/✕ strip runs
+  // left:22px to right:22px, the action icons are a full-width flex row, the
+  // note block another — so the empty space beside a button was dead, and
+  // that space is most of the row. One rule in one place now, asked of the
+  // tap's TARGET rather than of whichever box it landed in. This is the same
+  // rule asset-lightbox.js settled on; the two copies must not drift again.
+  // Called with no argument by __navBack (the app's chevron), which closes.
+  lb.onclick=function(e){
+    var t=e&&e.target;
+    if(t && t.closest
+       && t.closest('button,a,input,textarea,select,label,img,.lbp,.lbtalk')) return;
+    if(asset) asset._lbPaint=null;
     var f=document.activeElement; if(f && f.blur) f.blur();
-    lb.style.display='none'; lb.innerHTML='';
+    lb.style.display='none';
     lb.classList.remove('hastalk'); document.body.style.overflow='';
+    // THE CONTENT IS DETACHED A FRAME LATER, NOT NOW: wiping innerHTML inside
+    // this handler leaves the tapped node parentless, so the host's bubbling
+    // closest() walks a detached subtree, misses [data-nostop], and starts the
+    // autoscroll behind the closing overlay.
+    requestAnimationFrame(function(){
+      if(lb.style.display!=='none') return;   // reopened in between
+      lb.innerHTML='';
+    });
     window.scrollTo(0,lbY);
-    requestAnimationFrame(function(){ window.scrollTo(0,lbY); }); };
+    requestAnimationFrame(function(){ window.scrollTo(0,lbY); });
+  };
 }
 
 // ── The page: one grid over every chat, paged as she scrolls ──────────────
