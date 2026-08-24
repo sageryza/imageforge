@@ -14,21 +14,31 @@
  *   - a tap with a coordinate lands on the STOP UNDER THE THUMB (the track is
  *     divided into `count` equal zones — the same arithmetic the CSS uses to
  *     place the knob, so what she aims at and where the knob goes agree);
- *   - a tap with NO coordinate cycles to the next stop. That is the keyboard
- *     (Enter/Space fire a click with `detail === 0` and clientX 0), and it is
- *     also the label beside a filter row, which is part of the control but is
- *     nowhere near the stop it names.
+ *   - a tap with NO coordinate advances one stop. That is the KEYBOARD and
+ *     nothing else: Enter/Space fire a click with `detail === 0` and clientX 0,
+ *     and a control that did nothing there would be unreachable without a
+ *     pointer.
  *
  * A TAP ON THE STOP SHE IS ALREADY ON DOES NOTHING, deliberately. Advancing
  * from there is exactly the surprise this file exists to remove — she aimed at
  * medium, so medium is the answer, not high.
  *
- * A BLANK-KNOB TOGGLE KEEPS CYCLING, and that is not an oversight: the account
- * switcher in chats.html has no letter on its knob and no words beside it, so
- * there is nothing on screen to aim AT — it is a 48px control whose result is
- * named by a toast after the tap. Aim needs something legible to aim at. Any
- * toggle whose stops are readable (quality, size, the search filters) uses
- * `triNext`.
+ * NO TOGGLE CYCLES ON A TAP — NOT ONE, INCLUDING THE BLANK-KNOB ONE
+ * (2026-08-24, Sophie's second pass: "it also applies to the account thing
+ * because none of them should cycle — that's a really stupid pattern ...
+ * Cycling is a bad idea"). This file shipped hours earlier carving out the
+ * account switcher in chats.html on the reasoning that a blank knob gives her
+ * nothing to aim AT. That carve-out is gone: its stops are ordered 1·2·3 left
+ * to right and the knob shows which one it is on, which is a target; and a
+ * control where account 3 costs two taps from account 1 is the same complaint
+ * she made about the Playground, in a narrower box. Its zones are 16px on a
+ * 48px track — small, and worth widening if she ever asks — but small beats
+ * unpredictable.
+ *
+ * A LABEL BESIDE A ROW IS NOT A THIRD BEHAVIOUR EITHER. The Chats search
+ * filters spell their value out next to the knob; that word can't aim (it is
+ * nowhere near the stop it names), so it CLEARS the filter back to its neutral
+ * stop rather than stepping. See `buildFilters` in chats.html.
  *
  * `cur` may be -1 — every caller floors an unknown value's `indexOf`, so a
  * value the toggle has never heard of still has somewhere to go (the first
@@ -48,7 +58,7 @@
   }
 
   // The stop a tap should leave the toggle on: the one under the thumb, or the
-  // next one when the tap has no position (keyboard, a label beside the row).
+  // next one when the tap carries no position at all (the keyboard).
   function triNext(el, count, ev, cur) {
     var aimed = triStop(el, count, ev);
     if (aimed !== null) return aimed;
