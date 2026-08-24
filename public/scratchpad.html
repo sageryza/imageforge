@@ -146,6 +146,27 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 .stile .pinpin.on .pinhead{fill:var(--gold); stroke:var(--gold);}
 .stile .snm{padding-top:5px; text-align:center; font-weight:700; font-size:.8em; line-height:1.25;
   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+/* A FOLDER IS A STACK (2026-08-24, Sophie: "treat the Evan and Mason ones as
+   a folder … some sort of UI design like a stack that you can see underneath
+   the cover image so you can tell there's multiple stories in there").
+   THE STACK IS DRAWN INSIDE THE FRAME'S OWN MAT — the art is shortened from
+   the bottom and two flat cards peek out under it — rather than hanging below
+   the tile. That is what keeps a folder exactly as tall as a story, so the
+   names still line up across a row and the grid never ends ragged. Flat solid
+   fills and NO shadow (house rule): the offset alone says there is more
+   underneath. Pseudo-elements, so a folder tile is one node like the rest.
+   The art sits at top:5px with height calc(100% - 10px) inside the mat, so
+   the extra 8px comes off its height and the layers live in that strip. */
+.stile.fold .cov img,.stile.fold .cov .none{height:calc(100% - 18px); z-index:1;}
+.stile.fold .cov::before,.stile.fold .cov::after{content:''; position:absolute; z-index:0;
+  height:16px; border-radius:2px; background:var(--barbg); border:1px solid var(--line);}
+.stile.fold .cov::before{left:9px; right:9px; bottom:9px;}
+.stile.fold .cov::after{left:14px; right:14px; bottom:5px;}
+/* How many are in there. The stack says "more than one"; this says how many,
+   so she can tell a pair from a pile without opening it. */
+.stile .cnt{position:absolute; z-index:2; right:9px; bottom:17px;
+  background:var(--paper); border:1px solid var(--line); border-radius:6px; color:var(--ink2);
+  padding:1px 5px; font:600 11px -apple-system,'Helvetica Neue',sans-serif;}
 /* The way to the rest of the shelf. An underlined word, never a button with a
    box round it — the house truncation-opener pattern. */
 #shelfmore{grid-column:1/-1; justify-self:center; margin:2px 0 0; padding:6px 4px;
@@ -585,7 +606,12 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   <div class="wrap">
     <div class="sheethead">
       <button class="iconbtn" id="storiesclose" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
-      <div class="no">The shelf</div>
+      <!-- Reads "The shelf", and the folder's own name while she is inside
+           one — a folder is a LEVEL of this sheet, not a sheet of its own, so
+           it wears this header exactly the way the shelf does (2026-08-23,
+           Sophie: "the header should be like normal it should say the
+           shelf"). Its chevron is what steps back out. -->
+      <div class="no" id="shelfno">The shelf</div>
       <button class="iconbtn" id="newstory" aria-label="Start a new story"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
     </div>
     <div id="shelfcats"></div>
@@ -1346,6 +1372,13 @@ function paintShelfBack(){
   document.getElementById('shelfback').hidden =
     !padOpened || !document.getElementById('stories').hidden;
 }
+/* THE FOLDER SHE HAS STEPPED INTO, by name, or null on the shelf itself.
+   A folder is an intermediate LEVEL of the same sheet — the tiles are
+   replaced and the header renames itself — never a second sheet, so there is
+   one scroller, one close path, and nothing new for __navBack to learn
+   beyond which level it is on. Session-only, like the category chip: every
+   open starts on the shelf proper. */
+var shelfFolder=null;
 /* PINNED STORIES LEAD, THE REST GO BEHIND "see more" (Aug 2026, Sophie: "a
    pinning feature where i can pin a couple stories i'm actively working on and
    the rest go behind a see more toggle"). The fold only exists once something
@@ -1356,28 +1389,40 @@ function paintShelfBack(){
    asking for that shelf fresh. */
 var SHELF_PIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle class="pinhead" cx="12" cy="6.6" r="4.4"/><path d="M12 11V21.6"/></svg>';
 var shelfMore=false;
-function shelfTile(p){
-  var t=document.createElement('button'); t.className='stile'+(p.id===padId?' cur':'');
+/* ONE tile builder for a story and for a folder. `pad` draws a story (its
+   pushpin, its title, tap opens it); `count` draws a folder (the stack, the
+   count, tap steps into it) and carries NO pushpin — a pin says "I'm working
+   on this story", and a folder is only the way to one. */
+function shelfTile(o){
+  var p=o.pad;
+  var t=document.createElement('button');
+  t.className='stile'+(o.cur?' cur':'')+(o.count?' fold':'');
   var cov=document.createElement('span'); cov.className='cov';
-  if(p.cover){
+  if(o.cover){
     var im=document.createElement('img'); im.alt=''; im.loading='lazy';
-    im.src=thumbOf(p.cover); cov.appendChild(im);
+    im.src=thumbOf(o.cover); cov.appendChild(im);
   } else {
     var n=document.createElement('span'); n.className='none'; cov.appendChild(n);
   }
-  var pin=document.createElement('span');
-  pin.className='pinpin'+(p.pinned?' on':''); pin.innerHTML=SHELF_PIN;
-  pin.setAttribute('role','button');
-  pin.setAttribute('aria-label',p.pinned?'Unpin this story':'Pin this story to the top');
-  pin.title=pin.getAttribute('aria-label');
-  /* The pin sits INSIDE the tile, which is itself a button, so the tap has to
-     be stopped here or pinning a story would also open it. */
-  pin.onclick=function(e){ e.preventDefault(); e.stopPropagation(); togglePin(p); };
-  cov.appendChild(pin);
+  if(o.count){
+    var c=document.createElement('span'); c.className='cnt';
+    c.textContent=o.count; cov.appendChild(c);
+  }
+  if(p){
+    var pin=document.createElement('span');
+    pin.className='pinpin'+(p.pinned?' on':''); pin.innerHTML=SHELF_PIN;
+    pin.setAttribute('role','button');
+    pin.setAttribute('aria-label',p.pinned?'Unpin this story':'Pin this story to the top');
+    pin.title=pin.getAttribute('aria-label');
+    /* The pin sits INSIDE the tile, which is itself a button, so the tap has
+       to be stopped here or pinning a story would also open it. */
+    pin.onclick=function(e){ e.preventDefault(); e.stopPropagation(); togglePin(p); };
+    cov.appendChild(pin);
+  }
   t.appendChild(cov);
-  var nm=document.createElement('span'); nm.className='snm'+(p.title?'':' blank');
-  nm.textContent=p.title||'Untitled'; t.appendChild(nm);
-  t.onclick=function(e){ e.stopPropagation(); openPad(p.id); };
+  var nm=document.createElement('span'); nm.className='snm'+(o.name?'':' blank');
+  nm.textContent=o.name||'Untitled'; t.appendChild(nm);
+  t.onclick=function(e){ e.stopPropagation(); o.go(); };
   return t;
 }
 function togglePin(p){
@@ -1386,24 +1431,69 @@ function togglePin(p){
     .then(function(r){ if(!r.ok) throw 0; })
     .catch(function(){ p.pinned=was; renderShelf(); });
 }
+/* THE SHELF'S ROWS, folders already collapsed. A folder takes the place of
+   its NEWEST story and the rest of its stories come off the shelf — that is
+   the whole point, and it is why this is a walk in place rather than a
+   group-then-append, which would sort every folder to the top and lose the
+   newest-first order she reads by.
+   A FOLDER IS PINNED WHEN ANY STORY IN IT IS. Her pin means "I'm working on
+   this", and with the story folded away the folder is the only thing on
+   screen that can carry it — otherwise pinning a story inside a folder would
+   hide it behind "see more" instead of lifting it. */
+function shelfRows(){
+  var seen={}, rows=[];
+  shelfPads.filter(function(p){ return (p.category||'personal')===shelfCat; })
+    .forEach(function(p){
+      if(!p.folder){
+        rows.push({ pad:p, cover:p.cover, name:p.title, pinned:!!p.pinned,
+          cur:p.id===padId, go:function(){ openPad(p.id); } });
+        return;
+      }
+      if(seen[p.folder]) return;
+      seen[p.folder]=true;
+      var name=p.folder;
+      var inIt=shelfPads.filter(function(q){ return q.folder===name; });
+      var withArt=inIt.filter(function(q){ return q.cover; })[0];
+      rows.push({
+        cover:withArt?withArt.cover:null, name:name, count:inIt.length,
+        pinned:inIt.some(function(q){ return q.pinned; }),
+        cur:inIt.some(function(q){ return q.id===padId; }),
+        go:function(){ shelfFolder=name; shelfMore=false; renderShelf();
+          document.getElementById('stories').scrollTop=0; } });
+    });
+  return rows;
+}
 function renderShelf(){
   var cats=document.getElementById('shelfcats');
   var tiles=document.getElementById('shelftiles');
   document.getElementById('storylist').hidden=true;
-  cats.hidden=false; tiles.hidden=false;
+  tiles.hidden=false;
+  /* Inside a folder the chips come OFF. A folder gathers a character's
+     stories wherever they were filed, so a chip there would offer to hide
+     half of what she just opened. */
+  cats.hidden=Boolean(shelfFolder);
+  document.getElementById('shelfno').textContent=shelfFolder||'The shelf';
   cats.innerHTML='';
-  SHELF_CATS.forEach(function(c){
+  if(!shelfFolder) SHELF_CATS.forEach(function(c){
     var b=document.createElement('button'); b.className='scat'+(c[1]===shelfCat?' on':'');
     b.textContent=c[0];
     b.onclick=function(e){ e.stopPropagation(); shelfCat=c[1]; shelfMore=false; renderShelf(); };
     cats.appendChild(b);
   });
   tiles.innerHTML='';
-  var mine=shelfPads.filter(function(p){ return (p.category||'personal')===shelfCat; });
-  var pinned=mine.filter(function(p){ return p.pinned; });
-  var rest=mine.filter(function(p){ return !p.pinned; });
+  /* Inside a folder the rows are its own stories; on the shelf they are
+     shelfRows(), with each folder already standing in for its stories. Either
+     way the pin/fold rule below runs over ROWS and never over pads, so it
+     works identically at both levels. */
+  var mine = shelfFolder
+    ? shelfPads.filter(function(p){ return p.folder===shelfFolder; })
+        .map(function(p){ return { pad:p, cover:p.cover, name:p.title,
+          pinned:!!p.pinned, cur:p.id===padId, go:function(){ openPad(p.id); } }; })
+    : shelfRows();
+  var pinned=mine.filter(function(r){ return r.pinned; });
+  var rest=mine.filter(function(r){ return !r.pinned; });
   var show=pinned.length ? pinned.concat(shelfMore?rest:[]) : mine;
-  show.forEach(function(p){ tiles.appendChild(shelfTile(p)); });
+  show.forEach(function(r){ tiles.appendChild(shelfTile(r)); });
   if(pinned.length && rest.length){
     var more=document.createElement('button'); more.id='shelfmore';
     more.textContent=shelfMore?'see less':'see more ('+rest.length+')';
@@ -1441,6 +1531,9 @@ function closeShelf(){
    tab opened straight at /storyroom has no outside to return to. */
 document.getElementById('storiesclose').onclick=function(ev){
   ev.stopPropagation();
+  // A folder is one level UP from the shelf's floor, so the same chevron
+  // steps out of it first and only then leaves the tool.
+  if(shelfFolder){ shelfFolder=null; renderShelf(); return; }
   if(window.__forgeLeave){ window.__forgeLeave(); return; }
   if(history.length>1) history.back();
 };
@@ -1492,7 +1585,9 @@ document.getElementById('shelfback').onclick=function(ev){
 };
 document.getElementById('newstory').onclick=function(ev){
   ev.stopPropagation();
-  api('/pads',{method:'POST',body:JSON.stringify({pad:null,title:''})})
+  // Started from inside a folder → it joins that folder. Anywhere else the
+  // field is absent and the story lands loose on the shelf, exactly as before.
+  api('/pads',{method:'POST',body:JSON.stringify({pad:null,title:'',folder:shelfFolder||''})})
     .then(function(r){return r.json()})
     .then(function(d){ if(d.pad) openPad(d.pad); });
 };
@@ -2303,7 +2398,12 @@ window.__navBack=function(){
   el=document.getElementById('helpsheet');
   if(!el.hidden){ document.getElementById('helpclose').click(); return true; }
   el=document.getElementById('stories');
-  if(!el.hidden) return false;    // the shelf is the floor — the app leaves
+  if(!el.hidden){
+    // A folder is a level ABOVE the floor (Aug 2026) — step out of it, and
+    // only the bare shelf hands the app its exit.
+    if(shelfFolder){ shelfFolder=null; renderShelf(); return true; }
+    return false;                 // the shelf is the floor — the app leaves
+  }
   openShelf(); return true;       // a story steps up to it
 };
 
