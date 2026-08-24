@@ -2815,7 +2815,7 @@ function paintBmkTagPile(el, all){
     return (m.tags||[]).indexOf(bmkTag)>=0 && (m.kind||'read')!=='chat'; });
   if(!items.length){
     var st=document.createElement('div'); st.className='state';
-    st.textContent='Nothing tagged \u201c'+(word||bmkTag)+'\u201d yet \u2014 tap the tag under a kept message or artifact.';
+    st.textContent='Nothing tagged \u201c'+(word||bmkTag)+'\u201d yet — tap the tag under a kept message or artifact.';
     el.appendChild(st); return;
   }
   items.forEach(function(m){ el.appendChild(bmkRow(m, el)); });
@@ -6190,7 +6190,7 @@ function mkBmkRead(m, kind){
   b.className='bmkchk'+(m.read?' on':'');
   b.innerHTML=CHECK_SVG;
   function label(){
-    b.setAttribute('aria-label', m.read?'Read \u2014 tap to un-tick':'Mark this read');
+    b.setAttribute('aria-label', m.read?'Read — tap to un-tick':'Mark this read');
     b.setAttribute('aria-pressed', m.read?'true':'false');
     b.title = m.read ? 'Read' : 'Mark read';
   }
@@ -6243,7 +6243,7 @@ function mkBmkMarks(m, kind){
       b.className=(st.level===n?'on':'');
       b.innerHTML=LVL_SVG(n);
       b.dataset.level=String(n);
-      b.setAttribute('aria-label','Important \u2014 level '+n+' of 3');
+      b.setAttribute('aria-label','Important — level '+n+' of 3');
       b.setAttribute('aria-pressed', st.level===n?'true':'false');
       b.onclick=function(e){
         e.stopPropagation();
@@ -6575,7 +6575,7 @@ function openChat(name, keepScroll, focusId, noFetch){
     head.appendChild(b);
   })();
   // Archive sits beside the chat's NAME, above the tab bar, and reads as plain
-  // text rather than a button \u2014 it isn't a place to go, it's a thing you do
+  // text rather than a button — it isn't a place to go, it's a thing you do
   // once. Same word and same spot either way: "Archive" / "Unarchive".
   (function(){
     var isArch=!!(chats[name]&&chats[name].archived);
@@ -6599,14 +6599,14 @@ function openChat(name, keepScroll, focusId, noFetch){
         .then(function(d){ if(!d.ok) throw 0;
           chats[name]=chats[name]||{}; chats[name].archived=!isArch;
           toast(!isArch? 'Archived' : 'Restored');
-          // ARCHIVING is "away for good", so it ends with leaving \u2014 back to
+          // ARCHIVING is "away for good", so it ends with leaving — back to
           // the list, chat gone.
           if(!isArch) return goHome(true);   // archived — drop the stale result row
           // TAKING ONE OUT is the opposite gesture and used to behave the
           // same way, which was wrong twice over (Sophie, Aug 2026: "when I
           // take something out of the archive it should go straight to that
           // chat, and when I get out of that chat I shouldn't be in the
-          // archive"). She pulls a chat out BECAUSE she wants it \u2014 so stay
+          // archive"). She pulls a chat out BECAUSE she wants it — so stay
           // in it (repaint so the word reads "Archive" again), and leave the
           // ARCHIVE VIEW behind, since what she came for is no longer in
           // there. Without the homeView flip the back chevron drops her into
@@ -8519,7 +8519,7 @@ function buildFilters(mount, keys, onChange){
     keys.forEach(function(k){
       var def=FILTERS[k], r=rows[k], i=Math.max(def.vals.indexOf(state[k]),0);
       r.tog.setAttribute('data-n', String(i));
-      r.tog.setAttribute('aria-label', def.label+' \u2014 '+def.words[i]+', tap a side to pick one');
+      r.tog.setAttribute('aria-label', def.label+' — '+def.words[i]+', tap a side to pick one');
       r.val.textContent=def.words[i];
       r.row.classList.toggle('on', state[k]!==def.neutral);
     });
@@ -8855,7 +8855,16 @@ function buildFilters(mount, keys, onChange){
   };
   function upd(){
     var left=document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
-    toTop.classList.toggle('show', window.scrollY>400);
+    // NOT AT THE TOP MEANS THE UP ARROW SHOWS (Aug 2026, Sophie: "why is there
+    // only a scroll down arrow and not a scroll up arrow — since I'm not at the
+    // top there should be a scroll up arrow, right above the scroll down
+    // arrow"). It used to ask for 400px of scroll — half a screen on her phone — while its
+    // twin below appears as soon as an open message has 40px still to go, so a
+    // short scroll into a long reply drew the DOWN arrow alone with an empty
+    // slot above it. The two are one stacked control and they now answer the
+    // same question: is there somewhere to go that way? The floor stays
+    // non-zero so a page resting at the top floats nothing.
+    toTop.classList.toggle('show', window.scrollY>40);
     // with a message open, the arrow shows whenever ITS end is worth a jump —
     // the page bottom may be close while the message still has a screen to go
     var end=openMsgEnd();
@@ -8885,7 +8894,7 @@ document.getElementById('searchbtn').onclick=function(){
 // the tests' way in and out, so the collapsed bar stays drivable headlessly
 window.__setSearchOpen=setSearchOpen;
 // The refresh button is gone (Aug 2026, Sophie) but the tests still need a
-// way to force a reload with fresh caches \u2014 the exact thing its tap did.
+// way to force a reload with fresh caches — the exact thing its tap did.
 window.__reload=function(){ stCache.at=0; load(); };
 document.getElementById('selbtn').onclick=function(){ if(selMode){ exitSelect(); renderHome(); } else enterSelect(); };
 document.getElementById('archlink').onclick=function(){ setHomeView('archive'); };
@@ -8902,16 +8911,16 @@ document.getElementById('bmklink').onclick=function(){ setHomeView('bookmarks');
 // way the Update and Review doors on the same screen do.
 document.getElementById('iglink').onclick=function(){ location.href='/instagram'; };
 
-// Which Claude account is signed into the iOS app right now \u2014 the switch on
+// Which Claude account is signed into the iOS app right now — the switch on
 // the header's title line. Its knob has one notch per account (ACCOUNTS) and
 // A TAP LANDS ON THE ACCOUNT UNDER IT (2026-08-24, Sophie: "it also applies to
-// the account thing because none of them should cycle \u2014 that's a really stupid
+// the account thing because none of them should cycle — that's a really stupid
 // pattern ... Cycling is a bad idea"). This used to move to the next one and
 // wrap, which meant account 3 was two taps from account 1 and there was no way
-// to say "that one" \u2014 the same complaint she made about the Playground's
+// to say "that one" — the same complaint she made about the Playground's
 // quality toggle, in a control half the width. The aim rule is /tritoggle.js,
 // shared; the toast still names where it landed, so the blank knob needs no
-// label. The account it points at is the one she is SIGNED IN ON \u2014
+// label. The account it points at is the one she is SIGNED IN ON —
 // every other account's chats open on the WEB instead, which openHref does by
 // appending #no_universal_links so iOS hands the link to the browser rather
 // than to the Claude app.
@@ -8925,7 +8934,7 @@ function paintAcct(){
   // switch has never heard of lands on the first notch instead of nowhere.
   acctog.setAttribute('data-n', String(Math.max(ACCOUNTS.indexOf(cur), 0)));
   acctog.setAttribute('data-a', cur);   // still the account itself, for readers
-  acctog.setAttribute('aria-label', 'Signed into account '+cur+' on this phone \u2014 tap an account to switch');
+  acctog.setAttribute('aria-label', 'Signed into account '+cur+' on this phone — tap an account to switch');
 }
 acctog.onclick=function(e){
   var prev=appAccount();
@@ -8938,7 +8947,7 @@ acctog.onclick=function(e){
   if(next===prev) return;
   settings=settings||{}; settings.appAccount=next; paintAcct(); saveCache();
   // The account tabs default to whichever account the app is on, so moving
-  // this switch moves the list too \u2014 unless she has already picked a tab by
+  // this switch moves the list too — unless she has already picked a tab by
   // hand this session, which wins.
   if(!acctTab) renderHome();
   api('/api/chatfeed/app-account',{method:'POST',body:JSON.stringify({account:next})})

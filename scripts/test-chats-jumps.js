@@ -84,6 +84,20 @@ const shown = (page) => page.evaluate(() => ({
   if (s.up) fail('the up arrow shows at the top of the page');
   if (!s.down) fail('the down arrow is missing on a long list');
 
+  // 1a. A SHORT SCROLL OFF THE TOP ALREADY SHOWS THE UP ARROW (Aug 2026,
+  //     Sophie: "why is there only a scroll down arrow and not a scroll up
+  //     arrow — since I'm not at the top there should be a scroll up arrow").
+  //     It used to want 400px, half a screen on her phone, while the down
+  //     arrow appears with 40px of an open message still to go — so a short
+  //     scroll into a long reply drew the down arrow alone. 120px is well
+  //     inside the old threshold, so this fails against the pre-fix page.
+  await page.evaluate(() => window.scrollTo(0, 120));
+  await page.waitForFunction(() => window.scrollY >= 118, null, { timeout: 2000 }).catch(() => {});
+  await page.evaluate(() => window.dispatchEvent(new Event('scroll')));
+  s = await shown(page);
+  if (!s.up) fail('the up arrow is missing 120px down the page');
+  await page.evaluate(() => window.scrollTo(0, 0));
+
   // 1b. STACKED, up ABOVE down (Aug 2026, Sophie: "the up shud be above").
   //     Measured, not read off the CSS: a wrong flex-direction is perfectly
   //     valid markup and both buttons stay "visible" either way — the only
