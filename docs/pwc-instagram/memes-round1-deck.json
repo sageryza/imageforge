@@ -1,0 +1,135 @@
+{
+  "chat": "pwc-instagram-content",
+  "title": "PWC memes — round 1 (18 concepts)",
+  "template": "deck",
+  "data": {
+    "items": [
+      {
+        "id": "field-research",
+        "who": "Field research",
+        "eyebrow": "MEME",
+        "text": "Eavesdropping is rude. I am conducting field research.",
+        "sections": [{ "label": "The picture", "text": "Dreamy: a woman at a cafe table, notebook open, eyes sliding sideways." }]
+      },
+      {
+        "id": "table-four",
+        "who": "Table 4",
+        "eyebrow": "MEME",
+        "text": "Me: minding my own business. Also me: deeply invested in whether the guy at table 4 gets a second date.",
+        "sections": [{ "label": "The picture", "text": "Dreamy: someone leaning so far out of their chair they're almost out of frame." }]
+      },
+      {
+        "id": "respectful-focus",
+        "who": "Respectfully",
+        "eyebrow": "MEME",
+        "text": "When the couple arguing lowers their voices: respectfully increasing my focus.",
+        "sections": [{ "label": "The picture", "text": "Dreamy: a book slowly lowering to reveal two wide eyes." }]
+      },
+      {
+        "id": "entrepreneur",
+        "who": "Date update",
+        "eyebrow": "MEME",
+        "text": "Date update from table 4: he just said 'as an entrepreneur.' This date is over and only I know it.",
+        "sections": [{ "label": "The picture", "text": "Dreamy: the watcher wincing behind a coffee cup; the oblivious couple beyond." }]
+      },
+      {
+        "id": "barista-look",
+        "who": "The look",
+        "eyebrow": "MEME",
+        "text": "The barista and I exchanging a glance because we both heard that.",
+        "sections": [{ "label": "The picture", "text": "Dreamy: two heads turned toward each other across a counter, one raised eyebrow each." }]
+      },
+      {
+        "id": "favorite-bench",
+        "who": "The bench",
+        "eyebrow": "MEME",
+        "text": "I don't have a favorite show. I have a bench.",
+        "sections": [{ "label": "The picture", "text": "Dreamy: an empty park bench drawn like a movie poster, spotlight and all." }]
+      },
+      {
+        "id": "lost-signal",
+        "who": "Lost signal",
+        "eyebrow": "MEME",
+        "text": "When someone's phone call finally gets good and they walk away: devastating loss of signal.",
+        "sections": [{ "label": "The picture", "text": "Dreamy: a figure walking off, speech bubble trailing away; the watcher reaching after it." }]
+      },
+      {
+        "id": "into-nature",
+        "who": "Into nature",
+        "eyebrow": "MEME",
+        "text": "'What do you do for fun?' Me, thinking of the man who argued with a pigeon for 20 minutes: 'I guess I'm into nature.'",
+        "sections": [{ "label": "The picture", "text": "Dreamy: a man mid-argument with an unbothered pigeon." }]
+      },
+      {
+        "id": "caught-staring",
+        "who": "Caught",
+        "eyebrow": "MEME",
+        "text": "Caught staring. Options: look at phone. Squint like I'm reading the menu behind them. Wave. (Never wave.)",
+        "sections": [{ "label": "The picture", "text": "Dreamy: three small panels of escalating bad choices, the third crossed out." }]
+      },
+      {
+        "id": "notebook-no",
+        "who": "The notebook",
+        "eyebrow": "MEME",
+        "text": "Them: 'Sorry — were you listening?' Me, holding a notebook and pen: 'No.'",
+        "sections": [{ "label": "The picture", "text": "Dreamy: the watcher mid-scribble, frozen, pen still on the page." }]
+      },
+      {
+        "id": "airport-delay",
+        "who": "The delay",
+        "eyebrow": "MEME",
+        "text": "Flight delayed 3 hours. Everyone else: devastated. Me: three bonus hours at the observation deck.",
+        "sections": [{ "label": "The picture", "text": "Dreamy: rows of slumped travelers, one person sitting up straight, thrilled." }]
+      },
+      {
+        "id": "crossover",
+        "who": "Crossover episode",
+        "eyebrow": "MEME",
+        "text": "When two of my favorite regulars interact for the first time: crossover episode.",
+        "sections": [{ "label": "The picture", "text": "Dreamy: two strangers shaking hands, drawn with fireworks like it's historic." }]
+      },
+      {
+        "id": "car-rehearsal",
+        "who": "The rehearsal",
+        "eyebrow": "MEME",
+        "text": "Someone rehearsing a conversation alone in their car — pausing my podcast out of respect.",
+        "sections": [{ "label": "The picture", "text": "Dreamy: a parked car, gesturing silhouette inside; the watcher removing one earbud." }]
+      },
+      {
+        "id": "gerald",
+        "who": "Gerald",
+        "eyebrow": "MEME",
+        "text": "I've assigned a full backstory to a man I've seen twice. His name is Gerald. His name is almost certainly not Gerald.",
+        "sections": [{ "label": "The picture", "text": "Dreamy: an ordinary man haloed by an elaborate hand-drawn diagram of his invented life." }]
+      },
+      {
+        "id": "toxic-trait",
+        "who": "Toxic trait",
+        "eyebrow": "MEME",
+        "text": "My toxic trait: deciding two strangers should be together and taking it personally when they leave separately.",
+        "sections": [{ "label": "The picture", "text": "Dreamy: two figures exiting opposite sides of the frame; the watcher heartbroken between them." }]
+      },
+      {
+        "id": "whole-series",
+        "who": "The whole series",
+        "eyebrow": "MEME",
+        "text": "The couple I watched on their first date just walked in with a stroller. I have seen this show from the pilot.",
+        "sections": [{ "label": "The picture", "text": "Dreamy: same cafe table drawn twice — first date above, stroller below." }]
+      },
+      {
+        "id": "season-finale",
+        "who": "Season finale",
+        "eyebrow": "MEME",
+        "text": "When they finally say the name of the person they've been complaining about for an hour: season finale.",
+        "sections": [{ "label": "The picture", "text": "Dreamy: the watcher gripping the table, coffee sloshing." }]
+      },
+      {
+        "id": "touch-grass",
+        "who": "Touch grass",
+        "eyebrow": "MEME",
+        "text": "'Touch grass.' I'm literally at the park. Watching. Everyone.",
+        "sections": [{ "label": "The picture", "text": "Dreamy: a serene figure on a blanket, surrounded by tiny sketched vignettes of everyone else's business." }]
+      }
+    ]
+  }
+}
