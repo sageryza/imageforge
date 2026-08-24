@@ -99,6 +99,44 @@ The house rules that only bite when you are actually building a page, an iOS scr
     `/chats` section — `padding-right:56px`): with no native bar the page's
     pill floats high over its own header, so no control may live in that
     corner.
+  - **THE HEADER TOP IS ONE NUMBER, AND `pagehead.js` ENFORCES IT BY
+    MEASUREMENT (2026-08-23, Sophie: "the header is different in both, and
+    not at the top" — the Story Room was just the pair she screenshotted).**
+    Measured across all 39 gated pages that day: the gap above the header ran
+    **0 to 42px** and the chevron's left edge **-4 to 16**, no two families
+    agreeing — because no one owned the number. Every page improvised its own
+    status-bar clearance (chats' `5vh` IS roughly the notch on an 844pt
+    phone, by accident; 16 pages shipped without `viewport-fit=cover`, so
+    `env(safe-area-inset-top)` read 0 for them and fixed pixels were the only
+    tool they had), and every new page copied its neighbour's number. A page
+    alone can't be wrong — a header 40px low is valid markup and looks fine on
+    its own screen — so no per-page test could ever catch it.
+    - **The number: the header row's CONTENT-BOX top sits at
+      `var(--headtop)` = `env(safe-area-inset-top) + 4px`, and the chevron's
+      left edge at 16px.** The content-box, not the chevron itself: a tall
+      band (search — title + its box) centres the chevron a few px inside
+      itself, and that is its own business.
+    - **`levelRow()` in `pagehead.js` enforces it the way the pill defends
+      its colours: measure the real box, correct, re-check** (fonts,
+      resize, a ResizeObserver, an IntersectionObserver for headers that are
+      hidden until content loads). A sticky/fixed row is corrected through
+      its PADDING (margin cannot pull sticky up — it re-pins at 0; measured
+      on /studio, where -10.5px of margin moved the header exactly 0px); an
+      in-flow row through its MARGIN, so dead space above it is reclaimed. A
+      row is pulled UP only when the space above it is dead, and nothing
+      moves more than 64px.
+    - **So a page needs NO top-inset code of its own** — write a sane
+      `.wrap` and let the injected chrome level it in the app. A page that
+      must look right in a plain BROWSER too (nothing injected there) uses
+      the token: `:root{--headtop:calc(env(safe-area-inset-top,0px) + 4px)}`
+      and `padding-top:var(--headtop)` on its wrap — `scratchpad.html` is the
+      worked example.
+    - **The test derives its page list from `server.js`** — every
+      `serveGated(...)` page is measured against 4/16, so a new page is in
+      the test the day it is registered, before anyone remembers it exists.
+      That, not the fix, is the half that stops the bug coming back: 39
+      pages each got this wrong by faithfully copying the page next door.
+      `node scripts/test-header-top.js`.
   - **A page with inner levels answers `window.__navBack`** — one in-page
     level per tap (a sheet shut, a story back to its shelf), then the web
     view's own history via `canGoBack`, then leave the tool. The chevron
