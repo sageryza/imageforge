@@ -202,7 +202,7 @@ struct StickerEditor: View {
             ActivityView(items: [item.image])
         }
         .alert("Redo this sticker", isPresented: $showRedoAlert) {
-            TextField("What should it be? (blank = redraw)", text: $redoText)
+            TextField("What should it be?", text: $redoText)
             Button("Go") { if let id = redoTargetId { redo(id, replacement: redoText) } }
             Button("Cancel", role: .cancel) {}
         } message: {

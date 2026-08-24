@@ -102,6 +102,11 @@ function shouldPushReply({ working, replyCreated, lastHerAt, pushedAt } = {}) {
 // So every answer to a question buzzed her with her own sentence — asterisks
 // and all, because nothing stripped the markdown either.
 //
+// THE FIRST OF THOSE RULES NOW FIRES ONLY WHEN SHE MARKS A QUESTION WITH THE
+// WORD "QUESTION" (2026-08-23) — which makes this skip MORE load-bearing, not
+// less: the replies that still open with a bold echo are exactly the ones
+// answering something she asked, i.e. the ones most worth buzzing about.
+//
 // The fix is structural rather than stored: a line that is ENTIRELY bold is
 // exactly the shape that rule produces, so leading lines of that shape are
 // skipped. It deliberately does NOT skip `**TLDR** — …`, which has ordinary

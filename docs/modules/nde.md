@@ -38,15 +38,10 @@ The near-death-experience interview database, the montage pipeline, and the wate
   extraction), `YOUTUBE_API_KEY` (required for channel discovery + metadata —
   transcript scraping needs no key), plus the usual Firebase creds. Without
   Firebase the pipeline still runs but nothing persists (in-memory only).
-- **Adding videos runs on SOPHIE'S Mac — for the LAYOUT now, not because the
-  cloud is blocked (re-measured 2026-08-23).** This said YouTube bot-blocks
-  datacenter IPs (yt-dlp: "Sign in to confirm you're not a bot") and that a
-  cloud session can never download a new interview. Measured on the live Render
-  box that day, it can: `POST /api/ytdl/grab` pulled audio and video clean, no
-  cookies. What the Mac script still does that the generic grab does not is bank
-  the result in the exact layout the cutter reads, so it remains the way to add
-  an INTERVIEW; use `/api/ytdl` when you just need the bytes, and re-measure
-  with `GET /api/ytdl/status?probe=1` rather than trusting either sentence. `scripts/nde-grab-local.py` is the local grabber:
+- **Adding videos runs on SOPHIE'S Mac — for the LAYOUT, not because the cloud
+  is blocked** (measured live 2026-08-23: `/api/ytdl` grabs fine). Use
+  `/api/ytdl` when you just need the bytes.
+  `scripts/nde-grab-local.py` is the local grabber:
   URLs in → audio + captions down → banked in the exact layout the cutter reads
   (Storage `nde-audio/<videoId>.<ext>` public, raw bestaudio/webm, no re-encode;
   Firestore `forge-nde-videos/<videoId>` merged so existing moments survive).

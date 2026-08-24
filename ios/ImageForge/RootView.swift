@@ -5,7 +5,7 @@ import UIKit   // UIImage(systemName:) — the SF Symbol existence check in Tool
 /// (My Creations) are fixed ends of the bar; everything here is a "mode" that
 /// cycles through the three middle slots by most-recently-used.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, blocks, pausing, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector, chunking, assembly, filmeditor, timeline, review
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, blocks, pausing, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector, chunking, assembly, filmeditor, timeline, review, panels
     var id: String { rawValue }
 
     var title: String {
@@ -40,6 +40,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .character: return "Characters"
         case .films:     return "Films"
         case .freeform:  return "Freeform"
+        case .panels:    return "Panels"
         case .vector:    return "Vector"
         case .chunking:  return "Chunking"
         case .assembly:  return "Assembly"
@@ -81,6 +82,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .character: return "The recurring people — cards that keep faces consistent."
         case .films:     return "Films without a story — experiments and one-offs."
         case .freeform:  return "Your refs, your words — sent exactly as typed."
+        case .panels:    return "One sheet, cut into separate pictures."
         case .vector:    return "Drawings that stay sharp at any size. Recolour them free."
         case .timeline:  return "Dictate a story's moments — then put them in order."
         case .chunking:  return "Every clip you’ve made, searchable — the pieces films get cut from."
@@ -129,6 +131,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .films:     return "film.stack"
         // A loose scribble — the page with no house style.
         case .freeform:  return "scribble.variable"
+        case .panels:    return "square.grid.2x2"
         // fallback; .vector uses a custom asset (see customIcon)
         case .vector:    return "point.topleft.down.curvedto.point.bottomright.up"
         // A stack of playable pieces — the library of PARTS you already own.
@@ -218,6 +221,7 @@ enum Tool: String, CaseIterable, Identifiable {
         // Page owns its whole header (Aug 2026 v2 design rule) — a bare
         // WKWebView host with NO forgeToolBar, the Chats/Scratch Pad pattern.
         case .freeform:  GatedWebTool(path: "/freeform", name: "Freeform", icon: "scribble.variable")
+        case .panels:    GatedWebTool(path: "/panels", name: "Panels", icon: "square.grid.2x2")
         // Native bar + chevron, like the other eyebrow-and-title tool pages —
         // only a page owning its WHOLE chrome (Chats, Story Room) gets a bare
         // host. See the headers design rule.
@@ -562,6 +566,8 @@ struct RootView: View {
             if t == .scratchpad { return false }
             // Freeform is a web page with its own injected pill too.
             if t == .freeform { return false }
+            // Panels is served with { pill: true } as well.
+            if t == .panels { return false }
             // Vector is a web page with its own injected pill too.
             if t == .vector { return false }
             // Chunking is a web page with its own injected pill too.
@@ -696,11 +702,15 @@ private struct HomeGrid: View {
     /// - **Scratch Pad** is the Story Room (the `.story` tile serves the pad's
     ///   page), so listing it would be the same tool twice.
     ///
-    /// **Story Room came BACK into this tab** (Sophie, Aug 2026: "move
-    /// everything onto the movies page like the story boards…") — it had been
-    /// pulled out earlier ("story room is no longer movies") and pinned first
-    /// on the default home. Her newer word wins; it is stop 1 here and has no
-    /// card on the default home any more.
+    /// **Story Room is stop 1 here AND a card on the default home** (Sophie,
+    /// 2026-08-24: "someone took the story room module out of the default
+    /// icons on the homepage… can you add it back"). It came back into this
+    /// tab in Aug 2026 ("move everything onto the movies page like the story
+    /// boards…") and the film filter's hide-from-home rule then took its home
+    /// card away as a side effect — which is not what she asked for either
+    /// time. It is the ONE named exception to that rule (`homeAlso` below);
+    /// the flat movies chip still drops it, on her own reasoning that it is
+    /// "already on the home screen".
     private static let pipeline: [MovieStage] = [
         MovieStage(n: 1, name: "The story",
                    line: "What it is about, and what order it happens in.",
@@ -733,6 +743,11 @@ private struct HomeGrid: View {
     /// them off the home screen and in the movie tab, not in both places.
     private static let movieTools: [Tool] = HomeGrid.pipeline.flatMap { $0.tools }
 
+    /// Pipeline tools that ALSO keep a card on the default home. One entry,
+    /// Story Room — see the note in `tools` below. Keep this tiny: the film
+    /// chip's whole point is that its tools are not also on the home screen.
+    private static let homeAlso: Set<Tool> = [.story]
+
     /// THE SECOND MOVIES CHIP — the same tools as one flat pile (Aug 2026,
     /// Sophie: "add a second movies icon but choose a different icon for it …
     /// the exact same modules except smaller so they just have the icon and
@@ -764,7 +779,7 @@ private struct HomeGrid: View {
     /// test tube beside the masthead. Playground and **Freeform** also sit on
     /// the DEFAULT home (Sophie, Aug 2026: "put Freeform in the default") —
     /// this filter narrows to them, it doesn't own them.
-    private static let imageTools: [Tool] = [.playground, .test, .freeform, .vector]
+    private static let imageTools: [Tool] = [.playground, .panels, .test, .freeform, .vector]
 
     /// What the cards show: the normal list, or one filter's slice.
     private var shown: [Tool] {
@@ -780,7 +795,8 @@ private struct HomeGrid: View {
 
     // Sophie's home order: everything rotates by most-recent use. Nothing is
     // pinned to the top or the bottom anymore — Story Room held the first slot
-    // until she moved it into the movie tab (Aug 2026), and the old bottom trio
+    // until she moved it into the movie tab (Aug 2026; it is a card here again
+    // since 2026-08-24, just no longer pinned first), and the old bottom trio
     // (Voice Studio, Characters, Films) are film tools that went the same way.
     private var tools: [Tool] {
         // THE FILM FILTER NOW HIDES ITS TOOLS FROM THE DEFAULT HOME, the same
@@ -806,12 +822,19 @@ private struct HomeGrid: View {
         // icons beside the masthead. .scratchpad is hidden because the pad IS
         // the Story Room now (the .story tile's /storyroom page serves it), so
         // two tiles would be the same tool twice; its case and view stay for
-        // deep links and history. Story Room itself is stop 1 of the movie
-        // pipeline now, so `movieTools` takes it off this list.
+        // deep links and history.
+        //
+        // STORY ROOM IS THE ONE EXCEPTION TO THE FILM-FILTER HIDE (`homeAlso`,
+        // Sophie 2026-08-24: "someone took the story room module out of the
+        // default icons on the homepage… can you add it back"). It is stop 1
+        // of the pipeline AND a card here — losing the card was a side effect
+        // of the hide rule, never something she asked for. Everything else in
+        // `movieTools` stays film-tab-only.
         let middle = Tool.allCases.filter { $0 != .chats && $0 != .test && $0 != .scratchpad
                                             && $0 != .song && $0 != .vector
                                             && !$0.isBusiness && !$0.isCraft
-                                            && !Self.movieTools.contains($0) }
+                                            && (!Self.movieTools.contains($0)
+                                                || Self.homeAlso.contains($0)) }
         let ranked = recents.order.filter { middle.contains($0) }
         let rest = middle.filter { !ranked.contains($0) }
         return ranked + rest

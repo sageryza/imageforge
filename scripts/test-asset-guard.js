@@ -380,4 +380,59 @@ t('a real storage url is never mistaken for one', () => {
     { block: false, reason: 'new' });
 });
 
+
+// ---------------------------------------------------------------------------
+// captionUpgrade — what a later filing may do to the caption already on file.
+// The bug this pins (found live 2026-08-23): a caption could be SET but never
+// CORRECTED, so re-POSTing a fix answered ok:true and changed nothing.
+// ---------------------------------------------------------------------------
+
+t('a curated caption CORRECTS another curated one', () => {
+  // the exact case that found this: a cut panel captioned with its own pixels
+  assert.strictEqual(
+    G.captionUpgrade('gpt-image-2 · medium · 1168x1752', 'gpt-image-2 · medium · 1/4 (4K)'),
+    'gpt-image-2 · medium · 1/4 (4K)');
+  // and the whole pre-tier backlog: a raw canvas correcting to its rung
+  assert.strictEqual(
+    G.captionUpgrade('gpt-image-2 · medium · 1568x2352', 'gpt-image-2 · medium · 2K'),
+    'gpt-image-2 · medium · 2K');
+  // a mistyped quality is not permanent either
+  assert.strictEqual(
+    G.captionUpgrade('gpt-image-2 · high', 'gpt-image-2 · medium'), 'gpt-image-2 · medium');
+});
+
+t('it still lands on a blank or a generic record', () => {
+  for (const old of ['', null, undefined, '   ', 'from playground-image-resolution']) {
+    assert.strictEqual(G.captionUpgrade(old, 'gpt-image-2 · low · 1K'), 'gpt-image-2 · low · 1K',
+      `over ${JSON.stringify(old)}`);
+  }
+});
+
+t("the hook's generic catch NEVER overwrites anything", () => {
+  // the case the old rule existed to stop, and the half that is kept
+  assert.strictEqual(G.captionUpgrade('gpt-image-2 · medium · 2K', 'from some-other-chat'), null);
+  assert.strictEqual(G.captionUpgrade('', 'from some-other-chat'), null);
+  assert.strictEqual(G.captionUpgrade('from a', 'from b'), null);
+});
+
+t('nothing offered, or nothing new, is not a write', () => {
+  assert.strictEqual(G.captionUpgrade('gpt-image-2 · medium', ''), null);
+  assert.strictEqual(G.captionUpgrade('gpt-image-2 · medium', null), null);
+  assert.strictEqual(G.captionUpgrade('gpt-image-2 · medium', undefined), null);
+  // identical, including around whitespace — no pointless Firestore write
+  assert.strictEqual(G.captionUpgrade('gpt-image-2 · medium', 'gpt-image-2 · medium'), null);
+  assert.strictEqual(G.captionUpgrade('gpt-image-2 · medium', '  gpt-image-2 · medium  '), null);
+});
+
+t('server.js asks the shared helper, and keeps no copy of the rule', () => {
+  // The condition used to be inline in server.js. If a future edit re-inlines
+  // it, the three tests above go on passing while the live route does whatever
+  // the copy says — which is exactly how this shipped wrong.
+  const src = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
+  assert.ok(/assetGuard\.captionUpgrade\(existing\.data\(\)\.prompt, prompt\)/.test(src),
+    'the assetsOnly branch calls captionUpgrade');
+  assert.ok(!/\/\^from \/\.test\(old\)/.test(src),
+    'the old blank-only condition is gone from server.js');
+});
+
 console.log(`\n${n} checks passed.\n`);

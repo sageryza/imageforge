@@ -1,5 +1,8 @@
 // imageforge-server v11 — moments v3 prompts, replicate crash fix, pwcscans model
 const express = require('express');
+// THE WHOLE PROMPT, one builder — see prompt-record.js (Sophie's hard rule,
+// 2026-08-24: anytime an image is made anywhere, the whole prompt is stored).
+const promptRecord = require('./prompt-record');
 const cors = require('cors');
 const fetch = require('node-fetch');
 const path = require('path');
@@ -341,6 +344,22 @@ loadConfig().then(() => {
   // Freeform — your own reference images + your own words, sent verbatim. The
   // one image surface that adds NOTHING to a prompt (no style prefix/suffix).
   app.use('/api/freeform', require('./freeform').router);
+  // Panels: one sheet, drawn once, cut into separate pictures. It owns none of
+  // the credentials or the model call — server.js hands it the four things it
+  // needs here (the movies.init pattern), so the module drives whole from a
+  // test with stubs and no network.
+  const panels = require('./panels');
+  panels.init({
+    imageEdit: openaiImageEditRefs,
+    refsFor: playgroundRefs,
+    refBuffer: playgroundRef,
+    saveBuffer: saveBufferToFirebase,
+    fileCreation: fileCreationDoc,
+    styles: PL_GPT_STYLES,
+    gpt: PL_GPT,
+    whiten: whitenBackground,
+  });
+  app.use('/api/panels', panels.router);
   // Vector Studio — described drawings → a pastel sheet → cut-outs → SVG. The
   // one surface whose output is resolution-free, so a drawing can go on a
   // poster, a shirt or a die-cut sticker. Mounted here so config-loader has
@@ -831,6 +850,10 @@ app.get('/scratchpad', serveGated('scratchpad.html', { pill: true }));
 // Freeform: upload your own references, type your own words, pick the quality.
 // Nothing is added to the prompt here — that's the whole point of the page.
 app.get('/freeform', serveGated('freeform.html', { pill: true }));
+// Panels: the Playground's recipe with the run turned inside out — N prompts
+// drawn TOGETHER on one sheet and cut apart locally, which is cheaper twice
+// over (see panels.js's header). One text box per cell, laid out as the grid.
+app.get('/panels', serveGated('panels.html', { pill: true }));
 // Vector: describe drawings -> art that scales, and change its colours after
 // the fact for nothing. The front for /api/vector; see docs/vector-pipeline.md.
 app.get('/vector', serveGated('vector.html', { pill: true }));
@@ -2002,7 +2025,8 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
     return res.status(401).json({ error: 'unauthorized' });
   }
   try {
-    const { url, image, prompt, created, style, type, dry, chat, assetsOnly, session, explicit } = req.body || {};
+    const { url, image, prompt, created, style, type, dry, chat, assetsOnly, session, explicit,
+      fullPrompt, promptPrefix, promptSuffix } = req.body || {};
     const createdMs = Number(created) || Date.now();
     const description = assetDescription(req.body && req.body.description);
     let chatName = chat ? String(chat).slice(0, 60) : '';
@@ -2036,11 +2060,12 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
         // arrive after the hook's generic record — upgrade the existing doc in
         // place instead of silently dropping it.
         const patch = {};
-        const curated = String(prompt || '').trim();
-        const old = String(existing.data().prompt || '');
-        if (curated && !/^from /.test(curated) && (!old || /^from /.test(old))) {
-          patch.prompt = curated.slice(0, 500);
-        }
+        // What a later filing may do to the caption already on the record —
+        // ONE rule, shared with the sweep's own reasoning (asset-guard.js).
+        // A curated caption may CORRECT another curated one; the hook's
+        // generic "from <chat>" line never overwrites anything.
+        const nextCap = assetGuard.captionUpgrade(existing.data().prompt, prompt);
+        if (nextCap) patch.prompt = nextCap.slice(0, 500);
         if (description && description !== existing.data().description) patch.description = description;
         if (kind && !existing.data().kind) patch.kind = kind;
         // An older record filed before content-joining existed: give it its
@@ -2190,6 +2215,14 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
       source: 'auto-hook',
     };
     if (style) doc.style = String(style).slice(0, 80);
+    // THE WHOLE PROMPT, when the caller has one (Sophie's hard rule,
+    // 2026-08-24). The Scratch Pad files through this route and has always
+    // known the exact text it sent; the hook's background catches have no
+    // prompt at all and simply send none, which stays absent rather than
+    // being guessed.
+    Object.assign(doc, promptRecord.promptFields({
+      full: fullPrompt, content: prompt, prefix: promptPrefix, suffix: promptSuffix,
+    }));
     const ref = await col.add(doc);
     res.json({ ok: true, id: ref.id, url: finalUrl, description, assetDeduped });
   } catch (err) {
@@ -2418,12 +2451,19 @@ app.get('/api/gallery/assets/all', async (req, res) => {
           const uid = await galleryUid();
           const csnap = await storyApp.firestore().collection('users').doc(uid)
             .collection('creations')
-            .select('url', 'prompt', 'type', 'model', 'quality', 'style', 'createdAt',
-              'compressedAtBirth').get();
+            // `select` is a WHITELIST, so a field left out of it is silently
+            // undefined downstream however well the builder handles it — which
+            // is exactly what hid two caption slots for weeks (2026-08-24):
+            // `size` was never selected, so the required third slot could
+            // never show here, and `style` was selected but only read as a
+            // fallback. Add the field HERE as well as wherever it is read.
+            .select('url', 'prompt', 'type', 'model', 'quality', 'style', 'size', 'createdAt',
+              'compressedAtBirth', 'promptStyle', 'promptContent').get();
           creations = csnap.docs.map((d) => {
             const c = d.data() || {};
             return { url: c.url, prompt: c.prompt, type: c.type, model: c.model,
-              quality: c.quality, style: c.style,
+              quality: c.quality, style: c.style, size: c.size,
+              promptStyle: c.promptStyle, promptContent: c.promptContent,
               compressedAtBirth: c.compressedAtBirth,
               ms: c.createdAt && c.createdAt.toMillis ? c.createdAt.toMillis() : 0 };
           });
@@ -3622,7 +3662,11 @@ app.post('/api/witch/dream-illustrate', async (req, res) => {
         await movies.makeDreamPages(first, 'medium', async () => {});
         const page1 = first.pages && first.pages[0] && first.pages[0].url;
         if (!page1) throw new Error('no page rendered');
-        await ref.update({ status: 'done', label: 'done', page1 });
+        // THE WHOLE PROMPT (Sophie's hard rule, 2026-08-24). movies.js hands
+        // the page back carrying the exact sent text; this doc kept the
+        // picture and nothing about how it was made.
+        const fullPrompt = String((first.pages[0] || {}).promptUsed || '').slice(0, 6000);
+        await ref.update({ status: 'done', label: 'done', page1, ...(fullPrompt ? { fullPrompt } : {}) });
       } catch (err) {
         console.warn('witch dream-illustrate failed —', err.message);
         await ref.update({ status: 'error', error: String(err.message || err) }).catch(() => {});
@@ -5488,7 +5532,7 @@ setInterval(sweepStuckPromptlabRuns, 10 * 60 * 1000);
 // frame to decode, so without one it would tile as a blank square. Best-effort
 // throughout and de-duped by url: filing must never fail the work that made the
 // thing, and re-filing the same url must never add a second tile.
-async function fileCreationDoc({ url, type, prompt, poster, model, quality, style, source, createdMs } = {}) {
+async function fileCreationDoc({ url, type, prompt, poster, model, quality, style, source, createdMs, canvas, sizeSlot, fullPrompt, promptPrefix, promptSuffix } = {}) {
   try {
     if (!url) return null;
     await storyDb();
@@ -5507,8 +5551,25 @@ async function fileCreationDoc({ url, type, prompt, poster, model, quality, styl
     };
     if (poster) doc.poster = String(poster);
     if (style) doc.style = String(style).slice(0, 80);
+    // THE WHOLE PROMPT (2026-08-24, Sophie's hard rule: "anytime an image is
+    // made ANYWHERE the whole prompt shud be stored"). `prompt` above is her
+    // typed words, capped at 500 for the caption; these are the literal text
+    // that reached the model and the two halves the PROMPT overlay reads.
+    // Built by ONE shared module so no surface invents its own seam.
+    Object.assign(doc, promptRecord.promptFields({
+      full: fullPrompt, content: prompt, prefix: promptPrefix, suffix: promptSuffix,
+    }));
     if (model) doc.model = String(model).slice(0, 80);
     if (quality) doc.quality = String(quality).slice(0, 40);
+    // THE THIRD CAPTION SLOT, same as fileRunToCreations writes for a
+    // Playground run. `canvas` is the exact one; `size` is what the caption
+    // shows. A caller may pass `sizeSlot` to OVERRIDE the derivation, and the
+    // Panels tool has to: a cut panel's slot is "1/4 (4K)" — the fraction and
+    // the SHEET's tier — because its own 1168x1752 lands on the 1K rung and
+    // would read as an ordinary small picture.
+    if (canvas) doc.canvas = String(canvas).slice(0, 40);
+    const slot = sizeSlot || (canvas ? require('./size-tier').captionSize(canvas) : '');
+    if (slot) doc.size = String(slot).slice(0, 40);
     const ref = await col.add(doc);
     return ref.id;
   } catch (err) {
@@ -5523,7 +5584,8 @@ async function fileCreationDoc({ url, type, prompt, poster, model, quality, styl
 // writes, with `source:'playground'` so they're identifiable. De-dupes by url.
 // Best-effort by design: a gallery hiccup must never fail a run whose images
 // are already saved and on the page.
-async function fileRunToCreations(images, { prompt, style, model, quality, size } = {}) {
+async function fileRunToCreations(images, { prompt, style, model, quality, size, fullPrompt, promptPrefix, promptSuffix } = {}) {
+  const sizeTier = require('./size-tier');
   try {
     if (!images || !images.length) return;
     await storyDb();
@@ -5538,6 +5600,12 @@ async function fileRunToCreations(images, { prompt, style, model, quality, size 
         createdAt: admin.firestore.Timestamp.now(), source: 'playground',
       };
       if (style) doc.style = String(style).slice(0, 80);
+      // THE WHOLE PROMPT — see fileCreationDoc. A Playground run has always
+      // held `fullPrompt` (the exact text sent) for the length of the request
+      // and thrown it away at filing time; this is what keeps it.
+      Object.assign(doc, promptRecord.promptFields({
+        full: fullPrompt, content: prompt, prefix: promptPrefix, suffix: promptSuffix,
+      }));
       // What made the picture, as separate fields — the gallery popup shows
       // "model · quality" and shouldn't have to parse a label back apart.
       if (model) doc.model = String(model).slice(0, 80);
@@ -5549,7 +5617,14 @@ async function fileRunToCreations(images, { prompt, style, model, quality, size 
       // the tiers. The gallery and Meta Assets both read it as the caption's
       // last part; absent on anything filed before the field existed, and an
       // absent slot is left out rather than guessed.
-      if (size) doc.size = String(size).slice(0, 40);
+      // IT IS THE TIER, NOT THE PIXELS (her correction: "i asked for it to say
+      // 1k 2k or 4k") — `size` is what the caption shows and `canvas` keeps
+      // the exact one, because 2K portrait and 2K square are different
+      // canvases at different prices.
+      if (size) {
+        doc.canvas = String(size).slice(0, 40);
+        doc.size = sizeTier.captionSize(size) || doc.canvas;
+      }
       await col.add(doc);
     }
   } catch (err) {
@@ -5599,9 +5674,17 @@ async function runPromptLabGptJob(docRef, cfg) {
     }));
     if (!images.length) throw new Error('every gpt-image-2 render failed — see the server log');
     await docRef.update({ status: 'done', images, failedRenders: failed });
+    // `cfg.fullPrompt` is the literal string that went to the model two dozen
+    // lines up — pass it rather than rebuilding, so the stored text cannot
+    // differ from the sent text by so much as a space. The halves come from
+    // the style's own baked prefix/suffix (or her edited override, which is
+    // what `cfg.head`/`cfg.tail` carry).
     fileRunToCreations(images, {
       prompt: cfg.prompt, style: `${st.label} · ${cfg.quality}`,
       model: PL_GPT.id, quality: cfg.quality, size: cfg.size || PL_GPT.size,
+      fullPrompt: cfg.fullPrompt,
+      promptPrefix: cfg.head != null ? cfg.head : st.prefix,
+      promptSuffix: cfg.tail != null ? cfg.tail : st.suffix,
     });
   } catch (err) {
     console.warn('promptlab gpt job failed:', err.message);
@@ -5653,7 +5736,12 @@ async function runPromptLabJob(docRef, cfg) {
     const images = await Promise.all(urls.map(u => saveToFirebase(u, 'promptlab')));
     plCancelled.delete(docRef.id);
     await docRef.update({ status: 'done', images });
-    fileRunToCreations(images, { prompt: cfg.prompt, style: cfg.styleLabel, model: cfg.styleLabel });
+    // The LoRA's wrapper is its trigger word in front and its suffix behind —
+    // `cfg.fullPrompt` is what was actually sent.
+    fileRunToCreations(images, {
+      prompt: cfg.prompt, style: cfg.styleLabel, model: cfg.styleLabel,
+      fullPrompt: cfg.fullPrompt, promptPrefix: cfg.prefix, promptSuffix: cfg.suffix,
+    });
   } catch (err) {
     console.warn('promptlab job failed:', err.message);
     plCancelled.delete(docRef.id);
@@ -5741,7 +5829,11 @@ app.post('/api/promptlab', async (req, res) => {
         styleRef: (st.refFiles || []).concat(st.storageRefs || []).join(','), outputs,
         character, photoRef: photoUrl, images: [], createdAt: admin.firestore.Timestamp.now(),
       });
-      runPromptLabGptJob(docRef, { fullPrompt, outputs, quality, prompt: typed, character, styleId, size: canvas.size, photoBuf });
+      // head/tail ride along so the filed style half is what ACTUALLY wrapped
+      // her words on this run — her prefix/suffix override if she made one,
+      // the character line and the photo line only when they were really
+      // attached — rather than the style's baked default.
+      runPromptLabGptJob(docRef, { fullPrompt, head, tail, outputs, quality, prompt: typed, character, styleId, size: canvas.size, photoBuf });
       return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
     }
 
@@ -5767,7 +5859,10 @@ app.post('/api/promptlab', async (req, res) => {
       model: modelId, trigger: known.trigger, loraScale, seed, aspectRatio, steps, outputs,
       images: [], createdAt: admin.firestore.Timestamp.now(),
     });
-    runPromptLabJob(docRef, { version, fullPrompt, loraScale, seed, aspectRatio, steps, outputs, prompt: content, styleLabel: known.name });
+    // The LoRA's wrapper is its TRIGGER in front and `tail` behind; both ride
+    // along so the filed style half is the real one.
+    runPromptLabJob(docRef, { version, fullPrompt, loraScale, seed, aspectRatio, steps, outputs,
+      prompt: content, styleLabel: known.name, prefix: known.trigger, suffix: tail });
     res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
   } catch (err) {
     res.status(500).json({ error: err.message });

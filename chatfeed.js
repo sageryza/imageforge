@@ -3025,6 +3025,53 @@ function repoHookMd5() {
   return hookMd5Cache;
 }
 
+// ---- WHAT A BOOKMARK IS FOR — the tag set on a kept thing --------------
+// Aug 2026, Sophie: "both shud now have a set of tag buttons: to read, and
+// 'important' level (1-3) - icons, and review finished feature, review bug fix
+// or information/question answered". A note says WHY she kept it in her own
+// words; these say what KIND of thing it is and how much it matters, in the
+// same four words every time, so the pile can be filtered instead of read.
+//
+// A FIXED VOCABULARY, the same rule the archive tags follow: this table and
+// BMK_TAGS in chats.html are pinned equal by
+// `node scripts/test-chats-bookmark-tags.js`, so a word can never exist on one
+// side only. `to-read` is the one with a door of its own — it is what the To
+// read chip on the Update tab counts.
+//
+// The IMPORTANCE is deliberately NOT a tag: it is a level 1-3 on its own
+// field, because it is a dial (a thing has one) where the tags are a set (a
+// thing can be several). 0 clears it.
+const BMK_TAGS = ['to-read', 'feature', 'bugfix', 'answered'];
+
+// Both bookmark routes take the same two fields, so the whitelist is written
+// once: an unknown word is DROPPED rather than refused, so an older page that
+// learns a new word later cannot fail a save she has already made.
+function bookmarkMarks(body) {
+  const patch = {};
+  if (body.tags !== undefined) {
+    const list = Array.isArray(body.tags) ? body.tags : [];
+    const clean = [];
+    list.forEach((t) => {
+      const w = String(t || '').trim().toLowerCase();
+      if (BMK_TAGS.includes(w) && !clean.includes(w)) clean.push(w);
+    });
+    patch.bmkTags = clean.length ? clean : admin.firestore.FieldValue.delete();
+  }
+  if (body.level !== undefined) {
+    const n = Math.round(Number(body.level) || 0);
+    patch.bmkLevel = (n >= 1 && n <= 3) ? n : admin.firestore.FieldValue.delete();
+  }
+  // I READ IT — hers to tick, never derived (Aug 2026, Sophie: "a rounded
+  // square check box that is empty with a gray outline and becomes red with a
+  // check in it… I'll mark it manually"). Opening a thing is not reading it,
+  // which is why nothing here watches for a view: the tick is the whole
+  // signal, and it is what takes a thing out of the To read count.
+  if (body.read !== undefined) {
+    patch.bmkRead = body.read ? true : admin.firestore.FieldValue.delete();
+  }
+  return patch;
+}
+
 // Bookmark a message Sophie wants to find later — a flag on the message doc
 // itself, so it rides along on GET / (every message already spreads its data)
 // and any chat can read which of its messages she flagged.
@@ -3035,9 +3082,10 @@ function repoHookMd5() {
 // typing one never toggles the bookmark off.
 router.post('/bookmark', async (req, res) => {
   try {
-    const { id, bookmarked, note } = req.body || {};
+    const body = req.body || {};
+    const { id, bookmarked, note } = body;
     if (!id) return res.status(400).json({ error: 'id required' });
-    const patch = {};
+    const patch = Object.assign({}, bookmarkMarks(body));
     if (bookmarked !== undefined) patch.bookmarked = !!bookmarked;
     if (note !== undefined) {
       const t = String(note).trim().slice(0, 300);
@@ -3115,6 +3163,11 @@ router.get('/bookmarks', async (req, res) => {
         snippet: line.slice(0, 220),
         note: m.bookmarkNote || '',
         kind: bookmarkKind(m.text),
+        // her marks ride along so the pile can be filtered and re-tagged in
+        // place — the same two fields on a message and on an artifact
+        tags: Array.isArray(m.bmkTags) ? m.bmkTags : [],
+        level: Number(m.bmkLevel) || 0,
+        read: !!m.bmkRead,
       };
     }).concat(pageDocs.map((d) => {
       const p = d.data() || {};
@@ -3136,6 +3189,9 @@ router.get('/bookmarks', async (req, res) => {
         bookmarked: !!p.bookmarked,
         reference: !!p.reference,
         topic: p.refTopic || '',
+        tags: Array.isArray(p.bmkTags) ? p.bmkTags : [],
+        level: Number(p.bmkLevel) || 0,
+        read: !!p.bmkRead,
       };
     })).concat(Object.keys(reg.chats).filter((slug) => {
       const r = reg.chats[slug] || {};
@@ -3159,6 +3215,37 @@ router.get('/bookmarks', async (req, res) => {
       };
     })).sort((a, b) => (a.created < b.created ? 1 : -1));   // newest first
     res.json({ items, chats: reg.chats });
+  } catch (err) { fail(res, err); }
+});
+
+// HOW MANY THINGS ARE WAITING TO BE READ — the count on the To read chip in
+// the Update tab's doors row (Aug 2026, Sophie: "add a to read button next to
+// it"). Its own tiny route rather than the whole keep-pile: that tab paints on
+// every poll, and GET /bookmarks returns up to a thousand documents.
+//
+// Two array-contains queries, each a single-field index Firestore keeps by
+// itself — the same no-composite-index discipline as everything else here.
+router.get('/to-read', async (req, res) => {
+  try {
+    const [msgs, pages] = await Promise.all([
+      db().collection(MSGS).where('bmkTags', 'array-contains', 'to-read').limit(300).get(),
+      db().collection(PAGES).where('bmkTags', 'array-contains', 'to-read').limit(300).get(),
+    ]);
+    // A THING SHE UN-KEPT MUST LEAVE THE COUNT, and the tag alone cannot say
+    // so: `bookmarked` and `bmkTags` are separate fields ON PURPOSE (a patch
+    // touches only what it names, so tagging never un-keeps and un-keeping
+    // never drops her words) — which left an un-kept page counting towards the
+    // To read door forever. Found live 2026-08-24 superseding a page: the door
+    // read 4 with 3 things in the pile. Filtered HERE rather than in the query
+    // because `array-contains` + an equality needs a composite index, and both
+    // reads are already capped at 300.
+    // AND A TICKED ONE LEAVES IT TOO (Aug 2026, Sophie: "when I read it I'll
+    // mark it manually") — the pile is what is still waiting, so her tick is
+    // what makes the number go down.
+    const kept = (snap) => snap.docs
+      .filter((d) => d.data().bookmarked !== false && !d.data().bmkRead).length;
+    const m = kept(msgs); const pg = kept(pages);
+    res.json({ ok: true, count: m + pg, messages: m, pages: pg });
   } catch (err) { fail(res, err); }
 });
 
@@ -3584,6 +3671,11 @@ router.get('/pages', async (req, res) => {
         superseded: !!d.data().superseded,
         bookmarked: !!d.data().bookmarked,
         bookmarkNote: d.data().bookmarkNote || '',
+        // her marks on a kept artifact, so the Compare tab can draw the same
+        // tag row a kept message carries
+        bmkTags: Array.isArray(d.data().bmkTags) ? d.data().bmkTags : [],
+        bmkLevel: Number(d.data().bmkLevel) || 0,
+        bmkRead: !!d.data().bmkRead,
         reference: !!d.data().reference,
         topic: d.data().refTopic || '',
       }))
@@ -3624,8 +3716,9 @@ router.post('/page/:id/bookmark', async (req, res) => {
   try {
     const id = String(req.params.id || '').slice(0, 60);
     if (!id) return res.status(400).json({ error: 'id required' });
-    const { bookmarked, note } = req.body || {};
-    const patch = {};
+    const body = req.body || {};
+    const { bookmarked, note } = body;
+    const patch = Object.assign({}, bookmarkMarks(body));
     if (bookmarked !== undefined) patch.bookmarked = !!bookmarked;
     if (note !== undefined) {
       const t = String(note).trim().slice(0, 300);
@@ -4332,4 +4425,5 @@ module.exports = { router, pillInject, archiveActionFor, resolveChat, followMove
   autoComparePoke, runAutoCompare,
   TAGS, cleanLabels, labelsOf, labelPatch, applyLabels,
   PILE_SEEDS, REVIEW_LABEL, PIN_LABEL, pileList, isPile,
-  WAIT_LABEL, WAIT_ASK, WAIT_PREFIX, WAIT_MAX, WAIT_MEMORY_MAX, waitReasons };
+  WAIT_LABEL, WAIT_ASK, WAIT_PREFIX, WAIT_MAX, WAIT_MEMORY_MAX, waitReasons,
+  BMK_TAGS, bookmarkMarks };

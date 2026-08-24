@@ -38,6 +38,7 @@ const fs = require('fs');
 const path = require('path');
 const admin = require('firebase-admin');
 const sharp = require('sharp');
+const sizeTier = require('../size-tier');
 
 const RATE = { textIn: 5 / 1e6, imageIn: 8 / 1e6, imageOut: 30 / 1e6 };
 const args = process.argv.slice(2);
@@ -124,7 +125,13 @@ const prompt = [
     await f.makePublic();
     return `https://storage.googleapis.com/${bucket.name}/${name}`;
   };
+  // The caption each piece should be FILED with. A cut panel's size slot is the
+  // fraction and the SHEET's tier ("1/4 (4K)", Sophie's ask) — its own pixels
+  // would land it on the 1K rung and read as an ordinary small picture.
+  const sheetSlot = sizeTier.captionSize(size);
+  const cutSlot = sizeTier.cutSize(size, 4);
   console.log('\nsheet   ' + await put(sheet, `promptlab/${stamp}-sheet-${W}x${H}.webp`));
+  console.log(`        caption: gpt-image-2 · ${quality} · ${sheetSlot}`);
   // Exact halves — lossless crop, no resample, so a quarter is the sheet's own
   // pixels rather than a re-encode of them.
   const qw = W / 2, qh = H / 2;
@@ -133,6 +140,7 @@ const prompt = [
     const cut = await sharp(sheet).extract({ left, top, width: qw, height: qh })
       .webp({ lossless: true }).toBuffer();
     console.log(`${CORNERS[i].padEnd(13)} ` + await put(cut, `promptlab/${stamp}-p${i + 1}-${qw}x${qh}.webp`));
+    console.log(`              caption: gpt-image-2 · ${quality} · ${cutSlot}`);
   }
   process.exit(0);
 })().catch((e) => { console.error('FAILED:', e.message); process.exit(1); });
