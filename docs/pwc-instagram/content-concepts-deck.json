@@ -1,0 +1,140 @@
+{
+  "chat": "pwc-instagram-content",
+  "title": "PWC Instagram — 19 post concepts",
+  "template": "deck",
+  "data": {
+    "items": [
+      {
+        "id": "through-the-glass",
+        "who": "Through the glass",
+        "eyebrow": "AESTHETIC SHOT",
+        "text": "Shot from outside a cafe window: someone inside watching the street, someone on the street watching them back. Two layers of watching in one frame — the club's whole thesis in one image.",
+        "caption": "who's watching who"
+      },
+      {
+        "id": "over-shoulder",
+        "who": "The over-shoulder",
+        "eyebrow": "AESTHETIC SHOT",
+        "text": "From behind two heads on a park bench, the crowd beyond them in focus — you're watching the watchers. Re-shootable in any city, so it can become the account's signature angle.",
+        "caption": "front row seats"
+      },
+      {
+        "id": "reflections",
+        "who": "Reflections",
+        "eyebrow": "AESTHETIC SHOT",
+        "text": "The watcher and the watched share one pane — a bus window, a shop front at dusk. A face layered over the crowd makes the image read twice.",
+        "caption": "double feature"
+      },
+      {
+        "id": "field-sketch",
+        "who": "The field sketch",
+        "eyebrow": "AESTHETIC SHOT",
+        "text": "Post the actual sketchbook page: a stranger drawn live before they moved. Your PWC Scans style is literally this look, so drawn sightings can alternate with photos and still feel like one account.",
+        "caption": "sketched in 4 minutes. they never knew."
+      },
+      {
+        "id": "laundromat",
+        "who": "Laundromat cinema",
+        "eyebrow": "AESTHETIC SHOT",
+        "text": "Rows of plastic chairs facing the machines like a theater — one person turned the other way, watching the room instead. Fluorescent light, warm loneliness.",
+        "caption": "tonight's showing: the spin cycle"
+      },
+      {
+        "id": "terminals",
+        "who": "Golden hour terminals",
+        "eyebrow": "AESTHETIC SHOT",
+        "text": "An airport gate at dusk, everyone in silhouette against the glass. The one place where people watching is the official activity.",
+        "caption": "gate C14. best show in town."
+      },
+      {
+        "id": "bingo",
+        "who": "PWC Bingo",
+        "eyebrow": "CONCEPT",
+        "text": "A bingo card of sightings, drawn in the dreamy style. Followers screenshot it and mark squares on their story — a free engagement loop, and a new card each month keeps it a series.",
+        "sections": [
+          { "label": "Example squares", "text": "dog that looks like its owner · first date (you can tell) · someone rehearsing a conversation · photographs food, doesn't eat it · waves at the wrong person · matching outfits, not on purpose" }
+        ],
+        "caption": "free space: couple silently fighting in IKEA"
+      },
+      {
+        "id": "field-guide",
+        "who": "Field guide cards",
+        "eyebrow": "CONCEPT",
+        "text": "A bird-guide parody card per species: one drawn figure with a name, habitat, call, and behavior. Endlessly serial — one species a week.",
+        "sections": [
+          { "label": "Example", "text": "THE LAPTOP SENTINEL. Habitat: cafe outlet corner. Call: none — headphones. Behavior: has defended that table since 9am. Do not engage." }
+        ]
+      },
+      {
+        "id": "rarity-log",
+        "who": "The rarity log",
+        "eyebrow": "CONCEPT",
+        "text": "Bird-watcher rarity tiers for sightings, common through legendary, posted as a checklist. People comment which ones they've personally spotted.",
+        "caption": "legendary: a teenager looking out the window, phone away"
+      },
+      {
+        "id": "forecast",
+        "who": "The forecast",
+        "eyebrow": "CONCEPT",
+        "text": "A people-watching weather report for the weekend: location, conditions, what to expect. Deadpan meteorologist voice, drawn map optional.",
+        "caption": "Saturday, 74 — farmers market: heavy foot traffic, 90% chance of dogs in tote bags"
+      },
+      {
+        "id": "dreamy-memes",
+        "who": "Dreamy memes",
+        "eyebrow": "CONCEPT",
+        "text": "Relatable club moments drawn in the dreamy style — the hand-drawn look makes an ordinary meme feel like it belongs to the account instead of the whole internet.",
+        "caption": "me, pretending to read, while table 3 quietly breaks up"
+      },
+      {
+        "id": "club-rules",
+        "who": "The club rules",
+        "eyebrow": "CONCEPT",
+        "text": "The official rules, posted one at a time, completely deadpan. Rule 1: never make it weird. Rule 2: if they catch you, you are now the watched. Rule 3: headphones in, nothing playing."
+      },
+      {
+        "id": "overheard",
+        "who": "Overheard, typeset",
+        "eyebrow": "CONCEPT",
+        "text": "One out-of-context quote per post, big serif on cream, stamped with place and time like evidence. The cheapest post the account can make, and extremely savable.",
+        "caption": "'i just think the moon owes me one.' — bus 14, 8:42am"
+      },
+      {
+        "id": "difficulty",
+        "who": "Venue difficulty ratings",
+        "eyebrow": "CONCEPT",
+        "text": "Rank spots like climbing routes. Airport: beginner. Coffee shop: easy. DMV: intermediate. A wedding you barely got invited to: expert."
+      },
+      {
+        "id": "write-their-story",
+        "who": "Write their story",
+        "eyebrow": "CONCEPT",
+        "text": "A drawn stranger and one line: what's their deal? Followers write the backstory in comments, and the best answer gets drawn as a follow-up panel. Comment bait that produces next week's post."
+      },
+      {
+        "id": "anatomy",
+        "who": "The anatomy diagram",
+        "eyebrow": "CONCEPT",
+        "text": "One regular, labeled like a scientific figure: coffee (fourth) · crossword (untouched) · eyes (on the door since 10:15). One drawing, many labels, very shareable."
+      },
+      {
+        "id": "mug-ledge",
+        "who": "The mug on the ledge",
+        "eyebrow": "PRODUCT",
+        "text": "The mug sits on a cafe window ledge facing the street, doing the thing the club does. Product placement where the product is also people watching."
+      },
+      {
+        "id": "bench-kit",
+        "who": "Bench kit flat lay",
+        "eyebrow": "PRODUCT",
+        "text": "The tote on a park bench, shot from above: notebook, pencil, coffee, the tote. The complete kit of the hobby, laid out like gear."
+      },
+      {
+        "id": "sticker-wild",
+        "who": "Sticker in the wild",
+        "eyebrow": "PRODUCT",
+        "text": "The sticker on a thermos or a sketchbook at an overlook of a busy square — product shots that read like sightings from a real session, not ads."
+      }
+    ]
+  }
+}
