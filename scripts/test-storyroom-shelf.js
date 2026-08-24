@@ -14,7 +14,14 @@
 //   3. tapping a tile opens THAT story's beat canvas (the sheet closes and
 //      the page loads that pad),
 //   4. ?plain=1 still renders the old row list (the unlinked fallback) —
-//      and without it no .srow exists, i.e. nothing links there.
+//      and without it no .srow exists, i.e. nothing links there,
+//   5. FOLDERS (Aug 2026, Sophie: "treat the Evan and Mason ones as a folder
+//      … a stack that you can see underneath the cover image"): the stories
+//      in one collapse to a single tile carrying the count, the stack layers
+//      are MEASURED to sit under the cover and inside the tile's own box (a
+//      folder and a story must be the same height, or the names go ragged
+//      across a row), tapping it steps into the folder, and the chevron
+//      steps back out instead of leaving the tool.
 //
 //   npm install playwright --no-save && node scripts/test-storyroom-shelf.js
 //
@@ -29,9 +36,17 @@ catch { console.log('SKIP: playwright not installed (npm install playwright --no
 
 const PUB = path.join(__dirname, '..', 'public');
 
+// m1/m2/m3 are a folder: three stories of one character, filed by a chat and
+// deliberately NOT contiguous in the shelf's newest-first order (m3 sits
+// under The Meteorite) — the folder has to gather them and sit where its
+// NEWEST one was. m1 has no art, so the folder's face must fall through to
+// m2's — a folder tile is a real picture, same rule as a story's.
 const PADS = [
   { id: 'pad', title: 'set theory', beats: 22, cover: '/px.png?a', category: null, updatedAt: 900 },
+  { id: 'm1', title: 'Mason — the shape', beats: 16, cover: null, category: null, folder: 'Mason', updatedAt: 880 },
+  { id: 'm2', title: 'Valued Customer', beats: 16, cover: '/px.png?m', category: null, folder: 'Mason', updatedAt: 850 },
   { id: 'p2', title: 'The Meteorite', beats: 0, cover: '/px.png?b', category: 'personal', updatedAt: 800 },
+  { id: 'm3', title: 'Where Do You Crop Art?', beats: 13, cover: '/px.png?n', category: 'personal', folder: 'Mason', updatedAt: 780 },
   { id: 'p3', title: 'NDE · Telepathy', beats: 0, cover: '/px.png?c', category: 'nde', updatedAt: 700 },
   { id: 'p4', title: 'NDE · PROOF', beats: 0, cover: null, category: 'nde', updatedAt: 600 },
   { id: 'p5', title: 'The Lessons', beats: 0, cover: '/px.png?d', category: 'lessons', updatedAt: 500 },
@@ -100,9 +115,9 @@ function ok(cond, name) {
     'no story is loaded until she picks one');
   ok(await page.$eval('#shelfcats .scat.on', (el) => el.textContent) === 'Personal',
     'shelf opens on the Personal chip');
-  ok((await page.$$('.stile')).length === 3,
-    'Personal shows personal + untagged stories (3 tiles)');
-  ok((await page.$$('.stile .cov img')).length === 2 &&
+  ok((await page.$$('.stile')).length === 4,
+    'Personal shows personal + untagged stories, the folder as one tile (4)');
+  ok((await page.$$('.stile .cov img')).length === 3 &&
      (await page.$$('.stile .cov .none')).length === 1,
     'a story with art gets its picture, one without gets the dashed box');
   ok(thumbCalls.length >= 1 && thumbCalls.every((u) => u && u.indexOf('/px.png') === 0),
@@ -110,6 +125,74 @@ function ok(cond, name) {
   const names = await page.$$eval('.stile .snm', (els) => els.map((e) => e.textContent));
   ok(names.includes('Untitled'), 'a blank title reads "Untitled"');
   ok(names.every((n) => !/beats?/.test(n)), 'the name only — no status line on a tile');
+
+  // 5 — the folder: one tile, gathered, stacked, and a level to step into
+  const shelfNames = await page.$$eval('.stile .snm', (els) => els.map((e) => e.textContent));
+  ok(shelfNames.indexOf('Mason') === 1,
+    'the folder sits where its NEWEST story was, not sorted to the top');
+  ok(!shelfNames.includes('Mason — the shape') && !shelfNames.includes('Valued Customer'),
+    'the stories in a folder come off the shelf');
+  ok((await page.$$('.stile.fold')).length === 1 &&
+     (await page.$eval('.stile.fold .cnt', (el) => el.textContent)) === '3',
+    'the folder tile carries its count — including the story filed under another chip');
+  const face = await page.$eval('.stile.fold .cov img', (el) => el.getAttribute('src'));
+  ok(decodeURIComponent(face).indexOf('/px.png?m') > 0,
+    'a folder whose newest story has no art falls through to one that does');
+
+  // THE STACK, MEASURED. "Visible" proves nothing here: the layers are
+  // pseudo-elements behind the cover, so the questions that matter are
+  // whether they actually peek out UNDER it and whether the tile is still
+  // the same height as a plain story's (or the names go ragged across a row).
+  const stack = await page.evaluate(() => {
+    const fold = document.querySelector('.stile.fold');
+    const plain = document.querySelector('.stile:not(.fold)');
+    const cs = (el, p) => getComputedStyle(el, p);
+    const covF = fold.querySelector('.cov');
+    return {
+      foldH: Math.round(fold.getBoundingClientRect().height),
+      plainH: Math.round(plain.getBoundingClientRect().height),
+      coverBottom: cs(fold.querySelector('.cov img')).bottom,
+      layer1: cs(covF, '::before').content,
+      layer2: cs(covF, '::after').content,
+      // the cover's own box must stop short of the .cov box's bottom edge
+      gap: Math.round(covF.getBoundingClientRect().bottom
+        - fold.querySelector('.cov img').getBoundingClientRect().bottom),
+      plainGap: Math.round(plain.querySelector('.cov').getBoundingClientRect().bottom
+        - (plain.querySelector('.cov img') || plain.querySelector('.cov .none'))
+          .getBoundingClientRect().bottom),
+    };
+  });
+  ok(stack.layer1 === '""' && stack.layer2 === '""',
+    'the stack is two flat layers (pseudo-elements), so a folder is still one node');
+  ok(stack.gap >= 6 && stack.gap <= 10,
+    'the cover is lifted off the bottom, so the stack shows underneath it (' + stack.gap + 'px)');
+  ok(stack.plainGap === 0,
+    'a plain story tile is untouched — its cover still fills its box');
+  ok(stack.foldH === stack.plainH,
+    'a folder is exactly as tall as a story, so the names line up across a row');
+
+  // tapping it steps INTO the folder — the same sheet, renamed
+  await page.click('.stile.fold');
+  await page.waitForFunction(() => document.getElementById('shelfno').textContent === 'Mason');
+  ok(await page.$eval('#stories', (el) => !el.hidden), 'the folder is a level of the shelf sheet, not a new one');
+  ok(await page.$eval('#shelfcats', (el) => el.hidden), 'the category chips come off inside a folder');
+  const inFold = await page.$$eval('.stile .snm', (els) => els.map((e) => e.textContent));
+  ok(inFold.length === 3 && inFold.includes('Where Do You Crop Art?'),
+    'the folder shows all three, including the one filed under another chip');
+  ok((await page.$$('.stile.fold')).length === 0, 'no folder tile inside a folder');
+  ok(padLoads.length === 0, 'stepping into a folder loads no story');
+
+  // the chevron steps OUT of the folder instead of leaving the tool
+  let left = false;
+  await page.exposeFunction('__testLeft', () => { left = true; });
+  await page.evaluate(() => { window.__forgeLeave = () => window.__testLeft(); });
+  await page.click('#storiesclose');
+  await page.waitForFunction(() => document.getElementById('shelfno').textContent === 'The shelf');
+  ok(!left, 'the chevron steps out of the folder — it does not leave the tool');
+  ok((await page.$$('.stile.fold')).length === 1, 'and the shelf is back with the folder on it');
+  ok(await page.evaluate(() => window.__navBack()) === false,
+    'from the bare shelf __navBack still hands the app its exit');
+  await page.evaluate(() => { delete window.__forgeLeave; });
 
   // 2 — the NDE chip filters
   await page.click('#shelfcats .scat:nth-child(3)');

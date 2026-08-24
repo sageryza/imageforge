@@ -143,17 +143,49 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   cursor:pointer; -webkit-tap-highlight-color:transparent;}
 .scat.on{border-color:var(--gold); color:var(--gold);}
 #shelftiles{display:grid; grid-template-columns:repeat(4,1fr); gap:12px 8px;}
+/* Inside a folder the chips come off, and their margin goes with them — so
+   the tiles keep the same air under the header either way. */
+#shelfcats[hidden]+#shelftiles{margin-top:14px;}
 .stile{display:block; padding:0; background:none; border:none; text-align:left; color:var(--ink);
   cursor:pointer; font-family:'EBGaramond',Georgia,serif; -webkit-tap-highlight-color:transparent;}
 .stile .cov{display:block; position:relative; width:100%; aspect-ratio:2/3;}
-.stile .cov img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
-  border-radius:6px; border:1px solid var(--line); background:var(--barbg);}
+/* box-sizing is load-bearing, not tidiness: nothing on this page sets it
+   globally, so width/height:100% plus the 1px border made the picture 2px
+   wider and taller than its own box, hanging over the bottom edge. */
+.stile .cov img{position:absolute; inset:0; width:100%; height:100%; box-sizing:border-box;
+  object-fit:cover; border-radius:6px; border:1px solid var(--line); background:var(--barbg);}
 .stile .cov .none{position:absolute; inset:0; border-radius:6px; border:1px dashed var(--line);
   background:var(--barbg);}
 .stile .snm{padding-top:5px; font-weight:700; font-size:.8em; line-height:1.25;
   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
 .stile .snm.blank{color:var(--ink2); font-style:italic; font-weight:400;}
 .stile.cur .snm{color:var(--gold);}
+/* A FOLDER IS A STACK (Aug 2026, Sophie: "treat the Evan and Mason ones as a
+   folder … some sort of UI design like a stack that you can see underneath
+   the cover image so you can tell there's multiple stories in there").
+   THE STACK IS DRAWN INSIDE THE TILE'S OWN BOX — the cover is lifted 8px off
+   the bottom and two flat layers peek out under it, rather than the layers
+   hanging below the box. That is what keeps a folder and a story exactly the
+   same height, so the names still line up across a row and the grid never
+   ends ragged. Flat solid fills and NO shadow (house rule): the offset alone
+   says there is more underneath. The layers are pseudo-elements, so a folder
+   tile is one node like every other tile. */
+/* THE COVER IS SHORTENED, NOT PUSHED UP — `bottom` alone does nothing to the
+   picture. An absolutely positioned REPLACED element with an explicit height
+   is over-constrained, so the browser drops `bottom` on the floor and the
+   stack never shows (it shipped that way for one test run). The dashed
+   empty-box is not replaced and takes `bottom` normally. */
+.stile.fold .cov img{height:calc(100% - 8px); z-index:1;}
+.stile.fold .cov .none{bottom:8px; z-index:1;}
+.stile.fold .cov::before,.stile.fold .cov::after{content:''; position:absolute; z-index:0;
+  height:24px; border-radius:6px; background:var(--barbg); border:1px solid var(--line);}
+.stile.fold .cov::before{left:4px; right:4px; bottom:4px;}
+.stile.fold .cov::after{left:9px; right:9px; bottom:0;}
+/* How many are in there. The stack says "more than one"; this says how many,
+   so she can tell a pair from a pile without opening it. */
+.stile .cnt{position:absolute; z-index:2; right:5px; bottom:13px;
+  background:var(--paper); border:1px solid var(--line); border-radius:6px; color:var(--ink2);
+  padding:1px 5px; font:600 11px -apple-system,'Helvetica Neue',sans-serif;}
 /* The OLD shelf: every story as a row. Kept as a fallback only — NOTHING
    links here (Sophie's call); ?plain=1 is the one way in. */
 #storylist{margin-top:1.2em;}
@@ -542,7 +574,12 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   <div class="wrap">
     <div class="sheethead">
       <button class="iconbtn" id="storiesclose" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
-      <div class="no">The shelf</div>
+      <!-- Reads "The shelf", and the folder's own name while she is inside
+           one — a folder is a LEVEL of this sheet, not a sheet of its own, so
+           it wears this header exactly the way the shelf does (2026-08-23,
+           Sophie: "the header should be like normal it should say the
+           shelf"). Its chevron is what steps back out. -->
+      <div class="no" id="shelfno">The shelf</div>
       <button class="iconbtn" id="newstory" aria-label="Start a new story"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
     </div>
     <div id="shelfcats"></div>
@@ -1298,34 +1335,84 @@ function paintShelfBack(){
   document.getElementById('shelfback').hidden =
     !padOpened || !document.getElementById('stories').hidden;
 }
+/* THE FOLDER SHE HAS STEPPED INTO, by name, or null on the shelf itself.
+   A folder is an intermediate LEVEL of the same sheet — the tiles are
+   replaced and the header renames itself — never a second sheet, so there is
+   one scroller, one close path, and nothing new for __navBack to learn
+   beyond which level it is on. Session-only, like the category chip: every
+   open starts on the shelf proper. */
+var shelfFolder=null;
+/* One tile, drawn the same way whether it is a story or a folder — the stack
+   and the count are the only difference, and both hang off the `fold` class.
+   `cover` may be null: a folder whose stories have no art yet gets the same
+   dashed box a story does. */
+function shelfTile(o){
+  var t=document.createElement('button');
+  t.className='stile'+(o.cur?' cur':'')+(o.count?' fold':'');
+  var cov=document.createElement('span'); cov.className='cov';
+  if(o.cover){
+    var im=document.createElement('img'); im.alt=''; im.loading='lazy';
+    im.src=thumbOf(o.cover); cov.appendChild(im);
+  } else {
+    var n=document.createElement('span'); n.className='none'; cov.appendChild(n);
+  }
+  if(o.count){
+    var c=document.createElement('span'); c.className='cnt';
+    c.textContent=o.count; cov.appendChild(c);
+  }
+  t.appendChild(cov);
+  var nm=document.createElement('span'); nm.className='snm'+(o.name?'':' blank');
+  nm.textContent=o.name||'Untitled'; t.appendChild(nm);
+  t.onclick=function(e){ e.stopPropagation(); o.go(); };
+  return t;
+}
 function renderShelf(){
   var cats=document.getElementById('shelfcats');
   var tiles=document.getElementById('shelftiles');
   document.getElementById('storylist').hidden=true;
-  cats.hidden=false; tiles.hidden=false;
+  tiles.hidden=false;
+  /* Inside a folder the chips come OFF. A folder gathers a character's
+     stories wherever they were filed, so a chip there would offer to hide
+     half of what she just opened. */
+  cats.hidden=Boolean(shelfFolder);
+  document.getElementById('shelfno').textContent=shelfFolder||'The shelf';
   cats.innerHTML='';
-  SHELF_CATS.forEach(function(c){
+  if(!shelfFolder) SHELF_CATS.forEach(function(c){
     var b=document.createElement('button'); b.className='scat'+(c[1]===shelfCat?' on':'');
     b.textContent=c[0];
     b.onclick=function(e){ e.stopPropagation(); shelfCat=c[1]; renderShelf(); };
     cats.appendChild(b);
   });
   tiles.innerHTML='';
+  if(shelfFolder){
+    shelfPads.filter(function(p){ return p.folder===shelfFolder; }).forEach(function(p){
+      tiles.appendChild(shelfTile({ cover:p.cover, name:p.title, cur:p.id===padId,
+        go:function(){ openPad(p.id); } }));
+    });
+    return;
+  }
+  /* A folder sits where its NEWEST story would have sat, and the stories in
+     it come off the shelf — that is the whole point, and it is why the walk
+     is in place rather than a group-then-append (which would sort every
+     folder to the top and lose the newest-first order she reads by). */
+  var seen={};
   shelfPads.filter(function(p){ return (p.category||'personal')===shelfCat; })
     .forEach(function(p){
-      var t=document.createElement('button'); t.className='stile'+(p.id===padId?' cur':'');
-      var cov=document.createElement('span'); cov.className='cov';
-      if(p.cover){
-        var im=document.createElement('img'); im.alt=''; im.loading='lazy';
-        im.src=thumbOf(p.cover); cov.appendChild(im);
-      } else {
-        var n=document.createElement('span'); n.className='none'; cov.appendChild(n);
+      if(p.folder){
+        if(seen[p.folder]) return;
+        seen[p.folder]=true;
+        var inIt=shelfPads.filter(function(q){ return q.folder===p.folder; });
+        var withArt=inIt.filter(function(q){ return q.cover; })[0];
+        var name=p.folder;
+        tiles.appendChild(shelfTile({
+          cover:withArt?withArt.cover:null, name:name, count:inIt.length,
+          cur:inIt.some(function(q){ return q.id===padId; }),
+          go:function(){ shelfFolder=name; renderShelf();
+            document.getElementById('stories').scrollTop=0; } }));
+        return;
       }
-      t.appendChild(cov);
-      var nm=document.createElement('span'); nm.className='snm'+(p.title?'':' blank');
-      nm.textContent=p.title||'Untitled'; t.appendChild(nm);
-      t.onclick=function(e){ e.stopPropagation(); openPad(p.id); };
-      tiles.appendChild(t);
+      tiles.appendChild(shelfTile({ cover:p.cover, name:p.title, cur:p.id===padId,
+        go:function(){ openPad(p.id); } }));
     });
 }
 function renderPlainShelf(){
@@ -1358,6 +1445,9 @@ function closeShelf(){
    tab opened straight at /storyroom has no outside to return to. */
 document.getElementById('storiesclose').onclick=function(ev){
   ev.stopPropagation();
+  // A folder is one level UP from the shelf's floor, so the same chevron
+  // steps out of it first and only then leaves the tool.
+  if(shelfFolder){ shelfFolder=null; renderShelf(); return; }
   if(window.__forgeLeave){ window.__forgeLeave(); return; }
   if(history.length>1) history.back();
 };
@@ -1409,7 +1499,9 @@ document.getElementById('shelfback').onclick=function(ev){
 };
 document.getElementById('newstory').onclick=function(ev){
   ev.stopPropagation();
-  api('/pads',{method:'POST',body:JSON.stringify({pad:null,title:''})})
+  // Started from inside a folder → it joins that folder. Anywhere else the
+  // field is absent and the story lands loose on the shelf, exactly as before.
+  api('/pads',{method:'POST',body:JSON.stringify({pad:null,title:'',folder:shelfFolder||''})})
     .then(function(r){return r.json()})
     .then(function(d){ if(d.pad) openPad(d.pad); });
 };
@@ -2132,7 +2224,12 @@ window.__navBack=function(){
   el=document.getElementById('helpsheet');
   if(!el.hidden){ document.getElementById('helpclose').click(); return true; }
   el=document.getElementById('stories');
-  if(!el.hidden) return false;    // the shelf is the floor — the app leaves
+  if(!el.hidden){
+    // A folder is a level ABOVE the floor (Aug 2026) — step out of it, and
+    // only the bare shelf hands the app its exit.
+    if(shelfFolder){ shelfFolder=null; renderShelf(); return true; }
+    return false;                 // the shelf is the floor — the app leaves
+  }
   openShelf(); return true;       // a story steps up to it
 };
 
