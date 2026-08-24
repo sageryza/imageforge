@@ -48,6 +48,14 @@
   --tri-track: var(--chg, #b3443f);
   --tri-knob: var(--paper, #faf7f2);
   --tri-ink: var(--tri-track);        /* the letter on the knob, if any */
+  /* THE LINE AND THE FILL SPLIT OFF `--tri-track` (Aug 2026, Sophie, looking
+     at the Playground's row: "the buttons are styled so fucking weird. they
+     should have black outlines"). The track was one colour doing two jobs, so
+     an instance on a row of outlined controls could only be a solid slab —
+     the one thing on that row with no line at all. Both DEFAULT to the track,
+     so every instance that does not name them is byte-for-byte what it was. */
+  --tri-line: var(--tri-track);       /* the track's border */
+  --tri-fill: var(--tri-track);       /* what is behind the knob */
   --tri-w: 48px;                      /* track width */
   --tri-k: 18px;                      /* knob diameter */
   --tri-inset: 2.5px;                 /* knob to the inside of the track */
@@ -60,7 +68,7 @@
 
   position: relative; box-sizing: border-box;
   width: var(--tri-w); height: var(--tri-h); border-radius: calc(var(--tri-h) / 2);
-  border: var(--tri-bw) solid var(--tri-track); background: var(--tri-track);
+  border: var(--tri-bw) solid var(--tri-line); background: var(--tri-fill);
   padding: 0; margin: 0; flex: none; cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }

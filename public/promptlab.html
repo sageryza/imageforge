@@ -73,12 +73,18 @@
     display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .controls label { font-size: 12.5px; color: #6f675e; }
   /* Every boxed control on the row, in one place. */
-  .controls .stylebtn, .controls .xthree, .controls #stylepick,
+  /* `#stylepick` LIVES IN `.styles`, NOT IN THE ROW, so a `.controls
+     #stylepick` selector never matched it and it stood 35px tall beside a row
+     of 34s (Aug 2026, measured, after "they're all different sizes"). It is
+     addressed by its own id here; the rest are genuinely in the row. */
+  #stylepick,
+  .controls .stylebtn, .controls .xthree,
   .controls .canvastog, .controls .tri, .controls #charpick,
   .controls #photopick, .controls .seedbtn, .controls button.go {
-    height: var(--ctl-h); box-sizing: border-box; }
-  .controls .stylebtn, .controls .xthree, .controls #stylepick {
+    height: 34px; box-sizing: border-box; }
+  .controls .stylebtn, .controls .xthree {
     display: inline-flex; align-items: center; padding-top: 0; padding-bottom: 0; }
+  #stylepick { padding-top: 0; padding-bottom: 0; }
   .controls .stylebtn, .controls .xthree, .controls .canvastog,
   .controls #charpick, .controls #photopick, .controls .seedbtn { border-color: var(--ctl-line); }
   .xthree { border: 1px solid #d8d0c4; border-radius: 6px; padding: 0 10px; font: inherit; font-size: 14px; font-weight: 600; background: #fdfcf9; color: #2b2622; }
@@ -105,7 +111,10 @@
      whichever ones share a line and scatter the rest. The auto margin moved
      off `.go` and onto the group for the same reason. */
   .gogroup { display: flex; align-items: center; gap: 8px; flex: none; margin-left: auto; }
-  .seedbtn { width: var(--ctl-h); border-radius: 50%; border: 1px solid #d8d0c4; background: #fdfcf9; color: #2b2622; display: flex; align-items: center; justify-content: center; }
+  /* A ROUNDED SQUARE at the house 6px, never a circle (2026-08-24: "i prefer
+     rounded squares for buttons, or plain icons, rather than circles") — it
+     was the one round thing in a row of 6px boxes. */
+  .seedbtn { width: var(--ctl-h); border-radius: 6px; border: 1px solid #d8d0c4; background: #fdfcf9; color: #2b2622; display: flex; align-items: center; justify-content: center; }
   .seedbtn svg { width: 19px; height: 19px; }
   .seedtag { font-size: 11.5px; color: #6f675e; }
   /* The three-way toggle is /tritoggle.css now (Aug 2026, Sophie: "make a
@@ -117,7 +126,15 @@
      ONE rule for both toggles: the stops are NUMBERED (`data-n`), so quality
      (low/medium/high) and size (1K/2K/4K) share it and neither needs a
      selector of its own. Nothing here counts the notches. */
-  .tri { --tri-track: #2b2622; --tri-knob: #faf7f2; --tri-w: 78px; --tri-k: 26px; }
+  /* PAPER WITH A BLACK LINE, like every other control on the row (Aug 2026,
+     Sophie: "the buttons are styled so fucking weird. they should have black
+     outlines and they're all different sizes"). They were solid ink slabs —
+     the same 34px height as their neighbours, but the only things on the row
+     with no line and no paper, which is what read as a different size. The
+     KNOB is the dark one now, so what is lit is the stop she is on rather
+     than the whole control. Colour only: the geometry is still the shell's. */
+  .tri { --tri-fill: #fdfcf9; --tri-line: #2b2622; --tri-knob: #2b2622;
+    --tri-ink: #faf7f2; --tri-w: 78px; --tri-k: 26px; }
   input[type=number] { width: 64px; border: 1px solid #d8d0c4; border-radius: 6px; padding: 7px; font: inherit; font-size: 16px; background: #fdfcf9; }
   /* Generate is the stars icon, not the word — one image, one tap. SQUARE
      since Aug 2026 (Sophie: "make the generate button a square"): 38x38, the
@@ -198,12 +215,7 @@
      ABOVE 9 — they are meant to cover the pill. */
   .feedbar { position: sticky; top: 0; z-index: 5; display: flex; padding: 8px 56px 8px 0; background: #faf7f2; }
   .viewtog { display: flex; border: 1px solid #d8d0c4; border-radius: 6px; overflow: hidden; background: #fdfcf9; }
-  /* 9px, not the 15 it shipped with: the row is a fixed budget (390pt less
-     the 56 the injected pill owns) and the columns button at the far right
-     had to come out of somewhere. Two short words are the only slack on the
-     row, and 9px still leaves both fully legible — measured, along with the
-     search box's placeholder, by test-playground-cols.js. */
-  .viewtog button { border: 0; background: none; font: inherit; font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: #6f675e; padding: 7px 9px; }
+  .viewtog button { border: 0; background: none; font: inherit; font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: #6f675e; padding: 7px 15px; }
   .viewtog button + button { border-left: 1px solid #d8d0c4; }
   .viewtog button.on { background: #2b2622; color: #faf7f2; font-weight: 600; }
   /* THE TWO MARK FILTERS, one segmented box beside the view switch — neither
@@ -240,34 +252,41 @@
      back out is then blocked — one tap would leave the whole page stuck
      zoomed (found live on her phone on /assets, Aug 2026). */
   .feedsearch { flex: 1; min-width: 0; margin-left: 8px; position: relative; display: flex; }
-  /* THE ✕'s CLEARANCE IS PAID FOR ONLY WHILE THERE IS AN ✕ (Aug 2026, when
-     the columns button took 38px off this row). 28px of right padding was
-     reserved on an empty box for a button that is hidden on an empty box —
-     and the placeholder, which only ever shows on an empty box, was paying
-     it. `.hasq` is written beside `#qclear.hidden`, so typed text still
-     clears the ✕ and "Search" gets the whole width it has. */
   .feedsearch input { width: 100%; min-width: 0; font: inherit; font-size: 16px; color: #2b2622;
-    background: #fdfcf9; border: 1px solid #d8d0c4; border-radius: 6px; padding: 6px 9px; }
-  .feedsearch input.hasq { padding-right: 28px; }
+    background: #fdfcf9; border: 1px solid #d8d0c4; border-radius: 6px; padding: 6px 28px 6px 9px; }
   .feedsearch input:focus { outline: none; border-color: #c25a72; }
   .feedsearch input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
   /* CLEAR, not dismiss: it empties the box and keeps her in it. Shown only
      while there are words to wipe. */
   .qclear { position: absolute; right: 0; top: 0; height: 100%; width: 28px; border: 0; background: none;
     color: #8a8177; font-size: 18px; line-height: 1; padding: 0; }
-  /* THREE OR FOUR ACROSS — a square button at the right of the search box
-     (Aug 2026, Sophie: "add a 3 to a row vs. 4 to a row toggle to the right
-     of search in playground. square button that cycles between 3 and 4").
+  /* THREE OR FOUR ACROSS — a square button IN THE PILL'S RAIL (Aug 2026,
+     Sophie: "add a 3 to a row vs. 4 to a row toggle... square button that
+     cycles between 3 and 4", then "it can go in the same column as the auto
+     scroll pill that way the search thing can go back to the size it was").
+     It shipped in the feed row and cost the search box 38px it did not have;
+     the rail is the one column already reserved on every page (the row pads
+     56px for it), so a guest there costs the page nothing.
+     IT SAYS THE NUMBER — "3" or "4" — her second correction the same day. It
+     first drew the count as N bars, on the pyramid's reasoning that a mark
+     should picture how many; at 16px three bars and four bars are the same
+     grey smudge, and the number is the one thing that reads at a glance.
      Two states, so a tap is the only move there is — the house no-cycling
      rule is about a three-way toggle, where a stop can be aimed at and a
      blind step past it is the surprise; with two there is nowhere else to go.
-     It draws the count rather than saying it: N bars across the box, which is
-     a picture of the wall it makes (the pyramid's rule — a mark that says how
-     many, never a word). Sticky, like the view and the two filters. */
-  .coltog { flex: none; margin-left: 8px; width: 30px; height: 30px; display: flex;
-    align-items: center; justify-content: center; border: 1px solid #d8d0c4;
-    border-radius: 6px; background: #fdfcf9; color: #6f675e; padding: 0; }
-  .coltog svg { width: 16px; height: 16px; }
+     Sized and painted like `.ptop`, the rail's other guest — 38px, a 1.5px
+     ink line on paper — but a ROUNDED SQUARE at the house 6px, never a
+     circle. The 5px is what CENTRES 38px in the rail's 48px track, the way
+     the pill's own flex column centres `.ptop`. `top` is written by
+     `placeCols()`; z-index stays under the pill's 9, the house pattern for
+     anything sharing that corner. */
+  .coltog { position: fixed; right: calc(max(14px, 4vw) + 5px); z-index: 8; box-sizing: border-box;
+    width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
+    border: 1.5px solid var(--ink, #26221c); border-radius: 6px; background: var(--paper, #f6f2e9);
+    color: var(--ink, #26221c); padding: 0; margin: 0; cursor: pointer;
+    font: 600 15px/1 -apple-system, sans-serif;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .09);
+    -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   .emptynote { font-size: 13px; color: #8a8177; padding: 18px 0; text-align: center; }
   #tiles .emptynote { grid-column: 1 / -1; }
   /* Tiles: THREE to a row by default (Aug 2026, her ask — four was too small
@@ -492,8 +511,8 @@
            autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="search">
     <button class="qclear" id="qclear" aria-label="Clear search" hidden>&times;</button>
   </div>
-  <button class="coltog" id="v-cols"></button>
 </div>
+<button class="coltog" id="v-cols"></button>
 <div id="pendings"></div>
 <div id="runs"></div>
 <div id="tiles"></div>
@@ -663,23 +682,70 @@
     var n = parseInt(localStorage.getItem('promptlab_cols'), 10);
     return COLS.indexOf(n) >= 0 ? n : 3;
   }
-  // N bars across the box: the picture of the wall it makes, not the word for
-  // it. Drawn from the count, so a third setting would need no new artwork.
-  function colsIcon(n) {
-    var W = 16, gap = 2, w = (W - gap * (n - 1)) / n, r = '';
-    for (var i = 0; i < n; i++)
-      r += '<rect x="' + (i * (w + gap)).toFixed(2) + '" y="1" width="' + w.toFixed(2) +
-           '" height="14" rx="1" fill="currentColor"></rect>';
-    return '<svg viewBox="0 0 16 16" aria-hidden="true">' + r + '</svg>';
-  }
   function applyCols() {
     var n = curCols(), next = COLS[(COLS.indexOf(n) + 1) % COLS.length];
     document.documentElement.style.setProperty('--cols', String(n));
     var b = document.getElementById('v-cols');
-    b.innerHTML = colsIcon(n);
+    b.textContent = String(n);
     b.setAttribute('aria-label', n + ' pictures a row — tap for ' + next);
     b.title = n + ' a row';
   }
+  // IT SITS UNDER THE PILL, MEASURED — never at a typed offset. The rail's
+  // height is not a constant: the safe-area inset moves the whole thing down
+  // on her phone, and the back-to-top button appears and disappears with the
+  // scroll, so anything hardcoded is either overlapping the pill or floating
+  // in a hole below it. With no pill on the page (nothing to scroll — it
+  // hides itself) the rail is empty and the button takes its top.
+  function placeCols() {
+    var b = document.getElementById('v-cols');
+    var pill = document.querySelector('.float');
+    var top = null;
+    // ITS OWN BOX IS THE ONLY HONEST QUESTION — `offsetParent` is null on a
+    // POSITION:FIXED element whether it is on screen or not, so asking that
+    // (the reflex for "is this visible?") parks the button on top of a pill
+    // that is plainly there. Measured: it did.
+    if (pill) {
+      var r = pill.getBoundingClientRect();
+      if (r.height) top = r.bottom + 8;
+    }
+    if (top === null) {
+      // The rail's own top, read off the pill's rule rather than retyped, so
+      // the two can never disagree about where the column starts.
+      var t = pill ? parseFloat(getComputedStyle(pill).top) : NaN;
+      top = isNaN(t) ? 14 : t;
+    }
+    b.style.top = Math.round(top) + 'px';
+  }
+  // The pill is APPENDED to the page after this script runs, and it resizes
+  // itself later (fonts, the feed landing, the back-to-top arriving). So the
+  // placement is re-run on everything that can move it rather than once.
+  var colsTick = null;
+  function syncCols() {
+    if (colsTick) return;
+    colsTick = requestAnimationFrame(function () { colsTick = null; placeCols(); });
+  }
+  window.addEventListener('scroll', syncCols, { passive: true });
+  window.addEventListener('resize', syncCols, { passive: true });
+  window.addEventListener('load', syncCols);
+  // NARROW ON PURPOSE: the body's own children (to catch the pill being
+  // appended), then the pill itself once it exists — `syncPill` hides and
+  // shows it with an inline style, and the back-to-top arrives as a style
+  // change too. A subtree observer over this page would fire on every tile
+  // of every repaint for a control that only moves when the rail does.
+  if (window.MutationObserver) {
+    var seen = null;
+    new MutationObserver(function () {
+      syncCols();
+      var pill = document.querySelector('.float');
+      if (pill && pill !== seen) {
+        seen = pill;
+        new MutationObserver(syncCols).observe(pill,
+          { childList: true, attributes: true, attributeFilter: ['style', 'class'], subtree: true });
+      }
+    }).observe(document.body, { childList: true });
+  }
+  [0, 60, 400, 1200].forEach(function (ms) { setTimeout(placeCols, ms); });
+
   document.getElementById('v-cols').addEventListener('click', function () {
     var n = COLS[(COLS.indexOf(curCols()) + 1) % COLS.length];
     try { localStorage.setItem('promptlab_cols', String(n)); } catch (e) { /* private mode */ }
@@ -794,9 +860,6 @@
     query = (box.value || '').trim();
     qGroups = qparse(query);
     document.getElementById('qclear').hidden = !query;
-    // The ✕'s clearance is padding, and the placeholder is what pays for it
-    // when there is no ✕ — see `.hasq`.
-    box.classList.toggle('hasq', !!query);
     hits = null;                                        // the loaded feed answers meanwhile
     clearTimeout(qTimer);
     if (query) qTimer = setTimeout(runSearch, 350);

@@ -82,8 +82,14 @@ console.log('black, not red');
 // The one declared difference. chats.html paints the track with its own rose
 // token; here it is the page's ink, and the assertion is that they DIFFER —
 // otherwise a later copy-paste could quietly bring the rose back.
-ok(decl(qtog, '--tri-track') === '#2b2622', 'the Playground one sets its track to the page ink #2b2622');
-ok(decl(qtog, '--tri-knob') === '#faf7f2', 'and its knob to paper — the colour is the per-instance option');
+// INK ON PAPER, and since Aug 2026 that means a LINE rather than a slab
+// (Sophie: "the buttons are styled so fucking weird. They should have black
+// outlines and they're all different sizes") — the toggles were the only
+// things on that row with no line at all. Colour only; the geometry is still
+// the shell's.
+ok(decl(qtog, '--tri-line') === '#2b2622', 'the Playground one draws its line in the page ink #2b2622');
+ok(decl(qtog, '--tri-fill') === '#fdfcf9', 'and fills with the row\'s paper, like every control beside it');
+ok(decl(qtog, '--tri-knob') === '#2b2622', 'the knob is the dark one — what is lit is the stop, not the whole control');
 ok(!/--chg|#a1|rgb\(/i.test(qtog), 'no rose anywhere in the rule');
 
 console.log('the dropdown is gone');

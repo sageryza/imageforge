@@ -3251,35 +3251,84 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (promptlab.html, the picker) and `PORT_STYLES` (playground-port.js, the
   routing) — pinned equal by `node scripts/test-playground-port.js`, which also
   checks every prefix fragment is verbatim in the real prefix.
-  **THREE OR FOUR ACROSS IS HERS TO TAP (2026-08-24, Sophie: "add a 3 to a
-  row vs. 4 to a row toggle to the right of search in playground. square
-  button that cycles between 3 and 4").** A 30px square at the right end of
-  the feed row, drawing the count as N bars rather than saying it (the
-  pyramid's rule — a mark that says how many, never a word). Sticky, like the
-  view and the two filters; three is the default, where the wall already
-  stood.
+  **THREE OR FOUR ACROSS IS HERS TO TAP, AND IT LIVES IN THE PILL'S RAIL
+  (2026-08-24, Sophie: "add a 3 to a row vs. 4 to a row toggle to the right of
+  search in playground. square button that cycles between 3 and 4" → "it can
+  go in the same column as the auto scroll pill that way the search thing can
+  go back to the size it was").** A 38px rounded square in the reserved
+  right-hand column, under the pill, **saying the number** — 3 or 4. Sticky,
+  like the view and the two filters; three is the default, where the wall
+  already stood.
   - **IT IS ONE NUMBER — `--cols` on the root, read by the tile wall AND by a
     run's own row of pictures in list view.** Two rules would let the two
     surfaces disagree about what "3 to a row" means, and it is also what keeps
     the button from being a dead control in list view.
+  - **THE RAIL IS WHERE A GUEST CONTROL GOES, and the row is why.** It shipped
+    at the right of the search box and cost that row 38px it did not have —
+    the search box had 4px of slack over its own placeholder, so paying for it
+    meant trimming the view switch and making the ✕'s padding conditional.
+    Both are reverted: the rail is the one column already reserved on every
+    page, so a guest there costs the page nothing. **The next control with
+    nowhere to go belongs there too, not in a full row.**
+  - **ITS TOP IS MEASURED OFF THE PILL, NEVER TYPED.** The rail is not a fixed
+    height — the safe-area inset moves the whole column on her phone, and the
+    back-to-top button joins it a screen down — so a hardcoded offset either
+    overlaps the pill or floats in a hole under it. With no pill on the page
+    (nothing to scroll, so it hides itself) the button takes the rail's top.
+  - **`offsetParent` IS NULL ON A FIXED ELEMENT** whether it is on screen or
+    not, so the reflex "is this visible?" check parked the button on top of a
+    pill that was plainly there. Ask its BOX. Measured, and it did.
+  - **IT SAYS THE NUMBER BECAUSE THE PICTURE DID NOT READ.** It first drew the
+    count as N bars — the pyramid's rule, a mark that says how many rather
+    than a word — and she asked for the number instead ("I asked for the
+    button to say three or four, not a picture"). At 16px three bars and four
+    bars are the same grey smudge. The pyramid works because its two tiers
+    mean something; a bar count is just a number drawn badly.
   - **TWO STATES IS NOT THE CYCLE THE HOUSE RULE FORBIDS.** *THREE OPTIONS = A
     THREE-WAY TOGGLE* is about a control with stops she can AIM at, where a
     blind step past the one she tapped is the surprise; with two there is
     nowhere else a tap could mean.
-  - **IT COST THE ROW 38px AND THE ROW HAD NONE** — measured before building
-    it: the search box had 4px of slack over its own placeholder, and adding
-    the button naively left "Search" clipped again, the exact failure the ✕
-    filter's note already records. Two things paid for it, both measured: the
-    view switch gave back padding (15px → 9px, still legible), and **the ✕'s
-    clearance became conditional** (`.hasq`) — 28px of right padding was
-    reserved on an empty box for a button that is hidden on an empty box, and
-    the placeholder, which only ever shows on an empty box, was paying it.
-    Room now 60px against a 51px need.
   - Test: `node scripts/test-playground-cols.js` — the count MEASURED off the
     real cells (a wrong `--cols` and a wrong `repeat()` both compute to
-    plausible-looking text; only the boxes say how many sit on a row), the
-    button's centre asked with `elementFromPoint`, and its right edge measured
-    against the injected pill's column.
+    plausible-looking text; only the boxes say how many sit on a row), and the
+    button measured against the REAL injected pill: centred in its column,
+    clear of it, moving when the back-to-top arrives, and the search box back
+    at the width it had before any of this.
+  **THE CONTROL ROW IS ONE FAMILY — BLACK LINE, PAPER, 34px (2026-08-24,
+  Sophie: "the buttons are styled so fucking weird. They should have black
+  outlines and they're all different sizes").** Measured that day, three
+  things were genuinely out of line and the rest was already right:
+  - **The two three-way toggles were solid ink slabs** — the same 34px height
+    as their neighbours, but the only controls on the row with no line and no
+    paper, which is what read as a different size. `--tri-line` and
+    `--tri-fill` split off `--tri-track` in the shared shell (both DEFAULT to
+    it, so no other instance moved), and the Playground's instance is paper
+    with a black line and a dark knob. **A second copy of the toggle would
+    have been the wrong fix** — colour has been a per-instance token since the
+    shell was written.
+  - **The seed button was the row's one circle** — now a rounded square at the
+    house 6px, per the 2026-08-24 rule.
+  - **`#stylepick` stood 35px tall beside a row of 34s**, because its height
+    rule was written `.controls #stylepick` and the picker lives in `.styles`,
+    not in the row. A selector that never matched, quietly, for months.
+  - **The two ladders and Generate are deliberately NOT in that family** — the
+    ladders wear no box at all (her own earlier ask) and Generate is filled,
+    because it is the action. Don't "fix" either.
+  - **THE TOGGLES KEEP THEIR CAPSULE**, which is the shared shell's sanctioned
+    exception to *no pills*; squaring them off would move the account switcher
+    and the search filters too.
+  - Test: the `one family` section of `node scripts/test-playground-controls.js`
+    — heights, line colours and fills read off the REAL boxes, because that
+    complaint is entirely about what renders.
+  **THE PILL'S OWN "Fast" LABEL PRINTS OVER THIS ROW, AND IS NOT FIXED
+  (2026-08-24, visible in her screenshot as "East" over the Square button).**
+  `#spd` is always drawn under the pill, and the Playground's card runs the
+  full width of the page — under the reserved column — so on her phone, where
+  the safe-area inset pushes the rail down, that label lands on the canvas
+  toggle. It is the CARD not reserving the column, not a pill bug, and it is
+  the same on any page whose content runs under the rail. **Fixing it costs a
+  third line of controls** (reserving 56px wraps the row again at 390pt,
+  measured), so it is hers to call. Don't reserve it without asking.
   **THE TILE WALL IS THREE TO A ROW, AND THE LIGHTBOX'S SIDE ARROWS ARE A TAP
   WITH NOTHING DRAWN (2026-08-24, Sophie: "make playground thumbnails 3 to a
   row not 4" · "the side arrow bars - buttons shud be smaller, tap targets
