@@ -5688,6 +5688,7 @@ async function runPromptLabGptJob(docRef, cfg) {
     // matters (the character line names "the second attached image").
     if (cfg.photoBuf) refs.push(cfg.photoBuf);
     const images = [];
+    const usage = [];              // the API's own token counts, one per render
     let failed = 0;
     const want = Math.min(Math.max(Number(cfg.outputs) || 1, 1), PL_GPT.maxOutputs);
     await Promise.all(Array.from({ length: want }, async () => {
@@ -5718,6 +5719,18 @@ async function runPromptLabGptJob(docRef, cfg) {
         // whiten keeps the picture rather than losing a paid render.
         if (st.whiten) { try { buf = await whitenBackground(buf); } catch (e) { console.warn('promptlab whiten failed:', e.message); } }
         images.push(await saveBufferToFirebase(buf, 'image/webp', 'promptlab'));
+        // WHAT IT ACTUALLY COST, kept (2026-08-24). The API returns `usage`
+        // on every call and this route was throwing it away, so the only way
+        // to answer "what does attaching THIS reference cost" was to spend
+        // money drawing a probe — which Sophie has explicitly ruled out.
+        // Keeping it makes every ordinary run a free measurement: image input
+        // tokens scale with the reference's own dimensions, so the answer is
+        // per-reference and cannot be reasoned out from one style's number.
+        // (Measured on Panels: dream-mystery.jpg is 1,505 tokens = 1.20c, the
+        // same at low and at medium — the reference does not get cheaper when
+        // the picture does.)
+        // Stored per RENDER because one run can draw several.
+        if (data.usage) usage.push(data.usage);
         await docRef.update({ status: 'ready', images: images.slice() });
       } catch (err) {
         failed++;
@@ -5725,7 +5738,8 @@ async function runPromptLabGptJob(docRef, cfg) {
       }
     }));
     if (!images.length) throw new Error('every gpt-image-2 render failed — see the server log');
-    await docRef.update({ status: 'done', images, failedRenders: failed });
+    await docRef.update({ status: 'done', images, failedRenders: failed,
+      ...(usage.length ? { usage } : {}) });
     // `cfg.fullPrompt` is the literal string that went to the model two dozen
     // lines up — pass it rather than rebuilding, so the stored text cannot
     // differ from the sent text by so much as a space. The halves come from
