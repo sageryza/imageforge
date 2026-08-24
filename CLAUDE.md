@@ -1689,23 +1689,42 @@ them off the reference sheet, not off the old filenames.
   MINUTE** (her ask, same day): reopening the bar inside that minute puts the
   words AND the results back — the same hunt continuing — while the glass
   (a NEW search) forgets them outright and anything older opens empty, which is
-  still the default. **HER ORDER RANKS FIRST — bare words still AND anywhere,
-  but the RESULTS are ordered (Aug 2026, Sophie: "typing `maybe never` finds …
-  the chats where those words appear in the same order as typed should appear
-  at the top and the ones where they appear anywhere should appear
-  underneath").** The grammar is unchanged and nothing is filtered out; the
-  feed's `/search` just sorts into three tiers before recency — **the phrase**
-  (adjacent, in her order — exactly what quoting would have found, which is why
-  she no longer has to quote), then **in her order** with words in between,
-  then **anywhere**. The old sort was recency alone, so `maybe never` answered
-  with "saving maybe $3-5 a month" above the message that literally says
-  "maybe never". Two things not to undo: the phrase is its own regex pass, not
-  a by-product of the left-to-right walk (the walk takes the EARLIEST match of
-  each word and would miss an adjacent pair further along), and the scores go
-  in a parallel array rather than onto the `searchIndex` rows — those objects
-  are the long-lived shared index and a leftover score would sort the next
-  query. A one-word query has nothing to rank and is untouched. Test:
-  `node scripts/test-search-order-rank.js` (pure).
+  still the default. **THE PHRASE RANKS FIRST, AND NOTHING ELSE JUMPS THE
+  QUEUE — TWO TIERS (Aug 2026, Sophie: "typing `maybe never` finds … the chats
+  where those words appear in the same order as typed should appear at the top
+  and the ones where they appear anywhere should appear underneath").** The
+  grammar is unchanged and nothing is filtered out; `/search` sorts into **the
+  phrase** (adjacent, in her order — exactly what quoting would have found,
+  which is why she no longer has to quote) and then **everything else, newest
+  first**. The old sort was recency alone, so `maybe never` answered with
+  "saving maybe $3-5 a month" above the message that literally says "maybe
+  never".
+  - **IT SHIPPED WITH A THIRD, MIDDLE TIER AND SHE RETIRED IT (2026-08-24: "you
+    mentioned if it's there but there are words between it vs. different order.
+    that's stupid … only if no words moves it up").** Her sentence above names
+    TWO buckets; the build read "in the same order as typed" as a rung of its
+    own, separate from the phrase, so "maybe you'll never" was lifted above a
+    newer, plainer message. Scattered-in-order is not a meaningful kind of
+    match and lifting it only pushed better answers down. The left-to-right
+    walk that detected it is gone with it.
+  - **ONE ROW PER CHAT, ITS NEWEST (Aug 2026, Sophie: "if the same word is
+    found in the same chat, only show the most recent result").** A chat that
+    said her word twenty times filled the whole first screen with twenty rows
+    of itself, so every OTHER chat that said it once was pushed off the answer
+    — and the twenty rows are one finding twenty times over. `bestPerChat`
+    runs BEFORE the 80 cap (deduping after it would answer with fewer rows and
+    still hide whole chats). It keeps the best-ranked row and the newest among
+    equals, which with two tiers is "the most recent" in almost every search;
+    it differs only where a chat holds the exact phrase in an older message and
+    a loose scatter in a newer one, and there the newer row would open the chat
+    on something she did not search for.
+  - **Two things not to undo:** the phrase is its own regex pass (a
+    left-to-right walk takes the EARLIEST match of each word and would miss an
+    adjacent pair further along — "maybe … never … maybe never" is the
+    phrase), and the scores go in a parallel array rather than onto the
+    `searchIndex` rows, which are the long-lived shared index where a leftover
+    score would sort the next query. A one-word query has nothing to rank and
+    is untouched. Test: `node scripts/test-search-rank.js` (pure).
   **RETURN WAS WIRED INTO THE CHATS APP ONLY, AND THAT WAS
   THE WHOLE BUG (Aug 2026, Sophie asking a second time: "I asked a chat to make
   `return` catalyze a search, in addition to the checkmark — what happened").**

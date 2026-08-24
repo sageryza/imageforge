@@ -501,33 +501,32 @@ function snippetAnchor(src, groups) {
   return best;
 }
 
-// ---- IN THE ORDER SHE TYPED THEM COMES FIRST (Aug 2026, Sophie: "typing
-// `maybe never` finds ... the chats where those words appear in the same order
-// as typed should appear at the top and the ones where they appear anywhere
-// should appear underneath") ------------------------------------------------
-// Bare words AND anywhere in the message, in any order — that is the grammar
-// and it is what she asked for the day it shipped, so this does NOT narrow the
-// results. It only ORDERS them, which is the half that was missing: `maybe
-// never` was answering with a message about "maybe $3-5 a month" above the one
-// that actually says "maybe never", and reaching for quotes to fix that is a
-// tax on every search of more than one word.
+// ---- THE PHRASE COMES FIRST, AND NOTHING ELSE JUMPS THE QUEUE ------------
+// Sophie, 2026-08-19: "also i noticed typing: maybe never finds / The chats
+// were those words appear in the same order as typed should appear at the top
+// and the ones where they appear anywhere should appear underneath."
 //
-// Three tiers, best first, then newest-first inside each one (the old sort,
-// untouched, and still the whole sort for a one-word query):
+// TWO tiers, which is what that sentence says. It shipped as THREE (2026-08-21)
+// because the build read "in the same order as typed" as a rung of its own,
+// separate from the phrase — so a message with her words in order but with
+// other words in between ("maybe you'll never") was lifted above a plain
+// recent one. She retired that middle rung on 2026-08-24: "you mentioned if
+// it's there but there are words between it vs. different order. that's
+// stupid … only if no words moves it up." Scattered-in-order is not a
+// meaningful kind of match, and lifting it only pushed newer, better answers
+// down.
 //
 //   0. THE PHRASE — the words adjacent and in her order, exactly what quoting
 //      them would have found. This tier is why she does not have to quote.
-//   1. IN HER ORDER — each word after the one before it, with other words in
-//      between ("maybe you'll never").
-//   2. ANYWHERE — all the words are in the message, the order is not hers.
+//   1. EVERYTHING ELSE — newest first, the old sort, untouched.
 //
 // A query with one positive group has nothing to rank and skips all of this.
 // So does one carrying a field term (`tag:`), where "adjacent" is meaningless.
 const rankGroups = (groups) => groups.filter((g) => !g.neg && g.terms.some((t) => t.re));
 // The whole query as one adjacency regex, OR groups included as alternations.
-// Built as its own pass rather than falling out of the walk below, because a
-// left-to-right walk takes the EARLIEST match of each word and would miss the
-// adjacent pair further along ("maybe … never … maybe never" is the phrase).
+// Built as its own pass and NOT as a left-to-right walk: a walk takes the
+// EARLIEST match of each word and would miss the adjacent pair further along
+// ("maybe … never … maybe never" is the phrase).
 function phraseRegex(pos) {
   if (pos.some((g) => g.terms.some((t) => t.field))) return null;
   const parts = pos.map((g) => {
@@ -538,27 +537,32 @@ function phraseRegex(pos) {
   const lead = /^[a-z0-9]/i.test(pos[0].terms[0].value) ? '\\b' : '';
   try { return new RegExp(lead + parts.join('\\s+'), 'i'); } catch (e) { return null; }
 }
-// Rank one message: 0 phrase, 1 in her order, 2 anywhere. Lower sorts first.
-function orderRank(src, pos, phraseRe) {
-  if (phraseRe && phraseRe.test(src)) return 0;
-  // Walk left to right taking the earliest match of each group at or after the
-  // end of the last one — greedy-earliest is exactly right for "does an
-  // in-order occurrence exist", since taking anything later can only make the
-  // rest harder to place.
-  let at = 0;
-  for (const g of pos) {
-    let best = -1, len = 0;
-    for (const t of g.terms) {
-      if (!t.re) continue;
-      const rest = src.slice(at);
-      const i = rest.search(t.re);
-      if (i < 0) continue;
-      if (best < 0 || i < best) { best = i; len = (rest.match(t.re) || [''])[0].length; }
+// Rank one message: 0 the phrase, 1 everything else. Lower sorts first.
+const phraseRank = (src, phraseRe) => (phraseRe && phraseRe.test(src) ? 0 : 1);
+
+// ---- ONE ROW PER CHAT (Aug 2026, Sophie: "if the same word is found in the
+// same chat, only show the most recent result") -----------------------------
+// A chat that has said her word twenty times used to fill the whole first
+// screen with twenty rows of itself, so every OTHER chat that said it once was
+// pushed off the answer — and the twenty rows are the same finding twenty
+// times over. One row each, and the results list becomes a list of chats that
+// know about this rather than a list of times it was mentioned.
+//
+// WHICH row: the best-ranked, and the NEWEST among equals. With two tiers most
+// results tie, so in almost every search this is exactly "the most recent" as
+// she asked. It differs only when a chat holds the exact phrase in an older
+// message and a loose scatter in a newer one — and there, showing the newer
+// one would open the chat on something that is not what she searched for.
+function bestPerChat(ranked) {
+  const best = new Map();
+  for (const r of ranked) {
+    const cur = best.get(r.m.chat);
+    if (!cur || r.rank < cur.rank
+      || (r.rank === cur.rank && (r.m.created || '') > (cur.m.created || ''))) {
+      best.set(r.m.chat, r);
     }
-    if (best < 0) return 2;          // every word is here, but not in her order
-    at += best + len;
   }
-  return 1;
+  return Array.from(best.values());
 }
 
 // ---- WHO SAID IT — the search's first filter -------------------------------
@@ -679,11 +683,15 @@ router.get('/search', async (req, res) => {
     const phraseRe = pos.length > 1 ? phraseRegex(pos) : null;
     const ranked = hits.map((m) => ({
       m,
-      rank: pos.length > 1 ? orderRank(m.chat + '\n' + m.tldr + '\n' + m.text, pos, phraseRe) : 0,
+      rank: phraseRe ? phraseRank(m.chat + '\n' + m.tldr + '\n' + m.text, phraseRe) : 0,
     }));
-    ranked.sort((a, b) => a.rank - b.rank
+    // One row per chat, BEFORE the cap — deduping after it would answer with
+    // fewer rows than she asked for and hide whole chats behind a chat that
+    // happened to repeat itself.
+    const rows = bestPerChat(ranked);
+    rows.sort((a, b) => a.rank - b.rank
       || (a.m.created < b.m.created ? 1 : a.m.created > b.m.created ? -1 : 0));
-    const results = ranked.slice(0, limit).map(({ m }) => {
+    const results = rows.slice(0, limit).map(({ m }) => {
       // Snippet centred on the match — prefer the body, else the tldr/chat name.
       const inBody = m.text ? snippetAnchor(m.text, groups) : null;
       const src = inBody ? m.text : (m.tldr && snippetAnchor(m.tldr, groups) ? m.tldr : (m.text || m.tldr || ''));
@@ -4471,7 +4479,7 @@ require('./chat-wake').mount(router, { db, regRef, registry, followMoves, resolv
 // already keeps rather than opening a second one — two caches of one collection
 // is how a stale answer gets served from whichever module happened to answer.
 module.exports = { router, pillInject, archiveActionFor, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry, pickFilm,
-  rankGroups, phraseRegex, orderRank,
+  rankGroups, phraseRegex, phraseRank, bestPerChat,
   SEARCH_WHO, whoOf, whoParam, whoMatches,
   SEARCH_ARCH, archParam, archMatches, pickOne, pickNameRows, NAME_ROWS,
   autoComparePoke, runAutoCompare,

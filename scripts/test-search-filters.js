@@ -187,6 +187,12 @@ const server = http.createServer((req, res) => {
     const arch = url.searchParams.get('arch');
     asked.push({ q, from, arch });
     const who = whoParam(from);
+    // This stub deliberately does NOT do the real route's one-row-per-chat
+    // dedupe: every fixture message is in the same chat, and collapsing them
+    // would leave one row whatever the filter did — which is the opposite of
+    // legible here. The dedupe has its own pure test
+    // (scripts/test-search-rank.js); this file is about the filters reaching
+    // the server at all.
     const hits = MSGS.filter((m) => whoMatches(who, m.from)
       && (m.text + ' ' + m.tldr).toLowerCase().includes(q.toLowerCase()));
     res.writeHead(200, { 'Content-Type': 'application/json' });
