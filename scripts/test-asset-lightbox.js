@@ -13,6 +13,10 @@
 //     width they did not ask for, and the house button rule sets no
 //     justify-content. Their words must sit centred in their own halves.
 //
+//   • the two EXTRAS HOOKS (`actions`, `who`), which exist so Meta Assets
+//     could stop keeping its own copy of this file — a copy is how both of
+//     the bugs above reached her a second time, on that page.
+//
 // Playwright is optional — this skips cleanly without it.
 //
 //   node scripts/test-asset-lightbox.js
@@ -68,6 +72,16 @@ window.__open = function () {
     thread: [{ from: 'sophie', text: 'the hands are wrong', at: '2026-08-19T00:00:00Z' }],
     _cast: function () {},
     _noteSend: function (t, cb) { cb && cb(true); },
+    // THE TWO EXTRAS HOOKS, the reason Meta Assets no longer keeps its own
+    // copy of this file: a row of icon buttons under the picture, and the
+    // origin-chat line under the caption.
+    who: 'Dating Book',
+    actions: [
+      { label: 'Open the chat', icon: '<svg viewBox="0 0 24 24"><path d="M2 2h20v14H8l-6 5z"/></svg>',
+        onClick: function () { window.__tapped = 'chat'; } },
+      { label: 'Save to Photos', icon: '<svg viewBox="0 0 24 24"><path d="M12 3v14M6 11l6 6 6-6"/></svg>',
+        onClick: function () { window.__tapped = 'save'; } },
+    ],
   });
 };
 </script>`;
@@ -184,6 +198,63 @@ window.__open = function () {
   });
   await tapAt(cap.x, cap.y);
   ok('a tap on the label under the picture closes it', !(await shown()));
+
+  // ── THE EXTRAS HOOKS (Aug 2026) — they exist so `public/assets.html` could
+  //    stop being a third hand copy of this file. A copy is how both of the
+  //    close bugs above reached Sophie a second time, in Meta Assets. ─────
+  await open();
+  const acts = await page.$$eval('#clightbox .lbacts button',
+    (es) => es.map((e) => e.getAttribute('aria-label')));
+  is('the actions row draws one button per action, in order', acts,
+    ['Open the chat', 'Save to Photos']);
+  is('`who` draws as the last line', await page.$eval('#clightbox .clwho', (e) => e.textContent),
+    'Dating Book');
+  // an action fires its own onClick and does NOT close — it is a button
+  const abox = await page.$eval('#clightbox .lbacts button', (e) => {
+    const r = e.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  });
+  await tapAt(abox.x, abox.y);
+  is('tapping an action calls its onClick', await page.evaluate(() => window.__tapped), 'chat');
+  ok('tapping an action does NOT close the lightbox', await shown());
+  // …and the gap BETWEEN two action buttons is dead space, so it closes.
+  // Scanned rather than guessed: elementFromPoint is the only honest way to
+  // ask what a tap actually reaches.
+  const agap = await page.evaluate(() => {
+    const es = [...document.querySelectorAll('#clightbox .lbacts button')];
+    const a = es[0].getBoundingClientRect(), b = es[1].getBoundingClientRect();
+    const y = Math.round(a.top + a.height / 2);
+    for (let x = Math.round(a.right); x <= Math.round(b.left); x++) {
+      const hit = document.elementFromPoint(x, y);
+      if (hit && hit.closest && !hit.closest('button') && hit.closest('#clightbox')) return { x, y };
+    }
+    return null;
+  });
+  ok('there is real space between the action icons', !!agap);
+  if (agap) {
+    await tapAt(agap.x, agap.y);
+    ok('a tap between the action icons closes it', !(await shown()));
+  }
+  // the picture yields room for that row — a lightbox carrying BOTH a thread
+  // and an actions row must not push the note box off the bottom
+  await open();
+  const lbCls = await page.$eval('#clightbox', (e) => [...e.classList].sort().join(' '));
+  is('both shrink classes are on', lbCls, 'hasacts hastalk');
+  const fits = await page.evaluate(() => {
+    const n = document.querySelector('#clightbox .lbnote');
+    return n.getBoundingClientRect().bottom <= window.innerHeight + 1;
+  });
+  ok('the note box still fits on screen with the actions row above it', fits);
+  // an image opened with NO extras is untouched — every existing caller
+  await page.evaluate(() => window.__assetLightbox('data:image/gif;base64,R0lGODlhAQABAAAAACw=', {}));
+  await page.waitForTimeout(80);
+  const bare = await page.evaluate(() => {
+    const lb = document.getElementById('clightbox');
+    return { acts: lb.querySelectorAll('.lbacts').length, who: lb.querySelectorAll('.clwho').length,
+      hasacts: lb.classList.contains('hasacts') };
+  });
+  is('no extras passed → no actions row, no who line, no shrink class', bare,
+    { acts: 0, who: 0, hasacts: false });
 
   await browser.close();
   if (fails.length) {
