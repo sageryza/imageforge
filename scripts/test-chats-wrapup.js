@@ -272,6 +272,23 @@ console.log('her own sentence on the asked line');
       text: 'This session is being continued from a previous conversation that ran out of context.' }]))
       === 'now make the dashes pink');
 
+  // THE CUTOFF, for the backfill only (2026-08-24): a summary written on the
+  // 20th must be paired with the question she was asking on the 20th. Taking
+  // her newest message instead would file a question asked afterwards over
+  // answers that predate it.
+  const dated = [
+    { from: 'sophie', created: '2026-08-18T10:00:00Z', text: 'the first thing I wanted' },
+    { from: 'claude', created: '2026-08-18T10:05:00Z', text: 'done' },
+    { from: 'sophie', created: '2026-08-20T09:00:00Z', text: 'now make the dashes pink' },
+    { from: 'sophie', created: '2026-08-24T09:00:00Z', text: 'a whole new thing entirely' },
+  ];
+  ok('with no cutoff it is still her newest',
+    lastHerText(dated) === 'a whole new thing entirely');
+  ok('a cutoff reads what she was asking THEN',
+    lastHerText(dated, '2026-08-20T20:00:00Z') === 'now make the dashes pink');
+  ok('a cutoff before anything of hers yields nothing',
+    lastHerText(dated, '2026-08-01T00:00:00Z') === '');
+
   // The freeze prefers hers and keeps the Update card's paraphrase as the
   // fallback for a chat she never posted into.
   const w = frozenWrapUp({ updAsked: 'Fix the hook so turns post', updDid: 'Shipped v14' },
@@ -460,6 +477,37 @@ console.log('the short summary is cut to three lines in code');
     /const dry = !\(req\.body && req\.body\.dry === false\)/.test(src));
   ok('…and it only ever shortens `wrapUp` — never rewrites the other fields',
     /set\(\{ wrapUp: h\.text \}, \{ merge: true \}\)/.test(src));
+}
+
+// THE BACKFILL — her own words onto the summaries written before #1631
+// (2026-08-24, Sophie: "what I asked … is paraphrased. make it not paraphrase,
+// just my actual words truncated"). The live paths were already right; a
+// wrap-up is STORED, so 70 chats kept their paraphrase with nothing to rewrite
+// them. Same shape as the trim pass: free, dry by default, narrow.
+console.log('\nputting her words back on the ones already on file');
+{
+  ok('the pass exists', /router\.post\('\/wrapup\/rehers'/.test(src));
+  const body = src.slice(src.indexOf("router.post('/wrapup/rehers'"),
+    src.indexOf("router.post('/wrapup/write'"));
+  ok('it is DRY by default, like every other bulk operation here',
+    /const dry = !\(req\.body && req\.body\.dry === false\)/.test(body));
+  ok('a summary already carrying her words is skipped',
+    /if \(r\.wrapAskedHers === true\) return;/.test(body));
+  ok('a chat with no asked answer at all is left alone',
+    /if \(!String\(r\.wrapAsked \|\| ''\)\.trim\(\)\) return;/.test(body));
+  ok('it reads her message AS OF when the summary was written',
+    /lastHerText\(msgs, t\.r\.wrapUpAt\)/.test(body));
+  ok('a chat she never posted into keeps its own answer, and is NAMED',
+    /if \(!hers\) \{ noMessage\.push\(t\.chat\); continue; \}/.test(body)
+    && /noMessageOfHers: noMessage/.test(body));
+  ok('the patch touches only `wrapAsked` and its flag',
+    /const patch = \{ wrapAsked: hers, wrapAskedHers: true \};/.test(body));
+  ok('…so what the chat DID and what is NEXT are never reworded',
+    !/patch\.wrapDid|patch\.wrapNext|patch\.wrapLine|patch\.wrapLong/.test(body));
+  ok('the prose mirror is rebuilt ONLY when it provably IS the three joined',
+    /String\(t\.r\.wrapUp \|\| ''\)\.trim\(\) === mirror/.test(body));
+  ok('it spends nothing — no model call in the pass',
+    !/anthropic/.test(body));
 }
 
 function WRAP_SYS_TEXT() {
