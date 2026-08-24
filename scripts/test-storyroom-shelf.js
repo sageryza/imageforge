@@ -170,8 +170,14 @@ function ok(cond, name) {
     [frame.top, frame.left, frame.right, frame.bottom].map((v) => Math.round(v)).join('/') + ')');
   ok(frame.bg === 'rgb(255, 255, 255)', 'the mat is white');
   ok(parseFloat(frame.outline) >= 1, 'the hairline outline is outside the mat');
-  ok(frame.covR > 0 && frame.covR < 14 && frame.imR > 0 && frame.imR < 14,
-    'both the frame and the art are slightly rounded');
+  ok(frame.covR > 0 && frame.covR <= 5 && frame.imR > 0 && frame.imR <= 3,
+    'both the frame and the art are barely rounded (' + frame.covR + '/' + frame.imR + 'px)');
+  const plate = await page.$eval('.stile .pinpin', (el) => {
+    const cs = getComputedStyle(el); const r = el.getBoundingClientRect();
+    return { rad: parseFloat(cs.borderTopLeftRadius), w: r.width };
+  });
+  ok(plate.rad > 0 && plate.rad < plate.w / 2,
+    'the pushpin sits on a rounded SQUARE, never a circle');
   ok(await page.$eval('.stile .snm', (el) => getComputedStyle(el).textAlign) === 'center',
     'the name is centred');
   ok(frame.w < 390 / 3, 'a tile fits its third of the row');

@@ -126,19 +126,20 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 .stile{display:block; padding:0; background:none; border:none; text-align:left; color:var(--ink);
   cursor:pointer; font-family:'EBGaramond',Georgia,serif; -webkit-tap-highlight-color:transparent;}
 .stile .cov{display:block; position:relative; box-sizing:border-box; width:100%; aspect-ratio:2/3;
-  padding:5px; background:#fff; border:1px solid var(--line); border-radius:7px;}
+  padding:5px; background:#fff; border:1px solid var(--line); border-radius:4px;}
 .stile .cov img,.stile .cov .none{position:absolute; top:5px; left:5px;
-  width:calc(100% - 10px); height:calc(100% - 10px); border-radius:4px; background:var(--barbg);}
+  width:calc(100% - 10px); height:calc(100% - 10px); border-radius:2px; background:var(--barbg);}
 .stile .cov img{object-fit:cover;}
 .stile .cov .none{box-sizing:border-box; border:1px dashed var(--line);}
 /* THE PUSHPIN — round head, straight spike, never the Maps teardrop (the
    house rule). It rides the tile's top-left corner because the injected
    autoscroll pill owns the top-RIGHT of the screen, and the first row's last
    tile sits under it. Only the HEAD fills when it is set, as on the Chats
-   app's rows. */
+   app's rows. Its plate is a ROUNDED SQUARE at the house 6px, never a circle
+   (2026-08-24, Sophie: rounded squares or a plain icon, not circles). */
 .stile .pinpin{position:absolute; top:4px; left:4px; z-index:2; width:26px; height:26px;
   display:flex; align-items:center; justify-content:center; padding:0; border:none;
-  border-radius:50%; background:rgba(255,255,255,.92); color:var(--ink2);
+  border-radius:6px; background:rgba(255,255,255,.92); color:var(--ink2);
   box-shadow:0 1px 4px rgba(0,0,0,.18); cursor:pointer; -webkit-tap-highlight-color:transparent;}
 .stile .pinpin svg{width:14px; height:14px; display:block;}
 .stile .pinpin.on{color:var(--gold);}
