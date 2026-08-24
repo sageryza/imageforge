@@ -2,6 +2,9 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Playground</title>
 <link rel="stylesheet" href="/tritoggle.css">
+<!-- The toggle's BEHAVIOUR is shared too since 2026-08-24 — a tap lands on the
+     stop under the thumb rather than cycling. See /tritoggle.js. -->
+<script src="/tritoggle.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   [hidden] { display: none !important; }
@@ -496,6 +499,14 @@
   </div>
 </div>
 <script>
+  // THE AIM RULE LIVES IN /tritoggle.js — the ONE copy, shared with every other
+  // three-way toggle. This line is only a floor for the case where that file
+  // does not load (a stale cache, a stub harness that serves nothing else): it
+  // is the pre-2026-08-24 CYCLE, deliberately not a second implementation of
+  // the aim, so a page can never quietly grow its own version of the rule.
+  var triNext = window.triNext || function (el, count, ev, cur) {
+    return ((cur | 0) + 1 + count) % count;
+  };
   var LSKEY = 'promptlab_pending';
   var timer = null;
   var swapTimer = null;
@@ -868,14 +879,17 @@
   function paintQuality() {
     qpick.setAttribute('data-n', String(Math.max(QUALITIES.indexOf(quality), 0)));
     qpick.setAttribute('data-i', quality.charAt(0).toUpperCase());
-    qpick.setAttribute('aria-label', 'Quality ' + quality + ' — tap for the next one');
+    qpick.setAttribute('aria-label', 'Quality ' + quality + ' — tap a side to pick one');
   }
-  qpick.addEventListener('click', function () {
-    // an unknown quality (arrived on a link) still has somewhere to go:
-    // indexOf is -1, so the next tap lands on the first notch rather than
-    // doing nothing at all
-    var i = QUALITIES.indexOf(quality);
-    quality = QUALITIES[(i + 1) % QUALITIES.length];
+  qpick.addEventListener('click', function (e) {
+    // WHERE SHE TAPPED IS THE STOP SHE MEANT (2026-08-24, Sophie: "it always
+    // goes to high from medium never low even if I click it on that side").
+    // This used to be a plain cycle, which is why a tap on the L went to high.
+    // triNext falls back to the cycle for a tap with no coordinate (the
+    // keyboard), and an unknown quality (arrived on a link) still has somewhere
+    // to go: indexOf is -1, so that tap lands on the first notch rather than
+    // doing nothing at all.
+    quality = QUALITIES[triNext(qpick, QUALITIES.length, e, QUALITIES.indexOf(quality))];
     paintQuality();
   });
   paintQuality();
@@ -1289,8 +1303,8 @@
   var RES = null, RES_DEFAULT = '1k';
   function tierIds() { return ['1k', '2k', '4k']; }
   // The SAME three-way slider as quality (Aug 2026, her ask) — one CSS rule,
-  // one behaviour: tap moves to the next stop and wraps, and the knob carries
-  // the value rather than a position she has to decode. The knob says 1K/2K/4K
+  // one behaviour: a tap lands on the stop under it, and the knob carries the
+  // value rather than a position she has to decode. The knob says 1K/2K/4K
   // because that is what she asked to read off it; the exact canvas and what
   // it costs stay on the tooltip, where the canvas toggle already puts them.
   var rpick = document.getElementById('rpick');
@@ -1305,13 +1319,14 @@
     rpick.title = t.label + ' ' + t.size + ' \u2014 low ' + c.low + '\u00A2 \u00B7 medium '
       + c.medium + '\u00A2 \u00B7 high ' + c.high + '\u00A2';
     rpick.setAttribute('aria-label', 'Resolution ' + t.label + ' ' + t.size
-      + ' — tap for the next one');
+      + ' — tap a side to pick one');
   }
-  rpick.addEventListener('click', function () {
-    // Same wrap as quality, and the same reason indexOf is floored: an unknown
-    // tier still has somewhere to go rather than doing nothing at all.
+  rpick.addEventListener('click', function (e) {
+    // Same aim-at-the-stop rule as quality (/tritoggle.js), and the same reason
+    // indexOf is floored: an unknown tier still has somewhere to go rather than
+    // doing nothing at all.
     var ids = tierIds();
-    resTier = ids[(ids.indexOf(resTier) + 1) % ids.length];
+    resTier = ids[triNext(rpick, ids.length, e, ids.indexOf(resTier))];
     paintRes();
   });
   paintRes();

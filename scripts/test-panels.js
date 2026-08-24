@@ -513,15 +513,23 @@ async function drivePage() {
     assert.ok(/2336x3504/.test(await p.$eval('#plan', (e) => e.textContent)), 'and it moves');
     n++; console.log('  ok  page: the plan line is served and moves with the pickers');
 
-    // The slider steps and WRAPS, like the Playground's.
-    const steps = [];
-    for (let i = 0; i < 4; i++) {
-      steps.push(await p.$eval('#respick', (e) => e.dataset.i));
-      await p.click('#respick');
+    // THE SLIDER LANDS WHERE SHE TAPS, like the Playground's (2026-08-24 —
+    // /tritoggle.js). This used to assert a CYCLE, which is the bug Sophie
+    // reported: from the middle stop every tap went right, whichever side she
+    // aimed at.
+    const tapTri = async (sel, frac) => {
+      const box = await p.locator(sel).boundingBox();
+      await p.mouse.click(box.x + box.width * frac, box.y + box.height / 2);
+      await p.waitForTimeout(220);
+    };
+    const stops = [];
+    for (const frac of [1 / 6, 5 / 6, 1 / 2]) {
+      await tapTri('#respick', frac);
+      stops.push(await p.$eval('#respick', (e) => e.dataset.i));
     }
-    assert.strictEqual(steps[0], steps[3], 'the slider wraps');
-    assert.strictEqual(new Set(steps).size, 3, 'three distinct stops');
-    n++; console.log(`  ok  page: the size slider steps and wraps (${steps.join(' → ')})`);
+    assert.deepStrictEqual(stops, ['1K', '4K', '2K'],
+      `left/right/middle pick their own stop (${stops.join(' → ')})`);
+    n++; console.log(`  ok  page: the size slider lands where she taps (${stops.join(' → ')})`);
 
     // AN EMPTY BOX IS REFUSED BEFORE ANY REQUEST — the model fills an unnamed
     // cell with whatever it likes and she pays for it at the sheet's price.
