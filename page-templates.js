@@ -415,8 +415,15 @@ function normContent(s) {
 // a caption that stopped parsing does not fail loudly: it falls through to the
 // picture's long description, which is exactly the "the caption says
 // everything" Sophie reported on the auto-compare sheets.
+// THE SIZE SLOT IS NOT ALWAYS A BARE WORD — a panel cut out of a sheet reads
+// "1/4 (4K)" (Sophie: "1/4 panel could say 1/4 (4k)"), so the slot has to
+// allow a slash, a space and parentheses. It shipped as [a-z0-9x×] and the
+// whole caption then failed to parse on exactly the pictures this rule was
+// built for: the four quarters lost their size off the row and fell through
+// to their style line, which is the silent-fallthrough failure the comment
+// above already warns about. Measured on her live ladders page.
 function parseCaption(prompt) {
-  const m = /^([^·]{1,60}?)\s*·\s*([a-z0-9-]{1,20})(?:\s*·\s*([a-z0-9x×]{1,20}))?$/i
+  const m = /^([^·]{1,60}?)\s*·\s*([a-z0-9-]{1,20})(?:\s*·\s*([a-z0-9x×/() ]{1,20}))?$/i
     .exec(String(prompt || '').trim());
   if (!m) return null;
   return {
@@ -577,11 +584,29 @@ function groupAssetVariants(assets) {
     // when the differing variable is the STYLE, the caption words repeat
     // ("medium" · "medium") and say nothing — the line under the tile is the
     // style segment this variant does not share, i.e. what actually changed
+    // WHEN THE CAPTION ALREADY SAYS IT, THAT IS THE WHOLE ROW (Sophie,
+    // 2026-08-23, looking at the cut panels: "make it shorter"). The four
+    // quarters read "1/4 (4K) · (this picture is the top-left quarter of the
+    // 2336x3504 sheet above, cut locally" — the tail after the dot is the same
+    // fact again in longhand, and it is the part that runs off the tile.
+    // A style line is only appended where the caption diff would leave two
+    // rows in this group reading the SAME thing, which is the one case it is
+    // actually carrying information ("medium · watercolour" vs
+    // "medium · gouache"). Everywhere else the diff stands alone.
+    const capLabel = new Map(items.map((it) => [it, captionDiff(it, capParts)]));
+    const capCount = {};
+    items.forEach((it) => { const c = capLabel.get(it); if (c) capCount[c] = (capCount[c] || 0) + 1; });
+    const capTellsApart = (it) => {
+      const c = capLabel.get(it);
+      return Boolean(c) && capCount[c] === 1;
+    };
     const styleSet = new Set(items.map((i) => normContent(i.promptStyle)));
     if (styleSet.size > 1) {
       const capsVary = capParts.length > 0;
       const allStyles = items.map((i) => i.promptStyle);
       items.forEach((it, idx) => {
+        // the caption already tells this row apart from every sibling — done
+        if (capsVary && capTellsApart(it)) return;
         const d = uniqueStyleLine(it.promptStyle, allStyles.filter((_, j) => j !== idx));
         if (d) {
           const pre = capsVary ? captionDiff(it, capParts) : '';

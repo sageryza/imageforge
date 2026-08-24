@@ -155,7 +155,12 @@ async function generatePortrait(photoBuffers, name, gender, quality = 'medium', 
       buffers.push(b);
     }
   }
+  // THE WHOLE PROMPT (Sophie's hard rule, 2026-08-24). This is the literal
+  // text sent below; `lastPrompt` carries it back to the caller so the doc
+  // stores what was SENT rather than a rebuild — the subject count is only
+  // known here, after the photos have been normalized and any bad one dropped.
   const prompt = buildPrompt(name, gender, note, buffers.length);
+  generatePortrait.lastPrompt = prompt;
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -274,7 +279,9 @@ router.post('/generate', gated, async (req, res) => {
     const q = ['low', 'medium', 'high'].includes(quality) ? quality : 'medium';
     const out = await generatePortrait(bufs, name, gender, q, note);
     const url = await saveBufferToStorage(out, 'image/webp', 'characters');
-    res.json({ ok: true, url, name: String(name || '').trim(), gender: String(gender || 'they') });
+    // The prompt rides back so a caller that files this picture can store it.
+    res.json({ ok: true, url, name: String(name || '').trim(), gender: String(gender || 'they'),
+      fullPrompt: generatePortrait.lastPrompt || '' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -315,7 +322,7 @@ router.post('/save', gated, async (req, res) => {
 // Write the character doc. Shared by /save and the detached /make job — so a
 // generate that finishes after the client left still persists. Characters keep
 // their original backgrounds (no transparent version is made).
-async function saveCharacterDoc({ url, name, gender, tier, aliases, quality = null, model = null }) {
+async function saveCharacterDoc({ url, name, gender, tier, aliases, quality = null, model = null, fullPrompt = '' }) {
   const d = db();
   if (!d) throw new Error('firestore unavailable');
   const doc = {
@@ -327,6 +334,10 @@ async function saveCharacterDoc({ url, name, gender, tier, aliases, quality = nu
     quality: ['low', 'medium', 'high'].includes(quality) ? quality : null,
     model: model ? String(model).slice(0, 60) : null,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    // The exact text that drew this face. A portrait is wholly generated —
+    // there is no typed "content" half here, so the whole prompt IS the
+    // record.
+    ...(fullPrompt ? { fullPrompt: String(fullPrompt).slice(0, 6000) } : {}),
   };
   const ref = await d.collection(COLLECTION).add(doc);
   return { id: ref.id, ...doc };
@@ -358,7 +369,8 @@ router.post('/make', gated, async (req, res) => {
       try {
         const buf = await generatePortrait(bufs, String(name).trim(), gender, q);
         const url = await saveBufferToStorage(buf, 'image/webp', 'characters');
-        job.character = await saveCharacterDoc({ url, name, gender, tier, aliases, quality: q, model: 'gpt-image-2' });
+        job.character = await saveCharacterDoc({ url, name, gender, tier, aliases, quality: q,
+          model: 'gpt-image-2', fullPrompt: generatePortrait.lastPrompt || '' });
         job.status = 'done';
       } catch (e) {
         job.status = 'error'; job.error = e.message;

@@ -110,8 +110,14 @@ async function draw(doc) {
   };
   try {
     await makeDreamPagesV2(dream, doc.quality, progress);
+    // THE WHOLE PROMPT (Sophie's hard rule, 2026-08-24: "anytime an image is
+    // made ANYWHERE the whole prompt shud be stored"). movies.js already puts
+    // the exact sent text on each page as `promptUsed` and this mapper was
+    // dropping it on the floor — the picture survived, the words that drew it
+    // did not.
     doc.pages = (dream.pages || []).map((p, i) => ({
       i, url: p.url, text: p.text || '', captions: p.captions || [],
+      fullPrompt: String(p.promptUsed || '').slice(0, 6000),
     }));
     doc.spend = dream.spend || 0;
     doc.status = 'done';

@@ -110,11 +110,18 @@ const shown = (page, id) => page.evaluate((i) => document.getElementById(i).clas
       pageEnd: Math.round(document.documentElement.scrollHeight - window.innerHeight),
       vh: window.innerHeight,
       // the page reserves whatever the floating pair is occupying, so the
-      // expected landing is measured, not a magic number
+      // expected landing is measured, not a magic number. It reserves room
+      // for BOTH arrows even though only the down one shows from the top:
+      // the jump brings the up arrow out and the column grows upward (a copy
+      // of `bottomReserve` in chats.html — if one moves, so must the other)
       reserve: (function(){
         const j = document.querySelector('.jumps');
-        if (!j || !j.querySelector('.totop.show')) return 14;
-        return Math.max(14, Math.round(window.innerHeight - j.getBoundingClientRect().top + 10));
+        if (!j) return 14;
+        const btn = j.querySelector('.totop.show');
+        if (!btn) return 14;
+        const jr = j.getBoundingClientRect(), br = btn.getBoundingClientRect();
+        const gap = parseFloat(getComputedStyle(j).rowGap) || 0;
+        return Math.max(14, Math.round(window.innerHeight - jr.bottom + br.height * 2 + gap + 10));
       })(),
     };
   });

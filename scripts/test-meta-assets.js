@@ -68,8 +68,41 @@ assert.strictEqual(stick.description, 'seven woodland stickers', 'prompt is the 
 // …and the third slot is the TIER, not the pixels ("i asked for it to say 1k
 // 2k or 4k"). Normalised on READ, so a record filed with the raw canvas before
 // her correction still displays the rung and needs no backfill.
+// …and the STYLE leads it since 2026-08-24 (Sophie: "there's no style clause
+// in Meta assets"). It was on every Playground creation all along and this
+// builder read it only as a fallback, so it was fetched and dropped.
 assert.strictEqual(stick.prompt, 'gpt-image-2 · medium · 2K',
-  'model·quality·size fills the caption slot, with size as the tier');
+  'a record with no style keeps model·quality·size');
+{
+  const styled = buildMetaAssets([], [{ url: 'https://x/dre.png', prompt: 'a red door', type: 'image',
+    style: 'Dreamy', model: 'gpt-image-2', quality: 'medium', size: '1568x2352', ms: 8 }])[0];
+  assert.strictEqual(styled.prompt, 'Dreamy · gpt-image-2 · medium · 2K',
+    'the style leads the caption — which recipe drew it, before how well and how big');
+  // The style is a LABEL and belongs in the caption, never in the PROMPT
+  // overlay's style half: a creation doc stores the style's NAME, never the
+  // prefix/suffix actually sent, so filing it there would be a reconstruction.
+  assert.strictEqual(styled.promptStyle || '', '',
+    'the prompt overlay’s style half stays empty rather than carrying a label');
+  // A Replicate run files model === styleLabel, so the two must not double up.
+  const lora = buildMetaAssets([], [{ url: 'https://x/wtr.png', prompt: 'a crow', type: 'image',
+    style: 'WTR', model: 'WTR', quality: 'medium', ms: 7 }])[0];
+  assert.strictEqual(lora.prompt, 'WTR · medium',
+    'a LoRA run whose model IS its style reads once, not twice');
+  // THE STYLE SLOT IS ITSELF COMPOUND — the Playground files it as
+  // `${label} · ${quality}`, so a whole-slot de-dupe cannot catch the repeat.
+  // Found live off the deploy: "Dreamy · low · gpt-image-2 · low · 1K".
+  const dbl = buildMetaAssets([], [{ url: 'https://x/dbl.png', prompt: 'p', type: 'image',
+    style: 'Dreamy · low', model: 'gpt-image-2', quality: 'low', size: '1024x1536', ms: 6 }])[0];
+  assert.strictEqual(dbl.prompt, 'Dreamy · gpt-image-2 · low · 1K',
+    'a quality already inside the style slot is not said twice');
+  // A style whose parts say nothing the other slots say is kept WHOLE — the
+  // Scratch Pad files "Scratch Pad · dreamy · medium" and carries no other
+  // fields, so nothing may be trimmed out of it.
+  const pad = buildMetaAssets([], [{ url: 'https://x/pad.png', prompt: 'p', type: 'image',
+    style: 'Scratch Pad · dreamy · medium', ms: 5 }])[0];
+  assert.strictEqual(pad.prompt, 'Scratch Pad · dreamy · medium',
+    'a compound style with nothing to de-dupe survives whole');
+}
 // An absent slot is LEFT OUT, never guessed — nothing on a record filed before
 // the field existed says how big it is, exactly as with quality.
 {

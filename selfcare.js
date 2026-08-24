@@ -18,6 +18,7 @@
 // resumes polling when you come back, and the result is persisted so leaving
 // the app never loses a stamp you already paid for.
 const express = require('express');
+const promptRecord = require('./prompt-record');
 const admin = require('firebase-admin');
 const fs = require('fs');
 
@@ -65,13 +66,20 @@ async function styleRefs() {
   return out;
 }
 
+// THE WHOLE PROMPT, built in ONE place so the text that is SENT and the text
+// that is STORED cannot drift (Sophie's hard rule, 2026-08-24: "anytime an
+// image is made ANYWHERE the whole prompt shud be stored"). Her words are the
+// content half; STYLE and END are the wrapper.
+const stampBody = (text) => 'Draw this moment from someone\'s day: ' + text + '.';
+const stampPrompt = (text) => STYLE + stampBody(text) + END;
+
 async function drawStamp(text) {
   const key = process.env.OPENAI_API_KEY;
   if (!key) throw new Error('OPENAI_API_KEY not set');
   const refs = await styleRefs();
   const fd = new FormData();
   fd.append('model', 'gpt-image-2');
-  fd.append('prompt', STYLE + 'Draw this moment from someone\'s day: ' + text + '.' + END);
+  fd.append('prompt', stampPrompt(text));
   fd.append('size', '1024x1024');
   fd.append('quality', 'low');                 // a stamp is small on screen; low is ~a cent
   fd.append('n', '1');
@@ -115,7 +123,10 @@ async function render(id, text) {
     const buf = await drawStamp(text);
     const { url, thumb } = await upload(buf, id);
     await db().collection(COLLECTION).doc(id).set(
-      { status: 'done', url, thumb, finishedAt: Date.now() }, { merge: true });
+      { status: 'done', url, thumb, finishedAt: Date.now(),
+        ...promptRecord.promptFields({ full: stampPrompt(text), content: stampBody(text),
+          prefix: STYLE, suffix: END }) },
+      { merge: true });
   } catch (e) {
     await db().collection(COLLECTION).doc(id).set(
       { status: 'failed', error: String(e.message || e).slice(0, 300), finishedAt: Date.now() },

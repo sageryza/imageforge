@@ -9,7 +9,10 @@
 //   4. the ♥ filter narrows to hearted tiles; search finds by chat name;
 //   5. the lightbox freezes the page (overflow hidden) and restores the exact
 //      scroll position on close — the house overlay rule;
-//   6. the PROMPT overlay opens on the Content side (Sophie's default).
+//   6. the PROMPT overlay opens on the Content side (Sophie's default);
+//   7. GETTING OUT: a tap in the empty space beside a button — the ♥/✕ row,
+//      the action icons, the caption — closes it, while the picture, the note
+//      box and the prompt overlay keep it open (Sophie, 2026-08-24).
 //
 //   npm install playwright-core --no-save && node scripts/test-meta-assets-page.js
 'use strict';
@@ -89,6 +92,12 @@ const server = http.createServer((req, res) => {
     });
     return;
   }
+  if (url.pathname === '/asset-lightbox.js') {
+    // THE lightbox, shared — the page has no copy of its own any more, so
+    // without this every lightbox assertion below times out on an empty overlay
+    res.writeHead(200, { 'Content-Type': 'text/javascript' });
+    return res.end(fs.readFileSync(path.join(PUB, 'asset-lightbox.js'), 'utf8'));
+  }
   if (url.pathname === '/playground-port.js') {
     // the real routing script — its ForgePlaygroundPort is what builds the
     // lightbox's Playground button; without it the icon silently vanishes
@@ -128,6 +137,22 @@ const server = http.createServer((req, res) => {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   const fail = (m) => { console.error('FAIL:', m); process.exit(1); };
   try {
+    // 0 — A SOURCE PIN, and it is the one that keeps the rest honest: this
+    // page must OPEN the shared lightbox, never carry one. It was a third
+    // hand copy of /asset-lightbox.js for months, and every bug that file had
+    // already fixed reached Sophie here a second time — the close rule she
+    // reported on 2026-08-24 among them. If a surface needs something the
+    // shared file has no place for, give that file a hook (it grew `actions`
+    // and `who` for exactly this page), never a fourth copy.
+    const src = fs.readFileSync(path.join(PUB, 'assets.html'), 'utf8');
+    if (!/<script src="\/asset-lightbox\.js"><\/script>/.test(src)) {
+      fail('assets.html no longer loads the shared /asset-lightbox.js');
+    }
+    if (!/window\.__assetLightbox\(/.test(src)) fail('assets.html does not call __assetLightbox');
+    for (const own of ["className='lbtop'", "className='lbtalk'", "className='lbp'", 'lb.onclick=']) {
+      if (src.includes(own)) fail('assets.html is building its own lightbox again: ' + own);
+    }
+
     await page.goto(`http://127.0.0.1:${port}/assets`);
     await page.waitForSelector('.assetgrid .acell');
 
@@ -299,7 +324,86 @@ const server = http.createServer((req, res) => {
     playing = await page.$eval('#vmid', (e) => e.classList.contains('on'));
     if (playing) fail('a content tap did not pause the running autoscroll');
 
-    console.log('test-meta-assets-page: all good — order, sync-to-origin-chat, filters, lightbox contract, action icons, pill tap rules, 16px inputs');
+    // 11 — GETTING OUT (Sophie, 2026-08-24: "I can't get out of the light box
+    // in Meta assets I think with tapping it's considering too many things
+    // part of the row"). Every row in here used to swallow the tap for its
+    // WHOLE width — the ♥/✕ strip spans left:22px→right:22px, the action
+    // icons and the note block are full-width flex rows — so the empty space
+    // BESIDE a button was dead, and that space is most of the row. The rule is
+    // asked of the tap's target, so the honest test is a click at a real
+    // coordinate in that empty space, with elementFromPoint proving the point
+    // is not on a control.
+    const opened = async () => {
+      await page.evaluate(() => document.querySelector('.assetgrid .acell:nth-child(1) > button').click());
+      await page.waitForSelector('#clightbox[style*="flex"]');
+    };
+    // Walk the row at its own vertical centre and take the first x that is NOT
+    // on a control — that is the dead space she is tapping. Scanning rather
+    // than splitting the difference because a row may carry a button in the
+    // middle of it (the ♥/✕ strip holds PROMPT between them).
+    const gapIn = (sel) => page.evaluate((s) => {
+      const es = [...document.querySelectorAll(s)];
+      if (!es.length) return null;
+      const first = es[0].getBoundingClientRect();
+      const y = Math.round(first.top + first.height / 2);
+      const boxes = es.map((e) => e.getBoundingClientRect());
+      const lo = Math.round(Math.min(...boxes.map((r) => r.left)));
+      const hi = Math.round(Math.max(...boxes.map((r) => r.right)));
+      for (let x = lo; x <= hi; x++) {
+        const hit = document.elementFromPoint(x, y);
+        if (!hit || !hit.closest) continue;
+        if (hit.closest('button,a,input,textarea,select,label,img,.lbp,.lbtalk')) continue;
+        if (!hit.closest('#clightbox')) continue;
+        return { pt: { x, y } };
+      }
+      return { pt: null };
+    }, sel);
+    const closes = async (what, pt) => {
+      await page.mouse.click(pt.x, pt.y);
+      const gone = await page.waitForFunction(
+        () => document.getElementById('clightbox').style.display === 'none',
+        null, { timeout: 2000 }).then(() => true).catch(() => false);
+      if (!gone) fail('tapping ' + what + ' did not close the lightbox');
+    };
+
+    await opened();
+    const voteGap = await gapIn('#clightbox .lbtop > *');
+    if (!voteGap) fail('the ♥/✕ row is not in the lightbox');
+    if (!voteGap.pt) fail('no dead space found in the ♥/✕ row — bad measurement');
+    await closes('the empty space in the ♥/✕ row', voteGap.pt);
+
+    await opened();
+    const actGap = await gapIn('#clightbox .lbacts button');
+    if (!actGap) fail('the action icons are not in the lightbox');
+    if (!actGap.pt) fail('no dead space found between the action icons — bad measurement');
+    await closes('the empty space between the action icons', actGap.pt);
+
+    await opened();
+    const capPt = await page.$eval('#clightbox .clcap', (e) => {
+      const r = e.getBoundingClientRect();
+      return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+    });
+    await closes('the caption', capPt);
+
+    // …and the three things that must NOT close: her picture, the note box,
+    // and the prompt overlay covering the picture.
+    await opened();
+    await page.click('#clightbox img');
+    await page.click('#clightbox .lbnote input');
+    await page.click('.promptbtn');
+    await page.click('.lbptext');
+    const stillOpen = await page.$eval('#clightbox', (e) => e.style.display === 'flex');
+    if (!stillOpen) fail('a tap on the image / note box / prompt closed the lightbox');
+    // the overlay stays reachable for the host's bubbling skip check: the
+    // content is detached a FRAME after the close, never inside the handler
+    await page.click('#clightbox .clcap');
+    const reachable = await page.evaluate(() => {
+      const lb = document.getElementById('clightbox');
+      return lb.style.display === 'none' && lb.children.length > 0;
+    });
+    if (!reachable) fail('the lightbox wiped its content inside the close handler');
+
+    console.log('test-meta-assets-page: all good — order, sync-to-origin-chat, filters, lightbox contract, getting out of it, action icons, pill tap rules, 16px inputs');
   } finally {
     await browser.close();
     server.close();

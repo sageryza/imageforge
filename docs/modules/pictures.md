@@ -85,7 +85,45 @@ ceiling are all in `docs/image-pipeline.md` (*The walker is the prompt*).
   LIST/TILES pair**, never a single icon that scrolls away (the first version
   did, and stranded her in a one-image-per-row view with no way back), and it
   sits on the **LEFT** because the autoscroll pill owns the top-right corner.
-- **Five styles: WTR, ChatGPT, Scarry, Pastel, Hoonies (Aug 2026, Sophie).** **WTR**
+- **SANDY MIRROR AND CHATGPT ARE TWO DIFFERENT TILES SINCE 2026-08-24 (Sophie:
+  "add one more endpoint option to the playground, which is called ChatGPT and
+  change the one that's called ChatGPT right now to make it be called Sandy
+  mirror. the ChatGPT new one will have no reference image").** The tile that
+  attaches `refs/sage-sandy-mirror.png` is **Sandy mirror** now, and **ChatGPT**
+  is a NEW tile that attaches nothing: her words go to gpt-image-2 alone, no
+  style reference, no baked prefix, no baked tail, no Sophie card.
+  - **THE KEYS DID NOT MOVE.** The renamed tile is still `evan` server-side and
+    `chatgpt` in the page's `STYLES`, because those two strings are stored — in
+    every run doc's `gptStyle`, in `?style=` deep links, in `promptlab_style`,
+    and in her per-style prompt override and no-text keys in localStorage.
+    Renaming either would orphan all of it, so only the LABEL changed. The new
+    tile is `plain` in both tables.
+  - **IT IS LITERALLY A DIFFERENT ENDPOINT, which is why she called it one.**
+    With no images to attach there is nothing to EDIT, so `runPromptLabGptJob`
+    picks by `refs.length`: empty → `openaiImage` (`/v1/images/generations`),
+    otherwise the usual `openaiImageEditRefs` (`/v1/images/edits`). Everything
+    downstream is identical — same model, quality, canvas, `moderation:'low'`,
+    webp bytes, no `output_compression`. **The choice is the ARRAY's length, not
+    the style id**: attaching her own photo gives a plain run one image, and it
+    belongs on edits.
+  - **`openaiImage` takes a timeout override** (0 keeps the per-quality table).
+    The table suits the 1024-square calls the zine makes; this tile draws up to
+    2336x3504, where a medium render outruns the 150s medium is allowed, so the
+    Playground passes 300s exactly as the edits path always has.
+  - **Her PHOTO reference gets a different sentence here.** `PL_GPT.photoLine`
+    ends "...NOT for the drawing style, which comes from the style reference
+    above" — true on every other tile and a lie on this one, where her photo is
+    the only attachment. `PL_GPT_STYLES.plain.photoLine` overrides it, is served
+    by `GET /api/promptlab/styles` per style, and the Prompt panel prints
+    whichever one will really be sent.
+  - **No evidence, on purpose.** `playground-port.js` carries a `plain` entry
+    with `evidence:false` — a picture made here has no reference filename and no
+    baked prefix on its record, so nothing can ever route back to this tile.
+    Don't invent a fragment to make it look identifiable; the FALLBACK stays
+    `chatgpt` (Sandy mirror), which is what the unidentified history really is.
+  - Test: `node scripts/test-playground-plain.js` (pure — 18 of its 22 checks
+    verified failing against the pre-change tree).
+- **Six styles: WTR, Sandy mirror, ChatGPT, Scarry, Pastel, Hoonies.** **WTR**
   (`wtr`, the watercolor LoRA — the tile is labelled WTR, but its STYLES key is
   still `watercolor`, which is what localStorage and `?style=` deep links carry)
   is the only Replicate LoRA on the picker: trigger word prepended, suffix
@@ -93,7 +131,8 @@ ceiling are all in `docs/image-pipeline.md` (*The walker is the prompt*).
   removed** at the same time — the model is untouched and still serves the Test
   Station / house styles, and old Hoonie runs keep their label in the feed via
   `RETIRED` in promptlab.html.
-  **ChatGPT** (Aug 2026, `engine:'gptimage'`) is a different engine:
+  **Sandy mirror** (Aug 2026, `engine:'gptimage'`; called ChatGPT until
+  2026-08-24) is a different engine:
   gpt-image-2's **edits** endpoint with Sophie's scanned ink-and-watercolour
   page attached as a pure STYLE reference (`refs/sage-sandy-mirror.png` =
   "datescan0013", the same file the Evan film uses), **quality medium**,
@@ -123,8 +162,8 @@ ceiling are all in `docs/image-pipeline.md` (*The walker is the prompt*).
   Every gpt style appends a `suffix` at the VERY END of the sent prompt, after
   her words (the no-text rule; Pastel's is the house style's longer wording).
   ChatGPT-engine styles live in `PL_GPT_STYLES` in server.js (keyed `evan` /
-  `scarry` / `pastel` / `hoonies`; the page sends `style`, absent/unknown → `evan` so old
-  pages keep working) — adding another different-reference style = drop the
+  `plain` / `scarry` / `pastel` / `hoonies`; the page sends `style`,
+  absent/unknown → `evan` so old pages keep working) — adding another different-reference style = drop the
   image(s) in `refs/` (or point `storageRefs` at Storage), add a
   `PL_GPT_STYLES` entry + a one-line `STYLES` entry in promptlab.html (the page
   holds NO prompt copies anymore — see below).

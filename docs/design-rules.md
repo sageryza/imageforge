@@ -31,6 +31,35 @@ The house rules that only bite when you are actually building a page, an iOS scr
     copy that leans only on `window.__scrollStop`. Re-generating those pages
     is its own job (see the stale-generator warning in `CLAUDE.md`).
   - Pinned by `node scripts/test-back-to-top.js`.
+  - **IT FOLLOWS WHATEVER IS ACTUALLY SCROLLING (2026-08-24, Sophie: "some
+    surfaces scroll but have no to top arrow. like story room shelf").** A
+    full-screen sheet (`position:fixed; inset:0; overflow-y:auto` — the Story
+    Room's shelf) takes the scroll away from the window, and every check here
+    asked the window, so on the shelf there was no pill and no arrow at all;
+    the sheet's z-index 40 also sat over the pill's 9, so a lit arrow was
+    unreachable (measured with `elementFromPoint`). The pill hears an inner
+    scroller through a CAPTURE-phase `scroll` listener (scroll does not bubble
+    but it does capture, so `e.target` names the box) and, before she has
+    scrolled anything, through `elementsFromPoint` at the middle of the screen
+    — asked only when the window itself cannot scroll, and re-asked by a
+    MutationObserver, because a fixed sheet opening changes nothing a
+    ResizeObserver watches. **Only a nearly-full-screen overlay is adopted**
+    (80% wide, 60% tall): a note list or a drawer must never steal the pill
+    from the page behind it. Adopting one lifts the pill to that box's
+    z-index + 1 and releasing restores its own. Test:
+    `node scripts/test-pill-sheet.js`.
+  - **NEVER hand-roll a second one.** `/chunking` carried its own circle at
+    the bottom-right from before this existed — two back-to-tops, two corners,
+    one job, and a round plate the icon rule has since retired.
+  - **A PAGE CAN KILL THE WHOLE INJECTED PILL BY NAMING A VARIABLE.** Its
+    script runs in the page's global scope, so a top-level `let`/`const`
+    sharing a name with one of the pill's `var`s (`playing`, `raf`, `I`,
+    `dir`, `last`, `si`…) is a parse-time SyntaxError that takes the pill with
+    it, silently — `/search` had `let playing` and had no autoscroll and no
+    arrow for as long as it existed. **Wrap a page script in an IIFE**
+    (`/cutmarks` already does, and its comment says why).
+    `node scripts/test-pill-globals.js` loads every injected page in a real
+    browser and asks whether the pill's script ran.
 - **TRUNCATED TEXT OPENS WITH AN UNDERLINED WORD — NEVER A BUTTON (Aug 2026,
   Sophie, pointing at the Playground: "the ... button for longer than two line
   prompt is huge. why? it shud be fixed everywhere. truncated text shud always
@@ -39,6 +68,28 @@ The house rules that only bite when you are actually building a page, an iOS scr
   pattern").** Wherever a page cuts text and offers a way to see the rest, the
   way in is **a word with a line under it**, sitting at the end of the text it
   opens.
+  - **IT SITS ON THE LAST LINE OF THE WORDS, NOT BESIDE THEM (Aug 2026,
+    Sophie: "Button should be part of the text, not separated from it on the
+    side").** Part of the sentence it opens, at the end of the last visible
+    line — never parked at the far end of the row the text happens to be in.
+    She asked for this once before, on the dream cards ("I want the see more
+    button to be on the same last line of the text rather than underneath
+    it"), and `.dbody` in `dreamapp.html` is the settled implementation:
+    - `-webkit-line-clamp` CANNOT hold the control — anything inside that box
+      after the cut is clipped with the text. That is why the first attempt
+      made it a SIBLING, and a sibling in a flex header row lands wherever
+      the row puts it, which was the complaint.
+    - So the clamp is a plain `max-height`, and the opener is a right float
+      with `clear: both` sitting below a **zero-width float one line SHORT of
+      the cap** (`::before`, `height: calc((lines - 1) * lh)`). The only line
+      it can land on is the last one, and the words wrap around it. Both
+      floats come BEFORE the text in DOM order, so neither is "after the
+      clamped text" and neither is clipped.
+    - The `fold` class that adds that `::before` is set by JS and only where
+      the words really were cut: `overflow: hidden` makes the block a BFC, so
+      the float would otherwise stretch a one-line prompt to the full cap.
+    - OPEN, the control moves to the END of the words (`float: none`), because
+      unfloated at the front it would read before the first word.
   - **The mark:** `…`, `… more`, `more`, or `see more` — whichever reads best
     where it sits. Underlined. Inline. Inherits the surrounding font, size and
     colour. `border: 0; background: none; padding: 0; margin: 0`. Opened, the
@@ -65,12 +116,9 @@ The house rules that only bite when you are actually building a page, an iOS scr
     a big empty box in the middle of a run's header. Nothing was wrong with
     the opener; it lost a name fight. The paging button keeps `.morebtn`, the
     opener is `.moretxt`.
-  - **The opener goes OUTSIDE the clamped box.** `-webkit-line-clamp` clips
-    everything inside it after the cut, so a control nested in the clamped
-    element disappears with the text it was meant to open. Add it after
-    layout, as a SIBLING (`applyClamps` in `promptlab.html` is the reference),
-    and measure `scrollHeight` against `clientHeight` rather than counting
-    characters — only the browser knows whether the text really overflowed.
+  - **Add it after layout, and measure** `scrollHeight` against `clientHeight`
+    rather than counting characters — only the browser knows whether the text
+    really overflowed. `applyClamps` in `promptlab.html` is the reference.
   - **Text that is cut with no way to open it is a different thing** and this
     rule does not reach it (a card title clipped to one line, a caption cut to
     three). If you add a way in, it takes this shape.
@@ -283,6 +331,59 @@ The house rules that only bite when you are actually building a page, an iOS scr
     flipping it back has to be deliberate. **Two chats were editing these
     rows the same evening — check the newest instruction before changing
     them.**
+
+- **THREE OPTIONS = A THREE-WAY TOGGLE, AND THERE IS ONE SHELL (Aug 2026,
+  Sophie: "for things with three options, it shud be a three way toggle. add
+  the toggle as a likely pattern where it applies. make a reusable three
+  toggle shell so we can change the styling all at once. make color a per
+  instance option. apply it to the few instances that already exists").**
+  `public/tritoggle.css`, class `.tri`. Link it; never copy it.
+  - **The contract:** `<button class="tri" data-n="0|1|2" data-i="L">`.
+    `data-n` is the stop — ZERO-based and NUMBERED, which is the whole reason
+    one rule serves four unrelated controls. `data-i` is the short word riding
+    the knob; `attr(data-i)` with no attribute renders nothing, which is how
+    the account switcher gets a blank knob out of the same rule.
+  - **Per instance:** `--tri-track`, `--tri-knob`, `--tri-ink` (colour, the
+    one she named), `--tri-w`, `--tri-k` (size), `--tri-inset`, `--tri-bw`,
+    `--tri-fs`. A bare `.tri` IS the account switcher — 48px track, 18px knob,
+    the rose `--chg`, a `--paper` knob — so the shell's defaults are not an
+    invention, they are the original.
+  - **Everything else is DERIVED and must stay that way** — `--tri-h`, the
+    capsule `border-radius` and `--tri-gap` all fall out of the width, the
+    knob, the inset and the border. This is the hairline rows' lesson applied
+    to a second control: a new instance sets a width and is finished, and a
+    fourth stop is one `[data-n="3"]` rule plus a wider track. The two
+    hand-typed copies had EYEBALLED their gap (11.5 where the geometry says
+    11) and one had the knob half a pixel off centre vertically — invisible,
+    and exactly the kind of thing a derived value cannot get wrong.
+  - **Where it lives now:** the Chats account switcher (bare), the
+    Playground's quality and size (`--tri-w:78px; --tri-k:26px`, ink on
+    paper), Panels' two the same, and the Chats search filters (muted at rest,
+    the rose `--chg` when the filter is actually narrowing — which is what the
+    per-instance colour buys).
+  - **THE HISTORY, so nobody re-copies it:** it was `.swi` in `chats.html`,
+    `.swtog` in `promptlab.html`, and `.swtog` again in `panels.html` whose
+    own comment said it was "LIFTED VERBATIM" — three copies, two attribute
+    names (`data-a` 1-based and `data-n` 0-based), two palettes, and the only
+    thing that ever noticed a copy drifting was a test comparing two files
+    property by property. `data-a` survives on the account switcher as a plain
+    data attribute (it is the account NUMBER, which several readers want); the
+    STOP is `data-n` everywhere.
+  - **A stub test server has to serve `/tritoggle.css`.** express.static does
+    it in production; a harness that does not renders the toggle as a 4px
+    sliver, and three existing tests had to be taught this. If a toggle test
+    starts failing with every stop at the same place, check that first.
+  - **It stays the sanctioned exception to no-pills** — a toggle is not a text
+    button.
+  - Test: `node scripts/test-tritoggle.js` — nobody keeps a second copy, every
+    page that uses the class links the file, and the geometry is MEASURED in a
+    real browser at every stop for every instance (three stops that sit apart,
+    evenly spaced, the last one parked symmetrically, the knob square and
+    centred, the track a full capsule, and three different track colours off
+    the one rule). The tolerance on "parked symmetrically" is 1.5px on
+    purpose: the CSS calc works in the specified 1.5px border while Chromium
+    lays out with a border snapped to whole device pixels, so the two disagree
+    by up to a pixel at any DPR.
 
 - **THE HAIRLINE ROWS' SLIDING LINE MEASURES ITS TAB — no row anywhere
   declares a tab count (Aug 2026, Sophie: "close it so it can't happen

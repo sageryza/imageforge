@@ -63,7 +63,7 @@ struct ReelView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("WHAT'S THE REEL?")
                 .font(.caption2.weight(.semibold)).tracking(1).foregroundColor(Theme.textDim)
-            TextField("a glowing crystal and a lit candle on dark linen…", text: $prompt, axis: .vertical)
+            TextField("…", text: $prompt, axis: .vertical)
                 .lineLimit(2...5).font(.body).foregroundColor(Theme.text)
                 .focused($focused)
                 .padding(12).background(Theme.surface)

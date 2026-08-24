@@ -60,6 +60,67 @@ ok('a plain ask does NOT', !Q.flagsQuestion('Should the button go underneath?'))
 ok('an unmarked wondering does NOT', !Q.flagsQuestion("I'm wondering if that would work"));
 ok('"questionable" is not the word', !Q.flagsQuestion('that colour is questionable'));
 
+// 2026-08-24 — SHE HAS TO BE ASKING, NOT TALKING ABOUT ASKING. These three are
+// the ACTUAL rows that were sitting in this chat's own Questions tab the day
+// she asked "is that cuz ur rules are out of date?": all three false, none of
+// them a question she had marked. The bare word `question` anywhere was the
+// old gate, and it is what put them there.
+ok('describing the format is not asking',
+   !Q.flagsQuestion("i noticed ur still structuring ur response w bold questions"));
+ok('complaining about an answer is not asking',
+   !Q.flagsQuestion("did u check the answer? it didn't actually answer the question"));
+ok('specifying the feature is not asking',
+   !Q.flagsQuestion('it ONLY applies if i use the word question in my text'));
+ok('talking about asking is not asking',
+   !Q.flagsQuestion('sometimes like I ask questions to chat and it gets buried'));
+
+// The shapes her real feed actually carries, all of which must survive.
+ok('"Last question:"', Q.flagsQuestion('Last question: is the deploy live'));
+ok('"One more question —"', Q.flagsQuestion('One more question — did it merge'));
+ok('"A question:"', Q.flagsQuestion('A question: should the button go underneath'));
+ok('a bare count is framing too', Q.flagsQuestion('Two questions. Is it live? And is it merged?'));
+ok('and so is a bare "Questions:"', Q.flagsQuestion('Questions: is it live'));
+
+// A CONTEXT-COMPACTION SUMMARY IS NOT HER MESSAGE. The harness hands it over
+// as a USER turn, so the hook files it as hers — and it QUOTES everything,
+// including the trigger phrases as examples, so every gate above fires on it.
+// Measured over her 120 recent chats: 4 of 408 of her messages, but 5 of the
+// 35 rows.
+const compacted = 'This session is being continued from a previous conversation that ran out '
+  + 'of context. The summary below covers the earlier portion of the conversation. '
+  + 'Summary: she said "it ONLY applies if i use the word question in my text eg i '
+  + 'have a question, or my question is:". Quick question. Is that right?';
+ok('a compaction summary is not hers', !Q.flagsQuestion(compacted));
+eq('and it files nothing', Q.findQuestions(compacted).length, 0);
+// ANCHORED AT THE START — a message that merely talks about compaction is hers.
+ok('talking about it is untouched',
+   Q.flagsQuestion('quick question, what happens when this session is being continued after a compaction'));
+
+console.log('\nthe code word files on purpose');
+// HER IDEA (2026-08-24): "maybe a code word that triggers the chat to file the
+// answer intentionally?" — it files an exchange that was never shaped like a
+// question at all, which no phrase rule can reach.
+ok('"file this"', Q.filesOnPurpose('that explanation is great, file this'));
+ok('"save that answer"', Q.filesOnPurpose('save that answer, i will want it back'));
+ok('"for the questions tab"', Q.filesOnPurpose('grab that for the questions tab'));
+ok('ordinary filing talk is not the code word',
+   !Q.filesOnPurpose('file the prompt on the asset'));
+
+// A SMALL VOCABULARY, NOT ONE MAGIC STRING — she dictates and paraphrases, so
+// "file this" and "file that" have to be the same intent.
+ok('"file that" is the same intent', Q.filesOnPurpose('file that, it is worth keeping'));
+
+const filed = Q.findQuestions('so that is why the tiers are continuous. file this one');
+eq('the code word files a row', filed.length, 1);
+ok('and the row is her own sentence, minus the instruction',
+   filed[0].indexOf('so that is why the tiers are continuous') === 0, filed[0]);
+
+// It runs FIRST and then falls through, so a message carrying both still picks
+// the real ask rather than stopping at the code word.
+const both = Q.findQuestions('file this. my question is whether the tabs should be pink or tan');
+ok('a marked ask in the same message is still found',
+   both.indexOf('my question is whether the tabs should be pink or tan') >= 0, both.join(' | '));
+
 // The whole point of the gate: these all pass `isQuestion`, and none of them
 // reaches the list any more, because she did not mark the message.
 eq('an unflagged question mark yields nothing',
@@ -99,16 +160,25 @@ eq('both found', two.length, 2);
 ok('the framing sentence is not one of them', two.indexOf('Two questions.') < 0, two.join(' | '));
 
 console.log('\ninside a flagged message the old heuristics still pick the sentence');
-// Her actual message, 2026-08-14 — voice-to-text, and the question in it has NO
-// question mark anywhere. It carries the word, so it is still read; the
-// wondering is still the sentence that gets the row.
+// Her actual message, 2026-08-14 — voice-to-text, and the ask in it has NO
+// question mark anywhere, opens on a pronoun, and would be missed by every
+// heuristic in this file. Only her own framing finds it.
+//
+// AS SHE ACTUALLY SENT IT, it is a message ABOUT asking ("I ask questions to
+// chat") and files NOTHING — that is the 2026-08-24 tightening, and this is the
+// live shape it turns off.
 const real = "so basically, I have this idea that sometimes like I ask questions to chat and "
   + "then it's hard to find the answer cause it's buried under other stuff. "
   + "I'm wondering if this should be part of the message or "
   + "should be filed separately into a little hidden away tab called questions within each chat area.";
-const found = Q.findQuestions(real);
+eq('talking about asking files nothing', Q.findQuestions(real).length, 0);
+
+// Marked, the same message files, and the wondering is still the sentence that
+// gets the row — the heuristics below the gate are untouched.
+const found = Q.findQuestions('Quick question. ' + real);
 eq('one question found', found.length, 1);
-ok('it is her sentence, verbatim', found[0].indexOf("I'm wondering if this should be part of the message") === 0, found[0]);
+ok('it is her sentence, verbatim',
+   found[0].indexOf("I'm wondering if this should be part of the message") === 0, found[0]);
 
 console.log('\nanswer comes from the bold block that matches');
 const reply = [
@@ -131,6 +201,82 @@ eq('unrelated question falls back to the tldr',
 eq('no tldr and no block falls back to the first paragraph',
   Q.answerFor('It cost about four cents.\n\nMore detail after.', '', 'How much did it cost'),
   'It cost about four cents.');
+
+console.log('\nTHE ANSWER CAN LIVE ANYWHERE IN THE REPLY — bestParagraph digs it out');
+// A condensed version of the real reply that earned this (2026-08-23, Sophie:
+// "did u check the answer? it didn't actually answer the question. ull have to
+// be smarter about this whole thing"): the answer to each question is a
+// MIDDLE paragraph, the opening is progress lines, and there is no TLDR.
+const sizesReply = [
+  'Now the size tiers on the server:',
+  '',
+  '**Spent $2.35 this turn** — measuring the real price of every new size at every quality.',
+  '',
+  "**2K and 4K are not the only sizes — it's continuous.** Any canvas up to 3840px on the",
+  'long edge, with both edges a multiple of 16. Nothing between them is special.',
+  '',
+  "**Legal paper at 1024x1536: soft, and you'd see it.** Legal is 8.5x14 and your image is",
+  "2:3 — printed inside margins you're at roughly 137 dpi. At reading distance it reads mushy.",
+].join('\n');
+ok('a short question finds its middle paragraph',
+   /not the only sizes/.test(Q.answerFor(sizesReply, '', "are 2k and 4k the only sizes or are there in between sizes?")),
+   Q.answerFor(sizesReply, '', 'x'));
+// Her dictated questions run LONG — the denominator cap is what lets a real
+// 4-word match survive 13 words of framing.
+ok('a long dictated question still finds its paragraph',
+   /Legal paper/.test(Q.answerFor(sizesReply, '',
+     "Last question: if I were to print one of the normal images at the original size 1500 or whatever, let's say I printed it on legalize paper, how soft would it be")),
+   Q.answerFor(sizesReply, '', 'long'));
+// The stem must land singular and plural on the same root — her "images"
+// against the reply's "image" is exactly the hit the old stem lost.
+ok('singular and plural stem to the same root',
+   Q.matchBlock([{ q: 'the image sizes', body: 'yes' }], 'are the sizes of the images right') !== null);
+// Two shared words is a coincidence, not an answer — the floor is 3 distinct
+// hits, so "answer" + "question" appearing together cannot hijack a row.
+ok('two shared words do not pick a paragraph',
+   Q.bestParagraph('Here is context.\n\nI will answer your question soon.\n\nDone.', '',
+     "u didn't answer my question") === null);
+// The TLDR competes as a candidate — a summary that really is the answer wins.
+eq('a tldr that scores wins as the answer',
+  Q.bestParagraph('Unrelated opening.\n\nMore prose.', 'The witch lesson cards render at medium quality now.',
+    'what quality do the witch lesson cards render at'),
+  'The witch lesson cards render at medium quality now.');
+// Below the bar it stays out of the way entirely.
+ok('nothing scoring → null, the old chain runs',
+   Q.bestParagraph(sizesReply, '', 'how do I repoint the DNS at Hover') === null);
+
+console.log('\na paragraph ending in a colon is an introduction, not an answer');
+// Both of these were live rows in her Questions tab, 2026-08-23, on
+// playground-image-resolution — a fragment that answered nothing, because the
+// answer was in the paragraph the colon was introducing.
+const leadIn = "Sorry — here's the straight answer. Yes, there are more differences we never "
+  + 'considered. The bigger one I skipped is the difference between **ChatGPT the app** and what we call:'
+  + '\n\n**The app thinks before it draws.** ChatGPT runs a reasoning pass first.';
+ok('it reads on past the colon',
+   /reasoning pass/.test(Q.answerFor(leadIn, '', "u didn't answer my question")),
+   Q.answerFor(leadIn, '', 'x'));
+
+// Two colon-ended progress lines, then the real reply.
+const narrated = 'Now the size tiers on the server:\n\nNow the docs, then commit and merge:'
+  + '\n\n**Spent $2.35 this turn** — measuring the real price of every size.';
+ok('and past two of them', /Spent \$2\.35/.test(Q.answerFor(narrated, '', 'how soft would it be')),
+   Q.answerFor(narrated, '', 'x'));
+
+// It only ever reads FURTHER — a real lead-in keeps its own words.
+ok('the lead-in itself is kept, never dropped',
+   Q.answerFor('Two things:\n\nThe first one. The second one.', '', 'what changed')
+     .indexOf('Two things:') === 0);
+
+// THREE is the stop, so a reply that is nothing but headings cannot swallow
+// itself whole.
+eq('it stops after three paragraphs',
+  Q.answerFor('One:\n\nTwo:\n\nThree:\n\nFour:\n\nFive:', '', 'what changed'),
+  'One:\n\nTwo:\n\nThree:');
+
+// A paragraph that ends normally still stops at one, exactly as before.
+eq('a normal opening is still one paragraph',
+  Q.answerFor('It cost four cents.\n\nAnd here is why.', '', 'how much'),
+  'It cost four cents.');
 
 // Straight off her real threads, 2026-08-14: the stored TLDR had lost the words
 // its opening ** belonged to, so five answers in one chat began with literal

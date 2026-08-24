@@ -93,6 +93,64 @@ if (document.querySelector('meta[name="forge-pill"][content="off"]') ||
 } else {
 var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Faster',3.2],['Fastest',5.2]];
 var playing=false, raf=null, last=null, si=2, dir=1, acc=0;
+// ── WHAT IS ACTUALLY SCROLLING ────────────────────────────────────────────
+// (2026-08-24, Sophie: "some surfaces scroll but have no to top arrow. like
+// story room shelf".) Every check below used to ask the WINDOW, so a surface
+// whose content scrolls inside a full-screen sheet — the Story Room's shelf is
+// `position:fixed; inset:0; overflow-y:auto` — looked to the pill like a page
+// with nothing to scroll: no pill, no back-to-top, on the one screen she reads
+// most. The sheet also sits at z-index 40 over the pill's 9, so even a lit
+// arrow was under it (measured with elementFromPoint: the tap reached
+// `#shelftiles`).
+//
+// THE SCROLLER ANNOUNCES ITSELF BY SCROLLING, which is why there is no
+// per-page hook and no scanning. `scroll` does not bubble but it DOES capture,
+// so one capture-phase listener on the document hears an inner element scroll
+// and names it in `e.target`. Scrolling the window again releases it. The
+// alternative — walking the DOM looking for a scroller — is a query per scroll
+// event on pages holding thousands of nodes, and it has to guess.
+//
+// ONLY A NEARLY-FULL-SCREEN OVERLAY IS ADOPTED. A small inner scroller (a note
+// list, a caption box, a filter drawer) must never steal the pill from the
+// page behind it — the pill would then jump a box she is not reading. 80% of
+// the width and 60% of the height is the floor, measured against the sheet
+// pattern this exists for.
+var _box=null, _boxZ='';
+function boxOK(el){
+  if(!el || el===document || el===document.body || el===document.documentElement) return false;
+  if(!el.getBoundingClientRect || el.scrollHeight - el.clientHeight <= 4) return false;
+  var r=el.getBoundingClientRect();
+  return r.width >= window.innerWidth*0.8 && r.height >= window.innerHeight*0.6;
+}
+// Adopting one LIFTS THE PILL OVER IT and putting it down restores the pill's
+// own layer — a sheet is drawn above the pill on purpose, and the pill has to
+// out-stack only the thing it is currently driving (never lightboxes, which
+// are higher again and are not scrollers).
+function useBox(el){
+  if(el===_box) return;
+  _box=el;
+  if(_pill){
+    if(el){
+      var z=parseInt(getComputedStyle(el).zIndex,10);
+      _boxZ=_pill.style.zIndex;
+      if(z===z) _pill.style.zIndex=String(z+1);
+    } else { _pill.style.zIndex=_boxZ; _boxZ=''; }
+  }
+  if(playing) scrollStop();
+  syncPill(); syncPtop();
+}
+function sTop(){ return _box ? _box.scrollTop : window.scrollY; }
+function sView(){ return _box ? _box.clientHeight : window.innerHeight; }
+function sHeight(){
+  if(_box) return _box.scrollHeight;
+  var d=document.documentElement, b=document.body;
+  return Math.max(d?d.scrollHeight:0, b?b.scrollHeight:0);
+}
+function sBy(px){ if(_box) _box.scrollTop += px; else window.scrollBy(0,px); }
+function sHome(){
+  if(_box){ try{ _box.scrollTo({top:0, behavior:'smooth'}); }catch(_){ _box.scrollTop=0; } return; }
+  try{ window.scrollTo({top:0, behavior:'smooth'}); }catch(_){ window.scrollTo(0,0); }
+}
 var vtop=document.getElementById('vtop'), vmid=document.getElementById('vmid'), vbot=document.getElementById('vbot');
 var I={
  up:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
@@ -119,12 +177,12 @@ function stepPill(ts){
   if(last!=null){
     acc += dir*(ts-last)/1000*42*spd();
     var move = acc>0 ? Math.floor(acc) : Math.ceil(acc);
-    if(move!==0){ window.scrollBy(0,move); acc-=move; }
-    var atEnd = dir>0 ? (window.innerHeight+window.scrollY>=document.body.scrollHeight-4) : (window.scrollY<=2);
+    if(move!==0){ sBy(move); acc-=move; }
+    var atEnd = dir>0 ? (sView()+sTop()>=sHeight()-4) : (sTop()<=2);
     if(atEnd) scrollStop(); }
   last=ts; raf=requestAnimationFrame(stepPill);
 }
-function canScroll(d){ return d>0 ? (window.innerHeight+window.scrollY < document.body.scrollHeight-4) : (window.scrollY>2); }
+function canScroll(d){ return d>0 ? (sView()+sTop() < sHeight()-4) : (sTop()>2); }
 // Pressing play at an end of the page used to do nothing at all: autoscroll
 // remembers the direction it stopped in, so after riding UP to the top the next
 // play still meant "up" and there was nowhere to go. A direction with no room
@@ -147,9 +205,14 @@ window.__pillInteractive=pillInteractive;
 // Content-tap gesture (a page calls __scrollTap from its own tap handler,
 // passing the event when it has one): a plain toggle — tap stops, tap starts
 // again (at the current speed; default Fast). Speed changes stay on the −/+.
+// A RESUMED SCROLL GOES THE WAY IT WAS GOING (Aug 2026, Sophie: "I can't
+// scroll back up only down"). This used to be a hardcoded scrollStart(1), so
+// riding UP the page and tapping to pause left her one tap from going back
+// DOWN — the ▲ had to be found again for every single pause. `dir` is the
+// same memory `vmid` has always used; the two now agree.
 window.__scrollTap=function(e){
   if(e && pillInteractive(e.target||e.srcElement)) return;
-  playing? scrollStop() : scrollStart(1);
+  playing? scrollStop() : scrollStart(dir||1);
 };
 vtop.onclick=function(){ if(playing){ si=Math.max(0,si-1); paintPill(); } else scrollStart(-1); };
 vbot.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paintPill(); } else scrollStart(1); };
@@ -171,13 +234,27 @@ window.addEventListener('pagehide',scrollStop);
 // a ResizeObserver on the document and the body, plus resize and the font
 // load, and it goes back and forth as freely as the content does.
 var _pill=document.querySelector('.float');
-function pageScrolls(){
-  var d=document.documentElement, b=document.body;
-  var h=Math.max(d?d.scrollHeight:0, b?b.scrollHeight:0);
-  return h > window.innerHeight + 4;
+function pageScrolls(){ return sHeight() > sView() + 4; }
+// Waiting for her to scroll is too late for the PILL itself: opening a sheet
+// would show no pill at all until she had already scrolled it by hand. So when
+// the window has nothing to scroll, ask what is under the middle of the screen
+// — `elementsFromPoint` walks the stack at one point, which is O(depth) and
+// finds the topmost overlay covering the viewport, where scanning the DOM for
+// scrollers is a query over every node on the page and still has to guess.
+function findBox(){
+  if(!document.elementsFromPoint) return null;
+  var els=document.elementsFromPoint(window.innerWidth/2, window.innerHeight/2)||[];
+  for(var i=0;i<els.length;i++){
+    if(boxOK(els[i]) && /auto|scroll/.test(getComputedStyle(els[i]).overflowY)) return els[i];
+  }
+  return null;
 }
 function syncPill(){
   if(!_pill) return;
+  // a sheet that has closed is not the scroller any more — put it down before
+  // measuring, or the pill goes on reporting a box nobody can see
+  if(_box && !boxOK(_box)){ useBox(null); return; }
+  if(!_box && sHeight() <= sView()+4){ var f=findBox(); if(f){ useBox(f); return; } }
   var can=pageScrolls();
   // never yank it out from under a running scroll — stop first, then hide
   if(!can && playing) scrollStop();
@@ -192,6 +269,19 @@ if(window.ResizeObserver){
   if(document.documentElement) _ro.observe(document.documentElement);
   if(document.body) _ro.observe(document.body);
 }
+// A SHEET OPENING CHANGES NOTHING THE ResizeObserver WATCHES — it is a fixed
+// overlay, so the document and the body keep their size and the pill would
+// wait for a scroll that has nowhere to start. Attribute/child changes are the
+// signal (every sheet here is a body child toggled by `hidden`), coalesced to
+// one check a frame so a chatty page pays for it once.
+if(window.MutationObserver && document.body){
+  var _mq=false;
+  new MutationObserver(function(){
+    if(_mq) return; _mq=true;
+    requestAnimationFrame(function(){ _mq=false; syncPill(); syncPtop(); });
+  }).observe(document.body,{childList:true,subtree:true,attributes:true,
+    attributeFilter:['hidden','class','style']});
+}
 
 // The back-to-top button. Appears past one full screen; a tap stops any
 // running autoscroll FIRST (otherwise the scroll keeps walking the page back
@@ -203,16 +293,25 @@ if(_ptop){
     '<path d="M5 4h14"/><path d="m18 14-6-6-6 6"/><path d="M12 8v12"/></svg>';
   _ptop.onclick=function(){
     scrollStop();
-    try{ window.scrollTo({top:0, behavior:'smooth'}); }catch(_){ window.scrollTo(0,0); }
+    sHome();
   };
 }
 function syncPtop(){
   if(!_ptop) return;
-  _ptop.classList.toggle('on', window.scrollY > window.innerHeight && pageScrolls());
+  _ptop.classList.toggle('on', sTop() > sView() && pageScrolls());
 }
 window.__pillTopSync=syncPtop;
 window.addEventListener('scroll',syncPtop,{passive:true});
 window.addEventListener('resize',syncPtop,{passive:true});
+// The capture-phase listener that hears an inner scroller (see WHAT IS
+// ACTUALLY SCROLLING above). It is the ONLY thing that adopts one, and the
+// window scrolling puts it down again.
+document.addEventListener('scroll',function(e){
+  var t=e.target;
+  if(t===document || t===document.documentElement || t===document.body) useBox(null);
+  else if(boxOK(t)) useBox(t);
+  syncPtop();
+},true);
 syncPtop();
 syncPill();
 paintPill();

@@ -1336,7 +1336,7 @@
           + '<button type="button" class="cmp-note-open" aria-label="a note about this one">'
           + PLUS_SVG + '</button>'
           + '<div class="cmp-note-text"></div>'
-          + '<textarea class="cmp-note-box" rows="2" placeholder="write back…"></textarea></div>')
+          + '<textarea class="cmp-note-box" rows="2" placeholder="a note about this one…"></textarea></div>')
           + (voice && !momUI ? '<button type="button" class="jg-mic' + (recActive() ? ' rec' : '')
             + '" data-act="mic" aria-label="voice note">' + I.mic + '</button>' : '')
           + '</div></div>'   // the card, then its non-scrolling wrapper

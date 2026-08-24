@@ -164,8 +164,11 @@ function ok(cond, name) {
   ok(await page.$eval('#popvid', (el) => el.getBoundingClientRect().width > 200),
     'the clip is watchable — the card’s width, not the 90px tile');
 
-  // 5 — a frame color lands on the video, and closing pauses it
-  await page.click('.chip.blue');
+  // 5 — a frame color lands on the video, and closing pauses it.
+  // The chips live behind the corner colour square now (Aug 2026), so the
+  // drop-down has to be opened before one can be tapped.
+  await page.click('#colorbtn');
+  await page.click('#colormenu .chip.blue');
   ok(await page.$eval('#popvid', (el) => el.className === 'c-blue'), 'the frame color lands on the clip');
   await page.evaluate(() => { const v = document.getElementById('popvid'); v.__paused = 0; v.pause = function () { v.__paused = 1; }; });
   await page.mouse.click(5, 5);   // the edge around the card — never the video

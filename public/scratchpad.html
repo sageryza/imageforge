@@ -113,16 +113,86 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   border-radius:6px; padding:7px 13px; font:600 13px -apple-system,'Helvetica Neue',sans-serif;
   cursor:pointer; -webkit-tap-highlight-color:transparent;}
 .scat.on{border-color:var(--gold); color:var(--gold);}
-#shelftiles{display:grid; grid-template-columns:repeat(4,1fr); gap:12px 8px;}
+/* THREE to a row (Aug 2026, Sophie), and the tile is a FRAMED picture: the
+   art sits on a white mat inside the one hairline outline, both corners
+   slightly rounded, the name centred underneath. The mat is the .cov's own
+   padding — so `inset:5px` on the art, not `inset:0`, because an absolutely
+   positioned child is placed against the PADDING BOX and would otherwise sit
+   on top of the mat — and the art's size is spelled out rather than left to
+   `inset`, because an absolutely positioned IMG with auto width shrinks to
+   its intrinsic size instead of stretching between two offsets. `box-sizing` is not global on this page, so the frame
+   declares its own or the padding pushes each tile out of its grid cell. */
+#shelftiles{display:grid; grid-template-columns:repeat(3,1fr); gap:16px 10px;}
 .stile{display:block; padding:0; background:none; border:none; text-align:left; color:var(--ink);
   cursor:pointer; font-family:'EBGaramond',Georgia,serif; -webkit-tap-highlight-color:transparent;}
-.stile .cov{display:block; position:relative; width:100%; aspect-ratio:2/3;}
-.stile .cov img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
-  border-radius:6px; border:1px solid var(--line); background:var(--barbg);}
-.stile .cov .none{position:absolute; inset:0; border-radius:6px; border:1px dashed var(--line);
-  background:var(--barbg);}
-.stile .snm{padding-top:5px; font-weight:700; font-size:.8em; line-height:1.25;
+/* `.cov` is the tile's FOOTPRINT — it paints nothing. `.frame` inside it is
+   the white mat that used to BE .cov, and it fills the footprint exactly on
+   EVERY tile, a folder included, so every picture on the shelf is the same
+   size. The 8px of margin under it is the room a folder's stack shows in
+   (see A FOLDER IS A STACK below); it is reserved on every tile, folder or
+   not, because that is what keeps the names level across a row. */
+.stile .cov{display:block; position:relative; width:100%; aspect-ratio:2/3;
+  margin-bottom:8px;}
+.stile .frame{position:absolute; inset:0; z-index:1; box-sizing:border-box;
+  padding:5px; background:#fff; border:1px solid var(--line); border-radius:4px;}
+.stile .frame img,.stile .frame .none{position:absolute; top:5px; left:5px;
+  width:calc(100% - 10px); height:calc(100% - 10px); border-radius:2px; background:var(--barbg);}
+.stile .frame img{object-fit:cover;}
+.stile .frame .none{box-sizing:border-box; border:1px dashed var(--line);}
+/* THE PUSHPIN — round head, straight spike, never the Maps teardrop (the
+   house rule). It rides the tile's top-left corner because the injected
+   autoscroll pill owns the top-RIGHT of the screen, and the first row's last
+   tile sits under it. Only the HEAD fills when it is set, as on the Chats
+   app's rows. Its plate is a ROUNDED SQUARE at the house 6px, never a circle
+   (2026-08-24, Sophie: rounded squares or a plain icon, not circles). */
+.stile .pinpin{position:absolute; top:4px; left:4px; z-index:2; width:26px; height:26px;
+  display:flex; align-items:center; justify-content:center; padding:0; border:none;
+  border-radius:6px; background:rgba(255,255,255,.92); color:var(--ink2);
+  box-shadow:0 1px 4px rgba(0,0,0,.18); cursor:pointer; -webkit-tap-highlight-color:transparent;}
+.stile .pinpin svg{width:14px; height:14px; display:block;}
+.stile .pinpin.on{color:var(--gold);}
+.stile .pinpin.on .pinhead{fill:var(--gold); stroke:var(--gold);}
+.stile .snm{padding-top:5px; text-align:center; font-weight:700; font-size:.8em; line-height:1.25;
   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+/* A FOLDER IS A STACK (2026-08-24, Sophie: "treat the Evan and Mason ones as
+   a folder … some sort of UI design like a stack that you can see underneath
+   the cover image so you can tell there's multiple stories in there").
+   THREE WHOLE CARDS, cascading down and to the right — the front one carrying
+   the picture, two empty ones behind it. THE FIRST CUT DREW THE LAYERS INSIDE
+   THE WHITE MAT and she rejected it on sight: two hairline slivers on white,
+   under the art, read as a rendering fault rather than as depth. A stack is
+   only legible when the thing behind is a whole CARD offset from the one in
+   front, so that is what this draws.
+   THE CARDS BEHIND SIT OUTSIDE THE BORDER (2026-08-24, her second correction:
+   "it should be outside the border"). The second cut shrank the FRONT card by
+   8px to make room inside the footprint, which quietly made a folder's
+   picture smaller than every story's beside it and read as the stack being
+   tucked under the frame rather than behind it. So the front card fills the
+   footprint exactly, like every other tile, and the two behind hang PAST its
+   right and bottom edge — negative insets, drawn in the 8px of margin the
+   footprint reserves on every tile. That reservation is what keeps the names
+   level across a row: a story leaves the room empty, a folder fills it.
+   Flat fills and NO shadow (house rule) — the offset alone says there is
+   more underneath.
+   ::before is the DEEPEST card and ::after the middle one, in that order,
+   because two positioned siblings at the same z-index paint in document order
+   and the deeper one has to go down first. */
+.stile.fold .cov::before,.stile.fold .cov::after{content:''; position:absolute; z-index:0;
+  box-sizing:border-box; background:#fff; border:1px solid var(--line); border-radius:4px;}
+.stile.fold .cov::before{inset:8px -8px -8px 8px;}
+.stile.fold .cov::after{inset:4px -4px -4px 4px;}
+/* How many are in there. The stack says "more than one"; this says how many,
+   so she can tell a pair from a pile without opening it. It rides the FRONT
+   card, inside the mat, over the picture's bottom-right corner. */
+.stile .cnt{position:absolute; z-index:2; right:9px; bottom:9px;
+  background:var(--paper); border:1px solid var(--line); border-radius:6px; color:var(--ink2);
+  padding:1px 5px; font:600 11px -apple-system,'Helvetica Neue',sans-serif;}
+/* The way to the rest of the shelf. An underlined word, never a button with a
+   box round it — the house truncation-opener pattern. */
+#shelfmore{grid-column:1/-1; justify-self:center; margin:2px 0 0; padding:6px 4px;
+  background:none; border:none; color:var(--ink2); cursor:pointer;
+  font-family:'EBGaramond',Georgia,serif; font-size:.95em; text-decoration:underline;
+  -webkit-tap-highlight-color:transparent;}
 .stile .snm.blank{color:var(--ink2); font-style:italic; font-weight:400;}
 .stile.cur .snm{color:var(--gold);}
 /* The OLD shelf: every story as a row. Kept as a fallback only — NOTHING
@@ -249,7 +319,7 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 /* A clip in the beat popup is WATCHABLE — the full card width, not the pad
    tile's ~90px. The never-blow-the-art-up rule is about her drawings; a film
    nobody can see is not a preview. */
-#popvid{width:100%; display:block; border-radius:4px; background:#000;}
+#popvid{width:100%; max-height:100%; display:block; border-radius:4px; background:#000;}
 #popvid.c-mustard{outline:3px solid var(--mustard);} #popvid.c-green{outline:3px solid var(--green);}
 #popvid.c-blue{outline:3px solid var(--blue);} #popvid.c-pink{outline:3px solid var(--pink);}
 #inboxgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:1.2em;}
@@ -265,38 +335,106 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    all around it is also the tap-out target). Capped at the screen and
    scrolls inside if content ever overflows. Everything — art, versions,
    chips, note, icons — lives ON the card. No scrim. */
+/* IT STARTS BELOW THE HEADER, AND CUTS THROUGH THE STORY'S NAME (2026-08-24,
+   Sophie: "someone made the beat one at a time popup too big. it shud
+   comfortably show the story room header, and part of the story name"). The
+   card's top used to be 18px down, which put it OVER both — so the one thing
+   on screen saying which room she was in and which story she was in was gone
+   the moment she opened a beat. Measured on the real page at 390x780: the
+   header runs y 4-38 and the name y 52-83, so a 68px top clears the header
+   whole and leaves the top half of the name showing above the card. The
+   number is a MEASUREMENT, not a taste — re-measure it if the header or the
+   title's type ever changes. The card is still screen-shaped and still
+   leaves a strip of pad all round as the tap-out target. */
 #beatpop{position:fixed; inset:0; z-index:50; background:none;
   display:flex; align-items:center; justify-content:center;
-  padding:calc(env(safe-area-inset-top,0px) + 24px) 16px calc(env(safe-area-inset-bottom,0px) + 24px);}
-#beatcard{width:100%; max-height:100%; box-sizing:border-box; background:var(--barbg);
-  border:1.5px solid var(--line); border-radius:10px; overflow-y:auto; -webkit-overflow-scrolling:touch;
-  display:flex; flex-direction:column;}
-/* margin:auto keeps the content centered inside the card and lets it
-   scroll normally when it's taller than the screen cap (justify-content:
-   center would clip the top of overflowing content). */
-#cardin{margin:auto; width:100%; box-sizing:border-box; padding:20px 16px;
-  display:flex; flex-direction:column; align-items:center; gap:18px;}
-/* The art stays THUMBNAIL-sized in the popup (Sophie: the chosen art isn't
-   big) — openBeat() copies the pad tile's pixel width onto it. */
+  padding:calc(env(safe-area-inset-top,0px) + 68px) 14px calc(env(safe-area-inset-bottom,0px) + 18px);}
+/* THE CARD IS NEARLY THE WHOLE SCREEN, AND SCREEN-SHAPED (Aug 2026, Sophie:
+   "the whole popup gets bigger, so there's only room enough to comfortably
+   see behind it. similar aspect ratio as total screen (not square)"). It
+   used to be only as tall as its contents, which on a beat with a small
+   picture left a squat card floating in the middle. height:100% of a
+   padded fixed inset IS the screen's own shape, minus the strip of pad
+   showing all round it — and that strip is still the tap-out target. */
+#beatcard{width:100%; height:100%; box-sizing:border-box; background:var(--barbg);
+  border:1.5px solid var(--line); border-radius:10px;
+  display:flex; flex-direction:column; overflow:hidden;}
+/* A thin strip that never scrolls, so the colour square keeps its corner
+   however long the card's contents get. */
+#cardtop{flex:none; display:flex; justify-content:flex-end; padding:10px 12px 0;}
+#colorwrap{position:relative;}
+/* ONE MULTICOLOURED ROUNDED SQUARE, DROPPING DOWN (Aug 2026, Sophie:
+   "colors become one multicolored rounded square in the corner, drop
+   down"). Five circles in a row cost the card a whole band; the chosen
+   colour is already legible on the picture's own frame, so the button
+   stays multicoloured rather than showing the pick — it reads as "colour"
+   from across the room, which a single filled square would not. */
+#colorbtn{width:32px; height:32px; padding:0; border:none; background:none; cursor:pointer; display:block;}
+#colorbtn svg{width:100%; height:100%; display:block;}
+#colormenu{position:absolute; top:38px; right:0; z-index:2; display:flex; gap:12px;
+  background:var(--barbg); border:1.5px solid var(--line); border-radius:8px; padding:10px 12px;}
+#cardin{flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  width:100%; box-sizing:border-box; padding:8px 16px 20px;
+  display:flex; flex-direction:column; align-items:center; gap:14px;}
+/* THE PICTURE IS BIG NOW (Sophie, same message: "that image is bigger by
+   default"). It used to be pinned to the pad tile's ~90px — a thumbnail of
+   a thumbnail. It takes the room the card has left instead: flex:1 with
+   min-height:0, and the image sized by max-height/max-width so a 2:3
+   drawing keeps its shape whatever the screen is. */
+#artwrap{flex:1; min-height:120px; width:100%; display:flex; align-items:center; justify-content:center;}
+#popimg{max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain; cursor:pointer;}
 #beatpop img{border:3px solid var(--line); border-radius:4px; background:var(--barbg); display:block; height:auto;}
 #beatpop img.c-mustard{border-color:var(--mustard);} #beatpop img.c-green{border-color:var(--green);}
 #beatpop img.c-blue{border-color:var(--blue);} #beatpop img.c-pink{border-color:var(--pink);}
-.chips{display:flex; gap:16px;}
-.chip{width:36px; height:36px; border-radius:50%; border:1.5px solid var(--line); padding:0; cursor:pointer;}
+.chip{width:32px; height:32px; border-radius:50%; border:1.5px solid var(--line); padding:0; cursor:pointer;}
 .chip.on{outline:2.5px solid var(--ink); outline-offset:3px;}
 .chip.gray{background:#8a8377;} .chip.mustard{background:var(--mustard);}
 .chip.green{background:var(--green);} .chip.blue{background:var(--blue);} .chip.pink{background:var(--pink);}
-#pnote{width:min(80vw,22em); box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:17px;
+/* TWO TEXT BOXES, ONE OPEN AT A TIME BY DEFAULT (Aug 2026, Sophie: "two
+   text boxes: caption, and drawing prompt. drawing prompt is collapsed by
+   default, and uncollapsing draw prompt automatically collapses the caption
+   but can be manually expanded again"). The label IS the toggle — a quiet
+   serif line with a chevron, not a button-looking button — and opening the
+   prompt folds the caption away, which she can undo by tapping Caption.
+   Both open at once is a state she can reach; neither is a state she can
+   reach by accident, since a tap on a label only ever moves that one. */
+.tbox{width:100%; max-width:26em; display:flex; flex-direction:column; gap:6px;}
+.tlab{display:flex; align-items:center; gap:4px; align-self:flex-start;
+  background:none; border:none; padding:2px 0; cursor:pointer;
+  font-family:'EBGaramond',Georgia,serif; font-size:14px; color:var(--ink2); font-style:italic;}
+.tlab .chev{width:14px; height:14px; transition:transform .15s ease;}
+.tlab[aria-expanded="false"] .chev{transform:rotate(-90deg);}
+/* THE CAPTION READS AS WORDS, NOT AS A BOX (2026-08-24, Sophie: "the caption
+   shows not in a edit box but default to just the ... text and then there's
+   an edit pencil button next to it so if I want to edit it"). A textarea
+   sitting open on every beat says "type here" at the moment she is usually
+   only reading; the words in the serif with a quiet pencil beside them say
+   what the beat says. The pencil is a TOGGLE and the box never collapses on
+   its own blur — a layout that reshuffles under her thumb eats the tap she
+   was aiming at the button below. The bare glyph, not a plate: the house
+   rule allows one where the ground behind it is this calm. */
+#capview{display:flex; align-items:flex-start; gap:8px; width:100%;}
+#captext{flex:1; min-width:0; font-family:'EBGaramond',Georgia,serif; font-size:17px;
+  line-height:1.4; color:var(--ink); white-space:pre-wrap; overflow-wrap:anywhere; padding:2px 0;}
+#captext:empty{min-height:22px;}
+#capedit{flex:none; width:30px; height:30px; display:flex; align-items:center; justify-content:center;
+  padding:0; border:none; background:none; color:var(--ink2); cursor:pointer;}
+#capedit svg{width:17px; height:17px;}
+#capedit.on{color:var(--ink);}
+#pnote{flex:1; min-width:0; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:17px;
   line-height:1.4; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:6px;
   padding:10px 12px; resize:none;}
-.poprow{display:flex; gap:14px;}
+.poprow{flex:none; display:flex; gap:14px;}
 #speak,#linkbtn,#micbtn,#coverbtn,#delbtn{width:34px; height:34px; display:flex; align-items:center; justify-content:center; padding:0;
   border:1px solid var(--line); border-radius:6px; background:none; color:var(--ink); cursor:pointer;}
 #speak svg,#linkbtn svg,#micbtn svg,#coverbtn svg,#delbtn svg{width:17px; height:17px;}
 #coverbtn.on{background:var(--ink); color:var(--barbg);}
 /* Every generation this beat has had, all the same size, newest first; the
    one currently on the pad wears the dark ring. Tap one to see it big. */
-#verrow{display:flex; flex-wrap:wrap; gap:6px; justify-content:center; max-width:88vw;}
+/* Past pictures — hidden until the stacked-squares button asks for them
+   (Sophie: "drawing a new picture replaces the old, but keeps it in the
+   stacked squares icon"). Newest first, the current one ringed. */
+#verrow{flex:none; display:flex; flex-wrap:wrap; gap:6px; justify-content:center; max-width:100%;}
 #verrow button{width:44px; aspect-ratio:2/3; padding:0; border:1.5px solid var(--line); border-radius:4px;
   overflow:hidden; background:var(--paper); cursor:pointer;}
 #verrow button.cur{border:2.5px solid var(--ink);}
@@ -313,19 +451,40 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 /* An empty beat's popup: the blank paper tile with two quiet icons in its
    middle — the Playground (make new art) and the inbox (pick from what's
    hearted, straight into THIS beat). */
-#popblank{aspect-ratio:2/3; border:3px solid var(--line); border-radius:4px; background:var(--paper);
-  display:flex; align-items:center; justify-content:center; gap:14px; color:var(--ink2); padding:0;}
-#popblank button{background:none; border:none; padding:4px; color:var(--ink2); cursor:pointer; display:flex;}
-#popblank svg{width:24px; height:24px;}
+/* The blank tile is now just the empty paper at the picture's size — its
+   two icons moved into #artrow under it, beside the star, so the ways to
+   make art sit in ONE place whether the beat has a picture or not. */
+#popblank{aspect-ratio:2/3; max-height:100%; border:3px solid var(--line); border-radius:4px;
+  background:var(--paper); box-sizing:border-box;}
+/* NOTHING DRAWN YET → THE EMPTY PAPER GETS OUT OF THE WAY (2026-08-24,
+   Sophie: "if there's no image then make the image box smaller ... and show
+   the caption and the drawing prompt by default instead of just the
+   caption"). The blank tile used to take the whole room the picture takes,
+   so the one beat with no picture was mostly an empty rectangle — and it is
+   exactly the beat whose WORDS are all there is. Small tile, and both text
+   boxes open under it. #artwrap drops its flex:1 too, or the wrap keeps the
+   room the tile gave back. */
+#beatcard.noart #artwrap{flex:none; min-height:0;}
+#beatcard.noart #popblank{height:132px; max-height:132px;}
 /* The same two ways to art, ABOVE a beat that already has a picture — so it
    can be swapped for another (Sophie, Aug 2026). */
-#artrow{display:flex; gap:14px; justify-content:center;}
-#artrow button{background:none; border:1px solid var(--line); border-radius:6px; padding:6px 8px;
-  color:var(--ink); cursor:pointer; display:flex;}
-#artrow svg{width:17px; height:17px;}
+/* THE WAYS TO ART, IN ROUNDED SQUARES, UNDER THE PICTURE (Aug 2026,
+   Sophie: "stars, playground and inbox buttons get put into rounded
+   squares and go under the main (currently chosen) image"). 38px SQUARES —
+   the tap target, house radius 6px — never pills. The fourth, stacked
+   squares, opens the past pictures and shows only when there are some. */
+#artrow{flex:none; display:flex; gap:12px; justify-content:center;}
+#artrow button{width:38px; height:38px; padding:0; background:none; border:1px solid var(--line);
+  border-radius:6px; color:var(--ink); cursor:pointer; display:flex; align-items:center; justify-content:center;}
+#artrow button.on{background:var(--ink); color:var(--barbg); border-color:var(--ink);}
+#artrow svg{width:18px; height:18px;}
 /* Drawing right here: prompt (defaults to the beat's words), Sophie on/off,
    quality, Draw. The STYLE is never asked — one style per story. */
-#drawbox{width:min(80vw,22em); display:flex; flex-direction:column; gap:8px;}
+#drawbox{width:100%; display:flex; flex-direction:column; gap:8px;}
+/* Says which words a draw is about to use. Chrome, not content — it is
+   never IN the box she writes in. */
+#promhint{font-family:'EBGaramond',Georgia,serif; font-size:13px; font-style:italic;
+  color:var(--ink2); margin-top:-2px;}
 #dprompt{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px;
   line-height:1.4; color:var(--ink); background:var(--paper); border:1px solid var(--line);
   border-radius:6px; padding:10px 12px; resize:none;}
@@ -357,9 +516,25 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 .bulkrow #bulkyes{background:var(--ink); color:var(--paper); border-color:var(--ink); font-weight:600;}
 #popblank.c-mustard{border-color:var(--mustard);} #popblank.c-green{border-color:var(--green);}
 #popblank.c-blue{border-color:var(--blue);} #popblank.c-pink{border-color:var(--pink);}
-#lightbox{position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
-  background:rgba(20,17,12,.94); padding:3vw;}
+#lightbox{position:fixed; inset:0; z-index:60; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:12px; background:rgba(20,17,12,.94); padding:3vw;}
 #lightbox img{max-width:94vw; max-height:88vh; border-radius:4px;}
+/* Picking an older picture happens HERE, looking at it big — the row's
+   thumbnails are 44px, which is not enough to choose by (Sophie,
+   2026-08-24: "make the past picture thumbnails so that I can actually pick
+   one"). Shown only for a picture that is NOT the current one, so the button
+   never offers her what she is already looking at. */
+/* Cream on the dark, in BOTH themes — the backdrop above is a fixed dark
+   wash, so the tokens are the wrong tool here: --paper is nearly the
+   backdrop's own colour on a dark phone. The page's serif, like the confirm
+   box's buttons, never a pill. */
+#lbuse{background:#f6f2e9; color:#26221c; border:1.5px solid #f6f2e9;
+  border-radius:6px; padding:9px 18px; font-family:'EBGaramond',Georgia,serif;
+  font-size:16px; font-weight:600; cursor:pointer;}
+#lbuse.busy{opacity:.45;}
+/* Only the picking state gives up height for the button — a plain look at a
+   picture keeps every pixel it always had. */
+#lightbox.pick img{max-height:78vh;}
 /* Listen rows — every recording attached to this story, behind the waveform
    button on the title row (Aug 2026, Sophie: "a story can hold multiple
    audios … hide them all behind a single icon that has a wave form"). Two
@@ -381,6 +556,19 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    title on a review card. */
 .auhead{margin:1.4em 0 .2em; font-size:.78em; letter-spacing:.08em; text-transform:uppercase; color:var(--ink2);}
 .auhead + .aurow{border-top:1px solid var(--line);}
+/* WHAT THE BUTTONS DO — one row per control: its own glyph in the same box
+   it wears on the page (so a row is recognisable at a glance rather than
+   read), the name, and one line. The glyph is inert — this is a legend, not
+   a second set of controls. */
+.hrow{display:flex; align-items:flex-start; gap:12px; padding:11px 0; border-bottom:1px solid var(--line);}
+.hrow:first-child{border-top:1px solid var(--line);}
+.hrow .iconbtn{pointer-events:none;}
+.hrow .htxt{flex:1; min-width:0;}
+.hrow .hnm{font-size:1.02em;}
+.hrow .hwhat{font-size:.85em; color:var(--ink2); margin-top:2px; line-height:1.35;}
+/* A control with no glyph of its own (the style toggle, tapping a beat) —
+   the words carry it, so the row keeps its indent and skips the box. */
+.hrow.nogl .htxt{margin-left:46px;}
 /* The film's buttons ride the title row; this line only appears while it's
    making (or if it failed). */
 #filmrow{margin-top:.5em;}
@@ -407,6 +595,13 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   <header>
     <button class="iconbtn" id="shelfback" hidden aria-label="Back to the shelf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
     <div class="no">Story room</div>
+    <!-- WHAT THE BUTTONS DO (Aug 2026, Sophie: "also add an info icon that
+         says what all the buttons do"). It sits on the NAME row, not the
+         title row: that row already carries six 34px icons on a 390pt phone
+         and a seventh would eat the story's name, while this row has its
+         whole right end free. The row reserves the pill's 56px, so the "?"
+         lands just clear of the injected pill's corner. -->
+    <button class="iconbtn" id="helpbtn" aria-label="What the buttons do"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></button>
   </header>
   <div class="titlerow">
     <div id="title" contenteditable="true" spellcheck="false"></div>
@@ -431,7 +626,12 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   <div class="wrap">
     <div class="sheethead">
       <button class="iconbtn" id="storiesclose" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
-      <div class="no">The shelf</div>
+      <!-- Reads "The shelf", and the folder's own name while she is inside
+           one — a folder is a LEVEL of this sheet, not a sheet of its own, so
+           it wears this header exactly the way the shelf does (2026-08-23,
+           Sophie: "the header should be like normal it should say the
+           shelf"). Its chevron is what steps back out. -->
+      <div class="no" id="shelfno">The shelf</div>
       <button class="iconbtn" id="newstory" aria-label="Start a new story"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
     </div>
     <div id="shelfcats"></div>
@@ -483,6 +683,19 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   </div>
 </div>
 
+<!-- WHAT THE BUTTONS DO. Every row's glyph is CLONED from the real control
+     at open time (mkHelp), so this list can never show a button the page no
+     longer has, or an old drawing of one that changed. -->
+<div class="sheet" id="helpsheet" hidden>
+  <div class="wrap">
+    <div class="sheethead">
+      <button class="iconbtn" id="helpclose" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+      <div class="no">What the buttons do</div>
+    </div>
+    <div id="helpbody"></div>
+  </div>
+</div>
+
 <!-- About this story: her own words + her recordings, read-only -->
 <div class="sheet" id="descsheet" hidden>
   <div class="wrap">
@@ -496,37 +709,53 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 </div>
 
 <div id="beatpop" hidden>
-  <div id="beatcard"><div id="cardin">
-  <div id="artrow" hidden>
-    <button id="ardraw" aria-label="Draw it again here"><svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg></button>
-    <button id="arplay" aria-label="Make different art in the Playground"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"> <g transform="translate(1.47 0) scale(0.09510)" fill="#000" stroke="none"> <g transform="translate(0,673) scale(0.1,-0.1)"> <path d="M3145 6720 c-7 -12 -58 -175 -91 -293 l-19 -69 -96 7 c-108 8 -150 -5 -171 -50 -13 -30 -4 -29 -103 -8 -119 25 -497 25 -620 0 -279 -57 -515 -175 -704 -353 -228 -215 -341 -450 -357 -744 -15 -263 37 -431 236 -766 101 -169 140 -248 179 -357 17 -49 31 -90 31 -93 0 -2 -13 -4 -30 -4 -22 0 -31 5 -35 23 -3 12 -19 80 -35 152 -39 178 -36 175 -223 175 -134 0 -149 -2 -267 -36 -159 -46 -180 -65 -180 -157 1 -52 13 -213 23 -280 2 -15 -20 -27 -107 -60 -94 -37 -112 -47 -122 -72 -17 -39 -17 -106 1 -178 l13 -58 -51 -38 c-132 -98 -289 -286 -365 -440 l-47 -94 -3 -235 c-3 -233 -3 -235 22 -286 83 -169 254 -294 596 -436 273 -114 371 -181 467 -321 l31 -45 -130 -144 c-256 -284 -597 -676 -637 -732 -12 -16 -15 -78 -18 -314 l-3 -295 24 -24 c30 -29 68 -32 586 -45 217 -5 553 -14 745 -20 626 -18 1506 -30 2165 -29 l645 0 55 63 c30 35 136 153 235 262 99 110 256 285 349 389 93 105 184 204 203 222 18 18 38 45 44 60 8 18 11 120 11 299 -1 291 -7 330 -52 354 -13 7 -105 14 -236 17 l-215 6 58 59 c149 152 351 267 663 378 320 114 423 168 555 291 84 79 131 142 183 245 72 144 73 154 70 416 l-3 233 -32 64 c-86 169 -247 296 -429 336 -128 29 -116 18 -144 130 -14 55 -29 108 -33 118 -13 33 -74 50 -164 44 l-81 -5 -12 82 c-6 44 -16 114 -22 155 -15 103 -31 120 -133 133 -110 14 -262 5 -372 -21 -131 -32 -138 -41 -146 -203 -4 -68 -4 -151 -1 -184 l6 -60 -87 -25 c-115 -32 -135 -54 -135 -147 1 -37 7 -96 15 -132 20 -93 19 -117 -6 -125 -46 -15 -261 -190 -369 -301 -274 -281 -551 -653 -676 -909 -66 -135 -132 -321 -155 -438 l-13 -68 -130 3 -131 3 -8 105 c-20 270 72 996 183 1440 42 166 103 351 177 540 102 258 159 363 368 685 128 197 230 395 266 520 21 69 24 101 24 240 0 140 -3 169 -23 235 -36 115 -89 207 -166 288 l-69 72 9 58 c15 101 11 187 -9 210 -10 11 -57 32 -103 47 -83 26 -85 28 -79 54 37 146 50 217 50 278 0 91 -11 103 -150 164 l-100 44 -192 3 c-135 2 -193 0 -198 -8z m-520 -605 c44 -10 83 -20 86 -23 4 -4 1 -41 -7 -82 -7 -41 -13 -108 -14 -148 0 -91 18 -114 106 -132 96 -19 94 -17 94 -61 0 -56 23 -105 62 -129 45 -29 163 -25 205 6 23 17 54 62 66 97 1 4 17 5 35 1 32 -6 32 -7 32 -66 0 -55 3 -63 34 -94 33 -33 36 -34 116 -34 82 0 82 0 121 39 22 22 39 48 39 61 0 17 4 21 18 15 33 -13 147 -17 174 -6 16 6 36 24 47 41 l18 31 27 -36 c69 -90 110 -215 108 -325 -2 -153 -81 -331 -286 -649 -210 -324 -269 -438 -378 -721 -155 -404 -237 -747 -308 -1295 -35 -273 -50 -472 -50 -674 l0 -194 -241 6 c-133 4 -244 9 -247 11 -11 11 24 195 70 366 69 258 84 329 102 460 25 194 28 250 16 383 -39 455 -271 788 -635 915 -95 33 -152 43 -280 50 l-119 7 -12 72 c-30 175 -83 301 -242 570 -120 202 -155 278 -188 402 -40 155 -30 288 36 458 45 117 118 224 229 333 193 192 426 311 696 355 114 18 357 13 470 -10z m-765 -2395 c295 -70 505 -291 597 -627 23 -85 26 -118 27 -248 0 -172 -20 -294 -99 -589 -63 -236 -72 -277 -86 -397 l-12 -107 -116 -6 c-64 -3 -290 -9 -502 -12 l-385 -6 -18 28 c-111 174 -239 266 -546 394 -330 138 -451 227 -527 387 -29 60 -36 87 -36 133 2 153 108 354 275 522 48 49 92 88 98 88 5 0 10 -8 10 -18 0 -29 44 -63 87 -68 21 -3 74 1 118 8 l80 14 20 -41 c25 -51 72 -75 145 -75 100 0 160 55 160 146 0 33 4 43 19 47 15 4 20 -2 25 -28 6 -32 33 -63 73 -84 36 -18 129 -13 173 9 49 25 70 64 70 128 l0 50 73 10 c61 9 76 16 100 42 23 26 27 39 27 88 0 53 -8 118 -26 200 l-6 32 48 0 c27 0 87 -9 134 -20z m4196 -296 c124 -88 204 -235 204 -378 0 -166 -117 -396 -266 -519 -98 -82 -194 -132 -401 -208 -296 -109 -361 -137 -467 -195 -181 -101 -327 -225 -452 -384 l-49 -63 -160 7 c-310 13 -836 44 -842 50 -9 8 52 196 98 303 73 172 153 303 323 528 130 172 276 345 391 461 103 104 277 241 283 224 2 -6 17 -17 34 -26 24 -13 48 -14 122 -9 l92 7 12 -39 c19 -64 52 -87 131 -91 90 -5 136 15 162 72 10 23 19 58 19 79 0 20 3 37 8 37 4 0 16 -24 27 -53 25 -65 63 -87 148 -87 103 0 157 47 157 135 l0 53 92 13 c120 16 138 32 138 118 l0 61 66 -25 c37 -14 95 -46 130 -71z m-3766 -1997 c0 -158 5 -167 95 -167 93 0 98 11 89 169 l-7 121 267 0 266 0 0 -30 c0 -32 40 -243 66 -344 31 -125 41 -136 122 -136 90 0 111 60 69 200 -26 86 -67 267 -67 295 0 12 16 15 88 15 106 0 132 -6 132 -31 0 -37 36 -59 94 -59 47 0 57 4 75 26 12 15 21 33 21 40 0 11 10 13 38 9 20 -2 181 -12 357 -20 176 -9 361 -18 411 -21 l92 -6 -54 -91 c-46 -78 -54 -100 -54 -143 0 -70 15 -86 83 -92 68 -5 73 -1 164 155 37 62 78 126 92 142 l26 30 158 -7 158 -7 -187 -215 c-103 -118 -268 -306 -367 -417 l-179 -203 -226 0 c-281 1 -1228 15 -1902 30 -486 10 -1571 48 -1579 55 -4 5 120 149 378 438 107 120 197 214 201 210 10 -11 40 -149 40 -185 0 -31 16 -68 34 -80 6 -4 35 -8 65 -8 76 0 91 16 91 97 0 64 -30 221 -55 294 l-14 39 27 1 c231 11 423 16 635 17 l257 2 0 -123z m2911 -233 l-2 -86 -207 -232 c-114 -127 -272 -304 -352 -393 l-145 -161 -3 79 c-2 53 1 86 10 98 12 17 136 158 537 613 86 97 158 174 160 172 3 -2 4 -43 2 -90z m-4281 -679 c556 -21 2082 -55 2725 -60 231 -1 473 -3 538 -4 l118 -1 -3 -137 -3 -138 -345 3 c-190 2 -514 8 -720 13 -206 6 -609 14 -895 19 -681 10 -1798 41 -1807 49 -8 7 2 271 11 271 3 0 175 -7 381 -15z"/> </g> </g> </svg></button>
-    <button id="arinbox" aria-label="Swap in a picture from the inbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
-  </div>
-  <img id="popimg" alt="">
-  <video id="popvid" hidden playsinline preload="metadata" controls></video>
-  <div id="verrow" hidden></div>
-  <div id="popblank" hidden>
-    <button id="pbdraw" aria-label="Draw it here"><svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg></button>
-    <button id="pbplay" aria-label="Make its art in the Playground"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"> <g transform="translate(1.47 0) scale(0.09510)" fill="#000" stroke="none"> <g transform="translate(0,673) scale(0.1,-0.1)"> <path d="M3145 6720 c-7 -12 -58 -175 -91 -293 l-19 -69 -96 7 c-108 8 -150 -5 -171 -50 -13 -30 -4 -29 -103 -8 -119 25 -497 25 -620 0 -279 -57 -515 -175 -704 -353 -228 -215 -341 -450 -357 -744 -15 -263 37 -431 236 -766 101 -169 140 -248 179 -357 17 -49 31 -90 31 -93 0 -2 -13 -4 -30 -4 -22 0 -31 5 -35 23 -3 12 -19 80 -35 152 -39 178 -36 175 -223 175 -134 0 -149 -2 -267 -36 -159 -46 -180 -65 -180 -157 1 -52 13 -213 23 -280 2 -15 -20 -27 -107 -60 -94 -37 -112 -47 -122 -72 -17 -39 -17 -106 1 -178 l13 -58 -51 -38 c-132 -98 -289 -286 -365 -440 l-47 -94 -3 -235 c-3 -233 -3 -235 22 -286 83 -169 254 -294 596 -436 273 -114 371 -181 467 -321 l31 -45 -130 -144 c-256 -284 -597 -676 -637 -732 -12 -16 -15 -78 -18 -314 l-3 -295 24 -24 c30 -29 68 -32 586 -45 217 -5 553 -14 745 -20 626 -18 1506 -30 2165 -29 l645 0 55 63 c30 35 136 153 235 262 99 110 256 285 349 389 93 105 184 204 203 222 18 18 38 45 44 60 8 18 11 120 11 299 -1 291 -7 330 -52 354 -13 7 -105 14 -236 17 l-215 6 58 59 c149 152 351 267 663 378 320 114 423 168 555 291 84 79 131 142 183 245 72 144 73 154 70 416 l-3 233 -32 64 c-86 169 -247 296 -429 336 -128 29 -116 18 -144 130 -14 55 -29 108 -33 118 -13 33 -74 50 -164 44 l-81 -5 -12 82 c-6 44 -16 114 -22 155 -15 103 -31 120 -133 133 -110 14 -262 5 -372 -21 -131 -32 -138 -41 -146 -203 -4 -68 -4 -151 -1 -184 l6 -60 -87 -25 c-115 -32 -135 -54 -135 -147 1 -37 7 -96 15 -132 20 -93 19 -117 -6 -125 -46 -15 -261 -190 -369 -301 -274 -281 -551 -653 -676 -909 -66 -135 -132 -321 -155 -438 l-13 -68 -130 3 -131 3 -8 105 c-20 270 72 996 183 1440 42 166 103 351 177 540 102 258 159 363 368 685 128 197 230 395 266 520 21 69 24 101 24 240 0 140 -3 169 -23 235 -36 115 -89 207 -166 288 l-69 72 9 58 c15 101 11 187 -9 210 -10 11 -57 32 -103 47 -83 26 -85 28 -79 54 37 146 50 217 50 278 0 91 -11 103 -150 164 l-100 44 -192 3 c-135 2 -193 0 -198 -8z m-520 -605 c44 -10 83 -20 86 -23 4 -4 1 -41 -7 -82 -7 -41 -13 -108 -14 -148 0 -91 18 -114 106 -132 96 -19 94 -17 94 -61 0 -56 23 -105 62 -129 45 -29 163 -25 205 6 23 17 54 62 66 97 1 4 17 5 35 1 32 -6 32 -7 32 -66 0 -55 3 -63 34 -94 33 -33 36 -34 116 -34 82 0 82 0 121 39 22 22 39 48 39 61 0 17 4 21 18 15 33 -13 147 -17 174 -6 16 6 36 24 47 41 l18 31 27 -36 c69 -90 110 -215 108 -325 -2 -153 -81 -331 -286 -649 -210 -324 -269 -438 -378 -721 -155 -404 -237 -747 -308 -1295 -35 -273 -50 -472 -50 -674 l0 -194 -241 6 c-133 4 -244 9 -247 11 -11 11 24 195 70 366 69 258 84 329 102 460 25 194 28 250 16 383 -39 455 -271 788 -635 915 -95 33 -152 43 -280 50 l-119 7 -12 72 c-30 175 -83 301 -242 570 -120 202 -155 278 -188 402 -40 155 -30 288 36 458 45 117 118 224 229 333 193 192 426 311 696 355 114 18 357 13 470 -10z m-765 -2395 c295 -70 505 -291 597 -627 23 -85 26 -118 27 -248 0 -172 -20 -294 -99 -589 -63 -236 -72 -277 -86 -397 l-12 -107 -116 -6 c-64 -3 -290 -9 -502 -12 l-385 -6 -18 28 c-111 174 -239 266 -546 394 -330 138 -451 227 -527 387 -29 60 -36 87 -36 133 2 153 108 354 275 522 48 49 92 88 98 88 5 0 10 -8 10 -18 0 -29 44 -63 87 -68 21 -3 74 1 118 8 l80 14 20 -41 c25 -51 72 -75 145 -75 100 0 160 55 160 146 0 33 4 43 19 47 15 4 20 -2 25 -28 6 -32 33 -63 73 -84 36 -18 129 -13 173 9 49 25 70 64 70 128 l0 50 73 10 c61 9 76 16 100 42 23 26 27 39 27 88 0 53 -8 118 -26 200 l-6 32 48 0 c27 0 87 -9 134 -20z m4196 -296 c124 -88 204 -235 204 -378 0 -166 -117 -396 -266 -519 -98 -82 -194 -132 -401 -208 -296 -109 -361 -137 -467 -195 -181 -101 -327 -225 -452 -384 l-49 -63 -160 7 c-310 13 -836 44 -842 50 -9 8 52 196 98 303 73 172 153 303 323 528 130 172 276 345 391 461 103 104 277 241 283 224 2 -6 17 -17 34 -26 24 -13 48 -14 122 -9 l92 7 12 -39 c19 -64 52 -87 131 -91 90 -5 136 15 162 72 10 23 19 58 19 79 0 20 3 37 8 37 4 0 16 -24 27 -53 25 -65 63 -87 148 -87 103 0 157 47 157 135 l0 53 92 13 c120 16 138 32 138 118 l0 61 66 -25 c37 -14 95 -46 130 -71z m-3766 -1997 c0 -158 5 -167 95 -167 93 0 98 11 89 169 l-7 121 267 0 266 0 0 -30 c0 -32 40 -243 66 -344 31 -125 41 -136 122 -136 90 0 111 60 69 200 -26 86 -67 267 -67 295 0 12 16 15 88 15 106 0 132 -6 132 -31 0 -37 36 -59 94 -59 47 0 57 4 75 26 12 15 21 33 21 40 0 11 10 13 38 9 20 -2 181 -12 357 -20 176 -9 361 -18 411 -21 l92 -6 -54 -91 c-46 -78 -54 -100 -54 -143 0 -70 15 -86 83 -92 68 -5 73 -1 164 155 37 62 78 126 92 142 l26 30 158 -7 158 -7 -187 -215 c-103 -118 -268 -306 -367 -417 l-179 -203 -226 0 c-281 1 -1228 15 -1902 30 -486 10 -1571 48 -1579 55 -4 5 120 149 378 438 107 120 197 214 201 210 10 -11 40 -149 40 -185 0 -31 16 -68 34 -80 6 -4 35 -8 65 -8 76 0 91 16 91 97 0 64 -30 221 -55 294 l-14 39 27 1 c231 11 423 16 635 17 l257 2 0 -123z m2911 -233 l-2 -86 -207 -232 c-114 -127 -272 -304 -352 -393 l-145 -161 -3 79 c-2 53 1 86 10 98 12 17 136 158 537 613 86 97 158 174 160 172 3 -2 4 -43 2 -90z m-4281 -679 c556 -21 2082 -55 2725 -60 231 -1 473 -3 538 -4 l118 -1 -3 -137 -3 -138 -345 3 c-190 2 -514 8 -720 13 -206 6 -609 14 -895 19 -681 10 -1798 41 -1807 49 -8 7 2 271 11 271 3 0 175 -7 381 -15z"/> </g> </g> </svg></button>
-    <button id="pbinbox" aria-label="Pick from the inbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
-  </div>
-  <div class="chips">
-    <button class="chip gray" data-c=""></button>
-    <button class="chip mustard" data-c="mustard"></button>
-    <button class="chip green" data-c="green"></button>
-    <button class="chip blue" data-c="blue"></button>
-    <button class="chip pink" data-c="pink"></button>
-  </div>
-  <div id="genstate" hidden></div>
-  <div id="drawbox" hidden>
-    <textarea id="dprompt" rows="3" placeholder="what to draw"></textarea>
-    <div class="drawrow">
-      <button id="dchar" class="on" aria-label="Draw Sophie from her reference"><img src="/scratchpad-sophie.png" alt="Sophie"></button>
-      <select id="dq" aria-label="Quality"><option value="low">low</option><option value="medium" selected>medium</option><option value="high">high</option></select>
-      <button id="dgo">Draw</button>
+  <div id="beatcard">
+  <div id="cardtop">
+    <div id="colorwrap">
+      <button id="colorbtn" aria-label="Frame color"><svg viewBox="0 0 24 24" aria-hidden="true"><clipPath id="csq"><rect x="2" y="2" width="20" height="20" rx="5"/></clipPath><g clip-path="url(#csq)"><rect x="2" y="2" width="10" height="10" fill="var(--mustard)"/><rect x="12" y="2" width="10" height="10" fill="var(--green)"/><rect x="2" y="12" width="10" height="10" fill="var(--blue)"/><rect x="12" y="12" width="10" height="10" fill="var(--pink)"/></g><rect x="2" y="2" width="20" height="20" rx="5" fill="none" stroke="var(--line)" stroke-width="1.5"/></svg></button>
+      <div id="colormenu" hidden>
+        <button class="chip gray" data-c="" aria-label="No frame"></button>
+        <button class="chip mustard" data-c="mustard" aria-label="Mustard frame"></button>
+        <button class="chip green" data-c="green" aria-label="Green frame"></button>
+        <button class="chip blue" data-c="blue" aria-label="Blue frame"></button>
+        <button class="chip pink" data-c="pink" aria-label="Pink frame"></button>
+      </div>
     </div>
   </div>
-  <textarea id="pnote" rows="3"></textarea>
+  <div id="cardin">
+  <div id="artwrap">
+    <img id="popimg" alt="">
+    <video id="popvid" hidden playsinline preload="metadata" controls></video>
+    <div id="popblank" hidden></div>
+  </div>
+  <div id="artrow" hidden>
+    <button id="ardraw" aria-label="Draw it here"><svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg></button>
+    <button id="arplay" aria-label="Make its art in the Playground"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"> <g transform="translate(1.47 0) scale(0.09510)" fill="#000" stroke="none"> <g transform="translate(0,673) scale(0.1,-0.1)"> <path d="M3145 6720 c-7 -12 -58 -175 -91 -293 l-19 -69 -96 7 c-108 8 -150 -5 -171 -50 -13 -30 -4 -29 -103 -8 -119 25 -497 25 -620 0 -279 -57 -515 -175 -704 -353 -228 -215 -341 -450 -357 -744 -15 -263 37 -431 236 -766 101 -169 140 -248 179 -357 17 -49 31 -90 31 -93 0 -2 -13 -4 -30 -4 -22 0 -31 5 -35 23 -3 12 -19 80 -35 152 -39 178 -36 175 -223 175 -134 0 -149 -2 -267 -36 -159 -46 -180 -65 -180 -157 1 -52 13 -213 23 -280 2 -15 -20 -27 -107 -60 -94 -37 -112 -47 -122 -72 -17 -39 -17 -106 1 -178 l13 -58 -51 -38 c-132 -98 -289 -286 -365 -440 l-47 -94 -3 -235 c-3 -233 -3 -235 22 -286 83 -169 254 -294 596 -436 273 -114 371 -181 467 -321 l31 -45 -130 -144 c-256 -284 -597 -676 -637 -732 -12 -16 -15 -78 -18 -314 l-3 -295 24 -24 c30 -29 68 -32 586 -45 217 -5 553 -14 745 -20 626 -18 1506 -30 2165 -29 l645 0 55 63 c30 35 136 153 235 262 99 110 256 285 349 389 93 105 184 204 203 222 18 18 38 45 44 60 8 18 11 120 11 299 -1 291 -7 330 -52 354 -13 7 -105 14 -236 17 l-215 6 58 59 c149 152 351 267 663 378 320 114 423 168 555 291 84 79 131 142 183 245 72 144 73 154 70 416 l-3 233 -32 64 c-86 169 -247 296 -429 336 -128 29 -116 18 -144 130 -14 55 -29 108 -33 118 -13 33 -74 50 -164 44 l-81 -5 -12 82 c-6 44 -16 114 -22 155 -15 103 -31 120 -133 133 -110 14 -262 5 -372 -21 -131 -32 -138 -41 -146 -203 -4 -68 -4 -151 -1 -184 l6 -60 -87 -25 c-115 -32 -135 -54 -135 -147 1 -37 7 -96 15 -132 20 -93 19 -117 -6 -125 -46 -15 -261 -190 -369 -301 -274 -281 -551 -653 -676 -909 -66 -135 -132 -321 -155 -438 l-13 -68 -130 3 -131 3 -8 105 c-20 270 72 996 183 1440 42 166 103 351 177 540 102 258 159 363 368 685 128 197 230 395 266 520 21 69 24 101 24 240 0 140 -3 169 -23 235 -36 115 -89 207 -166 288 l-69 72 9 58 c15 101 11 187 -9 210 -10 11 -57 32 -103 47 -83 26 -85 28 -79 54 37 146 50 217 50 278 0 91 -11 103 -150 164 l-100 44 -192 3 c-135 2 -193 0 -198 -8z m-520 -605 c44 -10 83 -20 86 -23 4 -4 1 -41 -7 -82 -7 -41 -13 -108 -14 -148 0 -91 18 -114 106 -132 96 -19 94 -17 94 -61 0 -56 23 -105 62 -129 45 -29 163 -25 205 6 23 17 54 62 66 97 1 4 17 5 35 1 32 -6 32 -7 32 -66 0 -55 3 -63 34 -94 33 -33 36 -34 116 -34 82 0 82 0 121 39 22 22 39 48 39 61 0 17 4 21 18 15 33 -13 147 -17 174 -6 16 6 36 24 47 41 l18 31 27 -36 c69 -90 110 -215 108 -325 -2 -153 -81 -331 -286 -649 -210 -324 -269 -438 -378 -721 -155 -404 -237 -747 -308 -1295 -35 -273 -50 -472 -50 -674 l0 -194 -241 6 c-133 4 -244 9 -247 11 -11 11 24 195 70 366 69 258 84 329 102 460 25 194 28 250 16 383 -39 455 -271 788 -635 915 -95 33 -152 43 -280 50 l-119 7 -12 72 c-30 175 -83 301 -242 570 -120 202 -155 278 -188 402 -40 155 -30 288 36 458 45 117 118 224 229 333 193 192 426 311 696 355 114 18 357 13 470 -10z m-765 -2395 c295 -70 505 -291 597 -627 23 -85 26 -118 27 -248 0 -172 -20 -294 -99 -589 -63 -236 -72 -277 -86 -397 l-12 -107 -116 -6 c-64 -3 -290 -9 -502 -12 l-385 -6 -18 28 c-111 174 -239 266 -546 394 -330 138 -451 227 -527 387 -29 60 -36 87 -36 133 2 153 108 354 275 522 48 49 92 88 98 88 5 0 10 -8 10 -18 0 -29 44 -63 87 -68 21 -3 74 1 118 8 l80 14 20 -41 c25 -51 72 -75 145 -75 100 0 160 55 160 146 0 33 4 43 19 47 15 4 20 -2 25 -28 6 -32 33 -63 73 -84 36 -18 129 -13 173 9 49 25 70 64 70 128 l0 50 73 10 c61 9 76 16 100 42 23 26 27 39 27 88 0 53 -8 118 -26 200 l-6 32 48 0 c27 0 87 -9 134 -20z m4196 -296 c124 -88 204 -235 204 -378 0 -166 -117 -396 -266 -519 -98 -82 -194 -132 -401 -208 -296 -109 -361 -137 -467 -195 -181 -101 -327 -225 -452 -384 l-49 -63 -160 7 c-310 13 -836 44 -842 50 -9 8 52 196 98 303 73 172 153 303 323 528 130 172 276 345 391 461 103 104 277 241 283 224 2 -6 17 -17 34 -26 24 -13 48 -14 122 -9 l92 7 12 -39 c19 -64 52 -87 131 -91 90 -5 136 15 162 72 10 23 19 58 19 79 0 20 3 37 8 37 4 0 16 -24 27 -53 25 -65 63 -87 148 -87 103 0 157 47 157 135 l0 53 92 13 c120 16 138 32 138 118 l0 61 66 -25 c37 -14 95 -46 130 -71z m-3766 -1997 c0 -158 5 -167 95 -167 93 0 98 11 89 169 l-7 121 267 0 266 0 0 -30 c0 -32 40 -243 66 -344 31 -125 41 -136 122 -136 90 0 111 60 69 200 -26 86 -67 267 -67 295 0 12 16 15 88 15 106 0 132 -6 132 -31 0 -37 36 -59 94 -59 47 0 57 4 75 26 12 15 21 33 21 40 0 11 10 13 38 9 20 -2 181 -12 357 -20 176 -9 361 -18 411 -21 l92 -6 -54 -91 c-46 -78 -54 -100 -54 -143 0 -70 15 -86 83 -92 68 -5 73 -1 164 155 37 62 78 126 92 142 l26 30 158 -7 158 -7 -187 -215 c-103 -118 -268 -306 -367 -417 l-179 -203 -226 0 c-281 1 -1228 15 -1902 30 -486 10 -1571 48 -1579 55 -4 5 120 149 378 438 107 120 197 214 201 210 10 -11 40 -149 40 -185 0 -31 16 -68 34 -80 6 -4 35 -8 65 -8 76 0 91 16 91 97 0 64 -30 221 -55 294 l-14 39 27 1 c231 11 423 16 635 17 l257 2 0 -123z m2911 -233 l-2 -86 -207 -232 c-114 -127 -272 -304 -352 -393 l-145 -161 -3 79 c-2 53 1 86 10 98 12 17 136 158 537 613 86 97 158 174 160 172 3 -2 4 -43 2 -90z m-4281 -679 c556 -21 2082 -55 2725 -60 231 -1 473 -3 538 -4 l118 -1 -3 -137 -3 -138 -345 3 c-190 2 -514 8 -720 13 -206 6 -609 14 -895 19 -681 10 -1798 41 -1807 49 -8 7 2 271 11 271 3 0 175 -7 381 -15z"/> </g> </g> </svg></button>
+    <button id="arinbox" aria-label="Pick from the inbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
+    <button id="arvers" hidden aria-label="Past pictures"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h12a1 1 0 0 1 1 1v12"/><path d="M6 7h11a1 1 0 0 1 1 1v11"/><rect x="3" y="10" width="12" height="11" rx="1"/></svg></button>
+  </div>
+  <div id="verrow" hidden></div>
+  <div id="genstate" hidden></div>
+  <div class="tbox" id="capbox">
+    <button class="tlab" id="caplab" aria-expanded="true">Caption<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+    <div id="capview">
+      <div id="captext"></div>
+      <textarea id="pnote" rows="3" hidden></textarea>
+      <button id="capedit" aria-label="Edit the caption"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button>
+    </div>
+  </div>
+  <div class="tbox" id="prombox">
+    <button class="tlab" id="promlab" aria-expanded="false">Drawing prompt<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+    <div id="drawbox" hidden>
+      <textarea id="dprompt" rows="3" placeholder="what to draw"></textarea>
+      <div id="promhint" hidden>empty — this beat draws from its caption</div>
+      <div class="drawrow">
+        <button id="dchar" class="on" aria-label="Draw Sophie from her reference"><img src="/scratchpad-sophie.png" alt="Sophie"></button>
+        <select id="dq" aria-label="Quality"><option value="low">low</option><option value="medium" selected>medium</option><option value="high">high</option></select>
+        <button id="dgo">Draw</button>
+      </div>
+    </div>
+  </div>
   <div class="poprow">
     <button id="speak" aria-label="Hear it in your voice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/></svg></button>
     <button id="micbtn" aria-label="Record yourself reading it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></button>
@@ -538,7 +767,8 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   </div></div>
 </div>
 
-<div id="lightbox" hidden><img id="lbimg" alt=""></div>
+<div id="lightbox" hidden><img id="lbimg" alt="">
+  <button id="lbuse" hidden>Use this one</button></div>
 
 <div id="delask" hidden>
   <div class="bulkbox">
@@ -574,8 +804,12 @@ function api(p,opts){
     try{var b=JSON.parse(opts.body); if(b.pad===undefined){b.pad=padId; opts.body=JSON.stringify(b);}}catch(e){}
     /* /style and /upload don't stale the film: flipping the view is not an
        edit (the film's own `style` field handles the flip), and an upload
-       still waiting in the add sheet isn't on the timeline yet. */
-    if(p!=='/film'&&p.indexOf('/pads')!==0&&p!=='/tts'&&p!=='/style'&&p!=='/upload') dirtySinceFilm=true;
+       still waiting in the add sheet isn't on the timeline yet.
+       `/film*` is matched by PREFIX so that /film/cancel is covered too —
+       stopping a render changes nothing about the story, and marking it dirty
+       would make the next play button re-render a film that was already
+       fresh. */
+    if(p.indexOf('/film')!==0&&p.indexOf('/pads')!==0&&p!=='/tts'&&p!=='/style'&&p!=='/upload') dirtySinceFilm=true;
   } else if(p.indexOf('/pads')!==0){
     p+=(p.indexOf('?')>=0?'&':'?')+'pad='+encodeURIComponent(padId);
   }
@@ -798,6 +1032,21 @@ function renderTitle(){
    the render) → the tap renders first, then auto-plays when it lands if
    she's still here. A failed render re-arms the button — the backend keeps
    remaking possible always (failed state + the stuck-job sweep). */
+/* THE PLAY BUTTON BECOMES THE CANCEL WHILE IT IS MAKING (Aug 2026, Sophie:
+   "add a cancel button to the play which makes the film button in story
+   room"). ONE control, two states, and it had to be one: the title row
+   already carries six 34px icons on a 390pt phone (the same measurement that
+   put the style toggle on its own line), so a seventh would have squeezed the
+   story's name to nothing exactly while a render was running.
+   It also fixes what was there before — a DEAD control: the button sat
+   disabled at .45 opacity for the whole render, so the one thing on screen
+   she might want to tap did nothing.
+   No arming delay on the swap, deliberately: the film is free (ffmpeg on our
+   own box, no model call), so the cost of a stray double-tap is one more tap
+   to start it again — and a button that ignores her for a second to protect
+   her from that reads as broken. */
+var FILM_PLAY='<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4.5v15l13-7.5z"/></svg>';
+var FILM_STOP='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
 var film=null, padUpdated=0, dirtySinceFilm=false, autoplayWanted=false;
 function filmFresh(){
   // Server-clock to server-clock only — never compare against the phone's.
@@ -811,10 +1060,13 @@ function renderFilm(){
   var play=document.getElementById('playbtn');
   var making=Boolean(film&&film.status==='making');
   play.hidden=!beats.some(hasShot);
-  play.disabled=making;
-  play.style.opacity=making?'.45':'';
+  play.disabled=false;
+  play.style.opacity='';
+  play.innerHTML=making?FILM_STOP:FILM_PLAY;
+  play.setAttribute('aria-label',making?'Stop making the film':'Watch the film');
   var msg=making?('making the film… '+(film.progress||''))
-    :(film&&film.status==='failed'?(film.error||'the film failed'):'');
+    :(film&&film.status==='failed'?(film.error||'the film failed')
+    :(film&&film.status==='canceled'?'film stopped':''));
   note.textContent=msg;
   document.getElementById('filmrow').hidden=!msg;
 }
@@ -901,6 +1153,68 @@ document.getElementById('auclose').onclick=function(ev){
   document.getElementById('ausheet').hidden=true; lock(false);
 };
 
+/* ── what the buttons do ────────────────────────────────────────────
+   Sophie, Aug 2026: "add an info icon that says what all the buttons do".
+   The page is all unlabelled glyphs by design (the pad is minimal and no
+   machinery lives on the canvas), so the legend is the one place the words
+   live.
+   EVERY GLYPH IS CLONED FROM THE REAL BUTTON — `sel` names the control and
+   the row copies its innerHTML. A second hand-drawn copy of each icon would
+   drift the first time one is changed, and the drift would be invisible:
+   the legend would go on looking right while describing a page that no
+   longer exists. A control the page doesn't have (a beat's own buttons
+   before one is opened) simply draws no box. */
+var HELP=[
+  {sel:'#shelfback', nm:'Back', what:'To the shelf. In the app the chevron at the top of the screen does this.'},
+  {sel:'#descbtn', nm:'About this story', what:'What you said the story is, and the recordings it came out of.'},
+  {sel:'#audiobtn', nm:'Listen', what:'Every recording attached to this story — the memos it came from, and the episodes cut out of it.'},
+  {sel:'#playbtn', nm:'Play the film', what:'Watches your film. If the story changed since the last one it makes a new film first, then plays it. While it is making, this button turns into an ✕ that stops it — nothing is lost and it costs nothing to start again.'},
+  {sel:'#drawallbtn', nm:'Draw them all', what:'Draws every beat that has words but no picture yet. It asks first and says how many.'},
+  {sel:'#addbtn', nm:'Add a beat', what:'Puts an empty beat at the end.'},
+  {sel:'#inboxbtn', nm:'Your pictures and clips', what:'Everything you hearted in the Playground, plus the clip shelf and photos off your phone — tap one to put it on the pad.'},
+  {sel:null, nm:'Watercolor / Dreamy', what:'Which set of pictures the story is showing. The words, colours, voice and order are shared; only the art changes — and the film is made from the side you are looking at.'},
+  {sel:null, nm:'Tap a beat', what:'Opens its card: the picture, the colour chips, its words, and the buttons below.'},
+  {sel:'#ardraw', nm:'Draw it', what:'Draws this beat here, from its words.'},
+  {sel:'#arplay', nm:'Playground', what:'Opens the Playground to make its art there instead.'},
+  {sel:'#arinbox', nm:'From the inbox', what:'Swaps in a picture or clip you already have.'},
+  {sel:'#speak', nm:'Hear it', what:'Reads the beat aloud in your voice.'},
+  {sel:'#micbtn', nm:'Record it', what:'Records you reading it. Your own take always wins over the read-aloud, and every take is kept.'},
+  {sel:'#linkbtn', nm:'Link', what:'Joins this beat to the next one into a chunk, sharing one frame.'},
+  {sel:'#unlinkbtn', nm:'Unlink', what:'Breaks the chunk back apart.'},
+  {sel:'#coverbtn', nm:'Make it the cover', what:'This picture becomes the story’s tile on the shelf.'},
+  {sel:'#delbtn', nm:'Delete the beat', what:'Asks first. Its pictures stay in your galleries.'},
+];
+function mkHelp(){
+  var box=document.getElementById('helpbody');
+  box.innerHTML='';
+  HELP.forEach(function(h){
+    var row=document.createElement('div'); row.className='hrow';
+    var src=h.sel?document.querySelector(h.sel):null;
+    if(src){
+      var b=document.createElement('span'); b.className='iconbtn';
+      b.innerHTML=src.innerHTML; row.appendChild(b);
+    } else { row.className+=' nogl'; }
+    var tx=document.createElement('div'); tx.className='htxt';
+    var nm=document.createElement('div'); nm.className='hnm'; nm.textContent=h.nm;
+    var wt=document.createElement('div'); wt.className='hwhat'; wt.textContent=h.what;
+    tx.appendChild(nm); tx.appendChild(wt); row.appendChild(tx);
+    box.appendChild(row);
+  });
+}
+document.getElementById('helpbtn').onclick=function(ev){
+  ev.stopPropagation();
+  /* Built on the TAP, never at load: the play button's glyph depends on
+     whether a film is making right now, so a list built once would show the
+     wrong one. */
+  mkHelp();
+  var sh=document.getElementById('helpsheet');
+  sh.hidden=false; sh.scrollTop=0; lock(true);
+};
+document.getElementById('helpclose').onclick=function(ev){
+  ev.stopPropagation();
+  document.getElementById('helpsheet').hidden=true; lock(false);
+};
+
 function playFilm(){
   if(!film||!film.url)return;
   player.pause();   // the film's sound must not fight an episode's
@@ -910,9 +1224,21 @@ function playFilm(){
   window.__scrollStop&&window.__scrollStop();
   v.play();
 }
+/* Stop the render. The button flips back to play at once — she asked it to
+   stop, so the screen says stopped whatever the server is still unwinding —
+   and the poll is cleared here rather than left to notice, so nothing can
+   paint 'making' back over it. `autoplayWanted` is dropped with it: a film
+   she stopped must never open its own player a minute later. */
+function cancelFilm(){
+  autoplayWanted=false;
+  filmGen++;
+  if(filmTimer){ clearInterval(filmTimer); filmTimer=null; }
+  film=Object.assign({},film,{status:'canceled',progress:''}); renderFilm();
+  api('/film/cancel',{method:'POST',body:JSON.stringify({})}).catch(function(){});
+}
 document.getElementById('playbtn').onclick=function(ev){
   ev.stopPropagation();
-  if(film&&film.status==='making')return;
+  if(film&&film.status==='making'){ cancelFilm(); return; }
   if(filmFresh()){ playFilm(); return; }
   autoplayWanted=true;
   film=Object.assign({},film,{status:'making',progress:''}); renderFilm();
@@ -935,6 +1261,12 @@ var BULK_PRICE={low:2, medium:6, high:25};   // ¢ per picture, gpt-image-2
 function stripSpeech(t){
   return String(t||'').replace(/<break[^>]*>/gi,' ').replace(/\[[^\]\n]{1,40}\]/g,' ').replace(/\s+/g,' ').trim();
 }
+/* What a beat draws: its own stored prompt, else its words stripped of
+   speech markup — the server's promptFor, kept in step. */
+function promptOf(b){
+  var p=String((b&&b.prompt)||'').trim();
+  return p||stripSpeech(b&&b.text);
+}
 function drawables(){
   // Per STYLE: a beat whose watercolor is drawn but whose dreamy slot is
   // empty is exactly what the toggle exists to fill.
@@ -942,7 +1274,7 @@ function drawables(){
     var s=slotOf(b);
     if(s.kind==='clip')return false;   // a clip slot never draws; the OTHER side still can
     if(s.off)return false;             // deleted from this side — never draw it back
-    return !s.url && !(s.gen&&s.gen.status==='drawing') && stripSpeech(b.text);
+    return !s.url && !(s.gen&&s.gen.status==='drawing') && promptOf(b);
   });
 }
 function renderDrawall(){
@@ -984,10 +1316,18 @@ document.getElementById('bulkyes').onclick=function(ev){
 
 /* Rendering is a background job — poll the pad, and resume on return. */
 var filmTimer=null;
+/* A poll can be IN FLIGHT when she cancels, and the server may not have
+   written 'canceled' yet — so its answer still says 'making'. Landing it
+   would paint the ✕ back on with no timer left to correct it, i.e. a render
+   she stopped, stuck on screen forever. Every poll carries the generation it
+   was fired in and a stale one is dropped whole. */
+var filmGen=0;
 function startFilmPoll(){
   if(filmTimer)return;
+  var gen=filmGen;
   filmTimer=setInterval(function(){
     api('').then(function(r){return r.json()}).then(function(d){
+      if(gen!==filmGen)return;
       film=d.film||null; padUpdated=d.updatedAt||padUpdated; renderFilm();
       if(!film||film.status!=='making'){
         clearInterval(filmTimer); filmTimer=null;
@@ -1052,35 +1392,138 @@ function paintShelfBack(){
   document.getElementById('shelfback').hidden =
     !padOpened || !document.getElementById('stories').hidden;
 }
+/* THE FOLDER SHE HAS STEPPED INTO, by name, or null on the shelf itself.
+   A folder is an intermediate LEVEL of the same sheet — the tiles are
+   replaced and the header renames itself — never a second sheet, so there is
+   one scroller, one close path, and nothing new for __navBack to learn
+   beyond which level it is on. Session-only, like the category chip: every
+   open starts on the shelf proper. */
+var shelfFolder=null;
+/* PINNED STORIES LEAD, THE REST GO BEHIND "see more" (Aug 2026, Sophie: "a
+   pinning feature where i can pin a couple stories i'm actively working on and
+   the rest go behind a see more toggle"). The fold only exists once something
+   in this category is pinned — with no pins the shelf is the whole shelf, as
+   it always was, because a "see more" hiding EVERY story would be a shelf with
+   nothing on it. Pinned ones keep the newest-first order among themselves.
+   The open/closed state is per category and per visit: tapping a chip is
+   asking for that shelf fresh. */
+var SHELF_PIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle class="pinhead" cx="12" cy="6.6" r="4.4"/><path d="M12 11V21.6"/></svg>';
+var shelfMore=false;
+/* ONE tile builder for a story and for a folder. `pad` draws a story (its
+   pushpin, its title, tap opens it); `count` draws a folder (the stack, the
+   count, tap steps into it) and carries NO pushpin — a pin says "I'm working
+   on this story", and a folder is only the way to one. */
+function shelfTile(o){
+  var p=o.pad;
+  var t=document.createElement('button');
+  t.className='stile'+(o.cur?' cur':'')+(o.count?' fold':'');
+  var cov=document.createElement('span'); cov.className='cov';
+  // The FRONT card. Everything that paints lives on it, so a folder's two
+  // cards behind (the .cov pseudo-elements) sit behind the whole thing rather
+  // than behind the picture only.
+  var fr=document.createElement('span'); fr.className='frame'; cov.appendChild(fr);
+  if(o.cover){
+    var im=document.createElement('img'); im.alt=''; im.loading='lazy';
+    im.src=thumbOf(o.cover); fr.appendChild(im);
+  } else {
+    var n=document.createElement('span'); n.className='none'; fr.appendChild(n);
+  }
+  if(o.count){
+    var c=document.createElement('span'); c.className='cnt';
+    c.textContent=o.count; fr.appendChild(c);
+  }
+  if(p){
+    var pin=document.createElement('span');
+    pin.className='pinpin'+(p.pinned?' on':''); pin.innerHTML=SHELF_PIN;
+    pin.setAttribute('role','button');
+    pin.setAttribute('aria-label',p.pinned?'Unpin this story':'Pin this story to the top');
+    pin.title=pin.getAttribute('aria-label');
+    /* The pin sits INSIDE the tile, which is itself a button, so the tap has
+       to be stopped here or pinning a story would also open it. */
+    pin.onclick=function(e){ e.preventDefault(); e.stopPropagation(); togglePin(p); };
+    fr.appendChild(pin);
+  }
+  t.appendChild(cov);
+  var nm=document.createElement('span'); nm.className='snm'+(o.name?'':' blank');
+  nm.textContent=o.name||'Untitled'; t.appendChild(nm);
+  t.onclick=function(e){ e.stopPropagation(); o.go(); };
+  return t;
+}
+function togglePin(p){
+  var was=!!p.pinned; p.pinned=!was; renderShelf();
+  api('/pads/pin',{method:'POST',body:JSON.stringify({pad:p.id, pinned:!was})})
+    .then(function(r){ if(!r.ok) throw 0; })
+    .catch(function(){ p.pinned=was; renderShelf(); });
+}
+/* THE SHELF'S ROWS, folders already collapsed. A folder takes the place of
+   its NEWEST story and the rest of its stories come off the shelf — that is
+   the whole point, and it is why this is a walk in place rather than a
+   group-then-append, which would sort every folder to the top and lose the
+   newest-first order she reads by.
+   A FOLDER IS PINNED WHEN ANY STORY IN IT IS. Her pin means "I'm working on
+   this", and with the story folded away the folder is the only thing on
+   screen that can carry it — otherwise pinning a story inside a folder would
+   hide it behind "see more" instead of lifting it. */
+function shelfRows(){
+  var seen={}, rows=[];
+  shelfPads.filter(function(p){ return (p.category||'personal')===shelfCat; })
+    .forEach(function(p){
+      if(!p.folder){
+        rows.push({ pad:p, cover:p.cover, name:p.title, pinned:!!p.pinned,
+          cur:p.id===padId, go:function(){ openPad(p.id); } });
+        return;
+      }
+      if(seen[p.folder]) return;
+      seen[p.folder]=true;
+      var name=p.folder;
+      var inIt=shelfPads.filter(function(q){ return q.folder===name; });
+      var withArt=inIt.filter(function(q){ return q.cover; })[0];
+      rows.push({
+        cover:withArt?withArt.cover:null, name:name, count:inIt.length,
+        pinned:inIt.some(function(q){ return q.pinned; }),
+        cur:inIt.some(function(q){ return q.id===padId; }),
+        go:function(){ shelfFolder=name; shelfMore=false; renderShelf();
+          document.getElementById('stories').scrollTop=0; } });
+    });
+  return rows;
+}
 function renderShelf(){
   var cats=document.getElementById('shelfcats');
   var tiles=document.getElementById('shelftiles');
   document.getElementById('storylist').hidden=true;
-  cats.hidden=false; tiles.hidden=false;
+  tiles.hidden=false;
+  /* Inside a folder the chips come OFF. A folder gathers a character's
+     stories wherever they were filed, so a chip there would offer to hide
+     half of what she just opened. */
+  cats.hidden=Boolean(shelfFolder);
+  document.getElementById('shelfno').textContent=shelfFolder||'The shelf';
   cats.innerHTML='';
-  SHELF_CATS.forEach(function(c){
+  if(!shelfFolder) SHELF_CATS.forEach(function(c){
     var b=document.createElement('button'); b.className='scat'+(c[1]===shelfCat?' on':'');
     b.textContent=c[0];
-    b.onclick=function(e){ e.stopPropagation(); shelfCat=c[1]; renderShelf(); };
+    b.onclick=function(e){ e.stopPropagation(); shelfCat=c[1]; shelfMore=false; renderShelf(); };
     cats.appendChild(b);
   });
   tiles.innerHTML='';
-  shelfPads.filter(function(p){ return (p.category||'personal')===shelfCat; })
-    .forEach(function(p){
-      var t=document.createElement('button'); t.className='stile'+(p.id===padId?' cur':'');
-      var cov=document.createElement('span'); cov.className='cov';
-      if(p.cover){
-        var im=document.createElement('img'); im.alt=''; im.loading='lazy';
-        im.src=thumbOf(p.cover); cov.appendChild(im);
-      } else {
-        var n=document.createElement('span'); n.className='none'; cov.appendChild(n);
-      }
-      t.appendChild(cov);
-      var nm=document.createElement('span'); nm.className='snm'+(p.title?'':' blank');
-      nm.textContent=p.title||'Untitled'; t.appendChild(nm);
-      t.onclick=function(e){ e.stopPropagation(); openPad(p.id); };
-      tiles.appendChild(t);
-    });
+  /* Inside a folder the rows are its own stories; on the shelf they are
+     shelfRows(), with each folder already standing in for its stories. Either
+     way the pin/fold rule below runs over ROWS and never over pads, so it
+     works identically at both levels. */
+  var mine = shelfFolder
+    ? shelfPads.filter(function(p){ return p.folder===shelfFolder; })
+        .map(function(p){ return { pad:p, cover:p.cover, name:p.title,
+          pinned:!!p.pinned, cur:p.id===padId, go:function(){ openPad(p.id); } }; })
+    : shelfRows();
+  var pinned=mine.filter(function(r){ return r.pinned; });
+  var rest=mine.filter(function(r){ return !r.pinned; });
+  var show=pinned.length ? pinned.concat(shelfMore?rest:[]) : mine;
+  show.forEach(function(r){ tiles.appendChild(shelfTile(r)); });
+  if(pinned.length && rest.length){
+    var more=document.createElement('button'); more.id='shelfmore';
+    more.textContent=shelfMore?'see less':'see more ('+rest.length+')';
+    more.onclick=function(e){ e.stopPropagation(); shelfMore=!shelfMore; renderShelf(); };
+    tiles.appendChild(more);
+  }
 }
 function renderPlainShelf(){
   document.getElementById('shelfcats').hidden=true;
@@ -1112,6 +1555,9 @@ function closeShelf(){
    tab opened straight at /storyroom has no outside to return to. */
 document.getElementById('storiesclose').onclick=function(ev){
   ev.stopPropagation();
+  // A folder is one level UP from the shelf's floor, so the same chevron
+  // steps out of it first and only then leaves the tool.
+  if(shelfFolder){ shelfFolder=null; renderShelf(); return; }
   if(window.__forgeLeave){ window.__forgeLeave(); return; }
   if(history.length>1) history.back();
 };
@@ -1149,6 +1595,7 @@ document.getElementById('descclose').onclick=function(ev){
 function openPad(id){
   padId=id; padOpened=true; localStorage.setItem('scratchpad_pad',id);
   if(genTimer){ clearInterval(genTimer); genTimer=null; }
+  filmGen++;   // an in-flight poll belongs to the story she just left
   if(filmTimer){ clearInterval(filmTimer); filmTimer=null; }
   film=null; padUpdated=0; dirtySinceFilm=false; autoplayWanted=false; renderFilm();
   player.pause(); audios=[]; renderAudios();
@@ -1162,7 +1609,9 @@ document.getElementById('shelfback').onclick=function(ev){
 };
 document.getElementById('newstory').onclick=function(ev){
   ev.stopPropagation();
-  api('/pads',{method:'POST',body:JSON.stringify({pad:null,title:''})})
+  // Started from inside a folder → it joins that folder. Anywhere else the
+  // field is absent and the story lands loose on the shelf, exactly as before.
+  api('/pads',{method:'POST',body:JSON.stringify({pad:null,title:'',folder:shelfFolder||''})})
     .then(function(r){return r.json()})
     .then(function(d){ if(d.pad) openPad(d.pad); });
 };
@@ -1478,38 +1927,49 @@ function openBeat(b){
   // SLOT's kind: a movie on the dreamy side leaves watercolor a picture.
   var su=slotOf(b);
   var clip=su.kind==='clip';
-  // Same size as it sits on the pad — the popup never blows the ART up. A
-  // CLIP is the exception and takes the card's width: it is a film, and one
-  // playing at 90px is not a preview.
-  var tile=document.querySelector('#pad .beat');
-  var w=(tile?tile.offsetWidth:90)+'px';
+  // NOTHING DRAWN YET is one state, computed once: the blank tile shrinks,
+  // and the drawing prompt opens beside the caption rather than folded away
+  // (2026-08-24, her two asks about the picture-less beat). A beat mid-draw
+  // is showing the blank paper too, so it counts as one.
+  var drawing=Boolean(su.gen&&su.gen.status==='drawing');
+  var noart=!clip&&(!su.url||drawing);
+  document.getElementById('beatcard').classList.toggle('noart',noart);
+  // The picture takes the room the card has left (Sophie: "that image is
+  // bigger by default") — CSS sizes it inside #artwrap, so nothing here
+  // pins a pixel width the way the old thumbnail-sized popup did.
   im.hidden=clip||!su.url; bl.hidden=clip||Boolean(su.url); vid.hidden=!clip;
-  bl.style.width=w;
   if(clip){
     if(vid.src!==su.url){ vid.src=su.url; }
     if(su.poster) vid.poster=su.poster; else vid.removeAttribute('poster');
     vid.className=b.color?'c-'+b.color:'';
-  } else if(su.url){ im.style.width=w; im.src=su.url; im.className=b.color?'c-'+b.color:''; }
+  } else if(su.url){ im.src=su.url; im.className=b.color?'c-'+b.color:''; }
   else { bl.className=b.color?'c-'+b.color:''; }
-  document.querySelectorAll('.chip').forEach(function(c){
-    c.classList.toggle('on',(c.getAttribute('data-c')||null)===(b.color||null));
-  });
+  paintChips(b.color||null);
+  closeColors();
+  // The caption opens as WORDS with a pencil beside them; the box behind it
+  // carries the same text so drawPrompt() and saveNote() read it either way.
+  capEditing=false;
   document.getElementById('pnote').value=b.text||'';
+  document.getElementById('captext').textContent=b.text||'';
   document.getElementById('coverbtn').hidden=!artOf(b);
   document.getElementById('coverbtn').classList.remove('on');
   // Every generation this beat has had — thumbnails, newest first, current
-  // ringed. Only shows once there is more than the current picture.
+  // ringed — folded behind the stacked-squares button, which only appears
+  // once a draw has actually replaced something.
   var vr=document.getElementById('verrow'); vr.innerHTML='';
   var vers=((su.url&&!clip)?[su.url]:[]).concat((su.imageHistory||[]).slice().reverse().map(function(h){return h.url;}).filter(Boolean));
-  vr.hidden=vers.length<2;
+  var av=document.getElementById('arvers');
+  av.hidden=vers.length<2; av.classList.remove('on'); vr.hidden=true;
   if(vers.length>1){
     vers.forEach(function(u,i){
       var t=document.createElement('button'); if(i===0&&su.url)t.className='cur';
       var ti=document.createElement('img'); ti.src=u; ti.alt=''; ti.loading='lazy'; t.appendChild(ti);
+      // Tapping a thumbnail opens it BIG with a way to take it — the
+      // current one opens plain, since "use this one" for the picture
+      // already on the card is a button that does nothing.
       t.onclick=function(ev){
         ev.stopPropagation();
-        document.getElementById('lbimg').src=u;
-        document.getElementById('lightbox').hidden=false;
+        openLb(u, (i===0&&su.url)?null:u);
       };
       vr.appendChild(t);
     });
@@ -1522,21 +1982,25 @@ function openBeat(b){
   var myUnit=-1; units.forEach(function(u,ui){ if(u.members.indexOf(b)>=0) myUnit=ui; });
   lb.hidden=!(myUnit>=0 && myUnit<units.length-1);
   ub.hidden=!b.chunk;
-  // The two ways to (re)make art: above the picture when there is one, in
-  // the blank tile when there isn't. NEITHER on a clip — nothing here draws
-  // a film, and a picture-maker over one would only ever replace it.
-  document.getElementById('artrow').hidden=clip||!su.url;
-  // Drawing here: the prompt starts as the beat's own words.
-  var db_=document.getElementById('drawbox');
-  db_.hidden=true;
-  document.getElementById('dprompt').value=b.text||'';
+  // The three ways to art sit UNDER the picture in one row now, whether or
+  // not there is a picture yet — the blank tile no longer carries its own
+  // pair. NEVER on a clip: nothing here draws a film, and a picture-maker
+  // over one would only ever replace it.
+  document.getElementById('artrow').hidden=clip;
+  // Drawing here: the box holds ONLY her own stored prompt — never the
+  // caption (2026-08-24: seeding it with the caption meant a beat with no
+  // prompt of its own showed the caption's words in the prompt box, so
+  // there was nothing on screen to tell "this beat has its own prompt" from
+  // "you are about to draw the caption", and Draw sent the caption). Empty
+  // means FOLLOW THE CAPTION, which the hint line says out loud.
+  document.getElementById('dprompt').value=String(b.prompt||'');
+  setBoxes(true,noart);
   // Drawing (or a failure) is said in its own line — never by rewriting the
   // blank tile, whose children are the buttons.
   var st=document.getElementById('genstate');
-  var drawing=Boolean(su.gen&&su.gen.status==='drawing');
   st.hidden=!(drawing||(su.gen&&su.gen.status==='failed'));
   st.textContent=drawing?'drawing…':((su.gen&&su.gen.error)||'');
-  if(drawing){ document.getElementById('artrow').hidden=true; bl.hidden=false; }
+  if(drawing){ bl.hidden=clip; im.hidden=true; }
   // A clip's own sound IS its voice — the film plays the tape rather than
   // reading her note over it — so the speak and record icons come off
   // instead of sitting there promising something the render won't do.
@@ -1572,24 +2036,48 @@ function openDraw(ev){
   ev.stopPropagation();
   if(!popBeat)return;
   var box=document.getElementById('drawbox');
-  box.hidden=!box.hidden;
+  var opening=box.hidden;
+  if(!opening)savePrompt();
+  // Opening the prompt folds the caption away (her rule); closing it leaves
+  // the caption as she left it rather than forcing it back open.
   // DREAMY never takes the Sophie card (the Playground's noCharacter rule:
-  // her card is the watercolor look, the wrong reference there) — so the
-  // toggle comes off rather than sitting there doing nothing.
-  document.getElementById('dchar').hidden=(padStyle==='dreamy');
-  if(!box.hidden){
-    // The prompt starts as whatever the text box says RIGHT NOW — not the
-    // beat's last SAVED text. Words typed seconds ago aren't saved until the
-    // popup closes, and the stale prefill was drawing the old line (Sophie:
-    // "it doesn't take the words I put in").
-    var live=document.getElementById('pnote').value.trim();
-    document.getElementById('dprompt').value=live||(popBeat.text||'');
+  // her card is the watercolor look, the wrong reference there) — setBoxes
+  // takes the toggle off rather than leaving it there doing nothing.
+  // Opening the prompt folds the caption away only when there is a picture
+  // taking the room — on a picture-less beat both stay open, which is the
+  // state that beat now opens in.
+  var capNow=document.getElementById('caplab').getAttribute('aria-expanded')==='true';
+  var noart=document.getElementById('beatcard').classList.contains('noart');
+  setBoxes((opening&&!noart)?false:capNow, opening);
+  if(opening){
+    // Only her own prompt goes in the box. An empty box is the honest
+    // default and it still DRAWS — from the caption, live, exactly as it
+    // always did ("it doesn't take the words I put in" was the old bug and
+    // stays fixed: drawPrompt() reads the caption box, never the last
+    // SAVED text).
+    document.getElementById('dprompt').value=String(popBeat.prompt||'');
     saveNote();
     document.getElementById('dprompt').focus();
   }
 }
-document.getElementById('pbdraw').onclick=openDraw;
-document.getElementById('ardraw').onclick=openDraw;
+/* The star OPENS the drawing box — it never closes it. Since a beat with no
+   picture opens with the box already down (2026-08-24), a star that toggled
+   would fold away the very thing that beat is for; the chevron on Drawing
+   prompt is the toggle. Already open → put the caret in the box. */
+document.getElementById('ardraw').onclick=function(ev){
+  if(document.getElementById('drawbox').hidden)return openDraw(ev);
+  ev.stopPropagation();
+  document.getElementById('dprompt').focus();
+};
+/* The stacked squares: past pictures fold out under the row and fold back.
+   A toggle, not a trip somewhere else — she is comparing against the one
+   on screen. */
+document.getElementById('arvers').onclick=function(ev){
+  ev.stopPropagation();
+  var vr=document.getElementById('verrow');
+  vr.hidden=!vr.hidden;
+  this.classList.toggle('on',!vr.hidden);
+};
 document.getElementById('drawbox').onclick=function(ev){ev.stopPropagation();};
 document.getElementById('dchar').onclick=function(ev){
   ev.stopPropagation();
@@ -1598,10 +2086,10 @@ document.getElementById('dchar').onclick=function(ev){
 document.getElementById('dgo').onclick=function(ev){
   ev.stopPropagation();
   var b=popBeat; if(!b)return;
-  var prompt=document.getElementById('dprompt').value.trim();
+  var prompt=drawPrompt();
   if(!prompt){ document.getElementById('dprompt').focus(); return; }
   var btn=this; btn.disabled=true;
-  saveNote();
+  saveNote(); savePrompt();
   api('/generate',{method:'POST',body:JSON.stringify({
     id:b.id, prompt:prompt,
     quality:document.getElementById('dq').value,
@@ -1642,12 +2130,6 @@ function startGenPoll(){
     }).catch(function(){});
   },4000);
 }
-/* The blank tile's two icons: make new art in the Playground, or pick from
-   the inbox straight into THIS beat. */
-document.getElementById('pbplay').onclick=function(ev){
-  ev.stopPropagation();
-  location.href='/playground?from=scratchpad';
-};
 function inboxIntoBeat(ev){
   ev.stopPropagation();
   if(!popBeat)return;
@@ -1656,32 +2138,127 @@ function inboxIntoBeat(ev){
   document.getElementById('beatpop').hidden=true; popBeat=null;
   openInbox();
 }
-document.getElementById('pbinbox').onclick=inboxIntoBeat;
 document.getElementById('arinbox').onclick=inboxIntoBeat;
 document.getElementById('arplay').onclick=function(ev){
   ev.stopPropagation();
   location.href='/playground?from=scratchpad';
 };
-/* A chip sets the frame color and the popup STAYS open (there's a text box
-   here now); tapping outside the controls is what closes it. */
-document.querySelectorAll('.chip').forEach(function(c){
+/* ── the frame colour: one square in the corner, dropping down ────── */
+function paintChips(col){
+  document.querySelectorAll('#colormenu .chip').forEach(function(x){
+    x.classList.toggle('on',(x.getAttribute('data-c')||null)===col);
+  });
+}
+function closeColors(){ document.getElementById('colormenu').hidden=true; }
+document.getElementById('colorbtn').onclick=function(ev){
+  ev.stopPropagation();
+  var m=document.getElementById('colormenu');
+  m.hidden=!m.hidden;
+};
+document.getElementById('colormenu').onclick=function(ev){ev.stopPropagation();};
+/* A chip sets the frame color, shuts the drop-down, and the popup STAYS
+   open (there are text boxes here); tapping outside is what closes it. */
+document.querySelectorAll('#colormenu .chip').forEach(function(c){
   c.onclick=function(ev){
     ev.stopPropagation();
     var col=c.getAttribute('data-c')||null;
     if(!popBeat)return;
     popBeat.color=col;
     document.getElementById(clipOf(popBeat)?'popvid':(slotOf(popBeat).url?'popimg':'popblank')).className=col?'c-'+col:'';
-    document.querySelectorAll('.chip').forEach(function(x){
-      x.classList.toggle('on',(x.getAttribute('data-c')||null)===col);
-    });
+    paintChips(col);
+    closeColors();
     api('/color',{method:'POST',body:JSON.stringify({id:popBeat.id,color:col})})
       .then(function(r){return r.json()})
       .then(function(d){if(d.beats)beats=d.beats;});
   };
 });
+/* ── the two text boxes: caption and drawing prompt ───────────────── */
+/* Opening the PROMPT folds the caption away — the two together are taller
+   than the card wants to be once the picture is big. She can always tap
+   Caption to bring it back and have both. */
+var capEditing=false;
+/* The caption's two faces: the words, and the box. Both live inside
+   #capview so the pencil keeps its place either way — a control that
+   disappears the moment you use it is a control you have to find again. */
+function paintCap(){
+  var open=document.getElementById('caplab').getAttribute('aria-expanded')==='true';
+  document.getElementById('capview').hidden=!open;
+  document.getElementById('captext').hidden=capEditing;
+  document.getElementById('pnote').hidden=!capEditing;
+  document.getElementById('capedit').classList.toggle('on',capEditing);
+}
+function setBoxes(capOpen, promOpen){
+  var cl=document.getElementById('caplab'), pl=document.getElementById('promlab');
+  document.getElementById('drawbox').hidden=!promOpen;
+  cl.setAttribute('aria-expanded',capOpen?'true':'false');
+  pl.setAttribute('aria-expanded',promOpen?'true':'false');
+  paintCap();
+  document.getElementById('dchar').hidden=(padStyle==='dreamy');
+  paintPromptHint();
+}
+/* The pencil TOGGLES the box. Coming out of it saves and re-paints the
+   words, so what she reads is what she just wrote. */
+document.getElementById('capedit').onclick=function(ev){
+  ev.stopPropagation();
+  capEditing=!capEditing;
+  paintCap();
+  if(capEditing){ document.getElementById('pnote').focus(); }
+  else { document.getElementById('captext').textContent=document.getElementById('pnote').value; saveNote(); }
+};
+document.getElementById('capview').onclick=function(ev){ev.stopPropagation();};
+/* Blurring SAVES but never closes the box — closing on blur reshuffles the
+   card between her mousedown and mouseup and eats the tap. */
+document.getElementById('pnote').onblur=function(){
+  document.getElementById('captext').textContent=this.value;
+  saveNote();
+};
+document.getElementById('caplab').onclick=function(ev){
+  ev.stopPropagation();
+  var open=this.getAttribute('aria-expanded')==='true';
+  if(open)savePrompt();
+  setBoxes(!open, document.getElementById('promlab').getAttribute('aria-expanded')==='true');
+};
+document.getElementById('promlab').onclick=function(ev){ openDraw(ev); };
 document.getElementById('pnote').onclick=function(ev){ev.stopPropagation();};
 /* Returns a promise so the speech icon can wait for a fresh note to land
    server-side before asking for its audio. */
+/* The draw prompt saves ITSELF — on leaving the box, closing the popup, or
+   drawing. No save button (Sophie's rule). The server clears a prompt that
+   just equals the words, so an untouched box keeps following the note. */
+function savePrompt(){
+  if(!popBeat)return Promise.resolve();
+  var box=document.getElementById('drawbox');
+  if(box.hidden)return Promise.resolve();   // never seeded — nothing she said
+  var t=document.getElementById('dprompt').value;
+  if(t.trim()===promptOf(popBeat))return Promise.resolve();
+  return api('/prompt',{method:'POST',body:JSON.stringify({id:popBeat.id,prompt:t})})
+    .then(function(r){return r.json()})
+    .then(function(d){if(d.beats){
+      var keep=popBeat; beats=d.beats; popBeat=beats.find(function(x){return x.id===keep.id;})||keep;
+    }});
+}
+document.getElementById('dprompt').onblur=function(){savePrompt();};
+/* WHAT DRAW WILL ACTUALLY SEND — one function, so the hint line and the
+   Draw button can never disagree about it. Her own prompt when the box has
+   one; otherwise the caption as it reads RIGHT NOW, speech markup stripped.
+   The server's promptFor() is the same rule over the SAVED fields. */
+function drawPrompt(){
+  var typed=document.getElementById('dprompt').value.trim();
+  if(typed)return typed;
+  var live=document.getElementById('pnote').value.trim();
+  return stripSpeech(live||(popBeat&&popBeat.text));
+}
+/* The empty box is not a dead box — it follows the caption, and the line
+   under it says so rather than leaving her to guess which words a draw is
+   about to use (2026-08-24: "it sent the wrong prompt … from the caption
+   part not the drawing part"). */
+function paintPromptHint(){
+  var h=document.getElementById('promhint');
+  if(!h)return;
+  var typed=document.getElementById('dprompt').value.trim();
+  h.hidden=Boolean(typed);
+}
+document.getElementById('dprompt').addEventListener('input',paintPromptHint);
 function saveNote(){
   if(!popBeat)return Promise.resolve();
   var t=document.getElementById('pnote').value;
@@ -1701,16 +2278,53 @@ document.getElementById('speak').onclick=function(ev){
   btn.classList.add('busy');
   saveNote().then(function(){ speakBeat(b, btn); });
 };
+/* ── the lightbox ──────────────────────────────────────────────────
+   ONE open and ONE close path, because the Use button's state has to be
+   right every single time: `pick` is the url this picture WOULD become the
+   beat's art from, or null for the picture that already is. */
+var lbPick=null;
+function openLb(url,pick){
+  lbPick=pick||null;
+  document.getElementById('lbimg').src=url;
+  var u=document.getElementById('lbuse');
+  u.hidden=!lbPick; u.classList.remove('busy');
+  var lb=document.getElementById('lightbox');
+  lb.classList.toggle('pick',Boolean(lbPick));
+  lb.hidden=false;
+}
+function closeLb(){
+  lbPick=null;
+  document.getElementById('lbuse').hidden=true;
+  var lb=document.getElementById('lightbox');
+  lb.classList.remove('pick'); lb.hidden=true;
+}
 /* Tapping the thumbnail opens it big — a lightbox over the popup. */
 document.getElementById('popimg').onclick=function(ev){
   ev.stopPropagation();
   if(!popBeat)return;
-  document.getElementById('lbimg').src=slotOf(popBeat).url;
-  document.getElementById('lightbox').hidden=false;
+  openLb(slotOf(popBeat).url,null);
 };
 document.getElementById('lightbox').onclick=function(ev){
   ev.stopPropagation();
-  this.hidden=true;
+  closeLb();
+};
+/* Take this older picture back as the beat's art. The same POST the inbox
+   makes — /image swaps it in, banks the one it replaces in the past-pictures
+   row and lifts this one OUT of that row (pad-art.js), so nothing is lost
+   and nothing shows twice. */
+document.getElementById('lbuse').onclick=function(ev){
+  ev.stopPropagation();
+  var url=lbPick, b=popBeat; if(!url||!b)return;
+  this.classList.add('busy');
+  api('/image',{method:'POST',body:JSON.stringify({id:b.id,url:url,style:padStyle})})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(d.beats){ beats=d.beats; render(); }
+      closeLb();
+      var fresh=beats.find(function(x){return x.id===b.id;});
+      if(fresh){ popBeat=fresh; openBeat(fresh); }
+    })
+    .catch(function(){ document.getElementById('lbuse').classList.remove('busy'); });
 };
 /* Make this beat's art the story's cover on the shelf. The button fills in
    dark as the ack and the popup stays open (same manner as the color chips). */
@@ -1758,7 +2372,7 @@ document.getElementById('delyes').onclick=function(ev){
     .catch(function(){ btn.disabled=false; });
 };
 
-function closeBeat(){stopRec(); stopPopVid(); saveNote(); document.getElementById('beatpop').hidden=true; popBeat=null; lock(false); render();}
+function closeBeat(){stopRec(); stopPopVid(); saveNote(); savePrompt(); document.getElementById('beatpop').hidden=true; popBeat=null; lock(false); render();}
 /* Close on the edge around the card OR on the card's own empty cream — the
    same "tap anywhere that isn't a control" contract the old scrim had. */
 document.getElementById('beatpop').onclick=function(ev){
@@ -1788,7 +2402,7 @@ window.__navBack=function(){
   var el=document.getElementById('filmplay');
   if(!el.hidden){ document.getElementById('filmvid').pause(); el.hidden=true; lock(false); return true; }
   el=document.getElementById('lightbox');
-  if(!el.hidden){ el.hidden=true; return true; }
+  if(!el.hidden){ closeLb(); return true; }
   el=document.getElementById('delask');
   if(!el.hidden){ el.hidden=true; return true; }
   el=document.getElementById('bulkask');
@@ -1805,8 +2419,15 @@ window.__navBack=function(){
   if(!el.hidden){ document.getElementById('auclose').click(); return true; }
   el=document.getElementById('descsheet');
   if(!el.hidden){ document.getElementById('descclose').click(); return true; }
+  el=document.getElementById('helpsheet');
+  if(!el.hidden){ document.getElementById('helpclose').click(); return true; }
   el=document.getElementById('stories');
-  if(!el.hidden) return false;    // the shelf is the floor — the app leaves
+  if(!el.hidden){
+    // A folder is a level ABOVE the floor (Aug 2026) — step out of it, and
+    // only the bare shelf hands the app its exit.
+    if(shelfFolder){ shelfFolder=null; renderShelf(); return true; }
+    return false;                 // the shelf is the floor — the app leaves
+  }
   openShelf(); return true;       // a story steps up to it
 };
 
