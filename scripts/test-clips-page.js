@@ -178,16 +178,28 @@ if (!chrome) { console.log('SKIP — no Chromium found (set CHROME_PATH to run)'
     `and its ink is the page's, not the injected near-black (${paint.pillInk})`);
 
   // ── back to top ──────────────────────────────────────────────────────
+  // THE SHARED ARROW, in the pill's rail. This page used to carry its own —
+  // a circle floating at the bottom-right, written before the shared one
+  // existed — so the page had two back-to-tops in two corners doing one job.
+  // The rail is where it rides (the house rule), and it is the pill's `#ptop`.
+  ok(await pg.locator('#totop').count() === 0, 'no hand-rolled back-to-top of its own');
   await pg.evaluate(() => window.scrollTo(0, 0));
-  await pg.waitForTimeout(150);
-  ok(await pg.locator('#totop').isHidden(), 'no back-to-top at the top of the page');
-  await pg.evaluate(() => window.scrollTo(0, 900));
   await pg.waitForTimeout(200);
-  ok(await pg.locator('#totop').isVisible(), 'it appears once there is a scroll worth undoing');
-  const corner = await pg.locator('#totop').boundingBox();
-  ok(corner.y > 600, `it sits at the BOTTOM, clear of the pill's corner (y=${Math.round(corner.y)})`);
-  await pg.locator('#totop').click();
-  await pg.waitForTimeout(700);
+  ok(!(await pg.evaluate(() => document.getElementById('ptop').classList.contains('on'))),
+    'no back-to-top at the top of the page');
+  await pg.evaluate(() => window.scrollTo(0, 1200));
+  await pg.waitForTimeout(250);
+  ok(await pg.evaluate(() => document.getElementById('ptop').classList.contains('on')),
+    'it appears once she is a full screen down');
+  // it must be REACHABLE, not merely painted — the only honest question
+  const reach = await pg.evaluate(() => {
+    const r = document.getElementById('ptop').getBoundingClientRect();
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return { ok: !!(hit && hit.closest('#ptop')), x: Math.round(r.left), y: Math.round(r.top) };
+  });
+  ok(reach.ok, `and nothing covers it (x=${reach.x}, y=${reach.y})`);
+  await pg.locator('#ptop').click();
+  await pg.waitForTimeout(800);
   ok(await pg.evaluate(() => window.scrollY) === 0, 'and it goes back to the top');
 
   // ── the lightbox freezes the page and restores the exact spot ────────

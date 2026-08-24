@@ -801,23 +801,23 @@ function serveGated(file, opts = {}) {
     res.type('html').send(out);
   };
 }
-app.get('/studio', serveGated('studio.html'));
+app.get('/studio', serveGated('studio.html', { pill: true }));
 // The Dump's sort & label page — browse what the inbox holds, name albums,
 // set their track, delete strays. The native Dump tile links here.
-app.get('/dump', serveGated('dump.html'));
+app.get('/dump', serveGated('dump.html', { pill: true }));
 // Photo → Etsy: turn a photo of a finished handmade item into a reviewable Etsy
 // draft (mockups + listing content). Same gate as the Studio.
-app.get('/photo', serveGated('photo.html'));
+app.get('/photo', serveGated('photo.html', { pill: true }));
 // Song Station: phone recording → cleaned vocal + melody-matched instrumental
 // → mixed song (keeps the real voice). Same gate as the Studio.
-app.get('/song', serveGated('song.html'));
+app.get('/song', serveGated('song.html', { pill: true }));
 // Dreams: a faithful web copy of the iOS Dreams screen (write/record a dream →
 // chronology check → hand-drawn comic pages → archive + zine), so the design
 // can be iterated in the browser without a TestFlight build. Same gate; hits
 // the same /api/movies/dream* endpoints.
-app.get('/dreams', serveGated('dreams.html'));
+app.get('/dreams', serveGated('dreams.html', { pill: true }));
 // The dream archive — every dream from every source, newest first.
-app.get('/dreams-archive', serveGated('dreams-archive.html'));
+app.get('/dreams-archive', serveGated('dreams-archive.html', { pill: true }));
 // Public "try it" version of Dreams for friends: same page, NO gate, and it
 // runs in guest mode (the page mints a per-device guest id and namespaces every
 // dream to it) — so each visitor gets their OWN private past-dreams archive and
@@ -829,14 +829,14 @@ app.get('/trydreams', (req, res) => {
 // Films: the staged-approval movie pipeline as a web page (story → one probe
 // image → approve/notes → three more → the rest → motion → stitched film).
 // Same /api/movies engine the iOS Movies tab uses; same gate.
-app.get('/films', serveGated('films.html'));
+app.get('/films', serveGated('films.html', { pill: true }));
 // Shop Report: what's selling / what to promote / what to put on sale, from
 // live Etsy listings + orders + reviews. Same gate as the Studio.
-app.get('/report', serveGated('report.html'));
+app.get('/report', serveGated('report.html', { pill: true }));
 // Character Creator: upload a photo + a name -> a diary-comic character
 // reference, saved and compiled into a "main characters" sheet. Web prototype
 // of the feature that will live in the iOS Story Boards screen.
-app.get('/character', serveGated('character.html'));
+app.get('/character', serveGated('character.html', { pill: true }));
 // Playground: Sophie's LoRA prompt tester (fixed comparable recipe, 4-up
 // runs, background jobs on /api/promptlab), iOS tile "Playground"
 // (PlaygroundView.swift wraps /playground, same pattern as /writing and
@@ -880,7 +880,7 @@ app.get('/instagram', serveGated('instagram.html', { pill: true }));
 // Doors: a corridor of possible futures, seven doors deep. Chosen blind by a
 // sensory fragment, one-way, finite — a premise prototype, no server half and
 // no tile yet. Served WITHOUT the pill: the page never scrolls.
-app.get('/doors', serveGated('doors.html'));
+app.get('/doors', serveGated('doors.html', { pill: true }));
 // Opinions: the decide-on-things game — two ideas side by side, tap the
 // better one, GOOD IDEA / BAD IDEA stamps, a streak and accolades. Preloaded
 // from opinions-feed.json + /api/opinions extras. Served WITHOUT the pill:
@@ -891,7 +891,7 @@ app.get('/opinions', serveGated('opinions.html'));
 // deliberately UNLINKED — no tile, no wrapper ("somewhere out-of-the-way",
 // Sophie, Aug 2026). Served WITHOUT the pill: a list she taps open, not a
 // page she reads hands-free.
-app.get('/desktop', serveGated('desktop.html'));
+app.get('/desktop', serveGated('desktop.html', { pill: true }));
 // The Sophie character card, for the pad's draw-here toggle (refs/ is not
 // web-served, so this one file is exposed deliberately — it's her own
 // hearted render, and the page behind the gate is the only thing asking).
@@ -3159,7 +3159,7 @@ app.get('/assets', serveGated('assets.html', { pill: true }));
 // SITE blog, server-rendered from Firestore; elsewhere it's the gated studio.
 app.get('/blog', (req, res) => {
   if (isWitchHost(req) || req.query.public === '1') return blogPublic.renderIndex(req, res);
-  return serveGated('blog.html')(req, res);
+  return serveGated('blog.html', { pill: true })(req, res);
 });
 app.get('/blog/:slug', (req, res) => blogPublic.renderPost(req, res));
 
@@ -3187,12 +3187,12 @@ app.get('/api/witch/blog', async (req, res) => {
 
 // Import Art: drop in card images made elsewhere (e.g. bulk-downloaded from your
 // own Midjourney) as a named batch the deck workflow can pull from.
-app.get('/import', serveGated('ingest.html'));
+app.get('/import', serveGated('ingest.html', { pill: true }));
 
 // Crystal drop: dump crystal photos (+ whatever's known about each stone) into
 // Firebase so a chat can pull them back out to price, sort into listings, and
 // build the numbered pick-your-own grids. Engine is /api/crystals (crystals.js).
-app.get('/crystals', serveGated('crystals.html'));
+app.get('/crystals', serveGated('crystals.html', { pill: true }));
 // The Crystal Splitter — an album's photos in shooting order, one tap on any
 // photo that starts a NEW stone. Most of the dumped albums are catalogue runs
 // (20-50 stones each), and nothing in the data says where one stops, so this is
@@ -3202,7 +3202,7 @@ app.get('/crystalsplit', serveGated('crystalsplit.html', { pill: true }));
 // Audio drop: recordings off the phone (the Files app's picker is multi-select)
 // into Firebase, each one back as a permanent public url anything downstream can
 // use. Engine is /api/audio (audio.js).
-app.get('/audio', serveGated('audio.html'));
+app.get('/audio', serveGated('audio.html', { pill: true }));
 // Voice Studio — pick a cloned voice, type text, get it spoken. Engine is
 // /api/voicelab (voicelab.js). Gets the shared autoscroll pill.
 app.get('/voice', serveGated('voice.html', { pill: true }));

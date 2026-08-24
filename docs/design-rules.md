@@ -31,6 +31,35 @@ The house rules that only bite when you are actually building a page, an iOS scr
     copy that leans only on `window.__scrollStop`. Re-generating those pages
     is its own job (see the stale-generator warning in `CLAUDE.md`).
   - Pinned by `node scripts/test-back-to-top.js`.
+  - **IT FOLLOWS WHATEVER IS ACTUALLY SCROLLING (2026-08-24, Sophie: "some
+    surfaces scroll but have no to top arrow. like story room shelf").** A
+    full-screen sheet (`position:fixed; inset:0; overflow-y:auto` — the Story
+    Room's shelf) takes the scroll away from the window, and every check here
+    asked the window, so on the shelf there was no pill and no arrow at all;
+    the sheet's z-index 40 also sat over the pill's 9, so a lit arrow was
+    unreachable (measured with `elementFromPoint`). The pill hears an inner
+    scroller through a CAPTURE-phase `scroll` listener (scroll does not bubble
+    but it does capture, so `e.target` names the box) and, before she has
+    scrolled anything, through `elementsFromPoint` at the middle of the screen
+    — asked only when the window itself cannot scroll, and re-asked by a
+    MutationObserver, because a fixed sheet opening changes nothing a
+    ResizeObserver watches. **Only a nearly-full-screen overlay is adopted**
+    (80% wide, 60% tall): a note list or a drawer must never steal the pill
+    from the page behind it. Adopting one lifts the pill to that box's
+    z-index + 1 and releasing restores its own. Test:
+    `node scripts/test-pill-sheet.js`.
+  - **NEVER hand-roll a second one.** `/chunking` carried its own circle at
+    the bottom-right from before this existed — two back-to-tops, two corners,
+    one job, and a round plate the icon rule has since retired.
+  - **A PAGE CAN KILL THE WHOLE INJECTED PILL BY NAMING A VARIABLE.** Its
+    script runs in the page's global scope, so a top-level `let`/`const`
+    sharing a name with one of the pill's `var`s (`playing`, `raf`, `I`,
+    `dir`, `last`, `si`…) is a parse-time SyntaxError that takes the pill with
+    it, silently — `/search` had `let playing` and had no autoscroll and no
+    arrow for as long as it existed. **Wrap a page script in an IIFE**
+    (`/cutmarks` already does, and its comment says why).
+    `node scripts/test-pill-globals.js` loads every injected page in a real
+    browser and asks whether the pill's script ran.
 - **TRUNCATED TEXT OPENS WITH AN UNDERLINED WORD — NEVER A BUTTON (Aug 2026,
   Sophie, pointing at the Playground: "the ... button for longer than two line
   prompt is huge. why? it shud be fixed everywhere. truncated text shud always

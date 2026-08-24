@@ -2382,6 +2382,56 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   - **The app's copy has no `id="ptop"` on purpose** — `chats.html`'s own pill
     owns that id and the sweep above counts exactly one per file; the viewer's
     button is `class="ptop"` only.
+  - **THE PILL FOLLOWS WHATEVER IS ACTUALLY SCROLLING (2026-08-24, Sophie:
+    "some surfaces scroll but have no to top arrow. like story room shelf").**
+    Every check asked the WINDOW, so a surface whose content scrolls inside a
+    full-screen sheet — the Story Room's shelf is `position:fixed; inset:0;
+    overflow-y:auto` — looked to the pill like a page with nothing to scroll:
+    no pill and no arrow, on the screen the tool now OPENS on. Measured with
+    `elementFromPoint`: even a lit arrow was unreachable, because the sheet is
+    z-index 40 over the pill's 9.
+    - **The scroller ANNOUNCES ITSELF by scrolling.** `scroll` does not bubble
+      but it does CAPTURE, so one capture-phase listener on the document hears
+      an inner element scroll and takes `e.target` as the box; the window
+      scrolling puts it down. No per-page hook, and no walking the DOM looking
+      for scrollers on every scroll event.
+    - **The PILL cannot wait for her to scroll**, so when the window has
+      nothing to scroll `findBox()` asks `elementsFromPoint` at the middle of
+      the screen — O(depth), and it finds the topmost overlay covering the
+      viewport. A **MutationObserver** on the body is what re-asks, because a
+      fixed sheet opening changes nothing the ResizeObserver watches.
+    - **Only a NEARLY-FULL-SCREEN overlay is adopted** (80% of the width, 60%
+      of the height): a note list or a filter drawer must never steal the pill
+      from the page behind it. Adopting one LIFTS the pill to the box's
+      z-index + 1 and putting it down restores the pill's own layer.
+    - It ships in `pill.py` → `pill-inject.html`, so it reaches the 35 injected
+      pages. The five BAKED copies still ride the window only — measured, none
+      of them holds a full-screen inner scroller. Test:
+      `node scripts/test-pill-sheet.js` (verified failing 4 pre-fix).
+  - **A PAGE CAN KILL THE INJECTED PILL BY NAMING A VARIABLE, silently
+    (found the same day, sweeping for the same report).** The pill's script
+    runs in the page's global scope, so a page-level `let`/`const` sharing a
+    name with one of its `var`s is a SyntaxError that takes the WHOLE pill
+    script with it at parse time. `/search` had `let playing = null` and
+    therefore no autoscroll, no back-to-top and an undefined
+    `window.__scrollStop` — with nothing on screen saying so. `/cutmarks` had
+    already been bitten and wrapped its page script in an IIFE (its comment
+    names the bug), which is the fix; `/search` is renamed.
+    **`node scripts/test-pill-globals.js` MEASURES it** — every injected page
+    served the way `serveGated` serves it, loaded in a real browser, asked
+    whether the pill's script ran. The page list is read out of server.js's own
+    `{ pill: true }` calls, so a new page joins the sweep by opting in.
+  - **THE PILL IS CONDITIONAL, SO OPT A SCROLLING PAGE IN AND STOP THINKING
+    ABOUT IT.** 15 gated pages had no pill at all (the Dump, the Shop Report,
+    Studio, Films, the dream archive, the desktop queue, Blog, Crystals…) —
+    every one a page that scrolls with no way back up. They carry it now. A
+    page that never scrolls shows nothing, so the only pages left out are the
+    two that are deliberately one screen (`/filmeditor`, `/opinions`) and the
+    five that bake their own copy.
+  - **A page must not hand-roll its own** — `/chunking` carried a circle
+    floating at the bottom-right, written before the shared arrow existed, so
+    it had two back-to-tops in two corners doing one job (and a round plate,
+    which the icon rule retired). Removed; `#ptop` is the one.
 - **TRUNCATED TEXT OPENS WITH AN UNDERLINED WORD, NEVER A BUTTON (Aug 2026,
   Sophie: "the ... button for longer than two line prompt is huge … truncated
   text shud always just be a ...with a line under it that links to open
