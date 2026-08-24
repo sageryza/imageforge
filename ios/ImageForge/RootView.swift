@@ -702,11 +702,15 @@ private struct HomeGrid: View {
     /// - **Scratch Pad** is the Story Room (the `.story` tile serves the pad's
     ///   page), so listing it would be the same tool twice.
     ///
-    /// **Story Room came BACK into this tab** (Sophie, Aug 2026: "move
-    /// everything onto the movies page like the story boards…") — it had been
-    /// pulled out earlier ("story room is no longer movies") and pinned first
-    /// on the default home. Her newer word wins; it is stop 1 here and has no
-    /// card on the default home any more.
+    /// **Story Room is stop 1 here AND a card on the default home** (Sophie,
+    /// 2026-08-24: "someone took the story room module out of the default
+    /// icons on the homepage… can you add it back"). It came back into this
+    /// tab in Aug 2026 ("move everything onto the movies page like the story
+    /// boards…") and the film filter's hide-from-home rule then took its home
+    /// card away as a side effect — which is not what she asked for either
+    /// time. It is the ONE named exception to that rule (`homeAlso` below);
+    /// the flat movies chip still drops it, on her own reasoning that it is
+    /// "already on the home screen".
     private static let pipeline: [MovieStage] = [
         MovieStage(n: 1, name: "The story",
                    line: "What it is about, and what order it happens in.",
@@ -738,6 +742,11 @@ private struct HomeGrid: View {
     /// ("the quilt hides the modules but the movies tab doesn't"): she wanted
     /// them off the home screen and in the movie tab, not in both places.
     private static let movieTools: [Tool] = HomeGrid.pipeline.flatMap { $0.tools }
+
+    /// Pipeline tools that ALSO keep a card on the default home. One entry,
+    /// Story Room — see the note in `tools` below. Keep this tiny: the film
+    /// chip's whole point is that its tools are not also on the home screen.
+    private static let homeAlso: Set<Tool> = [.story]
 
     /// THE SECOND MOVIES CHIP — the same tools as one flat pile (Aug 2026,
     /// Sophie: "add a second movies icon but choose a different icon for it …
@@ -786,7 +795,8 @@ private struct HomeGrid: View {
 
     // Sophie's home order: everything rotates by most-recent use. Nothing is
     // pinned to the top or the bottom anymore — Story Room held the first slot
-    // until she moved it into the movie tab (Aug 2026), and the old bottom trio
+    // until she moved it into the movie tab (Aug 2026; it is a card here again
+    // since 2026-08-24, just no longer pinned first), and the old bottom trio
     // (Voice Studio, Characters, Films) are film tools that went the same way.
     private var tools: [Tool] {
         // THE FILM FILTER NOW HIDES ITS TOOLS FROM THE DEFAULT HOME, the same
@@ -812,12 +822,19 @@ private struct HomeGrid: View {
         // icons beside the masthead. .scratchpad is hidden because the pad IS
         // the Story Room now (the .story tile's /storyroom page serves it), so
         // two tiles would be the same tool twice; its case and view stay for
-        // deep links and history. Story Room itself is stop 1 of the movie
-        // pipeline now, so `movieTools` takes it off this list.
+        // deep links and history.
+        //
+        // STORY ROOM IS THE ONE EXCEPTION TO THE FILM-FILTER HIDE (`homeAlso`,
+        // Sophie 2026-08-24: "someone took the story room module out of the
+        // default icons on the homepage… can you add it back"). It is stop 1
+        // of the pipeline AND a card here — losing the card was a side effect
+        // of the hide rule, never something she asked for. Everything else in
+        // `movieTools` stays film-tab-only.
         let middle = Tool.allCases.filter { $0 != .chats && $0 != .test && $0 != .scratchpad
                                             && $0 != .song && $0 != .vector
                                             && !$0.isBusiness && !$0.isCraft
-                                            && !Self.movieTools.contains($0) }
+                                            && (!Self.movieTools.contains($0)
+                                                || Self.homeAlso.contains($0)) }
         let ranked = recents.order.filter { middle.contains($0) }
         let rest = middle.filter { !ranked.contains($0) }
         return ranked + rest
