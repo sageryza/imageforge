@@ -103,6 +103,13 @@ const server = http.createServer((req, res) => {
       truncated: [], messages: since ? [] : MSGS, delta: !!since,
     }));
   }
+  // /tritoggle.js — the shared AIM rule (2026-08-24). express.static serves it
+  // in production; a stub that does not falls back to the old CYCLE and would
+  // green-light the very bug this pins.
+  if (url.pathname === '/tritoggle.js') {
+    res.writeHead(200, { 'Content-Type': 'text/javascript' });
+    return res.end(fs.readFileSync(path.join(__dirname, '..', 'public', 'tritoggle.js')));
+  }
   if (url.pathname === '/api/chatfeed/app-account' && req.method === 'POST') {
     let body = '';
     req.on('data', (c) => body += c);

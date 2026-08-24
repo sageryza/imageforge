@@ -181,6 +181,11 @@ function clearSlot(slot) { SLOT_KEYS.forEach((k) => { delete slot[k]; }); }
 // not drawn on the side she removed it from. Giving that side art again
 // clears the mark — putting something back is what brings it back.
 const slotOff = (s) => Boolean(s && s.off);
+// Swapping a picture into a slot — the past-pictures bookkeeping lives in
+// its own dependency-free file so it can be tested without a node_modules,
+// and so /image and a finished draw share ONE copy of the rules.
+const { swapArt } = require('./pad-art');
+
 // DREAMY's recipe is the Playground's Dreamy tile — refs/dream-mystery.jpg
 // with HER OWN dictated prefix and suffix (2026-08-22), bookending her words
 // exactly as the Playground sends them (prefix\n\nwords\n\nsuffix). These two
@@ -545,19 +550,59 @@ router.get('/pads', async (req, res) => {
         // Sophie can pin a cover from a beat's popup (POST /cover); the
         // pinned one wins over the first-art derivation.
         cover: v.cover || (withArt ? faceOf(withArt) : (inboxArt ? inboxArt.url : null)),
-        category: v.category || null, pinned: v.pinned === true, updatedAt: v.updatedAt || 0,
+        category: v.category || null, folder: v.folder || null,
+        pinned: v.pinned === true, updatedAt: v.updatedAt || 0,
       };
     }).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
     res.json({ count: pads.length, pads });
   } catch (e) { fail(res, e); }
 });
 
+const FOLDER_MAX = 60;
+
 router.post('/pads', async (req, res) => {
   try {
     const title = String(req.body.title || '').slice(0, 200).trim();
+    // Started from inside a folder → it belongs to that folder (the shelf's +
+    // while a folder is open). Absent everywhere else, so a plain new story
+    // still lands loose on the shelf.
+    const folder = String(req.body.folder || '').slice(0, FOLDER_MAX).trim();
     const ref = db().collection(COL).doc();
-    await ref.set({ title, beats: [], updatedAt: Date.now() });
-    res.json({ ok: true, pad: ref.id, title });
+    await ref.set({ title, beats: [], updatedAt: Date.now(), ...(folder ? { folder } : {}) });
+    res.json({ ok: true, pad: ref.id, title, folder: folder || null });
+  } catch (e) { fail(res, e); }
+});
+
+// ── Folders on the shelf ────────────────────────────────────────────
+// (Aug 2026, Sophie: "just make an intermediate shelf so basically treat the
+// Evan and Mason ones as a folder … some sort of UI design like a stack that
+// you can see underneath the cover image so you can tell there's multiple
+// stories in there".) One story of hers becomes several as chats work on it,
+// and the flat newest-first shelf interleaves them with everything else — the
+// five Mason stories were scattered across four screens.
+//
+// A folder is just a NAME on the pad doc, not a doc of its own: there is
+// nothing to create, nothing to delete, and a folder stops existing the
+// moment its last story leaves it. That is what keeps the shelf honest — an
+// empty folder tile can never sit there pointing at nothing.
+//
+// Like /category, this deliberately does NOT bump updatedAt: tidying the
+// shelf must not reshuffle its newest-first order.
+router.post('/pads/folder', async (req, res) => {
+  try {
+    // `pads` files a whole set in one call — how a chat gathers a character's
+    // stories — and `pad` is the single-story form.
+    const ids = (Array.isArray(req.body.pads) ? req.body.pads : [req.body.pad])
+      .map((x) => String(x || '').trim()).filter(Boolean);
+    if (!ids.length) return res.status(400).json({ error: 'pad or pads required' });
+    const folder = String(req.body.folder || '').slice(0, FOLDER_MAX).trim();
+    const batch = db().batch();
+    // '' takes a story back out of its folder — the only way out, and the
+    // reason this stores null rather than deleting the field (a merge:true
+    // write cannot unset one).
+    ids.forEach((id) => batch.set(padRef(id), { folder: folder || null }, { merge: true }));
+    await batch.commit();
+    res.json({ ok: true, pads: ids, folder: folder || null });
   } catch (e) { fail(res, e); }
 });
 
@@ -728,14 +773,11 @@ router.post('/image', async (req, res) => {
       const slot = artSlot(b, style, true);
       // Swapping a picture into a clip SLOT makes that side a picture again —
       // leaving `kind` behind would render an image url as a film. Only this
-      // side: the other style's clip (or picture) is untouched.
-      if (slotClip(slot)) { delete slot.kind; delete slot.poster; delete slot.seconds; delete slot.title; delete slot.clipId; delete slot.url; }
-      // The picture this side already had is kept, never destroyed.
-      if (slot.url && slot.url !== url) slot.imageHistory = (slot.imageHistory || []).concat([{ url: slot.url, at: Date.now() }]);
-      slot.url = url;
-      if (src) slot.src = src;
-      // Art here again un-deletes this side (see `off` above).
-      delete slot.off;
+      // side: the other style's clip (or picture) is untouched. swapArt owns
+      // that, the history bookkeeping, and the provenance — this route is
+      // both a fresh pick from the inbox AND her picking an older version
+      // back off the past-pictures row, and they must behave identically.
+      swapArt(slot, url, src);
       tx.set(padRef(pid), { beats: cur, updatedAt: Date.now() }, { merge: true });
       return cur;
     });
@@ -891,15 +933,14 @@ async function runArtJob(padId, id, { prompt, quality, character, style }) {
     const url = `https://storage.googleapis.com/${bucket.name}/${dest}`;
     await patchBeat(padId, id, (b) => {
       const slot = artSlot(b, style, true);
-      if (slot.url && slot.url !== url) slot.imageHistory = (slot.imageHistory || []).concat([{ url: slot.url, at: Date.now() }]);
-      slot.url = url;
-      slot.src = {
+      // Through swapArt so the picture this draw replaces is banked WITH the
+      // run that made it — that is what lets her pick it back later and get
+      // its own prompt with it, rather than this draw's.
+      swapArt(slot, url, {
         engine: 'gptimage', model: 'gpt-image-2', prompt, quality,
         character: Boolean(character) && !dreamy, style: dreamy ? 'dreamy' : 'watercolor', promptUsed: full,
-      };
+      });
       slot.gen = { status: 'done', at: Date.now() };
-      // Art here again un-deletes this side (see `off` above).
-      delete slot.off;
     });
     // Every draw also lands in My Creations (house rule — the gallery is the
     // hand-off surface for every image made for Sophie). Through the server's

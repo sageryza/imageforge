@@ -241,8 +241,16 @@ const server = http.createServer((req, res) => {
   const stops = () => page.$$eval('#searchfilters .filtrow .tri', (n) => n.map((v) => v.getAttribute('data-n')));
   const results = () => page.$$eval('#searchresults .sres', (n) => n.length);
   const last = () => asked[asked.length - 1];
-  const tapWho = () => page.click('#searchfilters .filtrow:nth-child(1) .tri');
-  const tapArch = () => page.click('#searchfilters .filtrow:nth-child(2) .tri');
+  // A TAP LANDS ON THE STOP UNDER IT (2026-08-24 — /tritoggle.js), so the taps
+  // here are AIMED at a stop rather than counted as steps: these rows used to
+  // be driven by clicking the middle over and over and relying on the cycle,
+  // which is exactly the behaviour Sophie reported as broken in the Playground.
+  const tapStop = async (sel, n) => {
+    const box = await page.locator(sel).boundingBox();
+    await page.mouse.click(box.x + box.width * ((n + 0.5) / 3), box.y + box.height / 2);
+  };
+  const tapWho = (n) => tapStop('#searchfilters .filtrow:nth-child(1) .tri', n);
+  const tapArch = (n) => tapStop('#searchfilters .filtrow:nth-child(2) .tri', n);
 
   // ---- the row costs the home screen nothing until she searches -----------
   if (await shown('#searchfilters')) fail('the filter row is on screen with the search bar folded away');
@@ -278,7 +286,7 @@ const server = http.createServer((req, res) => {
 
   // ---- WHO reaches the SERVER, not just the loaded list -------------------
   let before = asked.length;
-  await tapWho();
+  await tapWho(1);
   await page.waitForFunction((n) => document.querySelectorAll('#searchresults .sres').length === 2,
     null, { timeout: 4000 }).catch(() => {});
   if (asked.length <= before) fail('moving the who toggle never asked the server anything');
@@ -296,32 +304,32 @@ const server = http.createServer((req, res) => {
   is('shut, the chip wears what is narrowed', await chipText(), 'Mine');
   await page.click('#searchfilters .filtchip');   // back open for the rest
 
-  await tapWho();
+  await tapWho(2);
   await page.waitForFunction(() => document.querySelectorAll('#searchresults .sres').length === 3,
     null, { timeout: 4000 }).catch(() => fail('the next notch did not narrow to the replies'));
   is('CLAUDE asks for his side', last().from, 'claude');
   is('the unstamped older reply is on his side, not hers', await results(), 3);
 
-  // …and it WRAPS, the way every toggle in this app does.
-  await tapWho();
+  // …and the FIRST stop is one tap away, wherever it is — she aims at it.
+  await tapWho(0);
   await page.waitForTimeout(300);
-  is('a third tap wraps back to everyone', (await stops())[0], '0');
+  is('a tap on the first stop goes back to everyone', (await stops())[0], '0');
   is('which sends nothing again', last().from, null);
 
   // ---- THE ARCHIVE, the second filter -------------------------------------
   before = asked.length;
-  await tapArch();
+  await tapArch(1);
   await page.waitForTimeout(350);
   if (asked.length <= before) fail('moving the archive toggle never asked the server anything');
   is('one notch is "not archived"', last().arch, 'live');
   is('and it says so', (await words())[1], 'Not archived');
-  await tapArch();
+  await tapArch(2);
   await page.waitForTimeout(350);
   is('two notches is the archive alone', last().arch, 'only');
   is('and it says so', (await words())[1], 'Archive only');
 
   // ---- the two ride together ----------------------------------------------
-  await tapWho();
+  await tapWho(1);
   await page.waitForTimeout(350);
   is('both filters travel on the one request', [last().from, last().arch], ['me', 'only']);
   // Shut, both are on the chip, joined — the one place she sees the whole
@@ -382,7 +390,7 @@ const server = http.createServer((req, res) => {
   is('every message shows to start with', await visRows(), 5);
   // WITH NO WORDS AT ALL — "just show me what I said in here" is a whole
   // question, and the one the thread can answer without a search term.
-  await page.click('.msgfilters .filtrow .tri');
+  await tapStop('.msgfilters .filtrow .tri', 1);
   await page.waitForTimeout(200);
   is('the filter narrows on its own, with an empty box', await visRows(), 2);
   is('and says how many', await count(), '2 messages');
@@ -392,7 +400,7 @@ const server = http.createServer((req, res) => {
   await page.waitForTimeout(300);
   is('her one message holding that word', await visRows(), 1);
 
-  await page.click('.msgfilters .filtrow .tri');   // → Claude's
+  await tapStop('.msgfilters .filtrow .tri', 2);   // → Claude's
   await page.waitForTimeout(200);
   is('the same word on his side is nowhere', await visRows(), 0);
 
