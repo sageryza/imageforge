@@ -2252,6 +2252,27 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     `[hidden]` and was never affected — that is the difference between the two.
     Test: `node scripts/test-lightbox-nostop.js` (verified failing against the
     pre-fix file).
+  - **AND `/assets` (Meta Assets) IS A THIRD COPY OF THAT LIGHTBOX, STILL
+    UNMIGRATED — it drifts, and both of these bugs reached Sophie there a
+    second time (2026-08-24: "I can't get out of the light box in Meta assets
+    I think with tapping it's considering too many things part of the row").**
+    `asset-lightbox.js` exists precisely to end this and `public/assets.html`
+    was never moved onto it, because it grew extras the shared file has no
+    hook for (the action icons — open the chat · Playground · Save to Photos —
+    and the `clwho` origin line). So it kept the OLD close rule: a blanket
+    `stopPropagation` on each row, which swallows the tap for the row's WHOLE
+    width — the ♥/✕ strip is `left:22px; right:22px`, the action icons and the
+    note block are full-width flex rows — leaving her with almost nowhere to
+    tap that closes. Both settled rules are ported now (target-based close,
+    innerHTML wiped a frame later, `data-nostop` on the overlay), but they are
+    a HAND COPY: **fix one and fix the other**, and the real repair is giving
+    the shared file an extras hook and deleting this copy. It also still runs
+    the OLD thread layout (letters above the box, no CHAT button) — the same
+    drift, visible.
+    Test: `node scripts/test-meta-assets-page.js` (step 11, the real page
+    headless — the dead space found by scanning the row with
+    `elementFromPoint`, which is the only honest way to ask what a tap reaches;
+    verified failing against the pre-fix page).
 - **iOS: pin bottom bars below the keyboard (never floating above it).** A
   custom bottom nav/tab bar laid out in a `VStack` rides UP and hovers above the
   keyboard, because SwiftUI's keyboard safe-area inset shrinks the stack. This
