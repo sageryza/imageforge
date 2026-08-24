@@ -654,6 +654,21 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    told apart at a glance on a row that carries both. */
 .cr-kept{flex:none; display:flex; align-items:center; color:var(--chg); margin-right:-3px;}
 .cr-kept svg{width:13px; height:13px; display:block; fill:currentColor;}
+/* WAITING FOR A RESPONSE — the mark for the one tag that says a chat owes HER
+   something (Aug 2026, Sophie: "since I'm waiting for it I'd like a chat
+   that's tagged like that to come with some extra indication").
+   The tag already pinned the chat's CARD to the top of the Update tab, and
+   that was the whole of it: on the home list, in Tiles, and inside the thread
+   the chat looked like every other chat, so the one screen that knew she was
+   waiting was the one screen she had to be on to find out.
+   It rides the front of the row beside the star and the bookmark — the slot
+   for a state with no control of its own — and `inline-flex` rather than
+   `flex` so the SAME class also sits inside the tile's name and the thread's
+   <h1>, which are text and not flex rows. */
+.cr-wait{flex:none; display:inline-flex; align-items:center; vertical-align:-2px;
+  color:var(--chg); margin-right:-1px;}
+.cr-wait svg{width:14px; height:14px; display:block;}
+.t-name .cr-wait,h1 .cr-wait{margin-right:4px;}
 /* PINNED TO THE TOP — the pushpin is a CONTROL on the row (Aug 2026, Sophie:
    "I was assuming it would go right on the main page not inside of it"), so it
    sits with the hide button rather than being a mark at the front of the row.
@@ -2395,8 +2410,45 @@ function statusLinesHtml(name, fallback){
 // the chat is pinned — a second copy of the same glyph at the front of the row
 // was showing the state twice. The star and the bookmark are marks here
 // because they have no control on the row.
+// Lucide `hourglass`. A line glyph, the house's chrome voice — and the one
+// mark on a row that means SHE is owed something rather than that she filed
+// something. Deliberately not the bell (that is notifications), not the star
+// (hers, "I am working on this") and not a clock with an arrow (WAITPAST, the
+// reasons list) — three marks in one colour already live on these rows, so the
+// shape is what has to carry the difference.
+var WAITREPLY='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg>';
+// IS SHE WAITING ON THIS CHAT? — read off TAG_RULES rather than off the string,
+// so the mark and the Update tab's pin can never disagree about which word
+// means this. The pin rule is first in that table, so a chat wearing both rule
+// words still answers `pin` here, which is the right answer: an answer she is
+// owed outranks a queue she can visit whenever.
+function waitingReply(name){ var r=tagRuleOf(name); return !!(r && r.rule==='pin'); }
+// THE MARK, one renderer. It follows the TAG, not the Update tab's card: her ✓
+// there settles the CARD, and the debt is over when the word comes off — the
+// same rule the sibling tag's "Waiting for:" line has always followed. So a
+// chat she dismissed on the Update tab still says she is waiting, and taking
+// the tag off is what puts the mark out.
+function waitMarkHtml(name){
+  return waitingReply(name)
+    ? '<span class="cr-wait" title="Waiting for a response" aria-label="Waiting for a response">'+WAITREPLY+'</span>'
+    : '';
+}
+// The thread's copy of the mark is built ONCE with the header, and the tag is
+// put on from the Organize sheet — which opens from inside that same thread. So
+// the tap has to repaint it, or the one screen she is standing on is the last
+// to know. The lists repaint themselves (saveLabels mutates `chats` before its
+// callers redraw), so this is the only copy that needs telling.
+function syncWaitMark(name){
+  if(cur!==name) return;
+  var h=document.querySelector('#thread .thread-head h1');
+  if(!h) return;
+  var m=h.querySelector('.cr-wait');
+  if(waitingReply(name)){ if(!m) h.insertAdjacentHTML('afterbegin', waitMarkHtml(name)); }
+  else if(m) m.remove();
+}
 function starHtml(name){
-  return (chatKept(name) ? '<span class="cr-kept">'+BMK_SVG+'</span>' : '')
+  return waitMarkHtml(name)
+       + (chatKept(name) ? '<span class="cr-kept">'+BMK_SVG+'</span>' : '')
        + (chatStar(name) ? '<span class="cr-star">'+STAR+'</span>' : '');
 }
 function acctHtml(name){
@@ -5610,7 +5662,7 @@ function renderTiles(el,g,names){
     var tline=st.note || st.need || st.doing || status || '';
     var lineHtml=tline?'<span class="t-tldr t-note">'+esc(tline)+'</span>':'';
     b.innerHTML='<span class="t-cover">'+iconHtml(name,'',true)+(unread?'<span class="t-new"></span>':'')+'</span>'
-      +'<span class="t-name">'+esc(dispName(name))+'</span>'
+      +'<span class="t-name">'+waitMarkHtml(name)+esc(dispName(name))+'</span>'
       +(about? '<span class="t-about">'+esc(about)+'</span>':'')
       +lineHtml
       +'<span class="t-meta">'+(last? ago(last.created) : 'no messages')+'</span>';
@@ -6484,7 +6536,7 @@ function openChat(name, keepScroll, focusId, noFetch){
   var list=(groups()[name])||[];
   var head=document.createElement('header');
   head.innerHTML='<div class="no"></div>'
-    +'<div class="thread-head">'+iconHtml(name)+'<h1>'+esc(dispName(name))+'</h1><button class="renamebtn" aria-label="Rename this chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div>'
+    +'<div class="thread-head">'+iconHtml(name)+'<h1>'+waitMarkHtml(name)+esc(dispName(name))+'</h1><button class="renamebtn" aria-label="Rename this chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div>'
     +'<div class="headbtns"><div class="viewtog" style="margin:0"><button class="tg-chat on">Chat</button><button class="tg-assets">Assets</button><button class="tg-compare">Compare</button></div>'
     +'<button class="tbtn threadsearch" aria-label="Search this chat" style="padding:6px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>'
     +'<button class="tbtn threadrefresh" aria-label="Refresh" style="padding:6px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button></div><div class="rule"></div>';
@@ -7994,7 +8046,7 @@ function askOrganize(name){
   }
   function setLabel(c, on){
     saveLabels([name], on?{add:[c],repaint:paintLabels}:{remove:[c],repaint:paintLabels});
-    paintLabels();
+    paintLabels(); syncWaitMark(name);
     // ONE WORD ASKS A QUESTION — `waiting for something` wants to know what.
     // The box opens on the tap that puts it on; taking the tag off clears the
     // answer (the server does that in labelPatch, and so does saveLabels here).
@@ -8011,7 +8063,7 @@ function askOrganize(name){
   }
   function clearLabels(){
     saveLabels([name], {set:[], repaint:paintLabels});
-    paintLabels(); paintWait();
+    paintLabels(); paintWait(); syncWaitMark(name);
     toast('Out of every pile');
   }
   paintLabels();

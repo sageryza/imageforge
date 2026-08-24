@@ -2184,6 +2184,44 @@
       would show the pin only where it is not needed. `pinLive` is
       `filedAt > notifSeenAt` and nothing else — the tag written after the
       last time she settled the chat.
+      - **AND THE CHAT WEARS A MARK, EVERYWHERE (2026-08-24, Sophie: "are
+        there any extra instructions for if I tag a chat waiting for a
+        response? Since I'm waiting for it I'd like a chat that's tagged like
+        that to come with some extra indication").** The pin above was the
+        whole of the rule, and a pin only exists on the Update tab — so on the
+        home list, and inside the thread itself, a chat she was owed an answer
+        from looked like every other chat, and the one screen that knew she
+        was waiting was the one screen she had to already be on.
+        `waitMarkHtml` is a Lucide **hourglass** in the marks' red (`--chg`),
+        drawn at the front of the row beside the star and the bookmark — the
+        slot this file already reserves for a state with no control of its own
+        — and inside the thread's `<h1>`. One renderer, so the three row
+        builders that share `starHtml` (the home list, the Status row and the
+        Update card) cannot draw it three ways.
+        - **IT FOLLOWS THE TAG, NOT THE CARD.** Her ✓ on the Update tab
+          settles the CARD (`pinLive` goes out); the mark stays until the WORD
+          comes off, which is the same rule the sibling tag's `Waiting for:`
+          line has always followed. Two different questions — "have I dealt
+          with this card" and "am I still waiting" — so they end at two
+          different moments.
+        - **IT READS `TAG_RULES`, NOT THE STRING** (`waitingReply` asks
+          `tagRuleOf(name).rule === 'pin'`), so the mark and the pin can never
+          disagree about which word means this. First-match ordering means a
+          chat wearing both rule words still answers `pin`, which is the right
+          answer here for the same reason it is right on the tab.
+        - **IT IS A `<span>`.** A row is a `<button>`; a nested button is
+          invalid markup and the tap would bubble into opening the chat. The
+          word rides `title` + `aria-label` instead.
+        - **`syncWaitMark` repaints the THREAD header**, which is built once
+          in `openChat` — and the Organize sheet opens from inside that same
+          thread, so without it the screen she is standing on is the last to
+          know. The lists need no such thing: `saveLabels` mutates `chats`
+          synchronously before its callers redraw.
+        - **Nothing tells the CHAT.** `GET /api/chatfeed/status` returns her
+          note, the status card and the pinned link — no labels — so a chat
+          cannot see that she is waiting on it. That half is unbuilt.
+        - Test: `node scripts/test-chats-waiting-mark.js` (the real page,
+          headless — verified failing 8 of 14 against the pre-fix page).
     - **`to be reviewed` → THE REVIEW ROW** ("movies that are done, images
       waiting on my decision, go into a `review` button (which links to the
       review queue) at the top of the updates tab, and get hidden from the
