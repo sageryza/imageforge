@@ -466,24 +466,26 @@ struct MovieMakerHome: View {
 
     enum CreateMode { case autopilot, character, storyboard(String) }
 
-    /// The quick-animate quality menu: resolution + price only (first two are
-    /// wan, last two kling — deliberately unlabeled, Sophie knows which).
+    /// The quick-animate quality menu: resolution + price only (the first two
+    /// are wan 2.2, the last two wan 2.7 — deliberately unlabeled, Sophie knows
+    /// which). Wan 2.7 is billed per SECOND of output rather than per clip, so
+    /// its two rows carry the five-second price the server actually charges.
     enum QuickQuality: String, CaseIterable, Identifiable {
-        case p480, p720, kling720, kling1080
+        case p480, p720, wan27, wan27hd
         var id: String { rawValue }
         var label: String {
             switch self {
-            case .p480:      return "480p · 6¢"
-            case .p720:      return "720p · 16¢"
-            case .kling720:  return "720p · 25¢"
-            case .kling1080: return "1080p · 55¢"
+            case .p480:    return "480p · 6¢"
+            case .p720:    return "720p · 16¢"
+            case .wan27:   return "720p · 50¢"
+            case .wan27hd: return "1080p · 75¢"
             }
         }
         var tier: String {
             switch self {
             case .p480, .p720: return "draft"
-            case .kling720:    return "standard"
-            case .kling1080:   return "pro"
+            case .wan27:       return "wan27"
+            case .wan27hd:     return "wan27hd"
             }
         }
         var resolution: String { self == .p480 ? "480p" : "720p" }

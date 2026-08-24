@@ -71,6 +71,17 @@ struct Creation: Identifiable, Hashable {
     /// medium", "Watercolor Drawings") that everything filed before them carries.
     var model: String? = nil
     var quality: String? = nil
+    /// Which resolution rung it was drawn on — "1K", "2K" or "4K" — the THIRD
+    /// required slot since Aug 2026 (Sophie: "1K 2K 4K should be a third slot
+    /// in the model/quality required tagging" · "i asked for it to say 1k 2k
+    /// or 4k"). gpt-image-2 draws any resolution, so model and quality alone
+    /// no longer say what a picture actually is — two runs of the same prompt
+    /// at the same quality can differ 5x in pixels and 3x in price.
+    var size: String? = nil
+    /// The exact canvas ("1568x2352"). Kept beside the tier rather than folded
+    /// into it: 2K portrait and 2K square are different canvases at different
+    /// prices. Not shown in the caption — `size` is what reads there.
+    var canvas: String? = nil
     var style: String? = nil
     /// This picture's only copy was encoded lossily before the bytes ever
     /// reached us (written by scripts/tag-compressed-at-birth.js). The flag is
@@ -94,12 +105,30 @@ struct Creation: Identifiable, Hashable {
     /// itself for a picture.
     var thumbURL: URL { poster ?? url }
 
-    /// The line shown under a creation when you open it — model · quality,
+    /// The tier a caption shows. Records filed before her correction carry the
+    /// raw canvas in `size`, so it is normalised HERE as well as on write —
+    /// the gallery reads Firestore directly and never sees the server's
+    /// read-side fix. Derived from pixel count, never a lookup table, so a
+    /// canvas nobody has drawn before still lands on a rung; the boundaries
+    /// are the geometric midpoints between the measured tiers.
+    static func sizeTier(_ raw: String?) -> String? {
+        guard let s = raw?.trimmingCharacters(in: .whitespaces), !s.isEmpty else { return nil }
+        if s.range(of: "^[124]k$", options: [.regularExpression, .caseInsensitive]) != nil {
+            return s.uppercased()
+        }
+        let parts = s.lowercased().split(whereSeparator: { $0 == "x" || $0 == "\u{00D7}" })
+        guard parts.count == 2, let w = Int(parts[0]), let h = Int(parts[1]), w * h > 0 else { return s }
+        let px = w * h
+        return px < 2_400_000 ? "1K" : px < 5_500_000 ? "2K" : "4K"
+    }
+
+    /// The line shown under a creation when you open it — model · quality · size,
     /// led by "[compressed]" when the original was thrown away at birth. A
     /// picture with no model/quality on file still says it, so the mark never
     /// depends on a caption that may not exist.
     var madeWith: String? {
-        let parts = [model, quality].compactMap { $0?.trimmingCharacters(in: .whitespaces) }
+        let parts = [model, quality, Creation.sizeTier(size)]
+            .compactMap { $0?.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
         var line: String? = nil
         if !parts.isEmpty { line = parts.joined(separator: " · ") }

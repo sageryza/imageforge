@@ -118,6 +118,10 @@
   .dmore { background:none; border:none; cursor:pointer; align-self:flex-start; padding:0;
            font:11px 'Courier Prime', monospace; color:var(--brown); }
   .dmore span { border-bottom:1px dashed currentColor; }
+  /* The same opener where the words are not a dream card — the preview sheet. */
+  .moretxt { display:inline; border:0; background:none; margin:0; padding:0; font:inherit;
+             color:inherit; text-decoration:underline; cursor:pointer;
+             -webkit-tap-highlight-color:transparent; }
   .dtxt > .dmore { float:none; }
   .dark .dmore { color:var(--cream); opacity:.65; }
 
@@ -1438,10 +1442,13 @@ function paintTagRow(){
 function paintPreview(text){
   var el = document.getElementById('preview');
   var t = text.trim();
+  // `.moretxt` — the house opener for truncated text: an underlined word,
+  // never a button (docs/design-rules.md). It was a bare <button> here, so it
+  // drew the browser's own grey box mid-sentence.
   if (sheetState.expanded || t.length <= 150) {
-    el.innerHTML = esc(t) + (t.length > 150 ? ' <button>see less</button>' : '');
+    el.innerHTML = esc(t) + (t.length > 150 ? ' <button class="moretxt">see less</button>' : '');
   } else {
-    el.innerHTML = esc(t.slice(0, 150).trim()) + '… <button>see more</button>';
+    el.innerHTML = esc(t.slice(0, 150).trim()) + '… <button class="moretxt">see more</button>';
   }
   var b = el.querySelector('button');
   if (b) b.addEventListener('click', function(){ sheetState.expanded = !sheetState.expanded; paintPreview(text); });
@@ -1710,7 +1717,7 @@ async function renderTeams(){
         '</div>';
     });
     html += '<div class="h2">start a dream team</div>' +
-      '<input class="whisper" id="teamName" placeholder="name it…" maxlength="40">' +
+      '<input class="whisper" id="teamName" placeholder="name…" maxlength="40">' +
       '<button class="btn" id="teamMake">start it</button>';
     el.innerHTML = html;
     wireBack();

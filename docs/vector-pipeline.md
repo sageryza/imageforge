@@ -456,6 +456,21 @@ them.
 - `scripts/test-vectorize.js` — the trace quality gate
 - `scripts/test-vector-recolor.js` — the recolour gate
 - `scripts/test-vector-prompt.js` — the prompt-drift gate
+- `public/vector.html` — the page. **It wears the CHATS APP's UI** (Aug 2026,
+  Sophie: "can you match the UI style, including buttons and placement and
+  everything to the UI of the chat area?"): chats.html's four palette blocks
+  verbatim, the Georgia serif body, sans caps chrome, the hairline `.acctabs`
+  row with its measured sliding underline in place of the old numbered step
+  rail, `.catchip` option chips, the `.askrow button` action button, and the
+  Assets tab's three-across tile wall. It links NO stylesheet — `tool.css` is
+  gone from it. `/assets` (Meta Assets) is the other page built this way.
+- `scripts/test-vector-chats-ui.js` — the drift pin for that: the palette
+  tokens are READ OUT of chats.html and compared rather than copied, then the
+  real page is measured headless (the underline under the lit tab, buttons
+  hugging their words, nothing tappable in the pill's corner). Verified
+  failing 18 against the pre-port page.
+- `scripts/test-vector-page.js` — the page flow end to end against the real
+  routes (trace → pick → recolour); free, and it skips without a server
 - `docs/gravity-lock/vector/*.svg` — thirteen traced cards, the worked example
 - `@neplex/vectorizer` — native vtracer bindings, an optionalDependency so a
   host without the binary fails on this one route rather than at boot

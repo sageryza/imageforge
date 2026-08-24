@@ -49,7 +49,7 @@ const withApp = buildMetaAssets(
   [
     // app-made sticker sheet — joins, prompt becomes the label, made caption fills the caption slot
     { url: 'https://x/sticker.png', prompt: 'seven woodland stickers', type: 'sticker',
-      model: 'gpt-image-2', quality: 'medium', ms: 5000 },
+      model: 'gpt-image-2', quality: 'medium', size: '1568x2352', ms: 5000 },
     // in-app plain image — prompt also lands in promptContent (Playground/PROMPT work)
     { url: 'https://x/drawn.png', prompt: 'a fox in a yellow raincoat', type: 'image',
       style: 'ChatGPT · medium', ms: 4000 },
@@ -61,7 +61,56 @@ const stick = withApp.find((r) => r.url === 'https://x/sticker.png');
 assert.strictEqual(stick.chat, 'my-creations', 'app rows live in the my-creations bucket');
 assert.ok(stick.app, 'app rows are marked');
 assert.strictEqual(stick.description, 'seven woodland stickers', 'prompt is the label');
-assert.strictEqual(stick.prompt, 'gpt-image-2 · medium', 'model·quality fills the caption slot');
+// MODEL · QUALITY · SIZE — the size became a required third slot in Aug 2026
+// (Sophie: "1K 2K 4K should be a third slot in the model/quality required
+// tagging"), because gpt-image-2 draws any canvas and the first two stopped
+// saying what a picture is.
+// …and the third slot is the TIER, not the pixels ("i asked for it to say 1k
+// 2k or 4k"). Normalised on READ, so a record filed with the raw canvas before
+// her correction still displays the rung and needs no backfill.
+// …and the STYLE leads it since 2026-08-24 (Sophie: "there's no style clause
+// in Meta assets"). It was on every Playground creation all along and this
+// builder read it only as a fallback, so it was fetched and dropped.
+assert.strictEqual(stick.prompt, 'gpt-image-2 · medium · 2K',
+  'a record with no style keeps model·quality·size');
+{
+  const styled = buildMetaAssets([], [{ url: 'https://x/dre.png', prompt: 'a red door', type: 'image',
+    style: 'Dreamy', model: 'gpt-image-2', quality: 'medium', size: '1568x2352', ms: 8 }])[0];
+  assert.strictEqual(styled.prompt, 'Dreamy · gpt-image-2 · medium · 2K',
+    'the style leads the caption — which recipe drew it, before how well and how big');
+  // The style is a LABEL and belongs in the caption, never in the PROMPT
+  // overlay's style half: a creation doc stores the style's NAME, never the
+  // prefix/suffix actually sent, so filing it there would be a reconstruction.
+  assert.strictEqual(styled.promptStyle || '', '',
+    'the prompt overlay’s style half stays empty rather than carrying a label');
+  // A Replicate run files model === styleLabel, so the two must not double up.
+  const lora = buildMetaAssets([], [{ url: 'https://x/wtr.png', prompt: 'a crow', type: 'image',
+    style: 'WTR', model: 'WTR', quality: 'medium', ms: 7 }])[0];
+  assert.strictEqual(lora.prompt, 'WTR · medium',
+    'a LoRA run whose model IS its style reads once, not twice');
+  // THE STYLE SLOT IS ITSELF COMPOUND — the Playground files it as
+  // `${label} · ${quality}`, so a whole-slot de-dupe cannot catch the repeat.
+  // Found live off the deploy: "Dreamy · low · gpt-image-2 · low · 1K".
+  const dbl = buildMetaAssets([], [{ url: 'https://x/dbl.png', prompt: 'p', type: 'image',
+    style: 'Dreamy · low', model: 'gpt-image-2', quality: 'low', size: '1024x1536', ms: 6 }])[0];
+  assert.strictEqual(dbl.prompt, 'Dreamy · gpt-image-2 · low · 1K',
+    'a quality already inside the style slot is not said twice');
+  // A style whose parts say nothing the other slots say is kept WHOLE — the
+  // Scratch Pad files "Scratch Pad · dreamy · medium" and carries no other
+  // fields, so nothing may be trimmed out of it.
+  const pad = buildMetaAssets([], [{ url: 'https://x/pad.png', prompt: 'p', type: 'image',
+    style: 'Scratch Pad · dreamy · medium', ms: 5 }])[0];
+  assert.strictEqual(pad.prompt, 'Scratch Pad · dreamy · medium',
+    'a compound style with nothing to de-dupe survives whole');
+}
+// An absent slot is LEFT OUT, never guessed — nothing on a record filed before
+// the field existed says how big it is, exactly as with quality.
+{
+  const older = buildMetaAssets([], [{ url: 'https://x/old.png', prompt: 'a fox', type: 'image',
+    model: 'gpt-image-2', quality: 'medium', ms: 9 }])[0];
+  assert.strictEqual(older.prompt, 'gpt-image-2 · medium',
+    'a record with no size keeps the two-slot caption rather than inventing one');
+}
 assert.strictEqual(stick.promptContent, '', 'a sticker sheet is not a plain image — no overlay half');
 const drawn = withApp.find((r) => r.url === 'https://x/drawn.png');
 assert.strictEqual(drawn.prompt, 'ChatGPT · medium', 'old single style label is the caption fallback');

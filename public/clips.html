@@ -106,16 +106,12 @@ body.tool .float{
 #lb .saved{ font-size:12px; color:var(--ok); opacity:0; transition:opacity .3s; }
 #lb .saved.show{ opacity:1; }
 
-/* back to top — bottom-right, because the pill owns the top-right corner.
-   Only while there is a scroll worth undoing. */
-#totop{ position:fixed; z-index:10; right:max(14px,4vw);
-  bottom:calc(18px + env(safe-area-inset-bottom));
-  width:44px; height:44px; border-radius:50%; padding:0;
-  background:var(--surface); border:1.5px solid var(--ink); color:var(--ink);
-  box-shadow:0 2px 10px rgba(0,0,0,.09); cursor:pointer;
-  display:flex; align-items:center; justify-content:center; }
-#totop svg{ width:19px; height:19px; stroke:currentColor; stroke-width:1.8; fill:none;
-  stroke-linecap:round; stroke-linejoin:round; }
+/* NO back-to-top of our own. This page carried a hand-rolled one — a circle
+   floating loose at the bottom-right — from before the SHARED arrow existed
+   (scripts/pill.py, in the pill's rail). Two of them, in two corners, doing
+   one job; and the loose circle broke two house rules at once (the rail is
+   where back-to-top rides, and an icon control is a rounded square or a bare
+   glyph, never a round plate). The injected pill's `#ptop` is the one. */
 
 /* a search that comes up empty here, but has hits in the other pile */
 .elsewhere{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
@@ -181,10 +177,6 @@ body.tool .float{
   <div class="shelf" id="shelf"></div>
   <div class="note stateline" id="stateline" hidden></div>
 </main>
-
-<button id="totop" hidden aria-label="Back to top">
-  <svg viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg>
-</button>
 
 <div id="tour" hidden>
   <div class="spot" id="tourSpot"></div>
@@ -453,7 +445,7 @@ function openLb(c) {
   $('lbHide').textContent = c.hidden ? 'Unhide' : 'Hide';
   $('lb').classList.add('open');
   document.body.style.overflow = 'hidden';
-  syncTop();
+  window.__pillTopSync && window.__pillTopSync();
 }
 function closeLb() {
   var v = $('lbVideo');
@@ -467,7 +459,7 @@ function closeLb() {
   // sees a short page and clamps to 0. Measured headless; the double-rAF lands
   // after the first painted frame.
   requestAnimationFrame(function () {
-    requestAnimationFrame(function () { window.scrollTo(0, savedY); syncTop(); });
+    requestAnimationFrame(function () { window.scrollTo(0, savedY); window.__pillTopSync && window.__pillTopSync(); });
   });
 }
 $('lbClose').onclick = closeLb;
@@ -521,18 +513,6 @@ document.addEventListener('click', function (e) {
 });
 document.addEventListener('focusin', function () { if (window.__scrollStop) window.__scrollStop(); });
 
-/* ── back to top ── */
-var totop = $('totop');
-function syncTop() {
-  if ($('lb').classList.contains('open') || !$('tour').hidden) { totop.hidden = true; return; }
-  totop.hidden = window.scrollY < 500;
-}
-window.addEventListener('scroll', syncTop, { passive: true });
-totop.onclick = function () {
-  if (window.__scrollStop) window.__scrollStop();   // a running autoscroll would fight it
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-};
-
 /* ── search wiring ── */
 var qLive = liveInput($('q'), render);
 /* `qLive.sync()` inside it: the blur Return performs would otherwise be
@@ -585,14 +565,14 @@ function tourStart() {
   $('tourAsk').hidden = true;
   $('helpcard').hidden = true;
   $('tour').hidden = false;
-  syncTop();
+  window.__pillTopSync && window.__pillTopSync();
   tourShow();
 }
 function tourEnd() {
   $('tour').hidden = true;
   document.body.style.overflow = '';
   window.scrollTo(0, tourY);
-  syncTop();
+  window.__pillTopSync && window.__pillTopSync();
 }
 $('tour').addEventListener('click', function () {
   tourAt++;

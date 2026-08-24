@@ -88,10 +88,19 @@ ok(port.PORT_STYLES.some((s) => s.key === port.FALLBACK), 'the fallback names a 
 
 // Every style must be identifiable by SOMETHING, or a picture made on it can
 // never route back to it.
+// `evidence:false` is a DELIBERATE opt-out, and exactly one tile may claim it:
+// the plain ChatGPT tile sends her words with no reference and no baked prefix,
+// so nothing on a picture's record can ever name it. Every other tile must be
+// identifiable by something, or a picture made on it can never route back.
 port.PORT_STYLES.forEach((s) => {
+  if (s.evidence === false) return;
   ok((s.refs || []).length + (s.prefixes || []).length + (s.triggers || []).length > 0,
     s.key + ' has evidence that can identify it');
 });
+ok(port.PORT_STYLES.filter((s) => s.evidence === false).length === 1,
+  'exactly one tile opts out of evidence (the reference-less ChatGPT one)');
+ok(port.PORT_STYLES.find((s) => s.evidence === false).key === 'plain',
+  'and it is `plain`');
 
 // The server's real dreamy recipe. ASSERT ON THE VALUES, NOT THE SOURCE TEXT:
 // the first cut of these checks regexed the raw block and matched the COMMENT
@@ -137,7 +146,8 @@ ok(dream.noCharacter === true,
 
 // Every `prefixes` fragment must be a verbatim substring of that style's REAL
 // baked prefix in server.js — otherwise it is a vibe, not evidence.
-const GPT_ID = { chatgpt: 'evan', dreamy: 'dreamy', pastel: 'pastel', scarry: 'scarry', hoonies: 'hoonies' };
+const GPT_ID = { chatgpt: 'evan', dreamy: 'dreamy', pastel: 'pastel', scarry: 'scarry',
+  hoonies: 'hoonies', plain: 'plain' };
 port.PORT_STYLES.forEach((s) => {
   (s.prefixes || []).forEach((frag) => {
     const id = GPT_ID[s.key];
@@ -214,7 +224,10 @@ ok(/size:\s*cfg\.size \|\| PL_GPT\.size/.test(serverSrc),
   'the render job uses the RUN\'s size, not the module default');
 // The page must not carry its own copy of the style prompt — that is the whole
 // reason the endpoint exists, and a copy is what went stale before.
-ok(!/prefix:\s*'/.test(pageSrc), 'promptlab.html holds NO copy of a style prefix');
+// A NON-EMPTY literal is the thing to catch. `prefix: ''` is the LoRA's
+// synthesised shape saying it has no prefix at all (bakedFor, 2026-08-24) —
+// the opposite of a stale copy, and the looser regex flagged it as one.
+ok(!/prefix:\s*'[^']/.test(pageSrc), 'promptlab.html holds NO copy of a style prefix');
 ok(/\/api\/promptlab\/styles/.test(pageSrc), 'the page reads the real text from the server');
 // Express matches in order — `:id` would swallow `styles` and answer 404.
 ok(serverSrc.indexOf("'/api/promptlab/styles'") < serverSrc.indexOf("'/api/promptlab/:id'"),
@@ -348,7 +361,10 @@ catch {
     };
   });
   ok(pick.exists && pick.tiles === 0, 'the row of tiles is gone — one control in its place');
-  ok(pick.options === 6, 'every style is still reachable inside it');
+  // Counted off the page's own STYLES, never a literal — a new tile is one
+  // entry in that table and must not also be a number to remember here.
+  ok(pick.options === pageKeys.length,
+    'every style is still reachable inside it (' + pick.options + ' of ' + pageKeys.length + ')');
   ok(pick.chevron, 'and it wears an arrow so it reads as a drop-down');
   ok(pick.font >= 16, 'at 16px, or iOS zooms the page when it opens the picker');
 
@@ -380,11 +396,21 @@ catch {
   ok(await page.evaluate(() => document.getElementById('c-square').classList.contains('on')),
     'and it switches');
 
-  // The LoRA has no baked prefix and rides a different shape parameter.
+  // The LoRA rides a different shape parameter, so the CANVAS toggle comes
+  // off. The Prompt button does NOT — the LoRA wraps her words too (the `wtr`
+  // trigger in front, `White background` after) and hiding the panel on the
+  // tile the page opens on is what made her say there was no way to see the
+  // style prompt at all (2026-08-24). These three used to assert the opposite.
   await page.selectOption('#stylepick', 'watercolor');
-  ok(!(await page.isVisible('#promptbtn')), 'no prompt button on the LoRA');
+  ok(await page.isVisible('#promptbtn'), 'the prompt button stays on the LoRA');
   ok(!(await page.isVisible('#canvastog')), 'no canvas toggle on the LoRA');
-  ok(!(await page.isVisible('#promptpanel')), 'and an open panel closes with it');
+  // The button is a TOGGLE and the panel was left open above, so close it
+  // first — otherwise this taps it shut and calls that a failure.
+  if (await page.isVisible('#promptpanel')) await page.click('#promptbtn');
+  await page.click('#promptbtn');
+  ok(await page.isVisible('#promptpanel'), "and the LoRA's own panel opens");
+  ok(/wtr/.test(await page.textContent('#promptpanel')),
+    "and it shows the LoRA's own trigger word");
 
   await browser.close();
   server.close();

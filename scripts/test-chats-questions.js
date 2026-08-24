@@ -115,6 +115,24 @@ const server = http.createServer((req, res) => {
   const btnH = await page.$eval('#thread .qbtn', (n) => n.getBoundingClientRect().height);
   ok(rowH < btnH * 2.2, 'it shares the note’s line rather than adding one (' + Math.round(rowH) + 'px)');
 
+  // THE PILL MUST NOT SIT ON THE BUTTON (2026-08-23, from her screenshot: the
+  // door to her Questions tab read "QUES" with the rest covered). This row is
+  // the thread's last header line and it does not scroll, so its right end sits
+  // permanently inside the pill's fixed corner. `elementFromPoint` is the only
+  // honest way to ask — the button passes `offsetParent !== null` and every
+  // width assertion while it is completely unreachable.
+  const pillOn = await page.$$eval('body > .float', (n) => n.filter((x) => x.getClientRects().length).length);
+  ok(pillOn === 1, 'the autoscroll pill is on screen (' + pillOn + ')');
+  const cover = await page.evaluate(() => {
+    const b = document.querySelector('#thread .qbtn').getBoundingClientRect();
+    const p = document.querySelector('body > .float').getBoundingClientRect();
+    const hit = document.elementFromPoint(b.right - 6, b.top + b.height / 2);
+    return { overlap: b.right > p.left && b.bottom > p.top && b.top < p.bottom,
+             reaches: !!(hit && hit.closest('.qbtn')), right: Math.round(b.right), pillLeft: Math.round(p.left) };
+  });
+  ok(!cover.overlap, 'the button ends left of the pill (' + cover.right + ' vs ' + cover.pillLeft + ')');
+  ok(cover.reaches, 'and a tap on its right edge reaches the button, not the pill');
+
   const msgsBefore = await shown('#thread .msg');
   ok(msgsBefore > 5, 'the thread is showing its messages to begin with (' + msgsBefore + ')');
 

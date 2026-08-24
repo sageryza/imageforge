@@ -1,6 +1,10 @@
 <!doctype html><html><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Playground</title>
+<link rel="stylesheet" href="/tritoggle.css">
+<!-- The toggle's BEHAVIOUR is shared too since 2026-08-24 — a tap lands on the
+     stop under the thumb rather than cycling. See /tritoggle.js. -->
+<script src="/tritoggle.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   [hidden] { display: none !important; }
@@ -70,7 +74,7 @@
   .controls label { font-size: 12.5px; color: #6f675e; }
   /* Every boxed control on the row, in one place. */
   .controls .stylebtn, .controls .xthree, .controls #stylepick,
-  .controls .canvastog, .controls .swtog, .controls #charpick,
+  .controls .canvastog, .controls .tri, .controls #charpick,
   .controls #photopick, .controls .seedbtn, .controls button.go {
     height: var(--ctl-h); box-sizing: border-box; }
   .controls .stylebtn, .controls .xthree, .controls #stylepick {
@@ -104,49 +108,16 @@
   .seedbtn { width: var(--ctl-h); border-radius: 50%; border: 1px solid #d8d0c4; background: #fdfcf9; color: #2b2622; display: flex; align-items: center; justify-content: center; }
   .seedbtn svg { width: 19px; height: 19px; }
   .seedtag { font-size: 11.5px; color: #6f675e; }
-  /* THE TWO SLIDER TOGGLES — quality and resolution, one rule (Aug 2026).
-     Quality came first (Sophie: "make the low medium high drop down in the
-     playground into the exact three way toggle that the account switcher uses
-     … but black not red. and put the initial of the choice - L, M, or H"),
-     and the resolution tiers joined it on her next ask ("can you make the
-     1K 2K 4K at the same toggle format as the low medium and high quality
-     toggle thing where it's a slider that says the value … and can you make
-     the low medium high toggle a little bit wider so it's easier to change it
-     and can you make the 1K 2K 4K toggle the same width").
-     So `.swtog` is ONE rule wearing two hats. That is the whole point: two
-     copies of this geometry in one file would drift, and she asked for them to
-     be identical.
-     THE GEOMETRY STARTED AS `.swi` IN chats.html, VERBATIM — 48px track, 26
-     tall, an 18px knob — and has deliberately GROWN AWAY from it on her ask
-     above: 78px and a 26px knob, because a 48px track is a small target for a
-     control that decides what a run costs, and because "4K" does not fit on an
-     18px knob. The account switcher is unchanged and stays 48; what still has
-     to match is the SHAPE — a round knob inset in a filled track, three stops
-     DERIVED from --gap rather than typed, and a tap that moves to the next one
-     and wraps. `scripts/test-playground-quality-toggle.js` pins the shape and
-     asserts the width as a declared difference, the way it already does for
-     the colour.
-     THE STOPS ARE NUMBERED, NOT NAMED (`data-n`), so one rule serves both: the
-     quality toggle's three stops are low/medium/high and the resolution one's
-     are 1K/2K/4K, and neither needs a selector of its own. A fourth stop is
-     one more rule of this shape and nothing else.
-     Track ink instead of the account switcher's rose, per her earlier ask.
-     Still the sanctioned exception to no-pills: it is a toggle, not a text
-     button. */
-  .swtog { --tw: 78px; --k: 26px; --gap: 22px;
-    position: relative; box-sizing: border-box; width: var(--tw); height: 34px; border-radius: 17px;
-    border: 1.5px solid #2b2622; background: #2b2622;
-    padding: 0; margin: 0; flex: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-  /* The word rides the knob, so what it says and where it sits are one element
-     and can never disagree. 26px of knob is what "4K" needs; the quality one is
-     a single letter and has room to spare. */
-  .swtog::after { content: attr(data-i); position: absolute; top: 2.5px; left: 2.5px;
-    width: var(--k); height: var(--k); border-radius: 50%;
-    background: #faf7f2; color: #2b2622;
-    font: 600 11px/26px -apple-system, sans-serif; text-align: center;
-    transition: transform .18s; }
-  .swtog[data-n="1"]::after { transform: translateX(var(--gap)); }
-  .swtog[data-n="2"]::after { transform: translateX(calc(var(--gap) * 2)); }
+  /* The three-way toggle is /tritoggle.css now (Aug 2026, Sophie: "make a
+     reusable three toggle shell so we can change the styling all at once. make
+     color a per instance option"). This page keeps only its COLOUR and its
+     size — ink on paper rather than the account switcher's rose, and her own
+     wider track ("make the low medium high toggle a little bit wider so it's
+     easier to change it"; 26px of knob is what "4K" needs).
+     ONE rule for both toggles: the stops are NUMBERED (`data-n`), so quality
+     (low/medium/high) and size (1K/2K/4K) share it and neither needs a
+     selector of its own. Nothing here counts the notches. */
+  .tri { --tri-track: #2b2622; --tri-knob: #faf7f2; --tri-w: 78px; --tri-k: 26px; }
   input[type=number] { width: 64px; border: 1px solid #d8d0c4; border-radius: 6px; padding: 7px; font: inherit; font-size: 16px; background: #fdfcf9; }
   /* Generate is the stars icon, not the word — one image, one tap. SQUARE
      since Aug 2026 (Sophie: "make the generate button a square"): 38x38, the
@@ -161,14 +132,55 @@
   /* One box per run, so a prompt is unmistakably attached to its own pictures. */
   .run { margin-bottom: 14px; background: #fff; border: 1px solid #e3dcd1; border-radius: 6px; padding: 10px; }
   .runhead { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
-  .runhead .p { font-size: 14px; font-weight: 600; flex: 1; min-width: 70%; }
-  /* A long prompt is capped at two lines. The "…" that opens it is added AFTER
-     layout, and OUTSIDE the capped box — anything inside a line-clamp box after
-     the clamped text gets clipped away with it. */
-  .runhead .p.clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .morebtn { border: 0; background: none; font: inherit; font-size: 12.5px; color: #6f675e; padding: 0 0 2px; }
+  .runhead .p { display: block; font-size: 14px; font-weight: 600; flex: 1; min-width: 70%;
+    --lh: 20px; --lines: 2; line-height: var(--lh); }
+  /* THE OPENER SITS ON THE LAST LINE OF THE WORDS, NOT OFF TO THE SIDE (Aug
+     2026, Sophie: "Button should be part of the text, not separated from it on
+     the side"). She asked for this once before, on the dream cards ("I want
+     the see more button to be on the same last line of the text rather than
+     underneath it"), and this is that solution ported — see `.dbody` in
+     dreamapp.html.
+     `-webkit-line-clamp` cannot hold a control: anything inside the box after
+     the cut is clipped away with the text, which is why the opener used to be
+     a SIBLING and ended up parked at the far end of the header row. So the
+     clamp is a plain max-height, and the button is a right float with
+     `clear:both` sitting below a zero-width float one line SHORT of the cap —
+     the only line it can land on is the last one, and the words wrap around
+     it. Both floats come BEFORE the text in DOM order, so neither is "after
+     the clamped text" and neither is clipped.
+     `fold` is added by JS and ONLY where the words really were cut: the
+     ::before float would otherwise stretch a one-line prompt (overflow:hidden
+     makes this a BFC) to the full two-line height. */
+  .runhead .p.clamp { max-height: calc(var(--lines) * var(--lh)); overflow: hidden; }
+  .runhead .p.clamp.fold::before { content: ''; float: left; width: 0;
+    height: calc((var(--lines) - 1) * var(--lh)); }
+  .runhead .p > .moretxt { float: right; clear: both; margin-left: 8px; height: var(--lh);
+    display: inline-flex; align-items: baseline; }
+  .runhead .p:not(.clamp) > .moretxt { float: none; margin-left: 6px; }
+  /* THE HOUSE OPENER FOR TRUNCATED TEXT — a underlined word, never a button
+     (Aug 2026, Sophie: "the ... button for longer than two line prompt is
+     huge … truncated text shud always just be a … with a line under it that
+     links to open, or it can say more or see more. never a separate button.
+     it shud be fixed everywhere"). The full pattern is in
+     docs/design-rules.md.
+     IT WAS ALREADY WRITTEN THAT WAY AND LOST A NAME FIGHT: this rule used to
+     be `.morebtn`, borderless and correct — and `.morebtn` is ALSO the
+     "Older" paging button further down this file, 1px border and 9x18 of
+     padding, defined later, so the later rule won and the opener rendered as
+     a big empty box. Two unrelated controls must never share a class name.
+     `.moretxt` is the opener; `.morebtn` stays the paging button. */
+  .moretxt { display: inline; border: 0; background: none; margin: 0; padding: 0;
+    font: inherit; font-size: 12.5px; color: #6f675e; text-decoration: underline;
+    -webkit-tap-highlight-color: transparent; }
   .tag { font-size: 11px; color: #6f675e; background: #f0ebe3; border-radius: 6px; padding: 2px 6px; white-space: nowrap; }
-  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+  /* `minmax(0, 1fr)` and `align-items: start`, both load-bearing now that a
+     cell carries its own shape: a bare `1fr` is `minmax(auto, 1fr)`, and a
+     square cell's automatic minimum width is TRANSFERRED from the row's
+     height through its aspect-ratio — so one square on a row of portraits
+     blew its own column out to 132px and squeezed the other three to 73
+     (measured). `start` keeps a shorter cell its own height instead of
+     stretching it to the tallest on the row. */
+  .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: start; gap: 5px; }
   /* Two ways to read the feed: LIST (a box per run, prompt above its pictures)
      and TILES (every picture as a thumbnail, four to a row, prompt in the
      lightbox). The switch is STICKY so it is reachable from anywhere in a long
@@ -183,13 +195,29 @@
   .viewtog button { border: 0; background: none; font: inherit; font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: #6f675e; padding: 7px 15px; }
   .viewtog button + button { border-left: 1px solid #d8d0c4; }
   .viewtog button.on { background: #2b2622; color: #faf7f2; font-weight: 600; }
-  /* The heart beside the view switch is a FILTER, not a third view: it hides
-     everything she hasn't hearted, in whichever view she is already in. Lit =
-     hearts only, and it is sticky like the view, so a reload keeps it. */
-  .likefilt { margin-left: 8px; display: flex; align-items: center; justify-content: center; width: 38px;
-    border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #6f675e; padding: 0; }
+  /* THE TWO MARK FILTERS, one segmented box beside the view switch — neither
+     is a third view: each rides on top of whichever view she is already in,
+     and both are sticky, so a reload keeps them.
+       ♥ = hearts only.
+       ✕ = hide the ones she crossed out (Aug 2026, Sophie: "can u also add a
+           button next to the heart that hides anything i've 'exed'").
+     They share one border for the reason the List/Tiles pair does — they are
+     one kind of decision — and that is also what pays for the second button:
+     the row reserves 56px for the injected autoscroll pill, and two separate
+     38px boxes with their own margins left the search box at 80px, clipping
+     its own placeholder to "Searc" (measured). One box of two 34px buttons
+     gives it back.
+     LIT, THEY MUST NOT MATCH: the heart keeps only what it names and the ✕
+     drops it, so the ✕ takes the GREY of the dislike badge rather than the
+     rose. Two identical-looking filters read as two of the same thing. */
+  .filttog { margin-left: 8px; display: flex; flex: none; border: 1px solid #d8d0c4;
+    border-radius: 6px; overflow: hidden; background: #fdfcf9; }
+  .likefilt { display: flex; align-items: center; justify-content: center; width: 34px;
+    border: 0; background: none; color: #6f675e; padding: 0; }
+  .likefilt + .likefilt { border-left: 1px solid #d8d0c4; }
   .likefilt svg { width: 16px; height: 16px; }
-  .likefilt.on { background: #c25a72; border-color: #c25a72; color: #fff; }
+  .likefilt.on { background: #c25a72; color: #fff; }
+  .xfilt.on { background: #9a938a; color: #fff; }
   /* THE SEARCH BOX FILLS THE GAP THE ROW ALREADY HAD (Aug 2026, Sophie: "a
      little search bar that fits in the space between the heart toggle and
      tiles/grid") — `flex: 1` between the heart and the 56px the autoscroll
@@ -211,22 +239,31 @@
     color: #8a8177; font-size: 18px; line-height: 1; padding: 0; }
   .emptynote { font-size: 13px; color: #8a8177; padding: 18px 0; text-align: center; }
   #tiles .emptynote { grid-column: 1 / -1; }
-  /* Tiles: uniform squares four to a row, the My Creations look — small on
-     purpose, so the wall stays scannable. Tapping one opens the lightbox,
-     which is where the prompt, model and quality live. */
-  #tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
-  #tiles .cell img { aspect-ratio: 1 / 1; }
-  /* A picture still being drawn holds its square at the front of the wall, so
+  /* Tiles: THREE to a row (Aug 2026, her ask — four was too small to judge a
+     picture by once they stopped being cropped squares). Tapping one opens the lightbox, which is where the
+     prompt, model and quality live.
+     EVERY TILE WEARS ITS OWN PICTURE'S SHAPE (Aug 2026, Sophie: "i kind of
+     want the playground to show portrait aspect ratios to match my 2:3
+     pictures"). The wall used to force 1:1 and `object-fit: cover` did the
+     rest — so a 2:3 picture, which is nearly everything she draws here, lost
+     a third of itself to a crop on the one screen meant for scanning them.
+     The ratio rides on the cell as `--ar`, written from the run's own
+     `aspectRatio`, so a square run still tiles square and the two shapes sit
+     on the same wall as what they are. */
+  #tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; gap: 5px; }
+  /* A picture still being drawn holds its place at the front of the wall, so
      the tiles view shows the whole feed and not just what has landed. It
      breathes, because a flat empty box in a wall of pictures reads as a
      broken image rather than as one on its way. */
-  #tiles .cell.ph { aspect-ratio: 1 / 1; animation: plwait 1.5s ease-in-out infinite; }
+  #tiles .cell.ph { animation: plwait 1.5s ease-in-out infinite; }
   @keyframes plwait { 0%, 100% { background: #f0ebe3; } 50% { background: #e4dbcd; } }
   .copybtn { flex: none; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center;
     padding: 0; border: none; background: none; color: #8a8177; cursor: pointer; }
   .copybtn svg { width: 14px; height: 14px; }
   .cell { position: relative; }
-  .cell img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 6px; display: block; background: #eee7dc; }
+  /* `--ar` is the run's real canvas; 2/3 is the fallback for a run with no
+     ratio on file, which is what every run before the canvas toggle was. */
+  .cell img { width: 100%; aspect-ratio: var(--ar, 2 / 3); object-fit: cover; border-radius: 6px; display: block; background: #eee7dc; }
   .badge { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; pointer-events: none; }
   .badge.like { background: #c25a72; color: #fff; }
   .badge.dislike { background: #9a938a; color: #fff; }
@@ -236,7 +273,7 @@
      Generate therefore always adds something visible at the TOP, which is what
      keeps "newest first" true while a slow run is still going. */
   .runhead .waiting { margin-left: auto; }
-  .cell.ph { background: #f0ebe3; border: 1px solid #e3dcd1; border-radius: 6px; aspect-ratio: 2 / 3; }
+  .cell.ph { background: #f0ebe3; border: 1px solid #e3dcd1; border-radius: 6px; aspect-ratio: var(--ar, 2 / 3); }
   /* "Older" — the way further back through the feed. Hugs its text, rounded
      rectangle (no pills), centered under whichever view is showing. */
   #more { display: flex; justify-content: center; padding: 4px 0 22px; }
@@ -256,21 +293,32 @@
   .failed { color: #a33; }
   .note { font-size: 12px; color: #8a8177; }
   /* The side padding is the arrows' lane — the picture is never under one. */
-  #lb { display: none; position: fixed; inset: 0; background: #111; z-index: 50; flex-direction: column; align-items: center; justify-content: center; padding: 12px 52px; }
+  #lb { display: none; position: fixed; inset: 0; background: #111; z-index: 50; flex-direction: column; align-items: center; justify-content: center; padding: 12px; }
   #lb.on { display: flex; }
+  /* The stage is the IMAGE AREA — the picture and the two step zones over it,
+     ending where the caption starts. The zones are sized to it rather than to
+     the window, so a tap "in the image area" means exactly that and the
+     caption, the ♥/✕ row and the buttons under it are never covered. */
+  .lbstage { position: relative; display: flex; align-items: center; justify-content: center;
+    width: 100%; min-height: 0; }
   #lb img { max-width: 100%; max-height: 76vh; border-radius: 6px; }
   /* Step to the next/previous picture in the feed, in the order the view
-     behind the lightbox is showing them (the heart filter included). TALL AND
-     NARROW on purpose (Sophie's ask) so the whole side of the screen is a tap
-     target without any of it sitting over the picture. Hidden when there is
-     nothing that way — the ends of the feed are the ends. */
-  .lbnav { position: fixed; top: 50%; transform: translateY(-50%); width: 34px; height: 58vh; z-index: 55;
-    border: 1px solid #333; border-radius: 6px; background: rgba(28,28,28,.72); color: #ddd;
-    display: flex; align-items: center; justify-content: center; padding: 0; }
+     behind the lightbox is showing them (the heart filter included).
+     IT IS THE TAP AND NOTHING ELSE — NO VISIBLE BAR (2026-08-24, Sophie: "in
+     the playground, the top left and right bars cover part of the image. Can
+     you just make it tap and no buttons showing"). The chip used to be drawn
+     at the outer edge of each zone, over the picture, which on a portrait
+     2:3 covers a strip of the art she opened the lightbox to judge. The zone
+     itself was always the control — a transparent 28% strip running the full
+     height of the stage, the picture included — so removing the mark takes
+     nothing away but the thing sitting on her image.
+     Hidden when there is nothing that way — the ends of the feed are the
+     ends, and with the zone gone a tap there closes. */
+  .lbnav { position: absolute; top: 0; bottom: 0; width: 28%; z-index: 55;
+    border: 0; background: none; padding: 0; }
   .lbnav[hidden] { display: none; }
-  .lbnav svg { width: 18px; height: 18px; }
-  #lbprev { left: 8px; }
-  #lbnext { right: 8px; }
+  #lbprev { left: 0; }
+  #lbnext { right: 0; }
   /* What made this picture: the model and its settings, LOCKED at the top,
      then her words under it. The meta line used to sit UNDER the prompt inside
      one scrolling box, so a long prompt pushed the model and quality out of
@@ -387,8 +435,8 @@
     <div class="canvastog" id="canvastog" role="group" aria-label="Canvas shape">
       <button id="c-portrait" type="button">Portrait</button><button id="c-square" type="button">Square</button>
     </div>
-    <button type="button" id="rpick" class="swtog" aria-label="Resolution"></button>
-    <button type="button" id="qpick" class="swtog" aria-label="Quality"></button>
+    <button type="button" id="rpick" class="tri" aria-label="Resolution"></button>
+    <button type="button" id="qpick" class="tri" aria-label="Quality"></button>
     <div class="gogroup">
       <button class="stepbtn" id="lowmed" hidden aria-label="Two low and one medium" title="Two low and one medium"></button>
       <button class="stepbtn" id="medhigh" hidden aria-label="One medium and one high" title="One medium and one high"></button>
@@ -402,7 +450,10 @@
   <div class="viewtog">
     <button id="v-list">List</button><button id="v-tiles">Tiles</button>
   </div>
-  <button class="likefilt" id="v-liked" aria-label="Show only the ones you hearted" title="Hearts only"></button>
+  <div class="filttog" role="group" aria-label="Filters">
+    <button class="likefilt" id="v-liked" aria-label="Show only the ones you hearted" title="Hearts only"></button>
+    <button class="likefilt xfilt" id="v-hidex" aria-label="Hide the ones you have crossed out" title="Hide the &times;'d"></button>
+  </div>
   <div class="feedsearch">
     <input id="q" type="search" placeholder="Search" aria-label="Search your runs"
            autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="search">
@@ -428,9 +479,11 @@
 </div>
 
 <div id="lb">
-  <button class="lbnav" id="lbprev" aria-label="Previous picture" hidden></button>
-  <button class="lbnav" id="lbnext" aria-label="Next picture" hidden></button>
-  <img id="lbimg" src="">
+  <div class="lbstage">
+    <img id="lbimg" src="">
+    <button class="lbnav" id="lbprev" aria-label="Previous picture" hidden></button>
+    <button class="lbnav" id="lbnext" aria-label="Next picture" hidden></button>
+  </div>
   <div class="cap"><div class="capm" id="lbcapm"></div><div class="capp" id="lbcapp"></div></div>
   <div class="lbbtns">
     <button class="lbbtn like" id="lblike" aria-label="Heart"></button>
@@ -440,6 +493,14 @@
   </div>
 </div>
 <script>
+  // THE AIM RULE LIVES IN /tritoggle.js — the ONE copy, shared with every other
+  // three-way toggle. This line is only a floor for the case where that file
+  // does not load (a stale cache, a stub harness that serves nothing else): it
+  // is the pre-2026-08-24 CYCLE, deliberately not a second implementation of
+  // the aim, so a page can never quietly grow its own version of the rule.
+  var triNext = window.triNext || function (el, count, ev, cur) {
+    return ((cur | 0) + 1 + count) % count;
+  };
   var LSKEY = 'promptlab_pending';
   var timer = null;
   var swapTimer = null;
@@ -463,8 +524,6 @@
     x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
     download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>',
     sprout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>',
-    chevronLeft: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>',
-    chevronRight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>',
     copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
     // The photo-reference button (Aug 2026) — Lucide `image-plus`, a picture
     // with a plus, so the control says "add a photo" rather than "a file".
@@ -539,6 +598,23 @@
   document.getElementById('v-liked').addEventListener('click', function () {
     localStorage.setItem('promptlab_liked', likedOnly() ? '' : '1');
     applyLiked(true);
+  });
+
+  // HIDE THE ✕'d (Aug 2026, Sophie: "can u also add a button next to the
+  // heart that hides anything i've 'exed'"). The heart's opposite and its
+  // twin: a filter over pictures, in whichever view she is in, sticky. A run
+  // left with nothing showing drops out of the list, exactly as with the
+  // heart. The two stack without arguing — hearts-only has already dropped
+  // every ✕'d picture, so this one simply finds nothing more to do.
+  document.getElementById('v-hidex').innerHTML = ICONS.x;
+  function hideX() { return localStorage.getItem('promptlab_hidex') === '1'; }
+  function applyHideX(repaint) {
+    document.getElementById('v-hidex').classList.toggle('on', hideX());
+    if (repaint) renderFeed();
+  }
+  document.getElementById('v-hidex').addEventListener('click', function () {
+    localStorage.setItem('promptlab_hidex', hideX() ? '' : '1');
+    applyHideX(true);
   });
 
   // ─── SEARCH (Aug 2026, Sophie: "can u add a little search bar that fits in
@@ -616,7 +692,8 @@
   }
   function emptyNote() {
     if (qGroups.length) return '<div class="emptynote">Nothing matches that</div>';
-    return likedOnly() ? '<div class="emptynote">Nothing hearted yet</div>' : '';
+    if (likedOnly()) return '<div class="emptynote">Nothing hearted yet</div>';
+    return hideX() ? '<div class="emptynote">Everything here is crossed out</div>' : '';
   }
 
   // A SEARCH READS THE WHOLE FEED, NOT THE PAGE SHE IS LOOKING AT — the
@@ -741,7 +818,17 @@
   var STYLES = {
     watercolor: { model: 'sageryza/watercolordrawings', label: 'WTR', engine: 'replicate',
                   trigger: 'wtr', suffix: 'White background', baked: '' },
-    chatgpt:    { model: 'gpt-image-2', label: 'ChatGPT', engine: 'gptimage', gptStyle: 'evan' },
+    // Sandy mirror = refs/sage-sandy-mirror.png. Its KEY stays `chatgpt` and
+    // its gptStyle stays `evan` (Aug 2026 rename, Sophie): both are stored —
+    // in localStorage, in ?style= deep links, in every run doc and in
+    // playground-port.js — so only the label she reads moved.
+    chatgpt:    { model: 'gpt-image-2', label: 'Sandy mirror', engine: 'gptimage', gptStyle: 'evan' },
+    // ChatGPT = her words and nothing else, no reference image at all (Aug
+    // 2026, her ask). The server sends it to the generations endpoint rather
+    // than edits; nothing here has to know that. noCharacter because the
+    // Sophie card is a style reference by another name.
+    plain:      { model: 'gpt-image-2', label: 'ChatGPT', engine: 'gptimage', gptStyle: 'plain',
+                  noCharacter: true },
     // Dreamy = refs/dream-mystery.jpg, her diary-comic page (Aug 2026). Sits
     // next to ChatGPT because those two are the references the chats actually
     // reach for; the server owns its bookended anti-content prompt.
@@ -773,7 +860,7 @@
   // without her meaning it.)
   var QUALITIES = ['low', 'medium', 'high'];
   var quality = 'medium';
-  // The three-way toggle (see .swtog). Nothing here counts the notches: the
+  // The three-way toggle (see .tri). Nothing here counts the notches: the
   // stops come from QUALITIES, so a fourth quality would be an entry in that
   // array plus one rule in the CSS — the same shape as the account switch.
   // `data-n` is the stop's INDEX and drives the knob's position; `data-i` is
@@ -784,14 +871,17 @@
   function paintQuality() {
     qpick.setAttribute('data-n', String(Math.max(QUALITIES.indexOf(quality), 0)));
     qpick.setAttribute('data-i', quality.charAt(0).toUpperCase());
-    qpick.setAttribute('aria-label', 'Quality ' + quality + ' — tap for the next one');
+    qpick.setAttribute('aria-label', 'Quality ' + quality + ' — tap a side to pick one');
   }
-  qpick.addEventListener('click', function () {
-    // an unknown quality (arrived on a link) still has somewhere to go:
-    // indexOf is -1, so the next tap lands on the first notch rather than
-    // doing nothing at all
-    var i = QUALITIES.indexOf(quality);
-    quality = QUALITIES[(i + 1) % QUALITIES.length];
+  qpick.addEventListener('click', function (e) {
+    // WHERE SHE TAPPED IS THE STOP SHE MEANT (2026-08-24, Sophie: "it always
+    // goes to high from medium never low even if I click it on that side").
+    // This used to be a plain cycle, which is why a tap on the L went to high.
+    // triNext falls back to the cycle for a tap with no coordinate (the
+    // keyboard), and an unknown quality (arrived on a link) still has somewhere
+    // to go: indexOf is -1, so that tap lands on the first notch rather than
+    // doing nothing at all.
+    quality = QUALITIES[triNext(qpick, QUALITIES.length, e, QUALITIES.indexOf(quality))];
     paintQuality();
   });
   paintQuality();
@@ -894,21 +984,42 @@
   var promptOpen = false;
   var OVERKEY = 'promptlab_prompt_';  // + gptStyle id
 
+  // Where a style's edit is stored. A gpt style is keyed by its SERVER id
+  // (shared by every tile pointing at it); a LoRA has no gptStyle, so it is
+  // keyed by its own key — that is what lets WTR carry an edit at all.
+  function overKey(k) {
+    var S = STYLES[k];
+    return S ? (S.gptStyle || k) : '';
+  }
+  // WHAT IS WRAPPED AROUND HER WORDS, for EVERY style — not just the
+  // gpt-image-2 ones (Sophie, 2026-08-24: "there's no way to see the style
+  // prompt in the playground"). She was right, and the reason was structural:
+  // everything here keyed off `S.gptStyle`, so the LoRA — which the page OPENS
+  // ON — fell through to null and the whole panel was hidden. WTR does wrap her
+  // words: the trigger word goes in front and a tail goes after, and both were
+  // invisible.
+  // The LoRA's shape is synthesised from its own STYLES row rather than served,
+  // because there is no server-side recipe for it to serve — the trigger and
+  // the tail ARE the style.
   function bakedFor(k) {
     var S = STYLES[k];
-    return (BAKED && S && S.gptStyle) ? BAKED[S.gptStyle] : null;
+    if (!S) return null;
+    if (S.gptStyle) return BAKED ? BAKED[S.gptStyle] : null;
+    if (S.engine !== 'replicate') return null;
+    return { label: S.label, prefix: '', suffix: S.suffix || '',
+      trigger: S.trigger || '', lora: true, refs: [] };
   }
   function overrideFor(k) {
-    var S = STYLES[k];
-    if (!S || !S.gptStyle) return null;
-    try { return JSON.parse(localStorage.getItem(OVERKEY + S.gptStyle) || 'null'); }
+    var key = overKey(k);
+    if (!key) return null;
+    try { return JSON.parse(localStorage.getItem(OVERKEY + key) || 'null'); }
     catch (e) { return null; }
   }
   function saveOverride(k, v) {
-    var S = STYLES[k];
-    if (!S || !S.gptStyle) return;
-    if (v) localStorage.setItem(OVERKEY + S.gptStyle, JSON.stringify(v));
-    else localStorage.removeItem(OVERKEY + S.gptStyle);
+    var key = overKey(k);
+    if (!key) return;
+    if (v) localStorage.setItem(OVERKEY + key, JSON.stringify(v));
+    else localStorage.removeItem(OVERKEY + key);
     syncControls();
   }
   // What WILL be sent for this style — her edit if she has one, else the house
@@ -949,7 +1060,10 @@
 
   function paintPromptPanel() {
     var el = document.getElementById('promptpanel');
-    if (!promptOpen || !isGpt(styleKey)) { el.className = ''; el.innerHTML = ''; return; }
+    // Every style with a wrapper gets the panel — a LoRA has one too (its
+    // trigger and its tail), and gating this on isGpt is what left the tile
+    // the page opens on with no way to see its style prompt at all.
+    if (!promptOpen || !bakedFor(styleKey)) { el.className = ''; el.innerHTML = ''; return; }
     var p = sentParts(styleKey);
     el.className = 'on';
     if (!p) { el.innerHTML = '<div class="plab">Prompt</div><div class="yours">Loading…</div>'; return; }
@@ -960,14 +1074,30 @@
       t.addEventListener('input', stash);
       el.appendChild(l); el.appendChild(t);
     }
-    field('Before your words', p.prefix, 'prefix');
+    // A LoRA's trigger word is what SELECTS the model, so it is shown as an
+    // added line rather than as an editable half — editing it would quietly
+    // stop the style working. Its tail below IS hers to change.
+    if (p.baked.lora) {
+      if (p.baked.trigger) {
+        var tl = document.createElement('div'); tl.className = 'plab';
+        tl.textContent = 'Before your words';
+        var tv = document.createElement('div'); tv.className = 'added';
+        tv.textContent = p.baked.trigger;
+        el.appendChild(tl); el.appendChild(tv);
+      }
+    } else {
+      field('Before your words', p.prefix, 'prefix');
+    }
     // Whatever else actually rides this run, printed word for word. Read-only
     // on purpose: these are server-owned lines tied to an attachment, not a
     // half of the prompt she edits — taking the photo off is what removes the
     // photo line, and the Sophie button is what removes the character one.
     var extras = [];
     if (charOn && !STYLES[styleKey].noCharacter && p.baked.characterLine) extras.push(p.baked.characterLine);
-    if (photoRef && PHOTO_LINE) extras.push(PHOTO_LINE);
+    // The style's OWN photo line wins where it has one — the house sentence
+    // says the drawing style "comes from the style reference above", which is
+    // a lie on the plain ChatGPT tile where her photo is the only attachment.
+    if (photoRef) { var pl = (p.baked && p.baked.photoLine) || PHOTO_LINE; if (pl) extras.push(pl); }
     if (extras.length) {
       var al = document.createElement('div'); al.className = 'plab';
       al.textContent = 'Also added before your words';
@@ -1004,9 +1134,15 @@
         parts[t.getAttribute('data-part')] = t.value;
       });
       var b = p.baked;
+      // A LoRA draws ONE box (its trigger is shown, not edited), so `prefix`
+      // is absent from `parts` — read the baked value for any half that has no
+      // box, or the comparison below is always false and her tail can never
+      // return to the house wording.
+      var pre = parts.prefix != null ? parts.prefix : b.prefix;
+      var suf = parts.suffix != null ? parts.suffix : b.suffix;
       // Back to the house text on both halves = not an edit at all, so the
       // override is dropped rather than stored as an identical twin.
-      if (parts.prefix === b.prefix && parts.suffix === b.suffix) saveOverride(styleKey, null);
+      if (pre === b.prefix && suf === b.suffix) saveOverride(styleKey, null);
       else saveOverride(styleKey, parts);
       note.textContent = overrideFor(styleKey) ? 'Your wording' : 'House wording';
     }
@@ -1165,8 +1301,8 @@
   var RES = null, RES_DEFAULT = '1k';
   function tierIds() { return ['1k', '2k', '4k']; }
   // The SAME three-way slider as quality (Aug 2026, her ask) — one CSS rule,
-  // one behaviour: tap moves to the next stop and wraps, and the knob carries
-  // the value rather than a position she has to decode. The knob says 1K/2K/4K
+  // one behaviour: a tap lands on the stop under it, and the knob carries the
+  // value rather than a position she has to decode. The knob says 1K/2K/4K
   // because that is what she asked to read off it; the exact canvas and what
   // it costs stay on the tooltip, where the canvas toggle already puts them.
   var rpick = document.getElementById('rpick');
@@ -1181,13 +1317,14 @@
     rpick.title = t.label + ' ' + t.size + ' \u2014 low ' + c.low + '\u00A2 \u00B7 medium '
       + c.medium + '\u00A2 \u00B7 high ' + c.high + '\u00A2';
     rpick.setAttribute('aria-label', 'Resolution ' + t.label + ' ' + t.size
-      + ' — tap for the next one');
+      + ' — tap a side to pick one');
   }
-  rpick.addEventListener('click', function () {
-    // Same wrap as quality, and the same reason indexOf is floored: an unknown
-    // tier still has somewhere to go rather than doing nothing at all.
+  rpick.addEventListener('click', function (e) {
+    // Same aim-at-the-stop rule as quality (/tritoggle.js), and the same reason
+    // indexOf is floored: an unknown tier still has somewhere to go rather than
+    // doing nothing at all.
     var ids = tierIds();
-    resTier = ids[(ids.indexOf(resTier) + 1) % ids.length];
+    resTier = ids[triNext(rpick, ids.length, e, ids.indexOf(resTier))];
     paintRes();
   });
   paintRes();
@@ -1215,17 +1352,23 @@
   // there doing nothing.
   function syncControls() {
     var gpt = isGpt(styleKey);
-    // The prompt button and the canvas toggle are gpt-image-2's: the LoRA has
-    // no baked prefix to show, and its shape rides a different parameter.
+    // The canvas toggle is gpt-image-2's — the LoRA's shape rides a different
+    // parameter. The prompt button is NOT (see the note just below).
     var pb = document.getElementById('promptbtn');
     var ct = document.getElementById('canvastog');
     var rt = document.getElementById('rpick');
-    if (pb) { pb.hidden = !gpt; pb.classList.toggle('edited', gpt && !!overrideFor(styleKey)); }
+    // The Prompt panel is for EVERY style now — the LoRA wraps her words too,
+    // and hiding it on the tile the page OPENS ON is what made her say there
+    // was no way to see the style prompt at all.
+    if (pb) {
+      pb.hidden = !bakedFor(styleKey);
+      pb.classList.toggle('edited', !!overrideFor(styleKey));
+    }
     if (ct) ct.style.display = gpt ? 'flex' : 'none';
     // The tiers are gpt-image-2's too — the WTR LoRA has one output size and
     // rides `aspect_ratio`, so the toggle comes off there rather than offering
     // a choice that would change nothing. `hidden` rather than a display
-    // style, exactly like the quality toggle beside it: .swtog declares no
+    // style, exactly like the quality toggle beside it: .tri declares no
     // display of its own, so the attribute is free to win.
     // The no-text toggle exists only for a style whose tail allows text — the
     // server says which, so a style that already bans text shows no button
@@ -1238,7 +1381,14 @@
       nt.classList.toggle('on', on);
       nt.setAttribute('aria-pressed', on ? 'true' : 'false');
     }
-    if (!gpt && promptOpen) { promptOpen = false; paintPromptPanel(); }
+    // NOTHING FORCE-CLOSES THE PANEL ANY MORE (2026-08-24). This line used to
+    // read `if (!gpt && promptOpen) { promptOpen = false; … }` — correct while
+    // the panel was gpt-only, and fatal once the LoRA got one: syncControls
+    // runs on every save, so on WTR — the tile the page OPENS ON — the panel
+    // slammed shut on the first character she typed into it. Her edit was
+    // saved, so this read as "the style prompt doesn't save". paintPromptPanel
+    // is already gated on `bakedFor`, so a style with no wrapper draws nothing
+    // without anyone having to close the panel behind her.
     ['scalewrap', 'xthree', 'seedbtn', 'seedtag'].forEach(function (id) {
       document.getElementById(id).hidden = gpt;
     });
@@ -1337,7 +1487,13 @@
           // always was.
           prefix: over ? over.prefix : undefined, suffix: over ? over.suffix : undefined,
           noText: noTextFor(styleKey) }
-      : { prompt: prompt, lora_scale: scale, model: S.model, suffix: S.suffix, seed: seed };
+      // Her edited tail wins for the LoRA too, exactly as it does for a gpt
+      // style — sentParts falls back to the baked text when she has not
+      // touched it, so an ordinary run is byte-for-byte what it always was.
+      : { prompt: prompt, lora_scale: scale, model: S.model,
+          suffix: (sentParts(styleKey) || {}).suffix != null
+            ? sentParts(styleKey).suffix : S.suffix,
+          seed: seed };
     return fetch('/api/promptlab', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -1345,10 +1501,13 @@
       if (!d.id) throw new Error(d.error || 'Could not start.');
       var list = pendingList();
       list.push(gpt
-        ? { id: d.id, prompt: prompt, style: S.label, engine: 'gptimage', count: OUTPUTS, quality: qual }
+        // `ar` rides along so the waiting slots hold the shape the picture is
+        // about to be — the wall must not re-flow when it lands.
+        ? { id: d.id, prompt: prompt, style: S.label, engine: 'gptimage', count: OUTPUTS, quality: qual,
+            ar: (RES && RES[canvas] && RES[canvas].aspectRatio) || '2:3' }
         // `key` rides along so a second tap can see this one is already on its
         // way, before it has any images to be recognised by.
-        : { id: d.id, prompt: prompt, scale: scale, style: S.label, engine: 'replicate', count: OUTPUTS, seed: seed, key: key });
+        : { id: d.id, prompt: prompt, scale: scale, style: S.label, engine: 'replicate', count: OUTPUTS, seed: seed, key: key, ar: '2:3' });
       setPending(list);
       renderPendings(); startPolling();
     });
@@ -1476,7 +1635,8 @@
       var kill = p.engine === 'gptimage' ? ''
         : '<button class="killbtn" data-kill="' + ids + '" aria-label="Cancel this job">' + ICONS.x + '</button>';
       var cells = '';
-      for (var i = 0; i < slots; i++) cells += '<div class="cell ph"></div>';
+      var par = arCss(p.ar);
+      for (var i = 0; i < slots; i++) cells += '<div class="cell ph" style="--ar: ' + par + '"></div>';
       return '<div class="run"><div class="runhead">' +
         '<span class="p clamp">' + esc(p.prompt || '') + '</span>' +
         '<button class="copybtn" data-copy="' + p.id + '" aria-label="Put this prompt back in the box">' + ICONS.copy + '</button>' +
@@ -1626,9 +1786,18 @@
     });
     Object.keys(byKey).forEach(function (kk) { byKey[kk].remove(); });
   }
+  // A picture's own shape, as a CSS ratio. The run stores it as '2:3' / '1:1';
+  // anything else (an older run from before the canvas toggle, a hand-written
+  // value) falls back to portrait, which is what every run before it drew.
+  // Parsed rather than passed through — it lands in a style attribute.
+  function arCss(a) {
+    var m = /^(\d{1,2}):(\d{1,2})$/.exec(String(a || ''));
+    return m ? m[1] + ' / ' + m[2] : '2 / 3';
+  }
   // One cell = one picture (or a breathing placeholder while it draws).
   function makeCell(it) {
     var d = document.createElement('div');
+    d.style.setProperty('--ar', it.ar || '2 / 3');
     if (it.ph) { d.className = 'cell ph'; return d; }
     d.className = 'cell';
     var img = document.createElement('img');
@@ -1759,6 +1928,7 @@
           r.quality, r.aspectRatio, r.character ? 'c' : '', r.loraScale, r.seed]);
       });
       var only = likedOnly();
+      var nox = hideX();
       var items = [];
       groups.forEach(function (g) {
         var head = g.items[0];
@@ -1779,10 +1949,13 @@
           runImages(r).forEach(function (u, i) {
             var v = votes[i];
             if (only && v !== 'like') return;
-            cells.push({ key: r.id + '|' + i, src: thumbFor(u), vote: v || '', runId: r.id, i: String(i) });
+            if (nox && v === 'dislike') return;
+            cells.push({ key: r.id + '|' + i, src: thumbFor(u), vote: v || '', runId: r.id, i: String(i), ar: arCss(r.aspectRatio) });
           });
         });
-        if (only && !cells.length) return;   // nothing hearted in this run
+        // Nothing left to show in this run — everything hearted away or
+        // crossed out — so the box goes with it rather than sitting empty.
+        if ((only || nox) && !cells.length) return;
         items.push({ key: g.key, cells: cells,
           headHtml: '<span class="p clamp">' + esc(head.prompt) + '</span>' + cp +
             runParts(head).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') });
@@ -1822,12 +1995,13 @@
   function renderTiles() {
     var items = [];
     var only = likedOnly();
+    var nox = hideX();
     // A picture on its way has not been hearted, so the waiting squares are a
     // list-of-everything thing: with the heart lit the wall is hearts only.
     if (!only) pendingList().slice().reverse().forEach(function (p) {
       if (qGroups.length && !qmatch(pendHay(p), qGroups)) return;
       var slots = p.count || OUTPUTS;
-      for (var i = 0; i < slots; i++) items.push({ key: 'ph|' + p.id + '|' + i, ph: true });
+      for (var i = 0; i < slots; i++) items.push({ key: 'ph|' + p.id + '|' + i, ph: true, ar: arCss(p.ar) });
     });
     // Straight off `feed` — it is already sorted newest-first. (Walking
     // Object.keys of the id map relied on insertion order holding, which is a
@@ -1838,7 +2012,8 @@
       runImages(r).forEach(function (u, i) {
         var v = votes[i];
         if (only && v !== 'like') return;
-        items.push({ key: r.id + '|' + i, src: thumbFor(u), vote: v || '', runId: r.id, i: String(i) });
+        if (nox && v === 'dislike') return;
+        items.push({ key: r.id + '|' + i, src: thumbFor(u), vote: v || '', runId: r.id, i: String(i), ar: arCss(r.aspectRatio) });
       });
     });
     var box = document.getElementById('tiles');
@@ -1867,19 +2042,31 @@
   // The "…" opener for a prompt the two-line cap really cut. Added after layout
   // (scrollHeight vs clientHeight is the only honest test) and as a SIBLING of
   // the capped box, never inside it.
+  // The opener goes INSIDE the words, as their FIRST child — see the `.p.clamp`
+  // block in the CSS for why first and not last. Measured after layout
+  // (scrollHeight against clientHeight is the only honest test) and only on a
+  // prompt that really was cut.
   function applyClamps(root) {
     var ps = root.querySelectorAll('.p.clamp');
     for (var i = 0; i < ps.length; i++) {
       (function (el) {
+        if (el.querySelector('.moretxt')) return;      // a repaint, already folded
         if (el.scrollHeight - el.clientHeight <= 1) return;
         var btn = document.createElement('button');
-        btn.className = 'morebtn';
-        btn.textContent = '…';
+        btn.className = 'moretxt';
+        btn.textContent = '… more';
         btn.addEventListener('click', function () {
           var open = el.classList.toggle('clamp') === false;
-          btn.textContent = open ? 'less' : '…';
+          el.classList.toggle('fold', !open);
+          btn.textContent = open ? 'less' : '… more';
+          // It rides at the END of the words when they are open and at the
+          // FRONT when they are folded — the float only reaches the last line
+          // from in front of the text, and unfloated at the front it would
+          // read before the first word.
+          if (open) el.appendChild(btn); else el.insertBefore(btn, el.firstChild);
         });
-        el.parentNode.insertBefore(btn, el.nextSibling);
+        el.insertBefore(btn, el.firstChild);
+        el.classList.add('fold');
       })(ps[i]);
     }
   }
@@ -1928,8 +2115,9 @@
     document.getElementById('lbprev').hidden = at <= 0;
     document.getElementById('lbnext').hidden = at < 0 || at >= seq.length - 1;
   }
-  document.getElementById('lbprev').innerHTML = ICONS.chevronLeft;
-  document.getElementById('lbnext').innerHTML = ICONS.chevronRight;
+  // Nothing is drawn in the zone — see the .lbnav note in the CSS. The two
+  // buttons stay real elements (aria-label, hidden at the ends of the feed);
+  // they are simply invisible, so no mark sits on top of the picture.
   document.getElementById('lbprev').addEventListener('click', function () { lbStep(-1); });
   document.getElementById('lbnext').addEventListener('click', function () { lbStep(1); });
 
@@ -2046,7 +2234,7 @@
   };
 
   if (window.__nativeNavBar) document.body.classList.add('native');
-  renderStyles(); updateShape(); syncControls(); applyLiked(false); applyView(); loadRuns();
+  renderStyles(); updateShape(); syncControls(); applyLiked(false); applyHideX(false); applyView(); loadRuns();
   if (pendingList().length) { renderPendings(); startPolling(); }
 </script>
 </body></html>

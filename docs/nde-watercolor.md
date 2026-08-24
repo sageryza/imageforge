@@ -131,8 +131,8 @@ experiencers with **no reference photo**: Jeff Olsen, Ingrid Honkala, Heidi,
 Ray, Deborah, Graeme, Nadia McCaffrey, Julien Chameroy, Jonathan Ashford, Karen
 Thomas, Scott Drummond, Gabe Poirot, Jane Thompson, Tammy Lee Anderson, Rob
 Gentile, Bill McDonald, Peggy, Chris Batts, John Paul Martinez, Vinnie and
-more. New photos cannot be pulled from a cloud session — YouTube bot-blocks
-datacenter IPs — and the face-check approval was a deliberate step of Sophie's.
+more. A new likeness is Sophie's approval to give, not a download problem — the
+face-check was a deliberate step of hers.
 
 Until she decides, the standing rule for a panel whose experiencer has no
 approved card is: **do not invent a face for a real person.** Draw them from

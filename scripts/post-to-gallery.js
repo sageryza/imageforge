@@ -115,6 +115,17 @@ async function main() {
   // here, everything filed by a chat landed with the fallback or nothing.
   const model = arg('model');
   const quality = arg('quality');
+  // THE THIRD SLOT (Aug 2026, Sophie: "1K 2K 4K should be a third slot in the
+  // model/quality required tagging"). gpt-image-2 draws any canvas, so a
+  // caption without it no longer says what the picture is. Nothing derives it,
+  // and like the other two it can never be recovered later by a chat that did
+  // not make the image.
+  // Pass the real canvas ("1568x2352") — the TIER is what the caption shows
+  // ("2K", her correction: "i asked for it to say 1k 2k or 4k") and the canvas
+  // is kept beside it, because 2K portrait and 2K square are different
+  // canvases at different prices. A tier passed directly is taken as given.
+  const canvas = arg('size');
+  const size = require('../size-tier').captionSize(canvas);
   const uid = arg('uid', process.env.GALLERY_UID);
   if (!uid) { console.error('Missing gallery uid: pass --uid or set GALLERY_UID.'); process.exit(1); }
   const source = arg('source', 'claude');
@@ -134,6 +145,8 @@ async function main() {
   if (style) doc.style = style;
   if (model) doc.model = model;
   if (quality) doc.quality = quality;
+  if (size) doc.size = size;
+  if (canvas && canvas !== size) doc.canvas = canvas;
 
   const ref = await db.collection('users').doc(uid).collection('creations').add(doc);
   console.log(`gallery doc ${ref.id} → users/${uid}/creations  @ ${new Date(createdMs).toISOString()}`);

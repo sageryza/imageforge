@@ -23,6 +23,7 @@
  */
 
 const assetUnion = require('./asset-union');
+const sizeTier = require('./size-tier');
 const grammar = require('./search-grammar');
 
 // The pseudo-chat that holds app-made creations (below). A real chat slug is
@@ -38,14 +39,14 @@ const urlKey = (u) => String(u || '').split('?')[0].split('#')[0].trim().toLower
  * promptContent, kind, alts}) plus `chat`.
  *
  * `creations` (optional) are the iOS gallery's docs, mapped to
- * {url, ms, prompt, type, model, quality, style}. The ones a CHAT filed ride
+ * {url, ms, prompt, type, model, quality, size, style}. The ones a CHAT filed ride
  * in as hook copies labeled "from <chat>" and already have a chat row — those
  * are skipped, as is any url a chat row (or its alts) already shows. What
  * survives is the APP-MADE work (stickers, dream pages, in-app generations),
  * which lives nowhere in forge-chat-assets and would otherwise vanish the day
  * the My Creations tile points here. Those rows join as the 'my-creations'
  * bucket: prompt→description (it is what the tile is reviewed by, exactly how
- * CreationsView showed it), model·quality→the caption slot, and — for plain
+ * CreationsView showed it), model·quality·size→the caption slot, and — for plain
  * images — the prompt also lands in promptContent so the PROMPT overlay and
  * the Playground button work on them too. `app:true` marks them so the page
  * can skip the open-the-chat button (there is no chat to open).
@@ -73,13 +74,67 @@ function buildMetaAssets(docs, creations) {
     const p = String(c.prompt || '');
     if (/^from /.test(p)) return;            // a chat deliverable's hook copy
     if (seenUrls.has(urlKey(c.url))) return; // already a chat's tile
-    const made = [c.model, c.quality].map((v) => String(v || '').trim())
-      .filter(Boolean).join(' · ') || String(c.style || '').trim();
+    // MODEL · QUALITY · SIZE — the size is the third required slot since Aug
+    // 2026 (Sophie: "1K 2K 4K should be a third slot in the model/quality
+    // required tagging"). gpt-image-2 draws any canvas, so the first two no
+    // longer say what a picture is: the same prompt at the same quality can
+    // differ 5x in pixels and 3x in price. Absent on everything filed before
+    // the field existed, and an absent slot is simply left out rather than
+    // guessed — there is nothing on those records that says how big they are.
+    // The third slot is the TIER — "2K", not "1568x2352" (Sophie: "i asked for
+    // it to say 1k 2k or 4k"). Normalised on READ as well as on write, so the
+    // records filed with raw pixels before her correction show the tier too
+    // and nothing needs backfilling.
+    // THE STYLE LEADS THE CAPTION (2026-08-24, Sophie: "there's no style
+    // clause in Meta assets"). It was on the record the whole time — every
+    // Playground run files `style` (the tile's label: Dreamy, Pastel, WTR) —
+    // and this line only ever read it as a FALLBACK for a record carrying no
+    // model/quality/size, so on everything filed since those fields existed
+    // the style was fetched, ignored and dropped. It goes FIRST because it is
+    // the coarsest fact about a picture: which recipe drew it, before how
+    // well and how big.
+    //
+    // It is a LABEL, and a label belongs in the caption — not in the PROMPT
+    // overlay's style half, which the house rule says must be the exact text
+    // sent to the model. A creation doc stores her typed words and the style's
+    // NAME, never the prefix/suffix wrapped around them, so filing "Dreamy"
+    // as the style prompt would be a reconstruction. That half stays empty.
+    // THE STYLE SLOT IS ITSELF COMPOUND, and that is the trap (found live
+    // 2026-08-24, the first caption off the deploy read "Dreamy · low ·
+    // gpt-image-2 · low · 1K"). The Playground files `style` as
+    // `${label} · ${quality}`, so appending quality again says it twice —
+    // and a whole-slot de-dupe cannot see it, because "Dreamy · low" and
+    // "low" are different strings. Split the style into its own parts, drop
+    // any that the later slots already say, and keep the rest as the label.
+    const model = String(c.model || '').trim();
+    const quality = String(c.quality || '').trim();
+    const size = sizeTier.captionSize(c.size) || '';
+    const said = new Set([model, quality, size].filter(Boolean));
+    const styleLabel = String(c.style || '').trim()
+      .split('·').map((v) => v.trim()).filter(Boolean)
+      .filter((v) => !said.has(v))
+      .join(' · ');
+    const made = [styleLabel, model, quality, size]
+      .filter(Boolean)
+      // A Replicate run files model === styleLabel (fileRunToCreations), so
+      // without this a LoRA picture reads "WTR · WTR · medium · 1K".
+      .filter((v, i, a) => a.indexOf(v) === i)
+      .join(' · ');
+    // THE PROMPT OVERLAY'S TWO HALVES (2026-08-24, Sophie's hard rule: the
+    // whole prompt is stored wherever an image is made). A creation filed
+    // since that landed carries `promptStyle` / `promptContent` — the real
+    // wrapper with [content] marking the seam, and her words verbatim — so
+    // the STYLE half of the overlay finally has honest text to show. Older
+    // records have neither and fall back to the typed prompt as content
+    // only, exactly as before: an absent style half stays absent rather
+    // than being reconstructed from the style's LABEL.
+    const isImage = (c.type || 'image') === 'image';
     appRecs.push({
       url: c.url, ms: c.ms || 0,
-      prompt: made,                          // the MODEL · QUALITY caption slot
+      prompt: made,                          // the STYLE · MODEL · QUALITY · SIZE caption slot
       description: p,                        // what she reviews it by
-      promptContent: (c.type || 'image') === 'image' ? p : '',
+      promptStyle: String(c.promptStyle || ''),
+      promptContent: String(c.promptContent || (isImage ? p : '')),
       compressedAtBirth: c.compressedAtBirth === true,
     });
   });

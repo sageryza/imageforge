@@ -11,8 +11,8 @@
 // the end card, because the end card IS that line. The script carries the
 // hook's timestamp, not an offset, so the mux is derived: the song starts at
 // hook − (when the end card appears). Without --audio the film renders silent
-// and the exact ffmpeg line is printed, which is what a cloud session can do
-// (YouTube bot-blocks datacenter IPs — the audio comes off Sophie's Mac).
+// and the exact ffmpeg line is printed. A cloud session CAN get the audio now:
+// POST /api/ytdl/grab {url, kind:'audio', to:'none'} (measured live 2026-08-23).
 const fs = require('fs');
 const os = require('os');
 const path = require('path');

@@ -106,24 +106,88 @@ All 12 NDE-category stories were linked to their montage episodes on
   member's first line; tapping a slice opens that member's popup). Slots
   never appear inside a chunk. The lit chain icon dissolves the WHOLE
   chunk (`POST /chunk {id}` / `POST /unchunk {id}`). A beat's art is
-  made or swapped from the SAME two-or-three icons — centered in the blank
-  tile when empty, in a row ABOVE the picture when it already has one:
+  made or swapped from ONE row of icons UNDER the picture, there whether or
+  not there is a picture yet:
+  **THE POPUP WAS REMODELLED 2026-08-24 (Sophie, one message: "the whole
+  popup gets bigger, so there's only room enough to comfortably see behind
+  it. similar aspect ratio as total screen (not square)" · "that image is
+  bigger by default" · "stars, playground and inbox buttons get put into
+  rounded squares and go under the main (currently chosen) image" · "colors
+  become one multicolored rounded square in the corner, drop down" ·
+  "drawing a new picture replaces the old, but keeps it in the stacked
+  squares icon" · "two text boxes: caption, and drawing prompt. drawing
+  prompt is collapsed by default, and uncollapsing draw prompt automatically
+  collapses the caption but can be manually expanded again").** Every one of
+  those is a MEASUREMENT, which is why `node scripts/test-scratchpad-popup.js`
+  drives the real page in headless Chromium rather than grepping markup —
+  "square" is two numbers that must match, "under the image" is a y
+  coordinate, "multicoloured" is counting distinct fills, and "screen-shaped"
+  is the card's own ratio against the viewport's.
+  - **The card is `height:100%` of a padded fixed inset**, which IS the
+    screen's shape minus the strip of pad left showing all round it — and
+    that strip is still the tap-out target. It used to be only as tall as its
+    contents, so a beat with a small picture left a squat card mid-screen.
+  - **The picture is sized by CSS inside `#artwrap` (flex:1, min-height:0),
+    never by a pixel width in JS.** It was pinned to the pad tile's ~90px — a
+    thumbnail of a thumbnail — and max-height/max-width keep a 2:3 drawing its
+    own shape at any screen size. Measured on a 390pt phone: 79px → 273.
+  - **`#popblank` no longer carries its own two icons.** The star, the
+    Playground and the inbox live in ONE row of 38px squares under the
+    picture whether or not there IS one, so there is a single place to make
+    art rather than two that drift apart. The stacked-squares button joins
+    that row and appears only once a draw has actually replaced something.
+  - **The colour button stays multicoloured even when a colour is picked** —
+    the pick is already legible on the picture's own frame, and a single
+    filled square stops reading as "colour" at a glance.
+  - **`setBoxes(capOpen, promOpen)` is the one switch** behind both text
+    boxes. Opening the prompt folds the caption away; CLOSING it leaves the
+    caption as she left it rather than forcing it back open.
+  - **THE PROMPT BOX IS NOT THE CAPTION, AND AN EMPTY BOX SAYS WHAT IT WILL
+    DRAW (2026-08-24, Sophie: "I just made an image and it sent the wrong
+    prompt. I think it sent it from the caption part not the drawing
+    part").** It shipped seeding `#dprompt` with the caption's words whenever
+    the beat had no prompt of its own — so the two labelled boxes showed the
+    SAME text, nothing on screen distinguished "this beat has its own prompt"
+    from "you are about to draw the caption", and typing into the only box
+    that was open (the caption) then tapping Draw sent the caption. Measured
+    on the real page before the fix: caption "A RED DOOR IN THE SNOW" → the
+    prompt box seeded with it → `/generate` sent it.
+    - **The box now holds ONLY her stored `beat.prompt`** — that is her own
+      text, which is the one thing the never-pre-written-text rule allows a
+      box to open with. Empty is the honest default.
+    - **Empty still draws, from the CAPTION, live.** `drawPrompt()` is the
+      single place that decides — typed prompt, else the caption box's
+      current value with speech markup stripped — so the hint line and the
+      Draw button can never disagree. Reading the caption box rather than the
+      last SAVED text is what keeps the older "it doesn't take the words I
+      put in" fix working.
+    - **`#promhint` under the box says `empty — this beat draws from its
+      caption`** and clears the moment she types. It is CHROME under the
+      field, never text inside it.
   **sparkles = draw it here** (`POST /generate {id, prompt, quality,
   character}` — background job on `beat.gen`, gpt-image-2 edits at 1024x1536
   with `refs/sage-sandy-mirror.png` as the style ref and, by default,
-  `refs/sophie-book.png` as the character card; the prompt defaults to
-  the beat's own words, quality low/medium/high default medium, NO style
-  picker — one style per story; superseded art goes to `beat.imageHistory`,
-  never deleted), palette → `/playground?from=scratchpad`, inbox → pick a
+  `refs/sophie-book.png` as the character card; quality low/medium/high
+  default medium, NO style picker — one style per story; superseded art
+  goes to `beat.imageHistory`, never deleted. **The draw box holds the
+  beat's OWN PROMPT since Aug 2026** — `beat.prompt`, its own field, so
+  tuning what a picture shows never rewrites what the film says. It saves
+  ITSELF (`POST /prompt {id, prompt}` on blur / closing the popup / Draw —
+  no save button, her rule), seeds from the words with speech markup
+  stripped when empty, and a prompt edited back to just-the-words is
+  CLEARED server-side so the beat keeps following its note; `promptFor` in
+  scratchpad.js / `promptOf` on the page are the one fallback rule, pinned
+  equal by `node scripts/test-scratchpad-prompt.js`), palette → `/playground?from=scratchpad`, inbox → pick a
   hearted image straight INTO that beat (`POST /image {id, url, src?}`).
   **Draw-the-missing (Aug 2026):** a wand icon on the title row (visible
   only when some beat has words but no art) → a confirm box stating count
   and cost (`POST /drawall {quality}`, default LOW) → every such beat draws,
   two at a time. Chunk siblings without their own text are deliberately
   skipped (their art is the hand-made literal→metaphorical pair), and
-  speech-only markup ([pause], <break/>) is STRIPPED from bulk prompts —
-  the single-beat draw box still sends her words untouched. Safe to re-tap:
-  it only ever draws what is still missing.
+  the wand draws each beat's `promptFor` — a stored prompt stays tuned in
+  the bulk pass, and speech-only markup ([pause], <break/>) is stripped
+  wherever words become a prompt, the single-beat seed included. Safe to
+  re-tap: it only ever draws what is still missing.
   ART.prefix / ART.characterLine in scratchpad.js are COPIES of
   PL_GPT.prefix / PL_GPT.characterLine in server.js — keep all three
   identical. `/scratchpad-sophie.png` serves the character card to the
@@ -172,6 +236,30 @@ All 12 NDE-category stories were linked to their montage episodes on
     `pad.style` and stamps `style` on the render, which is how the page
     knows a watercolor cut is not the dreamy film (the toggle never bumps
     updatedAt, so this is the freshness signal across a flip).
+  - **DELETING IS PER SIDE TOO (2026-08-23, Sophie: "if I delete a beat in
+    one of the styles does it delete it for the other style too? … I don't
+    want it to … leave it in the other style cause that one might have an
+    image for that").** `POST /remove {id, style}` asks one question first —
+    is there still art on the OTHER side? **Yes** → only this side goes: its
+    picture (or clip) is banked in `pad.trash` (as `{beatId, style, …}`, so a
+    per-side removal is never mistaken for a deleted beat), the side is
+    emptied and marked `off`, and the beat keeps its place, its words, its
+    frame color and her voice takes for the side that still wants it — it is
+    simply not drawn where she deleted it. **No** → the whole beat goes,
+    exactly as before. Her own reason IS the rule: the thing worth keeping is
+    the other side's image, so a words-only beat she deleted is just deleted.
+    - **`off` is per SLOT**, `slotOff` server-side / `beatOff` on the page.
+      `padUnits()` groups chunks over the whole list, then draws each unit
+      from the members THIS side still has (a unit whose every member was
+      deleted here isn't drawn) while `at` stays the true index into
+      `beats` — so placing next to a visible beat lands where she expects
+      however many hidden ones sit between.
+    - **Anything that puts art back clears `off`** (`/image`, `/clip`, a
+      draw starting and landing) — putting something there is what brings
+      the side back. The wand skips a side she deleted from, and the film
+      skips it by itself (an emptied slot has no url).
+    - **The confirm box says which side is going** and which one keeps it,
+      because the same button means two different things.
   - **A CLIP is per-style TOO (2026-08-23, Sophie — the first live use of
     the toggle taught this).** The design shipped with clips shared between
     the sides ("footage, not drawn art") and she overruled it within the
@@ -213,24 +301,82 @@ All 12 NDE-category stories were linked to their montage episodes on
   the current shape is settled.
 - **More than one story (Aug 2026):** every story is its own doc in
   `forge-scratchpad`; the original keeps doc id `pad` and is just one of the
-  list. The book icon in the title row opens the shelf (cover = first art,
-  name, beat count, newest-touched first); + there starts a new one. The
-  open story is remembered per device (`scratchpad_pad` in localStorage) and
-  rides on EVERY request — `?pad=` on GETs, `pad` in the body on POSTs
-  (`GET /pads`, `POST /pads {title}`).
+  list. The shelf lists them (cover = first art, name, newest-touched first);
+  the + on its header starts a new one. The open story is remembered per
+  device (`scratchpad_pad` in localStorage) and rides on EVERY request —
+  `?pad=` on GETs, `pad` in the body on POSTs (`GET /pads`, `POST /pads
+  {title}`).
+- **THE SHELF IS THE ROOM, AND THE BACK BUTTON IS THE SHELF BUTTON
+  (2026-08-23, Sophie: "i think the story room architecture is backwards. the
+  shelf is the main room. the back button goes to the shelf. story room opens
+  on the shelf. we don't need a separate shelf button. the back button IS the
+  shelf button").** It used to be the other way round: the page opened on the
+  story she was last on, a `library` door at the right of the header went and
+  fetched the shelf, and the shelf's chevron dropped back onto that story —
+  so the tool had two ways up and the pad read as the room.
+  - The page **opens on the shelf** and loads no story until she taps a tile.
+    `padId` is still remembered, but only to mark that tile as where she left
+    off — loading it would spend a fetch nobody is looking at and park a stale
+    story one chevron behind the shelf.
+  - **`__navBack` runs the other way**: after every layer it already walked
+    (film, lightbox, a confirm, the beat popup, the inbox), a bare story
+    answers TRUE and opens the shelf, and only the shelf answers false, which
+    is where the app leaves the tool.
+  - The shelf is still drawn as a `.sheet` — opaque, `inset:0`, its own
+    scroller and its own pill — which is why nothing else in the page had to
+    move. Its own chevron leaves the tool now (`__forgeLeave`), since nothing
+    is behind it.
+  - **A plain browser has no injected chevron**, so the page draws its own
+    (`#shelfback`, left of the header) and hides it under `body.native` /
+    `body.pagehead` — the same "whoever owns back draws it once" rule the ten
+    `__nativeNavBar` pages follow. Without it a story is a dead end in a
+    browser. Tests: `node scripts/test-storyroom-header.js` (all three
+    builds) and `node scripts/test-storyroom-shelf.js`.
 - **The film (Aug 2026) — a play button at the TOP of the pad.** `POST
   /film` stitches the story: every beat with art is its own shot (CHUNKS ARE
   DISPLAY-ONLY — Sophie), each held for exactly its own audio's length —
   her recording first, else the line's cached TTS, else `FILM.silent` (2s)
   of quiet — hard cuts, 1000x1500 (2:3), pure ffmpeg, no video model, free. It's
-  a background job on `pad.film` (`status` making/done/failed); the page
-  polls and resumes on return; every previous cut is kept in `pad.films`.
+  a background job on `pad.film` (`status` making/done/failed/**canceled**);
+  the page polls and resumes on return; every previous cut is kept in
+  `pad.films`.
   **The per-unit audio is PCM, never aac:** concatenating aac adds encoder
   priming to every file (~24ms per two units, measured) and the voice walks
   out from under the pictures — WAV concatenates sample-exact and the track
   is encoded once at the mux. Animating between a chunk's panels (her
   literal→metaphorical formula, Wan i2v ~$0.06 a pair) is the planned paid
   follow-up, deliberately not in v1.
+- **STOPPING A RENDER: the play button IS the cancel while it is making
+  (2026-08-23, Sophie: "add a cancel button to the play which makes the film
+  button in story room").** One control, two states, because the title row
+  already carries six 34px icons on a 390pt phone. It also replaced a DEAD
+  control — the button used to sit disabled at .45 opacity for the whole
+  render. `POST /film/cancel` flips the job's token (`filmJobs`) and SIGKILLs
+  the running ffmpeg, so the stop lands in seconds instead of at the end of a
+  ten-minute encode; the doc is stamped `canceled` even when this process
+  holds no token, so a render orphaned by a deploy doesn't wait for the
+  15-minute sweep. **A cancel is never `failed`** — she stopped it on purpose,
+  and the killed ffmpeg's own error is exactly the shape the cancel arrives
+  in. Two rules keep the doc honest: progress writes go through the job's
+  `beat()`, which no-ops once canceled, and the job re-stamps `canceled` on
+  its way out, after the child is dead — closing the race where a heartbeat
+  was already in flight. On the page, `filmGen` drops a POLL that was in
+  flight when she cancelled (its answer still says `making`, and landing it
+  would repaint the ✕ with no timer left to correct it), and `api()` matches
+  `/film*` by PREFIX so stopping a render never marks the story dirty.
+  Nothing is deleted and nothing is spent: the next tap starts a fresh render.
+- **THE "?" ON THE NAME ROW — what every button does (2026-08-23, Sophie:
+  "also add an info icon that says what all the buttons do").** The pad is all
+  unlabelled glyphs by design, so the legend is the one place the words live.
+  It sits on the STORY ROOM name row rather than the title row (the title row
+  is full; that row's right end is empty and already reserves the pill's
+  56px), and it is a sheet with the page's own header, like every other level
+  here. **Every row's glyph is CLONED from the real control** — `HELP` names
+  each one by SELECTOR and the row copies its `innerHTML`, built on the tap so
+  the play row follows the live state. A hand-drawn second set would drift the
+  first time a button changed, and the drift would be invisible: the legend
+  would go on looking right while describing a page that no longer exists.
+  Test for both: `node scripts/test-storyroom-film-cancel.js`.
 - **A BEAT CAN BE A FILM CLIP (Aug 2026, Sophie: "can u add film clips to
   story room (the new version - aka scratch pad)").** A clip beat is an
   ordinary beat whose `url` is an mp4 — `kind:'clip'` plus `poster`,

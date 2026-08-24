@@ -61,10 +61,6 @@ them already house law somewhere:
   predicament with not one word about colour, light or composition — and it
   drew clean where a 5,372-character transcript of the same shape collapsed
   into a collage.
-  - **This is not the same as being SHORT.** A long prompt that is all action
-    still works; a short one that specifies the palette still micromanages.
-    Length matters for a different, measured reason (below) — the two rules
-    just happen to point the same way.
   - **The measured band:** raw transcript as `[content]` draws ONE image up to
     ~1,000 chars and fails above it (six lengths, one run each, dream feed,
     2026-08-19). So the working move on a long source is not a cleverer
@@ -74,40 +70,30 @@ them already house law somewhere:
     in the feed distilled to that shape, with the rules used and which two
     needed nothing because the dreamer had already told them that way.
 
-- **WRITE IT SHORT — a few clear sentences, not a paragraph of specification
-  (2026-08-21).** Nothing says a long prompt gets a worse picture; what is
-  established is that a long one buys you nothing and costs you the ability to
-  fix it. OpenAI's own gpt-image-2 prompting guide is explicit that minimal
-  prompts, paragraphs, tag lists and JSON-ish structures all work equally well
-  when the intent is clear, that clarity beats length ("soft natural light
-  from a window on the left" over "beautiful lighting"), and that long prompts
-  are simply harder to debug — the way through a bad draw is a clean base
-  prompt plus one small change at a time, which a paragraph of stacked
-  qualifiers makes impossible. Prompt length is tied to NOTHING on the API
-  side: not the quality tier, not fidelity, not price.
-  - **The blog number going round is unsourced.** "Prompts under 200
-    characters score highest, correlation −0.07" is quoted across several
-    gpt-image-2 prompt guides; chased 2026-08-21, no paper or benchmark behind
-    it could be found. Don't repeat it as a fact, and don't build a rule on it.
-  - **Her own images cannot settle it, and that is worth knowing before
-    someone re-measures (2026-08-21).** All 379 chats swept: 2,714 captioned
-    gpt-image-2 images, 298 carrying BOTH an exact filed prompt and a ♥/✕. The
-    aggregate looks like longer wins (liked median 230 chars vs disliked 19)
-    and is an artifact of one chat — `character-sheet-portraits`, 130 votes
-    all sitting on ~18-char prompts. Compared WITHIN a chat, where the batch is
-    otherwise alike, only six chats have enough of both votes and any real
-    length spread, and four of the six have the DISLIKED prompts slightly
-    longer (335 vs 452, 478 vs 545, 75 vs 89, 160 vs 175) — noise at n=7–27.
-    The reason is structural: inside one batch her prompts are near-constant
-    length, so a ♥ measures the subject and the draw, never the length. The
-    experiment that would answer it is one subject, one style ref, three
-    lengths (one sentence · three sentences · a paragraph), four draws each at
-    low — about 6¢ — posted as a grid page for her to mark.
-  - **So the target is the monkey dream, not the transcript**: ~300 characters
-    of the one situation, action-only. Above ~1,000 the model stops drawing one
-    image at all (the measured band above); below that the argument for brevity
-    is yours, not the model's — a short prompt is one you can debug, re-style
-    and re-use, and it is what the bank is actually storing.
+- **NAME THE PHENOMENON — DON'T ITEMIZE IT (Sophie, 2026-08-24: "highly
+  encourage short prompts that don't describe exact things — for example
+  'meat raining from the ceiling' is better than 'ribs, drumsticks, etc.'").**
+  A list of exact things is a checklist the model has to satisfy, and it
+  satisfies it the literal way: each named object gets drawn, separately,
+  laid out where it can be seen — so an inventory comes back instead of an
+  event. The compact phrase names the whole happening and leaves the parts to
+  the model, which is the one thing the model is better at than the sentence.
+  - **It is the third handle on one rule, not a new rule.** Action-only says
+    don't specify the LOOK; short says don't specify at LENGTH; this says
+    don't specify the PARTS. All three are the same trade — every
+    specification is a decision taken away from the model and taken worse.
+  - **The test: could that word be swapped for another of its kind without
+    changing the idea?** "Ribs" could be "drumsticks" and the dream is the
+    same dream — so ribs was never the idea, *meat falling* was. Name the
+    class, draw the instance for free.
+  - **It is also the collage failure in miniature.** The measured way a long
+    prompt breaks is that the model stops drawing one picture and starts
+    arranging the things it was handed; an enumeration is that same
+    instruction in three words, so a short prompt can micromanage too.
+  - **Where her words are the prompt, they stay her words.** This is guidance
+    for prompts a chat WRITES, and something to encourage when she asks for
+    one — never a licence to trim a prompt she dictated. Anything you change
+    or add is named word for word in the reply, exactly as ever.
 
 And the consequence the map itself draws: **the road ends at the BANK, not at
 the picture.** GOLD is the second-to-last stop. The finished picture leaves
@@ -215,6 +201,15 @@ None of these is a missing button:
   chats, independent of any image. Until there is, "the prompt is the
   treasure" is a philosophy the storage model quietly disagrees with — and
   the style-change insurance can't actually be claimed.
+  - **Half of that is now out of date — Meta Assets (2026-08-24).** `/assets`
+    is a view over every chat's Assets tab at once (`meta-assets.js`, nothing
+    files into it), and its search runs over both halves of the filed prompt
+    as well as the label and the caption — so a prompt IS findable across
+    chats by its own words now, and the 1,168-of-2,488 count above is a
+    measurement from before it existed. What is still true is the shape: a row
+    there is a PICTURE, so a prompt still has to have drawn something to be on
+    the shelf, and there is still no record of a content prompt as a thing in
+    its own right.
 - **No lineage between versions.** A re-roll files as a new image and the old
   one stays — good — but nothing records which prompt begat which, or which
   WORDS changed between rounds, so each lap's lesson evaporates when the chat

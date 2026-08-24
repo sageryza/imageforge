@@ -409,9 +409,48 @@ function normContent(s) {
 }
 
 // MODEL · QUALITY out of the curated tile caption ("gpt-image-2 · medium").
+// The curated caption a chat files: "gpt-image-2 · medium" until Aug 2026,
+// "gpt-image-2 · medium · 2K" since the size became a required third slot.
+// BOTH SHAPES PARSE — thousands of two-slot captions are already on file, and
+// a caption that stopped parsing does not fail loudly: it falls through to the
+// picture's long description, which is exactly the "the caption says
+// everything" Sophie reported on the auto-compare sheets.
+// THE SIZE SLOT IS NOT ALWAYS A BARE WORD — a panel cut out of a sheet reads
+// "1/4 (4K)" (Sophie: "1/4 panel could say 1/4 (4k)"), so the slot has to
+// allow a slash, a space and parentheses. It shipped as [a-z0-9x×] and the
+// whole caption then failed to parse on exactly the pictures this rule was
+// built for: the four quarters lost their size off the row and fell through
+// to their style line, which is the silent-fallthrough failure the comment
+// above already warns about. Measured on her live ladders page.
 function parseCaption(prompt) {
-  const m = /^([^·]{1,60}?)\s*·\s*([a-z0-9-]{1,20})$/i.exec(String(prompt || '').trim());
-  return m ? { model: m[1].trim(), quality: m[2].trim().toLowerCase() } : null;
+  const m = /^([^·]{1,60}?)\s*·\s*([a-z0-9-]{1,20})(?:\s*·\s*([a-z0-9x×/() ]{1,20}))?$/i
+    .exec(String(prompt || '').trim());
+  if (!m) return null;
+  return {
+    model: m[1].trim(),
+    quality: m[2].trim().toLowerCase(),
+    size: m[3] ? m[3].trim().toUpperCase() : '',
+  };
+}
+
+// WHAT ACTUALLY CHANGED, AND NOTHING ELSE (Aug 2026, Sophie: "the auto compare
+// sheets shud say the diff (e.g. the resolution) and nothing else, in their
+// pre-lightbox caption"). Across one group, only the caption fields that VARY
+// are worth printing: three tiles all drawn at medium learn nothing from three
+// rows reading "medium", and the row that differs only in size must say the
+// size rather than the quality it shares with its siblings. Returns '' when no
+// caption field varies, so the caller falls through to the style diff — the
+// order the sheet already used.
+// In the caption's own order (model · quality · size), so a diff row reads as
+// a shortened caption rather than a re-ordered one. When only the size varies
+// it is the whole row, which is her example.
+const CAPTION_PARTS = ['model', 'quality', 'size'];
+function varyingCaptionParts(items) {
+  return CAPTION_PARTS.filter((k) =>
+    new Set(items.map((i) => i[k] || '')).size > 1);
+}
+function captionDiff(item, parts) {
+  return parts.map((k) => item[k]).filter(Boolean).join(' · ');
 }
 
 // The two lines under a tile say WHAT CHANGED — not everything the filing
@@ -489,7 +528,7 @@ function itemOf(a) {
     img: a.url,
     url: a.url,
     label: cap.quality || cap.model || a.description || '',
-    model: cap.model || '', quality: cap.quality || '',
+    model: cap.model || '', quality: cap.quality || '', size: cap.size || '',
     promptStyle: a.promptStyle || '', promptContent: a.promptContent || '',
     compressedAtBirth: a.compressedAtBirth === true,
     ms: Number(a.ms) || 0,   // used by planAutoPages' newest-first cap;
@@ -513,8 +552,13 @@ function groupAssetVariants(assets) {
     // the one differing variable is what earns a row: a caption that differs
     // (quality/model) or a style half that differs. Identical everything is
     // a re-roll, not a comparison.
-    const variantOf = (a) => `${(parseCaption(a.prompt) || {}).model || ''}|`
-      + `${(parseCaption(a.prompt) || {}).quality || ''}|${normContent(a.promptStyle)}`;
+    const variantOf = (a) => {
+      const c = parseCaption(a.prompt) || {};
+      // SIZE is part of the variant key (Aug 2026): without it the same prompt
+      // drawn at 2K and at 4K reads as one variant, the group drops below two
+      // and the comparison she asked for never appears at all.
+      return `${c.model || ''}|${c.quality || ''}|${c.size || ''}|${normContent(a.promptStyle)}`;
+    };
     const distinct = new Map();
     for (const a of group) {
       const v = variantOf(a);
@@ -526,18 +570,47 @@ function groupAssetVariants(assets) {
       if (qx !== undefined && qy !== undefined) return qx - qy;   // low → high
       return String(x.label).localeCompare(String(y.label));
     });
+    // THE ROW SAYS THE DIFF AND NOTHING ELSE (Aug 2026, her ask). Only the
+    // caption fields that actually vary across this group are printed — size
+    // first, because that is the one she named and the one a shared "medium"
+    // was hiding. `itemOf` seeded `label` with the quality, which is wrong the
+    // moment quality is the thing they share.
+    const capParts = varyingCaptionParts(items);
+    if (capParts.length) {
+      items.forEach((it) => { it.label = captionDiff(it, capParts) || it.label; });
+    }
+    // size first when it is the only thing that changed is automatic — the
+    // filter keeps only what varies, so a size-only group's row IS the size.
     // when the differing variable is the STYLE, the caption words repeat
     // ("medium" · "medium") and say nothing — the line under the tile is the
     // style segment this variant does not share, i.e. what actually changed
+    // WHEN THE CAPTION ALREADY SAYS IT, THAT IS THE WHOLE ROW (Sophie,
+    // 2026-08-23, looking at the cut panels: "make it shorter"). The four
+    // quarters read "1/4 (4K) · (this picture is the top-left quarter of the
+    // 2336x3504 sheet above, cut locally" — the tail after the dot is the same
+    // fact again in longhand, and it is the part that runs off the tile.
+    // A style line is only appended where the caption diff would leave two
+    // rows in this group reading the SAME thing, which is the one case it is
+    // actually carrying information ("medium · watercolour" vs
+    // "medium · gouache"). Everywhere else the diff stands alone.
+    const capLabel = new Map(items.map((it) => [it, captionDiff(it, capParts)]));
+    const capCount = {};
+    items.forEach((it) => { const c = capLabel.get(it); if (c) capCount[c] = (capCount[c] || 0) + 1; });
+    const capTellsApart = (it) => {
+      const c = capLabel.get(it);
+      return Boolean(c) && capCount[c] === 1;
+    };
     const styleSet = new Set(items.map((i) => normContent(i.promptStyle)));
     if (styleSet.size > 1) {
-      const capsVary = new Set(items.map((x) => `${x.model}|${x.quality}`)).size > 1;
+      const capsVary = capParts.length > 0;
       const allStyles = items.map((i) => i.promptStyle);
       items.forEach((it, idx) => {
+        // the caption already tells this row apart from every sibling — done
+        if (capsVary && capTellsApart(it)) return;
         const d = uniqueStyleLine(it.promptStyle, allStyles.filter((_, j) => j !== idx));
         if (d) {
-          it.label = capsVary && (it.quality || it.model)
-            ? `${it.quality || it.model} · ${d}` : d;
+          const pre = capsVary ? captionDiff(it, capParts) : '';
+          it.label = pre ? `${pre} · ${d}` : d;
           return;
         }
         // no line of its own (every line shared with SOME sibling): the chat's

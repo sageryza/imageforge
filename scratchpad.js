@@ -47,6 +47,11 @@
 //   POST /clip           → { clip:{id,url,poster,seconds,title}, at? | id? }
 //                          — a FILM CLIP as a beat: inserted at `at`, or
 //                          dropped into the existing (blank) beat `id`
+//   POST /remove         → { id, style? } — delete a beat FROM A SIDE: with
+//                          art still on the other side only this side goes
+//                          (emptied + `off`, the beat keeps its place and
+//                          its words there); with nothing left anywhere the
+//                          whole beat goes, as it always did
 //   POST /style          → { style:'watercolor'|'dreamy' } — which art set
 //                          the story shows (the toggle at the top; the beats
 //                          and their words are shared, only the art differs —
@@ -162,6 +167,25 @@ function artSlot(b, style, make) {
   if (make) { b.alt = b.alt || {}; b.alt.dreamy = b.alt.dreamy || {}; }
   return (b.alt && b.alt.dreamy) || {};
 }
+const otherStyle = (style) => (style === 'dreamy' ? 'watercolor' : 'dreamy');
+// EVERY field that belongs to ONE side, and nothing else. The watercolor
+// slot IS the beat root, so emptying a side is done by this explicit list
+// and NEVER by wiping the object — the words, the frame color, her voice
+// takes and the chunk link live at the root too and belong to BOTH sides.
+const SLOT_KEYS = ['url', 'src', 'gen', 'imageHistory', 'kind', 'poster', 'seconds', 'title', 'clipId'];
+function clearSlot(slot) { SLOT_KEYS.forEach((k) => { delete slot[k]; }); }
+// A side she DELETED the beat from (2026-08-23, Sophie: "if I delete a beat
+// in one of the styles … leave it in the other style cause that one might
+// have an image for that"). `off` is per-slot, so the beat keeps its place
+// in the order and its words on the side that still wants it, and simply is
+// not drawn on the side she removed it from. Giving that side art again
+// clears the mark — putting something back is what brings it back.
+const slotOff = (s) => Boolean(s && s.off);
+// Swapping a picture into a slot — the past-pictures bookkeeping lives in
+// its own dependency-free file so it can be tested without a node_modules,
+// and so /image and a finished draw share ONE copy of the rules.
+const { swapArt } = require('./pad-art');
+
 // DREAMY's recipe is the Playground's Dreamy tile — refs/dream-mystery.jpg
 // with HER OWN dictated prefix and suffix (2026-08-22), bookending her words
 // exactly as the Playground sends them (prefix\n\nwords\n\nsuffix). These two
@@ -205,12 +229,23 @@ function usable(p) { if (!p) return null; try { fs.accessSync(p, fs.constants.X_
 const FFMPEG = process.env.FFMPEG_PATH || usable(tryRequire('ffmpeg-static')) || firstOnPath('ffmpeg');
 const FFPROBE = process.env.FFPROBE_PATH || usable((tryRequire('ffprobe-static') || {}).path) || firstOnPath('ffprobe');
 
-function run(bin, args, timeoutMs = 300000) {
+// `job` (optional) is a film job's cancel token — see CANCELING A RENDER
+// below. Handing the running child to the token is what lets a cancel land in
+// SECONDS rather than at the end of a ten-minute encode: killing the ffmpeg
+// makes this promise reject, and the checkpoint after it stops the job.
+function run(bin, args, timeoutMs = 300000, job = null) {
   return new Promise((resolve, reject) => {
-    execFile(bin, args, { timeout: timeoutMs, maxBuffer: 32 * 1024 * 1024 }, (err, stdout, stderr) => {
+    const child = execFile(bin, args, { timeout: timeoutMs, maxBuffer: 32 * 1024 * 1024 }, (err, stdout, stderr) => {
+      if (job && job.child === child) job.child = null;
       if (err) reject(new Error(`${path.basename(bin)} failed: ${(stderr || err.message).slice(-400)}`));
       else resolve({ stdout, stderr });
     });
+    if (job) {
+      job.child = child;
+      // Canceled between the token check and the spawn — kill it now, or this
+      // one encode runs to completion after she has already stopped the film.
+      if (job.canceled) { try { child.kill('SIGKILL'); } catch { /* already gone */ } }
+    }
   });
 }
 async function mediaSeconds(file) {
@@ -515,19 +550,59 @@ router.get('/pads', async (req, res) => {
         // Sophie can pin a cover from a beat's popup (POST /cover); the
         // pinned one wins over the first-art derivation.
         cover: v.cover || (withArt ? faceOf(withArt) : (inboxArt ? inboxArt.url : null)),
-        category: v.category || null, updatedAt: v.updatedAt || 0,
+        category: v.category || null, folder: v.folder || null,
+        pinned: v.pinned === true, updatedAt: v.updatedAt || 0,
       };
     }).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
     res.json({ count: pads.length, pads });
   } catch (e) { fail(res, e); }
 });
 
+const FOLDER_MAX = 60;
+
 router.post('/pads', async (req, res) => {
   try {
     const title = String(req.body.title || '').slice(0, 200).trim();
+    // Started from inside a folder → it belongs to that folder (the shelf's +
+    // while a folder is open). Absent everywhere else, so a plain new story
+    // still lands loose on the shelf.
+    const folder = String(req.body.folder || '').slice(0, FOLDER_MAX).trim();
     const ref = db().collection(COL).doc();
-    await ref.set({ title, beats: [], updatedAt: Date.now() });
-    res.json({ ok: true, pad: ref.id, title });
+    await ref.set({ title, beats: [], updatedAt: Date.now(), ...(folder ? { folder } : {}) });
+    res.json({ ok: true, pad: ref.id, title, folder: folder || null });
+  } catch (e) { fail(res, e); }
+});
+
+// ── Folders on the shelf ────────────────────────────────────────────
+// (Aug 2026, Sophie: "just make an intermediate shelf so basically treat the
+// Evan and Mason ones as a folder … some sort of UI design like a stack that
+// you can see underneath the cover image so you can tell there's multiple
+// stories in there".) One story of hers becomes several as chats work on it,
+// and the flat newest-first shelf interleaves them with everything else — the
+// five Mason stories were scattered across four screens.
+//
+// A folder is just a NAME on the pad doc, not a doc of its own: there is
+// nothing to create, nothing to delete, and a folder stops existing the
+// moment its last story leaves it. That is what keeps the shelf honest — an
+// empty folder tile can never sit there pointing at nothing.
+//
+// Like /category, this deliberately does NOT bump updatedAt: tidying the
+// shelf must not reshuffle its newest-first order.
+router.post('/pads/folder', async (req, res) => {
+  try {
+    // `pads` files a whole set in one call — how a chat gathers a character's
+    // stories — and `pad` is the single-story form.
+    const ids = (Array.isArray(req.body.pads) ? req.body.pads : [req.body.pad])
+      .map((x) => String(x || '').trim()).filter(Boolean);
+    if (!ids.length) return res.status(400).json({ error: 'pad or pads required' });
+    const folder = String(req.body.folder || '').slice(0, FOLDER_MAX).trim();
+    const batch = db().batch();
+    // '' takes a story back out of its folder — the only way out, and the
+    // reason this stores null rather than deleting the field (a merge:true
+    // write cannot unset one).
+    ids.forEach((id) => batch.set(padRef(id), { folder: folder || null }, { merge: true }));
+    await batch.commit();
+    res.json({ ok: true, pads: ids, folder: folder || null });
   } catch (e) { fail(res, e); }
 });
 
@@ -542,6 +617,22 @@ router.post('/pads/category', async (req, res) => {
     const category = String(req.body.category || '').toLowerCase().slice(0, 24).trim();
     await padRef(pid).set({ category: category || null }, { merge: true });
     res.json({ ok: true, pad: pid, category: category || null });
+  } catch (e) { fail(res, e); }
+});
+
+// PINNED TO THE TOP OF THE SHELF (Aug 2026, Sophie: "a pinning feature where i
+// can pin a couple stories i'm actively working on and the rest go behind a see
+// more toggle"). Nothing to do with /cover, which pins a story's FACE — this is
+// which stories lead the shelf. Absent means unpinned, so a story is never
+// hidden behind the fold by a field nobody set. Like /category, deliberately
+// does NOT bump updatedAt: pinning is not an edit to the story.
+router.post('/pads/pin', async (req, res) => {
+  try {
+    const pid = String(req.body.pad || '').trim();
+    if (!pid) return res.status(400).json({ error: 'pad required' });
+    const pinned = req.body.pinned === true || req.body.pinned === 'true';
+    await padRef(pid).set({ pinned }, { merge: true });
+    res.json({ ok: true, pad: pid, pinned });
   } catch (e) { fail(res, e); }
 });
 
@@ -682,12 +773,11 @@ router.post('/image', async (req, res) => {
       const slot = artSlot(b, style, true);
       // Swapping a picture into a clip SLOT makes that side a picture again —
       // leaving `kind` behind would render an image url as a film. Only this
-      // side: the other style's clip (or picture) is untouched.
-      if (slotClip(slot)) { delete slot.kind; delete slot.poster; delete slot.seconds; delete slot.title; delete slot.clipId; delete slot.url; }
-      // The picture this side already had is kept, never destroyed.
-      if (slot.url && slot.url !== url) slot.imageHistory = (slot.imageHistory || []).concat([{ url: slot.url, at: Date.now() }]);
-      slot.url = url;
-      if (src) slot.src = src;
+      // side: the other style's clip (or picture) is untouched. swapArt owns
+      // that, the history bookkeeping, and the provenance — this route is
+      // both a fresh pick from the inbox AND her picking an older version
+      // back off the past-pictures row, and they must behave identically.
+      swapArt(slot, url, src);
       tx.set(padRef(pid), { beats: cur, updatedAt: Date.now() }, { merge: true });
       return cur;
     });
@@ -761,6 +851,8 @@ router.post('/clip', async (req, res) => {
         if (slot.url && !slotClip(slot)) slot.imageHistory = (slot.imageHistory || []).concat([{ url: slot.url, at: Date.now() }]);
         Object.assign(slot, fields);
         delete slot.gen;
+        // Art here again un-deletes this side (see `off` above).
+        delete slot.off;
       } else {
         let at = Number(req.body.at);
         if (!Number.isInteger(at) || at < 0 || at > cur.length) at = cur.length;
@@ -841,12 +933,13 @@ async function runArtJob(padId, id, { prompt, quality, character, style }) {
     const url = `https://storage.googleapis.com/${bucket.name}/${dest}`;
     await patchBeat(padId, id, (b) => {
       const slot = artSlot(b, style, true);
-      if (slot.url && slot.url !== url) slot.imageHistory = (slot.imageHistory || []).concat([{ url: slot.url, at: Date.now() }]);
-      slot.url = url;
-      slot.src = {
+      // Through swapArt so the picture this draw replaces is banked WITH the
+      // run that made it — that is what lets her pick it back later and get
+      // its own prompt with it, rather than this draw's.
+      swapArt(slot, url, {
         engine: 'gptimage', model: 'gpt-image-2', prompt, quality,
         character: Boolean(character) && !dreamy, style: dreamy ? 'dreamy' : 'watercolor', promptUsed: full,
-      };
+      });
       slot.gen = { status: 'done', at: Date.now() };
     });
     // Every draw also lands in My Creations (house rule — the gallery is the
@@ -859,7 +952,13 @@ async function runArtJob(padId, id, { prompt, quality, character, style }) {
           'content-type': 'application/json',
           ...(process.env.STUDIO_TOKEN ? { 'x-studio-token': process.env.STUDIO_TOKEN } : {}),
         },
-        body: JSON.stringify({ url, prompt, style: `Scratch Pad · ${dreamy ? 'dreamy · ' : ''}${quality}` }),
+        // THE WHOLE PROMPT rides along (Sophie's hard rule, 2026-08-24). This
+        // module has always built `full` and kept it on the beat as
+        // `promptUsed`; until now the gallery only ever saw her typed words.
+        body: JSON.stringify({ url, prompt, style: `Scratch Pad · ${dreamy ? 'dreamy · ' : ''}${quality}`,
+          fullPrompt: full,
+          promptPrefix: dreamy ? DREAMY.prefix : `${ART.prefix}${character && !dreamy ? ART.characterLine : ''}`,
+          promptSuffix: dreamy ? DREAMY.suffix : '' }),
         timeout: 30000,
       });
     } catch (e) { console.warn('scratchpad → creations:', e.message); }
@@ -875,40 +974,82 @@ async function runArtJob(padId, id, { prompt, quality, character, style }) {
 // the pad but nothing is destroyed: its full record (art, history, takes,
 // words) moves to pad.trash, and every drawn image is already in Storage /
 // My Creations regardless.
+// DELETING IS PER STYLE (2026-08-23, Sophie: "if I delete a beat in one of
+// the styles does it delete it for the other style too? … I don't want it
+// to. Make it persist … leave it in the other style cause that one might
+// have an image for that"). So a delete asks one question first — is there
+// still art on the OTHER side?
+//   • Yes → only THIS side goes: its picture (or clip) is banked in the
+//     trash, the side is emptied and marked `off`, and the beat keeps its
+//     place, its words, its color and her voice for the side that still
+//     wants it. It simply stops being drawn on the side she deleted it from.
+//   • No  → the beat itself is gone, exactly as before (the whole record to
+//     pad.trash, a chunk left with one member un-chunked). Her own reason IS
+//     this rule: the thing worth keeping is the other side's image, and with
+//     no image over there a words-only beat she deleted is just deleted.
 router.post('/remove', async (req, res) => {
   try {
     const pid = padIdOf(req);
     const id = String(req.body.id || '');
     if (!id) return res.status(400).json({ error: 'beat id required' });
-    const beats = await db().runTransaction(async (tx) => {
+    const style = styleOf(req);
+    const out = await db().runTransaction(async (tx) => {
       const snap = await tx.get(padRef(pid));
       const v = snap.exists ? snap.data() : {};
       const cur = Array.isArray(v.beats) ? v.beats : [];
       const idx = cur.findIndex((x) => x.id === id);
       if (idx < 0) throw new Error('no such beat');
+      const trash = Array.isArray(v.trash) ? v.trash : [];
+      const b = cur[idx];
+
+      if (artSlot(b, otherStyle(style)).url) {
+        // ONE SIDE ONLY. The banked record names its beat and its side, so a
+        // per-side removal is never mistaken for a whole deleted beat.
+        const mine = artSlot(b, style, true);
+        const kept = { beatId: b.id, style, text: b.text || '', removedAt: Date.now() };
+        SLOT_KEYS.forEach((k) => { if (mine[k] !== undefined) kept[k] = mine[k]; });
+        clearSlot(mine);
+        mine.off = true;
+        tx.set(padRef(pid), {
+          beats: cur, trash: trash.concat([kept]).slice(-50), updatedAt: Date.now(),
+        }, { merge: true });
+        return { beats: cur, style, whole: false };
+      }
+
       const [gone] = cur.splice(idx, 1);
       // A chunk of one is just a beat again.
       if (gone.chunk) {
-        const rest = cur.filter((b) => b.chunk === gone.chunk);
+        const rest = cur.filter((x) => x.chunk === gone.chunk);
         if (rest.length === 1) delete rest[0].chunk;
       }
-      const trash = (Array.isArray(v.trash) ? v.trash : []).concat([{ ...gone, removedAt: Date.now() }]).slice(-50);
-      tx.set(padRef(pid), { beats: cur, trash, updatedAt: Date.now() }, { merge: true });
-      return cur;
+      tx.set(padRef(pid), {
+        beats: cur, trash: trash.concat([{ ...gone, removedAt: Date.now() }]).slice(-50), updatedAt: Date.now(),
+      }, { merge: true });
+      return { beats: cur, style, whole: true };
     });
-    res.json({ ok: true, beats });
+    res.json({ ok: true, ...out });
   } catch (e) { fail(res, e); }
 });
 
 // Speech-only markup has no business in an image prompt: [pause]-style
-// tags and <break time="1s" /> are directions for the VOICE. The bulk pass
-// strips them; the single-beat draw box leaves her words alone (she can see
-// and edit those herself).
+// tags and <break time="1s" /> are directions for the VOICE. Stripped
+// wherever words become a prompt — the wand here, and the draw box's seed
+// on the page (its own copy, stripSpeech).
 function drawablePrompt(text) {
   return String(text || '')
     .replace(/<break[^>]*>/gi, ' ')
     .replace(/\[[^\]\n]{1,40}\]/g, ' ')
     .replace(/\s+/g, ' ').trim();
+}
+
+// What a beat DRAWS: its own stored prompt when Sophie has written one, else
+// its words with the speech markup stripped. The prompt is its own field
+// (beat.prompt) so tuning what a picture shows never rewrites what the film
+// says — and an absent prompt keeps following the words, so nothing existing
+// changed the day this landed.
+function promptFor(beat) {
+  const p = String((beat && beat.prompt) || '').trim();
+  return p || drawablePrompt(beat && beat.text);
 }
 
 // The one-tap outline pass: draw every beat that has its OWN words but no
@@ -929,15 +1070,17 @@ router.post('/drawall', async (req, res) => {
     // beat that is a CLIP on the other side still draws on this one (a clip
     // slot itself never draws).
     const targets = pad.beats
-      .filter((b) => { const s = artSlot(b, style); return !slotClip(s) && !s.url && !(s.gen && s.gen.status === 'drawing') && drawablePrompt(b.text); })
-      .map((b) => ({ id: b.id, prompt: drawablePrompt(b.text) }));
+      // A beat she DELETED from this side is not missing art here — it is
+      // not on this side at all, so the wand must never draw it back.
+      .filter((b) => { const s = artSlot(b, style); return !slotOff(s) && !slotClip(s) && !s.url && !(s.gen && s.gen.status === 'drawing') && promptFor(b); })
+      .map((b) => ({ id: b.id, prompt: promptFor(b) }));
     if (!targets.length) return res.status(400).json({ error: 'every beat with words already has its picture' });
     const ids = new Set(targets.map((t) => t.id));
     const beats = await db().runTransaction(async (tx) => {
       const snap = await tx.get(padRef(pid));
       const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
       cur.forEach((b) => {
-        if (ids.has(b.id)) artSlot(b, style, true).gen = { status: 'drawing', prompt: drawablePrompt(b.text), quality, character, at: Date.now() };
+        if (ids.has(b.id)) artSlot(b, style, true).gen = { status: 'drawing', prompt: promptFor(b), quality, character, at: Date.now() };
       });
       tx.set(padRef(pid), { beats: cur, updatedAt: Date.now() }, { merge: true });
       return cur;
@@ -973,6 +1116,8 @@ router.post('/generate', async (req, res) => {
       const slot = artSlot(b, style, true);
       if (slotClip(slot)) throw new Error('nothing draws a clip');
       slot.gen = { status: 'drawing', prompt, quality, character, at: Date.now() };
+      // Art here again un-deletes this side (see `off` above).
+      delete slot.off;
     });
     runArtJob(pid, id, { prompt, quality, character, style });   // fire and forget
     res.json({ ok: true, beats });
@@ -1035,6 +1180,24 @@ router.post('/voice', async (req, res) => {
 // POST returns at once, the page polls the pad, leaving the app loses
 // nothing. Every render is kept, so an old cut is never overwritten.
 
+// ── CANCELING A RENDER (Aug 2026, Sophie: "add a cancel button to the play
+// which makes the film button in story room") ───────────────────────────
+// The film is FREE — ffmpeg on our own box — but it is not fast: a long story
+// is minutes of encoding, and until now the only way out was to wait it out
+// with the play button greyed the whole time. A job registers a token here;
+// POST /film/cancel flips it and kills the ffmpeg the job is inside.
+//
+// TWO RULES, and both are about the doc never lying about the render:
+//   • Every write the job makes goes through `beat()`/the canceled checks, so
+//     a progress heartbeat can never re-stamp 'making' over her cancel.
+//   • The job re-stamps 'canceled' on its way out, AFTER the child is dead —
+//     which closes the one race left, a heartbeat already in flight when she
+//     tapped. Nothing else can be writing the field by then.
+// Nothing is deleted: a cancel leaves the pad exactly as it was, and the next
+// tap on play starts a fresh render.
+const filmJobs = new Map();   // padId → { canceled, child }
+function cancelError() { const e = new Error('canceled'); e.canceled = true; return e; }
+
 // ONE SHOT MADE OF A FILM CLIP. The clip passes through WHOLE — its own
 // pictures, its own sound, its own length — normalized onto the film's
 // canvas (the same scale+pad+fps+sar chain Assembly uses, which is what makes
@@ -1048,7 +1211,7 @@ router.post('/voice', async (req, res) => {
 // short by construction (they come off the Chunking shelf).
 // `beat` here is the shot's ART SLOT (the beat root for watercolor, the
 // dreamy slot under dreamy) — it carries the clip's url/title either way.
-async function clipSegment(dir, u, beat) {
+async function clipSegment(dir, u, beat, job = null) {
   const src = path.join(dir, `c${u}-src`);
   await fetchTo(beat.url, src);
   const { hasVideo, hasAudio } = await probeStreams(src);
@@ -1057,25 +1220,42 @@ async function clipSegment(dir, u, beat) {
   await run(FFMPEG, ['-y', '-i', src, '-an',
     '-vf', `scale=${FILM.w}:${FILM.h}:force_original_aspect_ratio=decrease,pad=${FILM.w}:${FILM.h}:(ow-iw)/2:(oh-ih)/2:color=white,fps=${FILM.fps},setsar=1,format=yuv420p`,
     '-threads', '1', '-x264opts', 'ref=1:rc-lookahead=12',
-    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-movflags', '+faststart', seg], 900000);
+    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-movflags', '+faststart', seg], 900000, job);
   const seconds = await mediaSeconds(seg);
   if (!seconds) throw new Error(`"${beat.title || 'a clip'}" encoded to nothing`);
   const wav = path.join(dir, `a${u}.wav`);
   if (hasAudio) {
     await run(FFMPEG, ['-y', '-i', src, '-vn', '-af', 'apad', '-t', seconds.toFixed(3),
-      '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', wav], 600000);
+      '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', wav], 600000, job);
   } else {
     await run(FFMPEG, ['-y', '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
-      '-t', seconds.toFixed(3), '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', wav], 600000);
+      '-t', seconds.toFixed(3), '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', wav], 600000, job);
   }
   fs.rmSync(src, { force: true });   // one source on disk at a time
   return { seg, wav, seconds, hasAudio };
 }
 
 async function runFilmJob(padId) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'spfilm-'));
-  const clean = () => { try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* tmp */ } };
+  // EVERYTHING fallible lives inside the try — measured 2026-08-24: with
+  // mkdtempSync on this line, a throw here (a full disk, an unwritable tmp)
+  // rejects the fire-and-forget promise with no catch anywhere, which under
+  // Node's default crashes the WHOLE process: the doc wedges on 'making'
+  // with no progress, the sweep later stamps it "interrupted by a server
+  // restart", and the restart was this job's own doing. Every pad's render
+  // had been dying this shape for days with nothing to say why.
+  let dir = null;
+  const clean = () => { try { if (dir) fs.rmSync(dir, { recursive: true, force: true }); } catch { /* tmp */ } };
+  // The cancel token. `stop()` is the checkpoint — called before every
+  // expensive step, so a cancel that arrives between two encodes still ends
+  // the job — and `beat()` is the only way this job writes progress, so a
+  // heartbeat can never re-stamp 'making' over her cancel.
+  const job = { canceled: false, child: null };
+  filmJobs.set(padId, job);
+  const stop = () => { if (job.canceled) throw cancelError(); };
+  const beat = (progress) => (job.canceled ? Promise.resolve()
+    : padRef(padId).set({ film: { status: 'making', at: Date.now(), progress } }, { merge: true }).catch(() => {}));
   try {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'spfilm-'));
     if (!FFMPEG || !FFPROBE) throw new Error('ffmpeg is not available on this server');
     const pad = await readPad(padId);
     // The film is the SIDE the story is showing: the toggled style's art
@@ -1090,17 +1270,18 @@ async function runFilmJob(padId) {
     const notes = [];     // which audio each shot used — the render's receipt
     let total = 0;
     for (let u = 0; u < shots.length; u++) {
+      stop();
       const lead = shots[u];
       const slot = artSlot(lead, style);
       // A FILM CLIP is its own shot, whole: its pictures, its sound, its
       // length. No TTS — reading its note aloud would talk over the tape.
       if (slotClip(slot)) {
-        const cut = await clipSegment(dir, u, slot);
+        const cut = await clipSegment(dir, u, slot, job);
         segs.push(cut.seg);
         auds.push(cut.wav);
         total += cut.seconds;
         notes.push(`shot ${u + 1}: clip ${cut.hasAudio ? 'with its own sound' : 'silent'} ${cut.seconds.toFixed(1)}s`);
-        await padRef(padId).set({ film: { status: 'making', at: Date.now(), progress: `clip ${segs.length}` } }, { merge: true }).catch(() => {});
+        await beat(`clip ${segs.length}`);
         continue;
       }
       // The shot's voice: her take wins; then the line read aloud; else quiet.
@@ -1126,16 +1307,16 @@ async function runFilmJob(padId) {
         // voice never made the film (Sophie caught it by the timing pattern).
         // A decoded WAV's duration is always exact, whatever the source was.
         const dec = path.join(dir, `a${u}-dec.wav`);
-        await run(FFMPEG, ['-y', '-i', raw, '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', dec]);
+        await run(FFMPEG, ['-y', '-i', raw, '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', dec], 300000, job);
         const spoken = await mediaSeconds(dec);
         if (!spoken) throw new Error(`could not read the audio for unit ${u + 1}`);
         seconds = Math.max(FILM.min, spoken + FILM.tail);
         // Pad the tail with silence so a line never runs into the next picture.
         await run(FFMPEG, ['-y', '-i', dec, '-af', `apad=pad_dur=${FILM.tail + 0.05}`, '-t', seconds.toFixed(3),
-          '-c:a', 'pcm_s16le', aFile]);
+          '-c:a', 'pcm_s16le', aFile], 300000, job);
       } else {
         await run(FFMPEG, ['-y', '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
-          '-t', seconds.toFixed(3), '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', aFile]);
+          '-t', seconds.toFixed(3), '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', aFile], 300000, job);
       }
       seconds = (await mediaSeconds(aFile)) || seconds;
       notes.push(`shot ${u + 1}: ${audioKind} ${seconds.toFixed(1)}s`);
@@ -1146,6 +1327,7 @@ async function runFilmJob(padId) {
       const pics = [{ url: slot.url }];
       const each = seconds;
       for (let p = 0; p < pics.length; p++) {
+        stop();
         const seg = path.join(dir, `s${u}-${p}.mp4`);
         // The SEGMENT CACHE — the whole reason a re-render is fast. Encoding
         // stills into h264 is the only part of a film that burns this
@@ -1166,7 +1348,7 @@ async function runFilmJob(padId) {
           await run(FFMPEG, ['-y', '-loop', '1', '-i', img, '-t', each.toFixed(3),
             '-vf', `scale=${FILM.w}:${FILM.h}:force_original_aspect_ratio=decrease,pad=${FILM.w}:${FILM.h}:(ow-iw)/2:(oh-ih)/2:color=white,format=yuv420p`,
             '-r', String(FILM.fps), '-threads', '1', '-x264opts', 'ref=1:rc-lookahead=12',
-            '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', seg], 600000);
+            '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', seg], 600000, job);
           try { await admin.storage().bucket().upload(seg, { destination: `scratchpad/film-cache/${segKey}.mp4`, metadata: { contentType: 'video/mp4' } }); }
           catch (e) { console.warn('film seg-cache save:', e.message); }
         }
@@ -1174,24 +1356,29 @@ async function runFilmJob(padId) {
         // Progress heartbeat: the page shows it, and refreshing `at` means the
         // stuck-job sweep measures STALLED time, not total time — a long story
         // that is genuinely moving is never mistaken for a zombie.
-        await padRef(padId).set({ film: { status: 'making', at: Date.now(), progress: `picture ${segs.length}` } }, { merge: true }).catch(() => {});
+        await beat(`picture ${segs.length}`);
       }
     }
 
+    stop();
     const vList = path.join(dir, 'v.txt');
     fs.writeFileSync(vList, segs.map((f) => `file '${f}'`).join('\n'));
     const silentFilm = path.join(dir, 'v.mp4');
-    await run(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', vList, '-c', 'copy', silentFilm], 600000);
+    await run(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', vList, '-c', 'copy', silentFilm], 600000, job);
 
     const aList = path.join(dir, 'a.txt');
     fs.writeFileSync(aList, auds.map((f) => `file '${f}'`).join('\n'));
     const track = path.join(dir, 'a.wav');
-    await run(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', aList, '-c', 'copy', track], 600000);
+    await run(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', aList, '-c', 'copy', track], 600000, job);
 
     const out = path.join(dir, 'film.mp4');
     await run(FFMPEG, ['-y', '-i', silentFilm, '-i', track, '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k',
-      '-shortest', '-movflags', '+faststart', out], 600000);
+      '-shortest', '-movflags', '+faststart', out], 600000, job);
 
+    // The LAST checkpoint: past here the film exists and the upload is cheap
+    // compared with what it took to get here, so a cancel arriving now still
+    // stops before anything is written onto her story.
+    stop();
     const bucket = admin.storage().bucket();
     const dest = `scratchpad/films/${padId}-${Date.now()}.mp4`;
     await bucket.upload(out, { destination: dest, metadata: { contentType: 'video/mp4' } });
@@ -1214,9 +1401,22 @@ async function runFilmJob(padId) {
       }, { merge: true });
     });
   } catch (err) {
-    console.warn('scratchpad film:', err.message);
-    await padRef(padId).set({ film: { status: 'failed', error: String(err.message || err).slice(0, 300), at: Date.now() } }, { merge: true }).catch(() => {});
-  } finally { clean(); }
+    // A CANCEL IS NOT A FAILURE. She stopped it on purpose, so it must never
+    // read as "the film failed" — and the killed ffmpeg's own error is the
+    // shape the cancel takes, so both are answered here. The re-stamp is the
+    // race-closer described up at filmJobs: a heartbeat already in flight when
+    // she tapped could have landed after the route wrote 'canceled', and by
+    // now the child is dead and nothing else can write the field.
+    if (job.canceled) {
+      await padRef(padId).set({ film: { status: 'canceled', at: Date.now() } }, { merge: true }).catch(() => {});
+    } else {
+      console.warn('scratchpad film:', err.message);
+      await padRef(padId).set({ film: { status: 'failed', error: String(err.message || err).slice(0, 300), at: Date.now() } }, { merge: true }).catch(() => {});
+    }
+  } finally {
+    clean();
+    if (filmJobs.get(padId) === job) filmJobs.delete(padId);
+  }
 }
 
 router.post('/film', async (req, res) => {
@@ -1227,8 +1427,30 @@ router.post('/film', async (req, res) => {
       return res.status(400).json({ error: 'draw some art first' });
     }
     await padRef(pid).set({ film: { status: 'making', at: Date.now() } }, { merge: true });
-    runFilmJob(pid);   // fire and forget — the page polls the pad
+    // belt for the braces above: if the job ever rejects outside its own
+    // catch again, stamp the doc instead of letting the rejection escape
+    runFilmJob(pid).catch((e) => padRef(pid)
+      .set({ film: { status: 'failed', error: String((e && e.message) || e).slice(0, 300), at: Date.now() } }, { merge: true })
+      .catch(() => {}));   // fire and forget — the page polls the pad
     res.json({ ok: true, status: 'making' });
+  } catch (e) { fail(res, e); }
+});
+
+// STOP THE RENDER. The token ends the job at its next checkpoint and killing
+// the running ffmpeg makes that immediate; the DOC is stamped either way,
+// because a render orphaned by a deploy has no token in THIS process and
+// would otherwise sit on 'making' until the 15-minute sweep. Nothing is
+// deleted and nothing is spent — the next tap on play starts a fresh render.
+router.post('/film/cancel', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const job = filmJobs.get(pid);
+    if (job) {
+      job.canceled = true;
+      if (job.child) { try { job.child.kill('SIGKILL'); } catch { /* already gone */ } }
+    }
+    await padRef(pid).set({ film: { status: 'canceled', at: Date.now() } }, { merge: true });
+    res.json({ ok: true, status: 'canceled', running: Boolean(job) });
   } catch (e) { fail(res, e); }
 });
 
@@ -1413,6 +1635,31 @@ router.post('/text', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
+// The beat's DRAWING PROMPT — what its picture is asked for, apart from what
+// the film says. Saved automatically by the page (no save button, Sophie's
+// rule): the draw box POSTs here on blur/close/draw. A prompt that matches
+// the words' own drawable form is stored as NOTHING — the beat keeps
+// following its words, so editing the note later still updates what draws.
+router.post('/prompt', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const id = String(req.body.id || '');
+    if (!id) return res.status(400).json({ error: 'beat id required' });
+    const prompt = String(req.body.prompt ?? '').slice(0, 5000).trim();
+    const beats = await db().runTransaction(async (tx) => {
+      const snap = await tx.get(padRef(pid));
+      const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
+      const b = cur.find((x) => x.id === id);
+      if (!b) throw new Error('no such beat');
+      if (!prompt || prompt === drawablePrompt(b.text)) delete b.prompt;
+      else b.prompt = prompt;
+      tx.set(padRef(pid), { beats: cur, updatedAt: Date.now() }, { merge: true });
+      return cur;
+    });
+    res.json({ ok: true, beats });
+  } catch (e) { fail(res, e); }
+});
+
 router.post('/color', async (req, res) => {
   try {
     const pid = padIdOf(req);
@@ -1452,4 +1699,4 @@ async function attachVoiceUrl(padId, beatId, url) {
   });
 }
 
-module.exports = { router, attachVoiceUrl };
+module.exports = { router, attachVoiceUrl, drawablePrompt, promptFor };

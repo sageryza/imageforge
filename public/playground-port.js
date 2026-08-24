@@ -60,9 +60,11 @@
       refs: [], prefixes: [],
     },
     {
-      key: 'chatgpt', label: 'ChatGPT',
+      key: 'chatgpt', label: 'Sandy mirror',
       // sage sandy mirror. Old names: evan-film-style.png (121), and her own
       // scan filename datescan0013 (64), which chats quote as the source.
+      // The label was "ChatGPT" until Aug 2026; the KEY is unchanged, because
+      // it is what the page's STYLES and every deep link already say.
       refs: ['sage-sandy-mirror.png', 'evan-film-style.png', 'datescan0013.png'],
       prefixes: ['use only the style of the attached style reference and ignore its content'],
     },
@@ -103,6 +105,18 @@
       refs: ['hoonies/refs/style-1', 'hoonies/refs/style-2',
         'hoonies/refs/style-3', 'hoonies/refs/style-4'],
       prefixes: ['copy their drawing style, not their content'],
+    },
+    {
+      key: 'plain', label: 'ChatGPT',
+      // THE ONE TILE WITH NO EVIDENCE, AND THAT IS HONEST — not an oversight.
+      // A plain-ChatGPT picture is her words sent alone: no reference filename
+      // to name, no baked prefix to quote, no trigger word. There is by
+      // definition nothing on the record that says a picture came from here, so
+      // one never routes onto this tile — it exists so the three style tables
+      // stay in step, and so a picture ported here by hand has somewhere to
+      // land. `evidence:false` is the deliberate opt-out the test reads; do NOT
+      // invent a fragment to make it look identifiable.
+      refs: [], prefixes: [], evidence: false,
     },
   ];
 
