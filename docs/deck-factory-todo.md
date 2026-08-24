@@ -158,6 +158,17 @@ is why they are here and not done.
   the page from a stale template and drop ~300KB of shipped work. Already
   noted in CLAUDE.md; listed here because it is a real job nobody has taken.
 
+- [ ] **`POST /api/chatfeed/wrapup` flattens a bulleted `long` with COMMAS**
+  (found 2026-08-24 writing this chat's own wrap-up, which is how it went
+  unnoticed — the model path is fine and almost nothing else posts one).
+  CLAUDE.md documents `long` as an ARRAY that the route stores newline-joined,
+  and `fillWrap` in `chats.html` splits on newlines to draw one bullet per
+  line. But this route hands the value straight to `wrapTextOf`, which is
+  `String(s)` — so an array arrives comma-joined and the long summary she opens
+  months later is one run-on paragraph instead of the bullets she asked for.
+  One line: join an array with `\n` before `wrapTextOf`. Workaround until
+  then, and what this chat did: post `long` as a newline-joined STRING.
+
 ### Known duplication, already written up elsewhere
 
 Not new findings — pointers, so they are on one list she can scan.
