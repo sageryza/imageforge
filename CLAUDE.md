@@ -1025,6 +1025,18 @@ them off the reference sheet, not off the old filenames.
       she never posted into is **left alone and NAMED** in the answer, since
       the chat's own `asked` is the honest fallback there exactly as on the
       live paths.
+      **AND NOTHING IS DESTROYED — the paraphrase moves to `wrapAskedWas`.**
+      Measured over the 62 it rewrites: ~56 are plainly better and about SIX
+      come out WORSE, because her last message before that summary was a
+      sign-off ("ok build is here now. anything else to do?") or a
+      machine-authored prompt the hook lifted as hers (a routine's deploy
+      check-in, a handoff brief pasted as a user turn — the same family as the
+      compaction summary `isCompacted` already excludes). Those really are the
+      words that were sent as her turn, so **the pass applies her rule
+      everywhere rather than inventing a quality bar over her own messages** —
+      the detector-over-her-words mistake this repo has already made twice (see
+      *Answering a question*). Keeping the old line is what makes that the
+      cheap, reversible call instead of a permanent one.
   - **THE SUMMARY IS THE UPDATE CARD'S THREE QUESTIONS (Aug 2026 v4, Sophie:
     "I think what I really wanted was the what you asked, what I did, and next
     steps. Since chat already answered those three questions could you just

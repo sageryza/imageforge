@@ -1542,7 +1542,19 @@ router.post('/wrapup/rehers', async (req, res) => {
       const hers = herAskOf(lastHerText(msgs, t.r.wrapUpAt));
       if (!hers) { noMessage.push(t.chat); continue; }
       if (hers === t.r.wrapAsked) continue;             // identical already
-      const patch = { wrapAsked: hers, wrapAskedHers: true };
+      // NOTHING IS DESTROYED — the paraphrase moves aside rather than being
+      // overwritten. Measured over the 62 this pass rewrites: ~56 are plainly
+      // better and about SIX come out worse, because her last message before
+      // that summary was a sign-off ("ok build is here now. anything else to
+      // do?") or a machine-authored prompt the hook lifted as hers (a
+      // routine's deploy check-in, a handoff brief). Those really are the
+      // words that were sent as her turn, and her rule is her rule, so the
+      // pass applies it everywhere rather than inventing a quality bar over
+      // her messages — the detector-over-her-words mistake this repo has
+      // already made twice (see *Answering a question*). Keeping the old line
+      // is what makes that the cheap, reversible call instead of a permanent
+      // one.
+      const patch = { wrapAsked: hers, wrapAskedHers: true, wrapAskedWas: t.r.wrapAsked };
       // The prose mirror is rebuilt ONLY when it is provably the three answers
       // joined — anything else is a summary written as a paragraph, and
       // splicing her sentence into someone's prose would leave a broken one.
