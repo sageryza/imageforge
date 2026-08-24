@@ -584,6 +584,22 @@ router.get('/proxies', async (req, res) => {
 // per cut, newest sessions first, capped — no bytes, nothing personal beyond
 // the browser's user-agent line. Registered above GET /:id (the /proxies
 // lesson: Express would read "telemetry" as a cut id).
+// The page's current build id, read once from the html itself — one source.
+// GET /build is what the page's self-heal compares itself against: the iOS
+// app keeps recent tools alive, so a loaded page can be DAYS old while the
+// served one moves on (the round-three finding, 2026-08-23).
+const PAGE_BUILD = (() => {
+  try {
+    const m = /var BUILD = '([^']+)'/.exec(
+      fs.readFileSync(path.join(__dirname, 'public', 'filmeditor.html'), 'utf8'));
+    return (m && m[1]) || '';
+  } catch (e) { return ''; }
+})();
+router.get('/build', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({ build: PAGE_BUILD });
+});
+
 const TEL_COL = 'forge-film-telemetry';
 const telNum = (v, cap) => Math.max(0, Math.min(Number(v) || 0, cap));
 router.post('/telemetry', async (req, res) => {
@@ -696,5 +712,5 @@ module.exports = {
   cleanPieces, cleanAudio, pieceSeconds, totalSeconds, splitPiece, mixGraph,
   proxyId, proxyNeeded, proxyArgs,
   audioProxyId, audioProxyNeeded, audioProxyArgs,
-  trimmedCut, MAX_PIECES, MAX_RENDERS, MIN_PIECE, PROXY_EDGE,
+  trimmedCut, MAX_PIECES, MAX_RENDERS, MIN_PIECE, PROXY_EDGE, PAGE_BUILD,
 };

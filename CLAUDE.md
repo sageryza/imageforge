@@ -3691,7 +3691,27 @@ before working on that module. Nothing was deleted — the moved text is verbati
   owns a rolling track), because the 4% lean needs ~25s to absorb one late
   second. A stalled/buffering element is skipped by pacing and the 2s resync
   outright — a frozen clock is not drift, and reseeking INTO the unbuffered
-  region it is stalled on was the repeated mid-film pause), **a source boundary keeps
+  region it is stalled on was the repeated mid-film pause.
+  **A WRAPPED PAGE CAN BE DAYS STALE — THE APP KEEPS RECENT TOOLS ALIVE, SO A
+  PAGE LOADS ONCE PER APP PROCESS AND NO DEPLOY CAN REACH IT (2026-08-23, the
+  round-three finding, MEASURED: ten Film Editor PRs shipped in one day while
+  she kept reporting the pre-fix symptoms verbatim; her play posted no
+  telemetry beacon while the live route round-tripped fine — the one honest
+  proof her phone was running an old page).** RootView holds the three recent
+  tools in a ZStack (state survives tab switches — deliberate), so re-entering
+  a tool only toggles opacity; the WKWebView's page is whatever loaded FIRST
+  in that app process. Two consequences, both built here and worth copying to
+  any wrapped tool where page-version skew bites: **the page heals itself**
+  (`buildCheck` — every 5 min it compares its `BUILD` const against
+  `GET /api/filmeditor/build`, served from the html itself, and reloads IN
+  PLACE only while idle: never mid-play, mid-upload, within 10s of a save, or
+  under a sheet; `?c=` puts her back in the same cut), and **every play posts
+  a TELEMETRY beacon** (`POST/GET /api/filmeditor/telemetry?cut=` — build id,
+  rVFC fire counts, playhead holds, boundary reveal waits, audio start
+  latency/entries/stalls, proxy-vs-raw, capped 20 sessions) so a bug report
+  from her hand comes with the device's own account. **Before diagnosing ANY
+  "still broken" report on a wrapped tool, read the beacon's build id first**
+  — a report about an old build is not a bug in the new one), **a source boundary keeps
   the old frame on screen until the new one can paint** (the black-second
   gap), and **a joint never seeks the element on screen** (2026-08-23, her
   "little pauses between all the clips": #1564 fixed the seek-at-every-joint
