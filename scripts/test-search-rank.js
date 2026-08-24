@@ -162,7 +162,31 @@ is('a missing created still picks a winner rather than crashing',
     { rank: 1, m: { chat: 'x', id: 'dated', created: '2026-08-01T00:00:00Z' } },
   ]).map((r) => r.m.id), ['dated']);
 
-// ---- 7. it cannot change what matches ----------------------------------
+// ---- 7. THE SNIPPET SHOWS THE PHRASE THAT RANKED IT ---------------------
+// Found by reading the live answer to her own `maybe never` search: the top
+// row was first BECAUSE the two words sit adjacent in it, and the snippet was
+// opening on a scattered occurrence further up the same message — so the
+// result the ranking was proudest of read as though it did not answer the
+// search. A rank and a snippet that disagree are worse than either alone.
+{
+  const { snippetAnchor } = require('../chatfeed.js');
+  const groups = compileQuery('maybe never');
+  const pos = rankGroups(groups);
+  const phraseRe = phraseRegex(pos);
+  // "maybe" alone appears first and is the rarer term by count in this line,
+  // so without the phrase pass the window opened on the wrong occurrence.
+  const MSG = 'maybe you will never know, and later on: so maybe never, then';
+  const at = snippetAnchor(MSG, groups, phraseRe);
+  is('the window opens on the adjacent pair', MSG.slice(at.i, at.i + at.len).toLowerCase(), 'maybe never');
+  // …and with no phrase in the message it is the rare-term rule, unchanged.
+  const LOOSE = 'maybe you will never know';
+  const at2 = snippetAnchor(LOOSE, groups, phraseRe);
+  is('a message with no phrase still uses the old anchor', at2.i, LOOSE.search(/maybe/i));
+  is('and a message matching nothing still has no anchor',
+    snippetAnchor('nothing at all here', groups, phraseRe), null);
+}
+
+// ---- 8. it cannot change what matches ----------------------------------
 const groups = compileQuery('maybe never');
 is('a message missing a word is not a hit at any rank',
   queryMatches('maybe so', groups), false);

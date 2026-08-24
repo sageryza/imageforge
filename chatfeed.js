@@ -484,7 +484,19 @@ function queryMatches(s, groups) {
 // Where to centre the snippet. With two words the RARE one is what found this
 // message — the common one is everywhere and shows her nothing — so the
 // snippet opens on the term with the fewest hits in that message.
-function snippetAnchor(src, groups) {
+//
+// …EXCEPT THAT THE PHRASE WINS THE WINDOW WHEN THE MESSAGE HAS IT (Aug 2026,
+// found by reading the live answer to her own `maybe never` search). The top
+// row was there BECAUSE her two words sit adjacent in it, and the snippet was
+// opening on a different, scattered occurrence further up the same message —
+// so the one result the ranking is proudest of read as though it did not
+// answer the search that put it first. A rank and a snippet that disagree are
+// worse than either alone: she judges a row by the words she can see.
+function snippetAnchor(src, groups, phraseRe) {
+  if (phraseRe) {
+    const hit = src.match(phraseRe);
+    if (hit) return { i: src.search(phraseRe), len: hit[0].length, n: 0 };
+  }
   let best = null;
   for (const g of groups) {
     if (g.neg) continue;
@@ -693,9 +705,9 @@ router.get('/search', async (req, res) => {
       || (a.m.created < b.m.created ? 1 : a.m.created > b.m.created ? -1 : 0));
     const results = rows.slice(0, limit).map(({ m }) => {
       // Snippet centred on the match — prefer the body, else the tldr/chat name.
-      const inBody = m.text ? snippetAnchor(m.text, groups) : null;
-      const src = inBody ? m.text : (m.tldr && snippetAnchor(m.tldr, groups) ? m.tldr : (m.text || m.tldr || ''));
-      const at = inBody || snippetAnchor(src, groups);
+      const inBody = m.text ? snippetAnchor(m.text, groups, phraseRe) : null;
+      const src = inBody ? m.text : (m.tldr && snippetAnchor(m.tldr, groups, phraseRe) ? m.tldr : (m.text || m.tldr || ''));
+      const at = inBody || snippetAnchor(src, groups, phraseRe);
       let snip = src;
       if (at && at.i > -1) {
         const s = Math.max(0, at.i - 45);

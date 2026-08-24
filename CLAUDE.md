@@ -1718,6 +1718,15 @@ them off the reference sheet, not off the old filenames.
     it differs only where a chat holds the exact phrase in an older message and
     a loose scatter in a newer one, and there the newer row would open the chat
     on something she did not search for.
+  - **AND THE SNIPPET OPENS ON THE PHRASE when the message has one** (found
+    by reading the live answer to her own `maybe never` search, the hour it
+    shipped). The top row was first BECAUSE her two words sit adjacent in it,
+    and the window was opening on a scattered occurrence further up the same
+    message — so the result the ranking was proudest of read as though it did
+    not answer the search that put it there. `snippetAnchor` takes the phrase
+    regex and prefers it; with no phrase in the message it is the old
+    rare-term rule, untouched. A rank and a snippet that disagree are worse
+    than either alone, because she judges a row by the words she can see.
   - **Two things not to undo:** the phrase is its own regex pass (a
     left-to-right walk takes the EARLIEST match of each word and would miss an
     adjacent pair further along — "maybe … never … maybe never" is the
