@@ -224,12 +224,23 @@ function usable(p) { if (!p) return null; try { fs.accessSync(p, fs.constants.X_
 const FFMPEG = process.env.FFMPEG_PATH || usable(tryRequire('ffmpeg-static')) || firstOnPath('ffmpeg');
 const FFPROBE = process.env.FFPROBE_PATH || usable((tryRequire('ffprobe-static') || {}).path) || firstOnPath('ffprobe');
 
-function run(bin, args, timeoutMs = 300000) {
+// `job` (optional) is a film job's cancel token — see CANCELING A RENDER
+// below. Handing the running child to the token is what lets a cancel land in
+// SECONDS rather than at the end of a ten-minute encode: killing the ffmpeg
+// makes this promise reject, and the checkpoint after it stops the job.
+function run(bin, args, timeoutMs = 300000, job = null) {
   return new Promise((resolve, reject) => {
-    execFile(bin, args, { timeout: timeoutMs, maxBuffer: 32 * 1024 * 1024 }, (err, stdout, stderr) => {
+    const child = execFile(bin, args, { timeout: timeoutMs, maxBuffer: 32 * 1024 * 1024 }, (err, stdout, stderr) => {
+      if (job && job.child === child) job.child = null;
       if (err) reject(new Error(`${path.basename(bin)} failed: ${(stderr || err.message).slice(-400)}`));
       else resolve({ stdout, stderr });
     });
+    if (job) {
+      job.child = child;
+      // Canceled between the token check and the spawn — kill it now, or this
+      // one encode runs to completion after she has already stopped the film.
+      if (job.canceled) { try { child.kill('SIGKILL'); } catch { /* already gone */ } }
+    }
   });
 }
 async function mediaSeconds(file) {
@@ -1106,6 +1117,24 @@ router.post('/voice', async (req, res) => {
 // POST returns at once, the page polls the pad, leaving the app loses
 // nothing. Every render is kept, so an old cut is never overwritten.
 
+// ── CANCELING A RENDER (Aug 2026, Sophie: "add a cancel button to the play
+// which makes the film button in story room") ───────────────────────────
+// The film is FREE — ffmpeg on our own box — but it is not fast: a long story
+// is minutes of encoding, and until now the only way out was to wait it out
+// with the play button greyed the whole time. A job registers a token here;
+// POST /film/cancel flips it and kills the ffmpeg the job is inside.
+//
+// TWO RULES, and both are about the doc never lying about the render:
+//   • Every write the job makes goes through `beat()`/the canceled checks, so
+//     a progress heartbeat can never re-stamp 'making' over her cancel.
+//   • The job re-stamps 'canceled' on its way out, AFTER the child is dead —
+//     which closes the one race left, a heartbeat already in flight when she
+//     tapped. Nothing else can be writing the field by then.
+// Nothing is deleted: a cancel leaves the pad exactly as it was, and the next
+// tap on play starts a fresh render.
+const filmJobs = new Map();   // padId → { canceled, child }
+function cancelError() { const e = new Error('canceled'); e.canceled = true; return e; }
+
 // ONE SHOT MADE OF A FILM CLIP. The clip passes through WHOLE — its own
 // pictures, its own sound, its own length — normalized onto the film's
 // canvas (the same scale+pad+fps+sar chain Assembly uses, which is what makes
@@ -1119,7 +1148,7 @@ router.post('/voice', async (req, res) => {
 // short by construction (they come off the Chunking shelf).
 // `beat` here is the shot's ART SLOT (the beat root for watercolor, the
 // dreamy slot under dreamy) — it carries the clip's url/title either way.
-async function clipSegment(dir, u, beat) {
+async function clipSegment(dir, u, beat, job = null) {
   const src = path.join(dir, `c${u}-src`);
   await fetchTo(beat.url, src);
   const { hasVideo, hasAudio } = await probeStreams(src);
@@ -1128,16 +1157,16 @@ async function clipSegment(dir, u, beat) {
   await run(FFMPEG, ['-y', '-i', src, '-an',
     '-vf', `scale=${FILM.w}:${FILM.h}:force_original_aspect_ratio=decrease,pad=${FILM.w}:${FILM.h}:(ow-iw)/2:(oh-ih)/2:color=white,fps=${FILM.fps},setsar=1,format=yuv420p`,
     '-threads', '1', '-x264opts', 'ref=1:rc-lookahead=12',
-    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-movflags', '+faststart', seg], 900000);
+    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-movflags', '+faststart', seg], 900000, job);
   const seconds = await mediaSeconds(seg);
   if (!seconds) throw new Error(`"${beat.title || 'a clip'}" encoded to nothing`);
   const wav = path.join(dir, `a${u}.wav`);
   if (hasAudio) {
     await run(FFMPEG, ['-y', '-i', src, '-vn', '-af', 'apad', '-t', seconds.toFixed(3),
-      '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', wav], 600000);
+      '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', wav], 600000, job);
   } else {
     await run(FFMPEG, ['-y', '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
-      '-t', seconds.toFixed(3), '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', wav], 600000);
+      '-t', seconds.toFixed(3), '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', wav], 600000, job);
   }
   fs.rmSync(src, { force: true });   // one source on disk at a time
   return { seg, wav, seconds, hasAudio };
@@ -1146,6 +1175,15 @@ async function clipSegment(dir, u, beat) {
 async function runFilmJob(padId) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'spfilm-'));
   const clean = () => { try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* tmp */ } };
+  // The cancel token. `stop()` is the checkpoint — called before every
+  // expensive step, so a cancel that arrives between two encodes still ends
+  // the job — and `beat()` is the only way this job writes progress, so a
+  // heartbeat can never re-stamp 'making' over her cancel.
+  const job = { canceled: false, child: null };
+  filmJobs.set(padId, job);
+  const stop = () => { if (job.canceled) throw cancelError(); };
+  const beat = (progress) => (job.canceled ? Promise.resolve()
+    : padRef(padId).set({ film: { status: 'making', at: Date.now(), progress } }, { merge: true }).catch(() => {}));
   try {
     if (!FFMPEG || !FFPROBE) throw new Error('ffmpeg is not available on this server');
     const pad = await readPad(padId);
@@ -1161,17 +1199,18 @@ async function runFilmJob(padId) {
     const notes = [];     // which audio each shot used — the render's receipt
     let total = 0;
     for (let u = 0; u < shots.length; u++) {
+      stop();
       const lead = shots[u];
       const slot = artSlot(lead, style);
       // A FILM CLIP is its own shot, whole: its pictures, its sound, its
       // length. No TTS — reading its note aloud would talk over the tape.
       if (slotClip(slot)) {
-        const cut = await clipSegment(dir, u, slot);
+        const cut = await clipSegment(dir, u, slot, job);
         segs.push(cut.seg);
         auds.push(cut.wav);
         total += cut.seconds;
         notes.push(`shot ${u + 1}: clip ${cut.hasAudio ? 'with its own sound' : 'silent'} ${cut.seconds.toFixed(1)}s`);
-        await padRef(padId).set({ film: { status: 'making', at: Date.now(), progress: `clip ${segs.length}` } }, { merge: true }).catch(() => {});
+        await beat(`clip ${segs.length}`);
         continue;
       }
       // The shot's voice: her take wins; then the line read aloud; else quiet.
@@ -1197,16 +1236,16 @@ async function runFilmJob(padId) {
         // voice never made the film (Sophie caught it by the timing pattern).
         // A decoded WAV's duration is always exact, whatever the source was.
         const dec = path.join(dir, `a${u}-dec.wav`);
-        await run(FFMPEG, ['-y', '-i', raw, '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', dec]);
+        await run(FFMPEG, ['-y', '-i', raw, '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', dec], 300000, job);
         const spoken = await mediaSeconds(dec);
         if (!spoken) throw new Error(`could not read the audio for unit ${u + 1}`);
         seconds = Math.max(FILM.min, spoken + FILM.tail);
         // Pad the tail with silence so a line never runs into the next picture.
         await run(FFMPEG, ['-y', '-i', dec, '-af', `apad=pad_dur=${FILM.tail + 0.05}`, '-t', seconds.toFixed(3),
-          '-c:a', 'pcm_s16le', aFile]);
+          '-c:a', 'pcm_s16le', aFile], 300000, job);
       } else {
         await run(FFMPEG, ['-y', '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
-          '-t', seconds.toFixed(3), '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', aFile]);
+          '-t', seconds.toFixed(3), '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', aFile], 300000, job);
       }
       seconds = (await mediaSeconds(aFile)) || seconds;
       notes.push(`shot ${u + 1}: ${audioKind} ${seconds.toFixed(1)}s`);
@@ -1217,6 +1256,7 @@ async function runFilmJob(padId) {
       const pics = [{ url: slot.url }];
       const each = seconds;
       for (let p = 0; p < pics.length; p++) {
+        stop();
         const seg = path.join(dir, `s${u}-${p}.mp4`);
         // The SEGMENT CACHE — the whole reason a re-render is fast. Encoding
         // stills into h264 is the only part of a film that burns this
@@ -1237,7 +1277,7 @@ async function runFilmJob(padId) {
           await run(FFMPEG, ['-y', '-loop', '1', '-i', img, '-t', each.toFixed(3),
             '-vf', `scale=${FILM.w}:${FILM.h}:force_original_aspect_ratio=decrease,pad=${FILM.w}:${FILM.h}:(ow-iw)/2:(oh-ih)/2:color=white,format=yuv420p`,
             '-r', String(FILM.fps), '-threads', '1', '-x264opts', 'ref=1:rc-lookahead=12',
-            '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', seg], 600000);
+            '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', seg], 600000, job);
           try { await admin.storage().bucket().upload(seg, { destination: `scratchpad/film-cache/${segKey}.mp4`, metadata: { contentType: 'video/mp4' } }); }
           catch (e) { console.warn('film seg-cache save:', e.message); }
         }
@@ -1245,24 +1285,29 @@ async function runFilmJob(padId) {
         // Progress heartbeat: the page shows it, and refreshing `at` means the
         // stuck-job sweep measures STALLED time, not total time — a long story
         // that is genuinely moving is never mistaken for a zombie.
-        await padRef(padId).set({ film: { status: 'making', at: Date.now(), progress: `picture ${segs.length}` } }, { merge: true }).catch(() => {});
+        await beat(`picture ${segs.length}`);
       }
     }
 
+    stop();
     const vList = path.join(dir, 'v.txt');
     fs.writeFileSync(vList, segs.map((f) => `file '${f}'`).join('\n'));
     const silentFilm = path.join(dir, 'v.mp4');
-    await run(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', vList, '-c', 'copy', silentFilm], 600000);
+    await run(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', vList, '-c', 'copy', silentFilm], 600000, job);
 
     const aList = path.join(dir, 'a.txt');
     fs.writeFileSync(aList, auds.map((f) => `file '${f}'`).join('\n'));
     const track = path.join(dir, 'a.wav');
-    await run(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', aList, '-c', 'copy', track], 600000);
+    await run(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', aList, '-c', 'copy', track], 600000, job);
 
     const out = path.join(dir, 'film.mp4');
     await run(FFMPEG, ['-y', '-i', silentFilm, '-i', track, '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k',
-      '-shortest', '-movflags', '+faststart', out], 600000);
+      '-shortest', '-movflags', '+faststart', out], 600000, job);
 
+    // The LAST checkpoint: past here the film exists and the upload is cheap
+    // compared with what it took to get here, so a cancel arriving now still
+    // stops before anything is written onto her story.
+    stop();
     const bucket = admin.storage().bucket();
     const dest = `scratchpad/films/${padId}-${Date.now()}.mp4`;
     await bucket.upload(out, { destination: dest, metadata: { contentType: 'video/mp4' } });
@@ -1285,9 +1330,22 @@ async function runFilmJob(padId) {
       }, { merge: true });
     });
   } catch (err) {
-    console.warn('scratchpad film:', err.message);
-    await padRef(padId).set({ film: { status: 'failed', error: String(err.message || err).slice(0, 300), at: Date.now() } }, { merge: true }).catch(() => {});
-  } finally { clean(); }
+    // A CANCEL IS NOT A FAILURE. She stopped it on purpose, so it must never
+    // read as "the film failed" — and the killed ffmpeg's own error is the
+    // shape the cancel takes, so both are answered here. The re-stamp is the
+    // race-closer described up at filmJobs: a heartbeat already in flight when
+    // she tapped could have landed after the route wrote 'canceled', and by
+    // now the child is dead and nothing else can write the field.
+    if (job.canceled) {
+      await padRef(padId).set({ film: { status: 'canceled', at: Date.now() } }, { merge: true }).catch(() => {});
+    } else {
+      console.warn('scratchpad film:', err.message);
+      await padRef(padId).set({ film: { status: 'failed', error: String(err.message || err).slice(0, 300), at: Date.now() } }, { merge: true }).catch(() => {});
+    }
+  } finally {
+    clean();
+    if (filmJobs.get(padId) === job) filmJobs.delete(padId);
+  }
 }
 
 router.post('/film', async (req, res) => {
@@ -1300,6 +1358,24 @@ router.post('/film', async (req, res) => {
     await padRef(pid).set({ film: { status: 'making', at: Date.now() } }, { merge: true });
     runFilmJob(pid);   // fire and forget — the page polls the pad
     res.json({ ok: true, status: 'making' });
+  } catch (e) { fail(res, e); }
+});
+
+// STOP THE RENDER. The token ends the job at its next checkpoint and killing
+// the running ffmpeg makes that immediate; the DOC is stamped either way,
+// because a render orphaned by a deploy has no token in THIS process and
+// would otherwise sit on 'making' until the 15-minute sweep. Nothing is
+// deleted and nothing is spent — the next tap on play starts a fresh render.
+router.post('/film/cancel', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const job = filmJobs.get(pid);
+    if (job) {
+      job.canceled = true;
+      if (job.child) { try { job.child.kill('SIGKILL'); } catch { /* already gone */ } }
+    }
+    await padRef(pid).set({ film: { status: 'canceled', at: Date.now() } }, { merge: true });
+    res.json({ ok: true, status: 'canceled', running: Boolean(job) });
   } catch (e) { fail(res, e); }
 });
 

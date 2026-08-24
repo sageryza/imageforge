@@ -432,6 +432,19 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    title on a review card. */
 .auhead{margin:1.4em 0 .2em; font-size:.78em; letter-spacing:.08em; text-transform:uppercase; color:var(--ink2);}
 .auhead + .aurow{border-top:1px solid var(--line);}
+/* WHAT THE BUTTONS DO — one row per control: its own glyph in the same box
+   it wears on the page (so a row is recognisable at a glance rather than
+   read), the name, and one line. The glyph is inert — this is a legend, not
+   a second set of controls. */
+.hrow{display:flex; align-items:flex-start; gap:12px; padding:11px 0; border-bottom:1px solid var(--line);}
+.hrow:first-child{border-top:1px solid var(--line);}
+.hrow .iconbtn{pointer-events:none;}
+.hrow .htxt{flex:1; min-width:0;}
+.hrow .hnm{font-size:1.02em;}
+.hrow .hwhat{font-size:.85em; color:var(--ink2); margin-top:2px; line-height:1.35;}
+/* A control with no glyph of its own (the style toggle, tapping a beat) —
+   the words carry it, so the row keeps its indent and skips the box. */
+.hrow.nogl .htxt{margin-left:46px;}
 /* The film's buttons ride the title row; this line only appears while it's
    making (or if it failed). */
 #filmrow{margin-top:.5em;}
@@ -458,6 +471,13 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   <header>
     <button class="iconbtn" id="shelfback" hidden aria-label="Back to the shelf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
     <div class="no">Story room</div>
+    <!-- WHAT THE BUTTONS DO (Aug 2026, Sophie: "also add an info icon that
+         says what all the buttons do"). It sits on the NAME row, not the
+         title row: that row already carries six 34px icons on a 390pt phone
+         and a seventh would eat the story's name, while this row has its
+         whole right end free. The row reserves the pill's 56px, so the "?"
+         lands just clear of the injected pill's corner. -->
+    <button class="iconbtn" id="helpbtn" aria-label="What the buttons do"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></button>
   </header>
   <div class="titlerow">
     <div id="title" contenteditable="true" spellcheck="false"></div>
@@ -531,6 +551,19 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
       <div class="no">Audio on this story</div>
     </div>
     <div id="audios"></div>
+  </div>
+</div>
+
+<!-- WHAT THE BUTTONS DO. Every row's glyph is CLONED from the real control
+     at open time (mkHelp), so this list can never show a button the page no
+     longer has, or an old drawing of one that changed. -->
+<div class="sheet" id="helpsheet" hidden>
+  <div class="wrap">
+    <div class="sheethead">
+      <button class="iconbtn" id="helpclose" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+      <div class="no">What the buttons do</div>
+    </div>
+    <div id="helpbody"></div>
   </div>
 </div>
 
@@ -637,8 +670,12 @@ function api(p,opts){
     try{var b=JSON.parse(opts.body); if(b.pad===undefined){b.pad=padId; opts.body=JSON.stringify(b);}}catch(e){}
     /* /style and /upload don't stale the film: flipping the view is not an
        edit (the film's own `style` field handles the flip), and an upload
-       still waiting in the add sheet isn't on the timeline yet. */
-    if(p!=='/film'&&p.indexOf('/pads')!==0&&p!=='/tts'&&p!=='/style'&&p!=='/upload') dirtySinceFilm=true;
+       still waiting in the add sheet isn't on the timeline yet.
+       `/film*` is matched by PREFIX so that /film/cancel is covered too —
+       stopping a render changes nothing about the story, and marking it dirty
+       would make the next play button re-render a film that was already
+       fresh. */
+    if(p.indexOf('/film')!==0&&p.indexOf('/pads')!==0&&p!=='/tts'&&p!=='/style'&&p!=='/upload') dirtySinceFilm=true;
   } else if(p.indexOf('/pads')!==0){
     p+=(p.indexOf('?')>=0?'&':'?')+'pad='+encodeURIComponent(padId);
   }
@@ -861,6 +898,21 @@ function renderTitle(){
    the render) → the tap renders first, then auto-plays when it lands if
    she's still here. A failed render re-arms the button — the backend keeps
    remaking possible always (failed state + the stuck-job sweep). */
+/* THE PLAY BUTTON BECOMES THE CANCEL WHILE IT IS MAKING (Aug 2026, Sophie:
+   "add a cancel button to the play which makes the film button in story
+   room"). ONE control, two states, and it had to be one: the title row
+   already carries six 34px icons on a 390pt phone (the same measurement that
+   put the style toggle on its own line), so a seventh would have squeezed the
+   story's name to nothing exactly while a render was running.
+   It also fixes what was there before — a DEAD control: the button sat
+   disabled at .45 opacity for the whole render, so the one thing on screen
+   she might want to tap did nothing.
+   No arming delay on the swap, deliberately: the film is free (ffmpeg on our
+   own box, no model call), so the cost of a stray double-tap is one more tap
+   to start it again — and a button that ignores her for a second to protect
+   her from that reads as broken. */
+var FILM_PLAY='<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4.5v15l13-7.5z"/></svg>';
+var FILM_STOP='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
 var film=null, padUpdated=0, dirtySinceFilm=false, autoplayWanted=false;
 function filmFresh(){
   // Server-clock to server-clock only — never compare against the phone's.
@@ -874,10 +926,13 @@ function renderFilm(){
   var play=document.getElementById('playbtn');
   var making=Boolean(film&&film.status==='making');
   play.hidden=!beats.some(hasShot);
-  play.disabled=making;
-  play.style.opacity=making?'.45':'';
+  play.disabled=false;
+  play.style.opacity='';
+  play.innerHTML=making?FILM_STOP:FILM_PLAY;
+  play.setAttribute('aria-label',making?'Stop making the film':'Watch the film');
   var msg=making?('making the film… '+(film.progress||''))
-    :(film&&film.status==='failed'?(film.error||'the film failed'):'');
+    :(film&&film.status==='failed'?(film.error||'the film failed')
+    :(film&&film.status==='canceled'?'film stopped':''));
   note.textContent=msg;
   document.getElementById('filmrow').hidden=!msg;
 }
@@ -964,6 +1019,68 @@ document.getElementById('auclose').onclick=function(ev){
   document.getElementById('ausheet').hidden=true; lock(false);
 };
 
+/* ── what the buttons do ────────────────────────────────────────────
+   Sophie, Aug 2026: "add an info icon that says what all the buttons do".
+   The page is all unlabelled glyphs by design (the pad is minimal and no
+   machinery lives on the canvas), so the legend is the one place the words
+   live.
+   EVERY GLYPH IS CLONED FROM THE REAL BUTTON — `sel` names the control and
+   the row copies its innerHTML. A second hand-drawn copy of each icon would
+   drift the first time one is changed, and the drift would be invisible:
+   the legend would go on looking right while describing a page that no
+   longer exists. A control the page doesn't have (a beat's own buttons
+   before one is opened) simply draws no box. */
+var HELP=[
+  {sel:'#shelfback', nm:'Back', what:'To the shelf. In the app the chevron at the top of the screen does this.'},
+  {sel:'#descbtn', nm:'About this story', what:'What you said the story is, and the recordings it came out of.'},
+  {sel:'#audiobtn', nm:'Listen', what:'Every recording attached to this story — the memos it came from, and the episodes cut out of it.'},
+  {sel:'#playbtn', nm:'Play the film', what:'Watches your film. If the story changed since the last one it makes a new film first, then plays it. While it is making, this button turns into an ✕ that stops it — nothing is lost and it costs nothing to start again.'},
+  {sel:'#drawallbtn', nm:'Draw them all', what:'Draws every beat that has words but no picture yet. It asks first and says how many.'},
+  {sel:'#addbtn', nm:'Add a beat', what:'Puts an empty beat at the end.'},
+  {sel:'#inboxbtn', nm:'Your pictures and clips', what:'Everything you hearted in the Playground, plus the clip shelf and photos off your phone — tap one to put it on the pad.'},
+  {sel:null, nm:'Watercolor / Dreamy', what:'Which set of pictures the story is showing. The words, colours, voice and order are shared; only the art changes — and the film is made from the side you are looking at.'},
+  {sel:null, nm:'Tap a beat', what:'Opens its card: the picture, the colour chips, its words, and the buttons below.'},
+  {sel:'#ardraw', nm:'Draw it', what:'Draws this beat here, from its words.'},
+  {sel:'#arplay', nm:'Playground', what:'Opens the Playground to make its art there instead.'},
+  {sel:'#arinbox', nm:'From the inbox', what:'Swaps in a picture or clip you already have.'},
+  {sel:'#speak', nm:'Hear it', what:'Reads the beat aloud in your voice.'},
+  {sel:'#micbtn', nm:'Record it', what:'Records you reading it. Your own take always wins over the read-aloud, and every take is kept.'},
+  {sel:'#linkbtn', nm:'Link', what:'Joins this beat to the next one into a chunk, sharing one frame.'},
+  {sel:'#unlinkbtn', nm:'Unlink', what:'Breaks the chunk back apart.'},
+  {sel:'#coverbtn', nm:'Make it the cover', what:'This picture becomes the story’s tile on the shelf.'},
+  {sel:'#delbtn', nm:'Delete the beat', what:'Asks first. Its pictures stay in your galleries.'},
+];
+function mkHelp(){
+  var box=document.getElementById('helpbody');
+  box.innerHTML='';
+  HELP.forEach(function(h){
+    var row=document.createElement('div'); row.className='hrow';
+    var src=h.sel?document.querySelector(h.sel):null;
+    if(src){
+      var b=document.createElement('span'); b.className='iconbtn';
+      b.innerHTML=src.innerHTML; row.appendChild(b);
+    } else { row.className+=' nogl'; }
+    var tx=document.createElement('div'); tx.className='htxt';
+    var nm=document.createElement('div'); nm.className='hnm'; nm.textContent=h.nm;
+    var wt=document.createElement('div'); wt.className='hwhat'; wt.textContent=h.what;
+    tx.appendChild(nm); tx.appendChild(wt); row.appendChild(tx);
+    box.appendChild(row);
+  });
+}
+document.getElementById('helpbtn').onclick=function(ev){
+  ev.stopPropagation();
+  /* Built on the TAP, never at load: the play button's glyph depends on
+     whether a film is making right now, so a list built once would show the
+     wrong one. */
+  mkHelp();
+  var sh=document.getElementById('helpsheet');
+  sh.hidden=false; sh.scrollTop=0; lock(true);
+};
+document.getElementById('helpclose').onclick=function(ev){
+  ev.stopPropagation();
+  document.getElementById('helpsheet').hidden=true; lock(false);
+};
+
 function playFilm(){
   if(!film||!film.url)return;
   player.pause();   // the film's sound must not fight an episode's
@@ -973,9 +1090,21 @@ function playFilm(){
   window.__scrollStop&&window.__scrollStop();
   v.play();
 }
+/* Stop the render. The button flips back to play at once — she asked it to
+   stop, so the screen says stopped whatever the server is still unwinding —
+   and the poll is cleared here rather than left to notice, so nothing can
+   paint 'making' back over it. `autoplayWanted` is dropped with it: a film
+   she stopped must never open its own player a minute later. */
+function cancelFilm(){
+  autoplayWanted=false;
+  filmGen++;
+  if(filmTimer){ clearInterval(filmTimer); filmTimer=null; }
+  film=Object.assign({},film,{status:'canceled',progress:''}); renderFilm();
+  api('/film/cancel',{method:'POST',body:JSON.stringify({})}).catch(function(){});
+}
 document.getElementById('playbtn').onclick=function(ev){
   ev.stopPropagation();
-  if(film&&film.status==='making')return;
+  if(film&&film.status==='making'){ cancelFilm(); return; }
   if(filmFresh()){ playFilm(); return; }
   autoplayWanted=true;
   film=Object.assign({},film,{status:'making',progress:''}); renderFilm();
@@ -1053,10 +1182,18 @@ document.getElementById('bulkyes').onclick=function(ev){
 
 /* Rendering is a background job — poll the pad, and resume on return. */
 var filmTimer=null;
+/* A poll can be IN FLIGHT when she cancels, and the server may not have
+   written 'canceled' yet — so its answer still says 'making'. Landing it
+   would paint the ✕ back on with no timer left to correct it, i.e. a render
+   she stopped, stuck on screen forever. Every poll carries the generation it
+   was fired in and a stale one is dropped whole. */
+var filmGen=0;
 function startFilmPoll(){
   if(filmTimer)return;
+  var gen=filmGen;
   filmTimer=setInterval(function(){
     api('').then(function(r){return r.json()}).then(function(d){
+      if(gen!==filmGen)return;
       film=d.film||null; padUpdated=d.updatedAt||padUpdated; renderFilm();
       if(!film||film.status!=='making'){
         clearInterval(filmTimer); filmTimer=null;
@@ -1218,6 +1355,7 @@ document.getElementById('descclose').onclick=function(ev){
 function openPad(id){
   padId=id; padOpened=true; localStorage.setItem('scratchpad_pad',id);
   if(genTimer){ clearInterval(genTimer); genTimer=null; }
+  filmGen++;   // an in-flight poll belongs to the story she just left
   if(filmTimer){ clearInterval(filmTimer); filmTimer=null; }
   film=null; padUpdated=0; dirtySinceFilm=false; autoplayWanted=false; renderFilm();
   player.pause(); audios=[]; renderAudios();
@@ -1951,6 +2089,8 @@ window.__navBack=function(){
   if(!el.hidden){ document.getElementById('auclose').click(); return true; }
   el=document.getElementById('descsheet');
   if(!el.hidden){ document.getElementById('descclose').click(); return true; }
+  el=document.getElementById('helpsheet');
+  if(!el.hidden){ document.getElementById('helpclose').click(); return true; }
   el=document.getElementById('stories');
   if(!el.hidden) return false;    // the shelf is the floor — the app leaves
   openShelf(); return true;       // a story steps up to it
