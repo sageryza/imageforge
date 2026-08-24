@@ -88,6 +88,20 @@ assert.strictEqual(stick.prompt, 'gpt-image-2 · medium · 2K',
     style: 'WTR', model: 'WTR', quality: 'medium', ms: 7 }])[0];
   assert.strictEqual(lora.prompt, 'WTR · medium',
     'a LoRA run whose model IS its style reads once, not twice');
+  // THE STYLE SLOT IS ITSELF COMPOUND — the Playground files it as
+  // `${label} · ${quality}`, so a whole-slot de-dupe cannot catch the repeat.
+  // Found live off the deploy: "Dreamy · low · gpt-image-2 · low · 1K".
+  const dbl = buildMetaAssets([], [{ url: 'https://x/dbl.png', prompt: 'p', type: 'image',
+    style: 'Dreamy · low', model: 'gpt-image-2', quality: 'low', size: '1024x1536', ms: 6 }])[0];
+  assert.strictEqual(dbl.prompt, 'Dreamy · gpt-image-2 · low · 1K',
+    'a quality already inside the style slot is not said twice');
+  // A style whose parts say nothing the other slots say is kept WHOLE — the
+  // Scratch Pad files "Scratch Pad · dreamy · medium" and carries no other
+  // fields, so nothing may be trimmed out of it.
+  const pad = buildMetaAssets([], [{ url: 'https://x/pad.png', prompt: 'p', type: 'image',
+    style: 'Scratch Pad · dreamy · medium', ms: 5 }])[0];
+  assert.strictEqual(pad.prompt, 'Scratch Pad · dreamy · medium',
+    'a compound style with nothing to de-dupe survives whole');
 }
 // An absent slot is LEFT OUT, never guessed — nothing on a record filed before
 // the field existed says how big it is, exactly as with quality.

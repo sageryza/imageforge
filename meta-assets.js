@@ -99,8 +99,22 @@ function buildMetaAssets(docs, creations) {
     // sent to the model. A creation doc stores her typed words and the style's
     // NAME, never the prefix/suffix wrapped around them, so filing "Dreamy"
     // as the style prompt would be a reconstruction. That half stays empty.
-    const made = [c.style, c.model, c.quality, sizeTier.captionSize(c.size)]
-      .map((v) => String(v || '').trim())
+    // THE STYLE SLOT IS ITSELF COMPOUND, and that is the trap (found live
+    // 2026-08-24, the first caption off the deploy read "Dreamy · low ·
+    // gpt-image-2 · low · 1K"). The Playground files `style` as
+    // `${label} · ${quality}`, so appending quality again says it twice —
+    // and a whole-slot de-dupe cannot see it, because "Dreamy · low" and
+    // "low" are different strings. Split the style into its own parts, drop
+    // any that the later slots already say, and keep the rest as the label.
+    const model = String(c.model || '').trim();
+    const quality = String(c.quality || '').trim();
+    const size = sizeTier.captionSize(c.size) || '';
+    const said = new Set([model, quality, size].filter(Boolean));
+    const styleLabel = String(c.style || '').trim()
+      .split('·').map((v) => v.trim()).filter(Boolean)
+      .filter((v) => !said.has(v))
+      .join(' · ');
+    const made = [styleLabel, model, quality, size]
       .filter(Boolean)
       // A Replicate run files model === styleLabel (fileRunToCreations), so
       // without this a LoRA picture reads "WTR · WTR · medium · 1K".
