@@ -335,6 +335,7 @@ var FILM_ICON = '<svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="
   + '<path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></svg>';
 
 /* ── state ── */
+var BUILD = 'fe-2026-08-23c';   // rides the telemetry — settles "which page is her phone actually running"
 var A = null;                 // the open cut doc {id,title,clips,audio,renders,job}
 var playhead = 0;
 var playing = false;
@@ -534,6 +535,7 @@ function ensureSrc(el, url) {
   if (el.getAttribute('data-src') !== url) {
     el.onloadedmetadata = null;   // a stale seek handler must not fire on the new load
     el.setAttribute('data-src', url);
+    el.__frameAt = 0;   // no frame of THIS load has painted yet
     el.src = url;
     el.load();
   }
@@ -550,6 +552,7 @@ function warmNext(el, url, at) {
   if (el.getAttribute('data-src') !== url) {
     el.onloadedmetadata = null;
     el.setAttribute('data-src', url);
+    el.__frameAt = 0;   // no frame of THIS load has painted yet
     el.src = url;
     el.load();
     el.onloadedmetadata = function () {
@@ -570,12 +573,17 @@ function warmNext(el, url, at) {
 // Stamp every PRESENTED frame on its element (armed once each at launch —
 // rVFC fires only while frames actually reach the compositor). This is the
 // playhead's frame-truth signal: exact on Safari 15.4+/Chromium, where the
-// quality counters batch or flatline.
+// quality counters batch or flatline. __frameAt is cleared on every src set,
+// so it always means "a frame of THIS load has painted"; __rvfcN counts
+// fires for the telemetry — whether rVFC is alive on her device is a
+// question only her device can answer.
 function armFrameWatch(el) {
   if (!el.requestVideoFrameCallback || el.__rvfc) return;
   el.__rvfc = true;
+  el.__rvfcN = 0;
   var loop = function (now) {
     el.__frameAt = now;
+    el.__rvfcN++;
     el.requestVideoFrameCallback(loop);
   };
   el.requestVideoFrameCallback(loop);
@@ -592,18 +600,71 @@ function activate(el) {
   if (old) old.pause();
   var reveal = function () {
     if (tok !== actToken) return;
+    if (TEL && TEL.revealT0 && TEL.black.length < 30) { TEL.black.push(Math.round(performance.now() - TEL.revealT0)); }
+    if (TEL) TEL.revealT0 = 0;
     el.hidden = false;
     if (old && old !== el) old.hidden = true;
   };
-  if (el.readyState >= 2) reveal();
+  if (TEL) TEL.revealT0 = performance.now();
+  // The reveal signal is a PRESENTED frame, not canplay: on iOS canplay can
+  // fire before anything has painted, so revealing on it flashed BLACK at a
+  // boundary (Sophie, 2026-08-23, round three — Chromium paints at canplay,
+  // which is why the headless tests never saw it). A parked warm element has
+  // already painted its frame (__frameAt survives per LOAD, cleared on every
+  // src set) and reveals instantly — the whole point of warmNext. Where rVFC
+  // is missing, canplay stays the signal; the bail never lets a dead source
+  // (or a dead rVFC) wedge the swap.
+  if (el.readyState >= 2 && (el.__frameAt || !el.__rvfc)) reveal();
   else {
-    el.addEventListener('canplay', reveal, { once: true });
+    if (el.__rvfc) el.requestVideoFrameCallback(function () { reveal(); });
+    else el.addEventListener('canplay', reveal, { once: true });
     setTimeout(reveal, 1500);   // never wedge behind a dead source
   }
+}
+/* ── play-session telemetry: what her phone ACTUALLY did (2026-08-23, round
+   three — every fix so far was verified in headless Chromium, which kept
+   passing while her device kept failing; this is the measure-never-reason
+   rule pointed at the one environment no chat can open). One small JSON per
+   play session, sent when playback stops, read back with
+   GET /api/filmeditor/telemetry?cut=. No UI, no cost, nothing personal
+   beyond the browser's user-agent line. ── */
+var TEL = null;
+function telStart() {
+  TEL = {
+    at: Date.now(), cut: A && A.id, build: BUILD,
+    ua: String(navigator.userAgent || '').slice(0, 160),
+    ph0: Math.round(playhead * 100) / 100, dur: 0,
+    joints: 0, black: [], vholdMs: 0, choldMs: 0, revealT0: 0,
+    rvfc0: [($('vA').__rvfcN || 0), ($('vB').__rvfcN || 0)], rvfc: [0, 0],
+    playT0: performance.now(),
+    aud: A && A.audio ? {
+      src: audSrc().indexOf('/proxy/') >= 0 ? 'proxy' : 'raw',
+      playAt: 0, startMs: null, entries: [], resync: 0, paceOn: 0, waits: 0,
+    } : null,
+  };
+}
+function telSend() {
+  var t = TEL; TEL = null;
+  if (!t || !t.cut) return;
+  t.dur = Math.round(performance.now() - t.playT0);
+  delete t.playT0; delete t.revealT0;
+  t.rvfc = [($('vA').__rvfcN || 0) - t.rvfc0[0], ($('vB').__rvfcN || 0) - t.rvfc0[1]];
+  delete t.rvfc0;
+  t.ph1 = Math.round(playhead * 100) / 100;
+  if (t.aud) delete t.aud.playAt;
+  if (t.dur < 400) return;   // a tap-tap isn't a session worth a record
+  try {
+    fetch(B + '/telemetry', {
+      method: 'POST', keepalive: true,
+      headers: Object.assign({ 'content-type': 'application/json' }, TOK ? { 'x-studio-token': TOK } : {}),
+      body: JSON.stringify(t),
+    }).catch(function () {});
+  } catch (e) { /* telemetry must never break playback */ }
 }
 function stopPlayback() {
   cancelAnimationFrame(raf);
   playing = false;
+  telSend();
   lastTs = null;   // a stale clock made the next play leap seconds ahead
   $('vA').pause();   // BOTH elements — the idle one may be priming muted
   $('vB').pause();
@@ -716,16 +777,24 @@ var audEntry = false;
 $('audEl').addEventListener('waiting', function () {
   // a 'waiting' fired mid-SEEK is the seek's own echo, not a buffer running
   // dry — arming on it would turn any seek into a second seek
-  if (!$('audEl').seeking) audEntry = true;
+  if (!$('audEl').seeking) {
+    audEntry = true;
+    if (playing && TEL && TEL.aud) TEL.aud.waits++;
+  }
 });
 $('audEl').addEventListener('playing', function () {
   if (!playing || !A || !A.audio) return;
+  if (TEL && TEL.aud && TEL.aud.startMs == null) {
+    TEL.aud.startMs = Math.round(performance.now() - (TEL.aud.playAt || TEL.playT0));
+  }
   if (!audEntry) return;
   audEntry = false;
   var a = $('audEl');
   var at = playhead - (A.audio.offset || 0);
   if (at < 0 || a.getAttribute('data-src') !== audSrc()) return;
-  if (Math.abs((a.currentTime || 0) - at) > 0.35) {
+  var off = (a.currentTime || 0) - at;
+  if (Math.abs(off) > 0.35) {
+    if (TEL && TEL.aud && TEL.aud.entries.length < 20) TEL.aud.entries.push(Math.round(off * 100) / 100);
     try { a.currentTime = at; } catch (e) { /* not seekable yet */ }
   }
 });
@@ -756,6 +825,7 @@ function syncAudio(playIt) {
       a.playbackRate = 1; audPacing = false;
       try { a.currentTime = at; } catch (e) { /* not seekable yet */ }
       audEntry = true;   // when sound actually lands, re-align to the playhead
+      if (TEL && TEL.aud && !TEL.aud.playAt) TEL.aud.playAt = performance.now();
       a.play().catch(function () {});
     }
   } else if (playIt) {
@@ -778,6 +848,7 @@ function playPause() {
   if (playhead >= total() - 0.02) playhead = 0;
   playing = true;
   lastTs = null;   // never carry the previous session's clock into this one
+  telStart();
   paintPlayBtn();
   seekVideo(true);
   raf = requestAnimationFrame(tick);
@@ -824,13 +895,25 @@ function tick(ts) {
     // about a stall, not reporting one.
     if (!el.ended && !el.paused) {
       if (el.__rvfc) {
-        if ((el.__frameAt || 0) < ts - 350) t = playhead;
+        // The hold needs a frame of THIS load on record and is CAPPED like
+        // the counter path: an rVFC that under-delivers on a real device
+        // (round three, "lagging playhead" — Chromium always delivers, so
+        // the tests never see it) must not freeze the playhead. A genuine
+        // stall still holds through the CLOCK — currentTime freezes with
+        // the picture — so the cap never lets the playhead walk off a
+        // frozen frame.
+        var fAge = ts - (el.__frameAt || 0);
+        if (el.__frameAt && fAge > 350 && fAge < 1200) t = playhead;
+        if (TEL && t === playhead && el.__frameAt && fAge > 350) TEL.vholdMs += Math.round(dt * 1000);
       } else {
         var q = el.getVideoPlaybackQuality ? el.getVideoPlaybackQuality().totalVideoFrames
           : (typeof el.webkitDecodedFrameCount === 'number' ? el.webkitDecodedFrameCount : null);
         if (q != null) {
           if (el !== frameEl || q !== frameCount) { frameEl = el; frameCount = q; frameAt = ts; }
-          else if (ts - frameAt > 350 && ts - frameAt < 1200) t = playhead;
+          else if (ts - frameAt > 350 && ts - frameAt < 1200) {
+            t = playhead;
+            if (TEL) TEL.choldMs += Math.round(dt * 1000);
+          }
         }
       }
     }
@@ -857,6 +940,7 @@ function tick(ts) {
       return;
     }
     playhead = next.start;
+    if (TEL) TEL.joints++;
     syncSelection();
     seekVideo(true);
   } else playhead = t;
@@ -880,6 +964,7 @@ function tick(ts) {
         a.playbackRate = 1; audPacing = false;
         try { a.currentTime = at; } catch (e) { /* not seekable yet */ }
         audEntry = true;   // when sound actually lands, re-align to the playhead
+        if (TEL && TEL.aud && !TEL.aud.playAt) TEL.aud.playAt = performance.now();
         a.play().catch(function () {});
       } else if (a.seeking || a.readyState < 3) {
         // stalled or mid-seek: a frozen clock is not drift (the picture-is-
@@ -891,10 +976,12 @@ function tick(ts) {
       } else {
         var dr = (a.currentTime || 0) - at;
         if (Math.abs(dr) > 2) {
+          if (TEL && TEL.aud) TEL.aud.resync++;
           try { a.currentTime = at; } catch (e) { /* broken state — resync */ }
           a.playbackRate = 1; audPacing = false;
         } else {
           var pace = audioPace(dr, audPacing);
+          if (TEL && TEL.aud && pace.correcting && !audPacing) TEL.aud.paceOn++;
           audPacing = pace.correcting;
           if (a.playbackRate !== pace.rate) a.playbackRate = pace.rate;
         }
