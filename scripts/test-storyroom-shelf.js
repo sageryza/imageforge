@@ -136,8 +136,8 @@ function ok(cond, name) {
     'shelf opens on the Personal chip');
   ok((await page.$$('.stile')).length === 4,
     'Personal shows personal + untagged stories, the folder as one tile (4)');
-  ok((await page.$$('.stile .cov img')).length === 3 &&
-     (await page.$$('.stile .cov .none')).length === 1,
+  ok((await page.$$('.stile .frame img')).length === 3 &&
+     (await page.$$('.stile .frame .none')).length === 1,
     'a story with art gets its picture, one without gets the dashed box');
   ok(thumbCalls.length >= 1 && thumbCalls.every((u) => u && u.indexOf('/px.png') === 0),
     'covers are requested through /api/story/thumb');
@@ -154,42 +154,56 @@ function ok(cond, name) {
   ok((await page.$$('.stile.fold')).length === 1 &&
      (await page.$eval('.stile.fold .cnt', (el) => el.textContent)) === '3',
     'the folder tile carries its count — including the story filed under another chip');
-  const face = await page.$eval('.stile.fold .cov img', (el) => el.getAttribute('src'));
+  const face = await page.$eval('.stile.fold .frame img', (el) => el.getAttribute('src'));
   ok(decodeURIComponent(face).indexOf('/px.png?m') > 0,
     'a folder whose newest story has no art falls through to one that does');
 
-  // THE STACK, MEASURED. "Visible" proves nothing here: the layers are
-  // pseudo-elements behind the cover, so the questions that matter are
-  // whether they actually peek out UNDER it and whether the tile is still
-  // the same height as a plain story's (or the names go ragged across a row).
+  // THE STACK, MEASURED. "Visible" proves nothing here: the cards behind are
+  // pseudo-elements, so the questions that matter are whether the front card
+  // actually SHRANK to make room, whether the two behind are offset from it
+  // rather than hiding under it, and whether the tile is still exactly a
+  // story's height (or the names go ragged across a row).
   const stack = await page.evaluate(() => {
     const fold = document.querySelector('.stile.fold');
     const plain = document.querySelector('.stile:not(.fold)');
     const cs = (el, p) => getComputedStyle(el, p);
     const covF = fold.querySelector('.cov');
+    const box = (el) => { const r = el.getBoundingClientRect(); return { w: r.width, h: r.height }; };
+    const cov = covF.getBoundingClientRect();
+    const fr = fold.querySelector('.frame').getBoundingClientRect();
     return {
       foldH: Math.round(fold.getBoundingClientRect().height),
       plainH: Math.round(plain.getBoundingClientRect().height),
-      coverBottom: cs(fold.querySelector('.cov img')).bottom,
-      layer1: cs(covF, '::before').content,
-      layer2: cs(covF, '::after').content,
-      // the cover's own box must stop short of the .cov box's bottom edge
-      gap: Math.round(covF.getBoundingClientRect().bottom
-        - fold.querySelector('.cov img').getBoundingClientRect().bottom),
-      plainGap: Math.round(plain.querySelector('.cov').getBoundingClientRect().bottom
-        - (plain.querySelector('.cov img') || plain.querySelector('.cov .none'))
-          .getBoundingClientRect().bottom),
+      card1: cs(covF, '::before').content,
+      card2: cs(covF, '::after').content,
+      // how much room the front card gives up on its right and bottom
+      right: Math.round(cov.right - fr.right),
+      bottom: Math.round(cov.bottom - fr.bottom),
+      // the front card starts at the footprint's own top-left
+      top: Math.round(fr.top - cov.top), left: Math.round(fr.left - cov.left),
+      // a plain tile's frame fills its footprint exactly
+      plainFill: (() => {
+        const c = plain.querySelector('.cov').getBoundingClientRect();
+        const f = plain.querySelector('.frame').getBoundingClientRect();
+        return Math.round(c.width - f.width) === 0 && Math.round(c.height - f.height) === 0;
+      })(),
+      // the cards behind are WHITE cards, not slivers
+      bg: cs(covF, '::before').backgroundColor,
+      deepH: cs(covF, '::before').height,
+      frameH: box(fold.querySelector('.frame')).h,
     };
   });
-  ok(stack.layer1 === '""' && stack.layer2 === '""',
-    'the stack is two flat layers (pseudo-elements), so a folder is still one node');
-  // A plain tile's art already stops at the mat's own 5px padding, so the
-  // question is the DIFFERENCE: the folder's art must give up ~8px more.
-  ok(stack.gap - stack.plainGap >= 6 && stack.gap - stack.plainGap <= 10,
-    'the art is shortened so the stack shows under it ('
-      + (stack.gap - stack.plainGap) + 'px more than a story)');
-  ok(stack.plainGap >= 4 && stack.plainGap <= 6,
-    'a plain story tile is untouched — its art still fills the mat');
+  ok(stack.card1 === '""' && stack.card2 === '""',
+    'two cards behind, drawn as pseudo-elements — a folder is still one node');
+  ok(stack.top === 0 && stack.left === 0 && stack.right === 8 && stack.bottom === 8,
+    'the front card gives up its right and bottom edge for the stack ('
+      + stack.right + '/' + stack.bottom + 'px)');
+  ok(stack.bg === 'rgb(255, 255, 255)',
+    'the cards behind are whole white cards, not hairline slivers');
+  ok(Math.abs(parseFloat(stack.deepH) - stack.frameH) < 1.5,
+    'a card behind is the same SIZE as the front one, just offset');
+  ok(stack.plainFill,
+    'a plain story tile is untouched — its frame fills its footprint');
   ok(stack.foldH === stack.plainH,
     'a folder is exactly as tall as a story, so the names line up across a row');
 
@@ -266,7 +280,7 @@ function ok(cond, name) {
   const cols = await page.$eval('#shelftiles',
     (el) => getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/).length);
   ok(cols === 3, 'three tiles to a row');
-  const frame = await page.$eval('.stile .cov img', (im) => {
+  const frame = await page.$eval('.stile .frame img', (im) => {
     const cov = im.parentElement;
     const a = im.getBoundingClientRect(); const b = cov.getBoundingClientRect();
     const cs = getComputedStyle(cov); const is = getComputedStyle(im);
