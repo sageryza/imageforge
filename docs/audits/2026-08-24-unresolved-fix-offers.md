@@ -34,9 +34,12 @@ One thing had already half-fixed itself in those 22 commits: `/assets` was
 migrated onto the shared `asset-lightbox.js`, so the 52vh/46vh DRIFT in #1 is
 gone. The other half of #1 — the reserved strip — was still there.
 
-## STILL OPEN — confirmed in current code
+## THE FIVE — what each one was, and what happened to it
 
-### 1. The image lightbox reserves a notes strip even when there are no notes
+Each finding below opens with the bug as the audit found it (confirmed in the
+code at the time) and closes with what was done about it.
+
+### 1. The image lightbox reserved a notes strip even when there were no notes
 *(chat `lightbox-image-size`, 2026-08-21 — the offer was the last message in the
 chat; she never answered.)*
 
@@ -107,7 +110,7 @@ uses it.
 **LEFT ALONE ON PURPOSE — Sophie gave this one to another chat** (2026-08-24).
 It is the only finding here that is not fixed.
 
-### 4. The Dump still can't take audio
+### 4. The Dump couldn't take audio
 *(chat `video-audio-extraction-pipeline`, 2026-08-11 — "Want me to fix that last
 part?" Never answered.)*
 
