@@ -3318,6 +3318,43 @@ before working on that module. Nothing was deleted — the moved text is verbati
   episodes cut from the story, resolved to their newest render live, AND the
   **voice memos it came out of** (`POST /api/scratchpad/audio {pad, src}`,
   `src` = the Search index id). No audio attached → no button.
+  **THE FILM BUTTON IS ONE CONTROL WITH TWO STATES, AND THE "?" IS ON THE
+  OTHER ROW (2026-08-23, Sophie: "add a cancel button to the play which makes
+  the film button in story room" · "also add an info icon that says what all
+  the buttons do").** Both asks landed on a title row that was already full —
+  six 34px icons on a 390pt phone, the same measurement that put the style
+  toggle on its own line — so neither could simply be a seventh button.
+  - **While a render is making, the play button IS the cancel** (an ✕; tap
+    starts it again after). That also killed a dead control: it used to sit
+    disabled at .45 opacity for the whole render, so the one thing on screen
+    she might want to tap did nothing. **No arming delay on the swap** — the
+    film is free (ffmpeg on our own box), so a stray double-tap costs one tap
+    to restart, and a button that ignores her for a second reads as broken.
+  - **`POST /api/scratchpad/film/cancel`** flips the job's token
+    (`filmJobs` in scratchpad.js) and SIGKILLs the ffmpeg it is inside, so
+    the cancel lands in seconds rather than at the end of a ten-minute
+    encode. Two rules keep the doc from lying about the render: every
+    progress write goes through the job's `beat()`, which no-ops once
+    canceled, and the job re-stamps `canceled` on its way OUT, after the
+    child is dead — that closes the one race left, a heartbeat already in
+    flight. **A cancel is never `failed`**, and the doc is stamped even when
+    no token exists in this process (a render orphaned by a deploy would
+    otherwise sit on 'making' until the 15-minute sweep).
+  - **A poll IN FLIGHT when she cancels must be dropped, not landed** —
+    the server may not have written `canceled` yet, so its answer still says
+    `making`, and landing it repaints the ✕ with no timer left to correct
+    it: the render she stopped, stuck on screen forever. `filmGen` on the
+    page discards a stale poll whole (it also bumps when she opens another
+    story). And `/film*` is matched by PREFIX in `api()`, so canceling does
+    not mark the story dirty.
+  - **The legend clones the page's own buttons** — `HELP` in
+    `gen-scratchpad.py` names each control by SELECTOR and the row copies its
+    `innerHTML`, built on the tap. A second hand-drawn set of icons would
+    drift the first time one changed and the drift would be invisible.
+  - Test: `node scripts/test-storyroom-film-cancel.js` (headless — the glyph
+    swap, the cancel POST, the in-flight poll, and the legend's drawings
+    compared against the real buttons; verified failing against the pre-fix
+    page, where the disabled button could not even be clicked).
   **Full details: `docs/modules/story.md`.**
 - **Scratch Pad / Story Room** (`scratchpad.js`, `/api/scratchpad`, page built by
   `scripts/gen-scratchpad.py`) — thinking with pictures. Hearted Playground images

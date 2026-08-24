@@ -281,14 +281,46 @@ All 12 NDE-category stories were linked to their montage episodes on
   DISPLAY-ONLY — Sophie), each held for exactly its own audio's length —
   her recording first, else the line's cached TTS, else `FILM.silent` (2s)
   of quiet — hard cuts, 1000x1500 (2:3), pure ffmpeg, no video model, free. It's
-  a background job on `pad.film` (`status` making/done/failed); the page
-  polls and resumes on return; every previous cut is kept in `pad.films`.
+  a background job on `pad.film` (`status` making/done/failed/**canceled**);
+  the page polls and resumes on return; every previous cut is kept in
+  `pad.films`.
   **The per-unit audio is PCM, never aac:** concatenating aac adds encoder
   priming to every file (~24ms per two units, measured) and the voice walks
   out from under the pictures — WAV concatenates sample-exact and the track
   is encoded once at the mux. Animating between a chunk's panels (her
   literal→metaphorical formula, Wan i2v ~$0.06 a pair) is the planned paid
   follow-up, deliberately not in v1.
+- **STOPPING A RENDER: the play button IS the cancel while it is making
+  (2026-08-23, Sophie: "add a cancel button to the play which makes the film
+  button in story room").** One control, two states, because the title row
+  already carries six 34px icons on a 390pt phone. It also replaced a DEAD
+  control — the button used to sit disabled at .45 opacity for the whole
+  render. `POST /film/cancel` flips the job's token (`filmJobs`) and SIGKILLs
+  the running ffmpeg, so the stop lands in seconds instead of at the end of a
+  ten-minute encode; the doc is stamped `canceled` even when this process
+  holds no token, so a render orphaned by a deploy doesn't wait for the
+  15-minute sweep. **A cancel is never `failed`** — she stopped it on purpose,
+  and the killed ffmpeg's own error is exactly the shape the cancel arrives
+  in. Two rules keep the doc honest: progress writes go through the job's
+  `beat()`, which no-ops once canceled, and the job re-stamps `canceled` on
+  its way out, after the child is dead — closing the race where a heartbeat
+  was already in flight. On the page, `filmGen` drops a POLL that was in
+  flight when she cancelled (its answer still says `making`, and landing it
+  would repaint the ✕ with no timer left to correct it), and `api()` matches
+  `/film*` by PREFIX so stopping a render never marks the story dirty.
+  Nothing is deleted and nothing is spent: the next tap starts a fresh render.
+- **THE "?" ON THE NAME ROW — what every button does (2026-08-23, Sophie:
+  "also add an info icon that says what all the buttons do").** The pad is all
+  unlabelled glyphs by design, so the legend is the one place the words live.
+  It sits on the STORY ROOM name row rather than the title row (the title row
+  is full; that row's right end is empty and already reserves the pill's
+  56px), and it is a sheet with the page's own header, like every other level
+  here. **Every row's glyph is CLONED from the real control** — `HELP` names
+  each one by SELECTOR and the row copies its `innerHTML`, built on the tap so
+  the play row follows the live state. A hand-drawn second set would drift the
+  first time a button changed, and the drift would be invisible: the legend
+  would go on looking right while describing a page that no longer exists.
+  Test for both: `node scripts/test-storyroom-film-cancel.js`.
 - **A BEAT CAN BE A FILM CLIP (Aug 2026, Sophie: "can u add film clips to
   story room (the new version - aka scratch pad)").** A clip beat is an
   ordinary beat whose `url` is an mp4 — `kind:'clip'` plus `poster`,
