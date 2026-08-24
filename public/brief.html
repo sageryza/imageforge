@@ -47,7 +47,12 @@
   /* The way back to the UPDATE tab this page is opened from. Hidden when the
      page is embedded in a native tool screen — there the bar's own chevron
      owns that job and two would be one too many. */
-  .backch{ flex:0 0 auto; width:26px; height:26px; margin-left:-8px; padding:0;
+  /* pagehead.js drew the app's chevron into this same row — two identical
+   chevrons side by side was the tell (2026-08-23). body.pagehead exists
+   only when it did, so the inside-Chats web view (no bridge there) keeps
+   this one. */
+body.pagehead .backch{display:none !important}
+.backch{ flex:0 0 auto; width:26px; height:26px; margin-left:-8px; padding:0;
     border:0; background:transparent; color:var(--dim); font:inherit;
     font-size:24px; line-height:1; cursor:pointer;
     -webkit-tap-highlight-color:transparent; }

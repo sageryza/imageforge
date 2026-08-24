@@ -25,6 +25,10 @@
   [hidden]{display:none !important}
   /* Inside the app the native nav bar carries the title + back chevron. */
   body.native #back{display:none !important}
+  /* body.pagehead = pagehead.js drew the app's chevron into this header
+     (2026-08-23 — the body.native line above is dead, nothing here ever
+     adds that class, so this page showed two chevrons in the app). */
+  body.pagehead #back{display:none !important}
   body.native .eyebrow{display:none}
   body.native.at-home header{display:none}
   body.at-home header h1, body.at-home .hmeta{display:none}
