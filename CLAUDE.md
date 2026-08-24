@@ -84,9 +84,10 @@ to-do list. Act on them, then answer on the image itself. **Never on a timer.**
 **Writing the reply** — **SHORT BY DEFAULT** (a few short paragraphs; only
 what changes what she does next — detail goes behind "want the long version?"
 or into the PR description) · TLDR first · answer her questions before
-anything else, **each answered ONCE** · **did she say the word "question"?
-then repeat THAT question in bold on its own line and answer under it —
-otherwise never echo a question back** (see *Answering a question*) · small
+anything else, **each answered ONCE** · **did she MARK a question ("i have a
+question" / "quick question" / "file this")? then repeat THAT question in bold
+on its own line and answer under it — otherwise never echo a question back**
+(see *Answering a question*; the bare word alone is not the mark) · small
 question, short answer · full clickable links · no markdown tables · times in 12-hour
 Pacific · files and images LAST · working links at the very bottom.
 
@@ -581,7 +582,10 @@ each opens a focused workflow that shares the same house styles.
   shown on the Assets tile + lightbox (Sophie reviews with ♥/notes there). So
   always write meaningful labels — `[Penny — the blue Kleenex](url)`, never
   `[p01](url)` or a bare URL. Identical images de-dupe server-side by content
-  hash, so posting the picture inline AND the link files ONE asset.
+  hash, so posting the picture inline AND the link files ONE asset. The full
+  labeling rule — including the re-encoded-copy trap no hash can catch — is
+  *LABEL every image you deliver* in Design rules; this bullet is the hook
+  mechanics, that one is the rule.
 - **AUTO-FILING (July 2026):** the chats' Stop hook (`post-to-feed.sh` v3) also
   files image deliverables automatically via `POST /api/gallery` — any Firebase
   Storage image URL in the finished reply, plus image files sent with
@@ -1151,7 +1155,8 @@ them off the reference sheet, not off the old filenames.
     none, because a chat is not a thing you finish reading once. **Nothing
     derives it**: opening a thing is not reading it, so no view, scroll or tap
     anywhere else may set it. A rounded rectangle at the house 6px, never a
-    circle (the circular exception is for icon toggles). Her tick is what takes
+    circle (see *No pills* in Design rules — the old circular-icon exception
+    was retired 2026-08-24). Her tick is what takes
     a thing out of the **To read** door's count.
   - **THE WORDS ARE A FIXED VOCABULARY** — `BMK_TAGS` in `chatfeed.js` and in
     `chats.html`, pinned equal by `node scripts/test-chats-bookmark-tags.js`,
@@ -2593,22 +2598,21 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
 - **No markdown tables in chat replies.** The user reads on a narrow phone
   where wide tables need horizontal sliding and often don't render. Present
   comparisons as short labeled lines or bullet lists instead.
-- **Deliverables go last.** When a message includes a generated file — audio,
-  image, video, or any downloadable deliverable — send it as the final item,
-  after all explanatory text, so it's easy to find and never buried
-  mid-message.
-- **Delivered files/images go at the BOTTOM.** When sending or attaching any
-  file or image, place it at the very END of the message, after all the text —
-  never before or in the middle. Write the explanation first, deliver last.
+- **Deliverables go last — files and images at the very BOTTOM.** When a
+  message includes a generated file — audio, image, video, any downloadable
+  deliverable, or an attached image — it is the final item, after all the
+  text, never before or in the middle. Write the explanation first, deliver
+  last. (This was two separate bullets saying the same thing, written on
+  different days; merged 2026-08-24.)
 - **Answer questions FIRST — and answer each one ONCE.** If Sophie's message
   contains a question, answer it at the top of the reply, before doing or
-  reporting on any tasks from the same message. **Bold the question back ONLY
-  when she used the word "question"** ("I have a question", "my question is:",
-  "quick question") — then repeat that question verbatim on its own line in
-  bold with the answer under it, and it lands in her Questions tab. Any other
-  question gets a plain answer and no echo; restating it in your own words,
-  where it helps, is fine. Full rules: *Answering a question* in the Chats app
-  section.
+  reporting on any tasks from the same message. Whether to also repeat it in
+  bold is the echo rule, and it lives in ONE place — *ANSWERING A QUESTION* in
+  the Chats app section (short version: only a question she MARKED with an
+  asking phrase like "i have a question" / "quick question", or a code word
+  like "file this", earns the bold echo; everything else is answered plainly).
+  This bullet used to restate the gate and drifted a day behind it — the rule
+  is there, this is the pointer.
 - **SHORT REPLIES BY DEFAULT — every reply, not just small questions (Aug
   2026, Sophie: "a lot of my responses are really long and it's actually
   annoying cause I don't wanna read through it all").** The default reply is a
