@@ -180,7 +180,13 @@
      blew its own column out to 132px and squeezed the other three to 73
      (measured). `start` keeps a shorter cell its own height instead of
      stretching it to the tallest on the row. */
-  .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: start; gap: 5px; }
+  /* HOW MANY PICTURES ACROSS is ONE number, `--cols` on the root, read by
+     BOTH grids — a run's own row of pictures in list view and the tile wall.
+     Three or four, tapped on the square button at the right of the search box
+     (Aug 2026, Sophie: "add a 3 to a row vs. 4 to a row toggle to the right of
+     search in playground"). One variable rather than two rules, so the two
+     surfaces can never disagree about what "3 to a row" means. */
+  .grid { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); align-items: start; gap: 5px; }
   /* Two ways to read the feed: LIST (a box per run, prompt above its pictures)
      and TILES (every picture as a thumbnail, four to a row, prompt in the
      lightbox). The switch is STICKY so it is reachable from anywhere in a long
@@ -192,7 +198,12 @@
      ABOVE 9 — they are meant to cover the pill. */
   .feedbar { position: sticky; top: 0; z-index: 5; display: flex; padding: 8px 56px 8px 0; background: #faf7f2; }
   .viewtog { display: flex; border: 1px solid #d8d0c4; border-radius: 6px; overflow: hidden; background: #fdfcf9; }
-  .viewtog button { border: 0; background: none; font: inherit; font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: #6f675e; padding: 7px 15px; }
+  /* 9px, not the 15 it shipped with: the row is a fixed budget (390pt less
+     the 56 the injected pill owns) and the columns button at the far right
+     had to come out of somewhere. Two short words are the only slack on the
+     row, and 9px still leaves both fully legible — measured, along with the
+     search box's placeholder, by test-playground-cols.js. */
+  .viewtog button { border: 0; background: none; font: inherit; font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: #6f675e; padding: 7px 9px; }
   .viewtog button + button { border-left: 1px solid #d8d0c4; }
   .viewtog button.on { background: #2b2622; color: #faf7f2; font-weight: 600; }
   /* THE TWO MARK FILTERS, one segmented box beside the view switch — neither
@@ -229,19 +240,41 @@
      back out is then blocked — one tap would leave the whole page stuck
      zoomed (found live on her phone on /assets, Aug 2026). */
   .feedsearch { flex: 1; min-width: 0; margin-left: 8px; position: relative; display: flex; }
+  /* THE ✕'s CLEARANCE IS PAID FOR ONLY WHILE THERE IS AN ✕ (Aug 2026, when
+     the columns button took 38px off this row). 28px of right padding was
+     reserved on an empty box for a button that is hidden on an empty box —
+     and the placeholder, which only ever shows on an empty box, was paying
+     it. `.hasq` is written beside `#qclear.hidden`, so typed text still
+     clears the ✕ and "Search" gets the whole width it has. */
   .feedsearch input { width: 100%; min-width: 0; font: inherit; font-size: 16px; color: #2b2622;
-    background: #fdfcf9; border: 1px solid #d8d0c4; border-radius: 6px; padding: 6px 28px 6px 9px; }
+    background: #fdfcf9; border: 1px solid #d8d0c4; border-radius: 6px; padding: 6px 9px; }
+  .feedsearch input.hasq { padding-right: 28px; }
   .feedsearch input:focus { outline: none; border-color: #c25a72; }
   .feedsearch input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
   /* CLEAR, not dismiss: it empties the box and keeps her in it. Shown only
      while there are words to wipe. */
   .qclear { position: absolute; right: 0; top: 0; height: 100%; width: 28px; border: 0; background: none;
     color: #8a8177; font-size: 18px; line-height: 1; padding: 0; }
+  /* THREE OR FOUR ACROSS — a square button at the right of the search box
+     (Aug 2026, Sophie: "add a 3 to a row vs. 4 to a row toggle to the right
+     of search in playground. square button that cycles between 3 and 4").
+     Two states, so a tap is the only move there is — the house no-cycling
+     rule is about a three-way toggle, where a stop can be aimed at and a
+     blind step past it is the surprise; with two there is nowhere else to go.
+     It draws the count rather than saying it: N bars across the box, which is
+     a picture of the wall it makes (the pyramid's rule — a mark that says how
+     many, never a word). Sticky, like the view and the two filters. */
+  .coltog { flex: none; margin-left: 8px; width: 30px; height: 30px; display: flex;
+    align-items: center; justify-content: center; border: 1px solid #d8d0c4;
+    border-radius: 6px; background: #fdfcf9; color: #6f675e; padding: 0; }
+  .coltog svg { width: 16px; height: 16px; }
   .emptynote { font-size: 13px; color: #8a8177; padding: 18px 0; text-align: center; }
   #tiles .emptynote { grid-column: 1 / -1; }
-  /* Tiles: THREE to a row (Aug 2026, her ask — four was too small to judge a
-     picture by once they stopped being cropped squares). Tapping one opens the lightbox, which is where the
-     prompt, model and quality live.
+  /* Tiles: THREE to a row by default (Aug 2026, her ask — four was too small
+     to judge a picture by once they stopped being cropped squares), and HERS
+     to switch since the columns button landed beside the search box — the
+     count is `--cols`, shared with the list view's own rows. Tapping a tile
+     opens the lightbox, which is where the prompt, model and quality live.
      EVERY TILE WEARS ITS OWN PICTURE'S SHAPE (Aug 2026, Sophie: "i kind of
      want the playground to show portrait aspect ratios to match my 2:3
      pictures"). The wall used to force 1:1 and `object-fit: cover` did the
@@ -250,7 +283,7 @@
      The ratio rides on the cell as `--ar`, written from the run's own
      `aspectRatio`, so a square run still tiles square and the two shapes sit
      on the same wall as what they are. */
-  #tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; gap: 5px; }
+  #tiles { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); align-items: start; gap: 5px; }
   /* A picture still being drawn holds its place at the front of the wall, so
      the tiles view shows the whole feed and not just what has landed. It
      breathes, because a flat empty box in a wall of pictures reads as a
@@ -459,6 +492,7 @@
            autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="search">
     <button class="qclear" id="qclear" aria-label="Clear search" hidden>&times;</button>
   </div>
+  <button class="coltog" id="v-cols"></button>
 </div>
 <div id="pendings"></div>
 <div id="runs"></div>
@@ -617,6 +651,42 @@
     applyHideX(true);
   });
 
+  // THREE OR FOUR ACROSS (Aug 2026, Sophie: "add a 3 to a row vs. 4 to a row
+  // toggle to the right of search in playground. square button that cycles
+  // between 3 and 4"). ONE number, `--cols` on the root, so the tile wall and
+  // a run's own row of pictures in list view can never disagree about it —
+  // and the button is therefore never dead in either view. Sticky, like the
+  // view and the two filters; three is the default, which is where the wall
+  // already stood.
+  var COLS = [3, 4];
+  function curCols() {
+    var n = parseInt(localStorage.getItem('promptlab_cols'), 10);
+    return COLS.indexOf(n) >= 0 ? n : 3;
+  }
+  // N bars across the box: the picture of the wall it makes, not the word for
+  // it. Drawn from the count, so a third setting would need no new artwork.
+  function colsIcon(n) {
+    var W = 16, gap = 2, w = (W - gap * (n - 1)) / n, r = '';
+    for (var i = 0; i < n; i++)
+      r += '<rect x="' + (i * (w + gap)).toFixed(2) + '" y="1" width="' + w.toFixed(2) +
+           '" height="14" rx="1" fill="currentColor"></rect>';
+    return '<svg viewBox="0 0 16 16" aria-hidden="true">' + r + '</svg>';
+  }
+  function applyCols() {
+    var n = curCols(), next = COLS[(COLS.indexOf(n) + 1) % COLS.length];
+    document.documentElement.style.setProperty('--cols', String(n));
+    var b = document.getElementById('v-cols');
+    b.innerHTML = colsIcon(n);
+    b.setAttribute('aria-label', n + ' pictures a row — tap for ' + next);
+    b.title = n + ' a row';
+  }
+  document.getElementById('v-cols').addEventListener('click', function () {
+    var n = COLS[(COLS.indexOf(curCols()) + 1) % COLS.length];
+    try { localStorage.setItem('promptlab_cols', String(n)); } catch (e) { /* private mode */ }
+    applyCols();
+  });
+  applyCols();
+
   // ─── SEARCH (Aug 2026, Sophie: "can u add a little search bar that fits in
   // the space between the heart toggle (next to tiles/grid)") ──────────────
   // It filters the feed by RUN — her words are a run's, not a picture's — so
@@ -724,6 +794,9 @@
     query = (box.value || '').trim();
     qGroups = qparse(query);
     document.getElementById('qclear').hidden = !query;
+    // The ✕'s clearance is padding, and the placeholder is what pays for it
+    // when there is no ✕ — see `.hasq`.
+    box.classList.toggle('hasq', !!query);
     hits = null;                                        // the loaded feed answers meanwhile
     clearTimeout(qTimer);
     if (query) qTimer = setTimeout(runSearch, 350);
