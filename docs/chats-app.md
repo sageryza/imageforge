@@ -1008,18 +1008,47 @@
     filter on a filter. A category chip DOES narrow it, like everything else
     on the live list.
   - **A CHAT BEHIND THE FOLD CAN OPEN EMPTY, AND IT STILL NEEDS THE DOOR (Aug
-    2026, same message: "the messages are gone that might be fine but there's
-    also no button to get back into that chat").** The Open-in-Claude button
-    has only ever been drawn on a MESSAGE ROW, so a thread with nothing in it
-    had no way back into the session at all — and the chats behind this fold
-    are exactly the quiet ones whose thread comes back empty. The session url
-    is on the REGISTRY doc, not only on the messages (476 of 505 chats carry
-    one, measured 2026-08-24), so the empty state offers it. **A chat with no
-    url on file gets no button** — the same rule as everywhere else here:
-    nothing invented to fill a gap.
-  - Tests: `node scripts/test-chats-more-spot.js` (her spot kept, the hidden
-    bar still landing at the top, and the empty thread's door — asked with
-    `elementFromPoint`, verified failing 4 against the pre-fix page), and
+    2026: "the messages are gone that might be fine but there's also no button
+    to get back into that chat").** The Open-in-Claude button has only ever
+    been drawn on a MESSAGE ROW, so a thread with nothing in it had no way back
+    into the session at all — and the chats behind this fold are exactly the
+    quiet ones whose thread comes back empty. The empty state carries one now.
+  - **AND THE DOOR IS DERIVED FROM `sessionId`, BECAUSE `url` IS THE ONE FIELD
+    THESE CHATS CAN NEVER HAVE (2026-08-25, Sophie again: "how come I don't see
+    any messages not even one and no way to get back into the chat").** The
+    first cut of the bullet above read the url off the registry doc and cited
+    "476 of 505 chats carry one" as coverage. **That was the wrong population,
+    and the fix reached none of her cases.** `url` only ever arrives ON A
+    MESSAGE — the hook posts it with the reply and the server copies it onto
+    the registry — so a chat whose hook never filed a reply has no url, and it
+    is the SAME chat that shows no messages. Both halves of her report are one
+    missing post. Measured live that day: of the **19** chats behind the fold
+    whose thread really is empty, **19 of 19 also had no url**.
+    - **`sessionId` comes through a different door** — `/status`, `/update`,
+      `/wrapup`, `/resolve` — so a chat that follows CLAUDE.md and posts its
+      status card has one even having never posted a message. **16 of those 19
+      do**, several with a full wrap-up and Update card, i.e. chats that
+      plainly did the work and only failed to file it.
+    - **The url is a pure function of it**: over every chat carrying both,
+      **398 of 398** are exactly `https://claude.ai/code/session_<sessionId>`,
+      no exceptions. So `claudeSessionUrl` is a derivation, not a guess — done
+      on READ, so there is nothing to backfill and nothing that can go stale.
+    - It lives in **`claudeUrlFor`**, the one function every door already reads,
+      so the message rows get the same floor as the empty state, and
+      `openHref`'s cross-account `#no_universal_links` rule still applies to a
+      derived url exactly as to a stored one. Order: a stored url wins (it is
+      what the session itself reported), then the message tail, then this.
+    - **A chat with NEITHER gets no button** — nothing invented to fill a gap.
+      10 of her 505 are that, 3 of them behind this fold; they carry only
+      `about`/`account`/`icon`, so nothing on the doc names a session.
+    - **The missing MESSAGES are not fixable from outside.** A chat that never
+      posted holds its transcript only inside its own session, so only that
+      session can heal it (`scripts/backfill-chat-history.sh`) — which is
+      exactly why the door matters most on the chats that have no messages.
+  - Tests: `node scripts/test-chats-more-spot.js` (the empty thread's door —
+    the derivation from a `sessionId`, the cross-account fragment on it, the
+    reachability asked with `elementFromPoint`, and a chat with nothing to link
+    to drawing none), and
     `node scripts/test-chats-more.js` (verified failing without the
     split; covers the boundary, the count, the bar's position under the list,
     open/close, the working exemption, and no bar when nothing is stale).
