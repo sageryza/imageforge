@@ -461,10 +461,18 @@ function fileRun(sheetUrl, images, cfg, skip) {
 /**
  * THE CUT, shared by the first run and by a resume.
  *
- * DECODED ONCE. It used to be `sharp(sheet).extract(...)` per panel, which
- * re-decodes the whole page every time — a 2336x3504 sheet is 24.5MB of raw
- * pixels, so nine panels meant nine decodes on a 512MB box that is also
- * serving the app. One decode, N crops.
+ * DECODED ONCE, TO A RAW BUFFER, WITH THE CACHE OFF. It used to be
+ * `sharp(sheet).extract(...)` per panel, which re-decodes the whole page every
+ * time; the first "one decode" fix kept one sharp INSTANCE but libvips still
+ * re-decoded the webp per `.clone().extract()` and CACHED each decode —
+ * measured 2026-08-25: one 9-panel 4K recut peaked at **592MB RSS** in a bare
+ * process, past the whole 512MB box. That is what OOM-killed Render every
+ * time a 4K cut ran (first run or heal), and with heal-on-read re-firing the
+ * cut on every poll it crash-looped the service for half an hour. Decoding to
+ * a raw buffer once (`.raw().toBuffer()`) and cropping from that, with
+ * `sharp.cache(false)`, measured **233MB peak and 2x faster** on the same
+ * sheet. The seam scan's grey copy is derived from the same raw buffer, so
+ * the compressed sheet is decoded exactly once.
  *
  * THE CUT LINES COME FROM THE PICTURE, NOT THE MATH (2026-08-25, Sophie:
  * "the cutting doesn't cut on the right lines because it's using math, but
@@ -488,14 +496,21 @@ function fileRun(sheetUrl, images, cfg, skip) {
  */
 async function cutSheet(sheet, cfg, patch, have) {
   const sharp = require('sharp');
+  // Global on purpose: this box has 512MB total and libvips's operation cache
+  // trades exactly the memory it cannot spare. Cheap everywhere, fatal here.
+  sharp.cache(false);
+  sharp.concurrency(1);
   const names = sheetGrid.cellNames(cfg.gridId);
   const images = (have || []).slice();
   const done = new Set(images.map((im) => im.cell));
-  // ONE decode for the whole sheet; each crop is taken from this.
-  const page = sharp(sheet, { limitInputPixels: false });
+  // ONE real decode for the whole sheet; every crop and the seam scan read
+  // this raw buffer (see the memory note in the header).
+  const { data, info } = await sharp(sheet, { limitInputPixels: false })
+    .raw().toBuffer({ resolveWithObject: true });
+  const rawPage = { raw: { width: info.width, height: info.height, channels: info.channels } };
   let boxes;
   try {
-    const gray = await page.clone().greyscale().raw().toBuffer({ resolveWithObject: true });
+    const gray = await sharp(data, rawPage).greyscale().raw().toBuffer({ resolveWithObject: true });
     const seams = sheetSeams.findSeams({ data: gray.data,
       width: gray.info.width, height: gray.info.height,
       across: cfg.plan.across, down: cfg.plan.down });
@@ -511,7 +526,7 @@ async function cutSheet(sheet, cfg, patch, have) {
     const cell = names[i] || `panel ${i + 1}`;
     if (done.has(cell)) continue;
     try {
-      const buf = await page.clone().extract(boxes[i])
+      const buf = await sharp(data, rawPage).extract(boxes[i])
         .webp({ lossless: true, effort: 0 }).toBuffer();
       const url = await deps.saveBuffer(buf, 'image/webp', 'panels/cuts');
       images.push({ url, cell, prompt: cfg.panels[i],
@@ -570,7 +585,10 @@ const DRAW_STALE_MS = 15 * 60 * 1000;
 const healing = new Set();
 function healStale(d) {
   try {
-    if (!d || d.status !== 'running' || healing.has(d.id)) return;
+    // ONE heal at a time, process-wide. Two wedged 4K runs on 2026-08-24 meant
+    // every feed read started two concurrent sheet cuts — the OOM crash loop
+    // above. The next poll (seconds away) picks up the next stale run.
+    if (!d || d.status !== 'running' || healing.size) return;
     const j = d.job || {};
     const silentFor = Date.now() - (Number(j.startedAt) || 0);
     const ref = admin.firestore().collection(COLLECTION).doc(d.id);
