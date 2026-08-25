@@ -27,6 +27,17 @@
 // the run FAILS. Machine verification, never by ear.
 //
 // Env: OPENAI_API_KEY. ffmpeg from ffmpeg-static (or FFMPEG_PATH).
+//
+// IT CAN UNDER-CUT A NOISY ROOM — measured 2026-08-25 on the dating-reel takes.
+// This ran clean, reported 30.7s removed, and left ~95s of gaps (one 25.4s
+// hole): pass 2's floor-relative bar (floor+4dB) never fires when the room
+// tone itself wobbles within 3dB of the floor, and pass 1's sustained-energy
+// veto protects handling noise that whisper transcribes as nothing but that
+// sits at speech level. vo-verify PASSES such a cut — its bar is DEAD air
+// (speech85-20dB), not gaps. When the output still feels loose, check the
+// word timings for gaps and reach for scripts/vo-tighten-gaps.js, which cuts
+// from word timing on the ORIGINAL and caps the laugh/breath protection.
+// Full measurement: docs/dating-book/reel/README.md.
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
