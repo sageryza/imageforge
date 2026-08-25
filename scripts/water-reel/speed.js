@@ -33,12 +33,21 @@ if (!IN || !OUT || (!args.flat && !args.ramp)) {
 }
 const dur = (f) => Number(execFileSync(ffprobe, ['-v', 'error', '-show_entries', 'format=duration',
   '-of', 'default=nk=1:nw=1', f]).toString().trim());
+// atempo accepts 0.5-2.0 per instance; anything faster is a CHAIN, or ffmpeg
+// errors out with a bare "Value out of range" that reads like a bug
+const atempo = (f) => {
+  const parts = []; let r = f;
+  while (r > 2.0) { parts.push('atempo=2.0'); r /= 2.0; }
+  while (r < 0.5) { parts.push('atempo=0.5'); r /= 0.5; }
+  parts.push(`atempo=${r.toFixed(6)}`);
+  return parts.join(',');
+};
 const enc = ['-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart'];
 
 if (args.flat) {
   const f = Number(args.flat);
   execFileSync(ffmpeg, ['-v', 'error', '-y', '-i', IN, '-filter_complex',
-    `[0:v]setpts=PTS/${f}[v];[0:a]atempo=${f}[a]`, '-map', '[v]', '-map', '[a]', ...enc, OUT],
+    `[0:v]setpts=PTS/${f}[v];[0:a]${atempo(f)}[a]`, '-map', '[v]', '-map', '[a]', ...enc, OUT],
     { stdio: ['ignore', 'inherit', 'inherit'] });
   console.log(`${OUT} — flat ${f}x, ${dur(IN).toFixed(1)}s -> ${dur(OUT).toFixed(1)}s`);
   process.exit(0);
@@ -73,7 +82,7 @@ for (let i = 0; i < F.length; i++) {
   const seg = path.join(path.dirname(OUT), `_spd${i}.mp4`);
   execFileSync(ffmpeg, ['-v', 'error', '-y', '-i', IN,
     '-ss', cuts[i].toFixed(3), '-to', cuts[i + 1].toFixed(3), '-filter_complex',
-    `[0:v]setpts=PTS/${F[i]}[v];[0:a]atempo=${F[i]}[a]`, '-map', '[v]', '-map', '[a]',
+    `[0:v]setpts=PTS/${F[i]}[v];[0:a]${atempo(F[i])}[a]`, '-map', '[v]', '-map', '[a]',
     '-video_track_timescale', '90000', ...enc.slice(0, -2), seg], { stdio: ['ignore', 'inherit', 'inherit'] });
   tmp.push(seg);
 }
