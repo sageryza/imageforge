@@ -16,13 +16,13 @@
 //      asked for the number instead ("I asked for the button to say three or
 //      four, not a picture"), and at 16px the two bar counts really are one
 //      grey smudge,
-//   5. IT LIVES IN THE PILL'S RAIL, not in the feed row ("it can go in the
-//      same column as the auto scroll pill that way the search thing can go
-//      back to the size it was"). So: it is out of `.feedbar` entirely, the
-//      search box measures what it did before the button ever existed, the
-//      button is centred in the rail's column, it sits BELOW the pill without
-//      overlapping it, it MOVES when the back-to-top arrives under the pill,
-//      and it is reachable at its own centre.
+//   5. IT LIVES IN THE VIEW SWITCH — the third segment after Tiles
+//      (2026-08-25, Sophie: "the 3/4 switch button is in a weird place. It
+//      should not be in the auto scroll roll row"). So: it is inside
+//      `.viewtog`, out of the pill's rail entirely (nothing fixed), the same
+//      height as List/Tiles, the feed row stays one line, the search box
+//      still holds its whole placeholder, and it is reachable at its own
+//      centre (the pill must not be sitting on it).
 //
 // The COLUMN COUNT IS MEASURED off the real cells, never read off the CSS: a
 // wrong `--cols` and a wrong `repeat()` both compute to plausible-looking
@@ -137,65 +137,37 @@ const ok = (c, m) => { if (c) console.log('  ok  ' + m); else fail(m); };
   ok(await listAcross() === 3, 'a reload comes back on the count she left it on');
   ok(await says() === '3', 'and the button says so');
 
-  console.log('THE RAIL, AND THE ROW IT LEFT');
-  const rail = await page.evaluate(() => {
+  console.log('THE VIEW SWITCH, AND THE RAIL IT LEFT');
+  const home = await page.evaluate(() => {
     const b = document.getElementById('v-cols');
-    const f = document.querySelector('.float');
-    const bb = b.getBoundingClientRect(), fb = f.getBoundingClientRect();
+    const tiles = document.getElementById('v-tiles');
+    const bb = b.getBoundingClientRect(), tb = tiles.getBoundingClientRect();
     const hit = document.elementFromPoint(bb.x + bb.width / 2, bb.y + bb.height / 2);
     const q = document.getElementById('q');
     const cs = getComputedStyle(q);
     const c = document.createElement('canvas').getContext('2d');
     c.font = cs.font;
     return {
-      inRow: !!b.closest('.feedbar'),
-      w: Math.round(bb.width), h: Math.round(bb.height),
-      radius: getComputedStyle(b).borderRadius,
-      centre: Math.round(bb.x + bb.width / 2), railCentre: Math.round(fb.x + fb.width / 2),
-      below: Math.round(bb.top - fb.bottom),
+      inSwitch: !!b.closest('.viewtog'),
+      afterTiles: tiles.nextElementSibling === b,
+      fixed: getComputedStyle(b).position === 'fixed',
+      h: Math.round(bb.height), sibH: Math.round(tb.height),
+      lit: b.classList.contains('on'),
       reachable: !!(hit && hit.closest('#v-cols')),
       barH: Math.round(document.querySelector('.feedbar').getBoundingClientRect().height),
-      searchW: Math.round(q.getBoundingClientRect().width),
       need: c.measureText(q.placeholder).width,
       have: q.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight),
     };
   });
-  ok(!rail.inRow, 'it is out of the feed row entirely');
-  ok(rail.w === rail.h, `still square (${rail.w}x${rail.h})`);
-  ok(rail.radius === '6px', `a rounded square at the house 6px, never a circle (${rail.radius})`);
-  ok(Math.abs(rail.centre - rail.railCentre) <= 2,
-    `centred in the pill's own column (${rail.centre} vs ${rail.railCentre})`);
-  ok(rail.below >= 0 && rail.below <= 16, `it sits just under the pill, clear of it (${rail.below}px)`);
-  ok(rail.reachable, 'a tap at its own centre reaches it');
-  // The row is back to what it was before this button ever sat in it — the
-  // search box's old width, and its placeholder with the old room to spare.
-  ok(rail.searchW === 94, `the search box is its old width again (${rail.searchW}px)`);
-  ok(rail.have >= rail.need,
-    `"Search" fits (needs ${Math.round(rail.need)}px, has ${Math.round(rail.have)}px)`);
-  ok(rail.barH <= 48, `the feed row is one line (${rail.barH}px)`);
-
-  // THE RAIL IS NOT A FIXED HEIGHT: the back-to-top button appears under the
-  // pill once she is a screen down, and the safe-area inset moves the whole
-  // column on her phone. A typed offset is wrong in one of those states, so
-  // the placement is measured — this is what proves it follows.
-  const moved = await page.evaluate(async () => {
-    const at = () => Math.round(document.getElementById('v-cols').getBoundingClientRect().top);
-    const before = at();
-    window.scrollTo(0, 4000);
-    await new Promise(r => setTimeout(r, 400));
-    const ptop = document.getElementById('ptop');
-    const shown = ptop && ptop.getBoundingClientRect().height > 0;
-    const after = at();
-    const overlap = shown
-      ? after < Math.round(ptop.getBoundingClientRect().bottom) : false;
-    window.scrollTo(0, 0);
-    await new Promise(r => setTimeout(r, 400));
-    return { before, after, shown, overlap, home: at() };
-  });
-  ok(moved.shown, 'a screen down, the back-to-top joins the rail');
-  ok(moved.after > moved.before, `and the button moves down with it (${moved.before} → ${moved.after})`);
-  ok(!moved.overlap, 'never on top of it');
-  ok(moved.home === moved.before, 'back at the top, it comes back');
+  ok(home.inSwitch, 'it is a segment of the List/Tiles box');
+  ok(home.afterTiles, 'directly after Tiles');
+  ok(!home.fixed, 'nothing fixed — the pill\'s rail is left to the pill');
+  ok(home.h === home.sibH, `the same height as its siblings (${home.h} vs ${home.sibH})`);
+  ok(!home.lit, 'it never wears .on — it is not a third view');
+  ok(home.reachable, 'a tap at its own centre reaches it');
+  ok(home.have >= home.need,
+    `"Search" fits (needs ${Math.round(home.need)}px, has ${Math.round(home.have)}px)`);
+  ok(home.barH <= 48, `the feed row is one line (${home.barH}px)`);
 
   await browser.close();
   server.close();
