@@ -1,0 +1,47 @@
+{
+  "comment": "PWC backstories ep001 — Pexels 'People Walking on a Busy Street' (Manchester), https://www.pexels.com/video/people-walking-on-a-busy-street-5021555/ (free Pexels license). Download the source with: curl -L -o manchester.mp4 https://www.pexels.com/download/video/5021555/ — the mp4 is not committed.",
+  "src": "manchester.mp4",
+  "out": "pwc-ep001.mp4",
+  "width": 1920,
+  "height": 1080,
+  "fps": "30000/1001",
+  "seed": 87,
+  "ink": "#e0312e",
+  "font": "Permanent Marker",
+  "freezes": [
+    {
+      "t": 2.0, "dur": 3.4,
+      "lines": ["Darren. Told his mum", "\"two minutes.\"", "That was 40 minutes ago."],
+      "x": 1080, "y": 700, "size": 56, "rot": -1.5,
+      "arrow": { "from": [790, 760], "to": [360, 620] },
+      "circle": { "cx": 250, "cy": 430, "rx": 80, "ry": 100 }
+    },
+    {
+      "t": 5.0, "dur": 3.4,
+      "lines": ["Margaret. Returning a candle", "she bought in 2019.", "No receipt. No fear."],
+      "x": 1330, "y": 720, "size": 56, "rot": 1.5,
+      "arrow": { "from": [1130, 780], "to": [700, 660] },
+      "circle": { "cx": 590, "cy": 490, "rx": 75, "ry": 95 }
+    },
+    {
+      "t": 8.0, "dur": 3.6,
+      "lines": ["Denise has walked this exact", "loop every day since 1987.", "She is 31."],
+      "x": 430, "y": 790, "size": 56, "rot": -2,
+      "arrow": { "from": [650, 750], "to": [900, 630] },
+      "circle": { "cx": 1025, "cy": 545, "rx": 78, "ry": 95 }
+    },
+    {
+      "t": 11.0, "dur": 3.8,
+      "lines": ["Kevin is not in the", "original footage.", "Nobody added him."],
+      "x": 620, "y": 790, "size": 58, "rot": 1,
+      "arrow": { "from": [880, 780], "to": [1380, 690] },
+      "circle": { "cx": 1490, "cy": 600, "rx": 75, "ry": 95 }
+    }
+  ],
+  "tailTo": 13.2,
+  "endcard": {
+    "dur": 2.6,
+    "lines": ["people watching club"],
+    "x": 960, "y": 580, "size": 120, "font": "Caveat", "strokeWidth": 5
+  }
+}
