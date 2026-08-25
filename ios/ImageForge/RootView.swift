@@ -995,18 +995,27 @@ private struct HomeGrid: View {
     /// The glyph inside, scaled with the square (48/21 ≈ 60/26).
     private static let squareIcon: CGFloat = 26
 
-    /// FOUR rounded SQUARES across, icons only (Sophie: "just the icon"). ONE
-    /// opens a tool (Chats); the other three are filters on the cards below —
-    /// the lit one clears back to everything when tapped again. Chats is here
-    /// AND in its top-right corner on purpose ("it can be in two places,
-    /// silly"), so don't "fix" that duplicate.
+    /// FIVE rounded SQUARES across, icons only (Sophie: "just the icon"). TWO
+    /// are actions (the HOUSE and Chats); the other three are filters on the
+    /// cards below — the lit one clears back to everything when tapped again.
+    /// Chats is here AND in its top-right corner on purpose ("it can be in two
+    /// places, silly"), so don't "fix" that duplicate.
+    ///
+    /// **THE HOUSE ON THE LEFT IS THE WAY BACK TO THE PLAIN GRID (2026-08-25,
+    /// Sophie: "add a fifth tile on the home screen on the left, a picture of a
+    /// home that just takes you back to the home grid thing").** With a filter
+    /// lit, the only way back to everything was to remember WHICH chip was on
+    /// and tap that same one again — a way out you have to find first. The
+    /// house clears the filter from wherever she is, and it is deliberately
+    /// never LIT: it is an action like Chats, not a fifth filter, and a chip
+    /// that glows on the screen's normal resting state is noise.
     ///
     /// **THE BRIEFCASE AND THE QUILT CAME OFF (Aug 2026, Sophie: "get rid of
     /// the briefcase and the quilt icons in the five line row … since they
     /// also exist in the very top header row").** Both filters are unchanged
     /// and still one tap away — they live in the masthead corners, which is
-    /// where they were duplicated FROM. The row is Chats · Pictures · Movies ·
-    /// Movies-as-a-pile now.
+    /// where they were duplicated FROM. The row is House · Chats · Pictures ·
+    /// Movies · Movies-as-a-pile now.
     ///
     /// **The DUMP square came off (Aug 2026, Sophie: "we can get rid of the
     /// dump button in the row at the top since it's now in the main home
@@ -1015,6 +1024,11 @@ private struct HomeGrid: View {
     /// the default grid got short. The Dump still opens on SORT from its card.
     private var shortcutRow: some View {
         HStack(spacing: 0) {
+            // Same `house` glyph the bottom bar's Home slot wears, so the two
+            // ways back to the plain grid read as the same thing.
+            square(lit: false, label: "Everything") { filter = .all } icon: {
+                Image(systemName: "house").font(.system(size: Self.squareIcon))
+            }
             square(lit: false, label: "Chats") { open(.chats) } icon: {
                 Image(systemName: Tool.chats.icon).font(.system(size: Self.squareIcon))
             }
@@ -1029,7 +1043,7 @@ private struct HomeGrid: View {
             // The SECOND movies chip — the same tools as one flat pile of
             // small cards (Sophie, Aug 2026). A different glyph on purpose:
             // the clapperboard, so the two film chips can never be mistaken
-            // for each other in a row of four.
+            // for each other in the row.
             square(lit: filter == .movieFlat, label: "Movies, all in one pile") { toggle(.movieFlat) } icon: {
                 Image(systemName: Self.flatFilmSymbol).font(.system(size: Self.squareIcon))
             }
