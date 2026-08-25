@@ -2278,8 +2278,29 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     there is exactly the reconstruction the exact-prompt rule forbids.
   - **A NEW image surface stores it or the test fails** —
     `node scripts/test-prompt-record.js` sweeps every call of the two gallery
-    filers and of the injected `fileCreation`, and fails if one files a picture
-    without a full prompt.
+    filers, of the injected `fileCreation` (panels, photostudio, movies) and of
+    the `/api/generate/*` helper, and fails if one files a picture without a
+    full prompt.
+  - **EVERY SURFACE IS COVERED AS OF 2026-08-25 — swept, not assumed (Sophie:
+    "any surface or endpoint or route or anything that makes images, the style
+    is now always saved never thrown away, is that correct?").** It was not,
+    quite: three holes were open a day after the rule landed, and each was
+    invisible from inside the surface that had it.
+    - **Panels** shipped AFTER the rule and never passed `fullPrompt` at all,
+      so the sheet and every cut panel had a blank style half — on the one tool
+      that draws N pictures at once. The sweep test was RED on main and nobody
+      ran it.
+    - **Photostudio** persisted its edit prompt nowhere, and its flatlay half is
+      written by the vision model per run — genuinely unrecoverable once the
+      response ended, not merely unfiled.
+    - **The Test Station routes** (`/api/generate/dalle` · `gptimage` ·
+      `housestyle` · `replicate`) had no doc to write to at all. They file
+      through `fileGenerateRoute` now, so Test Station images appear in My
+      Creations the way Playground images always have. `style-test` and
+      `deck-batch` proxy into those four internally and are covered by them.
+    **The lesson is the sweep, not the three fixes**: a surface that files a
+    picture at all can be checked from OUTSIDE it in one command, and every one
+    of these read as fine from inside its own module.
   - **`select()` IS A WHITELIST, and that is how two caption slots hid for
     weeks.** Meta Assets' creations read never asked for `size`, so the
     required third slot could never appear however well the builder handled it;
