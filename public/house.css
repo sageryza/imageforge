@@ -1,0 +1,62 @@
+/* house.css — THE PALETTE, DECLARED ONCE.
+ *
+ * Sophie, 2026-08-24, looking at /panels: "it seems like there are conflicting
+ * styles across the board." Measured that day with `node scripts/audit-styles.js`
+ * over all 39 gated pages: 11 distinct body backgrounds, 8 inks, 9 accents,
+ * 5 button radii — and 23 of the 39 read no shared stylesheet at all.
+ *
+ * NONE OF THE VARIANTS WAS A DECISION. They were all hand-eyeballed near-misses
+ * of the same warm cream, because the app had THREE token vocabularies that
+ * disagreed about what a name meant:
+ *
+ *   tool.css     --bg --ink --accent --border --surface2    #faf9f7 / #3a3530 / #b48b6a
+ *   forge.css    --bg --text --accent --border --surface-2   the SAME values, other names
+ *   compare.css  --paper --ink --line --chg --rose           #faf6ee / #2a2620 / #a8845c
+ *
+ * So `--ink` meant #3a3530 in one sheet and #2a2620 in another, and a page that
+ * wanted to colour the INJECTED autoscroll pill — which reads compare.css's
+ * vocabulary on every page in the app — had to hand-declare a palette of its
+ * own. That is how creams four, five and six got in.
+ *
+ * SHE PICKED THE COMPARE CREAM off a Compare page of the five live looks
+ * ("The five looks — pick one", 2026-08-24). It is also the structurally right
+ * answer: it is what the pill already reads, so unifying on it is the one
+ * choice that stops the pill being a special case everywhere.
+ *
+ * HOW IT REACHES A PAGE. tool.css, forge.css and compare.css each `@import`
+ * this file and map their own legacy token names onto it, so no page had to
+ * change and no page kept a second copy of a colour. A hand-rolled page joins
+ * by linking this file and using these names — that is the migration, one page
+ * at a time, and `audit-styles.js` is how you check it landed.
+ *
+ * A STUB TEST SERVER MUST SERVE THIS FILE TOO, and the failure is SILENT.
+ * The three sheets reach it with `@import`, so a test that fulfils
+ * `/tool.css` (or compare/forge) and 204s everything else drops the WHOLE
+ * palette — every `var()` falls back, the injected pill wears its own baked
+ * cream, and nothing on screen says why. It cost three green tests an hour
+ * after this landed. Same rule `/tritoggle.css` + `/tritoggle.js` already
+ * carry; `test-pill-host.js`, `test-review-page.js` and `test-brief-page.js`
+ * are the worked examples.
+ *
+ * ADDING A COLOUR HERE IS A DECISION, NOT A CONVENIENCE. Every value below is
+ * either one she picked or one derived from those in a way the comment states.
+ * A new hex that is "close to" one of these is the drift starting again.
+ */
+:root {
+  --paper: #faf6ee;    /* the page */
+  --surface: #fffdf8;  /* a card on the page */
+  /* the tinted panel — a step number, a working status, an empty tile. It is
+     the MIDPOINT of --paper and --line, so it belongs to this cream rather
+     than being a sixth eyeballed near-miss: (250,246,238)+(231,223,208) / 2. */
+  --surface2: #f0eadf;
+  --ink: #2a2620;      /* text, and the pill's border and glyphs */
+  --ink2: #6b6255;     /* secondary text, and the pill's speed label */
+  --line: #e7dfd0;     /* hairlines and card borders */
+  --chg: #a8845c;      /* the accent — the pill's active state */
+  --gold: #a8845c;
+  --rose: #c0614a;     /* flags and warnings */
+  --green: #3f6633;    /* done, good */
+  --star: #dbb45c;     /* a starred thing — deliberately its own gold */
+  --r: 6px;            /* the house radius. No pills, no circles. */
+  --r-lg: 12px;
+}

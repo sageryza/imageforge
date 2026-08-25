@@ -15,16 +15,14 @@
 <title>Assembly</title>
 <link rel="stylesheet" href="/tool.css">
 <style>
-:root{
-  /* the five pill tokens + the chunking cream (one family, one paper) */
-  --ink:#3a3530; --paper:#faf6ee; --chg:#b48b6a; --ink2:#9e9590; --rose:#c0614a;
-  --bg:#faf6ee; --surface:#fffdf7; --surface2:#f2ece0; --border:#e6ddcb;
-}
-/* the injected pill declares its own palette ON the element — out-specify it
-   (the /chunking finding, measured 2026-08-15) */
-body.tool .float{
-  --paper:#faf6ee; --ink:#3a3530; --ink2:#9e9590; --chg:#b48b6a; --rose:#c0614a;
-}
+/* NO PALETTE HERE — it is house.css, reached through tool.css (2026-08-24).
+   This page used to declare the cream, the tan and the ink itself, plus a
+   `body.tool .float{…}` block to out-specify the injected pill. Both existed
+   for reasons now fixed upstream: tool.css shipped a near-white #faf9f7
+   against the pill's cream (house.css IS the cream), and the pill declared its
+   own palette ON the element (it reads `var(--x, fallback)` off the host's
+   :root now — the settled pill contract). Left in place, the leftover block
+   pinned this page to the OLD accent after every other tool page had moved. */
 [hidden]{ display:none !important; }
 .tool main{ max-width:640px; margin:0 auto; }
 

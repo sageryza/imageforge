@@ -117,6 +117,13 @@ const BRIEF = {
     if (/\/brief(\?|$)/.test(url)) {
       return route.fulfill({ contentType: 'text/html; charset=utf-8', body: html + pill });
     }
+    // house.css is what tool.css @imports (2026-08-24). A stub that serves the
+    // sheet but not its import drops the WHOLE palette and every var falls
+    // back — silently. Same rule the tritoggle stubs already carry.
+    if (/\/house\.css/.test(url)) {
+      return route.fulfill({ contentType: 'text/css',
+        body: fs.readFileSync(path.join(__dirname, '..', 'public', 'house.css'), 'utf8') });
+    }
     if (/\/tool\.css/.test(url)) {
       return route.fulfill({ contentType: 'text/css',
         body: fs.readFileSync(path.join(__dirname, '..', 'public', 'tool.css'), 'utf8') });
@@ -146,9 +153,16 @@ const BRIEF = {
 
   // ── the pill contract ────────────────────────────────────────────────────
   ok('the injected pill is there', await page.locator('.float').count() > 0);
+  // Compare the pill against THE PAGE, never against a hex — the palette is
+  // house.css now (2026-08-24) and a hardcoded value here just re-pins the
+  // colour this file was written to stop anyone hardcoding.
   is('and it wears THIS page\'s paper, not its own baked one',
-    await page.evaluate(() => getComputedStyle(document.querySelector('.float'))
-      .getPropertyValue('--paper').trim()), '#faf9f7');
+    await page.evaluate(() => {
+      const pill = getComputedStyle(document.querySelector('.float'));
+      const root = getComputedStyle(document.documentElement);
+      return (pill.getPropertyValue('--paper').trim() || root.getPropertyValue('--paper').trim())
+        === root.getPropertyValue('--paper').trim() && !!root.getPropertyValue('--paper').trim();
+    }), true);
   {
     const ago = await page.locator('#cards .card').first().locator('.ago').boundingBox();
     const float = await page.locator('.float').boundingBox();

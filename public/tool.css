@@ -40,10 +40,20 @@
  *      width:100%, never flex:1 on a .btn or a .chip.
  */
 
+/* THE PALETTE IS house.css, AND ONLY house.css (2026-08-24, Sophie: "it seems
+   like there are conflicting styles across the board"). This sheet used to
+   declare its own — the same warm cream as forge.css under different names,
+   and a DIFFERENT one from compare.css, which is the vocabulary the injected
+   autoscroll pill reads on every page in the app. Measured over 39 gated
+   pages that day: 11 backgrounds, 8 inks, 9 accents, none of them a decision.
+   She picked the compare cream off a sheet of the five live looks.
+   The names below are this sheet's LEGACY vocabulary, kept because 14 pages
+   and this file's own 180 lines say `--bg` and `--dim`. They are aliases now,
+   never values: put a hex here and the drift starts again. */
+@import url('/house.css');
 :root{
-  --bg:#faf9f7; --surface:#fff; --surface2:#f5f0eb; --border:#e8e4df;
-  --accent:#b48b6a; --ink:#3a3530; --dim:#9e9590; --danger:#d4807a;
-  --ok:#3f7d56; --r:6px;
+  --bg:var(--paper); --border:var(--line); --accent:var(--chg);
+  --dim:var(--ink2); --danger:var(--rose); --ok:var(--green);
 }
 *{ box-sizing:border-box; }
 html,body.tool{ margin:0; background:var(--bg); color:var(--ink);

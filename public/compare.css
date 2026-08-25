@@ -38,17 +38,12 @@
    on a tap. Nothing to read until she asks.
 */
 
-:root {
-  --paper: #faf6ee;   /* page background */
-  --surface: #fffdf8; /* card background */
-  --ink: #2a2620;     /* text — the pill's border/glyphs */
-  --ink2: #6b6255;    /* secondary text — the pill's speed label */
-  --line: #e7dfd0;    /* hairlines / card borders */
-  --chg: #a8845c;     /* gold accent — the pill's active state */
-  --gold: #a8845c;
-  --rose: #c0614a;    /* flags / warnings */
-  --green: #3f6633;   /* done / good */
-}
+/* THE PALETTE MOVED TO house.css, VALUE FOR VALUE (2026-08-24). It was
+   declared here first and Sophie picked it as the app's one look, so nothing
+   on any Compare page changes — but tool.css and forge.css now read the same
+   file, which is what stops the injected pill being a special case on the
+   other 23 pages. Add a colour there, never here. */
+@import url('/house.css');
 
 /* THE INJECTED PILL FOLLOWS THIS PAGE, and there is nothing here to make it
    (Aug 2026 v2). It used to take a `body .float{…}` block repeating all five
