@@ -31,7 +31,7 @@ if (!planPath) { console.error('usage: pwc-reel.js <plan.json> [--stills]'); pro
 const stillsOnly = process.argv.includes('--stills');
 const plan = JSON.parse(fs.readFileSync(planPath, 'utf8'));
 const dir = path.dirname(path.resolve(planPath));
-const src = path.resolve(dir, plan.src);
+const src = plan.src ? path.resolve(dir, plan.src) : null; // a multi-clip plan names a src per freeze instead
 const W = plan.width || 1920, H = plan.height || 1080;
 const FPS = plan.fps || '30000/1001';
 const work = fs.mkdtempSync(path.join(require('os').tmpdir(), 'pwcreel-'));
@@ -119,44 +119,54 @@ const ENC = ['-r', FPS, '-c:v', 'libx264', '-preset', 'medium', '-crf', '19', '-
   const freezes = plan.freezes || [];
   for (let i = 0; i < freezes.length; i++) {
     const F = freezes[i];
+    // Multi-clip episodes (the bench churn): a freeze may name its own src and
+    // where its play-in starts; F.pre is a per-clip filter (a crop) that runs
+    // BEFORE the shared grade so a landscape clip can join a portrait reel.
+    const fsrc = F.src ? path.resolve(dir, F.src) : src;
+    const from = F.playFrom ?? (F.src ? 0 : cursor);
+    const chain = (F.pre ? F.pre + ',' : '') + GRADE;
     // the moving footage up to the freeze point
-    if (F.t > cursor + 0.05 && !stillsOnly) {
+    if (F.t > from + 0.05 && !stillsOnly) {
       const p = path.join(work, `play${i}.mp4`);
-      run(['-ss', String(cursor), '-to', String(F.t), '-i', src, '-vf', `${GRADE},setsar=1`, ...ENC, p]);
+      run(['-ss', String(from), '-to', String(F.t), '-i', fsrc, '-vf', `${chain},setsar=1`, ...ENC, p]);
       segs.push(p);
     }
     // the frozen, annotated frame
     const frame = path.join(work, `frame${i}.png`);
-    run(['-ss', String(F.t), '-i', src, '-frames:v', '1', frame]);
+    run(['-ss', String(F.t), '-i', fsrc, '-frames:v', '1', frame]);
     const ov = path.join(work, `ov${i}.png`);
     await overlayPng(F, ov, plan.seed ? plan.seed + i : 41 + i * 7);
     if (stillsOnly) {
       const still = path.join(dir, `${path.basename(planPath, '.json')}-still${i + 1}.jpg`);
-      run(['-i', frame, '-i', ov, '-filter_complex', `[0]${GRADE}[g];[g][1]overlay=0:0`, '-frames:v', '1', '-q:v', '3', still]);
+      run(['-i', frame, '-i', ov, '-filter_complex', `[0]${chain}[g];[g][1]overlay=0:0`, '-frames:v', '1', '-q:v', '3', still]);
       console.log('still →', still);
     } else {
       const p = path.join(work, `hold${i}.mp4`);
       run(['-loop', '1', '-t', String(F.dur || 3.2), '-i', frame, '-loop', '1', '-t', String(F.dur || 3.2), '-i', ov,
-        '-filter_complex', `[0]${GRADE}[g];[1]fade=t=in:st=0.18:d=0.22:alpha=1[ov];[g][ov]overlay=0:0,setsar=1`, ...ENC, p]);
+        '-filter_complex', `[0]${chain}[g];[1]fade=t=in:st=0.18:d=0.22:alpha=1[ov];[g][ov]overlay=0:0,setsar=1`, ...ENC, p]);
       segs.push(p);
     }
     cursor = F.t;
   }
   if (stillsOnly) return;
-  // play out the tail, then the end card on the final frame
-  let durOut = '';
-  try { execFileSync(FF, ['-i', src], { stdio: 'pipe' }); }
-  catch (e) { durOut = String(e.stderr || ''); } // ffmpeg -i with no output always exits 1; the duration is on stderr
-  let tail = plan.tailTo;
-  if (!tail) { const m = /Duration: (\d+):(\d+):([\d.]+)/.exec(durOut + ''); tail = m ? (+m[1] * 3600 + +m[2] * 60 + +m[3]) - 0.05 : cursor; }
-  if (tail > cursor + 0.05) {
+  // play out the tail (single-src plans only), then the end card
+  let tail = plan.tailTo || cursor;
+  if (plan.src && !plan.tailTo) {
+    let durOut = '';
+    try { execFileSync(FF, ['-i', src], { stdio: 'pipe' }); }
+    catch (e) { durOut = String(e.stderr || ''); } // ffmpeg -i with no output always exits 1; the duration is on stderr
+    const m = /Duration: (\d+):(\d+):([\d.]+)/.exec(durOut);
+    if (m) tail = (+m[1] * 3600 + +m[2] * 60 + +m[3]) - 0.05;
+  }
+  if (plan.src && tail > cursor + 0.05) {
     const p = path.join(work, 'playout.mp4');
     run(['-ss', String(cursor), '-to', String(tail), '-i', src, '-vf', `${GRADE},setsar=1`, ...ENC, p]);
     segs.push(p);
   }
   if (plan.endcard) {
+    const esrc = plan.endcard.src ? path.resolve(dir, plan.endcard.src) : src;
     const frame = path.join(work, 'endframe.png');
-    run(['-ss', String(Math.max(0, tail - 0.1)), '-i', src, '-frames:v', '1', frame]);
+    run(['-ss', String(plan.endcard.t ?? Math.max(0, tail - 0.1)), '-i', esrc, '-frames:v', '1', frame]);
     const ov = path.join(work, 'endov.png');
     await overlayPng(plan.endcard, ov, (plan.seed || 40) + 99);
     const p = path.join(work, 'endcard.mp4');

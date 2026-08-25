@@ -1,0 +1,141 @@
+{
+  "comment": "PWC backstories ep003 \u2014 THE BENCH (vertical 9:16, white ink). Four Pexels clips cut together: different sitters, and the closer insists it was the same bench all along. Sources (all free Pexels license): teens 12879690, two men 13326103, dennis 5544323 (landscape, cropped to 9:16), irina 34174755. Download each with curl -L -o <name>.mp4 https://www.pexels.com/download/video/<id>/ \u2014 media not committed. Coordinates are in the 1080x1920 output space.",
+  "out": "pwc-ep003.mp4",
+  "width": 1080,
+  "height": 1920,
+  "fps": "30",
+  "seed": 203,
+  "ink": "#f2f2ee",
+  "font": "Permanent Marker",
+  "grade": "scale=1080:1920,hue=s=0,eq=contrast=1.07:brightness=0.01,noise=alls=5:allf=t,vignette=PI/5.2:mode=forward",
+  "freezes": [
+    {
+      "src": "bench-teens.mp4",
+      "playFrom": 0,
+      "t": 2.2,
+      "dur": 3.4,
+      "lines": [
+        "Maya and Dre.",
+        "Mum said talk it out.",
+        "They are talking it out."
+      ],
+      "x": 540,
+      "y": 420,
+      "size": 54,
+      "rot": -1.5,
+      "circle": {
+        "cx": 585,
+        "cy": 780,
+        "rx": 330,
+        "ry": 155
+      }
+    },
+    {
+      "src": "bench-men.mp4",
+      "playFrom": 1.0,
+      "t": 3.2,
+      "dur": 3.4,
+      "lines": [
+        "Steve is explaining crypto.",
+        "Nobody asked.",
+        "Nobody ever asks."
+      ],
+      "x": 540,
+      "y": 360,
+      "size": 54,
+      "rot": 1.5,
+      "circle": {
+        "cx": 545,
+        "cy": 745,
+        "rx": 120,
+        "ry": 140
+      }
+    },
+    {
+      "src": "bench-dennis.mp4",
+      "playFrom": 2.0,
+      "t": 4.2,
+      "dur": 3.6,
+      "pre": "crop=608:1080:336:0",
+      "lines": [
+        "Dennis is waiting",
+        "for the 4:15 bus.",
+        "This is not a bus stop."
+      ],
+      "x": 540,
+      "y": 480,
+      "size": 54,
+      "rot": -1.5,
+      "arrow": {
+        "from": [
+          620,
+          660
+        ],
+        "to": [
+          810,
+          800
+        ]
+      }
+    },
+    {
+      "src": "bench-irina.mp4",
+      "playFrom": 2.0,
+      "t": 4.4,
+      "dur": 3.6,
+      "lines": [
+        "Irina has been mid-photoshoot",
+        "since Tuesday.",
+        "Nobody is holding the camera."
+      ],
+      "x": 540,
+      "y": 1500,
+      "size": 48,
+      "rot": 1,
+      "circle": {
+        "cx": 484,
+        "cy": 574,
+        "rx": 105,
+        "ry": 120
+      }
+    },
+    {
+      "src": "bench-irina.mp4",
+      "playFrom": 4.4,
+      "t": 6.4,
+      "dur": 3.8,
+      "lines": [
+        "Also: this is the same bench",
+        "from every shot.",
+        "It has always been the bench."
+      ],
+      "x": 540,
+      "y": 460,
+      "size": 48,
+      "rot": -1,
+      "arrow": {
+        "from": [
+          430,
+          640
+        ],
+        "to": [
+          300,
+          1000
+        ]
+      }
+    }
+  ],
+  "endcard": {
+    "dur": 2.6,
+    "src": "bench-irina.mp4",
+    "t": 6.4,
+    "lines": [
+      "people watching club"
+    ],
+    "x": 540,
+    "y": 940,
+    "size": 92,
+    "font": "Caveat",
+    "strokeWidth": 4,
+    "ink": "#f2f2ee"
+  }
+}
