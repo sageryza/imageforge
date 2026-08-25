@@ -2449,13 +2449,19 @@ function statusLinesHtml(name, fallback){
 // the chat is pinned — a second copy of the same glyph at the front of the row
 // was showing the state twice. The star and the bookmark are marks here
 // because they have no control on the row.
-// Lucide `hourglass`. A line glyph, the house's chrome voice — and the one
-// mark on a row that means SHE is owed something rather than that she filed
-// something. Deliberately not the bell (that is notifications), not the star
-// (hers, "I am working on this") and not a clock with an arrow (WAITPAST, the
-// reasons list) — three marks in one colour already live on these rows, so the
-// shape is what has to carry the difference.
-var WAITREPLY='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg>';
+// Lucide `watch` — a WRISTWATCH (2026-08-24, Sophie: "is there an icon of like
+// someone pointing at their watch?"). There is no such icon: all 2,035 Lucide
+// glyphs were read and none holds a figure, because the gesture needs a body,
+// an arm and a dial and a line-icon set cannot say three things at 14px. Drawn
+// by hand it does not survive either — measured at 14/18/28/64, the figure is
+// mud at the mark's real size and reads as someone with a MAGNIFYING GLASS
+// blown up. So the watch alone carries it: the object out of her own picture,
+// legible at 14px, and it says the time is running on this chat.
+// Deliberately not the bell (that is notifications), not the star (hers, "I am
+// working on this") and not a clock with an arrow (WAITPAST, the reasons list)
+// — three marks in one colour already live on these rows, so the shape is what
+// has to carry the difference. It shipped as an `hourglass` for one afternoon.
+var WAITREPLY='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6"/><path d="M12 10v2.2l1.6 1"/><path d="m16.13 7.66-.81-4.05a2 2 0 0 0-2-1.61h-2.68a2 2 0 0 0-2 1.61l-.78 4.05"/><path d="m7.88 16.36.8 4a2 2 0 0 0 2 1.61h2.72a2 2 0 0 0 2-1.61l.81-4.05"/></svg>';
 // IS SHE WAITING ON THIS CHAT? — read off TAG_RULES rather than off the string,
 // so the mark and the Update tab's pin can never disagree about which word
 // means this. The pin rule is first in that table, so a chat wearing both rule

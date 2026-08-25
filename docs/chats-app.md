@@ -2283,12 +2283,24 @@
         home list, and inside the thread itself, a chat she was owed an answer
         from looked like every other chat, and the one screen that knew she
         was waiting was the one screen she had to already be on.
-        `waitMarkHtml` is a Lucide **hourglass** in the marks' red (`--chg`),
-        drawn at the front of the row beside the star and the bookmark — the
-        slot this file already reserves for a state with no control of its own
-        — and inside the thread's `<h1>`. One renderer, so the three row
-        builders that share `starHtml` (the home list, the Status row and the
-        Update card) cannot draw it three ways.
+        `waitMarkHtml` is a Lucide **`watch`** — a wristwatch — in the marks'
+        red (`--chg`), drawn at the front of the row beside the star and the
+        bookmark — the slot this file already reserves for a state with no
+        control of its own — and inside the thread's `<h1>`. One renderer, so
+        the three row builders that share `starHtml` (the home list, the Status
+        row and the Update card) cannot draw it three ways.
+        - **THE ICON SHE ASKED FOR DOES NOT EXIST, AND THAT WAS MEASURED
+          (2026-08-24, Sophie: "is there an icon of like someone pointing at
+          their watch?").** All 2,035 Lucide glyphs were read: not one holds a
+          human figure doing anything, because the gesture needs a body, an arm
+          and a dial, and a line-icon set cannot say three things inside 14px.
+          Two hand-drawn attempts in Lucide's own idiom (dot head, polyline
+          legs) were rendered at 14 / 18 / 28 / 64px and both failed: mud at the
+          mark's real size, and at 64px they read as someone holding a
+          MAGNIFYING GLASS. So the watch alone carries it — the object out of
+          her own picture, and legible where the mark actually lives. It
+          shipped as an `hourglass` for one afternoon; don't drift it back, and
+          don't try the figure again without rendering it at 14px first.
         - **IT FOLLOWS THE TAG, NOT THE CARD.** Her ✓ on the Update tab
           settles the CARD (`pinLive` goes out); the mark stays until the WORD
           comes off, which is the same rule the sibling tag's `Waiting for:`
