@@ -132,7 +132,11 @@ const ok = () => { checks++; };
   const words = await page.$eval('#thread header .no', (n) => n.textContent.replace(/\s+/g, ' ').trim());
   if (!/archive/i.test(words)) fail('the Archive word went missing: ' + words);
   else ok();
-  for (const gone of ['.bellbtn', '.eyebtn', '.trashbtn', '.starbtn', '.bmk.chatbmk']) {
+  // …EXCEPT THE BELL, which came back to this row on 2026-08-25 ("add the bell
+  // icon back to the main chat screen instead of just in the tag organizer
+  // area, put it in both places … right next to the picture of the tag"). It
+  // is in BOTH now, so it is no longer on the gone list — see step 13 below.
+  for (const gone of ['.eyebtn', '.trashbtn', '.starbtn', '.bmk.chatbmk']) {
     if (await page.$('#thread header .no ' + gone)) fail('the header still carries ' + gone);
     else ok();
   }
@@ -223,6 +227,58 @@ const ok = () => { checks++; };
   // 12. …and THAT is the one state the eye is allowed to be red in.
   const hiddenEyeColor = await page.$eval('.askwrap .orgmarks .eyebtn', (n) => getComputedStyle(n).color);
   if (!RED.test(hiddenEyeColor)) fail('a hidden chat\'s crossed eye is not red: ' + hiddenEyeColor);
+  else ok();
+
+  // ── 13. THE BELL IS IN BOTH PLACES (2026-08-25, Sophie: "add the bell icon
+  // back to the main chat screen instead of just in the tag organizer area,
+  // put it in both places it doesn't need the box around it. It should go
+  // right next to the picture of the tag"). Whether a chat may buzz her is a
+  // thing she flips while READING it, so it is no longer two taps behind a
+  // sheet — and the sheet keeps its copy, so the two have to agree. ─────────
+  await page.goto(base + '/chats');
+  await page.waitForSelector('#grid .crow[data-chat="no-bell"]');
+  await page.click('#grid .crow[data-chat="no-bell"]');
+  await page.waitForSelector('#thread header .no .bellbtn', { timeout: 4000 })
+    .catch(() => fail('the bell never came back to the thread header'));
+  ok();
+  // Right next to the tag: the two are adjacent, and the tag stays last.
+  const hrow = await page.$$eval('#thread header .no > *', (ns) => ns.map((n) => n.className));
+  const hBell = hrow.findIndex((c) => /bellbtn/.test(c));
+  const hTag = hrow.findIndex((c) => /orgbtn/.test(c));
+  if (hBell < 0 || hTag !== hBell + 1) fail('the header bell is not beside the tag icon: ' + JSON.stringify(hrow));
+  else ok();
+  // NO BOX, her ask — this is the bare-glyph style, not the sheet's chip.
+  const boxed = await page.$eval('#thread header .no .bellbtn', (n) => {
+    const c = getComputedStyle(n);
+    return { bw: c.borderTopWidth, bs: c.borderTopStyle, bg: c.backgroundColor, color: c.color };
+  });
+  if (boxed.bs !== 'none' && parseFloat(boxed.bw) > 0) fail('the header bell drew a box: ' + boxed.bw + ' ' + boxed.bs);
+  else ok();
+  if (!/rgba\(0,\s*0,\s*0,\s*0\)|transparent/.test(boxed.bg)) fail('the header bell drew a filled plate: ' + boxed.bg);
+  else ok();
+  if (await page.$('#thread header .no .bellbtn.on')) fail('an unbelled chat drew a lit header bell');
+  else ok();
+  await hitTest('#thread header .no .bellbtn', 'the header bell');
+  // Tapping it lights and POSTs.
+  const before = posted.length;
+  await page.click('#thread header .no .bellbtn');
+  await page.waitForSelector('#thread header .no .bellbtn.on', { timeout: 2000 })
+    .catch(() => fail('the header bell did not light on the tap'));
+  ok();
+  await page.waitForTimeout(200);
+  const last = posted[posted.length - 1];
+  if (posted.length <= before || !last || last.chat !== 'no-bell' || last.notify !== true) {
+    fail('the header bell did not POST notify:true — ' + JSON.stringify(last));
+  } else ok();
+  // …and the SHEET's copy agrees, in both directions: it opens lit, and
+  // tapping it there repaints the one she is standing on.
+  await page.click('#thread header .no .orgbtn');
+  await page.waitForSelector('.askwrap .orgmarks .bellbtn', { timeout: 4000 });
+  if (!await page.$('.askwrap .orgmarks .bellbtn.on')) fail('the sheet\'s bell did not pick up the header tap');
+  else ok();
+  await page.click('.askwrap .orgmarks .bellbtn');
+  await page.waitForTimeout(250);
+  if (await page.$('#thread header .no .bellbtn.on')) fail('the sheet\'s bell left the header bell lit — the two disagree');
   else ok();
 
   await browser.close();
