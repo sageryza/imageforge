@@ -107,9 +107,11 @@ function level(file) {
 const shotDir = path.join(FILM, 'shots');
 const onDisk = fs.readdirSync(shotDir).filter((f) => /^shot-\d+-.+\.wav$/.test(f));
 const spec = JSON.parse(fs.readFileSync(SPEC, 'utf8'));
-const shots = spec.shots.map((sh) => {
-  const f = onDisk.find((n) => n.replace(/^shot-\d+-/, '').replace(/\.wav$/, '') === sh.id);
-  if (!f) throw new Error(`no cut wav for shot ${sh.id}`);
+const shots = spec.shots.map((sh, i) => {
+  // exact index+id: the folder keeps stale wavs from earlier numberings, and
+  // an id-only match can land on one of those
+  const f = `shot-${String(i).padStart(2, '0')}-${sh.id}.wav`;
+  if (!onDisk.includes(f)) throw new Error(`no cut wav for shot ${sh.id} (${f})`);
   return f;
 });
 // THE FILM IS NAMED BY THE SPEC, never found by scanning the folder. The same

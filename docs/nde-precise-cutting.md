@@ -107,6 +107,32 @@ it is machine-verified, not ear-verified.
 - Narration cards fail loudly without `ELEVENLABS_API_KEY` — never silently
   skipped.
 - Verify batches with `nde-verify-cuts.py` before delivering.
+- **THE WHISPERED-WORD RULE: a missed-word test is FLOOR-referenced, never
+  speech-referenced (2026-08-25, the water reel's "secret").** She whispers a
+  word at ~-38dB against speech at -13; any speech-relative threshold calls
+  that a pause and a gap-bridge deletes the word. A whispered word holds
+  ~0.3s continuously above floor+10dB while a real pause holds ~0s there —
+  the same separation as the laugh test. `vo-film.js`'s gap guard implements
+  it (gaps ≤1.6s only, so a fan surge can't protect a long hole).
+- **A "CLIPPED WORD" REPORT HAS THREE ROOT CAUSES — measure which before
+  cutting differently (2026-08-25, all three live in one film):** (1) the cut
+  really clips (bulk-timing cut, no re-listen — the rule above); (2) the cut
+  is byte-perfect and the TAKE ITSELF slurs the word — compare the shot's RMS
+  bin-for-bin against the source before touching the cutter, then swap takes
+  (the water reel's "Scientists"; the evan master's "scientist"/"percent"
+  were the same shape: truncated INSIDE the source, fixed only by re-sourcing
+  from the original recording); (3) a word whisper never heard was bridged
+  away (the rule above). The evan chat's earned rules live in
+  `scripts/evan-v14-rebuild/README.md` — including *use word times to
+  LOCATE, a 20ms RMS profile to TRIM*, independently re-earned here as the
+  re-listen + quiet-landing rule. That double payment is why this list is in
+  the doc of record now.
+- **THE VERIFY GATE PASSING IS NOT A WORD-LEVEL CLAIM.** The gate fails only
+  on ≥4-word contiguous runs, so single clipped or eaten words sail through
+  — two shipped that way. `vo-film.js`'s verify now prints a WORD SWEEP:
+  every script word it could not hear back, per shot, with context. Most are
+  whisper mishears; judge each against the source words and RMS before
+  delivering. Her examples are examples, never the list — sweep everything.
 
 ## Noisy pauses in voice-memo narration (Aug 2026 findings — Tolle shorts)
 The pipeline above cuts SNIPPETS out of interviews. Cutting a whole read-through

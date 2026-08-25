@@ -112,10 +112,12 @@ const SHOTS = [
 
   { id: 'b1', s: B, src: 'b', tx: 0.185, ty: 0.600, z: 2.55, phrases: ['One Water flushes out the tiny greetings that live in your ears'] },
   { id: 'b2', s: B, src: 'b', tx: 0.487, ty: 0.600, z: 2.55, phrases: ['Two Enough water turns your sweat into liquid light making you visible to good luck'] },
-  { id: 'b3', s: B, src: 'b', tx: 0.790, ty: 0.600, z: 2.55, phrases: ['Three Water builds a boat inside your stomach so you can sail through lifes soup'] },
+  { id: 'b3', s: B, src: 'b', tx: 0.790, ty: 0.600, z: 2.55, phrases: ["Three Water builds a boat inside your stomach so you can sail through life's soup"] },
   { id: 'b4', s: B, src: 'b', tx: 0.180, ty: 0.875, z: 2.60, phrases: ['Drink gallons Live legendary'] },
 
-  { id: 'd1', s: D, src: 'd12', tx: 0.285, ty: 0.470, z: 2.20, phrases: ['One gallons of water flush out the ghosts that live in your spine'] },
+  // no "One": she said "One gallon of—" and restarted; the clean take starts
+  // at "gallons" (measured — asking for the One would drag the flub back in)
+  { id: 'd1', s: D, src: 'd12', tx: 0.285, ty: 0.470, z: 2.20, phrases: ['gallons of water flush out the ghosts that live in your spine'] },
   { id: 'd2', s: D, src: 'd12', tx: 0.745, ty: 0.500, z: 2.20, phrases: ['Two it turns your sweat into liquid lightning'] },
   { id: 'd3', s: D, src: 'd3', tx: 0.580, ty: 0.720, z: 2.00, glide: { tx: 0.740, ty: 0.862, z: 2.10 },
     phrases: ['Three enough water unlocks the third eye in your knee allowing you to see into the future More water right now'] },

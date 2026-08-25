@@ -83,7 +83,13 @@ widen that phrase to the word after the laugh, or cut that one shot by hand.
   with `"relisten": true` on the spec (`relistenSpan`, plus a voicing guard
   that refuses to cut through sound, bounded by the neighbouring word). Full
   rule: `docs/nde-precise-cutting.md`, *Rules that must survive any
-  refactor*.
+  refactor* — which also carries the triage for any "clipped word" report
+  (three root causes: a bad cut, a slurred/truncated TAKE, a whispered word
+  a gap-bridge ate — measure which before changing the cutter), the
+  floor-referenced whispered-word guard, and the WORD SWEEP vo-film's verify
+  now prints (every script word not heard back — the >=4-run gate alone has
+  shipped single clipped words twice). The evan film paid for several of the
+  same rules independently: `scripts/evan-v14-rebuild/README.md`.
 - Removing something from the MIDDLE of speech is a splice, and a splice is
   approved by ear, not shipped invisibly (the reason pause removal lives in
   the Cutting Room, not inside the Episode Editor's render).

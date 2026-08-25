@@ -116,7 +116,7 @@ const FORCE = flag('force');
 
 const W = SPEC.width || 1000, H = SPEC.height || 1500, FPS = SPEC.fps || 30, BG = SPEC.bg || '#f7f3ea';
 const VOICE = SPEC.voice || 'UTkHGl2ImiT6gwtAFCql'; // "Sophie — morning"
-const TOOLV = 'vofilm-3'; // bump to invalidate every cache (v3: the gap guard is floor-referenced)
+const TOOLV = 'vofilm-4'; // bump to invalidate every cache (v4: bridge boundaries land in quiet)
 // A spec's edge rule changes every cut, so it belongs in the shot cache key.
 const EDGEV = JSON.stringify(SPEC.edge || {});
 // `"relisten": true` — re-transcribe a small window around every located span
@@ -579,6 +579,21 @@ async function cutShot(shot, si, spans, sources, filmSpeech85) {
     }
     return false;
   };
+  // A BRIDGE'S BOUNDARIES LAND IN QUIET, never on whisper's word times
+  // (2026-08-25, "More" and "Less": each follows a pause, whisper timed the
+  // word's start late, and the bridge — cut exactly to the late boundary —
+  // replaced the pause INCLUDING the word's onset). Each end of a gap walks
+  // toward the gap's middle until the audio outside it is genuinely quiet,
+  // so a mistimed onset stays with its word.
+  const HOTF = floorDb + 8;
+  const hotAt = (i) => i >= 0 && i < bins.length && bins[i] > HOTF;
+  const shrinkGap = (g0, g1) => {
+    let a = Math.floor(g0 / B), b = Math.ceil(g1 / B);
+    const capA = a + Math.round(0.5 / B), capB = b - Math.round(0.5 / B);
+    while (a < capA && a < b && (hotAt(a) || hotAt(a + 1))) a++;
+    while (b > capB && b > a && (hotAt(b - 1) || hotAt(b - 2))) b--;
+    return [a * B, b * B];
+  };
   const segs = [];
   for (let i = 0; i < regions.length; i++) {
     segs.push(regions[i]);
@@ -587,8 +602,12 @@ async function cutShot(shot, si, spans, sources, filmSpeech85) {
       const len = (g1 - g0) >= 0.9 ? 0.34 : 0.22;
       if (g1 - g0 <= len + 0.02) { segs.push([g0, g1]); continue; }
       if (gapHasSpeech(g0, g1)) { segs.push([g0, g1]); continue; }
-      const q = quietWindow(g0, g1, len);
-      if (q) segs.push(q);
+      const [q0, q1] = shrinkGap(g0, g1);
+      // the voiced margins stay with their words verbatim
+      if (q0 > g0 + 0.01) segs.push([g0, q0]);
+      if (q1 - q0 > len + 0.02) { const q = quietWindow(q0, q1, len); if (q) segs.push(q); }
+      else if (q1 > q0 + 0.01) segs.push([q0, q1]);
+      if (q1 < g1 - 0.01) segs.push([q1, g1]);
     }
   }
   const fin = [];
@@ -605,7 +624,9 @@ async function cutShot(shot, si, spans, sources, filmSpeech85) {
 }
 
 // ---- stage 3: verify one shot (cached by its bytes) -------------------------
-const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9' ]+/g, ' ').split(/\s+/).filter(Boolean);
+const DIGITS = { 0: 'zero', 1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five', 6: 'six', 7: 'seven', 8: 'eight', 9: 'nine', 10: 'ten' };
+const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9' ]+/g, ' ').split(/\s+/)
+  .filter(Boolean).map((w) => DIGITS[w] || w);
 function lcsMissing(want, got) {
   // Longest missing contiguous run of script words, via a FULL LCS table +
   // proper backtrack. (v1 of this function kept only per-row equality flags
@@ -631,21 +652,29 @@ function lcsMissing(want, got) {
     else k--;
   }
   let longest = 0, curRun = 0, missing = 0;
+  const lost = []; // each unmatched script word, with a word of context either side
   for (let x = 0; x < n; x++) {
-    if (!matched[x]) { curRun++; missing++; longest = Math.max(longest, curRun); }
-    else curRun = 0;
+    if (!matched[x]) {
+      curRun++; missing++; longest = Math.max(longest, curRun);
+      lost.push(`${want[x - 1] || '^'} [${want[x]}] ${want[x + 1] || '$'}`);
+    } else curRun = 0;
   }
-  return { missing, longest };
+  return { missing, longest, lost };
 }
 
 async function verifyShot(shot, cutInfo) {
   const h = md5f(cutInfo.file);
-  const ck = `verify|${TOOLV}.2|${shot.id}|${h}`;
+  const ck = `verify|${TOOLV}.3|${shot.id}|${h}`;
   const hit = cache(ck);
   if (hit) return { ...hit, cached: true };
   const tmp = path.join(DIR, '_v.mp3');
-  run(FFMPEG, ['-v', 'error', '-y', '-i', cutInfo.file, '-ac', '1', '-ar', '16000', '-b:a', '48k', tmp]);
-  const w = await whisperWords(tmp);
+  // 1s of prepended silence — whisper on a clip that opens mid-speech drops
+  // the opening words (the skill's own pad-before-you-judge rule), so an
+  // UNPADDED verify both under-reports the head and false-flags "starts late"
+  const VPAD = 1.0;
+  run(FFMPEG, ['-v', 'error', '-y', '-i', cutInfo.file,
+    '-af', `adelay=${VPAD * 1000}:all=1`, '-ac', '1', '-ar', '16000', '-b:a', '48k', tmp]);
+  const w = (await whisperWords(tmp)).map((x) => ({ word: x.word, start: Math.max(0, x.start - VPAD), end: Math.max(0, x.end - VPAD) }));
   const seconds = dur(cutInfo.file);
   // wordless gaps + edges
   let worstGap = 0, gapSec = 0;
@@ -655,11 +684,11 @@ async function verifyShot(shot, cutInfo) {
   }
   const lead = w.length ? w[0].start : seconds;
   const tail = w.length ? seconds - w[w.length - 1].end : seconds;
-  const { missing, longest } = lcsMissing(norm(cutInfo.text), w.map((x) => norm(x.word)[0] || ''));
+  const { missing, longest, lost } = lcsMissing(norm(cutInfo.text), w.map((x) => norm(x.word)[0] || ''));
   const verdict = {
     seconds: +seconds.toFixed(2),
     heard: w.length,
-    missingWords: missing, longestMissingRun: longest,
+    missingWords: missing, longestMissingRun: longest, lost,
     worstGap: +worstGap.toFixed(2), gapSec: +gapSec.toFixed(1),
     lead: +lead.toFixed(2), tail: +tail.toFixed(2),
     ok: longest < 4 && worstGap <= 1.5 && lead <= 1.5 && tail <= 1.5,
@@ -782,9 +811,25 @@ function deadAir(file) { // vo-verify's film check, local and free
       process.exit(1);
     }
     console.log(`ok ${shot.id}: ${v.seconds}s, worst gap ${v.worstGap}s, tail ${v.tail}s${v.cached ? ' (cached)' : ''}`);
+    if (v.lost && v.lost.length) console.log(`   unheard in ${shot.id}: ${v.lost.join(' · ')}`);
     shots.push(info);
+    shot.__lost = v.lost || [];
   }
   if (reused) console.log(`${reused}/${SPEC.shots.length} shots unchanged (cache)`);
+  // EVERY word the verify pass could not hear, in one place — most are
+  // whisper mishears (Scientists→Science), some are real losses (a whispered
+  // "secret" the bridge ate). The builder READS this list and judges each
+  // against the source words and its RMS before delivering; "the gate passed"
+  // alone has shipped clipped words twice (Sophie, 2026-08-25: her examples
+  // were examples, not the list).
+  const allLost = SPEC.shots.filter((s2) => (s2.__lost || []).length);
+  if (allLost.length) {
+    console.log(`\nWORD SWEEP — ${allLost.reduce((a, s2) => a + s2.__lost.length, 0)} script word(s) not heard back, by shot:`);
+    for (const s2 of allLost) console.log(`  ${s2.id}: ${s2.__lost.join(' · ')}`);
+    console.log('  (judge each: mishear or loss — check the source words + RMS at that spot)');
+  } else {
+    console.log('\nWORD SWEEP — every script word heard back in its shot.');
+  }
 
   // stitch — skipped wholesale when nothing feeding it changed
   const stitchKey = `stitch|${TOOLV}|${sha1(JSON.stringify({
