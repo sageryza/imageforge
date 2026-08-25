@@ -5,6 +5,7 @@
 <link rel="stylesheet" href="/tool.css">
 <link rel="stylesheet" href="/tritoggle.css">
 <script src="/tritoggle.js"></script>
+<script src="/asset-lightbox.js"></script>
 <!--
   PANELS — one sheet, drawn once, cut into separate pictures.
 
@@ -311,30 +312,126 @@
     }, 4000);
   }
 
-  function runHtml(r) {
-    var head = '<div class="runhead"><b>' + r.count + ' × ' + esc(r.cellSize) + '</b>'
+  // THE FEED IS DIFFED, NEVER REBUILT (2026-08-25, Sophie: "once I send it to
+  // be made it flashes like every two seconds"). The old load() replaced
+  // #feed's whole innerHTML on every poll, so every <img> was thrown away and
+  // re-decoded — with two runs polling, a full-page flash every couple of
+  // seconds. Now each run keeps its own node keyed by id: the head line is
+  // repainted (text only), the sheet <img> is added once, and a new cut is
+  // APPENDED — an image already on screen is never touched.
+  var runsById = {};
+  var runSig = {};
+
+  function headHtml(r) {
+    return '<b>' + r.count + ' × ' + esc(r.cellSize) + '</b>'
       + '<span>sheet ' + esc(r.sheetSize) + '</span>'
       + '<span>' + esc(r.style || '') + ' · ' + esc(r.quality || '') + '</span>'
       + (r.status === 'running' ? '<span>' + esc((r.job && r.job.label) || 'working…') + '</span>' : '')
-      + (r.status === 'failed' ? '<span>' + esc(r.error || 'failed') + '</span>' : '')
-      + '</div>';
-    var sheet = r.sheetUrl
-      ? '<div class="sheetwrap"><img class="sheetimg" src="' + esc(r.sheetUrl) + '" alt="the sheet" loading="lazy"></div>'
-      : '';
-    var g = cfg.grids.filter(function (x) { return x.id === r.grid; })[0];
-    var cuts = (r.images || []).map(function (im) {
-      return '<figure><img src="' + esc(im.url) + '" alt="' + esc(im.cell) + '" loading="lazy">'
-        + '<figcaption>' + esc(im.cell) + '</figcaption></figure>';
-    }).join('');
-    return '<div class="run">' + head + sheet
-      + '<div class="cuts" style="--across:' + ((g && g.across) || 2) + '">' + cuts + '</div></div>';
+      + (r.status === 'failed' ? '<span>' + esc(r.error || 'failed') + '</span>' : '');
+  }
+  function figureFor(im) {
+    var fig = document.createElement('figure');
+    fig.innerHTML = '<img alt="' + esc(im.cell) + '" loading="lazy">'
+      + '<figcaption>' + esc(im.cell) + '</figcaption>';
+    var img = fig.querySelector('img');
+    img.src = im.url; img.dataset.cell = im.cell;
+    return fig;
+  }
+  function sigOf(r) {
+    return [r.status, r.sheetUrl, (r.images || []).map(function (im) { return im.url; }).join(','),
+      r.job && r.job.label, r.job && r.job.done, r.error].join('|');
+  }
+  function fillRun(el, r) {
+    el.querySelector('.runhead').innerHTML = headHtml(r);
+    if (r.sheetUrl) {
+      var sw = el.querySelector('.sheetwrap');
+      if (!sw) {
+        sw = document.createElement('div'); sw.className = 'sheetwrap';
+        sw.innerHTML = '<img class="sheetimg" alt="the sheet" loading="lazy">';
+        el.insertBefore(sw, el.querySelector('.cuts'));
+        sw.querySelector('img').src = r.sheetUrl;
+      }
+    }
+    var cuts = el.querySelector('.cuts');
+    (r.images || []).forEach(function (im) {
+      if (!cuts.querySelector('img[data-cell="' + im.cell + '"]')) cuts.appendChild(figureFor(im));
+    });
+  }
+  function render(runs) {
+    var feed = $('#feed');
+    Array.prototype.slice.call(feed.children).forEach(function (el) {
+      if (!runs.some(function (r) { return r.id === el.dataset.run; })) feed.removeChild(el);
+    });
+    var prev = null;
+    runs.forEach(function (r) {
+      runsById[r.id] = r;
+      var el = feed.querySelector('[data-run="' + r.id + '"]');
+      var sig = sigOf(r);
+      if (!el) {
+        el = document.createElement('div');
+        el.className = 'run'; el.dataset.run = r.id;
+        var g = cfg.grids.filter(function (x) { return x.id === r.grid; })[0];
+        el.innerHTML = '<div class="runhead"></div>'
+          + '<div class="cuts" style="--across:' + ((g && g.across) || 2) + '"></div>';
+        feed.insertBefore(el, prev ? prev.nextSibling : feed.firstChild);
+        fillRun(el, r); runSig[r.id] = sig;
+      } else if (runSig[r.id] !== sig) {
+        fillRun(el, r); runSig[r.id] = sig;
+      }
+      prev = el;
+    });
   }
 
+  // For the headless test only — the diff rule ("an image on screen is never
+  // touched") can only be asserted by driving render() directly.
+  window.__panelsRender = render;
+
+  var loadBusy = false;
   function load() {
+    if (loadBusy) return;
+    loadBusy = true;
     fetch('/api/panels?limit=20').then(function (r) { return r.json(); }).then(function (j) {
-      $('#feed').innerHTML = (j.runs || []).map(runHtml).join('');
-    }).catch(function () {});
+      loadBusy = false;
+      render(j.runs || []);
+    }).catch(function () { loadBusy = false; });
   }
+
+  // TAPPING A PICTURE OPENS THE ASSETS LIGHTBOX — the ONE shared one
+  // (2026-08-25, Sophie: "I can't open the pictures in a light box"). A cut
+  // opens with its own cell's words as the content half and the run's real
+  // wrapper (prefix + the grid sentence + suffix) as the style half; the sheet
+  // opens with every cell she wrote.
+  function styleHalf(r) {
+    var gl = (cfg.gridLines || {})[r.grid] || '';
+    var pre = [r.prefix, gl].filter(Boolean).join('\n\n');
+    if (!pre && !r.suffix) return '';
+    return [pre, '[content]', r.suffix].filter(Boolean).join('\n\n');
+  }
+  $('#feed').addEventListener('click', function (e) {
+    var img = e.target.closest('img');
+    if (!img || !window.__assetLightbox) return;
+    var runEl = e.target.closest('[data-run]');
+    var r = runEl && runsById[runEl.dataset.run];
+    if (!r) return;
+    var tier = String(r.res || '').toUpperCase();
+    var isSheet = img.classList.contains('sheetimg');
+    var im = null;
+    if (!isSheet) {
+      im = (r.images || []).filter(function (x) { return x.cell === img.dataset.cell; })[0];
+      if (!im) return;
+    }
+    window.__assetLightbox(img.src, {
+      description: isSheet
+        ? 'the sheet — ' + r.count + ' panels'
+        : (im.prompt || im.cell),
+      prompt: (cfg.model || 'gpt-image-2') + ' · ' + (r.quality || '')
+        + ' · ' + (isSheet ? tier : '1/' + r.count + ' (' + tier + ')'),
+      promptStyle: styleHalf(r),
+      promptContent: isSheet
+        ? (r.panels || []).map(function (p) { return String(p).trim(); }).join('\n')
+        : (im.prompt || ''),
+    });
+  });
 
   fetch('/api/panels/config').then(function (r) { return r.json(); }).then(function (j) {
     cfg = j;
