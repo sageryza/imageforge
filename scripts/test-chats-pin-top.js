@@ -284,8 +284,11 @@ const RED = /rgb\(179,\s*68,\s*63\)/;
   await page.waitForFunction(() => !document.querySelector('.askwrap'), null, { timeout: 2000 })
     .catch(() => fail('Done did not shut the organize sheet'));
   ok();
-  // …and the header they came OUT of keeps only Archive and the tag icon.
-  for (const gone of ['.pinbtn', '.starbtn', '.bellbtn', '.eyebtn', '.trashbtn', '.bmk.chatbmk']) {
+  // …and the header they came OUT of keeps only Archive, the tag icon and the
+  // BELL, which she asked back onto this row on 2026-08-25 ("put it in both
+  // places … right next to the picture of the tag"). The other five stay in
+  // the sheet; `test-chats-bell.js` owns the bell's own checks.
+  for (const gone of ['.pinbtn', '.starbtn', '.eyebtn', '.trashbtn', '.bmk.chatbmk']) {
     if (await page.$('#thread header .no ' + gone)) fail('the thread header still carries ' + gone);
     else ok();
   }

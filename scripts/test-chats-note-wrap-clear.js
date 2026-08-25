@@ -19,6 +19,15 @@
 //      archive" — the home row has drawn that line since TAGS folded, but the
 //      SHEETS handed her one jumbled list.
 //
+//   D. (2026-08-25) "if there's no note for the chat can you get rid of this
+//      thing where it says + note for chat and just put it at the end of the
+//      see more area" — the italic placeholder sat at the top of every thread
+//      she had never written a note on. Now: a chat WITH a note is unchanged,
+//      a chat with a summary and no note carries a small "+ note" at the END
+//      of the summary sentence (after "See more…"), and a chat with neither
+//      keeps it in the note row, because otherwise there would be no way in
+//      at all.
+//
 //   npm install playwright-core --no-save && node scripts/test-chats-note-wrap-clear.js
 //
 // playwright is an optionalDependency, so this skips cleanly without it.
@@ -40,6 +49,7 @@ const iso = (ms) => new Date(ms).toISOString();
 const MSGS = [
   { id: 'm1', chat: 'noted', from: 'claude', text: 'a yellow raincoat', tldr: 'the one', created: iso(T0 - 6e5), postedAt: iso(T0 - 6e5) },
   { id: 'm2', chat: 'bare', from: 'claude', text: 'crows at dusk', tldr: 'two', created: iso(T0 - 5e5), postedAt: iso(T0 - 5e5) },
+  { id: 'm3', chat: 'summed', from: 'claude', text: 'the pause lengths', tldr: 'three', created: iso(T0 - 4e5), postedAt: iso(T0 - 4e5) },
 ];
 // `noted` has a note AND a full three-depth wrap-up — the case that was
 // invisible everywhere. `bare` has neither, and must show no line and no ⌄.
@@ -52,6 +62,14 @@ const CHATS = {
     wrapLong: 'Imported the Cutting Room pause passes rather than re-deriving them.\nBaked room tone once per recording.\nListening is per paragraph, spliced in the browser.',
   },
   bare: { account: '1' },
+  // D's case: a summary and NO note, which is where the "+ note" opener she
+  // asked for actually lives.
+  summed: {
+    account: '1',
+    wrapLine: 'Cut the room tone and re-listened per card.',
+    wrapUp: 'Cut the room tone. Re-listened per card. Kept every take.',
+    wrapLong: 'Imported the pause passes.\nBaked room tone once.\nSpliced in the browser.',
+  },
 };
 
 const server = http.createServer((req, res) => {
@@ -149,16 +167,56 @@ const dictate = (page, sel, text) => page.evaluate(([s, t]) => {
   if (!/Baked room tone/.test(long.text)) fail('MORE did not show the long version');
   if (long.bullets < 3) fail('the long version is not bulleted: ' + long.bullets);
 
-  // a chat with no wrap-up shows nothing rather than an empty caption
+  // ---- D. the "+ note" opener, and the placeholder that is gone ---------
+  // A chat that HAS a note offers nothing to add — she already answered.
+  if (await page.$('#thread .addnote')) fail('a chat with a note is still offering "+ note"');
   await page.click('#back');
+  await page.waitForSelector('#grid [data-chat="summed"]');
+  await page.click('#grid [data-chat="summed"]');
+  await page.waitForSelector('#thread .noterow');
+  const summed = await page.evaluate(() => {
+    const n = document.querySelector('#thread .noterow');
+    const line = document.querySelector('#thread .threadwrap .twline');
+    const kids = line ? [].map.call(line.children, (c) => c.className) : [];
+    return {
+      noteText: (n.textContent || '').trim(),
+      inRow: !!n.querySelector('.addnote'),
+      inLine: !!(line && line.querySelector('.addnote')),
+      last: kids[kids.length - 1] || '',
+      afterSeeMore: kids.findIndex((c) => /addnote/.test(c)) >
+                    kids.findIndex((c) => /wrapmore/.test(c) && !/addnote/.test(c)),
+    };
+  });
+  if (/note for this chat/.test(summed.noteText)) fail('the "+ note for this chat" placeholder is still on the note row');
+  if (summed.inRow) fail('the opener stayed in the note row even though there is a summary to hang it on');
+  if (!summed.inLine) fail('no "+ note" at the end of the summary line');
+  if (!/addnote/.test(summed.last)) fail('"+ note" is not the LAST thing on the summary line: ' + summed.last);
+  if (!summed.afterSeeMore) fail('"+ note" is not after "See more…"');
+  // …and it opens the same box, in the note row above it
+  await page.click('#thread .threadwrap .addnote');
+  await page.waitForSelector('#thread .noterow textarea', { timeout: 2000 })
+    .catch(() => fail('"+ note" did not open the note box'));
+  if (await page.$('#thread .threadwrap .addnote')) fail('the opener is still on the line while she is typing');
+  await page.$eval('#thread .noterow textarea', (n) => n.blur());
+  await page.waitForTimeout(250);
+  if (!await page.$('#thread .threadwrap .addnote')) fail('a blank save lost the opener for good');
+  await page.click('#back');
+
+  // a chat with no wrap-up shows nothing rather than an empty caption
   await page.waitForSelector('#grid [data-chat="bare"]');
   await page.click('#grid [data-chat="bare"]');
   await page.waitForSelector('#thread .noterow');
   const bare = await page.evaluate(() => {
     const w = document.querySelector('#thread .threadwrap');
-    return { there: !!w, shown: !!(w && !w.hidden && w.textContent.trim()) };
+    const n = document.querySelector('#thread .noterow');
+    return { there: !!w, shown: !!(w && !w.hidden && w.textContent.trim()),
+      opener: !!n.querySelector('.addnote'), text: (n.textContent || '').trim() };
   });
   if (bare.shown) fail('a chat with no summary is showing an empty wrap-up block');
+  // …and with NO summary the opener falls back to the note row — otherwise a
+  // chat that has never been summarised could never be given a note.
+  if (!bare.opener) fail('no way to add a note on a chat with no summary line');
+  if (/note for this chat/.test(bare.text)) fail('the old placeholder sentence is still there: ' + bare.text);
   await page.click('#back');
   await page.waitForSelector('#grid [data-chat="noted"]');
 
