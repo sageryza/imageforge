@@ -3329,6 +3329,19 @@ before working on that module. Nothing was deleted — the moved text is verbati
   the same on any page whose content runs under the rail. **Fixing it costs a
   third line of controls** (reserving 56px wraps the row again at 390pt,
   measured), so it is hers to call. Don't reserve it without asking.
+  **A PROMPT'S "… more" IS DECIDED BY MEASUREMENT, SO A BOX WITH NO LAYOUT IS
+  LEFT UNDECIDED (2026-08-25, Sophie: "why is there only a Seymour… Button for
+  some of the prompts?" — dictation for *see more*).** The opener is added only
+  where `scrollHeight` really exceeds `clientHeight`, which is the honest test —
+  but **`#runs` is HIDDEN in tiles view**, so every card the feed drew while she
+  was on the wall measured 0/0, which reads as *nothing was cut*; the head html
+  never changes again, so `applyClamps` never got a second look and those cards
+  had NO opener forever, on prompts clipped mid-word. Measured against her real
+  feed: 36 of 36 openers in list view, **0 of 36** when the same runs were first
+  drawn in tiles. An unlaid-out box now returns undecided and `resyncClamps()`
+  asks again when the list is shown — and once `document.fonts.ready` settles,
+  since the font moves the wrap. Test:
+  `node scripts/test-playground-more-opener.js` (verified failing 2 pre-fix).
   **THE TILE WALL IS THREE TO A ROW, AND THE LIGHTBOX'S SIDE ARROWS ARE A TAP
   WITH NOTHING DRAWN (2026-08-24, Sophie: "make playground thumbnails 3 to a
   row not 4" · "the side arrow bars - buttons shud be smaller, tap targets

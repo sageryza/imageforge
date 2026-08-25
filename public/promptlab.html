@@ -633,6 +633,9 @@
     // shown twice. (Cancelling a run therefore lives in list view.)
     document.getElementById('pendings').hidden = tiles;
     if (tiles) renderTiles();
+    // Coming back to the list: anything drawn while it was hidden measured 0/0
+    // and is still undecided, so measure it now that it has a box.
+    else resyncClamps();
   }
   function setView(v) { localStorage.setItem('promptlab_view', v); applyView(); }
   document.getElementById('v-list').addEventListener('click', function () { setView('list'); });
@@ -2187,6 +2190,18 @@
     for (var i = 0; i < ps.length; i++) {
       (function (el) {
         if (el.querySelector('.moretxt')) return;      // a repaint, already folded
+        // A BOX WITH NO LAYOUT IS NOT A BOX THAT FITS (2026-08-25, Sophie:
+        // "why is there only a see more button for some of the prompts?").
+        // `#runs` is hidden in TILES view, so every card the feed rendered
+        // while she was on the wall measured 0/0 — which reads as "nothing was
+        // cut" — and the head html never changes again, so applyClamps never
+        // ran on it a second time: the opener was missing on those cards
+        // FOREVER, on prompts plainly clipped mid-word. Measured against the
+        // real feed: 36 of 36 openers present in list view, 0 of 36 when the
+        // same runs were first drawn in tiles. So an unlaid-out box is left
+        // undecided, and `resyncClamps` asks again the moment the list is
+        // shown (and once the fonts have settled, which moves the wrap too).
+        if (!el.clientHeight) return;
         if (el.scrollHeight - el.clientHeight <= 1) return;
         var btn = document.createElement('button');
         btn.className = 'moretxt';
@@ -2206,6 +2221,15 @@
       })(ps[i]);
     }
   }
+
+  // Ask again for every prompt still undecided — the boxes that had no layout
+  // when their card was built. Cheap: an already-folded one is skipped by the
+  // `.moretxt` check, and an opened one no longer carries `.clamp` at all.
+  function resyncClamps() {
+    applyClamps(document.getElementById('pendings'));
+    applyClamps(document.getElementById('runs'));
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(resyncClamps);
 
   function esc(s) {
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
