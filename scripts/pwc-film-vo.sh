@@ -32,6 +32,19 @@ say "$NARRATOR" 03-t1.mp3 'Instead, direct your eyes approximately three feet to
 say "$NARRATOR" 04-t2.mp3 'The trained observer understands the usefulness of reflective surfaces. <break time="0.5s"/> Windows are recommended for beginners. <break time="0.7s"/> Mirrors are suitable for the intermediate observer. <break time="1.6s"/> Advanced practitioners may attempt the spoon.' 0.7
 say "$WATCHER"  05a-watcher.mp3 "Blue jacket. Behind you. Don't look." 0.45
 say "$NARRATOR" 05b-friend.mp3 'Your friend will look. <break time="1.0s"/> Do not involve your friend.' 0.7
-say "$NARRATOR" 06-eyecontact.mp3 'Occasionally, despite correct procedure, eye contact may occur. <break time="0.6s"/> Remain calm. <break time="0.7s"/> Assume a normal facial expression. <break time="1.1s"/> If possible. <break time="0.9s"/> Now redirect your attention toward an object behind your subject. <break time="0.9s"/> You were simply looking at... <break time="1.8s"/> something else.' 0.7
+say "$NARRATOR" 06-eyecontact.mp3 'Occasionally, despite correct procedure, eye contact may occur. <break time="0.6s"/> Remain calm. <break time="0.7s"/> Assume a normal facial expression. <break time="1.1s"/> If possible. <break time="0.9s"/> Now redirect your attention toward an object behind your subject. <break time="0.9s"/> You were simply looking at... <break time="0.85s"/> something else.' 0.7
 say "$NARRATOR" 07-graduation.mp3 'Congratulations. <break time="0.7s"/> You have completed the People Watching Club introductory course in discreet human observation. <break time="0.6s"/> You are now prepared to notice the gestures, habits, mysteries, and extremely minor dramas occurring around you every day. <break time="1.0s"/> Observe carefully. <break time="0.6s"/> Interfere with nothing. <break time="0.6s"/> And, whenever possible... <break time="0.9s"/> notice things.' 0.7
+# Sophie asked him to talk "a bit faster … but just keep the pitch the same",
+# which is atempo exactly. Applied after the render so every clip speeds up by
+# the same factor, breaks included.
+if [ -n "${PWC_TEMPO:-1.12}" ]; then
+  T="${PWC_TEMPO:-1.12}"
+  mkdir -p "$OUT/fast"
+  for f in "$OUT"/*.mp3; do
+    [ -f "$f" ] || continue
+    "${FFMPEG:-ffmpeg}" -y -i "$f" -af "atempo=$T" -c:a libmp3lame -q:a 2 \
+      "$OUT/fast/$(basename "$f")" -loglevel error
+  done
+  echo "sped-up narration in $OUT/fast (atempo=$T)"
+fi
 echo "narration in $OUT"

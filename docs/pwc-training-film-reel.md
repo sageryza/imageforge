@@ -3,8 +3,10 @@
 Sophie's seven "People Watching Club: Official Training Film No. 001" cards cut
 into a 9:16 reel, opened with a public-domain 3-2-1 Academy leader countdown.
 
-**Live cut — narrated v2:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v2-narrated.mp4
-(1080x1920, 30fps, 2:03, -15.0 LUFS.)
+**Live cut — v3, camera moves:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v3-camera.mp4
+(1080x1920, 30fps, 1:50, -15.0 LUFS.)
+
+**v2, narrated, static cards, 2:03:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v2-narrated.mp4
 
 **v1, silent, 31.8s:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/reel-v1.mp4
 Superseded but kept — it is the cards at reel pace with no narration.
@@ -123,3 +125,78 @@ always pushes the line further INTO the card, never across the join.
 - 5 https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/cards/05-technique-3-the-friend.png
 - 6 https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/cards/06-emergency-1-eye-contact.png
 - 7 https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/cards/07-certified-people-watcher.png
+
+
+## v3 — the camera, the pacing, and the hole in the music
+
+Three asks off v2, all of them things only she could have caught.
+
+### The camera moves — 38 shots cut to the words
+
+Her ask: "it would be nice if the camera could sort of jump to different parts
+of the image to keep the viewers focus so they don't have to look at the whole
+image." These are dense posters on a phone; a static hold asks her audience to
+read a diagram at thumbnail size.
+
+`scripts/pwc-film-shots.py` is the whole plan and is the file to edit — a rect
+per shot in fractions of the card, plus the time that shot ends.
+`pwc-film-render-shots.py` renders it.
+
+- **Cuts land ON the word because the times are MEASURED, not guessed.** Every
+  narration clip was run through Whisper with segment (and, for the graduation
+  card, word) timestamps, and each shot's end time is one of those stamps. That
+  is the whole reason the montage on "gestures, habits, mysteries, and extremely
+  minor dramas" hits one little labelled drama per noun.
+- **A shot keeps its OWN aspect ratio and is fitted into the 1080x1800 box over
+  the same blurred card.** The first build kept every crop at the card's aspect,
+  and it failed twice over: it cannot isolate a wide band — "LOOKING.", the
+  30-degree diagram, "NOTICE THINGS." — and every detail crop sliced the card's
+  headline mid-word, which reads as a mistake rather than a choice. The
+  background is the same blurred full card in every shot of that card, so only
+  the framing moves.
+- **`MAX_UP = 2.45` is a hard ceiling on upscale**, and shots that ask for more
+  are widened around their centre automatically (the renderer names them). The
+  cards are only 1024-1122px wide, so a tight crop on a small label — the
+  certificate seal, "OBSERVE DON'T INTERVENE" — would otherwise be mush.
+- **Every card opens on a wide** (except the graduation card, which opens on
+  CONGRATULATIONS!) so the headline is read before the camera goes in.
+- Each shot drifts slowly inside `OVER = 1.05` of headroom, direction
+  alternating by index, so no shot is a dead still.
+
+### The narration
+
+**`PWC_TEMPO=1.12`, applied with `atempo`** — she asked for "a bit faster …
+but just keep the pitch the same", which is atempo by definition. It runs
+after the render, so every clip and every `<break/>` shortens by the same
+factor. 1:48 of narration became 1:35.
+
+**The pause on "You were simply looking at… something else." was cut from
+1.8s to 0.85s** at her ask. Measured with `silencedetect` rather than Whisper —
+Whisper's word timestamps snap shut across a silence and report the gap as
+0.00s, which would have made the fix look like it did nothing. Real gap now
+0.97s, from ~1.95s.
+
+### The hole in the music — she was right, and it was a bug
+
+She asked "the music doesn't play till the end there's silence towards the end.
+Is that intentional?" It was not. v2's bed was four 20.5s pieces starting at 12s
+and the last ended at **94s**, with the closing sting at 116.3 — so the whole
+graduation card, the longest in the film, carried narration over nothing but
+projector hiss.
+
+The bed now runs continuously to the sting, and **the pieces are spaced 15s,
+not their full 20.5s**: a piece's fade-out begins at 17.5, so the next must be
+fully up by then. At 20s spacing the handover measured **-61dB twice** — an
+audible hole at every seam, which is the same bug in miniature.
+
+Verified by rendering the bed with the narration and projector muted and
+measuring every 4s: -41 to -48dB unbroken from 6s to the sting.
+
+### Why her replies looked like they were not posting
+
+Not a hook fault and nothing was lost — all seven messages were in the feed.
+`hiddenAt` is a self-clearing stamp: `POST /reply` sets it the moment she sends,
+and the chat leaves her list until the reply lands. This chat's turns run 7-30
+minutes because of video encoding, so any time she looked mid-turn the chat was
+behind the HIDDEN bar. Worth knowing before diagnosing a "silent chat" that is
+merely a slow one.
