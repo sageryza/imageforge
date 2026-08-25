@@ -122,7 +122,7 @@
   joined one apart.
   <br><br>
   <b>The pencil</b> on a card changes its words — and while it is open you can
-  divide the moment at the cursor, or delete it. A unit of five or more folds
+  divide the moment at the cursor, or delete it. A unit of three or more folds
   to its first and last; tap a folded line to see the whole thing.
   <br><br>
   It saves as you go, and nothing here costs money.
@@ -205,7 +205,7 @@
   }
 
   /* ------------------------------------------------------------ one story */
-  var ID = null, MOM = {}, UNITS = [], NODES = {}, opened = {}, LONG = 5;
+  var ID = null, MOM = {}, UNITS = [], NODES = {}, opened = {}, LONG = 3;   // a unit of this many or more folds (Sophie, 2026-08-25: was 5)
 
   function show(level) {
     $('lvShelf').hidden = level !== 'shelf';

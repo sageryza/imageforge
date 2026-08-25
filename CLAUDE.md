@@ -4289,8 +4289,16 @@ before working on that module. Nothing was deleted — the moved text is verbati
   words stay in `moments`. The page's controls are all hers by name: a number
   you can TYPE, single/double arrows (one step / all the way), the marks in the
   GAP (join these two, add one here), the pencil (change the words, and only
-  from inside the open editor: divide at the cursor, delete), and a unit of 5+
+  from inside the open editor: divide at the cursor, delete), and a unit of 3+
   FOLDING to its first and last with one line each in between.
+  **THE FOLD THRESHOLD IS `LONG` IN `public/timeline.html`, AND IT IS THREE
+  (2026-08-25, Sophie: "I thought that things are supposed to collapse into
+  just the first line when they're chained together is there a button I should
+  be pushing" — there is no button; it was 5, so her three- and four-card
+  chains sat fully open and read as broken).** The fold is automatic and there
+  is deliberately nothing to press. At three the fold is first + last with ONE
+  trimmed middle; a PAIR has no middle and so never folds, whatever the number
+  says. Both ends of that are pinned by `node scripts/test-timeline.js`.
   **The editor is behind a pencil and never a tap on the words** — tap-to-edit
   means every stray thumb on the way down the page opens an editor.
   Two bugs worth not repeating, both pinned by the test: a folded middle sets
