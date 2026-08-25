@@ -20,9 +20,13 @@
  * "Things that were gonna become videos" are the storyboard / stills / shot
  * decks in the Review Queue — counted by their own decided/total.
  *
- * WIDENED (her second ask, same day: "can you do a survey of any deliverables
- * I never commented on or messaged the chat about"). The same two signals are
- * asked of every kind of thing a chat hands over — images, Compare/deck pages,
+ * TWO SEPARATE SURVEYS, NEVER ONE WIDENED ONE (her correction, same day: "I
+ * asked for a separate survey, not to widen it"). `--kind video` is the films
+ * and the things that were going to become videos; `--kind rest` is every
+ * OTHER kind of deliverable. They are separate pages in the Compare tab
+ * because they are separate piles of work — folding the second into the first
+ * replaced a page she already had rather than adding the one she asked for.
+ * The same two signals are asked of every kind of thing a chat hands over — images, Compare/deck pages,
  * note threads a chat answered and she never came back to, and blog drafts
  * that were written and never published. A chat's images count as unseen when
  * they were filed AFTER her last message in that chat: `lastHerAt` on the
@@ -206,12 +210,17 @@ async function main() {
   console.log(`BLOG: ${s.blogDrafts} posts written, never published`);
 
   const htmlArg = process.argv.indexOf('--html');
-  if (htmlArg > -1) { fs.writeFileSync(process.argv[htmlArg + 1], page(report)); console.log('\nwrote', process.argv[htmlArg + 1]); }
+  const kindArg = process.argv.indexOf('--kind');
+  const kind = kindArg > -1 ? process.argv[kindArg + 1] : 'video';
+  if (htmlArg > -1) {
+    fs.writeFileSync(process.argv[htmlArg + 1], page(report, kind));
+    console.log(`\nwrote ${process.argv[htmlArg + 1]} (${kind})`);
+  }
 }
 
 // The survey as a Compare page: a film is a LINE WITH A PLAY BUTTON, never an
 // embedded <video>; every row carries data-item so it gets a note box.
-function page(r) {
+function page(r, kind) {
   const s = r.stats;
   const filmRow = (x, i) => `  <div class="card" data-item="film-${esc(x.chat)}">
     <h2>${esc(x.title || x.chat)}</h2>
@@ -225,53 +234,67 @@ function page(r) {
   const silent = x => !x.archived && !x.noted && !x.msgsAfter;
   const f = r.films.filter(silent), a = r.audio.filter(silent);
   const pre = r.pre.slice().sort((x, y) => (x.decided / (x.total || 1)) - (y.decided / (y.total || 1)));
-  return `<!doctype html>
+  const head = title => `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Deliverables waiting — the survey (v1)</title>
+<title>${title}</title>
 <link rel="stylesheet" href="/compare.css">
 <style>.meta{color:var(--ink2);font-size:13px;margin:6px 0 0}h3{margin:26px 0 8px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}</style>
 <div class="wrap">
-  <h1>Deliverables waiting — the survey (v2)</h1>
-  <h3>Films nobody has heard back about — ${f.length}</h3>
-${f.map(filmRow).join('\n')}
-  <h3>Going to become videos — ${s.preDecided} of ${s.preItems} marked</h3>
-${pre.map(pageRow).join('\n')}
-  <h3>Audio waiting — ${a.length}</h3>
-${a.map((x, i) => filmRow(x, 100 + i)).join('\n')}
-  <h3>Images nobody has heard back about — ${s.imgUnseen}</h3>
-${r.imageRows.slice(0, 12).map(x => `  <div class="card" data-item="img-${esc(x.chat)}">
+  <h1>${title}</h1>`;
+  const tail = (mounts, sheet, help) => `</div>
+<script src="/compare.js"></script>
+<script>
+(function () {
+  ${JSON.stringify(mounts)}.forEach(function (x) { window.__filmRow(x); });
+  window.__compareNotes({ chat: 'deliverables-survey', sheet: '${sheet}' });
+  window.__compareHelp({ html: ${JSON.stringify(help)} });
+})();
+</script>`;
+
+  if (kind === 'video') {
+    const pre = r.pre.slice().sort((x, y) => (x.decided / (x.total || 1)) - (y.decided / (y.total || 1)));
+    return head('Films waiting — the survey (v1)')
+      + `\n  <h3>Films nobody has heard back about — ${f.length}</h3>\n`
+      + f.map(filmRow).join('\n')
+      + `\n  <h3>Going to become videos — ${s.preDecided} of ${s.preItems} marked</h3>\n`
+      + pre.map(pageRow).join('\n')
+      + `\n  <h3>Audio waiting — ${a.length}</h3>\n`
+      + a.map((x, i) => filmRow(x, 100 + i)).join('\n') + '\n'
+      + tail(f.map((x, i) => ({ url: x.url, label: x.title || x.chat, mount: '#f' + i }))
+        .concat(a.map((x, i) => ({ url: x.url, label: x.title || x.chat, mount: '#f' + (100 + i) }))),
+        'deliverables-v1',
+        `<b>What this is.</b> Every film and audio cut a chat handed you that nobody has heard back about — no note on it, no message in that chat after it landed. ${s.imageMarks} of your marks are on images, ${s.filmNotes} on films.`);
+  }
+
+  // Everything that is NOT a film: its own survey, its own page.
+  return head('Everything else waiting — the survey (v1)')
+    + `\n  <h3>Images nobody has heard back about — ${s.imgUnseen}</h3>\n`
+    + r.imageRows.slice(0, 14).map(x => `  <div class="card" data-item="img-${esc(x.chat)}">
     <h2>${esc(x.name)}</h2>
     <p class="meta">${x.unseen} filed since you last wrote there · ${x.marked} of ${x.n} marked · ${esc(x.last.slice(0, 10))}${x.everMessaged ? '' : ' · never messaged'}</p>
-  </div>`).join('\n')}
-  <h3>Read but never answered — ${s.threadsOwed} note threads</h3>
+  </div>`).join('\n')
+    + `\n  <h3>Pages posted, never marked — ${s.untouchedPages} of ${s.livePages}</h3>\n`
+    + r.rest.slice(0, 12).map(pageRow).join('\n')
+    + `\n  <h3>Read but never answered — ${s.threadsOwed} note threads</h3>
   <div class="card" data-item="threads">
     <h2>A chat wrote back on the picture and you never came back</h2>
-    <p class="meta">${Object.entries(r.owedByChat).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([c, n]) => n + ' · ' + esc(c)).join('<br>')}</p>
+    <p class="meta">${Object.entries(r.owedByChat).sort((x, y) => y[1] - x[1]).slice(0, 8).map(([c, n]) => n + ' · ' + esc(c)).join('<br>')}</p>
   </div>
   <h3>Written, never published — ${s.blogDrafts} blog posts</h3>
   <div class="card" data-item="blog">
     <h2>Drafts sitting in Blog Studio</h2>
     <p class="meta">${r.blogDrafts.slice(0, 8).map(esc).join('<br>')}</p>
   </div>
-  <h3>Everything else — ${r.asks.length} open asks</h3>
-${Object.entries(r.buckets).sort((x, y) => y[1].length - x[1].length).map(([k, v]) => `  <div class="card" data-item="ask-${esc(k.replace(/\\W+/g, '-'))}">
+  <h3>Everything else — ${r.asks.length} open asks</h3>\n`
+    + Object.entries(r.buckets).sort((x, y) => y[1].length - x[1].length)
+      .filter(([k]) => k !== 'video')
+      .map(([k, v]) => `  <div class="card" data-item="ask-${esc(k.replace(/\W+/g, '-'))}">
     <h2>${esc(k)} — ${v.length}</h2>
     <p class="meta">${v.slice(0, 8).map(x => esc(x.chat) + ': ' + esc(x.need)).join('<br>')}</p>
-  </div>`).join('\n')}
-</div>
-<script src="/compare.js"></script>
-<script>
-(function () {
-  var films = ${JSON.stringify(f.map((x, i) => ({ url: x.url, label: x.title || x.chat, mount: '#f' + i })))};
-  var auds = ${JSON.stringify(a.map((x, i) => ({ url: x.url, label: x.title || x.chat, mount: '#f' + (100 + i) })))};
-  films.concat(auds).forEach(function (x) { window.__filmRow(x); });
-  window.__compareNotes({ chat: 'deliverables-survey', sheet: 'deliverables-v2' });
-  window.__compareHelp({ html: '<b>What this is.</b> Everything a chat handed you that nobody has heard back about. '
-    + 'A film counts as answered if you left a note on it or messaged that chat after it landed — '
-    + '${s.imageMarks} of your marks are on images, ${s.filmNotes} on films.' });
-})();
-</script>`;
+  </div>`).join('\n') + '\n'
+    + tail([], 'deliverables-rest-v1',
+      `<b>What this is.</b> Everything that is not a film. An image counts as unseen when it was filed after your last message in that chat — ${s.imgFiled - s.imgMarked} of ${s.imgFiled} filed images carry no mark at all. The films have their own survey.`);
 }
 
 main().catch(e => { console.error('ERR', e.message); process.exit(1); });
