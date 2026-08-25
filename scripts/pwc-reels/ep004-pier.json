@@ -1,0 +1,346 @@
+{
+  "comment": "PWC backstories ep004 \u2014 SANTA MONICA PIER (vertical 9:16, white ink, DIAGRAM backstories). Pexels 'People Walking' by Ike louie Natividad, https://www.pexels.com/video/people-walking-855564/ \u2014 actually video id 8996518; download: curl -L -o pier.mp4 https://www.pexels.com/download/video/8996518/ (free Pexels license). Longer freezes so the flowcharts can be read. Coordinates in 1080x1920 output space.",
+  "src": "pier.mp4",
+  "out": "pwc-ep004.mp4",
+  "width": 1080,
+  "height": 1920,
+  "fps": "30",
+  "seed": 311,
+  "ink": "#f2f2ee",
+  "font": "Permanent Marker",
+  "grade": "scale=1080:1920,hue=s=0,eq=contrast=1.07:brightness=0.01,noise=alls=5:allf=t,vignette=PI/5.2:mode=forward",
+  "freezes": [
+    {
+      "t": 2.0,
+      "dur": 6.5,
+      "marks": [
+        {
+          "type": "text",
+          "lines": [
+            "Kayla's day so far:"
+          ],
+          "x": 540,
+          "y": 230,
+          "size": 54,
+          "rot": -1.5
+        },
+        {
+          "type": "doodle",
+          "name": "sun",
+          "cx": 230,
+          "cy": 400,
+          "s": 95
+        },
+        {
+          "type": "text",
+          "lines": [
+            "up at 5"
+          ],
+          "x": 230,
+          "y": 510,
+          "size": 38
+        },
+        {
+          "type": "arrow",
+          "from": [
+            320,
+            400
+          ],
+          "to": [
+            420,
+            400
+          ],
+          "head": 22
+        },
+        {
+          "type": "doodle",
+          "name": "car",
+          "cx": 540,
+          "cy": 400,
+          "s": 115
+        },
+        {
+          "type": "text",
+          "lines": [
+            "drove 90 min"
+          ],
+          "x": 540,
+          "y": 510,
+          "size": 38
+        },
+        {
+          "type": "arrow",
+          "from": [
+            650,
+            400
+          ],
+          "to": [
+            750,
+            400
+          ],
+          "head": 22
+        },
+        {
+          "type": "text",
+          "lines": [
+            "corn dog",
+            "(third)"
+          ],
+          "x": 880,
+          "y": 390,
+          "size": 40
+        },
+        {
+          "type": "arrow",
+          "from": [
+            850,
+            480
+          ],
+          "to": [
+            540,
+            720
+          ],
+          "head": 26
+        }
+      ]
+    },
+    {
+      "t": 8.0,
+      "dur": 6.5,
+      "marks": [
+        {
+          "type": "text",
+          "lines": [
+            "Peyton, 22:"
+          ],
+          "x": 540,
+          "y": 200,
+          "size": 54,
+          "rot": 1
+        },
+        {
+          "type": "doodle",
+          "name": "clock",
+          "cx": 240,
+          "cy": 350,
+          "s": 85
+        },
+        {
+          "type": "text",
+          "lines": [
+            "filming",
+            "since 6 AM"
+          ],
+          "x": 240,
+          "y": 460,
+          "size": 36
+        },
+        {
+          "type": "arrow",
+          "from": [
+            330,
+            350
+          ],
+          "to": [
+            430,
+            350
+          ],
+          "head": 22
+        },
+        {
+          "type": "doodle",
+          "name": "xmark",
+          "cx": 540,
+          "cy": 340,
+          "s": 70
+        },
+        {
+          "type": "text",
+          "lines": [
+            "phone died",
+            "at 9:15"
+          ],
+          "x": 540,
+          "y": 460,
+          "size": 36
+        },
+        {
+          "type": "arrow",
+          "from": [
+            630,
+            350
+          ],
+          "to": [
+            730,
+            350
+          ],
+          "head": 22
+        },
+        {
+          "type": "text",
+          "lines": [
+            "still",
+            "filming."
+          ],
+          "x": 860,
+          "y": 330,
+          "size": 40
+        },
+        {
+          "type": "arrow",
+          "from": [
+            820,
+            440
+          ],
+          "to": [
+            500,
+            620
+          ],
+          "head": 26
+        }
+      ]
+    },
+    {
+      "t": 11.0,
+      "dur": 8.0,
+      "marks": [
+        {
+          "type": "text",
+          "lines": [
+            "How Brad got here:"
+          ],
+          "x": 540,
+          "y": 230,
+          "size": 54,
+          "rot": -1
+        },
+        {
+          "type": "doodle",
+          "name": "school",
+          "cx": 280,
+          "cy": 430,
+          "s": 120
+        },
+        {
+          "type": "text",
+          "lines": [
+            "1998: school"
+          ],
+          "x": 280,
+          "y": 560,
+          "size": 36
+        },
+        {
+          "type": "arrow",
+          "from": [
+            390,
+            440
+          ],
+          "to": [
+            520,
+            440
+          ],
+          "head": 22
+        },
+        {
+          "type": "doodle",
+          "name": "deadfish",
+          "cx": 660,
+          "cy": 430,
+          "s": 115
+        },
+        {
+          "type": "text",
+          "lines": [
+            "1999: lost Bubbles"
+          ],
+          "x": 660,
+          "y": 560,
+          "size": 36
+        },
+        {
+          "type": "arrow",
+          "from": [
+            660,
+            600
+          ],
+          "to": [
+            430,
+            700
+          ],
+          "head": 22
+        },
+        {
+          "type": "doodle",
+          "name": "heart",
+          "cx": 325,
+          "cy": 760,
+          "s": 85
+        },
+        {
+          "type": "line",
+          "from": [
+            288,
+            718
+          ],
+          "to": [
+            365,
+            805
+          ]
+        },
+        {
+          "type": "text",
+          "lines": [
+            "2000-now:",
+            "not over it"
+          ],
+          "x": 620,
+          "y": 720,
+          "size": 36
+        },
+        {
+          "type": "arrow",
+          "from": [
+            560,
+            800
+          ],
+          "to": [
+            610,
+            890
+          ],
+          "head": 24
+        },
+        {
+          "type": "circle",
+          "cx": 630,
+          "cy": 905,
+          "rx": 58,
+          "ry": 72
+        },
+        {
+          "type": "text",
+          "lines": [
+            "He is here for the ocean.",
+            "Bubbles loved the ocean."
+          ],
+          "x": 540,
+          "y": 1560,
+          "size": 46,
+          "rot": -1
+        }
+      ]
+    }
+  ],
+  "tailTo": 15.9,
+  "endcard": {
+    "dur": 2.6,
+    "lines": [
+      "people watching club"
+    ],
+    "x": 540,
+    "y": 940,
+    "size": 92,
+    "font": "Caveat",
+    "strokeWidth": 4
+  }
+}

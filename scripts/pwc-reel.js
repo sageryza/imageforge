@@ -83,25 +83,83 @@ function scribbleEllipse(r, c) { // {cx, cy, rx, ry} — 1.2 loops, jittered rad
 
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
+// ---- doodle library — crude line drawings in a -50..50 unit box; the wobble
+// pass is what makes them read as hand-drawn. Each is a list of polylines
+// (arrays of [x,y]) plus optional dots.
+const DOODLES = {
+  fish: { lines: [
+    [[-45,0],[-30,-14],[-8,-18],[12,-12],[24,0],[12,12],[-8,18],[-30,14],[-45,0]],
+    [[24,0],[45,-16],[42,0],[45,16],[24,0]]], dots: [[-26,-4]] },
+  deadfish: { lines: [
+    [[-45,0],[-30,-14],[-8,-18],[12,-12],[24,0],[12,12],[-8,18],[-30,14],[-45,0]],
+    [[24,0],[45,-16],[42,0],[45,16],[24,0]],
+    [[-31,-9],[-21,1]], [[-21,-9],[-31,1]]] },
+  school: { lines: [
+    [[-45,45],[-45,-10],[0,-38],[45,-10],[45,45],[-45,45]],
+    [[-10,45],[-10,15],[10,15],[10,45]],
+    [[0,-38],[0,-58]], [[0,-58],[20,-52],[0,-46]]] },
+  sun: { lines: [
+    [[-18,0],[-13,-13],[0,-18],[13,-13],[18,0],[13,13],[0,18],[-13,13],[-18,0]],
+    [[0,-28],[0,-40]],[[0,28],[0,40]],[[-28,0],[-40,0]],[[28,0],[40,0]],
+    [[20,-20],[29,-29]],[[-20,-20],[-29,-29]],[[20,20],[29,29]],[[-20,20],[-29,29]]] },
+  car: { lines: [
+    [[-45,15],[-45,0],[-30,-2],[-20,-16],[15,-16],[25,-2],[45,0],[45,15],[-45,15]]],
+    circles: [[-24,15,10],[24,15,10]] },
+  heart: { lines: [
+    [[0,40],[-38,4],[-44,-16],[-32,-32],[-14,-32],[0,-16],[14,-32],[32,-32],[44,-16],[38,4],[0,40]]] },
+  clock: { lines: [
+    [[-2,-38],[10,-40],[22,-34],[32,-24],[38,-10],[38,4],[34,18],[24,30],[10,37],[-4,38],[-18,34],[-29,24],[-36,10],[-37,-4],[-32,-18],[-22,-30],[-10,-36],[-2,-38]],
+    [[0,0],[0,-22]], [[0,0],[14,8]]] },
+  xmark: { lines: [[[-18,-18],[18,18]],[[18,-18],[-18,18]]] },
+};
+
+function doodleSvg(r, m) { // {name, cx, cy, s (target width px), rot?}
+  const d = DOODLES[m.name];
+  if (!d) return '';
+  const k = (m.s || 100) / 100;
+  const rot = m.rot || 0;
+  const parts = [];
+  for (const line of d.lines) {
+    let path = '';
+    line.forEach((p, i) => {
+      const jx = (i === 0 || i === line.length - 1) ? 1.2 : 2.2;
+      const x = p[0] * k + (r() - 0.5) * jx, y = p[1] * k + (r() - 0.5) * jx;
+      path += (i ? ' L' : 'M') + ` ${x.toFixed(1)} ${y.toFixed(1)}`;
+    });
+    parts.push(`<path d="${path}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`);
+  }
+  for (const c of (d.circles || [])) parts.push(`<path d="${scribbleEllipse(r, { cx: c[0] * k, cy: c[1] * k, rx: c[2] * k, ry: c[2] * k })}" fill="none" stroke-linecap="round"/>`);
+  for (const p of (d.dots || [])) parts.push(`<circle cx="${p[0] * k}" cy="${p[1] * k}" r="${2.6 * k + 1.4}" stroke="none"/>`);
+  return `<g transform="translate(${m.cx} ${m.cy}) rotate(${rot})">${parts.join('')}</g>`;
+}
+
 // Full-frame transparent overlay for one freeze (or the end card).
 async function overlayPng(note, outFile, seed) {
   const r = rng(seed);
   const ink = note.ink || plan.ink || '#e0312e';
   const sw = note.strokeWidth || 7;
-  const parts = [];   // main red ink
+  const parts = [];   // main ink
   const shadow = [];  // soft dark copy underneath, offset — lifts ink off pale pavement
   const pathEl = (d, w) => `<path d="${d}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="${w}"/>`;
-  if (note.arrow) { const d = arrowSvg(r, note.arrow); parts.push(pathEl(d, sw)); shadow.push(pathEl(d, sw)); }
-  if (note.circle) { const d = scribbleEllipse(r, note.circle); parts.push(pathEl(d, sw)); shadow.push(pathEl(d, sw)); }
-  if (note.lines && note.lines.length) {
-    const size = note.size || 54, lh = note.lineHeight || 1.16;
-    const font = note.font || plan.font || 'Permanent Marker';
-    const anchor = note.anchor || 'middle';
-    const rot = note.rot || 0;
-    const tspans = note.lines.map((L, i) =>
-      `<text x="${note.x}" y="${note.y + i * size * lh}" font-family="${font}" font-size="${size}" text-anchor="${anchor}">${esc(L)}</text>`).join('');
-    const g = `<g transform="rotate(${rot} ${note.x} ${note.y})">${tspans}</g>`;
-    parts.push(g); shadow.push(g);
+  const both = el => { parts.push(el); shadow.push(el); };
+  // legacy single-mark fields plus the marks list (for diagram freezes)
+  const marks = [];
+  if (note.arrow) marks.push({ type: 'arrow', ...note.arrow, amp: note.arrow.amp, head: note.arrow.head });
+  if (note.circle) marks.push({ type: 'circle', ...note.circle });
+  if (note.lines && note.lines.length) marks.push({ type: 'text', lines: note.lines, x: note.x, y: note.y, size: note.size, rot: note.rot, anchor: note.anchor, font: note.font, lineHeight: note.lineHeight });
+  for (const m of (note.marks || [])) marks.push(m);
+  for (const m of marks) {
+    if (m.type === 'arrow') both(pathEl(arrowSvg(r, m), m.strokeWidth || sw));
+    else if (m.type === 'line') both(pathEl(wobblyLine(r, m.from[0], m.from[1], m.to[0], m.to[1], 8, m.amp ?? 4), m.strokeWidth || sw));
+    else if (m.type === 'circle') both(pathEl(scribbleEllipse(r, m), m.strokeWidth || sw));
+    else if (m.type === 'doodle') both(`<g stroke-width="${m.strokeWidth || sw - 1}">${doodleSvg(r, m)}</g>`);
+    else if (m.type === 'text') {
+      const size = m.size || 54, lh = m.lineHeight || 1.16;
+      const font = m.font || plan.font || 'Permanent Marker';
+      const tspans = m.lines.map((L, i) =>
+        `<text x="${m.x}" y="${m.y + i * size * lh}" font-family="${font}" font-size="${size}" text-anchor="${m.anchor || 'middle'}">${esc(L)}</text>`).join('');
+      both(`<g transform="rotate(${m.rot || 0} ${m.x} ${m.y})">${tspans}</g>`);
+    }
   }
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">` +
     `<g transform="translate(3,4)" fill="rgba(10,10,10,0.6)" stroke="rgba(10,10,10,0.6)">${shadow.join('')}</g>` +
