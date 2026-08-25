@@ -115,6 +115,12 @@ const VOICE = SPEC.voice || 'UTkHGl2ImiT6gwtAFCql'; // "Sophie — morning"
 const TOOLV = 'vofilm-1'; // bump to invalidate every cache
 // A spec's edge rule changes every cut, so it belongs in the shot cache key.
 const EDGEV = JSON.stringify(SPEC.edge || {});
+// `"relisten": true` — re-transcribe a small window around every located span
+// and cut on the FRESH timings (see relistenSpan). Opt-in per spec: it adds a
+// whisper call per span, and a spec that was already approved must not have
+// its cuts silently move. New timings change the span times, which are in the
+// shot cache key, so flipping it re-cuts exactly the shots it moves.
+const RELISTEN = !!SPEC.relisten;
 
 const md5 = (buf) => crypto.createHash('md5').update(buf).digest('hex');
 const md5f = (f) => md5(fs.readFileSync(f));
@@ -239,6 +245,61 @@ async function prepSources() {
   return out;
 }
 
+// THE BULK PASS LOCATES, THE RE-LISTEN CUTS (the Cutting Room's own rule,
+// finally applied here — Sophie 2026-08-25, hearing clipped word edges: "make
+// sure that the audio is cut exactly … whisper doesn't cut exactly to the
+// words"). A master's chunked word timestamps are chips-only accuracy: good
+// enough to FIND a phrase, tens of ms off at the word edges — and clampBounds
+// pads as little as 0.02s/0.03s when her takes run back to back, so a late
+// whisper start or an early whisper end (its habit) clips the word. So each
+// located span is re-transcribed in a small window around itself, relocated
+// on the fresh timings, snapped against the window's real silences, and then
+// a VOICING GUARD walks each edge outward while the 20ms RMS is still hot —
+// never past the neighbouring word, so a back-to-back take can't bleed in.
+// A missed relocation keeps the bulk timings (whisper on a short window can
+// drop opening words — the 1s prepended silence is that documented fix).
+async function relistenSpan(sources, source, phrase, t0, t1, label) {
+  const clean = sources[source].clean;
+  const cleanMd5 = md5f(clean);
+  const ck = `relisten|${TOOLV}|${source}|${cleanMd5}|${sha1(phrase)}`;
+  const hit0 = cache(ck);
+  if (hit0) return hit0.span; // null (missed) is a cached answer too
+  const total = dur(clean);
+  const PADS = 1.0;
+  const winStart = Math.max(0, t0 - 2.5);
+  const winEnd = Math.min(total, t1 + 2.5);
+  const win = path.join(DIR, `_relisten-${sha1(ck).slice(0, 10)}.mp3`);
+  run(FFMPEG, ['-v', 'error', '-y', '-ss', winStart.toFixed(3), '-t', (winEnd - winStart).toFixed(3),
+    '-i', clean, '-af', `adelay=${PADS * 1000}:all=1`, '-ac', '1', '-ar', '16000', '-b:a', '48k', win]);
+  let span = null;
+  try {
+    const w2 = await whisperWords(win);
+    const hit = ed.phraseSpan(w2, phrase);
+    if (hit && hit.score >= 0.6) {
+      let [rs, re] = ed.clampBounds(w2, hit.start, hit.end);
+      const nxt = w2[hit.end + 1] ? w2[hit.end + 1].start : null;
+      const prv = hit.start > 0 ? w2[hit.start - 1].end : null;
+      const sn = ed.snapToSilence(rs, re, await ed.detectSilences(win), nxt);
+      if (Array.isArray(sn)) [rs, re] = sn;
+      // voicing guard — never cut through sound. Bounded by the neighbouring
+      // words so it cannot capture a different take's word.
+      const bins = rmsProfile(win);
+      const HOT = pct(bins, 0.85) - 14;
+      const hot = (t) => { const i = Math.floor(t / B); return i >= 0 && i < bins.length && bins[i] > HOT; };
+      let ext = 0;
+      while (hot(re) && ext < 0.30 && (nxt == null || re + B < nxt - 0.02)) { re += B; ext += B; }
+      ext = 0;
+      while (rs > B && hot(rs - B) && ext < 0.20 && (prv == null || rs - B > prv + 0.02)) { rs -= B; ext += B; }
+      span = [Math.max(0, winStart + rs - PADS), winStart + re - PADS];
+    }
+  } catch (err) {
+    console.warn(`  relisten ${label}: ${err.message} — bulk timings kept`);
+  }
+  fs.rmSync(win, { force: true });
+  put(ck, { span });
+  return span;
+}
+
 // ---- stage 2: cut shots ----------------------------------------------------
 function locateSpans(sources) {
   const spans = []; // {shotIdx, order, source, t0, t1, text}
@@ -261,6 +322,11 @@ function locateSpans(sources) {
         const maxEnd = words[hit.end + 1] ? words[hit.end + 1].start : null;
         const snapped = ed.snapToSilence(t0, t1, await silOf(source), maxEnd);
         if (Array.isArray(snapped)) [t0, t1] = snapped;
+        if (RELISTEN) {
+          const fresh = await relistenSpan(sources, source, phrase, t0, t1, `${shot.id}.${pi}`);
+          if (fresh) [t0, t1] = fresh;
+          else console.warn(`  relisten missed on ${shot.id}.${pi} — bulk timings kept`);
+        }
         spans.push({ shotIdx: si, order: pi, source, t0, t1, text: phrase });
       }
     }

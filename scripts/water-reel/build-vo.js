@@ -192,7 +192,7 @@ for (const s of SHOTS) {
 const SOURCES = [...Object.keys(SLICES), LAURA];
 const spec = {
   title: 'MORE WATER, RIGHT NOW — in her voice',
-  width: W, height: PADH, fps: FPS, bg: '#f1d3a5', out: 'water-reel-v9',
+  width: W, height: PADH, fps: FPS, bg: '#f1d3a5', out: 'water-reel-v10',
   // vo-film's default edge rule keeps up to 1.2s of lead-in/tail per shot,
   // which is right for a film of long shots and wrong for 34 short ones: the
   // two kept edges MEET at every joint and the verify pass reports the reel as
@@ -200,6 +200,9 @@ const spec = {
   // everyone else — and the rule is in the shot cut cache key, so changing
   // this number re-cuts rather than serving a stale cut.
   edge: { max: 0.45, keep: 0.22 },
+  // cut on a fresh per-span re-listen, never on the bulk chunk timings alone —
+  // her v9 note: word beginnings and ends were clipped (vo-film's relistenSpan)
+  relisten: true,
   sources: Object.fromEntries(SOURCES.map((k) => [k, { file: path.join(srcDir, `${k}.wav`), denoise: false }])),
   shots: SHOTS.map((s) => ({
     id: s.id, video: path.join(clipDir, `${s.id}.mp4`), source: s.src,
