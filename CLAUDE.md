@@ -3533,6 +3533,22 @@ before working on that module. Nothing was deleted — the moved text is verbati
     cell's words as the content half and the run's real wrapper (prefix + the
     grid sentence + suffix) as the style half; the sheet opens with every
     cell she wrote.
+  - **UPSCALE A PANEL IN THE PLAYGROUND (2026-08-25, Sophie: "upscale each
+    panel individually as its own image so this could copy the text into the
+    playground").** A cut's lightbox carries an action (the Playground's own
+    wire-loop icon — the opens-another-tool rule) that walks to
+    `/playground?prompt=&style=&quality=&res=4k&sameref=1` — the panel's own
+    words, the tile it was really drawn on (server `evan` → page `chatgpt`),
+    and the tier: a cut panel is ~1K of pixels, so a 4K single redraw IS the
+    upscale. `?res=` is a new one-shot deep-link param in promptlab.html
+    (still never persisted — this one is in the link she tapped).
+  - **PANELS · PLAYGROUND is a hairline tab row at the top** (her ask, same
+    message) — a NAVIGATION, not an embed: the Playground is its own page and
+    an iframe would double every pill and toggle on screen.
+  - **LIST · TILES views, like the Playground's** (her ask): List is the runs
+    feed, Tiles is every cut panel as one wall three across at its own
+    natural shape, keyed/append-only like the feed so it never flashes,
+    sticky in localStorage, tap opens the same lightbox.
   - Prices and prompt text are **SERVED** (`GET /api/panels/config`); the page
     holds no copy of either, and a test pins that. Nothing is deleted — a run
     hides. Tests: `node scripts/test-panels.js` — 26 pure checks including the
