@@ -88,6 +88,13 @@ const acctPosts = [];
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
+  // /tritoggle.css — the shared three-way toggle shell (Aug 2026). The
+  // account switch IS one, so a stub that does not serve this renders it as a
+  // 4px sliver and every stop reads as the same place.
+  if (url.pathname === '/tritoggle.css') {
+    res.writeHead(200, { 'Content-Type': 'text/css' });
+    return res.end(fs.readFileSync(path.join(__dirname, '..', 'public', 'tritoggle.css')));
+  }
   if (url.pathname === '/api/chatfeed' && req.method === 'GET') {
     const since = url.searchParams.get('since');
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -95,6 +102,13 @@ const server = http.createServer((req, res) => {
       build: 'test-build-1', chats: CHATS, settings: { appAccount: '1' },
       truncated: [], messages: since ? [] : MSGS, delta: !!since,
     }));
+  }
+  // /tritoggle.js — the shared AIM rule (2026-08-24). express.static serves it
+  // in production; a stub that does not falls back to the old CYCLE and would
+  // green-light the very bug this pins.
+  if (url.pathname === '/tritoggle.js') {
+    res.writeHead(200, { 'Content-Type': 'text/javascript' });
+    return res.end(fs.readFileSync(path.join(__dirname, '..', 'public', 'tritoggle.js')));
   }
   if (url.pathname === '/api/chatfeed/app-account' && req.method === 'POST') {
     let body = '';
@@ -267,23 +281,36 @@ const same = (a, b) => JSON.stringify(a.slice().sort()) === JSON.stringify(b.sli
   // rendered transform rather than trusting the CSS
   // (read it AFTER the .18s slide, or every stop reads as the identity matrix
   // it is still transitioning away from)
+  // The STOP is `data-n` since the geometry moved into /tritoggle.css (Aug
+  // 2026) — zero-based, and shared with the Playground's toggles. `data-a` is
+  // still written beside it and is still the account itself, which is what
+  // every other read in this file asks for.
   const knob = async (want) => {
-    await page.$eval('#acctog', (n, w) => n.setAttribute('data-a', w), want);
+    await page.$eval('#acctog', (n, w) => n.setAttribute('data-n', w), want);
     await page.waitForTimeout(260);
     return page.$eval('#acctog', (n) => getComputedStyle(n, '::after').transform);
   };
-  const spots = [await knob('1'), await knob('2'), await knob('3')];
+  const spots = [await knob('0'), await knob('1'), await knob('2')];
   if (new Set(spots).size !== 3) fail('the three notches do not sit apart: ' + spots.join(' | '));
-  await page.evaluate(() => document.getElementById('acctog').setAttribute('data-a', '1'));
+  await page.evaluate(() => document.getElementById('acctog').setAttribute('data-n', '0'));
 
-  // 1 → 2 → 3 → 1, one tap each, moving the list and POSTing every time
+  // EVERY ACCOUNT IS ONE AIMED TAP, from wherever it is (2026-08-24, Sophie:
+  // "none of them should cycle — that's a really stupid pattern"). This used to
+  // tap the element's CENTRE three times and read 1 → 2 → 3 → 1 off the cycle,
+  // which is the behaviour she retired: it made account 3 two taps from account
+  // 1 and gave her no way to say "that one". The order below is deliberately
+  // NOT sequential — 3 straight from 1 is the case a cycle cannot do.
+  const tapAcct = async (n) => {
+    const box = await page.locator('#acctog').boundingBox();
+    await page.mouse.click(box.x + box.width * ((n + 0.5) / 3), box.y + box.height / 2);
+  };
   for (const [tap, want, rows2] of [
-    [1, '2', ['two-a', 'two-b', 'untagged', 'two-star']],
-    [2, '3', ['three-a', 'untagged', 'three-star']],
+    [1, '3', ['three-a', 'untagged', 'three-star']],
+    [2, '2', ['two-a', 'two-b', 'untagged', 'two-star']],
     [3, '1', ['one-a', 'one-b', 'untagged', 'one-star']],
   ]) {
     const before = acctPosts.length;
-    await page.click('#acctog');
+    await tapAcct(Number(want) - 1);
     await page.waitForFunction((w) => document.getElementById('accrow').dataset.on === w, want, { timeout: 4000 })
       .catch(() => fail('tap ' + tap + ' on the switch did not move the account tabs to ' + want));
     if (await page.$eval('#acctog', (n) => n.dataset.a) !== want) fail('tap ' + tap + ': the knob did not land on ' + want);
@@ -293,11 +320,19 @@ const same = (a, b) => JSON.stringify(a.slice().sort()) === JSON.stringify(b.sli
     if (acctPosts[acctPosts.length - 1].account !== want) fail('tap ' + tap + ' POSTed the wrong account: ' + JSON.stringify(acctPosts));
   }
 
+  // A TAP ON THE ACCOUNT SHE IS ALREADY ON IS NOT A SWITCH — no POST, no toast.
+  {
+    const before = acctPosts.length;
+    await tapAcct(0);                    // it is already on 1
+    await page.waitForTimeout(300);
+    if (acctPosts.length !== before) fail('tapping the account it is already on POSTed anyway');
+    if (await page.$eval('#acctog', (n) => n.dataset.a) !== '1') fail('…and it moved off the account it was on');
+  }
+
   // …and a chat on an account she is NOT signed into opens on the WEB
-  await page.click('#acctog');           // land on 3
-  await page.click('#acctog');
+  await tapAcct(2);                      // straight to 3, one tap
   await page.waitForFunction(() => document.getElementById('acctog').dataset.a === '3', null, { timeout: 4000 })
-    .catch(() => fail('could not get the switch back to 3'));
+    .catch(() => fail('could not get the switch to 3 in one aimed tap'));
   const hrefs = await page.evaluate(() => ({
     live: window.__openHref('three-a', 'https://claude.ai/chat/x'),
     other: window.__openHref('one-a', 'https://claude.ai/chat/x'),
@@ -305,9 +340,9 @@ const same = (a, b) => JSON.stringify(a.slice().sort()) === JSON.stringify(b.sli
   if (/no_universal_links/.test(hrefs.live)) fail('the signed-in account was pushed to the web: ' + hrefs.live);
   if (!/no_universal_links/.test(hrefs.other)) fail('a chat on another account did not route to the web: ' + hrefs.other);
 
-  await page.click('#acctog');           // wrap home to 1
+  await tapAcct(0);                      // and back to 1, also one tap
   await page.waitForFunction(() => document.getElementById('accrow').dataset.on === '1', null, { timeout: 4000 })
-    .catch(() => fail('the switch did not wrap back to account 1'));
+    .catch(() => fail('the switch did not come back to account 1'));
   await page.evaluate(() => window.__setAcct(''));
 
   // 6. the red badge counts chats in THAT account that answered her, so the

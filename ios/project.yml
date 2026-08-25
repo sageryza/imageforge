@@ -17,7 +17,9 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.sageryza.imageforge
         # App Group shared with DumpShare — what lets the share sheet hand its
-        # uploads to a background URLSession and dismiss immediately.
+        # uploads to a background URLSession and dismiss immediately. Also
+        # carries Associated Domains (universal links: an https link to the
+        # studio host opens the app — see applinks.js / ForgeLinks.swift).
         CODE_SIGN_ENTITLEMENTS: ImageForge/ImageForge.entitlements
         GENERATE_INFOPLIST_FILE: YES
         # Base plist merged on top of the generated keys — carries the

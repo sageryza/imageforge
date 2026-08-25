@@ -9,8 +9,11 @@
 //
 //   deck — the Tinder-style card pager (judge.js underneath): one thing at a
 //          time, browse by tapping the card's left/right edges, every action
-//          optional. Verdict states default to ♥/✕/maybe/later and can be
-//          swapped for her own words ('done' / 'in progress') via `states`.
+//          optional. A stock deck wears HER footer — ✕ · ? · ♥ (yes / maybe /
+//          no, each with a pile) — and the words can be swapped for her own
+//          ('done' / 'in progress') via `states`. A hand-built judge page
+//          that never comes through this renderer keeps the four house
+//          verdicts (♥/✕/maybe/later).
 //   grid — the classic one-variable comparison: each GROUP is one row, 2–6
 //          side by side (7+ wraps), labels on top, ♥/✕ + note per item, and
 //          the Assets-style PROMPT overlay (content/style split, opens on

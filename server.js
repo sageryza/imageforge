@@ -37,6 +37,11 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // explicit preflight for every route
+// The OOM tripwire: when RSS nears the 512MB line it files the last requests
+// to Firestore `forge-memwatch` BEFORE the kernel's SIGKILL can land — the
+// only way a mystery restart leaves the culprit's name behind. See memwatch.js.
+require('./memwatch').install(app, admin);
+const memwatch = require('./memwatch');
 // Reference images for the Sticker Page are sent as base64 in the JSON body,
 // so the default 100kb limit is far too small — allow a handful of photos.
 app.use(express.json({ limit: '25mb', verify: (req, _res, buf) => { req.rawBody = buf; } }));
@@ -89,6 +94,12 @@ app.use((req, res, next) => {
   if (mBlog) return res.redirect(301, mBlog[1] ? `/blog/${mBlog[1]}` : '/blog');
   next(); // everything else (/, /api/*, /blog, static assets) flows through
 });
+
+// Universal links: /.well-known/apple-app-site-association tells iOS which
+// paths on this host belong to the Deck Factory app. Apple's fetcher follows
+// NO redirects and sends NO credentials, so this must sit above dream-host,
+// above express.static and above the studio gate. See applinks.js.
+app.use('/.well-known', require('./applinks').router);
 
 // The dream feed's own front door — youwereinmydreams.com serves the app at
 // `/`. Must sit ABOVE express.static and the `/` route below, both of which
@@ -324,6 +335,9 @@ loadConfig().then(() => {
   // there"). Best-effort inside movies.js; a gallery hiccup never fails a
   // render.
   movies.init({ fileCreation: fileCreationDoc });
+  // Same hand-off for the mockup shots — the whole edit prompt is stored with
+  // each one (the scene half is model-written and exists nowhere else).
+  photostudio.init({ fileCreation: fileCreationDoc });
   app.use('/api/movies', movies.router);
   app.use('/api/songs', songs.router);
   // Stories live on the boards now: hand the module the story-project
@@ -801,23 +815,23 @@ function serveGated(file, opts = {}) {
     res.type('html').send(out);
   };
 }
-app.get('/studio', serveGated('studio.html'));
+app.get('/studio', serveGated('studio.html', { pill: true }));
 // The Dump's sort & label page — browse what the inbox holds, name albums,
 // set their track, delete strays. The native Dump tile links here.
-app.get('/dump', serveGated('dump.html'));
+app.get('/dump', serveGated('dump.html', { pill: true }));
 // Photo → Etsy: turn a photo of a finished handmade item into a reviewable Etsy
 // draft (mockups + listing content). Same gate as the Studio.
-app.get('/photo', serveGated('photo.html'));
+app.get('/photo', serveGated('photo.html', { pill: true }));
 // Song Station: phone recording → cleaned vocal + melody-matched instrumental
 // → mixed song (keeps the real voice). Same gate as the Studio.
-app.get('/song', serveGated('song.html'));
+app.get('/song', serveGated('song.html', { pill: true }));
 // Dreams: a faithful web copy of the iOS Dreams screen (write/record a dream →
 // chronology check → hand-drawn comic pages → archive + zine), so the design
 // can be iterated in the browser without a TestFlight build. Same gate; hits
 // the same /api/movies/dream* endpoints.
-app.get('/dreams', serveGated('dreams.html'));
+app.get('/dreams', serveGated('dreams.html', { pill: true }));
 // The dream archive — every dream from every source, newest first.
-app.get('/dreams-archive', serveGated('dreams-archive.html'));
+app.get('/dreams-archive', serveGated('dreams-archive.html', { pill: true }));
 // Public "try it" version of Dreams for friends: same page, NO gate, and it
 // runs in guest mode (the page mints a per-device guest id and namespaces every
 // dream to it) — so each visitor gets their OWN private past-dreams archive and
@@ -829,14 +843,14 @@ app.get('/trydreams', (req, res) => {
 // Films: the staged-approval movie pipeline as a web page (story → one probe
 // image → approve/notes → three more → the rest → motion → stitched film).
 // Same /api/movies engine the iOS Movies tab uses; same gate.
-app.get('/films', serveGated('films.html'));
+app.get('/films', serveGated('films.html', { pill: true }));
 // Shop Report: what's selling / what to promote / what to put on sale, from
 // live Etsy listings + orders + reviews. Same gate as the Studio.
-app.get('/report', serveGated('report.html'));
+app.get('/report', serveGated('report.html', { pill: true }));
 // Character Creator: upload a photo + a name -> a diary-comic character
 // reference, saved and compiled into a "main characters" sheet. Web prototype
 // of the feature that will live in the iOS Story Boards screen.
-app.get('/character', serveGated('character.html'));
+app.get('/character', serveGated('character.html', { pill: true }));
 // Playground: Sophie's LoRA prompt tester (fixed comparable recipe, 4-up
 // runs, background jobs on /api/promptlab), iOS tile "Playground"
 // (PlaygroundView.swift wraps /playground, same pattern as /writing and
@@ -870,9 +884,10 @@ app.get('/brief', serveGated('brief.html', { pill: true }));
 // far through each she is. Reads /api/review; the only write is her own ✕
 // ("not a review", a reviewHidden stamp on the page doc).
 app.get('/review', serveGated('review.html', { pill: true }));
-// Instagram: her two accounts drawn as their profile grids — DREAM (the grid
+// Instagram: her accounts drawn as their profile grids — DREAM (the grid
 // the dream-app-commercial chat posted, reused exactly: every tile plays that
-// film's CURRENT cut) and WITCH — behind two hairline tabs. Reached from the
+// film's CURRENT cut), WITCH and PWC — behind one hairline tab each; a new
+// account is one row in the JSON and nothing here counts them. Reached from the
 // icon at the right of the Chats app's UPDATE tab. Reads
 // public/instagram-grids.json and /api/chatfeed/newest; writes nothing, spends
 // nothing. Served WITH the pill: three rows of tiles scroll on a phone.
@@ -880,7 +895,7 @@ app.get('/instagram', serveGated('instagram.html', { pill: true }));
 // Doors: a corridor of possible futures, seven doors deep. Chosen blind by a
 // sensory fragment, one-way, finite — a premise prototype, no server half and
 // no tile yet. Served WITHOUT the pill: the page never scrolls.
-app.get('/doors', serveGated('doors.html'));
+app.get('/doors', serveGated('doors.html', { pill: true }));
 // Opinions: the decide-on-things game — two ideas side by side, tap the
 // better one, GOOD IDEA / BAD IDEA stamps, a streak and accolades. Preloaded
 // from opinions-feed.json + /api/opinions extras. Served WITHOUT the pill:
@@ -891,7 +906,7 @@ app.get('/opinions', serveGated('opinions.html'));
 // deliberately UNLINKED — no tile, no wrapper ("somewhere out-of-the-way",
 // Sophie, Aug 2026). Served WITHOUT the pill: a list she taps open, not a
 // page she reads hands-free.
-app.get('/desktop', serveGated('desktop.html'));
+app.get('/desktop', serveGated('desktop.html', { pill: true }));
 // The Sophie character card, for the pad's draw-here toggle (refs/ is not
 // web-served, so this one file is exposed deliberately — it's her own
 // hearted render, and the page behind the gate is the only thing asking).
@@ -1799,30 +1814,83 @@ const thumbHot = new Map(); // url|w → cached public URL (per-process)
 // list can hand out direct storage URLs for thumbs that already exist.
 const thumbName = (url, w) => 'thumbs/'
   + require('crypto').createHash('sha1').update(url + '|' + w).digest('hex') + '.webp';
+// THE THUMB GENERATOR IS GATED, DEDUPED AND REMEMBERS ITS FAILURES
+// (2026-08-25, read straight off the Render logs the night the box kept
+// OOM-restarting: every kill sat seconds after a burst of `thumb failed`
+// lines while her phone loaded a grid). The old path ran ONE generation per
+// request with no limit: forty tiles asking at once meant forty full
+// originals buffered (3-12MB each) and forty sharp decodes in parallel —
+// past 512MB on their own. And a FAILED thumb (a 403'd source, a HEIC sharp
+// can't read) was never remembered, so every repaint of the same grid
+// re-downloaded and re-failed the same images. Now: at most TWO generations
+// at a time process-wide (`thumbSlot`), one in-flight promise per url so a
+// burst of tiles asking for the same picture costs one download
+// (`thumbBusy`), a failure is remembered for 10 minutes and answered with
+// the original instead of a retry (`thumbBad`), an over-20MB source is
+// refused (a thumb of it is not worth the decode on this box), and when the
+// queue is deep the route just serves the original — a slow tile, never a
+// dead site.
+const thumbBad = new Map(); // url|w → retry-after ms epoch
+const thumbBusy = new Map(); // url|w → in-flight promise
+let thumbActive = 0; const thumbWaiters = [];
+const THUMB_CONCURRENCY = 2;
+function thumbSlot() {
+  if (thumbActive < THUMB_CONCURRENCY) { thumbActive++; return Promise.resolve(); }
+  return new Promise((r) => thumbWaiters.push(r));
+}
+function thumbDone() {
+  const next = thumbWaiters.shift();
+  if (next) next(); else thumbActive--;
+}
 async function makeThumb(url, w) {
   const key = url + '|' + w;
   if (thumbHot.has(key)) return thumbHot.get(key);
-  const bucket = admin.storage().bucket();
-  const file = bucket.file(thumbName(url, w));
-  const [exists] = await file.exists();
-  if (!exists) {
-    const r = await fetch(url);
-    if (!r.ok) throw new Error('fetch ' + r.status);
-    const out = await require('sharp')(await r.buffer())
-      .resize({ width: w, withoutEnlargement: true })
-      .webp({ quality: 75 })
-      .toBuffer();
-    await file.save(out, { contentType: 'image/webp', resumable: false });
-    await file.makePublic();
+  const badUntil = thumbBad.get(key);
+  if (badUntil && badUntil > Date.now()) throw new Error('recently failed — serving the original');
+  if (thumbBusy.has(key)) return thumbBusy.get(key);
+  const job = (async () => {
+    const bucket = admin.storage().bucket();
+    const file = bucket.file(thumbName(url, w));
+    const [exists] = await file.exists();
+    if (!exists) {
+      await thumbSlot();
+      try {
+        const r = await fetch(url);
+        if (!r.ok) throw new Error('fetch ' + r.status);
+        const len = Number(r.headers.get('content-length') || 0);
+        if (len > 20 * 1048576) throw new Error(`source too big to thumb (${Math.round(len / 1048576)}MB)`);
+        const out = await require('sharp')(await r.buffer())
+          .resize({ width: w, withoutEnlargement: true })
+          .webp({ quality: 75 })
+          .toBuffer();
+        await file.save(out, { contentType: 'image/webp', resumable: false });
+        await file.makePublic();
+      } finally { thumbDone(); }
+    }
+    const pub = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+    thumbHot.set(key, pub);
+    return pub;
+  })();
+  thumbBusy.set(key, job);
+  try {
+    return await job;
+  } catch (e) {
+    thumbBad.set(key, Date.now() + 10 * 60 * 1000);
+    throw e;
+  } finally {
+    thumbBusy.delete(key);
   }
-  const pub = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
-  thumbHot.set(key, pub);
-  return pub;
 }
 // Background warmer: pre-makes missing thumbs right after an assets-list
 // request (a few at a time), so tiles get direct storage URLs on the next
 // load instead of bouncing through this server one image at a time.
 const thumbWarmQ = []; const thumbWarmSeen = new Set(); let thumbWarmActive = 0;
+// Named in every memwatch snapshot, so a leak here can't hide (see memwatch.js).
+memwatch.gauge('thumbHot', () => thumbHot.size);
+memwatch.gauge('thumbBad', () => thumbBad.size);
+memwatch.gauge('thumbWarmSeen', () => thumbWarmSeen.size);
+memwatch.gauge('thumbWarmQ', () => thumbWarmQ.length);
+
 function warmThumbs(urls, w) {
   urls.forEach((u) => {
     const k = u + '|' + w;
@@ -1843,6 +1911,9 @@ app.get('/api/story/thumb', async (req, res) => {
     const w = Math.max(80, Math.min(1200, parseInt(req.query.w, 10) || 480));
     if (!THUMB_HOSTS.test(url)) return res.status(400).json({ error: 'unsupported image host' });
     if (!admin.apps.length) return res.redirect(302, url);
+    // Overloaded? Serve the original rather than queueing another decode —
+    // a slow tile beats an OOM'd server (see the gate above).
+    if (!thumbHot.has(url + '|' + w) && thumbWaiters.length > 12) return res.redirect(302, url);
     res.redirect(302, await makeThumb(url, w));
   } catch (err) {
     console.error('thumb failed:', err.message);
@@ -3159,7 +3230,7 @@ app.get('/assets', serveGated('assets.html', { pill: true }));
 // SITE blog, server-rendered from Firestore; elsewhere it's the gated studio.
 app.get('/blog', (req, res) => {
   if (isWitchHost(req) || req.query.public === '1') return blogPublic.renderIndex(req, res);
-  return serveGated('blog.html')(req, res);
+  return serveGated('blog.html', { pill: true })(req, res);
 });
 app.get('/blog/:slug', (req, res) => blogPublic.renderPost(req, res));
 
@@ -3187,12 +3258,12 @@ app.get('/api/witch/blog', async (req, res) => {
 
 // Import Art: drop in card images made elsewhere (e.g. bulk-downloaded from your
 // own Midjourney) as a named batch the deck workflow can pull from.
-app.get('/import', serveGated('ingest.html'));
+app.get('/import', serveGated('ingest.html', { pill: true }));
 
 // Crystal drop: dump crystal photos (+ whatever's known about each stone) into
 // Firebase so a chat can pull them back out to price, sort into listings, and
 // build the numbered pick-your-own grids. Engine is /api/crystals (crystals.js).
-app.get('/crystals', serveGated('crystals.html'));
+app.get('/crystals', serveGated('crystals.html', { pill: true }));
 // The Crystal Splitter — an album's photos in shooting order, one tap on any
 // photo that starts a NEW stone. Most of the dumped albums are catalogue runs
 // (20-50 stones each), and nothing in the data says where one stops, so this is
@@ -3202,7 +3273,7 @@ app.get('/crystalsplit', serveGated('crystalsplit.html', { pill: true }));
 // Audio drop: recordings off the phone (the Files app's picker is multi-select)
 // into Firebase, each one back as a permanent public url anything downstream can
 // use. Engine is /api/audio (audio.js).
-app.get('/audio', serveGated('audio.html'));
+app.get('/audio', serveGated('audio.html', { pill: true }));
 // Voice Studio — pick a cloned voice, type text, get it spoken. Engine is
 // /api/voicelab (voicelab.js). Gets the shared autoscroll pill.
 app.get('/voice', serveGated('voice.html', { pill: true }));
@@ -5331,10 +5402,42 @@ const PL_GPT = {
 // `suffix` (Aug 2026, Sophie) rides at the VERY END of the sent prompt, after
 // her words — the no-text rule reads last so the model can't bury it.
 const PL_GPT_STYLES = {
+  // "Sandy mirror" (Aug 2026, Sophie: "change the one that's called ChatGPT
+  // right now to make it be called Sandy mirror"). The KEY stays `evan` — it
+  // is what 1,000+ run docs store in `gptStyle`, what ?style= deep links and
+  // playground-port.js route onto, and what her per-style prompt override and
+  // no-text switch are keyed by in localStorage. Renaming a key would orphan
+  // all of that; only the label she reads changed. The name is the reference
+  // it attaches: refs/sage-sandy-mirror.png, her scanned ink-and-watercolour
+  // page — which is exactly what "ChatGPT" had stopped saying, now that the
+  // tile below draws on the same engine with no reference at all.
   evan: {
-    label: 'ChatGPT', refFiles: [PL_GPT.refFile],
+    label: 'Sandy mirror', refFiles: [PL_GPT.refFile],
     prefix: PL_GPT.prefix, characterLine: PL_GPT.characterLine,
     suffix: 'Do not include any text in the image.',
+  },
+  // "ChatGPT" (Aug 2026, Sophie: "add one more endpoint option to the
+  // playground, which is called ChatGPT … the ChatGPT new one will have no
+  // reference image"). Her words, gpt-image-2, and NOTHING else: no style
+  // reference, no baked prefix, no baked tail, no Sophie card. It is the
+  // model's own idea of her prompt, which is the one thing every other tile
+  // here makes impossible — every one of them wraps her words in a reference
+  // and a paragraph about it.
+  // IT IS LITERALLY A DIFFERENT ENDPOINT, which is why she called it one: with
+  // no images to attach there is nothing to EDIT, so runPromptLabGptJob sends
+  // it to /v1/images/generations instead of /v1/images/edits (see the branch
+  // there). Attaching her own photo reference puts it back on edits with that
+  // one photo — the only image in the call, so `photoLine` below says so
+  // rather than pointing at a style reference that isn't there.
+  // NO Sophie character card: her card is the watercolor look, i.e. a style
+  // reference by another name, and this tile's whole point is that none rides
+  // along.
+  plain: {
+    label: 'ChatGPT',
+    prefix: '', suffix: '',
+    photoLine: 'The attached image is a photo reference: use it for the ' +
+      'subject described below — the person, place or object in it.',
+    noCharacter: true,
   },
   // "Scarry" (Sophie's name for it): Instagram saves she sent (busy-animal
   // picture-book pages), cropped to the artwork and banked in refs/. TWO of
@@ -5532,7 +5635,7 @@ setInterval(sweepStuckPromptlabRuns, 10 * 60 * 1000);
 // frame to decode, so without one it would tile as a blank square. Best-effort
 // throughout and de-duped by url: filing must never fail the work that made the
 // thing, and re-filing the same url must never add a second tile.
-async function fileCreationDoc({ url, type, prompt, poster, model, quality, style, source, createdMs, canvas, sizeSlot, fullPrompt, promptPrefix, promptSuffix } = {}) {
+async function fileCreationDoc({ url, type, prompt, poster, model, quality, style, source, createdMs, canvas, sizeSlot, fullPrompt, promptPrefix, promptSuffix, promptContent } = {}) {
   try {
     if (!url) return null;
     await storyDb();
@@ -5556,8 +5659,14 @@ async function fileCreationDoc({ url, type, prompt, poster, model, quality, styl
     // typed words, capped at 500 for the caption; these are the literal text
     // that reached the model and the two halves the PROMPT overlay reads.
     // Built by ONE shared module so no surface invents its own seam.
+    // `prompt` above is the CAPTION, and for most callers it is also her
+    // words — but not always: the Panels sheet's caption is "the sheet — 4
+    // panels: …", a line this repo wrote. `promptContent` lets a caller say
+    // what her words really were rather than filing ours as hers.
     Object.assign(doc, promptRecord.promptFields({
-      full: fullPrompt, content: prompt, prefix: promptPrefix, suffix: promptSuffix,
+      full: fullPrompt,
+      content: promptContent != null ? promptContent : prompt,
+      prefix: promptPrefix, suffix: promptSuffix,
     }));
     if (model) doc.model = String(model).slice(0, 80);
     if (quality) doc.quality = String(quality).slice(0, 40);
@@ -5650,14 +5759,29 @@ async function runPromptLabGptJob(docRef, cfg) {
     // matters (the character line names "the second attached image").
     if (cfg.photoBuf) refs.push(cfg.photoBuf);
     const images = [];
+    const usage = [];              // the API's own token counts, one per render
     let failed = 0;
     const want = Math.min(Math.max(Number(cfg.outputs) || 1, 1), PL_GPT.maxOutputs);
     await Promise.all(Array.from({ length: want }, async () => {
       try {
-        const data = await openaiImageEditRefs(cfg.fullPrompt, refs, {
-          quality: cfg.quality, size: cfg.size || PL_GPT.size, timeout: 300000,
-        });
-        if (data.error) throw new Error(data.error.message || 'gpt-image-2 edit error');
+        // NO IMAGES TO ATTACH → THE OTHER ENDPOINT (Aug 2026, the plain
+        // ChatGPT tile). /v1/images/edits exists to edit something; with an
+        // empty image[] it is a malformed request, so a style with no
+        // reference goes to /v1/images/generations instead. Same model, same
+        // quality/size, same moderation:'low' (the filter is stochastic — see
+        // openaiImageEditRefs), same webp bytes back, so everything below this
+        // line is unchanged. A photo reference SHE attached is an image like
+        // any other, so a plain run carrying one is back on edits.
+        const data = refs.length
+          ? await openaiImageEditRefs(cfg.fullPrompt, refs, {
+            quality: cfg.quality, size: cfg.size || PL_GPT.size, timeout: 300000,
+          })
+          : await openaiImage({
+            model: PL_GPT.id, prompt: cfg.fullPrompt, n: 1,
+            size: cfg.size || PL_GPT.size, quality: cfg.quality,
+            output_format: 'webp', moderation: 'low',
+          }, 2, 300000);
+        if (data.error) throw new Error(data.error.message || 'gpt-image-2 error');
         const b64 = data.data?.[0]?.b64_json;
         if (!b64) throw new Error('gpt-image-2 returned no image');
         let buf = Buffer.from(b64, 'base64');
@@ -5666,6 +5790,18 @@ async function runPromptLabGptJob(docRef, cfg) {
         // whiten keeps the picture rather than losing a paid render.
         if (st.whiten) { try { buf = await whitenBackground(buf); } catch (e) { console.warn('promptlab whiten failed:', e.message); } }
         images.push(await saveBufferToFirebase(buf, 'image/webp', 'promptlab'));
+        // WHAT IT ACTUALLY COST, kept (2026-08-24). The API returns `usage`
+        // on every call and this route was throwing it away, so the only way
+        // to answer "what does attaching THIS reference cost" was to spend
+        // money drawing a probe — which Sophie has explicitly ruled out.
+        // Keeping it makes every ordinary run a free measurement: image input
+        // tokens scale with the reference's own dimensions, so the answer is
+        // per-reference and cannot be reasoned out from one style's number.
+        // (Measured on Panels: dream-mystery.jpg is 1,505 tokens = 1.20c, the
+        // same at low and at medium — the reference does not get cheaper when
+        // the picture does.)
+        // Stored per RENDER because one run can draw several.
+        if (data.usage) usage.push(data.usage);
         await docRef.update({ status: 'ready', images: images.slice() });
       } catch (err) {
         failed++;
@@ -5673,7 +5809,8 @@ async function runPromptLabGptJob(docRef, cfg) {
       }
     }));
     if (!images.length) throw new Error('every gpt-image-2 render failed — see the server log');
-    await docRef.update({ status: 'done', images, failedRenders: failed });
+    await docRef.update({ status: 'done', images, failedRenders: failed,
+      ...(usage.length ? { usage } : {}) });
     // `cfg.fullPrompt` is the literal string that went to the model two dozen
     // lines up — pass it rather than rebuilding, so the stored text cannot
     // differ from the sent text by so much as a space. The halves come from
@@ -5808,7 +5945,17 @@ app.post('/api/promptlab', async (req, res) => {
       // the blank line before her words is there whenever ANY of them is —
       // the old separator keyed on the prefix alone, which glued the character
       // line onto her first word if she had deleted the prefix.
-      const head = `${prefix}${character ? st.characterLine : ''}${photoBuf ? PL_GPT.photoLine : ''}`;
+      // A style may own its photo line: PL_GPT.photoLine says the drawing
+      // style "comes from the style reference above", which is true of every
+      // tile that attaches one and a lie on the plain ChatGPT tile, where her
+      // photo is the ONLY attachment. Whatever rides is disclosed either way —
+      // GET /styles serves the same string the page prints.
+      // A style's own line carries no leading space (it can be the whole head
+      // on a style with no prefix), so one is added when something precedes
+      // it. PL_GPT.photoLine's own leading space is left alone — it is byte
+      // for byte what the other five tiles have always sent.
+      const photoLine = st.photoLine ? ` ${st.photoLine}` : PL_GPT.photoLine;
+      const head = `${prefix}${character ? st.characterLine : ''}${photoBuf ? photoLine : ''}`.trim();
       const fullPrompt = `${head}${head ? '\n\n' : ''}${typed}${tail ? `\n\n${tail}` : ''}`;
       const outputs = Math.min(Math.max(Number(req.body.outputs) || PL_GPT.outputs, 1), PL_GPT.maxOutputs);
       const quality = PL_GPT.qualities.includes(req.body.quality) ? req.body.quality : PL_GPT.quality;
@@ -5890,6 +6037,9 @@ app.get('/api/promptlab/styles', (req, res) => {
       // What the no-text toggle would put in this style's tail, or null when
       // the style doesn't offer one — that is what hides the button.
       noText: st.noText ? { from: st.noText.from, to: st.noText.to } : null,
+      // The photo line this style would really add, so the Prompt panel prints
+      // the sentence that is actually sent. Absent = the house one below.
+      photoLine: st.photoLine || '',
       refs: (st.refFiles || []).concat(st.storageRefs || []),
     };
   });
@@ -6196,8 +6346,13 @@ const TALKING_TYPES = {
 // per-minute rate limit — holding the request open caused phone-side timeouts
 // ("couldn't reach the server"); instead it returns the rate-limit error fast
 // and the client tells the user to wait a moment.
-async function openaiImage(body, retries = 2) {
-  const timeout = OPENAI_IMAGE_TIMEOUTS[body.quality] || 90000;
+// `timeoutOverride` (Aug 2026): the per-quality table below suits the square
+// low/medium calls the zine and the single-image routes make. The Playground's
+// plain ChatGPT tile draws canvases up to 2336x3504, where a medium render can
+// run well past the 150s medium is allowed here — the same reason
+// openaiImageEditRefs takes a `timeout`. 0 keeps the table.
+async function openaiImage(body, retries = 2, timeoutOverride = 0) {
+  const timeout = timeoutOverride || OPENAI_IMAGE_TIMEOUTS[body.quality] || 90000;
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -6508,6 +6663,15 @@ app.post('/api/talking/upscale', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
+// A rejection escaping a fire-and-forget background job must never take the
+// whole service down with it (measured 2026-08-24: the Story Room film job's
+// pre-try mkdtempSync did exactly that — every render crashed the process,
+// wedging docs on 'making' and answering live requests with dead sockets).
+// Log it loudly; the job's own doc-stamping is each module's responsibility.
+process.on('unhandledRejection', (err) => {
+  console.error('unhandledRejection:', (err && err.stack) || err);
+});
+
 app.listen(PORT, () => console.log(`Server v11 running on http://localhost:${PORT}`));
 
 // ─── Keep-awake ─────────────────────────────────────────────────────

@@ -31,6 +31,35 @@ The house rules that only bite when you are actually building a page, an iOS scr
     copy that leans only on `window.__scrollStop`. Re-generating those pages
     is its own job (see the stale-generator warning in `CLAUDE.md`).
   - Pinned by `node scripts/test-back-to-top.js`.
+  - **IT FOLLOWS WHATEVER IS ACTUALLY SCROLLING (2026-08-24, Sophie: "some
+    surfaces scroll but have no to top arrow. like story room shelf").** A
+    full-screen sheet (`position:fixed; inset:0; overflow-y:auto` — the Story
+    Room's shelf) takes the scroll away from the window, and every check here
+    asked the window, so on the shelf there was no pill and no arrow at all;
+    the sheet's z-index 40 also sat over the pill's 9, so a lit arrow was
+    unreachable (measured with `elementFromPoint`). The pill hears an inner
+    scroller through a CAPTURE-phase `scroll` listener (scroll does not bubble
+    but it does capture, so `e.target` names the box) and, before she has
+    scrolled anything, through `elementsFromPoint` at the middle of the screen
+    — asked only when the window itself cannot scroll, and re-asked by a
+    MutationObserver, because a fixed sheet opening changes nothing a
+    ResizeObserver watches. **Only a nearly-full-screen overlay is adopted**
+    (80% wide, 60% tall): a note list or a drawer must never steal the pill
+    from the page behind it. Adopting one lifts the pill to that box's
+    z-index + 1 and releasing restores its own. Test:
+    `node scripts/test-pill-sheet.js`.
+  - **NEVER hand-roll a second one.** `/chunking` carried its own circle at
+    the bottom-right from before this existed — two back-to-tops, two corners,
+    one job, and a round plate the icon rule has since retired.
+  - **A PAGE CAN KILL THE WHOLE INJECTED PILL BY NAMING A VARIABLE.** Its
+    script runs in the page's global scope, so a top-level `let`/`const`
+    sharing a name with one of the pill's `var`s (`playing`, `raf`, `I`,
+    `dir`, `last`, `si`…) is a parse-time SyntaxError that takes the pill with
+    it, silently — `/search` had `let playing` and had no autoscroll and no
+    arrow for as long as it existed. **Wrap a page script in an IIFE**
+    (`/cutmarks` already does, and its comment says why).
+    `node scripts/test-pill-globals.js` loads every injected page in a real
+    browser and asks whether the pill's script ran.
 - **TRUNCATED TEXT OPENS WITH AN UNDERLINED WORD — NEVER A BUTTON (Aug 2026,
   Sophie, pointing at the Playground: "the ... button for longer than two line
   prompt is huge. why? it shud be fixed everywhere. truncated text shud always
@@ -118,6 +147,44 @@ The house rules that only bite when you are actually building a page, an iOS scr
     `/chats` section — `padding-right:56px`): with no native bar the page's
     pill floats high over its own header, so no control may live in that
     corner.
+  - **THE HEADER TOP IS ONE NUMBER, AND `pagehead.js` ENFORCES IT BY
+    MEASUREMENT (2026-08-23, Sophie: "the header is different in both, and
+    not at the top" — the Story Room was just the pair she screenshotted).**
+    Measured across all 39 gated pages that day: the gap above the header ran
+    **0 to 42px** and the chevron's left edge **-4 to 16**, no two families
+    agreeing — because no one owned the number. Every page improvised its own
+    status-bar clearance (chats' `5vh` IS roughly the notch on an 844pt
+    phone, by accident; 16 pages shipped without `viewport-fit=cover`, so
+    `env(safe-area-inset-top)` read 0 for them and fixed pixels were the only
+    tool they had), and every new page copied its neighbour's number. A page
+    alone can't be wrong — a header 40px low is valid markup and looks fine on
+    its own screen — so no per-page test could ever catch it.
+    - **The number: the header row's CONTENT-BOX top sits at
+      `var(--headtop)` = `env(safe-area-inset-top) + 4px`, and the chevron's
+      left edge at 16px.** The content-box, not the chevron itself: a tall
+      band (search — title + its box) centres the chevron a few px inside
+      itself, and that is its own business.
+    - **`levelRow()` in `pagehead.js` enforces it the way the pill defends
+      its colours: measure the real box, correct, re-check** (fonts,
+      resize, a ResizeObserver, an IntersectionObserver for headers that are
+      hidden until content loads). A sticky/fixed row is corrected through
+      its PADDING (margin cannot pull sticky up — it re-pins at 0; measured
+      on /studio, where -10.5px of margin moved the header exactly 0px); an
+      in-flow row through its MARGIN, so dead space above it is reclaimed. A
+      row is pulled UP only when the space above it is dead, and nothing
+      moves more than 64px.
+    - **So a page needs NO top-inset code of its own** — write a sane
+      `.wrap` and let the injected chrome level it in the app. A page that
+      must look right in a plain BROWSER too (nothing injected there) uses
+      the token: `:root{--headtop:calc(env(safe-area-inset-top,0px) + 4px)}`
+      and `padding-top:var(--headtop)` on its wrap — `scratchpad.html` is the
+      worked example.
+    - **The test derives its page list from `server.js`** — every
+      `serveGated(...)` page is measured against 4/16, so a new page is in
+      the test the day it is registered, before anyone remembers it exists.
+      That, not the fix, is the half that stops the bug coming back: 39
+      pages each got this wrong by faithfully copying the page next door.
+      `node scripts/test-header-top.js`.
   - **A page with inner levels answers `window.__navBack`** — one in-page
     level per tap (a sheet shut, a story back to its shelf), then the web
     view's own history via `canGoBack`, then leave the tool. The chevron
@@ -265,6 +332,59 @@ The house rules that only bite when you are actually building a page, an iOS scr
     rows the same evening — check the newest instruction before changing
     them.**
 
+- **THREE OPTIONS = A THREE-WAY TOGGLE, AND THERE IS ONE SHELL (Aug 2026,
+  Sophie: "for things with three options, it shud be a three way toggle. add
+  the toggle as a likely pattern where it applies. make a reusable three
+  toggle shell so we can change the styling all at once. make color a per
+  instance option. apply it to the few instances that already exists").**
+  `public/tritoggle.css`, class `.tri`. Link it; never copy it.
+  - **The contract:** `<button class="tri" data-n="0|1|2" data-i="L">`.
+    `data-n` is the stop — ZERO-based and NUMBERED, which is the whole reason
+    one rule serves four unrelated controls. `data-i` is the short word riding
+    the knob; `attr(data-i)` with no attribute renders nothing, which is how
+    the account switcher gets a blank knob out of the same rule.
+  - **Per instance:** `--tri-track`, `--tri-knob`, `--tri-ink` (colour, the
+    one she named), `--tri-w`, `--tri-k` (size), `--tri-inset`, `--tri-bw`,
+    `--tri-fs`. A bare `.tri` IS the account switcher — 48px track, 18px knob,
+    the rose `--chg`, a `--paper` knob — so the shell's defaults are not an
+    invention, they are the original.
+  - **Everything else is DERIVED and must stay that way** — `--tri-h`, the
+    capsule `border-radius` and `--tri-gap` all fall out of the width, the
+    knob, the inset and the border. This is the hairline rows' lesson applied
+    to a second control: a new instance sets a width and is finished, and a
+    fourth stop is one `[data-n="3"]` rule plus a wider track. The two
+    hand-typed copies had EYEBALLED their gap (11.5 where the geometry says
+    11) and one had the knob half a pixel off centre vertically — invisible,
+    and exactly the kind of thing a derived value cannot get wrong.
+  - **Where it lives now:** the Chats account switcher (bare), the
+    Playground's quality and size (`--tri-w:78px; --tri-k:26px`, ink on
+    paper), Panels' two the same, and the Chats search filters (muted at rest,
+    the rose `--chg` when the filter is actually narrowing — which is what the
+    per-instance colour buys).
+  - **THE HISTORY, so nobody re-copies it:** it was `.swi` in `chats.html`,
+    `.swtog` in `promptlab.html`, and `.swtog` again in `panels.html` whose
+    own comment said it was "LIFTED VERBATIM" — three copies, two attribute
+    names (`data-a` 1-based and `data-n` 0-based), two palettes, and the only
+    thing that ever noticed a copy drifting was a test comparing two files
+    property by property. `data-a` survives on the account switcher as a plain
+    data attribute (it is the account NUMBER, which several readers want); the
+    STOP is `data-n` everywhere.
+  - **A stub test server has to serve `/tritoggle.css`.** express.static does
+    it in production; a harness that does not renders the toggle as a 4px
+    sliver, and three existing tests had to be taught this. If a toggle test
+    starts failing with every stop at the same place, check that first.
+  - **It stays the sanctioned exception to no-pills** — a toggle is not a text
+    button.
+  - Test: `node scripts/test-tritoggle.js` — nobody keeps a second copy, every
+    page that uses the class links the file, and the geometry is MEASURED in a
+    real browser at every stop for every instance (three stops that sit apart,
+    evenly spaced, the last one parked symmetrically, the knob square and
+    centred, the track a full capsule, and three different track colours off
+    the one rule). The tolerance on "parked symmetrically" is 1.5px on
+    purpose: the CSS calc works in the specified 1.5px border while Chromium
+    lays out with a border snapped to whole device pixels, so the two disagree
+    by up to a pixel at any DPR.
+
 - **THE HAIRLINE ROWS' SLIDING LINE MEASURES ITS TAB — no row anywhere
   declares a tab count (Aug 2026, Sophie: "close it so it can't happen
   again").** The `.acctabs` pattern (two or three labels over a rule, the
@@ -359,14 +479,24 @@ The house rules that only bite when you are actually building a page, an iOS scr
   REPLACES the earlier three-home-screens rule).** The home is a single grid;
   above the module cards sits a row of five rounded squares, **icons only**
   ("just the icon" — no labels, `HomeGrid.shortcutRow` in `RootView.swift`).
-  ONE opens a tool (**Chats**); the other four FILTER the cards below
-  (`HomeFilter`): **photo** = the picture-makers
+  TWO are actions — the **house** (below) and **Chats** — and the rest FILTER
+  the cards below (`HomeFilter`): **photo** = the picture-makers
   (Playground, Test Station, Freeform — the only place the Test Station has a
-  card at all), **briefcase** = business, **quilt** = old fashioned, **film**
-  = everything that makes or cuts moving pictures AND sound, drawn as an
-  ordered pipeline rather than a grid (see THE FILM CHIP IS A PIPELINE
-  below). The lit chip clears back to everything when
-  tapped again (the Dump sort page's convention). `BusinessGrid`/`CraftsGrid`
+  card at all), **film** = everything that makes or cuts moving pictures AND
+  sound, drawn as an ordered pipeline rather than a grid (see THE FILM CHIP IS
+  A PIPELINE below), and a second film chip that draws the same set as one
+  flat pile. **briefcase** = business and **quilt** = old fashioned are the
+  same filters and live in the masthead corners only (see below). The lit chip
+  clears back to everything when tapped again (the Dump sort page's
+  convention).
+  **THE HOUSE ON THE LEFT IS THE WAY BACK TO THE PLAIN GRID (2026-08-25,
+  Sophie: "add a fifth tile on the home screen on the left, a picture of a home
+  that just takes you back to the home grid thing").** Clearing a filter used
+  to mean remembering which chip was lit and tapping that same one again — a
+  way out she had to find first. The house clears it from anywhere, wears the
+  bottom bar's own `house` glyph, and is **never lit**: it is an action like
+  Chats, not a fifth filter, and a chip glowing on the screen's normal resting
+  state is noise. `BusinessGrid`/`CraftsGrid`
   and `Screen.business`/`.crafts` are GONE; `deckfactory://business` and
   `://crafts` (alias `://quilt`) land on the home with that filter already
   lit. `Tool.isBusiness` / `Tool.isCraft` now decide which FILTER a tool

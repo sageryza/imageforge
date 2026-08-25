@@ -89,8 +89,37 @@ const ok = (cond, name) => { assert.ok(cond, name); n++; };
   const pan = fs.readFileSync(root('panels.js'), 'utf8');
   const panCalls = callArgs(pan, 'fileCreation');
   ok(panCalls.length >= 2, 'panels files the sheet and each cut panel');
+  // A call may carry the prompt through a shared object it spreads —
+  // `Object.assign({ … }, shared)` — which is the right way to write two
+  // filings of one run. So a call that names no fullPrompt itself is followed
+  // ONE level into the object it spreads, and the field has to be there.
+  // (Only one level: a chain of spreads would hide the field again.)
+  const carries = (src, args) => {
+    if (/fullPrompt/.test(args)) return true;
+    // …\)\) — the args end with the Object.assign close AND the call's own.
+    const spread = args.match(/,\s*([A-Za-z_$][\w$]*)\s*\)+\s*$/);
+    if (!spread) return false;
+    const decl = src.match(new RegExp(`const\\s+${spread[1]}\\s*=[\\s\\S]*?;`));
+    return !!decl && /fullPrompt/.test(decl[0]);
+  };
   panCalls.forEach((a, i) =>
-    ok(/fullPrompt/.test(a), `panels fileCreation call ${i} passes fullPrompt`));
+    ok(carries(pan, a), `panels fileCreation call ${i} passes fullPrompt`));
+
+  // photostudio and movies file through the injected filer too — their calls
+  // must carry the whole prompt, or a mockup / a filed clip loses the one
+  // copy of the text that made it.
+  const photo = fs.readFileSync(root('photostudio.js'), 'utf8');
+  const photoCalls = callArgs(photo, 'fileCreation').filter((a) => a.includes('url'));
+  ok(photoCalls.length >= 1, 'photostudio files its mockups');
+  photoCalls.forEach((a, i) =>
+    ok(/fullPrompt/.test(a), `photostudio fileCreation call ${i} passes fullPrompt`));
+  ok(/photostudio\.init\(\{\s*fileCreation: fileCreationDoc/.test(srv),
+    'and server.js actually hands photostudio the filer');
+  const mov = fs.readFileSync(root('movies.js'), 'utf8');
+  const movCalls = callArgs(mov, 'fileCreation').filter((a) => a.includes('url'));
+  ok(movCalls.length >= 1, 'movies files its clips');
+  movCalls.forEach((a, i) =>
+    ok(/fullPrompt/.test(a), `movies fileCreation call ${i} passes fullPrompt`));
 
   ok(/require\('\.\/prompt-record'\)/.test(srv), 'server.js uses the shared builder');
   // The require must be at module scope: fileCreationDoc is defined above

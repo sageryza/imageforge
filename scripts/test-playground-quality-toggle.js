@@ -26,7 +26,6 @@ const http = require('http');
 
 const ROOT = path.join(__dirname, '..');
 const pageSrc = fs.readFileSync(path.join(ROOT, 'public', 'promptlab.html'), 'utf8');
-const chatsSrc = fs.readFileSync(path.join(ROOT, 'public', 'chats.html'), 'utf8');
 
 let fails = 0;
 const ok = (cond, what) => {
@@ -51,86 +50,58 @@ const decl = (body, prop) => {
   return m ? m[1].trim().replace(/\s+/g, ' ') : null;
 };
 
-console.log('it is the account switcher\'s SHAPE, at her own width');
-const swi = rule(chatsSrc, '.swi{');
-const qtog = rule(pageSrc, '.swtog {');
-ok(swi && qtog, 'both rules exist to compare');
-// WHAT STILL HAS TO MATCH is the shape — a round knob inset in a filled track
-// with derived stops. The SIZE deliberately does not: Sophie asked for this
-// one wider ("can you make the low medium high quality toggle a little bit
-// wider so it's easier to change it"), and "4K" does not fit on an 18px knob.
-// So the width is asserted as a DIFFERENCE, the way the colour already is —
-// otherwise a later copy-paste would quietly shrink it back.
 const px = (v) => parseFloat(v);
-ok(px(decl(qtog, '--tw')) > px(decl(swi, '--tw')),
-  'the Playground toggle is WIDER than the account switcher ('
-  + decl(qtog, '--tw') + ' vs ' + decl(swi, '--tw') + ')');
-ok(px(decl(qtog, '--k')) > px(decl(swi, '--k')),
-  'and its knob is bigger, because it carries "4K" and not just a letter');
-ok(decl(qtog, 'width') === 'var(--tw)' && decl(swi, 'width') === 'var(--tw)',
-  'both still take their width from --tw rather than a typed number');
-['padding', 'margin', 'flex', 'position', 'box-sizing'].forEach((p) => {
-  ok(decl(swi, p) && decl(swi, p) === decl(qtog, p),
-    p + ' matches the account switcher (' + decl(swi, p) + ')');
-});
-const swiA = rule(chatsSrc, '.swi::after{');
-const qtogA = rule(pageSrc, '.swtog::after {');
-['top', 'left'].forEach((p) => {
-  ok(decl(qtogA, p), 'the knob declares its ' + p + ' inset (' + decl(qtogA, p) + ')');
-});
-ok(decl(swiA, 'border-radius') === decl(qtogA, 'border-radius'),
-  'the knob is still round (' + decl(qtogA, 'border-radius') + ')');
-ok(decl(swiA, 'transition') === decl(qtogA, 'transition'),
-  'and still slides rather than jumping (' + decl(qtogA, 'transition') + ')');
-ok(decl(qtogA, 'width') === 'var(--k)' && decl(qtogA, 'height') === 'var(--k)',
-  'the knob is a square of --k, so it cannot go oval when the track grows');
-// THE GEOMETRY MUST CLOSE. --gap is what puts the three stops where they are,
-// and it is typed rather than calc'd, so this is the one place a wrong number
-// would show as a knob that overshoots its track or stops short of the end.
-{
-  const tw = px(decl(qtog, '--tw')), k = px(decl(qtog, '--k')), gap = px(decl(qtog, '--gap'));
-  const border = px(decl(qtog, 'border')) || 1.5;
-  const inset = px(decl(qtogA, 'left'));
-  const travel = tw - 2 * border - 2 * inset - k;
-  ok(Math.abs(travel / 2 - gap) < 0.51,
-    'two --gaps land the knob exactly at the far end (travel ' + travel + ', gap ' + gap + ')');
-  const h = px(decl(qtog, 'height'));
-  ok(Math.abs((h - 2 * border - k) / 2 - inset) < 0.51,
-    'and the knob is vertically centred in the track');
-  ok(Math.abs(px(decl(qtog, 'border-radius')) - h / 2) < 0.51, 'the track is a full capsule');
-}
-// THREE stops, each a multiple of --gap — derived, never typed, exactly as the
-// account one derives them. The stops are NUMBERED, which is what lets the
-// resolution toggle share this rule instead of keeping a second copy.
-ok(/\.swtog\[data-n="1"\]::after\s*\{\s*transform:\s*translateX\(var\(--gap\)\)/.test(pageSrc),
-  'the middle stop is one --gap along');
-ok(/\.swtog\[data-n="2"\]::after\s*\{\s*transform:\s*translateX\(calc\(var\(--gap\) \* 2\)\)/.test(pageSrc),
-  'the last stop is two --gaps along');
+
+console.log('the geometry is the SHARED shell, and this page keeps only its own look');
+// The property-by-property comparison against `.swi` in chats.html that used
+// to live here is GONE, and so is the reason for it: the geometry moved into
+// /tritoggle.css (Aug 2026, Sophie: "make a reusable three toggle shell so we
+// can change the styling all at once"), which `scripts/test-tritoggle.js`
+// measures in a browser for every instance. What is left to pin HERE is that
+// this page did not quietly grow a copy back.
+const qtog = rule(pageSrc, '.tri {');
+ok(/<link rel="stylesheet" href="\/tritoggle\.css">/.test(pageSrc), 'the page links the shell');
+ok(qtog, 'and keeps a .tri rule of its own, for its colour and its size');
+ok(!/position\s*:|transition\s*:|border-radius\s*:/.test(qtog),
+  'which carries no geometry — no position, no transition, no radius');
+ok(!/\.swtog|--tw\s*:|--gap\s*:/.test(pageSrc), 'and no leftover of the old hand-copied rule');
+// The SIZE is still hers and still a declared difference from the account
+// switcher's ("make the low medium high toggle a little bit wider so it's
+// easier to change it"; "4K" does not fit on an 18px knob). The shell's own
+// defaults ARE the account switcher, so comparing against them is the same
+// assertion it always was, without reaching into another page.
+ok(px(decl(qtog, '--tri-w')) > 48, 'the Playground toggle is WIDER than the shell default (' + decl(qtog, '--tri-w') + ' vs 48px)');
+ok(px(decl(qtog, '--tri-k')) > 18, 'and its knob is bigger, because it carries "4K" and not just a letter');
 // ONE rule, two toggles — the whole reason the stops are numbered.
 ok(!/\.qtog\s*\{/.test(pageSrc) && !/\.rtog\s*\{/.test(pageSrc),
   'there is no second copy of the geometry for the resolution toggle');
-ok((pageSrc.match(/class="swtog"/g) || []).length === 2,
+ok((pageSrc.match(/class="tri"/g) || []).length === 2,
   'both toggles wear the one class');
 
 console.log('black, not red');
 // The one declared difference. chats.html paints the track with its own rose
 // token; here it is the page's ink, and the assertion is that they DIFFER —
 // otherwise a later copy-paste could quietly bring the rose back.
-ok(/var\(--chg\)/.test(decl(swi, 'background') || ''), 'the account switcher is its rose token');
-ok(decl(qtog, 'background') === '#2b2622', 'the Playground one is the page ink #2b2622');
-ok(decl(qtog, 'border') === '1.5px solid #2b2622', 'and its border is the same ink');
+// INK ON PAPER, and since Aug 2026 that means a LINE rather than a slab
+// (Sophie: "the buttons are styled so fucking weird. They should have black
+// outlines and they're all different sizes") — the toggles were the only
+// things on that row with no line at all. Colour only; the geometry is still
+// the shell's.
+ok(decl(qtog, '--tri-line') === '#2b2622', 'the Playground one draws its line in the page ink #2b2622');
+ok(decl(qtog, '--tri-fill') === '#fdfcf9', 'and fills with the row\'s paper, like every control beside it');
+ok(decl(qtog, '--tri-knob') === '#2b2622', 'the knob is the dark one — what is lit is the stop, not the whole control');
 ok(!/--chg|#a1|rgb\(/i.test(qtog), 'no rose anywhere in the rule');
-// The knob keeps the paper fill and gains the letter.
-ok(decl(qtogA, 'content') === 'attr(data-i)', 'the knob draws its letter from data-i');
-ok(decl(qtogA, 'background') === '#faf7f2', 'the knob is still paper');
 
 console.log('the dropdown is gone');
 ok(!/<select id="qpick"/.test(pageSrc), 'no <select> left behind');
-ok(/<button type="button" id="qpick" class="swtog"/.test(pageSrc), 'it is a button now');
+ok(/<button type="button" id="qpick" class="tri"/.test(pageSrc), 'it is a button now');
 ok(!/qpick'\)\.innerHTML|qpick'\)\.value|qpick\.value/.test(pageSrc),
   'nothing still builds options or reads a .value off it');
-ok(/QUALITIES\[\(i \+ 1\) % QUALITIES\.length\]/.test(pageSrc),
-  'the tap wraps off the end of QUALITIES, never off a typed count');
+// The tap AIMS since 2026-08-24 (/tritoggle.js) — but the thing this ever
+// cared about is unchanged: the stop count comes from QUALITIES, never from a
+// number typed here, so a fourth quality is one entry in that array.
+ok(/QUALITIES\[triNext\(qpick, QUALITIES\.length, e, QUALITIES\.indexOf\(quality\)\)\]/.test(pageSrc),
+  'the tap reads its stop count off QUALITIES, never off a typed count');
 
 // ── the real page ────────────────────────────────────────────────────────
 let chromium;
@@ -164,9 +135,24 @@ catch {
         evan: { label: 'ChatGPT', prefix: 'E', suffix: 'E TAIL', refs: [] },
       } }));
     }
+    // The geometry is a SHARED stylesheet now — express.static serves it in
+    // production, so the stub has to as well. Without it the toggle collapses
+    // to a 4px sliver, which is worth knowing: a missing /tritoggle.css is not
+    // a subtle degradation.
+    if (url.pathname === '/tritoggle.css') {
+      res.writeHead(200, { 'Content-Type': 'text/css' });
+      return res.end(fs.readFileSync(path.join(ROOT, 'public', 'tritoggle.css')));
+    }
     if (url.pathname === '/playground-port.js') {
       res.writeHead(200, { 'Content-Type': 'text/javascript' });
       return res.end(fs.readFileSync(path.join(ROOT, 'public', 'playground-port.js')));
+    }
+    // /tritoggle.js — the shared AIM rule (2026-08-24). express.static serves it
+    // in production; a stub that does not falls back to the old CYCLE and would
+    // green-light the very bug this pins.
+    if (url.pathname === '/tritoggle.js') {
+      res.writeHead(200, { 'Content-Type': 'text/javascript' });
+      return res.end(fs.readFileSync(path.join(ROOT, 'public', 'tritoggle.js')));
     }
     res.writeHead(200, { 'Content-Type': 'text/html' });
     res.end(pageSrc);
@@ -194,7 +180,21 @@ catch {
       n: el.getAttribute('data-n'),
       w: el.getBoundingClientRect().width,
       h: el.getBoundingClientRect().height,
-      gap: parseFloat(track.getPropertyValue('--gap')),
+      // `--tri-gap` is a calc() and an UNREGISTERED custom property, so
+      // getPropertyValue hands back the unresolved expression, not a number.
+      // Measure the real travel instead: park a clone at the middle stop and
+      // read where it lands. That is also the honest question — what the
+      // browser did, not what the sheet says.
+      gap: (function () {
+        const c = el.cloneNode(true);
+        c.style.position = 'absolute'; c.style.left = '-9999px';
+        c.setAttribute('data-n', '1');
+        document.body.appendChild(c);
+        const cm = /matrix\(([^)]*)\)/.exec(getComputedStyle(c, '::after').transform);
+        const v = cm ? Math.round(parseFloat(cm[1].split(',')[4]) * 10) / 10 : 0;
+        c.remove();
+        return v;
+      })(),
     };
   }, id || 'qpick');
 
@@ -209,18 +209,39 @@ catch {
   const gap = k.gap;
   ok(k.x === gap, 'medium sits one notch along (' + gap + 'px)');
 
+  // WHERE SHE TAPPED IS THE STOP (2026-08-24, Sophie: "it always goes to high
+  // from medium never low even if I click it on that side"). This used to
+  // assert a CYCLE — tap anywhere, advance one, wrap — which is exactly the
+  // behaviour she was reporting. The track is 78px wide, so the three zones are
+  // 26px each and a click position picks one.
   // 250ms out of the way of the knob's own .18s slide — reading mid-flight
   // gives a real but meaningless x, which is exactly the sort of "flaky test"
   // that gets a correct assertion deleted later.
-  await page.click('#qpick'); await page.waitForTimeout(250);
+  const tapAt = async (id, frac) => {
+    const box = await page.locator('#' + id).boundingBox();
+    await page.mouse.click(box.x + box.width * frac, box.y + box.height / 2);
+    await page.waitForTimeout(250);
+  };
+
+  await tapAt('qpick', 1 / 6);       // the LOW third, from medium
   k = await knob();
-  ok(k.n === '2' && k.letter === 'H', 'a tap moves to high, showing H');
+  ok(k.n === '0' && k.letter === 'L', 'a tap on the LEFT third goes to low, showing L');
+  ok(k.x === 0, 'and the knob is at the first stop');
+
+  await tapAt('qpick', 5 / 6);       // the HIGH third
+  k = await knob();
+  ok(k.n === '2' && k.letter === 'H', 'a tap on the RIGHT third goes to high, showing H');
   ok(k.x === gap * 2, 'and the knob is two notches along (' + gap * 2 + 'px)');
 
-  await page.click('#qpick'); await page.waitForTimeout(250);
+  await tapAt('qpick', 1 / 2);       // the MIDDLE third
   k = await knob();
-  ok(k.n === '0' && k.letter === 'L', 'the next tap WRAPS to low, showing L');
-  ok(k.x === 0, 'and the knob is back at the first stop');
+  ok(k.n === '1' && k.letter === 'M', 'a tap in the MIDDLE goes to medium, never past it');
+
+  await tapAt('qpick', 1 / 2);       // the stop it is already on
+  k = await knob();
+  ok(k.n === '1', 'and tapping the stop it is already on leaves it there');
+
+  await tapAt('qpick', 1 / 6);
 
   // The three stops are distinct enough to tell apart — the whole reason the
   // account switcher is 48px wide and not 42, and the reason Sophie asked for
@@ -234,13 +255,16 @@ catch {
   ok(r.w === q.w && r.h === q.h,
     'it is exactly the same box as the quality toggle (' + r.w + 'x' + r.h + ')');
   ok(r.n === '0' && /^1K$/.test(r.letter), 'it opens on 1K, and the knob says 1K');
-  await page.click('#rpick'); await page.waitForTimeout(250);
+  await tapAt('rpick', 1 / 2);
   const r2 = await knob('rpick');
-  ok(r2.n === '1' && r2.letter === '2K', 'a tap moves to 2K');
+  ok(r2.n === '1' && r2.letter === '2K', 'a tap in the middle picks 2K');
   ok(r2.x === r.gap, 'and the knob moved one notch');
-  await page.click('#rpick'); await page.click('#rpick'); await page.waitForTimeout(250);
+  await tapAt('rpick', 5 / 6);
   const r4 = await knob('rpick');
-  ok(r4.n === '0' && r4.letter === '1K', 'past 4K it WRAPS back to 1K');
+  ok(r4.n === '2' && r4.letter === '4K', 'a tap on the right picks 4K');
+  await tapAt('rpick', 1 / 6);
+  const r1 = await knob('rpick');
+  ok(r1.n === '0' && r1.letter === '1K', 'and the left third comes straight back to 1K');
   // The knob has to actually FIT its longest word, or "4K" clips.
   const fits = await page.evaluate(() => {
     const el = document.getElementById('rpick');
@@ -252,8 +276,9 @@ catch {
   ok(fits.text < fits.knob - 2,
     '"4K" fits inside the knob (' + fits.text.toFixed(1) + 'px of text in ' + fits.knob + 'px)');
 
-  // It is one tap, anywhere on it — no menu to open, which is the point.
-  ok(await page.getAttribute('#qpick', 'aria-label') === 'Quality low — tap for the next one',
+  // It is one tap — no menu to open, which is the point — and the label says
+  // the tap AIMS, since 2026-08-24.
+  ok(await page.getAttribute('#qpick', 'aria-label') === 'Quality low — tap a side to pick one',
     'the label says where it is and what a tap does');
 
   console.log('it still drives the run');

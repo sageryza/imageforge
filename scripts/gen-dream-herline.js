@@ -39,8 +39,14 @@
  *             not have them squares and just have like amorphous shapes for
  *             panels?"
  *
- * STRICTLY ONE RUN AT A TIME (CLAUDE.md: parallel image batches have restarted
- * the 512MB box). ~4.2¢ per run at 1024x1024 medium.
+ * THE ONE-AT-A-TIME LOOP BELOW IS NOT A REAL CONSTRAINT (2026-08-20). It was
+ * inherited from CLAUDE.md's "SERIALIZE bulk Playground batches", which was
+ * measured on the PLAYGROUND — the 512MB Render box buffering sixteen images
+ * and running whiten passes. This script runs in a chat's own container and
+ * posts straight to OpenAI, so the box is not in the loop and the runs could
+ * be parallel. Left serial only because it draws at most two refs a call;
+ * see gen-dream-distilled.js for the parallel version. ~4.2¢ per run at
+ * 1024x1024 medium.
  *
  *   node scripts/gen-dream-herline.js [--dream <id>] [--variant one|amorphous]
  *                                     [--ref dream|sage|both] [--slug <name>]

@@ -64,6 +64,42 @@ const { sentences } = require('./questions');
 // tags either one herself; nothing about the rules changes.
 const TRIAGE = ['look at', 'come back to', 'waiting for a response', 'to be reviewed'];
 
+// ---- WHAT THE WORK IS BEATS WHERE IT HAPPENED (2026-08-24, Sophie) ---------
+// "for chats that are tagging themselves, if it's in the story room but it's
+// just a bug fix for the story room then they shouldn't tag it story, they
+// should just tag it bug fix — and that applies to all the other categories
+// obviously."
+//
+// Her vocabulary holds two DIFFERENT kinds of word and the sorter could not
+// tell them apart: some name a SUBJECT AREA (witch · story · film · dream app ·
+// tech · meta) and some name WHAT THE WORK IS (bug fix · new feature ·
+// research · failure). Every chat has a subject, so the subject word always
+// looked like the safe answer — and a one-turn bug fix in the Story Room filed
+// under `story`, beside the chats where the story itself is the work. That
+// makes the subject piles useless in both directions: `story` fills with
+// plumbing, and `bug fix` — the word she reaches for when she wants to know
+// what has been going wrong — stays empty.
+//
+// TWO HALVES, because a prompt instruction alone is a hope (the archive
+// summary's length cap taught that):
+//   - the PROMPT states the rule and marks which of her folders are kinds, and
+//   - the model answers `kind` in its OWN field, which `pickCategory` PREFERS
+//     over `category` in code. The model cannot forget the rule by writing a
+//     subject into `category`; it would have to actively answer none to `kind`.
+//
+// THE LIST IS A HINT OVER HER LIVE VOCABULARY, NEVER AN ADDITION TO IT. A word
+// here that she does not have simply annotates nothing, and a folder she
+// invents next month is still offered and still fileable — it just is not
+// treated as a kind until it is named here. Rule 3 is untouched: `pickCategory`
+// still refuses anything that is not one of her folders. `GET /api/chatfeed/sort`
+// prints which of her folders are currently being read as kinds, so the day
+// this list goes stale is measurable rather than silent.
+//
+// DELIBERATELY NOT HERE: `to read`, `waiting for something`, `in a minute`,
+// `maybe never`. Those say WHEN she wants to deal with a chat, not what the
+// work is — the same reason the TRIAGE pair is off limits.
+const WORK_KINDS = ['bug fix', 'bugfix', 'new feature', 'research', 'failure', 'built', 'quick question'];
+
 // A chat needs enough thread to be about something. Under this the honest
 // answer is almost always none, so the call is not worth making.
 const MIN_MESSAGES = 3;
@@ -115,6 +151,10 @@ const BEFORE_EVERYTHING = '1970-01-01T00:00:00.000Z';
 
 const norm = (s) => String(s == null ? '' : s).trim().toLowerCase();
 const isTriage = (c) => TRIAGE.includes(norm(c));
+const isWorkKind = (c) => WORK_KINDS.includes(norm(c));
+
+/** Which of the folders on offer name what the WORK IS, in her spelling. */
+const workKinds = (cats) => (cats || []).filter(isWorkKind);
 
 /**
  * The folders the sorter may choose from: the names she has made (`__settings`
@@ -343,9 +383,13 @@ function pendingAsk(msgs, { fallbackChars = 800 } = {}) {
 
 const SORT_SYS = `You file one of Sophie's Claude chats into one of HER OWN folders, or you leave it alone, and you say whether the work in it finished.
 
-Return JSON: {"category": "...", "why": "...", "state": "...", "stateWhy": "..."}
+Return JSON: {"category": "...", "kind": "...", "why": "...", "state": "...", "stateWhy": "..."}
 
-"category": EXACTLY one of the folder names you are given, copied character for character, or "none".
+"category": EXACTLY one of the folder names you are given, copied character for character, or "none". This is the SUBJECT — what the chat is about.
+"kind": EXACTLY one of the folders MARKED "what the work IS", or "none". This is what the chat DID, whatever it was about.
+
+WHAT THE WORK IS BEATS WHERE IT HAPPENED. Some of her folders name a subject area and some name what the work is, and the second wins: a chat that only fixed a bug in the Story Room is a BUG FIX, not a story chat. Same for every other subject — a bug fix in the witch app, a new feature in the dream app, a piece of research about film. Answer "kind" whenever the chat's work really is one of those, and the subject folder in "category" as well; she gets filed under the kind.
+Answer "kind": "none" when the chat's work is the subject itself — writing the story, drawing the art, thinking an idea through, a conversation — or when you are not sure. The same unsure rule as below: none is the ordinary answer, not a failure.
 "why": under 90 characters, plain, what the chat is actually about. Never a sales pitch for the folder you picked.
 "state": one of "done", "mid", "blocked".
   "done" — what she asked for was built, shipped or settled, and the chat ran out of work rather than stopping.
@@ -366,7 +410,9 @@ function buildSortPrompt({ name, reg, msgs, cats, examples }) {
   const ex = examples || {};
   const folders = (cats || []).map((c) => {
     const list = (ex[c] || []).map((n) => '"' + n + '"');
-    return '- ' + c + (list.length
+    // The mark is what makes the kind rule readable off the list itself —
+    // otherwise the model has to guess which of her words are subjects.
+    return '- ' + c + (isWorkKind(c) ? ' [what the work IS]' : '') + (list.length
       ? ' — she has filed: ' + list.join(', ')
       // A folder with nothing in it is one she has just MADE, on purpose — the
       // first version said "prefer none" here and that is backwards: it would
@@ -400,17 +446,38 @@ function pickState(out) {
   return ['done', 'mid', 'blocked'].includes(v) ? v : 'mid';   // unsure = still in flight
 }
 
-function pickCategory(out, cats) {
-  const raw = norm(out && typeof out === 'object' ? out.category : out);
+function oneFolder(v, cats) {
+  const raw = norm(v);
   if (!raw || raw === 'none' || raw === 'null' || raw === 'unfiled') return '';
   const hit = (cats || []).find((c) => norm(c) === raw);
   return hit || '';                       // rule 3 — anything invented is a no
 }
 
+/**
+ * The folder this chat is filed in — **the KIND wins over the SUBJECT**.
+ *
+ * See WORK_KINDS above for why. Three things this must not do, each one a case
+ * in the test:
+ *   - a `kind` that is NOT a work-kind word is ignored outright. Otherwise the
+ *     rule inverts: a model answering `kind:"story"` would send a story chat's
+ *     subject through the slot built to beat subjects.
+ *   - a `kind` she does not have is refused like any other invented folder.
+ *   - a kind with NO subject beside it still files. The model can be sure it
+ *     was a bug fix and unsure which corner of the app it touched, and "bug
+ *     fix" is the honest answer to the question she actually asks that pile.
+ */
+function pickCategory(out, cats) {
+  const o = out && typeof out === 'object' ? out : { category: out };
+  const kind = oneFolder(o.kind, cats);
+  if (kind && isWorkKind(kind)) return kind;
+  return oneFolder(o.category, cats);
+}
+
 module.exports = {
   regLabels,
-  TRIAGE, MIN_MESSAGES, RETRY_MS, BEFORE_EVERYTHING, SORT_SYS,
+  TRIAGE, WORK_KINDS, MIN_MESSAGES, RETRY_MS, BEFORE_EVERYTHING, SORT_SYS,
   RESORT_GROWTH, RESORT_MIN_NEW, RESORT_REST_MS,
+  isWorkKind, workKinds,
   sortableCategories, examplesFor, shouldAutoSort, filedStamp, archiveHint, pickState, pendingAsk,
   digestOf, buildSortPrompt, pickCategory,
 };

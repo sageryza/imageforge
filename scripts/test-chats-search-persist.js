@@ -143,9 +143,15 @@ const state = (page) => page.evaluate(() => ({
   // ---- hiding ENDS with that chat, so it clears the box --------------------
   // (Hide is the one-tap member of the family — archive asks which pile first
   // and delete asks to confirm, but all three leave through goHome(true).)
+  // HIDE MOVED INTO THE ORGANIZE SHEET (Aug 2026, Sophie: "put the little icons
+  // like the bell and the star and the pin and the trashcan and the eye hide
+  // symbol … in little boxes"), so the header's `.archlink.hide-r` is gone and
+  // this step waited 30s for it. The behaviour under test is unchanged — the
+  // eye still leaves through goHome(true) — only the way in moved.
   await page.click('#searchresults .sres');
-  await page.waitForSelector('#thread .archlink.hide-r');
-  await page.click('#thread .archlink.hide-r');
+  await page.click('#thread .orgbtn');
+  await page.waitForSelector('.orgmarks .markchip.mk-eye');
+  await page.click('.orgmarks .markchip.mk-eye');
   await page.waitForFunction(() => !document.body.classList.contains('reading'), null, { timeout: 4000 })
     .catch(() => fail('hiding never returned to the list'));
   s = await state(page);

@@ -49,6 +49,7 @@
 const express = require('express');
 const admin = require('firebase-admin');
 const sheetGrid = require('./sheet-grid');
+const sheetSeams = require('./sheet-seams');
 const sizeTier = require('./size-tier');
 
 const COLLECTION = 'forge-panels';
@@ -129,6 +130,12 @@ router.get('/config', (req, res) => {
   }));
   res.json({
     grids, shapes, tiers: Object.keys(sheetGrid.TIERS), plans, styles,
+    // THE LINE THIS TOOL ADDS TO HER WORDS, served so the page can show it —
+    // the same rule the Playground's Prompt panel follows. Nothing should be
+    // wrapped around her prompt without a surface able to print it.
+    gridLines: Object.fromEntries(Object.keys(sheetGrid.GRIDS).map((g) =>
+      [g, sheetGrid.sheetFor(Number(g), 'portrait', '1k')
+        ? gridLine(sheetGrid.sheetFor(Number(g), 'portrait', '1k')) : ''])),
     qualities: (deps.gpt && deps.gpt.qualities) || ['low', 'medium', 'high'],
     defaults: { grid: 4, shape: 'portrait', res: '4k', quality: 'medium', style: 'dreamy' },
     model: (deps.gpt && deps.gpt.id) || 'gpt-image-2',
@@ -226,31 +233,50 @@ const refCount = (st) => Math.max(
 function buildPrompt({ plan, panels, prefix, suffix, cells }) {
   const names = cells && cells.length ? cells : sheetGrid.cellNames(
     Object.keys(sheetGrid.GRIDS).find((k) => sheetGrid.GRIDS[k].across * sheetGrid.GRIDS[k].down === plan.count));
-  const shape = plan.down === 1
-    ? `a single row of ${plan.count} separate illustrations, side by side`
-    : `a ${plan.across}x${plan.down} grid of ${plan.count} separate illustrations`;
-  // THE GRID SENTENCE STATES THE GEOMETRY THE CUT NEEDS, AND NOTHING ELSE.
-  // The page is sliced along exact halves/thirds, so what actually matters is
-  // that each illustration FILLS its own cell edge to edge — a gutter or a
-  // page margin puts the art out of register with the cut lines and every
-  // panel comes out with a slice of its neighbour.
-  // It deliberately says nothing about borders, caption boxes or palette:
-  // those are the STYLE's business, and a sentence here arguing with a
-  // style's own tail is the exact failure this module's header warns about
-  // (Dreamy asks for a hand-drawn frame, which is right per panel).
   const lines = [
     prefix,
     '',
-    `Draw ${shape} on one page, in reading order. They fill the page in equal `
-      + `${plan.count === 2 ? 'halves' : plan.count === 4 ? 'quarters' : 'parts'}`
-      + ' with no gutters and no page margin: each illustration must completely '
-      + 'fill its own part, edge to edge, because the page is going to be cut '
-      + 'along those lines. Each is a separate picture with its own subject — '
-      + 'do not continue one scene across them.',
+    gridLine(plan),
     ...panels.map((p, i) => `${names[i] || `panel ${i + 1}`}: ${String(p).trim()}`),
   ];
   if (suffix) lines.push('', suffix);
   return lines.filter((l, i) => l !== '' || i > 0).join('\n').trim();
+}
+
+/**
+ * THE GRID SENTENCE IS SHORT, AND THE REFERENCE DOES THE REST (Sophie's note
+ * on the first sheet, 2026-08-24: "add margins and gutters" · "less
+ * instructions because it's copying the reference image").
+ *
+ * Both halves of that are one insight. The style reference IS a multi-panel
+ * comic page — margins, gutters, framed panels — so the layout does not have
+ * to be described at all, only named. The first version spent three sentences
+ * forbidding what the reference was going to do anyway, and got a page with
+ * an uneven border for the trouble: the outer edges carried the page margin
+ * and the inner ones were cut flush, because "no gutters" won on the inside
+ * and the reference won on the outside.
+ *
+ * WITH A GUTTER, THE CUT COMES OUT EVEN. Slicing at exact halves puts half a
+ * gutter on each inner edge and the page margin on each outer one, so a panel
+ * is bordered on all four sides rather than on two. That is why asking for
+ * gutters makes the cut BETTER rather than worse — the thing the first version
+ * had backwards.
+ *
+ * It still says nothing about borders, caption boxes or palette: those are the
+ * STYLE's business, and a sentence here arguing with a style's own tail is the
+ * failure this module's header warns about.
+ *
+ * It is its own function because it is part of the WRAPPER around her words,
+ * so the stored style half has to carry it — see fileRun. Built in one place
+ * so the sentence that is filed cannot drift from the sentence that is sent.
+ */
+function gridLine(plan) {
+  const shape = plan.down === 1
+    ? `a single row of ${plan.count} separate illustrations, side by side`
+    : `a ${plan.across}x${plan.down} grid of ${plan.count} separate illustrations`;
+  return `Draw ${shape} on one page, in reading order, laid out like the panel `
+    + 'grid in the style reference — an even margin around the page and even '
+    + 'gutters between the panels. Each panel is its own separate picture.';
 }
 
 // A style's suffix, with any "one single illustration / not a grid" clause
@@ -401,55 +427,138 @@ function fileRun(sheetUrl, images, cfg, skip) {
   const cut = sizeTier.cutSize(cfg.plan.sheet, cfg.plan.count);
   const model = (deps.gpt && deps.gpt.id) || 'gpt-image-2';
   const label = st.label || cfg.styleId;
+  // THE WHOLE PROMPT RIDES ALONG (Sophie's hard rule, 2026-08-24: "anytime an
+  // image is made ANYWHERE the whole prompt shud be stored"). This module
+  // shipped without it, so every sheet and every cut panel filed with no style
+  // prompt at all — the exact hole the rule was written to close, reopened by
+  // the one tool that draws N pictures at once.
+  //
+  // `cfg.fullPrompt` is the literal page-sized text that was sent, and it is
+  // the honest answer for a PANEL too: that text is what drew it, because it
+  // was drawn as part of the sheet. The style half is the real wrapper —
+  // her prefix, the GRID SENTENCE this module adds, and the tail — so the
+  // seam shows everything that was put around her words, the added sentence
+  // included.
   const shared = { source: 'panels', style: `${label} · ${cfg.quality}`, model,
-    quality: cfg.quality };
+    quality: cfg.quality, fullPrompt: cfg.fullPrompt,
+    promptPrefix: [cfg.prefix, gridLine(cfg.plan)].filter(Boolean).join('\n\n'),
+    promptSuffix: cfg.suffix };
   if (!skip) {
     deps.fileCreation(Object.assign({ url: sheetUrl,
       prompt: `the sheet — ${cfg.plan.count} panels: ${(cfg.panels || []).join(' · ')}`,
+      // The sheet's caption names what it is; its CONTENT half is her words,
+      // one cell per line, verbatim — never that caption line, which is ours.
+      promptContent: (cfg.panels || []).map((p) => String(p).trim()).filter(Boolean).join('\n'),
       canvas: cfg.plan.sheet, sizeSlot: tier }, shared));
   }
   images.slice(skip || 0).forEach((im) => deps.fileCreation(Object.assign({
-    url: im.url, prompt: im.prompt, canvas: cfg.plan.cell, sizeSlot: cut }, shared)));
+    // a seam-cut panel's real canvas can differ a little from the nominal
+    // cell — file what it actually is
+    url: im.url, prompt: im.prompt, canvas: im.size || cfg.plan.cell,
+    sizeSlot: cut }, shared)));
 }
 
 /**
  * THE CUT, shared by the first run and by a resume.
  *
- * DECODED ONCE. It used to be `sharp(sheet).extract(...)` per panel, which
- * re-decodes the whole page every time — a 2336x3504 sheet is 24.5MB of raw
- * pixels, so nine panels meant nine decodes on a 512MB box that is also
- * serving the app. One decode, N crops.
+ * THE CUT RUNS IN A THROWAWAY CHILD PROCESS (2026-08-25, Sophie: "that seems
+ * insane for such a simple job — consider very different alternatives").
+ * History, all measured the same day: the original per-panel
+ * `sharp(sheet).extract(...)` re-decoded AND CACHED the whole page per crop —
+ * one 9-panel 4K recut peaked at **592MB RSS**, past the whole 512MB box,
+ * which is what OOM-killed Render on every 4K cut and, with heal-on-read
+ * re-firing it per poll, crash-looped the site for half an hour. Decoding
+ * once to a raw buffer with sharp's cache off cut that to 233MB — survivable,
+ * but the spike still rode the same process as the app. Now the decode, the
+ * seam scan and the crops all happen in `scripts/cut-sheet-worker.js`, spawned
+ * per cut: the SERVER only writes the sheet to a tmp file and reads finished
+ * ~1-3MB panels back one at a time, so its own memory stays flat, and the
+ * worst possible failure is the child dying — a failed run, never a dead
+ * site. The child self-measures (`peakRss` in its manifest, logged here), so
+ * every real cut keeps proving what it costs. Live progress comes from
+ * watching the out dir fill, patched at the same cadence as before.
+ *
+ * THE CUT LINES COME FROM THE PICTURE, NOT THE MATH (2026-08-25, Sophie:
+ * "the cutting doesn't cut on the right lines because it's using math, but
+ * the image generation is not exact — it needs some mechanism that's actually
+ * aware and looks at the picture"). sheet-seams.js finds the drawn gutter
+ * near each mathematical line and cuts through its middle; where the picture
+ * shows no convincing gutter, the math line stands — see that file's header.
+ * So panels are no longer all exactly one nominal cell: each image carries
+ * its REAL size, and the caption slot stays "1/4 (4K)" either way.
  *
  * Lossless — an exact crop of the sheet's own pixels, so a panel is the
- * model's output and not a re-encode of it.
+ * model's output and not a re-encode of it. `effort: 0` only changes how hard
+ * the ENCODER searches for a smaller file, never the pixels — lossless is
+ * lossless at every effort. Measured on a real 4K panel: 2518ms -> 1191ms per
+ * cut (~2x, more on the 0.5 vCPU box) for a file ~20% bigger — the right
+ * trade on the tool she watches cut nine panels ("the cutting takes a long
+ * time").
  *
  * `have` is what already landed, so a resume only cuts the panels that are
  * missing and never re-uploads one she may already have hearted.
  */
+const WORKER = require('path').join(__dirname, 'scripts', 'cut-sheet-worker.js');
+
 async function cutSheet(sheet, cfg, patch, have) {
-  const sharp = require('sharp');
-  const boxes = sheetGrid.cutBoxes(cfg.plan);
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+  const { execFile } = require('child_process');
   const names = sheetGrid.cellNames(cfg.gridId);
   const images = (have || []).slice();
   const done = new Set(images.map((im) => im.cell));
-  // ONE decode for the whole sheet; each crop is taken from this.
-  const page = sharp(sheet, { limitInputPixels: false });
-  for (let i = 0; i < boxes.length; i++) {
-    const cell = names[i] || `panel ${i + 1}`;
-    if (done.has(cell)) continue;
+  const skip = [];
+  for (let i = 0; i < cfg.plan.count; i++) {
+    if (done.has(names[i] || `panel ${i + 1}`)) skip.push(i);
+  }
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'panels-'));
+  const sheetFile = path.join(dir, 'sheet');
+  fs.writeFileSync(sheetFile, sheet);
+  // Live progress while the child cuts: count the panel files as they land.
+  // Same cadence her page always saw, without the pixels ever entering this
+  // process.
+  const progress = setInterval(() => {
     try {
-      const buf = await page.clone().extract(boxes[i]).webp({ lossless: true }).toBuffer();
-      const url = await deps.saveBuffer(buf, 'image/webp', 'panels/cuts');
-      images.push({ url, cell, prompt: cfg.panels[i], size: cfg.plan.cell });
-    } catch (e) {
-      // one failed cut costs its panel, not the run — the sheet is paid for
-      console.warn(`panels cut ${i + 1} failed:`, e.message);
+      const cut = fs.readdirSync(dir).filter((f) => f.startsWith('panel-')).length;
+      patch({ job: { kind: 'sheet', status: 'running',
+        done: 1 + images.length + cut, total: cfg.plan.count + 1,
+        label: 'cutting', startedAt: Date.now() } });
+    } catch (e) { /* progress is best-effort */ }
+  }, 2000);
+  try {
+    await new Promise((resolve, reject) => {
+      execFile(process.execPath, ['--max-old-space-size=256', WORKER,
+        sheetFile, dir, JSON.stringify(cfg.plan), JSON.stringify(skip)],
+      { timeout: 5 * 60 * 1000 }, (err, stdout, stderr) => {
+        if (err) reject(new Error(`cut worker failed: ${String(stderr || err.message).slice(0, 300)}`));
+        else resolve();
+      });
+    });
+    const man = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'));
+    if (man.peakRss) console.log(`panels cut worker peak RSS ${Math.round(man.peakRss / 1048576)}MB`);
+    if (man.moved) await patch({ seamsMoved: man.moved });
+    for (const p of man.panels || []) {
+      if (!p) continue;
+      const cell = names[p.i] || `panel ${p.i + 1}`;
+      if (p.error) {
+        // one failed cut costs its panel, not the run — the sheet is paid for
+        console.warn(`panels cut ${p.i + 1} failed:`, p.error);
+        continue;
+      }
+      const url = await deps.saveBuffer(fs.readFileSync(p.file), 'image/webp', 'panels/cuts');
+      fs.unlinkSync(p.file);
+      images.push({ url, cell, prompt: cfg.panels[p.i],
+        size: `${p.box.width}x${p.box.height}` });
+      // keep them in reading order however they were assembled
+      images.sort((a, b) => names.indexOf(a.cell) - names.indexOf(b.cell));
+      await patch({ images: images.slice(),
+        job: { kind: 'sheet', status: 'running', done: 1 + images.length,
+          total: cfg.plan.count + 1, label: 'cutting', startedAt: Date.now() } });
     }
-    // keep them in reading order however they were assembled
-    images.sort((a, b) => names.indexOf(a.cell) - names.indexOf(b.cell));
-    await patch({ images: images.slice(),
-      job: { kind: 'sheet', status: 'running', done: 1 + images.length,
-        total: cfg.plan.count + 1, label: 'cutting', startedAt: Date.now() } });
+  } finally {
+    clearInterval(progress);
+    try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { /* tmp */ }
   }
   return images;
 }
@@ -477,6 +586,51 @@ function isStale(d) {
   const j = d.job || {};
   if (j.status !== 'running') return false;
   return Date.now() - (Number(j.startedAt) || 0) > STALE_MS;
+}
+// The DRAW can honestly take up to ten minutes (imageEdit's own timeout), so
+// a run with no sheet yet gets a longer leash before it is called dead.
+const DRAW_STALE_MS = 15 * 60 * 1000;
+
+/**
+ * READS HEAL A WEDGED RUN BY THEMSELVES (2026-08-25, Sophie: "the cutting
+ * doesn't work and it takes a long time"). The resume route existed and
+ * nothing ever called it — the page just watched a doc that would say
+ * `running` forever after a deploy restart, which several chats cause every
+ * day. Now any read of a stale run (the feed, or one poll) kicks the recut in
+ * the background: free, keeps what already landed, and the next poll shows it
+ * moving again. A run that died before its sheet ever landed is stamped
+ * failed instead, so the page stops saying "working…" about nothing.
+ */
+const healing = new Set();
+function healStale(d) {
+  try {
+    // ONE heal at a time, process-wide. Two wedged 4K runs on 2026-08-24 meant
+    // every feed read started two concurrent sheet cuts — the OOM crash loop
+    // above. The next poll (seconds away) picks up the next stale run.
+    if (!d || d.status !== 'running' || healing.size) return;
+    const j = d.job || {};
+    const silentFor = Date.now() - (Number(j.startedAt) || 0);
+    const ref = admin.firestore().collection(COLLECTION).doc(d.id);
+    if (!d.sheetUrl) {
+      if (silentFor <= DRAW_STALE_MS) return;
+      healing.add(d.id);
+      ref.update({ status: 'failed', error: 'interrupted by a restart while drawing',
+        job: { kind: 'sheet', status: 'failed',
+          error: 'interrupted by a restart while drawing', startedAt: Date.now() } })
+        .catch(() => {}).then(() => healing.delete(d.id));
+      return;
+    }
+    if (!isStale(d) || (d.images || []).length >= d.count) return;
+    const plan = sheetGrid.sheetFor(d.grid, d.shape, d.res);
+    if (!plan) return;
+    healing.add(d.id);
+    ref.update({ job: { kind: 'recut', status: 'running',
+      done: 1 + (d.images || []).length, total: plan.count + 1,
+      label: 'cutting', startedAt: Date.now() } })
+      .then(() => recut(ref, d, plan))
+      .catch(() => {})
+      .then(() => healing.delete(d.id));
+  } catch (e) { /* healing is best-effort; a read must never fail over it */ }
 }
 
 router.post('/:id/resume', async (req, res) => {
@@ -509,8 +663,12 @@ async function recut(ref, d, plan) {
     const r = await fetch(d.sheetUrl);
     if (!r.ok) throw new Error(`could not fetch the sheet (${r.status})`);
     const sheet = Buffer.from(await r.arrayBuffer());
+    // fullPrompt/prefix/suffix come off the stored run — without them a
+    // resumed panel would file with no prompt while its first-pass siblings
+    // carry one, which is the same picture described two different ways.
     const cfg = { plan, panels: d.panels || [], gridId: d.grid,
-      quality: d.quality, styleId: d.style };
+      quality: d.quality, styleId: d.style,
+      fullPrompt: d.fullPrompt || '', prefix: d.prefix || '', suffix: d.suffix || '' };
     const images = await cutSheet(sheet, cfg, patch, d.images || []);
     if (!images.length) throw new Error('every cut failed');
     await patch({ status: 'done', images,
@@ -529,6 +687,7 @@ router.get('/:id', async (req, res) => {
     if (!admin.apps.length) return res.status(503).json({ error: 'firebase not configured' });
     const doc = await admin.firestore().collection(COLLECTION).doc(String(req.params.id)).get();
     if (!doc.exists) return res.status(404).json({ error: 'run not found' });
+    healStale(doc.data());
     return res.json(clean(doc.data()));
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
@@ -544,6 +703,7 @@ router.get('/', async (req, res) => {
     let runs = snap.docs.map((d) => clean(d.data())).filter((r) => !r.hidden);
     const q = String(req.query.q || '').trim().toLowerCase();
     if (q) runs = runs.filter((r) => hay(r).includes(q));
+    runs.slice(0, limit).forEach(healStale);
     return res.json({ runs: runs.slice(0, limit), total: runs.length });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
@@ -571,5 +731,5 @@ function clean(d) {
   return o;
 }
 
-module.exports = { router, init, __setDeps, buildPrompt, sheetSuffix, sheetCents,
-  hay, cutSheet, isStale, STALE_MS, COLLECTION };
+module.exports = { router, init, __setDeps, buildPrompt, gridLine, sheetSuffix, sheetCents,
+  hay, cutSheet, fileRun, isStale, STALE_MS, DRAW_STALE_MS, COLLECTION };

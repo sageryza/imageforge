@@ -155,9 +155,24 @@ catch {
         res: RES, resDefault: '1k',
       }));
     }
+    // The three-way toggle's geometry is a SHARED stylesheet since Aug 2026
+    // (/tritoggle.css, served by express.static in production). A stub that
+    // does not serve it collapses the toggle to a 4px sliver — which is worth
+    // knowing: a missing shell is not a subtle degradation.
+    if (url.pathname === '/tritoggle.css') {
+      res.writeHead(200, { 'Content-Type': 'text/css' });
+      return res.end(fs.readFileSync(path.join(ROOT, 'public', 'tritoggle.css')));
+    }
     if (url.pathname === '/playground-port.js') {
       res.writeHead(200, { 'Content-Type': 'text/javascript' });
       return res.end(fs.readFileSync(path.join(ROOT, 'public', 'playground-port.js')));
+    }
+    // /tritoggle.js — the shared AIM rule (2026-08-24). express.static serves it
+    // in production; a stub that does not falls back to the old CYCLE and would
+    // green-light the very bug this pins.
+    if (url.pathname === '/tritoggle.js') {
+      res.writeHead(200, { 'Content-Type': 'text/javascript' });
+      return res.end(fs.readFileSync(path.join(ROOT, 'public', 'tritoggle.js')));
     }
     res.writeHead(200, { 'Content-Type': 'text/html' });
     res.end(pageSrc);
@@ -254,12 +269,15 @@ catch {
   ok(ladder.h === hs[0], 'but it still stands the row\'s full height as a tap target');
 
   console.log('it rides the POST');
-  // Tap until it IS on 4K rather than counting taps from a state earlier
-  // assertions have already moved — a wrap makes a fixed count wrong.
-  for (let i = 0; i < 3 && await page.getAttribute('#rpick', 'data-n') !== '2'; i++) {
-    await page.click('#rpick');
+  // A tap LANDS on the stop under it (2026-08-24 — /tritoggle.js), so 4K is
+  // one aimed tap on the right third whatever earlier assertions left it on.
+  // This used to tap up to three times and rely on the wrap.
+  {
+    const box = await page.locator('#rpick').boundingBox();
+    await page.mouse.click(box.x + box.width * (5 / 6), box.y + box.height / 2);
+    await page.waitForTimeout(220);
   }
-  ok(await page.getAttribute('#rpick', 'data-n') === '2', 'tapping to 4K lights the last stop');
+  ok(await page.getAttribute('#rpick', 'data-n') === '2', 'tapping the right third lights 4K');
   await page.click('#go');
   await page.waitForFunction(() => document.querySelectorAll('#pendings *').length > 0);
   ok(posted.length === 1 && posted[0].res === '4k', 'the run carries res:"4k"');

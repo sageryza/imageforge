@@ -60,7 +60,12 @@
      in the SAME web view, and that web view installs no `__forgeLeave`, so
      pagehead.js does nothing there and the screen had no way out at all.
      Shown only when the page is NOT embedded, the brief.html pattern. */
-  .backch{ flex:0 0 auto; width:26px; height:26px; margin-left:-8px; padding:0;
+  /* pagehead.js drew the app's chevron into this same row — two identical
+   chevrons side by side was the tell (2026-08-23). body.pagehead exists
+   only when it did, so the inside-Chats web view (no bridge there) keeps
+   this one. */
+body.pagehead .backch{display:none !important}
+.backch{ flex:0 0 auto; width:26px; height:26px; margin-left:-8px; padding:0;
     border:0; background:transparent; color:var(--dim); font:inherit;
     font-size:24px; line-height:1; cursor:pointer;
     -webkit-tap-highlight-color:transparent; }

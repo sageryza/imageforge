@@ -576,6 +576,76 @@ router.get('/proxies', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// Play-session telemetry (2026-08-23, round three) — what her PHONE actually
+// did during a play: build id, rVFC fire counts, playhead holds, boundary
+// reveal waits, audio start latency / entry realigns / stalls. Every fix so
+// far was verified in headless Chromium while her device kept failing; this
+// closes that loop with a measurement instead of another guess. One small doc
+// per cut, newest sessions first, capped — no bytes, nothing personal beyond
+// the browser's user-agent line. Registered above GET /:id (the /proxies
+// lesson: Express would read "telemetry" as a cut id).
+// The page's current build id, read once from the html itself — one source.
+// GET /build is what the page's self-heal compares itself against: the iOS
+// app keeps recent tools alive, so a loaded page can be DAYS old while the
+// served one moves on (the round-three finding, 2026-08-23).
+const PAGE_BUILD = (() => {
+  try {
+    const m = /var BUILD = '([^']+)'/.exec(
+      fs.readFileSync(path.join(__dirname, 'public', 'filmeditor.html'), 'utf8'));
+    return (m && m[1]) || '';
+  } catch (e) { return ''; }
+})();
+router.get('/build', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({ build: PAGE_BUILD });
+});
+
+const TEL_COL = 'forge-film-telemetry';
+const telNum = (v, cap) => Math.max(0, Math.min(Number(v) || 0, cap));
+router.post('/telemetry', async (req, res) => {
+  try {
+    const d = db();
+    if (!d) return res.status(503).json({ error: 'no store' });
+    const b = req.body || {};
+    const cut = String(b.cut || '').slice(0, 40);
+    if (!/^[A-Za-z0-9_-]{4,}$/.test(cut)) return res.status(400).json({ error: 'cut required' });
+    const session = {
+      at: telNum(b.at, 4102444800000) || Date.now(),
+      build: String(b.build || '').slice(0, 40),
+      ua: String(b.ua || '').slice(0, 160),
+      ph0: telNum(b.ph0, 36000), ph1: telNum(b.ph1, 36000),
+      dur: telNum(b.dur, 3600000), joints: telNum(b.joints, 10000),
+      vholdMs: telNum(b.vholdMs, 3600000), choldMs: telNum(b.choldMs, 3600000),
+      black: (Array.isArray(b.black) ? b.black : []).slice(0, 30).map((n) => telNum(n, 60000)),
+      rvfc: (Array.isArray(b.rvfc) ? b.rvfc : []).slice(0, 2).map((n) => telNum(n, 10000000)),
+      aud: b.aud && typeof b.aud === 'object' ? {
+        src: b.aud.src === 'proxy' ? 'proxy' : 'raw',
+        startMs: b.aud.startMs == null ? null : telNum(b.aud.startMs, 3600000),
+        entries: (Array.isArray(b.aud.entries) ? b.aud.entries : []).slice(0, 20)
+          .map((n) => Math.max(-3600, Math.min(Number(n) || 0, 3600))),
+        resync: telNum(b.aud.resync, 10000), paceOn: telNum(b.aud.paceOn, 10000),
+        waits: telNum(b.aud.waits, 10000),
+      } : null,
+    };
+    const ref = d.collection(TEL_COL).doc(cut);
+    const snap = await ref.get();
+    const sessions = [session, ...((snap.exists && snap.data().sessions) || [])].slice(0, 20);
+    await ref.set({ cut, sessions, at: Date.now() });
+    res.json({ ok: true });
+  } catch (err) { fail(res, err); }
+});
+router.get('/telemetry', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const d = db();
+    if (!d) return res.status(503).json({ error: 'no store' });
+    const cut = String(req.query.cut || '').slice(0, 40);
+    if (!cut) return res.status(400).json({ error: 'cut required' });
+    const snap = await d.collection(TEL_COL).doc(cut).get();
+    res.json({ cut, sessions: (snap.exists && snap.data().sessions) || [] });
+  } catch (err) { fail(res, err); }
+});
+
 router.get('/:id', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
@@ -642,5 +712,5 @@ module.exports = {
   cleanPieces, cleanAudio, pieceSeconds, totalSeconds, splitPiece, mixGraph,
   proxyId, proxyNeeded, proxyArgs,
   audioProxyId, audioProxyNeeded, audioProxyArgs,
-  trimmedCut, MAX_PIECES, MAX_RENDERS, MIN_PIECE, PROXY_EDGE,
+  trimmedCut, MAX_PIECES, MAX_RENDERS, MIN_PIECE, PROXY_EDGE, PAGE_BUILD,
 };

@@ -69,7 +69,7 @@ const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
 const fetch = require('node-fetch');
-const { buildQuestions, answeredOnly } = require('./questions');
+const { buildQuestions, answeredOnly, isCompacted } = require('./questions');
 const { parseQuery } = require('./search-grammar');
 const { shouldPushReply, chatNotifies, pushBody } = require('./push-gate');
 const chatSort = require('./chat-sort');
@@ -420,6 +420,11 @@ router.get('/', async (req, res) => {
 // spin-down just means one full reload on the next search.
 let searchIndex = [];        // [{chat, id, text, tldr, created, url, from}]
 const searchSeen = new Set(); // doc ids already in the index
+// Sized in every memwatch snapshot — the index holds every message's full
+// text forever, so if it is the heap leak the count and MB will say so.
+require('./memwatch').gauge('chatSearchIndex', () => searchIndex.length);
+require('./memwatch').gauge('chatSearchMB', () => Math.round(searchIndex.reduce((a, m) => a + (m.text || '').length + (m.tldr || '').length, 0) * 2 / 1048576));
+
 let indexMaxCreated = '';
 let indexInit = false;
 let indexRefreshedAt = 0;
@@ -484,7 +489,19 @@ function queryMatches(s, groups) {
 // Where to centre the snippet. With two words the RARE one is what found this
 // message — the common one is everywhere and shows her nothing — so the
 // snippet opens on the term with the fewest hits in that message.
-function snippetAnchor(src, groups) {
+//
+// …EXCEPT THAT THE PHRASE WINS THE WINDOW WHEN THE MESSAGE HAS IT (Aug 2026,
+// found by reading the live answer to her own `maybe never` search). The top
+// row was there BECAUSE her two words sit adjacent in it, and the snippet was
+// opening on a different, scattered occurrence further up the same message —
+// so the one result the ranking is proudest of read as though it did not
+// answer the search that put it first. A rank and a snippet that disagree are
+// worse than either alone: she judges a row by the words she can see.
+function snippetAnchor(src, groups, phraseRe) {
+  if (phraseRe) {
+    const hit = src.match(phraseRe);
+    if (hit) return { i: src.search(phraseRe), len: hit[0].length, n: 0 };
+  }
   let best = null;
   for (const g of groups) {
     if (g.neg) continue;
@@ -501,33 +518,32 @@ function snippetAnchor(src, groups) {
   return best;
 }
 
-// ---- IN THE ORDER SHE TYPED THEM COMES FIRST (Aug 2026, Sophie: "typing
-// `maybe never` finds ... the chats where those words appear in the same order
-// as typed should appear at the top and the ones where they appear anywhere
-// should appear underneath") ------------------------------------------------
-// Bare words AND anywhere in the message, in any order — that is the grammar
-// and it is what she asked for the day it shipped, so this does NOT narrow the
-// results. It only ORDERS them, which is the half that was missing: `maybe
-// never` was answering with a message about "maybe $3-5 a month" above the one
-// that actually says "maybe never", and reaching for quotes to fix that is a
-// tax on every search of more than one word.
+// ---- THE PHRASE COMES FIRST, AND NOTHING ELSE JUMPS THE QUEUE ------------
+// Sophie, 2026-08-19: "also i noticed typing: maybe never finds / The chats
+// were those words appear in the same order as typed should appear at the top
+// and the ones where they appear anywhere should appear underneath."
 //
-// Three tiers, best first, then newest-first inside each one (the old sort,
-// untouched, and still the whole sort for a one-word query):
+// TWO tiers, which is what that sentence says. It shipped as THREE (2026-08-21)
+// because the build read "in the same order as typed" as a rung of its own,
+// separate from the phrase — so a message with her words in order but with
+// other words in between ("maybe you'll never") was lifted above a plain
+// recent one. She retired that middle rung on 2026-08-24: "you mentioned if
+// it's there but there are words between it vs. different order. that's
+// stupid … only if no words moves it up." Scattered-in-order is not a
+// meaningful kind of match, and lifting it only pushed newer, better answers
+// down.
 //
 //   0. THE PHRASE — the words adjacent and in her order, exactly what quoting
 //      them would have found. This tier is why she does not have to quote.
-//   1. IN HER ORDER — each word after the one before it, with other words in
-//      between ("maybe you'll never").
-//   2. ANYWHERE — all the words are in the message, the order is not hers.
+//   1. EVERYTHING ELSE — newest first, the old sort, untouched.
 //
 // A query with one positive group has nothing to rank and skips all of this.
 // So does one carrying a field term (`tag:`), where "adjacent" is meaningless.
 const rankGroups = (groups) => groups.filter((g) => !g.neg && g.terms.some((t) => t.re));
 // The whole query as one adjacency regex, OR groups included as alternations.
-// Built as its own pass rather than falling out of the walk below, because a
-// left-to-right walk takes the EARLIEST match of each word and would miss the
-// adjacent pair further along ("maybe … never … maybe never" is the phrase).
+// Built as its own pass and NOT as a left-to-right walk: a walk takes the
+// EARLIEST match of each word and would miss the adjacent pair further along
+// ("maybe … never … maybe never" is the phrase).
 function phraseRegex(pos) {
   if (pos.some((g) => g.terms.some((t) => t.field))) return null;
   const parts = pos.map((g) => {
@@ -538,27 +554,32 @@ function phraseRegex(pos) {
   const lead = /^[a-z0-9]/i.test(pos[0].terms[0].value) ? '\\b' : '';
   try { return new RegExp(lead + parts.join('\\s+'), 'i'); } catch (e) { return null; }
 }
-// Rank one message: 0 phrase, 1 in her order, 2 anywhere. Lower sorts first.
-function orderRank(src, pos, phraseRe) {
-  if (phraseRe && phraseRe.test(src)) return 0;
-  // Walk left to right taking the earliest match of each group at or after the
-  // end of the last one — greedy-earliest is exactly right for "does an
-  // in-order occurrence exist", since taking anything later can only make the
-  // rest harder to place.
-  let at = 0;
-  for (const g of pos) {
-    let best = -1, len = 0;
-    for (const t of g.terms) {
-      if (!t.re) continue;
-      const rest = src.slice(at);
-      const i = rest.search(t.re);
-      if (i < 0) continue;
-      if (best < 0 || i < best) { best = i; len = (rest.match(t.re) || [''])[0].length; }
+// Rank one message: 0 the phrase, 1 everything else. Lower sorts first.
+const phraseRank = (src, phraseRe) => (phraseRe && phraseRe.test(src) ? 0 : 1);
+
+// ---- ONE ROW PER CHAT (Aug 2026, Sophie: "if the same word is found in the
+// same chat, only show the most recent result") -----------------------------
+// A chat that has said her word twenty times used to fill the whole first
+// screen with twenty rows of itself, so every OTHER chat that said it once was
+// pushed off the answer — and the twenty rows are the same finding twenty
+// times over. One row each, and the results list becomes a list of chats that
+// know about this rather than a list of times it was mentioned.
+//
+// WHICH row: the best-ranked, and the NEWEST among equals. With two tiers most
+// results tie, so in almost every search this is exactly "the most recent" as
+// she asked. It differs only when a chat holds the exact phrase in an older
+// message and a loose scatter in a newer one — and there, showing the newer
+// one would open the chat on something that is not what she searched for.
+function bestPerChat(ranked) {
+  const best = new Map();
+  for (const r of ranked) {
+    const cur = best.get(r.m.chat);
+    if (!cur || r.rank < cur.rank
+      || (r.rank === cur.rank && (r.m.created || '') > (cur.m.created || ''))) {
+      best.set(r.m.chat, r);
     }
-    if (best < 0) return 2;          // every word is here, but not in her order
-    at += best + len;
   }
-  return 1;
+  return Array.from(best.values());
 }
 
 // ---- WHO SAID IT — the search's first filter -------------------------------
@@ -582,43 +603,94 @@ function orderRank(src, pos, phraseRe) {
 // safe direction for the smaller pile.
 const SEARCH_WHO = ['all', 'me', 'claude'];
 const whoOf = (from) => (from === 'sophie' ? 'me' : 'claude');
-// An unknown value is `all`, never an empty result — a filter she cannot see
-// (an old cached page sending a word this server never learned) must widen
-// the answer, not silently delete it.
-const whoParam = (v) => (SEARCH_WHO.indexOf(String(v || '').toLowerCase().trim()) > 0
-  ? String(v).toLowerCase().trim() : 'all');
+// ONE reader for every search filter, because they all fail the same way: an
+// unknown value must be `all`, never an empty result. A filter she cannot see
+// — an old cached page sending nothing, or a word this server has not learned
+// yet — has to WIDEN the answer rather than silently delete results. `all` is
+// index 0 of every list, so anything that does not land past it is `all`.
+const pickOne = (v, list) => {
+  const w = String(v || '').toLowerCase().trim();
+  return list.indexOf(w) > 0 ? w : 'all';
+};
+const whoParam = (v) => pickOne(v, SEARCH_WHO);
 const whoMatches = (who, from) => who === 'all' || whoOf(from) === who;
+
+// ---- THE ARCHIVE — the second filter (Aug 2026, Sophie: "another filter to
+// add can be archived as in does it search the archive or not or just the
+// archive") ------------------------------------------------------------------
+// Three options, which is why it is a three-way toggle and not a checkbox: the
+// two useful narrowings are opposites, and neither is the default. Search has
+// always covered EVERYTHING, so `all` stays what it always was and the two new
+// answers are hers to reach for.
+//   all  — everywhere, the old behaviour and what an older page still sends
+//   live — skip the archive: what she is still working on
+//   only — the archive alone: an old chat she remembers but has put away
+// It filters by CHAT, not by message: `archived` is a flag on the registry
+// doc, so the set of archived slugs is one read of the cache the route already
+// takes for the name rows.
+const SEARCH_ARCH = ['all', 'live', 'only'];
+const archParam = (v) => pickOne(v, SEARCH_ARCH);
+const archMatches = (arch, isArchived) => arch === 'all'
+  || (arch === 'only' ? !!isArchived : !isArchived);
+
+// ONLY THE FIRST THREE NAME ROWS (Aug 2026, Sophie: "right now, the name
+// instances in the name are pinned to the top just pin the first three
+// instances and then show content results"). A common word matches a dozen
+// chat NAMES, and ten of those pinned above the fold pushed the message she
+// was actually looking for off the first screen — the name rows are a
+// shortcut to the obvious answer, not a second list to read through.
+// Newest-seen first, so the three she gets are the three she is most likely to
+// have meant.
+const NAME_ROWS = 3;
+function pickNameRows(reg, groups, arch) {
+  if (!reg || !reg.chats) return [];
+  return Object.keys(reg.chats)
+    // The ARCHIVE filter is about the chat, so a name row obeys it like any
+    // hit. (The WHO filter is not: a name was said by nobody, which is why the
+    // caller drops these rows entirely while a side is picked.)
+    .filter((slug) => archMatches(arch, reg.chats[slug].archived))
+    .map((slug) => ({
+      chat: slug,
+      name: reg.chats[slug].displayName || slug,
+      lastSeen: reg.chats[slug].lastSeen || '',
+    }))
+    .filter((c) => queryMatches(`${c.name}\n${c.chat}`, groups))
+    .sort((a, b) => (a.lastSeen < b.lastSeen ? 1 : -1))
+    .slice(0, NAME_ROWS)
+    .map((c) => ({ chat: c.chat, name: c.name }));
+}
 
 router.get('/search', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
     const q = String(req.query.q || '').trim();
     const who = whoParam(req.query.from);
+    const arch = archParam(req.query.arch);
     if (q.length < 2) return res.json({ results: [], chatMatches: [], indexed: searchIndex.length });
     await refreshSearchIndex();
     const groups = compileQuery(q);
     if (!groups.length) return res.json({ results: [], chatMatches: [], indexed: searchIndex.length });
+    // The registry is read for the name rows AND for the archive filter, so it
+    // is taken once, up front. `registry()` is the feed's own 5-minute cache —
+    // never open a second one.
+    let reg = null;
+    try { reg = await registry(); }
+    catch (e) { /* the message search still answers without it */ }
+    const archivedChat = (slug) => !!((reg && reg.chats && reg.chats[slug]) || {}).archived;
     // Chats whose NAME matches the query — Sophie's display name first, the
     // slug as fallback — returned separately so the client can pin them at
     // the top of the results (her rule: searching a chat's name should find
     // the chat itself before any message-content hits).
     // A chat's NAME was said by nobody, so it is not an answer to "show me my
     // messages" — the name rows come off while a side is picked rather than
-    // sitting above results that all share one voice.
-    let chatMatches = [];
-    if (who === 'all') try {
-      const reg = await registry();
-      chatMatches = Object.keys(reg.chats || {})
-        .map((slug) => ({ chat: slug, name: (reg.chats[slug].displayName || slug), lastSeen: reg.chats[slug].lastSeen || '' }))
-        .filter((c) => queryMatches(`${c.name}\n${c.chat}`, groups))
-        .sort((a, b) => (a.lastSeen < b.lastSeen ? 1 : -1))
-        .slice(0, 10)
-        .map((c) => ({ chat: c.chat, name: c.name }));
-    } catch (e) { /* name matches are a bonus; message search still answers */ }
+    // sitting above results that all share one voice. The ARCHIVE filter is
+    // different: it is about the chat, so a name row obeys it like any hit.
+    const chatMatches = who === 'all' ? pickNameRows(reg, groups, arch) : [];
     const limit = Math.min(200, parseInt(req.query.limit, 10) || 80);
     // Every word she typed has to land in the SAME message — that is the whole
     // point — so the haystack is the one message, name and TLDR included.
     const hits = searchIndex.filter((m) => whoMatches(who, m.from)
+      && archMatches(arch, archivedChat(m.chat))
       && queryMatches(m.chat + '\n' + m.tldr + '\n' + m.text, groups));
     // Her order first, then newest — see IN THE ORDER SHE TYPED THEM above.
     // Ranked into a parallel array rather than stamped onto the index rows:
@@ -628,15 +700,19 @@ router.get('/search', async (req, res) => {
     const phraseRe = pos.length > 1 ? phraseRegex(pos) : null;
     const ranked = hits.map((m) => ({
       m,
-      rank: pos.length > 1 ? orderRank(m.chat + '\n' + m.tldr + '\n' + m.text, pos, phraseRe) : 0,
+      rank: phraseRe ? phraseRank(m.chat + '\n' + m.tldr + '\n' + m.text, phraseRe) : 0,
     }));
-    ranked.sort((a, b) => a.rank - b.rank
+    // One row per chat, BEFORE the cap — deduping after it would answer with
+    // fewer rows than she asked for and hide whole chats behind a chat that
+    // happened to repeat itself.
+    const rows = bestPerChat(ranked);
+    rows.sort((a, b) => a.rank - b.rank
       || (a.m.created < b.m.created ? 1 : a.m.created > b.m.created ? -1 : 0));
-    const results = ranked.slice(0, limit).map(({ m }) => {
+    const results = rows.slice(0, limit).map(({ m }) => {
       // Snippet centred on the match — prefer the body, else the tldr/chat name.
-      const inBody = m.text ? snippetAnchor(m.text, groups) : null;
-      const src = inBody ? m.text : (m.tldr && snippetAnchor(m.tldr, groups) ? m.tldr : (m.text || m.tldr || ''));
-      const at = inBody || snippetAnchor(src, groups);
+      const inBody = m.text ? snippetAnchor(m.text, groups, phraseRe) : null;
+      const src = inBody ? m.text : (m.tldr && snippetAnchor(m.tldr, groups, phraseRe) ? m.tldr : (m.text || m.tldr || ''));
+      const at = inBody || snippetAnchor(src, groups, phraseRe);
       let snip = src;
       if (at && at.i > -1) {
         const s = Math.max(0, at.i - 45);
@@ -1099,6 +1175,64 @@ function wrapPartOf(s) {
   const sp = cut.lastIndexOf(' ');
   return (sp > WRAP_PART_MAX * 0.6 ? cut.slice(0, sp) : cut).replace(/[,;:.\-\s]+$/, '') + '…';
 }
+// WHAT SHE ASKED IS HER OWN SENTENCE, NEVER A PARAPHRASE (2026-08-24, Sophie:
+// "right now the what I did — I mean what I asked — sentence is paraphrased.
+// can you make it my exact sentence and just truncate it if it gets too long,
+// so basically just the beginning of my last message").
+//
+// The other two answers are the chat's account of its own work, so they have to
+// be written. Hers is the one line nobody needs to write: she already said it,
+// and a model retelling it in its own words can only move it further from what
+// she meant — the house rule that her words reach the model verbatim, applied
+// to the summary she reads months later. So the server lifts the OPENING of her
+// last message off the thread it already stores and files that.
+//
+// TRUNCATED, NOT SUMMARISED, and deliberately NOT cut at the first sentence the
+// way `wrapPartOf` cuts a written answer: she dictates, so her punctuation is
+// unreliable and "I have a question." would be the whole line. It is the first
+// HER_ASK_MAX characters, at a word boundary, with an ellipsis — the beginning
+// of her message, exactly as she said it.
+const HER_ASK_MAX = 200;
+function herAskOf(s) {
+  const t = String(s || '').replace(/\s+/g, ' ').trim();
+  if (!t) return '';
+  if (t.length <= HER_ASK_MAX) return t;
+  const cut = t.slice(0, HER_ASK_MAX);
+  const sp = cut.lastIndexOf(' ');
+  return (sp > HER_ASK_MAX * 0.6 ? cut.slice(0, sp) : cut).replace(/[,;:.\-\s]+$/, '') + '…';
+}
+// Her newest message in a loaded thread. A CONTEXT-COMPACTION SUMMARY is not
+// her message — the harness hands it to the model as a user turn and the hook
+// lifts it exactly like something she typed, so it would file 7,000 characters
+// of recited rules as what she asked for. One copy of that rule, in questions.js.
+//
+// `before` (an ISO string) caps it at a moment — the BACKFILL's case. A summary
+// written on the 20th is her question of the 20th paired with what the chat did
+// by the 20th; taking her newest message instead would file a question she
+// asked afterwards over answers that predate it.
+function lastHerText(msgs, before) {
+  for (let i = (msgs || []).length - 1; i >= 0; i--) {
+    const m = msgs[i] || {};
+    if (m.from !== 'sophie') continue;
+    if (before && String(m.created || '') > String(before)) continue;
+    const t = String(m.text || '').trim();
+    if (!t || isCompacted(t)) continue;
+    return t;
+  }
+  return '';
+}
+// The same thing for a caller that has not loaded the thread. One equality
+// filter, sorted in memory — the house rule in this file, so Firestore needs no
+// composite index. Best-effort: a wrap-up must never fail because a read did.
+async function herAskFor(chat) {
+  try {
+    const snap = await db().collection(MSGS).where('chat', '==', chat).get();
+    const msgs = snap.docs.map((d) => d.data())
+      .sort((a, b) => (String(a.created || '') < String(b.created || '') ? -1 : 1));
+    return herAskOf(lastHerText(msgs));
+  } catch (_) { return ''; }
+}
+
 // The prose mirror for an older reader — unlabelled, because the labels are the
 // renderer's ("What you asked" / "What I did" / "What's next") and a reader
 // that cannot draw the three lines is better served by three plain sentences.
@@ -1136,9 +1270,12 @@ function capShort(s, cap = SHORT_CAP) {
 // the patch to merge, or null when there is nothing to freeze — never invents.
 // The Update card IS the summary's shape now, so this is a straight copy rather
 // than a translation into prose.
-function frozenWrapUp(r) {
+function frozenWrapUp(r, herAsk) {
   if (!r || r.wrapUp || r.wrapLine) return null;          // already has one
-  const asked = wrapPartOf(r.updAsked);
+  // HER OWN SENTENCE WINS THE ASKED LINE (2026-08-24) — the Update card's
+  // `updAsked` is the chat's paraphrase of it, and it is only the fallback now,
+  // for a chat she never posted a message into.
+  const asked = herAsk || wrapPartOf(r.updAsked);
   const did = wrapPartOf(r.updDid);
   const next = wrapPartOf(r.updNext);
   const doing = wrapPartOf(r.statusDoing);
@@ -1150,6 +1287,7 @@ function frozenWrapUp(r) {
   return {
     wrapLine: line,
     wrapAsked: asked || admin.firestore.FieldValue.delete(),
+    wrapAskedHers: herAsk ? true : admin.firestore.FieldValue.delete(),
     wrapDid: didPart || admin.firestore.FieldValue.delete(),
     wrapNext: next || admin.firestore.FieldValue.delete(),
     wrapUp: wrapProse(asked, didPart, next),
@@ -1169,7 +1307,11 @@ async function setArchived(chat, on) {
   let froze = false;
   if (on) {
     const snap = await ref.get();
-    const add = frozenWrapUp(snap.exists ? snap.data() : null);
+    const cur = snap.exists ? snap.data() : null;
+    // Only read the thread when there is actually a wrap-up to freeze — an
+    // archive tap on a chat that already has one must not cost a read.
+    const herAsk = (cur && !cur.wrapUp && !cur.wrapLine) ? await herAskFor(chat) : '';
+    const add = frozenWrapUp(cur, herAsk);
     if (add) { Object.assign(patch, add); froze = true; }
   }
   await ref.set(patch, { merge: true });
@@ -1198,7 +1340,13 @@ router.post('/wrapup', async (req, res) => {
     // THE THREE QUESTIONS — what she asked, what it did, what is next; one
     // sentence each. `next` doubles as the loose-ends half, so a chat that used
     // to send `open` has its answer land where she now reads for it.
-    const asked = wrapPartOf(req.body && req.body.asked);
+    // WHAT SHE ASKED IS HERS, VERBATIM (2026-08-24) — whatever the chat sends
+    // as `asked` is its retelling of a sentence she already wrote, so the
+    // server lifts the opening of her last message instead. Its own `asked` is
+    // the fallback for a chat she has never posted into (a backfill, a chat
+    // that only ever talked to itself).
+    const hers = await herAskFor(resolved);
+    const asked = hers || wrapPartOf(req.body && req.body.asked);
     const did = wrapPartOf(req.body && req.body.did);
     const next = wrapPartOf((req.body && req.body.next) || open);
     const three = asked || did || next;
@@ -1218,6 +1366,8 @@ router.post('/wrapup', async (req, res) => {
     await regRef(resolved).set({
       wrapLine: one || del,
       wrapAsked: asked || del,
+      // Her words, so the page truncates rather than cutting at a sentence.
+      wrapAskedHers: hers ? true : del,
       wrapDid: did || del,
       wrapNext: next || del,
       wrapUp: full || del,
@@ -1234,7 +1384,7 @@ router.post('/wrapup', async (req, res) => {
       wrapFrom: 'chat',
     }, { merge: true });
     res.json({ ok: true, chat: resolved, wrapLine: one, wrapUp: full,
-      wrapAsked: asked, wrapDid: did, wrapNext: next,
+      wrapAsked: asked, wrapAskedHers: !!hers, wrapDid: did, wrapNext: next,
       wrapLong: fuller, wrapOpen: three ? '' : still });
   } catch (err) { fail(res, err); }
 });
@@ -1344,6 +1494,87 @@ router.post('/wrapup/trim', async (req, res) => {
       // kept whole, so it is still over. Named rather than silently counted.
       stillOver: hits.filter((h) => h.now > cap).map((h) => h.chat),
       sample: hits.slice(0, 5).map((h) => ({ chat: h.chat, was: h.was, now: h.now })) });
+  } catch (err) { fail(res, err); }
+});
+
+// PUT HER OWN WORDS BACK ON THE SUMMARIES ALREADY ON FILE, FREE (2026-08-24,
+// Sophie a day after the fix shipped: "what I asked, which is the default note
+// at the top of every chat, is paraphrased … make it not paraphrase, just my
+// actual words truncated").
+//
+// She was right and the code was right — #1631 lifts her opening on all three
+// writing paths, but a wrap-up is STORED, not derived on read, so every summary
+// written before it kept its model paraphrase forever. Measured that day: 9
+// chats carried her words, 70 carried a paraphrase. Nothing re-writes a
+// wrap-up on its own, so the repair is its own pass — the `/wrapup/trim`
+// pattern: pure text surgery, no model call, dry by default.
+//
+// Three rules, and each one is about not overreaching:
+//   1. It only ever touches `wrapAsked` (plus the `wrapUp` mirror when that
+//      mirror is provably the three answers joined). `wrapDid`, `wrapNext`,
+//      `wrapLine` and `wrapLong` are the chat's own account of its work and
+//      are never reworded.
+//   2. HER MESSAGE AS OF WHEN THE SUMMARY WAS WRITTEN (`wrapUpAt`), not her
+//      newest — see `lastHerText`'s `before`. A summary is a moment, and
+//      pairing today's question with last week's answers reads as nonsense.
+//   3. A chat she never posted into is LEFT ALONE. There is nothing of hers to
+//      lift, and the chat's `asked` is the honest fallback exactly as it is on
+//      the live paths.
+router.post('/wrapup/rehers', async (req, res) => {
+  try {
+    const dry = !(req.body && req.body.dry === false);
+    const only = String((req.body || {}).chat || '').trim();
+    const snap = await db().collection(REG).get();
+    const todo = [];
+    snap.docs.forEach((d) => {
+      if (d.id === SETTINGS_DOC) return;
+      if (only && d.id !== only) return;
+      const r = d.data() || {};
+      if (r.wrapAskedHers === true) return;             // already hers
+      if (!String(r.wrapAsked || '').trim()) return;    // nothing to replace
+      todo.push({ chat: d.id, r });
+    });
+    const changed = [];
+    const noMessage = [];
+    for (const t of todo) {
+      // One equality filter, sorted in memory — the house rule in this file.
+      let msgs = [];
+      try {
+        const ms = await db().collection(MSGS).where('chat', '==', t.chat).get();
+        msgs = ms.docs.map((x) => x.data())
+          .sort((a, b) => (String(a.created || '') < String(b.created || '') ? -1 : 1));
+      } catch (_) { /* best-effort, exactly like herAskFor */ }
+      const hers = herAskOf(lastHerText(msgs, t.r.wrapUpAt));
+      if (!hers) { noMessage.push(t.chat); continue; }
+      if (hers === t.r.wrapAsked) continue;             // identical already
+      // NOTHING IS DESTROYED — the paraphrase moves aside rather than being
+      // overwritten. Measured over the 62 this pass rewrites: ~56 are plainly
+      // better and about SIX come out worse, because her last message before
+      // that summary was a sign-off ("ok build is here now. anything else to
+      // do?") or a machine-authored prompt the hook lifted as hers (a
+      // routine's deploy check-in, a handoff brief). Those really are the
+      // words that were sent as her turn, and her rule is her rule, so the
+      // pass applies it everywhere rather than inventing a quality bar over
+      // her messages — the detector-over-her-words mistake this repo has
+      // already made twice (see *Answering a question*). Keeping the old line
+      // is what makes that the cheap, reversible call instead of a permanent
+      // one.
+      const patch = { wrapAsked: hers, wrapAskedHers: true, wrapAskedWas: t.r.wrapAsked };
+      // The prose mirror is rebuilt ONLY when it is provably the three answers
+      // joined — anything else is a summary written as a paragraph, and
+      // splicing her sentence into someone's prose would leave a broken one.
+      const mirror = wrapProse(t.r.wrapAsked, t.r.wrapDid, t.r.wrapNext);
+      if (mirror && String(t.r.wrapUp || '').trim() === mirror) {
+        patch.wrapUp = wrapProse(hers, t.r.wrapDid, t.r.wrapNext);
+      }
+      changed.push({ chat: t.chat, was: t.r.wrapAsked, now: hers, mirror: !!patch.wrapUp });
+      if (!dry) await regRef(t.chat).set(patch, { merge: true });
+    }
+    res.json({ ok: true, dry, checked: todo.length, rewrote: changed.length,
+      // Named rather than silently skipped: a chat she never posted into keeps
+      // its chat-written answer, which is the same fallback the live paths use.
+      noMessageOfHers: noMessage,
+      sample: changed.slice(0, 8) });
   } catch (err) { fail(res, err); }
 });
 
@@ -1463,7 +1694,13 @@ router.post('/wrapup/write', async (req, res) => {
     // for that"). `next` carries the loose ends the old `open` field held, so a
     // rewrite CLEARS that field rather than leaving her the same unfinished
     // business twice under two different headings.
-    const asked = wrapPartOf(out && out.asked);
+    // HER OWN SENTENCE, LIFTED OFF THE THREAD (2026-08-24, Sophie: "can you
+    // make it my exact sentence and just truncate it if it gets too long, so
+    // basically just the beginning of my last message"). The model still
+    // ANSWERS `asked` — it costs nothing extra and it is the fallback for a
+    // chat with no message of hers in it — but her words win when they exist.
+    const hers = herAskOf(lastHerText(msgs));
+    const asked = hers || wrapPartOf(out && out.asked);
     const did = wrapPartOf(out && out.did);
     const next = wrapPartOf(out && (out.next !== undefined ? out.next : out.open));
     const three = asked || did || next;
@@ -1476,6 +1713,7 @@ router.post('/wrapup/write', async (req, res) => {
     await regRef(target).set({
       wrapLine: one,
       wrapAsked: asked || del,
+      wrapAskedHers: hers ? true : del,
       wrapDid: did || del,
       wrapNext: next || del,
       wrapUp: prose,
@@ -1488,7 +1726,7 @@ router.post('/wrapup/write', async (req, res) => {
       wrapFrom: 'claude',
     }, { merge: true });
     res.json({ ok: true, chat: target, wrapLine: one, wrapUp: prose,
-      wrapAsked: asked, wrapDid: did, wrapNext: next, wrapLong: long,
+      wrapAsked: asked, wrapAskedHers: !!hers, wrapDid: did, wrapNext: next, wrapLong: long,
       wrapOpen: '', messages: msgs.length, unanswered: unanswered.length });
   } catch (err) { fail(res, err); }
 });
@@ -2509,6 +2747,11 @@ router.get('/sort', async (_req, res) => {
       anthropic: require('./anthropic').available(),
       categories: cats,
       triage: chatSort.TRIAGE,
+      // Which of her folders are being read as WHAT THE WORK IS rather than as
+      // a subject area — the half that beats the subject when both fit (see
+      // WORK_KINDS in chat-sort.js). Printed here so the day the hint list goes
+      // stale against her vocabulary is measurable in one read, not silent.
+      workKinds: chatSort.workKinds(cats),
       examples,
       chats: names.length,
       filedBySophie: counted((n) => reg.chats[n].category && reg.chats[n].catBy !== 'auto'),
@@ -2809,6 +3052,7 @@ router.post('/chatnote', async (req, res) => {
 // whatever it was built with.
 const NEWEST_TTL_MS = 60 * 1000;
 const newestCache = new Map();
+require('./memwatch').gauge('chatNewestCache', () => newestCache.size);
 const VIDEO_RE = /\.(mp4|mov|webm)$/i;
 // a cut lives directly under its film's prefix; `clips/` and `stills/` are the
 // pieces it was built from and must never be served as the film
@@ -3487,10 +3731,31 @@ async function chatAssetRows(chat) {
 const autoTimers = new Map();
 const AUTO_DEBOUNCE_MS = 45_000;
 
+// LEADING EDGE AS WELL AS TRAILING (2026-08-24). The poke was trailing-only:
+// a 45s timer, reset by every filing. Two consequences, both real.
+//
+// A batch of filings left the page 45 SECONDS STALE — Sophie filed a low sheet
+// beside a medium one, looked, and the quality ladder was not there yet. It
+// arrived; it just arrived after she had looked.
+//
+// And the timer lives in THIS PROCESS. Several chats merge here all day and a
+// Render deploy restarts the box — twice today it landed inside a running job —
+// so a deploy inside the window drops the pending poke on the floor and NOTHING
+// re-runs it. The page then stays wrong until the next unrelated filing.
+//
+// Running on the FIRST filing as well means the page is right within a second
+// of something landing, and a deploy can now only cost the trailing refresh
+// (the coalesced tail of a batch) rather than the whole update.
 function autoComparePoke(chat) {
   const slug = String(chat || '').trim().slice(0, 60);
   if (!slug) return;
-  clearTimeout(autoTimers.get(slug));
+  const pending = autoTimers.get(slug);
+  clearTimeout(pending);
+  // nothing was queued for this chat → this is the start of a batch, so run
+  // now as well. Free: Firestore reads and a page write, no model call.
+  if (!pending) {
+    runAutoCompare(slug).catch((e) => console.error('[auto-compare lead]', slug, e.message));
+  }
   const t = setTimeout(() => {
     autoTimers.delete(slug);
     runAutoCompare(slug).catch((e) => console.error('[auto-compare]', slug, e.message));
@@ -4308,6 +4573,7 @@ router.post('/page-voice-session', express.json({ limit: '40mb' }), async (req, 
 // through thirty cards is thirty taps on ONE page, and its map never changes
 // (a new version is a new page, always).
 const pageMapCache = new Map();
+require('./memwatch').gauge('chatPageMapCache', () => pageMapCache.size);
 async function pageArchiveMap(sheet) {
   const m = /^page-(.+)$/.exec(sheet || '');
   if (!m) return null;
@@ -4420,8 +4686,9 @@ require('./chat-wake').mount(router, { db, regRef, registry, followMoves, resolv
 // already keeps rather than opening a second one — two caches of one collection
 // is how a stale answer gets served from whichever module happened to answer.
 module.exports = { router, pillInject, archiveActionFor, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry, pickFilm,
-  rankGroups, phraseRegex, orderRank,
+  rankGroups, phraseRegex, phraseRank, bestPerChat,
   SEARCH_WHO, whoOf, whoParam, whoMatches,
+  SEARCH_ARCH, archParam, archMatches, pickOne, pickNameRows, NAME_ROWS,
   autoComparePoke, runAutoCompare,
   TAGS, cleanLabels, labelsOf, labelPatch, applyLabels,
   PILE_SEEDS, REVIEW_LABEL, PIN_LABEL, pileList, isPile,

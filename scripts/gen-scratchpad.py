@@ -154,26 +154,68 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 #shelftiles{display:grid; grid-template-columns:repeat(3,1fr); gap:16px 10px;}
 .stile{display:block; padding:0; background:none; border:none; text-align:left; color:var(--ink);
   cursor:pointer; font-family:'EBGaramond',Georgia,serif; -webkit-tap-highlight-color:transparent;}
-.stile .cov{display:block; position:relative; box-sizing:border-box; width:100%; aspect-ratio:2/3;
-  padding:5px; background:#fff; border:1px solid var(--line); border-radius:7px;}
-.stile .cov img,.stile .cov .none{position:absolute; top:5px; left:5px;
-  width:calc(100% - 10px); height:calc(100% - 10px); border-radius:4px; background:var(--barbg);}
-.stile .cov img{object-fit:cover;}
-.stile .cov .none{box-sizing:border-box; border:1px dashed var(--line);}
+/* `.cov` is the tile's FOOTPRINT — it paints nothing. `.frame` inside it is
+   the white mat that used to BE .cov, and it fills the footprint exactly on
+   EVERY tile, a folder included, so every picture on the shelf is the same
+   size. The 8px of margin under it is the room a folder's stack shows in
+   (see A FOLDER IS A STACK below); it is reserved on every tile, folder or
+   not, because that is what keeps the names level across a row. */
+.stile .cov{display:block; position:relative; width:100%; aspect-ratio:2/3;
+  margin-bottom:8px;}
+.stile .frame{position:absolute; inset:0; z-index:1; box-sizing:border-box;
+  padding:5px; background:#fff; border:1px solid var(--line); border-radius:4px;}
+.stile .frame img,.stile .frame .none{position:absolute; top:5px; left:5px;
+  width:calc(100% - 10px); height:calc(100% - 10px); border-radius:2px; background:var(--barbg);}
+.stile .frame img{object-fit:cover;}
+.stile .frame .none{box-sizing:border-box; border:1px dashed var(--line);}
 /* THE PUSHPIN — round head, straight spike, never the Maps teardrop (the
    house rule). It rides the tile's top-left corner because the injected
    autoscroll pill owns the top-RIGHT of the screen, and the first row's last
    tile sits under it. Only the HEAD fills when it is set, as on the Chats
-   app's rows. */
+   app's rows. Its plate is a ROUNDED SQUARE at the house 6px, never a circle
+   (2026-08-24, Sophie: rounded squares or a plain icon, not circles). */
 .stile .pinpin{position:absolute; top:4px; left:4px; z-index:2; width:26px; height:26px;
   display:flex; align-items:center; justify-content:center; padding:0; border:none;
-  border-radius:50%; background:rgba(255,255,255,.92); color:var(--ink2);
+  border-radius:6px; background:rgba(255,255,255,.92); color:var(--ink2);
   box-shadow:0 1px 4px rgba(0,0,0,.18); cursor:pointer; -webkit-tap-highlight-color:transparent;}
 .stile .pinpin svg{width:14px; height:14px; display:block;}
 .stile .pinpin.on{color:var(--gold);}
 .stile .pinpin.on .pinhead{fill:var(--gold); stroke:var(--gold);}
 .stile .snm{padding-top:5px; text-align:center; font-weight:700; font-size:.8em; line-height:1.25;
   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+/* A FOLDER IS A STACK (2026-08-24, Sophie: "treat the Evan and Mason ones as
+   a folder … some sort of UI design like a stack that you can see underneath
+   the cover image so you can tell there's multiple stories in there").
+   THREE WHOLE CARDS, cascading down and to the right — the front one carrying
+   the picture, two empty ones behind it. THE FIRST CUT DREW THE LAYERS INSIDE
+   THE WHITE MAT and she rejected it on sight: two hairline slivers on white,
+   under the art, read as a rendering fault rather than as depth. A stack is
+   only legible when the thing behind is a whole CARD offset from the one in
+   front, so that is what this draws.
+   THE CARDS BEHIND SIT OUTSIDE THE BORDER (2026-08-24, her second correction:
+   "it should be outside the border"). The second cut shrank the FRONT card by
+   8px to make room inside the footprint, which quietly made a folder's
+   picture smaller than every story's beside it and read as the stack being
+   tucked under the frame rather than behind it. So the front card fills the
+   footprint exactly, like every other tile, and the two behind hang PAST its
+   right and bottom edge — negative insets, drawn in the 8px of margin the
+   footprint reserves on every tile. That reservation is what keeps the names
+   level across a row: a story leaves the room empty, a folder fills it.
+   Flat fills and NO shadow (house rule) — the offset alone says there is
+   more underneath.
+   ::before is the DEEPEST card and ::after the middle one, in that order,
+   because two positioned siblings at the same z-index paint in document order
+   and the deeper one has to go down first. */
+.stile.fold .cov::before,.stile.fold .cov::after{content:''; position:absolute; z-index:0;
+  box-sizing:border-box; background:#fff; border:1px solid var(--line); border-radius:4px;}
+.stile.fold .cov::before{inset:8px -8px -8px 8px;}
+.stile.fold .cov::after{inset:4px -4px -4px 4px;}
+/* How many are in there. The stack says "more than one"; this says how many,
+   so she can tell a pair from a pile without opening it. It rides the FRONT
+   card, inside the mat, over the picture's bottom-right corner. */
+.stile .cnt{position:absolute; z-index:2; right:9px; bottom:9px;
+  background:var(--paper); border:1px solid var(--line); border-radius:6px; color:var(--ink2);
+  padding:1px 5px; font:600 11px -apple-system,'Helvetica Neue',sans-serif;}
 /* The way to the rest of the shelf. An underlined word, never a button with a
    box round it — the house truncation-opener pattern. */
 #shelfmore{grid-column:1/-1; justify-self:center; margin:2px 0 0; padding:6px 4px;
@@ -391,7 +433,24 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   font-family:'EBGaramond',Georgia,serif; font-size:14px; color:var(--ink2); font-style:italic;}
 .tlab .chev{width:14px; height:14px; transition:transform .15s ease;}
 .tlab[aria-expanded="false"] .chev{transform:rotate(-90deg);}
-#pnote{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:17px;
+/* THE CAPTION READS AS WORDS, NOT AS A BOX (2026-08-24, Sophie: "the caption
+   shows not in a edit box but default to just the ... text and then there's
+   an edit pencil button next to it so if I want to edit it"). A textarea
+   sitting open on every beat says "type here" at the moment she is usually
+   only reading; the words in the serif with a quiet pencil beside them say
+   what the beat says. The pencil is a TOGGLE and the box never collapses on
+   its own blur — a layout that reshuffles under her thumb eats the tap she
+   was aiming at the button below. The bare glyph, not a plate: the house
+   rule allows one where the ground behind it is this calm. */
+#capview{display:flex; align-items:flex-start; gap:8px; width:100%;}
+#captext{flex:1; min-width:0; font-family:'EBGaramond',Georgia,serif; font-size:17px;
+  line-height:1.4; color:var(--ink); white-space:pre-wrap; overflow-wrap:anywhere; padding:2px 0;}
+#captext:empty{min-height:22px;}
+#capedit{flex:none; width:30px; height:30px; display:flex; align-items:center; justify-content:center;
+  padding:0; border:none; background:none; color:var(--ink2); cursor:pointer;}
+#capedit svg{width:17px; height:17px;}
+#capedit.on{color:var(--ink);}
+#pnote{flex:1; min-width:0; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:17px;
   line-height:1.4; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:6px;
   padding:10px 12px; resize:none;}
 .poprow{flex:none; display:flex; gap:14px;}
@@ -426,6 +485,16 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    make art sit in ONE place whether the beat has a picture or not. */
 #popblank{aspect-ratio:2/3; max-height:100%; border:3px solid var(--line); border-radius:4px;
   background:var(--paper); box-sizing:border-box;}
+/* NOTHING DRAWN YET → THE EMPTY PAPER GETS OUT OF THE WAY (2026-08-24,
+   Sophie: "if there's no image then make the image box smaller ... and show
+   the caption and the drawing prompt by default instead of just the
+   caption"). The blank tile used to take the whole room the picture takes,
+   so the one beat with no picture was mostly an empty rectangle — and it is
+   exactly the beat whose WORDS are all there is. Small tile, and both text
+   boxes open under it. #artwrap drops its flex:1 too, or the wrap keeps the
+   room the tile gave back. */
+#beatcard.noart #artwrap{flex:none; min-height:0;}
+#beatcard.noart #popblank{height:132px; max-height:132px;}
 /* The same two ways to art, ABOVE a beat that already has a picture — so it
    can be swapped for another (Sophie, Aug 2026). */
 /* THE WAYS TO ART, IN ROUNDED SQUARES, UNDER THE PICTURE (Aug 2026,
@@ -476,9 +545,25 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 .bulkrow #bulkyes{background:var(--ink); color:var(--paper); border-color:var(--ink); font-weight:600;}
 #popblank.c-mustard{border-color:var(--mustard);} #popblank.c-green{border-color:var(--green);}
 #popblank.c-blue{border-color:var(--blue);} #popblank.c-pink{border-color:var(--pink);}
-#lightbox{position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
-  background:rgba(20,17,12,.94); padding:3vw;}
+#lightbox{position:fixed; inset:0; z-index:60; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:12px; background:rgba(20,17,12,.94); padding:3vw;}
 #lightbox img{max-width:94vw; max-height:88vh; border-radius:4px;}
+/* Picking an older picture happens HERE, looking at it big — the row's
+   thumbnails are 44px, which is not enough to choose by (Sophie,
+   2026-08-24: "make the past picture thumbnails so that I can actually pick
+   one"). Shown only for a picture that is NOT the current one, so the button
+   never offers her what she is already looking at. */
+/* Cream on the dark, in BOTH themes — the backdrop above is a fixed dark
+   wash, so the tokens are the wrong tool here: --paper is nearly the
+   backdrop's own colour on a dark phone. The page's serif, like the confirm
+   box's buttons, never a pill. */
+#lbuse{background:#f6f2e9; color:#26221c; border:1.5px solid #f6f2e9;
+  border-radius:6px; padding:9px 18px; font-family:'EBGaramond',Georgia,serif;
+  font-size:16px; font-weight:600; cursor:pointer;}
+#lbuse.busy{opacity:.45;}
+/* Only the picking state gives up height for the button — a plain look at a
+   picture keeps every pixel it always had. */
+#lightbox.pick img{max-height:78vh;}
 /* Listen rows — every recording attached to this story, behind the waveform
    button on the title row (Aug 2026, Sophie: "a story can hold multiple
    audios … hide them all behind a single icon that has a wave form"). Two
@@ -570,7 +655,12 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   <div class="wrap">
     <div class="sheethead">
       <button class="iconbtn" id="storiesclose" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
-      <div class="no">The shelf</div>
+      <!-- Reads "The shelf", and the folder's own name while she is inside
+           one — a folder is a LEVEL of this sheet, not a sheet of its own, so
+           it wears this header exactly the way the shelf does (2026-08-23,
+           Sophie: "the header should be like normal it should say the
+           shelf"). Its chevron is what steps back out. -->
+      <div class="no" id="shelfno">The shelf</div>
       <button class="iconbtn" id="newstory" aria-label="Start a new story"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
     </div>
     <div id="shelfcats"></div>
@@ -677,7 +767,11 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   <div id="genstate" hidden></div>
   <div class="tbox" id="capbox">
     <button class="tlab" id="caplab" aria-expanded="true">Caption<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
-    <textarea id="pnote" rows="3"></textarea>
+    <div id="capview">
+      <div id="captext"></div>
+      <textarea id="pnote" rows="3" hidden></textarea>
+      <button id="capedit" aria-label="Edit the caption"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button>
+    </div>
   </div>
   <div class="tbox" id="prombox">
     <button class="tlab" id="promlab" aria-expanded="false">Drawing prompt<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
@@ -702,7 +796,8 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   </div></div>
 </div>
 
-<div id="lightbox" hidden><img id="lbimg" alt=""></div>
+<div id="lightbox" hidden><img id="lbimg" alt="">
+  <button id="lbuse" hidden>Use this one</button></div>
 
 <div id="delask" hidden>
   <div class="bulkbox">
@@ -1326,6 +1421,13 @@ function paintShelfBack(){
   document.getElementById('shelfback').hidden =
     !padOpened || !document.getElementById('stories').hidden;
 }
+/* THE FOLDER SHE HAS STEPPED INTO, by name, or null on the shelf itself.
+   A folder is an intermediate LEVEL of the same sheet — the tiles are
+   replaced and the header renames itself — never a second sheet, so there is
+   one scroller, one close path, and nothing new for __navBack to learn
+   beyond which level it is on. Session-only, like the category chip: every
+   open starts on the shelf proper. */
+var shelfFolder=null;
 /* PINNED STORIES LEAD, THE REST GO BEHIND "see more" (Aug 2026, Sophie: "a
    pinning feature where i can pin a couple stories i'm actively working on and
    the rest go behind a see more toggle"). The fold only exists once something
@@ -1336,28 +1438,44 @@ function paintShelfBack(){
    asking for that shelf fresh. */
 var SHELF_PIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle class="pinhead" cx="12" cy="6.6" r="4.4"/><path d="M12 11V21.6"/></svg>';
 var shelfMore=false;
-function shelfTile(p){
-  var t=document.createElement('button'); t.className='stile'+(p.id===padId?' cur':'');
+/* ONE tile builder for a story and for a folder. `pad` draws a story (its
+   pushpin, its title, tap opens it); `count` draws a folder (the stack, the
+   count, tap steps into it) and carries NO pushpin — a pin says "I'm working
+   on this story", and a folder is only the way to one. */
+function shelfTile(o){
+  var p=o.pad;
+  var t=document.createElement('button');
+  t.className='stile'+(o.cur?' cur':'')+(o.count?' fold':'');
   var cov=document.createElement('span'); cov.className='cov';
-  if(p.cover){
+  // The FRONT card. Everything that paints lives on it, so a folder's two
+  // cards behind (the .cov pseudo-elements) sit behind the whole thing rather
+  // than behind the picture only.
+  var fr=document.createElement('span'); fr.className='frame'; cov.appendChild(fr);
+  if(o.cover){
     var im=document.createElement('img'); im.alt=''; im.loading='lazy';
-    im.src=thumbOf(p.cover); cov.appendChild(im);
+    im.src=thumbOf(o.cover); fr.appendChild(im);
   } else {
-    var n=document.createElement('span'); n.className='none'; cov.appendChild(n);
+    var n=document.createElement('span'); n.className='none'; fr.appendChild(n);
   }
-  var pin=document.createElement('span');
-  pin.className='pinpin'+(p.pinned?' on':''); pin.innerHTML=SHELF_PIN;
-  pin.setAttribute('role','button');
-  pin.setAttribute('aria-label',p.pinned?'Unpin this story':'Pin this story to the top');
-  pin.title=pin.getAttribute('aria-label');
-  /* The pin sits INSIDE the tile, which is itself a button, so the tap has to
-     be stopped here or pinning a story would also open it. */
-  pin.onclick=function(e){ e.preventDefault(); e.stopPropagation(); togglePin(p); };
-  cov.appendChild(pin);
+  if(o.count){
+    var c=document.createElement('span'); c.className='cnt';
+    c.textContent=o.count; fr.appendChild(c);
+  }
+  if(p){
+    var pin=document.createElement('span');
+    pin.className='pinpin'+(p.pinned?' on':''); pin.innerHTML=SHELF_PIN;
+    pin.setAttribute('role','button');
+    pin.setAttribute('aria-label',p.pinned?'Unpin this story':'Pin this story to the top');
+    pin.title=pin.getAttribute('aria-label');
+    /* The pin sits INSIDE the tile, which is itself a button, so the tap has
+       to be stopped here or pinning a story would also open it. */
+    pin.onclick=function(e){ e.preventDefault(); e.stopPropagation(); togglePin(p); };
+    fr.appendChild(pin);
+  }
   t.appendChild(cov);
-  var nm=document.createElement('span'); nm.className='snm'+(p.title?'':' blank');
-  nm.textContent=p.title||'Untitled'; t.appendChild(nm);
-  t.onclick=function(e){ e.stopPropagation(); openPad(p.id); };
+  var nm=document.createElement('span'); nm.className='snm'+(o.name?'':' blank');
+  nm.textContent=o.name||'Untitled'; t.appendChild(nm);
+  t.onclick=function(e){ e.stopPropagation(); o.go(); };
   return t;
 }
 function togglePin(p){
@@ -1366,24 +1484,69 @@ function togglePin(p){
     .then(function(r){ if(!r.ok) throw 0; })
     .catch(function(){ p.pinned=was; renderShelf(); });
 }
+/* THE SHELF'S ROWS, folders already collapsed. A folder takes the place of
+   its NEWEST story and the rest of its stories come off the shelf — that is
+   the whole point, and it is why this is a walk in place rather than a
+   group-then-append, which would sort every folder to the top and lose the
+   newest-first order she reads by.
+   A FOLDER IS PINNED WHEN ANY STORY IN IT IS. Her pin means "I'm working on
+   this", and with the story folded away the folder is the only thing on
+   screen that can carry it — otherwise pinning a story inside a folder would
+   hide it behind "see more" instead of lifting it. */
+function shelfRows(){
+  var seen={}, rows=[];
+  shelfPads.filter(function(p){ return (p.category||'personal')===shelfCat; })
+    .forEach(function(p){
+      if(!p.folder){
+        rows.push({ pad:p, cover:p.cover, name:p.title, pinned:!!p.pinned,
+          cur:p.id===padId, go:function(){ openPad(p.id); } });
+        return;
+      }
+      if(seen[p.folder]) return;
+      seen[p.folder]=true;
+      var name=p.folder;
+      var inIt=shelfPads.filter(function(q){ return q.folder===name; });
+      var withArt=inIt.filter(function(q){ return q.cover; })[0];
+      rows.push({
+        cover:withArt?withArt.cover:null, name:name, count:inIt.length,
+        pinned:inIt.some(function(q){ return q.pinned; }),
+        cur:inIt.some(function(q){ return q.id===padId; }),
+        go:function(){ shelfFolder=name; shelfMore=false; renderShelf();
+          document.getElementById('stories').scrollTop=0; } });
+    });
+  return rows;
+}
 function renderShelf(){
   var cats=document.getElementById('shelfcats');
   var tiles=document.getElementById('shelftiles');
   document.getElementById('storylist').hidden=true;
-  cats.hidden=false; tiles.hidden=false;
+  tiles.hidden=false;
+  /* Inside a folder the chips come OFF. A folder gathers a character's
+     stories wherever they were filed, so a chip there would offer to hide
+     half of what she just opened. */
+  cats.hidden=Boolean(shelfFolder);
+  document.getElementById('shelfno').textContent=shelfFolder||'The shelf';
   cats.innerHTML='';
-  SHELF_CATS.forEach(function(c){
+  if(!shelfFolder) SHELF_CATS.forEach(function(c){
     var b=document.createElement('button'); b.className='scat'+(c[1]===shelfCat?' on':'');
     b.textContent=c[0];
     b.onclick=function(e){ e.stopPropagation(); shelfCat=c[1]; shelfMore=false; renderShelf(); };
     cats.appendChild(b);
   });
   tiles.innerHTML='';
-  var mine=shelfPads.filter(function(p){ return (p.category||'personal')===shelfCat; });
-  var pinned=mine.filter(function(p){ return p.pinned; });
-  var rest=mine.filter(function(p){ return !p.pinned; });
+  /* Inside a folder the rows are its own stories; on the shelf they are
+     shelfRows(), with each folder already standing in for its stories. Either
+     way the pin/fold rule below runs over ROWS and never over pads, so it
+     works identically at both levels. */
+  var mine = shelfFolder
+    ? shelfPads.filter(function(p){ return p.folder===shelfFolder; })
+        .map(function(p){ return { pad:p, cover:p.cover, name:p.title,
+          pinned:!!p.pinned, cur:p.id===padId, go:function(){ openPad(p.id); } }; })
+    : shelfRows();
+  var pinned=mine.filter(function(r){ return r.pinned; });
+  var rest=mine.filter(function(r){ return !r.pinned; });
   var show=pinned.length ? pinned.concat(shelfMore?rest:[]) : mine;
-  show.forEach(function(p){ tiles.appendChild(shelfTile(p)); });
+  show.forEach(function(r){ tiles.appendChild(shelfTile(r)); });
   if(pinned.length && rest.length){
     var more=document.createElement('button'); more.id='shelfmore';
     more.textContent=shelfMore?'see less':'see more ('+rest.length+')';
@@ -1421,6 +1584,9 @@ function closeShelf(){
    tab opened straight at /storyroom has no outside to return to. */
 document.getElementById('storiesclose').onclick=function(ev){
   ev.stopPropagation();
+  // A folder is one level UP from the shelf's floor, so the same chevron
+  // steps out of it first and only then leaves the tool.
+  if(shelfFolder){ shelfFolder=null; renderShelf(); return; }
   if(window.__forgeLeave){ window.__forgeLeave(); return; }
   if(history.length>1) history.back();
 };
@@ -1472,7 +1638,9 @@ document.getElementById('shelfback').onclick=function(ev){
 };
 document.getElementById('newstory').onclick=function(ev){
   ev.stopPropagation();
-  api('/pads',{method:'POST',body:JSON.stringify({pad:null,title:''})})
+  // Started from inside a folder → it joins that folder. Anywhere else the
+  // field is absent and the story lands loose on the shelf, exactly as before.
+  api('/pads',{method:'POST',body:JSON.stringify({pad:null,title:'',folder:shelfFolder||''})})
     .then(function(r){return r.json()})
     .then(function(d){ if(d.pad) openPad(d.pad); });
 };
@@ -1788,6 +1956,13 @@ function openBeat(b){
   // SLOT's kind: a movie on the dreamy side leaves watercolor a picture.
   var su=slotOf(b);
   var clip=su.kind==='clip';
+  // NOTHING DRAWN YET is one state, computed once: the blank tile shrinks,
+  // and the drawing prompt opens beside the caption rather than folded away
+  // (2026-08-24, her two asks about the picture-less beat). A beat mid-draw
+  // is showing the blank paper too, so it counts as one.
+  var drawing=Boolean(su.gen&&su.gen.status==='drawing');
+  var noart=!clip&&(!su.url||drawing);
+  document.getElementById('beatcard').classList.toggle('noart',noart);
   // The picture takes the room the card has left (Sophie: "that image is
   // bigger by default") — CSS sizes it inside #artwrap, so nothing here
   // pins a pixel width the way the old thumbnail-sized popup did.
@@ -1800,7 +1975,11 @@ function openBeat(b){
   else { bl.className=b.color?'c-'+b.color:''; }
   paintChips(b.color||null);
   closeColors();
+  // The caption opens as WORDS with a pencil beside them; the box behind it
+  // carries the same text so drawPrompt() and saveNote() read it either way.
+  capEditing=false;
   document.getElementById('pnote').value=b.text||'';
+  document.getElementById('captext').textContent=b.text||'';
   document.getElementById('coverbtn').hidden=!artOf(b);
   document.getElementById('coverbtn').classList.remove('on');
   // Every generation this beat has had — thumbnails, newest first, current
@@ -1814,10 +1993,12 @@ function openBeat(b){
     vers.forEach(function(u,i){
       var t=document.createElement('button'); if(i===0&&su.url)t.className='cur';
       var ti=document.createElement('img'); ti.src=u; ti.alt=''; ti.loading='lazy'; t.appendChild(ti);
+      // Tapping a thumbnail opens it BIG with a way to take it — the
+      // current one opens plain, since "use this one" for the picture
+      // already on the card is a button that does nothing.
       t.onclick=function(ev){
         ev.stopPropagation();
-        document.getElementById('lbimg').src=u;
-        document.getElementById('lightbox').hidden=false;
+        openLb(u, (i===0&&su.url)?null:u);
       };
       vr.appendChild(t);
     });
@@ -1842,11 +2023,10 @@ function openBeat(b){
   // "you are about to draw the caption", and Draw sent the caption). Empty
   // means FOLLOW THE CAPTION, which the hint line says out loud.
   document.getElementById('dprompt').value=String(b.prompt||'');
-  setBoxes(true,false);
+  setBoxes(true,noart);
   // Drawing (or a failure) is said in its own line — never by rewriting the
   // blank tile, whose children are the buttons.
   var st=document.getElementById('genstate');
-  var drawing=Boolean(su.gen&&su.gen.status==='drawing');
   st.hidden=!(drawing||(su.gen&&su.gen.status==='failed'));
   st.textContent=drawing?'drawing…':((su.gen&&su.gen.error)||'');
   if(drawing){ bl.hidden=clip; im.hidden=true; }
@@ -1892,7 +2072,12 @@ function openDraw(ev){
   // DREAMY never takes the Sophie card (the Playground's noCharacter rule:
   // her card is the watercolor look, the wrong reference there) — setBoxes
   // takes the toggle off rather than leaving it there doing nothing.
-  setBoxes(opening?false:document.getElementById('caplab').getAttribute('aria-expanded')==='true', opening);
+  // Opening the prompt folds the caption away only when there is a picture
+  // taking the room — on a picture-less beat both stay open, which is the
+  // state that beat now opens in.
+  var capNow=document.getElementById('caplab').getAttribute('aria-expanded')==='true';
+  var noart=document.getElementById('beatcard').classList.contains('noart');
+  setBoxes((opening&&!noart)?false:capNow, opening);
   if(opening){
     // Only her own prompt goes in the box. An empty box is the honest
     // default and it still DRAWS — from the caption, live, exactly as it
@@ -1904,7 +2089,15 @@ function openDraw(ev){
     document.getElementById('dprompt').focus();
   }
 }
-document.getElementById('ardraw').onclick=openDraw;
+/* The star OPENS the drawing box — it never closes it. Since a beat with no
+   picture opens with the box already down (2026-08-24), a star that toggled
+   would fold away the very thing that beat is for; the chevron on Drawing
+   prompt is the toggle. Already open → put the caret in the box. */
+document.getElementById('ardraw').onclick=function(ev){
+  if(document.getElementById('drawbox').hidden)return openDraw(ev);
+  ev.stopPropagation();
+  document.getElementById('dprompt').focus();
+};
 /* The stacked squares: past pictures fold out under the row and fold back.
    A toggle, not a trip somewhere else — she is comparing against the one
    on screen. */
@@ -2012,21 +2205,47 @@ document.querySelectorAll('#colormenu .chip').forEach(function(c){
 /* Opening the PROMPT folds the caption away — the two together are taller
    than the card wants to be once the picture is big. She can always tap
    Caption to bring it back and have both. */
+var capEditing=false;
+/* The caption's two faces: the words, and the box. Both live inside
+   #capview so the pencil keeps its place either way — a control that
+   disappears the moment you use it is a control you have to find again. */
+function paintCap(){
+  var open=document.getElementById('caplab').getAttribute('aria-expanded')==='true';
+  document.getElementById('capview').hidden=!open;
+  document.getElementById('captext').hidden=capEditing;
+  document.getElementById('pnote').hidden=!capEditing;
+  document.getElementById('capedit').classList.toggle('on',capEditing);
+}
 function setBoxes(capOpen, promOpen){
   var cl=document.getElementById('caplab'), pl=document.getElementById('promlab');
-  document.getElementById('pnote').hidden=!capOpen;
   document.getElementById('drawbox').hidden=!promOpen;
   cl.setAttribute('aria-expanded',capOpen?'true':'false');
   pl.setAttribute('aria-expanded',promOpen?'true':'false');
+  paintCap();
   document.getElementById('dchar').hidden=(padStyle==='dreamy');
   paintPromptHint();
 }
+/* The pencil TOGGLES the box. Coming out of it saves and re-paints the
+   words, so what she reads is what she just wrote. */
+document.getElementById('capedit').onclick=function(ev){
+  ev.stopPropagation();
+  capEditing=!capEditing;
+  paintCap();
+  if(capEditing){ document.getElementById('pnote').focus(); }
+  else { document.getElementById('captext').textContent=document.getElementById('pnote').value; saveNote(); }
+};
+document.getElementById('capview').onclick=function(ev){ev.stopPropagation();};
+/* Blurring SAVES but never closes the box — closing on blur reshuffles the
+   card between her mousedown and mouseup and eats the tap. */
+document.getElementById('pnote').onblur=function(){
+  document.getElementById('captext').textContent=this.value;
+  saveNote();
+};
 document.getElementById('caplab').onclick=function(ev){
   ev.stopPropagation();
   var open=this.getAttribute('aria-expanded')==='true';
   if(open)savePrompt();
   setBoxes(!open, document.getElementById('promlab').getAttribute('aria-expanded')==='true');
-  if(!open)document.getElementById('pnote').focus();
 };
 document.getElementById('promlab').onclick=function(ev){ openDraw(ev); };
 document.getElementById('pnote').onclick=function(ev){ev.stopPropagation();};
@@ -2088,16 +2307,53 @@ document.getElementById('speak').onclick=function(ev){
   btn.classList.add('busy');
   saveNote().then(function(){ speakBeat(b, btn); });
 };
+/* ── the lightbox ──────────────────────────────────────────────────
+   ONE open and ONE close path, because the Use button's state has to be
+   right every single time: `pick` is the url this picture WOULD become the
+   beat's art from, or null for the picture that already is. */
+var lbPick=null;
+function openLb(url,pick){
+  lbPick=pick||null;
+  document.getElementById('lbimg').src=url;
+  var u=document.getElementById('lbuse');
+  u.hidden=!lbPick; u.classList.remove('busy');
+  var lb=document.getElementById('lightbox');
+  lb.classList.toggle('pick',Boolean(lbPick));
+  lb.hidden=false;
+}
+function closeLb(){
+  lbPick=null;
+  document.getElementById('lbuse').hidden=true;
+  var lb=document.getElementById('lightbox');
+  lb.classList.remove('pick'); lb.hidden=true;
+}
 /* Tapping the thumbnail opens it big — a lightbox over the popup. */
 document.getElementById('popimg').onclick=function(ev){
   ev.stopPropagation();
   if(!popBeat)return;
-  document.getElementById('lbimg').src=slotOf(popBeat).url;
-  document.getElementById('lightbox').hidden=false;
+  openLb(slotOf(popBeat).url,null);
 };
 document.getElementById('lightbox').onclick=function(ev){
   ev.stopPropagation();
-  this.hidden=true;
+  closeLb();
+};
+/* Take this older picture back as the beat's art. The same POST the inbox
+   makes — /image swaps it in, banks the one it replaces in the past-pictures
+   row and lifts this one OUT of that row (pad-art.js), so nothing is lost
+   and nothing shows twice. */
+document.getElementById('lbuse').onclick=function(ev){
+  ev.stopPropagation();
+  var url=lbPick, b=popBeat; if(!url||!b)return;
+  this.classList.add('busy');
+  api('/image',{method:'POST',body:JSON.stringify({id:b.id,url:url,style:padStyle})})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(d.beats){ beats=d.beats; render(); }
+      closeLb();
+      var fresh=beats.find(function(x){return x.id===b.id;});
+      if(fresh){ popBeat=fresh; openBeat(fresh); }
+    })
+    .catch(function(){ document.getElementById('lbuse').classList.remove('busy'); });
 };
 /* Make this beat's art the story's cover on the shelf. The button fills in
    dark as the ack and the popup stays open (same manner as the color chips). */
@@ -2175,7 +2431,7 @@ window.__navBack=function(){
   var el=document.getElementById('filmplay');
   if(!el.hidden){ document.getElementById('filmvid').pause(); el.hidden=true; lock(false); return true; }
   el=document.getElementById('lightbox');
-  if(!el.hidden){ el.hidden=true; return true; }
+  if(!el.hidden){ closeLb(); return true; }
   el=document.getElementById('delask');
   if(!el.hidden){ el.hidden=true; return true; }
   el=document.getElementById('bulkask');
@@ -2195,7 +2451,12 @@ window.__navBack=function(){
   el=document.getElementById('helpsheet');
   if(!el.hidden){ document.getElementById('helpclose').click(); return true; }
   el=document.getElementById('stories');
-  if(!el.hidden) return false;    // the shelf is the floor — the app leaves
+  if(!el.hidden){
+    // A folder is a level ABOVE the floor (Aug 2026) — step out of it, and
+    // only the bare shelf hands the app its exit.
+    if(shelfFolder){ shelfFolder=null; renderShelf(); return true; }
+    return false;                 // the shelf is the floor — the app leaves
+  }
   openShelf(); return true;       // a story steps up to it
 };
 

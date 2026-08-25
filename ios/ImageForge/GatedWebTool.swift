@@ -170,6 +170,15 @@ private struct GatedWebView: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
+        // iOS reclaims the web content process under memory pressure (this
+        // app keeps three tools alive at once). A bare reload() here made it
+        // WORSE — all three resurrecting together re-spiked memory and iOS
+        // killed them in a loop, blanking the tool she was reading every ~10s
+        // (build 175). ForgeWebRevive reloads only the visible view, one at a
+        // time; a hidden tool revives when she switches back to it.
+        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+            ForgeWebRevive.shared.terminated(webView)
+        }
         let parent: GatedWebView
         var lastTick = 0
         /// `addScriptMessageHandler` does not retain — the coordinator does.

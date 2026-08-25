@@ -139,6 +139,44 @@ is('a triage folder can never be picked', s.pickCategory({ category: 'come back 
 is('no answer at all is empty', s.pickCategory(null, cats), '');
 is('a bare string still reads', s.pickCategory('tech', cats), 'tech');
 
+// ── WHAT THE WORK IS BEATS WHERE IT HAPPENED (2026-08-24, Sophie) ───────────
+// "if it's in the story room but it's just a bug fix for the story room then
+// they shouldn't tag it story, they should just tag it bug fix — and that
+// applies to all the other categories obviously."
+const KCATS = s.sortableCategories(
+  { categories: ['story', 'witch', 'meta', 'bug fix', 'new feature', 'research',
+    'to read', 'come back to'] }, {});
+is('her kind words are marked, her subjects are not',
+  s.workKinds(KCATS), ['bug fix', 'new feature', 'research']);
+is('a WHEN word is never a kind', s.isWorkKind('to read'), false);
+is('a subject is never a kind', s.isWorkKind('story'), false);
+
+is('a bug fix in the Story Room files as a bug fix',
+  s.pickCategory({ category: 'story', kind: 'bug fix' }, KCATS), 'bug fix');
+is('…and the same in the witch app',
+  s.pickCategory({ category: 'witch', kind: 'bug fix' }, KCATS), 'bug fix');
+is('the subject wins when the work IS the subject',
+  s.pickCategory({ category: 'story', kind: 'none' }, KCATS), 'story');
+is('an old answer with no kind field at all is unchanged',
+  s.pickCategory({ category: 'story' }, KCATS), 'story');
+// The rule must not be invertible through its own slot: a SUBJECT answered as
+// a kind is ignored, or the field built to beat subjects would carry one.
+is('a subject smuggled into the kind slot is ignored',
+  s.pickCategory({ category: 'bug fix', kind: 'story' }, KCATS), 'bug fix');
+is('a kind she does not have is refused like any other invented folder',
+  s.pickCategory({ category: 'story', kind: 'refactor' }, KCATS), 'story');
+// Sure what it did, unsure where — "bug fix" is still the honest answer to the
+// question that pile exists to answer.
+is('a kind with no subject beside it still files',
+  s.pickCategory({ category: 'none', kind: 'new feature' }, KCATS), 'new feature');
+
+// The prompt has to SAY which is which, or the model is guessing.
+const kp = s.buildSortPrompt({ name: 'x', reg: {}, msgs: [], cats: KCATS, examples: {} });
+ok('the folder list marks the kinds', /- bug fix \[what the work IS\]/.test(kp.user));
+ok('…and leaves the subjects alone', /- story —/.test(kp.user));
+ok('the rule is stated in the system prompt', /BEATS WHERE IT HAPPENED/.test(kp.system));
+ok('and the kind has its own field', /"kind"/.test(kp.system));
+
 // ── The filedAt stamp — the reply that triggered the sort must still show ───
 // A live sort runs at the END of a turn. Stamped NOW, the chat would file
 // itself the instant it finished answering her and drop off the main list with
