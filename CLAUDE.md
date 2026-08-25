@@ -3251,49 +3251,47 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (promptlab.html, the picker) and `PORT_STYLES` (playground-port.js, the
   routing) — pinned equal by `node scripts/test-playground-port.js`, which also
   checks every prefix fragment is verbatim in the real prefix.
-  **THREE OR FOUR ACROSS IS HERS TO TAP, AND IT LIVES IN THE PILL'S RAIL
-  (2026-08-24, Sophie: "add a 3 to a row vs. 4 to a row toggle to the right of
-  search in playground. square button that cycles between 3 and 4" → "it can
-  go in the same column as the auto scroll pill that way the search thing can
-  go back to the size it was").** A 38px rounded square in the reserved
-  right-hand column, under the pill, **saying the number** — 3 or 4. Sticky,
-  like the view and the two filters; three is the default, where the wall
-  already stood.
+  **THREE OR FOUR ACROSS IS HERS TO TAP, AND IT IS THE THIRD SEGMENT OF THE
+  VIEW SWITCH (2026-08-25, Sophie: "the 3/4 switch button is in a weird place.
+  It should not be in the auto scroll roll row").** List · Tiles · **3** — one
+  box, the number as its own segment, never wearing `.on` (it is not a third
+  view). Sticky, like the view and the two filters; three is the default.
+  - **BOTH EARLIER HOMES ARE RETIRED BY HER, in order.** It shipped at the
+    right of the search box and cost the row 38px it did not have; she moved
+    it to the pill's rail ("it can go in the same column as the auto scroll
+    pill"), where the fixed column floats over the prompt card on her phone
+    and the button read as detached — her words above. So the rail is NOT a
+    standing home for guest controls any more; this line used to say "the
+    next control with nowhere to go belongs there too", and that reasoning is
+    history. The row pays for the segment with 11px view-switch paddings and
+    a search-box ✕ padding that exists only while the ✕ does (`.hasq`) —
+    "Search" still fits, measured (56px for a 51px placeholder at 390pt).
   - **IT IS ONE NUMBER — `--cols` on the root, read by the tile wall AND by a
     run's own row of pictures in list view.** Two rules would let the two
     surfaces disagree about what "3 to a row" means, and it is also what keeps
     the button from being a dead control in list view.
-  - **THE RAIL IS WHERE A GUEST CONTROL GOES, and the row is why.** It shipped
-    at the right of the search box and cost that row 38px it did not have —
-    the search box had 4px of slack over its own placeholder, so paying for it
-    meant trimming the view switch and making the ✕'s padding conditional.
-    Both are reverted: the rail is the one column already reserved on every
-    page, so a guest there costs the page nothing. **The next control with
-    nowhere to go belongs there too, not in a full row.**
-  - **ITS TOP IS MEASURED OFF THE PILL, NEVER TYPED.** The rail is not a fixed
-    height — the safe-area inset moves the whole column on her phone, and the
-    back-to-top button joins it a screen down — so a hardcoded offset either
-    overlaps the pill or floats in a hole under it. With no pill on the page
-    (nothing to scroll, so it hides itself) the button takes the rail's top.
-  - **`offsetParent` IS NULL ON A FIXED ELEMENT** whether it is on screen or
-    not, so the reflex "is this visible?" check parked the button on top of a
-    pill that was plainly there. Ask its BOX. Measured, and it did.
   - **IT SAYS THE NUMBER BECAUSE THE PICTURE DID NOT READ.** It first drew the
-    count as N bars — the pyramid's rule, a mark that says how many rather
-    than a word — and she asked for the number instead ("I asked for the
+    count as N bars and she asked for the number instead ("I asked for the
     button to say three or four, not a picture"). At 16px three bars and four
-    bars are the same grey smudge. The pyramid works because its two tiers
-    mean something; a bar count is just a number drawn badly.
+    bars are the same grey smudge.
   - **TWO STATES IS NOT THE CYCLE THE HOUSE RULE FORBIDS.** *THREE OPTIONS = A
     THREE-WAY TOGGLE* is about a control with stops she can AIM at, where a
     blind step past the one she tapped is the surprise; with two there is
     nowhere else a tap could mean.
   - Test: `node scripts/test-playground-cols.js` — the count MEASURED off the
     real cells (a wrong `--cols` and a wrong `repeat()` both compute to
-    plausible-looking text; only the boxes say how many sit on a row), and the
-    button measured against the REAL injected pill: centred in its column,
-    clear of it, moving when the back-to-top arrives, and the search box back
-    at the width it had before any of this.
+    plausible-looking text; only the boxes say how many sit on a row), the
+    segment measured inside the real view switch, nothing `position:fixed`,
+    and the placeholder measured against the room the input actually has.
+  **THE PROMPT BOX HAS A BIGGER-BOX TOGGLE (2026-08-25, Sophie: "can you put a
+  button so I can see the prompt in a bigger box as an option").** A 26px
+  rounded square inside the textarea's bottom-right corner (Lucide
+  `maximize-2`/`minimize-2`) toggles the SAME `#prompt` textarea to 52vh and
+  back — never a second field, so nothing syncs. The compact box reserves that
+  corner with `padding-bottom`, so her last line is never typed under the
+  button; the toggle clears any hand-dragged inline height or "back to small"
+  would not shrink; deliberately NOT sticky. Test:
+  `node scripts/test-playground-bigprompt.js`.
   **THE CONTROL ROW IS ONE FAMILY — BLACK LINE, PAPER, 34px (2026-08-24,
   Sophie: "the buttons are styled so fucking weird. They should have black
   outlines and they're all different sizes").** Measured that day, three

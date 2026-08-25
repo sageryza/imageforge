@@ -47,6 +47,21 @@
   .stylebtn.on { background: #2b2622; color: #faf7f2; border-color: #2b2622; }
   /* Inputs stay at 16px — anything smaller makes iOS zoom the page on focus. */
   textarea { width: 100%; min-height: 64px; border: 1px solid #d8d0c4; border-radius: 6px; padding: 9px; font: inherit; font-size: 16px; background: #fdfcf9; resize: vertical; }
+  /* THE BIGGER BOX (2026-08-25, Sophie: "can you put a button so I can see the
+     prompt in a bigger box as an option"). A long dictated prompt shows ~3
+     lines in the compact box; the corner button toggles the SAME textarea to
+     just over half the screen — never a second field, so nothing has to be
+     synced back. A rounded square at the house 6px (never a circle), sitting
+     INSIDE the box's bottom-right corner on the box's own paper so it reads
+     over any text beneath it; the textarea reserves that corner with
+     padding-bottom so the last line of her words is never under the button. */
+  .promptwrap { position: relative; }
+  .promptwrap textarea { display: block; box-sizing: border-box; padding-bottom: 34px; }
+  #prompt.big { min-height: 52vh; }
+  #bigprompt { position: absolute; right: 6px; bottom: 6px; width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center; padding: 0; margin: 0;
+    border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #6f675e; cursor: pointer; }
+  #bigprompt svg { width: 14px; height: 14px; }
   /* WRAPS (Aug 2026): the row gained a Prompt button and a canvas toggle, and
      on a 390pt phone flex squeezed the toggle to 50px — "Portrait" bled out of
      its box and the Square half was clipped off the row entirely, which is why
@@ -199,10 +214,10 @@
      stretching it to the tallest on the row. */
   /* HOW MANY PICTURES ACROSS is ONE number, `--cols` on the root, read by
      BOTH grids — a run's own row of pictures in list view and the tile wall.
-     Three or four, tapped on the square button at the right of the search box
-     (Aug 2026, Sophie: "add a 3 to a row vs. 4 to a row toggle to the right of
-     search in playground"). One variable rather than two rules, so the two
-     surfaces can never disagree about what "3 to a row" means. */
+     Three or four, tapped on the number segment of the view switch (Aug 2026,
+     Sophie: "add a 3 to a row vs. 4 to a row toggle"). One variable rather
+     than two rules, so the two surfaces can never disagree about what "3 to
+     a row" means. */
   .grid { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); align-items: start; gap: 5px; }
   /* Two ways to read the feed: LIST (a box per run, prompt above its pictures)
      and TILES (every picture as a thumbnail, four to a row, prompt in the
@@ -215,7 +230,10 @@
      ABOVE 9 — they are meant to cover the pill. */
   .feedbar { position: sticky; top: 0; z-index: 5; display: flex; padding: 8px 56px 8px 0; background: #faf7f2; }
   .viewtog { display: flex; border: 1px solid #d8d0c4; border-radius: 6px; overflow: hidden; background: #fdfcf9; }
-  .viewtog button { border: 0; background: none; font: inherit; font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: #6f675e; padding: 7px 15px; }
+  /* 11px side padding, not the old 15 — the row gained the columns segment
+     (2026-08-25) and the search box's own placeholder is what pays for any
+     slack here; measured at 390pt, 15px clipped "Search" to a third. */
+  .viewtog button { border: 0; background: none; font: inherit; font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: #6f675e; padding: 7px 11px; }
   .viewtog button + button { border-left: 1px solid #d8d0c4; }
   .viewtog button.on { background: #2b2622; color: #faf7f2; font-weight: 600; }
   /* THE TWO MARK FILTERS, one segmented box beside the view switch — neither
@@ -252,41 +270,33 @@
      back out is then blocked — one tap would leave the whole page stuck
      zoomed (found live on her phone on /assets, Aug 2026). */
   .feedsearch { flex: 1; min-width: 0; margin-left: 8px; position: relative; display: flex; }
+  /* The right padding reserves room for the ✕, which only exists once there
+     are words to wipe — so an EMPTY box keeps the 19px for its own
+     placeholder (2026-08-25, when the columns segment joined the view switch
+     and the row got tight). `.hasq` is toggled beside `qclear.hidden`. */
   .feedsearch input { width: 100%; min-width: 0; font: inherit; font-size: 16px; color: #2b2622;
-    background: #fdfcf9; border: 1px solid #d8d0c4; border-radius: 6px; padding: 6px 28px 6px 9px; }
+    background: #fdfcf9; border: 1px solid #d8d0c4; border-radius: 6px; padding: 6px 9px; }
+  .feedsearch input.hasq { padding-right: 28px; }
   .feedsearch input:focus { outline: none; border-color: #c25a72; }
   .feedsearch input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
   /* CLEAR, not dismiss: it empties the box and keeps her in it. Shown only
      while there are words to wipe. */
   .qclear { position: absolute; right: 0; top: 0; height: 100%; width: 28px; border: 0; background: none;
     color: #8a8177; font-size: 18px; line-height: 1; padding: 0; }
-  /* THREE OR FOUR ACROSS — a square button IN THE PILL'S RAIL (Aug 2026,
-     Sophie: "add a 3 to a row vs. 4 to a row toggle... square button that
-     cycles between 3 and 4", then "it can go in the same column as the auto
-     scroll pill that way the search thing can go back to the size it was").
-     It shipped in the feed row and cost the search box 38px it did not have;
-     the rail is the one column already reserved on every page (the row pads
-     56px for it), so a guest there costs the page nothing.
-     IT SAYS THE NUMBER — "3" or "4" — her second correction the same day. It
-     first drew the count as N bars, on the pyramid's reasoning that a mark
-     should picture how many; at 16px three bars and four bars are the same
-     grey smudge, and the number is the one thing that reads at a glance.
-     Two states, so a tap is the only move there is — the house no-cycling
-     rule is about a three-way toggle, where a stop can be aimed at and a
-     blind step past it is the surprise; with two there is nowhere else to go.
-     Sized and painted like `.ptop`, the rail's other guest — 38px, a 1.5px
-     ink line on paper — but a ROUNDED SQUARE at the house 6px, never a
-     circle. The 5px is what CENTRES 38px in the rail's 48px track, the way
-     the pill's own flex column centres `.ptop`. `top` is written by
-     `placeCols()`; z-index stays under the pill's 9, the house pattern for
-     anything sharing that corner. */
-  .coltog { position: fixed; right: calc(max(14px, 4vw) + 5px); z-index: 8; box-sizing: border-box;
-    width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
-    border: 1.5px solid var(--ink, #26221c); border-radius: 6px; background: var(--paper, #f6f2e9);
-    color: var(--ink, #26221c); padding: 0; margin: 0; cursor: pointer;
-    font: 600 15px/1 -apple-system, sans-serif;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, .09);
-    -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  /* THREE OR FOUR ACROSS — the THIRD SEGMENT of the view switch (2026-08-25,
+     Sophie: "the 3/4 switch button is in a weird place. It should not be in
+     the auto scroll roll row"). Its two earlier homes are both retired by her:
+     beside the search box it cost the row 38px it did not have, and the
+     pill's rail — her own suggestion at the time — floats over the prompt
+     card on her phone, so the button read as detached from everything. How
+     many across is a VIEW decision, so it rides in the List/Tiles box as one
+     more segment: List · Tiles · 3. It never wears `.on` — it is not a third
+     view, and a lit number beside the lit view would read as two answers.
+     IT SAYS THE NUMBER — "3" or "4" (her earlier correction; at this size a
+     bar-count picture is a grey smudge). Two states, so a tap is the only
+     move there is — the house no-cycling rule is about a three-way toggle
+     with stops to aim at; with two there is nowhere else a tap could mean. */
+  .viewtog .colseg { font-weight: 600; font-size: 13px; letter-spacing: 0; padding: 7px 12px; min-width: 34px; box-sizing: border-box; }
   .emptynote { font-size: 13px; color: #8a8177; padding: 18px 0; text-align: center; }
   #tiles .emptynote { grid-column: 1 / -1; }
   /* Tiles: THREE to a row by default (Aug 2026, her ask — four was too small
@@ -473,7 +483,7 @@
   <div class="styles"><select id="stylepick" aria-label="Style"></select></div>
   <div id="reftag"></div>
   <div id="promptpanel"></div>
-  <textarea id="prompt"></textarea>
+  <div class="promptwrap"><textarea id="prompt"></textarea><button type="button" id="bigprompt" aria-label="Bigger box" title="Bigger box"></button></div>
   <div class="controls">
     <label id="scalewrap">LoRA scale <input type="number" id="scale" value="1" step="0.1" min="0" max="2"></label>
     <button class="xthree" id="xthree" title="Run at scale 1, 1.2 and 1.4">&times;3</button>
@@ -500,7 +510,7 @@
 
 <div class="feedbar">
   <div class="viewtog">
-    <button id="v-list">List</button><button id="v-tiles">Tiles</button>
+    <button id="v-list">List</button><button id="v-tiles">Tiles</button><button class="colseg" id="v-cols"></button>
   </div>
   <div class="filttog" role="group" aria-label="Filters">
     <button class="likefilt" id="v-liked" aria-label="Show only the ones you hearted" title="Hearts only"></button>
@@ -512,7 +522,6 @@
     <button class="qclear" id="qclear" aria-label="Clear search" hidden>&times;</button>
   </div>
 </div>
-<button class="coltog" id="v-cols"></button>
 <div id="pendings"></div>
 <div id="runs"></div>
 <div id="tiles"></div>
@@ -575,6 +584,9 @@
   var ICONS = {
     heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
     x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+    // The bigger-prompt-box toggle — Lucide `maximize-2` / `minimize-2`.
+    maximize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
+    minimize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
     download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>',
     sprout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>',
     copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
@@ -670,6 +682,29 @@
     applyHideX(true);
   });
 
+  // THE BIGGER PROMPT BOX (2026-08-25, Sophie: "can you put a button so I can
+  // see the prompt in a bigger box as an option"). One textarea, two sizes —
+  // the corner button toggles `.big` on #prompt and swaps its own glyph.
+  // Deliberately NOT sticky: the compact box is the page's shape, and the big
+  // one is a moment of reading a long dictation. Any hand-dragged resize
+  // (desktop) is cleared on the toggle so shrinking back actually shrinks.
+  (function () {
+    var btn = document.getElementById('bigprompt');
+    var box = document.getElementById('prompt');
+    function paint() {
+      var big = box.classList.contains('big');
+      btn.innerHTML = big ? ICONS.minimize : ICONS.maximize;
+      btn.setAttribute('aria-label', big ? 'Back to the small box' : 'Bigger box');
+      btn.title = big ? 'Back to the small box' : 'Bigger box';
+    }
+    btn.addEventListener('click', function () {
+      box.classList.toggle('big');
+      box.style.height = '';
+      paint();
+    });
+    paint();
+  })();
+
   // THREE OR FOUR ACROSS (Aug 2026, Sophie: "add a 3 to a row vs. 4 to a row
   // toggle to the right of search in playground. square button that cycles
   // between 3 and 4"). ONE number, `--cols` on the root, so the tile wall and
@@ -690,62 +725,14 @@
     b.setAttribute('aria-label', n + ' pictures a row — tap for ' + next);
     b.title = n + ' a row';
   }
-  // IT SITS UNDER THE PILL, MEASURED — never at a typed offset. The rail's
-  // height is not a constant: the safe-area inset moves the whole thing down
-  // on her phone, and the back-to-top button appears and disappears with the
-  // scroll, so anything hardcoded is either overlapping the pill or floating
-  // in a hole below it. With no pill on the page (nothing to scroll — it
-  // hides itself) the rail is empty and the button takes its top.
-  function placeCols() {
-    var b = document.getElementById('v-cols');
-    var pill = document.querySelector('.float');
-    var top = null;
-    // ITS OWN BOX IS THE ONLY HONEST QUESTION — `offsetParent` is null on a
-    // POSITION:FIXED element whether it is on screen or not, so asking that
-    // (the reflex for "is this visible?") parks the button on top of a pill
-    // that is plainly there. Measured: it did.
-    if (pill) {
-      var r = pill.getBoundingClientRect();
-      if (r.height) top = r.bottom + 8;
-    }
-    if (top === null) {
-      // The rail's own top, read off the pill's rule rather than retyped, so
-      // the two can never disagree about where the column starts.
-      var t = pill ? parseFloat(getComputedStyle(pill).top) : NaN;
-      top = isNaN(t) ? 14 : t;
-    }
-    b.style.top = Math.round(top) + 'px';
-  }
-  // The pill is APPENDED to the page after this script runs, and it resizes
-  // itself later (fonts, the feed landing, the back-to-top arriving). So the
-  // placement is re-run on everything that can move it rather than once.
-  var colsTick = null;
-  function syncCols() {
-    if (colsTick) return;
-    colsTick = requestAnimationFrame(function () { colsTick = null; placeCols(); });
-  }
-  window.addEventListener('scroll', syncCols, { passive: true });
-  window.addEventListener('resize', syncCols, { passive: true });
-  window.addEventListener('load', syncCols);
-  // NARROW ON PURPOSE: the body's own children (to catch the pill being
-  // appended), then the pill itself once it exists — `syncPill` hides and
-  // shows it with an inline style, and the back-to-top arrives as a style
-  // change too. A subtree observer over this page would fire on every tile
-  // of every repaint for a control that only moves when the rail does.
-  if (window.MutationObserver) {
-    var seen = null;
-    new MutationObserver(function () {
-      syncCols();
-      var pill = document.querySelector('.float');
-      if (pill && pill !== seen) {
-        seen = pill;
-        new MutationObserver(syncCols).observe(pill,
-          { childList: true, attributes: true, attributeFilter: ['style', 'class'], subtree: true });
-      }
-    }).observe(document.body, { childList: true });
-  }
-  [0, 60, 400, 1200].forEach(function (ms) { setTimeout(placeCols, ms); });
-
+  // IT LIVES IN THE VIEW SWITCH NOW — a third segment after Tiles (2026-08-25,
+  // Sophie: "the 3/4 switch button is in a weird place. It should not be in
+  // the auto scroll roll row"). The pill's rail was its previous home and she
+  // retired it: the fixed column floats over the prompt card on her phone, so
+  // the button read as detached from everything. How many across IS a view
+  // decision, so it sits in the List/Tiles box — which also deletes the whole
+  // measure-the-rail machinery (placeCols and its observers) that placing a
+  // fixed guest under the pill required.
   document.getElementById('v-cols').addEventListener('click', function () {
     var n = COLS[(COLS.indexOf(curCols()) + 1) % COLS.length];
     try { localStorage.setItem('promptlab_cols', String(n)); } catch (e) { /* private mode */ }
@@ -860,6 +847,7 @@
     query = (box.value || '').trim();
     qGroups = qparse(query);
     document.getElementById('qclear').hidden = !query;
+    box.classList.toggle('hasq', !!box.value);          // the ✕'s padding, only while it shows
     hits = null;                                        // the loaded feed answers meanwhile
     clearTimeout(qTimer);
     if (query) qTimer = setTimeout(runSearch, 350);
