@@ -20,6 +20,15 @@
  * "Things that were gonna become videos" are the storyboard / stills / shot
  * decks in the Review Queue — counted by their own decided/total.
  *
+ * WIDENED (her second ask, same day: "can you do a survey of any deliverables
+ * I never commented on or messaged the chat about"). The same two signals are
+ * asked of every kind of thing a chat hands over — images, Compare/deck pages,
+ * note threads a chat answered and she never came back to, and blog drafts
+ * that were written and never published. A chat's images count as unseen when
+ * they were filed AFTER her last message in that chat: `lastHerAt` on the
+ * registry is only stamped since Aug 2026, so the honest clock is her last
+ * message in `forge-chat-feed`, not the registry field.
+ *
  *   node scripts/survey-deliverables.js              # the report
  *   node scripts/survey-deliverables.js --html out.html
  * Needs FIREBASE_SERVICE_ACCOUNT (deckfactory).
@@ -94,6 +103,44 @@ async function main() {
   const films = rowsFor('video'), audio = rowsFor('audio');
   const silent = r => !r.archived && !r.noted && !r.msgsAfter;
 
+  // IMAGES — filed per chat, marked per chat, and how many landed after her
+  // last message there (the honest "she has not been back since" clock).
+  const assetSnap = await db.collection('forge-chat-assets').select('chat', 'url', 'createdAt', 'created').get();
+  const iso = v => !v ? '' : typeof v === 'number' ? new Date(v).toISOString()
+    : (v && v._seconds) ? new Date(v._seconds * 1000).toISOString() : String(v);
+  const herLast = {};
+  for (const c of Object.keys(her)) herLast[c] = her[c].sort().pop();
+  const markedUrls = new Set(votes.map(v => clean(v.url || '')));
+  const imgs = {};
+  assetSnap.forEach(dd => {
+    const a = dd.data(), at = iso(a.createdAt || a.created);
+    const x = imgs[a.chat] = imgs[a.chat] || { n: 0, marked: 0, unseen: 0, last: '' };
+    x.n++;
+    if (markedUrls.has(clean(a.url || ''))) x.marked++;
+    if (at > (herLast[a.chat] || '')) x.unseen++;
+    if (at > x.last) x.last = at;
+  });
+  const imageRows = Object.entries(imgs)
+    .map(([chat, x]) => ({ chat, ...x, everMessaged: !!herLast[chat], name: (reg[chat] || {}).displayName || chat }))
+    .filter(r => !(reg[r.chat] || {}).archived && !(reg[r.chat] || {}).deletedAt && r.unseen > 0)
+    .sort((a, b) => b.unseen - a.unseen);
+
+  // NOTE THREADS a chat answered and she never came back to.
+  const threadSnap = await db.collection('forge-asset-votes').select('chat', 'thread').get();
+  const owed = [];
+  threadSnap.forEach(dd => {
+    const t = (dd.data().thread || []);
+    if (t.length && t[t.length - 1].from === 'chat') owed.push(dd.data().chat);
+  });
+  const owedByChat = {};
+  for (const c of owed) owedByChat[c] = (owedByChat[c] || 0) + 1;
+
+  // BLOG posts written and never published anywhere.
+  const blogSnap = await db.collection('forge-blog').select('title', 'published', 'sitePublishedAt').get();
+  const blogDrafts = blogSnap.docs.map(dd => dd.data())
+    .filter(b => b.published !== true && !b.sitePublishedAt)
+    .map(b => b.title || '(untitled)');
+
   const review = await (await fetch(`${BASE}/api/review`)).json();
   const pages = [...(review.waiting || []), ...(review.auto || [])];
   const pre = pages.filter(p => PRECURSOR.test(p.title || ''));
@@ -117,8 +164,16 @@ async function main() {
   const buckets = {}; for (const a of asks) (buckets[bucket(a)] = buckets[bucket(a)] || []).push(a);
 
   const sum = (a, k) => a.reduce((s, p) => s + (p[k] || 0), 0);
+  const pageSnap = await db.collection('forge-chat-pages').select('chat', 'supersededBy').get();
+  const markedChats = new Set([...votes.map(v => v.chat),
+    ...Object.keys(reg).filter(c => false)]);
+  for (const v of (await db.collection('forge-chat-verdicts').get()).docs) markedChats.add(v.id.split('__')[0]);
+  const livePages = pageSnap.docs.map(dd => dd.data())
+    .filter(p => !p.supersededBy && !(reg[p.chat] || {}).archived);
+  const untouchedPages = livePages.filter(p => !markedChats.has(p.chat)).length;
+
   const report = {
-    films, audio, pre, rest, asks, buckets,
+    films, audio, pre, rest, asks, buckets, imageRows, owedByChat, blogDrafts,
     stats: {
       filmsHanded: sum(films.map(f => ({ n: f.n })), 'n'), filmChats: films.length,
       filmsSilent: films.filter(silent).length,
@@ -127,6 +182,11 @@ async function main() {
       preTouched: pre.filter(p => p.decided > 0).length, prePages: pre.length,
       preItems: sum(pre, 'total'), preDecided: sum(pre, 'decided'),
       restPages: rest.length, restItems: sum(rest, 'total'), restDecided: sum(rest, 'decided'),
+      imgFiled: sum(Object.values(imgs), 'n'), imgMarked: sum(Object.values(imgs), 'marked'),
+      imgUnseen: imageRows.reduce((s2, r) => s2 + r.unseen, 0),
+      imgNeverMessaged: imageRows.filter(r => !r.everMessaged).reduce((s2, r) => s2 + r.unseen, 0),
+      livePages: livePages.length, untouchedPages,
+      threadsOwed: owed.length, blogDrafts: blogDrafts.length,
     },
   };
 
@@ -139,6 +199,11 @@ async function main() {
   for (const r of films.filter(silent)) console.log(`  ${r.at.slice(0, 10)} (${r.days}d) ${r.chat}${r.title ? ' | ' + r.title : ''}${r.need ? ' | need: ' + r.need : ''}`);
   console.log('\nAUDIO WITH NO ANSWER OF ANY KIND');
   for (const r of audio.filter(silent)) console.log(`  ${r.at.slice(0, 10)} (${r.days}d) ${r.chat}${r.title ? ' | ' + r.title : ''}${r.need ? ' | need: ' + r.need : ''}`);
+  console.log(`\nIMAGES: ${s.imgUnseen} filed after your last message in that chat (${s.imgNeverMessaged} in chats you have never messaged); ${s.imgFiled - s.imgMarked} of ${s.imgFiled} carry no mark`);
+  for (const r of imageRows.slice(0, 12)) console.log(`  ${String(r.unseen).padStart(4)} unseen of ${String(r.n).padStart(4)} · marked ${r.marked} · ${r.last.slice(0, 10)} · ${r.name}${r.everMessaged ? '' : ' (never messaged)'}`);
+  console.log(`\nPAGES: ${s.livePages} live Compare/deck pages, ${s.untouchedPages} in chats with no mark of any kind`);
+  console.log(`NOTE THREADS: ${s.threadsOwed} where a chat answered you and you never came back`);
+  console.log(`BLOG: ${s.blogDrafts} posts written, never published`);
 
   const htmlArg = process.argv.indexOf('--html');
   if (htmlArg > -1) { fs.writeFileSync(process.argv[htmlArg + 1], page(report)); console.log('\nwrote', process.argv[htmlArg + 1]); }
@@ -167,13 +232,28 @@ function page(r) {
 <link rel="stylesheet" href="/compare.css">
 <style>.meta{color:var(--ink2);font-size:13px;margin:6px 0 0}h3{margin:26px 0 8px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}</style>
 <div class="wrap">
-  <h1>Deliverables waiting — the survey (v1)</h1>
+  <h1>Deliverables waiting — the survey (v2)</h1>
   <h3>Films nobody has heard back about — ${f.length}</h3>
 ${f.map(filmRow).join('\n')}
   <h3>Going to become videos — ${s.preDecided} of ${s.preItems} marked</h3>
 ${pre.map(pageRow).join('\n')}
   <h3>Audio waiting — ${a.length}</h3>
 ${a.map((x, i) => filmRow(x, 100 + i)).join('\n')}
+  <h3>Images nobody has heard back about — ${s.imgUnseen}</h3>
+${r.imageRows.slice(0, 12).map(x => `  <div class="card" data-item="img-${esc(x.chat)}">
+    <h2>${esc(x.name)}</h2>
+    <p class="meta">${x.unseen} filed since you last wrote there · ${x.marked} of ${x.n} marked · ${esc(x.last.slice(0, 10))}${x.everMessaged ? '' : ' · never messaged'}</p>
+  </div>`).join('\n')}
+  <h3>Read but never answered — ${s.threadsOwed} note threads</h3>
+  <div class="card" data-item="threads">
+    <h2>A chat wrote back on the picture and you never came back</h2>
+    <p class="meta">${Object.entries(r.owedByChat).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([c, n]) => n + ' · ' + esc(c)).join('<br>')}</p>
+  </div>
+  <h3>Written, never published — ${s.blogDrafts} blog posts</h3>
+  <div class="card" data-item="blog">
+    <h2>Drafts sitting in Blog Studio</h2>
+    <p class="meta">${r.blogDrafts.slice(0, 8).map(esc).join('<br>')}</p>
+  </div>
   <h3>Everything else — ${r.asks.length} open asks</h3>
 ${Object.entries(r.buckets).sort((x, y) => y[1].length - x[1].length).map(([k, v]) => `  <div class="card" data-item="ask-${esc(k.replace(/\\W+/g, '-'))}">
     <h2>${esc(k)} — ${v.length}</h2>
@@ -186,7 +266,7 @@ ${Object.entries(r.buckets).sort((x, y) => y[1].length - x[1].length).map(([k, v
   var films = ${JSON.stringify(f.map((x, i) => ({ url: x.url, label: x.title || x.chat, mount: '#f' + i })))};
   var auds = ${JSON.stringify(a.map((x, i) => ({ url: x.url, label: x.title || x.chat, mount: '#f' + (100 + i) })))};
   films.concat(auds).forEach(function (x) { window.__filmRow(x); });
-  window.__compareNotes({ chat: 'deliverables-survey', sheet: 'deliverables-v1' });
+  window.__compareNotes({ chat: 'deliverables-survey', sheet: 'deliverables-v2' });
   window.__compareHelp({ html: '<b>What this is.</b> Everything a chat handed you that nobody has heard back about. '
     + 'A film counts as answered if you left a note on it or messaged that chat after it landed — '
     + '${s.imageMarks} of your marks are on images, ${s.filmNotes} on films.' });
