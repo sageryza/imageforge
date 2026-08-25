@@ -24,6 +24,11 @@
  *        --vo sophie-vo.m4a --work <dir> [--spec-only]
  *   node scripts/vo-film.js <work>/spec.json --dir <work>/film --final
  *
+ * v9: the ear-goblins sheet is back, narrated by LAURA — she never recorded
+ * any of its three lines ("I missed one… just use Laura's voice for that for
+ * now"). It is the one borrowed section; `scripts/water-reel/tts-fill.js`
+ * renders it, and swapping it back to her own take is one line in SLICES.
+ *
  * Zoom targets are fractions of each 1024x1536 sheet, measured off the ink
  * rather than guessed (a band's dark-pixel bounds decide tx/ty/z). Two sheets
  * lay their reasons out as FULL-WIDTH ROWS, so their measured z is ~1.06 —
@@ -64,17 +69,21 @@ const SLICES = {
   z:     [427.6, 434.5],   // drink gallons, drink oceans — the closing line
 };
 
+// The one section she has no take of. Rendered by tts-fill.js into the same
+// src/ folder; it is a source like any other from here on, so when she
+// records it the only change is a SLICES entry and deleting this line.
+const LAURA = 'b';
+
 // ── the sheets ─────────────────────────────────────────────────────────────
 const A = { img: '1787619512551-35kqb3.webp', pad: 'f1d3a5', dir: 'images' }; // the earnest one
 const C = { img: '1787620392223-lfveov.webp', pad: 'eacfa1', dir: 'images' }; // funnel · fish · plants
+const B = { img: '1787620306161-xsmta2.webp', pad: 'f2e2bd', dir: 'images' }; // ear greetings · liquid light · stomach boat  [LAURA]
 const D = { img: '1787620455292-5g1ynr.webp', pad: 'eacda1', dir: 'images' }; // ghosts · lightning · knee
 const E = { img: '1787620576755-6n0olq.webp', pad: 'f0deba', dir: 'montage' }; // DNA · brain · portals
 const F = { img: '1787620578088-6fr3hh.webp', pad: 'ead0a2', dir: 'montage' }; // knees · demons · aura
 const G = { img: '1787620603958-sioafz.webp', pad: 'e4caa0', dir: 'montage' }; // thoughts · cells · rafts
 const Hs= { img: '1787620593195-1qure2.webp', pad: 'eecfa6', dir: 'montage' }; // duck · double · swim
 const I = { img: '1787620659452-3i519q.webp', pad: 'ebd2aa', dir: 'montage' }; // regrets · rocket · sponge
-// NOT here: the ear-goblins sheet (1787620306161-xsmta2) — she recorded no
-// lines for it, and a silent section inside a narrated reel reads as a fault.
 
 // id, sheet, source, zoom, phrases. `full` = the whole page (a settling
 // breath at 1.06 → 1.0); `push` = the gentle 1.0 → 1.08 for a row that
@@ -89,6 +98,11 @@ const SHOTS = [
   { id: 'c1', s: C, src: 'c', tx: 0.188, ty: 0.635, z: 2.45, phrases: ['Water lubricates your ideas so they can slip out faster and stranger'] },
   { id: 'c2', s: C, src: 'c', tx: 0.500, ty: 0.635, z: 2.45, phrases: ['Enough water can turn your sweat into miniature fish that will sing to you'] },
   { id: 'c3', s: C, src: 'c', tx: 0.810, ty: 0.635, z: 2.45, phrases: ['Your bones are secretly plants and water is what keeps them growing on the inside'] },
+
+  { id: 'b1', s: B, src: 'b', tx: 0.185, ty: 0.610, z: 2.85, phrases: ['One Water flushes out the tiny greetings that live in your ears'] },
+  { id: 'b2', s: B, src: 'b', tx: 0.487, ty: 0.610, z: 2.85, phrases: ['Two Enough water turns your sweat into liquid light making you visible to good luck'] },
+  { id: 'b3', s: B, src: 'b', tx: 0.790, ty: 0.610, z: 2.85, phrases: ['Three Water builds a boat inside your stomach so you can sail through lifes soup'] },
+  { id: 'b4', s: B, src: 'b', tx: 0.180, ty: 0.875, z: 2.60, phrases: ['Drink gallons Live legendary'] },
 
   { id: 'd1', s: D, src: 'd12', tx: 0.285, ty: 0.470, z: 2.20, phrases: ['One gallons of water flush out the ghosts that live in your spine'] },
   { id: 'd2', s: D, src: 'd12', tx: 0.745, ty: 0.500, z: 2.20, phrases: ['Two it turns your sweat into liquid lightning'] },
@@ -134,6 +148,11 @@ for (const [name, [t0, t1]] of Object.entries(SLICES)) {
   }
 }
 
+if (!fs.existsSync(path.join(srcDir, `${LAURA}.wav`))) {
+  console.error(`missing ${LAURA}.wav — render it first with scripts/water-reel/tts-fill.js`);
+  process.exit(1);
+}
+
 // ── 2. one nominal zoom clip per shot ──────────────────────────────────────
 // vo-film RETIMES a `video` shot to its own narration, so the length here is
 // only nominal — the ease still lands in the first third of the shot.
@@ -170,15 +189,23 @@ for (const s of SHOTS) {
 // slices, so the master-level energy detector has little room tone to measure
 // and nothing between shots to remove — vo-film's per-shot WORD-TIMING clean
 // (the one that finds pauses by the absence of words) does the work.
+const SOURCES = [...Object.keys(SLICES), LAURA];
 const spec = {
   title: 'MORE WATER, RIGHT NOW — in her voice',
-  width: W, height: PADH, fps: FPS, bg: '#f1d3a5', out: 'water-reel-v8',
-  sources: Object.fromEntries(Object.keys(SLICES).map((k) => [k, { file: path.join(srcDir, `${k}.wav`), denoise: false }])),
+  width: W, height: PADH, fps: FPS, bg: '#f1d3a5', out: 'water-reel-v9',
+  // vo-film's default edge rule keeps up to 1.2s of lead-in/tail per shot,
+  // which is right for a film of long shots and wrong for 34 short ones: the
+  // two kept edges MEET at every joint and the verify pass reports the reel as
+  // dead air. Tighter here, in the spec, so the default is untouched for
+  // everyone else — and the rule is in the shot cut cache key, so changing
+  // this number re-cuts rather than serving a stale cut.
+  edge: { max: 0.45, keep: 0.22 },
+  sources: Object.fromEntries(SOURCES.map((k) => [k, { file: path.join(srcDir, `${k}.wav`), denoise: false }])),
   shots: SHOTS.map((s) => ({
     id: s.id, video: path.join(clipDir, `${s.id}.mp4`), source: s.src,
     phrases: s.phrases, ...(s.extra ? { extra: s.extra } : {}),
   })),
 };
 fs.writeFileSync(path.join(WORK, 'spec.json'), JSON.stringify(spec, null, 2));
-console.log(`\nspec: ${path.join(WORK, 'spec.json')} — ${SHOTS.length} shots, ${Object.keys(SLICES).length} sources`);
+console.log(`\nspec: ${path.join(WORK, 'spec.json')} — ${SHOTS.length} shots, ${SOURCES.length} sources`);
 console.log(`next: node scripts/vo-film.js ${path.join(WORK, 'spec.json')} --dir ${path.join(WORK, 'film')} --final`);
