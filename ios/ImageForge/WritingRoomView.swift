@@ -76,6 +76,14 @@ private struct WritingWebView: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
+        // iOS reclaims the web content process under memory pressure (this
+        // app keeps three tools alive at once); without this the tool comes
+        // back as a blank/frozen view that only an app relaunch fixed —
+        // Sophie's 'keeps going blank' report, 2026-08-25. Same hook the
+        // witch app has carried in WitchWebView.swift.
+        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+            webView.reload()
+        }
         let parent: WritingWebView
         private var screenChangeObserver: NSObjectProtocol?
         init(_ parent: WritingWebView) { self.parent = parent }
