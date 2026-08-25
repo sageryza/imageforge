@@ -5015,6 +5015,24 @@ app.post('/api/witch/cart/update', async (req, res) => {
   }
 });
 
+// THE WHOLE PROMPT IS STORED WHEREVER AN IMAGE IS MADE (Sophie's hard rule,
+// 2026-08-24; her follow-up 2026-08-25: "any surface or endpoint or route or
+// anything"). The four /api/generate/* image routes below were the last
+// stateless ones — they built a full prompt, handed the picture back and
+// persisted nothing, so the exact text existed for the length of one request.
+// Each saved image now files into My Creations with the whole prompt through
+// the one shared filer (style-test and deck-batch proxy into these routes
+// internally, so they are covered by the same four calls). Fire-and-forget:
+// a gallery hiccup must never fail a render that already exists.
+function fileGenerateRoute({ url, prompt, full, prefix, suffix, model, quality, canvas, style }) {
+  Promise.resolve()
+    .then(() => fileCreationDoc({
+      url, prompt, fullPrompt: full || prompt, promptPrefix: prefix, promptSuffix: suffix,
+      model, quality, canvas, style, source: 'teststation',
+    }))
+    .catch((err) => console.warn('generate → My Creations failed:', err.message));
+}
+
 // ─── Single image: DALL·E ───────────────────────────────────────────
 app.post('/api/generate/dalle', async (req, res) => {
   try {
@@ -5030,6 +5048,11 @@ app.post('/api/generate/dalle', async (req, res) => {
     const data = await response.json();
     if (data.error) return res.status(400).json({ error: data.error.message });
     const permanentUrl = await saveToFirebase(data.data[0].url, 'dalle');
+    // What WE sent is the record; DALL·E's own rewrite rides the style slot so
+    // neither text is lost and neither is filed as the other.
+    fileGenerateRoute({ url: permanentUrl, prompt, full: prompt,
+      model: 'dall-e-3', quality, canvas: size,
+      style: data.data[0].revised_prompt ? 'dalle rewrote the prompt' : '' });
     res.json({ url: permanentUrl, revised_prompt: data.data[0].revised_prompt });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -5047,6 +5070,10 @@ app.post('/api/generate/gptimage', async (req, res) => {
     const b64 = data.data?.[0]?.b64_json;
     if (!b64) return res.status(400).json({ error: 'gpt-image-2 returned no image' });
     const url = await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/webp', 'openai');
+    // Verbatim surface — her words go through untouched, so there is no style
+    // half to file and the full prompt IS the content.
+    fileGenerateRoute({ url, prompt, full: prompt,
+      model: 'gpt-image-2', quality, canvas: size });
     res.json({ url });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -5157,6 +5184,11 @@ app.post('/api/generate/housestyle', async (req, res) => {
     let buf = Buffer.from(b64, 'base64');
     if (style.whiten) { try { buf = await whitenBackground(buf); } catch (e) { console.warn('house whiten failed:', e.message); } }
     const url = await saveBufferToFirebase(buf, 'image/webp', 'housestyle');
+    // `full` is the literal string handed to the edits call two lines up; the
+    // style's own prompt and tail are the wrapper around her words.
+    fileGenerateRoute({ url, prompt, full,
+      prefix: style.stylePrompt || '', suffix: style.end || '',
+      model: 'gpt-image-2', quality, canvas: '1024x1024', style: style.name || styleId });
     res.json({ url });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -5271,6 +5303,13 @@ app.post('/api/generate/replicate', async (req, res) => {
     const permanentUrls = [];
     for (const tempUrl of urls) {
       permanentUrls.push(await saveToFirebase(tempUrl, 'replicate'));
+    }
+    // The LoRA's wrapper is its trigger in front and its suffix behind —
+    // `fullPrompt` is what was actually sent. One filing per output.
+    for (const u of permanentUrls) {
+      fileGenerateRoute({ url: u, prompt, full: fullPrompt,
+        prefix: known ? known.trigger : '', suffix: known?.promptSuffix || '',
+        model, style: known ? known.name : '' });
     }
     res.json({ url: permanentUrls[0], urls: permanentUrls });
   } catch (err) {
