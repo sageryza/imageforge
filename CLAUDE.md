@@ -31,7 +31,11 @@ The numbers are measured, not guessed.
    asked, did, next}`. It is **her three questions, ONE SENTENCE EACH** (Aug
    2026: "what I really wanted was the what you asked, what I did, and next
    steps"; three sentences in total, not six) — `line` = the one line her
-   archive row shows (≤200). This is what she reads months later to remember
+   archive row shows (≤200). **The "what you asked" she reads is HER OWN
+   SENTENCE, lifted verbatim from her last message — your `asked` is only the
+   fallback** for a chat she never posted into (Sophie asked, 2026-08-25,
+   whether chats write it or use her words; the full rule is *AND THAT LINE IS
+   HER OWN SENTENCE NOW* in the Chats section). This is what she reads months later to remember
    what a chat was, so it earns more care than the status card. *Measured
    2026-08-14: 73 of her 88 archived chats showed nothing but a name.* You
    cannot be asked for it later — you are asleep by the time she archives.
@@ -71,6 +75,15 @@ notes (`GET /api/gallery/assets/notes?chat=`), Writing Room notes, the running
 to-do list. Act on them, then answer on the image itself. **Never on a timer.**
 
 **While you work**
+- **BUILDING OR POSTING A PAGE? THE RULES FIRST — this is the thing that
+  always goes wrong (Sophie, 2026-08-25: "when people make new pages they
+  should follow the rules… the header, the pill, the styles").** Read the
+  `new-page` skill BEFORE writing any page — start from the SHELL
+  (`compare-shell.html` / `judge-shell.html` / `picker-shell.html`), link
+  `/compare.css` + `/compare.js`, never hand-roll the pill, the title once
+  with nothing above it, boxes empty, buttons hug their words. `POST /page`
+  answers `warnings` — a page that comes back with one gets fixed before the
+  turn ends.
 - **Never block the turn on a wait** — background it, or her next message is
   silently swallowed.
 - **She is almost never at her desktop.** Anything that can only run on her Mac
