@@ -95,6 +95,12 @@ app.use((req, res, next) => {
   next(); // everything else (/, /api/*, /blog, static assets) flows through
 });
 
+// Universal links: /.well-known/apple-app-site-association tells iOS which
+// paths on this host belong to the Deck Factory app. Apple's fetcher follows
+// NO redirects and sends NO credentials, so this must sit above dream-host,
+// above express.static and above the studio gate. See applinks.js.
+app.use('/.well-known', require('./applinks').router);
+
 // The dream feed's own front door — youwereinmydreams.com serves the app at
 // `/`. Must sit ABOVE express.static and the `/` route below, both of which
 // would otherwise answer with the studio hub. Inert on every other host.

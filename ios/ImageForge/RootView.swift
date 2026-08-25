@@ -434,6 +434,14 @@ struct RootView: View {
         // ://business (the second home grid). Opens
         // Deck Factory straight to that tab. Scheme registered in Info.plist.
         .onOpenURL { url in handleDeepLink(url) }
+        // UNIVERSAL LINKS — the same thing for an ordinary
+        // https://imageforge-q125.onrender.com/… link, which unlike a custom
+        // scheme is tappable everywhere she reads (Aug 2026). iOS delivers it
+        // as a browsing activity, not through onOpenURL, so this second door
+        // is required; both walk into the same handler. See ForgeLinks.swift.
+        .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+            if let url = activity.webpageURL { handleDeepLink(url) }
+        }
         // A tapped push lands on the Chats screen; ChatFeedView hears the same
         // notification and reloads its page onto the Update tab (?view=news).
         .onReceive(NotificationCenter.default.publisher(for: .forgePushOpenUpdate)) { _ in
@@ -449,11 +457,44 @@ struct RootView: View {
     }
 
     private func handleDeepLink(_ url: URL) {
-        guard url.scheme?.lowercased() == "deckfactory" else { return }
-        // accept deckfactory://writing and deckfactory:///writing alike
-        let dest = (url.host ?? url.path)
-            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-            .lowercased()
+        let dest: String
+        if url.scheme?.lowercased() == "deckfactory" {
+            // accept deckfactory://writing and deckfactory:///writing alike
+            dest = (url.host ?? url.path)
+                .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                .lowercased()
+        } else if let d = ForgeLinks.destination(for: url) {
+            dest = d
+        } else {
+            // A path we don't claim any more (Apple caches the site's
+            // association file for a while). Bring the app forward on
+            // whatever she was looking at rather than jumping her somewhere.
+            return
+        }
+        // THE QUERY IS CARRIED NOW, which is what makes a link land on ONE
+        // THREAD rather than on the Chats list — /chats?chat=<slug> and
+        // deckfactory://chats?chat=<slug> alike. It rides the same one-shot
+        // pending flags a tapped push already uses (chats.html strips either
+        // param after honouring it, so a later reload can't drag her back),
+        // so there is one mechanism here and not two.
+        let q = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        if dest == "chats" {
+            let chat = q.first(where: { $0.name == "chat" })?.value ?? ""
+            let view = q.first(where: { $0.name == "view" })?.value ?? ""
+            if !chat.isEmpty {
+                PushDelegate.pendingChat = chat
+                PushDelegate.pendingUpdateTab = false
+            } else if view == "news" {
+                PushDelegate.pendingChat = nil
+                PushDelegate.pendingUpdateTab = true
+            }
+            if !chat.isEmpty || view == "news" {
+                // ChatFeedView reloads its page onto the pending destination,
+                // and RootView's own listener brings the Chats screen up.
+                NotificationCenter.default.post(name: .forgePushOpenUpdate, object: nil)
+                return
+            }
+        }
         go(dest)
     }
 
