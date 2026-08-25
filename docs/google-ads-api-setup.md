@@ -9,6 +9,31 @@ step (Google's developer-token review) — pick up wherever it left off.
 > developer token, client ID, client secret, and refresh token are shared
 > privately (in-chat / Render env vars) and never committed here.
 
+## Status as of 2026-08-25 (checked live — STILL NOT GRANTED)
+
+Same measurement as 2026-08-07, re-run from a chat, and it has not moved:
+
+- `GET /api/googleads/status` → `allPresent: true`, OAuth valid.
+- `POST /api/googleads/keyword-ideas {"keywords":["tarot deck for beginners"]}`
+  → `"The caller does not have permission"` — PERMISSION_DENIED, i.e. the
+  developer token is **still on Test access**.
+
+**That is now ~4.5 weeks since the 2026-07-24 application**, past the "weeks"
+queue this doc has been assuming. A pending application and a **rejected or
+info-requested** one look identical from here — the API answers PERMISSION_DENIED
+either way — so the API cannot tell us which. The two places that can, both
+Sophie's:
+
+- **API Center** — https://ads.google.com/aw/apicenter (sign in as the "Sage
+  Ryza" manager account, `237-218-0462`): the access level is printed there, and
+  a rejected application shows its reason.
+- **The email on that manager account.** Google replies to the application by
+  email, often asking follow-up questions about the tool's use case; an
+  unanswered question stalls the application indefinitely.
+
+Nothing in the code needs changing either way — the keyword endpoints go live by
+themselves the moment the token flips to Basic.
+
 ## Status as of 2026-08-07 (checked live)
 
 - **All five env vars ARE set in Render** — `GET /api/googleads/status` returns
