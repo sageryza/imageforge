@@ -41,6 +41,7 @@ app.options('*', cors(corsOptions)); // explicit preflight for every route
 // to Firestore `forge-memwatch` BEFORE the kernel's SIGKILL can land — the
 // only way a mystery restart leaves the culprit's name behind. See memwatch.js.
 require('./memwatch').install(app, admin);
+const memwatch = require('./memwatch');
 // Reference images for the Sticker Page are sent as base64 in the JSON body,
 // so the default 100kb limit is far too small — allow a handful of photos.
 app.use(express.json({ limit: '25mb', verify: (req, _res, buf) => { req.rawBody = buf; } }));
@@ -1875,6 +1876,12 @@ async function makeThumb(url, w) {
 // request (a few at a time), so tiles get direct storage URLs on the next
 // load instead of bouncing through this server one image at a time.
 const thumbWarmQ = []; const thumbWarmSeen = new Set(); let thumbWarmActive = 0;
+// Named in every memwatch snapshot, so a leak here can't hide (see memwatch.js).
+memwatch.gauge('thumbHot', () => thumbHot.size);
+memwatch.gauge('thumbBad', () => thumbBad.size);
+memwatch.gauge('thumbWarmSeen', () => thumbWarmSeen.size);
+memwatch.gauge('thumbWarmQ', () => thumbWarmQ.length);
+
 function warmThumbs(urls, w) {
   urls.forEach((u) => {
     const k = u + '|' + w;
