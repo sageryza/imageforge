@@ -3492,6 +3492,47 @@ before working on that module. Nothing was deleted — the moved text is verbati
     panel, which re-decodes the whole page every time — a 2336x3504 sheet is
     24.5MB of raw pixels, so nine panels meant nine decodes on a 512MB box that
     is also serving the app.
+  - **THE CUT LINES COME FROM THE PICTURE, NOT THE MATH (2026-08-25, Sophie:
+    "the cutting doesn't cut on the right lines because it's using math, but
+    the image generation is not exact — it needs some mechanism that's
+    actually aware and looks at the picture").** She was right, measured on
+    all four live sheets: the drawn gutters sat 7–45px off the mathematical
+    lines. `sheet-seams.js` scans a mean-ink profile near each math line and
+    finds the real boundary — a paper GUTTER (a valley, cut through its
+    middle) or, on a full-bleed sheet, the drawn BORDER line (a narrow peak,
+    cut ON it so each panel keeps half). **The qualifying tests are the
+    load-bearing half**: a valley must have dark flanks on BOTH sides and a
+    floor that reads as paper against the whole profile (a light patch inside
+    busy art fooled the first cut by 149px — the live cat sheet is now the
+    test fixture for it), and a peak must stand clear above both flanks;
+    anything less keeps the math line, so the failure mode is "no better than
+    before", never worse. Each cut panel stores its REAL `size` (they are no
+    longer all one nominal cell). Detection costs ~50-90ms a sheet. Tests:
+    `node scripts/test-sheet-seams.js` (pure, sheets built as raw bytes).
+  - **A STALE RUN HEALS ITSELF ON ANY READ (2026-08-25).** The resume route
+    existed and nothing ever called it — a deploy-restart mid-cut left the doc
+    saying `running` forever ("the cutting doesn't work"). Now the feed GET
+    and the poll GET kick the free recut themselves when a job has been silent
+    past `STALE_MS` with a sheet on file, and a run that died before its sheet
+    landed is stamped failed after `DRAW_STALE_MS` (15 min — the draw itself
+    can honestly take 10) instead of saying "working…" about nothing.
+  - **The cut encodes at `effort: 0` — still LOSSLESS** (effort only changes
+    how hard the encoder hunts for a smaller file, never the pixels).
+    Measured: 2518ms → 1191ms per 4K panel for ~20% more bytes — the right
+    trade on the box she watches cut nine panels.
+  - **THE PAGE'S FEED IS DIFFED, NEVER REBUILT (2026-08-25, Sophie: "once I
+    send it to be made it flashes like every two seconds").** `load()` used to
+    replace `#feed`'s whole innerHTML on every poll, so every `<img>` was
+    re-created and re-decoded — a full flash every couple of seconds while
+    anything ran. Each run keeps its own node now: the head line repaints,
+    the sheet lands once, a new cut is APPENDED, and an image already on
+    screen is never touched (pinned by the page test, which marks a live DOM
+    node and re-renders).
+  - **Tapping any picture opens THE shared Assets lightbox**
+    (`asset-lightbox.js` — never a fourth copy): a cut opens with its own
+    cell's words as the content half and the run's real wrapper (prefix + the
+    grid sentence + suffix) as the style half; the sheet opens with every
+    cell she wrote.
   - Prices and prompt text are **SERVED** (`GET /api/panels/config`); the page
     holds no copy of either, and a test pins that. Nothing is deleted — a run
     hides. Tests: `node scripts/test-panels.js` — 26 pure checks including the

@@ -577,7 +577,9 @@ async function drivePage() {
     const p = await b.newPage({ viewport: { width: 390, height: 844 } });
     const fatal = [];
     p.on('pageerror', (e) => fatal.push(e.message));
-    await p.goto(base + '/panels', { waitUntil: 'networkidle' });
+    // domcontentloaded, not networkidle — the feed now shows real runs whose
+    // full-size lossless sheets can stream for longer than any idle window
+    await p.goto(base + '/panels', { waitUntil: 'domcontentloaded' });
     await p.waitForFunction(() => document.querySelectorAll('#cells textarea').length > 0,
       { timeout: 15000 });
 
@@ -643,6 +645,43 @@ async function drivePage() {
       'it says which');
     assert.strictEqual(posts, 0, 'and nothing was requested — no money at risk');
     n++; console.log('  ok  page: an empty box is refused with ZERO requests');
+
+    // THE FEED IS DIFFED, NEVER REBUILT (2026-08-25, Sophie: "it flashes like
+    // every two seconds") — a poll repaint must never touch an image already
+    // on screen, only append what is new.
+    const GIF = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+    const diffed = await p.evaluate((gif) => {
+      const run = { id: 'T1', grid: 4, count: 4, cellSize: '1x1', sheetSize: '2x2',
+        style: 'dreamy', quality: 'low', res: '4k', status: 'running', sheetUrl: '',
+        panels: ['a', 'b', 'c', 'd'], job: { label: 'cutting', done: 2 },
+        images: [{ url: gif, cell: 'top-left', prompt: 'a' }] };
+      window.__panelsRender([JSON.parse(JSON.stringify(run))]);
+      const first = document.querySelector('#feed .cuts img');
+      first.__mark = 42;
+      run.images.push({ url: gif, cell: 'top-right', prompt: 'b' });
+      run.job = { label: 'cutting', done: 3 };
+      window.__panelsRender([JSON.parse(JSON.stringify(run))]);
+      const again = document.querySelector('#feed .cuts img');
+      return { sameNode: again.__mark === 42,
+        count: document.querySelectorAll('#feed [data-run="T1"] .cuts img').length,
+        head: document.querySelector('#feed [data-run="T1"] .runhead').textContent };
+    }, GIF);
+    assert.strictEqual(diffed.sameNode, true, 'an image already on screen was not recreated');
+    assert.strictEqual(diffed.count, 2, 'the new cut was appended');
+    n++; console.log('  ok  page: a poll appends, it never rebuilds — no flash');
+
+    // TAPPING A PICTURE OPENS THE SHARED ASSETS LIGHTBOX (2026-08-25, Sophie:
+    // "I can't open the pictures in a light box").
+    const lb = await p.evaluate(() => {
+      document.querySelector('#feed [data-run="T1"] .cuts img').click();
+      const box = document.getElementById('clightbox');
+      const open = Boolean(box) && !box.hidden && box.innerHTML.length > 0;
+      const text = box ? box.textContent : '';
+      if (box) { box.hidden = true; box.innerHTML = ''; document.body.style.overflow = ''; }
+      return { open, hasPrompt: /PROMPT/i.test(text) };
+    });
+    assert.strictEqual(lb.open, true, 'the lightbox opened');
+    n++; console.log('  ok  page: tapping a picture opens the shared lightbox');
 
     // The pill's corner is clear and the page threw nothing.
     const right = await p.$eval('#ctrls', (e) => getComputedStyle(e).paddingRight);

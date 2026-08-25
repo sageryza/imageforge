@@ -49,6 +49,7 @@
 const express = require('express');
 const admin = require('firebase-admin');
 const sheetGrid = require('./sheet-grid');
+const sheetSeams = require('./sheet-seams');
 const sizeTier = require('./size-tier');
 
 const COLLECTION = 'forge-panels';
@@ -451,7 +452,10 @@ function fileRun(sheetUrl, images, cfg, skip) {
       canvas: cfg.plan.sheet, sizeSlot: tier }, shared));
   }
   images.slice(skip || 0).forEach((im) => deps.fileCreation(Object.assign({
-    url: im.url, prompt: im.prompt, canvas: cfg.plan.cell, sizeSlot: cut }, shared)));
+    // a seam-cut panel's real canvas can differ a little from the nominal
+    // cell — file what it actually is
+    url: im.url, prompt: im.prompt, canvas: im.size || cfg.plan.cell,
+    sizeSlot: cut }, shared)));
 }
 
 /**
@@ -462,27 +466,56 @@ function fileRun(sheetUrl, images, cfg, skip) {
  * pixels, so nine panels meant nine decodes on a 512MB box that is also
  * serving the app. One decode, N crops.
  *
+ * THE CUT LINES COME FROM THE PICTURE, NOT THE MATH (2026-08-25, Sophie:
+ * "the cutting doesn't cut on the right lines because it's using math, but
+ * the image generation is not exact — it needs some mechanism that's actually
+ * aware and looks at the picture"). sheet-seams.js finds the drawn gutter
+ * near each mathematical line and cuts through its middle; where the picture
+ * shows no convincing gutter, the math line stands — see that file's header.
+ * So panels are no longer all exactly one nominal cell: each image carries
+ * its REAL size, and the caption slot stays "1/4 (4K)" either way.
+ *
  * Lossless — an exact crop of the sheet's own pixels, so a panel is the
- * model's output and not a re-encode of it.
+ * model's output and not a re-encode of it. `effort: 0` only changes how hard
+ * the ENCODER searches for a smaller file, never the pixels — lossless is
+ * lossless at every effort. Measured on a real 4K panel: 2518ms -> 1191ms per
+ * cut (~2x, more on the 0.5 vCPU box) for a file ~20% bigger — the right
+ * trade on the tool she watches cut nine panels ("the cutting takes a long
+ * time").
  *
  * `have` is what already landed, so a resume only cuts the panels that are
  * missing and never re-uploads one she may already have hearted.
  */
 async function cutSheet(sheet, cfg, patch, have) {
   const sharp = require('sharp');
-  const boxes = sheetGrid.cutBoxes(cfg.plan);
   const names = sheetGrid.cellNames(cfg.gridId);
   const images = (have || []).slice();
   const done = new Set(images.map((im) => im.cell));
   // ONE decode for the whole sheet; each crop is taken from this.
   const page = sharp(sheet, { limitInputPixels: false });
+  let boxes;
+  try {
+    const gray = await page.clone().greyscale().raw().toBuffer({ resolveWithObject: true });
+    const seams = sheetSeams.findSeams({ data: gray.data,
+      width: gray.info.width, height: gray.info.height,
+      across: cfg.plan.across, down: cfg.plan.down });
+    boxes = sheetSeams.seamBoxes(seams);
+    if (seams.moved) await patch({ seamsMoved: seams.moved });
+  } catch (e) {
+    // the seam finder failing must never cost the cut — the math lines are
+    // exactly what this tool always did
+    console.warn('panels seams failed, cutting on the math lines:', e.message);
+    boxes = sheetGrid.cutBoxes(cfg.plan);
+  }
   for (let i = 0; i < boxes.length; i++) {
     const cell = names[i] || `panel ${i + 1}`;
     if (done.has(cell)) continue;
     try {
-      const buf = await page.clone().extract(boxes[i]).webp({ lossless: true }).toBuffer();
+      const buf = await page.clone().extract(boxes[i])
+        .webp({ lossless: true, effort: 0 }).toBuffer();
       const url = await deps.saveBuffer(buf, 'image/webp', 'panels/cuts');
-      images.push({ url, cell, prompt: cfg.panels[i], size: cfg.plan.cell });
+      images.push({ url, cell, prompt: cfg.panels[i],
+        size: `${boxes[i].width}x${boxes[i].height}` });
     } catch (e) {
       // one failed cut costs its panel, not the run — the sheet is paid for
       console.warn(`panels cut ${i + 1} failed:`, e.message);
@@ -519,6 +552,48 @@ function isStale(d) {
   const j = d.job || {};
   if (j.status !== 'running') return false;
   return Date.now() - (Number(j.startedAt) || 0) > STALE_MS;
+}
+// The DRAW can honestly take up to ten minutes (imageEdit's own timeout), so
+// a run with no sheet yet gets a longer leash before it is called dead.
+const DRAW_STALE_MS = 15 * 60 * 1000;
+
+/**
+ * READS HEAL A WEDGED RUN BY THEMSELVES (2026-08-25, Sophie: "the cutting
+ * doesn't work and it takes a long time"). The resume route existed and
+ * nothing ever called it — the page just watched a doc that would say
+ * `running` forever after a deploy restart, which several chats cause every
+ * day. Now any read of a stale run (the feed, or one poll) kicks the recut in
+ * the background: free, keeps what already landed, and the next poll shows it
+ * moving again. A run that died before its sheet ever landed is stamped
+ * failed instead, so the page stops saying "working…" about nothing.
+ */
+const healing = new Set();
+function healStale(d) {
+  try {
+    if (!d || d.status !== 'running' || healing.has(d.id)) return;
+    const j = d.job || {};
+    const silentFor = Date.now() - (Number(j.startedAt) || 0);
+    const ref = admin.firestore().collection(COLLECTION).doc(d.id);
+    if (!d.sheetUrl) {
+      if (silentFor <= DRAW_STALE_MS) return;
+      healing.add(d.id);
+      ref.update({ status: 'failed', error: 'interrupted by a restart while drawing',
+        job: { kind: 'sheet', status: 'failed',
+          error: 'interrupted by a restart while drawing', startedAt: Date.now() } })
+        .catch(() => {}).then(() => healing.delete(d.id));
+      return;
+    }
+    if (!isStale(d) || (d.images || []).length >= d.count) return;
+    const plan = sheetGrid.sheetFor(d.grid, d.shape, d.res);
+    if (!plan) return;
+    healing.add(d.id);
+    ref.update({ job: { kind: 'recut', status: 'running',
+      done: 1 + (d.images || []).length, total: plan.count + 1,
+      label: 'cutting', startedAt: Date.now() } })
+      .then(() => recut(ref, d, plan))
+      .catch(() => {})
+      .then(() => healing.delete(d.id));
+  } catch (e) { /* healing is best-effort; a read must never fail over it */ }
 }
 
 router.post('/:id/resume', async (req, res) => {
@@ -575,6 +650,7 @@ router.get('/:id', async (req, res) => {
     if (!admin.apps.length) return res.status(503).json({ error: 'firebase not configured' });
     const doc = await admin.firestore().collection(COLLECTION).doc(String(req.params.id)).get();
     if (!doc.exists) return res.status(404).json({ error: 'run not found' });
+    healStale(doc.data());
     return res.json(clean(doc.data()));
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
@@ -590,6 +666,7 @@ router.get('/', async (req, res) => {
     let runs = snap.docs.map((d) => clean(d.data())).filter((r) => !r.hidden);
     const q = String(req.query.q || '').trim().toLowerCase();
     if (q) runs = runs.filter((r) => hay(r).includes(q));
+    runs.slice(0, limit).forEach(healStale);
     return res.json({ runs: runs.slice(0, limit), total: runs.length });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
@@ -618,4 +695,4 @@ function clean(d) {
 }
 
 module.exports = { router, init, __setDeps, buildPrompt, gridLine, sheetSuffix, sheetCents,
-  hay, cutSheet, fileRun, isStale, STALE_MS, COLLECTION };
+  hay, cutSheet, fileRun, isStale, STALE_MS, DRAW_STALE_MS, COLLECTION };
