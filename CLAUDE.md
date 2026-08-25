@@ -4341,10 +4341,26 @@ before working on that module. Nothing was deleted — the moved text is verbati
     no voiceover to follow, had no pad at all until one was made. **The audio
     half IS fixed** — every pad carries its `description`/`descriptionAudio`/
     `voiceover` now, which is what finally lights the *About this story* button
-    (it had never appeared on any story). **Everything else is documented and
-    deliberately NOT done.** Do not place beats, pin covers or write narration
-    onto a pad from that doc: which of a beat's 2-5 candidate pictures wins is
-    the story's look, and that is hers. Propose it in a reply and wait for a go.
+    (it had never appeared on any story). **The COVERS and CHARLIE are also
+    done, on her word the same day** — her pinned shelf face is back on Moon
+    Milk, Jonas, My Own Destiny, Soul Leaves the Body and Evan, under her rule
+    **"unless I already chose a different one on purpose"** (a pad carrying its
+    own `cover` is left alone), and Charlie is now two versions in one bucket:
+    `folder:"Charlie"` over *as it is now* and *as it used to be*. **The other
+    four stories' beats are documented and deliberately NOT done.** Do not place
+    them from that doc: which of a beat's 2-5 candidate pictures wins is the
+    story's look, and that is hers. Propose it in a reply and wait for a go.
+  - **PORTING WORDS: ONLY WHAT SHE SAYS (2026-08-24, Sophie: "any words that
+    aren't part of the narration need to go like the moon milk ones describing
+    the action").** A card's `label` describes the picture ("Final shot",
+    "upscaled from the mini panel") and is never narration. And some stories'
+    `vo` is stage direction rather than narration — Moon Milk's *"She holds the
+    bucket up to the smiling moon's tap"* is the named example — so it must not
+    land on a canvas as her words. Charlie's lines were read one by one before
+    porting. **Picking the picture is not the status field either**: a card
+    whose label calls it a storyboard panel sorts LAST before status is read,
+    because the corrected upscale is often only a `cand` while the rough panel
+    it replaced is a `draft`.
 - **Story Timeline** (`timeline.js` + `timeline-parse.js`, `/api/timeline`,
   page at `/timeline`, iOS tile) — a dictated list of moments becomes cards she
   can put in order. It started as one Compare page for one story (Aug 2026) and
