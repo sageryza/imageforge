@@ -3499,10 +3499,21 @@ before working on that module. Nothing was deleted — the moved text is verbati
     already landed (she may have hearted one), and refuses to touch a job that
     is genuinely still working — only one silent past `STALE_MS`. **That is why
     the sheet is saved to Storage BEFORE the cutting starts.**
-  - **The sheet is DECODED ONCE for all the cuts.** It was `sharp(sheet)` per
-    panel, which re-decodes the whole page every time — a 2336x3504 sheet is
-    24.5MB of raw pixels, so nine panels meant nine decodes on a 512MB box that
-    is also serving the app.
+  - **THE CUT RUNS IN A THROWAWAY CHILD PROCESS
+    (`scripts/cut-sheet-worker.js`, 2026-08-25) — the server's memory never
+    touches the pixels, and an OOM can only kill the cut, never the site.**
+    Earned the hard way, all measured the same day: the per-panel
+    `sharp(sheet).extract()` re-decoded AND cached the whole page per crop —
+    **592MB peak on a 9-panel 4K recut, on the 512MB box** — so every 4K cut
+    OOM-killed Render, and heal-on-read re-firing it per poll crash-looped the
+    service (the 502 night). The worker decodes once to a raw buffer with
+    sharp's cache off and encodes panels straight to files: **190MB peak in
+    its own process (self-measured, `peakRss` in its manifest, logged per
+    cut), server flat at baseline**, same pixels, ~2x faster. panels.js only
+    writes the sheet to tmp and uploads finished panels one at a time; live
+    progress comes from watching the out dir fill. Heals also run ONE at a
+    time process-wide — two wedged runs used to start two concurrent cuts
+    from a single feed read.
   - **THE CUT LINES COME FROM THE PICTURE, NOT THE MATH (2026-08-25, Sophie:
     "the cutting doesn't cut on the right lines because it's using math, but
     the image generation is not exact — it needs some mechanism that's

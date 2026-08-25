@@ -461,18 +461,22 @@ function fileRun(sheetUrl, images, cfg, skip) {
 /**
  * THE CUT, shared by the first run and by a resume.
  *
- * DECODED ONCE, TO A RAW BUFFER, WITH THE CACHE OFF. It used to be
- * `sharp(sheet).extract(...)` per panel, which re-decodes the whole page every
- * time; the first "one decode" fix kept one sharp INSTANCE but libvips still
- * re-decoded the webp per `.clone().extract()` and CACHED each decode —
- * measured 2026-08-25: one 9-panel 4K recut peaked at **592MB RSS** in a bare
- * process, past the whole 512MB box. That is what OOM-killed Render every
- * time a 4K cut ran (first run or heal), and with heal-on-read re-firing the
- * cut on every poll it crash-looped the service for half an hour. Decoding to
- * a raw buffer once (`.raw().toBuffer()`) and cropping from that, with
- * `sharp.cache(false)`, measured **233MB peak and 2x faster** on the same
- * sheet. The seam scan's grey copy is derived from the same raw buffer, so
- * the compressed sheet is decoded exactly once.
+ * THE CUT RUNS IN A THROWAWAY CHILD PROCESS (2026-08-25, Sophie: "that seems
+ * insane for such a simple job — consider very different alternatives").
+ * History, all measured the same day: the original per-panel
+ * `sharp(sheet).extract(...)` re-decoded AND CACHED the whole page per crop —
+ * one 9-panel 4K recut peaked at **592MB RSS**, past the whole 512MB box,
+ * which is what OOM-killed Render on every 4K cut and, with heal-on-read
+ * re-firing it per poll, crash-looped the site for half an hour. Decoding
+ * once to a raw buffer with sharp's cache off cut that to 233MB — survivable,
+ * but the spike still rode the same process as the app. Now the decode, the
+ * seam scan and the crops all happen in `scripts/cut-sheet-worker.js`, spawned
+ * per cut: the SERVER only writes the sheet to a tmp file and reads finished
+ * ~1-3MB panels back one at a time, so its own memory stays flat, and the
+ * worst possible failure is the child dying — a failed run, never a dead
+ * site. The child self-measures (`peakRss` in its manifest, logged here), so
+ * every real cut keeps proving what it costs. Live progress comes from
+ * watching the out dir fill, patched at the same cadence as before.
  *
  * THE CUT LINES COME FROM THE PICTURE, NOT THE MATH (2026-08-25, Sophie:
  * "the cutting doesn't cut on the right lines because it's using math, but
@@ -494,52 +498,67 @@ function fileRun(sheetUrl, images, cfg, skip) {
  * `have` is what already landed, so a resume only cuts the panels that are
  * missing and never re-uploads one she may already have hearted.
  */
+const WORKER = require('path').join(__dirname, 'scripts', 'cut-sheet-worker.js');
+
 async function cutSheet(sheet, cfg, patch, have) {
-  const sharp = require('sharp');
-  // Global on purpose: this box has 512MB total and libvips's operation cache
-  // trades exactly the memory it cannot spare. Cheap everywhere, fatal here.
-  sharp.cache(false);
-  sharp.concurrency(1);
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+  const { execFile } = require('child_process');
   const names = sheetGrid.cellNames(cfg.gridId);
   const images = (have || []).slice();
   const done = new Set(images.map((im) => im.cell));
-  // ONE real decode for the whole sheet; every crop and the seam scan read
-  // this raw buffer (see the memory note in the header).
-  const { data, info } = await sharp(sheet, { limitInputPixels: false })
-    .raw().toBuffer({ resolveWithObject: true });
-  const rawPage = { raw: { width: info.width, height: info.height, channels: info.channels } };
-  let boxes;
-  try {
-    const gray = await sharp(data, rawPage).greyscale().raw().toBuffer({ resolveWithObject: true });
-    const seams = sheetSeams.findSeams({ data: gray.data,
-      width: gray.info.width, height: gray.info.height,
-      across: cfg.plan.across, down: cfg.plan.down });
-    boxes = sheetSeams.seamBoxes(seams);
-    if (seams.moved) await patch({ seamsMoved: seams.moved });
-  } catch (e) {
-    // the seam finder failing must never cost the cut — the math lines are
-    // exactly what this tool always did
-    console.warn('panels seams failed, cutting on the math lines:', e.message);
-    boxes = sheetGrid.cutBoxes(cfg.plan);
+  const skip = [];
+  for (let i = 0; i < cfg.plan.count; i++) {
+    if (done.has(names[i] || `panel ${i + 1}`)) skip.push(i);
   }
-  for (let i = 0; i < boxes.length; i++) {
-    const cell = names[i] || `panel ${i + 1}`;
-    if (done.has(cell)) continue;
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'panels-'));
+  const sheetFile = path.join(dir, 'sheet');
+  fs.writeFileSync(sheetFile, sheet);
+  // Live progress while the child cuts: count the panel files as they land.
+  // Same cadence her page always saw, without the pixels ever entering this
+  // process.
+  const progress = setInterval(() => {
     try {
-      const buf = await sharp(data, rawPage).extract(boxes[i])
-        .webp({ lossless: true, effort: 0 }).toBuffer();
-      const url = await deps.saveBuffer(buf, 'image/webp', 'panels/cuts');
-      images.push({ url, cell, prompt: cfg.panels[i],
-        size: `${boxes[i].width}x${boxes[i].height}` });
-    } catch (e) {
-      // one failed cut costs its panel, not the run — the sheet is paid for
-      console.warn(`panels cut ${i + 1} failed:`, e.message);
+      const cut = fs.readdirSync(dir).filter((f) => f.startsWith('panel-')).length;
+      patch({ job: { kind: 'sheet', status: 'running',
+        done: 1 + images.length + cut, total: cfg.plan.count + 1,
+        label: 'cutting', startedAt: Date.now() } });
+    } catch (e) { /* progress is best-effort */ }
+  }, 2000);
+  try {
+    await new Promise((resolve, reject) => {
+      execFile(process.execPath, ['--max-old-space-size=256', WORKER,
+        sheetFile, dir, JSON.stringify(cfg.plan), JSON.stringify(skip)],
+      { timeout: 5 * 60 * 1000 }, (err, stdout, stderr) => {
+        if (err) reject(new Error(`cut worker failed: ${String(stderr || err.message).slice(0, 300)}`));
+        else resolve();
+      });
+    });
+    const man = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'));
+    if (man.peakRss) console.log(`panels cut worker peak RSS ${Math.round(man.peakRss / 1048576)}MB`);
+    if (man.moved) await patch({ seamsMoved: man.moved });
+    for (const p of man.panels || []) {
+      if (!p) continue;
+      const cell = names[p.i] || `panel ${p.i + 1}`;
+      if (p.error) {
+        // one failed cut costs its panel, not the run — the sheet is paid for
+        console.warn(`panels cut ${p.i + 1} failed:`, p.error);
+        continue;
+      }
+      const url = await deps.saveBuffer(fs.readFileSync(p.file), 'image/webp', 'panels/cuts');
+      fs.unlinkSync(p.file);
+      images.push({ url, cell, prompt: cfg.panels[p.i],
+        size: `${p.box.width}x${p.box.height}` });
+      // keep them in reading order however they were assembled
+      images.sort((a, b) => names.indexOf(a.cell) - names.indexOf(b.cell));
+      await patch({ images: images.slice(),
+        job: { kind: 'sheet', status: 'running', done: 1 + images.length,
+          total: cfg.plan.count + 1, label: 'cutting', startedAt: Date.now() } });
     }
-    // keep them in reading order however they were assembled
-    images.sort((a, b) => names.indexOf(a.cell) - names.indexOf(b.cell));
-    await patch({ images: images.slice(),
-      job: { kind: 'sheet', status: 'running', done: 1 + images.length,
-        total: cfg.plan.count + 1, label: 'cutting', startedAt: Date.now() } });
+  } finally {
+    clearInterval(progress);
+    try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { /* tmp */ }
   }
   return images;
 }
