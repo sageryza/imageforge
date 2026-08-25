@@ -204,13 +204,17 @@ const chrome = CANDIDATES.find((p) => { try { fs.accessSync(p); return true; } c
 
 if (!chrome) { console.log('\nno Chromium found — skipping the page half'); process.exit(0); }
 
-// one story with a 5-long sequence in it, so the fold is exercised
+// one story with a 5-long sequence in it, so the fold is exercised — plus a
+// THREE and a TWO at the end, which is where the threshold actually lives
+// (Sophie, 2026-08-25: fold at three, not five)
 const STORY = (() => {
   const r = parseStory([
     'the laundry basket', 'the phone in the window', '',
     'SEQUENCE', 'the lilac moment', 'the realization', 'getting it from the cabinet',
     'screaming', 'the belly button', '',
-    'finding the knife', 'the gun', 'the chair',
+    'finding the knife', 'the gun', 'the chair', '',
+    'TRIO', 'the first of three', 'the middle of three', 'the last of three', '',
+    'PAIR', 'the first of two', 'the last of two',
   ].join('\n'));
   return { id: 'story1', title: 'A story', moments: r.moments, units: r.units };
 })();
@@ -262,6 +266,14 @@ const DRIVE = `<script>
       card(mid).click();
       ok(unitOf(mid).classList.contains('open'), 'tapping a folded middle opens it', '');
       card(mid).click();
+
+      // the threshold itself: THREE folds, TWO does not
+      var trio = ORDER[6], pair = ORDER[7];
+      ok(unitOf(trio[0]).classList.contains('long'), 'a 3-card unit folds', '');
+      ok(card(trio[1]).classList.contains('trim'), 'its one middle trims to a line', '');
+      ok(!card(trio[0]).classList.contains('trim') && !card(trio[2]).classList.contains('trim'),
+         'the three-card fold keeps its first and last whole', '');
+      ok(!unitOf(pair[0]).classList.contains('long'), 'a 2-card unit does NOT fold', '');
 
       // moving
       var a = ORDER[0][0], b = ORDER[1][0];
