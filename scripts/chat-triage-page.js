@@ -16,10 +16,15 @@
 // GROUPED BY WHEN *SHE* LAST WROTE, never by the chat's own lastSeen: a chat
 // that posted a reply, filed an asset or answered a wake stamps lastSeen
 // without her having touched it, so that field answers a different question
-// from the one she asked. Three buckets — before yesterday / yesterday /
-// today — and all three ship, because the literal filter ("didn't work on
-// yesterday") can be a two-row page while the real backlog is the yesterday
-// pile. Showing both costs one section and guesses at nothing.
+// from the one she asked.
+//
+// THE DEFAULT IS HER FILTER — the cold pile only (`--groups older`), the chats
+// she has not written in since before yesterday. It shipped once carrying all
+// three buckets, on the reasoning that the cold pile was two rows and the
+// yesterday pile was "the real backlog"; she asked for the cold one ("didn't I
+// ask for things I didn't work on yesterday?") and she was right. A short
+// honest answer IS the answer, and a page padded with the rest buries it.
+// `--groups older,yesterday,today` is still there for the whole board.
 //
 // A context-compaction summary is NOT her message — the harness hands it over
 // as a user turn and the hook lifts it exactly like something she typed, so it
@@ -28,7 +33,7 @@
 // dependency on that module's private list.
 //
 //   node scripts/chat-triage-page.js --chat <your slug> --session <sid> \
-//        [--account 3] [--base https://imageforge-q125.onrender.com] [--dry]
+//        [--account 3] [--groups older,yesterday,today] [--dry]
 //
 // Costs nothing: two read routes and one page post, no model call.
 
@@ -44,6 +49,9 @@ const CHAT = arg('chat', '');
 const SESSION = arg('session', '');
 const DRY = process.argv.includes('--dry');
 const OUT = arg('out', '');
+// Which day-buckets ship. Default = her filter: the chats she has not written
+// in since before yesterday.
+const GROUPS = arg('groups', 'older').split(',').map((g) => g.trim()).filter(Boolean);
 
 // Pacific is UTC-7 in summer. The buckets are HER days, not UTC days — an
 // 11pm message is the same working day as the morning it followed.
@@ -127,16 +135,24 @@ async function getJSON(path) {
   </div>`;
   };
 
+  const solo = GROUPS.length === 1;
   const sections = [
     ['older', 'Nothing from you since before yesterday'],
     ['yesterday', 'Last worked yesterday'],
     ['today', 'You worked on these today'],
-  ].map(([key, label]) => {
+  ].filter(([key]) => GROUPS.includes(key)).map(([key, label]) => {
     const rows = chats.filter((c) => c.bucket === key);
-    return rows.length ? `  <h2>${esc(label)} · ${rows.length}</h2>\n` + rows.map(card).join('\n') : '';
+    if (!rows.length) return '';
+    // With one bucket the h2 would only repeat the title, so a single-group
+    // page goes straight from the title into the cards.
+    return (solo ? '' : `  <h2>${esc(label)} · ${rows.length}</h2>\n`) + rows.map(card).join('\n');
   }).filter(Boolean).join('\n\n');
 
-  const title = `Account ${ACCOUNT} — open chats · ${MON[new Date(new Date().getTime() + PT).getUTCMonth()]} ${new Date(new Date().getTime() + PT).getUTCDate()}`;
+  const now = new Date(new Date().getTime() + PT);
+  const stamp = `${MON[now.getUTCMonth()]} ${now.getUTCDate()}`;
+  const cold = solo && GROUPS[0] === 'older';
+  const title = cold ? `Open, not worked yesterday · ${stamp}`
+    : `Account ${ACCOUNT} — open chats · ${stamp}`;
   const sheet = `acct${ACCOUNT}-open-${today}`;
   const html = `<!doctype html>
 <meta charset="utf-8">
@@ -186,9 +202,10 @@ ${sections}
 <script>
 (function () {
   window.__compareNotes({ chat: ${JSON.stringify(CHAT)}, sheet: ${JSON.stringify(sheet)} });
-  window.__compareHelp({ html: '<b>Every open chat on account ${esc(ACCOUNT)}</b>, a snapshot. '
-    + 'Archived, trashed and other accounts are left out. Grouped by the last time <b>you</b> wrote '
-    + 'in the chat, not by what the chat did on its own. The + in a card&rsquo;s corner leaves a note.' });
+  window.__compareHelp({ html: ${JSON.stringify('<b>Still-open chats on account ' + ACCOUNT + '</b>'
+    + (cold ? ' that you have not written in since before yesterday.' : ', a snapshot.')
+    + ' Archived, trashed and other accounts are left out. Sorted by the last time <b>you</b> wrote'
+    + ' in the chat, not by what the chat did on its own. The + in a card\u2019s corner leaves a note.')} });
 
   // Open the chat in Deck Factory. In the app this page is a same-origin
   // iframe, so following the href would load the whole Chats app inside the
