@@ -15,5 +15,19 @@
        the CI build — the same pattern that registered the App Group above. -->
   <key>aps-environment</key>
   <string>production</string>
+  <!-- Universal links (Aug 2026): an ordinary https link to the studio host
+       opens this app instead of Safari. iOS reads
+       https://imageforge-q125.onrender.com/.well-known/apple-app-site-association
+       (served by applinks.js) at install/update to learn which paths are ours;
+       ios/ImageForge/ForgeLinks.swift is the app's half of that list.
+       Apple-managed signing with -allowProvisioningUpdates enables the
+       Associated Domains capability on this App ID during the CI build — the
+       same way it registered the App Group above. (A ?mode=developer suffix
+       would skip Apple's CDN for local debugging; NOT used, because a shipped
+       build must go through the CDN.) -->
+  <key>com.apple.developer.associated-domains</key>
+  <array>
+    <string>applinks:imageforge-q125.onrender.com</string>
+  </array>
 </dict>
 </plist>

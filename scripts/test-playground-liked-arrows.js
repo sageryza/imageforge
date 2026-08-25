@@ -6,7 +6,10 @@
 // arrows tall but narrow so they don't overlap the picture" — then, Aug 2026:
 // "the side arrow bars - buttons shud be smaller, tap targets bigger. tap
 // anywhere on the right or left of the screen in the image area and it
-// switches left or right. arrow bars are just about an inch tall").
+// switches left or right. arrow bars are just about an inch tall" — and
+// finally, 2026-08-24: "the top left and right bars cover part of the image.
+// Can you just make it tap and no buttons showing", so the mark is GONE and
+// the zone is the whole control).
 //
 // Drives the REAL public/promptlab.html in headless Chromium against a stub
 // API and asserts:
@@ -16,10 +19,10 @@
 //   3. the arrows step through the pictures in the order the view behind the
 //      lightbox is showing them, the filter included,
 //   4. they are hidden at the two ends of the feed,
-//   5. the visible BAR is small (~1in tall) while its TAP ZONE is the whole
-//      side of the image area, the picture included — measured with real
-//      boxes and with elementFromPoint, the only honest way to ask what a tap
-//      actually reaches,
+//   5. NOTHING is drawn in the zone — no chip, no glyph, no plate, no
+//      background — while the TAP ZONE is still the whole side of the image
+//      area, the picture included; measured with real boxes and with
+//      elementFromPoint, the only honest way to ask what a tap reaches,
 //   6. tapping one steps rather than closing the lightbox.
 //
 //   npm install playwright --no-save && node scripts/test-playground-liked-arrows.js
@@ -138,14 +141,29 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   if (await prev.isHidden()) fail('no back arrow from the middle of the feed');
   if (await next.isHidden()) fail('no forward arrow from the middle of the feed');
 
-  // 5 — a small bar inside a big zone. The bar is about an inch tall; the
-  // zone runs the full height of the image area and reaches well over the
-  // picture, which is exactly what "tap anywhere on the right or left" means.
-  const [pb, nb, img, chip] = await Promise.all([
-    prev.boundingBox(), next.boundingBox(), page.locator('#lbimg').boundingBox(),
-    page.locator('#lbprev .lbbar').boundingBox()]);
-  if (chip.width > 34) fail(`the arrow bar is ${chip.width}px wide — not small`);
-  if (chip.height < 80 || chip.height > 112) fail(`the arrow bar is ${chip.height}px tall, wanted about an inch`);
+  // 5 — the zone is the whole control and NOTHING is drawn in it. No chip, no
+  // glyph, no plate: the zone runs the full height of the image area and
+  // reaches well over the picture (which is what "tap anywhere on the right
+  // or left" means) while covering none of it.
+  const [pb, nb, img] = await Promise.all([
+    prev.boundingBox(), next.boundingBox(), page.locator('#lbimg').boundingBox()]);
+  const drawn = await page.evaluate(() => ['lbprev', 'lbnext'].map(id => {
+    const el = document.getElementById(id), cs = getComputedStyle(el);
+    return {
+      id,
+      kids: el.childElementCount,
+      text: el.textContent.trim().length,
+      bg: cs.backgroundColor,
+      border: cs.borderTopWidth,
+    };
+  }));
+  const seeThrough = (c) => c === 'rgba(0, 0, 0, 0)' || c === 'transparent';
+  for (const d of drawn) {
+    if (d.kids || d.text) fail(`${d.id} draws something on the picture (${d.kids} nodes, ${d.text} chars)`);
+    if (!seeThrough(d.bg)) fail(`${d.id} paints a background (${d.bg}) over the picture`);
+    if (parseFloat(d.border) > 0) fail(`${d.id} draws a border (${d.border}) over the picture`);
+  }
+  if (await page.locator('.lbbar').count() !== 0) fail('the old arrow bar chip is still drawn');
   for (const [name, b] of [['prev', pb], ['next', nb]]) {
     if (b.width < 80) fail(`the ${name} tap zone is only ${b.width}px wide`);
     if (b.height < img.height - 1) fail(`the ${name} tap zone is ${b.height}px against ${img.height}px of picture`);
@@ -175,5 +193,5 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
 
   await browser.close();
   server.close();
-  if (!process.exitCode) console.log('PASS: heart filters both views and sticks; small bars in full-height tap zones step the shown order');
+  if (!process.exitCode) console.log('PASS: heart filters both views and sticks; invisible full-height tap zones step the shown order');
 })().catch(e => { console.error(e); process.exit(1); });

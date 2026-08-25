@@ -346,9 +346,16 @@ with `GET /api/chatfeed/verdict?chat=oven-film-evan-collection&sheet=evan-collec
 
 **Films** — `story/films/` in `membry-df528`, 35 renders. The lineage is
 `evan-long-v1…v16` + `evan-short-v1…v16` (the long/short pair experiment,
-Aug 10), then `evan-sheldrake-v1/2/3/5`, then `evan-v6 → v13`.
+Aug 10), then `evan-sheldrake-v1/2/3/5`, then `evan-v6 → v17`.
 
-- newest: [`evan-v13.mp4`](https://storage.googleapis.com/membry-df528.firebasestorage.app/story/films/evan-v13.mp4) (4:21)
+- newest: [`evan-v17.mp4`](https://storage.googleapis.com/membry-df528.firebasestorage.app/story/films/evan-v17.mp4) (4:24)
+  — rendered 2026-08-19 from her live marks; see *Open — asked and never
+  answered* below, and `scripts/evan-v14-rebuild/README.md` before touching it.
+  (This line said `evan-v13` until 2026-08-24: a chat spotted it on 2026-08-19,
+  offered to fix it, and the offer was never answered. Every OTHER mention of
+  v13 in this file is history — what was rendered when — and is correct as
+  written; this was the one line claiming it is current.)
+- the render behind that history: [`evan-v13.mp4`](https://storage.googleapis.com/membry-df528.firebasestorage.app/story/films/evan-v13.mp4) (4:21, Aug 12)
 - audio from the live marks: [`dd0557cb…mp3`](https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-episodes/editor/page-cuts/dd0557cb544ff9baa2472014c0a7ae0127337122.mp3) (4:24)
 - earlier audio cut: [`7e3812df…mp3`](https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-episodes/editor/page-cuts/7e3812df966ab59d6591c39f8c3832abe551d3f0.mp3)
 - voiceover on the story doc: `story/vo-evan-1785468267805-v0hcf4.m4a`,

@@ -224,7 +224,10 @@ ok(/size:\s*cfg\.size \|\| PL_GPT\.size/.test(serverSrc),
   'the render job uses the RUN\'s size, not the module default');
 // The page must not carry its own copy of the style prompt — that is the whole
 // reason the endpoint exists, and a copy is what went stale before.
-ok(!/prefix:\s*'/.test(pageSrc), 'promptlab.html holds NO copy of a style prefix');
+// A NON-EMPTY literal is the thing to catch. `prefix: ''` is the LoRA's
+// synthesised shape saying it has no prefix at all (bakedFor, 2026-08-24) —
+// the opposite of a stale copy, and the looser regex flagged it as one.
+ok(!/prefix:\s*'[^']/.test(pageSrc), 'promptlab.html holds NO copy of a style prefix');
 ok(/\/api\/promptlab\/styles/.test(pageSrc), 'the page reads the real text from the server');
 // Express matches in order — `:id` would swallow `styles` and answer 404.
 ok(serverSrc.indexOf("'/api/promptlab/styles'") < serverSrc.indexOf("'/api/promptlab/:id'"),
@@ -393,11 +396,21 @@ catch {
   ok(await page.evaluate(() => document.getElementById('c-square').classList.contains('on')),
     'and it switches');
 
-  // The LoRA has no baked prefix and rides a different shape parameter.
+  // The LoRA rides a different shape parameter, so the CANVAS toggle comes
+  // off. The Prompt button does NOT — the LoRA wraps her words too (the `wtr`
+  // trigger in front, `White background` after) and hiding the panel on the
+  // tile the page opens on is what made her say there was no way to see the
+  // style prompt at all (2026-08-24). These three used to assert the opposite.
   await page.selectOption('#stylepick', 'watercolor');
-  ok(!(await page.isVisible('#promptbtn')), 'no prompt button on the LoRA');
+  ok(await page.isVisible('#promptbtn'), 'the prompt button stays on the LoRA');
   ok(!(await page.isVisible('#canvastog')), 'no canvas toggle on the LoRA');
-  ok(!(await page.isVisible('#promptpanel')), 'and an open panel closes with it');
+  // The button is a TOGGLE and the panel was left open above, so close it
+  // first — otherwise this taps it shut and calls that a failure.
+  if (await page.isVisible('#promptpanel')) await page.click('#promptbtn');
+  await page.click('#promptbtn');
+  ok(await page.isVisible('#promptpanel'), "and the LoRA's own panel opens");
+  ok(/wtr/.test(await page.textContent('#promptpanel')),
+    "and it shows the LoRA's own trigger word");
 
   await browser.close();
   server.close();

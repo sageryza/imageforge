@@ -1,9 +1,11 @@
 /* instagrid.js — THE INSTAGRAM PROFILE-GRID MOCKUP, drawn from data (Aug 2026).
 
-   Sophie asked for her two Instagram mockups behind one icon on the Chats
-   app's UPDATE tab: "two mockups of instagram (the dream one is already made
-   by the dream commercials chat so reuse it exactly, it plays the films. port
-   the shape for witch videos)."
+   Sophie asked for her Instagram mockups behind one icon on the Chats app's
+   UPDATE tab: "two mockups of instagram (the dream one is already made by the
+   dream commercials chat so reuse it exactly, it plays the films. port the
+   shape for witch videos)." A third, PEOPLE WATCHING, followed 2026-08-24 —
+   and cost nothing here, because this file is told an account and never how
+   many there are.
 
    REUSED EXACTLY means the markup, the CSS and the behaviour below are a
    faithful lift of `scripts/dream-commercials/grid.js` — the page that chat

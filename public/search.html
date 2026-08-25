@@ -213,7 +213,12 @@ let kind = '';
 let mode = 'words';
 let idxChunks = 0;   // shown in the embed offer, so it can name the real number
 let terms = [];
-let playing = null;      // the hit id currently sounding
+// NOT `playing` — that is one of the INJECTED autoscroll pill's own globals,
+// and a page-level `let` of the same name is a SyntaxError that kills the
+// whole pill script at parse time (found 2026-08-24: this page had no
+// autoscroll and no back-to-top at all, silently, and `window.__scrollStop`
+// was undefined). `node scripts/test-pill-globals.js` sweeps for the clash.
+let sounding = null;     // the hit id currently sounding
 let seq = 0;             // request sequence — a slow answer can't overwrite a newer one
 
 async function api(path, opts) {
@@ -471,7 +476,7 @@ $('results').addEventListener('click', async (e) => {
   if (act === 'playclip') {
     const p = $('player');
     if (p.src === btn.dataset.u && !p.paused) { p.pause(); return; }
-    playing = null; paintPlay();
+    sounding = null; paintPlay();
     p.src = btn.dataset.u;
     p.play().catch(() => toast("couldn't play"));
     return;
@@ -485,7 +490,7 @@ $('results').addEventListener('click', async (e) => {
 
   if (act === 'play') {
     const p = $('player');
-    if (playing === hit.id) { p.pause(); playing = null; paintPlay(); return; }
+    if (sounding === hit.id) { p.pause(); sounding = null; paintPlay(); return; }
 
     // A memo is m4a — it streams straight through the server and plays now.
     // An interview is webm/opus, which iOS cannot play, so the server cuts
@@ -498,13 +503,13 @@ $('results').addEventListener('click', async (e) => {
       return;
     }
 
-    playing = hit.id; paintPlay(true);
+    sounding = hit.id; paintPlay(true);
     try {
       const url = await clipUrl(hit);
-      if (playing !== hit.id) return;      // she moved on while it was cutting
+      if (sounding !== hit.id) return;      // she moved on while it was cutting
       start(p, url, 0, hit.id);
     } catch (err) {
-      if (playing === hit.id) { playing = null; paintPlay(); }
+      if (sounding === hit.id) { sounding = null; paintPlay(); }
       toast(err.message);
     }
     return;
@@ -545,7 +550,7 @@ $('results').addEventListener('click', async (e) => {
 // playback outright the first time round.
 function start(p, src, at, id) {
   p.src = src + (at ? '#t=' + Math.floor(at) : '');
-  playing = id; paintPlay();
+  sounding = id; paintPlay();
   if (at) {
     const seek = () => { try { if (Math.abs(p.currentTime - at) > 1.5) p.currentTime = at; } catch {} };
     if (p.readyState >= 1) seek(); else p.addEventListener('loadedmetadata', seek, { once: true });
@@ -569,12 +574,12 @@ function paintPlay(working) {
   document.querySelectorAll('.hit').forEach((el) => {
     const btn = el.querySelector('[data-act="play"]');
     if (!btn) return;
-    const on = String(playing) === el.dataset.id;
+    const on = String(sounding) === el.dataset.id;
     const label = on ? (working ? 'Getting it…' : 'Stop') : 'Play';
     btn.innerHTML = (on && !working ? ICON.stop : ICON.play) + '<span>' + label + '</span>';
   });
 }
-$('player').addEventListener('ended', () => { playing = null; paintPlay(); });
+$('player').addEventListener('ended', () => { sounding = null; paintPlay(); });
 
 // ── chrome ──────────────────────────────────────────────────────────
 // ── SEARCH AS SHE DICTATES, AND RETURN SENDS IT ─────────────────────

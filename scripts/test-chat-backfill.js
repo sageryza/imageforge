@@ -27,7 +27,7 @@ const uid = (n) => '00000000-0000-4000-8000-' + String(n).padStart(12, '0');
 for (let i = 1; i <= TURNS; i++) {
   recs.push({ uuid: uid(i), timestamp: '2026-08-20T0' + i + ':00:00.000Z', type: 'user',
     message: { role: 'user', content: 'sophie message ' + i } });
-  recs.push({ uuid: uid(100 + i), type: 'assistant',
+  recs.push({ uuid: uid(100 + i), timestamp: '2026-08-20T0' + i + ':30:00.000Z', type: 'assistant',
     message: { id: 'msg_' + i, role: 'assistant', content: [{ type: 'text', text: 'reply number ' + i }] } });
 }
 const transcript = path.join(dir, 't.jsonl');
@@ -91,6 +91,16 @@ rec.stdout.once('data', (buf) => {
   // lands on the same message rather than doubling the thread
   ok(new Set(b.posts.map((p) => p.turn)).size === TURNS, 'each turn carries its own turn key');
   ok(b.posts.every((p) => p.account === '3'), 'each post carries the account tag');
+  // A BACKFILLED REPLY KEEPS ITS REAL TIME (hook v15, 2026-08-24). Her messages
+  // have always carried `at`; the replies carried nothing, so the server stamped
+  // NOW and a recovered thread came back with her half in order and Claude's half
+  // piled at the moment of the backfill. The app sorts by `created`.
+  ok(b.posts.every((p, i) => p.created === '2026-08-20T0' + (i + 1) + ':30:00.000Z'),
+    'each reply carries its own real time, not the moment of the backfill');
+  // …and each reply lands AFTER the message it answers, which is the ordering
+  // the whole field exists for
+  ok(b.posts.every((p, i) => p.created > b.replies[i].created),
+    'every reply sorts after the message it answered');
 
   console.log('re-running a backfilled session posts nothing new');
   const again = fire('sid-backfill', path.join(dir, 'home-sid-backfill'), { FORGE_BACKFILL: '1' });

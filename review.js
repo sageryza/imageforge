@@ -284,6 +284,11 @@ function buildQueue({ pages, items, verdicts, chats }) {
 // in place — their doc stamps `updated` on every rewrite, so it rides the
 // cache key and a stale copy is re-read exactly once per update.
 const itemCache = new Map();   // page id@updated → parsed data JSON (or null)
+// Cached forever per id by design — sized in every memwatch snapshot so
+// 'forever' stays honest about what it costs.
+require('./memwatch').gauge('reviewItemCache', () => itemCache.size);
+require('./memwatch').gauge('reviewItemCacheMB', () => Math.round(Array.from(itemCache.values()).reduce((a, v) => a + (v ? JSON.stringify(v).length : 0), 0) / 1048576));
+
 const cacheKey = (p) => `${p.id}@${p.updated || ''}`;
 
 async function loadItems(pages) {

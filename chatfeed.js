@@ -420,6 +420,11 @@ router.get('/', async (req, res) => {
 // spin-down just means one full reload on the next search.
 let searchIndex = [];        // [{chat, id, text, tldr, created, url, from}]
 const searchSeen = new Set(); // doc ids already in the index
+// Sized in every memwatch snapshot — the index holds every message's full
+// text forever, so if it is the heap leak the count and MB will say so.
+require('./memwatch').gauge('chatSearchIndex', () => searchIndex.length);
+require('./memwatch').gauge('chatSearchMB', () => Math.round(searchIndex.reduce((a, m) => a + (m.text || '').length + (m.tldr || '').length, 0) * 2 / 1048576));
+
 let indexMaxCreated = '';
 let indexInit = false;
 let indexRefreshedAt = 0;
@@ -2742,6 +2747,11 @@ router.get('/sort', async (_req, res) => {
       anthropic: require('./anthropic').available(),
       categories: cats,
       triage: chatSort.TRIAGE,
+      // Which of her folders are being read as WHAT THE WORK IS rather than as
+      // a subject area — the half that beats the subject when both fit (see
+      // WORK_KINDS in chat-sort.js). Printed here so the day the hint list goes
+      // stale against her vocabulary is measurable in one read, not silent.
+      workKinds: chatSort.workKinds(cats),
       examples,
       chats: names.length,
       filedBySophie: counted((n) => reg.chats[n].category && reg.chats[n].catBy !== 'auto'),
@@ -3042,6 +3052,7 @@ router.post('/chatnote', async (req, res) => {
 // whatever it was built with.
 const NEWEST_TTL_MS = 60 * 1000;
 const newestCache = new Map();
+require('./memwatch').gauge('chatNewestCache', () => newestCache.size);
 const VIDEO_RE = /\.(mp4|mov|webm)$/i;
 // a cut lives directly under its film's prefix; `clips/` and `stills/` are the
 // pieces it was built from and must never be served as the film
@@ -3720,10 +3731,31 @@ async function chatAssetRows(chat) {
 const autoTimers = new Map();
 const AUTO_DEBOUNCE_MS = 45_000;
 
+// LEADING EDGE AS WELL AS TRAILING (2026-08-24). The poke was trailing-only:
+// a 45s timer, reset by every filing. Two consequences, both real.
+//
+// A batch of filings left the page 45 SECONDS STALE — Sophie filed a low sheet
+// beside a medium one, looked, and the quality ladder was not there yet. It
+// arrived; it just arrived after she had looked.
+//
+// And the timer lives in THIS PROCESS. Several chats merge here all day and a
+// Render deploy restarts the box — twice today it landed inside a running job —
+// so a deploy inside the window drops the pending poke on the floor and NOTHING
+// re-runs it. The page then stays wrong until the next unrelated filing.
+//
+// Running on the FIRST filing as well means the page is right within a second
+// of something landing, and a deploy can now only cost the trailing refresh
+// (the coalesced tail of a batch) rather than the whole update.
 function autoComparePoke(chat) {
   const slug = String(chat || '').trim().slice(0, 60);
   if (!slug) return;
-  clearTimeout(autoTimers.get(slug));
+  const pending = autoTimers.get(slug);
+  clearTimeout(pending);
+  // nothing was queued for this chat → this is the start of a batch, so run
+  // now as well. Free: Firestore reads and a page write, no model call.
+  if (!pending) {
+    runAutoCompare(slug).catch((e) => console.error('[auto-compare lead]', slug, e.message));
+  }
   const t = setTimeout(() => {
     autoTimers.delete(slug);
     runAutoCompare(slug).catch((e) => console.error('[auto-compare]', slug, e.message));
@@ -4541,6 +4573,7 @@ router.post('/page-voice-session', express.json({ limit: '40mb' }), async (req, 
 // through thirty cards is thirty taps on ONE page, and its map never changes
 // (a new version is a new page, always).
 const pageMapCache = new Map();
+require('./memwatch').gauge('chatPageMapCache', () => pageMapCache.size);
 async function pageArchiveMap(sheet) {
   const m = /^page-(.+)$/.exec(sheet || '');
   if (!m) return null;

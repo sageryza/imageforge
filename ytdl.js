@@ -467,6 +467,22 @@ async function storeOwn(localFile, { videoId, title, ext, ct }) {
   };
 }
 
+// WHERE AN UNSPECIFIED GRAB GOES, and why audio does NOT default to the audio
+// library. That library transcribes everything it receives and files it into
+// Sophie's voice-memo archive — right for an interview, wrong for a song, and
+// the two are not tellable apart from the metadata (`categories`, `artist` and
+// `track` all come back NA on the player client yt-dlp uses here, measured
+// 2026-08-24). So the default is the one whose mistake is cheap: `none` keeps
+// the file under `ytdl/` and hands back a url, and a chat grabbing an INTERVIEW
+// asks for `to:"audio"` deliberately. The other way round, a music grab nobody
+// thought about would put song lyrics in among the notes she searches, and
+// there is no undo for that beyond finding and deleting the memo.
+// Video is unambiguous — the Dump is where video is looked for, and it neither
+// transcribes nor costs anything.
+function defaultTo(kind) {
+  return kind === 'audio' ? 'none' : 'dump';
+}
+
 function ctFor(ext) {
   const e = String(ext || '').toLowerCase();
   if (e === 'mp4' || e === 'm4v') return 'video/mp4';
@@ -482,17 +498,45 @@ function ctFor(ext) {
 
 /* ── the grab ────────────────────────────────────────────────────────────── */
 
+// THE BOT-BLOCK IS INTERMITTENT, NOT A VERDICT (measured 2026-08-24). The same
+// video read fine, then was refused twice in a row a second later, on the same
+// box and the same IP — so it is rate-limiting, not a standing ban. Reporting
+// the first refusal as `blocked:true` would tell Sophie to go to her computer
+// for something that works on the next attempt, which is the single worst
+// failure this module can have. So a block is RETRIED, with a widening gap;
+// only an exhausted ladder is called a block. Anything else (a dead url, a
+// private video) fails immediately — retrying it just wastes her time.
+const BLOCK_TRIES = 4;
+const BLOCK_WAITS = [4000, 12000, 30000];
+
+async function pastTheBlock(what, fn, progress, waits = BLOCK_WAITS) {
+  let last;
+  for (let i = 0; i < BLOCK_TRIES; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      last = e;
+      if (!isBlocked(e.message) || i === BLOCK_TRIES - 1) throw e;
+      const wait = waits[Math.min(i, waits.length - 1)];
+      await progress(0, 100, `youtube said wait — retrying ${what}`);
+      console.warn(`ytdl: bot-block on ${what}, retry ${i + 1}/${BLOCK_TRIES - 1} in ${wait}ms`);
+      await new Promise((r) => setTimeout(r, wait));
+    }
+  }
+  throw last;
+}
+
 async function runGrab(id, progress) {
   const doc = await loadDoc(id);
   if (!doc) throw new Error('no such grab');
   const { source, kind, quality } = doc;
-  const to = doc.to || (kind === 'audio' ? 'audio' : 'dump');
+  const to = doc.to || defaultTo(kind);
 
   await progress(0, 100, 'finding yt-dlp');
   const bin = await ytdlp();
 
   await progress(0, 100, 'reading the video');
-  const meta = await readMeta(bin, source);
+  const meta = await pastTheBlock('the lookup', () => readMeta(bin, source), progress);
   if (meta.seconds && meta.seconds > MAX_SECONDS) {
     throw new Error(`that is ${Math.round(meta.seconds / 60)} minutes — the cap is ${Math.round(MAX_SECONDS / 60)}`);
   }
@@ -507,7 +551,8 @@ async function runGrab(id, progress) {
   const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'ytdl-'));
   try {
     await progress(0, 100, 'downloading');
-    const { f: file, size } = await download(bin, source, kind, quality, dir, progress);
+    const { f: file, size } = await pastTheBlock('the download',
+      () => download(bin, source, kind, quality, dir, progress), progress);
     const ext = (path.extname(file).slice(1) || (kind === 'audio' ? 'm4a' : 'mp4')).toLowerCase();
     const ct = ctFor(ext);
     const nice = (meta.title || 'grab').replace(/[/\\]+/g, '-').slice(0, 120);
@@ -590,7 +635,7 @@ router.post('/grab', async (req, res) => {
     const kind = KINDS.has(String(b.kind)) ? String(b.kind) : 'video';
     const quality = QUALITIES[String(b.quality)] ? String(b.quality) : '720';
     const to = ['dump', 'audio', 'none'].includes(String(b.to))
-      ? String(b.to) : (kind === 'audio' ? 'audio' : 'dump');
+      ? String(b.to) : defaultTo(kind);
     if (!bucketOrNull()) return res.status(503).json({ error: 'Firebase Storage not configured' });
 
     const id = grabId(source, kind, quality);
@@ -692,6 +737,7 @@ module.exports = {
   router, COL,
   // exported for scripts/test-ytdl.js — the pure decisions, no network
   checkSource, youtubeId, grabId, formatFor, cleanErr, isBlocked, ctFor, slug,
+  defaultTo, pastTheBlock, BLOCK_TRIES,
   // The two steps that talk to the outside world, exported so the live test can
   // drive the REAL argv rather than a copy of it that drifts. Nothing else
   // should call these — /grab is the way in.

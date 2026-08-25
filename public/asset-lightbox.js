@@ -25,7 +25,23 @@
    `asset` is the Assets tab's own item shape and every part is optional:
      { description, prompt (the MODEL · QUALITY caption), promptStyle,
        promptContent, vote:'like'|'dislike'|null, thread:[{from,text,at}],
-       _cast(v), _noteSend(text, cb), _markSeen(), unread }
+       _cast(v), _noteSend(text, cb), _markSeen(), unread,
+       actions:[{label, icon, onClick}], who }
+
+   THE TWO EXTRAS HOOKS EXIST SO THERE IS NO FOURTH COPY (Aug 2026). Meta
+   Assets (`public/assets.html`) stayed a third hand copy of this lightbox for
+   months, and both of the close bugs settled here reached Sophie there a
+   second time ("I can't get out of the light box in Meta assets"). The only
+   reason it was never migrated is that it had grown two things this file had
+   nowhere to put:
+     `actions` — a row of small circular icon buttons directly under the
+       picture (open the chat it came from, re-run it in the Playground, save
+       to Photos). `icon` is inline SVG markup, `label` becomes the aria-label
+       AND the title, `onClick(e)` is called with the tap.
+     `who` — one small uppercase line at the very bottom, under the caption:
+       which chat this picture came from, on a surface that mixes many.
+   Both are optional and additive, so every existing caller is untouched. Add
+   a hook rather than a copy the next time a surface needs something extra.
    ♥/✕ and the note box appear only when the caller wires _cast (votes) —
    the caller owns WHERE a vote lands (the Assets tab posts the asset vote;
    a grid page also saves its page verdict), same as it always did.
@@ -49,7 +65,11 @@
     + '#clightbox .vote.nope.on{background:#3a3530; color:#fff;}\n'
     + '.lbnote{display:flex; gap:6px; width:100%;}\n'
     + '.lbnote input{flex:1; min-width:0; border:none; border-radius:6px; background:rgba(250,247,240,.92); color:#26221c;\n'
-    + "  font-family:'EBGaramond',Georgia,serif; font-size:15px; padding:8px 10px; box-shadow:0 1px 4px rgba(0,0,0,.2);}\n"
+    /* 16px is a FLOOR, not a size choice: iOS auto-zooms the page on focusing
+       anything smaller, the zoom ignores user-scalable=no, and the page stays
+       zoomed after the keyboard goes. Meta Assets' own copy had already been
+       raised to 16 for exactly that; this is the one that survives. */
+    + "  font-family:'EBGaramond',Georgia,serif; font-size:16px; padding:8px 10px; box-shadow:0 1px 4px rgba(0,0,0,.2);}\n"
     + '.lbnote .notesend{width:38px; height:38px; border-radius:50%; border:none; background:rgba(250,247,240,.92); color:#5d7a5a;\n'
     + '  display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none; box-shadow:0 1px 4px rgba(0,0,0,.2); padding:0;}\n'
     + '.lbnote .notesend svg{width:18px; height:18px; display:block;}\n'
@@ -94,8 +114,28 @@
     + '#clightbox img{max-width:100%; max-height:88vh;}\n'
     /* With the note box under it the picture can't have the whole screen, or
        the box you type in falls off the bottom. It gets more room than it used
-       to: the thread below the box only peeks now (Aug 2026). */
-    + '#clightbox.hastalk img{max-height:52vh;}\n'
+       to: the thread below the box only peeks now (Aug 2026).
+       AND AN IMAGE WITH NO NOTES YET PAYS FOR NOTHING (Aug 2026, Sophie's
+       ask that went unanswered for days: "it applies even when the image has
+       no notes yet — the peek is reserved anyway, so you're paying for an
+       empty strip"). `hasmsgs` is written by paintThread from the thread it
+       just drew, so the picture gives the peek its room the moment her first
+       letter lands and takes it back if the thread empties. */
+    + '#clightbox.hastalk img{max-height:62vh;}\n'
+    + '#clightbox.hastalk.hasmsgs img{max-height:52vh;}\n'
+    /* an actions row under the picture is one more thing between it and the
+       bottom of the screen, so the picture yields that much again */
+    + '#clightbox.hastalk.hasacts img{max-height:56vh;}\n'
+    + '#clightbox.hastalk.hasacts.hasmsgs img{max-height:46vh;}\n'
+    /* THE ACTIONS ROW - small circles, one glyph each, directly under the
+       picture. Drawn only when the caller passes `actions`. */
+    + '.lbacts{display:flex; gap:14px; margin-top:10px; justify-content:center;}\n'
+    + '.lbacts button{width:34px; height:34px; border-radius:50%; border:none; cursor:pointer; margin:0;\n'
+    + '  background:rgba(250,247,240,.9); color:#3a3530; display:flex; align-items:center; justify-content:center; padding:0;}\n'
+    + '.lbacts button svg{width:17px; height:17px; display:block;}\n'
+    /* WHO - which chat it came from: the last line, and the quietest */
+    + '#clightbox .clwho{color:#8a8377; font-family:-apple-system,sans-serif; font-size:10px; margin-top:8px;\n'
+    + '  text-align:center; letter-spacing:.12em; text-transform:uppercase;}\n'
     + '#clightbox .clcap{color:#b9b2a4; font-size:12px; margin-top:12px; text-align:center; letter-spacing:.02em;}\n'
     /* MODEL · QUALITY sits ABOVE the label, dimmer and smaller — the label is
        what she reviews by, the tag is how it was made. */
@@ -173,6 +213,27 @@
     lb.setAttribute('data-nostop', '');
     lb.innerHTML = '<div class="clwrap"><img alt="" src="' + url.replace(/"/g, '&quot;') + '"></div>';
     lb.classList.remove('hastalk');   // last image's thread must not shrink this one
+    lb.classList.remove('hasmsgs');   // ...nor whether that thread had letters in it
+    lb.classList.remove('hasacts');   // ...nor its actions row
+    // The caller's own buttons, directly under the picture (Meta Assets: open
+    // the chat, the Playground, Save to Photos). The empty space beside them
+    // is NOT dead - the close rule at the bottom asks the tap's TARGET, so
+    // only the buttons themselves keep the lightbox open.
+    var actions = (asset && asset.actions) || [];
+    if (actions.length) {
+      var acts = document.createElement('div'); acts.className = 'lbacts';
+      actions.forEach(function (a) {
+        if (!a) return;
+        var ab = document.createElement('button');
+        ab.type = 'button';
+        ab.innerHTML = a.icon || '';
+        if (a.label) { ab.setAttribute('aria-label', a.label); ab.title = a.label; }
+        ab.onclick = function (e) { e.stopPropagation(); if (a.onClick) a.onClick(e); };
+        acts.appendChild(ab);
+      });
+      lb.appendChild(acts);
+      lb.classList.add('hasacts');
+    }
     // The generating prompt, over the image: Style left, Content right, tap the
     // PROMPT button to cover/uncover the picture. Only offered when a chat
     // actually filed a split — nothing is shown (and nothing is said) when it
@@ -243,6 +304,9 @@
           th.appendChild(b);
         });
         th.style.display = msgs.length ? '' : 'none';
+        // The picture only yields room for a thread that EXISTS — an image with
+        // no notes keeps the taller cap (see the CSS note above).
+        lb.classList.toggle('hasmsgs', msgs.length > 0);
         th.scrollTop = th.scrollHeight;   // newest letter in view
         if (more) syncMore();   // a new letter may push it past the peek
       }
@@ -359,6 +423,8 @@
       lb.appendChild(tc);
     }
     if (cap) { var cc = document.createElement('div'); cc.className = 'clcap'; cc.textContent = cap; lb.appendChild(cc); }
+    var who = asset ? (asset.who || '') : '';
+    if (who) { var wc = document.createElement('div'); wc.className = 'clwho'; wc.textContent = who; lb.appendChild(wc); }
     lb.style.display = 'flex'; document.body.style.overflow = 'hidden'; document.body.classList.add('ontop');
     if (syncTalk) {
       syncTalk();                                        // now that it has a size
@@ -401,6 +467,8 @@
         if (lb.style.display !== 'none') return;         // reopened in between
         lb.innerHTML = '';                               // .big dies with it
         lb.classList.remove('hastalk');
+        lb.classList.remove('hasmsgs');
+        lb.classList.remove('hasacts');
       });
       window.scrollTo(0, lbY);
       // …and again next frame, for the keyboard-dismissal scroll that lands late.
