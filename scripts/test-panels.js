@@ -683,6 +683,59 @@ async function drivePage() {
     assert.strictEqual(lb.open, true, 'the lightbox opened');
     n++; console.log('  ok  page: tapping a picture opens the shared lightbox');
 
+    // LIST · TILES — the Playground's pair here too (2026-08-25, her ask).
+    // The T1 fixture is already rendered, so switching must show its cuts as
+    // a wall; the choice is sticky.
+    await p.click('#viewseg button[data-view="tiles"]');
+    const tiles = await p.evaluate(() => ({
+      feedHidden: document.getElementById('feed').hidden,
+      tilesShown: !document.getElementById('tiles').hidden,
+      count: document.querySelectorAll('#tiles img').length,
+      stored: localStorage.getItem('forge.panels.view'),
+    }));
+    assert.strictEqual(tiles.feedHidden, true, 'list view stands down');
+    assert.strictEqual(tiles.tilesShown, true, 'the wall shows');
+    assert.strictEqual(tiles.count, 2, "the fixture's two cuts are on it");
+    assert.strictEqual(tiles.stored, 'tiles', 'the choice is sticky');
+    n++; console.log('  ok  page: LIST · TILES, sticky, cuts on the wall');
+
+    // UPSCALE IN THE PLAYGROUND — a cut's lightbox carries the action, and
+    // the link carries the panel's words, the right tile and res=4k.
+    const up = await p.evaluate(() => {
+      document.querySelector('#tiles img').click();
+      const btn = document.querySelector('#clightbox [aria-label="Upscale in the Playground"]');
+      const box = document.getElementById('clightbox');
+      const out = { has: Boolean(btn) };
+      if (box) { box.hidden = true; box.innerHTML = ''; document.body.style.overflow = ''; }
+      return out;
+    });
+    assert.strictEqual(up.has, true, 'the lightbox offers the upscale');
+    await p.evaluate(() => {
+      localStorage.setItem('forge.panels.view', 'list');
+    });
+    n++; console.log('  ok  page: a cut offers Upscale in the Playground');
+
+    // THE HAIRLINE TAB walks to the Playground, and ?res=4k&prompt land there
+    // — the whole hand-off, driven for real.
+    await p.click('#tab-playground');
+    await p.waitForURL(/\/playground/, { timeout: 15000 });
+    await p.goto(base + '/playground?prompt=a%20crow&style=dreamy&quality=medium&res=4k&sameref=1&from=panels',
+      { waitUntil: 'domcontentloaded' });
+    await p.waitForFunction(() => {
+      const r = document.getElementById('rpick');
+      return r && r.dataset.i && r.dataset.i !== '';
+    }, { timeout: 15000 });
+    const landed = await p.evaluate(() => ({
+      res: document.getElementById('rpick').dataset.i,
+      prompt: document.getElementById('prompt').value,
+    }));
+    assert.strictEqual(landed.res, '4K', 'the tier rode the link');
+    assert.strictEqual(landed.prompt, 'a crow', "the panel's words rode the link");
+    await p.goto(base + '/panels', { waitUntil: 'domcontentloaded' });
+    await p.waitForFunction(() => document.querySelectorAll('#cells textarea').length > 0,
+      { timeout: 15000 });
+    n++; console.log('  ok  page: the Playground tab + upscale link land with res=4k');
+
     // The pill's corner is clear and the page threw nothing.
     const right = await p.$eval('#ctrls', (e) => getComputedStyle(e).paddingRight);
     assert.strictEqual(right, '64px', 'the control row reserves the pill column');

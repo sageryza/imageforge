@@ -1436,6 +1436,14 @@
   var resTier = '1k';
   var RES = null, RES_DEFAULT = '1k';
   function tierIds() { return ['1k', '2k', '4k']; }
+  // Arrived with ?res= (a Panels cut's "Upscale in the Playground" carries the
+  // tier the redraw should land at, 2026-08-25). One-shot like the rest of the
+  // ported settings, and still never persisted — the not-persisted rule is
+  // about a tier she is not looking at, and this one is in the link she tapped.
+  (function () {
+    var rt = new URLSearchParams(location.search).get('res');
+    if (rt && tierIds().indexOf(rt) >= 0) resTier = rt;
+  })();
   // The SAME three-way slider as quality (Aug 2026, her ask) — one CSS rule,
   // one behaviour: a tap lands on the stop under it, and the knob carries the
   // value rather than a position she has to decode. The knob says 1K/2K/4K
