@@ -65,7 +65,12 @@ const SLICES = {
   d3:    [142.5, 152.5],   // three: the third eye in your knee (+ more water right now)
   e1:    [160.3, 182.0],   // the bridge, DNA/gills, supercharges your brain
   e2:    [195.0, 211.0],   // sandpaper, opens portals, fill yourself up and overflow
-  f12:   [216.5, 226.2],   // ghosts in your knees · thirst demons
+  f12:   [216.5, 226.2],   // thirst demons (f2's only complete take)
+  f1b:   [234.8, 239.3],   // ghosts in your knees — her later, cleanly
+                           // separated take. She read it once more at 261.5,
+                           // but that one runs straight into the g section's
+                           // words with no gap (whisper folds all its times
+                           // onto one stamp) — the last CLEAN take wins.
   f3:    [230.4, 235.3],   // aura's reservoir (her second pass at it)
   g:     [260.5, 279.0],   // lubricates thoughts · confuses cells · secret rafts
   h:     [292.5, 311.0],   // washed clean · extra water · cells swim
@@ -132,7 +137,7 @@ const SHOTS = [
   { id: 'e3', s: E, src: 'e2', tx: 0.522, ty: 0.772, push: true, phrases: ['Three water opens portals Gallons of water a day opens doors to hidden realms where time is soft and your worries dissolve like old candy'] },
   { id: 'e4', s: E, src: 'e2', tx: 0.500, ty: 0.900, z: 1.60, phrases: ['Drink more water So much water Fill yourself up and overflow'] },
 
-  { id: 'f1', s: F, src: 'f12', tx: 0.188, ty: 0.476, z: 2.30, phrases: ['It flushes out the ghosts that live in your knees'] },
+  { id: 'f1', s: F, src: 'f1b', tx: 0.188, ty: 0.476, z: 2.30, phrases: ['It flushes out the ghosts that live in your knees'] },
   { id: 'f2', s: F, src: 'f12', tx: 0.497, ty: 0.476, z: 2.30, phrases: ['It offends the major thirst demons so they leave you alone'] },
   { id: 'f3', s: F, src: 'f3',  tx: 0.805, ty: 0.479, z: 2.26, phrases: ['It fills your auras reservoir so you can fly and do backflips'] },
 
