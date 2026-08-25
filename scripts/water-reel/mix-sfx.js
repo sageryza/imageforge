@@ -57,7 +57,10 @@ const BED = {
   a0: [['pour', 0.15, +2]],         a1: [['waterswish', 0.20, 0]],
   a2: [['sparkle', 0.30, 0]],       a3: [['chime', 0.25, +1]],
   a4: [['gulp', 0.20, +2]],
-  c1: [['pour', 0.45, 0]],          c2: [['plinks', 0.30, +2]],
+  c1: [['pour', 0.45, 0]],
+  // her ask, 2026-08-25: "a melodic child lullaby singing la la la" under the
+  // miniature-fish-sing-to-you panel. +3 so the singing reads through the voice.
+  c2: [['lalala', 0.30, +3]],
   c3: [['sparkle', 0.50, 0]],
   b1: [['drips', 0.35, +1]],        b2: [['sparkle', 0.30, +1]],
   b3: [['surf', 0.40, 0]],          b4: [['gulp', 0.25, +1]],
