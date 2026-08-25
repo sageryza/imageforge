@@ -115,9 +115,9 @@ const SHOTS = [
   { id: 'c2', s: C, src: 'c', tx: 0.500, ty: 0.622, z: 2.30, phrases: ['Enough water can turn your sweat into miniature fish that will sing to you'] },
   { id: 'c3', s: C, src: 'c', tx: 0.810, ty: 0.622, z: 2.30, phrases: ['Your bones are secretly plants and water is what keeps them growing on the inside'] },
 
-  { id: 'b1', s: B, src: 'b', tx: 0.185, ty: 0.600, z: 2.55, phrases: ['One Water flushes out the tiny greetings that live in your ears'] },
-  { id: 'b2', s: B, src: 'b', tx: 0.487, ty: 0.600, z: 2.55, phrases: ['Two Enough water turns your sweat into liquid light making you visible to good luck'] },
-  { id: 'b3', s: B, src: 'b', tx: 0.790, ty: 0.600, z: 2.55, phrases: ["Three Water builds a boat inside your stomach so you can sail through life's soup"] },
+  { id: 'b1', s: B, src: 'b', tx: 0.185, ty: 0.600, z: 2.55, phrases: ['1 Water flushes out the tiny greetings that live in your ears'] },
+  { id: 'b2', s: B, src: 'b', tx: 0.487, ty: 0.600, z: 2.55, phrases: ['2 Enough water turns your sweat into liquid light making you visible to good luck'] },
+  { id: 'b3', s: B, src: 'b', tx: 0.790, ty: 0.600, z: 2.55, phrases: ["3 Water builds a boat inside your stomach so you can sail through life's soup"] },
   { id: 'b4', s: B, src: 'b', tx: 0.180, ty: 0.875, z: 2.60, phrases: ['Drink gallons Live legendary'] },
 
   // no "One": she said "One gallon of—" and restarted; the clean take starts

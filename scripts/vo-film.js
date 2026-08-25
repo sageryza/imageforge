@@ -352,12 +352,17 @@ function locateSpans(sources) {
       }
     }
     // non-overlapping in TIME per source — a padded cut reaching into the next
-    // word's onset replays a sliver ("…behind | behind…", 17 joins on Evan)
+    // word's onset replays a sliver ("…behind | behind…", 17 joins on Evan).
+    // THE HEAD WINS THE OVERLAP (2026-08-25): the earlier span's tail is an
+    // over-reach into breath, the later span's head is its first WORD — a
+    // head cannot over-reach backward (the relisten bounds it at the previous
+    // word), so pushing the head forward instead ate "Two" at every numbered
+    // panel joint. Trim the tail, keep the head.
     const bySrc = {};
     spans.forEach((s) => (bySrc[s.source] ||= []).push(s));
     for (const k of Object.keys(bySrc)) {
       const list = bySrc[k].sort((a, b) => a.t0 - b.t0);
-      for (let i = 1; i < list.length; i++) if (list[i].t0 < list[i - 1].t1) list[i].t0 = list[i - 1].t1;
+      for (let i = 1; i < list.length; i++) if (list[i].t0 < list[i - 1].t1) list[i - 1].t1 = list[i].t0;
     }
     return spans;
   })();
