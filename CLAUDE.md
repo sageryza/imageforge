@@ -461,6 +461,41 @@ around them change, so verify the labels and use these for the URL.
     lives at **Hover** (not Shopify); the flip checklist is in
     `docs/secretly-a-witch-todo.md` (Domain section).
 
+## LINKS THAT OPEN THE iOS APP — hand her an https link, not a scheme
+**Sophie, 2026-08-25: "is there anyway to do links that go directly and open
+in my actual iOS Deck Factory app?"** Yes, two ways, and only one of them is
+worth putting in a reply.
+- **Give her the ORDINARY page url** —
+  `https://imageforge-q125.onrender.com/panels`,
+  `…/chats?chat=<slug>`, `…/review` — and on her phone it opens the app on
+  that tool instead of Safari. That is a **universal link**: iOS reads
+  `/.well-known/apple-app-site-association` (served by `applinks.js`) at
+  install/update and remembers which paths are ours. Nothing about the link
+  looks special, so it works in a reply, a note, a message, anywhere — which
+  is exactly why it is the one to use.
+- **`deckfactory://<tool>` still works and is NOT for her.** Any Tool raw
+  value plus `home`/`gallery`; the widget deep-links through it. But a custom
+  scheme is only tappable where something treats it as a link, and in most of
+  what she reads it renders as plain text — so keep it for the widget, a
+  Shortcut, and page-to-app hops.
+- **THE PATH LIST IS A CONTRACT ACROSS TWO FILES that nothing but a test
+  compares** — `LINKS` in `applinks.js` (what the site claims) and
+  `ForgeLinks.map` in `ios/ImageForge/ForgeLinks.swift` (what the app knows).
+  Claimed-but-unknown opens the app on nothing; known-but-unclaimed never
+  reaches it, and **both failures are silent on her phone**. Add a path to
+  BOTH; `node scripts/test-applinks.js` fails if they drift.
+- **The query rides along**, which is what makes a link land on ONE THREAD:
+  `?chat=<slug>` and `?view=news` reuse the pending flags a tapped push
+  already sets, so there is one mechanism and not two.
+- **Only claimed paths are claimed** — the public pages (`/witch`,
+  `/selfcare`, `/dreamfeed`, `/fruit`), `/desktop`, and `/instagram` (the
+  MOCKUPS page, a different thing from the app's `instagram` tool) keep
+  opening in Safari, deliberately.
+- **The app half needs a TestFlight build** (the Associated Domains
+  entitlement), the site half ships with a deploy. Until she installs a build
+  carrying it, every one of those links just opens the page in Safari as
+  before — no broken state either way.
+
 ## Render plan: STARTER since Aug 2026 (don't diagnose free-tier symptoms)
 - **The service runs on the $7/mo Starter instance** (`plan: starter` in
   `render.yaml`; confirmed live on the dashboard). Two free-tier problems are
