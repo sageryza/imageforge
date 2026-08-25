@@ -200,6 +200,43 @@ them needs from her. Read-only; the queue is edited here, where it is run.
   credential has `workflow` scope.
 - **Queued:** 2026-08-22 by secretly-witch-review-status
 
+### Grab two songs YouTube won't hand to the cloud box
+- **Why:** Sophie asked for two songs through `/api/ytdl/grab` and YouTube
+  answered "Sign in to confirm you're not a bot" for every upload of either
+  one — six videos tried, four of them after a five-minute cool-down. This is
+  **not** the general block the module warns about: `GET /api/ytdl/status?probe=1`
+  passed twice during the same minutes (4.3s and 4.7s), so the box and its IP
+  are fine and ordinary videos still grab. Something makes these particular
+  videos demand a signed-in session, and nothing a cloud chat can reach changes
+  that. Her Mac is a residential IP with a logged-in browser, so it just works
+  there.
+  - Wilco — "(Was I) In Your Dreams": `i3OaJzYHnik` (2017 remaster) and
+    `Z-Bp3e52eTY` (an ordinary upload) — both refused.
+  - Chris Isaak — "Wicked Game": `YlQINbrRMG0` (official audio) and
+    `Ofm9IzQjcro` — both refused. The Vevo upload `Yg9wgFm7aoU` is a different
+    failure and will never work anywhere: YouTube itself says it is blocked on
+    a WMG claim.
+- **Where:** ~/imageforge
+- **Run:**
+  ```bash
+  cd ~/imageforge && mkdir -p /tmp/songs && \
+    yt-dlp -f bestaudio -o '/tmp/songs/%(title)s.%(ext)s' \
+      'https://www.youtube.com/watch?v=i3OaJzYHnik' \
+      'https://www.youtube.com/watch?v=YlQINbrRMG0' && \
+    open /tmp/songs
+  ```
+  If either still balks on the Mac, add `--cookies-from-browser safari` (or
+  `chrome`) to the same command — that is the whole difference between here and
+  there.
+- **Do NOT put those cookies in Render or in this repo.** They are a live
+  Google session, i.e. account access, and this repo is public. If we ever want
+  the cloud grabber to get past this, the safe version is a throwaway Google
+  account's cookies in a Render env var — worth deciding on deliberately, not
+  as a side effect of one song.
+- **Needs from her:** nothing beyond running it; the files land in
+  `/tmp/songs` and Finder opens on them.
+- **Queued:** 2026-08-25 by youtube-song-downloads
+
 ---
 
 ## DONE
