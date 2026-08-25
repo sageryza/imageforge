@@ -1,0 +1,47 @@
+{
+  "comment": "PWC backstories ep002 — VERTICAL (9:16, for a reel). Pexels 'Crowd of People Walking in a City Street' by Yura Forrat, https://www.pexels.com/video/crowd-of-people-walking-in-a-city-street-12699538/ (free Pexels license). Download: curl -L -o istanbul-vert.mp4 https://www.pexels.com/download/video/12699538/ — source is 2160x3840@60; the grade's leading scale renders at 1080x1920, so all coordinates here are in that space.",
+  "src": "istanbul-vert.mp4",
+  "out": "pwc-ep002.mp4",
+  "width": 1080,
+  "height": 1920,
+  "fps": "30",
+  "seed": 141,
+  "ink": "#e0312e",
+  "font": "Permanent Marker",
+  "grade": "scale=1080:1920,hue=s=0,eq=contrast=1.07:brightness=0.01,noise=alls=5:allf=t,vignette=PI/5.2:mode=forward",
+  "freezes": [
+    {
+      "t": 1.5, "dur": 3.4,
+      "lines": ["Emre. Says he knows", "a shortcut.", "He does not."],
+      "x": 700, "y": 1400, "size": 52, "rot": -1.5,
+      "arrow": { "from": [530, 1345], "to": [405, 1185] },
+      "circle": { "cx": 316, "cy": 1096, "rx": 68, "ry": 84 }
+    },
+    {
+      "t": 4.0, "dur": 3.4,
+      "lines": ["Mert is on his way to win", "an argument he lost", "in 2021."],
+      "x": 540, "y": 880, "size": 52, "rot": 1.5,
+      "arrow": { "from": [620, 1080], "to": [560, 1165] },
+      "circle": { "cx": 536, "cy": 1236, "rx": 70, "ry": 88 }
+    },
+    {
+      "t": 6.5, "dur": 3.6,
+      "lines": ["These two have never met.", "They have walked together", "for nine years."],
+      "x": 540, "y": 980, "size": 52, "rot": -1.5,
+      "circle": { "cx": 655, "cy": 1335, "rx": 330, "ry": 140 }
+    },
+    {
+      "t": 9.0, "dur": 3.8,
+      "lines": ["Everyone in this video", "is named Osman.", "All of them."],
+      "x": 540, "y": 900, "size": 54, "rot": 1,
+      "arrow": { "from": [540, 1160], "to": [552, 1235] },
+      "circle": { "cx": 556, "cy": 1320, "rx": 65, "ry": 82 }
+    }
+  ],
+  "tailTo": 12.1,
+  "endcard": {
+    "dur": 2.6,
+    "lines": ["people watching club"],
+    "x": 540, "y": 940, "size": 92, "font": "Caveat", "strokeWidth": 4
+  }
+}
