@@ -44,12 +44,17 @@ const A = { img: '1787619512551-35kqb3.webp', pad: 'f1d3a5' };
 const C = { img: '1787620392223-lfveov.webp', pad: 'eacfa1' };
 const B = { img: '1787620306161-xsmta2.webp', pad: 'ebcc97' };
 const D = { img: '1787620455292-5g1ynr.webp', pad: 'eacda1' };
-// the people-watching sheets, in flash order (hearted one first)
+// the montage: the REST of the water study sheets, the unhearted draws
+// (v6 — Sophie: "it's not the People Watching ones. There's more water
+// ones. They just aren't hearted."), fast flashes under the sped-up
+// "Drink gallons. Drink oceans." line.
 const MONTAGE = [
-  { img: '1787621176239-ugsu3z.webp', pad: 'ecd5b1', sfx: 'boing' },
-  { img: '1787621417841-p80je0.webp', pad: 'e9cea4', sfx: 'zap' },
-  { img: '1787621360138-yoi92w.webp', pad: 'e6cb9f', sfx: 'chime' },
-  { img: '1787621268531-k9m19o.webp', pad: 'f6dcae', sfx: 'splash' },
+  { img: '1787620659452-3i519q.webp', pad: 'ebd2aa', sfx: 'boing' },
+  { img: '1787620184879-2zemot.webp', pad: 'ecd0a6', sfx: 'zap' },
+  { img: '1787620593195-1qure2.webp', pad: 'eecfa6', sfx: 'chime' },
+  { img: '1787620603958-sioafz.webp', pad: 'e4caa0', sfx: 'splash' },
+  { img: '1787620578088-6fr3hh.webp', pad: 'ead0a2', sfx: 'plinks' },
+  { img: '1787620576755-6n0olq.webp', pad: 'f0deba', sfx: 'zapbig' },
 ];
 
 // A: full poster briefly, then the three panels as fast flashes.
