@@ -116,7 +116,7 @@ const FORCE = flag('force');
 
 const W = SPEC.width || 1000, H = SPEC.height || 1500, FPS = SPEC.fps || 30, BG = SPEC.bg || '#f7f3ea';
 const VOICE = SPEC.voice || 'UTkHGl2ImiT6gwtAFCql'; // "Sophie — morning"
-const TOOLV = 'vofilm-1'; // bump to invalidate every cache
+const TOOLV = 'vofilm-2'; // bump to invalidate every cache (v2: quiet-landing edges + missed-word gap guard)
 // A spec's edge rule changes every cut, so it belongs in the shot cache key.
 const EDGEV = JSON.stringify(SPEC.edge || {});
 // `"relisten": true` — re-transcribe a small window around every located span
@@ -285,15 +285,32 @@ async function relistenSpan(sources, source, phrase, t0, t1, label) {
       const prv = hit.start > 0 ? w2[hit.start - 1].end : null;
       const sn = ed.snapToSilence(rs, re, await ed.detectSilences(win), nxt);
       if (Array.isArray(sn)) [rs, re] = sn;
-      // voicing guard — never cut through sound. Bounded by the neighbouring
-      // words so it cannot capture a different take's word.
+      // THE CUT EDGES LAND IN REAL QUIET, never merely at a cold bin
+      // (2026-08-25, her ear again: the film opened INSIDE "Scientists" —
+      // whisper's start was late, the fixed 0.15s pad wasn't enough, and the
+      // first hot-bin check stopped on the quiet of an /s/ fricative). Each
+      // edge walks outward until it finds 0.12s of consecutive near-floor
+      // audio, capped, bounded by the neighbouring word so a back-to-back
+      // take cannot bleed in.
       const bins = rmsProfile(win);
-      const HOT = pct(bins, 0.85) - 14;
-      const hot = (t) => { const i = Math.floor(t / B); return i >= 0 && i < bins.length && bins[i] > HOT; };
-      let ext = 0;
-      while (hot(re) && ext < 0.30 && (nxt == null || re + B < nxt - 0.02)) { re += B; ext += B; }
-      ext = 0;
-      while (rs > B && hot(rs - B) && ext < 0.20 && (prv == null || rs - B > prv + 0.02)) { rs -= B; ext += B; }
+      const LOW = pct(bins, 0.85) - 25;
+      const quietRun = (i) => {
+        for (let k = i; k < i + 6; k++) {
+          if (k < 0 || k >= bins.length) continue;
+          if (bins[k] >= LOW) return false;
+        }
+        return true;
+      };
+      let j = Math.floor(re / B);
+      const endLim = Math.min(j + Math.round(0.45 / B),
+        nxt == null ? Infinity : Math.floor((nxt - 0.02) / B));
+      while (!quietRun(j) && j < endLim) j++;
+      re = Math.max(re, j * B);
+      j = Math.floor(rs / B);
+      const startLim = Math.max(j - Math.round(0.50 / B),
+        prv == null ? 0 : Math.ceil((prv + 0.02) / B));
+      while (!quietRun(j - 6) && j > startLim) j--;
+      rs = Math.min(rs, j * B);
       span = [Math.max(0, winStart + rs - PADS), winStart + re - PADS];
     }
   } catch (err) {
@@ -540,6 +557,22 @@ async function cutShot(shot, si, spans, sources, filmSpeech85) {
     }
     return best == null ? null : [best * B, (best + n) * B];
   };
+  // A GAP WITH SUSTAINED VOICING IS A MISSED WORD, NOT A PAUSE (2026-08-25,
+  // found by Sophie's ear: "secret" — present in the source words, whispered
+  // quietly — went untranscribed on the SHOT pass, fell between two word
+  // regions, and the bridge replaced it with room tone). The skill's own
+  // rule: a real dead stretch holds ~0s above speech-14dB, a spoken word
+  // holds its whole length there. So a gap is only bridged when it lacks a
+  // sustained hot run; otherwise its audio is kept verbatim.
+  const VOICED = speech85 - 14;
+  const gapHasSpeech = (g0, g1) => {
+    let run = 0;
+    for (let i = Math.floor(g0 / B); i < Math.ceil(g1 / B) && i < bins.length; i++) {
+      run = bins[i] > VOICED ? run + 1 : 0;
+      if (run * B >= 0.18) return true;
+    }
+    return false;
+  };
   const segs = [];
   for (let i = 0; i < regions.length; i++) {
     segs.push(regions[i]);
@@ -547,6 +580,7 @@ async function cutShot(shot, si, spans, sources, filmSpeech85) {
       const g0 = regions[i][1], g1 = regions[i + 1][0];
       const len = (g1 - g0) >= 0.9 ? 0.34 : 0.22;
       if (g1 - g0 <= len + 0.02) { segs.push([g0, g1]); continue; }
+      if (gapHasSpeech(g0, g1)) { segs.push([g0, g1]); continue; }
       const q = quietWindow(g0, g1, len);
       if (q) segs.push(q);
     }
