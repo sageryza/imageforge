@@ -1,0 +1,69 @@
+{
+  "comment": "PWC backstories ep005 — CHICAGO COMMUTERS (vertical 9:16, white ink, diagram backstories, NEW branded end card). Pexels 'Business Commuters Crossing City Street' id 34705696; download: curl -L -o chicago.mp4 https://www.pexels.com/download/video/34705696/ (free Pexels license). The Civic Opera House marquee in frame reads LOVE JEALOUSY REVENGE REPEAT — freeze 3 uses it. End card: binoculars logo doodle + PEOPLE WATCHING CLUB in Playfair Display (install PlayfairDisplay[wght].ttf + Italic from google/fonts into ~/.fonts) + tagline. Coordinates in 1080x1920 output space.",
+  "src": "chicago.mp4",
+  "out": "pwc-ep005.mp4",
+  "width": 1080,
+  "height": 1920,
+  "fps": "30",
+  "seed": 429,
+  "ink": "#f2f2ee",
+  "font": "Permanent Marker",
+  "grade": "scale=1080:1920,hue=s=0,eq=contrast=1.07:brightness=0.01,noise=alls=5:allf=t,vignette=PI/5.2:mode=forward",
+  "freezes": [
+    {
+      "t": 2.0, "dur": 6.5,
+      "marks": [
+        { "type": "text", "lines": ["Derek's morning:"], "x": 540, "y": 230, "size": 54, "rot": -1.5 },
+        { "type": "doodle", "name": "clock", "cx": 230, "cy": 390, "s": 90 },
+        { "type": "text", "lines": ["alarm: 6:00"], "x": 230, "y": 500, "size": 36 },
+        { "type": "arrow", "from": [320, 390], "to": [420, 390], "head": 22 },
+        { "type": "doodle", "name": "xmark", "cx": 530, "cy": 380, "s": 70 },
+        { "type": "text", "lines": ["snoozed", "four times"], "x": 530, "y": 500, "size": 36 },
+        { "type": "arrow", "from": [630, 390], "to": [730, 390], "head": 22 },
+        { "type": "text", "lines": ["this walk.", "He calls it", "\"on time.\""], "x": 880, "y": 370, "size": 38 },
+        { "type": "arrow", "from": [850, 560], "to": [368, 812], "head": 26 }
+      ]
+    },
+    {
+      "t": 5.5, "dur": 6.5,
+      "marks": [
+        { "type": "text", "lines": ["Gary. Coffee #4:"], "x": 620, "y": 230, "size": 54, "rot": 1 },
+        { "type": "doodle", "name": "cup", "cx": 330, "cy": 380, "s": 75 },
+        { "type": "text", "lines": ["6:30"], "x": 330, "y": 470, "size": 34 },
+        { "type": "doodle", "name": "cup", "cx": 490, "cy": 380, "s": 75 },
+        { "type": "text", "lines": ["7:15"], "x": 490, "y": 470, "size": 34 },
+        { "type": "doodle", "name": "cup", "cx": 650, "cy": 380, "s": 75 },
+        { "type": "text", "lines": ["7:40"], "x": 650, "y": 470, "size": 34 },
+        { "type": "doodle", "name": "cup", "cx": 830, "cy": 380, "s": 90 },
+        { "type": "circle", "cx": 830, "cy": 385, "rx": 75, "ry": 85 },
+        { "type": "text", "lines": ["now"], "x": 830, "y": 490, "size": 36 },
+        { "type": "arrow", "from": [760, 520], "to": [180, 950], "head": 26 },
+        { "type": "text", "lines": ["He can hear colors."], "x": 620, "y": 620, "size": 42, "rot": -1 }
+      ]
+    },
+    {
+      "t": 8.5, "dur": 7.5,
+      "marks": [
+        { "type": "text", "lines": ["Paul's week,", "in order:"], "x": 330, "y": 400, "size": 54, "rot": -1 },
+        { "type": "circle", "cx": 855, "cy": 215, "rx": 145, "ry": 95 },
+        { "type": "arrow", "from": [480, 350], "to": [700, 250], "head": 24 },
+        { "type": "arrow", "from": [855, 320], "to": [800, 760], "head": 24 },
+        { "type": "circle", "cx": 810, "cy": 830, "rx": 62, "ry": 76 },
+        { "type": "text", "lines": ["He says he is fine.", "Revenge is Thursday."], "x": 540, "y": 1540, "size": 46, "rot": -1 }
+      ]
+    }
+  ],
+  "tailTo": 10.9,
+  "endcard": {
+    "dur": 3.4,
+    "ink": "#f2f2ee",
+    "strokeWidth": 5,
+    "marks": [
+      { "type": "doodle", "name": "binoculars", "cx": 540, "cy": 700, "s": 150 },
+      { "type": "text", "lines": ["PEOPLE WATCHING CLUB"], "x": 540, "y": 905, "size": 60, "font": "Playfair Display", "spacing": 6, "weight": 600 },
+      { "type": "line", "from": [340, 955], "to": [740, 955], "amp": 1, "strokeWidth": 2.5 },
+      { "type": "text", "lines": ["everybody has a story."], "x": 540, "y": 1035, "size": 46, "font": "Playfair Display", "italic": true },
+      { "type": "text", "lines": ["(we made these up)"], "x": 540, "y": 1100, "size": 33, "font": "Playfair Display", "italic": true }
+    ]
+  }
+}

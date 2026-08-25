@@ -111,6 +111,12 @@ const DOODLES = {
     [[-2,-38],[10,-40],[22,-34],[32,-24],[38,-10],[38,4],[34,18],[24,30],[10,37],[-4,38],[-18,34],[-29,24],[-36,10],[-37,-4],[-32,-18],[-22,-30],[-10,-36],[-2,-38]],
     [[0,0],[0,-22]], [[0,0],[14,8]]] },
   xmark: { lines: [[[-18,-18],[18,18]],[[18,-18],[-18,18]]] },
+  cup: { lines: [
+    [[-20,-8],[20,-8],[15,32],[-15,32],[-20,-8]],
+    [[-25,-8],[25,-8]],
+    [[-6,-18],[-10,-30]], [[6,-18],[2,-30]]] },
+  binoculars: { lines: [[[-14,-24],[14,-24]]],
+    circles: [[-26,8,23],[26,8,23],[-26,-24,11],[26,-24,11]] },
 };
 
 function doodleSvg(r, m) { // {name, cx, cy, s (target width px), rot?}
@@ -156,8 +162,9 @@ async function overlayPng(note, outFile, seed) {
     else if (m.type === 'text') {
       const size = m.size || 54, lh = m.lineHeight || 1.16;
       const font = m.font || plan.font || 'Permanent Marker';
+      const extra = (m.spacing ? ` letter-spacing="${m.spacing}"` : '') + (m.italic ? ' font-style="italic"' : '') + (m.weight ? ` font-weight="${m.weight}"` : '');
       const tspans = m.lines.map((L, i) =>
-        `<text x="${m.x}" y="${m.y + i * size * lh}" font-family="${font}" font-size="${size}" text-anchor="${m.anchor || 'middle'}">${esc(L)}</text>`).join('');
+        `<text x="${m.x}" y="${m.y + i * size * lh}" font-family="${font}" font-size="${size}" text-anchor="${m.anchor || 'middle'}"${extra}>${esc(L)}</text>`).join('');
       both(`<g transform="rotate(${m.rot || 0} ${m.x} ${m.y})">${tspans}</g>`);
     }
   }
