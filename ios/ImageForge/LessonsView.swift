@@ -71,12 +71,13 @@ private struct LessonsWebView: UIViewRepresentable {
 
     final class Coordinator: NSObject, WKNavigationDelegate {
         // iOS reclaims the web content process under memory pressure (this
-        // app keeps three tools alive at once); without this the tool comes
-        // back as a blank/frozen view that only an app relaunch fixed —
-        // Sophie's 'keeps going blank' report, 2026-08-25. Same hook the
-        // witch app has carried in WitchWebView.swift.
+        // app keeps three tools alive at once). A bare reload() here made it
+        // WORSE — all three resurrecting together re-spiked memory and iOS
+        // killed them in a loop, blanking the tool she was reading every ~10s
+        // (build 175). ForgeWebRevive reloads only the visible view, one at a
+        // time; a hidden tool revives when she switches back to it.
         func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
-            webView.reload()
+            ForgeWebRevive.shared.terminated(webView)
         }
         let parent: LessonsWebView
         init(_ parent: LessonsWebView) { self.parent = parent }
