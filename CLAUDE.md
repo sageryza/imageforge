@@ -1376,9 +1376,17 @@ them off the reference sheet, not off the old filenames.
   tagged like that to come with some extra indication").** The pin was the
   whole of the rule, and a pin only exists on the Update tab — so on the home
   list, and inside the thread itself, a chat she was owed an answer from
-  looked like every other chat. It is a Lucide **hourglass** in the marks' red
-  at the front of the row, beside the star and the bookmark (the slot for a
-  state with no control of its own), and in the thread's `<h1>`. Three things
+  looked like every other chat. It is a Lucide **`watch`** — a wristwatch — in
+  the marks' red at the front of the row, beside the star and the bookmark (the
+  slot for a state with no control of its own), and in the thread's `<h1>`.
+  **THERE IS NO "SOMEONE POINTING AT THEIR WATCH" ICON, and that is measured**
+  (her next question the same day): all 2,035 Lucide glyphs read, none holds a
+  figure, because the gesture needs a body, an arm and a dial and a line set
+  cannot say three things at 14px. Hand-drawn it fails too — rendered at
+  14/18/28/64 the figure is mud at the mark's real size and reads as someone
+  with a MAGNIFYING GLASS blown up. So the watch alone carries it: the object
+  out of her own picture, legible small. It shipped as an hourglass for one
+  afternoon. Three things
   worth not undoing: it follows the **TAG**, not the Update tab's card — her ✓
   there settles the CARD and the debt is over when the word comes off, the
   same rule the sibling `Waiting for:` line has always followed; it reads the
