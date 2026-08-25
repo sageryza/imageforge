@@ -385,6 +385,28 @@
   .lbbtn svg { width: 21px; height: 21px; }
   .lbbtn.like.on { background: #c25a72; border-color: #c25a72; color: #fff; }
   .lbbtn.dislike.on { background: #9a938a; border-color: #9a938a; color: #fff; }
+  /* SEND TO THE STORY ROOM (Aug 2026, Sophie: "a send to story room share
+     icon button in the playground next to the other four buttons where I can
+     pick a story and either put it in the inbox of that story or put in a
+     specific beat that exists or make a new beat"). A sheet over the
+     lightbox, two steps: the shelf of stories, then that story's doors —
+     the inbox, a new beat, or one of its existing beats. */
+  #storysheet { display: none; position: fixed; inset: 0; background: rgba(20,18,16,.55); z-index: 62; align-items: flex-end; justify-content: center; }
+  #storysheet.on { display: flex; }
+  .storybox { background: #faf7f2; border: 1px solid #e3dcd1; border-radius: 6px 6px 0 0; width: 100%; max-width: 430px; max-height: 72vh; display: flex; flex-direction: column; padding: 14px 14px calc(12px + env(safe-area-inset-bottom)); }
+  .sshead { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .sshead .ssname { font-size: 14.5px; font-weight: 600; color: #2b2622; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #ssback { flex: none; width: 28px; height: 28px; border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #2b2622; font-size: 17px; line-height: 1; }
+  #ssbody { overflow-y: auto; min-height: 0; }
+  .ssquiet { font-size: 12.5px; color: #8a8177; padding: 6px 2px; }
+  .ssrow { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #2b2622; font: inherit; font-size: 13.5px; padding: 7px 9px; margin-bottom: 7px; }
+  .ssrow .thumb { flex: none; width: 42px; height: 42px; object-fit: cover; border-radius: 4px; background: #eee7dc; }
+  .ssrow .noart { flex: none; width: 42px; height: 42px; border-radius: 4px; background: #f1ebe1; border: 1px dashed #d8d0c4; }
+  .ssrow .words { flex: 1; min-width: 0; overflow: hidden; }
+  .ssrow .words .t { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ssrow .words .sub { display: block; font-size: 11.5px; color: #8a8177; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ssrow.door { font-weight: 600; }
+  .sslab { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: #9a9186; margin: 10px 0 6px; }
   /* Above the lightbox — the Save button lives in there. */
   #toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); background: #2b2622; color: #faf7f2; font-size: 13.5px; border-radius: 6px; padding: 9px 14px; z-index: 70; opacity: 0; pointer-events: none; transition: opacity .18s; max-width: 84vw; text-align: center; }
   #toast.on { opacity: 1; }
@@ -543,6 +565,17 @@
     <button class="lbbtn dislike" id="lbx" aria-label="Reject"></button>
     <button class="lbbtn" id="lbcopy" aria-label="Put this prompt back in the box"></button>
     <button class="lbbtn" id="lbsave" aria-label="Save to Photos"></button>
+    <button class="lbbtn" id="lbstory" aria-label="Send to the Story Room"></button>
+  </div>
+</div>
+
+<div id="storysheet">
+  <div class="storybox">
+    <div class="sshead">
+      <button id="ssback" aria-label="Back to the stories" hidden>&lsaquo;</button>
+      <span class="ssname" id="sstitle">Send to a story</span>
+    </div>
+    <div id="ssbody"></div>
   </div>
 </div>
 <script>
@@ -578,6 +611,9 @@
     download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>',
     sprout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>',
     copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
+    // Send to the Story Room — Lucide `share`, the iOS square-and-arrow-up
+    // (her word for the button: "share icon").
+    share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>',
     // The photo-reference button (Aug 2026) — Lucide `image-plus`, a picture
     // with a plus, so the control says "add a photo" rather than "a file".
     imagePlus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"/><line x1="16" x2="22" y1="5" y2="5"/><line x1="19" x2="19" y1="2" y2="8"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>',
@@ -929,6 +965,7 @@
   document.getElementById('lbx').innerHTML = ICONS.x;
   document.getElementById('lbsave').innerHTML = ICONS.download;
   document.getElementById('lbcopy').innerHTML = ICONS.copy;
+  document.getElementById('lbstory').innerHTML = ICONS.share;
   // The same put-it-back-in-the-box button the list boxes have, but reachable
   // from TILES view (Aug 2026, Sophie): a tile opens the lightbox, and this
   // closes it and lands the picture's prompt in the prompt box.
@@ -2384,6 +2421,141 @@
     document.body.appendChild(a); a.click(); a.remove();
   });
 
+  // ── Send to the Story Room (Aug 2026, Sophie) ──────────────────────
+  // The fifth lightbox button. Step one is the shelf (GET /api/scratchpad/pads),
+  // step two is that story's three doors: its INBOX (POST /inbox — appends,
+  // never replaces), a NEW BEAT at the end (POST /add), or an EXISTING beat
+  // (POST /image — the same write the pad's own inbox pick makes, so the
+  // provenance src rides along identically). The pad's own `style` is passed
+  // on placement so the picture lands on the side the story is showing.
+  var ssState = null;   // { url, src, padList, pad } while the sheet is open
+  function ssSheet() { return document.getElementById('storysheet'); }
+  function ssRow(kids, sub, onTap, door) {
+    var b = document.createElement('button');
+    b.className = 'ssrow' + (door ? ' door' : '');
+    kids.forEach(function (k) { b.appendChild(k); });
+    var w = document.createElement('span'); w.className = 'words';
+    var t = document.createElement('span'); t.className = 't'; t.textContent = sub.t;
+    w.appendChild(t);
+    if (sub.sub) { var s = document.createElement('span'); s.className = 'sub'; s.textContent = sub.sub; w.appendChild(s); }
+    b.appendChild(w);
+    b.addEventListener('click', onTap);
+    return b;
+  }
+  function ssThumb(url) {
+    if (!url) { var d = document.createElement('span'); d.className = 'noart'; return d; }
+    var img = document.createElement('img'); img.className = 'thumb'; img.loading = 'lazy'; img.src = url;
+    return img;
+  }
+  function ssQuiet(msg) {
+    var body = document.getElementById('ssbody');
+    body.innerHTML = '';
+    var q = document.createElement('div'); q.className = 'ssquiet'; q.textContent = msg;
+    body.appendChild(q);
+  }
+  // A beat's face, the side the story shows first — the server's slotFace
+  // rule: a clip slot shows its poster, a picture slot its url, falling back
+  // to the other side so a beat with any art at all gets a thumbnail.
+  function beatFace(b, style) {
+    var side = function (s) { return s ? (s.kind ? (s.poster || null) : (s.url || null)) : null; };
+    var dreamy = (b.alt && b.alt.dreamy) || null;
+    return style === 'dreamy' ? (side(dreamy) || side(b)) : (side(b) || side(dreamy));
+  }
+  function openStorySheet() {
+    if (!lbCur) return;
+    var r = runsById[lbCur.id]; if (!r) return;
+    ssState = {
+      url: runImages(r)[lbCur.i],
+      // The same provenance object the pad's own inbox pick sends, so the
+      // beat's past-pictures row and prompt restore work identically.
+      src: { runId: lbCur.id, i: lbCur.i, prompt: r.prompt || null, model: r.model || null, engine: r.engine || null, quality: r.quality || null },
+      padList: null, pad: null,
+    };
+    ssSheet().classList.add('on');
+    drawStoryList();
+    fetch('/api/scratchpad/pads')
+      .then(function (res) { return res.json(); })
+      .then(function (d) { if (!ssState) return; ssState.padList = d.pads || []; drawStoryList(); })
+      .catch(function () { if (ssState) ssQuiet('Couldn’t reach the Story Room — try again'); });
+  }
+  function drawStoryList() {
+    if (!ssState) return;
+    document.getElementById('sstitle').textContent = 'Send to a story';
+    document.getElementById('ssback').hidden = true;
+    if (!ssState.padList) return ssQuiet('Fetching the shelf…');
+    if (!ssState.padList.length) return ssQuiet('No stories yet');
+    var body = document.getElementById('ssbody');
+    body.innerHTML = '';
+    ssState.padList.forEach(function (p) {
+      body.appendChild(ssRow([ssThumb(p.cover)],
+        { t: p.title || 'Untitled story', sub: p.beats + (p.beats === 1 ? ' beat' : ' beats') },
+        function () { openStory(p); }));
+    });
+  }
+  function openStory(p) {
+    if (!ssState) return;
+    ssState.pad = null;
+    document.getElementById('sstitle').textContent = p.title || 'Untitled story';
+    document.getElementById('ssback').hidden = false;
+    ssQuiet('Opening the story…');
+    fetch('/api/scratchpad/?pad=' + encodeURIComponent(p.id))
+      .then(function (res) { return res.json(); })
+      .then(function (d) { if (!ssState) return; ssState.pad = { id: p.id, title: p.title, data: d }; drawStory(); })
+      .catch(function () { if (ssState) ssQuiet('Couldn’t open that story — try again'); });
+  }
+  function drawStory() {
+    if (!ssState || !ssState.pad) return;
+    var pad = ssState.pad, body = document.getElementById('ssbody');
+    body.innerHTML = '';
+    body.appendChild(ssRow([], { t: 'Into the inbox' }, function () { sendToStory('inbox'); }, true));
+    body.appendChild(ssRow([], { t: 'As a new beat, at the end' }, function () { sendToStory('add'); }, true));
+    var beats = (pad.data && pad.data.beats) || [];
+    if (!beats.length) return;
+    var lab = document.createElement('div'); lab.className = 'sslab'; lab.textContent = 'Or onto a beat';
+    body.appendChild(lab);
+    var style = (pad.data && pad.data.style) || 'watercolor';
+    beats.forEach(function (b, i) {
+      var words = (b.text || '').trim();
+      body.appendChild(ssRow([ssThumb(beatFace(b, style))],
+        { t: words || ('Beat ' + (i + 1)), sub: words ? null : 'no words yet' },
+        function () { sendToStory('image', b.id); }));
+    });
+  }
+  function sendToStory(kind, beatId) {
+    if (!ssState || !ssState.pad) return;
+    var st = ssState, pad = st.pad, padStyle = (pad.data && pad.data.style) || 'watercolor';
+    var path, body;
+    if (kind === 'inbox') {
+      path = '/api/scratchpad/inbox';
+      body = { pad: pad.id, items: [{ url: st.url, prompt: st.src.prompt, model: st.src.model, quality: st.src.quality, src: 'playground' }] };
+    } else if (kind === 'add') {
+      path = '/api/scratchpad/add';
+      body = { pad: pad.id, url: st.url, style: padStyle, src: st.src };
+    } else {
+      path = '/api/scratchpad/image';
+      body = { pad: pad.id, id: beatId, url: st.url, style: padStyle, src: st.src };
+    }
+    closeStorySheet();
+    fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (res) { return res.json(); })
+      .then(function (d) {
+        if (d && d.error) throw new Error(d.error);
+        var did = kind === 'inbox' ? 'into the inbox' : (kind === 'add' ? 'as a new beat' : 'onto the beat');
+        toast('Sent to “' + (pad.title || 'the story') + '” ' + did);
+      })
+      .catch(function () { toast('Couldn’t send that — try again'); });
+  }
+  function closeStorySheet() {
+    ssState = null;
+    ssSheet().classList.remove('on');
+  }
+  document.getElementById('lbstory').addEventListener('click', openStorySheet);
+  document.getElementById('ssback').addEventListener('click', function () {
+    if (ssState) { ssState.pad = null; drawStoryList(); }
+  });
+  // A tap on the dim backdrop leaves the sheet; the box itself swallows it.
+  ssSheet().addEventListener('click', function (e) { if (e.target === ssSheet()) closeStorySheet(); });
+
   var toastTimer = null;
   function toast(msg) {
     var el = document.getElementById('toast');
@@ -2396,6 +2568,7 @@
   // The app's nav-bar chevron asks the page first: close the lightbox if it's
   // open, else let the app leave the tool.
   window.__navBack = function () {
+    if (ssSheet().classList.contains('on')) { closeStorySheet(); return true; }
     if (document.getElementById('ask').classList.contains('on')) { closeAsk(); return true; }
     if (document.getElementById('lb').classList.contains('on')) { closeLB(); return true; }
     return false;
