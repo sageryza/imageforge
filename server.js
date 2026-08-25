@@ -37,6 +37,10 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // explicit preflight for every route
+// The OOM tripwire: when RSS nears the 512MB line it files the last requests
+// to Firestore `forge-memwatch` BEFORE the kernel's SIGKILL can land — the
+// only way a mystery restart leaves the culprit's name behind. See memwatch.js.
+require('./memwatch').install(app, admin);
 // Reference images for the Sticker Page are sent as base64 in the JSON body,
 // so the default 100kb limit is far too small — allow a handful of photos.
 app.use(express.json({ limit: '25mb', verify: (req, _res, buf) => { req.rawBody = buf; } }));
