@@ -1,0 +1,273 @@
+{
+  "comment": "PWC backstories ep006 — THE BUILDING ACROSS THE STREET (vertical 9:16, white ink). Sophie's concept 2026-08-25: 'watch a building from across the street and somehow see inside each person's window into their lives.' Pexels 'A Building with Lights On at Night', video id 18029861 — curl -L -o windows.mp4 https://www.pexels.com/download/video/18029861/ (free Pexels license). The clip is 2560x1440 landscape and locked off with a slow zoom-out; the grade crops a 810x1440 portrait window out of the middle before scaling, so coordinates are in 1080x1920 output space. THE PAYOFF IS REAL, NOT WRITTEN: two people stand on the bright balcony from 0:00, and between t=22 and t=26 one of them goes inside. Every freeze coordinate is read off that freeze's own frame — the zoom-out moves the balcony up the frame as the clip runs.",
+  "src": "windows.mp4",
+  "out": "pwc-ep006-windows.mp4",
+  "width": 1080,
+  "height": 1920,
+  "fps": "24",
+  "seed": 606,
+  "ink": "#f2f2ee",
+  "font": "Permanent Marker",
+  "grade": "crop=810:1440:875:0,scale=1080:1920,hue=s=0,eq=contrast=1.07:brightness=0.01,noise=alls=5:allf=t,vignette=PI/5.2:mode=forward",
+  "freezes": [
+    {
+      "src": "windows.mp4",
+      "playFrom": 0.5,
+      "t": 2.0,
+      "dur": 4.2,
+      "marks": [
+        {
+          "type": "text",
+          "lines": [
+            "8:47 PM.",
+            "Twenty-two apartments.",
+            "Twenty-two shows."
+          ],
+          "x": 540,
+          "y": 1530,
+          "size": 48,
+          "rot": -1,
+          "anchor": "middle"
+        }
+      ]
+    },
+    {
+      "src": "windows.mp4",
+      "playFrom": 5.0,
+      "t": 7.0,
+      "dur": 4.8,
+      "marks": [
+        {
+          "type": "circle",
+          "cx": 330,
+          "cy": 360,
+          "rx": 66,
+          "ry": 80
+        },
+        {
+          "type": "text",
+          "lines": [
+            "Marcy, 6B. Has had the fridge",
+            "open for nine minutes.",
+            "She is not hungry. She is",
+            "thinking about an email."
+          ],
+          "x": 540,
+          "y": 1420,
+          "size": 44,
+          "rot": -0.5,
+          "anchor": "middle"
+        }
+      ]
+    },
+    {
+      "src": "windows.mp4",
+      "playFrom": 12.0,
+      "t": 14.0,
+      "dur": 5.4,
+      "marks": [
+        {
+          "type": "circle",
+          "cx": 593,
+          "cy": 958,
+          "rx": 86,
+          "ry": 92
+        },
+        {
+          "type": "text",
+          "lines": [
+            "Denise and Ray. Eleven years."
+          ],
+          "x": 540,
+          "y": 1440,
+          "size": 46,
+          "rot": -1,
+          "anchor": "middle"
+        },
+        {
+          "type": "text",
+          "lines": [
+            "They came out to look at the sky.",
+            "They are discussing the dishwasher."
+          ],
+          "x": 540,
+          "y": 1530,
+          "size": 42,
+          "rot": 0,
+          "anchor": "middle"
+        }
+      ]
+    },
+    {
+      "src": "windows.mp4",
+      "playFrom": 18.5,
+      "t": 20.5,
+      "dur": 4.8,
+      "marks": [
+        {
+          "type": "circle",
+          "cx": 956,
+          "cy": 1380,
+          "rx": 74,
+          "ry": 58
+        },
+        {
+          "type": "text",
+          "lines": [
+            "4C. Nobody lives in 4C.",
+            "The light has been on since 2019.",
+            "We have asked around."
+          ],
+          "x": 540,
+          "y": 1700,
+          "size": 42,
+          "rot": 0.5
+        }
+      ]
+    },
+    {
+      "src": "windows.mp4",
+      "playFrom": 24.5,
+      "t": 26.5,
+      "dur": 6.6,
+      "marks": [
+        {
+          "type": "circle",
+          "cx": 544,
+          "cy": 752,
+          "rx": 78,
+          "ry": 96
+        },
+        {
+          "type": "arrow",
+          "from": [
+            610,
+            1010
+          ],
+          "to": [
+            566,
+            872
+          ],
+          "head": 26
+        },
+        {
+          "type": "text",
+          "lines": [
+            "Look again."
+          ],
+          "x": 330,
+          "y": 1000,
+          "size": 58,
+          "rot": -1.5
+        },
+        {
+          "type": "text",
+          "lines": [
+            "Ray left ninety seconds ago.",
+            "I bet you missed that, didn't you?"
+          ],
+          "x": 540,
+          "y": 1560,
+          "size": 46,
+          "rot": 0
+        }
+      ]
+    }
+  ],
+  "tailTo": 28.6,
+  "endcard": {
+    "t": 44.0,
+    "dur": 3.0,
+    "strokeWidth": 4,
+    "marks": [
+      {
+        "type": "line",
+        "from": [
+          452,
+          600
+        ],
+        "to": [
+          628,
+          600
+        ]
+      },
+      {
+        "type": "line",
+        "from": [
+          628,
+          600
+        ],
+        "to": [
+          628,
+          790
+        ]
+      },
+      {
+        "type": "line",
+        "from": [
+          628,
+          790
+        ],
+        "to": [
+          452,
+          790
+        ]
+      },
+      {
+        "type": "line",
+        "from": [
+          452,
+          790
+        ],
+        "to": [
+          452,
+          600
+        ]
+      },
+      {
+        "type": "line",
+        "from": [
+          540,
+          600
+        ],
+        "to": [
+          540,
+          790
+        ]
+      },
+      {
+        "type": "line",
+        "from": [
+          452,
+          695
+        ],
+        "to": [
+          628,
+          695
+        ]
+      },
+      {
+        "type": "text",
+        "lines": [
+          "people watching club"
+        ],
+        "x": 540,
+        "y": 940,
+        "size": 96,
+        "font": "EB Garamond",
+        "anchor": "middle"
+      },
+      {
+        "type": "text",
+        "lines": [
+          "make up your own stories"
+        ],
+        "x": 540,
+        "y": 1030,
+        "size": 46,
+        "font": "EB Garamond",
+        "anchor": "middle"
+      }
+    ]
+  }
+}
