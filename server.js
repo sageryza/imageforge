@@ -335,6 +335,9 @@ loadConfig().then(() => {
   // there"). Best-effort inside movies.js; a gallery hiccup never fails a
   // render.
   movies.init({ fileCreation: fileCreationDoc });
+  // Same hand-off for the mockup shots — the whole edit prompt is stored with
+  // each one (the scene half is model-written and exists nowhere else).
+  photostudio.init({ fileCreation: fileCreationDoc });
   app.use('/api/movies', movies.router);
   app.use('/api/songs', songs.router);
   // Stories live on the boards now: hand the module the story-project

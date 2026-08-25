@@ -231,12 +231,36 @@ async function makeMockups({ image, scenes = [], includeWhite = true, maxFlatlay
     try {
       const out = await editImage({ buffer: img.buffer, mime: img.mime, prompt: job.prompt, size });
       const saved = await saveMockup(out, 'image/png');
-      return { label: job.label, ok: true, url: saved.url, permanent: saved.permanent };
+      // The prompt rides the answer AND the gallery record, so it survives the
+      // request that built it (the scene half is model-written and exists
+      // nowhere else).
+      if (fileCreation && saved.permanent) {
+        Promise.resolve().then(() => fileCreation({
+          url: saved.url, prompt: job.label, fullPrompt: job.prompt,
+          model: 'gpt-image-2', quality: 'medium', canvas: size,
+          source: 'photostudio',
+        })).catch((err) => console.warn('photostudio → My Creations failed:', err.message));
+      }
+      return { label: job.label, ok: true, url: saved.url, permanent: saved.permanent, prompt: job.prompt };
     } catch (err) {
       return { label: job.label, ok: false, error: err.message };
     }
   }));
   return { mockups: results };
+}
+
+// THE WHOLE PROMPT IS STORED WHEREVER AN IMAGE IS MADE (Sophie's hard rule,
+// 2026-08-24). A mockup's edit prompt is a template plus a vision-written
+// scene line, built for one request and — until this — persisted nowhere: the
+// scene line came from the model, so nothing on disk could ever reconstruct
+// it. Filing rides the movies.init pattern (server.js injects fileCreationDoc)
+// so this module never holds the membry credential itself. There is no style
+// half and no content half on purpose: none of these words are Sophie's, so
+// the whole prompt is the only honest field. Best-effort and never awaited —
+// a gallery hiccup must not cost a mockup that already exists.
+let fileCreation = null;
+function init(opts = {}) {
+  if (typeof opts.fileCreation === 'function') fileCreation = opts.fileCreation;
 }
 
 // ─── Router ─────────────────────────────────────────────────────────
@@ -361,6 +385,7 @@ router.post('/draft', express.json({ limit: '25mb' }), async (req, res) => {
 
 module.exports = {
   router,
+  init,
   describeProduct,
   makeMockups,
   editImage,
