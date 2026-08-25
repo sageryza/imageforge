@@ -73,6 +73,15 @@ const BUNDLES = 'forge-drop-bundles';
 const META = '__meta';          // seq allocator; slugs can't start with '_'
 const IMAGE_RE = /\.(png|jpe?g|webp|gif|bmp|tiff?|heic|heif)$/i;
 const VIDEO_RE = /\.(mov|mp4|m4v|avi|hevc|webm)$/i;
+// AUDIO ARRIVES HERE TOO (2026-08-24). It was offered as a fix on 2026-08-11
+// ("the Dump still can't take audio — want me to fix that last part?") and left
+// unanswered; the machinery was always generic — content-addressed bytes, md5
+// dedupe, albums — and only the three type tables and the `media` field said
+// images and video. A dumped recording lands as `media:'audio'` and plays on
+// /dump; it does NOT go to the voice-memo archive (that is /api/audio, which
+// transcribes everything it receives), because the Dump's whole rule is dump
+// first and label afterwards.
+const AUDIO_RE = /\.(m4a|mp3|wav|aiff?|caf|flac|ogg|oga|opus)$/i;
 
 function ffmpegPath() {
   if (process.env.FFMPEG_PATH) return process.env.FFMPEG_PATH;
@@ -126,10 +135,30 @@ function ctForName(name) {
   if (n.endsWith('.mov')) return 'video/quicktime';
   if (/\.(mp4|m4v)$/.test(n)) return 'video/mp4';
   if (n.endsWith('.webm')) return 'video/webm';
+  // audio — `.m4a` is `audio/mp4`, which is why extFor below asks about audio
+  // BEFORE it asks about mp4: the same four letters mean two different files.
+  if (/\.(m4a|m4b)$/.test(n)) return 'audio/mp4';
+  if (n.endsWith('.mp3')) return 'audio/mpeg';
+  if (n.endsWith('.wav')) return 'audio/wav';
+  if (/\.aiff?$/.test(n)) return 'audio/aiff';
+  if (n.endsWith('.caf')) return 'audio/x-caf';
+  if (n.endsWith('.flac')) return 'audio/flac';
+  if (/\.(ogg|oga|opus)$/.test(n)) return 'audio/ogg';
   return 'image/png';
 }
 function extFor(ct) {
   const c = String(ct || '');
+  // AUDIO FIRST — `audio/mp4` (an .m4a) contains "mp4", so asking about the
+  // container before the kind would file every voice recording as a video.
+  if (/^audio\//i.test(c)) {
+    if (c.includes('mpeg')) return 'mp3';
+    if (c.includes('wav')) return 'wav';
+    if (c.includes('aiff')) return 'aiff';
+    if (c.includes('caf')) return 'caf';
+    if (c.includes('flac')) return 'flac';
+    if (c.includes('ogg') || c.includes('opus')) return 'ogg';
+    return 'm4a';
+  }
   if (c.includes('quicktime')) return 'mov';
   if (c.includes('mp4')) return 'mp4';
   if (c.includes('webm')) return 'webm';
@@ -139,6 +168,10 @@ function extFor(ct) {
   return 'png';
 }
 const isVideoCT = (ct) => /^video\//i.test(String(ct || ''));
+const isAudioCT = (ct) => /^audio\//i.test(String(ct || ''));
+// The ONE answer to "what kind of thing is this", so the doc's `media` and any
+// caller asking the same question can never disagree.
+const mediaKind = (ct) => (isAudioCT(ct) ? 'audio' : isVideoCT(ct) ? 'video' : 'image');
 
 // data: URL or http(s) URL → { buf, ct }
 async function toBuffer(ref) {
@@ -356,13 +389,17 @@ async function storeOne({ bucket, session, buf: raw, ct: rawCt, filename, bundle
   }
   const url = `https://storage.googleapis.com/${bucket.name}/${objectPath}`;
 
-  const video = isVideoCT(ct);
+  const video = isVideoCT(ct);   // ← only the poster frame cares; `media` is mediaKind
   const now = Date.now();
   const doc = {
     session, dumpSession, bundle, bundleName, seq, photoIndex, hash,
     track: null,                       // ← labelled later, never at dump time
     url, storagePath: objectPath,
-    media: video ? 'video' : 'image',
+    // 'image' | 'video' | 'audio'. Every reader that predates audio asks
+    // `=== 'video'` and treats the rest as a picture, so anything that would
+    // draw an <img> has to ask for audio by name — see /dump, the Assembly
+    // importer and the pad's uploader.
+    media: mediaKind(ct),
     posterUrl: null, posterPath: null, // ← filled in below, best-effort
     filename: filename || null,
     bytes: buf.length,
@@ -761,10 +798,10 @@ router.post('/upload-zip', express.raw({ type: () => true, limit: '512mb' }), as
     try { zip = await JSZip.loadAsync(req.body); }
     catch (e) { return res.status(400).json({ error: 'not a valid zip file: ' + e.message }); }
     const entries = Object.values(zip.files)
-      .filter((f) => !f.dir && (IMAGE_RE.test(f.name) || VIDEO_RE.test(f.name))
+      .filter((f) => !f.dir && (IMAGE_RE.test(f.name) || VIDEO_RE.test(f.name) || AUDIO_RE.test(f.name))
         && !/(^|\/)__MACOSX\//.test(f.name))
       .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
-    if (!entries.length) return res.status(400).json({ error: 'no images or videos found in the zip' });
+    if (!entries.length) return res.status(400).json({ error: 'no images, videos or audio found in the zip' });
 
     const session = String(req.query.session || '').trim() || newSession();
     const forced = String(req.query.bundle || '').trim();
@@ -915,4 +952,7 @@ router.delete('/items/:id', async (req, res) => {
 module.exports = {
   router, COL, slug, bundleNamer,
   newSession, sessionLabel, uploadLabels, KNOWN_TRACKS, orderTracks,
+  // the type tables, exported so the audio rules have a test that needs no
+  // Firestore and no bytes (2026-08-24)
+  ctForName, extFor, isVideoCT, isAudioCT, mediaKind, IMAGE_RE, VIDEO_RE, AUDIO_RE,
 };

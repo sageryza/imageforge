@@ -84,3 +84,99 @@ then build it and check it off here.
   `scripts/memo-unify-backfill.js` (phase A hashed the existing
   records from Storage md5 metadata; phase B merged `forge-audio`
   strays via the live server).
+
+## Small things, parked on purpose (2026-08-24)
+
+Sophie's ask, the day the three-way toggles stopped cycling: *"can you make a
+list of things that I might want fixed in the future — small bugs that aren't
+enough to fix right now because I don't even use the writing room right now,
+just document it."* So: found and measured, none of them worth a turn today.
+**Each one says what it costs her, because that is what decides whether it is
+ever worth doing.** Anything here that turns out to bite, un-park it.
+
+### The cycling controls that are NOT three-way toggles
+
+Her rule, 2026-08-24: *"none of them should cycle — that's a really stupid
+pattern … Cycling is a bad idea."* Every `.tri` obeys it now (`/tritoggle.js` —
+a tap lands on the stop under her thumb). These three cycle and are **not**
+toggle tracks, so each needs a shape she has not seen rather than a fix — which
+is why they are here and not done.
+
+- [ ] **Cutting Blocks — the `?` on every line** (`qNext` in `blocks.html`).
+  Blank → locked in → not sure → blank. **Read the history before touching
+  it:** this is already v2 of a cycle she critiqued ("if I tap it again it
+  will just disappear" — the way back to normal ran THROUGH the vanishing
+  state), which is why the ✕ was split onto its own button. Cost to her: from
+  "not sure" the way back to blank is one more tap through nothing. A 78px
+  track per line would not fit; a tap-to-pick popup would.
+- [ ] **Cutting Blocks — the paragraph twist** (`cycle(sec)`, same file).
+  Closed → prose → its lines → closed. A disclosure with three depths, so
+  "cycling" is arguably what a twist IS. Cost to her: to close a paragraph
+  she has opened to its lines, she taps forward, not back. Lowest of the
+  three.
+- [ ] **Writing Room — the status word on each date row** (`.r-status` in
+  `writing.html` AND `scripts/gen-writing.py`, both, or the generator
+  overwrites the page). Drafting → reviewing → approved → drafting. Cost to
+  her: sending a row back from approved is two taps and passes through a
+  wrong state that SAVES on the way (each step POSTs `/api/writing/status`),
+  so a mis-tap is written down, not just displayed. **She said she is not
+  using the Writing Room right now**, which is the whole reason this is
+  parked — it is the worst of the three on paper.
+
+### Left over from the toggle work
+
+- [ ] **The account switcher's zones are 16px.** It aims now, on the shell's
+  default 48px track (three stops, blank knob). The Playground's is 78px.
+  If she starts landing on the wrong account, the fix is one line —
+  `--tri-w: 78px` on that instance — optionally with `data-i` carrying the
+  account NUMBER, which is what every other aimed instance does. Not done
+  unasked because it is her header's title line and it currently fits.
+- [ ] **A missing `/tritoggle.js` silently restores cycling.** Every page
+  with a toggle carries `var triNext = window.triNext || <the old cycle>` as
+  a floor for the file failing to load. Deliberate — a dead toggle is worse
+  than a cycling one — but it means a 404 degrades to the exact behaviour she
+  retired, with nothing on screen saying so. Only a stub harness or a broken
+  deploy can cause it; `scripts/test-tritoggle-aim.js` pins that every page
+  links the real file.
+
+### Tests that are quietly not testing
+
+- [ ] **`node scripts/test-chats-search-persist.js` is RED on main** (measured
+  2026-08-24 against a clean tree, so it is nobody's new bug). It waits for
+  `#thread .archlink.hide-r`, and hide MOVED into the Organize sheet as
+  `.markchip.mk-eye` — `.archlink.hide-r` now exists only as a dead CSS rule
+  at `chats.html:282`. It dies on a `waitForSelector` timeout, so **everything
+  after that line is unverified**: that hiding, archiving and deleting a chat
+  each clear the search box on the way out. Fix is the selector, plus deleting
+  the orphan CSS rule.
+- [ ] **`scripts/resync-gen-chats.py` still cannot run.** It looks for the
+  pill blocks verbatim to turn them back into placeholders and finds zero
+  ("expected exactly one `__PILL_CSS__` block, found 0"), because
+  `chats.html`'s pill has drifted from `scripts/pill.py` by hand. Consequence,
+  and it is the reason this matters: `chats.html` and `writing.html` are
+  HAND-MAINTAINED until it is fixed — running `gen-chats.py` would overwrite
+  the page from a stale template and drop ~300KB of shipped work. Already
+  noted in CLAUDE.md; listed here because it is a real job nobody has taken.
+
+- [ ] **`POST /api/chatfeed/wrapup` flattens a bulleted `long` with COMMAS**
+  (found 2026-08-24 writing this chat's own wrap-up, which is how it went
+  unnoticed — the model path is fine and almost nothing else posts one).
+  CLAUDE.md documents `long` as an ARRAY that the route stores newline-joined,
+  and `fillWrap` in `chats.html` splits on newlines to draw one bullet per
+  line. But this route hands the value straight to `wrapTextOf`, which is
+  `String(s)` — so an array arrives comma-joined and the long summary she opens
+  months later is one run-on paragraph instead of the bullets she asked for.
+  One line: join an array with `\n` before `wrapTextOf`. Workaround until
+  then, and what this chat did: post `long` as a newline-joined STRING.
+
+### Known duplication, already written up elsewhere
+
+Not new findings — pointers, so they are on one list she can scan.
+
+- [ ] **`/assets` (Meta Assets) is a third hand-copy of the lightbox.**
+  `asset-lightbox.js` exists to end exactly that, and `assets.html` was never
+  migrated because it grew extras the shared file has no hook for (the action
+  icons, the origin line). Both lightbox bugs have now reached her there a
+  second time. The real repair is an extras hook in the shared file and
+  deleting the copy. Full story: *Opening an image freezes the page behind it*
+  in CLAUDE.md.

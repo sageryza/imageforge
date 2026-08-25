@@ -57,10 +57,20 @@ ok('the size controls stay gpt-only — they would change nothing on a LoRA');
 
   let b;
   try { b = await chromium.launch(); }
-  catch { b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }); }
+  catch {
+    // The bundled browser lives in a VERSIONED directory here, so the path is
+    // found rather than spelled — the old hardcoded one names a folder, not
+    // an executable, and never launched anything.
+    const fs2 = require('fs');
+    const root2 = process.env.PLAYWRIGHT_BROWSERS_PATH || '/opt/pw-browsers';
+    const dir = fs2.readdirSync(root2).filter((d) => d.startsWith('chromium-')).sort().pop();
+    b = await chromium.launch({ executablePath: `${root2}/${dir}/chrome-linux/chrome` });
+  }
   try {
     const p = await b.newPage({ viewport: { width: 390, height: 844 } });
-    await p.goto(base + '/playground', { waitUntil: 'networkidle' });
+    // NOT networkidle: the feed keeps polling, so idle never arrives and the
+    // whole page half times out instead of running.
+    await p.goto(base + '/playground', { waitUntil: 'domcontentloaded' });
     await p.waitForFunction(() => document.querySelectorAll('#stylepick option').length > 1,
       { timeout: 15000 });
 
@@ -105,6 +115,45 @@ ok('the size controls stay gpt-only — they would change nothing on a LoRA');
     // being selected at all.
     assert.ok(!panel.areas.some((v) => v === 'wtr'), 'the trigger is not an editable field');
     ok('the trigger is shown, not offered for editing');
+
+    // TYPING IN IT MUST NOT CLOSE IT, AND THE EDIT MUST SURVIVE A RELOAD
+    // (2026-08-24, Sophie: "can you make sure that the style prompts are
+    // saving in playground now?"). syncControls runs on every save, and it
+    // carried a gpt-only line that shut the panel — on WTR, the tile the page
+    // opens on, the box vanished on the first character. The value was stored
+    // the whole time, which is exactly what makes this read as "not saving":
+    // nothing on screen says otherwise. So the test TYPES, which the old one
+    // never did.
+    const tail = () => p.$eval('#promptpanel textarea[data-part="suffix"]', (e) => e.value)
+      .catch(() => null);
+    const house = await tail();
+    await p.fill('#promptpanel textarea[data-part="suffix"]', `${house}, my own tail`);
+    await p.waitForTimeout(250);
+    assert.strictEqual(await p.$eval('#promptpanel', (e) => e.className), 'on',
+      'the panel is still open after typing in it');
+    assert.strictEqual(await tail(), `${house}, my own tail`, 'and still holds what she typed');
+    ok('typing in the style prompt leaves the panel open');
+
+    await p.reload({ waitUntil: 'domcontentloaded' });
+    await p.waitForFunction(() => document.querySelectorAll('#stylepick option').length > 1,
+      { timeout: 15000 });
+    await p.waitForTimeout(500);
+    await p.click('#promptbtn');
+    await p.waitForTimeout(300);
+    assert.strictEqual(await tail(), `${house}, my own tail`, 'her wording came back after a reload');
+    assert.ok(await p.$eval('#promptbtn', (e) => e.classList.contains('edited')),
+      'and the style button says it is carrying her wording');
+    ok('an edited style prompt survives a reload');
+
+    // Back to the house text on every box she HAS = not an edit at all. A LoRA
+    // draws one box, so a comparison that reads the missing half as undefined
+    // can never be equal and the override would stick forever.
+    await p.fill('#promptpanel textarea[data-part="suffix"]', house);
+    await p.waitForTimeout(250);
+    assert.strictEqual(
+      await p.evaluate(() => Object.keys(localStorage).filter((k) => k.indexOf('promptlab_prompt_') === 0).length),
+      0, 'typing the house wording back drops the override rather than storing a twin');
+    ok('the house wording is not stored as an edit of hers');
   } finally { await b.close(); }
   done();
 })().catch((e) => { console.error('\nFAILED:', e.message, '\n'); process.exit(1); });

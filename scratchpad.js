@@ -550,19 +550,59 @@ router.get('/pads', async (req, res) => {
         // Sophie can pin a cover from a beat's popup (POST /cover); the
         // pinned one wins over the first-art derivation.
         cover: v.cover || (withArt ? faceOf(withArt) : (inboxArt ? inboxArt.url : null)),
-        category: v.category || null, pinned: v.pinned === true, updatedAt: v.updatedAt || 0,
+        category: v.category || null, folder: v.folder || null,
+        pinned: v.pinned === true, updatedAt: v.updatedAt || 0,
       };
     }).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
     res.json({ count: pads.length, pads });
   } catch (e) { fail(res, e); }
 });
 
+const FOLDER_MAX = 60;
+
 router.post('/pads', async (req, res) => {
   try {
     const title = String(req.body.title || '').slice(0, 200).trim();
+    // Started from inside a folder → it belongs to that folder (the shelf's +
+    // while a folder is open). Absent everywhere else, so a plain new story
+    // still lands loose on the shelf.
+    const folder = String(req.body.folder || '').slice(0, FOLDER_MAX).trim();
     const ref = db().collection(COL).doc();
-    await ref.set({ title, beats: [], updatedAt: Date.now() });
-    res.json({ ok: true, pad: ref.id, title });
+    await ref.set({ title, beats: [], updatedAt: Date.now(), ...(folder ? { folder } : {}) });
+    res.json({ ok: true, pad: ref.id, title, folder: folder || null });
+  } catch (e) { fail(res, e); }
+});
+
+// ── Folders on the shelf ────────────────────────────────────────────
+// (Aug 2026, Sophie: "just make an intermediate shelf so basically treat the
+// Evan and Mason ones as a folder … some sort of UI design like a stack that
+// you can see underneath the cover image so you can tell there's multiple
+// stories in there".) One story of hers becomes several as chats work on it,
+// and the flat newest-first shelf interleaves them with everything else — the
+// five Mason stories were scattered across four screens.
+//
+// A folder is just a NAME on the pad doc, not a doc of its own: there is
+// nothing to create, nothing to delete, and a folder stops existing the
+// moment its last story leaves it. That is what keeps the shelf honest — an
+// empty folder tile can never sit there pointing at nothing.
+//
+// Like /category, this deliberately does NOT bump updatedAt: tidying the
+// shelf must not reshuffle its newest-first order.
+router.post('/pads/folder', async (req, res) => {
+  try {
+    // `pads` files a whole set in one call — how a chat gathers a character's
+    // stories — and `pad` is the single-story form.
+    const ids = (Array.isArray(req.body.pads) ? req.body.pads : [req.body.pad])
+      .map((x) => String(x || '').trim()).filter(Boolean);
+    if (!ids.length) return res.status(400).json({ error: 'pad or pads required' });
+    const folder = String(req.body.folder || '').slice(0, FOLDER_MAX).trim();
+    const batch = db().batch();
+    // '' takes a story back out of its folder — the only way out, and the
+    // reason this stores null rather than deleting the field (a merge:true
+    // write cannot unset one).
+    ids.forEach((id) => batch.set(padRef(id), { folder: folder || null }, { merge: true }));
+    await batch.commit();
+    res.json({ ok: true, pads: ids, folder: folder || null });
   } catch (e) { fail(res, e); }
 });
 

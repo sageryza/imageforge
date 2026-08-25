@@ -461,6 +461,41 @@ around them change, so verify the labels and use these for the URL.
     lives at **Hover** (not Shopify); the flip checklist is in
     `docs/secretly-a-witch-todo.md` (Domain section).
 
+## LINKS THAT OPEN THE iOS APP — hand her an https link, not a scheme
+**Sophie, 2026-08-25: "is there anyway to do links that go directly and open
+in my actual iOS Deck Factory app?"** Yes, two ways, and only one of them is
+worth putting in a reply.
+- **Give her the ORDINARY page url** —
+  `https://imageforge-q125.onrender.com/panels`,
+  `…/chats?chat=<slug>`, `…/review` — and on her phone it opens the app on
+  that tool instead of Safari. That is a **universal link**: iOS reads
+  `/.well-known/apple-app-site-association` (served by `applinks.js`) at
+  install/update and remembers which paths are ours. Nothing about the link
+  looks special, so it works in a reply, a note, a message, anywhere — which
+  is exactly why it is the one to use.
+- **`deckfactory://<tool>` still works and is NOT for her.** Any Tool raw
+  value plus `home`/`gallery`; the widget deep-links through it. But a custom
+  scheme is only tappable where something treats it as a link, and in most of
+  what she reads it renders as plain text — so keep it for the widget, a
+  Shortcut, and page-to-app hops.
+- **THE PATH LIST IS A CONTRACT ACROSS TWO FILES that nothing but a test
+  compares** — `LINKS` in `applinks.js` (what the site claims) and
+  `ForgeLinks.map` in `ios/ImageForge/ForgeLinks.swift` (what the app knows).
+  Claimed-but-unknown opens the app on nothing; known-but-unclaimed never
+  reaches it, and **both failures are silent on her phone**. Add a path to
+  BOTH; `node scripts/test-applinks.js` fails if they drift.
+- **The query rides along**, which is what makes a link land on ONE THREAD:
+  `?chat=<slug>` and `?view=news` reuse the pending flags a tapped push
+  already sets, so there is one mechanism and not two.
+- **Only claimed paths are claimed** — the public pages (`/witch`,
+  `/selfcare`, `/dreamfeed`, `/fruit`), `/desktop`, and `/instagram` (the
+  MOCKUPS page, a different thing from the app's `instagram` tool) keep
+  opening in Safari, deliberately.
+- **The app half needs a TestFlight build** (the Associated Domains
+  entitlement), the site half ships with a deploy. Until she installs a build
+  carrying it, every one of those links just opens the page in Safari as
+  before — no broken state either way.
+
 ## Render plan: STARTER since Aug 2026 (don't diagnose free-tier symptoms)
 - **The service runs on the $7/mo Starter instance** (`plan: starter` in
   `render.yaml`; confirmed live on the dashboard). Two free-tier problems are
@@ -1004,6 +1039,39 @@ them off the reference sheet, not off the old filenames.
       is the asked answer (`wrapLineIsAsk`) — labelling a line that fell
       through to what the chat DID with a question it does not answer is worse
       than no label. "See more…" is untouched, still inline on that line.
+    - **AND THE ONES ALREADY ON FILE NEEDED THEIR OWN PASS — `POST
+      /wrapup/rehers` (2026-08-24, her SECOND ask the next day: "what I asked,
+      which is the default note at the top of every chat, is paraphrased … make
+      it not paraphrase, just my actual words truncated").** The live paths were
+      already right and she was still looking at a paraphrase, because **a
+      wrap-up is STORED, not derived on read** — nothing rewrites one, so every
+      summary written before the fix kept its model sentence forever. Measured
+      the hour she asked: **9 chats carried her words, 70 carried a paraphrase.**
+      **A shipped fix to a WRITE path leaves the existing records wrong — ask
+      what is already on file before saying it is fixed.**
+      Free (pure text surgery, no model call), dry by default, `{chat}` for one
+      — the `/wrapup/trim` pattern. Three rules, each about not overreaching:
+      it touches **only `wrapAsked`** plus the `wrapUp` prose mirror when that
+      mirror provably IS the three answers joined (`wrapDid` / `wrapNext` /
+      `wrapLine` / `wrapLong` are the chat's own account of its work and are
+      never reworded); it reads her message **as of `wrapUpAt`**, not her
+      newest (`lastHerText`'s `before` — a summary is a moment, and pairing
+      today's question with last week's answers reads as nonsense); and a chat
+      she never posted into is **left alone and NAMED** in the answer, since
+      the chat's own `asked` is the honest fallback there exactly as on the
+      live paths.
+      **AND NOTHING IS DESTROYED — the paraphrase moves to `wrapAskedWas`.**
+      Measured over the 62 it rewrites: ~56 are plainly better and about SIX
+      come out WORSE, because her last message before that summary was a
+      sign-off ("ok build is here now. anything else to do?") or a
+      machine-authored prompt the hook lifted as hers (a routine's deploy
+      check-in, a handoff brief pasted as a user turn — the same family as the
+      compaction summary `isCompacted` already excludes). Those really are the
+      words that were sent as her turn, so **the pass applies her rule
+      everywhere rather than inventing a quality bar over her own messages** —
+      the detector-over-her-words mistake this repo has already made twice (see
+      *Answering a question*). Keeping the old line is what makes that the
+      cheap, reversible call instead of a permanent one.
   - **THE SUMMARY IS THE UPDATE CARD'S THREE QUESTIONS (Aug 2026 v4, Sophie:
     "I think what I really wanted was the what you asked, what I did, and next
     steps. Since chat already answered those three questions could you just
@@ -1137,17 +1205,29 @@ them off the reference sheet, not off the old filenames.
   answered").** Keeping either one opens the same box straight away and focuses
   it — the reason is in her head at that moment and nowhere else — and it stays
   under the thing for as long as it is kept.
-  - **ONE RENDERER, AND THE TAGS ARE THE KEEPING STEP ONLY (Aug 2026, her
-    correction the day after they shipped: "those tags were supposed to only
-    show up in the step when I'm actively bookmarking it. Either a chat or an
-    artifact").** `mkBmkEdit(m, kind, keeping)` draws the note always and the
-    tags only on the tap that keeps the thing — so a message she kept last week
-    shows her sentence back and nothing else, and the keep-pile's rows carry no
-    chips at all. The first cut painted them under every kept thing and on every
-    row of that pile, which put four chips and a meter under things she was
-    only trying to read. One node so un-keeping takes the whole editor with it;
-    one renderer so a message and an artifact can never end up with two
-    different sets of controls.
+  - **ONE RENDERER, AND THE WHOLE EDITOR IS THE KEEPING STEP ONLY (Aug 2026,
+    two corrections, the second the settled rule).** First the tags: "those tags
+    were supposed to only show up in the step when I'm actively bookmarking it.
+    Either a chat or an artifact" — so they came off every later paint while the
+    note box stayed. Then the box itself: **"the why keep this bookmark button
+    should only show up at the time that I'm bookmarking it or if I un bookmark
+    and bookmark again"** — the same sentence about the other half of the same
+    node. So `mkBmkEdit(m, kind)` is drawn on ONE event, the tap that keeps the
+    thing, and a message or artifact she kept last week carries NOTHING under
+    it. An empty "Why keep this?" field under every kept thing is a box asking a
+    question she already answered, sitting under things she is only trying to
+    read.
+    - **UN-KEEPING AND KEEPING AGAIN IS THE WAY BACK IN, and it loses nothing** —
+      the bookmark toggle sends `bookmarked` alone, so her note survives and the
+      re-opened box holds it. That re-keep is her own named gesture, not a
+      workaround.
+    - **NOTHING IS HIDDEN FOR GOOD:** her note leads that thing's row in the
+      keep-pile in its own editable field (`.sr-note-in`), so naming a backlog
+      never means opening each message. The pile is where a note is READ BACK;
+      the keeping tap is where it is WRITTEN.
+    - One node so un-keeping takes the whole editor with it; one renderer so a
+      message and an artifact can never end up with two different sets of
+      controls.
   - **THE READ BOX IS WHAT THE KEEP-PILE'S ROWS CARRY INSTEAD (Aug 2026,
     Sophie: "a rounded square check box that is empty with a gray outline and
     becomes red with a check in it when I read it I'll mark it manually").**
@@ -1325,6 +1405,35 @@ them off the reference sheet, not off the old filenames.
   apply — the auto-sorter is forbidden from filing into either — and the rules
   live in ONE table (`TAG_RULES` in `chats.html`) so her next one is a row in
   it. Full rules in `docs/chats-app.md`; test `node scripts/test-tag-rules.js`.
+  **AND `waiting for a response` WEARS A MARK WHEREVER THE CHAT APPEARS
+  (2026-08-24, Sophie: "are there any extra instructions for if I tag a chat
+  waiting for a response? Since I'm waiting for it I'd like a chat that's
+  tagged like that to come with some extra indication").** The pin was the
+  whole of the rule, and a pin only exists on the Update tab — so on the home
+  list, and inside the thread itself, a chat she was owed an answer from
+  looked like every other chat. It is a Lucide **`watch`** — a wristwatch — in
+  the marks' red at the front of the row, beside the star and the bookmark (the
+  slot for a state with no control of its own), and in the thread's `<h1>`.
+  **THERE IS NO "SOMEONE POINTING AT THEIR WATCH" ICON, and that is measured**
+  (her next question the same day): all 2,035 Lucide glyphs read, none holds a
+  figure, because the gesture needs a body, an arm and a dial and a line set
+  cannot say three things at 14px. Hand-drawn it fails too — rendered at
+  14/18/28/64 the figure is mud at the mark's real size and reads as someone
+  with a MAGNIFYING GLASS blown up. So the watch alone carries it: the object
+  out of her own picture, legible small. It shipped as an hourglass for one
+  afternoon. Three things
+  worth not undoing: it follows the **TAG**, not the Update tab's card — her ✓
+  there settles the CARD and the debt is over when the word comes off, the
+  same rule the sibling `Waiting for:` line has always followed; it reads the
+  rule off `TAG_RULES` rather than off the string, so the mark and the pin can
+  never disagree about which word means this; and it is a `<span>`, because a
+  row is a `<button>` and a nested button would eat the tap. `waitMarkHtml` is
+  the one renderer and `syncWaitMark` repaints the thread header, which is
+  built once — the Organize sheet opens from inside that same thread, so
+  without it the screen she is standing on is the last to know. **Nothing
+  tells the CHAT** — `GET /api/chatfeed/status` carries no labels, so a chat
+  cannot see that she is waiting on it. Test:
+  `node scripts/test-chats-waiting-mark.js`.
   **ALL THREE UPDATE BOXES WEAR A CHIP ON THIS ROW (Aug 2026, Sophie: "'maybe
   never' isn't on the tag list in the account area" → "give them both a
   chip").** `come back to` had one because it was already a folder of hers;
@@ -1563,9 +1672,27 @@ them off the reference sheet, not off the old filenames.
   **"none" is a normal answer** (filing hides a chat from her main list, so a
   wrong folder costs her real work), and **it never invents a folder** — her
   vocabulary is read live and taught by her own filing. Her two WHEN folders,
-  `look at` and `come back to`, are off limits to it. Full rules in
-  `docs/chats-app.md`; `GET /api/chatfeed/sort` shows the vocabulary and the
-  counts.
+  `look at` and `come back to`, are off limits to it.
+  **WHAT THE WORK IS BEATS WHERE IT HAPPENED (2026-08-24, Sophie: "if it's in
+  the story room but it's just a bug fix for the story room then they shouldn't
+  tag it story, they should just tag it bug fix — and that applies to all the
+  other categories obviously").** Her vocabulary holds two different kinds of
+  word and the sorter could not tell them apart: some name a SUBJECT AREA
+  (`witch` · `story` · `film` · `dream app` · `tech` · `meta`) and some name
+  WHAT THE WORK IS (`bug fix` · `new feature` · `research` · `failure` ·
+  `built` · `quick question`). Every chat has a subject, so the subject always
+  looked like the safe answer — which fills `story` with plumbing and leaves
+  `bug fix`, the pile she reaches for when she wants to know what has been
+  going wrong, empty. **It is enforced in CODE, not only in the prompt**: the
+  model answers `kind` in its own field and `pickCategory` prefers it, so
+  forgetting the rule would take an active "none". Three things not to undo — a
+  `kind` that names a SUBJECT is ignored (or the field built to beat subjects
+  carries one), an invented kind is refused like any other folder, and a kind
+  with no subject beside it still files. `WORK_KINDS` is a HINT over her live
+  vocabulary, never an addition to it; `GET /api/chatfeed/sort` prints
+  `workKinds` so the day it goes stale against her words is measurable.
+  Full rules in `docs/chats-app.md`; `GET /api/chatfeed/sort` shows the
+  vocabulary and the counts; test `node scripts/test-chat-sort.js`.
 - **Naming a chat: the Chats app is the source of truth (July 2026).** Sophie
   renames a chat with the pencil in its thread header; that writes `displayName`
   on the registry doc and is the name she sees everywhere. **The Claude app's own
@@ -1821,8 +1948,10 @@ them off the reference sheet, not off the old filenames.
     not or just the archive" — are that shape exactly.
   - **The value is spelled out BESIDE the knob, and the knob carries no
     letter.** "Claude's" and "Archive only" are not initials, and a code to
-    learn is a worse control than a word. Tapping the word moves the knob too:
-    a label beside a switch is what a thumb aims at. **They take the Playground's
+    learn is a worse control than a word. **Tapping the word CLEARS that
+    filter** (2026-08-24) — it used to step to the next value, which is the
+    cycle she retired; the word cannot aim at a stop it sits nowhere near, and
+    the one thing it can mean unambiguously is "put this back to Everyone". **They take the Playground's
     78px track, not the account switcher's 48**, and that is measured: at 48
     the three stops are 11px apart, which the account switcher's own note
     calls the floor — it can afford the floor because a toast names the
@@ -1843,6 +1972,13 @@ them off the reference sheet, not off the old filenames.
     the safe direction for the smaller pile. (Measured: she posts about 40
     messages to every 220 replies, which is why a search across both buries
     the shorter one.)
+  - **THE NEUTRAL STOP IS THE MIDDLE ONE, on both filters (2026-08-24, her
+    ask: "the middle should be the both option or everyone or whatever …
+    that way I can get to either way with one tap").** The row reads `Mine ·
+    Everyone · Claude's` and `Not archived · Everywhere · Archive only`, so
+    either narrowing is one aimed tap from rest and one tap back. `FILTERS`
+    carries `neutral` by NAME — see the design rules; the server's own lists
+    still lead with `all` and are untouched.
   - **ARCHIVE — `all` · `live` · `only`, filtering by CHAT.** `archived` is a
     flag on the registry doc, so the set is one read of the 5-minute cache the
     route already takes. A chat with no flag at all is live.
@@ -1920,7 +2056,15 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   picture opens THE Assets-tab lightbox itself (`/asset-lightbox.js`, shared
   with chats.html), so ♥/✕/notes mirror to the Assets tab and the two agree. **The SERVER auto-files the objective comparisons ITSELF (Aug 2026
   v2)**: filing a prompt or a MODEL · QUALITY caption pokes `runAutoCompare`
-  (chatfeed.js), which keeps two standing auto grid pages per chat — same
+  (chatfeed.js) — **on the FIRST filing of a batch as well as 45s after the
+  last** (2026-08-24: Sophie filed a low sheet beside a medium one, looked, and
+  the quality ladder was not there yet; it was, 45 seconds later). The trailing
+  run still coalesces a batch, but the leading one means the page is right
+  within a second — and it is what makes "automatic" survive a deploy, since
+  the debounce timer lives in the server PROCESS and a Render restart inside
+  the window used to drop the pending poke with nothing to re-run it. Running
+  twice is free: `runAutoCompare` makes no model call, and a test pins that.
+  It keeps two standing auto grid pages per chat — same
   content with a differing quality/model/style, and same style across
   different subjects — updated in place, her verdicts preserved. So FILE THE
   PROMPTS; an image with no prompt on record can never join a group.
@@ -2349,6 +2493,56 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   - **The app's copy has no `id="ptop"` on purpose** — `chats.html`'s own pill
     owns that id and the sweep above counts exactly one per file; the viewer's
     button is `class="ptop"` only.
+  - **THE PILL FOLLOWS WHATEVER IS ACTUALLY SCROLLING (2026-08-24, Sophie:
+    "some surfaces scroll but have no to top arrow. like story room shelf").**
+    Every check asked the WINDOW, so a surface whose content scrolls inside a
+    full-screen sheet — the Story Room's shelf is `position:fixed; inset:0;
+    overflow-y:auto` — looked to the pill like a page with nothing to scroll:
+    no pill and no arrow, on the screen the tool now OPENS on. Measured with
+    `elementFromPoint`: even a lit arrow was unreachable, because the sheet is
+    z-index 40 over the pill's 9.
+    - **The scroller ANNOUNCES ITSELF by scrolling.** `scroll` does not bubble
+      but it does CAPTURE, so one capture-phase listener on the document hears
+      an inner element scroll and takes `e.target` as the box; the window
+      scrolling puts it down. No per-page hook, and no walking the DOM looking
+      for scrollers on every scroll event.
+    - **The PILL cannot wait for her to scroll**, so when the window has
+      nothing to scroll `findBox()` asks `elementsFromPoint` at the middle of
+      the screen — O(depth), and it finds the topmost overlay covering the
+      viewport. A **MutationObserver** on the body is what re-asks, because a
+      fixed sheet opening changes nothing the ResizeObserver watches.
+    - **Only a NEARLY-FULL-SCREEN overlay is adopted** (80% of the width, 60%
+      of the height): a note list or a filter drawer must never steal the pill
+      from the page behind it. Adopting one LIFTS the pill to the box's
+      z-index + 1 and putting it down restores the pill's own layer.
+    - It ships in `pill.py` → `pill-inject.html`, so it reaches the 35 injected
+      pages. The five BAKED copies still ride the window only — measured, none
+      of them holds a full-screen inner scroller. Test:
+      `node scripts/test-pill-sheet.js` (verified failing 4 pre-fix).
+  - **A PAGE CAN KILL THE INJECTED PILL BY NAMING A VARIABLE, silently
+    (found the same day, sweeping for the same report).** The pill's script
+    runs in the page's global scope, so a page-level `let`/`const` sharing a
+    name with one of its `var`s is a SyntaxError that takes the WHOLE pill
+    script with it at parse time. `/search` had `let playing = null` and
+    therefore no autoscroll, no back-to-top and an undefined
+    `window.__scrollStop` — with nothing on screen saying so. `/cutmarks` had
+    already been bitten and wrapped its page script in an IIFE (its comment
+    names the bug), which is the fix; `/search` is renamed.
+    **`node scripts/test-pill-globals.js` MEASURES it** — every injected page
+    served the way `serveGated` serves it, loaded in a real browser, asked
+    whether the pill's script ran. The page list is read out of server.js's own
+    `{ pill: true }` calls, so a new page joins the sweep by opting in.
+  - **THE PILL IS CONDITIONAL, SO OPT A SCROLLING PAGE IN AND STOP THINKING
+    ABOUT IT.** 15 gated pages had no pill at all (the Dump, the Shop Report,
+    Studio, Films, the dream archive, the desktop queue, Blog, Crystals…) —
+    every one a page that scrolls with no way back up. They carry it now. A
+    page that never scrolls shows nothing, so the only pages left out are the
+    two that are deliberately one screen (`/filmeditor`, `/opinions`) and the
+    five that bake their own copy.
+  - **A page must not hand-roll its own** — `/chunking` carried a circle
+    floating at the bottom-right, written before the shared arrow existed, so
+    it had two back-to-tops in two corners doing one job (and a round plate,
+    which the icon rule retired). Removed; `#ptop` is the one.
 - **TRUNCATED TEXT OPENS WITH AN UNDERLINED WORD, NEVER A BUTTON (Aug 2026,
   Sophie: "the ... button for longer than two line prompt is huge … truncated
   text shud always just be a ...with a line under it that links to open
@@ -2390,12 +2584,60 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     whose own comment said "LIFTED VERBATIM"), with two attribute names and
     two palettes, and the only thing that ever noticed a copy drifting was a
     test comparing two files property by property.
-  - **A stub test server must serve `/tritoggle.css`** — express.static does
-    it in production, and without it the toggle renders as a 4px sliver.
-    Three existing harnesses had to learn this.
-  - Test: `node scripts/test-tritoggle.js` (nobody keeps a second copy, and
+  - **WHERE SHE TAPPED IS THE STOP SHE MEANT — the BEHAVIOUR is shared too,
+    `public/tritoggle.js` (2026-08-24, Sophie: "when I click the low medium
+    high toggle in playground, it always goes to high from medium never low
+    even if I click it on that side").** Every copy had been wired as a CYCLE
+    — `next = (cur + 1) % count`, tap anywhere, advance one — so from medium
+    every tap went to high, a tap on the far-left `L` included. Nothing about
+    the control says that: 78px wide, the value written on the knob, three
+    legible stops. It reads as a thing you AIM at, and now it is one.
+    `triNext(el, count, ev, cur)` divides the track into `count` equal zones
+    and answers the one under the thumb; **a tap on the stop she is already
+    on does nothing**, because advancing from there is the same surprise
+    again.
+  - **A tap with NO coordinate still cycles** — a keyboard activation (a
+    click with `detail === 0`) and the WORD beside a search-filter row, which
+    is part of the control but sits nowhere near the stop it names.
+  - **NO TOGGLE CYCLES ON A TAP — NOT ONE (2026-08-24, her second pass: "it
+    also applies to the account thing because none of them should cycle —
+    that's a really stupid pattern … Cycling is a bad idea").** This rule
+    shipped hours earlier carving out the account switcher on the reasoning
+    that a blank knob gives her nothing to aim at; she overruled it, and she
+    is right — the stops are ordered 1·2·3 left to right and the knob shows
+    which one it is on, and a control where account 3 costs two taps from
+    account 1 is the identical complaint in a narrower box. Its zones are
+    16px on a 48px track, which is small; widening it is hers to ask for.
+  - **A LABEL BESIDE A ROW CLEARS, it does not step.** The search filters
+    spell their value out next to the knob and that word cannot aim (it is
+    nowhere near the stop it names), so tapping it returns that filter to its
+    neutral stop. A step there would be the cycle coming back in through the
+    label.
+  - **THE NEUTRAL STOP GOES IN THE MIDDLE (2026-08-24, Sophie: "the filters
+    for searching chats should start in the middle. The middle should be the
+    both option or everyone or whatever … that way I can get to either way
+    with one tap").** A three-way filter is `everything` plus two OPPOSITE
+    narrowings, so the neutral one belongs between them; leading with it put
+    one narrowing two stops out at the far end. In `FILTERS` (chats.html) the
+    neutral value is **NAMED** (`neutral:'all'`), never positional — every
+    reader used to ask `vals.indexOf(v) > 0`, i.e. "not the first one", which
+    stopped meaning "not neutral" the moment it moved. **The server's lists
+    are untouched and still lead with `all`**, because `pickOne` in
+    chatfeed.js leans on exactly that index-0 rule to widen an unknown value:
+    this is a display ORDER and the values on the wire never changed.
+  - **A stub test server must serve BOTH `/tritoggle.css` and
+    `/tritoggle.js`** — express.static does it in production. Without the CSS
+    the toggle renders as a 4px sliver; without the JS the page falls back to
+    the old CYCLE (each page carries that one line as a floor, never a second
+    copy of the aim), which would quietly green-light the bug above.
+  - Tests: `node scripts/test-tritoggle.js` (nobody keeps a second copy, and
     the geometry measured in a real browser at every stop, for every
-    instance).
+    instance) and `node scripts/test-tritoggle-aim.js` (the aim rule pure,
+    then REAL taps at REAL coordinates on the live Playground — verified
+    failing 5 against the pre-fix behaviour). **A click on the ELEMENT is not
+    a test of this**: playwright aims at an element's centre, which on a
+    three-way toggle is the middle stop, so a cycling toggle and an aimed one
+    look identical. Click a POSITION.
 - **No pills.** Text buttons are rounded rectangles — `border-radius: 6px`.
   **AND A CIRCLE IS NOT THE DEFAULT FOR AN ICON EITHER (2026-08-24, Sophie: "i
   prefer rounded squares for buttons, or plain icons, rather than circles").**
@@ -2503,27 +2745,38 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     `[hidden]` and was never affected — that is the difference between the two.
     Test: `node scripts/test-lightbox-nostop.js` (verified failing against the
     pre-fix file).
-  - **AND `/assets` (Meta Assets) IS A THIRD COPY OF THAT LIGHTBOX, STILL
-    UNMIGRATED — it drifts, and both of these bugs reached Sophie there a
-    second time (2026-08-24: "I can't get out of the light box in Meta assets
-    I think with tapping it's considering too many things part of the row").**
-    `asset-lightbox.js` exists precisely to end this and `public/assets.html`
-    was never moved onto it, because it grew extras the shared file has no
-    hook for (the action icons — open the chat · Playground · Save to Photos —
-    and the `clwho` origin line). So it kept the OLD close rule: a blanket
+  - **`/assets` (Meta Assets) WAS A THIRD COPY OF THAT LIGHTBOX, AND IS NOW
+    MIGRATED — the copy is what made both of these bugs reach Sophie a second
+    time (2026-08-24: "I can't get out of the light box in Meta assets I think
+    with tapping it's considering too many things part of the row").**
+    `asset-lightbox.js` was written to end exactly this and `public/assets.html`
+    was never moved onto it, so it kept the OLD close rule — a blanket
     `stopPropagation` on each row, which swallows the tap for the row's WHOLE
-    width — the ♥/✕ strip is `left:22px; right:22px`, the action icons and the
-    note block are full-width flex rows — leaving her with almost nowhere to
-    tap that closes. Both settled rules are ported now (target-based close,
-    innerHTML wiped a frame later, `data-nostop` on the overlay), but they are
-    a HAND COPY: **fix one and fix the other**, and the real repair is giving
-    the shared file an extras hook and deleting this copy. It also still runs
-    the OLD thread layout (letters above the box, no CHAT button) — the same
-    drift, visible.
-    Test: `node scripts/test-meta-assets-page.js` (step 11, the real page
-    headless — the dead space found by scanning the row with
-    `elementFromPoint`, which is the only honest way to ask what a tap reaches;
-    verified failing against the pre-fix page).
+    width (the ♥/✕ strip is `left:22px; right:22px`; the action icons and the
+    note block are full-width flex rows) — leaving her with almost nowhere to
+    tap that closes. **The reason nobody had migrated it is the lesson:** it had
+    grown two things the shared file had no place for, so every chat that looked
+    at it chose to patch the copy. The shared file grew HOOKS for them instead,
+    and 226 lines of duplicate came out of the page:
+    - **`actions:[{label, icon, onClick}]`** — a row of small circular icon
+      buttons directly under the picture (open the chat · Playground · Save to
+      Photos). `label` becomes the aria-label AND the title; the empty space
+      between them closes the lightbox, because the close rule asks the tap's
+      TARGET. `.hasacts` shrinks the picture to 46vh so the note box still fits.
+    - **`who`** — the small uppercase origin-chat line under the caption, for a
+      surface that mixes many chats.
+    Both optional and additive, so no existing caller changed. **The next
+    surface that needs something extra gets a hook, never a fourth copy.**
+    Three things came free with the move: the picture is no longer rounded (her
+    rule), the note thread is the settled box-first layout with the CHAT button,
+    and the note input's 16px iOS floor — which that copy had and the shared
+    file did not — now protects every caller.
+    Tests: `node scripts/test-asset-lightbox.js` (the two hooks, and that an
+    asset passing neither is untouched) and `node
+    scripts/test-meta-assets-page.js` (step 0 is a SOURCE PIN that the page
+    opens the shared lightbox and builds none of its own; step 11 taps the dead
+    space, found by scanning each row with `elementFromPoint` — the only honest
+    way to ask what a tap reaches; verified failing against the pre-fix page).
 - **iOS: pin bottom bars below the keyboard (never floating above it).** A
   custom bottom nav/tab bar laid out in a `VStack` rides UP and hovers above the
   keyboard, because SwiftUI's keyboard safe-area inset shrinks the stack. This
@@ -2707,6 +2960,16 @@ out. The headlines, so you know when to go and look:
   copy-paste into a new module fails there instead of silently costing a batch
   of originals. Need a smaller file for a page? Derive one — `webp-assets.js`,
   or the `thumbs/` service in `server.js`.
+- **THE HEADER TOP IS ONE NUMBER AND `pagehead.js` ENFORCES IT (2026-08-23,
+  Sophie: "the header is different in both, and not at the top").** Measured
+  that day: across all 39 gated pages the gap above the header ran 0 to 42px,
+  because every page improvised its own status-bar clearance and new pages
+  copied their neighbour's. `levelRow()` in `pagehead.js` now measures the
+  real box and corrects the row to `var(--headtop)` (safe area + 4px) / left
+  16 — so a page writes NO top-inset code of its own, and
+  `node scripts/test-header-top.js` measures every `serveGated` page (the
+  list is derived from server.js, so a new page is covered the day it is
+  registered). Full rules in `docs/design-rules.md`.
 - **The hairline `.acctabs` rows measure their own underline** — no row anywhere
   declares a tab count. Add a tab and the line still lands under the word.
 - **Custom icons are framed at 1.11x the SF Symbol point size**, and every
@@ -2930,8 +3193,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
   26 tall, an 18px knob, three stops DERIVED from `--gap` — with the track ink
   (`#2b2622`) instead of the rose and the letter riding the knob (`content:
   attr(data-i)`, so the letter and the position are one element and cannot
-  disagree). Tapping anywhere moves to the next notch and WRAPS, exactly as the
-  account one does, so low → medium → high → low. **The two rules live in
+  disagree). **A tap LANDS ON THE STOP UNDER IT since 2026-08-24** — this used
+  to say "tapping anywhere moves to the next notch and WRAPS, exactly as the
+  account one does", which is precisely what Sophie reported as broken ("it
+  always goes to high from medium never low even if I click it on that side").
+  The aim rule is `/tritoggle.js`, shared; see *THREE OPTIONS = A THREE-WAY
+  TOGGLE* in the design rules. **The two rules live in
   different files with no shared stylesheet, so nothing but the test would ever
   notice one drifting from the other** — `node
   scripts/test-playground-quality-toggle.js` pins them property by property,
@@ -2979,6 +3246,22 @@ before working on that module. Nothing was deleted — the moved text is verbati
     `node scripts/playground-rerun-size.js <runId> --size WxH` — it re-sends
     the stored `fullPrompt` verbatim and prints the real `usage`.
   Test: `node scripts/test-playground-res.js`.
+  **WHAT AN ATTACHED REFERENCE COSTS IS PER-IMAGE, AND EVERY RUN NOW MEASURES
+  IT FOR FREE (2026-08-24).** Sophie: "another chat said it cost 1.85 to attach
+  an image can u check". Both numbers can be right — **image input is billed by
+  tokens and tokens scale with the reference's own dimensions**, so there is no
+  single answer, only a per-reference one. Measured on the Panels sheets, same
+  file, two qualities: `refs/dream-mystery.jpg` (3370x4096) is **1,505 image
+  tokens = 1.20c at $8/1M, identical at low and at medium** — the reference does
+  not get cheaper when the picture does. At LOW that is **45% of the whole
+  bill**, which is the real argument for drawing a sheet rather than N pictures.
+  1.85c would be ~2,313 tokens, i.e. a bigger reference (`sage-sandy-mirror.png`
+  is 3345x3455 against dream mystery's shape) — plausible, not yet measured.
+  **`runPromptLabGptJob` now KEEPS the `usage` the API returns** (one entry per
+  render, on the run doc). It was being thrown away, so the only way to price a
+  reference was to spend money on a probe — which Sophie has ruled out. Every
+  ordinary run is a free measurement now; read `usage.input_tokens_details.
+  image_tokens` off any run that used the style you are asking about.
   **MODERATION IS `low` ON EVERY gpt-image-2 EDIT (Aug 2026, Sophie's call).**
   `openaiImageEditRefs` sends it by default. The filter is STOCHASTIC on
   identical input — a Dreamy prompt of hers drew fine at two sizes and was then
@@ -3011,26 +3294,119 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (promptlab.html, the picker) and `PORT_STYLES` (playground-port.js, the
   routing) — pinned equal by `node scripts/test-playground-port.js`, which also
   checks every prefix fragment is verbatim in the real prefix.
-  **THE TILE WALL IS THREE TO A ROW, AND THE LIGHTBOX'S SIDE ARROWS ARE A
-  SMALL BAR IN A BIG ZONE (Aug 2026, Sophie: "make playground thumbnails 3 to
-  a row not 4" · "the side arrow bars - buttons shud be smaller, tap targets
+  **THREE OR FOUR ACROSS IS HERS TO TAP, AND IT IS THE THIRD SEGMENT OF THE
+  VIEW SWITCH (2026-08-25, Sophie: "the 3/4 switch button is in a weird place.
+  It should not be in the auto scroll roll row").** List · Tiles · **3** — one
+  box, the number as its own segment, never wearing `.on` (it is not a third
+  view). Sticky, like the view and the two filters; three is the default.
+  - **BOTH EARLIER HOMES ARE RETIRED BY HER, in order.** It shipped at the
+    right of the search box and cost the row 38px it did not have; she moved
+    it to the pill's rail ("it can go in the same column as the auto scroll
+    pill"), where the fixed column floats over the prompt card on her phone
+    and the button read as detached — her words above. So the rail is NOT a
+    standing home for guest controls any more; this line used to say "the
+    next control with nowhere to go belongs there too", and that reasoning is
+    history. The row pays for the segment with 11px view-switch paddings and
+    a search-box ✕ padding that exists only while the ✕ does (`.hasq`) —
+    "Search" still fits, measured (56px for a 51px placeholder at 390pt).
+  - **IT IS ONE NUMBER — `--cols` on the root, read by the tile wall AND by a
+    run's own row of pictures in list view.** Two rules would let the two
+    surfaces disagree about what "3 to a row" means, and it is also what keeps
+    the button from being a dead control in list view.
+  - **IT SAYS THE NUMBER BECAUSE THE PICTURE DID NOT READ.** It first drew the
+    count as N bars and she asked for the number instead ("I asked for the
+    button to say three or four, not a picture"). At 16px three bars and four
+    bars are the same grey smudge.
+  - **TWO STATES IS NOT THE CYCLE THE HOUSE RULE FORBIDS.** *THREE OPTIONS = A
+    THREE-WAY TOGGLE* is about a control with stops she can AIM at, where a
+    blind step past the one she tapped is the surprise; with two there is
+    nowhere else a tap could mean.
+  - Test: `node scripts/test-playground-cols.js` — the count MEASURED off the
+    real cells (a wrong `--cols` and a wrong `repeat()` both compute to
+    plausible-looking text; only the boxes say how many sit on a row), the
+    segment measured inside the real view switch, nothing `position:fixed`,
+    and the placeholder measured against the room the input actually has.
+  **THE PROMPT BOX HAS A BIGGER-BOX TOGGLE (2026-08-25, Sophie: "can you put a
+  button so I can see the prompt in a bigger box as an option").** A 26px
+  rounded square inside the textarea's bottom-right corner (Lucide
+  `maximize-2`/`minimize-2`) toggles the SAME `#prompt` textarea to 52vh and
+  back — never a second field, so nothing syncs. The compact box reserves that
+  corner with `padding-bottom`, so her last line is never typed under the
+  button; the toggle clears any hand-dragged inline height or "back to small"
+  would not shrink; deliberately NOT sticky. Test:
+  `node scripts/test-playground-bigprompt.js`.
+  **THE CONTROL ROW IS ONE FAMILY — BLACK LINE, PAPER, 34px (2026-08-24,
+  Sophie: "the buttons are styled so fucking weird. They should have black
+  outlines and they're all different sizes").** Measured that day, three
+  things were genuinely out of line and the rest was already right:
+  - **The two three-way toggles were solid ink slabs** — the same 34px height
+    as their neighbours, but the only controls on the row with no line and no
+    paper, which is what read as a different size. `--tri-line` and
+    `--tri-fill` split off `--tri-track` in the shared shell (both DEFAULT to
+    it, so no other instance moved), and the Playground's instance is paper
+    with a black line and a dark knob. **A second copy of the toggle would
+    have been the wrong fix** — colour has been a per-instance token since the
+    shell was written.
+  - **The seed button was the row's one circle** — now a rounded square at the
+    house 6px, per the 2026-08-24 rule.
+  - **`#stylepick` stood 35px tall beside a row of 34s**, because its height
+    rule was written `.controls #stylepick` and the picker lives in `.styles`,
+    not in the row. A selector that never matched, quietly, for months.
+  - **The two ladders and Generate are deliberately NOT in that family** — the
+    ladders wear no box at all (her own earlier ask) and Generate is filled,
+    because it is the action. Don't "fix" either.
+  - **THE TOGGLES KEEP THEIR CAPSULE**, which is the shared shell's sanctioned
+    exception to *no pills*; squaring them off would move the account switcher
+    and the search filters too.
+  - Test: the `one family` section of `node scripts/test-playground-controls.js`
+    — heights, line colours and fills read off the REAL boxes, because that
+    complaint is entirely about what renders.
+  **THE PILL'S OWN "Fast" LABEL PRINTS OVER THIS ROW, AND IS NOT FIXED
+  (2026-08-24, visible in her screenshot as "East" over the Square button).**
+  `#spd` is always drawn under the pill, and the Playground's card runs the
+  full width of the page — under the reserved column — so on her phone, where
+  the safe-area inset pushes the rail down, that label lands on the canvas
+  toggle. It is the CARD not reserving the column, not a pill bug, and it is
+  the same on any page whose content runs under the rail. **Fixing it costs a
+  third line of controls** (reserving 56px wraps the row again at 390pt,
+  measured), so it is hers to call. Don't reserve it without asking.
+  **A PROMPT'S "… more" IS DECIDED BY MEASUREMENT, SO A BOX WITH NO LAYOUT IS
+  LEFT UNDECIDED (2026-08-25, Sophie: "why is there only a Seymour… Button for
+  some of the prompts?" — dictation for *see more*).** The opener is added only
+  where `scrollHeight` really exceeds `clientHeight`, which is the honest test —
+  but **`#runs` is HIDDEN in tiles view**, so every card the feed drew while she
+  was on the wall measured 0/0, which reads as *nothing was cut*; the head html
+  never changes again, so `applyClamps` never got a second look and those cards
+  had NO opener forever, on prompts clipped mid-word. Measured against her real
+  feed: 36 of 36 openers in list view, **0 of 36** when the same runs were first
+  drawn in tiles. An unlaid-out box now returns undecided and `resyncClamps()`
+  asks again when the list is shown — and once `document.fonts.ready` settles,
+  since the font moves the wrap. Test:
+  `node scripts/test-playground-more-opener.js` (verified failing 2 pre-fix).
+  **THE TILE WALL IS THREE TO A ROW, AND THE LIGHTBOX'S SIDE ARROWS ARE A TAP
+  WITH NOTHING DRAWN (2026-08-24, Sophie: "make playground thumbnails 3 to a
+  row not 4" · "the side arrow bars - buttons shud be smaller, tap targets
   bigger. tap anywhere on the right or left of the screen in the image area
-  and it switches left or right. arrow bars are just about an inch tall").**
-  Four across stopped being enough to judge a picture by once the tiles were
-  no longer cropped squares. In the lightbox the two are now separate things:
-  `.lbnav` is a transparent 28% strip running the full height of the image
-  area — **over the picture, which is the point** — and `.lbbar` is the 26x96
-  chip drawn at its outer edge. The 52px of side padding the old 58vh bars
-  needed went with them, so the picture is bigger too. The stage
-  (`.lbstage`) exists so "the image area" is a real box: the zones are sized
-  to the picture, never to the window, so the caption and the ♥/✕ row under it
-  are never covered. Hidden at the ends of the feed takes the ZONE with it, so
-  a tap there closes exactly as it did before. Test:
-  `node scripts/test-playground-liked-arrows.js` — the chip measured small,
-  the zone measured over the picture, and the edge tap asked with
-  `elementFromPoint`; its fixture had to become a REAL-SIZED 2:3 picture,
-  because the lightbox sizes itself to the picture and a 1x1 pixel put the
-  zones nowhere near it.
+  and it switches left or right" · **"the top left and right bars cover part
+  of the image. Can you just make it tap and no buttons showing"**).** Four
+  across stopped being enough to judge a picture by once the tiles were no
+  longer cropped squares. In the lightbox `.lbnav` is a transparent 28% strip
+  running the full height of the image area — **over the picture, which is the
+  point** — and **that is the whole control: no chip, no glyph, no plate, no
+  background.** The 26x96 `.lbbar` chip that used to be drawn at each zone's
+  outer edge is GONE; the zone was always what she was tapping, so the mark
+  was buying nothing and paying for it in a covered strip of a portrait 2:3.
+  **A tap zone over a picture stays invisible** — the whole point of a big
+  target is that it does not have to be shown. The stage (`.lbstage`) exists
+  so "the image area" is a real box: the zones are sized to the picture, never
+  to the window, so the caption and the ♥/✕ row under it are never covered.
+  Hidden at the ends of the feed takes the ZONE with it, so a tap there
+  closes. Test: `node scripts/test-playground-liked-arrows.js` — nothing drawn
+  (child nodes, text, background and border all measured off the real
+  buttons), the zone measured over the picture, and the edge tap asked with
+  `elementFromPoint`; verified failing 3 against the pre-fix page. Its fixture
+  had to become a REAL-SIZED 2:3 picture, because the lightbox sizes itself to
+  the picture and a 1x1 pixel put the zones nowhere near it.
   **THE ✕ FILTER BESIDE THE HEART (Aug 2026, Sophie: "can u also add a button
   next to the heart that hides anything i've 'exed'").** The heart's opposite
   and its twin — a filter over PICTURES in whichever view she is in, sticky,
@@ -3166,10 +3542,78 @@ before working on that module. Nothing was deleted — the moved text is verbati
     already landed (she may have hearted one), and refuses to touch a job that
     is genuinely still working — only one silent past `STALE_MS`. **That is why
     the sheet is saved to Storage BEFORE the cutting starts.**
-  - **The sheet is DECODED ONCE for all the cuts.** It was `sharp(sheet)` per
-    panel, which re-decodes the whole page every time — a 2336x3504 sheet is
-    24.5MB of raw pixels, so nine panels meant nine decodes on a 512MB box that
-    is also serving the app.
+  - **THE CUT RUNS IN A THROWAWAY CHILD PROCESS
+    (`scripts/cut-sheet-worker.js`, 2026-08-25) — the server's memory never
+    touches the pixels, and an OOM can only kill the cut, never the site.**
+    Earned the hard way, all measured the same day: the per-panel
+    `sharp(sheet).extract()` re-decoded AND cached the whole page per crop —
+    **592MB peak on a 9-panel 4K recut, on the 512MB box** — so every 4K cut
+    OOM-killed Render, and heal-on-read re-firing it per poll crash-looped the
+    service (the 502 night). The worker decodes once to a raw buffer with
+    sharp's cache off and encodes panels straight to files: **190MB peak in
+    its own process (self-measured, `peakRss` in its manifest, logged per
+    cut), server flat at baseline**, same pixels, ~2x faster. panels.js only
+    writes the sheet to tmp and uploads finished panels one at a time; live
+    progress comes from watching the out dir fill. Heals also run ONE at a
+    time process-wide — two wedged runs used to start two concurrent cuts
+    from a single feed read.
+  - **THE CUT LINES COME FROM THE PICTURE, NOT THE MATH (2026-08-25, Sophie:
+    "the cutting doesn't cut on the right lines because it's using math, but
+    the image generation is not exact — it needs some mechanism that's
+    actually aware and looks at the picture").** She was right, measured on
+    all four live sheets: the drawn gutters sat 7–45px off the mathematical
+    lines. `sheet-seams.js` scans a mean-ink profile near each math line and
+    finds the real boundary — a paper GUTTER (a valley, cut through its
+    middle) or, on a full-bleed sheet, the drawn BORDER line (a narrow peak,
+    cut ON it so each panel keeps half). **The qualifying tests are the
+    load-bearing half**: a valley must have dark flanks on BOTH sides and a
+    floor that reads as paper against the whole profile (a light patch inside
+    busy art fooled the first cut by 149px — the live cat sheet is now the
+    test fixture for it), and a peak must stand clear above both flanks;
+    anything less keeps the math line, so the failure mode is "no better than
+    before", never worse. Each cut panel stores its REAL `size` (they are no
+    longer all one nominal cell). Detection costs ~50-90ms a sheet. Tests:
+    `node scripts/test-sheet-seams.js` (pure, sheets built as raw bytes).
+  - **A STALE RUN HEALS ITSELF ON ANY READ (2026-08-25).** The resume route
+    existed and nothing ever called it — a deploy-restart mid-cut left the doc
+    saying `running` forever ("the cutting doesn't work"). Now the feed GET
+    and the poll GET kick the free recut themselves when a job has been silent
+    past `STALE_MS` with a sheet on file, and a run that died before its sheet
+    landed is stamped failed after `DRAW_STALE_MS` (15 min — the draw itself
+    can honestly take 10) instead of saying "working…" about nothing.
+  - **The cut encodes at `effort: 0` — still LOSSLESS** (effort only changes
+    how hard the encoder hunts for a smaller file, never the pixels).
+    Measured: 2518ms → 1191ms per 4K panel for ~20% more bytes — the right
+    trade on the box she watches cut nine panels.
+  - **THE PAGE'S FEED IS DIFFED, NEVER REBUILT (2026-08-25, Sophie: "once I
+    send it to be made it flashes like every two seconds").** `load()` used to
+    replace `#feed`'s whole innerHTML on every poll, so every `<img>` was
+    re-created and re-decoded — a full flash every couple of seconds while
+    anything ran. Each run keeps its own node now: the head line repaints,
+    the sheet lands once, a new cut is APPENDED, and an image already on
+    screen is never touched (pinned by the page test, which marks a live DOM
+    node and re-renders).
+  - **Tapping any picture opens THE shared Assets lightbox**
+    (`asset-lightbox.js` — never a fourth copy): a cut opens with its own
+    cell's words as the content half and the run's real wrapper (prefix + the
+    grid sentence + suffix) as the style half; the sheet opens with every
+    cell she wrote.
+  - **UPSCALE A PANEL IN THE PLAYGROUND (2026-08-25, Sophie: "upscale each
+    panel individually as its own image so this could copy the text into the
+    playground").** A cut's lightbox carries an action (the Playground's own
+    wire-loop icon — the opens-another-tool rule) that walks to
+    `/playground?prompt=&style=&quality=&res=4k&sameref=1` — the panel's own
+    words, the tile it was really drawn on (server `evan` → page `chatgpt`),
+    and the tier: a cut panel is ~1K of pixels, so a 4K single redraw IS the
+    upscale. `?res=` is a new one-shot deep-link param in promptlab.html
+    (still never persisted — this one is in the link she tapped).
+  - **PANELS · PLAYGROUND is a hairline tab row at the top** (her ask, same
+    message) — a NAVIGATION, not an embed: the Playground is its own page and
+    an iframe would double every pill and toggle on screen.
+  - **LIST · TILES views, like the Playground's** (her ask): List is the runs
+    feed, Tiles is every cut panel as one wall three across at its own
+    natural shape, keyed/append-only like the feed so it never flashes,
+    sticky in localStorage, tap opens the same lightbox.
   - Prices and prompt text are **SERVED** (`GET /api/panels/config`); the page
     holds no copy of either, and a test pins that. Nothing is deleted — a run
     hides. Tests: `node scripts/test-panels.js` — 26 pure checks including the
@@ -3471,7 +3915,27 @@ before working on that module. Nothing was deleted — the moved text is verbati
   owns a rolling track), because the 4% lean needs ~25s to absorb one late
   second. A stalled/buffering element is skipped by pacing and the 2s resync
   outright — a frozen clock is not drift, and reseeking INTO the unbuffered
-  region it is stalled on was the repeated mid-film pause), **a source boundary keeps
+  region it is stalled on was the repeated mid-film pause.
+  **A WRAPPED PAGE CAN BE DAYS STALE — THE APP KEEPS RECENT TOOLS ALIVE, SO A
+  PAGE LOADS ONCE PER APP PROCESS AND NO DEPLOY CAN REACH IT (2026-08-23, the
+  round-three finding, MEASURED: ten Film Editor PRs shipped in one day while
+  she kept reporting the pre-fix symptoms verbatim; her play posted no
+  telemetry beacon while the live route round-tripped fine — the one honest
+  proof her phone was running an old page).** RootView holds the three recent
+  tools in a ZStack (state survives tab switches — deliberate), so re-entering
+  a tool only toggles opacity; the WKWebView's page is whatever loaded FIRST
+  in that app process. Two consequences, both built here and worth copying to
+  any wrapped tool where page-version skew bites: **the page heals itself**
+  (`buildCheck` — every 5 min it compares its `BUILD` const against
+  `GET /api/filmeditor/build`, served from the html itself, and reloads IN
+  PLACE only while idle: never mid-play, mid-upload, within 10s of a save, or
+  under a sheet; `?c=` puts her back in the same cut), and **every play posts
+  a TELEMETRY beacon** (`POST/GET /api/filmeditor/telemetry?cut=` — build id,
+  rVFC fire counts, playhead holds, boundary reveal waits, audio start
+  latency/entries/stalls, proxy-vs-raw, capped 20 sessions) so a bug report
+  from her hand comes with the device's own account. **Before diagnosing ANY
+  "still broken" report on a wrapped tool, read the beacon's build id first**
+  — a report about an old build is not a bug in the new one), **a source boundary keeps
   the old frame on screen until the new one can paint** (the black-second
   gap), and **a joint never seeks the element on screen** (2026-08-23, her
   "little pauses between all the clips": #1564 fixed the seek-at-every-joint
@@ -3612,10 +4076,29 @@ before working on that module. Nothing was deleted — the moved text is verbati
     the place that already knows how. Assembly's "Add from the Dump" and the
     Film Editor read those two libraries already, so a grab is usable the
     moment it lands.
-  - **`to:"none"` for MUSIC.** The audio library transcribes unconditionally
-    (~$0.006/min) and files into her voice-memo archive — right for an
-    interview, wrong for a song, which would put lyrics in among her memos.
-    `none` keeps the only copy under `ytdl/` and just hands back the url.
+  - **AUDIO DEFAULTS TO `none`, AND THAT IS THE POINT (Aug 2026 v2, Sophie:
+    "are you meaning to ask a chat about it?").** This first shipped defaulting
+    audio into the audio library with a note saying to pass `to:"none"` for
+    music — i.e. a flag someone had to remember, which is not a fix. The audio
+    library transcribes everything it receives and files it into her voice-memo
+    archive: right for an interview, wrong for a song, and the two are NOT
+    tellable apart from the metadata (`categories`/`artist`/`track` all come
+    back `NA` on the player client yt-dlp uses here, measured 2026-08-24). So
+    the default is the mistake that is cheap to undo — `none` keeps the file
+    under `ytdl/` and hands back a url — and a chat grabbing an INTERVIEW asks
+    for `to:"audio"` deliberately. The other way round, a music grab nobody
+    thought about puts lyrics in among the notes she searches, with no undo
+    beyond hunting the memo down.
+  - **THE BOT-BLOCK IS INTERMITTENT AND IS RETRIED, NEVER REPORTED FIRST TIME
+    (measured 2026-08-24).** The same video read fine, then was refused twice
+    in a row a second later, same box and same IP — so it is rate-limiting, not
+    a standing ban. A grab retries a block 3 times over ~46s and only calls it
+    `blocked:true` once that ladder is exhausted; anything else (a dead url, a
+    private video) fails at once rather than wasting her time. Reporting the
+    first refusal as a block would send her to her computer for something that
+    works on the next attempt — the worst failure this module can have.
+    Render measured 6/6 clean at ~4s the same day, so its IP is in better
+    standing than a session container's, but neither is immune.
   - **The 300MB cap is a MEMORY fact, not a preference** — both sibling routes
     sit behind `express.raw`, which buffers the whole body, and the box has
     512MB. Raise `YTDL_MAX_MB` only if that changes.
@@ -3733,6 +4216,36 @@ before working on that module. Nothing was deleted — the moved text is verbati
     swap, the cancel POST, the in-flight poll, and the legend's drawings
     compared against the real buttons; verified failing against the pre-fix
     page, where the disabled button could not even be clicked).
+  **THE CAPTION IS WORDS WITH A PENCIL BESIDE THEM, AND A PICTURE-LESS BEAT
+  IS A DIFFERENT SHAPE (2026-08-24, Sophie: "the caption and the drawing
+  thing are editable by default. Can you make it that the caption shows not
+  in a edit box but default to just the ... text and then there's an edit
+  pencil button next to it" · "if there's no image then make the image box
+  smaller / and show the caption and the drawing prompt by default instead of
+  just the caption").** Two asks about the same card, and both are about a
+  beat she is READING rather than typing into.
+  - **The caption's default face is `#captext`, the words in the serif**, with
+    a bare pencil (`#capedit`) beside them; the pencil swaps in the same
+    `#pnote` textarea as before and takes the focus. **The pencil is a
+    TOGGLE and the box never closes on its own blur** — a card that
+    reshuffles between her mousedown and her mouseup eats the tap she was
+    aiming at the button underneath. Blur still SAVES. `#pnote` keeps the
+    caption's value whether it is showing or not, which is why `drawPrompt()`
+    and `saveNote()` are untouched.
+  - **`#beatcard.noart` is the picture-less state, computed once in
+    `openBeat`** (no url and not a clip — a beat mid-draw counts, since the
+    blank paper is what is on screen). It shrinks `#popblank` to 132px and
+    drops `#artwrap`'s `flex:1`, and it opens the drawing prompt beside the
+    caption: the empty tile used to take the whole card, on exactly the beat
+    whose WORDS are all there is.
+  - **The fold rule is now conditional on that** — opening the prompt folds
+    the caption away only when a picture is taking the room. And **the star
+    (`#ardraw`) opens the drawing box, never closes it**: it would otherwise
+    fold away the box a picture-less beat now opens with; the chevron on
+    Drawing prompt is the toggle, and the star focuses an open box.
+  - Test: `node scripts/test-scratchpad-popup.js` (the real page, headless —
+    the pencil measured beside the words, the empty tile measured against the
+    same card holding a picture).
   **Full details: `docs/modules/story.md`.**
 - **Scratch Pad / Story Room** (`scratchpad.js`, `/api/scratchpad`, page built by
   `scripts/gen-scratchpad.py`) — thinking with pictures. Hearted Playground images
@@ -3781,6 +4294,23 @@ before working on that module. Nothing was deleted — the moved text is verbati
   show approval state. **Making art for the "Evan" story? `docs/evan-film-style.md`
   FIRST** — write NO style description at all.
   **Full details: `docs/modules/story.md`.**
+  - **THE MIGRATION TO THE PADS LEFT THINGS BEHIND, AND FIXING IT IS SOPHIE'S
+    CALL — `docs/story-room-unported.md` (2026-08-24, her ask: "document this
+    as something to possibly fix but that no chat should fix it without me
+    saying so").** Whatever moved `forge-story` onto the story pads followed
+    ONE field, `voiceover.url`, and dropped the art into each pad's INBOX. So
+    five stories (Jonas, Moon Milk, The Meteorite, Charlie, My Own Destiny)
+    have an empty canvas with their pictures waiting unplaced and **the
+    narration line that went under each picture carried nowhere**; nine pinned
+    covers were lost, so the shelf derives a different face; Charlie's and
+    Evan's chapter headings have no field to live in; and Wormsicles, which had
+    no voiceover to follow, had no pad at all until one was made. **The audio
+    half IS fixed** — every pad carries its `description`/`descriptionAudio`/
+    `voiceover` now, which is what finally lights the *About this story* button
+    (it had never appeared on any story). **Everything else is documented and
+    deliberately NOT done.** Do not place beats, pin covers or write narration
+    onto a pad from that doc: which of a beat's 2-5 candidate pictures wins is
+    the story's look, and that is hers. Propose it in a reply and wait for a go.
 - **Story Timeline** (`timeline.js` + `timeline-parse.js`, `/api/timeline`,
   page at `/timeline`, iOS tile) — a dictated list of moments becomes cards she
   can put in order. It started as one Compare page for one story (Aug 2026) and
@@ -3813,8 +4343,16 @@ before working on that module. Nothing was deleted — the moved text is verbati
   words stay in `moments`. The page's controls are all hers by name: a number
   you can TYPE, single/double arrows (one step / all the way), the marks in the
   GAP (join these two, add one here), the pencil (change the words, and only
-  from inside the open editor: divide at the cursor, delete), and a unit of 5+
+  from inside the open editor: divide at the cursor, delete), and a unit of 3+
   FOLDING to its first and last with one line each in between.
+  **THE FOLD THRESHOLD IS `LONG` IN `public/timeline.html`, AND IT IS THREE
+  (2026-08-25, Sophie: "I thought that things are supposed to collapse into
+  just the first line when they're chained together is there a button I should
+  be pushing" — there is no button; it was 5, so her three- and four-card
+  chains sat fully open and read as broken).** The fold is automatic and there
+  is deliberately nothing to press. At three the fold is first + last with ONE
+  trimmed middle; a PAIR has no middle and so never folds, whatever the number
+  says. Both ends of that are pinned by `node scripts/test-timeline.js`.
   **The editor is behind a pencil and never a tap on the words** — tap-to-edit
   means every stray thumb on the way down the page opens an editor.
   Two bugs worth not repeating, both pinned by the test: a folded middle sets
@@ -4321,10 +4859,30 @@ before working on that module. Nothing was deleted — the moved text is verbati
       one, but all five live picture decks are posted with `voice:true`
       (measured), so folding them into her look would have taken the
       hands-free notes away. It rides in the note box's own corner.
-    - **Four verdicts became two**, matching her date cards. Measured across
-      her live decks the day this shipped: 16 verdicts, **one** `maybe`, no
-      `later`. A **Maybe/Later pile is still listed when something is
-      actually in it**, so the one legacy mark cannot vanish off the screen.
+    - **Four verdicts became two, and MAYBE came back as the third
+      (2026-08-24, Sophie: "can you add a maybe option in the Tinder checklist
+      template?").** Her footer is **✕ · ? · ♥** — the ? centred between the
+      two that hug the card's bottom corners — and Maybe is a first-class
+      pile now, not a legacy one. `LATER` stays legacy: it is still listed
+      when something is actually in it, so an old mark cannot vanish off the
+      screen, but nothing can cast one on a stock deck any more.
+      - **The ? is DRAWN, like the ✕ and the ♥** — `MOM_MAYBE`, a filled
+        ribbon with the nib thin where it enters, heaviest over the shoulder,
+        a chisel cap at the tail, and a lopsided dot. Deliberately not
+        `I.maybe`, the dashed circle: that is a Lucide-weight LINE icon and
+        would be the only geometric mark inside her design.
+      - **A maybe stamps NOTHING and CLEARS the asset vote.** The
+        good/bad stamp rule already said there is no good and no bad in a
+        maybe; the vote mirror follows the same logic — a maybe is not a like,
+        so the Assets tab and the card still agree.
+      - **THE CENTRE OF A CARD'S BOTTOM WAS NOT FREE, and only a measurement
+        found it.** A card's `link` (its way out — "Open the chat ›") is
+        centred at the end of the stack, which was safe while the only two
+        buttons hugged the corners; the ? landed exactly on that anchor and
+        `elementFromPoint` reported `BLOCKED-by-jg-mombtn maybe`. A card
+        carrying a link now wears `linkroom` and reserves the buttons' 58px,
+        the same band `.long` already reserves. Pinned by
+        `node scripts/test-template-link.js`.
     - A deck with its own `states` keeps its chips — her words still win.
   - **THE MINI AUTOSCROLL — conditional, small, on the side (Aug 2026,
     Sophie: "ideally you would add a conditional auto scroll thing, but only
@@ -4429,10 +4987,43 @@ before working on that module. Nothing was deleted — the moved text is verbati
 - **THE INSTAGRAM MOCKUPS** (page at `/instagram`, reached from the icon at the
   RIGHT of the Chats app's UPDATE tag row — Aug 2026, Sophie: "an icon button
   in the top right within the existing header space where the tags are, of my
-  update tab … that leads to two tabs — two mockups of instagram"). Her two
-  accounts drawn as their profile grids: **DREAM** (`you...my.dreams`) and
-  **WITCH** (`moonsickbaby`), behind two hairline tabs. **It costs nothing** —
-  no model call, no job; it reads a committed JSON and one free API.
+  update tab … that leads to two tabs — two mockups of instagram"). Her
+  accounts drawn as their profile grids, behind hairline tabs: **DREAM**
+  (`you...my.dreams`), **WITCH** (`moonsickbaby`) and, since 2026-08-24,
+  **PWC** (`people.watching.club`). **It costs nothing** — no model call, no
+  job; it reads a committed JSON and one free API.
+  - **A NEW ACCOUNT IS ONE ROW IN `public/instagram-grids.json` — nothing
+    counts the tabs, in the page or in the test (2026-08-24, Sophie: "can you
+    add another Hairline tab in my Instagram posting button on the update page
+    for my People Watching Club").** The page has said that since it shipped
+    and People Watching is the first time it was collected: the page, the
+    renderer and `grid.js` needed no change at all. The TEST did — it had
+    hardcoded "two hairline tabs" and "Dream · Witch", which is exactly the
+    edit the claim exists to prevent, so every assertion is derived from the
+    data file now and each account is swept generically (its tiles, its
+    buttons, its post count, its handle).
+  - **A TAB WORD MUST FIT ITS SHARE OF THE ROW, and that is measured.** The row
+    divides 390pt minus the pill's reserved 64 between however many accounts
+    there are, so each new one makes every tab narrower: at three, "People
+    watching" wrapped to two lines, which pushes the WHOLE row from 26px to
+    36px and leaves that one label reading over two lines beside its
+    neighbours' one. The tab is **PWC**, her own shorthand for it (her deck
+    titles say "PWC Instagram", "PWC memes"). Pinned with a Range over each
+    label's own text — a width assertion cannot see a wrap.
+  - **PWC HOLDS ONE THING, the bingo card she hearted, and the rest are empty
+    NEXT tiles.** Measured 2026-08-24: the account has no films and no posted
+    art — `pwc-instagram-content` is still at the CONCEPT stage (two decks in
+    its Compare tab, 19 post ideas and 18 memes), and the only PWC picture on
+    file anywhere is a run of bingo cards in the Playground, of which exactly
+    one carries her ♥. So the grid shows that one and says nothing else. **An
+    empty grid is the honest state of a young account** — do not fill it with
+    art she has not chosen; the tile has no `prefix`, so it opens its still
+    rather than being a dead control, and a note on it lands in
+    `pwc-instagram-content`, the chat that can act on it.
+  - **The handle and bio are a PLACEHOLDER she has not confirmed** — nothing in
+    the feed or the repo records the real PWC Instagram handle, so the mockup
+    reads `people.watching.club` / "field notes from public places." Swap both
+    the moment she says what they are; they are two strings in the JSON.
   - **THE DREAM GRID IS THE ONE THE dream-app-commercial CHAT ALREADY MADE, not
     a copy of it** (her ask: "reuse it exactly, it plays the films"). The phone,
     the 3:4 crop, the tiles that play and the current-cut refresh live in
@@ -4472,10 +5063,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
     ≥20px fits, so the wrap was coming either way and it keeps a full-size tap
     target. UPDATE row 40px → 72px, that screen only.
   - Test: `node scripts/test-instagram-grids.js` (the one-data-source rule
-    pure, then both real pages headless — the tabs' measured underline, a tile
-    playing, the still fallback, the pill's palette and corner, and the icon
-    asked with `elementFromPoint` at its own centre, which is the only honest
-    way to ask whether the pill is sitting on it).
+    pure, then both real pages headless — every account's grid swept, the tabs'
+    measured underline, no tab word wrapping, a tile playing, the still
+    fallback, the pill's palette and corner, and the icon asked with
+    `elementFromPoint` at its own centre, which is the only honest way to ask
+    whether the pill is sitting on it).
 - **Push notifications** (`push.js`, `/api/push`) — real APNs lock-screen
   notifications, raw HTTP/2 straight to Apple, no Firebase Messaging. Sent on a
   **finished reply** (never a draft) and on a new Compare page. They are the

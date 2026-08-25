@@ -181,6 +181,16 @@ function parseQuery(q) {
 //   chunks:  [ { i, s:<source key>, t:<start seconds|null>, x:<text> } ]
 // Chunk text is stored ONCE and never duplicated into per-source copies.
 let cache = null;          // { at, index }
+require('./memwatch').gauge('searchIndexChunks', () => (cache && cache.index && cache.index.chunks) ? cache.index.chunks.length : 0);
+// Summed lengths, never JSON.stringify — a gauge that allocates the whole
+// index as one string would spike memory at exactly the moment it is scarce.
+require('./memwatch').gauge('searchIndexMB', () => {
+  if (!cache || !cache.index || !Array.isArray(cache.index.chunks)) return 0;
+  let n = 0;
+  for (const c of cache.index.chunks) n += (c.t || '').length + (c.text || '').length;
+  return Math.round(n * 2 / 1048576);
+});
+
 let building = null;       // in-flight build promise
 let job = null;            // { status, label, at, error }
 

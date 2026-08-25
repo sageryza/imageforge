@@ -273,11 +273,24 @@ your own pill and never re-implement its script.** The contract:
   pieces for page-owned headers (Chats is the reference look). Don't
   hand-roll per-page variants. The four rules at the top of this skill apply
   here too: title once, explanation behind `#help`, boxes empty, buttons hug.
-- **iOS wrapper: a NEW web tool ships with the native bar + chevron** — copy
-  `EpisodeEditorView.swift` (forgeToolBar, chevron asks `window.__navBack`
-  first, `__nativeNavBar` injected so the page hides its own back button via
-  `body.native`, media paused on screen change). Only a page replacing the
-  whole chrome (Chats, Writing Room) earns a bare WKWebView host.
+- **iOS wrapper: `.forgeWebToolBar(title, failed:, back:)` — APPLE'S BAR IS
+  GONE (Aug 2026; this bullet used to say the opposite, and that stale
+  wording is what left the Story Room carrying a `.toolbar` chevron a week
+  after every sibling had moved).** `PlaygroundView.swift` is the reference
+  wrapper: no bar while the page is up, the bar back only for the failure
+  screen. `pagehead.js` (injected by serveGated on every gated page) draws
+  the one chevron into the page's own header row and walks `__navBack` → web
+  history → `__forgeLeave`. The page still honours `__nativeNavBar`
+  (`body.native` hides its own back control) for the older build.
+- **Write NO top-inset code of your own.** The header row's content-box top
+  is ONE number — `var(--headtop)` = safe area + 4px, chevron left 16 — and
+  `pagehead.js`'s `levelRow()` enforces it by measurement in the app
+  (2026-08-23; measured before it existed, 39 pages ran 0-42px because each
+  copied its neighbour's improvised clearance). For a page that must also
+  look right in a plain browser, define the token and use it
+  (`scratchpad.html` is the worked example). `node scripts/test-header-top.js`
+  measures every serveGated page — your new page is in it the day the route
+  lands. Full rules: the HEADER TOP bullet in `docs/design-rules.md`.
 - Icon-first tool → add the gold "?" circle that explains the icons (Cutting
   Room's `#help`/`#helpcard` is the pattern).
 - CSS gotcha: any page that toggles the `hidden` attribute needs

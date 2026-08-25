@@ -515,8 +515,9 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     for the item's natural shape; one item may carry its own `aspect` to
     differ from its page.
   - **`deck`** = the judge page driven by data: browse mode ON (tap the
-    card's left/right edges or swipe — no action required per card), ♥/✕/
-    maybe/later or her own words via `states:[{key:'done',label:'done'},…]`,
+    card's left/right edges or swipe — no action required per card), her
+    ✕ · ? · ♥ (no / maybe / yes, each with a pile) or her own words via
+    `states:[{key:'done',label:'done'},…]`,
     and `voice:true` puts a tap-to-record mic on every card (the transcript
     lands on the card's note thread via `POST /page-voice`, audio kept in
     Storage). **HANDS-FREE is the same mic, no toggle** (Aug 2026 — built the
@@ -558,9 +559,16 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     WIDTH and about four lines tall under them (Aug 2026, her ask: "the note
     box is just too small… the heart and the ex can go a little above it and
     maybe be a tiny bit smaller to make room" — 52px squares now, down from
-    the mockup's 62) — so these decks have only yes/no (piles named
-    Yes/No/Unsure, the mockup's words), no maybe/later, no mic and no corner
-    note +. The note box saves through the same verdict-doc thread and
+    the mockup's 62) — **plus MAYBE between them since 2026-08-24** ("can you
+    add a maybe option in the Tinder checklist template?"): a drawn `?`
+    (`MOM_MAYBE`, the same filled-ribbon pen as the other two, never Lucide's
+    dashed circle) centred over the card's bottom edge, with a pile of its own,
+    so the piles read Yes/Maybe/No/Unsure. `later` is legacy — still listed
+    when an old mark is in it, never castable here. A maybe stamps nothing and
+    clears the asset vote. **A card carrying a `link` reserves the buttons'
+    58px (`linkroom`)**: the ✕ and ♥ hug the corners, but a centred link and a
+    centred `?` land on each other — measured, not guessed. No mic and no
+    corner note +. The note box saves through the same verdict-doc thread and
     Assets-tab mirror as the + note everywhere else. **And the keyboard may
     not cover it** (her report: "I'm usually using the microphone, but the
     keyboard still comes up and blocks the note box" — iOS raises the
@@ -647,8 +655,8 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
       re-syncs after the serif lands and a blanket stop there killed the
       scroll a second in. The position accumulates in JS — `scrollTop +=
       0.37` snaps to the same integer every frame and moves nothing.
-      The ✕ and ♥ (`MOM_X` / `MOM_HEART`) are filled outlines with chisel
-      caps rather than the plain characters, at her ask.
+      The ✕, the ? and the ♥ (`MOM_X` / `MOM_MAYBE` / `MOM_HEART`) are filled
+      outlines with chisel caps rather than the plain characters, at her ask.
     - **A DECK OPENED FROM THE REVIEW QUEUE HAS A BACK MARK** — `?clean=1` is
       both the door (no `<h1>`) and the signal; judge.js draws a chevron at
       the left of the top row and `history.back()`s to the queue. A deck

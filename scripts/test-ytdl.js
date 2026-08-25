@@ -13,10 +13,14 @@ const assert = require('assert');
 const ytdl = require('../ytdl.js');
 
 let pass = 0; let failed = 0;
+const queue = [];
 function t(name, fn) {
-  try { fn(); pass++; console.log(`  ok  ${name}`); }
-  catch (e) { failed++; console.log(`FAIL  ${name}\n      ${e.message}`); }
+  queue.push(async () => {
+    try { await fn(); pass++; console.log(`  ok  ${name}`); }
+    catch (e) { failed++; console.log(`FAIL  ${name}\n      ${e.message}`); }
+  });
 }
+async function drain() { for (const q of queue.splice(0)) await q(); }
 
 console.log('\nthe source url');
 t('a plain youtube url is fine', () => {
@@ -124,6 +128,43 @@ t('an ordinary failure is NOT called a block', () => {
   assert.ok(!ytdl.isBlocked('nothing downloaded — the file is probably over the cap'));
 });
 
+console.log('\nwhere an unspecified grab goes');
+// The asymmetry this encodes: a song transcribed into her voice-memo archive
+// has to be hunted down and deleted; an interview she has to ask to transcribe
+// costs one more sentence. So the cheap mistake is the default.
+t('audio does NOT default into the transcribing library', () => {
+  assert.strictEqual(ytdl.defaultTo('audio'), 'none');
+});
+t('video defaults to the Dump, where video is looked for', () => {
+  assert.strictEqual(ytdl.defaultTo('video'), 'dump');
+});
+
+console.log('\nthe bot-block is retried, not reported');
+t('a block that clears is never surfaced as a failure', async () => {
+  let n = 0;
+  const got = await ytdl.pastTheBlock('x', () => {
+    n++;
+    if (n < 2) throw new Error('Sign in to confirm you are not a bot');
+    return 'the file';
+  }, async () => {}, [1, 1, 1]);
+  assert.strictEqual(got, 'the file');
+  assert.strictEqual(n, 2);
+});
+t('an ordinary failure is NOT retried — that would just waste her time', async () => {
+  let n = 0;
+  await assert.rejects(() => ytdl.pastTheBlock('x', () => {
+    n++; throw new Error('Video unavailable');
+  }, async () => {}, [1, 1, 1]));
+  assert.strictEqual(n, 1, `retried ${n} times`);
+});
+t('a block that never clears IS reported, after the whole ladder', async () => {
+  let n = 0;
+  await assert.rejects(() => ytdl.pastTheBlock('x', () => {
+    n++; throw new Error('Sign in to confirm you are not a bot');
+  }, async () => {}, [1, 1, 1]), /not a bot/);
+  assert.strictEqual(n, ytdl.BLOCK_TRIES);
+});
+
 console.log('\ncontent types');
 t('mp4 is video', () => assert.strictEqual(ytdl.ctFor('mp4'), 'video/mp4'));
 t('m4a is audio, not video', () => assert.strictEqual(ytdl.ctFor('m4a'), 'audio/mp4'));
@@ -188,6 +229,7 @@ async function live() {
 }
 
 (async () => {
+  await drain();
   if (process.argv.includes('--live')) await live();
   console.log(`\n${pass} passed, ${failed} failed\n`);
   process.exit(failed ? 1 : 0);

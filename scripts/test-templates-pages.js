@@ -338,8 +338,8 @@ setTimeout(function(){
      'a picture deck wears her chrome — the progress line and Piles, no count');
   ok(getComputedStyle(document.body).backgroundColor==='rgb(247, 242, 232)',
      'and her cream behind it');
-  ok(m.querySelectorAll('.jg-mombtn').length===2 && !m.querySelector('.jg-btn'),
-     'her two marks, not the four house verdicts');
+  ok(m.querySelectorAll('.jg-mombtn').length===3 && !m.querySelector('.jg-btn'),
+     'her three marks (✕ · ? · ♥), not the four house verdicts');
   ok(!!m.querySelector('.jg-momnote'), 'and her note box, not a corner +');
   ok(who()==='first', 'the item label becomes the name over the picture');
   ok(!!m.querySelector('.jg-mom figure.hug img'),
@@ -372,6 +372,26 @@ setTimeout(function(){
   m.querySelector('.jg-navzone.next').click();
   m.querySelector('.jg-navzone.prev').click();
   ok(m.querySelector('[data-act="yes"]').classList.contains('on'), 'the verdict shows lit when she returns');
+
+  // ── MAYBE (Aug 2026, Sophie: "can you add a maybe option in the Tinder
+  // checklist template?"). A real verdict: it saves the string, it lights,
+  // it does not move the deck, and it CLEARS the asset vote a ♥ had cast —
+  // a maybe is not a like, and the Assets tab has to agree with the card.
+  m.querySelector('[data-act="maybe"]').click();
+  var pmb=posts('/api/chatfeed/verdict').pop();
+  ok(pmb && pmb.b.ok==='maybe' && pmb.b.item==='a', "the ? saves the string 'maybe'");
+  ok(who()==='first', 'and it does not move the deck either');
+  ok(m.querySelector('[data-act="maybe"]').classList.contains('on')
+     && !m.querySelector('[data-act="yes"]').classList.contains('on'),
+     'it lights and the heart goes out');
+  var pmv=posts('/api/gallery/assets/vote').pop();
+  ok(pmv && pmv.b.vote===null, 'and the asset vote is cleared, not left liked');
+  ok(!m.querySelector('.jg-stamp'), 'a maybe stamps nothing — no good, no bad');
+  m.querySelector('[data-act="piles"]').click();
+  var mh=[].map.call(m.querySelectorAll('.jg-piles h2'), function(h){ return h.textContent; });
+  ok(mh.join('|').indexOf('Maybe · 1')>=0, 'it lands in a Maybe pile — got '+mh.join('|'));
+  m.querySelector('[data-act="piles"]').click();
+  m.querySelector('[data-act="maybe"]').click();   // put the deck back as it was
 
   // THE SECOND DECK IS HAND-BUILT (window.__judge direct, no look:'mom'), so
   // it still wears the house look — that is the guarantee that unifying the
@@ -607,20 +627,37 @@ setTimeout(function(){
   ok(Math.abs(Math.round(q.right)-R0)<=1,
      'the ? ends on the boxes\\' right edge — got '+Math.round(q.right)+' vs '+R0);
   ok(Math.abs(Math.round(btns[0].getBoundingClientRect().left)-L0)<=1
-     && Math.abs(Math.round(btns[1].getBoundingClientRect().right)-R0)<=1,
+     && Math.abs(Math.round(btns[2].getBoundingClientRect().right)-R0)<=1,
      'the ✕ and ♥ sit on the boxes\\' own edges');
+  // MAYBE IS CENTRED BETWEEN THEM (Aug 2026, her ask) — measured, because a
+  // translate that lands the box's LEFT on the middle looks nearly right
+  var mb=btns[1].getBoundingClientRect();
+  ok(Math.abs((mb.left+mb.right)/2-(L0+R0)/2)<=1,
+     'the ? sits centred between them — got '+Math.round((mb.left+mb.right)/2)
+     +' vs '+Math.round((L0+R0)/2));
+  ok(mb.left>btns[0].getBoundingClientRect().right
+     && mb.right<btns[2].getBoundingClientRect().left,
+     'and it overlaps neither of them');
   ok(Math.round(row.getBoundingClientRect().bottom)<=window.innerHeight,
      'the footer sits on the screen, not below it');
-  ok(row && btns.length===2 && btns[0].getAttribute('aria-label')==='No'
-     && btns[1].getAttribute('aria-label')==='Yes' && !m.querySelector('.jg-btn'),
-     'her footer: ✕ and ♥ (the ✓ swapped for a heart), not the four house verdicts');
+  ok(row && btns.length===3 && btns[0].getAttribute('aria-label')==='No'
+     && btns[1].getAttribute('aria-label')==='Maybe'
+     && btns[2].getAttribute('aria-label')==='Yes' && !m.querySelector('.jg-btn'),
+     'her footer: ✕ · ? · ♥ (the ✓ swapped for a heart), not the four house verdicts');
   // HAND-DRAWN, NOT THE CHARACTERS (Aug 2026: "make this X that I gave as a
   // screenshot, and make the heart actually kind of a handwriting look") —
   // filled paths with an explicit fill, so a host svg-fill-none rule can
-  // never hollow them out
-  var gx=btns[0].querySelector('svg'), gh=btns[1].querySelector('svg');
+  // never hollow them out. The ? joined them the same way: a drawn ribbon and
+  // a dot, never Lucide's dashed circle (which is a STROKED line icon, so
+  // this catches the copy-paste that would have reached for it).
+  var gx=btns[0].querySelector('svg'), gh=btns[2].querySelector('svg');
+  var gm=btns[1].querySelector('svg');
   ok(gx && gh && gx.querySelectorAll('path').length===2 && gh.querySelectorAll('path').length===1,
      'the marks are drawn — two crossing strokes and one heart, not ✕/♥ characters');
+  ok(gm && gm.querySelectorAll('path').length===2 && !gm.querySelector('circle')
+     && getComputedStyle(gm.querySelector('path')).fill!=='none'
+     && getComputedStyle(gm.querySelector('path')).stroke==='none',
+     'the ? is drawn too — a filled ribbon and a dot, not the dashed circle');
   ok(getComputedStyle(gx.querySelector('path')).fill!=='none'
      && getComputedStyle(gx).getPropertyValue('fill')!=='none',
      'they are FILLED — got '+getComputedStyle(gx).getPropertyValue('fill'));
@@ -628,9 +665,9 @@ setTimeout(function(){
     var g=r.getBoundingClientRect(), b=el.getBoundingClientRect();
     return [Math.abs((g.left+g.right)/2-(b.left+b.right)/2),
             Math.abs((g.top+g.bottom)/2-(b.top+b.bottom)/2)]; }
-  var offs=[off(btns[0]),off(btns[1]),off(m.querySelector('.jg-momq'))];
+  var offs=[off(btns[0]),off(btns[1]),off(btns[2]),off(m.querySelector('.jg-momq'))];
   ok(offs.every(function(d){ return d[0]<1.5 && d[1]<1.5; }),
-     'the ✕, the ♥ and the ? are centred in their own buttons — got '
+     'the ✕, the ?, the ♥ and the help ? are centred in their own buttons — got '
      + offs.map(function(d){ return d[0].toFixed(1)+'/'+d[1].toFixed(1); }).join(' '));
   // her size, and the page pinned so iOS cannot zoom itself instead
   ok(parseFloat(getComputedStyle(row.querySelector('.jg-momnote')).fontSize)===13,
@@ -670,7 +707,7 @@ setTimeout(function(){
      && !m.querySelector('.jg-card').classList.contains('ctl'),
      'the house card chrome disappears behind her boxes');
   // the ♥ saves a yes and steps forward, exactly like the mockup
-  btns[1].click();
+  btns[2].click();
   var pv=posts('/api/chatfeed/verdict').pop();
   ok(pv && pv.b.ok===true && pv.b.item==='m1', 'the heart saves a yes');
   ok(document.querySelector('.jg.mom>.who').textContent==='Maya'
@@ -1065,6 +1102,11 @@ setTimeout(function(){
       var yes=m.querySelector('.jg-mombtn.yes').getBoundingClientRect();
       ok(hit((yes.left+yes.right)/2,(yes.top+yes.bottom)/2)==='btn',
          'the heart still wins its own tap, on top of the zone');
+      // and the ? between them — it is the one that sits in the middle,
+      // where the CARD is, so nothing of the card may take its tap
+      var may=m.querySelector('.jg-mombtn.maybe').getBoundingClientRect();
+      ok(hit((may.left+may.right)/2,(may.top+may.bottom)/2)==='btn',
+         'the ? wins its own tap, over the card');
       fetch('/result?r=' + encodeURIComponent(L.join(' | ')), {});
     }, 300);
   }, 200);

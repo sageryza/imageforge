@@ -11,6 +11,7 @@ const path = require('path');
 const G = require('../sheet-grid');
 const P = require('../panels');
 const sizeTier = require('../size-tier');
+const { promptRecord } = require('../prompt-record');
 
 // The two measured anchors' medium rates, read out of panels.js rather than
 // retyped — the direction of the clamp depends on them.
@@ -170,22 +171,43 @@ t('her words go in VERBATIM, one line per cell, in reading order', () => {
   });
 });
 
-t('the grid sentence states the CUT, and says nothing about decoration', () => {
-  // A sentence here about borders or caption boxes would argue with a style's
-  // own tail — the exact failure the module header warns about, and Dreamy
-  // legitimately asks for a hand-drawn frame per panel.
+t('the grid sentence is SHORT, and asks for the margins and gutters', () => {
+  // Sophie's note on the first sheet (2026-08-24): "add margins and gutters" ·
+  // "less instructions because it's copying the reference image". Both halves
+  // are one insight — the style reference IS a multi-panel comic page, so the
+  // layout only has to be NAMED, not described.
+  //
+  // And with a gutter the cut comes out EVEN: slicing at exact halves puts
+  // half a gutter on each inner edge and the page margin on each outer one, so
+  // a panel is bordered on all four sides. The first version forbade gutters
+  // "because the cut needs that" and got a panel bordered on TWO sides.
   const plan = G.sheetFor(4, 'portrait', '4k');
+  const line = P.gridLine(plan);
+  assert.ok(/even margin/.test(line), 'it asks for the page margin');
+  assert.ok(/gutters between the panels/.test(line), 'and the gutters');
+  assert.ok(!/no gutters/.test(line), 'the old anti-gutter clause is gone');
+  assert.ok(/style reference/.test(line), 'it points at the reference to do the work');
+
+  // SHORT. The first version was three sentences and 300+ characters of
+  // forbidding what the reference was going to do anyway.
+  assert.ok(line.length < 240, `one short sentence-ish: ${line.length} chars`);
+  assert.ok(line.split(/[.!?] /).length <= 2, 'at most two sentences');
+
+  // Still silent about decoration — that is the STYLE's business, and a
+  // sentence here arguing with a style's own tail is the module's named
+  // failure mode. Dreamy legitimately asks for a hand-drawn frame per panel.
+  assert.ok(!/\bborder\b/i.test(line), 'it says nothing about borders');
+  assert.ok(!/caption box/i.test(line), 'it says nothing about caption boxes');
+
+  // and it still names the real geometry
+  assert.ok(line.includes('2x2 grid of 4'), 'names the grid');
+  assert.ok(/single row of 2 .* side by side/.test(P.gridLine(G.sheetFor(2, 'portrait', '4k'))),
+    'two reads as a row, not a grid');
+
+  // the line really is what goes into the prompt
   const out = P.buildPrompt({ plan, panels: ['a', 'b', 'c', 'd'],
     prefix: '', suffix: '', cells: G.cellNames(4) });
-  assert.ok(/no gutters/.test(out), 'it forbids gutters — the cut needs that');
-  assert.ok(/cut along those lines/.test(out), 'it says why');
-  assert.ok(!/\bborder\b/i.test(out), 'it says nothing about borders');
-  assert.ok(!/caption box/i.test(out), 'it says nothing about caption boxes');
-  // and it names the real geometry
-  assert.ok(out.includes('2x2 grid of 4'), 'names the grid');
-  const two = P.buildPrompt({ plan: G.sheetFor(2, 'portrait', '4k'),
-    panels: ['a', 'b'], prefix: '', suffix: '', cells: G.cellNames(2) });
-  assert.ok(/single row of 2 .* side by side/.test(two), 'two reads as a row, not a grid');
+  assert.ok(out.includes(line), 'buildPrompt sends the same sentence gridLine returns');
 });
 
 // --------------------------------------------------------------------------
@@ -284,6 +306,45 @@ t('the page holds NO price and NO prompt text of its own', () => {
   assert.ok(PAGE.includes('/api/panels/config'), 'it asks the server instead');
 });
 
+t('no page class collides with one tool.css already owns', () => {
+  // THE BUG THIS EXISTS FOR (2026-08-24, Sophie: "layout is just really
+  // awkward"): the boxes were `class="cell"`, and tool.css owns `.tool .cell`
+  // — its image-grid TILE: aspect-ratio 1, a grey fill, centred contents,
+  // overflow hidden. At (0,0,2) that beats a bare `.cell` here whatever this
+  // page declares, so every panel box rendered as a 177x177 grey square with
+  // her writing space squeezed to 75px of it and the label floating in the
+  // middle. Nothing in either file was wrong on its own; the NAME was.
+  // Same shape as the `.morebtn` collision in the design rules.
+  const css = fs.readFileSync(path.join(ROOT, 'public', 'tool.css'), 'utf8');
+  const owned = new Set([...css.matchAll(/\.tool\s+\.([a-zA-Z][\w-]*)/g)].map((m) => m[1]));
+  // The shared HEADER KIT is used ON PURPOSE — the page wants those rules.
+  const kit = new Set(['head', 'eyebrow', 'helpcard', 'btn', 'note', 'row', 'chip', 'chips']);
+  const used = new Set();
+  for (const m of PAGE.matchAll(/class="([^"]+)"/g)) m[1].split(/\s+/).forEach((c) => used.add(c));
+  const clash = [...used].filter((c) => owned.has(c) && !kit.has(c));
+  assert.deepStrictEqual(clash, [],
+    `page classes tool.css also styles: ${clash.join(', ')} — rename them (see .pcell)`);
+  assert.ok(/class="pcell"/.test(PAGE), 'the boxes are .pcell, never .cell');
+});
+
+t('the control row is two deliberate lines, not three by accident', () => {
+  // Measured at 390pt before the fix: the pickers filled two lines and pushed
+  // Generate onto a third of its own — 38px of button in a 42px empty row.
+  // The zero-height break is what makes the split a decision; flex-wrap stays
+  // as the safety net if a longer style name grows line two.
+  assert.ok(/class="brk"/.test(PAGE), 'the row carries an explicit break');
+  assert.ok(/\.ctrls \.brk \{[^}]*flex:\s*1 0 100%/.test(PAGE), 'and it is a real flex row break');
+  const ctrls = /\$\('#ctrls'\)\.innerHTML =([\s\S]*?);\n/.exec(PAGE);
+  assert.ok(ctrls, 'found the control row');
+  const order = ['gridseg', 'shapeseg', 'id="go"', 'class="brk"', 'stylepick', 'respick', 'qpick'];
+  let at = -1;
+  for (const bit of order) {
+    const i = ctrls[1].indexOf(bit);
+    assert.ok(i > at, `${bit} comes after the one before it`);
+    at = i;
+  }
+});
+
 t('the boxes ship EMPTY — no placeholder, no example', () => {
   const areas = PAGE.match(/<textarea[^>]*>[\s\S]*?<\/textarea>/g) || [];
   for (const a of areas) {
@@ -298,7 +359,12 @@ t('the boxes ship EMPTY — no placeholder, no example', () => {
 t('the pill contract: corner reserved, no page-level var collision, no own pill', () => {
   assert.ok(/padding-right:\s*64px/.test(PAGE), 'the control row reserves 64px for the pill');
   assert.ok(!/class="float"/.test(PAGE), 'the page adds no pill of its own — the server injects it');
-  assert.ok(/body\.tool \.float/.test(PAGE), 'it out-specifies .float to colour the injected pill');
+  // The settled pill contract (pill-inject.html reads var(--x, fallback)):
+  // the host defines the five tokens on :root — never out-specifies .float.
+  assert.ok(!/\.float\s*\{/.test(PAGE), 'nothing out-specifies .float — that contract is retired');
+  for (const tok of ['--paper:', '--ink:', '--ink2:', '--chg:', '--rose:']) {
+    assert.ok(PAGE.includes(tok), 'the page defines the pill token ' + tok);
+  }
   // the injected pill declares `var raf` / `var I` in global scope; a
   // page-level `let raf` kills its script at parse time
   assert.ok(/\(function \(\) \{/.test(PAGE), 'the page script is wrapped in an IIFE');
@@ -444,6 +510,42 @@ t('a wedged job is takeoverable, a working one is not', () => {
     n++; console.log('  ok  a resume cuts only what is missing, in reading order');
   }
 
+  // THE WHOLE PROMPT IS FILED WITH EVERY PICTURE — the sheet and each cut
+  // panel (Sophie's hard rule, 2026-08-24). This module shipped filing neither,
+  // so a panel's PROMPT overlay had no style half at all.
+  {
+    const plan = G.sheetFor(4, 'portrait', '4k');
+    const filed = [];
+    P.__setDeps({ fileCreation: (a) => { filed.push(a); return 'id'; },
+      styles: { dreamy: { label: 'Dreamy', prefix: 'PRE', suffix: 'SUF' } },
+      gpt: { id: 'gpt-image-2' } });
+    const cfg = { plan, panels: ['a crow', 'a door', 'a bell', 'a hand'], quality: 'medium',
+      styleId: 'dreamy', prefix: 'PRE', suffix: 'SUF',
+      fullPrompt: P.buildPrompt({ plan, panels: ['a crow', 'a door', 'a bell', 'a hand'],
+        prefix: 'PRE', suffix: 'SUF', cells: G.cellNames(4) }) };
+    const images = G.cellNames(4).map((cell, i) => ({ url: `https://x/${i}.webp`, cell,
+      prompt: cfg.panels[i] }));
+    P.fileRun('https://x/sheet.webp', images, cfg, 0);
+    assert.strictEqual(filed.length, 5, 'the sheet and all four panels are filed');
+    filed.forEach((f, i) => assert.strictEqual(f.fullPrompt, cfg.fullPrompt,
+      `filing ${i} carries the LITERAL page-sized prompt that drew it`));
+    filed.forEach((f, i) => assert.ok(f.promptPrefix.includes(P.gridLine(plan)),
+      `filing ${i}'s style half carries the grid sentence this module adds`));
+    // What the shared builder would actually write onto the doc.
+    const sheetRec = promptRecord({ full: filed[0].fullPrompt, content: filed[0].promptContent,
+      prefix: filed[0].promptPrefix, suffix: filed[0].promptSuffix });
+    assert.ok(!/the sheet —/.test(sheetRec.promptContent),
+      "the sheet's content half is HER words, never our caption line");
+    assert.ok(cfg.panels.every((w) => sheetRec.promptContent.includes(w)),
+      'and it is every cell she wrote, verbatim');
+    const panelRec = promptRecord({ full: filed[1].fullPrompt, content: filed[1].prompt,
+      prefix: filed[1].promptPrefix, suffix: filed[1].promptSuffix });
+    assert.strictEqual(panelRec.promptContent, 'a crow', "a panel's content half is its own cell");
+    assert.ok(panelRec.promptStyle.includes('PRE') && panelRec.promptStyle.includes('SUF'),
+      "and its style half is the run's real wrapper");
+    n++; console.log('  ok  the sheet and every panel file the whole prompt');
+  }
+
   await drivePage();
   console.log(`\n${n} checks passed.\n`);
 })().catch((e) => { console.error('\nFAILED:', e.message, '\n'); process.exit(1); });
@@ -475,7 +577,9 @@ async function drivePage() {
     const p = await b.newPage({ viewport: { width: 390, height: 844 } });
     const fatal = [];
     p.on('pageerror', (e) => fatal.push(e.message));
-    await p.goto(base + '/panels', { waitUntil: 'networkidle' });
+    // domcontentloaded, not networkidle — the feed now shows real runs whose
+    // full-size lossless sheets can stream for longer than any idle window
+    await p.goto(base + '/panels', { waitUntil: 'domcontentloaded' });
     await p.waitForFunction(() => document.querySelectorAll('#cells textarea').length > 0,
       { timeout: 15000 });
 
@@ -513,15 +617,23 @@ async function drivePage() {
     assert.ok(/2336x3504/.test(await p.$eval('#plan', (e) => e.textContent)), 'and it moves');
     n++; console.log('  ok  page: the plan line is served and moves with the pickers');
 
-    // The slider steps and WRAPS, like the Playground's.
-    const steps = [];
-    for (let i = 0; i < 4; i++) {
-      steps.push(await p.$eval('#respick', (e) => e.dataset.i));
-      await p.click('#respick');
+    // THE SLIDER LANDS WHERE SHE TAPS, like the Playground's (2026-08-24 —
+    // /tritoggle.js). This used to assert a CYCLE, which is the bug Sophie
+    // reported: from the middle stop every tap went right, whichever side she
+    // aimed at.
+    const tapTri = async (sel, frac) => {
+      const box = await p.locator(sel).boundingBox();
+      await p.mouse.click(box.x + box.width * frac, box.y + box.height / 2);
+      await p.waitForTimeout(220);
+    };
+    const stops = [];
+    for (const frac of [1 / 6, 5 / 6, 1 / 2]) {
+      await tapTri('#respick', frac);
+      stops.push(await p.$eval('#respick', (e) => e.dataset.i));
     }
-    assert.strictEqual(steps[0], steps[3], 'the slider wraps');
-    assert.strictEqual(new Set(steps).size, 3, 'three distinct stops');
-    n++; console.log(`  ok  page: the size slider steps and wraps (${steps.join(' → ')})`);
+    assert.deepStrictEqual(stops, ['1K', '4K', '2K'],
+      `left/right/middle pick their own stop (${stops.join(' → ')})`);
+    n++; console.log(`  ok  page: the size slider lands where she taps (${stops.join(' → ')})`);
 
     // AN EMPTY BOX IS REFUSED BEFORE ANY REQUEST — the model fills an unnamed
     // cell with whatever it likes and she pays for it at the sheet's price.
@@ -533,6 +645,96 @@ async function drivePage() {
       'it says which');
     assert.strictEqual(posts, 0, 'and nothing was requested — no money at risk');
     n++; console.log('  ok  page: an empty box is refused with ZERO requests');
+
+    // THE FEED IS DIFFED, NEVER REBUILT (2026-08-25, Sophie: "it flashes like
+    // every two seconds") — a poll repaint must never touch an image already
+    // on screen, only append what is new.
+    const GIF = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+    const diffed = await p.evaluate((gif) => {
+      const run = { id: 'T1', grid: 4, count: 4, cellSize: '1x1', sheetSize: '2x2',
+        style: 'dreamy', quality: 'low', res: '4k', status: 'running', sheetUrl: '',
+        panels: ['a', 'b', 'c', 'd'], job: { label: 'cutting', done: 2 },
+        images: [{ url: gif, cell: 'top-left', prompt: 'a' }] };
+      window.__panelsRender([JSON.parse(JSON.stringify(run))]);
+      const first = document.querySelector('#feed .cuts img');
+      first.__mark = 42;
+      run.images.push({ url: gif, cell: 'top-right', prompt: 'b' });
+      run.job = { label: 'cutting', done: 3 };
+      window.__panelsRender([JSON.parse(JSON.stringify(run))]);
+      const again = document.querySelector('#feed .cuts img');
+      return { sameNode: again.__mark === 42,
+        count: document.querySelectorAll('#feed [data-run="T1"] .cuts img').length,
+        head: document.querySelector('#feed [data-run="T1"] .runhead').textContent };
+    }, GIF);
+    assert.strictEqual(diffed.sameNode, true, 'an image already on screen was not recreated');
+    assert.strictEqual(diffed.count, 2, 'the new cut was appended');
+    n++; console.log('  ok  page: a poll appends, it never rebuilds — no flash');
+
+    // TAPPING A PICTURE OPENS THE SHARED ASSETS LIGHTBOX (2026-08-25, Sophie:
+    // "I can't open the pictures in a light box").
+    const lb = await p.evaluate(() => {
+      document.querySelector('#feed [data-run="T1"] .cuts img').click();
+      const box = document.getElementById('clightbox');
+      const open = Boolean(box) && !box.hidden && box.innerHTML.length > 0;
+      const text = box ? box.textContent : '';
+      if (box) { box.hidden = true; box.innerHTML = ''; document.body.style.overflow = ''; }
+      return { open, hasPrompt: /PROMPT/i.test(text) };
+    });
+    assert.strictEqual(lb.open, true, 'the lightbox opened');
+    n++; console.log('  ok  page: tapping a picture opens the shared lightbox');
+
+    // LIST · TILES — the Playground's pair here too (2026-08-25, her ask).
+    // The T1 fixture is already rendered, so switching must show its cuts as
+    // a wall; the choice is sticky.
+    await p.click('#viewseg button[data-view="tiles"]');
+    const tiles = await p.evaluate(() => ({
+      feedHidden: document.getElementById('feed').hidden,
+      tilesShown: !document.getElementById('tiles').hidden,
+      count: document.querySelectorAll('#tiles img').length,
+      stored: localStorage.getItem('forge.panels.view'),
+    }));
+    assert.strictEqual(tiles.feedHidden, true, 'list view stands down');
+    assert.strictEqual(tiles.tilesShown, true, 'the wall shows');
+    assert.strictEqual(tiles.count, 2, "the fixture's two cuts are on it");
+    assert.strictEqual(tiles.stored, 'tiles', 'the choice is sticky');
+    n++; console.log('  ok  page: LIST · TILES, sticky, cuts on the wall');
+
+    // UPSCALE IN THE PLAYGROUND — a cut's lightbox carries the action, and
+    // the link carries the panel's words, the right tile and res=4k.
+    const up = await p.evaluate(() => {
+      document.querySelector('#tiles img').click();
+      const btn = document.querySelector('#clightbox [aria-label="Upscale in the Playground"]');
+      const box = document.getElementById('clightbox');
+      const out = { has: Boolean(btn) };
+      if (box) { box.hidden = true; box.innerHTML = ''; document.body.style.overflow = ''; }
+      return out;
+    });
+    assert.strictEqual(up.has, true, 'the lightbox offers the upscale');
+    await p.evaluate(() => {
+      localStorage.setItem('forge.panels.view', 'list');
+    });
+    n++; console.log('  ok  page: a cut offers Upscale in the Playground');
+
+    // THE HAIRLINE TAB walks to the Playground, and ?res=4k&prompt land there
+    // — the whole hand-off, driven for real.
+    await p.click('#tab-playground');
+    await p.waitForURL(/\/playground/, { timeout: 15000 });
+    await p.goto(base + '/playground?prompt=a%20crow&style=dreamy&quality=medium&res=4k&sameref=1&from=panels',
+      { waitUntil: 'domcontentloaded' });
+    await p.waitForFunction(() => {
+      const r = document.getElementById('rpick');
+      return r && r.dataset.i && r.dataset.i !== '';
+    }, { timeout: 15000 });
+    const landed = await p.evaluate(() => ({
+      res: document.getElementById('rpick').dataset.i,
+      prompt: document.getElementById('prompt').value,
+    }));
+    assert.strictEqual(landed.res, '4K', 'the tier rode the link');
+    assert.strictEqual(landed.prompt, 'a crow', "the panel's words rode the link");
+    await p.goto(base + '/panels', { waitUntil: 'domcontentloaded' });
+    await p.waitForFunction(() => document.querySelectorAll('#cells textarea').length > 0,
+      { timeout: 15000 });
+    n++; console.log('  ok  page: the Playground tab + upscale link land with res=4k');
 
     // The pill's corner is clear and the page threw nothing.
     const right = await p.$eval('#ctrls', (e) => getComputedStyle(e).paddingRight);

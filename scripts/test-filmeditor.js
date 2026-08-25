@@ -188,10 +188,32 @@ console.log('the page contracts (static):');
     'a refused no-gesture prime retries on her next tap');
   ok(/audEntry/.test(html) && /addEventListener\('playing'/.test(html),
     'the track re-aligns the moment it actually STARTS sounding (entry, never a joint)');
-  ok(/if \(!\$\('audEl'\)\.seeking\) audEntry = true/.test(html),
+  ok(/if \(!\$\('audEl'\)\.seeking\) \{\s*\n\s*audEntry = true;/.test(html),
     'a seek\'s own waiting echo never arms the entry realign (pacing owns a rolling track)');
   ok(/a\.seeking \|\| a\.readyState < 3/.test(html),
     'a stalled clock is not drift — pacing and the 2s resync skip a buffering track');
+  // Round three (2026-08-23, on the phone): "lagging playhead … black
+  // sometimes" survived every Chromium-verified fix. Device-shaped guards:
+  ok(/el\.__frameAt && fAge > 350 && fAge < 1200/.test(html),
+    'the rVFC playhead hold is CAPPED — an under-delivering rVFC cannot lag the playhead');
+  ok(/el\.readyState >= 2 && \(el\.__frameAt \|\| !el\.__rvfc\)/.test(html),
+    'a boundary reveals on a PRESENTED frame, not canplay (iOS paints later than Chromium)');
+  ok((html.match(/el\.__frameAt = 0/g) || []).length >= 2,
+    'the presented-frame mark is cleared on every src set (ensureSrc and warmNext)');
+  ok(/var BUILD = 'fe-/.test(html) && /function telSend/.test(html) && /telSend\(\)/.test(html),
+    'every play session posts a telemetry beacon — the device answers, not a guess');
+  // The round-three FINDING (2026-08-23, measured): her play posted no beacon
+  // while the route round-tripped — the iOS app keeps recent tools alive in a
+  // ZStack, so the page loads once per app process and no deploy can reach a
+  // page that never reloads. The page heals its own staleness.
+  ok(/function buildCheck/.test(html) && /setInterval\(buildCheck/.test(html),
+    'the page checks its own build against the server on an interval');
+  ok(/if \(playing \|\| uploading\) return false;/.test(html)
+    && /lastEditAt < 10000/.test(html) && /filmsSheet'\)\.hidden\) return false;/.test(html),
+    'and reloads itself only while IDLE — never mid-play, mid-upload, mid-save or under a sheet');
+  const mBuild = /var BUILD = '([^']+)'/.exec(html);
+  ok(mBuild && fe.PAGE_BUILD === mBuild[1],
+    'the server serves the SAME build id the page carries — one source, the html');
   ok(html.indexOf('id="msg"') > html.indexOf('</div>', html.indexOf('id="tools"')),
     'the progress line lives OUTSIDE the editor panel, visible on first upload');
 }

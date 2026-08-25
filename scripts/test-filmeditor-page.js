@@ -82,6 +82,8 @@ function ok(cond, name) {
   let PROX = {};      // what /proxies answers — flipped per scenario
   let AUDPROX = {};   // the audio-proxy half of the same answer
   let AUD_DELAY = 0;  // ms to hold the audio fixture's next response — the late-start shape
+  const TELEMETRY = [];   // every play-session beacon the page posts
+  let SERVER_BUILD = 'match-me';   // what /build answers — flipped to test the self-heal
   const DOC2 = { id: 't2', title: 'Empty cut', clips: [], audio: null, renders: [], job: null };
   // TRIMMED pieces on purpose (out < the file's end): the joint then fires
   // mid-file, while a lagging playhead is still behind real time — the exact
@@ -135,6 +137,13 @@ function ok(cond, name) {
       return serveMedia(route, 'audio/ogg', audT);
     }
     if (u.includes('/fx/t2.ogg')) return serveMedia(route, 'audio/ogg', audT);
+    if (u.includes('/api/filmeditor/telemetry')) {
+      try { TELEMETRY.push(JSON.parse(route.request().postData() || '{}')); } catch { /* not json */ }
+      return route.fulfill({ contentType: 'application/json', body: '{"ok":true}' });
+    }
+    if (u.includes('/api/filmeditor/build')) {
+      return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ build: SERVER_BUILD }) });
+    }
     if (u.includes('/api/filmeditor/t3/pieces')) {
       return route.fulfill({ contentType: 'application/json', body: '{"ok":true}' });
     }
@@ -416,7 +425,45 @@ function ok(cond, name) {
   ok(late.off < 0.45,
     'and it entered mid-song, in step with the picture (off by ' + late.off.toFixed(2) + 's)');
   await page.click('#play');
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(400);
+
+  // ── the play-session beacon (2026-08-23, round three): every fix so far
+  // was verified here, in Chromium, while her phone kept failing — the page
+  // now reports what the DEVICE did, so the next diagnosis reads data
+  // instead of guessing. The sessions above must have posted.
+  console.log('the telemetry beacon:');
+  ok(TELEMETRY.length > 0, 'a play session posts one beacon when playback stops');
+  const tl = TELEMETRY[TELEMETRY.length - 1];
+  ok(tl && /^fe-/.test(tl.build || ''), 'the beacon carries the page build id (the stale-page question)');
+  ok(tl && Array.isArray(tl.rvfc) && (tl.rvfc[0] + tl.rvfc[1]) > 0,
+    'and the rVFC fire counts — whether the frame truth is alive on the device');
+  ok(tl && tl.aud && typeof tl.aud.startMs === 'number',
+    'and the music start latency (aud.startMs: ' + (tl && tl.aud && tl.aud.startMs) + 'ms)');
+
+  // ── the page heals its own staleness (the round-three FINDING): the iOS
+  // app keeps recent tools alive in a ZStack, so the page loads once per app
+  // process — no deploy can reach a page that never reloads. Stale build +
+  // idle → the page reloads itself in place; mid-play it never does.
+  console.log('the page heals its own staleness:');
+  const REAL_BUILD = /var BUILD = '([^']+)'/.exec(html)[1];
+  SERVER_BUILD = REAL_BUILD;
+  await page.goto('http://forge.test/filmeditor?c=t3');
+  await page.waitForSelector('#editBox:not([hidden])', { timeout: 8000 });
+  ok(await page.evaluate(() => window.__buildCheck().then((r) => r === false)),
+    'a CURRENT page never reloads itself');
+  SERVER_BUILD = 'fe-newer-build';
+  await page.click('#play');
+  await page.waitForTimeout(300);
+  ok(await page.evaluate(() => window.__buildCheck().then((r) => r === false)),
+    'a stale page never reloads MID-PLAY');
+  await page.click('#play');   // stop
+  await page.waitForTimeout(500);
+  const nav = page.waitForNavigation({ timeout: 5000 }).catch(() => null);
+  await page.evaluate(() => { window.__buildCheck(); });
+  ok((await nav) !== null, 'a stale IDLE page reloads itself');
+  ok(page.url().includes('c=t3'), 'and comes back inside the same cut (?c survives the reload)');
+  SERVER_BUILD = REAL_BUILD;
+  await page.waitForSelector('#editBox:not([hidden])', { timeout: 8000 });
 
   // ── the iPHONE SHAPE: a frozen getVideoPlaybackQuality counter (iOS WebKit
   // batches or flatlines totalVideoFrames). The old tick trusted that counter
