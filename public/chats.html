@@ -2173,9 +2173,47 @@ var truncated={}, fullLoaded={};
 var view='list';
 // Claude "spark" mark (simple hand-inlined equivalent, white on orange)
 var CLAUDE_STAR='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M12 2.5v6M12 15.5v6M2.5 12h6M15.5 12h6M5.4 5.4l4.2 4.2M14.4 14.4l4.2 4.2M18.6 5.4l-4.2 4.2M9.6 14.4l-4.2 4.2"/></svg>';
+// THE DOOR BACK INTO A CHAT IS DERIVABLE FROM ITS SESSION ID — and for the
+// chats that need it most, deriving is the ONLY way (2026-08-25, Sophie: "how
+// come I don't see any messages not even one and no way to get back into the
+// chat").
+//
+// `url` only ever arrives ON A MESSAGE: the hook posts it with the reply, and
+// the server copies it onto the registry doc. So a chat whose hook never filed
+// a reply has no url — and it is exactly the same chat that shows no messages,
+// because those are the same missing post. The two halves of her report are
+// one cause, which is why fixing the empty state alone did nothing for her:
+// measured against the live feed the same day, of the 19 chats behind the MORE
+// fold whose thread really is empty, **19 of 19 also had no url**. Reading the
+// registry's overall 476-of-505 as coverage was the mistake — that is the
+// population that DOESN'T need a door.
+//
+// `sessionId` is written by a different door entirely — /status, /update,
+// /wrapup, /resolve — so a chat that follows CLAUDE.md and posts its status
+// card has one even when it has never posted a message. 19 of the 29 doorless
+// chats carry one.
+//
+// The url is a pure function of it. Measured over every chat carrying BOTH:
+// **398 of 398** are exactly `https://claude.ai/code/session_<sessionId>`, no
+// exceptions. So this is a derivation, not a guess — and doing it on READ
+// means nothing to backfill and nothing that can go stale.
+//
+// The order is deliberate: a stored url wins, because it is what the session
+// itself reported; the message tail is next; the derivation is the floor.
+function claudeSessionUrl(sid){
+  sid=String(sid||'');
+  // the registry stores the bare id (`011kWP3…`); `session_` is the url's own
+  // prefix. Accept an id that already carries it rather than doubling it up.
+  if(!sid) return '';
+  return 'https://claude.ai/code/'+(sid.indexOf('session_')===0? sid : 'session_'+sid);
+}
+// for the test: the derivation (pure) and the two functions that compose it
+window.__claudeSessionUrl=claudeSessionUrl;
 function claudeUrlFor(name, list){
-  var u=(chats[name]&&chats[name].url)||'';
+  var c=chats[name]||{};
+  var u=c.url||'';
   if(!u && list){ for(var i=list.length-1;i>=0;i--){ if(list[i].url){ u=list[i].url; break; } } }
+  if(!u) u=claudeSessionUrl(c.sessionId);
   return u;
 }
 function appAccount(){ return (settings&&settings.appAccount)||'1'; }
@@ -2194,6 +2232,7 @@ function openHref(name,url){
   if(!url||!acct||acct===appAccount()) return url;
   return url+(url.indexOf('#')<0?'#no_universal_links':'');
 }
+window.__claudeUrlFor=claudeUrlFor; window.__openHref=openHref;
 function openClaudeBtn(url){
   var a=document.createElement('a'); a.className='openclaude'; a.href=url; a.target='_blank'; a.rel='noopener';
   a.innerHTML=CLAUDE_STAR+'<span>Open</span>';
