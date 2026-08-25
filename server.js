@@ -1804,25 +1804,72 @@ const thumbHot = new Map(); // url|w → cached public URL (per-process)
 // list can hand out direct storage URLs for thumbs that already exist.
 const thumbName = (url, w) => 'thumbs/'
   + require('crypto').createHash('sha1').update(url + '|' + w).digest('hex') + '.webp';
+// THE THUMB GENERATOR IS GATED, DEDUPED AND REMEMBERS ITS FAILURES
+// (2026-08-25, read straight off the Render logs the night the box kept
+// OOM-restarting: every kill sat seconds after a burst of `thumb failed`
+// lines while her phone loaded a grid). The old path ran ONE generation per
+// request with no limit: forty tiles asking at once meant forty full
+// originals buffered (3-12MB each) and forty sharp decodes in parallel —
+// past 512MB on their own. And a FAILED thumb (a 403'd source, a HEIC sharp
+// can't read) was never remembered, so every repaint of the same grid
+// re-downloaded and re-failed the same images. Now: at most TWO generations
+// at a time process-wide (`thumbSlot`), one in-flight promise per url so a
+// burst of tiles asking for the same picture costs one download
+// (`thumbBusy`), a failure is remembered for 10 minutes and answered with
+// the original instead of a retry (`thumbBad`), an over-20MB source is
+// refused (a thumb of it is not worth the decode on this box), and when the
+// queue is deep the route just serves the original — a slow tile, never a
+// dead site.
+const thumbBad = new Map(); // url|w → retry-after ms epoch
+const thumbBusy = new Map(); // url|w → in-flight promise
+let thumbActive = 0; const thumbWaiters = [];
+const THUMB_CONCURRENCY = 2;
+function thumbSlot() {
+  if (thumbActive < THUMB_CONCURRENCY) { thumbActive++; return Promise.resolve(); }
+  return new Promise((r) => thumbWaiters.push(r));
+}
+function thumbDone() {
+  const next = thumbWaiters.shift();
+  if (next) next(); else thumbActive--;
+}
 async function makeThumb(url, w) {
   const key = url + '|' + w;
   if (thumbHot.has(key)) return thumbHot.get(key);
-  const bucket = admin.storage().bucket();
-  const file = bucket.file(thumbName(url, w));
-  const [exists] = await file.exists();
-  if (!exists) {
-    const r = await fetch(url);
-    if (!r.ok) throw new Error('fetch ' + r.status);
-    const out = await require('sharp')(await r.buffer())
-      .resize({ width: w, withoutEnlargement: true })
-      .webp({ quality: 75 })
-      .toBuffer();
-    await file.save(out, { contentType: 'image/webp', resumable: false });
-    await file.makePublic();
+  const badUntil = thumbBad.get(key);
+  if (badUntil && badUntil > Date.now()) throw new Error('recently failed — serving the original');
+  if (thumbBusy.has(key)) return thumbBusy.get(key);
+  const job = (async () => {
+    const bucket = admin.storage().bucket();
+    const file = bucket.file(thumbName(url, w));
+    const [exists] = await file.exists();
+    if (!exists) {
+      await thumbSlot();
+      try {
+        const r = await fetch(url);
+        if (!r.ok) throw new Error('fetch ' + r.status);
+        const len = Number(r.headers.get('content-length') || 0);
+        if (len > 20 * 1048576) throw new Error(`source too big to thumb (${Math.round(len / 1048576)}MB)`);
+        const out = await require('sharp')(await r.buffer())
+          .resize({ width: w, withoutEnlargement: true })
+          .webp({ quality: 75 })
+          .toBuffer();
+        await file.save(out, { contentType: 'image/webp', resumable: false });
+        await file.makePublic();
+      } finally { thumbDone(); }
+    }
+    const pub = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+    thumbHot.set(key, pub);
+    return pub;
+  })();
+  thumbBusy.set(key, job);
+  try {
+    return await job;
+  } catch (e) {
+    thumbBad.set(key, Date.now() + 10 * 60 * 1000);
+    throw e;
+  } finally {
+    thumbBusy.delete(key);
   }
-  const pub = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
-  thumbHot.set(key, pub);
-  return pub;
 }
 // Background warmer: pre-makes missing thumbs right after an assets-list
 // request (a few at a time), so tiles get direct storage URLs on the next
@@ -1848,6 +1895,9 @@ app.get('/api/story/thumb', async (req, res) => {
     const w = Math.max(80, Math.min(1200, parseInt(req.query.w, 10) || 480));
     if (!THUMB_HOSTS.test(url)) return res.status(400).json({ error: 'unsupported image host' });
     if (!admin.apps.length) return res.redirect(302, url);
+    // Overloaded? Serve the original rather than queueing another decode —
+    // a slow tile beats an OOM'd server (see the gate above).
+    if (!thumbHot.has(url + '|' + w) && thumbWaiters.length > 12) return res.redirect(302, url);
     res.redirect(302, await makeThumb(url, w));
   } catch (err) {
     console.error('thumb failed:', err.message);
