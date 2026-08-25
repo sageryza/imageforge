@@ -30,28 +30,30 @@ const FPS = 30, W = 1080, H = 1620, PADH = 1920; // 2:3 art on a 9:16 canvas
 // Each image: full-frame beat, then its three ideas left→right. sfx entries
 // are [file, atSecondsIntoShot, volume].
 const SHOTS = [
-  // A — the straight take (scientist / hydrates / brain / smiley)
-  { img: '1787619512551-35kqb3.webp', pad: 'f1d3a5', dur: 2.0, z: [1.0, 1.10], tx: 0.5, ty: 0.42, sfx: [['pour', 0, 0.9]] },
-  { img: '1787619512551-35kqb3.webp', pad: 'f1d3a5', dur: 2.2, z: [1.1, 2.35], tx: 0.21, ty: 0.565, sfx: [['whoosh1', 0, 0.8], ['gurgle', 0.3, 0.9]] },
-  { img: '1787619512551-35kqb3.webp', pad: 'f1d3a5', dur: 2.2, z: [1.1, 2.35], tx: 0.50, ty: 0.555, sfx: [['whoosh2', 0, 0.8], ['sparkle', 0.3, 0.9]] },
-  { img: '1787619512551-35kqb3.webp', pad: 'f1d3a5', dur: 2.2, z: [1.1, 2.35], tx: 0.78, ty: 0.565, sfx: [['whoosh1', 0, 0.8], ['chime', 0.3, 0.9]] },
+  // A — the straight take (hydrates / brain / smiley). Fulls end at z=1.0 so
+  // the WHOLE poster is on screen (v2, Sophie); zooms launch from that full
+  // frame and land framed on the panel rect, measured off the picture.
+  { img: '1787619512551-35kqb3.webp', pad: 'f1d3a5', dur: 2.2, z: [1.06, 1.0], tx: 0.5, ty: 0.5, sfx: [['pour', 0, 0.9]] },
+  { img: '1787619512551-35kqb3.webp', pad: 'f1d3a5', dur: 2.2, z: [1.0, 3.0], tx: 0.215, ty: 0.561, sfx: [['waterswish', 0, 0.5], ['gurgle', 0.3, 0.9]] },
+  { img: '1787619512551-35kqb3.webp', pad: 'f1d3a5', dur: 2.2, z: [1.0, 3.0], tx: 0.503, ty: 0.561, sfx: [['waterswish', 0, 0.5], ['sparkle', 0.3, 0.9]] },
+  { img: '1787619512551-35kqb3.webp', pad: 'f1d3a5', dur: 2.2, z: [1.0, 3.0], tx: 0.79, ty: 0.561, sfx: [['waterswish', 0, 0.5], ['chime', 0.3, 0.9]] },
   // C — funnel head / singing sweat fish / bones are secretly plants
-  { img: '1787620392223-lfveov.webp', pad: 'eacfa1', dur: 1.8, z: [1.0, 1.10], tx: 0.5, ty: 0.42, sfx: [['gulp', 0, 0.9]] },
-  { img: '1787620392223-lfveov.webp', pad: 'eacfa1', dur: 2.2, z: [1.1, 2.25], tx: 0.19, ty: 0.63, sfx: [['whoosh2', 0, 0.8], ['pour', 0.3, 0.75]] },
-  { img: '1787620392223-lfveov.webp', pad: 'eacfa1', dur: 2.2, z: [1.1, 2.25], tx: 0.50, ty: 0.63, sfx: [['whoosh1', 0, 0.8], ['plinks', 0.3, 0.9]] },
-  { img: '1787620392223-lfveov.webp', pad: 'eacfa1', dur: 2.2, z: [1.1, 2.25], tx: 0.81, ty: 0.63, sfx: [['whoosh2', 0, 0.8], ['sparkle', 0.3, 0.9]] },
+  { img: '1787620392223-lfveov.webp', pad: 'eacfa1', dur: 2.0, z: [1.06, 1.0], tx: 0.5, ty: 0.5, sfx: [['gulp', 0, 0.9]] },
+  { img: '1787620392223-lfveov.webp', pad: 'eacfa1', dur: 2.2, z: [1.0, 2.1], tx: 0.188, ty: 0.635, sfx: [['waterswish', 0, 0.5], ['pour', 0.3, 0.75]] },
+  { img: '1787620392223-lfveov.webp', pad: 'eacfa1', dur: 2.2, z: [1.0, 2.1], tx: 0.50, ty: 0.635, sfx: [['waterswish', 0, 0.5], ['plinks', 0.3, 0.9]] },
+  { img: '1787620392223-lfveov.webp', pad: 'eacfa1', dur: 2.2, z: [1.0, 2.1], tx: 0.81, ty: 0.635, sfx: [['waterswish', 0, 0.5], ['sparkle', 0.3, 0.85]] },
   // B — the night one (ear goblins / liquid light / boat in your stomach)
-  { img: '1787620306161-xsmta2.webp', pad: 'ebcc97', dur: 1.8, z: [1.0, 1.10], tx: 0.5, ty: 0.40, sfx: [['splash', 0, 0.9]] },
-  { img: '1787620306161-xsmta2.webp', pad: 'ebcc97', dur: 2.2, z: [1.1, 2.25], tx: 0.20, ty: 0.60, sfx: [['whoosh1', 0, 0.8], ['goblin', 0.3, 0.9]] },
-  { img: '1787620306161-xsmta2.webp', pad: 'ebcc97', dur: 2.2, z: [1.1, 2.25], tx: 0.49, ty: 0.60, sfx: [['whoosh2', 0, 0.8], ['sparkle', 0.3, 0.85]] },
-  { img: '1787620306161-xsmta2.webp', pad: 'ebcc97', dur: 2.4, z: [1.1, 2.25], tx: 0.80, ty: 0.60, sfx: [['whoosh1', 0, 0.8], ['surf', 0.3, 1.0]] },
+  { img: '1787620306161-xsmta2.webp', pad: 'ebcc97', dur: 2.0, z: [1.06, 1.0], tx: 0.5, ty: 0.5, sfx: [['splash', 0, 0.9]] },
+  { img: '1787620306161-xsmta2.webp', pad: 'ebcc97', dur: 2.2, z: [1.0, 2.55], tx: 0.195, ty: 0.615, sfx: [['waterswish', 0, 0.5], ['goblin', 0.3, 0.95]] },
+  { img: '1787620306161-xsmta2.webp', pad: 'ebcc97', dur: 2.2, z: [1.0, 2.55], tx: 0.49, ty: 0.615, sfx: [['waterswish', 0, 0.5], ['sparkle', 0.3, 0.85]] },
+  { img: '1787620306161-xsmta2.webp', pad: 'ebcc97', dur: 2.4, z: [1.0, 2.55], tx: 0.80, ty: 0.615, sfx: [['waterswish', 0, 0.5], ['surf', 0.3, 1.0]] },
   // D — the zappy finale (spine ghosts / liquid lightning / third-eye knee)
-  { img: '1787620455292-5g1ynr.webp', pad: 'eacda1', dur: 1.8, z: [1.0, 1.10], tx: 0.5, ty: 0.40, sfx: [['zap', 0, 0.9]] },
-  { img: '1787620455292-5g1ynr.webp', pad: 'eacda1', dur: 2.2, z: [1.1, 2.35], tx: 0.29, ty: 0.48, sfx: [['whoosh2', 0, 0.8], ['spooky', 0.3, 0.9]] },
-  { img: '1787620455292-5g1ynr.webp', pad: 'eacda1', dur: 2.2, z: [1.1, 2.35], tx: 0.75, ty: 0.47, sfx: [['whoosh1', 0, 0.8], ['zapbig', 0.25, 1.0]] },
-  { img: '1787620455292-5g1ynr.webp', pad: 'eacda1', dur: 2.2, z: [1.1, 2.30], tx: 0.55, ty: 0.72, sfx: [['whoosh2', 0, 0.8], ['future', 0.3, 0.9]] },
-  // end card: "MORE WATER! RIGHT NOW!"
-  { img: '1787620455292-5g1ynr.webp', pad: 'eacda1', dur: 2.5, z: [1.2, 2.5], tx: 0.72, ty: 0.87, sfx: [['whoosh1', 0, 0.8], ['splash', 0.3, 1.0], ['zapbig', 0.6, 0.9]] },
+  { img: '1787620455292-5g1ynr.webp', pad: 'eacda1', dur: 2.0, z: [1.06, 1.0], tx: 0.5, ty: 0.5, sfx: [['zap', 0, 0.85]] },
+  { img: '1787620455292-5g1ynr.webp', pad: 'eacda1', dur: 2.2, z: [1.0, 2.05], tx: 0.29, ty: 0.465, sfx: [['waterswish', 0, 0.5], ['spooky', 0.3, 0.9]] },
+  { img: '1787620455292-5g1ynr.webp', pad: 'eacda1', dur: 2.2, z: [1.0, 2.2], tx: 0.745, ty: 0.50, sfx: [['waterswish', 0, 0.5], ['zapbig', 0.25, 1.0]] },
+  { img: '1787620455292-5g1ynr.webp', pad: 'eacda1', dur: 2.2, z: [1.0, 2.0], tx: 0.58, ty: 0.72, sfx: [['waterswish', 0, 0.5], ['future', 0.3, 0.9]] },
+  // end card: "MORE WATER. RIGHT NOW."
+  { img: '1787620455292-5g1ynr.webp', pad: 'eacda1', dur: 2.5, z: [1.2, 1.95], tx: 0.74, ty: 0.862, sfx: [['splash', 0.3, 0.95], ['zapbig', 0.6, 0.9]] },
 ];
 
 const work = fs.mkdtempSync(path.join(require('os').tmpdir(), 'water-reel-'));
