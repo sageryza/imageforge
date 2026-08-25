@@ -49,6 +49,16 @@ walk continues from there:
 The word cut is what the machine can find in a transcript; the exact cut is the
 by-ear pass after it, for what the machine could not hear.
 
+**And inside the word cut itself: BULK TIMINGS LOCATE, A RE-LISTEN CUTS.** The
+chunked master whisper pass is chips-only accuracy — good enough to find a
+phrase, tens of ms off at the word edges — so any tool that cuts where the
+bulk pass says the word is clips word starts and ends (shipped wrong on the
+water reel, 2026-08-25; the Cutting Room's `cutSection` had always known
+better). Re-transcribe a small window around every located span and cut on the
+fresh timings. The rule of record is in `docs/nde-precise-cutting.md` (*Rules
+that must survive any refactor*); `vo-film.js` applies it via `"relisten":
+true` on the spec.
+
 ## The eight stops on the road
 
 1. **CAPTURE** — voice memos, the drop, the share sheet. One library; every

@@ -73,6 +73,17 @@ widen that phrase to the word after the laugh, or cut that one shot by hand.
   imported by every tool that cuts. Do NOT hand-roll span cutting — the
   edge cases (gap-aware padding, snap caps, repeated words) each cost real
   debugging once.
+- **BULK TIMINGS LOCATE, A RE-LISTEN CUTS (2026-08-25, shipped wrong on the
+  water reel — she heard the clipped word edges).** The chunked master
+  whisper pass is chips-only accuracy: whisper's word ends run early, its
+  starts can run late, and on back-to-back takes `clampBounds` pads shrink
+  to 0.02s — so a cut placed on bulk timings clips the word. Re-transcribe a
+  small window around every located span and cut on the FRESH timings — the
+  Cutting Room's `cutSection` has always done this; `vo-film.js` does it
+  with `"relisten": true` on the spec (`relistenSpan`, plus a voicing guard
+  that refuses to cut through sound, bounded by the neighbouring word). Full
+  rule: `docs/nde-precise-cutting.md`, *Rules that must survive any
+  refactor*.
 - Removing something from the MIDDLE of speech is a splice, and a splice is
   approved by ear, not shipped invisibly (the reason pause removal lives in
   the Cutting Room, not inside the Episode Editor's render).

@@ -47,9 +47,13 @@
  *             cleaned master. `"denoise": false` on a source skips the
  *             detector (a synthesized take has no room tone to measure).
  *   2 cut     per shot: editor.js's phraseSpan + clampBounds + snapToSilence
- *             locate every span in the cleaned master; spans from one source
- *             are clamped non-overlapping in TIME; then the shot is cleaned
- *             on WORD TIMING (see below). TTS renders on
+ *             locate every span in the cleaned master; with `"relisten":
+ *             true` each span is then RE-TRANSCRIBED in a small window and
+ *             cut on the fresh timings (see relistenSpan — bulk timings
+ *             locate, a re-listen cuts; cutting on the bulk pass alone
+ *             clipped word edges on the water reel, 2026-08-25); spans from
+ *             one source are clamped non-overlapping in TIME; then the shot
+ *             is cleaned on WORD TIMING (see below). TTS renders on
  *             eleven_multilingual_v2 (NEVER v3), cached by text.
  *   3 verify  per shot: transcribe THIS SHOT once (cached by its md5), LCS
  *             word-diff against its own phrases, wordless-gap measurement.

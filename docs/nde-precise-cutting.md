@@ -84,6 +84,22 @@ it is machine-verified, not ear-verified.
 
 ## Rules that must survive any refactor
 - Never cut on raw Whisper timestamps without alignment or snapping.
+- **BULK-PASS TIMINGS LOCATE, A RE-LISTEN CUTS (2026-08-25, shipped wrong on
+  the water reel — Sophie heard the clipped word edges herself).** A master's
+  chunked whisper words are chips-only accuracy: right enough to FIND a
+  phrase, tens of ms off at the word edges — whisper's word ends run
+  habitually EARLY and its starts can run late, and on back-to-back takes
+  `clampBounds` pads as little as 0.02s/0.03s, so cutting where the bulk pass
+  says the word is clips it. The Cutting Room has always known this
+  (`cutSection` extracts a padded window, re-transcribes THAT, and cuts on
+  the fresh timings); `vo-film.js` did not, and delivered a reel with word
+  onsets and tails shaved. Its fix is `"relisten": true` on the spec —
+  `relistenSpan`: fresh whisper on a small window (with 1s of prepended
+  silence, the short-clip-drops-opening-words rule), relocate, snap to the
+  window's real silences, then a VOICING GUARD that walks each cut edge
+  outward while the 20ms RMS is still hot, bounded by the neighbouring word
+  so another take cannot bleed in. Any new cutter must re-listen before it
+  cuts; locating and cutting on one bulk pass is the trap.
 - End snapping is forward-only and capped at the next word — both halves of
   that sentence matter.
 - `snippet.timeSec` (the anchor) selects the alignment window — keep it
