@@ -1,0 +1,93 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>People Watching Club — everything so far (v1)</title>
+<link rel="stylesheet" href="/compare.css">
+<style>
+  .row { display:flex; align-items:baseline; gap:8px; padding:7px 0; border-bottom:1px solid var(--line); }
+  .row:last-child { border-bottom:0; }
+  .row .n { color:var(--ink2); font:600 12px/1.4 -apple-system,'Helvetica Neue',sans-serif; letter-spacing:.08em; text-transform:uppercase; min-width:64px; }
+  .row .w { flex:1; }
+  a.go { color:var(--gold); text-decoration:none; border-bottom:1px solid var(--line); }
+  .quote { border-left:2px solid var(--rose); padding-left:10px; margin:10px 0; white-space:pre-wrap; }
+  .quote .src { display:block; color:var(--ink2); font:600 11px/1.6 -apple-system,'Helvetica Neue',sans-serif; letter-spacing:.14em; text-transform:uppercase; }
+</style>
+
+<div class="wrap">
+  <h1>People Watching Club — everything so far (v1)</h1>
+
+  <div id="film"></div>
+
+  <div class="card" data-item="decks">
+    <h3>Waiting on you</h3>
+    <div class="row"><span class="n">13 / 18</span><span class="w">PWC memes — round 1 · <a class="go" href="/api/chatfeed/page/E42rsAI9XYb7dL3kDzOS">open the deck</a></span></div>
+    <div class="row"><span class="n">8 / 19</span><span class="w">PWC Instagram — post concepts · <a class="go" href="/api/chatfeed/page/EctZKkfrjpmXlFFIo9G6">open the deck</a></span></div>
+    <div class="row"><span class="n">0 / 5</span><span class="w">Hands — carousel + 2 captions · <a class="go" href="/api/chatfeed/page/E0VbSLT8igao1BPxOWF6">open it</a></span></div>
+    <div class="row"><span class="n">0 marks</span><span class="w">ep006 shot list — the five backstories · <a class="go" href="/api/chatfeed/page/OhpOokGNnvbSNAftpY0U">open it</a></span></div>
+    <div class="row"><span class="n">verdict</span><span class="w">ep005 end card: “everybody has a story.” + “(we made these up)” — keep both, or one</span></div>
+    <div class="row"><span class="n">voice</span><span class="w">1950s announcer — Clyde vs Retro Radio Man, previews are in <a class="go" data-chat="people-watching-club-reels" href="/chats?chat=people-watching-club-reels">the voice chat</a></span></div>
+    <div class="row"><span class="n">handle</span><span class="w">the real PWC Instagram handle + bio — the grid says people.watching.club as a placeholder</span></div>
+  </div>
+
+  <div class="card" data-item="her-notes">
+    <h3>Your notes on the memes — nobody has picked these up yet</h3>
+    <div class="quote"><span class="src">on “airport delay”</span>best people watching spots: three panel comic — airport terminal, cafe w a window, one more. horizontal</div>
+    <div class="quote"><span class="src">on “lost signal”</span>a guy in a really long phone call in a suit by a stop sign, me, following at a distance, eyes darting back and forth. phone call has multiple blocks of text one above the other, connected by a thread — something dramatic, but leaves a bit to the imagination. following, holding jacket over head like it's raining though it's not raining, or w a black hood, or newspaper in front</div>
+    <div class="quote"><span class="src">on “into nature”</span>when there's no people around — “I guess I can make a backstory for pigeons”. A girl watching pigeons, sitting on a bench by the fountain, maybe in Central Park, imagining an elaborate drama involving the pigeons, maybe where they have costumes</div>
+    <div class="quote"><span class="src">on “touch grass”</span>w a notebook ?seen from behind</div>
+    <div class="quote"><span class="src">on “crossover”</span>maybe</div>
+    <div class="quote"><span class="src">on “gerald”</span>h</div>
+  </div>
+
+  <div class="card" data-item="threads">
+    <h3>The threads</h3>
+    <div class="row"><span class="n">reels</span><span class="w"><a class="go" data-chat="stock-footage-backstories" href="/chats?chat=stock-footage-backstories">pwc real stock back stories</a> — ep001–ep005, the builder, the logo end card</span></div>
+    <div class="row"><span class="n">reels</span><span class="w"><a class="go" data-chat="people-watching-club-reel" href="/chats?chat=people-watching-club-reel">people-watching-club-reel</a> — ep006, the windows one</span></div>
+    <div class="row"><span class="n">reels</span><span class="w"><a class="go" data-chat="middle-one-goes-first" href="/chats?chat=middle-one-goes-first">middle one goes first</a> — your hand photos, carousel + the 0:18 reel</span></div>
+    <div class="row"><span class="n">reels</span><span class="w"><a class="go" data-chat="reel-ordering-countdown" href="/chats?chat=reel-ordering-countdown">reel ordering countdown</a> — seven panels reordered, old film countdown leader, mid-turn</span></div>
+    <div class="row"><span class="n">voice</span><span class="w"><a class="go" data-chat="people-watching-club-reels" href="/chats?chat=people-watching-club-reels">people-watching-club-reels</a> — the 1950s announcer hunt</span></div>
+    <div class="row"><span class="n">posts</span><span class="w"><a class="go" data-chat="pwc-instagram-content" href="/chats?chat=pwc-instagram-content">pwc-instagram-content</a> — 19 post concepts + 18 memes</span></div>
+    <div class="row"><span class="n">app</span><span class="w"><a class="go" data-chat="hairline-tab-instagram-button" href="/chats?chat=hairline-tab-instagram-button">hairline-tab-instagram-button</a> — the PWC tab on the Instagram mockups</span></div>
+  </div>
+</div>
+
+<script src="/compare.js"></script>
+<script>
+(function () {
+  var B = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/';
+  var films = [
+    ['pwc/hands-reel/hands-reel-v1.mp4', 'Hands — the reel v1', '0:18'],
+    ['pwc-reels/pwc-ep006-windows.mp4', 'ep006 — the building across the street', '0:41'],
+    ['pwc-reels/pwc-ep005-chicago.mp4', 'ep005 — Chicago Loop, logo end card', '0:35'],
+    ['pwc-reels/pwc-ep004-pier.mp4', 'ep004 — the pier', '0:40'],
+    ['pwc-reels/pwc-ep003-bench.mp4', 'ep003 — the park bench, white ink', '0:32'],
+    ['pwc-reels/pwc-ep002-vertical.mp4', 'ep002 — Istanbul crowd, first vertical', '0:29'],
+    ['pwc-reels/pwc-ep001-manchester.mp4', 'ep001 — Manchester street, red ink, landscape', '0:30']
+  ];
+  films.forEach(function (f) {
+    window.__filmRow({ url: B + f[0], label: f[1], meta: f[2], mount: '#film' });
+  });
+
+  // Open the chat in Deck Factory. In the app this page is a same-origin
+  // iframe, so following the href would load the whole Chats app inside the
+  // page viewer — hand the parent the intention instead.
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a.go[data-chat]') : null;
+    if (!a) return;
+    try {
+      if (window.parent && window.parent !== window
+          && typeof window.parent.__openThread === 'function'
+          && window.parent.__openThread(a.dataset.chat) === true) {
+        e.preventDefault();
+      }
+    } catch (_) { /* cross-origin — let the link do its job */ }
+  }, true);
+
+  window.__compareNotes({ chat: 'people-watching-club-reels-01ktkc', sheet: 'pwc-roundup-v1' });
+
+  window.__compareHelp({ html: '<b>Every People Watching Club thread in one place.</b> '
+    + 'Seven chats are working on it: six reel episodes plus the hands one, two decks of post ideas, '
+    + 'the announcer voice, and the Instagram grid tab. Films play on a tap; the counts are how far '
+    + 'through each deck you already are.' });
+})();
+</script>
