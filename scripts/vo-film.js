@@ -113,6 +113,8 @@ const FORCE = flag('force');
 const W = SPEC.width || 1000, H = SPEC.height || 1500, FPS = SPEC.fps || 30, BG = SPEC.bg || '#f7f3ea';
 const VOICE = SPEC.voice || 'UTkHGl2ImiT6gwtAFCql'; // "Sophie — morning"
 const TOOLV = 'vofilm-1'; // bump to invalidate every cache
+// A spec's edge rule changes every cut, so it belongs in the shot cache key.
+const EDGEV = JSON.stringify(SPEC.edge || {});
 
 const md5 = (buf) => crypto.createHash('md5').update(buf).digest('hex');
 const md5f = (f) => md5(fs.readFileSync(f));
@@ -444,8 +446,15 @@ async function cutShot(shot, si, spans, sources, filmSpeech85) {
     if (b - cur > 0.02) split.push([cur, b]);
   }
   const regions = split.filter(([a, b]) => b - a > 0.02);
-  // long wordless edges only
-  const EDGE_MAX = 1.2, EDGE_KEEP = 0.3;
+  // long wordless edges only. The default keeps any edge under 1.2s whole —
+  // that is her breath, and trimming every edge to whisper's words dropped
+  // three quiet words it never heard. A spec may tighten it (`"edge": {"max":
+  // 0.45, "keep": 0.22}`) when the film is one continuous read and the kept
+  // edges meet at every joint: on the water reel a ~1.2s tail against the
+  // next shot's ~1.2s head measured 8 dead-air runs over 1s. Defaults
+  // unchanged, so no existing spec moves.
+  const EDGE_MAX = (SPEC.edge && SPEC.edge.max) || 1.2;
+  const EDGE_KEEP = (SPEC.edge && SPEC.edge.keep != null) ? SPEC.edge.keep : 0.3;
   if (regions.length) {
     if (regions[0][0] <= EDGE_MAX) regions[0][0] = 0; else regions[0][0] -= EDGE_KEEP;
     const last = regions[regions.length - 1];
@@ -642,7 +651,7 @@ function deadAir(file) { // vo-verify's film check, local and free
     const mine = spans.filter((s) => s.shotIdx === si);
     const ck = `cut|${TOOLV}|${shot.id}|${sha1(JSON.stringify({
       spans: mine.map((s) => [s.source, +s.t0.toFixed(3), +s.t1.toFixed(3), s.text]),
-      tts: shot.ttsText || shot.tts || null, speech: +filmSpeech85.toFixed(1),
+      tts: shot.ttsText || shot.tts || null, speech: +filmSpeech85.toFixed(1), edge: EDGEV,
     }))}`;
     const OUTD = path.join(DIR, 'shots');
     const finalPath = path.join(OUTD, `shot-${String(si).padStart(2, '0')}-${shot.id}.wav`);
