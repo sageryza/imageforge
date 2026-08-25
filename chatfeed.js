@@ -420,6 +420,11 @@ router.get('/', async (req, res) => {
 // spin-down just means one full reload on the next search.
 let searchIndex = [];        // [{chat, id, text, tldr, created, url, from}]
 const searchSeen = new Set(); // doc ids already in the index
+// Sized in every memwatch snapshot — the index holds every message's full
+// text forever, so if it is the heap leak the count and MB will say so.
+require('./memwatch').gauge('chatSearchIndex', () => searchIndex.length);
+require('./memwatch').gauge('chatSearchMB', () => Math.round(searchIndex.reduce((a, m) => a + (m.text || '').length + (m.tldr || '').length, 0) * 2 / 1048576));
+
 let indexMaxCreated = '';
 let indexInit = false;
 let indexRefreshedAt = 0;
@@ -3047,6 +3052,7 @@ router.post('/chatnote', async (req, res) => {
 // whatever it was built with.
 const NEWEST_TTL_MS = 60 * 1000;
 const newestCache = new Map();
+require('./memwatch').gauge('chatNewestCache', () => newestCache.size);
 const VIDEO_RE = /\.(mp4|mov|webm)$/i;
 // a cut lives directly under its film's prefix; `clips/` and `stills/` are the
 // pieces it was built from and must never be served as the film
@@ -4567,6 +4573,7 @@ router.post('/page-voice-session', express.json({ limit: '40mb' }), async (req, 
 // through thirty cards is thirty taps on ONE page, and its map never changes
 // (a new version is a new page, always).
 const pageMapCache = new Map();
+require('./memwatch').gauge('chatPageMapCache', () => pageMapCache.size);
 async function pageArchiveMap(sheet) {
   const m = /^page-(.+)$/.exec(sheet || '');
   if (!m) return null;

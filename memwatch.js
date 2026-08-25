@@ -23,6 +23,25 @@ const RING_MAX = 40;
 const ring = [];
 let lastWrite = 0;
 
+/*
+ * GAUGES — the caches name themselves in every snapshot (2026-08-25, added
+ * the morning after: a 2:04am OOM's snapshot showed heap at 244MB, up from
+ * ~90MB two hours earlier, and NOTHING in the request ring or the sizable
+ * known caches explained it — the chat search index measures only ~22MB.
+ * A heap number without a suspect is half a snapshot). Any module holding a
+ * long-lived in-memory structure registers a cheap size function here;
+ * whichever count balloons alongside the heap is the leak, named.
+ */
+const gauges = {};
+function gauge(name, fn) { gauges[name] = fn; }
+function readGauges() {
+  const out = {};
+  for (const [name, fn] of Object.entries(gauges)) {
+    try { out[name] = fn(); } catch (e) { /* a gauge must never hurt a snapshot */ }
+  }
+  return out;
+}
+
 function note(req) {
   ring.push({ t: Date.now(), m: req.method, p: String(req.originalUrl || req.url || '').slice(0, 120) });
   if (ring.length > RING_MAX) ring.shift();
@@ -41,6 +60,7 @@ function check(opts) {
     externalMb: Math.round(mu.external / 1048576),
     arrayBuffersMb: Math.round((mu.arrayBuffers || 0) / 1048576),
     upSec: Math.round(process.uptime()),
+    gauges: readGauges(),
     recent: ring.slice(),
   };
 }
@@ -72,6 +92,6 @@ function install(app, admin, opts = {}) {
 }
 
 // test hooks
-function _reset() { ring.length = 0; lastWrite = 0; }
+function _reset() { ring.length = 0; lastWrite = 0; for (const k of Object.keys(gauges)) delete gauges[k]; }
 
-module.exports = { install, note, check, ring, RING_MAX, _reset };
+module.exports = { install, note, check, gauge, ring, RING_MAX, _reset };
