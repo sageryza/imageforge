@@ -55,7 +55,11 @@ const FPS = 30, W = 1080, H = 1620, PADH = 1920, NOMINAL = 4;
 // Each window holds the LAST usable take of the lines named under it, with
 // silence either side so whisper never clips an opening word.
 const SLICES = {
-  intro: [448.3, 468.5],   // the image-A read — her first take, the file's last
+  intro: [448.3, 468.5],   // the image-A read — her FIRST take, the file's last
+  intro1:[386.0, 391.1],   // "Scientists did a study…" — her LAST take of that
+                           // line; the file-end one slurs the word (her v11
+                           // note: "scientist is cut off" — the audio is
+                           // complete, the take reads clipped)
   c:     [396.8, 429.6],   // lubricates / fish / bones "on the inside"
   d12:   [107.0, 121.0],   // one: spine ghosts · two: liquid lightning
   d3:    [142.5, 152.5],   // three: the third eye in your knee (+ more water right now)
@@ -89,7 +93,12 @@ const I = { img: '1787620659452-3i519q.webp', pad: 'ebd2aa', dir: 'montage' }; /
 // breath at 1.06 → 1.0); `push` = the gentle 1.0 → 1.08 for a row that
 // already spans the page.
 const SHOTS = [
-  { id: 'a0', s: A, src: 'intro', full: true, phrases: ["Scientists did a study on water showing that it's good to drink more water", "Here's three reasons why"] },
+  // a0's two lines come from DIFFERENT takes (order rides `extra`, which
+  // keeps list order): the opener from intro1, the reasons line from intro.
+  { id: 'a0', s: A, src: 'intro', full: true, phrases: [], extra: [
+    { source: 'intro1', phrase: "Scientists did a study on water showing that it's good to drink more water" },
+    { source: 'intro', phrase: "Here's three reasons why" },
+  ] },
   { id: 'a1', s: A, src: 'intro', tx: 0.215, ty: 0.561, z: 3.35, phrases: ['One it hydrates your body'] },
   { id: 'a2', s: A, src: 'intro', tx: 0.503, ty: 0.561, z: 3.35, phrases: ['Two it supports your brain'] },
   { id: 'a3', s: A, src: 'intro', tx: 0.790, ty: 0.561, z: 3.35, phrases: ['Three it keeps you feeling good'] },

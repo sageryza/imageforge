@@ -116,7 +116,7 @@ const FORCE = flag('force');
 
 const W = SPEC.width || 1000, H = SPEC.height || 1500, FPS = SPEC.fps || 30, BG = SPEC.bg || '#f7f3ea';
 const VOICE = SPEC.voice || 'UTkHGl2ImiT6gwtAFCql'; // "Sophie — morning"
-const TOOLV = 'vofilm-2'; // bump to invalidate every cache (v2: quiet-landing edges + missed-word gap guard)
+const TOOLV = 'vofilm-3'; // bump to invalidate every cache (v3: the gap guard is floor-referenced)
 // A spec's edge rule changes every cut, so it belongs in the shot cache key.
 const EDGEV = JSON.stringify(SPEC.edge || {});
 // `"relisten": true` — re-transcribe a small window around every located span
@@ -560,16 +560,22 @@ async function cutShot(shot, si, spans, sources, filmSpeech85) {
   // A GAP WITH SUSTAINED VOICING IS A MISSED WORD, NOT A PAUSE (2026-08-25,
   // found by Sophie's ear: "secret" — present in the source words, whispered
   // quietly — went untranscribed on the SHOT pass, fell between two word
-  // regions, and the bridge replaced it with room tone). The skill's own
-  // rule: a real dead stretch holds ~0s above speech-14dB, a spoken word
-  // holds its whole length there. So a gap is only bridged when it lacks a
-  // sustained hot run; otherwise its audio is kept verbatim.
-  const VOICED = speech85 - 14;
+  // regions, and the bridge replaced it with room tone). The threshold is
+  // FLOOR-referenced, never speech-referenced: measured, her whispered
+  // "secret" sits ~-38dB against speech at -13 — a speech-14 test misses it
+  // entirely — while it holds 0.30s continuously above floor+10 and the real
+  // pause beside it holds ~0s there. That is exactly the skill's laugh test
+  // (a laugh holds 0.40s above floor+10; a dead stretch holds 0.00s). One
+  // blip bin of tolerance, and only gaps under 1.6s qualify — a fan surge
+  // inside a long hole must not protect the hole (the Mason lesson).
+  const floorDb = pct(bins, 0.10), VOICED = floorDb + 10;
   const gapHasSpeech = (g0, g1) => {
-    let run = 0;
+    if (g1 - g0 > 1.6) return false;
+    let run = 0, blip = 0;
     for (let i = Math.floor(g0 / B); i < Math.ceil(g1 / B) && i < bins.length; i++) {
-      run = bins[i] > VOICED ? run + 1 : 0;
-      if (run * B >= 0.18) return true;
+      if (bins[i] > VOICED) { run++; blip = 0; }
+      else if (run && ++blip > 1) { run = 0; blip = 0; }
+      if (run * B >= 0.25) return true;
     }
     return false;
   };
