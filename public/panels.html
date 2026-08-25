@@ -367,12 +367,24 @@
       + (r.status === 'running' ? '<span>' + esc((r.job && r.job.label) || 'working…') + '</span>' : '')
       + (r.status === 'failed' ? '<span>' + esc(r.error || 'failed') + '</span>' : '');
   }
+  /* THE TILES ARE DISPLAY COPIES, NEVER THE ORIGINALS (2026-08-25). A 4K
+     sheet is a 7-10MB lossless webp that decodes to ~33MB, and every cut
+     panel is a full-res lossless crop — a feed of a few runs decoded at
+     original size is hundreds of MB inside the phone's web process, which is
+     what got this app's screens killed by iOS ("keeps going blank"). Tiles
+     ride the server's gated thumb service; the ORIGINAL url is kept on
+     data-full and is what the lightbox opens — the house webp rule, applied
+     here. */
+  function disp(url, w) {
+    if (!/^https:\/\/(storage|firebasestorage)\.googleapis\.com\//.test(url || '')) return url;
+    return '/api/story/thumb?w=' + (w || 480) + '&url=' + encodeURIComponent(url);
+  }
   function figureFor(im) {
     var fig = document.createElement('figure');
     fig.innerHTML = '<img alt="' + esc(im.cell) + '" loading="lazy">'
       + '<figcaption>' + esc(im.cell) + '</figcaption>';
     var img = fig.querySelector('img');
-    img.src = im.url; img.dataset.cell = im.cell;
+    img.src = disp(im.url, 480); img.dataset.full = im.url; img.dataset.cell = im.cell;
     return fig;
   }
   function sigOf(r) {
@@ -387,7 +399,8 @@
         sw = document.createElement('div'); sw.className = 'sheetwrap';
         sw.innerHTML = '<img class="sheetimg" alt="the sheet" loading="lazy">';
         el.insertBefore(sw, el.querySelector('.cuts'));
-        sw.querySelector('img').src = r.sheetUrl;
+        var si = sw.querySelector('img');
+        si.src = disp(r.sheetUrl, 720); si.dataset.full = r.sheetUrl;
       }
     }
     var cuts = el.querySelector('.cuts');
@@ -438,7 +451,7 @@
         if (!el) {
           el = document.createElement('img');
           el.dataset.k = k; el.dataset.run = r.id; el.dataset.cell = im.cell;
-          el.alt = im.cell; el.loading = 'lazy'; el.src = im.url;
+          el.alt = im.cell; el.loading = 'lazy'; el.src = disp(im.url, 480); el.dataset.full = im.url;
           box.insertBefore(el, prev ? prev.nextSibling : box.firstChild);
         }
         prev = el;
@@ -525,7 +538,7 @@
       im = (r.images || []).filter(function (x) { return x.cell === img.dataset.cell; })[0];
       if (!im) return;
     }
-    window.__assetLightbox(img.src, {
+    window.__assetLightbox(img.dataset.full || img.src, {
       description: isSheet
         ? 'the sheet — ' + r.count + ' panels'
         : (im.prompt || im.cell),
