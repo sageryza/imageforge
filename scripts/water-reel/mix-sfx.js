@@ -32,7 +32,7 @@
  * back off its own shots/ directory — never re-derived from the script.
  */
 'use strict';
-const { execFileSync } = require('child_process');
+const { execFileSync, spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const ffmpeg = require('ffmpeg-static');
@@ -40,8 +40,10 @@ const ffprobe = require('ffprobe-static').path;
 
 const args = {};
 process.argv.slice(2).forEach((a, i, all) => { if (a.startsWith('--')) args[a.slice(2)] = all[i + 1]; });
-const FILM = args.film, SFX = args.sfx, OUT = args.out;
-if (!FILM || !SFX || !OUT) { console.error('need --film <dir> --sfx <dir> --out <mp4>'); process.exit(1); }
+const FILM = args.film, SFX = args.sfx, OUT = args.out, SPEC = args.spec;
+if (!FILM || !SFX || !OUT || !SPEC) {
+  console.error('need --film <dir> --sfx <dir> --spec <spec.json> --out <mp4>'); process.exit(1);
+}
 
 // Her narration measures about -13 dB mean, so the bed sits 17 dB under it.
 const TARGET = Number(args.target || -30);   // dB mean, every effect, after gain
@@ -78,24 +80,42 @@ const BED = {
 const dur = (f) => Number(execFileSync(ffprobe, ['-v', 'error', '-show_entries', 'format=duration',
   '-of', 'default=nk=1:nw=1', f]).toString().trim());
 
-// volumedetect prints at info level, so -v error would swallow it
+// volumedetect prints to STDERR at info level, so it needs spawnSync — an
+// execFileSync only hands back stderr when the process FAILS, and this one
+// succeeds.
 const levels = {};
 function level(file) {
   if (levels[file]) return levels[file];
-  let txt = '';
-  try { execFileSync(ffmpeg, ['-hide_banner', '-i', file, '-af', 'volumedetect', '-f', 'null', '-'], { stdio: ['ignore', 'ignore', 'pipe'] }); } catch (e) { txt = String(e.stderr || ''); }
-  if (!txt) { try { txt = String(execFileSync(ffmpeg, ['-hide_banner', '-i', file, '-af', 'volumedetect', '-f', 'null', '-'], { stdio: ['ignore', 'ignore', 'pipe'], encoding: 'buffer' }).stderr || ''); } catch (e) { txt = String(e.stderr || ''); } }
+  const r = spawnSync(ffmpeg, ['-hide_banner', '-i', file, '-af', 'volumedetect', '-f', 'null', '-'],
+    { encoding: 'utf8', maxBuffer: 1 << 22 });
+  const txt = `${r.stderr || ''}${r.stdout || ''}`;
   const mean = Number((txt.match(/mean_volume:\s*(-?[\d.]+) dB/) || [])[1]);
   const max = Number((txt.match(/max_volume:\s*(-?[\d.]+) dB/) || [])[1]);
   if (!Number.isFinite(mean) || !Number.isFinite(max)) throw new Error(`could not measure ${file}`);
   return (levels[file] = { mean, max });
 }
 
+// THE SPEC DECIDES WHICH SHOTS ARE IN THE REEL, never a glob of shots/.
+// vo-film numbers its per-shot wavs by position, so a re-cut that adds a
+// section leaves the previous run's files sitting in the same folder under
+// numbers that now belong to different shots. Globbing picked up both sets:
+// 58 effects laid across 249s of "narration" for a 147s film. Reading the
+// spec's own order makes a stale wav unreachable instead of additive.
 const shotDir = path.join(FILM, 'shots');
-const shots = fs.readdirSync(shotDir).filter((f) => /^shot-\d+-.+\.wav$/.test(f)).sort();
-// the finished film, never one of the per-shot `seg-*.mp4` pieces beside it
-const film = path.join(FILM, fs.readdirSync(FILM)
-  .find((f) => f.endsWith('.mp4') && !f.startsWith('_') && !f.startsWith('seg-')));
+const onDisk = fs.readdirSync(shotDir).filter((f) => /^shot-\d+-.+\.wav$/.test(f));
+const spec = JSON.parse(fs.readFileSync(SPEC, 'utf8'));
+const shots = spec.shots.map((sh) => {
+  const f = onDisk.find((n) => n.replace(/^shot-\d+-/, '').replace(/\.wav$/, '') === sh.id);
+  if (!f) throw new Error(`no cut wav for shot ${sh.id}`);
+  return f;
+});
+// THE FILM IS NAMED BY THE SPEC, never found by scanning the folder. The same
+// dir accumulates every cut ever rendered there (`water-reel-v8.mp4` beside
+// `water-reel-v9.mp4`, plus `_video.mp4` and the seg-* pieces), and picking
+// the first plausible name laid a v9 sound bed over the v8 picture — a mix
+// that plays perfectly and is silently the wrong film.
+const film = path.join(FILM, `${spec.out}.mp4`);
+if (!fs.existsSync(film)) throw new Error(`no film at ${film}`);
 
 const lens = shots.map((f) => dur(path.join(shotDir, f)));
 const total = lens.reduce((a, b) => a + b, 0);
@@ -127,5 +147,5 @@ const filter = `${chains.join(';')};${mix}amix=inputs=${chains.length}:normalize
 execFileSync(ffmpeg, ['-v', 'error', '-y', ...inputs, '-filter_complex', filter,
   '-map', '0:v', '-map', '[aout]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k',
   '-movflags', '+faststart', OUT], { stdio: ['ignore', 'ignore', 'pipe'] });
-if (args.verbose !== undefined) console.log(log.join('\n'));
+if ('verbose' in args) console.log(log.join('\n'));
 console.log(`${OUT} — ${placed} effects under ${t.toFixed(1)}s, bed ${TARGET}dB tapering ${TAPER}dB`);
