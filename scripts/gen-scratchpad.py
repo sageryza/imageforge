@@ -36,6 +36,10 @@ page = r"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Story Room</title>
+<!-- THE house three-way toggle, one shell for every copy of it (the style
+     toggle on a story). Linked, never copied — see tritoggle.css's header. -->
+<link rel="stylesheet" href="/tritoggle.css">
+<script src="/tritoggle.js"></script>
 <style>
 @font-face{font-family:'EBGaramond';font-weight:400 700;font-display:swap;src:url(data:font/ttf;base64,__FONT__) format('truetype');}
 :root{ --paper:#f6f2e9; --ink:#26221c; --ink2:#8a8377; --line:#d9d2c2; --barbg:#fffdf7; --gold:#a8845c;
@@ -132,31 +136,36 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    sitting 2px inside it. */
 .iconrow{display:flex; align-items:center; justify-content:flex-end; gap:8px;
   padding:2px 56px 0 0;}
-/* THE STYLE TOGGLE — watercolor ↔ dreamy (Aug 2026, Sophie: "a style toggle
-   at the top of a story that alternates between dreamy and watercolor …
+/* THE STYLE TOGGLE — watercolor · dreamy · pastel (Aug 2026, Sophie: "a style
+   toggle at the top of a story that alternates between dreamy and watercolor …
    the same format that the account's toggle is, with a switch that moves
-   back-and-forth"). `.swi` is the account switcher's toggle from chats.html
-   VERBATIM — 48px track, 26 tall, an 18px knob — with TWO stops instead of
-   three and the track in INK on this cream page (the Playground's quality
-   toggle set that precedent; the rose belongs to the Chats app). The far
-   stop's 23px offset is the same arithmetic as the account one's third stop
-   (2 + 23 + 18 leaves the same 2px margin the near stop has). The words
-   either side say which is which — the lit one is where the knob sits — and
-   tapping a word or the switch flips the story. Its own line under the
-   title row: the row above already carries six 34px icons on a 390pt phone,
-   and a 48px track cannot fit beside them. */
+   back-and-forth"; PASTEL added 2026-08-26, "another style in the story room
+   called pastel besides watercolor and dreamy").
+
+   IT IS THE SHARED THREE-WAY TOGGLE NOW — `/tritoggle.css` + `/tritoggle.js`,
+   linked and never copied. It used to be `.swi`, a hand copy of the account
+   switcher's TWO-stop geometry, and the day a third style landed that copy
+   was the thing standing in the way: the house rule is that three options is
+   a three-way toggle, and there is exactly ONE shell for it. Colour is the
+   per-instance option — ink on this cream page, the Playground's precedent;
+   the rose belongs to the Chats app — so this instance sets four lines and
+   the height, the radius and the travel between stops fall out of the width.
+
+   THE KNOB CARRIES THE INITIAL (W / D / P, `data-i`) and the three WORDS sit
+   beside it, the lit one being where the knob is. That is her original shape
+   — "the words either side say which is which" — with the switch moved to the
+   front, because three words cannot straddle one switch. Tapping a word picks
+   that style; tapping the track lands on the STOP UNDER THE THUMB (never a
+   cycle, `triNext`).
+
+   Its own line under the title row: the row above already carries six 34px
+   icons on a 390pt phone, and a track cannot fit beside them. */
 .stylerow{display:flex; align-items:center; gap:9px; padding:2px 56px 4px 0;}
 .stylerow .sw{font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:10px; letter-spacing:.1em;
   text-transform:uppercase; color:var(--ink2); background:none; border:none; padding:2px 0; cursor:pointer;
   -webkit-tap-highlight-color:transparent;}
 .stylerow .sw.on{color:var(--ink); font-weight:600;}
-.swi{--tw:48px; --k:18px; --gap:23px;
-  position:relative; box-sizing:border-box; width:var(--tw); height:26px; border-radius:13px;
-  border:1.5px solid var(--ink); background:var(--ink);
-  padding:0; margin:0; flex:none; cursor:pointer; -webkit-tap-highlight-color:transparent;}
-.swi::after{content:''; position:absolute; top:2px; left:2px; width:var(--k); height:18px; border-radius:50%;
-  background:var(--paper); transition:transform .18s;}
-.swi[data-a="2"]::after{transform:translateX(var(--gap));}
+.stylerow .tri{--tri-track:var(--ink); --tri-knob:var(--paper); --tri-ink:var(--ink);}
 /* THE SHELF (Aug 2026, the media-asset-survey prototype v5, ~15 rounds with
    Sophie): category chips + portrait tiles four across. A tile is a REAL
    picture from that story — portrait 2:3 so nothing crops the art — with the
@@ -702,9 +711,10 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   </div>
   </div>
   <div class="stylerow">
-    <button class="sw on" id="swwater" type="button">Watercolor</button>
-    <button class="swi" id="styletog" type="button" data-a="1" aria-label="Which style this story is showing"></button>
-    <button class="sw" id="swdreamy" type="button">Dreamy</button>
+    <button class="tri" id="styletog" type="button" data-n="0" data-i="W" aria-label="Which style this story is showing"></button>
+    <button class="sw on" id="swwater" type="button" data-style="watercolor">Watercolor</button>
+    <button class="sw" id="swdreamy" type="button" data-style="dreamy">Dreamy</button>
+    <button class="sw" id="swpastel" type="button" data-style="pastel">Pastel</button>
   </div>
   <div id="filmrow" hidden><span class="filmnote" id="filmnote"></span></div>
   <div id="pad"></div>
@@ -906,32 +916,52 @@ function api(p,opts){
 }
 var beats=[], inboxItems=[], uploads=[], pending=null, popBeat=null, padTitle='';
 var player=new Audio();
-/* ── the STYLE TOGGLE: watercolor ↔ dreamy ──────────────────────────
-   One story, two sets of art over the SAME beats (Sophie, Aug 2026): the
-   words, colors, voice and order are shared; only the pictures differ.
-   "watercolor" is the pad's original look and lives where it always did
-   (beat.url/src/gen/imageHistory); "dreamy" lives in beat.alt.dreamy, empty
-   until she fills it. slotOf() is the one accessor — everything that touches
-   ART goes through it, so the rest of the page never asks which side is up.
-   A CLIP is per-style TOO (2026-08-23, Sophie, after movies she added on
-   the dreamy side showed up on watercolor): a slot holds a picture OR a
-   clip, so "is this a clip" is a question about the side she is showing. */
+/* ── the STYLE TOGGLE: watercolor · dreamy · pastel ─────────────────
+   One story, N sets of art over the SAME beats (Sophie, Aug 2026; pastel
+   added 2026-08-26): the words, colors, voice and order are shared; only the
+   pictures differ. "watercolor" is the pad's original look and lives where it
+   always did (beat.url/src/gen/imageHistory); every other style lives in
+   beat.alt[style], empty until she fills it. slotOf() is the one accessor —
+   everything that touches ART goes through it, so the rest of the page never
+   asks which side is up. A CLIP is per-style TOO (2026-08-23, Sophie, after
+   movies she added on the dreamy side showed up on watercolor): a slot holds
+   a picture OR a clip, so "is this a clip" is a question about the side she
+   is showing.
+   NOTHING COUNTS THE STYLES BUT THIS LIST — a fourth one is a row in it plus
+   its recipe server-side, and the toggle, the words and every sweep follow. */
+var STYLES=[
+  {key:'watercolor', word:'Watercolor', i:'W'},
+  {key:'dreamy',     word:'Dreamy',     i:'D'},
+  {key:'pastel',     word:'Pastel',     i:'P'}
+];
 var padStyle='watercolor';
-function slotOf(b){
-  return padStyle==='dreamy' ? ((b.alt&&b.alt.dreamy)||{}) : b;
-}
+function styleIx(s){ for(var i=0;i<STYLES.length;i++)if(STYLES[i].key===s)return i; return 0; }
+function slotFor(b,s){ return s==='watercolor' ? b : ((b.alt&&b.alt[s])||{}); }
+function slotOf(b){ return slotFor(b,padStyle); }
 function clipOf(b){ var s=slotOf(b); return Boolean(s&&s.kind==='clip'); }
 /* The side she DELETED this beat from (2026-08-23, Sophie: "leave it in the
    other style cause that one might have an image for that"). The beat keeps
    its place and its words on the side that still wants it; here it is
    simply not drawn. */
 function beatOff(b){ var s=slotOf(b); return Boolean(s&&s.off); }
-function otherSlotOf(b){ return padStyle==='dreamy' ? b : ((b.alt&&b.alt.dreamy)||{}); }
+/* The OTHER sides — which of them, if any, still has art. That is the whole
+   question the delete box asks (2026-08-23: "leave it in the other style
+   cause that one might have an image for that"), and with three styles the
+   answer is a LIST of the ones that keep it, not a single other side. */
+function otherKeepers(b){
+  return STYLES.filter(function(s){
+    return s.key!==padStyle && Boolean(slotFor(b,s.key).url);
+  });
+}
 function slotDrawing(b){ var s=slotOf(b); return Boolean(s.gen&&s.gen.status==='drawing'); }
 function renderStyle(){
-  document.getElementById('styletog').setAttribute('data-a', padStyle==='dreamy'?'2':'1');
-  document.getElementById('swwater').classList.toggle('on', padStyle!=='dreamy');
-  document.getElementById('swdreamy').classList.toggle('on', padStyle==='dreamy');
+  var ix=styleIx(padStyle), tog=document.getElementById('styletog');
+  tog.setAttribute('data-n', String(ix));
+  tog.setAttribute('data-i', STYLES[ix].i);
+  STYLES.forEach(function(s){
+    var b=document.querySelector('.stylerow .sw[data-style="'+s.key+'"]');
+    if(b)b.classList.toggle('on', s.key===padStyle);
+  });
 }
 function setStyle(s){
   if(s===padStyle)return;
@@ -939,9 +969,18 @@ function setStyle(s){
   api('/style',{method:'POST',body:JSON.stringify({style:s})}).catch(function(){});
   if(anyDrawing()) startGenPoll();
 }
-document.getElementById('styletog').onclick=function(ev){ ev.stopPropagation(); setStyle(padStyle==='dreamy'?'watercolor':'dreamy'); };
-document.getElementById('swwater').onclick=function(ev){ ev.stopPropagation(); setStyle('watercolor'); };
-document.getElementById('swdreamy').onclick=function(ev){ ev.stopPropagation(); setStyle('dreamy'); };
+/* WHERE SHE TAPPED IS THE STOP SHE MEANT — /tritoggle.js, shared. The `||`
+   is the floor for a page whose script did not load: one step, never nothing.
+   Tapping a WORD picks that style outright (it sits nowhere near its stop). */
+document.getElementById('styletog').onclick=function(ev){
+  ev.stopPropagation();
+  var cur=styleIx(padStyle);
+  var n=window.triNext?window.triNext(this,STYLES.length,ev,cur):((cur+1)%STYLES.length);
+  setStyle(STYLES[n].key);
+};
+Array.prototype.forEach.call(document.querySelectorAll('.stylerow .sw'),function(b){
+  b.onclick=function(ev){ ev.stopPropagation(); setStyle(b.getAttribute('data-style')); };
+});
 
 function lock(v){document.body.style.overflow=v?'hidden':'';}
 
@@ -1033,7 +1072,7 @@ function padUnits(){
    what makes a phone crawl, and the pad is a thinking surface. */
 function isClip(b){ return Boolean(b&&b.kind==='clip'); }
 /* What a beat SHOWS in the current style — the slot's picture, or its
-   clip's poster. Under dreamy an unfilled beat is honestly blank. */
+   clip's poster. Under another style an unfilled beat is honestly blank. */
 function artOf(b){
   if(!b)return null;
   var s=slotOf(b);
@@ -1140,7 +1179,7 @@ var film=null, padUpdated=0, dirtySinceFilm=false, autoplayWanted=false;
 function filmFresh(){
   // Server-clock to server-clock only — never compare against the phone's.
   // A film is also only fresh for the STYLE it was cut in: the watercolor
-  // render is not the dreamy film, however recent it is.
+  // render is not the pastel film, however recent it is.
   return Boolean(film&&film.url&&film.status==='done'&&!dirtySinceFilm&&(film.at||0)>=(padUpdated-2500)
     &&(film.style||'watercolor')===padStyle);
 }
@@ -1357,7 +1396,7 @@ function promptOf(b){
   return p||stripSpeech(b&&b.text);
 }
 function drawables(){
-  // Per STYLE: a beat whose watercolor is drawn but whose dreamy slot is
+  // Per STYLE: a beat whose watercolor is drawn but whose pastel slot is
   // empty is exactly what the toggle exists to fill.
   return beats.filter(function(b){
     var s=slotOf(b);
@@ -1432,7 +1471,7 @@ function startFilmPoll(){
 function load(){
   api('').then(function(r){return r.json()}).then(function(d){
     beats=d.beats||[]; padTitle=d.title||''; film=d.film||null;
-    padStyle=(d.style==='dreamy')?'dreamy':'watercolor'; renderStyle();
+    padStyle=STYLES.some(function(s){return s.key===d.style;})?d.style:'watercolor'; renderStyle();
     uploads=d.uploads||[];
     audios=d.audios||[]; renderAudios();
     padUpdated=d.updatedAt||0; dirtySinceFilm=false;
@@ -1830,7 +1869,7 @@ function urlsOnPad(){
   var onPad={};
   beats.forEach(function(b){
     if(b.url)onPad[b.url]=1;
-    if(b.alt&&b.alt.dreamy&&b.alt.dreamy.url)onPad[b.alt.dreamy.url]=1;
+    STYLES.forEach(function(s){ var u=slotFor(b,s.key).url; if(u)onPad[u]=1; });
   });
   return onPad;
 }
@@ -2010,10 +2049,10 @@ function openBeat(b){
   popBeat=b;
   var im=document.getElementById('popimg'), bl=document.getElementById('popblank');
   var vid=document.getElementById('popvid');
-  // The popup shows the side the toggle is showing — under dreamy an
+  // The popup shows the side the toggle is showing — under another style an
   // unfilled beat opens BLANK, with its shared words underneath, which is
   // exactly the fill-it-in state the toggle exists for. A clip is the
-  // SLOT's kind: a movie on the dreamy side leaves watercolor a picture.
+  // SLOT's kind: a movie on the pastel side leaves watercolor a picture.
   var su=slotOf(b);
   var clip=su.kind==='clip';
   // NOTHING DRAWN YET is one state, computed once: the blank tile shrinks,
@@ -2129,8 +2168,8 @@ function openDraw(ev){
   if(!opening)savePrompt();
   // Opening the prompt folds the caption away (her rule); closing it leaves
   // the caption as she left it rather than forcing it back open.
-  // DREAMY never takes the Sophie card (the Playground's noCharacter rule:
-  // her card is the watercolor look, the wrong reference there) — setBoxes
+  // ONLY WATERCOLOR takes the Sophie card (the Playground's noCharacter
+  // rule: her card is the watercolor look, wrong elsewhere) — setBoxes
   // takes the toggle off rather than leaving it there doing nothing.
   // Opening the prompt folds the caption away only when there is a picture
   // taking the room — on a picture-less beat both stay open, which is the
@@ -2183,7 +2222,7 @@ document.getElementById('dgo').onclick=function(ev){
     id:b.id, prompt:prompt,
     quality:document.getElementById('dq').value,
     style:padStyle,
-    character:padStyle!=='dreamy'&&document.getElementById('dchar').classList.contains('on'),
+    character:padStyle==='watercolor'&&document.getElementById('dchar').classList.contains('on'),
   })}).then(function(r){return r.json()}).then(function(d){
     btn.disabled=false;
     if(d.error){ alert(d.error); return; }
@@ -2196,12 +2235,13 @@ document.getElementById('dgo').onclick=function(ev){
 /* A draw is a background job: poll the pad while any beat is drawing, and
    resume that poll on return, so leaving the app never loses a picture. */
 var genTimer=null;
-/* Watches BOTH sides of the toggle — she can flip away while a dreamy draw
+/* Watches EVERY side of the toggle — she can flip away while a pastel draw
    is still cooking, and the poll must keep going until it lands. */
 function anyDrawing(){
   return beats.some(function(b){
-    return (b.gen&&b.gen.status==='drawing')
-      ||(b.alt&&b.alt.dreamy&&b.alt.dreamy.gen&&b.alt.dreamy.gen.status==='drawing');
+    return STYLES.some(function(s){
+      var g=slotFor(b,s.key).gen; return Boolean(g&&g.status==='drawing');
+    });
   });
 }
 function startGenPoll(){
@@ -2282,7 +2322,7 @@ function setBoxes(capOpen, promOpen){
   cl.setAttribute('aria-expanded',capOpen?'true':'false');
   pl.setAttribute('aria-expanded',promOpen?'true':'false');
   paintCap();
-  document.getElementById('dchar').hidden=(padStyle==='dreamy');
+  document.getElementById('dchar').hidden=(padStyle!=='watercolor');
   paintPromptHint();
 }
 /* The pencil TOGGLES the box. Coming out of it saves and re-paints the
@@ -2432,14 +2472,18 @@ document.getElementById('coverbtn').onclick=function(ev){
    different things (2026-08-23, Sophie): with art on the other side only
    this side goes and the beat stays over there; with nothing anywhere else,
    the beat itself goes. */
-var STYLE_WORD={watercolor:'Watercolor', dreamy:'Dreamy'};
+/* The names come off STYLES, so a new style needs no word list of its own.
+   With more than two sides "the other one" is a LIST — "It stays in Dreamy
+   and Pastel." — because that is what the server's rule now says. */
+function styleWord(k){ var i=styleIx(k); return STYLES[i]?STYLES[i].word:k; }
+function andList(a){ return a.length<2?(a[0]||'') : a.slice(0,-1).join(', ')+' and '+a[a.length-1]; }
 document.getElementById('delbtn').onclick=function(ev){
   ev.stopPropagation();
   if(!popBeat)return;
-  var keeps=Boolean(otherSlotOf(popBeat).url);
-  document.getElementById('delline').textContent=keeps
-    ? ('Delete this beat from '+STYLE_WORD[padStyle]+'? It stays in '
-        +STYLE_WORD[padStyle==='dreamy'?'watercolor':'dreamy']+'.')
+  var keeps=otherKeepers(popBeat);
+  document.getElementById('delline').textContent=keeps.length
+    ? ('Delete this beat from '+styleWord(padStyle)+'? It stays in '
+        +andList(keeps.map(function(s){return s.word;}))+'.')
     : 'Delete this beat? Its pictures are already saved in your galleries.';
   document.getElementById('delask').hidden=false;
 };
