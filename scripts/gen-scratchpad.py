@@ -2764,8 +2764,8 @@ function armTripRestore(home){
     setTimeout(function(){ location.replace(home); }, 250);
   };
 }
-function sendHome(){ return (sendBack&&sendBack.from==='panels') ? '/panels' : '/playground'; }
-function sendHomeName(){ return (sendBack&&sendBack.from==='panels') ? 'Panels' : 'the Playground'; }
+function sendHome(){ return '/playground'; }
+function sendHomeName(){ return 'the Playground'; }
 function endSend(placed){
   sendBack={url:sendIt&&sendIt.url, from:(sendIt&&sendIt.from)||'playground', placed:Boolean(placed)};
   sendIt=null;
@@ -2823,9 +2823,7 @@ document.getElementById('senddrop').onclick=function(ev){
    collection read, no model call; send-match.js carries the rules and their
    test). The card proposes them best first, and NOTHING places without her
    tap: a row is the confirm, the other rows are "a different one", and Pick
-   by hand (or just using the shelf as ever) is the old flow untouched. A
-   sheet from Panels skips the check — a whole page of cells matched to one
-   beat would be a guess about the wrong unit. */
+   by hand (or just using the shelf as ever) is the old flow untouched. */
 var matchCands=null;
 function paintMatch(){
   var el=document.getElementById('matchcard');
@@ -2834,7 +2832,6 @@ function paintMatch(){
 }
 function loadMatch(){
   if(!sendIt||!sendIt.prompt) return;
-  if(sendIt.from==='panels'&&sendIt.cell==='sheet') return;
   var it=sendIt;
   api('/send-match?q='+encodeURIComponent(it.prompt.slice(0,2000)))
     .then(function(r){return r.json()})
@@ -2914,27 +2911,6 @@ function loadSend(runId,i){
       paintSend(); loadMatch();
     })
     .catch(function(){ sendBack={url:null, from:'playground'}; paintSend(); });
-}
-/* PANELS WALKS HERE TOO (2026-08-26) — its lightbox got the same send button
-   when its feed was brought up to the Playground's, and the popup she retired
-   must not come back anywhere. Its run is a SHEET, so the picture is named by
-   its CELL rather than by an index: a resume re-cuts only the panels that are
-   missing, which makes a position an unstable name for one. Everything else is
-   identical, provenance included — one id re-read in the room. */
-function loadSendPanel(runId,cell){
-  fetch('/api/panels/'+encodeURIComponent(runId))
-    .then(function(r){return r.json()})
-    .then(function(d){
-      var im=null;
-      (d.images||[]).forEach(function(x){ if(x&&x.cell===cell) im=x; });
-      var url=(cell==='sheet')?d.sheetUrl:(im&&im.url);
-      if(!url){ sendBack={url:null, from:'panels'}; paintSend(); return; }
-      sendIt={url:url, runId:runId, cell:cell, from:'panels',
-              prompt:(im&&im.prompt)||(d.panels||[]).join('\n')||null,
-              model:'gpt-image-2', quality:d.quality||null};
-      paintSend(); loadMatch();
-    })
-    .catch(function(){ sendBack={url:null, from:'panels'}; paintSend(); });
 }
 
 /* ── the beat popup: the art at THUMBNAIL size, frame color, text ─── */
@@ -3807,12 +3783,9 @@ window.__navBack=function(){
      taps arms it. */
   var send=q.get('send');
   if(send){
-    /* `from=panels` names the FEED to re-read, not just a label — a panels run
-       lives in another collection and names its picture by cell. */
-    if(q.get('from')==='panels') loadSendPanel(send, q.get('cell')||'');
-    else loadSend(send, Math.max(0, parseInt(q.get('i'),10)||0));
+    loadSend(send, Math.max(0, parseInt(q.get('i'),10)||0));
     // Leaving the tool must un-eat the sender's web view — see armTripRestore.
-    armTripRestore(q.get('from')==='panels' ? '/panels' : '/playground');
+    armTripRestore('/playground');
   }
   /* Spend the link once, BEFORE anything opens: she may walk off to another
      story from here, and a refresh then must not yank her back to the beat
@@ -3820,7 +3793,7 @@ window.__navBack=function(){
      Every other param (plain=1) is left exactly as it was. */
   try{
     q.delete('pad'); q.delete('beat'); q.delete('send'); q.delete('i');
-    q.delete('cell'); if(q.get('from')==='panels') q.delete('from');
+    q.delete('cell');
     var rest=q.toString();
     history.replaceState({},'',location.pathname+(rest?'?'+rest:''));
   }catch(e){}

@@ -69,8 +69,8 @@ ok(/styleNamed\(req\)/.test(imgRoute) && /sideFromEvidence\(/.test(imgRoute),
 ok(!/styleOf\(req\)/.test(addRoute) && !/styleOf\(req\)/.test(imgRoute),
   'neither placement route silently defaults through styleOf any more');
 const evid = src.slice(src.indexOf('async function sideFromEvidence'), src.indexOf('function revealPatch'));
-ok(/forge-panels/.test(src) && /PROMPTLAB/.test(evid),
-  'the evidence reads the real run collections (panels + promptlab)');
+ok(/PROMPTLAB/.test(evid),
+  'the evidence reads the real run collection');
 ok(/catch/.test(evid), 'evidence is best-effort — a failed read never fails a placement');
 
 process.exit(failures ? 1 : 0);

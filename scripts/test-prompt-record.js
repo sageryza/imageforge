@@ -61,7 +61,7 @@ const ok = (cond, name) => { assert.ok(cond, name); n++; };
   const srv = fs.readFileSync(root('server.js'), 'utf8');
   function callArgs(src, name) {
     const out = [];
-    // A dot-access counts — panels calls it as `deps.fileCreation(`.
+    // A dot-access counts — a module calls it as `deps.fileCreation(`.
     const re = new RegExp(`${name}\\s*\\(`, 'g');
     let m;
     while ((m = re.exec(src))) {
@@ -85,10 +85,6 @@ const ok = (cond, name) => { assert.ok(cond, name); n++; };
   // The injected filer, followed into the modules that receive it.
   const injected = [...srv.matchAll(/fileCreation:\s*fileCreationDoc/g)];
   ok(injected.length >= 2, 'fileCreationDoc is handed to the modules that make deliverables');
-  // panels.js MAKES IMAGES — every one of its filings carries the whole prompt.
-  const pan = fs.readFileSync(root('panels.js'), 'utf8');
-  const panCalls = callArgs(pan, 'fileCreation');
-  ok(panCalls.length >= 2, 'panels files the sheet and each cut panel');
   // A call may carry the prompt through a shared object it spreads —
   // `Object.assign({ … }, shared)` — which is the right way to write two
   // filings of one run. So a call that names no fullPrompt itself is followed
@@ -102,9 +98,6 @@ const ok = (cond, name) => { assert.ok(cond, name); n++; };
     const decl = src.match(new RegExp(`const\\s+${spread[1]}\\s*=[\\s\\S]*?;`));
     return !!decl && /fullPrompt/.test(decl[0]);
   };
-  panCalls.forEach((a, i) =>
-    ok(carries(pan, a), `panels fileCreation call ${i} passes fullPrompt`));
-
   // photostudio and movies file through the injected filer too — their calls
   // must carry the whole prompt, or a mockup / a filed clip loses the one
   // copy of the text that made it.

@@ -30,8 +30,8 @@
 //   9. after placing, the band reads "Placed · back to the Playground" and
 //      tapping it walks back — the walk ate the Playground's screen, so
 //      without this the trip was one-way,
-//  10. a panels walk goes back to /panels, and a run that cannot be read
-//      still offers the way back rather than stranding her,
+//  10. a run that cannot be read still offers the way back rather than
+//      stranding her,
 //  11. an APP exit does not strand the tool the walk rode in on (2026-08-26,
 //      Sophie's second report: "I still can't get out of the story room and
 //      back into the playground") — the walk happens inside the SENDER's web
@@ -98,10 +98,6 @@ const server = http.createServer((req, res) => {
   }
   if (url.pathname === '/api/promptlab') return json({ runs: [RUN], more: false });
   if (url.pathname === '/api/promptlab/runA') return json(RUN);
-  if (url.pathname === '/api/panels/sheetA') {
-    return json({ id: 'sheetA', quality: 'low', sheetUrl: '/px.png?sheet=1',
-      panels: ['a small owl'], images: [{ cell: 'a1', url: '/px.png?p=a1', prompt: 'a small owl' }] });
-  }
   if (url.pathname === '/api/story/thumb') {
     thumbCalls.push(url.searchParams.get('url'));
     res.writeHead(302, { Location: url.searchParams.get('url') || '/px.png' });
@@ -116,11 +112,6 @@ const server = http.createServer((req, res) => {
     roomLoads.push(url.search);
     res.writeHead(200, { 'Content-Type': 'text/html' });
     return res.end(fs.readFileSync(path.join(PUB, 'scratchpad.html')));
-  }
-  if (url.pathname === '/panels') {
-    // Only step 11's restore ever lands here; a blank page is enough.
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    return res.end('<title>panels</title>');
   }
   if (url.pathname === '/' || url.pathname === '/playground') {
     res.writeHead(200, { 'Content-Type': 'text/html' });
@@ -242,12 +233,7 @@ const ok = (cond, what) => { console.log((cond ? 'ok   ' : 'FAIL ') + what); if 
   ok(first && first.path === '/api/scratchpad/add' && first.body.at === 0 && first.body.pad === 'padY',
     'an empty story takes it as its first beat (' + JSON.stringify(first && first.body.at) + ')');
 
-  // ── 10 · a panels walk goes back to /panels; a dead run still offers it ─
-  await page.goto(base + '/storyroom?send=sheetA&cell=a1&from=panels');
-  await page.waitForSelector('#sendband:not([hidden])');
-  await page.locator('#senddrop').click();
-  await page.waitForFunction(() => /Back to Panels/.test(document.getElementById('sendword').textContent || ''));
-  ok(true, 'a panels walk offers the way back to Panels');
+  // ── 10 · a dead run still offers the way back ────────────────────────
   await page.goto(base + '/storyroom?send=gone&i=0');
   await page.waitForFunction(() => /Back to the Playground/.test(document.getElementById('sendword').textContent || ''));
   ok(await page.locator('#sendthumb').isHidden(), 'a run that cannot be read shows no thumb');
@@ -266,11 +252,6 @@ const ok = (cond, what) => { console.log((cond ? 'ok   ' : 'FAIL ') + what); if 
   ok(await page.evaluate(() => window.__leftTool === 1), 'the shelf chevron still hands the app its exit');
   await page.waitForURL(/\/playground/);
   ok(true, 'and the web view then goes back to the Playground behind it');
-  await page.goto(base + '/storyroom?send=sheetA&cell=a1&from=panels');
-  await page.waitForSelector('#sendband:not([hidden])');
-  await page.locator('#storiesclose').click();
-  await page.waitForURL(/\/panels/);
-  ok(true, 'a panels walk restores /panels instead');
   // Without the bridge (a plain browser) nothing navigates by itself: the
   // chevron falls back to real history exactly as before this fix — the
   // restore must never fire there. A fresh page carries no init script, so it

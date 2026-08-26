@@ -38,9 +38,7 @@ console.log('the source carries both fixes');
 ok(/function thumbFor\(/.test(pageSrc), 'promptlab has thumbFor');
 ok((pageSrc.match(/thumbFor\(u\)/g) || []).length >= 2,
   'both the list cells and the tile wall go through it');
-// BOTH FIXES LIVE IN /feedkit.js SINCE 2026-08-26 — one copy, shared with
-// /panels, because Sophie asked for the Playground's feed in that tool too
-// ("you can just reuse the code since it should be basically the same") and a
+// BOTH FIXES LIVE IN /feedkit.js SINCE 2026-08-26 — one copy, because a
 // second hand-copy of the reconcile is exactly how the flashing comes back.
 // So the page is pinned to USING them and the kit to HAVING them; a page that
 // went back to its own copy fails the last check here.
@@ -50,9 +48,8 @@ ok(!/innerHTML = groups\.map/.test(pageSrc.slice(pageSrc.indexOf('function rende
   'renderFeed no longer rebuilds the whole feed as one innerHTML');
 ok(/function syncChildren\(/.test(kitSrc) && /FeedKit\.syncChildren/.test(pageSrc),
   'repaints reconcile (the shared syncChildren)');
-ok(/<script src="\/feedkit\.js">/.test(pageSrc)
-  && /<script src="\/feedkit\.js">/.test(fs.readFileSync(path.join(ROOT, 'public', 'panels.html'), 'utf8')),
-  'and both feeds link the one kit, so neither can drift');
+ok(/<script src="\/feedkit\.js">/.test(pageSrc),
+  'and the feed links the one kit rather than keeping its own copy');
 ok(/function thumbFor\(/.test(gallerySrc) && /thumbFor\(img\.url\)/.test(gallerySrc),
   '/gallery tiles load the derived copy too');
 ok(/openLightbox\('\$\{img\.url\}'\)/.test(gallerySrc),

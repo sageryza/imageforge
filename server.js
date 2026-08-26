@@ -358,25 +358,6 @@ loadConfig().then(() => {
   // Freeform — your own reference images + your own words, sent verbatim. The
   // one image surface that adds NOTHING to a prompt (no style prefix/suffix).
   app.use('/api/freeform', require('./freeform').router);
-  // Panels: one sheet, drawn once, cut into separate pictures. It owns none of
-  // the credentials or the model call — server.js hands it the four things it
-  // needs here (the movies.init pattern), so the module drives whole from a
-  // test with stubs and no network.
-  const panels = require('./panels');
-  panels.init({
-    imageEdit: openaiImageEditRefs,
-    refsFor: playgroundRefs,
-    refBuffer: playgroundRef,
-    saveBuffer: saveBufferToFirebase,
-    fileCreation: fileCreationDoc,
-    styles: PL_GPT_STYLES,
-    gpt: PL_GPT,
-    whiten: whitenBackground,
-    // The ♥/✕ mirror: a mark on a panel also lands on any Assets-tab record
-    // holding the same picture, exactly as a Playground vote does.
-    syncVote: syncVoteToAssets,
-  });
-  app.use('/api/panels', panels.router);
   // Vector Studio — described drawings → a pastel sheet → cut-outs → SVG. The
   // one surface whose output is resolution-free, so a drawing can go on a
   // poster, a shirt or a die-cut sticker. Mounted here so config-loader has
@@ -868,10 +849,6 @@ app.get('/scratchpad', serveGated('scratchpad.html', { pill: true }));
 // Freeform: upload your own references, type your own words, pick the quality.
 // Nothing is added to the prompt here — that's the whole point of the page.
 app.get('/freeform', serveGated('freeform.html', { pill: true }));
-// Panels: the Playground's recipe with the run turned inside out — N prompts
-// drawn TOGETHER on one sheet and cut apart locally, which is cheaper twice
-// over (see panels.js's header). One text box per cell, laid out as the grid.
-app.get('/panels', serveGated('panels.html', { pill: true }));
 // Vector: describe drawings -> art that scales, and change its colours after
 // the fact for nothing. The front for /api/vector; see docs/vector-pipeline.md.
 app.get('/vector', serveGated('vector.html', { pill: true }));
@@ -2726,11 +2703,7 @@ async function syncVoteToAssets(url, vote) {
     // chat also delivered it. Measured 2026-08-22: 21 of 22 hearted
     // Playground pictures had ONLY that row, so a record-only sync wrote
     // nothing at all.
-    // Panels files every sheet and every cut panel into My Creations the same
-    // way (panels.js's fileRun), so its pictures vote as 'my-creations' too —
-    // without this a ♥ on a panel wrote nothing at all unless a chat had also
-    // delivered that picture into its own Assets tab.
-    if (/\/(promptlab|panels)\//.test(String(url))) chats.add('my-creations');
+    if (/\/promptlab\//.test(String(url))) chats.add('my-creations');
     for (const q of queries) {
       try {
         (await q.limit(20).get()).docs.forEach((d) => {
@@ -2760,27 +2733,6 @@ async function syncVoteToPlayground(url, vote) {
       [`votes.${i}`]: (vote === 'like' || vote === 'dislike')
         ? vote : admin.firestore.FieldValue.delete(),
     });
-  } catch (e) { /* best-effort */ }
-}
-// The Panels sibling of the above: a ♥/✕ she gives in the Assets tab (or in
-// Meta Assets) lands back on the panels RUN doc, so its feed, its tiles and
-// its lightbox agree with the tab. Keyed by CELL NAME, the same key
-// POST /api/panels/:id/vote writes — a resume re-cuts only the missing panels,
-// so a position is not a stable name for a picture.
-async function syncVoteToPanels(url, vote) {
-  if (!url || !/\/panels\//.test(String(url)) || !admin.apps.length) return;
-  try {
-    const snap = await admin.firestore().collection('forge-panels')
-      .orderBy('createdAt', 'desc').limit(400).get();
-    for (const doc of snap.docs) {
-      const d = doc.data() || {};
-      const cell = d.sheetUrl === url ? 'sheet'
-        : ((d.images || []).find((im) => im && im.url === url) || {}).cell;
-      if (!cell) continue;
-      await doc.ref.update(new admin.firestore.FieldPath('votes', cell),
-        (vote === 'like' || vote === 'dislike') ? vote : admin.firestore.FieldValue.delete());
-      return;
-    }
   } catch (e) { /* best-effort */ }
 }
 // Legacy docs hold only a single `note` string (everything written before the
@@ -2886,7 +2838,6 @@ app.post('/api/gallery/assets/vote', express.json(), async (req, res) => {
     // doc, so the Playground's own feed agrees — see syncVoteToPlayground.
     if (vote !== undefined) {
       await syncVoteToPlayground(url, vote);
-      await syncVoteToPanels(url, vote);
     }
     res.json({ ok: true });
   } catch (err) {
@@ -5734,9 +5685,9 @@ async function fileCreationDoc({ url, type, prompt, poster, model, quality, styl
     // that reached the model and the two halves the PROMPT overlay reads.
     // Built by ONE shared module so no surface invents its own seam.
     // `prompt` above is the CAPTION, and for most callers it is also her
-    // words — but not always: the Panels sheet's caption is "the sheet — 4
-    // panels: …", a line this repo wrote. `promptContent` lets a caller say
-    // what her words really were rather than filing ours as hers.
+    // words — but not always: a caller may caption a picture with a line this
+    // repo wrote. `promptContent` lets it say what her words really were
+    // rather than filing ours as hers.
     Object.assign(doc, promptRecord.promptFields({
       full: fullPrompt,
       content: promptContent != null ? promptContent : prompt,
@@ -5746,10 +5697,9 @@ async function fileCreationDoc({ url, type, prompt, poster, model, quality, styl
     if (quality) doc.quality = String(quality).slice(0, 40);
     // THE THIRD CAPTION SLOT, same as fileRunToCreations writes for a
     // Playground run. `canvas` is the exact one; `size` is what the caption
-    // shows. A caller may pass `sizeSlot` to OVERRIDE the derivation, and the
-    // Panels tool has to: a cut panel's slot is "1/4 (4K)" — the fraction and
-    // the SHEET's tier — because its own 1168x1752 lands on the 1K rung and
-    // would read as an ordinary small picture.
+    // shows. A caller may pass `sizeSlot` to OVERRIDE the derivation — a
+    // picture cut out of a bigger sheet has to, since its own pixels land on
+    // a lower rung and would read as an ordinary small picture.
     if (canvas) doc.canvas = String(canvas).slice(0, 40);
     const slot = sizeSlot || (canvas ? require('./size-tier').captionSize(canvas) : '');
     if (slot) doc.size = String(slot).slice(0, 40);
@@ -5907,9 +5857,9 @@ async function runPromptLabGptJob(docRef, cfg) {
         // Keeping it makes every ordinary run a free measurement: image input
         // tokens scale with the reference's own dimensions, so the answer is
         // per-reference and cannot be reasoned out from one style's number.
-        // (Measured on Panels: dream-mystery.jpg is 1,505 tokens = 1.20c, the
-        // same at low and at medium — the reference does not get cheaper when
-        // the picture does.)
+        // (Measured 2026-08-24: dream-mystery.jpg is 1,505 tokens = 1.20c,
+        // the same at low and at medium — the reference does not get cheaper
+        // when the picture does.)
         // Stored per RENDER because one run can draw several.
         if (data.usage) usage.push(data.usage);
         await docRef.update({ status: 'ready', images: images.slice() });

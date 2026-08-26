@@ -4,7 +4,7 @@ import Foundation
 /// there anyway to do links that go directly and open in my actual iOS Deck
 /// Factory app?").
 ///
-/// An ordinary `https://imageforge-q125.onrender.com/panels` link, tapped
+/// An ordinary `https://imageforge-q125.onrender.com/playground` link, tapped
 /// anywhere on her phone, arrives here instead of Safari. The `deckfactory://`
 /// scheme still works exactly as it did — it is what the widget uses — but a
 /// custom scheme is only tappable where something treats it as a link, and in
@@ -30,7 +30,6 @@ enum ForgeLinks {
         "/chats": "chats",
         "/gallery": "gallery",
         "/playground": "playground",
-        "/panels": "panels",
         "/freeform": "freeform",
         "/vector": "vector",
         "/test": "test",
@@ -60,7 +59,7 @@ enum ForgeLinks {
     ]
 
     /// The destination a tapped web link means, or nil if it is not ours.
-    /// A trailing slash is tolerated — `/panels/` and `/panels` are the same
+    /// A trailing slash is tolerated — `/vector/` and `/vector` are the same
     /// page, and a link she pasted may carry either.
     ///
     /// The CONFIGURED server counts too, not just the domain in the

@@ -358,12 +358,12 @@ The house rules that only bite when you are actually building a page, an iOS scr
     and exactly the kind of thing a derived value cannot get wrong.
   - **Where it lives now:** the Chats account switcher (bare), the
     Playground's quality and size (`--tri-w:78px; --tri-k:26px`, ink on
-    paper), Panels' two the same, and the Chats search filters (muted at rest,
+    paper), and the Chats search filters (muted at rest,
     the rose `--chg` when the filter is actually narrowing — which is what the
     per-instance colour buys).
-  - **THE HISTORY, so nobody re-copies it:** it was `.swi` in `chats.html`,
-    `.swtog` in `promptlab.html`, and `.swtog` again in `panels.html` whose
-    own comment said it was "LIFTED VERBATIM" — three copies, two attribute
+  - **THE HISTORY, so nobody re-copies it:** it was `.swi` in `chats.html`
+    and `.swtog` twice in `promptlab.html`, the second saying it was "LIFTED
+    VERBATIM" in its own comment — three copies, two attribute
     names (`data-a` 1-based and `data-n` 0-based), two palettes, and the only
     thing that ever noticed a copy drifting was a test comparing two files
     property by property. `data-a` survives on the account switcher as a plain

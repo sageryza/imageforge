@@ -50,7 +50,6 @@ const LINKS = [
   ['/chats', 'chats'],
   ['/gallery', 'gallery'],
   ['/playground', 'playground'],
-  ['/panels', 'panels'],
   ['/freeform', 'freeform'],
   ['/vector', 'vector'],
   ['/test', 'test'],
