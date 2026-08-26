@@ -2671,6 +2671,27 @@ function loadSend(runId,i){
     })
     .catch(function(){});
 }
+/* PANELS WALKS HERE TOO (2026-08-26) — its lightbox got the same send button
+   when its feed was brought up to the Playground's, and the popup she retired
+   must not come back anywhere. Its run is a SHEET, so the picture is named by
+   its CELL rather than by an index: a resume re-cuts only the panels that are
+   missing, which makes a position an unstable name for one. Everything else is
+   identical, provenance included — one id re-read in the room. */
+function loadSendPanel(runId,cell){
+  fetch('/api/panels/'+encodeURIComponent(runId))
+    .then(function(r){return r.json()})
+    .then(function(d){
+      var im=null;
+      (d.images||[]).forEach(function(x){ if(x&&x.cell===cell) im=x; });
+      var url=(cell==='sheet')?d.sheetUrl:(im&&im.url);
+      if(!url) return;
+      sendIt={url:url, runId:runId, cell:cell, from:'panels',
+              prompt:(im&&im.prompt)||(d.panels||[]).join('\n')||null,
+              model:'gpt-image-2', quality:d.quality||null};
+      paintSend();
+    })
+    .catch(function(){});
+}
 
 /* ── the beat popup: the art at THUMBNAIL size, frame color, text ─── */
 function openBeat(b){
@@ -3352,13 +3373,19 @@ window.__navBack=function(){
      always does; the band above says what she is carrying, and the story she
      taps arms it. */
   var send=q.get('send');
-  if(send) loadSend(send, Math.max(0, parseInt(q.get('i'),10)||0));
+  if(send){
+    /* `from=panels` names the FEED to re-read, not just a label — a panels run
+       lives in another collection and names its picture by cell. */
+    if(q.get('from')==='panels') loadSendPanel(send, q.get('cell')||'');
+    else loadSend(send, Math.max(0, parseInt(q.get('i'),10)||0));
+  }
   /* Spend the link once, BEFORE anything opens: she may walk off to another
      story from here, and a refresh then must not yank her back to the beat
      she arrived on — or hand her back a picture she has already put down.
      Every other param (plain=1) is left exactly as it was. */
   try{
     q.delete('pad'); q.delete('beat'); q.delete('send'); q.delete('i');
+    q.delete('cell'); if(q.get('from')==='panels') q.delete('from');
     var rest=q.toString();
     history.replaceState({},'',location.pathname+(rest?'?'+rest:''));
   }catch(e){}

@@ -5,6 +5,11 @@
 <!-- The toggle's BEHAVIOUR is shared too since 2026-08-24 — a tap lands on the
      stop under the thumb rather than cycling. See /tritoggle.js. -->
 <script src="/tritoggle.js"></script>
+<!-- The feed's own shared pieces — the search grammar, liveInput/enterSubmits,
+     the keyed reconcile, the derived display copy and the toast. ONE copy,
+     shared with /panels (2026-08-26, Sophie: "you can just reuse the code
+     since it should be basically the same"). -->
+<script src="/feedkit.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   [hidden] { display: none !important; }
@@ -372,6 +377,21 @@
      caption and the buttons is what makes the stage the only thing that
      gives, so the two lines she opens a picture to read can never be the part
      that is squeezed away. */
+  /* THE WAY OUT, AT THE TOP (2026-08-26, Sophie: "it's a little hard to tap
+     out of them. Could you have some room at the top or something to get rid
+     of to get back to the playground"). The two step zones are 28% of the
+     width EACH and run the stage's full height, so more than half of the
+     picture area pages instead of closing — and with the chips gone
+     (2026-08-24) there is nothing on screen saying which part of the picture
+     closes. This band sits ABOVE the stage, outside both zones, so it can
+     never be one: the chevron is the house one (a small rounded box, the
+     `pagehead.js` shape) and the whole strip closes on a tap, not just the
+     glyph. */
+  .lbtop { flex: none; width: 100%; display: flex; align-items: center;
+    height: 40px; padding-top: env(safe-area-inset-top); box-sizing: content-box; }
+  .lbback { width: 34px; height: 34px; border-radius: 6px; border: 1px solid #555;
+    background: #1c1c1c; color: #ddd; display: flex; align-items: center; justify-content: center; }
+  .lbback svg { width: 20px; height: 20px; }
   .lbstage { position: relative; display: flex; align-items: center; justify-content: center;
     width: 100%; min-height: 0; flex: 0 1 auto; }
   #lb img { max-width: 100%; max-height: min(76vh, 100%); border-radius: 6px; }
@@ -400,7 +420,28 @@
      prompt scrolls now; the meta line never moves. */
   #lb .cap { margin-top: 10px; text-align: center; max-width: 560px; flex: none; }
   #lb .cap .capm { color: #9a938a; font-size: 12px; }
-  #lb .cap .capp { color: #eee; font-size: 13.5px; margin-top: 5px; max-height: 14vh; overflow-y: auto; }
+  #lb .cap .capp { color: #eee; font-size: 13.5px; margin-top: 5px; max-height: 14vh; overflow-y: auto;
+    white-space: pre-wrap; }
+  /* IT SAYS PROMPT, AND THE TWO HALVES ARE THE ASSETS TAB'S (2026-08-26,
+     Sophie: "can you have it say prompt and have the prompt in there instead
+     of below split into the style and the content"). CONTENT opens, per the
+     house rule — what the picture is OF is what differs picture to picture,
+     where the style half is the same wrapper across a whole batch.
+     The STYLE half is DERIVED FROM THIS RUN'S OWN `fullPrompt`, never from
+     the tile's baked prefix ("the style shouldn't be the default it should
+     actually look at what it was that time since I can change it") — she can
+     edit either half in the Prompt panel, and a run made before or after an
+     edit has to show the text that really wrapped her words that time.
+     No style half on file → no STYLE button, the same silence the Assets
+     overlay keeps for a picture with no prompt. */
+  #lb .caphd { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 9px; }
+  #lb .caphd[hidden] { display: none; }
+  #lb .capttl { color: #9a938a; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+  .capseg { display: flex; border: 1px solid #555; border-radius: 6px; overflow: hidden; }
+  .capseg button { border: 0; background: #1c1c1c; color: #bbb; font: inherit; font-size: 12px; padding: 3px 10px; }
+  .capseg button + button { border-left: 1px solid #555; }
+  .capseg button.on { background: #eee; color: #1c1c1c; }
+  .capseg button[hidden] { display: none; }
   .lbbtns { display: flex; gap: 22px; margin-top: 14px; flex: none; }
   .lbbtn { width: 46px; height: 46px; border-radius: 50%; border: 1.5px solid #555; background: #1c1c1c; color: #ddd; display: flex; align-items: center; justify-content: center; }
   .lbbtn svg { width: 21px; height: 21px; }
@@ -560,12 +601,27 @@
 </div>
 
 <div id="lb">
+  <div class="lbtop" id="lbtop">
+    <button class="lbback" id="lbback" aria-label="Back to the Playground">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+  </div>
   <div class="lbstage">
     <img id="lbimg" src="">
     <button class="lbnav" id="lbprev" aria-label="Previous picture" hidden></button>
     <button class="lbnav" id="lbnext" aria-label="Next picture" hidden></button>
   </div>
-  <div class="cap"><div class="capm" id="lbcapm"></div><div class="capp" id="lbcapp"></div></div>
+  <div class="cap">
+    <div class="capm" id="lbcapm"></div>
+    <div class="caphd" id="lbcaphd">
+      <span class="capttl">Prompt</span>
+      <span class="capseg">
+        <button id="lbhalfc" data-half="content">Content</button>
+        <button id="lbhalfs" data-half="style">Style</button>
+      </span>
+    </div>
+    <div class="capp" id="lbcapp"></div>
+  </div>
   <div class="lbbtns">
     <button class="lbbtn like" id="lblike" aria-label="Heart"></button>
     <button class="lbbtn dislike" id="lbx" aria-label="Reject"></button>
@@ -600,6 +656,10 @@
   var paging = false;     // an Older fetch is in flight
   var lbCur = null;       // { id, i } while the lightbox is open
   var lbBlob = null;      // { url, blob } prefetched so Save can share instantly
+  var lbSrc = '';         // the ORIGINAL url on screen — what Save and the app bridge get
+  var lbObj = '';         // the object url the full picture is painted from, to revoke
+  var lbHalves = null;    // { content, style } for the picture in the lightbox
+  var lbHalf = 'content'; // which half the PROMPT row is showing
 
   // Lucide line icons (heart, x, download), inlined — CSP-safe, no requests.
   var ICONS = {
@@ -788,36 +848,8 @@
   // so "aries" never finds "boundaries" and `gpt-image-2` keeps its hyphens —
   // the same regexes /assets builds, so the client filter and the server
   // search can never disagree about what matches.
-  function qparse(q) {
-    var groups = [], re = /(-|!)?(?:"([^"]*)"|(\S+))/g, m, orNext = false, notNext = false;
-    while ((m = re.exec(String(q || '')))) {
-      var quoted = m[2] !== undefined, raw = quoted ? m[2] : m[3], bare = !m[1] && !quoted;
-      if (bare && /^or$/i.test(raw)) { orNext = true; continue; }
-      if (bare && /^and$/i.test(raw)) continue;
-      if (bare && /^not$/i.test(raw)) { notNext = true; continue; }
-      var v = String(raw == null ? '' : raw).toLowerCase().replace(/\s+/g, ' ').trim();
-      if (!v) continue;
-      var rx = null;
-      try {
-        rx = new RegExp((/^[a-z0-9]/i.test(v) ? '\\b' : '') +
-          v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+'), 'i');
-      } catch (e) { rx = null; }
-      if (!rx) continue;
-      var neg = !!m[1] || notNext, last = groups[groups.length - 1];
-      if (orNext && last && !last.neg && !neg) last.terms.push(rx);
-      else groups.push({ neg: neg, terms: [rx] });
-      orNext = false; notNext = false;
-    }
-    return groups;
-  }
-  function qmatch(hay, groups) {
-    for (var i = 0; i < groups.length; i++) {
-      var g = groups[i], hit = false;
-      for (var j = 0; j < g.terms.length; j++) { if (g.terms[j].test(hay)) { hit = true; break; } }
-      if (g.neg ? hit : !hit) return false;
-    }
-    return true;
-  }
+  var qparse = window.FeedKit.qparse;
+  var qmatch = window.FeedKit.qmatch;
   // Everything a run's card actually says: her words, the style it was drawn
   // in, and the tags beside them — so "dreamy", "medium", "square", "photo
   // ref" and "failed" all find what she is looking at.
@@ -884,27 +916,8 @@
   }
   // Search as she DICTATES — iOS can fill a field without ever firing `input`,
   // so the box polls its value while focused (the house liveInput).
-  function liveInput(el, fn) {
-    var last = el.value, timer = null;
-    function fire() { if (el.value === last) return; last = el.value; fn(); }
-    ['input', 'change', 'compositionupdate', 'compositionend', 'keyup', 'paste']
-      .forEach(function (ev) { el.addEventListener(ev, function () { setTimeout(fire, 0); }); });
-    el.addEventListener('focus', function () { clearInterval(timer); timer = setInterval(fire, 150); });
-    el.addEventListener('blur', function () { clearInterval(timer); timer = null; fire(); });
-    return { sync: function () { last = el.value; } };
-  }
-  // RETURN ENDS THE SEARCH TOO (Aug 2026, Sophie) — a lone <input type=search>
-  // outside a <form> has nothing to submit to, so Return would do nothing at
-  // all. It runs the search and drops the keyboard, so what she is left
-  // looking at is the pictures.
-  function enterSubmits(el, fn) {
-    el.addEventListener('keydown', function (e) {
-      if (e.key !== 'Enter' && e.keyCode !== 13) return;
-      e.preventDefault();
-      if (fn) fn();
-      el.blur();
-    });
-  }
+  var liveInput = window.FeedKit.liveInput;
+  var enterSubmits = window.FeedKit.enterSubmits;
   var qLive = liveInput(document.getElementById('q'), readSearch);
   // `qLive.sync()` inside it: the blur Return performs would otherwise be
   // liveInput's first sight of dictated text and would search a second time.
@@ -1476,10 +1489,11 @@
   var resTier = '1k';
   var RES = null, RES_DEFAULT = '1k';
   function tierIds() { return ['1k', '2k', '4k']; }
-  // Arrived with ?res= (a Panels cut's "Upscale in the Playground" carries the
-  // tier the redraw should land at, 2026-08-25). One-shot like the rest of the
-  // ported settings, and still never persisted — the not-persisted rule is
-  // about a tier she is not looking at, and this one is in the link she tapped.
+  // Arrived with ?res= (a Panels cut's hand-off carries the tier the redraw
+  // should land on — 1k since 2026-08-26, her ask; it used to be 4k). One-shot
+  // like the rest of the ported settings, and still never persisted — the
+  // not-persisted rule is about a tier she is not looking at, and this one is
+  // in the link she tapped.
   (function () {
     var rt = new URLSearchParams(location.search).get('res');
     if (rt && tierIds().indexOf(rt) >= 0) resTier = rt;
@@ -1939,11 +1953,7 @@
   // and is sent as-is (the thumb service only re-serves Google storage
   // hosts, and those temp urls expire on their own anyway).
   var THUMB_W = 480;
-  function thumbFor(u) {
-    return /^https:\/\/(storage|firebasestorage)\.googleapis\.com\//.test(u || '')
-      ? '/api/story/thumb?w=' + THUMB_W + '&url=' + encodeURIComponent(u)
-      : u;
-  }
+  function thumbFor(u) { return window.FeedKit.thumbFor(u, THUMB_W); }
 
   // FLASHING: every repaint used to be `innerHTML = …` over the whole feed,
   // which destroys and recreates every <img> on screen — the browser blanks
@@ -1954,25 +1964,7 @@
   // order is fixed by MOVING nodes — moving an element never reloads its
   // image. The lightbox arrows read the DOM (lbSeq), so they walk exactly
   // what reconciliation put there, same as before.
-  function syncChildren(box, items, make, update) {
-    var stray = [], byKey = {}, el, k;
-    for (el = box.firstElementChild; el; el = el.nextElementSibling) {
-      k = el.getAttribute('data-key');
-      if (k == null) stray.push(el); else byKey[k] = el;
-    }
-    stray.forEach(function (s) { s.remove(); });     // e.g. an old empty-note
-    var prev = null;
-    items.forEach(function (it) {
-      var node = byKey[it.key];
-      if (node) delete byKey[it.key];
-      else { node = make(it); node.setAttribute('data-key', it.key); }
-      var want = prev ? prev.nextElementSibling : box.firstElementChild;
-      if (node !== want) box.insertBefore(node, want || null);
-      update(node, it);       // after insertion — the clamp check needs layout
-      prev = node;
-    });
-    Object.keys(byKey).forEach(function (kk) { byKey[kk].remove(); });
-  }
+  var syncChildren = window.FeedKit.syncChildren;
   // A picture's own shape, as a CSS ratio. The run stores it as '2:3' / '1:1';
   // anything else (an older run from before the canvas toggle, a hand-written
   // value) falls back to portrait, which is what every run before it drew.
@@ -2291,6 +2283,7 @@
     // it keeps running under the lightbox and the page has moved on by the
     // time the image is closed.
     if (window.__scrollStop) window.__scrollStop();
+    lbHalf = 'content';     // CONTENT opens the overlay — the house rule
     showLB(id, i);
     document.getElementById('lb').classList.add('on');
     document.body.style.overflow = 'hidden';
@@ -2329,23 +2322,106 @@
   document.getElementById('lbprev').addEventListener('click', function () { lbStep(-1); });
   document.getElementById('lbnext').addEventListener('click', function () { lbStep(1); });
 
+  // ── THE TWO HALVES OF THE PROMPT, AS THIS RUN REALLY SENT THEM ──────────
+  // The run doc stores `fullPrompt` (the literal text sent) and `prompt` (her
+  // typed words), so the style half is the exact remainder — head and tail
+  // SPLIT out of the sent string, never rebuilt from the tile's current baked
+  // prefix. That is what makes it right for a run drawn before or after she
+  // edited the Prompt panel, with the no-text swap, the character line and the
+  // photo line included exactly when they really rode along.
+  // The seam is marked `[content]`, the convention prompt-record.js writes and
+  // the Assets PROMPT overlay documents.
+  // No wrapper (the plain ChatGPT tile, a verbatim run) → an EMPTY style half,
+  // which is the honest answer and what hides the STYLE button.
+  function runPromptHalves(r) {
+    var content = String((r && r.prompt) || '');
+    var full = String((r && r.fullPrompt) || '');
+    if (!full || !content) return { content: content, style: '' };
+    var at = full.indexOf(content);
+    if (at < 0) {
+      // The LoRA path strips her trailing periods before sending, so the sent
+      // string holds her words one character short of what the doc typed.
+      var trimmed = content.replace(/\.+$/, '');
+      if (trimmed) { at = full.indexOf(trimmed); if (at >= 0) content = trimmed; }
+    }
+    // Her words are not in the sent text verbatim (nothing here does that
+    // today): file no style half rather than a reconstruction.
+    if (at < 0) return { content: content, style: '' };
+    var head = full.slice(0, at).replace(/\s+$/, '');
+    var tail = full.slice(at + content.length).replace(/^\s+/, '');
+    return {
+      content: content,
+      style: (head || tail) ? [head, '[content]', tail].filter(Boolean).join('\n\n') : '',
+    };
+  }
+
+  function paintPrompt() {
+    var h = lbHalves || { content: '', style: '' };
+    if (!h.style && lbHalf === 'style') lbHalf = 'content';
+    document.getElementById('lbcapp').textContent = h[lbHalf] || '';
+    document.getElementById('lbhalfs').hidden = !h.style;
+    document.getElementById('lbhalfc').classList.toggle('on', lbHalf === 'content');
+    document.getElementById('lbhalfs').classList.toggle('on', lbHalf === 'style');
+    // Nothing on file at all → no PROMPT row, the silence the Assets overlay
+    // keeps rather than saying "no prompt filed".
+    document.getElementById('lbcaphd').hidden = !h.content && !h.style;
+  }
+  // The way out, said in words as well as by the gesture. The delegated
+  // handler on #lb would close on this tap anyway — this is the explicit half,
+  // so the chevron keeps working if that skip list ever grows.
+  document.getElementById('lbback').addEventListener('click', function () { closeLB(); });
+  document.getElementById('lbcaphd').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-half]');
+    if (!b) return;
+    lbHalf = b.getAttribute('data-half');
+    paintPrompt();
+  });
+
   // Paint one picture into the already-open (or opening) lightbox.
   function showLB(id, i) {
     var r = runsById[id];
     if (!r) return;
     lbCur = { id: id, i: i };
     var src = runImages(r)[i];
-    document.getElementById('lbimg').src = src;
+    lbSrc = src;
+    var img = document.getElementById('lbimg');
+    // ── THE PICTURE IS ON SCREEN AT ONCE (2026-08-26, Sophie: "it seems like
+    // it takes quite a while to load the images in light box view") ─────────
+    // The wall and the list load a 480px derived thumb, and the lightbox
+    // loaded the untouched ORIGINAL — 1-3MB at the 2K and 4K tiers — so every
+    // tap was a fresh download over cell before anything appeared, with the
+    // PREVIOUS picture sitting there in the meantime. The thumb is already in
+    // the browser's cache (it is the tile she just tapped), so it paints in
+    // the same frame; the original is swapped in behind it the moment it
+    // lands, from the SAME fetch that was already being made for Save. One
+    // download, not two, and never a blank.
+    var th = thumbFor(src);
+    if (lbObj) { URL.revokeObjectURL(lbObj); lbObj = ''; }
+    img.src = th;
     // Fetched now so the Save tap can hand the file straight to the share
     // sheet without an await in between (iOS revokes the gesture across one).
     lbBlob = null;
     fetch(src).then(function (res) { return res.blob(); })
-      .then(function (b) { lbBlob = { url: src, blob: b }; })
-      .catch(function () {});
-    // What drew it — model, quality/scale, seed — pinned on top, then her
-    // words scrolling under it. In the tiles view this is the ONLY place the
-    // prompt appears, so it says everything about the picture.
-    document.getElementById('lbcapp').textContent = r.prompt || '';
+      .then(function (b) {
+        if (lbSrc !== src) return;                 // she stepped on while it flew
+        lbBlob = { url: src, blob: b };
+        if (th === src) return;                    // no derived copy — already the original
+        lbObj = URL.createObjectURL(b);
+        img.src = lbObj;
+      })
+      .catch(function () {
+        // A failed fetch must never leave her looking at the 480px copy: fall
+        // back to loading the original the ordinary way.
+        if (lbSrc === src && th !== src) img.src = src;
+      });
+    // What drew it — model, quality/scale, seed — pinned on top, then the
+    // prompt under it. In the tiles view this is the ONLY place the prompt
+    // appears, so it says everything about the picture.
+    // The half she picked rides along as she steps (comparing the style
+    // across two pictures is exactly why she would switch it) — but a fresh
+    // OPEN always starts on content; `openLB` sets it.
+    lbHalves = runPromptHalves(r);
+    paintPrompt();
     var meta = runParts(r);
     if (runImages(r).length > 1) meta.push('image ' + (i + 1));
     document.getElementById('lbcapm').textContent = meta.join(' · ');
@@ -2354,13 +2430,18 @@
   }
   function closeLB() {
     lbCur = null;
+    lbSrc = '';
+    if (lbObj) { URL.revokeObjectURL(lbObj); lbObj = ''; }
     document.getElementById('lb').classList.remove('on');
     document.body.style.overflow = '';
   }
   document.getElementById('lb').addEventListener('click', function (e) {
     // Buttons handle themselves — and the side arrows are STEPPING, not
-    // leaving: closing on them would shut the lightbox on every tap.
-    if (e.target.closest('.lbbtn') || e.target.closest('.lbnav')) return;
+    // leaving: closing on them would shut the lightbox on every tap. The
+    // Content/Style toggle is the same: switching halves is not leaving.
+    // The BACK chevron and the empty band it sits in are deliberately NOT in
+    // this list — they close, which is the whole point of the strip.
+    if (e.target.closest('.lbbtn') || e.target.closest('.lbnav') || e.target.closest('.capseg')) return;
     closeLB();
   });
 
@@ -2403,7 +2484,10 @@
 
   document.getElementById('lbsave').addEventListener('click', function () {
     if (!lbCur) return;
-    var url = document.getElementById('lbimg').src;
+    // The ORIGINAL url, never `lbimg.src` — that is the 480px thumb while the
+    // full picture is still on its way, and a blob: url once it lands, and the
+    // app's bridge needs the real https one.
+    var url = lbSrc;
     var native = nativeSaver();
     if (native) { native.postMessage(url); toast('Saving…'); return; }
     if (!(lbBlob && lbBlob.url === url)) { toast('Still loading that image — try again'); return; }
@@ -2440,14 +2524,7 @@
     location.href = '/storyroom?send=' + encodeURIComponent(lbCur.id) + '&i=' + lbCur.i;
   });
 
-  var toastTimer = null;
-  function toast(msg) {
-    var el = document.getElementById('toast');
-    el.textContent = msg;
-    el.classList.add('on');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { el.classList.remove('on'); }, 2200);
-  }
+  var toast = window.FeedKit.toast;
 
   // The app's nav-bar chevron asks the page first: close the lightbox if it's
   // open, else let the app leave the tool.

@@ -16,6 +16,7 @@
 //
 // playwright is an optionalDependency, so this skips cleanly without it.
 const http = require('http');
+const servePublic = require('./lib/public-asset');
 const fs = require('fs');
 const path = require('path');
 
@@ -44,6 +45,8 @@ const ALL = Array.from({ length: TOTAL }, (_, i) => ({
 
 let apiCalls = 0;
 const server = http.createServer((req, res) => {
+  // Anything the page links out of public/ — /feedkit.js, /tritoggle.*, …
+  if (servePublic(req, res)) return;
   const url = new URL(req.url, 'http://x');
   if (url.pathname === '/api/promptlab') {
     apiCalls++;

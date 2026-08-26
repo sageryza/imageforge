@@ -27,6 +27,7 @@
 //
 //   npm install playwright --no-save && node scripts/test-playground-liked-arrows.js
 const http = require('http');
+const servePublic = require('./lib/public-asset');
 const fs = require('fs');
 const path = require('path');
 
@@ -61,6 +62,8 @@ const ALL = [
 const LIKED = [['run0', 1], ['run2', 0], ['run2', 1]];
 
 const server = http.createServer((req, res) => {
+  // Anything the page links out of public/ — /feedkit.js, /tritoggle.*, …
+  if (servePublic(req, res)) return;
   const url = new URL(req.url, 'http://x');
   if (url.pathname === '/api/promptlab') {
     res.writeHead(200, { 'Content-Type': 'application/json' });

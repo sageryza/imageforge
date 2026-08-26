@@ -3459,6 +3459,45 @@ before working on that module. Nothing was deleted — the moved text is verbati
   `elementFromPoint`; verified failing 3 against the pre-fix page. Its fixture
   had to become a REAL-SIZED 2:3 picture, because the lightbox sizes itself to
   the picture and a 1x1 pixel put the zones nowhere near it.
+  **THE LIGHTBOX OPENS ON THE CACHED THUMB, HAS A WAY OUT AT THE TOP, AND SAYS
+  PROMPT (2026-08-26, Sophie: "it seems like it takes quite a while to load the
+  images in light box view … it's a little hard to tap out of them. Could you
+  have some room at the top … can you have it say prompt and have the prompt in
+  there instead of below split into the style and the content and the style
+  shouldn't be the default it should actually look at what it was that time
+  since I can change it").** Three faults on one overlay.
+  - **SLOW: the wall loads a 480px derived thumb and the lightbox loaded the
+    untouched ORIGINAL** — 1-3MB at the 2K and 4K tiers, so every tap was a
+    fresh download over cell with the PREVIOUS picture still on screen. It
+    paints `thumbFor(src)` first (already in the browser's cache — it IS the
+    tile she just tapped, so it lands in the same frame) and swaps the original
+    in behind it **from the SAME `fetch` that was already being made for Save**:
+    one download, not two, and never a blank. `lbSrc` holds the original url —
+    Save and the app's native bridge read that, NEVER `lbimg.src`, which is a
+    thumb and then a `blob:`.
+  - **HARD TO TAP OUT: `.lbtop`, a 40px band ABOVE the stage** with the house
+    chevron in it, and the whole strip closes. The two step zones are 28% of the
+    width EACH and run the stage's full height with nothing drawn in them
+    (2026-08-24), so more than half the picture area pages instead of closing
+    and no mark says which part does what — the band is outside both zones, so
+    it can never be one.
+  - **THE PROMPT SAYS "Prompt" AND SPLITS**, the Assets overlay's own two
+    halves, opening on CONTENT per the house rule. **The style half is DERIVED
+    FROM THIS RUN'S OWN `fullPrompt`** — `runPromptHalves` splits her typed
+    words out of the literal text that was sent, so it is the wrapper that
+    really rode along (her edited prefix, the no-text swap, the character and
+    photo lines) and never the tile's baked default; that is the half of her ask
+    that matters, since she can edit the Prompt panel between runs. Nothing new
+    is stored and every run already on file gets it. No wrapper (the plain
+    ChatGPT tile) → an empty style half and NO Style button, the same silence
+    the Assets overlay keeps.
+  - The half she picked rides along as she STEPS (comparing a style across two
+    pictures is why she would switch it); a fresh open always starts on content.
+  - Test: `node scripts/test-playground-lightbox.js` — the original served with
+    a real 1200ms delay and the picture asked for its `naturalWidth` and box
+    IMMEDIATELY (a src assertion cannot tell a painted picture from a pending
+    one), the band's own tap and the chevron asked with `elementFromPoint`, and
+    the style half checked for a word the tile's default does not contain.
   **THE ✕ FILTER BESIDE THE HEART (Aug 2026, Sophie: "can u also add a button
   next to the heart that hides anything i've 'exed'").** The heart's opposite
   and its twin — a filter over PICTURES in whichever view she is in, sticky,
@@ -3537,19 +3576,22 @@ before working on that module. Nothing was deleted — the moved text is verbati
     1.30x the pixels**. Nine ninths of the same sheet are 1.28c each.
     **2K is cheaper still but its cuts come out SMALLER than a plain 1K
     picture** — the thing that is easy to get backwards.
-  - **IT OPENS ON 1K AND LOW, WHICH IS NOT WHAT THE PARAGRAPH ABOVE ARGUES
-    (2026-08-26, Sophie: "it defaults to 4K and medium make it default to 1K
-    and low").** The tier argument is about where a sheet PAYS OFF and it is
-    still true; a default is a different question. This page shipped opening
-    on 4K/medium on the reasoning that "the whole reason to open this page is
-    to get panels worth keeping", and that reasoning is history: ~13c a tap
-    arriving unasked, on the one tool built for trying several prompts at
-    once, is the Playground's own not-persisted-quality lesson. The cheap rung
-    is the mistake that costs nothing to undo, and the ladder is one tap away.
-    Three copies say it — the served `defaults`, the POST's own fallbacks
-    (what a stale cached page lands on) and the page's opening `pick` — and
-    `node scripts/test-panels.js` pins all three, because this reads as a
-    tidy-up to a chat that has just read the cost paragraph.
+  - **THE SHEET OPENS ON 4K/MEDIUM AND THE HAND-OFF OUT OF IT OPENS ON 1K/LOW
+    — two rungs answering two different questions (2026-08-26, Sophie: "when I
+    pick one and migrate it to the playground, it should default to one k and
+    low").** The paragraph above is the SHEET's case and it still stands: a
+    sheet only pays off at the tier where a cut beats an ordinary picture, so
+    the page opens there. Taking ONE panel over to the Playground is not that
+    — it used to carry `res=4k` plus the run's own quality (~47c a tap) on the
+    reasoning that a cut panel is ~1K of pixels so redrawing it alone at 4K IS
+    the upscale, and that reasoning is history: arriving on a page pre-set to
+    the dearest rung is a decision made for her, which is the Playground's own
+    never-persist-quality rule. Both are one tap up once she is there, and
+    neither rides a deep link into her next visit.
+    **The two are pinned in BOTH directions by `node scripts/test-panels.js`**
+    — a chat reading either comment must not tidy the other one to match.
+    (This bullet said the opposite for one merge, #1718: the whole page was
+    moved to 1K/low, which is not what she asked for.)
   - **A BOX OPENS BIGGER, AND IT TAKES THE WHOLE ROW (2026-08-26, Sophie:
     "make a button to see the current text box that you're working on bigger
     so you can see what you're writing").** A 26px rounded square inside each
@@ -3688,11 +3730,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
     panel individually as its own image so this could copy the text into the
     playground").** A cut's lightbox carries an action (the Playground's own
     wire-loop icon — the opens-another-tool rule) that walks to
-    `/playground?prompt=&style=&quality=&res=4k&sameref=1` — the panel's own
+    `/playground?prompt=&style=&quality=low&res=1k&sameref=1` — the panel's own
     words, the tile it was really drawn on (server `evan` → page `chatgpt`),
-    and the tier: a cut panel is ~1K of pixels, so a 4K single redraw IS the
-    upscale. `?res=` is a new one-shot deep-link param in promptlab.html
-    (still never persisted — this one is in the link she tapped).
+    and the CHEAP rung (her ask, 2026-08-26; it carried `res=4k` and the run's
+    own quality until then — see the bullet above). `?res=` is a one-shot
+    deep-link param in promptlab.html (still never persisted — this one is in
+    the link she tapped).
   - **PANELS · PLAYGROUND is a hairline tab row at the top** (her ask, same
     message) — a NAVIGATION, not an embed: the Playground is its own page and
     an iframe would double every pill and toggle on screen.
@@ -3700,6 +3743,75 @@ before working on that module. Nothing was deleted — the moved text is verbati
     feed, Tiles is every cut panel as one wall three across at its own
     natural shape, keyed/append-only like the feed so it never flashes,
     sticky in localStorage, tap opens the same lightbox.
+  - **IT IS THE PLAYGROUND'S WHOLE FEED NOW, NOT A SMALLER ONE (2026-08-26,
+    Sophie: "panels has some differences between it and the playground — for
+    example there's no heart or X button or I don't think there's a way to
+    leave a note … make it exactly the same as the playground except that it's
+    panels. you can just reuse the code").** What landed, all of it hers in the
+    Playground first: **♥/✕ per picture** (`POST /api/panels/:id/vote`, keyed by
+    CELL NAME rather than an index, because a resume re-cuts only the missing
+    panels — mirrored onto the Assets record and back, so a mark here and a
+    mark in Meta Assets are one answer); **the badge** on the tile, the cut and
+    the sheet; **the two mark filters** in one segmented box (♥ rose, ✕ grey —
+    they must never look alike); **the search box** over the WHOLE history with
+    the house grammar, `liveInput` and `enterSubmits`; **List · Tiles · 3-or-4**
+    in one switch; **"Older"** paging backwards through time (`?before=`);
+    **her words on the card** behind the house `… more` opener (the card
+    carried only the geometry, so nothing on the feed said what a sheet was
+    OF); **put these prompts back in the boxes**, which restores the GRID too or
+    they land in the wrong cells; **the Prompt panel**, editable per style — the
+    POST has taken `prefix`/`suffix` overrides since the module shipped and
+    nothing showed them; **the bigger-box toggle** on every cell; the **toast**;
+    and in the lightbox a **note thread**, **Save to Photos** and **Send to the
+    Story Room** beside the Upscale that was already there.
+    - **THE LIGHTBOX WAS ALREADY THE SHARED ONE AND THAT WAS THE WHOLE BUG.**
+      `asset-lightbox.js` draws the ♥/✕ and the note box only when the caller
+      wires `_cast` and `_noteSend`; panels opened it read-only, so there was
+      nothing to tap. Notes land in **`my-creations`**, where panels.js files
+      every sheet and every cut, read back by `GET /api/gallery/assets/note?
+      chat=&url=` — ONE doc read, added the same day, because the sibling
+      `/notes` route reads a whole chat's votes AND assets to answer.
+    - **THE SHARED HALVES ARE ONE FILE — `public/feedkit.js`** (the search
+      grammar, `liveInput`/`enterSubmits`, the keyed reconcile that stopped the
+      flashing, the derived display copy, the toast). Both pages link it and
+      NEITHER keeps a copy; the tritoggle precedent, applied. **A stub test
+      server must serve it** — `scripts/lib/public-asset.js` answers anything a
+      page links out of `public/` in one line, so the next shared file needs no
+      harness change at all. The feed's MATCHER moved into `search-grammar.js`
+      as `compileFeed`/`feedMatches` for the same reason; server.js's
+      `plCompileQuery` and chatfeed's `compileQuery` are the copies still
+      standing, kept only because a test lifts their source by name.
+    - **ONE DELIBERATE DIFFERENCE:** the 3-or-4 number governs the TILE WALL
+      only. In the Playground `--cols` also lays out a run's own row, but here
+      that row is the SHEET's grid — four cuts of a 2x2 sit two across because
+      that is what the page looked like — so forcing three would draw a picture
+      of a sheet that was never made.
+    - **SEND TO THE STORY ROOM WALKS, IT DOES NOT POP UP.** The Playground's
+      own sheet was retired the same week (#1719, "rather than this weird
+      pop-up, it should take me to the story room so I can pick myself"), so
+      this button is a NAVIGATION — `/storyroom?send=<run>&cell=<cell>&
+      from=panels`. `loadSendPanel` in `gen-scratchpad.py` is the room's half:
+      `from=panels` names the FEED to re-read, and the picture is named by its
+      CELL because a resume re-cuts only the missing panels. The port had the
+      sheet in it for one afternoon and a test now fails if it comes back.
+    - **NOT PORTED, and why:** the LoRA scale / seed / ×3 (gpt-image-2 only
+      here), the quality LADDERS (a sheet ladder pays for the whole page again —
+      a different order of money, hers to ask for), and the photo reference and
+      Sophie card (per-run attachments the sheet route does not take yet — a
+      route change, not a page one). The BIGGER BOX is not this: another chat
+      shipped it here the same day (#1722) and its version wins — the open cell
+      takes the whole row, which is the half that matters at nine across.
+    - **AND THE THREE-WAY TOGGLE HAD DRIFTED.** It was still the solid ink slab
+      the Playground retired on 2026-08-24 ("the buttons are styled so fucking
+      weird… black outlines"), because the test pinned four literals instead of
+      comparing the two. It is pinned property-by-property against
+      `promptlab.html` now, so neither can move alone.
+    - Tests: `node scripts/test-panels-parity.js` — a stub server and NO
+      Firebase, driving the real page: the ♥ posting the cell name, the badge
+      landing behind the lightbox, the note reaching `my-creations`, the filters
+      emptying a run out of the feed, a search finding a run the feed never
+      paged in, Older, the copy button restoring the grid, and four pictures
+      measured onto one row.
   - Prices and prompt text are **SERVED** (`GET /api/panels/config`); the page
     holds no copy of either, and a test pins that. Nothing is deleted — a run
     hides. Tests: `node scripts/test-panels.js` — 26 pure checks including the
