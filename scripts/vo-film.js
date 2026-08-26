@@ -837,9 +837,19 @@ function deadAir(file) { // vo-verify's film check, local and free
   }
 
   // stitch — skipped wholesale when nothing feeding it changed
+  // THE PICTURES ARE KEYED BY THEIR BYTES, NEVER BY THEIR PATH (2026-08-25).
+  // A clip re-rendered to the same filename — which is exactly what happens
+  // when a zoom is corrected and the builder re-runs — left this key identical,
+  // so the stitch was served from cache and the OLD picture shipped. The audio
+  // half was right, the film looked untouched, and a frame check was the only
+  // thing that caught it. Local files are hashed; a remote url keys by itself.
+  const picKey = (sh) => {
+    const src = sh.video || sh.image;
+    try { return fs.existsSync(src) ? md5f(src) : String(src); } catch (_) { return String(src); }
+  };
   const stitchKey = `stitch|${TOOLV}|${sha1(JSON.stringify({
     shots: shots.map((s) => md5f(s.file)),
-    images: SPEC.shots.map((s) => s.video || s.image), W, H, FPS, BG, out: SPEC.out || 'film',
+    images: SPEC.shots.map(picKey), W, H, FPS, BG, out: SPEC.out || 'film',
   }))}`;
   const outPath = path.join(DIR, (SPEC.out || 'film') + '.mp4');
   let out, lens;

@@ -139,6 +139,14 @@ it is machine-verified, not ear-verified.
   and a cut line takes its effect with it under a named warning instead of
   sliding onto the neighbour. Apply the same rule to anything else placed
   against a moment — a hold, a colour, a title card.
+- **A CACHE KEYED BY A FILE'S PATH SHIPS THE OLD FILE (2026-08-25).**
+  `vo-film.js`'s stitch key listed each shot's picture by NAME, so a clip
+  re-rendered to the same filename — exactly what a corrected zoom produces —
+  left the key identical and the stitch was served from cache. The audio was
+  right, the run said PASS, and the film silently kept the old framing; a frame
+  check was the only thing that caught it. Key every input by its BYTES.
+  Corollary: **after changing what a shot LOOKS like, look at a frame** — the
+  word sweep and the verify gate are about sound and say nothing about picture.
 - **THE VERIFY GATE PASSING IS NOT A WORD-LEVEL CLAIM.** The gate fails only
   on ≥4-word contiguous runs, so single clipped or eaten words sail through
   — two shipped that way. `vo-film.js`'s verify now prints a WORD SWEEP:
