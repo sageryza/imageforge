@@ -2133,11 +2133,11 @@ window.__pillInteractive=pillInteractive;
 // again (at the current speed; default Fast). Speed changes stay on the −/+.
 window.__scrollTap=function(e){
   if(e && pillInteractive(e.target||e.srcElement)) return;
-  playing? scrollStop() : scrollStart(dir||1);
+  playing? scrollStop() : scrollStart(1);
 };
 vtop.onclick=function(){ if(playing){ si=Math.max(0,si-1); paintPill(); } else scrollStart(-1); };
 vbot.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paintPill(); } else scrollStart(1); };
-vmid.onclick=function(){ playing? scrollStop() : scrollStart(dir||1); };
+vmid.onclick=function(){ playing? scrollStop() : scrollStart(1); };
 // Leaving the page (tab switch, app background, webview hidden) stops
 // autoscroll — it must never keep scrolling while nobody's looking.
 document.addEventListener('visibilitychange',function(){ if(document.hidden) scrollStop(); });
@@ -7662,13 +7662,15 @@ function mkPagePill(getWin){
   function stop(){ playing=false; if(raf) cancelAnimationFrame(raf); raf=null; paint(); }
   vt.onclick=function(){ if(playing){ si=Math.max(0,si-1); paint(); } else start(-1); };
   vb.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paint(); } else start(1); };
-  // A RESUMED SCROLL GOES THE WAY IT WAS GOING (Aug 2026, Sophie: "I can't
-  // scroll back up only down"). Both of these were a hardcoded start(1), so
-  // riding UP the page and pausing — with the pill's ‖ or with a tap on the
-  // page, which is the same toggle — sent her back DOWN on the very next tap,
-  // and the ▲ had to be found again after every pause. The shared pill has
-  // always resumed on `dir`; this copy now agrees with it.
-  vm.onclick=function(){ playing? stop() : start(dir||1); };
+  // A RESUMED SCROLL ALWAYS GOES DOWN (2026-08-26, Sophie: "it used to go down
+  // after I stopped it even if it was going up before … can you just revert
+  // that one change for the pill as well as the page itself"). Both of these
+  // resumed on `dir` for two days (#1618); she asked for the older behaviour
+  // back, so that is HISTORY rather than a rule — keep this in step with
+  // `scripts/pill.py`, which is the copy the injected pill is built from.
+  // `start`'s end-of-page flip still applies, so a resume at the bottom turns
+  // around rather than doing nothing.
+  vm.onclick=function(){ playing? stop() : start(1); };
   // the jump home: stop first, or the running scroll walks the page back down
   // under the animation (the shared pill's own rule)
   pt.onclick=function(){ stop(); var w=getWin(); if(!w) return;
@@ -7680,7 +7682,7 @@ function mkPagePill(getWin){
   paint(); syncTop(); pill._stop=stop;
   pill._playing=function(){ return playing; };
   pill._topSync=syncTop;                                 // openPage wires the iframe's scroll to it
-  pill._tap=function(){ playing? stop() : start(dir||1); };   // tap the page to toggle
+  pill._tap=function(){ playing? stop() : start(1); };   // tap the page to toggle
   return pill;
 }
 // Full-screen viewer for a Compare page: top bar (back + title) over an

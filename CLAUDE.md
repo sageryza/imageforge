@@ -2571,17 +2571,29 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     unreliably inside one, so the pill she taps there lives in the PARENT page
     and scrolls the frame — a whole second implementation, which no pill
     resync and no `gen-*.py` touches. It had missed both of the shared pill's
-    can't-get-back-up rules: it never grew a back-to-top at all, and **resume
-    was a hardcoded `start(1)`** on the ‖ and on the tap-to-toggle, so pausing
-    an upward scroll sent her DOWN on the next tap and the ▲ had to be found
-    again every time. Both agree with `dir` now. **`__scrollTap` in the shared
-    pill had the same hardcoded 1** and was fixed with them.
+    can't-get-back-up rules: it never grew a back-to-top at all, and a press at
+    an END of the page did nothing rather than turning around. Both are fixed
+    and both stand.
+  - **A RESUME GOES DOWN — SHE REVERTED THE `dir` VERSION (2026-08-26, Sophie:
+    "it used to go down after I stopped it even if it was going up before. now
+    it doesn't seem to do that" → "can you just revert that one change for the
+    pill as well as the page itself").** #1618 also moved resume onto `dir`, so
+    that pausing an upward ride and tapping again kept climbing; it was live for
+    two days and she asked for the old behaviour back. So `vmid`/`vm`,
+    `__scrollTap` and `pill._tap` are a hardcoded 1 again, in `pill.py`, in the
+    five baked copies and in `mkPagePill` — the ▲ is how she goes back up, and
+    **resuming on `dir` is HISTORY rather than a rule.** What survives from
+    #1618 is the END-OF-PAGE FLIP inside `scrollStart`/`start`: a direction with
+    no room flips to the one that has room, so a resume at the very bottom turns
+    around instead of doing nothing. Don't collapse the two — they look like one
+    change and only one of them was reverted.
   - **CHANGE THE PILL? CHANGE BOTH.** `scripts/pill.py` → regenerate →
     hand-patch the five baked copies (`chats.html`, `gallery.html`,
     `storyroom.html`, `wall.html`, `writing.html`) → and `mkPagePill`.
     `node scripts/test-page-viewer-pill.js` drives the REAL `mkPagePill` over
-    a real iframe (verified failing 4 pre-fix) and `test-back-to-top.js`
-    sweeps the baked copies.
+    a real iframe and `test-back-to-top.js` sweeps the baked copies. **Seven
+    files, and only a test notices one left behind** — the resume revert had to
+    touch all seven.
   - **The app's copy has no `id="ptop"` on purpose** — `chats.html`'s own pill
     owns that id and the sweep above counts exactly one per file; the viewer's
     button is `class="ptop"` only.

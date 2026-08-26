@@ -205,18 +205,22 @@ window.__pillInteractive=pillInteractive;
 // Content-tap gesture (a page calls __scrollTap from its own tap handler,
 // passing the event when it has one): a plain toggle — tap stops, tap starts
 // again (at the current speed; default Fast). Speed changes stay on the −/+.
-// A RESUMED SCROLL GOES THE WAY IT WAS GOING (Aug 2026, Sophie: "I can't
-// scroll back up only down"). This used to be a hardcoded scrollStart(1), so
-// riding UP the page and tapping to pause left her one tap from going back
-// DOWN — the ▲ had to be found again for every single pause. `dir` is the
-// same memory `vmid` has always used; the two now agree.
+// A RESUMED SCROLL ALWAYS GOES DOWN (2026-08-26, Sophie: "it used to go down
+// after I stopped it even if it was going up before. now it doesn't seem to
+// do that. can you just revert that one change"). It resumed on `dir` for two
+// days (#1618) so that pausing an upward scroll and tapping again kept going
+// up — she has asked for the older behaviour back, so `dir` on resume is
+// HISTORY rather than a rule. DOWN is the direction a resume means; the ▲ is
+// how she goes back up. `scrollStart`'s end-of-page flip still applies, so a
+// resume at the very bottom turns around rather than doing nothing — that
+// half of #1618 stays.
 window.__scrollTap=function(e){
   if(e && pillInteractive(e.target||e.srcElement)) return;
-  playing? scrollStop() : scrollStart(dir||1);
+  playing? scrollStop() : scrollStart(1);
 };
 vtop.onclick=function(){ if(playing){ si=Math.max(0,si-1); paintPill(); } else scrollStart(-1); };
 vbot.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paintPill(); } else scrollStart(1); };
-vmid.onclick=function(){ playing? scrollStop() : scrollStart(dir||1); };
+vmid.onclick=function(){ playing? scrollStop() : scrollStart(1); };
 // Leaving the page (tab switch, app background, webview hidden) stops
 // autoscroll — it must never keep scrolling while nobody's looking.
 document.addEventListener('visibilitychange',function(){ if(document.hidden) scrollStop(); });

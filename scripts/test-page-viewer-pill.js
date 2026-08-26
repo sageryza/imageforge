@@ -9,13 +9,18 @@
    unreliably inside an iframe). Two things had drifted apart from the shared
    pill, and both of them are "can't get back up":
 
-     1. RESUME WENT DOWN, ALWAYS. `vm.onclick` and `pill._tap` were a
-        hardcoded `start(1)`, where the shared pill has always resumed on
-        `dir`. So riding UP and pausing — with the ‖ or with a tap on the
-        page, the same toggle — sent her back DOWN on the next tap.
+     1. RESUME DIRECTION. This copy resumed on a hardcoded `start(1)`; #1618
+        moved it onto `dir` so that pausing an upward ride and tapping again
+        kept going up. **Sophie reverted that on 2026-08-26** ("it used to go
+        down after I stopped it even if it was going up before … can you just
+        revert that one change for the pill as well as the page itself"), so
+        a resume goes DOWN again — here, in `scripts/pill.py`, and in the
+        five baked copies. The ▲ is how she goes back up. What #1618 KEEPS is
+        the end-of-page flip: a resume with no room downward turns around
+        rather than doing nothing at all, which is asserted below.
      2. THERE WAS NO BACK-TO-TOP AT ALL. The shared pill grew one when she
         asked for it; this copy never did, so a long page in the app had no
-        jump home.
+        jump home. That half of #1618 stands.
 
    This drives the REAL mkPagePill (read out of chats.html, never a copy) over
    a real scrolling page in a real iframe, and it drives the REAL injected
@@ -128,18 +133,18 @@ const setY = (p, y) => p.evaluate(v => document.querySelector('.pv-frame').conte
   if (up < start - 20) ok(`▲ goes up (${start} → ${up})`);
   else fail(`▲ did not scroll up (${start} → ${up})`);
 
-  console.log('PAUSE AND PLAY RESUMES THE WAY IT WAS GOING');
+  console.log('PAUSE AND PLAY RESUMES DOWNWARD (her 2026-08-26 revert)');
   await p.click('.ppm');                                  // pause mid-climb
   await p.waitForTimeout(150);
   const held = await Y(p);
   await p.click('.ppm');                                  // play again
   await p.waitForTimeout(900);
   const after = await Y(p);
-  if (after < held - 10) ok(`still going up (${held} → ${after})`);
-  else fail(`resumed DOWNWARD after a pause (${held} → ${after})`);
+  if (after > held + 10) ok(`resumed downward (${held} → ${after})`);
+  else fail(`kept going UP after a pause (${held} → ${after})`);
   await p.evaluate(() => window.__pill._stop());
 
-  console.log('A TAP ON THE PAGE RESUMES THE WAY IT WAS GOING');
+  console.log('A TAP ON THE PAGE RESUMES DOWNWARD TOO');
   await setY(p, 3000);
   await p.click('.ppt');
   await p.waitForTimeout(500);
@@ -151,8 +156,25 @@ const setY = (p, y) => p.evaluate(v => document.querySelector('.pv-frame').conte
   await p.mouse.click(150, 400);                          // tap again: resume
   await p.waitForTimeout(900);
   const after2 = await Y(p);
-  if (after2 < held2 - 10) ok(`still going up (${held2} → ${after2})`);
-  else fail(`a second tap sent it DOWN (${held2} → ${after2})`);
+  if (after2 > held2 + 10) ok(`a second tap goes down (${held2} → ${after2})`);
+  else fail(`a second tap kept going UP (${held2} → ${after2})`);
+  await p.evaluate(() => window.__pill._stop());
+
+  // The half of #1618 that SURVIVES the revert: a resume with no room below
+  // flips rather than doing nothing, so a press at the very bottom always
+  // moves the page.
+  console.log('AT THE BOTTOM, A RESUME STILL TURNS AROUND');
+  await p.evaluate(() => {
+    const w = document.querySelector('iframe').contentWindow;
+    w.scrollTo(0, w.document.documentElement.scrollHeight);
+  });
+  await p.waitForTimeout(200);
+  const bot = await Y(p);
+  await p.click('.ppm');                                  // resume: nowhere to go down
+  await p.waitForTimeout(900);
+  const flipped = await Y(p);
+  if (flipped < bot - 10) ok(`flipped upward at the end (${bot} → ${flipped})`);
+  else fail(`a resume at the bottom moved nothing (${bot} → ${flipped})`);
   await p.evaluate(() => window.__pill._stop());
 
   console.log('THE APP’S PILL HAS A BACK-TO-TOP');
@@ -190,8 +212,8 @@ const setY = (p, y) => p.evaluate(v => document.querySelector('.pv-frame').conte
   await q.evaluate(() => window.__scrollTap());           // resume
   await q.waitForTimeout(900);
   const a3 = await q.evaluate(() => window.scrollY);
-  if (a3 < h3 - 10) ok(`__scrollTap resumes upward (${h3} → ${a3})`);
-  else fail(`__scrollTap resumed DOWNWARD (${h3} → ${a3})`);
+  if (a3 > h3 + 10) ok(`__scrollTap resumes downward (${h3} → ${a3})`);
+  else fail(`__scrollTap kept going UP (${h3} → ${a3})`);
   await q.evaluate(() => window.__scrollStop());
 
   await browser.close();
