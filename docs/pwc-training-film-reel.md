@@ -3,8 +3,10 @@
 Sophie's seven "People Watching Club: Official Training Film No. 001" cards cut
 into a 9:16 reel, opened with a public-domain 3-2-1 Academy leader countdown.
 
-**Live cut — v4, moving camera:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v4-moving-camera.mp4
-(1080x1920, 30fps, 1:41, -15.0 LUFS.)
+**Live cut — v5, Clyde + hand-drawn ink:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v5-clyde-ink.mp4
+(1080x1920, 30fps, 1:42, -14.9 LUFS.)
+
+**v4, Bill, no markup, 1:41:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v4-moving-camera.mp4
 
 **v3, hard cuts between framings, 1:50:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v3-camera.mp4
 
@@ -247,3 +249,65 @@ for it. 1:48 of narration at 1.0x is now 1:25, and the film is 1:41.
 lives on the registry doc as `displayName`, which is the only place "Chicago"
 appears. `GET /api/chatfeed` returns the registry under **`chats`**, not
 `registry`.
+
+
+## v5 — Clyde, hand-drawn markup, and her five timestamped notes
+
+Sophie leaves notes ON the film in its Assets tab, stamped with the second they
+refer to. **Read them with `GET /api/gallery/assets/notes?chat=<slug>` and reply
+on the image** — they are a thread, not a one-way drop.
+
+### The narrator is Clyde
+
+`QMJTqaMXmGnG8TCm8WQG` — an ElevenLabs voice-library voice ("a vintage male
+announcer"), found by the `people-watching-club-reels` chat, where she settled
+it herself: *"Clyde is perfect."* It renders straight from the TTS endpoint by
+id with nothing added to the account. His natural pace matches Bill's to within
+0.2%, so `PWC_TEMPO=1.25` carried over unchanged.
+
+**Finding a voice another chat picked:** search the feed
+(`GET /api/chatfeed/search?q=`), then read the thread — the id is in the
+preview URL's `/voices/<id>/` path, which is the only place it appears.
+
+### The hand-drawn markup
+
+Her note: *"maybe draw some sloppy circles over what you're talking about in
+white or red ink."* 13 circles and one arrow, red, in `scripts/pwc-film-ink.py`
+(the strokes) and `pwc-film-marks.py` (what gets circled, and when).
+
+- **The markup is composited into the PAGE, before the camera.** That is what
+  makes a circle zoom and drift with the thing it is circling instead of
+  floating over the frame.
+- **It draws itself on** — 14 stage PNGs of a growing stroke, fed as an image
+  sequence and delayed onto the timeline with `tpad=start_duration=`. Overlaying
+  a stream that simply starts late stalls the graph; padding the front with
+  transparent frames is what works.
+- **Every stroke is seeded**, so a re-render wobbles identically. A circle
+  overshoots past its start and the radius breathes on three low-frequency
+  sines; three passes at slightly different offsets and alphas read as ink
+  rather than as a vector.
+- **Place marks against the ART, not from memory** — every one was drawn onto
+  the real card and eyeballed before a frame was rendered.
+
+### Her five notes, and what each became
+
+- **[0:28] "hold for a beat on the zoom out"** — every card's pull-out now
+  arrives 1.5-3.7s before the card ends instead of landing on the cut.
+- **[0:35] "the music here is perfect"** — untouched, deliberately.
+- **[0:43] "sloppy circles ... in white or red ink"** — above. Red, because the
+  cards already use white for their own callout lines and the printed FAIL is
+  red, so red reads as markup rather than as part of the artwork.
+- **[1:00] "a fail sound effect and stamp the fail on yourself"** — a
+  synthesised rubber-stamp thud (68Hz body + 155Hz thunk + a filtered noise
+  click, all exponentially decayed) plus a decaying jolt on the camera at the
+  same instant. **The FAIL itself is printed on her artwork**, so it arrives
+  with the camera rather than stamping down; stamping a real one means painting
+  the printed one out first, which is hers to ask for.
+- **[1:15] "when it says NOW ... that's when you should zoom out and it should
+  show what you're actually talking about"** — card 6's "now redirect" is a
+  pull-out onto the step AND the object panel together, and only then a push
+  into ABSOLUTELY NOTHING with an arrow.
+
+Plus her main note, *"zoom in on what you're talking about and include the whole
+thing"*: the three-feet shot on card 3 was framed on the gap alone and is now
+framed on him, the subject and the measure together.

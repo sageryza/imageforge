@@ -5,10 +5,11 @@
 set -euo pipefail
 OUT="${1:-vo}"; mkdir -p "$OUT"
 
-# Bill — the one premade voice labelled male/old/american/advertisement, i.e.
-# the closest thing on the shelf to a 1950s announcer. NARRATOR stability is
-# high on purpose: her direction is "do not perform the jokes".
-NARRATOR="${PWC_NARRATOR:-pqHfZKP75CvOlQylNhV4}"
+# Clyde — an ElevenLabs voice-library voice ("a vintage male announcer"), found
+# by the people-watching-club-reels chat and settled by Sophie there: "Clyde is
+# perfect". It works from the TTS endpoint by id with nothing added to the
+# account. Stability stays high: her direction is "do not perform the jokes".
+NARRATOR="${PWC_NARRATOR:-QMJTqaMXmGnG8TCm8WQG}"
 # The watcher's one whispered line is a different, younger voice.
 WATCHER="${PWC_WATCHER:-bIHbv24MWmeRgasZH58o}"
 
