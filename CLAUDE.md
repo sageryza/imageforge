@@ -3498,7 +3498,23 @@ before working on that module. Nothing was deleted — the moved text is verbati
     and no mark says which part does what — the band is outside both zones, so
     it can never be one.
   - **THE PROMPT SAYS "Prompt" AND SPLITS**, the Assets overlay's own two
-    halves, opening on CONTENT per the house rule. **The style half is DERIVED
+    halves, opening on CONTENT per the house rule. **THE WORDS ARE BEHIND THE
+    TAP AND COVER THE PICTURE — they are never printed under it (2026-08-26,
+    her next message: "something strange is going on with the prompt. It
+    shouldn't be there").** The first cut put a "Prompt" label with the
+    Content/Style pair over the text and left the text sitting between the
+    picture and the ♥/✕ row, which is the half of her ask it missed — "have the
+    prompt **in there** instead of below" names the ASSETS overlay's shape,
+    where PROMPT is a door and the words cover the art. Printed below, a
+    dictated content half takes a third of the screen off the one thing she
+    opened the lightbox to look at, on every picture, asked for or not.
+    `#lbpwrap` sits over the STAGE (never the caption or the buttons) and above
+    the two step zones, so a tap on the words reads them instead of paging;
+    tapping them again puts them away, and neither tap leaves the lightbox.
+    **The Content/Style pair rides with the words** — two buttons under a shut
+    door change nothing on screen. Shut on every fresh open; the door's own
+    state, like the half she picked, rides along as she steps. **The style half
+    is DERIVED
     FROM THIS RUN'S OWN `fullPrompt`** — `runPromptHalves` splits her typed
     words out of the literal text that was sent, so it is the wrapper that
     really rode along (her edited prefix, the no-text swap, the character and
@@ -3514,6 +3530,14 @@ before working on that module. Nothing was deleted — the moved text is verbati
     IMMEDIATELY (a src assertion cannot tell a painted picture from a pending
     one), the band's own tap and the chevron asked with `elementFromPoint`, and
     the style half checked for a word the tile's default does not contain.
+    What is over the middle of the picture is asked with `elementFromPoint`
+    both before and after the PROMPT tap — a hidden box and a covered picture
+    look identical to every markup assertion.
+    **AND IT HAD BEEN TIMING OUT ON MAIN SINCE /feedkit.js LANDED**: its stub
+    served `/tritoggle.*` by hand and 404'd the kit, so the page threw on its
+    first line and nothing rendered. It calls `scripts/lib/public-asset.js`
+    now, like its siblings — a harness that hand-lists shared files is one
+    shared file away from a silent timeout.
   **THE ✕ FILTER BESIDE THE HEART (Aug 2026, Sophie: "can u also add a button
   next to the heart that hides anything i've 'exed'").** The heart's opposite
   and its twin — a filter over PICTURES in whichever view she is in, sticky,

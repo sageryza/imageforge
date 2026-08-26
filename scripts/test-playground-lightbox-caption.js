@@ -92,7 +92,9 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
         img: box('#lbimg'),
         stage: box('.lbstage'),
         meta: { top: Math.round(meta.top), bottom: Math.round(meta.bottom) },
-        prompt: box('#lbcapp'),
+        // The words themselves live behind the PROMPT door now (they cover the
+        // picture when she taps it), so what sits in this band is the door.
+        prompt: box('#lbcaphd'),
         btns: box('.lbbtns'),
         text: document.getElementById('lbcapm').textContent,
         onMeta: at ? (at.id || at.className || at.tagName) : null,
@@ -111,7 +113,7 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
     if (m.onMeta !== 'lbcapm')
       fail(`${tag}: the middle of the label reaches ${m.onMeta}, not the label`);
     // Her words and the buttons under them still fit on the screen.
-    if (m.prompt.top < m.meta.bottom) fail(`${tag}: the prompt overlaps the label`);
+    if (m.prompt.top < m.meta.bottom) fail(`${tag}: the PROMPT door overlaps the label`);
     if (m.btns.bottom > height) fail(`${tag}: the ♥/✕ row ends at ${m.btns.bottom}, off a ${height}px screen`);
 
     await page.close();

@@ -32,6 +32,7 @@ let chromium;
 try { ({ chromium } = require('playwright')); }
 catch { console.log('SKIP: playwright not installed (npm install playwright --no-save)'); process.exit(0); }
 
+const servePublic = require('./lib/public-asset');
 const PUB = path.join(__dirname, '..', 'public');
 let fails = 0;
 const ok = (c, m) => { console.log((c ? '  ok   ' : '  FAIL ') + m); if (!c) fails++; };
@@ -62,6 +63,10 @@ const svg = (w, h, fill) => '<svg xmlns="http://www.w3.org/2000/svg" width="' + 
   + '<rect width="' + w + '" height="' + h + '" fill="' + fill + '"/></svg>';
 
 const server = http.createServer((req, res) => {
+  // Anything the page links out of public/ — /feedkit.js, /tritoggle.*, … A
+  // page whose kit 404s throws on its first line and nothing renders at all,
+  // which is exactly how this harness timed out the day /feedkit.js landed.
+  if (servePublic(req, res)) return;
   const url = new URL(req.url, 'http://x');
   if (url.pathname === '/api/promptlab') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -190,17 +195,54 @@ const server = http.createServer((req, res) => {
   console.log('\nthe prompt, split, as this run really sent it');
   await page.locator('#tiles .cell:not(.ph) img').first().click();
   await page.waitForSelector('#lb.on');
-  const opened = await page.evaluate(() => ({
-    title: document.querySelector('#lb .capttl').textContent.trim(),
-    shown: document.getElementById('lbcapp').textContent,
-    contentOn: document.getElementById('lbhalfc').classList.contains('on'),
-    styleShown: !document.getElementById('lbhalfs').hidden,
-    rowShown: !document.getElementById('lbcaphd').hidden,
-  }));
+  const opened = await page.evaluate(() => {
+    const words = document.getElementById('lbpwrap');
+    // What a tap in the middle of the picture reaches — the honest way to ask
+    // whether anything is sitting on the art she opened.
+    const r = document.getElementById('lbimg').getBoundingClientRect();
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return {
+      title: document.querySelector('#lb .capttl').textContent.trim(),
+      rowShown: !document.getElementById('lbcaphd').hidden,
+      wordsShown: !words.hidden,
+      segShown: !document.getElementById('lbcapseg').hidden,
+      onMiddle: hit ? (hit.id || hit.className) : '',
+      // The band between the picture and the ♥/✕ row, which is where the
+      // words used to be printed.
+      capH: Math.round(document.querySelector('#lb .cap').getBoundingClientRect().height),
+    };
+  });
   ok(/^prompt$/i.test(opened.title), 'it says Prompt (' + opened.title + ')');
-  ok(opened.rowShown && opened.styleShown, 'both halves are offered on a wrapped run');
-  ok(opened.contentOn, 'it opens on CONTENT — the house rule');
-  ok(opened.shown === TYPED, 'and content is her words, verbatim');
+  ok(opened.rowShown, 'the door is there on a run with a prompt on file');
+  // HER REPORT, 2026-08-26: "something strange is going on with the prompt. It
+  // shouldn't be there" — the whole content half was printed under the picture.
+  ok(!opened.wordsShown, 'the words are NOT printed under the picture');
+  ok(!opened.segShown, 'and Content/Style is not offered while they are shut');
+  ok(opened.capH <= 60, 'so the caption band is a line, not a paragraph (' + opened.capH + 'px)');
+  ok(opened.onMiddle.indexOf('lbpwrap') < 0,
+    'and nothing covers the picture (' + opened.onMiddle + ')');
+
+  await page.click('#lbpbtn');
+  const shownNow = await page.evaluate(() => {
+    const r = document.getElementById('lbimg').getBoundingClientRect();
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return {
+      shown: document.getElementById('lbcapp').textContent,
+      contentOn: document.getElementById('lbhalfc').classList.contains('on'),
+      styleShown: !document.getElementById('lbhalfs').hidden,
+      segShown: !document.getElementById('lbcapseg').hidden,
+      // The words themselves are what a tap in the middle lands on; either the
+      // overlay or its text answers "something is over the picture".
+      over: hit ? (hit.closest('.lbpwrap') ? 'lbpwrap' : (hit.id || hit.className)) : '',
+      lit: document.getElementById('lbpbtn').classList.contains('on'),
+    };
+  });
+  ok(shownNow.segShown && shownNow.styleShown, 'tapping PROMPT offers both halves');
+  ok(shownNow.contentOn, 'it opens on CONTENT — the house rule');
+  ok(shownNow.shown === TYPED, 'and content is her words, verbatim');
+  ok(String(shownNow.over).indexOf('lbpwrap') >= 0,
+    'the words cover the picture, the way the Assets overlay does (' + shownNow.over + ')');
+  ok(shownNow.lit, 'and the door says it is open');
 
   await page.click('#lbhalfs');
   const styled = await page.evaluate(() => ({
@@ -214,8 +256,18 @@ const server = http.createServer((req, res) => {
   ok(styled.shown.indexOf(TAIL) >= 0, 'and the tail that rode behind them');
   ok(styled.shown.indexOf(TYPED) < 0, 'her words are not repeated inside the style half');
 
+  // Tapping the words hands the picture back — and does NOT leave the lightbox.
+  await page.click('#lbpwrap');
+  const put = await page.evaluate(() => ({
+    open: !!document.querySelector('#lb.on'),
+    wordsShown: !document.getElementById('lbpwrap').hidden,
+  }));
+  ok(put.open, 'tapping the words does not close the lightbox');
+  ok(!put.wordsShown, 'it puts them away');
+
   // The plain tile wraps nothing — no style half, and no button offering one.
   await page.click('#lbnext');
+  await page.click('#lbpbtn');
   const plain = await page.evaluate(() => ({
     shown: document.getElementById('lbcapp').textContent,
     styleShown: !document.getElementById('lbhalfs').hidden,

@@ -420,8 +420,23 @@
      prompt scrolls now; the meta line never moves. */
   #lb .cap { margin-top: 10px; text-align: center; max-width: 560px; flex: none; }
   #lb .cap .capm { color: #9a938a; font-size: 12px; }
-  #lb .cap .capp { color: #eee; font-size: 13.5px; margin-top: 5px; max-height: 14vh; overflow-y: auto;
-    white-space: pre-wrap; }
+  /* THE WORDS ARE BEHIND THE TAP — THEY DO NOT SIT UNDER THE PICTURE
+     (2026-08-26, Sophie: "something strange is going on with the prompt. It
+     shouldn't be there", pointing at a lightbox with the whole content half
+     printed between the picture and the ♥/✕ row — and the day before, the ask
+     this half missed: "have the prompt in there instead of below"). This is
+     the ASSETS overlay's shape, which is what "in there" names: PROMPT is a
+     button, and the words COVER THE PICTURE when she taps it. Printed below,
+     a dictated prompt takes a third of the screen off the one thing she opened
+     the lightbox to look at, on every picture, whether she asked for it or not.
+     The overlay sits over the STAGE (never the caption or the buttons) and is
+     above the two step zones, so a tap on the words reads them rather than
+     paging the deck; tapping the overlay closes it again. */
+  .lbpwrap { position: absolute; inset: 0; z-index: 60; overflow-y: auto;
+    background: rgba(18,18,18,.94); padding: 14px; box-sizing: border-box;
+    display: flex; align-items: center; justify-content: center; }
+  .lbpwrap[hidden] { display: none; }
+  #lb .capp { color: #eee; font-size: 13.5px; white-space: pre-wrap; text-align: center; }
   /* IT SAYS PROMPT, AND THE TWO HALVES ARE THE ASSETS TAB'S (2026-08-26,
      Sophie: "can you have it say prompt and have the prompt in there instead
      of below split into the style and the content"). CONTENT opens, per the
@@ -436,7 +451,12 @@
      overlay keeps for a picture with no prompt. */
   #lb .caphd { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 9px; }
   #lb .caphd[hidden] { display: none; }
-  #lb .capttl { color: #9a938a; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+  /* The word is the DOOR now, so it is a button — bare, no plate (the house
+     icon rule: a rounded square or the bare glyph, never a round chip), and it
+     lights while the words are open so nothing on screen is a mystery. */
+  #lb .capttl { color: #9a938a; font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+    border: 0; background: none; font-family: inherit; padding: 2px 2px; }
+  #lb .capttl.on { color: #eee; }
   .capseg { display: flex; border: 1px solid #555; border-radius: 6px; overflow: hidden; }
   .capseg button { border: 0; background: #1c1c1c; color: #bbb; font: inherit; font-size: 12px; padding: 3px 10px; }
   .capseg button + button { border-left: 1px solid #555; }
@@ -610,17 +630,17 @@
     <img id="lbimg" src="">
     <button class="lbnav" id="lbprev" aria-label="Previous picture" hidden></button>
     <button class="lbnav" id="lbnext" aria-label="Next picture" hidden></button>
+    <div class="lbpwrap" id="lbpwrap" hidden><div class="capp" id="lbcapp"></div></div>
   </div>
   <div class="cap">
     <div class="capm" id="lbcapm"></div>
     <div class="caphd" id="lbcaphd">
-      <span class="capttl">Prompt</span>
-      <span class="capseg">
+      <button class="capttl" id="lbpbtn" aria-expanded="false">Prompt</button>
+      <span class="capseg" id="lbcapseg" hidden>
         <button id="lbhalfc" data-half="content">Content</button>
         <button id="lbhalfs" data-half="style">Style</button>
       </span>
     </div>
-    <div class="capp" id="lbcapp"></div>
   </div>
   <div class="lbbtns">
     <button class="lbbtn like" id="lblike" aria-label="Heart"></button>
@@ -659,7 +679,8 @@
   var lbSrc = '';         // the ORIGINAL url on screen — what Save and the app bridge get
   var lbObj = '';         // the object url the full picture is painted from, to revoke
   var lbHalves = null;    // { content, style } for the picture in the lightbox
-  var lbHalf = 'content'; // which half the PROMPT row is showing
+  var lbHalf = 'content';   // which half the PROMPT overlay is showing
+  var lbPromptOn = false;   // are the words over the picture right now
 
   // Lucide line icons (heart, x, download), inlined — CSP-safe, no requests.
   var ICONS = {
@@ -2284,6 +2305,7 @@
     // time the image is closed.
     if (window.__scrollStop) window.__scrollStop();
     lbHalf = 'content';     // CONTENT opens the overlay — the house rule
+    lbPromptOn = false;     // and the picture, not its words, is what a tap opens
     showLB(id, i);
     document.getElementById('lb').classList.add('on');
     document.body.style.overflow = 'hidden';
@@ -2358,22 +2380,39 @@
   function paintPrompt() {
     var h = lbHalves || { content: '', style: '' };
     if (!h.style && lbHalf === 'style') lbHalf = 'content';
+    var has = !!(h.content || h.style);
+    var open = lbPromptOn && has;
     document.getElementById('lbcapp').textContent = h[lbHalf] || '';
     document.getElementById('lbhalfs').hidden = !h.style;
     document.getElementById('lbhalfc').classList.toggle('on', lbHalf === 'content');
     document.getElementById('lbhalfs').classList.toggle('on', lbHalf === 'style');
+    // The words COVER the picture, and only while she is holding the door
+    // open — see the `.lbpwrap` block in the CSS. The Content/Style pair rides
+    // with them: two buttons under a closed door change nothing on screen.
+    document.getElementById('lbpwrap').hidden = !open;
+    document.getElementById('lbcapseg').hidden = !open;
+    var btn = document.getElementById('lbpbtn');
+    btn.classList.toggle('on', open);
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
     // Nothing on file at all → no PROMPT row, the silence the Assets overlay
     // keeps rather than saying "no prompt filed".
-    document.getElementById('lbcaphd').hidden = !h.content && !h.style;
+    document.getElementById('lbcaphd').hidden = !has;
   }
   // The way out, said in words as well as by the gesture. The delegated
   // handler on #lb would close on this tap anyway — this is the explicit half,
   // so the chevron keeps working if that skip list ever grows.
   document.getElementById('lbback').addEventListener('click', function () { closeLB(); });
   document.getElementById('lbcaphd').addEventListener('click', function (e) {
+    if (e.target.closest('#lbpbtn')) { lbPromptOn = !lbPromptOn; paintPrompt(); return; }
     var b = e.target.closest('button[data-half]');
     if (!b) return;
     lbHalf = b.getAttribute('data-half');
+    paintPrompt();
+  });
+  // Tapping the words puts them away again — the overlay is over the picture,
+  // so it has to hand the picture back the same way it took it.
+  document.getElementById('lbpwrap').addEventListener('click', function () {
+    lbPromptOn = false;
     paintPrompt();
   });
 
@@ -2441,7 +2480,10 @@
     // Content/Style toggle is the same: switching halves is not leaving.
     // The BACK chevron and the empty band it sits in are deliberately NOT in
     // this list — they close, which is the whole point of the strip.
-    if (e.target.closest('.lbbtn') || e.target.closest('.lbnav') || e.target.closest('.capseg')) return;
+    // The PROMPT door and the words it opens are the same: reading a prompt is
+    // not leaving, and the overlay's own handler is what puts them away.
+    if (e.target.closest('.lbbtn') || e.target.closest('.lbnav') || e.target.closest('.capseg')
+      || e.target.closest('#lbpbtn') || e.target.closest('.lbpwrap')) return;
     closeLB();
   });
 
