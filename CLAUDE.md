@@ -4194,8 +4194,15 @@ before working on that module. Nothing was deleted — the moved text is verbati
   was two buttons over two sheets — a book glyph over her description text
   plus her two recordings as native `<audio controls>`, and a waveform over
   the memos and episodes as rows. Everything in both is the same thing, so it
-  is one sheet, **About this story**, behind one Lucide `book-audio` button
-  (`#aboutbtn`; `#descbtn` and `#audiobtn` are gone).
+  is one sheet, **About this story**, behind one button (`#aboutbtn`;
+  `#descbtn` and `#audiobtn` are gone). **The glyph is the PLAIN WAVEFORM, and
+  it is hers by name** (2026-08-26: "I like the book idea, but can you just put
+  it back to the normal wave form?") — it shipped as Lucide `book-audio`, a
+  book with a sound wave inside, on the reasoning that the sheet holds her
+  words as well as her recordings; she liked the idea and picked the plain wave
+  anyway, so that reasoning is history rather than a rule. It is the exact
+  glyph `#audiobtn` wore, so the row looks to her as it always did and only the
+  sheet behind it changed.
   - **THE ORDER WAS COUNTED, NOT GUESSED.** All 67 stories read live that
     day: **47 carry anything at all, 43 of those have a RECORDING and only
     17 a description** — and a description is a dictated transcript running
