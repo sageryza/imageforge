@@ -218,6 +218,10 @@ const { swapArt } = require('./pad-art');
 // Which side a picture belongs on when nobody said — the pure decision
 // (evidence from the picture's own run record, playground-port's rule).
 const { padSideOf, shouldReveal } = require('./pad-side');
+// Character references — the story's cast, picked per draw. The pure rules
+// (list shape, the pick, the disclosed prompt line) live in their own
+// dependency-free file so they have a test that needs no node_modules.
+const { normalizeCharacters, pickCharacters, charLine, MAX_CHARACTERS } = require('./pad-characters');
 
 // ── Deriving the side from the picture's own run record ─────────────
 // Only for a placement that named NO side (styleNamed → null). Best-effort
@@ -348,9 +352,35 @@ async function refsFor(recipe) {
   return named.concat(remote);
 }
 const refPart = (r, i) => {
-  const jpeg = /\.jpe?g$/i.test(r.name || '');
-  return { filename: `ref${i + 1}.${jpeg ? 'jpg' : 'png'}`, contentType: jpeg ? 'image/jpeg' : 'image/png' };
+  // A character ref's name is its URL, which may carry a query — strip it
+  // before reading the extension. The Dump serves JPEG/PNG/WEBP, all of
+  // which the edits endpoint accepts.
+  const n = String(r.name || '').replace(/\?.*$/, '');
+  const jpeg = /\.jpe?g$/i.test(n);
+  const webp = /\.webp$/i.test(n);
+  const ext = jpeg ? 'jpg' : (webp ? 'webp' : 'png');
+  const type = jpeg ? 'image/jpeg' : (webp ? 'image/webp' : 'image/png');
+  return { filename: `ref${i + 1}.${ext}`, contentType: type };
 };
+
+// The picked characters' bytes — fetched by their public urls, cached for
+// the life of the process (a cast is a handful of images drawn against
+// again and again). Best-effort is WRONG here: a draw she aimed at a
+// character must fail loudly rather than quietly draw without them.
+const charBytesCache = new Map();
+async function charRefs(chars) {
+  const out = [];
+  for (const c of chars || []) {
+    if (!charBytesCache.has(c.url)) {
+      const r = await fetch(c.url, { timeout: 30000 });
+      if (!r.ok) throw new Error(`character reference fetch ${r.status}`);
+      if (charBytesCache.size >= 40) charBytesCache.delete(charBytesCache.keys().next().value);
+      charBytesCache.set(c.url, await r.buffer());
+    }
+    out.push({ name: c.url, buf: charBytesCache.get(c.url) });
+  }
+  return out;
+}
 
 // ── The film ────────────────────────────────────────────────────────
 // The pad already knows how long every picture should be on screen: each
@@ -467,6 +497,9 @@ async function readPad(padId) {
     // The recordings this story came OUT of — voice memos (and interviews)
     // attached by id. See sourceAudios below.
     sources: Array.isArray(v.sources) ? v.sources : [],
+    // The story's CAST — character reference cards a draw can pick from
+    // (2026-08-26, Sophie). See pad-characters.js and POST /character.
+    characters: normalizeCharacters(v.characters),
     updatedAt: v.updatedAt || 0,
   };
 }
@@ -658,6 +691,69 @@ router.post('/upload', async (req, res) => {
       return next;
     });
     res.json({ ok: true, pad: pid, count: uploads.length, uploads });
+  } catch (e) { fail(res, e); }
+});
+
+// ── CHARACTER REFERENCES — the story's cast (2026-08-26, Sophie: "attach
+// one or more character references … the characters could exist at the top
+// of the story and then there could be like an add character card button and
+// then through there I pick one or multiple of the characters that are for
+// the story"). The list lives on the pad doc (`characters`), managed from
+// the top of the story; a draw picks ids and they ride the edit as the LAST
+// attached images (see runArtJob). The BYTES never come through here — the
+// page uploads through the Dump's /api/drop/upload-file exactly like the add
+// sheet's photos (md5 dedupe, HEIC→JPEG; never a second upload path), and
+// this route only files the finished url with a name.
+// One route adds AND renames: no `id` = a new card ({url, name?}); an `id` =
+// patch that card's name (and url, if a new one is sent).
+router.post('/character', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const id = String(req.body.id || '').trim();
+    const url = String(req.body.url || '').trim();
+    const name = req.body.name === undefined ? undefined : String(req.body.name || '').trim().slice(0, 60);
+    if (!id && !/^https?:\/\//.test(url)) return res.status(400).json({ error: 'a character needs an image url' });
+    const characters = await db().runTransaction(async (tx) => {
+      const snap = await tx.get(padRef(pid));
+      const cur = normalizeCharacters(snap.exists ? snap.data().characters : []);
+      if (id) {
+        const c = cur.find((x) => x.id === id);
+        if (!c) throw new Error('no such character');
+        if (name !== undefined) c.name = name;
+        if (/^https?:\/\//.test(url)) c.url = url;
+      } else {
+        if (cur.length >= MAX_CHARACTERS) throw new Error(`a story keeps at most ${MAX_CHARACTERS} characters`);
+        cur.push({
+          id: `c${Date.now().toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`,
+          name: name || '', url, at: Date.now(),
+        });
+      }
+      // Like /style, deliberately NO updatedAt bump: the cast list is not an
+      // edit to the beats, so it must not stale the film or reshuffle the
+      // shelf.
+      tx.set(padRef(pid), { characters: cur }, { merge: true });
+      return cur;
+    });
+    res.json({ ok: true, pad: pid, characters });
+  } catch (e) { fail(res, e); }
+});
+
+// Taking a character off the list. The IMAGE is untouched wherever it lives
+// (the Dump keeps its bytes, and any draw it rode is history on the beat) —
+// the house verb is off-the-list, never destroy.
+router.post('/character/remove', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const id = String(req.body.id || '').trim();
+    if (!id) return res.status(400).json({ error: 'character id required' });
+    const characters = await db().runTransaction(async (tx) => {
+      const snap = await tx.get(padRef(pid));
+      const cur = normalizeCharacters(snap.exists ? snap.data().characters : [])
+        .filter((c) => c.id !== id);
+      tx.set(padRef(pid), { characters: cur }, { merge: true });
+      return cur;
+    });
+    res.json({ ok: true, pad: pid, characters });
   } catch (e) { fail(res, e); }
 });
 
@@ -1188,21 +1284,34 @@ async function patchBeat(padId, id, fn) {
 // at once with the beat marked drawing, the page polls the pad, and leaving
 // the app can't lose the picture. Superseded art is never deleted — it goes
 // to beat.imageHistory.
-async function runArtJob(padId, id, { prompt, quality, character, style }) {
+async function runArtJob(padId, id, { prompt, quality, character, style, chars }) {
   const recipe = STYLE_ART[style] || null;   // null = watercolor, the pad's original
   try {
     // A non-watercolor style draws its Playground tile's recipe: that tile's
     // reference images, her dictated prefix and suffix bookending the words,
     // and never the Sophie card (see the STYLE TOGGLE block). Watercolor is
     // the pad's original recipe, byte-for-byte.
-    const refs = recipe
+    // The story's PICKED CHARACTERS ride LAST on any style — behind the
+    // style reference(s) and, on watercolor, behind the Sophie card — which
+    // is what lets one disclosed line ("the last attached image(s)…") stay
+    // true everywhere. With none picked, every string below is
+    // byte-for-byte what it always was.
+    const picked = Array.isArray(chars) ? chars : [];
+    const refs = (recipe
       ? await refsFor(recipe)
       : [{ name: ART.styleFile, buf: artRef(ART.styleFile) }]
-        .concat(character ? [{ name: ART.characterFile, buf: artRef(ART.characterFile) }] : []);
+        .concat(character ? [{ name: ART.characterFile, buf: artRef(ART.characterFile) }] : []))
+      .concat(await charRefs(picked));
     const useCard = !recipe && Boolean(character);
+    // Where the character line rides is per style, ON PURPOSE: watercolor
+    // puts it in the head beside the Sophie line (its own shape); a recipe
+    // style appends it AFTER the suffix, because dreamy's suffix re-asserts
+    // "the attached image is a STYLE reference only" and the carve-out must
+    // come after that sentence, not before it.
+    const cline = charLine(picked);
     const full = recipe
-      ? `${recipe.prefix}\n\n${prompt}\n\n${recipe.suffix}`
-      : `${ART.prefix}${character ? ART.characterLine : ''}\n\n${prompt}`;
+      ? `${recipe.prefix}\n\n${prompt}\n\n${recipe.suffix}${cline}`
+      : `${ART.prefix}${character ? ART.characterLine : ''}${cline}\n\n${prompt}`;
     const form = new FormData();
     form.append('model', 'gpt-image-2');
     form.append('prompt', full);
@@ -1249,6 +1358,9 @@ async function runArtJob(padId, id, { prompt, quality, character, style }) {
       swapArt(slot, url, {
         engine: 'gptimage', model: 'gpt-image-2', prompt, quality,
         character: useCard, style, promptUsed: full,
+        // Provenance: WHICH characters rode this draw, by name — so a
+        // picked-back version says who was in it.
+        ...(picked.length ? { characters: picked.map((c) => c.name || '') } : {}),
       });
       slot.gen = { status: 'done', at: Date.now() };
     });
@@ -1268,8 +1380,8 @@ async function runArtJob(padId, id, { prompt, quality, character, style }) {
         body: JSON.stringify({ url, prompt,
           style: `Scratch Pad · ${style !== 'watercolor' ? `${style} · ` : ''}${quality}`,
           fullPrompt: full,
-          promptPrefix: recipe ? recipe.prefix : `${ART.prefix}${useCard ? ART.characterLine : ''}`,
-          promptSuffix: recipe ? recipe.suffix : '' }),
+          promptPrefix: recipe ? recipe.prefix : `${ART.prefix}${useCard ? ART.characterLine : ''}${cline}`,
+          promptSuffix: recipe ? `${recipe.suffix}${cline}` : '' }),
         timeout: 30000,
       });
     } catch (e) { console.warn('scratchpad → creations:', e.message); }
@@ -1428,14 +1540,22 @@ router.post('/generate', async (req, res) => {
     // and never on a style with its own reference (the Playground's
     // noCharacter rule: her card is the watercolor look, wrong there).
     const character = style !== 'watercolor' ? false : (req.body.character === false ? false : true);
+    // The STORY'S OWN characters she picked for this draw (2026-08-26) —
+    // resolved against the pad's cast, in its order, deduped and capped; an
+    // id the story doesn't know is dropped rather than failing the draw.
+    // They ride EVERY style, unlike the Sophie card above.
+    const picked = Array.isArray(req.body.characters) && req.body.characters.length
+      ? pickCharacters((await readPad(pid)).characters, req.body.characters)
+      : [];
     const beats = await patchBeat(pid, id, (b) => {
       const slot = artSlot(b, style, true);
       if (slotClip(slot)) throw new Error('nothing draws a clip');
-      slot.gen = { status: 'drawing', prompt, quality, character, at: Date.now() };
+      slot.gen = { status: 'drawing', prompt, quality, character, at: Date.now(),
+        ...(picked.length ? { characters: picked.map((c) => c.name || '') } : {}) };
       // Art here again un-deletes this side (see `off` above).
       delete slot.off;
     });
-    runArtJob(pid, id, { prompt, quality, character, style });   // fire and forget
+    runArtJob(pid, id, { prompt, quality, character, style, chars: picked });   // fire and forget
     res.json({ ok: true, beats });
   } catch (e) { fail(res, e); }
 });
