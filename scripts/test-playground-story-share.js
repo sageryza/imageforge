@@ -31,7 +31,15 @@
 //      tapping it walks back — the walk ate the Playground's screen, so
 //      without this the trip was one-way,
 //  10. a panels walk goes back to /panels, and a run that cannot be read
-//      still offers the way back rather than stranding her.
+//      still offers the way back rather than stranding her,
+//  11. an APP exit does not strand the tool the walk rode in on (2026-08-26,
+//      Sophie's second report: "I still can't get out of the story room and
+//      back into the playground") — the walk happens inside the SENDER's web
+//      view and the app keeps a tool's page alive for the whole app process,
+//      so leaving through the shelf's chevron parked the Playground tile on
+//      the story room until a force-quit. On a send-trip page, __forgeLeave
+//      still fires (the tool exits as before) and the web view then puts
+//      itself back on the page the walk ate.
 //
 //   npm install playwright --no-save && node scripts/test-playground-story-share.js
 const http = require('http');
@@ -108,6 +116,11 @@ const server = http.createServer((req, res) => {
     roomLoads.push(url.search);
     res.writeHead(200, { 'Content-Type': 'text/html' });
     return res.end(fs.readFileSync(path.join(PUB, 'scratchpad.html')));
+  }
+  if (url.pathname === '/panels') {
+    // Only step 11's restore ever lands here; a blank page is enough.
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    return res.end('<title>panels</title>');
   }
   if (url.pathname === '/' || url.pathname === '/playground') {
     res.writeHead(200, { 'Content-Type': 'text/html' });
@@ -236,6 +249,36 @@ const ok = (cond, what) => { console.log((cond ? 'ok   ' : 'FAIL ') + what); if 
   await page.waitForFunction(() => /Back to the Playground/.test(document.getElementById('sendword').textContent || ''));
   ok(await page.locator('#sendthumb').isHidden(), 'a run that cannot be read shows no thumb');
   ok(!(await page.locator('#sendband').isHidden()), 'but still offers the way back');
+
+  // ── 11 · an app exit un-eats the sender's web view ────────────────────
+  // The app injects __forgeLeave before the page runs; the stub stands in for
+  // it. The restore must come AFTER the native exit (the tool hides first, so
+  // nothing flashes), which is why the exit count is read before the URL moves.
+  await page.addInitScript(() => {
+    window.__forgeLeave = () => { window.__leftTool = (window.__leftTool || 0) + 1; };
+  });
+  await page.goto(base + '/storyroom?send=runA&i=0');
+  await page.waitForSelector('#sendband:not([hidden])');
+  await page.locator('#storiesclose').click();
+  ok(await page.evaluate(() => window.__leftTool === 1), 'the shelf chevron still hands the app its exit');
+  await page.waitForURL(/\/playground/);
+  ok(true, 'and the web view then goes back to the Playground behind it');
+  await page.goto(base + '/storyroom?send=sheetA&cell=a1&from=panels');
+  await page.waitForSelector('#sendband:not([hidden])');
+  await page.locator('#storiesclose').click();
+  await page.waitForURL(/\/panels/);
+  ok(true, 'a panels walk restores /panels instead');
+  // Without the bridge (a plain browser) nothing navigates by itself: the
+  // chevron falls back to real history exactly as before this fix — the
+  // restore must never fire there. A fresh page carries no init script, so it
+  // has no __forgeLeave (its history holds only about:blank behind the room).
+  const plain = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await plain.goto(base + '/storyroom?send=runA&i=0');
+  await plain.waitForSelector('#sendband:not([hidden])');
+  await plain.locator('#storiesclose').click();
+  await plain.waitForTimeout(450);
+  ok(!/\/playground/.test(plain.url()), 'a plain browser keeps its history fallback — no restore fires');
+  await plain.close();
 
   await browser.close();
   server.close();

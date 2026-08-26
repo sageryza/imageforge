@@ -4958,6 +4958,22 @@ before working on that module. Nothing was deleted — the moved text is verbati
     that cannot be read (a pruned run, a deploy mid-fetch) opens the band
     straight in that state instead of stranding her holding nothing. The
     mirror of the Playground's own "‹ Scratch Pad" chip on the reverse trip.
+    **AND AN APP EXIT UN-EATS THE SENDER'S WEB VIEW (2026-08-26, her second
+    report the same day: "I still can't get out of the story room and back
+    into the playground").** The band alone was not enough: the app keeps a
+    tool's page alive for the whole app process, so leaving a send-trip page
+    through the shelf's chevron parked the PLAYGROUND tool's web view on the
+    story room — every later tap on the Playground tile opened the room
+    again, band or no band, until a force-quit. On a document that arrived
+    with `?send=`, `armTripRestore` wraps `window.__forgeLeave`: the native
+    exit still fires first (the tool hides as before), then the web view
+    puts itself back on `/playground` (or `/panels`) with `location.replace`
+    behind it. Wrapping the bridge is what catches BOTH exits — the shelf
+    chevron's own handler and pagehead's chevron chain — with one hook; a
+    plain browser has no `__forgeLeave` and keeps its history fallback
+    untouched. **A page loaded BEFORE this shipped is still parked** — the
+    one cure for an already-stuck web view is force-quitting the app; the
+    fix only keeps it from happening again.
   - **The placement is the room's own** — `pick()`/`place()`, the inbox's
     machinery, so she gets a gap in the ORDER rather than "at the end", and
     an empty story places straight away because it has no gap to tap.

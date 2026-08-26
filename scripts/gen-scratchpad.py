@@ -2637,6 +2637,27 @@ var sendIt=null;
    staying in the room. Mirrors the Playground's own "‹ Scratch Pad" chip on
    the reverse trip. */
 var sendBack=null;   // {url, from, placed} — the ended trip
+/* AND THE TRIP MUST NOT STRAND THE TOOL IT RODE IN ON (2026-08-26, Sophie's
+   second report: "I still can't get out of the story room and back into the
+   playground"). The band above is the way back only while she uses it: the
+   app keeps a tool's page alive for the whole app process, so leaving this
+   page through the shelf's chevron parked the PLAYGROUND tool's web view on
+   the story room — every later tap on the Playground tile opened the room
+   again, band or no band, until the app was force-quit. When this document
+   arrived on a send walk, an app exit now ALSO puts the web view back on the
+   page the walk ate (location.replace, shortly after the native exit has
+   hidden it, so nothing flashes on the way out). Wrapping __forgeLeave is
+   what catches BOTH exits — the shelf chevron's own handler and pagehead's
+   chevron chain — with one hook. Safari has no __forgeLeave and keeps real
+   history; nothing changes there. */
+function armTripRestore(home){
+  if(!window.__forgeLeave) return;
+  var realLeave=window.__forgeLeave;
+  window.__forgeLeave=function(){
+    realLeave();
+    setTimeout(function(){ location.replace(home); }, 250);
+  };
+}
 function sendHome(){ return (sendBack&&sendBack.from==='panels') ? '/panels' : '/playground'; }
 function sendHomeName(){ return (sendBack&&sendBack.from==='panels') ? 'Panels' : 'the Playground'; }
 function endSend(placed){
@@ -3411,6 +3432,8 @@ window.__navBack=function(){
        lives in another collection and names its picture by cell. */
     if(q.get('from')==='panels') loadSendPanel(send, q.get('cell')||'');
     else loadSend(send, Math.max(0, parseInt(q.get('i'),10)||0));
+    // Leaving the tool must un-eat the sender's web view — see armTripRestore.
+    armTripRestore(q.get('from')==='panels' ? '/panels' : '/playground');
   }
   /* Spend the link once, BEFORE anything opens: she may walk off to another
      story from here, and a refresh then must not yank her back to the beat
