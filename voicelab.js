@@ -113,7 +113,22 @@ router.get('/status', async (req, res) => {
 // Gilad, Alpha and "Sophie — doctor" came off the picker. The voices still exist
 // on the ElevenLabs account and nothing was deleted there: dropping an id here
 // is the whole undo, so putting one back is one line.
+//
+// PINNED_VOICE_IDS sits above the allowlist: the two announcers she picked for
+// the PWC reels ride at the TOP of the picker, in the order she named them
+// (Aug 26 2026, Sophie: "find max and clyde voices from yesterdays chat, add to
+// voice studio and changer. put at top"). They are ElevenLabs Voice Library
+// professionals ADDED to the account, not clones — Clyde was already on it
+// (the reels render straight from the TTS endpoint by id), Max was added the
+// day this shipped. Order here IS the order on the picker, and it beats rank(),
+// which would otherwise file them under `professional` and sort them
+// alphabetically among voices she never asked for.
+const PINNED_VOICE_IDS = [
+  'dqbqOZM4uhsyx1WtTAgT', // Max — 1940s RP British newsreel announcer
+  'QMJTqaMXmGnG8TCm8WQG', // Clyde — vintage male radio announcer (the PWC narrator)
+];
 const OFFERED_VOICE_IDS = [
+  ...PINNED_VOICE_IDS,
   'UTkHGl2ImiT6gwtAFCql', // Sophie — morning (her professional clone)
   '15zm3wIS3FnEV3LX1Aa5', // Jonathan (annoyed)
   'XnL2M6RBESG5keWHuX0d', // Michael White
@@ -147,6 +162,10 @@ const VOICE_COLORS = {
   // family: orange is Steve Herrington, a different man, and pairing the two colours was
   // the visual version of the mistake that put them in one comparison (Aug 2026).
   Aqp0rbLX5c0qpiPc83tG: '#b7a98f', // Snake Boy (instant) — sand
+  dqbqOZM4uhsyx1WtTAgT: '#8a9a7b', // Max — newsreel olive
+  QMJTqaMXmGnG8TCm8WQG: '#b58863', // Clyde — walnut, the wood of a radio cabinet.
+  // Both kept clear of every one of hers, and of each other: two announcers
+  // sitting side by side at the top of the picker have to read apart at a glance.
 };
 const PALETTE = ['#9fbcd8', '#e0c97a', '#b9a4d4', '#a7c4a0', '#e2b48c', '#9cc4c2', '#d4a58c', '#d9a7a7'];
 
@@ -156,7 +175,13 @@ router.get('/voices', async (req, res) => {
   try {
     if (!voicesCache.list || Date.now() - voicesCache.at > 10 * 60 * 1000) {
       const data = await (await elFetch('/voices?show_legacy=true')).json();
+      // A pinned voice ranks BELOW zero so it leads the picker, and ties are
+      // broken by its position in PINNED_VOICE_IDS rather than by name — the
+      // list is the order she asked for, so alphabetising it would undo the ask.
+      // NB: rank() runs AFTER the .map() below, so the field is voiceId, not voice_id.
+      const pin = (v) => PINNED_VOICE_IDS.indexOf(v.voiceId);
       const rank = (v) => {
+        if (pin(v) >= 0) return -1;
         if (/sophie/i.test(v.name || '')) return 0;
         if (v.category === 'cloned' || v.category === 'generated') return 1;
         if (v.category === 'professional') return 2;
@@ -168,7 +193,10 @@ router.get('/voices', async (req, res) => {
           .filter((v) => v.category !== 'premade')
           .filter((v) => !OFFERED_VOICE_IDS.length || OFFERED_VOICE_IDS.includes(v.voice_id))
           .map((v) => ({ voiceId: v.voice_id, name: v.name, category: v.category, description: v.description || '' }))
-          .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name))
+          .sort((a, b) => rank(a) - rank(b)
+            || (PINNED_VOICE_IDS.indexOf(a.voiceId) >= 0
+                ? PINNED_VOICE_IDS.indexOf(a.voiceId) - PINNED_VOICE_IDS.indexOf(b.voiceId)
+                : a.name.localeCompare(b.name)))
           .map((v, i) => ({ ...v, color: VOICE_COLORS[v.voiceId] || PALETTE[i % PALETTE.length] })),
       };
     }
