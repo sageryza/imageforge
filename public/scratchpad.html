@@ -2742,6 +2742,7 @@ function openBeat(b){
     capEditing=false;
     resetBig();
     document.getElementById('pnote').value=b.text||'';
+    capBase=document.getElementById('pnote').value;
   }
   // The words are painted from the BOX, which mid-typing is ahead of the
   // saved beat — what she reads must be what she just wrote.
@@ -2791,7 +2792,10 @@ function openBeat(b){
   // there was nothing on screen to tell "this beat has its own prompt" from
   // "you are about to draw the caption", and Draw sent the caption). Empty
   // means FOLLOW THE CAPTION, which the hint line says out loud.
-  if(!typing)document.getElementById('dprompt').value=String(b.prompt||'');
+  if(!typing){
+    document.getElementById('dprompt').value=String(b.prompt||'');
+    promBase=document.getElementById('dprompt').value;
+  }
   // Same rule for the folds: mid-typing keeps whichever boxes she has open
   // (setBoxes(…,false) would also kill promEditing under her caret).
   if(typing){
@@ -2824,8 +2828,11 @@ function stopPopVid(){
 }
 function chunkAction(pathname){
   var b=popBeat; if(!b)return;
-  saveNote();
-  api(pathname,{method:'POST',body:JSON.stringify({id:b.id})})
+  // The save lands first — same reason as Draw: the response's snapshot
+  // re-opens this beat and must not predate what she just wrote.
+  saveNote().catch(function(){}).then(function(){
+    return api(pathname,{method:'POST',body:JSON.stringify({id:b.id})});
+  })
     .then(function(r){return r.json()})
     .then(function(d){
       if(d.beats){ beats=d.beats; render(); }
@@ -2863,6 +2870,7 @@ function openDraw(ev, edit){
     // stays fixed: drawPrompt() reads the caption box, never the last
     // SAVED text).
     document.getElementById('dprompt').value=String(popBeat.prompt||'');
+    promBase=document.getElementById('dprompt').value;   // the page wrote this
     promEditing=Boolean(edit);
     paintProm();
     saveNote();
@@ -2900,13 +2908,21 @@ document.getElementById('dgo').onclick=function(ev){
   var prompt=drawPrompt();
   if(!prompt){ document.getElementById('dprompt').focus(); return; }
   var btn=this; btn.disabled=true;
-  saveNote(); savePrompt();
-  api('/generate',{method:'POST',body:JSON.stringify({
-    id:b.id, prompt:prompt,
-    quality:qVal('dq'),
-    style:padStyle,
-    character:padStyle==='watercolor'&&document.getElementById('dchar').classList.contains('on'),
-  })}).then(function(r){return r.json()}).then(function(d){
+  /* The saves land BEFORE /generate is asked, so the beats snapshot it
+     answers with can never predate them. Fired loose, /generate could read
+     the pad before the /prompt save committed, and the re-open below then
+     reset the box to the OLD prompt — which the next blur/close saved back
+     over the one she had just drawn with (2026-08-26, Sophie: "it reverted
+     back to an old one"). The baseline in savePrompt is the second half of
+     that fix. */
+  saveNote().catch(function(){}).then(savePrompt).catch(function(){}).then(function(){
+    return api('/generate',{method:'POST',body:JSON.stringify({
+      id:b.id, prompt:prompt,
+      quality:qVal('dq'),
+      style:padStyle,
+      character:padStyle==='watercolor'&&document.getElementById('dchar').classList.contains('on'),
+    })});
+  }).then(function(r){return r.json()}).then(function(d){
     btn.disabled=false;
     if(d.error){ alert(d.error); return; }
     if(d.beats){ beats=d.beats; render(); }
@@ -3134,15 +3150,23 @@ document.getElementById('pnote').onclick=function(ev){ev.stopPropagation();};
 /* The draw prompt saves ITSELF — on leaving the box, closing the popup, or
    drawing. No save button (Sophie's rule). The server clears a prompt that
    just equals the words, so an untouched box keeps following the note. */
+/* THE BASELINE — the last value the PAGE itself put in each box (openBeat's
+   reset, or a landed save). A save may only ever send words SHE changed from
+   it: a box repainted from a stale beats snapshot used to be saved back on
+   the next blur/close, silently reverting a prompt she had already drawn
+   with (2026-08-26). Compared by VALUE, never by input events, because iOS
+   dictation can fill a box without firing input — the liveInput lesson. */
+var capBase='', promBase='';
 function savePrompt(){
   if(!popBeat)return Promise.resolve();
   var box=document.getElementById('drawbox');
   if(box.hidden)return Promise.resolve();   // never seeded — nothing she said
   var t=document.getElementById('dprompt').value;
-  if(t.trim()===promptOf(popBeat))return Promise.resolve();
+  if(t===promBase)return Promise.resolve(); // the page wrote this, not her
+  if(t.trim()===promptOf(popBeat)){ promBase=t; return Promise.resolve(); }
   return api('/prompt',{method:'POST',body:JSON.stringify({id:popBeat.id,prompt:t})})
     .then(function(r){return r.json()})
-    .then(function(d){if(d.beats){
+    .then(function(d){promBase=t; if(d.beats){
       var keep=popBeat; beats=d.beats; popBeat=beats.find(function(x){return x.id===keep.id;})||keep;
     }});
 }
@@ -3174,11 +3198,12 @@ document.getElementById('dprompt').addEventListener('input',paintPromptHint);
 function saveNote(){
   if(!popBeat)return Promise.resolve();
   var t=document.getElementById('pnote').value;
-  if(t===(popBeat.text||''))return Promise.resolve();
+  if(t===capBase)return Promise.resolve();  // the page wrote this, not her
+  if(t===(popBeat.text||'')){ capBase=t; return Promise.resolve(); }
   popBeat.text=t;
   return api('/text',{method:'POST',body:JSON.stringify({id:popBeat.id,text:t})})
     .then(function(r){return r.json()})
-    .then(function(d){if(d.beats){
+    .then(function(d){capBase=t; if(d.beats){
       var keep=popBeat; beats=d.beats; popBeat=beats.find(function(x){return x.id===keep.id;})||keep;
     }});
 }
