@@ -280,6 +280,28 @@ const VW = 390, VH = 780;
     'and the words she wrote are what reads back');
   ok(posted.some(([p2, b2]) => p2 === '/api/scratchpad/text' && b2.text === 'a caption she just wrote'),
     'it saved on the way out — no save button');
+
+  // 6c — A DRAW LANDING MID-TYPE MUST NOT EAT THE CAPTION (2026-08-26,
+  // Sophie: "when I make an image in story room, if I'm typing in the
+  // caption box, it gets rid of my caption"). The gen poll re-opens the SAME
+  // beat when a picture lands, with no tap of hers — openBeat used to reset
+  // #pnote to the beat's saved text, wiping everything typed since the last
+  // blur. While a box holds her caret, a same-beat re-open keeps the value,
+  // the pencil state and the caret; a re-open she caused HERSELF (Draw, a
+  // chunk link) has already blurred and saved and still resets to the read
+  // faces — the "reopening the prompt shows words" assertion below pins
+  // that half.
+  await page.click('#capedit');           // swap the box back in
+  await page.click('#pnote');
+  await page.keyboard.type(' plus words she typed while it drew');
+  // The poll's re-open, verbatim: same beat, no tap of hers.
+  await page.evaluate(() => window.openBeat(window.beats.find((x) => x.id === 'b1')));
+  ok(await shown('#pnote'), 'a draw landing mid-type leaves the caption box open');
+  ok((await page.$eval('#pnote', (el) => el.value)).includes('plus words she typed while it drew'),
+    'and her typing is still in it');
+  ok(await page.evaluate(() => document.activeElement && document.activeElement.id === 'pnote'),
+    'with the caret still there');
+  await page.click('#capedit');           // put it away, saving
   // 7 — THE PROMPT BOX IS NOT THE CAPTION (2026-08-24, Sophie: "it sent the
   // wrong prompt. I think it sent it from the caption part not the drawing
   // part"). The box used to seed with the caption's words, so a beat with no

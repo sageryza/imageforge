@@ -2728,6 +2728,20 @@ function loadSendPanel(runId,cell){
 
 /* ── the beat popup: the art at THUMBNAIL size, frame color, text ─── */
 function openBeat(b){
+  /* A RE-OPEN of the beat already on screen while she is TYPING in one of
+     its boxes — the gen poll landing a finished draw is the one that fires
+     with no tap of hers — must NOT wipe what she is mid-writing: saveNote
+     only fires on blur, so a focused box holds words the beat doesn't yet,
+     and resetting it here is how a finished draw used to eat her caption
+     (2026-08-26). While a box has her caret, the values, the pencils, the
+     bigger box and the fold state all carry over — the picture still lands.
+     A re-open from her OWN tap (Draw, a chunk link) has already blurred and
+     saved, and still resets to the read faces as it always did. */
+  var same=Boolean(popBeat && popBeat.id===b.id && !document.getElementById('beatpop').hidden);
+  var typing=same&&(function(){
+    var ae=document.activeElement;
+    return Boolean(ae&&(ae.id==='pnote'||ae.id==='dprompt'));
+  })();
   popBeat=b;
   var im=document.getElementById('popimg'), bl=document.getElementById('popblank');
   var vid=document.getElementById('popvid');
@@ -2758,10 +2772,14 @@ function openBeat(b){
   closeColors();
   // The caption opens as WORDS with a pencil beside them; the box behind it
   // carries the same text so drawPrompt() and saveNote() read it either way.
-  capEditing=false;
-  resetBig();
-  document.getElementById('pnote').value=b.text||'';
-  document.getElementById('captext').textContent=b.text||'';
+  if(!typing){
+    capEditing=false;
+    resetBig();
+    document.getElementById('pnote').value=b.text||'';
+  }
+  // The words are painted from the BOX, which mid-typing is ahead of the
+  // saved beat — what she reads must be what she just wrote.
+  document.getElementById('captext').textContent=document.getElementById('pnote').value;
   document.getElementById('coverbtn').hidden=!artOf(b);
   document.getElementById('coverbtn').classList.remove('on');
   // Every generation this beat has had — thumbnails, newest first, current
@@ -2807,8 +2825,15 @@ function openBeat(b){
   // there was nothing on screen to tell "this beat has its own prompt" from
   // "you are about to draw the caption", and Draw sent the caption). Empty
   // means FOLLOW THE CAPTION, which the hint line says out loud.
-  document.getElementById('dprompt').value=String(b.prompt||'');
-  setBoxes(true,noart);
+  if(!typing)document.getElementById('dprompt').value=String(b.prompt||'');
+  // Same rule for the folds: mid-typing keeps whichever boxes she has open
+  // (setBoxes(…,false) would also kill promEditing under her caret).
+  if(typing){
+    setBoxes(document.getElementById('caplab').getAttribute('aria-expanded')==='true',
+             document.getElementById('promlab').getAttribute('aria-expanded')==='true');
+  } else {
+    setBoxes(true,noart);
+  }
   // Drawing (or a failure) is said in its own line — never by rewriting the
   // blank tile, whose children are the buttons.
   var st=document.getElementById('genstate');
