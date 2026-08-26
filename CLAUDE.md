@@ -4710,6 +4710,72 @@ before working on that module. Nothing was deleted — the moved text is verbati
   loses the poll, not the story); ~25-40c a run on a ~10-minute transcript.
   Never called by the page — chats only, and never on a page load.
   Firestore `forge-timelines`, one doc per story.
+- **Story Link** (`storylink.js` + `storylink-plan.js`, `/api/storylink`, no
+  page yet) — **one story, three rooms.** Sophie's ask, 2026-08-26: "a way to
+  sync a story in story timeline and story room and probably cutting box"
+  (she confirmed **Cutting Blocks** for the third).
+  **IT IS WRITING DOWN A WORKFLOW SHE ALREADY HAS, and that is measured, not
+  assumed.** Read live the day it was built: **all six of her Story Timeline
+  stories already existed as a Story Room pad under the identical title**, two
+  of them also as a Cutting Blocks project ("Spellcasting" / "Spellcasting VO",
+  "PROOF — reel beats" / "PROOF — reel cut (no Nancy)") — kept in step entirely
+  by her naming them the same thing by hand, with **zero cross-linking in any
+  of the three modules**. The counts had drifted where the hand-keeping
+  slipped: "The house" is 30 moments against 11 beats.
+  - **THE SHAPE IS `audioproject.js`'s, DELIBERATELY.** She has already
+    decided once (2026-08-19) how a piece of work spans rooms: a small id
+    carrying only what should be decided ONCE, with the geometry staying
+    room-local. That judgement holds here exactly — a timeline **moment**, a
+    pad **beat** and a blocks **line** are three different atoms, and a live
+    two-way sync would mean re-ordering the timeline silently rearranges her
+    pictures. So a link stores IDENTITY, and the one operation that crosses
+    rooms is something **she taps**.
+  - **A link is one doc per STORY, not per room** (`forge-story-links`):
+    `{ id, title, members:[{room:'timeline'|'pad'|'blocks', doc, title, at}] }`.
+    Membership is append-only, deduped by room+doc. **A doc belongs to at most
+    ONE link** — linking one that is already in another is REFUSED with the
+    other link named, never silently stolen. **A room may appear twice and that
+    is not a bug** ("Charlie — as it is now" / "as it used to be" are two pads
+    of one story), which is why every write takes an EXPLICIT `to` and nothing
+    here ever guesses which pad she meant.
+  - **THE PULL ONLY EVER ADDS.** `POST /:id/pull` turns a moment with no beat
+    into an EMPTY beat at the end carrying its words (`fromMoment` on the beat
+    is the whole join — one additive field, so a pad never pulled into is
+    byte-for-byte what it was). A moment that already has a beat is **left
+    completely alone**: her caption may have moved on, and the timeline is not
+    the authority on what a picture is captioned. A beat matching nothing is
+    reported as `extra` and stays exactly where it is — the drift across her
+    rooms is usually work, not an error.
+  - **THE RE-ORDER ONLY EVER PERMUTES**, and it is a SEPARATE tap
+    (`POST /:id/order`): every beat in, every beat out, and the route refuses
+    to write if the count ever changed. **A beat she added by hand rides with
+    the linked beat above it** — a picture placed between two moments is about
+    the moment it follows, so it travels with it instead of being stranded at
+    one end.
+  - **THE DRY RUN AND THE WRITE CALL THE SAME PLANNER**, so they cannot
+    disagree about what is about to happen; `GET /:id/plan?to=` is the read.
+    The pull **re-plans inside the transaction** against what the pad holds
+    right now, never against the copy read a moment ago — otherwise a beat she
+    added in between is duplicated.
+  - **ADOPT IS DRY BY DEFAULT** (the `/wrapup/trim` and `asset-cleanup`
+    pattern) — `GET /candidates` proposes, `POST /adopt {dry:false}` writes.
+    Matching is **token JACCARD over the distinctive words**, never
+    intersection/min (sync.js's Etsy lesson, same failure shape here), with
+    room words — `vo`, `cut`, `beats`, `precise`, a `v6` tail — dropped so the
+    copies find each other while the stories stay apart. Measured against her
+    real titles: it pairs Spellcasting across all three rooms and PROOF across
+    two, and correctly refuses the false friend ("Discussion on Coincidence and
+    **Science**…" vs "Reflections on **Science** and Belief", 0.22).
+  - **CUTTING BLOCKS IS MEMBERSHIP ONLY, on purpose.** Its lines are the
+    recording's own words with real timings and a split or a meld changes
+    them, so its order cannot follow the timeline's and nothing here tries.
+    What the link buys there is the name decided once and a jump between rooms.
+  - **It costs nothing** — no model call anywhere, a few small Firestore reads
+    behind a 30s cache. `GET /for?room=&doc=` is what a room asks on open.
+  - Tests: `node scripts/test-storylink.js` (34 checks, pure — the matcher
+    against her REAL titles including the pairs that must NOT match, and the
+    two invariants: a pull never drops a beat, an order never changes the
+    count).
 - **Writing Room** (`writing.js`, `/api/writing`, `/writing`, iOS tile) — every
   dating-book date in two versions ("Claude's" and "Mine") with every changed word
   marked red, autoscroll, and per-paragraph notes (text or voice memo). **Notes are
