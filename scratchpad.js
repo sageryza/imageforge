@@ -34,6 +34,9 @@
 //                          text hash at scratchpad/tts/<hash>.mp3)
 //   GET  /inbox          → { items:[{url, runId, i, prompt, model, engine,
 //                          quality, at}] } — hearted Playground images, newest first
+//   POST /inbox/hide     → { url, hide? } — take one picture OUT of this
+//                          story's add sheet (hide:false puts it back). It
+//                          HIDES, never deletes — see the route.
 //   POST /add            → { url, at?, src? } — insert a beat at index `at`
 //                          (default: the end); returns { beats }
 //   POST /color          → { id, color } — set a beat's frame color
@@ -301,6 +304,11 @@ async function readPad(padId) {
     // Photos and movies she added straight off her phone (POST /upload) —
     // they ride the add sheet beside the inbox, waiting to be placed.
     uploads: Array.isArray(v.uploads) ? v.uploads : [],
+    // Pictures she has taken OUT of this story's inbox (POST /inbox/hide).
+    // HIDDEN, never deleted — the house verb everywhere else in this repo:
+    // the picture stays in Storage, a Playground heart stays hearted, and
+    // the same route puts it back. See /inbox/hide below.
+    inboxHidden: Array.isArray(v.inboxHidden) ? v.inboxHidden : [],
     // "About this story" — what Sophie said about it, in her own words
     // (verbatim, written by a chat; never paraphrased). When what she said
     // is a recording, descriptionAudio carries it instead of text; voiceover
@@ -733,12 +741,21 @@ router.get('/inbox', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
     const padData = await readPad(padIdOf(req));
+    // Anything she has taken out of the inbox is filtered on the way OUT, so
+    // one rule covers all three kinds of item — a story's own gathered art, a
+    // phone upload, and a Playground heart this story never owned.
+    const gone = new Set(padData.inboxHidden);
     // Her phone uploads ride along whichever inbox this story shows — the
     // add sheet draws them at the top, waiting to be placed.
-    const uploads = padData.uploads;
+    const uploads = padData.uploads.filter((u) => u && !gone.has(u.url));
+    // The SOURCE is decided by the unfiltered list: a story that gathered its
+    // own art keeps showing its own art even once she has taken every picture
+    // out of it — falling back to the Playground hearts there would answer an
+    // emptied inbox with a stranger's pictures.
     const own = padData.inbox;
     if (own && own.length) {
-      return res.json({ count: own.length, items: own, source: 'story', uploads });
+      const left = own.filter((x) => x && !gone.has(x.url));
+      return res.json({ count: left.length, items: left, source: 'story', uploads });
     }
     const q = await db().collection(PROMPTLAB)
       .orderBy('createdAt', 'desc').limit(300).get();
@@ -747,7 +764,7 @@ router.get('/inbox', async (req, res) => {
       const d = s.data();
       const votes = d.votes || {};
       (d.images || []).forEach((url, i) => {
-        if (votes[i] !== 'like' || !url) return;
+        if (votes[i] !== 'like' || !url || gone.has(url)) return;
         items.push({
           url, runId: s.id, i,
           prompt: d.prompt || null, model: d.model || null,
@@ -757,6 +774,39 @@ router.get('/inbox', async (req, res) => {
       });
     });
     res.json({ count: items.length, items, source: 'playground', uploads });
+  } catch (e) { fail(res, e); }
+});
+
+// Take a picture OUT of this story's inbox — or put it back (`hide:false`).
+// Sophie, Aug 2026: "a way to delete certain items from the inbox".
+//
+// It HIDES rather than deletes, for the reason the clip shelf has no delete
+// route either: the three kinds of item in that grid belong to three
+// different places, and only one of them is the story's to destroy. A
+// Playground heart lives on its run doc, so un-hearting it here would reach
+// back into the Playground and change what she sees THERE; an upload's bytes
+// are the Dump's, content-addressed and possibly shared with an assembly. So
+// the removal is recorded on the STORY — the one thing this route owns — as a
+// url on `inboxHidden`, and every read filters against it. The picture is
+// untouched wherever it really lives, and the same route is the undo.
+//
+// NO updatedAt bump, like /upload and /category: what is waiting in the add
+// sheet is not on the timeline, so taking one out must not stale the film.
+router.post('/inbox/hide', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const url = String(req.body.url || '').trim();
+    if (!/^https?:\/\//.test(url)) return res.status(400).json({ error: 'url must be http(s)' });
+    const hide = req.body.hide !== false;
+    const hidden = await db().runTransaction(async (tx) => {
+      const snap = await tx.get(padRef(pid));
+      const cur = (snap.exists && Array.isArray(snap.data().inboxHidden)) ? snap.data().inboxHidden : [];
+      const next = cur.filter((x) => x !== url);
+      if (hide) next.push(url);
+      tx.set(padRef(pid), { inboxHidden: next }, { merge: true });
+      return next;
+    });
+    res.json({ ok: true, pad: pid, url, hidden: hide, count: hidden.length });
   } catch (e) { fail(res, e); }
 });
 

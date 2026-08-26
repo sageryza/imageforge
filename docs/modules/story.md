@@ -440,8 +440,39 @@ All 12 NDE-category stories were linked to their montage episodes on
 - Data: one doc PER STORY in `forge-scratchpad` (deckfactory) — `{ beats:[{id, url,
   color, src:{runId,i,prompt,model,engine,quality}, addedAt}] }`; `src` is
   carried so the later regenerate knows how each image was made. Routes:
-  `GET /` (pad), `GET /inbox`, `POST /add {url, at?, src?}`,
+  `GET /` (pad), `GET /inbox`, `POST /inbox/hide {url, hide?}`,
+  `POST /add {url, at?, src?}`,
   `POST /color {id, color|null}`. STUDIO_TOKEN gate, only `/status` open.
+- **TAKING ONE OUT OF THE INBOX — it HIDES, it does not delete (2026-08-26,
+  Sophie: "can you make a way to delete certain items from the inbox in story
+  room?").** A small ✕ in each tile's top corner, on every tile because a
+  phone has no hover; an undo line under the grid for the visit's removals.
+  - **Hidden and not deleted, for a structural reason and not squeamishness:**
+    the three kinds of item in that grid belong to three different places and
+    only one of them is the story's to destroy. A **Playground heart** lives on
+    its run doc, so un-hearting it here would reach back and change what she
+    sees in the PLAYGROUND; an **upload's** bytes are the Dump's,
+    content-addressed and possibly shared with an assembly; only a story's own
+    gathered `inbox` entry is local. So the removal is recorded on the STORY —
+    the one thing the route owns — as a url on `inboxHidden`, and every read
+    filters against it. Same verb the clip shelf uses (`clips.js` has
+    deliberately no delete route).
+  - **The ✕ is a `<span>`, never a nested `<button>`** — the tile IS a button
+    whose whole job is placing the picture, so a mark that let the tap bubble
+    would remove a picture and start placing it in one gesture. Rounded square
+    at the house 6px, never a circle.
+  - **The SOURCE is decided by the unfiltered list.** A story that gathered its
+    own art keeps showing its own art even once she has taken every picture out
+    of it — falling back to the Playground hearts on an emptied inbox would
+    answer with a stranger's pictures.
+  - **No `updatedAt` bump**, like `/upload` and `/category`: what waits in the
+    add sheet is not on the timeline, so taking one out must not stale the film.
+  - The undo line is per VISIT (a removal from last time is already gone from
+    what the server sends). The route is the recovery path after that —
+    `{hide:false}` for the url.
+  - Test: `node scripts/test-scratchpad-inbox-remove.js` (the real page,
+    headless — the tap asked with `elementFromPoint` at the mark's own centre,
+    which is the only honest way to ask what a tap reaches).
 
 ## Story Room (forge-story) — THE story surface (merged July 2026)
 - **Making art for the "Evan" story? Read `docs/evan-film-style.md` FIRST.**
