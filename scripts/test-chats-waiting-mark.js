@@ -14,7 +14,7 @@
 //      carrying nothing does not,
 //   2. the OTHER rule word (`to be reviewed`) draws no mark — the mark is
 //      about a debt, not about any tag with a rule behind it,
-//   3. the glyph is the HOURGLASS: stroked, not filled, and not the star, the
+//   3. the glyph is the WRISTWATCH: stroked, not filled, and not the star, the
 //      bookmark or the bell it shares a row and a colour with,
 //   4. it is the marks' red (--chg), the colour the star and the bookmark
 //      already wear,
@@ -108,19 +108,27 @@ const RED = /rgb\(179,\s*68,\s*63\)/;
   } else ok();
 
   // ── 3. the glyph ─────────────────────────────────────────────────────────
-  // An hourglass: two horizontal rails (y=2 and y=22) and the two pinched
-  // triangles between them. Checked by its own path data rather than by
-  // eyeballing, because a wrong-but-valid glyph renders perfectly.
-  const svg = await page.$eval(row('owed') + ' .cr-wait svg', (n) => ({
-    fill: n.getAttribute('fill'),
-    stroke: n.getAttribute('stroke'),
-    d: [].map.call(n.querySelectorAll('path'), (p) => p.getAttribute('d')).join(' '),
-  })).catch(() => ({ fill: null, stroke: null, d: '' }));
+  // A wristwatch: the dial as a <circle r=6>, the two hands, and the two strap
+  // paths above and below it. Checked by its own path data rather than by
+  // eyeballing, because a wrong-but-valid glyph renders perfectly — and this
+  // one replaced an hourglass that was perfectly valid and said the wrong
+  // thing (2026-08-24, her ask for a watch).
+  const svg = await page.$eval(row('owed') + ' .cr-wait svg', (n) => {
+    const c = n.querySelector('circle');
+    return {
+      fill: n.getAttribute('fill'),
+      stroke: n.getAttribute('stroke'),
+      dial: c ? c.getAttribute('r') : null,
+      d: [].map.call(n.querySelectorAll('path'), (p) => p.getAttribute('d')).join(' '),
+    };
+  }).catch(() => ({ fill: null, stroke: null, dial: null, d: '' }));
   if (svg.fill !== 'none' || svg.stroke !== 'currentColor') {
     fail('the mark is not a house line glyph — fill=' + svg.fill + ' stroke=' + svg.stroke);
   } else ok();
-  if (!/M5 22h14/.test(svg.d) || !/M5 2h14/.test(svg.d)) {
-    fail('the glyph is not the hourglass — no top and bottom rail in ' + svg.d);
+  if (svg.dial !== '6') fail('the glyph has no r=6 dial — not the wristwatch, saw r=' + svg.dial);
+  else ok();
+  if (!/M12 10v2\.2l1\.6 1/.test(svg.d) || !/16\.13 7\.66/.test(svg.d)) {
+    fail('the glyph is not the wristwatch — no hands and no strap in ' + svg.d);
   } else ok();
   // Not one of the marks it sits beside: the bookmark is a single filled
   // pennant path, the star is many-pointed.

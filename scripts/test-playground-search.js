@@ -29,6 +29,7 @@
  *   (headless half needs: npm install playwright --no-save)
  */
 const fs = require('fs');
+const servePublic = require('./lib/public-asset');
 const path = require('path');
 const http = require('http');
 
@@ -133,6 +134,8 @@ const OLD = { id: 'r9', prompt: 'a horse nobody has scrolled back to', engine: '
 (async () => {
   const asked = [];
   const server = http.createServer((req, res) => {
+    // Anything the page links out of public/ — /feedkit.js, /tritoggle.*, …
+    if (servePublic(req, res)) return;
     const url = new URL(req.url, 'http://x');
     if (url.pathname === '/api/promptlab') {
       const q = (url.searchParams.get('q') || '').trim();

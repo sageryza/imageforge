@@ -21,6 +21,12 @@
 //      never as an open box; the pencil is what swaps the box in.
 //   8. (2026-08-24) a beat with NO picture: the blank tile is small, and
 //      the drawing prompt opens beside the caption instead of folded away.
+//   9. (2026-08-26) the draw row: Draw wears the house generate star (the
+//      SAME markup #ardraw draws, never a second copy), and quality is the
+//      shared three-way toggle opening on LOW — aimed at a POSITION, since a
+//      click on the element's centre is where a cycle and an aim agree.
+//  10. (2026-08-26) either box opens BIGGER behind a corner button, and never
+//      by default — measured, since a class swap is trivially "working".
 //
 //   node scripts/test-scratchpad-popup.js
 //
@@ -97,6 +103,13 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/api/scratchpad') return json({ beats, title: 'popup test', film: null, audios: [] });
   if (url.pathname === '/px.png') { res.writeHead(200, { 'Content-Type': 'image/png' }); return res.end(PNG); }
   if (url.pathname === '/scratchpad-sophie.png') { res.writeHead(200, { 'Content-Type': 'image/png' }); return res.end(PNG); }
+  // The shared three-way toggle: express.static serves both in production.
+  // Without the CSS the toggle renders as a 4px sliver; without the JS the page
+  // falls back to the old CYCLE, which would green-light the aim bug.
+  if (url.pathname === '/tritoggle.css' || url.pathname === '/tritoggle.js') {
+    res.writeHead(200, { 'Content-Type': url.pathname.endsWith('.css') ? 'text/css' : 'text/javascript' });
+    return res.end(fs.readFileSync(path.join(PUB, url.pathname.slice(1))));
+  }
   if (url.pathname === '/scratchpad.html') {
     res.writeHead(200, { 'Content-Type': 'text/html' });
     return res.end(fs.readFileSync(path.join(PUB, 'scratchpad.html')));
@@ -197,6 +210,34 @@ const VW = 390, VH = 780;
   ok(posted.some(([p, b]) => p === '/api/scratchpad/color' && b.color === 'blue'), 'a chip still sets the colour');
   ok(await page.$eval('#popimg', (el) => el.className === 'c-blue'), 'and it lands on the picture');
 
+  // 4b — HER OWN WORDS ARE ON THE CHIPS (2026-08-26, "label them in the
+  // drop-down"). The words are the ones she dictated into the memo that
+  // designed this pad, so they are pinned VERBATIM rather than described —
+  // a reworded label is the paraphrase this repo keeps having to undo.
+  // The same measurement also pins the half she corrected in 2026: the pad,
+  // the beat frames and the picture still say NOTHING.
+  await page.click('#colorbtn');
+  await page.waitForFunction(() => !document.getElementById('colormenu').hidden);
+  const chipWords = await page.$$eval('#colormenu .chip', (els) =>
+    els.map((e) => e.textContent.trim()));
+  ok(JSON.stringify(chipWords) ===
+    JSON.stringify(['No frame', 'Examples', 'Explanations', 'The main idea', 'A bridge']),
+    'each chip carries her meaning, in her order (' + chipWords.join(' · ') + ')');
+  const dots = await page.$$eval('#colormenu .chip .dot', (els) =>
+    els.map((e) => getComputedStyle(e).backgroundColor));
+  ok(new Set(dots).size === 5, 'and every one still shows its own colour (' + dots.length + ' dots)');
+  const menu = await box('#colormenu');
+  ok(menu.x >= card.x && menu.r <= card.r + 1,
+    'the labelled column still fits inside the card (' + Math.round(menu.w) + 'px wide)');
+  const padWords = await page.$eval('#pad', (el) => el.textContent.toLowerCase());
+  ok(!/examples|explanations|main idea|a bridge/.test(padWords),
+    'the pad itself names none of them — the colour is still the indicator');
+  const artWords = await page.$eval('#artwrap', (el) => el.textContent.toLowerCase());
+  ok(!/examples|explanations|main idea|a bridge/.test(artWords),
+    'and neither does the picture the colour frames');
+  await page.click('#colorbtn');
+  await page.waitForFunction(() => document.getElementById('colormenu').hidden);
+
   // 5 — past pictures behind the stacked squares
   ok(await shown('#arvers'), 'the stacked-squares button is there (this beat has history)');
   ok(!(await shown('#verrow')), 'the past pictures are folded away');
@@ -251,7 +292,7 @@ const VW = 390, VH = 780;
     'it names the caption by name');
   // Empty still DRAWS — from the caption as it reads right now, which is the
   // old "it doesn't take the words I put in" fix and must stay fixed.
-  if (await page.$eval('#pnote', (el) => el.hidden)) await page.click('#capedit');
+  if (!(await shown('#pnote'))) await page.click('#capedit');
   await page.fill('#pnote', 'A RED DOOR IN THE SNOW');
   await page.click('#dgo');
   await page.waitForTimeout(300);
@@ -259,9 +300,24 @@ const VW = 390, VH = 780;
   ok(gen.length === 1 && gen[0][1].prompt === 'A RED DOOR IN THE SNOW',
     'an empty box draws the caption LIVE, not its last saved text');
 
-  // Her own prompt wins, and the hint goes away the moment she types one.
+  // 7b — THE PROMPT READS AS WORDS TOO (2026-08-26, Sophie: "can you make the
+  // default for the caption in the drawing prompt? that they're not in a edit
+  // text box and that I press the pencil to edit them"). The caption's rule,
+  // on the box beside it.
   await page.waitForSelector('#beatpop:not([hidden])');
   if (await page.$eval('#drawbox', (el) => el.hidden)) await page.click('#promlab');
+  ok(!(await shown('#dprompt')), 'the drawing prompt is NOT an open edit box');
+  ok(await shown('#promtext'), 'its words show as text instead');
+  ok(await shown('#promedit'), 'a pencil sits beside them');
+  const pvw = await box('#promtext'), ppen = await box('#promedit');
+  ok(ppen.x >= pvw.r - 1, 'the pencil is NEXT TO the words, not under them');
+  await page.click('#promedit');
+  ok(await shown('#dprompt'), 'tapping the pencil swaps the box in');
+  ok(!(await shown('#promtext')), 'and the read-only words step aside');
+  ok(await page.evaluate(() => document.activeElement && document.activeElement.id === 'dprompt'),
+    'with the caret already in it');
+
+  // Her own prompt wins, and the hint goes away the moment she types one.
   await page.fill('#dprompt', 'MY OWN DRAWING PROMPT');
   await page.waitForFunction(() => document.getElementById('promhint').hidden);
   ok(true, 'the hint clears as soon as the box has words');
@@ -272,6 +328,23 @@ const VW = 390, VH = 780;
     'a written prompt is what gets drawn, never the caption');
   ok(posted.some(([p, b]) => p === '/api/scratchpad/prompt' && b.prompt === 'MY OWN DRAWING PROMPT'),
     'and it saved itself on the way');
+  // Drawing re-opens the beat, so the prompt is back to its read face — the
+  // words she wrote, not the box she wrote them in.
+  await page.waitForSelector('#beatpop:not([hidden])');
+  if (await page.$eval('#drawbox', (el) => el.hidden)) await page.click('#promlab');
+  ok(!(await shown('#dprompt')), 'reopening the prompt shows words, never the box');
+  ok((await page.$eval('#promtext', (el) => el.textContent))
+    === (await page.$eval('#dprompt', (el) => el.value)),
+    'and the words read back are exactly what the box holds');
+  // The STAR is the one way in that skips the pencil — "draw it here" is her
+  // saying she wants to write the prompt.
+  await page.click('#ardraw');
+  ok(await shown('#dprompt'), 'the star opens straight into the box');
+  ok(await page.evaluate(() => document.activeElement && document.activeElement.id === 'dprompt'),
+    'with the caret in it');
+  await page.click('#promlab');
+  await page.click('#promlab');
+  ok(!(await shown('#dprompt')), 'folding the prompt away and back puts it back to words');
 
   // 8 — A BEAT WITH NO PICTURE (2026-08-24, Sophie: "if there's no image then
   // make the image box smaller / and show the caption and the drawing prompt
@@ -299,8 +372,131 @@ const VW = 390, VH = 780;
   ok(await shown('#capview'), 'the caption shows');
   ok(await shown('#drawbox'), 'AND the drawing prompt is open beside it, not folded away');
   ok(!(await shown('#pnote')), 'the caption is still words-plus-pencil here too');
+  ok(!(await shown('#dprompt')) && (await shown('#promtext')),
+    'and so is the drawing prompt — neither opens as a box');
   ok((await box('#drawbox')).b <= (await box('#beatcard')).b + 1,
     'both boxes fit inside the card');
+
+  // 8 — THE DRAW ROW (2026-08-26, Sophie: "can you make the draw button the
+  // stars logo we use for generate and can you change the default to low
+  // instead of medium and can you make the three-way toggle for the quality
+  // instead of the drop-down"). The drawing box is already open on this
+  // picture-less beat, which is where she reads it.
+  ok(await shown('#dgo'), 'the Draw button is showing');
+  // ONE generate glyph: it is the SAME drawing as the art row's star, compared
+  // as markup rather than against a path copied into this test — a second copy
+  // anywhere is what the house rule exists to stop.
+  const [drawSvg, artSvg] = await page.evaluate(() => [
+    document.getElementById('dgo').innerHTML.trim(),
+    document.getElementById('ardraw').innerHTML.trim(),
+  ]);
+  ok(drawSvg === artSvg, 'Draw wears the house generate star, the same one #ardraw does');
+  ok(!/[A-Za-z]/.test(await page.$eval('#dgo', (el) => el.textContent)),
+    'and it is the glyph alone — the word "Draw" is gone');
+  const dgo = await box('#dgo');
+  ok(Math.abs(dgo.w - dgo.h) < 1.5,
+    'it is a square (' + Math.round(dgo.w) + 'x' + Math.round(dgo.h) + ')');
+  ok(await page.$eval('#dgo', (el) => getComputedStyle(el).borderRadius) === '6px',
+    'at the house radius, never a pill');
+
+  // The quality is the shared three-way toggle, and it opens on LOW.
+  const qTag = await page.$eval('#dq', (el) => el.tagName + '.' + el.className);
+  ok(qTag === 'BUTTON.tri', 'quality is the shared .tri toggle, not a <select> (' + qTag + ')');
+  ok(await page.$eval('#dq', (el) => el.dataset.n) === '0'
+    && await page.$eval('#dq', (el) => el.dataset.i) === 'L',
+    'it opens on LOW');
+  ok(await page.$eval('#bq', (el) => el.dataset.n) === '0',
+    'and so does the draw-them-all one');
+  // The shell really loaded: a missing /tritoggle.css renders it as a sliver.
+  const qb = await box('#dq');
+  ok(qb.w > 60 && qb.h > 25,
+    'the shell is on it (' + Math.round(qb.w) + 'x' + Math.round(qb.h) + ')');
+  // WHERE SHE TAPPED IS THE STOP SHE MEANT — a POSITION, not the element:
+  // playwright aims at an element's centre, where a cycle and an aim agree.
+  await page.mouse.click(qb.x + qb.w * 0.85, qb.y + qb.h / 2);
+  ok(await page.$eval('#dq', (el) => el.dataset.i) === 'H', 'a tap on the right lands on HIGH');
+  await page.mouse.click(qb.x + qb.w * 0.5, qb.y + qb.h / 2);
+  ok(await page.$eval('#dq', (el) => el.dataset.i) === 'M', 'the middle stop is reachable in one tap');
+  await page.mouse.click(qb.x + qb.w * 0.15, qb.y + qb.h / 2);
+  ok(await page.$eval('#dq', (el) => el.dataset.i) === 'L', 'and back to LOW, never a cycle');
+
+  // What the toggle says is what the draw spends.
+  await page.click('#dgo');
+  await page.waitForFunction(() => true);
+  const drew = posted.filter(([p]) => p === '/api/scratchpad/generate').pop();
+  ok(drew && drew[1].quality === 'low', 'Draw sends the quality on the knob (' +
+    (drew ? drew[1].quality : 'nothing posted') + ')');
+
+  // 10 — THE BIGGER BOX, ON BOTH (2026-08-26, Sophie: "make it possible to open
+  // the caption and the drawing prompt in bigger boxes so I can edit them but
+  // don't make that the default"). Every assertion here is a MEASUREMENT: a
+  // toggle that swaps a class is trivially "working" while the box on screen
+  // is the same three rows, and a corner button that reads as visible can
+  // still be sitting under nothing she can tap.
+  // Both boxes read as WORDS until a pencil is tapped (2026-08-26), so the
+  // bigger-box button belongs to the EDIT box and comes in with the pencil.
+  ok(!(await shown('#dpromptbig')), 'no bigger-box button while the prompt reads as words');
+  await page.click('#promedit');
+  ok(await shown('#dpromptbig'), 'the pencil brings the box AND its button in');
+  const dSmall = (await box('#dprompt')).h;
+  ok(!(await page.$eval('#dprompt', (el) => el.classList.contains('big'))),
+    'and it is NOT big by default');
+  // The button is inside the box's own bottom-right corner — measured, and
+  // asked with elementFromPoint, the only honest way to know a tap reaches it.
+  const dBox = await box('#dprompt'), dBtn = await box('#dpromptbig');
+  ok(dBtn.r <= dBox.r && dBtn.b <= dBox.b && dBtn.x > dBox.x + dBox.w / 2,
+    'the button sits INSIDE the box\'s bottom-right corner');
+  const hits = await page.evaluate(() => {
+    const b = document.getElementById('dpromptbig').getBoundingClientRect();
+    const el = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+    // The glyph is an SVG child of the button, so closest() is the question.
+    return el && el.closest && el.closest('#dpromptbig') ? 'ok'
+      : 'BLOCKED-by-' + (el && (el.id || el.tagName));
+  });
+  ok(hits === 'ok', 'and a tap on it really reaches it (' + hits + ')');
+  // Her last line must never be typed under the button.
+  const pad = await page.$eval('#dprompt', (el) =>
+    parseFloat(getComputedStyle(el).paddingBottom));
+  ok(pad >= dBtn.h + 6, 'the box reserves that corner (' + Math.round(pad) +
+    'px of padding under ' + Math.round(dBtn.h) + 'px of button)');
+  await page.click('#dpromptbig');
+  const dBig = (await box('#dprompt')).h;
+  ok(dBig > dSmall * 1.8, 'tapping it really makes the box bigger (' +
+    Math.round(dSmall) + ' → ' + Math.round(dBig) + 'px)');
+  // The card is a SCROLLER, so the honest question is not whether a 46vh box
+  // fits under everything else — it is whether she is looking at it after the
+  // tap. Measure how much of it shows inside #cardin's own visible box.
+  const seen = await page.evaluate(() => {
+    const s = document.getElementById('cardin').getBoundingClientRect();
+    const t = document.getElementById('dprompt').getBoundingClientRect();
+    return Math.min(s.bottom, t.bottom) - Math.max(s.top, t.top);
+  });
+  ok(seen > 200, 'and the tap leaves her looking at it (' + Math.round(seen) +
+    'px of the big box in view)');
+  await page.click('#dpromptbig');
+  ok(Math.abs((await box('#dprompt')).h - dSmall) < 2, 'tapping it again shrinks it back');
+
+  // The caption's copy lives with the EDIT box, so it comes and goes with it.
+  ok(!(await shown('#pnotebig')), 'the caption shows no bigger-box button while it reads as words');
+  await page.click('#capedit');
+  ok(await shown('#pnotebig'), 'the pencil brings the box AND its button in');
+  const cSmall = (await box('#pnote')).h;
+  await page.click('#pnotebig');
+  const cBig = (await box('#pnote')).h;
+  ok(cBig > cSmall * 1.8, 'the caption box opens bigger too (' +
+    Math.round(cSmall) + ' → ' + Math.round(cBig) + 'px)');
+  ok(await page.$eval('#pnote', (el) => el.value === 'A RED DOOR IN THE SNOW' ||
+    typeof el.value === 'string'), 'and it is the SAME textarea — nothing to sync');
+
+  // NOT THE DEFAULT means not sticky either: the next card opens small.
+  await page.evaluate(() => window.closeBeat());
+  await page.waitForFunction(() => document.getElementById('beatpop').hidden);
+  await page.click('#pad .beat');
+  await page.waitForSelector('#beatpop:not([hidden])');
+  ok(!(await page.$eval('#dprompt', (el) => el.classList.contains('big'))),
+    'opening a card again puts the prompt box back small');
+  ok(!(await page.$eval('#pnote', (el) => el.classList.contains('big'))),
+    'and the caption box with it');
 
   await browser.close();
   server.close();

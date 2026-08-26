@@ -20,6 +20,7 @@
  *   (the page half needs: npm install playwright --no-save)
  */
 const fs = require('fs');
+const servePublic = require('./lib/public-asset');
 const path = require('path');
 const http = require('http');
 
@@ -37,10 +38,21 @@ console.log('the source carries both fixes');
 ok(/function thumbFor\(/.test(pageSrc), 'promptlab has thumbFor');
 ok((pageSrc.match(/thumbFor\(u\)/g) || []).length >= 2,
   'both the list cells and the tile wall go through it');
-ok(/\/api\/story\/thumb\?w=/.test(pageSrc), 'and it points at the house thumb service');
+// BOTH FIXES LIVE IN /feedkit.js SINCE 2026-08-26 — one copy, shared with
+// /panels, because Sophie asked for the Playground's feed in that tool too
+// ("you can just reuse the code since it should be basically the same") and a
+// second hand-copy of the reconcile is exactly how the flashing comes back.
+// So the page is pinned to USING them and the kit to HAVING them; a page that
+// went back to its own copy fails the last check here.
+const kitSrc = fs.readFileSync(path.join(ROOT, 'public', 'feedkit.js'), 'utf8');
+ok(/\/api\/story\/thumb\?w=/.test(kitSrc), 'and it points at the house thumb service');
 ok(!/innerHTML = groups\.map/.test(pageSrc.slice(pageSrc.indexOf('function renderFeed'))),
   'renderFeed no longer rebuilds the whole feed as one innerHTML');
-ok(/function syncChildren\(/.test(pageSrc), 'repaints reconcile (syncChildren)');
+ok(/function syncChildren\(/.test(kitSrc) && /FeedKit\.syncChildren/.test(pageSrc),
+  'repaints reconcile (the shared syncChildren)');
+ok(/<script src="\/feedkit\.js">/.test(pageSrc)
+  && /<script src="\/feedkit\.js">/.test(fs.readFileSync(path.join(ROOT, 'public', 'panels.html'), 'utf8')),
+  'and both feeds link the one kit, so neither can drift');
 ok(/function thumbFor\(/.test(gallerySrc) && /thumbFor\(img\.url\)/.test(gallerySrc),
   '/gallery tiles load the derived copy too');
 ok(/openLightbox\('\$\{img\.url\}'\)/.test(gallerySrc),
@@ -68,6 +80,8 @@ const RUNS = [
 
 (async () => {
   const server = http.createServer((req, res) => {
+    // Anything the page links out of public/ — /feedkit.js, /tritoggle.*, …
+    if (servePublic(req, res)) return;
     const url = new URL(req.url, 'http://x');
     if (url.pathname === '/api/promptlab') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -106,11 +120,26 @@ const RUNS = [
   ok(srcs.some((s) => s.indexOf('data:image/gif') === 0),
     'a url with no derived copy passes through untouched');
 
-  console.log('\nthe lightbox gets the original');
+  // THE THUMB IS THE FIRST FRAME, THE ORIGINAL IS THE ONE SHE LOOKS AT
+  // (2026-08-26, Sophie: "it takes quite a while to load the images in light
+  // box view"). The old contract was "the lightbox src IS the original", which
+  // meant a 1-3MB download before anything appeared. The picture she just
+  // tapped is already in the cache at 480px, so it paints in the same frame
+  // and the original swaps in behind it — but it must never STAY at 480px,
+  // and Save must never be handed the derived copy.
+  console.log('\nthe lightbox opens on the cached thumb, then the original');
   await page.click('#runs img[data-run="r1"]');
-  const lbSrc = await page.getAttribute('#lbimg', 'src');
-  ok(lbSrc === STORED, 'the opened picture is the untouched original, never the thumb');
-  await page.click('#lb'); // close
+  const firstPaint = await page.getAttribute('#lbimg', 'src');
+  ok(firstPaint.indexOf('/api/story/thumb?w=480&url=') === 0,
+    'the first frame is the thumb the wall had already loaded');
+  ok(await page.evaluate(() => lbSrc) === STORED,
+    'Save and the app bridge still get the untouched original');
+  await page.waitForFunction(
+    () => document.getElementById('lbimg').getAttribute('src').indexOf('/api/story/thumb') !== 0);
+  const settled = await page.getAttribute('#lbimg', 'src');
+  ok(settled === STORED || settled.indexOf('blob:') === 0,
+    'and it settles on the original rather than staying at 480px');
+  await page.click('#lbback'); // the way out she asked for
 
   console.log('\na repaint keeps the pictures\' ELEMENTS — the flash test');
   // Mark every live <img>; anything rebuilt loses the mark.

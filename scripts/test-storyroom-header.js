@@ -66,10 +66,10 @@ function ok(name, cond, extra) {
 /* The pad the page loads, and the shelf behind the door. Enough shape for the
    header to draw; the beats themselves are not what this test is about. */
 const PADS = { pads: [
-  { id: 'a', title: 'Evan', beats: 12, category: 'personal', cover: '' },
-  { id: 'b', title: 'Moon milk', beats: 8, category: 'personal', cover: '' },
+  { id: 'a', title: 'Evan', beats: 12, category: null, cover: '' },
+  { id: 'b', title: 'Moon milk', beats: 8, category: null, cover: '' },
 ]};
-const PAD = { pad: { id: 'a', title: 'Evan', beats: [], category: 'personal' } };
+const PAD = { pad: { id: 'a', title: 'Evan', beats: [], category: null } };
 
 /* Serve public/ the way serveGated does — the page PLUS the pagehead.js tag
    the server appends to every gated page. Reading the real files is the
@@ -298,6 +298,73 @@ const HEADS = [
     ok('web: tapping it returns to the shelf', await pg.isVisible('#stories'));
     ok('web: and it stands down once she is there',
       !(await pg.isVisible('#shelfback')));
+    await ctx.close();
+  }
+
+  // ── THE TOP STAYS PUT, AND THE NAME HAS A LINE TO ITSELF ───────────────
+  // 2026-08-26, Sophie: "header layout sucks. back button not sticky. title
+  // too crowded." Both halves are MEASUREMENTS, because both looked fine in
+  // markup: only `.titlerow` was sticky, so the row carrying the way out
+  // scrolled off a long story; and the name shared its line with six 34px
+  // buttons, which at 390pt left it about 2px and wrapped it one LETTER to a
+  // line — a tall column down the left of her screenshot.
+  console.log('the top stays put, and the name has a line to itself');
+  for (const state of ['web', 'new']) {
+    const { ctx, pg } = await open(state);
+    await pg.waitForSelector('.stile');
+    await pg.click('.stile');
+    await pg.waitForTimeout(400);
+    await pg.evaluate(() => {
+      const t = document.getElementById('title');
+      t.textContent = 'Evan — the shape';
+      t.classList.remove('blank');
+      // every button, including the ones a bare story hides
+      document.querySelectorAll('.iconrow .iconbtn').forEach(b => { b.hidden = false; });
+    });
+    await pg.waitForTimeout(200);
+
+    // the name is alone on its row and takes the width — never a narrow column
+    const name = await pg.$eval('#title', el => {
+      const r = el.getBoundingClientRect();
+      const cs = getComputedStyle(el);
+      return { w: Math.round(r.width), h: Math.round(r.height),
+        line: parseFloat(cs.lineHeight) || 0 };
+    });
+    ok(state + ': the name has the row to itself', name.w > 240, 'width ' + name.w);
+    ok(state + ': and it is not wrapped into a column',
+      name.line > 0 && name.h < name.line * 2.5, 'height ' + name.h);
+
+    // the six buttons still share ONE line, clear of the pill's 56px column
+    const btns = await pg.$$eval('.iconrow .iconbtn', els => els
+      .filter(e => e.offsetParent)
+      .map(e => { const r = e.getBoundingClientRect();
+        return { top: Math.round(r.top), right: Math.round(r.right) }; }));
+    // NOTHING COUNTS THE BUTTONS (2026-08-26 — two of them became one when
+    // the description and the recordings moved behind a single button, and a
+    // hardcoded 6 here is exactly the edit that claim exists to prevent). The
+    // question is whether however many the page has share a line.
+    ok(state + ': every button is on one line',
+      btns.length > 1 && new Set(btns.map(b => b.top)).size === 1,
+      btns.length + ' buttons, ' + new Set(btns.map(b => b.top)).size + ' rows');
+    ok(state + ': and none of them reaches the pill\'s column',
+      Math.max(...btns.map(b => b.right)) <= 326,
+      'right ' + Math.max(...btns.map(b => b.right)));
+
+    // ...and the way out is still on screen a long way down the story
+    await pg.evaluate(() => window.scrollTo(0, 900));
+    await pg.waitForTimeout(300);
+    const id = state === 'web' ? 'shelfback' : 'forgeback';
+    const back = await pg.$eval('#' + id, el => {
+      const r = el.getBoundingClientRect();
+      // elementFromPoint is the only honest question: a sticky row can be on
+      // screen and still be under the beats it is meant to sit over.
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      const btn = hit && hit.closest('button');
+      return { top: Math.round(r.top), reaches: btn ? btn.id : (hit && hit.tagName) };
+    });
+    ok(state + ': the back chevron is still on screen after scrolling',
+      back.top >= 0 && back.top < 60, 'top ' + back.top);
+    ok(state + ': and a tap there reaches it', back.reaches === id, back.reaches);
     await ctx.close();
   }
 

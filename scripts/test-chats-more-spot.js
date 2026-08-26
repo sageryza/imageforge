@@ -14,7 +14,11 @@
 //      registry doc,
 //   2. it is really TAPPABLE (asked with elementFromPoint — "visible" is not
 //      the question when an injected pill owns a corner),
-//   3. a chat with no url on file draws NO button — never an invented one,
+//   2b. the case she ACTUALLY hit: no url, only a `sessionId` — a url only
+//      ever arrives ON A MESSAGE, so the chats whose thread is empty are
+//      exactly the chats with no url (19 of 19, measured live 2026-08-25).
+//      The door is DERIVED from the session id, cross-account rule included,
+//   3. a chat with nothing to link to at all draws NO button,
 //   4. a thread that HAS messages is untouched: no second door in an empty
 //      state it does not have, and its message rows keep their own.
 //
@@ -54,10 +58,17 @@ CHATS['old-talky'] = { lastSeen: iso(T0 - 9 * DAY), url: 'https://claude.ai/code
 // in the registry, nothing in the feed, but the session url IS on file — the
 // exact shape she hit
 CHATS['quiet-with-url'] = { url: 'https://claude.ai/code/session_quiet' };
-// nothing in the feed and no url either — nothing to offer, so nothing shown
-CHATS['quiet-no-url'] = {};
+// THE REAL SHAPE (measured 2026-08-25): no url — because a url only ever
+// arrives on a message and this chat's hook never filed one — but a sessionId,
+// written by its status/update cards. The door has to be DERIVED.
+CHATS['quiet-sid-only'] = { sessionId: '011kWP3BDFodD9BG6VQ8Xv3y', statusDoing: 'still on it' };
+// and one on the other account, so the derived url still takes the
+// cross-account fragment openHref adds
+CHATS['quiet-sid-acct'] = { sessionId: '01Lba3abrLhhYrw88SDa5mp3', account: '2' };
+// nothing to link to AT ALL — no url, no sessionId. 10 of her 505 are this.
+CHATS['quiet-nothing'] = {};
 
-const TRUNCATED = ['quiet-with-url', 'quiet-no-url'];
+const TRUNCATED = ['quiet-with-url', 'quiet-sid-only', 'quiet-sid-acct', 'quiet-nothing'];
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
@@ -125,15 +136,53 @@ async function backHome(page) {
   });
   if (!reachable) fail('the empty thread’s Open button is on screen but cannot be tapped');
 
-  // ---- 3. no url on file → no button, never an invented one -------------
+  // ---- 2b. THE CASE SHE ACTUALLY HIT — no url, only a sessionId ---------
+  // A url only ever arrives on a message, so the chats with an empty thread
+  // are precisely the chats with no url; measured live 2026-08-25, 19 of 19
+  // empty MORE chats had none. The sessionId comes from the status/update
+  // cards instead, and the url is a pure function of it (398 of 398 chats
+  // carrying both).
   await backHome(page);
-  await page.waitForSelector('#grid .morelist .crow[data-chat="quiet-no-url"]', { timeout: 4000 })
-    .catch(() => fail('quiet-no-url never showed in the fold'));
-  await page.click('#grid .morelist .crow[data-chat="quiet-no-url"]');
+  await page.click('#grid .morelist .crow[data-chat="quiet-sid-only"]');
   await page.waitForSelector('#thread .state', { timeout: 4000 })
-    .catch(() => fail('quiet-no-url did not open on an empty state'));
+    .catch(() => fail('quiet-sid-only did not open on an empty state'));
+  const derived = await page.$eval('#thread .state .openclaude', (a) => a.getAttribute('href'))
+    .catch(() => null);
+  if (derived !== 'https://claude.ai/code/session_011kWP3BDFodD9BG6VQ8Xv3y')
+    fail('the door was not derived from the sessionId: ' + derived);
+
+  // the derivation is a url like any other, so the cross-account rule still
+  // applies to it — the chat is tagged account 2 and the app is signed into 1,
+  // which is what sends the link to the BROWSER instead of the Claude app.
+  // Composed rather than clicked: an account-2 chat is off the account-1 tab
+  // by design, so there is no row to open while the app is on 1.
+  const acctHref = await page.evaluate(() =>
+    window.__openHref('quiet-sid-acct', window.__claudeUrlFor('quiet-sid-acct', [])));
+  if (!acctHref || acctHref.indexOf('#no_universal_links') < 0)
+    fail('a derived url on the OTHER account lost the browser fragment: ' + acctHref);
+  if (acctHref.indexOf('session_01Lba3abrLhhYrw88SDa5mp3') < 0)
+    fail('the account-2 door was not derived from its sessionId: ' + acctHref);
+
+  // and it is a derivation, not a guess: the exact shape, and never doubled up
+  const pure = await page.evaluate(() => [
+    window.__claudeSessionUrl('011kWP3BDFodD9BG6VQ8Xv3y'),
+    window.__claudeSessionUrl('session_011kWP3BDFodD9BG6VQ8Xv3y'),
+    window.__claudeSessionUrl(''),
+    window.__claudeSessionUrl(null),
+  ]);
+  if (pure[0] !== 'https://claude.ai/code/session_011kWP3BDFodD9BG6VQ8Xv3y') fail('bare id built wrong: ' + pure[0]);
+  if (pure[1] !== pure[0]) fail('an id already carrying session_ was doubled up: ' + pure[1]);
+  if (pure[2] !== '' || pure[3] !== '') fail('an empty id must build no url at all: ' + JSON.stringify(pure.slice(2)));
+
+  // ---- 3. nothing to link to at all → no button, never an invented one -------------
+  await backHome(page);
+  await page.waitForSelector('#grid .morelist .crow[data-chat="quiet-nothing"]', { timeout: 4000 })
+    .catch(() => fail('quiet-nothing never showed in the fold'));
+  await page.click('#grid .morelist .crow[data-chat="quiet-nothing"]');
+  await page.waitForSelector('#thread .state', { timeout: 4000 })
+    .catch(() => fail('quiet-nothing did not open on an empty state'));
   if (await page.$('#thread .state .openclaude'))
-    fail('a chat with no session url on file was given an Open button anyway');
+    fail('a chat with nothing to link to was given an Open button anyway');
 
   // ---- 4. a thread with messages is untouched ---------------------------
   await backHome(page);

@@ -5,6 +5,11 @@
 <!-- The toggle's BEHAVIOUR is shared too since 2026-08-24 — a tap lands on the
      stop under the thumb rather than cycling. See /tritoggle.js. -->
 <script src="/tritoggle.js"></script>
+<!-- The feed's own shared pieces — the search grammar, liveInput/enterSubmits,
+     the keyed reconcile, the derived display copy and the toast. ONE copy,
+     shared with /panels (2026-08-26, Sophie: "you can just reuse the code
+     since it should be basically the same"). -->
+<script src="/feedkit.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   [hidden] { display: none !important; }
@@ -361,9 +366,35 @@
      ending where the caption starts. The zones are sized to it rather than to
      the window, so a tap "in the image area" means exactly that and the
      caption, the ♥/✕ row and the buttons under it are never covered. */
+  /* THE PICTURE SHRINKS WITH THE STAGE, OR IT PAINTS OVER THE CAPTION
+     (2026-08-26, Sophie: "the label is covered by the picture"). The stage is
+     `position:relative`, so it and the picture inside it paint ABOVE the
+     static caption below — and the picture's own `max-height:76vh` did not
+     shrink when flex squeezed the stage, so on a short viewport (the app's
+     web view, which is shorter than Safari's by its bottom bar) the bottom of
+     a portrait 2:3 sat on top of the MODEL · QUALITY · SIZE line. `min(...,
+     100%)` binds it to whatever room the stage really has; `flex:none` on the
+     caption and the buttons is what makes the stage the only thing that
+     gives, so the two lines she opens a picture to read can never be the part
+     that is squeezed away. */
+  /* THE WAY OUT, AT THE TOP (2026-08-26, Sophie: "it's a little hard to tap
+     out of them. Could you have some room at the top or something to get rid
+     of to get back to the playground"). The two step zones are 28% of the
+     width EACH and run the stage's full height, so more than half of the
+     picture area pages instead of closing — and with the chips gone
+     (2026-08-24) there is nothing on screen saying which part of the picture
+     closes. This band sits ABOVE the stage, outside both zones, so it can
+     never be one: the chevron is the house one (a small rounded box, the
+     `pagehead.js` shape) and the whole strip closes on a tap, not just the
+     glyph. */
+  .lbtop { flex: none; width: 100%; display: flex; align-items: center;
+    height: 40px; padding-top: env(safe-area-inset-top); box-sizing: content-box; }
+  .lbback { width: 34px; height: 34px; border-radius: 6px; border: 1px solid #555;
+    background: #1c1c1c; color: #ddd; display: flex; align-items: center; justify-content: center; }
+  .lbback svg { width: 20px; height: 20px; }
   .lbstage { position: relative; display: flex; align-items: center; justify-content: center;
-    width: 100%; min-height: 0; }
-  #lb img { max-width: 100%; max-height: 76vh; border-radius: 6px; }
+    width: 100%; min-height: 0; flex: 0 1 auto; }
+  #lb img { max-width: 100%; max-height: min(76vh, 100%); border-radius: 6px; }
   /* Step to the next/previous picture in the feed, in the order the view
      behind the lightbox is showing them (the heart filter included).
      IT IS THE TAP AND NOTHING ELSE — NO VISIBLE BAR (2026-08-24, Sophie: "in
@@ -387,36 +418,35 @@
      sight — the one thing she opens a picture to check (Sophie, Aug 2026:
      "when the prompt gets long i cant see the model or quality"). Only the
      prompt scrolls now; the meta line never moves. */
-  #lb .cap { margin-top: 10px; text-align: center; max-width: 560px; }
+  #lb .cap { margin-top: 10px; text-align: center; max-width: 560px; flex: none; }
   #lb .cap .capm { color: #9a938a; font-size: 12px; }
-  #lb .cap .capp { color: #eee; font-size: 13.5px; margin-top: 5px; max-height: 14vh; overflow-y: auto; }
-  .lbbtns { display: flex; gap: 22px; margin-top: 14px; }
+  #lb .cap .capp { color: #eee; font-size: 13.5px; margin-top: 5px; max-height: 14vh; overflow-y: auto;
+    white-space: pre-wrap; }
+  /* IT SAYS PROMPT, AND THE TWO HALVES ARE THE ASSETS TAB'S (2026-08-26,
+     Sophie: "can you have it say prompt and have the prompt in there instead
+     of below split into the style and the content"). CONTENT opens, per the
+     house rule — what the picture is OF is what differs picture to picture,
+     where the style half is the same wrapper across a whole batch.
+     The STYLE half is DERIVED FROM THIS RUN'S OWN `fullPrompt`, never from
+     the tile's baked prefix ("the style shouldn't be the default it should
+     actually look at what it was that time since I can change it") — she can
+     edit either half in the Prompt panel, and a run made before or after an
+     edit has to show the text that really wrapped her words that time.
+     No style half on file → no STYLE button, the same silence the Assets
+     overlay keeps for a picture with no prompt. */
+  #lb .caphd { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 9px; }
+  #lb .caphd[hidden] { display: none; }
+  #lb .capttl { color: #9a938a; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+  .capseg { display: flex; border: 1px solid #555; border-radius: 6px; overflow: hidden; }
+  .capseg button { border: 0; background: #1c1c1c; color: #bbb; font: inherit; font-size: 12px; padding: 3px 10px; }
+  .capseg button + button { border-left: 1px solid #555; }
+  .capseg button.on { background: #eee; color: #1c1c1c; }
+  .capseg button[hidden] { display: none; }
+  .lbbtns { display: flex; gap: 22px; margin-top: 14px; flex: none; }
   .lbbtn { width: 46px; height: 46px; border-radius: 50%; border: 1.5px solid #555; background: #1c1c1c; color: #ddd; display: flex; align-items: center; justify-content: center; }
   .lbbtn svg { width: 21px; height: 21px; }
   .lbbtn.like.on { background: #c25a72; border-color: #c25a72; color: #fff; }
   .lbbtn.dislike.on { background: #9a938a; border-color: #9a938a; color: #fff; }
-  /* SEND TO THE STORY ROOM (Aug 2026, Sophie: "a send to story room share
-     icon button in the playground next to the other four buttons where I can
-     pick a story and either put it in the inbox of that story or put in a
-     specific beat that exists or make a new beat"). A sheet over the
-     lightbox, two steps: the shelf of stories, then that story's doors —
-     the inbox, a new beat, or one of its existing beats. */
-  #storysheet { display: none; position: fixed; inset: 0; background: rgba(20,18,16,.55); z-index: 62; align-items: flex-end; justify-content: center; }
-  #storysheet.on { display: flex; }
-  .storybox { background: #faf7f2; border: 1px solid #e3dcd1; border-radius: 6px 6px 0 0; width: 100%; max-width: 430px; max-height: 72vh; display: flex; flex-direction: column; padding: 14px 14px calc(12px + env(safe-area-inset-bottom)); }
-  .sshead { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-  .sshead .ssname { font-size: 14.5px; font-weight: 600; color: #2b2622; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  #ssback { flex: none; width: 28px; height: 28px; border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #2b2622; font-size: 17px; line-height: 1; }
-  #ssbody { overflow-y: auto; min-height: 0; }
-  .ssquiet { font-size: 12.5px; color: #8a8177; padding: 6px 2px; }
-  .ssrow { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #2b2622; font: inherit; font-size: 13.5px; padding: 7px 9px; margin-bottom: 7px; }
-  .ssrow .thumb { flex: none; width: 42px; height: 42px; object-fit: cover; border-radius: 4px; background: #eee7dc; }
-  .ssrow .noart { flex: none; width: 42px; height: 42px; border-radius: 4px; background: #f1ebe1; border: 1px dashed #d8d0c4; }
-  .ssrow .words { flex: 1; min-width: 0; overflow: hidden; }
-  .ssrow .words .t { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .ssrow .words .sub { display: block; font-size: 11.5px; color: #8a8177; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .ssrow.door { font-weight: 600; }
-  .sslab { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: #9a9186; margin: 10px 0 6px; }
   /* Above the lightbox — the Save button lives in there. */
   #toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); background: #2b2622; color: #faf7f2; font-size: 13.5px; border-radius: 6px; padding: 9px 14px; z-index: 70; opacity: 0; pointer-events: none; transition: opacity .18s; max-width: 84vw; text-align: center; }
   #toast.on { opacity: 1; }
@@ -464,6 +494,13 @@
     background: #fdfcf9; color: #6f675e; }
   #reftag.on { display: block; }
   #reftag.same { border-color: #2b2622; color: #2b2622; }
+  /* Arrived from a Story Room BEAT: what a run made here is going to do
+     (?pad=&beat=). It is a status line the page writes, not a control — the
+     landing is a side effect and a side effect she cannot see is a trap. */
+  #beattag { display: none; margin: 0 0 8px; font-size: 12px; line-height: 1.35;
+    border: 1px solid #2b2622; border-radius: 6px; padding: 7px 10px;
+    background: #fdfcf9; color: #2b2622; }
+  #beattag.on { display: block; }
   /* The PROMPT panel — what is wrapped around her words, and editable (Aug
      2026, Sophie). Opens under the style row, above her box, because that is
      where the wrapping happens. Flat, 6px, no gradient like everything else. */
@@ -504,6 +541,7 @@
 <div class="panel">
   <div class="styles"><select id="stylepick" aria-label="Style"></select></div>
   <div id="reftag"></div>
+  <div id="beattag"></div>
   <div id="promptpanel"></div>
   <div class="promptwrap"><textarea id="prompt"></textarea><button type="button" id="bigprompt" aria-label="Bigger box" title="Bigger box"></button></div>
   <div class="controls">
@@ -563,12 +601,27 @@
 </div>
 
 <div id="lb">
+  <div class="lbtop" id="lbtop">
+    <button class="lbback" id="lbback" aria-label="Back to the Playground">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+  </div>
   <div class="lbstage">
     <img id="lbimg" src="">
     <button class="lbnav" id="lbprev" aria-label="Previous picture" hidden></button>
     <button class="lbnav" id="lbnext" aria-label="Next picture" hidden></button>
   </div>
-  <div class="cap"><div class="capm" id="lbcapm"></div><div class="capp" id="lbcapp"></div></div>
+  <div class="cap">
+    <div class="capm" id="lbcapm"></div>
+    <div class="caphd" id="lbcaphd">
+      <span class="capttl">Prompt</span>
+      <span class="capseg">
+        <button id="lbhalfc" data-half="content">Content</button>
+        <button id="lbhalfs" data-half="style">Style</button>
+      </span>
+    </div>
+    <div class="capp" id="lbcapp"></div>
+  </div>
   <div class="lbbtns">
     <button class="lbbtn like" id="lblike" aria-label="Heart"></button>
     <button class="lbbtn dislike" id="lbx" aria-label="Reject"></button>
@@ -578,15 +631,6 @@
   </div>
 </div>
 
-<div id="storysheet">
-  <div class="storybox">
-    <div class="sshead">
-      <button id="ssback" aria-label="Back to the stories" hidden>&lsaquo;</button>
-      <span class="ssname" id="sstitle">Send to a story</span>
-    </div>
-    <div id="ssbody"></div>
-  </div>
-</div>
 <script>
   // THE AIM RULE LIVES IN /tritoggle.js — the ONE copy, shared with every other
   // three-way toggle. This line is only a floor for the case where that file
@@ -612,6 +656,10 @@
   var paging = false;     // an Older fetch is in flight
   var lbCur = null;       // { id, i } while the lightbox is open
   var lbBlob = null;      // { url, blob } prefetched so Save can share instantly
+  var lbSrc = '';         // the ORIGINAL url on screen — what Save and the app bridge get
+  var lbObj = '';         // the object url the full picture is painted from, to revoke
+  var lbHalves = null;    // { content, style } for the picture in the lightbox
+  var lbHalf = 'content'; // which half the PROMPT row is showing
 
   // Lucide line icons (heart, x, download), inlined — CSP-safe, no requests.
   var ICONS = {
@@ -800,36 +848,8 @@
   // so "aries" never finds "boundaries" and `gpt-image-2` keeps its hyphens —
   // the same regexes /assets builds, so the client filter and the server
   // search can never disagree about what matches.
-  function qparse(q) {
-    var groups = [], re = /(-|!)?(?:"([^"]*)"|(\S+))/g, m, orNext = false, notNext = false;
-    while ((m = re.exec(String(q || '')))) {
-      var quoted = m[2] !== undefined, raw = quoted ? m[2] : m[3], bare = !m[1] && !quoted;
-      if (bare && /^or$/i.test(raw)) { orNext = true; continue; }
-      if (bare && /^and$/i.test(raw)) continue;
-      if (bare && /^not$/i.test(raw)) { notNext = true; continue; }
-      var v = String(raw == null ? '' : raw).toLowerCase().replace(/\s+/g, ' ').trim();
-      if (!v) continue;
-      var rx = null;
-      try {
-        rx = new RegExp((/^[a-z0-9]/i.test(v) ? '\\b' : '') +
-          v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+'), 'i');
-      } catch (e) { rx = null; }
-      if (!rx) continue;
-      var neg = !!m[1] || notNext, last = groups[groups.length - 1];
-      if (orNext && last && !last.neg && !neg) last.terms.push(rx);
-      else groups.push({ neg: neg, terms: [rx] });
-      orNext = false; notNext = false;
-    }
-    return groups;
-  }
-  function qmatch(hay, groups) {
-    for (var i = 0; i < groups.length; i++) {
-      var g = groups[i], hit = false;
-      for (var j = 0; j < g.terms.length; j++) { if (g.terms[j].test(hay)) { hit = true; break; } }
-      if (g.neg ? hit : !hit) return false;
-    }
-    return true;
-  }
+  var qparse = window.FeedKit.qparse;
+  var qmatch = window.FeedKit.qmatch;
   // Everything a run's card actually says: her words, the style it was drawn
   // in, and the tags beside them — so "dreamy", "medium", "square", "photo
   // ref" and "failed" all find what she is looking at.
@@ -896,27 +916,8 @@
   }
   // Search as she DICTATES — iOS can fill a field without ever firing `input`,
   // so the box polls its value while focused (the house liveInput).
-  function liveInput(el, fn) {
-    var last = el.value, timer = null;
-    function fire() { if (el.value === last) return; last = el.value; fn(); }
-    ['input', 'change', 'compositionupdate', 'compositionend', 'keyup', 'paste']
-      .forEach(function (ev) { el.addEventListener(ev, function () { setTimeout(fire, 0); }); });
-    el.addEventListener('focus', function () { clearInterval(timer); timer = setInterval(fire, 150); });
-    el.addEventListener('blur', function () { clearInterval(timer); timer = null; fire(); });
-    return { sync: function () { last = el.value; } };
-  }
-  // RETURN ENDS THE SEARCH TOO (Aug 2026, Sophie) — a lone <input type=search>
-  // outside a <form> has nothing to submit to, so Return would do nothing at
-  // all. It runs the search and drops the keyboard, so what she is left
-  // looking at is the pictures.
-  function enterSubmits(el, fn) {
-    el.addEventListener('keydown', function (e) {
-      if (e.key !== 'Enter' && e.keyCode !== 13) return;
-      e.preventDefault();
-      if (fn) fn();
-      el.blur();
-    });
-  }
+  var liveInput = window.FeedKit.liveInput;
+  var enterSubmits = window.FeedKit.enterSubmits;
   var qLive = liveInput(document.getElementById('q'), readSearch);
   // `qLive.sync()` inside it: the blur Return performs would otherwise be
   // liveInput's first sight of dictated text and would search a second time.
@@ -1063,10 +1064,34 @@
     if (promptOpen) paintPromptPanel();
   });
 
-  // Arrived from the Scratch Pad? Show the way back.
-  if (/[?&]from=scratchpad\b/.test(location.search)) {
-    document.getElementById('backchip').classList.add('on');
-  }
+  // ── ARRIVED FROM A STORY ROOM BEAT (2026-08-26, Sophie) ───────────
+  // Her ask, in three parts: the beat's drawing prompt lands in the box (the
+  // ?prompt= block below does that, the same door an image's "open in the
+  // Playground" uses), the way back returns to THAT BEAT rather than the
+  // shelf, and "whatever I just made, there should also be for that beat".
+  //
+  // The landing is the SERVER's job, not this page's — see landOnBeat in
+  // server.js. A medium picture takes 30-90s, so a page that placed it on the
+  // way out would lose everything she tapped back before. All this side does
+  // is carry the target on every run it starts while the beat is in hand.
+  //
+  // NOT PERSISTED and not remembered: the context is the query string, so
+  // opening the Playground any other way is byte-for-byte what it always was.
+  var padBack = null;    // { pad, beat, style } while she is drawing for a beat
+  (function () {
+    var q = new URLSearchParams(location.search);
+    if (!/[?&]from=scratchpad\b/.test(location.search)) return;
+    var chip = document.getElementById('backchip');
+    chip.classList.add('on');
+    var pad = q.get('pad'), beat = q.get('beat');
+    if (!pad || !beat) return;    // came from the room, not from one beat
+    padBack = { pad: pad, beat: beat, style: q.get('padstyle') || 'watercolor' };
+    // Back to the exact beat, popup open — /scratchpad reads both.
+    chip.href = '/scratchpad?pad=' + encodeURIComponent(pad) + '&beat=' + encodeURIComponent(beat);
+    var tag = document.getElementById('beattag');
+    tag.textContent = 'Drawing for a beat in the Story Room — every picture you make here lands on it, newest as its art and the rest in its past pictures.';
+    tag.classList.add('on');
+  })();
 
   // Arrived with a generation's settings (an image's "open in the Playground"):
   // ?prompt=…&style=<a STYLES key>&quality=…&sameref=1|0&character=1&scale=…
@@ -1464,10 +1489,11 @@
   var resTier = '1k';
   var RES = null, RES_DEFAULT = '1k';
   function tierIds() { return ['1k', '2k', '4k']; }
-  // Arrived with ?res= (a Panels cut's "Upscale in the Playground" carries the
-  // tier the redraw should land at, 2026-08-25). One-shot like the rest of the
-  // ported settings, and still never persisted — the not-persisted rule is
-  // about a tier she is not looking at, and this one is in the link she tapped.
+  // Arrived with ?res= (a Panels cut's hand-off carries the tier the redraw
+  // should land on — 1k since 2026-08-26, her ask; it used to be 4k). One-shot
+  // like the rest of the ported settings, and still never persisted — the
+  // not-persisted rule is about a tier she is not looking at, and this one is
+  // in the link she tapped.
   (function () {
     var rt = new URLSearchParams(location.search).get('res');
     if (rt && tierIds().indexOf(rt) >= 0) resTier = rt;
@@ -1658,14 +1684,17 @@
           // "use the house text", so a normal run is byte-for-byte what it
           // always was.
           prefix: over ? over.prefix : undefined, suffix: over ? over.suffix : undefined,
-          noText: noTextFor(styleKey) }
+          noText: noTextFor(styleKey),
+          // Absent unless she came here from a beat, so an ordinary run is
+          // byte-for-byte the request it has always been.
+          padTarget: padBack || undefined }
       // Her edited tail wins for the LoRA too, exactly as it does for a gpt
       // style — sentParts falls back to the baked text when she has not
       // touched it, so an ordinary run is byte-for-byte what it always was.
       : { prompt: prompt, lora_scale: scale, model: S.model,
           suffix: (sentParts(styleKey) || {}).suffix != null
             ? sentParts(styleKey).suffix : S.suffix,
-          seed: seed };
+          seed: seed, padTarget: padBack || undefined };
     return fetch('/api/promptlab', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -1924,11 +1953,7 @@
   // and is sent as-is (the thumb service only re-serves Google storage
   // hosts, and those temp urls expire on their own anyway).
   var THUMB_W = 480;
-  function thumbFor(u) {
-    return /^https:\/\/(storage|firebasestorage)\.googleapis\.com\//.test(u || '')
-      ? '/api/story/thumb?w=' + THUMB_W + '&url=' + encodeURIComponent(u)
-      : u;
-  }
+  function thumbFor(u) { return window.FeedKit.thumbFor(u, THUMB_W); }
 
   // FLASHING: every repaint used to be `innerHTML = …` over the whole feed,
   // which destroys and recreates every <img> on screen — the browser blanks
@@ -1939,25 +1964,7 @@
   // order is fixed by MOVING nodes — moving an element never reloads its
   // image. The lightbox arrows read the DOM (lbSeq), so they walk exactly
   // what reconciliation put there, same as before.
-  function syncChildren(box, items, make, update) {
-    var stray = [], byKey = {}, el, k;
-    for (el = box.firstElementChild; el; el = el.nextElementSibling) {
-      k = el.getAttribute('data-key');
-      if (k == null) stray.push(el); else byKey[k] = el;
-    }
-    stray.forEach(function (s) { s.remove(); });     // e.g. an old empty-note
-    var prev = null;
-    items.forEach(function (it) {
-      var node = byKey[it.key];
-      if (node) delete byKey[it.key];
-      else { node = make(it); node.setAttribute('data-key', it.key); }
-      var want = prev ? prev.nextElementSibling : box.firstElementChild;
-      if (node !== want) box.insertBefore(node, want || null);
-      update(node, it);       // after insertion — the clamp check needs layout
-      prev = node;
-    });
-    Object.keys(byKey).forEach(function (kk) { byKey[kk].remove(); });
-  }
+  var syncChildren = window.FeedKit.syncChildren;
   // A picture's own shape, as a CSS ratio. The run stores it as '2:3' / '1:1';
   // anything else (an older run from before the canvas toggle, a hand-written
   // value) falls back to portrait, which is what every run before it drew.
@@ -2276,6 +2283,7 @@
     // it keeps running under the lightbox and the page has moved on by the
     // time the image is closed.
     if (window.__scrollStop) window.__scrollStop();
+    lbHalf = 'content';     // CONTENT opens the overlay — the house rule
     showLB(id, i);
     document.getElementById('lb').classList.add('on');
     document.body.style.overflow = 'hidden';
@@ -2314,23 +2322,106 @@
   document.getElementById('lbprev').addEventListener('click', function () { lbStep(-1); });
   document.getElementById('lbnext').addEventListener('click', function () { lbStep(1); });
 
+  // ── THE TWO HALVES OF THE PROMPT, AS THIS RUN REALLY SENT THEM ──────────
+  // The run doc stores `fullPrompt` (the literal text sent) and `prompt` (her
+  // typed words), so the style half is the exact remainder — head and tail
+  // SPLIT out of the sent string, never rebuilt from the tile's current baked
+  // prefix. That is what makes it right for a run drawn before or after she
+  // edited the Prompt panel, with the no-text swap, the character line and the
+  // photo line included exactly when they really rode along.
+  // The seam is marked `[content]`, the convention prompt-record.js writes and
+  // the Assets PROMPT overlay documents.
+  // No wrapper (the plain ChatGPT tile, a verbatim run) → an EMPTY style half,
+  // which is the honest answer and what hides the STYLE button.
+  function runPromptHalves(r) {
+    var content = String((r && r.prompt) || '');
+    var full = String((r && r.fullPrompt) || '');
+    if (!full || !content) return { content: content, style: '' };
+    var at = full.indexOf(content);
+    if (at < 0) {
+      // The LoRA path strips her trailing periods before sending, so the sent
+      // string holds her words one character short of what the doc typed.
+      var trimmed = content.replace(/\.+$/, '');
+      if (trimmed) { at = full.indexOf(trimmed); if (at >= 0) content = trimmed; }
+    }
+    // Her words are not in the sent text verbatim (nothing here does that
+    // today): file no style half rather than a reconstruction.
+    if (at < 0) return { content: content, style: '' };
+    var head = full.slice(0, at).replace(/\s+$/, '');
+    var tail = full.slice(at + content.length).replace(/^\s+/, '');
+    return {
+      content: content,
+      style: (head || tail) ? [head, '[content]', tail].filter(Boolean).join('\n\n') : '',
+    };
+  }
+
+  function paintPrompt() {
+    var h = lbHalves || { content: '', style: '' };
+    if (!h.style && lbHalf === 'style') lbHalf = 'content';
+    document.getElementById('lbcapp').textContent = h[lbHalf] || '';
+    document.getElementById('lbhalfs').hidden = !h.style;
+    document.getElementById('lbhalfc').classList.toggle('on', lbHalf === 'content');
+    document.getElementById('lbhalfs').classList.toggle('on', lbHalf === 'style');
+    // Nothing on file at all → no PROMPT row, the silence the Assets overlay
+    // keeps rather than saying "no prompt filed".
+    document.getElementById('lbcaphd').hidden = !h.content && !h.style;
+  }
+  // The way out, said in words as well as by the gesture. The delegated
+  // handler on #lb would close on this tap anyway — this is the explicit half,
+  // so the chevron keeps working if that skip list ever grows.
+  document.getElementById('lbback').addEventListener('click', function () { closeLB(); });
+  document.getElementById('lbcaphd').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-half]');
+    if (!b) return;
+    lbHalf = b.getAttribute('data-half');
+    paintPrompt();
+  });
+
   // Paint one picture into the already-open (or opening) lightbox.
   function showLB(id, i) {
     var r = runsById[id];
     if (!r) return;
     lbCur = { id: id, i: i };
     var src = runImages(r)[i];
-    document.getElementById('lbimg').src = src;
+    lbSrc = src;
+    var img = document.getElementById('lbimg');
+    // ── THE PICTURE IS ON SCREEN AT ONCE (2026-08-26, Sophie: "it seems like
+    // it takes quite a while to load the images in light box view") ─────────
+    // The wall and the list load a 480px derived thumb, and the lightbox
+    // loaded the untouched ORIGINAL — 1-3MB at the 2K and 4K tiers — so every
+    // tap was a fresh download over cell before anything appeared, with the
+    // PREVIOUS picture sitting there in the meantime. The thumb is already in
+    // the browser's cache (it is the tile she just tapped), so it paints in
+    // the same frame; the original is swapped in behind it the moment it
+    // lands, from the SAME fetch that was already being made for Save. One
+    // download, not two, and never a blank.
+    var th = thumbFor(src);
+    if (lbObj) { URL.revokeObjectURL(lbObj); lbObj = ''; }
+    img.src = th;
     // Fetched now so the Save tap can hand the file straight to the share
     // sheet without an await in between (iOS revokes the gesture across one).
     lbBlob = null;
     fetch(src).then(function (res) { return res.blob(); })
-      .then(function (b) { lbBlob = { url: src, blob: b }; })
-      .catch(function () {});
-    // What drew it — model, quality/scale, seed — pinned on top, then her
-    // words scrolling under it. In the tiles view this is the ONLY place the
-    // prompt appears, so it says everything about the picture.
-    document.getElementById('lbcapp').textContent = r.prompt || '';
+      .then(function (b) {
+        if (lbSrc !== src) return;                 // she stepped on while it flew
+        lbBlob = { url: src, blob: b };
+        if (th === src) return;                    // no derived copy — already the original
+        lbObj = URL.createObjectURL(b);
+        img.src = lbObj;
+      })
+      .catch(function () {
+        // A failed fetch must never leave her looking at the 480px copy: fall
+        // back to loading the original the ordinary way.
+        if (lbSrc === src && th !== src) img.src = src;
+      });
+    // What drew it — model, quality/scale, seed — pinned on top, then the
+    // prompt under it. In the tiles view this is the ONLY place the prompt
+    // appears, so it says everything about the picture.
+    // The half she picked rides along as she steps (comparing the style
+    // across two pictures is exactly why she would switch it) — but a fresh
+    // OPEN always starts on content; `openLB` sets it.
+    lbHalves = runPromptHalves(r);
+    paintPrompt();
     var meta = runParts(r);
     if (runImages(r).length > 1) meta.push('image ' + (i + 1));
     document.getElementById('lbcapm').textContent = meta.join(' · ');
@@ -2339,13 +2430,18 @@
   }
   function closeLB() {
     lbCur = null;
+    lbSrc = '';
+    if (lbObj) { URL.revokeObjectURL(lbObj); lbObj = ''; }
     document.getElementById('lb').classList.remove('on');
     document.body.style.overflow = '';
   }
   document.getElementById('lb').addEventListener('click', function (e) {
     // Buttons handle themselves — and the side arrows are STEPPING, not
-    // leaving: closing on them would shut the lightbox on every tap.
-    if (e.target.closest('.lbbtn') || e.target.closest('.lbnav')) return;
+    // leaving: closing on them would shut the lightbox on every tap. The
+    // Content/Style toggle is the same: switching halves is not leaving.
+    // The BACK chevron and the empty band it sits in are deliberately NOT in
+    // this list — they close, which is the whole point of the strip.
+    if (e.target.closest('.lbbtn') || e.target.closest('.lbnav') || e.target.closest('.capseg')) return;
     closeLB();
   });
 
@@ -2388,7 +2484,10 @@
 
   document.getElementById('lbsave').addEventListener('click', function () {
     if (!lbCur) return;
-    var url = document.getElementById('lbimg').src;
+    // The ORIGINAL url, never `lbimg.src` — that is the 480px thumb while the
+    // full picture is still on its way, and a blob: url once it lands, and the
+    // app's bridge needs the real https one.
+    var url = lbSrc;
     var native = nativeSaver();
     if (native) { native.postMessage(url); toast('Saving…'); return; }
     if (!(lbBlob && lbBlob.url === url)) { toast('Still loading that image — try again'); return; }
@@ -2409,154 +2508,27 @@
     document.body.appendChild(a); a.click(); a.remove();
   });
 
-  // ── Send to the Story Room (Aug 2026, Sophie) ──────────────────────
-  // The fifth lightbox button. Step one is the shelf (GET /api/scratchpad/pads),
-  // step two is that story's three doors: its INBOX (POST /inbox — appends,
-  // never replaces), a NEW BEAT at the end (POST /add), or an EXISTING beat
-  // (POST /image — the same write the pad's own inbox pick makes, so the
-  // provenance src rides along identically). The pad's own `style` is passed
-  // on placement so the picture lands on the side the story is showing.
-  var ssState = null;   // { url, src, padList, pad } while the sheet is open
-  function ssSheet() { return document.getElementById('storysheet'); }
-  function ssRow(kids, sub, onTap, door) {
-    var b = document.createElement('button');
-    b.className = 'ssrow' + (door ? ' door' : '');
-    kids.forEach(function (k) { b.appendChild(k); });
-    var w = document.createElement('span'); w.className = 'words';
-    var t = document.createElement('span'); t.className = 't'; t.textContent = sub.t;
-    w.appendChild(t);
-    if (sub.sub) { var s = document.createElement('span'); s.className = 'sub'; s.textContent = sub.sub; w.appendChild(s); }
-    b.appendChild(w);
-    b.addEventListener('click', onTap);
-    return b;
-  }
-  function ssThumb(url) {
-    if (!url) { var d = document.createElement('span'); d.className = 'noart'; return d; }
-    var img = document.createElement('img'); img.className = 'thumb'; img.loading = 'lazy'; img.src = url;
-    return img;
-  }
-  function ssQuiet(msg) {
-    var body = document.getElementById('ssbody');
-    body.innerHTML = '';
-    var q = document.createElement('div'); q.className = 'ssquiet'; q.textContent = msg;
-    body.appendChild(q);
-  }
-  // A beat's face, the side the story shows first — the server's slotFace
-  // rule: a clip slot shows its poster, a picture slot its url, falling back
-  // to the other side so a beat with any art at all gets a thumbnail.
-  function beatFace(b, style) {
-    var side = function (s) { return s ? (s.kind ? (s.poster || null) : (s.url || null)) : null; };
-    var dreamy = (b.alt && b.alt.dreamy) || null;
-    return style === 'dreamy' ? (side(dreamy) || side(b)) : (side(b) || side(dreamy));
-  }
-  function openStorySheet() {
+  // ── SEND TO THE STORY ROOM — it WALKS THERE (2026-08-26, Sophie: "rather
+  // than this weird pop-up, it should take me to the story room so I can pick
+  // myself") ────────────────────────────────────────────────────────────────
+  // It shipped as a sheet over the lightbox: the shelf as a list of small
+  // rows, then that story's doors. She asked for the room itself, so this
+  // button is a NAVIGATION now and decides nothing about a story. The run and
+  // which of its pictures ride the link (?send=<run>&i=<n>) — never the url,
+  // because the room re-reads the run and gets the whole provenance with it,
+  // the same src the pad's own inbox pick sends.
+  // The placement is the room's own from there: her real shelf, the real
+  // covers, and a gap in the ORDER rather than "at the end".
+  document.getElementById('lbstory').addEventListener('click', function () {
     if (!lbCur) return;
-    var r = runsById[lbCur.id]; if (!r) return;
-    ssState = {
-      url: runImages(r)[lbCur.i],
-      // The same provenance object the pad's own inbox pick sends, so the
-      // beat's past-pictures row and prompt restore work identically.
-      src: { runId: lbCur.id, i: lbCur.i, prompt: r.prompt || null, model: r.model || null, engine: r.engine || null, quality: r.quality || null },
-      padList: null, pad: null,
-    };
-    ssSheet().classList.add('on');
-    drawStoryList();
-    fetch('/api/scratchpad/pads')
-      .then(function (res) { return res.json(); })
-      .then(function (d) { if (!ssState) return; ssState.padList = d.pads || []; drawStoryList(); })
-      .catch(function () { if (ssState) ssQuiet('Couldn’t reach the Story Room — try again'); });
-  }
-  function drawStoryList() {
-    if (!ssState) return;
-    document.getElementById('sstitle').textContent = 'Send to a story';
-    document.getElementById('ssback').hidden = true;
-    if (!ssState.padList) return ssQuiet('Fetching the shelf…');
-    if (!ssState.padList.length) return ssQuiet('No stories yet');
-    var body = document.getElementById('ssbody');
-    body.innerHTML = '';
-    ssState.padList.forEach(function (p) {
-      body.appendChild(ssRow([ssThumb(p.cover)],
-        { t: p.title || 'Untitled story', sub: p.beats + (p.beats === 1 ? ' beat' : ' beats') },
-        function () { openStory(p); }));
-    });
-  }
-  function openStory(p) {
-    if (!ssState) return;
-    ssState.pad = null;
-    document.getElementById('sstitle').textContent = p.title || 'Untitled story';
-    document.getElementById('ssback').hidden = false;
-    ssQuiet('Opening the story…');
-    fetch('/api/scratchpad/?pad=' + encodeURIComponent(p.id))
-      .then(function (res) { return res.json(); })
-      .then(function (d) { if (!ssState) return; ssState.pad = { id: p.id, title: p.title, data: d }; drawStory(); })
-      .catch(function () { if (ssState) ssQuiet('Couldn’t open that story — try again'); });
-  }
-  function drawStory() {
-    if (!ssState || !ssState.pad) return;
-    var pad = ssState.pad, body = document.getElementById('ssbody');
-    body.innerHTML = '';
-    body.appendChild(ssRow([], { t: 'Into the inbox' }, function () { sendToStory('inbox'); }, true));
-    body.appendChild(ssRow([], { t: 'As a new beat, at the end' }, function () { sendToStory('add'); }, true));
-    var beats = (pad.data && pad.data.beats) || [];
-    if (!beats.length) return;
-    var lab = document.createElement('div'); lab.className = 'sslab'; lab.textContent = 'Or onto a beat';
-    body.appendChild(lab);
-    var style = (pad.data && pad.data.style) || 'watercolor';
-    beats.forEach(function (b, i) {
-      var words = (b.text || '').trim();
-      body.appendChild(ssRow([ssThumb(beatFace(b, style))],
-        { t: words || ('Beat ' + (i + 1)), sub: words ? null : 'no words yet' },
-        function () { sendToStory('image', b.id); }));
-    });
-  }
-  function sendToStory(kind, beatId) {
-    if (!ssState || !ssState.pad) return;
-    var st = ssState, pad = st.pad, padStyle = (pad.data && pad.data.style) || 'watercolor';
-    var path, body;
-    if (kind === 'inbox') {
-      path = '/api/scratchpad/inbox';
-      body = { pad: pad.id, items: [{ url: st.url, prompt: st.src.prompt, model: st.src.model, quality: st.src.quality, src: 'playground' }] };
-    } else if (kind === 'add') {
-      path = '/api/scratchpad/add';
-      body = { pad: pad.id, url: st.url, style: padStyle, src: st.src };
-    } else {
-      path = '/api/scratchpad/image';
-      body = { pad: pad.id, id: beatId, url: st.url, style: padStyle, src: st.src };
-    }
-    closeStorySheet();
-    fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      .then(function (res) { return res.json(); })
-      .then(function (d) {
-        if (d && d.error) throw new Error(d.error);
-        var did = kind === 'inbox' ? 'into the inbox' : (kind === 'add' ? 'as a new beat' : 'onto the beat');
-        toast('Sent to “' + (pad.title || 'the story') + '” ' + did);
-      })
-      .catch(function () { toast('Couldn’t send that — try again'); });
-  }
-  function closeStorySheet() {
-    ssState = null;
-    ssSheet().classList.remove('on');
-  }
-  document.getElementById('lbstory').addEventListener('click', openStorySheet);
-  document.getElementById('ssback').addEventListener('click', function () {
-    if (ssState) { ssState.pad = null; drawStoryList(); }
+    location.href = '/storyroom?send=' + encodeURIComponent(lbCur.id) + '&i=' + lbCur.i;
   });
-  // A tap on the dim backdrop leaves the sheet; the box itself swallows it.
-  ssSheet().addEventListener('click', function (e) { if (e.target === ssSheet()) closeStorySheet(); });
 
-  var toastTimer = null;
-  function toast(msg) {
-    var el = document.getElementById('toast');
-    el.textContent = msg;
-    el.classList.add('on');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { el.classList.remove('on'); }, 2200);
-  }
+  var toast = window.FeedKit.toast;
 
   // The app's nav-bar chevron asks the page first: close the lightbox if it's
   // open, else let the app leave the tool.
   window.__navBack = function () {
-    if (ssSheet().classList.contains('on')) { closeStorySheet(); return true; }
     if (document.getElementById('ask').classList.contains('on')) { closeAsk(); return true; }
     if (document.getElementById('lb').classList.contains('on')) { closeLB(); return true; }
     return false;

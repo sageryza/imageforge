@@ -479,14 +479,24 @@ The house rules that only bite when you are actually building a page, an iOS scr
   REPLACES the earlier three-home-screens rule).** The home is a single grid;
   above the module cards sits a row of five rounded squares, **icons only**
   ("just the icon" — no labels, `HomeGrid.shortcutRow` in `RootView.swift`).
-  ONE opens a tool (**Chats**); the other four FILTER the cards below
-  (`HomeFilter`): **photo** = the picture-makers
+  TWO are actions — the **house** (below) and **Chats** — and the rest FILTER
+  the cards below (`HomeFilter`): **photo** = the picture-makers
   (Playground, Test Station, Freeform — the only place the Test Station has a
-  card at all), **briefcase** = business, **quilt** = old fashioned, **film**
-  = everything that makes or cuts moving pictures AND sound, drawn as an
-  ordered pipeline rather than a grid (see THE FILM CHIP IS A PIPELINE
-  below). The lit chip clears back to everything when
-  tapped again (the Dump sort page's convention). `BusinessGrid`/`CraftsGrid`
+  card at all), **film** = everything that makes or cuts moving pictures AND
+  sound, drawn as an ordered pipeline rather than a grid (see THE FILM CHIP IS
+  A PIPELINE below), and a second film chip that draws the same set as one
+  flat pile. **briefcase** = business and **quilt** = old fashioned are the
+  same filters and live in the masthead corners only (see below). The lit chip
+  clears back to everything when tapped again (the Dump sort page's
+  convention).
+  **THE HOUSE ON THE LEFT IS THE WAY BACK TO THE PLAIN GRID (2026-08-25,
+  Sophie: "add a fifth tile on the home screen on the left, a picture of a home
+  that just takes you back to the home grid thing").** Clearing a filter used
+  to mean remembering which chip was lit and tapping that same one again — a
+  way out she had to find first. The house clears it from anywhere, wears the
+  bottom bar's own `house` glyph, and is **never lit**: it is an action like
+  Chats, not a fifth filter, and a chip glowing on the screen's normal resting
+  state is noise. `BusinessGrid`/`CraftsGrid`
   and `Screen.business`/`.crafts` are GONE; `deckfactory://business` and
   `://crafts` (alias `://quilt`) land on the home with that filter already
   lit. `Tool.isBusiness` / `Tool.isCraft` now decide which FILTER a tool

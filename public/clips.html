@@ -8,27 +8,14 @@
 <style>
 /* Chunking — the clip shelf. Story-Room look: tiles four to a row, names
    under them, the search bar is the interface. Flat solid colors only. */
-:root{
-  /* The five pill tokens (the pill contract) — kept for any page code that
-     reads them, and as the palette the .float override below hands the pill. */
-  --ink:#3a3530; --paper:#faf6ee; --chg:#b48b6a; --ink2:#9e9590; --rose:#c0614a;
-  /* CREAM, not white (Sophie, Aug 2026). tool.css ships a near-white #faf9f7,
-     which left the pill's own cream body reading as a dark slab pasted onto a
-     white page. The page is the thing that moves: cream page, cream pill. */
-  --bg:#faf6ee; --surface:#fffdf7; --surface2:#f2ece0; --border:#e6ddcb;
-}
-/* THE INJECTED PILL IGNORES :root — MEASURED 2026-08-15, and the docs' "define
-   the five tokens" rule is not enough on its own. `pill-inject.html` declares
-   `.float{--paper:#f6f2e9; --ink:#26221c; …}` ON THE ELEMENT, and an element's
-   own custom property beats an inherited one from :root however the host page
-   sets it — so the pill wore a near-black #26221c border and glyphs whatever
-   this page asked for (Sophie: "is therefore black, which is really
-   annoying"). A page CAN reach it, but only at higher specificity than
-   `.float`, which is what this rule is. Scoped to this page; the shared pill
-   file is untouched, so no other page moves. */
-body.tool .float{
-  --paper:#faf6ee; --ink:#3a3530; --ink2:#9e9590; --chg:#b48b6a; --rose:#c0614a;
-}
+/* NO PALETTE HERE — it is house.css, reached through tool.css (2026-08-24).
+   This page used to declare the cream, the tan and the ink itself, plus a
+   `body.tool .float{…}` block to out-specify the injected pill. Both existed
+   for reasons now fixed upstream: tool.css shipped a near-white #faf9f7
+   against the pill's cream (house.css IS the cream), and the pill declared its
+   own palette ON the element (it reads `var(--x, fallback)` off the host's
+   :root now — the settled pill contract). Left in place, the leftover block
+   pinned this page to the OLD accent after every other tool page had moved. */
 [hidden]{ display:none !important; }
 .tool main{ max-width:640px; margin:0 auto; }
 

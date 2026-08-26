@@ -2158,6 +2158,10 @@ var threadNote=null;
 // …and the wrap-up line under it, for the same reason (the archive sheet's
 // Summarize button writes it while the thread is still on screen).
 var threadWrap=null;
+// …and the BELL that sits beside the tag icon in the thread header (2026-08-25,
+// her ask). The same flag has a second control inside the Organize sheet, so
+// whichever one she taps has to repaint the other.
+var threadBell=null;
 // Feed-wide settings from the server (registry __settings doc). appAccount =
 // which Claude account is signed into the iOS app right now ("1"/"2").
 var settings={};
@@ -2173,9 +2177,47 @@ var truncated={}, fullLoaded={};
 var view='list';
 // Claude "spark" mark (simple hand-inlined equivalent, white on orange)
 var CLAUDE_STAR='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M12 2.5v6M12 15.5v6M2.5 12h6M15.5 12h6M5.4 5.4l4.2 4.2M14.4 14.4l4.2 4.2M18.6 5.4l-4.2 4.2M9.6 14.4l-4.2 4.2"/></svg>';
+// THE DOOR BACK INTO A CHAT IS DERIVABLE FROM ITS SESSION ID — and for the
+// chats that need it most, deriving is the ONLY way (2026-08-25, Sophie: "how
+// come I don't see any messages not even one and no way to get back into the
+// chat").
+//
+// `url` only ever arrives ON A MESSAGE: the hook posts it with the reply, and
+// the server copies it onto the registry doc. So a chat whose hook never filed
+// a reply has no url — and it is exactly the same chat that shows no messages,
+// because those are the same missing post. The two halves of her report are
+// one cause, which is why fixing the empty state alone did nothing for her:
+// measured against the live feed the same day, of the 19 chats behind the MORE
+// fold whose thread really is empty, **19 of 19 also had no url**. Reading the
+// registry's overall 476-of-505 as coverage was the mistake — that is the
+// population that DOESN'T need a door.
+//
+// `sessionId` is written by a different door entirely — /status, /update,
+// /wrapup, /resolve — so a chat that follows CLAUDE.md and posts its status
+// card has one even when it has never posted a message. 19 of the 29 doorless
+// chats carry one.
+//
+// The url is a pure function of it. Measured over every chat carrying BOTH:
+// **398 of 398** are exactly `https://claude.ai/code/session_<sessionId>`, no
+// exceptions. So this is a derivation, not a guess — and doing it on READ
+// means nothing to backfill and nothing that can go stale.
+//
+// The order is deliberate: a stored url wins, because it is what the session
+// itself reported; the message tail is next; the derivation is the floor.
+function claudeSessionUrl(sid){
+  sid=String(sid||'');
+  // the registry stores the bare id (`011kWP3…`); `session_` is the url's own
+  // prefix. Accept an id that already carries it rather than doubling it up.
+  if(!sid) return '';
+  return 'https://claude.ai/code/'+(sid.indexOf('session_')===0? sid : 'session_'+sid);
+}
+// for the test: the derivation (pure) and the two functions that compose it
+window.__claudeSessionUrl=claudeSessionUrl;
 function claudeUrlFor(name, list){
-  var u=(chats[name]&&chats[name].url)||'';
+  var c=chats[name]||{};
+  var u=c.url||'';
   if(!u && list){ for(var i=list.length-1;i>=0;i--){ if(list[i].url){ u=list[i].url; break; } } }
+  if(!u) u=claudeSessionUrl(c.sessionId);
   return u;
 }
 function appAccount(){ return (settings&&settings.appAccount)||'1'; }
@@ -2194,6 +2236,7 @@ function openHref(name,url){
   if(!url||!acct||acct===appAccount()) return url;
   return url+(url.indexOf('#')<0?'#no_universal_links':'');
 }
+window.__claudeUrlFor=claudeUrlFor; window.__openHref=openHref;
 function openClaudeBtn(url){
   var a=document.createElement('a'); a.className='openclaude'; a.href=url; a.target='_blank'; a.rel='noopener';
   a.innerHTML=CLAUDE_STAR+'<span>Open</span>';
@@ -2410,13 +2453,19 @@ function statusLinesHtml(name, fallback){
 // the chat is pinned — a second copy of the same glyph at the front of the row
 // was showing the state twice. The star and the bookmark are marks here
 // because they have no control on the row.
-// Lucide `hourglass`. A line glyph, the house's chrome voice — and the one
-// mark on a row that means SHE is owed something rather than that she filed
-// something. Deliberately not the bell (that is notifications), not the star
-// (hers, "I am working on this") and not a clock with an arrow (WAITPAST, the
-// reasons list) — three marks in one colour already live on these rows, so the
-// shape is what has to carry the difference.
-var WAITREPLY='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg>';
+// Lucide `watch` — a WRISTWATCH (2026-08-24, Sophie: "is there an icon of like
+// someone pointing at their watch?"). There is no such icon: all 2,035 Lucide
+// glyphs were read and none holds a figure, because the gesture needs a body,
+// an arm and a dial and a line-icon set cannot say three things at 14px. Drawn
+// by hand it does not survive either — measured at 14/18/28/64, the figure is
+// mud at the mark's real size and reads as someone with a MAGNIFYING GLASS
+// blown up. So the watch alone carries it: the object out of her own picture,
+// legible at 14px, and it says the time is running on this chat.
+// Deliberately not the bell (that is notifications), not the star (hers, "I am
+// working on this") and not a clock with an arrow (WAITPAST, the reasons list)
+// — three marks in one colour already live on these rows, so the shape is what
+// has to carry the difference. It shipped as an `hourglass` for one afternoon.
+var WAITREPLY='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6"/><path d="M12 10v2.2l1.6 1"/><path d="m16.13 7.66-.81-4.05a2 2 0 0 0-2-1.61h-2.68a2 2 0 0 0-2 1.61l-.78 4.05"/><path d="m7.88 16.36.8 4a2 2 0 0 0 2 1.61h2.72a2 2 0 0 0 2-1.61l.81-4.05"/></svg>';
 // IS SHE WAITING ON THIS CHAT? — read off TAG_RULES rather than off the string,
 // so the mark and the Update tab's pin can never disagree about which word
 // means this. The pin rule is first in that table, so a chat wearing both rule
@@ -6646,6 +6695,50 @@ function openChat(name, keepScroll, focusId, noFetch){
   // The pin used to sit in this slot and moved to the home row. The other five
   // marks moved INTO the sheet this button opens (Aug 2026, her ask), so the
   // row is two controls wide now: Archive, and this.
+  // THE BELL IS BACK ON THIS ROW TOO — in BOTH places (2026-08-25, Sophie:
+  // "add the bell icon back to the main chat screen instead of just in the tag
+  // organizer area, put it in both places, it doesn't need the box around it.
+  // It should go right next to the picture of the tag"). It moved into the
+  // Organize sheet with the other four marks and that made it a two-tap
+  // decision behind a sheet she opens to FILE a chat — but whether a chat may
+  // buzz her is a thing she flips while reading it. So it lives in both, and
+  // the sheet's copy stays: this ADDS a place, it does not move it (the same
+  // shape as the pushpin, which is on the home row and in the sheet).
+  //
+  // NO BOX, her ask — `.bellbtn` is the original bare-glyph header style,
+  // still in the stylesheet and still what `.orgmarks .markchip` overrides for
+  // the sheet's boxed copy, so the two cannot drift in colour: gold when on,
+  // `--line` grey when off, filled in both states.
+  //
+  // Optimistic paint + roll-back, exactly as the sheet's toggle does. Both
+  // read the SAME `chats[name].notify`, so `threadBell` repaints this one when
+  // the sheet's copy is tapped and vice versa.
+  (function(){
+    var bb=document.createElement('button'); bb.type='button';
+    bb.className='bellbtn';
+    function paintBell(){
+      var on=chatNotify(name);
+      bb.classList.toggle('on', on);
+      bb.innerHTML=BELL_SVG;
+      bb.title='Notify';
+      bb.setAttribute('aria-pressed', on?'true':'false');
+      bb.setAttribute('aria-label', on
+        ? 'Notifications on — turn them off for this chat'
+        : 'Turn on notifications for this chat');
+    }
+    paintBell();
+    bb.onclick=function(e){
+      e.stopPropagation();
+      var was=chatNotify(name);
+      chats[name]=chats[name]||{}; chats[name].notify=!was;
+      paintBell(); toast(was?'Notifications off':'Notifications on');
+      api('/api/chatfeed/notify',{method:'POST',body:JSON.stringify({chat:name, notify:!was})})
+        .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+        .catch(function(){ chats[name].notify=was; paintBell(); toast('Couldn\u2019t save that'); });
+    };
+    head.querySelector('.no').appendChild(bb);
+    threadBell=paintBell;
+  })();
   (function(){
     var ob=document.createElement('button');
     ob.className='orgbtn';
@@ -6702,6 +6795,17 @@ function openChat(name, keepScroll, focusId, noFetch){
   qbtn.setAttribute('aria-label','Your questions in this chat, with the answers');
   qbtn.setAttribute('aria-pressed','false');
   nrow.appendChild(qbtn);
+  // AN EMPTY NOTE ROW SHOWS NOTHING NOW (2026-08-25, Sophie: "if there's no
+  // note for the chat can you get rid of this thing where it says + note for
+  // chat and just put it at the end of the see more area"). The placeholder
+  // sat at the top of EVERY thread in her own italic voice — a box asking a
+  // question she had already answered by not writing one, on the line she
+  // reads first. So a chat with no note draws no line at all, and the way in
+  // is a small "+ note" appended to the end of the summary's own sentence,
+  // beside "See more…" — the same inline underlined opener, in the row that
+  // is already there. `paintThreadWrap` places it, because only that function
+  // knows whether the summary line exists; with NO summary to hang it on it
+  // falls back here, or there would be no way to write a note at all.
   function paintNote(){
     var v=(chats[name]&&chats[name].sophieNote)||'';
     // The waiting-for line sits ABOVE her note rather than replacing it — this
@@ -6710,15 +6814,32 @@ function openChat(name, keepScroll, focusId, noFetch){
     // it re-opens the same box the tag opened.
     var w=waitingHtml(name);
     nwrap.innerHTML=(w? '<span class="waitline">'+w+'</span>' : '')
-      +'<span class="noteshow'+(v?' has':'')+'">'+(v? esc(v) : '+ note for this chat')+'</span>';
-    nwrap.querySelector('.noteshow').onclick=function(){ editChatNote(); };
+      +(v? '<span class="noteshow has">'+esc(v)+'</span>' : '');
+    var ns=nwrap.querySelector('.noteshow');
+    if(ns) ns.onclick=function(){ editChatNote(); };
     var wl=nwrap.querySelector('.waitline');
     if(wl) wl.onclick=function(){ askWaiting(name, paintNote); };
+    // `wrow` is created further down this scope, so the first paint runs
+    // before it exists — the summary's own call places the opener then.
+    if(wrow) paintThreadWrap();
+  }
+  // The one way in when she has no note: an inline underlined word, never a
+  // button (the house truncation-opener treatment, `.wrapmore`). It opens the
+  // same textarea in the note row above, so nothing about writing one moved.
+  function addNoteOpener(){
+    var b=document.createElement('button'); b.type='button';
+    b.className='wrapmore addnote'; b.textContent='+ note';
+    b.setAttribute('aria-label','Write your note for this chat');
+    b.onclick=function(e){ e.stopPropagation(); editChatNote(); };
+    return b;
   }
   function editChatNote(){
     var v=(chats[name]&&chats[name].sophieNote)||'';
     var ta=document.createElement('textarea'); ta.value=v; ta.maxLength=200;
     nwrap.innerHTML=''; nwrap.appendChild(ta); ta.focus();
+    // The box IS the way in now, so the "+ note" opener that opened it comes
+    // off the summary line while she types (it goes back on a blank save).
+    if(wrow){ var a=wrow.querySelector('.addnote'); if(a) a.remove(); }
     var done=false;
     function save(){
       if(done) return; done=true;
@@ -6781,8 +6902,16 @@ function openChat(name, keepScroll, focusId, noFetch){
     // answers say it did.
     var line=wrapLineOf(r);
     wrow.innerHTML='';
+    // The "+ note" opener lives in exactly ONE of the two places (the summary
+    // sentence, or the note row when there is no summary) and this function
+    // decides which — so any copy left in the note row from a previous paint
+    // comes off first, or a chat that grows a wrap-up ends up with two.
+    var stray=nwrap.querySelector('.addnote'); if(stray) stray.remove();
+    // Nothing to offer while she has a note, and nothing to interrupt while
+    // she is in the middle of writing one.
+    var wantAdd=!((chats[name]&&chats[name].sophieNote)||'') && !nwrap.querySelector('textarea');
     wrow.hidden=!line;
-    if(!line) return;
+    if(!line){ if(wantAdd) nwrap.appendChild(addNoteOpener()); return; }
     // WHAT YOU ASKED, IN BOLD OVER IT (2026-08-24, Sophie: "have it say what I
     // asked in bold above it, and then the see more is as it was"). The line
     // used to sit here unlabelled while the two answers behind the opener each
@@ -6797,7 +6926,15 @@ function openChat(name, keepScroll, focusId, noFetch){
     var p=document.createElement('div'); p.className='twline';
     p.appendChild(document.createTextNode(line));
     wrow.appendChild(p);
-    if(!wrapHasMore(r)) return;
+    // "…and at the end of the see more area" — her words. It goes on LAST, so
+    // the sentence reads summary · See more… · + note, whether or not there is
+    // anything behind the opener.
+    function endAdd(){
+      if(!wantAdd) return;
+      p.appendChild(document.createTextNode(' '));
+      p.appendChild(addNoteOpener());
+    }
+    if(!wrapHasMore(r)){ endAdd(); return; }
     // "See more…" reads as part of THIS sentence (Aug 2026, Sophie: "part of
     // the summary at the top just happens to also be a link and have a line
     // under it") — appended inline, inside the same paragraph, not a control
@@ -6806,6 +6943,7 @@ function openChat(name, keepScroll, focusId, noFetch){
     var body=wrapBody(r);
     p.appendChild(document.createTextNode(' '));
     p.appendChild(wrapToggle(body));
+    endAdd();
     wrow.appendChild(body);
   }
   paintThreadWrap();
@@ -7926,7 +8064,12 @@ function mkOrgMarks(name, close){
     svg:function(){ return BELL_SVG; },
     on:'Turn on notifications for this chat',
     off:'Notifications on — turn them off for this chat',
-    toastOn:'Notifications on', toastOff:'Notifications off'}));
+    toastOn:'Notifications on', toastOff:'Notifications off',
+    // The bell has a second, unboxed copy in the thread header (2026-08-25,
+    // her ask for it in both places), and this sheet is opened from that very
+    // row — so without this the control she is standing on is the last to
+    // know. Runs on the roll-back path too.
+    after:function(){ if(threadBell) threadBell(); }}));
   // BOOKMARK — keep this chat forever ("there's only a handful of chats like
   // that"). The three of them run together on purpose: star = on it now, keep
   // = mine forever, bell = allowed to interrupt me — one decision made in one

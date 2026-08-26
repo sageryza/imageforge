@@ -75,6 +75,14 @@ const PAGES = {
 
 const server = http.createServer((req, res) => {
   const r = req.url.split('?')[0];
+  // house.css is what compare.css @imports (2026-08-24) — a stub that serves
+  // the sheet but not its import silently drops the whole palette and the pill
+  // falls back to its own baked cream, which is the opposite of what this file
+  // is testing. Same rule the tritoggle tests already carry.
+  if (r === '/house.css') {
+    res.writeHead(200, { 'content-type': 'text/css' });
+    return res.end(fs.readFileSync(path.join(PUB, 'house.css')));
+  }
   if (r === '/compare.css') {
     res.writeHead(200, { 'Content-Type': 'text/css' });
     return res.end(fs.readFileSync(path.join(PUB, 'compare.css')));

@@ -72,6 +72,13 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/api/scratchpad/pads') return json({ count: 0, pads: [] });
   if (url.pathname === '/api/scratchpad') return json({ beats, title: 'clips test', film: null, audios: [] });
   if (url.pathname === '/px.png') { res.writeHead(200, { 'Content-Type': 'image/png' }); return res.end(PX); }
+  // The shared three-way toggle: express.static serves both in production.
+  // Without the CSS the toggle renders as a 4px sliver; without the JS the page
+  // falls back to the old CYCLE, which would green-light the aim bug.
+  if (url.pathname === '/tritoggle.css' || url.pathname === '/tritoggle.js') {
+    res.writeHead(200, { 'Content-Type': url.pathname.endsWith('.css') ? 'text/css' : 'text/javascript' });
+    return res.end(fs.readFileSync(path.join(PUB, url.pathname.slice(1))));
+  }
   if (url.pathname === '/scratchpad.html') {
     res.writeHead(200, { 'Content-Type': 'text/html' });
     return res.end(fs.readFileSync(path.join(PUB, 'scratchpad.html')));

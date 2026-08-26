@@ -37,6 +37,11 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // explicit preflight for every route
+// The OOM tripwire: when RSS nears the 512MB line it files the last requests
+// to Firestore `forge-memwatch` BEFORE the kernel's SIGKILL can land — the
+// only way a mystery restart leaves the culprit's name behind. See memwatch.js.
+require('./memwatch').install(app, admin);
+const memwatch = require('./memwatch');
 // Reference images for the Sticker Page are sent as base64 in the JSON body,
 // so the default 100kb limit is far too small — allow a handful of photos.
 app.use(express.json({ limit: '25mb', verify: (req, _res, buf) => { req.rawBody = buf; } }));
@@ -89,6 +94,12 @@ app.use((req, res, next) => {
   if (mBlog) return res.redirect(301, mBlog[1] ? `/blog/${mBlog[1]}` : '/blog');
   next(); // everything else (/, /api/*, /blog, static assets) flows through
 });
+
+// Universal links: /.well-known/apple-app-site-association tells iOS which
+// paths on this host belong to the Deck Factory app. Apple's fetcher follows
+// NO redirects and sends NO credentials, so this must sit above dream-host,
+// above express.static and above the studio gate. See applinks.js.
+app.use('/.well-known', require('./applinks').router);
 
 // The dream feed's own front door — youwereinmydreams.com serves the app at
 // `/`. Must sit ABOVE express.static and the `/` route below, both of which
@@ -324,6 +335,9 @@ loadConfig().then(() => {
   // there"). Best-effort inside movies.js; a gallery hiccup never fails a
   // render.
   movies.init({ fileCreation: fileCreationDoc });
+  // Same hand-off for the mockup shots — the whole edit prompt is stored with
+  // each one (the scene half is model-written and exists nowhere else).
+  photostudio.init({ fileCreation: fileCreationDoc });
   app.use('/api/movies', movies.router);
   app.use('/api/songs', songs.router);
   // Stories live on the boards now: hand the module the story-project
@@ -358,6 +372,9 @@ loadConfig().then(() => {
     styles: PL_GPT_STYLES,
     gpt: PL_GPT,
     whiten: whitenBackground,
+    // The ♥/✕ mirror: a mark on a panel also lands on any Assets-tab record
+    // holding the same picture, exactly as a Playground vote does.
+    syncVote: syncVoteToAssets,
   });
   app.use('/api/panels', panels.router);
   // Vector Studio — described drawings → a pastel sheet → cut-outs → SVG. The
@@ -418,6 +435,7 @@ loadConfig().then(() => {
   app.use('/api/chatfeed', chatfeed.router); // the Chat app (replies from every chat, in one feed)
   app.use('/api/brief', require('./brief').router); // the update button — the five things worth knowing, then the quieter ones
   app.use('/api/review', require('./review').router); // the review queue — every deck/grid page still waiting on her
+  app.use('/api/storylink', require('./storylink').router); // one story across Story Timeline, the Story Room and Cutting Blocks
   app.use('/api/googleads', googleads.router); // Google Ads API credential health check
   app.use('/api/character', character.router); // Character Creator (photo + name -> diary-comic ref)
   app.use('/api/tarot-email', tarotEmail.router); // tap-to-reveal Card of the Day email (Brevo)
@@ -1800,30 +1818,83 @@ const thumbHot = new Map(); // url|w → cached public URL (per-process)
 // list can hand out direct storage URLs for thumbs that already exist.
 const thumbName = (url, w) => 'thumbs/'
   + require('crypto').createHash('sha1').update(url + '|' + w).digest('hex') + '.webp';
+// THE THUMB GENERATOR IS GATED, DEDUPED AND REMEMBERS ITS FAILURES
+// (2026-08-25, read straight off the Render logs the night the box kept
+// OOM-restarting: every kill sat seconds after a burst of `thumb failed`
+// lines while her phone loaded a grid). The old path ran ONE generation per
+// request with no limit: forty tiles asking at once meant forty full
+// originals buffered (3-12MB each) and forty sharp decodes in parallel —
+// past 512MB on their own. And a FAILED thumb (a 403'd source, a HEIC sharp
+// can't read) was never remembered, so every repaint of the same grid
+// re-downloaded and re-failed the same images. Now: at most TWO generations
+// at a time process-wide (`thumbSlot`), one in-flight promise per url so a
+// burst of tiles asking for the same picture costs one download
+// (`thumbBusy`), a failure is remembered for 10 minutes and answered with
+// the original instead of a retry (`thumbBad`), an over-20MB source is
+// refused (a thumb of it is not worth the decode on this box), and when the
+// queue is deep the route just serves the original — a slow tile, never a
+// dead site.
+const thumbBad = new Map(); // url|w → retry-after ms epoch
+const thumbBusy = new Map(); // url|w → in-flight promise
+let thumbActive = 0; const thumbWaiters = [];
+const THUMB_CONCURRENCY = 2;
+function thumbSlot() {
+  if (thumbActive < THUMB_CONCURRENCY) { thumbActive++; return Promise.resolve(); }
+  return new Promise((r) => thumbWaiters.push(r));
+}
+function thumbDone() {
+  const next = thumbWaiters.shift();
+  if (next) next(); else thumbActive--;
+}
 async function makeThumb(url, w) {
   const key = url + '|' + w;
   if (thumbHot.has(key)) return thumbHot.get(key);
-  const bucket = admin.storage().bucket();
-  const file = bucket.file(thumbName(url, w));
-  const [exists] = await file.exists();
-  if (!exists) {
-    const r = await fetch(url);
-    if (!r.ok) throw new Error('fetch ' + r.status);
-    const out = await require('sharp')(await r.buffer())
-      .resize({ width: w, withoutEnlargement: true })
-      .webp({ quality: 75 })
-      .toBuffer();
-    await file.save(out, { contentType: 'image/webp', resumable: false });
-    await file.makePublic();
+  const badUntil = thumbBad.get(key);
+  if (badUntil && badUntil > Date.now()) throw new Error('recently failed — serving the original');
+  if (thumbBusy.has(key)) return thumbBusy.get(key);
+  const job = (async () => {
+    const bucket = admin.storage().bucket();
+    const file = bucket.file(thumbName(url, w));
+    const [exists] = await file.exists();
+    if (!exists) {
+      await thumbSlot();
+      try {
+        const r = await fetch(url);
+        if (!r.ok) throw new Error('fetch ' + r.status);
+        const len = Number(r.headers.get('content-length') || 0);
+        if (len > 20 * 1048576) throw new Error(`source too big to thumb (${Math.round(len / 1048576)}MB)`);
+        const out = await require('sharp')(await r.buffer())
+          .resize({ width: w, withoutEnlargement: true })
+          .webp({ quality: 75 })
+          .toBuffer();
+        await file.save(out, { contentType: 'image/webp', resumable: false });
+        await file.makePublic();
+      } finally { thumbDone(); }
+    }
+    const pub = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+    thumbHot.set(key, pub);
+    return pub;
+  })();
+  thumbBusy.set(key, job);
+  try {
+    return await job;
+  } catch (e) {
+    thumbBad.set(key, Date.now() + 10 * 60 * 1000);
+    throw e;
+  } finally {
+    thumbBusy.delete(key);
   }
-  const pub = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
-  thumbHot.set(key, pub);
-  return pub;
 }
 // Background warmer: pre-makes missing thumbs right after an assets-list
 // request (a few at a time), so tiles get direct storage URLs on the next
 // load instead of bouncing through this server one image at a time.
 const thumbWarmQ = []; const thumbWarmSeen = new Set(); let thumbWarmActive = 0;
+// Named in every memwatch snapshot, so a leak here can't hide (see memwatch.js).
+memwatch.gauge('thumbHot', () => thumbHot.size);
+memwatch.gauge('thumbBad', () => thumbBad.size);
+memwatch.gauge('thumbWarmSeen', () => thumbWarmSeen.size);
+memwatch.gauge('thumbWarmQ', () => thumbWarmQ.length);
+
 function warmThumbs(urls, w) {
   urls.forEach((u) => {
     const k = u + '|' + w;
@@ -1844,6 +1915,9 @@ app.get('/api/story/thumb', async (req, res) => {
     const w = Math.max(80, Math.min(1200, parseInt(req.query.w, 10) || 480));
     if (!THUMB_HOSTS.test(url)) return res.status(400).json({ error: 'unsupported image host' });
     if (!admin.apps.length) return res.redirect(302, url);
+    // Overloaded? Serve the original rather than queueing another decode —
+    // a slow tile beats an OOM'd server (see the gate above).
+    if (!thumbHot.has(url + '|' + w) && thumbWaiters.length > 12) return res.redirect(302, url);
     res.redirect(302, await makeThumb(url, w));
   } catch (err) {
     console.error('thumb failed:', err.message);
@@ -2656,7 +2730,11 @@ async function syncVoteToAssets(url, vote) {
     // chat also delivered it. Measured 2026-08-22: 21 of 22 hearted
     // Playground pictures had ONLY that row, so a record-only sync wrote
     // nothing at all.
-    if (/\/promptlab\//.test(String(url))) chats.add('my-creations');
+    // Panels files every sheet and every cut panel into My Creations the same
+    // way (panels.js's fileRun), so its pictures vote as 'my-creations' too —
+    // without this a ♥ on a panel wrote nothing at all unless a chat had also
+    // delivered that picture into its own Assets tab.
+    if (/\/(promptlab|panels)\//.test(String(url))) chats.add('my-creations');
     for (const q of queries) {
       try {
         (await q.limit(20).get()).docs.forEach((d) => {
@@ -2686,6 +2764,27 @@ async function syncVoteToPlayground(url, vote) {
       [`votes.${i}`]: (vote === 'like' || vote === 'dislike')
         ? vote : admin.firestore.FieldValue.delete(),
     });
+  } catch (e) { /* best-effort */ }
+}
+// The Panels sibling of the above: a ♥/✕ she gives in the Assets tab (or in
+// Meta Assets) lands back on the panels RUN doc, so its feed, its tiles and
+// its lightbox agree with the tab. Keyed by CELL NAME, the same key
+// POST /api/panels/:id/vote writes — a resume re-cuts only the missing panels,
+// so a position is not a stable name for a picture.
+async function syncVoteToPanels(url, vote) {
+  if (!url || !/\/panels\//.test(String(url)) || !admin.apps.length) return;
+  try {
+    const snap = await admin.firestore().collection('forge-panels')
+      .orderBy('createdAt', 'desc').limit(400).get();
+    for (const doc of snap.docs) {
+      const d = doc.data() || {};
+      const cell = d.sheetUrl === url ? 'sheet'
+        : ((d.images || []).find((im) => im && im.url === url) || {}).cell;
+      if (!cell) continue;
+      await doc.ref.update(new admin.firestore.FieldPath('votes', cell),
+        (vote === 'like' || vote === 'dislike') ? vote : admin.firestore.FieldValue.delete());
+      return;
+    }
   } catch (e) { /* best-effort */ }
 }
 // Legacy docs hold only a single `note` string (everything written before the
@@ -2789,7 +2888,10 @@ app.post('/api/gallery/assets/vote', express.json(), async (req, res) => {
     }
     // A ♥/✕ (or a clear) on a Playground-made picture also lands on its run
     // doc, so the Playground's own feed agrees — see syncVoteToPlayground.
-    if (vote !== undefined) await syncVoteToPlayground(url, vote);
+    if (vote !== undefined) {
+      await syncVoteToPlayground(url, vote);
+      await syncVoteToPanels(url, vote);
+    }
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -2891,6 +2993,29 @@ app.post('/api/gallery/assets/note-voice', express.json({ limit: '8mb' }), async
 // what Sophie asked and what it already answered. Images she never wrote on are
 // omitted, so this stays small next to the full assets list. `waiting:'chat'`
 // is the queue: she spoke last and nobody has replied.
+// ONE image's note thread, by url (2026-08-26). The sibling `/notes` route
+// answers with every threaded image in a chat — it reads that chat's WHOLE
+// vote collection and its whole asset collection to do it, which is right for
+// a chat sweeping what is waiting for it and far too heavy for a lightbox
+// opening on one picture. This is a single doc read.
+app.get('/api/gallery/assets/note', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  res.set('Cache-Control', 'no-store');
+  try {
+    const chat = String(req.query.chat || '').slice(0, 60);
+    const url = String(req.query.url || '').slice(0, 500);
+    if (!chat || !url) return res.status(400).json({ error: 'chat and url required' });
+    if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
+    const snap = await assetVoteRef(chat, url).get();
+    const v = snap.exists ? snap.data() : {};
+    const thread = assetThread(v);
+    return res.json({ url, thread, waiting: assetWaiting(thread),
+      vote: v.vote || null, done: v.done ? true : false });
+  } catch (err) { return res.status(500).json({ error: err.message }); }
+});
+
 app.get('/api/gallery/assets/notes', async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
     return res.status(401).json({ error: 'unauthorized' });
@@ -4945,6 +5070,24 @@ app.post('/api/witch/cart/update', async (req, res) => {
   }
 });
 
+// THE WHOLE PROMPT IS STORED WHEREVER AN IMAGE IS MADE (Sophie's hard rule,
+// 2026-08-24; her follow-up 2026-08-25: "any surface or endpoint or route or
+// anything"). The four /api/generate/* image routes below were the last
+// stateless ones — they built a full prompt, handed the picture back and
+// persisted nothing, so the exact text existed for the length of one request.
+// Each saved image now files into My Creations with the whole prompt through
+// the one shared filer (style-test and deck-batch proxy into these routes
+// internally, so they are covered by the same four calls). Fire-and-forget:
+// a gallery hiccup must never fail a render that already exists.
+function fileGenerateRoute({ url, prompt, full, prefix, suffix, model, quality, canvas, style }) {
+  Promise.resolve()
+    .then(() => fileCreationDoc({
+      url, prompt, fullPrompt: full || prompt, promptPrefix: prefix, promptSuffix: suffix,
+      model, quality, canvas, style, source: 'teststation',
+    }))
+    .catch((err) => console.warn('generate → My Creations failed:', err.message));
+}
+
 // ─── Single image: DALL·E ───────────────────────────────────────────
 app.post('/api/generate/dalle', async (req, res) => {
   try {
@@ -4960,6 +5103,11 @@ app.post('/api/generate/dalle', async (req, res) => {
     const data = await response.json();
     if (data.error) return res.status(400).json({ error: data.error.message });
     const permanentUrl = await saveToFirebase(data.data[0].url, 'dalle');
+    // What WE sent is the record; DALL·E's own rewrite rides the style slot so
+    // neither text is lost and neither is filed as the other.
+    fileGenerateRoute({ url: permanentUrl, prompt, full: prompt,
+      model: 'dall-e-3', quality, canvas: size,
+      style: data.data[0].revised_prompt ? 'dalle rewrote the prompt' : '' });
     res.json({ url: permanentUrl, revised_prompt: data.data[0].revised_prompt });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -4977,6 +5125,10 @@ app.post('/api/generate/gptimage', async (req, res) => {
     const b64 = data.data?.[0]?.b64_json;
     if (!b64) return res.status(400).json({ error: 'gpt-image-2 returned no image' });
     const url = await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/webp', 'openai');
+    // Verbatim surface — her words go through untouched, so there is no style
+    // half to file and the full prompt IS the content.
+    fileGenerateRoute({ url, prompt, full: prompt,
+      model: 'gpt-image-2', quality, canvas: size });
     res.json({ url });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -5044,31 +5196,11 @@ async function openaiImageEditRefs(prompt, refBuffers, { quality = 'low', size =
   }
   throw lastErr;
 }
-// Flood-fill the border-connected background to pure white (for whitened house
-// styles). Interior colours walled off by black outlines are preserved. Safe
-// for a single centred subject with white space around it (the Test Station case).
-async function whitenBackground(buf, tol = 46) {
-  const sharp = require('sharp');
-  const { data, info } = await sharp(buf).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  const { width: W, height: H, channels: C } = info;
-  const idx = (x, y) => (y * W + x) * C;
-  const corners = [[2, 2], [W - 3, 2], [2, H - 3], [W - 3, H - 3]];
-  let br = 0, bg = 0, bb = 0;
-  for (const [x, y] of corners) { const i = idx(x, y); br += data[i]; bg += data[i + 1]; bb += data[i + 2]; }
-  br /= 4; bg /= 4; bb /= 4;
-  const tol2 = tol * tol;
-  const close = (i) => { const dr = data[i] - br, dg = data[i + 1] - bg, db = data[i + 2] - bb; return dr * dr + dg * dg + db * db <= tol2; };
-  const visited = new Uint8Array(W * H), stack = [];
-  const pushIf = (x, y) => { if (x < 0 || y < 0 || x >= W || y >= H) return; const p = y * W + x; if (visited[p] || !close(idx(x, y))) return; visited[p] = 1; stack.push(p); };
-  for (let x = 0; x < W; x++) { pushIf(x, 0); pushIf(x, H - 1); }
-  for (let y = 0; y < H; y++) { pushIf(0, y); pushIf(W - 1, y); }
-  while (stack.length) { const p = stack.pop(), x = p % W, y = (p - x) / W; pushIf(x + 1, y); pushIf(x - 1, y); pushIf(x, y + 1); pushIf(x, y - 1); }
-  const out = Buffer.from(data);
-  for (let p = 0; p < W * H; p++) if (visited[p]) { const i = p * C; out[i] = 255; out[i + 1] = 255; out[i + 2] = 255; if (C === 4) out[i + 3] = 255; }
-  // lossless — this buffer REPLACES the original (an argument-less webp
-  // encode silently re-encodes the whole picture at sharp's default 80).
-  return await sharp(out, { raw: { width: W, height: H, channels: C } }).webp({ lossless: true }).toBuffer();
-}
+// The flood-fill whiten pass lives in its own file (whiten-bg.js) since
+// 2026-08-26: the Story Room's PASTEL style draws this same recipe from
+// scratchpad.js, which cannot reach in here, and a second copy of a
+// twenty-line flood fill is exactly the drift this repo keeps paying for.
+const { whitenBackground } = require('./whiten-bg');
 app.post('/api/generate/housestyle', async (req, res) => {
   try {
     // Default MEDIUM — matches how the illustrated lessons (specA) were rendered.
@@ -5087,6 +5219,11 @@ app.post('/api/generate/housestyle', async (req, res) => {
     let buf = Buffer.from(b64, 'base64');
     if (style.whiten) { try { buf = await whitenBackground(buf); } catch (e) { console.warn('house whiten failed:', e.message); } }
     const url = await saveBufferToFirebase(buf, 'image/webp', 'housestyle');
+    // `full` is the literal string handed to the edits call two lines up; the
+    // style's own prompt and tail are the wrapper around her words.
+    fileGenerateRoute({ url, prompt, full,
+      prefix: style.stylePrompt || '', suffix: style.end || '',
+      model: 'gpt-image-2', quality, canvas: '1024x1024', style: style.name || styleId });
     res.json({ url });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -5201,6 +5338,13 @@ app.post('/api/generate/replicate', async (req, res) => {
     const permanentUrls = [];
     for (const tempUrl of urls) {
       permanentUrls.push(await saveToFirebase(tempUrl, 'replicate'));
+    }
+    // The LoRA's wrapper is its trigger in front and its suffix behind —
+    // `fullPrompt` is what was actually sent. One filing per output.
+    for (const u of permanentUrls) {
+      fileGenerateRoute({ url: u, prompt, full: fullPrompt,
+        prefix: known ? known.trigger : '', suffix: known?.promptSuffix || '',
+        model, style: known ? known.name : '' });
     }
     res.json({ url: permanentUrls[0], urls: permanentUrls });
   } catch (err) {
@@ -5392,6 +5536,10 @@ const PL_GPT_STYLES = {
   // tile. Its refs live in STORAGE, not refs/, so they load through
   // loadHouseRef; `storageRefs` is what marks that. NO Sophie character card:
   // hers is the watercolor look, the wrong reference for this line.
+  // The Story Room pad's PASTEL side draws this same recipe —
+  // STYLE_ART.pastel in scratchpad.js copies the prefix, the suffix, the two
+  // Storage refs AND the whiten pass (test-scratchpad-style.js pins all four).
+  // Reword here → move that copy in the same commit.
   pastel: {
     label: 'Pastel',
     storageRefs: ['witch-school/refs/sophie-snake.png', 'witch-school/refs/sophie-animals.png'],
@@ -5429,10 +5577,10 @@ const PL_GPT_STYLES = {
     // her first paragraph, the suffix her second, verbatim. The prefix lost the
     // "linework, hand-drawn texture, and muted palette EXACTLY" list — she
     // shortened it to "copy its drawing style" — so do not put that back.
-    // The Story Room pad's DREAMY toggle draws this same recipe —
-    // scratchpad.js's DREAMY.prefix/.suffix are COPIES of these two strings
-    // (test-scratchpad-style.js pins them byte-for-byte). Reword here → move
-    // that copy in the same commit.
+    // The Story Room pad's DREAMY side draws this same recipe —
+    // STYLE_ART.dreamy.prefix/.suffix in scratchpad.js are COPIES of these two
+    // strings (test-scratchpad-style.js pins them byte-for-byte). Reword here
+    // → move that copy in the same commit.
     prefix: 'The FIRST attached image is a STYLE reference — copy its drawing style ' +
       'but do NOT copy its content, subjects, or composition.',
     // THE TAIL IS HERS, dictated verbatim 2026-08-22. Two clauses moved from
@@ -5671,6 +5819,42 @@ async function fileRunToCreations(images, { prompt, style, model, quality, size,
   }
 }
 
+// ── A RUN STARTED FROM A STORY BEAT LANDS ON THAT BEAT ──────────────
+// Sophie, 2026-08-26: tapping the Playground button on a beat should carry
+// its drawing prompt over, and "whatever I just made, there should also be
+// for that beat".
+//
+// THE SERVER PLACES IT, NOT THE PAGE, and that is the whole point: a medium
+// picture takes 30-90s, so if the page did it she would lose the picture by
+// tapping back before it landed — the house rule that anything slow is a
+// background job whose result is persisted, never something to sit and watch.
+// Best-effort throughout: a beat she deleted meanwhile, or a pad that has
+// moved on, must never fail a paid render.
+//
+// Pictures are placed OLDEST FIRST, so the newest becomes the beat's art and
+// the rest sit in its past-pictures row — the row is what she picks from, and
+// scratchpad's swapArt keeps whatever was there before it in that row too.
+// Nothing is ever deleted, so this is always two taps from undone.
+function padTargetOf(body) {
+  const pad = String((body && body.padTarget && body.padTarget.pad) || '').slice(0, 120);
+  const beat = String((body && body.padTarget && body.padTarget.beat) || '').slice(0, 120);
+  if (!pad || !beat) return null;
+  const style = String((body.padTarget.style) || '');
+  return { pad, beat, style: ['watercolor', 'dreamy', 'pastel'].includes(style) ? style : 'watercolor' };
+}
+async function landOnBeat(target, images, runId, meta) {
+  if (!target || !images || !images.length) return;
+  const { placeOnBeat } = require('./scratchpad');
+  for (let i = 0; i < images.length; i++) {
+    try {
+      await placeOnBeat(target.pad, target.beat, images[i], target.style, {
+        runId, i, prompt: meta.prompt || null, model: meta.model || null,
+        engine: meta.engine || null, quality: meta.quality || null,
+      });
+    } catch (err) { console.warn('promptlab → beat failed:', err.message); }
+  }
+}
+
 // One run = `outputs` independent edits calls, all sent together, each landing
 // on the doc as it finishes (status 'ready' on the first, 'done' when all are
 // in) so the grid fills in as they arrive. A single failed call costs its
@@ -5746,6 +5930,10 @@ async function runPromptLabGptJob(docRef, cfg) {
     // differ from the sent text by so much as a space. The halves come from
     // the style's own baked prefix/suffix (or her edited override, which is
     // what `cfg.head`/`cfg.tail` carry).
+    // Started from a story beat? The picture is that beat's now — see
+    // landOnBeat. After the doc is done, so the feed shows it either way.
+    await landOnBeat(cfg.padTarget, images, docRef.id,
+      { prompt: cfg.prompt, model: PL_GPT.id, engine: 'gptimage', quality: cfg.quality });
     fileRunToCreations(images, {
       prompt: cfg.prompt, style: `${st.label} · ${cfg.quality}`,
       model: PL_GPT.id, quality: cfg.quality, size: cfg.size || PL_GPT.size,
@@ -5803,6 +5991,8 @@ async function runPromptLabJob(docRef, cfg) {
     const images = await Promise.all(urls.map(u => saveToFirebase(u, 'promptlab')));
     plCancelled.delete(docRef.id);
     await docRef.update({ status: 'done', images });
+    await landOnBeat(cfg.padTarget, images, docRef.id,
+      { prompt: cfg.prompt, model: cfg.styleLabel, engine: 'replicate', quality: null });
     // The LoRA's wrapper is its trigger word in front and its suffix behind —
     // `cfg.fullPrompt` is what was actually sent.
     fileRunToCreations(images, {
@@ -5825,6 +6015,8 @@ app.post('/api/promptlab', async (req, res) => {
     const typed = String(req.body.prompt || '').trim();
     if (!typed) return res.status(400).json({ error: 'prompt required' });
     const modelId = req.body.model || 'sageryza/watercolordrawings';
+    // She came here from a story beat — the picture belongs to it (landOnBeat).
+    const padTarget = padTargetOf(req.body);
 
     // The gpt-image-2 style: her words go through UNTOUCHED (no trigger word,
     // no trailing-period trim, no suffix) after the baked style-ref prefix.
@@ -5905,12 +6097,13 @@ app.post('/api/promptlab', async (req, res) => {
         aspectRatio: canvas.aspectRatio, res: resId, promptEdited: edited, noText,
         styleRef: (st.refFiles || []).concat(st.storageRefs || []).join(','), outputs,
         character, photoRef: photoUrl, images: [], createdAt: admin.firestore.Timestamp.now(),
+        ...(padTarget ? { padTarget } : {}),
       });
       // head/tail ride along so the filed style half is what ACTUALLY wrapped
       // her words on this run — her prefix/suffix override if she made one,
       // the character line and the photo line only when they were really
       // attached — rather than the style's baked default.
-      runPromptLabGptJob(docRef, { fullPrompt, head, tail, outputs, quality, prompt: typed, character, styleId, size: canvas.size, photoBuf });
+      runPromptLabGptJob(docRef, { fullPrompt, head, tail, outputs, quality, prompt: typed, character, styleId, size: canvas.size, photoBuf, padTarget });
       return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
     }
 
@@ -5935,11 +6128,12 @@ app.post('/api/promptlab', async (req, res) => {
       id: docRef.id, status: 'running', engine: 'replicate', prompt: content, fullPrompt, suffix,
       model: modelId, trigger: known.trigger, loraScale, seed, aspectRatio, steps, outputs,
       images: [], createdAt: admin.firestore.Timestamp.now(),
+      ...(padTarget ? { padTarget } : {}),
     });
     // The LoRA's wrapper is its TRIGGER in front and `tail` behind; both ride
     // along so the filed style half is the real one.
     runPromptLabJob(docRef, { version, fullPrompt, loraScale, seed, aspectRatio, steps, outputs,
-      prompt: content, styleLabel: known.name, prefix: known.trigger, suffix: tail });
+      prompt: content, styleLabel: known.name, prefix: known.trigger, suffix: tail, padTarget });
     res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
   } catch (err) {
     res.status(500).json({ error: err.message });

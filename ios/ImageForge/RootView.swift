@@ -434,6 +434,21 @@ struct RootView: View {
         // ://business (the second home grid). Opens
         // Deck Factory straight to that tab. Scheme registered in Info.plist.
         .onOpenURL { url in handleDeepLink(url) }
+        // UNIVERSAL LINKS — the same thing for an ordinary
+        // https://imageforge-q125.onrender.com/… link, which unlike a custom
+        // scheme is tappable everywhere she reads (Aug 2026). iOS delivers it
+        // as a browsing activity, not through onOpenURL, so this second door
+        // is required; both walk into the same handler. See ForgeLinks.swift.
+        .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+            if let url = activity.webpageURL { handleDeepLink(url) }
+        }
+        // AND THE SAME LINK TAPPED INSIDE THE APP (2026-08-25). iOS never
+        // hands a universal link to the app it is already in, so a tool link
+        // in a message used to bounce out to Safari. The web views ask
+        // ForgeLinks.open first and it arrives here instead.
+        .onReceive(NotificationCenter.default.publisher(for: ForgeLinks.opened)) { note in
+            if let url = note.object as? URL { handleDeepLink(url) }
+        }
         // A tapped push lands on the Chats screen; ChatFeedView hears the same
         // notification and reloads its page onto the Update tab (?view=news).
         .onReceive(NotificationCenter.default.publisher(for: .forgePushOpenUpdate)) { _ in
@@ -449,11 +464,44 @@ struct RootView: View {
     }
 
     private func handleDeepLink(_ url: URL) {
-        guard url.scheme?.lowercased() == "deckfactory" else { return }
-        // accept deckfactory://writing and deckfactory:///writing alike
-        let dest = (url.host ?? url.path)
-            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-            .lowercased()
+        let dest: String
+        if url.scheme?.lowercased() == "deckfactory" {
+            // accept deckfactory://writing and deckfactory:///writing alike
+            dest = (url.host ?? url.path)
+                .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                .lowercased()
+        } else if let d = ForgeLinks.destination(for: url) {
+            dest = d
+        } else {
+            // A path we don't claim any more (Apple caches the site's
+            // association file for a while). Bring the app forward on
+            // whatever she was looking at rather than jumping her somewhere.
+            return
+        }
+        // THE QUERY IS CARRIED NOW, which is what makes a link land on ONE
+        // THREAD rather than on the Chats list — /chats?chat=<slug> and
+        // deckfactory://chats?chat=<slug> alike. It rides the same one-shot
+        // pending flags a tapped push already uses (chats.html strips either
+        // param after honouring it, so a later reload can't drag her back),
+        // so there is one mechanism here and not two.
+        let q = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        if dest == "chats" {
+            let chat = q.first(where: { $0.name == "chat" })?.value ?? ""
+            let view = q.first(where: { $0.name == "view" })?.value ?? ""
+            if !chat.isEmpty {
+                PushDelegate.pendingChat = chat
+                PushDelegate.pendingUpdateTab = false
+            } else if view == "news" {
+                PushDelegate.pendingChat = nil
+                PushDelegate.pendingUpdateTab = true
+            }
+            if !chat.isEmpty || view == "news" {
+                // ChatFeedView reloads its page onto the pending destination,
+                // and RootView's own listener brings the Chats screen up.
+                NotificationCenter.default.post(name: .forgePushOpenUpdate, object: nil)
+                return
+            }
+        }
         go(dest)
     }
 
@@ -995,18 +1043,27 @@ private struct HomeGrid: View {
     /// The glyph inside, scaled with the square (48/21 ≈ 60/26).
     private static let squareIcon: CGFloat = 26
 
-    /// FOUR rounded SQUARES across, icons only (Sophie: "just the icon"). ONE
-    /// opens a tool (Chats); the other three are filters on the cards below —
-    /// the lit one clears back to everything when tapped again. Chats is here
-    /// AND in its top-right corner on purpose ("it can be in two places,
-    /// silly"), so don't "fix" that duplicate.
+    /// FIVE rounded SQUARES across, icons only (Sophie: "just the icon"). TWO
+    /// are actions (the HOUSE and Chats); the other three are filters on the
+    /// cards below — the lit one clears back to everything when tapped again.
+    /// Chats is here AND in its top-right corner on purpose ("it can be in two
+    /// places, silly"), so don't "fix" that duplicate.
+    ///
+    /// **THE HOUSE ON THE LEFT IS THE WAY BACK TO THE PLAIN GRID (2026-08-25,
+    /// Sophie: "add a fifth tile on the home screen on the left, a picture of a
+    /// home that just takes you back to the home grid thing").** With a filter
+    /// lit, the only way back to everything was to remember WHICH chip was on
+    /// and tap that same one again — a way out you have to find first. The
+    /// house clears the filter from wherever she is, and it is deliberately
+    /// never LIT: it is an action like Chats, not a fifth filter, and a chip
+    /// that glows on the screen's normal resting state is noise.
     ///
     /// **THE BRIEFCASE AND THE QUILT CAME OFF (Aug 2026, Sophie: "get rid of
     /// the briefcase and the quilt icons in the five line row … since they
     /// also exist in the very top header row").** Both filters are unchanged
     /// and still one tap away — they live in the masthead corners, which is
-    /// where they were duplicated FROM. The row is Chats · Pictures · Movies ·
-    /// Movies-as-a-pile now.
+    /// where they were duplicated FROM. The row is House · Chats · Pictures ·
+    /// Movies · Movies-as-a-pile now.
     ///
     /// **The DUMP square came off (Aug 2026, Sophie: "we can get rid of the
     /// dump button in the row at the top since it's now in the main home
@@ -1015,6 +1072,11 @@ private struct HomeGrid: View {
     /// the default grid got short. The Dump still opens on SORT from its card.
     private var shortcutRow: some View {
         HStack(spacing: 0) {
+            // Same `house` glyph the bottom bar's Home slot wears, so the two
+            // ways back to the plain grid read as the same thing.
+            square(lit: false, label: "Everything") { filter = .all } icon: {
+                Image(systemName: "house").font(.system(size: Self.squareIcon))
+            }
             square(lit: false, label: "Chats") { open(.chats) } icon: {
                 Image(systemName: Tool.chats.icon).font(.system(size: Self.squareIcon))
             }
@@ -1029,7 +1091,7 @@ private struct HomeGrid: View {
             // The SECOND movies chip — the same tools as one flat pile of
             // small cards (Sophie, Aug 2026). A different glyph on purpose:
             // the clapperboard, so the two film chips can never be mistaken
-            // for each other in a row of four.
+            // for each other in the row.
             square(lit: filter == .movieFlat, label: "Movies, all in one pile") { toggle(.movieFlat) } icon: {
                 Image(systemName: Self.flatFilmSymbol).font(.system(size: Self.squareIcon))
             }

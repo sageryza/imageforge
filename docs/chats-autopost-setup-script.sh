@@ -47,6 +47,17 @@ cat > /home/user/.claude/hooks/post-to-feed.sh << 'HOOK'
 # its image deliverables into the iOS "My Creations" gallery — zero model
 # tokens, nothing to remember. Runs as a Stop hook after every reply.
 #
+# v16 (2026-08-26) — TWO MESSAGES IN A ROW: THE FIRST NO LONGER VANISHES.
+# Sophie: "my first message is missing from this chat. I sent two messages in a
+# row." Her half baselined `users[:-1]` on a session's first firing, which is
+# harmless when that firing is the first UserPromptSubmit (one message, nothing
+# dropped) and destructive when two of her messages already exist — she sends a
+# second one into the queue while the first turn runs, the Stop at the end of
+# that turn is the first firing, and her REAL request is marked posted without
+# ever being sent. The transcript is the only copy. The reply half has always
+# baselined all but the latest TURN; her half does the same now. See the note
+# on `first_u` below. Test: scripts/test-chats-first-message.js.
+#
 # v15 (2026-08-24) — A BACKFILLED REPLY KEEPS ITS REAL TIME. Every post now
 # carries `created`, the turn's own first-assistant-record timestamp. Her
 # messages have carried `at` since July 2026 and the server has accepted
@@ -503,8 +514,11 @@ with open(path, encoding='utf-8') as f:
             if r.get('operation') == 'enqueue' and r.get('timestamp'):
                 qt = her_words(r, r.get('content') or '')
                 if qt:
+                    # A still-queued message has no user record yet, so it is by
+                    # definition newer than every one that has one — `i` = INF
+                    # keeps it out of the first-run baseline below.
                     queued.append({'uuid': 'q:' + r['timestamp'], 'text': qt,
-                                   'at': r['timestamp']})
+                                   'at': r['timestamp'], 'i': float('inf')})
             continue
         role = (r.get('message') or {}).get('role')
         if role == 'user':
@@ -522,8 +536,11 @@ with open(path, encoding='utf-8') as f:
                 raw_since = []
                 mine = her_words(r, gettext(r))
                 if mine and r.get('uuid'):
+                    # `i` = where this record sits in the transcript, kept so the
+                    # first-run baseline below can ask which messages belong to
+                    # the LATEST turn instead of keeping only the last one.
                     users.append({'uuid': r['uuid'], 'text': mine,
-                                  'at': r.get('timestamp') or ''})
+                                  'at': r.get('timestamp') or '', 'i': idx})
                 continue
             raw_since.append(ln)
             continue
@@ -597,9 +614,28 @@ if uf and users:
     new_useen = set(useen)
     # …and her own messages baseline with them (same flag, same reason: a
     # backfilled thread that carried only the replies would read as a monologue)
+    #
+    # HER FIRST MESSAGE WENT MISSING WHENEVER SHE SENT TWO IN A ROW (found live
+    # 2026-08-26 in panels-playground-parity: she sent the work request and then
+    # "thank you", the session's FIRST hook firing was the Stop at the end of
+    # that long turn, and `users[:-1]` silently marked the real request posted
+    # while only "thank you" went out — the thread opens on a reply answering a
+    # question nobody can see, and the transcript is the only copy).
+    # The feed side above baselines all but the LATEST TURN, not the last
+    # reply; this is the same rule for her half. Everything from the turn's
+    # own user record onward is kept (`i >= last_user`), plus anything still
+    # QUEUED (`i` = INF), plus — belt and braces — her newest message, which
+    # is all the old rule ever kept. So this can only ever post MORE than
+    # before, never fewer, and a mid-life self-heal still posts 1-2 messages
+    # rather than flooding her feed with a week of history.
     if first_u and not os.environ.get('FORGE_BACKFILL', '').strip():
-        for u in users[:-1]:
-            new_useen.add(u['uuid'])
+        keep = {users[-1]['uuid']}
+        for u in users:
+            if u.get('i', 0) >= last_user:
+                keep.add(u['uuid'])
+        for u in users:
+            if u['uuid'] not in keep:
+                new_useen.add(u['uuid'])
     for u in users:
         # either id counts as already-posted: the queue record's key and the
         # user record's uuid are the SAME message (see the alias pass above)

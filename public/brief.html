@@ -32,12 +32,10 @@
 <title>Update</title>
 <link rel="stylesheet" href="/tool.css">
 <style>
-  /* THE INJECTED PILL IGNORES :root — public/pill-inject.html declares its own
-     palette ON the element (.float), and an element's own custom property beats
-     an inherited one, so a page that only sets :root gets a near-black pill on
-     its own paper. Out-specify it (measured 2026-08-15 on /chunking). */
-  body.tool .float{ --paper:#faf9f7; --ink:#3a3530; --ink2:#9e9590;
-    --chg:#b48b6a; --rose:#a5586a; }
+  /* NO .float OVERRIDE — the pill reads the host's :root (the settled contract,
+     `var(--x, fallback)` in pill-inject.html), and the palette is house.css.
+     This block hardcoded the OLD studio white and tan, so after every page
+     moved to the cream the PILL alone stayed white — measured 2026-08-24. */
   :root{ --rose:#a5586a; }
 
   /* 64, not tool.css's 56: the pill's left edge lands at x=326 on a 390pt

@@ -16,6 +16,7 @@
  * So 4K is the tier where a quarter comes out BIGGER than an ordinary 1K
  * picture. 2K is cheaper still but its quarters are smaller than a plain 1K
  * image, which is the thing that is easy to get backwards.
+
  *
  * THE CUT IS LOCAL, FREE AND LOSSLESS — an exact crop of the sheet's own
  * pixels, never a resample, so a panel is the model's output rather than a
@@ -41,7 +42,8 @@
  *                                — SERVED, never copied into the page
  *   POST /                       start a sheet; returns an id in ~0.3s
  *   GET  /:id                    one run, with its job state
- *   GET  /                       the feed, newest first (?limit=&q=)
+ *   GET  /                       the feed, newest first (?limit=&q=&before=)
+ *   POST /:id/vote               ♥ / ✕ one cut panel (or the sheet)
  *   POST /:id/hide               hide a run from the feed (never deleted)
  *
  * Nothing here is deleted outright and no route overwrites a render.
@@ -51,6 +53,7 @@ const admin = require('firebase-admin');
 const sheetGrid = require('./sheet-grid');
 const sheetSeams = require('./sheet-seams');
 const sizeTier = require('./size-tier');
+const searchGrammar = require('./search-grammar');
 
 const COLLECTION = 'forge-panels';
 const MAX_PANEL_CHARS = 1200;   // one cell's words; generous, cut not refused
@@ -68,6 +71,7 @@ let deps = {
   styles: {},             // PL_GPT_STYLES
   gpt: {},                // PL_GPT
   whiten: null,           // (buf) -> Promise<Buffer>
+  syncVote: null,         // (url, 'like'|'dislike'|null) -> Promise — the Assets mirror
 };
 function init(d) { deps = Object.assign(deps, d || {}); }
 // Tests drive cutSheet directly with a stub uploader — the module owns none of
@@ -126,6 +130,11 @@ router.get('/config', (req, res) => {
   }
   const styles = Object.entries(deps.styles || {}).map(([id, st]) => ({
     id, label: st.label, prefix: st.prefix, suffix: st.suffix,
+    // WHAT IS ACTUALLY SENT, not what the style says on its own: a sheet
+    // REPLACES the one-picture clause in the tail rather than arguing with it
+    // (see sheetSuffix). The page's Prompt panel shows this half and her edits
+    // are compared against it, so the "edited" mark means what it says.
+    sheetSuffix: sheetSuffix(st.suffix || ''),
     refs: (st.refFiles || []).concat(st.storageRefs || []),
   }));
   res.json({
@@ -298,7 +307,9 @@ router.post('/', async (req, res) => {
     const shapeId = sheetGrid.SHAPES[String(req.body.shape)] ? String(req.body.shape) : 'portrait';
     // 4K is the default HERE, unlike the Playground's 1K — a sheet only pays
     // off at the tier where a cut panel beats an ordinary picture, and the
-    // whole reason to open this page is to get panels worth keeping.
+    // whole reason to open this page is to get panels worth keeping. (The
+    // hand-off OUT of a panel into the Playground is the opposite rung — see
+    // upscaleUrl in panels.html.)
     const resId = sheetGrid.TIERS[String(req.body.res)] ? String(req.body.res) : '4k';
     const plan = sheetGrid.sheetFor(gridId, shapeId, resId);
     if (!plan) return res.status(400).json({ error: 'no legal canvas for that grid' });
@@ -461,10 +472,22 @@ function fileRun(sheetUrl, images, cfg, skip) {
 /**
  * THE CUT, shared by the first run and by a resume.
  *
- * DECODED ONCE. It used to be `sharp(sheet).extract(...)` per panel, which
- * re-decodes the whole page every time — a 2336x3504 sheet is 24.5MB of raw
- * pixels, so nine panels meant nine decodes on a 512MB box that is also
- * serving the app. One decode, N crops.
+ * THE CUT RUNS IN A THROWAWAY CHILD PROCESS (2026-08-25, Sophie: "that seems
+ * insane for such a simple job — consider very different alternatives").
+ * History, all measured the same day: the original per-panel
+ * `sharp(sheet).extract(...)` re-decoded AND CACHED the whole page per crop —
+ * one 9-panel 4K recut peaked at **592MB RSS**, past the whole 512MB box,
+ * which is what OOM-killed Render on every 4K cut and, with heal-on-read
+ * re-firing it per poll, crash-looped the site for half an hour. Decoding
+ * once to a raw buffer with sharp's cache off cut that to 233MB — survivable,
+ * but the spike still rode the same process as the app. Now the decode, the
+ * seam scan and the crops all happen in `scripts/cut-sheet-worker.js`, spawned
+ * per cut: the SERVER only writes the sheet to a tmp file and reads finished
+ * ~1-3MB panels back one at a time, so its own memory stays flat, and the
+ * worst possible failure is the child dying — a failed run, never a dead
+ * site. The child self-measures (`peakRss` in its manifest, logged here), so
+ * every real cut keeps proving what it costs. Live progress comes from
+ * watching the out dir fill, patched at the same cadence as before.
  *
  * THE CUT LINES COME FROM THE PICTURE, NOT THE MATH (2026-08-25, Sophie:
  * "the cutting doesn't cut on the right lines because it's using math, but
@@ -486,45 +509,67 @@ function fileRun(sheetUrl, images, cfg, skip) {
  * `have` is what already landed, so a resume only cuts the panels that are
  * missing and never re-uploads one she may already have hearted.
  */
+const WORKER = require('path').join(__dirname, 'scripts', 'cut-sheet-worker.js');
+
 async function cutSheet(sheet, cfg, patch, have) {
-  const sharp = require('sharp');
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+  const { execFile } = require('child_process');
   const names = sheetGrid.cellNames(cfg.gridId);
   const images = (have || []).slice();
   const done = new Set(images.map((im) => im.cell));
-  // ONE decode for the whole sheet; each crop is taken from this.
-  const page = sharp(sheet, { limitInputPixels: false });
-  let boxes;
-  try {
-    const gray = await page.clone().greyscale().raw().toBuffer({ resolveWithObject: true });
-    const seams = sheetSeams.findSeams({ data: gray.data,
-      width: gray.info.width, height: gray.info.height,
-      across: cfg.plan.across, down: cfg.plan.down });
-    boxes = sheetSeams.seamBoxes(seams);
-    if (seams.moved) await patch({ seamsMoved: seams.moved });
-  } catch (e) {
-    // the seam finder failing must never cost the cut — the math lines are
-    // exactly what this tool always did
-    console.warn('panels seams failed, cutting on the math lines:', e.message);
-    boxes = sheetGrid.cutBoxes(cfg.plan);
+  const skip = [];
+  for (let i = 0; i < cfg.plan.count; i++) {
+    if (done.has(names[i] || `panel ${i + 1}`)) skip.push(i);
   }
-  for (let i = 0; i < boxes.length; i++) {
-    const cell = names[i] || `panel ${i + 1}`;
-    if (done.has(cell)) continue;
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'panels-'));
+  const sheetFile = path.join(dir, 'sheet');
+  fs.writeFileSync(sheetFile, sheet);
+  // Live progress while the child cuts: count the panel files as they land.
+  // Same cadence her page always saw, without the pixels ever entering this
+  // process.
+  const progress = setInterval(() => {
     try {
-      const buf = await page.clone().extract(boxes[i])
-        .webp({ lossless: true, effort: 0 }).toBuffer();
-      const url = await deps.saveBuffer(buf, 'image/webp', 'panels/cuts');
-      images.push({ url, cell, prompt: cfg.panels[i],
-        size: `${boxes[i].width}x${boxes[i].height}` });
-    } catch (e) {
-      // one failed cut costs its panel, not the run — the sheet is paid for
-      console.warn(`panels cut ${i + 1} failed:`, e.message);
+      const cut = fs.readdirSync(dir).filter((f) => f.startsWith('panel-')).length;
+      patch({ job: { kind: 'sheet', status: 'running',
+        done: 1 + images.length + cut, total: cfg.plan.count + 1,
+        label: 'cutting', startedAt: Date.now() } });
+    } catch (e) { /* progress is best-effort */ }
+  }, 2000);
+  try {
+    await new Promise((resolve, reject) => {
+      execFile(process.execPath, ['--max-old-space-size=256', WORKER,
+        sheetFile, dir, JSON.stringify(cfg.plan), JSON.stringify(skip)],
+      { timeout: 5 * 60 * 1000 }, (err, stdout, stderr) => {
+        if (err) reject(new Error(`cut worker failed: ${String(stderr || err.message).slice(0, 300)}`));
+        else resolve();
+      });
+    });
+    const man = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'));
+    if (man.peakRss) console.log(`panels cut worker peak RSS ${Math.round(man.peakRss / 1048576)}MB`);
+    if (man.moved) await patch({ seamsMoved: man.moved });
+    for (const p of man.panels || []) {
+      if (!p) continue;
+      const cell = names[p.i] || `panel ${p.i + 1}`;
+      if (p.error) {
+        // one failed cut costs its panel, not the run — the sheet is paid for
+        console.warn(`panels cut ${p.i + 1} failed:`, p.error);
+        continue;
+      }
+      const url = await deps.saveBuffer(fs.readFileSync(p.file), 'image/webp', 'panels/cuts');
+      fs.unlinkSync(p.file);
+      images.push({ url, cell, prompt: cfg.panels[p.i],
+        size: `${p.box.width}x${p.box.height}` });
+      // keep them in reading order however they were assembled
+      images.sort((a, b) => names.indexOf(a.cell) - names.indexOf(b.cell));
+      await patch({ images: images.slice(),
+        job: { kind: 'sheet', status: 'running', done: 1 + images.length,
+          total: cfg.plan.count + 1, label: 'cutting', startedAt: Date.now() } });
     }
-    // keep them in reading order however they were assembled
-    images.sort((a, b) => names.indexOf(a.cell) - names.indexOf(b.cell));
-    await patch({ images: images.slice(),
-      job: { kind: 'sheet', status: 'running', done: 1 + images.length,
-        total: cfg.plan.count + 1, label: 'cutting', startedAt: Date.now() } });
+  } finally {
+    clearInterval(progress);
+    try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { /* tmp */ }
   }
   return images;
 }
@@ -570,7 +615,10 @@ const DRAW_STALE_MS = 15 * 60 * 1000;
 const healing = new Set();
 function healStale(d) {
   try {
-    if (!d || d.status !== 'running' || healing.has(d.id)) return;
+    // ONE heal at a time, process-wide. Two wedged 4K runs on 2026-08-24 meant
+    // every feed read started two concurrent sheet cuts — the OOM crash loop
+    // above. The next poll (seconds away) picks up the next stale run.
+    if (!d || d.status !== 'running' || healing.size) return;
     const j = d.job || {};
     const silentFor = Date.now() - (Number(j.startedAt) || 0);
     const ref = admin.firestore().collection(COLLECTION).doc(d.id);
@@ -659,23 +707,77 @@ router.get('/:id', async (req, res) => {
 // house rule, so no route here ever needs a composite index.
 router.get('/', async (req, res) => {
   try {
-    if (!admin.apps.length) return res.json({ runs: [] });
+    if (!admin.apps.length) return res.json({ runs: [], more: false });
     const limit = Math.min(Math.max(Number(req.query.limit) || 40, 1), 200);
     const snap = await admin.firestore().collection(COLLECTION)
       .orderBy('createdAt', 'desc').limit(MAX_FEED).get();
     let runs = snap.docs.map((d) => clean(d.data())).filter((r) => !r.hidden);
-    const q = String(req.query.q || '').trim().toLowerCase();
-    if (q) runs = runs.filter((r) => hay(r).includes(q));
-    runs.slice(0, limit).forEach(healStale);
-    return res.json({ runs: runs.slice(0, limit), total: runs.length });
+    // THE HOUSE SEARCH GRAMMAR, over the WHOLE history — not the page she is
+    // looking at (the Assets tab's lesson: she searched "yarn" and got
+    // nothing, because that box only filtered what was already loaded).
+    const q = String(req.query.q || '').trim();
+    if (q) {
+      const groups = searchGrammar.compileFeed(q);
+      runs = runs.filter((r) => searchGrammar.feedMatches(hay(r), groups));
+    }
+    // `before` (a createdAt in millis) pages BACKWARDS THROUGH TIME rather
+    // than by offset — runs land at the TOP while she reads, so an offset
+    // would shift under her and repeat or skip one. The Playground's rule.
+    const before = Number(req.query.before) || 0;
+    if (before) runs = runs.filter((r) => (r.ms || 0) < before);
+    const page = runs.slice(0, limit);
+    page.forEach(healStale);
+    return res.json({ runs: page, total: runs.length, more: runs.length > page.length });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
 
-// Searchable text for one run — her words first, then how it was drawn.
+// Searchable text for one run — her words first, then how it was drawn. The
+// PAGE's own haystack (runHay in panels.html) is the same list, so its instant
+// filter over the loaded runs and this search over the whole history can never
+// disagree about what matches while the server's answer is in flight.
 function hay(r) {
-  return [(r.panels || []).join(' '), r.style, r.quality, r.sheetSize, r.cellSize,
-    r.res, r.shape, `${r.count} panels`, r.status].filter(Boolean).join(' ').toLowerCase();
+  const shape = r.shape === 'landscape' ? 'landscape side by side'
+    : (r.shape === 'square' ? 'square' : 'portrait');
+  return [(r.panels || []).join('  '), r.style, r.quality, r.sheetSize, r.cellSize,
+    r.res, shape, `${r.count} panels`, r.status].filter(Boolean).join('  ');
 }
+
+// ♥ / ✕ ON ONE PANEL (2026-08-26, Sophie: "there's no heart or X button").
+// The Playground's own rule, moved across: the mark lives on the RUN doc so
+// the feed, the tiles and the lightbox all read one answer, and it is mirrored
+// onto any Assets-tab record holding the same picture so the two surfaces
+// agree. Tapping the mark she is already on CLEARS it.
+//
+// The key is the CELL NAME, never an index — a resume re-cuts only the panels
+// that are missing, so a position is not a stable name for a picture, and
+// `top-left` is what the caption, the filing and the lightbox already call it.
+// It goes through FieldPath because a hyphen is legal in a Firestore field
+// NAME but not in a dotted path string.
+// `sheet` marks the whole page rather than a cut of it.
+router.post('/:id/vote', async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(503).json({ error: 'firebase not configured' });
+    const cell = String((req.body && req.body.cell) || '').trim().slice(0, 40);
+    if (!cell) return res.status(400).json({ error: 'cell required' });
+    const vote = ['like', 'dislike'].includes(req.body && req.body.vote) ? req.body.vote : null;
+    const ref = admin.firestore().collection(COLLECTION).doc(String(req.params.id));
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'run not found' });
+    const d = doc.data() || {};
+    const known = cell === 'sheet' || (d.images || []).some((im) => im.cell === cell);
+    if (!known) return res.status(400).json({ error: 'no such panel' });
+    await ref.update(new admin.firestore.FieldPath('votes', cell),
+      vote === null ? admin.firestore.FieldValue.delete() : vote);
+    // Awaited so a reload straight after the tap already reads the synced
+    // state; a sync failure never fails the vote.
+    try {
+      const url = cell === 'sheet' ? d.sheetUrl
+        : ((d.images || []).find((im) => im.cell === cell) || {}).url;
+      if (url && deps.syncVote) await deps.syncVote(url, vote);
+    } catch (e) { /* best-effort */ }
+    return res.json({ ok: true, cell, vote });
+  } catch (err) { return res.status(500).json({ error: err.message }); }
+});
 
 // Hidden, never deleted — the house verb.
 router.post('/:id/hide', async (req, res) => {

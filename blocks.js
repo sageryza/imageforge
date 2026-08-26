@@ -621,7 +621,18 @@ router.post('/:id/render', async (req, res) => {
     const doc = await loadDoc(req.params.id);
     if (!doc) return res.status(404).json({ error: 'no such project' });
     if (doc.status !== 'ready') throw new Error('this recording is still being read');
-    const blocks = await loadBlocks(req.params.id);
+    let blocks = await loadBlocks(req.params.id);
+    // The in-process cache can go stale when blocks.json is rewritten out of
+    // band (a re-chapter from a chat session). A card naming a block the
+    // cached copy doesn't know is that exact case — re-read Storage before
+    // refusing, so the render always cuts against the blocks the page shows.
+    const known = new Set(blocks.map((b) => b.id));
+    const wanted = (Array.isArray(req.body && req.body.cards) ? req.body.cards : [])
+      .flatMap((c) => (Array.isArray(c && c.segs) ? c.segs.map((s) => String(s && s.b)) : []));
+    if (wanted.some((b) => !known.has(b))) {
+      blocks = (await readJson(blocksPathFor(req.params.id))).blocks || [];
+      bump(req.params.id, { blocks });
+    }
     const cards = parseCards(req.body || {}, blocks);
     await startJob(req.params.id, 'render', (progress) => runRender(req.params.id, cards, progress));
     res.json({ ok: true, pieces: cards.length });

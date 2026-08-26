@@ -48,6 +48,9 @@
 //                       iOS uses, because a background URLSession must upload
 //                       from a file, and base64 would inflate a clip by a third)
 //   POST   /upload-zip?session=&bundle=                     (raw .zip body)
+//   POST   /poster                    → { id } | { url } | { all, dry, limit }
+//                                       re-bake a poster the dump-time attempt
+//                                       lost (best-effort there, never retried)
 //   PATCH  /items/:id                 → label one file
 //   PATCH  /bundle                    → { session, bundle, ...fields } — label a
 //                                       whole bundle at once (it's one thing)
@@ -441,6 +444,52 @@ async function storeOne({ bucket, session, buf: raw, ct: rawCt, filename, bundle
   return { id: ref.id, ...doc, posterUrl, posterPath };
 }
 
+// ── A POSTER BAKED AFTER THE FACT ────────────────────────────────────
+// The bake above is best-effort and ONE-SHOT: the doc is written first (a dump
+// must never be lost to a thumbnail), and if ffmpeg then dies — the 512MB box
+// busy with something else, a deploy restart mid-frame — that file tiles BLANK
+// FOREVER, because nothing ever looked again. Measured 2026-08-26: 6 of 133
+// video files carry no poster, and one of them is a beat in her Evan story,
+// which is how it was found (a clip beat's face IS its poster). The bytes are
+// still in Storage and ffmpeg posters them in a second, so the frame is
+// bakeable any time — this is that retry.
+async function ensurePoster(id, bucketIn) {
+  const bucket = bucketIn || bucketOrNull();
+  if (!bucket) return null;
+  const ref = db().collection(COL).doc(String(id));
+  const snap = await ref.get();
+  if (!snap.exists) return null;
+  const d = snap.data() || {};
+  if (d.posterUrl) return d.posterUrl;                  // already has one
+  if ((d.media || 'image') !== 'video' || !d.storagePath) return null;
+
+  const [buf] = await bucket.file(d.storagePath).download();
+  const posterBuf = await posterFrame(buf, ctForName(d.storagePath));
+  if (!posterBuf) return null;
+
+  // The same path storeOne would have written: `drops/_/<hash>-poster.jpg`.
+  const posterPath = `${String(d.storagePath).replace(/\.[^./]+$/, '')}-poster.jpg`;
+  const pf = bucket.file(posterPath);
+  if (!(await pf.exists())[0]) {
+    await pf.save(posterBuf, { metadata: { contentType: 'image/jpeg' } });
+    await pf.makePublic();
+  }
+  const posterUrl = `https://storage.googleapis.com/${bucket.name}/${posterPath}`;
+  await ref.update({ posterUrl, posterPath, updatedAt: Date.now() });
+  return posterUrl;
+}
+
+// Same, addressed by the file's public URL — what a tool that copied a clip
+// (the pad, an assembly) actually holds. Nothing else about the Dump's doc
+// travels with a copied clip.
+async function posterForUrl(url, bucketIn) {
+  const u = String(url || '');
+  if (!/^https?:\/\//.test(u)) return null;
+  const snap = await db().collection(COL).where('url', '==', u).limit(1).get();
+  if (snap.empty) return null;
+  return ensurePoster(snap.docs[0].id, bucketIn);
+}
+
 function clean(patch) {
   const out = {};
   for (const k of EDITABLE) {
@@ -719,6 +768,39 @@ router.get('/items/:id', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
+// POST /poster — bake a poster that never got baked. { id } or { url } for one
+// file; { all:true } sweeps every video missing one (dry by default, so the
+// count can be read before anything runs). Free — ffmpeg on our own box, no
+// model call — and idempotent: a file that already has a poster is skipped.
+//
+// The sweep runs strictly ONE AT A TIME: each bake holds a whole clip in
+// memory on a 512MB box, which is what breaks a poster in the first place.
+router.post('/poster', async (req, res) => {
+  try {
+    const b = req.body || {};
+    const bucket = bucketOrNull();
+    if (!bucket) return res.status(503).json({ error: 'Firebase Storage not configured' });
+
+    if (b.id) return res.json({ ok: true, posterUrl: await ensurePoster(b.id, bucket) });
+    if (b.url) return res.json({ ok: true, posterUrl: await posterForUrl(b.url, bucket) });
+    if (!b.all) return res.status(400).json({ error: 'id, url or all required' });
+
+    const snap = await db().collection(COL).where('media', '==', 'video').get();
+    const todo = [];
+    snap.forEach((d) => { if (!d.get('posterUrl')) todo.push(d.id); });
+    if (b.dry !== false) return res.json({ ok: true, dry: true, missing: todo.length, ids: todo });
+
+    const done = []; const failed = [];
+    for (const id of todo.slice(0, Number(b.limit) || 25)) {
+      try {
+        const posterUrl = await ensurePoster(id, bucket);
+        if (posterUrl) done.push({ id, posterUrl }); else failed.push({ id, error: 'no frame' });
+      } catch (e) { failed.push({ id, error: e.message }); }
+    }
+    res.json({ ok: true, missing: todo.length, baked: done.length, done, failed });
+  } catch (e) { fail(res, e); }
+});
+
 // POST /upload — { session?, bundle?, images:[dataURL|url], defaults? }
 router.post('/upload', async (req, res) => {
   try {
@@ -951,6 +1033,10 @@ router.delete('/items/:id', async (req, res) => {
 
 module.exports = {
   router, COL, slug, bundleNamer,
+  // Re-baking a poster the dump-time attempt lost — called by the pad, which
+  // froze a clip's poster at placement time and would otherwise tile blank
+  // forever. See A POSTER BAKED AFTER THE FACT above.
+  ensurePoster, posterForUrl,
   newSession, sessionLabel, uploadLabels, KNOWN_TRACKS, orderTracks,
   // the type tables, exported so the audio rules have a test that needs no
   // Firestore and no bytes (2026-08-24)
