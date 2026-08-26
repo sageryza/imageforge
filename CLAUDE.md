@@ -3700,6 +3700,75 @@ before working on that module. Nothing was deleted — the moved text is verbati
     feed, Tiles is every cut panel as one wall three across at its own
     natural shape, keyed/append-only like the feed so it never flashes,
     sticky in localStorage, tap opens the same lightbox.
+  - **IT IS THE PLAYGROUND'S WHOLE FEED NOW, NOT A SMALLER ONE (2026-08-26,
+    Sophie: "panels has some differences between it and the playground — for
+    example there's no heart or X button or I don't think there's a way to
+    leave a note … make it exactly the same as the playground except that it's
+    panels. you can just reuse the code").** What landed, all of it hers in the
+    Playground first: **♥/✕ per picture** (`POST /api/panels/:id/vote`, keyed by
+    CELL NAME rather than an index, because a resume re-cuts only the missing
+    panels — mirrored onto the Assets record and back, so a mark here and a
+    mark in Meta Assets are one answer); **the badge** on the tile, the cut and
+    the sheet; **the two mark filters** in one segmented box (♥ rose, ✕ grey —
+    they must never look alike); **the search box** over the WHOLE history with
+    the house grammar, `liveInput` and `enterSubmits`; **List · Tiles · 3-or-4**
+    in one switch; **"Older"** paging backwards through time (`?before=`);
+    **her words on the card** behind the house `… more` opener (the card
+    carried only the geometry, so nothing on the feed said what a sheet was
+    OF); **put these prompts back in the boxes**, which restores the GRID too or
+    they land in the wrong cells; **the Prompt panel**, editable per style — the
+    POST has taken `prefix`/`suffix` overrides since the module shipped and
+    nothing showed them; **the bigger-box toggle** on every cell; the **toast**;
+    and in the lightbox a **note thread**, **Save to Photos** and **Send to the
+    Story Room** beside the Upscale that was already there.
+    - **THE LIGHTBOX WAS ALREADY THE SHARED ONE AND THAT WAS THE WHOLE BUG.**
+      `asset-lightbox.js` draws the ♥/✕ and the note box only when the caller
+      wires `_cast` and `_noteSend`; panels opened it read-only, so there was
+      nothing to tap. Notes land in **`my-creations`**, where panels.js files
+      every sheet and every cut, read back by `GET /api/gallery/assets/note?
+      chat=&url=` — ONE doc read, added the same day, because the sibling
+      `/notes` route reads a whole chat's votes AND assets to answer.
+    - **THE SHARED HALVES ARE ONE FILE — `public/feedkit.js`** (the search
+      grammar, `liveInput`/`enterSubmits`, the keyed reconcile that stopped the
+      flashing, the derived display copy, the toast). Both pages link it and
+      NEITHER keeps a copy; the tritoggle precedent, applied. **A stub test
+      server must serve it** — `scripts/lib/public-asset.js` answers anything a
+      page links out of `public/` in one line, so the next shared file needs no
+      harness change at all. The feed's MATCHER moved into `search-grammar.js`
+      as `compileFeed`/`feedMatches` for the same reason; server.js's
+      `plCompileQuery` and chatfeed's `compileQuery` are the copies still
+      standing, kept only because a test lifts their source by name.
+    - **ONE DELIBERATE DIFFERENCE:** the 3-or-4 number governs the TILE WALL
+      only. In the Playground `--cols` also lays out a run's own row, but here
+      that row is the SHEET's grid — four cuts of a 2x2 sit two across because
+      that is what the page looked like — so forcing three would draw a picture
+      of a sheet that was never made.
+    - **SEND TO THE STORY ROOM WALKS, IT DOES NOT POP UP.** The Playground's
+      own sheet was retired the same week (#1719, "rather than this weird
+      pop-up, it should take me to the story room so I can pick myself"), so
+      this button is a NAVIGATION — `/storyroom?send=<run>&cell=<cell>&
+      from=panels`. `loadSendPanel` in `gen-scratchpad.py` is the room's half:
+      `from=panels` names the FEED to re-read, and the picture is named by its
+      CELL because a resume re-cuts only the missing panels. The port had the
+      sheet in it for one afternoon and a test now fails if it comes back.
+    - **NOT PORTED, and why:** the LoRA scale / seed / ×3 (gpt-image-2 only
+      here), the quality LADDERS (a sheet ladder pays for the whole page again —
+      a different order of money, hers to ask for), and the photo reference and
+      Sophie card (per-run attachments the sheet route does not take yet — a
+      route change, not a page one). The BIGGER BOX is not this: another chat
+      shipped it here the same day (#1722) and its version wins — the open cell
+      takes the whole row, which is the half that matters at nine across.
+    - **AND THE THREE-WAY TOGGLE HAD DRIFTED.** It was still the solid ink slab
+      the Playground retired on 2026-08-24 ("the buttons are styled so fucking
+      weird… black outlines"), because the test pinned four literals instead of
+      comparing the two. It is pinned property-by-property against
+      `promptlab.html` now, so neither can move alone.
+    - Tests: `node scripts/test-panels-parity.js` — a stub server and NO
+      Firebase, driving the real page: the ♥ posting the cell name, the badge
+      landing behind the lightbox, the note reaching `my-creations`, the filters
+      emptying a run out of the feed, a search finding a run the feed never
+      paged in, Older, the copy button restoring the grid, and four pictures
+      measured onto one row.
   - Prices and prompt text are **SERVED** (`GET /api/panels/config`); the page
     holds no copy of either, and a test pins that. Nothing is deleted — a run
     hides. Tests: `node scripts/test-panels.js` — 26 pure checks including the

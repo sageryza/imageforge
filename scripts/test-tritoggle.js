@@ -16,6 +16,7 @@
 //
 //   node scripts/test-tritoggle.js
 const fs = require('fs');
+const servePublic = require('./lib/public-asset');
 const path = require('path');
 const http = require('http');
 
@@ -116,6 +117,8 @@ const CASES = [
 ];
 
 const server = http.createServer((req, res) => {
+  // Anything the page links out of public/ — /feedkit.js, /tritoggle.*, …
+  if (servePublic(req, res)) return;
   if (req.url === '/tritoggle.css') {
     res.writeHead(200, { 'Content-Type': 'text/css' });
     return res.end(CSS);

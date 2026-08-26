@@ -70,4 +70,31 @@ function parseQuery(q, opts = {}) {
   return groups;
 }
 
-module.exports = { parseQuery, plain };
+// ── THE FEED'S MATCHER ──────────────────────────────────────────────────────
+// This module parses only, BECAUSE its callers disagree about what a match is
+// (see the header) — but three of them agree exactly: the chat feed, the
+// Playground and Panels all anchor each term at a word START against raw text,
+// so "aries" never finds "boundaries" and `gpt-image-2` keeps its hyphens.
+// That shared rule lives here now rather than being hand-copied a fourth time.
+// Still-unmigrated copies, kept only because a test lifts their source by
+// name: `plCompileQuery`/`plSearchRuns` in server.js, `compileQuery` in
+// chatfeed.js, and meta-assets.js's own. The clip library is NOT one of these
+// — it normalises and matches substrings on purpose.
+function compileFeed(q) {
+  return parseQuery(q).map((g) => ({
+    neg: g.neg,
+    terms: g.terms.map((t) => {
+      const v = t.value;
+      try {
+        return new RegExp((/^[a-z0-9]/i.test(v) ? '\\b' : '')
+          + v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+'), 'i');
+      } catch (e) { return null; }
+    }).filter(Boolean),
+  })).filter((g) => g.terms.length);
+}
+function feedMatches(hay, groups) {
+  const s = String(hay == null ? '' : hay);
+  return groups.every((g) => (g.terms.some((rx) => rx.test(s)) ? !g.neg : g.neg));
+}
+
+module.exports = { parseQuery, plain, compileFeed, feedMatches };

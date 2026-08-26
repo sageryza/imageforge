@@ -16,6 +16,7 @@
 //
 //   npm install playwright --no-save && node scripts/test-playground-lightbox-caption.js
 const http = require('http');
+const servePublic = require('./lib/public-asset');
 const fs = require('fs');
 const path = require('path');
 
@@ -37,6 +38,8 @@ const RUNS = [{
 }];
 
 const server = http.createServer((req, res) => {
+  // Anything the page links out of public/ — /feedkit.js, /tritoggle.*, …
+  if (servePublic(req, res)) return;
   const url = new URL(req.url, 'http://x');
   if (url.pathname === '/api/promptlab') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
