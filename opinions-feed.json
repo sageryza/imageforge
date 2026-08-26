@@ -36,16 +36,18 @@
   },
   {
    "id": "easy-cookie",
-   "kind": "text",
+   "kind": "image",
    "category": "wild",
    "mode": "easy",
    "right": "a",
    "q": "Which cookie?",
    "a": {
-    "t": "A fresh warm cookie"
+    "t": "A fresh warm cookie",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/cookie-fresh.webp"
    },
    "b": {
-    "t": "A cookie someone already licked"
+    "t": "A cookie someone already licked",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/cookie-lick-3.webp"
    }
   },
   {
@@ -115,33 +117,37 @@
   },
   {
    "id": "hard-shoot-puppy-baby",
-   "kind": "text",
+   "kind": "image",
    "category": "wild",
    "mode": "hard",
    "verb": "shoot",
    "q": "You have one bullet.",
    "a": {
     "t": "A cute puppy holding a baby, dangling it by its leg",
-    "info": "the dog is mean"
+    "info": "the dog is mean",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/freeform/out/4la169LZueEXm6Mvd84f-1.webp"
    },
    "b": {
     "t": "The pile of bad guys",
-    "info": "they've all reformed and volunteer at the shelter"
+    "info": "they've all reformed and volunteer at the shelter",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1787104712571-y4uzt8.webp"
    }
   },
   {
    "id": "hard-bread",
-   "kind": "text",
+   "kind": "image",
    "category": "wild",
    "mode": "hard",
    "q": "Which is right?",
    "a": {
     "t": "Steal bread to feed your family",
-    "info": "your family just ate"
+    "info": "your family just ate",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/bread-steal-2.webp"
    },
    "b": {
     "t": "Pay for the bread",
-    "info": "with money you stole from a different bakery"
+    "info": "with money you stole from a different bakery",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/counterfeit-2.webp"
    }
   },
   {
