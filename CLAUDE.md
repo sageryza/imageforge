@@ -3550,6 +3550,27 @@ before working on that module. Nothing was deleted — the moved text is verbati
     (what a stale cached page lands on) and the page's opening `pick` — and
     `node scripts/test-panels.js` pins all three, because this reads as a
     tidy-up to a chat that has just read the cost paragraph.
+  - **A BOX OPENS BIGGER, AND IT TAKES THE WHOLE ROW (2026-08-26, Sophie:
+    "make a button to see the current text box that you're working on bigger
+    so you can see what you're writing").** A 26px rounded square inside each
+    textarea's bottom-right corner — the Playground's `#bigprompt` answer
+    lifted in SHAPE, not copied, so the SAME textarea grows and there is never
+    a second field to sync. **WIDTH is the half that matters here, and that is
+    a measurement:** main is 14px either side, so on a 390pt phone a cell is
+    176px at two across and **114px at nine** — the grid where a dictated
+    prompt wraps every three or four words — so the open cell takes the whole
+    row (`grid-column: 1/-1`) as well as growing tall. The neighbours keep
+    their order and stay on screen, because what she wrote in them is the
+    context for the one she is writing. **ONE at a time** (opening another
+    closes it, or the grid comes apart into a column of full-width boxes),
+    **not sticky, and reset by a grid change** — the boxes ARE the grid, and
+    reopening on a layout she did not pick is the opposite of this page. The
+    textarea reserves that corner with `padding-bottom` or her last line is
+    typed under the button. Pinned by the bigger-box block of
+    `node scripts/test-panels.js` — the widths and heights read off the REAL
+    boxes and the button asked with `elementFromPoint`, because a cell that
+    grew only in height passes every markup check and still wraps her
+    dictation every four words (verified failing pre-fix).
   - **THE CANVAS IS DERIVED, NEVER A LOOKUP TABLE** (`sheet-grid.js`, the same
     rule `size-tier.js` follows). Every canvas satisfies all of gpt-image-2's
     constraints plus the one this tool adds — the sheet must divide into
