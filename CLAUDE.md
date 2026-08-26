@@ -3452,19 +3452,22 @@ before working on that module. Nothing was deleted — the moved text is verbati
   corner with `padding-bottom`, so her last line is never typed under the
   button; the toggle clears any hand-dragged inline height or "back to small"
   would not shrink; deliberately NOT sticky.
-  **BOTTOM-RIGHT IS HER CALL AND THE PILL OVERLAP IS AN ACCEPTED COST
-  (2026-08-26, Sophie: "put it back exactly where it was").** For one day
-  (2026-08-25 → 26, #1733) the button sat bottom-LEFT, moved there because on
-  her phone the injected autoscroll pill's fixed column sat exactly on it —
-  measured at 390x844 with the iPhone 13's real 47px safe-area inset: pill
-  x 324-374 / y 47-227, button x 333-359 / y 164-190, `elementFromPoint` at
-  the button's own centre returning the PILL's svg (the inset is why a plain
-  headless check never saw it; at the no-inset 14px the two just clear). She
-  asked for the right corner back anyway, so that collision is HISTORY as a
-  reason to move the button: on an unscrolled page under a real inset the
-  pill can cover it, and the fix is scrolling, not relocating the control.
-  **Do not move it again without her**, and do not re-add the pill-clearance
-  assertion to the test — that assertion is how it gets "fixed" left again.
+  **ON THE RIGHT, SLID CLEAR OF THE PILL'S COLUMN — settled over two rounds
+  on 2026-08-26.** The button shipped in the exact bottom-right corner, where
+  on her phone the injected autoscroll pill's ▼ sits dead on it (measured at
+  390x844 with the iPhone 13's real 47px safe-area inset: #vbot x 325-373 /
+  y 153-206 over the button's x 333-359 / y 164-190; the inset is why a plain
+  headless check never saw it — at the no-inset 14px the two just clear).
+  #1733 moved it bottom-LEFT for a day; Sophie asked for the right side back
+  ("put it back exactly where it was"), then reported the exact corner
+  untappable ("i was able to click it before … now i cant"). **A z-index lift
+  is NOT the fix** — measured, it puts the button over the ▼'s own centre and
+  kills the pill's scroll-down instead. The settled answer is `right: 56px`:
+  the right end of the box, clear of the pill's column at 390pt and at 320pt,
+  both controls tappable at every scroll position. The test simulates the
+  inset, asserts the button clears the pill AND that the ▼ still takes its
+  own tap. Don't slide it back into the corner, and don't move it off the
+  right side — both are hers.
   **AND THE BOX DOES NOT SIT ON THE BUTTON ROW (2026-08-26, Sophie's own
   correction the same day: "my point was that there was no padding between the
   buttons and the bottom of the text prompt box I suspect that that's not what
