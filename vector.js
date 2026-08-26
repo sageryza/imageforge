@@ -564,4 +564,7 @@ router.get('/jobs', async (req, res) => {
   res.json({ jobs: q.docs.map((d) => d.data()) });
 });
 
-module.exports = { router, HOUSE, LAYOUT, MAX_CELLS, positions, sheetPrompt, traceOne };
+// `drawSheet` is exported for chaticons.js, which draws a sheet and cuts it
+// WITHOUT tracing: an icon needs the cut cell, never the SVG, and the trace is
+// the step that has hung a sheet for half an hour on one cell.
+module.exports = { router, HOUSE, LAYOUT, MAX_CELLS, positions, sheetPrompt, traceOne, drawSheet };

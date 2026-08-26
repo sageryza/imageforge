@@ -2092,6 +2092,44 @@ them off the reference sheet, not off the old filenames.
     name-row cap pure, then the real page headless — opt-in, both toggles
     reaching the server, the chip wearing the state, and the controls' right
     edge measured against the pill's column).
+- **EVERY CHAT HAS A LITTLE DRAWING BESIDE ITS NAME, AND IT SWEEPS ITSELF
+  (`chaticons.js`, `/api/chaticons`, Aug 2026, Sophie: "the icons that just
+  have big letters next to each chat and the update tab — I'd like to replace
+  them with icons").** A chat with no `icon` on its registry doc drew a box
+  with a giant letter in it; 356 were drawn by hand in one sitting and the
+  rest arrive on their own.
+  - **25 TO A SHEET IS THE WHOLE DESIGN.** One gpt-image-2 sheet in the pastel
+    house style is ~6c at medium, so an icon costs **0.24c**; drawing each
+    chat the moment it appeared would be a separate ~6c call, 25x the price
+    for the same pictures. So the sweep WAITS until enough have piled up, and
+    a brand-new chat wears a letter for a day or two. That is the trade, and
+    it is the right way round. Measured 2026-08-15: **104 new chats in one
+    hour**, which is why hand-running batches was never going to hold.
+  - **It skips ARCHIVED chats** (her rule: "obviously skip archived chats"),
+    the trash, and any chat with **nothing to draw from** — no display name,
+    no note, no status/update card, and a generic slug (`new-session-7f3e9a`).
+    There is no picture of an unnamed session and a wrong one is worse than a
+    letter; it comes back into range by itself when the chat says what it is.
+  - **It draws from the REGISTRY, not the threads** — her name for it, her
+    note, the chat's own cards, its wrap-up, the slug. 23KB for 250 chats, so
+    the reading costs nothing; Claude turns each line into one drawing subject
+    (one call per sheet).
+  - **It never touches the TRACER.** `/api/vector/sheet` draws, cuts AND traces
+    every cell to SVG, and the trace is what hangs — two sheets stalled half an
+    hour on one cell with the other 24 done, and pinning `ink` did not stop the
+    second. An icon needs the CUT, never the SVG, so this calls `drawSheet` +
+    `sheetPrompt` and vectorize's `slice`/`cutout` directly. The same lesson is
+    in `scripts/gen-chat-icons.js`, which is still how you redraw a SPECIFIC
+    set by hand (`--sheet <n>`, `--recut` off the banked sheet for free).
+  - **The daily tick is hourly and the due check is in FIRESTORE** (`lastRunAt`
+    on the module's state doc). This service restarts on every deploy, so a
+    24-hour interval counted from boot would either never fire or fire on every
+    restart — and the stored clock also means a dev container that boots the app
+    spends nothing. The tick only runs where `RENDER_EXTERNAL_URL` is set.
+  - `POST /run {limit?, dry?}` sweeps on demand — **`dry:true` is free** and
+    names exactly who is about to be drawn and what it will cost.
+    `GET /status` and `GET /waiting` are free reads. Tests:
+    `node scripts/test-chat-icons.js` (the decision table, pure).
 - **A claim about what OTHER sessions do is a POPULATION fact — measure it, never
   reason it out.** See the case study at the top of this file. Most chats run an
   older hook than the repo's, so a feature that depends on a new hook simply does

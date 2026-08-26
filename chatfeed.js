@@ -4773,7 +4773,10 @@ require('./chat-wake').mount(router, { db, regRef, registry, followMoves, resolv
 // `registry` is exported so brief.js can read the SAME 5-minute cache the feed
 // already keeps rather than opening a second one — two caches of one collection
 // is how a stale answer gets served from whichever module happened to answer.
-module.exports = { router, pillInject, archiveActionFor, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry, pickFilm,
+  // `regRef` is exported for chaticons.js — it is the ONE write path that
+  // invalidates the registry cache, so a sweep must not reach the collection
+  // around it.
+module.exports = { router, regRef, pillInject, archiveActionFor, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry, pickFilm,
   rankGroups, phraseRegex, phraseRank, bestPerChat,
   SEARCH_WHO, whoOf, whoParam, whoMatches,
   SEARCH_ARCH, archParam, archMatches, pickOne, pickNameRows, NAME_ROWS,
