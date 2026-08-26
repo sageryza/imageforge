@@ -202,6 +202,36 @@ them needs from her. Read-only; the queue is edited here, where it is run.
 
 ---
 
+### Turn on the automatic derived-files check (1 minute, `workflow` scope push)
+
+- **Why:** the dagster-pipeline-tool chat built a checker that catches
+  forgot-to-rebuild generated pages (`scripts/check-derived.js`, works by hand
+  today), but the GitHub workflow that would run it automatically needs one
+  file moved into `.github/workflows/` — chat sessions' GitHub tokens are
+  barred from that folder, her own account is not. The task was originally
+  filed in `what-sage-should-do-at-her-computer.md`, a file nothing reads —
+  moved here 2026-08-26 so the queue actually sees it. Same credential and
+  same sitting as the ASC task above.
+- **Run:**
+
+  ```
+  cd ~/imageforge
+  git checkout main && git pull origin main
+  git mv scripts/check-derived.workflow.yml .github/workflows/check-derived.yml
+  git commit -m "Turn on the derived-files check"
+  git push origin main
+  ```
+
+  If the repo has uncommitted changes or sits on another chat's branch, stop
+  and report instead of switching or discarding anything.
+- **Done when** this link works:
+  https://github.com/sageryza/imageforge/blob/main/.github/workflows/check-derived.yml
+- **Needs from her:** nothing beyond running it from her Mac.
+- **Queued:** 2026-08-26 by arcade-archive-candidates (originally 2026-08-12 by
+  dagster-pipeline-tool)
+
+---
+
 ## DONE
 
 ### Hand Apple's Voice Memos transcripts to the archive — SUPERSEDED, then solved another way
