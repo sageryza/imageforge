@@ -1033,6 +1033,8 @@ function api(p,opts){
   return fetch('/api/scratchpad'+p,opts);
 }
 var beats=[], inboxItems=[], uploads=[], pending=null, popBeat=null, padTitle='';
+/* A beat id the url asked for, opened as soon as the pad's load answers. */
+var openAfterLoad=null;
 var player=new Audio();
 /* ── the STYLE TOGGLE: watercolor · dreamy · pastel ─────────────────
    One story, N sets of art over the SAME beats (Sophie, Aug 2026; pastel
@@ -1745,6 +1747,14 @@ function load(){
     renderTitle(); render(); renderFilm();
     if(anyDrawing()) startGenPoll();   // a draw survives leaving the app
     if(film&&film.status==='making') startFilmPoll();
+    /* A beat asked for by the url (?beat=, coming back from the Playground):
+       it can only be opened once the beats are actually here. Cleared either
+       way, so a later reload of the same story opens plainly. */
+    if(openAfterLoad){
+      var want=openAfterLoad; openAfterLoad=null;
+      var b=beats.find(function(x){return x.id===want;});
+      if(b) openBeat(b);   // openBeat shows the popup and locks the page
+    }
   });
 }
 
@@ -2633,9 +2643,36 @@ function inboxIntoBeat(ev){
   openInbox();
 }
 document.getElementById('arinbox').onclick=inboxIntoBeat;
+/* THE PLAYGROUND BUTTON CARRIES THE BEAT WITH IT (2026-08-26, Sophie: "if I
+   go to the playground from the story room by clicking the playground button,
+   it should copy the drawing prompt into the playground text box and if I
+   click back to scratch pad button, it should take me exactly back to the
+   beat where I was and whatever I just made, there should also be for that
+   beat"). Three things ride the link:
+     • prompt   — drawPrompt(), i.e. EXACTLY what Draw would have sent from
+                  here: her own prompt when the box has one, else the caption
+                  as it reads right now. Two ways to the same picture must not
+                  disagree about the words.
+     • pad+beat — so the Playground's back chip returns to this beat with its
+                  popup open, and so the SERVER lands what she draws on it
+                  (landOnBeat in server.js — a picture takes 30-90s and must
+                  survive her tapping back before it arrives).
+     • padstyle — which SIDE of the beat it lands on: the one this story is
+                  showing right now.
+   saveNote/savePrompt FIRST, so anything she typed and did not blur out of
+   is on the beat before we leave the page. */
 document.getElementById('arplay').onclick=function(ev){
   ev.stopPropagation();
-  location.href='/playground?from=scratchpad';
+  var b=popBeat;
+  var p=b?drawPrompt():'';
+  var q='/playground?from=scratchpad';
+  if(b){
+    q+='&pad='+encodeURIComponent(padId)+'&beat='+encodeURIComponent(b.id)
+      +'&padstyle='+encodeURIComponent(padStyle);
+    if(p) q+='&prompt='+encodeURIComponent(p);
+  }
+  Promise.all([saveNote(),savePrompt()]).then(function(){ location.href=q; },
+                                             function(){ location.href=q; });
 };
 /* ── the frame colour: one square in the corner, dropping down ────── */
 function paintChips(col){
@@ -3036,5 +3073,26 @@ window.__navBack=function(){
    is still remembered (padId), but only to mark its tile as where she left
    off. Loading it here would spend a fetch on a page nobody is looking at and
    put a stale story one chevron behind the shelf. */
-openShelf();
+/* COMING BACK FROM THE PLAYGROUND — ?pad=&beat= opens that story and pops
+   that beat straight open (2026-08-26, Sophie: "it should take me exactly
+   back to the beat where I was"). Landing on the shelf and making her find
+   the story and then the beat again is the trip she asked to stop making.
+   `openBeat` waits for the pad's own load: the beats do not exist until it
+   answers, and the picture she just made lands on the beat server-side, so
+   this read is also what shows it. */
+(function(){
+  var q=new URLSearchParams(location.search);
+  var pad=q.get('pad'), beat=q.get('beat');
+  if(!pad){ openShelf(); return; }
+  openAfterLoad=beat||null;
+  openPad(pad);
+  /* Spend the link once: she may walk off to another story from here, and a
+     refresh then must not yank her back to the beat she arrived on. Every
+     other param (plain=1) is left exactly as it was. */
+  try{
+    q.delete('pad'); q.delete('beat');
+    var rest=q.toString();
+    history.replaceState({},'',location.pathname+(rest?'?'+rest:''));
+  }catch(e){}
+})();
 </script>

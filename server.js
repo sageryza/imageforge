@@ -5764,6 +5764,42 @@ async function fileRunToCreations(images, { prompt, style, model, quality, size,
   }
 }
 
+// ── A RUN STARTED FROM A STORY BEAT LANDS ON THAT BEAT ──────────────
+// Sophie, 2026-08-26: tapping the Playground button on a beat should carry
+// its drawing prompt over, and "whatever I just made, there should also be
+// for that beat".
+//
+// THE SERVER PLACES IT, NOT THE PAGE, and that is the whole point: a medium
+// picture takes 30-90s, so if the page did it she would lose the picture by
+// tapping back before it landed — the house rule that anything slow is a
+// background job whose result is persisted, never something to sit and watch.
+// Best-effort throughout: a beat she deleted meanwhile, or a pad that has
+// moved on, must never fail a paid render.
+//
+// Pictures are placed OLDEST FIRST, so the newest becomes the beat's art and
+// the rest sit in its past-pictures row — the row is what she picks from, and
+// scratchpad's swapArt keeps whatever was there before it in that row too.
+// Nothing is ever deleted, so this is always two taps from undone.
+function padTargetOf(body) {
+  const pad = String((body && body.padTarget && body.padTarget.pad) || '').slice(0, 120);
+  const beat = String((body && body.padTarget && body.padTarget.beat) || '').slice(0, 120);
+  if (!pad || !beat) return null;
+  const style = String((body.padTarget.style) || '');
+  return { pad, beat, style: ['watercolor', 'dreamy', 'pastel'].includes(style) ? style : 'watercolor' };
+}
+async function landOnBeat(target, images, runId, meta) {
+  if (!target || !images || !images.length) return;
+  const { placeOnBeat } = require('./scratchpad');
+  for (let i = 0; i < images.length; i++) {
+    try {
+      await placeOnBeat(target.pad, target.beat, images[i], target.style, {
+        runId, i, prompt: meta.prompt || null, model: meta.model || null,
+        engine: meta.engine || null, quality: meta.quality || null,
+      });
+    } catch (err) { console.warn('promptlab → beat failed:', err.message); }
+  }
+}
+
 // One run = `outputs` independent edits calls, all sent together, each landing
 // on the doc as it finishes (status 'ready' on the first, 'done' when all are
 // in) so the grid fills in as they arrive. A single failed call costs its
@@ -5839,6 +5875,10 @@ async function runPromptLabGptJob(docRef, cfg) {
     // differ from the sent text by so much as a space. The halves come from
     // the style's own baked prefix/suffix (or her edited override, which is
     // what `cfg.head`/`cfg.tail` carry).
+    // Started from a story beat? The picture is that beat's now — see
+    // landOnBeat. After the doc is done, so the feed shows it either way.
+    await landOnBeat(cfg.padTarget, images, docRef.id,
+      { prompt: cfg.prompt, model: PL_GPT.id, engine: 'gptimage', quality: cfg.quality });
     fileRunToCreations(images, {
       prompt: cfg.prompt, style: `${st.label} · ${cfg.quality}`,
       model: PL_GPT.id, quality: cfg.quality, size: cfg.size || PL_GPT.size,
@@ -5896,6 +5936,8 @@ async function runPromptLabJob(docRef, cfg) {
     const images = await Promise.all(urls.map(u => saveToFirebase(u, 'promptlab')));
     plCancelled.delete(docRef.id);
     await docRef.update({ status: 'done', images });
+    await landOnBeat(cfg.padTarget, images, docRef.id,
+      { prompt: cfg.prompt, model: cfg.styleLabel, engine: 'replicate', quality: null });
     // The LoRA's wrapper is its trigger word in front and its suffix behind —
     // `cfg.fullPrompt` is what was actually sent.
     fileRunToCreations(images, {
@@ -5918,6 +5960,8 @@ app.post('/api/promptlab', async (req, res) => {
     const typed = String(req.body.prompt || '').trim();
     if (!typed) return res.status(400).json({ error: 'prompt required' });
     const modelId = req.body.model || 'sageryza/watercolordrawings';
+    // She came here from a story beat — the picture belongs to it (landOnBeat).
+    const padTarget = padTargetOf(req.body);
 
     // The gpt-image-2 style: her words go through UNTOUCHED (no trigger word,
     // no trailing-period trim, no suffix) after the baked style-ref prefix.
@@ -5998,12 +6042,13 @@ app.post('/api/promptlab', async (req, res) => {
         aspectRatio: canvas.aspectRatio, res: resId, promptEdited: edited, noText,
         styleRef: (st.refFiles || []).concat(st.storageRefs || []).join(','), outputs,
         character, photoRef: photoUrl, images: [], createdAt: admin.firestore.Timestamp.now(),
+        ...(padTarget ? { padTarget } : {}),
       });
       // head/tail ride along so the filed style half is what ACTUALLY wrapped
       // her words on this run — her prefix/suffix override if she made one,
       // the character line and the photo line only when they were really
       // attached — rather than the style's baked default.
-      runPromptLabGptJob(docRef, { fullPrompt, head, tail, outputs, quality, prompt: typed, character, styleId, size: canvas.size, photoBuf });
+      runPromptLabGptJob(docRef, { fullPrompt, head, tail, outputs, quality, prompt: typed, character, styleId, size: canvas.size, photoBuf, padTarget });
       return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
     }
 
@@ -6028,11 +6073,12 @@ app.post('/api/promptlab', async (req, res) => {
       id: docRef.id, status: 'running', engine: 'replicate', prompt: content, fullPrompt, suffix,
       model: modelId, trigger: known.trigger, loraScale, seed, aspectRatio, steps, outputs,
       images: [], createdAt: admin.firestore.Timestamp.now(),
+      ...(padTarget ? { padTarget } : {}),
     });
     // The LoRA's wrapper is its TRIGGER in front and `tail` behind; both ride
     // along so the filed style half is the real one.
     runPromptLabJob(docRef, { version, fullPrompt, loraScale, seed, aspectRatio, steps, outputs,
-      prompt: content, styleLabel: known.name, prefix: known.trigger, suffix: tail });
+      prompt: content, styleLabel: known.name, prefix: known.trigger, suffix: tail, padTarget });
     res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
   } catch (err) {
     res.status(500).json({ error: err.message });
