@@ -52,3 +52,37 @@ protects laughs/breaths by extending each keep edge outward across bins above
 `floor + 8dB` (capped at 0.5s, which is what lets it cut through the noisy
 hole above). Verify the result with `vo-verify` as always — that is what
 proves no speech went with it.
+
+## The graphics layer (overlay v1)
+
+`overlay.tpl.html` is the whole animation — one deterministic `render(t)`, no
+CSS transitions, so a frame at time *t* is the same frame every time it is
+drawn. Every beat's seconds come straight out of `vo-v1-words.json`, which is
+why the counters and cross-outs sit on the words.
+
+Build and render:
+
+```
+# fonts are embedded as base64; rebuild overlay.html from the template first
+node -e "…"                                   # see the README history
+node scripts/reel-overlay-render.js 89.5      # 2685 PNG frames with alpha, ~3.5 min
+```
+
+Three outputs come off that one frame set:
+
+- **preview mp4** — over charcoal, with the VO. What she watches.
+- **alpha webm** — VP9 `yuva420p`, no audio. Keys over footage in a desktop
+  editor.
+- **green-screen mp4** — the same frames over `#00B140`, with the VO, because
+  phone editors chroma-key but mostly do not read an alpha webm.
+
+Rendering notes worth keeping:
+
+- **Playwright's bundled chromium is not the one on the box.** `npm install
+  playwright` pulls a build number the container does not have; launch with
+  `executablePath: '/opt/pw-browsers/chromium'`.
+- **Only DejaVu/Liberation are installed**, so the display faces (Anton,
+  Oswald) are downloaded once and embedded as base64 data URIs — a font that
+  loads over the network mid-render silently changes the wrap partway through.
+- `omitBackground: true` on the screenshot is what makes the alpha and
+  green-screen versions fall out of the same render.
