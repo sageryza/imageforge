@@ -379,11 +379,74 @@ router.get('/status', (req, res) => {
   res.json({ ok: true, firebase: admin.apps.length > 0 });
 });
 
+// ── A CLIP BEAT WITH NO POSTER TILES BLANK, FOREVER ──────────────────
+// (2026-08-26, Sophie, looking at the Evan story: "why isn't the third panel
+// showing an image preview".) A clip's face IS its poster — never its mp4, so
+// a page of decoding videos never happens — and the poster is COPIED onto the
+// slot when the clip is placed. The Dump bakes that frame best-effort and
+// ONE-SHOT, so a file whose ffmpeg died at dump time hands the pad a null, and
+// nothing on either side ever looks again: measured that day, 6 of 133 video
+// files in the Dump carry no poster and her third beat was one of them.
+//
+// So the pad heals itself on read. It fires ONLY for a clip that genuinely has
+// none (rare), never blocks the answer, and once a slot is patched it never
+// runs again — a url the Dump does not know is remembered as hopeless rather
+// than re-queried on every open. The patch deliberately does NOT bump
+// `updatedAt`: recovering a thumbnail is not an edit to the story, and would
+// otherwise reshuffle the shelf and stale the film.
+const drop = require('./dropbox');
+const posterless = new Set();   // urls the Dump can't poster — asked once
+let healingPosters = false;
+// Which slots are missing one — both styles, because a clip is per-slot (a
+// movie placed under dreamy leaves the watercolor side alone). Pure, exported
+// so the rule has a test that needs no Firestore.
+function clipsNeedingPoster(pad, skip) {
+  const want = [];
+  ((pad && pad.beats) || []).forEach((b) => {
+    STYLES.forEach((style) => {
+      const s = artSlot(b, style, false);
+      if (slotClip(s) && !s.poster && s.url && !(skip && skip.has(s.url))) {
+        want.push({ id: b.id, style, url: s.url });
+      }
+    });
+  });
+  return want;
+}
+async function healClipPosters(padId, pad) {
+  if (healingPosters) return;
+  const want = clipsNeedingPoster(pad, posterless);
+  if (!want.length) return;
+  healingPosters = true;
+  try {
+    for (const w of want.slice(0, 4)) {
+      const posterUrl = await drop.posterForUrl(w.url);
+      if (!posterUrl) { posterless.add(w.url); continue; }
+      await db().runTransaction(async (tx) => {
+        const snap = await tx.get(padRef(padId));
+        const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
+        const b = cur.find((x) => x.id === w.id);
+        if (!b) return;
+        const slot = artSlot(b, w.style, true);
+        // Only the slot this url is still sitting in — she may have swapped
+        // the clip out while the frame was baking.
+        if (!slotClip(slot) || slot.url !== w.url || slot.poster) return;
+        slot.poster = posterUrl;
+        tx.set(padRef(padId), { beats: cur }, { merge: true });
+      });
+    }
+  } catch (e) {
+    console.warn('scratchpad: clip poster heal —', e.message);
+  } finally {
+    healingPosters = false;
+  }
+}
+
 router.get('/', async (req, res) => {
   try {
     const pid = padIdOf(req);
     res.set('Cache-Control', 'no-store');
     const pad = await readPad(pid);
+    healClipPosters(pid, pad).catch(() => {});   // never blocks the read
     // ONE list — the waveform button holds everything attached to the story,
     // the finished cuts and the raw recordings alike (Sophie, Aug 2026).
     const audios = (await episodeAudios(pad.episodes)).concat(sourceAudios(pad.sources, req));
@@ -1699,4 +1762,4 @@ async function attachVoiceUrl(padId, beatId, url) {
   });
 }
 
-module.exports = { router, attachVoiceUrl, drawablePrompt, promptFor };
+module.exports = { router, attachVoiceUrl, drawablePrompt, promptFor, clipsNeedingPoster };
