@@ -366,6 +366,10 @@ loadConfig().then(() => {
   // poster, a shirt or a die-cut sticker. Mounted here so config-loader has
   // hydrated OPENAI_API_KEY before the module reads it.
   app.use('/api/vector', require('./vector').router);
+  // Chat icons — the little drawing beside every chat's name in the Chats app,
+  // swept for new chats 25 to a sheet. Mounted here for OPENAI_API_KEY, same as
+  // the vector module it draws through.
+  app.use('/api/chaticons', require('./chaticons').router);
   // Voice Studio — Sophie's ElevenLabs voices on a page (mounted here so the
   // config-loader has hydrated ELEVENLABS_API_KEY before the module reads it).
   app.use('/api/voicelab', require('./voicelab').router);
@@ -6993,4 +6997,28 @@ if (SELF_URL) {
   console.log('Keep-awake self-ping enabled for', SELF_URL);
 } else {
   console.log('Keep-awake disabled (no RENDER_EXTERNAL_URL)');
+}
+
+// ─── The daily chat-icon sweep ──────────────────────────────────────────
+// New chats appear faster than anyone can hand-draw them (104 in one hour the
+// day the first batch shipped), so the sweep draws whatever has piled up, 25 to
+// a ~6c sheet. See chaticons.js for what it skips and why.
+//
+// THE TICK IS HOURLY AND THE DUE CHECK IS IN FIRESTORE. This service restarts on
+// every deploy and this repo deploys many times a day, so a 24-hour interval
+// counted from boot would either never reach 24 hours or start over each time.
+// `lastRunAt` on the module's state doc is the only clock that survives a
+// restart; the hourly tick just asks whether a day has passed. It also means a
+// dev container that boots the app spends nothing — the live service's own
+// lastRunAt says the work is already done.
+//
+// Only where RENDER_EXTERNAL_URL is set, i.e. the deployed service and not a
+// laptop or a chat's sandbox.
+if (SELF_URL) {
+  const ICON_TICK_MS = 60 * 60 * 1000;
+  const tick = () => require('./chaticons').sweepDue()
+    .then((r) => { if (r && r.started) console.log('chat-icon sweep started', r.started, r.waiting, 'waiting'); })
+    .catch((e) => console.log('chat-icon sweep tick failed:', e.message));
+  setTimeout(tick, 5 * 60 * 1000);        // not during the boot rush
+  setInterval(tick, ICON_TICK_MS);
 }
