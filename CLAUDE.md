@@ -3427,6 +3427,18 @@ before working on that module. Nothing was deleted — the moved text is verbati
   inset and at 47 on her phone, and at 14 the two just clear. The test
   simulates the inset and makes the page scroll (the pill is conditional and
   never renders on a page that does not).
+  **AND THE BOX DOES NOT SIT ON THE BUTTON ROW (2026-08-26, Sophie's own
+  correction the same day: "my point was that there was no padding between the
+  buttons and the bottom of the text prompt box I suspect that that's not what
+  you fixed" — she was right, the pill collision above is a real bug and it is
+  not what she was pointing at).** Measured: `.styles` gives the prompt box
+  10px of air ABOVE it and `.promptwrap` carried no margin at all, so
+  `.controls` began at the textarea's exact bottom edge — **gap 0** — and the
+  box's bottom line and the first row of buttons drew as one seam.
+  `.promptwrap` takes the same 10px, so the card has one rhythm rather than a
+  number picked per gap, and the test pins the two gaps EQUAL rather than
+  hardcoding 10 (`node scripts/test-playground-controls.js`, verified failing 2
+  pre-fix at 0px).
   **PANELS AND THE STORY ROOM CARRY THE SAME BUTTON AND NEITHER COLLIDES —
   measured the same day, not assumed.** Panels' cells start at y 334, below
   the pill's 227; the Story Room's is inside `#beatpop` at z-index 50, over

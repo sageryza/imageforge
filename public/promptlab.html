@@ -73,7 +73,14 @@
      queue's ↩ already follows — the pill owns the top-right, so anything that
      would sit under it moves left. A headless check with no safe-area inset
      misses this entirely: the pill sits 33px higher and the two just clear. */
-  .promptwrap { position: relative; }
+  /* THE BOX DOES NOT SIT ON THE BUTTONS (2026-08-26, Sophie: "there was no
+     padding between the buttons and the bottom of the text prompt box").
+     Measured: `.styles` gives the box 10px of air ABOVE it and `.promptwrap`
+     carried no margin at all, so `.controls` started at the textarea's exact
+     bottom edge — gap 0 — and the box's bottom line and the first row of
+     buttons drew as one seam. The same 10px the picker already uses, so the
+     card has one rhythm rather than a number picked per gap. */
+  .promptwrap { position: relative; margin-bottom: 10px; }
   .promptwrap textarea { display: block; box-sizing: border-box; padding-bottom: 34px; }
   #prompt.big { min-height: 52vh; }
   #bigprompt { position: absolute; left: 6px; bottom: 6px; width: 26px; height: 26px;
