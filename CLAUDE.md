@@ -4774,6 +4774,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - Test: `node scripts/test-scratchpad-popup.js` (the real page, headless —
     the pencil measured beside the words, the empty tile measured against the
     same card holding a picture).
+  **AND THE TWO FOLDS ARE HERS — A RE-OPEN OF THE BEAT ALREADY ON SCREEN NEVER
+  TOUCHES THEM (2026-08-26, Sophie: "the caption keeps reopening after I close
+  it on a beat in story room").** `openBeat` set both folds to their ARRIVAL
+  defaults — caption open, prompt open only on a picture-less beat — on EVERY
+  call, guarded only by `typing`, i.e. only while a box actually held her
+  caret. So closing the caption and then doing anything that re-opens the same
+  beat sprang it straight back open. Four call sites do that, and **the first
+  takes no tap of hers at all**: the gen poll landing a finished draw
+  (`startGenPoll` → `openBeat`), Draw itself, picking a past picture out of the
+  lightbox, and a chunk link/unlink. The guard is `same` now — the defaults
+  belong to ARRIVING at a beat, not to every repaint of the one she is standing
+  on. Two things not to undo: the PROMPT fold carries over with the caption (one
+  rule for both, or a chat has to remember which of two identical-looking folds
+  is hers), and `promEditing` is reset beside `capEditing` on any non-typing
+  re-open, which also closes a latent bug where an open prompt BOX carried from
+  the last beat onto a fresh picture-less one. Test:
+  `node scripts/test-storyroom-caption-fold.js` (the real page headless, driving
+  the REAL poll — verified failing 3 pre-fix).
   **THE DRAW ROW: THE STAR, AND QUALITY OPENS ON LOW (2026-08-26, Sophie:
   "can you make the draw button the stars logo we use for generate and can you
   change the default to low instead of medium and can you make the three-way

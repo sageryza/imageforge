@@ -350,6 +350,48 @@ const VW = 390, VH = 780;
     'a written prompt is what gets drawn, never the caption');
   ok(posted.some(([p, b]) => p === '/api/scratchpad/prompt' && b.prompt === 'MY OWN DRAWING PROMPT'),
     'and it saved itself on the way');
+
+  // 7c — A STALE SNAPSHOT MUST NEVER BE SAVED BACK (2026-08-26, Sophie: "it
+  // doesn't have my last version of the drawing prompt … it reverted back to
+  // an old one"). The Draw handler used to fire savePrompt and /generate
+  // loose: /generate could read the pad BEFORE the save committed, its
+  // response re-opened the beat and reset the box to the OLD prompt, the
+  // save's own response then updated popBeat to the NEW one — and the next
+  // blur/close saved the OLD box back over the prompt she had already drawn
+  // with. Two guards, both pinned: the saves land before /generate is asked,
+  // and a save only ever sends words SHE changed — a box the PAGE wrote is
+  // baselined and never posted back.
+  const pIdx = posted.findIndex(([p, b]) => p === '/api/scratchpad/prompt' && b.prompt === 'MY OWN DRAWING PROMPT');
+  const gIdx = posted.findIndex(([p, b]) => p === '/api/scratchpad/generate' && b.prompt === 'MY OWN DRAWING PROMPT');
+  ok(pIdx >= 0 && gIdx >= 0 && pIdx < gIdx,
+    'the prompt save reaches the server BEFORE the draw is asked for');
+  const preStale = posted.length;
+  await page.evaluate(() => {
+    // The race's aftermath, verbatim. The beat is MID-DRAW (that is her
+    // scenario — she had just used the prompt to make images), so `noart`
+    // keeps the drawing box OPEN through the re-open; a stale snapshot
+    // resets the box to the OLD prompt…
+    const stale = Object.assign({}, window.beats.find((x) => x.id === 'b1'),
+      { prompt: 'THE STALE OLD PROMPT',
+        gen: { status: 'drawing', prompt: 'x', at: Date.now() } });
+    window.openBeat(stale);
+    // …and the save's own response then lands, so popBeat carries her NEW
+    // prompt while the box still shows the old one.
+    window.popBeat = window.beats.find((x) => x.id === 'b1');
+  });
+  ok(!(await page.$eval('#drawbox', (el) => el.hidden)),
+    'mid-draw the drawing box is open — the state the revert needed');
+  ok((await page.$eval('#dprompt', (el) => el.value)) === 'THE STALE OLD PROMPT',
+    'and the stale repaint really did reset the box');
+  await page.evaluate(() => window.closeBeat());
+  await page.waitForTimeout(200);
+  ok(!posted.slice(preStale).some(([p, b]) => p === '/api/scratchpad/prompt' && /STALE/.test(b.prompt || '')),
+    'closing after a stale repaint saves NOTHING back — the revert is dead');
+  ok((await page.evaluate(() => window.beats.find((x) => x.id === 'b1').prompt)) === 'MY OWN DRAWING PROMPT',
+    'her last version is still the one on the beat');
+  // Put the popup back the way section 8 expects it: open on b1.
+  await page.click('#pad .beat');
+  await page.waitForSelector('#beatpop:not([hidden])');
   // Drawing re-opens the beat, so the prompt is back to its read face — the
   // words she wrote, not the box she wrote them in.
   await page.waitForSelector('#beatpop:not([hidden])');
@@ -442,9 +484,10 @@ const VW = 390, VH = 780;
   await page.mouse.click(qb.x + qb.w * 0.15, qb.y + qb.h / 2);
   ok(await page.$eval('#dq', (el) => el.dataset.i) === 'L', 'and back to LOW, never a cycle');
 
-  // What the toggle says is what the draw spends.
+  // What the toggle says is what the draw spends. Draw now lands its saves
+  // BEFORE asking /generate, so give the chain a beat to reach the server.
   await page.click('#dgo');
-  await page.waitForFunction(() => true);
+  await page.waitForTimeout(300);
   const drew = posted.filter(([p]) => p === '/api/scratchpad/generate').pop();
   ok(drew && drew[1].quality === 'low', 'Draw sends the quality on the knob (' +
     (drew ? drew[1].quality : 'nothing posted') + ')');
