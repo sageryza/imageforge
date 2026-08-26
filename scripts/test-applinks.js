@@ -102,6 +102,36 @@ const server = app.listen(0, async () => {
     /onContinueUserActivity\(NSUserActivityTypeBrowsingWeb\)/.test(rootSrc),
     'onOpenURL alone never sees a universal link');
 
+  // ---- a link tapped INSIDE the app --------------------------------------
+  // iOS never hands a universal link to the app it is already in, so a web
+  // view that passes one of our own urls to UIApplication.shared.open sends
+  // her to SAFARI — which is exactly what Sophie hit (2026-08-25). Every
+  // link-opening site must ask ForgeLinks.open first. Settings deep links
+  // (openSettingsURLString) are not link handoffs and are exempt.
+  ok('ForgeLinks can route a link tapped in the app',
+    /static func open\(_ url: URL\) -> Bool/.test(swiftSrc) &&
+    /static let opened = Notification\.Name/.test(swiftSrc));
+  ok('RootView handles that route',
+    /publisher\(for: ForgeLinks\.opened\)/.test(rootSrc));
+
+  const unguarded = [];
+  for (const f of fs.readdirSync(path.join(__dirname, '..', 'ios', 'ImageForge'))) {
+    if (!f.endsWith('.swift')) continue;
+    const src = fs.readFileSync(path.join(__dirname, '..', 'ios', 'ImageForge', f), 'utf8');
+    const lines = src.split('\n');
+    lines.forEach((line, i) => {
+      if (!/UIApplication\.shared\.open\(/.test(line)) return;
+      if (/^\s*(\/\/|\*|\/\*)/.test(line)) return;          // a comment about it
+      const near = lines.slice(Math.max(0, i - 6), i + 1).join('\n');
+      // Settings deep links are not link handoffs. The url is often built on
+      // the line above, so look at the window rather than the line.
+      if (/openSettingsURLString/.test(near)) return;
+      if (!/ForgeLinks\.open\(/.test(near)) unguarded.push(`${f}:${i + 1}`);
+    });
+  }
+  ok('every link handoff asks ForgeLinks.open first', unguarded.length === 0,
+    unguarded.join(', ') + ' would open our own tool in Safari');
+
   console.log(fail ? `\n${fail} failed` : '\nall passed');
   process.exit(fail ? 1 : 0);
 });
