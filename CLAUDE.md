@@ -4915,6 +4915,18 @@ before working on that module. Nothing was deleted — the moved text is verbati
     one thing on screen says what is being placed. It outlives `pending` on
     purpose: the document-level tap cancels placing, and without the band
     there would be no way back to the picture but the Playground.
+  - **AND THE ENDED BAND IS THE WAY BACK (2026-08-26, Sophie: "when I go to
+    put a picture into the story room there's no way to get back to the
+    playground" — she was right, and the cause is that the walk is a
+    `location.href` inside the Playground's own web view, so this page ATE
+    her Playground screen; the shelf's chevron leaves the whole tool in the
+    app, and there was nothing else).** Placing the picture, or putting it
+    down with the ✕, turns the band into "Placed · back to the Playground" /
+    "Back to the Playground" (Panels when `from=panels`) — tapping it walks
+    back, the ✕ then dismisses it for someone staying in the room. A run
+    that cannot be read (a pruned run, a deploy mid-fetch) opens the band
+    straight in that state instead of stranding her holding nothing. The
+    mirror of the Playground's own "‹ Scratch Pad" chip on the reverse trip.
   - **The placement is the room's own** — `pick()`/`place()`, the inbox's
     machinery, so she gets a gap in the ORDER rather than "at the end", and
     an empty story places straight away because it has no gap to tap.

@@ -23,8 +23,15 @@
 //      quality) — the same src the pad's own inbox pick sends,
 //   6. a stray tap cancels the placing but NOT the picture: the band survives
 //      and re-arms on a tap (there is no way back to it otherwise),
-//   7. the ✕ puts it down for good,
-//   8. a story with no beats has no gap to tap, so it places straight away.
+//   7. the ✕ puts the picture down — and the band STAYS as the way back
+//      (2026-08-26, Sophie: "when I go to put a picture into the story room
+//      there's no way to get back to the playground"); a second ✕ dismisses,
+//   8. a story with no beats has no gap to tap, so it places straight away,
+//   9. after placing, the band reads "Placed · back to the Playground" and
+//      tapping it walks back — the walk ate the Playground's screen, so
+//      without this the trip was one-way,
+//  10. a panels walk goes back to /panels, and a run that cannot be read
+//      still offers the way back rather than stranding her.
 //
 //   npm install playwright --no-save && node scripts/test-playground-story-share.js
 const http = require('http');
@@ -83,6 +90,10 @@ const server = http.createServer((req, res) => {
   }
   if (url.pathname === '/api/promptlab') return json({ runs: [RUN], more: false });
   if (url.pathname === '/api/promptlab/runA') return json(RUN);
+  if (url.pathname === '/api/panels/sheetA') {
+    return json({ id: 'sheetA', quality: 'low', sheetUrl: '/px.png?sheet=1',
+      panels: ['a small owl'], images: [{ cell: 'a1', url: '/px.png?p=a1', prompt: 'a small owl' }] });
+  }
   if (url.pathname === '/api/story/thumb') {
     thumbCalls.push(url.searchParams.get('url'));
     res.writeHead(302, { Location: url.searchParams.get('url') || '/px.png' });
@@ -162,7 +173,7 @@ const ok = (cond, what) => { console.log((cond ? 'ok   ' : 'FAIL ') + what); if 
 
   // ── 5 · a gap places it THERE, with the provenance ────────────────────
   await page.locator('#pad .slot').nth(1).click();
-  await page.waitForFunction(() => document.getElementById('sendband').hidden);
+  await page.waitForFunction(() => /Placed/.test(document.getElementById('sendword').textContent || ''));
   const add = posts.pop();
   ok(add && add.path === '/api/scratchpad/add', 'the gap POSTs /add (' + (add && add.path) + ')');
   if (add) {
@@ -175,6 +186,13 @@ const ok = (cond, what) => { console.log((cond ? 'ok   ' : 'FAIL ') + what); if 
       'with the whole provenance src (' + JSON.stringify(s) + ')');
   }
   ok(await page.locator('#pad .slot').count() === 0, 'the gaps go out once it is placed');
+
+  // ── 9 · the placed band is the way back ───────────────────────────────
+  ok(!(await page.locator('#sendband').isHidden()), 'the band stays after placing');
+  ok(/Placed · back to the Playground/.test(await page.locator('#sendword').textContent()),
+    'and says it is the way back');
+  await Promise.all([page.waitForURL(/\/playground/), page.locator('#sendband').click()]);
+  ok(true, 'tapping it walks back to the Playground');
 
   // ── 6 · a stray tap cancels the placing, never the picture ────────────
   await page.goto(base + '/storyroom?send=runA&i=0');
@@ -189,20 +207,35 @@ const ok = (cond, what) => { console.log((cond ? 'ok   ' : 'FAIL ') + what); if 
   await page.waitForFunction(() => document.querySelectorAll('#pad .slot').length === 3);
   ok(true, 'tapping the band arms it again');
 
-  // ── 7 · the ✕ puts it down for good ───────────────────────────────────
+  // ── 7 · the ✕ puts it down — the way back stays; a second ✕ dismisses ─
+  await page.locator('#senddrop').click();
+  await page.waitForFunction(() => /Back to the Playground/.test(document.getElementById('sendword').textContent || ''));
+  ok(await page.locator('#pad .slot').count() === 0, 'dropping it takes the gaps with it');
+  ok(!(await page.locator('#sendband').isHidden()), 'but the way back stays');
   await page.locator('#senddrop').click();
   await page.waitForFunction(() => document.getElementById('sendband').hidden);
-  ok(await page.locator('#pad .slot').count() === 0, 'dropping it takes the gaps with it');
+  ok(true, 'a second ✕ dismisses the band for someone staying in the room');
 
   // ── 8 · an empty story has no gap, so it lands ────────────────────────
   posts.length = 0;
   await page.goto(base + '/storyroom?send=runA&i=0');
   await page.waitForSelector('#sendband:not([hidden])');
   await page.locator('#shelftiles .stile', { hasText: 'Moon Milk' }).click();
-  await page.waitForFunction(() => document.getElementById('sendband').hidden);
+  await page.waitForFunction(() => /Placed/.test(document.getElementById('sendword').textContent || ''));
   const first = posts.pop();
   ok(first && first.path === '/api/scratchpad/add' && first.body.at === 0 && first.body.pad === 'padY',
     'an empty story takes it as its first beat (' + JSON.stringify(first && first.body.at) + ')');
+
+  // ── 10 · a panels walk goes back to /panels; a dead run still offers it ─
+  await page.goto(base + '/storyroom?send=sheetA&cell=a1&from=panels');
+  await page.waitForSelector('#sendband:not([hidden])');
+  await page.locator('#senddrop').click();
+  await page.waitForFunction(() => /Back to Panels/.test(document.getElementById('sendword').textContent || ''));
+  ok(true, 'a panels walk offers the way back to Panels');
+  await page.goto(base + '/storyroom?send=gone&i=0');
+  await page.waitForFunction(() => /Back to the Playground/.test(document.getElementById('sendword').textContent || ''));
+  ok(await page.locator('#sendthumb').isHidden(), 'a run that cannot be read shows no thumb');
+  ok(!(await page.locator('#sendband').isHidden()), 'but still offers the way back');
 
   await browser.close();
   server.close();
