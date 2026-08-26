@@ -617,7 +617,27 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 #popblank.c-blue{border-color:var(--blue);} #popblank.c-pink{border-color:var(--pink);}
 #lightbox{position:fixed; inset:0; z-index:60; display:flex; flex-direction:column; align-items:center;
   justify-content:center; gap:12px; background:rgba(20,17,12,.94); padding:3vw;}
-#lightbox img{max-width:94vw; max-height:88vh; border-radius:4px;}
+/* The stage is the IMAGE AREA — the picture and the two step zones over it,
+   ending where the Use button starts. The zones are sized to IT rather than
+   to the window, so a tap "on the left or right of the picture" means exactly
+   that and the button underneath is never covered. */
+.lbstage{position:relative; display:flex; align-items:center; justify-content:center;
+  min-height:0; max-width:100%;}
+#lightbox img{max-width:94vw; max-height:88vh; border-radius:4px; display:block;}
+/* STEP TO THE NEXT PICTURE THIS BEAT HAS HAD — the past-pictures row, in the
+   same order, without closing and re-opening (2026-08-26, Sophie: "in the
+   story room, can you make it so that I can tap the right or left of the
+   screen to see the next option if I have it in lightbox mode").
+   IT IS THE TAP AND NOTHING ELSE — no bar, no chip, no arrow, the Playground's
+   own settled rule: a mark drawn at the outer edge of a zone sits on top of
+   the picture she opened the lightbox to judge. The zone was always the
+   control, so drawing nothing takes nothing away.
+   Hidden when there is nothing that way — the ends are the ends, and with the
+   zone gone a tap there closes, exactly as it did before this existed. */
+.lbnav{position:absolute; top:0; bottom:0; width:28%; z-index:61;
+  border:0; background:none; padding:0; cursor:pointer;}
+.lbnav[hidden]{display:none;}
+#lbprev{left:0;} #lbnext{right:0;}
 /* Picking an older picture happens HERE, looking at it big — the row's
    thumbnails are 44px, which is not enough to choose by (Sophie,
    2026-08-24: "make the past picture thumbnails so that I can actually pick
@@ -874,7 +894,12 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   </div></div>
 </div>
 
-<div id="lightbox" hidden><img id="lbimg" alt="">
+<div id="lightbox" hidden>
+  <div class="lbstage">
+    <img id="lbimg" alt="">
+    <button class="lbnav" id="lbprev" hidden aria-label="The picture before this one"></button>
+    <button class="lbnav" id="lbnext" hidden aria-label="The next picture"></button>
+  </div>
   <button id="lbuse" hidden>Use this one</button></div>
 
 <div id="delask" hidden>
@@ -2120,6 +2145,9 @@ function openBeat(b){
   // once a draw has actually replaced something.
   var vr=document.getElementById('verrow'); vr.innerHTML='';
   var vers=((su.url&&!clip)?[su.url]:[]).concat((su.imageHistory||[]).slice().reverse().map(function(h){return h.url;}).filter(Boolean));
+  // The same list the lightbox steps through, so the row's order and the
+  // left/right taps can never disagree.
+  lbVers=vers; lbHasCur=Boolean(su.url&&!clip);
   var av=document.getElementById('arvers');
   av.hidden=vers.length<2; av.classList.remove('on'); vr.hidden=true;
   if(vers.length>1){
@@ -2131,7 +2159,7 @@ function openBeat(b){
       // already on the card is a button that does nothing.
       t.onclick=function(ev){
         ev.stopPropagation();
-        openLb(u, (i===0&&su.url)?null:u);
+        openLbAt(i);
       };
       vr.appendChild(t);
     });
@@ -2445,21 +2473,49 @@ document.getElementById('speak').onclick=function(ev){
    right every single time: `pick` is the url this picture WOULD become the
    beat's art from, or null for the picture that already is. */
 var lbPick=null;
-function openLb(url,pick){
-  lbPick=pick||null;
+/* The pictures the lightbox can step through, in the past-pictures row's own
+   order (current first, then newest-first history) — written by openBeat, so
+   the row and the lightbox can never disagree about what comes next. `lbHasCur`
+   says whether index 0 IS the beat's art, which is the one picture with nothing
+   to pick. */
+var lbVers=[], lbHasCur=false, lbAt=-1;
+function openLbAt(i){
+  if(i<0||i>=lbVers.length)return;
+  lbAt=i;
+  var url=lbVers[i];
+  lbPick=(i===0&&lbHasCur)?null:url;
   document.getElementById('lbimg').src=url;
   var u=document.getElementById('lbuse');
   u.hidden=!lbPick; u.classList.remove('busy');
   var lb=document.getElementById('lightbox');
   lb.classList.toggle('pick',Boolean(lbPick));
   lb.hidden=false;
+  syncLbNav();
+}
+/* A zone is a real button (aria-label, hidden at the ends) that simply draws
+   nothing — see the .lbnav note in the CSS. */
+function syncLbNav(){
+  document.getElementById('lbprev').hidden=lbAt<=0;
+  document.getElementById('lbnext').hidden=lbAt<0||lbAt>=lbVers.length-1;
+}
+function openLb(url,pick){
+  // Every caller goes through the list, so stepping works from the card's own
+  // picture as well as from a thumbnail. A url the list has somehow lost opens
+  // alone rather than not at all.
+  var i=lbVers.indexOf(url);
+  if(i<0){ lbVers=[url]; lbHasCur=!pick; i=0; }
+  openLbAt(i);
 }
 function closeLb(){
-  lbPick=null;
+  lbPick=null; lbAt=-1;
   document.getElementById('lbuse').hidden=true;
+  document.getElementById('lbprev').hidden=true;
+  document.getElementById('lbnext').hidden=true;
   var lb=document.getElementById('lightbox');
   lb.classList.remove('pick'); lb.hidden=true;
 }
+document.getElementById('lbprev').onclick=function(ev){ ev.stopPropagation(); openLbAt(lbAt-1); };
+document.getElementById('lbnext').onclick=function(ev){ ev.stopPropagation(); openLbAt(lbAt+1); };
 /* Tapping the thumbnail opens it big — a lightbox over the popup. */
 document.getElementById('popimg').onclick=function(ev){
   ev.stopPropagation();
@@ -2468,6 +2524,9 @@ document.getElementById('popimg').onclick=function(ev){
 };
 document.getElementById('lightbox').onclick=function(ev){
   ev.stopPropagation();
+  // The side zones are STEPPING, not leaving — closing on them would shut the
+  // lightbox on every tap.
+  if(ev.target.closest('.lbnav'))return;
   closeLb();
 };
 /* Take this older picture back as the beat's art. The same POST the inbox
