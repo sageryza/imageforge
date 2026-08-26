@@ -1,9 +1,9 @@
 import SwiftUI
 import UIKit   // UIImage(systemName:) — the SF Symbol existence check in ToolGlyph
 
-/// The tools the bottom bar can rotate through. Home (the grid) and Gallery
-/// (My Creations) are fixed ends of the bar; everything here is a "mode" that
-/// cycles through the three middle slots by most-recently-used.
+/// Every tool in the app. The bottom bar shows five of them and they are all
+/// fixed: Home (the grid) and Gallery at the ends, and the three in `barTools`
+/// between them. Everything else is reached from the home grid or a deep link.
 enum Tool: String, CaseIterable, Identifiable {
     case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, blocks, pausing, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector, chunking, assembly, filmeditor, timeline, review, panels
     var id: String { rawValue }
@@ -367,25 +367,29 @@ extension EnvironmentValues {
     }
 }
 
-/// Tracks most-recently-used tools so the three middle bar slots rotate.
+/// THE THREE MIDDLE BAR SLOTS ARE FIXED (2026-08-26, Sophie: "right now the
+/// bottom real icons switch off can you change it so they're permanent I want
+/// the story room, the story timeline and the playground"). They used to
+/// rotate by most-recently-used, so the three tools under her thumb changed
+/// every time she opened something else from Home — the bar could never be
+/// learned, and the tool she wanted was never where she left it.
+///
+/// Nothing else about `Recents` changed: it still tracks use order, because
+/// the HOME GRID ranks its cards by it. Only the bar stopped reading it.
+let barTools: [Tool] = [.story, .timeline, .playground]
+
+/// Tracks most-recently-used tools — the HOME GRID's card order. The bottom
+/// bar no longer reads this (see `barTools` above).
 final class Recents: ObservableObject {
     @Published private(set) var order: [Tool]
     private let key = "deckfactory.recentTools.v1"
 
     init() {
         let saved = UserDefaults.standard.stringArray(forKey: key) ?? []
-        var o = saved.compactMap { Tool(rawValue: $0) }
-        // Seed sensible defaults so the bar is never empty on first launch.
-        for t in [Tool.movie, .sticker, .coloring] where !o.contains(t) { o.append(t) }
-        order = o
+        order = saved.compactMap { Tool(rawValue: $0) }
     }
 
-    /// The three tools shown in the middle of the bar. Chats is excluded — it's
-    /// the always-alive launch screen, not part of the rotation (and may linger
-    /// in saved state from before that change).
-    var recentThree: [Tool] { Array(order.filter { $0 != .chats }.prefix(3)) }
-
-    /// Promote a tool to most-recent (so it holds a middle slot).
+    /// Promote a tool to most-recent (so it leads the home grid).
     func use(_ t: Tool) {
         guard order.first != t else { return }
         order.removeAll { $0 == t }
@@ -414,8 +418,7 @@ struct RootView: View {
         VStack(spacing: 0) {
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            BottomBar(screen: Binding(get: { screen }, set: { setScreen($0) }),
-                      recents: recents)
+            BottomBar(screen: Binding(get: { screen }, set: { setScreen($0) }))
         }
         .background(Theme.bg.ignoresSafeArea())
         // Keep the bottom bar pinned to the bottom edge — without this the
@@ -538,15 +541,36 @@ struct RootView: View {
         screen = history.popLast() ?? .home
     }
 
-    // Keep the three recent tools + gallery alive so their state (a generated
-    // sheet, a half-typed prompt) survives switching tabs; only the selected one
-    // is shown.
+    // The tools kept ALIVE in the stack: the three permanent bar tools, plus
+    // whatever tool is open right now. The bar's three used to be the whole
+    // list — which only worked because opening anything from Home promoted it
+    // INTO that list. With the slots fixed (see `barTools`) a tool opened from
+    // Home belongs to neither, so it has to be added here or its screen would
+    // render as nothing at all.
+    //
+    // It also carries the ONE most-recently-opened tool from outside the bar,
+    // which is what keeps the old promise: before the slots were fixed, a tool
+    // opened from Home became a bar slot and so stayed alive, and walking
+    // Panels → Playground → Panels kept the half-typed prompt. Without it a
+    // fixed bar would silently start throwing that work away on every trip.
+    private var alive: [Tool] {
+        var t = barTools
+        if let recent = recents.order.first(where: { $0 != .chats && !barTools.contains($0) }) {
+            t.append(recent)
+        }
+        if case .tool(let cur) = screen, cur != .chats, !t.contains(cur) { t.append(cur) }
+        return t.filter { $0 != .chats }
+    }
+
+    // Keep those tools + gallery alive so their state (a generated sheet, a
+    // half-typed prompt) survives switching tabs; only the selected one is
+    // shown.
     private var content: some View {
         ZStack {
             HomeGrid(open: open, filter: $homeFilter, recents: recents)
                 .opacity(screen == .home ? 1 : 0)
                 .allowsHitTesting(screen == .home)
-            ForEach(recents.recentThree.filter { $0 != .chats }) { t in
+            ForEach(alive) { t in
                 NavigationStack { t.view }
                     .environment(\.goHome, { setScreen(.home) })
                     .environment(\.goBack, { goBack() })
@@ -642,26 +666,27 @@ struct RootView: View {
     }
 
     private func open(_ t: Tool) {
-        // Chats is always-alive and isn't part of the recent rotation, so it
-        // never gets promoted into a bottom-bar slot.
+        // Use order ranks the HOME GRID's cards; the bar's three are fixed.
+        // Chats is always-alive and is never a card, so it never gets ranked.
         if t != .chats { recents.use(t) }
         setScreen(.tool(t))
     }
 }
 
-/// The custom bottom bar: 🏠 · recent · recent · recent · 🖼️.
+/// The custom bottom bar: 🏠 · Story Room · Story Timeline · Playground · 🖼️.
+/// The three middle slots are PERMANENT (see `barTools`) — they used to rotate
+/// by most-recent use, so the tools under her thumb moved every time she opened
+/// something else.
 private struct BottomBar: View {
     @Binding var screen: Screen
-    @ObservedObject var recents: Recents
 
     var body: some View {
         HStack(spacing: 0) {
             slot(active: screen == .home, { screen = .home }) {
                 Image(systemName: "house").font(.system(size: 21, weight: screen == .home ? .semibold : .regular))
             }
-            ForEach(recents.recentThree) { t in
-                // Tapping a slot just switches to it — no reshuffle. Tools only
-                // get promoted into the slots when opened from Home.
+            ForEach(barTools) { t in
+                // Tapping a slot just switches to it — the three never move.
                 slot(active: screen == .tool(t), { screen = .tool(t) }) {
                     ToolGlyph(tool: t, size: 21, weight: screen == .tool(t) ? .semibold : .regular)
                 }

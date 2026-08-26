@@ -2881,6 +2881,24 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     opens the shared lightbox and builds none of its own; step 11 taps the dead
     space, found by scanning each row with `elementFromPoint` — the only honest
     way to ask what a tap reaches; verified failing against the pre-fix page).
+- **THE BOTTOM BAR'S THREE ARE PERMANENT — Story Room · Story Timeline ·
+  Playground (2026-08-26, Sophie: "right now the bottom real icons switch off
+  can you change it so they're permanent I want the story room, the story
+  timeline and the playground").** The three middle slots used to rotate by
+  most-recently-used, so the tools under her thumb moved every time she opened
+  anything else from Home — a bar that can never be learned. `barTools` in
+  `RootView.swift` is the whole list and the ONE place the order is written
+  down; changing it is that line.
+  - **`Recents` still exists and still tracks use order — it ranks the HOME
+    GRID's cards.** Only the bar stopped reading it. Do not delete it.
+  - **THE ALIVE SET IS NOT THE BAR ANY MORE, and that is the half that breaks
+    if it is "tidied".** The ZStack used to keep exactly the bar's three tools
+    alive, which only worked because opening a tool from Home promoted it INTO
+    that three; with the slots fixed, a tool opened from Home is in neither, so
+    `alive` = the three + the currently-open tool + the ONE most recent tool
+    from outside the bar. Drop the first and a tool opened from Home renders as
+    a blank screen; drop the second and Panels → Playground → Panels silently
+    throws away her half-typed prompt.
 - **iOS: pin bottom bars below the keyboard (never floating above it).** A
   custom bottom nav/tab bar laid out in a `VStack` rides UP and hovers above the
   keyboard, because SwiftUI's keyboard safe-area inset shrinks the stack. This
@@ -4884,6 +4902,19 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - **ONE WRITE: `placeOnBeat` in scratchpad.js**, exported and shared with
     `POST /image` — her inbox pick, her picking an older version back, and a
     Playground landing must bookkeep that row identically.
+  - **A PLACEMENT NAMING NO SIDE IS DERIVED FROM THE PICTURE'S OWN RUN RECORD
+    (2026-08-26, Sophie: "the dance one went into the watercolor one, but it
+    should be dreamy … it could look at the metadata or the prompt").** The
+    page always sends the side she is showing, so a style-less `/add` or
+    `/image` is a CHAT seeding art — it used to default silently to
+    watercolor, which mislaid three stories' dreamy panels. `sideFromEvidence`
+    reads the run doc the `src` names (or finds it by url) and `padSideOf` in
+    `pad-side.js` claims a side only when the run's `style`/`gptStyle` IS one
+    — evidence, never a guess; it may also flip the toggle, but only onto a
+    story whose showing side holds no art at all. A CHAT placing art should
+    still pass `style` when it knows it. Mislaid art moves with
+    `scripts/reside-pad-art.js` (dry by default). Full rules:
+    `docs/modules/story.md`; test `node scripts/test-pad-side.js`.
   - **The landing is DISCLOSED on screen** (`#beattag`, the reftag's box): a
     side effect she cannot see is a trap. And it is the QUERY STRING only —
     nothing is persisted, so opening the Playground any other way is
@@ -4915,6 +4946,18 @@ before working on that module. Nothing was deleted — the moved text is verbati
     one thing on screen says what is being placed. It outlives `pending` on
     purpose: the document-level tap cancels placing, and without the band
     there would be no way back to the picture but the Playground.
+  - **AND THE ENDED BAND IS THE WAY BACK (2026-08-26, Sophie: "when I go to
+    put a picture into the story room there's no way to get back to the
+    playground" — she was right, and the cause is that the walk is a
+    `location.href` inside the Playground's own web view, so this page ATE
+    her Playground screen; the shelf's chevron leaves the whole tool in the
+    app, and there was nothing else).** Placing the picture, or putting it
+    down with the ✕, turns the band into "Placed · back to the Playground" /
+    "Back to the Playground" (Panels when `from=panels`) — tapping it walks
+    back, the ✕ then dismisses it for someone staying in the room. A run
+    that cannot be read (a pruned run, a deploy mid-fetch) opens the band
+    straight in that state instead of stranding her holding nothing. The
+    mirror of the Playground's own "‹ Scratch Pad" chip on the reverse trip.
   - **The placement is the room's own** — `pick()`/`place()`, the inbox's
     machinery, so she gets a gap in the ORDER rather than "at the end", and
     an empty story places straight away because it has no gap to tap.
@@ -5470,9 +5513,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
     copy, so "first one wins" would strip the label off half the strip.
   - **It was a full-screen COVER from the home grid, never a `Tool`** —
     opening a Tool promotes it into `Recents`, so the button would have
-    evicted one of her three bottom-bar slots on every tap. That reasoning is
-    banked in `BriefView.swift` in case the page ever wants a native screen
-    again.
+    evicted one of her three bottom-bar slots on every tap. That HALF is
+    history since 2026-08-26 (the bar's three are fixed now — see *THE BOTTOM
+    BAR'S THREE ARE PERMANENT* below), but the rest of the reasoning stands
+    and is banked in `BriefView.swift` in case the page ever wants a native
+    screen again.
   - Tests: `node scripts/test-brief.js` (the whole ranking, pure, fixtures),
     `node scripts/test-brief-page.js` (the real page + the real injected pill,
     headless — the cache-first open counted in API calls, Refresh, the pill

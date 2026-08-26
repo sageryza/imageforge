@@ -64,7 +64,9 @@ ok(!/padTarget: \{ pad: '', beat: ''/.test(serverSrc), 'and never an empty one')
 ok(/padTargetOf\(req\.body\)/.test(serverSrc), 'the route reads it off the body');
 
 console.log('one write puts a picture on a beat');
-ok(/async function placeOnBeat\(padId, beatId, url, style, src\)/.test(padSrc),
+// `opts` since 2026-08-26 — {derived:true} lets a chat's style-less
+// placement flip the toggle onto a story with no visible art (pad-side.js).
+ok(/async function placeOnBeat\(padId, beatId, url, style, src, opts\)/.test(padSrc),
   'scratchpad.js owns it');
 ok(/module\.exports = \{ router, attachVoiceUrl, placeOnBeat,/.test(padSrc),
   'and exports it, so server.js uses the same one');
