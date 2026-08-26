@@ -4774,6 +4774,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - Test: `node scripts/test-scratchpad-popup.js` (the real page, headless —
     the pencil measured beside the words, the empty tile measured against the
     same card holding a picture).
+  **AND THE TWO FOLDS ARE HERS — A RE-OPEN OF THE BEAT ALREADY ON SCREEN NEVER
+  TOUCHES THEM (2026-08-26, Sophie: "the caption keeps reopening after I close
+  it on a beat in story room").** `openBeat` set both folds to their ARRIVAL
+  defaults — caption open, prompt open only on a picture-less beat — on EVERY
+  call, guarded only by `typing`, i.e. only while a box actually held her
+  caret. So closing the caption and then doing anything that re-opens the same
+  beat sprang it straight back open. Four call sites do that, and **the first
+  takes no tap of hers at all**: the gen poll landing a finished draw
+  (`startGenPoll` → `openBeat`), Draw itself, picking a past picture out of the
+  lightbox, and a chunk link/unlink. The guard is `same` now — the defaults
+  belong to ARRIVING at a beat, not to every repaint of the one she is standing
+  on. Two things not to undo: the PROMPT fold carries over with the caption (one
+  rule for both, or a chat has to remember which of two identical-looking folds
+  is hers), and `promEditing` is reset beside `capEditing` on any non-typing
+  re-open, which also closes a latent bug where an open prompt BOX carried from
+  the last beat onto a fresh picture-less one. Test:
+  `node scripts/test-storyroom-caption-fold.js` (the real page headless, driving
+  the REAL poll — verified failing 3 pre-fix).
   **THE DRAW ROW: THE STAR, AND QUALITY OPENS ON LOW (2026-08-26, Sophie:
   "can you make the draw button the stars logo we use for generate and can you
   change the default to low instead of medium and can you make the three-way
@@ -4958,6 +4976,22 @@ before working on that module. Nothing was deleted — the moved text is verbati
     that cannot be read (a pruned run, a deploy mid-fetch) opens the band
     straight in that state instead of stranding her holding nothing. The
     mirror of the Playground's own "‹ Scratch Pad" chip on the reverse trip.
+    **AND AN APP EXIT UN-EATS THE SENDER'S WEB VIEW (2026-08-26, her second
+    report the same day: "I still can't get out of the story room and back
+    into the playground").** The band alone was not enough: the app keeps a
+    tool's page alive for the whole app process, so leaving a send-trip page
+    through the shelf's chevron parked the PLAYGROUND tool's web view on the
+    story room — every later tap on the Playground tile opened the room
+    again, band or no band, until a force-quit. On a document that arrived
+    with `?send=`, `armTripRestore` wraps `window.__forgeLeave`: the native
+    exit still fires first (the tool hides as before), then the web view
+    puts itself back on `/playground` (or `/panels`) with `location.replace`
+    behind it. Wrapping the bridge is what catches BOTH exits — the shelf
+    chevron's own handler and pagehead's chevron chain — with one hook; a
+    plain browser has no `__forgeLeave` and keeps its history fallback
+    untouched. **A page loaded BEFORE this shipped is still parked** — the
+    one cure for an already-stuck web view is force-quitting the app; the
+    fix only keeps it from happening again.
   - **The placement is the room's own** — `pick()`/`place()`, the inbox's
     machinery, so she gets a gap in the ORDER rather than "at the end", and
     an empty story places straight away because it has no gap to tap.
