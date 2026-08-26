@@ -361,9 +361,20 @@
      ending where the caption starts. The zones are sized to it rather than to
      the window, so a tap "in the image area" means exactly that and the
      caption, the ♥/✕ row and the buttons under it are never covered. */
+  /* THE PICTURE SHRINKS WITH THE STAGE, OR IT PAINTS OVER THE CAPTION
+     (2026-08-26, Sophie: "the label is covered by the picture"). The stage is
+     `position:relative`, so it and the picture inside it paint ABOVE the
+     static caption below — and the picture's own `max-height:76vh` did not
+     shrink when flex squeezed the stage, so on a short viewport (the app's
+     web view, which is shorter than Safari's by its bottom bar) the bottom of
+     a portrait 2:3 sat on top of the MODEL · QUALITY · SIZE line. `min(...,
+     100%)` binds it to whatever room the stage really has; `flex:none` on the
+     caption and the buttons is what makes the stage the only thing that
+     gives, so the two lines she opens a picture to read can never be the part
+     that is squeezed away. */
   .lbstage { position: relative; display: flex; align-items: center; justify-content: center;
-    width: 100%; min-height: 0; }
-  #lb img { max-width: 100%; max-height: 76vh; border-radius: 6px; }
+    width: 100%; min-height: 0; flex: 0 1 auto; }
+  #lb img { max-width: 100%; max-height: min(76vh, 100%); border-radius: 6px; }
   /* Step to the next/previous picture in the feed, in the order the view
      behind the lightbox is showing them (the heart filter included).
      IT IS THE TAP AND NOTHING ELSE — NO VISIBLE BAR (2026-08-24, Sophie: "in
@@ -387,10 +398,10 @@
      sight — the one thing she opens a picture to check (Sophie, Aug 2026:
      "when the prompt gets long i cant see the model or quality"). Only the
      prompt scrolls now; the meta line never moves. */
-  #lb .cap { margin-top: 10px; text-align: center; max-width: 560px; }
+  #lb .cap { margin-top: 10px; text-align: center; max-width: 560px; flex: none; }
   #lb .cap .capm { color: #9a938a; font-size: 12px; }
   #lb .cap .capp { color: #eee; font-size: 13.5px; margin-top: 5px; max-height: 14vh; overflow-y: auto; }
-  .lbbtns { display: flex; gap: 22px; margin-top: 14px; }
+  .lbbtns { display: flex; gap: 22px; margin-top: 14px; flex: none; }
   .lbbtn { width: 46px; height: 46px; border-radius: 50%; border: 1.5px solid #555; background: #1c1c1c; color: #ddd; display: flex; align-items: center; justify-content: center; }
   .lbbtn svg { width: 21px; height: 21px; }
   .lbbtn.like.on { background: #c25a72; border-color: #c25a72; color: #fff; }
