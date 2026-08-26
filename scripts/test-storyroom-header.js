@@ -66,10 +66,10 @@ function ok(name, cond, extra) {
 /* The pad the page loads, and the shelf behind the door. Enough shape for the
    header to draw; the beats themselves are not what this test is about. */
 const PADS = { pads: [
-  { id: 'a', title: 'Evan', beats: 12, category: 'personal', cover: '' },
-  { id: 'b', title: 'Moon milk', beats: 8, category: 'personal', cover: '' },
+  { id: 'a', title: 'Evan', beats: 12, category: null, cover: '' },
+  { id: 'b', title: 'Moon milk', beats: 8, category: null, cover: '' },
 ]};
-const PAD = { pad: { id: 'a', title: 'Evan', beats: [], category: 'personal' } };
+const PAD = { pad: { id: 'a', title: 'Evan', beats: [], category: null } };
 
 /* Serve public/ the way serveGated does — the page PLUS the pagehead.js tag
    the server appends to every gated page. Reading the real files is the
@@ -339,8 +339,12 @@ const HEADS = [
       .filter(e => e.offsetParent)
       .map(e => { const r = e.getBoundingClientRect();
         return { top: Math.round(r.top), right: Math.round(r.right) }; }));
+    // NOTHING COUNTS THE BUTTONS (2026-08-26 — two of them became one when
+    // the description and the recordings moved behind a single button, and a
+    // hardcoded 6 here is exactly the edit that claim exists to prevent). The
+    // question is whether however many the page has share a line.
     ok(state + ': every button is on one line',
-      btns.length >= 6 && new Set(btns.map(b => b.top)).size === 1,
+      btns.length > 1 && new Set(btns.map(b => b.top)).size === 1,
       btns.length + ' buttons, ' + new Set(btns.map(b => b.top)).size + ' rows');
     ok(state + ': and none of them reaches the pill\'s column',
       Math.max(...btns.map(b => b.right)) <= 326,

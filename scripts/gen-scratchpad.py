@@ -36,9 +36,10 @@ page = r"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Story Room</title>
-<!-- THE THREE-WAY TOGGLE is the one shared shell (/tritoggle.css), never a
-     fourth hand-copy of the geometry; /tritoggle.js is the aim rule — a tap
-     lands on the stop under the thumb rather than cycling. -->
+<!-- THE house three-way toggle, one shell for every copy of it (the style
+     toggle on a story, the draw quality in a beat's card). Linked, never
+     copied — see tritoggle.css's header; /tritoggle.js is the aim rule, a
+     tap landing on the stop under the thumb rather than cycling. -->
 <link rel="stylesheet" href="/tritoggle.css">
 <script src="/tritoggle.js"></script>
 <style>
@@ -137,31 +138,36 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    sitting 2px inside it. */
 .iconrow{display:flex; align-items:center; justify-content:flex-end; gap:8px;
   padding:2px 56px 0 0;}
-/* THE STYLE TOGGLE — watercolor ↔ dreamy (Aug 2026, Sophie: "a style toggle
-   at the top of a story that alternates between dreamy and watercolor …
+/* THE STYLE TOGGLE — watercolor · dreamy · pastel (Aug 2026, Sophie: "a style
+   toggle at the top of a story that alternates between dreamy and watercolor …
    the same format that the account's toggle is, with a switch that moves
-   back-and-forth"). `.swi` is the account switcher's toggle from chats.html
-   VERBATIM — 48px track, 26 tall, an 18px knob — with TWO stops instead of
-   three and the track in INK on this cream page (the Playground's quality
-   toggle set that precedent; the rose belongs to the Chats app). The far
-   stop's 23px offset is the same arithmetic as the account one's third stop
-   (2 + 23 + 18 leaves the same 2px margin the near stop has). The words
-   either side say which is which — the lit one is where the knob sits — and
-   tapping a word or the switch flips the story. Its own line under the
-   title row: the row above already carries six 34px icons on a 390pt phone,
-   and a 48px track cannot fit beside them. */
+   back-and-forth"; PASTEL added 2026-08-26, "another style in the story room
+   called pastel besides watercolor and dreamy").
+
+   IT IS THE SHARED THREE-WAY TOGGLE NOW — `/tritoggle.css` + `/tritoggle.js`,
+   linked and never copied. It used to be `.swi`, a hand copy of the account
+   switcher's TWO-stop geometry, and the day a third style landed that copy
+   was the thing standing in the way: the house rule is that three options is
+   a three-way toggle, and there is exactly ONE shell for it. Colour is the
+   per-instance option — ink on this cream page, the Playground's precedent;
+   the rose belongs to the Chats app — so this instance sets four lines and
+   the height, the radius and the travel between stops fall out of the width.
+
+   THE KNOB CARRIES THE INITIAL (W / D / P, `data-i`) and the three WORDS sit
+   beside it, the lit one being where the knob is. That is her original shape
+   — "the words either side say which is which" — with the switch moved to the
+   front, because three words cannot straddle one switch. Tapping a word picks
+   that style; tapping the track lands on the STOP UNDER THE THUMB (never a
+   cycle, `triNext`).
+
+   Its own line under the title row: the row above already carries six 34px
+   icons on a 390pt phone, and a track cannot fit beside them. */
 .stylerow{display:flex; align-items:center; gap:9px; padding:2px 56px 4px 0;}
 .stylerow .sw{font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:10px; letter-spacing:.1em;
   text-transform:uppercase; color:var(--ink2); background:none; border:none; padding:2px 0; cursor:pointer;
   -webkit-tap-highlight-color:transparent;}
 .stylerow .sw.on{color:var(--ink); font-weight:600;}
-.swi{--tw:48px; --k:18px; --gap:23px;
-  position:relative; box-sizing:border-box; width:var(--tw); height:26px; border-radius:13px;
-  border:1.5px solid var(--ink); background:var(--ink);
-  padding:0; margin:0; flex:none; cursor:pointer; -webkit-tap-highlight-color:transparent;}
-.swi::after{content:''; position:absolute; top:2px; left:2px; width:var(--k); height:18px; border-radius:50%;
-  background:var(--paper); transition:transform .18s;}
-.swi[data-a="2"]::after{transform:translateX(var(--gap));}
+.stylerow .tri{--tri-track:var(--ink); --tri-knob:var(--paper); --tri-ink:var(--ink);}
 /* THE SHELF (Aug 2026, the media-asset-survey prototype v5, ~15 rounds with
    Sophie): category chips + portrait tiles four across. A tile is a REAL
    picture from that story — portrait 2:3 so nothing crops the art — with the
@@ -184,17 +190,19 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    `inset`, because an absolutely positioned IMG with auto width shrinks to
    its intrinsic size instead of stretching between two offsets. `box-sizing` is not global on this page, so the frame
    declares its own or the padding pushes each tile out of its grid cell. */
-#shelftiles{display:grid; grid-template-columns:repeat(3,1fr); gap:16px 10px;}
+/* The 14px column gap is what the deepest card of a stack hangs into (12px);
+   at the old 10 it would have crossed into the next tile's frame. */
+#shelftiles{display:grid; grid-template-columns:repeat(3,1fr); gap:16px 14px;}
 .stile{display:block; padding:0; background:none; border:none; text-align:left; color:var(--ink);
   cursor:pointer; font-family:'EBGaramond',Georgia,serif; -webkit-tap-highlight-color:transparent;}
 /* `.cov` is the tile's FOOTPRINT — it paints nothing. `.frame` inside it is
    the white mat that used to BE .cov, and it fills the footprint exactly on
    EVERY tile, a folder included, so every picture on the shelf is the same
-   size. The 8px of margin under it is the room a folder's stack shows in
+   size. The 12px of margin under it is the room a folder's stack shows in
    (see A FOLDER IS A STACK below); it is reserved on every tile, folder or
    not, because that is what keeps the names level across a row. */
 .stile .cov{display:block; position:relative; width:100%; aspect-ratio:2/3;
-  margin-bottom:8px;}
+  margin-bottom:12px;}
 .stile .frame{position:absolute; inset:0; z-index:1; box-sizing:border-box;
   padding:5px; background:#fff; border:1px solid var(--line); border-radius:4px;}
 .stile .frame img,.stile .frame .none{position:absolute; top:5px; left:5px;
@@ -219,9 +227,9 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 /* A FOLDER IS A STACK (2026-08-24, Sophie: "treat the Evan and Mason ones as
    a folder … some sort of UI design like a stack that you can see underneath
    the cover image so you can tell there's multiple stories in there").
-   THREE WHOLE CARDS, cascading down and to the right — the front one carrying
-   the picture, two empty ones behind it. THE FIRST CUT DREW THE LAYERS INSIDE
-   THE WHITE MAT and she rejected it on sight: two hairline slivers on white,
+   WHOLE CARDS, cascading down and to the right — the front one carrying the
+   picture, empty ones behind it. THE FIRST CUT DREW THE LAYERS INSIDE THE
+   WHITE MAT and she rejected it on sight: two hairline slivers on white,
    under the art, read as a rendering fault rather than as depth. A stack is
    only legible when the thing behind is a whole CARD offset from the one in
    front, so that is what this draws.
@@ -230,19 +238,29 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    8px to make room inside the footprint, which quietly made a folder's
    picture smaller than every story's beside it and read as the stack being
    tucked under the frame rather than behind it. So the front card fills the
-   footprint exactly, like every other tile, and the two behind hang PAST its
-   right and bottom edge — negative insets, drawn in the 8px of margin the
+   footprint exactly, like every other tile, and the ones behind hang PAST its
+   right and bottom edge — negative insets, drawn in the 12px of margin the
    footprint reserves on every tile. That reservation is what keeps the names
-   level across a row: a story leaves the room empty, a folder fills it.
+   level across a row: a story leaves the room empty, a folder fills it, and
+   it is reserved at the DEEPEST depth so a pile and a pair still line up.
    Flat fills and NO shadow (house rule) — the offset alone says there is
    more underneath.
-   ::before is the DEEPEST card and ::after the middle one, in that order,
-   because two positioned siblings at the same z-index paint in document order
-   and the deeper one has to go down first. */
-.stile.fold .cov::before,.stile.fold .cov::after{content:''; position:absolute; z-index:0;
+   HOW MANY CARDS = HOW MANY STORIES BEHIND THE FRONT ONE (2026-08-26, Sophie:
+   "make the number of things showing behind a story correlate with how many
+   stories there are behind that story"). It was always two, whatever the
+   folder held, so a pair and a pile drew identically and only the count badge
+   told them apart. A pair now shows ONE card behind, a trio two, and four or
+   more three — the cap is the room the gap between tiles gives (12px of
+   overhang against a 14px column gap), and past it the badge is what says how
+   many. They are real spans rather than ::before/::after, because two
+   pseudo-elements cannot be a number.
+   DEEPEST FIRST in document order: siblings at one z-index paint in that
+   order, so the card that goes furthest down has to be laid down first. */
+.stile .lay{position:absolute; z-index:0;
   box-sizing:border-box; background:#fff; border:1px solid var(--line); border-radius:4px;}
-.stile.fold .cov::before{inset:8px -8px -8px 8px;}
-.stile.fold .cov::after{inset:4px -4px -4px 4px;}
+.stile .lay3{inset:12px -12px -12px 12px;}
+.stile .lay2{inset:8px -8px -8px 8px;}
+.stile .lay1{inset:4px -4px -4px 4px;}
 /* How many are in there. The stack says "more than one"; this says how many,
    so she can tell a pair from a pile without opening it. It rides the FRONT
    card, inside the mat, over the picture's bottom-right corner. */
@@ -324,11 +342,30 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   height:48px; width:0; border-left:2px dashed var(--ink2);}
 /* ── overlays ─────────────────────────────────────────────────────── */
 .sheet{position:fixed; inset:0; background:var(--paper); z-index:40; overflow-y:auto; -webkit-overflow-scrolling:touch;}
-/* About this story — her words pre-wrapped verbatim, her recordings above */
-#descbody{white-space:pre-wrap; line-height:1.55; font-size:.95em; padding:4px 0 60px;}
-#descaudios .arow{margin:12px 0 16px;}
-#descaudios .arow .no{margin-bottom:6px;}
-#descaudios audio{width:100%; display:block;}
+/* HER WORDS COME LAST, AND THEY ARE CLAMPED (2026-08-26 — the layout half of
+   putting the voiceover and the description behind one button). Measured over
+   all 67 stories the day it was merged: 17 carry a description and the median
+   is ~2,300 characters, the longest 10,593 — several screens of unbroken
+   dictated transcript. 43 of the 47 stories with anything in this sheet have
+   a RECORDING, so the recordings are what the button is tapped for and they
+   lead; the words sit under them, folded to six lines behind the house
+   `.moretxt` opener, so the whole sheet still opens on one screen.
+   `--lh`/`--lines` and the zero-width float are the Playground's `.p.clamp`
+   verbatim — the opener rides the LAST line of the words rather than parked
+   beside them. */
+#descbody{white-space:pre-wrap; font-size:.95em; padding:4px 56px 60px 0;
+  --lh:1.48em; --lines:6; line-height:var(--lh);}
+#descbody.clamp{max-height:calc(var(--lines) * var(--lh)); overflow:hidden; padding-bottom:0;}
+#descbody.clamp.fold::before{content:''; float:left; width:0;
+  height:calc((var(--lines) - 1) * var(--lh));}
+#descbody > .moretxt{float:right; clear:both; margin-left:8px;}
+#descbody:not(.clamp) > .moretxt{float:none; margin-left:6px;}
+/* THE HOUSE OPENER FOR TRUNCATED TEXT — an underlined word, never a button.
+   Same declarations as every other copy; the full pattern is in
+   docs/design-rules.md. */
+.moretxt{display:inline; border:0; background:none; margin:0; padding:0;
+  font:inherit; font-size:.8em; color:var(--ink2); text-decoration:underline;
+  -webkit-tap-highlight-color:transparent; cursor:pointer;}
 /* The sheet is its own scroller, so the page's pill cannot drive it — it gets
    one of its own, same look, in the same corner. */
 .sfloat{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:41;
@@ -521,10 +558,10 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 #captext{flex:1; min-width:0; font-family:'EBGaramond',Georgia,serif; font-size:17px;
   line-height:1.4; color:var(--ink); white-space:pre-wrap; overflow-wrap:anywhere; padding:2px 0;}
 #captext:empty{min-height:22px;}
-#capedit{flex:none; width:30px; height:30px; display:flex; align-items:center; justify-content:center;
+#capedit,#promedit{flex:none; width:30px; height:30px; display:flex; align-items:center; justify-content:center;
   padding:0; border:none; background:none; color:var(--ink2); cursor:pointer;}
-#capedit svg{width:17px; height:17px;}
-#capedit.on{color:var(--ink);}
+#capedit svg,#promedit svg{width:17px; height:17px;}
+#capedit.on,#promedit.on{color:var(--ink);}
 #pnote{flex:1; min-width:0; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:17px;
   line-height:1.4; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:6px;
   padding:10px 12px; resize:none;}
@@ -589,7 +626,17 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    never IN the box she writes in. */
 #promhint{font-family:'EBGaramond',Georgia,serif; font-size:13px; font-style:italic;
   color:var(--ink2); margin-top:-2px;}
-#dprompt{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px;
+/* THE DRAWING PROMPT READS AS WORDS TOO (2026-08-26, Sophie: "can you make
+   the default for the caption in the drawing prompt? that they're not in a
+   edit text box and that I press the pencil to edit them"). The caption got
+   this on 2026-08-24 and the prompt was left as an open box beside it, so a
+   picture-less beat — which opens with BOTH down — showed one set of words
+   and one "type here". Same shape, same pencil, one rule. */
+#promview{display:flex; align-items:flex-start; gap:8px; width:100%;}
+#promtext{flex:1; min-width:0; font-family:'EBGaramond',Georgia,serif; font-size:16px;
+  line-height:1.4; color:var(--ink); white-space:pre-wrap; overflow-wrap:anywhere; padding:2px 0;}
+#promtext:empty{min-height:22px;}
+#dprompt{flex:1; min-width:0; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px;
   line-height:1.4; color:var(--ink); background:var(--paper); border:1px solid var(--line);
   border-radius:6px; padding:10px 12px; resize:none;}
 .drawrow{display:flex; align-items:center; gap:10px;}
@@ -660,6 +707,15 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    (the NDE montages), and the SOURCE recordings it came out of — the voice
    memos. They share the page's one player, so a tap replaces whatever is
    speaking, never stacks. */
+/* THE PILL'S COLUMN IS RESERVED DOWN THE WHOLE SHEET, not just at its top
+   (2026-08-26, measured with elementFromPoint the way the Chats app's own
+   collision was found). The sheet is its own scroller with its own FIXED
+   pill, so every row passes through that corner on its way up — a duration
+   printed under it, and worse, a tap at the right end of the playing row's
+   scrubber reached the PILL instead of seeking. 56px is the house number the
+   header rows already reserve. It sits on the containers, so the rows
+   themselves shrink and the scrubber's `right:0` lands inside. */
+#audios,#deschead,#descbody{padding-right:56px;}
 #audios{margin-top:.6em;}
 .aurow{display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line);}
 .aurow:first-child{border-top:1px solid var(--line);}
@@ -667,6 +723,24 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 .aurow .aunm{font-size:1.05em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .aurow .audate{font-size:.8em; color:var(--ink2); margin-top:2px;}
 .aurow .audur{flex:none; font-size:.8em; color:var(--ink2);}
+/* THE PLAYING ROW GETS A SEEK LINE, AND ONLY THE PLAYING ONE (2026-08-26).
+   Her description recording and her narration used to be native
+   `<audio controls>` elements in their own sheet, i.e. scrubbable; folding
+   them into this list would have quietly taken that away, on the two
+   recordings most worth scrubbing. So the row grew the scrubber instead —
+   which also gives it to the memos, which never had one. It IS the row's own
+   bottom hairline, filled in ink as far as she has listened, so it adds no
+   height and there is nothing new to read. The strip that catches the touch
+   is 16px tall and starts where the TEXT does: the play button keeps its
+   whole box, so a pause tap at its lower edge can never land on the scrubber
+   instead. */
+.aurow{position:relative;}
+.auseek{position:absolute; left:44px; right:0; bottom:-8px; height:16px;
+  cursor:pointer; -webkit-tap-highlight-color:transparent; touch-action:none;}
+.auseek::before{content:''; position:absolute; left:0; right:0; bottom:7px;
+  height:2px; background:var(--line);}
+.auseek i{position:absolute; left:0; bottom:7px; height:2px; width:0;
+  background:var(--ink); display:block;}
 /* CANDIDATES — recordings a chat guessed belong to this story, waiting on
    her (Aug 2026, Sophie: "attach them behind the wave form, but under a
    header tag called candidates"). Same rows, same player; only the header
@@ -729,8 +803,10 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
     <div id="title" contenteditable="true" spellcheck="false"></div>
   </div>
   <div class="iconrow">
-    <button class="iconbtn" id="descbtn" hidden aria-label="About this story — what you said about it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/><path d="M5 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/></svg></button>
-    <button class="iconbtn" id="audiobtn" hidden aria-label="Every recording attached to this story"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 13a2 2 0 0 0 2-2V7a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0V4a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0v-4a2 2 0 0 1 2-2"/></svg></button>
+    <!-- Lucide `book-audio` — a book with a sound wave inside, because the
+         sheet behind it is exactly that: her words and her recordings. It
+         replaced a book glyph and a waveform glyph standing side by side. -->
+    <button class="iconbtn" id="aboutbtn" hidden aria-label="About this story — what you said, and every recording of it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v7"/><path d="M16 8v3"/><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/><path d="M8 8v3"/></svg></button>
     <button class="iconbtn" id="playbtn" hidden aria-label="Watch the film"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4.5v15l13-7.5z"/></svg></button>
     <button class="iconbtn" id="drawallbtn" hidden aria-label="Draw every beat that has words but no picture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg></button>
     <button class="iconbtn" id="addbtn" aria-label="Add an empty beat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
@@ -738,9 +814,10 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   </div>
   </div>
   <div class="stylerow">
-    <button class="sw on" id="swwater" type="button">Watercolor</button>
-    <button class="swi" id="styletog" type="button" data-a="1" aria-label="Which style this story is showing"></button>
-    <button class="sw" id="swdreamy" type="button">Dreamy</button>
+    <button class="tri" id="styletog" type="button" data-n="0" data-i="W" aria-label="Which style this story is showing"></button>
+    <button class="sw on" id="swwater" type="button" data-style="watercolor">Watercolor</button>
+    <button class="sw" id="swdreamy" type="button" data-style="dreamy">Dreamy</button>
+    <button class="sw" id="swpastel" type="button" data-style="pastel">Pastel</button>
   </div>
   <div id="filmrow" hidden><span class="filmnote" id="filmnote"></span></div>
   <div id="pad"></div>
@@ -799,13 +876,23 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 
 <!-- Every recording attached to this story, behind the waveform button:
      the memos it came out of, and the episodes cut from it. -->
+<!-- ABOUT THIS STORY — one sheet, one button (2026-08-26, Sophie: "put the
+     voiceover and story description behind one button but think carefully
+     about the layout"). It was two: a book glyph opening her description +
+     her two recordings as native players, and a waveform opening the memos
+     and episodes as rows. Everything in both is the same thing — what she
+     said about this story and what she recorded of it — so it is one sheet,
+     RECORDINGS FIRST (43 of the 47 stories with anything here have one, and
+     that is what a tap is for) and her words underneath, folded. -->
 <div class="sheet" id="ausheet" hidden>
   <div class="wrap">
     <div class="sheethead">
       <button class="iconbtn" id="auclose" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
-      <div class="no">Audio on this story</div>
+      <div class="no">About this story</div>
     </div>
     <div id="audios"></div>
+    <div class="auhead" id="deschead" hidden>What you said</div>
+    <div id="descbody"></div>
   </div>
 </div>
 
@@ -819,18 +906,6 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
       <div class="no">What the buttons do</div>
     </div>
     <div id="helpbody"></div>
-  </div>
-</div>
-
-<!-- About this story: her own words + her recordings, read-only -->
-<div class="sheet" id="descsheet" hidden>
-  <div class="wrap">
-    <div class="sheethead">
-      <button class="iconbtn" id="descclose" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
-      <div class="no">About this story</div>
-    </div>
-    <div id="descaudios"></div>
-    <div id="descbody"></div>
   </div>
 </div>
 
@@ -873,7 +948,11 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   <div class="tbox" id="prombox">
     <button class="tlab" id="promlab" aria-expanded="false">Drawing prompt<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
     <div id="drawbox" hidden>
-      <textarea id="dprompt" rows="3" placeholder="what to draw"></textarea>
+      <div id="promview">
+        <div id="promtext"></div>
+        <textarea id="dprompt" rows="3" placeholder="what to draw" hidden></textarea>
+        <button id="promedit" aria-label="Edit the drawing prompt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button>
+      </div>
       <div id="promhint" hidden>empty — this beat draws from its caption</div>
       <div class="drawrow">
         <button id="dchar" class="on" aria-label="Draw Sophie from her reference"><img src="/scratchpad-sophie.png" alt="Sophie"></button>
@@ -943,32 +1022,52 @@ function api(p,opts){
 }
 var beats=[], inboxItems=[], uploads=[], pending=null, popBeat=null, padTitle='';
 var player=new Audio();
-/* ── the STYLE TOGGLE: watercolor ↔ dreamy ──────────────────────────
-   One story, two sets of art over the SAME beats (Sophie, Aug 2026): the
-   words, colors, voice and order are shared; only the pictures differ.
-   "watercolor" is the pad's original look and lives where it always did
-   (beat.url/src/gen/imageHistory); "dreamy" lives in beat.alt.dreamy, empty
-   until she fills it. slotOf() is the one accessor — everything that touches
-   ART goes through it, so the rest of the page never asks which side is up.
-   A CLIP is per-style TOO (2026-08-23, Sophie, after movies she added on
-   the dreamy side showed up on watercolor): a slot holds a picture OR a
-   clip, so "is this a clip" is a question about the side she is showing. */
+/* ── the STYLE TOGGLE: watercolor · dreamy · pastel ─────────────────
+   One story, N sets of art over the SAME beats (Sophie, Aug 2026; pastel
+   added 2026-08-26): the words, colors, voice and order are shared; only the
+   pictures differ. "watercolor" is the pad's original look and lives where it
+   always did (beat.url/src/gen/imageHistory); every other style lives in
+   beat.alt[style], empty until she fills it. slotOf() is the one accessor —
+   everything that touches ART goes through it, so the rest of the page never
+   asks which side is up. A CLIP is per-style TOO (2026-08-23, Sophie, after
+   movies she added on the dreamy side showed up on watercolor): a slot holds
+   a picture OR a clip, so "is this a clip" is a question about the side she
+   is showing.
+   NOTHING COUNTS THE STYLES BUT THIS LIST — a fourth one is a row in it plus
+   its recipe server-side, and the toggle, the words and every sweep follow. */
+var STYLES=[
+  {key:'watercolor', word:'Watercolor', i:'W'},
+  {key:'dreamy',     word:'Dreamy',     i:'D'},
+  {key:'pastel',     word:'Pastel',     i:'P'}
+];
 var padStyle='watercolor';
-function slotOf(b){
-  return padStyle==='dreamy' ? ((b.alt&&b.alt.dreamy)||{}) : b;
-}
+function styleIx(s){ for(var i=0;i<STYLES.length;i++)if(STYLES[i].key===s)return i; return 0; }
+function slotFor(b,s){ return s==='watercolor' ? b : ((b.alt&&b.alt[s])||{}); }
+function slotOf(b){ return slotFor(b,padStyle); }
 function clipOf(b){ var s=slotOf(b); return Boolean(s&&s.kind==='clip'); }
 /* The side she DELETED this beat from (2026-08-23, Sophie: "leave it in the
    other style cause that one might have an image for that"). The beat keeps
    its place and its words on the side that still wants it; here it is
    simply not drawn. */
 function beatOff(b){ var s=slotOf(b); return Boolean(s&&s.off); }
-function otherSlotOf(b){ return padStyle==='dreamy' ? b : ((b.alt&&b.alt.dreamy)||{}); }
+/* The OTHER sides — which of them, if any, still has art. That is the whole
+   question the delete box asks (2026-08-23: "leave it in the other style
+   cause that one might have an image for that"), and with three styles the
+   answer is a LIST of the ones that keep it, not a single other side. */
+function otherKeepers(b){
+  return STYLES.filter(function(s){
+    return s.key!==padStyle && Boolean(slotFor(b,s.key).url);
+  });
+}
 function slotDrawing(b){ var s=slotOf(b); return Boolean(s.gen&&s.gen.status==='drawing'); }
 function renderStyle(){
-  document.getElementById('styletog').setAttribute('data-a', padStyle==='dreamy'?'2':'1');
-  document.getElementById('swwater').classList.toggle('on', padStyle!=='dreamy');
-  document.getElementById('swdreamy').classList.toggle('on', padStyle==='dreamy');
+  var ix=styleIx(padStyle), tog=document.getElementById('styletog');
+  tog.setAttribute('data-n', String(ix));
+  tog.setAttribute('data-i', STYLES[ix].i);
+  STYLES.forEach(function(s){
+    var b=document.querySelector('.stylerow .sw[data-style="'+s.key+'"]');
+    if(b)b.classList.toggle('on', s.key===padStyle);
+  });
 }
 function setStyle(s){
   if(s===padStyle)return;
@@ -976,9 +1075,18 @@ function setStyle(s){
   api('/style',{method:'POST',body:JSON.stringify({style:s})}).catch(function(){});
   if(anyDrawing()) startGenPoll();
 }
-document.getElementById('styletog').onclick=function(ev){ ev.stopPropagation(); setStyle(padStyle==='dreamy'?'watercolor':'dreamy'); };
-document.getElementById('swwater').onclick=function(ev){ ev.stopPropagation(); setStyle('watercolor'); };
-document.getElementById('swdreamy').onclick=function(ev){ ev.stopPropagation(); setStyle('dreamy'); };
+/* WHERE SHE TAPPED IS THE STOP SHE MEANT — /tritoggle.js, shared. `triNext`
+   below is the floor for a page whose script did not load: one step, never
+   nothing, and ONE such floor in this file rather than one per toggle.
+   Tapping a WORD picks that style outright (it sits nowhere near its stop). */
+document.getElementById('styletog').onclick=function(ev){
+  ev.stopPropagation();
+  var cur=styleIx(padStyle);
+  setStyle(STYLES[triNext(this, STYLES.length, ev, cur)].key);
+};
+Array.prototype.forEach.call(document.querySelectorAll('.stylerow .sw'),function(b){
+  b.onclick=function(ev){ ev.stopPropagation(); setStyle(b.getAttribute('data-style')); };
+});
 
 function lock(v){document.body.style.overflow=v?'hidden':'';}
 
@@ -1070,7 +1178,7 @@ function padUnits(){
    what makes a phone crawl, and the pad is a thinking surface. */
 function isClip(b){ return Boolean(b&&b.kind==='clip'); }
 /* What a beat SHOWS in the current style — the slot's picture, or its
-   clip's poster. Under dreamy an unfilled beat is honestly blank. */
+   clip's poster. Under another style an unfilled beat is honestly blank. */
 function artOf(b){
   if(!b)return null;
   var s=slotOf(b);
@@ -1177,7 +1285,7 @@ var film=null, padUpdated=0, dirtySinceFilm=false, autoplayWanted=false;
 function filmFresh(){
   // Server-clock to server-clock only — never compare against the phone's.
   // A film is also only fresh for the STYLE it was cut in: the watercolor
-  // render is not the dreamy film, however recent it is.
+  // render is not the pastel film, however recent it is.
   return Boolean(film&&film.url&&film.status==='done'&&!dirtySinceFilm&&(film.at||0)>=(padUpdated-2500)
     &&(film.style||'watercolor')===padStyle);
 }
@@ -1212,21 +1320,119 @@ function fmtDur(s){
   s=Math.round(Number(s)||0); if(!s)return '';
   return Math.floor(s/60)+':'+('0'+(s%60)).slice(-2);
 }
+/* The playing row wears the scrubber; every other row is a plain hairline.
+   ONE row is ever seeking, so the strip is built and torn down rather than
+   sitting invisible under all of them. */
+function auSeek(row){
+  var el=document.createElement('div'); el.className='auseek';
+  el.setAttribute('aria-hidden','true');
+  el.appendChild(document.createElement('i'));
+  function at(ev){
+    var r=el.getBoundingClientRect(); if(!r.width) return;
+    var d=player.duration; if(!isFinite(d)||!d) return;
+    var f=Math.min(1,Math.max(0,(ev.clientX-r.left)/r.width));
+    player.currentTime=f*d; auFill();
+  }
+  /* pointer, not click: a drag along the line scrubs, and the row is not a
+     button so nothing else wants these events. */
+  el.addEventListener('pointerdown',function(ev){
+    ev.stopPropagation(); ev.preventDefault();
+    el.setPointerCapture(ev.pointerId); el._down=true; at(ev);
+  });
+  el.addEventListener('pointermove',function(ev){ if(el._down) at(ev); });
+  el.addEventListener('pointerup',function(ev){ el._down=false; });
+  el.addEventListener('pointercancel',function(){ el._down=false; });
+  return el;
+}
+function auFill(){
+  var el=document.querySelector('#audios .auseek > i'); if(!el) return;
+  var d=player.duration;
+  el.style.width=(isFinite(d)&&d?Math.min(100,player.currentTime/d*100):0)+'%';
+}
 function auGlyphs(){
   var rows=document.querySelectorAll('#audios .aurow');
   for(var i=0;i<rows.length;i++){
-    var on=player.src===rows[i]._url&&!player.paused&&!player.ended;
-    rows[i].querySelector('.iconbtn').innerHTML=on?AU_PAUSE:AU_PLAY;
+    var row=rows[i];
+    var on=player.src===row._url&&!player.paused&&!player.ended;
+    row.querySelector('.iconbtn').innerHTML=on?AU_PAUSE:AU_PLAY;
+    var seek=row.querySelector('.auseek');
+    if(on&&!seek){ row.appendChild(auSeek(row)); }
+    else if(!on&&seek){ seek.remove(); }
+    /* A row whose length nothing recorded (her description recording and her
+       narration are bare urls on the pad doc, with no `seconds`) learns it
+       from the file the moment it plays — so the slot fills in rather than
+       staying blank forever. */
+    if(on&&!row._dur&&isFinite(player.duration)&&player.duration){
+      row._dur=true; row.querySelector('.audur').textContent=fmtDur(player.duration);
+    }
   }
+  auFill();
 }
 player.addEventListener('play',auGlyphs);
 player.addEventListener('pause',auGlyphs);
 player.addEventListener('ended',auGlyphs);
+player.addEventListener('loadedmetadata',auGlyphs);
+player.addEventListener('timeupdate',auFill);
+function auRow(box,o){
+  var row=document.createElement('div'); row.className='aurow';
+  /* RESOLVED, because `player.src` reads back absolute whatever was assigned:
+     a relative url would compare unequal to itself forever, so the row would
+     never show its pause glyph or its scrubber. Every url here happens to be
+     absolute today — this is one line that stops it mattering. */
+  var url=o.url; try{ url=new URL(o.url,location.href).href; }catch(e){}
+  row._url=url;
+  row._dur=!!o.seconds;
+  var b=document.createElement('button'); b.className='iconbtn';
+  b.setAttribute('aria-label','Listen — '+o.title);
+  b.innerHTML=AU_PLAY;
+  b.onclick=function(ev){
+    ev.stopPropagation();
+    /* play() synchronously in the tap — the iOS rule */
+    if(player.src===url&&!player.paused){ player.pause(); }
+    else if(player.src===url){ player.play(); }
+    else { player.pause(); player.src=url; player.play(); }
+    auGlyphs();
+  };
+  var tx=document.createElement('div'); tx.className='autxt';
+  var nm=document.createElement('div'); nm.className='aunm'; nm.textContent=o.title;
+  tx.appendChild(nm);
+  /* A memo's date is how she recognises it — it is what the Memos app
+     shows under the name. An episode has no date worth the line, and neither
+     does her own narration. */
+  if(o.date){
+    var dt=document.createElement('div'); dt.className='audate'; dt.textContent=o.date;
+    tx.appendChild(dt);
+  }
+  var du=document.createElement('div'); du.className='audur'; du.textContent=fmtDur(o.seconds);
+  row.appendChild(b); row.appendChild(tx); row.appendChild(du);
+  box.appendChild(row);
+  return row;
+}
 function renderAudios(){
   var box=document.getElementById('audios');
   box.innerHTML='';
-  /* No recordings, no button — an empty sheet is a tap that says nothing. */
-  document.getElementById('audiobtn').hidden=!audios.length;
+  /* Nothing to say and nothing to play, no button — an empty sheet is a tap
+     that says nothing. */
+  var any=!!(audios.length||padDesc||padDescAudio||padVoice);
+  document.getElementById('aboutbtn').hidden=!any;
+
+  /* HERS FIRST, and they are rows like everything else. They used to be
+     native <audio controls> in a sheet of their own; one list means one way
+     to play anything here. When descriptionAudio and the voiceover are the
+     SAME file (a lesson whose source IS her read-aloud) only one row shows. */
+  if(padDescAudio&&padVoice===padDescAudio){
+    auRow(box,{url:padDescAudio,title:'Your recording'});
+  }else{
+    if(padDescAudio) auRow(box,{url:padDescAudio,title:'As you told it'});
+    if(padVoice) auRow(box,{url:padVoice,title:'Your narration'});
+  }
+  /* The attached recordings take a header ONLY when hers are above them —
+     otherwise the list starts bare, exactly as it did before the merge. */
+  var mine=box.children.length;
+  if(mine&&audios.length){
+    var mh=document.createElement('div'); mh.className='auhead';
+    mh.textContent='Recordings'; box.appendChild(mh);
+  }
   /* Confirmed audio first, then the CANDIDATES under their own header — a
      chat's guesses, playable here so she judges them by ear in the story's
      own context. Ordering is the whole feature: a candidate must never sit
@@ -1240,43 +1446,59 @@ function renderAudios(){
       var h=document.createElement('div'); h.className='auhead';
       h.textContent='Candidates'; box.appendChild(h);
     }
-    var row=document.createElement('div'); row.className='aurow'; row._url=a.url;
-    var b=document.createElement('button'); b.className='iconbtn';
-    b.setAttribute('aria-label','Listen — '+a.title);
-    b.innerHTML=AU_PLAY;
-    b.onclick=function(ev){
-      ev.stopPropagation();
-      /* play() synchronously in the tap — the iOS rule */
-      if(player.src===a.url&&!player.paused){ player.pause(); }
-      else if(player.src===a.url){ player.play(); }
-      else { player.pause(); player.src=a.url; player.play(); }
-      auGlyphs();
-    };
-    var tx=document.createElement('div'); tx.className='autxt';
-    var nm=document.createElement('div'); nm.className='aunm'; nm.textContent=a.title;
-    tx.appendChild(nm);
-    /* A memo's date is how she recognises it — it is what the Memos app
-       shows under the name. An episode has no date worth the line. */
-    if(a.date){
-      var dt=document.createElement('div'); dt.className='audate'; dt.textContent=a.date;
-      tx.appendChild(dt);
-    }
-    var du=document.createElement('div'); du.className='audur'; du.textContent=fmtDur(a.seconds);
-    row.appendChild(b); row.appendChild(tx); row.appendChild(du);
-    box.appendChild(row);
+    auRow(box,a);
   });
+
+  /* HER WORDS LAST, folded — see #descbody in the CSS for the measurement
+     that put them here. */
+  var b=document.getElementById('descbody');
+  b.textContent=padDesc||'';
+  b.hidden=!padDesc;
+  document.getElementById('deschead').hidden=!padDesc;
+  b.classList.remove('clamp','fold');
+  var old=b.querySelector('.moretxt'); if(old) old.remove();
+  if(padDesc) b.classList.add('clamp');
   auGlyphs();
+}
+/* The opener is measured, never counted: only the browser knows whether the
+   words really overflowed six lines, and #descbody has no layout at all while
+   the sheet is hidden — so this runs when the sheet OPENS, not when it is
+   filled (the Playground's own lesson, `applyClamps`). */
+function auClamp(){
+  var el=document.getElementById('descbody');
+  if(!el.classList.contains('clamp')||el.querySelector('.moretxt')) return;
+  if(!el.clientHeight) return;
+  if(el.scrollHeight-el.clientHeight<=1){ el.classList.remove('clamp'); return; }
+  var btn=document.createElement('button');
+  btn.className='moretxt'; btn.textContent='… more';
+  btn.onclick=function(ev){
+    ev.stopPropagation();
+    var open=el.classList.toggle('clamp')===false;
+    el.classList.toggle('fold',!open);
+    btn.textContent=open?'less':'… more';
+    /* It rides at the END of the words when they are open and at the FRONT
+       when they are folded — the float only reaches the last line from in
+       front of the text, and unfloated at the front it would read before the
+       first word. */
+    if(open) el.appendChild(btn); else el.insertBefore(btn,el.firstChild);
+  };
+  el.insertBefore(btn,el.firstChild);
+  el.classList.add('fold');
 }
 /* The sheet deliberately does NOT stop the player on close: a recording she
    started is meant to keep going while she reads the beats it became. */
-document.getElementById('audiobtn').onclick=function(ev){
+document.getElementById('aboutbtn').onclick=function(ev){
   ev.stopPropagation();
   var sh=document.getElementById('ausheet');
   sh.hidden=false; sh.scrollTop=0; lock(true);
+  auClamp();          // #descbody has layout only now the sheet is up
+  sheetPill(sh);      // her words run to 10,000 characters — it needs one
 };
 document.getElementById('auclose').onclick=function(ev){
   ev.stopPropagation();
-  document.getElementById('ausheet').hidden=true; lock(false);
+  var sh=document.getElementById('ausheet');
+  if(sh._stopPill) sh._stopPill();
+  sh.hidden=true; lock(false);
 };
 
 /* ── what the buttons do ────────────────────────────────────────────
@@ -1292,8 +1514,7 @@ document.getElementById('auclose').onclick=function(ev){
    before one is opened) simply draws no box. */
 var HELP=[
   {sel:'#shelfback', nm:'Back', what:'To the shelf. In the app the chevron at the top of the screen does this.'},
-  {sel:'#descbtn', nm:'About this story', what:'What you said the story is, and the recordings it came out of.'},
-  {sel:'#audiobtn', nm:'Listen', what:'Every recording attached to this story — the memos it came from, and the episodes cut out of it.'},
+  {sel:'#aboutbtn', nm:'About this story', what:'What you said this story is, and every recording of it in one place — your own telling, your narration, the memos it came from and the episodes cut out of it.'},
   {sel:'#playbtn', nm:'Play the film', what:'Watches your film. If the story changed since the last one it makes a new film first, then plays it. While it is making, this button turns into an ✕ that stops it — nothing is lost and it costs nothing to start again.'},
   {sel:'#drawallbtn', nm:'Draw them all', what:'Draws every beat that has words but no picture yet. It asks first and says how many.'},
   {sel:'#addbtn', nm:'Add a beat', what:'Puts an empty beat at the end.'},
@@ -1394,10 +1615,11 @@ var BULK_PRICE={low:2, medium:6, high:25};   // ¢ per picture, gpt-image-2
    contract, so nothing here counts the notches but this one list. */
 var QUALS=['low','medium','high'];
 var QINIT=['L','M','H'];
-// THE AIM RULE LIVES IN /tritoggle.js — the ONE copy. This line is only a
-// floor for the case where that file does not load (a stale cache, a stub
-// harness): it is the old CYCLE, deliberately not a second implementation of
-// the aim, so this page can never quietly grow its own version of the rule.
+// THE AIM RULE LIVES IN /tritoggle.js — the ONE copy, and this is the page's
+// ONE floor for the case where that file does not load (a stale cache, a stub
+// harness): the old CYCLE, deliberately not a second implementation of the
+// aim, so this page can never quietly grow its own version of the rule. Both
+// toggles on the page — the style switch and the draw quality — read it.
 var triNext = window.triNext || function(el,count,ev,cur){ return ((cur|0)+1+count)%count; };
 function qVal(id){ var el=document.getElementById(id); return QUALS[+el.dataset.n]||'low'; }
 function qSet(id,n){
@@ -1423,7 +1645,7 @@ function promptOf(b){
   return p||stripSpeech(b&&b.text);
 }
 function drawables(){
-  // Per STYLE: a beat whose watercolor is drawn but whose dreamy slot is
+  // Per STYLE: a beat whose watercolor is drawn but whose pastel slot is
   // empty is exactly what the toggle exists to fill.
   return beats.filter(function(b){
     var s=slotOf(b);
@@ -1498,13 +1720,16 @@ function startFilmPoll(){
 function load(){
   api('').then(function(r){return r.json()}).then(function(d){
     beats=d.beats||[]; padTitle=d.title||''; film=d.film||null;
-    padStyle=(d.style==='dreamy')?'dreamy':'watercolor'; renderStyle();
+    padStyle=STYLES.some(function(s){return s.key===d.style;})?d.style:'watercolor'; renderStyle();
     uploads=d.uploads||[];
-    audios=d.audios||[]; renderAudios();
+    audios=d.audios||[];
     padUpdated=d.updatedAt||0; dirtySinceFilm=false;
     padDesc=d.description||''; padDescAudio=d.descriptionAudio||null;
     padVoice=(d.voiceover&&d.voiceover.url)?d.voiceover.url:null;
-    document.getElementById('descbtn').hidden=!(padDesc||padDescAudio||padVoice);
+    /* AFTER the description fields, never before: renderAudios draws her two
+       recordings and her words as well as the attached list, and it is what
+       decides whether the one button shows at all. */
+    renderAudios();
     renderTitle(); render(); renderFilm();
     if(anyDrawing()) startGenPoll();   // a draw survives leaving the app
     if(film&&film.status==='making') startFilmPoll();
@@ -1512,15 +1737,26 @@ function load(){
 }
 
 /* ── the shelf: every story, newest-touched first ──────────────────
-   The NEW look (Aug 2026, the survey prototype): Personal · Lessons · NDE
-   chips over portrait tiles, a real picture from each story and its name.
-   Tap a tile → straight to that story's beat canvas (Sophie's call). A story
-   with no category files under Personal so a brand-new one is never
-   invisible; the chip choice is session-only, every open starts on Personal.
+   The NEW look (Aug 2026, the survey prototype): category chips over portrait
+   tiles, a real picture from each story and its name. Tap a tile → straight to
+   that story's beat canvas (Sophie's call). The chip choice is session-only,
+   every open starts on the default pile.
+   THE DEFAULT PILE IS UNSORTED, NOT PERSONAL (2026-08-26, Sophie: "I think
+   personal is the default so can you just make a different default and just
+   put the ones I mentioned into personal"). An untagged story used to file
+   under Personal, so Personal was everything nobody had got to — which makes
+   it useless as a pile of her own. Unsorted is the same safety net (a
+   brand-new story is never invisible) with none of the meaning, and it is
+   what the shelf opens on, because that is where a story she has just made
+   lands. WITCH is hers too, added the same day.
    The old row list is the fallback ONLY — nothing links to it; ?plain=1 is
    the one way in. */
-var SHELF_CATS=[['Personal','personal'],['Lessons','lessons'],['NDE','nde']];
-var shelfCat='personal';
+var SHELF_CATS=[['Unsorted','unsorted'],['Personal','personal'],['Witch','witch'],
+  ['Lessons','lessons'],['NDE','nde']];
+/* ONE name for the pile an untagged story falls into — the filter below and
+   the opening chip read it, so moving the default is this line. */
+var SHELF_DEFAULT='unsorted';
+var shelfCat=SHELF_DEFAULT;
 var PLAIN_SHELF=/(\?|&)plain=1/.test(location.search);
 var shelfPads=[];
 function thumbOf(u){return '/api/story/thumb?w=240&url='+encodeURIComponent(u);}
@@ -1566,16 +1802,23 @@ var SHELF_PIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
 var shelfMore=false;
 /* ONE tile builder for a story and for a folder. `pad` draws a story (its
    pushpin, its title, tap opens it); `count` draws a folder (the stack, the
-   count, tap steps into it) and carries NO pushpin — a pin says "I'm working
-   on this story", and a folder is only the way to one. */
+   count, tap steps into it) and `pads` is every story in it — which is what
+   its pushpin pins, all at once. */
 function shelfTile(o){
   var p=o.pad;
   var t=document.createElement('button');
   t.className='stile'+(o.cur?' cur':'')+(o.count?' fold':'');
   var cov=document.createElement('span'); cov.className='cov';
-  // The FRONT card. Everything that paints lives on it, so a folder's two
-  // cards behind (the .cov pseudo-elements) sit behind the whole thing rather
-  // than behind the picture only.
+  /* THE CARDS BEHIND, one per story behind the front one, capped at three
+     (the CSS note). Deepest first — same z-index, so they paint in document
+     order and a later card has to sit on top of an earlier one. */
+  var behind=Math.min(Math.max((o.count||1)-1,0),3);
+  for(var d=behind; d>=1; d--){
+    var lay=document.createElement('span'); lay.className='lay lay'+d;
+    cov.appendChild(lay);
+  }
+  // The FRONT card. Everything that paints lives on it, so a folder's cards
+  // behind sit behind the whole thing rather than behind the picture only.
   var fr=document.createElement('span'); fr.className='frame'; cov.appendChild(fr);
   if(o.cover){
     var im=document.createElement('img'); im.alt=''; im.loading='lazy';
@@ -1587,15 +1830,25 @@ function shelfTile(o){
     var c=document.createElement('span'); c.className='cnt';
     c.textContent=o.count; fr.appendChild(c);
   }
-  if(p){
+  /* THE PUSHPIN — on a story, and on a FOLDER since 2026-08-26 (Sophie: "make
+     it possible to pin multiple stories that are together so I can pin all my
+     Mason stories at once"). A folder's pin sends every story in it, so one
+     tap lifts the whole character; it is LIT when any story in there is
+     pinned, which is the same rule that decides where the folder sits, so the
+     light and the position can never disagree. Lit → the tap unpins them all. */
+  var set=p?[p]:(o.pads||[]);
+  if(set.length){
+    var on=o.pinned!=null?!!o.pinned:!!p.pinned;
     var pin=document.createElement('span');
-    pin.className='pinpin'+(p.pinned?' on':''); pin.innerHTML=SHELF_PIN;
+    pin.className='pinpin'+(on?' on':''); pin.innerHTML=SHELF_PIN;
     pin.setAttribute('role','button');
-    pin.setAttribute('aria-label',p.pinned?'Unpin this story':'Pin this story to the top');
+    pin.setAttribute('aria-label', p
+      ? (on?'Unpin this story':'Pin this story to the top')
+      : (on?'Unpin these stories':'Pin these stories to the top'));
     pin.title=pin.getAttribute('aria-label');
     /* The pin sits INSIDE the tile, which is itself a button, so the tap has
        to be stopped here or pinning a story would also open it. */
-    pin.onclick=function(e){ e.preventDefault(); e.stopPropagation(); togglePin(p); };
+    pin.onclick=function(e){ e.preventDefault(); e.stopPropagation(); togglePin(set,on); };
     fr.appendChild(pin);
   }
   t.appendChild(cov);
@@ -1604,11 +1857,18 @@ function shelfTile(o){
   t.onclick=function(e){ e.stopPropagation(); o.go(); };
   return t;
 }
-function togglePin(p){
-  var was=!!p.pinned; p.pinned=!was; renderShelf();
-  api('/pads/pin',{method:'POST',body:JSON.stringify({pad:p.id, pinned:!was})})
+/* One story or a folder's whole set — the same write either way, because the
+   flag lives on each story and a folder is only a name they share. `was` holds
+   what each one was, so a refused write puts a half-pinned folder back exactly
+   as it was rather than flattening it. */
+function togglePin(set,on){
+  var was=set.map(function(p){ return !!p.pinned; });
+  set.forEach(function(p){ p.pinned=!on; });
+  renderShelf();
+  api('/pads/pin',{method:'POST',body:JSON.stringify({
+    pads:set.map(function(p){ return p.id; }), pinned:!on })})
     .then(function(r){ if(!r.ok) throw 0; })
-    .catch(function(){ p.pinned=was; renderShelf(); });
+    .catch(function(){ set.forEach(function(p,i){ p.pinned=was[i]; }); renderShelf(); });
 }
 /* THE SHELF'S ROWS, folders already collapsed. A folder takes the place of
    its NEWEST story and the rest of its stories come off the shelf — that is
@@ -1618,10 +1878,11 @@ function togglePin(p){
    A FOLDER IS PINNED WHEN ANY STORY IN IT IS. Her pin means "I'm working on
    this", and with the story folded away the folder is the only thing on
    screen that can carry it — otherwise pinning a story inside a folder would
-   hide it behind "see more" instead of lifting it. */
+   hide it behind "see more" instead of lifting it. The folder's own pushpin
+   (2026-08-26) reads the same flag and writes it to every story it holds. */
 function shelfRows(){
   var seen={}, rows=[];
-  shelfPads.filter(function(p){ return (p.category||'personal')===shelfCat; })
+  shelfPads.filter(function(p){ return (p.category||SHELF_DEFAULT)===shelfCat; })
     .forEach(function(p){
       if(!p.folder){
         rows.push({ pad:p, cover:p.cover, name:p.title, pinned:!!p.pinned,
@@ -1635,6 +1896,7 @@ function shelfRows(){
       var withArt=inIt.filter(function(q){ return q.cover; })[0];
       rows.push({
         cover:withArt?withArt.cover:null, name:name, count:inIt.length,
+        pads:inIt,
         pinned:inIt.some(function(q){ return q.pinned; }),
         cur:inIt.some(function(q){ return q.id===padId; }),
         go:function(){ shelfFolder=name; shelfMore=false; renderShelf();
@@ -1642,6 +1904,28 @@ function shelfRows(){
     });
   return rows;
 }
+/* THE CHIP ROW RUNS UNDER THE AUTOSCROLL PILL (2026-08-26, found by measuring
+   rather than looking, the moment a fifth chip landed). The sheet's pill is
+   fixed at x 328-374, y 14-154 on a 390pt phone and the row sits at y 52-85 —
+   squarely inside that band — so with three chips the row simply ended before
+   it and with five the last one was UNREACHABLE: playwright's own click
+   reported the pill's ‖ intercepting the tap. The row already scrolls
+   horizontally, so the fix is to end its VIEWPORT at the pill rather than at
+   the edge of the screen: a chip in the reserved column can always be scrolled
+   out from under it. MEASURED off the pill's real rect (the house rule — a
+   hardcoded band is what goes stale), and reset to 0 first so a re-measure
+   cannot keep eating the row. */
+function fitCatRow(){
+  var row=document.getElementById('shelfcats');
+  var f=document.querySelector('#stories .sfloat');
+  if(!row || row.hidden) return;
+  row.style.marginRight='0px';
+  if(!f) return;
+  var r=row.getBoundingClientRect(), p=f.getBoundingClientRect();
+  var over=Math.round(r.right-p.left)+8;
+  if(over>0) row.style.marginRight=over+'px';
+}
+window.addEventListener('resize',fitCatRow);
 function renderShelf(){
   var cats=document.getElementById('shelfcats');
   var tiles=document.getElementById('shelftiles');
@@ -1659,6 +1943,7 @@ function renderShelf(){
     b.onclick=function(e){ e.stopPropagation(); shelfCat=c[1]; shelfMore=false; renderShelf(); };
     cats.appendChild(b);
   });
+  fitCatRow();
   tiles.innerHTML='';
   /* Inside a folder the rows are its own stories; on the shelf they are
      shelfRows(), with each folder already standing in for its stories. Either
@@ -1719,41 +2004,17 @@ document.getElementById('storiesclose').onclick=function(ev){
 
 /* ── About this story: what she said about it, verbatim + recordings ──
    Data-only fields on the pad doc (a chat writes them); the sheet is
-   read-only. When descriptionAudio and the voiceover are the SAME file
-   (a lesson whose source IS her read-aloud) only one player shows. */
+   read-only, and since 2026-08-26 it is the SAME sheet the recordings live
+   in — see renderAudios and #descbody. */
 var padDesc='', padDescAudio=null, padVoice=null;
-document.getElementById('descbtn').onclick=function(ev){
-  ev.stopPropagation();
-  var au=document.getElementById('descaudios'); au.innerHTML='';
-  function row(label,url){
-    if(!url) return;
-    var d=document.createElement('div'); d.className='arow';
-    var n=document.createElement('div'); n.className='no'; n.textContent=label; d.appendChild(n);
-    var a=document.createElement('audio'); a.controls=true; a.preload='none'; a.src=url;
-    d.appendChild(a); au.appendChild(d);
-  }
-  if(padDescAudio && padVoice===padDescAudio){ row('Your recording', padDescAudio); }
-  else { row('As you told it', padDescAudio); row('Your narration', padVoice); }
-  var b=document.getElementById('descbody');
-  b.textContent=padDesc; b.hidden=!padDesc;
-  var sh=document.getElementById('descsheet');
-  sh.hidden=false; sh.scrollTop=0; lock(true); sheetPill(sh);
-};
-document.getElementById('descclose').onclick=function(ev){
-  ev.stopPropagation();
-  var sh=document.getElementById('descsheet');
-  var as=sh.querySelectorAll('audio');
-  for(var i=0;i<as.length;i++) as[i].pause();
-  if(sh._stopPill) sh._stopPill();
-  sh.hidden=true; lock(false);
-};
 function openPad(id){
   padId=id; padOpened=true; localStorage.setItem('scratchpad_pad',id);
   if(genTimer){ clearInterval(genTimer); genTimer=null; }
   filmGen++;   // an in-flight poll belongs to the story she just left
   if(filmTimer){ clearInterval(filmTimer); filmTimer=null; }
   film=null; padUpdated=0; dirtySinceFilm=false; autoplayWanted=false; renderFilm();
-  player.pause(); audios=[]; renderAudios();
+  player.pause(); audios=[];
+  padDesc=''; padDescAudio=null; padVoice=null; renderAudios();
   padStyle='watercolor'; renderStyle(); uploads=[];
   closeShelf();
   beats=[]; padTitle=''; render();
@@ -1896,7 +2157,7 @@ function urlsOnPad(){
   var onPad={};
   beats.forEach(function(b){
     if(b.url)onPad[b.url]=1;
-    if(b.alt&&b.alt.dreamy&&b.alt.dreamy.url)onPad[b.alt.dreamy.url]=1;
+    STYLES.forEach(function(s){ var u=slotFor(b,s.key).url; if(u)onPad[u]=1; });
   });
   return onPad;
 }
@@ -2131,10 +2392,10 @@ function openBeat(b){
   popBeat=b;
   var im=document.getElementById('popimg'), bl=document.getElementById('popblank');
   var vid=document.getElementById('popvid');
-  // The popup shows the side the toggle is showing — under dreamy an
+  // The popup shows the side the toggle is showing — under another style an
   // unfilled beat opens BLANK, with its shared words underneath, which is
   // exactly the fill-it-in state the toggle exists for. A clip is the
-  // SLOT's kind: a movie on the dreamy side leaves watercolor a picture.
+  // SLOT's kind: a movie on the pastel side leaves watercolor a picture.
   var su=slotOf(b);
   var clip=su.kind==='clip';
   // NOTHING DRAWN YET is one state, computed once: the blank tile shrinks,
@@ -2242,7 +2503,9 @@ document.getElementById('linkbtn').onclick=function(ev){ ev.stopPropagation(); c
 document.getElementById('unlinkbtn').onclick=function(ev){ ev.stopPropagation(); chunkAction('/unchunk'); };
 
 /* ── drawing a beat's art right here ──────────────────────────────── */
-function openDraw(ev){
+/* `edit` opens straight into the box — the STAR only, since "draw it here"
+   is her saying she wants to write the prompt. The label opens to the words. */
+function openDraw(ev, edit){
   ev.stopPropagation();
   if(!popBeat)return;
   var box=document.getElementById('drawbox');
@@ -2250,8 +2513,8 @@ function openDraw(ev){
   if(!opening)savePrompt();
   // Opening the prompt folds the caption away (her rule); closing it leaves
   // the caption as she left it rather than forcing it back open.
-  // DREAMY never takes the Sophie card (the Playground's noCharacter rule:
-  // her card is the watercolor look, the wrong reference there) — setBoxes
+  // ONLY WATERCOLOR takes the Sophie card (the Playground's noCharacter
+  // rule: her card is the watercolor look, wrong elsewhere) — setBoxes
   // takes the toggle off rather than leaving it there doing nothing.
   // Opening the prompt folds the caption away only when there is a picture
   // taking the room — on a picture-less beat both stay open, which is the
@@ -2266,8 +2529,10 @@ function openDraw(ev){
     // stays fixed: drawPrompt() reads the caption box, never the last
     // SAVED text).
     document.getElementById('dprompt').value=String(popBeat.prompt||'');
+    promEditing=Boolean(edit);
+    paintProm();
     saveNote();
-    document.getElementById('dprompt').focus();
+    if(promEditing) document.getElementById('dprompt').focus();
   }
 }
 /* The star OPENS the drawing box — it never closes it. Since a beat with no
@@ -2275,8 +2540,9 @@ function openDraw(ev){
    would fold away the very thing that beat is for; the chevron on Drawing
    prompt is the toggle. Already open → put the caret in the box. */
 document.getElementById('ardraw').onclick=function(ev){
-  if(document.getElementById('drawbox').hidden)return openDraw(ev);
+  if(document.getElementById('drawbox').hidden)return openDraw(ev,true);
   ev.stopPropagation();
+  promEditing=true; paintProm();
   document.getElementById('dprompt').focus();
 };
 /* The stacked squares: past pictures fold out under the row and fold back.
@@ -2305,7 +2571,7 @@ document.getElementById('dgo').onclick=function(ev){
     id:b.id, prompt:prompt,
     quality:qVal('dq'),
     style:padStyle,
-    character:padStyle!=='dreamy'&&document.getElementById('dchar').classList.contains('on'),
+    character:padStyle==='watercolor'&&document.getElementById('dchar').classList.contains('on'),
   })}).then(function(r){return r.json()}).then(function(d){
     btn.disabled=false;
     if(d.error){ alert(d.error); return; }
@@ -2318,12 +2584,13 @@ document.getElementById('dgo').onclick=function(ev){
 /* A draw is a background job: poll the pad while any beat is drawing, and
    resume that poll on return, so leaving the app never loses a picture. */
 var genTimer=null;
-/* Watches BOTH sides of the toggle — she can flip away while a dreamy draw
+/* Watches EVERY side of the toggle — she can flip away while a pastel draw
    is still cooking, and the poll must keep going until it lands. */
 function anyDrawing(){
   return beats.some(function(b){
-    return (b.gen&&b.gen.status==='drawing')
-      ||(b.alt&&b.alt.dreamy&&b.alt.dreamy.gen&&b.alt.dreamy.gen.status==='drawing');
+    return STYLES.some(function(s){
+      var g=slotFor(b,s.key).gen; return Boolean(g&&g.status==='drawing');
+    });
   });
 }
 function startGenPoll(){
@@ -2398,13 +2665,29 @@ function paintCap(){
   document.getElementById('pnote').hidden=!capEditing;
   document.getElementById('capedit').classList.toggle('on',capEditing);
 }
+/* The prompt's two faces, the caption's rule exactly (2026-08-26). The words
+   are painted FROM the textarea on every paint, so the box behind them is
+   still the one and only value — drawPrompt(), savePrompt() and the hint line
+   all read it and cannot disagree with what she is looking at. */
+var promEditing=false;
+function paintProm(){
+  var ta=document.getElementById('dprompt');
+  document.getElementById('promtext').textContent=ta.value;
+  document.getElementById('promtext').hidden=promEditing;
+  ta.hidden=!promEditing;
+  document.getElementById('promedit').classList.toggle('on',promEditing);
+}
 function setBoxes(capOpen, promOpen){
   var cl=document.getElementById('caplab'), pl=document.getElementById('promlab');
   document.getElementById('drawbox').hidden=!promOpen;
+  /* Folding the box away puts it back to WORDS — reopening on a caret she
+     left there last time is the box-by-default she asked to be rid of. */
+  if(!promOpen)promEditing=false;
+  paintProm();
   cl.setAttribute('aria-expanded',capOpen?'true':'false');
   pl.setAttribute('aria-expanded',promOpen?'true':'false');
   paintCap();
-  document.getElementById('dchar').hidden=(padStyle==='dreamy');
+  document.getElementById('dchar').hidden=(padStyle!=='watercolor');
   paintPromptHint();
 }
 /* The pencil TOGGLES the box. Coming out of it saves and re-paints the
@@ -2430,6 +2713,17 @@ document.getElementById('caplab').onclick=function(ev){
   setBoxes(!open, document.getElementById('promlab').getAttribute('aria-expanded')==='true');
 };
 document.getElementById('promlab').onclick=function(ev){ openDraw(ev); };
+/* The pencil TOGGLES the box, and coming out of it saves — the caption's
+   pencil, the same behaviour. It never closes on its own blur, for the same
+   reason: a card that reshuffles under her thumb eats the next tap. */
+document.getElementById('promedit').onclick=function(ev){
+  ev.stopPropagation();
+  promEditing=!promEditing;
+  paintProm();
+  if(promEditing){ document.getElementById('dprompt').focus(); }
+  else { savePrompt(); }
+};
+document.getElementById('promview').onclick=function(ev){ev.stopPropagation();};
 document.getElementById('pnote').onclick=function(ev){ev.stopPropagation();};
 /* Returns a promise so the speech icon can wait for a fresh note to land
    server-side before asking for its audio. */
@@ -2448,7 +2742,10 @@ function savePrompt(){
       var keep=popBeat; beats=d.beats; popBeat=beats.find(function(x){return x.id===keep.id;})||keep;
     }});
 }
-document.getElementById('dprompt').onblur=function(){savePrompt();};
+document.getElementById('dprompt').onblur=function(){
+  document.getElementById('promtext').textContent=this.value;
+  savePrompt();
+};
 /* WHAT DRAW WILL ACTUALLY SEND — one function, so the hint line and the
    Draw button can never disagree about it. Her own prompt when the box has
    one; otherwise the caption as it reads RIGHT NOW, speech markup stripped.
@@ -2554,14 +2851,18 @@ document.getElementById('coverbtn').onclick=function(ev){
    different things (2026-08-23, Sophie): with art on the other side only
    this side goes and the beat stays over there; with nothing anywhere else,
    the beat itself goes. */
-var STYLE_WORD={watercolor:'Watercolor', dreamy:'Dreamy'};
+/* The names come off STYLES, so a new style needs no word list of its own.
+   With more than two sides "the other one" is a LIST — "It stays in Dreamy
+   and Pastel." — because that is what the server's rule now says. */
+function styleWord(k){ var i=styleIx(k); return STYLES[i]?STYLES[i].word:k; }
+function andList(a){ return a.length<2?(a[0]||'') : a.slice(0,-1).join(', ')+' and '+a[a.length-1]; }
 document.getElementById('delbtn').onclick=function(ev){
   ev.stopPropagation();
   if(!popBeat)return;
-  var keeps=Boolean(otherSlotOf(popBeat).url);
-  document.getElementById('delline').textContent=keeps
-    ? ('Delete this beat from '+STYLE_WORD[padStyle]+'? It stays in '
-        +STYLE_WORD[padStyle==='dreamy'?'watercolor':'dreamy']+'.')
+  var keeps=otherKeepers(popBeat);
+  document.getElementById('delline').textContent=keeps.length
+    ? ('Delete this beat from '+styleWord(padStyle)+'? It stays in '
+        +andList(keeps.map(function(s){return s.word;}))+'.')
     : 'Delete this beat? Its pictures are already saved in your galleries.';
   document.getElementById('delask').hidden=false;
 };
@@ -2628,8 +2929,6 @@ window.__navBack=function(){
   }
   el=document.getElementById('ausheet');
   if(!el.hidden){ document.getElementById('auclose').click(); return true; }
-  el=document.getElementById('descsheet');
-  if(!el.hidden){ document.getElementById('descclose').click(); return true; }
   el=document.getElementById('helpsheet');
   if(!el.hidden){ document.getElementById('helpclose').click(); return true; }
   el=document.getElementById('stories');

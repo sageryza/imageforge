@@ -4188,6 +4188,55 @@ before working on that module. Nothing was deleted — the moved text is verbati
   it a story is a dead end in a browser. Test:
   `node scripts/test-storyroom-header.js` (three states —
   web / old build / new build).
+  **THE VOICEOVER AND THE DESCRIPTION ARE BEHIND ONE BUTTON, AND THE LAYOUT
+  IS THE WHOLE OF IT (2026-08-26, Sophie: "put the voiceover and story
+  description behind one button but think carefully about the layout").** It
+  was two buttons over two sheets — a book glyph over her description text
+  plus her two recordings as native `<audio controls>`, and a waveform over
+  the memos and episodes as rows. Everything in both is the same thing, so it
+  is one sheet, **About this story**, behind one Lucide `book-audio` button
+  (`#aboutbtn`; `#descbtn` and `#audiobtn` are gone).
+  - **THE ORDER WAS COUNTED, NOT GUESSED.** All 67 stories read live that
+    day: **47 carry anything at all, 43 of those have a RECORDING and only
+    17 a description** — and a description is a dictated transcript running
+    **~2,300 characters at the median and 10,593 at the longest**. So the
+    recordings LEAD (that is what a tap is for) and her words sit under them,
+    folded to six lines behind the house `.moretxt` opener. Put the words
+    first and every recording is several screens down.
+  - **ONE ROW DESIGN, so one way to play anything.** Her "As you told it" and
+    "Your narration" are `.aurow`s like the memos, on the page's one shared
+    `player` — which is also what lets a recording keep playing while she
+    reads the beats it became. The same file under both fields still draws
+    ONE row ("Your recording"). The attached list takes a **Recordings**
+    header only when hers are above it, so a story with no description looks
+    exactly as it did before the merge.
+  - **THE MERGE OWED HER A SCRUBBER.** Native `<audio controls>` were
+    scrubbable; a list of play buttons is not, and the two recordings most
+    worth scrubbing were exactly the ones being folded in. So the ROW grew
+    one: the playing row's own bottom hairline fills in ink, no extra height,
+    and the memos get it having never had one. Only the playing row carries
+    it; the touch strip starts where the TEXT does so a pause tap at the play
+    button's lower edge can never land on it instead.
+  - **THE SHEET'S PILL OWNS THAT CORNER ALL THE WAY DOWN, and this was a
+    LIVE BUG the merge exposed rather than caused.** The sheet is its own
+    scroller with its own fixed pill, so every row rides through the top-right
+    on the way up — measured pre-fix, rows ran to x=371 against a pill
+    starting at x=328, and a tap at the right end of the new scrubber reached
+    the PILL (`elementFromPoint`, the only honest question — the QUESTIONS
+    button's own lesson). `#audios`/`#deschead`/`#descbody` reserve the house
+    56px. **Measure that as INK, never as boxes:** padding keeps a box wide
+    while its words stop short, so a box rect reports a collision that is not
+    there.
+  - A row whose length nothing recorded (her description recording and her
+    narration are bare urls on the pad doc, with no `seconds`) learns it from
+    the file the moment it plays, and `_url` is RESOLVED on the way in —
+    `player.src` reads back absolute, so a relative url would compare unequal
+    to itself forever and the row would never show its pause glyph.
+  - Test: `node scripts/test-storyroom-about.js` (39 checks, headless, driving
+    real decodable wavs through the real page — the order, the fold measured
+    rather than counted in characters, the pill collision as ink, a real
+    pointer at four fifths along the scrubber, and the four shapes her real
+    stories come in).
   **THE WHOLE TOP IS ONE STICKY BLOCK, AND THE STORY'S NAME HAS ITS OWN LINE
   (2026-08-26, Sophie: "header layout sucks. back button not sticky. title too
   crowded").** Two faults in one row, both only visible as measurements.
@@ -4225,9 +4274,41 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **see more**; **with nothing pinned in that category the whole shelf shows**,
   because a fold hiding every story is a shelf with nothing on it. The fold is
   per category and per visit. Nothing to do with `/cover`, which pins a
-  story's FACE. Test: `node scripts/test-storyroom-shelf.js` (the frame
+  story's FACE.
+  **A WHOLE FOLDER PINS AT ONCE (2026-08-26, Sophie: "make it possible to pin
+  multiple stories that are together so I can pin all my Mason stories at
+  once").** A folder tile carries the same pushpin, and it sends every story
+  in it — `POST /pads/pin {pads:[…], pinned}`, the batch form `/pads/folder`
+  and now `/pads/category` also take. So nothing new is stored: the flag is
+  still one per story, and the folder's pin is LIT when any story in it is,
+  which is the same rule that decides where the folder sits — the light and
+  the position can never disagree. (This line used to say a folder carries no
+  pushpin because "a pin belongs to a story"; her ask retires that.)
+  **THE CARDS BEHIND A FOLDER COUNT ITS STORIES (2026-08-26, Sophie: "make the
+  number of things showing behind a story correlate with how many stories
+  there are behind that story").** It was always two cards, so a pair and a
+  pile drew identically. A pair shows ONE card behind, a trio two, four or
+  more three — the cap is the 14px column gap the deepest card (12px) hangs
+  into, and past it the count badge is what says how many. They are real
+  `.lay` spans now, deepest first in document order, because two
+  pseudo-elements cannot be a number.
+  **THE PILES ARE Unsorted · Personal · Witch · Lessons · NDE, AND THE DEFAULT
+  IS UNSORTED (2026-08-26, Sophie: "I think personal is the default so can you
+  just make a different default and just put the ones I mentioned into
+  personal").** An untagged story used to file under Personal, which made
+  Personal everything nobody had got to — useless as a pile of her own.
+  `SHELF_DEFAULT` in `gen-scratchpad.py` is the one place it lives: the filter
+  and the opening chip both read it, so moving the default is that line. The
+  shelf opens on Unsorted because that is where a story she just made lands.
+  **The chip row now ends before the autoscroll pill** — the sheet's pill is
+  fixed at x 328-374, y 14-154 and the row sits at y 52-85, so with three chips
+  it simply stopped short and with five the last one was UNREACHABLE.
+  `fitCatRow()` measures both real boxes and reserves the column; the row
+  scrolls, so a chip in that column is one swipe away.
+  Test: `node scripts/test-storyroom-shelf.js` (the frame
   MEASURED off the real boxes — a mat drawn with the wrong inset still renders
-  a picture in a frame, it just covers the mat).
+  a picture in a frame, it just covers the mat — the layer counts, the folder's
+  batch pin, and the chip row's right edge against the pill's left).
   Stories carry **listen rows**
   behind ONE waveform button on the title row (Aug 2026): the Episode Editor
   episodes cut from the story, resolved to their newest render live, AND the
@@ -4292,11 +4373,26 @@ before working on that module. Nothing was deleted — the moved text is verbati
     drops `#artwrap`'s `flex:1`, and it opens the drawing prompt beside the
     caption: the empty tile used to take the whole card, on exactly the beat
     whose WORDS are all there is.
+  - **AND THE DRAWING PROMPT IS THE SAME SHAPE SINCE 2026-08-26 (Sophie: "can
+    you make the default for the caption in the drawing prompt? that they're
+    not in a edit text box and that I press the pencil to edit them").** Her
+    2026-08-24 message above named BOTH boxes and only the caption got it, so
+    a picture-less beat — which opens with both down — showed one set of words
+    beside one "type here". `#promtext` + `#promedit` are `#captext` +
+    `#capedit`'s twin, and **the words are painted FROM `#dprompt` on every
+    paint**, so the textarea is still the one and only value: `drawPrompt()`,
+    `savePrompt()` and the hint line read it and cannot disagree with what she
+    is looking at. **Folding the prompt away puts it back to WORDS** —
+    reopening on a caret she left there last time is the box-by-default she
+    asked to be rid of.
   - **The fold rule is now conditional on that** — opening the prompt folds
     the caption away only when a picture is taking the room. And **the star
     (`#ardraw`) opens the drawing box, never closes it**: it would otherwise
     fold away the box a picture-less beat now opens with; the chevron on
-    Drawing prompt is the toggle, and the star focuses an open box.
+    Drawing prompt is the toggle. **The star is also the ONE way in that skips
+    the pencil** (`openDraw(ev, true)`) — "draw it here" is her saying she
+    wants to write the prompt, so it opens straight into the box with the
+    caret in it, where the label opens to the words.
   - Test: `node scripts/test-scratchpad-popup.js` (the real page, headless —
     the pencil measured beside the words, the empty tile measured against the
     same card holding a picture).
@@ -4319,8 +4415,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
     of a picture she is usually only checking the words against). `#bq` was
     already low. `QUALS`/`qVal`/`qSet`/`wireQ` in the generator are the one
     table and the one reader; a fourth quality is an entry in that list.
-  - **The `.swi` STYLE toggle beside it is deliberately untouched** — two
-    stops, not three, and the shell only places three.
+  - **THE PAGE HAS ONE FLOOR, NOT ONE PER TOGGLE.** The style switch landed
+    on the shell the same day (another chat, `#styletog`) carrying its own
+    inline `window.triNext ? … : cycle`; both read the page's single declared
+    `triNext` now, so a page can never grow two versions of the fallback and
+    have them drift.
   - Test: the draw-row section of `node scripts/test-scratchpad-popup.js`,
     which taps a POSITION on the track (a click on the element's centre is
     where a cycle and an aim agree, so it can never see the bug).

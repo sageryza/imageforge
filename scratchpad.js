@@ -55,7 +55,7 @@
 //                          (emptied + `off`, the beat keeps its place and
 //                          its words there); with nothing left anywhere the
 //                          whole beat goes, as it always did
-//   POST /style          → { style:'watercolor'|'dreamy' } — which art set
+//   POST /style          → { style:'watercolor'|'dreamy'|'pastel' } — which art set
 //                          the story shows (the toggle at the top; the beats
 //                          and their words are shared, only the art differs —
 //                          see the STYLE TOGGLE block below)
@@ -142,35 +142,49 @@ function artRef(file) {
   return refCache[file];
 }
 
-// ── The STYLE TOGGLE: watercolor ↔ dreamy (Aug 2026, Sophie: "I want to
-// have the same beats but I wanna fill them with new art … a style toggle at
-// the top of a story that alternates between dreamy and watercolor").
-// One story, TWO sets of art over the SAME beats: the words, colors, voice
+// ── The STYLE TOGGLE: watercolor · dreamy · pastel (Aug 2026, Sophie: "I
+// want to have the same beats but I wanna fill them with new art … a style
+// toggle at the top of a story that alternates between dreamy and
+// watercolor"; PASTEL added 2026-08-26 at her ask, "another style in the
+// story room called pastel besides watercolor and dreamy").
+// One story, N sets of art over the SAME beats: the words, colors, voice
 // takes and order are shared; only the pictures differ. "watercolor" is the
 // pad's original look (sage sandy mirror — the fields already on the beat,
-// so nothing that exists migrates or moves), and "dreamy" keeps its art in
-// a parallel slot, `beat.alt.dreamy` ({url, src, gen, imageHistory}), empty
-// until she fills it. `pad.style` remembers which side the story is showing;
-// requests that touch ART carry `style` so a stale page can never draw into
-// the wrong side. A CLIP is per-style TOO (2026-08-23, Sophie, after movies
-// she added on the dreamy side showed up on watercolor: "The beats should be
-// added, but the Art should not") — a slot holds a picture OR a clip
-// (kind:'clip' + poster/seconds/title/clipId on the slot), so a movie placed
-// under dreamy leaves the watercolor side exactly as it was.
-const STYLES = ['watercolor', 'dreamy'];
+// so nothing that exists migrates or moves), and every OTHER style keeps its
+// art in a parallel slot, `beat.alt[style]` ({url, src, gen, imageHistory}),
+// empty until she fills it. `pad.style` remembers which side the story is
+// showing; requests that touch ART carry `style` so a stale page can never
+// draw into the wrong side. A CLIP is per-style TOO (2026-08-23, Sophie,
+// after movies she added on the dreamy side showed up on watercolor: "The
+// beats should be added, but the Art should not") — a slot holds a picture
+// OR a clip (kind:'clip' + poster/seconds/title/clipId on the slot), so a
+// movie placed under dreamy leaves the watercolor side exactly as it was.
+//
+// NOTHING COUNTS THE STYLES BUT THIS LIST. It shipped as a pair, and the
+// pair was written into the code as ternaries (`style === 'dreamy' ? … : …`,
+// `otherStyle`, a hardcoded `b.alt.dreamy` in three sweeps) — so a third one
+// was a rewrite rather than a line. It is a rewrite once: a FOURTH style is
+// an entry here plus its recipe in STYLE_ART below, and the toggle, the
+// film, the delete rule, the shelf face and the stuck-job sweep all follow
+// without knowing how many there are.
+const STYLES = ['watercolor', 'dreamy', 'pastel'];
 const styleOf = (req) => {
   const s = String((req.body && req.body.style) || req.query.style || '');
-  return s === 'dreamy' ? 'dreamy' : 'watercolor';
+  return STYLES.includes(s) ? s : 'watercolor';
 };
 // The object holding a beat's art for a style. For watercolor it IS the beat
 // (url/src/gen/imageHistory live at the root, exactly as they always have);
-// for dreamy it is beat.alt.dreamy, created on first write.
+// for every other style it is beat.alt[style], created on first write.
 function artSlot(b, style, make) {
-  if (style !== 'dreamy') return b;
-  if (make) { b.alt = b.alt || {}; b.alt.dreamy = b.alt.dreamy || {}; }
-  return (b.alt && b.alt.dreamy) || {};
+  if (!b || style === 'watercolor' || !STYLES.includes(style)) return b || {};
+  if (make) { b.alt = b.alt || {}; b.alt[style] = b.alt[style] || {}; }
+  return (b.alt && b.alt[style]) || {};
 }
-const otherStyle = (style) => (style === 'dreamy' ? 'watercolor' : 'dreamy');
+// Every slot a beat has, in STYLES order — for the sweeps that must reach all
+// of them (missing clip posters, a draw stuck under a style she flipped away
+// from) rather than the one she is looking at.
+const allSlots = (b) => STYLES.map((s) => artSlot(b, s, false));
+const otherStyles = (style) => STYLES.filter((s) => s !== style);
 // EVERY field that belongs to ONE side, and nothing else. The watercolor
 // slot IS the beat root, so emptying a side is done by this explicit list
 // and NEVER by wiping the object — the words, the frame color, her voice
@@ -189,20 +203,82 @@ const slotOff = (s) => Boolean(s && s.off);
 // and so /image and a finished draw share ONE copy of the rules.
 const { swapArt } = require('./pad-art');
 
-// DREAMY's recipe is the Playground's Dreamy tile — refs/dream-mystery.jpg
-// with HER OWN dictated prefix and suffix (2026-08-22), bookending her words
-// exactly as the Playground sends them (prefix\n\nwords\n\nsuffix). These two
-// strings are COPIES of PL_GPT_STYLES.dreamy.prefix/.suffix in server.js —
-// keep them identical (test-scratchpad-style.js pins the pair). No Sophie
-// character card: hers is the watercolor look, the wrong reference here.
-const DREAMY = {
-  styleFile: 'dream-mystery.jpg',
-  prefix: 'The FIRST attached image is a STYLE reference — copy its drawing style ' +
-    'but do NOT copy its content, subjects, or composition.',
-  suffix: 'Render as ONE single illustration — NOT a grid, NOT split panels. ' +
-    'Draw it inside a hand-drawn border, like the frames in the style ' +
-    'reference. no text. Again: the attached image is a STYLE reference ' +
-    'only — do not draw its content, its subjects or its composition.',
+// ── The recipes for every style but watercolor ──────────────────────
+// Each one is the PLAYGROUND's tile of the same name, so a beat drawn here
+// and a picture drawn there are the same picture: the prompt strings are
+// COPIES of PL_GPT_STYLES.<style>.prefix/.suffix in server.js and
+// test-scratchpad-style.js pins them byte-for-byte, the same
+// keep-the-copies-identical rule ART.prefix has always lived under. Reword
+// one there → move the copy here in the same commit.
+//
+// NONE of them takes the Sophie character card: hers is the watercolor look,
+// i.e. a style reference by another name, and a second reference in a
+// different style is exactly what these prefixes forbid.
+//
+// `styleFile` reads out of refs/ on disk; `storageFiles` are Firebase Storage
+// paths (the Witch School pair the house pastel style already uses), so both
+// kinds of reference load through refsFor() below.
+const STYLE_ART = {
+  // DREAMY — refs/dream-mystery.jpg with HER OWN dictated prefix and suffix
+  // (2026-08-22), bookending her words exactly as the Playground sends them
+  // (prefix\n\nwords\n\nsuffix).
+  dreamy: {
+    styleFile: 'dream-mystery.jpg',
+    prefix: 'The FIRST attached image is a STYLE reference — copy its drawing style ' +
+      'but do NOT copy its content, subjects, or composition.',
+    suffix: 'Render as ONE single illustration — NOT a grid, NOT split panels. ' +
+      'Draw it inside a hand-drawn border, like the frames in the style ' +
+      'reference. no text. Again: the attached image is a STYLE reference ' +
+      'only — do not draw its content, its subjects or its composition.',
+  },
+  // PASTEL (2026-08-26, Sophie: "can you make another style in the story room
+  // called pastel besides watercolor and dreamy?") — the Playground's Pastel
+  // tile, which is the house `house-pastel` look: the two Witch School refs
+  // she named sophie snake / sophie animals, the written style line, and the
+  // WHITEN pass on the way out. Its references live in STORAGE, not refs/ —
+  // that is the one thing that makes this style different to wire up, and it
+  // is why refsFor() is async.
+  //
+  // THE WHITEN PASS IS PART OF THE RECIPE, not a nicety: this look draws on a
+  // plain white ground and gpt-image-2 returns that ground faintly tinted,
+  // which reads as grey the moment the beat sits on the pad's cream. Shared
+  // with the Playground through whiten-bg.js — one copy, no drift.
+  pastel: {
+    storageFiles: ['witch-school/refs/sophie-snake.png', 'witch-school/refs/sophie-animals.png'],
+    prefix: 'Use the attached images ONLY as a STYLE reference for the linework: ' +
+      'bold confident black ink outlines, flat colors with NO gradients and minimal ' +
+      'shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, ' +
+      'on a plain white background, playful modern editorial illustration.',
+    suffix: 'Absolutely no text, no words, no letters, no numbers, no captions.',
+    whiten: true,
+  },
+};
+const { whitenBackground } = require('./whiten-bg');
+// A style's reference images, wherever they live. The twin of server.js's
+// `playgroundRefs` / `loadHouseRef` — this module holds no Playground
+// credentials and is required long before those exist, so it reads Storage
+// itself and caches the bytes for the life of the process.
+const storageRefCache = new Map();
+async function storageRef(objectPath) {
+  if (!storageRefCache.has(objectPath)) {
+    const [buf] = await admin.storage().bucket().file(objectPath).download();
+    storageRefCache.set(objectPath, buf);
+  }
+  return storageRefCache.get(objectPath);
+}
+// Each reference comes back with the NAME it is on disk (or in Storage), so
+// the multipart part can declare what it actually is — dream-mystery is a
+// JPEG and the pastel pair are PNGs, and a part typed wrong is a refusal from
+// the API rather than a picture.
+async function refsFor(recipe) {
+  const named = (recipe.styleFile ? [recipe.styleFile] : []).map((f) => ({ name: f, buf: artRef(f) }));
+  const remote = await Promise.all((recipe.storageFiles || [])
+    .map(async (p) => ({ name: p, buf: await storageRef(p) })));
+  return named.concat(remote);
+}
+const refPart = (r, i) => {
+  const jpeg = /\.jpe?g$/i.test(r.name || '');
+  return { filename: `ref${i + 1}.${jpeg ? 'jpg' : 'png'}`, contentType: jpeg ? 'image/jpeg' : 'image/png' };
 };
 
 // ── The film ────────────────────────────────────────────────────────
@@ -608,8 +684,10 @@ router.get('/pads', async (req, res) => {
       // The shelf face follows the toggle — the side the story is showing —
       // falling back to the other side so a tile is never blank while any
       // art exists at all.
+      // The showing side first, then every other one in STYLES order, so a
+      // tile is never blank while any art exists at all.
       const faceOf = (b) => slotFace(artSlot(b, style))
-        || slotFace(b) || slotFace((b.alt && b.alt.dreamy) || null);
+        || otherStyles(style).map((s) => slotFace(artSlot(b, s))).find(Boolean) || null;
       const withArt = beats.find((b) => faceOf(b));
       // A seeded story keeps its art in its own inbox until it is placed on
       // the timeline, so the shelf cover falls back there — a tile is a real
@@ -677,17 +755,25 @@ router.post('/pads/folder', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
-// Which shelf chip a story answers to (personal / lessons / nde). Set by the
-// seed script or a chat — the page files a story with none under Personal, so
-// a brand-new story is never invisible. Deliberately does NOT bump updatedAt:
-// filing a story must not reshuffle the shelf's newest-first order.
+// Which shelf chip a story answers to (unsorted / personal / witch / lessons /
+// nde). Set by the seed script or a chat — a story carrying NONE files under
+// UNSORTED, so a brand-new story is never invisible and never lands in one of
+// her real piles uninvited (2026-08-26, Sophie: "I think personal is the
+// default so can you just make a different default and just put the ones I
+// mentioned into personal" — Personal had become everything nobody had filed).
+// `pads` files a whole set in one call, the /pads/folder shape; `pad` is the
+// single-story form. Deliberately does NOT bump updatedAt: filing a story must
+// not reshuffle the shelf's newest-first order.
 router.post('/pads/category', async (req, res) => {
   try {
-    const pid = String(req.body.pad || '').trim();
-    if (!pid) return res.status(400).json({ error: 'pad required' });
+    const ids = (Array.isArray(req.body.pads) ? req.body.pads : [req.body.pad])
+      .map((x) => String(x || '').trim()).filter(Boolean);
+    if (!ids.length) return res.status(400).json({ error: 'pad or pads required' });
     const category = String(req.body.category || '').toLowerCase().slice(0, 24).trim();
-    await padRef(pid).set({ category: category || null }, { merge: true });
-    res.json({ ok: true, pad: pid, category: category || null });
+    const batch = db().batch();
+    ids.forEach((id) => batch.set(padRef(id), { category: category || null }, { merge: true }));
+    await batch.commit();
+    res.json({ ok: true, pad: ids[0], pads: ids, category: category || null });
   } catch (e) { fail(res, e); }
 });
 
@@ -697,13 +783,22 @@ router.post('/pads/category', async (req, res) => {
 // which stories lead the shelf. Absent means unpinned, so a story is never
 // hidden behind the fold by a field nobody set. Like /category, deliberately
 // does NOT bump updatedAt: pinning is not an edit to the story.
+//
+// A WHOLE FOLDER PINS AT ONCE — `pads` takes a list (2026-08-26, Sophie: "make
+// it possible to pin multiple stories that are together so I can pin all my
+// Mason stories at once"). The folder's pushpin sends every story in it, so
+// what is stored is still one flag per story and nothing new has to be kept in
+// step with which stories a folder holds.
 router.post('/pads/pin', async (req, res) => {
   try {
-    const pid = String(req.body.pad || '').trim();
-    if (!pid) return res.status(400).json({ error: 'pad required' });
+    const ids = (Array.isArray(req.body.pads) ? req.body.pads : [req.body.pad])
+      .map((x) => String(x || '').trim()).filter(Boolean);
+    if (!ids.length) return res.status(400).json({ error: 'pad or pads required' });
     const pinned = req.body.pinned === true || req.body.pinned === 'true';
-    await padRef(pid).set({ pinned }, { merge: true });
-    res.json({ ok: true, pad: pid, pinned });
+    const batch = db().batch();
+    ids.forEach((id) => batch.set(padRef(id), { pinned }, { merge: true }));
+    await batch.commit();
+    res.json({ ok: true, pad: ids[0], pads: ids, pinned });
   } catch (e) { fail(res, e); }
 });
 
@@ -999,16 +1094,19 @@ async function patchBeat(padId, id, fn) {
 // the app can't lose the picture. Superseded art is never deleted — it goes
 // to beat.imageHistory.
 async function runArtJob(padId, id, { prompt, quality, character, style }) {
-  const dreamy = style === 'dreamy';
+  const recipe = STYLE_ART[style] || null;   // null = watercolor, the pad's original
   try {
-    // DREAMY draws the Playground Dreamy recipe: dream-mystery as the one
-    // reference, her dictated prefix and suffix bookending the words, and
-    // never the Sophie card (see the STYLE TOGGLE block). Watercolor is the
-    // pad's original recipe, byte-for-byte.
-    const refs = [artRef(dreamy ? DREAMY.styleFile : ART.styleFile)];
-    if (!dreamy && character) refs.push(artRef(ART.characterFile));
-    const full = dreamy
-      ? `${DREAMY.prefix}\n\n${prompt}\n\n${DREAMY.suffix}`
+    // A non-watercolor style draws its Playground tile's recipe: that tile's
+    // reference images, her dictated prefix and suffix bookending the words,
+    // and never the Sophie card (see the STYLE TOGGLE block). Watercolor is
+    // the pad's original recipe, byte-for-byte.
+    const refs = recipe
+      ? await refsFor(recipe)
+      : [{ name: ART.styleFile, buf: artRef(ART.styleFile) }]
+        .concat(character ? [{ name: ART.characterFile, buf: artRef(ART.characterFile) }] : []);
+    const useCard = !recipe && Boolean(character);
+    const full = recipe
+      ? `${recipe.prefix}\n\n${prompt}\n\n${recipe.suffix}`
       : `${ART.prefix}${character ? ART.characterLine : ''}\n\n${prompt}`;
     const form = new FormData();
     form.append('model', 'gpt-image-2');
@@ -1020,12 +1118,9 @@ async function runArtJob(padId, id, { prompt, quality, character, style }) {
     // come back, and every beat's art here is a KEPT original (superseded art
     // goes to beat.imageHistory rather than being deleted). See
     // scripts/test-no-generation-compression.js.
-    // dream-mystery is a JPEG — declare each ref as what it actually is.
-    const jpeg = dreamy;
-    refs.forEach((b, i) => form.append('image[]', b, {
-      filename: `ref${i + 1}.${i === 0 && jpeg ? 'jpg' : 'png'}`,
-      contentType: i === 0 && jpeg ? 'image/jpeg' : 'image/png',
-    }));
+    // Each ref is declared as what it actually IS, read off its own filename —
+    // dream-mystery is a JPEG, the pastel pair are PNGs.
+    refs.forEach((r, i) => form.append('image[]', r.buf, refPart(r, i)));
     const r = await fetch('https://api.openai.com/v1/images/edits', {
       method: 'POST',
       headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, ...form.getHeaders() },
@@ -1036,10 +1131,17 @@ async function runArtJob(padId, id, { prompt, quality, character, style }) {
     if (data.error) throw new Error(data.error.message || 'gpt-image-2 edit error');
     const b64 = data.data?.[0]?.b64_json;
     if (!b64) throw new Error('gpt-image-2 returned no image');
+    let buf = Buffer.from(b64, 'base64');
+    // The pastel recipe ends with the flood-fill whiten, exactly as the
+    // Playground's Pastel tile and the house style do — best-effort, because a
+    // failed whiten must keep the picture rather than lose a paid render.
+    if (recipe && recipe.whiten) {
+      try { buf = await whitenBackground(buf); } catch (e) { console.warn('scratchpad whiten failed:', e.message); }
+    }
     const bucket = admin.storage().bucket();
     const dest = `scratchpad/art/${id}-${Date.now()}.webp`;
     const tmp = path.join(os.tmpdir(), `spa-${id}.webp`);
-    fs.writeFileSync(tmp, Buffer.from(b64, 'base64'));
+    fs.writeFileSync(tmp, buf);
     await bucket.upload(tmp, { destination: dest, metadata: { contentType: 'image/webp' } });
     await bucket.file(dest).makePublic();
     fs.unlink(tmp, () => {});
@@ -1051,7 +1153,7 @@ async function runArtJob(padId, id, { prompt, quality, character, style }) {
       // its own prompt with it, rather than this draw's.
       swapArt(slot, url, {
         engine: 'gptimage', model: 'gpt-image-2', prompt, quality,
-        character: Boolean(character) && !dreamy, style: dreamy ? 'dreamy' : 'watercolor', promptUsed: full,
+        character: useCard, style, promptUsed: full,
       });
       slot.gen = { status: 'done', at: Date.now() };
     });
@@ -1068,10 +1170,11 @@ async function runArtJob(padId, id, { prompt, quality, character, style }) {
         // THE WHOLE PROMPT rides along (Sophie's hard rule, 2026-08-24). This
         // module has always built `full` and kept it on the beat as
         // `promptUsed`; until now the gallery only ever saw her typed words.
-        body: JSON.stringify({ url, prompt, style: `Scratch Pad · ${dreamy ? 'dreamy · ' : ''}${quality}`,
+        body: JSON.stringify({ url, prompt,
+          style: `Scratch Pad · ${style !== 'watercolor' ? `${style} · ` : ''}${quality}`,
           fullPrompt: full,
-          promptPrefix: dreamy ? DREAMY.prefix : `${ART.prefix}${character && !dreamy ? ART.characterLine : ''}`,
-          promptSuffix: dreamy ? DREAMY.suffix : '' }),
+          promptPrefix: recipe ? recipe.prefix : `${ART.prefix}${useCard ? ART.characterLine : ''}`,
+          promptSuffix: recipe ? recipe.suffix : '' }),
         timeout: 30000,
       });
     } catch (e) { console.warn('scratchpad → creations:', e.message); }
@@ -1115,7 +1218,10 @@ router.post('/remove', async (req, res) => {
       const trash = Array.isArray(v.trash) ? v.trash : [];
       const b = cur[idx];
 
-      if (artSlot(b, otherStyle(style)).url) {
+      // Art on ANY other side keeps the beat over there (2026-08-23, extended
+      // to N styles 2026-08-26 — "leave it in the other style cause that one
+      // might have an image for that" holds however many others there are).
+      if (otherStyles(style).some((s) => artSlot(b, s).url)) {
         // ONE SIDE ONLY. The banked record names its beat and its side, so a
         // per-side removal is never mistaken for a whole deleted beat.
         const mine = artSlot(b, style, true);
@@ -1176,10 +1282,12 @@ router.post('/drawall', async (req, res) => {
     if (!process.env.OPENAI_API_KEY) return res.status(503).json({ error: 'OPENAI_API_KEY is not set' });
     const quality = ART.qualities.includes(req.body.quality) ? req.body.quality : 'low';
     const style = styleOf(req);
-    const character = style !== 'dreamy';   // dreamy never takes the Sophie card
+    // Only WATERCOLOR takes the Sophie card — every other style is a
+    // reference of its own, and hers is the watercolor look (noCharacter).
+    const character = style === 'watercolor';
     const pad = await readPad(pid);
     // "Missing" is per STYLE: a beat whose watercolor is drawn but whose
-    // dreamy slot is empty is exactly what the toggle exists to fill — and a
+    // pastel slot is empty is exactly what the toggle exists to fill — and a
     // beat that is a CLIP on the other side still draws on this one (a clip
     // slot itself never draws).
     const targets = pad.beats
@@ -1222,9 +1330,9 @@ router.post('/generate', async (req, res) => {
     const quality = ART.qualities.includes(req.body.quality) ? req.body.quality : ART.quality;
     const style = styleOf(req);
     // Sophie's character card rides along unless explicitly turned off —
-    // and never on dreamy (the Playground's noCharacter rule: her card is
-    // the watercolor look, the wrong reference there).
-    const character = style === 'dreamy' ? false : (req.body.character === false ? false : true);
+    // and never on a style with its own reference (the Playground's
+    // noCharacter rule: her card is the watercolor look, wrong there).
+    const character = style !== 'watercolor' ? false : (req.body.character === false ? false : true);
     const beats = await patchBeat(pid, id, (b) => {
       const slot = artSlot(b, style, true);
       if (slotClip(slot)) throw new Error('nothing draws a clip');
@@ -1585,8 +1693,8 @@ async function sweepStuckJobs() {
       let beatsChanged = false;
       const beats = Array.isArray(v.beats) ? v.beats : [];
       beats.forEach((b) => {
-        // Both art slots — a draw can be stuck on either side of the toggle.
-        [b, b.alt && b.alt.dreamy].forEach((slot) => {
+        // EVERY art slot — a draw can be stuck on any side of the toggle.
+        allSlots(b).forEach((slot) => {
           if (slot && slot.gen && slot.gen.status === 'drawing' && (slot.gen.at || 0) < cutoff) {
             slot.gen = { status: 'failed', error: 'interrupted by a server restart', at: Date.now() };
             beatsChanged = true;

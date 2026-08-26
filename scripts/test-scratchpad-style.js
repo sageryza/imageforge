@@ -4,23 +4,25 @@
 // between dreamy and watercolor … the same format that the account's toggle
 // is" · "if I click the plus button … and then change my mind and click it
 // again, the lines between the clips should disappear" · "add clips right
-// from my phone into the inbox").
+// from my phone into the inbox"; PASTEL added 2026-08-26, "another style in
+// the story room called pastel besides watercolor and dreamy").
 //
-// Pure first: the pad's DREAMY prefix/suffix in scratchpad.js must be
-// byte-for-byte PL_GPT_STYLES.dreamy's in server.js — the same keep-the-
-// copies-identical rule ART.prefix already lives under.
+// Pure first: the pad's recipe for EVERY non-watercolor style must be
+// byte-for-byte its Playground tile's in server.js — the same keep-the-
+// copies-identical rule ART.prefix already lives under. The list is derived
+// from scratchpad.js's own STYLE_ART, so a fourth style is covered the day it
+// is added and nothing here counts to three.
 //
 // Then the REAL public/scratchpad.html in headless Chromium against a stub
 // API:
-//   1. the toggle is the account switcher's format — 48px track, 26 tall,
-//      18px knob that actually MOVES (the far stop's 23px offset is the same
-//      arithmetic as the account one's third stop), on its own line at the
-//      top of the story,
+//   1. the toggle is the SHARED three-way shell (/tritoggle.css — never a
+//      copy), one stop per style with the initial on the knob, on its own
+//      line at the top of the story, and a tap LANDS ON THE STOP under it,
 //   2. flipping to DREAMY keeps the beats and the words and empties the art
 //      that isn't drawn in that style yet — a beat with a dreamy slot shows
 //      it, one without goes honestly blank — and POSTs /style,
-//   3. a blank beat's draw box under dreamy hides the Sophie card and sends
-//      style:'dreamy' with character off,
+//   3. a blank beat's draw box under a non-watercolor style hides the Sophie
+//      card and sends that style with character off,
 //   4. + arms the placement lines; + again un-arms them (the second tap is
 //      changing her mind, and it must not need a tap somewhere else),
 //   5. the add sheet's upload button feeds the system picker into the Dump's
@@ -29,10 +31,13 @@
 //      beat via POST /clip — on the side she is showing, and only there,
 //   6. DELETING IS PER SIDE (2026-08-23, Sophie: "if I delete a beat in one
 //      of the styles … leave it in the other style cause that one might have
-//      an image for that"): with art still on the other side the beat keeps
+//      an image for that"): with art still on ANY other side the beat keeps
 //      its place and its words there and only this side goes — and the box
-//      says so before she taps; with nothing left anywhere the whole beat
-//      goes, exactly as it always did.
+//      NAMES the sides that keep it; with nothing left anywhere the whole
+//      beat goes, exactly as it always did.
+//   7. PASTEL is a real third side: flipping to it empties the art, a draw
+//      sends style:'pastel', and the film/clip/delete rules all treat it as
+//      an equal side.
 //
 //   node scripts/test-scratchpad-style.js
 //
@@ -47,7 +52,7 @@ function ok(cond, name) {
   if (!cond) failures++;
 }
 
-// ── pure: the DREAMY recipe is the Playground's, byte for byte ────────
+// ── pure: every pad recipe is its Playground tile's, byte for byte ───
 // Both files write the halves as concatenated string literals; pull each
 // value out by evaluating just that expression (comments in between are
 // stripped by the parse), so a reworded Playground prompt fails HERE
@@ -62,14 +67,38 @@ function extractHalf(file, key, anchor) {
   if (!m) throw new Error(`${file}: no ${key} after ${anchor}`);
   return new Function(`return (${m[1]});`)();
 }
+// THE LIST IS DERIVED, never typed here: whatever styles the pad carries
+// recipes for are the ones checked, so a fourth one cannot ship unchecked.
+const padSrc = fs.readFileSync(path.join(__dirname, '..', 'scratchpad.js'), 'utf8');
+const PAD_STYLES = (() => {
+  const at = padSrc.indexOf('const STYLE_ART = {');
+  const body = padSrc.slice(at, padSrc.indexOf('\n};', at));
+  return [...body.matchAll(/^  (\w+): \{/gm)].map((m) => m[1]);
+})();
+ok(PAD_STYLES.length >= 2 && PAD_STYLES.includes('dreamy') && PAD_STYLES.includes('pastel'),
+  `the pad carries a recipe per style: ${PAD_STYLES.join(', ')}`);
 try {
-  for (const key of ['prefix', 'suffix']) {
-    const pad = extractHalf('scratchpad.js', key, 'const DREAMY');
-    const play = extractHalf('server.js', key, 'dreamy: {');
-    ok(pad === play, `DREAMY.${key} is PL_GPT_STYLES.dreamy.${key}, byte for byte`);
+  for (const style of PAD_STYLES) {
+    for (const key of ['prefix', 'suffix']) {
+      const pad = extractHalf('scratchpad.js', key, `  ${style}: {`);
+      const play = extractHalf('server.js', key, `  ${style}: {`);
+      ok(pad === play, `${style}.${key} is PL_GPT_STYLES.${style}.${key}, byte for byte`);
+    }
   }
-  ok(extractHalf('scratchpad.js', 'styleFile', 'const DREAMY') === 'dream-mystery.jpg',
+  ok(extractHalf('scratchpad.js', 'styleFile', '  dreamy: {') === 'dream-mystery.jpg',
     'DREAMY draws from dream-mystery.jpg');
+  // Pastel's references live in STORAGE, which is the one thing that makes it
+  // different to wire up — pinned against the Playground's own storageRefs.
+  const padPastel = padSrc.slice(padSrc.indexOf('  pastel: {'));
+  const srvSrc = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
+  const srvPastel = srvSrc.slice(srvSrc.indexOf('  pastel: {'));
+  const files = (t, key) => (t.slice(0, t.indexOf('},')).match(new RegExp(`${key}: \\[([^\\]]*)\\]`)) || [, ''])[1]
+    .split(',').map((x) => x.trim().replace(/^'|'$/g, '')).filter(Boolean);
+  const a = files(padPastel, 'storageFiles'); const b = files(srvPastel, 'storageRefs');
+  ok(a.length === 2 && a.join('|') === b.join('|'),
+    'PASTEL attaches the Playground tile\'s own Storage refs: ' + a.join(' + '));
+  ok(/whiten: true/.test(padPastel.slice(0, padPastel.indexOf('},'))),
+    'PASTEL keeps the whiten pass, like the Playground tile');
 } catch (e) { ok(false, 'recipe extraction: ' + e.message); }
 
 let chromium;
@@ -115,7 +144,7 @@ const server = http.createServer((req, res) => {
       if (url.pathname === '/api/scratchpad/style') padStyle = b.style;
       if (url.pathname === '/api/scratchpad/generate') {
         const t = beats.find((x) => x.id === b.id);
-        const slot = b.style === 'dreamy' ? ((t.alt = t.alt || {}), (t.alt.dreamy = t.alt.dreamy || {})) : t;
+        const slot = b.style === 'watercolor' ? t : ((t.alt = t.alt || {}), (t.alt[b.style] = t.alt[b.style] || {}));
         slot.gen = { status: 'drawing', at: Date.now() };
       }
       if (url.pathname === '/api/scratchpad/remove') {
@@ -123,9 +152,10 @@ const server = http.createServer((req, res) => {
         // side goes (emptied + off); nothing anywhere else → the whole beat.
         const i = beats.findIndex((x) => x.id === b.id);
         const t = beats[i];
-        const other = b.style === 'dreamy' ? t : ((t.alt && t.alt.dreamy) || {});
-        if (other.url) {
-          const mine = b.style === 'dreamy' ? ((t.alt = t.alt || {}), (t.alt.dreamy = t.alt.dreamy || {})) : t;
+        const slot = (st) => (st === 'watercolor' ? t : ((t.alt && t.alt[st]) || {}));
+        const keeps = ['watercolor', 'dreamy', 'pastel'].some((st) => st !== b.style && slot(st).url);
+        if (keeps) {
+          const mine = b.style === 'watercolor' ? t : ((t.alt = t.alt || {}), (t.alt[b.style] = t.alt[b.style] || {}));
           ['url', 'src', 'gen', 'imageHistory', 'kind', 'poster', 'seconds', 'title', 'clipId']
             .forEach((k) => { delete mine[k]; });
           mine.off = true;
@@ -144,7 +174,7 @@ const server = http.createServer((req, res) => {
         const c = b.clip || {};
         const fields = { kind: 'clip', url: c.url, poster: c.poster, title: c.title };
         const beat = { id: 'b' + (beats.length + 1), color: null };
-        if (b.style === 'dreamy') beat.alt = { dreamy: fields }; else Object.assign(beat, fields);
+        if (b.style === 'watercolor') Object.assign(beat, fields); else beat.alt = { [b.style]: fields };
         beats.splice(Number.isInteger(b.at) ? b.at : beats.length, 0, beat);
       }
       json({ ok: true, beats, style: padStyle });
@@ -155,9 +185,9 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/api/scratchpad') return json({ beats, title: 'style test', style: padStyle, film: null, audios: [], uploads });
   if (url.pathname === '/px.png') { res.writeHead(200, { 'Content-Type': 'image/png' }); return res.end(PX); }
   if (url.pathname.startsWith('/api/story/thumb')) { res.writeHead(200, { 'Content-Type': 'image/png' }); return res.end(PX); }
-  // The shared three-way toggle: express.static serves both in production.
-  // Without the CSS the toggle renders as a 4px sliver; without the JS the page
-  // falls back to the old CYCLE, which would green-light the aim bug.
+  // express.static serves these in production; without the CSS the toggle
+  // renders as a 4px sliver, and without the JS the page falls back to the
+  // one-step floor — which would green-light a cycling toggle.
   if (url.pathname === '/tritoggle.css' || url.pathname === '/tritoggle.js') {
     res.writeHead(200, { 'Content-Type': url.pathname.endsWith('.css') ? 'text/css' : 'text/javascript' });
     return res.end(fs.readFileSync(path.join(PUB, url.pathname.slice(1))));
@@ -188,37 +218,62 @@ const server = http.createServer((req, res) => {
   await page.evaluate((id) => window.openPad(id), 'pad');
   await page.waitForSelector('#pad .beat');
 
-  // 1 — the account switcher's format, measured
+  // 1 — the SHARED three-way shell, measured
   const tog = await page.evaluate(() => {
     const t = document.getElementById('styletog');
-    const cs = getComputedStyle(t);
     const knob = getComputedStyle(t, '::after');
+    const words = [...document.querySelectorAll('.stylerow .sw')].map((b) => b.dataset.style);
     return {
-      a: t.getAttribute('data-a'), w: t.getBoundingClientRect().width,
-      h: t.getBoundingClientRect().height, radius: cs.borderRadius,
-      knobW: parseFloat(knob.width), knobT: knob.transform,
+      n: t.getAttribute('data-n'), i: t.getAttribute('data-i'),
+      cls: t.className, w: t.getBoundingClientRect().width,
+      h: t.getBoundingClientRect().height,
+      knobW: parseFloat(knob.width), knobT: knob.transform, knobTxt: knob.content,
+      words,
+      // the whole row, clear of the injected pill's 56px column
+      right: t.closest('.stylerow').getBoundingClientRect().right,
+      lastRight: document.querySelector('.stylerow .sw:last-child').getBoundingClientRect().right,
+      oneLine: [...document.querySelectorAll('.stylerow .sw')]
+        .every((b, _, all) => Math.abs(b.getBoundingClientRect().top - all[0].getBoundingClientRect().top) < 1),
       row: t.closest('.stylerow').getBoundingClientRect().top
         > document.getElementById('title').getBoundingClientRect().top,
     };
   });
-  ok(Math.abs(tog.w - 48) < 0.5 && Math.abs(tog.h - 26) < 0.5 && Math.abs(tog.knobW - 18) < 0.5,
-    'the toggle is the account switcher’s 48×26 track with the 18px knob');
-  ok(tog.a === '1' && (tog.knobT === 'none' || /matrix\(1, 0, 0, 1, 0,/.test(tog.knobT)),
-    'it opens on WATERCOLOR, knob at the near stop');
+  ok(/\btri\b/.test(tog.cls) && tog.w > 10 && Math.abs(tog.knobW - 18) < 0.5,
+    'the toggle is the shared .tri shell, laid out (18px knob) — the CSS really loaded');
+  ok(tog.words.join(',') === 'watercolor,dreamy,pastel',
+    'one word per style, in order: ' + tog.words.join(' · '));
+  ok(tog.n === '0' && tog.i === 'W' && (tog.knobT === 'none' || /matrix\(1, 0, 0, 1, 0,/.test(tog.knobT)),
+    'it opens on WATERCOLOR, knob at the near stop with its initial on it');
   ok(tog.row, 'the toggle sits on its own line under the title');
+  ok(tog.oneLine && tog.lastRight <= tog.right + 0.5,
+    'all three words fit ONE line inside the pill’s reserved column');
   ok(await page.$eval('#swwater', (el) => el.classList.contains('on')) &&
      !(await page.$eval('#swdreamy', (el) => el.classList.contains('on'))),
     'the lit word is the side the knob is on');
 
-  // 2 — flip to DREAMY: same beats, same words, per-style art
+  // 2 — flip to DREAMY: same beats, same words, per-style art.
+  // TAPPED AT THE MIDDLE STOP'S OWN COORDINATE, not at the element's centre:
+  // clicking the element is what makes a cycling toggle look aimed.
   ok((await page.$$('#pad .beat img')).length === 2, 'both beats show watercolor art before the flip');
-  await page.click('#styletog');
-  await page.waitForFunction(() => document.getElementById('styletog').getAttribute('data-a') === '2');
-  // The knob slides (transition .18s) — wait for it to LAND at the far stop.
-  const knobMoved = await page.waitForFunction(() =>
-    /matrix\(1, 0, 0, 1, 23,/.test(getComputedStyle(document.getElementById('styletog'), '::after').transform),
-  null, { timeout: 3000 }).then(() => true).catch(() => false);
-  ok(knobMoved, 'the knob actually moves — 23px to the far stop');
+  const tapStop = async (n) => {
+    const b = await page.$eval('#styletog', (el) => {
+      const r = el.getBoundingClientRect();
+      return { x: r.left, y: r.top + r.height / 2, w: r.width };
+    });
+    await page.mouse.click(b.x + (b.w / 3) * (n + 0.5), b.y);
+  };
+  await tapStop(1);
+  await page.waitForFunction(() => document.getElementById('styletog').getAttribute('data-n') === '1');
+  // The knob slides (transition .18s) — wait for it to LAND, don't read it
+  // the instant the attribute flips.
+  const knobMoved = await page.waitForFunction(() => {
+    const m = /matrix\(1, 0, 0, 1, ([\d.]+),/.exec(
+      getComputedStyle(document.getElementById('styletog'), '::after').transform);
+    return Boolean(m) && parseFloat(m[1]) > 5;
+  }, null, { timeout: 3000 }).then(() => true).catch(() => false);
+  ok(knobMoved, 'the knob actually moves to the middle stop');
+  ok(await page.$eval('#styletog', (el) => el.getAttribute('data-i')) === 'D',
+    'the knob wears the style’s initial');
   ok(posted.some(([p, b]) => p === '/api/scratchpad/style' && b.style === 'dreamy'),
     'the flip is saved with POST /style');
   ok((await page.$$('#pad .beat')).length === 2, 'the beats themselves stay — the toggle never touches the order');
@@ -227,6 +282,14 @@ const server = http.createServer((req, res) => {
   ok(arts.length === 1 && arts[0].includes('d2'),
     'a beat with dreamy art shows it; one without goes honestly blank');
   ok(await page.$eval('#swdreamy', (el) => el.classList.contains('on')), 'DREAMY is the lit word now');
+
+  // 2b — a tap on the stop she is ALREADY on does nothing (never a cycle)
+  const before2b = posted.filter(([p]) => p === '/api/scratchpad/style').length;
+  await tapStop(1);
+  await page.waitForTimeout(150);
+  ok(posted.filter(([p]) => p === '/api/scratchpad/style').length === before2b
+     && await page.$eval('#styletog', (el) => el.getAttribute('data-n')) === '1',
+    'tapping the stop it is already on changes nothing — no cycle');
 
   // 3 — the draw box under dreamy: no Sophie card, style on the wire
   await page.click('#pad .beat');   // b1 — blank under dreamy
@@ -294,7 +357,7 @@ const server = http.createServer((req, res) => {
   // beats should be added, but the Art should not"): back on watercolor the
   // beat is there and honestly blank.
   await page.click('#swwater');
-  await page.waitForFunction(() => document.getElementById('styletog').getAttribute('data-a') === '1');
+  await page.waitForFunction(() => document.getElementById('styletog').getAttribute('data-n') === '0');
   ok((await page.$$('#pad .beat')).length === 3, 'the placed beat stays in the order on watercolor');
   ok((await page.$$('#pad .fmark')).length === 0 &&
      (await page.$$eval('#pad .beat img', (els) => els.map((e) => e.src)))
@@ -324,7 +387,7 @@ const server = http.createServer((req, res) => {
     'its words survive — they belong to both sides');
 
   await page.click('#swdreamy');
-  await page.waitForFunction(() => document.getElementById('styletog').getAttribute('data-a') === '2');
+  await page.waitForFunction(() => document.getElementById('styletog').getAttribute('data-n') === '1');
   const dreamySrcs = await page.$$eval('#pad .beat img', (els) => els.map((e) => e.src));
   ok(dreamySrcs.some((s) => s.includes('d2')),
     'on the other side it is still there, with its own picture');
@@ -341,6 +404,53 @@ const server = http.createServer((req, res) => {
   await page.click('#delyes');
   await page.waitForFunction((n) => document.querySelectorAll('#pad .beat, #pad .chunk').length === n - 1, gone);
   ok(!beats.some((b) => b.id === 'b3'), 'that one leaves the pad entirely, as it always did');
+
+  // 7 — PASTEL is a real third side (2026-08-26, Sophie: "another style in
+  // the story room called pastel besides watercolor and dreamy"). b1 has
+  // watercolor art only, so under pastel it is honestly blank; a draw there
+  // sends style:'pastel' with no Sophie card; and its picture belongs to that
+  // side alone.
+  await page.click('#swpastel');
+  await page.waitForFunction(() => document.getElementById('styletog').getAttribute('data-n') === '2');
+  ok(await page.$eval('#styletog', (el) => el.getAttribute('data-i')) === 'P'
+     && await page.$eval('#swpastel', (el) => el.classList.contains('on')),
+    'PASTEL is the third stop, lit and initialled');
+  ok(posted.some(([p, b]) => p === '/api/scratchpad/style' && b.style === 'pastel'),
+    'the flip to pastel is saved with POST /style');
+  ok((await page.$$('#pad .beat img')).length === 0,
+    'no beat has pastel art yet — every one is honestly blank');
+  ok((await page.$$('#pad .beat')).length === (await page.$$('#pad .bcap')).length,
+    'the beats and their words are still there — the toggle never touches them');
+
+  await page.click('#pad .beat');
+  await page.waitForSelector('#beatpop:not([hidden])');
+  await page.click('#ardraw');
+  await page.waitForSelector('#drawbox:not([hidden])');
+  ok(await page.$eval('#dchar', (el) => el.hidden), 'the Sophie card is off the pastel draw box too');
+  await page.click('#dgo');
+  await page.waitForFunction(() => {
+    const st = document.getElementById('genstate');
+    return !st.hidden && /drawing/.test(st.textContent);
+  });
+  const pgen = posted.filter(([p]) => p === '/api/scratchpad/generate').pop();
+  ok(Boolean(pgen) && pgen[1].style === 'pastel' && pgen[1].character === false,
+    'Draw sends style:pastel and never the character card');
+  await page.mouse.click(5, 5);
+  await page.waitForFunction(() => document.getElementById('beatpop').hidden);
+
+  // and the delete box NAMES every side that keeps the beat — b2 now has art
+  // on watercolor AND dreamy, so from pastel it must name both.
+  beats.find((b) => b.id === 'b2').url = fix('http://127.0.0.1:0/px.png?w2');
+  await page.evaluate(() => window.load && window.load());
+  await page.waitForTimeout(200);
+  await page.click('#pad .beatwrap:nth-child(2) .beat');
+  await page.waitForSelector('#beatpop:not([hidden])');
+  await page.click('#delbtn');
+  await page.waitForSelector('#delask:not([hidden])');
+  const pline = await page.$eval('#delline', (el) => el.textContent);
+  ok(/from Pastel/.test(pline) && /Watercolor/.test(pline) && /Dreamy/.test(pline),
+    'the box names EVERY side that keeps it: ' + pline.trim());
+  await page.click('#delno');
 
   await browser.close();
   server.close();
