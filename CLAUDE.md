@@ -4819,6 +4819,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - Test: `node scripts/test-scratchpad-popup.js` (the real page, headless —
     the pencil measured beside the words, the empty tile measured against the
     same card holding a picture).
+  **AND THE TWO FOLDS ARE HERS — A RE-OPEN OF THE BEAT ALREADY ON SCREEN NEVER
+  TOUCHES THEM (2026-08-26, Sophie: "the caption keeps reopening after I close
+  it on a beat in story room").** `openBeat` set both folds to their ARRIVAL
+  defaults — caption open, prompt open only on a picture-less beat — on EVERY
+  call, guarded only by `typing`, i.e. only while a box actually held her
+  caret. So closing the caption and then doing anything that re-opens the same
+  beat sprang it straight back open. Four call sites do that, and **the first
+  takes no tap of hers at all**: the gen poll landing a finished draw
+  (`startGenPoll` → `openBeat`), Draw itself, picking a past picture out of the
+  lightbox, and a chunk link/unlink. The guard is `same` now — the defaults
+  belong to ARRIVING at a beat, not to every repaint of the one she is standing
+  on. Two things not to undo: the PROMPT fold carries over with the caption (one
+  rule for both, or a chat has to remember which of two identical-looking folds
+  is hers), and `promEditing` is reset beside `capEditing` on any non-typing
+  re-open, which also closes a latent bug where an open prompt BOX carried from
+  the last beat onto a fresh picture-less one. Test:
+  `node scripts/test-storyroom-caption-fold.js` (the real page headless, driving
+  the REAL poll — verified failing 3 pre-fix).
   **THE DRAW ROW: THE STAR, AND QUALITY OPENS ON LOW (2026-08-26, Sophie:
   "can you make the draw button the stars logo we use for generate and can you
   change the default to low instead of medium and can you make the three-way
@@ -4991,6 +5009,25 @@ before working on that module. Nothing was deleted — the moved text is verbati
     one thing on screen says what is being placed. It outlives `pending` on
     purpose: the document-level tap cancels placing, and without the band
     there would be no way back to the picture but the Playground.
+  - **THE MATCH CARD RIDES ABOVE THE BAND (2026-08-26, Sophie: "it does some
+    sort of a check to match it to the right beat and then asks me to confirm
+    or choose a different one").** The moment she arrives holding a picture,
+    the room asks `GET /api/scratchpad/send-match?q=<the run's typed prompt>`
+    — FREE, one collection read, no model call — which ranks every beat on
+    the shelf against the prompt's words (`send-match.js`, the one tested
+    matcher: ≥3 shared stemmed roots or a wholly-contained tiny caption;
+    lands/landing/landed fold to one root; an exact copy of a beat's own
+    drawing prompt wins outright; capped at 4, recency breaks ties). The card
+    proposes them best first — story name, the beat's words, its face —
+    and **nothing places without her tap**: a row is the confirm (the same
+    `POST /image` every placement takes, aimed cross-pad by naming the pad,
+    with NO style so the side comes from the run's own record), the other
+    rows are "a different one", and *Pick by hand* (or ending the trip) is
+    the ordinary flow untouched. A confirmed match opens that story ON that
+    beat's popup — confirmation by sight — with the way-back band intact. A
+    Panels SHEET skips the check (one beat is the wrong unit for a whole
+    page of cells), and no match means no card, silently. Test:
+    `node scripts/test-send-match.js`.
   - **AND THE ENDED BAND IS THE WAY BACK (2026-08-26, Sophie: "when I go to
     put a picture into the story room there's no way to get back to the
     playground" — she was right, and the cause is that the walk is a

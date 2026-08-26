@@ -665,6 +665,44 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   overflow:hidden; background:none; opacity:.4; cursor:pointer;}
 #dchar.on{opacity:1; border-color:var(--ink);}
 #dchar img{width:100%; height:100%; object-fit:cover; display:block;}
+/* CHARACTER REFERENCES (2026-08-26, Sophie: "attach one or more character
+   references … through there I pick one or multiple of the characters that
+   are for the story — two taps to add a character, and there's only one
+   button not multiple"). ONE button on the draw row opens the story's cast
+   in pick mode; the count on its corner is the disclosure that references
+   are riding the next draw. */
+#dchars{width:34px; height:34px; flex:none; position:relative; padding:0;
+  border:1.5px solid var(--line); border-radius:6px; background:none;
+  color:var(--ink); opacity:.4; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;}
+#dchars.on{opacity:1; border-color:var(--ink);}
+#dchars svg{width:18px; height:18px;}
+#dcharsn{position:absolute; top:-7px; right:-7px; min-width:15px; height:15px;
+  line-height:15px; border-radius:6px; background:var(--ink); color:var(--paper);
+  font-family:-apple-system,sans-serif; font-size:10px; font-weight:600; padding:0 3px;}
+/* The Characters sheet: one row per card — the picture, the NAME a prompt
+   calls them by (an input, hers to fill; "Name" is a field name, not
+   pre-written text), and the pick check or the remove ✕ depending on which
+   door she came in. The check is a rounded square, never a circle. */
+.charrow{display:flex; align-items:center; gap:12px; padding:10px 0;
+  border-bottom:1px solid var(--line); cursor:default;}
+.charrow img{width:56px; height:56px; object-fit:cover; border-radius:6px;
+  border:1.5px solid var(--line); flex:none;}
+.charrow.picked img{border-color:var(--ink);}
+.charrow .cname{flex:1; min-width:0; font-family:'EBGaramond',Georgia,serif;
+  font-size:17px; color:var(--ink); background:none; border:none;
+  border-bottom:1px solid var(--line); border-radius:0; padding:6px 2px;}
+.charrow .cpick{width:26px; height:26px; flex:none; padding:0; cursor:pointer;
+  border:1.5px solid var(--line); border-radius:6px; background:none; color:var(--paper);
+  display:flex; align-items:center; justify-content:center;}
+.charrow.picked .cpick{background:var(--ink); border-color:var(--ink);}
+.charrow .cpick svg{width:15px; height:15px;}
+.charrow .cdel{width:26px; height:26px; flex:none; padding:0; cursor:pointer;
+  border:none; background:none; color:var(--ink2);
+  display:flex; align-items:center; justify-content:center;}
+.charrow .cdel svg{width:16px; height:16px;}
+#charsline{font-style:italic; color:var(--ink2); font-size:.9em; margin-top:1em;}
+#charlist{padding-bottom:24px;}
 /* QUALITY IS THE THREE-WAY TOGGLE (2026-08-26, Sophie: "can you make the
    three-way toggle for the quality instead of the drop-down"). Both copies —
    the card's own draw and the draw-them-all confirm — are `.tri` from
@@ -840,6 +878,31 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 #sendband .sw{flex:1; min-width:0; font-size:13px; line-height:1.3;}
 #senddrop{flex:none; width:30px; height:30px; border-radius:6px; border:1px solid rgba(250,247,242,.35);
   background:none; color:var(--paper); font-size:15px; line-height:1; padding:0;}
+/* THE MATCH CARD (2026-08-26, Sophie: "it does some sort of a check to match
+   it to the right beat and then asks me to confirm or choose a different
+   one"). The room's guess at where the picture she is holding goes: the
+   candidate beats whose WORDS match the run's prompt, best first, riding
+   just above the band. A row's tap IS the confirm; Pick by hand (or ending
+   the trip) drops to the ordinary flow unchanged. Same fixed column as the
+   band, same stand-down while a beat popup is open. */
+#matchcard{position:fixed; left:12px; right:12px; bottom:calc(70px + env(safe-area-inset-bottom));
+  z-index:45; background:var(--barbg); color:var(--ink); border:1px solid var(--line);
+  border-radius:6px; padding:6px 8px; max-width:520px; margin:0 auto;
+  box-shadow:0 6px 20px rgba(20,18,16,.18); max-height:46vh; overflow-y:auto;}
+#matchcard .mhead{font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:10px;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--ink2); margin:4px 2px 2px;}
+.mrow{display:flex; align-items:center; gap:10px; width:100%; background:none; border:0;
+  border-top:1px solid var(--line); padding:8px 2px; font:inherit; color:inherit; text-align:left;}
+#matchrows .mrow:first-of-type{border-top:0;}
+.mrow img{flex:none; width:36px; height:36px; object-fit:cover; background:var(--paper);
+  border:1px solid var(--line); border-radius:4px;}
+.mrow .mtx{flex:1; min-width:0;}
+.mrow .mstory{display:block; font-family:-apple-system,'Helvetica Neue',sans-serif;
+  font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--gold);}
+.mrow .mwords{display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; font-size:14px; line-height:1.35;}
+#matchhand{display:block; margin:2px 0 4px auto; background:none; border:0; padding:4px 2px;
+  font:inherit; font-size:12px; color:var(--ink2); text-decoration:underline; text-underline-offset:2px;}
 #filmplay{position:fixed; inset:0; z-index:70; display:flex; align-items:center; justify-content:center;
   background:#000; padding:0;}
 #filmplay video{max-width:100vw; max-height:100vh; background:#000;}
@@ -889,6 +952,11 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
     <button class="iconbtn" id="aboutbtn" hidden aria-label="About this story — what you said, and every recording of it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 13a2 2 0 0 0 2-2V7a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0V4a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0v-4a2 2 0 0 1 2-2"/></svg></button>
     <button class="iconbtn" id="playbtn" hidden aria-label="Watch the film"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4.5v15l13-7.5z"/></svg></button>
     <button class="iconbtn" id="drawallbtn" hidden aria-label="Draw every beat that has words but no picture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg></button>
+    <!-- THE STORY'S CAST (2026-08-26, Sophie: "the characters could exist at
+         the top of the story"): character reference cards, each with the
+         name a drawing prompt calls them by. Managed here; the draw row's
+         one button picks from this same list. -->
+    <button class="iconbtn" id="charsbtn" aria-label="Characters — reference cards a drawing can use"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/></svg></button>
     <button class="iconbtn" id="addbtn" aria-label="Add an empty beat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
     <button class="iconbtn" id="inboxbtn" aria-label="Hearted in the Playground"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
   </div>
@@ -976,6 +1044,30 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   </div>
 </div>
 
+<!-- CHARACTERS — the story's cast of reference cards (2026-08-26, Sophie:
+     "attach one or more character references … the characters could exist
+     at the top of the story and then there could be like an add character
+     card button and then through there I pick one or multiple of the
+     characters that are for the story so it's two taps to add a character
+     instead of one, and there's only one button not multiple"). Managed
+     from the icon row at the top of the story; the draw row's ONE button
+     opens this same sheet in PICK mode, where tapping a card toggles it
+     into the next draw. The bytes ride the Dump's upload-file route like
+     every photo off her phone — never a second upload path. -->
+<div class="sheet" id="charsheet" hidden>
+  <div class="wrap">
+    <div class="sheethead">
+      <button class="iconbtn" id="charsclose" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+      <div class="no">Characters</div>
+      <button class="iconbtn" id="charsaddbtn" aria-label="Add a character card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
+    </div>
+    <div id="charsline" hidden></div>
+    <div id="charlist"></div>
+    <div class="state" id="charsempty" hidden>No characters yet — the + adds a card, and its name is what a drawing prompt calls them.</div>
+  </div>
+</div>
+<input type="file" id="charfile" accept="image/*" hidden>
+
 <!-- WHAT THE BUTTONS DO. Every row's glyph is CLONED from the real control
      at open time (mkHelp), so this list can never show a button the page no
      longer has, or an old drawing of one that changed. -->
@@ -1036,6 +1128,7 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
       <div id="promhint" hidden>empty — this beat draws from its caption</div>
       <div class="drawrow">
         <button id="dchar" class="on" aria-label="Draw Sophie from her reference"><img src="/scratchpad-sophie.png" alt="Sophie"></button>
+        <button id="dchars" aria-label="Character references for this drawing"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/></svg><span id="dcharsn" hidden></span></button>
         <button id="dq" class="tri" data-n="0" data-i="L" aria-label="Quality — low"></button>
         <button id="dgo" aria-label="Draw it">__STAR__</button>
       </div>
@@ -1081,6 +1174,11 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   </div>
 </div>
 <div id="filmplay" hidden><video id="filmvid" controls playsinline></video></div>
+<div id="matchcard" hidden>
+  <div class="mhead">Looks like it goes here &#8212; tap to confirm</div>
+  <div id="matchrows"></div>
+  <button id="matchhand">Pick by hand</button>
+</div>
 <button id="sendband" hidden>
   <img id="sendthumb" alt="">
   <span class="sw" id="sendword"></span>
@@ -1104,7 +1202,9 @@ function api(p,opts){
        stopping a render changes nothing about the story, and marking it dirty
        would make the next play button re-render a film that was already
        fresh. */
-    if(p.indexOf('/film')!==0&&p.indexOf('/pads')!==0&&p!=='/tts'&&p!=='/style'&&p!=='/upload') dirtySinceFilm=true;
+    /* `/character*` doesn't stale the film either: the cast list is not on
+       the timeline — a DRAW that uses one is, and /generate marks it. */
+    if(p.indexOf('/film')!==0&&p.indexOf('/pads')!==0&&p.indexOf('/character')!==0&&p!=='/tts'&&p!=='/style'&&p!=='/upload') dirtySinceFilm=true;
   } else if(p.indexOf('/pads')!==0){
     p+=(p.indexOf('?')>=0?'&':'?')+'pad='+encodeURIComponent(padId);
   }
@@ -1728,6 +1828,7 @@ var HELP=[
   {sel:'#aboutbtn', nm:'About this story', what:'What you said this story is, and every recording of it in one place — your own telling, your narration, the memos it came from and the episodes cut out of it.'},
   {sel:'#playbtn', nm:'Play the film', what:'Watches your film. If the story changed since the last one it makes a new film first, then plays it. While it is making, this button turns into an ✕ that stops it — nothing is lost and it costs nothing to start again.'},
   {sel:'#drawallbtn', nm:'Draw them all', what:'Draws every beat that has words but no picture yet. It asks first and says how many.'},
+  {sel:'#charsbtn', nm:'Characters', what:'The story’s cast — reference cards with a name each, so the same face comes back picture after picture. Add a card with the +, and the name is what a drawing prompt calls them.'},
   {sel:'#addbtn', nm:'Add a beat', what:'Puts an empty beat at the end.'},
   {sel:'#inboxbtn', nm:'Your pictures and clips', what:'Everything you hearted in the Playground, plus the clip shelf and photos off your phone — tap one to put it on the pad.'},
   {sel:null, nm:'Watercolor / Dreamy', what:'Which set of pictures the story is showing. The words, colours, voice and order are shared; only the art changes — and the film is made from the side you are looking at.'},
@@ -1735,6 +1836,7 @@ var HELP=[
   {sel:'#ardraw', nm:'Draw it', what:'Draws this beat here, from its words.'},
   {sel:'#arplay', nm:'Playground', what:'Opens the Playground to make its art there instead.'},
   {sel:'#arinbox', nm:'From the inbox', what:'Swaps in a picture or clip you already have.'},
+  {sel:'#dchars', nm:'Character references', what:'Under Drawing prompt: pick one or more of the story’s characters to ride along with this drawing. The count on the button says how many are coming.'},
   {sel:'#dgo', nm:'Draw', what:'Under Drawing prompt: draws it, at the quality on the toggle beside it. Low is where it starts.'},
   {sel:'#speak', nm:'Hear it', what:'Reads the beat aloud in your voice.'},
   {sel:'#micbtn', nm:'Record it', what:'Records you reading it. Your own take always wins over the read-aloud, and every take is kept.'},
@@ -1933,6 +2035,10 @@ function load(){
     beats=d.beats||[]; padTitle=d.title||''; film=d.film||null;
     padStyle=STYLES.some(function(s){return s.key===d.style;})?d.style:'watercolor'; renderStyle();
     uploads=d.uploads||[];
+    /* The cast is per STORY, and the picked set does not survive a story
+       switch (or a reload) — a reference she picked last time must never
+       silently ride a draw she is making now. */
+    padChars=d.characters||[]; pickedChars=[]; charReturn=null; paintDchars();
     audios=d.audios||[];
     padUpdated=d.updatedAt||0; dirtySinceFilm=false;
     padDesc=d.description||''; padDescAudio=d.descriptionAudio||null;
@@ -2683,6 +2789,9 @@ function paintSend(){
     : ((sendBack.placed?'Placed · back':'Back')+' to '+sendHomeName());
   // The ✕ means "not now" while she holds the picture and "stay here" after.
   document.getElementById('senddrop').setAttribute('aria-label', sendIt?'Not now':'Stay here');
+  // The match card rides the same moments the band does — every caller of
+  // paintSend (popup open/close, shelf steps, the trip ending) settles both.
+  paintMatch();
 }
 function armSend(){
   if(!sendIt) return;
@@ -2706,6 +2815,87 @@ document.getElementById('senddrop').onclick=function(ev){
   }
   sendBack=null; paintSend();   // she is staying in the room
 };
+/* ── THE MATCH CARD (2026-08-26, Sophie: "it does some sort of a check to
+   match it to the right beat and then asks me to confirm or choose a
+   different one") ──
+   The moment she walks in holding a picture, the room asks the server which
+   beats the run's own PROMPT reads like (GET /send-match — free, one
+   collection read, no model call; send-match.js carries the rules and their
+   test). The card proposes them best first, and NOTHING places without her
+   tap: a row is the confirm, the other rows are "a different one", and Pick
+   by hand (or just using the shelf as ever) is the old flow untouched. A
+   sheet from Panels skips the check — a whole page of cells matched to one
+   beat would be a guess about the wrong unit. */
+var matchCands=null;
+function paintMatch(){
+  var el=document.getElementById('matchcard');
+  if(!el) return;
+  el.hidden=!(sendIt&&matchCands&&matchCands.length&&document.getElementById('beatpop').hidden);
+}
+function loadMatch(){
+  if(!sendIt||!sendIt.prompt) return;
+  if(sendIt.from==='panels'&&sendIt.cell==='sheet') return;
+  var it=sendIt;
+  api('/send-match?q='+encodeURIComponent(it.prompt.slice(0,2000)))
+    .then(function(r){return r.json()})
+    .then(function(d){
+      // She may have placed it, dropped it, or walked on while this read ran.
+      if(sendIt!==it) return;
+      matchCands=(d.candidates||[]);
+      var rows=document.getElementById('matchrows'); rows.innerHTML='';
+      matchCands.forEach(function(c,i){
+        var b=document.createElement('button'); b.className='mrow';
+        var im=document.createElement('img'); im.alt='';
+        // An empty square is information: the matched beat has no picture
+        // yet, which is usually exactly the one she drew this for.
+        if(c.art) im.src=thumbOf(c.art);
+        b.appendChild(im);
+        var tx=document.createElement('span'); tx.className='mtx';
+        var st=document.createElement('span'); st.className='mstory';
+        st.textContent=(c.padTitle||'Untitled')+(i===0?' · best match':'');
+        var wd=document.createElement('span'); wd.className='mwords';
+        wd.textContent=c.words||'';
+        tx.appendChild(st); tx.appendChild(wd); b.appendChild(tx);
+        b.onclick=function(ev){ ev.stopPropagation(); placeMatch(c); };
+        rows.appendChild(b);
+      });
+      paintMatch();
+    })
+    .catch(function(){});   // no guess is a normal answer — the flow stands
+}
+function placeMatch(c){
+  var it=sendIt; if(!it) return;
+  matchCands=null;
+  // The same one write every placement takes (POST /image → placeOnBeat),
+  // aimed across pads by naming the pad outright. NO style on purpose: she
+  // is not standing in that story, so the side comes from the picture's own
+  // run record (sideFromEvidence — the chat-seeding rule).
+  var body={pad:c.pad, id:c.beat, url:it.url};
+  if(it.runId!==undefined) body.src={runId:it.runId,i:it.i,prompt:it.prompt,model:it.model,engine:it.engine,quality:it.quality};
+  api('/image',{method:'POST',body:JSON.stringify(body)})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(d&&d.error) throw new Error(d.error);
+      if(pending===it){ pending=null; render(); }
+      endSend(true);
+      // Confirmation by sight: open that story ON the beat, picture landed —
+      // the ?pad=&beat= return trip's own move. The way-back band stays.
+      openAfterLoad=c.beat;
+      openPad(c.pad);
+    })
+    .catch(function(){
+      // A beat deleted since the match must not eat the picture she holds:
+      // the card goes away and she still has the whole ordinary flow.
+      matchCands=null; paintMatch();
+    });
+}
+document.getElementById('matchhand').onclick=function(ev){
+  ev.stopPropagation();
+  matchCands=null; paintMatch();
+};
+// A tap on the card's own frame must not fall through to the document-level
+// cancel and drop an armed placing.
+document.getElementById('matchcard').onclick=function(ev){ ev.stopPropagation(); };
 /* The RUN is re-read here rather than the url being sent in the link: one id
    carries the whole provenance with it (the prompt, the model, the quality),
    which is what a beat's past-pictures row and a picked-back version are
@@ -2721,7 +2911,7 @@ function loadSend(runId,i){
       if(!url){ sendBack={url:null, from:'playground'}; paintSend(); return; }
       sendIt={url:url, runId:runId, i:i, from:'playground', prompt:d.prompt||null,
               model:d.model||null, engine:d.engine||null, quality:d.quality||null};
-      paintSend();
+      paintSend(); loadMatch();
     })
     .catch(function(){ sendBack={url:null, from:'playground'}; paintSend(); });
 }
@@ -2742,7 +2932,7 @@ function loadSendPanel(runId,cell){
       sendIt={url:url, runId:runId, cell:cell, from:'panels',
               prompt:(im&&im.prompt)||(d.panels||[]).join('\n')||null,
               model:'gpt-image-2', quality:d.quality||null};
-      paintSend();
+      paintSend(); loadMatch();
     })
     .catch(function(){ sendBack={url:null, from:'panels'}; paintSend(); });
 }
@@ -2794,9 +2984,10 @@ function openBeat(b){
   // The caption opens as WORDS with a pencil beside them; the box behind it
   // carries the same text so drawPrompt() and saveNote() read it either way.
   if(!typing){
-    capEditing=false;
+    capEditing=false; promEditing=false;
     resetBig();
     document.getElementById('pnote').value=b.text||'';
+    capBase=document.getElementById('pnote').value;
   }
   // The words are painted from the BOX, which mid-typing is ahead of the
   // saved beat — what she reads must be what she just wrote.
@@ -2846,10 +3037,19 @@ function openBeat(b){
   // there was nothing on screen to tell "this beat has its own prompt" from
   // "you are about to draw the caption", and Draw sent the caption). Empty
   // means FOLLOW THE CAPTION, which the hint line says out loud.
-  if(!typing)document.getElementById('dprompt').value=String(b.prompt||'');
-  // Same rule for the folds: mid-typing keeps whichever boxes she has open
-  // (setBoxes(…,false) would also kill promEditing under her caret).
-  if(typing){
+  if(!typing){
+    document.getElementById('dprompt').value=String(b.prompt||'');
+    promBase=document.getElementById('dprompt').value;
+  }
+  // THE FOLDS ARE HERS, AND A RE-OPEN OF THE BEAT ALREADY ON SCREEN NEVER
+  // TOUCHES THEM (2026-08-26, Sophie: "the caption keeps reopening after I
+  // close it on a beat"). This used to be guarded by `typing` alone, i.e.
+  // only while a box had her caret — so closing the caption and then doing
+  // anything that re-opens the same beat sprang it back open: the gen poll
+  // landing a finished draw (no tap of hers at all), Draw itself, picking a
+  // past version, a chunk link. The defaults belong to ARRIVING at a beat,
+  // not to every repaint of the one she is standing on.
+  if(same){
     setBoxes(document.getElementById('caplab').getAttribute('aria-expanded')==='true',
              document.getElementById('promlab').getAttribute('aria-expanded')==='true');
   } else {
@@ -2879,8 +3079,11 @@ function stopPopVid(){
 }
 function chunkAction(pathname){
   var b=popBeat; if(!b)return;
-  saveNote();
-  api(pathname,{method:'POST',body:JSON.stringify({id:b.id})})
+  // The save lands first — same reason as Draw: the response's snapshot
+  // re-opens this beat and must not predate what she just wrote.
+  saveNote().catch(function(){}).then(function(){
+    return api(pathname,{method:'POST',body:JSON.stringify({id:b.id})});
+  })
     .then(function(r){return r.json()})
     .then(function(d){
       if(d.beats){ beats=d.beats; render(); }
@@ -2918,6 +3121,7 @@ function openDraw(ev, edit){
     // stays fixed: drawPrompt() reads the caption box, never the last
     // SAVED text).
     document.getElementById('dprompt').value=String(popBeat.prompt||'');
+    promBase=document.getElementById('dprompt').value;   // the page wrote this
     promEditing=Boolean(edit);
     paintProm();
     saveNote();
@@ -2948,6 +3152,138 @@ document.getElementById('dchar').onclick=function(ev){
   ev.stopPropagation();
   this.classList.toggle('on');
 };
+/* ── CHARACTER REFERENCES (2026-08-26, Sophie: "attach one or more
+   character references … the characters could exist at the top of the story
+   and then there could be like an add character card button and then through
+   there I pick one or multiple of the characters that are for the story so
+   it's two taps to add a character instead of one, and there's only one
+   button not multiple"). The cast lives on the pad doc; ONE sheet serves
+   both doors — the icon row opens it to MANAGE (name, remove), the draw
+   row's one button opens it to PICK (tap a card, it rides the next draw).
+   The picked set lives for this page visit only — the Playground's own
+   never-persist rule: a reference she picked last week must never silently
+   ride today's draw. The count on the button is the disclosure. */
+var padChars=[], pickedChars=[], charPickMode=false, charReturn=null;
+function paintDchars(){
+  var n=pickedChars.length;
+  document.getElementById('dchars').classList.toggle('on',n>0);
+  var badge=document.getElementById('dcharsn');
+  badge.hidden=!n; badge.textContent=n;
+}
+function renderChars(){
+  var list=document.getElementById('charlist'); list.innerHTML='';
+  document.getElementById('charsempty').hidden=padChars.length>0;
+  padChars.forEach(function(c){
+    var row=document.createElement('div');
+    row.className='charrow'+(charPickMode&&pickedChars.indexOf(c.id)>=0?' picked':'');
+    var img=document.createElement('img'); img.src=c.url; img.alt=c.name||'';
+    row.appendChild(img);
+    var name=document.createElement('input');
+    name.className='cname'; name.type='text'; name.placeholder='Name';
+    name.value=c.name||''; name.setAttribute('aria-label','Name');
+    name.onclick=function(ev){ev.stopPropagation();};
+    name.onchange=function(){
+      var v=this.value.trim(); c.name=v;
+      api('/character',{method:'POST',body:JSON.stringify({id:c.id,name:v})})
+        .then(function(r){return r.json()})
+        .then(function(d){ if(d.characters)padChars=d.characters; })
+        .catch(function(){});
+    };
+    row.appendChild(name);
+    if(charPickMode){
+      var pk=document.createElement('button');
+      pk.className='cpick'; pk.type='button';
+      pk.setAttribute('aria-label','Use this character');
+      pk.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+      row.appendChild(pk);
+      /* The whole row is the pick target — the name input already stops its
+         own taps, so typing never toggles. */
+      row.onclick=function(ev){
+        ev.stopPropagation();
+        var i=pickedChars.indexOf(c.id);
+        if(i>=0)pickedChars.splice(i,1); else pickedChars.push(c.id);
+        renderChars(); paintDchars();
+      };
+      row.style.cursor='pointer';
+    } else {
+      var del=document.createElement('button');
+      del.className='cdel'; del.type='button';
+      del.setAttribute('aria-label','Remove this character');
+      del.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+      del.onclick=function(ev){
+        ev.stopPropagation();
+        api('/character/remove',{method:'POST',body:JSON.stringify({id:c.id})})
+          .then(function(r){return r.json()})
+          .then(function(d){
+            if(d.characters){
+              padChars=d.characters;
+              pickedChars=pickedChars.filter(function(x){return x!==c.id;});
+              renderChars(); paintDchars();
+            }
+          }).catch(function(){});
+      };
+      row.appendChild(del);
+    }
+    list.appendChild(row);
+  });
+}
+function openCharSheet(pick){
+  charPickMode=Boolean(pick); renderChars();
+  var sh=document.getElementById('charsheet');
+  sh.hidden=false; sh.scrollTop=0; lock(true);
+}
+document.getElementById('charsbtn').onclick=function(ev){
+  ev.stopPropagation(); openCharSheet(false);
+};
+document.getElementById('charsclose').onclick=function(ev){
+  ev.stopPropagation();
+  document.getElementById('charsheet').hidden=true;
+  /* Came from the draw row — back to the beat she was on, like the inbox. */
+  if(charReturn){ var b=charReturn; charReturn=null; openBeat(b); return; }
+  lock(false);
+};
+document.getElementById('dchars').onclick=function(ev){
+  ev.stopPropagation();
+  if(!popBeat)return;
+  saveNote(); savePrompt();
+  charReturn=popBeat;
+  document.getElementById('beatpop').hidden=true; popBeat=null;
+  openCharSheet(true);
+};
+/* Adding a card: the system picker, the Dump's upload-file for the bytes
+   (HEIC→JPEG, md5 dedupe — never a second upload path), then the url is
+   filed on the story and the new card's empty Name box takes the focus —
+   the name is what a drawing prompt calls them, so it is the one thing
+   left to fill. */
+document.getElementById('charsaddbtn').onclick=function(ev){
+  ev.stopPropagation(); document.getElementById('charfile').click();
+};
+document.getElementById('charfile').onclick=function(ev){ ev.stopPropagation(); };
+document.getElementById('charfile').onchange=function(){
+  var f=this.files&&this.files[0]; this.value='';
+  if(!f)return;
+  var line=document.getElementById('charsline');
+  line.hidden=false; line.textContent='adding…';
+  var q='?bundle='+encodeURIComponent(('Story Room · '+(padTitle||'Untitled')+' · characters').slice(0,80))
+    +'&filename='+encodeURIComponent(f.name||'character');
+  var headers={'content-type':f.type||'application/octet-stream'};
+  if(TOKEN)headers['x-studio-token']=TOKEN;
+  fetch('/api/drop/upload-file'+q,{method:'POST',headers:headers,body:f})
+    .then(function(r){return r.json()})
+    .then(function(r){
+      if(!r||!r.item||!r.item.url)throw new Error((r&&r.error)||'upload failed');
+      return api('/character',{method:'POST',body:JSON.stringify({url:r.item.url})})
+        .then(function(r2){return r2.json()});
+    })
+    .then(function(d){
+      if(d.error)throw new Error(d.error);
+      if(d.characters)padChars=d.characters;
+      line.hidden=true; renderChars();
+      var names=document.getElementById('charlist').querySelectorAll('.cname');
+      if(names.length)names[names.length-1].focus();
+    })
+    .catch(function(){ line.textContent='that one didn’t make it — try again'; });
+};
 wireQ('dq');
 document.getElementById('dgo').onclick=function(ev){
   ev.stopPropagation();
@@ -2955,13 +3291,22 @@ document.getElementById('dgo').onclick=function(ev){
   var prompt=drawPrompt();
   if(!prompt){ document.getElementById('dprompt').focus(); return; }
   var btn=this; btn.disabled=true;
-  saveNote(); savePrompt();
-  api('/generate',{method:'POST',body:JSON.stringify({
-    id:b.id, prompt:prompt,
-    quality:qVal('dq'),
-    style:padStyle,
-    character:padStyle==='watercolor'&&document.getElementById('dchar').classList.contains('on'),
-  })}).then(function(r){return r.json()}).then(function(d){
+  /* The saves land BEFORE /generate is asked, so the beats snapshot it
+     answers with can never predate them. Fired loose, /generate could read
+     the pad before the /prompt save committed, and the re-open below then
+     reset the box to the OLD prompt — which the next blur/close saved back
+     over the one she had just drawn with (2026-08-26, Sophie: "it reverted
+     back to an old one"). The baseline in savePrompt is the second half of
+     that fix. */
+  saveNote().catch(function(){}).then(savePrompt).catch(function(){}).then(function(){
+    return api('/generate',{method:'POST',body:JSON.stringify({
+      id:b.id, prompt:prompt,
+      quality:qVal('dq'),
+      style:padStyle,
+      character:padStyle==='watercolor'&&document.getElementById('dchar').classList.contains('on'),
+      characters:pickedChars,
+    })});
+  }).then(function(r){return r.json()}).then(function(d){
     btn.disabled=false;
     if(d.error){ alert(d.error); return; }
     if(d.beats){ beats=d.beats; render(); }
@@ -3189,15 +3534,23 @@ document.getElementById('pnote').onclick=function(ev){ev.stopPropagation();};
 /* The draw prompt saves ITSELF — on leaving the box, closing the popup, or
    drawing. No save button (Sophie's rule). The server clears a prompt that
    just equals the words, so an untouched box keeps following the note. */
+/* THE BASELINE — the last value the PAGE itself put in each box (openBeat's
+   reset, or a landed save). A save may only ever send words SHE changed from
+   it: a box repainted from a stale beats snapshot used to be saved back on
+   the next blur/close, silently reverting a prompt she had already drawn
+   with (2026-08-26). Compared by VALUE, never by input events, because iOS
+   dictation can fill a box without firing input — the liveInput lesson. */
+var capBase='', promBase='';
 function savePrompt(){
   if(!popBeat)return Promise.resolve();
   var box=document.getElementById('drawbox');
   if(box.hidden)return Promise.resolve();   // never seeded — nothing she said
   var t=document.getElementById('dprompt').value;
-  if(t.trim()===promptOf(popBeat))return Promise.resolve();
+  if(t===promBase)return Promise.resolve(); // the page wrote this, not her
+  if(t.trim()===promptOf(popBeat)){ promBase=t; return Promise.resolve(); }
   return api('/prompt',{method:'POST',body:JSON.stringify({id:popBeat.id,prompt:t})})
     .then(function(r){return r.json()})
-    .then(function(d){if(d.beats){
+    .then(function(d){promBase=t; if(d.beats){
       var keep=popBeat; beats=d.beats; popBeat=beats.find(function(x){return x.id===keep.id;})||keep;
     }});
 }
@@ -3229,11 +3582,12 @@ document.getElementById('dprompt').addEventListener('input',paintPromptHint);
 function saveNote(){
   if(!popBeat)return Promise.resolve();
   var t=document.getElementById('pnote').value;
-  if(t===(popBeat.text||''))return Promise.resolve();
+  if(t===capBase)return Promise.resolve();  // the page wrote this, not her
+  if(t===(popBeat.text||'')){ capBase=t; return Promise.resolve(); }
   popBeat.text=t;
   return api('/text',{method:'POST',body:JSON.stringify({id:popBeat.id,text:t})})
     .then(function(r){return r.json()})
-    .then(function(d){if(d.beats){
+    .then(function(d){capBase=t; if(d.beats){
       var keep=popBeat; beats=d.beats; popBeat=beats.find(function(x){return x.id===keep.id;})||keep;
     }});
 }
