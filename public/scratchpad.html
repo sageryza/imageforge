@@ -3,7 +3,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Story Room</title>
 <!-- THE house three-way toggle, one shell for every copy of it (the style
-     toggle on a story). Linked, never copied — see tritoggle.css's header. -->
+     toggle on a story, the draw quality in a beat's card). Linked, never
+     copied — see tritoggle.css's header; /tritoggle.js is the aim rule, a
+     tap landing on the stop under the thumb rather than cycling. -->
 <link rel="stylesheet" href="/tritoggle.css">
 <script src="/tritoggle.js"></script>
 <style>
@@ -608,11 +610,25 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   overflow:hidden; background:none; opacity:.4; cursor:pointer;}
 #dchar.on{opacity:1; border-color:var(--ink);}
 #dchar img{width:100%; height:100%; object-fit:cover; display:block;}
-#dq{font-family:-apple-system,sans-serif; font-size:16px; border:1px solid var(--line);
-  border-radius:6px; background:var(--paper); color:var(--ink); padding:6px 8px;}
-#dq option{color:#26221c;}
-#dgo{margin-left:auto; font-family:'EBGaramond',Georgia,serif; font-size:16px; background:var(--ink); color:var(--paper);
-  border:none; border-radius:6px; padding:8px 18px; cursor:pointer;}
+/* QUALITY IS THE THREE-WAY TOGGLE (2026-08-26, Sophie: "can you make the
+   three-way toggle for the quality instead of the drop-down"). Both copies —
+   the card's own draw and the draw-them-all confirm — are `.tri` from
+   /tritoggle.css, so the geometry is the shell's and this page sets only its
+   COLOUR and its size. Paper with an ink line and a dark knob, the
+   Playground's own family (Aug 2026, "they should have black outlines"): the
+   toggle then sits with #dchar's outlined box rather than being the one solid
+   slab on the row, and what is lit is the stop she is on. 78/26 is her own
+   wider track, and it lands at 34px tall — exactly #dchar's height. */
+#dq,#bq{--tri-fill:var(--paper); --tri-line:var(--ink); --tri-knob:var(--ink);
+  --tri-ink:var(--paper); --tri-w:78px; --tri-k:26px;}
+#bq{align-self:flex-start;}
+/* Draw wears the stars (2026-08-26, Sophie: "can you make the draw button the
+   stars logo we use for generate") — the ONE generate glyph, the same square
+   ink box the Playground's Generate is. */
+#dgo{margin-left:auto; width:34px; height:34px; flex:none; padding:0;
+  background:var(--ink); color:var(--paper); border:none; border-radius:6px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;}
+#dgo svg{width:19px; height:19px;}
 #dgo:disabled{opacity:.5;}
 /* A beat being drawn (or a failed draw) says so on its own line. */
 #genstate{color:var(--ink2); font-style:italic; font-size:15px; text-align:center; max-width:80vw;}
@@ -926,8 +942,8 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
       <div id="promhint" hidden>empty — this beat draws from its caption</div>
       <div class="drawrow">
         <button id="dchar" class="on" aria-label="Draw Sophie from her reference"><img src="/scratchpad-sophie.png" alt="Sophie"></button>
-        <select id="dq" aria-label="Quality"><option value="low">low</option><option value="medium" selected>medium</option><option value="high">high</option></select>
-        <button id="dgo">Draw</button>
+        <button id="dq" class="tri" data-n="0" data-i="L" aria-label="Quality — low"></button>
+        <button id="dgo" aria-label="Draw it"><svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg></button>
       </div>
     </div>
   </div>
@@ -963,7 +979,7 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 <div id="bulkask" hidden>
   <div class="bulkbox">
     <p id="bulkline"></p>
-    <select id="bq" aria-label="Quality"><option value="low" selected>low</option><option value="medium">medium</option><option value="high">high</option></select>
+    <button id="bq" class="tri" data-n="0" data-i="L" aria-label="Quality — low"></button>
     <div class="bulkrow">
       <button id="bulkno">Not now</button>
       <button id="bulkyes">Draw them</button>
@@ -1050,14 +1066,14 @@ function setStyle(s){
   api('/style',{method:'POST',body:JSON.stringify({style:s})}).catch(function(){});
   if(anyDrawing()) startGenPoll();
 }
-/* WHERE SHE TAPPED IS THE STOP SHE MEANT — /tritoggle.js, shared. The `||`
-   is the floor for a page whose script did not load: one step, never nothing.
+/* WHERE SHE TAPPED IS THE STOP SHE MEANT — /tritoggle.js, shared. `triNext`
+   below is the floor for a page whose script did not load: one step, never
+   nothing, and ONE such floor in this file rather than one per toggle.
    Tapping a WORD picks that style outright (it sits nowhere near its stop). */
 document.getElementById('styletog').onclick=function(ev){
   ev.stopPropagation();
   var cur=styleIx(padStyle);
-  var n=window.triNext?window.triNext(this,STYLES.length,ev,cur):((cur+1)%STYLES.length);
-  setStyle(STYLES[n].key);
+  setStyle(STYLES[triNext(this, STYLES.length, ev, cur)].key);
 };
 Array.prototype.forEach.call(document.querySelectorAll('.stylerow .sw'),function(b){
   b.onclick=function(ev){ ev.stopPropagation(); setStyle(b.getAttribute('data-style')); };
@@ -1499,6 +1515,7 @@ var HELP=[
   {sel:'#ardraw', nm:'Draw it', what:'Draws this beat here, from its words.'},
   {sel:'#arplay', nm:'Playground', what:'Opens the Playground to make its art there instead.'},
   {sel:'#arinbox', nm:'From the inbox', what:'Swaps in a picture or clip you already have.'},
+  {sel:'#dgo', nm:'Draw', what:'Under Drawing prompt: draws it, at the quality on the toggle beside it. Low is where it starts.'},
   {sel:'#speak', nm:'Hear it', what:'Reads the beat aloud in your voice.'},
   {sel:'#micbtn', nm:'Record it', what:'Records you reading it. Your own take always wins over the read-aloud, and every take is kept.'},
   {sel:'#linkbtn', nm:'Link', what:'Joins this beat to the next one into a chunk, sharing one frame.'},
@@ -1580,6 +1597,35 @@ document.getElementById('filmplay').onclick=function(ev){
 };
 /* ── draw the missing pictures: count → cost → are you sure → go ──── */
 var BULK_PRICE={low:2, medium:6, high:25};   // ¢ per picture, gpt-image-2
+/* THE TWO QUALITY TOGGLES (2026-08-26, Sophie: "change the default to low
+   instead of medium" · "make the three-way toggle for the quality instead of
+   the drop-down"). LOW is where both open now — the card's draw used to open
+   on medium, which is 3x the price of a picture she is usually only looking
+   at to see whether the words draw at all.
+   The stops are NUMBERED on the element (`data-n`), which is the shell's whole
+   contract, so nothing here counts the notches but this one list. */
+var QUALS=['low','medium','high'];
+var QINIT=['L','M','H'];
+// THE AIM RULE LIVES IN /tritoggle.js — the ONE copy, and this is the page's
+// ONE floor for the case where that file does not load (a stale cache, a stub
+// harness): the old CYCLE, deliberately not a second implementation of the
+// aim, so this page can never quietly grow its own version of the rule. Both
+// toggles on the page — the style switch and the draw quality — read it.
+var triNext = window.triNext || function(el,count,ev,cur){ return ((cur|0)+1+count)%count; };
+function qVal(id){ var el=document.getElementById(id); return QUALS[+el.dataset.n]||'low'; }
+function qSet(id,n){
+  var el=document.getElementById(id);
+  el.dataset.n=n; el.dataset.i=QINIT[n];
+  el.setAttribute('aria-label','Quality — '+QUALS[n]);
+}
+function wireQ(id,after){
+  var el=document.getElementById(id);
+  el.onclick=function(ev){
+    ev.stopPropagation();
+    qSet(id, triNext(el, QUALS.length, ev, +el.dataset.n));
+    if(after) after();
+  };
+}
 function stripSpeech(t){
   return String(t||'').replace(/<break[^>]*>/gi,' ').replace(/\[[^\]\n]{1,40}\]/g,' ').replace(/\s+/g,' ').trim();
 }
@@ -1604,7 +1650,7 @@ function renderDrawall(){
 }
 function bulkLine(){
   var n=drawables().length;
-  var cents=n*BULK_PRICE[document.getElementById('bq').value];
+  var cents=n*BULK_PRICE[qVal('bq')];
   var cost=cents>=100?('$'+(cents/100).toFixed(2)):(cents+'¢');
   document.getElementById('bulkline').textContent=
     'Draw '+n+(n===1?' picture':' pictures')+' · about '+cost+'. Sure?';
@@ -1615,7 +1661,7 @@ document.getElementById('drawallbtn').onclick=function(ev){
   bulkLine();
   document.getElementById('bulkask').hidden=false; lock(true);
 };
-document.getElementById('bq').onchange=bulkLine;
+wireQ('bq', bulkLine);
 document.getElementById('bulkno').onclick=function(ev){
   ev.stopPropagation();
   document.getElementById('bulkask').hidden=true; lock(false);
@@ -1624,7 +1670,7 @@ document.getElementById('bulkask').onclick=function(ev){ if(ev.target===this){th
 document.getElementById('bulkyes').onclick=function(ev){
   ev.stopPropagation();
   var btn=this; btn.disabled=true;
-  api('/drawall',{method:'POST',body:JSON.stringify({quality:document.getElementById('bq').value,style:padStyle})})
+  api('/drawall',{method:'POST',body:JSON.stringify({quality:qVal('bq'),style:padStyle})})
     .then(function(r){return r.json()})
     .then(function(d){
       btn.disabled=false;
@@ -2507,6 +2553,7 @@ document.getElementById('dchar').onclick=function(ev){
   ev.stopPropagation();
   this.classList.toggle('on');
 };
+wireQ('dq');
 document.getElementById('dgo').onclick=function(ev){
   ev.stopPropagation();
   var b=popBeat; if(!b)return;
@@ -2516,7 +2563,7 @@ document.getElementById('dgo').onclick=function(ev){
   saveNote(); savePrompt();
   api('/generate',{method:'POST',body:JSON.stringify({
     id:b.id, prompt:prompt,
-    quality:document.getElementById('dq').value,
+    quality:qVal('dq'),
     style:padStyle,
     character:padStyle==='watercolor'&&document.getElementById('dchar').classList.contains('on'),
   })}).then(function(r){return r.json()}).then(function(d){
