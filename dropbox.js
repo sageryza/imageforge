@@ -719,6 +719,63 @@ router.get('/items/:id', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
+// What a downloaded Dump file is CALLED. Pulled out of the route so it has a
+// test that needs no Firestore and no bytes.
+//
+// Her own words first, and a Photos export's `filename` LAST: iOS names an
+// export with a pair of UUIDs ("EB9BB164-…-copy_4.mov"), so saving that tells
+// her nothing about what she just saved. The extension always comes off the
+// STORED path, never off a name — a file called .mp4 that is really a .mov
+// opens wrong on her phone.
+function downloadName(it, objPath) {
+  const clean = (s) => String(s || '').replace(/[^a-zA-Z0-9 \-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const ext = (String(objPath || '').match(/\.([a-z0-9]{1,5})$/i) || [, 'bin'])[1].toLowerCase();
+  const bare = clean(String(it.filename || '').replace(/\.[^.]+$/, ''));
+  const fromFile = /^[0-9a-f-]{8,}$/i.test(bare.replace(/ /g, '')) ? '' : bare;
+  // An album of many gets its index back, so a batch doesn't land as twelve
+  // files sharing one name.
+  const n = Number(it.photoIndex);
+  const album = clean(it.bundleName || it.bundle);
+  const stem = (clean(it.name)
+    || (album && (n > 0 ? `${album} ${n + 1}` : album))
+    || fromFile
+    || 'dump').slice(0, 80) || 'dump';
+  return `${stem}.${ext}`;
+}
+
+// GET /file/:id — the same object the `url` field points at, but served with
+// Content-Disposition so a tap SAVES it instead of playing it inline. Sophie is
+// on a phone: a bare Storage url opens the video in a player with no way out of
+// it, and "long-press, Download Linked File, then find it in Files" is three
+// steps and a hunt. This is the voicelab.js `/file/:id` pattern — the same
+// reason it exists there.
+router.get('/file/:id', async (req, res) => {
+  try {
+    const snap = await db().collection(COL).doc(String(req.params.id || '')).get();
+    if (!snap.exists) return res.status(404).json({ error: 'not found' });
+    const it = snap.data() || {};
+    // A poster is the only other object a doc owns, so `?poster=1` can name it
+    // without this turning into an arbitrary-path reader.
+    const wantPoster = String(req.query.poster || '') === '1';
+    const objPath = wantPoster ? it.posterPath : it.storagePath;
+    if (!objPath) return res.status(404).json({ error: wantPoster ? 'no poster on this item' : 'no file on this item' });
+
+    const bucket = bucketOrNull();
+    if (!bucket) return res.status(503).json({ error: 'Firebase Storage not configured' });
+
+    res.set('Content-Type', ctForName(objPath) || 'application/octet-stream');
+    res.set('Content-Disposition', `attachment; filename="${downloadName(it, objPath)}"`);
+    res.set('Cache-Control', 'no-store');
+    bucket.file(objPath).createReadStream()
+      .on('error', (e) => {
+        console.warn('drop: download stream —', e.message);
+        if (!res.headersSent) res.status(404).json({ error: 'that file is gone' });
+        else { try { res.destroy(); } catch { /* already closed */ } }
+      })
+      .pipe(res);
+  } catch (e) { fail(res, e); }
+});
+
 // POST /upload — { session?, bundle?, images:[dataURL|url], defaults? }
 router.post('/upload', async (req, res) => {
   try {
@@ -955,4 +1012,5 @@ module.exports = {
   // the type tables, exported so the audio rules have a test that needs no
   // Firestore and no bytes (2026-08-24)
   ctForName, extFor, isVideoCT, isAudioCT, mediaKind, IMAGE_RE, VIDEO_RE, AUDIO_RE,
+  downloadName,
 };
