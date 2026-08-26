@@ -3,8 +3,10 @@
 Sophie's seven "People Watching Club: Official Training Film No. 001" cards cut
 into a 9:16 reel, opened with a public-domain 3-2-1 Academy leader countdown.
 
-**Live cut — v5, Clyde + hand-drawn ink:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v5-clyde-ink.mp4
-(1080x1920, 30fps, 1:42, -14.9 LUFS.)
+**Live cut — v6, white ink:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v6-white-ink.mp4
+(1080x1920, 30fps, 1:33, -15.0 LUFS.)
+
+**v5, red ink, 1:42:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v5-clyde-ink.mp4
 
 **v4, Bill, no markup, 1:41:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v4-moving-camera.mp4
 
@@ -311,3 +313,34 @@ white or red ink."* 13 circles and one arrow, red, in `scripts/pwc-film-ink.py`
 Plus her main note, *"zoom in on what you're talking about and include the whole
 thing"*: the three-feet shot on card 3 was framed on the gap alone and is now
 framed on him, the subject and the measure together.
+
+
+## v6 — what "a bad circle, not a weird shape" actually meant
+
+Sophie on v5's markup: *"make the circles not like weird faded just normal and
+try them in white and maybe not quite so thick just like a bad circle not like a
+weird shape."* Four separate faults in one sentence, and the diagnosis matters
+more than the fix:
+
+- **"weird faded"** was not opacity — it was the THREE overlapping passes at
+  alpha 235/120/90 that were supposed to read as ink. Overlapped and offset,
+  they render as a fuzzy double-stroke. One solid pass at full alpha is what
+  reads as a pen.
+- **"not like a weird shape"** was the geometry. The circle looped **1.14
+  turns** past its own start with three wobbles at up to 11% of the radius, so
+  it came back as a spiral-ish blob. It closes at **1.04 turns** now with two
+  wobbles under 3%, plus a small per-axis bias — round, visibly hand-drawn, and
+  it just crosses its own start, which is the actual tell of a fast circle.
+- **White**, not red. The cards' own callout lines are white, so white markup
+  reads as belonging to the film rather than to a different one.
+- **Thinner**: `INK_W` 20 → 15 at page scale. Dropping the extra passes made it
+  thinner again on its own.
+
+**The read is `PWC_TEMPO=1.40`** (her third ask for faster), taking the film to
+1:33. Because beats are stored in clip time with their measured tempo, this was
+one number and a re-render — no beat was re-measured and no mark was re-placed.
+
+**One constant had to become a derivation:** the whisper on the friend card was
+placed 2.54s before the narrator, a number true only at 1.25x. It is computed
+from the whisper clip's own length now, so the two lines cannot drift apart the
+next time the tempo moves.

@@ -1,20 +1,27 @@
 """PWC Training Film audio: narration + period music bed + projector.
 
-Card offsets are READ from timing5.json, which the card renderer measures off
+Card offsets are READ from timing6.json, which the card renderer measures off
 the real encoded segments, so the voice cannot drift from the picture.
 """
 import json, os, subprocess
 FF = os.environ.get("FFMPEG", "ffmpeg")
-T = json.load(open("timing5.json"))
+T = json.load(open("timing6.json"))
 S = {int(k): v for k, v in T["starts"].items()}
 C = T["cards"]; TOTAL = T["total"]
-VOD = "vof3"
+VOD = "vof4"
 
 VO = []
 for i, c in enumerate(C):
     if c["clip"] == "05b-friend":
-        # the friend card: the whisper lands first, then the narrator answers
-        VO.append((f"{VOD}/05a-watcher.mp3", S[i] + c["lead"] - 2.54))
+        # The friend card: the whisper lands first, then the narrator answers.
+        # DERIVED from the whisper's own length, never a constant — the gap has
+        # to shrink with the narration tempo or the two drift apart.
+        import subprocess as _sp
+        _e = _sp.run([FF, "-i", f"{VOD}/05a-watcher.mp3"], capture_output=True, text=True).stderr
+        _d = [l for l in _e.splitlines() if "Duration:" in l][0]
+        _h, _m, _s = _d.split("Duration:")[1].split(",")[0].strip().split(":")
+        wdur = int(_h)*3600 + int(_m)*60 + float(_s)
+        VO.append((f"{VOD}/05a-watcher.mp3", S[i] + c["lead"] - (wdur + 0.50)))
     VO.append((f"{VOD}/{c['clip']}.mp3", S[i] + c["lead"]))
 
 FIRST = S[1]                      # the bed starts with the first content card
@@ -63,7 +70,7 @@ mixl += ["[hiss]", "[motor]"]
 fc.append("".join(mixl) + f"amix=inputs={len(mixl)}:normalize=0:dropout_transition=0,"
           f"alimiter=limit=0.95,atrim=0:{TOTAL}[out]")
 subprocess.run([FF,"-y"]+ins+["-filter_complex",";".join(fc),"-map","[out]",
-                "-c:a","pcm_s16le","mix5.wav","-loglevel","error"], check=True)
-print("wrote mix5.wav  total %.2f  sting %.2f"%(TOTAL, STING))
+                "-c:a","pcm_s16le","mix6.wav","-loglevel","error"], check=True)
+print("wrote mix6.wav  total %.2f  sting %.2f"%(TOTAL, STING))
 for p, st in VO: print(f"  {st:7.2f}  {os.path.basename(p)}")
 print("  bed:", [(os.path.basename(b[0])[0], round(b[1],1), round(b[2],1)) for b in BED])

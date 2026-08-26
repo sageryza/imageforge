@@ -10,13 +10,13 @@ import json, os, struct, subprocess
 import shots, marks, ink
 
 FF = os.environ.get("FFMPEG", "ffmpeg")
-OUT = "seg5"; os.makedirs(OUT, exist_ok=True)
+OUT = "seg6"; os.makedirs(OUT, exist_ok=True)
 for d in ("pages", "ann"): os.makedirs(d, exist_ok=True)
 W, H, FPS = 1080, 1920, 30
 PW, PH = W*2, H*2
 BOX_W, BOX_H = 1080*2, 1800*2
 MAX_UP, MOVE, LEADIN = 2.45, 0.90, 0.35
-INK_W = 20          # stroke at page scale (~10 at card scale, which read right)
+INK_W = 15          # stroke at page scale — thinner, her ask
 
 def png_size(p): return struct.unpack(">II", open(p,"rb").read(33)[16:24])
 def even(x): return max(2, int(round(x/2))*2)
@@ -48,7 +48,7 @@ for fname, clip, lead, tail, shotlist in shots.CARDS:
         else:
             u0, v0, u1, v1 = g
             pts = ink.arrow_pts(cx0+u0*fw, cy0+v0*fh, cx0+u1*fw, cy0+v1*fh, seed)
-        ax, ay, aw, ah = ink.render(pts, ink.RED, INK_W, f"ann/{seed}")
+        ax, ay, aw, ah = ink.render(pts, ink.WHITE, INK_W, f"ann/{seed}")
         anns.append({"seed": seed, "x": ax, "y": ay,
                      "t": round(lead + beat*ratio, 3), "label": label})
 
@@ -108,5 +108,5 @@ for fname, clip, lead, tail, shotlist in shots.CARDS:
     manifest.append({"file": out, "dur": dur, "clip": clip, "lead": lead,
                      "vo": vod["new"][clip], "marks": [a["label"] for a in anns]})
     print(f"{out}  {dur:6.2f}s  {len(states):2d} moves  {len(anns)} marks  {[a['label'] for a in anns]}")
-json.dump(manifest, open("cards5.json","w"), indent=1)
+json.dump(manifest, open("cards6.json","w"), indent=1)
 print("\ncards total %.2fs"%sum(m["dur"] for m in manifest))

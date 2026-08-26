@@ -21,19 +21,27 @@ def _rng(seed):
         return s / 0x7FFFFFFF
     return nxt
 
-def ellipse_pts(cx, cy, rx, ry, seed, turns=1.14, tilt=0.0):
-    """A circle drawn by hand: it overshoots, and the radius breathes."""
+def ellipse_pts(cx, cy, rx, ry, seed, turns=1.04, tilt=None):
+    """A circle drawn quickly by hand: round, slightly off, ends just crossing.
+
+    Sophie: "just like a bad circle not like a weird shape" — so the wobble is
+    small and low-frequency (it reads as an unsteady hand), the loop closes
+    almost exactly once instead of spiralling round again, and the radius does
+    not taper. An earlier version overshot 1.14 turns with 3 large wobbles and
+    came out as a shape rather than a circle.
+    """
     r = _rng(seed)
     a0 = r()*6.283
-    # three low-frequency wobbles — enough to read as human, never as a scribble
-    w = [(0.06+0.05*r(), 2+int(3*r()), r()*6.283) for _ in range(3)]
-    n, pts = 190, []
+    if tilt is None: tilt = (r()-0.5)*0.5
+    # two gentle wobbles only, and shallow ones
+    w = [(0.018+0.016*r(), 2, r()*6.283), (0.012+0.012*r(), 3, r()*6.283)]
+    # a hand-drawn circle is rarely perfectly round: bias one axis a little
+    sx, sy = 1.0+(r()-0.5)*0.07, 1.0+(r()-0.5)*0.07
+    n, pts = 170, []
     for i in range(n+1):
         t = i/n*turns*6.283 + a0
         k = 1.0 + sum(a*math.sin(f*t+p) for a, f, p in w)
-        # a hand tightens slightly as it comes round again
-        k *= 1.0 - 0.05*(i/n)
-        x, y = rx*k*math.cos(t), ry*k*math.sin(t)
+        x, y = rx*k*sx*math.cos(t), ry*k*sy*math.sin(t)
         xr = x*math.cos(tilt) - y*math.sin(tilt)
         yr = x*math.sin(tilt) + y*math.cos(tilt)
         pts.append((cx+xr, cy+yr))
@@ -77,11 +85,8 @@ def render(pts, colour, width, out_dir, stages=STAGES):
         d = ImageDraw.Draw(img)
         k = max(2, int(len(local)*(s+1)/stages))
         seg = local[:k]
-        # three passes at slightly different offsets/alpha = ink, not a vector
-        for ox, oy, a, ww in ((0, 0, 235, width),
-                              (1.2, -0.8, 120, max(1, width-3)),
-                              (-1.0, 1.1, 90, max(1, width-4))):
-            d.line([(x+ox, y+oy) for x, y in seg],
-                   fill=colour+(a,), width=int(ww), joint="curve")
+        # ONE solid pass. Overlapping passes at partial alpha read as a faded
+        # double-stroke, which is what she was seeing.
+        d.line(seg, fill=colour+(255,), width=int(width), joint="curve")
         img.save(os.path.join(out_dir, f"{s:03d}.png"))
     return x0, y0, w, h
