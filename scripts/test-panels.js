@@ -663,6 +663,66 @@ async function drivePage() {
       'and it moves');
     n++; console.log('  ok  page: the plan line is served and moves with the pickers');
 
+    // THE BIGGER BOX (2026-08-26, Sophie: "make a button to see the current
+    // text box that you're working on bigger so you can see what you're
+    // writing"). Every assertion here is a MEASUREMENT off the real boxes:
+    // "bigger" is two numbers, and a cell that grew only in height would pass
+    // any markup check while still wrapping her dictation every four words.
+    const cellBox = async (i) => p.$eval('#c' + i, (e) => {
+      const cell = e.closest('.pcell'), r = cell.getBoundingClientRect();
+      const g = document.getElementById('cells').getBoundingClientRect();
+      return { w: r.width, gw: g.width, h: e.getBoundingClientRect().height,
+        pad: parseFloat(getComputedStyle(e).paddingBottom) };
+    });
+    const btnBox = async (i) => p.$eval('.pbig[data-big="' + i + '"]',
+      (b) => b.getBoundingClientRect());
+
+    const small0 = await cellBox(0);
+    assert.ok(small0.w < small0.gw * 0.6,
+      `compact, a cell is half the row (${Math.round(small0.w)} of ${Math.round(small0.gw)})`);
+
+    // The corner is RESERVED, or her last line is typed under the button.
+    const bb = await btnBox(0);
+    assert.ok(small0.pad >= bb.height,
+      `the textarea reserves the button's corner (${small0.pad} >= ${bb.height})`);
+
+    // elementFromPoint is the only honest way to ask whether a tap reaches it.
+    const hit = await p.evaluate(([x, y]) => {
+      const el = document.elementFromPoint(x, y);
+      return el && el.closest('.pbig') ? 'ok' : 'BLOCKED-by-' + (el && el.className);
+    }, [bb.x + bb.width / 2, bb.y + bb.height / 2]);
+    assert.strictEqual(hit, 'ok', 'the button is what a tap at its centre reaches');
+
+    await p.click('.pbig[data-big="0"]');
+    await p.waitForTimeout(120);
+    const big0 = await cellBox(0);
+    assert.ok(Math.abs(big0.w - big0.gw) < 2,
+      `open, it takes the whole row (${Math.round(big0.w)} of ${Math.round(big0.gw)})`);
+    assert.ok(big0.h > small0.h * 2, `and it is taller (${Math.round(small0.h)} -> ${Math.round(big0.h)})`);
+    assert.strictEqual(await p.$eval('#c0', (e) => e.value), 'a cat on a fire escape',
+      'her words are still in the same field — one textarea, two sizes');
+
+    // ONE AT A TIME, or the grid comes apart into a column of full-width boxes.
+    await p.click('.pbig[data-big="1"]');
+    await p.waitForTimeout(120);
+    assert.strictEqual(await p.$$eval('.pcell.big', (c) => c.length), 1, 'only one is open');
+    assert.ok(Math.abs((await cellBox(0)).w - small0.w) < 2, 'the first one went back');
+
+    // The same tap is the way back.
+    await p.click('.pbig[data-big="1"]');
+    await p.waitForTimeout(120);
+    assert.strictEqual(await p.$$eval('.pcell.big', (c) => c.length), 0, 'tapping it again closes it');
+
+    // NOT STICKY, and reset by a grid change — the boxes ARE the grid.
+    await p.click('.pbig[data-big="0"]');
+    await p.click('#ctrls button[data-grid="9"]');
+    await p.waitForFunction(() => document.querySelectorAll('#cells textarea').length === 9);
+    assert.strictEqual(await p.$$eval('.pcell.big', (c) => c.length), 0,
+      'a grid change puts every box back to small');
+    await p.click('#ctrls button[data-grid="4"]');
+    await p.waitForFunction(() => document.querySelectorAll('#cells textarea').length === 4);
+    n++; console.log('  ok  page: the bigger box takes the whole row, one at a time');
+
     // THE SLIDER LANDS WHERE SHE TAPS, like the Playground's (2026-08-24 —
     // /tritoggle.js). This used to assert a CYCLE, which is the bug Sophie
     // reported: from the middle stop every tap went right, whichever side she
