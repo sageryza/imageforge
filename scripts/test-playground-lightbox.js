@@ -205,7 +205,16 @@ const server = http.createServer((req, res) => {
       title: document.querySelector('#lb .capttl').textContent.trim(),
       rowShown: !document.getElementById('lbcaphd').hidden,
       wordsShown: !words.hidden,
-      segShown: !document.getElementById('lbcapseg').hidden,
+      // NOT the `hidden` flag: the pair lives inside the overlay now, so the
+      // honest question is whether anything of it renders on a shut door.
+      segShown: document.getElementById('lbcapseg').getClientRects().length > 0,
+      // HER ASK, 2026-08-26: "it should be at the top". The door is measured
+      // INSIDE the band that carries the chevron, not under the picture.
+      doorInBand: !!document.getElementById('lbpbtn').closest('#lbtop'),
+      doorTop: Math.round(document.getElementById('lbpbtn').getBoundingClientRect().top),
+      bandBottom: Math.round(document.getElementById('lbtop').getBoundingClientRect().bottom),
+      // ...and the caption band under the picture carries no control at all.
+      capBtns: document.querySelectorAll('#lb .cap button').length,
       onMiddle: hit ? (hit.id || hit.className) : '',
       // The band between the picture and the ♥/✕ row, which is where the
       // words used to be printed.
@@ -218,6 +227,11 @@ const server = http.createServer((req, res) => {
   // shouldn't be there" — the whole content half was printed under the picture.
   ok(!opened.wordsShown, 'the words are NOT printed under the picture');
   ok(!opened.segShown, 'and Content/Style is not offered while they are shut');
+  ok(opened.doorInBand && opened.doorTop < opened.bandBottom,
+    'the door is in the band at the TOP (' + opened.doorTop + ' vs band bottom '
+      + opened.bandBottom + ')');
+  ok(opened.capBtns === 0,
+    'and the caption under the picture carries no control (' + opened.capBtns + ')');
   ok(opened.capH <= 60, 'so the caption band is a line, not a paragraph (' + opened.capH + 'px)');
   ok(opened.onMiddle.indexOf('lbpwrap') < 0,
     'and nothing covers the picture (' + opened.onMiddle + ')');
@@ -230,7 +244,9 @@ const server = http.createServer((req, res) => {
       shown: document.getElementById('lbcapp').textContent,
       contentOn: document.getElementById('lbhalfc').classList.contains('on'),
       styleShown: !document.getElementById('lbhalfs').hidden,
-      segShown: !document.getElementById('lbcapseg').hidden,
+      segShown: document.getElementById('lbcapseg').getClientRects().length > 0,
+      // The pair rides INSIDE the words, the way the Assets overlay does.
+      segInWords: !!document.getElementById('lbcapseg').closest('.lbpwrap'),
       // The words themselves are what a tap in the middle lands on; either the
       // overlay or its text answers "something is over the picture".
       over: hit ? (hit.closest('.lbpwrap') ? 'lbpwrap' : (hit.id || hit.className)) : '',
@@ -238,6 +254,7 @@ const server = http.createServer((req, res) => {
     };
   });
   ok(shownNow.segShown && shownNow.styleShown, 'tapping PROMPT offers both halves');
+  ok(shownNow.segInWords, 'and they ride inside the words, not under the picture');
   ok(shownNow.contentOn, 'it opens on CONTENT — the house rule');
   ok(shownNow.shown === TYPED, 'and content is her words, verbatim');
   ok(String(shownNow.over).indexOf('lbpwrap') >= 0,
@@ -257,7 +274,12 @@ const server = http.createServer((req, res) => {
   ok(styled.shown.indexOf(TYPED) < 0, 'her words are not repeated inside the style half');
 
   // Tapping the words hands the picture back — and does NOT leave the lightbox.
-  await page.click('#lbpwrap');
+  // A POSITION, not the element: playwright aims at an element's centre, and
+  // the Content/Style pair now sits inside this overlay — a centre tap could
+  // land on it and switch halves instead of closing.
+  const wrapBox = await page.locator('#lbpwrap').boundingBox();
+  await page.mouse.click(Math.round(wrapBox.x + 12),
+    Math.round(wrapBox.y + wrapBox.height - 12));
   const put = await page.evaluate(() => ({
     open: !!document.querySelector('#lb.on'),
     wordsShown: !document.getElementById('lbpwrap').hidden,
