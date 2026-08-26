@@ -4300,6 +4300,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - Test: `node scripts/test-scratchpad-popup.js` (the real page, headless —
     the pencil measured beside the words, the empty tile measured against the
     same card holding a picture).
+  **AND EITHER BOX OPENS BIGGER, AS AN OPTION (2026-08-26, Sophie: "make it
+  possible to open the caption and the drawing prompt in bigger boxes so I can
+  edit them but don't make that the default").** A 26px rounded square inside
+  each box's bottom-right corner toggles the SAME textarea to 46vh and back —
+  the Playground's `#bigprompt` answer lifted in SHAPE, not copied, so there is
+  never a second field to sync. Four things not to undo: the textarea reserves
+  that corner with `padding-bottom` (or her last line is typed under the
+  button); `resetBig()` puts both back small on every card open, because *not
+  the default* means not sticky either; expanding calls `scrollIntoView` since
+  `#cardin` is a scroller and a box that just grew past its bottom is one she
+  has to go and find; and **`#pnotewrap` carries the `hidden` flag now, not
+  `#pnote`** — the caption's button belongs to the EDIT box and must vanish
+  with the pencil, not sit under words she is only reading. `BIGBOX` in
+  `gen-scratchpad.py` is ONE glyph pair and one wiring loop over both, so they
+  cannot drift. Pinned by the same test — the default size, the button asked
+  with `elementFromPoint`, the padding against the button's real height, the
+  grown height, how much of the big box is in view after the tap, and the
+  reset on reopen.
   **Full details: `docs/modules/story.md`.**
 - **Scratch Pad / Story Room** (`scratchpad.js`, `/api/scratchpad`, page built by
   `scripts/gen-scratchpad.py`) — thinking with pictures. Hearted Playground images
