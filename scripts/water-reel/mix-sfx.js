@@ -127,6 +127,13 @@ const BED = [
 // from a genuinely bad take by turning it up.
 const VOICE_TARGET = Number(args.voiceTarget || -15.5);
 const VOICE_CAP = Number(args.voiceCap || 2.5);
+// A SYNTHESIZED stand-in is not her voice and does not get her protection.
+// Measured on v12: Laura's four shots sit at -24.6dB against Sophie's -16.4,
+// so the 2.5dB cap left the borrowed section audibly quiet — and the cap is
+// there to stop a bad take of HERS being rescued by volume, which is a rule
+// about her performance. `synthSources` on the spec names the sources that
+// are not her; those get a wide static trim so the stand-in sits with her.
+const SYNTH_CAP = Number(args.synthCap || 12);
 
 const dur = (f) => Number(execFileSync(ffprobe, ['-v', 'error', '-show_entries', 'format=duration',
   '-of', 'default=nk=1:nw=1', f]).toString().trim());
@@ -238,10 +245,12 @@ for (let si = 0; si < shots.length; si++) {
 // her voice, evened by a static per-shot trim (see VOICE_TARGET above)
 const vChains = [];
 let vt = 0;
+const SYNTH = new Set(spec.synthSources || []);
 for (let si = 0; si < shots.length; si++) {
   const { mean } = level(path.join(shotDir, shots[si]));
+  const cap = SYNTH.has(spec.shots[si].source) ? SYNTH_CAP : VOICE_CAP;
   let g = VOICE_TARGET - mean;
-  g = Math.max(-VOICE_CAP, Math.min(VOICE_CAP, g));
+  g = Math.max(-cap, Math.min(cap, g));
   const a = vt, b = vt + lens[si];
   vChains.push(`[0:a]atrim=start=${a.toFixed(3)}:end=${b.toFixed(3)},asetpts=PTS-STARTPTS,volume=${g.toFixed(2)}dB[v${si}]`);
   if (Math.abs(g) >= 0.4) log.push(`${shots[si].replace(/^shot-\d+-/, '').replace(/\.wav$/, '').padEnd(3)} VOICE       ${mean.toFixed(1)}dB -> ${g >= 0 ? '+' : ''}${g.toFixed(1)}dB`);

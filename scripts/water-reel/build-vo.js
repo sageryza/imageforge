@@ -232,6 +232,8 @@ const spec = {
   // everyone else — and the rule is in the shot cut cache key, so changing
   // this number re-cuts rather than serving a stale cut.
   edge: { max: 0.45, keep: 0.22 },
+  // not her voice — the mix may level these freely (see mix-sfx SYNTH_CAP)
+  synthSources: [LAURA],
   // cut on a fresh per-span re-listen, never on the bulk chunk timings alone —
   // her v9 note: word beginnings and ends were clipped (vo-film's relistenSpan)
   relisten: true,
