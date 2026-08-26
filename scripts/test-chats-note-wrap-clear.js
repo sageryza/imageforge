@@ -23,10 +23,19 @@
 //      thing where it says + note for chat and just put it at the end of the
 //      see more area" — the italic placeholder sat at the top of every thread
 //      she had never written a note on. Now: a chat WITH a note is unchanged,
-//      a chat with a summary and no note carries a small "+ note" at the END
-//      of the summary sentence (after "See more…"), and a chat with neither
-//      keeps it in the note row, because otherwise there would be no way in
-//      at all.
+//      a chat with a summary and no note carries a small "+ note" INSIDE the
+//      opened box, and a chat with neither keeps it in the note row, because
+//      otherwise there would be no way in at all.
+//
+//   E. (2026-08-26) "what you asked can be closer to the top and the font can
+//      be a bit bigger and the add a note button should only show up if I
+//      click [see more]" — three things about the same two lines. The summary
+//      moved up (the rule's air, a bare note row's margin), the type went
+//      13.5 → 15px to match her own note above it, and "+ note" now waits
+//      behind the expander rather than riding the sentence on every paint.
+//      The QUESTIONS button must still get its own taps — the row it sits in
+//      gave up its bottom margin, so a full-width line pulled up over it
+//      would swallow them.
 //
 //   npm install playwright-core --no-save && node scripts/test-chats-note-wrap-clear.js
 //
@@ -43,6 +52,18 @@ catch {
 }
 
 const PUB = path.join(__dirname, '..', 'public');
+// The archive sheet's progress words, LIFTED from the page rather than typed
+// out again here (see THERE ARE TWO PROGRESS LISTS in chats.html). The page's
+// script runs inside an IIFE so nothing is on `window`; a hand-kept copy went
+// stale the moment she moved a word between the two lists, which is what left
+// this check failing on main against `bug fix` · `new feature` · `research` ·
+// `quick question` · `failure`.
+const ARCHIVE_PROGRESS = (() => {
+  const src = fs.readFileSync(path.join(PUB, 'chats.html'), 'utf8');
+  const m = src.match(/var ARCHIVE_PROGRESS=\[([^\]]*)\]/);
+  if (!m) throw new Error('ARCHIVE_PROGRESS is gone from chats.html — this check would measure nothing');
+  return m[1].split(',').map((s) => s.trim().replace(/^'|'$/g, '')).filter(Boolean);
+})();
 const T0 = Date.now();
 const iso = (ms) => new Date(ms).toISOString();
 
@@ -66,6 +87,12 @@ const CHATS = {
   // asked for actually lives.
   summed: {
     account: '1',
+    // the three-answer shape, i.e. what a real chat carries — so the line is
+    // the ASKED answer and wears its bold "What you asked" over it, which is
+    // the pair E measures.
+    wrapAsked: 'Cut the room tone and re-listened per card.',
+    wrapDid: 'Imported the pause passes rather than re-deriving them.',
+    wrapNext: 'Whether the 45 percent line still reads bungled.',
     wrapLine: 'Cut the room tone and re-listened per card.',
     wrapUp: 'Cut the room tone. Re-listened per card. Kept every take.',
     wrapLong: 'Imported the pause passes.\nBaked room tone once.\nSpliced in the browser.',
@@ -177,21 +204,30 @@ const dictate = (page, sel, text) => page.evaluate(([s, t]) => {
   const summed = await page.evaluate(() => {
     const n = document.querySelector('#thread .noterow');
     const line = document.querySelector('#thread .threadwrap .twline');
-    const kids = line ? [].map.call(line.children, (c) => c.className) : [];
+    const add = document.querySelector('#thread .threadwrap .addnote');
+    const box = document.querySelector('#thread .threadwrap .wrapfull');
+    const row = add && add.closest('.addnoterow');
     return {
       noteText: (n.textContent || '').trim(),
       inRow: !!n.querySelector('.addnote'),
       inLine: !!(line && line.querySelector('.addnote')),
-      last: kids[kids.length - 1] || '',
-      afterSeeMore: kids.findIndex((c) => /addnote/.test(c)) >
-                    kids.findIndex((c) => /wrapmore/.test(c) && !/addnote/.test(c)),
+      exists: !!add,
+      shown: !!(add && add.getBoundingClientRect().height > 0),
+      // it is the last thing in the expander's own area, under the box
+      afterBox: !!(row && box && (box.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING)),
     };
   });
   if (/note for this chat/.test(summed.noteText)) fail('the "+ note for this chat" placeholder is still on the note row');
   if (summed.inRow) fail('the opener stayed in the note row even though there is a summary to hang it on');
-  if (!summed.inLine) fail('no "+ note" at the end of the summary line');
-  if (!/addnote/.test(summed.last)) fail('"+ note" is not the LAST thing on the summary line: ' + summed.last);
-  if (!summed.afterSeeMore) fail('"+ note" is not after "See more…"');
+  if (summed.inLine) fail('"+ note" is back on the summary sentence — it belongs behind "See more…"');
+  if (!summed.exists) fail('no "+ note" anywhere on a chat with a summary and no note');
+  if (summed.shown) fail('"+ note" is showing before she taps "See more…"');
+  if (!summed.afterBox) fail('"+ note" is not at the end of the see-more area');
+  // …the expander is what reveals it
+  await page.click('#thread .threadwrap .wrapmore');
+  if (!await page.$eval('#thread .threadwrap .addnote', (n) => n.getBoundingClientRect().height > 0)) {
+    fail('"See more…" did not reveal the "+ note" opener');
+  }
   // …and it opens the same box, in the note row above it
   await page.click('#thread .threadwrap .addnote');
   await page.waitForSelector('#thread .noterow textarea', { timeout: 2000 })
@@ -200,6 +236,34 @@ const dictate = (page, sel, text) => page.evaluate(([s, t]) => {
   await page.$eval('#thread .noterow textarea', (n) => n.blur());
   await page.waitForTimeout(250);
   if (!await page.$('#thread .threadwrap .addnote')) fail('a blank save lost the opener for good');
+
+  // ---- E. closer to the top, bigger, and the button underneath still taps --
+  // Measured on the real boxes: a chat with a summary and NO note is exactly
+  // the screen she sent (header · QUESTIONS · "What you asked"), so the gap
+  // under the header is the number she was pointing at. It was 50px.
+  const top = await page.evaluate(() => {
+    const px = (v) => Math.round(parseFloat(v));
+    const hd = document.querySelector('#thread header').getBoundingClientRect();
+    const w = document.querySelector('#thread .threadwrap').getBoundingClientRect();
+    const q = document.querySelector('#thread .noterow .qbtn').getBoundingClientRect();
+    const hit = document.elementFromPoint(q.left + q.width / 2, q.top + q.height / 2);
+    const line = document.querySelector('#thread .twline');
+    const ask = document.querySelector('#thread .twq');
+    const note = document.querySelector('#thread .noterow');
+    return {
+      gap: Math.round(w.top - hd.bottom),
+      line: px(getComputedStyle(line).fontSize),
+      ask: px(getComputedStyle(ask).fontSize),
+      noteFont: px(getComputedStyle(note).fontSize),
+      qhit: hit ? (hit.className || hit.tagName) + '' : 'nothing',
+      overlap: Math.round(document.querySelector('#thread .noterow').getBoundingClientRect().bottom - w.top),
+    };
+  });
+  if (top.gap > 36) fail('"What you asked" is still ' + top.gap + 'px under the header (was 50, wanted well under)');
+  if (top.line < 15 || top.ask < 15) fail('the summary type did not get bigger: ' + JSON.stringify(top));
+  if (top.line !== top.noteFont) fail('the summary reads at a different size from her own note: ' + JSON.stringify(top));
+  if (!/qbtn/.test(top.qhit)) fail('the QUESTIONS button no longer gets its own tap — ' + top.qhit + ' is over it');
+  if (top.overlap > 0) fail('the summary block is pulled up ON TOP of the note row by ' + top.overlap + 'px');
   await page.click('#back');
 
   // a chat with no wrap-up shows nothing rather than an empty caption
@@ -265,8 +329,12 @@ const dictate = (page, sel, text) => page.evaluate(([s, t]) => {
   const dv = sheet.findIndex((x) => x.div);
   if (dv < 0) fail('no dividing line in the archive sheet');
   else {
-    const TASK = ['Look at', 'Come back to', 'In progress', 'Waiting for something',
-      'To be reviewed', 'To read', 'Built', 'Failed'];
+    // DERIVED from the page's own list, never a second copy of it: the archive
+    // sheet offers `ARCHIVE_PROGRESS` (see THERE ARE TWO PROGRESS LISTS in
+    // chats.html), and a hand-kept list here went stale the moment she moved a
+    // word between the two — which is exactly what happened to the five
+    // work-kind words.
+    const TASK = ARCHIVE_PROGRESS.map((w) => w.charAt(0).toUpperCase() + w.slice(1));
     const above = sheet.slice(0, dv).filter((x) => x.chip).map((x) => x.label);
     const below = sheet.slice(dv + 1).filter((x) => x.chip).map((x) => x.label);
     if (!above.length || !below.length) fail('the line has nothing on one side of it');
