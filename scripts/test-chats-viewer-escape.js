@@ -130,6 +130,32 @@ async function openViewer(page) {
   ok(y1 > 2, 'after escape: the pill starts a scroll (' + y1 + 'px)');
   ok(Math.abs(y3 - y2) < 2, 'after escape: a second press stops it (' + y2 + ' → ' + y3 + ')');
 
+  // ---- BACK RETURNS TO THE PAGE SHE LEFT THROUGH THE LINK (2026-08-26,
+  // Sophie: "the back button goes back out of just to chat. It should go
+  // back to the artifact"). One tap on the thread's back reopens the page
+  // she came from; closing that viewer lands on the thread; back again goes
+  // home as ever — the return is consumed, never a loop.
+  await page.evaluate(() => document.getElementById('back').click());
+  await page.waitForTimeout(600);
+  st = await page.evaluate(PROBE);
+  ok(st.viewer, 'back after link: the page viewer is reopened');
+  ok(st.floats === 2 && st.hidden === 1, 'back after link: pill pair sane again (' + st.floats + '/' + st.hidden + ' hidden)');
+  const ttl = await page.evaluate(() => (document.querySelector('.pv-title') || {}).textContent || '');
+  ok(/Test page/.test(ttl), 'back after link: it is the SAME page (' + ttl + ')');
+  await page.evaluate(() => document.querySelector('.pv-back').click());
+  await page.waitForTimeout(400);
+  st = await page.evaluate(PROBE);
+  ok(!st.viewer && st.thread, 'closing the reopened viewer lands on the thread, not home');
+  await page.evaluate(() => document.getElementById('back').click());
+  await page.waitForTimeout(400);
+  st = await page.evaluate(PROBE);
+  const home = await page.evaluate(() => document.getElementById('home').style.display !== 'none');
+  ok(!st.viewer && home, 'back again goes home — the return was consumed');
+
+  // back into a thread so the next block can open its Compare tab
+  await page.click('.crow[data-chat="chat-a"]');
+  await page.waitForSelector('.msg', { timeout: 8000 });
+
   // ---- a link to a chat this feed never met: still no nested app — the
   // TOP window navigates to that thread's own URL (the app then spends the
   // deep link and cleans its URL, so the ADDRESS is not the assertion: no
