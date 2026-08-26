@@ -106,11 +106,26 @@ const RUNS = [
   ok(srcs.some((s) => s.indexOf('data:image/gif') === 0),
     'a url with no derived copy passes through untouched');
 
-  console.log('\nthe lightbox gets the original');
+  // THE THUMB IS THE FIRST FRAME, THE ORIGINAL IS THE ONE SHE LOOKS AT
+  // (2026-08-26, Sophie: "it takes quite a while to load the images in light
+  // box view"). The old contract was "the lightbox src IS the original", which
+  // meant a 1-3MB download before anything appeared. The picture she just
+  // tapped is already in the cache at 480px, so it paints in the same frame
+  // and the original swaps in behind it — but it must never STAY at 480px,
+  // and Save must never be handed the derived copy.
+  console.log('\nthe lightbox opens on the cached thumb, then the original');
   await page.click('#runs img[data-run="r1"]');
-  const lbSrc = await page.getAttribute('#lbimg', 'src');
-  ok(lbSrc === STORED, 'the opened picture is the untouched original, never the thumb');
-  await page.click('#lb'); // close
+  const firstPaint = await page.getAttribute('#lbimg', 'src');
+  ok(firstPaint.indexOf('/api/story/thumb?w=480&url=') === 0,
+    'the first frame is the thumb the wall had already loaded');
+  ok(await page.evaluate(() => lbSrc) === STORED,
+    'Save and the app bridge still get the untouched original');
+  await page.waitForFunction(
+    () => document.getElementById('lbimg').getAttribute('src').indexOf('/api/story/thumb') !== 0);
+  const settled = await page.getAttribute('#lbimg', 'src');
+  ok(settled === STORED || settled.indexOf('blob:') === 0,
+    'and it settles on the original rather than staying at 480px');
+  await page.click('#lbback'); // the way out she asked for
 
   console.log('\na repaint keeps the pictures\' ELEMENTS — the flash test');
   // Mark every live <img>; anything rebuilt loses the mark.
