@@ -3,8 +3,11 @@
 Sophie's seven "People Watching Club: Official Training Film No. 001" cards cut
 into a 9:16 reel, opened with a public-domain 3-2-1 Academy leader countdown.
 
-**Live cut — v9, the markup redone from the images:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v9-fresh-marks.mp4
-(1080x1920, 30fps, 1:27, -15.0 LUFS. Same audio as v7, byte for byte.)
+**Live cut — v10, tight open + clean marks:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v10-tight-clean.mp4
+(1080x1920, 30fps, 1:26. v7's audio with two title-gap splices; grain and
+flicker halved; 16 marks.)
+
+**v9, the markup redone from the images:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v9-fresh-marks.mp4
 
 **v8, v7's marks re-timed only:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v8-marks-on-words.mp4
 
@@ -408,3 +411,32 @@ THINGS push. Her [1:15] "on NOW zoom out" fix from v5 was also silently gone.
   from archive.org (`IMB_SF_R30_C3`, CC-BY 3.0 — curl, not ffmpeg).
 - Verified before shipping by extracting frames at each word Whisper stamped
   and checking the right thing is circled while it is being said.
+
+
+## v10 — her five notes on v9
+
+*"less pause after 'pwc presents', less pause after 'without looking' ... just
+go right in"* — done in the AUDIO, not by re-rendering the voice: two splices
+in v7's finished mix, every cut point inside measured -22dB quiet (keep
+[0,4.575) + [4.7417,6.6334) + [7.4667,end) in v7 time), 30 frames out in
+total. The picture absorbs the same frames in the title's tail (0.50→0.0667)
+and card 2's lead (0.50→0.10), so nothing downstream moved. Measured on the
+finished v10: the presents→How gap is under 0.1s and the title→card-2 gap is
+0.41s. The film is 1:26.
+
+*"cut down on the grainy flashing a little"* — the flicker amplitudes halved
+(0.018/0.011 → 0.008/0.005) and the grain from `noise=alls=4` to `alls=2`.
+The sepia, weave and vignette are untouched.
+
+*"end notice things crosses out, shud underline"* — the line sat at y 0.968,
+which is INSIDE the letters (the text runs 0.944-0.974); it is at 0.979 now,
+between the baseline and the box edge at 0.982, and `line_pts`'s bow dropped
+to ±0.6% of length — a ±2% bow climbs out of a 12px channel. Underline a
+printed word only after measuring its baseline; eyeballing a fraction is how
+this shipped as a strike-through.
+
+*"a couple circles were a little unnecessary"* — three came off, each
+redundant with the camera: the 30-degree diagram label (the caption box
+already says the line), card 6's STEP 2 (the pull-out already frames it, and
+the arrow follows seconds later), and the WE-DON'T-INTERFERE seal (the camera
+is fully pushed into it). 16 marks stand.
