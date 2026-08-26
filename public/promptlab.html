@@ -57,13 +57,26 @@
      lines in the compact box; the corner button toggles the SAME textarea to
      just over half the screen — never a second field, so nothing has to be
      synced back. A rounded square at the house 6px (never a circle), sitting
-     INSIDE the box's bottom-right corner on the box's own paper so it reads
+     INSIDE the box's bottom-LEFT corner on the box's own paper so it reads
      over any text beneath it; the textarea reserves that corner with
-     padding-bottom so the last line of her words is never under the button. */
+     padding-bottom so the last line of her words is never under the button.
+
+     BOTTOM-LEFT, BECAUSE THE PILL OWNS THE OTHER CORNER (2026-08-26, Sophie,
+     looking at an empty prompt box: "padding under textbox???"). It shipped
+     bottom-RIGHT and was measured at 390x844 with the iPhone 13's real 47px
+     safe-area inset: the injected autoscroll pill's column is x 324-374,
+     y 47-227 and the button landed at x 333-359, y 164-190 — entirely inside
+     it, with `elementFromPoint` at the button's own centre returning the
+     PILL's svg. So the control was invisible and untappable on her phone and
+     the 34px it reserves was the only part of it she could see: a dead band
+     under an empty box with nothing to explain it. The same rule the review
+     queue's ↩ already follows — the pill owns the top-right, so anything that
+     would sit under it moves left. A headless check with no safe-area inset
+     misses this entirely: the pill sits 33px higher and the two just clear. */
   .promptwrap { position: relative; }
   .promptwrap textarea { display: block; box-sizing: border-box; padding-bottom: 34px; }
   #prompt.big { min-height: 52vh; }
-  #bigprompt { position: absolute; right: 6px; bottom: 6px; width: 26px; height: 26px;
+  #bigprompt { position: absolute; left: 6px; bottom: 6px; width: 26px; height: 26px;
     display: flex; align-items: center; justify-content: center; padding: 0; margin: 0;
     border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #6f675e; cursor: pointer; }
   #bigprompt svg { width: 14px; height: 14px; }
