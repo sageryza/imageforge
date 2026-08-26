@@ -61,9 +61,14 @@ const SLICES = {
                            // note: "scientist is cut off" — the audio is
                            // complete, the take reads clipped)
   c:     [396.8, 429.6],   // fish / bones "on the inside"
-  c1b:   [399.8, 404.0],   // lubricates — her ONE take that finishes the line
-                           // "…faster and stranger THAN EVER BEFORE" (she
-                           // asked whether it existed; it does, and only here)
+  // She asked whether a take says "…faster and stranger THAN EVER BEFORE".
+  // The words exist and she never said them in one breath: the line ends at
+  // "stranger" (401.7) and "Than ever before." arrives on its own FOURTEEN
+  // SECONDS later (415.3), as a pickup. So this shot is a SPLICE of the two —
+  // two sources, joined at the phrase boundary, which is a thing she approves
+  // by ear rather than something to ship silently.
+  c1a:   [397.6, 402.4],   // "Water lubricates … faster and stranger"
+  c1c:   [414.6, 417.6],   // "Than ever before." — her separate pickup
   d12:   [107.0, 121.0],   // one: spine ghosts · two: liquid lightning
   d3:    [142.5, 152.5],   // three: the third eye in your knee (+ more water right now)
   e1:    [160.3, 182.0],   // the bridge, DNA/gills, supercharges your brain
@@ -112,7 +117,10 @@ const SHOTS = [
   { id: 'a3', s: A, src: 'intro', tx: 0.790, ty: 0.561, z: 3.35, phrases: ['Three it keeps you feeling good'] },
   // z/ty from the MEASURED panel band (y 0.413-0.830): at z 2.45 the window
   // opened at 0.431 and clipped the first text line — her screenshot, v10.
-  { id: 'c1', s: C, src: 'c1b', tx: 0.188, ty: 0.622, z: 2.30, phrases: ['Water lubricates your ideas so they can slip out faster and stranger than ever before'] },
+  { id: 'c1', s: C, src: 'c1a', tx: 0.188, ty: 0.622, z: 2.30, phrases: [], extra: [
+    { source: 'c1a', phrase: 'Water lubricates your ideas so they can slip out faster and stranger' },
+    { source: 'c1c', phrase: 'Than ever before' },
+  ] },
   { id: 'c2', s: C, src: 'c', tx: 0.500, ty: 0.622, z: 2.30, phrases: ['Enough water can turn your sweat into miniature fish that will sing to you'] },
   { id: 'c3', s: C, src: 'c', tx: 0.810, ty: 0.622, z: 2.30, phrases: ['Your bones are secretly plants and water is what keeps them growing on the inside'] },
 
