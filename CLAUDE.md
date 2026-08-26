@@ -4188,6 +4188,55 @@ before working on that module. Nothing was deleted — the moved text is verbati
   it a story is a dead end in a browser. Test:
   `node scripts/test-storyroom-header.js` (three states —
   web / old build / new build).
+  **THE VOICEOVER AND THE DESCRIPTION ARE BEHIND ONE BUTTON, AND THE LAYOUT
+  IS THE WHOLE OF IT (2026-08-26, Sophie: "put the voiceover and story
+  description behind one button but think carefully about the layout").** It
+  was two buttons over two sheets — a book glyph over her description text
+  plus her two recordings as native `<audio controls>`, and a waveform over
+  the memos and episodes as rows. Everything in both is the same thing, so it
+  is one sheet, **About this story**, behind one Lucide `book-audio` button
+  (`#aboutbtn`; `#descbtn` and `#audiobtn` are gone).
+  - **THE ORDER WAS COUNTED, NOT GUESSED.** All 67 stories read live that
+    day: **47 carry anything at all, 43 of those have a RECORDING and only
+    17 a description** — and a description is a dictated transcript running
+    **~2,300 characters at the median and 10,593 at the longest**. So the
+    recordings LEAD (that is what a tap is for) and her words sit under them,
+    folded to six lines behind the house `.moretxt` opener. Put the words
+    first and every recording is several screens down.
+  - **ONE ROW DESIGN, so one way to play anything.** Her "As you told it" and
+    "Your narration" are `.aurow`s like the memos, on the page's one shared
+    `player` — which is also what lets a recording keep playing while she
+    reads the beats it became. The same file under both fields still draws
+    ONE row ("Your recording"). The attached list takes a **Recordings**
+    header only when hers are above it, so a story with no description looks
+    exactly as it did before the merge.
+  - **THE MERGE OWED HER A SCRUBBER.** Native `<audio controls>` were
+    scrubbable; a list of play buttons is not, and the two recordings most
+    worth scrubbing were exactly the ones being folded in. So the ROW grew
+    one: the playing row's own bottom hairline fills in ink, no extra height,
+    and the memos get it having never had one. Only the playing row carries
+    it; the touch strip starts where the TEXT does so a pause tap at the play
+    button's lower edge can never land on it instead.
+  - **THE SHEET'S PILL OWNS THAT CORNER ALL THE WAY DOWN, and this was a
+    LIVE BUG the merge exposed rather than caused.** The sheet is its own
+    scroller with its own fixed pill, so every row rides through the top-right
+    on the way up — measured pre-fix, rows ran to x=371 against a pill
+    starting at x=328, and a tap at the right end of the new scrubber reached
+    the PILL (`elementFromPoint`, the only honest question — the QUESTIONS
+    button's own lesson). `#audios`/`#deschead`/`#descbody` reserve the house
+    56px. **Measure that as INK, never as boxes:** padding keeps a box wide
+    while its words stop short, so a box rect reports a collision that is not
+    there.
+  - A row whose length nothing recorded (her description recording and her
+    narration are bare urls on the pad doc, with no `seconds`) learns it from
+    the file the moment it plays, and `_url` is RESOLVED on the way in —
+    `player.src` reads back absolute, so a relative url would compare unequal
+    to itself forever and the row would never show its pause glyph.
+  - Test: `node scripts/test-storyroom-about.js` (39 checks, headless, driving
+    real decodable wavs through the real page — the order, the fold measured
+    rather than counted in characters, the pill collision as ink, a real
+    pointer at four fifths along the scrubber, and the four shapes her real
+    stories come in).
   **THE WHOLE TOP IS ONE STICKY BLOCK, AND THE STORY'S NAME HAS ITS OWN LINE
   (2026-08-26, Sophie: "header layout sucks. back button not sticky. title too
   crowded").** Two faults in one row, both only visible as measurements.
