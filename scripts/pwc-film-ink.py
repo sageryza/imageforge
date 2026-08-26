@@ -56,10 +56,13 @@ def line_pts(x0, y0, x1, y1, seed):
     dx, dy = x1-x0, y1-y0
     L = math.hypot(dx, dy) or 1
     nx, ny = -dy/L, dx/L
-    bow = (r()-0.5)*0.04*L
+    # Bow stays UNDER ±0.6% of the length: the NOTICE THINGS underline lives
+    # in a ~12px channel between the baseline and its box edge, and the first
+    # cut's ±2% bow climbed into the letters — it read as a strike-through.
+    bow = (r()-0.5)*0.012*L
     for i in range(n+1):
         t = i/n
-        off = bow*math.sin(math.pi*t) + (r()-0.5)*2.5
+        off = bow*math.sin(math.pi*t) + (r()-0.5)*1.5
         pts.append((x0+dx*t+nx*off, y0+dy*t+ny*off))
     return pts
 
