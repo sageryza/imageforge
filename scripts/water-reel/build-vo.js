@@ -60,7 +60,10 @@ const SLICES = {
                            // line; the file-end one slurs the word (her v11
                            // note: "scientist is cut off" — the audio is
                            // complete, the take reads clipped)
-  c:     [396.8, 429.6],   // lubricates / fish / bones "on the inside"
+  c:     [396.8, 429.6],   // fish / bones "on the inside"
+  c1b:   [399.8, 404.0],   // lubricates — her ONE take that finishes the line
+                           // "…faster and stranger THAN EVER BEFORE" (she
+                           // asked whether it existed; it does, and only here)
   d12:   [107.0, 121.0],   // one: spine ghosts · two: liquid lightning
   d3:    [142.5, 152.5],   // three: the third eye in your knee (+ more water right now)
   e1:    [160.3, 182.0],   // the bridge, DNA/gills, supercharges your brain
@@ -107,11 +110,9 @@ const SHOTS = [
   { id: 'a1', s: A, src: 'intro', tx: 0.215, ty: 0.561, z: 3.35, phrases: ['One it hydrates your body'] },
   { id: 'a2', s: A, src: 'intro', tx: 0.503, ty: 0.561, z: 3.35, phrases: ['Two it supports your brain'] },
   { id: 'a3', s: A, src: 'intro', tx: 0.790, ty: 0.561, z: 3.35, phrases: ['Three it keeps you feeling good'] },
-  { id: 'a4', s: A, src: 'intro', tx: 0.500, ty: 0.880, z: 2.20, phrases: ['And you should be drinking gallons and gallons of water More water right now'] },
-
   // z/ty from the MEASURED panel band (y 0.413-0.830): at z 2.45 the window
   // opened at 0.431 and clipped the first text line — her screenshot, v10.
-  { id: 'c1', s: C, src: 'c', tx: 0.188, ty: 0.622, z: 2.30, phrases: ['Water lubricates your ideas so they can slip out faster and stranger'] },
+  { id: 'c1', s: C, src: 'c1b', tx: 0.188, ty: 0.622, z: 2.30, phrases: ['Water lubricates your ideas so they can slip out faster and stranger than ever before'] },
   { id: 'c2', s: C, src: 'c', tx: 0.500, ty: 0.622, z: 2.30, phrases: ['Enough water can turn your sweat into miniature fish that will sing to you'] },
   { id: 'c3', s: C, src: 'c', tx: 0.810, ty: 0.622, z: 2.30, phrases: ['Your bones are secretly plants and water is what keeps them growing on the inside'] },
 
@@ -122,19 +123,21 @@ const SHOTS = [
 
   // no "One": she said "One gallon of—" and restarted; the clean take starts
   // at "gallons" (measured — asking for the One would drag the flub back in)
-  { id: 'd1', s: D, src: 'd12', tx: 0.285, ty: 0.470, z: 2.20, phrases: ['gallons of water flush out the ghosts that live in your spine'] },
+  // wider and further left than v11: at z 2.20 the window's left edge landed on
+  // 0.058 and the "1" badge sits at ~0.06, so the badge and the left of the
+  // before/after spine were shaved (her note, 2026-08-25)
+  { id: 'd1', s: D, src: 'd12', tx: 0.280, ty: 0.455, z: 2.00, phrases: ['gallons of water flush out the ghosts that live in your spine'] },
   { id: 'd2', s: D, src: 'd12', tx: 0.745, ty: 0.500, z: 2.20, phrases: ['Two it turns your sweat into liquid lightning'] },
   { id: 'd3', s: D, src: 'd3', tx: 0.580, ty: 0.720, z: 2.00, glide: { tx: 0.740, ty: 0.862, z: 2.10 },
     phrases: ['Three enough water unlocks the third eye in your knee allowing you to see into the future More water right now'] },
 
-  { id: 'e0', s: E, src: 'e1', full: true, phrases: ['Here are some more reasons you should drink more water'] },
   // TWO phrases on purpose: she flubbed "You could grow will" before the good
   // "You could grow gills", and one long phrase matched straight through the
   // flub. Split spans let the flub fall between them.
   { id: 'e1', s: E, src: 'e1', tx: 0.523, ty: 0.404, push: true, phrases: ['Water rewires your DNA Every sip adds another strand until you unlock secret fish memories hidden in your spine', 'You could grow gills You probably will'] },
   { id: 'e2', s: E, src: 'e1', tx: 0.523, ty: 0.593, push: true, phrases: ['Water supercharges your brain Enough water can power a thought boat straight into the sea of solutions'],
     extra: [{ source: 'e2', phrase: "You're basically thinking with sandpaper" }] },
-  { id: 'e3', s: E, src: 'e2', tx: 0.522, ty: 0.772, push: true, phrases: ['Three water opens portals Gallons of water a day opens doors to hidden realms where time is soft and your worries dissolve like old candy'] },
+  { id: 'e3', s: E, src: 'e2', tx: 0.522, ty: 0.772, push: true, phrases: ['water opens portals Gallons of water a day opens doors to hidden realms where time is soft and your worries dissolve like old candy'] },
   { id: 'e4', s: E, src: 'e2', tx: 0.500, ty: 0.900, z: 1.60, phrases: ['Drink more water So much water Fill yourself up and overflow'] },
 
   { id: 'f1', s: F, src: 'f1b', tx: 0.188, ty: 0.476, z: 2.30, phrases: ['It flushes out the ghosts that live in your knees'] },
@@ -213,7 +216,7 @@ for (const s of SHOTS) {
 const SOURCES = [...Object.keys(SLICES), LAURA];
 const spec = {
   title: 'MORE WATER, RIGHT NOW — in her voice',
-  width: W, height: PADH, fps: FPS, bg: '#f1d3a5', out: 'water-reel-v11',
+  width: W, height: PADH, fps: FPS, bg: '#f1d3a5', out: 'water-reel-v12',
   // vo-film's default edge rule keeps up to 1.2s of lead-in/tail per shot,
   // which is right for a film of long shots and wrong for 34 short ones: the
   // two kept edges MEET at every joint and the verify pass reports the reel as

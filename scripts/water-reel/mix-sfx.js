@@ -50,35 +50,83 @@ const TARGET = Number(args.target || -30);   // dB mean, every effect, after gai
 const TAPER = Number(args.taper || 4);       // dB quieter by the end of the reel
 const PEAK_CEIL = -6;                        // dBFS, no effect may spike past this
 
-// shot id -> [effect, seconds into the shot, lift in dB above the bed]
-// A lift is a deliberate poke through the voice on a punchline, never a
-// symptom of a hot file — the file's own level is measured out first.
-const BED = {
-  a0: [['pour', 0.15, +2]],         a1: [['waterswish', 0.20, 0]],
-  a2: [['sparkle', 0.30, 0]],       a3: [['chime', 0.25, +1]],
-  a4: [['gulp', 0.20, +2]],
-  c1: [['pour', 0.45, 0]],
-  // her ask, 2026-08-25: "a melodic child lullaby singing la la la" under the
-  // miniature-fish-sing-to-you panel. +3 so the singing reads through the voice.
-  c2: [['lalala', 0.30, +3]],
-  c3: [['sparkle', 0.50, 0]],
-  b1: [['drips', 0.35, +1]],        b2: [['sparkle', 0.30, +1]],
-  b3: [['surf', 0.40, 0]],          b4: [['gulp', 0.25, +1]],
-  d1: [['spooky', 0.60, +1]],       d2: [['zapbig', 0.25, +2]],
-  d3: [['future', 0.40, 0], ['splash', 3.60, +2]],
-  e0: [['waterswish', 0.15, 0]],    e1: [['gurgle', 0.50, 0]],
-  e2: [['zap', 0.35, +1]],          e3: [['sparkle', 0.40, 0]],
-  e4: [['splash', 0.20, +2]],
-  f1: [['spooky', 0.40, +1]],       f2: [['goblin', 0.35, +2]],
-  f3: [['chime', 0.30, 0]],
-  g1: [['waterswish', 0.20, 0]],    g2: [['plinks', 0.45, 0]],
-  g3: [['surf', 0.35, 0]],
-  h1: [['boing', 0.30, +1]],        h2: [['pour', 0.40, 0]],
-  h3: [['splash', 0.30, 0]],
-  i1: [['spooky', 0.35, 0]],        i2: [['zapbig', 0.30, +1]],
-  i3: [['future', 0.30, 0]],        i4: [['drips', 0.40, 0]],
-  z1: [['splash', 0.10, +2]],
-};
+// AN EFFECT IS PINNED TO HER LINE, NEVER TO A SHOT SLOT (2026-08-25, Sophie:
+// "why did it move? It should not move. Nothing should move unless I say to
+// move it"). The bed used to be keyed by shot id — and a shot id is a POSITION
+// in the spec, so when the reel was rebuilt around her own recording the
+// structure changed underneath the table and every effect silently landed on a
+// different moment. The kid giggle she liked ended up somewhere she wasn't
+// expecting it, and nothing in the table could have told anyone.
+//
+// So each entry names a FRAGMENT OF THE LINE it belongs to. The fragment is
+// matched against the spec's own phrases, so an effect follows its words
+// wherever they end up — and a line that is CUT takes its effect with it, with
+// a named warning rather than a silent slide onto the next shot.
+//
+//   line  a fragment of the shot's phrase, unique across the reel
+//   fx    [effect, seconds into the shot, lift in dB above the bed]
+//         `at` may instead be {word: 'that'} — the effect starts on that word,
+//         located by transcribing that one shot (cached by its bytes)
+const BED = [
+  { line: 'Scientists did a study', fx: [
+    // her ask: the reel opens on the WORD, then the gurgle — not over it
+    ['persongurgle', 0.95, +2]] },
+  { line: 'hydrates your body', fx: [['gulp', 0.20, 0]] },
+  { line: 'supports your brain', fx: [['sparkle', 0.30, 0]] },
+  { line: 'keeps you feeling good', fx: [['chime', 0.25, +1]] },
+
+  { line: 'lubricates your ideas', fx: [['cooler', 0.35, +1]] },
+  { line: 'miniature fish', fx: [
+    // the lullaby starts ON the word, her ask — located in the cut itself
+    ['lalala', { word: 'that' }, +3]] },
+  { line: 'bones are secretly plants', fx: [['sparkle', 0.50, 0]] },
+
+  { line: 'greetings that live in your ears', fx: [['goblin', 0.35, +2]] },
+  { line: 'liquid light making you visible', fx: [['sparkle', 0.30, +1]] },
+  { line: 'boat inside your stomach', fx: [['surf', 0.40, 0]] },
+  { line: 'Drink gallons Live legendary', fx: [['gulp', 0.25, +1]] },
+
+  { line: 'ghosts that live in your spine', fx: [['spooky', 0.60, +1]] },
+  { line: 'liquid lightning', fx: [
+    // was zapbig — "I don't like the breaking glass sound effect"
+    ['crackle', 0.25, +2]] },
+  { line: 'third eye in your knee', fx: [['future', 0.40, 0], ['splash', 3.60, +2]] },
+
+  { line: 'rewires your DNA', fx: [['gurgle', 0.50, 0]] },
+  { line: 'supercharges your brain', fx: [['zap', 0.35, +1]] },
+  { line: 'opens portals', fx: [['sparkle', 0.40, 0]] },
+  { line: 'Fill yourself up and overflow', fx: [['splash', 0.20, +2]] },
+
+  { line: 'ghosts that live in your knees', fx: [['spooky', 0.40, +1]] },
+  { line: 'thirst demons', fx: [['goblin', 0.35, +2]] },
+  { line: 'auras reservoir', fx: [['chime', 0.30, 0]] },
+
+  { line: 'lubricates your thoughts', fx: [['waterswish', 0.20, 0]] },
+  { line: 'confuses your cells', fx: [['plinks', 0.45, 0]] },
+  { line: 'secret tiny rafts', fx: [['surf', 0.35, 0]] },
+
+  { line: 'washed super clean', fx: [['boing', 0.30, +1]] },
+  { line: 'extra water to your water', fx: [['pour', 0.40, 0]] },
+  { line: 'cells how to swim', fx: [['splash', 0.30, 0]] },
+
+  { line: 'regrets lurking', fx: [['spooky', 0.35, 0]] },
+  { line: 'rocket fuel', fx: [['zapbig', 0.30, +1]] },
+  { line: 'third eye on the inside', fx: [['future', 0.30, 0]] },
+  { line: 'sponge with anxiety', fx: [['drips', 0.40, 0]] },
+
+  { line: 'drink oceans', fx: [['splash', 0.10, +2]] },
+];
+
+// HER VOICE IS NEVER LOUDNORMED — this is a STATIC per-shot trim, capped, and
+// it is not the same thing (her ask, 2026-08-25: "I think my words are a bit
+// quieter here. Can you see if they're the same volume?"). Measured across
+// v11's shots her read runs -14.4dB to -17.0dB, which is her delivery, not
+// processing. A constant gain per shot evens that without touching the dynamics
+// inside a shot; compression or loudnorm would change how she sounds, which is
+// the thing that is forbidden. VOICE_CAP bounds it so nothing can be rescued
+// from a genuinely bad take by turning it up.
+const VOICE_TARGET = Number(args.voiceTarget || -15.5);
+const VOICE_CAP = Number(args.voiceCap || 2.5);
 
 const dur = (f) => Number(execFileSync(ffprobe, ['-v', 'error', '-show_entries', 'format=duration',
   '-of', 'default=nk=1:nw=1', f]).toString().trim());
@@ -125,12 +173,51 @@ if (!fs.existsSync(film)) throw new Error(`no film at ${film}`);
 const lens = shots.map((f) => dur(path.join(shotDir, f)));
 const total = lens.reduce((a, b) => a + b, 0);
 
-const inputs = ['-i', film]; const chains = ['[0:a]volume=1.0[a0]'];
+// line fragment -> shot index, matched against the spec's own phrases
+const norm = (x) => String(x || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+const hay = spec.shots.map((sh) => norm([...(sh.phrases || []), ...((sh.extra || []).map((e) => e.phrase))].join(' ')));
+const bedFor = spec.shots.map(() => []);
+for (const entry of BED) {
+  const want = norm(entry.line);
+  const hits = hay.map((h, i) => (h.includes(want) ? i : -1)).filter((i) => i >= 0);
+  if (!hits.length) { console.warn(`SFX DROPPED — no shot says "${entry.line}" (the line was cut; its effect went with it)`); continue; }
+  if (hits.length > 1) console.warn(`SFX AMBIGUOUS — "${entry.line}" matches ${hits.length} shots; using the first`);
+  bedFor[hits[0]].push(...entry.fx);
+}
+
+// an effect asked to start ON a word transcribes that ONE shot, cached by bytes
+const wordCache = path.join(FILM, '_sfx-words.json');
+const wordMem = fs.existsSync(wordCache) ? JSON.parse(fs.readFileSync(wordCache, 'utf8')) : {};
+async function wordAt(file, word) {
+  const key = require('crypto').createHash('md5').update(fs.readFileSync(file)).digest('hex') + '|' + word;
+  if (wordMem[key] != null) return wordMem[key];
+  const mp3 = path.join(FILM, '_sfxw.mp3');
+  execFileSync(ffmpeg, ['-v', 'error', '-y', '-i', file, '-ac', '1', '-ar', '16000', '-b:a', '48k', mp3]);
+  const form = new FormData();
+  form.append('file', new Blob([fs.readFileSync(mp3)], { type: 'audio/mpeg' }), 'c.mp3');
+  form.append('model', 'whisper-1');
+  form.append('response_format', 'verbose_json');
+  form.append('timestamp_granularities[]', 'word');
+  const r = await fetch('https://api.openai.com/v1/audio/transcriptions',
+    { method: 'POST', headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` }, body: form });
+  const d = await r.json();
+  const w = (d.words || []).find((x) => norm(x.word) === norm(word));
+  const at = w ? Math.max(0, w.start) : null;
+  if (at == null) console.warn(`SFX word "${word}" not heard in ${path.basename(file)} — falling back to 0.3s in`);
+  wordMem[key] = at == null ? 0.3 : at;
+  fs.writeFileSync(wordCache, JSON.stringify(wordMem));
+  return wordMem[key];
+}
+
+(async () => {
+const inputs = ['-i', film]; const chains = [];
 const log = [];
 let t = 0, placed = 0;
-shots.forEach((f, si) => {
+for (let si = 0; si < shots.length; si++) {
+  const f = shots[si];
   const id = f.replace(/^shot-\d+-/, '').replace(/\.wav$/, '');
-  for (const [name, at, lift] of (BED[id] || [])) {
+  for (let [name, at, lift] of bedFor[si]) {
+    if (at && typeof at === 'object' && at.word) at = await wordAt(path.join(shotDir, f), at.word);
     const file = path.join(SFX, `${name}.mp3`);
     if (!fs.existsSync(file)) { console.warn(`missing sfx ${name}`); continue; }
     const { mean, max } = level(file);
@@ -139,18 +226,34 @@ shots.forEach((f, si) => {
     const ceil = PEAK_CEIL - max;                        // keep the peak polite
     if (gain > ceil) gain = ceil;
     const ms = Math.round((t + at) * 1000);
-    const idx = inputs.length / 2;
+    const idx = inputs.length / 2; // 0 is the film; the voice chain is unshifted to [a0]
     inputs.push('-i', file);
     chains.push(`[${idx}:a]volume=${gain.toFixed(2)}dB,adelay=${ms}|${ms}[a${idx}]`);
     log.push(`${id.padEnd(3)} ${name.padEnd(11)} src ${mean.toFixed(1)}dB -> ${gain.toFixed(1)}dB (peak ${(max + gain).toFixed(1)})`);
     placed++;
   }
   t += lens[si];
-});
+}
+
+// her voice, evened by a static per-shot trim (see VOICE_TARGET above)
+const vChains = [];
+let vt = 0;
+for (let si = 0; si < shots.length; si++) {
+  const { mean } = level(path.join(shotDir, shots[si]));
+  let g = VOICE_TARGET - mean;
+  g = Math.max(-VOICE_CAP, Math.min(VOICE_CAP, g));
+  const a = vt, b = vt + lens[si];
+  vChains.push(`[0:a]atrim=start=${a.toFixed(3)}:end=${b.toFixed(3)},asetpts=PTS-STARTPTS,volume=${g.toFixed(2)}dB[v${si}]`);
+  if (Math.abs(g) >= 0.4) log.push(`${shots[si].replace(/^shot-\d+-/, '').replace(/\.wav$/, '').padEnd(3)} VOICE       ${mean.toFixed(1)}dB -> ${g >= 0 ? '+' : ''}${g.toFixed(1)}dB`);
+  vt = b;
+}
+chains.unshift(`${vChains.join(';')};${shots.map((_, i) => `[v${i}]`).join('')}concat=n=${shots.length}:v=0:a=1[a0]`);
+const nMix = chains.length;
 const mix = chains.map((_, i) => `[a${i}]`).join('');
-const filter = `${chains.join(';')};${mix}amix=inputs=${chains.length}:normalize=0,alimiter=limit=0.95[aout]`;
+const filter = `${chains.join(';')};${mix}amix=inputs=${nMix}:normalize=0,alimiter=limit=0.95[aout]`;
 execFileSync(ffmpeg, ['-v', 'error', '-y', ...inputs, '-filter_complex', filter,
   '-map', '0:v', '-map', '[aout]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k',
   '-movflags', '+faststart', OUT], { stdio: ['ignore', 'ignore', 'pipe'] });
 if ('verbose' in args) console.log(log.join('\n'));
-console.log(`${OUT} — ${placed} effects under ${t.toFixed(1)}s, bed ${TARGET}dB tapering ${TAPER}dB`);
+console.log(`${OUT} — ${placed} effects under ${t.toFixed(1)}s, bed ${TARGET}dB tapering ${TAPER}dB, voice evened to ${VOICE_TARGET}dB (max ${VOICE_CAP}dB)`);
+})().catch((e) => { console.error(e.message); process.exit(1); });

@@ -127,6 +127,18 @@ it is machine-verified, not ear-verified.
   LOCATE, a 20ms RMS profile to TRIM*, independently re-earned here as the
   re-listen + quiet-landing rule. That double payment is why this list is in
   the doc of record now.
+- **A SOUND EFFECT (or any per-moment decision) IS PINNED TO THE LINE, NEVER TO
+  A SHOT SLOT (2026-08-25, Sophie: "why did it move? It should not move.
+  Nothing should move unless I say to move it").** A shot id is a POSITION in a
+  spec, so when a reel is re-cut — a section added, a line dropped, the whole
+  thing rebuilt around a new recording — every table keyed by shot id silently
+  re-points at different moments. On the water reel a kid giggle she had
+  explicitly asked to keep ended up on a different panel and nothing in the
+  table could have said so. `mix-sfx.js` keys its bed by a FRAGMENT OF HER
+  LINE, resolved against the spec's own phrases: an effect follows its words,
+  and a cut line takes its effect with it under a named warning instead of
+  sliding onto the neighbour. Apply the same rule to anything else placed
+  against a moment — a hold, a colour, a title card.
 - **THE VERIFY GATE PASSING IS NOT A WORD-LEVEL CLAIM.** The gate fails only
   on ≥4-word contiguous runs, so single clipped or eaten words sail through
   — two shipped that way. `vo-film.js`'s verify now prints a WORD SWEEP:

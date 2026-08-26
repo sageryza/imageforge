@@ -154,6 +154,15 @@ Full findings in `docs/nde-precise-cutting.md`. In short:
 
 - **NEVER loudnorm her voice** — she rejected the dynamic squeezing. Cuts
   are plain cuts of the original bytes; clips get 12ms edge micro-fades only.
+  A **STATIC per-shot gain is not that** and is allowed when she asks whether
+  her level is even (2026-08-25): a constant trim, capped (±2.5dB on the water
+  reel), applied at the MIX so the cut stays byte-exact — it moves nothing
+  inside a shot. Compression, loudnorm and any dynamic curve stay forbidden,
+  and a cap is what stops a bad take being rescued by turning it up.
+- **ANYTHING PLACED AGAINST A MOMENT IS PINNED TO HER LINE, NOT TO A SHOT
+  SLOT** (a sound effect, a hold, a card). A shot id is a position, so a re-cut
+  silently re-points every table keyed by one — this moved a sound effect she
+  had asked to keep. Full rule: `docs/nde-precise-cutting.md`.
 - **A MULTI-SHOT TTS NARRATION IS ONE RENDER, SPLIT — never one call per
   shot (Aug 2026, Sophie: "you're supposed to pick one clip and then chain
   them all together so that they don't change the register so much").** Every
