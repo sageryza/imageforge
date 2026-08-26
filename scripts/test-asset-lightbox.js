@@ -302,6 +302,53 @@ window.__open = function () {
   });
   ok('her first letter takes the room back', after.hasmsgs && after.h < empty.h);
 
+  // ── THE PLAYGROUND LAYOUT HOOKS (2026-08-26, Sophie: "put the heart where
+  //    they were before exactly … the quality model etc. should go right
+  //    under the picture not below the note area"): votesBelow puts ♥/✕ at
+  //    the head of the under-picture row, capUnderImage files the tag and
+  //    label directly under the picture, and the picture gets its room back. ──
+  await page.evaluate((px) => window.__assetLightbox(px, {
+    description: 'run 12',
+    prompt: 'gpt-image-2 · medium · 2K',
+    promptStyle: 'wtr wash', promptContent: 'crows at dusk',
+    vote: null, thread: [],
+    _cast: function () {}, _noteSend: function (t, cb) { cb && cb(true); },
+    votesBelow: true, capUnderImage: true,
+    actions: [{ label: 'Save to Photos',
+      icon: '<svg viewBox="0 0 24 24"><path d="M12 3v14"/></svg>', onClick: function () {} }],
+  }), TALL);
+  await page.waitForTimeout(120);
+  const vb = await page.evaluate(() => {
+    const lb = document.getElementById('clightbox');
+    const img = lb.querySelector('img').getBoundingClientRect();
+    const tag = lb.querySelector('.cltag').getBoundingClientRect();
+    const cap = lb.querySelector('.clcap').getBoundingClientRect();
+    const acts = lb.querySelector('.lbacts');
+    const ab = acts.getBoundingClientRect();
+    const note = lb.querySelector('.lbnote').getBoundingClientRect();
+    return {
+      topVotes: lb.querySelectorAll('.lbtop .vote').length,
+      rowOrder: [...acts.querySelectorAll('button')].map((b) => b.getAttribute('aria-label')),
+      tagUnderImg: tag.top >= img.bottom - 1 && cap.bottom <= ab.top + 1,
+      rowAboveNotes: ab.bottom <= note.top + 1,
+      promptTop: !!lb.querySelector('.lbtop .promptbtn'),
+      imgH: img.height,
+      noteFits: note.bottom <= window.innerHeight + 1,
+    };
+  });
+  is('votesBelow: no vote circles in the top band', vb.topVotes, 0);
+  is('the under-picture row reads ♥ ✕ then the actions', vb.rowOrder,
+    ['Heart', 'Reject', 'Save to Photos']);
+  ok('the tag and label sit right under the picture, above the row', vb.tagUnderImg);
+  ok('the row sits above the note box', vb.rowAboveNotes);
+  ok('Prompt stays in the top band', vb.promptTop);
+  // the old layout's cap here (hastalk+hasacts, no letters) is 56vh = 473px;
+  // this fixture's natural height is ~531px, so clearing 0.6*844 = 506 proves
+  // the cap really moved rather than the picture merely being small.
+  ok('the picture gets its room back (taller than the step caps allowed)',
+    vb.imgH > 0.6 * 844);
+  ok('the note box still fits on screen', vb.noteFits);
+
   // an image opened with NO extras is untouched — every existing caller
   await page.evaluate(() => window.__assetLightbox('data:image/gif;base64,R0lGODlhAQABAAAAACw=', {}));
   await page.waitForTimeout(80);

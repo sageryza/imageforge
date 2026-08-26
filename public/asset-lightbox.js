@@ -63,6 +63,21 @@
    A toggle half with NOTHING filed is not offered (the Playground's rule,
    now everyone's): one empty half hides its button, and a prompt with only
    one half shows no Style|Content pair at all — the words alone.
+
+   THE PLAYGROUND LAYOUT HOOKS (2026-08-26, Sophie, the day after the port:
+   "put the heart where they were before exactly … the quality model etc.
+   should go right under the picture not below the note area"). The migration
+   onto this file had moved that page's ♥/✕ to the screen's top corners,
+   shrunk the picture, and left the MODEL · QUALITY tag below the note box.
+     `votesBelow` — ♥/✕ lead the actions row UNDER the picture (♥ ✕ · copy ·
+       save · story, one row — where the Playground has always kept them);
+       the top band keeps only Prompt · Chat, centred, and the picture gets
+       back the room the top-corner layout's caps took (76vh, yielding only
+       when the screen is short).
+     `capUnderImage` — the MODEL · QUALITY tag and the label sit directly
+       under the picture, above that row and the notes.
+   Both opt-in per caller; the Assets tab, Meta Assets and the grid pages
+   pass neither and are untouched.
    ♥/✕ and the note box appear only when the caller wires _cast (votes) —
    the caller owns WHERE a vote lands (the Assets tab posts the asset vote;
    a grid page also saves its page verdict), same as it always did.
@@ -209,7 +224,16 @@
     + '#clightbox .lbzone{position:absolute; top:0; bottom:0; width:28%; border:0; background:none;\n'
     + '  padding:0; margin:0; cursor:pointer; border-radius:0; box-shadow:none;}\n'
     + '#clightbox .lbzone.prev{left:0;}\n'
-    + '#clightbox .lbzone.next{right:0;}\n';
+    + '#clightbox .lbzone.next{right:0;}\n'
+    /* THE votesBelow LAYOUT (the Playground) — the picture gets its old room
+       back: capped at 76vh and SHRINKING through flex when the screen is
+       short, the old .lbstage pattern, instead of the top-corner layout's
+       fixed 46-62vh steps. Every selector the step caps use is re-listed so
+       none of them out-specifies this. */
+    + '#clightbox.vbelow .clwrap{min-height:0; flex:0 1 auto;}\n'
+    + '#clightbox.vbelow img, #clightbox.vbelow.hastalk img, #clightbox.vbelow.hastalk.hasmsgs img,\n'
+    + '#clightbox.vbelow.hastalk.hasacts img, #clightbox.vbelow.hastalk.hasacts.hasmsgs img{max-height:min(76vh,100%);}\n'
+    + '#clightbox.vbelow .cltag, #clightbox.vbelow .clcap, #clightbox.vbelow .lbacts, #clightbox.vbelow .lbtalk{flex:none;}\n';
   document.head.appendChild(css);
 
   var HEART = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>';
@@ -247,6 +271,8 @@
     lb.classList.remove('hastalk');   // last image's thread must not shrink this one
     lb.classList.remove('hasmsgs');   // ...nor whether that thread had letters in it
     lb.classList.remove('hasacts');   // ...nor its actions row
+    // the votesBelow layout is the caller's, per open — never carried over
+    lb.classList.toggle('vbelow', !!(asset && asset.votesBelow));
     // THE STEP ZONES — a feed surface steps through its pictures without
     // leaving the lightbox (the Playground). A null side draws NOTHING, so at
     // the ends of the feed a tap there closes like any other dead space. The
@@ -350,6 +376,7 @@
       var row = document.createElement('div'); row.className = 'lbtop';
       var hb = document.createElement('button'); hb.className = 'vote heart'; hb.innerHTML = window.__HEART || HEART;
       var xb = document.createElement('button'); xb.className = 'vote nope'; xb.innerHTML = window.__XMARK || XMARK;
+      hb.setAttribute('aria-label', 'Heart'); xb.setAttribute('aria-label', 'Reject');
       // The thread: her notes and the chat's replies back, oldest at the top.
       // Snail mail — the chat that made the image answers next time she messages
       // it, so a reply landing here later is normal and expected.
@@ -447,12 +474,29 @@
       asset._lbPaint();
       hb.onclick = function (e) { e.stopPropagation(); asset._cast('like'); };
       xb.onclick = function (e) { e.stopPropagation(); asset._cast('dislike'); };
-      // ♥ left, Prompt · Chat together in the middle, ✕ right (space-between)
       var mid = document.createElement('div'); mid.className = 'lbmid';
       if (promptBtn) mid.appendChild(promptBtn);
       mid.appendChild(more);
-      row.appendChild(hb); row.appendChild(mid); row.appendChild(xb);
       var frame = lb.querySelector('.clframe');
+      if (asset.votesBelow) {
+        // ♥/✕ lead the row UNDER the picture (2026-08-26, Sophie: "put the
+        // heart where they were before exactly") — the Playground kept them
+        // there, ♥ ✕ · copy · save · story in one row, until the port onto
+        // this file moved them to the screen's top corners. The top band
+        // keeps only Prompt · Chat, centred.
+        var arow = lb.querySelector('.lbacts');
+        if (!arow) {
+          arow = document.createElement('div'); arow.className = 'lbacts';
+          lb.appendChild(arow); lb.classList.add('hasacts');
+        }
+        arow.insertBefore(xb, arow.firstChild);
+        arow.insertBefore(hb, arow.firstChild);
+        row.style.justifyContent = 'center';
+        row.appendChild(mid);
+      } else {
+        // ♥ left, Prompt · Chat together in the middle, ✕ right (space-between)
+        row.appendChild(hb); row.appendChild(mid); row.appendChild(xb);
+      }
       (frame || lb).appendChild(row);
       lb.appendChild(talk);   // thread + note box below the image, never over it
       lb.classList.add('hastalk');   // shrinks the picture so the thread has room
@@ -473,6 +517,13 @@
     // at all still has to say it, so the mark gets its own tag row rather than
     // riding on a string that may not exist.
     var comp = !!(asset && asset.compressedAtBirth);
+    // RIGHT UNDER THE PICTURE when the caller asks (2026-08-26, Sophie: "the
+    // quality model etc. should go right under the picture not below the note
+    // area") — above the button row and the notes, the old Playground order.
+    // Default stays the very bottom, which is the Assets tab's own design.
+    var capAnchor = (asset && asset.capUnderImage)
+      ? (lb.querySelector('.lbacts') || lb.querySelector('.lbtalk')) : null;
+    function fileCap(el) { if (capAnchor) lb.insertBefore(el, capAnchor); else lb.appendChild(el); }
     if (comp || tag) {
       var tc = document.createElement('div'); tc.className = 'cltag';
       if (comp) {
@@ -482,9 +533,9 @@
         if (tag) tc.appendChild(document.createTextNode(' '));
       }
       if (tag) tc.appendChild(document.createTextNode(tag));
-      lb.appendChild(tc);
+      fileCap(tc);
     }
-    if (cap) { var cc = document.createElement('div'); cc.className = 'clcap'; cc.textContent = cap; lb.appendChild(cc); }
+    if (cap) { var cc = document.createElement('div'); cc.className = 'clcap'; cc.textContent = cap; fileCap(cc); }
     var who = asset ? (asset.who || '') : '';
     if (who) { var wc = document.createElement('div'); wc.className = 'clwho'; wc.textContent = who; lb.appendChild(wc); }
     lb.style.display = 'flex'; document.body.style.overflow = 'hidden'; document.body.classList.add('ontop');
@@ -529,6 +580,7 @@
         lb.classList.remove('hastalk');
         lb.classList.remove('hasmsgs');
         lb.classList.remove('hasacts');
+        lb.classList.remove('vbelow');
       });
       window.scrollTo(0, lbY);
       // …and again next frame, for the keyboard-dismissal scroll that lands late.
