@@ -2501,6 +2501,44 @@ router.post('/waiting', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// MAKING A WORD A PILE RE-FILES WHAT IS ALREADY WEARING IT (2026-08-26, Sophie:
+// "middle one goes first chat should've left because I tagged it as PWC reel").
+//
+// She was right and the chat had never been touched by her hand: `pwc reel` had
+// been on it since the day before, written by the auto-sorter as a plain TAG,
+// and the thing she did today was flip that WORD on in this sheet. The flip
+// wrote `pileLabels` and nothing else — so every chat wearing the word became
+// "filed" while still carrying the `filedAt` it was given back when the word
+// meant nothing. Any reply that landed after that stamp makes `chatBack`
+// (chats.html) true, so the chat pops straight back onto the main list and
+// never leaves again: the sheet promises "a lit word takes a chat off the main
+// list until it answers you" and the chat answered a day before the promise
+// existed. Measured that morning: of the 8 chats wearing `pwc reel`, the only
+// one that did not leave was the only one whose reply post-dated its stamp.
+//
+// So the flip renews `filedAt`, exactly as filing by hand already does
+// (`saveLabels` writes the stamp itself for the same reason — "without it a
+// chat with an unread reply files itself and reappears on the same repaint").
+// Turning a word OFF stamps nothing: those chats hand themselves back by
+// `chatFiled` going false, and re-stamping them would be filing they never
+// asked for.
+//
+// It writes `filedAt` ALONE — never `labelPatch`. A pile flip is a decision
+// about the WORD, not about the chats, so it must not stamp `catBy: 'sophie'`
+// and lock the auto-sorter out of ten chats it filed itself (the same care
+// `/forget` takes when it preserves `by`).
+async function refileWearers(reg, label) {
+  const wearing = Object.keys(reg.chats).filter(
+    (n) => labelsOf(reg.chats[n]).indexOf(label) > -1);
+  const now = new Date().toISOString();
+  for (let i = 0; i < wearing.length; i += 400) {
+    const batch = db().batch();
+    wearing.slice(i, i + 400).forEach((n) => batch.set(regRef(n), { filedAt: now }, { merge: true }));
+    await batch.commit();
+  }
+  return wearing;
+}
+
 router.post('/pile', async (req, res) => {
   try {
     const body = req.body || {};
@@ -2512,8 +2550,13 @@ router.post('/pile', async (req, res) => {
     const next = on
       ? (cur.indexOf(label) > -1 ? cur : cur.concat(label))
       : cur.filter((c) => c !== label);
+    // The chats first, then the list: a failure partway leaves the word doing
+    // what it did before, over chats stamped as freshly filed — which is
+    // recoverable by flipping it again. The other order files chats away
+    // against a stamp that never landed.
+    const refiled = on ? await refileWearers(reg, label) : [];
     await regRef(SETTINGS_DOC).set({ pileLabels: next }, { merge: true });
-    res.json({ ok: true, label, pile: on, piles: next });
+    res.json({ ok: true, label, pile: on, piles: next, refiled });
   } catch (err) { fail(res, err); }
 });
 

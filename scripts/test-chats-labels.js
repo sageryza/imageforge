@@ -257,6 +257,42 @@ async function routeTests() {
   r = await call(pile, {});
   ok('a pile flip with no word is refused', r.code === 400);
 
+  // ---- MAKING A WORD A PILE RE-FILES WHAT ALREADY WEARS IT (2026-08-26) ---
+  // Sophie: "middle one goes first chat should've left because I tagged it as
+  // PWC reel". The word was already on the chat (the auto-sorter put it there
+  // the day before) and what she did was flip it ON in this sheet — which used
+  // to write `pileLabels` and nothing else, leaving every chat wearing the word
+  // holding the `filedAt` it was given while the word still meant nothing. Any
+  // reply newer than that stamp makes `chatBack` true, so the chat pops onto
+  // the main list and never leaves again. Measured live that morning: of the 8
+  // chats wearing `pwc reel`, the only one that did not leave was the only one
+  // whose reply post-dated its stamp.
+  await call(post, { chat: 'plain', labels: ['errands'] });
+  await call(post, { chat: 'other', labels: ['errands'] });
+  const staleAt = '2020-01-01T00:00:00.000Z';
+  reg().plain.filedAt = staleAt;
+  reg().other.filedAt = staleAt;
+  reg().plain.catBy = 'auto';
+  reg().legacy.filedAt = staleAt;   // NOT wearing `errands`
+  r = await call(pile, { label: 'errands', pile: true });
+  ok('flipping a word ON renews `filedAt` on every chat wearing it',
+    reg().plain.filedAt > staleAt && reg().other.filedAt > staleAt,
+    reg().plain.filedAt + ' / ' + reg().other.filedAt);
+  ok('…and names them back', JSON.stringify((r.body.refiled || []).sort()) === '["other","plain"]',
+    JSON.stringify(r.body.refiled));
+  ok('…and leaves a chat that does NOT wear the word alone',
+    reg().legacy.filedAt === staleAt, reg().legacy.filedAt);
+  ok('…and never stamps `catBy` — a pile flip is about the WORD, so it must not '
+    + 'lock the auto-sorter out of chats it filed', reg().plain.catBy === 'auto');
+  ok('…and touches nothing else on the chat',
+    JSON.stringify(reg().plain.labels) === '["errands"]', JSON.stringify(reg().plain.labels));
+
+  const offAt = reg().plain.filedAt;
+  r = await call(pile, { label: 'errands', pile: false });
+  ok('flipping a word OFF stamps nothing — those chats come back by themselves',
+    reg().plain.filedAt === offAt && !(r.body.refiled || []).length,
+    reg().plain.filedAt + ' / ' + JSON.stringify(r.body.refiled));
+
   // ---- A WORD THAT ASKS A QUESTION (Aug 2026 v3) -------------------------
   // `waiting for something` opens a box; her answer lives in `waitingFor`, its
   // own field, because a chat must never overwrite a line she wrote — and the
