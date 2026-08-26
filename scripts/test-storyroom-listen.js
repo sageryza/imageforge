@@ -79,7 +79,9 @@ const server = http.createServer((req, res) => {
   }
   const file = path.join(PUB, u.split('?')[0].replace(/^\//, '') || 'index.html');
   if (file.startsWith(PUB) && fs.existsSync(file) && fs.statSync(file).isFile()) {
-    res.setHeader('Content-Type', file.endsWith('.html') ? 'text/html' : 'application/octet-stream');
+    res.setHeader('Content-Type', file.endsWith('.html') ? 'text/html'
+      : file.endsWith('.css') ? 'text/css'
+      : file.endsWith('.js') ? 'text/javascript' : 'application/octet-stream');
     return res.end(fs.readFileSync(file));
   }
   res.statusCode = 404; res.end('not found');

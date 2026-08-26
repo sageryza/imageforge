@@ -4396,6 +4396,33 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - Test: `node scripts/test-scratchpad-popup.js` (the real page, headless —
     the pencil measured beside the words, the empty tile measured against the
     same card holding a picture).
+  **THE DRAW ROW: THE STAR, AND QUALITY OPENS ON LOW (2026-08-26, Sophie:
+  "can you make the draw button the stars logo we use for generate and can you
+  change the default to low instead of medium and can you make the three-way
+  toggle for the quality instead of the drop-down").** Three asks about one
+  row, all house rules this page had not caught up with.
+  - **`#dgo` is the hand-fitted star**, the ONE generate glyph — the same
+    `ICON_STAR` `#ardraw` already wore, so the two are compared as markup in
+    the test rather than by a path copied into it. A 34px filled ink square at
+    the house 6px, the Playground's own Generate box; the word "Draw" is gone.
+  - **`#dq` and `#bq` are `.tri` from `/tritoggle.css`** — the shared shell,
+    never a fourth hand-copy of the geometry — paper with an ink line and a
+    dark knob (the Playground's family, so the toggle sits with `#dchar`'s
+    outlined box), 78/26, which lands at 34px tall: exactly `#dchar`'s height.
+    `/tritoggle.js` is the aim rule, with the page carrying the old cycle as a
+    one-line floor for a stale cache and nothing more.
+  - **LOW is where the card's draw opens now** (it was medium — 3x the price
+    of a picture she is usually only checking the words against). `#bq` was
+    already low. `QUALS`/`qVal`/`qSet`/`wireQ` in the generator are the one
+    table and the one reader; a fourth quality is an entry in that list.
+  - **THE PAGE HAS ONE FLOOR, NOT ONE PER TOGGLE.** The style switch landed
+    on the shell the same day (another chat, `#styletog`) carrying its own
+    inline `window.triNext ? … : cycle`; both read the page's single declared
+    `triNext` now, so a page can never grow two versions of the fallback and
+    have them drift.
+  - Test: the draw-row section of `node scripts/test-scratchpad-popup.js`,
+    which taps a POSITION on the track (a click on the element's centre is
+    where a cycle and an aim agree, so it can never see the bug).
   **AND EITHER BOX OPENS BIGGER, AS AN OPTION (2026-08-26, Sophie: "make it
   possible to open the caption and the drawing prompt in bigger boxes so I can
   edit them but don't make that the default").** A 26px rounded square inside
