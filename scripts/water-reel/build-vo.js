@@ -146,12 +146,15 @@ const SHOTS = [
   { id: 'e3', s: E, src: 'e2', pan: { z: 2.55, ty: 0.772, from: 0.26, to: 0.74 }, phrases: ['water opens portals Gallons of water a day opens doors to hidden realms where time is soft and your worries dissolve like old candy'] },
   { id: 'e4', s: E, src: 'e2', tx: 0.500, ty: 0.900, z: 1.60, phrases: ['Drink more water So much water Fill yourself up and overflow'] },
 
-  // measured panel band y 0.41-0.79; at ty 0.476/z 2.30 the window stopped at
-  // 0.694 and cut each picture in half, which is what read as "not zoomed into
-  // that moment" — 0.60/2.60 is the panel edge to edge, number, words, picture
-  { id: 'f1', s: F, src: 'f1b', tx: 0.190, ty: 0.600, z: 2.60, phrases: ['It flushes out the ghosts that live in your knees'] },
-  { id: 'f2', s: F, src: 'f12', tx: 0.500, ty: 0.600, z: 2.60, phrases: ['It offends the major thirst demons so they leave you alone'] },
-  { id: 'f3', s: F, src: 'f3',  tx: 0.810, ty: 0.600, z: 2.60, phrases: ['It fills your auras reservoir so you can fly and do backflips'] },
+  // MEASURED (ink profile of panel 1's own column, not eyeballed): the panel
+  // runs y 0.36-0.79, so it is 0.43 tall and the biggest window that holds it
+  // whole is z 2.30 centred on 0.575. v12 had the right zoom and the wrong
+  // CENTRE — ty 0.476 put the window at 0.259-0.694, above the panel, cutting
+  // every picture in half. That was her "not zoomed into that moment": the
+  // moment was the half that was missing.
+  { id: 'f1', s: F, src: 'f1b', tx: 0.190, ty: 0.575, z: 2.30, phrases: ['It flushes out the ghosts that live in your knees'] },
+  { id: 'f2', s: F, src: 'f12', tx: 0.500, ty: 0.575, z: 2.30, phrases: ['It offends the major thirst demons so they leave you alone'] },
+  { id: 'f3', s: F, src: 'f3',  tx: 0.810, ty: 0.575, z: 2.30, phrases: ['It fills your auras reservoir so you can fly and do backflips'] },
 
   { id: 'g1', s: G, src: 'g', pan: { z: 2.55, ty: 0.385, from: 0.26, to: 0.74 }, phrases: ['Water lubricates your thoughts so ideas slide around more freely'] },
   { id: 'g2', s: G, src: 'g', pan: { z: 2.55, ty: 0.512, from: 0.26, to: 0.74 }, phrases: ['Water confuses your cells in a good way making them forget to be old'] },
