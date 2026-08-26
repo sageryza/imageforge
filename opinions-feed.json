@@ -2,23 +2,6 @@
  "comment": "The preloaded Opinions feed — matchups for /opinions (opinions.js). Two sides per item; she picks one and the picked one is stamped GOOD IDEA. kind 'image' sides carry img (a COMMITTED webp under public/ — never a raw PNG, never a temporary url). mode 'easy' = the hook (obviously right answers; 'right' names the side); mode 'hard' = ethically ambiguous and completely insane (sides carry an `info` line shown as: more information). verb 'shoot' draws the gun — one bullet, tap the side to shoot. No mode = the normal feed. Add items here (commit) or POST /api/opinions/items (Firestore extras); ids are permanent — a pick is keyed to its item id, so renaming an id orphans her answer.",
  "items": [
   {
-   "id": "easy-grainy-hd",
-   "kind": "image",
-   "category": "look",
-   "mode": "easy",
-   "right": "b",
-   "q": "Which picture?",
-   "a": {
-    "t": "Grainy",
-    "img": "/samples/paint-grainy.webp"
-   },
-   "b": {
-    "t": "High definition",
-    "img": "/samples/paint.webp"
-   },
-   "twin": "hard-grainy-hd"
-  },
-  {
    "id": "easy-shoot-dog-baby",
    "kind": "image",
    "category": "wild",
@@ -50,8 +33,7 @@
    "b": {
     "t": "A cookie someone already licked",
     "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/cookie-lick-3.webp"
-   },
-   "twin": "hard-cookie"
+   }
   },
   {
    "id": "easy-refund-ticket",
@@ -67,8 +49,7 @@
    "b": {
     "t": "A parking ticket",
     "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/ticket.webp"
-   },
-   "twin": "hard-refund-ticket"
+   }
   },
   {
    "id": "easy-puppy-wasp",
@@ -227,57 +208,6 @@
    }
   },
   {
-   "id": "hard-grainy-hd",
-   "kind": "image",
-   "category": "look",
-   "mode": "hard",
-   "q": "Which picture?",
-   "a": {
-    "t": "Grainy",
-    "info": "the only photo of your grandmother",
-    "img": "/samples/paint-grainy.webp"
-   },
-   "b": {
-    "t": "High definition",
-    "info": "it's your ex, having a great time",
-    "img": "/samples/paint.webp"
-   }
-  },
-  {
-   "id": "hard-cookie",
-   "kind": "image",
-   "category": "wild",
-   "mode": "hard",
-   "q": "Which cookie?",
-   "a": {
-    "t": "A fresh warm cookie",
-    "info": "it's a toddler's, and the toddler is watching",
-    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/cookie-fresh.webp"
-   },
-   "b": {
-    "t": "A cookie someone already licked",
-    "info": "the licker is your soulmate, allegedly",
-    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/cookie-lick-3.webp"
-   }
-  },
-  {
-   "id": "hard-refund-ticket",
-   "kind": "image",
-   "category": "wild",
-   "mode": "hard",
-   "q": "Which envelope?",
-   "a": {
-    "t": "A refund",
-    "info": "addressed to your neighbor",
-    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/refund.webp"
-   },
-   "b": {
-    "t": "A parking ticket",
-    "info": "you were parked on the mayor's lawn",
-    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/ticket.webp"
-   }
-  },
-  {
    "id": "hard-puppy-wasp",
    "kind": "image",
    "category": "wild",
@@ -291,7 +221,7 @@
    "b": {
     "t": "A wasp loose in your car",
     "info": "it saved your life once",
-    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/wasp-car.webp"
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/wasp-medal.webp"
    }
   },
   {
@@ -308,7 +238,7 @@
    "b": {
     "t": "Damp socks every day",
     "info": "they come with world peace",
-    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/socks-damp.webp"
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/socks-world-peace.webp"
    }
   },
   {
@@ -413,6 +343,20 @@
     "t": "The billionaire's rocket that could stop it",
     "info": "he wants credit",
     "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/billionaire-rocket.webp"
+   }
+  },
+  {
+   "id": "easy-grainy-hd",
+   "kind": "image",
+   "category": "look",
+   "q": "Which picture?",
+   "a": {
+    "t": "Grainy",
+    "img": "/samples/paint-grainy.webp"
+   },
+   "b": {
+    "t": "High definition",
+    "img": "/samples/paint.webp"
    }
   },
   {
