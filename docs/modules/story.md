@@ -78,9 +78,11 @@ All 12 NDE-category stories were linked to their montage episodes on
   (`#beatcard`, screen-capped + scrolls inside if it overflows, controls
   styled ink-on-cream, tap anywhere off the controls — the surrounding pad
   or the card's empty cream — to close) — the art at THUMBNAIL
-  size (never blown up — Sophie's spec), five bare color chips (gray/
+  size (never blown up — Sophie's spec), five color chips (gray/
   mustard/green/blue/pink) that set the FRAME color and keep the popup
-  open, and a three-line text box (`beat.text`, saved on close). The story TITLE sits
+  open — **each carrying her own word for what that colour means since
+  2026-08-26 (see WHAT THE COLOURS MEAN below); the pad and the frames
+  still say nothing**, and a three-line text box (`beat.text`, saved on close). The story TITLE sits
   under the eyebrow in the serif ("Untitled" until she renames it — tap to
   edit, `pad.title`, `POST /title`); a beat with words shows them SMALL
   under its tile — FIRST LINE only, the rest lives in the popup — and
@@ -291,10 +293,35 @@ All 12 NDE-category stories were linked to their montage episodes on
   between the clips should disappear").** The + stops propagation, so the
   document-level cancel never hears it — the handler clears `pending`
   itself. Tests for all three: `node scripts/test-scratchpad-style.js`.
+- **WHAT THE COLOURS MEAN — her own words, and where she said them
+  (2026-08-26, Sophie: "can you find where I said with the colors mean in
+  story room and then label them in the drop-down").** She dictated them into
+  the memo that designed this pad — **"Story Room Concept Development"**,
+  recorded 2026-08-03, filed in the `last-voice-recording-inbox` chat:
+  *"mustard yellow for examples, green for explanations, blue for like the
+  main idea, and then maybe pink for like a bridge"*. She confirmed the set
+  from memory on 2026-08-09 ("Follow my color rules. So yellow is examples,
+  etcetera. There should be in some message a long time ago"). Gray is the
+  thin default frame, which she never named — the chip reads **No frame**.
+  - **The words live in the DROP-DOWN and NOWHERE ELSE, which is not a
+    softening of the rule below — it is the rule's own line.** On 2026-08-04
+    she killed a build that put those words on the CARDS: *"You said the
+    mustard should be labeled as example, that exactly the wrong philosophy.
+    The whole point is that you have indicators that skip the left brain
+    labeling."* That is about READING a pad. The drop-down is the moment she
+    is CHOOSING, where the meaning of mustard is the one thing that can be
+    forgotten — so the chip is a row (a colour dot, then the word) and the
+    pad, the beat frames and the popup's picture still say nothing at all.
+  - **Pinned VERBATIM by `node scripts/test-scratchpad-popup.js`** (section
+    4b) — the five words in her order, AND the negative half: neither the pad
+    nor the picture may name any of them. A reworded label is the paraphrase
+    this repo keeps having to undo.
 - **PHILOSOPHY (Sophie, Aug 2026 — do not "improve" this):** the pad is a
   place for thinking on paper, so it is MINIMAL. The frame colors are
   deliberately UNLABELLED indicators — never write "example"/"explanation"/
-  etc. anywhere; the color skips left-brain labeling by design. No machinery
+  etc. on the pad, on a beat or under a picture; the color skips left-brain
+  labeling by design. (The colour drop-down is the ONE named exception —
+  see WHAT THE COLOURS MEAN above.) No machinery
   on the pad itself (finished artwork only — no draw/redraw buttons on the
   canvas; everything operational lives in popups or off-canvas). Iterating
   fast on this module with her is expected — check the chat before assuming
