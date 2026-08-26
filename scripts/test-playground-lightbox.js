@@ -169,19 +169,53 @@ const server = http.createServer((req, res) => {
 
   // ── 2. THE WAY OUT — dead space closes, the Assets rule ─────────────────
   console.log('\ndead space closes it');
-  // The gap in the ♥ … Prompt … ✕ strip — exactly where she was tapping on
-  // the Assets one ("between the image and the prompt").
+  // The empty half of the top band beside the Prompt button (the ♥/✕ live in
+  // the row under the picture now — see 2b).
   const strip = await page.evaluate(() => {
-    const hb = document.querySelector('#clightbox .vote.heart').getBoundingClientRect();
     const pb = document.querySelector('#clightbox .promptbtn').getBoundingClientRect();
-    const gap = { x: Math.round((hb.right + pb.left) / 2), y: Math.round(hb.top + hb.height / 2) };
+    const gap = { x: Math.round(pb.left / 2), y: Math.round(pb.top + pb.height / 2) };
     const el = document.elementFromPoint(gap.x, gap.y);
     return { gap, gapIs: el ? el.className : '' };
   });
   ok(String(strip.gapIs).indexOf('lbtop') >= 0,
-    'the gap beside the ♥ is the strip itself, not a control (' + strip.gapIs + ')');
+    'the gap beside the Prompt button is the strip itself, not a control (' + strip.gapIs + ')');
   await page.mouse.click(strip.gap.x, strip.gap.y);
   ok(!(await shown()), 'a tap in the empty space beside a button closes it');
+
+  // ── 2b. THE OLD ARRANGEMENT IS BACK (2026-08-26, Sophie: "put the heart
+  //    where they were before exactly … the quality model etc. should go
+  //    right under the picture not below the note area") — the port had
+  //    moved ♥/✕ to the screen's top corners and left the tag below the
+  //    note box. ──────────────────────────────────────────────────────────
+  await page.locator('#tiles .cell:not(.ph) img').first().click();
+  await page.waitForFunction(() => {
+    const lb = document.getElementById('clightbox');
+    return !!lb && lb.style.display !== 'none';
+  });
+  const layout = await page.evaluate(() => {
+    const lb = document.getElementById('clightbox');
+    const img = lb.querySelector('.clwrap img').getBoundingClientRect();
+    // this page has no per-picture label, so the meta tag renders as .clcap
+    const tag = lb.querySelector('.cltag, .clcap').getBoundingClientRect();
+    const acts = lb.querySelector('.lbacts').getBoundingClientRect();
+    const heart = lb.querySelector('.vote.heart');
+    const hb = heart.getBoundingClientRect();
+    const note = lb.querySelector('.lbnote').getBoundingClientRect();
+    return {
+      topVotes: lb.querySelectorAll('.lbtop .vote').length,
+      heartInRow: !!heart.closest('.lbacts'),
+      first: lb.querySelector('.lbacts button').getAttribute('aria-label'),
+      tagUnderImg: tag.top >= img.bottom - 1 && tag.bottom <= acts.top + 1,
+      heartAboveNotes: hb.top >= img.bottom - 1 && hb.bottom <= note.top + 1,
+    };
+  });
+  ok(layout.topVotes === 0, 'no ♥/✕ in the top band');
+  ok(layout.heartInRow, 'the ♥ rides the button row under the picture');
+  ok(layout.first === 'Heart', 'and it is the FIRST button in that row');
+  ok(layout.tagUnderImg, 'MODEL · QUALITY sits right under the picture, above the buttons');
+  ok(layout.heartAboveNotes, 'the ♥ sits under the picture, above the note box');
+  await page.evaluate(() => document.getElementById('clightbox').click());
+  ok(!(await shown()), '(closed again)');
   await page.locator('#tiles .cell:not(.ph) img').first().click();
   await page.waitForFunction(() => {
     const lb = document.getElementById('clightbox');
@@ -288,9 +322,10 @@ const server = http.createServer((req, res) => {
   const acts = await page.$$eval('#clightbox .lbacts button',
     (es) => es.map((e) => e.getAttribute('aria-label')));
   ok(JSON.stringify(acts) === JSON.stringify(
-    ['Put this prompt back in the box', 'Save to Photos', 'Send to the Story Room']),
-  'three actions, in order (' + acts.join(' · ') + ')');
-  await page.evaluate(() => document.querySelector('#clightbox .lbacts button').click());
+    ['Heart', 'Reject', 'Put this prompt back in the box', 'Save to Photos', 'Send to the Story Room']),
+  '♥ ✕ then the three actions, in order (' + acts.join(' · ') + ')');
+  await page.evaluate(() => document.querySelector(
+    '#clightbox .lbacts button[aria-label="Put this prompt back in the box"]').click());
   const copied = await page.evaluate(() => ({
     open: document.getElementById('clightbox').style.display !== 'none',
     box: document.getElementById('prompt').value,
