@@ -145,17 +145,19 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    `inset`, because an absolutely positioned IMG with auto width shrinks to
    its intrinsic size instead of stretching between two offsets. `box-sizing` is not global on this page, so the frame
    declares its own or the padding pushes each tile out of its grid cell. */
-#shelftiles{display:grid; grid-template-columns:repeat(3,1fr); gap:16px 10px;}
+/* The 14px column gap is what the deepest card of a stack hangs into (12px);
+   at the old 10 it would have crossed into the next tile's frame. */
+#shelftiles{display:grid; grid-template-columns:repeat(3,1fr); gap:16px 14px;}
 .stile{display:block; padding:0; background:none; border:none; text-align:left; color:var(--ink);
   cursor:pointer; font-family:'EBGaramond',Georgia,serif; -webkit-tap-highlight-color:transparent;}
 /* `.cov` is the tile's FOOTPRINT — it paints nothing. `.frame` inside it is
    the white mat that used to BE .cov, and it fills the footprint exactly on
    EVERY tile, a folder included, so every picture on the shelf is the same
-   size. The 8px of margin under it is the room a folder's stack shows in
+   size. The 12px of margin under it is the room a folder's stack shows in
    (see A FOLDER IS A STACK below); it is reserved on every tile, folder or
    not, because that is what keeps the names level across a row. */
 .stile .cov{display:block; position:relative; width:100%; aspect-ratio:2/3;
-  margin-bottom:8px;}
+  margin-bottom:12px;}
 .stile .frame{position:absolute; inset:0; z-index:1; box-sizing:border-box;
   padding:5px; background:#fff; border:1px solid var(--line); border-radius:4px;}
 .stile .frame img,.stile .frame .none{position:absolute; top:5px; left:5px;
@@ -180,9 +182,9 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 /* A FOLDER IS A STACK (2026-08-24, Sophie: "treat the Evan and Mason ones as
    a folder … some sort of UI design like a stack that you can see underneath
    the cover image so you can tell there's multiple stories in there").
-   THREE WHOLE CARDS, cascading down and to the right — the front one carrying
-   the picture, two empty ones behind it. THE FIRST CUT DREW THE LAYERS INSIDE
-   THE WHITE MAT and she rejected it on sight: two hairline slivers on white,
+   WHOLE CARDS, cascading down and to the right — the front one carrying the
+   picture, empty ones behind it. THE FIRST CUT DREW THE LAYERS INSIDE THE
+   WHITE MAT and she rejected it on sight: two hairline slivers on white,
    under the art, read as a rendering fault rather than as depth. A stack is
    only legible when the thing behind is a whole CARD offset from the one in
    front, so that is what this draws.
@@ -191,19 +193,29 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    8px to make room inside the footprint, which quietly made a folder's
    picture smaller than every story's beside it and read as the stack being
    tucked under the frame rather than behind it. So the front card fills the
-   footprint exactly, like every other tile, and the two behind hang PAST its
-   right and bottom edge — negative insets, drawn in the 8px of margin the
+   footprint exactly, like every other tile, and the ones behind hang PAST its
+   right and bottom edge — negative insets, drawn in the 12px of margin the
    footprint reserves on every tile. That reservation is what keeps the names
-   level across a row: a story leaves the room empty, a folder fills it.
+   level across a row: a story leaves the room empty, a folder fills it, and
+   it is reserved at the DEEPEST depth so a pile and a pair still line up.
    Flat fills and NO shadow (house rule) — the offset alone says there is
    more underneath.
-   ::before is the DEEPEST card and ::after the middle one, in that order,
-   because two positioned siblings at the same z-index paint in document order
-   and the deeper one has to go down first. */
-.stile.fold .cov::before,.stile.fold .cov::after{content:''; position:absolute; z-index:0;
+   HOW MANY CARDS = HOW MANY STORIES BEHIND THE FRONT ONE (2026-08-26, Sophie:
+   "make the number of things showing behind a story correlate with how many
+   stories there are behind that story"). It was always two, whatever the
+   folder held, so a pair and a pile drew identically and only the count badge
+   told them apart. A pair now shows ONE card behind, a trio two, and four or
+   more three — the cap is the room the gap between tiles gives (12px of
+   overhang against a 14px column gap), and past it the badge is what says how
+   many. They are real spans rather than ::before/::after, because two
+   pseudo-elements cannot be a number.
+   DEEPEST FIRST in document order: siblings at one z-index paint in that
+   order, so the card that goes furthest down has to be laid down first. */
+.stile .lay{position:absolute; z-index:0;
   box-sizing:border-box; background:#fff; border:1px solid var(--line); border-radius:4px;}
-.stile.fold .cov::before{inset:8px -8px -8px 8px;}
-.stile.fold .cov::after{inset:4px -4px -4px 4px;}
+.stile .lay3{inset:12px -12px -12px 12px;}
+.stile .lay2{inset:8px -8px -8px 8px;}
+.stile .lay1{inset:4px -4px -4px 4px;}
 /* How many are in there. The stack says "more than one"; this says how many,
    so she can tell a pair from a pile without opening it. It rides the FRONT
    card, inside the mat, over the picture's bottom-right corner. */
@@ -1444,15 +1456,26 @@ function load(){
 }
 
 /* ── the shelf: every story, newest-touched first ──────────────────
-   The NEW look (Aug 2026, the survey prototype): Personal · Lessons · NDE
-   chips over portrait tiles, a real picture from each story and its name.
-   Tap a tile → straight to that story's beat canvas (Sophie's call). A story
-   with no category files under Personal so a brand-new one is never
-   invisible; the chip choice is session-only, every open starts on Personal.
+   The NEW look (Aug 2026, the survey prototype): category chips over portrait
+   tiles, a real picture from each story and its name. Tap a tile → straight to
+   that story's beat canvas (Sophie's call). The chip choice is session-only,
+   every open starts on the default pile.
+   THE DEFAULT PILE IS UNSORTED, NOT PERSONAL (2026-08-26, Sophie: "I think
+   personal is the default so can you just make a different default and just
+   put the ones I mentioned into personal"). An untagged story used to file
+   under Personal, so Personal was everything nobody had got to — which makes
+   it useless as a pile of her own. Unsorted is the same safety net (a
+   brand-new story is never invisible) with none of the meaning, and it is
+   what the shelf opens on, because that is where a story she has just made
+   lands. WITCH is hers too, added the same day.
    The old row list is the fallback ONLY — nothing links to it; ?plain=1 is
    the one way in. */
-var SHELF_CATS=[['Personal','personal'],['Lessons','lessons'],['NDE','nde']];
-var shelfCat='personal';
+var SHELF_CATS=[['Unsorted','unsorted'],['Personal','personal'],['Witch','witch'],
+  ['Lessons','lessons'],['NDE','nde']];
+/* ONE name for the pile an untagged story falls into — the filter below and
+   the opening chip read it, so moving the default is this line. */
+var SHELF_DEFAULT='unsorted';
+var shelfCat=SHELF_DEFAULT;
 var PLAIN_SHELF=/(\?|&)plain=1/.test(location.search);
 var shelfPads=[];
 function thumbOf(u){return '/api/story/thumb?w=240&url='+encodeURIComponent(u);}
@@ -1498,16 +1521,23 @@ var SHELF_PIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
 var shelfMore=false;
 /* ONE tile builder for a story and for a folder. `pad` draws a story (its
    pushpin, its title, tap opens it); `count` draws a folder (the stack, the
-   count, tap steps into it) and carries NO pushpin — a pin says "I'm working
-   on this story", and a folder is only the way to one. */
+   count, tap steps into it) and `pads` is every story in it — which is what
+   its pushpin pins, all at once. */
 function shelfTile(o){
   var p=o.pad;
   var t=document.createElement('button');
   t.className='stile'+(o.cur?' cur':'')+(o.count?' fold':'');
   var cov=document.createElement('span'); cov.className='cov';
-  // The FRONT card. Everything that paints lives on it, so a folder's two
-  // cards behind (the .cov pseudo-elements) sit behind the whole thing rather
-  // than behind the picture only.
+  /* THE CARDS BEHIND, one per story behind the front one, capped at three
+     (the CSS note). Deepest first — same z-index, so they paint in document
+     order and a later card has to sit on top of an earlier one. */
+  var behind=Math.min(Math.max((o.count||1)-1,0),3);
+  for(var d=behind; d>=1; d--){
+    var lay=document.createElement('span'); lay.className='lay lay'+d;
+    cov.appendChild(lay);
+  }
+  // The FRONT card. Everything that paints lives on it, so a folder's cards
+  // behind sit behind the whole thing rather than behind the picture only.
   var fr=document.createElement('span'); fr.className='frame'; cov.appendChild(fr);
   if(o.cover){
     var im=document.createElement('img'); im.alt=''; im.loading='lazy';
@@ -1519,15 +1549,25 @@ function shelfTile(o){
     var c=document.createElement('span'); c.className='cnt';
     c.textContent=o.count; fr.appendChild(c);
   }
-  if(p){
+  /* THE PUSHPIN — on a story, and on a FOLDER since 2026-08-26 (Sophie: "make
+     it possible to pin multiple stories that are together so I can pin all my
+     Mason stories at once"). A folder's pin sends every story in it, so one
+     tap lifts the whole character; it is LIT when any story in there is
+     pinned, which is the same rule that decides where the folder sits, so the
+     light and the position can never disagree. Lit → the tap unpins them all. */
+  var set=p?[p]:(o.pads||[]);
+  if(set.length){
+    var on=o.pinned!=null?!!o.pinned:!!p.pinned;
     var pin=document.createElement('span');
-    pin.className='pinpin'+(p.pinned?' on':''); pin.innerHTML=SHELF_PIN;
+    pin.className='pinpin'+(on?' on':''); pin.innerHTML=SHELF_PIN;
     pin.setAttribute('role','button');
-    pin.setAttribute('aria-label',p.pinned?'Unpin this story':'Pin this story to the top');
+    pin.setAttribute('aria-label', p
+      ? (on?'Unpin this story':'Pin this story to the top')
+      : (on?'Unpin these stories':'Pin these stories to the top'));
     pin.title=pin.getAttribute('aria-label');
     /* The pin sits INSIDE the tile, which is itself a button, so the tap has
        to be stopped here or pinning a story would also open it. */
-    pin.onclick=function(e){ e.preventDefault(); e.stopPropagation(); togglePin(p); };
+    pin.onclick=function(e){ e.preventDefault(); e.stopPropagation(); togglePin(set,on); };
     fr.appendChild(pin);
   }
   t.appendChild(cov);
@@ -1536,11 +1576,18 @@ function shelfTile(o){
   t.onclick=function(e){ e.stopPropagation(); o.go(); };
   return t;
 }
-function togglePin(p){
-  var was=!!p.pinned; p.pinned=!was; renderShelf();
-  api('/pads/pin',{method:'POST',body:JSON.stringify({pad:p.id, pinned:!was})})
+/* One story or a folder's whole set — the same write either way, because the
+   flag lives on each story and a folder is only a name they share. `was` holds
+   what each one was, so a refused write puts a half-pinned folder back exactly
+   as it was rather than flattening it. */
+function togglePin(set,on){
+  var was=set.map(function(p){ return !!p.pinned; });
+  set.forEach(function(p){ p.pinned=!on; });
+  renderShelf();
+  api('/pads/pin',{method:'POST',body:JSON.stringify({
+    pads:set.map(function(p){ return p.id; }), pinned:!on })})
     .then(function(r){ if(!r.ok) throw 0; })
-    .catch(function(){ p.pinned=was; renderShelf(); });
+    .catch(function(){ set.forEach(function(p,i){ p.pinned=was[i]; }); renderShelf(); });
 }
 /* THE SHELF'S ROWS, folders already collapsed. A folder takes the place of
    its NEWEST story and the rest of its stories come off the shelf — that is
@@ -1550,10 +1597,11 @@ function togglePin(p){
    A FOLDER IS PINNED WHEN ANY STORY IN IT IS. Her pin means "I'm working on
    this", and with the story folded away the folder is the only thing on
    screen that can carry it — otherwise pinning a story inside a folder would
-   hide it behind "see more" instead of lifting it. */
+   hide it behind "see more" instead of lifting it. The folder's own pushpin
+   (2026-08-26) reads the same flag and writes it to every story it holds. */
 function shelfRows(){
   var seen={}, rows=[];
-  shelfPads.filter(function(p){ return (p.category||'personal')===shelfCat; })
+  shelfPads.filter(function(p){ return (p.category||SHELF_DEFAULT)===shelfCat; })
     .forEach(function(p){
       if(!p.folder){
         rows.push({ pad:p, cover:p.cover, name:p.title, pinned:!!p.pinned,
@@ -1567,6 +1615,7 @@ function shelfRows(){
       var withArt=inIt.filter(function(q){ return q.cover; })[0];
       rows.push({
         cover:withArt?withArt.cover:null, name:name, count:inIt.length,
+        pads:inIt,
         pinned:inIt.some(function(q){ return q.pinned; }),
         cur:inIt.some(function(q){ return q.id===padId; }),
         go:function(){ shelfFolder=name; shelfMore=false; renderShelf();
@@ -1574,6 +1623,28 @@ function shelfRows(){
     });
   return rows;
 }
+/* THE CHIP ROW RUNS UNDER THE AUTOSCROLL PILL (2026-08-26, found by measuring
+   rather than looking, the moment a fifth chip landed). The sheet's pill is
+   fixed at x 328-374, y 14-154 on a 390pt phone and the row sits at y 52-85 —
+   squarely inside that band — so with three chips the row simply ended before
+   it and with five the last one was UNREACHABLE: playwright's own click
+   reported the pill's ‖ intercepting the tap. The row already scrolls
+   horizontally, so the fix is to end its VIEWPORT at the pill rather than at
+   the edge of the screen: a chip in the reserved column can always be scrolled
+   out from under it. MEASURED off the pill's real rect (the house rule — a
+   hardcoded band is what goes stale), and reset to 0 first so a re-measure
+   cannot keep eating the row. */
+function fitCatRow(){
+  var row=document.getElementById('shelfcats');
+  var f=document.querySelector('#stories .sfloat');
+  if(!row || row.hidden) return;
+  row.style.marginRight='0px';
+  if(!f) return;
+  var r=row.getBoundingClientRect(), p=f.getBoundingClientRect();
+  var over=Math.round(r.right-p.left)+8;
+  if(over>0) row.style.marginRight=over+'px';
+}
+window.addEventListener('resize',fitCatRow);
 function renderShelf(){
   var cats=document.getElementById('shelfcats');
   var tiles=document.getElementById('shelftiles');
@@ -1591,6 +1662,7 @@ function renderShelf(){
     b.onclick=function(e){ e.stopPropagation(); shelfCat=c[1]; shelfMore=false; renderShelf(); };
     cats.appendChild(b);
   });
+  fitCatRow();
   tiles.innerHTML='';
   /* Inside a folder the rows are its own stories; on the shelf they are
      shelfRows(), with each folder already standing in for its stories. Either

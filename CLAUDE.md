@@ -4225,9 +4225,41 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **see more**; **with nothing pinned in that category the whole shelf shows**,
   because a fold hiding every story is a shelf with nothing on it. The fold is
   per category and per visit. Nothing to do with `/cover`, which pins a
-  story's FACE. Test: `node scripts/test-storyroom-shelf.js` (the frame
+  story's FACE.
+  **A WHOLE FOLDER PINS AT ONCE (2026-08-26, Sophie: "make it possible to pin
+  multiple stories that are together so I can pin all my Mason stories at
+  once").** A folder tile carries the same pushpin, and it sends every story
+  in it — `POST /pads/pin {pads:[…], pinned}`, the batch form `/pads/folder`
+  and now `/pads/category` also take. So nothing new is stored: the flag is
+  still one per story, and the folder's pin is LIT when any story in it is,
+  which is the same rule that decides where the folder sits — the light and
+  the position can never disagree. (This line used to say a folder carries no
+  pushpin because "a pin belongs to a story"; her ask retires that.)
+  **THE CARDS BEHIND A FOLDER COUNT ITS STORIES (2026-08-26, Sophie: "make the
+  number of things showing behind a story correlate with how many stories
+  there are behind that story").** It was always two cards, so a pair and a
+  pile drew identically. A pair shows ONE card behind, a trio two, four or
+  more three — the cap is the 14px column gap the deepest card (12px) hangs
+  into, and past it the count badge is what says how many. They are real
+  `.lay` spans now, deepest first in document order, because two
+  pseudo-elements cannot be a number.
+  **THE PILES ARE Unsorted · Personal · Witch · Lessons · NDE, AND THE DEFAULT
+  IS UNSORTED (2026-08-26, Sophie: "I think personal is the default so can you
+  just make a different default and just put the ones I mentioned into
+  personal").** An untagged story used to file under Personal, which made
+  Personal everything nobody had got to — useless as a pile of her own.
+  `SHELF_DEFAULT` in `gen-scratchpad.py` is the one place it lives: the filter
+  and the opening chip both read it, so moving the default is that line. The
+  shelf opens on Unsorted because that is where a story she just made lands.
+  **The chip row now ends before the autoscroll pill** — the sheet's pill is
+  fixed at x 328-374, y 14-154 and the row sits at y 52-85, so with three chips
+  it simply stopped short and with five the last one was UNREACHABLE.
+  `fitCatRow()` measures both real boxes and reserves the column; the row
+  scrolls, so a chip in that column is one swipe away.
+  Test: `node scripts/test-storyroom-shelf.js` (the frame
   MEASURED off the real boxes — a mat drawn with the wrong inset still renders
-  a picture in a frame, it just covers the mat).
+  a picture in a frame, it just covers the mat — the layer counts, the folder's
+  batch pin, and the chip row's right edge against the pill's left).
   Stories carry **listen rows**
   behind ONE waveform button on the title row (Aug 2026): the Episode Editor
   episodes cut from the story, resolved to their newest render live, AND the

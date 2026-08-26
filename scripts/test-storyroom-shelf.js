@@ -6,8 +6,9 @@
 //   0. THE PAGE OPENS ON THE SHELF (2026-08-23, Sophie: "story room opens on
 //      the shelf … we don't need a separate shelf button") — no door to tap,
 //      and no story loaded until she picks one,
-//   1. the shelf opens on Personal — tiles for personal + UNTAGGED stories
-//      (a brand-new story must never be invisible), covers requested through
+//   1. the shelf opens on UNSORTED — the pile an untagged story falls into
+//      (2026-08-26: Personal used to be the default, which made it everything
+//      nobody had filed), covers requested through
 //      /api/story/thumb (never the raw full-size picture), a story with no
 //      art yet drawn as a dashed box, an untitled one reading "Untitled",
 //   2. a chip tap filters — NDE shows exactly the NDE stories,
@@ -23,6 +24,12 @@
 //   6. PINNING: a pushpin on a tile pins that story to the front and folds
 //      the rest behind "see more"; the pin must not also open the story, and
 //      with nothing pinned there is no fold at all,
+//   6b. THE STACK SAYS HOW MANY (2026-08-26, Sophie: "make the number of
+//      things showing behind a story correlate with how many stories there are
+//      behind that story") — a pair draws ONE card behind, a trio two, a story
+//      none, and the deepest card still fits the gap between tiles,
+//   6c. A FOLDER PINS ITS WHOLE SET (2026-08-26, Sophie: "pin all my Mason
+//      stories at once") — one tap posts every story in it,
 //   7. FOLDERS (2026-08-24, Sophie: "treat the Evan and Mason ones as a folder
 //      … a stack that you can see underneath the cover image"): the stories in
 //      one collapse to a single tile carrying the count, the stack layers are
@@ -56,6 +63,10 @@ const PADS = [
   { id: 'm2', title: 'Valued Customer', beats: 16, cover: '/px.png?m', category: null, folder: 'Mason', updatedAt: 850 },
   { id: 'p2', title: 'The Meteorite', beats: 0, cover: '/px.png?b', category: 'personal', updatedAt: 800 },
   { id: 'm3', title: 'Where Do You Crop Art?', beats: 13, cover: '/px.png?n', category: 'personal', folder: 'Mason', updatedAt: 780 },
+  // A PAIR — the folder that proves the stack counts (one card behind, where
+  // Mason's three stories draw two).
+  { id: 's1', title: 'The white gloves', beats: 9, cover: '/px.png?s', category: null, folder: 'Small miracles', updatedAt: 760 },
+  { id: 's2', title: 'The dance I joined by accident', beats: 9, cover: '/px.png?t', category: null, folder: 'Small miracles', updatedAt: 740 },
   { id: 'p3', title: 'NDE · Telepathy', beats: 0, cover: '/px.png?c', category: 'nde', updatedAt: 700 },
   { id: 'p4', title: 'NDE · PROOF', beats: 0, cover: null, category: 'nde', updatedAt: 600 },
   { id: 'p5', title: 'The Lessons', beats: 0, cover: '/px.png?d', category: 'lessons', updatedAt: 500 },
@@ -132,10 +143,26 @@ function ok(cond, name) {
     'the separate shelf door is gone');
   ok(padLoads.length === 0,
     'no story is loaded until she picks one');
-  ok(await page.$eval('#shelfcats .scat.on', (el) => el.textContent) === 'Personal',
-    'shelf opens on the Personal chip');
+  ok(await page.$eval('#shelfcats .scat.on', (el) => el.textContent) === 'Unsorted',
+    'shelf opens on the Unsorted chip — the pile an untagged story falls into');
+  const chips = await page.$$eval('#shelfcats .scat', (els) => els.map((e) => e.textContent));
+  ok(chips.join(',') === 'Unsorted,Personal,Witch,Lessons,NDE',
+    'the chips are her five piles, Witch among them (' + chips.join(' · ') + ')');
   ok((await page.$$('.stile')).length === 4,
-    'Personal shows personal + untagged stories, the folder as one tile (4)');
+    'Unsorted shows the untagged stories, each folder as one tile (4)');
+  // THE ROW ENDS BEFORE THE PILL. With three chips the row simply stopped
+  // short of the sheet's fixed autoscroll pill; the fifth one landed under it
+  // and was untappable (playwright reported the pill's ‖ intercepting the
+  // click). The row scrolls, so what has to hold is that its VIEWPORT clears
+  // the pill's column — measured off both real boxes, never a hardcoded band.
+  const catrow = await page.evaluate(() => {
+    const r = document.getElementById('shelfcats').getBoundingClientRect();
+    const p = document.querySelector('#stories .sfloat').getBoundingClientRect();
+    return { right: Math.round(r.right), pill: Math.round(p.left),
+      band: Math.round(p.top) <= Math.round(r.top) && Math.round(p.bottom) >= Math.round(r.bottom) };
+  });
+  ok(!catrow.band || catrow.right <= catrow.pill,
+    'the chip row ends before the autoscroll pill (' + catrow.right + ' ≤ ' + catrow.pill + ')');
   ok((await page.$$('.stile .frame img')).length === 3 &&
      (await page.$$('.stile .frame .none')).length === 1,
     'a story with art gets its picture, one without gets the dashed box');
@@ -151,39 +178,47 @@ function ok(cond, name) {
     'the folder sits where its NEWEST story was, not sorted to the top');
   ok(!shelfNames.includes('Mason — the shape') && !shelfNames.includes('Valued Customer'),
     'the stories in a folder come off the shelf');
-  ok((await page.$$('.stile.fold')).length === 1 &&
+  ok((await page.$$('.stile.fold')).length === 2 &&
      (await page.$eval('.stile.fold .cnt', (el) => el.textContent)) === '3',
     'the folder tile carries its count — including the story filed under another chip');
   const face = await page.$eval('.stile.fold .frame img', (el) => el.getAttribute('src'));
   ok(decodeURIComponent(face).indexOf('/px.png?m') > 0,
     'a folder whose newest story has no art falls through to one that does');
 
-  // THE STACK, MEASURED. "Visible" proves nothing here: the cards behind are
-  // pseudo-elements, so the questions that matter are whether they hang PAST
-  // the front card's border (her correction — the previous cut tucked them
-  // inside it), whether the front card is still the full footprint so a
-  // folder's picture is the same size as every story's, and whether the tile
-  // is still exactly a story's height (or the names go ragged across a row).
+  // THE STACK, MEASURED. "Visible" proves nothing here: the questions that
+  // matter are how MANY cards are behind (her 2026-08-26 ask — a pair and a
+  // pile drew identically before), whether they hang PAST the front card's
+  // border (her correction — an earlier cut tucked them inside it), whether
+  // the front card is still the full footprint so a folder's picture is the
+  // same size as every story's, and whether the tile is still exactly a
+  // story's height (or the names go ragged across a row).
   const stack = await page.evaluate(() => {
-    const fold = document.querySelector('.stile.fold');
+    const named = (n) => [...document.querySelectorAll('.stile')]
+      .find((t) => t.querySelector('.snm').textContent === n);
+    const fold = named('Mason');            // three stories
+    const pair = named('Small miracles');   // two
     const plain = document.querySelector('.stile:not(.fold)');
-    const cs = (el, p) => getComputedStyle(el, p);
     const covF = fold.querySelector('.cov');
-    const box = (el) => { const r = el.getBoundingClientRect(); return { w: r.width, h: r.height }; };
     const cov = covF.getBoundingClientRect();
     const fr = fold.querySelector('.frame').getBoundingClientRect();
+    // Deepest first in document order, so the first .lay IS the deepest one.
+    const deep = fold.querySelector('.lay').getBoundingClientRect();
     return {
       foldH: Math.round(fold.getBoundingClientRect().height),
       plainH: Math.round(plain.getBoundingClientRect().height),
-      card1: cs(covF, '::before').content,
-      card2: cs(covF, '::after').content,
+      // how many cards each tile draws behind its front one
+      layers: fold.querySelectorAll('.lay').length,
+      pairLayers: pair.querySelectorAll('.lay').length,
+      plainLayers: plain.querySelectorAll('.lay').length,
       // the front card fills the footprint on a folder too
       right: Math.round(cov.right - fr.right),
       bottom: Math.round(cov.bottom - fr.bottom),
       top: Math.round(fr.top - cov.top), left: Math.round(fr.left - cov.left),
       // how far the deepest card hangs PAST the front card's border
-      outRight: Math.round(parseFloat(cs(covF, '::before').right)),
-      outBottom: Math.round(parseFloat(cs(covF, '::before').bottom)),
+      outRight: Math.round(deep.right - fr.right),
+      outBottom: Math.round(deep.bottom - fr.bottom),
+      // and the room it has to hang into, so it never crosses the next tile
+      colGap: parseFloat(getComputedStyle(document.getElementById('shelftiles')).columnGap),
       // a folder's picture is the same size as a story's
       sameArt: (() => {
         const a = fold.querySelector('.frame img').getBoundingClientRect();
@@ -197,23 +232,27 @@ function ok(cond, name) {
         return Math.round(c.width - f.width) === 0 && Math.round(c.height - f.height) === 0;
       })(),
       // the cards behind are WHITE cards, not slivers
-      bg: cs(covF, '::before').backgroundColor,
-      deepH: cs(covF, '::before').height,
-      frameH: box(fold.querySelector('.frame')).h,
+      bg: getComputedStyle(fold.querySelector('.lay')).backgroundColor,
+      deepH: deep.height,
+      frameH: fr.height,
     };
   });
-  ok(stack.card1 === '""' && stack.card2 === '""',
-    'two cards behind, drawn as pseudo-elements — a folder is still one node');
+  ok(stack.layers === 2 && stack.pairLayers === 1 && stack.plainLayers === 0,
+    'the cards behind count the stories behind — 3 stories/2 cards, 2/1, a story none ('
+      + stack.layers + '/' + stack.pairLayers + '/' + stack.plainLayers + ')');
+  ok(stack.colGap >= 12,
+    'the column gap leaves room for the deepest card a stack can draw ('
+      + stack.colGap + 'px)');
   ok(stack.top === 0 && stack.left === 0 && stack.right === 0 && stack.bottom === 0,
     'the front card fills the footprint — a folder is not a smaller picture');
-  ok(stack.outRight === -8 && stack.outBottom === -8,
+  ok(stack.outRight === 8 && stack.outBottom === 8,
     'the cards behind hang OUTSIDE the front card\'s border ('
       + stack.outRight + '/' + stack.outBottom + 'px)');
   ok(stack.sameArt,
     'a folder\'s picture is exactly the size of a story\'s beside it');
   ok(stack.bg === 'rgb(255, 255, 255)',
     'the cards behind are whole white cards, not hairline slivers');
-  ok(Math.abs(parseFloat(stack.deepH) - stack.frameH) < 1.5,
+  ok(Math.abs(stack.deepH - stack.frameH) < 1.5,
     'a card behind is the same SIZE as the front one, just offset');
   ok(stack.plainFill,
     'a plain story tile is untouched — its frame fills its footprint');
@@ -239,21 +278,44 @@ function ok(cond, name) {
   pinPosts.length = 0;
   await page.click('.stile .pinpin');
   await page.waitForSelector('#shelfmore');
-  ok(pinPosts.length === 1 && pinPosts[0].pinned === true,
-    'pinning inside a folder posts for that STORY, not the folder');
+  ok(pinPosts.length === 1 && pinPosts[0].pinned === true &&
+     pinPosts[0].pads.length === 1,
+    'pinning inside a folder posts for that ONE story, not the folder');
   await page.click('#storiesclose');
   await page.waitForFunction(() => document.getElementById('shelfno').textContent === 'The shelf');
   ok((await page.$$('.stile')).length === 1 &&
      (await page.$eval('.stile .snm', (el) => el.textContent)) === 'Mason',
     'back on the shelf the FOLDER leads, carrying its pinned story');
-  ok((await page.$$('.stile.fold .pinpin')).length === 0,
-    'a folder tile carries no pushpin of its own — a pin belongs to a story');
-  // put it back so the pinning section below starts from an unpinned shelf
-  await page.click('#shelfmore');
+  ok(await page.$eval('.stile.fold .pinpin', (el) => el.classList.contains('on')),
+    'the folder wears a LIT pushpin — one story in it is pinned');
+
+  // 6c — A FOLDER PINS ITS WHOLE SET. Her ask was "pin all my Mason stories at
+  // once", so the tap has to reach every story in the folder in one write —
+  // and the lit pin has to be able to let them all go again.
+  pinPosts.length = 0;
+  await page.click('.stile.fold .pinpin.on');
+  await page.waitForFunction(() => !document.getElementById('shelfmore'));
+  ok(pinPosts.length === 1 && pinPosts[0].pinned === false &&
+     (pinPosts[0].pads || []).length === 3,
+    'the lit folder pin unpins every story in it, in one POST');
+  pinPosts.length = 0;
+  await page.click('.stile.fold .pinpin');
+  await page.waitForSelector('#shelfmore');
+  ok(pinPosts.length === 1 && pinPosts[0].pinned === true &&
+     (pinPosts[0].pads || []).slice().sort().join(',') === 'm1,m2,m3',
+    'and one tap pins all three at once (' + (pinPosts[0].pads || []).join(',') + ')');
+  ok((await page.$$('.stile')).length === 1 &&
+     (await page.$eval('.stile .snm', (el) => el.textContent)) === 'Mason',
+    'the pinned folder leads the shelf on its own');
   await page.click('.stile.fold');
   await page.waitForFunction(() => document.getElementById('shelfno').textContent === 'Mason');
-  await page.click('.stile .pinpin.on');
-  await page.waitForFunction(() => !document.getElementById('shelfmore'));
+  ok((await page.$$('.stile .pinpin.on')).length === 3,
+    'inside it, all three stories really are pinned');
+  // put them back so the pinning section below starts from an unpinned shelf
+  for (let i = 2; i >= 0; i--) {
+    await page.click('.stile .pinpin.on');
+    await page.waitForFunction((n) => document.querySelectorAll('.stile .pinpin.on').length === n, i);
+  }
 
   // the chevron steps OUT of the folder instead of leaving the tool
   let left = false;
@@ -262,16 +324,25 @@ function ok(cond, name) {
   await page.click('#storiesclose');
   await page.waitForFunction(() => document.getElementById('shelfno').textContent === 'The shelf');
   ok(!left, 'the chevron steps out of the folder — it does not leave the tool');
-  ok((await page.$$('.stile.fold')).length === 1, 'and the shelf is back with the folder on it');
+  ok((await page.$$('.stile.fold')).length === 2, 'and the shelf is back with both folders on it');
   ok(await page.evaluate(() => window.__navBack()) === false,
     'from the bare shelf __navBack still hands the app its exit');
   await page.evaluate(() => { delete window.__forgeLeave; });
 
   // 2 — the NDE chip filters
-  await page.click('#shelfcats .scat:nth-child(3)');
+  await page.click('#shelfcats .scat:nth-child(5)');
   const nde = await page.$$eval('.stile .snm', (els) => els.map((e) => e.textContent));
   ok(nde.length === 2 && nde.every((n) => n.indexOf('NDE') === 0),
     'NDE chip shows exactly the NDE stories');
+
+  // Personal is a pile of her own now, not the leftovers: only what a chat
+  // (or she) actually filed there — plus the folder holding one such story.
+  await page.click('#shelfcats .scat:nth-child(2)');
+  const personal = await page.$$eval('.stile .snm', (els) => els.map((e) => e.textContent));
+  ok(personal.length === 2 && personal.includes('The Meteorite') && personal.includes('Mason'),
+    'Personal holds only what was filed there (' + personal.join(' · ') + ')');
+  await page.click('#shelfcats .scat:nth-child(5)');
+  await page.waitForFunction(() => document.querySelectorAll('.stile').length === 2);
 
   // 3 — tapping a tile opens THAT story's beat canvas
   padLoads.length = 0;
@@ -325,15 +396,14 @@ function ok(cond, name) {
     'nothing pinned yet, so the whole shelf shows and there is no fold');
   padLoads.length = 0;
   pinPosts.length = 0;   // the folder section above pinned and unpinned too
-  // 3rd, not 2nd: the Mason FOLDER stands where its newest story was, so The
-  // Meteorite is one along — and a folder tile carries no pushpin to click.
-  await page.click('.stile:nth-child(3) .pinpin');
+  await page.click('.stile:nth-child(1) .pinpin');
   await page.waitForSelector('#shelfmore');
-  ok(pinPosts.length === 1 && pinPosts[0].pinned === true && pinPosts[0].pad === 'p2',
+  ok(pinPosts.length === 1 && pinPosts[0].pinned === true &&
+     (pinPosts[0].pads || []).join(',') === 'pad',
     'the pushpin POSTs /pads/pin for that story');
   ok(padLoads.length === 0, 'pinning does not also open the story');
   ok((await page.$$('.stile')).length === 1, 'the unpinned ones fold away');
-  ok(await page.$eval('.stile .snm', (el) => el.textContent) === 'The Meteorite',
+  ok(await page.$eval('.stile .snm', (el) => el.textContent) === 'set theory',
     'the pinned story leads the shelf');
   ok(await page.$eval('#shelfmore', (el) => /see more/.test(el.textContent)),
     'and the rest are behind "see more"');
@@ -342,7 +412,7 @@ function ok(cond, name) {
   await page.click('#shelfmore');
   await page.waitForFunction(() => document.querySelectorAll('.stile').length === 4);
   const order = await page.$$eval('.stile .snm', (els) => els.map((e) => e.textContent));
-  ok(order[0] === 'The Meteorite', 'opened up, the pinned one still leads');
+  ok(order[0] === 'set theory', 'opened up, the pinned one still leads');
   ok(await page.$eval('.stile .pinpin', (el) => el.classList.contains('on')),
     'the pinned tile wears a lit pushpin');
   await page.click('.stile .pinpin');
