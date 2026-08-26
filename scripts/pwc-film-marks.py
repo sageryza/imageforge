@@ -33,9 +33,8 @@ MARKS = {
    ("arrow",  (0.290, 0.315, 0.530, 0.515), 1.76, 105, "eye down to the viewing point"),
    # "maintain a pleasant, unfocused expression" — the expression.
    ("circle", (0.235, 0.335, 0.095, 0.075), 4.75, 106, "the pleasant unfocused face"),
-   # "without technically looking at anything" — the bureaucratic punchline
-   # on the diagram.
-   ("circle", (0.710, 0.779, 0.165, 0.038), 8.92, 107, "TOTAL EFFECTIVE VIEWING ANGLE: 30"),
+   # (v10: the 30-degree-label circle came off — Sophie: "a couple circles
+   # were a little unnecessary". The caption box already says the line.)
  ],
  "04-technique-2-reflective-surfaces.png": [
    # One circle per surface, each on its word: her IN the window, her IN the
@@ -53,8 +52,9 @@ MARKS = {
    # "STEP 1: Remain calm." are circled as Clyde says them; the approved
    # smile is never circled (the camera already points at it).
    ("circle", (0.410, 0.657, 0.110, 0.048), 4.10, 53, "STEP 1: Remain calm."),
-   # "Now redirect your attention..." — STEP 2 is that sentence, printed.
-   ("circle", (0.407, 0.762, 0.115, 0.058), 9.80, 112, "STEP 2, the redirect"),
+   # (v10: the STEP 2 circle came off — the camera's pull-out already shows
+   # the step and the object panel together, and the arrow follows seconds
+   # later; three marks on one card end was too many.)
    # "You were simply looking at... something else." — into the empty dashed
    # circle, completing right before "something else".
    ("arrow",  (0.610, 0.815, 0.700, 0.735), 14.40, 52, "at absolutely nothing"),
@@ -66,10 +66,12 @@ MARKS = {
    ("circle", (0.155, 0.350, 0.080, 0.045), 8.43, 113, "the note, mid-handoff"),
    ("circle", (0.760, 0.362, 0.100, 0.055), 9.79, 114, "the fry theft, in progress"),
    ("circle", (0.135, 0.635, 0.090, 0.050), 11.09, 115, "foot freedom"),
-   # "Interfere with nothing." — the club seal says exactly that.
-   ("circle", (0.500, 0.843, 0.095, 0.060), 15.71, 116, "WE DON'T INTERFERE seal"),
+   # (v10: the seal circle came off — the camera is already pushed into it on
+   # "interfere with nothing"; the circle was decoration on top of a framing.)
    # "notice things." — the instructor underlines the club motto, last line
-   # of the film.
-   ("line",   (0.310, 0.968, 0.690, 0.968), 19.85, 117, "NOTICE THINGS. underlined"),
+   # of the film. The line sits at 0.979: the text runs 0.944-0.974 and the
+   # box edge is at 0.982, so this is the only lane where an underline is an
+   # underline — at 0.968 it struck THROUGH the words (Sophie caught it).
+   ("line",   (0.310, 0.979, 0.690, 0.979), 19.85, 117, "NOTICE THINGS. underlined"),
  ],
 }
