@@ -150,11 +150,10 @@ off at the top of the frame)*
 > Did you speed up my words in any of them if so, which version they all sounded
 > pretty slow.
 
-## On v11's ramp cut — OPEN, none of these are done yet
+## On v11's ramp cut — ALL TEN ANSWERED IN v12 (she has not heard it yet)
 
-Left as asset notes at 8:25-8:28pm on
-`water-reel-v11-ramp.mp4`, after the v11 delivery. **The next chat inherits
-all ten.** Measurements this chat made against them are in brackets.
+Left as asset notes at 8:25-8:28pm on `water-reel-v11-ramp.mp4`. Each is
+answered in v12; the measurement behind each answer is in brackets.
 
 > [0:01] can you find a sound effect of someone gurgling and start with the
 > word scientists and then have the sound effect start right after instead of

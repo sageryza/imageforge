@@ -14,15 +14,15 @@ order, verbatim. This file says how the build answers them.
 | The nine sheets | `assets/water-reel/sheets/*.webp` (her Playground originals, full res) |
 | Sound effects | `assets/water-reel/sfx/*.mp3` |
 | Laura's stand-in lines | `assets/water-reel/laura-goblin-sheet.mp3` |
-| v11, sped two ways | `assets/water-reel/water-reel-v11-{ramp,flat}.mp4` (720p) |
+| v12, sped two ways | `assets/water-reel/water-reel-v12-{fast,ramp}.mp4` (720p) |
 | The scripts | `scripts/water-reel/` |
 
 Full-resolution masters are NOT in git (62–88MB each) — they live at permanent
 public URLs:
 
-- v11 full speed (2:32) — https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/water-reel/water-reel-v11.mp4
-- v11 ramp (1:45) — https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/water-reel/water-reel-v11-ramp.mp4
-- v11 flat 1.3x (1:57) — https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/water-reel/water-reel-v11-flat.mp4
+- v12 full speed (2:24) — https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/water-reel/water-reel-v12.mp4
+- v12 flat 1.7x (1:25) — https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/water-reel/water-reel-v12-fast.mp4
+- v12 ramp to 2.0x (1:26) — https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/water-reel/water-reel-v12-ramp.mp4
 
 ## Rebuilding it
 
@@ -92,10 +92,10 @@ mishears; check each against the source words and a 20ms RMS profile.
 
 ## Open
 
-- **TEN NOTES ON v11's RAMP CUT ARE UNDONE** — sound-effect swaps, two crops,
-  a take swap, the lullaby's entry point, and a level check. They are the last
-  section of `docs/water-reel/sophies-notes.md`, each with the measurement
-  this chat made against it. Start there.
+- **v12 answers all ten of her v11 notes** (see the last section of
+  `docs/water-reel/sophies-notes.md`) — unheard by her as of this handoff.
+  The one to watch: c1's "…than ever before" is a SPLICE of two moments 14s
+  apart, not a take, and a splice is approved by ear.
 - **She finds every speed so far too slow** (2026-08-25, on v11's 1.3x and the
   1.15→1.55 ramp: "they all sounded pretty slow"). Faster cuts exist — try
   `--flat 1.7` and `--ramp 1.35,1.5,1.65,1.8,2.0` — but the landing speed is
