@@ -116,6 +116,87 @@
    }
   },
   {
+   "id": "easy-bread",
+   "kind": "image",
+   "category": "wild",
+   "mode": "easy",
+   "right": "a",
+   "q": "Which shopper?",
+   "a": {
+    "t": "Pay for the bread",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/bread-pay-honest.webp"
+   },
+   "b": {
+    "t": "Steal the bread",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/bread-steal-2.webp"
+   }
+  },
+  {
+   "id": "easy-genie",
+   "kind": "image",
+   "category": "wild",
+   "mode": "easy",
+   "right": "a",
+   "q": "The genie is waiting.",
+   "a": {
+    "t": "World peace",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/genie-peace.webp"
+   },
+   "b": {
+    "t": "One free sandwich",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/genie-sandwich.webp"
+   }
+  },
+  {
+   "id": "easy-trolley",
+   "kind": "image",
+   "category": "wild",
+   "mode": "easy",
+   "right": "a",
+   "q": "The trolley is coming.",
+   "a": {
+    "t": "Pull the lever, save five people",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/trolley-lever-2.webp"
+   },
+   "b": {
+    "t": "Keep scrolling",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/phone-trolley.webp"
+   }
+  },
+  {
+   "id": "easy-haircut",
+   "kind": "image",
+   "category": "wild",
+   "mode": "easy",
+   "right": "a",
+   "q": "Her haircut is actually great.",
+   "a": {
+    "t": "Say so",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/haircut-great.webp"
+   },
+   "b": {
+    "t": "Say nothing, forever",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/say-nothing.webp"
+   }
+  },
+  {
+   "id": "easy-shoot-asteroid",
+   "kind": "image",
+   "category": "wild",
+   "mode": "easy",
+   "verb": "shoot",
+   "right": "a",
+   "q": "You have one bullet.",
+   "a": {
+    "t": "The asteroid headed for Earth",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/asteroid-gold.webp"
+   },
+   "b": {
+    "t": "The moon",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/the-moon.webp"
+   }
+  },
+  {
    "id": "hard-shoot-puppy-baby",
    "kind": "image",
    "category": "wild",
