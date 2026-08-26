@@ -37,8 +37,12 @@
 //   POST /inbox/hide     → { url, hide? } — take one picture OUT of this
 //                          story's add sheet (hide:false puts it back). It
 //                          HIDES, never deletes — see the route.
-//   POST /add            → { url, at?, src? } — insert a beat at index `at`
-//                          (default: the end); returns { beats }
+//   POST /add            → { url, at?, src?, style? } — insert a beat at
+//                          index `at` (default: the end); returns { beats }.
+//                          With no `style` the side is DERIVED from the
+//                          picture's own run record (sideFromEvidence) —
+//                          same on /image — so a chat seeding art never
+//                          lands a dreamy picture on the watercolor side
 //   POST /color          → { id, color } — set a beat's frame color
 //                          ('mustard'|'green'|'blue'|'pink'|null = back to gray)
 //   POST /text           → { id, text } — the beat's note (the popup's
@@ -172,6 +176,15 @@ const styleOf = (req) => {
   const s = String((req.body && req.body.style) || req.query.style || '');
   return STYLES.includes(s) ? s : 'watercolor';
 };
+// The side the request actually NAMED — null when it named none. The page
+// always sends the side she is showing, so null is a CHAT placing art, which
+// is the case sideFromEvidence exists for (2026-08-26, Sophie: nine dreamy
+// Panels cuts of "The dance I joined by accident" all landed watercolor
+// because the placing chat sent no style and styleOf defaulted it).
+const styleNamed = (req) => {
+  const s = String((req.body && req.body.style) || req.query.style || '');
+  return STYLES.includes(s) ? s : null;
+};
 // The object holding a beat's art for a style. For watercolor it IS the beat
 // (url/src/gen/imageHistory live at the root, exactly as they always have);
 // for every other style it is beat.alt[style], created on first write.
@@ -202,6 +215,64 @@ const slotOff = (s) => Boolean(s && s.off);
 // its own dependency-free file so it can be tested without a node_modules,
 // and so /image and a finished draw share ONE copy of the rules.
 const { swapArt } = require('./pad-art');
+// Which side a picture belongs on when nobody said — the pure decision
+// (evidence from the picture's own run record, playground-port's rule).
+const { padSideOf, shouldReveal } = require('./pad-side');
+
+// ── Deriving the side from the picture's own run record ─────────────
+// Only for a placement that named NO side (styleNamed → null). Best-effort
+// everywhere: an unreadable run doc means watercolor, exactly as before —
+// a failed lookup must never fail a placement.
+const PANELS = 'forge-panels';   // panels.js's COLLECTION — keep in step
+async function sideFromEvidence(url, src) {
+  try {
+    // 1 — the run the src names (the shape landOnBeat and the chats already
+    //     carry: {runId, i|cell, engine, …}). Panels runs and Playground runs
+    //     live in different collections; try the one the engine says first,
+    //     then the other, so a src with no engine still resolves.
+    if (src && src.runId) {
+      const order = src.engine === 'panels' ? [PANELS, PROMPTLAB] : [PROMPTLAB, PANELS];
+      for (const col of order) {
+        const snap = await db().collection(col).doc(String(src.runId)).get();
+        if (snap.exists) return padSideOf(snap.data(), STYLES);
+      }
+    }
+    if (!url) return null;
+    // 2 — no run named: a Playground run stores its image urls as plain
+    //     strings, so the url itself finds the run that drew it.
+    const q = await db().collection(PROMPTLAB)
+      .where('images', 'array-contains', url).limit(1).get();
+    if (!q.empty) return padSideOf(q.docs[0].data(), STYLES);
+    // 3 — a Panels cut names itself in its url, but the run's images are
+    //     {cell, url} maps no Firestore query can reach into — scan the
+    //     recent sheets (bounded; this path only runs on a placement that
+    //     named no side, never on the page's own taps).
+    if (/\/panels\/(cuts|sheets)\//.test(url)) {
+      const recent = await db().collection(PANELS)
+        .orderBy('createdAt', 'desc').limit(60).get();
+      for (const d of recent.docs) {
+        const v = d.data() || {};
+        if (v.sheetUrl === url || (v.images || []).some((im) => im && im.url === url)) {
+          return padSideOf(v, STYLES);
+        }
+      }
+    }
+  } catch (e) { /* evidence is best-effort — fall through to the default */ }
+  return null;
+}
+// The pad-style patch a DERIVED placement may add (shouldReveal in
+// pad-side.js): a chat seeding a fresh story must not leave her opening it
+// onto blank tiles, and a side with any art on it is never flipped away
+// from. `cur` is the beats array as it is about to be written.
+function revealPatch(padData, cur, landed) {
+  const showing = STYLES.includes(padData && padData.style) ? padData.style : 'watercolor';
+  const hasArt = (side) => cur.some((b) => {
+    const s = artSlot(b, side, false);
+    return !slotOff(s) && Boolean(slotFace(s));
+  });
+  return shouldReveal({ showing, landed, showingHasArt: hasArt(showing), landedHasArt: hasArt(landed) })
+    ? { style: landed } : {};
+}
 
 // ── The recipes for every style but watercolor ──────────────────────
 // Each one is the PLAYGROUND's tile of the same name, so a beat drawn here
@@ -939,7 +1010,11 @@ router.post('/add', async (req, res) => {
     const url = String(req.body.url || '').trim();
     if (url && !/^https?:\/\//.test(url)) return res.status(400).json({ error: 'image url must be http(s)' });
     const src = (req.body.src && typeof req.body.src === 'object') ? req.body.src : null;
-    const style = styleOf(req);
+    // The page names the side she is showing; a request naming NONE is a
+    // chat seeding art, and the side comes from the picture's own run record
+    // (sideFromEvidence — watercolor only when the evidence claims no side).
+    const named = styleNamed(req);
+    const style = named || (url ? await sideFromEvidence(url, src) : null) || 'watercolor';
     const beat = {
       id: db().collection(COL).doc().id, url: null, color: null, src: null,
       addedAt: Date.now(),
@@ -955,7 +1030,11 @@ router.post('/add', async (req, res) => {
       let at = Number(req.body.at);
       if (!Number.isInteger(at) || at < 0 || at > cur.length) at = cur.length;
       cur.splice(at, 0, beat);
-      tx.set(padRef(pid), { beats: cur, updatedAt: Date.now() }, { merge: true });
+      const patch = { beats: cur, updatedAt: Date.now() };
+      // A derived placement may also flip the toggle — only onto a story
+      // whose showing side holds no art at all (revealPatch).
+      if (!named && url) Object.assign(patch, revealPatch(snap.exists ? snap.data() : null, cur, style));
+      tx.set(padRef(pid), patch, { merge: true });
       return cur;
     });
     res.json({ ok: true, beat, beats });
@@ -971,7 +1050,11 @@ router.post('/image', async (req, res) => {
     if (!id) return res.status(400).json({ error: 'beat id required' });
     if (!/^https?:\/\//.test(url)) return res.status(400).json({ error: 'image url required' });
     const src = (req.body.src && typeof req.body.src === 'object') ? req.body.src : null;
-    const beats = await placeOnBeat(padIdOf(req), id, url, styleOf(req), src);
+    // Same rule as /add: the page names the side; a chat naming none gets the
+    // side the picture's own run record claims (sideFromEvidence).
+    const named = styleNamed(req);
+    const style = named || (await sideFromEvidence(url, src)) || 'watercolor';
+    const beats = await placeOnBeat(padIdOf(req), id, url, style, src, { derived: !named });
     res.json({ ok: true, beats });
   } catch (e) { fail(res, e); }
 });
@@ -987,7 +1070,7 @@ router.post('/image', async (req, res) => {
 // leaving `kind` behind would render an image url as a film. Only this side:
 // the other style's clip (or picture) is untouched. swapArt owns that, the
 // history bookkeeping and the provenance.
-async function placeOnBeat(padId, beatId, url, style, src) {
+async function placeOnBeat(padId, beatId, url, style, src, opts) {
   const st = STYLES.includes(style) ? style : 'watercolor';
   return db().runTransaction(async (tx) => {
     const snap = await tx.get(padRef(padId));
@@ -995,7 +1078,12 @@ async function placeOnBeat(padId, beatId, url, style, src) {
     const b = cur.find((x) => x.id === beatId);
     if (!b) throw new Error('no such beat');
     swapArt(artSlot(b, st, true), url, src || null);
-    tx.set(padRef(padId), { beats: cur, updatedAt: Date.now() }, { merge: true });
+    const patch = { beats: cur, updatedAt: Date.now() };
+    // A DERIVED placement (the caller named no side — a chat's, never the
+    // page's) may flip the toggle onto its side, but only when the showing
+    // side holds no art at all (revealPatch).
+    if (opts && opts.derived) Object.assign(patch, revealPatch(snap.exists ? snap.data() : null, cur, st));
+    tx.set(padRef(padId), patch, { merge: true });
     return cur;
   });
 }

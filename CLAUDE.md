@@ -4902,6 +4902,19 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - **ONE WRITE: `placeOnBeat` in scratchpad.js**, exported and shared with
     `POST /image` — her inbox pick, her picking an older version back, and a
     Playground landing must bookkeep that row identically.
+  - **A PLACEMENT NAMING NO SIDE IS DERIVED FROM THE PICTURE'S OWN RUN RECORD
+    (2026-08-26, Sophie: "the dance one went into the watercolor one, but it
+    should be dreamy … it could look at the metadata or the prompt").** The
+    page always sends the side she is showing, so a style-less `/add` or
+    `/image` is a CHAT seeding art — it used to default silently to
+    watercolor, which mislaid three stories' dreamy panels. `sideFromEvidence`
+    reads the run doc the `src` names (or finds it by url) and `padSideOf` in
+    `pad-side.js` claims a side only when the run's `style`/`gptStyle` IS one
+    — evidence, never a guess; it may also flip the toggle, but only onto a
+    story whose showing side holds no art at all. A CHAT placing art should
+    still pass `style` when it knows it. Mislaid art moves with
+    `scripts/reside-pad-art.js` (dry by default). Full rules:
+    `docs/modules/story.md`; test `node scripts/test-pad-side.js`.
   - **The landing is DISCLOSED on screen** (`#beattag`, the reftag's box): a
     side effect she cannot see is a trap. And it is the QUERY STRING only —
     nothing is persisted, so opening the Playground any other way is
