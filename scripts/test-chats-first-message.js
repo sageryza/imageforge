@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // HER FIRST MESSAGE GOES MISSING WHEN SHE SENDS TWO IN A ROW (2026-08-26).
 //
-// Sophie, looking at panels-playground-parity: "my first message is missing
+// Sophie, looking at a chat's thread: "my first message is missing
 // from this chat. I sent two messages in a row." Measured in the live thread:
 // three messages total — "thank you" from her, then the two replies — and the
 // work request that started the whole chat nowhere in Firestore.
@@ -59,7 +59,7 @@ const asst = (id, text, ts) => rec({
   message: { role: 'assistant', id, content: [{ type: 'text', text }] },
 });
 
-const ASK = 'make panels exactly the same as the playground, you can reuse the code';
+const ASK = 'make the two feeds exactly the same, you can reuse the code';
 const THANKS = 'thank you';
 const REPLY = "I'll survey both pages closely, then port.";
 

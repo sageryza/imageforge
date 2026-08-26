@@ -23,7 +23,7 @@ ceiling are all in `docs/image-pipeline.md` (*The walker is the prompt*).
   door state riding a step (`promptSide`/`promptOpen`) and the programmatic
   close are the shared file's hooks, the thumb-first open / this-run's style
   half / vote route / actions row are caller wiring in `showLB`, and notes
-  land on the picture's `my-creations` thread (the Panels wiring). The full
+  land on the picture's `my-creations` thread. The full
   record is *THE PLAYGROUND'S LIGHTBOX IS THE SHARED ASSETS ONE NOW* in
   CLAUDE.md's Playground section — do not restyle `#clightbox` from this
   page or add a playground-only control outside the hooks.

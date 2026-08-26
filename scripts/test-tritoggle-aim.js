@@ -70,7 +70,7 @@ ok(triNext(T, 3, null, -1) === 0,
 ok(triStop(el(0, 0), 3, tap(5)) === null, 'a zero-width element aims at nothing');
 
 console.log('every page that has one links it');
-for (const f of ['promptlab.html', 'panels.html', 'chats.html']) {
+for (const f of ['promptlab.html', 'chats.html']) {
   const src = fs.readFileSync(path.join(PUB, f), 'utf8');
   ok(/<script src="\/tritoggle\.js"><\/script>/.test(src), f + ' links /tritoggle.js');
   // The fallback each page carries is the CYCLE and nothing else — a page that

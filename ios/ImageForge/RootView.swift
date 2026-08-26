@@ -5,7 +5,7 @@ import UIKit   // UIImage(systemName:) — the SF Symbol existence check in Tool
 /// fixed: Home (the grid) and Gallery at the ends, and the three in `barTools`
 /// between them. Everything else is reached from the home grid or a deep link.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, blocks, pausing, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector, chunking, assembly, filmeditor, timeline, review, panels
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, blocks, pausing, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector, chunking, assembly, filmeditor, timeline, review
     var id: String { rawValue }
 
     var title: String {
@@ -40,7 +40,6 @@ enum Tool: String, CaseIterable, Identifiable {
         case .character: return "Characters"
         case .films:     return "Films"
         case .freeform:  return "Freeform"
-        case .panels:    return "Panels"
         case .vector:    return "Vector"
         case .chunking:  return "Chunking"
         case .assembly:  return "Assembly"
@@ -82,7 +81,6 @@ enum Tool: String, CaseIterable, Identifiable {
         case .character: return "The recurring people — cards that keep faces consistent."
         case .films:     return "Films without a story — experiments and one-offs."
         case .freeform:  return "Your refs, your words — sent exactly as typed."
-        case .panels:    return "One sheet, cut into separate pictures."
         case .vector:    return "Drawings that stay sharp at any size. Recolour them free."
         case .timeline:  return "Dictate a story's moments — then put them in order."
         case .chunking:  return "Every clip you’ve made, searchable — the pieces films get cut from."
@@ -131,7 +129,6 @@ enum Tool: String, CaseIterable, Identifiable {
         case .films:     return "film.stack"
         // A loose scribble — the page with no house style.
         case .freeform:  return "scribble.variable"
-        case .panels:    return "square.grid.2x2"
         // fallback; .vector uses a custom asset (see customIcon)
         case .vector:    return "point.topleft.down.curvedto.point.bottomright.up"
         // A stack of playable pieces — the library of PARTS you already own.
@@ -221,7 +218,6 @@ enum Tool: String, CaseIterable, Identifiable {
         // Page owns its whole header (Aug 2026 v2 design rule) — a bare
         // WKWebView host with NO forgeToolBar, the Chats/Scratch Pad pattern.
         case .freeform:  GatedWebTool(path: "/freeform", name: "Freeform", icon: "scribble.variable")
-        case .panels:    GatedWebTool(path: "/panels", name: "Panels", icon: "square.grid.2x2")
         // Native bar + chevron, like the other eyebrow-and-title tool pages —
         // only a page owning its WHOLE chrome (Chats, Story Room) gets a bare
         // host. See the headers design rule.
@@ -551,7 +547,7 @@ struct RootView: View {
     // It also carries the ONE most-recently-opened tool from outside the bar,
     // which is what keeps the old promise: before the slots were fixed, a tool
     // opened from Home became a bar slot and so stayed alive, and walking
-    // Panels → Playground → Panels kept the half-typed prompt. Without it a
+    // Home → Playground → Home kept the half-typed prompt. Without it a
     // fixed bar would silently start throwing that work away on every trip.
     private var alive: [Tool] {
         var t = barTools
@@ -638,8 +634,6 @@ struct RootView: View {
             if t == .scratchpad { return false }
             // Freeform is a web page with its own injected pill too.
             if t == .freeform { return false }
-            // Panels is served with { pill: true } as well.
-            if t == .panels { return false }
             // Vector is a web page with its own injected pill too.
             if t == .vector { return false }
             // Chunking is a web page with its own injected pill too.
@@ -852,7 +846,7 @@ private struct HomeGrid: View {
     /// test tube beside the masthead. Playground and **Freeform** also sit on
     /// the DEFAULT home (Sophie, Aug 2026: "put Freeform in the default") —
     /// this filter narrows to them, it doesn't own them.
-    private static let imageTools: [Tool] = [.playground, .panels, .test, .freeform, .vector]
+    private static let imageTools: [Tool] = [.playground, .test, .freeform, .vector]
 
     /// What the cards show: the normal list, or one filter's slice.
     private var shown: [Tool] {

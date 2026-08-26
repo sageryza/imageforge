@@ -291,13 +291,12 @@ All 12 NDE-category stories were linked to their montage episodes on
     metadata or the prompt to figure out which style it is").** The page
     always sends the side she is showing, so a style-less `/add` or `/image`
     is a CHAT seeding a story — and it used to default silently to
-    watercolor, which is how all nine dreamy Panels cuts of "The dance I
+    watercolor, which is how all nine dreamy pictures for "The dance I
     joined by accident" (and "The white gloves", and two beats of the
     Science story) landed on the watercolor side. `sideFromEvidence` in
-    scratchpad.js reads the run doc the `src` names (forge-panels /
-    forge-promptlab, either order), falls back to finding a Playground run
-    by the url (`images` array-contains) or a Panels cut by a bounded recent
-    scan, and `padSideOf` (pad-side.js, the pure rule) claims a side ONLY
+    scratchpad.js reads the run doc the `src` names (forge-promptlab), falls
+    back to finding a Playground run by the url (`images` array-contains),
+    and `padSideOf` (pad-side.js, the pure rule) claims a side ONLY
     when the run's `style`/`gptStyle` IS a pad side — evan, plain, scarry,
     or a Replicate run claim nothing and land watercolor as before. It is
     the playground-port evidence rule, never a guess from words. A derived

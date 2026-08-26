@@ -2,8 +2,8 @@
 /**
  * WHAT COLOUR IS THIS APP? — the style-drift audit.
  *
- * Sophie, 2026-08-24, looking at /panels: "it seems like there are conflicting
- * styles across the board." She was right, and this is the number rather than
+ * Sophie, 2026-08-24: "it seems like there are conflicting styles across the
+ * board." She was right, and this is the number rather than
  * the impression: it loads every gated page in a real browser and prints what
  * each one ACTUALLY paints — body background, ink, accent, button radius —
  * plus which shared stylesheet (if any) it is reading.
@@ -69,7 +69,7 @@ const PROBE = () => {
   try { ({ chromium } = require('playwright')); }
   catch (e) { console.log('skipped (no playwright)'); return; }
   try {
-    const probe = await fetch(BASE + '/api/panels/config');
+    const probe = await fetch(BASE + '/api/promptlab/styles');
     if (!probe.ok) throw new Error(String(probe.status));
   } catch (e) {
     console.log(`skipped (no server at ${BASE} — start one with PORT=3111 node server.js)`);

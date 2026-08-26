@@ -7,7 +7,7 @@
 //
 // The geometry had been hand-copied THREE times and had already drifted —
 // `.swi` in chats.html, `.swtog` in promptlab.html, `.swtog` again in
-// panels.html whose own comment said it was "LIFTED VERBATIM". The only thing
+// promptlab.html whose own comment said it was "LIFTED VERBATIM". The only thing
 // that ever noticed was a test comparing two files property by property. This
 // replaces that: ONE file, and the checks are (1) nobody keeps a second copy,
 // (2) every page that uses the class actually links the file, and (3) the
@@ -47,7 +47,6 @@ const decl = (body, prop) => {
 const PAGES = [
   { file: 'chats.html', instance: 'the account switcher' },
   { file: 'promptlab.html', instance: 'quality + size' },
-  { file: 'panels.html', instance: 'quality + size' },
 ];
 
 console.log('one file, and nobody keeps a second copy');

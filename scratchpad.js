@@ -179,7 +179,7 @@ const styleOf = (req) => {
 // The side the request actually NAMED — null when it named none. The page
 // always sends the side she is showing, so null is a CHAT placing art, which
 // is the case sideFromEvidence exists for (2026-08-26, Sophie: nine dreamy
-// Panels cuts of "The dance I joined by accident" all landed watercolor
+// pictures for "The dance I joined by accident" all landed watercolor
 // because the placing chat sent no style and styleOf defaulted it).
 const styleNamed = (req) => {
   const s = String((req.body && req.body.style) || req.query.style || '');
@@ -227,19 +227,13 @@ const { normalizeCharacters, pickCharacters, charLine, MAX_CHARACTERS } = requir
 // Only for a placement that named NO side (styleNamed → null). Best-effort
 // everywhere: an unreadable run doc means watercolor, exactly as before —
 // a failed lookup must never fail a placement.
-const PANELS = 'forge-panels';   // panels.js's COLLECTION — keep in step
 async function sideFromEvidence(url, src) {
   try {
     // 1 — the run the src names (the shape landOnBeat and the chats already
-    //     carry: {runId, i|cell, engine, …}). Panels runs and Playground runs
-    //     live in different collections; try the one the engine says first,
-    //     then the other, so a src with no engine still resolves.
+    //     carry: {runId, i, …}).
     if (src && src.runId) {
-      const order = src.engine === 'panels' ? [PANELS, PROMPTLAB] : [PROMPTLAB, PANELS];
-      for (const col of order) {
-        const snap = await db().collection(col).doc(String(src.runId)).get();
-        if (snap.exists) return padSideOf(snap.data(), STYLES);
-      }
+      const snap = await db().collection(PROMPTLAB).doc(String(src.runId)).get();
+      if (snap.exists) return padSideOf(snap.data(), STYLES);
     }
     if (!url) return null;
     // 2 — no run named: a Playground run stores its image urls as plain
@@ -247,20 +241,6 @@ async function sideFromEvidence(url, src) {
     const q = await db().collection(PROMPTLAB)
       .where('images', 'array-contains', url).limit(1).get();
     if (!q.empty) return padSideOf(q.docs[0].data(), STYLES);
-    // 3 — a Panels cut names itself in its url, but the run's images are
-    //     {cell, url} maps no Firestore query can reach into — scan the
-    //     recent sheets (bounded; this path only runs on a placement that
-    //     named no side, never on the page's own taps).
-    if (/\/panels\/(cuts|sheets)\//.test(url)) {
-      const recent = await db().collection(PANELS)
-        .orderBy('createdAt', 'desc').limit(60).get();
-      for (const d of recent.docs) {
-        const v = d.data() || {};
-        if (v.sheetUrl === url || (v.images || []).some((im) => im && im.url === url)) {
-          return padSideOf(v, STYLES);
-        }
-      }
-    }
   } catch (e) { /* evidence is best-effort — fall through to the default */ }
   return null;
 }
@@ -1260,7 +1240,7 @@ router.get('/shelf', async (req, res) => {
 // PER STYLE since 2026-08-23 (see the STYLE TOGGLE block): the clip lands in
 // the side she is showing, so a movie placed under dreamy never touches the
 // watercolor art — the very first live use of the toggle put three movies
-// onto both sides, two of them OVER existing watercolor panels.
+// onto both sides, two of them OVER existing watercolor art.
 router.post('/clip', async (req, res) => {
   try {
     const pid = padIdOf(req);

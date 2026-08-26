@@ -1,16 +1,10 @@
 /**
  * FEEDKIT — the pieces a picture FEED is made of, in ONE place.
  *
- * Sophie, 2026-08-26, looking at Panels beside the Playground: "there's no
- * heart or X button or I don't think there's a way to leave a note … can you
- * take a really close survey of all of the features … and then bring them all
- * over to panels — you can just reuse the code since it should be basically
- * the same."
- *
- * WHY IT IS A FILE AND NOT A COPY. The Playground and Panels are one recipe in
- * two shapes, so every feed control she asked for in one belongs in the other:
- * the search grammar, the live-dictation input, the Return handler, the keyed
- * reconcile that stopped the flashing, the derived display copy, the toast.
+ * WHY IT IS A FILE AND NOT A COPY. A picture feed is the same recipe wherever
+ * it appears: the search grammar, the live-dictation input, the Return
+ * handler, the keyed reconcile that stopped the flashing, the derived display
+ * copy, the toast.
  * Hand-copying those into a second page is exactly what /tritoggle.css was
  * created to end — five hand-copies of one toggle, two attribute names and two
  * palettes, and only a test ever noticing one drift.

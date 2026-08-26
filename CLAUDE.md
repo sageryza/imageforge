@@ -479,7 +479,7 @@ around them change, so verify the labels and use these for the URL.
 in my actual iOS Deck Factory app?"** Yes, two ways, and only one of them is
 worth putting in a reply.
 - **Give her the ORDINARY page url** —
-  `https://imageforge-q125.onrender.com/panels`,
+  `https://imageforge-q125.onrender.com/playground`,
   `…/chats?chat=<slug>`, `…/review` — and on her phone it opens the app on
   that tool instead of Safari. That is a **universal link**: iOS reads
   `/.well-known/apple-app-site-association` (served by `applinks.js`) at
@@ -2336,18 +2336,14 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     there is exactly the reconstruction the exact-prompt rule forbids.
   - **A NEW image surface stores it or the test fails** —
     `node scripts/test-prompt-record.js` sweeps every call of the two gallery
-    filers, of the injected `fileCreation` (panels, photostudio, movies) and of
+    filers, of the injected `fileCreation` (photostudio, movies) and of
     the `/api/generate/*` helper, and fails if one files a picture without a
     full prompt.
   - **EVERY SURFACE IS COVERED AS OF 2026-08-25 — swept, not assumed (Sophie:
     "any surface or endpoint or route or anything that makes images, the style
     is now always saved never thrown away, is that correct?").** It was not,
-    quite: three holes were open a day after the rule landed, and each was
+    quite: two holes were open a day after the rule landed, and each was
     invisible from inside the surface that had it.
-    - **Panels** shipped AFTER the rule and never passed `fullPrompt` at all,
-      so the sheet and every cut panel had a blank style half — on the one tool
-      that draws N pictures at once. The sweep test was RED on main and nobody
-      ran it.
     - **Photostudio** persisted its edit prompt nowhere, and its flatlay half is
       written by the vision model per run — genuinely unrecoverable once the
       response ended, not merely unfiled.
@@ -2356,7 +2352,7 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
       through `fileGenerateRoute` now, so Test Station images appear in My
       Creations the way Playground images always have. `style-test` and
       `deck-batch` proxy into those four internally and are covered by them.
-    **The lesson is the sweep, not the three fixes**: a surface that files a
+    **The lesson is the sweep, not the two fixes**: a surface that files a
     picture at all can be checked from OUTSIDE it in one command, and every one
     of these read as fine from inside its own module.
   - **`select()` IS A WHITELIST, and that is how two caption slots hid for
@@ -2412,7 +2408,7 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   2026-08-23.** The write only landed on a BLANK or a generic `from <chat>`
   record, so re-POSTing to FIX one answered `ok:true, deduped:true` and
   changed nothing, silently — while this file promised it upgraded the tile in
-  place. It was found backfilling the cut panels, and it is why every image
+  place. It was found backfilling older captions, and it is why every image
   filed before the third slot became the TIER was stuck showing a raw canvas
   that no chat could correct. One rule now, `assetGuard.captionUpgrade`, read
   by the route: **a curated caption always wins, including over another
@@ -2684,8 +2680,8 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     done. Both hand-typed copies had eyeballed their gap and one had the
     knob half a pixel off centre.
   - **It had been hand-copied THREE times before this** (`.swi` in
-    chats.html, `.swtog` in promptlab.html, `.swtog` again in panels.html
-    whose own comment said "LIFTED VERBATIM"), with two attribute names and
+    chats.html and `.swtog` twice in promptlab.html, the second saying
+    "LIFTED VERBATIM" in its own comment), with two attribute names and
     two palettes, and the only thing that ever noticed a copy drifting was a
     test comparing two files property by property.
   - **WHERE SHE TAPPED IS THE STOP SHE MEANT — the BEHAVIOUR is shared too,
@@ -2897,7 +2893,7 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     that three; with the slots fixed, a tool opened from Home is in neither, so
     `alive` = the three + the currently-open tool + the ONE most recent tool
     from outside the bar. Drop the first and a tool opened from Home renders as
-    a blank screen; drop the second and Panels → Playground → Panels silently
+    a blank screen; drop the second and Home → Playground → Home silently
     throws away her half-typed prompt.
 - **iOS: pin bottom bars below the keyboard (never floating above it).** A
   custom bottom nav/tab bar laid out in a `VStack` rides UP and hovers above the
@@ -3372,11 +3368,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
   IT FOR FREE (2026-08-24).** Sophie: "another chat said it cost 1.85 to attach
   an image can u check". Both numbers can be right — **image input is billed by
   tokens and tokens scale with the reference's own dimensions**, so there is no
-  single answer, only a per-reference one. Measured on the Panels sheets, same
-  file, two qualities: `refs/dream-mystery.jpg` (3370x4096) is **1,505 image
+  single answer, only a per-reference one. Measured 2026-08-24, same file,
+  two qualities: `refs/dream-mystery.jpg` (3370x4096) is **1,505 image
   tokens = 1.20c at $8/1M, identical at low and at medium** — the reference does
   not get cheaper when the picture does. At LOW that is **45% of the whole
-  bill**, which is the real argument for drawing a sheet rather than N pictures.
+  bill**.
   1.85c would be ~2,313 tokens, i.e. a bigger reference (`sage-sandy-mirror.png`
   is 3345x3455 against dream mystery's shape) — plausible, not yet measured.
   **`runPromptLabGptJob` now KEEPS the `usage` the API returns** (one entry per
@@ -3484,10 +3480,9 @@ before working on that module. Nothing was deleted — the moved text is verbati
   number picked per gap, and the test pins the two gaps EQUAL rather than
   hardcoding 10 (`node scripts/test-playground-controls.js`, verified failing 2
   pre-fix at 0px).
-  **PANELS AND THE STORY ROOM CARRY THE SAME BUTTON AND NEITHER COLLIDES —
-  measured the same day, not assumed.** Panels' cells start at y 334, below
-  the pill's 227; the Story Room's is inside `#beatpop` at z-index 50, over
-  the pill's 9. Leave both bottom-right. Test:
+  **THE STORY ROOM CARRIES THE SAME BUTTON AND DOES NOT COLLIDE — measured
+  the same day, not assumed.** Its button is inside `#beatpop` at z-index 50,
+  over the pill's 9. Leave it bottom-right. Test:
   `node scripts/test-playground-bigprompt.js`.
   **THE CONTROL ROW IS ONE FAMILY — BLACK LINE, PAPER, 34px (2026-08-24,
   Sophie: "the buttons are styled so fucking weird. They should have black
@@ -3585,8 +3580,7 @@ before working on that module. Nothing was deleted — the moved text is verbati
   images are seen, but the design is different in playground, people keep
   fixing parts of it, but it should be the exact same design — can it not be
   the same exact code?").** It was the LAST hand copy in the house (Meta
-  Assets, Panels, the Assets tab and the grid/deck pages already shared the
-  one file), and every fix below reached only whichever copy a chat happened
+  Assets, the Assets tab and the grid/deck pages already shared the one file), and every fix below reached only whichever copy a chat happened
   to touch — the drift she was pointing at. The page now builds NO lightbox of
   its own; what it needs rides the shared file's HOOKS, per the never-a-fourth-
   copy rule:
@@ -3607,8 +3601,8 @@ before working on that module. Nothing was deleted — the moved text is verbati
   derived from THIS run's `fullPrompt` (`runPromptHalves`, below); ♥/✕ to the
   run doc's own vote route; the meta line as the MODEL · QUALITY caption; and
   the actions row — put the prompt back in the box, Save to Photos, Send to
-  the Story Room. What came FREE: the note thread on every picture (the
-  Panels wiring into `my-creations`, verbatim). What is HISTORY, superseded
+  the Story Room. What came FREE: the note thread on every picture (wired
+  into `my-creations`). What is HISTORY, superseded
   by the shared design she asked for: the `.lbtop` band with the back
   chevron (the way out is the Assets rule — a tap on any dead space closes;
   `__navBack` still closes it from the app's chevron), the `capseg` segmented
@@ -3764,268 +3758,6 @@ before working on that module. Nothing was deleted — the moved text is verbati
   canvas is the dear one, not the cheap one), deliberately not
   persisted. Cancel is Replicate-only on purpose. The feed pages backwards through
   time and has LIST and TILES views. **Full details: `docs/modules/pictures.md`.**
-- **Panels** (`panels.js` + `sheet-grid.js`, `/api/panels`, page at `/panels`,
-  iOS tile under the PICTURES filter) — the Playground's recipe with the run
-  turned inside out: **N prompts drawn TOGETHER on one sheet and cut apart
-  locally**. Sophie's ask, 2026-08-23: "i think we copy the playground code for
-  it's own module. this has four text boxes, one for each panel — or an option
-  for other grid sizes like 9 or 2 (landscape, side by side)".
-  **THE BOXES ARE THE GRID** — the grid picker reshapes the box layout, so four
-  boxes are a 2x2 and two sit side by side; she writes into the layout she gets
-  back rather than into a numbered list she has to map onto one. That is the
-  whole reason it is a page and not a flag on the Playground.
-  - **IT IS CHEAPER TWICE OVER, measured** (`docs/modules/pictures.md`): output
-    tokens scale sub-linearly with pixels, AND a sheet is ONE call, so it pays
-    the style reference once instead of once per picture. At 4K medium: four
-    separate 1K draws are 4.1c each, one quartered 4K sheet is **2.94c each and
-    1.30x the pixels**. Nine ninths of the same sheet are 1.28c each.
-    **2K is cheaper still but its cuts come out SMALLER than a plain 1K
-    picture** — the thing that is easy to get backwards.
-  - **THE SHEET OPENS ON 4K/MEDIUM AND THE HAND-OFF OUT OF IT OPENS ON 1K/LOW
-    — two rungs answering two different questions (2026-08-26, Sophie: "when I
-    pick one and migrate it to the playground, it should default to one k and
-    low").** The paragraph above is the SHEET's case and it still stands: a
-    sheet only pays off at the tier where a cut beats an ordinary picture, so
-    the page opens there. Taking ONE panel over to the Playground is not that
-    — it used to carry `res=4k` plus the run's own quality (~47c a tap) on the
-    reasoning that a cut panel is ~1K of pixels so redrawing it alone at 4K IS
-    the upscale, and that reasoning is history: arriving on a page pre-set to
-    the dearest rung is a decision made for her, which is the Playground's own
-    never-persist-quality rule. Both are one tap up once she is there, and
-    neither rides a deep link into her next visit.
-    **The two are pinned in BOTH directions by `node scripts/test-panels.js`**
-    — a chat reading either comment must not tidy the other one to match.
-    (This bullet said the opposite for one merge, #1718: the whole page was
-    moved to 1K/low, which is not what she asked for.)
-  - **A BOX OPENS BIGGER, AND IT TAKES THE WHOLE ROW (2026-08-26, Sophie:
-    "make a button to see the current text box that you're working on bigger
-    so you can see what you're writing").** A 26px rounded square inside each
-    textarea's bottom-right corner — the Playground's `#bigprompt` answer
-    lifted in SHAPE, not copied, so the SAME textarea grows and there is never
-    a second field to sync. **WIDTH is the half that matters here, and that is
-    a measurement:** main is 14px either side, so on a 390pt phone a cell is
-    176px at two across and **114px at nine** — the grid where a dictated
-    prompt wraps every three or four words — so the open cell takes the whole
-    row (`grid-column: 1/-1`) as well as growing tall. The neighbours keep
-    their order and stay on screen, because what she wrote in them is the
-    context for the one she is writing. **ONE at a time** (opening another
-    closes it, or the grid comes apart into a column of full-width boxes),
-    **not sticky, and reset by a grid change** — the boxes ARE the grid, and
-    reopening on a layout she did not pick is the opposite of this page. The
-    textarea reserves that corner with `padding-bottom` or her last line is
-    typed under the button. Pinned by the bigger-box block of
-    `node scripts/test-panels.js` — the widths and heights read off the REAL
-    boxes and the button asked with `elementFromPoint`, because a cell that
-    grew only in height passes every markup check and still wraps her
-    dictation every four words (verified failing pre-fix).
-  - **THE CANVAS IS DERIVED, NEVER A LOOKUP TABLE** (`sheet-grid.js`, the same
-    rule `size-tier.js` follows). Every canvas satisfies all of gpt-image-2's
-    constraints plus the one this tool adds — the sheet must divide into
-    WHOLE-pixel cells, so a cut is a lossless crop of the model's own pixels
-    rather than a resample. The derivation reproduces the Playground's own
-    portrait ladder (1024x1536 · 1568x2352 · 2336x3504) from the constraints
-    alone, which is the strongest check that it is right.
-    **The tier is a TARGET, not a ceiling** (below the hard 8,294,400 cap): the
-    closest canvas wins, which is what makes 2K come out at 1568x2352 — 1,536
-    pixels OVER nominal — exactly as the Playground draws it.
-  - **A CUT PANEL'S CAPTION IS `1/4 (4K)`**, the fraction and the SHEET's tier,
-    via `sizeTier.cutSize`. Its own 1168x1752 lands on the **1K** rung and would
-    read as an ordinary small picture. `fileCreationDoc` takes a `sizeSlot`
-    override for exactly this — a cut panel's slot cannot be derived from its
-    own pixels.
-  - **THE STYLE'S OWN TAIL FIGHTS THIS, and the fix is a REMOVAL not an
-    argument.** `PL_GPT_STYLES.dreamy` ends "Render as ONE single illustration
-    — NOT a grid, NOT split panels", which is load-bearing for ordinary runs
-    (that reference IS a multi-panel comic page). `sheetSuffix()` strips that
-    CLAUSE and keeps the rest of the tail verbatim — the border, the no-text
-    rule, the reference rule all survive. Two sentences arguing produce one
-    panel with ghosts of the others.
-  - **THE GRID SENTENCE STATES THE CUT AND NOTHING ELSE** — no gutters, no page
-    margin, each illustration fills its own part edge to edge, because the page
-    is going to be cut along those lines. It deliberately says nothing about
-    borders or caption boxes: those are the STYLE's business, and Dreamy asks
-    for a hand-drawn frame per panel.
-  - **THE COST ESTIMATE IS FITTED TO THE MEASURED TABLE, and it is not a price
-    per megapixel** — that was the first cut and it was ~2x wrong at 4K.
-    `cents = fixed + rate * MP` reproduces `PL_GPT.res` to within 0.2% at
-    medium and high; there are two anchors because **cost tracks the aspect
-    ratio, not the area**, and a ratio outside the measured 1:1–2:3 range is
-    **CLAMPED, never extrapolated** (a 2:1 page is quoted at the 2:3 price,
-    which errs high). Every estimate carries `approx:true`; the run stores the
-    real `usage` the API returns, which is what a later comparison should read.
-    **AND THE INPUT SIDE IS ADDED ON TOP, NAMED** (measured on the first live
-    sheet, 2026-08-24): `PL_GPT.res` is an OUTPUT-only table, so the first
-    estimate this tool ever printed said 11.74c and the API charged **13.06c**.
-    The missing 1.32c is 1,505 image tokens for the style reference (1.20c) plus
-    246 text tokens (0.12c) — **the very cost a sheet pays ONCE where N separate
-    draws pay it N times**, which is why it is a named `input` field rather than
-    folded into the fit. It scales with the style's reference count and not with
-    quality or canvas. Pinned against the real `usage` by the test.
-  - **An EMPTY box is refused** — the model fills an unnamed cell with whatever
-    it likes and she pays for it at the sheet's price.
-  - **A WEDGED RUN IS RE-CUT FROM ITS OWN SHEET, FREE — `POST /:id/resume`
-    (found on the very first sheet this tool drew, 2026-08-24).** The sheet
-    landed, two of four panels cut, and **thirteen seconds later another chat
-    merged a PR**; the Render deploy restarted the box mid-job and the doc sat
-    `running` forever. Several chats merge here all day, so that is a NORMAL
-    event, not a freak one — and it is exactly the stale-job takeover the
-    `new-module` skill says to copy from cutmarks.js, which the first cut of
-    this module skipped. The expensive half had already succeeded, so a resume
-    costs nothing: it re-cuts from the stored sheet, KEEPS the panels that
-    already landed (she may have hearted one), and refuses to touch a job that
-    is genuinely still working — only one silent past `STALE_MS`. **That is why
-    the sheet is saved to Storage BEFORE the cutting starts.**
-  - **THE CUT RUNS IN A THROWAWAY CHILD PROCESS
-    (`scripts/cut-sheet-worker.js`, 2026-08-25) — the server's memory never
-    touches the pixels, and an OOM can only kill the cut, never the site.**
-    Earned the hard way, all measured the same day: the per-panel
-    `sharp(sheet).extract()` re-decoded AND cached the whole page per crop —
-    **592MB peak on a 9-panel 4K recut, on the 512MB box** — so every 4K cut
-    OOM-killed Render, and heal-on-read re-firing it per poll crash-looped the
-    service (the 502 night). The worker decodes once to a raw buffer with
-    sharp's cache off and encodes panels straight to files: **190MB peak in
-    its own process (self-measured, `peakRss` in its manifest, logged per
-    cut), server flat at baseline**, same pixels, ~2x faster. panels.js only
-    writes the sheet to tmp and uploads finished panels one at a time; live
-    progress comes from watching the out dir fill. Heals also run ONE at a
-    time process-wide — two wedged runs used to start two concurrent cuts
-    from a single feed read.
-  - **THE CUT LINES COME FROM THE PICTURE, NOT THE MATH (2026-08-25, Sophie:
-    "the cutting doesn't cut on the right lines because it's using math, but
-    the image generation is not exact — it needs some mechanism that's
-    actually aware and looks at the picture").** She was right, measured on
-    all four live sheets: the drawn gutters sat 7–45px off the mathematical
-    lines. `sheet-seams.js` scans a mean-ink profile near each math line and
-    finds the real boundary — a paper GUTTER (a valley, cut through its
-    middle) or, on a full-bleed sheet, the drawn BORDER line (a narrow peak,
-    cut ON it so each panel keeps half). **The qualifying tests are the
-    load-bearing half**: a valley must have dark flanks on BOTH sides and a
-    floor that reads as paper against the whole profile (a light patch inside
-    busy art fooled the first cut by 149px — the live cat sheet is now the
-    test fixture for it), and a peak must stand clear above both flanks;
-    anything less keeps the math line, so the failure mode is "no better than
-    before", never worse. Each cut panel stores its REAL `size` (they are no
-    longer all one nominal cell). Detection costs ~50-90ms a sheet. Tests:
-    `node scripts/test-sheet-seams.js` (pure, sheets built as raw bytes).
-  - **A STALE RUN HEALS ITSELF ON ANY READ (2026-08-25).** The resume route
-    existed and nothing ever called it — a deploy-restart mid-cut left the doc
-    saying `running` forever ("the cutting doesn't work"). Now the feed GET
-    and the poll GET kick the free recut themselves when a job has been silent
-    past `STALE_MS` with a sheet on file, and a run that died before its sheet
-    landed is stamped failed after `DRAW_STALE_MS` (15 min — the draw itself
-    can honestly take 10) instead of saying "working…" about nothing.
-  - **The cut encodes at `effort: 0` — still LOSSLESS** (effort only changes
-    how hard the encoder hunts for a smaller file, never the pixels).
-    Measured: 2518ms → 1191ms per 4K panel for ~20% more bytes — the right
-    trade on the box she watches cut nine panels.
-  - **THE PAGE'S FEED IS DIFFED, NEVER REBUILT (2026-08-25, Sophie: "once I
-    send it to be made it flashes like every two seconds").** `load()` used to
-    replace `#feed`'s whole innerHTML on every poll, so every `<img>` was
-    re-created and re-decoded — a full flash every couple of seconds while
-    anything ran. Each run keeps its own node now: the head line repaints,
-    the sheet lands once, a new cut is APPENDED, and an image already on
-    screen is never touched (pinned by the page test, which marks a live DOM
-    node and re-renders).
-  - **Tapping any picture opens THE shared Assets lightbox**
-    (`asset-lightbox.js` — never a fourth copy): a cut opens with its own
-    cell's words as the content half and the run's real wrapper (prefix + the
-    grid sentence + suffix) as the style half; the sheet opens with every
-    cell she wrote.
-  - **UPSCALE A PANEL IN THE PLAYGROUND (2026-08-25, Sophie: "upscale each
-    panel individually as its own image so this could copy the text into the
-    playground").** A cut's lightbox carries an action (the Playground's own
-    wire-loop icon — the opens-another-tool rule) that walks to
-    `/playground?prompt=&style=&quality=low&res=1k&sameref=1` — the panel's own
-    words, the tile it was really drawn on (server `evan` → page `chatgpt`),
-    and the CHEAP rung (her ask, 2026-08-26; it carried `res=4k` and the run's
-    own quality until then — see the bullet above). `?res=` is a one-shot
-    deep-link param in promptlab.html (still never persisted — this one is in
-    the link she tapped).
-  - **PANELS · PLAYGROUND is a hairline tab row at the top** (her ask, same
-    message) — a NAVIGATION, not an embed: the Playground is its own page and
-    an iframe would double every pill and toggle on screen.
-  - **LIST · TILES views, like the Playground's** (her ask): List is the runs
-    feed, Tiles is every cut panel as one wall three across at its own
-    natural shape, keyed/append-only like the feed so it never flashes,
-    sticky in localStorage, tap opens the same lightbox.
-  - **IT IS THE PLAYGROUND'S WHOLE FEED NOW, NOT A SMALLER ONE (2026-08-26,
-    Sophie: "panels has some differences between it and the playground — for
-    example there's no heart or X button or I don't think there's a way to
-    leave a note … make it exactly the same as the playground except that it's
-    panels. you can just reuse the code").** What landed, all of it hers in the
-    Playground first: **♥/✕ per picture** (`POST /api/panels/:id/vote`, keyed by
-    CELL NAME rather than an index, because a resume re-cuts only the missing
-    panels — mirrored onto the Assets record and back, so a mark here and a
-    mark in Meta Assets are one answer); **the badge** on the tile, the cut and
-    the sheet; **the two mark filters** in one segmented box (♥ rose, ✕ grey —
-    they must never look alike); **the search box** over the WHOLE history with
-    the house grammar, `liveInput` and `enterSubmits`; **List · Tiles · 3-or-4**
-    in one switch; **"Older"** paging backwards through time (`?before=`);
-    **her words on the card** behind the house `… more` opener (the card
-    carried only the geometry, so nothing on the feed said what a sheet was
-    OF); **put these prompts back in the boxes**, which restores the GRID too or
-    they land in the wrong cells; **the Prompt panel**, editable per style — the
-    POST has taken `prefix`/`suffix` overrides since the module shipped and
-    nothing showed them; **the bigger-box toggle** on every cell; the **toast**;
-    and in the lightbox a **note thread**, **Save to Photos** and **Send to the
-    Story Room** beside the Upscale that was already there.
-    - **THE LIGHTBOX WAS ALREADY THE SHARED ONE AND THAT WAS THE WHOLE BUG.**
-      `asset-lightbox.js` draws the ♥/✕ and the note box only when the caller
-      wires `_cast` and `_noteSend`; panels opened it read-only, so there was
-      nothing to tap. Notes land in **`my-creations`**, where panels.js files
-      every sheet and every cut, read back by `GET /api/gallery/assets/note?
-      chat=&url=` — ONE doc read, added the same day, because the sibling
-      `/notes` route reads a whole chat's votes AND assets to answer.
-    - **THE SHARED HALVES ARE ONE FILE — `public/feedkit.js`** (the search
-      grammar, `liveInput`/`enterSubmits`, the keyed reconcile that stopped the
-      flashing, the derived display copy, the toast). Both pages link it and
-      NEITHER keeps a copy; the tritoggle precedent, applied. **A stub test
-      server must serve it** — `scripts/lib/public-asset.js` answers anything a
-      page links out of `public/` in one line, so the next shared file needs no
-      harness change at all. The feed's MATCHER moved into `search-grammar.js`
-      as `compileFeed`/`feedMatches` for the same reason; server.js's
-      `plCompileQuery` and chatfeed's `compileQuery` are the copies still
-      standing, kept only because a test lifts their source by name.
-    - **ONE DELIBERATE DIFFERENCE:** the 3-or-4 number governs the TILE WALL
-      only. In the Playground `--cols` also lays out a run's own row, but here
-      that row is the SHEET's grid — four cuts of a 2x2 sit two across because
-      that is what the page looked like — so forcing three would draw a picture
-      of a sheet that was never made.
-    - **SEND TO THE STORY ROOM WALKS, IT DOES NOT POP UP.** The Playground's
-      own sheet was retired the same week (#1719, "rather than this weird
-      pop-up, it should take me to the story room so I can pick myself"), so
-      this button is a NAVIGATION — `/storyroom?send=<run>&cell=<cell>&
-      from=panels`. `loadSendPanel` in `gen-scratchpad.py` is the room's half:
-      `from=panels` names the FEED to re-read, and the picture is named by its
-      CELL because a resume re-cuts only the missing panels. The port had the
-      sheet in it for one afternoon and a test now fails if it comes back.
-    - **NOT PORTED, and why:** the LoRA scale / seed / ×3 (gpt-image-2 only
-      here), the quality LADDERS (a sheet ladder pays for the whole page again —
-      a different order of money, hers to ask for), and the photo reference and
-      Sophie card (per-run attachments the sheet route does not take yet — a
-      route change, not a page one). The BIGGER BOX is not this: another chat
-      shipped it here the same day (#1722) and its version wins — the open cell
-      takes the whole row, which is the half that matters at nine across.
-    - **AND THE THREE-WAY TOGGLE HAD DRIFTED.** It was still the solid ink slab
-      the Playground retired on 2026-08-24 ("the buttons are styled so fucking
-      weird… black outlines"), because the test pinned four literals instead of
-      comparing the two. It is pinned property-by-property against
-      `promptlab.html` now, so neither can move alone.
-    - Tests: `node scripts/test-panels-parity.js` — a stub server and NO
-      Firebase, driving the real page: the ♥ posting the cell name, the badge
-      landing behind the lightbox, the note reaching `my-creations`, the filters
-      emptying a run out of the feed, a search finding a run the feed never
-      paged in, Older, the copy button restoring the grid, and four pictures
-      measured onto one row.
-  - Prices and prompt text are **SERVED** (`GET /api/panels/config`); the page
-    holds no copy of either, and a test pins that. Nothing is deleted — a run
-    hides. Tests: `node scripts/test-panels.js` — 26 pure checks including the
-    real cut driven over real pixels with a distinctly-coloured cell per panel
-    (a wrong crop shows up as a wrong colour, not as a plausible picture), plus
-    6 more that drive the REAL page in headless Chromium when a server is up
-    (`PORT=3111 node server.js`; it skips cleanly otherwise). The page half
-    never makes a model call — Generate is only tapped with empty boxes, and
-    the test asserts that produced ZERO requests.
 - **Freeform** (`freeform.js`, `/api/freeform`, `/freeform`) — the one image
   surface with **no opinion**: the prompt goes to gpt-image-2 verbatim, no prefix,
   no suffix, not even a trailing-period trim. `promptSent` is stored on every run
@@ -4970,7 +4702,7 @@ before working on that module. Nothing was deleted — the moved text is verbati
     should be dreamy … it could look at the metadata or the prompt").** The
     page always sends the side she is showing, so a style-less `/add` or
     `/image` is a CHAT seeding art — it used to default silently to
-    watercolor, which mislaid three stories' dreamy panels. `sideFromEvidence`
+    watercolor, which mislaid three stories' dreamy art. `sideFromEvidence`
     reads the run doc the `src` names (or finds it by url) and `padSideOf` in
     `pad-side.js` claims a side only when the run's `style`/`gptStyle` IS one
     — evidence, never a guess; it may also flip the toggle, but only onto a
@@ -5024,9 +4756,8 @@ before working on that module. Nothing was deleted — the moved text is verbati
     with NO style so the side comes from the run's own record), the other
     rows are "a different one", and *Pick by hand* (or ending the trip) is
     the ordinary flow untouched. A confirmed match opens that story ON that
-    beat's popup — confirmation by sight — with the way-back band intact. A
-    Panels SHEET skips the check (one beat is the wrong unit for a whole
-    page of cells), and no match means no card, silently. Test:
+    beat's popup — confirmation by sight — with the way-back band intact.
+    No match means no card, silently. Test:
     `node scripts/test-send-match.js`.
   - **AND THE ENDED BAND IS THE WAY BACK (2026-08-26, Sophie: "when I go to
     put a picture into the story room there's no way to get back to the
@@ -5035,7 +4766,7 @@ before working on that module. Nothing was deleted — the moved text is verbati
     her Playground screen; the shelf's chevron leaves the whole tool in the
     app, and there was nothing else).** Placing the picture, or putting it
     down with the ✕, turns the band into "Placed · back to the Playground" /
-    "Back to the Playground" (Panels when `from=panels`) — tapping it walks
+    "Back to the Playground" — tapping it walks
     back, the ✕ then dismisses it for someone staying in the room. A run
     that cannot be read (a pruned run, a deploy mid-fetch) opens the band
     straight in that state instead of stranding her holding nothing. The
@@ -5049,7 +4780,7 @@ before working on that module. Nothing was deleted — the moved text is verbati
     again, band or no band, until a force-quit. On a document that arrived
     with `?send=`, `armTripRestore` wraps `window.__forgeLeave`: the native
     exit still fires first (the tool hides as before), then the web view
-    puts itself back on `/playground` (or `/panels`) with `location.replace`
+    puts itself back on `/playground` with `location.replace`
     behind it. Wrapping the bridge is what catches BOTH exits — the shelf
     chevron's own handler and pagehead's chevron chain — with one hook; a
     plain browser has no `__forgeLeave` and keeps its history fallback

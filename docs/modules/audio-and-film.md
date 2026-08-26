@@ -56,7 +56,7 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
   scenes, prompts, panel/clip URLs, edit list, running job — so movies reopen
   and re-edit later. Long steps run as background jobs recorded in the doc;
   clients poll `GET /api/movies/:id`. Same `STUDIO_TOKEN` gate as the pipeline
-  (only `GET /status` open). Panels/clips/films are saved to Firebase Storage
+  (only `GET /status` open). Scene panels/clips/films are saved to Firebase Storage
   (Replicate URLs expire ~1hr).
 - **EVERYTHING MOVIES MAKES GETS OUT OF THE MOVIES TAB (Aug 2026, Sophie:
   "there shud be a way to download individual clips … right now i can make them
