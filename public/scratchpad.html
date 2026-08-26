@@ -2760,7 +2760,7 @@ function openBeat(b){
   // The caption opens as WORDS with a pencil beside them; the box behind it
   // carries the same text so drawPrompt() and saveNote() read it either way.
   if(!typing){
-    capEditing=false;
+    capEditing=false; promEditing=false;
     resetBig();
     document.getElementById('pnote').value=b.text||'';
   }
@@ -2813,9 +2813,15 @@ function openBeat(b){
   // "you are about to draw the caption", and Draw sent the caption). Empty
   // means FOLLOW THE CAPTION, which the hint line says out loud.
   if(!typing)document.getElementById('dprompt').value=String(b.prompt||'');
-  // Same rule for the folds: mid-typing keeps whichever boxes she has open
-  // (setBoxes(…,false) would also kill promEditing under her caret).
-  if(typing){
+  // THE FOLDS ARE HERS, AND A RE-OPEN OF THE BEAT ALREADY ON SCREEN NEVER
+  // TOUCHES THEM (2026-08-26, Sophie: "the caption keeps reopening after I
+  // close it on a beat"). This used to be guarded by `typing` alone, i.e.
+  // only while a box had her caret — so closing the caption and then doing
+  // anything that re-opens the same beat sprang it back open: the gen poll
+  // landing a finished draw (no tap of hers at all), Draw itself, picking a
+  // past version, a chunk link. The defaults belong to ARRIVING at a beat,
+  // not to every repaint of the one she is standing on.
+  if(same){
     setBoxes(document.getElementById('caplab').getAttribute('aria-expanded')==='true',
              document.getElementById('promlab').getAttribute('aria-expanded')==='true');
   } else {
