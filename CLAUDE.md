@@ -4292,11 +4292,26 @@ before working on that module. Nothing was deleted — the moved text is verbati
     drops `#artwrap`'s `flex:1`, and it opens the drawing prompt beside the
     caption: the empty tile used to take the whole card, on exactly the beat
     whose WORDS are all there is.
+  - **AND THE DRAWING PROMPT IS THE SAME SHAPE SINCE 2026-08-26 (Sophie: "can
+    you make the default for the caption in the drawing prompt? that they're
+    not in a edit text box and that I press the pencil to edit them").** Her
+    2026-08-24 message above named BOTH boxes and only the caption got it, so
+    a picture-less beat — which opens with both down — showed one set of words
+    beside one "type here". `#promtext` + `#promedit` are `#captext` +
+    `#capedit`'s twin, and **the words are painted FROM `#dprompt` on every
+    paint**, so the textarea is still the one and only value: `drawPrompt()`,
+    `savePrompt()` and the hint line read it and cannot disagree with what she
+    is looking at. **Folding the prompt away puts it back to WORDS** —
+    reopening on a caret she left there last time is the box-by-default she
+    asked to be rid of.
   - **The fold rule is now conditional on that** — opening the prompt folds
     the caption away only when a picture is taking the room. And **the star
     (`#ardraw`) opens the drawing box, never closes it**: it would otherwise
     fold away the box a picture-less beat now opens with; the chevron on
-    Drawing prompt is the toggle, and the star focuses an open box.
+    Drawing prompt is the toggle. **The star is also the ONE way in that skips
+    the pencil** (`openDraw(ev, true)`) — "draw it here" is her saying she
+    wants to write the prompt, so it opens straight into the box with the
+    caret in it, where the label opens to the words.
   - Test: `node scripts/test-scratchpad-popup.js` (the real page, headless —
     the pencil measured beside the words, the empty tile measured against the
     same card holding a picture).
