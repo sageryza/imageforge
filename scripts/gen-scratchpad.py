@@ -516,10 +516,10 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 #captext{flex:1; min-width:0; font-family:'EBGaramond',Georgia,serif; font-size:17px;
   line-height:1.4; color:var(--ink); white-space:pre-wrap; overflow-wrap:anywhere; padding:2px 0;}
 #captext:empty{min-height:22px;}
-#capedit{flex:none; width:30px; height:30px; display:flex; align-items:center; justify-content:center;
+#capedit,#promedit{flex:none; width:30px; height:30px; display:flex; align-items:center; justify-content:center;
   padding:0; border:none; background:none; color:var(--ink2); cursor:pointer;}
-#capedit svg{width:17px; height:17px;}
-#capedit.on{color:var(--ink);}
+#capedit svg,#promedit svg{width:17px; height:17px;}
+#capedit.on,#promedit.on{color:var(--ink);}
 #pnote{flex:1; min-width:0; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:17px;
   line-height:1.4; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:6px;
   padding:10px 12px; resize:none;}
@@ -584,7 +584,17 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    never IN the box she writes in. */
 #promhint{font-family:'EBGaramond',Georgia,serif; font-size:13px; font-style:italic;
   color:var(--ink2); margin-top:-2px;}
-#dprompt{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px;
+/* THE DRAWING PROMPT READS AS WORDS TOO (2026-08-26, Sophie: "can you make
+   the default for the caption in the drawing prompt? that they're not in a
+   edit text box and that I press the pencil to edit them"). The caption got
+   this on 2026-08-24 and the prompt was left as an open box beside it, so a
+   picture-less beat — which opens with BOTH down — showed one set of words
+   and one "type here". Same shape, same pencil, one rule. */
+#promview{display:flex; align-items:flex-start; gap:8px; width:100%;}
+#promtext{flex:1; min-width:0; font-family:'EBGaramond',Georgia,serif; font-size:16px;
+  line-height:1.4; color:var(--ink); white-space:pre-wrap; overflow-wrap:anywhere; padding:2px 0;}
+#promtext:empty{min-height:22px;}
+#dprompt{flex:1; min-width:0; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px;
   line-height:1.4; color:var(--ink); background:var(--paper); border:1px solid var(--line);
   border-radius:6px; padding:10px 12px; resize:none;}
 .drawrow{display:flex; align-items:center; gap:10px;}
@@ -854,7 +864,11 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   <div class="tbox" id="prombox">
     <button class="tlab" id="promlab" aria-expanded="false">Drawing prompt<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
     <div id="drawbox" hidden>
-      <textarea id="dprompt" rows="3" placeholder="what to draw"></textarea>
+      <div id="promview">
+        <div id="promtext"></div>
+        <textarea id="dprompt" rows="3" placeholder="what to draw" hidden></textarea>
+        <button id="promedit" aria-label="Edit the drawing prompt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button>
+      </div>
       <div id="promhint" hidden>empty — this beat draws from its caption</div>
       <div class="drawrow">
         <button id="dchar" class="on" aria-label="Draw Sophie from her reference"><img src="/scratchpad-sophie.png" alt="Sophie"></button>
@@ -2194,7 +2208,9 @@ document.getElementById('linkbtn').onclick=function(ev){ ev.stopPropagation(); c
 document.getElementById('unlinkbtn').onclick=function(ev){ ev.stopPropagation(); chunkAction('/unchunk'); };
 
 /* ── drawing a beat's art right here ──────────────────────────────── */
-function openDraw(ev){
+/* `edit` opens straight into the box — the STAR only, since "draw it here"
+   is her saying she wants to write the prompt. The label opens to the words. */
+function openDraw(ev, edit){
   ev.stopPropagation();
   if(!popBeat)return;
   var box=document.getElementById('drawbox');
@@ -2218,8 +2234,10 @@ function openDraw(ev){
     // stays fixed: drawPrompt() reads the caption box, never the last
     // SAVED text).
     document.getElementById('dprompt').value=String(popBeat.prompt||'');
+    promEditing=Boolean(edit);
+    paintProm();
     saveNote();
-    document.getElementById('dprompt').focus();
+    if(promEditing) document.getElementById('dprompt').focus();
   }
 }
 /* The star OPENS the drawing box — it never closes it. Since a beat with no
@@ -2227,8 +2245,9 @@ function openDraw(ev){
    would fold away the very thing that beat is for; the chevron on Drawing
    prompt is the toggle. Already open → put the caret in the box. */
 document.getElementById('ardraw').onclick=function(ev){
-  if(document.getElementById('drawbox').hidden)return openDraw(ev);
+  if(document.getElementById('drawbox').hidden)return openDraw(ev,true);
   ev.stopPropagation();
+  promEditing=true; paintProm();
   document.getElementById('dprompt').focus();
 };
 /* The stacked squares: past pictures fold out under the row and fold back.
@@ -2349,9 +2368,25 @@ function paintCap(){
   document.getElementById('pnote').hidden=!capEditing;
   document.getElementById('capedit').classList.toggle('on',capEditing);
 }
+/* The prompt's two faces, the caption's rule exactly (2026-08-26). The words
+   are painted FROM the textarea on every paint, so the box behind them is
+   still the one and only value — drawPrompt(), savePrompt() and the hint line
+   all read it and cannot disagree with what she is looking at. */
+var promEditing=false;
+function paintProm(){
+  var ta=document.getElementById('dprompt');
+  document.getElementById('promtext').textContent=ta.value;
+  document.getElementById('promtext').hidden=promEditing;
+  ta.hidden=!promEditing;
+  document.getElementById('promedit').classList.toggle('on',promEditing);
+}
 function setBoxes(capOpen, promOpen){
   var cl=document.getElementById('caplab'), pl=document.getElementById('promlab');
   document.getElementById('drawbox').hidden=!promOpen;
+  /* Folding the box away puts it back to WORDS — reopening on a caret she
+     left there last time is the box-by-default she asked to be rid of. */
+  if(!promOpen)promEditing=false;
+  paintProm();
   cl.setAttribute('aria-expanded',capOpen?'true':'false');
   pl.setAttribute('aria-expanded',promOpen?'true':'false');
   paintCap();
@@ -2381,6 +2416,17 @@ document.getElementById('caplab').onclick=function(ev){
   setBoxes(!open, document.getElementById('promlab').getAttribute('aria-expanded')==='true');
 };
 document.getElementById('promlab').onclick=function(ev){ openDraw(ev); };
+/* The pencil TOGGLES the box, and coming out of it saves — the caption's
+   pencil, the same behaviour. It never closes on its own blur, for the same
+   reason: a card that reshuffles under her thumb eats the next tap. */
+document.getElementById('promedit').onclick=function(ev){
+  ev.stopPropagation();
+  promEditing=!promEditing;
+  paintProm();
+  if(promEditing){ document.getElementById('dprompt').focus(); }
+  else { savePrompt(); }
+};
+document.getElementById('promview').onclick=function(ev){ev.stopPropagation();};
 document.getElementById('pnote').onclick=function(ev){ev.stopPropagation();};
 /* Returns a promise so the speech icon can wait for a fresh note to land
    server-side before asking for its audio. */
@@ -2399,7 +2445,10 @@ function savePrompt(){
       var keep=popBeat; beats=d.beats; popBeat=beats.find(function(x){return x.id===keep.id;})||keep;
     }});
 }
-document.getElementById('dprompt').onblur=function(){savePrompt();};
+document.getElementById('dprompt').onblur=function(){
+  document.getElementById('promtext').textContent=this.value;
+  savePrompt();
+};
 /* WHAT DRAW WILL ACTUALLY SEND — one function, so the hint line and the
    Draw button can never disagree about it. Her own prompt when the box has
    one; otherwise the caption as it reads RIGHT NOW, speech markup stripped.
