@@ -3446,28 +3446,25 @@ before working on that module. Nothing was deleted — the moved text is verbati
     and the placeholder measured against the room the input actually has.
   **THE PROMPT BOX HAS A BIGGER-BOX TOGGLE (2026-08-25, Sophie: "can you put a
   button so I can see the prompt in a bigger box as an option").** A 26px
-  rounded square inside the textarea's bottom-**LEFT** corner (Lucide
+  rounded square inside the textarea's bottom-**RIGHT** corner (Lucide
   `maximize-2`/`minimize-2`) toggles the SAME `#prompt` textarea to 52vh and
   back — never a second field, so nothing syncs. The compact box reserves that
   corner with `padding-bottom`, so her last line is never typed under the
   button; the toggle clears any hand-dragged inline height or "back to small"
   would not shrink; deliberately NOT sticky.
-  **BOTTOM-LEFT, BECAUSE THE PILL OWNS THE OTHER CORNER (2026-08-26, Sophie,
-  looking at an empty prompt box: "padding under textbox???").** She was
-  asking about the 34px this button reserves, with no button in it: it shipped
-  bottom-RIGHT, and the prompt box is the FIRST thing on the page, so on her
-  phone it landed **entirely inside the injected pill's fixed column** — the
-  control was invisible and untappable and the padding was the only part of it
-  she could see. Measured at 390x844 with the iPhone 13's real 47px safe-area
-  inset: pill x 324-374 / y 47-227, button x 333-359 / y 164-190,
-  `elementFromPoint` at the button's own centre returning the PILL's svg. Same
-  rule the review queue's ↩ already follows — the pill owns the top-right, so
-  anything that would sit under it moves left.
-  **THE INSET IS THE WHOLE BUG, so a plain headless check cannot see it**:
-  `top: max(14px, env(safe-area-inset-top))` puts the pill at 14px with no
-  inset and at 47 on her phone, and at 14 the two just clear. The test
-  simulates the inset and makes the page scroll (the pill is conditional and
-  never renders on a page that does not).
+  **BOTTOM-RIGHT IS HER CALL AND THE PILL OVERLAP IS AN ACCEPTED COST
+  (2026-08-26, Sophie: "put it back exactly where it was").** For one day
+  (2026-08-25 → 26, #1733) the button sat bottom-LEFT, moved there because on
+  her phone the injected autoscroll pill's fixed column sat exactly on it —
+  measured at 390x844 with the iPhone 13's real 47px safe-area inset: pill
+  x 324-374 / y 47-227, button x 333-359 / y 164-190, `elementFromPoint` at
+  the button's own centre returning the PILL's svg (the inset is why a plain
+  headless check never saw it; at the no-inset 14px the two just clear). She
+  asked for the right corner back anyway, so that collision is HISTORY as a
+  reason to move the button: on an unscrolled page under a real inset the
+  pill can cover it, and the fix is scrolling, not relocating the control.
+  **Do not move it again without her**, and do not re-add the pill-clearance
+  assertion to the test — that assertion is how it gets "fixed" left again.
   **AND THE BOX DOES NOT SIT ON THE BUTTON ROW (2026-08-26, Sophie's own
   correction the same day: "my point was that there was no padding between the
   buttons and the bottom of the text prompt box I suspect that that's not what

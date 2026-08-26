@@ -3,13 +3,14 @@
 // see the prompt in a bigger box as an option").
 //
 // Drives the REAL public/promptlab.html in headless Chromium and asserts:
-//   1. the button sits INSIDE the prompt box's bottom-LEFT corner, a rounded
-//      square at the house 6px, and a tap at its own centre reaches it
-//      (`elementFromPoint` — the only honest way to ask),
-//   1b. it stays CLEAR of the injected autoscroll pill's column with the
-//      iPhone 13's real 47px safe-area inset applied — the pill sits 33px
-//      higher without one, so a plain headless check misses the collision
-//      that put this button entirely underneath the pill (2026-08-26),
+//   1. the button sits INSIDE the prompt box's bottom-RIGHT corner — HER CALL
+//      (2026-08-26, "put it back exactly where it was"), reversing the one-day
+//      move to bottom-left that dodged the autoscroll pill's column; the
+//      overlap with the pill at the top of an unscrolled page under a real
+//      safe-area inset is a cost she accepted, so do NOT re-add a clearance
+//      assertion or move the button without her — a rounded square at the
+//      house 6px, and a tap at its own centre reaches it (`elementFromPoint`
+//      — the only honest way to ask),
 //   2. one tap makes the SAME textarea big — over a third of the screen —
 //      with her words still in it (never a second field to sync),
 //   3. the glyph and label swap to "back to small",
@@ -75,8 +76,8 @@ const ok = (c, m) => { if (c) console.log('  ok  ' + m); else fail(m); };
     const hit = document.elementFromPoint(bb.x + bb.width / 2, bb.y + bb.height / 2);
     const cs = getComputedStyle(t);
     return {
-      inside: bb.left >= tb.left && bb.bottom <= tb.bottom && bb.top >= tb.top,
-      nearCorner: (bb.left - tb.left) <= 12 && (tb.bottom - bb.bottom) <= 12,
+      inside: bb.right <= tb.right && bb.bottom <= tb.bottom && bb.top >= tb.top,
+      nearCorner: (tb.right - bb.right) <= 12 && (tb.bottom - bb.bottom) <= 12,
       radius: getComputedStyle(b).borderRadius,
       square: Math.round(bb.width) === Math.round(bb.height),
       reachable: !!(hit && hit.closest('#bigprompt')),
@@ -84,48 +85,17 @@ const ok = (c, m) => { if (c) console.log('  ok  ' + m); else fail(m); };
       btnH: bb.height,
     };
   });
-  ok(corner.inside && corner.nearCorner, 'it sits inside the box\'s bottom-left corner');
+  ok(corner.inside && corner.nearCorner, 'it sits inside the box\'s bottom-right corner (her 2026-08-26 call)');
   ok(corner.square && corner.radius === '6px', `a rounded square at the house 6px (${corner.radius})`);
   ok(corner.reachable, 'a tap at its own centre reaches it');
   ok(corner.padBottom >= corner.btnH + 6,
     `the box reserves the button's corner with padding (${corner.padBottom}px for a ${corner.btnH}px button)`);
 
-  // THE PILL OWNS THE OTHER CORNER (2026-08-26, Sophie: "padding under
-  // textbox???"). She was looking at the 34px this button reserves with no
-  // button in it: shipped bottom-RIGHT, it landed entirely inside the injected
-  // pill's fixed column on her phone. The inset is what makes it collide —
-  // `top: max(14px, env(safe-area-inset-top))` puts the pill at 14 in headless
-  // and at 47 on an iPhone 13 — so simulate it, and make the page scroll,
-  // since the pill is conditional and never renders on a page that doesn't.
-  console.log('CLEAR OF THE AUTOSCROLL PILL (iPhone 13 safe-area inset)');
-  await page.addStyleTag({ content: '.float{top:47px !important}' });
-  await page.evaluate(() => {
-    const tall = document.createElement('div');
-    tall.style.height = '2000px';
-    document.body.appendChild(tall);
-    if (window.__pillSync) window.__pillSync();
-  });
-  await page.waitForTimeout(300);
-  const rail = await page.evaluate(() => {
-    const f = document.querySelector('.float');
-    if (!f) return { nopill: true };
-    const b = document.getElementById('bigprompt');
-    const fb = f.getBoundingClientRect(), bb = b.getBoundingClientRect();
-    const hit = document.elementFromPoint(bb.x + bb.width / 2, bb.y + bb.height / 2);
-    return {
-      overlaps: !(bb.right <= fb.left || bb.left >= fb.right
-        || bb.bottom <= fb.top || bb.top >= fb.bottom),
-      reachable: !!(hit && hit.closest('#bigprompt')),
-      hit: hit ? (hit.closest('.float') ? 'the pill' : (hit.id || hit.tagName)) : 'nothing',
-      btn: [Math.round(bb.left), Math.round(bb.top), Math.round(bb.right), Math.round(bb.bottom)],
-      pill: [Math.round(fb.left), Math.round(fb.top), Math.round(fb.right), Math.round(fb.bottom)],
-    };
-  });
-  ok(!rail.nopill, 'the pill renders once there is something to scroll');
-  ok(rail.nopill || !rail.overlaps,
-    `the button clears the pill's column (button ${rail.btn}, pill ${rail.pill})`);
-  ok(rail.nopill || rail.reachable, `a tap still reaches it, not the pill (hit: ${rail.hit})`);
-  await page.evaluate(() => { window.scrollTo(0, 0); });
+  // There is deliberately NO pill-clearance assertion here. Bottom-right can
+  // sit under the injected autoscroll pill's fixed column on an unscrolled
+  // page with a real safe-area inset (measured 2026-08-26) — that is a cost
+  // Sophie accepted when she asked for the right corner back the same day.
+  // Re-adding the clearance check is how the button gets "fixed" left again.
 
   console.log('BIG, WITH HER WORDS STILL IN IT');
   await page.fill('#prompt', 'a fox asleep on a radiator, and the whole apartment holding its breath');
