@@ -372,6 +372,9 @@ loadConfig().then(() => {
     styles: PL_GPT_STYLES,
     gpt: PL_GPT,
     whiten: whitenBackground,
+    // The ♥/✕ mirror: a mark on a panel also lands on any Assets-tab record
+    // holding the same picture, exactly as a Playground vote does.
+    syncVote: syncVoteToAssets,
   });
   app.use('/api/panels', panels.router);
   // Vector Studio — described drawings → a pastel sheet → cut-outs → SVG. The
@@ -2726,7 +2729,11 @@ async function syncVoteToAssets(url, vote) {
     // chat also delivered it. Measured 2026-08-22: 21 of 22 hearted
     // Playground pictures had ONLY that row, so a record-only sync wrote
     // nothing at all.
-    if (/\/promptlab\//.test(String(url))) chats.add('my-creations');
+    // Panels files every sheet and every cut panel into My Creations the same
+    // way (panels.js's fileRun), so its pictures vote as 'my-creations' too —
+    // without this a ♥ on a panel wrote nothing at all unless a chat had also
+    // delivered that picture into its own Assets tab.
+    if (/\/(promptlab|panels)\//.test(String(url))) chats.add('my-creations');
     for (const q of queries) {
       try {
         (await q.limit(20).get()).docs.forEach((d) => {
@@ -2756,6 +2763,27 @@ async function syncVoteToPlayground(url, vote) {
       [`votes.${i}`]: (vote === 'like' || vote === 'dislike')
         ? vote : admin.firestore.FieldValue.delete(),
     });
+  } catch (e) { /* best-effort */ }
+}
+// The Panels sibling of the above: a ♥/✕ she gives in the Assets tab (or in
+// Meta Assets) lands back on the panels RUN doc, so its feed, its tiles and
+// its lightbox agree with the tab. Keyed by CELL NAME, the same key
+// POST /api/panels/:id/vote writes — a resume re-cuts only the missing panels,
+// so a position is not a stable name for a picture.
+async function syncVoteToPanels(url, vote) {
+  if (!url || !/\/panels\//.test(String(url)) || !admin.apps.length) return;
+  try {
+    const snap = await admin.firestore().collection('forge-panels')
+      .orderBy('createdAt', 'desc').limit(400).get();
+    for (const doc of snap.docs) {
+      const d = doc.data() || {};
+      const cell = d.sheetUrl === url ? 'sheet'
+        : ((d.images || []).find((im) => im && im.url === url) || {}).cell;
+      if (!cell) continue;
+      await doc.ref.update(new admin.firestore.FieldPath('votes', cell),
+        (vote === 'like' || vote === 'dislike') ? vote : admin.firestore.FieldValue.delete());
+      return;
+    }
   } catch (e) { /* best-effort */ }
 }
 // Legacy docs hold only a single `note` string (everything written before the
@@ -2859,7 +2887,10 @@ app.post('/api/gallery/assets/vote', express.json(), async (req, res) => {
     }
     // A ♥/✕ (or a clear) on a Playground-made picture also lands on its run
     // doc, so the Playground's own feed agrees — see syncVoteToPlayground.
-    if (vote !== undefined) await syncVoteToPlayground(url, vote);
+    if (vote !== undefined) {
+      await syncVoteToPlayground(url, vote);
+      await syncVoteToPanels(url, vote);
+    }
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -2961,6 +2992,29 @@ app.post('/api/gallery/assets/note-voice', express.json({ limit: '8mb' }), async
 // what Sophie asked and what it already answered. Images she never wrote on are
 // omitted, so this stays small next to the full assets list. `waiting:'chat'`
 // is the queue: she spoke last and nobody has replied.
+// ONE image's note thread, by url (2026-08-26). The sibling `/notes` route
+// answers with every threaded image in a chat — it reads that chat's WHOLE
+// vote collection and its whole asset collection to do it, which is right for
+// a chat sweeping what is waiting for it and far too heavy for a lightbox
+// opening on one picture. This is a single doc read.
+app.get('/api/gallery/assets/note', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  res.set('Cache-Control', 'no-store');
+  try {
+    const chat = String(req.query.chat || '').slice(0, 60);
+    const url = String(req.query.url || '').slice(0, 500);
+    if (!chat || !url) return res.status(400).json({ error: 'chat and url required' });
+    if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
+    const snap = await assetVoteRef(chat, url).get();
+    const v = snap.exists ? snap.data() : {};
+    const thread = assetThread(v);
+    return res.json({ url, thread, waiting: assetWaiting(thread),
+      vote: v.vote || null, done: v.done ? true : false });
+  } catch (err) { return res.status(500).json({ error: err.message }); }
+});
+
 app.get('/api/gallery/assets/notes', async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
     return res.status(401).json({ error: 'unauthorized' });

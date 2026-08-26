@@ -22,6 +22,7 @@
 //
 //   npm install playwright --no-save && node scripts/test-playground-story-share.js
 const http = require('http');
+const servePublic = require('./lib/public-asset');
 const fs = require('fs');
 const path = require('path');
 
@@ -55,6 +56,8 @@ const PADX = {
 const posts = [];   // every write the page makes, {path, body}
 
 const server = http.createServer((req, res) => {
+  // Anything the page links out of public/ — /feedkit.js, /tritoggle.*, …
+  if (servePublic(req, res)) return;
   const url = new URL(req.url, 'http://x');
   const json = (obj) => { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(obj)); };
   if (req.method === 'POST' && url.pathname.startsWith('/api/scratchpad/')) {

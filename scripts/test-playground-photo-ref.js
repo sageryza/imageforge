@@ -24,6 +24,7 @@
  *   (headless half needs: npm install playwright --no-save)
  */
 const fs = require('fs');
+const servePublic = require('./lib/public-asset');
 const path = require('path');
 const http = require('http');
 
@@ -90,6 +91,8 @@ const PHOTO_LINE = ' The LAST attached image is a photo reference: use it for th
 (async () => {
   let posted = null;
   const server = http.createServer((req, res) => {
+    // Anything the page links out of public/ — /feedkit.js, /tritoggle.*, …
+    if (servePublic(req, res)) return;
     const url = new URL(req.url, 'http://x');
     if (url.pathname === '/api/promptlab' && req.method === 'POST') {
       let body = '';

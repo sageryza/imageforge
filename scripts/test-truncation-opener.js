@@ -25,6 +25,7 @@
 //
 //   node scripts/test-truncation-opener.js
 const fs = require('fs');
+const servePublic = require('./lib/public-asset');
 const path = require('path');
 
 const PUB = path.join(__dirname, '..', 'public');
@@ -106,6 +107,8 @@ for (const [file, classes] of Object.entries(OPENERS)) {
       + 'want to be, and nobody minds at all, and the sky is always a little purple',
   };
   const server = http.createServer((req, res) => {
+    // Anything the page links out of public/ — /feedkit.js, /tritoggle.*, …
+    if (servePublic(req, res)) return;
     const u = new URL(req.url, 'http://x');
     if (u.pathname === '/api/promptlab') {
       res.writeHead(200, { 'Content-Type': 'application/json' });

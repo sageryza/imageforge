@@ -5,6 +5,11 @@
 <!-- The toggle's BEHAVIOUR is shared too since 2026-08-24 — a tap lands on the
      stop under the thumb rather than cycling. See /tritoggle.js. -->
 <script src="/tritoggle.js"></script>
+<!-- The feed's own shared pieces — the search grammar, liveInput/enterSubmits,
+     the keyed reconcile, the derived display copy and the toast. ONE copy,
+     shared with /panels (2026-08-26, Sophie: "you can just reuse the code
+     since it should be basically the same"). -->
+<script src="/feedkit.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   [hidden] { display: none !important; }
@@ -808,36 +813,8 @@
   // so "aries" never finds "boundaries" and `gpt-image-2` keeps its hyphens —
   // the same regexes /assets builds, so the client filter and the server
   // search can never disagree about what matches.
-  function qparse(q) {
-    var groups = [], re = /(-|!)?(?:"([^"]*)"|(\S+))/g, m, orNext = false, notNext = false;
-    while ((m = re.exec(String(q || '')))) {
-      var quoted = m[2] !== undefined, raw = quoted ? m[2] : m[3], bare = !m[1] && !quoted;
-      if (bare && /^or$/i.test(raw)) { orNext = true; continue; }
-      if (bare && /^and$/i.test(raw)) continue;
-      if (bare && /^not$/i.test(raw)) { notNext = true; continue; }
-      var v = String(raw == null ? '' : raw).toLowerCase().replace(/\s+/g, ' ').trim();
-      if (!v) continue;
-      var rx = null;
-      try {
-        rx = new RegExp((/^[a-z0-9]/i.test(v) ? '\\b' : '') +
-          v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+'), 'i');
-      } catch (e) { rx = null; }
-      if (!rx) continue;
-      var neg = !!m[1] || notNext, last = groups[groups.length - 1];
-      if (orNext && last && !last.neg && !neg) last.terms.push(rx);
-      else groups.push({ neg: neg, terms: [rx] });
-      orNext = false; notNext = false;
-    }
-    return groups;
-  }
-  function qmatch(hay, groups) {
-    for (var i = 0; i < groups.length; i++) {
-      var g = groups[i], hit = false;
-      for (var j = 0; j < g.terms.length; j++) { if (g.terms[j].test(hay)) { hit = true; break; } }
-      if (g.neg ? hit : !hit) return false;
-    }
-    return true;
-  }
+  var qparse = window.FeedKit.qparse;
+  var qmatch = window.FeedKit.qmatch;
   // Everything a run's card actually says: her words, the style it was drawn
   // in, and the tags beside them — so "dreamy", "medium", "square", "photo
   // ref" and "failed" all find what she is looking at.
@@ -904,27 +881,8 @@
   }
   // Search as she DICTATES — iOS can fill a field without ever firing `input`,
   // so the box polls its value while focused (the house liveInput).
-  function liveInput(el, fn) {
-    var last = el.value, timer = null;
-    function fire() { if (el.value === last) return; last = el.value; fn(); }
-    ['input', 'change', 'compositionupdate', 'compositionend', 'keyup', 'paste']
-      .forEach(function (ev) { el.addEventListener(ev, function () { setTimeout(fire, 0); }); });
-    el.addEventListener('focus', function () { clearInterval(timer); timer = setInterval(fire, 150); });
-    el.addEventListener('blur', function () { clearInterval(timer); timer = null; fire(); });
-    return { sync: function () { last = el.value; } };
-  }
-  // RETURN ENDS THE SEARCH TOO (Aug 2026, Sophie) — a lone <input type=search>
-  // outside a <form> has nothing to submit to, so Return would do nothing at
-  // all. It runs the search and drops the keyboard, so what she is left
-  // looking at is the pictures.
-  function enterSubmits(el, fn) {
-    el.addEventListener('keydown', function (e) {
-      if (e.key !== 'Enter' && e.keyCode !== 13) return;
-      e.preventDefault();
-      if (fn) fn();
-      el.blur();
-    });
-  }
+  var liveInput = window.FeedKit.liveInput;
+  var enterSubmits = window.FeedKit.enterSubmits;
   var qLive = liveInput(document.getElementById('q'), readSearch);
   // `qLive.sync()` inside it: the blur Return performs would otherwise be
   // liveInput's first sight of dictated text and would search a second time.
@@ -1959,11 +1917,7 @@
   // and is sent as-is (the thumb service only re-serves Google storage
   // hosts, and those temp urls expire on their own anyway).
   var THUMB_W = 480;
-  function thumbFor(u) {
-    return /^https:\/\/(storage|firebasestorage)\.googleapis\.com\//.test(u || '')
-      ? '/api/story/thumb?w=' + THUMB_W + '&url=' + encodeURIComponent(u)
-      : u;
-  }
+  function thumbFor(u) { return window.FeedKit.thumbFor(u, THUMB_W); }
 
   // FLASHING: every repaint used to be `innerHTML = …` over the whole feed,
   // which destroys and recreates every <img> on screen — the browser blanks
@@ -1974,25 +1928,7 @@
   // order is fixed by MOVING nodes — moving an element never reloads its
   // image. The lightbox arrows read the DOM (lbSeq), so they walk exactly
   // what reconciliation put there, same as before.
-  function syncChildren(box, items, make, update) {
-    var stray = [], byKey = {}, el, k;
-    for (el = box.firstElementChild; el; el = el.nextElementSibling) {
-      k = el.getAttribute('data-key');
-      if (k == null) stray.push(el); else byKey[k] = el;
-    }
-    stray.forEach(function (s) { s.remove(); });     // e.g. an old empty-note
-    var prev = null;
-    items.forEach(function (it) {
-      var node = byKey[it.key];
-      if (node) delete byKey[it.key];
-      else { node = make(it); node.setAttribute('data-key', it.key); }
-      var want = prev ? prev.nextElementSibling : box.firstElementChild;
-      if (node !== want) box.insertBefore(node, want || null);
-      update(node, it);       // after insertion — the clamp check needs layout
-      prev = node;
-    });
-    Object.keys(byKey).forEach(function (kk) { byKey[kk].remove(); });
-  }
+  var syncChildren = window.FeedKit.syncChildren;
   // A picture's own shape, as a CSS ratio. The run stores it as '2:3' / '1:1';
   // anything else (an older run from before the canvas toggle, a hand-written
   // value) falls back to portrait, which is what every run before it drew.
@@ -2579,14 +2515,7 @@
   // A tap on the dim backdrop leaves the sheet; the box itself swallows it.
   ssSheet().addEventListener('click', function (e) { if (e.target === ssSheet()) closeStorySheet(); });
 
-  var toastTimer = null;
-  function toast(msg) {
-    var el = document.getElementById('toast');
-    el.textContent = msg;
-    el.classList.add('on');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { el.classList.remove('on'); }, 2200);
-  }
+  var toast = window.FeedKit.toast;
 
   // The app's nav-bar chevron asks the page first: close the lightbox if it's
   // open, else let the app leave the tool.

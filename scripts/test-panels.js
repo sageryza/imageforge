@@ -391,9 +391,24 @@ t('the slider is the SHARED three-way shell, not a copy of it', () => {
   // the page links it and keeps only its own colour and size.
   assert.ok(/<link rel="stylesheet" href="\/tritoggle\.css">/.test(PAGE), 'the page links the shell');
   assert.ok(!/\.swtog/.test(PAGE), 'and has no leftover hand-copy of the old rule');
-  for (const prop of ['--tri-track: #2b2622', '--tri-knob: #faf7f2', '--tri-w: 78px', '--tri-k: 26px']) {
-    assert.ok(PAGE.includes(prop), 'the instance still declares ' + prop);
-  }
+  // AND ITS COLOUR IS THE PLAYGROUND'S, READ OUT OF THAT FILE (2026-08-26,
+  // Sophie: "make it exactly the same as the playground except that it's
+  // panels"). This used to pin the four literals `--tri-track: #2b2622` /
+  // `--tri-knob: #faf7f2` — a solid ink slab, which is where the Playground's
+  // instance stood before 2026-08-24 and exactly the drift she was looking at:
+  // that tool moved to paper-with-a-black-line ("the buttons are styled so
+  // fucking weird … they should have black outlines") and this one did not,
+  // because nothing compared them. Now nothing CAN drift: the two declarations
+  // are compared property by property.
+  const labTri = /\n  \.tri \{([\s\S]*?)\}/.exec(
+    fs.readFileSync(path.join(ROOT, 'public', 'promptlab.html'), 'utf8'));
+  const panTri = /\n  \.tri \{([\s\S]*?)\}/.exec(PAGE);
+  assert.ok(labTri && panTri, 'both pages declare a .tri instance');
+  const props = (b) => Object.fromEntries(b.trim().split(';')
+    .map((d) => d.trim()).filter(Boolean)
+    .map((d) => d.split(':').map((x) => x.trim())));
+  assert.deepStrictEqual(props(panTri[1]), props(labTri[1]),
+    'the panels toggle wears the Playground\'s exact instance — colour and size');
   assert.ok(!/\.tri \{[^}]*(position|transition|border-radius)\s*:/.test(PAGE),
     'the instance carries colour and size only, never the geometry');
 });
