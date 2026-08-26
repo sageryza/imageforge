@@ -142,19 +142,21 @@ const SHOTS = [
   // TWO phrases on purpose: she flubbed "You could grow will" before the good
   // "You could grow gills", and one long phrase matched straight through the
   // flub. Split spans let the flub fall between them.
-  { id: 'e1', s: E, src: 'e1', tx: 0.523, ty: 0.404, push: true, phrases: ['Water rewires your DNA Every sip adds another strand until you unlock secret fish memories hidden in your spine', 'You could grow gills You probably will'] },
-  { id: 'e2', s: E, src: 'e1', tx: 0.523, ty: 0.593, push: true, phrases: ['Water supercharges your brain Enough water can power a thought boat straight into the sea of solutions'],
-    extra: [{ source: 'e2', phrase: "You're basically thinking with sandpaper" }] },
-  { id: 'e3', s: E, src: 'e2', tx: 0.522, ty: 0.772, push: true, phrases: ['water opens portals Gallons of water a day opens doors to hidden realms where time is soft and your worries dissolve like old candy'] },
+  { id: 'e1', s: E, src: 'e1', pan: { z: 2.55, ty: 0.404, from: 0.26, to: 0.74 }, phrases: ['Water rewires your DNA Every sip adds another strand until you unlock secret fish memories hidden in your spine', 'You could grow gills You probably will'] },
+  { id: 'e3', s: E, src: 'e2', pan: { z: 2.55, ty: 0.772, from: 0.26, to: 0.74 }, phrases: ['water opens portals Gallons of water a day opens doors to hidden realms where time is soft and your worries dissolve like old candy'] },
   { id: 'e4', s: E, src: 'e2', tx: 0.500, ty: 0.900, z: 1.60, phrases: ['Drink more water So much water Fill yourself up and overflow'] },
 
-  { id: 'f1', s: F, src: 'f1b', tx: 0.188, ty: 0.476, z: 2.30, phrases: ['It flushes out the ghosts that live in your knees'] },
-  { id: 'f2', s: F, src: 'f12', tx: 0.497, ty: 0.476, z: 2.30, phrases: ['It offends the major thirst demons so they leave you alone'] },
-  { id: 'f3', s: F, src: 'f3',  tx: 0.805, ty: 0.479, z: 2.26, phrases: ['It fills your auras reservoir so you can fly and do backflips'] },
+  // measured panel band y 0.41-0.79; at ty 0.476/z 2.30 the window stopped at
+  // 0.694 and cut each picture in half, which is what read as "not zoomed into
+  // that moment" — 0.60/2.60 is the panel edge to edge, number, words, picture
+  { id: 'f1', s: F, src: 'f1b', tx: 0.190, ty: 0.600, z: 2.60, phrases: ['It flushes out the ghosts that live in your knees'] },
+  { id: 'f2', s: F, src: 'f12', tx: 0.500, ty: 0.600, z: 2.60, phrases: ['It offends the major thirst demons so they leave you alone'] },
+  { id: 'f3', s: F, src: 'f3',  tx: 0.810, ty: 0.600, z: 2.60, phrases: ['It fills your auras reservoir so you can fly and do backflips'] },
 
-  { id: 'g1', s: G, src: 'g', tx: 0.502, ty: 0.352, push: true, phrases: ['Water lubricates your thoughts so ideas slide around more freely'] },
-  { id: 'g2', s: G, src: 'g', tx: 0.502, ty: 0.524, push: true, phrases: ['Water confuses your cells in a good way making them forget to be old'] },
-  { id: 'g3', s: G, src: 'g', tx: 0.500, ty: 0.694, push: true, phrases: ['Water builds secret tiny rafts in your bloodstream that rescue you from sadness'] },
+  { id: 'g1', s: G, src: 'g', pan: { z: 2.55, ty: 0.385, from: 0.26, to: 0.74 }, phrases: ['Water lubricates your thoughts so ideas slide around more freely'] },
+  { id: 'g2', s: G, src: 'g', pan: { z: 2.55, ty: 0.512, from: 0.26, to: 0.74 }, phrases: ['Water confuses your cells in a good way making them forget to be old'] },
+  // the rafting lake, travelled across — the shot she described
+  { id: 'g3', s: G, src: 'g', pan: { z: 2.55, ty: 0.726, from: 0.24, to: 0.76 }, phrases: ['Water builds secret tiny rafts in your bloodstream that rescue you from sadness'] },
 
   { id: 'h1', s: Hs, src: 'h', tx: 0.198, ty: 0.476, z: 2.90, phrases: ['Your thoughts get washed super clean', 'Less worries more duck'] },
   { id: 'h2', s: Hs, src: 'h', tx: 0.487, ty: 0.476, z: 2.90, phrases: ['It adds extra water to your water Double water equals double good'] },
@@ -197,9 +199,19 @@ for (const s of SHOTS) {
   const ease = `(1-pow(1-min(on/${zf},1),3))`;
   let z0, z1, txe, tye;
   if (s.full) { z0 = 1.06; z1 = 1.0; txe = '0.5'; tye = '0.5'; }
-  else if (s.push) { z0 = 1.0; z1 = 1.08; txe = String(s.tx); tye = String(s.ty); }
+  else if (s.pan) {
+    // A ROW THAT SPANS THE PAGE IS PANNED, NOT PUSHED (her ask, 2026-08-25:
+    // "it doesn't zoom in. Could you make it like zoom in on the rafting lake
+    // picture and go across it?"). The `push` shots were a compromise — a
+    // full-width row cannot be cropped to without cutting her lettering, so
+    // they barely moved and she read them as not zoomed at all. A pan zooms
+    // in properly and travels left to right, so the whole row is still seen.
+    z0 = s.pan.z; z1 = s.pan.z; tye = String(s.pan.ty);
+    const g = `(on/${d})`;
+    txe = `(${s.pan.from}+${(s.pan.to - s.pan.from).toFixed(4)}*${g})`;
+  } else if (s.push) { z0 = 1.0; z1 = 1.08; txe = String(s.tx); tye = String(s.ty); }
   else { z0 = 1.0; z1 = s.z; txe = String(s.tx); tye = String(s.ty); }
-  let zx = `${z0}+${(z1 - z0).toFixed(4)}*${ease}+0.03*on/${d}`;
+  let zx = s.pan ? String(z0) : `${z0}+${(z1 - z0).toFixed(4)}*${ease}+0.03*on/${d}`;
   if (s.glide) { // the third-eye shot slides down onto the burst, one move
     const f1 = Math.round(0.45 * d), fg = Math.round(0.35 * d);
     const g = `(1-pow(1-min(max((on-${f1})/${fg},0),1),2))`;
@@ -224,7 +236,7 @@ for (const s of SHOTS) {
 const SOURCES = [...Object.keys(SLICES), LAURA];
 const spec = {
   title: 'MORE WATER, RIGHT NOW — in her voice',
-  width: W, height: PADH, fps: FPS, bg: '#f1d3a5', out: 'water-reel-v12',
+  width: W, height: PADH, fps: FPS, bg: '#f1d3a5', out: 'water-reel-v13',
   // vo-film's default edge rule keeps up to 1.2s of lead-in/tail per shot,
   // which is right for a film of long shots and wrong for 34 short ones: the
   // two kept edges MEET at every joint and the verify pass reports the reel as

@@ -90,7 +90,7 @@ const BED = [
   { line: 'liquid lightning', fx: [
     // was zapbig — "I don't like the breaking glass sound effect"
     ['crackle', 0.25, +2]] },
-  { line: 'third eye in your knee', fx: [['future', 0.40, 0], ['splash', 3.60, +2]] },
+  { line: 'third eye in your knee', fx: [['future', 0.40, 0], ['splash', 3.60, +2, 1.5]] },
 
   { line: 'rewires your DNA', fx: [['gurgle', 0.50, 0]] },
   { line: 'supercharges your brain', fx: [['zap', 0.35, +1]] },
@@ -114,7 +114,7 @@ const BED = [
   { line: 'third eye on the inside', fx: [['future', 0.30, 0]] },
   { line: 'sponge with anxiety', fx: [['drips', 0.40, 0]] },
 
-  { line: 'drink oceans', fx: [['splash', 0.10, +2]] },
+  { line: 'drink oceans', fx: [['splash', 0.10, +2, 2.0]] },
 ];
 
 // HER VOICE IS NEVER LOUDNORMED — this is a STATIC per-shot trim, capped, and
@@ -223,7 +223,7 @@ let t = 0, placed = 0;
 for (let si = 0; si < shots.length; si++) {
   const f = shots[si];
   const id = f.replace(/^shot-\d+-/, '').replace(/\.wav$/, '');
-  for (let [name, at, lift] of bedFor[si]) {
+  for (let [name, at, lift, spill] of bedFor[si]) {
     if (at && typeof at === 'object' && at.word) at = await wordAt(path.join(shotDir, f), at.word);
     const file = path.join(SFX, `${name}.mp3`);
     if (!fs.existsSync(file)) { console.warn(`missing sfx ${name}`); continue; }
@@ -232,10 +232,18 @@ for (let si = 0; si < shots.length; si++) {
     let gain = TARGET + (lift || 0) + taper - mean;
     const ceil = PEAK_CEIL - max;                        // keep the peak polite
     if (gain > ceil) gain = ceil;
+    // AN EFFECT MAY NOT OUTLIVE ITS LINE (2026-08-25, Sophie on the lullaby:
+    // "the singing should stop before it gets to the next reason"). It is
+    // pinned to her words, so it ends with them: trimmed to what is left of
+    // this shot, with a 0.25s fade so the stop is not a cliff. `spill` buys
+    // an effect extra seconds when it is meant to ring on (a finale splash).
+    const room = Math.max(0.4, lens[si] - at + (spill || 0));
+    const fade = Math.min(0.25, room / 3);
     const ms = Math.round((t + at) * 1000);
     const idx = inputs.length / 2; // 0 is the film; the voice chain is unshifted to [a0]
     inputs.push('-i', file);
-    chains.push(`[${idx}:a]volume=${gain.toFixed(2)}dB,adelay=${ms}|${ms}[a${idx}]`);
+    chains.push(`[${idx}:a]volume=${gain.toFixed(2)}dB,atrim=end=${room.toFixed(3)},asetpts=PTS-STARTPTS,`
+      + `afade=t=out:st=${(room - fade).toFixed(3)}:d=${fade.toFixed(3)},adelay=${ms}|${ms}[a${idx}]`);
     log.push(`${id.padEnd(3)} ${name.padEnd(11)} src ${mean.toFixed(1)}dB -> ${gain.toFixed(1)}dB (peak ${(max + gain).toFixed(1)})`);
     placed++;
   }
