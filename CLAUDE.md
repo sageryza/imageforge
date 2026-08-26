@@ -4807,13 +4807,44 @@ before working on that module. Nothing was deleted — the moved text is verbati
     of one story), which is why every write takes an EXPLICIT `to` and nothing
     here ever guesses which pad she meant.
   - **THE PULL ONLY EVER ADDS.** `POST /:id/pull` turns a moment with no beat
-    into an EMPTY beat at the end carrying its words (`fromMoment` on the beat
-    is the whole join — one additive field, so a pad never pulled into is
+    into an EMPTY beat carrying its words (`fromMoment` on the beat is the
+    whole join — one additive field, so a pad never pulled into is
     byte-for-byte what it was). A moment that already has a beat is **left
     completely alone**: her caption may have moved on, and the timeline is not
     the authority on what a picture is captioned. A beat matching nothing is
     reported as `extra` and stays exactly where it is — the drift across her
     rooms is usually work, not an error.
+  - **THE FIRST PULL READS THE WORDS, or it writes her story in twice
+    (2026-08-26, caught by dry-running the real data before ever calling the
+    route).** `fromMoment` only exists once a pull has run, so the first pull
+    into a pad she has been working in by hand has nothing to join on — and
+    against her real "Reflections on Science and Belief" that meant **31
+    moments, 27 beats, not one linked, and every one of the 27 already saying
+    what a moment says**: a naive pull proposes 31 adds and leaves her with 58
+    beats. So `alignByText` walks both lists in step and matches a beat to the
+    run of moments whose text it is, then **SEEDS** — stamping `fromMoment` on
+    the beats that already are a moment, touching no words, art, colour or
+    position. It is greedy and ORDER-PRESERVING rather than a fuzzy
+    best-match, because the two lists are the same story in the same order; a
+    beat that only half lines up matches **nothing**, which strands no moment
+    and adds nothing on its behalf.
+  - **A SPLIT BEAT IS THE WHOLE POINT, AND THE NEW BEATS LAND BESIDE IT (her
+    ask: "i had separated some beats … and i wanted those to also have more
+    beats so i could add the pictures i made").** A beat holding SEVERAL
+    moments is one she has since split in the Story Timeline, and its extra
+    moments are exactly the beats she wants to put pictures on — so an added
+    beat is anchored DIRECTLY AFTER the beat carrying the moment before it
+    (`after` on the plan, resolved against the array at write time), never
+    appended to the end where she would have to walk it back twenty-five
+    places. `applyAdds` splices each anchor's group in one go; inserting one at
+    a time reverses them. The split beat itself is **never reworded** — its
+    caption still carries all four sentences, and trimming it is hers.
+  - **A MOMENT IN `moments` BUT IN NO UNIT HAS BEEN DELETED** — that is what
+    the Story Timeline's delete does (drop the id out of `units`, keep the
+    words as the undo). `momentOrder` appended those last as "still hers" for
+    one afternoon, which would have resurrected a line she had taken out; her
+    Science story carries exactly one ("But here's where things get tricky.").
+    **The arrangement is the story; `moments` is the undo buffer behind it.**
   - **THE RE-ORDER ONLY EVER PERMUTES**, and it is a SEPARATE tap
     (`POST /:id/order`): every beat in, every beat out, and the route refuses
     to write if the count ever changed. **A beat she added by hand rides with
@@ -4840,9 +4871,10 @@ before working on that module. Nothing was deleted — the moved text is verbati
     What the link buys there is the name decided once and a jump between rooms.
   - **It costs nothing** — no model call anywhere, a few small Firestore reads
     behind a 30s cache. `GET /for?room=&doc=` is what a room asks on open.
-  - Tests: `node scripts/test-storylink.js` (34 checks, pure — the matcher
-    against her REAL titles including the pairs that must NOT match, and the
-    two invariants: a pull never drops a beat, an order never changes the
+  - Tests: `node scripts/test-storylink.js` (50 checks, pure — the matcher
+    against her REAL titles including the pairs that must NOT match, the
+    seeding of a hand-worked pad, the split beat's adds landing in place, and
+    the two invariants: a pull never drops a beat, an order never changes the
     count).
 - **Writing Room** (`writing.js`, `/api/writing`, `/writing`, iOS tile) — every
   dating-book date in two versions ("Claude's" and "Mine") with every changed word

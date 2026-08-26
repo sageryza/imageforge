@@ -467,12 +467,22 @@ async function planFor(link, to) {
   const pad = await readPad(memberFor(link, 'pad', to).doc);
   const pull = plan.planPull(story, pad.beats);
   const ordered = plan.planOrder(story, pad.beats);
+  const beatText = (id) => {
+    const b = pad.beats.find((x) => x && x.id === id);
+    return b ? String(b.text || '').slice(0, 80) : null;
+  };
   return {
-    story: { id: story.id, title: story.title, moments: Object.keys(story.moments).length },
+    story: {
+      id: story.id, title: story.title,
+      moments: plan.momentOrder(story.units, story.moments).length,
+    },
     pad: { id: pad.id, title: pad.title, beats: pad.beats.length },
     pull: {
-      add: pull.add.length, matched: pull.matched.length, extra: pull.extra.length,
-      adding: pull.add.map((a) => a.text.slice(0, 120)),
+      seed: pull.seed.length, add: pull.add.length,
+      matched: pull.matched.length, extra: pull.extra.length,
+      // The beats she has split in the timeline since — the reason to pull.
+      split: pull.split.map((s) => ({ beat: s.beat, moments: s.moments.length, text: beatText(s.beat) })),
+      adding: pull.add.map((a) => ({ text: a.text.slice(0, 120), after: beatText(a.after) })),
     },
     order: { changes: !plan.sameOrder(pad.beats, ordered) },
     _story: story, _pad: pad, _pull: pull, _ordered: ordered,
@@ -504,32 +514,45 @@ router.post('/:id/pull', async (req, res) => {
     const link = view(snap);
     const p = await planFor(link, req.body.to);
     if (req.body.dry) return res.json({ dry: true, ...publicPlan(p) });
-    if (!p._pull.add.length) return res.json({ ok: true, added: 0, ...publicPlan(p) });
+    if (!p._pull.add.length && !p._pull.seed.length) {
+      return res.json({ ok: true, added: 0, seeded: 0, ...publicPlan(p) });
+    }
 
     const padId = p._pad.id;
     // Read-modify-write through a transaction, like the pad's own /add: she
     // may be placing a picture in the Story Room while this runs.
-    const beats = await db().runTransaction(async (tx) => {
+    const done = await db().runTransaction(async (tx) => {
       const cur = await tx.get(padRef(padId));
       const list = (cur.exists && Array.isArray(cur.data().beats)) ? cur.data().beats : [];
       // Re-plan against what the pad holds RIGHT NOW, never against the copy
       // read a moment ago — otherwise a beat added in between is duplicated.
       const fresh = plan.planPull(p._story, list);
-      for (const a of fresh.add) {
-        list.push({
-          id: db().collection(PADS).doc().id,
-          url: null, color: null, src: null,
-          addedAt: Date.now(),
-          text: a.text.slice(0, 5000),
-          fromMoment: a.moment,
-          fromStory: p._story.id,
-        });
+
+      // SEED FIRST: stamp the beats that already ARE a moment. One field, on
+      // the objects already in the array — no words, art, colour or position
+      // is touched, so a pad can be joined to its timeline with nothing on
+      // screen changing.
+      for (const sd of fresh.seed) {
+        const b = list.find((x) => x && x.id === sd.beat);
+        if (b) { b.fromMoment = sd.moment; b.fromStory = p._story.id; }
       }
-      tx.set(padRef(padId), { beats: list, updatedAt: Date.now() }, { merge: true });
-      return list;
+
+      const next = plan.applyAdds(list, fresh.add, (a) => ({
+        id: db().collection(PADS).doc().id,
+        url: null, color: null, src: null,
+        addedAt: Date.now(),
+        text: String(a.text || '').slice(0, 5000),
+        fromMoment: a.moment,
+        fromStory: p._story.id,
+      }));
+      if (next.length !== list.length + fresh.add.length) {
+        throw new Error('pull would not be additive — refused');
+      }
+      tx.set(padRef(padId), { beats: next, updatedAt: Date.now() }, { merge: true });
+      return { added: fresh.add.length, seeded: fresh.seed.length, beats: next.length };
     });
     roomsCache = { at: 0, rooms: null };
-    res.json({ ok: true, added: p._pull.add.length, beats: beats.length, pad: padId });
+    res.json({ ok: true, pad: padId, ...done });
   } catch (e) { fail(res, e); }
 });
 
