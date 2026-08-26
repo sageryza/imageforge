@@ -481,7 +481,11 @@ async function planFor(link, to) {
       seed: pull.seed.length, add: pull.add.length,
       matched: pull.matched.length, extra: pull.extra.length,
       // The beats she has split in the timeline since — the reason to pull.
-      split: pull.split.map((s) => ({ beat: s.beat, moments: s.moments.length, text: beatText(s.beat) })),
+      split: pull.keep.map((k) => ({ beat: k.beat, frees: k.frees.length, text: beatText(k.beat) })),
+      // Captions that stop repeating what has become its own beat.
+      retext: pull.retext.map((r) => ({ beat: r.beat, from: r.from.slice(0, 120), to: r.to.slice(0, 120) })),
+      // …and the ones left alone because she has reworded them herself.
+      heldBack: pull.heldBack.map((h) => ({ beat: h.beat, text: h.text.slice(0, 120), would: h.to.slice(0, 120) })),
       adding: pull.add.map((a) => ({ text: a.text.slice(0, 120), after: beatText(a.after) })),
     },
     order: { changes: !plan.sameOrder(pad.beats, ordered) },
@@ -514,8 +518,8 @@ router.post('/:id/pull', async (req, res) => {
     const link = view(snap);
     const p = await planFor(link, req.body.to);
     if (req.body.dry) return res.json({ dry: true, ...publicPlan(p) });
-    if (!p._pull.add.length && !p._pull.seed.length) {
-      return res.json({ ok: true, added: 0, seeded: 0, ...publicPlan(p) });
+    if (!p._pull.add.length && !p._pull.seed.length && !p._pull.retext.length) {
+      return res.json({ ok: true, added: 0, seeded: 0, retexted: 0, ...publicPlan(p) });
     }
 
     const padId = p._pad.id;
@@ -528,13 +532,24 @@ router.post('/:id/pull', async (req, res) => {
       // read a moment ago — otherwise a beat added in between is duplicated.
       const fresh = plan.planPull(p._story, list);
 
-      // SEED FIRST: stamp the beats that already ARE a moment. One field, on
-      // the objects already in the array — no words, art, colour or position
-      // is touched, so a pad can be joined to its timeline with nothing on
-      // screen changing.
+      // SEED FIRST: stamp each beat with the moments it covers. On the
+      // objects already in the array — no art, colour or position is touched.
       for (const sd of fresh.seed) {
         const b = list.find((x) => x && x.id === sd.beat);
-        if (b) { b.fromMoment = sd.moment; b.fromStory = p._story.id; }
+        if (!b) continue;
+        b.fromMoments = sd.moments;
+        b.fromStory = p._story.id;
+        delete b.fromMoment;                           // the legacy singular
+      }
+
+      // RE-DERIVE the captions of beats that have been split in the timeline,
+      // so a beat stops saying the words that have become their own beats —
+      // ttsFor speaks beat.text, so a repeat is a repeated line in the film.
+      // Only ever a caption that is still exactly its own moments' text; one
+      // she has reworded is hers and is reported instead.
+      for (const rt of fresh.retext) {
+        const b = list.find((x) => x && x.id === rt.beat);
+        if (b) b.text = String(rt.to || '').slice(0, 5000);
       }
 
       const next = plan.applyAdds(list, fresh.add, (a) => ({
@@ -542,14 +557,18 @@ router.post('/:id/pull', async (req, res) => {
         url: null, color: null, src: null,
         addedAt: Date.now(),
         text: String(a.text || '').slice(0, 5000),
-        fromMoment: a.moment,
+        fromMoments: [a.moment],
         fromStory: p._story.id,
       }));
       if (next.length !== list.length + fresh.add.length) {
         throw new Error('pull would not be additive — refused');
       }
       tx.set(padRef(padId), { beats: next, updatedAt: Date.now() }, { merge: true });
-      return { added: fresh.add.length, seeded: fresh.seed.length, beats: next.length };
+      return {
+        added: fresh.add.length, seeded: fresh.seed.length,
+        retexted: fresh.retext.length, heldBack: fresh.heldBack.length,
+        beats: next.length,
+      };
     });
     roomsCache = { at: 0, rooms: null };
     res.json({ ok: true, pad: padId, ...done });

@@ -164,34 +164,64 @@ function momentText(m) {
   return String(m.text || m.words || '').trim();
 }
 
-/* ---- seeding: what a pad's EXISTING beats already are -------------------
-   A `fromMoment` only exists once a pull has run, so the FIRST pull into a pad
-   she has been working in by hand has nothing to join on — and a pull that
-   joins on nothing proposes to add every moment, i.e. to write her whole story
-   into the pad a second time. Found before it ever ran, against her real
-   "Reflections on Science and Belief": 31 moments, 27 beats, not one of them
-   linked, and every one of the 27 already saying what a moment says.
+/* ---- coverage: WHICH MOMENTS A BEAT IS ---------------------------------
+   The join is `fromMoments`, an ARRAY, and that is the whole mechanism. The
+   first cut of this file made it singular and it was wrong in a way that
+   showed up immediately in her hands: a beat that is four moments joined got
+   stamped with the FIRST of them, the other three were added as new beats,
+   and the parent's caption went on carrying all four sentences — so her pad
+   said the same words twice. Not cosmetic: `ttsFor` in scratchpad.js speaks
+   `beat.text`, so a repeated caption is a repeated line in the film.
 
-   So the first pull READS THE WORDS. Walking both lists in order, a beat is
-   matched to the run of moments whose text it is — which also finds the thing
-   she actually asked for: a beat that is SEVERAL moments joined together is a
-   beat she has since split in the timeline, and its extra moments are the
-   beats she wants to put pictures on.
+   A BEAT'S CAPTION IS DERIVED FROM THE MOMENTS IT COVERS, and derived is the
+   fix — the house *nothing stands between the source and the output* rule.
+   Split a beat's moments in the timeline and its coverage shrinks to what it
+   still owns, its caption follows, and the freed moments become beats of
+   their own. Nothing can drift because there is one source, and nothing is
+   repeated because coverage is a partition: every moment sits under exactly
+   one beat.
 
-   Deliberately ORDER-PRESERVING and greedy rather than a fuzzy best-match:
-   these two lists are the same story in the same order, so consuming them in
-   step is both the cheapest rule and the one that cannot cross-match two
-   moments that happen to share their wording. A beat that does not line up
-   simply goes unmatched, which is the safe direction — it stays exactly where
-   it is and nothing is added on its behalf. */
+   HER OWN EDIT ALWAYS WINS, by the pad's own precedent (`drawablePrompt` /
+   `promptFor`: a beat's prompt is stored as NOTHING while it still matches
+   its words, so the beat keeps following them). A caption that is still
+   exactly its moments' text is UNTOUCHED and may be re-derived; one she has
+   reworded is hers, is never rewritten, and is reported instead. */
 
 function normWords(s) {
   return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
+/** The moment ids a beat covers. `fromMoment` is the legacy singular. */
+function coverageOf(beat) {
+  if (!beat) return [];
+  if (Array.isArray(beat.fromMoments)) return beat.fromMoments.map(String).filter(Boolean);
+  return beat.fromMoment ? [String(beat.fromMoment)] : [];
+}
+
+/** What a beat's caption SHOULD say for the moments it covers. */
+function derivedText(ids, moments) {
+  return (ids || [])
+    .map((id) => momentText((moments || {})[id]))
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+}
+
+/** Has she reworded this caption, or is it still its moments' own text? */
+function isDerived(beat, ids, moments) {
+  return normWords(beat && beat.text) === normWords(derivedText(ids, moments));
+}
+
 /**
- * Align a pad's beats to a timeline's moments by their words.
- * Returns a Map of beat id → [moment ids it already holds], in order.
+ * Align a pad's beats to a timeline's moments by their words — the FIRST pull
+ * only, when no beat carries a coverage yet.
+ *
+ * Deliberately ORDER-PRESERVING and greedy rather than a fuzzy best-match:
+ * the two lists are the same story in the same order, so consuming them in
+ * step is both the cheapest rule and the one that cannot cross-match two
+ * moments that happen to share their wording. A beat that only half lines up
+ * matches NOTHING — half a match would strand the moments it swallowed and
+ * add the rest in the wrong place.
  */
 function alignByText(order, moments, beats) {
   const held = new Map();
@@ -213,9 +243,6 @@ function alignByText(order, moments, beats) {
       mi++;
       if (acc === want) break;
     }
-    // Only a WHOLE beat counts. A partial consume means the two lists have
-    // drifted apart here, and half a match is worse than none: it would strand
-    // the moments it swallowed and add the rest in the wrong place.
     if (acc === want && got.length) held.set(b.id, got);
     else mi -= got.length;
   }
@@ -223,76 +250,140 @@ function alignByText(order, moments, beats) {
 }
 
 /**
- * What a pull from a timeline into a pad would do. ADDITIVE ONLY.
+ * Is this beat's caption exactly a contiguous run of the timeline's moments
+ * beginning at the moment it covers? Returns the run, or null when the words
+ * are hers.
+ */
+function staleRun(beat, first, order, moments) {
+  const at = order.indexOf(first);
+  if (at < 0) return null;
+  const want = normWords(beat && beat.text);
+  if (!want) return null;
+  let acc = '';
+  const run = [];
+  for (let i = at; i < order.length; i++) {
+    const next = normWords(momentText(moments[order[i]]));
+    if (!next) continue;
+    const cand = acc ? `${acc} ${next}` : next;
+    if (!want.startsWith(cand)) return null;
+    acc = cand;
+    run.push(order[i]);
+    if (acc === want) return run;
+  }
+  return null;
+}
+
+/**
+ * What a pull from a timeline into a pad would do.
  *
- *   seed    — existing beats to stamp with the moment they already are. Their
- *             words, art, colour and position are untouched; `fromMoment` is
- *             the one field written, so a pad is joined to its timeline
- *             without a single visible change.
- *   add     — moments with no beat. Each becomes an EMPTY beat carrying the
- *             moment's words, inserted DIRECTLY AFTER the beat holding the
- *             moment before it (`after`) — never appended to the end. That is
- *             the whole point when a beat has been split in the timeline: the
- *             three new beats belong beside the one they came out of, not
- *             twenty-five places away where she would have to walk them back.
- *   split   — beats holding more than one moment, i.e. exactly the beats she
- *             has separated in the timeline since. Reported so a caller can
- *             say so; the beat itself is never reworded.
- *   matched — moments that already have a beat of their own.
- *   extra   — beats matching no moment. Left exactly where they are.
+ *   seed    — beats to stamp with the coverage they already have. Words, art,
+ *             colour and position untouched.
+ *   keep    — of a split beat's moments, the one it goes on covering (its
+ *             FIRST). The rest leave it and become beats of their own.
+ *   retext  — captions to re-derive, because the beat no longer covers every
+ *             moment its words are saying. `{beat, from, to}`. A caption she
+ *             has reworded is NEVER in here.
+ *   held    — captions that WOULD have been re-derived but are hers now, so a
+ *             caller can say so rather than silently leaving a repeat.
+ *   add     — moments with no beat, each inserted DIRECTLY AFTER the beat
+ *             holding the moment before it. Never appended to the end: the
+ *             three beats split out of a beat belong beside it, not twenty-
+ *             five places away.
+ *   extra   — beats covering no moment. Left exactly where they are.
+ *
+ * NOTHING IS EVER DELETED and no beat is ever moved.
  */
 function planPull(story, beats) {
   const moments = (story && story.moments) || {};
   const units = (story && story.units) || [];
   const list = (Array.isArray(beats) ? beats : []).filter((b) => b && b.id);
   const order = momentOrder(units, moments);
+  const live = new Set(order);
 
-  // Already-linked beats win outright: once a pull has stamped a beat, her
-  // caption is free to drift from the moment's words and a text match would
-  // quietly disagree with the join that is on the doc.
+  // An existing coverage wins outright over a text match: once a beat is
+  // joined, her caption is free to drift and a text match would quietly
+  // disagree with the join that is on the doc.
   const held = new Map();
-  const claimed = new Set();
-  let anyLink = false;
+  const spoken = new Set();
   for (const b of list) {
-    const from = b.fromMoment ? String(b.fromMoment) : '';
-    if (from) anyLink = true;
-    held.set(b.id, from && moments[from] ? [from] : []);
-    if (from && moments[from]) claimed.add(from);
+    const cov = coverageOf(b).filter((id) => live.has(id));
+    held.set(b.id, cov);
+    cov.forEach((id) => spoken.add(id));
   }
-  if (!anyLink) {
-    const text = alignByText(order, moments, list);
-    for (const [id, got] of text) {
-      held.set(id, got);
-      for (const g of got) claimed.add(g);
-    }
+  // The beats that carry NO coverage are still matched by their words —
+  // against the moments no joined beat has claimed. A pad is very often part
+  // joined and part not (a pull that was interrupted, or beats she added by
+  // hand afterwards), and an all-or-nothing rule there proposed to add every
+  // unjoined beat's moment a second time. Both lists keep their order with
+  // the claimed entries removed from each side, so the greedy walk still
+  // lines up.
+  const loose = list.filter((b) => !(held.get(b.id) || []).length);
+  if (loose.length) {
+    const free = order.filter((id) => !spoken.has(id));
+    for (const [id, got] of alignByText(free, moments, loose)) held.set(id, got);
+  }
+
+  // COVERAGE IS A PARTITION: a moment may sit under exactly one beat, so a
+  // duplicate claim is dropped rather than allowed to render twice.
+  const claimed = new Set();
+  for (const b of list) {
+    const cov = (held.get(b.id) || []).filter((id) => !claimed.has(id));
+    cov.forEach((id) => claimed.add(id));
+    held.set(b.id, cov);
   }
 
   const seed = [];
-  const split = [];
+  const keep = [];
+  const retext = [];
+  const heldBack = [];
   const matched = [];
-  const beatOf = new Map();                            // moment id → beat id
+  const beatOf = new Map();
+
   for (const b of list) {
-    const got = held.get(b.id) || [];
-    if (!got.length) continue;
-    beatOf.set(got[0], b.id);
-    if (!b.fromMoment) seed.push({ beat: b.id, moment: got[0] });
-    matched.push({ moment: got[0], beat: b.id });
-    if (got.length > 1) split.push({ beat: b.id, moments: got.slice(), keeps: got[0] });
+    const cov = held.get(b.id) || [];
+    if (!cov.length) continue;
+    const mine = [cov[0]];                             // what it goes on covering
+    const freed = cov.slice(1);                        // split out into their own beats
+    beatOf.set(cov[0], b.id);
+    matched.push({ moment: cov[0], beat: b.id });
+
+    const already = coverageOf(b);
+    // Re-stamp when the ids differ OR when the beat still carries the LEGACY
+    // singular `fromMoment` — otherwise a pad joined before coverage became
+    // an array keeps that field for ever, and two spellings of the same fact
+    // is exactly what this rewrite exists to end.
+    const same = Array.isArray(b.fromMoments)
+      && already.length === mine.length && already.every((x, i) => x === mine[i]);
+    if (!same) seed.push({ beat: b.id, moments: mine.slice() });
+    if (freed.length) keep.push({ beat: b.id, keeps: cov[0], frees: freed.slice() });
+
+    // The caption has to stop saying the words that are other beats now.
+    const want = derivedText(mine, moments);
+    if (normWords(b.text) !== normWords(want)) {
+      // A caption is STALE FROM A SPLIT when it is exactly a contiguous run of
+      // the timeline's moments starting at the one this beat still covers —
+      // whether the split happened just now or in an earlier pull that only
+      // narrowed the coverage. Anything else is her own wording and is never
+      // rewritten. Asking the question this way rather than "did I free
+      // something in THIS plan" is what catches a beat left mid-migration:
+      // the live pad had exactly two, and a plan that only looked at the
+      // current split reported nothing to do while her pad still said the
+      // same lines twice.
+      const run = staleRun(b, cov[0], order, moments);
+      if (run) retext.push({ beat: b.id, from: String(b.text || ''), to: want, was: run.slice() });
+      else heldBack.push({ beat: b.id, text: String(b.text || ''), to: want });
+    }
   }
 
-  // Walk the timeline's order; anything with no beat of its own is added, and
-  // its anchor is the beat carrying the nearest moment BEFORE it.
   const add = [];
   let anchor = null;
   for (const id of order) {
     if (beatOf.has(id)) { anchor = beatOf.get(id); continue; }
-    // A moment swallowed by a split beat anchors the ones after it too, so a
-    // run of three splits out in its own order rather than reversed.
     add.push({ moment: id, text: momentText(moments[id]), after: anchor });
   }
 
   const extra = list.filter((b) => !(held.get(b.id) || []).length).map((b) => b.id);
-  return { seed, add, split, matched, extra };
+  return { seed, keep, retext, heldBack, add, matched, extra };
 }
 
 /**
@@ -351,7 +442,7 @@ function planOrder(story, beats) {
   const groups = [];                                    // { beat, rank, trail:[] }
   let cur = null;
   for (const b of list) {
-    const from = b && b.fromMoment ? String(b.fromMoment) : '';
+    const from = coverageOf(b)[0] || '';
     if (from && rank.has(from)) {
       cur = { beat: b, rank: rank.get(from), trail: [] };
       groups.push(cur);
@@ -379,7 +470,7 @@ function sameOrder(a, b) {
 
 module.exports = {
   normTitle, tokens, similarity, score, matchRooms,
-  momentOrder, momentText, normWords, alignByText, planPull, applyAdds,
-  planOrder, sameOrder,
+  momentOrder, momentText, normWords, coverageOf, derivedText, isDerived,
+  alignByText, staleRun, planPull, applyAdds, planOrder, sameOrder,
   ROOM_WORDS, THRESHOLD,
 };
