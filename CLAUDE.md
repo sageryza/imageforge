@@ -3111,6 +3111,21 @@ before working on that module. Nothing was deleted — the moved text is verbati
   Replicate LoRA), **Sandy mirror**, **ChatGPT**, **Dreamy**, Scarry, Pastel,
   Hoonies (all gpt-image-2, her own scans attached as style refs, kept in
   `PL_GPT_STYLES` in server.js).
+  **A hairline PICTURE · PANELS tab sits at the top (2026-08-26, Sophie: "we
+  make a picture and cut it into panels … describe each panel individually —
+  it could be a feature or Hairline tab in the playground itself").** On
+  PANELS the prompt box becomes N boxes laid out AS the grid (2 · 4 · 9; 25
+  later is one `GRIDS` entry in `sheet-grid.js`); one gpt-image-2 SHEET draws
+  at the tier budget on a canvas DERIVED to divide into whole-pixel cells,
+  the server cuts it apart (sequential, lossless, sharp cache off — the 512MB
+  box), and each panel files into My Creations with its own words as the
+  label and the **`1/9 (4K)`** size slot (`size-tier.js cutSize` — the
+  fraction and the SHEET's tier, never the panel's own pixels). Dreamy's
+  anti-grid tail clause is SWAPPED for a sheet, the no-text mechanism again
+  (`sheet` beside `noText`); the paid sheet is banked BEFORE the cut and a
+  failed cut keeps it, disclosed as "uncut sheet". Full rules: *The PANELS
+  tab* in `docs/modules/pictures.md`. Tests: `node scripts/test-sheet-grid.js`
+  and `node scripts/test-playground-panels.js`.
   **SANDY MIRROR AND CHATGPT ARE TWO TILES SINCE 2026-08-24 (Sophie: "add one
   more endpoint option to the playground, which is called ChatGPT and change
   the one that's called ChatGPT right now to make it be called Sandy mirror.

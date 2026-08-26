@@ -312,6 +312,60 @@ ceiling are all in `docs/image-pipeline.md` (*The walker is the prompt*).
   it finishes (`status:'ready'`, then `'done'`), so the grid fills in as they
   arrive. One failed call costs its image, not the run.
 
+### The PANELS tab (Aug 2026, Sophie: "cut it into panels … describe each panel individually")
+
+A hairline **PICTURE · PANELS** row at the top of `/playground`. On PANELS the
+one prompt box becomes N boxes laid out AS the grid — she writes into the
+layout she gets back — and Generate draws ONE gpt-image-2 sheet at the tier
+budget, cuts it into N pictures server-side, and the run's `images` ARE the
+cut panels, so the feed, tiles, votes, lightbox and search need nothing new.
+Grids: **2 (side by side), 4 (2x2), 9 (3x3)** — 25 later is one `GRIDS` entry
+in `sheet-grid.js` (plus a `promptMax` look: nine dictated panels fit under
+4000 chars at ~350 each; twenty-five will not).
+
+- **The geometry lives in `sheet-grid.js` and is SERVED, never copied** —
+  `GET /api/promptlab/styles` answers `panels` (grids, cell names, the grid
+  sentence, derived sheet/cell canvases per shape × grid × tier). The canvas
+  is DERIVED so every cut lands on whole pixels: the 2x2 grids land exactly on
+  the live tier canvases, and a 1×1 derivation reproduces all six Playground
+  canvases from the constraints alone (`scripts/test-sheet-grid.js` pins it).
+  The canvas toggle picks the CELL's shape; the 1K/2K/4K tier is the SHEET's
+  pixel budget.
+- **The style tail's anti-grid clause is SWAPPED, never argued with** —
+  Dreamy's "Render as ONE single illustration — NOT a grid…" is load-bearing
+  on an ordinary run and poison on a sheet, so `PL_GPT_STYLES.dreamy.sheet`
+  carries a `{from, to}` the same shape as the no-text toggle
+  (`sheetGrid.applySheet`; the two swaps touch disjoint clauses and compose).
+  An edited tail no-ops the swap — her wording wins, disclosed in the Prompt
+  panel. Hoonies' PREFIX also fights grids ("alone on a plain white
+  background") and is deliberately left as-is — she can edit it per style.
+- **The cut is exact math, sequential, lossless, cache-off** (`cutSheet` in
+  server.js): decode ONCE to raw (~33MB for a 4K sheet on the 512MB box),
+  `extract` each cell in a plain for-loop, `webp({lossless:true})`. The paid
+  sheet is banked to Storage BEFORE the cut; a failed cut ends
+  `done, images:[sheetUrl], cutFailed:true` — the money is never lost, and
+  the card says "uncut sheet".
+- **Filing**: the sheet files once (caption = the sheet's own tier), each
+  panel files with ITS OWN words as the caption and
+  `sizeSlot = sizeTier.cutSize(sheet, count)` → **`1/9 (4K)`** — the fraction
+  and the SHEET's tier, because a ninth of a 4K sheet lands on the 1K rung by
+  its own pixels and would read as an ordinary small picture.
+- **Cost is shown as APPROXIMATE, on purpose**: gpt-image-2 does not price by
+  area, so a derived sheet canvas has no measured price — the tier tooltip
+  says "about … (nearest measured tier)" and the run stores the API's own
+  `usage`, which is the truth. Never print an invented exact number.
+- **The honest quality risk**: the model does not always draw panels exactly
+  on the grid lines, so a cut can shave a border. The grid sentence asks for
+  equal rectangles with edges on the lines and no gutters; Dreamy asks for a
+  hand-drawn border per panel, which absorbs small misalignment; and the
+  uncut sheet is always kept on the doc (`sheetUrl`).
+- Character card, photo ref, the ladders and `padTarget` are OFF on this tab
+  (each names or prices ONE picture). The vote route's image-index cap was
+  widened 0-3 → 0-24 for panel hearts — it 400'd on panel 5 of 9.
+- Tests: `node scripts/test-sheet-grid.js` (pure — geometry, naming, the
+  swap pins against the live literals) and
+  `node scripts/test-playground-panels.js` (the real page, headless).
+
 ## Freeform (`/freeform`) — your own refs, your own words, NOTHING added
 - `freeform.js` (`/api/freeform`, page at `public/freeform.html`) — the one image
   surface with **no opinion**. Every other one wraps her words in a house style
