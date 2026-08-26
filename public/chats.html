@@ -2578,7 +2578,18 @@ function sortedChatNames(g){
   // EVERY list of chats comes through here — live, hidden, ★, archive, the
   // category chips, the account tabs — so the trash is excluded once, in the
   // one place, instead of a filter per pile that a new pile could forget.
-  names=names.filter(function(n){ return !chatDeleted(n); });
+  // A TOMBSTONE (movedTo) is excluded the same way (2026-08-26): its thread
+  // lives at the chat it points to — the server redirects every post — so its
+  // own row is always an empty chat with a dead Open button. Measured that
+  // day: the More fold was mostly these (the phantom `-sessio` forks, since
+  // tombstoned onto their real twins) plus one old merge's leftover row.
+  // …unless it still HOLDS messages in this payload (a half-finished merge):
+  // hiding those would strand real words behind no row at all.
+  names=names.filter(function(n){
+    if(chatDeleted(n)) return false;
+    if(chats[n]&&chats[n].movedTo) return !!(g[n]&&g[n].length);
+    return true;
+  });
   names.sort(function(a,b){
     // A PINNED CHAT SITS ABOVE THE SORT, not inside it — that is the whole
     // point of the mark, and it is done HERE, in the one place every pile
