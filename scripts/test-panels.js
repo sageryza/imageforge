@@ -26,6 +26,15 @@ let n = 0;
 const t = (name, fn) => { fn(); n++; console.log('  ok  ' + name); };
 const ROOT = path.join(__dirname, '..');
 
+// The tier the page opens on, read out of the served defaults rather than
+// retyped — the page-half assertions follow it wherever it goes.
+const TIER_DEFAULT = (() => {
+  const src = fs.readFileSync(path.join(ROOT, 'panels.js'), 'utf8');
+  const m = /defaults: \{[^}]*res: '([^']+)'/.exec(src);
+  assert.ok(m, 'found the served default tier in panels.js');
+  return m[1];
+})();
+
 console.log('\npanels\n');
 
 // --------------------------------------------------------------------------
@@ -304,6 +313,35 @@ t('the page holds NO price and NO prompt text of its own', () => {
   assert.ok(!/style reference/i.test(PAGE.replace(/reference is paid for/i, '')),
     'no style prefix baked in');
   assert.ok(PAGE.includes('/api/panels/config'), 'it asks the server instead');
+});
+
+t('the cheap rung is the default, in BOTH copies', () => {
+  // Sophie, 2026-08-26: "it defaults to 4K and medium make it default to 1K
+  // and low". This page shipped on 4K/medium and the module header still
+  // argues (correctly) that 4K is the tier where a cut panel beats an
+  // ordinary picture — which is why it is worth pinning that the DEFAULT is
+  // not that: ~13c a tap arriving unasked on the tool built for trying
+  // several prompts at once. Two copies say it (the served defaults and the
+  // POST's own fallbacks, which is what a stale cached page lands on), and
+  // this is the one thing that reads as a tidy-up to a chat that has just
+  // read the header.
+  const SRC = fs.readFileSync(path.join(ROOT, 'panels.js'), 'utf8');
+  assert.ok(/defaults: \{[^}]*res: '1k'[^}]*quality: 'low'/.test(SRC),
+    'GET /config serves 1k + low');
+  assert.ok(/String\(req\.body\.res\) : '1k'/.test(SRC),
+    "POST falls back to 1k when the page doesn't say");
+  assert.ok(/req\.body\.quality : 'low'/.test(SRC),
+    "POST falls back to low when the page doesn't say");
+  assert.ok(/var pick = \{[^}]*res: '1k'[^}]*quality: 'low'/.test(PAGE),
+    'and the page opens there before the config lands');
+  // Every grid must have a legal canvas at the tier it now opens on, or the
+  // first tap of the day 400s.
+  for (const g of Object.keys(G.GRIDS)) {
+    for (const sh of Object.keys(G.SHAPES)) {
+      if (!G.sheetFor(Number(g), sh, '4k')) continue;
+      assert.ok(G.sheetFor(Number(g), sh, '1k'), `grid ${g} ${sh} has a 1K canvas`);
+    }
+  }
 });
 
 t('no page class collides with one tool.css already owns', () => {
@@ -609,12 +647,20 @@ async function drivePage() {
     n++; console.log('  ok  page: her words survive every grid change');
 
     // The plan line carries the SERVED numbers, and moves with the pickers.
+    // The expected canvases are DERIVED at the tier the page opens on, not
+    // typed in: this block hardcoded the 4K pair and went red the day the
+    // default moved to 1K, which is a test measuring the default rather than
+    // the plan line.
+    const openTier = TIER_DEFAULT;
     const planTwo = await p.$eval('#plan', (e) => e.textContent);
-    assert.ok(/3264x2448/.test(planTwo), `the two-up sheet is named: ${planTwo}`);
+    const twoUp = G.sheetFor(2, 'portrait', openTier).sheet;
+    assert.ok(new RegExp(twoUp).test(planTwo), `the two-up sheet is named: ${planTwo}`);
     assert.ok(/\dc\b/.test(planTwo), 'and what it costs');
     await p.click('#ctrls button[data-grid="4"]');
     await p.waitForFunction(() => document.querySelectorAll('#cells textarea').length === 4);
-    assert.ok(/2336x3504/.test(await p.$eval('#plan', (e) => e.textContent)), 'and it moves');
+    const four = G.sheetFor(4, 'portrait', openTier).sheet;
+    assert.ok(new RegExp(four).test(await p.$eval('#plan', (e) => e.textContent)),
+      'and it moves');
     n++; console.log('  ok  page: the plan line is served and moves with the pickers');
 
     // THE SLIDER LANDS WHERE SHE TAPS, like the Playground's (2026-08-24 —
