@@ -1088,6 +1088,44 @@ async function placeOnBeat(padId, beatId, url, style, src, opts) {
   });
 }
 
+// ── MATCH A SENT PICTURE TO ITS BEAT (2026-08-26, Sophie: "if I'm in the
+// playground and I want to send a drawing to the story room then it does
+// some sort of a check to match it to the right beat and then asks me to
+// confirm or asks me to choose a different one") ────────────────────
+// The send trip's guess: the run's typed prompt against every beat's words
+// across the whole shelf, ranked by send-match.js (pure, tested — the rules
+// live there). FREE — one collection read, no model call, because this fires
+// on a page open. It only ever PROPOSES: the page shows the candidates and
+// nothing places without her tap, through the same POST /image every other
+// placement takes.
+router.get('/send-match', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const q = String(req.query.q || '').slice(0, 2000).trim();
+    if (!q) return res.json({ candidates: [] });
+    const { matchBeats } = require('./send-match');
+    const snap = await db().collection(COL).get();
+    const pads = snap.docs.map((d) => {
+      const v = d.data() || {};
+      return {
+        id: d.id, title: v.title || '', updatedAt: v.updatedAt || 0,
+        beats: Array.isArray(v.beats) ? v.beats : [],
+      };
+    });
+    const candidates = matchBeats(q, pads).map((c) => ({
+      pad: c.pad.id, padTitle: c.pad.title, beat: c.beat.id,
+      // What the row shows her — the words the match was made on. The
+      // drawing prompt leads exactly as promptFor() reads it.
+      words: String(c.beat.prompt || c.beat.text || '').slice(0, 240),
+      // A face from any side, so the row can show which picture (if any)
+      // she would be replacing — same derivation as the shelf tiles'.
+      art: STYLES.map((s) => slotFace(artSlot(c.beat, s))).find(Boolean) || null,
+      exact: c.exact === true,
+    }));
+    res.json({ candidates });
+  } catch (e) { fail(res, e); }
+});
+
 // ── The clip shelf ──────────────────────────────────────────────────
 // The Chunking library, read-only, straight through: a clip lives there and
 // is REFERENCED here, never copied (the same rule Assembly follows). The

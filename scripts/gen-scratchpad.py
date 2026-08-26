@@ -840,6 +840,31 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 #sendband .sw{flex:1; min-width:0; font-size:13px; line-height:1.3;}
 #senddrop{flex:none; width:30px; height:30px; border-radius:6px; border:1px solid rgba(250,247,242,.35);
   background:none; color:var(--paper); font-size:15px; line-height:1; padding:0;}
+/* THE MATCH CARD (2026-08-26, Sophie: "it does some sort of a check to match
+   it to the right beat and then asks me to confirm or choose a different
+   one"). The room's guess at where the picture she is holding goes: the
+   candidate beats whose WORDS match the run's prompt, best first, riding
+   just above the band. A row's tap IS the confirm; Pick by hand (or ending
+   the trip) drops to the ordinary flow unchanged. Same fixed column as the
+   band, same stand-down while a beat popup is open. */
+#matchcard{position:fixed; left:12px; right:12px; bottom:calc(70px + env(safe-area-inset-bottom));
+  z-index:45; background:var(--barbg); color:var(--ink); border:1px solid var(--line);
+  border-radius:6px; padding:6px 8px; max-width:520px; margin:0 auto;
+  box-shadow:0 6px 20px rgba(20,18,16,.18); max-height:46vh; overflow-y:auto;}
+#matchcard .mhead{font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:10px;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--ink2); margin:4px 2px 2px;}
+.mrow{display:flex; align-items:center; gap:10px; width:100%; background:none; border:0;
+  border-top:1px solid var(--line); padding:8px 2px; font:inherit; color:inherit; text-align:left;}
+#matchrows .mrow:first-of-type{border-top:0;}
+.mrow img{flex:none; width:36px; height:36px; object-fit:cover; background:var(--paper);
+  border:1px solid var(--line); border-radius:4px;}
+.mrow .mtx{flex:1; min-width:0;}
+.mrow .mstory{display:block; font-family:-apple-system,'Helvetica Neue',sans-serif;
+  font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--gold);}
+.mrow .mwords{display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; font-size:14px; line-height:1.35;}
+#matchhand{display:block; margin:2px 0 4px auto; background:none; border:0; padding:4px 2px;
+  font:inherit; font-size:12px; color:var(--ink2); text-decoration:underline; text-underline-offset:2px;}
 #filmplay{position:fixed; inset:0; z-index:70; display:flex; align-items:center; justify-content:center;
   background:#000; padding:0;}
 #filmplay video{max-width:100vw; max-height:100vh; background:#000;}
@@ -1081,6 +1106,11 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   </div>
 </div>
 <div id="filmplay" hidden><video id="filmvid" controls playsinline></video></div>
+<div id="matchcard" hidden>
+  <div class="mhead">Looks like it goes here &#8212; tap to confirm</div>
+  <div id="matchrows"></div>
+  <button id="matchhand">Pick by hand</button>
+</div>
 <button id="sendband" hidden>
   <img id="sendthumb" alt="">
   <span class="sw" id="sendword"></span>
@@ -2683,6 +2713,9 @@ function paintSend(){
     : ((sendBack.placed?'Placed · back':'Back')+' to '+sendHomeName());
   // The ✕ means "not now" while she holds the picture and "stay here" after.
   document.getElementById('senddrop').setAttribute('aria-label', sendIt?'Not now':'Stay here');
+  // The match card rides the same moments the band does — every caller of
+  // paintSend (popup open/close, shelf steps, the trip ending) settles both.
+  paintMatch();
 }
 function armSend(){
   if(!sendIt) return;
@@ -2706,6 +2739,87 @@ document.getElementById('senddrop').onclick=function(ev){
   }
   sendBack=null; paintSend();   // she is staying in the room
 };
+/* ── THE MATCH CARD (2026-08-26, Sophie: "it does some sort of a check to
+   match it to the right beat and then asks me to confirm or choose a
+   different one") ──
+   The moment she walks in holding a picture, the room asks the server which
+   beats the run's own PROMPT reads like (GET /send-match — free, one
+   collection read, no model call; send-match.js carries the rules and their
+   test). The card proposes them best first, and NOTHING places without her
+   tap: a row is the confirm, the other rows are "a different one", and Pick
+   by hand (or just using the shelf as ever) is the old flow untouched. A
+   sheet from Panels skips the check — a whole page of cells matched to one
+   beat would be a guess about the wrong unit. */
+var matchCands=null;
+function paintMatch(){
+  var el=document.getElementById('matchcard');
+  if(!el) return;
+  el.hidden=!(sendIt&&matchCands&&matchCands.length&&document.getElementById('beatpop').hidden);
+}
+function loadMatch(){
+  if(!sendIt||!sendIt.prompt) return;
+  if(sendIt.from==='panels'&&sendIt.cell==='sheet') return;
+  var it=sendIt;
+  api('/send-match?q='+encodeURIComponent(it.prompt.slice(0,2000)))
+    .then(function(r){return r.json()})
+    .then(function(d){
+      // She may have placed it, dropped it, or walked on while this read ran.
+      if(sendIt!==it) return;
+      matchCands=(d.candidates||[]);
+      var rows=document.getElementById('matchrows'); rows.innerHTML='';
+      matchCands.forEach(function(c,i){
+        var b=document.createElement('button'); b.className='mrow';
+        var im=document.createElement('img'); im.alt='';
+        // An empty square is information: the matched beat has no picture
+        // yet, which is usually exactly the one she drew this for.
+        if(c.art) im.src=thumbOf(c.art);
+        b.appendChild(im);
+        var tx=document.createElement('span'); tx.className='mtx';
+        var st=document.createElement('span'); st.className='mstory';
+        st.textContent=(c.padTitle||'Untitled')+(i===0?' · best match':'');
+        var wd=document.createElement('span'); wd.className='mwords';
+        wd.textContent=c.words||'';
+        tx.appendChild(st); tx.appendChild(wd); b.appendChild(tx);
+        b.onclick=function(ev){ ev.stopPropagation(); placeMatch(c); };
+        rows.appendChild(b);
+      });
+      paintMatch();
+    })
+    .catch(function(){});   // no guess is a normal answer — the flow stands
+}
+function placeMatch(c){
+  var it=sendIt; if(!it) return;
+  matchCands=null;
+  // The same one write every placement takes (POST /image → placeOnBeat),
+  // aimed across pads by naming the pad outright. NO style on purpose: she
+  // is not standing in that story, so the side comes from the picture's own
+  // run record (sideFromEvidence — the chat-seeding rule).
+  var body={pad:c.pad, id:c.beat, url:it.url};
+  if(it.runId!==undefined) body.src={runId:it.runId,i:it.i,prompt:it.prompt,model:it.model,engine:it.engine,quality:it.quality};
+  api('/image',{method:'POST',body:JSON.stringify(body)})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(d&&d.error) throw new Error(d.error);
+      if(pending===it){ pending=null; render(); }
+      endSend(true);
+      // Confirmation by sight: open that story ON the beat, picture landed —
+      // the ?pad=&beat= return trip's own move. The way-back band stays.
+      openAfterLoad=c.beat;
+      openPad(c.pad);
+    })
+    .catch(function(){
+      // A beat deleted since the match must not eat the picture she holds:
+      // the card goes away and she still has the whole ordinary flow.
+      matchCands=null; paintMatch();
+    });
+}
+document.getElementById('matchhand').onclick=function(ev){
+  ev.stopPropagation();
+  matchCands=null; paintMatch();
+};
+// A tap on the card's own frame must not fall through to the document-level
+// cancel and drop an armed placing.
+document.getElementById('matchcard').onclick=function(ev){ ev.stopPropagation(); };
 /* The RUN is re-read here rather than the url being sent in the link: one id
    carries the whole provenance with it (the prompt, the model, the quality),
    which is what a beat's past-pictures row and a picked-back version are
@@ -2721,7 +2835,7 @@ function loadSend(runId,i){
       if(!url){ sendBack={url:null, from:'playground'}; paintSend(); return; }
       sendIt={url:url, runId:runId, i:i, from:'playground', prompt:d.prompt||null,
               model:d.model||null, engine:d.engine||null, quality:d.quality||null};
-      paintSend();
+      paintSend(); loadMatch();
     })
     .catch(function(){ sendBack={url:null, from:'playground'}; paintSend(); });
 }
@@ -2742,7 +2856,7 @@ function loadSendPanel(runId,cell){
       sendIt={url:url, runId:runId, cell:cell, from:'panels',
               prompt:(im&&im.prompt)||(d.panels||[]).join('\n')||null,
               model:'gpt-image-2', quality:d.quality||null};
-      paintSend();
+      paintSend(); loadMatch();
     })
     .catch(function(){ sendBack={url:null, from:'panels'}; paintSend(); });
 }
