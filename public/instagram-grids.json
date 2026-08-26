@@ -71,13 +71,11 @@
         },
         {
           "id": "next1",
-          "empty": true,
-          "label": "next"
+          "empty": true
         },
         {
           "id": "next2",
-          "empty": true,
-          "label": "next"
+          "empty": true
         }
       ]
     },
@@ -98,28 +96,23 @@
         },
         {
           "id": "next1",
-          "empty": true,
-          "label": "next"
+          "empty": true
         },
         {
           "id": "next2",
-          "empty": true,
-          "label": "next"
+          "empty": true
         },
         {
           "id": "next3",
-          "empty": true,
-          "label": "next"
+          "empty": true
         },
         {
           "id": "next4",
-          "empty": true,
-          "label": "next"
+          "empty": true
         },
         {
           "id": "next5",
-          "empty": true,
-          "label": "next"
+          "empty": true
         }
       ]
     },
@@ -131,51 +124,83 @@
       "avatar": "◉",
       "tiles": [
         {
+          "id": "training",
+          "cover": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-reels/covers/training.webp",
+          "label": "Training Film No. 001",
+          "meta": "1:27",
+          "film": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v8-marks-on-words.mp4",
+          "prefix": "pwc-training-film/film-",
+          "chat": "account-three-ordering-reel"
+        },
+        {
+          "id": "hands",
+          "cover": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-reels/covers/hands.webp",
+          "label": "Hands",
+          "meta": "0:18",
+          "film": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc/hands-reel/hands-reel-v1.mp4",
+          "prefix": "pwc/hands-reel/",
+          "chat": "middle-one-goes-first"
+        },
+        {
+          "id": "ep006",
+          "cover": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-reels/covers/ep006.webp",
+          "label": "ep006 — the building across the street",
+          "meta": "0:41",
+          "film": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-reels/pwc-ep006-windows.mp4",
+          "prefix": "pwc-reels/pwc-ep006-",
+          "chat": "people-watching-club-reel"
+        },
+        {
+          "id": "ep005",
+          "cover": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-reels/covers/ep005.webp",
+          "label": "ep005 — Chicago Loop",
+          "meta": "0:35",
+          "film": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-reels/pwc-ep005-chicago.mp4",
+          "prefix": "pwc-reels/pwc-ep005-",
+          "chat": "stock-footage-backstories"
+        },
+        {
+          "id": "ep004",
+          "cover": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-reels/covers/ep004.webp",
+          "label": "ep004 — the pier",
+          "meta": "0:40",
+          "film": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-reels/pwc-ep004-pier.mp4",
+          "prefix": "pwc-reels/pwc-ep004-",
+          "chat": "stock-footage-backstories"
+        },
+        {
+          "id": "ep003",
+          "cover": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-reels/covers/ep003.webp",
+          "label": "ep003 — the park bench",
+          "meta": "0:32",
+          "film": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-reels/pwc-ep003-bench.mp4",
+          "prefix": "pwc-reels/pwc-ep003-",
+          "chat": "stock-footage-backstories"
+        },
+        {
+          "id": "ep002",
+          "cover": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-reels/covers/ep002.webp",
+          "label": "ep002 — Istanbul crowd",
+          "meta": "0:29",
+          "film": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-reels/pwc-ep002-vertical.mp4",
+          "prefix": "pwc-reels/pwc-ep002-",
+          "chat": "stock-footage-backstories"
+        },
+        {
+          "id": "ep001",
+          "cover": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-reels/covers/ep001.webp",
+          "label": "ep001 — Manchester street",
+          "meta": "0:30",
+          "film": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-reels/pwc-ep001-manchester.mp4",
+          "prefix": "pwc-reels/pwc-ep001-",
+          "chat": "stock-footage-backstories"
+        },
+        {
           "id": "bingo",
           "cover": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1787605630052-93kfmk.webp",
           "label": "Bingo — do you see?",
           "meta": "the one you hearted",
           "chat": "pwc-instagram-content"
-        },
-        {
-          "id": "next1",
-          "empty": true,
-          "label": "next"
-        },
-        {
-          "id": "next2",
-          "empty": true,
-          "label": "next"
-        },
-        {
-          "id": "next3",
-          "empty": true,
-          "label": "next"
-        },
-        {
-          "id": "next4",
-          "empty": true,
-          "label": "next"
-        },
-        {
-          "id": "next5",
-          "empty": true,
-          "label": "next"
-        },
-        {
-          "id": "next6",
-          "empty": true,
-          "label": "next"
-        },
-        {
-          "id": "next7",
-          "empty": true,
-          "label": "next"
-        },
-        {
-          "id": "next8",
-          "empty": true,
-          "label": "next"
         }
       ]
     },
@@ -206,38 +231,31 @@
         },
         {
           "id": "next1",
-          "empty": true,
-          "label": "next"
+          "empty": true
         },
         {
           "id": "next2",
-          "empty": true,
-          "label": "next"
+          "empty": true
         },
         {
           "id": "next3",
-          "empty": true,
-          "label": "next"
+          "empty": true
         },
         {
           "id": "next4",
-          "empty": true,
-          "label": "next"
+          "empty": true
         },
         {
           "id": "next5",
-          "empty": true,
-          "label": "next"
+          "empty": true
         },
         {
           "id": "next6",
-          "empty": true,
-          "label": "next"
+          "empty": true
         },
         {
           "id": "next7",
-          "empty": true,
-          "label": "next"
+          "empty": true
         }
       ]
     }
