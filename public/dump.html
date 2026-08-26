@@ -115,7 +115,8 @@
   #lb img, #lb video{ max-width:96vw; max-height:78vh; border-radius:4px; }
   #lb audio{ width:min(92vw,420px); }
   #lb .row{ display:flex; gap:14px; margin-top:16px; }
-  #lb button{ font:inherit; font-size:14px; border-radius:var(--r); padding:9px 18px;
+  #lb button, #lb .row a{ font:inherit; font-size:14px; border-radius:var(--r); padding:9px 18px;
+    text-decoration:none; display:inline-block;
     border:1px solid rgba(255,255,255,.5); background:transparent; color:#fff; }
   #lb .del{ border-color:var(--danger); color:var(--danger); }
 </style>
@@ -150,6 +151,7 @@
   <video id="lbvid" controls playsinline hidden></video>
   <audio id="lbaud" controls hidden></audio>
   <div class="row">
+    <a id="lbsave" href="#">Save</a>
     <button class="del" id="lbdel">Delete</button>
     <button id="lbclose">Close</button>
   </div>
@@ -383,6 +385,10 @@ function openLB(d){
   if(d.m==='video'){ vid.hidden=false; vid.src=d.url; }
   else if(d.m==='audio'){ aud.hidden=false; aud.src=d.url; }
   else{ img.hidden=false; img.src=d.url; }
+  // A bare Storage url only ever PLAYS — iOS gives no way to keep the file from
+  // an inline player. /file/:id serves the same bytes as an attachment, so this
+  // one tap saves it (then share → Save Video puts it in Photos).
+  document.getElementById('lbsave').href='/api/drop/file/'+d.id+(tok?'?token='+encodeURIComponent(tok):'');
   document.getElementById('lb').hidden=false;
 }
 function closeLB(){
