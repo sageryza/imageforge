@@ -50,9 +50,10 @@ function lift(name, decl) {
   fail(decl + ' never closed'); return null;
 }
 const bareSrc = lift('bareSid', 'function bareSid(session)');
+const usableSrc = lift('usableSid', 'function usableSid(sid)');
 const tailSrc = lift('sidTail', 'function sidTail(session)');
 const resolveSrc = lift('resolveChat', 'async function resolveChat(base, session)');
-if (!bareSrc || !tailSrc || !resolveSrc) { process.exit(1); }
+if (!bareSrc || !tailSrc || !resolveSrc || !usableSrc) { process.exit(1); }
 
 // ---- PURE: the spellings are one session -----------------------------------
 (async () => {
@@ -61,6 +62,7 @@ if (!bareSrc || !tailSrc || !resolveSrc) { process.exit(1); }
   const writes = [];
   const sandbox = `
     ${bareSrc}
+    ${usableSrc}
     ${tailSrc}
     async function registry(){ return REGDATA; }
     function regRef(chat){
@@ -78,6 +80,10 @@ if (!bareSrc || !tailSrc || !resolveSrc) { process.exit(1); }
   `;
   const { resolveChat, bareSid, sidTail } = new Function('REGDATA', 'writes', sandbox)(REGDATA, writes);
 
+  // NB the fixture session ids are the REAL 24-char shape on purpose:
+  // resolveChat refuses to fork on a key that could never be an id
+  // (usableSid), so a toy id like '01SidOne' would be treated as no session
+  // at all and every assertion below would pass for the wrong reason.
   // bareSid: the three spellings, idempotence, junk
   if (bareSid('session_01AbC') !== '01AbC') fail('bareSid left the url prefix on');
   if (bareSid('cse_01AbC') !== '01AbC') fail('bareSid left the env-var prefix on');
@@ -90,7 +96,7 @@ if (!bareSrc || !tailSrc || !resolveSrc) { process.exit(1); }
   if (sidTail('session_01AbC') !== 'sessio') fail('sidTail of a prefixed id changed — update the story above');
 
   // a real chat owned by its hook's bare id…
-  REGDATA.chats['textbox-padding'] = { sessionId: '01SidOne', account: '3' };
+  REGDATA.chats['textbox-padding'] = { sessionId: '01SidOneAAAAAAAAAAAAAAAA', account: '3' };
   // …whose own status card arrives with the url spelling: SAME chat, no fork
   const home = await resolveChat('textbox-padding', 'session_01SidOne');
   if (home !== 'textbox-padding') fail('the prefixed spelling forked away to ' + home);
@@ -103,24 +109,24 @@ if (!bareSrc || !tailSrc || !resolveSrc) { process.exit(1); }
 
   // a doc that STORED the prefixed spelling (the 17 found live) is matched by
   // its own session's bare id — and healed to bare on the way past
-  REGDATA.chats['playground-toggle-bug-wyul2j'] = { sessionId: 'session_01SidTwo' };
-  const healedHome = await resolveChat('playground-toggle-bug-wyul2j', '01SidTwo');
+  REGDATA.chats['playground-toggle-bug-wyul2j'] = { sessionId: 'session_01SidTwoBBBBBBBBBBBBBBBB' };
+  const healedHome = await resolveChat('playground-toggle-bug-wyul2j', '01SidTwoBBBBBBBBBBBBBBBB');
   if (healedHome !== 'playground-toggle-bug-wyul2j')
     fail('a doc storing the prefixed spelling no longer matches its own session: ' + healedHome);
-  if (REGDATA.chats['playground-toggle-bug-wyul2j'].sessionId !== '01SidTwo')
+  if (REGDATA.chats['playground-toggle-bug-wyul2j'].sessionId !== '01SidTwoBBBBBBBBBBBBBBBB')
     fail('the stored prefixed sessionId was not healed to bare');
   else ok('a stored prefixed sessionId heals to bare on the next post');
 
   // a genuinely DIFFERENT session still forks — normalizing must not merge
   // two real sessions that share a slug
-  const fork = await resolveChat('textbox-padding', '01Other');
+  const fork = await resolveChat('textbox-padding', '01OtherDDDDDDDDDDDDDDDDD');
   if (fork === 'textbox-padding') fail('a genuinely different session was merged into the owner');
   else ok('a different session still forks (' + fork + ')');
 
   // an unclaimed slug is claimed with the BARE id whatever spelling arrived
-  const fresh = await resolveChat('fresh-slug', 'session_01SidNew');
+  const fresh = await resolveChat('fresh-slug', 'session_01SidNewCCCCCCCCCCCCCCCC');
   if (fresh !== 'fresh-slug') fail('an unclaimed slug was not kept: ' + fresh);
-  if ((REGDATA.chats['fresh-slug'] || {}).sessionId !== '01SidNew')
+  if ((REGDATA.chats['fresh-slug'] || {}).sessionId !== '01SidNewCCCCCCCCCCCCCCCC')
     fail('a fresh claim stored the prefixed spelling: ' + JSON.stringify(REGDATA.chats['fresh-slug']));
   else ok('a fresh claim stores the bare id');
 
