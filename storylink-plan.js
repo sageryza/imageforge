@@ -147,11 +147,14 @@ function momentOrder(units, moments) {
       out.push(key);
     }
   }
-  // A moment that is in `moments` but in no unit is still hers — it goes last,
-  // in key order, rather than being silently dropped.
-  for (const key of Object.keys(moments || {})) {
-    if (!seen.has(key)) { seen.add(key); out.push(key); }
-  }
+  // A moment in `moments` but in NO UNIT has been DELETED — that is exactly
+  // what the Story Timeline's delete does (it drops the id out of `units` and
+  // leaves the words behind so a mis-tap costs an undo, never her words). An
+  // earlier cut of this file appended those last as "still hers", which would
+  // have resurrected a line she had taken out: her Science story carries one
+  // ("But here's where things get tricky."), found the first time this ran
+  // against her real data. The arrangement is the story; `moments` is the
+  // undo buffer behind it.
   return out;
 }
 
@@ -161,41 +164,165 @@ function momentText(m) {
   return String(m.text || m.words || '').trim();
 }
 
+/* ---- seeding: what a pad's EXISTING beats already are -------------------
+   A `fromMoment` only exists once a pull has run, so the FIRST pull into a pad
+   she has been working in by hand has nothing to join on — and a pull that
+   joins on nothing proposes to add every moment, i.e. to write her whole story
+   into the pad a second time. Found before it ever ran, against her real
+   "Reflections on Science and Belief": 31 moments, 27 beats, not one of them
+   linked, and every one of the 27 already saying what a moment says.
+
+   So the first pull READS THE WORDS. Walking both lists in order, a beat is
+   matched to the run of moments whose text it is — which also finds the thing
+   she actually asked for: a beat that is SEVERAL moments joined together is a
+   beat she has since split in the timeline, and its extra moments are the
+   beats she wants to put pictures on.
+
+   Deliberately ORDER-PRESERVING and greedy rather than a fuzzy best-match:
+   these two lists are the same story in the same order, so consuming them in
+   step is both the cheapest rule and the one that cannot cross-match two
+   moments that happen to share their wording. A beat that does not line up
+   simply goes unmatched, which is the safe direction — it stays exactly where
+   it is and nothing is added on its behalf. */
+
+function normWords(s) {
+  return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+/**
+ * Align a pad's beats to a timeline's moments by their words.
+ * Returns a Map of beat id → [moment ids it already holds], in order.
+ */
+function alignByText(order, moments, beats) {
+  const held = new Map();
+  let mi = 0;
+  for (const b of beats) {
+    if (!b || !b.id) continue;
+    const want = normWords(b.text);
+    held.set(b.id, []);
+    if (!want) continue;
+    let acc = '';
+    const got = [];
+    while (mi < order.length) {
+      const next = normWords(momentText(moments[order[mi]]));
+      if (!next) { mi++; continue; }
+      const cand = acc ? `${acc} ${next}` : next;
+      if (!want.startsWith(cand)) break;
+      acc = cand;
+      got.push(order[mi]);
+      mi++;
+      if (acc === want) break;
+    }
+    // Only a WHOLE beat counts. A partial consume means the two lists have
+    // drifted apart here, and half a match is worse than none: it would strand
+    // the moments it swallowed and add the rest in the wrong place.
+    if (acc === want && got.length) held.set(b.id, got);
+    else mi -= got.length;
+  }
+  return held;
+}
+
 /**
  * What a pull from a timeline into a pad would do. ADDITIVE ONLY.
  *
- *   add     — moments with no beat yet, in the timeline's own order. Each
- *             becomes an EMPTY beat (no art) carrying the moment's words.
- *   matched — moments that already have a beat. Left completely alone: her
- *             caption may have moved on from the moment's words, and the
- *             timeline is not the authority on what a picture is captioned.
+ *   seed    — existing beats to stamp with the moment they already are. Their
+ *             words, art, colour and position are untouched; `fromMoment` is
+ *             the one field written, so a pad is joined to its timeline
+ *             without a single visible change.
+ *   add     — moments with no beat. Each becomes an EMPTY beat carrying the
+ *             moment's words, inserted DIRECTLY AFTER the beat holding the
+ *             moment before it (`after`) — never appended to the end. That is
+ *             the whole point when a beat has been split in the timeline: the
+ *             three new beats belong beside the one they came out of, not
+ *             twenty-five places away where she would have to walk them back.
+ *   split   — beats holding more than one moment, i.e. exactly the beats she
+ *             has separated in the timeline since. Reported so a caller can
+ *             say so; the beat itself is never reworded.
+ *   matched — moments that already have a beat of their own.
  *   extra   — beats matching no moment. Left exactly where they are.
  */
 function planPull(story, beats) {
   const moments = (story && story.moments) || {};
   const units = (story && story.units) || [];
-  const list = Array.isArray(beats) ? beats : [];
+  const list = (Array.isArray(beats) ? beats : []).filter((b) => b && b.id);
+  const order = momentOrder(units, moments);
 
-  const have = new Map();
+  // Already-linked beats win outright: once a pull has stamped a beat, her
+  // caption is free to drift from the moment's words and a text match would
+  // quietly disagree with the join that is on the doc.
+  const held = new Map();
+  const claimed = new Set();
+  let anyLink = false;
   for (const b of list) {
-    const from = b && b.fromMoment ? String(b.fromMoment) : '';
-    if (from && !have.has(from)) have.set(from, b);
+    const from = b.fromMoment ? String(b.fromMoment) : '';
+    if (from) anyLink = true;
+    held.set(b.id, from && moments[from] ? [from] : []);
+    if (from && moments[from]) claimed.add(from);
+  }
+  if (!anyLink) {
+    const text = alignByText(order, moments, list);
+    for (const [id, got] of text) {
+      held.set(id, got);
+      for (const g of got) claimed.add(g);
+    }
   }
 
-  const add = [];
+  const seed = [];
+  const split = [];
   const matched = [];
-  for (const id of momentOrder(units, moments)) {
-    if (have.has(id)) matched.push({ moment: id, beat: have.get(id).id || null });
-    else add.push({ moment: id, text: momentText(moments[id]) });
+  const beatOf = new Map();                            // moment id → beat id
+  for (const b of list) {
+    const got = held.get(b.id) || [];
+    if (!got.length) continue;
+    beatOf.set(got[0], b.id);
+    if (!b.fromMoment) seed.push({ beat: b.id, moment: got[0] });
+    matched.push({ moment: got[0], beat: b.id });
+    if (got.length > 1) split.push({ beat: b.id, moments: got.slice(), keeps: got[0] });
   }
 
-  const known = new Set(Object.keys(moments));
-  const extra = list
-    .filter((b) => !(b && b.fromMoment && known.has(String(b.fromMoment))))
-    .map((b) => (b && b.id) || null)
-    .filter(Boolean);
+  // Walk the timeline's order; anything with no beat of its own is added, and
+  // its anchor is the beat carrying the nearest moment BEFORE it.
+  const add = [];
+  let anchor = null;
+  for (const id of order) {
+    if (beatOf.has(id)) { anchor = beatOf.get(id); continue; }
+    // A moment swallowed by a split beat anchors the ones after it too, so a
+    // run of three splits out in its own order rather than reversed.
+    add.push({ moment: id, text: momentText(moments[id]), after: anchor });
+  }
 
-  return { add, matched, extra };
+  const extra = list.filter((b) => !(held.get(b.id) || []).length).map((b) => b.id);
+  return { seed, add, split, matched, extra };
+}
+
+/**
+ * Apply a plan's `add` list to a beat array, using a caller-supplied factory
+ * for the new beat (the router mints Firestore ids; the test uses its own).
+ * PURE and additive: the existing objects are never touched, and every one of
+ * them comes out.
+ *
+ * Insertion is anchored to the beat id, resolved against the CURRENT array, so
+ * a beat added between the plan and the write cannot shift anything into the
+ * wrong place.
+ */
+function applyAdds(beats, add, make) {
+  const out = (Array.isArray(beats) ? beats : []).slice();
+  // Group by anchor, keeping each group in the timeline's own order, then
+  // splice each group in one go — inserting one at a time would reverse them.
+  const groups = new Map();
+  for (const a of (add || [])) {
+    const key = a.after || '';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(a);
+  }
+  for (const [key, items] of groups) {
+    const made = items.map((a) => make(a));
+    if (!key) { out.unshift(...made); continue; }
+    const at = out.findIndex((b) => b && b.id === key);
+    if (at < 0) out.push(...made);                     // anchor gone: the end is honest
+    else out.splice(at + 1, 0, ...made);
+  }
+  return out;
 }
 
 /* ---------------------------------------------------------- the re-order */
@@ -252,6 +379,7 @@ function sameOrder(a, b) {
 
 module.exports = {
   normTitle, tokens, similarity, score, matchRooms,
-  momentOrder, momentText, planPull, planOrder, sameOrder,
+  momentOrder, momentText, normWords, alignByText, planPull, applyAdds,
+  planOrder, sameOrder,
   ROOM_WORDS, THRESHOLD,
 };

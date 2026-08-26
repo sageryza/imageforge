@@ -101,31 +101,90 @@ let r = p.planPull(story, []);
 eq('an empty pad takes every moment, in the timeline order',
   r.add.map((a) => a.moment), ['m1', 'm2', 'm3']);
 eq('and carries her words across verbatim', r.add[1].text, 'the dog is gone');
+eq('with nothing to seed', r.seed, []);
 
 r = p.planPull(story, [
   { id: 'b1', fromMoment: 'm1' },
-  { id: 'bx' },                                   // a picture she added herself
+  { id: 'bx', text: 'a picture she added herself' },
   { id: 'b3', fromMoment: 'm3' },
 ]);
 eq('a moment that already has a beat is not brought across again',
   r.add.map((a) => a.moment), ['m2']);
 eq('the ones that are there are reported as matched',
-  r.matched.map((m) => m.moment), ['m1', 'm3']);
+  r.matched.map((m) => m.moment).sort(), ['m1', 'm3']);
 eq('a beat of her own is reported as extra, never as a delete', r.extra, ['bx']);
+eq('an already-linked beat is not re-seeded', r.seed, []);
+
+/* ---- the FIRST pull into a pad she has been working in by hand.
+   This is the case that would have written her whole story in a second time:
+   27 beats, none of them linked, every one of them already a moment. */
+const words = {
+  moments: {
+    m1: { text: 'It is not a coincidence.' },
+    m2: { text: 'If science had a battle cry.' },
+    m3: { text: 'Folkism,' },
+    m4: { text: 'superstition,' },
+    m5: { text: 'and the ever-formidable woo.' },
+    m6: { text: 'Matter is matter.' },
+  },
+  units: [['m1', 'm2', 'm3', 'm4', 'm5', 'm6']],
+};
+// The pad is the same story before she split it: beat 2 holds four moments.
+const hand = [
+  { id: 'p1', text: 'It is not a coincidence.' },
+  { id: 'p2', text: 'If science had a battle cry. Folkism, superstition, and the ever-formidable woo.', url: 'art.png' },
+  { id: 'p3', text: 'Matter is matter.' },
+];
+r = p.planPull(words, hand);
+eq('a hand-worked pad is SEEDED, not duplicated', r.add.map((a) => a.moment), ['m3', 'm4', 'm5']);
+eq('every existing beat is stamped with the moment it already is',
+  r.seed.map((x) => `${x.beat}=${x.moment}`), ['p1=m1', 'p2=m2', 'p3=m6']);
+eq('nothing is left over', r.extra, []);
+eq('the split beat is reported, with how many moments it holds',
+  r.split.map((x) => [x.beat, x.moments.length]), [['p2', 4]]);
+ok('a seeded beat keeps its art untouched', hand[1].url === 'art.png');
+ok('and its words untouched', hand[1].text.startsWith('If science had a battle cry. Folkism'));
+
+// The whole point: the new beats land BESIDE the one they came out of.
+eq('every added beat is anchored to the beat it was split from',
+  r.add.map((a) => a.after), ['p2', 'p2', 'p2']);
+
+let made = 0;
+let out = p.applyAdds(hand, r.add, (a) => ({ id: `n${++made}`, text: a.text, fromMoment: a.moment }));
+eq('they are inserted in place, in the timeline order',
+  out.map((b) => b.text.slice(0, 12)),
+  ['It is not a ', 'If science h', 'Folkism,', 'superstition', 'and the ever', 'Matter is ma']);
+ok('every original beat object comes out', hand.every((b) => out.includes(b)));
+ok('and nothing else was created', out.length === hand.length + r.add.length);
+
+// A partial line-up must match NOTHING rather than half-swallow the moments.
+r = p.planPull(words, [{ id: 'q1', text: 'If science had a battle cry. Folkism, super' }]);
+eq('a beat that only half lines up matches nothing', r.seed, []);
+eq('and strands no moment', r.add.length, 6);
+
+// Once seeded, her caption is free to drift and the JOIN still wins.
+r = p.planPull(words, [{ id: 'p1', fromMoment: 'm1', text: 'completely different words now' }]);
+ok('a linked beat is never re-read as text', r.matched.some((m) => m.beat === 'p1' && m.moment === 'm1'));
 
 // The drift she actually has: more moments than beats, and the other way round.
-r = p.planPull({ moments: {}, units: [] }, [{ id: 'a' }, { id: 'b' }]);
+r = p.planPull({ moments: {}, units: [] }, [{ id: 'a', text: 'x' }, { id: 'b', text: 'y' }]);
 eq('a story with no moments proposes no adds at all', r.add, []);
 eq('and every beat is left alone', r.extra, ['a', 'b']);
 
-// A beat pointing at a moment she has since deleted is hers, not garbage.
-r = p.planPull(story, [{ id: 'bz', fromMoment: 'gone' }]);
-ok('a beat from a deleted moment is extra, not re-pulled', r.extra.includes('bz'));
-eq('and its moment is not resurrected', r.add.map((a) => a.moment), ['m1', 'm2', 'm3']);
+// A DELETED moment — dropped from `units`, words kept as the undo — must not
+// come back. Her Science story carries exactly one.
+r = p.planPull({ moments: { m1: { text: 'kept' }, gone: { text: 'she deleted this' } }, units: [['m1']] }, []);
+eq('a deleted moment is not resurrected', r.add.map((a) => a.moment), ['m1']);
 
-// A moment in `moments` but in no unit is still hers.
-r = p.planPull({ moments: { m1: { text: 'a' }, m9: { text: 'orphan' } }, units: [['m1']] }, []);
-eq('a moment in no unit still comes across, last', r.add.map((a) => a.moment), ['m1', 'm9']);
+// A beat pointing at a moment she has since deleted is hers, not garbage.
+r = p.planPull(story, [{ id: 'bz', fromMoment: 'gone', text: 'z' }]);
+ok('a beat from a deleted moment is extra, not re-pulled', r.extra.includes('bz'));
+
+// applyAdds with a vanished anchor still lands honestly rather than throwing.
+out = p.applyAdds([{ id: 'a', text: 'a' }], [{ moment: 'm', text: 'n', after: 'ghost' }], (a) => ({ id: 'n1', text: a.text }));
+eq('an add whose anchor is gone goes to the end', out.map((b) => b.id), ['a', 'n1']);
+out = p.applyAdds([{ id: 'a', text: 'a' }], [{ moment: 'm', text: 'n', after: null }], (a) => ({ id: 'n1', text: a.text }));
+eq('an add with no anchor at all goes to the front', out.map((b) => b.id), ['n1', 'a']);
 
 /* ------------------------------------------------------------ the re-order */
 const beats = [
@@ -166,9 +225,9 @@ ok('a different length is never the same order', !p.sameOrder([{ id: 'a' }], [{ 
 const many = [];
 for (let i = 0; i < 40; i++) many.push({ id: `n${i}`, ...(i % 3 ? {} : { fromMoment: `m${(i % 3) + 1}` }) });
 const shuffled = many.slice().reverse();
-const out = p.planOrder(story, shuffled);
-ok('a big shuffled pad still comes back the same size', out.length === shuffled.length);
-ok('with the same beats in it', new Set(out.map((b) => b.id)).size === shuffled.length);
+const shuf = p.planOrder(story, shuffled);
+ok('a big shuffled pad still comes back the same size', shuf.length === shuffled.length);
+ok('with the same beats in it', new Set(shuf.map((b) => b.id)).size === shuffled.length);
 
 /* ---------------------------------------------------------------- report */
 console.log(`\nstorylink: ${pass} passed, ${fails.length} failed`);
