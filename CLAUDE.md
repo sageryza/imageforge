@@ -3519,6 +3519,19 @@ before working on that module. Nothing was deleted — the moved text is verbati
     1.30x the pixels**. Nine ninths of the same sheet are 1.28c each.
     **2K is cheaper still but its cuts come out SMALLER than a plain 1K
     picture** — the thing that is easy to get backwards.
+  - **IT OPENS ON 1K AND LOW, WHICH IS NOT WHAT THE PARAGRAPH ABOVE ARGUES
+    (2026-08-26, Sophie: "it defaults to 4K and medium make it default to 1K
+    and low").** The tier argument is about where a sheet PAYS OFF and it is
+    still true; a default is a different question. This page shipped opening
+    on 4K/medium on the reasoning that "the whole reason to open this page is
+    to get panels worth keeping", and that reasoning is history: ~13c a tap
+    arriving unasked, on the one tool built for trying several prompts at
+    once, is the Playground's own not-persisted-quality lesson. The cheap rung
+    is the mistake that costs nothing to undo, and the ladder is one tap away.
+    Three copies say it — the served `defaults`, the POST's own fallbacks
+    (what a stale cached page lands on) and the page's opening `pick` — and
+    `node scripts/test-panels.js` pins all three, because this reads as a
+    tidy-up to a chat that has just read the cost paragraph.
   - **THE CANVAS IS DERIVED, NEVER A LOOKUP TABLE** (`sheet-grid.js`, the same
     rule `size-tier.js` follows). Every canvas satisfies all of gpt-image-2's
     constraints plus the one this tool adds — the sheet must divide into
