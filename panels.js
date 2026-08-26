@@ -73,7 +73,14 @@ let deps = {
   whiten: null,           // (buf) -> Promise<Buffer>
   syncVote: null,         // (url, 'like'|'dislike'|null) -> Promise — the Assets mirror
 };
-function init(d) { deps = Object.assign(deps, d || {}); }
+function init(d) {
+  deps = Object.assign(deps, d || {});
+  // A DRAW THE BOX DIED UNDER IS RE-RUN ONCE, AT BOOT — see resumeKilledDraws.
+  // Scheduled from init (the server's mount path) and never from __setDeps, so
+  // a test driving the module with stubs starts no timer toward Firestore.
+  const t = setTimeout(() => resumeKilledDraws().catch(() => {}), 15000);
+  if (t.unref) t.unref();
+}
 // Tests drive cutSheet directly with a stub uploader — the module owns none of
 // the credentials, so this needs no network and no Firebase.
 function __setDeps(d) { deps = Object.assign(deps, d || {}); }
@@ -644,6 +651,61 @@ function healStale(d) {
   } catch (e) { /* healing is best-effort; a read must never fail over it */ }
 }
 
+/**
+ * A DRAW THE BOX DIED UNDER IS RE-RUN ONCE, AT BOOT (2026-08-26, Sophie: "if
+ * we got charged and it never got saved that's a problem that we actually
+ * need to fix").
+ *
+ * The case, measured on her creepy-guy re-run that morning: the box OOM-killed
+ * at 12:44am (memwatch's snapshot: RSS 409MB on the 512MB box, both her sheet
+ * re-runs polling in the request ring) while a 4K draw was in flight. The
+ * images API is synchronous — OpenAI finishes and bills the generation on
+ * their side whether or not our process lives to receive it — so the ~13c was
+ * spent and the bytes were gone, and all the doc could ever say was
+ * "interrupted by a restart while drawing". She had to notice and re-tap.
+ *
+ * A kill always means a boot right after, so BOOT is where the loss is caught:
+ * a run still saying `running` with no sheet, young enough that the fail-stamp
+ * has not taken it, is re-drawn with its own stored settings. The first draw's
+ * money is unrecoverable (nothing to fetch — no job id survives a synchronous
+ * call); what this buys is that her TAP is never wasted: the sheet arrives
+ * anyway, for the same total she would have spent re-tapping, without her
+ * having to notice a failure.
+ *
+ * The guards, each load-bearing:
+ *   · `redrawn` is stamped BEFORE the draw, so a sheet that OOMs the box
+ *     deterministically gets ONE extra attempt ever, never a boot loop.
+ *   · a SAFETY REFUSAL can never reach here — a refusal comes back as a
+ *     response and stamps the run `failed`, and only `running` runs qualify.
+ *   · one at a time, awaited — two concurrent 4K draws are exactly the
+ *     memory shape that killed the box (the OOM lesson).
+ *   · boot-only, never from a read — a page open must never spend money.
+ */
+function needsRedraw(d, now) {
+  if (!d || d.status !== 'running' || d.sheetUrl || d.redrawn) return false;
+  const j = d.job || {};
+  const age = (now || Date.now()) - (Number(j.startedAt) || 0);
+  return age >= 0 && age < DRAW_STALE_MS;
+}
+async function resumeKilledDraws() {
+  if (!admin.apps.length || !deps.imageEdit) return;
+  const snap = await admin.firestore().collection(COLLECTION)
+    .orderBy('createdAt', 'desc').limit(12).get();
+  for (const doc of snap.docs) {
+    const d = doc.data();
+    if (!needsRedraw(d, Date.now())) continue;
+    const plan = sheetGrid.sheetFor(d.grid, d.shape, d.res);
+    if (!plan) continue;
+    console.log(`panels: redrawing ${doc.id} — the box died under its draw`);
+    await doc.ref.update({ redrawn: true,
+      job: { kind: 'sheet', status: 'running', done: 0, total: plan.count + 1,
+        label: 'redrawing after a restart', startedAt: Date.now() } });
+    await runSheet(doc.ref, { plan, fullPrompt: d.fullPrompt, quality: d.quality,
+      styleId: d.style, panels: d.panels || [], gridId: d.grid, shapeId: d.shape,
+      resId: d.res, prefix: d.prefix || '', suffix: d.suffix || '' });
+  }
+}
+
 router.post('/:id/resume', async (req, res) => {
   try {
     if (!admin.apps.length) return res.status(503).json({ error: 'firebase not configured' });
@@ -797,4 +859,5 @@ function clean(d) {
 }
 
 module.exports = { router, init, __setDeps, buildPrompt, gridLine, sheetSuffix, sheetCents,
-  hay, cutSheet, fileRun, isStale, STALE_MS, DRAW_STALE_MS, COLLECTION };
+  hay, cutSheet, fileRun, isStale, needsRedraw, resumeKilledDraws,
+  STALE_MS, DRAW_STALE_MS, COLLECTION };
