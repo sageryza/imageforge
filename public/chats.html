@@ -7779,6 +7779,53 @@ function openPage(p){
   frame.addEventListener('load', function(){
     try{
       var w=frame.contentWindow, doc=frame.contentDocument;
+      // A SAME-ORIGIN LINK CAN NAVIGATE THIS IFRAME OFF THE PAGE (2026-08-26,
+      // Sophie, live: "two pills on top of each other … I can't pause it").
+      // A Compare page carrying a plain `/chats?chat=…` link (the morning
+      // brief's own fallback href when __openThread answers false, or any
+      // hand-authored page) loads the WHOLE Chats app inside this viewer:
+      // its baked pill stacks on this one, and every tap toggles BOTH
+      // scrollers — pausing one starts the other, so the scroll never stops,
+      // and it runs past the thread into the viewer's cream.
+      //
+      // The NET, first: if this load already IS something other than a
+      // served page (a redirect, a form, a JS navigation — anything the click
+      // interceptor below could not see), close the viewer and open the
+      // destination in THIS app. The `?chat=` is read best-effort — a nested
+      // chats app spends its own deep link before window load, so the query
+      // can already be gone; closing the viewer is the half that matters.
+      try{
+        var loc=w&&w.location, lp=(loc&&loc.pathname)||'';
+        if(loc && /^https?:$/.test(loc.protocol) && lp.indexOf('/api/chatfeed/page/')!==0){
+          var wantChat=null;
+          try{ wantChat=new URL(loc.href).searchParams.get('chat'); }catch(_){}
+          v.__close();
+          // land on the MESSAGES tab — curTab still says which tab the
+          // thread behind the viewer was on, and a chat link means the chat
+          if(wantChat && chats[wantChat]){ curTab='chat'; openChat(wantChat); }
+          else if(wantChat) location.href='/chats?chat='+encodeURIComponent(wantChat);
+          return;
+        }
+      }catch(_){}
+      // THE INTERCEPTOR: catch the link CLICK itself, before any navigation,
+      // so the nested app never boots at all. Capture phase on the page's
+      // document — it runs before the page's own handlers (the brief's
+      // __openThread bridge included; same destination, so no conflict).
+      // Off-origin links stay with compare.js (it window.opens them), another
+      // served page may load in place, and _blank/mailto/tel are not ours.
+      if(doc) doc.addEventListener('click', function(e){
+        var a=e.target && e.target.closest && e.target.closest('a[href]');
+        if(!a) return;
+        if(a.target==='_blank' || /^(mailto:|tel:)/i.test(a.getAttribute('href')||'')) return;
+        var u; try{ u=new URL(a.href); }catch(_){ return; }
+        if(u.origin!==location.origin) return;
+        if(u.pathname.indexOf('/api/chatfeed/page/')===0) return;
+        e.preventDefault(); e.stopPropagation();
+        var chat=u.searchParams.get('chat');
+        v.__close();
+        if(chat && chats[chat]){ curTab='chat'; openChat(chat); }
+        else location.href=u.href;
+      }, true);
       // A page that drives its OWN scrolling declares
       // <meta name="forge-pill" content="off"> (or <body data-nopill>) and
       // this pill goes away entirely (Aug 2026, Sophie — on the pausing tool
