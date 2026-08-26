@@ -611,6 +611,49 @@ router.post('/:id/order', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
+// DETACH — take this module's stamps back off a pad's beats.
+//
+// A pull writes `fromMoments`/`fromStory` onto the beats it joins. That is
+// invisible in the Story Room, but it is still this module's field sitting on
+// her work, so "unlink it" has to be able to remove it — an undo that leaves
+// something behind is not an undo. Deliberately a SEPARATE route from the
+// link's own delete: hiding a link is about the LINK, and a chat should have
+// to say out loud that it is writing to her pad again.
+//
+// It touches ONLY those two fields. Words, art, colour, order and every other
+// field are left exactly as they are, so detaching can never cost her work —
+// and it can never be confused with removing the beats a pull added, which is
+// the pad's own `/remove`.
+router.post('/detach', async (req, res) => {
+  if (!hasFirebase()) return res.status(503).json({ error: 'no firebase' });
+  try {
+    const pad = String(req.body.pad || '').trim();
+    if (!pad) return res.status(400).json({ error: 'pad required' });
+    const dry = req.body.dry === true;
+    const snap = await padRef(pad).get();
+    if (!snap.exists) return res.status(404).json({ error: 'no such story pad' });
+    const beats = Array.isArray((snap.data() || {}).beats) ? snap.data().beats : [];
+    const stamped = beats.filter((b) => b && (b.fromMoments || b.fromMoment || b.fromStory));
+    if (dry) return res.json({ dry: true, pad, beats: beats.length, stamped: stamped.length });
+    if (!stamped.length) return res.json({ ok: true, pad, cleared: 0, beats: beats.length });
+
+    const cleared = await db().runTransaction(async (tx) => {
+      const cur = await tx.get(padRef(pad));
+      const list = (cur.exists && Array.isArray(cur.data().beats)) ? cur.data().beats : [];
+      let n = 0;
+      for (const b of list) {
+        if (!b || !(b.fromMoments || b.fromMoment || b.fromStory)) continue;
+        delete b.fromMoments; delete b.fromMoment; delete b.fromStory;
+        n += 1;
+      }
+      if (n) tx.set(padRef(pad), { beats: list, updatedAt: Date.now() }, { merge: true });
+      return n;
+    });
+    roomsCache = { at: 0, rooms: null };
+    res.json({ ok: true, pad, cleared, beats: beats.length });
+  } catch (e) { fail(res, e); }
+});
+
 // Nothing is destroyed — a hidden link keeps its members and can come back.
 router.delete('/:id', async (req, res) => {
   if (!hasFirebase()) return res.status(503).json({ error: 'no firebase' });
