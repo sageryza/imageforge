@@ -1518,6 +1518,61 @@ router.get('/audio/:id', async (req, res) => {
   }
 });
 
+// THE WHOLE TRANSCRIPT OF ONE RECORDING (2026-08-26, Sophie, in the Story
+// Room's About sheet: "there should be a button where I can read the
+// transcription"). Every row in that sheet is a recording this index already
+// knows the words of; nothing could READ them, only play them.
+//
+// IT IS NOT REBUILT FROM THE INDEX'S CHUNKS, and that is the whole reason
+// this route exists rather than a page joining what it already has: the
+// chunks are deliberately OVERLAPPING windows (see splitChars and ndeChunks —
+// a phrase landing on a boundary has to sit whole inside at least one), so
+// joining them repeats text. The transcript is read from where it is stored
+// whole: a memo's own manifest record, or an interview doc's `transcript`.
+//
+// Free — one manifest read (the same file the index is built from) or one
+// Firestore doc, no model call.
+router.get('/transcript/:id', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const id = String(req.params.id || '');
+    if (!/^[\w.\-:]{4,140}$/.test(id)) return res.status(400).json({ error: 'bad id' });
+
+    // A memo first — 60 of the 82 rows across her stories are memos.
+    try {
+      const { manifest } = await memos.readManifest();
+      const m = (manifest.memos || []).find((x) => String(x.id) === id);
+      if (m) {
+        return res.json({
+          id, kind: 'memo', title: m.title || m.date || id,
+          date: m.date || null, text: String(m.transcript || ''),
+        });
+      }
+    } catch (err) {
+      // the membry credential may be absent (local dev) — try the interviews
+    }
+
+    const d = db();
+    if (d) {
+      const snap = await d.collection(NDE_COLLECTION).doc(id).get();
+      if (snap.exists) {
+        const doc = snap.data() || {};
+        const t = doc.transcript || {};
+        const text = String(t.full || '')
+          || ((t.segments || []).map((x) => String(x.text || '').trim()).filter(Boolean).join(' '));
+        return res.json({
+          id, kind: 'nde', title: doc.title || doc.experiencerName || id,
+          date: (doc.publishedAt || doc.createdAt || '').slice(0, 10) || null, text,
+        });
+      }
+    }
+    // NOT an error: an episode render has no transcript on file, and a caller
+    // asks about every row it has. An empty answer is what keeps a row from
+    // drawing a button that opens nothing.
+    res.json({ id, kind: null, title: '', date: null, text: '' });
+  } catch (err) { fail(res, err); }
+});
+
 // An interview passage → a snippet card in the Episode Editor. The editor
 // re-cuts it natively (its own word-timestamp pipeline + clip cache), so no
 // audio is cut here.
