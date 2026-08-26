@@ -3435,7 +3435,25 @@ before working on that module. Nothing was deleted — the moved text is verbati
   so "the image area" is a real box: the zones are sized to the picture, never
   to the window, so the caption and the ♥/✕ row under it are never covered.
   Hidden at the ends of the feed takes the ZONE with it, so a tap there
-  closes. Test: `node scripts/test-playground-liked-arrows.js` — nothing drawn
+  closes.
+  **AND THE STAGE IS WHY THE LABEL WENT UNDER THE PICTURE — the picture has to
+  SHRINK WITH IT (2026-08-26, Sophie: "the label is covered by the
+  picture").** The stage is `position:relative`, so it and the `<img>` inside
+  it paint ABOVE the static caption below them, and the picture's own
+  `max-height:76vh` never shrank when flex squeezed the stage — so on a SHORT
+  viewport the bottom of a portrait 2:3 sat on top of the MODEL · QUALITY ·
+  SIZE line. `min(76vh, 100%)` binds the picture to the room the stage really
+  has, and `flex:none` on the caption and the ♥/✕ row makes the stage the only
+  thing that gives. **The height is the whole bug**: measured, it is 17px of
+  the label covered at 560, 10 at 620, 5 at 660 and **nothing at 844** — the
+  iPhone 13 in Safari, which is where anyone testing it would look. The app's
+  web view is shorter by its bottom bar, which is why it was only ever visible
+  in her hand. The shared `asset-lightbox.js` has the same shape and was
+  measured clean (its caps are 46-62vh with the note box) — leave it. Test:
+  `node scripts/test-playground-lightbox-caption.js` (five heights, the
+  overlap asked with `elementFromPoint`, which reports `lbimg` sitting on the
+  label pre-fix; verified failing 8).
+  Test: `node scripts/test-playground-liked-arrows.js` — nothing drawn
   (child nodes, text, background and border all measured off the real
   buttons), the zone measured over the picture, and the edge tap asked with
   `elementFromPoint`; verified failing 3 against the pre-fix page. Its fixture
