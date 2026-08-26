@@ -5383,12 +5383,17 @@ before working on that module. Nothing was deleted — the moved text is verbati
   duplicate); notes ride the same doc via the small + on a card. Item ids
   are permanent — renaming one orphans her pick. One screen, never scrolls,
   no pill. Tests: `node scripts/test-opinions.js` (pure).
-  **Scenario art is drawn as 2×2 SHEETS at LOW (Sophie, Aug 2026: "one image
-  per quarter so each image will cost a quarter")** — one Playground pastel
-  run whose prompt describes a 2x2 grid of four separate small
-  illustrations, cut into quarters locally, each quarter filed as its own
-  image (~0.125¢ apiece). Candidates go on a grid Compare page for her ♥
-  before anything gets wired into a card or re-drawn at medium.
+  **Scenario art is drawn as 2×2 SHEETS at MEDIUM (Sophie, Aug 2026: "one
+  image per quarter so each image will cost a quarter"; quality raised from
+  low the same week — "the little ones are coming out too low"; there is no
+  2K size, 1024x1536 is gpt-image-2's ceiling)** — one Playground pastel run
+  whose prompt describes a 2x2 grid of four separate small illustrations,
+  cut into quarters locally, each quarter filed as its own image (~1¢
+  apiece). **Modes come in PAIRS: every scenario exists as an easy card AND
+  its hard twin** (same choice, escalated picture, a more-information line
+  that flips it) — a one-sided scenario is the thing she flags. Candidate
+  batches go on a review deck for her ♥ first; a single-option batch she has
+  delegated goes straight in.
   **SERIALIZE A BULK BATCH THE SERVER IS DRAWING — `/api/promptlab`, from a
   script (measured 2026-08-19):** two parallel 4-run × 4-output batches each
   died "interrupted by a server restart" partway (the 512MB box restarting
