@@ -1414,7 +1414,34 @@ them off the reference sheet, not off the old filenames.
   shouldn't hide everything … whereas other ones shouldn't take it off the main
   feed")** — only a PILE word takes a chat off the unfiled home list, seeded
   from her folder vocabulary frozen the day the fields merged (`PILE_SEEDS`)
-  and switched per word in the Organize sheet (`POST /pile`). **And `to be
+  and switched per word in the Organize sheet (`POST /pile`).
+  **MAKING A WORD A PILE RE-FILES WHAT ALREADY WEARS IT (2026-08-26, Sophie:
+  "middle one goes first chat should've left because I tagged it as PWC
+  reel").** The word was already on that chat — the auto-sorter put it there
+  the day before — and what she did was flip `pwc reel` ON in the "Which words
+  file a chat away?" sheet. That flip wrote `pileLabels` and **nothing else**,
+  so every chat wearing the word became filed while still carrying the
+  `filedAt` it was given back when the word meant nothing; any reply newer than
+  that stamp makes `chatBack` true, the chat pops onto the main list, and it
+  never leaves. The sheet's own subtitle promises "a lit word takes a chat off
+  the main list until it answers you" — and that chat had answered a day before
+  the promise existed. **Measured live: of the 8 chats wearing `pwc reel`, the
+  only one that did not leave was the only one whose reply post-dated its
+  stamp.** So the flip now renews `filedAt` on every chat wearing the word,
+  exactly as filing by hand already does (`saveLabels` writes the stamp itself
+  for the same reason). Three things not to undo: it writes `filedAt` **alone**
+  and never `labelPatch`, so it cannot stamp `catBy:'sophie'` and lock the
+  auto-sorter out of the ten chats it filed itself; turning a word **OFF**
+  stamps nothing, since those chats hand themselves back by `chatFiled` going
+  false; and the page mirrors the stamp optimistically or the row sits there
+  until the next reload. Pinned by `node scripts/test-chats-labels.js`
+  (verified failing 2 pre-fix).
+  **The OTHER half of that report is her own rule working as written and was
+  left alone:** 11 more filed chats are sitting on her main list because they
+  answered after she filed them, some since Aug 15 — a pop-out ends only when
+  she re-files or responds ("it should stay in both places until I file it away
+  again or respond"), and nothing expires one. Changing that is hers to ask
+  for. **And `to be
   reviewed` also puts the chat in the Review Queue** at `/review`. **And
   `waiting for something` OPENS A BOX** asking what it is waiting for; her
   answer lives in its own field (`waitingFor`, never `sophieNote`), shows as a

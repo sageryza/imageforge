@@ -7967,6 +7967,22 @@ function askPiles(after){
   function flip(c, on){
     var was=pileList();
     var next=on ? (was.indexOf(c)>-1?was:was.concat(c)) : was.filter(function(x){ return x!==c; });
+    // MAKING A WORD A PILE RE-FILES WHAT ALREADY WEARS IT (2026-08-26, Sophie:
+    // "middle one goes first chat should've left because I tagged it as PWC
+    // reel"). A chat already carrying the word carries the `filedAt` it was
+    // given while that word still meant nothing, so a reply that landed after
+    // that stamp pops it onto the main list (chatBack) and it never leaves:
+    // the sheet promises the word takes a chat off the list, and for that chat
+    // it didn't. The server renews the stamp (POST /pile); this is the
+    // optimistic copy, or the row sits there until the next reload. Turning a
+    // word OFF stamps nothing - those chats come back by `chatFiled` going
+    // false, and re-filing them would be filing she never asked for.
+    var prevAt={};
+    if(on) Object.keys(chats).forEach(function(n){
+      if(chatLabels(n).indexOf(c)<0) return;
+      prevAt[n]=chats[n].filedAt||'';
+      chats[n].filedAt=new Date().toISOString();
+    });
     settings=settings||{}; settings.pileLabels=next;
     paint();
     // The home list behind this sheet is a different list now — a word that
@@ -7975,7 +7991,10 @@ function askPiles(after){
     api('/api/chatfeed/pile',{method:'POST',body:JSON.stringify({label:c, pile:on})})
       .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
       .catch(function(){
-        settings.pileLabels=was; paint(); renderHome(); toast('Couldn\u2019t save that');
+        settings.pileLabels=was;
+        Object.keys(prevAt).forEach(function(n){
+          if(prevAt[n]) chats[n].filedAt=prevAt[n]; else delete chats[n].filedAt; });
+        paint(); renderHome(); toast('Couldn\u2019t save that');
       });
   }
   paint();
