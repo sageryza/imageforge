@@ -94,16 +94,39 @@ body.native.pagehead header > .no{display:block;}
    already drawn. It shows in a plain browser ONLY, where nothing injects one
    and a story would otherwise be a dead end with no way back to the shelf. */
 body.native #shelfback,body.pagehead #shelfback{display:none;}
-/* The title row PINS to the top while she scrolls a long story, so film /
-   play / add / inbox are always a thumb away (Sophie). Paper background so
-   beats slide beneath it. Its z-index stays BELOW the pill's 9 (the house
-   pattern — /writing and /editor sit at 5): at 30 the row's paper background
-   painted over the autoscroll pill's top button. Full-screen overlays (sheet
-   40, beatpop 50, lightbox 60, filmplay 70) stay ABOVE 9 — they are meant to
-   cover the pill. */
-.titlerow{display:flex; align-items:center; gap:10px; padding-right:56px; margin-top:.4em;
-  position:sticky; top:0; z-index:5; background:var(--paper); padding-top:6px; padding-bottom:6px;}
-.titlerow #title{flex:1; min-width:0; margin:0;}
+/* THE WHOLE TOP IS ONE STICKY BLOCK, THE WAY OUT INCLUDED, AND THE STORY'S
+   NAME HAS ITS OWN LINE (2026-08-26, Sophie: "header layout sucks. back
+   button not sticky. title too crowded"). Two faults, one row.
+   • Only `.titlerow` pinned, so the header above it — the row carrying the
+     back chevron and the "?" — scrolled away the moment she moved down a long
+     story, and there was no way back to the shelf without scrolling to the
+     top first. The block pins instead, so the chevron is always a thumb away
+     next to the buttons that already were.
+   • The name shared its line with six 34px buttons. Measured at 390pt: the
+     wrap is 312px wide and the buttons take 34×6 plus five 10px gaps plus the
+     56px the injected pill's corner owns = 310, so the name was left ~2px and
+     wrapped one or two LETTERS to a line — the tall "Ev / an / — / the / sha /
+     pe" column in her screenshot. Nothing can share that line; the name gets
+     its own and the buttons get theirs.
+   The negative margin cancels the wrap's own top padding while the block sits
+   in flow, so the header row still starts at var(--headtop) (every sheet's
+   row is levelled against it, and pagehead.js measures it); once pinned, the
+   same padding is what clears the status bar.
+   Paper background so beats slide beneath it. The z-index stays BELOW the
+   pill's 9 (the house pattern — /writing and /editor sit at 5): at 30 the
+   paper background painted over the autoscroll pill's top button. Full-screen
+   overlays (sheet 40, beatpop 50, lightbox 60, filmplay 70) stay ABOVE 9 —
+   they are meant to cover the pill. */
+#topchrome{position:sticky; top:0; z-index:5; background:var(--paper);
+  padding-top:var(--headtop); margin-top:calc(-1 * var(--headtop)); padding-bottom:6px;}
+.titlerow{padding-right:56px; margin-top:.15em;}
+.titlerow #title{margin:0;}
+/* The buttons hug the right and stop 56px short of the pill's corner. 8px
+   between them rather than 10: with all six showing that is 244 + 56 = 300 of
+   the 312 the wrap has at 390pt, which leaves the row a margin instead of
+   sitting 2px inside it. */
+.iconrow{display:flex; align-items:center; justify-content:flex-end; gap:8px;
+  padding:2px 56px 0 0;}
 /* THE STYLE TOGGLE — watercolor ↔ dreamy (Aug 2026, Sophie: "a style toggle
    at the top of a story that alternates between dreamy and watercolor …
    the same format that the account's toggle is, with a switch that moves
@@ -621,25 +644,32 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
        neither, so the page draws its own (#shelfback), hidden under
        body.native / body.pagehead by exactly the rule the ten __nativeNavBar
        pages follow: whoever owns back draws it once. -->
+  <!-- ONE STICKY BLOCK: the way back, the story's name, its buttons. See
+       #topchrome in the CSS for why the name no longer shares the button
+       row. -->
+  <div id="topchrome">
   <header>
     <button class="iconbtn" id="shelfback" hidden aria-label="Back to the shelf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
     <div class="no">Story room</div>
     <!-- WHAT THE BUTTONS DO (Aug 2026, Sophie: "also add an info icon that
-         says what all the buttons do"). It sits on the NAME row, not the
-         title row: that row already carries six 34px icons on a 390pt phone
-         and a seventh would eat the story's name, while this row has its
-         whole right end free. The row reserves the pill's 56px, so the "?"
-         lands just clear of the injected pill's corner. -->
+         says what all the buttons do"). It stays on the NAME row rather than
+         joining the button row below: that row already carries six 34px
+         icons on a 390pt phone and a seventh would not fit beside the pill's
+         reserved corner. This row's right end is free. Both rows reserve the
+         pill's 56px, so nothing lands under its corner. -->
     <button class="iconbtn" id="helpbtn" aria-label="What the buttons do"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></button>
   </header>
   <div class="titlerow">
     <div id="title" contenteditable="true" spellcheck="false"></div>
+  </div>
+  <div class="iconrow">
     <button class="iconbtn" id="descbtn" hidden aria-label="About this story — what you said about it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/><path d="M5 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/></svg></button>
     <button class="iconbtn" id="audiobtn" hidden aria-label="Every recording attached to this story"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 13a2 2 0 0 0 2-2V7a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0V4a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0v-4a2 2 0 0 1 2-2"/></svg></button>
     <button class="iconbtn" id="playbtn" hidden aria-label="Watch the film"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4.5v15l13-7.5z"/></svg></button>
     <button class="iconbtn" id="drawallbtn" hidden aria-label="Draw every beat that has words but no picture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg></button>
     <button class="iconbtn" id="addbtn" aria-label="Add an empty beat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
     <button class="iconbtn" id="inboxbtn" aria-label="Hearted in the Playground"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
+  </div>
   </div>
   <div class="stylerow">
     <button class="sw on" id="swwater" type="button">Watercolor</button>

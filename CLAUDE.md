@@ -4188,6 +4188,26 @@ before working on that module. Nothing was deleted — the moved text is verbati
   it a story is a dead end in a browser. Test:
   `node scripts/test-storyroom-header.js` (three states —
   web / old build / new build).
+  **THE WHOLE TOP IS ONE STICKY BLOCK, AND THE STORY'S NAME HAS ITS OWN LINE
+  (2026-08-26, Sophie: "header layout sucks. back button not sticky. title too
+  crowded").** Two faults in one row, both only visible as measurements.
+  `.titlerow` was the only thing pinned, so the header above it — the row
+  carrying the back chevron and the "?" — scrolled away on a long story and
+  there was no way back to the shelf without scrolling to the top first. And
+  the name shared its line with six 34px buttons: at 390pt the wrap is 312px
+  and the buttons take 34x6 + five 10px gaps + the 56px the injected pill's
+  corner owns = 310, leaving the name ~2px, which wrapped it one or two
+  LETTERS to a line ("Ev / an / — / the / sha / pe" in her screenshot).
+  `#topchrome` wraps header + `.titlerow` + the new `.iconrow` and is the
+  sticky one; the name is alone on its row, the buttons are alone on theirs at
+  8px apart. **The negative margin on `#topchrome` is load-bearing** — it
+  cancels the wrap's own `--headtop` padding while the block is in flow, so
+  the header row still starts at `var(--headtop)` (every sheet's row is
+  levelled against it, and `pagehead.js` measures it), and once pinned that
+  same padding is what clears the status bar. Pinned by
+  `node scripts/test-storyroom-header.js` — the name's real width and height,
+  the six buttons on ONE line clear of the pill's column, and the chevron
+  asked with `elementFromPoint` 900px down the story.
   **THE SHELF IS FRAMED TILES, THREE TO A ROW, AND SHE PINS THE ONES SHE IS ON
   (2026-08-24, Sophie).** A tile is the story's picture on a WHITE MAT inside
   the one hairline outline, both corners slightly rounded, the name centred
