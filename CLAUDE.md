@@ -5977,16 +5977,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
     neighbours' one. The tab is **PWC**, her own shorthand for it (her deck
     titles say "PWC Instagram", "PWC memes"). Pinned with a Range over each
     label's own text — a width assertion cannot see a wrap.
-  - **PWC HOLDS ONE THING, the bingo card she hearted, and the rest are empty
-    NEXT tiles.** Measured 2026-08-24: the account has no films and no posted
-    art — `pwc-instagram-content` is still at the CONCEPT stage (two decks in
-    its Compare tab, 19 post ideas and 18 memes), and the only PWC picture on
-    file anywhere is a run of bingo cards in the Playground, of which exactly
-    one carries her ♥. So the grid shows that one and says nothing else. **An
-    empty grid is the honest state of a young account** — do not fill it with
-    art she has not chosen; the tile has no `prefix`, so it opens its still
-    rather than being a dead control, and a note on it lands in
-    `pwc-instagram-content`, the chat that can act on it.
+  - **PWC HOLDS THE EIGHT REELS PLUS THE BINGO CARD (2026-08-26, Sophie: "pwc
+    has none of the reels we made … add them in and make them link so they
+    sync w the current version").** A full 3x3, newest first: the Training
+    Film No. 001 (prefix `pwc-training-film/film-`, chat
+    `account-three-ordering-reel` — currently v8), the Hands reel
+    (`pwc/hands-reel/`, `middle-one-goes-first` — the go that chat was
+    waiting for), ep006 (`pwc-reels/pwc-ep006-`, `people-watching-club-reel`
+    — the chat's PIN is what keeps the 61MB `-master` upload, newest by
+    timestamp under that prefix, off the tile), ep005 back to ep001
+    (`pwc-reels/pwc-ep00N-`, all `stock-footage-backstories`, the
+    ep001–ep005 builder), and her hearted bingo card last. Covers are derived
+    640px webps at `pwc-reels/covers/` — poster frames pulled ~15% in from
+    the reels themselves; the training film's is its own title card, the
+    hands reel's its existing poster. **AND NO EMPTY TILE SAYS "NEXT" ANY
+    MORE, on any account** (same message: "get rid of 'NEXT' placeholder
+    text") — an empty slot is a bare dashed square in both renderers
+    (`instagrid.js` and `grid.js`), and the `label` came off the empty rows
+    in the JSON.
   - **The handle and bio are a PLACEHOLDER she has not confirmed** — nothing in
     the feed or the repo records the real PWC Instagram handle, so the mockup
     reads `peoplewatchclub` / "like a ghost among the living, silently

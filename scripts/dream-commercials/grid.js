@@ -65,7 +65,7 @@ function build() {
   // free — `button` is in the pill's shared skip list, so a tap that opens a
   // film can never also start the page scrolling
   const tiles = TILES.map((t) => (t.empty
-    ? `<div class="gtile empty"><span>${esc(t.label)}</span></div>`
+    ? '<div class="gtile empty"></div>'
     : `<button type="button" class="gtile" data-id="${esc(t.id)}"`
       + (t.film ? ` data-film="${esc(t.film)}"` : ` data-still="${esc(t.cover)}"`)
       + (t.prefix ? ` data-prefix="${esc(t.prefix)}"` : '')
@@ -113,10 +113,9 @@ function build() {
   .glegend i{font:600 10px/1.35 -apple-system,sans-serif;font-style:normal;color:var(--ink);}
   .glegend b{display:block;font:400 10px/1.35 -apple-system,sans-serif;color:var(--ink2,#8A7F6E);}
   .glegend i.moved b{color:#C25E4C;}
-  .gtile.empty{display:flex;align-items:center;justify-content:center;border:1px dashed #DDD3C0;
-    background:#F7F2E8;}
-  .gtile.empty span{font:700 9px/1 -apple-system,sans-serif;letter-spacing:.14em;
-    text-transform:uppercase;color:#B6AB98;}
+  /* an empty slot is a bare dashed square — the NEXT word came off at Sophie's
+     ask (2026-08-26) */
+  .gtile.empty{border:1px dashed #DDD3C0;background:#F7F2E8;}
 </style>
 
 <div class="wrap">
