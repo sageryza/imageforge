@@ -4232,7 +4232,54 @@ before working on that module. Nothing was deleted — the moved text is verbati
     the file the moment it plays, and `_url` is RESOLVED on the way in —
     `player.src` reads back absolute, so a relative url would compare unequal
     to itself forever and the row would never show its pause glyph.
-  - Test: `node scripts/test-storyroom-about.js` (39 checks, headless, driving
+  - **ONE FILE, ONE ROW — she found this the day it shipped (2026-08-26: "it
+    looks like I pressed play on one and the other one also started
+    playing").** Nothing played twice: her voiceover or her description
+    recording is very often ALSO in the attached list — **11 of her 67
+    stories, measured live** — so two rows carried the same url and one
+    playback lit both, pause glyph and scrubber on each. The sheet was lying
+    about what it was doing. The row that survives keeps the ATTACHED entry's
+    title, date and length (how she recognises a memo) and wears her ROLE
+    beside them, so joining the two loses neither half; both her fields on one
+    file still say "Your recording" once.
+  - **IT STOPS WHEN SHE LEAVES (same day: "it keeps playing even if I leave
+    the storage room even if I leave the app that's a problem").** The player
+    is a detached `new Audio()` that nothing had ever been asked to stop.
+    `auStop()` now runs on `visibilitychange`→hidden, `pagehide` and `freeze`
+    (the app backgrounding, the screen locking), on stepping up to the shelf,
+    and on the shelf handing the app its exit. **Closing the SHEET while she
+    is still on the story deliberately does NOT stop it** — that rule predates
+    this and she has not asked to change it.
+    **THE ONE GAP, named rather than papered over:** switching to another TOOL
+    inside the app. RootView keeps the three recent tools alive in a ZStack
+    and only toggles opacity, so the web view may never be told it is hidden
+    and no page-side event can catch it. The durable fix is Swift calling a
+    `window.__forgeHidden()` bridge on that switch — NOT BUILT, and it needs a
+    TestFlight build.
+  - **A ROW OPENS ITS OWN WORDS (same day: "there should be a button where I
+    can read the transcription").** An underlined `read` on the row's second
+    line beside the date — the house opener, and it costs the title no width
+    where a fourth control in the row would. The words open UNDER the row,
+    folded to six lines behind the same `… more` her description uses, so
+    there is ONE reading pattern in the sheet and the row she is playing stays
+    on screen above them. Where they come from, cheapest first: **her
+    narration carries its own text on the pad doc** (12 of the 20 stories with
+    a voiceover, 656-15,647 characters) so that row needs no request at all; a
+    memo or an interview is fetched once and cached on the row; an **episode
+    render has no transcript on file and shows no way in**, the same
+    silent-by-design rule the Assets tab's PROMPT button follows. Her
+    description recording is skipped too — its words are already on screen as
+    *What you said*.
+    - **`GET /api/search/transcript/:id` is the route, and it does NOT rebuild
+      the text from the index.** The index's chunks are deliberately
+      OVERLAPPING windows (`splitChars` / `ndeChunks` — a phrase landing on a
+      boundary has to sit whole inside at least one), so joining them repeats
+      text. It reads the transcript from where it is stored whole: the memo
+      manifest record, or the interview doc's own `transcript`. Free — one
+      manifest read or one Firestore doc, no model call. An id it does not
+      know answers with an empty string rather than a 404, because the page
+      asks about every row it has.
+  - Test: `node scripts/test-storyroom-about.js` (62 checks, headless, driving
     real decodable wavs through the real page — the order, the fold measured
     rather than counted in characters, the pill collision as ink, a real
     pointer at four fifths along the scrubber, and the four shapes her real

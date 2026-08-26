@@ -65,12 +65,16 @@ function wav(sec) {
 const LONG = 'okay so basically '.repeat(600);   // ~10,800 — her longest is 10,593
 const SHORT = 'a short note about the story.';
 const AUDIOS = [
-  { title: 'Discussion on Coincidence and Science', date: '2026-07-09', seconds: 2024, url: '/au/m1.wav' },
-  { title: 'Evan — the long cut v6', seconds: 294, url: '/au/m2.wav' },
+  { title: 'Discussion on Coincidence and Science', date: '2026-07-09', seconds: 2024, url: '/au/m1.wav', src: 'm1' },
+  { title: 'Evan — the long cut v6', seconds: 294, url: '/au/m2.wav' },   // an episode: no src, no transcript
   { title: 'A guess from a chat', date: '2026-06-01', seconds: 610, candidate: true, url: '/au/m3.wav' },
 ];
 const SHAPES = {
-  full:      { description: LONG,  descriptionAudio: '/au/desc.wav', voiceover: '/au/vo.wav',   audios: AUDIOS },
+  // Her voiceover IS one of the attached memos — 11 of her 67 stories, live.
+  // Before 2026-08-26 that drew the file twice and one playback lit both.
+  dupe:      { description: '',    descriptionAudio: null,           voiceover: '/au/m1.wav',   audios: AUDIOS },
+  full:      { description: LONG,  descriptionAudio: '/au/desc.wav', voiceover: '/au/vo.wav',   audios: AUDIOS,
+               voText: 'the narration, word for word. '.repeat(90) },
   same:      { description: SHORT, descriptionAudio: '/au/vo.wav',   voiceover: '/au/vo.wav',   audios: [] },
   audioonly: { description: '',    descriptionAudio: null,           voiceover: null,           audios: AUDIOS },
   textonly:  { description: SHORT, descriptionAudio: null,           voiceover: null,           audios: [] },
@@ -79,13 +83,17 @@ const SHAPES = {
 
 function serve(shape) {
   const s = SHAPES[shape];
-  const PADS = { pads: [{ id: 'a', title: 'Evan', beats: 12, category: 'personal', cover: '' }] };
+  /* NO CATEGORY, deliberately: an untagged story falls into whichever pile
+     the shelf opens on, so this fixture cannot go stale the day that default
+     moves (it moved on 2026-08-26 — 'personal' → 'unsorted' — and every test
+     pinning the old word stopped finding its own tile). */
+  const PADS = { pads: [{ id: 'a', title: 'Evan', beats: 12, category: null, cover: '' }] };
   const PAD = {
-    pad: { id: 'a', title: 'Evan', beats: [], category: 'personal' },
+    pad: { id: 'a', title: 'Evan', beats: [], category: null },
     title: 'Evan', beats: [],
     description: s.description,
     descriptionAudio: s.descriptionAudio,
-    voiceover: s.voiceover ? { url: s.voiceover, source: 'recording' } : null,
+    voiceover: s.voiceover ? { url: s.voiceover, source: 'recording', text: s.voText || '' } : null,
     audios: s.audios,
   };
   return http.createServer((req, res) => {
@@ -98,6 +106,12 @@ function serve(shape) {
     if (u.pathname.startsWith('/api/scratchpad/pads') && !/pads\/[a-z]/.test(u.pathname)) {
       res.writeHead(200, { 'content-type': 'application/json' });
       return res.end(JSON.stringify(PADS));
+    }
+    if (u.pathname.startsWith('/api/search/transcript/')) {
+      const id = decodeURIComponent(u.pathname.split('/').pop());
+      res.writeHead(200, { 'content-type': 'application/json' });
+      return res.end(JSON.stringify({ id, kind: 'memo', title: id,
+        text: id === 'm1' ? 'so anyway that is the thing I was saying. '.repeat(80) : '' }));
     }
     if (u.pathname.startsWith('/api/')) {
       res.writeHead(200, { 'content-type': 'application/json' });
@@ -126,14 +140,16 @@ async function story(browser, shape) {
   pg.on('pageerror', e => errs.push(String(e)));
   await pg.goto('http://127.0.0.1:' + srv.address().port + '/scratchpad.html');
   await pg.waitForTimeout(400);
-  await pg.waitForSelector('.stile');
+  try { await pg.waitForSelector('.stile', { timeout: 8000 }); }
+  catch (e) { console.log('  !! no tiles. errors:', errs, 'html:',
+    (await pg.$eval('#shelftiles', el => el.innerHTML)).slice(0, 200)); throw e; }
   await pg.click('.stile');
   await pg.waitForTimeout(600);
   return { pg, errs, close: async () => { await ctx.close(); srv.close(); } };
 }
 
 /** Every row and header in the sheet, in the order they are drawn. */
-const LIST = `[...document.querySelectorAll('#audios > *')].map(e =>
+const LIST = `[...document.querySelectorAll('#audios > .aurow, #audios > .auhead')].map(e =>
   e.classList.contains('auhead') ? '— ' + e.textContent
   : e.querySelector('.aunm').textContent)`;
 
@@ -349,6 +365,158 @@ const LIST = `[...document.querySelectorAll('#audios > *')].map(e =>
     ok('the legend carries one row for it, not two',
       named.length === 1 && named[0] === 'About this story', JSON.stringify(named));
     await d.close();
+  }
+
+  // ── ONE FILE, ONE ROW ─────────────────────────────────────────────────
+  // 2026-08-26, Sophie: "it looks like I pressed play on one and the other one
+  // also started playing". Nothing played twice — her voiceover was ALSO in the
+  // attached list (11 of her 67 stories, measured live), so two rows carried
+  // one url and a single playback lit both.
+  console.log('one file is one row, however many fields point at it');
+  {
+    const { pg, errs, close } = await story(browser, 'dupe');
+    await pg.click('#aboutbtn');
+    await pg.waitForTimeout(400);
+    const rows = await pg.evaluate(LIST);
+    ok('the file she narrated appears once',
+      (await pg.$$('#audios .aurow')).length === AUDIOS.length, JSON.stringify(rows));
+    ok('and it keeps the memo\'s own name', rows[0] === AUDIOS[0].title, rows[0]);
+    ok('with her role beside the date, not instead of it',
+      /2026-07-09/.test(await pg.$eval('#audios .aurow .audate', e => e.textContent))
+      && /Your narration/.test(await pg.$eval('#audios .aurow .audate', e => e.textContent)),
+      await pg.$eval('#audios .aurow .audate', e => e.textContent));
+    ok('every row has its own url',
+      await pg.$$eval('#audios .aurow', els => new Set(els.map(e => e._url)).size === els.length));
+
+    // The bug as she saw it: play one, and count what looks live.
+    await pg.locator('#audios .aurow').first().locator('.iconbtn').click();
+    await pg.waitForTimeout(700);
+    const live = await pg.$$eval('#audios .aurow', els => ({
+      pausing: els.filter(e => e.querySelector('.iconbtn svg rect')).length,
+      seeks: els.filter(e => e.querySelector('.auseek')).length,
+    }));
+    ok('exactly one row reads as playing', live.pausing === 1 && live.seeks === 1,
+      JSON.stringify(live));
+    ok('no page errors', errs.length === 0, errs.join(' | '));
+    await close();
+  }
+
+  // ── IT STOPS WHEN SHE LEAVES ──────────────────────────────────────────
+  // 2026-08-26, Sophie: "it keeps playing even if I leave the storage room even
+  // if I leave the app that's a problem". The player is a detached Audio() that
+  // nothing was ever asked to stop.
+  console.log('the recording stops when she leaves');
+  {
+    const { pg, errs, close } = await story(browser, 'audioonly');
+    const playing = () => pg.evaluate(() => {
+      const a = [...document.querySelectorAll('audio')];
+      return { any: a.some(e => !e.paused), n: a.length };
+    });
+    async function start() {
+      await pg.click('#aboutbtn'); await pg.waitForTimeout(250);
+      await pg.locator('#audios .aurow').first().locator('.iconbtn').click();
+      await pg.waitForTimeout(500);
+      return (await pg.$$eval('#audios .aurow', els =>
+        els.some(e => e.querySelector('.auseek'))));
+    }
+    ok('a recording starts', await start());
+
+    // Closing the SHEET is deliberately not leaving — that rule predates this
+    // and she has not asked to change it: a recording is meant to keep going
+    // while she reads the beats it became.
+    await pg.click('#auclose'); await pg.waitForTimeout(300);
+    ok('closing the sheet leaves it playing', (await pg.evaluate(
+      () => !document.querySelector('#audios .aurow .auseek') ? 'gone' : 'live')) === 'live');
+
+    // Leaving the STORY does stop it.
+    await pg.evaluate(() => window.__navBack());
+    await pg.waitForTimeout(400);
+    ok('stepping up to the shelf stops it', !(await pg.evaluate(
+      () => [...document.querySelectorAll('audio')].some(e => !e.paused))));
+
+    // ...and so does the app going away. The page cannot see the app's tab
+    // bar, so the honest test is the event iOS actually sends.
+    await pg.click('.stile'); await pg.waitForTimeout(600);
+    ok('a recording starts again', await start());
+    await pg.evaluate(() => {
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await pg.waitForTimeout(300);
+    ok('the app going to the background stops it', !(await pg.evaluate(
+      () => [...document.querySelectorAll('audio')].some(e => !e.paused))));
+    ok('no page errors', errs.length === 0, errs.join(' | '));
+    await close();
+  }
+
+  // ── READING THE WORDS ─────────────────────────────────────────────────
+  // 2026-08-26, Sophie: "there should be a button where I can read the
+  // transcription."
+  console.log('a row opens its own words');
+  {
+    const { pg, errs, close } = await story(browser, 'full');
+    await pg.click('#aboutbtn');
+    await pg.waitForTimeout(400);
+
+    const where = await pg.$$eval('#audios .aurow', els => els.map(e =>
+      Boolean(e.querySelector('.aureadbtn'))));
+    // Her narration carries its own text on the pad doc; the memo is fetched;
+    // the episode has no transcript on file and shows no way in; and her
+    // description recording's words are already on screen as "What you said",
+    // so a second copy under the row would be the same answer twice.
+    ok('only the rows with words to show offer it',
+      JSON.stringify(where) === JSON.stringify([false, true, true, false, false]),
+      JSON.stringify(where));
+
+    // HER NARRATION — no request at all, the words ride the pad doc.
+    let calls = 0;
+    pg.on('request', r => { if (/\/transcript\//.test(r.url())) calls++; });
+    await pg.locator('#audios .aurow').nth(1).locator('.aureadbtn').click();
+    await pg.waitForTimeout(300);
+    const vo = await pg.evaluate(() => {
+      const b = document.querySelector('#audios .autext:not([hidden])');
+      return b ? { text: b.textContent.slice(0, 30), folded: b.classList.contains('clamp'),
+        h: Math.round(b.getBoundingClientRect().height),
+        opener: b.querySelector('.moretxt') ? b.querySelector('.moretxt').textContent : null } : null;
+    });
+    ok('her narration opens with no request', calls === 0, calls + ' requests');
+    ok('and its words are there', vo && /the narration/.test(vo.text), JSON.stringify(vo));
+    ok('folded, with the house opener', vo && vo.folded && vo.opener === '… more'
+      && vo.h > 0 && vo.h < 200, JSON.stringify(vo));
+    ok('the word became "hide"',
+      (await pg.$$eval('#audios .aureadbtn', e => e[0].textContent)) === 'hide');
+    await pg.locator('#audios .aurow').nth(1).locator('.aureadbtn').click();
+    await pg.waitForTimeout(200);
+    ok('tapping it again puts them away',
+      await pg.$eval('#audios .autext', e => e.hidden));
+
+    // A MEMO — one request, then cached on the row.
+    await pg.locator('#audios .aurow').nth(2).locator('.aureadbtn').click();
+    await pg.waitForTimeout(600);
+    ok('a memo is fetched once', calls === 1, calls + ' requests');
+    ok('and its words open',
+      /that is the thing I was saying/.test(
+        await pg.$$eval('#audios .autext', els =>
+          els.map(e => e.hidden ? '' : e.textContent).join(''))));
+    await pg.locator('#audios .aurow').nth(2).locator('.aureadbtn').click();
+    await pg.waitForTimeout(150);
+    await pg.locator('#audios .aurow').nth(2).locator('.aureadbtn').click();
+    await pg.waitForTimeout(300);
+    ok('re-opening it asks nothing again', calls === 1, calls + ' requests');
+    // SIX CLEAN LINES — a seventh bleeding under the fold is what the box's
+    // own bottom padding does if the clamp does not zero it.
+    ok('the fold shows whole lines only', await pg.evaluate(() => {
+      const b = document.querySelector('#audios .autext:not([hidden])');
+      const cs = getComputedStyle(b);
+      const lh = parseFloat(cs.lineHeight);
+      const pad = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+      // The box's own bottom padding lets a SEVENTH line bleed under the fold
+      // unless the clamp zeroes it — six clean lines is the whole point.
+      return Math.abs((b.getBoundingClientRect().height - pad) / lh - 6) < 0.05;
+    }));
+    if (process.env.SHOT) await pg.screenshot({ path: process.env.SHOT });
+    ok('no page errors', errs.length === 0, errs.join(' | '));
+    await close();
   }
 
   await browser.close();

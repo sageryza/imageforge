@@ -757,6 +757,22 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    header rows already reserve. It sits on the containers, so the rows
    themselves shrink and the scrubber's `right:0` lands inside. */
 #audios,#deschead,#descbody{padding-right:56px;}
+/* A ROW'S WORDS, opened under it — the same fold her description uses, so
+   there is ONE way to read anything in this sheet. Indented to the title's
+   column so it reads as belonging to the row above it rather than to the
+   list. */
+.autext{margin:0 0 10px 44px; padding:2px 0 8px; white-space:pre-wrap;
+  font-size:.92em; color:var(--ink2); --lh:1.5em; --lines:6; line-height:var(--lh);}
+/* padding-bottom goes to 0 while folded, or the box's own 8px lets a SEVENTH
+   line bleed under the fold — six clean lines is the whole point of it. */
+.autext.clamp{max-height:calc(var(--lines) * var(--lh)); overflow:hidden; padding-bottom:0;}
+.autext.clamp.fold::before{content:''; float:left; width:0;
+  height:calc((var(--lines) - 1) * var(--lh));}
+.autext > .moretxt{float:right; clear:both; margin-left:8px;}
+.autext:not(.clamp) > .moretxt{float:none; margin-left:6px;}
+/* Sits on the row's second line beside the date, so it costs the title no
+   width — a fourth control in the row would. */
+.aureadbtn{font-size:1em;}
 #audios{margin-top:.6em;}
 .aurow{display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line);}
 .aurow:first-child{border-top:1px solid var(--line);}
@@ -1421,6 +1437,11 @@ player.addEventListener('pause',auGlyphs);
 player.addEventListener('ended',auGlyphs);
 player.addEventListener('loadedmetadata',auGlyphs);
 player.addEventListener('timeupdate',auFill);
+var ROLE_BOTH='Your recording';
+/* THE ROW'S SECOND LINE — the memo's date, her role on it, and the way into
+   its words. `read` is the house opener for text that is not on screen yet:
+   an underlined word inline, never a boxed button (docs/design-rules.md).
+   It costs the title no width, which a fourth control in the row would. */
 function auRow(box,o){
   var row=document.createElement('div'); row.className='aurow';
   /* RESOLVED, because `player.src` reads back absolute whatever was assigned:
@@ -1444,17 +1465,81 @@ function auRow(box,o){
   var tx=document.createElement('div'); tx.className='autxt';
   var nm=document.createElement('div'); nm.className='aunm'; nm.textContent=o.title;
   tx.appendChild(nm);
-  /* A memo's date is how she recognises it — it is what the Memos app
-     shows under the name. An episode has no date worth the line, and neither
-     does her own narration. */
-  if(o.date){
-    var dt=document.createElement('div'); dt.className='audate'; dt.textContent=o.date;
-    tx.appendChild(dt);
-  }
+  /* A memo's date is how she recognises it — it is what the Memos app shows
+     under the name — and her role on that same file rides beside it. */
+  var sub=document.createElement('div'); sub.className='audate';
+  var bits=[]; if(o.date) bits.push(o.date); if(o.role) bits.push(o.role);
+  sub.textContent=bits.join(' · ');
+  tx.appendChild(sub);
   var du=document.createElement('div'); du.className='audur'; du.textContent=fmtDur(o.seconds);
   row.appendChild(b); row.appendChild(tx); row.appendChild(du);
   box.appendChild(row);
+  auRead(row,sub,o);
   return row;
+}
+/* READ THE WORDS (2026-08-26, Sophie: "there should be a button where I can
+   read the transcription"). They open UNDER the row, folded to six lines
+   behind the same `… more` her description uses — one reading pattern in the
+   sheet, her place in the list kept, and the row she is playing still on
+   screen above the words. A whole second level for a transcript would take
+   both away.
+   WHERE THE WORDS COME FROM, cheapest first:
+     • her narration carries its own text on the pad doc (12 of the 20 stories
+       with a voiceover, measured live — 656 to 15,647 characters), so that
+       row needs no request at all;
+     • a memo or an interview is asked for once, and cached on the row;
+     • an episode render has no transcript on file and simply shows no way in,
+       which is the same silent-by-design rule the Assets tab's PROMPT button
+       follows. */
+function auRead(row,sub,o){
+  var known=o.text||'';
+  /* Her description recording's words are ALREADY on screen as "What you
+     said" — a second copy under the row would be the same answer twice. */
+  var isDesc=(o.url===padDescAudio&&!!padDesc);
+  if(!known&&(!o.src||isDesc)) return;
+  if(known&&isDesc) return;
+
+  var link=document.createElement('button');
+  link.className='moretxt aureadbtn'; link.textContent='read';
+  var box=document.createElement('div'); box.className='autext'; box.hidden=true;
+  if(known) box.textContent=known;   // her narration's words ride the pad doc
+  var loaded=!!known, busy=false;
+  function fold(){
+    box.classList.add('clamp');
+    var old=box.querySelector('.moretxt'); if(old) old.remove();
+    if(box.scrollHeight-box.clientHeight<=1){ box.classList.remove('clamp'); return; }
+    var more=document.createElement('button');
+    more.className='moretxt'; more.textContent='… more';
+    more.onclick=function(ev){
+      ev.stopPropagation();
+      var open=box.classList.toggle('clamp')===false;
+      box.classList.toggle('fold',!open);
+      more.textContent=open?'less':'… more';
+      if(open) box.appendChild(more); else box.insertBefore(more,box.firstChild);
+    };
+    box.insertBefore(more,box.firstChild); box.classList.add('fold');
+  }
+  link.onclick=function(ev){
+    ev.stopPropagation();
+    if(!box.hidden){ box.hidden=true; link.textContent='read'; return; }
+    box.hidden=false; link.textContent='hide';
+    if(loaded) return fold();
+    if(busy) return;
+    busy=true; box.textContent='…';
+    fetch('/api/search/transcript/'+encodeURIComponent(o.src))
+      .then(function(r){return r.json()})
+      .then(function(d){
+        busy=false; loaded=true;
+        var t=(d&&d.text||'').trim();
+        if(!t){ box.remove(); link.remove(); return; }   // nothing to read after all
+        box.textContent=t; fold();
+      })
+      .catch(function(){ busy=false; box.textContent='Could not read that one.'; });
+  };
+  if(sub.textContent) sub.appendChild(document.createTextNode(' · '));
+  sub.appendChild(link);
+  row.parentNode.appendChild(box);
+  row._words=box;
 }
 function renderAudios(){
   var box=document.getElementById('audios');
@@ -1464,31 +1549,61 @@ function renderAudios(){
   var any=!!(audios.length||padDesc||padDescAudio||padVoice);
   document.getElementById('aboutbtn').hidden=!any;
 
-  /* HERS FIRST, and they are rows like everything else. They used to be
-     native <audio controls> in a sheet of their own; one list means one way
-     to play anything here. When descriptionAudio and the voiceover are the
-     SAME file (a lesson whose source IS her read-aloud) only one row shows. */
-  if(padDescAudio&&padVoice===padDescAudio){
-    auRow(box,{url:padDescAudio,title:'Your recording'});
-  }else{
-    if(padDescAudio) auRow(box,{url:padDescAudio,title:'As you told it'});
-    if(padVoice) auRow(box,{url:padVoice,title:'Your narration'});
+  /* ONE FILE, ONE ROW — measured, and this is a bug she found (2026-08-26:
+     "it looks like I pressed play on one and the other one also started
+     playing"). Her voiceover or her description recording is very often ALSO
+     in the attached list: 11 of her 67 stories, live. Both rows carried the
+     same url, so one playback lit both — the pause glyph and the scrubber on
+     each. Nothing was playing twice; the sheet was telling her it was.
+     The row that survives keeps the ATTACHED entry's title, date and length
+     (which is how she recognises a memo) and wears her ROLE beside them, so
+     joining the two loses neither half. */
+  var seen={}, list=[];
+  function mine(url,role){
+    if(!url) return;
+    var hit=null;
+    for(var i=0;i<audios.length;i++){ if(audios[i].url===url){ hit=audios[i]; break; } }
+    if(seen[url]){
+      /* Both her fields point at ONE file — a lesson whose source IS her
+         read-aloud. One row, and it says so once: "Your recording", on the
+         title when the row has no memo name of its own and on the role line
+         when it does. */
+      var row=seen[url];
+      if(row.mine){ if(row.role) row.role=ROLE_BOTH; else row.title=ROLE_BOTH; }
+      return;
+    }
+    var o=hit?{url:url,title:hit.title,date:hit.date,seconds:hit.seconds,src:hit.src}:{url:url,title:role};
+    o.mine=true;
+    if(hit) o.role=role;               // titled by the memo, labelled by her
+    else o.role='';                    // the label IS the title, don't say it twice
+    seen[url]=o; list.push(o);
   }
-  /* The attached recordings take a header ONLY when hers are above them —
-     otherwise the list starts bare, exactly as it did before the merge. */
-  var mine=box.children.length;
-  if(mine&&audios.length){
-    var mh=document.createElement('div'); mh.className='auhead';
-    mh.textContent='Recordings'; box.appendChild(mh);
-  }
+  /* When descriptionAudio and the voiceover are the SAME file (a lesson whose
+     source IS her read-aloud) the second call finds it already placed. */
+  mine(padDescAudio,'As you told it');
+  mine(padVoice,'Your narration');
+  /* her narration's words are on the pad doc already — no request for that row */
+  if(padVoice&&seen[padVoice]) seen[padVoice].text=padVoiceText||'';
+  var minecount=list.length;
+
   /* Confirmed audio first, then the CANDIDATES under their own header — a
      chat's guesses, playable here so she judges them by ear in the story's
      own context. Ordering is the whole feature: a candidate must never sit
      among the attached rows as if she had already said yes. */
   var ordered=audios.filter(function(a){return !a.candidate;})
     .concat(audios.filter(function(a){return a.candidate;}));
+  var attached=[];
+  ordered.forEach(function(a){ if(!seen[a.url]){ seen[a.url]=a; attached.push(a); } });
+
+  /* The attached recordings take a header ONLY when hers are above them —
+     otherwise the list starts bare, exactly as it did before the merge. */
+  list.forEach(function(o){ auRow(box,o); });
+  if(minecount&&attached.length){
+    var mh=document.createElement('div'); mh.className='auhead';
+    mh.textContent='Recordings'; box.appendChild(mh);
+  }
   var headed=false;
-  ordered.forEach(function(a){
+  attached.forEach(function(a){
     if(a.candidate&&!headed){
       headed=true;
       var h=document.createElement('div'); h.className='auhead';
@@ -1533,8 +1648,24 @@ function auClamp(){
   el.insertBefore(btn,el.firstChild);
   el.classList.add('fold');
 }
-/* The sheet deliberately does NOT stop the player on close: a recording she
-   started is meant to keep going while she reads the beats it became. */
+/* IT STOPS WHEN SHE LEAVES — the story, the tool, or the app (2026-08-26,
+   Sophie: "it keeps playing even if I leave the storage room even if I leave
+   the app that's a problem"). The player is a detached `new Audio()` that
+   nothing was ever asked to stop, so a memo carried on over whatever she
+   opened next and out into the rest of her phone.
+   WHAT DOES NOT STOP IT, deliberately: closing this SHEET while she is still
+   on the story. That was already the rule and she has not asked to change it
+   — a recording she started is meant to keep going while she reads the beats
+   it became. */
+function auStop(){ try{ player.pause(); }catch(e){} }
+/* The app backgrounding, the screen locking, the page going away. `pagehide`
+   as well as `visibilitychange` because iOS fires them in different orders
+   and a missed one is audio still playing in her pocket. */
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='hidden') auStop();
+});
+window.addEventListener('pagehide',auStop);
+window.addEventListener('freeze',auStop);
 document.getElementById('aboutbtn').onclick=function(ev){
   ev.stopPropagation();
   var sh=document.getElementById('ausheet');
@@ -1774,6 +1905,7 @@ function load(){
     padUpdated=d.updatedAt||0; dirtySinceFilm=false;
     padDesc=d.description||''; padDescAudio=d.descriptionAudio||null;
     padVoice=(d.voiceover&&d.voiceover.url)?d.voiceover.url:null;
+    padVoiceText=(d.voiceover&&d.voiceover.text)?String(d.voiceover.text):'';
     /* AFTER the description fields, never before: renderAudios draws her two
        recordings and her words as well as the attached list, and it is what
        decides whether the one button shows at all. */
@@ -1823,6 +1955,7 @@ function thumbOf(u){return '/api/story/thumb?w=240&url='+encodeURIComponent(u);}
 function openShelf(){
   var sh=document.getElementById('stories');
   if(!sh.hidden) return;
+  auStop();   // she has left the story — its recordings go quiet with it
   sh.hidden=false; sh.scrollTop=0; lock(true); sheetPill(sh);
   paintShelfBack();
   api('/pads').then(function(r){return r.json()}).then(function(d){
@@ -2062,7 +2195,7 @@ document.getElementById('storiesclose').onclick=function(ev){
    Data-only fields on the pad doc (a chat writes them); the sheet is
    read-only, and since 2026-08-26 it is the SAME sheet the recordings live
    in — see renderAudios and #descbody. */
-var padDesc='', padDescAudio=null, padVoice=null;
+var padDesc='', padDescAudio=null, padVoice=null, padVoiceText='';
 function openPad(id){
   padId=id; padOpened=true; localStorage.setItem('scratchpad_pad',id);
   if(genTimer){ clearInterval(genTimer); genTimer=null; }
@@ -2070,7 +2203,7 @@ function openPad(id){
   if(filmTimer){ clearInterval(filmTimer); filmTimer=null; }
   film=null; padUpdated=0; dirtySinceFilm=false; autoplayWanted=false; renderFilm();
   player.pause(); audios=[];
-  padDesc=''; padDescAudio=null; padVoice=null; renderAudios();
+  padDesc=''; padDescAudio=null; padVoice=null; padVoiceText=''; renderAudios();
   padStyle='watercolor'; renderStyle(); uploads=[];
   closeShelf();
   beats=[]; padTitle=''; render();
@@ -3097,6 +3230,7 @@ window.__navBack=function(){
     // A folder is a level ABOVE the floor (Aug 2026) — step out of it, and
     // only the bare shelf hands the app its exit.
     if(shelfFolder){ shelfFolder=null; renderShelf(); return true; }
+    auStop();                     // ...and out of the tool, so out of her ears
     return false;                 // the shelf is the floor — the app leaves
   }
   openShelf(); return true;       // a story steps up to it
