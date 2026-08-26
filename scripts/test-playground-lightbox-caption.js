@@ -92,8 +92,9 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
         img: box('#lbimg'),
         stage: box('.lbstage'),
         meta: { top: Math.round(meta.top), bottom: Math.round(meta.bottom) },
-        // The words themselves live behind the PROMPT door now (they cover the
-        // picture when she taps it), so what sits in this band is the door.
+        // The words live behind the PROMPT door (they cover the picture when
+        // she taps it), and since 2026-08-26 the door itself lives in the band
+        // ABOVE the picture — so nothing but the label sits under the art.
         prompt: box('#lbcaphd'),
         btns: box('.lbbtns'),
         text: document.getElementById('lbcapm').textContent,
@@ -112,8 +113,10 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
     // elementFromPoint is the question that matters: what is actually on top?
     if (m.onMeta !== 'lbcapm')
       fail(`${tag}: the middle of the label reaches ${m.onMeta}, not the label`);
-    // Her words and the buttons under them still fit on the screen.
-    if (m.prompt.top < m.meta.bottom) fail(`${tag}: the PROMPT door overlaps the label`);
+    // The door is at the TOP, so it must end before the picture area starts —
+    // and it can therefore never be what is sitting on the label.
+    if (m.prompt.bottom > m.stage.top + 1)
+      fail(`${tag}: the PROMPT door reaches into the picture area (${m.prompt.bottom} vs stage ${m.stage.top})`);
     if (m.btns.bottom > height) fail(`${tag}: the ♥/✕ row ends at ${m.btns.bottom}, off a ${height}px screen`);
 
     await page.close();

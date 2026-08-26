@@ -412,6 +412,19 @@
   .lbback { width: 34px; height: 34px; border-radius: 6px; border: 1px solid #555;
     background: #1c1c1c; color: #ddd; display: flex; align-items: center; justify-content: center; }
   .lbback svg { width: 20px; height: 20px; }
+  /* THE DOOR IS AT THE TOP, AND IT IS THE ONLY WORD ON IT (2026-08-26, Sophie:
+     "It should be at the top and it should be hidden. Just say prompt like it
+     does in the assets"). The Assets overlay's shape exactly: one button
+     saying Prompt over the picture, and the Content/Style pair living INSIDE
+     the words it opens, so a shut door is one word and nothing else. Under
+     the picture it sat between the art and the ♥/✕ row wearing a segmented
+     control she had not asked for yet.
+     `.lbbal` is the chevron's width on the other end, so the word is centred
+     on the BAND rather than on the room left over beside the chevron. Only the
+     button is in #lb's skip list, so the rest of the strip — the empty half of
+     `.caphd` included — still closes the lightbox, which is what the band is
+     for. */
+  .lbbal { flex: none; width: 34px; }
   .lbstage { position: relative; display: flex; align-items: center; justify-content: center;
     width: 100%; min-height: 0; flex: 0 1 auto; }
   #lb img { max-width: 100%; max-height: min(76vh, 100%); border-radius: 6px; }
@@ -454,7 +467,9 @@
      paging the deck; tapping the overlay closes it again. */
   .lbpwrap { position: absolute; inset: 0; z-index: 60; overflow-y: auto;
     background: rgba(18,18,18,.94); padding: 14px; box-sizing: border-box;
-    display: flex; align-items: center; justify-content: center; }
+    display: flex; flex-direction: column; gap: 12px;
+    align-items: center; justify-content: center; }
+  .lbpwrap .capseg { flex: none; }
   .lbpwrap[hidden] { display: none; }
   #lb .capp { color: #eee; font-size: 13.5px; white-space: pre-wrap; text-align: center; }
   /* IT SAYS PROMPT, AND THE TWO HALVES ARE THE ASSETS TAB'S (2026-08-26,
@@ -469,7 +484,7 @@
      edit has to show the text that really wrapped her words that time.
      No style half on file → no STYLE button, the same silence the Assets
      overlay keeps for a picture with no prompt. */
-  #lb .caphd { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 9px; }
+  #lb .caphd { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; }
   #lb .caphd[hidden] { display: none; }
   /* The word is the DOOR now, so it is a button — bare, no plate (the house
      icon rule: a rounded square or the bare glyph, never a round chip), and it
@@ -645,22 +660,25 @@
     <button class="lbback" id="lbback" aria-label="Back to the Playground">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
     </button>
+    <div class="caphd" id="lbcaphd">
+      <button class="capttl" id="lbpbtn" aria-expanded="false">Prompt</button>
+    </div>
+    <span class="lbbal"></span>
   </div>
   <div class="lbstage">
     <img id="lbimg" src="">
     <button class="lbnav" id="lbprev" aria-label="Previous picture" hidden></button>
     <button class="lbnav" id="lbnext" aria-label="Next picture" hidden></button>
-    <div class="lbpwrap" id="lbpwrap" hidden><div class="capp" id="lbcapp"></div></div>
-  </div>
-  <div class="cap">
-    <div class="capm" id="lbcapm"></div>
-    <div class="caphd" id="lbcaphd">
-      <button class="capttl" id="lbpbtn" aria-expanded="false">Prompt</button>
+    <div class="lbpwrap" id="lbpwrap" hidden>
       <span class="capseg" id="lbcapseg" hidden>
         <button id="lbhalfc" data-half="content">Content</button>
         <button id="lbhalfs" data-half="style">Style</button>
       </span>
+      <div class="capp" id="lbcapp"></div>
     </div>
+  </div>
+  <div class="cap">
+    <div class="capm" id="lbcapm"></div>
   </div>
   <div class="lbbtns">
     <button class="lbbtn like" id="lblike" aria-label="Heart"></button>
@@ -2407,10 +2425,11 @@
     document.getElementById('lbhalfc').classList.toggle('on', lbHalf === 'content');
     document.getElementById('lbhalfs').classList.toggle('on', lbHalf === 'style');
     // The words COVER the picture, and only while she is holding the door
-    // open — see the `.lbpwrap` block in the CSS. The Content/Style pair rides
-    // with them: two buttons under a closed door change nothing on screen.
+    // open — see the `.lbpwrap` block in the CSS. The Content/Style pair lives
+    // INSIDE the words, so a shut door is the word Prompt and nothing else;
+    // and there is no pair at all when there is only one half to show.
     document.getElementById('lbpwrap').hidden = !open;
-    document.getElementById('lbcapseg').hidden = !open;
+    document.getElementById('lbcapseg').hidden = !h.style;
     var btn = document.getElementById('lbpbtn');
     btn.classList.toggle('on', open);
     btn.setAttribute('aria-expanded', open ? 'true' : 'false');
@@ -2423,15 +2442,17 @@
   // so the chevron keeps working if that skip list ever grows.
   document.getElementById('lbback').addEventListener('click', function () { closeLB(); });
   document.getElementById('lbcaphd').addEventListener('click', function (e) {
-    if (e.target.closest('#lbpbtn')) { lbPromptOn = !lbPromptOn; paintPrompt(); return; }
-    var b = e.target.closest('button[data-half]');
-    if (!b) return;
-    lbHalf = b.getAttribute('data-half');
+    if (!e.target.closest('#lbpbtn')) return;   // the rest of the band closes
+    lbPromptOn = !lbPromptOn;
     paintPrompt();
   });
   // Tapping the words puts them away again — the overlay is over the picture,
-  // so it has to hand the picture back the same way it took it.
-  document.getElementById('lbpwrap').addEventListener('click', function () {
+  // so it has to hand the picture back the same way it took it. Switching
+  // halves is NOT that: the pair sits inside the overlay now, so it has to be
+  // skipped here or every tap on Style would shut the words she just opened.
+  document.getElementById('lbpwrap').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-half]');
+    if (b) { lbHalf = b.getAttribute('data-half'); paintPrompt(); return; }
     lbPromptOn = false;
     paintPrompt();
   });

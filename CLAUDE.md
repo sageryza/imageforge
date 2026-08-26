@@ -3570,9 +3570,25 @@ before working on that module. Nothing was deleted — the moved text is verbati
     `#lbpwrap` sits over the STAGE (never the caption or the buttons) and above
     the two step zones, so a tap on the words reads them instead of paging;
     tapping them again puts them away, and neither tap leaves the lightbox.
-    **The Content/Style pair rides with the words** — two buttons under a shut
-    door change nothing on screen. Shut on every fresh open; the door's own
-    state, like the half she picked, rides along as she steps. **The style half
+    **The Content/Style pair rides INSIDE the words** — two buttons under a
+    shut door change nothing on screen. Shut on every fresh open; the door's
+    own state, like the half she picked, rides along as she steps.
+    **AND THE DOOR IS IN THE BAND AT THE TOP, ONE WORD, NOTHING ELSE
+    (2026-08-26, Sophie: "It should be at the top and it should be hidden.
+    Just say prompt like it does in the assets").** It shipped under the
+    picture — a row between the art and the ♥/✕ carrying the word AND the
+    Content/Style segment, i.e. a control offered before she had asked for
+    anything — where the Assets overlay puts ONE button saying Prompt over the
+    picture and keeps the pair inside the words it opens. So `.caphd` moved
+    into `.lbtop` beside the chevron (`.lbbal` is the chevron's width on the
+    other end, so the word is centred on the BAND rather than on the room left
+    beside it), `.capseg` moved inside `#lbpwrap`, and the caption band under
+    the picture is the MODEL · QUALITY · SIZE line alone, with no control on it
+    at all. Two things not to undo: only `#lbpbtn` is in `#lb`'s skip list, so
+    the rest of the strip — the empty half of `.caphd` included — still closes
+    the lightbox, which is what the band is for; and `#lbpwrap`'s own handler
+    skips `button[data-half]`, or every tap on Style would shut the words she
+    just opened. **The style half
     is DERIVED
     FROM THIS RUN'S OWN `fullPrompt`** — `runPromptHalves` splits her typed
     words out of the literal text that was sent, so it is the wrapper that
