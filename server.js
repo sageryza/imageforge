@@ -896,10 +896,6 @@ app.get('/review', serveGated('review.html', { pill: true }));
 // public/instagram-grids.json and /api/chatfeed/newest; writes nothing, spends
 // nothing. Served WITH the pill: three rows of tiles scroll on a phone.
 app.get('/instagram', serveGated('instagram.html', { pill: true }));
-// Doors: a corridor of possible futures, seven doors deep. Chosen blind by a
-// sensory fragment, one-way, finite — a premise prototype, no server half and
-// no tile yet. Served WITHOUT the pill: the page never scrolls.
-app.get('/doors', serveGated('doors.html', { pill: true }));
 // Opinions: the decide-on-things game — two ideas side by side, tap the
 // better one, GOOD IDEA / BAD IDEA stamps, a streak and accolades. Preloaded
 // from opinions-feed.json + /api/opinions extras. Served WITHOUT the pill:
