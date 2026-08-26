@@ -4303,7 +4303,13 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **Full details: `docs/modules/story.md`.**
 - **Scratch Pad / Story Room** (`scratchpad.js`, `/api/scratchpad`, page built by
   `scripts/gen-scratchpad.py`) — thinking with pictures. Hearted Playground images
-  are its inbox (read live — nothing is copied). Beats sit four to a row,
+  are its inbox (read live — nothing is copied).
+  **A picture can be taken OUT of that inbox — the ✕ on its tile (2026-08-26,
+  her ask) — and it HIDES rather than deletes**, because a Playground heart
+  and a Dump upload belong to other places and only the story's own gathered
+  art is local: the removal is a url on the STORY's `inboxHidden`,
+  `POST /inbox/hide {url, hide?}` is also the undo, and the picture is
+  untouched wherever it really lives. Beats sit four to a row,
   incomplete rows centered; tapping one opens a cream CARD popup with the art at
   thumbnail size, five colour chips, and a text box. Her OWN recording always
   wins over TTS, and **every take is kept**. Chunks link contiguous beats into one

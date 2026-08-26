@@ -350,6 +350,23 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   padding:0; overflow:hidden; cursor:pointer;}
 #inboxgrid button img{width:100%; height:100%; object-fit:cover; display:block;}
 #inboxgrid button.used{opacity:.35;}
+/* TAKE ONE OUT OF THE INBOX (Aug 2026, Sophie: "a way to delete certain items
+   from the inbox"). A small mark in the tile's own top corner, on every tile,
+   because a phone has no hover to reveal it with. It is a rounded SQUARE at
+   the house 6px — never a circle — on paper, so it reads against a dark
+   picture as well as a pale one. It is a <span> and not a <button>: the tile
+   IS a button and a nested one is invalid markup whose tap bubbles into
+   placing the picture. */
+#inboxgrid .rmx{position:absolute; top:3px; right:3px; width:24px; height:24px;
+  display:flex; align-items:center; justify-content:center; border-radius:6px;
+  border:1px solid var(--line); background:var(--barbg); color:var(--ink2);
+  cursor:pointer; z-index:2;}
+#inboxgrid .rmx svg{width:13px; height:13px;}
+/* Putting one back. Shown only while there is something to put back, so an
+   inbox she has not touched carries no undo line at all. */
+#inboxundo{margin-top:1em; font-size:.92em; color:var(--ink2);}
+#inboxundo button{border:0; background:none; padding:0; font:inherit; color:inherit;
+  text-decoration:underline; cursor:pointer;}
 /* Uploading from her phone says how far along it is — one quiet line. */
 #upline{font-style:italic; color:var(--ink2); font-size:.9em; margin-top:1em;}
 /* The beat popup is an opaque cream CARD, not a dark lightbox: white/cream
@@ -716,6 +733,7 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
     <div id="picpane">
       <div id="inboxgrid"></div>
       <div class="state" id="inboxempty" hidden>Nothing hearted in the Playground yet.</div>
+      <div id="inboxundo" hidden></div>
     </div>
     <div id="clippane" hidden>
       <input id="clipq" type="search" enterkeyhint="search" autocomplete="off"
@@ -1800,6 +1818,53 @@ function urlsOnPad(){
   });
   return onPad;
 }
+/* ── taking one OUT of the inbox (Aug 2026, Sophie: "a way to delete
+   certain items from the inbox") ────────────────────────────────
+   `gone` is what the server already knows plus whatever she has just tapped,
+   so the tile leaves the grid on the tap rather than a round trip later.
+   `undoStack` is this VISIT's removals, newest last — the sheet is where the
+   mistake happens, so that is where the way back lives. Nothing here deletes
+   a picture: /inbox/hide records the url on the story and the same route puts
+   it back (see scratchpad.js). */
+var gone={}, undoStack=[];
+function hideFromInbox(url, hide){
+  if(hide) gone[url]=1; else delete gone[url];
+  renderInboxGrid();
+  return api('/inbox/hide',{method:'POST',body:JSON.stringify({url:url, hide:hide})})
+    .catch(function(){});
+}
+function paintUndo(){
+  var el=document.getElementById('inboxundo');
+  if(!undoStack.length){ el.hidden=true; el.innerHTML=''; return; }
+  el.hidden=false; el.innerHTML='';
+  el.appendChild(document.createTextNode(
+    undoStack.length===1?'Took one out. ':('Took '+undoStack.length+' out. ')));
+  var b=document.createElement('button'); b.type='button'; b.textContent='Put the last one back';
+  b.onclick=function(ev){
+    ev.stopPropagation();
+    var url=undoStack.pop();
+    if(url) hideFromInbox(url,false);
+    paintUndo();
+  };
+  el.appendChild(b);
+}
+/* The mark that takes this tile out. A <span>, not a <button> — the tile is
+   already a button (see the CSS) — and it stops the tap dead so it can never
+   reach the tile underneath and place the picture it is removing. */
+function rmMark(url){
+  var m=document.createElement('span');
+  m.className='rmx'; m.setAttribute('role','button'); m.tabIndex=0;
+  m.setAttribute('aria-label','Take this out of the inbox');
+  m.title='Take this out of the inbox';
+  m.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+  m.onclick=function(ev){
+    ev.stopPropagation(); ev.preventDefault();
+    undoStack.push(url);
+    hideFromInbox(url,true);
+    paintUndo();
+  };
+  return m;
+}
 function renderInboxGrid(){
   var g=document.getElementById('inboxgrid'); g.innerHTML='';
   var onPad=urlsOnPad();
@@ -1807,7 +1872,7 @@ function renderInboxGrid(){
      she came to place. A movie tiles as its poster with the film mark and
      places as a CLIP beat; a photo places as a picture. Phone photos are
      huge, so the tile loads a derived thumb, never the original. */
-  var ups=uploads.filter(function(u){ return u&&u.url&&!onPad[u.url]; });
+  var ups=uploads.filter(function(u){ return u&&u.url&&!onPad[u.url]&&!gone[u.url]; });
   ups.forEach(function(u){
     var el=document.createElement('button');
     var face=u.kind==='clip'?(u.poster||null):thumbOf(u.url);
@@ -1819,9 +1884,10 @@ function renderInboxGrid(){
         ? {film:true, clip:{id:null, url:u.url, poster:u.poster, seconds:null, title:u.title||''}}
         : {url:u.url});
     };
+    el.appendChild(rmMark(u.url));
     g.appendChild(el);
   });
-  var items=inboxItems.filter(function(it){ return !onPad[it.url]; });
+  var items=inboxItems.filter(function(it){ return !onPad[it.url]&&!gone[it.url]; });
   document.getElementById('inboxempty').hidden=Boolean(items.length||ups.length);
   items.forEach(function(it){
     var el=document.createElement('button');
@@ -1829,6 +1895,7 @@ function renderInboxGrid(){
     // stopPropagation matters: this click must not reach the document-level
     // cancel handler, which would clear the placing mode it just started.
     el.onclick=function(ev){ev.stopPropagation(); pick(it);};
+    el.appendChild(rmMark(it.url));
     g.appendChild(el);
   });
 }
@@ -1836,6 +1903,12 @@ function openInbox(){
   var sh=document.getElementById('inbox');
   sh.hidden=false; lock(true); sheetPill(sh);
   showInboxTab(inboxTab);
+  // The way back is per VISIT: a removal she made last time is already gone
+  // from what the server sends, and an undo line about it would be offering
+  // to reverse something she has stopped looking at. `gone` is NOT cleared —
+  // it is what keeps a just-removed tile out of the instant render below,
+  // which draws from the last fetch.
+  undoStack=[]; paintUndo();
   renderInboxGrid();   // what we already know, instantly
   api('/inbox').then(function(r){return r.json()}).then(function(d){
     inboxItems=d.items||[];
