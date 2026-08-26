@@ -1,18 +1,19 @@
 #!/usr/bin/env node
 // THE LIGHTBOX'S CAPTION IS NEVER UNDER THE PICTURE (2026-08-26, Sophie: "the
-// label is covered by the picture").
+// label is covered by the picture" — reported on the Playground's old hand
+// copy, whose 76vh picture cap ignored the room the caption needed).
 //
-// The stage is `position:relative`, so it and the <img> inside it paint ABOVE
-// the static caption below them — and the picture's `max-height:76vh` did not
-// shrink when flex squeezed the stage. On a short viewport (the app's web view
-// is shorter than Safari's by its bottom bar) the bottom of a portrait 2:3 sat
-// on top of the MODEL · QUALITY · SIZE line, which is the one thing she opens a
-// picture to check.
+// The Playground opens the SHARED lightbox now (asset-lightbox.js), whose
+// picture yields room for everything under it (`hastalk`/`hasacts` caps). This
+// sweeps the same heights against that design: the MODEL · QUALITY line and
+// the note box must be on screen and reachable, and the picture must end above
+// the caption, at every size — including the app's short web view.
 //
 // It is a MEASUREMENT, and it has to be: the overlap is a few pixels of one
 // line, every element is "visible" either way, and `elementFromPoint` is the
 // only honest way to ask what is actually on top. The heights are swept because
-// the bug does not exist at 844 — a test at one comfortable size sees nothing.
+// this kind of bug does not exist at 844 — a test at one comfortable size sees
+// nothing.
 //
 //   npm install playwright --no-save && node scripts/test-playground-lightbox-caption.js
 const http = require('http');
@@ -25,8 +26,7 @@ try { ({ chromium } = require('playwright')); }
 catch { console.log('SKIP: playwright not installed (npm install playwright --no-save)'); process.exit(0); }
 
 const PUB = path.join(__dirname, '..', 'public');
-// Her own prompt from the report — long enough to fill the caption's scroll box,
-// which is what pushes the buttons down and squeezes the stage.
+// Her own prompt from the report — long, the way her dictated ones are.
 const PROMPT = 'a group of scientists, on a cloud, dropping solid golden dinosaur '
   + 'chicken nuggets, into random people walking along the street. a little blonde '
   + 'boy catches one, and holds it up, amazed at the treasure, other people look at '
@@ -38,12 +38,16 @@ const RUNS = [{
 }];
 
 const server = http.createServer((req, res) => {
-  // Anything the page links out of public/ — /feedkit.js, /tritoggle.*, …
+  // Anything the page links out of public/ — /feedkit.js, /asset-lightbox.js, …
   if (servePublic(req, res)) return;
   const url = new URL(req.url, 'http://x');
   if (url.pathname === '/api/promptlab') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ runs: RUNS, more: false }));
+  }
+  if (url.pathname === '/api/gallery/assets/note') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ thread: [] }));
   }
   // A REAL-SIZED 2:3 picture — the lightbox sizes itself to the picture, so a
   // 1x1 pixel could never overflow anything.
@@ -71,53 +75,50 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   const browser = await chromium.launch(preinstalled ? { executablePath: preinstalled } : {});
 
   // 560 and 620 are the app's web view with its bottom bar; 844 is the iPhone 13
-  // in Safari, where this always looked fine.
+  // in Safari, where this kind of bug never shows.
   for (const height of [560, 620, 660, 740, 844]) {
     const page = await browser.newPage({ viewport: { width: 390, height } });
     await page.addInitScript(() => localStorage.setItem('promptlab_view', 'tiles'));
     await page.goto(base + '/playground');
     await page.waitForFunction(() => document.querySelectorAll('#tiles .cell:not(.ph) img').length > 0);
     await page.locator('#tiles .cell:not(.ph) img').first().click();
-    await page.waitForSelector('#lb.on');
+    await page.waitForFunction(() => {
+      const lb = document.getElementById('clightbox');
+      return !!lb && lb.style.display !== 'none';
+    });
 
     const m = await page.evaluate(() => {
       const box = (sel) => {
         const el = document.querySelector(sel);
+        if (!el) return null;
         const b = el.getBoundingClientRect();
         return { top: Math.round(b.top), bottom: Math.round(b.bottom) };
       };
-      const meta = document.getElementById('lbcapm').getBoundingClientRect();
-      const at = document.elementFromPoint(195, Math.round(meta.top + meta.height / 2));
+      const cap = document.querySelector('#clightbox .clcap');
+      const cb = cap.getBoundingClientRect();
+      const at = document.elementFromPoint(195, Math.round(cb.top + cb.height / 2));
       return {
-        img: box('#lbimg'),
-        stage: box('.lbstage'),
-        meta: { top: Math.round(meta.top), bottom: Math.round(meta.bottom) },
-        // The words live behind the PROMPT door (they cover the picture when
-        // she taps it), and since 2026-08-26 the door itself lives in the band
-        // ABOVE the picture — so nothing but the label sits under the art.
-        prompt: box('#lbcaphd'),
-        btns: box('.lbbtns'),
-        text: document.getElementById('lbcapm').textContent,
-        onMeta: at ? (at.id || at.className || at.tagName) : null,
+        img: box('#clightbox .clwrap img'),
+        cap: { top: Math.round(cb.top), bottom: Math.round(cb.bottom) },
+        note: box('#clightbox .lbnote'),
+        acts: box('#clightbox .lbacts'),
+        text: cap.textContent,
+        onCap: at ? (at.className || at.id || at.tagName) : null,
       };
     });
 
     const tag = `at ${height}px`;
-    if (!m.text.trim()) fail(`${tag}: the MODEL · QUALITY · SIZE line is empty`);
+    if (!/· low · 2:3/.test(m.text)) fail(`${tag}: the MODEL · QUALITY line is missing (${m.text})`);
     // The picture must end above the caption, not on top of it.
-    if (m.img.bottom > m.meta.top)
-      fail(`${tag}: the picture ends at ${m.img.bottom} and the label starts at ${m.meta.top} — covered by ${m.img.bottom - m.meta.top}px`);
-    // …and it must stay inside its own stage, which is what makes that true.
-    if (m.img.bottom > m.stage.bottom + 1)
-      fail(`${tag}: the picture overflows its stage by ${m.img.bottom - m.stage.bottom}px`);
+    if (m.img.bottom > m.cap.top)
+      fail(`${tag}: the picture ends at ${m.img.bottom} and the label starts at ${m.cap.top} — covered by ${m.img.bottom - m.cap.top}px`);
     // elementFromPoint is the question that matters: what is actually on top?
-    if (m.onMeta !== 'lbcapm')
-      fail(`${tag}: the middle of the label reaches ${m.onMeta}, not the label`);
-    // The door is at the TOP, so it must end before the picture area starts —
-    // and it can therefore never be what is sitting on the label.
-    if (m.prompt.bottom > m.stage.top + 1)
-      fail(`${tag}: the PROMPT door reaches into the picture area (${m.prompt.bottom} vs stage ${m.stage.top})`);
-    if (m.btns.bottom > height) fail(`${tag}: the ♥/✕ row ends at ${m.btns.bottom}, off a ${height}px screen`);
+    if (String(m.onCap).indexOf('clcap') < 0)
+      fail(`${tag}: the middle of the label reaches ${m.onCap}, not the label`);
+    // …and everything under the picture is still on the screen.
+    if (m.acts.bottom > height) fail(`${tag}: the actions row ends at ${m.acts.bottom}, off a ${height}px screen`);
+    if (m.note.bottom > height) fail(`${tag}: the note box ends at ${m.note.bottom}, off a ${height}px screen`);
+    if (m.cap.bottom > height) fail(`${tag}: the label ends at ${m.cap.bottom}, off a ${height}px screen`);
 
     await page.close();
   }

@@ -14,9 +14,19 @@ ceiling are all in `docs/image-pipeline.md` (*The walker is the prompt*).
 - `public/promptlab.html` + `/api/promptlab` (inline in server.js), Firestore
   `forge-promptlab`. Fixed recipe per style so runs stay comparable: **ONE
   image a run**, 2:3. Background job on the doc; the page polls and resumes
-  from `localStorage`. ♥/✕ per image in the lightbox, plus a copy button
+  from `localStorage`. ♥/✕ per image in the lightbox, plus a copy action
   (Aug 2026) that closes the lightbox and puts that picture's prompt back in
   the prompt box — the tiles-view route to the list boxes' copy button.
+- **THE LIGHTBOX IS THE SHARED ASSETS ONE — `asset-lightbox.js` (2026-08-26,
+  Sophie: "it should be the exact same design — can it not be the same exact
+  code?").** The page builds no lightbox of its own; stepping (`nav`), the
+  door state riding a step (`promptSide`/`promptOpen`) and the programmatic
+  close are the shared file's hooks, the thumb-first open / this-run's style
+  half / vote route / actions row are caller wiring in `showLB`, and notes
+  land on the picture's `my-creations` thread (the Panels wiring). The full
+  record is *THE PLAYGROUND'S LIGHTBOX IS THE SHARED ASSETS ONE NOW* in
+  CLAUDE.md's Playground section — do not restyle `#clightbox` from this
+  page or add a playground-only control outside the hooks.
 - **Generate is the stars icon, and a run makes ONE picture (Aug 2026,
   Sophie).** The button is a Lucide `sparkles` glyph with no word on it, and
   there is no how-many picker at all — every style draws one image per tap

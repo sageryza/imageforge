@@ -152,18 +152,21 @@ const ok = (cond, what) => { console.log((cond ? 'ok   ' : 'FAIL ') + what); if 
   await page.goto(base + '/playground');
   await page.evaluate(() => localStorage.removeItem('scratchpad_pad'));
 
-  // ── 1 · the button is where it was ────────────────────────────────────
+  // ── 1 · the button is in the shared lightbox's actions row ────────────
   await page.goto(base + '/playground');
   await page.waitForFunction(() => document.querySelectorAll('#runs .cell img').length > 0);
-  ok(await page.locator('.lbbtns .lbbtn').count() === 5, 'the lightbox row still holds five buttons');
-  ok(await page.locator('.lbbtns .lbbtn').nth(4).getAttribute('id') === 'lbstory',
-    'the share button is the fifth in the row');
-  ok(await page.locator('#lbstory svg').count() === 1, 'it draws an icon');
+  await page.locator('#runs .cell img[data-run="runA"][data-i="1"]').click();
+  await page.waitForFunction(() => {
+    const lb = document.getElementById('clightbox');
+    return !!lb && lb.style.display !== 'none';
+  });
+  const story = page.locator('#clightbox .lbacts button[aria-label="Send to the Story Room"]');
+  ok(await story.count() === 1, 'the share button is in the actions row');
+  ok(await page.locator('#clightbox .lbacts button[aria-label="Send to the Story Room"] svg').count() === 1,
+    'it draws an icon');
 
   // ── 2 · the walk carries WHICH picture ────────────────────────────────
-  await page.locator('#runs .cell img[data-run="runA"][data-i="1"]').click();
-  await page.waitForSelector('#lb.on');
-  await Promise.all([page.waitForURL(/storyroom/), page.locator('#lbstory').click()]);
+  await Promise.all([page.waitForURL(/storyroom/), story.click()]);
   ok(roomLoads.length === 1 && /send=runA/.test(roomLoads[0]) && /(\?|&)i=1\b/.test(roomLoads[0]),
     'the link asks for /storyroom' + (roomLoads[0] || '(nothing)'));
 

@@ -25,6 +25,10 @@
 //      elementFromPoint, the only honest way to ask what a tap reaches,
 //   6. tapping one steps rather than closing the lightbox.
 //
+// Since 2026-08-26 the lightbox is THE SHARED ONE (asset-lightbox.js) and the
+// zones are its `nav` hook — a null side draws NOTHING, so "hidden at the
+// ends" means the zone is not there at all and a tap there closes.
+//
 //   npm install playwright --no-save && node scripts/test-playground-liked-arrows.js
 const http = require('http');
 const servePublic = require('./lib/public-asset');
@@ -138,22 +142,26 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
 
   // 3 — the arrows walk the filtered order. Open the middle picture.
   await page.locator('#runs .cell img[data-run="run2"][data-i="0"]').click();
-  await page.waitForSelector('#lb.on');
-  const prev = page.locator('#lbprev'), next = page.locator('#lbnext');
+  await page.waitForFunction(() => {
+    const lb = document.getElementById('clightbox');
+    return !!lb && lb.style.display !== 'none';
+  });
+  const prev = page.locator('#clightbox .lbzone.prev'), next = page.locator('#clightbox .lbzone.next');
   const cur = () => page.evaluate(() => lbCur.id + '#' + lbCur.i);
-  if (await prev.isHidden()) fail('no back arrow from the middle of the feed');
-  if (await next.isHidden()) fail('no forward arrow from the middle of the feed');
+  if (!(await prev.count())) fail('no back zone from the middle of the feed');
+  if (!(await next.count())) fail('no forward zone from the middle of the feed');
 
   // 5 — the zone is the whole control and NOTHING is drawn in it. No chip, no
   // glyph, no plate: the zone runs the full height of the image area and
   // reaches well over the picture (which is what "tap anywhere on the right
   // or left" means) while covering none of it.
   const [pb, nb, img] = await Promise.all([
-    prev.boundingBox(), next.boundingBox(), page.locator('#lbimg').boundingBox()]);
-  const drawn = await page.evaluate(() => ['lbprev', 'lbnext'].map(id => {
-    const el = document.getElementById(id), cs = getComputedStyle(el);
+    prev.boundingBox(), next.boundingBox(),
+    page.locator('#clightbox .clwrap img').boundingBox()]);
+  const drawn = await page.evaluate(() => ['.lbzone.prev', '.lbzone.next'].map(sel => {
+    const el = document.querySelector('#clightbox ' + sel), cs = getComputedStyle(el);
     return {
-      id,
+      id: sel,
       kids: el.childElementCount,
       text: el.textContent.trim().length,
       bg: cs.backgroundColor,
@@ -178,20 +186,26 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   // elementFromPoint, because "is the zone visible" was never the question.
   const atEdge = await page.evaluate(([x, y]) => {
     const el = document.elementFromPoint(x, y);
-    return el && el.closest('.lbnav') ? el.closest('.lbnav').id : (el && el.id);
+    return el && el.closest('.lbzone') ? el.closest('.lbzone').className : (el && (el.id || el.className));
   }, [Math.round(img.x + 24), Math.round(img.y + img.height / 2)]);
-  if (atEdge !== 'lbprev') fail(`a tap 24px inside the picture's left edge reaches ${atEdge}, not the back zone`);
+  if (String(atEdge).indexOf('prev') < 0)
+    fail(`a tap 24px inside the picture's left edge reaches ${atEdge}, not the back zone`);
 
+  const openNow = () => page.evaluate(() => {
+    const lb = document.getElementById('clightbox');
+    return !!lb && lb.style.display !== 'none';
+  });
   // 6 — a tap steps, and does NOT close the lightbox.
   await next.click();
-  if (await page.locator('#lb.on').count() !== 1) fail('tapping an arrow closed the lightbox');
+  if (!(await openNow())) fail('tapping an arrow closed the lightbox');
   if (await cur() !== 'run2#1') fail('the forward arrow landed on ' + await cur() + ', expected run2#1');
-  // 4 — that is the end of the (filtered) feed.
-  if (await next.isVisible()) fail('the forward arrow is still offered at the end of the feed');
+  // 4 — that is the end of the (filtered) feed: a null side draws NO zone, so
+  // a tap there is dead space and closes.
+  if (await next.count()) fail('the forward zone is still drawn at the end of the feed');
   await prev.click();
   await prev.click();
   if (await cur() !== 'run0#1') fail('stepping back twice landed on ' + await cur() + ', expected run0#1');
-  if (await prev.isVisible()) fail('the back arrow is still offered at the start of the feed');
+  if (await prev.count()) fail('the back zone is still drawn at the start of the feed');
   // It skipped the un-hearted pictures entirely — that IS the filtered order.
 
   await browser.close();

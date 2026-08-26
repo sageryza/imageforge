@@ -3579,6 +3579,51 @@ before working on that module. Nothing was deleted — the moved text is verbati
   `elementFromPoint`; verified failing 3 against the pre-fix page. Its fixture
   had to become a REAL-SIZED 2:3 picture, because the lightbox sizes itself to
   the picture and a 1x1 pixel put the zones nowhere near it.
+  **THE PLAYGROUND'S LIGHTBOX IS THE SHARED ASSETS ONE NOW — `asset-lightbox.js`,
+  the exact code, not a lookalike (2026-08-26, Sophie: "I tried to port that
+  exact design into the playground and Meta assets and anywhere else that
+  images are seen, but the design is different in playground, people keep
+  fixing parts of it, but it should be the exact same design — can it not be
+  the same exact code?").** It was the LAST hand copy in the house (Meta
+  Assets, Panels, the Assets tab and the grid/deck pages already shared the
+  one file), and every fix below reached only whichever copy a chat happened
+  to touch — the drift she was pointing at. The page now builds NO lightbox of
+  its own; what it needs rides the shared file's HOOKS, per the never-a-fourth-
+  copy rule:
+  - **`nav: {prev, next}`** — the two invisible 28% step zones over the
+    picture (her 2026-08-24 tap-anywhere rule, kept); a null side draws
+    nothing, so the ends of the feed close on that tap. The order is still
+    read off the view behind the lightbox (`lbSeq`).
+  - **`promptSide` / `promptOpen`** — the door's state rides a STEP and dies
+    with a fresh open (her rule, kept: "the half she picked rides along as
+    she steps; a fresh open always starts on content"). The shared file
+    writes the state back onto the asset; the page passes it forward.
+  - **`window.__assetLightboxClose()`** — for `__navBack` (the app chevron
+    closes the box first) and the copy action.
+  - **A half with nothing filed shows no Style|Content pair** — the
+    Playground's no-style-half silence, now everyone's.
+  What SURVIVED the move, as caller wiring: the thumb-first open with the
+  original swapping in from the ONE fetch Save needs (below); the style half
+  derived from THIS run's `fullPrompt` (`runPromptHalves`, below); ♥/✕ to the
+  run doc's own vote route; the meta line as the MODEL · QUALITY caption; and
+  the actions row — put the prompt back in the box, Save to Photos, Send to
+  the Story Room. What came FREE: the note thread on every picture (the
+  Panels wiring into `my-creations`, verbatim). What is HISTORY, superseded
+  by the shared design she asked for: the `.lbtop` band with the back
+  chevron (the way out is the Assets rule — a tap on any dead space closes;
+  `__navBack` still closes it from the app's chevron), the `capseg` segmented
+  pair (the Assets overlay's Style/Content buttons ride inside the words),
+  and the meta-only caption band (the caption sits under the note box, where
+  the Assets tab puts it). **Do not restyle `#clightbox` from promptlab.html,
+  and do not add a playground-only control outside the hooks** — that is the
+  copy growing back. Tests: `node scripts/test-playground-lightbox.js` (step 0
+  is the SOURCE PIN that the page links the shared file and carries no markup,
+  CSS or `#lb` of its own), `test-playground-liked-arrows.js` (the zones,
+  now the `nav` hook), `test-playground-lightbox-caption.js`,
+  `test-asset-lightbox.js` (the hooks themselves).
+  **THE THREE 2026-08-26 ASKS BELOW WERE BUILT ON THE OLD HAND COPY and are
+  kept as the record of WHY the behaviours exist — the mechanics described
+  (element ids, the band, `.lbpwrap`) are that copy's and are gone.**
   **THE LIGHTBOX OPENS ON THE CACHED THUMB, HAS A WAY OUT AT THE TOP, AND SAYS
   PROMPT (2026-08-26, Sophie: "it seems like it takes quite a while to load the
   images in light box view … it's a little hard to tap out of them. Could you
