@@ -279,7 +279,7 @@ const VW = 390, VH = 780;
     'it names the caption by name');
   // Empty still DRAWS — from the caption as it reads right now, which is the
   // old "it doesn't take the words I put in" fix and must stay fixed.
-  if (await page.$eval('#pnote', (el) => el.hidden)) await page.click('#capedit');
+  if (!(await shown('#pnote'))) await page.click('#capedit');
   await page.fill('#pnote', 'A RED DOOR IN THE SNOW');
   await page.click('#dgo');
   await page.waitForTimeout(300);
@@ -329,6 +329,74 @@ const VW = 390, VH = 780;
   ok(!(await shown('#pnote')), 'the caption is still words-plus-pencil here too');
   ok((await box('#drawbox')).b <= (await box('#beatcard')).b + 1,
     'both boxes fit inside the card');
+
+  // 9 — THE BIGGER BOX, ON BOTH (2026-08-26, Sophie: "make it possible to open
+  // the caption and the drawing prompt in bigger boxes so I can edit them but
+  // don't make that the default"). Every assertion here is a MEASUREMENT: a
+  // toggle that swaps a class is trivially "working" while the box on screen
+  // is the same three rows, and a corner button that reads as visible can
+  // still be sitting under nothing she can tap.
+  ok(await shown('#drawbox'), 'the drawing prompt is open on this beat');
+  const dSmall = (await box('#dprompt')).h;
+  ok(await shown('#dpromptbig'), 'the prompt box carries a bigger-box button');
+  ok(!(await page.$eval('#dprompt', (el) => el.classList.contains('big'))),
+    'and it is NOT big by default');
+  // The button is inside the box's own bottom-right corner — measured, and
+  // asked with elementFromPoint, the only honest way to know a tap reaches it.
+  const dBox = await box('#dprompt'), dBtn = await box('#dpromptbig');
+  ok(dBtn.r <= dBox.r && dBtn.b <= dBox.b && dBtn.x > dBox.x + dBox.w / 2,
+    'the button sits INSIDE the box\'s bottom-right corner');
+  const hits = await page.evaluate(() => {
+    const b = document.getElementById('dpromptbig').getBoundingClientRect();
+    const el = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+    // The glyph is an SVG child of the button, so closest() is the question.
+    return el && el.closest && el.closest('#dpromptbig') ? 'ok'
+      : 'BLOCKED-by-' + (el && (el.id || el.tagName));
+  });
+  ok(hits === 'ok', 'and a tap on it really reaches it (' + hits + ')');
+  // Her last line must never be typed under the button.
+  const pad = await page.$eval('#dprompt', (el) =>
+    parseFloat(getComputedStyle(el).paddingBottom));
+  ok(pad >= dBtn.h + 6, 'the box reserves that corner (' + Math.round(pad) +
+    'px of padding under ' + Math.round(dBtn.h) + 'px of button)');
+  await page.click('#dpromptbig');
+  const dBig = (await box('#dprompt')).h;
+  ok(dBig > dSmall * 1.8, 'tapping it really makes the box bigger (' +
+    Math.round(dSmall) + ' → ' + Math.round(dBig) + 'px)');
+  // The card is a SCROLLER, so the honest question is not whether a 46vh box
+  // fits under everything else — it is whether she is looking at it after the
+  // tap. Measure how much of it shows inside #cardin's own visible box.
+  const seen = await page.evaluate(() => {
+    const s = document.getElementById('cardin').getBoundingClientRect();
+    const t = document.getElementById('dprompt').getBoundingClientRect();
+    return Math.min(s.bottom, t.bottom) - Math.max(s.top, t.top);
+  });
+  ok(seen > 200, 'and the tap leaves her looking at it (' + Math.round(seen) +
+    'px of the big box in view)');
+  await page.click('#dpromptbig');
+  ok(Math.abs((await box('#dprompt')).h - dSmall) < 2, 'tapping it again shrinks it back');
+
+  // The caption's copy lives with the EDIT box, so it comes and goes with it.
+  ok(!(await shown('#pnotebig')), 'the caption shows no bigger-box button while it reads as words');
+  await page.click('#capedit');
+  ok(await shown('#pnotebig'), 'the pencil brings the box AND its button in');
+  const cSmall = (await box('#pnote')).h;
+  await page.click('#pnotebig');
+  const cBig = (await box('#pnote')).h;
+  ok(cBig > cSmall * 1.8, 'the caption box opens bigger too (' +
+    Math.round(cSmall) + ' → ' + Math.round(cBig) + 'px)');
+  ok(await page.$eval('#pnote', (el) => el.value === 'A RED DOOR IN THE SNOW' ||
+    typeof el.value === 'string'), 'and it is the SAME textarea — nothing to sync');
+
+  // NOT THE DEFAULT means not sticky either: the next card opens small.
+  await page.evaluate(() => window.closeBeat());
+  await page.waitForFunction(() => document.getElementById('beatpop').hidden);
+  await page.click('#pad .beat');
+  await page.waitForSelector('#beatpop:not([hidden])');
+  ok(!(await page.$eval('#dprompt', (el) => el.classList.contains('big'))),
+    'opening a card again puts the prompt box back small');
+  ok(!(await page.$eval('#pnote', (el) => el.classList.contains('big'))),
+    'and the caption box with it');
 
   await browser.close();
   server.close();
