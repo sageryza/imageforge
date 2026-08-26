@@ -68,6 +68,10 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .hrow{display:flex; flex-wrap:nowrap; align-items:center; gap:6px; padding-right:56px;}
 .hctl{display:flex; align-items:center; gap:4px; margin-left:auto; flex:0 0 auto;}
 .rule{height:1px; background:var(--line); margin:.7em 0 1em;}
+/* Inside a thread the rule is the last thing before her note and the summary
+   under it, and she asked for that summary closer to the top — so its lower
+   air is halved here only. The home screen's rules are untouched. */
+#thread header .rule{margin-bottom:.5em;}
 /* ---- ACCOUNT 1 · 2 · 3 — one account on screen at a time -------------------
    Sophie's ask (Aug 2026): "look at the pattern for where it says reviews
    versus description in the Secretly a Witch app, and follow that same
@@ -909,14 +913,34 @@ button.sthead{-webkit-appearance:none; appearance:none; background:none; border:
 /* THE WRAP-UP IN A THREAD, under her note (Aug 2026, her ask). Same three
    depths as the archive row, laid out as a normal block so the line reads as
    a quiet caption under the note rather than a second note. */
+/* CLOSER TO THE TOP, AND A BIT BIGGER (2026-08-26, Sophie: "what you asked can
+   be closer to the top and the font can be a bit bigger"). Measured on a 390pt
+   phone before: the line began 50px under the header — the rule's own 16px of
+   air, then a note row holding nothing but the QUESTIONS button, then 9 more.
+   The order is hers (the summary sits UNDER her note) so the room came out of
+   the gaps instead: `#thread header .rule` and `.noterow` below, and a BARE
+   note row — no note, no waiting line — gives up its bottom margin entirely,
+   since there is nothing above the summary but a button. 50px → 26.
+   The type is 15px, the same size as her own note directly above it, so the
+   first two lines of a thread read as one voice rather than a caption under a
+   line. */
 .threadwrap{margin:-.4em 0 1em;}
 .threadwrap[hidden]{display:none !important;}
-.threadwrap .twline{color:var(--ink2); font-size:13.5px; line-height:1.4;}
+.threadwrap .twline{color:var(--ink2); font-size:15px; line-height:1.4;}
 /* The bold question over the line (2026-08-24, her ask) — the same treatment
    `.nwrow b` gives the two answers behind "See more…", so the three read as one
    set instead of a bare sentence with two labelled ones under it. */
-.threadwrap .twq{display:block; font-weight:600; color:var(--ink); font-size:13.5px; line-height:1.4;}
-.threadwrap .wrapfull{margin-bottom:0;}
+.threadwrap .twq{display:block; font-weight:600; color:var(--ink); font-size:15px; line-height:1.4;}
+.threadwrap .wrapfull{margin-bottom:0; font-size:15px;}
+/* "+ note" waits behind "See more…" (2026-08-26, Sophie: "the add a note
+   button should only show up if I click [see more]"). It used to ride the end
+   of the summary sentence on every paint; now it is the last thing inside the
+   opened box — literally "the end of the see more area", her earlier words for
+   where it belongs. A summary with nothing behind it keeps the opener inline,
+   because there is no expander to hide it behind and she would otherwise have
+   no way in at all. */
+.threadwrap .addnoterow{margin-top:8px;}
+.threadwrap .addnoterow[hidden]{display:none !important;}
 /* MORE — the second depth, inside the expander (Aug 2026, Sophie: three lines,
    then a longer summary behind an arrow). Quiet by design: it sits at the end of
    the short summary as one small word, not a second control competing with the
@@ -936,7 +960,15 @@ button.sthead{-webkit-appearance:none; appearance:none; background:none; border:
    just put a little button underneath it somewhere that says questions"), so
    it costs no vertical space at all: the note takes the line, the button sits
    at its right end. */
-.noterow{display:flex; align-items:flex-start; gap:10px; margin:0 0 1em; font-size:15px; line-height:1.4;}
+.noterow{display:flex; align-items:flex-start; gap:10px; margin:0 0 .5em; font-size:15px; line-height:1.4;}
+/* A row holding nothing but the QUESTIONS button gives up its bottom margin —
+   see the note over `.threadwrap`. `.bare` is set in `paintNote`, so it tracks
+   what is really in the row rather than what the chat happens to have. */
+.noterow.bare{margin-bottom:0;}
+/* …and the summary drops its own negative top margin there, or its full-width
+   first line would sit ON the QUESTIONS button's box and eat the tap. The
+   -.4em exists to pull the line up under a NOTE, and a bare row has none. */
+.noterow.bare + .threadwrap{margin-top:0;}
 .noterow .notewrap{flex:1 1 auto; min-width:0;}
 .noterow .qbtn{flex:none; margin-top:1px;}
 /* THE QUESTIONS BUTTON RAN UNDER THE AUTOSCROLL PILL (2026-08-23, from her
@@ -6048,7 +6080,10 @@ function wrapBody(r){
   }
   return body;
 }
-function wrapToggle(body){
+// `onToggle(open)` is optional and is what the thread's "+ note" opener hangs
+// off (2026-08-26, her ask that it only appear once she taps this) — the
+// archive row passes nothing and is unchanged.
+function wrapToggle(body, onToggle){
   var tog=document.createElement('button');
   tog.className='wrapmore'; tog.textContent='See more…';
   tog.setAttribute('aria-label','What this chat was about');
@@ -6056,6 +6091,7 @@ function wrapToggle(body){
     e.stopPropagation();
     body.hidden=!body.hidden;
     tog.textContent=body.hidden?'See more…':'See less';
+    if(onToggle) onToggle(!body.hidden);
   };
   return tog;
 }
@@ -6848,6 +6884,9 @@ function openChat(name, keepScroll, focusId, noFetch){
     var w=waitingHtml(name);
     nwrap.innerHTML=(w? '<span class="waitline">'+w+'</span>' : '')
       +(v? '<span class="noteshow has">'+esc(v)+'</span>' : '');
+    // A row with nothing in it but the QUESTIONS button gives up its bottom
+    // margin, so the summary begins right under it (her ask, 2026-08-26).
+    nrow.classList.toggle('bare', !w && !v);
     var ns=nwrap.querySelector('.noteshow');
     if(ns) ns.onclick=function(){ editChatNote(); };
     var wl=nwrap.querySelector('.waitline');
@@ -6870,9 +6909,10 @@ function openChat(name, keepScroll, focusId, noFetch){
     var v=(chats[name]&&chats[name].sophieNote)||'';
     var ta=document.createElement('textarea'); ta.value=v; ta.maxLength=200;
     nwrap.innerHTML=''; nwrap.appendChild(ta); ta.focus();
+    nrow.classList.remove('bare');
     // The box IS the way in now, so the "+ note" opener that opened it comes
     // off the summary line while she types (it goes back on a blank save).
-    if(wrow){ var a=wrow.querySelector('.addnote'); if(a) a.remove(); }
+    if(wrow){ var a=wrow.querySelector('.addnote'); if(a) (a.closest('.addnoterow')||a).remove(); }
     var done=false;
     function save(){
       if(done) return; done=true;
@@ -6936,7 +6976,10 @@ function openChat(name, keepScroll, focusId, noFetch){
     // she is in the middle of writing one.
     var wantAdd=!((chats[name]&&chats[name].sophieNote)||'') && !nwrap.querySelector('textarea');
     wrow.hidden=!line;
-    if(!line){ if(wantAdd) nwrap.appendChild(addNoteOpener()); return; }
+    if(!line){
+      if(wantAdd){ nwrap.appendChild(addNoteOpener()); nrow.classList.remove('bare'); }
+      return;
+    }
     // WHAT YOU ASKED, IN BOLD OVER IT (2026-08-24, Sophie: "have it say what I
     // asked in bold above it, and then the see more is as it was"). The line
     // used to sit here unlabelled while the two answers behind the opener each
@@ -6951,9 +6994,12 @@ function openChat(name, keepScroll, focusId, noFetch){
     var p=document.createElement('div'); p.className='twline';
     p.appendChild(document.createTextNode(line));
     wrow.appendChild(p);
-    // "…and at the end of the see more area" — her words. It goes on LAST, so
-    // the sentence reads summary · See more… · + note, whether or not there is
-    // anything behind the opener.
+    // "…at the end of the see more area" — her words, and since 2026-08-26
+    // that means INSIDE it: "the add a note button should only show up if I
+    // click [see more]". With an expander it rides the opened box as the last
+    // thing in it; with nothing to open it stays inline on the sentence,
+    // because there is no fold to put it behind and she would otherwise have
+    // no way to write a note on this chat at all.
     function endAdd(){
       if(!wantAdd) return;
       p.appendChild(document.createTextNode(' '));
@@ -6966,10 +7012,19 @@ function openChat(name, keepScroll, focusId, noFetch){
     // of its own underneath it. Costs no extra height at the top of the
     // thread; it just wraps onto the line if the summary runs long.
     var body=wrapBody(r);
+    // The opener is its own row UNDER the box rather than a node inside it:
+    // `wrapBody`'s own `more` repaints the box's contents (`fillWrap` clears
+    // it), so anything appended in there would disappear the first time she
+    // opened the long version.
+    var addRow=null;
+    if(wantAdd){
+      addRow=document.createElement('div'); addRow.className='addnoterow';
+      addRow.hidden=true; addRow.appendChild(addNoteOpener());
+    }
     p.appendChild(document.createTextNode(' '));
-    p.appendChild(wrapToggle(body));
-    endAdd();
+    p.appendChild(wrapToggle(body, function(open){ if(addRow) addRow.hidden=!open; }));
     wrow.appendChild(body);
+    if(addRow) wrow.appendChild(addRow);
   }
   paintThreadWrap();
   // The Summarize button on the archive sheet writes these fields, and that
