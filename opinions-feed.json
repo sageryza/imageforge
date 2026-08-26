@@ -116,6 +116,87 @@
    }
   },
   {
+   "id": "easy-bread",
+   "kind": "image",
+   "category": "wild",
+   "mode": "easy",
+   "right": "a",
+   "q": "Which shopper?",
+   "a": {
+    "t": "Pay for the bread",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/bread-pay-honest.webp"
+   },
+   "b": {
+    "t": "Steal the bread",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/bread-steal-2.webp"
+   }
+  },
+  {
+   "id": "easy-genie",
+   "kind": "image",
+   "category": "wild",
+   "mode": "easy",
+   "right": "a",
+   "q": "The genie is waiting.",
+   "a": {
+    "t": "World peace",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/genie-peace.webp"
+   },
+   "b": {
+    "t": "One free sandwich",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/genie-sandwich.webp"
+   }
+  },
+  {
+   "id": "easy-trolley",
+   "kind": "image",
+   "category": "wild",
+   "mode": "easy",
+   "right": "a",
+   "q": "The trolley is coming.",
+   "a": {
+    "t": "Pull the lever, save five people",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/trolley-lever-2.webp"
+   },
+   "b": {
+    "t": "Keep scrolling",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/phone-trolley.webp"
+   }
+  },
+  {
+   "id": "easy-haircut",
+   "kind": "image",
+   "category": "wild",
+   "mode": "easy",
+   "right": "a",
+   "q": "Her haircut is actually great.",
+   "a": {
+    "t": "Say so",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/haircut-great.webp"
+   },
+   "b": {
+    "t": "Say nothing, forever",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/say-nothing.webp"
+   }
+  },
+  {
+   "id": "easy-shoot-asteroid",
+   "kind": "image",
+   "category": "wild",
+   "mode": "easy",
+   "verb": "shoot",
+   "right": "a",
+   "q": "You have one bullet.",
+   "a": {
+    "t": "The asteroid headed for Earth",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/asteroid-gold.webp"
+   },
+   "b": {
+    "t": "The moon",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/the-moon.webp"
+   }
+  },
+  {
    "id": "hard-shoot-puppy-baby",
    "kind": "image",
    "category": "wild",
@@ -192,7 +273,7 @@
    "q": "Which passenger?",
    "a": {
     "t": "A puppy asleep on your lap",
-    "info": "it's the mean dog, resting",
+    "info": "you have desperately had to pee for an hour",
     "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/puppy-lap.webp"
    },
    "b": {
@@ -272,48 +353,54 @@
   },
   {
    "id": "hard-trolley",
-   "kind": "text",
+   "kind": "image",
    "category": "wild",
    "mode": "hard",
    "q": "The trolley is coming.",
    "a": {
     "t": "Pull the lever",
-    "info": "the trolley speeds up"
+    "info": "the trolley speeds up",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/trolley-lever-2.webp"
    },
    "b": {
     "t": "Don't pull the lever",
-    "info": "the five people tied themselves to the track for content"
+    "info": "the five people tied themselves to the track for content",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/trolley-content.webp"
    }
   },
   {
    "id": "hard-haircut",
-   "kind": "text",
+   "kind": "image",
    "category": "wild",
    "mode": "hard",
    "q": "She asks how it looks.",
    "a": {
     "t": "Tell your friend the truth about her haircut",
-    "info": "she is still holding the scissors"
+    "info": "she is still holding the scissors",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/haircut-truth-2.webp"
    },
    "b": {
     "t": "Lie",
-    "info": "she can always tell"
+    "info": "she can always tell",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/haircut-lie-2.webp"
    }
   },
   {
    "id": "hard-shoot-asteroid",
-   "kind": "text",
+   "kind": "image",
    "category": "wild",
    "mode": "hard",
    "verb": "shoot",
    "q": "You have one bullet.",
    "a": {
     "t": "The asteroid headed for Earth",
-    "info": "it is full of gold"
+    "info": "it is full of gold",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/asteroid-gold.webp"
    },
    "b": {
     "t": "The billionaire's rocket that could stop it",
-    "info": "he wants credit"
+    "info": "he wants credit",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/billionaire-rocket.webp"
    }
   },
   {
