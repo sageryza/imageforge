@@ -212,39 +212,65 @@ function isDerived(beat, ids, moments) {
   return normWords(beat && beat.text) === normWords(derivedText(ids, moments));
 }
 
+/** How far ahead a beat may look for its moments. A line she has edited in
+    one room leaves a hole, and without a lookahead the walk stalls on it and
+    every beat after it fails too — measured on her Spellcasting pad, where ONE
+    reworded moment cost the last SIX beats their match and would have added
+    all six as duplicates. Bounded, because the two lists are the same story in
+    the same order and a match found far away is more likely wrong than right. */
+const LOOKAHEAD = 8;
+
+/** Word-overlap of two passages, for telling an EDIT from a new line. */
+function closeness(a, b) {
+  const ta = new Set(normWords(a).split(' ').filter(Boolean));
+  const tb = new Set(normWords(b).split(' ').filter(Boolean));
+  if (!ta.size || !tb.size) return 0;
+  let inter = 0;
+  for (const w of ta) if (tb.has(w)) inter++;
+  return inter / (ta.size + tb.size - inter);
+}
+const DIVERGED = 0.6;
+
+/** Try to consume a run of moments starting exactly at `from` whose joined
+    text IS this beat's caption. Returns the run, or null. */
+function runAt(want, order, moments, from) {
+  let acc = '';
+  const got = [];
+  for (let i = from; i < order.length; i++) {
+    const next = normWords(momentText(moments[order[i]]));
+    if (!next) continue;
+    const cand = acc ? `${acc} ${next}` : next;
+    if (!want.startsWith(cand)) return null;
+    acc = cand;
+    got.push(order[i]);
+    if (acc === want) return got;
+  }
+  return null;
+}
+
 /**
  * Align a pad's beats to a timeline's moments by their words — the FIRST pull
  * only, when no beat carries a coverage yet.
  *
- * Deliberately ORDER-PRESERVING and greedy rather than a fuzzy best-match:
- * the two lists are the same story in the same order, so consuming them in
- * step is both the cheapest rule and the one that cannot cross-match two
- * moments that happen to share their wording. A beat that only half lines up
- * matches NOTHING — half a match would strand the moments it swallowed and
- * add the rest in the wrong place.
+ * ORDER-PRESERVING and greedy: the two lists are the same story in the same
+ * order, so consuming them in step is both the cheapest rule and the one that
+ * cannot cross-match two moments that happen to share their wording. A beat
+ * that lines up with nothing within LOOKAHEAD matches NOTHING and does not
+ * advance the walk — half a match would strand the moments it swallowed.
  */
 function alignByText(order, moments, beats) {
   const held = new Map();
   let mi = 0;
   for (const b of beats) {
     if (!b || !b.id) continue;
-    const want = normWords(b.text);
     held.set(b.id, []);
+    const want = normWords(b.text);
     if (!want) continue;
-    let acc = '';
-    const got = [];
-    while (mi < order.length) {
-      const next = normWords(momentText(moments[order[mi]]));
-      if (!next) { mi++; continue; }
-      const cand = acc ? `${acc} ${next}` : next;
-      if (!want.startsWith(cand)) break;
-      acc = cand;
-      got.push(order[mi]);
-      mi++;
-      if (acc === want) break;
+    const limit = Math.min(order.length, mi + LOOKAHEAD + 1);
+    for (let from = mi; from < limit; from++) {
+      const got = runAt(want, order, moments, from);
+      if (got) { held.set(b.id, got); mi = order.indexOf(got[got.length - 1]) + 1; break; }
     }
-    if (acc === want && got.length) held.set(b.id, got);
-    else mi -= got.length;
   }
   return held;
 }
@@ -382,8 +408,27 @@ function planPull(story, beats) {
     add.push({ moment: id, text: momentText(moments[id]), after: anchor });
   }
 
-  const extra = list.filter((b) => !(held.get(b.id) || []).length).map((b) => b.id);
-  return { seed, keep, retext, heldBack, add, matched, extra };
+  const spare = list.filter((b) => !(held.get(b.id) || []).length);
+  const extra = spare.map((b) => b.id);
+
+  // DIVERGED: a moment with no beat that is nearly a beat she already has is
+  // the SAME line edited in one room, not a new one — so adding it would put
+  // two versions of one line in her pad, which is the repeat this rewrite
+  // exists to end. It is reported for her to settle instead, because only she
+  // knows which wording is the one she means. Measured on Spellcasting: one
+  // moment reworded in the timeline against the pad's older copy of it.
+  const diverged = [];
+  const keptAdds = [];
+  for (const a of add) {
+    const near = spare
+      .map((b) => ({ beat: b.id, text: String(b.text || ''), score: closeness(a.text, b.text) }))
+      .filter((x) => x.score >= DIVERGED)
+      .sort((x, y) => y.score - x.score)[0];
+    if (near) diverged.push({ moment: a.moment, text: a.text, beat: near.beat, beatText: near.text, score: near.score });
+    else keptAdds.push(a);
+  }
+
+  return { seed, keep, retext, heldBack, add: keptAdds, diverged, matched, extra };
 }
 
 /**
@@ -471,6 +516,7 @@ function sameOrder(a, b) {
 module.exports = {
   normTitle, tokens, similarity, score, matchRooms,
   momentOrder, momentText, normWords, coverageOf, derivedText, isDerived,
-  alignByText, staleRun, planPull, applyAdds, planOrder, sameOrder,
+  alignByText, staleRun, closeness, runAt, planPull, applyAdds,
+  planOrder, sameOrder, LOOKAHEAD, DIVERGED,
   ROOM_WORDS, THRESHOLD,
 };

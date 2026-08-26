@@ -486,6 +486,12 @@ async function planFor(link, to) {
       retext: pull.retext.map((r) => ({ beat: r.beat, from: r.from.slice(0, 120), to: r.to.slice(0, 120) })),
       // …and the ones left alone because she has reworded them herself.
       heldBack: pull.heldBack.map((h) => ({ beat: h.beat, text: h.text.slice(0, 120), would: h.to.slice(0, 120) })),
+      // The same line, worded differently in the two rooms. NOT added — only
+      // she knows which wording she means.
+      diverged: pull.diverged.map((d) => ({
+        beat: d.beat, score: Math.round(d.score * 100) / 100,
+        inRoom: d.beatText.slice(0, 160), inTimeline: d.text.slice(0, 160),
+      })),
       adding: pull.add.map((a) => ({ text: a.text.slice(0, 120), after: beatText(a.after) })),
     },
     order: { changes: !plan.sameOrder(pad.beats, ordered) },
@@ -567,6 +573,7 @@ router.post('/:id/pull', async (req, res) => {
       return {
         added: fresh.add.length, seeded: fresh.seed.length,
         retexted: fresh.retext.length, heldBack: fresh.heldBack.length,
+        diverged: fresh.diverged.length,
         beats: next.length,
       };
     });

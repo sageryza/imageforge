@@ -219,7 +219,72 @@ eq('and is re-stamped as an array', r.seed.map((x) => x.moments), [['m1']]);
 // A partial line-up must match NOTHING rather than half-swallow the moments.
 r = p.planPull(words, [{ id: 'q1', text: 'If science had a battle cry. Folkism, super' }]);
 eq('a beat that only half lines up matches nothing', r.seed, []);
-eq('and strands no moment', r.add.length, 6);
+eq('and strands no moment', r.add.length + r.diverged.length, 6);
+
+/* ---- ONE EDITED LINE MUST NOT DERAIL THE REST OF THE STORY.
+   Measured on her Spellcasting pad: a single moment reworded in the timeline
+   cost the last SIX beats their match, because the walk stalled on it and
+   every beat after it was tried against the same moment. All six would have
+   been added as duplicates of beats already sitting there. */
+// The wordings are her real shape: the same sentence with a clause changed,
+// which is what an edit in one room actually looks like (Spellcasting's
+// scored 0.80). A one-word difference against a six-word line is a DIFFERENT
+// line by any measure, and must stay one.
+const edited = {
+  moments: {
+    e1: { text: 'I noticed that when I produce these imaginings, I fall asleep.' },
+    e2: { text: 'If I want to fall asleep faster, or just visualize things I would only think about, I could produce them.' },
+    e3: { text: 'However, according to some random channel I watched.' },
+    e4: { text: 'And in these special moments, whatever we dream is apt to blend.' },
+    e5: { text: 'This means that if you are anxious as you fall asleep.' },
+  },
+  units: [['e1', 'e2', 'e3', 'e4', 'e5']],
+};
+r = p.planPull(edited, [
+  { id: 'x1', text: 'I noticed that when I produce these imaginings, I fall asleep.' },
+  // her older wording of e2 — same sentence, one clause different. Scores
+  // ~0.8, which is what a real edit of hers measured at.
+  { id: 'x2', text: 'If I want to fall asleep faster, or just visualize things I would only think about, I could make them.' },
+  { id: 'x3', text: 'However, according to some random channel I watched.' },
+  { id: 'x4', text: 'And in these special moments, whatever we dream is apt to blend.' },
+  { id: 'x5', text: 'This means that if you are anxious as you fall asleep.' },
+]);
+eq('the beats AFTER an edited line still match',
+  r.matched.map((m) => m.moment).sort(), ['e1', 'e3', 'e4', 'e5']);
+eq('and none of them is added a second time', r.add, []);
+eq('the edited line is reported, not duplicated',
+  r.diverged.map((d) => [d.moment, d.beat]), [['e2', 'x2']]);
+ok('the pad gains nothing at all from a pull that has only an edit',
+  r.add.length === 0);
+
+// THE BOUNDARY, pinned honestly. A false `diverged` loses real work (a new
+// moment never added), which is worse than a duplicate — so the bar is set
+// where a rewrite stops being an edit, and a half-shared sentence is a NEW
+// line. Her real edit measured 0.80; this pair is 0.56 and is added.
+r = p.planPull(
+  { moments: { g1: { text: 'If I want to fall asleep faster, or just visualize things I would only think about, I could produce them.' } }, units: [['g1']] },
+  [{ id: 'w1', text: 'If I want to fall asleep faster, I could produce them.' }],
+);
+eq('a half-shared sentence is a new line, not an edit', r.add.map((a) => a.moment), ['g1']);
+eq('and the old beat is simply extra', r.extra, ['w1']);
+
+// A genuinely NEW moment beside an unmatched beat is still added — `diverged`
+// must not become a way for real work to go missing.
+r = p.planPull(
+  { moments: { n1: { text: 'one' }, n2: { text: 'a completely unrelated new thought' } }, units: [['n1', 'n2']] },
+  [{ id: 'y1', text: 'one' }, { id: 'y2', text: 'her own picture note about nothing' }],
+);
+eq('a new moment that resembles nothing is added', r.add.map((a) => a.moment), ['n2']);
+eq('and nothing is called diverged', r.diverged, []);
+
+// The lookahead is BOUNDED — a match found far away is likelier wrong.
+const far = { moments: {}, units: [[]] };
+const ids = [];
+for (let i = 0; i < 30; i++) { far.moments[`f${i}`] = { text: `line number ${i}` }; ids.push(`f${i}`); }
+far.units = [ids];
+r = p.planPull(far, [{ id: 'z1', text: 'line number 25' }]);
+ok('a beat matching only past the lookahead window does not steal that moment',
+  !r.matched.some((m) => m.moment === 'f25'));
 
 // The drift she actually has: more moments than beats, and the other way round.
 r = p.planPull({ moments: {}, units: [] }, [{ id: 'a', text: 'x' }, { id: 'b', text: 'y' }]);
