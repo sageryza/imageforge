@@ -2881,6 +2881,24 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     opens the shared lightbox and builds none of its own; step 11 taps the dead
     space, found by scanning each row with `elementFromPoint` — the only honest
     way to ask what a tap reaches; verified failing against the pre-fix page).
+- **THE BOTTOM BAR'S THREE ARE PERMANENT — Story Room · Story Timeline ·
+  Playground (2026-08-26, Sophie: "right now the bottom real icons switch off
+  can you change it so they're permanent I want the story room, the story
+  timeline and the playground").** The three middle slots used to rotate by
+  most-recently-used, so the tools under her thumb moved every time she opened
+  anything else from Home — a bar that can never be learned. `barTools` in
+  `RootView.swift` is the whole list and the ONE place the order is written
+  down; changing it is that line.
+  - **`Recents` still exists and still tracks use order — it ranks the HOME
+    GRID's cards.** Only the bar stopped reading it. Do not delete it.
+  - **THE ALIVE SET IS NOT THE BAR ANY MORE, and that is the half that breaks
+    if it is "tidied".** The ZStack used to keep exactly the bar's three tools
+    alive, which only worked because opening a tool from Home promoted it INTO
+    that three; with the slots fixed, a tool opened from Home is in neither, so
+    `alive` = the three + the currently-open tool + the ONE most recent tool
+    from outside the bar. Drop the first and a tool opened from Home renders as
+    a blank screen; drop the second and Panels → Playground → Panels silently
+    throws away her half-typed prompt.
 - **iOS: pin bottom bars below the keyboard (never floating above it).** A
   custom bottom nav/tab bar laid out in a `VStack` rides UP and hovers above the
   keyboard, because SwiftUI's keyboard safe-area inset shrinks the stack. This
@@ -5482,9 +5500,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
     copy, so "first one wins" would strip the label off half the strip.
   - **It was a full-screen COVER from the home grid, never a `Tool`** —
     opening a Tool promotes it into `Recents`, so the button would have
-    evicted one of her three bottom-bar slots on every tap. That reasoning is
-    banked in `BriefView.swift` in case the page ever wants a native screen
-    again.
+    evicted one of her three bottom-bar slots on every tap. That HALF is
+    history since 2026-08-26 (the bar's three are fixed now — see *THE BOTTOM
+    BAR'S THREE ARE PERMANENT* below), but the rest of the reasoning stands
+    and is banked in `BriefView.swift` in case the page ever wants a native
+    screen again.
   - Tests: `node scripts/test-brief.js` (the whole ranking, pure, fixtures),
     `node scripts/test-brief-page.js` (the real page + the real injected pill,
     headless — the cache-first open counted in API calls, Refresh, the pill
