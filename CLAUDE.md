@@ -4603,6 +4603,35 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - Test: `node scripts/test-storyroom-playground-trip.js` (the server
     contract and the placement order pure over the real `pad-art.js`, then both
     real pages headless — verified failing 20 pre-fix).
+  **AND THE OTHER DIRECTION IS A WALK TOO — the Playground's send button
+  TAKES HER HERE (2026-08-26, Sophie: "rather than this weird pop-up, it
+  should take me to the story room so I can pick myself").** It shipped as a
+  sheet over the Playground's own lightbox — the shelf as a list of small
+  rows, then that story's doors (inbox · a new beat at the end · one of its
+  beats) — i.e. a second, worse copy of the shelf and of the placing step,
+  built out of 42px rows. The button is a NAVIGATION now
+  (`/storyroom?send=<run>&i=<n>`) and decides nothing about a story.
+  - **The RUN rides the link, never the url.** One id re-reads the whole
+    provenance in the room (prompt · model · quality), which is what a beat's
+    past-pictures row and a picked-back version are restored from — the same
+    `src` the pad's own inbox pick sends. It is spent with `replaceState`
+    before anything opens, so a refresh cannot hand her back a picture she
+    has already put down.
+  - **`#sendband` is the picture in her hand** — a fixed band over the SHELF
+    while she picks a story and over the canvas while she picks the spot, so
+    one thing on screen says what is being placed. It outlives `pending` on
+    purpose: the document-level tap cancels placing, and without the band
+    there would be no way back to the picture but the Playground.
+  - **The placement is the room's own** — `pick()`/`place()`, the inbox's
+    machinery, so she gets a gap in the ORDER rather than "at the end", and
+    an empty story places straight away because it has no gap to tap.
+  - **"Into the inbox" is not rebuilt and does not need to be**: the pad's
+    inbox already reads her hearted Playground pictures live, so ♥ is that
+    door. Putting a picture onto an EXISTING beat is that beat's own "fill it
+    in" — a tap on a beat while placing is still a no-op, deliberately (one
+    rule for the inbox flow and this one).
+  - Test: `node scripts/test-playground-story-share.js` (the trip driven as
+    ONE walk — the Playground's real tap lands on the real room).
   **PHILOSOPHY — do not "improve" this: the pad is minimal, the frame
   colours are UNLABELLED everywhere but that drop-down, and no machinery
   lives on the canvas.**
