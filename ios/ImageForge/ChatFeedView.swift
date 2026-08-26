@@ -178,7 +178,10 @@ private struct ChatFeedWebView: UIViewRepresentable {
                      for navigationAction: WKNavigationAction,
                      windowFeatures: WKWindowFeatures) -> WKWebView? {
             if let url = navigationAction.request.url {
-                UIApplication.shared.open(url)
+                // One of OUR tool links opens the tool, never Safari — see
+                // ForgeLinks.open. A link she taps in a message is the most
+                // common way this happens.
+                if !ForgeLinks.open(url) { UIApplication.shared.open(url) }
             }
             return nil
         }

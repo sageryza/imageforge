@@ -62,12 +62,41 @@ enum ForgeLinks {
     /// The destination a tapped web link means, or nil if it is not ours.
     /// A trailing slash is tolerated — `/panels/` and `/panels` are the same
     /// page, and a link she pasted may carry either.
+    ///
+    /// The CONFIGURED server counts too, not just the domain in the
+    /// entitlement: a custom server in Settings can never carry a universal
+    /// link (the entitlement names one fixed domain), but a link tapped
+    /// INSIDE the app should still open the tool rather than Safari.
     static func destination(for url: URL) -> String? {
         guard let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http",
-              url.host?.lowercased() == host else { return nil }
+              let h = url.host?.lowercased(), h == host || h == serverHost else { return nil }
         var path = url.path.lowercased()
         if path.count > 1 && path.hasSuffix("/") { path.removeLast() }
         if path.isEmpty { path = "/" }
         return map[path]
     }
+
+    private static var serverHost: String? {
+        URL(string: MovieService.serverURL)?.host?.lowercased()
+    }
+
+    /// A LINK TAPPED INSIDE THE APP CANNOT BE A UNIVERSAL LINK (2026-08-25,
+    /// Sophie: "it didn't work" — she was in the Deck Factory app). iOS never
+    /// hands a link off to the app it is already in, so
+    /// `UIApplication.shared.open` on one of our own urls opens SAFARI, which
+    /// is the opposite of what she tapped it for. Every web view asks this
+    /// first and only falls through to the system when the answer is no.
+    ///
+    /// It routes through the same `handleDeepLink` a real universal link
+    /// walks into (RootView listens for `opened`), so a link means the same
+    /// thing wherever it is tapped — including the query, so `?chat=<slug>`
+    /// lands on that thread from inside the app too.
+    @discardableResult
+    static func open(_ url: URL) -> Bool {
+        guard destination(for: url) != nil else { return false }
+        NotificationCenter.default.post(name: opened, object: url)
+        return true
+    }
+
+    static let opened = Notification.Name("forgeLinkOpened")
 }

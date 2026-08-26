@@ -221,6 +221,11 @@ private struct GatedWebView: UIViewRepresentable {
             let mine = URL(string: MovieService.serverURL + parent.path)?.path  // query stripped
             if url.path == mine {
                 decisionHandler(.allow)
+            } else if ForgeLinks.open(url) {
+                // A link to ANOTHER tool of ours opens that tool natively —
+                // iOS will not hand a link back to the app it is already in,
+                // so the line below would strand her in Safari.
+                decisionHandler(.cancel)
             } else {
                 UIApplication.shared.open(url)
                 decisionHandler(.cancel)

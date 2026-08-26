@@ -497,6 +497,22 @@ worth putting in a reply.
   Claimed-but-unknown opens the app on nothing; known-but-unclaimed never
   reaches it, and **both failures are silent on her phone**. Add a path to
   BOTH; `node scripts/test-applinks.js` fails if they drift.
+- **A LINK TAPPED INSIDE THE APP IS NOT A UNIVERSAL LINK — iOS never hands
+  one back to the app it is already in (2026-08-25, Sophie: "it didn't work",
+  and she was in the Deck Factory app).** That is the whole of the first bug
+  report, and nothing about the site half was wrong: Apple's own CDN was
+  serving the association file and the build carried the entitlement. Every
+  web view here passed a tapped link to `UIApplication.shared.open`, which on
+  one of OUR urls opens **Safari** — so the link she tapped to reach a tool
+  took her out of the app instead. `ForgeLinks.open(url)` is asked FIRST now
+  (in `ChatFeedView`'s `createWebViewWith` and `GatedWebTool`'s navigation
+  policy) and routes into the same `handleDeepLink` a real universal link
+  walks into, so a link means the same thing wherever it is tapped. **A new
+  web view that opens links must ask it too** — `node
+  scripts/test-applinks.js` sweeps every `UIApplication.shared.open` in the
+  app and fails on an unguarded one (a Settings deep link is exempt).
+  The **configured server's host counts as ours** for this, though it can
+  never carry a universal link — the entitlement names one fixed domain.
 - **The query rides along**, which is what makes a link land on ONE THREAD:
   `?chat=<slug>` and `?view=news` reuse the pending flags a tapped push
   already sets, so there is one mechanism and not two.
