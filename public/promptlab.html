@@ -61,15 +61,19 @@
      over any text beneath it; the textarea reserves that corner with
      padding-bottom so the last line of her words is never under the button.
 
-     BOTTOM-RIGHT IS HER CALL (2026-08-26, Sophie: "put it back exactly where
-     it was"), and it REVERSES the 2026-08-25 move to bottom-left. That move
-     was made because on her phone the injected autoscroll pill's fixed column
-     (x 324-374, y 47-227 at 390x844 with the iPhone 13's real 47px safe-area
-     inset) sat exactly on the button — measured, `elementFromPoint` at the
-     button's centre returned the PILL's svg — so the control was untappable
-     until the page scrolled. She asked for the right corner back knowing
-     where it was; the overlap-at-top-of-page is an accepted cost, not a bug
-     to re-fix by moving the button left again. Don't move it without her. */
+     ON THE RIGHT, SLID CLEAR OF THE PILL'S COLUMN (2026-08-26, two rounds).
+     Sophie asked for the right side back after the one-day move to
+     bottom-left ("put it back exactly where it was"), then reported the
+     exact corner untappable ("i was able to click it before … now i cant") —
+     and it is, measured: at 390x844 with the iPhone 13's real 47px safe-area
+     inset the injected autoscroll pill's ▼ (#vbot, x 325-373 / y 153-206)
+     sits dead on the corner spot (x 333-359 / y 164-190), so a tap there
+     reaches the pill. A z-index lift is NOT the fix — measured, it puts the
+     button over #vbot's own centre and kills the pill's scroll-down instead.
+     So `right: 56px`: still the right end of the box, clear of the pill's
+     50px column plus margin at 390pt AND at 320pt, both controls tappable at
+     every scroll position. Don't slide it back into the corner, and don't
+     move it off the right side — both are hers. */
   /* THE BOX DOES NOT SIT ON THE BUTTONS (2026-08-26, Sophie: "there was no
      padding between the buttons and the bottom of the text prompt box").
      Measured: `.styles` gives the box 10px of air ABOVE it and `.promptwrap`
@@ -80,7 +84,7 @@
   .promptwrap { position: relative; margin-bottom: 10px; }
   .promptwrap textarea { display: block; box-sizing: border-box; padding-bottom: 34px; }
   #prompt.big { min-height: 52vh; }
-  #bigprompt { position: absolute; right: 6px; bottom: 6px; width: 26px; height: 26px;
+  #bigprompt { position: absolute; right: 56px; bottom: 6px; width: 26px; height: 26px;
     display: flex; align-items: center; justify-content: center; padding: 0; margin: 0;
     border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #6f675e; cursor: pointer; }
   #bigprompt svg { width: 14px; height: 14px; }
