@@ -4949,8 +4949,41 @@ before working on that module. Nothing was deleted — the moved text is verbati
     (`after` on the plan, resolved against the array at write time), never
     appended to the end where she would have to walk it back twenty-five
     places. `applyAdds` splices each anchor's group in one go; inserting one at
-    a time reverses them. The split beat itself is **never reworded** — its
-    caption still carries all four sentences, and trimming it is hers.
+    a time reverses them.
+  - **A BEAT'S CAPTION IS DERIVED FROM THE MOMENTS IT COVERS — `fromMoments`
+    is an ARRAY, and that is the mechanism (2026-08-26, Sophie: "it should not
+    be repeated. This calls into question the mechanism by which you have them
+    sinking").** The first cut made the join SINGULAR: a beat that is four
+    moments joined was stamped with the FIRST of them, the other three became
+    new beats, and the parent's caption went on carrying all four sentences —
+    so her pad said the same words twice. **Not cosmetic: `ttsFor` speaks
+    `beat.text`, so a repeated caption is a repeated line in the film.** She
+    was right that the repeat was a symptom rather than the bug. Coverage is
+    a PARTITION now — every moment sits under exactly one beat, a duplicate
+    claim is dropped — and a caption follows the moments it covers, which is
+    the house *nothing stands between the source and the output* rule. Split
+    a beat in the timeline and its coverage shrinks, its caption follows, and
+    the freed moments become beats of their own.
+    - **HER OWN WORDING IS NEVER REWRITTEN**, by the pad's own precedent
+      (`drawablePrompt` / `promptFor`: a beat's prompt is stored as NOTHING
+      while it still matches its words). `staleRun` asks whether the caption
+      is exactly a contiguous run of the timeline's moments starting at the
+      one this beat still covers; if it is, it is stale from a split and is
+      re-derived, and if it is not, it is hers — left alone and reported as
+      `heldBack`.
+    - **ASKING IT THAT WAY, RATHER THAN "DID I FREE SOMETHING IN THIS PLAN",
+      IS WHAT CATCHES A PAD LEFT MID-MIGRATION.** The live pad had two beats
+      whose coverage had already been narrowed by the earlier singular pull
+      while their captions still said all four sentences; a plan that only
+      looked at the current split reported nothing to do.
+    - **A PAD CAN BE PART-JOINED** — a pull that was interrupted, or beats she
+      added by hand afterwards — so beats with no coverage are still matched
+      by their words, against the moments no joined beat has claimed. An
+      all-or-nothing rule there proposed to add every unjoined beat's moment a
+      second time.
+    - `fromMoment` (singular) is still READ as the legacy shape and is
+      re-stamped as an array on the next pull, so two spellings of one fact
+      cannot persist.
   - **A MOMENT IN `moments` BUT IN NO UNIT HAS BEEN DELETED** — that is what
     the Story Timeline's delete does (drop the id out of `units`, keep the
     words as the undo). `momentOrder` appended those last as "still hers" for
@@ -4983,11 +5016,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
     What the link buys there is the name decided once and a jump between rooms.
   - **It costs nothing** — no model call anywhere, a few small Firestore reads
     behind a 30s cache. `GET /for?room=&doc=` is what a room asks on open.
-  - Tests: `node scripts/test-storylink.js` (50 checks, pure — the matcher
+  - Tests: `node scripts/test-storylink.js` (63 checks, pure — the matcher
     against her REAL titles including the pairs that must NOT match, the
-    seeding of a hand-worked pad, the split beat's adds landing in place, and
-    the two invariants: a pull never drops a beat, an order never changes the
-    count).
+    seeding of a hand-worked pad, the split beat's adds landing in place, the
+    re-derived caption and the reworded one that is left alone, and the two
+    invariants: a pull never drops a beat, an order never changes the count).
 - **Writing Room** (`writing.js`, `/api/writing`, `/writing`, iOS tile) — every
   dating-book date in two versions ("Claude's" and "Mine") with every changed word
   marked red, autoscroll, and per-paragraph notes (text or voice memo). **Notes are
