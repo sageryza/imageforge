@@ -210,7 +210,7 @@ const glyphOf = (html) => (/M6 4\.5v15l13-7\.5z/.test(html) ? 'play'
 
     // THE CLONE RULE: the legend's drawings ARE the page's buttons. A second
     // hand-drawn copy would pass a "there is an svg" check and drift silently.
-    for (const sel of ['#descbtn', '#audiobtn', '#drawallbtn', '#addbtn', '#inboxbtn', '#delbtn', '#micbtn']) {
+    for (const sel of ['#aboutbtn', '#drawallbtn', '#addbtn', '#inboxbtn', '#delbtn', '#micbtn']) {
       const real = (await pg.innerHTML(sel)).trim();
       ok('the legend draws the real ' + sel, rows.some(r => r.glyph.trim() === real));
     }

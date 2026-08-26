@@ -285,11 +285,30 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   height:48px; width:0; border-left:2px dashed var(--ink2);}
 /* ── overlays ─────────────────────────────────────────────────────── */
 .sheet{position:fixed; inset:0; background:var(--paper); z-index:40; overflow-y:auto; -webkit-overflow-scrolling:touch;}
-/* About this story — her words pre-wrapped verbatim, her recordings above */
-#descbody{white-space:pre-wrap; line-height:1.55; font-size:.95em; padding:4px 0 60px;}
-#descaudios .arow{margin:12px 0 16px;}
-#descaudios .arow .no{margin-bottom:6px;}
-#descaudios audio{width:100%; display:block;}
+/* HER WORDS COME LAST, AND THEY ARE CLAMPED (2026-08-26 — the layout half of
+   putting the voiceover and the description behind one button). Measured over
+   all 67 stories the day it was merged: 17 carry a description and the median
+   is ~2,300 characters, the longest 10,593 — several screens of unbroken
+   dictated transcript. 43 of the 47 stories with anything in this sheet have
+   a RECORDING, so the recordings are what the button is tapped for and they
+   lead; the words sit under them, folded to six lines behind the house
+   `.moretxt` opener, so the whole sheet still opens on one screen.
+   `--lh`/`--lines` and the zero-width float are the Playground's `.p.clamp`
+   verbatim — the opener rides the LAST line of the words rather than parked
+   beside them. */
+#descbody{white-space:pre-wrap; font-size:.95em; padding:4px 56px 60px 0;
+  --lh:1.48em; --lines:6; line-height:var(--lh);}
+#descbody.clamp{max-height:calc(var(--lines) * var(--lh)); overflow:hidden; padding-bottom:0;}
+#descbody.clamp.fold::before{content:''; float:left; width:0;
+  height:calc((var(--lines) - 1) * var(--lh));}
+#descbody > .moretxt{float:right; clear:both; margin-left:8px;}
+#descbody:not(.clamp) > .moretxt{float:none; margin-left:6px;}
+/* THE HOUSE OPENER FOR TRUNCATED TEXT — an underlined word, never a button.
+   Same declarations as every other copy; the full pattern is in
+   docs/design-rules.md. */
+.moretxt{display:inline; border:0; background:none; margin:0; padding:0;
+  font:inherit; font-size:.8em; color:var(--ink2); text-decoration:underline;
+  -webkit-tap-highlight-color:transparent; cursor:pointer;}
 /* The sheet is its own scroller, so the page's pill cannot drive it — it gets
    one of its own, same look, in the same corner. */
 .sfloat{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:41;
@@ -565,6 +584,15 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    (the NDE montages), and the SOURCE recordings it came out of — the voice
    memos. They share the page's one player, so a tap replaces whatever is
    speaking, never stacks. */
+/* THE PILL'S COLUMN IS RESERVED DOWN THE WHOLE SHEET, not just at its top
+   (2026-08-26, measured with elementFromPoint the way the Chats app's own
+   collision was found). The sheet is its own scroller with its own FIXED
+   pill, so every row passes through that corner on its way up — a duration
+   printed under it, and worse, a tap at the right end of the playing row's
+   scrubber reached the PILL instead of seeking. 56px is the house number the
+   header rows already reserve. It sits on the containers, so the rows
+   themselves shrink and the scrubber's `right:0` lands inside. */
+#audios,#deschead,#descbody{padding-right:56px;}
 #audios{margin-top:.6em;}
 .aurow{display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line);}
 .aurow:first-child{border-top:1px solid var(--line);}
@@ -572,6 +600,24 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 .aurow .aunm{font-size:1.05em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .aurow .audate{font-size:.8em; color:var(--ink2); margin-top:2px;}
 .aurow .audur{flex:none; font-size:.8em; color:var(--ink2);}
+/* THE PLAYING ROW GETS A SEEK LINE, AND ONLY THE PLAYING ONE (2026-08-26).
+   Her description recording and her narration used to be native
+   `<audio controls>` elements in their own sheet, i.e. scrubbable; folding
+   them into this list would have quietly taken that away, on the two
+   recordings most worth scrubbing. So the row grew the scrubber instead —
+   which also gives it to the memos, which never had one. It IS the row's own
+   bottom hairline, filled in ink as far as she has listened, so it adds no
+   height and there is nothing new to read. The strip that catches the touch
+   is 16px tall and starts where the TEXT does: the play button keeps its
+   whole box, so a pause tap at its lower edge can never land on the scrubber
+   instead. */
+.aurow{position:relative;}
+.auseek{position:absolute; left:44px; right:0; bottom:-8px; height:16px;
+  cursor:pointer; -webkit-tap-highlight-color:transparent; touch-action:none;}
+.auseek::before{content:''; position:absolute; left:0; right:0; bottom:7px;
+  height:2px; background:var(--line);}
+.auseek i{position:absolute; left:0; bottom:7px; height:2px; width:0;
+  background:var(--ink); display:block;}
 /* CANDIDATES — recordings a chat guessed belong to this story, waiting on
    her (Aug 2026, Sophie: "attach them behind the wave form, but under a
    header tag called candidates"). Same rows, same player; only the header
@@ -634,8 +680,10 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
     <div id="title" contenteditable="true" spellcheck="false"></div>
   </div>
   <div class="iconrow">
-    <button class="iconbtn" id="descbtn" hidden aria-label="About this story — what you said about it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/><path d="M5 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/></svg></button>
-    <button class="iconbtn" id="audiobtn" hidden aria-label="Every recording attached to this story"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 13a2 2 0 0 0 2-2V7a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0V4a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0v-4a2 2 0 0 1 2-2"/></svg></button>
+    <!-- Lucide `book-audio` — a book with a sound wave inside, because the
+         sheet behind it is exactly that: her words and her recordings. It
+         replaced a book glyph and a waveform glyph standing side by side. -->
+    <button class="iconbtn" id="aboutbtn" hidden aria-label="About this story — what you said, and every recording of it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v7"/><path d="M16 8v3"/><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/><path d="M8 8v3"/></svg></button>
     <button class="iconbtn" id="playbtn" hidden aria-label="Watch the film"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4.5v15l13-7.5z"/></svg></button>
     <button class="iconbtn" id="drawallbtn" hidden aria-label="Draw every beat that has words but no picture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg></button>
     <button class="iconbtn" id="addbtn" aria-label="Add an empty beat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
@@ -703,13 +751,23 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 
 <!-- Every recording attached to this story, behind the waveform button:
      the memos it came out of, and the episodes cut from it. -->
+<!-- ABOUT THIS STORY — one sheet, one button (2026-08-26, Sophie: "put the
+     voiceover and story description behind one button but think carefully
+     about the layout"). It was two: a book glyph opening her description +
+     her two recordings as native players, and a waveform opening the memos
+     and episodes as rows. Everything in both is the same thing — what she
+     said about this story and what she recorded of it — so it is one sheet,
+     RECORDINGS FIRST (43 of the 47 stories with anything here have one, and
+     that is what a tap is for) and her words underneath, folded. -->
 <div class="sheet" id="ausheet" hidden>
   <div class="wrap">
     <div class="sheethead">
       <button class="iconbtn" id="auclose" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
-      <div class="no">Audio on this story</div>
+      <div class="no">About this story</div>
     </div>
     <div id="audios"></div>
+    <div class="auhead" id="deschead" hidden>What you said</div>
+    <div id="descbody"></div>
   </div>
 </div>
 
@@ -723,18 +781,6 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
       <div class="no">What the buttons do</div>
     </div>
     <div id="helpbody"></div>
-  </div>
-</div>
-
-<!-- About this story: her own words + her recordings, read-only -->
-<div class="sheet" id="descsheet" hidden>
-  <div class="wrap">
-    <div class="sheethead">
-      <button class="iconbtn" id="descclose" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
-      <div class="no">About this story</div>
-    </div>
-    <div id="descaudios"></div>
-    <div id="descbody"></div>
   </div>
 </div>
 
@@ -1116,21 +1162,119 @@ function fmtDur(s){
   s=Math.round(Number(s)||0); if(!s)return '';
   return Math.floor(s/60)+':'+('0'+(s%60)).slice(-2);
 }
+/* The playing row wears the scrubber; every other row is a plain hairline.
+   ONE row is ever seeking, so the strip is built and torn down rather than
+   sitting invisible under all of them. */
+function auSeek(row){
+  var el=document.createElement('div'); el.className='auseek';
+  el.setAttribute('aria-hidden','true');
+  el.appendChild(document.createElement('i'));
+  function at(ev){
+    var r=el.getBoundingClientRect(); if(!r.width) return;
+    var d=player.duration; if(!isFinite(d)||!d) return;
+    var f=Math.min(1,Math.max(0,(ev.clientX-r.left)/r.width));
+    player.currentTime=f*d; auFill();
+  }
+  /* pointer, not click: a drag along the line scrubs, and the row is not a
+     button so nothing else wants these events. */
+  el.addEventListener('pointerdown',function(ev){
+    ev.stopPropagation(); ev.preventDefault();
+    el.setPointerCapture(ev.pointerId); el._down=true; at(ev);
+  });
+  el.addEventListener('pointermove',function(ev){ if(el._down) at(ev); });
+  el.addEventListener('pointerup',function(ev){ el._down=false; });
+  el.addEventListener('pointercancel',function(){ el._down=false; });
+  return el;
+}
+function auFill(){
+  var el=document.querySelector('#audios .auseek > i'); if(!el) return;
+  var d=player.duration;
+  el.style.width=(isFinite(d)&&d?Math.min(100,player.currentTime/d*100):0)+'%';
+}
 function auGlyphs(){
   var rows=document.querySelectorAll('#audios .aurow');
   for(var i=0;i<rows.length;i++){
-    var on=player.src===rows[i]._url&&!player.paused&&!player.ended;
-    rows[i].querySelector('.iconbtn').innerHTML=on?AU_PAUSE:AU_PLAY;
+    var row=rows[i];
+    var on=player.src===row._url&&!player.paused&&!player.ended;
+    row.querySelector('.iconbtn').innerHTML=on?AU_PAUSE:AU_PLAY;
+    var seek=row.querySelector('.auseek');
+    if(on&&!seek){ row.appendChild(auSeek(row)); }
+    else if(!on&&seek){ seek.remove(); }
+    /* A row whose length nothing recorded (her description recording and her
+       narration are bare urls on the pad doc, with no `seconds`) learns it
+       from the file the moment it plays — so the slot fills in rather than
+       staying blank forever. */
+    if(on&&!row._dur&&isFinite(player.duration)&&player.duration){
+      row._dur=true; row.querySelector('.audur').textContent=fmtDur(player.duration);
+    }
   }
+  auFill();
 }
 player.addEventListener('play',auGlyphs);
 player.addEventListener('pause',auGlyphs);
 player.addEventListener('ended',auGlyphs);
+player.addEventListener('loadedmetadata',auGlyphs);
+player.addEventListener('timeupdate',auFill);
+function auRow(box,o){
+  var row=document.createElement('div'); row.className='aurow';
+  /* RESOLVED, because `player.src` reads back absolute whatever was assigned:
+     a relative url would compare unequal to itself forever, so the row would
+     never show its pause glyph or its scrubber. Every url here happens to be
+     absolute today — this is one line that stops it mattering. */
+  var url=o.url; try{ url=new URL(o.url,location.href).href; }catch(e){}
+  row._url=url;
+  row._dur=!!o.seconds;
+  var b=document.createElement('button'); b.className='iconbtn';
+  b.setAttribute('aria-label','Listen — '+o.title);
+  b.innerHTML=AU_PLAY;
+  b.onclick=function(ev){
+    ev.stopPropagation();
+    /* play() synchronously in the tap — the iOS rule */
+    if(player.src===url&&!player.paused){ player.pause(); }
+    else if(player.src===url){ player.play(); }
+    else { player.pause(); player.src=url; player.play(); }
+    auGlyphs();
+  };
+  var tx=document.createElement('div'); tx.className='autxt';
+  var nm=document.createElement('div'); nm.className='aunm'; nm.textContent=o.title;
+  tx.appendChild(nm);
+  /* A memo's date is how she recognises it — it is what the Memos app
+     shows under the name. An episode has no date worth the line, and neither
+     does her own narration. */
+  if(o.date){
+    var dt=document.createElement('div'); dt.className='audate'; dt.textContent=o.date;
+    tx.appendChild(dt);
+  }
+  var du=document.createElement('div'); du.className='audur'; du.textContent=fmtDur(o.seconds);
+  row.appendChild(b); row.appendChild(tx); row.appendChild(du);
+  box.appendChild(row);
+  return row;
+}
 function renderAudios(){
   var box=document.getElementById('audios');
   box.innerHTML='';
-  /* No recordings, no button — an empty sheet is a tap that says nothing. */
-  document.getElementById('audiobtn').hidden=!audios.length;
+  /* Nothing to say and nothing to play, no button — an empty sheet is a tap
+     that says nothing. */
+  var any=!!(audios.length||padDesc||padDescAudio||padVoice);
+  document.getElementById('aboutbtn').hidden=!any;
+
+  /* HERS FIRST, and they are rows like everything else. They used to be
+     native <audio controls> in a sheet of their own; one list means one way
+     to play anything here. When descriptionAudio and the voiceover are the
+     SAME file (a lesson whose source IS her read-aloud) only one row shows. */
+  if(padDescAudio&&padVoice===padDescAudio){
+    auRow(box,{url:padDescAudio,title:'Your recording'});
+  }else{
+    if(padDescAudio) auRow(box,{url:padDescAudio,title:'As you told it'});
+    if(padVoice) auRow(box,{url:padVoice,title:'Your narration'});
+  }
+  /* The attached recordings take a header ONLY when hers are above them —
+     otherwise the list starts bare, exactly as it did before the merge. */
+  var mine=box.children.length;
+  if(mine&&audios.length){
+    var mh=document.createElement('div'); mh.className='auhead';
+    mh.textContent='Recordings'; box.appendChild(mh);
+  }
   /* Confirmed audio first, then the CANDIDATES under their own header — a
      chat's guesses, playable here so she judges them by ear in the story's
      own context. Ordering is the whole feature: a candidate must never sit
@@ -1144,43 +1288,59 @@ function renderAudios(){
       var h=document.createElement('div'); h.className='auhead';
       h.textContent='Candidates'; box.appendChild(h);
     }
-    var row=document.createElement('div'); row.className='aurow'; row._url=a.url;
-    var b=document.createElement('button'); b.className='iconbtn';
-    b.setAttribute('aria-label','Listen — '+a.title);
-    b.innerHTML=AU_PLAY;
-    b.onclick=function(ev){
-      ev.stopPropagation();
-      /* play() synchronously in the tap — the iOS rule */
-      if(player.src===a.url&&!player.paused){ player.pause(); }
-      else if(player.src===a.url){ player.play(); }
-      else { player.pause(); player.src=a.url; player.play(); }
-      auGlyphs();
-    };
-    var tx=document.createElement('div'); tx.className='autxt';
-    var nm=document.createElement('div'); nm.className='aunm'; nm.textContent=a.title;
-    tx.appendChild(nm);
-    /* A memo's date is how she recognises it — it is what the Memos app
-       shows under the name. An episode has no date worth the line. */
-    if(a.date){
-      var dt=document.createElement('div'); dt.className='audate'; dt.textContent=a.date;
-      tx.appendChild(dt);
-    }
-    var du=document.createElement('div'); du.className='audur'; du.textContent=fmtDur(a.seconds);
-    row.appendChild(b); row.appendChild(tx); row.appendChild(du);
-    box.appendChild(row);
+    auRow(box,a);
   });
+
+  /* HER WORDS LAST, folded — see #descbody in the CSS for the measurement
+     that put them here. */
+  var b=document.getElementById('descbody');
+  b.textContent=padDesc||'';
+  b.hidden=!padDesc;
+  document.getElementById('deschead').hidden=!padDesc;
+  b.classList.remove('clamp','fold');
+  var old=b.querySelector('.moretxt'); if(old) old.remove();
+  if(padDesc) b.classList.add('clamp');
   auGlyphs();
+}
+/* The opener is measured, never counted: only the browser knows whether the
+   words really overflowed six lines, and #descbody has no layout at all while
+   the sheet is hidden — so this runs when the sheet OPENS, not when it is
+   filled (the Playground's own lesson, `applyClamps`). */
+function auClamp(){
+  var el=document.getElementById('descbody');
+  if(!el.classList.contains('clamp')||el.querySelector('.moretxt')) return;
+  if(!el.clientHeight) return;
+  if(el.scrollHeight-el.clientHeight<=1){ el.classList.remove('clamp'); return; }
+  var btn=document.createElement('button');
+  btn.className='moretxt'; btn.textContent='… more';
+  btn.onclick=function(ev){
+    ev.stopPropagation();
+    var open=el.classList.toggle('clamp')===false;
+    el.classList.toggle('fold',!open);
+    btn.textContent=open?'less':'… more';
+    /* It rides at the END of the words when they are open and at the FRONT
+       when they are folded — the float only reaches the last line from in
+       front of the text, and unfloated at the front it would read before the
+       first word. */
+    if(open) el.appendChild(btn); else el.insertBefore(btn,el.firstChild);
+  };
+  el.insertBefore(btn,el.firstChild);
+  el.classList.add('fold');
 }
 /* The sheet deliberately does NOT stop the player on close: a recording she
    started is meant to keep going while she reads the beats it became. */
-document.getElementById('audiobtn').onclick=function(ev){
+document.getElementById('aboutbtn').onclick=function(ev){
   ev.stopPropagation();
   var sh=document.getElementById('ausheet');
   sh.hidden=false; sh.scrollTop=0; lock(true);
+  auClamp();          // #descbody has layout only now the sheet is up
+  sheetPill(sh);      // her words run to 10,000 characters — it needs one
 };
 document.getElementById('auclose').onclick=function(ev){
   ev.stopPropagation();
-  document.getElementById('ausheet').hidden=true; lock(false);
+  var sh=document.getElementById('ausheet');
+  if(sh._stopPill) sh._stopPill();
+  sh.hidden=true; lock(false);
 };
 
 /* ── what the buttons do ────────────────────────────────────────────
@@ -1196,8 +1356,7 @@ document.getElementById('auclose').onclick=function(ev){
    before one is opened) simply draws no box. */
 var HELP=[
   {sel:'#shelfback', nm:'Back', what:'To the shelf. In the app the chevron at the top of the screen does this.'},
-  {sel:'#descbtn', nm:'About this story', what:'What you said the story is, and the recordings it came out of.'},
-  {sel:'#audiobtn', nm:'Listen', what:'Every recording attached to this story — the memos it came from, and the episodes cut out of it.'},
+  {sel:'#aboutbtn', nm:'About this story', what:'What you said this story is, and every recording of it in one place — your own telling, your narration, the memos it came from and the episodes cut out of it.'},
   {sel:'#playbtn', nm:'Play the film', what:'Watches your film. If the story changed since the last one it makes a new film first, then plays it. While it is making, this button turns into an ✕ that stops it — nothing is lost and it costs nothing to start again.'},
   {sel:'#drawallbtn', nm:'Draw them all', what:'Draws every beat that has words but no picture yet. It asks first and says how many.'},
   {sel:'#addbtn', nm:'Add a beat', what:'Puts an empty beat at the end.'},
@@ -1375,11 +1534,14 @@ function load(){
     beats=d.beats||[]; padTitle=d.title||''; film=d.film||null;
     padStyle=(d.style==='dreamy')?'dreamy':'watercolor'; renderStyle();
     uploads=d.uploads||[];
-    audios=d.audios||[]; renderAudios();
+    audios=d.audios||[];
     padUpdated=d.updatedAt||0; dirtySinceFilm=false;
     padDesc=d.description||''; padDescAudio=d.descriptionAudio||null;
     padVoice=(d.voiceover&&d.voiceover.url)?d.voiceover.url:null;
-    document.getElementById('descbtn').hidden=!(padDesc||padDescAudio||padVoice);
+    /* AFTER the description fields, never before: renderAudios draws her two
+       recordings and her words as well as the attached list, and it is what
+       decides whether the one button shows at all. */
+    renderAudios();
     renderTitle(); render(); renderFilm();
     if(anyDrawing()) startGenPoll();   // a draw survives leaving the app
     if(film&&film.status==='making') startFilmPoll();
@@ -1594,41 +1756,17 @@ document.getElementById('storiesclose').onclick=function(ev){
 
 /* ── About this story: what she said about it, verbatim + recordings ──
    Data-only fields on the pad doc (a chat writes them); the sheet is
-   read-only. When descriptionAudio and the voiceover are the SAME file
-   (a lesson whose source IS her read-aloud) only one player shows. */
+   read-only, and since 2026-08-26 it is the SAME sheet the recordings live
+   in — see renderAudios and #descbody. */
 var padDesc='', padDescAudio=null, padVoice=null;
-document.getElementById('descbtn').onclick=function(ev){
-  ev.stopPropagation();
-  var au=document.getElementById('descaudios'); au.innerHTML='';
-  function row(label,url){
-    if(!url) return;
-    var d=document.createElement('div'); d.className='arow';
-    var n=document.createElement('div'); n.className='no'; n.textContent=label; d.appendChild(n);
-    var a=document.createElement('audio'); a.controls=true; a.preload='none'; a.src=url;
-    d.appendChild(a); au.appendChild(d);
-  }
-  if(padDescAudio && padVoice===padDescAudio){ row('Your recording', padDescAudio); }
-  else { row('As you told it', padDescAudio); row('Your narration', padVoice); }
-  var b=document.getElementById('descbody');
-  b.textContent=padDesc; b.hidden=!padDesc;
-  var sh=document.getElementById('descsheet');
-  sh.hidden=false; sh.scrollTop=0; lock(true); sheetPill(sh);
-};
-document.getElementById('descclose').onclick=function(ev){
-  ev.stopPropagation();
-  var sh=document.getElementById('descsheet');
-  var as=sh.querySelectorAll('audio');
-  for(var i=0;i<as.length;i++) as[i].pause();
-  if(sh._stopPill) sh._stopPill();
-  sh.hidden=true; lock(false);
-};
 function openPad(id){
   padId=id; padOpened=true; localStorage.setItem('scratchpad_pad',id);
   if(genTimer){ clearInterval(genTimer); genTimer=null; }
   filmGen++;   // an in-flight poll belongs to the story she just left
   if(filmTimer){ clearInterval(filmTimer); filmTimer=null; }
   film=null; padUpdated=0; dirtySinceFilm=false; autoplayWanted=false; renderFilm();
-  player.pause(); audios=[]; renderAudios();
+  player.pause(); audios=[];
+  padDesc=''; padDescAudio=null; padVoice=null; renderAudios();
   padStyle='watercolor'; renderStyle(); uploads=[];
   closeShelf();
   beats=[]; padTitle=''; render();
@@ -2447,8 +2585,6 @@ window.__navBack=function(){
   }
   el=document.getElementById('ausheet');
   if(!el.hidden){ document.getElementById('auclose').click(); return true; }
-  el=document.getElementById('descsheet');
-  if(!el.hidden){ document.getElementById('descclose').click(); return true; }
   el=document.getElementById('helpsheet');
   if(!el.hidden){ document.getElementById('helpclose').click(); return true; }
   el=document.getElementById('stories');
