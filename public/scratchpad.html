@@ -826,10 +826,15 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
     <div id="title" contenteditable="true" spellcheck="false"></div>
   </div>
   <div class="iconrow">
-    <!-- Lucide `book-audio` — a book with a sound wave inside, because the
-         sheet behind it is exactly that: her words and her recordings. It
-         replaced a book glyph and a waveform glyph standing side by side. -->
-    <button class="iconbtn" id="aboutbtn" hidden aria-label="About this story — what you said, and every recording of it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v7"/><path d="M16 8v3"/><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/><path d="M8 8v3"/></svg></button>
+    <!-- THE PLAIN WAVEFORM, and it is hers by name (2026-08-26: "I like the
+         book idea, but can you just put it back to the normal wave form?").
+         The merge shipped Lucide `book-audio` — a book with a sound wave
+         inside — on the reasoning that the sheet holds her words as well as
+         her recordings; she liked the idea and picked the plain wave anyway,
+         so that reasoning is history rather than a rule. It is the exact
+         glyph `#audiobtn` wore before the two buttons became one, so nothing
+         about the row changed for her but the sheet behind it. -->
+    <button class="iconbtn" id="aboutbtn" hidden aria-label="About this story — what you said, and every recording of it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 13a2 2 0 0 0 2-2V7a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0V4a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0v-4a2 2 0 0 1 2-2"/></svg></button>
     <button class="iconbtn" id="playbtn" hidden aria-label="Watch the film"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4.5v15l13-7.5z"/></svg></button>
     <button class="iconbtn" id="drawallbtn" hidden aria-label="Draw every beat that has words but no picture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg></button>
     <button class="iconbtn" id="addbtn" aria-label="Add an empty beat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
