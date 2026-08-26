@@ -3,6 +3,9 @@ const express = require('express');
 // THE WHOLE PROMPT, one builder — see prompt-record.js (Sophie's hard rule,
 // 2026-08-24: anytime an image is made anywhere, the whole prompt is stored).
 const promptRecord = require('./prompt-record');
+// The panel sheet's geometry — derived canvases, the grid sentence, the cut
+// rects and the style-tail sheet swap. See sheet-grid.js.
+const sheetGrid = require('./sheet-grid');
 const cors = require('cors');
 const fetch = require('node-fetch');
 const path = require('path');
@@ -5569,6 +5572,26 @@ const PL_GPT_STYLES = {
       to: 'NO text anywhere in the image — no words, no letters, no numbers, ' +
         'no captions, no handwriting.',
     },
+    // THE PANELS SHEET SWAP (Aug 2026). On a panel-sheet run the tail's
+    // anti-grid clause is poison — two sentences arguing about the layout
+    // produce one panel with ghosts of the others — so it is SWAPPED, the
+    // no-text mechanism again, never argued with. `from` must track the tail
+    // VERBATIM through "…style reference. " and stop BEFORE 'no text.', so
+    // this swap and the no-text swap touch disjoint clauses of one tail and
+    // compose in either order (test-sheet-grid.js pins all of that against
+    // these live literals). `{layout}` is filled by sheetGrid.applySheet with
+    // the run's real grid. Per-panel hand-drawn borders are truer to the
+    // reference than dropping the border ask — that page IS a bordered
+    // multi-panel comic. If she has edited the tail, applySheet no-ops and
+    // her wording wins.
+    sheet: {
+      from: 'Render as ONE single illustration — NOT a grid, NOT split panels. ' +
+        'Draw it inside a hand-drawn border, like the frames in the style ' +
+        'reference. ',
+      to: 'Render as {layout} — each panel its own complete illustration, ' +
+        'inside its own hand-drawn border like the frames in the style ' +
+        'reference. ',
+    },
     noCharacter: true,
   },
   // "Hoonies" (Aug 2026, Sophie) — her woodcut smallies, the same drawings the
@@ -5893,6 +5916,131 @@ async function runPromptLabGptJob(docRef, cfg) {
   }
 }
 
+// ── A PANELS RUN: one sheet, cut apart ─────────────────────────────────
+// (Aug 2026, Sophie: "we make a picture and cut it into panels … describe
+// each panel individually. It's a way of saving money on the picture,
+// especially if it's done in 2K or 4K — then the pixels come out right
+// too.") N panel descriptions drawn TOGETHER on one gpt-image-2 sheet at
+// the tier budget, then cut into N pictures locally — the sheet pays the
+// style reference once where N separate draws pay it N times.
+//
+// The cut is exact math on a canvas DERIVED to divide into whole-pixel
+// cells (sheet-grid.js), decoded ONCE to a raw buffer and cropped
+// SEQUENTIALLY — never Promise.all — with sharp's cache off: this box has
+// 512MB, a decoded 4K sheet is ~33MB raw, and per-crop re-decodes with the
+// cache on are how a batch of extracts balloons. Lossless webp on every
+// panel: the model's own pixels are the source and nothing lossy may stand
+// between them and the cut (the house no-generation-compression rule).
+async function cutSheet(sheetBuf, plan) {
+  const sharp = require('sharp');
+  sharp.cache(false);
+  const rects = sheetGrid.cellRects(plan.W, plan.H, plan.across, plan.down);
+  if (!rects) throw new Error('sheet does not divide into whole cells');
+  const { data, info } = await sharp(sheetBuf).ensureAlpha().raw()
+    .toBuffer({ resolveWithObject: true });
+  // The model answers the requested canvas; anything else means the cut
+  // lines would land on the wrong pixels, so refuse and keep the sheet.
+  if (info.width !== plan.W || info.height !== plan.H) {
+    throw new Error(`sheet came back ${info.width}x${info.height}, wanted ${plan.sheet}`);
+  }
+  const raw = { width: info.width, height: info.height, channels: info.channels };
+  const urls = [];
+  for (const r of rects) {
+    const buf = await sharp(data, { raw }).extract(r)
+      .webp({ lossless: true }).toBuffer();
+    urls.push(await saveBufferToFirebase(buf, 'image/webp', 'promptlab'));
+  }
+  return urls;
+}
+
+// Sibling of runPromptLabGptJob: same refs, same edits/generations choice,
+// same whiten and usage capture — one render, then the cut, then filing.
+// NOT cancellable, like every gpt run: the sheet is billed when requested.
+async function runPromptLabPanelsJob(docRef, cfg) {
+  const plan = cfg.plan;
+  try {
+    const st = PL_GPT_STYLES[cfg.styleId] || PL_GPT_STYLES.evan;
+    const refs = await playgroundRefs(st);
+    const data = refs.length
+      ? await openaiImageEditRefs(cfg.fullPrompt, refs, {
+        quality: cfg.quality, size: plan.sheet, timeout: 300000,
+      })
+      : await openaiImage({
+        model: PL_GPT.id, prompt: cfg.fullPrompt, n: 1,
+        size: plan.sheet, quality: cfg.quality,
+        output_format: 'webp', moderation: 'low',
+      }, 2, 300000);
+    if (data.error) throw new Error(data.error.message || 'gpt-image-2 error');
+    const b64 = data.data?.[0]?.b64_json;
+    if (!b64) throw new Error('gpt-image-2 returned no image');
+    let sheetBuf = Buffer.from(b64, 'base64');
+    // Pastel's flood-fill whiten runs on the SHEET, before the cut, so every
+    // panel inherits it. Best-effort, as on an ordinary run.
+    if (st.whiten) { try { sheetBuf = await whitenBackground(sheetBuf); } catch (e) { console.warn('promptlab whiten failed:', e.message); } }
+    // THE PAID SHEET IS BANKED BEFORE THE CUT — a failed cut must never lose
+    // a picture that has already been billed.
+    const sheetUrl = await saveBufferToFirebase(sheetBuf, 'image/webp', 'promptlab');
+    await docRef.update({ sheetUrl, ...(data.usage ? { usage: [data.usage] } : {}) });
+    const sizeTier = require('./size-tier');
+    const style = `${st.label} · ${cfg.quality}`;
+    let images;
+    try {
+      images = await cutSheet(sheetBuf, plan);
+    } catch (err) {
+      // The cut failed (a resized answer, a sharp hiccup): the run is still
+      // DONE — the sheet is the picture, misdrawn ratio and all, and the doc
+      // says why so the page can tell her.
+      console.warn('promptlab sheet cut failed:', err.message);
+      await docRef.update({ status: 'done', images: [sheetUrl], cutFailed: true });
+      fileCreationDoc({
+        url: sheetUrl, prompt: `the sheet — ${plan.count} panels`,
+        promptContent: cfg.prompt, style, model: PL_GPT.id, quality: cfg.quality,
+        canvas: plan.sheet, fullPrompt: cfg.fullPrompt,
+        promptPrefix: cfg.head, promptSuffix: cfg.tail, source: 'playground',
+      });
+      return;
+    }
+    // One write straight to done — the cut takes seconds against a 30-90s
+    // render, and a 'ready' stage showing the SHEET in cells shaped for
+    // panels would distort it.
+    await docRef.update({ status: 'done', images });
+    // File the sheet and every panel into My Creations. The sheet's caption
+    // is a line this repo wrote, so `promptContent` says what her words
+    // really were (see fileCreationDoc). Each panel files with its OWN
+    // description and the '1/9 (4K)' size slot — a cut panel's own pixels
+    // land on a lower rung and would read as an ordinary small picture
+    // (size-tier.js cutSize; fileCreationDoc's sizeSlot exists for this).
+    const cut = sizeTier.cutSize(plan.sheet, plan.count);
+    fileCreationDoc({
+      url: sheetUrl, prompt: `the sheet — ${plan.count} panels`,
+      promptContent: cfg.prompt, style, model: PL_GPT.id, quality: cfg.quality,
+      canvas: plan.sheet, fullPrompt: cfg.fullPrompt,
+      promptPrefix: cfg.head, promptSuffix: cfg.tail, source: 'playground',
+    });
+    // A panel's style half is everything around ITS words in the sent text —
+    // the panel line sits verbatim in fullPrompt, so the seam is real.
+    const seamFor = (text) => {
+      const i = cfg.fullPrompt.indexOf(text);
+      if (i < 0) return { prefix: cfg.head, suffix: cfg.tail };
+      return {
+        prefix: cfg.fullPrompt.slice(0, i).trim(),
+        suffix: cfg.fullPrompt.slice(i + text.length).trim(),
+      };
+    };
+    images.forEach((url, i) => {
+      const seam = seamFor(cfg.panels[i]);
+      fileCreationDoc({
+        url, prompt: cfg.panels[i], canvas: plan.cell, sizeSlot: cut,
+        style, model: PL_GPT.id, quality: cfg.quality, fullPrompt: cfg.fullPrompt,
+        promptPrefix: seam.prefix, promptSuffix: seam.suffix, source: 'playground',
+      });
+    });
+  } catch (err) {
+    console.warn('promptlab panels job failed:', err.message);
+    await docRef.update({ status: 'failed', error: err.message }).catch(() => {});
+  }
+}
+
 async function runPromptLabJob(docRef, cfg) {
   try {
     const createRes = await fetch('https://api.replicate.com/v1/predictions', {
@@ -6036,6 +6184,55 @@ app.post('/api/promptlab', async (req, res) => {
       const shape = PL_GPT.res[shapeId];
       const resId = shape.tiers[String(req.body.res || '')] ? String(req.body.res) : PL_GPT.resDefault;
       const canvas = { size: shape.tiers[resId].size, aspectRatio: shape.aspectRatio };
+
+      // A PANELS RUN (Aug 2026, Sophie: "cut it into panels … describe each
+      // panel individually") — N descriptions drawn together on ONE sheet
+      // and cut apart. Same collection, same feed; the doc's `images` become
+      // the cut panels so votes, the lightbox and search need nothing new.
+      // The canvas toggle picks the CELL shape and the tier the sheet's
+      // pixel budget; the sheet canvas itself is derived (sheet-grid.js).
+      // The character card and her photo ref are deliberately OFF here —
+      // both wordings name "the second/last attached image" for ONE
+      // picture, and a sheet is not the surface to argue that on.
+      if (Array.isArray(req.body.panels) && req.body.panels.length) {
+        const grid = Number(req.body.grid) || req.body.panels.length;
+        if (!sheetGrid.GRIDS[grid]) return res.status(400).json({ error: `unknown grid ${grid}` });
+        // Cut, not refused, like the prompt itself — this is a live editor.
+        const panels = req.body.panels.map((p) => String(p || '').trim().slice(0, 350));
+        if (panels.length !== grid || panels.some((p) => !p)) {
+          return res.status(400).json({ error: `all ${grid} panels need words` });
+        }
+        const plan = sheetGrid.sheetFor(shapeId, grid, resId, PL_GPT.res);
+        if (!plan) return res.status(400).json({ error: 'no legal sheet for that grid' });
+        // The style tail's anti-grid clause is SWAPPED, never argued with
+        // (sheet-grid.js applySheet; an edited tail no-ops and her wording
+        // wins). The no-text swap composes after it — disjoint clauses.
+        const sheetTail = applyNoText(
+          sheetGrid.applySheet(suffix, st.sheet, sheetGrid.layoutWords(grid)), st, noText);
+        const sheetHead = prefix.trim();
+        const blockTxt = sheetGrid.panelBlock(grid, panels);
+        const sheetPrompt = `${sheetHead}${sheetHead ? '\n\n' : ''}${blockTxt}${sheetTail ? `\n\n${sheetTail}` : ''}`;
+        const docRef = admin.firestore().collection(PROMPTLAB).doc();
+        await docRef.set({
+          id: docRef.id, status: 'running', engine: 'gptimage', prompt: typed,
+          fullPrompt: sheetPrompt, model: PL_GPT.id, gptStyle: styleId, quality,
+          // `size` is the SHEET; `aspectRatio` is the CELL's — it is what
+          // each finished picture is, and what the feed renders cells with.
+          size: plan.sheet, aspectRatio: plan.aspectRatio, res: resId,
+          promptEdited: edited, noText,
+          styleRef: (st.refFiles || []).concat(st.storageRefs || []).join(','),
+          outputs: 1, character: false, photoRef: '', images: [],
+          panels, grid: { across: plan.across, down: plan.down, count: plan.count },
+          sheet: plan.sheet, cell: plan.cell,
+          createdAt: admin.firestore.Timestamp.now(),
+        });
+        runPromptLabPanelsJob(docRef, {
+          fullPrompt: sheetPrompt, head: sheetHead, tail: sheetTail,
+          quality, prompt: typed, styleId, panels, plan,
+        });
+        return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
+      }
+
       const docRef = admin.firestore().collection(PROMPTLAB).doc();
       await docRef.set({
         id: docRef.id, status: 'running', engine: 'gptimage', prompt: typed, fullPrompt,
@@ -6110,13 +6307,42 @@ app.get('/api/promptlab/styles', (req, res) => {
       // The photo line this style would really add, so the Prompt panel prints
       // the sentence that is actually sent. Absent = the house one below.
       photoLine: st.photoLine || '',
+      // The sheet swap a panels run would apply to this style's tail, or null
+      // — served so the Prompt panel can print the tail that is really sent
+      // on a sheet, the same disclosure rule as everything above.
+      sheet: st.sheet ? { from: st.sheet.from, to: st.sheet.to } : null,
       refs: (st.refFiles || []).concat(st.storageRefs || []),
     };
+  });
+  // THE PANELS TAB'S GEOMETRY, computed by sheet-grid.js — the page copies
+  // nothing: the grids on offer, each grid's cell names (the box
+  // placeholders), the grid sentence the prompt will carry, and the derived
+  // sheet/cell canvas per shape × grid × tier (what the tooltips show).
+  // Adding 25 later is a GRIDS entry in sheet-grid.js and nothing here.
+  const panels = { grids: {}, sheets: {} };
+  Object.keys(sheetGrid.GRIDS).forEach((g) => {
+    panels.grids[g] = {
+      ...sheetGrid.GRIDS[g],
+      count: sheetGrid.GRIDS[g].across * sheetGrid.GRIDS[g].down,
+      positions: sheetGrid.positions(g),
+      layout: sheetGrid.layoutWords(g),
+      sentence: sheetGrid.panelBlock(g, []),
+    };
+  });
+  Object.keys(sheetGrid.SHAPES).forEach((shape) => {
+    panels.sheets[shape] = {};
+    Object.keys(sheetGrid.GRIDS).forEach((g) => {
+      panels.sheets[shape][g] = {};
+      Object.keys(PL_GPT.res[shape].tiers).forEach((tier) => {
+        const plan = sheetGrid.sheetFor(shape, Number(g), tier, PL_GPT.res);
+        if (plan) panels.sheets[shape][g][tier] = { sheet: plan.sheet, cell: plan.cell };
+      });
+    });
   });
   // `sizes` is the old flat shape and stays exactly as it was — a page cached
   // on her phone reads it, and this endpoint is the only thing that serves it.
   res.json({ styles: out, sizes: PL_GPT.sizes, res: PL_GPT.res, resDefault: PL_GPT.resDefault,
-    max: PL_GPT.promptMax, photoLine: PL_GPT.photoLine });
+    max: PL_GPT.promptMax, photoLine: PL_GPT.photoLine, panels });
 });
 
 app.get('/api/promptlab/:id', async (req, res) => {
@@ -6177,7 +6403,10 @@ app.post('/api/promptlab/:id/vote', async (req, res) => {
   try {
     if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
     const i = Number(req.body.image);
-    if (!Number.isInteger(i) || i < 0 || i > 3) return res.status(400).json({ error: 'image index 0-3 required' });
+    // 0-24: a run used to hold at most 4 images, but a panels run's images
+    // are its cut panels — up to 9 today, 25 when the 5x5 grid lands. The
+    // old `i > 3` cap 400'd a heart on panel 5 of 9.
+    if (!Number.isInteger(i) || i < 0 || i > 24) return res.status(400).json({ error: 'image index 0-24 required' });
     const vote = ['like', 'dislike'].includes(req.body.vote) ? req.body.vote : null;
     const ref = admin.firestore().collection(PROMPTLAB).doc(req.params.id);
     await ref.update({ [`votes.${i}`]: vote === null ? admin.firestore.FieldValue.delete() : vote });
@@ -6238,7 +6467,13 @@ function promptlabHay(r) {
   const shape = r.aspectRatio === '1:1' ? 'square' : (r.aspectRatio === '2:3' ? 'portrait' : '');
   return [r.prompt, st && st.label, r.gptStyle, r.model, r.quality, r.aspectRatio, shape,
     r.status === 'failed' ? 'failed' : '', r.status === 'cancelled' ? 'cancelled' : '',
-    r.photoRef ? 'photo ref' : ''].filter(Boolean).join('  ');
+    r.photoRef ? 'photo ref' : '',
+    // A panels run: every panel's own words, and the grid by name — so
+    // "panels" and "3x3" both find it. `prompt` already joins the texts,
+    // but the words are listed too in case a later shape stops joining.
+    ...(r.panels || []),
+    r.grid && r.grid.count ? `panels ${r.grid.across}x${r.grid.down}` : '',
+  ].filter(Boolean).join('  ');
 }
 // The house grammar (search-grammar.js), matched the FEED's way — every term
 // anchored at a word start, a quoted phrase kept adjacent. Same regexes the

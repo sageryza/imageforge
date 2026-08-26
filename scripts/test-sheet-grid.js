@@ -1,0 +1,209 @@
+#!/usr/bin/env node
+/*
+ * test-sheet-grid.js — the panel sheet's geometry and prompt block (Aug 2026,
+ * Sophie: "we make a picture and cut it into panels … describe each panel
+ * individually"). Pure, no network, no browser.
+ *
+ *   1. THE 1×1 ANCHOR. The derivation must reproduce all SIX of the
+ *      Playground's own canvases from the constraints alone, with the budgets
+ *      read out of the real PL_GPT.res literal in server.js — the strongest
+ *      check that the math is right, and the guarantee the module holds no
+ *      copied numbers that can drift.
+ *   2. EVERY grid × shape × tier IS A LEGAL gpt-image-2 CANVAS with
+ *      WHOLE-PIXEL CELLS — a cut must be a lossless crop of the model's own
+ *      pixels, never a resample. The derived canvases are also pinned
+ *      exactly, so a change to the derivation is loud, not silent.
+ *   3. THE 2×2 GRIDS LAND ON THE LIVE TIER CANVASES EXACTLY (cells are exact
+ *      halves), which is what makes a quartered sheet directly comparable to
+ *      the Playground's own pictures.
+ *   4. cellRects TILES THE SHEET — no gap, no overlap, reading order.
+ *   5. NAMING AND THE GRID SENTENCE — positions, layoutWords, panelBlock with
+ *      her texts verbatim.
+ *   6. THE DREAMY SHEET-SWAP COMPOSES WITH THE NO-TEXT SWAP. `sheet.from`
+ *      must be a verbatim substring of the LIVE dreamy suffix and the swap
+ *      must leave `noText.from` ('no text.') intact — the two swaps touch
+ *      disjoint clauses of one tail, and only reading the real literals out
+ *      of server.js can prove they still do (the test-playground-notext.js
+ *      pinning pattern). An edited tail must make applySheet a NO-OP.
+ *
+ *   node scripts/test-sheet-grid.js
+ */
+'use strict';
+const fs = require('fs');
+const path = require('path');
+
+const ROOT = path.join(__dirname, '..');
+const sheetGrid = require(path.join(ROOT, 'sheet-grid.js'));
+const serverSrc = fs.readFileSync(path.join(ROOT, 'server.js'), 'utf8');
+
+let fails = 0;
+const ok = (cond, what) => {
+  if (cond) console.log('  ok   ' + what);
+  else { console.log('  FAIL ' + what); fails++; }
+};
+
+// The real `res` literal out of server.js — not a second copy of the numbers.
+function resTable() {
+  const i = serverSrc.indexOf('\n  res: {');
+  const b = serverSrc.slice(i + '\n  res: '.length);
+  let lit = b.slice(0, b.indexOf('\n  },') + 4).trim().replace(/,$/, '');
+  lit = lit.replace(/^\s*\/\/.*$/gm, '');
+  return eval('(' + lit + ')');                      // eslint-disable-line no-eval
+}
+const RES = resTable();
+const dim = (s) => s.split('x').map(Number);
+
+console.log('the 1x1 anchor: the derivation reproduces the six live canvases');
+Object.keys(RES).forEach((shape) => {
+  const s = sheetGrid.SHAPES[shape];
+  Object.keys(RES[shape].tiers).forEach((tier) => {
+    const [w, h] = dim(RES[shape].tiers[tier].size);
+    const got = sheetGrid.derive(s.w, s.h, 1, 1, w * h);
+    ok(got && got.W === w && got.H === h,
+      `${shape} ${tier}: 1x1 derives ${w}x${h} (got ${got && `${got.W}x${got.H}`})`);
+  });
+});
+
+console.log('every grid x shape x tier is legal, whole-pixel, and pinned');
+// Pinned by hand from the derivation, so a change to the math is loud.
+const EXPECT = {
+  portrait: {
+    2: { '1k': '1472x1104', '2k': '2240x1680', '4k': '3264x2448' },
+    4: { '1k': '1024x1536', '2k': '1568x2352', '4k': '2336x3504' },
+    9: { '1k': '1056x1584', '2k': '1536x2304', '4k': '2304x3456' },
+  },
+  square: {
+    2: { '1k': '1440x720', '2k': '2720x1360', '4k': '3840x1920' },
+    4: { '1k': '1024x1024', '2k': '1920x1920', '4k': '2880x2880' },
+    9: { '1k': '1008x1008', '2k': '1920x1920', '4k': '2880x2880' },
+  },
+};
+Object.keys(EXPECT).forEach((shape) => {
+  Object.keys(EXPECT[shape]).forEach((grid) => {
+    Object.keys(EXPECT[shape][grid]).forEach((tier) => {
+      const plan = sheetGrid.sheetFor(shape, Number(grid), tier, RES);
+      const want = EXPECT[shape][grid][tier];
+      ok(plan && plan.sheet === want,
+        `${shape} ${grid}-panel ${tier}: ${want} (got ${plan && plan.sheet})`);
+      if (!plan) return;
+      ok(plan.W % 16 === 0 && plan.H % 16 === 0, `  edges %16 (${plan.sheet})`);
+      ok(plan.W <= 3840 && plan.H <= 3840, '  long edge <= 3840');
+      const px = plan.W * plan.H;
+      ok(px >= 655360 && px <= 8294400, `  pixels in range (${px})`);
+      ok(Math.max(plan.W, plan.H) / Math.min(plan.W, plan.H) <= 3, '  ratio <= 3');
+      ok(plan.W === plan.across * plan.cellW && plan.H === plan.down * plan.cellH,
+        `  whole-pixel cells (${plan.cell})`);
+      // The cell keeps its shape exactly — a tier is the same panel at more
+      // pixels, never a different crop.
+      const s = sheetGrid.SHAPES[shape];
+      ok(plan.cellW * s.h === plan.cellH * s.w, `  cell is exactly ${s.aspectRatio}`);
+    });
+  });
+});
+
+console.log('the 2x2 grids land on the live tier canvases exactly');
+Object.keys(RES).forEach((shape) => {
+  Object.keys(RES[shape].tiers).forEach((tier) => {
+    const plan = sheetGrid.sheetFor(shape, 4, tier, RES);
+    ok(plan && plan.sheet === RES[shape].tiers[tier].size,
+      `${shape} ${tier}: 4-panel sheet IS ${RES[shape].tiers[tier].size}`);
+  });
+});
+
+console.log('cellRects tiles the sheet — no gap, no overlap, reading order');
+[[1472, 1104, 2, 1], [2336, 3504, 2, 2], [2304, 3456, 3, 3]].forEach(([W, H, a, d]) => {
+  const rects = sheetGrid.cellRects(W, H, a, d);
+  ok(rects && rects.length === a * d, `${a}x${d} on ${W}x${H}: ${a * d} rects`);
+  if (!rects) return;
+  const area = rects.reduce((s, r) => s + r.width * r.height, 0);
+  ok(area === W * H, '  areas sum to the sheet exactly');
+  const seen = new Set(rects.map((r) => `${r.left},${r.top}`));
+  ok(seen.size === rects.length, '  no two rects share an origin');
+  ok(rects.every((r) => r.left + r.width <= W && r.top + r.height <= H
+    && r.left >= 0 && r.top >= 0), '  every rect inside the sheet');
+  ok(rects[0].left === 0 && rects[0].top === 0, '  first rect is top-left');
+  const last = rects[rects.length - 1];
+  ok(last.left + last.width === W && last.top + last.height === H,
+    '  last rect is bottom-right');
+  // Reading order: tops never decrease; within a row, lefts increase.
+  let ordered = true;
+  for (let i = 1; i < rects.length; i++) {
+    if (rects[i].top < rects[i - 1].top) ordered = false;
+    if (rects[i].top === rects[i - 1].top && rects[i].left <= rects[i - 1].left) ordered = false;
+  }
+  ok(ordered, '  reading order, left to right then top to bottom');
+});
+ok(sheetGrid.cellRects(1000, 900, 3, 1) === null,
+  'a sheet that does not divide answers null, never a rounded rect');
+
+console.log('naming');
+ok(String(sheetGrid.positions(2)) === 'left,right', '2: left, right');
+ok(String(sheetGrid.positions(4)) === 'top left,top right,bottom left,bottom right',
+  '4: the corners');
+ok(String(sheetGrid.positions(9)) === 'top left,top middle,top right,middle left,'
+  + 'center,middle right,bottom left,bottom middle,bottom right',
+  '9: rows named, the middle cell is "center"');
+ok(sheetGrid.layoutWords(2) === 'a single row of 2 panels, side by side', 'layout words for 2');
+ok(sheetGrid.layoutWords(9) === 'a 3x3 grid of 9 panels', 'layout words for 9');
+
+console.log('the panel block carries her words verbatim');
+const block = sheetGrid.panelBlock(4, ['a fox', 'a moon', 'a boat', 'a key']);
+ok(block.indexOf('a 2x2 grid of 4 separate panels') > 0, 'the grid sentence names the grid');
+ok(/equal rectangles, 2 across and 2 down/.test(block), 'the geometry is stated');
+ok(/no gutters and no outer margin/.test(block), 'no gutters, no margin — the cut lines');
+ok(block.indexOf('Panel 1 (top left): a fox') > 0
+  && block.indexOf('Panel 4 (bottom right): a key') > 0, 'panels numbered AND named');
+ok(block.indexOf('a fox') < block.indexOf('a moon')
+  && block.indexOf('a boat') < block.indexOf('a key'), 'reading order preserved');
+
+console.log('the dreamy sheet-swap composes with the no-text swap (live literals)');
+// The live dreamy suffix and noText.from, read out of server.js the way
+// test-playground-notext.js reads them — never a copy.
+function grabString(src, anchor) {
+  // A JS string literal (possibly concatenated over lines) after `anchor`.
+  const i = src.indexOf(anchor);
+  if (i < 0) return null;
+  const tail = src.slice(i + anchor.length);
+  const m = tail.match(/^\s*((?:'(?:[^'\\]|\\.)*'\s*\+?\s*)+)/);
+  if (!m) return null;
+  return eval(m[1].replace(/\+\s*$/, ''));           // eslint-disable-line no-eval
+}
+const dreamyBlock = serverSrc.slice(serverSrc.indexOf('dreamy: {'), serverSrc.indexOf('hoonies: {'));
+const dreamySuffix = grabString(dreamyBlock, 'suffix:');
+// `from:` appears twice in the dreamy block (noText and sheet) — grab both.
+const froms = [];
+let idx = 0;
+while ((idx = dreamyBlock.indexOf('from:', idx)) >= 0) {
+  froms.push(grabString(dreamyBlock.slice(idx), 'from:'));
+  idx += 5;
+}
+const tos = [];
+idx = 0;
+while ((idx = dreamyBlock.indexOf('to:', idx)) >= 0) {
+  const got = grabString(dreamyBlock.slice(idx), 'to:');
+  if (got != null) tos.push(got);
+  idx += 3;
+}
+ok(dreamySuffix && /NOT a grid/.test(dreamySuffix), 'read the live dreamy suffix');
+const sheetSwap = froms.map((f, i) => ({ from: f, to: tos[i] }))
+  .find((p) => p.from && /NOT a grid/.test(p.from));
+const noTextFrom = froms.find((f) => f === 'no text.');
+ok(!!sheetSwap, 'dreamy carries a sheet swap whose `from` is the anti-grid clause');
+ok(noTextFrom === 'no text.', 'dreamy still carries the no-text swap');
+if (sheetSwap && dreamySuffix) {
+  ok(dreamySuffix.includes(sheetSwap.from),
+    'sheet.from is a VERBATIM substring of the live suffix');
+  const swapped = sheetGrid.applySheet(dreamySuffix, sheetSwap, sheetGrid.layoutWords(9));
+  ok(!/NOT a grid/.test(swapped), 'the anti-grid clause is gone after the swap');
+  ok(/a 3x3 grid of 9 panels/.test(swapped), '{layout} filled with the real grid');
+  ok(swapped.includes('no text.'), "the no-text clause survives — the swaps compose");
+  ok(/STYLE reference\s+only/.test(swapped) || /STYLE reference only/.test(swapped),
+    'the anti-content close survives');
+  // Her edited tail wins: a tail without the clause is returned untouched.
+  const edited = 'My own tail, reworded.';
+  ok(sheetGrid.applySheet(edited, sheetSwap, 'a 3x3 grid of 9 panels') === edited,
+    'an edited tail makes the swap a NO-OP — never a second arguing sentence');
+}
+
+console.log(fails ? `\n${fails} FAILED` : '\nall good');
+process.exit(fails ? 1 : 0);

@@ -1,0 +1,221 @@
+/**
+ * THE PANEL SHEET'S GEOMETRY — one place that knows how a grid of panels
+ * becomes a gpt-image-2 canvas and how that canvas comes apart again.
+ * (Aug 2026, Sophie: "we make a picture and cut it into panels … describe
+ * each panel individually. It's a way of saving money on the picture,
+ * especially if it's done in 2K or 4K — then the pixels come out right too.")
+ *
+ * THE CANVAS IS DERIVED, NEVER A LOOKUP TABLE — the same rule size-tier.js
+ * follows. A cell is an integer multiple of its shape (2:3 portrait → 2u×3u,
+ * square → u×u), the sheet is (across·cellW)×(down·cellH), and every sheet
+ * must satisfy ALL of gpt-image-2's constraints (both edges %16, long edge
+ * ≤ 3840, ratio ≤ 3:1, 655,360 ≤ pixels ≤ 8,294,400) PLUS the one this
+ * module adds: whole-pixel cells, so a cut is a lossless crop of the model's
+ * own pixels rather than a resample. Among the legal sheets, the one whose
+ * pixel count is CLOSEST to the tier's budget wins — the tier is a target,
+ * not a ceiling. The budgets are read from the live PL_GPT.res table passed
+ * in, never copied here, and the strongest check that the derivation is
+ * right is that a 1×1 "grid" reproduces all six of the Playground's own
+ * canvases (1024x1536 · 1568x2352 · 2336x3504 · 1024x1024 · 1920x1920 ·
+ * 2880x2880) from the constraints alone — scripts/test-sheet-grid.js pins it.
+ *
+ * One cap worth knowing: the square 2-across sheet at 4K is EDGE-limited to
+ * 3840x1920 (7.37MP, ~11% under the 4K budget) — still honestly a 4K sheet
+ * by pixel count, but the one combo where the tier name promises slightly
+ * more than the edge cap allows.
+ *
+ * Pure and dependency-free on purpose, so the tests need neither sharp nor
+ * a network.
+ */
+'use strict';
+
+// The grids on offer. 25 later is one { across: 5, down: 5 } entry — nothing
+// else in the module counts the panels. (Sophie, 2026-08-26: "2, 4, 9 —
+// possible 25 later".)
+const GRIDS = {
+  2: { across: 2, down: 1 },
+  4: { across: 2, down: 2 },
+  9: { across: 3, down: 3 },
+};
+
+// Cell shapes mirror the Playground's canvas toggle: the toggle picks what
+// shape each PANEL comes out, and the sheet's own shape falls out of the grid.
+const SHAPES = {
+  portrait: { w: 2, h: 3, aspectRatio: '2:3' },
+  square: { w: 1, h: 1, aspectRatio: '1:1' },
+};
+
+// gpt-image-2's published constraints (see PL_GPT.res in server.js).
+const EDGE_MULT = 16;
+const MAX_EDGE = 3840;
+const MAX_RATIO = 3;
+const MIN_PX = 655_360;
+const MAX_PX = 8_294_400;
+
+function legal(W, H) {
+  if (W % EDGE_MULT || H % EDGE_MULT) return false;
+  if (W > MAX_EDGE || H > MAX_EDGE) return false;
+  const px = W * H;
+  if (px < MIN_PX || px > MAX_PX) return false;
+  const ratio = Math.max(W, H) / Math.min(W, H);
+  return ratio <= MAX_RATIO;
+}
+
+/**
+ * The best sheet for `across`×`down` cells of shape (shapeW:shapeH), aiming
+ * at `budget` pixels. Scans the integer cell unit — the space is tiny (a cell
+ * edge can never exceed 3840px) — and returns null when no legal sheet
+ * exists, never an invented one.
+ */
+function derive(shapeW, shapeH, across, down, budget) {
+  let best = null;
+  for (let u = 1; u * Math.max(shapeW, shapeH) <= MAX_EDGE; u++) {
+    const cellW = shapeW * u;
+    const cellH = shapeH * u;
+    const W = across * cellW;
+    const H = down * cellH;
+    if (W > MAX_EDGE && H > MAX_EDGE) break;
+    if (!legal(W, H)) continue;
+    const diff = Math.abs(W * H - budget);
+    if (!best || diff < best.diff) best = { W, H, cellW, cellH, diff };
+  }
+  return best;
+}
+
+/**
+ * sheetFor('portrait', 9, '2k', PL_GPT.res) → the sheet plan, or null.
+ * `resTable` is the live PL_GPT.res so the budgets are the Playground's own
+ * canvases, never a copy that can drift.
+ */
+function sheetFor(shape, grid, tier, resTable) {
+  const s = SHAPES[shape];
+  const g = GRIDS[Number(grid)];
+  const row = resTable && resTable[shape] && resTable[shape].tiers
+    && resTable[shape].tiers[tier];
+  if (!s || !g || !row) return null;
+  const m = /^(\d+)x(\d+)$/.exec(String(row.size || ''));
+  if (!m) return null;
+  const budget = Number(m[1]) * Number(m[2]);
+  const best = derive(s.w, s.h, g.across, g.down, budget);
+  if (!best) return null;
+  return {
+    sheet: `${best.W}x${best.H}`, W: best.W, H: best.H,
+    cell: `${best.cellW}x${best.cellH}`, cellW: best.cellW, cellH: best.cellH,
+    across: g.across, down: g.down, count: g.across * g.down,
+    // The CELL's ratio — it is what each finished panel is, and what the
+    // Playground feed renders the run's pictures with.
+    aspectRatio: s.aspectRatio,
+  };
+}
+
+/**
+ * Panel names, reading order. Number + name is deliberate redundancy in the
+ * prompt: the number pins reading order, the name pins geometry. Grids wider
+ * or taller than 3 (the future 25) fall back to row/column words, because
+ * past three columns there is no natural English name for a cell.
+ */
+function positions(grid) {
+  const g = GRIDS[Number(grid)];
+  if (!g) return [];
+  const { across, down } = g;
+  if (across > 3 || down > 3) {
+    const out = [];
+    for (let r = 0; r < down; r++) {
+      for (let c = 0; c < across; c++) out.push(`row ${r + 1}, column ${c + 1}`);
+    }
+    return out;
+  }
+  if (down === 1) {
+    return across === 2 ? ['left', 'right']
+      : ['left', 'middle', 'right'].slice(0, across);
+  }
+  const rows = down === 2 ? ['top', 'bottom'] : ['top', 'middle', 'bottom'];
+  const cols = across === 2 ? ['left', 'right'] : ['left', 'middle', 'right'];
+  const out = [];
+  for (let r = 0; r < down; r++) {
+    for (let c = 0; c < across; c++) {
+      const name = rows[r] === 'middle' && cols[c] === 'middle'
+        ? 'center' : `${rows[r]} ${cols[c]}`;
+      out.push(name);
+    }
+  }
+  return out;
+}
+
+/** 'a single row of 2 panels, side by side' | 'a 3x3 grid of 9 panels'. */
+function layoutWords(grid) {
+  const g = GRIDS[Number(grid)];
+  if (!g) return '';
+  const count = g.across * g.down;
+  return g.down === 1
+    ? `a single row of ${count} panels, side by side`
+    : `a ${g.across}x${g.down} grid of ${count} panels`;
+}
+
+/**
+ * The content block: the grid sentence, then one line per panel with her
+ * words VERBATIM. The panels are going to be cut on the mathematical grid
+ * lines, so the sentence asks for exactly that geometry — equal rectangles,
+ * edges on the lines, no gutters, no outer margin — and says nothing about
+ * borders or caption boxes, which are the style's business.
+ */
+function panelBlock(grid, texts) {
+  const g = GRIDS[Number(grid)];
+  if (!g) return '';
+  const count = g.across * g.down;
+  const shape = g.down === 1
+    ? `a single row of ${count} separate panels, side by side`
+    : `a ${g.across}x${g.down} grid of ${count} separate panels`;
+  const names = positions(grid);
+  const lines = (texts || []).map(
+    (t, i) => `Panel ${i + 1} (${names[i]}): ${String(t || '').trim()}`);
+  return [
+    `This page is ${shape} — equal rectangles, ${g.across} across and `
+    + `${g.down} down, with straight edges exactly on the grid lines, no `
+    + 'gutters and no outer margin. Each panel is its own complete, '
+    + 'self-contained illustration. In reading order, left to right, top to '
+    + 'bottom:',
+    ...lines,
+  ].join('\n');
+}
+
+/**
+ * The cut boxes, reading order. Exact by construction — the sheet divides
+ * into whole-pixel cells, so left/top are plain products and the rects tile
+ * the sheet with no gap and no overlap (the test proves it rather than
+ * trusting this comment).
+ */
+function cellRects(W, H, across, down) {
+  const cellW = W / across;
+  const cellH = H / down;
+  if (!Number.isInteger(cellW) || !Number.isInteger(cellH)) return null;
+  const out = [];
+  for (let r = 0; r < down; r++) {
+    for (let c = 0; c < across; c++) {
+      out.push({ left: c * cellW, top: r * cellH, width: cellW, height: cellH });
+    }
+  }
+  return out;
+}
+
+/**
+ * A style's tail can FIGHT a sheet — Dreamy's ends "Render as ONE single
+ * illustration — NOT a grid, NOT split panels", which is load-bearing on an
+ * ordinary run (its reference IS a multi-panel comic page) and poison on a
+ * sheet: two sentences arguing about the layout produce one panel with
+ * ghosts of the others. The fix is a SWAP, never an appended argument — the
+ * same mechanism as the no-text toggle (`applyNoText` in server.js): the
+ * style carries `sheet: { from, to }` and the clause is replaced, with
+ * `{layout}` in `to` filled from `layoutWords(grid)`.
+ *
+ * If `from` is not in the tail — she edited it — this NO-OPS. Her wording
+ * wins, and the grid sentence in the content block still asks for the grid;
+ * the Prompt panel discloses whatever was really sent either way.
+ */
+function applySheet(suffix, swap, layout) {
+  const s = String(suffix || '');
+  if (!swap || !swap.from || !s.includes(swap.from)) return s;
+  return s.replace(swap.from, String(swap.to || '').replace('{layout}', layout || ''));
+}
+
+module.exports = { GRIDS, SHAPES, sheetFor, derive, positions, layoutWords, panelBlock, cellRects, applySheet };
