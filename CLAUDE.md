@@ -5857,9 +5857,10 @@ before working on that module. Nothing was deleted — the moved text is verbati
   in the top right within the existing header space where the tags are, of my
   update tab … that leads to two tabs — two mockups of instagram"). Her
   accounts drawn as their profile grids, behind hairline tabs: **DREAM**
-  (`you...my.dreams`), **WITCH** (`moonsickbaby`) and, since 2026-08-24,
-  **PWC** (`people.watching.club`). **It costs nothing** — no model call, no
-  job; it reads a committed JSON and one free API.
+  (`you...my.dreams`), **WITCH** (`moonsickbaby`), **PWC** (`peoplewatchclub`,
+  since 2026-08-24) and **XI** (`incaseofamnesia`, since 2026-08-26). **It
+  costs nothing** — no model call, no job; it reads a committed JSON and one
+  free API.
   - **A NEW ACCOUNT IS ONE ROW IN `public/instagram-grids.json` — nothing
     counts the tabs, in the page or in the test (2026-08-24, Sophie: "can you
     add another Hairline tab in my Instagram posting button on the update page
@@ -5890,8 +5891,29 @@ before working on that module. Nothing was deleted — the moved text is verbati
     `pwc-instagram-content`, the chat that can act on it.
   - **The handle and bio are a PLACEHOLDER she has not confirmed** — nothing in
     the feed or the repo records the real PWC Instagram handle, so the mockup
-    reads `people.watching.club` / "field notes from public places." Swap both
-    the moment she says what they are; they are two strings in the JSON.
+    reads `peoplewatchclub` / "like a ghost among the living, silently
+    witnessing." Same for XI (`incaseofamnesia`). Swap them the moment she says
+    what they are; they are two strings in the JSON.
+  - **XI HOLDS THE TWO MEMORY LIBRARY ADS, ONE CUT EACH (2026-08-26, Sophie:
+    "fill it with any reels we made for XI I think there's a couple versions of
+    some so just pick one version").** Xi / Memory Library / incaseofamnesia.com
+    is one app under three names, so its reels are the two the commercial series
+    shot for it: **skipsmalltalk** (the infomercial date, 0:31,
+    `fictional-pill-commercial`) and **the couple fight** (0:25,
+    `commercial-production-series`). The fight exists as TWO takes — a warm cut
+    and a spiky cut of the identical ad — and the grid carries the WARM one,
+    because that is the cut the chat pinned as its deliverable and `/newest`
+    resolves that prefix from the pin. The spiky cut is not lost: it is one row
+    away in `manifest-reel-memoryfight-spiky.json`.
+  - **THE STREET-INTERVIEW AD WAS NEVER SHOT** — it is greenlit and waiting on
+    her pick between two questions (`fictional-pill-commercial`, 2026-08-16). So
+    two real tiles is the honest state of the account, not a gap to fill; the
+    tile appears the day the film lands, as one row in the JSON.
+  - **THE COVERS ARE DERIVED COPIES, never the raw stills** — `GET
+    /api/story/thumb?w=640&url=<still>` bakes a webp into `thumbs/` and answers
+    a 302 to its permanent public url, which is what the JSON carries (33-41KB,
+    against 2.2MB for the PNG behind it). The house webp rule with no new
+    tooling: the originals in `commercials/reels/<slug>/stills/` are untouched.
   - **THE DREAM GRID IS THE ONE THE dream-app-commercial CHAT ALREADY MADE, not
     a copy of it** (her ask: "reuse it exactly, it plays the films"). The phone,
     the 3:4 crop, the tiles that play and the current-cut refresh live in

@@ -178,6 +178,68 @@
           "label": "next"
         }
       ]
+    },
+    {
+      "id": "xi",
+      "tab": "Xi",
+      "handle": "incaseofamnesia",
+      "bio": "memory library. incaseofamnesia.com",
+      "avatar": "Ξ",
+      "tiles": [
+        {
+          "id": "skipsmalltalk",
+          "cover": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/thumbs/19765254049b4b482b4273a9c8eed65cd08cc3da.webp",
+          "label": "Skip the small talk",
+          "meta": "0:31",
+          "film": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/skipsmalltalk/skipsmalltalk-reel-draft-v1.mp4",
+          "prefix": "commercials/reels/skipsmalltalk",
+          "chat": "fictional-pill-commercial"
+        },
+        {
+          "id": "memoryfight",
+          "cover": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/thumbs/bd3fbe1f54fd6733bba1877c978dd22b057c3ba7.webp",
+          "label": "The fight — the receipts",
+          "meta": "0:25",
+          "film": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/memoryfight-warm/memoryfight-warm-reel-draft-v1.mp4",
+          "prefix": "commercials/reels/memoryfight-warm",
+          "chat": "commercial-production-series"
+        },
+        {
+          "id": "next1",
+          "empty": true,
+          "label": "next"
+        },
+        {
+          "id": "next2",
+          "empty": true,
+          "label": "next"
+        },
+        {
+          "id": "next3",
+          "empty": true,
+          "label": "next"
+        },
+        {
+          "id": "next4",
+          "empty": true,
+          "label": "next"
+        },
+        {
+          "id": "next5",
+          "empty": true,
+          "label": "next"
+        },
+        {
+          "id": "next6",
+          "empty": true,
+          "label": "next"
+        },
+        {
+          "id": "next7",
+          "empty": true,
+          "label": "next"
+        }
+      ]
     }
   ]
 }
