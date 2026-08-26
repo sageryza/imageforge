@@ -36,6 +36,11 @@ page = r"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Story Room</title>
+<!-- THE THREE-WAY TOGGLE is the one shared shell (/tritoggle.css), never a
+     fourth hand-copy of the geometry; /tritoggle.js is the aim rule — a tap
+     lands on the stop under the thumb rather than cycling. -->
+<link rel="stylesheet" href="/tritoggle.css">
+<script src="/tritoggle.js"></script>
 <style>
 @font-face{font-family:'EBGaramond';font-weight:400 700;font-display:swap;src:url(data:font/ttf;base64,__FONT__) format('truetype');}
 :root{ --paper:#f6f2e9; --ink:#26221c; --ink2:#8a8377; --line:#d9d2c2; --barbg:#fffdf7; --gold:#a8845c;
@@ -592,11 +597,25 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   overflow:hidden; background:none; opacity:.4; cursor:pointer;}
 #dchar.on{opacity:1; border-color:var(--ink);}
 #dchar img{width:100%; height:100%; object-fit:cover; display:block;}
-#dq{font-family:-apple-system,sans-serif; font-size:16px; border:1px solid var(--line);
-  border-radius:6px; background:var(--paper); color:var(--ink); padding:6px 8px;}
-#dq option{color:#26221c;}
-#dgo{margin-left:auto; font-family:'EBGaramond',Georgia,serif; font-size:16px; background:var(--ink); color:var(--paper);
-  border:none; border-radius:6px; padding:8px 18px; cursor:pointer;}
+/* QUALITY IS THE THREE-WAY TOGGLE (2026-08-26, Sophie: "can you make the
+   three-way toggle for the quality instead of the drop-down"). Both copies —
+   the card's own draw and the draw-them-all confirm — are `.tri` from
+   /tritoggle.css, so the geometry is the shell's and this page sets only its
+   COLOUR and its size. Paper with an ink line and a dark knob, the
+   Playground's own family (Aug 2026, "they should have black outlines"): the
+   toggle then sits with #dchar's outlined box rather than being the one solid
+   slab on the row, and what is lit is the stop she is on. 78/26 is her own
+   wider track, and it lands at 34px tall — exactly #dchar's height. */
+#dq,#bq{--tri-fill:var(--paper); --tri-line:var(--ink); --tri-knob:var(--ink);
+  --tri-ink:var(--paper); --tri-w:78px; --tri-k:26px;}
+#bq{align-self:flex-start;}
+/* Draw wears the stars (2026-08-26, Sophie: "can you make the draw button the
+   stars logo we use for generate") — the ONE generate glyph, the same square
+   ink box the Playground's Generate is. */
+#dgo{margin-left:auto; width:34px; height:34px; flex:none; padding:0;
+  background:var(--ink); color:var(--paper); border:none; border-radius:6px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;}
+#dgo svg{width:19px; height:19px;}
 #dgo:disabled{opacity:.5;}
 /* A beat being drawn (or a failed draw) says so on its own line. */
 #genstate{color:var(--ink2); font-style:italic; font-size:15px; text-align:center; max-width:80vw;}
@@ -858,8 +877,8 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
       <div id="promhint" hidden>empty — this beat draws from its caption</div>
       <div class="drawrow">
         <button id="dchar" class="on" aria-label="Draw Sophie from her reference"><img src="/scratchpad-sophie.png" alt="Sophie"></button>
-        <select id="dq" aria-label="Quality"><option value="low">low</option><option value="medium" selected>medium</option><option value="high">high</option></select>
-        <button id="dgo">Draw</button>
+        <button id="dq" class="tri" data-n="0" data-i="L" aria-label="Quality — low"></button>
+        <button id="dgo" aria-label="Draw it">__STAR__</button>
       </div>
     </div>
   </div>
@@ -890,7 +909,7 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 <div id="bulkask" hidden>
   <div class="bulkbox">
     <p id="bulkline"></p>
-    <select id="bq" aria-label="Quality"><option value="low" selected>low</option><option value="medium">medium</option><option value="high">high</option></select>
+    <button id="bq" class="tri" data-n="0" data-i="L" aria-label="Quality — low"></button>
     <div class="bulkrow">
       <button id="bulkno">Not now</button>
       <button id="bulkyes">Draw them</button>
@@ -1284,6 +1303,7 @@ var HELP=[
   {sel:'#ardraw', nm:'Draw it', what:'Draws this beat here, from its words.'},
   {sel:'#arplay', nm:'Playground', what:'Opens the Playground to make its art there instead.'},
   {sel:'#arinbox', nm:'From the inbox', what:'Swaps in a picture or clip you already have.'},
+  {sel:'#dgo', nm:'Draw', what:'Under Drawing prompt: draws it, at the quality on the toggle beside it. Low is where it starts.'},
   {sel:'#speak', nm:'Hear it', what:'Reads the beat aloud in your voice.'},
   {sel:'#micbtn', nm:'Record it', what:'Records you reading it. Your own take always wins over the read-aloud, and every take is kept.'},
   {sel:'#linkbtn', nm:'Link', what:'Joins this beat to the next one into a chunk, sharing one frame.'},
@@ -1365,6 +1385,34 @@ document.getElementById('filmplay').onclick=function(ev){
 };
 /* ── draw the missing pictures: count → cost → are you sure → go ──── */
 var BULK_PRICE={low:2, medium:6, high:25};   // ¢ per picture, gpt-image-2
+/* THE TWO QUALITY TOGGLES (2026-08-26, Sophie: "change the default to low
+   instead of medium" · "make the three-way toggle for the quality instead of
+   the drop-down"). LOW is where both open now — the card's draw used to open
+   on medium, which is 3x the price of a picture she is usually only looking
+   at to see whether the words draw at all.
+   The stops are NUMBERED on the element (`data-n`), which is the shell's whole
+   contract, so nothing here counts the notches but this one list. */
+var QUALS=['low','medium','high'];
+var QINIT=['L','M','H'];
+// THE AIM RULE LIVES IN /tritoggle.js — the ONE copy. This line is only a
+// floor for the case where that file does not load (a stale cache, a stub
+// harness): it is the old CYCLE, deliberately not a second implementation of
+// the aim, so this page can never quietly grow its own version of the rule.
+var triNext = window.triNext || function(el,count,ev,cur){ return ((cur|0)+1+count)%count; };
+function qVal(id){ var el=document.getElementById(id); return QUALS[+el.dataset.n]||'low'; }
+function qSet(id,n){
+  var el=document.getElementById(id);
+  el.dataset.n=n; el.dataset.i=QINIT[n];
+  el.setAttribute('aria-label','Quality — '+QUALS[n]);
+}
+function wireQ(id,after){
+  var el=document.getElementById(id);
+  el.onclick=function(ev){
+    ev.stopPropagation();
+    qSet(id, triNext(el, QUALS.length, ev, +el.dataset.n));
+    if(after) after();
+  };
+}
 function stripSpeech(t){
   return String(t||'').replace(/<break[^>]*>/gi,' ').replace(/\[[^\]\n]{1,40}\]/g,' ').replace(/\s+/g,' ').trim();
 }
@@ -1389,7 +1437,7 @@ function renderDrawall(){
 }
 function bulkLine(){
   var n=drawables().length;
-  var cents=n*BULK_PRICE[document.getElementById('bq').value];
+  var cents=n*BULK_PRICE[qVal('bq')];
   var cost=cents>=100?('$'+(cents/100).toFixed(2)):(cents+'¢');
   document.getElementById('bulkline').textContent=
     'Draw '+n+(n===1?' picture':' pictures')+' · about '+cost+'. Sure?';
@@ -1400,7 +1448,7 @@ document.getElementById('drawallbtn').onclick=function(ev){
   bulkLine();
   document.getElementById('bulkask').hidden=false; lock(true);
 };
-document.getElementById('bq').onchange=bulkLine;
+wireQ('bq', bulkLine);
 document.getElementById('bulkno').onclick=function(ev){
   ev.stopPropagation();
   document.getElementById('bulkask').hidden=true; lock(false);
@@ -1409,7 +1457,7 @@ document.getElementById('bulkask').onclick=function(ev){ if(ev.target===this){th
 document.getElementById('bulkyes').onclick=function(ev){
   ev.stopPropagation();
   var btn=this; btn.disabled=true;
-  api('/drawall',{method:'POST',body:JSON.stringify({quality:document.getElementById('bq').value,style:padStyle})})
+  api('/drawall',{method:'POST',body:JSON.stringify({quality:qVal('bq'),style:padStyle})})
     .then(function(r){return r.json()})
     .then(function(d){
       btn.disabled=false;
@@ -2245,6 +2293,7 @@ document.getElementById('dchar').onclick=function(ev){
   ev.stopPropagation();
   this.classList.toggle('on');
 };
+wireQ('dq');
 document.getElementById('dgo').onclick=function(ev){
   ev.stopPropagation();
   var b=popBeat; if(!b)return;
@@ -2254,7 +2303,7 @@ document.getElementById('dgo').onclick=function(ev){
   saveNote(); savePrompt();
   api('/generate',{method:'POST',body:JSON.stringify({
     id:b.id, prompt:prompt,
-    quality:document.getElementById('dq').value,
+    quality:qVal('dq'),
     style:padStyle,
     character:padStyle!=='dreamy'&&document.getElementById('dchar').classList.contains('on'),
   })}).then(function(r){return r.json()}).then(function(d){

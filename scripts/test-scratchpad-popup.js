@@ -21,6 +21,10 @@
 //      never as an open box; the pencil is what swaps the box in.
 //   8. (2026-08-24) a beat with NO picture: the blank tile is small, and
 //      the drawing prompt opens beside the caption instead of folded away.
+//   9. (2026-08-26) the draw row: Draw wears the house generate star (the
+//      SAME markup #ardraw draws, never a second copy), and quality is the
+//      shared three-way toggle opening on LOW — aimed at a POSITION, since a
+//      click on the element's centre is where a cycle and an aim agree.
 //
 //   node scripts/test-scratchpad-popup.js
 //
@@ -97,6 +101,13 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/api/scratchpad') return json({ beats, title: 'popup test', film: null, audios: [] });
   if (url.pathname === '/px.png') { res.writeHead(200, { 'Content-Type': 'image/png' }); return res.end(PNG); }
   if (url.pathname === '/scratchpad-sophie.png') { res.writeHead(200, { 'Content-Type': 'image/png' }); return res.end(PNG); }
+  // The shared three-way toggle: express.static serves both in production.
+  // Without the CSS the toggle renders as a 4px sliver; without the JS the page
+  // falls back to the old CYCLE, which would green-light the aim bug.
+  if (url.pathname === '/tritoggle.css' || url.pathname === '/tritoggle.js') {
+    res.writeHead(200, { 'Content-Type': url.pathname.endsWith('.css') ? 'text/css' : 'text/javascript' });
+    return res.end(fs.readFileSync(path.join(PUB, url.pathname.slice(1))));
+  }
   if (url.pathname === '/scratchpad.html') {
     res.writeHead(200, { 'Content-Type': 'text/html' });
     return res.end(fs.readFileSync(path.join(PUB, 'scratchpad.html')));
@@ -329,6 +340,56 @@ const VW = 390, VH = 780;
   ok(!(await shown('#pnote')), 'the caption is still words-plus-pencil here too');
   ok((await box('#drawbox')).b <= (await box('#beatcard')).b + 1,
     'both boxes fit inside the card');
+
+  // 8 — THE DRAW ROW (2026-08-26, Sophie: "can you make the draw button the
+  // stars logo we use for generate and can you change the default to low
+  // instead of medium and can you make the three-way toggle for the quality
+  // instead of the drop-down"). The drawing box is already open on this
+  // picture-less beat, which is where she reads it.
+  ok(await shown('#dgo'), 'the Draw button is showing');
+  // ONE generate glyph: it is the SAME drawing as the art row's star, compared
+  // as markup rather than against a path copied into this test — a second copy
+  // anywhere is what the house rule exists to stop.
+  const [drawSvg, artSvg] = await page.evaluate(() => [
+    document.getElementById('dgo').innerHTML.trim(),
+    document.getElementById('ardraw').innerHTML.trim(),
+  ]);
+  ok(drawSvg === artSvg, 'Draw wears the house generate star, the same one #ardraw does');
+  ok(!/[A-Za-z]/.test(await page.$eval('#dgo', (el) => el.textContent)),
+    'and it is the glyph alone — the word "Draw" is gone');
+  const dgo = await box('#dgo');
+  ok(Math.abs(dgo.w - dgo.h) < 1.5,
+    'it is a square (' + Math.round(dgo.w) + 'x' + Math.round(dgo.h) + ')');
+  ok(await page.$eval('#dgo', (el) => getComputedStyle(el).borderRadius) === '6px',
+    'at the house radius, never a pill');
+
+  // The quality is the shared three-way toggle, and it opens on LOW.
+  const qTag = await page.$eval('#dq', (el) => el.tagName + '.' + el.className);
+  ok(qTag === 'BUTTON.tri', 'quality is the shared .tri toggle, not a <select> (' + qTag + ')');
+  ok(await page.$eval('#dq', (el) => el.dataset.n) === '0'
+    && await page.$eval('#dq', (el) => el.dataset.i) === 'L',
+    'it opens on LOW');
+  ok(await page.$eval('#bq', (el) => el.dataset.n) === '0',
+    'and so does the draw-them-all one');
+  // The shell really loaded: a missing /tritoggle.css renders it as a sliver.
+  const qb = await box('#dq');
+  ok(qb.w > 60 && qb.h > 25,
+    'the shell is on it (' + Math.round(qb.w) + 'x' + Math.round(qb.h) + ')');
+  // WHERE SHE TAPPED IS THE STOP SHE MEANT — a POSITION, not the element:
+  // playwright aims at an element's centre, where a cycle and an aim agree.
+  await page.mouse.click(qb.x + qb.w * 0.85, qb.y + qb.h / 2);
+  ok(await page.$eval('#dq', (el) => el.dataset.i) === 'H', 'a tap on the right lands on HIGH');
+  await page.mouse.click(qb.x + qb.w * 0.5, qb.y + qb.h / 2);
+  ok(await page.$eval('#dq', (el) => el.dataset.i) === 'M', 'the middle stop is reachable in one tap');
+  await page.mouse.click(qb.x + qb.w * 0.15, qb.y + qb.h / 2);
+  ok(await page.$eval('#dq', (el) => el.dataset.i) === 'L', 'and back to LOW, never a cycle');
+
+  // What the toggle says is what the draw spends.
+  await page.click('#dgo');
+  await page.waitForFunction(() => true);
+  const drew = posted.filter(([p]) => p === '/api/scratchpad/generate').pop();
+  ok(drew && drew[1].quality === 'low', 'Draw sends the quality on the knob (' +
+    (drew ? drew[1].quality : 'nothing posted') + ')');
 
   await browser.close();
   server.close();
