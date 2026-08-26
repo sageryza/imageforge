@@ -564,7 +564,28 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 #capedit.on,#promedit.on{color:var(--ink);}
 #pnote{flex:1; min-width:0; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:17px;
   line-height:1.4; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:6px;
-  padding:10px 12px; resize:none;}
+  padding:10px 12px 34px; resize:none;}
+/* THE BIGGER BOX, ON BOTH OF THEM (2026-08-26, Sophie: "make it possible to
+   open the caption and the drawing prompt in bigger boxes so I can edit them
+   but don't make that the default"). Three rows is right for reading a beat
+   and wrong for rewriting one, and she dictates paragraphs into both.
+   The Playground's own answer, lifted in SHAPE rather than copied
+   (`#bigprompt` in promptlab.html): a 26px rounded square INSIDE the box's
+   bottom-right corner toggles the SAME textarea taller — never a second
+   field, so there is nothing to sync back — and the textarea reserves that
+   corner with padding-bottom so her last line is never typed under it.
+   NOT the default and NOT sticky: `resetBig()` puts both back small every
+   time a card opens, so the big box is a moment and the small one is the
+   card's shape. The card is a flex column over a scroller and #artwrap is
+   flex:1 with a min-height, so a big box takes its room off the PICTURE
+   rather than off the words. */
+.bigwrap{position:relative; flex:1; min-width:0; display:flex; width:100%;}
+.bigwrap textarea.big{min-height:46vh;}
+.bigbtn{position:absolute; right:6px; bottom:6px; width:26px; height:26px;
+  display:flex; align-items:center; justify-content:center; padding:0; margin:0;
+  border:1px solid var(--line); border-radius:6px; background:var(--paper);
+  color:var(--ink2); cursor:pointer;}
+.bigbtn svg{width:14px; height:14px;}
 .poprow{flex:none; display:flex; gap:14px;}
 #speak,#linkbtn,#micbtn,#coverbtn,#delbtn{width:34px; height:34px; display:flex; align-items:center; justify-content:center; padding:0;
   border:1px solid var(--line); border-radius:6px; background:none; color:var(--ink); cursor:pointer;}
@@ -638,7 +659,7 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 #promtext:empty{min-height:22px;}
 #dprompt{flex:1; min-width:0; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px;
   line-height:1.4; color:var(--ink); background:var(--paper); border:1px solid var(--line);
-  border-radius:6px; padding:10px 12px; resize:none;}
+  border-radius:6px; padding:10px 12px 34px; resize:none;}
 .drawrow{display:flex; align-items:center; gap:10px;}
 #dchar{width:34px; height:34px; flex:none; padding:0; border:1.5px solid var(--line); border-radius:6px;
   overflow:hidden; background:none; opacity:.4; cursor:pointer;}
@@ -961,7 +982,7 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
     <button class="tlab" id="caplab" aria-expanded="true">Caption<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
     <div id="capview">
       <div id="captext"></div>
-      <textarea id="pnote" rows="3" hidden></textarea>
+      <div class="bigwrap" id="pnotewrap" hidden><textarea id="pnote" rows="3"></textarea><button type="button" class="bigbtn" id="pnotebig" aria-label="Bigger box"></button></div>
       <button id="capedit" aria-label="Edit the caption"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button>
     </div>
   </div>
@@ -970,7 +991,7 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
     <div id="drawbox" hidden>
       <div id="promview">
         <div id="promtext"></div>
-        <textarea id="dprompt" rows="3" placeholder="what to draw" hidden></textarea>
+        <div class="bigwrap" id="dpromptwrap" hidden><textarea id="dprompt" rows="3" placeholder="what to draw"></textarea><button type="button" class="bigbtn" id="dpromptbig" aria-label="Bigger box"></button></div>
         <button id="promedit" aria-label="Edit the drawing prompt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button>
       </div>
       <div id="promhint" hidden>empty — this beat draws from its caption</div>
@@ -2445,6 +2466,7 @@ function openBeat(b){
   // The caption opens as WORDS with a pencil beside them; the box behind it
   // carries the same text so drawPrompt() and saveNote() read it either way.
   capEditing=false;
+  resetBig();
   document.getElementById('pnote').value=b.text||'';
   document.getElementById('captext').textContent=b.text||'';
   document.getElementById('coverbtn').hidden=!artOf(b);
@@ -2690,7 +2712,9 @@ function paintCap(){
   var open=document.getElementById('caplab').getAttribute('aria-expanded')==='true';
   document.getElementById('capview').hidden=!open;
   document.getElementById('captext').hidden=capEditing;
-  document.getElementById('pnote').hidden=!capEditing;
+  // The WRAPPER carries the hidden flag, not the textarea — the bigger-box
+  // button lives inside it and must go away with the box it belongs to.
+  document.getElementById('pnotewrap').hidden=!capEditing;
   document.getElementById('capedit').classList.toggle('on',capEditing);
 }
 /* The prompt's two faces, the caption's rule exactly (2026-08-26). The words
@@ -2702,9 +2726,50 @@ function paintProm(){
   var ta=document.getElementById('dprompt');
   document.getElementById('promtext').textContent=ta.value;
   document.getElementById('promtext').hidden=promEditing;
-  ta.hidden=!promEditing;
+  // The WRAPPER carries the hidden flag, not the textarea — the bigger-box
+  // button lives inside it and must go away with the box it belongs to.
+  document.getElementById('dpromptwrap').hidden=!promEditing;
   document.getElementById('promedit').classList.toggle('on',promEditing);
 }
+/* ── the bigger box, on the caption and on the drawing prompt ────────
+   ONE pair of glyphs and one wiring loop for both, so the two boxes can
+   never end up behaving differently. Lucide `maximize-2` / `minimize-2`. */
+var ICON_BIGGER='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>';
+var ICON_SMALLER='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>';
+var BIGBOX=[['pnote','pnotebig'],['dprompt','dpromptbig']];
+function paintBig(){
+  BIGBOX.forEach(function(p){
+    var box=document.getElementById(p[0]), btn=document.getElementById(p[1]);
+    var big=box.classList.contains('big');
+    btn.innerHTML=big?ICON_SMALLER:ICON_BIGGER;
+    var lab=big?'Back to the small box':'Bigger box';
+    btn.setAttribute('aria-label',lab); btn.title=lab;
+  });
+}
+/* Every card opens SMALL — she asked for the big box as an option, never as
+   the default, and a box left big on the last beat is exactly that. */
+function resetBig(){
+  BIGBOX.forEach(function(p){
+    var box=document.getElementById(p[0]);
+    box.classList.remove('big'); box.style.height='';
+  });
+  paintBig();
+}
+BIGBOX.forEach(function(p){
+  document.getElementById(p[1]).onclick=function(ev){
+    ev.stopPropagation();
+    var box=document.getElementById(p[0]);
+    box.classList.toggle('big');
+    // A hand-dragged resize (desktop) would otherwise out-rank the class and
+    // "back to small" would not shrink.
+    box.style.height='';
+    paintBig();
+    // The card is a scroller, so a box that just grew past its bottom is a box
+    // she has to go and find. Bring it back under her thumb.
+    if(box.classList.contains('big')) box.scrollIntoView({block:'nearest'});
+  };
+});
+paintBig();
 function setBoxes(capOpen, promOpen){
   var cl=document.getElementById('caplab'), pl=document.getElementById('promlab');
   document.getElementById('drawbox').hidden=!promOpen;
