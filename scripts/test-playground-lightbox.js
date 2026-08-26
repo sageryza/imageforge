@@ -1,27 +1,28 @@
 #!/usr/bin/env node
-// THE PLAYGROUND'S LIGHTBOX — THE PICTURE IS THERE AT ONCE, THERE IS A WAY
-// OUT, AND THE PROMPT SAYS WHICH HALF IS WHICH (2026-08-26, Sophie: "it seems
-// like it takes quite a while to load the images in light box view. Could that
-// be fixed? Also, it's a little hard to tap out of them. Could you have some
-// room at the top or something to get rid of to get back to the playground …
-// can you have it say prompt and have the prompt in there instead of below
-// split into the style and the content and the style shouldn't be the default
-// it should actually look at what it was that time since I can change it").
+// THE PLAYGROUND'S LIGHTBOX IS THE SHARED ASSETS ONE (2026-08-26, Sophie:
+// "I tried to port that exact design into the playground … but the design is
+// different in playground, people keep fixing parts of it, but it should be
+// the exact same design — can it not be the same exact code?"). It is: the
+// page opens `asset-lightbox.js` — the file the Assets tab, Meta Assets,
+// Panels and the grid pages already share — and builds NO lightbox of its
+// own. What this page adds rides that file's hooks (the step zones, the
+// prompt state across steps), never a fork.
 //
-// Three asks, three measurements, and each one has to be a measurement:
-//
-//   1. SLOW — the wall loads a 480px derived thumb and the lightbox loaded the
-//      untouched original, so every tap was a fresh 1-3MB download with the
-//      PREVIOUS picture still on screen. The original here is served with a
-//      real delay and the test asks what is PAINTED before it lands: a src
-//      assertion alone cannot tell a picture on screen from a pending one.
-//   2. HARD TO TAP OUT — the two step zones are 28% of the width each and run
-//      the stage's full height, and nothing is drawn in them, so more than
-//      half the picture area pages instead of closing. `elementFromPoint` is
-//      the only honest way to ask what a tap at a given spot actually reaches.
-//   3. THE STYLE HALF IS THIS RUN'S — a run whose prefix she edited must show
-//      the text that really wrapped her words, never the tile's baked default.
-//      The fixture's edited run says so in a word the default does not contain.
+// What this drives on the REAL page, in headless Chromium:
+//   0. the SOURCE PIN — promptlab.html links the shared file and carries no
+//      copy (the Meta Assets migration's own step 0; the copy is how every
+//      settled fix reached Sophie a second time),
+//   1. SLOW — the wall's cached 480px thumb paints in the same frame and the
+//      original swaps in behind it, ONE download (her 2026-08-26 report),
+//   2. the way out — dead space closes (the Assets rule: "anywhere not a
+//      button or image or chat"), measured with elementFromPoint,
+//   3. the PROMPT — the Assets overlay itself: PROMPT in the top row, the
+//      words covering the picture, Content first, Style the wrapper THIS run
+//      really sent (never the tile's baked default), no Style|Content pair on
+//      a run that wrapped nothing,
+//   4. the door's state RIDES A STEP and dies with a fresh open (her rule:
+//      "the half she picked rides along as she steps"),
+//   5. the actions row — put the prompt back in the box, Save, Story Room.
 //
 //   npm install playwright --no-save && node scripts/test-playground-lightbox.js
 const http = require('http');
@@ -53,7 +54,7 @@ const RUNS = [
     engine: 'gptimage', model: 'gpt-image-2', gptStyle: 'dreamy', quality: 'medium',
     aspectRatio: '2:3', status: 'done', images: [STORED], votes: {}, createdAt: 3000 },
   // The plain ChatGPT tile attaches nothing and wraps nothing: her words ARE
-  // the whole prompt, so there is no style half to show and no STYLE button.
+  // the whole prompt, so there is no style half and no Style|Content pair.
   { id: 'plain', prompt: 'a shelf of oddities', fullPrompt: 'a shelf of oddities',
     engine: 'gptimage', model: 'gpt-image-2', gptStyle: 'plain', quality: 'low',
     aspectRatio: '2:3', status: 'done', images: [PLAIN], votes: {}, createdAt: 2000 },
@@ -63,9 +64,10 @@ const svg = (w, h, fill) => '<svg xmlns="http://www.w3.org/2000/svg" width="' + 
   + '<rect width="' + w + '" height="' + h + '" fill="' + fill + '"/></svg>';
 
 const server = http.createServer((req, res) => {
-  // Anything the page links out of public/ — /feedkit.js, /tritoggle.*, … A
-  // page whose kit 404s throws on its first line and nothing renders at all,
-  // which is exactly how this harness timed out the day /feedkit.js landed.
+  // Anything the page links out of public/ — /feedkit.js, /asset-lightbox.js,
+  // /tritoggle.*, … A page whose kit 404s throws on its first line and nothing
+  // renders at all, which is exactly how this harness timed out the day
+  // /feedkit.js landed.
   if (servePublic(req, res)) return;
   const url = new URL(req.url, 'http://x');
   if (url.pathname === '/api/promptlab') {
@@ -76,25 +78,32 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ styles: {}, sizes: {}, res: {} }));
   }
+  if (url.pathname === '/api/gallery/assets/note') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ thread: [] }));
+  }
   // The derived display copy — small, and instant, exactly as the cached one
   // behind a tile she has just been looking at is.
   if (url.pathname === '/api/story/thumb') {
     res.writeHead(200, { 'Content-Type': 'image/svg+xml' });
     return res.end(svg(480, 720, '#8a7f70'));
   }
-  if (url.pathname === '/playground-port.js') {
-    res.writeHead(200, { 'Content-Type': 'text/javascript' });
-    return res.end(fs.readFileSync(path.join(PUB, 'playground-port.js')));
-  }
-  if (url.pathname === '/tritoggle.css' || url.pathname === '/tritoggle.js') {
-    res.writeHead(200, { 'Content-Type': url.pathname.endsWith('.css') ? 'text/css' : 'text/javascript' });
-    return res.end(fs.readFileSync(path.join(PUB, url.pathname.slice(1))));
-  }
   res.writeHead(200, { 'Content-Type': 'text/html' });
   res.end(fs.readFileSync(path.join(PUB, 'promptlab.html'), 'utf8'));
 });
 
 (async () => {
+  // ── 0. THE SOURCE PIN — the page opens the shared lightbox and builds none
+  //       of its own. The hand copy is how every settled fix reached Sophie a
+  //       second time; this is the assertion that it can never come back. ────
+  console.log('the page keeps no lightbox of its own');
+  const LAB = fs.readFileSync(path.join(PUB, 'promptlab.html'), 'utf8');
+  ok(/<script src="\/asset-lightbox\.js">/.test(LAB), 'promptlab.html links /asset-lightbox.js');
+  ok(!/id="lb"/.test(LAB) && !/lbpwrap|lbstage|lbcaphd|capseg/.test(LAB),
+    'and carries no lightbox markup of its own');
+  ok(!/#lb\s*\{|\.lbnav\s*\{|\.lbtop\s*\{/.test(LAB), 'nor any lightbox CSS of its own');
+  ok(/__assetLightbox\(/.test(LAB), 'it opens window.__assetLightbox');
+
   await new Promise(r => server.listen(0, r));
   const base = 'http://127.0.0.1:' + server.address().port;
   const preinstalled = ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
@@ -117,6 +126,11 @@ const server = http.createServer((req, res) => {
   });
   const pulled = (u) => originals[u] || 0;
 
+  const shown = () => page.evaluate(() => {
+    const lb = document.getElementById('clightbox');
+    return !!lb && lb.style.display !== 'none';
+  });
+
   await page.addInitScript(() => localStorage.setItem('promptlab_view', 'tiles'));
   await page.goto(base + '/playground');
   await page.waitForFunction(() => document.querySelectorAll('#tiles .cell:not(.ph) img').length > 1);
@@ -127,11 +141,12 @@ const server = http.createServer((req, res) => {
   // ── 1. THE PICTURE IS ON SCREEN BEFORE THE ORIGINAL LANDS ────────────────
   console.log('\nthe picture is there at once');
   await page.locator('#tiles .cell:not(.ph) img').first().click();
-  await page.waitForSelector('#lb.on');
+  await page.waitForSelector('#clightbox');
+  ok(await shown(), 'the shared lightbox opened');
   // Straight away — no waiting. A painted <img> reports a natural size and a
   // box with real height; a pending one reports 0.
   const early = await page.evaluate(() => {
-    const im = document.getElementById('lbimg');
+    const im = document.querySelector('#clightbox .clwrap img');
     const b = im.getBoundingClientRect();
     return { w: im.naturalWidth, h: Math.round(b.height), src: im.getAttribute('src') };
   });
@@ -142,9 +157,9 @@ const server = http.createServer((req, res) => {
 
   // …then the original takes its place, at full resolution.
   await page.waitForFunction(
-    () => document.getElementById('lbimg').naturalWidth > 900, null, { timeout: 8000 });
+    () => document.querySelector('#clightbox .clwrap img').naturalWidth > 900, null, { timeout: 8000 });
   const settled = await page.evaluate(() => {
-    const im = document.getElementById('lbimg');
+    const im = document.querySelector('#clightbox .clwrap img');
     return { w: im.naturalWidth, src: im.getAttribute('src'), save: window.lbSrc };
   });
   ok(settled.w === 1024, 'the original swaps in behind it (' + settled.w + 'px)');
@@ -152,119 +167,80 @@ const server = http.createServer((req, res) => {
   ok(settled.save === STORED, 'Save and the app bridge still get the untouched original url');
   ok(pulled(STORED) === 1, 'ONE download of the original, not two (' + pulled(STORED) + ')');
 
-  // ── 2. THE WAY OUT AT THE TOP ────────────────────────────────────────────
-  console.log('\nthere is room at the top to get out');
-  const top = await page.evaluate(() => {
-    const bar = document.getElementById('lbtop').getBoundingClientRect();
-    const stage = document.querySelector('.lbstage').getBoundingClientRect();
-    const back = document.getElementById('lbback').getBoundingClientRect();
-      // An SVG's className is an SVGAnimatedString, not a string.
-      const name = (el) => !el ? null
-        : String(el.id || (typeof el.className === 'string' ? el.className : '') || el.tagName);
-    // What a tap in the middle of the band, and on the chevron, actually hits.
-    const mid = document.elementFromPoint(195, Math.round(bar.top + bar.height / 2));
-    const onBack = document.elementFromPoint(Math.round(back.left + back.width / 2),
-      Math.round(back.top + back.height / 2));
-    return {
-      barH: Math.round(bar.height), barBottom: Math.round(bar.bottom),
-      stageTop: Math.round(stage.top), backLeft: Math.round(back.left),
-      backW: Math.round(back.width), backH: Math.round(back.height),
-      mid: name(mid), onBack: name(onBack),
-      backHit: !!(onBack && onBack.closest && onBack.closest('#lbback')),
-      midIsNav: !!(mid && mid.closest && mid.closest('.lbnav')),
-      backIsNav: !!(onBack && onBack.closest && onBack.closest('.lbnav')),
-    };
+  // ── 2. THE WAY OUT — dead space closes, the Assets rule ─────────────────
+  console.log('\ndead space closes it');
+  // The gap in the ♥ … Prompt … ✕ strip — exactly where she was tapping on
+  // the Assets one ("between the image and the prompt").
+  const strip = await page.evaluate(() => {
+    const hb = document.querySelector('#clightbox .vote.heart').getBoundingClientRect();
+    const pb = document.querySelector('#clightbox .promptbtn').getBoundingClientRect();
+    const gap = { x: Math.round((hb.right + pb.left) / 2), y: Math.round(hb.top + hb.height / 2) };
+    const el = document.elementFromPoint(gap.x, gap.y);
+    return { gap, gapIs: el ? el.className : '' };
   });
-  ok(top.barH >= 34, 'the band is a real strip (' + top.barH + 'px)');
-  ok(top.barBottom <= top.stageTop + 1,
-    'it sits ABOVE the picture area (' + top.barBottom + ' vs stage ' + top.stageTop + ')');
-  ok(!top.midIsNav && !top.backIsNav, 'no step zone reaches into it');
-  ok(top.backLeft < 60, 'the chevron is at the left, clear of the pill\'s corner');
-  ok(top.backW >= 30 && top.backH >= 30,
-    'and it is a real tap target (' + top.backW + 'x' + top.backH + ')');
-  ok(top.backHit, 'a tap on the chevron reaches the chevron (' + top.onBack + ')');
-  // The tap itself — anywhere in the strip, not only on the glyph.
-  await page.mouse.click(300, top.barBottom - Math.round(top.barH / 2));
-  ok(!(await page.locator('#lb.on').count()), 'tapping the empty part of the band closes it');
+  ok(String(strip.gapIs).indexOf('lbtop') >= 0,
+    'the gap beside the ♥ is the strip itself, not a control (' + strip.gapIs + ')');
+  await page.mouse.click(strip.gap.x, strip.gap.y);
+  ok(!(await shown()), 'a tap in the empty space beside a button closes it');
   await page.locator('#tiles .cell:not(.ph) img').first().click();
-  await page.waitForSelector('#lb.on');
-  await page.click('#lbback');
-  ok(!(await page.locator('#lb.on').count()), 'and so does the chevron');
+  await page.waitForFunction(() => {
+    const lb = document.getElementById('clightbox');
+    return !!lb && lb.style.display !== 'none';
+  });
+  // …and the backdrop beside the picture closes too.
+  const beside = await page.evaluate(() => {
+    const r = document.querySelector('#clightbox .clwrap img').getBoundingClientRect();
+    return { x: 4, y: Math.round(r.top + r.height / 2) };
+  });
+  await page.mouse.click(beside.x, beside.y);
+  ok(!(await shown()), 'and so does the backdrop beside the picture');
 
   // ── 3. IT SAYS PROMPT, SPLIT, AND THE STYLE IS THIS RUN'S ────────────────
   console.log('\nthe prompt, split, as this run really sent it');
   await page.locator('#tiles .cell:not(.ph) img').first().click();
-  await page.waitForSelector('#lb.on');
+  await page.waitForFunction(() => {
+    const lb = document.getElementById('clightbox');
+    return !!lb && lb.style.display !== 'none';
+  });
   const opened = await page.evaluate(() => {
-    const words = document.getElementById('lbpwrap');
-    // What a tap in the middle of the picture reaches — the honest way to ask
-    // whether anything is sitting on the art she opened.
-    const r = document.getElementById('lbimg').getBoundingClientRect();
-    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    const btn = document.querySelector('#clightbox .promptbtn');
+    const ov = document.querySelector('#clightbox .lbp');
+    const r = document.querySelector('#clightbox .clwrap img').getBoundingClientRect();
+    const hit = document.elementFromPoint(Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2));
     return {
-      title: document.querySelector('#lb .capttl').textContent.trim(),
-      rowShown: !document.getElementById('lbcaphd').hidden,
-      wordsShown: !words.hidden,
-      // NOT the `hidden` flag: the pair lives inside the overlay now, so the
-      // honest question is whether anything of it renders on a shut door.
-      segShown: document.getElementById('lbcapseg').getClientRects().length > 0,
-      // HER ASK, 2026-08-26: "it should be at the top". The door is measured
-      // INSIDE the band that carries the chevron, not under the picture.
-      doorInBand: !!document.getElementById('lbpbtn').closest('#lbtop'),
-      doorTop: Math.round(document.getElementById('lbpbtn').getBoundingClientRect().top),
-      bandBottom: Math.round(document.getElementById('lbtop').getBoundingClientRect().bottom),
-      // ...and the caption band under the picture carries no control at all.
-      capBtns: document.querySelectorAll('#lb .cap button').length,
-      onMiddle: hit ? (hit.id || hit.className) : '',
-      // The band between the picture and the ♥/✕ row, which is where the
-      // words used to be printed.
-      capH: Math.round(document.querySelector('#lb .cap').getBoundingClientRect().height),
+      title: btn ? btn.textContent.trim() : '',
+      inTop: !!(btn && btn.closest('.lbtop')),
+      wordsShown: !!(ov && ov.style.display !== 'none'),
+      overMiddle: hit ? !!hit.closest('.lbp') : false,
     };
   });
   ok(/^prompt$/i.test(opened.title), 'it says Prompt (' + opened.title + ')');
-  ok(opened.rowShown, 'the door is there on a run with a prompt on file');
-  // HER REPORT, 2026-08-26: "something strange is going on with the prompt. It
-  // shouldn't be there" — the whole content half was printed under the picture.
-  ok(!opened.wordsShown, 'the words are NOT printed under the picture');
-  ok(!opened.segShown, 'and Content/Style is not offered while they are shut');
-  ok(opened.doorInBand && opened.doorTop < opened.bandBottom,
-    'the door is in the band at the TOP (' + opened.doorTop + ' vs band bottom '
-      + opened.bandBottom + ')');
-  ok(opened.capBtns === 0,
-    'and the caption under the picture carries no control (' + opened.capBtns + ')');
-  ok(opened.capH <= 60, 'so the caption band is a line, not a paragraph (' + opened.capH + 'px)');
-  ok(opened.onMiddle.indexOf('lbpwrap') < 0,
-    'and nothing covers the picture (' + opened.onMiddle + ')');
+  ok(opened.inTop, 'the door rides the top row, beside the ♥/✕ — the Assets shape');
+  ok(!opened.wordsShown && !opened.overMiddle, 'the words are shut on a fresh open');
 
-  await page.click('#lbpbtn');
+  await page.evaluate(() => document.querySelector('#clightbox .promptbtn').click());
   const shownNow = await page.evaluate(() => {
-    const r = document.getElementById('lbimg').getBoundingClientRect();
-    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    const r = document.querySelector('#clightbox .clwrap img').getBoundingClientRect();
+    const hit = document.elementFromPoint(Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2));
+    const btns = [...document.querySelectorAll('#clightbox .lbptog button')];
     return {
-      shown: document.getElementById('lbcapp').textContent,
-      contentOn: document.getElementById('lbhalfc').classList.contains('on'),
-      styleShown: !document.getElementById('lbhalfs').hidden,
-      segShown: document.getElementById('lbcapseg').getClientRects().length > 0,
-      // The pair rides INSIDE the words, the way the Assets overlay does.
-      segInWords: !!document.getElementById('lbcapseg').closest('.lbpwrap'),
-      // The words themselves are what a tap in the middle lands on; either the
-      // overlay or its text answers "something is over the picture".
-      over: hit ? (hit.closest('.lbpwrap') ? 'lbpwrap' : (hit.id || hit.className)) : '',
-      lit: document.getElementById('lbpbtn').classList.contains('on'),
+      shown: document.querySelector('#clightbox .lbptext').textContent,
+      contentOn: btns[1] && btns[1].classList.contains('on'),
+      pairShown: document.querySelector('#clightbox .lbptog').getClientRects().length > 0,
+      over: hit ? !!hit.closest('.lbp') : false,
+      lit: document.querySelector('#clightbox .promptbtn').classList.contains('on'),
     };
   });
-  ok(shownNow.segShown && shownNow.styleShown, 'tapping PROMPT offers both halves');
-  ok(shownNow.segInWords, 'and they ride inside the words, not under the picture');
+  ok(shownNow.pairShown, 'tapping PROMPT offers both halves');
   ok(shownNow.contentOn, 'it opens on CONTENT — the house rule');
   ok(shownNow.shown === TYPED, 'and content is her words, verbatim');
-  ok(String(shownNow.over).indexOf('lbpwrap') >= 0,
-    'the words cover the picture, the way the Assets overlay does (' + shownNow.over + ')');
+  ok(shownNow.over, 'the words cover the picture, the way the Assets overlay does');
   ok(shownNow.lit, 'and the door says it is open');
 
-  await page.click('#lbhalfs');
+  await page.evaluate(() => document.querySelectorAll('#clightbox .lbptog button')[0].click());
   const styled = await page.evaluate(() => ({
-    shown: document.getElementById('lbcapp').textContent,
-    open: !!document.querySelector('#lb.on'),
+    shown: document.querySelector('#clightbox .lbptext').textContent,
+    open: document.getElementById('clightbox').style.display !== 'none',
   }));
   ok(styled.open, 'switching halves does not close the lightbox');
   ok(styled.shown.indexOf('chalky') >= 0,
@@ -273,31 +249,54 @@ const server = http.createServer((req, res) => {
   ok(styled.shown.indexOf(TAIL) >= 0, 'and the tail that rode behind them');
   ok(styled.shown.indexOf(TYPED) < 0, 'her words are not repeated inside the style half');
 
-  // Tapping the words hands the picture back — and does NOT leave the lightbox.
-  // A POSITION, not the element: playwright aims at an element's centre, and
-  // the Content/Style pair now sits inside this overlay — a centre tap could
-  // land on it and switch halves instead of closing.
-  const wrapBox = await page.locator('#lbpwrap').boundingBox();
-  await page.mouse.click(Math.round(wrapBox.x + 12),
-    Math.round(wrapBox.y + wrapBox.height - 12));
-  const put = await page.evaluate(() => ({
-    open: !!document.querySelector('#lb.on'),
-    wordsShown: !document.getElementById('lbpwrap').hidden,
-  }));
-  ok(put.open, 'tapping the words does not close the lightbox');
-  ok(!put.wordsShown, 'it puts them away');
+  // ── 4. THE DOOR'S STATE RIDES A STEP, AND DIES WITH A FRESH OPEN ─────────
+  console.log('\nthe half she picked rides along as she steps');
+  await page.evaluate(() => document.querySelector('#clightbox .lbzone.next').click());
+  const stepped = await page.evaluate(() => {
+    const ov = document.querySelector('#clightbox .lbp');
+    return {
+      cur: window.lbCur.id,
+      wordsShown: !!(ov && ov.style.display !== 'none'),
+      shown: ov ? document.querySelector('#clightbox .lbptext').textContent : '',
+      pairShown: document.querySelector('#clightbox .lbptog')
+        ? document.querySelector('#clightbox .lbptog').getClientRects().length > 0 : false,
+    };
+  });
+  ok(stepped.cur === 'plain', 'the invisible zone steps to the next picture (' + stepped.cur + ')');
+  ok(stepped.wordsShown, 'the open door rides the step');
+  // The plain run wrapped nothing: no style half to hold onto, so it falls
+  // back to her words — and offers no Style|Content pair at all.
+  ok(!stepped.pairShown, 'a run that wrapped nothing offers NO Style|Content pair');
+  ok(stepped.shown === 'a shelf of oddities', 'and shows her words rather than an empty box');
 
-  // The plain tile wraps nothing — no style half, and no button offering one.
-  await page.click('#lbnext');
-  await page.click('#lbpbtn');
-  const plain = await page.evaluate(() => ({
-    shown: document.getElementById('lbcapp').textContent,
-    styleShown: !document.getElementById('lbhalfs').hidden,
-    contentOn: document.getElementById('lbhalfc').classList.contains('on'),
+  // A fresh open starts shut, on content — whatever the last open was doing.
+  await page.evaluate(() => document.getElementById('clightbox').click());
+  ok(!(await shown()), '(closed again)');
+  await page.locator('#tiles .cell:not(.ph) img').first().click();
+  await page.waitForFunction(() => {
+    const lb = document.getElementById('clightbox');
+    return !!lb && lb.style.display !== 'none';
+  });
+  const fresh = await page.evaluate(() => {
+    const ov = document.querySelector('#clightbox .lbp');
+    return { wordsShown: !!(ov && ov.style.display !== 'none') };
+  });
+  ok(!fresh.wordsShown, 'a fresh open starts with the door shut');
+
+  // ── 5. THE ACTIONS ROW — copy back to the box, Save, Story Room ──────────
+  console.log('\nthe actions row');
+  const acts = await page.$$eval('#clightbox .lbacts button',
+    (es) => es.map((e) => e.getAttribute('aria-label')));
+  ok(JSON.stringify(acts) === JSON.stringify(
+    ['Put this prompt back in the box', 'Save to Photos', 'Send to the Story Room']),
+  'three actions, in order (' + acts.join(' · ') + ')');
+  await page.evaluate(() => document.querySelector('#clightbox .lbacts button').click());
+  const copied = await page.evaluate(() => ({
+    open: document.getElementById('clightbox').style.display !== 'none',
+    box: document.getElementById('prompt').value,
   }));
-  ok(!plain.styleShown, 'a run that wrapped nothing offers NO style button');
-  ok(plain.contentOn && plain.shown === 'a shelf of oddities',
-    'and falls back to her words rather than an empty box');
+  ok(!copied.open, 'the copy action closes the lightbox');
+  ok(copied.box === TYPED, 'and lands the prompt back in the box');
 
   await browser.close();
   server.close();

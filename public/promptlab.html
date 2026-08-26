@@ -10,6 +10,7 @@
      shared with /panels (2026-08-26, Sophie: "you can just reuse the code
      since it should be basically the same"). -->
 <script src="/feedkit.js"></script>
+<script src="/asset-lightbox.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   [hidden] { display: none !important; }
@@ -379,130 +380,13 @@
   .askrow button.yes { background: #2b2622; color: #faf7f2; border-color: #2b2622; font-weight: 600; }
   .failed { color: #a33; }
   .note { font-size: 12px; color: #8a8177; }
-  /* The side padding is the arrows' lane — the picture is never under one. */
-  #lb { display: none; position: fixed; inset: 0; background: #111; z-index: 50; flex-direction: column; align-items: center; justify-content: center; padding: 12px; }
-  #lb.on { display: flex; }
-  /* The stage is the IMAGE AREA — the picture and the two step zones over it,
-     ending where the caption starts. The zones are sized to it rather than to
-     the window, so a tap "in the image area" means exactly that and the
-     caption, the ♥/✕ row and the buttons under it are never covered. */
-  /* THE PICTURE SHRINKS WITH THE STAGE, OR IT PAINTS OVER THE CAPTION
-     (2026-08-26, Sophie: "the label is covered by the picture"). The stage is
-     `position:relative`, so it and the picture inside it paint ABOVE the
-     static caption below — and the picture's own `max-height:76vh` did not
-     shrink when flex squeezed the stage, so on a short viewport (the app's
-     web view, which is shorter than Safari's by its bottom bar) the bottom of
-     a portrait 2:3 sat on top of the MODEL · QUALITY · SIZE line. `min(...,
-     100%)` binds it to whatever room the stage really has; `flex:none` on the
-     caption and the buttons is what makes the stage the only thing that
-     gives, so the two lines she opens a picture to read can never be the part
-     that is squeezed away. */
-  /* THE WAY OUT, AT THE TOP (2026-08-26, Sophie: "it's a little hard to tap
-     out of them. Could you have some room at the top or something to get rid
-     of to get back to the playground"). The two step zones are 28% of the
-     width EACH and run the stage's full height, so more than half of the
-     picture area pages instead of closing — and with the chips gone
-     (2026-08-24) there is nothing on screen saying which part of the picture
-     closes. This band sits ABOVE the stage, outside both zones, so it can
-     never be one: the chevron is the house one (a small rounded box, the
-     `pagehead.js` shape) and the whole strip closes on a tap, not just the
-     glyph. */
-  .lbtop { flex: none; width: 100%; display: flex; align-items: center;
-    height: 40px; padding-top: env(safe-area-inset-top); box-sizing: content-box; }
-  .lbback { width: 34px; height: 34px; border-radius: 6px; border: 1px solid #555;
-    background: #1c1c1c; color: #ddd; display: flex; align-items: center; justify-content: center; }
-  .lbback svg { width: 20px; height: 20px; }
-  /* THE DOOR IS AT THE TOP, AND IT IS THE ONLY WORD ON IT (2026-08-26, Sophie:
-     "It should be at the top and it should be hidden. Just say prompt like it
-     does in the assets"). The Assets overlay's shape exactly: one button
-     saying Prompt over the picture, and the Content/Style pair living INSIDE
-     the words it opens, so a shut door is one word and nothing else. Under
-     the picture it sat between the art and the ♥/✕ row wearing a segmented
-     control she had not asked for yet.
-     `.lbbal` is the chevron's width on the other end, so the word is centred
-     on the BAND rather than on the room left over beside the chevron. Only the
-     button is in #lb's skip list, so the rest of the strip — the empty half of
-     `.caphd` included — still closes the lightbox, which is what the band is
-     for. */
-  .lbbal { flex: none; width: 34px; }
-  .lbstage { position: relative; display: flex; align-items: center; justify-content: center;
-    width: 100%; min-height: 0; flex: 0 1 auto; }
-  #lb img { max-width: 100%; max-height: min(76vh, 100%); border-radius: 6px; }
-  /* Step to the next/previous picture in the feed, in the order the view
-     behind the lightbox is showing them (the heart filter included).
-     IT IS THE TAP AND NOTHING ELSE — NO VISIBLE BAR (2026-08-24, Sophie: "in
-     the playground, the top left and right bars cover part of the image. Can
-     you just make it tap and no buttons showing"). The chip used to be drawn
-     at the outer edge of each zone, over the picture, which on a portrait
-     2:3 covers a strip of the art she opened the lightbox to judge. The zone
-     itself was always the control — a transparent 28% strip running the full
-     height of the stage, the picture included — so removing the mark takes
-     nothing away but the thing sitting on her image.
-     Hidden when there is nothing that way — the ends of the feed are the
-     ends, and with the zone gone a tap there closes. */
-  .lbnav { position: absolute; top: 0; bottom: 0; width: 28%; z-index: 55;
-    border: 0; background: none; padding: 0; }
-  .lbnav[hidden] { display: none; }
-  #lbprev { left: 0; }
-  #lbnext { right: 0; }
-  /* What made this picture: the model and its settings, LOCKED at the top,
-     then her words under it. The meta line used to sit UNDER the prompt inside
-     one scrolling box, so a long prompt pushed the model and quality out of
-     sight — the one thing she opens a picture to check (Sophie, Aug 2026:
-     "when the prompt gets long i cant see the model or quality"). Only the
-     prompt scrolls now; the meta line never moves. */
-  #lb .cap { margin-top: 10px; text-align: center; max-width: 560px; flex: none; }
-  #lb .cap .capm { color: #9a938a; font-size: 12px; }
-  /* THE WORDS ARE BEHIND THE TAP — THEY DO NOT SIT UNDER THE PICTURE
-     (2026-08-26, Sophie: "something strange is going on with the prompt. It
-     shouldn't be there", pointing at a lightbox with the whole content half
-     printed between the picture and the ♥/✕ row — and the day before, the ask
-     this half missed: "have the prompt in there instead of below"). This is
-     the ASSETS overlay's shape, which is what "in there" names: PROMPT is a
-     button, and the words COVER THE PICTURE when she taps it. Printed below,
-     a dictated prompt takes a third of the screen off the one thing she opened
-     the lightbox to look at, on every picture, whether she asked for it or not.
-     The overlay sits over the STAGE (never the caption or the buttons) and is
-     above the two step zones, so a tap on the words reads them rather than
-     paging the deck; tapping the overlay closes it again. */
-  .lbpwrap { position: absolute; inset: 0; z-index: 60; overflow-y: auto;
-    background: rgba(18,18,18,.94); padding: 14px; box-sizing: border-box;
-    display: flex; flex-direction: column; gap: 12px;
-    align-items: center; justify-content: center; }
-  .lbpwrap .capseg { flex: none; }
-  .lbpwrap[hidden] { display: none; }
-  #lb .capp { color: #eee; font-size: 13.5px; white-space: pre-wrap; text-align: center; }
-  /* IT SAYS PROMPT, AND THE TWO HALVES ARE THE ASSETS TAB'S (2026-08-26,
-     Sophie: "can you have it say prompt and have the prompt in there instead
-     of below split into the style and the content"). CONTENT opens, per the
-     house rule — what the picture is OF is what differs picture to picture,
-     where the style half is the same wrapper across a whole batch.
-     The STYLE half is DERIVED FROM THIS RUN'S OWN `fullPrompt`, never from
-     the tile's baked prefix ("the style shouldn't be the default it should
-     actually look at what it was that time since I can change it") — she can
-     edit either half in the Prompt panel, and a run made before or after an
-     edit has to show the text that really wrapped her words that time.
-     No style half on file → no STYLE button, the same silence the Assets
-     overlay keeps for a picture with no prompt. */
-  #lb .caphd { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; }
-  #lb .caphd[hidden] { display: none; }
-  /* The word is the DOOR now, so it is a button — bare, no plate (the house
-     icon rule: a rounded square or the bare glyph, never a round chip), and it
-     lights while the words are open so nothing on screen is a mystery. */
-  #lb .capttl { color: #9a938a; font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
-    border: 0; background: none; font-family: inherit; padding: 2px 2px; }
-  #lb .capttl.on { color: #eee; }
-  .capseg { display: flex; border: 1px solid #555; border-radius: 6px; overflow: hidden; }
-  .capseg button { border: 0; background: #1c1c1c; color: #bbb; font: inherit; font-size: 12px; padding: 3px 10px; }
-  .capseg button + button { border-left: 1px solid #555; }
-  .capseg button.on { background: #eee; color: #1c1c1c; }
-  .capseg button[hidden] { display: none; }
-  .lbbtns { display: flex; gap: 22px; margin-top: 14px; flex: none; }
-  .lbbtn { width: 46px; height: 46px; border-radius: 50%; border: 1.5px solid #555; background: #1c1c1c; color: #ddd; display: flex; align-items: center; justify-content: center; }
-  .lbbtn svg { width: 21px; height: 21px; }
-  .lbbtn.like.on { background: #c25a72; border-color: #c25a72; color: #fff; }
-  .lbbtn.dislike.on { background: #9a938a; border-color: #9a938a; color: #fff; }
-  /* Above the lightbox — the Save button lives in there. */
+  /* THE LIGHTBOX IS THE SHARED ONE — asset-lightbox.js (2026-08-26, Sophie:
+     "it should be the exact same design — can it not be the same exact
+     code?"). This page kept the LAST hand copy in the house and it drifted
+     every time a chat fixed one surface and not the other, so every rule
+     about how it looks lives in that ONE file now. Nothing here may style
+     #clightbox. */
+  /* Above the shared lightbox (z-index 30) — Save's answer lives in there. */
   #toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); background: #2b2622; color: #faf7f2; font-size: 13.5px; border-radius: 6px; padding: 9px 14px; z-index: 70; opacity: 0; pointer-events: none; transition: opacity .18s; max-width: 84vw; text-align: center; }
   #toast.on { opacity: 1; }
   /* The Sophie character toggle (ChatGPT style only): her picture as the
@@ -576,8 +460,11 @@
   #promptpanel .prow button { border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9;
     color: #6f675e; font: inherit; font-size: 12.5px; padding: 6px 10px; cursor: pointer; }
   #promptpanel .pnote { font-size: 11.5px; color: #9a9186; margin-left: auto; text-align: right; }
-  .promptbtn { flex: none; }
-  .promptbtn.edited { border-color: #2b2622; color: #2b2622; }
+  /* The id, not a `.promptbtn` class: the shared lightbox injects a global
+     `.promptbtn` for ITS Prompt door, and the class on this control-row
+     button let that style land on it. */
+  #promptbtn { flex: none; }
+  #promptbtn.edited { border-color: #2b2622; color: #2b2622; }
   /* The no-text toggle — one button, dark when it is on (Aug 2026, Sophie).
      Only the styles whose tail allows text ever show it. */
   .notextbtn { flex: none; font-size: 12.5px; padding: 0 10px; cursor: pointer; }
@@ -607,7 +494,7 @@
     <button id="charpick" hidden aria-label="Draw Sophie from her reference" title="Sophie character reference"><img src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1785884140714-d37oym.webp" alt="Sophie"></button>
     <span id="photowrap"><button id="photopick" type="button" aria-label="Attach a photo reference" title="Attach a photo reference"></button><button id="photoclear" type="button" aria-label="Take the photo reference off" title="Take the photo reference off"></button></span>
     <input type="file" id="photofile" accept="image/*" hidden>
-    <button class="stylebtn promptbtn" id="promptbtn" title="What is wrapped around your words">Prompt</button>
+    <button class="stylebtn" id="promptbtn" title="What is wrapped around your words">Prompt</button>
     <button class="stylebtn notextbtn" id="notextbtn" hidden aria-pressed="false" title="Ask for no text at all in the picture">No text</button>
     <div class="canvastog" id="canvastog" role="group" aria-label="Canvas shape">
       <button id="c-portrait" type="button">Portrait</button><button id="c-square" type="button">Square</button>
@@ -655,40 +542,6 @@
   </div>
 </div>
 
-<div id="lb">
-  <div class="lbtop" id="lbtop">
-    <button class="lbback" id="lbback" aria-label="Back to the Playground">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-    </button>
-    <div class="caphd" id="lbcaphd">
-      <button class="capttl" id="lbpbtn" aria-expanded="false">Prompt</button>
-    </div>
-    <span class="lbbal"></span>
-  </div>
-  <div class="lbstage">
-    <img id="lbimg" src="">
-    <button class="lbnav" id="lbprev" aria-label="Previous picture" hidden></button>
-    <button class="lbnav" id="lbnext" aria-label="Next picture" hidden></button>
-    <div class="lbpwrap" id="lbpwrap" hidden>
-      <span class="capseg" id="lbcapseg" hidden>
-        <button id="lbhalfc" data-half="content">Content</button>
-        <button id="lbhalfs" data-half="style">Style</button>
-      </span>
-      <div class="capp" id="lbcapp"></div>
-    </div>
-  </div>
-  <div class="cap">
-    <div class="capm" id="lbcapm"></div>
-  </div>
-  <div class="lbbtns">
-    <button class="lbbtn like" id="lblike" aria-label="Heart"></button>
-    <button class="lbbtn dislike" id="lbx" aria-label="Reject"></button>
-    <button class="lbbtn" id="lbcopy" aria-label="Put this prompt back in the box"></button>
-    <button class="lbbtn" id="lbsave" aria-label="Save to Photos"></button>
-    <button class="lbbtn" id="lbstory" aria-label="Send to the Story Room"></button>
-  </div>
-</div>
-
 <script>
   // THE AIM RULE LIVES IN /tritoggle.js — the ONE copy, shared with every other
   // three-way toggle. This line is only a floor for the case where that file
@@ -716,9 +569,10 @@
   var lbBlob = null;      // { url, blob } prefetched so Save can share instantly
   var lbSrc = '';         // the ORIGINAL url on screen — what Save and the app bridge get
   var lbObj = '';         // the object url the full picture is painted from, to revoke
-  var lbHalves = null;    // { content, style } for the picture in the lightbox
-  var lbHalf = 'content';   // which half the PROMPT overlay is showing
-  var lbPromptOn = false;   // are the words over the picture right now
+  var lbAsset = null;     // the asset handed to the shared lightbox, for repaints
+  var lbFresh = false;    // the next showLB is a fresh OPEN, not a step
+  var noteCache = {};     // url -> thread, so re-opening a picture is free
+  var NOTE_CHAT = 'my-creations';   // where every Playground picture is filed
 
   // Lucide line icons (heart, x, download), inlined — CSP-safe, no requests.
   var ICONS = {
@@ -1009,20 +863,6 @@
     showSeed();
   });
   showSeed();
-  document.getElementById('lblike').innerHTML = ICONS.heart;
-  document.getElementById('lbx').innerHTML = ICONS.x;
-  document.getElementById('lbsave').innerHTML = ICONS.download;
-  document.getElementById('lbcopy').innerHTML = ICONS.copy;
-  document.getElementById('lbstory').innerHTML = ICONS.share;
-  // The same put-it-back-in-the-box button the list boxes have, but reachable
-  // from TILES view (Aug 2026, Sophie): a tile opens the lightbox, and this
-  // closes it and lands the picture's prompt in the prompt box.
-  document.getElementById('lbcopy').addEventListener('click', function () {
-    var r = lbCur && runsById[lbCur.id];
-    closeLB();
-    if (r) copyPromptIn(r.prompt);
-  });
-
   // The styles on offer. The server owns the real presets (trigger word,
   // baked suffix, steps); `suffix` here is the page-level tail — WTR keeps the
   // "White background" convention.
@@ -2203,9 +2043,11 @@
       else syncChildren(box, items, makeRun, updateRun);
       if (curView() === 'tiles') renderTiles();
       // The wall she is stepping through just changed under the lightbox (a
-      // ♥ with the filter lit removes the picture she is on), so the arrows
-      // re-derive rather than pointing at a row that is no longer there.
-      if (lbCur) syncLbNav();
+      // ♥ with the filter lit removes the picture she is on), so the box is
+      // repainted and the zones re-derive rather than pointing at a row that
+      // is no longer there. The blob guard in showLB makes this free — the
+      // already-loaded picture is never refetched.
+      if (lbCur && lbIsOpen()) showLB(lbCur.id, lbCur.i);
       renderMoreBtn();
   }
 
@@ -2334,19 +2176,35 @@
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  // ── THE LIGHTBOX ────────────────────────────────────────────────────────
+  // THE ONE SHARED ASSETS LIGHTBOX (asset-lightbox.js) — never a second copy
+  // (2026-08-26, Sophie: "it should be the exact same design — can it not be
+  // the same exact code?"). This page kept the LAST hand copy in the house,
+  // and it drifted every time a chat fixed one surface and not the other —
+  // the exact failure Meta Assets had already lived through. Everything this
+  // page needs rides the shared file's hooks, never a fork:
+  //   stepping — `nav` draws the two invisible zones over the picture; the
+  //     order is READ OFF THE VIEW BEHIND THE LIGHTBOX (lbSeq), so tiles,
+  //     list and the filters all step exactly what she is looking at.
+  //   fast open — the tile's own cached 480px thumb paints first and the
+  //     original swaps in behind it, from the SAME fetch Save needs anyway.
+  //   the prompt — the Assets overlay itself: PROMPT in the top row, the
+  //     words covering the picture, Content first, Style the wrapper THIS
+  //     run really sent (runPromptHalves off fullPrompt). The half she picked
+  //     and the open door ride along as she steps (promptSide/promptOpen);
+  //     a fresh open starts shut, on content.
+  //   ♥/✕ — this run doc's own vote route, exactly as before; notes — the
+  //     picture's thread in my-creations, where every Playground picture is
+  //     filed (the Panels wiring, verbatim); actions — put the prompt back
+  //     in the box, Save to Photos, Send to the Story Room.
   function openLB(id, i) {
-    var r = runsById[id];
-    if (!r) return;
+    if (!runsById[id]) return;
     // Opening an image freezes the page behind it (design rule): the shared
-    // autoscroll pill stops, not just the background scroll lock — otherwise
-    // it keeps running under the lightbox and the page has moved on by the
-    // time the image is closed.
+    // autoscroll pill stops; the shared lightbox locks and restores the
+    // background scroll itself.
     if (window.__scrollStop) window.__scrollStop();
-    lbHalf = 'content';     // CONTENT opens the overlay — the house rule
-    lbPromptOn = false;     // and the picture, not its words, is what a tap opens
+    lbFresh = true;   // a fresh open: the door shut, content first
     showLB(id, i);
-    document.getElementById('lb').classList.add('on');
-    document.body.style.overflow = 'hidden';
   }
 
   // The order the arrows walk is READ OFF THE VIEW BEHIND THE LIGHTBOX — the
@@ -2371,16 +2229,15 @@
     var next = seq[at + d];
     if (next) showLB(next.id, next.i);
   }
-  function syncLbNav() {
-    var seq = lbSeq(), at = lbAt();
-    document.getElementById('lbprev').hidden = at <= 0;
-    document.getElementById('lbnext').hidden = at < 0 || at >= seq.length - 1;
+
+  function lbIsOpen() {
+    var el = document.getElementById('clightbox');
+    return !!el && el.style.display !== 'none';
   }
-  // Nothing is drawn in the zone — see the .lbnav note in the CSS. The two
-  // buttons stay real elements (aria-label, hidden at the ends of the feed);
-  // they are simply invisible, so no mark sits on top of the picture.
-  document.getElementById('lbprev').addEventListener('click', function () { lbStep(-1); });
-  document.getElementById('lbnext').addEventListener('click', function () { lbStep(1); });
+  function closeLB() {
+    if (window.__assetLightboxClose) window.__assetLightboxClose();
+    lbCur = null;
+  }
 
   // ── THE TWO HALVES OF THE PROMPT, AS THIS RUN REALLY SENT THEM ──────────
   // The run doc stores `fullPrompt` (the literal text sent) and `prompt` (her
@@ -2415,141 +2272,6 @@
     };
   }
 
-  function paintPrompt() {
-    var h = lbHalves || { content: '', style: '' };
-    if (!h.style && lbHalf === 'style') lbHalf = 'content';
-    var has = !!(h.content || h.style);
-    var open = lbPromptOn && has;
-    document.getElementById('lbcapp').textContent = h[lbHalf] || '';
-    document.getElementById('lbhalfs').hidden = !h.style;
-    document.getElementById('lbhalfc').classList.toggle('on', lbHalf === 'content');
-    document.getElementById('lbhalfs').classList.toggle('on', lbHalf === 'style');
-    // The words COVER the picture, and only while she is holding the door
-    // open — see the `.lbpwrap` block in the CSS. The Content/Style pair lives
-    // INSIDE the words, so a shut door is the word Prompt and nothing else;
-    // and there is no pair at all when there is only one half to show.
-    document.getElementById('lbpwrap').hidden = !open;
-    document.getElementById('lbcapseg').hidden = !h.style;
-    var btn = document.getElementById('lbpbtn');
-    btn.classList.toggle('on', open);
-    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    // Nothing on file at all → no PROMPT row, the silence the Assets overlay
-    // keeps rather than saying "no prompt filed".
-    document.getElementById('lbcaphd').hidden = !has;
-  }
-  // The way out, said in words as well as by the gesture. The delegated
-  // handler on #lb would close on this tap anyway — this is the explicit half,
-  // so the chevron keeps working if that skip list ever grows.
-  document.getElementById('lbback').addEventListener('click', function () { closeLB(); });
-  document.getElementById('lbcaphd').addEventListener('click', function (e) {
-    if (!e.target.closest('#lbpbtn')) return;   // the rest of the band closes
-    lbPromptOn = !lbPromptOn;
-    paintPrompt();
-  });
-  // Tapping the words puts them away again — the overlay is over the picture,
-  // so it has to hand the picture back the same way it took it. Switching
-  // halves is NOT that: the pair sits inside the overlay now, so it has to be
-  // skipped here or every tap on Style would shut the words she just opened.
-  document.getElementById('lbpwrap').addEventListener('click', function (e) {
-    var b = e.target.closest('button[data-half]');
-    if (b) { lbHalf = b.getAttribute('data-half'); paintPrompt(); return; }
-    lbPromptOn = false;
-    paintPrompt();
-  });
-
-  // Paint one picture into the already-open (or opening) lightbox.
-  function showLB(id, i) {
-    var r = runsById[id];
-    if (!r) return;
-    lbCur = { id: id, i: i };
-    var src = runImages(r)[i];
-    lbSrc = src;
-    var img = document.getElementById('lbimg');
-    // ── THE PICTURE IS ON SCREEN AT ONCE (2026-08-26, Sophie: "it seems like
-    // it takes quite a while to load the images in light box view") ─────────
-    // The wall and the list load a 480px derived thumb, and the lightbox
-    // loaded the untouched ORIGINAL — 1-3MB at the 2K and 4K tiers — so every
-    // tap was a fresh download over cell before anything appeared, with the
-    // PREVIOUS picture sitting there in the meantime. The thumb is already in
-    // the browser's cache (it is the tile she just tapped), so it paints in
-    // the same frame; the original is swapped in behind it the moment it
-    // lands, from the SAME fetch that was already being made for Save. One
-    // download, not two, and never a blank.
-    var th = thumbFor(src);
-    if (lbObj) { URL.revokeObjectURL(lbObj); lbObj = ''; }
-    img.src = th;
-    // Fetched now so the Save tap can hand the file straight to the share
-    // sheet without an await in between (iOS revokes the gesture across one).
-    lbBlob = null;
-    fetch(src).then(function (res) { return res.blob(); })
-      .then(function (b) {
-        if (lbSrc !== src) return;                 // she stepped on while it flew
-        lbBlob = { url: src, blob: b };
-        if (th === src) return;                    // no derived copy — already the original
-        lbObj = URL.createObjectURL(b);
-        img.src = lbObj;
-      })
-      .catch(function () {
-        // A failed fetch must never leave her looking at the 480px copy: fall
-        // back to loading the original the ordinary way.
-        if (lbSrc === src && th !== src) img.src = src;
-      });
-    // What drew it — model, quality/scale, seed — pinned on top, then the
-    // prompt under it. In the tiles view this is the ONLY place the prompt
-    // appears, so it says everything about the picture.
-    // The half she picked rides along as she steps (comparing the style
-    // across two pictures is exactly why she would switch it) — but a fresh
-    // OPEN always starts on content; `openLB` sets it.
-    lbHalves = runPromptHalves(r);
-    paintPrompt();
-    var meta = runParts(r);
-    if (runImages(r).length > 1) meta.push('image ' + (i + 1));
-    document.getElementById('lbcapm').textContent = meta.join(' · ');
-    syncLbVotes();
-    syncLbNav();
-  }
-  function closeLB() {
-    lbCur = null;
-    lbSrc = '';
-    if (lbObj) { URL.revokeObjectURL(lbObj); lbObj = ''; }
-    document.getElementById('lb').classList.remove('on');
-    document.body.style.overflow = '';
-  }
-  document.getElementById('lb').addEventListener('click', function (e) {
-    // Buttons handle themselves — and the side arrows are STEPPING, not
-    // leaving: closing on them would shut the lightbox on every tap. The
-    // Content/Style toggle is the same: switching halves is not leaving.
-    // The BACK chevron and the empty band it sits in are deliberately NOT in
-    // this list — they close, which is the whole point of the strip.
-    // The PROMPT door and the words it opens are the same: reading a prompt is
-    // not leaving, and the overlay's own handler is what puts them away.
-    if (e.target.closest('.lbbtn') || e.target.closest('.lbnav') || e.target.closest('.capseg')
-      || e.target.closest('#lbpbtn') || e.target.closest('.lbpwrap')) return;
-    closeLB();
-  });
-
-  function syncLbVotes() {
-    if (!lbCur) return;
-    var votes = (runsById[lbCur.id] || {}).votes || {};
-    document.getElementById('lblike').classList.toggle('on', votes[lbCur.i] === 'like');
-    document.getElementById('lbx').classList.toggle('on', votes[lbCur.i] === 'dislike');
-  }
-
-  function vote(kind) {
-    if (!lbCur) return;
-    var r = runsById[lbCur.id];
-    var votes = r.votes = r.votes || {};
-    var next = votes[lbCur.i] === kind ? null : kind;    // tap again to clear
-    if (next === null) delete votes[lbCur.i]; else votes[lbCur.i] = next;
-    syncLbVotes();
-    fetch('/api/promptlab/' + lbCur.id + '/vote', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image: lbCur.i, vote: next || '' }),
-    }).then(function () { loadRuns(); }).catch(function () {});
-  }
-  document.getElementById('lblike').addEventListener('click', function () { vote('like'); });
-  document.getElementById('lbx').addEventListener('click', function () { vote('dislike'); });
-
   // Save to Photos. Three paths, in order:
   //   1. The app's native bridge (writes straight to the photo library and
   //      answers on window.__saveResult) — the only reliable one in a WKWebView.
@@ -2564,12 +2286,11 @@
     try { return window.webkit.messageHandlers.forgeSave; } catch (e) { return null; }
   }
   window.__saveResult = function (ok, msg) { toast(msg || (ok ? 'Saved to Photos' : 'Couldn’t save that')); };
-
-  document.getElementById('lbsave').addEventListener('click', function () {
+  function saveFromLB() {
     if (!lbCur) return;
-    // The ORIGINAL url, never `lbimg.src` — that is the 480px thumb while the
-    // full picture is still on its way, and a blob: url once it lands, and the
-    // app's bridge needs the real https one.
+    // The ORIGINAL url, never what is painted — that is the 480px thumb while
+    // the full picture is still on its way, and a blob: url once it lands, and
+    // the app's bridge needs the real https one.
     var url = lbSrc;
     var native = nativeSaver();
     if (native) { native.postMessage(url); toast('Saving…'); return; }
@@ -2589,23 +2310,138 @@
     a.href = URL.createObjectURL(lbBlob.blob);
     a.download = 'playground.' + ext;
     document.body.appendChild(a); a.click(); a.remove();
-  });
+  }
 
-  // ── SEND TO THE STORY ROOM — it WALKS THERE (2026-08-26, Sophie: "rather
-  // than this weird pop-up, it should take me to the story room so I can pick
-  // myself") ────────────────────────────────────────────────────────────────
-  // It shipped as a sheet over the lightbox: the shelf as a list of small
-  // rows, then that story's doors. She asked for the room itself, so this
-  // button is a NAVIGATION now and decides nothing about a story. The run and
-  // which of its pictures ride the link (?send=<run>&i=<n>) — never the url,
-  // because the room re-reads the run and gets the whole provenance with it,
-  // the same src the pad's own inbox pick sends.
-  // The placement is the room's own from there: her real shelf, the real
-  // covers, and a gap in the ORDER rather than "at the end".
-  document.getElementById('lbstory').addEventListener('click', function () {
-    if (!lbCur) return;
-    location.href = '/storyroom?send=' + encodeURIComponent(lbCur.id) + '&i=' + lbCur.i;
-  });
+  // Paint one picture into the shared lightbox (opening, stepping, or a feed
+  // re-render refreshing what is already up).
+  function showLB(id, i) {
+    var r = runsById[id];
+    if (!r || !window.__assetLightbox) return;
+    var src = runImages(r)[i];
+    if (!src) return;
+    // The door's state rides a STEP and dies with a fresh open (her rule:
+    // "the half she picked rides along as she steps; a fresh open always
+    // starts on content").
+    var carry = (!lbFresh && lbAsset) ? { side: lbAsset.promptSide, open: lbAsset.promptOpen } : null;
+    lbFresh = false;
+    if (lbSrc !== src) { if (lbObj) { URL.revokeObjectURL(lbObj); lbObj = ''; } lbBlob = null; }
+    lbCur = { id: id, i: i };
+    lbSrc = src;
+    var h = runPromptHalves(r);
+    // What drew it — model, quality/scale, seed — as the MODEL · QUALITY tag.
+    // This page has no per-picture label, so the tag is the whole caption.
+    var meta = runParts(r);
+    if (runImages(r).length > 1) meta.push('image ' + (i + 1));
+    var seq = lbSeq(), at = -1;
+    for (var k = 0; k < seq.length; k++) if (seq[k].id === id && seq[k].i === i) { at = k; break; }
+    var asset = {
+      prompt: meta.join(' · '),
+      promptStyle: h.style,
+      promptContent: h.content,
+      vote: (r.votes || {})[i] || null,
+      thread: noteCache[src] || [],
+      _cast: castLB,
+      // The note lands on the picture's own thread in my-creations, where
+      // every Playground picture is filed — the Panels wiring, verbatim, so a
+      // chat sweeping its notes finds it where it expects.
+      _noteSend: function (text, cb) {
+        fetch('/api/gallery/assets/note', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat: NOTE_CHAT, url: src, text: text, from: 'sophie' }),
+        }).then(function (res) { return res.json(); })
+          .then(function (j) {
+            if (j && j.thread) noteCache[src] = j.thread;
+            cb(!(j && j.error));
+          })
+          .catch(function () { cb(false); });
+      },
+      nav: {
+        prev: at > 0 ? function () { lbStep(-1); } : null,
+        next: (at >= 0 && at < seq.length - 1) ? function () { lbStep(1); } : null,
+      },
+      actions: [
+        // The same put-it-back-in-the-box button the list boxes have, but
+        // reachable from TILES view: closes the lightbox and lands the
+        // picture's prompt in the prompt box.
+        { label: 'Put this prompt back in the box', icon: ICONS.copy,
+          onClick: function () { closeLB(); copyPromptIn(r.prompt); } },
+        { label: 'Save to Photos', icon: ICONS.download, onClick: saveFromLB },
+        // SEND TO THE STORY ROOM — it WALKS THERE (2026-08-26, Sophie: "rather
+        // than this weird pop-up, it should take me to the story room so I can
+        // pick myself"). A NAVIGATION that decides nothing about a story: the
+        // run and which of its pictures ride the link (?send=<run>&i=<n>) —
+        // never the url, because the room re-reads the run and gets the whole
+        // provenance with it, the same src the pad's own inbox pick sends.
+        { label: 'Send to the Story Room', icon: ICONS.share,
+          onClick: function () { location.href = '/storyroom?send=' + encodeURIComponent(id) + '&i=' + i; } },
+      ],
+    };
+    if (carry) { asset.promptSide = carry.side; asset.promptOpen = carry.open; }
+    lbAsset = asset;
+    // ── THE PICTURE IS ON SCREEN AT ONCE (2026-08-26, Sophie: "it seems like
+    // it takes quite a while to load the images in light box view") ─────────
+    // The wall and the list load a 480px derived thumb, and the lightbox used
+    // to load the untouched ORIGINAL — 1-3MB at the 2K and 4K tiers — so every
+    // tap was a fresh download over cell before anything appeared. The thumb
+    // is already in the browser's cache (it is the tile she just tapped), so
+    // it paints in the same frame; the original swaps in behind it the moment
+    // it lands, from the SAME fetch that was already being made for Save. One
+    // download, not two, and never a blank.
+    var th = thumbFor(src);
+    var painted = (lbBlob && lbBlob.url === src) ? (lbObj || src) : th;
+    window.__assetLightbox(painted, asset);
+    if (!lbBlob || lbBlob.url !== src) {
+      fetch(src).then(function (res) { return res.blob(); })
+        .then(function (b) {
+          if (lbSrc !== src) return;                 // she stepped on while it flew
+          lbBlob = { url: src, blob: b };
+          if (th === src) return;                    // no derived copy — already the original
+          var el = document.querySelector('#clightbox .clwrap img');
+          if (el && el.getAttribute('src') === th) { lbObj = URL.createObjectURL(b); el.src = lbObj; }
+        })
+        .catch(function () {
+          // A failed fetch must never leave her looking at the 480px copy: fall
+          // back to loading the original the ordinary way.
+          if (lbSrc !== src || th === src) return;
+          var el = document.querySelector('#clightbox .clwrap img');
+          if (el && el.getAttribute('src') === th) el.src = src;
+        });
+    }
+    // The thread is ONE doc read, asked for after the picture is already up —
+    // the sibling /notes route answers with a whole chat's worth and would be
+    // the wrong thing to fetch to open one picture.
+    fetch('/api/gallery/assets/note?chat=' + encodeURIComponent(NOTE_CHAT)
+      + '&url=' + encodeURIComponent(src))
+      .then(function (res) { return res.json(); })
+      .then(function (j) {
+        if (!j || j.error || !j.thread || !j.thread.length) return;
+        noteCache[src] = j.thread;
+        // Only repaint the picture she is still looking at — with whatever is
+        // currently painted (the thumb, or the original once it swapped in),
+        // so this repaint can never regress a loaded original to its thumb.
+        if (!lbCur || lbCur.id !== id || lbCur.i !== i || !lbIsOpen()) return;
+        var el = document.querySelector('#clightbox .clwrap img');
+        window.__assetLightbox(el ? el.getAttribute('src') : painted,
+          Object.assign(asset, { thread: j.thread }));
+      })
+      .catch(function () {});
+  }
+
+  // ♥/✕ — this run doc's own vote route, tap again to clear, exactly as the
+  // old copy did; the shared lightbox repaints through _lbPaint.
+  function castLB(kind) {
+    if (!lbCur || !lbAsset) return;
+    var r = runsById[lbCur.id];
+    var votes = r.votes = r.votes || {};
+    var next = votes[lbCur.i] === kind ? null : kind;    // tap again to clear
+    if (next === null) delete votes[lbCur.i]; else votes[lbCur.i] = next;
+    lbAsset.vote = next;
+    if (lbAsset._lbPaint) lbAsset._lbPaint();
+    fetch('/api/promptlab/' + lbCur.id + '/vote', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: lbCur.i, vote: next || '' }),
+    }).then(function () { loadRuns(); }).catch(function () {});
+  }
 
   var toast = window.FeedKit.toast;
 
@@ -2613,7 +2449,7 @@
   // open, else let the app leave the tool.
   window.__navBack = function () {
     if (document.getElementById('ask').classList.contains('on')) { closeAsk(); return true; }
-    if (document.getElementById('lb').classList.contains('on')) { closeLB(); return true; }
+    if (lbIsOpen()) { closeLB(); return true; }
     return false;
   };
 

@@ -28,7 +28,7 @@
        _cast(v), _noteSend(text, cb), _markSeen(), unread,
        actions:[{label, icon, onClick}], who }
 
-   THE TWO EXTRAS HOOKS EXIST SO THERE IS NO FOURTH COPY (Aug 2026). Meta
+   THE EXTRAS HOOKS EXIST SO THERE IS NO FOURTH COPY (Aug 2026). Meta
    Assets (`public/assets.html`) stayed a third hand copy of this lightbox for
    months, and both of the close bugs settled here reached Sophie there a
    second time ("I can't get out of the light box in Meta assets"). The only
@@ -42,6 +42,27 @@
        which chat this picture came from, on a surface that mixes many.
    Both are optional and additive, so every existing caller is untouched. Add
    a hook rather than a copy the next time a surface needs something extra.
+
+   THE STEPPING HOOKS (2026-08-26, Sophie: "it should be the exact same
+   design — can it not be the same exact code?") — what let the PLAYGROUND
+   retire the last hand copy in the house. A feed surface steps picture to
+   picture without leaving the lightbox, so:
+     `nav: { prev: fn|null, next: fn|null }` — two INVISIBLE tap zones over
+       the picture, 28% of its width each (her 2026-08-24 rule: "tap anywhere
+       on the right or left … and it switches left or right", "make it tap
+       and no buttons showing"). A null side draws no zone, so at the ends of
+       the feed a tap there closes like any other dead space. The caller
+       steps by calling __assetLightbox again with the next picture.
+     `promptSide` / `promptOpen` — the prompt door's state, passed in when a
+       STEP rebuilds the box and written back onto the asset as she uses it
+       (her rule: "the half she picked rides along as she steps … a fresh
+       open always starts on content" — so a caller passes these only on a
+       step, never on a fresh open).
+     `window.__assetLightboxClose()` — closes it exactly as a backdrop tap
+       would, for a page whose app chevron asks the page first.
+   A toggle half with NOTHING filed is not offered (the Playground's rule,
+   now everyone's): one empty half hides its button, and a prompt with only
+   one half shows no Style|Content pair at all — the words alone.
    ♥/✕ and the note box appear only when the caller wires _cast (votes) —
    the caller owns WHERE a vote lands (the Assets tab posts the asset vote;
    a grid page also saves its page verdict), same as it always did.
@@ -177,7 +198,18 @@
     + '.promptbtn{border:none; border-radius:6px; background:rgba(250,247,240,.9); color:#26221c; padding:7px 11px; margin:0;\n'
     + '  font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.14em; text-transform:uppercase; cursor:pointer;\n'
     + '  box-shadow:0 1px 4px rgba(0,0,0,.2); flex:none;}\n'
-    + '.promptbtn.on{background:#3a3530; color:#faf7f0;}\n';
+    + '.promptbtn.on{background:#3a3530; color:#faf7f0;}\n'
+    /* THE STEP ZONES — invisible on purpose (2026-08-24, Sophie: "make it tap
+       and no buttons showing"): the zone is the control, and a mark drawn in
+       it would sit on the art she opened the lightbox to judge. Sized to the
+       PICTURE (.clwrap), never the window, so the caption and the note box
+       are never covered. Positioned with no z-index: above the <img> (which
+       is unpositioned), below the .lbp prompt words (z-index 1) and the ♥/✕
+       row (z-index 2). */
+    + '#clightbox .lbzone{position:absolute; top:0; bottom:0; width:28%; border:0; background:none;\n'
+    + '  padding:0; margin:0; cursor:pointer; border-radius:0; box-shadow:none;}\n'
+    + '#clightbox .lbzone.prev{left:0;}\n'
+    + '#clightbox .lbzone.next{right:0;}\n';
   document.head.appendChild(css);
 
   var HEART = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>';
@@ -215,6 +247,24 @@
     lb.classList.remove('hastalk');   // last image's thread must not shrink this one
     lb.classList.remove('hasmsgs');   // ...nor whether that thread had letters in it
     lb.classList.remove('hasacts');   // ...nor its actions row
+    // THE STEP ZONES — a feed surface steps through its pictures without
+    // leaving the lightbox (the Playground). A null side draws NOTHING, so at
+    // the ends of the feed a tap there closes like any other dead space. The
+    // caller's fn re-invokes __assetLightbox with the next picture.
+    var nav = (asset && asset.nav) || null;
+    if (nav && (nav.prev || nav.next)) {
+      var zwrap = lb.querySelector('.clwrap');
+      [['prev', 'Previous picture'], ['next', 'Next picture']].forEach(function (z) {
+        var fn = nav[z[0]];
+        if (!fn) return;
+        var zb = document.createElement('button');
+        zb.type = 'button';
+        zb.className = 'lbzone ' + z[0];
+        zb.setAttribute('aria-label', z[1]);
+        zb.onclick = function (e) { e.stopPropagation(); fn(); };
+        zwrap.appendChild(zb);
+      });
+    }
     // The caller's own buttons, directly under the picture (Meta Assets: open
     // the chat, the Playground, Save to Photos). The empty space beside them
     // is NOT dead - the close rule at the bottom asks the tap's TARGET, so
@@ -250,7 +300,14 @@
       // CONTENT IS THE DEFAULT SIDE (Aug 2026, Sophie: "right now the style is
       // the default and I want it to be the content, so I don't have to click
       // all the time"). Style still wins when content is the only half missing.
+      // A STEP passes the side she picked back in (`promptSide`) — comparing a
+      // style across two pictures is exactly why she would switch it.
       var side = asset.promptContent ? 'content' : 'style';
+      if (asset.promptSide === 'style' && asset.promptStyle) side = 'style';
+      // A half with NOTHING filed is not offered — an empty box behind a lit
+      // button is worse than no button, and with only one half there is no
+      // pair to toggle at all: the words alone.
+      var both = !!(asset.promptStyle && asset.promptContent);
       function paintSide() {
         sb.classList.toggle('on', side === 'style');
         cb.classList.toggle('on', side === 'content');
@@ -267,21 +324,26 @@
         }
         txt.scrollTop = 0;
       }
-      sb.onclick = function (e) { e.stopPropagation(); side = 'style'; paintSide(); };
-      cb.onclick = function (e) { e.stopPropagation(); side = 'content'; paintSide(); };
+      sb.onclick = function (e) { e.stopPropagation(); side = 'style'; asset.promptSide = side; paintSide(); };
+      cb.onclick = function (e) { e.stopPropagation(); side = 'content'; asset.promptSide = side; paintSide(); };
+      if (!both) tog.style.display = 'none';
       tog.appendChild(sb); tog.appendChild(cb);
       ov.appendChild(tog); ov.appendChild(txt);
       paintSide();
       wrap.appendChild(ov);
       promptBtn = document.createElement('button');
       promptBtn.className = 'promptbtn'; promptBtn.textContent = 'Prompt';
-      promptBtn.onclick = function (e) {
-        e.stopPropagation();
-        var open = ov.style.display === 'none';
+      var setPon = function (open) {
         ov.style.display = open ? 'flex' : 'none';
         wrap.classList.toggle('pon', open);
         promptBtn.classList.toggle('on', open);
+        asset.promptOpen = open;   // rides a STEP; a fresh open passes nothing
       };
+      promptBtn.onclick = function (e) {
+        e.stopPropagation();
+        setPon(ov.style.display === 'none');
+      };
+      if (asset.promptOpen) setPon(true);
     }
     // ♥/✕ overlaid on the image (left / right); the note box sits UNDER the image.
     if (asset && asset._cast) {
@@ -439,10 +501,8 @@
     // so the empty space beside a button was dead, and that space is most of
     // the row. One rule in one place now, asked of the tap's target rather
     // than of whichever box it landed in.
-    lb.onclick = function (e) {
-      var t = e && e.target;
-      if (t && t.closest
-          && t.closest('button,a,input,textarea,select,label,img,.lbp,.lbtalk')) return;
+    function closeNow() {
+      if (lb.style.display === 'none') return;
       if (asset) asset._lbPaint = null;
       // Blur FIRST: a still-focused note box makes iOS scroll again as the
       // keyboard leaves, which would land after our restore and undo it.
@@ -473,6 +533,15 @@
       window.scrollTo(0, lbY);
       // …and again next frame, for the keyboard-dismissal scroll that lands late.
       requestAnimationFrame(function () { window.scrollTo(0, lbY); });
+    }
+    lb.onclick = function (e) {
+      var t = e && e.target;
+      if (t && t.closest
+          && t.closest('button,a,input,textarea,select,label,img,.lbp,.lbtalk')) return;
+      closeNow();
     };
+    // For a page whose app chevron asks the page first ("close the lightbox if
+    // it's open, else leave the tool") — the same close a backdrop tap runs.
+    window.__assetLightboxClose = closeNow;
   };
 })();

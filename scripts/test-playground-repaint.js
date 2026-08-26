@@ -129,17 +129,17 @@ const RUNS = [
   // and Save must never be handed the derived copy.
   console.log('\nthe lightbox opens on the cached thumb, then the original');
   await page.click('#runs img[data-run="r1"]');
-  const firstPaint = await page.getAttribute('#lbimg', 'src');
+  const firstPaint = await page.getAttribute('#clightbox .clwrap img', 'src');
   ok(firstPaint.indexOf('/api/story/thumb?w=480&url=') === 0,
     'the first frame is the thumb the wall had already loaded');
   ok(await page.evaluate(() => lbSrc) === STORED,
     'Save and the app bridge still get the untouched original');
   await page.waitForFunction(
-    () => document.getElementById('lbimg').getAttribute('src').indexOf('/api/story/thumb') !== 0);
-  const settled = await page.getAttribute('#lbimg', 'src');
+    () => document.querySelector('#clightbox .clwrap img').getAttribute('src').indexOf('/api/story/thumb') !== 0);
+  const settled = await page.getAttribute('#clightbox .clwrap img', 'src');
   ok(settled === STORED || settled.indexOf('blob:') === 0,
     'and it settles on the original rather than staying at 480px');
-  await page.click('#lbback'); // the way out she asked for
+  await page.evaluate(() => window.__assetLightboxClose());   // the shared way out
 
   console.log('\na repaint keeps the pictures\' ELEMENTS — the flash test');
   // Mark every live <img>; anything rebuilt loses the mark.
