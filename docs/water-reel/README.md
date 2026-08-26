@@ -92,6 +92,10 @@ mishears; check each against the source words and a 20ms RMS profile.
 
 ## Open
 
+- **TEN NOTES ON v11's RAMP CUT ARE UNDONE** — sound-effect swaps, two crops,
+  a take swap, the lullaby's entry point, and a level check. They are the last
+  section of `docs/water-reel/sophies-notes.md`, each with the measurement
+  this chat made against it. Start there.
 - **She finds every speed so far too slow** (2026-08-25, on v11's 1.3x and the
   1.15→1.55 ramp: "they all sounded pretty slow"). Faster cuts exist — try
   `--flat 1.7` and `--ramp 1.35,1.5,1.65,1.8,2.0` — but the landing speed is

@@ -149,3 +149,59 @@ off at the top of the frame)*
 
 > Did you speed up my words in any of them if so, which version they all sounded
 > pretty slow.
+
+## On v11's ramp cut — OPEN, none of these are done yet
+
+Left as asset notes at 8:25-8:28pm on
+`water-reel-v11-ramp.mp4`, after the v11 delivery. **The next chat inherits
+all ten.** Measurements this chat made against them are in brackets.
+
+> [0:01] can you find a sound effect of someone gurgling and start with the
+> word scientists and then have the sound effect start right after instead of
+> over laughing at overlapping
+
+> [0:11] get rid of this part. Also change the first sound effect for a reason
+> number one.
+
+> [0:14] can you find a side effect of one of those office water machines
+> gurgling into being refilled or is that the first sound effect is?
+
+> [0:18] w Was there a take where I said faster And stranger than ever before
+
+*[yes — one, at 400.8s in her recording. The reel currently uses the take at
+371.6s, which ends at "stranger". Her five takes of that line: 30.5, 47.5,
+61.5, 371.6, 400.8.]*
+
+> [0:22] The singing should only start when I say that will sing to you start
+> the word that
+
+*[the lullaby currently starts 0.30s into the shot; "that will sing to you"
+begins at 420.4s in her recording, which is inside the c2 span — the offset
+can be derived from the cut rather than guessed.]*
+
+> [0:34] what happened to the laughing sound effect?
+
+*[the kid giggle is `goblin.mp3`, still on shot f2. Between v7 and v8 the reel
+stopped using a montage and the section order changed, so it moved.]*
+
+> [0:40] this crop is cutting off sun Some of the, the number one and the side
+> of the ghost picture on the left
+
+*[shot d1 — its zoom targets were never re-measured the way the C and B sheets
+were; measure the D sheet's panel band the same way.]*
+
+> [0:44] I don't like the breaking glass sound effect liquid lightning
+
+*[shot d2 — currently `zapbig.mp3`.]*
+
+> [0:59] get rid of the Here aresome other reasons and the number one just
+> start with the reason exactly
+
+*[shot e0 — the whole shot, and e3's leading "Three".]*
+
+> [1:04] I think my words are a bit quieter here. Can you see if they're the
+> same volume volume?
+
+*[around the g section. Her voice is NEVER loudnormed — measure the per-shot
+level and, if a shot really is quieter, fix it by choosing a different take
+rather than by compressing her.]*
