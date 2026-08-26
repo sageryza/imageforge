@@ -176,8 +176,20 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 /* THE PINNED DELIVERABLE (Aug 2026, Sophie: "a play button at the top, just the
    title, and when I press play it opens full screen"). She should not have to
    open a Compare page to reach the thing she asked a chat to make. */
+/* IT RAN UNDER THE AUTOSCROLL PILL (2026-08-26, Sophie's screenshot of
+   `people-watching-club-reel`: the row read "…the building across the street
+   (0:41)Fastest" — the pill's own speed label printing onto the end of her
+   title). This row is `width:100%` and the pill is fixed in the top-right
+   corner with `#spd` drawn under the capsule, so on a 390pt phone 47px of the
+   row sat inside that column (measured). Same collision `.noterow` learned
+   about with the QUESTIONS button, and the same answer: a reserve MEASURED
+   against the pill's real rect (`fitPillGap`), never a hardcoded band — the
+   pill is conditional and its top rides `env(safe-area-inset-top)`.
+   The BOX shortens rather than padding, because this one has an outline: a
+   padded row would keep drawing its border under the pill. */
 .pinned{display:flex; align-items:center; gap:10px; border:1px solid var(--line); border-radius:6px;
-  padding:9px 11px; margin:0 0 .7em; background:var(--barbg); width:100%; text-align:left; cursor:pointer;}
+  padding:9px 11px; margin:0 0 .7em; background:var(--barbg); text-align:left; cursor:pointer;
+  width:calc(100% - var(--pillgap, 0px));}
 .pinned .pl{width:30px; height:30px; border-radius:6px; flex:none; display:flex; align-items:center;
   justify-content:center; border:1.5px solid var(--chg); color:var(--chg);}
 .pinned .ti{flex:1; min-width:0; font-size:.95em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
@@ -6489,6 +6501,23 @@ function pinCurrent(pin){
   return !!pin && typeof pin.turns==='number' && pin.turns<=1;
 }
 window.__pinCurrent=pinCurrent;
+// RESERVE WHAT THE PILL ACTUALLY COVERS — one measured rule, for every header
+// row whose right end reaches the fixed top-right corner (the note row's
+// QUESTIONS button, the pinned deliverable's title). Measured and never
+// assumed: the pill is conditional (it hides in select mode and when there is
+// nothing to scroll) and its top rides `env(safe-area-inset-top)`, so both the
+// presence and the position have to be read. A row that is vertically clear of
+// the pill reserves nothing.
+function fitPillGap(el){
+  if(!el) return;
+  var pill=document.querySelector('body > .float');
+  if(!pill || !pill.getClientRects().length){ el.style.setProperty('--pillgap','0px'); return; }
+  el.style.setProperty('--pillgap','0px');            // measure the row unreserved
+  var r=el.getBoundingClientRect(), p=pill.getBoundingClientRect();
+  if(r.bottom<=p.top || r.top>=p.bottom) return;      // vertically clear — nothing to reserve
+  el.style.setProperty('--pillgap', Math.max(0, Math.ceil(r.right-p.left)+8)+'px');
+}
+window.__fitPillGap=fitPillGap;
 // Full-screen player for the pinned deliverable. Follows the house overlay
 // rule: stop the autoscroll, lock the background, and restore the EXACT scroll
 // position on close (overflow:hidden alone does not stop window.scrollBy).
@@ -6590,6 +6619,9 @@ function openChat(name, keepScroll, focusId, noFetch){
     +'<button class="tbtn threadsearch" aria-label="Search this chat" style="padding:6px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>'
     +'<button class="tbtn threadrefresh" aria-label="Refresh" style="padding:6px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button></div><div class="rule"></div>';
   head.querySelector('.threadrefresh').onclick=function(){ toast('Refreshing\u2026'); load(); };
+  // Every header row whose right end reaches the pill's fixed corner — the
+  // pinned deliverable and the note row. One list, one measured pass.
+  var pillRows=[];
   // The pinned deliverable sits directly under the header: title + a play
   // button, nothing else. Tapping it goes full screen. Set by a chat via
   // POST /api/chatfeed/pin; the field rides the registry doc the feed already
@@ -6622,6 +6654,7 @@ function openChat(name, keepScroll, focusId, noFetch){
       openPinned(pin, name);
     };
     head.appendChild(b);
+    pillRows.push(b);
   })();
   // Archive sits beside the chat's NAME, above the tab bar, and reads as plain
   // text rather than a button — it isn't a place to go, it's a thing you do
@@ -6861,21 +6894,13 @@ function openChat(name, keepScroll, focusId, noFetch){
   // opened, and her answer only appears after a reload.
   threadNote=paintNote;
   chatPanel.appendChild(nrow);
-  // Reserve exactly as much of this row as the pill actually covers — see the
-  // `.noterow` CSS note. Measured, never assumed: the pill is conditional (it
-  // hides in select mode and when there is nothing to scroll) and its top
-  // rides `env(safe-area-inset-top)`, so both the presence and the position
-  // have to be read rather than hardcoded.
-  function fitNoteRow(){
-    var pill=document.querySelector('body > .float');
-    if(!pill || !pill.getClientRects().length){ nrow.style.setProperty('--pillgap','0px'); return; }
-    nrow.style.setProperty('--pillgap','0px');          // measure the row unreserved
-    var r=nrow.getBoundingClientRect(), p=pill.getBoundingClientRect();
-    // Vertically clear of the pill → nothing to reserve.
-    if(r.bottom<=p.top || r.top>=p.bottom) return;
-    var gap=Math.max(0, Math.ceil(r.right-p.left)+8);   // +8 so the button never touches it
-    nrow.style.setProperty('--pillgap', gap+'px');
-  }
+  // Reserve exactly as much of each row as the pill actually covers — see
+  // `fitPillGap` and the `.noterow` / `.pinned` CSS notes. It is ONE pass over
+  // every row that reaches that corner, so a header row added later joins by
+  // pushing itself onto `pillRows` rather than growing a second copy of the
+  // measurement.
+  pillRows.push(nrow);
+  function fitNoteRow(){ pillRows.forEach(fitPillGap); }
   fitNoteRow();
   // The pill appears LATE — it is injected and its own ResizeObserver only
   // shows it once the thread has content to scroll — so one measurement at
