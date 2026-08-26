@@ -5389,11 +5389,15 @@ before working on that module. Nothing was deleted — the moved text is verbati
   2K size, 1024x1536 is gpt-image-2's ceiling)** — one Playground pastel run
   whose prompt describes a 2x2 grid of four separate small illustrations,
   cut into quarters locally, each quarter filed as its own image (~1¢
-  apiece). **Modes come in PAIRS: every scenario exists as an easy card AND
-  its hard twin** (same choice, escalated picture, a more-information line
-  that flips it) — a one-sided scenario is the thing she flags. Candidate
-  batches go on a review deck for her ♥ first; a single-option batch she has
-  delegated goes straight in.
+  apiece). **Scenarios come in PAIRS and PLAY as pairs (Sophie, Aug 2026:
+  "just put easy mode and then the hard mode version right after it")** —
+  every scenario exists as an easy card AND its hard twin (same choice,
+  escalated picture, a more-information line that flips it; `twin` on the
+  easy item names its hard card), and the SCENARIOS tab deals them
+  interleaved: the easy one, then its hard version immediately after. There
+  are no separate easy/hard tabs any more — a one-sided scenario is the
+  thing she flags. Candidate batches go on a review deck for her ♥ first; a
+  single-option batch she has delegated goes straight in.
   **SERIALIZE A BULK BATCH THE SERVER IS DRAWING — `/api/promptlab`, from a
   script (measured 2026-08-19):** two parallel 4-run × 4-output batches each
   died "interrupted by a server restart" partway (the 512MB box restarting

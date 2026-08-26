@@ -194,9 +194,8 @@ h1.tool-eyebrow{
 </header>
 
 <div id="modes">
-  <button data-mode="easy">Easy</button>
+  <button data-mode="scenarios">Scenarios</button>
   <button data-mode="feed">Feed</button>
-  <button data-mode="hard">Hard</button>
 </div>
 
 <div id="praise">You have opinions.</div>
@@ -226,14 +225,14 @@ h1.tool-eyebrow{
 <div id="toast" hidden><div></div></div>
 
 <div id="helpcard" hidden><div>
-  Two things at a time — tap the better one. <b>Easy</b> has right answers
-  (get them right, keep your streak). <b>Feed</b> is ideas — businesses,
-  things to make, pictures — and whatever you pick was the good idea.
-  <b>Hard</b> is ethically ambiguous and completely insane; read the
-  <i>more information</i> lines carefully. When the gun appears you have one
-  bullet — tap the side to shoot. Picks save as you go, accolades arrive as
-  you rack up opinions, and the little <b>+</b> on a card leaves a note for
-  the chats to read.
+  Two things at a time — tap the better one. <b>Scenarios</b> come in pairs:
+  the easy version first (it has a right answer — get it, keep your streak),
+  then the same choice again, escalated, with <i>more information</i> that
+  changes everything. When the gun appears you have one bullet — tap the
+  side to shoot. <b>Feed</b> is ideas — businesses, things to make, pictures
+  — and whatever you pick was the good idea. Picks save as you go, accolades
+  arrive as you rack up opinions, and the little <b>+</b> on a card leaves a
+  note for the chats to read.
 </div></div>
 
 <script>
@@ -263,15 +262,38 @@ h1.tool-eyebrow{
   var queue = [], qi = 0, history = [];
   var streak = 0, busy = false;
   var lineAt = 0;
-  // Easy is the opening mode on purpose — the hook. Her last mode sticks.
-  var MODE = localStorage.getItem('opinions-mode') || 'easy';
+  // Scenarios is the opening mode — the hook. Her last mode sticks; the old
+  // stored 'easy'/'hard' values fold into it.
+  var MODE = localStorage.getItem('opinions-mode') || 'scenarios';
+  if (MODE === 'easy' || MODE === 'hard') MODE = 'scenarios';
+  // The scenarios run as PAIRS: each easy card, then its hard version right
+  // after it (Sophie's structure) — the same choice escalated, with the
+  // more-information lines. `twin` on the easy item names its hard card.
+  function scenarioOrder() {
+    var byId = {};
+    items.forEach(function (it) { byId[it.id] = it; });
+    var out = [], used = {};
+    items.forEach(function (it) {
+      if (it.mode !== 'easy') return;
+      out.push(it); used[it.id] = 1;
+      var tw = it.twin && byId[it.twin];
+      if (tw) { out.push(tw); used[tw.id] = 1; }
+    });
+    // A hard card no easy twin claimed still plays, at the end.
+    items.forEach(function (it) {
+      if (it.mode === 'hard' && !used[it.id]) out.push(it);
+    });
+    return out;
+  }
   function inMode(it) {
-    if (MODE === 'easy') return it.mode === 'easy';
-    if (MODE === 'hard') return it.mode === 'hard';
+    if (MODE === 'scenarios') return Boolean(it.mode);
     return !it.mode;
   }
+  function modeItems() {
+    return MODE === 'scenarios' ? scenarioOrder() : items.filter(inMode);
+  }
   function buildQueue() {
-    var mine = items.filter(inMode);
+    var mine = modeItems();
     queue = mine.filter(function (it) { return !picks[it.id] || !picks[it.id].pick; });
     if (!queue.length) queue = mine.slice();
     qi = 0; history = [];
@@ -367,7 +389,7 @@ h1.tool-eyebrow{
         choose(it, el.getAttribute('data-side'));
       });
     });
-    var mine = items.filter(inMode);
+    var mine = modeItems();
     var done = mine.filter(function (m) { return picks[m.id] && picks[m.id].pick; }).length;
     elCount.textContent = Math.min(done + 1, mine.length) + ' of ' + mine.length;
     bUndo.disabled = !history.length;
@@ -460,7 +482,7 @@ h1.tool-eyebrow{
       + '<div class="row"><button class="btn ghost" id="again">Go through them again</button></div>'
       + '</div>';
     document.getElementById('again').addEventListener('click', function () {
-      queue = items.filter(inMode); qi = 0; history = [];
+      queue = modeItems(); qi = 0; history = [];
       setStreak(0); render();
     });
   }

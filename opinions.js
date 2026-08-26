@@ -112,6 +112,7 @@ function validItem(it) {
   if (it.verb != null && it.verb !== 'shoot') return 'verb must be shoot';
   if (it.right != null && it.right !== 'a' && it.right !== 'b') return 'right must be a|b';
   if (it.right != null && it.mode !== 'easy') return 'right belongs to easy mode';
+  if (it.twin != null && (typeof it.twin !== 'string' || it.mode !== 'easy')) return 'twin is an easy item naming its hard version';
   for (const side of ['a', 'b']) {
     const s = it[side];
     if (!s || !s.t) return side + '.t required';
@@ -137,6 +138,7 @@ function cleanItem(it) {
   if (it.mode) out.mode = it.mode;
   if (it.verb) out.verb = it.verb;
   if (it.right) out.right = it.right;
+  if (it.twin) out.twin = slug(it.twin);
   return out;
 }
 
