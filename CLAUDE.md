@@ -1343,6 +1343,21 @@ them off the reference sheet, not off the old filenames.
   - **Read back what you have pinned** with `GET /api/chatfeed/status?chat=&
     session=` → `pinned:{url,title,kind,at,turns}`. `turns` ≤ 1 means the tag
     is still lit.
+  - **THE ROW ENDS BEFORE THE PILL'S COLUMN, MEASURED (2026-08-26, Sophie's
+    screenshot of `people-watching-club-reel`: the row read "PWC ep006 — the
+    building across the street (0:41)Fastest").** That tail is `#spd`, the
+    autoscroll pill's own speed label, drawn under the capsule in the fixed
+    top-right corner — and the pinned row was `width:100%`, so **47px of it sat
+    inside that column** and her title's last words were unreadable. It is the
+    same collision the QUESTIONS button had, so it is the same answer:
+    `fitPillGap` in `chats.html` is now ONE measured pass shared by both rows
+    (`pillRows`), never a hardcoded band — the pill is conditional and its top
+    rides `env(safe-area-inset-top)`. **The BOX shortens rather than padding**,
+    because this row has an outline and a padded one keeps drawing its border
+    under the pill. A header row added later joins by pushing itself onto
+    `pillRows`. Test: `node scripts/test-chats-pin-pill.js` (verified failing 4
+    against the pre-fix page; the tap asked with `elementFromPoint`, which is
+    what a covered row passes every width assertion while failing).
   - Tests: `node scripts/test-pin-current.js` (the kind + tag rules, pure) and
     `node scripts/test-chats-pin.js` (the real page, headless).
 - **A SECOND, UNRELATED PIN — the PUSHPIN keeps a CHAT at the top of her list
