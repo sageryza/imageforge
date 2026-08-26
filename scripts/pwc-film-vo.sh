@@ -37,8 +37,8 @@ say "$NARRATOR" 07-graduation.mp3 'Congratulations. <break time="0.7s"/> You hav
 # Sophie asked him to talk "a bit faster … but just keep the pitch the same",
 # which is atempo exactly. Applied after the render so every clip speeds up by
 # the same factor, breaks included.
-if [ -n "${PWC_TEMPO:-1.12}" ]; then
-  T="${PWC_TEMPO:-1.12}"
+if [ -n "${PWC_TEMPO:-1.25}" ]; then
+  T="${PWC_TEMPO:-1.25}"
   mkdir -p "$OUT/fast"
   for f in "$OUT"/*.mp3; do
     [ -f "$f" ] || continue

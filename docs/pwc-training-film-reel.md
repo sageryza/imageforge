@@ -3,8 +3,10 @@
 Sophie's seven "People Watching Club: Official Training Film No. 001" cards cut
 into a 9:16 reel, opened with a public-domain 3-2-1 Academy leader countdown.
 
-**Live cut — v3, camera moves:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v3-camera.mp4
-(1080x1920, 30fps, 1:50, -15.0 LUFS.)
+**Live cut — v4, moving camera:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v4-moving-camera.mp4
+(1080x1920, 30fps, 1:41, -15.0 LUFS.)
+
+**v3, hard cuts between framings, 1:50:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v3-camera.mp4
 
 **v2, narrated, static cards, 2:03:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v2-narrated.mp4
 
@@ -200,3 +202,48 @@ and the chat leaves her list until the reply lands. This chat's turns run 7-30
 minutes because of video encoding, so any time she looked mid-turn the chat was
 behind the HIDDEN bar. Worth knowing before diagnosing a "silent chat" that is
 merely a slow one.
+
+
+## v4 — a camera that MOVES, and the Chicago reference
+
+Sophie pointed at the chat she nicknamed **Chicago** (`stock-footage-backstories`,
+ep005): "the way that they did it is they actually zoomed around so they show
+the full page and then they zoom in on certain areas **and you can see the
+zoom**." v3 hard-CUT between framings; that reel pushes continuously, and the
+movement is the point.
+
+**Each card is now ONE shot with a keyframed camera**, not N cut segments.
+`scripts/pwc-film-render-cards.py` builds, per card, a 9:16 **page** (the blurred
+backdrop with the card fitted into it) and runs a single `zoompan` path over it:
+full page first, then a visible push into each area as its beat lands.
+
+- **The page is rendered at 2x the output (2160x3840).** `zoompan` rounds its
+  x/y to whole INPUT pixels, so at 1x a slow push visibly stair-steps; at 2x the
+  step is half an output pixel.
+- **`zoompan` has no `t`.** Its variables are `on` / `in_time` / `out_time` —
+  using `t` fails with "Undefined constant", which is what the first build did.
+  The path expressions are written against `on/FPS`.
+- **Moves ease, they do not snap.** Each transition is a smoothstep over
+  `MOVE = 0.9s`, starting `LEADIN = 0.35s` before its beat so the framing
+  ARRIVES on the word rather than chasing it. A move is never allowed under
+  0.45s — she asked to *see* the zoom, and a 0.06s snap is a cut with extra
+  steps (the first build produced exactly that on the end-of-card pull-outs).
+- **Beats are stored in CLIP time, not card time** (`shots.py`), with the tempo
+  they were measured at. That is what let the narration speed up again without
+  re-cutting the camera by hand: the builder rescales every beat by the clip's
+  own old/new duration ratio.
+- **A full-bleed 9:16 window cannot isolate a wide band the way v3's cuts
+  could.** The cards are 2:3 and 4:5, so a window framing a wide strip is
+  necessarily much taller than the strip. That is the honest cost of the move
+  she asked for, and it is why v3 is kept.
+- **The graduation montage was cut from four stops to three.** Four nouns in
+  3.4s with 0.9s moves read as constant motion with nothing held; measured on a
+  frame sheet before it shipped.
+
+**The narration is faster again — `PWC_TEMPO=1.25`** (was 1.12), her second ask
+for it. 1:48 of narration at 1.0x is now 1:25, and the film is 1:41.
+
+**Finding the reference:** the chat is `stock-footage-backstories`; her nickname
+lives on the registry doc as `displayName`, which is the only place "Chicago"
+appears. `GET /api/chatfeed` returns the registry under **`chats`**, not
+`registry`.
