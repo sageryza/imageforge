@@ -207,6 +207,44 @@ All 12 NDE-category stories were linked to their montage episodes on
   screen-change reload in PlaygroundView. iOS: home-grid tile
   "Scratch Pad" (`ScratchPadView.swift`, bare WKWebView per the page-owns-
   header rule).
+- **CHARACTER REFERENCES — the story's CAST (2026-08-26, Sophie: "attach one
+  or more character references … the characters could exist at the top of the
+  story and then there could be like an add character card button and then
+  through there I pick one or multiple of the characters that are for the
+  story so it's two taps to add a character instead of one, and there's only
+  one button not multiple").** A character is `{id, name, url}` on the pad
+  doc (`characters`): a reference image plus the NAME a drawing prompt calls
+  them by. The rules live in **`pad-characters.js`** (pure, tested without
+  node_modules — the pad-art pattern); scratchpad.js holds the routes.
+  - **Managed at the top of the story** — the `users-round` icon in the icon
+    row opens the Characters sheet: + adds a card (bytes ride the Dump's
+    `/api/drop/upload-file`, HEIC→JPEG, md5 dedupe — never a second upload
+    path; `POST /api/scratchpad/character {url, name?}` files the finished
+    url, `{id, name}` renames, `/character/remove` takes one off the list —
+    the image itself is untouched). Cap 30 per story, names 60 chars.
+  - **ONE button on the draw row** (`#dchars`, her rule: "only one button not
+    multiple") opens the SAME sheet in pick mode — tap cards to toggle them
+    in, two taps per character. The count badge on the button is the
+    disclosure that references are riding the next draw. The picked set is
+    NOT persisted (the Playground's photo-ref rule): it lives for the page
+    visit and resets on a story switch or reload.
+  - **They ride EVERY style, LAST** — behind the style reference(s) and, on
+    watercolor, behind the Sophie card — so one disclosed line ("the last
+    attached image(s)…", `charLine()`) stays true everywhere. The line says
+    **"NOT a style reference"** on purpose: pastel's prefix claims every
+    attached image as a style reference and dreamy's suffix re-asserts its
+    own, so the carve-out is explicit; on recipe styles the line rides AFTER
+    the suffix (last word wins), on watercolor in the head beside the Sophie
+    line. With none picked every prompt is byte-for-byte what it always was.
+    Capped at 6 per draw — each reference is paid input tokens (~1.2¢).
+  - `/generate` takes `characters:[ids]`, resolved against the pad's own cast
+    (story order, deduped; an unknown id is dropped so a stale page never
+    fails a draw). Provenance: the gen record and `swapArt`'s src carry the
+    names, and the gallery filing's promptPrefix/Suffix include the line.
+  - `/character*` does NOT stale the film and does NOT bump `updatedAt` —
+    the cast list is not on the timeline; a draw that uses one is.
+  - Tests: `node scripts/test-pad-characters.js` (the line, the pick, the
+    caps, and source pins on both halves of the wiring).
 - **THE STYLE TOGGLE — watercolor · dreamy · pastel (Aug 2026, Sophie: "I
   want to have the same beats but I wanna fill them with new art … a style
   toggle at the top of a story that alternates between dreamy and watercolor …

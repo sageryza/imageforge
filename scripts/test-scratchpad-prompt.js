@@ -53,7 +53,10 @@ ok('page wand count uses promptOf', page.indexOf("s.gen.status==='drawing') && p
 // 4. auto-save, no button
 ok('prompt saves on blur', page.indexOf("getElementById('dprompt').onblur") > 0);
 ok('prompt saves on closing the popup', /function closeBeat\(\)\{[^}]*savePrompt\(\)/.test(page));
-ok('prompt saves on Draw', /saveNote\(\); savePrompt\(\);\s*\n\s*api\('\/generate'/.test(page));
+// Since #1762 the saves are SEQUENCED before /generate (a loose save could
+// commit after /generate read the pad, and the re-open reverted the box) —
+// the pin follows: savePrompt must complete before /generate is asked.
+ok('prompt saves on Draw', /saveNote\(\)[\s\S]{0,60}\.then\(savePrompt\)[\s\S]{0,160}api\('\/generate'/.test(page));
 ok('no Save button appeared in the draw box',
   !/id="dsave"|>\s*Save\s*</i.test(page.slice(page.indexOf('id="drawbox"'), page.indexOf('id="pnote"'))));
 ok('generator matches the built page (promptOf present)', gen.indexOf('function promptOf(b){') > 0);
