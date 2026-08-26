@@ -169,6 +169,17 @@ function regRef(chat) {
 function sidTail(session) {
   return String(session).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6);
 }
+// A session id arrives in three spellings — bare (`011kWP…`, what the hook
+// sends), the url's `session_011kWP…`, and the env var's `cse_011kWP…` — and
+// they are ONE session. Treating them as different ids is what minted the
+// phantom `<slug>-sessio` chats (found live 2026-08-26: 17 registry docs with
+// a `session_`-prefixed sessionId, 12 of them forks of a real chat whose bare
+// id owned the pretty slug — sidTail("session_…") is literally "sessio").
+// Every comparison and every write below goes through this, so a chat posting
+// its status card with the url spelling lands on the same thread as its hook.
+function bareSid(session) {
+  return String(session || '').replace(/^(session_|cse_)/, '').slice(0, 120);
+}
 // A merged/repaired chat leaves a tombstone doc behind ({ movedTo }) so posts
 // still addressed to the old slug — stale hook caches, the app's reply box on
 // an old thread — land in the surviving chat instead of resurrecting the tile.
@@ -185,22 +196,28 @@ async function followMoves(chat) {
 }
 async function resolveChat(base, session) {
   const chat = await followMoves(base);
-  const sid = String(session || '').slice(0, 120);
+  const sid = bareSid(session);
   if (!chat || !sid) return chat;
   // 1) Session-first: this session already has a home → everything it posts
   //    goes there, no matter what slug it arrived under. This is what makes a
   //    chat's identity survive branch renames and naming-convention changes.
+  //    Both sides are normalized (bareSid): a doc that stored the prefixed
+  //    spelling still matches its own session, and is healed to the bare id
+  //    on the way past so the stored shape converges.
   const reg = await registry();
   const mine = Object.keys(reg.chats)
-    .filter((s) => (reg.chats[s].sessionId || '') === sid && !reg.chats[s].movedTo);
+    .filter((s) => bareSid(reg.chats[s].sessionId) === sid && !reg.chats[s].movedTo);
   if (mine.length) {
-    if (mine.includes(chat)) return chat;
     // duplicates only happen after registry surgery — pick deterministically
     mine.sort((a, b) => a.length - b.length || (a < b ? -1 : 1));
-    return mine[0];
+    const pick = mine.includes(chat) ? chat : mine[0];
+    if ((reg.chats[pick].sessionId || '') !== sid) {
+      await regRef(pick).set({ sessionId: sid }, { merge: true });
+    }
+    return pick;
   }
   // 2) First post from a new session: take the pretty name if it's unclaimed…
-  const owner = (reg.chats[chat] || {}).sessionId || '';
+  const owner = bareSid((reg.chats[chat] || {}).sessionId);
   if (!owner) {
     await regRef(chat).set({ sessionId: sid }, { merge: true });
     return chat;
@@ -210,7 +227,7 @@ async function resolveChat(base, session) {
   //    another session (two ids sharing 6 leading chars), widen the tail.
   let tail = sidTail(sid) || 'x';
   let fork = (chat + '-' + tail).slice(0, 60);
-  const fowner = (reg.chats[fork] || {}).sessionId || '';
+  const fowner = bareSid((reg.chats[fork] || {}).sessionId);
   if (fowner && fowner !== sid) {
     tail = String(sid).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12) || tail;
     fork = (chat + '-' + tail).slice(0, 60);
@@ -242,10 +259,17 @@ router.post('/session', async (req, res) => {
   try {
     const { chat, sessionId, movedTo } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
-    const val = String(sessionId || '').slice(0, 120);
+    const val = bareSid(sessionId);
     const chatId = String(chat).slice(0, 60);
     if (val) {
-      const dupes = await db().collection(REG).where('sessionId', '==', val).get();
+      // The registry stores bare ids, but 17 docs were found (2026-08-26)
+      // carrying the `session_` spelling — clear those dupes too, or binding a
+      // chat leaves its phantom twin still claiming the same session.
+      const [d1, d2] = await Promise.all([
+        db().collection(REG).where('sessionId', '==', val).get(),
+        db().collection(REG).where('sessionId', '==', 'session_' + val).get(),
+      ]);
+      const dupes = { docs: [...d1.docs, ...d2.docs] };
       for (const d of dupes.docs) {
         if (d.id !== chatId) {
           await regRef(d.id).set({ sessionId: admin.firestore.FieldValue.delete() }, { merge: true });
