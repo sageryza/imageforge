@@ -788,6 +788,24 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    making (or if it failed). */
 #filmrow{margin-top:.5em;}
 .filmnote{font-size:.85em; font-style:italic; color:var(--ink2);}
+/* ── THE PICTURE SHE ARRIVED HOLDING (2026-08-26, Sophie: "rather than this
+   weird pop-up, it should take me to the story room so I can pick myself").
+   The Playground's send button walks here with ?send=, and this band is the
+   picture in her hand: it rides over the SHELF while she picks a story and
+   over the canvas while she picks the spot, so there is one thing on screen
+   saying what is being placed and one way to put it down.
+   z-index 45 sits above the shelf sheet (40) and below the beat popup (50) —
+   the popup covers the whole screen with no backdrop of its own, so the band
+   is hidden outright while one is open rather than floating over its card. */
+#sendband{position:fixed; left:12px; right:12px; bottom:calc(12px + env(safe-area-inset-bottom));
+  z-index:45; display:flex; align-items:center; gap:10px;
+  background:var(--ink); color:var(--paper); border:0; border-radius:6px;
+  padding:8px 10px; box-shadow:0 6px 20px rgba(20,18,16,.28); font:inherit;
+  text-align:left; max-width:520px; margin:0 auto;}
+#sendband img{flex:none; width:38px; height:38px; object-fit:cover; border-radius:4px; background:#4a423a;}
+#sendband .sw{flex:1; min-width:0; font-size:13px; line-height:1.3;}
+#senddrop{flex:none; width:30px; height:30px; border-radius:6px; border:1px solid rgba(250,247,242,.35);
+  background:none; color:var(--paper); font-size:15px; line-height:1; padding:0;}
 #filmplay{position:fixed; inset:0; z-index:70; display:flex; align-items:center; justify-content:center;
   background:#000; padding:0;}
 #filmplay video{max-width:100vw; max-height:100vh; background:#000;}
@@ -826,10 +844,15 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
     <div id="title" contenteditable="true" spellcheck="false"></div>
   </div>
   <div class="iconrow">
-    <!-- Lucide `book-audio` — a book with a sound wave inside, because the
-         sheet behind it is exactly that: her words and her recordings. It
-         replaced a book glyph and a waveform glyph standing side by side. -->
-    <button class="iconbtn" id="aboutbtn" hidden aria-label="About this story — what you said, and every recording of it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v7"/><path d="M16 8v3"/><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/><path d="M8 8v3"/></svg></button>
+    <!-- THE PLAIN WAVEFORM, and it is hers by name (2026-08-26: "I like the
+         book idea, but can you just put it back to the normal wave form?").
+         The merge shipped Lucide `book-audio` — a book with a sound wave
+         inside — on the reasoning that the sheet holds her words as well as
+         her recordings; she liked the idea and picked the plain wave anyway,
+         so that reasoning is history rather than a rule. It is the exact
+         glyph `#audiobtn` wore before the two buttons became one, so nothing
+         about the row changed for her but the sheet behind it. -->
+    <button class="iconbtn" id="aboutbtn" hidden aria-label="About this story — what you said, and every recording of it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 13a2 2 0 0 0 2-2V7a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0V4a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0v-4a2 2 0 0 1 2-2"/></svg></button>
     <button class="iconbtn" id="playbtn" hidden aria-label="Watch the film"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4.5v15l13-7.5z"/></svg></button>
     <button class="iconbtn" id="drawallbtn" hidden aria-label="Draw every beat that has words but no picture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg></button>
     <button class="iconbtn" id="addbtn" aria-label="Add an empty beat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
@@ -1024,6 +1047,11 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   </div>
 </div>
 <div id="filmplay" hidden><video id="filmvid" controls playsinline></video></div>
+<button id="sendband" hidden>
+  <img id="sendthumb" alt="">
+  <span class="sw" id="sendword"></span>
+  <span id="senddrop" role="button" aria-label="Not now">&#10005;</span>
+</button>
 
 <script>
 var TOKEN='__STUDIO_TOKEN__';
@@ -1269,6 +1297,10 @@ function render(){
   });
   if(pending&&beats.length) slot(beats.length);
   renderDrawall();
+  /* The band's words depend on whether the picture she walked in with is
+     armed, and placing is cancelled from anywhere (the document-level tap) —
+     so it repaints with the canvas rather than at each of those call sites. */
+  paintSend();
 }
 
 function renderTitle(){
@@ -1887,6 +1919,9 @@ function load(){
       var b=beats.find(function(x){return x.id===want;});
       if(b) openBeat(b);   // openBeat shows the popup and locks the page
     }
+    /* Walked in from the Playground holding a picture: the gaps light the
+       moment the beats are here, so the story opens ready to take it. */
+    if(sendIt) armSend();
   });
 }
 
@@ -1923,7 +1958,7 @@ function openShelf(){
   if(!sh.hidden) return;
   auStop();   // she has left the story — its recordings go quiet with it
   sh.hidden=false; sh.scrollTop=0; lock(true); sheetPill(sh);
-  paintShelfBack();
+  paintShelfBack(); paintSend();
   api('/pads').then(function(r){return r.json()}).then(function(d){
     shelfPads=d.pads||[];
     if(PLAIN_SHELF) renderPlainShelf(); else renderShelf();
@@ -2141,7 +2176,7 @@ function renderPlainShelf(){
 function closeShelf(){
   var sh=document.getElementById('stories');
   if(sh._stopPill) sh._stopPill();
-  sh.hidden=true; lock(false); paintShelfBack();
+  sh.hidden=true; lock(false); paintShelfBack(); paintSend();
 }
 /* The shelf's own chevron used to drop back onto the story behind it. Nothing
    is behind it any more, so it does what the app's chevron does at the top of
@@ -2516,6 +2551,8 @@ function pick(it){
 }
 function place(at, it){
   it=it||pending; if(!it)return; pending=null;
+  // The picture she walked in holding is put DOWN here — the band goes with it.
+  if(it===sendIt){ sendIt=null; paintSend(); }
   var body={at:at}, path='/add';
   if(it.film){ path='/clip'; body.clip=it.clip; body.style=padStyle; }
   else if(!it.empty){
@@ -2541,6 +2578,86 @@ document.getElementById('addbtn').onclick=function(ev){
 };
 /* tapping anywhere that is not a slot quietly cancels placing */
 document.addEventListener('click',function(){ if(pending){pending=null;render();} });
+
+/* ── THE PICTURE SHE ARRIVED HOLDING (2026-08-26, Sophie: "rather than this
+   weird pop-up, it should take me to the story room so I can pick myself") ──
+   The Playground's send button used to open a sheet over its own lightbox —
+   the shelf as small rows, then that story's doors. Now it WALKS here with
+   ?send=<run>&i=<n>, and the picking happens in the room: her real shelf,
+   the real covers, and the same placement every other picture gets.
+   The band is the picture in her hand. It rides over the shelf while she
+   picks a story and over the canvas while she picks the spot, so one thing
+   on screen says what is being placed — and it is the way to put it down
+   again after a stray tap has cancelled placing (the document-level cancel
+   above), which is why it outlives `pending` rather than being it. */
+var sendIt=null;
+function paintSend(){
+  var el=document.getElementById('sendband');
+  if(!el) return;
+  if(!sendIt){ el.hidden=true; return; }
+  var onShelf=!document.getElementById('stories').hidden;
+  // The beat popup covers the screen with no backdrop of its own, so the band
+  // would float over its card: it stands down for as long as one is open.
+  el.hidden=!document.getElementById('beatpop').hidden;
+  document.getElementById('sendthumb').src=thumbOf(sendIt.url);
+  document.getElementById('sendword').textContent = onShelf
+    ? 'Pick a story for this picture'
+    : (pending===sendIt ? 'Tap where it goes' : 'Tap to place this picture');
+}
+function armSend(){
+  if(!sendIt) return;
+  // pick() is the inbox's own arming — an empty story has no gap to tap, so
+  // it places straight away there, exactly as picking from the inbox does.
+  pick(sendIt); paintSend();
+}
+document.getElementById('sendband').onclick=function(ev){
+  ev.stopPropagation();   // or the cancel above hears it and drops the placing
+  if(!document.getElementById('stories').hidden) return;   // the shelf picks a story
+  armSend();
+};
+document.getElementById('senddrop').onclick=function(ev){
+  ev.preventDefault(); ev.stopPropagation();
+  if(pending===sendIt){ pending=null; render(); }
+  sendIt=null; paintSend();
+};
+/* The RUN is re-read here rather than the url being sent in the link: one id
+   carries the whole provenance with it (the prompt, the model, the quality),
+   which is what a beat's past-pictures row and a picked-back version are
+   restored from — the same `src` the pad's own inbox pick sends. */
+function loadSend(runId,i){
+  fetch('/api/promptlab/'+encodeURIComponent(runId))
+    .then(function(r){return r.json()})
+    .then(function(d){
+      var imgs=(d.images&&d.images.length)?d.images:(d.tempImages||[]);
+      var url=imgs[i];
+      if(!url) return;
+      sendIt={url:url, runId:runId, i:i, prompt:d.prompt||null, model:d.model||null,
+              engine:d.engine||null, quality:d.quality||null};
+      paintSend();
+    })
+    .catch(function(){});
+}
+/* PANELS WALKS HERE TOO (2026-08-26) — its lightbox got the same send button
+   when its feed was brought up to the Playground's, and the popup she retired
+   must not come back anywhere. Its run is a SHEET, so the picture is named by
+   its CELL rather than by an index: a resume re-cuts only the panels that are
+   missing, which makes a position an unstable name for one. Everything else is
+   identical, provenance included — one id re-read in the room. */
+function loadSendPanel(runId,cell){
+  fetch('/api/panels/'+encodeURIComponent(runId))
+    .then(function(r){return r.json()})
+    .then(function(d){
+      var im=null;
+      (d.images||[]).forEach(function(x){ if(x&&x.cell===cell) im=x; });
+      var url=(cell==='sheet')?d.sheetUrl:(im&&im.url);
+      if(!url) return;
+      sendIt={url:url, runId:runId, cell:cell, from:'panels',
+              prompt:(im&&im.prompt)||(d.panels||[]).join('\n')||null,
+              model:'gpt-image-2', quality:d.quality||null};
+      paintSend();
+    })
+    .catch(function(){});
+}
 
 /* ── the beat popup: the art at THUMBNAIL size, frame color, text ─── */
 function openBeat(b){
@@ -2639,7 +2756,7 @@ function openBeat(b){
   mb.hidden=clip;
   mb.classList.remove('rec','busy');
   mb.classList.toggle('on',Boolean(b.voiceUrl));
-  document.getElementById('beatpop').hidden=false; lock(true);
+  document.getElementById('beatpop').hidden=false; lock(true); paintSend();
 }
 /* Leaving the popup stops a clip — a film still talking behind the pad is
    the same bug as a sheet that keeps scrolling. */
@@ -3144,7 +3261,7 @@ document.getElementById('delyes').onclick=function(ev){
     .catch(function(){ btn.disabled=false; });
 };
 
-function closeBeat(){stopRec(); stopPopVid(); saveNote(); savePrompt(); document.getElementById('beatpop').hidden=true; popBeat=null; lock(false); render();}
+function closeBeat(){stopRec(); stopPopVid(); saveNote(); savePrompt(); document.getElementById('beatpop').hidden=true; popBeat=null; lock(false); render(); paintSend();}
 /* Close on the edge around the card OR on the card's own empty cream — the
    same "tap anywhere that isn't a control" contract the old scrim had. */
 document.getElementById('beatpop').onclick=function(ev){
@@ -3217,16 +3334,29 @@ window.__navBack=function(){
 (function(){
   var q=new URLSearchParams(location.search);
   var pad=q.get('pad'), beat=q.get('beat');
-  if(!pad){ openShelf(); return; }
-  openAfterLoad=beat||null;
-  openPad(pad);
-  /* Spend the link once: she may walk off to another story from here, and a
-     refresh then must not yank her back to the beat she arrived on. Every
-     other param (plain=1) is left exactly as it was. */
+  /* ?send=<run>&i=<n> — she walked over from the Playground holding one of
+     that run's pictures (2026-08-26). The room opens on the shelf as it
+     always does; the band above says what she is carrying, and the story she
+     taps arms it. */
+  var send=q.get('send');
+  if(send){
+    /* `from=panels` names the FEED to re-read, not just a label — a panels run
+       lives in another collection and names its picture by cell. */
+    if(q.get('from')==='panels') loadSendPanel(send, q.get('cell')||'');
+    else loadSend(send, Math.max(0, parseInt(q.get('i'),10)||0));
+  }
+  /* Spend the link once, BEFORE anything opens: she may walk off to another
+     story from here, and a refresh then must not yank her back to the beat
+     she arrived on — or hand her back a picture she has already put down.
+     Every other param (plain=1) is left exactly as it was. */
   try{
-    q.delete('pad'); q.delete('beat');
+    q.delete('pad'); q.delete('beat'); q.delete('send'); q.delete('i');
+    q.delete('cell'); if(q.get('from')==='panels') q.delete('from');
     var rest=q.toString();
     history.replaceState({},'',location.pathname+(rest?'?'+rest:''));
   }catch(e){}
+  if(!pad){ openShelf(); return; }
+  openAfterLoad=beat||null;
+  openPad(pad);
 })();
 </script>

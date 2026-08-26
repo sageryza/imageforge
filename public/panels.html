@@ -143,14 +143,27 @@
      names the cell, which is a name and not words. */
   .pcell textarea { width: 100%; box-sizing: border-box; border: 1px solid var(--border);
     border-radius: 6px; padding: 8px 8px 34px; font: inherit; font-size: 16px;
-    background: var(--surface); resize: vertical; min-height: 84px; display: block; }
+    background: var(--surface); resize: vertical; min-height: 84px; }
   .pcell textarea.want { border-color: var(--chg); }
-  .pcell textarea.big { min-height: 46vh; }
-  /* THE BIGGER BOX, per cell (the Playground's #bigprompt, ported). A rounded
-     square at the house 6px inside the box's own bottom-right corner, on the
-     box's paper so it reads over any words beneath it; the textarea reserves
-     that corner with padding-bottom, so her last line is never typed under the
-     button. Deliberately NOT sticky — the compact box is the page's shape. */
+
+  /* THE BIGGER BOX (2026-08-26, Sophie: "make a button to see the current text
+     box that you're working on bigger so you can see what you're writing").
+     The Playground's `#bigprompt` answer lifted in SHAPE, not copied — the
+     SAME textarea grows, never a second field, so nothing has to be synced.
+     WIDTH IS THE HALF THAT MATTERS HERE, and that is a measurement rather
+     than a preference: main is 14px either side, so on a 390pt phone a cell
+     is 176px at two across and 114px at NINE — the grid where a dictated
+     prompt wraps every three or four words. So the open cell takes the whole
+     row (`grid-column: 1/-1`) as well as growing tall. The others keep their
+     order and stay on screen, because what she wrote in the neighbours is
+     the context for the one she is writing.
+     ONE AT A TIME: opening another closes it, so the grid never comes apart
+     into a column of full-width boxes.
+     Deliberately NOT sticky, and reset on a grid change — the boxes ARE the
+     grid, and reopening on a layout she did not pick is the opposite of what
+     this page is. */
+  .pcell.big { grid-column: 1 / -1; }
+  .pcell.big textarea { min-height: 46vh; }
   .pbig { position: absolute; right: 6px; bottom: 6px; width: 26px; height: 26px;
     display: flex; align-items: center; justify-content: center; padding: 0; margin: 0;
     border: 1px solid var(--border); border-radius: 6px; background: var(--surface);
@@ -324,36 +337,6 @@
     transition: opacity .18s; max-width: 84vw; text-align: center; }
   #toast.on { opacity: 1; }
 
-  /* SEND TO THE STORY ROOM — the Playground's sheet, ported: the shelf of
-     stories, then that story's doors (its inbox, a new beat, or one of its
-     beats). Above the shared lightbox, which sits at 60. */
-  #storysheet { display: none; position: fixed; inset: 0; background: rgba(20,18,16,.55);
-    z-index: 62; align-items: flex-end; justify-content: center; }
-  #storysheet.on { display: flex; }
-  .storybox { background: var(--paper); border: 1px solid var(--line); border-radius: 6px 6px 0 0;
-    width: 100%; max-width: 430px; max-height: 72vh; display: flex; flex-direction: column;
-    padding: 14px 14px calc(12px + env(safe-area-inset-bottom)); }
-  .sshead { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-  .sshead .ssname { font: 600 14.5px/1.3 -apple-system, sans-serif; color: var(--ink);
-    flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  #ssback { flex: none; width: 28px; height: 28px; border: 1px solid var(--border);
-    border-radius: 6px; background: var(--surface); color: var(--ink); font-size: 17px; line-height: 1; }
-  #ssbody { overflow-y: auto; min-height: 0; }
-  .ssquiet { font: 500 12.5px/1.4 -apple-system, sans-serif; color: #8a8177; padding: 6px 2px; }
-  .ssrow { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
-    border: 1px solid var(--border); border-radius: 6px; background: var(--surface);
-    color: var(--ink); font: inherit; font-size: 13.5px; padding: 7px 9px; margin-bottom: 7px; }
-  .ssrow .sthumb { flex: none; width: 42px; height: 42px; object-fit: cover; border-radius: 4px;
-    background: #eee7dc; }
-  .ssrow .noart { flex: none; width: 42px; height: 42px; border-radius: 4px; background: #f1ebe1;
-    border: 1px dashed var(--border); }
-  .ssrow .words { flex: 1; min-width: 0; overflow: hidden; }
-  .ssrow .words .t { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .ssrow .words .sub { display: block; font-size: 11.5px; color: #8a8177; overflow: hidden;
-    text-overflow: ellipsis; white-space: nowrap; }
-  .ssrow.door { font-weight: 600; }
-  .sslab { font: 600 10.5px/1.4 -apple-system, sans-serif; letter-spacing: .12em;
-    text-transform: uppercase; color: #9a9186; margin: 10px 0 6px; }
 </style>
 
 <body class="tool">
@@ -394,15 +377,6 @@
 
 <div id="toast"></div>
 
-<div id="storysheet">
-  <div class="storybox">
-    <div class="sshead">
-      <button id="ssback" type="button" aria-label="Back to the stories" hidden>&lsaquo;</button>
-      <span class="ssname" id="sstitle">Send to a story</span>
-    </div>
-    <div id="ssbody"></div>
-  </div>
-</div>
 
 <script>
 (function () {
@@ -429,8 +403,6 @@
     copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
     download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>',
     share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>',
-    maximize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
-    minimize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
   };
 
   // EVERY PICTURE IN THIS TOOL VOTES AND TAKES NOTES AS `my-creations`, because
@@ -440,8 +412,12 @@
   // directions — server.js syncs the run doc and the asset record either way.
   var ASSET_CHAT = 'my-creations';
 
+  // The bigger-box toggle — Lucide `maximize-2` / `minimize-2`, the same pair
+  // the Playground's prompt box and the Story Room's card wear.
+  var ICON_BIG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>';
+  var ICON_SMALL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>';
   var cfg = null;
-  var pick = { grid: 4, shape: 'portrait', res: '4k', quality: 'medium', style: '' };
+  var pick = { grid: 4, shape: 'portrait', res: '1k', quality: 'low', style: '' };
   var words = {};              // cell index -> her text, kept across grid changes
   var polling = {};
   var runsById = {};
@@ -521,13 +497,38 @@
     el.innerHTML = g.cells.map(function (name, i) {
       return '<div class="pcell"><label for="c' + i + '">' + esc(name) + '</label>'
         + '<textarea id="c' + i + '" data-i="' + i + '" rows="3"></textarea>'
-        + '<button type="button" class="pbig" data-big="' + i + '" aria-label="Bigger box"'
-        + ' title="Bigger box">' + ICONS.maximize + '</button></div>';
+        + '<button type="button" class="pbig" data-big="' + i + '"'
+        + ' aria-label="Bigger box" title="Bigger box">' + ICON_BIG + '</button></div>';
     }).join('');
     g.cells.forEach(function (_, i) {
       var t = document.getElementById('c' + i);
       if (t) t.value = words[i] || '';
     });
+  }
+
+  // ONE cell open at a time; the button swaps its own glyph so the way back is
+  // the same tap. A hand-dragged resize (desktop) out-ranks the class, so it is
+  // cleared on every toggle or "back to small" would not shrink.
+  function toggleBig(i) {
+    var cell = document.querySelector('.pcell.big');
+    var want = document.querySelector('[data-big="' + i + '"]').closest('.pcell');
+    var closing = cell === want;
+    if (cell) {
+      cell.classList.remove('big');
+      cell.querySelector('textarea').style.height = '';
+      var b = cell.querySelector('.pbig');
+      b.innerHTML = ICON_BIG; b.setAttribute('aria-label', 'Bigger box'); b.title = 'Bigger box';
+    }
+    if (closing) return;
+    want.classList.add('big');
+    want.querySelector('textarea').style.height = '';
+    var nb = want.querySelector('.pbig');
+    nb.innerHTML = ICON_SMALL;
+    nb.setAttribute('aria-label', 'Back to the small box');
+    nb.title = 'Back to the small box';
+    // The row it lands on can be most of a screen further down than the one it
+    // left, so bring the box she just opened back under her thumb.
+    want.scrollIntoView({ block: 'nearest' });
   }
 
   function paintPlan() {
@@ -633,22 +634,15 @@
     });
     // The textareas are painted fresh on every grid change, so the handlers
     // live on the container rather than on each box.
+    $('#cells').addEventListener('click', function (e) {
+      var b = e.target.closest('.pbig');
+      if (b) toggleBig(Number(b.dataset.big));
+    });
     $('#cells').addEventListener('input', function (e) {
       if (e.target.tagName === 'TEXTAREA') {
         words[Number(e.target.dataset.i)] = e.target.value;
         e.target.classList.remove('want');
       }
-    });
-    $('#cells').addEventListener('click', function (e) {
-      var b = e.target.closest('[data-big]');
-      if (!b) return;
-      var t = document.getElementById('c' + b.dataset.big);
-      if (!t) return;
-      var big = t.classList.toggle('big');
-      t.style.height = '';                 // a hand-dragged height would beat the class
-      b.innerHTML = big ? ICONS.minimize : ICONS.maximize;
-      b.setAttribute('aria-label', big ? 'Back to the small box' : 'Bigger box');
-      b.title = big ? 'Back to the small box' : 'Bigger box';
     });
   }
 
@@ -1238,7 +1232,7 @@
         { label: 'Save to Photos', icon: ICONS.download,
           onClick: function () { saveToPhotos(url); } },
         { label: 'Send to the Story Room', icon: ICONS.share,
-          onClick: function () { openStorySheet(url, r, im); } },
+          onClick: function () { sendToStory(r.id, cell); } },
       ],
     };
     if (!isSheet) {
@@ -1271,137 +1265,22 @@
   $('#tiles').addEventListener('click', lbTap);
 
   // ── SEND TO THE STORY ROOM ──────────────────────────────────────────────
-  // The Playground's sheet, ported whole: step one is the shelf
-  // (GET /api/scratchpad/pads), step two is that story's three doors — its
-  // INBOX (POST /inbox, which appends and never replaces), a NEW BEAT at the
-  // end (POST /add), or an EXISTING beat (POST /image, the same write the
-  // pad's own inbox pick makes, so the provenance rides along identically).
-  var ssState = null;
-  function ssSheet() { return document.getElementById('storysheet'); }
-  function ssRow(kids, sub, onTap, door) {
-    var b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'ssrow' + (door ? ' door' : '');
-    kids.forEach(function (k) { b.appendChild(k); });
-    var w = document.createElement('span'); w.className = 'words';
-    var t = document.createElement('span'); t.className = 't'; t.textContent = sub.t;
-    w.appendChild(t);
-    if (sub.sub) { var s = document.createElement('span'); s.className = 'sub'; s.textContent = sub.sub; w.appendChild(s); }
-    b.appendChild(w);
-    b.addEventListener('click', onTap);
-    return b;
+  // IT WALKS THERE, IT DOES NOT POP UP (2026-08-26, Sophie, about the
+  // Playground's own version of this button: "rather than this weird pop-up,
+  // it should take me to the story room so I can pick myself"). The sheet she
+  // retired was a second, worse copy of the shelf and of the placing step, so
+  // this is a NAVIGATION into the room: her real shelf, the real covers, and
+  // the same placement every other picture gets. `from=panels` is what tells
+  // the room which feed to re-read the provenance out of, and the CELL is the
+  // key here rather than an index — a resume re-cuts only the missing panels.
+  function sendToStory(runId, cell) {
+    location.href = '/storyroom?send=' + encodeURIComponent(runId)
+      + '&cell=' + encodeURIComponent(cell) + '&from=panels';
   }
-  function ssThumb(url) {
-    if (!url) { var d = document.createElement('span'); d.className = 'noart'; return d; }
-    var img = document.createElement('img'); img.className = 'sthumb'; img.loading = 'lazy'; img.src = url;
-    return img;
-  }
-  function ssQuiet(msg) {
-    var body = document.getElementById('ssbody');
-    body.innerHTML = '';
-    var q = document.createElement('div'); q.className = 'ssquiet'; q.textContent = msg;
-    body.appendChild(q);
-  }
-  // A beat's face, the side the story shows first — the server's slotFace rule.
-  function beatFace(b, style) {
-    var side = function (s) { return s ? (s.kind ? (s.poster || null) : (s.url || null)) : null; };
-    var dreamy = (b.alt && b.alt.dreamy) || null;
-    return style === 'dreamy' ? (side(dreamy) || side(b)) : (side(b) || side(dreamy));
-  }
-  function openStorySheet(url, r, im) {
-    ssState = {
-      url: url,
-      src: { panelRun: r.id, cell: im ? im.cell : 'sheet',
-        prompt: (im && im.prompt) || (r.panels || []).join('\n') || null,
-        model: cfg.model || null, quality: r.quality || null },
-      padList: null, pad: null,
-    };
-    ssSheet().classList.add('on');
-    drawStoryList();
-    fetch('/api/scratchpad/pads')
-      .then(function (res) { return res.json(); })
-      .then(function (d) { if (!ssState) return; ssState.padList = d.pads || []; drawStoryList(); })
-      .catch(function () { if (ssState) ssQuiet('Couldn’t reach the Story Room — try again'); });
-  }
-  function drawStoryList() {
-    if (!ssState) return;
-    document.getElementById('sstitle').textContent = 'Send to a story';
-    document.getElementById('ssback').hidden = true;
-    if (!ssState.padList) return ssQuiet('Fetching the shelf…');
-    if (!ssState.padList.length) return ssQuiet('No stories yet');
-    var body = document.getElementById('ssbody');
-    body.innerHTML = '';
-    ssState.padList.forEach(function (p) {
-      body.appendChild(ssRow([ssThumb(p.cover)],
-        { t: p.title || 'Untitled story', sub: p.beats + (p.beats === 1 ? ' beat' : ' beats') },
-        function () { openStory(p); }));
-    });
-  }
-  function openStory(p) {
-    if (!ssState) return;
-    ssState.pad = null;
-    document.getElementById('sstitle').textContent = p.title || 'Untitled story';
-    document.getElementById('ssback').hidden = false;
-    ssQuiet('Opening the story…');
-    fetch('/api/scratchpad/?pad=' + encodeURIComponent(p.id))
-      .then(function (res) { return res.json(); })
-      .then(function (d) { if (!ssState) return; ssState.pad = { id: p.id, title: p.title, data: d }; drawStory(); })
-      .catch(function () { if (ssState) ssQuiet('Couldn’t open that story — try again'); });
-  }
-  function drawStory() {
-    if (!ssState || !ssState.pad) return;
-    var pad = ssState.pad, body = document.getElementById('ssbody');
-    body.innerHTML = '';
-    body.appendChild(ssRow([], { t: 'Into the inbox' }, function () { sendToStory('inbox'); }, true));
-    body.appendChild(ssRow([], { t: 'As a new beat, at the end' }, function () { sendToStory('add'); }, true));
-    var beats = (pad.data && pad.data.beats) || [];
-    if (!beats.length) return;
-    var lab = document.createElement('div'); lab.className = 'sslab'; lab.textContent = 'Or onto a beat';
-    body.appendChild(lab);
-    var style = (pad.data && pad.data.style) || 'watercolor';
-    beats.forEach(function (b, i) {
-      var w = (b.text || '').trim();
-      body.appendChild(ssRow([ssThumb(beatFace(b, style))],
-        { t: w || ('Beat ' + (i + 1)), sub: w ? null : 'no words yet' },
-        function () { sendToStory('image', b.id); }));
-    });
-  }
-  function sendToStory(kind, beatId) {
-    if (!ssState || !ssState.pad) return;
-    var st = ssState, pad = st.pad, padStyle = (pad.data && pad.data.style) || 'watercolor';
-    var path, body;
-    if (kind === 'inbox') {
-      path = '/api/scratchpad/inbox';
-      body = { pad: pad.id, items: [{ url: st.url, prompt: st.src.prompt, model: st.src.model,
-        quality: st.src.quality, src: 'panels' }] };
-    } else if (kind === 'add') {
-      path = '/api/scratchpad/add';
-      body = { pad: pad.id, url: st.url, style: padStyle, src: st.src };
-    } else {
-      path = '/api/scratchpad/image';
-      body = { pad: pad.id, id: beatId, url: st.url, style: padStyle, src: st.src };
-    }
-    closeStorySheet();
-    fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
-      .then(function (res) { return res.json(); })
-      .then(function (d) {
-        if (d && d.error) throw new Error(d.error);
-        var did = kind === 'inbox' ? 'into the inbox' : (kind === 'add' ? 'as a new beat' : 'onto the beat');
-        FK.toast('Sent to “' + (pad.title || 'the story') + '” ' + did);
-      })
-      .catch(function () { FK.toast('Couldn’t send that — try again'); });
-  }
-  function closeStorySheet() { ssState = null; ssSheet().classList.remove('on'); }
-  document.getElementById('ssback').addEventListener('click', function () {
-    if (ssState) { ssState.pad = null; drawStoryList(); }
-  });
-  // A tap on the dim backdrop leaves the sheet; the box itself swallows it.
-  ssSheet().addEventListener('click', function (e) { if (e.target === ssSheet()) closeStorySheet(); });
 
   // The app's nav-bar chevron asks the page first: close what is open, else
   // let the app leave the tool.
   window.__navBack = function () {
-    if (ssSheet().classList.contains('on')) { closeStorySheet(); return true; }
     var lb = document.getElementById('clightbox');
     if (lb && lb.classList.contains('on')) { lb.click(); return true; }
     return false;

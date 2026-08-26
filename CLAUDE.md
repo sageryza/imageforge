@@ -3435,7 +3435,25 @@ before working on that module. Nothing was deleted — the moved text is verbati
   so "the image area" is a real box: the zones are sized to the picture, never
   to the window, so the caption and the ♥/✕ row under it are never covered.
   Hidden at the ends of the feed takes the ZONE with it, so a tap there
-  closes. Test: `node scripts/test-playground-liked-arrows.js` — nothing drawn
+  closes.
+  **AND THE STAGE IS WHY THE LABEL WENT UNDER THE PICTURE — the picture has to
+  SHRINK WITH IT (2026-08-26, Sophie: "the label is covered by the
+  picture").** The stage is `position:relative`, so it and the `<img>` inside
+  it paint ABOVE the static caption below them, and the picture's own
+  `max-height:76vh` never shrank when flex squeezed the stage — so on a SHORT
+  viewport the bottom of a portrait 2:3 sat on top of the MODEL · QUALITY ·
+  SIZE line. `min(76vh, 100%)` binds the picture to the room the stage really
+  has, and `flex:none` on the caption and the ♥/✕ row makes the stage the only
+  thing that gives. **The height is the whole bug**: measured, it is 17px of
+  the label covered at 560, 10 at 620, 5 at 660 and **nothing at 844** — the
+  iPhone 13 in Safari, which is where anyone testing it would look. The app's
+  web view is shorter by its bottom bar, which is why it was only ever visible
+  in her hand. The shared `asset-lightbox.js` has the same shape and was
+  measured clean (its caps are 46-62vh with the note box) — leave it. Test:
+  `node scripts/test-playground-lightbox-caption.js` (five heights, the
+  overlap asked with `elementFromPoint`, which reports `lbimg` sitting on the
+  label pre-fix; verified failing 8).
+  Test: `node scripts/test-playground-liked-arrows.js` — nothing drawn
   (child nodes, text, background and border all measured off the real
   buttons), the zone measured over the picture, and the edge tap asked with
   `elementFromPoint`; verified failing 3 against the pre-fix page. Its fixture
@@ -3519,6 +3537,40 @@ before working on that module. Nothing was deleted — the moved text is verbati
     1.30x the pixels**. Nine ninths of the same sheet are 1.28c each.
     **2K is cheaper still but its cuts come out SMALLER than a plain 1K
     picture** — the thing that is easy to get backwards.
+  - **IT OPENS ON 1K AND LOW, WHICH IS NOT WHAT THE PARAGRAPH ABOVE ARGUES
+    (2026-08-26, Sophie: "it defaults to 4K and medium make it default to 1K
+    and low").** The tier argument is about where a sheet PAYS OFF and it is
+    still true; a default is a different question. This page shipped opening
+    on 4K/medium on the reasoning that "the whole reason to open this page is
+    to get panels worth keeping", and that reasoning is history: ~13c a tap
+    arriving unasked, on the one tool built for trying several prompts at
+    once, is the Playground's own not-persisted-quality lesson. The cheap rung
+    is the mistake that costs nothing to undo, and the ladder is one tap away.
+    Three copies say it — the served `defaults`, the POST's own fallbacks
+    (what a stale cached page lands on) and the page's opening `pick` — and
+    `node scripts/test-panels.js` pins all three, because this reads as a
+    tidy-up to a chat that has just read the cost paragraph.
+  - **A BOX OPENS BIGGER, AND IT TAKES THE WHOLE ROW (2026-08-26, Sophie:
+    "make a button to see the current text box that you're working on bigger
+    so you can see what you're writing").** A 26px rounded square inside each
+    textarea's bottom-right corner — the Playground's `#bigprompt` answer
+    lifted in SHAPE, not copied, so the SAME textarea grows and there is never
+    a second field to sync. **WIDTH is the half that matters here, and that is
+    a measurement:** main is 14px either side, so on a 390pt phone a cell is
+    176px at two across and **114px at nine** — the grid where a dictated
+    prompt wraps every three or four words — so the open cell takes the whole
+    row (`grid-column: 1/-1`) as well as growing tall. The neighbours keep
+    their order and stay on screen, because what she wrote in them is the
+    context for the one she is writing. **ONE at a time** (opening another
+    closes it, or the grid comes apart into a column of full-width boxes),
+    **not sticky, and reset by a grid change** — the boxes ARE the grid, and
+    reopening on a layout she did not pick is the opposite of this page. The
+    textarea reserves that corner with `padding-bottom` or her last line is
+    typed under the button. Pinned by the bigger-box block of
+    `node scripts/test-panels.js` — the widths and heights read off the REAL
+    boxes and the button asked with `elementFromPoint`, because a cell that
+    grew only in height passes every markup check and still wraps her
+    dictation every four words (verified failing pre-fix).
   - **THE CANVAS IS DERIVED, NEVER A LOOKUP TABLE** (`sheet-grid.js`, the same
     rule `size-tier.js` follows). Every canvas satisfies all of gpt-image-2's
     constraints plus the one this tool adds — the sheet must divide into
@@ -3691,11 +3743,21 @@ before working on that module. Nothing was deleted — the moved text is verbati
       that row is the SHEET's grid — four cuts of a 2x2 sit two across because
       that is what the page looked like — so forcing three would draw a picture
       of a sheet that was never made.
+    - **SEND TO THE STORY ROOM WALKS, IT DOES NOT POP UP.** The Playground's
+      own sheet was retired the same week (#1719, "rather than this weird
+      pop-up, it should take me to the story room so I can pick myself"), so
+      this button is a NAVIGATION — `/storyroom?send=<run>&cell=<cell>&
+      from=panels`. `loadSendPanel` in `gen-scratchpad.py` is the room's half:
+      `from=panels` names the FEED to re-read, and the picture is named by its
+      CELL because a resume re-cuts only the missing panels. The port had the
+      sheet in it for one afternoon and a test now fails if it comes back.
     - **NOT PORTED, and why:** the LoRA scale / seed / ×3 (gpt-image-2 only
       here), the quality LADDERS (a sheet ladder pays for the whole page again —
       a different order of money, hers to ask for), and the photo reference and
       Sophie card (per-run attachments the sheet route does not take yet — a
-      route change, not a page one).
+      route change, not a page one). The BIGGER BOX is not this: another chat
+      shipped it here the same day (#1722) and its version wins — the open cell
+      takes the whole row, which is the half that matters at nine across.
     - **AND THE THREE-WAY TOGGLE HAD DRIFTED.** It was still the solid ink slab
       the Playground retired on 2026-08-24 ("the buttons are styled so fucking
       weird… black outlines"), because the test pinned four literals instead of
@@ -4253,8 +4315,15 @@ before working on that module. Nothing was deleted — the moved text is verbati
   was two buttons over two sheets — a book glyph over her description text
   plus her two recordings as native `<audio controls>`, and a waveform over
   the memos and episodes as rows. Everything in both is the same thing, so it
-  is one sheet, **About this story**, behind one Lucide `book-audio` button
-  (`#aboutbtn`; `#descbtn` and `#audiobtn` are gone).
+  is one sheet, **About this story**, behind one button (`#aboutbtn`;
+  `#descbtn` and `#audiobtn` are gone). **The glyph is the PLAIN WAVEFORM, and
+  it is hers by name** (2026-08-26: "I like the book idea, but can you just put
+  it back to the normal wave form?") — it shipped as Lucide `book-audio`, a
+  book with a sound wave inside, on the reasoning that the sheet holds her
+  words as well as her recordings; she liked the idea and picked the plain wave
+  anyway, so that reasoning is history rather than a rule. It is the exact
+  glyph `#audiobtn` wore, so the row looks to her as it always did and only the
+  sheet behind it changed.
   - **THE ORDER WAS COUNTED, NOT GUESSED.** All 67 stories read live that
     day: **47 carry anything at all, 43 of those have a RECORDING and only
     17 a description** — and a description is a dictated transcript running
@@ -4642,6 +4711,35 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - Test: `node scripts/test-storyroom-playground-trip.js` (the server
     contract and the placement order pure over the real `pad-art.js`, then both
     real pages headless — verified failing 20 pre-fix).
+  **AND THE OTHER DIRECTION IS A WALK TOO — the Playground's send button
+  TAKES HER HERE (2026-08-26, Sophie: "rather than this weird pop-up, it
+  should take me to the story room so I can pick myself").** It shipped as a
+  sheet over the Playground's own lightbox — the shelf as a list of small
+  rows, then that story's doors (inbox · a new beat at the end · one of its
+  beats) — i.e. a second, worse copy of the shelf and of the placing step,
+  built out of 42px rows. The button is a NAVIGATION now
+  (`/storyroom?send=<run>&i=<n>`) and decides nothing about a story.
+  - **The RUN rides the link, never the url.** One id re-reads the whole
+    provenance in the room (prompt · model · quality), which is what a beat's
+    past-pictures row and a picked-back version are restored from — the same
+    `src` the pad's own inbox pick sends. It is spent with `replaceState`
+    before anything opens, so a refresh cannot hand her back a picture she
+    has already put down.
+  - **`#sendband` is the picture in her hand** — a fixed band over the SHELF
+    while she picks a story and over the canvas while she picks the spot, so
+    one thing on screen says what is being placed. It outlives `pending` on
+    purpose: the document-level tap cancels placing, and without the band
+    there would be no way back to the picture but the Playground.
+  - **The placement is the room's own** — `pick()`/`place()`, the inbox's
+    machinery, so she gets a gap in the ORDER rather than "at the end", and
+    an empty story places straight away because it has no gap to tap.
+  - **"Into the inbox" is not rebuilt and does not need to be**: the pad's
+    inbox already reads her hearted Playground pictures live, so ♥ is that
+    door. Putting a picture onto an EXISTING beat is that beat's own "fill it
+    in" — a tap on a beat while placing is still a no-op, deliberately (one
+    rule for the inbox flow and this one).
+  - Test: `node scripts/test-playground-story-share.js` (the trip driven as
+    ONE walk — the Playground's real tap lands on the real room).
   **PHILOSOPHY — do not "improve" this: the pad is minimal, the frame
   colours are UNLABELLED everywhere but that drop-down, and no machinery
   lives on the canvas.**
@@ -4749,6 +4847,72 @@ before working on that module. Nothing was deleted — the moved text is verbati
   loses the poll, not the story); ~25-40c a run on a ~10-minute transcript.
   Never called by the page — chats only, and never on a page load.
   Firestore `forge-timelines`, one doc per story.
+- **Story Link** (`storylink.js` + `storylink-plan.js`, `/api/storylink`, no
+  page yet) — **one story, three rooms.** Sophie's ask, 2026-08-26: "a way to
+  sync a story in story timeline and story room and probably cutting box"
+  (she confirmed **Cutting Blocks** for the third).
+  **IT IS WRITING DOWN A WORKFLOW SHE ALREADY HAS, and that is measured, not
+  assumed.** Read live the day it was built: **all six of her Story Timeline
+  stories already existed as a Story Room pad under the identical title**, two
+  of them also as a Cutting Blocks project ("Spellcasting" / "Spellcasting VO",
+  "PROOF — reel beats" / "PROOF — reel cut (no Nancy)") — kept in step entirely
+  by her naming them the same thing by hand, with **zero cross-linking in any
+  of the three modules**. The counts had drifted where the hand-keeping
+  slipped: "The house" is 30 moments against 11 beats.
+  - **THE SHAPE IS `audioproject.js`'s, DELIBERATELY.** She has already
+    decided once (2026-08-19) how a piece of work spans rooms: a small id
+    carrying only what should be decided ONCE, with the geometry staying
+    room-local. That judgement holds here exactly — a timeline **moment**, a
+    pad **beat** and a blocks **line** are three different atoms, and a live
+    two-way sync would mean re-ordering the timeline silently rearranges her
+    pictures. So a link stores IDENTITY, and the one operation that crosses
+    rooms is something **she taps**.
+  - **A link is one doc per STORY, not per room** (`forge-story-links`):
+    `{ id, title, members:[{room:'timeline'|'pad'|'blocks', doc, title, at}] }`.
+    Membership is append-only, deduped by room+doc. **A doc belongs to at most
+    ONE link** — linking one that is already in another is REFUSED with the
+    other link named, never silently stolen. **A room may appear twice and that
+    is not a bug** ("Charlie — as it is now" / "as it used to be" are two pads
+    of one story), which is why every write takes an EXPLICIT `to` and nothing
+    here ever guesses which pad she meant.
+  - **THE PULL ONLY EVER ADDS.** `POST /:id/pull` turns a moment with no beat
+    into an EMPTY beat at the end carrying its words (`fromMoment` on the beat
+    is the whole join — one additive field, so a pad never pulled into is
+    byte-for-byte what it was). A moment that already has a beat is **left
+    completely alone**: her caption may have moved on, and the timeline is not
+    the authority on what a picture is captioned. A beat matching nothing is
+    reported as `extra` and stays exactly where it is — the drift across her
+    rooms is usually work, not an error.
+  - **THE RE-ORDER ONLY EVER PERMUTES**, and it is a SEPARATE tap
+    (`POST /:id/order`): every beat in, every beat out, and the route refuses
+    to write if the count ever changed. **A beat she added by hand rides with
+    the linked beat above it** — a picture placed between two moments is about
+    the moment it follows, so it travels with it instead of being stranded at
+    one end.
+  - **THE DRY RUN AND THE WRITE CALL THE SAME PLANNER**, so they cannot
+    disagree about what is about to happen; `GET /:id/plan?to=` is the read.
+    The pull **re-plans inside the transaction** against what the pad holds
+    right now, never against the copy read a moment ago — otherwise a beat she
+    added in between is duplicated.
+  - **ADOPT IS DRY BY DEFAULT** (the `/wrapup/trim` and `asset-cleanup`
+    pattern) — `GET /candidates` proposes, `POST /adopt {dry:false}` writes.
+    Matching is **token JACCARD over the distinctive words**, never
+    intersection/min (sync.js's Etsy lesson, same failure shape here), with
+    room words — `vo`, `cut`, `beats`, `precise`, a `v6` tail — dropped so the
+    copies find each other while the stories stay apart. Measured against her
+    real titles: it pairs Spellcasting across all three rooms and PROOF across
+    two, and correctly refuses the false friend ("Discussion on Coincidence and
+    **Science**…" vs "Reflections on **Science** and Belief", 0.22).
+  - **CUTTING BLOCKS IS MEMBERSHIP ONLY, on purpose.** Its lines are the
+    recording's own words with real timings and a split or a meld changes
+    them, so its order cannot follow the timeline's and nothing here tries.
+    What the link buys there is the name decided once and a jump between rooms.
+  - **It costs nothing** — no model call anywhere, a few small Firestore reads
+    behind a 30s cache. `GET /for?room=&doc=` is what a room asks on open.
+  - Tests: `node scripts/test-storylink.js` (34 checks, pure — the matcher
+    against her REAL titles including the pairs that must NOT match, and the
+    two invariants: a pull never drops a beat, an order never changes the
+    count).
 - **Writing Room** (`writing.js`, `/api/writing`, `/writing`, iOS tile) — every
   dating-book date in two versions ("Claude's" and "Mine") with every changed word
   marked red, autoscroll, and per-paragraph notes (text or voice memo). **Notes are

@@ -17,6 +17,11 @@
  * picture. 2K is cheaper still but its quarters are smaller than a plain 1K
  * image, which is the thing that is easy to get backwards.
  *
+ * THAT IS AN ARGUMENT ABOUT THE TIER, NOT ABOUT THE DEFAULT — the page opens
+ * on 1K/low (Sophie, 2026-08-26), the same rung the Playground opens on. The
+ * ladder is one tap away for a sheet worth keeping; 4K at medium is ~13c
+ * arriving unasked on the tool built for trying several prompts at once.
+ *
  * THE CUT IS LOCAL, FREE AND LOSSLESS — an exact crop of the sheet's own
  * pixels, never a resample, so a panel is the model's output rather than a
  * re-encode of it (the house "nothing stands between the source and the
@@ -145,7 +150,7 @@ router.get('/config', (req, res) => {
       [g, sheetGrid.sheetFor(Number(g), 'portrait', '1k')
         ? gridLine(sheetGrid.sheetFor(Number(g), 'portrait', '1k')) : ''])),
     qualities: (deps.gpt && deps.gpt.qualities) || ['low', 'medium', 'high'],
-    defaults: { grid: 4, shape: 'portrait', res: '4k', quality: 'medium', style: 'dreamy' },
+    defaults: { grid: 4, shape: 'portrait', res: '1k', quality: 'low', style: 'dreamy' },
     model: (deps.gpt && deps.gpt.id) || 'gpt-image-2',
   });
 });
@@ -304,15 +309,21 @@ router.post('/', async (req, res) => {
 
     const gridId = sheetGrid.GRIDS[String(req.body.grid)] ? Number(req.body.grid) : 4;
     const shapeId = sheetGrid.SHAPES[String(req.body.shape)] ? String(req.body.shape) : 'portrait';
-    // 4K is the default HERE, unlike the Playground's 1K — a sheet only pays
-    // off at the tier where a cut panel beats an ordinary picture, and the
-    // whole reason to open this page is to get panels worth keeping.
-    const resId = sheetGrid.TIERS[String(req.body.res)] ? String(req.body.res) : '4k';
+    // 1K/low is the default, the same rung the Playground opens on (Sophie,
+    // 2026-08-26: "it defaults to 4K and medium make it default to 1K and
+    // low"). This page shipped opening on 4K/medium on the reasoning that a
+    // sheet only pays off where a cut panel beats an ordinary picture — that
+    // is still TRUE of the tier, and it is not what a default is for: 4K at
+    // medium is ~13c a tap arriving unasked, on the tool whose whole point is
+    // trying several prompts at once. The cheap rung is the mistake that costs
+    // nothing to undo, and the ladder is one tap away when a sheet is worth
+    // keeping.
+    const resId = sheetGrid.TIERS[String(req.body.res)] ? String(req.body.res) : '1k';
     const plan = sheetGrid.sheetFor(gridId, shapeId, resId);
     if (!plan) return res.status(400).json({ error: 'no legal canvas for that grid' });
 
     const qualities = (deps.gpt && deps.gpt.qualities) || ['low', 'medium', 'high'];
-    const quality = qualities.includes(req.body.quality) ? req.body.quality : 'medium';
+    const quality = qualities.includes(req.body.quality) ? req.body.quality : 'low';
 
     const styleId = deps.styles[String(req.body.style)] ? String(req.body.style) : 'dreamy';
     const st = deps.styles[styleId] || Object.values(deps.styles)[0];

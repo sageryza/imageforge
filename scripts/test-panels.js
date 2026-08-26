@@ -26,6 +26,15 @@ let n = 0;
 const t = (name, fn) => { fn(); n++; console.log('  ok  ' + name); };
 const ROOT = path.join(__dirname, '..');
 
+// The tier the page opens on, read out of the served defaults rather than
+// retyped — the page-half assertions follow it wherever it goes.
+const TIER_DEFAULT = (() => {
+  const src = fs.readFileSync(path.join(ROOT, 'panels.js'), 'utf8');
+  const m = /defaults: \{[^}]*res: '([^']+)'/.exec(src);
+  assert.ok(m, 'found the served default tier in panels.js');
+  return m[1];
+})();
+
 console.log('\npanels\n');
 
 // --------------------------------------------------------------------------
@@ -304,6 +313,35 @@ t('the page holds NO price and NO prompt text of its own', () => {
   assert.ok(!/style reference/i.test(PAGE.replace(/reference is paid for/i, '')),
     'no style prefix baked in');
   assert.ok(PAGE.includes('/api/panels/config'), 'it asks the server instead');
+});
+
+t('the cheap rung is the default, in BOTH copies', () => {
+  // Sophie, 2026-08-26: "it defaults to 4K and medium make it default to 1K
+  // and low". This page shipped on 4K/medium and the module header still
+  // argues (correctly) that 4K is the tier where a cut panel beats an
+  // ordinary picture — which is why it is worth pinning that the DEFAULT is
+  // not that: ~13c a tap arriving unasked on the tool built for trying
+  // several prompts at once. Two copies say it (the served defaults and the
+  // POST's own fallbacks, which is what a stale cached page lands on), and
+  // this is the one thing that reads as a tidy-up to a chat that has just
+  // read the header.
+  const SRC = fs.readFileSync(path.join(ROOT, 'panels.js'), 'utf8');
+  assert.ok(/defaults: \{[^}]*res: '1k'[^}]*quality: 'low'/.test(SRC),
+    'GET /config serves 1k + low');
+  assert.ok(/String\(req\.body\.res\) : '1k'/.test(SRC),
+    "POST falls back to 1k when the page doesn't say");
+  assert.ok(/req\.body\.quality : 'low'/.test(SRC),
+    "POST falls back to low when the page doesn't say");
+  assert.ok(/var pick = \{[^}]*res: '1k'[^}]*quality: 'low'/.test(PAGE),
+    'and the page opens there before the config lands');
+  // Every grid must have a legal canvas at the tier it now opens on, or the
+  // first tap of the day 400s.
+  for (const g of Object.keys(G.GRIDS)) {
+    for (const sh of Object.keys(G.SHAPES)) {
+      if (!G.sheetFor(Number(g), sh, '4k')) continue;
+      assert.ok(G.sheetFor(Number(g), sh, '1k'), `grid ${g} ${sh} has a 1K canvas`);
+    }
+  }
 });
 
 t('no page class collides with one tool.css already owns', () => {
@@ -624,13 +662,81 @@ async function drivePage() {
     n++; console.log('  ok  page: her words survive every grid change');
 
     // The plan line carries the SERVED numbers, and moves with the pickers.
+    // The expected canvases are DERIVED at the tier the page opens on, not
+    // typed in: this block hardcoded the 4K pair and went red the day the
+    // default moved to 1K, which is a test measuring the default rather than
+    // the plan line.
+    const openTier = TIER_DEFAULT;
     const planTwo = await p.$eval('#plan', (e) => e.textContent);
-    assert.ok(/3264x2448/.test(planTwo), `the two-up sheet is named: ${planTwo}`);
+    const twoUp = G.sheetFor(2, 'portrait', openTier).sheet;
+    assert.ok(new RegExp(twoUp).test(planTwo), `the two-up sheet is named: ${planTwo}`);
     assert.ok(/\dc\b/.test(planTwo), 'and what it costs');
     await p.click('#ctrls button[data-grid="4"]');
     await p.waitForFunction(() => document.querySelectorAll('#cells textarea').length === 4);
-    assert.ok(/2336x3504/.test(await p.$eval('#plan', (e) => e.textContent)), 'and it moves');
+    const four = G.sheetFor(4, 'portrait', openTier).sheet;
+    assert.ok(new RegExp(four).test(await p.$eval('#plan', (e) => e.textContent)),
+      'and it moves');
     n++; console.log('  ok  page: the plan line is served and moves with the pickers');
+
+    // THE BIGGER BOX (2026-08-26, Sophie: "make a button to see the current
+    // text box that you're working on bigger so you can see what you're
+    // writing"). Every assertion here is a MEASUREMENT off the real boxes:
+    // "bigger" is two numbers, and a cell that grew only in height would pass
+    // any markup check while still wrapping her dictation every four words.
+    const cellBox = async (i) => p.$eval('#c' + i, (e) => {
+      const cell = e.closest('.pcell'), r = cell.getBoundingClientRect();
+      const g = document.getElementById('cells').getBoundingClientRect();
+      return { w: r.width, gw: g.width, h: e.getBoundingClientRect().height,
+        pad: parseFloat(getComputedStyle(e).paddingBottom) };
+    });
+    const btnBox = async (i) => p.$eval('.pbig[data-big="' + i + '"]',
+      (b) => b.getBoundingClientRect());
+
+    const small0 = await cellBox(0);
+    assert.ok(small0.w < small0.gw * 0.6,
+      `compact, a cell is half the row (${Math.round(small0.w)} of ${Math.round(small0.gw)})`);
+
+    // The corner is RESERVED, or her last line is typed under the button.
+    const bb = await btnBox(0);
+    assert.ok(small0.pad >= bb.height,
+      `the textarea reserves the button's corner (${small0.pad} >= ${bb.height})`);
+
+    // elementFromPoint is the only honest way to ask whether a tap reaches it.
+    const hit = await p.evaluate(([x, y]) => {
+      const el = document.elementFromPoint(x, y);
+      return el && el.closest('.pbig') ? 'ok' : 'BLOCKED-by-' + (el && el.className);
+    }, [bb.x + bb.width / 2, bb.y + bb.height / 2]);
+    assert.strictEqual(hit, 'ok', 'the button is what a tap at its centre reaches');
+
+    await p.click('.pbig[data-big="0"]');
+    await p.waitForTimeout(120);
+    const big0 = await cellBox(0);
+    assert.ok(Math.abs(big0.w - big0.gw) < 2,
+      `open, it takes the whole row (${Math.round(big0.w)} of ${Math.round(big0.gw)})`);
+    assert.ok(big0.h > small0.h * 2, `and it is taller (${Math.round(small0.h)} -> ${Math.round(big0.h)})`);
+    assert.strictEqual(await p.$eval('#c0', (e) => e.value), 'a cat on a fire escape',
+      'her words are still in the same field — one textarea, two sizes');
+
+    // ONE AT A TIME, or the grid comes apart into a column of full-width boxes.
+    await p.click('.pbig[data-big="1"]');
+    await p.waitForTimeout(120);
+    assert.strictEqual(await p.$$eval('.pcell.big', (c) => c.length), 1, 'only one is open');
+    assert.ok(Math.abs((await cellBox(0)).w - small0.w) < 2, 'the first one went back');
+
+    // The same tap is the way back.
+    await p.click('.pbig[data-big="1"]');
+    await p.waitForTimeout(120);
+    assert.strictEqual(await p.$$eval('.pcell.big', (c) => c.length), 0, 'tapping it again closes it');
+
+    // NOT STICKY, and reset by a grid change — the boxes ARE the grid.
+    await p.click('.pbig[data-big="0"]');
+    await p.click('#ctrls button[data-grid="9"]');
+    await p.waitForFunction(() => document.querySelectorAll('#cells textarea').length === 9);
+    assert.strictEqual(await p.$$eval('.pcell.big', (c) => c.length), 0,
+      'a grid change puts every box back to small');
+    await p.click('#ctrls button[data-grid="4"]');
+    await p.waitForFunction(() => document.querySelectorAll('#cells textarea').length === 4);
+    n++; console.log('  ok  page: the bigger box takes the whole row, one at a time');
 
     // THE SLIDER LANDS WHERE SHE TAPS, like the Playground's (2026-08-24 —
     // /tritoggle.js). This used to assert a CYCLE, which is the bug Sophie

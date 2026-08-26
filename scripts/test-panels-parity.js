@@ -236,6 +236,18 @@ const CONFIG = {
   ok(posted.notes[0].chat === 'my-creations',
     'in my-creations, where panels.js files every panel');
   ok(posted.notes[0].from === 'sophie', 'as hers');
+  // SEND TO THE STORY ROOM WALKS, IT DOES NOT POP UP (2026-08-26, Sophie about
+  // the Playground's own copy of this button: "rather than this weird pop-up,
+  // it should take me to the story room so I can pick myself"). She retired
+  // that sheet the same week; the port must not bring it back here.
+  ok(!/storysheet|ssrow|sendToStory\(kind/.test(PAGE), 'no sheet came back with the port');
+  const acts = await p.$$eval('#clightbox .lbacts button', (els) => els.map((e) => e.title));
+  ok(acts.includes('Send to the Story Room'), 'the button is in the lightbox');
+  ok(/storyroom\?send=/.test(PAGE) && /from=panels/.test(PAGE),
+    'and it is a navigation into the room, carrying the run and the cell');
+  ok(acts.includes('Save to Photos') && acts.includes('Upscale in the Playground'),
+    'beside Save to Photos and the Upscale');
+
   // Leave the lightbox the way she does.
   await p.click('#clightbox', { position: { x: 5, y: 5 } });
   await new Promise((r) => setTimeout(r, 300));
