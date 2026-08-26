@@ -5141,31 +5141,11 @@ async function openaiImageEditRefs(prompt, refBuffers, { quality = 'low', size =
   }
   throw lastErr;
 }
-// Flood-fill the border-connected background to pure white (for whitened house
-// styles). Interior colours walled off by black outlines are preserved. Safe
-// for a single centred subject with white space around it (the Test Station case).
-async function whitenBackground(buf, tol = 46) {
-  const sharp = require('sharp');
-  const { data, info } = await sharp(buf).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  const { width: W, height: H, channels: C } = info;
-  const idx = (x, y) => (y * W + x) * C;
-  const corners = [[2, 2], [W - 3, 2], [2, H - 3], [W - 3, H - 3]];
-  let br = 0, bg = 0, bb = 0;
-  for (const [x, y] of corners) { const i = idx(x, y); br += data[i]; bg += data[i + 1]; bb += data[i + 2]; }
-  br /= 4; bg /= 4; bb /= 4;
-  const tol2 = tol * tol;
-  const close = (i) => { const dr = data[i] - br, dg = data[i + 1] - bg, db = data[i + 2] - bb; return dr * dr + dg * dg + db * db <= tol2; };
-  const visited = new Uint8Array(W * H), stack = [];
-  const pushIf = (x, y) => { if (x < 0 || y < 0 || x >= W || y >= H) return; const p = y * W + x; if (visited[p] || !close(idx(x, y))) return; visited[p] = 1; stack.push(p); };
-  for (let x = 0; x < W; x++) { pushIf(x, 0); pushIf(x, H - 1); }
-  for (let y = 0; y < H; y++) { pushIf(0, y); pushIf(W - 1, y); }
-  while (stack.length) { const p = stack.pop(), x = p % W, y = (p - x) / W; pushIf(x + 1, y); pushIf(x - 1, y); pushIf(x, y + 1); pushIf(x, y - 1); }
-  const out = Buffer.from(data);
-  for (let p = 0; p < W * H; p++) if (visited[p]) { const i = p * C; out[i] = 255; out[i + 1] = 255; out[i + 2] = 255; if (C === 4) out[i + 3] = 255; }
-  // lossless — this buffer REPLACES the original (an argument-less webp
-  // encode silently re-encodes the whole picture at sharp's default 80).
-  return await sharp(out, { raw: { width: W, height: H, channels: C } }).webp({ lossless: true }).toBuffer();
-}
+// The flood-fill whiten pass lives in its own file (whiten-bg.js) since
+// 2026-08-26: the Story Room's PASTEL style draws this same recipe from
+// scratchpad.js, which cannot reach in here, and a second copy of a
+// twenty-line flood fill is exactly the drift this repo keeps paying for.
+const { whitenBackground } = require('./whiten-bg');
 app.post('/api/generate/housestyle', async (req, res) => {
   try {
     // Default MEDIUM — matches how the illustrated lessons (specA) were rendered.
@@ -5501,6 +5481,10 @@ const PL_GPT_STYLES = {
   // tile. Its refs live in STORAGE, not refs/, so they load through
   // loadHouseRef; `storageRefs` is what marks that. NO Sophie character card:
   // hers is the watercolor look, the wrong reference for this line.
+  // The Story Room pad's PASTEL side draws this same recipe —
+  // STYLE_ART.pastel in scratchpad.js copies the prefix, the suffix, the two
+  // Storage refs AND the whiten pass (test-scratchpad-style.js pins all four).
+  // Reword here → move that copy in the same commit.
   pastel: {
     label: 'Pastel',
     storageRefs: ['witch-school/refs/sophie-snake.png', 'witch-school/refs/sophie-animals.png'],
@@ -5538,10 +5522,10 @@ const PL_GPT_STYLES = {
     // her first paragraph, the suffix her second, verbatim. The prefix lost the
     // "linework, hand-drawn texture, and muted palette EXACTLY" list — she
     // shortened it to "copy its drawing style" — so do not put that back.
-    // The Story Room pad's DREAMY toggle draws this same recipe —
-    // scratchpad.js's DREAMY.prefix/.suffix are COPIES of these two strings
-    // (test-scratchpad-style.js pins them byte-for-byte). Reword here → move
-    // that copy in the same commit.
+    // The Story Room pad's DREAMY side draws this same recipe —
+    // STYLE_ART.dreamy.prefix/.suffix in scratchpad.js are COPIES of these two
+    // strings (test-scratchpad-style.js pins them byte-for-byte). Reword here
+    // → move that copy in the same commit.
     prefix: 'The FIRST attached image is a STYLE reference — copy its drawing style ' +
       'but do NOT copy its content, subjects, or composition.',
     // THE TAIL IS HERS, dictated verbatim 2026-08-22. Two clauses moved from

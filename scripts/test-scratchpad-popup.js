@@ -287,9 +287,24 @@ const VW = 390, VH = 780;
   ok(gen.length === 1 && gen[0][1].prompt === 'A RED DOOR IN THE SNOW',
     'an empty box draws the caption LIVE, not its last saved text');
 
-  // Her own prompt wins, and the hint goes away the moment she types one.
+  // 7b — THE PROMPT READS AS WORDS TOO (2026-08-26, Sophie: "can you make the
+  // default for the caption in the drawing prompt? that they're not in a edit
+  // text box and that I press the pencil to edit them"). The caption's rule,
+  // on the box beside it.
   await page.waitForSelector('#beatpop:not([hidden])');
   if (await page.$eval('#drawbox', (el) => el.hidden)) await page.click('#promlab');
+  ok(!(await shown('#dprompt')), 'the drawing prompt is NOT an open edit box');
+  ok(await shown('#promtext'), 'its words show as text instead');
+  ok(await shown('#promedit'), 'a pencil sits beside them');
+  const pvw = await box('#promtext'), ppen = await box('#promedit');
+  ok(ppen.x >= pvw.r - 1, 'the pencil is NEXT TO the words, not under them');
+  await page.click('#promedit');
+  ok(await shown('#dprompt'), 'tapping the pencil swaps the box in');
+  ok(!(await shown('#promtext')), 'and the read-only words step aside');
+  ok(await page.evaluate(() => document.activeElement && document.activeElement.id === 'dprompt'),
+    'with the caret already in it');
+
+  // Her own prompt wins, and the hint goes away the moment she types one.
   await page.fill('#dprompt', 'MY OWN DRAWING PROMPT');
   await page.waitForFunction(() => document.getElementById('promhint').hidden);
   ok(true, 'the hint clears as soon as the box has words');
@@ -300,6 +315,23 @@ const VW = 390, VH = 780;
     'a written prompt is what gets drawn, never the caption');
   ok(posted.some(([p, b]) => p === '/api/scratchpad/prompt' && b.prompt === 'MY OWN DRAWING PROMPT'),
     'and it saved itself on the way');
+  // Drawing re-opens the beat, so the prompt is back to its read face — the
+  // words she wrote, not the box she wrote them in.
+  await page.waitForSelector('#beatpop:not([hidden])');
+  if (await page.$eval('#drawbox', (el) => el.hidden)) await page.click('#promlab');
+  ok(!(await shown('#dprompt')), 'reopening the prompt shows words, never the box');
+  ok((await page.$eval('#promtext', (el) => el.textContent))
+    === (await page.$eval('#dprompt', (el) => el.value)),
+    'and the words read back are exactly what the box holds');
+  // The STAR is the one way in that skips the pencil — "draw it here" is her
+  // saying she wants to write the prompt.
+  await page.click('#ardraw');
+  ok(await shown('#dprompt'), 'the star opens straight into the box');
+  ok(await page.evaluate(() => document.activeElement && document.activeElement.id === 'dprompt'),
+    'with the caret in it');
+  await page.click('#promlab');
+  await page.click('#promlab');
+  ok(!(await shown('#dprompt')), 'folding the prompt away and back puts it back to words');
 
   // 8 — A BEAT WITH NO PICTURE (2026-08-24, Sophie: "if there's no image then
   // make the image box smaller / and show the caption and the drawing prompt
@@ -327,6 +359,8 @@ const VW = 390, VH = 780;
   ok(await shown('#capview'), 'the caption shows');
   ok(await shown('#drawbox'), 'AND the drawing prompt is open beside it, not folded away');
   ok(!(await shown('#pnote')), 'the caption is still words-plus-pencil here too');
+  ok(!(await shown('#dprompt')) && (await shown('#promtext')),
+    'and so is the drawing prompt — neither opens as a box');
   ok((await box('#drawbox')).b <= (await box('#beatcard')).b + 1,
     'both boxes fit inside the card');
 
@@ -336,9 +370,12 @@ const VW = 390, VH = 780;
   // toggle that swaps a class is trivially "working" while the box on screen
   // is the same three rows, and a corner button that reads as visible can
   // still be sitting under nothing she can tap.
-  ok(await shown('#drawbox'), 'the drawing prompt is open on this beat');
+  // Both boxes read as WORDS until a pencil is tapped (2026-08-26), so the
+  // bigger-box button belongs to the EDIT box and comes in with the pencil.
+  ok(!(await shown('#dpromptbig')), 'no bigger-box button while the prompt reads as words');
+  await page.click('#promedit');
+  ok(await shown('#dpromptbig'), 'the pencil brings the box AND its button in');
   const dSmall = (await box('#dprompt')).h;
-  ok(await shown('#dpromptbig'), 'the prompt box carries a bigger-box button');
   ok(!(await page.$eval('#dprompt', (el) => el.classList.contains('big'))),
     'and it is NOT big by default');
   // The button is inside the box's own bottom-right corner — measured, and

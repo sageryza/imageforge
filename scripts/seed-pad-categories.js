@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 // Tag the Story Room shelf's stories with their category chip (Aug 2026).
 //
-// The new shelf (from the media-asset-survey prototype v5) files every story
-// under one of three chips — Personal · Lessons · NDE. A story with no
-// `category` field files under Personal by default, so this script only has
-// to tag the two non-default groups, by the same mapping the prototype used:
+// The shelf files every story under one chip — Unsorted · Personal · Witch ·
+// Lessons · NDE. A story with no `category` field files under UNSORTED (it was
+// Personal until 2026-08-26, when Personal became a pile of Sophie's own), so
+// this script only has to tag the two groups it can name from a title:
 //   - a title starting "NDE"            → nde
 //   - "The Lessons" / "Astrology fable" → lessons
-// Everything else is left alone (= Personal). Idempotent — re-running skips
+// Everything else is left alone (= Unsorted, hers to file). Idempotent — re-running skips
 // pads already carrying the right tag. `--dry-run` prints the plan.
 //
 //   node scripts/seed-pad-categories.js [--dry-run]
@@ -22,7 +22,7 @@ function categoryFor(title) {
   const t = String(title || '').trim();
   if (/^NDE\b/i.test(t)) return 'nde';
   if (LESSONS.has(t)) return 'lessons';
-  return null; // Personal — the default, no tag needed
+  return null; // Unsorted — the default, no tag needed
 }
 
 async function main() {
@@ -46,7 +46,7 @@ async function main() {
     }
     set++;
   }
-  console.log(`${set} tagged, ${kept} already right, ${skipped} left as Personal.`);
+  console.log(`${set} tagged, ${kept} already right, ${skipped} left unsorted.`);
 }
 
 main().catch((e) => { console.error(e.message || e); process.exit(1); });
