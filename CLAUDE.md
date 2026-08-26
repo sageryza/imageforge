@@ -5395,9 +5395,16 @@ before working on that module. Nothing was deleted — the moved text is verbati
   escalated picture, a more-information line that flips it; `twin` on the
   easy item names its hard card), and the SCENARIOS tab deals them
   interleaved: the easy one, then its hard version immediately after. There
-  are no separate easy/hard tabs any more — a one-sided scenario is the
-  thing she flags. Candidate batches go on a review deck for her ♥ first; a
-  single-option batch she has delegated goes straight in.
+  are no separate easy/hard tabs any more. **The more-information line is a
+  CAPTION, never drawn into the picture** (Sophie, Aug 2026) — a hard twin's
+  art changes only when the SCENE itself changes (the puppy dangling the
+  baby); otherwise the easy picture carries over and the caption does the
+  flip. **A hard joke that doesn't work is removed, not forced** — an easy
+  card may stand alone (`twin` optional; the cookie and refund twins were
+  cut on her word). The gun is a generated silver-revolver image
+  (`public/opinions-gun.png`), not a line icon. Candidate batches go on a
+  review deck for her ♥ first; a single-option batch she has delegated goes
+  straight in.
   **SERIALIZE A BULK BATCH THE SERVER IS DRAWING — `/api/promptlab`, from a
   script (measured 2026-08-19):** two parallel 4-run × 4-output batches each
   died "interrupted by a server restart" partway (the 512MB box restarting
