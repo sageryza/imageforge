@@ -1212,6 +1212,18 @@
     var url = img.dataset.full || img.src;
     var tier = String(r.res || '').toUpperCase();
     lbOpen = { runId: r.id, cell: cell };
+    // THE LIGHTBOX OPENS ON THE TILE'S OWN CACHED THUMB and swaps the original
+    // in behind it — the Playground's 2026-08-26 rule ("it takes quite a while
+    // to load the images in light box view"), which landed AFTER this feed was
+    // ported and so was missing here. The originals are the worst in the house:
+    // a 4K sheet is a 7-11MB lossless webp (the documented WKWebView killer)
+    // and every cut is a 1-2MB lossless crop, so over cell the old behaviour
+    // was a long beige nothing — Sophie's "I can't see the whole one". The
+    // width MATCHES the tile's (720 sheet / 480 cut) so it is the byte-same
+    // url the wall already decoded: on screen in the same frame, no request.
+    // Save, notes and the vote all keep the ORIGINAL `url` — only what is
+    // painted first changes.
+    var shown = disp(url, isSheet ? 720 : 480);
     var asset = {
       description: isSheet ? 'the sheet — ' + r.count + ' panels' : (im.prompt || cell),
       prompt: (cfg.model || 'gpt-image-2') + ' · ' + (r.quality || '')
@@ -1249,7 +1261,20 @@
         onClick: function () { location.href = upscaleUrl(r, im); } });
     }
     lbAsset = asset;
-    window.__assetLightbox(url, asset);
+    var showNow = shown;
+    window.__assetLightbox(shown, asset);
+    if (shown !== url) {
+      var pre = new Image();
+      pre.onload = function () {
+        showNow = url;
+        // Only the picture she is still looking at — and only over OUR thumb:
+        // a repaint may have rebuilt the node, so the src is asked, not assumed.
+        if (!lbOpen || lbOpen.runId !== r.id || lbOpen.cell !== cell) return;
+        var el = document.querySelector('#clightbox .clwrap img');
+        if (el && el.getAttribute('src') === shown) el.src = url;
+      };
+      pre.src = url;
+    }
     // The thread is ONE doc read, asked for after the picture is already up —
     // the sibling /notes route answers with a whole chat's worth and would be
     // the wrong thing to fetch to open one picture.
@@ -1259,9 +1284,11 @@
       .then(function (j) {
         if (!j || j.error || !j.thread || !j.thread.length) return;
         noteCache[url] = j.thread;
-        // Only repaint the picture she is still looking at.
+        // Only repaint the picture she is still looking at — with whatever is
+        // currently painted (the thumb, or the original once it swapped in),
+        // so this repaint can never regress a loaded original to its thumb.
         if (lbOpen && lbOpen.runId === r.id && lbOpen.cell === cell) {
-          window.__assetLightbox(url, Object.assign(asset, { thread: j.thread }));
+          window.__assetLightbox(showNow, Object.assign(asset, { thread: j.thread }));
         }
       })
       .catch(function () {});
