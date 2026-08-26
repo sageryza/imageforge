@@ -493,6 +493,28 @@ t('a wedged job is takeoverable, a working one is not', () => {
   assert.strictEqual(P.isStale({ job: { status: 'running' } }), true);
 });
 
+t('a draw the box died under is re-drawn once at boot — and only that case', () => {
+  // 2026-08-26: an OOM kill at 12:44am took a 4K draw with it — OpenAI bills
+  // the generation whether or not our process lives to receive it, so the
+  // money was spent and the bytes were gone. needsRedraw is the boot scan's
+  // whole decision; every guard here is a way it must NOT spend money.
+  const now = Date.now();
+  const young = { status: 'running', sheetUrl: '', job: { startedAt: now - 60000 } };
+  assert.strictEqual(P.needsRedraw(young, now), true,
+    'a young sheetless running run is a killed draw — redraw it');
+  assert.strictEqual(P.needsRedraw(Object.assign({}, young, { redrawn: true }), now), false,
+    'but only ONCE ever — a sheet that OOMs the box must not boot-loop');
+  assert.strictEqual(P.needsRedraw(Object.assign({}, young, { sheetUrl: 'x' }), now), false,
+    'a run with a sheet is the recut heal\'s case, not this one');
+  assert.strictEqual(P.needsRedraw(Object.assign({}, young, { status: 'failed' }), now), false,
+    'a failed run is never re-spent — a safety refusal lands as failed');
+  assert.strictEqual(P.needsRedraw(Object.assign({}, young, { status: 'done' }), now), false);
+  assert.strictEqual(P.needsRedraw(
+    { status: 'running', job: { startedAt: now - P.DRAW_STALE_MS - 1 } }, now), false,
+    'past the draw leash the fail-stamp owns it — the two paths never race');
+  assert.strictEqual(P.needsRedraw(null, now), false);
+});
+
 // --------------------------------------------------------------------------
 // THE CUT ITSELF, against real pixels. sharp is already a dependency; nothing
 // here touches the network and nothing is spent.

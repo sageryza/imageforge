@@ -139,6 +139,11 @@ const CONFIG = {
         json({ ok: true });
       });
     }
+    if (url.pathname === '/api/story/thumb') {
+      // the gated thumb service, as the tiles and the lightbox's first paint see it
+      res.writeHead(200, { 'Content-Type': 'image/gif' });
+      return res.end(Buffer.from(PX.split(',')[1], 'base64'));
+    }
     if (url.pathname === '/api/gallery/assets/note') {
       if (req.method === 'GET') return json({ url: url.searchParams.get('url'), thread: noteThread });
       let body = '';
@@ -321,6 +326,48 @@ const CONFIG = {
   ok(await p.$eval('#cells textarea', (el) => parseFloat(getComputedStyle(el).paddingBottom) >= 26),
     'and the box reserves that corner, so nothing is typed under it');
   await p.click('#cells .pbig');
+
+  console.log('\nthe lightbox opens on the cached thumb, the original swaps in behind it\n');
+  // The Playground's 2026-08-26 rule, which landed AFTER this feed was ported:
+  // this tool's originals are the worst in the house (a 4K sheet is a 7-11MB
+  // lossless webp, every cut a 1-2MB crop), so handing the lightbox the
+  // original was a long beige nothing over cell — "I can't see the whole one".
+  // Measured with a genuinely DELAYED original: a src assertion alone cannot
+  // tell a painted thumb from a pending original.
+  const ORIG = 'https://storage.googleapis.com/stub/creepy-top-left.gif';
+  const ORIG_SHEET = 'https://storage.googleapis.com/stub/creepy-sheet.gif';
+  await p.route('https://storage.googleapis.com/**', (route) => {
+    setTimeout(() => route.fulfill({ contentType: 'image/gif',
+      body: Buffer.from(PX.split(',')[1], 'base64') }), 600);
+  });
+  await p.evaluate((runs) => window.__panelsRender(runs), [{
+    id: 'r9', status: 'done', grid: 2, shape: 'portrait', res: '4k', quality: 'medium',
+    style: 'dreamy', count: 2, sheetSize: '3264x2448', cellSize: '1632x2448',
+    cellAspectRatio: '2:3', ms: 9000, prefix: 'PRE', suffix: 'SUF',
+    panels: ['a creepy guy', 'a door'], sheetUrl: ORIG_SHEET,
+    images: [{ cell: 'left', url: ORIG, prompt: 'a creepy guy' },
+             { cell: 'right', url: PX + '#8', prompt: 'a door' }], votes: {},
+  }]);
+  await p.waitForSelector('#feed .run[data-key="r9"] .cuts img', { timeout: 8000 });
+  await p.click('#feed .run[data-key="r9"] .cuts figure:nth-child(1) img');
+  await p.waitForSelector('#clightbox .clwrap img', { timeout: 8000 });
+  const first = await p.$eval('#clightbox .clwrap img', (el) => el.getAttribute('src'));
+  ok(first.indexOf('/api/story/thumb?w=480') === 0,
+    'a cut opens on its tile\'s own 480 thumb, already decoded — never the original');
+  await p.waitForFunction((o) => {
+    const el = document.querySelector('#clightbox .clwrap img');
+    return el && el.getAttribute('src') === o;
+  }, ORIG, { timeout: 8000 });
+  ok(true, 'and the original swaps in once it lands');
+  await p.click('#clightbox', { position: { x: 5, y: 5 } });
+  await new Promise((r) => setTimeout(r, 300));
+  await p.click('#feed .run[data-key="r9"] .sheetimg');
+  await p.waitForSelector('#clightbox .clwrap img', { timeout: 8000 });
+  const sfirst = await p.$eval('#clightbox .clwrap img', (el) => el.getAttribute('src'));
+  ok(sfirst.indexOf('/api/story/thumb?w=720') === 0,
+    'the SHEET opens on its 720 thumb — the 7-11MB original is the WKWebView killer');
+  await p.click('#clightbox', { position: { x: 5, y: 5 } });
+  await new Promise((r) => setTimeout(r, 300));
 
   ok(!fatal.length, 'no page errors' + (fatal.length ? ': ' + fatal[0] : ''));
 

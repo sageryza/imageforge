@@ -55,6 +55,18 @@ ok(easy.every(it => it.right === 'a' || it.right === 'b'), 'every easy item name
 ok(hard.every(it => !it.right), 'no hard item claims a right answer');
 ok(hard.every(it => it.a.info && it.b.info), 'every hard side carries a more-information line');
 ok(items.filter(it => it.verb === 'shoot').length >= 3, 'the gun appears');
+
+/* ── the pairs: every easy scenario names a hard twin, bijectively ─────── */
+const byId = new Map(items.map(it => [it.id, it]));
+// An easy card MAY stand alone — a hard joke that doesn't work is removed,
+// not forced (Sophie, Aug 2026) — but a named twin must exist and be hard.
+ok(easy.every(it => !it.twin || (byId.has(it.twin) && byId.get(it.twin).mode === 'hard')),
+  'every named twin exists and is hard');
+const claimed = new Set(easy.filter(it => it.twin).map(it => it.twin));
+ok(claimed.size === easy.filter(it => it.twin).length, 'no two easy cards share a twin');
+ok(hard.every(it => claimed.has(it.id)), "every hard card is some easy card's twin");
+ok(validItem({ kind: 'text', category: 'wild', mode: 'hard', twin: 'x', a: { t: 'x' }, b: { t: 'y' } }) !== null,
+  'a twin on a hard item is refused');
 ok(validItem({ kind: 'text', category: 'wild', mode: 'hard', right: 'a', a: { t: 'x' }, b: { t: 'y' } }) !== null,
   'a right answer outside easy mode is refused');
 ok(validItem({ kind: 'text', category: 'wild', mode: 'weird', a: { t: 'x' }, b: { t: 'y' } }) !== null,

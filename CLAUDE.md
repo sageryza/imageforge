@@ -5383,12 +5383,28 @@ before working on that module. Nothing was deleted — the moved text is verbati
   duplicate); notes ride the same doc via the small + on a card. Item ids
   are permanent — renaming one orphans her pick. One screen, never scrolls,
   no pill. Tests: `node scripts/test-opinions.js` (pure).
-  **Scenario art is drawn as 2×2 SHEETS at LOW (Sophie, Aug 2026: "one image
-  per quarter so each image will cost a quarter")** — one Playground pastel
-  run whose prompt describes a 2x2 grid of four separate small
-  illustrations, cut into quarters locally, each quarter filed as its own
-  image (~0.125¢ apiece). Candidates go on a grid Compare page for her ♥
-  before anything gets wired into a card or re-drawn at medium.
+  **Scenario art is drawn as 2×2 SHEETS at MEDIUM (Sophie, Aug 2026: "one
+  image per quarter so each image will cost a quarter"; quality raised from
+  low the same week — "the little ones are coming out too low"; there is no
+  2K size, 1024x1536 is gpt-image-2's ceiling)** — one Playground pastel run
+  whose prompt describes a 2x2 grid of four separate small illustrations,
+  cut into quarters locally, each quarter filed as its own image (~1¢
+  apiece). **Scenarios come in PAIRS and PLAY as pairs (Sophie, Aug 2026:
+  "just put easy mode and then the hard mode version right after it")** —
+  every scenario exists as an easy card AND its hard twin (same choice,
+  escalated picture, a more-information line that flips it; `twin` on the
+  easy item names its hard card), and the SCENARIOS tab deals them
+  interleaved: the easy one, then its hard version immediately after. There
+  are no separate easy/hard tabs any more. **The more-information line is a
+  CAPTION, never drawn into the picture** (Sophie, Aug 2026) — a hard twin's
+  art changes only when the SCENE itself changes (the puppy dangling the
+  baby); otherwise the easy picture carries over and the caption does the
+  flip. **A hard joke that doesn't work is removed, not forced** — an easy
+  card may stand alone (`twin` optional; the cookie and refund twins were
+  cut on her word). The gun is a generated silver-revolver image
+  (`public/opinions-gun.png`), not a line icon. Candidate batches go on a
+  review deck for her ♥ first; a single-option batch she has delegated goes
+  straight in.
   **SERIALIZE A BULK BATCH THE SERVER IS DRAWING — `/api/promptlab`, from a
   script (measured 2026-08-19):** two parallel 4-run × 4-output batches each
   died "interrupted by a server restart" partway (the 512MB box restarting
