@@ -15,7 +15,8 @@
    "b": {
     "t": "High definition",
     "img": "/samples/paint.webp"
-   }
+   },
+   "twin": "hard-grainy-hd"
   },
   {
    "id": "easy-shoot-dog-baby",
@@ -32,7 +33,8 @@
    "b": {
     "t": "A pile of bad guys",
     "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1787104642180-rk6lhk.webp"
-   }
+   },
+   "twin": "hard-shoot-puppy-baby"
   },
   {
    "id": "easy-cookie",
@@ -48,7 +50,8 @@
    "b": {
     "t": "A cookie someone already licked",
     "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/cookie-lick-3.webp"
-   }
+   },
+   "twin": "hard-cookie"
   },
   {
    "id": "easy-refund-ticket",
@@ -64,7 +67,8 @@
    "b": {
     "t": "A parking ticket",
     "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/ticket.webp"
-   }
+   },
+   "twin": "hard-refund-ticket"
   },
   {
    "id": "easy-puppy-wasp",
@@ -80,7 +84,8 @@
    "b": {
     "t": "A wasp loose in your car",
     "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/wasp-car.webp"
-   }
+   },
+   "twin": "hard-puppy-wasp"
   },
   {
    "id": "easy-sheets-socks",
@@ -96,7 +101,8 @@
    "b": {
     "t": "Damp socks every day",
     "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/socks-damp.webp"
-   }
+   },
+   "twin": "hard-sheets-socks"
   },
   {
    "id": "easy-shoot-cake-mosquito",
@@ -113,7 +119,8 @@
    "b": {
     "t": "A mosquito the size of a crow",
     "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/giant-mosquito.webp"
-   }
+   },
+   "twin": "hard-cake-mosquito"
   },
   {
    "id": "easy-bread",
@@ -129,7 +136,8 @@
    "b": {
     "t": "Steal the bread",
     "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/bread-steal-2.webp"
-   }
+   },
+   "twin": "hard-bread"
   },
   {
    "id": "easy-genie",
@@ -145,7 +153,8 @@
    "b": {
     "t": "One free sandwich",
     "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/genie-sandwich.webp"
-   }
+   },
+   "twin": "hard-genie"
   },
   {
    "id": "easy-trolley",
@@ -161,7 +170,8 @@
    "b": {
     "t": "Keep scrolling",
     "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/phone-trolley.webp"
-   }
+   },
+   "twin": "hard-trolley"
   },
   {
    "id": "easy-haircut",
@@ -177,7 +187,8 @@
    "b": {
     "t": "Say nothing, forever",
     "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/say-nothing.webp"
-   }
+   },
+   "twin": "hard-haircut"
   },
   {
    "id": "easy-shoot-asteroid",
@@ -194,7 +205,8 @@
    "b": {
     "t": "The moon",
     "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/the-moon.webp"
-   }
+   },
+   "twin": "hard-shoot-asteroid"
   },
   {
    "id": "hard-shoot-puppy-baby",
