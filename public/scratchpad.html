@@ -2539,6 +2539,7 @@ function pick(it){
     api(path,{method:'POST',body:JSON.stringify(body)})
       .then(function(r){return r.json()})
       .then(function(d){
+        if(it===sendIt) endSend(true);   // landed on a beat — trip over, way back stays
         if(d.beats){ beats=d.beats; render(); }
         var fresh=beats.find(function(x){return x.id===target.id;});
         if(fresh) openBeat(fresh); else lock(false);
@@ -2551,8 +2552,9 @@ function pick(it){
 }
 function place(at, it){
   it=it||pending; if(!it)return; pending=null;
-  // The picture she walked in holding is put DOWN here — the band goes with it.
-  if(it===sendIt){ sendIt=null; paintSend(); }
+  // The picture she walked in holding is put DOWN here — the band turns into
+  // the way back to the Playground rather than vanishing with it.
+  if(it===sendIt){ endSend(true); paintSend(); }
   var body={at:at}, path='/add';
   if(it.film){ path='/clip'; body.clip=it.clip; body.style=padStyle; }
   else if(!it.empty){
@@ -2591,18 +2593,41 @@ document.addEventListener('click',function(){ if(pending){pending=null;render();
    again after a stray tap has cancelled placing (the document-level cancel
    above), which is why it outlives `pending` rather than being it. */
 var sendIt=null;
+/* ONCE THE TRIP HAS AN ENDING — placed, or put down with the ✕ — the band
+   STAYS, as the way back (2026-08-26, Sophie: "when I go to put a picture
+   into the story room there's no way to get back to the playground"). The
+   walk is a location.href inside the Playground's own web view, so this page
+   ATE her Playground screen: the only exits were the shelf's chevron, which
+   in the app leaves the whole tool, or nothing. Tapping the ended band walks
+   back to the page she came from; the ✕ then dismisses it for someone
+   staying in the room. Mirrors the Playground's own "‹ Scratch Pad" chip on
+   the reverse trip. */
+var sendBack=null;   // {url, from, placed} — the ended trip
+function sendHome(){ return (sendBack&&sendBack.from==='panels') ? '/panels' : '/playground'; }
+function sendHomeName(){ return (sendBack&&sendBack.from==='panels') ? 'Panels' : 'the Playground'; }
+function endSend(placed){
+  sendBack={url:sendIt&&sendIt.url, from:(sendIt&&sendIt.from)||'playground', placed:Boolean(placed)};
+  sendIt=null;
+}
 function paintSend(){
   var el=document.getElementById('sendband');
   if(!el) return;
-  if(!sendIt){ el.hidden=true; return; }
+  var it=sendIt||sendBack;
+  if(!it){ el.hidden=true; return; }
   var onShelf=!document.getElementById('stories').hidden;
   // The beat popup covers the screen with no backdrop of its own, so the band
   // would float over its card: it stands down for as long as one is open.
   el.hidden=!document.getElementById('beatpop').hidden;
-  document.getElementById('sendthumb').src=thumbOf(sendIt.url);
-  document.getElementById('sendword').textContent = onShelf
-    ? 'Pick a story for this picture'
-    : (pending===sendIt ? 'Tap where it goes' : 'Tap to place this picture');
+  var th=document.getElementById('sendthumb');
+  th.hidden=!it.url;
+  if(it.url) th.src=thumbOf(it.url);
+  document.getElementById('sendword').textContent = sendIt
+    ? (onShelf
+        ? 'Pick a story for this picture'
+        : (pending===sendIt ? 'Tap where it goes' : 'Tap to place this picture'))
+    : ((sendBack.placed?'Placed · back':'Back')+' to '+sendHomeName());
+  // The ✕ means "not now" while she holds the picture and "stay here" after.
+  document.getElementById('senddrop').setAttribute('aria-label', sendIt?'Not now':'Stay here');
 }
 function armSend(){
   if(!sendIt) return;
@@ -2612,13 +2637,19 @@ function armSend(){
 }
 document.getElementById('sendband').onclick=function(ev){
   ev.stopPropagation();   // or the cancel above hears it and drops the placing
+  // The trip has ended: the band IS the way back now, shelf or story alike.
+  if(!sendIt&&sendBack){ location.href=sendHome(); return; }
   if(!document.getElementById('stories').hidden) return;   // the shelf picks a story
   armSend();
 };
 document.getElementById('senddrop').onclick=function(ev){
   ev.preventDefault(); ev.stopPropagation();
-  if(pending===sendIt){ pending=null; render(); }
-  sendIt=null; paintSend();
+  if(sendIt){
+    // "Not now" puts the picture down — the way back survives it.
+    if(pending===sendIt){ pending=null; render(); }
+    endSend(false); paintSend(); return;
+  }
+  sendBack=null; paintSend();   // she is staying in the room
 };
 /* The RUN is re-read here rather than the url being sent in the link: one id
    carries the whole provenance with it (the prompt, the model, the quality),
@@ -2630,12 +2661,14 @@ function loadSend(runId,i){
     .then(function(d){
       var imgs=(d.images&&d.images.length)?d.images:(d.tempImages||[]);
       var url=imgs[i];
-      if(!url) return;
-      sendIt={url:url, runId:runId, i:i, prompt:d.prompt||null, model:d.model||null,
-              engine:d.engine||null, quality:d.quality||null};
+      // A run that cannot be read (a deploy mid-fetch, a pruned run) must not
+      // strand her here holding nothing: the band still offers the way back.
+      if(!url){ sendBack={url:null, from:'playground'}; paintSend(); return; }
+      sendIt={url:url, runId:runId, i:i, from:'playground', prompt:d.prompt||null,
+              model:d.model||null, engine:d.engine||null, quality:d.quality||null};
       paintSend();
     })
-    .catch(function(){});
+    .catch(function(){ sendBack={url:null, from:'playground'}; paintSend(); });
 }
 /* PANELS WALKS HERE TOO (2026-08-26) — its lightbox got the same send button
    when its feed was brought up to the Playground's, and the popup she retired
@@ -2650,13 +2683,13 @@ function loadSendPanel(runId,cell){
       var im=null;
       (d.images||[]).forEach(function(x){ if(x&&x.cell===cell) im=x; });
       var url=(cell==='sheet')?d.sheetUrl:(im&&im.url);
-      if(!url) return;
+      if(!url){ sendBack={url:null, from:'panels'}; paintSend(); return; }
       sendIt={url:url, runId:runId, cell:cell, from:'panels',
               prompt:(im&&im.prompt)||(d.panels||[]).join('\n')||null,
               model:'gpt-image-2', quality:d.quality||null};
       paintSend();
     })
-    .catch(function(){});
+    .catch(function(){ sendBack={url:null, from:'panels'}; paintSend(); });
 }
 
 /* ── the beat popup: the art at THUMBNAIL size, frame color, text ─── */
