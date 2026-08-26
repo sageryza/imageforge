@@ -966,32 +966,39 @@ router.post('/add', async (req, res) => {
 // (choosing from there fills THAT beat instead of adding a new one).
 router.post('/image', async (req, res) => {
   try {
-    const pid = padIdOf(req);
     const id = String(req.body.id || '');
     const url = String(req.body.url || '').trim();
     if (!id) return res.status(400).json({ error: 'beat id required' });
     if (!/^https?:\/\//.test(url)) return res.status(400).json({ error: 'image url required' });
     const src = (req.body.src && typeof req.body.src === 'object') ? req.body.src : null;
-    const style = styleOf(req);
-    const beats = await db().runTransaction(async (tx) => {
-      const snap = await tx.get(padRef(pid));
-      const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
-      const b = cur.find((x) => x.id === id);
-      if (!b) throw new Error('no such beat');
-      const slot = artSlot(b, style, true);
-      // Swapping a picture into a clip SLOT makes that side a picture again —
-      // leaving `kind` behind would render an image url as a film. Only this
-      // side: the other style's clip (or picture) is untouched. swapArt owns
-      // that, the history bookkeeping, and the provenance — this route is
-      // both a fresh pick from the inbox AND her picking an older version
-      // back off the past-pictures row, and they must behave identically.
-      swapArt(slot, url, src);
-      tx.set(padRef(pid), { beats: cur, updatedAt: Date.now() }, { merge: true });
-      return cur;
-    });
+    const beats = await placeOnBeat(padIdOf(req), id, url, styleOf(req), src);
     res.json({ ok: true, beats });
   } catch (e) { fail(res, e); }
 });
+
+// THE ONE WRITE that puts a picture on a beat, so every door behaves the
+// same: her pick from the inbox, her picking an older version back off the
+// past-pictures row (both POST /image), and a Playground run she started FROM
+// a beat, which server.js lands here itself when the job finishes — the
+// picture must reach the beat whether or not she is still looking at the
+// Playground when it draws.
+//
+// Swapping a picture into a clip SLOT makes that side a picture again —
+// leaving `kind` behind would render an image url as a film. Only this side:
+// the other style's clip (or picture) is untouched. swapArt owns that, the
+// history bookkeeping and the provenance.
+async function placeOnBeat(padId, beatId, url, style, src) {
+  const st = STYLES.includes(style) ? style : 'watercolor';
+  return db().runTransaction(async (tx) => {
+    const snap = await tx.get(padRef(padId));
+    const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
+    const b = cur.find((x) => x.id === beatId);
+    if (!b) throw new Error('no such beat');
+    swapArt(artSlot(b, st, true), url, src || null);
+    tx.set(padRef(padId), { beats: cur, updatedAt: Date.now() }, { merge: true });
+    return cur;
+  });
+}
 
 // ── The clip shelf ──────────────────────────────────────────────────
 // The Chunking library, read-only, straight through: a clip lives there and
@@ -1920,4 +1927,4 @@ async function attachVoiceUrl(padId, beatId, url) {
   });
 }
 
-module.exports = { router, attachVoiceUrl, drawablePrompt, promptFor, clipsNeedingPoster };
+module.exports = { router, attachVoiceUrl, placeOnBeat, drawablePrompt, promptFor, clipsNeedingPoster };

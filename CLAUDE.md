@@ -4451,6 +4451,45 @@ before working on that module. Nothing was deleted — the moved text is verbati
   labeling"). Choosing is not reading: the meaning of mustard is the one
   thing that can be forgotten. Pinned verbatim, both halves, by
   `node scripts/test-scratchpad-popup.js`.
+  **THE PLAYGROUND BUTTON IS A ROUND TRIP NOW (2026-08-26, Sophie: "if I go
+  to the playground from the story room by clicking the playground button, it
+  should copy the drawing prompt into the playground text box and if I click
+  back to scratch pad button, it should take me exactly back to the beat where
+  I was and whatever I just made, there should also be for that beat").** It
+  used to be `location.href='/playground?from=scratchpad'` and nothing else —
+  she retyped the prompt, landed back on the shelf, and the picture she had
+  just made was hers to find and place by hand.
+  - **OUT:** `?pad=&beat=&padstyle=&prompt=`, where the prompt is
+    `drawPrompt()` — EXACTLY what the star would have sent from that beat (her
+    own prompt when the box has one, else the caption as it reads right now),
+    so two ways to the same picture cannot disagree about the words.
+    `padstyle` is which SIDE of the beat it lands on, the one the story is
+    showing.
+  - **THE PICTURE IS LANDED BY THE SERVER, NEVER BY THE PAGE** (`padTargetOf`
+    / `landOnBeat` in server.js, stored on the run doc as `padTarget`). A
+    medium picture takes 30-90s, so a page that placed it on the way out would
+    lose everything she tapped back before it finished — the house rule that
+    anything slow is a background job whose result is persisted. It works for
+    the LoRA runs too.
+  - **OLDEST FIRST, so the newest is the beat's art and the rest are its past
+    pictures** — the row is what she picks from, and `swapArt` keeps whatever
+    was there before them in it as well. Nothing is deleted, so every landing
+    is two taps from undone.
+  - **ONE WRITE: `placeOnBeat` in scratchpad.js**, exported and shared with
+    `POST /image` — her inbox pick, her picking an older version back, and a
+    Playground landing must bookkeep that row identically.
+  - **The landing is DISCLOSED on screen** (`#beattag`, the reftag's box): a
+    side effect she cannot see is a trap. And it is the QUERY STRING only —
+    nothing is persisted, so opening the Playground any other way is
+    byte-for-byte the page it always was, and an ordinary run sends no
+    `padTarget` at all.
+  - **BACK:** `/scratchpad?pad=&beat=` opens that story and pops that beat,
+    then SPENDS the link (`history.replaceState`) so a refresh after she has
+    walked off to another story does not yank her back. A plain open still
+    opens on the shelf.
+  - Test: `node scripts/test-storyroom-playground-trip.js` (the server
+    contract and the placement order pure over the real `pad-art.js`, then both
+    real pages headless — verified failing 20 pre-fix).
   **PHILOSOPHY — do not "improve" this: the pad is minimal, the frame
   colours are UNLABELLED everywhere but that drop-down, and no machinery
   lives on the canvas.**

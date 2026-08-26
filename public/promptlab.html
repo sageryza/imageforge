@@ -464,6 +464,13 @@
     background: #fdfcf9; color: #6f675e; }
   #reftag.on { display: block; }
   #reftag.same { border-color: #2b2622; color: #2b2622; }
+  /* Arrived from a Story Room BEAT: what a run made here is going to do
+     (?pad=&beat=). It is a status line the page writes, not a control — the
+     landing is a side effect and a side effect she cannot see is a trap. */
+  #beattag { display: none; margin: 0 0 8px; font-size: 12px; line-height: 1.35;
+    border: 1px solid #2b2622; border-radius: 6px; padding: 7px 10px;
+    background: #fdfcf9; color: #2b2622; }
+  #beattag.on { display: block; }
   /* The PROMPT panel — what is wrapped around her words, and editable (Aug
      2026, Sophie). Opens under the style row, above her box, because that is
      where the wrapping happens. Flat, 6px, no gradient like everything else. */
@@ -504,6 +511,7 @@
 <div class="panel">
   <div class="styles"><select id="stylepick" aria-label="Style"></select></div>
   <div id="reftag"></div>
+  <div id="beattag"></div>
   <div id="promptpanel"></div>
   <div class="promptwrap"><textarea id="prompt"></textarea><button type="button" id="bigprompt" aria-label="Bigger box" title="Bigger box"></button></div>
   <div class="controls">
@@ -1063,10 +1071,34 @@
     if (promptOpen) paintPromptPanel();
   });
 
-  // Arrived from the Scratch Pad? Show the way back.
-  if (/[?&]from=scratchpad\b/.test(location.search)) {
-    document.getElementById('backchip').classList.add('on');
-  }
+  // ── ARRIVED FROM A STORY ROOM BEAT (2026-08-26, Sophie) ───────────
+  // Her ask, in three parts: the beat's drawing prompt lands in the box (the
+  // ?prompt= block below does that, the same door an image's "open in the
+  // Playground" uses), the way back returns to THAT BEAT rather than the
+  // shelf, and "whatever I just made, there should also be for that beat".
+  //
+  // The landing is the SERVER's job, not this page's — see landOnBeat in
+  // server.js. A medium picture takes 30-90s, so a page that placed it on the
+  // way out would lose everything she tapped back before. All this side does
+  // is carry the target on every run it starts while the beat is in hand.
+  //
+  // NOT PERSISTED and not remembered: the context is the query string, so
+  // opening the Playground any other way is byte-for-byte what it always was.
+  var padBack = null;    // { pad, beat, style } while she is drawing for a beat
+  (function () {
+    var q = new URLSearchParams(location.search);
+    if (!/[?&]from=scratchpad\b/.test(location.search)) return;
+    var chip = document.getElementById('backchip');
+    chip.classList.add('on');
+    var pad = q.get('pad'), beat = q.get('beat');
+    if (!pad || !beat) return;    // came from the room, not from one beat
+    padBack = { pad: pad, beat: beat, style: q.get('padstyle') || 'watercolor' };
+    // Back to the exact beat, popup open — /scratchpad reads both.
+    chip.href = '/scratchpad?pad=' + encodeURIComponent(pad) + '&beat=' + encodeURIComponent(beat);
+    var tag = document.getElementById('beattag');
+    tag.textContent = 'Drawing for a beat in the Story Room — every picture you make here lands on it, newest as its art and the rest in its past pictures.';
+    tag.classList.add('on');
+  })();
 
   // Arrived with a generation's settings (an image's "open in the Playground"):
   // ?prompt=…&style=<a STYLES key>&quality=…&sameref=1|0&character=1&scale=…
@@ -1658,14 +1690,17 @@
           // "use the house text", so a normal run is byte-for-byte what it
           // always was.
           prefix: over ? over.prefix : undefined, suffix: over ? over.suffix : undefined,
-          noText: noTextFor(styleKey) }
+          noText: noTextFor(styleKey),
+          // Absent unless she came here from a beat, so an ordinary run is
+          // byte-for-byte the request it has always been.
+          padTarget: padBack || undefined }
       // Her edited tail wins for the LoRA too, exactly as it does for a gpt
       // style — sentParts falls back to the baked text when she has not
       // touched it, so an ordinary run is byte-for-byte what it always was.
       : { prompt: prompt, lora_scale: scale, model: S.model,
           suffix: (sentParts(styleKey) || {}).suffix != null
             ? sentParts(styleKey).suffix : S.suffix,
-          seed: seed };
+          seed: seed, padTarget: padBack || undefined };
     return fetch('/api/promptlab', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
