@@ -669,17 +669,25 @@ router.post('/pads/folder', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
-// Which shelf chip a story answers to (personal / lessons / nde). Set by the
-// seed script or a chat — the page files a story with none under Personal, so
-// a brand-new story is never invisible. Deliberately does NOT bump updatedAt:
-// filing a story must not reshuffle the shelf's newest-first order.
+// Which shelf chip a story answers to (unsorted / personal / witch / lessons /
+// nde). Set by the seed script or a chat — a story carrying NONE files under
+// UNSORTED, so a brand-new story is never invisible and never lands in one of
+// her real piles uninvited (2026-08-26, Sophie: "I think personal is the
+// default so can you just make a different default and just put the ones I
+// mentioned into personal" — Personal had become everything nobody had filed).
+// `pads` files a whole set in one call, the /pads/folder shape; `pad` is the
+// single-story form. Deliberately does NOT bump updatedAt: filing a story must
+// not reshuffle the shelf's newest-first order.
 router.post('/pads/category', async (req, res) => {
   try {
-    const pid = String(req.body.pad || '').trim();
-    if (!pid) return res.status(400).json({ error: 'pad required' });
+    const ids = (Array.isArray(req.body.pads) ? req.body.pads : [req.body.pad])
+      .map((x) => String(x || '').trim()).filter(Boolean);
+    if (!ids.length) return res.status(400).json({ error: 'pad or pads required' });
     const category = String(req.body.category || '').toLowerCase().slice(0, 24).trim();
-    await padRef(pid).set({ category: category || null }, { merge: true });
-    res.json({ ok: true, pad: pid, category: category || null });
+    const batch = db().batch();
+    ids.forEach((id) => batch.set(padRef(id), { category: category || null }, { merge: true }));
+    await batch.commit();
+    res.json({ ok: true, pad: ids[0], pads: ids, category: category || null });
   } catch (e) { fail(res, e); }
 });
 
@@ -689,13 +697,22 @@ router.post('/pads/category', async (req, res) => {
 // which stories lead the shelf. Absent means unpinned, so a story is never
 // hidden behind the fold by a field nobody set. Like /category, deliberately
 // does NOT bump updatedAt: pinning is not an edit to the story.
+//
+// A WHOLE FOLDER PINS AT ONCE — `pads` takes a list (2026-08-26, Sophie: "make
+// it possible to pin multiple stories that are together so I can pin all my
+// Mason stories at once"). The folder's pushpin sends every story in it, so
+// what is stored is still one flag per story and nothing new has to be kept in
+// step with which stories a folder holds.
 router.post('/pads/pin', async (req, res) => {
   try {
-    const pid = String(req.body.pad || '').trim();
-    if (!pid) return res.status(400).json({ error: 'pad required' });
+    const ids = (Array.isArray(req.body.pads) ? req.body.pads : [req.body.pad])
+      .map((x) => String(x || '').trim()).filter(Boolean);
+    if (!ids.length) return res.status(400).json({ error: 'pad or pads required' });
     const pinned = req.body.pinned === true || req.body.pinned === 'true';
-    await padRef(pid).set({ pinned }, { merge: true });
-    res.json({ ok: true, pad: pid, pinned });
+    const batch = db().batch();
+    ids.forEach((id) => batch.set(padRef(id), { pinned }, { merge: true }));
+    await batch.commit();
+    res.json({ ok: true, pad: ids[0], pads: ids, pinned });
   } catch (e) { fail(res, e); }
 });
 

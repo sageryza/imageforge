@@ -55,7 +55,7 @@ function ok(name, cond, extra) {
 
 /* One story with one drawn beat — enough for the play button to show, which
    is all this test needs on the pad itself. */
-const PADS = { pads: [{ id: 'a', title: 'Evan', beats: 1, category: 'personal', cover: '' }] };
+const PADS = { pads: [{ id: 'a', title: 'Evan', beats: 1, category: null, cover: '' }] };
 const BEAT = { id: 'b1', text: 'the first beat', url: 'https://example.invalid/a.png' };
 
 /* The server's film state, driven by the test. `state.film` is what GET /
