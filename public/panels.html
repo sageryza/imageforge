@@ -417,7 +417,7 @@
   var ICON_BIG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>';
   var ICON_SMALL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>';
   var cfg = null;
-  var pick = { grid: 4, shape: 'portrait', res: '1k', quality: 'low', style: '' };
+  var pick = { grid: 4, shape: 'portrait', res: '4k', quality: 'medium', style: '' };
   var words = {};              // cell index -> her text, kept across grid changes
   var polling = {};
   var runsById = {};
@@ -1140,19 +1140,28 @@
     if (!pre && !r.suffix) return '';
     return [pre, '[content]', r.suffix].filter(Boolean).join('\n\n');
   }
-  // UPSCALE IN THE PLAYGROUND (her ask, 2026-08-25: "being able to upscale
-  // each panel individually as its own image so this could copy the text into
-  // the playground"). The action carries the panel's own words, the tile it
-  // was really drawn on (server `evan` is the page's `chatgpt` key — the Aug
-  // 2026 rename moved only the label), its quality, and res=4k — a cut panel
-  // is ~1K of pixels, and redrawing it alone at 4K is the upscale. sameref=1:
-  // the reference and baked style prompt ARE this tile's own; only the grid
+  // TAKING ONE PANEL OVER TO THE PLAYGROUND (her ask, 2026-08-25: "being able
+  // to upscale each panel individually as its own image so this could copy
+  // the text into the playground"). The link carries the panel's own words
+  // and the tile it was really drawn on (server `evan` is the page's
+  // `chatgpt` key — the Aug 2026 rename moved only the label). sameref=1: the
+  // reference and baked style prompt ARE this tile's own; only the grid
   // machinery differed.
+  //
+  // IT LANDS ON 1K AND LOW — the cheap rung, NOT the panel's own settings and
+  // not 4K (Sophie, 2026-08-26: "when I pick one and migrate it to the
+  // playground, it should default to one k and low"). This used to send
+  // res=4k plus the run's quality, on the reasoning that a cut panel is ~1K
+  // of pixels so redrawing it alone at 4K IS the upscale. That reasoning is
+  // history: arriving on a page pre-set to ~47c a tap is a decision made for
+  // her, and the Playground's own rule is that a dear rung is never something
+  // she is spending without having just chosen it. Both are one tap up once
+  // she is there — and neither is persisted, so this link can never leave the
+  // Playground set expensive for whatever she opens next.
   function upscaleUrl(r, im) {
     return '/playground?prompt=' + encodeURIComponent(im.prompt || '')
       + '&style=' + encodeURIComponent(r.style === 'evan' ? 'chatgpt' : (r.style || ''))
-      + '&quality=' + encodeURIComponent(r.quality || 'medium')
-      + '&res=4k&sameref=1&from=panels';
+      + '&quality=low&res=1k&sameref=1&from=panels';
   }
   // SAVE TO PHOTOS — the Playground's three paths, in order: the app's native
   // bridge (the only reliable one in a WKWebView), the share sheet's "Save

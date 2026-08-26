@@ -3576,19 +3576,22 @@ before working on that module. Nothing was deleted — the moved text is verbati
     1.30x the pixels**. Nine ninths of the same sheet are 1.28c each.
     **2K is cheaper still but its cuts come out SMALLER than a plain 1K
     picture** — the thing that is easy to get backwards.
-  - **IT OPENS ON 1K AND LOW, WHICH IS NOT WHAT THE PARAGRAPH ABOVE ARGUES
-    (2026-08-26, Sophie: "it defaults to 4K and medium make it default to 1K
-    and low").** The tier argument is about where a sheet PAYS OFF and it is
-    still true; a default is a different question. This page shipped opening
-    on 4K/medium on the reasoning that "the whole reason to open this page is
-    to get panels worth keeping", and that reasoning is history: ~13c a tap
-    arriving unasked, on the one tool built for trying several prompts at
-    once, is the Playground's own not-persisted-quality lesson. The cheap rung
-    is the mistake that costs nothing to undo, and the ladder is one tap away.
-    Three copies say it — the served `defaults`, the POST's own fallbacks
-    (what a stale cached page lands on) and the page's opening `pick` — and
-    `node scripts/test-panels.js` pins all three, because this reads as a
-    tidy-up to a chat that has just read the cost paragraph.
+  - **THE SHEET OPENS ON 4K/MEDIUM AND THE HAND-OFF OUT OF IT OPENS ON 1K/LOW
+    — two rungs answering two different questions (2026-08-26, Sophie: "when I
+    pick one and migrate it to the playground, it should default to one k and
+    low").** The paragraph above is the SHEET's case and it still stands: a
+    sheet only pays off at the tier where a cut beats an ordinary picture, so
+    the page opens there. Taking ONE panel over to the Playground is not that
+    — it used to carry `res=4k` plus the run's own quality (~47c a tap) on the
+    reasoning that a cut panel is ~1K of pixels so redrawing it alone at 4K IS
+    the upscale, and that reasoning is history: arriving on a page pre-set to
+    the dearest rung is a decision made for her, which is the Playground's own
+    never-persist-quality rule. Both are one tap up once she is there, and
+    neither rides a deep link into her next visit.
+    **The two are pinned in BOTH directions by `node scripts/test-panels.js`**
+    — a chat reading either comment must not tidy the other one to match.
+    (This bullet said the opposite for one merge, #1718: the whole page was
+    moved to 1K/low, which is not what she asked for.)
   - **A BOX OPENS BIGGER, AND IT TAKES THE WHOLE ROW (2026-08-26, Sophie:
     "make a button to see the current text box that you're working on bigger
     so you can see what you're writing").** A 26px rounded square inside each
@@ -3727,11 +3730,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
     panel individually as its own image so this could copy the text into the
     playground").** A cut's lightbox carries an action (the Playground's own
     wire-loop icon — the opens-another-tool rule) that walks to
-    `/playground?prompt=&style=&quality=&res=4k&sameref=1` — the panel's own
+    `/playground?prompt=&style=&quality=low&res=1k&sameref=1` — the panel's own
     words, the tile it was really drawn on (server `evan` → page `chatgpt`),
-    and the tier: a cut panel is ~1K of pixels, so a 4K single redraw IS the
-    upscale. `?res=` is a new one-shot deep-link param in promptlab.html
-    (still never persisted — this one is in the link she tapped).
+    and the CHEAP rung (her ask, 2026-08-26; it carried `res=4k` and the run's
+    own quality until then — see the bullet above). `?res=` is a one-shot
+    deep-link param in promptlab.html (still never persisted — this one is in
+    the link she tapped).
   - **PANELS · PLAYGROUND is a hairline tab row at the top** (her ask, same
     message) — a NAVIGATION, not an embed: the Playground is its own page and
     an iframe would double every pill and toggle on screen.
