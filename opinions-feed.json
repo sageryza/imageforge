@@ -134,6 +134,109 @@
    }
   },
   {
+   "id": "hard-grainy-hd",
+   "kind": "image",
+   "category": "look",
+   "mode": "hard",
+   "q": "Which picture?",
+   "a": {
+    "t": "Grainy",
+    "info": "the only photo of your grandmother",
+    "img": "/samples/paint-grainy.webp"
+   },
+   "b": {
+    "t": "High definition",
+    "info": "it's your ex, having a great time",
+    "img": "/samples/paint.webp"
+   }
+  },
+  {
+   "id": "hard-cookie",
+   "kind": "image",
+   "category": "wild",
+   "mode": "hard",
+   "q": "Which cookie?",
+   "a": {
+    "t": "A fresh warm cookie",
+    "info": "it's a toddler's, and the toddler is watching",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/cookie-fresh.webp"
+   },
+   "b": {
+    "t": "A cookie someone already licked",
+    "info": "the licker is your soulmate, allegedly",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/cookie-lick-3.webp"
+   }
+  },
+  {
+   "id": "hard-refund-ticket",
+   "kind": "image",
+   "category": "wild",
+   "mode": "hard",
+   "q": "Which envelope?",
+   "a": {
+    "t": "A refund",
+    "info": "addressed to your neighbor",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/refund.webp"
+   },
+   "b": {
+    "t": "A parking ticket",
+    "info": "you were parked on the mayor's lawn",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/ticket.webp"
+   }
+  },
+  {
+   "id": "hard-puppy-wasp",
+   "kind": "image",
+   "category": "wild",
+   "mode": "hard",
+   "q": "Which passenger?",
+   "a": {
+    "t": "A puppy asleep on your lap",
+    "info": "it's the mean dog, resting",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/puppy-lap.webp"
+   },
+   "b": {
+    "t": "A wasp loose in your car",
+    "info": "it saved your life once",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/wasp-car.webp"
+   }
+  },
+  {
+   "id": "hard-sheets-socks",
+   "kind": "image",
+   "category": "wild",
+   "mode": "hard",
+   "q": "Pick a forever.",
+   "a": {
+    "t": "Clean sheets every night",
+    "info": "they're at your ex's house",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/sheets-clean.webp"
+   },
+   "b": {
+    "t": "Damp socks every day",
+    "info": "they come with world peace",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/socks-damp.webp"
+   }
+  },
+  {
+   "id": "hard-cake-mosquito",
+   "kind": "image",
+   "category": "wild",
+   "mode": "hard",
+   "verb": "shoot",
+   "q": "You have one bullet.",
+   "a": {
+    "t": "Grandma's birthday cake",
+    "info": "grandma is watching you decide",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/grandma-cake.webp"
+   },
+   "b": {
+    "t": "A mosquito the size of a crow",
+    "info": "the last of its species",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/giant-mosquito.webp"
+   }
+  },
+  {
    "id": "hard-bread",
    "kind": "image",
    "category": "wild",
