@@ -148,7 +148,11 @@ async function backHome(page) {
     .catch(() => fail('quiet-sid-only did not open on an empty state'));
   const derived = await page.$eval('#thread .state .openclaude', (a) => a.getAttribute('href'))
     .catch(() => null);
-  if (derived !== 'https://claude.ai/code/session_011kWP3BDFodD9BG6VQ8Xv3y')
+  // The BROWSER fragment rides along because this chat carries no account tag
+  // (2026-08-26) — `account` is stamped only by a finished reply, so the chats
+  // whose thread is empty are precisely the chats with no tag, and firing their
+  // link blind into the app dead-ends on the wrong account. See openHref.
+  if (derived !== 'https://claude.ai/code/session_011kWP3BDFodD9BG6VQ8Xv3y#no_universal_links')
     fail('the door was not derived from the sessionId: ' + derived);
 
   // the derivation is a url like any other, so the cross-account rule still

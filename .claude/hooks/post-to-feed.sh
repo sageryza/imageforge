@@ -318,7 +318,14 @@ if [ "$event" = "UserPromptSubmit" ]; then
   # mark the chat stale/current and the app can show it. Telemetry only —
   # nothing here fetches, executes, or instructs (see the v11 header note).
   hook_v=$(md5sum "$HOME/.claude/hooks/post-to-feed.sh" 2>/dev/null | cut -d' ' -f1)
-  ( post "$FEED/working" "$(jq -nc --arg c "$name" --arg s "$session_key" --arg v "$hook_v" '{chat:$c, session:$s, v:$v}')" ) >/dev/null 2>&1 &
+  # v17: the ping carries FORGE_ACCOUNT too. `account` used to be stamped ONLY
+  # by a finished reply, so a chat whose turn never posted one carried no tag —
+  # and the app then fired its "Open in Claude" link blind into whichever
+  # account it was on, dead-ending on the wrong one (Sophie, 2026-08-26: "they
+  # seem to exist, but their button takes me nowhere"). The variable is already
+  # in this environment; it was simply never sent. Empty when unset, and the
+  # server ignores an empty one.
+  ( post "$FEED/working" "$(jq -nc --arg c "$name" --arg s "$session_key" --arg v "$hook_v" --arg a "${FORGE_ACCOUNT:-}" '{chat:$c, session:$s, v:$v} + (if $a == "" then {} else {account:$a} end)')" ) >/dev/null 2>&1 &
 
   # v13: the card reminder, as UserPromptSubmit's additionalContext. This is
   # the ONLY write to stdout anywhere in this script — every other path pipes,

@@ -180,6 +180,18 @@ function sidTail(session) {
 function bareSid(session) {
   return String(session || '').replace(/^(session_|cse_)/, '').slice(0, 120);
 }
+// …AND A SESSION KEY HAS TO BE AN IDENTIFIER AT ALL (2026-08-26). Two of the
+// 486 ids on file are not: the literal `none`, and an unexpanded `$SID` — which
+// resolveChat happily treated as a session, forking a ghost chat named
+// `instant-voice-clone-sid` (sidTail('$SID') is 'sid') beside the real
+// `instant-voice-clone`. Deliberately WIDE: a LOCAL transcript uuid is a
+// legitimate identity here (the hook falls back to it when
+// CLAUDE_CODE_REMOTE_SESSION_ID is unset), so this rejects only what could
+// never be an id — too short, or carrying a shell sigil. A rejected key means
+// "no session", i.e. plain slug resolution, never a fork.
+function usableSid(sid) {
+  return sid.length >= 16 && /^[A-Za-z0-9_-]+$/.test(sid);
+}
 // A merged/repaired chat leaves a tombstone doc behind ({ movedTo }) so posts
 // still addressed to the old slug — stale hook caches, the app's reply box on
 // an old thread — land in the surviving chat instead of resurrecting the tile.
@@ -197,7 +209,7 @@ async function followMoves(chat) {
 async function resolveChat(base, session) {
   const chat = await followMoves(base);
   const sid = bareSid(session);
-  if (!chat || !sid) return chat;
+  if (!chat || !sid || !usableSid(sid)) return chat;
   // 1) Session-first: this session already has a home → everything it posts
   //    goes there, no matter what slug it arrived under. This is what makes a
   //    chat's identity survive branch renames and naming-convention changes.
@@ -3305,6 +3317,15 @@ router.post('/working', async (req, res) => {
     // the chat earlier than /reply can, which is the better moment.
     const stamp = new Date().toISOString();
     const reg = { workingAt: stamp, hiddenAt: stamp };
+    // …AND THE ACCOUNT, WHICH ONLY A FINISHED REPLY USED TO STAMP (2026-08-26,
+    // Sophie: "they seem to exist, but their button takes me nowhere"). A chat
+    // whose turn started and never posted a reply — exactly the empty chats in
+    // the MORE fold — therefore carried NO account tag, so the app fired its
+    // Open link blind into whichever account it was on and dead-ended on the
+    // wrong one. The ping already runs with FORGE_ACCOUNT in its environment;
+    // it just never sent it. An older hook sends none and is unchanged.
+    const acct = String((req.body || {}).account || '').slice(0, 20);
+    if (acct) reg.account = acct;
     // v11 telemetry (Sophie, 2026-08-10: "rather than me having to give it to
     // each one individually… a place where each chat checks"): the ping carries
     // the md5 of the chat's INSTALLED hook file; compare it to the repo copy

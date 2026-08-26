@@ -2248,12 +2248,24 @@ var CLAUDE_STAR='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width
 //
 // The order is deliberate: a stored url wins, because it is what the session
 // itself reported; the message tail is next; the derivation is the floor.
+// ONLY A REMOTE SESSION ID BUILDS A LINK (2026-08-26, Sophie: "their button
+// takes me nowhere"). Measured over all 486 ids on file: 480 are exactly
+// `01` + 22 more characters, the shape claude.ai/code answers to. The other
+// SIX cannot be one and never could — four are LOCAL transcript uuids (the
+// hook falls back to `$sid` when CLAUDE_CODE_REMOTE_SESSION_ID is unset, which
+// is a fine IDENTITY for session-first filing and no kind of url), one is the
+// literal string `none`, and one is an unexpanded `$SID`. Every one of those
+// six chats had no stored url either, so its Open button was built entirely
+// out of the broken derivation — a door drawn over a wall.
+// Empty is the honest answer: the empty state draws NO button rather than an
+// invented one, which is the rule this derivation already promised.
+function looksLikeSession(sid){ return /^01[0-9A-Za-z]{22}$/.test(sid); }
 function claudeSessionUrl(sid){
-  sid=String(sid||'');
+  sid=String(sid||'').replace(/^session_/, '');
   // the registry stores the bare id (`011kWP3…`); `session_` is the url's own
   // prefix. Accept an id that already carries it rather than doubling it up.
-  if(!sid) return '';
-  return 'https://claude.ai/code/'+(sid.indexOf('session_')===0? sid : 'session_'+sid);
+  if(!sid || !looksLikeSession(sid)) return '';
+  return 'https://claude.ai/code/session_'+sid;
 }
 // for the test: the derivation (pure) and the two functions that compose it
 window.__claudeSessionUrl=claudeSessionUrl;
@@ -2273,11 +2285,24 @@ function appAccount(){ return (settings&&settings.appAccount)||'1'; }
 // July 2026), so iOS never hands it to the Claude app and it opens in the
 // BROWSER, where that account is signed in. This replaced the /go redirect
 // hop: both a server 302 and a self-navigating page were verified live to
-// bounce into the app anyway. Chats with no account tag keep the old direct
-// behavior.
+// bounce into the app anyway.
+//
+// AND AN UNTAGGED CHAT GOES TO THE BROWSER TOO (2026-08-26, Sophie: "they seem
+// to exist, but their button takes me nowhere"). This line used to read "chats
+// with no account tag keep the old direct behavior", and that is what her two
+// chats were: `account` is stamped only by a finished REPLY, so a chat whose
+// turn started and never posted one — the whole reason it sits in MORE with no
+// messages — carries no tag at all. The direct link is then fired blind into
+// whichever account the app happens to be on, and on the wrong one the Claude
+// app dead-ends with "this session does not exist" and no way forward.
+// In the BROWSER the same link either opens or offers the account it lives on,
+// so an unknown account is a question rather than a wall. Measured the day this
+// shipped: 5 chats are in that state, against 562 tagged ones that are
+// untouched by this.
 function openHref(name,url){
   var acct=(chats[name]&&chats[name].account)||'';
-  if(!url||!acct||acct===appAccount()) return url;
+  if(!url) return url;
+  if(acct && acct===appAccount()) return url;
   return url+(url.indexOf('#')<0?'#no_universal_links':'');
 }
 window.__claudeUrlFor=claudeUrlFor; window.__openHref=openHref;
