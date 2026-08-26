@@ -4992,6 +4992,22 @@ before working on that module. Nothing was deleted — the moved text is verbati
       whose coverage had already been narrowed by the earlier singular pull
       while their captions still said all four sentences; a plan that only
       looked at the current split reported nothing to do.
+    - **ONE EDITED LINE MUST NOT DERAIL THE REST OF THE STORY (2026-08-26,
+      measured on her Spellcasting pad).** The walk had no lookahead, so a
+      moment she had reworded in the timeline stalled it, every beat after it
+      was tried against that same moment, and **the last SIX beats lost their
+      match and would have been added as duplicates of beats already sitting
+      there** — the exact repeat this rewrite exists to end, arriving by a
+      different door. `LOOKAHEAD` (8) lets a beat find its moments a little
+      further on; bounded, because both lists are the same story in the same
+      order and a match found far away is likelier wrong than right.
+    - **THE SAME LINE WORDED DIFFERENTLY IN THE TWO ROOMS IS `diverged`, NOT
+      AN ADD.** Adding it would put two versions of one line in her pad. Only
+      she knows which wording she means, so it is reported and nothing is
+      written. **The bar is deliberately high (`DIVERGED` 0.6 word overlap):
+      a false `diverged` loses real work — a new moment never added — which is
+      worse than a duplicate.** Her real edit measured 0.80; a half-shared
+      sentence is a NEW line and is added. Both ends pinned by the test.
     - **A PAD CAN BE PART-JOINED** — a pull that was interrupted, or beats she
       added by hand afterwards — so beats with no coverage are still matched
       by their words, against the moments no joined beat has claimed. An
@@ -5032,7 +5048,7 @@ before working on that module. Nothing was deleted — the moved text is verbati
     What the link buys there is the name decided once and a jump between rooms.
   - **It costs nothing** — no model call anywhere, a few small Firestore reads
     behind a 30s cache. `GET /for?room=&doc=` is what a room asks on open.
-  - Tests: `node scripts/test-storylink.js` (63 checks, pure — the matcher
+  - Tests: `node scripts/test-storylink.js` (72 checks, pure — the matcher
     against her REAL titles including the pairs that must NOT match, the
     seeding of a hand-worked pad, the split beat's adds landing in place, the
     re-derived caption and the reworded one that is left alone, and the two
