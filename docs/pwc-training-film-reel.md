@@ -3,8 +3,10 @@
 Sophie's seven "People Watching Club: Official Training Film No. 001" cards cut
 into a 9:16 reel, opened with a public-domain 3-2-1 Academy leader countdown.
 
-**Live cut — v8, marks on the words:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v8-marks-on-words.mp4
+**Live cut — v9, the markup redone from the images:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v9-fresh-marks.mp4
 (1080x1920, 30fps, 1:27, -15.0 LUFS. Same audio as v7, byte for byte.)
+
+**v8, v7's marks re-timed only:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v8-marks-on-words.mp4
 
 **v7, tight open (marks ran late):** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v7-tight-open.mp4
 

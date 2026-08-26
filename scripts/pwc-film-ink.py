@@ -47,6 +47,22 @@ def ellipse_pts(cx, cy, rx, ry, seed, turns=1.04, tilt=None):
         pts.append((cx+xr, cy+yr))
     return pts
 
+def line_pts(x0, y0, x1, y1, seed):
+    """A plain hand-drawn stroke, no head — an underline, or a traced
+    sightline. Gentler bow than the arrow shaft: an underline that bows 5% of
+    its own length climbs into the words it is underlining."""
+    r = _rng(seed)
+    n, pts = 60, []
+    dx, dy = x1-x0, y1-y0
+    L = math.hypot(dx, dy) or 1
+    nx, ny = -dy/L, dx/L
+    bow = (r()-0.5)*0.04*L
+    for i in range(n+1):
+        t = i/n
+        off = bow*math.sin(math.pi*t) + (r()-0.5)*2.5
+        pts.append((x0+dx*t+nx*off, y0+dy*t+ny*off))
+    return pts
+
 def arrow_pts(x0, y0, x1, y1, seed):
     """A wobbly shaft plus a two-stroke head. Returned as one path so the
     draw-on reaches the head last, the way a hand would."""

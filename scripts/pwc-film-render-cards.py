@@ -52,6 +52,9 @@ for fname, clip, lead, tail, shotlist in shots.CARDS:
         if kind == "circle":
             u, v, ru, rv = g
             pts = ink.ellipse_pts(cx0+u*fw, cy0+v*fh, ru*fw, rv*fh, seed)
+        elif kind == "line":
+            u0, v0, u1, v1 = g
+            pts = ink.line_pts(cx0+u0*fw, cy0+v0*fh, cx0+u1*fw, cy0+v1*fh, seed)
         else:
             u0, v0, u1, v1 = g
             pts = ink.arrow_pts(cx0+u0*fw, cy0+v0*fh, cx0+u1*fw, cy0+v1*fh, seed)
