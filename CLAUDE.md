@@ -3459,6 +3459,45 @@ before working on that module. Nothing was deleted — the moved text is verbati
   `elementFromPoint`; verified failing 3 against the pre-fix page. Its fixture
   had to become a REAL-SIZED 2:3 picture, because the lightbox sizes itself to
   the picture and a 1x1 pixel put the zones nowhere near it.
+  **THE LIGHTBOX OPENS ON THE CACHED THUMB, HAS A WAY OUT AT THE TOP, AND SAYS
+  PROMPT (2026-08-26, Sophie: "it seems like it takes quite a while to load the
+  images in light box view … it's a little hard to tap out of them. Could you
+  have some room at the top … can you have it say prompt and have the prompt in
+  there instead of below split into the style and the content and the style
+  shouldn't be the default it should actually look at what it was that time
+  since I can change it").** Three faults on one overlay.
+  - **SLOW: the wall loads a 480px derived thumb and the lightbox loaded the
+    untouched ORIGINAL** — 1-3MB at the 2K and 4K tiers, so every tap was a
+    fresh download over cell with the PREVIOUS picture still on screen. It
+    paints `thumbFor(src)` first (already in the browser's cache — it IS the
+    tile she just tapped, so it lands in the same frame) and swaps the original
+    in behind it **from the SAME `fetch` that was already being made for Save**:
+    one download, not two, and never a blank. `lbSrc` holds the original url —
+    Save and the app's native bridge read that, NEVER `lbimg.src`, which is a
+    thumb and then a `blob:`.
+  - **HARD TO TAP OUT: `.lbtop`, a 40px band ABOVE the stage** with the house
+    chevron in it, and the whole strip closes. The two step zones are 28% of the
+    width EACH and run the stage's full height with nothing drawn in them
+    (2026-08-24), so more than half the picture area pages instead of closing
+    and no mark says which part does what — the band is outside both zones, so
+    it can never be one.
+  - **THE PROMPT SAYS "Prompt" AND SPLITS**, the Assets overlay's own two
+    halves, opening on CONTENT per the house rule. **The style half is DERIVED
+    FROM THIS RUN'S OWN `fullPrompt`** — `runPromptHalves` splits her typed
+    words out of the literal text that was sent, so it is the wrapper that
+    really rode along (her edited prefix, the no-text swap, the character and
+    photo lines) and never the tile's baked default; that is the half of her ask
+    that matters, since she can edit the Prompt panel between runs. Nothing new
+    is stored and every run already on file gets it. No wrapper (the plain
+    ChatGPT tile) → an empty style half and NO Style button, the same silence
+    the Assets overlay keeps.
+  - The half she picked rides along as she STEPS (comparing a style across two
+    pictures is why she would switch it); a fresh open always starts on content.
+  - Test: `node scripts/test-playground-lightbox.js` — the original served with
+    a real 1200ms delay and the picture asked for its `naturalWidth` and box
+    IMMEDIATELY (a src assertion cannot tell a painted picture from a pending
+    one), the band's own tap and the chevron asked with `elementFromPoint`, and
+    the style half checked for a word the tile's default does not contain.
   **THE ✕ FILTER BESIDE THE HEART (Aug 2026, Sophie: "can u also add a button
   next to the heart that hides anything i've 'exed'").** The heart's opposite
   and its twin — a filter over PICTURES in whichever view she is in, sticky,
