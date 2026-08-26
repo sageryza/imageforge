@@ -361,9 +361,20 @@
      ending where the caption starts. The zones are sized to it rather than to
      the window, so a tap "in the image area" means exactly that and the
      caption, the ♥/✕ row and the buttons under it are never covered. */
+  /* THE PICTURE SHRINKS WITH THE STAGE, OR IT PAINTS OVER THE CAPTION
+     (2026-08-26, Sophie: "the label is covered by the picture"). The stage is
+     `position:relative`, so it and the picture inside it paint ABOVE the
+     static caption below — and the picture's own `max-height:76vh` did not
+     shrink when flex squeezed the stage, so on a short viewport (the app's
+     web view, which is shorter than Safari's by its bottom bar) the bottom of
+     a portrait 2:3 sat on top of the MODEL · QUALITY · SIZE line. `min(...,
+     100%)` binds it to whatever room the stage really has; `flex:none` on the
+     caption and the buttons is what makes the stage the only thing that
+     gives, so the two lines she opens a picture to read can never be the part
+     that is squeezed away. */
   .lbstage { position: relative; display: flex; align-items: center; justify-content: center;
-    width: 100%; min-height: 0; }
-  #lb img { max-width: 100%; max-height: 76vh; border-radius: 6px; }
+    width: 100%; min-height: 0; flex: 0 1 auto; }
+  #lb img { max-width: 100%; max-height: min(76vh, 100%); border-radius: 6px; }
   /* Step to the next/previous picture in the feed, in the order the view
      behind the lightbox is showing them (the heart filter included).
      IT IS THE TAP AND NOTHING ELSE — NO VISIBLE BAR (2026-08-24, Sophie: "in
@@ -387,36 +398,14 @@
      sight — the one thing she opens a picture to check (Sophie, Aug 2026:
      "when the prompt gets long i cant see the model or quality"). Only the
      prompt scrolls now; the meta line never moves. */
-  #lb .cap { margin-top: 10px; text-align: center; max-width: 560px; }
+  #lb .cap { margin-top: 10px; text-align: center; max-width: 560px; flex: none; }
   #lb .cap .capm { color: #9a938a; font-size: 12px; }
   #lb .cap .capp { color: #eee; font-size: 13.5px; margin-top: 5px; max-height: 14vh; overflow-y: auto; }
-  .lbbtns { display: flex; gap: 22px; margin-top: 14px; }
+  .lbbtns { display: flex; gap: 22px; margin-top: 14px; flex: none; }
   .lbbtn { width: 46px; height: 46px; border-radius: 50%; border: 1.5px solid #555; background: #1c1c1c; color: #ddd; display: flex; align-items: center; justify-content: center; }
   .lbbtn svg { width: 21px; height: 21px; }
   .lbbtn.like.on { background: #c25a72; border-color: #c25a72; color: #fff; }
   .lbbtn.dislike.on { background: #9a938a; border-color: #9a938a; color: #fff; }
-  /* SEND TO THE STORY ROOM (Aug 2026, Sophie: "a send to story room share
-     icon button in the playground next to the other four buttons where I can
-     pick a story and either put it in the inbox of that story or put in a
-     specific beat that exists or make a new beat"). A sheet over the
-     lightbox, two steps: the shelf of stories, then that story's doors —
-     the inbox, a new beat, or one of its existing beats. */
-  #storysheet { display: none; position: fixed; inset: 0; background: rgba(20,18,16,.55); z-index: 62; align-items: flex-end; justify-content: center; }
-  #storysheet.on { display: flex; }
-  .storybox { background: #faf7f2; border: 1px solid #e3dcd1; border-radius: 6px 6px 0 0; width: 100%; max-width: 430px; max-height: 72vh; display: flex; flex-direction: column; padding: 14px 14px calc(12px + env(safe-area-inset-bottom)); }
-  .sshead { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-  .sshead .ssname { font-size: 14.5px; font-weight: 600; color: #2b2622; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  #ssback { flex: none; width: 28px; height: 28px; border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #2b2622; font-size: 17px; line-height: 1; }
-  #ssbody { overflow-y: auto; min-height: 0; }
-  .ssquiet { font-size: 12.5px; color: #8a8177; padding: 6px 2px; }
-  .ssrow { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #2b2622; font: inherit; font-size: 13.5px; padding: 7px 9px; margin-bottom: 7px; }
-  .ssrow .thumb { flex: none; width: 42px; height: 42px; object-fit: cover; border-radius: 4px; background: #eee7dc; }
-  .ssrow .noart { flex: none; width: 42px; height: 42px; border-radius: 4px; background: #f1ebe1; border: 1px dashed #d8d0c4; }
-  .ssrow .words { flex: 1; min-width: 0; overflow: hidden; }
-  .ssrow .words .t { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .ssrow .words .sub { display: block; font-size: 11.5px; color: #8a8177; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .ssrow.door { font-weight: 600; }
-  .sslab { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: #9a9186; margin: 10px 0 6px; }
   /* Above the lightbox — the Save button lives in there. */
   #toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); background: #2b2622; color: #faf7f2; font-size: 13.5px; border-radius: 6px; padding: 9px 14px; z-index: 70; opacity: 0; pointer-events: none; transition: opacity .18s; max-width: 84vw; text-align: center; }
   #toast.on { opacity: 1; }
@@ -586,15 +575,6 @@
   </div>
 </div>
 
-<div id="storysheet">
-  <div class="storybox">
-    <div class="sshead">
-      <button id="ssback" aria-label="Back to the stories" hidden>&lsaquo;</button>
-      <span class="ssname" id="sstitle">Send to a story</span>
-    </div>
-    <div id="ssbody"></div>
-  </div>
-</div>
 <script>
   // THE AIM RULE LIVES IN /tritoggle.js — the ONE copy, shared with every other
   // three-way toggle. This line is only a floor for the case where that file
@@ -2444,140 +2424,21 @@
     document.body.appendChild(a); a.click(); a.remove();
   });
 
-  // ── Send to the Story Room (Aug 2026, Sophie) ──────────────────────
-  // The fifth lightbox button. Step one is the shelf (GET /api/scratchpad/pads),
-  // step two is that story's three doors: its INBOX (POST /inbox — appends,
-  // never replaces), a NEW BEAT at the end (POST /add), or an EXISTING beat
-  // (POST /image — the same write the pad's own inbox pick makes, so the
-  // provenance src rides along identically). The pad's own `style` is passed
-  // on placement so the picture lands on the side the story is showing.
-  var ssState = null;   // { url, src, padList, pad } while the sheet is open
-  function ssSheet() { return document.getElementById('storysheet'); }
-  function ssRow(kids, sub, onTap, door) {
-    var b = document.createElement('button');
-    b.className = 'ssrow' + (door ? ' door' : '');
-    kids.forEach(function (k) { b.appendChild(k); });
-    var w = document.createElement('span'); w.className = 'words';
-    var t = document.createElement('span'); t.className = 't'; t.textContent = sub.t;
-    w.appendChild(t);
-    if (sub.sub) { var s = document.createElement('span'); s.className = 'sub'; s.textContent = sub.sub; w.appendChild(s); }
-    b.appendChild(w);
-    b.addEventListener('click', onTap);
-    return b;
-  }
-  function ssThumb(url) {
-    if (!url) { var d = document.createElement('span'); d.className = 'noart'; return d; }
-    var img = document.createElement('img'); img.className = 'thumb'; img.loading = 'lazy'; img.src = url;
-    return img;
-  }
-  function ssQuiet(msg) {
-    var body = document.getElementById('ssbody');
-    body.innerHTML = '';
-    var q = document.createElement('div'); q.className = 'ssquiet'; q.textContent = msg;
-    body.appendChild(q);
-  }
-  // A beat's face, the side the story shows first — the server's slotFace
-  // rule: a clip slot shows its poster, a picture slot its url, falling back
-  // to the other side so a beat with any art at all gets a thumbnail.
-  function beatFace(b, style) {
-    var side = function (s) { return s ? (s.kind ? (s.poster || null) : (s.url || null)) : null; };
-    var dreamy = (b.alt && b.alt.dreamy) || null;
-    return style === 'dreamy' ? (side(dreamy) || side(b)) : (side(b) || side(dreamy));
-  }
-  function openStorySheet() {
+  // ── SEND TO THE STORY ROOM — it WALKS THERE (2026-08-26, Sophie: "rather
+  // than this weird pop-up, it should take me to the story room so I can pick
+  // myself") ────────────────────────────────────────────────────────────────
+  // It shipped as a sheet over the lightbox: the shelf as a list of small
+  // rows, then that story's doors. She asked for the room itself, so this
+  // button is a NAVIGATION now and decides nothing about a story. The run and
+  // which of its pictures ride the link (?send=<run>&i=<n>) — never the url,
+  // because the room re-reads the run and gets the whole provenance with it,
+  // the same src the pad's own inbox pick sends.
+  // The placement is the room's own from there: her real shelf, the real
+  // covers, and a gap in the ORDER rather than "at the end".
+  document.getElementById('lbstory').addEventListener('click', function () {
     if (!lbCur) return;
-    var r = runsById[lbCur.id]; if (!r) return;
-    ssState = {
-      url: runImages(r)[lbCur.i],
-      // The same provenance object the pad's own inbox pick sends, so the
-      // beat's past-pictures row and prompt restore work identically.
-      src: { runId: lbCur.id, i: lbCur.i, prompt: r.prompt || null, model: r.model || null, engine: r.engine || null, quality: r.quality || null },
-      padList: null, pad: null,
-    };
-    ssSheet().classList.add('on');
-    drawStoryList();
-    fetch('/api/scratchpad/pads')
-      .then(function (res) { return res.json(); })
-      .then(function (d) { if (!ssState) return; ssState.padList = d.pads || []; drawStoryList(); })
-      .catch(function () { if (ssState) ssQuiet('Couldn’t reach the Story Room — try again'); });
-  }
-  function drawStoryList() {
-    if (!ssState) return;
-    document.getElementById('sstitle').textContent = 'Send to a story';
-    document.getElementById('ssback').hidden = true;
-    if (!ssState.padList) return ssQuiet('Fetching the shelf…');
-    if (!ssState.padList.length) return ssQuiet('No stories yet');
-    var body = document.getElementById('ssbody');
-    body.innerHTML = '';
-    ssState.padList.forEach(function (p) {
-      body.appendChild(ssRow([ssThumb(p.cover)],
-        { t: p.title || 'Untitled story', sub: p.beats + (p.beats === 1 ? ' beat' : ' beats') },
-        function () { openStory(p); }));
-    });
-  }
-  function openStory(p) {
-    if (!ssState) return;
-    ssState.pad = null;
-    document.getElementById('sstitle').textContent = p.title || 'Untitled story';
-    document.getElementById('ssback').hidden = false;
-    ssQuiet('Opening the story…');
-    fetch('/api/scratchpad/?pad=' + encodeURIComponent(p.id))
-      .then(function (res) { return res.json(); })
-      .then(function (d) { if (!ssState) return; ssState.pad = { id: p.id, title: p.title, data: d }; drawStory(); })
-      .catch(function () { if (ssState) ssQuiet('Couldn’t open that story — try again'); });
-  }
-  function drawStory() {
-    if (!ssState || !ssState.pad) return;
-    var pad = ssState.pad, body = document.getElementById('ssbody');
-    body.innerHTML = '';
-    body.appendChild(ssRow([], { t: 'Into the inbox' }, function () { sendToStory('inbox'); }, true));
-    body.appendChild(ssRow([], { t: 'As a new beat, at the end' }, function () { sendToStory('add'); }, true));
-    var beats = (pad.data && pad.data.beats) || [];
-    if (!beats.length) return;
-    var lab = document.createElement('div'); lab.className = 'sslab'; lab.textContent = 'Or onto a beat';
-    body.appendChild(lab);
-    var style = (pad.data && pad.data.style) || 'watercolor';
-    beats.forEach(function (b, i) {
-      var words = (b.text || '').trim();
-      body.appendChild(ssRow([ssThumb(beatFace(b, style))],
-        { t: words || ('Beat ' + (i + 1)), sub: words ? null : 'no words yet' },
-        function () { sendToStory('image', b.id); }));
-    });
-  }
-  function sendToStory(kind, beatId) {
-    if (!ssState || !ssState.pad) return;
-    var st = ssState, pad = st.pad, padStyle = (pad.data && pad.data.style) || 'watercolor';
-    var path, body;
-    if (kind === 'inbox') {
-      path = '/api/scratchpad/inbox';
-      body = { pad: pad.id, items: [{ url: st.url, prompt: st.src.prompt, model: st.src.model, quality: st.src.quality, src: 'playground' }] };
-    } else if (kind === 'add') {
-      path = '/api/scratchpad/add';
-      body = { pad: pad.id, url: st.url, style: padStyle, src: st.src };
-    } else {
-      path = '/api/scratchpad/image';
-      body = { pad: pad.id, id: beatId, url: st.url, style: padStyle, src: st.src };
-    }
-    closeStorySheet();
-    fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      .then(function (res) { return res.json(); })
-      .then(function (d) {
-        if (d && d.error) throw new Error(d.error);
-        var did = kind === 'inbox' ? 'into the inbox' : (kind === 'add' ? 'as a new beat' : 'onto the beat');
-        toast('Sent to “' + (pad.title || 'the story') + '” ' + did);
-      })
-      .catch(function () { toast('Couldn’t send that — try again'); });
-  }
-  function closeStorySheet() {
-    ssState = null;
-    ssSheet().classList.remove('on');
-  }
-  document.getElementById('lbstory').addEventListener('click', openStorySheet);
-  document.getElementById('ssback').addEventListener('click', function () {
-    if (ssState) { ssState.pad = null; drawStoryList(); }
+    location.href = '/storyroom?send=' + encodeURIComponent(lbCur.id) + '&i=' + lbCur.i;
   });
-  // A tap on the dim backdrop leaves the sheet; the box itself swallows it.
-  ssSheet().addEventListener('click', function (e) { if (e.target === ssSheet()) closeStorySheet(); });
 
   var toastTimer = null;
   function toast(msg) {
@@ -2591,7 +2452,6 @@
   // The app's nav-bar chevron asks the page first: close the lightbox if it's
   // open, else let the app leave the tool.
   window.__navBack = function () {
-    if (ssSheet().classList.contains('on')) { closeStorySheet(); return true; }
     if (document.getElementById('ask').classList.contains('on')) { closeAsk(); return true; }
     if (document.getElementById('lb').classList.contains('on')) { closeLB(); return true; }
     return false;

@@ -3435,7 +3435,25 @@ before working on that module. Nothing was deleted — the moved text is verbati
   so "the image area" is a real box: the zones are sized to the picture, never
   to the window, so the caption and the ♥/✕ row under it are never covered.
   Hidden at the ends of the feed takes the ZONE with it, so a tap there
-  closes. Test: `node scripts/test-playground-liked-arrows.js` — nothing drawn
+  closes.
+  **AND THE STAGE IS WHY THE LABEL WENT UNDER THE PICTURE — the picture has to
+  SHRINK WITH IT (2026-08-26, Sophie: "the label is covered by the
+  picture").** The stage is `position:relative`, so it and the `<img>` inside
+  it paint ABOVE the static caption below them, and the picture's own
+  `max-height:76vh` never shrank when flex squeezed the stage — so on a SHORT
+  viewport the bottom of a portrait 2:3 sat on top of the MODEL · QUALITY ·
+  SIZE line. `min(76vh, 100%)` binds the picture to the room the stage really
+  has, and `flex:none` on the caption and the ♥/✕ row makes the stage the only
+  thing that gives. **The height is the whole bug**: measured, it is 17px of
+  the label covered at 560, 10 at 620, 5 at 660 and **nothing at 844** — the
+  iPhone 13 in Safari, which is where anyone testing it would look. The app's
+  web view is shorter by its bottom bar, which is why it was only ever visible
+  in her hand. The shared `asset-lightbox.js` has the same shape and was
+  measured clean (its caps are 46-62vh with the note box) — leave it. Test:
+  `node scripts/test-playground-lightbox-caption.js` (five heights, the
+  overlap asked with `elementFromPoint`, which reports `lbimg` sitting on the
+  label pre-fix; verified failing 8).
+  Test: `node scripts/test-playground-liked-arrows.js` — nothing drawn
   (child nodes, text, background and border all measured off the real
   buttons), the zone measured over the picture, and the edge tap asked with
   `elementFromPoint`; verified failing 3 against the pre-fix page. Its fixture
@@ -3532,6 +3550,27 @@ before working on that module. Nothing was deleted — the moved text is verbati
     (what a stale cached page lands on) and the page's opening `pick` — and
     `node scripts/test-panels.js` pins all three, because this reads as a
     tidy-up to a chat that has just read the cost paragraph.
+  - **A BOX OPENS BIGGER, AND IT TAKES THE WHOLE ROW (2026-08-26, Sophie:
+    "make a button to see the current text box that you're working on bigger
+    so you can see what you're writing").** A 26px rounded square inside each
+    textarea's bottom-right corner — the Playground's `#bigprompt` answer
+    lifted in SHAPE, not copied, so the SAME textarea grows and there is never
+    a second field to sync. **WIDTH is the half that matters here, and that is
+    a measurement:** main is 14px either side, so on a 390pt phone a cell is
+    176px at two across and **114px at nine** — the grid where a dictated
+    prompt wraps every three or four words — so the open cell takes the whole
+    row (`grid-column: 1/-1`) as well as growing tall. The neighbours keep
+    their order and stay on screen, because what she wrote in them is the
+    context for the one she is writing. **ONE at a time** (opening another
+    closes it, or the grid comes apart into a column of full-width boxes),
+    **not sticky, and reset by a grid change** — the boxes ARE the grid, and
+    reopening on a layout she did not pick is the opposite of this page. The
+    textarea reserves that corner with `padding-bottom` or her last line is
+    typed under the button. Pinned by the bigger-box block of
+    `node scripts/test-panels.js` — the widths and heights read off the REAL
+    boxes and the button asked with `elementFromPoint`, because a cell that
+    grew only in height passes every markup check and still wraps her
+    dictation every four words (verified failing pre-fix).
   - **THE CANVAS IS DERIVED, NEVER A LOOKUP TABLE** (`sheet-grid.js`, the same
     rule `size-tier.js` follows). Every canvas satisfies all of gpt-image-2's
     constraints plus the one this tool adds — the sheet must divide into
@@ -4603,6 +4642,35 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - Test: `node scripts/test-storyroom-playground-trip.js` (the server
     contract and the placement order pure over the real `pad-art.js`, then both
     real pages headless — verified failing 20 pre-fix).
+  **AND THE OTHER DIRECTION IS A WALK TOO — the Playground's send button
+  TAKES HER HERE (2026-08-26, Sophie: "rather than this weird pop-up, it
+  should take me to the story room so I can pick myself").** It shipped as a
+  sheet over the Playground's own lightbox — the shelf as a list of small
+  rows, then that story's doors (inbox · a new beat at the end · one of its
+  beats) — i.e. a second, worse copy of the shelf and of the placing step,
+  built out of 42px rows. The button is a NAVIGATION now
+  (`/storyroom?send=<run>&i=<n>`) and decides nothing about a story.
+  - **The RUN rides the link, never the url.** One id re-reads the whole
+    provenance in the room (prompt · model · quality), which is what a beat's
+    past-pictures row and a picked-back version are restored from — the same
+    `src` the pad's own inbox pick sends. It is spent with `replaceState`
+    before anything opens, so a refresh cannot hand her back a picture she
+    has already put down.
+  - **`#sendband` is the picture in her hand** — a fixed band over the SHELF
+    while she picks a story and over the canvas while she picks the spot, so
+    one thing on screen says what is being placed. It outlives `pending` on
+    purpose: the document-level tap cancels placing, and without the band
+    there would be no way back to the picture but the Playground.
+  - **The placement is the room's own** — `pick()`/`place()`, the inbox's
+    machinery, so she gets a gap in the ORDER rather than "at the end", and
+    an empty story places straight away because it has no gap to tap.
+  - **"Into the inbox" is not rebuilt and does not need to be**: the pad's
+    inbox already reads her hearted Playground pictures live, so ♥ is that
+    door. Putting a picture onto an EXISTING beat is that beat's own "fill it
+    in" — a tap on a beat while placing is still a no-op, deliberately (one
+    rule for the inbox flow and this one).
+  - Test: `node scripts/test-playground-story-share.js` (the trip driven as
+    ONE walk — the Playground's real tap lands on the real room).
   **PHILOSOPHY — do not "improve" this: the pad is minimal, the frame
   colours are UNLABELLED everywhere but that drop-down, and no machinery
   lives on the canvas.**
