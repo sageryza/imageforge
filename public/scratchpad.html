@@ -371,8 +371,11 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    from across the room, which a single filled square would not. */
 #colorbtn{width:32px; height:32px; padding:0; border:none; background:none; cursor:pointer; display:block;}
 #colorbtn svg{width:100%; height:100%; display:block;}
-#colormenu{position:absolute; top:38px; right:0; z-index:2; display:flex; gap:12px;
-  background:var(--barbg); border:1.5px solid var(--line); border-radius:8px; padding:10px 12px;}
+/* A COLUMN, because the chips carry her words now — see THE CHIP IS A ROW
+   below. Five labelled chips side by side would be wider than the card. */
+#colormenu{position:absolute; top:38px; right:0; z-index:2; display:flex;
+  flex-direction:column; gap:2px; white-space:nowrap;
+  background:var(--barbg); border:1.5px solid var(--line); border-radius:8px; padding:6px 8px;}
 #cardin{flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
   width:100%; box-sizing:border-box; padding:8px 16px 20px;
   display:flex; flex-direction:column; align-items:center; gap:14px;}
@@ -386,10 +389,32 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 #beatpop img{border:3px solid var(--line); border-radius:4px; background:var(--barbg); display:block; height:auto;}
 #beatpop img.c-mustard{border-color:var(--mustard);} #beatpop img.c-green{border-color:var(--green);}
 #beatpop img.c-blue{border-color:var(--blue);} #beatpop img.c-pink{border-color:var(--pink);}
-.chip{width:32px; height:32px; border-radius:50%; border:1.5px solid var(--line); padding:0; cursor:pointer;}
-.chip.on{outline:2.5px solid var(--ink); outline-offset:3px;}
-.chip.gray{background:#8a8377;} .chip.mustard{background:var(--mustard);}
-.chip.green{background:var(--green);} .chip.blue{background:var(--blue);} .chip.pink{background:var(--pink);}
+/* THE CHIP IS A ROW: HER OWN WORDS BESIDE THE DOT (2026-08-26, Sophie: "can you find where
+   I said with the colors mean in story room and then label them in the
+   drop-down"). She named them in the memo that designed this pad
+   ("Story Room Concept Development", recorded 2026-08-03): "mustard yellow
+   for examples, green for explanations, blue for like the main idea, and
+   then maybe pink for like a bridge". Two days later she corrected a build
+   that had put those words on the CARDS — "that exactly the wrong
+   philosophy. The whole point is that you have indicators that skip the left
+   brain labeling" — and that rule is untouched: the pad, the beat frames and
+   the popup's picture still say nothing. The DROP-DOWN is the one place the
+   words belong, because it is the moment she is CHOOSING rather than reading,
+   and the meaning of mustard is the only thing that can be forgotten. So the
+   row is the button: a colour dot, then the word.
+   The dot stays a CIRCLE — the house "rounded squares, not circles" rule
+   exempts a colour chip, which is a mark and not a plate. */
+.chip{display:flex; align-items:center; gap:10px; width:100%; padding:5px 4px;
+  background:none; border:none; cursor:pointer; text-align:left;
+  font-family:'EBGaramond',Georgia,serif; font-size:15px; color:var(--ink);
+  -webkit-tap-highlight-color:transparent;}
+.chip .dot{flex:none; width:22px; height:22px; border-radius:50%;
+  border:1.5px solid var(--line); box-sizing:border-box;}
+.chip.on{font-weight:600;}
+.chip.on .dot{outline:2.5px solid var(--ink); outline-offset:2px;}
+.chip.gray .dot{background:#8a8377;} .chip.mustard .dot{background:var(--mustard);}
+.chip.green .dot{background:var(--green);} .chip.blue .dot{background:var(--blue);}
+.chip.pink .dot{background:var(--pink);}
 /* TWO TEXT BOXES, ONE OPEN AT A TIME BY DEFAULT (Aug 2026, Sophie: "two
    text boxes: caption, and drawing prompt. drawing prompt is collapsed by
    default, and uncollapsing draw prompt automatically collapses the caption
@@ -714,11 +739,11 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
     <div id="colorwrap">
       <button id="colorbtn" aria-label="Frame color"><svg viewBox="0 0 24 24" aria-hidden="true"><clipPath id="csq"><rect x="2" y="2" width="20" height="20" rx="5"/></clipPath><g clip-path="url(#csq)"><rect x="2" y="2" width="10" height="10" fill="var(--mustard)"/><rect x="12" y="2" width="10" height="10" fill="var(--green)"/><rect x="2" y="12" width="10" height="10" fill="var(--blue)"/><rect x="12" y="12" width="10" height="10" fill="var(--pink)"/></g><rect x="2" y="2" width="20" height="20" rx="5" fill="none" stroke="var(--line)" stroke-width="1.5"/></svg></button>
       <div id="colormenu" hidden>
-        <button class="chip gray" data-c="" aria-label="No frame"></button>
-        <button class="chip mustard" data-c="mustard" aria-label="Mustard frame"></button>
-        <button class="chip green" data-c="green" aria-label="Green frame"></button>
-        <button class="chip blue" data-c="blue" aria-label="Blue frame"></button>
-        <button class="chip pink" data-c="pink" aria-label="Pink frame"></button>
+        <button class="chip gray" data-c="" aria-label="No frame"><span class="dot"></span>No frame</button>
+        <button class="chip mustard" data-c="mustard" aria-label="Mustard — examples"><span class="dot"></span>Examples</button>
+        <button class="chip green" data-c="green" aria-label="Green — explanations"><span class="dot"></span>Explanations</button>
+        <button class="chip blue" data-c="blue" aria-label="Blue — the main idea"><span class="dot"></span>The main idea</button>
+        <button class="chip pink" data-c="pink" aria-label="Pink — a bridge"><span class="dot"></span>A bridge</button>
       </div>
     </div>
   </div>

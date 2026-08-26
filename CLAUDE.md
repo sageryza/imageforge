@@ -4285,7 +4285,7 @@ before working on that module. Nothing was deleted — the moved text is verbati
   `scripts/gen-scratchpad.py`) — thinking with pictures. Hearted Playground images
   are its inbox (read live — nothing is copied). Beats sit four to a row,
   incomplete rows centered; tapping one opens a cream CARD popup with the art at
-  thumbnail size, five bare colour chips, and a text box. Her OWN recording always
+  thumbnail size, five colour chips, and a text box. Her OWN recording always
   wins over TTS, and **every take is kept**. Chunks link contiguous beats into one
   tile. **A beat can also be a FILM CLIP** (Aug 2026): the add sheet's
   second hairline tab is the Chunking clip library, read-only — a clip is
@@ -4316,8 +4316,22 @@ before working on that module. Nothing was deleted — the moved text is verbati
   Tests: `node scripts/test-pad-art.js` (pure) and `node
   scripts/test-scratchpad-pick-version.js` (the real page headless, its stub
   `/image` running the real `pad-art.js`).
+  **WHAT THE COLOURS MEAN, AND THE ONE PLACE THAT SAYS SO (2026-08-26,
+  Sophie: "can you find where I said with the colors mean in story room and
+  then label them in the drop-down").** Her own words, dictated into the memo
+  that designed this pad ("Story Room Concept Development", recorded
+  2026-08-03): **mustard = examples, green = explanations, blue = the main
+  idea, pink = a bridge**; gray she never named, so its chip reads *No
+  frame*. They sit on the chips in the colour DROP-DOWN and nowhere else —
+  the pad, the beat frames and the popup's picture still say nothing, which
+  is the 2026-08-04 rule she gave when a build labelled the cards ("that
+  exactly the wrong philosophy… indicators that skip the left brain
+  labeling"). Choosing is not reading: the meaning of mustard is the one
+  thing that can be forgotten. Pinned verbatim, both halves, by
+  `node scripts/test-scratchpad-popup.js`.
   **PHILOSOPHY — do not "improve" this: the pad is minimal, the frame
-  colours are deliberately UNLABELLED, and no machinery lives on the canvas.**
+  colours are UNLABELLED everywhere but that drop-down, and no machinery
+  lives on the canvas.**
   `ART.prefix`/`ART.characterLine` are COPIES of `PL_GPT.*` in server.js — keep
   them identical. **Full details: `docs/modules/story.md`.**
 - **Story Room data** (`forge-story` in membry, `/api/story/*`) — one doc per

@@ -197,6 +197,34 @@ const VW = 390, VH = 780;
   ok(posted.some(([p, b]) => p === '/api/scratchpad/color' && b.color === 'blue'), 'a chip still sets the colour');
   ok(await page.$eval('#popimg', (el) => el.className === 'c-blue'), 'and it lands on the picture');
 
+  // 4b — HER OWN WORDS ARE ON THE CHIPS (2026-08-26, "label them in the
+  // drop-down"). The words are the ones she dictated into the memo that
+  // designed this pad, so they are pinned VERBATIM rather than described —
+  // a reworded label is the paraphrase this repo keeps having to undo.
+  // The same measurement also pins the half she corrected in 2026: the pad,
+  // the beat frames and the picture still say NOTHING.
+  await page.click('#colorbtn');
+  await page.waitForFunction(() => !document.getElementById('colormenu').hidden);
+  const chipWords = await page.$$eval('#colormenu .chip', (els) =>
+    els.map((e) => e.textContent.trim()));
+  ok(JSON.stringify(chipWords) ===
+    JSON.stringify(['No frame', 'Examples', 'Explanations', 'The main idea', 'A bridge']),
+    'each chip carries her meaning, in her order (' + chipWords.join(' · ') + ')');
+  const dots = await page.$$eval('#colormenu .chip .dot', (els) =>
+    els.map((e) => getComputedStyle(e).backgroundColor));
+  ok(new Set(dots).size === 5, 'and every one still shows its own colour (' + dots.length + ' dots)');
+  const menu = await box('#colormenu');
+  ok(menu.x >= card.x && menu.r <= card.r + 1,
+    'the labelled column still fits inside the card (' + Math.round(menu.w) + 'px wide)');
+  const padWords = await page.$eval('#pad', (el) => el.textContent.toLowerCase());
+  ok(!/examples|explanations|main idea|a bridge/.test(padWords),
+    'the pad itself names none of them — the colour is still the indicator');
+  const artWords = await page.$eval('#artwrap', (el) => el.textContent.toLowerCase());
+  ok(!/examples|explanations|main idea|a bridge/.test(artWords),
+    'and neither does the picture the colour frames');
+  await page.click('#colorbtn');
+  await page.waitForFunction(() => document.getElementById('colormenu').hidden);
+
   // 5 — past pictures behind the stacked squares
   ok(await shown('#arvers'), 'the stacked-squares button is there (this beat has history)');
   ok(!(await shown('#verrow')), 'the past pictures are folded away');
