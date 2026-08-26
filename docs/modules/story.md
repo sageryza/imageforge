@@ -247,6 +247,31 @@ All 12 NDE-category stories were linked to their montage episodes on
     `/image`, `/add`, `/cover`), so a stale page can never draw into the
     wrong side. `artSlot(b, style)` in scratchpad.js / `slotOf(b)` in the
     page are the ONE accessor pair.
+  - **A PLACEMENT NAMING NO SIDE IS DERIVED FROM THE PICTURE'S OWN RUN
+    RECORD (2026-08-26, Sophie: "the dance one went into the watercolor one,
+    but it should be dreamy — isn't there some way that it could look at the
+    metadata or the prompt to figure out which style it is").** The page
+    always sends the side she is showing, so a style-less `/add` or `/image`
+    is a CHAT seeding a story — and it used to default silently to
+    watercolor, which is how all nine dreamy Panels cuts of "The dance I
+    joined by accident" (and "The white gloves", and two beats of the
+    Science story) landed on the watercolor side. `sideFromEvidence` in
+    scratchpad.js reads the run doc the `src` names (forge-panels /
+    forge-promptlab, either order), falls back to finding a Playground run
+    by the url (`images` array-contains) or a Panels cut by a bounded recent
+    scan, and `padSideOf` (pad-side.js, the pure rule) claims a side ONLY
+    when the run's `style`/`gptStyle` IS a pad side — evan, plain, scarry,
+    or a Replicate run claim nothing and land watercolor as before. It is
+    the playground-port evidence rule, never a guess from words. A derived
+    placement may also flip the toggle onto its side, but ONLY when the
+    showing side holds no art on any beat (`shouldReveal`) — a chat seeding
+    a fresh story must not leave her opening it onto blanks, and a side she
+    is using is never flipped from under her. Art already mislaid moves with
+    `node scripts/reside-pad-art.js <pad> --from watercolor --to dreamy
+    [--beats id,…] [--show] --go` (dry by default; refuses a move onto a
+    side that already holds anything; leaves no trash entry and no `off`
+    mark, unlike the /image + /remove dance). Tests:
+    `node scripts/test-pad-side.js` (pure).
   - **Each style draws its PLAYGROUND TILE's recipe**, so a beat drawn here
     and a picture drawn there are the same picture. `STYLE_ART` in
     scratchpad.js holds one entry per non-watercolor style and its
