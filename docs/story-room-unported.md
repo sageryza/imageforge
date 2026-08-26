@@ -41,6 +41,41 @@ Specifically:
   recording and 3,900 characters of description.
 - Everything else got its `voiceover` object.
 
+## Also fixed, on her word (2026-08-24, second pass)
+
+- **The shelf faces are back.** Her pinned cover was restored on Moon Milk,
+  Jonas, My Own Destiny, Soul Leaves the Body and Evan — she flagged Evan
+  herself ("it chose a different one"), where a Dump video poster had been
+  written over her pick. Spellcasting already showed hers. **The rule she gave
+  is `unless I already chose a different one on purpose`**, so a pad carrying
+  its own explicit `cover` is left alone (20 pads do). `you were in my dream
+  last night` is deliberately SKIPPED: two old story docs map to that one pad
+  and they pin different files, so there is no honest answer.
+- **Charlie is two versions in one bucket** — `folder: "Charlie"` holds
+  *Charlie — as it is now* (the 1-beat pad as it stood) and *Charlie — as it
+  used to be* (its 14 narrated beats rebuilt). A folder is just a name on the
+  pad doc, so the shelf collapses them into one stack tile.
+
+### THE RULE FOR PORTED WORDS (Sophie, 2026-08-24)
+
+**"Any words that aren't part of the narration need to go."** Only what she
+SAYS becomes a beat's text. Two things this rules out, and both were live:
+
+- **A card's `label` is a description of the picture, never narration** —
+  "Final shot", "Mind, organized — upscaled from the mini panel", "Original
+  storyboard panel". None of it was ported.
+- **Some stories' `vo` is itself stage direction, not narration.** Moon Milk is
+  the example she named: *"She holds the bucket up to the smiling moon's tap;
+  the first drop of milk falls."* That is a description of the action and must
+  NOT land on a canvas as her words. Charlie's 14 lines were checked one by one
+  and are all real narration, which is why Charlie could be ported and Moon
+  Milk cannot be — not without someone deciding what she actually says.
+
+**And picking the picture is not the status field.** Charlie beat 9 offered a
+`draft` storyboard panel and a `cand` upscaled, corrected final; ranking by
+status alone picks the rough one. The rule used: a card whose own label calls
+it a storyboard panel sorts LAST, before status is read at all.
+
 ## What is still unported — the inventory
 
 ### 1. The narration line under each picture (the big one)
@@ -54,9 +89,9 @@ the old doc.
 | story | narrated beats | art in the pad's inbox | pad canvas now |
 |---|---|---|---|
 | Jonas & the Cookie Crumbs | 10 | 23 | 0 beats |
-| Moon Milk | 12 | 12 | 0 beats |
+| Moon Milk | 12 | 12 | 0 beats — and its `vo` is stage direction, see the rule above |
 | The Meteorite (`songs-aug-2`) | 12 | 26 | 0 beats |
-| Charlie | 14 | 15 | 1 beat, no words |
+| ~~Charlie~~ | ~~14~~ | ~~15~~ | **DONE 2026-08-24 — rebuilt as its own version in the Charlie folder** |
 | My Own Destiny (`controlling-my-own-destiny`) | 8 | 24 | 0 beats |
 
 Real examples of the words that are not on any canvas:

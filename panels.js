@@ -16,6 +16,7 @@
  * So 4K is the tier where a quarter comes out BIGGER than an ordinary 1K
  * picture. 2K is cheaper still but its quarters are smaller than a plain 1K
  * image, which is the thing that is easy to get backwards.
+
  *
  * THE CUT IS LOCAL, FREE AND LOSSLESS — an exact crop of the sheet's own
  * pixels, never a resample, so a panel is the model's output rather than a
@@ -41,7 +42,8 @@
  *                                — SERVED, never copied into the page
  *   POST /                       start a sheet; returns an id in ~0.3s
  *   GET  /:id                    one run, with its job state
- *   GET  /                       the feed, newest first (?limit=&q=)
+ *   GET  /                       the feed, newest first (?limit=&q=&before=)
+ *   POST /:id/vote               ♥ / ✕ one cut panel (or the sheet)
  *   POST /:id/hide               hide a run from the feed (never deleted)
  *
  * Nothing here is deleted outright and no route overwrites a render.
@@ -51,6 +53,7 @@ const admin = require('firebase-admin');
 const sheetGrid = require('./sheet-grid');
 const sheetSeams = require('./sheet-seams');
 const sizeTier = require('./size-tier');
+const searchGrammar = require('./search-grammar');
 
 const COLLECTION = 'forge-panels';
 const MAX_PANEL_CHARS = 1200;   // one cell's words; generous, cut not refused
@@ -68,6 +71,7 @@ let deps = {
   styles: {},             // PL_GPT_STYLES
   gpt: {},                // PL_GPT
   whiten: null,           // (buf) -> Promise<Buffer>
+  syncVote: null,         // (url, 'like'|'dislike'|null) -> Promise — the Assets mirror
 };
 function init(d) { deps = Object.assign(deps, d || {}); }
 // Tests drive cutSheet directly with a stub uploader — the module owns none of
@@ -126,6 +130,11 @@ router.get('/config', (req, res) => {
   }
   const styles = Object.entries(deps.styles || {}).map(([id, st]) => ({
     id, label: st.label, prefix: st.prefix, suffix: st.suffix,
+    // WHAT IS ACTUALLY SENT, not what the style says on its own: a sheet
+    // REPLACES the one-picture clause in the tail rather than arguing with it
+    // (see sheetSuffix). The page's Prompt panel shows this half and her edits
+    // are compared against it, so the "edited" mark means what it says.
+    sheetSuffix: sheetSuffix(st.suffix || ''),
     refs: (st.refFiles || []).concat(st.storageRefs || []),
   }));
   res.json({
@@ -298,7 +307,9 @@ router.post('/', async (req, res) => {
     const shapeId = sheetGrid.SHAPES[String(req.body.shape)] ? String(req.body.shape) : 'portrait';
     // 4K is the default HERE, unlike the Playground's 1K — a sheet only pays
     // off at the tier where a cut panel beats an ordinary picture, and the
-    // whole reason to open this page is to get panels worth keeping.
+    // whole reason to open this page is to get panels worth keeping. (The
+    // hand-off OUT of a panel into the Playground is the opposite rung — see
+    // upscaleUrl in panels.html.)
     const resId = sheetGrid.TIERS[String(req.body.res)] ? String(req.body.res) : '4k';
     const plan = sheetGrid.sheetFor(gridId, shapeId, resId);
     if (!plan) return res.status(400).json({ error: 'no legal canvas for that grid' });
@@ -696,23 +707,77 @@ router.get('/:id', async (req, res) => {
 // house rule, so no route here ever needs a composite index.
 router.get('/', async (req, res) => {
   try {
-    if (!admin.apps.length) return res.json({ runs: [] });
+    if (!admin.apps.length) return res.json({ runs: [], more: false });
     const limit = Math.min(Math.max(Number(req.query.limit) || 40, 1), 200);
     const snap = await admin.firestore().collection(COLLECTION)
       .orderBy('createdAt', 'desc').limit(MAX_FEED).get();
     let runs = snap.docs.map((d) => clean(d.data())).filter((r) => !r.hidden);
-    const q = String(req.query.q || '').trim().toLowerCase();
-    if (q) runs = runs.filter((r) => hay(r).includes(q));
-    runs.slice(0, limit).forEach(healStale);
-    return res.json({ runs: runs.slice(0, limit), total: runs.length });
+    // THE HOUSE SEARCH GRAMMAR, over the WHOLE history — not the page she is
+    // looking at (the Assets tab's lesson: she searched "yarn" and got
+    // nothing, because that box only filtered what was already loaded).
+    const q = String(req.query.q || '').trim();
+    if (q) {
+      const groups = searchGrammar.compileFeed(q);
+      runs = runs.filter((r) => searchGrammar.feedMatches(hay(r), groups));
+    }
+    // `before` (a createdAt in millis) pages BACKWARDS THROUGH TIME rather
+    // than by offset — runs land at the TOP while she reads, so an offset
+    // would shift under her and repeat or skip one. The Playground's rule.
+    const before = Number(req.query.before) || 0;
+    if (before) runs = runs.filter((r) => (r.ms || 0) < before);
+    const page = runs.slice(0, limit);
+    page.forEach(healStale);
+    return res.json({ runs: page, total: runs.length, more: runs.length > page.length });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
 
-// Searchable text for one run — her words first, then how it was drawn.
+// Searchable text for one run — her words first, then how it was drawn. The
+// PAGE's own haystack (runHay in panels.html) is the same list, so its instant
+// filter over the loaded runs and this search over the whole history can never
+// disagree about what matches while the server's answer is in flight.
 function hay(r) {
-  return [(r.panels || []).join(' '), r.style, r.quality, r.sheetSize, r.cellSize,
-    r.res, r.shape, `${r.count} panels`, r.status].filter(Boolean).join(' ').toLowerCase();
+  const shape = r.shape === 'landscape' ? 'landscape side by side'
+    : (r.shape === 'square' ? 'square' : 'portrait');
+  return [(r.panels || []).join('  '), r.style, r.quality, r.sheetSize, r.cellSize,
+    r.res, shape, `${r.count} panels`, r.status].filter(Boolean).join('  ');
 }
+
+// ♥ / ✕ ON ONE PANEL (2026-08-26, Sophie: "there's no heart or X button").
+// The Playground's own rule, moved across: the mark lives on the RUN doc so
+// the feed, the tiles and the lightbox all read one answer, and it is mirrored
+// onto any Assets-tab record holding the same picture so the two surfaces
+// agree. Tapping the mark she is already on CLEARS it.
+//
+// The key is the CELL NAME, never an index — a resume re-cuts only the panels
+// that are missing, so a position is not a stable name for a picture, and
+// `top-left` is what the caption, the filing and the lightbox already call it.
+// It goes through FieldPath because a hyphen is legal in a Firestore field
+// NAME but not in a dotted path string.
+// `sheet` marks the whole page rather than a cut of it.
+router.post('/:id/vote', async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(503).json({ error: 'firebase not configured' });
+    const cell = String((req.body && req.body.cell) || '').trim().slice(0, 40);
+    if (!cell) return res.status(400).json({ error: 'cell required' });
+    const vote = ['like', 'dislike'].includes(req.body && req.body.vote) ? req.body.vote : null;
+    const ref = admin.firestore().collection(COLLECTION).doc(String(req.params.id));
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'run not found' });
+    const d = doc.data() || {};
+    const known = cell === 'sheet' || (d.images || []).some((im) => im.cell === cell);
+    if (!known) return res.status(400).json({ error: 'no such panel' });
+    await ref.update(new admin.firestore.FieldPath('votes', cell),
+      vote === null ? admin.firestore.FieldValue.delete() : vote);
+    // Awaited so a reload straight after the tap already reads the synced
+    // state; a sync failure never fails the vote.
+    try {
+      const url = cell === 'sheet' ? d.sheetUrl
+        : ((d.images || []).find((im) => im.cell === cell) || {}).url;
+      if (url && deps.syncVote) await deps.syncVote(url, vote);
+    } catch (e) { /* best-effort */ }
+    return res.json({ ok: true, cell, vote });
+  } catch (err) { return res.status(500).json({ error: err.message }); }
+});
 
 // Hidden, never deleted — the house verb.
 router.post('/:id/hide', async (req, res) => {

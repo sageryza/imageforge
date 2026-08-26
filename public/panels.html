@@ -5,6 +5,7 @@
 <link rel="stylesheet" href="/tool.css">
 <link rel="stylesheet" href="/tritoggle.css">
 <script src="/tritoggle.js"></script>
+<script src="/feedkit.js"></script>
 <script src="/asset-lightbox.js"></script>
 <!--
   PANELS — one sheet, drawn once, cut into separate pictures.
@@ -18,6 +19,32 @@
   the layout she will get back, not into a numbered list she has to map onto
   one. That is the whole reason this is a page and not a flag on the
   Playground.
+
+  IT IS THE PLAYGROUND'S FEED NOW, NOT A SMALLER ONE (2026-08-26, Sophie:
+  "panels has some differences between it and the playground — for example
+  there's no heart or X button or I don't think there's a way to leave a note …
+  I asked the person who made it to make it exactly the same as the playground
+  except that it's panels"). Everything the Playground's feed does, this does:
+  ♥/✕ per picture with the badge on the tile, the two mark filters, the search
+  box over the WHOLE history, List/Tiles with the 3-or-4 segment, "Older", her
+  words on the card behind the house "… more" opener, the put-it-back-in-the-
+  boxes button, the toast, the Prompt panel, the bigger-box toggle, the note
+  thread and Save/Upscale/Send-to-a-story in the lightbox.
+  The pieces both pages share are ONE copy in /feedkit.js — the search grammar,
+  liveInput/enterSubmits, the keyed reconcile, the derived display copy and the
+  toast — because hand-copying them is exactly what /tritoggle.css was written
+  to end.
+
+  WHAT IS DELIBERATELY NOT HERE, and why:
+    · LoRA scale, the seed sprout and the x3 button — this tool is gpt-image-2
+      only; a sheet has no LoRA to scale and no seed to step.
+    · The quality LADDERS (the pyramid and the oval). They draw the same prompt
+      at two or three qualities in one tap, which on a sheet means paying for
+      the whole page again — a different order of money from the Playground's,
+      and hers to ask for rather than ours to assume.
+    · The photo reference and the Sophie card. Both are per-RUN attachments the
+      server's sheet path does not take yet; they need a route change, not a
+      page one.
 
   THE PAGE HOLDS NO PRICES AND NO PROMPT TEXT — both are SERVED by
   GET /api/panels/config, the same rule the Playground's /styles route follows:
@@ -40,7 +67,7 @@
   :root { --bg: #faf7f2; --paper: #faf7f2; --surface: #fdfcf9;
     --ink: #2b2622; --ink2: #6f675e; --dim: #6f675e;
     --chg: #c25a72; --rose: #c25a72; --accent: #c25a72;
-    --border: #d8d0c4; --line: #e6ded0; }
+    --border: #d8d0c4; --line: #e6ded0; --cols: 3; }
   /* EVERY VALUE IS THE PLAYGROUND'S OWN (promptlab.html), because this tool is
      that tool's recipe with the run turned inside out and the two sit next to
      each other in her Pictures tab. The accent was #b4533a until 2026-08-24 —
@@ -59,26 +86,40 @@
      button that spends the money), line two is what it costs. flex-wrap is
      still the safety net if a longer style name grows line two. */
   .ctrls .brk { flex: 1 0 100%; height: 0; margin: 0; }
-  .ctrls .seg { display: flex; border: 1.5px solid var(--ink); border-radius: 6px;
+  .ctrls .seg { display: flex; border: 1px solid var(--ink); border-radius: 6px;
     overflow: hidden; flex: none; height: 34px; }
   .ctrls .seg button { border: 0; background: var(--surface); color: var(--ink);
     font: 600 12px/1 -apple-system, sans-serif; padding: 0 10px; cursor: pointer; }
-  .ctrls .seg button + button { border-left: 1.5px solid var(--ink); }
+  .ctrls .seg button + button { border-left: 1px solid var(--ink); }
   .ctrls .seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
-  .ctrls select { height: 34px; border: 1.5px solid var(--ink); border-radius: 6px;
+  .ctrls select { height: 34px; border: 1px solid var(--ink); border-radius: 6px;
     background: var(--surface); font: 600 12px -apple-system, sans-serif; padding: 0 6px; flex: none; }
+  /* ONE FAMILY ON THE ROW — black line, paper, 34px (the Playground's own
+     2026-08-24 rule, ported with everything else: "the buttons are styled so
+     fucking weird. They should have black outlines and they're all different
+     sizes"). The line was 1.5px here and 1px there, which is the same drift in
+     miniature. */
+  .ctrls .txtbtn { height: 34px; box-sizing: border-box; display: inline-flex;
+    align-items: center; border: 1px solid var(--ink); border-radius: 6px;
+    background: var(--surface); color: var(--ink); font: inherit; font-size: 12.5px;
+    padding: 0 10px; cursor: pointer; flex: none; }
+  .ctrls .txtbtn.edited { font-weight: 600; }
 
   /* The three-way toggle is /tritoggle.css — the ONE shell (Aug 2026). This
      block used to be "LIFTED VERBATIM from promptlab.html", which is exactly
      the copying Sophie asked to end; the only thing this page still says
      about it is that it wears the Playground's colour and width, because it
-     is the same control in a second tool. */
-  .tri { --tri-track: #2b2622; --tri-knob: #faf7f2; --tri-w: 78px; --tri-k: 26px; }
+     is the same control in a second tool. PAPER WITH A BLACK LINE and a dark
+     KNOB, which is where the Playground's instance moved on 2026-08-24 — this
+     one was still the solid ink slab it had copied before that, i.e. the exact
+     drift she was looking at when she said the two tools differ. */
+  .tri { --tri-fill: #fdfcf9; --tri-line: #2b2622; --tri-knob: #2b2622;
+    --tri-ink: #faf7f2; --tri-w: 78px; --tri-k: 26px; }
 
   /* Generate: the house star, a 38px square — the same box the Playground's
      is, because a button that spends a model call must read the same in every
      surface (the one-generate-glyph rule). */
-  .go { width: 38px; height: 38px; border-radius: 6px; border: 1.5px solid var(--ink);
+  .go { width: 38px; height: 38px; border-radius: 6px; border: 1px solid var(--ink);
     background: var(--ink); color: var(--paper); display: inline-flex; align-items: center;
     justify-content: center; margin-left: auto; flex: none; cursor: pointer; padding: 0; }
   .go svg { width: 21px; height: 21px; }
@@ -95,15 +136,39 @@
      someone to notice it, so this one cannot. */
   .cells { display: grid; grid-template-columns: repeat(var(--across, 2), minmax(0, 1fr));
     gap: 10px; margin: 0 0 14px; }
-  .pcell { display: flex; flex-direction: column; }
+  .pcell { display: flex; flex-direction: column; position: relative; }
   .pcell label { font: 600 10px/1.4 -apple-system, sans-serif; letter-spacing: .06em;
     text-transform: uppercase; color: var(--ink2); margin-bottom: 4px; }
   /* Ships EMPTY — no placeholder, no example (the house rule). The label above
      names the cell, which is a name and not words. */
   .pcell textarea { width: 100%; box-sizing: border-box; border: 1px solid var(--border);
-    border-radius: 6px; padding: 8px; font: inherit; font-size: 16px;
+    border-radius: 6px; padding: 8px 8px 34px; font: inherit; font-size: 16px;
     background: var(--surface); resize: vertical; min-height: 84px; }
   .pcell textarea.want { border-color: var(--chg); }
+
+  /* THE BIGGER BOX (2026-08-26, Sophie: "make a button to see the current text
+     box that you're working on bigger so you can see what you're writing").
+     The Playground's `#bigprompt` answer lifted in SHAPE, not copied — the
+     SAME textarea grows, never a second field, so nothing has to be synced.
+     WIDTH IS THE HALF THAT MATTERS HERE, and that is a measurement rather
+     than a preference: main is 14px either side, so on a 390pt phone a cell
+     is 176px at two across and 114px at NINE — the grid where a dictated
+     prompt wraps every three or four words. So the open cell takes the whole
+     row (`grid-column: 1/-1`) as well as growing tall. The others keep their
+     order and stay on screen, because what she wrote in the neighbours is
+     the context for the one she is writing.
+     ONE AT A TIME: opening another closes it, so the grid never comes apart
+     into a column of full-width boxes.
+     Deliberately NOT sticky, and reset on a grid change — the boxes ARE the
+     grid, and reopening on a layout she did not pick is the opposite of what
+     this page is. */
+  .pcell.big { grid-column: 1 / -1; }
+  .pcell.big textarea { min-height: 46vh; }
+  .pbig { position: absolute; right: 6px; bottom: 6px; width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center; padding: 0; margin: 0;
+    border: 1px solid var(--border); border-radius: 6px; background: var(--surface);
+    color: var(--ink2); cursor: pointer; }
+  .pbig svg { width: 14px; height: 14px; }
 
   /* The house rule: [hidden] loses to any author display rule without this. */
   [hidden] { display: none !important; }
@@ -121,23 +186,132 @@
     text-transform: uppercase; color: var(--ink2); border-bottom: 2px solid transparent; }
   .toptabs button.on { color: var(--ink); border-bottom-color: var(--ink); }
 
-  /* LIST · TILES — the Playground's own pair of views, here too (her ask).
-     List is the runs feed (sheet + cuts per run); Tiles is every cut panel as
-     one wall, three across, each tile its own picture's natural shape (the
-     Playground's no-crop lesson). */
-  .viewrow { display: flex; margin: 0 0 10px; padding-right: 64px; }
-  #tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* THE PROMPT PANEL — what is wrapped around her words, and editable (the
+     Playground's, ported; the server has taken `prefix`/`suffix` overrides
+     since this module shipped and nothing was showing them). It opens under
+     the control row, above the boxes, because that is where the wrapping
+     happens. The GRID SENTENCE this tool adds sits between them, read-only:
+     it is derived from the grid she picked, so editing it would only let the
+     sheet's own cut lines disagree with the picture. */
+  .ppanel { display: none; margin: 0 0 14px; border: 1px solid var(--border);
+    border-radius: 6px; background: var(--surface); padding: 10px; }
+  .ppanel.on { display: block; }
+  .ppanel .plab { font: 600 10.5px/1.4 -apple-system, sans-serif; letter-spacing: .12em;
+    text-transform: uppercase; color: #9a9186; margin: 0 0 4px; }
+  .ppanel .plab + .plab, .ppanel .yours + .plab, .ppanel .fixed + .plab { margin-top: 10px; }
+  .ppanel textarea { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px;
+    line-height: 1.4; color: var(--ink); background: #fff; border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px; resize: vertical; min-height: 66px; }
+  .ppanel .yours, .ppanel .fixed { font: 500 12px/1.4 -apple-system, sans-serif;
+    color: var(--ink2); border-left: 2px solid var(--border); padding: 2px 0 2px 8px; margin: 4px 0 0; }
+  .ppanel .yours { font-style: italic; }
+  .ppanel .prow { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  .ppanel .prow button { border: 1px solid var(--border); border-radius: 6px;
+    background: var(--surface); color: var(--ink2); font: inherit; font-size: 12.5px;
+    padding: 6px 10px; cursor: pointer; }
+  .ppanel .pnote { font: 500 11.5px/1.4 -apple-system, sans-serif; color: #9a9186;
+    margin-left: auto; text-align: right; }
+
+  /* THE FEED BAR — the Playground's, whole: List/Tiles/3-or-4, the two mark
+     filters, the search box. STICKY so it is reachable from anywhere in a long
+     feed, and its z-index stays BELOW the injected pill's 9 (the house
+     pattern) or its paper background paints over the pill's top button. */
+  .feedbar { position: sticky; top: 0; z-index: 5; display: flex;
+    padding: 8px 56px 8px 0; background: var(--paper); margin-bottom: 4px; }
+  .viewtog { display: flex; border: 1px solid var(--border); border-radius: 6px;
+    overflow: hidden; background: var(--surface); flex: none; }
+  .viewtog button { border: 0; background: none; font: inherit; font-size: 12px;
+    letter-spacing: .07em; text-transform: uppercase; color: var(--ink2); padding: 7px 11px; }
+  .viewtog button + button { border-left: 1px solid var(--border); }
+  .viewtog button.on { background: var(--ink); color: var(--paper); font-weight: 600; }
+  /* THREE OR FOUR ACROSS — the third segment of the view switch, never wearing
+     `.on` (it is not a third view). It says the NUMBER, because at 16px a
+     bar-count picture is a grey smudge.
+     ONE DELIBERATE DIFFERENCE FROM THE PLAYGROUND: there `--cols` governs the
+     tile wall AND a run's own row of pictures, so the button is live in both
+     views. Here a run's row is the SHEET's own grid — four cuts of a 2x2 sit
+     two across because that is what the page looked like — so forcing three
+     would draw a picture of a sheet that was never made. The number governs
+     the WALL, which is one tap away and is where scanning happens. */
+  .viewtog .colseg { font-weight: 600; font-size: 13px; letter-spacing: 0;
+    padding: 7px 12px; min-width: 34px; box-sizing: border-box; }
+  /* The two mark filters, one segmented box. LIT, THEY MUST NOT MATCH: the
+     heart keeps only what it names and the ✕ drops it, so the ✕ takes the GREY
+     of the dislike badge rather than the rose. */
+  .filttog { margin-left: 8px; display: flex; flex: none; border: 1px solid var(--border);
+    border-radius: 6px; overflow: hidden; background: var(--surface); }
+  .likefilt { display: flex; align-items: center; justify-content: center; width: 34px;
+    border: 0; background: none; color: var(--ink2); padding: 0; cursor: pointer; }
+  .likefilt + .likefilt { border-left: 1px solid var(--border); }
+  .likefilt svg { width: 16px; height: 16px; }
+  .likefilt.on { background: var(--chg); color: #fff; }
+  .xfilt.on { background: #9a938a; color: #fff; }
+  /* 16px is a FLOOR, not a taste: iOS auto-zooms a focused input under 16px. */
+  .feedsearch { flex: 1; min-width: 0; margin-left: 8px; position: relative; display: flex; }
+  .feedsearch input { width: 100%; min-width: 0; font: inherit; font-size: 16px;
+    color: var(--ink); background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 9px; }
+  .feedsearch input.hasq { padding-right: 28px; }
+  .feedsearch input:focus { outline: none; border-color: var(--chg); }
+  .feedsearch input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+  /* CLEAR, not dismiss: it empties the box and keeps her in it. */
+  .qclear { position: absolute; right: 0; top: 0; height: 100%; width: 28px; border: 0;
+    background: none; color: #8a8177; font-size: 18px; line-height: 1; padding: 0; }
+
+  #tiles { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
     gap: 6px; align-items: start; }
-  #tiles img { width: 100%; display: block; background: #efe9dd; cursor: pointer; }
+  /* A tile / a cut. NEVER `.cell` — see the .pcell note above. */
+  .pic { position: relative; display: block; }
+  .pic img { width: 100%; display: block; background: #efe9dd; cursor: pointer; }
+  .badge { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    pointer-events: none; }
+  .badge.like { background: var(--chg); color: #fff; }
+  .badge.dislike { background: #9a938a; color: #fff; }
+  .badge svg { width: 12px; height: 12px; }
+  /* A picture still being drawn holds its place, breathing — a flat empty box
+     in a wall of pictures reads as a broken image rather than one on its way. */
+  .pic.ph { background: #f0ebe3; border: 1px solid var(--line); border-radius: 6px;
+    aspect-ratio: var(--ar, 2 / 3); animation: plwait 1.5s ease-in-out infinite; }
+  @keyframes plwait { 0%, 100% { background: #f0ebe3; } 50% { background: #e4dbcd; } }
 
   .plan { font: 500 12px/1.5 -apple-system, sans-serif; color: var(--ink2); margin: 0 0 12px; }
   .plan b { color: var(--ink); font-weight: 600; }
   #msg { font: 500 12px/1.5 -apple-system, sans-serif; color: var(--chg); min-height: 18px; margin: 0 0 10px; }
+  .emptynote { font: 500 13px/1.5 -apple-system, sans-serif; color: #8a8177;
+    padding: 18px 0; text-align: center; }
+  #tiles .emptynote { grid-column: 1 / -1; }
 
   .run { border-top: 1px solid var(--line); padding: 14px 0 4px; }
   .runhead { font: 500 11px/1.5 -apple-system, sans-serif; color: var(--ink2);
-    display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline; margin-bottom: 8px; }
   .runhead b { color: var(--ink); font-weight: 600; }
+  /* HER WORDS ON THE CARD, behind the house "… more" opener — the Playground's
+     `.p.clamp` machinery, ported verbatim in shape. The card used to carry
+     only the geometry and the style, so the one thing that tells two runs
+     apart — what she asked for — was nowhere on the feed at all.
+     The opener rides ON THE LAST LINE of the words, never parked beside them:
+     a max-height clamp plus a right float with `clear:both` sitting below a
+     zero-width float one line SHORT of the cap. Both floats come BEFORE the
+     text in DOM order, so neither is clipped by the clamp. `fold` is added by
+     JS and only where the words really were cut. */
+  .runhead .p { display: block; font: 600 14px/20px -apple-system, sans-serif;
+    color: var(--ink); flex: 1 1 100%; min-width: 70%; --lh: 20px; --lines: 2; }
+  .runhead .p.clamp { max-height: calc(var(--lines) * var(--lh)); overflow: hidden; }
+  .runhead .p.clamp.fold::before { content: ''; float: left; width: 0;
+    height: calc((var(--lines) - 1) * var(--lh)); }
+  .runhead .p > .moretxt { float: right; clear: both; margin-left: 8px; height: var(--lh);
+    display: inline-flex; align-items: baseline; }
+  .runhead .p:not(.clamp) > .moretxt { float: none; margin-left: 6px; }
+  /* THE HOUSE OPENER FOR TRUNCATED TEXT — an underlined word, never a button
+     (docs/design-rules.md). Still a <button> ELEMENT; the rule is about paint. */
+  .moretxt { display: inline; border: 0; background: none; margin: 0; padding: 0;
+    font: inherit; font-size: 12.5px; color: var(--ink2); text-decoration: underline;
+    -webkit-tap-highlight-color: transparent; cursor: pointer; }
+  .copybtn { flex: none; width: 24px; height: 24px; display: inline-flex; align-items: center;
+    justify-content: center; padding: 0; border: none; background: none; color: #8a8177;
+    cursor: pointer; }
+  .copybtn svg { width: 14px; height: 14px; }
   .cuts { display: grid; grid-template-columns: repeat(var(--across, 2), minmax(0, 1fr));
     gap: 6px; align-items: start; }
   .cuts figure { margin: 0; }
@@ -146,8 +320,23 @@
   .cuts img, .sheetimg { width: 100%; display: block; background: #efe9dd; }
   .cuts figcaption { font: 500 10px/1.35 -apple-system, sans-serif; color: var(--ink2);
     margin-top: 3px; }
-  .sheetwrap { margin-bottom: 8px; }
-  .sheetwrap .sheetimg { max-width: 44%; }
+  .sheetwrap { margin-bottom: 8px; position: relative; display: inline-block; max-width: 44%; }
+  .sheetwrap .sheetimg { width: 100%; }
+
+  /* "Older" — the way further back through the feed. Hugs its text, rounded
+     rectangle (no pills), centred under whichever view is showing. */
+  #more { display: flex; justify-content: center; padding: 4px 0 22px; }
+  .morebtn { border: 1px solid var(--border); border-radius: 6px; padding: 9px 18px;
+    font: inherit; font-size: 14px; background: var(--surface); color: var(--ink2); cursor: pointer; }
+  .morebtn[disabled] { opacity: .55; }
+
+  /* One line, bottom centre. Above the lightbox — Save reports from in there. */
+  #toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
+    background: var(--ink); color: var(--paper); font: 500 13.5px/1.4 -apple-system, sans-serif;
+    border-radius: 6px; padding: 9px 14px; z-index: 70; opacity: 0; pointer-events: none;
+    transition: opacity .18s; max-width: 84vw; text-align: center; }
+  #toast.on { opacity: 1; }
+
 </style>
 
 <body class="tool">
@@ -163,20 +352,36 @@
     <button type="button" id="tab-playground">Playground</button>
   </nav>
   <div class="ctrls" id="ctrls"></div>
+  <div class="ppanel" id="ppanel"></div>
   <div class="cells" id="cells"></div>
   <p class="plan" id="plan"></p>
   <p id="msg"></p>
-  <div class="viewrow"><span class="seg" id="viewseg">
-    <button type="button" data-view="list" aria-pressed="true">List</button>
-    <button type="button" data-view="tiles" aria-pressed="false">Tiles</button>
-  </span></div>
+  <div class="feedbar">
+    <div class="viewtog" id="viewseg">
+      <button type="button" data-view="list">List</button><button type="button" data-view="tiles">Tiles</button><button type="button" class="colseg" id="v-cols"></button>
+    </div>
+    <div class="filttog" role="group" aria-label="Filters">
+      <button class="likefilt" id="v-liked" type="button" aria-label="Show only the ones you hearted" title="Hearts only"></button>
+      <button class="likefilt xfilt" id="v-hidex" type="button" aria-label="Hide the ones you have crossed out" title="Hide the crossed-out"></button>
+    </div>
+    <div class="feedsearch">
+      <input id="q" type="search" placeholder="Search" aria-label="Search your sheets"
+             autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="search">
+      <button class="qclear" id="qclear" type="button" aria-label="Clear search" hidden>&times;</button>
+    </div>
+  </div>
   <div id="feed"></div>
   <div id="tiles" hidden></div>
+  <div id="more"></div>
 </main>
+
+<div id="toast"></div>
+
 
 <script>
 (function () {
   'use strict';
+  var FK = window.FeedKit;
   // THE AIM RULE LIVES IN /tritoggle.js — the ONE copy, shared with every other
   // three-way toggle. This line is only a floor for the case where that file
   // does not load (a stale cache, a stub harness that serves nothing else): it
@@ -190,14 +395,44 @@
   // (Assets.xcassets/Playground.imageset, mirrored as ICON_PLAY in
   // gen-scratchpad.py). Keep the copies in step.
   var PLAY_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"> <g transform="translate(1.47 0) scale(0.09510)" fill="#000" stroke="none"> <g transform="translate(0,673) scale(0.1,-0.1)"> <path d="M3145 6720 c-7 -12 -58 -175 -91 -293 l-19 -69 -96 7 c-108 8 -150 -5 -171 -50 -13 -30 -4 -29 -103 -8 -119 25 -497 25 -620 0 -279 -57 -515 -175 -704 -353 -228 -215 -341 -450 -357 -744 -15 -263 37 -431 236 -766 101 -169 140 -248 179 -357 17 -49 31 -90 31 -93 0 -2 -13 -4 -30 -4 -22 0 -31 5 -35 23 -3 12 -19 80 -35 152 -39 178 -36 175 -223 175 -134 0 -149 -2 -267 -36 -159 -46 -180 -65 -180 -157 1 -52 13 -213 23 -280 2 -15 -20 -27 -107 -60 -94 -37 -112 -47 -122 -72 -17 -39 -17 -106 1 -178 l13 -58 -51 -38 c-132 -98 -289 -286 -365 -440 l-47 -94 -3 -235 c-3 -233 -3 -235 22 -286 83 -169 254 -294 596 -436 273 -114 371 -181 467 -321 l31 -45 -130 -144 c-256 -284 -597 -676 -637 -732 -12 -16 -15 -78 -18 -314 l-3 -295 24 -24 c30 -29 68 -32 586 -45 217 -5 553 -14 745 -20 626 -18 1506 -30 2165 -29 l645 0 55 63 c30 35 136 153 235 262 99 110 256 285 349 389 93 105 184 204 203 222 18 18 38 45 44 60 8 18 11 120 11 299 -1 291 -7 330 -52 354 -13 7 -105 14 -236 17 l-215 6 58 59 c149 152 351 267 663 378 320 114 423 168 555 291 84 79 131 142 183 245 72 144 73 154 70 416 l-3 233 -32 64 c-86 169 -247 296 -429 336 -128 29 -116 18 -144 130 -14 55 -29 108 -33 118 -13 33 -74 50 -164 44 l-81 -5 -12 82 c-6 44 -16 114 -22 155 -15 103 -31 120 -133 133 -110 14 -262 5 -372 -21 -131 -32 -138 -41 -146 -203 -4 -68 -4 -151 -1 -184 l6 -60 -87 -25 c-115 -32 -135 -54 -135 -147 1 -37 7 -96 15 -132 20 -93 19 -117 -6 -125 -46 -15 -261 -190 -369 -301 -274 -281 -551 -653 -676 -909 -66 -135 -132 -321 -155 -438 l-13 -68 -130 3 -131 3 -8 105 c-20 270 72 996 183 1440 42 166 103 351 177 540 102 258 159 363 368 685 128 197 230 395 266 520 21 69 24 101 24 240 0 140 -3 169 -23 235 -36 115 -89 207 -166 288 l-69 72 9 58 c15 101 11 187 -9 210 -10 11 -57 32 -103 47 -83 26 -85 28 -79 54 37 146 50 217 50 278 0 91 -11 103 -150 164 l-100 44 -192 3 c-135 2 -193 0 -198 -8z m-520 -605 c44 -10 83 -20 86 -23 4 -4 1 -41 -7 -82 -7 -41 -13 -108 -14 -148 0 -91 18 -114 106 -132 96 -19 94 -17 94 -61 0 -56 23 -105 62 -129 45 -29 163 -25 205 6 23 17 54 62 66 97 1 4 17 5 35 1 32 -6 32 -7 32 -66 0 -55 3 -63 34 -94 33 -33 36 -34 116 -34 82 0 82 0 121 39 22 22 39 48 39 61 0 17 4 21 18 15 33 -13 147 -17 174 -6 16 6 36 24 47 41 l18 31 27 -36 c69 -90 110 -215 108 -325 -2 -153 -81 -331 -286 -649 -210 -324 -269 -438 -378 -721 -155 -404 -237 -747 -308 -1295 -35 -273 -50 -472 -50 -674 l0 -194 -241 6 c-133 4 -244 9 -247 11 -11 11 24 195 70 366 69 258 84 329 102 460 25 194 28 250 16 383 -39 455 -271 788 -635 915 -95 33 -152 43 -280 50 l-119 7 -12 72 c-30 175 -83 301 -242 570 -120 202 -155 278 -188 402 -40 155 -30 288 36 458 45 117 118 224 229 333 193 192 426 311 696 355 114 18 357 13 470 -10z m-765 -2395 c295 -70 505 -291 597 -627 23 -85 26 -118 27 -248 0 -172 -20 -294 -99 -589 -63 -236 -72 -277 -86 -397 l-12 -107 -116 -6 c-64 -3 -290 -9 -502 -12 l-385 -6 -18 28 c-111 174 -239 266 -546 394 -330 138 -451 227 -527 387 -29 60 -36 87 -36 133 2 153 108 354 275 522 48 49 92 88 98 88 5 0 10 -8 10 -18 0 -29 44 -63 87 -68 21 -3 74 1 118 8 l80 14 20 -41 c25 -51 72 -75 145 -75 100 0 160 55 160 146 0 33 4 43 19 47 15 4 20 -2 25 -28 6 -32 33 -63 73 -84 36 -18 129 -13 173 9 49 25 70 64 70 128 l0 50 73 10 c61 9 76 16 100 42 23 26 27 39 27 88 0 53 -8 118 -26 200 l-6 32 48 0 c27 0 87 -9 134 -20z m4196 -296 c124 -88 204 -235 204 -378 0 -166 -117 -396 -266 -519 -98 -82 -194 -132 -401 -208 -296 -109 -361 -137 -467 -195 -181 -101 -327 -225 -452 -384 l-49 -63 -160 7 c-310 13 -836 44 -842 50 -9 8 52 196 98 303 73 172 153 303 323 528 130 172 276 345 391 461 103 104 277 241 283 224 2 -6 17 -17 34 -26 24 -13 48 -14 122 -9 l92 7 12 -39 c19 -64 52 -87 131 -91 90 -5 136 15 162 72 10 23 19 58 19 79 0 20 3 37 8 37 4 0 16 -24 27 -53 25 -65 63 -87 148 -87 103 0 157 47 157 135 l0 53 92 13 c120 16 138 32 138 118 l0 61 66 -25 c37 -14 95 -46 130 -71z m-3766 -1997 c0 -158 5 -167 95 -167 93 0 98 11 89 169 l-7 121 267 0 266 0 0 -30 c0 -32 40 -243 66 -344 31 -125 41 -136 122 -136 90 0 111 60 69 200 -26 86 -67 267 -67 295 0 12 16 15 88 15 106 0 132 -6 132 -31 0 -37 36 -59 94 -59 47 0 57 4 75 26 12 15 21 33 21 40 0 11 10 13 38 9 20 -2 181 -12 357 -20 176 -9 361 -18 411 -21 l92 -6 -54 -91 c-46 -78 -54 -100 -54 -143 0 -70 15 -86 83 -92 68 -5 73 -1 164 155 37 62 78 126 92 142 l26 30 158 -7 158 -7 -187 -215 c-103 -118 -268 -306 -367 -417 l-179 -203 -226 0 c-281 1 -1228 15 -1902 30 -486 10 -1571 48 -1579 55 -4 5 120 149 378 438 107 120 197 214 201 210 10 -11 40 -149 40 -185 0 -31 16 -68 34 -80 6 -4 35 -8 65 -8 76 0 91 16 91 97 0 64 -30 221 -55 294 l-14 39 27 1 c231 11 423 16 635 17 l257 2 0 -123z m2911 -233 l-2 -86 -207 -232 c-114 -127 -272 -304 -352 -393 l-145 -161 -3 79 c-2 53 1 86 10 98 12 17 136 158 537 613 86 97 158 174 160 172 3 -2 4 -43 2 -90z m-4281 -679 c556 -21 2082 -55 2725 -60 231 -1 473 -3 538 -4 l118 -1 -3 -137 -3 -138 -345 3 c-190 2 -514 8 -720 13 -206 6 -609 14 -895 19 -681 10 -1798 41 -1807 49 -8 7 2 271 11 271 3 0 175 -7 381 -15z"/> </g> </g> </svg>';
+  // Lucide line icons, inlined — CSP-safe, no requests. The same glyphs the
+  // Playground's feed uses, so a ♥ reads the same in both tools.
+  var ICONS = {
+    heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
+    x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+    copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
+    download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>',
+    share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>',
+  };
+
+  // EVERY PICTURE IN THIS TOOL VOTES AND TAKES NOTES AS `my-creations`, because
+  // that is where panels.js files them (fileRun → fileCreation → the iOS
+  // gallery), and it is the same tab a Playground picture lands in. So a ♥ here
+  // and a ♥ in Meta Assets are the same mark on the same picture, in both
+  // directions — server.js syncs the run doc and the asset record either way.
+  var ASSET_CHAT = 'my-creations';
+
+  // The bigger-box toggle — Lucide `maximize-2` / `minimize-2`, the same pair
+  // the Playground's prompt box and the Story Room's card wear.
+  var ICON_BIG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>';
+  var ICON_SMALL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>';
   var cfg = null;
   var pick = { grid: 4, shape: 'portrait', res: '4k', quality: 'medium', style: '' };
   var words = {};              // cell index -> her text, kept across grid changes
   var polling = {};
+  var runsById = {};
+  var feed = [];               // every run loaded so far, newest first
+  var feedMore = false;        // the server had more behind the last page
+  var paging = false;
+  var PAGE = 20;
 
   var $ = function (s) { return document.querySelector(s); };
   var esc = function (s) { return String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
+  var ls = {
+    get: function (k, d) { try { var v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; } },
+    set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private window */ } },
+  };
 
   // Pending runs survive leaving the app — the house background-job rule.
   function remember(id) {
@@ -218,7 +453,11 @@
     if (!cfg) return null;
     return cfg.plans[pick.grid + '|' + pick.shape + '|' + pick.res] || null;
   }
+  function styleNow() {
+    return (cfg && cfg.styles.filter(function (s) { return s.id === pick.style; })[0]) || null;
+  }
 
+  // ── THE CONTROL ROW ─────────────────────────────────────────────────────
   function paintCtrls() {
     var gridBtns = cfg.grids.map(function (g) {
       return '<button type="button" data-grid="' + g.id + '" aria-pressed="'
@@ -242,7 +481,10 @@
       + '<button type="button" class="tri" id="respick" aria-label="Size"'
       + ' data-n="' + ri + '" data-i="' + esc(cfg.tiers[ri].toUpperCase()) + '"></button>'
       + '<button type="button" class="tri" id="qpick" aria-label="Quality"'
-      + ' data-n="' + qi + '" data-i="' + esc(pick.quality[0].toUpperCase()) + '"></button>';
+      + ' data-n="' + qi + '" data-i="' + esc(pick.quality[0].toUpperCase()) + '"></button>'
+      + '<button type="button" class="txtbtn" id="promptbtn"'
+      + ' title="What is wrapped around your words">Prompt</button>';
+    markEdited();
   }
 
   // THE BOXES ARE THE GRID — one per cell, laid out the way the sheet will be.
@@ -254,12 +496,39 @@
     el.style.setProperty('--across', g.across);
     el.innerHTML = g.cells.map(function (name, i) {
       return '<div class="pcell"><label for="c' + i + '">' + esc(name) + '</label>'
-        + '<textarea id="c' + i + '" data-i="' + i + '" rows="3"></textarea></div>';
+        + '<textarea id="c' + i + '" data-i="' + i + '" rows="3"></textarea>'
+        + '<button type="button" class="pbig" data-big="' + i + '"'
+        + ' aria-label="Bigger box" title="Bigger box">' + ICON_BIG + '</button></div>';
     }).join('');
     g.cells.forEach(function (_, i) {
       var t = document.getElementById('c' + i);
       if (t) t.value = words[i] || '';
     });
+  }
+
+  // ONE cell open at a time; the button swaps its own glyph so the way back is
+  // the same tap. A hand-dragged resize (desktop) out-ranks the class, so it is
+  // cleared on every toggle or "back to small" would not shrink.
+  function toggleBig(i) {
+    var cell = document.querySelector('.pcell.big');
+    var want = document.querySelector('[data-big="' + i + '"]').closest('.pcell');
+    var closing = cell === want;
+    if (cell) {
+      cell.classList.remove('big');
+      cell.querySelector('textarea').style.height = '';
+      var b = cell.querySelector('.pbig');
+      b.innerHTML = ICON_BIG; b.setAttribute('aria-label', 'Bigger box'); b.title = 'Bigger box';
+    }
+    if (closing) return;
+    want.classList.add('big');
+    want.querySelector('textarea').style.height = '';
+    var nb = want.querySelector('.pbig');
+    nb.innerHTML = ICON_SMALL;
+    nb.setAttribute('aria-label', 'Back to the small box');
+    nb.title = 'Back to the small box';
+    // The row it lands on can be most of a screen further down than the one it
+    // left, so bring the box she just opened back under her thumb.
+    want.scrollIntoView({ block: 'nearest' });
   }
 
   function paintPlan() {
@@ -271,21 +540,104 @@
       + (c ? ' · about <b>' + c.sheet + 'c</b> the sheet, <b>' + c.each + 'c</b> each' : '');
   }
 
+  // ── THE PROMPT PANEL ────────────────────────────────────────────────────
+  // What is wrapped around her words, and editable — the Playground's rule.
+  // ONLY A STRING OVERRIDES a half (the server's own `over()`), so an absent
+  // field keeps the house text and an empty string genuinely deletes that half.
+  // Her edit is per STYLE and lives in localStorage; an edited style MARKS its
+  // button, so she can never be running her own wording without the page
+  // saying so. Editing both halves back to the house text drops the override
+  // rather than storing an identical twin.
+  var OVERKEY = 'forge.panels.prompt.';
+  function bakedFor(k) {
+    var st = (cfg && cfg.styles.filter(function (s) { return s.id === k; })[0]) || null;
+    return st ? { prefix: st.prefix || '', suffix: st.sheetSuffix || '' } : null;
+  }
+  function overrideFor(k) {
+    try { return JSON.parse(ls.get(OVERKEY + k, '') || 'null'); } catch (e) { return null; }
+  }
+  function saveOverride(k, v) {
+    var b = bakedFor(k);
+    if (!v || !b || (v.prefix === b.prefix && v.suffix === b.suffix)) {
+      try { localStorage.removeItem(OVERKEY + k); } catch (e) { /* private window */ }
+    } else ls.set(OVERKEY + k, JSON.stringify(v));
+    markEdited();
+  }
+  function sentParts(k) {
+    var b = bakedFor(k); if (!b) return null;
+    var o = overrideFor(k) || {};
+    return { prefix: typeof o.prefix === 'string' ? o.prefix : b.prefix,
+             suffix: typeof o.suffix === 'string' ? o.suffix : b.suffix,
+             edited: !!overrideFor(k) };
+  }
+  function markEdited() {
+    var b = document.getElementById('promptbtn');
+    if (b) b.classList.toggle('edited', !!overrideFor(pick.style));
+  }
+  function paintPromptPanel() {
+    var el = $('#ppanel');
+    var parts = sentParts(pick.style);
+    if (!parts) { el.innerHTML = ''; return; }
+    var gl = (cfg.gridLines || {})[pick.grid] || '';
+    el.innerHTML =
+      '<div class="plab">Before your words</div>'
+      + '<textarea id="ppre" rows="3"></textarea>'
+      + (gl ? '<div class="plab">Then, added by this tool</div><div class="fixed">' + esc(gl) + '</div>' : '')
+      + '<div class="plab">Then your panels</div>'
+      + '<div class="yours">one box per cell, exactly as you wrote them</div>'
+      + '<div class="plab">After them</div>'
+      + '<textarea id="ppost" rows="3"></textarea>'
+      + '<div class="prow"><button type="button" id="preset">Reset</button>'
+      + '<span class="pnote" id="pnote"></span></div>';
+    document.getElementById('ppre').value = parts.prefix;
+    document.getElementById('ppost').value = parts.suffix;
+    document.getElementById('pnote').textContent = parts.edited ? 'your wording' : 'the house wording';
+    function stash() {
+      saveOverride(pick.style, { prefix: document.getElementById('ppre').value,
+        suffix: document.getElementById('ppost').value });
+      document.getElementById('pnote').textContent =
+        overrideFor(pick.style) ? 'your wording' : 'the house wording';
+    }
+    document.getElementById('ppre').addEventListener('input', stash);
+    document.getElementById('ppost').addEventListener('input', stash);
+    document.getElementById('preset').addEventListener('click', function () {
+      saveOverride(pick.style, null);
+      paintPromptPanel();
+    });
+  }
+
   function wire() {
     $('#ctrls').addEventListener('click', function (e) {
       var b = e.target.closest('button');
       if (!b) return;
-      if (b.dataset.grid) { pick.grid = Number(b.dataset.grid); paintCtrls(); paintCells(); paintPlan(); return; }
+      if (b.dataset.grid) {
+        pick.grid = Number(b.dataset.grid);
+        paintCtrls(); paintCells(); paintPlan();
+        if ($('#ppanel').classList.contains('on')) paintPromptPanel();
+        return;
+      }
       if (b.dataset.shape) { pick.shape = b.dataset.shape; paintCtrls(); paintPlan(); return; }
       if (b.id === 'respick') { step('res', cfg.tiers, function (v) { return v.toUpperCase(); }, b, e); return; }
       if (b.id === 'qpick') { step('quality', cfg.qualities, function (v) { return v[0].toUpperCase(); }, b, e); return; }
+      if (b.id === 'promptbtn') {
+        var on = $('#ppanel').classList.toggle('on');
+        if (on) paintPromptPanel();
+        return;
+      }
       if (b.id === 'go') { start(); }
     });
     $('#ctrls').addEventListener('change', function (e) {
-      if (e.target.id === 'stylepick') pick.style = e.target.value;
+      if (e.target.id !== 'stylepick') return;
+      pick.style = e.target.value;
+      markEdited();
+      if ($('#ppanel').classList.contains('on')) paintPromptPanel();
     });
-    // The textareas are painted fresh on every grid change, so the handler
-    // lives on the container rather than on each box.
+    // The textareas are painted fresh on every grid change, so the handlers
+    // live on the container rather than on each box.
+    $('#cells').addEventListener('click', function (e) {
+      var b = e.target.closest('.pbig');
+      if (b) toggleBig(Number(b.dataset.big));
+    });
     $('#cells').addEventListener('input', function (e) {
       if (e.target.tagName === 'TEXTAREA') {
         words[Number(e.target.dataset.i)] = e.target.value;
@@ -322,6 +674,10 @@
     var body = { grid: pick.grid, shape: pick.shape, res: pick.res,
       quality: pick.quality, style: pick.style,
       panels: Array.from({ length: p.count }, function (_, i) { return words[i]; }) };
+    // Only send a half she actually changed — an absent field keeps the house
+    // text, which is what makes an ordinary run byte-for-byte what it was.
+    var over = overrideFor(pick.style);
+    if (over) { body.prefix = over.prefix; body.suffix = over.suffix; }
     $('#go').disabled = true;
     $('#msg').textContent = 'drawing the sheet…';
     fetch('/api/panels', { method: 'POST', headers: { 'content-type': 'application/json' },
@@ -350,216 +706,607 @@
     }, 4000);
   }
 
-  // THE FEED IS DIFFED, NEVER REBUILT (2026-08-25, Sophie: "once I send it to
-  // be made it flashes like every two seconds"). The old load() replaced
-  // #feed's whole innerHTML on every poll, so every <img> was thrown away and
-  // re-decoded — with two runs polling, a full-page flash every couple of
-  // seconds. Now each run keeps its own node keyed by id: the head line is
-  // repainted (text only), the sheet <img> is added once, and a new cut is
-  // APPENDED — an image already on screen is never touched.
-  var runsById = {};
-  var runSig = {};
-
-  function headHtml(r) {
-    return '<b>' + r.count + ' × ' + esc(r.cellSize) + '</b>'
-      + '<span>sheet ' + esc(r.sheetSize) + '</span>'
-      + '<span>' + esc(r.style || '') + ' · ' + esc(r.quality || '') + '</span>'
-      + (r.status === 'running' ? '<span>' + esc((r.job && r.job.label) || 'working…') + '</span>' : '')
-      + (r.status === 'failed' ? '<span>' + esc(r.error || 'failed') + '</span>' : '');
+  // ── THE VIEWS AND THE FILTERS ───────────────────────────────────────────
+  // All four are STICKY, exactly as the Playground's are, so a reload keeps
+  // what she was looking at. The search deliberately is NOT: a query typed
+  // yesterday silently hiding most of the feed on open is a worse surprise
+  // than re-typing four letters.
+  var view = ls.get('forge.panels.view', 'list') === 'tiles' ? 'tiles' : 'list';
+  function likedOnly() { return ls.get('forge.panels.liked', '') === '1'; }
+  function hideX() { return ls.get('forge.panels.hidex', '') === '1'; }
+  var COLS = [3, 4];
+  function curCols() {
+    var n = parseInt(ls.get('forge.panels.cols', '3'), 10);
+    return COLS.indexOf(n) >= 0 ? n : 3;
   }
-  /* THE TILES ARE DISPLAY COPIES, NEVER THE ORIGINALS (2026-08-25). A 4K
-     sheet is a 7-10MB lossless webp that decodes to ~33MB, and every cut
-     panel is a full-res lossless crop — a feed of a few runs decoded at
-     original size is hundreds of MB inside the phone's web process, which is
-     what got this app's screens killed by iOS ("keeps going blank"). Tiles
-     ride the server's gated thumb service; the ORIGINAL url is kept on
-     data-full and is what the lightbox opens — the house webp rule, applied
-     here. */
-  function disp(url, w) {
-    if (!/^https:\/\/(storage|firebasestorage)\.googleapis\.com\//.test(url || '')) return url;
-    return '/api/story/thumb?w=' + (w || 480) + '&url=' + encodeURIComponent(url);
+  function applyCols() {
+    var n = curCols(), next = COLS[(COLS.indexOf(n) + 1) % COLS.length];
+    document.documentElement.style.setProperty('--cols', String(n));
+    var b = document.getElementById('v-cols');
+    b.textContent = String(n);
+    b.setAttribute('aria-label', n + ' pictures a row on the wall — tap for ' + next);
+    b.title = n + ' a row';
   }
-  function figureFor(im) {
-    var fig = document.createElement('figure');
-    fig.innerHTML = '<img alt="' + esc(im.cell) + '" loading="lazy">'
-      + '<figcaption>' + esc(im.cell) + '</figcaption>';
-    var img = fig.querySelector('img');
-    img.src = disp(im.url, 480); img.dataset.full = im.url; img.dataset.cell = im.cell;
-    return fig;
-  }
-  function sigOf(r) {
-    return [r.status, r.sheetUrl, (r.images || []).map(function (im) { return im.url; }).join(','),
-      r.job && r.job.label, r.job && r.job.done, r.error].join('|');
-  }
-  function fillRun(el, r) {
-    el.querySelector('.runhead').innerHTML = headHtml(r);
-    if (r.sheetUrl) {
-      var sw = el.querySelector('.sheetwrap');
-      if (!sw) {
-        sw = document.createElement('div'); sw.className = 'sheetwrap';
-        sw.innerHTML = '<img class="sheetimg" alt="the sheet" loading="lazy">';
-        el.insertBefore(sw, el.querySelector('.cuts'));
-        var si = sw.querySelector('img');
-        si.src = disp(r.sheetUrl, 720); si.dataset.full = r.sheetUrl;
-      }
-    }
-    var cuts = el.querySelector('.cuts');
-    (r.images || []).forEach(function (im) {
-      if (!cuts.querySelector('img[data-cell="' + im.cell + '"]')) cuts.appendChild(figureFor(im));
-    });
-  }
-  function render(runs) {
-    var feed = $('#feed');
-    Array.prototype.slice.call(feed.children).forEach(function (el) {
-      if (!runs.some(function (r) { return r.id === el.dataset.run; })) feed.removeChild(el);
-    });
-    var prev = null;
-    runs.forEach(function (r) {
-      runsById[r.id] = r;
-      var el = feed.querySelector('[data-run="' + r.id + '"]');
-      var sig = sigOf(r);
-      if (!el) {
-        el = document.createElement('div');
-        el.className = 'run'; el.dataset.run = r.id;
-        var g = cfg.grids.filter(function (x) { return x.id === r.grid; })[0];
-        el.innerHTML = '<div class="runhead"></div>'
-          + '<div class="cuts" style="--across:' + ((g && g.across) || 2) + '"></div>';
-        feed.insertBefore(el, prev ? prev.nextSibling : feed.firstChild);
-        fillRun(el, r); runSig[r.id] = sig;
-      } else if (runSig[r.id] !== sig) {
-        fillRun(el, r); runSig[r.id] = sig;
-      }
-      prev = el;
-    });
-    renderTiles(runs);
-  }
-
-  // THE TILES WALL — every cut panel, newest run first, reading order within
-  // a run, each at its own natural shape (the Playground's no-crop lesson).
-  // Keyed and append-only like the feed, so a poll never makes it flash
-  // either.
-  function renderTiles(runs) {
-    var box = $('#tiles');
-    Array.prototype.slice.call(box.children).forEach(function (el) {
-      if (!runs.some(function (r) { return r.id === el.dataset.run; })) box.removeChild(el);
-    });
-    var prev = null;
-    runs.forEach(function (r) {
-      (r.images || []).forEach(function (im) {
-        var k = r.id + '|' + im.cell;
-        var el = box.querySelector('[data-k="' + k + '"]');
-        if (!el) {
-          el = document.createElement('img');
-          el.dataset.k = k; el.dataset.run = r.id; el.dataset.cell = im.cell;
-          el.alt = im.cell; el.loading = 'lazy'; el.src = disp(im.url, 480); el.dataset.full = im.url;
-          box.insertBefore(el, prev ? prev.nextSibling : box.firstChild);
-        }
-        prev = el;
-      });
-    });
-  }
-
-  // LIST · TILES — sticky, like the Playground's own pair.
-  var view = 'list';
-  try { view = localStorage.getItem('forge.panels.view') === 'tiles' ? 'tiles' : 'list'; }
-  catch (e) { /* private window */ }
   function paintView() {
-    Array.prototype.forEach.call(document.querySelectorAll('#viewseg button'), function (b) {
-      b.setAttribute('aria-pressed', String(b.dataset.view === view));
+    Array.prototype.forEach.call(document.querySelectorAll('#viewseg button[data-view]'), function (b) {
+      b.classList.toggle('on', b.dataset.view === view);
     });
     $('#feed').hidden = view !== 'list';
     $('#tiles').hidden = view !== 'tiles';
+    // Coming back to the list: anything drawn while it was hidden measured 0/0
+    // and is still undecided, so measure it now that it has a box.
+    if (view === 'list') resyncClamps();
   }
   $('#viewseg').addEventListener('click', function (e) {
     var b = e.target.closest('button');
-    if (!b || !b.dataset.view) return;
+    if (!b) return;
+    if (b.id === 'v-cols') {
+      ls.set('forge.panels.cols', String(COLS[(COLS.indexOf(curCols()) + 1) % COLS.length]));
+      applyCols();
+      return;
+    }
+    if (!b.dataset.view) return;
     view = b.dataset.view;
-    try { localStorage.setItem('forge.panels.view', view); } catch (e2) { /* private window */ }
+    ls.set('forge.panels.view', view);
     paintView();
   });
-  paintView();
-
-  // The Playground, one hairline tab away (her ask, 2026-08-25). A
-  // NAVIGATION, not an embed — the Playground is its own page, and an iframe
-  // would double every pill and toggle on screen.
-  $('#tab-playground').addEventListener('click', function () {
-    location.href = '/playground?from=panels';
+  document.getElementById('v-liked').innerHTML = ICONS.heart;
+  document.getElementById('v-hidex').innerHTML = ICONS.x;
+  function paintFilters() {
+    document.getElementById('v-liked').classList.toggle('on', likedOnly());
+    document.getElementById('v-hidex').classList.toggle('on', hideX());
+  }
+  document.getElementById('v-liked').addEventListener('click', function () {
+    ls.set('forge.panels.liked', likedOnly() ? '' : '1'); paintFilters(); render();
+  });
+  document.getElementById('v-hidex').addEventListener('click', function () {
+    ls.set('forge.panels.hidex', hideX() ? '' : '1'); paintFilters(); render();
   });
 
-  // For the headless test only — the diff rule ("an image on screen is never
-  // touched") can only be asserted by driving render() directly.
-  window.__panelsRender = render;
+  // ── SEARCH ──────────────────────────────────────────────────────────────
+  // The house grammar (FeedKit, shared with the Playground): bare words AND
+  // within one run, `OR` for either, `-word` to exclude, "quoted" for a
+  // phrase. It reads the WHOLE history, not the page she is looking at — the
+  // Assets tab's lesson, which this feed would have re-lived the moment she
+  // had more sheets than one page of them. The loaded runs are filtered
+  // INSTANTLY meanwhile, with the same regexes, so the two can never disagree.
+  var query = '', qGroups = [], hits = null, qSeq = 0, qTimer = null;
+  function runHay(r) {
+    var shape = r.shape === 'landscape' ? 'landscape side by side'
+      : (r.shape === 'square' ? 'square' : 'portrait');
+    return [(r.panels || []).join('  '), styleLabel(r.style), r.style, r.quality,
+      r.res, r.sheetSize, r.cellSize, shape, r.count + ' panels',
+      r.status === 'failed' ? 'failed' : ''].filter(Boolean).join('  ');
+  }
+  function visibleRuns() {
+    if (!qGroups.length) return feed;
+    if (hits) return hits;
+    return feed.filter(function (r) { return FK.qmatch(runHay(r), qGroups); });
+  }
+  function runSearch() {
+    var seq = ++qSeq, want = query;
+    if (!want) { hits = null; return; }
+    fetch('/api/panels?q=' + encodeURIComponent(want) + '&limit=200')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (seq !== qSeq) return;                  // she typed on; this answer is stale
+        var runs = d.runs || [];
+        runs.forEach(function (r) { runsById[r.id] = r; });
+        hits = runs;
+        render();
+      })
+      .catch(function () { /* the client-filtered view stands */ });
+  }
+  function readSearch() {
+    var box = document.getElementById('q');
+    query = (box.value || '').trim();
+    qGroups = FK.qparse(query);
+    document.getElementById('qclear').hidden = !query;
+    box.classList.toggle('hasq', !!box.value);     // the ✕'s padding, only while it shows
+    hits = null;                                   // the loaded feed answers meanwhile
+    clearTimeout(qTimer);
+    if (query) qTimer = setTimeout(runSearch, 350);
+    else qSeq++;                                   // and any answer still coming is dropped
+    render();
+  }
+  var qLive = FK.liveInput(document.getElementById('q'), readSearch);
+  // `qLive.sync()` inside it: the blur Return performs would otherwise be
+  // liveInput's first sight of dictated text and would search a second time.
+  FK.enterSubmits(document.getElementById('q'), function () { readSearch(); qLive.sync(); });
+  document.getElementById('qclear').addEventListener('click', function () {
+    var box = document.getElementById('q');
+    box.value = ''; qLive.sync(); readSearch(); box.focus();
+  });
+
+  // ── ♥ / ✕ ───────────────────────────────────────────────────────────────
+  // The mark lives on the RUN doc, keyed by CELL NAME, and the route mirrors
+  // it onto the Assets record for the same picture — so the feed, the wall,
+  // the lightbox and Meta Assets are one answer. Tapping the mark she is
+  // already on clears it. Painted OPTIMISTICALLY: the picture is under her
+  // thumb and a round trip before the badge appears reads as a dead button.
+  function voteOf(r, cell) { return (r && r.votes && r.votes[cell]) || ''; }
+  function castVote(runId, cell, kind) {
+    var r = runsById[runId];
+    if (!r) return;
+    var votes = r.votes = r.votes || {};
+    var next = votes[cell] === kind ? null : kind;
+    if (next === null) delete votes[cell]; else votes[cell] = next;
+    render();
+    fetch('/api/panels/' + runId + '/vote', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ cell: cell, vote: next || '' }),
+    }).then(function (res) { return res.json(); })
+      .then(function (j) { if (j && j.error) FK.toast(j.error); })
+      .catch(function () { FK.toast('Couldn’t save that — try again'); });
+    return next;
+  }
+
+  // ── THE FEED, RECONCILED NEVER REBUILT ──────────────────────────────────
+  // (2026-08-25, Sophie: "once I send it to be made it flashes like every two
+  // seconds".) FeedKit.syncChildren keys every node, so a picture already on
+  // screen is never touched — it is the Playground's own rule and now the same
+  // code. The head line repaints, the sheet lands once, a new cut is appended.
+  function styleLabel(id) {
+    var s = (cfg && cfg.styles.filter(function (x) { return x.id === id; })[0]) || null;
+    return (s && s.label) || id || '';
+  }
+  function disp(url, w) { return FK.thumbFor(url, w || 480); }
+
+  function runTags(r) {
+    return [r.count + ' × ' + (r.cellSize || ''), 'sheet ' + (r.sheetSize || ''),
+      styleLabel(r.style), r.quality,
+      r.status === 'running' ? ((r.job && r.job.label) || 'working…') : '',
+      r.status === 'failed' ? (r.error || 'failed') : ''].filter(Boolean);
+  }
+  // HER WORDS, one line, cells joined — the thing that tells two sheets apart.
+  function runWords(r) { return (r.panels || []).map(function (p) { return String(p).trim(); })
+    .filter(Boolean).join(' · '); }
+
+  function headHtml(r) {
+    return '<span class="p clamp">' + esc(runWords(r)) + '</span>'
+      + '<button type="button" class="copybtn" data-copy="' + esc(r.id) + '"'
+      + ' aria-label="Put these prompts back in the boxes">' + ICONS.copy + '</button>'
+      + runTags(r).map(function (t) { return '<span>' + esc(t) + '</span>'; }).join('');
+  }
+  function badgeFor(vote) {
+    if (!vote) return '';
+    return '<span class="badge ' + vote + '">' + (vote === 'like' ? ICONS.heart : ICONS.x) + '</span>';
+  }
+
+  // One cut = one figure. The picture is the DERIVED display copy; the
+  // ORIGINAL rides on data-full and is what the lightbox and Save open.
+  function makeCut() {
+    var fig = document.createElement('figure');
+    fig.className = 'pic';
+    fig.innerHTML = '<img loading="lazy"><figcaption></figcaption>';
+    return fig;
+  }
+  function updateCut(el, it) {
+    var img = el.querySelector('img');
+    if (img.getAttribute('src') !== it.src) img.setAttribute('src', it.src);
+    img.alt = it.cell;
+    img.dataset.full = it.full; img.dataset.cell = it.cell; img.dataset.run = it.runId;
+    el.querySelector('figcaption').textContent = it.cell;
+    var have = el.querySelector('.badge');
+    var was = have ? (have.classList.contains('like') ? 'like' : 'dislike') : '';
+    if (was !== it.vote) {
+      if (have) have.remove();
+      if (it.vote) el.insertAdjacentHTML('afterbegin', badgeFor(it.vote));
+    }
+  }
+  function makeTile(it) {
+    var d = document.createElement('div');
+    d.className = it.ph ? 'pic ph' : 'pic';
+    if (it.ph) { d.style.setProperty('--ar', it.ar || '2 / 3'); return d; }
+    d.innerHTML = '<img loading="lazy">';
+    return d;
+  }
+  function updateTile(el, it) {
+    if (it.ph) return;
+    var img = el.querySelector('img');
+    if (img.getAttribute('src') !== it.src) img.setAttribute('src', it.src);
+    img.alt = it.cell;
+    img.dataset.full = it.full; img.dataset.cell = it.cell; img.dataset.run = it.runId;
+    var have = el.querySelector('.badge');
+    var was = have ? (have.classList.contains('like') ? 'like' : 'dislike') : '';
+    if (was !== it.vote) {
+      if (have) have.remove();
+      if (it.vote) el.insertAdjacentHTML('beforeend', badgeFor(it.vote));
+    }
+  }
+
+  // The cuts a run shows AFTER the two mark filters. A run left with nothing
+  // showing drops out of the feed entirely, the Playground's rule.
+  function cutsOf(r) {
+    var only = likedOnly(), nox = hideX();
+    return (r.images || []).filter(function (im) {
+      var v = voteOf(r, im.cell);
+      if (only && v !== 'like') return false;
+      if (nox && v === 'dislike') return false;
+      return true;
+    }).map(function (im) {
+      return { key: r.id + '|' + im.cell, cell: im.cell, runId: r.id,
+        src: disp(im.url, 480), full: im.url, vote: voteOf(r, im.cell) };
+    });
+  }
+
+  function makeRun() {
+    var d = document.createElement('div');
+    d.className = 'run';
+    d.innerHTML = '<div class="runhead"></div><div class="sheetwrap" hidden>'
+      + '<img class="sheetimg" alt="the sheet" loading="lazy"></div><div class="cuts"></div>';
+    return d;
+  }
+  function updateRun(el, it) {
+    var r = it.run;
+    if (el.__head !== it.headHtml) {
+      el.querySelector('.runhead').innerHTML = it.headHtml;
+      el.__head = it.headHtml;
+      applyClamps(el);
+    }
+    var sw = el.querySelector('.sheetwrap');
+    var si = sw.querySelector('img');
+    sw.hidden = !r.sheetUrl;
+    if (r.sheetUrl && si.dataset.full !== r.sheetUrl) {
+      si.src = disp(r.sheetUrl, 720); si.dataset.full = r.sheetUrl;
+      si.dataset.run = r.id; si.dataset.cell = 'sheet';
+    }
+    if (r.sheetUrl) {
+      var have = sw.querySelector('.badge');
+      var v = voteOf(r, 'sheet');
+      var was = have ? (have.classList.contains('like') ? 'like' : 'dislike') : '';
+      if (was !== v) { if (have) have.remove(); if (v) sw.insertAdjacentHTML('beforeend', badgeFor(v)); }
+    }
+    var cuts = el.querySelector('.cuts');
+    cuts.style.setProperty('--across', it.across);
+    FK.syncChildren(cuts, it.cuts, makeCut, updateCut);
+  }
+
+  function emptyNote() {
+    if (qGroups.length) return '<div class="emptynote">Nothing matches that</div>';
+    if (likedOnly()) return '<div class="emptynote">Nothing hearted yet</div>';
+    if (hideX()) return '<div class="emptynote">Everything here is crossed out</div>';
+    return '';
+  }
+
+  function render() {
+    var runs = visibleRuns();
+    var only = likedOnly(), nox = hideX();
+    var items = [];
+    runs.forEach(function (r) {
+      runsById[r.id] = r;
+      var g = (cfg.grids.filter(function (x) { return x.id === r.grid; })[0] || {});
+      var cuts = cutsOf(r);
+      // A filter that empties a run takes the run with it — but a run still
+      // DRAWING has no pictures to have been hearted yet, so it is dropped by
+      // the heart the way an unmarked picture is, and kept otherwise.
+      if ((only || nox) && !cuts.length && r.status !== 'running') return;
+      if (only && r.status === 'running') return;
+      items.push({ key: r.id, run: r, cuts: cuts, across: (g.across || 2),
+        headHtml: headHtml(r) });
+    });
+    var box = $('#feed');
+    if (!items.length) box.innerHTML = emptyNote();
+    else FK.syncChildren(box, items, makeRun, updateRun);
+    renderTiles(runs);
+    renderMoreBtn();
+    if (lbOpen) lbRepaint();
+  }
+
+  // THE TILE WALL — every cut panel, newest run first, reading order within a
+  // run, each at its own natural shape (the Playground's no-crop lesson). A
+  // run still drawing holds one breathing square per panel at the FRONT, so
+  // the wall is the whole feed and a picture on its way has its place in it
+  // before it lands.
+  function renderTiles(runs) {
+    var items = [];
+    var only = likedOnly();
+    runs.forEach(function (r) {
+      if (r.status === 'running' && !only) {
+        var landed = (r.images || []).length;
+        for (var i = landed; i < (r.count || 0); i++) {
+          items.push({ key: 'ph|' + r.id + '|' + i, ph: true, ar: arCss(r.cellAspectRatio) });
+        }
+      }
+      cutsOf(r).forEach(function (c) { items.push(c); });
+    });
+    var box = $('#tiles');
+    if (!items.length) box.innerHTML = emptyNote();
+    else FK.syncChildren(box, items, makeTile, updateTile);
+  }
+  // '2:3' -> '2 / 3'. Parsed rather than passed through — it lands in a style.
+  function arCss(a) {
+    var m = /^(\d{1,3}):(\d{1,3})$/.exec(String(a || ''));
+    return m ? m[1] + ' / ' + m[2] : '2 / 3';
+  }
+
+  // ── "OLDER" ─────────────────────────────────────────────────────────────
+  // Deliberately a TAP, never load-on-scroll: the autoscroll pill would run
+  // the page to the bottom on its own and pull page after page of pictures
+  // over her data without her asking for any of them. A search is already
+  // answered over the whole history, so there is nothing behind it to page in.
+  function renderMoreBtn() {
+    var el = $('#more');
+    if (qGroups.length || !feed.length || !feedMore) { el.innerHTML = ''; return; }
+    el.innerHTML = '<button type="button" class="morebtn"' + (paging ? ' disabled' : '') + '>'
+      + (paging ? 'Loading…' : 'Older') + '</button>';
+  }
+  $('#more').addEventListener('click', function (e) {
+    if (!e.target.closest('.morebtn')) return;
+    if (paging || !feedMore) return;
+    var oldest = 0;
+    for (var i = feed.length - 1; i >= 0; i--) { if (feed[i].ms) { oldest = feed[i].ms; break; } }
+    if (!oldest) return;
+    paging = true; renderMoreBtn();
+    fetch('/api/panels?limit=' + PAGE + '&before=' + oldest)
+      .then(function (r) { return r.json(); })
+      .then(function (d) { paging = false; feedMore = !!d.more; merge(d.runs || []); render(); })
+      .catch(function () { paging = false; renderMoreBtn(); });
+  });
+
+  // Fold a page into the feed. Fresh copies WIN (a vote or a status moved) and
+  // the whole list is re-sorted by time, so a head refresh and an Older page
+  // can arrive in any order without scrambling it.
+  function merge(fresh) {
+    var byId = {};
+    feed.forEach(function (r) { byId[r.id] = r; });
+    fresh.forEach(function (r) { byId[r.id] = r; });
+    feed = Object.keys(byId).map(function (k) { return byId[k]; })
+      .sort(function (a, b) { return (b.ms || 0) - (a.ms || 0); });
+    Object.keys(byId).forEach(function (k) { runsById[k] = byId[k]; });
+  }
 
   var loadBusy = false;
   function load() {
     if (loadBusy) return;
     loadBusy = true;
-    fetch('/api/panels?limit=20').then(function (r) { return r.json(); }).then(function (j) {
+    fetch('/api/panels?limit=' + PAGE).then(function (r) { return r.json(); }).then(function (j) {
       loadBusy = false;
-      render(j.runs || []);
+      if (feed.length <= PAGE) feedMore = !!j.more;
+      merge(j.runs || []);
+      render();
     }).catch(function () { loadBusy = false; });
   }
 
-  // TAPPING A PICTURE OPENS THE ASSETS LIGHTBOX — the ONE shared one
-  // (2026-08-25, Sophie: "I can't open the pictures in a light box"). A cut
-  // opens with its own cell's words as the content half and the run's real
-  // wrapper (prefix + the grid sentence + suffix) as the style half; the sheet
-  // opens with every cell she wrote.
+  // ── THE "… more" OPENER ─────────────────────────────────────────────────
+  // Added only where the two-line cap really cut the words — scrollHeight
+  // against clientHeight is the only honest test — and A BOX WITH NO LAYOUT IS
+  // LEFT UNDECIDED: #feed is hidden in tiles view, so a card drawn while she
+  // was on the wall measures 0/0, which reads as "nothing was cut". The head
+  // html never changes again, so without this those cards would carry no
+  // opener forever (the Playground measured 0 of 36 before its own fix).
+  function applyClamps(root) {
+    var ps = root.querySelectorAll('.p.clamp');
+    Array.prototype.forEach.call(ps, function (el) {
+      if (el.querySelector('.moretxt')) return;      // a repaint, already folded
+      if (!el.clientHeight) return;                  // no layout — ask again later
+      if (el.scrollHeight - el.clientHeight <= 1) return;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'moretxt';
+      btn.textContent = '… more';
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var open = el.classList.toggle('clamp') === false;
+        el.classList.toggle('fold', !open);
+        btn.textContent = open ? 'less' : '… more';
+        // It rides at the END of the words when they are open and at the FRONT
+        // when they are folded — the float only reaches the last line from in
+        // front of the text, and unfloated at the front it would read before
+        // the first word.
+        if (open) el.appendChild(btn); else el.insertBefore(btn, el.firstChild);
+      });
+      el.insertBefore(btn, el.firstChild);
+      el.classList.add('fold');
+    });
+  }
+  function resyncClamps() { applyClamps($('#feed')); }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(resyncClamps);
+
+  // PUT THESE PROMPTS BACK IN THE BOXES — the Playground's copy button, in the
+  // shape this tool needs: a sheet's words are N boxes, so it restores the
+  // GRID she drew it on as well, or the words would land in the wrong cells.
+  $('#feed').addEventListener('click', function (e) {
+    var cp = e.target.closest('[data-copy]');
+    if (!cp) return;
+    var r = runsById[cp.dataset.copy];
+    if (!r) return;
+    pick.grid = r.grid || pick.grid;
+    pick.shape = r.shape || pick.shape;
+    words = {};
+    (r.panels || []).forEach(function (p, i) { words[i] = p; });
+    paintCtrls(); paintCells(); paintPlan();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    FK.toast('Prompts are back in the boxes');
+  });
+
+  // ── THE LIGHTBOX ────────────────────────────────────────────────────────
+  // THE ONE SHARED ASSETS LIGHTBOX (asset-lightbox.js) — never a fourth copy.
+  // It draws the ♥/✕ and the note thread as soon as a caller wires `_cast`
+  // and `_noteSend`, which is exactly what was missing here: the lightbox was
+  // opened read-only, so there was no way to mark a panel and no way to leave
+  // a note on one.
+  //   the ♥/✕ goes to THIS run's doc, and the route mirrors it to the Assets
+  //   record — so a mark here and a mark in Meta Assets are one answer.
+  //   the note goes to the picture's own thread in `my-creations`, where every
+  //   panel is filed, so a chat sweeping its notes finds it where it expects.
+  var lbOpen = null;      // { runId, cell } while it is open
+  var lbAsset = null;
+  var noteCache = {};     // url -> thread, so re-opening a picture is free
+
   function styleHalf(r) {
     var gl = (cfg.gridLines || {})[r.grid] || '';
     var pre = [r.prefix, gl].filter(Boolean).join('\n\n');
     if (!pre && !r.suffix) return '';
     return [pre, '[content]', r.suffix].filter(Boolean).join('\n\n');
   }
-  // UPSCALE IN THE PLAYGROUND (her ask, 2026-08-25: "being able to upscale
-  // each panel individually as its own image so this could copy the text into
-  // the playground"). The action carries the panel's own words, the tile it
-  // was really drawn on (server `evan` is the page's `chatgpt` key — the Aug
-  // 2026 rename moved only the label), its quality, and res=4k — a cut panel
-  // is ~1K of pixels, and redrawing it alone at 4K is the upscale. sameref=1:
-  // the reference and baked style prompt ARE this tile's own; only the grid
-  // machinery differed. The icon is the Playground's own wire-loop drawing —
-  // the house "a button that opens another tool wears THAT tool's icon" rule.
+  // TAKING ONE PANEL OVER TO THE PLAYGROUND (her ask, 2026-08-25: "being able
+  // to upscale each panel individually as its own image so this could copy
+  // the text into the playground"). The link carries the panel's own words
+  // and the tile it was really drawn on (server `evan` is the page's
+  // `chatgpt` key — the Aug 2026 rename moved only the label). sameref=1: the
+  // reference and baked style prompt ARE this tile's own; only the grid
+  // machinery differed.
+  //
+  // IT LANDS ON 1K AND LOW — the cheap rung, NOT the panel's own settings and
+  // not 4K (Sophie, 2026-08-26: "when I pick one and migrate it to the
+  // playground, it should default to one k and low"). This used to send
+  // res=4k plus the run's quality, on the reasoning that a cut panel is ~1K
+  // of pixels so redrawing it alone at 4K IS the upscale. That reasoning is
+  // history: arriving on a page pre-set to ~47c a tap is a decision made for
+  // her, and the Playground's own rule is that a dear rung is never something
+  // she is spending without having just chosen it. Both are one tap up once
+  // she is there — and neither is persisted, so this link can never leave the
+  // Playground set expensive for whatever she opens next.
   function upscaleUrl(r, im) {
     return '/playground?prompt=' + encodeURIComponent(im.prompt || '')
       + '&style=' + encodeURIComponent(r.style === 'evan' ? 'chatgpt' : (r.style || ''))
-      + '&quality=' + encodeURIComponent(r.quality || 'medium')
-      + '&res=4k&sameref=1&from=panels';
+      + '&quality=low&res=1k&sameref=1&from=panels';
   }
+  // SAVE TO PHOTOS — the Playground's three paths, in order: the app's native
+  // bridge (the only reliable one in a WKWebView), the share sheet's "Save
+  // Image", then a plain download for a desktop browser. Every path says what
+  // happened; a failure is never silence.
+  window.__saveResult = function (ok, msg) { FK.toast(msg || (ok ? 'Saved to Photos' : 'Couldn’t save that')); };
+  function nativeSaver() {
+    try { return window.webkit.messageHandlers.forgeSave; } catch (e) { return null; }
+  }
+  function saveToPhotos(url) {
+    var native = nativeSaver();
+    if (native) { native.postMessage(url); FK.toast('Saving…'); return; }
+    FK.toast('Getting it ready…');
+    fetch(url).then(function (r) { return r.blob(); }).then(function (blob) {
+      // Named after the BYTES, not after what this tool usually makes: a .webp
+      // name on png bytes is what the share sheet saves it as, and Photos
+      // rejects webp outright.
+      var ext = ((blob.type || '').split('/')[1] || 'png').replace('jpeg', 'jpg');
+      var file = null;
+      try { file = new File([blob], 'panel.' + ext, { type: blob.type || 'image/png' }); } catch (e) {}
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        return navigator.share({ files: [file] }).catch(function (err) {
+          if (err && err.name !== 'AbortError') FK.toast('Couldn’t open the share sheet');
+        });
+      }
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'panel.' + ext;
+      document.body.appendChild(a); a.click(); a.remove();
+      return null;
+    }).catch(function () { FK.toast('Couldn’t fetch that picture'); });
+  }
+
+  function lbRepaint() {
+    if (!lbOpen || !lbAsset || !lbAsset._lbPaint) return;
+    lbAsset.vote = voteOf(runsById[lbOpen.runId], lbOpen.cell) || null;
+    lbAsset._lbPaint();
+  }
+
   function openFromImg(img) {
     if (!window.__assetLightbox) return;
-    var runEl = img.closest('[data-run]');
-    var r = runsById[img.dataset.run || (runEl && runEl.dataset.run)];
+    var r = runsById[img.dataset.run];
     if (!r) return;
+    var cell = img.dataset.cell;
+    var isSheet = cell === 'sheet';
+    var im = isSheet ? null : (r.images || []).filter(function (x) { return x.cell === cell; })[0];
+    if (!isSheet && !im) return;
+    var url = img.dataset.full || img.src;
     var tier = String(r.res || '').toUpperCase();
-    var isSheet = img.classList.contains('sheetimg');
-    var im = null;
-    if (!isSheet) {
-      im = (r.images || []).filter(function (x) { return x.cell === img.dataset.cell; })[0];
-      if (!im) return;
-    }
-    window.__assetLightbox(img.dataset.full || img.src, {
-      description: isSheet
-        ? 'the sheet — ' + r.count + ' panels'
-        : (im.prompt || im.cell),
+    lbOpen = { runId: r.id, cell: cell };
+    var asset = {
+      description: isSheet ? 'the sheet — ' + r.count + ' panels' : (im.prompt || cell),
       prompt: (cfg.model || 'gpt-image-2') + ' · ' + (r.quality || '')
         + ' · ' + (isSheet ? tier : '1/' + r.count + ' (' + tier + ')'),
       promptStyle: styleHalf(r),
       promptContent: isSheet
         ? (r.panels || []).map(function (p) { return String(p).trim(); }).join('\n')
         : (im.prompt || ''),
-      actions: isSheet ? undefined : [{
-        label: 'Upscale in the Playground', icon: PLAY_ICON,
-        onClick: function () { location.href = upscaleUrl(r, im); },
-      }],
-    });
+      vote: voteOf(r, cell) || null,
+      thread: noteCache[url] || [],
+      _cast: function (kind) {
+        asset.vote = castVote(r.id, cell, kind) || null;
+        if (asset._lbPaint) asset._lbPaint();
+      },
+      _noteSend: function (text, cb) {
+        fetch('/api/gallery/assets/note', {
+          method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ chat: ASSET_CHAT, url: url, text: text, from: 'sophie' }),
+        }).then(function (res) { return res.json(); })
+          .then(function (j) {
+            if (j && j.thread) noteCache[url] = j.thread;
+            cb(!(j && j.error));
+          })
+          .catch(function () { cb(false); });
+      },
+      actions: [
+        { label: 'Save to Photos', icon: ICONS.download,
+          onClick: function () { saveToPhotos(url); } },
+        { label: 'Send to the Story Room', icon: ICONS.share,
+          onClick: function () { sendToStory(r.id, cell); } },
+      ],
+    };
+    if (!isSheet) {
+      asset.actions.push({ label: 'Upscale in the Playground', icon: PLAY_ICON,
+        onClick: function () { location.href = upscaleUrl(r, im); } });
+    }
+    lbAsset = asset;
+    window.__assetLightbox(url, asset);
+    // The thread is ONE doc read, asked for after the picture is already up —
+    // the sibling /notes route answers with a whole chat's worth and would be
+    // the wrong thing to fetch to open one picture.
+    fetch('/api/gallery/assets/note?chat=' + encodeURIComponent(ASSET_CHAT)
+      + '&url=' + encodeURIComponent(url))
+      .then(function (res) { return res.json(); })
+      .then(function (j) {
+        if (!j || j.error || !j.thread || !j.thread.length) return;
+        noteCache[url] = j.thread;
+        // Only repaint the picture she is still looking at.
+        if (lbOpen && lbOpen.runId === r.id && lbOpen.cell === cell) {
+          window.__assetLightbox(url, Object.assign(asset, { thread: j.thread }));
+        }
+      })
+      .catch(function () {});
   }
   function lbTap(e) {
-    var img = e.target.closest('img');
+    var img = e.target.closest('img[data-run]');
     if (img) openFromImg(img);
   }
   $('#feed').addEventListener('click', lbTap);
   $('#tiles').addEventListener('click', lbTap);
+
+  // ── SEND TO THE STORY ROOM ──────────────────────────────────────────────
+  // IT WALKS THERE, IT DOES NOT POP UP (2026-08-26, Sophie, about the
+  // Playground's own version of this button: "rather than this weird pop-up,
+  // it should take me to the story room so I can pick myself"). The sheet she
+  // retired was a second, worse copy of the shelf and of the placing step, so
+  // this is a NAVIGATION into the room: her real shelf, the real covers, and
+  // the same placement every other picture gets. `from=panels` is what tells
+  // the room which feed to re-read the provenance out of, and the CELL is the
+  // key here rather than an index — a resume re-cuts only the missing panels.
+  function sendToStory(runId, cell) {
+    location.href = '/storyroom?send=' + encodeURIComponent(runId)
+      + '&cell=' + encodeURIComponent(cell) + '&from=panels';
+  }
+
+  // The app's nav-bar chevron asks the page first: close what is open, else
+  // let the app leave the tool.
+  window.__navBack = function () {
+    var lb = document.getElementById('clightbox');
+    if (lb && lb.classList.contains('on')) { lb.click(); return true; }
+    return false;
+  };
+
+  // The Playground, one hairline tab away (her ask, 2026-08-25). A NAVIGATION,
+  // not an embed — the Playground is its own page, and an iframe would double
+  // every pill and toggle on screen.
+  $('#tab-playground').addEventListener('click', function () {
+    location.href = '/playground?from=panels';
+  });
+
+  // For the headless test only — the diff rule ("an image on screen is never
+  // touched") can only be asserted by driving the render directly.
+  window.__panelsRender = function (runs) { feed = runs.slice(); render(); };
+
+  paintFilters(); applyCols(); paintView();
 
   fetch('/api/panels/config').then(function (r) { return r.json(); }).then(function (j) {
     cfg = j;
@@ -577,12 +1324,15 @@
   var hc = $('#helpcard');
   hc.innerHTML = '<p>One page is drawn, then cut into separate pictures on our'
     + ' side. That is cheaper than drawing them one at a time twice over: the'
-    + ' bill grows slower than the pixels, and the style reference is paid for'
+    + ' bill grows slower than the pixels, and the reference is paid for'
     + ' once instead of once per picture.</p>'
     + '<p>At 4K a quarter comes out bigger than an ordinary Playground picture.'
     + ' At 2K it comes out smaller — cheaper, but smaller.</p>'
     + '<p>Each panel is filed with its own words, captioned <b>1/4 (4K)</b> so'
-    + ' the tag says which sheet it came off rather than its own pixel count.</p>';
+    + ' the tag says which sheet it came off rather than its own pixel count.</p>'
+    + '<p>Tap a picture to heart it, cross it out, read its prompt, leave a'
+    + ' note on it, save it, send it to a story, or redraw it on its own at 4K'
+    + ' in the Playground.</p>';
   $('#help').addEventListener('click', function () { hc.hidden = !hc.hidden; });
   hc.addEventListener('click', function () { hc.hidden = true; });
 })();

@@ -85,6 +85,10 @@ function fileVideoToCreations({ url, poster, prompt, type, model, quality }) {
       poster: poster && !String(poster).startsWith('data:') ? poster : null,
       type: type || 'clip',
       prompt: String(prompt || '').slice(0, 500),
+      // The caption above is capped at 500; the WHOLE prompt rides beside it
+      // (Sophie's hard rule, 2026-08-24) — the animation prompt is often the
+      // only place a clip's motion text exists once the job is gone.
+      fullPrompt: String(prompt || ''),
       model: model || null,
       quality: quality || null,
       source: 'movies',

@@ -16,6 +16,7 @@
 //
 //   node scripts/test-tritoggle-aim.js
 const fs = require('fs');
+const servePublic = require('./lib/public-asset');
 const path = require('path');
 const http = require('http');
 
@@ -124,6 +125,8 @@ const pageSrc = fs.readFileSync(path.join(PUB, 'promptlab.html'), 'utf8');
 
 (async () => {
   const server = http.createServer((req, res) => {
+    // Anything the page links out of public/ — /feedkit.js, /tritoggle.*, …
+    if (servePublic(req, res)) return;
     const url = new URL(req.url, 'http://x');
     if (url.pathname === '/api/promptlab') {
       res.writeHead(200, { 'Content-Type': 'application/json' });

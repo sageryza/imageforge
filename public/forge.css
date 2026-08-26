@@ -8,20 +8,28 @@
    • Warm paper palette, quiet type, generous spacing.
    ────────────────────────────────────────────────────────────────── */
 
+/* THE PALETTE IS house.css — see the note at the top of tool.css. This sheet
+   carried the SAME values as tool.css under a third set of names (`--text`
+   where that one says `--ink`), which is half of why the app ended up with
+   nine accents. Aliases only below; never a hex. */
+@import url('/house.css');
 :root {
-  --bg: #faf9f7;
-  --surface: #ffffff;
-  --surface-2: #f5f0eb;
-  --border: #e8e4df;
-  --accent: #b48b6a;
-  --accent-dim: #c9ad93;
-  --text: #3a3530;
-  --text-dim: #9e9590;
-  --danger: #d4807a;
-  --green: #7ab58a;
-  --star: #dbb45c;
-  --radius: 6px;
-  --radius-lg: 12px;
+  /* `--bg` is this sheet's name for the page colour and it is used in ~20 of
+     its own rules, so dropping it in favour of house.css's `--paper` left the
+     HUB with a transparent body — measured, not theorised, the hour this
+     landed. An alias block has to cover every name the sheet still reads. */
+  --bg: var(--paper);
+  --surface-2: var(--surface2);
+  --border: var(--line);
+  --accent: var(--chg);
+  /* the one derived value: the accent at ~60% over the paper, for a disabled
+     or secondary accent. Stated rather than eyeballed. */
+  --accent-dim: color-mix(in srgb, var(--chg) 60%, var(--paper));
+  --text: var(--ink);
+  --text-dim: var(--ink2);
+  --danger: var(--rose);
+  --radius: var(--r);
+  --radius-lg: var(--r-lg);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }

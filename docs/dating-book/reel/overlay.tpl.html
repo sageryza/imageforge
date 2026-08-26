@@ -1,0 +1,209 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+@font-face{font-family:Anton;src:url(data:font/ttf;base64,__ANTON__) format('truetype');}
+@font-face{font-family:Osw;font-weight:700;src:url(data:font/ttf;base64,__OSWALD__) format('truetype');}
+:root{--red:#D92B1C;--ink:#141010;--paper:#F7F3EA;}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:1080px;height:1920px;overflow:hidden;background:transparent;}
+#stage{position:relative;width:1080px;height:1920px;font-family:Anton,sans-serif;}
+.l{position:absolute;opacity:0;will-change:transform,opacity;}
+/* cross-out stack */
+#negs{left:0;right:0;top:560px;text-align:center;}
+.neg{position:relative;display:inline-block;font-size:150px;line-height:1.06;color:#fff;
+     letter-spacing:2px;text-shadow:0 6px 24px rgba(0,0,0,.55);opacity:0;}
+.neg .row{position:relative;display:inline-block;padding:0 10px;}
+.neg .strike{position:absolute;left:0;top:48%;height:12px;background:var(--red);width:0%;
+     border-radius:2px;box-shadow:0 3px 10px rgba(0,0,0,.4);}
+/* plain word */
+.word{font-size:132px;color:#fff;letter-spacing:3px;text-shadow:0 6px 24px rgba(0,0,0,.55);}
+/* split-flap card */
+.flap{background:var(--ink);border-radius:14px;padding:26px 40px 30px;
+      box-shadow:0 18px 50px rgba(0,0,0,.5);position:relative;overflow:hidden;}
+.flap::after{content:'';position:absolute;left:0;right:0;top:50%;height:3px;background:rgba(255,255,255,.13);}
+.flap .num{font-family:Osw;font-weight:700;color:var(--red);line-height:.94;
+      font-variant-numeric:tabular-nums;text-align:center;}
+.cap{font-family:Osw;font-weight:700;letter-spacing:7px;color:#fff;text-align:center;
+      text-shadow:0 4px 16px rgba(0,0,0,.6);}
+/* message chips */
+.chip{position:absolute;left:50%;font-family:Osw;font-weight:700;font-size:40px;letter-spacing:5px;
+      color:var(--ink);background:var(--paper);border-radius:8px;padding:14px 26px;opacity:0;
+      box-shadow:0 10px 26px rgba(0,0,0,.35);white-space:nowrap;}
+/* form */
+.frow{margin-bottom:56px;opacity:0;}
+.flab{font-family:Osw;font-weight:700;font-size:46px;letter-spacing:5px;color:#fff;
+      text-transform:uppercase;text-shadow:0 4px 16px rgba(0,0,0,.6);margin-bottom:14px;}
+.fans{font-family:Anton;font-size:76px;color:var(--red);border-bottom:7px solid rgba(255,255,255,.85);
+      padding-bottom:10px;min-height:96px;white-space:nowrap;overflow:hidden;
+      text-shadow:0 4px 16px rgba(0,0,0,.45);}
+/* ticks */
+.tick{display:flex;align-items:center;gap:24px;margin-bottom:40px;opacity:0;}
+.tickbox{width:64px;height:64px;border:7px solid #fff;border-radius:8px;position:relative;flex:none;
+      box-shadow:0 4px 16px rgba(0,0,0,.4);}
+.tickbox svg{position:absolute;left:-8px;top:-12px;width:80px;height:80px;}
+.tickbox svg path{fill:none;stroke:var(--red);stroke-width:11;stroke-linecap:round;stroke-linejoin:round;
+      stroke-dasharray:60;stroke-dashoffset:60;}
+.ticktx{font-family:Osw;font-weight:700;font-size:52px;letter-spacing:3px;color:#fff;
+      text-transform:uppercase;text-shadow:0 4px 16px rgba(0,0,0,.6);}
+</style>
+
+<div id="stage">
+  <div class="l" id="negs">
+    <div class="neg" data-i="0"><span class="row">JOB<span class="strike"></span></span></div><br>
+    <div class="neg" data-i="1"><span class="row">FRIENDS<span class="strike"></span></span></div><br>
+    <div class="neg" data-i="2"><span class="row">CAR<span class="strike"></span></span></div><br>
+    <div class="neg" data-i="3"><span class="row">LIFE<span class="strike"></span></span></div>
+  </div>
+
+  <div class="l word" id="okc" style="left:0;right:0;top:880px;text-align:center;">OKCUPID</div>
+
+  <div class="l" id="clock" style="right:90px;top:420px;">
+    <div class="flap" style="padding:18px 30px 22px;"><div class="num" style="font-size:96px;">3:00<span style="font-size:52px;"> PM</span></div></div>
+  </div>
+
+  <div class="l" id="c1" style="left:0;right:0;top:1240px;text-align:center;">
+    <div class="flap" style="display:inline-block;"><div class="num" id="c1n" style="font-size:210px;">10</div></div>
+    <div class="cap" style="font-size:52px;margin-top:26px;">GUYS</div>
+  </div>
+
+  <div class="l" id="msgs" style="left:0;right:0;top:700px;height:900px;"></div>
+
+  <div class="l" id="back" style="left:0;right:0;top:700px;text-align:center;">
+    <div class="neg" data-i="0" style="font-size:150px;"><span class="row">JOB<span class="strike"></span></span></div><br>
+    <div class="neg" data-i="1" style="font-size:150px;"><span class="row">CAR<span class="strike"></span></span></div>
+  </div>
+
+  <div class="l" id="rolo" style="left:0;right:0;top:700px;text-align:center;">
+    <div class="flap" id="rolocard" style="display:inline-block;padding:40px 70px 46px;">
+      <div class="num" id="rolon" style="font-size:400px;">50</div>
+    </div>
+    <div class="cap" id="rolocap" style="font-size:62px;margin-top:36px;">GUYS</div>
+    <div class="cap" id="rolosub" style="font-size:44px;margin-top:20px;opacity:0;letter-spacing:5px;">OKCUPID + TINDER</div>
+  </div>
+
+  <div class="l" id="form" style="left:110px;right:110px;top:640px;">
+    <div class="frow" data-i="0"><div class="flab">Hobbies?</div><div class="fans"></div></div>
+    <div class="frow" data-i="1"><div class="flab">Source of income?</div><div class="fans"></div></div>
+    <div class="frow" data-i="2"><div class="flab">Something else?</div><div class="fans"></div></div>
+  </div>
+
+  <div class="l" id="ticks" style="left:140px;right:140px;top:900px;">
+    <div class="tick" data-i="0"><div class="tickbox"><svg viewBox="0 0 80 80"><path d="M16 42 L32 58 L64 20"/></svg></div><div class="ticktx">What they were wearing</div></div>
+    <div class="tick" data-i="1"><div class="tickbox"><svg viewBox="0 0 80 80"><path d="M16 42 L32 58 L64 20"/></svg></div><div class="ticktx">Who paid</div></div>
+  </div>
+</div>
+
+<script>
+(function(){
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const cl=(x,a,b)=>Math.max(a,Math.min(b,x));
+const seg=(t,a,b)=>cl((t-a)/(b-a),0,1);            // 0..1 ramp
+const ease=x=>1-Math.pow(1-x,3);
+// fade a layer in over .22s and out over .3s
+function lay(el,t,a,b){
+  const inn=seg(t,a,a+0.22), out=1-seg(t,b-0.30,b);
+  const o=Math.min(ease(inn),out);
+  el.style.opacity=o;
+  el.style.transform='translateY('+((1-ease(inn))*26).toFixed(2)+'px)';
+  return o>0;
+}
+// a flap flip: 0.14s squash on each value change
+function flip(el,t,changedAt){
+  const p=cl((t-changedAt)/0.14,0,1);
+  const s=p<1?(0.15+0.85*ease(p)):1;
+  el.style.transform='scaleY('+s.toFixed(3)+')';
+  el.style.filter=p<1?'blur('+((1-p)*3).toFixed(2)+'px)':'none';
+}
+function stepVal(steps,t){ let v=steps[0][1],at=steps[0][0];
+  for(const [tt,vv] of steps) if(t>=tt){v=vv;at=tt;} return [v,at]; }
+
+// ---- the beats, in seconds of the v1 cut -------------------------------
+const NEG=[[3.44,3.86],[4.42,5.06],[5.92,6.52],[7.72,8.20]];   // [appear, strike]
+const C1=[[26.06,'10'],[26.78,'20'],[27.26,'30'],[27.52,'40'],[27.84,'50']];
+const MSG=[30.08,30.36,30.68,30.82,31.38,31.68,32.06,32.82];
+const BACK=[[38.10,38.42],[40.20,40.52]];
+const FORM=[[65.66,66.64,'Going on OkCupid'],[68.26,69.70,'OkCupid'],[70.94,71.92,'Something, something']];
+const TICK=[77.80,78.88];
+
+function roloVal(t){
+  if(t<54.32) return ['—',53.30];
+  if(t<57.92) return ['50',54.32];
+  if(t<58.92) return ['55',57.92];
+  if(t<59.90) return ['65',58.92];
+  if(t<61.20){ const k=Math.floor((t-59.90)/0.145); const v=66+Math.min(k,8);
+               return [String(v),59.90+k*0.145]; }
+  return ['75',61.20];
+}
+
+window.render=function(t){
+  // 1 — the cross-outs
+  if(lay($('#negs'),t,3.20,9.40)){
+    $$('#negs .neg').forEach((n,i)=>{
+      const [a,s]=NEG[i];
+      n.style.opacity=ease(seg(t,a,a+0.16));
+      n.style.transform='translateY('+((1-ease(seg(t,a,a+0.16)))*18).toFixed(1)+'px)';
+      n.querySelector('.strike').style.width=(ease(seg(t,s,s+0.22))*100).toFixed(1)+'%';
+    });
+  }
+  // 2 — OKCUPID
+  if(lay($('#okc'),t,11.10,12.90)){
+    const p=ease(seg(t,11.10,11.42));
+    $('#okc').style.transform='scale('+(0.86+0.14*p).toFixed(3)+')';
+  }
+  // 3 — 3PM
+  lay($('#clock'),t,19.90,21.50);
+  // 4 — counter one
+  if(lay($('#c1'),t,25.80,29.60)){
+    const [v,at]=stepVal(C1,t); $('#c1n').textContent=v; flip($('#c1n'),t,at);
+  }
+  // 5 — message chips
+  if(lay($('#msgs'),t,29.90,33.40)){
+    const box=$('#msgs');
+    MSG.forEach((a,i)=>{
+      const c=box.children[i]; if(!c) return;
+      const p=ease(seg(t,a,a+0.13));
+      c.style.opacity=p;
+      const lift=(MSG.filter(x=>x<=t).length-1-i)*96;
+      c.style.transform='translate(-50%,'+(1000-lift-(1-p)*40).toFixed(1)+'px) scale('+(0.82+0.18*p).toFixed(3)+')';
+    });
+  }
+  // 6 — job / car come back
+  if(lay($('#back'),t,37.90,41.60)){
+    $$('#back .neg').forEach((n,i)=>{
+      const [a,s]=BACK[i];
+      n.style.opacity=ease(seg(t,a,a+0.14));
+      n.querySelector('.strike').style.width=(ease(seg(t,s,s+0.18))*100).toFixed(1)+'%';
+    });
+  }
+  // 7 — the rolodex
+  if(lay($('#rolo'),t,53.20,64.60)){
+    const [v,at]=roloVal(t); $('#rolon').textContent=v; flip($('#rolon'),t,at);
+    const k=t-61.20;   // the stop
+    const sh=(k>=0&&k<0.34)?Math.sin(k*54)*(1-k/0.34)*11:0;
+    $('#rolocard').style.marginLeft=sh.toFixed(2)+'px';
+    $('#rolosub').style.opacity=ease(seg(t,61.90,62.20))*(1-seg(t,64.20,64.55));
+  }
+  // 8 — the profile form
+  if(lay($('#form'),t,65.40,72.90)){
+    $$('#form .frow').forEach((r,i)=>{
+      const [a,b,txt]=FORM[i];
+      r.style.opacity=ease(seg(t,a,a+0.16));
+      const n=Math.round(ease(seg(t,b,b+0.40))*txt.length);
+      r.querySelector('.fans').textContent=txt.slice(0,n);
+    });
+  }
+  // 9 — the notebook ticks
+  if(lay($('#ticks'),t,77.60,80.30)){
+    $$('#ticks .tick').forEach((r,i)=>{
+      const a=TICK[i];
+      r.style.opacity=ease(seg(t,a,a+0.14));
+      r.querySelector('path').style.strokeDashoffset=(60*(1-ease(seg(t,a+0.16,a+0.42)))).toFixed(1);
+    });
+  }
+};
+// build the chips once
+const box=document.querySelector('#msgs');
+for(let i=0;i<MSG.length;i++){const d=document.createElement('div');d.className='chip';d.textContent='MESSAGE';box.appendChild(d);}
+window.__ready=true;
+})();
+</script>

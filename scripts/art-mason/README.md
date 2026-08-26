@@ -105,3 +105,47 @@ the untouched full-res file (Assets tiles still point at the originals).
 
 720px wide is plenty for a two-per-row layout on an iPhone 13. That took the
 high-vs-medium page from 20MB to 1.1MB.
+
+## The eight source recordings — audit (2026-08-26)
+
+Sophie asked whether all eight of her descriptions from that one day were
+still there. **They are** — her own transcripts of all eight sit, verbatim and
+in order, in the `Where Do You Crop Art?` story pad's `description`
+(`forge-scratchpad`, ten paragraphs: a header line, the eight transcripts, and
+her closing note). Each paragraph was matched back to its recording through
+the search index, so the mapping is measured, not assumed:
+
+| # | memo id (search index) | title | len |
+|---|---|---|---|
+| 1 | `2026-07-29_1347_2026-07-29T20_47_18Z` | Concept of Noise Art | 181s |
+| 2 | `2026-07-29_1351_2026-07-29T20_51_55Z` | Visual Concept for Noise Art | 107s |
+| 3 | `2026-07-29_1354_2026-07-29T20_54_01Z` | Visual Concept for Image Design | 52s |
+| 4 | `2026-07-29_1355_2026-07-29T20_55_30Z` | Metaphor for Artistic Interpretation | 103s |
+| 5 | `2026-07-29_1357_2026-07-29T20_57_38Z` | Art Process and Sculpture Concept | 111s |
+| 6 | `2026-07-29_1400_2026-07-29T21_00_14Z` | Art Recap Animation Concept | 136s |
+| 7 | `2026-07-29_1403_2026-07-29T21_03_12Z` | Expansion Concept Discussion | 114s |
+| 8 | `2026-07-29_1405_2026-07-29T21_05_28Z` | Exploring Noise in Art | 95s |
+
+15 minutes in total, 1:47–2:05 pm — which is where the README's "eight
+recordings" line above comes from.
+
+**What WAS missing: the audio.** Only ONE of the eight (1357) was attached to
+that story, so the waveform button played one recording out of fifteen
+minutes; the other pads in the Mason folder held two (`Mason — the noise art
+pipeline`) and three (`Mason — the shape`) as candidates. All eight are now
+attached to `Where Do You Crop Art?` in chronological order via
+`POST /api/scratchpad/audio` — not as candidates, because her own transcript
+of each one is in that same pad, which is not a guess.
+
+**Still open, and hers to call — two of the eight never became beats.** The
+pad's 13 beats cover recordings 1-6; #7 (the wider net + the five-rectangle
+"you are here" diagram) survives only as half of beat 9, and #8 (the campfire
+— noise turning into patterns, plus "research real artists with a weird
+process") has no beat at all. The art for all three already exists in
+`panels-v2.json` (`wider-net`, `zoomout-diagram`, `campfire-flames`), so this
+is a writing decision, not a render. Do not add the beats without asking —
+what goes in the story is Sophie's.
+
+Also unexplained, left alone: `Mason — the shape` carries a
+`2026-03-03_1217` source ("Reflections on Day and Ideas", 26 min) flagged
+`candidate:true` — a chat's guess that nobody has confirmed.

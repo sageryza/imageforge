@@ -442,6 +442,13 @@ struct RootView: View {
         .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
             if let url = activity.webpageURL { handleDeepLink(url) }
         }
+        // AND THE SAME LINK TAPPED INSIDE THE APP (2026-08-25). iOS never
+        // hands a universal link to the app it is already in, so a tool link
+        // in a message used to bounce out to Safari. The web views ask
+        // ForgeLinks.open first and it arrives here instead.
+        .onReceive(NotificationCenter.default.publisher(for: ForgeLinks.opened)) { note in
+            if let url = note.object as? URL { handleDeepLink(url) }
+        }
         // A tapped push lands on the Chats screen; ChatFeedView hears the same
         // notification and reloads its page onto the Update tab (?view=news).
         .onReceive(NotificationCenter.default.publisher(for: .forgePushOpenUpdate)) { _ in

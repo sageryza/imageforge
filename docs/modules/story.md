@@ -78,9 +78,11 @@ All 12 NDE-category stories were linked to their montage episodes on
   (`#beatcard`, screen-capped + scrolls inside if it overflows, controls
   styled ink-on-cream, tap anywhere off the controls — the surrounding pad
   or the card's empty cream — to close) — the art at THUMBNAIL
-  size (never blown up — Sophie's spec), five bare color chips (gray/
+  size (never blown up — Sophie's spec), five color chips (gray/
   mustard/green/blue/pink) that set the FRAME color and keep the popup
-  open, and a three-line text box (`beat.text`, saved on close). The story TITLE sits
+  open — **each carrying her own word for what that colour means since
+  2026-08-26 (see WHAT THE COLOURS MEAN below); the pad and the frames
+  still say nothing**, and a three-line text box (`beat.text`, saved on close). The story TITLE sits
   under the eyebrow in the serif ("Untitled" until she renames it — tap to
   edit, `pad.title`, `POST /title`); a beat with words shows them SMALL
   under its tile — FIRST LINE only, the rest lives in the popup — and
@@ -205,42 +207,78 @@ All 12 NDE-category stories were linked to their montage episodes on
   screen-change reload in PlaygroundView. iOS: home-grid tile
   "Scratch Pad" (`ScratchPadView.swift`, bare WKWebView per the page-owns-
   header rule).
-- **THE STYLE TOGGLE — watercolor ↔ dreamy (Aug 2026, Sophie: "I want to
-  have the same beats but I wanna fill them with new art … a style toggle at
-  the top of a story that alternates between dreamy and watercolor … the same
-  format that the account's toggle is").** One story, TWO sets of art over
-  the SAME beats: words, frame colors, voice takes, chunks and order are
-  shared; only the pictures differ. The toggle is `.swi` — the account
-  switcher's switch from chats.html verbatim (48px track, 26 tall, 18px
-  knob), two stops, in INK on the cream page, on its own line under the
-  title row (the row above already carries six icons on a 390pt phone).
+- **THE STYLE TOGGLE — watercolor · dreamy · pastel (Aug 2026, Sophie: "I
+  want to have the same beats but I wanna fill them with new art … a style
+  toggle at the top of a story that alternates between dreamy and watercolor …
+  the same format that the account's toggle is"; PASTEL added 2026-08-26,
+  "can you make another style in the story room called pastel besides
+  watercolor and dreamy?").** One story, N sets of art over the SAME beats:
+  words, frame colors, voice takes, chunks and order are shared; only the
+  pictures differ.
+  - **IT IS THE SHARED THREE-WAY TOGGLE — `/tritoggle.css` + `/tritoggle.js`,
+    linked and never copied.** It used to be `.swi`, a hand copy of the
+    account switcher's TWO-stop geometry, and the day a third style landed
+    that copy was the thing in the way: the house rule is that three options
+    is a three-way toggle and there is exactly one shell for it. Colour is
+    the per-instance option (ink on the cream page, the Playground's
+    precedent), the knob carries the style's INITIAL (`data-i` — W/D/P) and
+    the three words sit beside it with the lit one where the knob is. That
+    is her original shape — "the words either side say which is which" —
+    with the switch moved to the front, because three words cannot straddle
+    one switch. **A tap lands on the STOP UNDER THE THUMB, never a cycle**;
+    tapping a word picks that style outright (a word sits nowhere near its
+    stop). Its own line under the title row, since that row already carries
+    six icons on a 390pt phone.
+  - **NOTHING COUNTS THE STYLES** — `STYLES` in scratchpad.js and its twin in
+    the page are the only lists, so a fourth style is an entry in each plus
+    its recipe, and the toggle, the film, the delete rule, the shelf face and
+    the stuck-job sweep all follow. (Before pastel every one of those was a
+    `style === 'dreamy' ? … : …` ternary, which is why adding one was a
+    rewrite rather than a line.)
   - **Watercolor is the pad's original look and lives where it always did**
     (`beat.url/src/gen/imageHistory` — nothing that exists migrated), so
-    every old story opens exactly as before. **Dreamy lives in
-    `beat.alt.dreamy`**, the same four fields, EMPTY until she fills it —
+    every old story opens exactly as before. **Every other style lives in
+    `beat.alt[style]`**, the same four fields, EMPTY until she fills it —
     flipping the toggle shows the same beats with the same writing and
-    honestly blank tiles where dreamy art isn't drawn yet.
+    honestly blank tiles where that side's art isn't drawn yet.
   - `pad.style` remembers the side; `POST /style` sets it (like /category,
     NO updatedAt bump — flipping the view is not a story edit). Every
     request that touches ART carries `style` (`/generate`, `/drawall`,
     `/image`, `/add`, `/cover`), so a stale page can never draw into the
     wrong side. `artSlot(b, style)` in scratchpad.js / `slotOf(b)` in the
     page are the ONE accessor pair.
-  - **Dreamy draws the Playground's Dreamy recipe** — `refs/dream-mystery.jpg`
-    as the one reference, her dictated prefix and suffix bookending the
-    words, NEVER the Sophie card (`noCharacter` — her card is the watercolor
-    look). `DREAMY.prefix/.suffix` in scratchpad.js are COPIES of
-    `PL_GPT_STYLES.dreamy` in server.js — keep them identical;
-    `test-scratchpad-style.js` pins the pair byte-for-byte.
+  - **Each style draws its PLAYGROUND TILE's recipe**, so a beat drawn here
+    and a picture drawn there are the same picture. `STYLE_ART` in
+    scratchpad.js holds one entry per non-watercolor style and its
+    `prefix`/`suffix` are COPIES of `PL_GPT_STYLES.<style>` in server.js —
+    keep them identical; `test-scratchpad-style.js` derives the list from
+    `STYLE_ART` itself and pins every pair byte-for-byte, so a fourth style
+    cannot ship unchecked. **NONE of them takes the Sophie card**
+    (`noCharacter` — her card is the watercolor look, i.e. a style reference
+    by another name, and a second reference in a different style is exactly
+    what these prefixes forbid).
+    - **Dreamy** — `refs/dream-mystery.jpg`, her dictated prefix and suffix
+      bookending the words.
+    - **Pastel** — the Witch School pair she named *sophie snake* and *sophie
+      animals*, which live in **STORAGE, not `refs/`** (that is the one thing
+      that makes this style different to wire up, and why `refsFor()` is
+      async), plus the **WHITEN pass** on the way out. That pass is part of
+      the recipe, not a nicety: the look draws on a plain white ground and
+      gpt-image-2 returns it faintly tinted, which reads as grey on the pad's
+      cream. It moved into **`whiten-bg.js`** the day this landed — ONE copy,
+      shared with the Playground and the house style, rather than a second
+      twenty-line flood fill in a module that cannot reach into server.js.
+      Best-effort: a failed whiten keeps the picture rather than losing a
+      paid render.
   - **The film is the side the story is showing** — `runFilmJob` reads
     `pad.style` and stamps `style` on the render, which is how the page
-    knows a watercolor cut is not the dreamy film (the toggle never bumps
+    knows a watercolor cut is not the pastel film (the toggle never bumps
     updatedAt, so this is the freshness signal across a flip).
   - **DELETING IS PER SIDE TOO (2026-08-23, Sophie: "if I delete a beat in
     one of the styles does it delete it for the other style too? … I don't
     want it to … leave it in the other style cause that one might have an
     image for that").** `POST /remove {id, style}` asks one question first —
-    is there still art on the OTHER side? **Yes** → only this side goes: its
+    is there still art on ANY other side? **Yes** → only this side goes: its
     picture (or clip) is banked in `pad.trash` (as `{beatId, style, …}`, so a
     per-side removal is never mistaken for a deleted beat), the side is
     emptied and marked `off`, and the beat keeps its place, its words, its
@@ -258,8 +296,9 @@ All 12 NDE-category stories were linked to their montage episodes on
       draw starting and landing) — putting something there is what brings
       the side back. The wand skips a side she deleted from, and the film
       skips it by itself (an emptied slot has no url).
-    - **The confirm box says which side is going** and which one keeps it,
-      because the same button means two different things.
+    - **The confirm box says which side is going** and NAMES every side that
+      keeps it ("It stays in Watercolor and Dreamy."), because the same
+      button means two different things.
   - **A CLIP is per-style TOO (2026-08-23, Sophie — the first live use of
     the toggle taught this).** The design shipped with clips shared between
     the sides ("footage, not drawn art") and she overruled it within the
@@ -268,7 +307,7 @@ All 12 NDE-category stories were linked to their montage episodes on
     should not"). So a SLOT holds a picture or a clip — `kind:'clip'` +
     poster/seconds/title/clipId live on the slot, the beat root being the
     watercolor slot (every pre-toggle clip record reads unchanged) —
-    `slotClip`/`slotFace` in scratchpad.js, `clipOf` on the page, and
+    `slotClip`/`slotFace` in scratchpad.js, `clipOf`/`slotFor` on the page, and
     `/clip` carries `style` like every other art write. A beat can be a
     movie on one side and a drawn picture (or blank) on the other; drawall
     still fills the non-clip side.
@@ -291,10 +330,35 @@ All 12 NDE-category stories were linked to their montage episodes on
   between the clips should disappear").** The + stops propagation, so the
   document-level cancel never hears it — the handler clears `pending`
   itself. Tests for all three: `node scripts/test-scratchpad-style.js`.
+- **WHAT THE COLOURS MEAN — her own words, and where she said them
+  (2026-08-26, Sophie: "can you find where I said with the colors mean in
+  story room and then label them in the drop-down").** She dictated them into
+  the memo that designed this pad — **"Story Room Concept Development"**,
+  recorded 2026-08-03, filed in the `last-voice-recording-inbox` chat:
+  *"mustard yellow for examples, green for explanations, blue for like the
+  main idea, and then maybe pink for like a bridge"*. She confirmed the set
+  from memory on 2026-08-09 ("Follow my color rules. So yellow is examples,
+  etcetera. There should be in some message a long time ago"). Gray is the
+  thin default frame, which she never named — the chip reads **No frame**.
+  - **The words live in the DROP-DOWN and NOWHERE ELSE, which is not a
+    softening of the rule below — it is the rule's own line.** On 2026-08-04
+    she killed a build that put those words on the CARDS: *"You said the
+    mustard should be labeled as example, that exactly the wrong philosophy.
+    The whole point is that you have indicators that skip the left brain
+    labeling."* That is about READING a pad. The drop-down is the moment she
+    is CHOOSING, where the meaning of mustard is the one thing that can be
+    forgotten — so the chip is a row (a colour dot, then the word) and the
+    pad, the beat frames and the popup's picture still say nothing at all.
+  - **Pinned VERBATIM by `node scripts/test-scratchpad-popup.js`** (section
+    4b) — the five words in her order, AND the negative half: neither the pad
+    nor the picture may name any of them. A reworded label is the paraphrase
+    this repo keeps having to undo.
 - **PHILOSOPHY (Sophie, Aug 2026 — do not "improve" this):** the pad is a
   place for thinking on paper, so it is MINIMAL. The frame colors are
   deliberately UNLABELLED indicators — never write "example"/"explanation"/
-  etc. anywhere; the color skips left-brain labeling by design. No machinery
+  etc. on the pad, on a beat or under a picture; the color skips left-brain
+  labeling by design. (The colour drop-down is the ONE named exception —
+  see WHAT THE COLOURS MEAN above.) No machinery
   on the pad itself (finished artwork only — no draw/redraw buttons on the
   canvas; everything operational lives in popups or off-canvas). Iterating
   fast on this module with her is expected — check the chat before assuming
@@ -413,8 +477,39 @@ All 12 NDE-category stories were linked to their montage episodes on
 - Data: one doc PER STORY in `forge-scratchpad` (deckfactory) — `{ beats:[{id, url,
   color, src:{runId,i,prompt,model,engine,quality}, addedAt}] }`; `src` is
   carried so the later regenerate knows how each image was made. Routes:
-  `GET /` (pad), `GET /inbox`, `POST /add {url, at?, src?}`,
+  `GET /` (pad), `GET /inbox`, `POST /inbox/hide {url, hide?}`,
+  `POST /add {url, at?, src?}`,
   `POST /color {id, color|null}`. STUDIO_TOKEN gate, only `/status` open.
+- **TAKING ONE OUT OF THE INBOX — it HIDES, it does not delete (2026-08-26,
+  Sophie: "can you make a way to delete certain items from the inbox in story
+  room?").** A small ✕ in each tile's top corner, on every tile because a
+  phone has no hover; an undo line under the grid for the visit's removals.
+  - **Hidden and not deleted, for a structural reason and not squeamishness:**
+    the three kinds of item in that grid belong to three different places and
+    only one of them is the story's to destroy. A **Playground heart** lives on
+    its run doc, so un-hearting it here would reach back and change what she
+    sees in the PLAYGROUND; an **upload's** bytes are the Dump's,
+    content-addressed and possibly shared with an assembly; only a story's own
+    gathered `inbox` entry is local. So the removal is recorded on the STORY —
+    the one thing the route owns — as a url on `inboxHidden`, and every read
+    filters against it. Same verb the clip shelf uses (`clips.js` has
+    deliberately no delete route).
+  - **The ✕ is a `<span>`, never a nested `<button>`** — the tile IS a button
+    whose whole job is placing the picture, so a mark that let the tap bubble
+    would remove a picture and start placing it in one gesture. Rounded square
+    at the house 6px, never a circle.
+  - **The SOURCE is decided by the unfiltered list.** A story that gathered its
+    own art keeps showing its own art even once she has taken every picture out
+    of it — falling back to the Playground hearts on an emptied inbox would
+    answer with a stranger's pictures.
+  - **No `updatedAt` bump**, like `/upload` and `/category`: what waits in the
+    add sheet is not on the timeline, so taking one out must not stale the film.
+  - The undo line is per VISIT (a removal from last time is already gone from
+    what the server sends). The route is the recovery path after that —
+    `{hide:false}` for the url.
+  - Test: `node scripts/test-scratchpad-inbox-remove.js` (the real page,
+    headless — the tap asked with `elementFromPoint` at the mark's own centre,
+    which is the only honest way to ask what a tap reaches).
 
 ## Story Room (forge-story) — THE story surface (merged July 2026)
 - **Making art for the "Evan" story? Read `docs/evan-film-style.md` FIRST.**

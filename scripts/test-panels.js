@@ -26,6 +26,15 @@ let n = 0;
 const t = (name, fn) => { fn(); n++; console.log('  ok  ' + name); };
 const ROOT = path.join(__dirname, '..');
 
+// The tier the page opens on, read out of the served defaults rather than
+// retyped — the page-half assertions follow it wherever it goes.
+const TIER_DEFAULT = (() => {
+  const src = fs.readFileSync(path.join(ROOT, 'panels.js'), 'utf8');
+  const m = /defaults: \{[^}]*res: '([^']+)'/.exec(src);
+  assert.ok(m, 'found the served default tier in panels.js');
+  return m[1];
+})();
+
 console.log('\npanels\n');
 
 // --------------------------------------------------------------------------
@@ -306,6 +315,28 @@ t('the page holds NO price and NO prompt text of its own', () => {
   assert.ok(PAGE.includes('/api/panels/config'), 'it asks the server instead');
 });
 
+t('the hand-off to the Playground lands on the cheap rung', () => {
+  // Sophie, 2026-08-26: "when I pick one and migrate it to the playground, it
+  // should default to one k and low". Taking a panel over used to carry
+  // res=4k plus the run's own quality — ~47c a tap, pre-set for her before
+  // she had asked for anything. The SHEET's own defaults are deliberately the
+  // other way (4k/medium): a sheet only pays off at the tier where a cut beats
+  // an ordinary picture, and the two rungs are answers to two different
+  // questions. Pinned in both directions so a chat reading either comment
+  // cannot tidy the other one to match.
+  assert.ok(/quality=low&res=1k/.test(PAGE), 'the hand-off link carries 1k + low');
+  assert.ok(!/&res=4k/.test(PAGE), 'and nothing still walks her to 4K');
+  assert.ok(!/quality=' \+ encodeURIComponent\(r\.quality/.test(PAGE),
+    "the run's own quality no longer rides the link");
+  assert.ok(/r\.style === 'evan' \? 'chatgpt'/.test(PAGE),
+    'and the server key is still remapped to the tile the picture was drawn on');
+  const SRC = fs.readFileSync(path.join(ROOT, 'panels.js'), 'utf8');
+  assert.ok(/defaults: \{[^}]*res: '4k'[^}]*quality: 'medium'/.test(SRC),
+    'the SHEET still opens on 4k + medium');
+  assert.ok(/String\(req\.body\.res\) : '4k'/.test(SRC),
+    "and the POST's own fallback agrees with what it serves");
+});
+
 t('no page class collides with one tool.css already owns', () => {
   // THE BUG THIS EXISTS FOR (2026-08-24, Sophie: "layout is just really
   // awkward"): the boxes were `class="cell"`, and tool.css owns `.tool .cell`
@@ -391,9 +422,24 @@ t('the slider is the SHARED three-way shell, not a copy of it', () => {
   // the page links it and keeps only its own colour and size.
   assert.ok(/<link rel="stylesheet" href="\/tritoggle\.css">/.test(PAGE), 'the page links the shell');
   assert.ok(!/\.swtog/.test(PAGE), 'and has no leftover hand-copy of the old rule');
-  for (const prop of ['--tri-track: #2b2622', '--tri-knob: #faf7f2', '--tri-w: 78px', '--tri-k: 26px']) {
-    assert.ok(PAGE.includes(prop), 'the instance still declares ' + prop);
-  }
+  // AND ITS COLOUR IS THE PLAYGROUND'S, READ OUT OF THAT FILE (2026-08-26,
+  // Sophie: "make it exactly the same as the playground except that it's
+  // panels"). This used to pin the four literals `--tri-track: #2b2622` /
+  // `--tri-knob: #faf7f2` — a solid ink slab, which is where the Playground's
+  // instance stood before 2026-08-24 and exactly the drift she was looking at:
+  // that tool moved to paper-with-a-black-line ("the buttons are styled so
+  // fucking weird … they should have black outlines") and this one did not,
+  // because nothing compared them. Now nothing CAN drift: the two declarations
+  // are compared property by property.
+  const labTri = /\n  \.tri \{([\s\S]*?)\}/.exec(
+    fs.readFileSync(path.join(ROOT, 'public', 'promptlab.html'), 'utf8'));
+  const panTri = /\n  \.tri \{([\s\S]*?)\}/.exec(PAGE);
+  assert.ok(labTri && panTri, 'both pages declare a .tri instance');
+  const props = (b) => Object.fromEntries(b.trim().split(';')
+    .map((d) => d.trim()).filter(Boolean)
+    .map((d) => d.split(':').map((x) => x.trim())));
+  assert.deepStrictEqual(props(panTri[1]), props(labTri[1]),
+    'the panels toggle wears the Playground\'s exact instance — colour and size');
   assert.ok(!/\.tri \{[^}]*(position|transition|border-radius)\s*:/.test(PAGE),
     'the instance carries colour and size only, never the geometry');
 });
@@ -609,13 +655,81 @@ async function drivePage() {
     n++; console.log('  ok  page: her words survive every grid change');
 
     // The plan line carries the SERVED numbers, and moves with the pickers.
+    // The expected canvases are DERIVED at the tier the page opens on, not
+    // typed in: this block hardcoded the 4K pair and went red the day the
+    // default moved to 1K, which is a test measuring the default rather than
+    // the plan line.
+    const openTier = TIER_DEFAULT;
     const planTwo = await p.$eval('#plan', (e) => e.textContent);
-    assert.ok(/3264x2448/.test(planTwo), `the two-up sheet is named: ${planTwo}`);
+    const twoUp = G.sheetFor(2, 'portrait', openTier).sheet;
+    assert.ok(new RegExp(twoUp).test(planTwo), `the two-up sheet is named: ${planTwo}`);
     assert.ok(/\dc\b/.test(planTwo), 'and what it costs');
     await p.click('#ctrls button[data-grid="4"]');
     await p.waitForFunction(() => document.querySelectorAll('#cells textarea').length === 4);
-    assert.ok(/2336x3504/.test(await p.$eval('#plan', (e) => e.textContent)), 'and it moves');
+    const four = G.sheetFor(4, 'portrait', openTier).sheet;
+    assert.ok(new RegExp(four).test(await p.$eval('#plan', (e) => e.textContent)),
+      'and it moves');
     n++; console.log('  ok  page: the plan line is served and moves with the pickers');
+
+    // THE BIGGER BOX (2026-08-26, Sophie: "make a button to see the current
+    // text box that you're working on bigger so you can see what you're
+    // writing"). Every assertion here is a MEASUREMENT off the real boxes:
+    // "bigger" is two numbers, and a cell that grew only in height would pass
+    // any markup check while still wrapping her dictation every four words.
+    const cellBox = async (i) => p.$eval('#c' + i, (e) => {
+      const cell = e.closest('.pcell'), r = cell.getBoundingClientRect();
+      const g = document.getElementById('cells').getBoundingClientRect();
+      return { w: r.width, gw: g.width, h: e.getBoundingClientRect().height,
+        pad: parseFloat(getComputedStyle(e).paddingBottom) };
+    });
+    const btnBox = async (i) => p.$eval('.pbig[data-big="' + i + '"]',
+      (b) => b.getBoundingClientRect());
+
+    const small0 = await cellBox(0);
+    assert.ok(small0.w < small0.gw * 0.6,
+      `compact, a cell is half the row (${Math.round(small0.w)} of ${Math.round(small0.gw)})`);
+
+    // The corner is RESERVED, or her last line is typed under the button.
+    const bb = await btnBox(0);
+    assert.ok(small0.pad >= bb.height,
+      `the textarea reserves the button's corner (${small0.pad} >= ${bb.height})`);
+
+    // elementFromPoint is the only honest way to ask whether a tap reaches it.
+    const hit = await p.evaluate(([x, y]) => {
+      const el = document.elementFromPoint(x, y);
+      return el && el.closest('.pbig') ? 'ok' : 'BLOCKED-by-' + (el && el.className);
+    }, [bb.x + bb.width / 2, bb.y + bb.height / 2]);
+    assert.strictEqual(hit, 'ok', 'the button is what a tap at its centre reaches');
+
+    await p.click('.pbig[data-big="0"]');
+    await p.waitForTimeout(120);
+    const big0 = await cellBox(0);
+    assert.ok(Math.abs(big0.w - big0.gw) < 2,
+      `open, it takes the whole row (${Math.round(big0.w)} of ${Math.round(big0.gw)})`);
+    assert.ok(big0.h > small0.h * 2, `and it is taller (${Math.round(small0.h)} -> ${Math.round(big0.h)})`);
+    assert.strictEqual(await p.$eval('#c0', (e) => e.value), 'a cat on a fire escape',
+      'her words are still in the same field — one textarea, two sizes');
+
+    // ONE AT A TIME, or the grid comes apart into a column of full-width boxes.
+    await p.click('.pbig[data-big="1"]');
+    await p.waitForTimeout(120);
+    assert.strictEqual(await p.$$eval('.pcell.big', (c) => c.length), 1, 'only one is open');
+    assert.ok(Math.abs((await cellBox(0)).w - small0.w) < 2, 'the first one went back');
+
+    // The same tap is the way back.
+    await p.click('.pbig[data-big="1"]');
+    await p.waitForTimeout(120);
+    assert.strictEqual(await p.$$eval('.pcell.big', (c) => c.length), 0, 'tapping it again closes it');
+
+    // NOT STICKY, and reset by a grid change — the boxes ARE the grid.
+    await p.click('.pbig[data-big="0"]');
+    await p.click('#ctrls button[data-grid="9"]');
+    await p.waitForFunction(() => document.querySelectorAll('#cells textarea').length === 9);
+    assert.strictEqual(await p.$$eval('.pcell.big', (c) => c.length), 0,
+      'a grid change puts every box back to small');
+    await p.click('#ctrls button[data-grid="4"]');
+    await p.waitForFunction(() => document.querySelectorAll('#cells textarea').length === 4);
+    n++; console.log('  ok  page: the bigger box takes the whole row, one at a time');
 
     // THE SLIDER LANDS WHERE SHE TAPS, like the Playground's (2026-08-24 —
     // /tritoggle.js). This used to assert a CYCLE, which is the bug Sophie
@@ -650,6 +764,10 @@ async function drivePage() {
     // every two seconds") — a poll repaint must never touch an image already
     // on screen, only append what is new.
     const GIF = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+    // The run CONTAINER is keyed `data-key` by feedkit's syncChildren; `data-run`
+    // is on the <img> only, so `[data-run] .runhead` matches nothing. The
+    // parity PR (#1723) re-keyed the feed and left this block on the old
+    // attribute, which is why it was red on main.
     const diffed = await p.evaluate((gif) => {
       const run = { id: 'T1', grid: 4, count: 4, cellSize: '1x1', sheetSize: '2x2',
         style: 'dreamy', quality: 'low', res: '4k', status: 'running', sheetUrl: '',
@@ -663,8 +781,8 @@ async function drivePage() {
       window.__panelsRender([JSON.parse(JSON.stringify(run))]);
       const again = document.querySelector('#feed .cuts img');
       return { sameNode: again.__mark === 42,
-        count: document.querySelectorAll('#feed [data-run="T1"] .cuts img').length,
-        head: document.querySelector('#feed [data-run="T1"] .runhead').textContent };
+        count: document.querySelectorAll('#feed [data-key="T1"] .cuts img').length,
+        head: document.querySelector('#feed [data-key="T1"] .runhead').textContent };
     }, GIF);
     assert.strictEqual(diffed.sameNode, true, 'an image already on screen was not recreated');
     assert.strictEqual(diffed.count, 2, 'the new cut was appended');
@@ -673,7 +791,7 @@ async function drivePage() {
     // TAPPING A PICTURE OPENS THE SHARED ASSETS LIGHTBOX (2026-08-25, Sophie:
     // "I can't open the pictures in a light box").
     const lb = await p.evaluate(() => {
-      document.querySelector('#feed [data-run="T1"] .cuts img').click();
+      document.querySelector('#feed [data-key="T1"] .cuts img').click();
       const box = document.getElementById('clightbox');
       const open = Boolean(box) && !box.hidden && box.innerHTML.length > 0;
       const text = box ? box.textContent : '';
@@ -699,42 +817,60 @@ async function drivePage() {
     assert.strictEqual(tiles.stored, 'tiles', 'the choice is sticky');
     n++; console.log('  ok  page: LIST · TILES, sticky, cuts on the wall');
 
-    // UPSCALE IN THE PLAYGROUND — a cut's lightbox carries the action, and
-    // the link carries the panel's words, the right tile and res=4k.
+    // TAKING A PANEL OVER — a cut's lightbox carries the action, and the link
+    // carries the panel's words, the right tile, and the cheap rung.
     const up = await p.evaluate(() => {
       document.querySelector('#tiles img').click();
       const btn = document.querySelector('#clightbox [aria-label="Upscale in the Playground"]');
-      const box = document.getElementById('clightbox');
-      const out = { has: Boolean(btn) };
-      if (box) { box.hidden = true; box.innerHTML = ''; document.body.style.overflow = ''; }
-      return out;
+      return { has: Boolean(btn) };
     });
-    assert.strictEqual(up.has, true, 'the lightbox offers the upscale');
-    await p.evaluate(() => {
-      localStorage.setItem('forge.panels.view', 'list');
-    });
-    n++; console.log('  ok  page: a cut offers Upscale in the Playground');
+    assert.strictEqual(up.has, true, 'the lightbox offers the hand-off');
 
-    // THE HAIRLINE TAB walks to the Playground, and ?res=4k&prompt land there
-    // — the whole hand-off, driven for real.
-    await p.click('#tab-playground');
+    // THE BUTTON IS PRESSED, not a url typed out here. panels.html wraps its
+    // whole script in an IIFE (the pill-globals rule), so upscaleUrl cannot be
+    // reached from outside — and a hand-typed link would only ever test the
+    // Playground's param reader, saying nothing about what Panels actually
+    // sends, which is the half her 2026-08-26 ask was about.
+    // Clicked through the DOM rather than with p.click: the action sits inside
+    // the lightbox's own overlay, which playwright reports as not visible
+    // while it settles, and its handler is a plain location.href.
+    await p.evaluate(() => {
+      document.querySelector('#clightbox [aria-label="Upscale in the Playground"]').click();
+    });
     await p.waitForURL(/\/playground/, { timeout: 15000 });
-    await p.goto(base + '/playground?prompt=a%20crow&style=dreamy&quality=medium&res=4k&sameref=1&from=panels',
-      { waitUntil: 'domcontentloaded' });
+    const handoff = p.url();
+    assert.ok(/res=1k/.test(handoff), `the tier is the cheap rung: ${handoff}`);
+    assert.ok(/quality=low/.test(handoff), `and so is the quality: ${handoff}`);
+    // The fixture run is `dreamy`, so what the link must carry is that key
+    // ridden through unchanged. The server `evan` -> page `chatgpt` remap is a
+    // source rule and is pinned in the pure block above, not driven here.
+    assert.ok(/style=dreamy/.test(handoff), `the style rode the link: ${handoff}`);
     await p.waitForFunction(() => {
       const r = document.getElementById('rpick');
       return r && r.dataset.i && r.dataset.i !== '';
     }, { timeout: 15000 });
     const landed = await p.evaluate(() => ({
       res: document.getElementById('rpick').dataset.i,
+      quality: document.getElementById('qpick').dataset.i,
       prompt: document.getElementById('prompt').value,
     }));
-    assert.strictEqual(landed.res, '4K', 'the tier rode the link');
-    assert.strictEqual(landed.prompt, 'a crow', "the panel's words rode the link");
+    assert.strictEqual(landed.res, '1K', 'and the Playground really lands there');
+    assert.strictEqual(landed.quality, 'L', 'on both knobs');
+    assert.ok(landed.prompt.length > 0, "the panel's words rode the link");
+    n++; console.log('  ok  page: the hand-off button lands the Playground on 1K + low');
+
     await p.goto(base + '/panels', { waitUntil: 'domcontentloaded' });
     await p.waitForFunction(() => document.querySelectorAll('#cells textarea').length > 0,
       { timeout: 15000 });
-    n++; console.log('  ok  page: the Playground tab + upscale link land with res=4k');
+    await p.evaluate(() => { localStorage.setItem('forge.panels.view', 'list'); });
+
+    // THE HAIRLINE TAB is the other way over — a navigation, not a hand-off.
+    await p.click('#tab-playground');
+    await p.waitForURL(/\/playground/, { timeout: 15000 });
+    await p.goto(base + '/panels', { waitUntil: 'domcontentloaded' });
+    await p.waitForFunction(() => document.querySelectorAll('#cells textarea').length > 0,
+      { timeout: 15000 });
+    n++; console.log('  ok  page: the Playground tab walks over');
 
     // The pill's corner is clear and the page threw nothing.
     const right = await p.$eval('#ctrls', (e) => getComputedStyle(e).paddingRight);

@@ -23,6 +23,7 @@
  *   (needs: npm install playwright --no-save)
  */
 const fs = require('fs');
+const servePublic = require('./lib/public-asset');
 const path = require('path');
 const http = require('http');
 
@@ -57,6 +58,8 @@ catch {
 (async () => {
   const posted = [];
   const server = http.createServer((req, res) => {
+    // Anything the page links out of public/ — /feedkit.js, /tritoggle.*, …
+    if (servePublic(req, res)) return;
     const url = new URL(req.url, 'http://x');
     if (url.pathname === '/api/promptlab' && req.method === 'POST') {
       let body = '';
@@ -186,6 +189,26 @@ catch {
   ok(seedH === rowH, 'the same box the seed button is (' + seedH + ')');
   ok(await page.evaluate(() => getComputedStyle(document.getElementById('go')).borderRadius) === '6px',
     'still a 6px rounded rectangle — the house rule, not sharp corners');
+
+  // THE BOX DOES NOT SIT ON THE BUTTONS (2026-08-26, Sophie: "there was no
+  // padding between the buttons and the bottom of the text prompt box"). The
+  // picker gives the box 10px above it and `.promptwrap` carried nothing, so
+  // the row started at the textarea's exact bottom edge and the two borders
+  // drew as one seam. Measured as the real gap between the two boxes, and
+  // pinned EQUAL to the gap above so the card keeps one rhythm — a hardcoded
+  // 10 here would let the two drift the next time either is touched.
+  console.log('the prompt box has air under it');
+  const air = await page.evaluate(() => {
+    const wrap = document.querySelector('.promptwrap');
+    const row = document.querySelector('.controls');
+    const styles = document.querySelector('.styles');
+    const w = wrap.getBoundingClientRect(), r = row.getBoundingClientRect(),
+      st = styles.getBoundingClientRect();
+    return { below: Math.round(r.top - w.bottom), above: Math.round(w.top - st.bottom) };
+  });
+  ok(air.below > 0, 'the buttons do not sit on the box\'s bottom edge (' + air.below + 'px)');
+  ok(air.below === air.above,
+    'and it is the same air the style picker gives it above (' + air.above + 'px)');
 
   console.log('the style picker is not filled black');
   const sp = await page.evaluate(() => {

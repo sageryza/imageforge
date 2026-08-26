@@ -55,7 +55,7 @@ function ok(name, cond, extra) {
 
 /* One story with one drawn beat — enough for the play button to show, which
    is all this test needs on the pad itself. */
-const PADS = { pads: [{ id: 'a', title: 'Evan', beats: 1, category: 'personal', cover: '' }] };
+const PADS = { pads: [{ id: 'a', title: 'Evan', beats: 1, category: null, cover: '' }] };
 const BEAT = { id: 'b1', text: 'the first beat', url: 'https://example.invalid/a.png' };
 
 /* The server's film state, driven by the test. `state.film` is what GET /
@@ -210,7 +210,7 @@ const glyphOf = (html) => (/M6 4\.5v15l13-7\.5z/.test(html) ? 'play'
 
     // THE CLONE RULE: the legend's drawings ARE the page's buttons. A second
     // hand-drawn copy would pass a "there is an svg" check and drift silently.
-    for (const sel of ['#descbtn', '#audiobtn', '#drawallbtn', '#addbtn', '#inboxbtn', '#delbtn', '#micbtn']) {
+    for (const sel of ['#aboutbtn', '#drawallbtn', '#addbtn', '#inboxbtn', '#delbtn', '#micbtn']) {
       const real = (await pg.innerHTML(sel)).trim();
       ok('the legend draws the real ' + sel, rows.some(r => r.glyph.trim() === real));
     }

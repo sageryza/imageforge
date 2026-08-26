@@ -19,6 +19,7 @@
  *   (headless half needs: npm install playwright --no-save)
  */
 const fs = require('fs');
+const servePublic = require('./lib/public-asset');
 const path = require('path');
 const http = require('http');
 
@@ -247,6 +248,8 @@ catch {
 
 (async () => {
   const server = http.createServer((req, res) => {
+    // Anything the page links out of public/ — /feedkit.js, /tritoggle.*, …
+    if (servePublic(req, res)) return;
     const url = new URL(req.url, 'http://x');
     if (url.pathname === '/api/promptlab') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
