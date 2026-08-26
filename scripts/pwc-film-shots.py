@@ -17,7 +17,7 @@
 FULL = (0.0, 0.0, 1.0, 1.0)
 # card file, vo clip, lead, tail, shots
 CARDS = [
- ("01-title-how-to-look-without-looking.png", "01-title", 0.50, 0.80, [
+ ("01-title-how-to-look-without-looking.png", "01-title", 0.30, 0.50, [
    (*FULL, -0.50, "title — slow push"),
  ]),
  ("02-the-mistake-looking.png", "02-mistake", 0.50, 1.00, [

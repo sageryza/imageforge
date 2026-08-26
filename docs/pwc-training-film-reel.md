@@ -3,8 +3,10 @@
 Sophie's seven "People Watching Club: Official Training Film No. 001" cards cut
 into a 9:16 reel, opened with a public-domain 3-2-1 Academy leader countdown.
 
-**Live cut — v6, white ink:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v6-white-ink.mp4
-(1080x1920, 30fps, 1:33, -15.0 LUFS.)
+**Live cut — v7, tight open:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v7-tight-open.mp4
+(1080x1920, 30fps, 1:27, -15.0 LUFS.)
+
+**v6, full title line, 1:33:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v6-white-ink.mp4
 
 **v5, red ink, 1:42:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v5-clyde-ink.mp4
 
@@ -344,3 +346,27 @@ one number and a re-render — no beat was re-measured and no mark was re-placed
 placed 2.54s before the narrator, a number true only at 1.25x. It is computed
 from the whisper clip's own length now, so the two lines cannot drift apart the
 next time the tempo moves.
+
+
+## v7 — the open
+
+*"make the very beginning faster get rid of official training, film, less
+pauses, faster voice."* Four cuts to the same 6.7 seconds:
+
+- **"Official Training Film Number One" is gone from the narration.** It still
+  reads on the title card, where it costs nothing.
+- **Both `<break/>`s inside the title line are gone.** It is one unbroken
+  sentence now.
+- **The title card's own lead and tail drop** 0.50/0.80 → 0.30/0.50.
+- **`PWC_TEMPO=1.48`** (her fourth ask for faster).
+
+Title card 6.68s → **3.86s**; the film 1:33 → **1:27**, and the first real line
+lands about 8 seconds in.
+
+**The 3-2-1 leader was left alone** — it is 3 of those seconds and it is the
+thing she asked for in the first place, so shortening it is hers to call.
+
+**When the title line's TEXT changes, its `old` duration must be set equal to
+its `new` one** in `vodur.json`. `old/new` is the beat-rescaling ratio, and it
+only means anything while the words are the same; card 1 has no beats to
+rescale, but a stale ratio there would be a trap for the next card that does.

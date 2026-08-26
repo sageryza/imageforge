@@ -1,14 +1,14 @@
 """PWC Training Film audio: narration + period music bed + projector.
 
-Card offsets are READ from timing6.json, which the card renderer measures off
+Card offsets are READ from timing7.json, which the card renderer measures off
 the real encoded segments, so the voice cannot drift from the picture.
 """
 import json, os, subprocess
 FF = os.environ.get("FFMPEG", "ffmpeg")
-T = json.load(open("timing6.json"))
+T = json.load(open("timing7.json"))
 S = {int(k): v for k, v in T["starts"].items()}
 C = T["cards"]; TOTAL = T["total"]
-VOD = "vof4"
+VOD = "vof5"
 
 VO = []
 for i, c in enumerate(C):
@@ -70,7 +70,7 @@ mixl += ["[hiss]", "[motor]"]
 fc.append("".join(mixl) + f"amix=inputs={len(mixl)}:normalize=0:dropout_transition=0,"
           f"alimiter=limit=0.95,atrim=0:{TOTAL}[out]")
 subprocess.run([FF,"-y"]+ins+["-filter_complex",";".join(fc),"-map","[out]",
-                "-c:a","pcm_s16le","mix6.wav","-loglevel","error"], check=True)
-print("wrote mix6.wav  total %.2f  sting %.2f"%(TOTAL, STING))
+                "-c:a","pcm_s16le","mix7.wav","-loglevel","error"], check=True)
+print("wrote mix7.wav  total %.2f  sting %.2f"%(TOTAL, STING))
 for p, st in VO: print(f"  {st:7.2f}  {os.path.basename(p)}")
 print("  bed:", [(os.path.basename(b[0])[0], round(b[1],1), round(b[2],1)) for b in BED])

@@ -10,7 +10,7 @@ import json, os, struct, subprocess
 import shots, marks, ink
 
 FF = os.environ.get("FFMPEG", "ffmpeg")
-OUT = "seg6"; os.makedirs(OUT, exist_ok=True)
+OUT = "seg7"; os.makedirs(OUT, exist_ok=True)
 for d in ("pages", "ann"): os.makedirs(d, exist_ok=True)
 W, H, FPS = 1080, 1920, 30
 PW, PH = W*2, H*2
@@ -108,5 +108,5 @@ for fname, clip, lead, tail, shotlist in shots.CARDS:
     manifest.append({"file": out, "dur": dur, "clip": clip, "lead": lead,
                      "vo": vod["new"][clip], "marks": [a["label"] for a in anns]})
     print(f"{out}  {dur:6.2f}s  {len(states):2d} moves  {len(anns)} marks  {[a['label'] for a in anns]}")
-json.dump(manifest, open("cards6.json","w"), indent=1)
+json.dump(manifest, open("cards7.json","w"), indent=1)
 print("\ncards total %.2fs"%sum(m["dur"] for m in manifest))
