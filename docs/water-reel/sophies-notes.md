@@ -317,3 +317,21 @@ it had been sharing reason two's sparkle.]*
 
 *[the boat line's surf swapped for a generated wooden-boat creak with water
 lapping the hull.]*
+
+## On v14 (2026-08-27)
+
+> OK, can you make it zoom into the pictures more slowly so that it only gets
+> to cropping it right at the picture at the last word of that picture?
+
+*[the panel shots reached their crop in ~1.1s of a 4s nominal clip and then
+HELD, so the picture arrived in the first third and the rest of the line
+played against a still frame. The move now spans the WHOLE clip — vo-film
+retimes a clip to its narration by scaling PTS, so a whole-clip move is a
+whole-LINE move and the crop lands on her last word whatever the take's
+length. Smoothstep rather than the old ease-out cubic stretched: eased-out
+over the full length is 87% done at halfway and still reads as arriving
+early. So a panel shot opens on the whole poster and closes on the panel.
+Left alone deliberately: the full-poster beats (they settle early on purpose
+— her v1 note, "make sure you have the full poster there"), the panned rows
+(already travelling the whole shot), and the finale's glide (one move, and
+its shape is hers).]*
