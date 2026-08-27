@@ -7,7 +7,7 @@ frame. The page is 2x the output because zoompan rounds x/y to whole input
 pixels — at 1x a slow push visibly stair-steps.
 """
 import json, os, struct, subprocess
-import shots, marks, ink
+import shots, marks, ink, stamp as stampmod
 
 FF = os.environ.get("FFMPEG", "ffmpeg")
 OUT = "seg7"; os.makedirs(OUT, exist_ok=True)
@@ -61,6 +61,19 @@ for fname, clip, lead, tail, shotlist in shots.CARDS:
         ax, ay, aw, ah = ink.render(pts, ink.WHITE, INK_W, f"ann/{seed}")
         anns.append({"seed": seed, "x": ax, "y": ay,
                      "t": round(lead + beat*ratio, 3), "label": label})
+
+    # ---- the FAIL stamp slam (card 5) — see pwc-film-stamp.py ----
+    if fname in stampmod.STAMPS:
+        spath, (bx0, by0, bx1, by1), (scw, sch), sbeat = stampmod.STAMPS[fname]
+        cw_, ch_ = stampmod.build_stages(spath, f"ann/stamp-{fname.split('-')[0]}",
+                                         fw/scw, fh/sch)
+        scx = cx0 + (bx0+bx1)/2/scw*fw
+        scy = cy0 + (by0+by1)/2/sch*fh
+        t_contact = lead + sbeat*ratio
+        anns.append({"seed": f"stamp-{fname.split('-')[0]}",
+                     "x": int(scx-cw_/2), "y": int(scy-ch_/2),
+                     "t": round(t_contact - stampmod.CONTACT/30.0, 3),
+                     "label": "FAIL slams on"})
 
     # ---- states ----
     states = []
