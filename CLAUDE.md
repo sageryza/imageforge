@@ -2632,6 +2632,27 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     a real iframe and `test-back-to-top.js` sweeps the baked copies. **Seven
     files, and only a test notices one left behind** — the resume revert had to
     touch all seven.
+  - **THERE IS A THIRD PILL — THE NATIVE ONE — AND WHETHER IT DRAWS IS DERIVED
+    NOW, NOT LISTED (2026-08-27, Sophie on the Characters page: "two pills").**
+    `RootView`'s `AutoScrollPill` shows on every screen that has nothing else
+    drawing one, and it used to decide that from a hand-kept BLACKLIST of tools
+    whose page already carries one. Forgetting a tool is SILENT — the two
+    capsules stack in the same fixed corner, offset by the native one's own
+    padding, and "Fast" prints twice. It had been missed once already (Voice
+    Studio, Aug 2026, and its own comment says so) and, measured the day this
+    was fixed, **five more were still wrong: Dreams, Shop Report, Characters,
+    Song Station and Films** — every one of them a page served with
+    `{ pill: true }`. So the answer comes from `Tool.webPath` (which page each
+    tool hosts) plus `forgePillPages` (every page that carries one — injected,
+    or baked from `pill.py`), and `node scripts/test-native-pill.js` derives
+    the real set from server.js and fails on drift **in both directions**: a
+    page missing from the set draws two pills, a page listed that has none
+    draws nothing and leaves her with no way back to the top. It also fails if
+    a per-tool `if t == .x` opt-out grows back beside the derived rule. The
+    only two that survive are not about a page: `.filmeditor` (one screen,
+    never scrolls) and `.movie` while the Story Room is pushed inside it.
+    **The fix ships with a TestFlight build, not a deploy** — until she
+    installs one, the five above still show two.
   - **The app's copy has no `id="ptop"` on purpose** — `chats.html`'s own pill
     owns that id and the sweep above counts exactly one per file; the viewer's
     button is `class="ptop"` only.
@@ -5141,6 +5162,32 @@ before working on that module. Nothing was deleted — the moved text is verbati
     seeding of a hand-worked pad, the split beat's adds landing in place, the
     re-derived caption and the reworded one that is left alone, and the two
     invariants: a pull never drops a beat, an order never changes the count).
+- **Character Creator** (`character.js`, `/api/character`, page at `/character`,
+  iOS tile "Characters", and a sheet inside Dreams) — the recurring people in
+  her dreams and stories: a photo + a name + her aliases ("me"/"Sophie",
+  "Daddy"/"Dad") become a diary-comic reference the dream render matches each
+  dream's cast against, so a face stays the same picture to picture. Drawing is
+  a DETACHED server job — it saves itself even if she closes the sheet mid-draw,
+  and `localStorage` picks an in-flight one back up.
+  **IT WAS THE PAGE THE PILL/HEADER RULES CAUGHT UP WITH LAST (2026-08-27,
+  Sophie: "two pills and there's no way to search. shud follow pill/header hard
+  rules").** Three of the four faults were structural rather than cosmetic and
+  are worth not re-earning: it had **no `.app-header`**, so `pagehead.js` had
+  nothing to sit in and injected a bare strip of its own — under a "‹ Story
+  Room" line that put a second thing above the one title; its rows ran **under
+  the injected pill's fixed corner**, so "Hide sheet" read "Hide" (reserved by
+  `fitPillGap` against the pill's REAL rect now, re-measured by a
+  ResizeObserver because the pill is conditional and this page's content
+  arrives from a fetch); and its lightbox locked the background but never
+  **stopped the autoscroll or restored the scroll position**, so the pill
+  walked the page under an open picture. The SEARCH is the house grammar over
+  the sheet — name, aliases, tier, model, quality — through `/feedkit.js`
+  (`qparse`/`qmatch`/`liveInput`/`enterSubmits`), and **typing opens the sheet**,
+  because a box that only works once she has found and tapped "Show sheet" is
+  one more thing to remember. The second pill was NATIVE and is fixed in the
+  app — see *THERE IS A THIRD PILL* in the design rules. Test:
+  `node scripts/test-character-page.js` (the real page headless, the pill
+  collision asked with `elementFromPoint`; verified failing 10 pre-fix).
 - **Writing Room** (`writing.js`, `/api/writing`, `/writing`, iOS tile) — every
   dating-book date in two versions ("Claude's" and "Mine") with every changed word
   marked red, autoscroll, and per-paragraph notes (text or voice memo). **Notes are
