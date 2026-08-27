@@ -305,12 +305,35 @@ function panelsPayload() {
   ok(/a key/.test(lbHas), "and the prompt shows THAT panel's own words");
   await page.evaluate(() => { if (window.__assetLightboxClose) window.__assetLightboxClose(); });
 
+  console.log("the lightbox's put-back — ONE picture, ONE box");
+  // 2026-08-27, Sophie: "pressing the playground button on images made by
+  // panels should copy text into the single picture … not the whole panel".
+  // The lightbox is showing panel 4, so its put-back is panel 4's own words in
+  // the ONE box, on the PICTURE tab — not the whole grid back in nine boxes.
+  await page.evaluate(() => {
+    const el = document.getElementById('clightbox');
+    const btns = el.querySelectorAll('button');
+    for (const bt of btns) if (/back in the box/i.test(bt.getAttribute('aria-label') || bt.title || bt.textContent)) { bt.click(); return; }
+    throw new Error('no put-back action in the lightbox');
+  });
+  let putBack = false;
+  try {
+    await page.waitForFunction(() => document.getElementById('prompt').value === 'a key', null, { timeout: 4000 });
+    putBack = true;
+  } catch (e) { /* pre-fix: it refilled the nine panel boxes instead */ }
+  ok(putBack, "panel 4's own words land in the one prompt box");
+  ok(/\bon\b/.test(await page.getAttribute('#t-picture', 'class') || ''),
+    'and it switches to the PICTURE tab, where that box lives');
+  ok(await page.isVisible('.promptwrap'), 'so the words she was handed are on screen');
+
   console.log('the copy button');
   // Wipe the boxes, then ask the run's copy button to refill them.
   await page.evaluate(() => {
     ['promptlab_panels_9', 'promptlab_panels_4'].forEach((k) => localStorage.removeItem(k));
     document.querySelectorAll('#panelgrid textarea').forEach((t) => { t.value = ''; });
   });
+  await page.click('#t-panels');
+  await page.waitForFunction(() => document.querySelectorAll('#panelgrid textarea').length > 0);
   await page.click('#runs .run .copybtn[data-copy="r9"]');
   await page.waitForFunction(() => {
     const ts = document.querySelectorAll('#panelgrid textarea');
@@ -318,6 +341,35 @@ function panelsPayload() {
   });
   ok(true, 'the copy button refills the nine boxes');
   ok(/\bon\b/.test(await page.getAttribute('#t-panels', 'class') || ''), 'on the Panels tab');
+
+  console.log('arriving with a ported prompt');
+  // The tab is STICKY, and a panel image is exactly the picture she is on the
+  // PANELS tab when she taps its Playground button — so a ported prompt used
+  // to land in `.promptwrap`, which that tab HIDES, and the next Generate drew
+  // her saved panel boxes instead. Silent: the ported words were never used.
+  const ported = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await ported.addInitScript(() => { try { localStorage.setItem('promptlab_tab', 'panels'); } catch (e) { /* private mode */ } });
+  await ported.goto(base + '/playground?prompt=' + encodeURIComponent('a lighthouse in fog')
+    + '&style=chatgpt&sameref=1');
+  await ported.waitForFunction(() => document.querySelectorAll('#plabtabs button').length === 2);
+  ok(/\bon\b/.test(await ported.getAttribute('#t-picture', 'class') || ''),
+    'a ported prompt lands on the PICTURE tab, whatever tab she left');
+  ok(await ported.inputValue('#prompt') === 'a lighthouse in fog', 'with her words in the one box');
+  ok(await ported.isVisible('.promptwrap'), 'and that box on screen');
+  ok(!(await ported.isVisible('#panelgrid')), 'the panel boxes step aside');
+  // Nothing else about the port moved.
+  ok(/Carrying/.test(await ported.textContent('#reftag')), 'the sameref tag still speaks');
+  await ported.close();
+
+  // A plain open still honours her sticky tab — the switch is the PORT's, not
+  // a new default.
+  const plain = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await plain.addInitScript(() => { try { localStorage.setItem('promptlab_tab', 'panels'); } catch (e) { /* private mode */ } });
+  await plain.goto(base + '/playground');
+  await plain.waitForFunction(() => document.querySelectorAll('#plabtabs button').length === 2);
+  ok(/\bon\b/.test(await plain.getAttribute('#t-panels', 'class') || ''),
+    'a plain open still opens on the tab she left');
+  await plain.close();
 
   await browser.close();
   server.close();

@@ -370,6 +370,30 @@ in `sheet-grid.js` (plus a `promptMax` look: nine dictated panels fit under
   equal rectangles with edges on the lines and no gutters; Dreamy asks for a
   hand-drawn border per panel, which absorbs small misalignment; and the
   uncut sheet is always kept on the doc (`sheetUrl`).
+- **A PANEL'S PUT-BACK IS ONE PICTURE'S WORDS, ON THE PICTURE TAB (2026-08-27,
+  Sophie: "pressing the playground button on images made by panels should copy
+  text into the single picture … not the whole panel").** Two per-PICTURE
+  controls were handing her the whole sheet instead, and the second one was
+  silent:
+  - **The lightbox's "Put this prompt back in the box"** called `copyRunIn`,
+    which for a panels run refills all nine boxes — so the button on panel 4
+    answered with the other eight. `copyPictureIn(r, i)` puts THAT panel's own
+    words in the one box and switches to PICTURE; a panel is a complete
+    picture and re-running it is a single-picture job. **The run card's copy
+    button still refills the grid** (`copyPanelsIn`) — that card IS the run,
+    and those boxes are where its words came from. Two different questions.
+  - **An arriving `?prompt=` now lands on the PICTURE tab.** The tab is
+    STICKY, and the Panels tab is exactly where she is when she taps a panel
+    image's Playground button in Meta Assets — so the ported prompt was
+    landing in `.promptwrap`, which that tab HIDES, and the Generate she fired
+    next drew her saved panel boxes instead. Nothing on screen said so and the
+    ported words were never used. It is a `localStorage` write, deliberately
+    **not `setTab()`**: that block runs partway down the script where syncTab's
+    painters are not all wired yet (`rpick` is a `var` several hundred lines
+    below, and calling it there threw before the prompt could even be filled).
+    Boot's own `syncTab()` paints it. A PLAIN open still honours her sticky
+    tab — the switch belongs to the port. The Story Room's beat trip carries
+    `?prompt=` too, so it is fixed by the same line.
 - Character card, photo ref, the ladders and `padTarget` are OFF on this tab
   (each names or prices ONE picture). The vote route's image-index cap was
   widened 0-3 → 0-24 for panel hearts — it 400'd on panel 5 of 9.

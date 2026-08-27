@@ -900,6 +900,21 @@
     if (r && r.panels && r.panels.length) copyPanelsIn(r);
     else if (r) copyPromptIn(r.prompt);
   }
+  // ONE PICTURE'S WORDS GO IN THE ONE BOX (2026-08-27, Sophie: "pressing the
+  // playground button on images made by panels should copy text into the
+  // single picture … not the whole panel"). The LIGHTBOX is showing one
+  // panel, so its put-back is that panel's own words on the PICTURE tab — a
+  // panel is a complete picture in its own right and re-running it is a
+  // single-picture job. The run card's copy button still refills the whole
+  // grid (copyPanelsIn), because that card IS the run and those boxes are
+  // where its words came from; this is the per-PICTURE control, and the two
+  // are different questions.
+  function copyPictureIn(r, i) {
+    var panel = (r && r.panels && r.panels.length && i != null) ? r.panels[i] : null;
+    if (panel == null) { copyRunIn(r); return; }
+    setTab('picture');
+    copyPromptIn(String(panel));
+  }
   document.getElementById('seedbtn').innerHTML = ICONS.sprout;
 
   // The seed: starts at 85 (the test convention), the sprout button steps it
@@ -1209,6 +1224,18 @@
   (function () {
     var q = new URLSearchParams(location.search);
     if (!q.get('prompt') && !q.get('style')) return;
+    // A PORTED PROMPT IS ONE PICTURE'S, SO IT LANDS ON THE PICTURE TAB
+    // (2026-08-27, Sophie, about a panel image's Playground button: "should
+    // copy text into the single picture … not the whole panel"). The tab is
+    // sticky, and a panel image is exactly the picture she is on the PANELS
+    // tab when she taps — so the prompt was landing in `.promptwrap`, which
+    // that tab hides, and the run she fired next drew her saved panel boxes
+    // instead. Silent, and the ported words were never used at all.
+    // Stored, never setTab() — this block runs partway down the script, where
+    // syncTab's painters are not all wired yet (rpick is a `var` several
+    // hundred lines below, and calling it here threw before anything else in
+    // this block could run). Boot's own syncTab() paints the tab at the end.
+    try { localStorage.setItem(TABKEY, 'picture'); } catch (e) { /* private mode */ }
     var st = q.get('style');
     if (st && STYLES[st]) setStyle(st);
     if (q.get('prompt')) document.getElementById('prompt').value = q.get('prompt');
@@ -2648,7 +2675,7 @@
         // reachable from TILES view: closes the lightbox and lands the
         // picture's prompt in the prompt box.
         { label: 'Put this prompt back in the box', icon: ICONS.copy,
-          onClick: function () { closeLB(); copyRunIn(r); } },
+          onClick: function () { closeLB(); copyPictureIn(r, i); } },
         { label: 'Save to Photos', icon: ICONS.download, onClick: saveFromLB },
         // SEND TO THE STORY ROOM — it WALKS THERE (2026-08-26, Sophie: "rather
         // than this weird pop-up, it should take me to the story room so I can
