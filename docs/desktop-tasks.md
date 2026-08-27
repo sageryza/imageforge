@@ -230,6 +230,29 @@ them needs from her. Read-only; the queue is edited here, where it is run.
 - **Queued:** 2026-08-26 by arcade-archive-candidates (originally 2026-08-12 by
   dagster-pipeline-tool)
 
+### Download Wilco — "Was I In Your Dreams" (cloud grab came back blocked)
+- **Why:** the `/api/ytdl/grab` for this song hit YouTube's sign-in bot-wall
+  on Render's IP (`blocked:true`, 2026-08-26 evening) after several grabs in
+  a row. The block is intermittent, so TRY THE CLOUD FIRST — this task only
+  needs running if that still fails.
+- **Where:** ~/imageforge
+- **Run:**
+  ```bash
+  cd ~/imageforge && curl -sS -X POST "https://imageforge-q125.onrender.com/api/ytdl/grab" -H 'Content-Type: application/json' -d '{"url":"https://www.youtube.com/watch?v=Z-Bp3e52eTY","kind":"audio"}'
+  sleep 20 && curl -sS "https://imageforge-q125.onrender.com/api/ytdl/c05503f49b9f4378a10a/job"
+  ```
+  If that answer says `"blocked":true` again, download it locally instead
+  (a home IP is never bot-walled):
+  ```bash
+  brew list yt-dlp >/dev/null 2>&1 || brew install yt-dlp
+  yt-dlp -f "ba[ext=m4a]/ba" -o "$HOME/Downloads/wilco-was-i-in-your-dreams.%(ext)s" "https://www.youtube.com/watch?v=Z-Bp3e52eTY"
+  ```
+  The file lands in Downloads; report the path. Do NOT upload it into the
+  audio library — it's music, and that library transcribes everything into
+  her searchable voice-memo archive.
+- **Needs from her:** nothing, it just runs.
+- **Queued:** 2026-08-26 by youtube-download-endpoint
+
 ---
 
 ## DONE
