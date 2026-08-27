@@ -44,6 +44,10 @@ const ffmpeg = require('ffmpeg-static');
 const args = {};
 process.argv.slice(2).forEach((a, i, all) => { if (a.startsWith('--')) args[a.slice(2)] = all[i + 1]; });
 const IMG = args.images, MON = args.montage, VO = args.vo;
+// Her SECOND recording (2026-08-27): the goblin sheet's three reasons, sent
+// after the reel shipped. A slice names which file it cuts from (a third
+// element `2` in its window) — the master stays the master.
+const VO2 = args.vo2 || 'assets/water-reel/sophie-goblin-sheet.m4a';
 const WORK = path.resolve(args.work || 'water-vo-work');
 if (!IMG || !MON || !VO) { console.error('need --images --montage --vo'); process.exit(1); }
 fs.mkdirSync(WORK, { recursive: true });
@@ -73,7 +77,15 @@ const SLICES = {
   d3:    [142.5, 152.5],   // three: the third eye in your knee (+ more water right now)
   e1:    [160.3, 182.0],   // the bridge, DNA/gills, supercharges your brain
   e2:    [195.0, 211.0],   // sandpaper, opens portals, fill yourself up and overflow
-  f12:   [216.5, 226.2],   // thirst demons (f2's only complete take)
+  f12:   [221.2, 226.2],   // thirst demons (f2's only complete take).
+                           // The window used to open at 216.5, which held the
+                           // TAIL of the f1 line she read just before it —
+                           // and the cut's leading edge grabbed its last word,
+                           // so f2 shipped opening on a stray "knees." through
+                           // v13. That is the "it says knees twice" she
+                           // reported (2026-08-26) — a real double, NOT the
+                           // spine sheet's echo. A slice must hold ONE line's
+                           // takes and nothing of its neighbours.
   f1b:   [234.8, 239.3],   // ghosts in your knees — her later, cleanly
                            // separated take. She read it once more at 261.5,
                            // but that one runs straight into the g section's
@@ -84,11 +96,21 @@ const SLICES = {
   h:     [292.5, 311.0],   // washed clean · extra water · cells swim
   i:     [316.5, 340.0],   // regrets · rocket fuel · third eye inside · sponge
   z:     [427.6, 434.5],   // drink gallons, drink oceans — the closing line
+  // Her 2026-08-27 goblin-sheet recording (VO2, the third element says so).
+  // 0-20s is her warm-up run, 24.7-31.6 an intro re-read she said to ignore
+  // ("ignore intro"), 32.4-43.0 the LAST take of the three reasons — "just
+  // use the last take - 3 reasons". The window opens at 31.9, past the
+  // intro's "right now" tail, and runs to end of file.
+  bs:    [31.9, 45.4, 2],
 };
 
-// The one section she has no take of. Rendered by tts-fill.js into the same
-// src/ folder; it is a source like any other from here on, so when she
-// records it the only change is a SLICES entry and deleting this line.
+// Laura is down to ONE line since 2026-08-27: Sophie recorded the goblin
+// sheet's three reasons ("use my voice to replace the Laura voice … just use
+// the last take - 3 reasons, ignore intro"), so b1-b3 ride her `bs` slice.
+// The sheet's tagline "Drink gallons. Live legendary." has no take of hers,
+// and her standing rule (v9: "if I didn't include sections, then include the
+// lower voice LAURA") keeps Laura on exactly that one shot (b4) until she
+// records it — then b4 gets a slice too and this const goes.
 const LAURA = 'b';
 
 // ── the sheets ─────────────────────────────────────────────────────────────
@@ -124,9 +146,12 @@ const SHOTS = [
   { id: 'c2', s: C, src: 'c', tx: 0.500, ty: 0.622, z: 2.30, phrases: ['Enough water can turn your sweat into miniature fish that will sing to you'] },
   { id: 'c3', s: C, src: 'c', tx: 0.810, ty: 0.622, z: 2.30, phrases: ['Your bones are secretly plants and water is what keeps them growing on the inside'] },
 
-  { id: 'b1', s: B, src: 'b', tx: 0.185, ty: 0.600, z: 2.55, phrases: ['1 Water flushes out the tiny greetings that live in your ears'] },
-  { id: 'b2', s: B, src: 'b', tx: 0.487, ty: 0.600, z: 2.55, phrases: ['2 Enough water turns your sweat into liquid light making you visible to good luck'] },
-  { id: 'b3', s: B, src: 'b', tx: 0.790, ty: 0.600, z: 2.55, phrases: ["3 Water builds a boat inside your stomach so you can sail through life's soup"] },
+  // b1-b3 are HER 2026-08-27 takes (the `bs` slice) — no leading numbers,
+  // she read the reasons bare, which also matches her just-start-with-the-
+  // reason rule. b4 stays Laura until she records the tagline.
+  { id: 'b1', s: B, src: 'bs', tx: 0.185, ty: 0.600, z: 2.55, phrases: ['Water flushes out the tiny greetings that live in your ears'] },
+  { id: 'b2', s: B, src: 'bs', tx: 0.487, ty: 0.600, z: 2.55, phrases: ['Enough water turns your sweat into liquid light making you visible to good luck'] },
+  { id: 'b3', s: B, src: 'bs', tx: 0.790, ty: 0.600, z: 2.55, phrases: ["Water builds a boat inside your stomach so you can sail through life's soup"] },
   { id: 'b4', s: B, src: 'b', tx: 0.180, ty: 0.875, z: 2.60, phrases: ['Drink gallons Live legendary'] },
 
   // no "One": she said "One gallon of—" and restarted; the clean take starts
@@ -177,11 +202,14 @@ const SHOTS = [
 // Plain trims to PCM: exact seeking, and nothing is re-compressed. Her voice
 // is never loudnormed and never filtered here.
 const srcDir = path.join(WORK, 'src'); fs.mkdirSync(srcDir, { recursive: true });
-for (const [name, [t0, t1]] of Object.entries(SLICES)) {
+for (const [name, [t0, t1, which]] of Object.entries(SLICES)) {
   const out = path.join(srcDir, `${name}.wav`);
+  // NOTE the existsSync skip: a slice whose WINDOW changes must have its old
+  // wav deleted (or use a fresh --work dir) or the stale slice is served —
+  // this is how the f12 fix appeared to do nothing on 2026-08-27.
   if (!fs.existsSync(out)) {
-    run(['-v', 'error', '-y', '-ss', String(t0), '-to', String(t1), '-i', VO, '-c:a', 'pcm_s16le', out]);
-    console.log(`slice ${name}: ${(t1 - t0).toFixed(1)}s`);
+    run(['-v', 'error', '-y', '-ss', String(t0), '-to', String(t1), '-i', which === 2 ? VO2 : VO, '-c:a', 'pcm_s16le', out]);
+    console.log(`slice ${name}: ${(t1 - t0).toFixed(1)}s${which === 2 ? ' (vo2)' : ''}`);
   }
 }
 

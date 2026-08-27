@@ -102,9 +102,12 @@ mishears; check each against the source words and a 20ms RMS profile.
 
 Everything she asked for is in v13 except these, and each is hers:
 
-- **The goblin sheet is still Laura's.** She said she would record its three
-  lines (the ear greetings, the liquid light, the boat in your stomach); when
-  she does, add a `SLICES` entry and delete the `LAURA` const.
+- **Laura is down to ONE line (2026-08-27).** Sophie recorded the goblin
+  sheet's three reasons (`assets/water-reel/sophie-goblin-sheet.m4a`, the
+  `bs` slice — last take, intro ignored, per her message) and b1-b3 ride her
+  voice since v14. The sheet's tagline "Drink gallons. Live legendary." has
+  no take of hers, so Laura reads exactly that one shot (b4) — her v9 rule.
+  When she records it, b4 gets a slice and the `LAURA` const goes.
 - **c1's "…than ever before" is a SPLICE** of two moments 14s apart, not a
   take — approved by ear, and she has not ruled on it.
 - **The knees/spine echo** — "it says knees twice" is the spine sheet saying
