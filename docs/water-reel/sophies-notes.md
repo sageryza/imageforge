@@ -335,3 +335,22 @@ Left alone deliberately: the full-poster beats (they settle early on purpose
 — her v1 note, "make sure you have the full poster there"), the panned rows
 (already travelling the whole shot), and the finale's glide (one move, and
 its shape is hers).]*
+
+## On v15 (2026-08-27) — v16
+
+> Get rid of the last remaining LAURA voice that says live legendary. We don't
+> need that anymore.
+
+*[the `b4` shot is CUT, not re-recorded — it was the sheet's tagline and the
+only line left in a borrowed voice. `synthSources` is empty now and every word
+in the reel is hers.]*
+
+> Also start ramping up the speed in the one that says the ghosts that live in
+> your spine and have it ramp up till the end of the video till it's going
+> almost too fast to hear the words just make that one copy and then pin it
+
+*[`speed.js --from <shotId>` — the reel plays untouched up to that SHOT and the
+factors divide only what follows. Named by shot rather than by a timestamp,
+because a re-cut moves every timestamp and would start the ramp mid-sentence
+somewhere else. Here: `--from d1 --ramp 1.15,1.4,1.7,2.05,2.5,3.0`, so the
+spine line begins the climb and the closing line runs at 3x.]*

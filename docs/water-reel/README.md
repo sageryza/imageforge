@@ -13,24 +13,35 @@ order, verbatim. This file says how the build answers them.
 | Her recording | `assets/water-reel/sophie-vo.m4a` (7:50) |
 | The nine sheets | `assets/water-reel/sheets/*.webp` (her Playground originals, full res) |
 | Sound effects | `assets/water-reel/sfx/*.mp3` |
-| Laura's stand-in lines | `assets/water-reel/laura-goblin-sheet.mp3` |
+| Laura's stand-in lines | `assets/water-reel/laura-goblin-sheet.mp3` (HISTORY — nothing reads it since v16) |
+| Her goblin-sheet recording | `assets/water-reel/sophie-goblin-sheet.m4a` (0:45) |
 | v12, sped two ways | `assets/water-reel/water-reel-v12-{fast,ramp}.mp4` (720p) |
 | The scripts | `scripts/water-reel/` |
 
 Full-resolution masters are NOT in git (62–88MB each) — they live at permanent
 public URLs:
 
-- **v13 full speed (2:16)** — https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/water-reel/water-reel-v13.mp4
-- **v13 fast 1.7x (1:20), the current pin** — https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/water-reel/water-reel-v13-fast.mp4
-- v12 full speed (2:24) — https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/water-reel/water-reel-v12.mp4
-- v12 flat 1.7x (1:25) — https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/water-reel/water-reel-v12-fast.mp4
-- v12 ramp to 2.0x (1:26) — https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/water-reel/water-reel-v12-ramp.mp4
+Newest first — every version is kept, nothing is overwritten:
 
-v13 on top of v12: effects end with their line, the sandpaper shot is out,
-sheet F re-centred on its measured panel band (0.36–0.79), and the full-width
-rows (sheets E and G) PAN across instead of a token nudge. Frame-checking v13
-caught the stitch cache keying pictures by FILENAME — a re-rendered clip at
-the same path silently shipped the old framing; it keys by bytes now.
+- **v16 ramp-to-the-end, THE CURRENT PIN** — untouched to the spine line, then
+  climbing to 3x: `…/water-reel/water-reel-v16-rampend.mp4`
+- **v16 full speed** — the master with no borrowed voice: `…/water-reel-v16.mp4`
+- v15 (the crop lands on her last word) — `…/water-reel-v15.mp4` plus
+  `-slow13` / `-ramp` / `-fast`
+- v14 (her goblin takes, the double "knees" fixed) — `…/water-reel-v14.mp4`
+  plus `-slow13` / `-ramp` / `-fast`
+- v13, v12, v11 — same prefix, same shape
+
+All at `https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/`.
+
+What each version bought, newest first: **v16** cut the last borrowed line and
+added the ramp-from-a-shot; **v15** made a panel's crop land on her last word;
+**v14** put her own voice on the goblin sheet and fixed a real double "knees"
+(a slice held the tail of its neighbouring line); **v13** ended effects with
+their line, cut the sandpaper shot, re-centred sheet F on its measured band and
+panned the full-width rows. Frame-checking v13 caught the stitch cache keying
+pictures by FILENAME — a re-rendered clip at the same path silently shipped the
+old framing; it keys by bytes now.
 
 ## Rebuilding it
 
@@ -44,8 +55,9 @@ node scripts/water-reel/mix-sfx.js --film /tmp/wr/film --spec /tmp/wr/spec.json 
 node scripts/water-reel/speed.js --in /tmp/wr/v12.mp4 --flat 1.7 --out /tmp/wr/v12-fast.mp4
 ```
 
-`build-vo.js` needs `assets/water-reel/laura-goblin-sheet.mp3` copied to
-`/tmp/wr/src/b.wav` first (or re-render it with `tts-fill.js`).
+Nothing needs preparing first — every source is one of her two recordings.
+Add `--from <shotId>` to `speed.js --ramp` to start the ramp at a given SHOT
+and leave everything before it at its own pace.
 
 ## The three things that decide this reel
 
@@ -91,9 +103,8 @@ mishears; check each against the source words and a 20ms RMS profile.
   "especially towards the end") and nothing peaking past −6 dBFS.
 - **The fish sing** — a child's "la la la" lullaby under the miniature-fish
   panel, her ask, generated with ElevenLabs sound generation.
-- **Laura reads the ear-goblins sheet** (`b1`–`b4`) because Sophie has no take
-  of it. When she records those three lines, add a `SLICES` entry and delete
-  the `LAURA` const — nothing else changes.
+- **Every word is hers** since v16 — the goblin sheet rides her own
+  2026-08-27 recording and the one line she never read is cut.
 - **Speed**: `speed.js` retimes the finished mixed reel with the pitch kept
   (`atempo`, chained above 2.0), splitting only at shot boundaries so no word
   straddles a seam. `--flat 1.3` or `--ramp 1.15,1.25,…`.
@@ -102,18 +113,15 @@ mishears; check each against the source words and a 20ms RMS profile.
 
 Everything she asked for is in v13 except these, and each is hers:
 
-- **Laura is down to ONE line (2026-08-27).** Sophie recorded the goblin
-  sheet's three reasons (`assets/water-reel/sophie-goblin-sheet.m4a`, the
-  `bs` slice — last take, intro ignored, per her message) and b1-b3 ride her
-  voice since v14. The sheet's tagline "Drink gallons. Live legendary." has
-  no take of hers, so Laura reads exactly that one shot (b4) — her v9 rule.
-  When she records it, b4 gets a slice and the `LAURA` const goes.
+- ~~Laura~~ **THE REEL IS ENTIRELY HER OWN VOICE since v16** (2026-08-27:
+  "get rid of the last remaining LAURA voice that says live legendary. We
+  don't need that anymore"). She recorded the goblin sheet's three reasons
+  that morning (`sophie-goblin-sheet.m4a`, the `bs` slice) and the tagline
+  shot she never read is CUT rather than re-recorded, so `synthSources` is
+  empty and `tts-fill.js` is history.
 - **c1's "…than ever before" is a SPLICE** of two moments 14s apart, not a
   take — approved by ear, and she has not ruled on it.
-- **The knees/spine echo** — "it says knees twice" is the spine sheet saying
-  the same sentence two sheets earlier. Dropping one is hers to call.
-- **Speed** — she has flip-flopped honestly here: v11's 1.3x/1.15→1.55 "all
-  sounded pretty slow", then 1.7x was "the speed you liked", then 2026-08-27
-  "what was the last version it was slower? can u put it back to that" → v13
-  is being delivered at v11's two slower speeds (flat 1.3x, ramp 1.15→1.55)
-  for her to pick. The landing speed stays hers.
+- **Speed is still hers to land.** v11's 1.3x and its 1.15→1.55 ramp "all
+  sounded pretty slow"; 1.7x was then "the speed you liked"; on 2026-08-27 she
+  asked for the slower pace back, and then for a cut that ramps from the spine
+  line to 3x by the end. All of them exist; she has not named a final one.

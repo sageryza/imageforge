@@ -98,7 +98,6 @@ const BED = [
   // there one of like a boat or something on the water?") — a wooden boat
   // creaking with water lapping the hull.
   { line: 'boat inside your stomach', fx: [['boatcreak', 0.40, 0]] },
-  { line: 'Drink gallons Live legendary', fx: [['gulp', 0.25, +1]] },
 
   { line: 'ghosts that live in your spine', fx: [['spooky', 0.60, +1]] },
   { line: 'liquid lightning', fx: [
