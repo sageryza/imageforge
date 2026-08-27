@@ -1,0 +1,31 @@
+# THE PROMPT GUARD RUNS ON EVERY PR (2026-08-27, Sophie: "testing for
+# throwing away style or prompt could be tested for and alert the chat
+# asap"). The whole-prompt rule already has a watchdog —
+# scripts/test-prompt-record.js sweeps every surface that files an image and
+# fails if one drops the full prompt — but nothing ran it automatically, so
+# when the old Panels tool shipped without filing fullPrompt the test sat
+# red on main for days in an empty room. This makes that alarm a red X on
+# the PR itself, the moment the chat pushes.
+#
+# Deliberately ONLY the pure sub-second guards: they need no npm install, no
+# browser and no network, so the whole job is checkout + node and finishes
+# in seconds. The headless page suites stay chat-run — they need playwright
+# and would turn a ten-second alarm into a minutes-long gate.
+name: prompt-guard
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      # No npm install on purpose — both tests use only Node built-ins and
+      # repo files (pinned by the fact that this job has no install step:
+      # a test that grows a node_modules dependency fails here loudly).
+      - name: the whole-prompt rule (nothing files an image without its full prompt)
+        run: node scripts/test-prompt-record.js
+      - name: the panel-sheet prompt geometry (grid sentence, dreamy swap pins, seams)
+        run: node scripts/test-sheet-grid.js
