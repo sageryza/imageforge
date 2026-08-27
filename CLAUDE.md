@@ -2700,6 +2700,19 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   running autoscroll first. Source is `scripts/pill.py` (re-run
   `python3 scripts/gen-pill-inject.py` after editing); full rules in
   `docs/design-rules.md`, pinned by `node scripts/test-back-to-top.js`.
+  - **"IT'S NOT THERE" CAN MEAN THE PAGE IS OLD, NOT THAT THE ARROW IS
+    MISSING (2026-08-27, Sophie about the Playground, twice).** Measured that
+    hour before changing anything: the bytes Render answers with carry the
+    pill VERBATIM, and the live html renders the arrow at her viewport with
+    the iPhone 13's 47px safe-area inset — lit, 38px, tappable, in both list
+    and tiles view. Nothing was wrong with the arrow. **The app keeps the
+    three recent tools alive in a ZStack, so a wrapped page loads ONCE per app
+    process and no deploy can reach it** — the Film Editor's round-three
+    finding, arriving at the tool she is in most. The answer was the
+    self-heal (see the Playground bullet), not a second arrow. **So when a
+    shipped page feature is reported missing, check the SERVED bytes first
+    and her page's age second — building it again is the one move that cannot
+    help.**
   - **THERE IS A SECOND PILL AND IT DRIFTS — `mkPagePill` in `chats.html`
     (2026-08-24, Sophie on a Compare page: "the auto scroll doesn't work on my
     image prompt artifact so I can't scroll back up only down").** A Compare
@@ -3313,6 +3326,45 @@ before working on that module. Nothing was deleted — the moved text is verbati
   Replicate LoRA), **Sandy mirror**, **ChatGPT**, **Dreamy**, Scarry, Pastel,
   Hoonies (all gpt-image-2, her own scans attached as style refs, kept in
   `PL_GPT_STYLES` in server.js).
+  **THE PAGE HEALS ITS OWN STALENESS (2026-08-27, Sophie: "it's not there" —
+  about the back-to-top arrow, which had been live and correct for a day —
+  then "self heal").** The app keeps the three recent tools alive in a ZStack,
+  so this page loads ONCE per app process and re-entering the tool shows the
+  SAME page: no deploy can reach it. That is the Film Editor's round-three
+  finding arriving at the tool she is in most.
+  - **THE BUILD ID IS A HASH, NEVER A HAND-BUMPED CONST** — `page-build.js`
+    (`pageBuildId(file, pill)`), the content hash of exactly what
+    `serveGated` sends, stamped into every gated page as
+    `window.__forgeBuild` and answered by `GET /api/promptlab/build`
+    (registered ABOVE `/api/promptlab/:id`, like `/styles`). The Film
+    Editor keeps `var BUILD = 'fe-2026-08-23d'` in its own html, which is one
+    forgotten edit away from a self-heal that never fires. **The PILL is
+    folded into the hash** — it lives in another file, and the arrow that
+    started this is a pill change and nothing else.
+  - **READ THE STAMP LAZILY.** `serveGated` APPENDS it after the page and the
+    pill, so at parse time `window.__forgeBuild` does not exist yet; caching
+    it in a const leaves the check permanently disabled, and every
+    "same build → no reload" assertion still passes, vacuously. The test asks
+    whether it really CALLED the server for exactly that reason.
+  - **IT RELOADS ONLY WHEN NOTHING WOULD BE LOST, and that is the half the
+    Film Editor could take for granted.** Its state is all server-side; this
+    page holds real unsaved things, every one of them deliberately not
+    persisted: her typed prompt, an attached photo ref, a picked cast, a
+    quality or size tier moved off default, a search in progress, an open
+    lightbox / cancel dialog / prompt panel / character picker, and any tap in
+    the last 10s. A silent reload throwing one of those away is a worse bug
+    than the one being fixed. Everything else already survives a reload (the
+    view, the filters, the columns, the canvas, the panel words, her prompt
+    overrides, pending runs). The DEFAULTS are read at load (`plQ0`/`plR0`),
+    never written down, so a moved default cannot make the guard lie.
+  - **COMING BACK TO THE TOOL IS THE CHECK THAT MATTERS** —
+    `visibilitychange` → visible is the moment a stale page is about to be
+    used; the 5-minute timer is only the fallback for a page left open.
+  - Test: `node scripts/test-playground-selfheal.js` (the hash pure — both
+    files move it — then the real page headless: the stamp, the no-op, the
+    heal, every guard, and the release; verified failing against the pre-fix
+    page). **Another page wanting this needs two lines** — its own
+    `/build` route calling `pageBuildId`, and this block.
   **A hairline PICTURE · PANELS tab sits at the top (2026-08-26, Sophie: "we
   make a picture and cut it into panels … describe each panel individually —
   it could be a feature or Hairline tab in the playground itself").** On
