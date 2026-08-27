@@ -13,14 +13,35 @@ body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--i
 [hidden]{display:none !important;}
 .wrap{max-width:34em; margin:0 auto; padding:5vh 5vw 16vh;}
 .state{font-style:italic; color:var(--ink2); text-align:center; padding:2.5em 0;}
-/* NO PAGE HEADER (Sophie, Aug 2026: "it says Voice Studio twice, once at the
-   top and once below it… get rid of basically the whole header, including the
-   line"). The native tool bar already carries the title, so the page's own
-   brand row, h1, credits line and rule are gone and the tabs are the first
-   thing on screen. The credits moved behind the ⓘ on the tab row.
-   The autoscroll pill still floats over the top-right corner, so the rows that
-   now sit in its band (the tabs, the voice squares, the dropdown) each keep the
-   56px reserve — a control there is untappable. */
+/* THE TITLE, ONCE — the house header row (2026-08-27, Sophie: "this header
+   doesn't match the app pattern", looking at a screen whose whole header was a
+   lone chevron in a box with nothing beside it).
+
+   THIS PAGE HAD NO HEADER ROW AT ALL, and that was RIGHT until the native bar
+   went. Sophie's earlier ask (Aug 2026: "it says Voice Studio twice, once at
+   the top and once below it… get rid of basically the whole header, including
+   the line") was about Apple's nav bar and the page's own brand row saying the
+   same thing one above the other — so the brand row, the h1, the credits line
+   and the rule came off and the tabs became the first thing on screen. Then
+   `.forgeWebToolBar` took Apple's bar away from every web-wrapped tool, and the
+   half that was carrying the name went with it: pagehead.js found no row to sit
+   in, fell through to its row-less branch, and drew a bare `#forgehead` strip
+   holding the chevron and nothing else. The tool was nameless.
+
+   So the page owns its header now, which is the house rule for a web-wrapped
+   tool. One row, the `.app-header` shape Meta Assets and the other titled pages
+   use: pagehead inserts the chevron into it and `.fh` centres the title on the
+   SCREEN between the chevron and the pill's corner. There is still only one
+   "Voice Studio" on the page — her complaint was never that the title existed.
+   The credits stay behind the ⓘ on the tab row.
+
+   The autoscroll pill floats over the top-right corner, so this row and the
+   rows in its band (the tabs, the voice squares, the dropdown) each keep the
+   reserve — a control there is untappable. 64px here (56 is a hair tight at
+   390pt), 56 below, matching what each row already measured. */
+.app-header{display:flex; align-items:center; min-height:34px; padding-right:64px; margin:0 0 14px;}
+.app-header h1{font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:11px; letter-spacing:.34em;
+  color:var(--ink2); text-transform:uppercase; font-weight:400; margin:0;}
 .info{flex:0 0 auto; width:22px; height:22px; align-self:center; margin-right:10px;
   border-radius:50%; border:1.2px solid var(--line); background:none; color:var(--ink2);
   cursor:pointer; padding:0; font-family:-apple-system,sans-serif; font-size:12px; line-height:1;
@@ -218,6 +239,8 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
 .render .dl:focus-visible{outline:2px solid var(--rose); outline-offset:1px;}
 </style>
 <div class="wrap">
+  <header class="app-header"><h1>Voice Studio</h1></header>
+
   <div class="acctabs" id="tabs" data-on="0">
     <button class="info" id="info" type="button" aria-label="What a render costs">i</button>
     <button class="acctab on" id="tab-say" type="button">Text</button>
