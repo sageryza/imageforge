@@ -12,7 +12,7 @@
 // Run: node scripts/test-deliverables.js
 'use strict';
 const { _internals, pinDeliverable } = require('../deliverables');
-const { kindOf, decideRecord, rowsOf, idFor } = _internals;
+const { kindOf, decideRecord, rowsOf, idFor, backfillPlan, backfillDoc } = _internals;
 
 let fails = 0;
 function ok(name, cond, extra) {
@@ -79,6 +79,40 @@ console.log('rowsOf — newest first, names joined from the registry');
   ok('display name joined', rows[0].chatName === 'The Evan film');
   ok('a chat with no name keeps its slug', rows[2].chatName === 'a');
   ok('input order untouched (no in-place sort)', docs[0].url === 'u1');
+}
+
+console.log('backfill — the launch-day date bug, pinned (2026-08-27, "evan says today")');
+{
+  // Two chats pinning the SAME file are one hand-over: one plan entry, the
+  // newest pin's chat and time. Recording both is what stamped today on
+  // week-old films.
+  const chats = {
+    'evan-film-collected': { pinned: { url: 'https://x/evan-v17.mp4', kind: 'video', title: 'Evan v17', at: '2026-08-19T21:16:47Z' } },
+    'evan-story-visual-summary': { pinned: { url: 'https://x/evan-v17.mp4', kind: 'video', title: 'Evan v17 too', at: '2026-08-12T00:00:00Z' } },
+    'science-page': { pinned: { url: 'https://x/science', kind: 'link', title: 'The science page', at: '2026-08-20T00:00:00Z' } },
+    'quiet-chat': {},
+  };
+  const plan = backfillPlan(chats);
+  ok('one url pinned by two chats is ONE entry', plan.length === 1, plan);
+  ok('…keeping the newest pin', plan[0].chat === 'evan-film-collected' && plan[0].at === '2026-08-19T21:16:47Z');
+  ok('link pins stay out of the plan', !plan.some((e) => e.url === 'https://x/science'));
+
+  const now = '2026-08-27T03:00:00.000Z';
+  const fresh = backfillDoc(null, plan[0], now);
+  ok('a backfill doc carries the PIN’s date, not now', fresh.at === '2026-08-19T21:16:47Z' && fresh.updatedAt === '2026-08-19T21:16:47Z', fresh);
+  ok('…and versions 1 (one hand-over)', fresh.versions === 1);
+
+  // Re-running REPAIRS the backfill's own damaged records…
+  const damaged = { ...fresh, updatedAt: '2026-08-27T02:55:18Z', versions: 2, source: 'pin-backfill' };
+  const repaired = backfillDoc(damaged, plan[0], now);
+  ok('re-running repairs a damaged backfill doc', repaired && repaired.updatedAt === '2026-08-19T21:16:47Z' && repaired.versions === 1, repaired);
+  // …and never touches a doc a LIVE door made.
+  const live = { ...fresh, source: 'pin' };
+  ok('a live-door doc is left alone', backfillDoc(live, plan[0], now) === null);
+  const posted = { ...fresh, source: 'post' };
+  ok('…a POSTed one too', backfillDoc(posted, plan[0], now) === null);
+  const noAt = backfillDoc(null, { chat: 'c', url: 'https://x/a.mp4', title: '', kind: 'video', at: '' }, now);
+  ok('a pin with no at falls back to now', noAt.at === now);
 }
 
 console.log('idFor — content-addressed by url');

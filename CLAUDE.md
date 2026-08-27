@@ -6094,7 +6094,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - **It spends nothing** — no model calls; one single-orderBy Firestore read
     plus chatfeed's exported registry cache for display names.
   - `POST /backfill {dry?}` (dry by default, never pushes) sweeps existing
-    registry media pins in, so the list started full. Tests:
+    registry media pins in, so the list started full. It dedupes by url
+    (two chats pinning one file = one hand-over, newest pin wins), writes
+    the PIN's own date, and re-running repairs its own records while never
+    touching a live door's — the launch-day version recorded per chat
+    through the live update path and stamped today's date on week-old
+    films (Sophie caught it: "evan says today"). Tests:
     `node scripts/test-deliverables.js` (pure).
 - **Getting original art OUT of a Google Drawing** — for a lot of her old scanned
   artwork the embedded copy is the only one left, and **the SVG export is the only
