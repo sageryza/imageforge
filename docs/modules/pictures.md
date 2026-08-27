@@ -312,6 +312,40 @@ ceiling are all in `docs/image-pipeline.md` (*The walker is the prompt*).
   it finishes (`status:'ready'`, then `'done'`), so the grid fills in as they
   arrive. One failed call costs its image, not the run.
 
+#### A failed run says WHY (2026-08-27)
+
+From Sophie's screenshot of the Playground list: a red card reading **"every
+gpt-image-2 render failed — see the server log"** — an instruction she cannot
+follow, on the one card whose whole job is telling her what happened. The real
+reason was `console.warn`'d inside the per-render catch and thrown away, so the
+API's own sentence lived for the length of one request.
+
+- **`render-fail.js` owns the message** (`renderFailMessage(errs, want)`), pure
+  and dependency-free. The API's own sentence leads VERBATIM, identical errors
+  collapse with the COUNT behind them (`(3 of 4 renders)` — the difference
+  between a bad prompt and a bad minute), different errors are all carried, and
+  a run with genuinely nothing to say falls back to a plain sentence that
+  **never points her at a log**. Capped at 300 chars and flattened to one line,
+  because the card draws it under the prompt.
+- **A PARTIAL failure is recorded too** — `renderErrors` beside `failedRenders`
+  on a `done` run, so "3 of 4 came back" carries the reason the fourth didn't.
+- **The panels job was already right** (it surfaces `err.message` straight to
+  the doc); only the multi-output gpt job swallowed it.
+- **The failure that prompted this was TRANSIENT, and that is measured.** Her
+  run `HPpZc0SkXJtbj8Ukl1lN` (5:22am, dreamy + a photo ref, low, 1K) died with
+  nothing to say; the identical `fullPrompt`, style reference and photo re-sent
+  by hand came back with a picture first try, and her own re-runs at 5:24 and
+  5:25 both drew. So the whole cost of the old message was that she could not
+  tell "tap Generate again" from "change the prompt".
+- **What is NOT built, and is hers to ask for:** `openaiImageEditRefs` retries
+  only a THROWN error (network, timeout) — an `error` BODY from OpenAI (a
+  stochastic moderation refusal, a 5xx, a rate limit) fails the render on the
+  first try, which is what she is working around by tapping Generate again. An
+  automatic retry there would spend input tokens (~1.2¢ a reference) on every
+  refusal, so it is a money decision, not a bug fix.
+- Test: `node scripts/test-render-fail.js` (pure — the rules, plus a source pin
+  that the log sentence cannot come back into `server.js`).
+
 ### The character picker (2026-08-27)
 
 Sophie: "add a little button in the playground right next to where it says
