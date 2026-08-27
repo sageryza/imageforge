@@ -2535,6 +2535,22 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   the sheet's tier rather than a fraction of a thing that was never cut. A
   tier table copied into a page would drift from the boundaries the day they
   move. Pinned by `node scripts/test-playground-panels.js`.
+  **AND THE CAPTION IS THOSE THREE SLOTS AND NOTHING ELSE (2026-08-27,
+  Sophie's next screenshot of the same line, which by then read "Dreamy ·
+  medium · 1/4 (1K) · 1:1 · panels 2x2 · uncut sheet · 2x2": "extra notes -
+  dreamy etc … just need model quality and pixels + 1/4").** Six things, of
+  which the caption's own three were the first three — the required slot was
+  found by adding it beside five other facts rather than by making room for
+  it. `lbCaption` in promptlab.html is the lightbox's own builder now:
+  **MODEL · QUALITY · SIZE**, plus `panel 4 of 9` where a run has more than
+  one picture (which one she is looking at is navigation, not a fact about the
+  run). `runParts` is untouched and still tags the run's CARD with the style,
+  the ratio, the grid, `photo ref` — over a picture she is LOOKING at, the
+  ratio and the grid are things she can see and the style is behind the Prompt
+  door. **Slot 1 is the model id, not the style label**, which is what that
+  same picture's filed caption already says in My Creations and Meta Assets —
+  so one picture stopped reading two different ways in two places. A LoRA run
+  has neither a quality nor a tier and keeps its card tags.
   **AND THE HARNESSES COULD NOT SERVE IT** — `scripts/lib/public-asset.js`
   answered out of `public/` only, so the three root-level shared files
   (`pause-plan.js`, `pad-characters.js`, `size-tier.js`) 404'd in every

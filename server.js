@@ -6779,7 +6779,13 @@ app.post('/api/promptlab/:id/vote', async (req, res) => {
     // 0-24: a run used to hold at most 4 images, but a panels run's images
     // are its cut panels — up to 9 today, 25 when the 5x5 grid lands. The
     // old `i > 3` cap 400'd a heart on panel 5 of 9.
-    if (!Number.isInteger(i) || i < 0 || i > 24) return res.status(400).json({ error: 'image index 0-24 required' });
+    //
+    // -1 IS THE BANKED UNCUT SHEET (2026-08-27, Sophie: "missing three buttons
+    // too" — the sheet's lightbox had no ♥/✕ because a vote is an index into
+    // `images` and the sheet is not in it). It is the Playground's own virtual
+    // index for that picture, the one the sheets view already opens it at, and
+    // it lands on the same `votes` map under the key "-1".
+    if (!Number.isInteger(i) || i < -1 || i > 24) return res.status(400).json({ error: 'image index -1 (the sheet) or 0-24 required' });
     const vote = ['like', 'dislike'].includes(req.body.vote) ? req.body.vote : null;
     const ref = admin.firestore().collection(PROMPTLAB).doc(req.params.id);
     await ref.update({ [`votes.${i}`]: vote === null ? admin.firestore.FieldValue.delete() : vote });
@@ -6789,7 +6795,7 @@ app.post('/api/promptlab/:id/vote', async (req, res) => {
     // failure never fails the vote (the helper swallows its own errors).
     try {
       const run = (await ref.get()).data() || {};
-      const url = (run.images || [])[i];
+      const url = i === -1 ? run.sheetUrl : (run.images || [])[i];
       if (url) await syncVoteToAssets(url, vote);
     } catch (e) { /* best-effort */ }
     res.json({ ok: true, image: i, vote });
