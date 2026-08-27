@@ -946,6 +946,51 @@
     box.value = ''; qLive.sync(); readSearch(); box.focus();
   });
 
+  // ── PUTTING A PROMPT BACK ALSO PUTS ITS PHOTO BACK (2026-08-27, Sophie:
+  //    "playground and other image tools shud save the reference photo and
+  //    reload when copy to prompt box") ─────────────────────────────────────
+  //
+  // The server has always SAVED her photo reference — `photoRef` on the run
+  // doc is the Storage url it was uploaded to, and the whole doc rides the
+  // feed — but nothing on the page ever read it back, so a run drawn with a
+  // photo could not be re-run with the same photo: the bytes existed and were
+  // unreachable. Copying the prompt back now restores the photo that drew it.
+  //
+  // THE RULE IS "ONLY CHANGE WHAT THE RECORD KNOWS", and each of the three
+  // answers matters:
+  //   a url on the record  -> attach it (a re-run is the same request again),
+  //   a record with none   -> CLEAR whatever is attached (a panels run, a LoRA
+  //                           run, or a picture she drew with nothing on it —
+  //                           leaving a photo attached would put an ingredient
+  //                           into the next run that this one never had),
+  //   no record at all     -> leave it alone, because nothing here knows.
+  //
+  // The restored `data` is that url, not a dataURL. Both readers take it: the
+  // thumbnail is an <img src>, and the run POSTs `photo` as-is — server.js
+  // already accepts an https url there and fetches the bytes back, so nothing
+  // is re-uploaded and the run's own record points at the same object.
+  //
+  // This does NOT persist across loads. That rule is untouched and is hers:
+  // a photo attached last week silently riding today's run is the hidden
+  // ingredient the Prompt panel exists to prevent. Her tap on a copy button
+  // is the opposite of silent — the thumbnail appears in the row as she does
+  // it, and the Prompt panel's photo line comes back with it.
+  function restorePhoto(r) {
+    if (!r) return;                                   // nothing known — leave it
+    var url = r.photoRef ? String(r.photoRef) : '';
+    if (!/^https?:\/\//.test(url)) {
+      if (!photoRef) return;
+      photoRef = null;
+      document.getElementById('photofile').value = '';
+      paintPhoto();
+      return;
+    }
+    if (photoRef && photoRef.data === url) return;    // already the one
+    photoRef = { data: url, name: (url.split('/').pop() || '').split('?')[0] };
+    document.getElementById('photofile').value = '';
+    paintPhoto();
+  }
+
   // The copy button beside a run's words: puts that prompt back into the box.
   function copyPromptIn(text) {
     var box = document.getElementById('prompt');
@@ -961,8 +1006,13 @@
   function copyPanelsIn(r) {
     if (!r || !r.panels || !r.grid || !PANELS_CFG || !PANELS_CFG.grids[r.grid.count]) {
       copyPromptIn(r && r.prompt);
+      restorePhoto(r);
       return;
     }
+    // A panels run never carries a photo (the button is off on that tab), so
+    // its record answers "none" and the restore CLEARS one that is attached —
+    // the same rule everywhere, and the honest one here.
+    restorePhoto(r);
     savePanelTexts(r.grid.count, r.panels.slice());
     try { localStorage.setItem(GRIDKEY, String(r.grid.count)); } catch (e) { /* private mode */ }
     setTab('panels');
@@ -971,7 +1021,7 @@
   }
   function copyRunIn(r) {
     if (r && r.panels && r.panels.length) copyPanelsIn(r);
-    else if (r) copyPromptIn(r.prompt);
+    else if (r) { copyPromptIn(r.prompt); restorePhoto(r); }
   }
   // ONE PICTURE'S WORDS GO IN THE ONE BOX (2026-08-27, Sophie: "pressing the
   // playground button on images made by panels should copy text into the
@@ -987,6 +1037,7 @@
     if (panel == null) { copyRunIn(r); return; }
     setTab('picture');
     copyPromptIn(String(panel));
+    restorePhoto(r);
   }
   document.getElementById('seedbtn').innerHTML = ICONS.sprout;
 
@@ -2338,7 +2389,7 @@
     if (cp) {
       var pid = cp.getAttribute('data-copy');
       var pend = pendingList().filter(function (x) { return x.id === pid; })[0];
-      if (pend) copyPromptIn(pend.prompt);
+      if (pend) { copyPromptIn(pend.prompt); restorePhoto(runsById[pid]); }
       return;
     }
     var btn = e.target.closest('[data-kill]');
@@ -2384,6 +2435,13 @@
           renderPendings();
           return;
         }
+        // Stash the doc: a pending run's copy button needs to know whether it
+        // was drawn with a photo, and the pending ENTRY cannot carry one — it
+        // lives in localStorage, where a 1600px dataURL is most of the quota.
+        // The doc exists from the moment the run starts, so the first poll is
+        // enough; a tap before it lands leaves the photo alone, which is the
+        // "no record" answer restorePhoto is built to give.
+        if (d.id) runsById[d.id] = d;
         if (d.status === 'ready' || d.status === 'done' || d.status === 'failed' || d.status === 'cancelled') {
           setPending(pendingList().filter(function (x) { return x.id !== p.id; }));
           // 'ready' = the first images are in, the rest still landing: the swap
