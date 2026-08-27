@@ -108,6 +108,42 @@ function decideRecord(existing, input, nowIso) {
   return { isNew: false, doc: patch };
 }
 
+// Backfill planning (pure): every media pin, deduped by URL — two chats
+// pinning the same file are ONE hand-over, and the row keeps the newest
+// pin's chat and time. Recording each chat separately was the launch-day
+// bug (found live 2026-08-27, Sophie: "the dates are wrong - evan says
+// today"): the second record took the live update path and stamped
+// updatedAt = now, so week-old films read as today's.
+function backfillPlan(chats) {
+  const byUrl = new Map();
+  for (const [slug, d] of Object.entries(chats || {})) {
+    if (!pinDeliverable(d.pinned)) continue;
+    const e = { chat: slug, url: d.pinned.url, title: d.pinned.title || '',
+      kind: d.pinned.kind, at: d.pinned.at || '' };
+    const prev = byUrl.get(e.url);
+    if (!prev || String(e.at) > String(prev.at)) byUrl.set(e.url, e);
+  }
+  return [...byUrl.values()];
+}
+// What a backfill write does to an existing doc (pure). A doc a LIVE door
+// made (a pin, a POST) is left alone — live info is truer than a sweep. A
+// doc the backfill itself made is REWRITTEN whole with the pin's own date,
+// so re-running the backfill REPAIRS its records and never damages them.
+function backfillDoc(existing, e, nowIso) {
+  if (existing && existing.source !== 'pin-backfill') return null;
+  const when = e.at || nowIso;
+  return {
+    url: e.url,
+    title: e.title || e.url.split('/').pop().split('?')[0],
+    chat: e.chat,
+    kind: kindOf(e.kind, e.url),
+    source: 'pin-backfill',
+    at: when,
+    updatedAt: when,
+    versions: 1,
+  };
+}
+
 // Rows for the page: newest first by updatedAt (a re-render surfaces), chat
 // display names joined from the registry map (slug → doc).
 function rowsOf(docs, chats) {
@@ -200,24 +236,29 @@ router.post('/', async (req, res) => {
 
 // Sweep the registry's existing MEDIA pins into the list, so it starts full
 // rather than empty. Dry by default (the /wrapup/trim pattern); never pushes.
+// It writes DIRECTLY, never through record(): backfill dates are the pins'
+// own, and record()'s update path stamps now — which is exactly how launch
+// day put today's date on week-old films. Re-runnable: it repairs its own
+// records (source pin-backfill) and never touches a live door's.
 router.post('/backfill', async (req, res) => {
   try {
     if (!firebaseUp()) return res.status(503).json({ error: 'no firebase' });
     const dry = (req.body || {}).dry !== false;
     const reg = await require('./chatfeed').registry();
-    const chats = reg.chats || {};
-    const found = [];
-    for (const [slug, d] of Object.entries(chats)) {
-      if (pinDeliverable(d.pinned)) {
-        found.push({ chat: slug, url: d.pinned.url, title: d.pinned.title || '',
-          kind: d.pinned.kind, at: d.pinned.at, source: 'pin-backfill', push: false });
+    const plan = backfillPlan(reg.chats || {});
+    let wrote = 0, kept = 0;
+    if (!dry) {
+      for (const e of plan) {
+        const ref = db().collection(COLL).doc(idFor(e.url));
+        const snap = await ref.get();
+        const doc = backfillDoc(snap.exists ? snap.data() : null, e, new Date().toISOString());
+        if (doc) { await ref.set(doc); wrote++; } else kept++;
       }
     }
-    if (!dry) for (const f of found) await record(f);
-    res.json({ ok: true, dry, count: found.length,
-      items: found.map((f) => ({ chat: f.chat, title: f.title, kind: f.kind })) });
+    res.json({ ok: true, dry, count: plan.length, wrote, kept,
+      items: plan.map((e) => ({ chat: e.chat, title: e.title, kind: e.kind, at: e.at })) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 module.exports = { router, record, pinDeliverable,
-  _internals: { kindOf, decideRecord, rowsOf, idFor } };
+  _internals: { kindOf, decideRecord, rowsOf, idFor, backfillPlan, backfillDoc } };

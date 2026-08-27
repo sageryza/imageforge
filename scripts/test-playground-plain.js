@@ -89,8 +89,13 @@ ok(/openaiImage\(body, retries = 2, timeoutOverride = 0\)/.test(serverSrc),
 ok(/\}, 2, 300000\);/.test(body), 'and the Playground passes one — big canvases outrun the table');
 
 console.log('the photo line is per style, and disclosed');
-ok(/const photoLine = st\.photoLine \? ` \$\{st\.photoLine\}` : PL_GPT\.photoLine;/.test(serverSrc),
+// (2026-08-27: picked from a PAIR now — the same sentence re-anchored when
+// character references ride behind the photo — so this pins the rule rather
+// than one spelling of it. See test-playground-characters.js.)
+ok(/\(st\.photoLine \? ` \$\{st\.photoLine\}` : PL_GPT\.photoLine\)/.test(serverSrc),
   "a style's own photo line wins, with a space added because it carries none");
+ok(/\(st\.photoLineWithChars \? ` \$\{st\.photoLineWithChars\}` : PL_GPT\.photoLineWithChars\)/.test(serverSrc),
+  'and this tile owns the re-anchored twin too — its line names no style reference');
 ok(/photoLine: st\.photoLine \|\| '',/.test(serverSrc),
   'GET /styles serves it, so the Prompt panel prints what is really sent');
 ok(/p\.baked && p\.baked\.photoLine/.test(pageSrc),

@@ -101,6 +101,18 @@ ok(/\.\.\.\(r\.panels \|\| \[\]\)/.test(serverSrc)
   && /r\.grid && r\.grid\.count \? `panels \$\{r\.grid\.across\}x\$\{r\.grid\.down\}` : ''/.test(serverSrc),
   'promptlabHay lists the panel words and the grid');
 ok(/\.concat\(r\.panels \|\| \[\]\)/.test(pageSrc), 'runHay mirrors it');
+// The shape WORD a run is searchable by lives in TWO files with no shared
+// script — nothing but this would notice one drifting (the landscape cell the
+// 2 option pins is the third entry, and a page that did not know it would
+// silently stop finding those runs).
+const shapeWord = (src) => {
+  const m = /PL_SHAPE_WORD = (\{[^}]*\})/.exec(src);
+  return m ? eval('(' + m[1] + ')') : null;            // eslint-disable-line no-eval
+};
+const swServer = shapeWord(serverSrc), swPage = shapeWord(pageSrc);
+ok(swServer && swPage && JSON.stringify(swServer) === JSON.stringify(swPage),
+  'PL_SHAPE_WORD is the same map in server.js and promptlab.html');
+ok(swServer && swServer['3:2'] === 'landscape', "and it knows the landscape cell");
 
 // ── the real page ────────────────────────────────────────────────────────
 let chromium;
@@ -115,15 +127,19 @@ catch {
 function panelsPayload() {
   const panels = { grids: {}, sheets: {} };
   Object.keys(sheetGrid.GRIDS).forEach((g) => {
+    const pin = sheetGrid.GRIDS[g].shape;
     panels.grids[g] = {
       ...sheetGrid.GRIDS[g],
       count: sheetGrid.GRIDS[g].across * sheetGrid.GRIDS[g].down,
       positions: sheetGrid.positions(g),
       layout: sheetGrid.layoutWords(g),
       sentence: sheetGrid.panelBlock(g, []),
+      aspectRatio: pin ? sheetGrid.SHAPES[pin].aspectRatio : null,
     };
   });
-  Object.keys(sheetGrid.SHAPES).forEach((shape) => {
+  // Only the shapes with a tier table — a PINNED shape borrows its budget and
+  // is reached through the grid, exactly as the route does it.
+  Object.keys(sheetGrid.SHAPES).filter((sh) => RES[sh]).forEach((shape) => {
     panels.sheets[shape] = {};
     Object.keys(sheetGrid.GRIDS).forEach((g) => {
       panels.sheets[shape][g] = {};
@@ -277,6 +293,48 @@ function panelsPayload() {
   await page.waitForFunction(() => document.querySelectorAll('#panelgrid textarea').length === 9);
   const back = await page.$$eval('#panelgrid textarea', (ts) => ts.map((t) => t.value));
   ok(back.join('|') === nine.join('|'), '9 → 4 → 9 loses nothing');
+
+  // THE 2 OPTION IS TWO LANDSCAPE PANELS, STACKED (2026-08-27, Sophie: "2
+  // option shud be landscape in panels"). Measured off the real boxes: a
+  // pinned cell shape is invisible to every markup assertion — a 2-across
+  // grid of portrait boxes and a stacked pair of landscape ones are the same
+  // two <textarea>s. And the canvas toggle must come OFF, because it decides
+  // nothing here.
+  console.log('the 2 option is landscape, stacked, and the toggle stands down');
+  await page.click('#gridpick button[data-grid="2"]');
+  await page.waitForFunction(() => document.querySelectorAll('#panelgrid textarea').length === 2);
+  const two = await page.$$eval('#panelgrid textarea', (ts) => ts.map((t) => {
+    const r = t.getBoundingClientRect();
+    return { x: Math.round(r.left), y: Math.round(r.top), w: r.width, h: r.height, ph: t.placeholder };
+  }));
+  ok(two.length === 2, 'two boxes');
+  ok(new Set(two.map((b) => b.x)).size === 1 && new Set(two.map((b) => b.y)).size === 2,
+    'stacked — one column, two rows (measured)');
+  ok(two.every((b) => b.w > b.h), 'each box is WIDER than it is tall');
+  ok(two.every((b) => Math.abs(b.w / b.h - 3 / 2) < 0.12), 'and sits at 3:2');
+  ok(two[0].ph === 'top' && two[1].ph === 'bottom', 'named top and bottom');
+  ok(!(await page.isVisible('#canvastog')),
+    'the canvas toggle comes off — a pinned grid ignores it');
+  await page.fill('#panelgrid textarea[data-panel="0"]', 'a dog');
+  await page.fill('#panelgrid textarea[data-panel="1"]', 'a cat');
+  const before = await page.$$eval('#pendings .cell', (c) => c.length);
+  await page.click('#go');
+  await page.waitForFunction((n) => document.querySelectorAll('#pendings .cell').length === n + 2,
+    before);
+  const twoPost = posted[posted.length - 1] || {};
+  ok(twoPost.grid === 2 && (twoPost.panels || []).join('|') === 'a dog|a cat',
+    'the POST carries the two panels');
+  // Pendings render NEWEST FIRST, so the two-panel run's placeholders lead.
+  const phAr = await page.$$eval('#pendings .cell', (cs) => cs.slice(0, 2)
+    .map((c) => c.style.getPropertyValue('--ar').replace(/\s/g, '')).join('|'));
+  ok(phAr === '3/2|3/2',
+    'the pending placeholders wear the landscape cell, so the wall cannot re-flow');
+  // …and the toggle comes back the moment the grid stops pinning a shape.
+  await page.click('#gridpick button[data-grid="4"]');
+  await page.waitForFunction(() => document.querySelectorAll('#panelgrid textarea').length === 4);
+  ok(await page.isVisible('#canvastog'), 'and comes back on a grid that follows it');
+  await page.click('#gridpick button[data-grid="9"]');
+  await page.waitForFunction(() => document.querySelectorAll('#panelgrid textarea').length === 9);
 
   console.log('the feed');
   const runCells = await page.$$eval('#runs .run', (runs) => runs.map((r) => ({

@@ -66,14 +66,17 @@ Object.keys(RES).forEach((shape) => {
 
 console.log('every grid x shape x tier is legal, whole-pixel, and pinned');
 // Pinned by hand from the derivation, so a change to the math is loud.
+// The 2 option PINS a landscape cell, so its row is the SAME under both
+// toggles — that identity is the contract the page's hidden canvas toggle
+// rests on, and it is asserted below as well as pinned here.
 const EXPECT = {
   portrait: {
-    2: { '1k': '1472x1104', '2k': '2240x1680', '4k': '3264x2448' },
+    2: { '1k': '1104x1472', '2k': '1680x2240', '4k': '2448x3264' },
     4: { '1k': '1024x1536', '2k': '1568x2352', '4k': '2336x3504' },
     9: { '1k': '1056x1584', '2k': '1536x2304', '4k': '2304x3456' },
   },
   square: {
-    2: { '1k': '1440x720', '2k': '2720x1360', '4k': '3840x1920' },
+    2: { '1k': '1104x1472', '2k': '1680x2240', '4k': '2448x3264' },
     4: { '1k': '1024x1024', '2k': '1920x1920', '4k': '2880x2880' },
     9: { '1k': '1008x1008', '2k': '1920x1920', '4k': '2880x2880' },
   },
@@ -94,9 +97,11 @@ Object.keys(EXPECT).forEach((shape) => {
       ok(plan.W === plan.across * plan.cellW && plan.H === plan.down * plan.cellH,
         `  whole-pixel cells (${plan.cell})`);
       // The cell keeps its shape exactly — a tier is the same panel at more
-      // pixels, never a different crop.
-      const s = sheetGrid.SHAPES[shape];
+      // pixels, never a different crop. A grid that PINS its shape is measured
+      // against the PINNED one, not the toggle's.
+      const s = sheetGrid.SHAPES[sheetGrid.GRIDS[grid].shape || shape];
       ok(plan.cellW * s.h === plan.cellH * s.w, `  cell is exactly ${s.aspectRatio}`);
+      ok(plan.aspectRatio === s.aspectRatio, `  plan reports ${s.aspectRatio}`);
     });
   });
 });
@@ -191,14 +196,45 @@ function drawSheet(W, H, across, down, offset, opts) {
     (i ? 'a low-contrast sheet' : 'a flat borderless sheet') + ' falls back to the exact math lines');
 });
 
+// THE 2 OPTION IS TWO LANDSCAPE PANELS, STACKED (2026-08-27, Sophie: "2
+// option shud be landscape in panels") — a pinned cell shape, so the canvas
+// toggle decides NOTHING for it and both toggles derive the same sheet. It
+// borrows the portrait tier's pixel budget (the same panel rotated), which is
+// why there is no `landscape` row in PL_GPT.res to keep in step.
+console.log('the 2 option is pinned landscape, and the toggle cannot move it');
+ok(sheetGrid.GRIDS[2].across === 1 && sheetGrid.GRIDS[2].down === 2,
+  '2 is one across, two down — stacked');
+ok(sheetGrid.GRIDS[2].shape === 'landscape', '2 pins the landscape cell');
+ok(sheetGrid.SHAPES.landscape.aspectRatio === '3:2'
+  && sheetGrid.SHAPES.landscape.budget === 'portrait',
+  'landscape is 3:2 and borrows portrait\'s budget');
+Object.keys(RES.portrait.tiers).forEach((tier) => {
+  const a = sheetGrid.sheetFor('portrait', 2, tier, RES);
+  const b = sheetGrid.sheetFor('square', 2, tier, RES);
+  ok(a && b && a.sheet === b.sheet && a.cell === b.cell,
+    `${tier}: both toggles derive the same landscape sheet (${a && a.sheet})`);
+  ok(a && a.cellW > a.cellH, `${tier}: the CELL is wider than it is tall`);
+  ok(a && a.shape === 'landscape', `${tier}: the plan names its cell shape`);
+});
+// No res row is needed for a pinned shape, and adding one would be a second
+// copy of the same budget — the derivation must not depend on it.
+ok(!RES.landscape, 'landscape has no tier table of its own');
+
 console.log('naming');
-ok(String(sheetGrid.positions(2)) === 'left,right', '2: left, right');
+ok(String(sheetGrid.positions(2)) === 'top,bottom', '2: top, bottom');
 ok(String(sheetGrid.positions(4)) === 'top left,top right,bottom left,bottom right',
   '4: the corners');
 ok(String(sheetGrid.positions(9)) === 'top left,top middle,top right,middle left,'
   + 'center,middle right,bottom left,bottom middle,bottom right',
   '9: rows named, the middle cell is "center"');
-ok(sheetGrid.layoutWords(2) === 'a single row of 2 panels, side by side', 'layout words for 2');
+ok(sheetGrid.layoutWords(2) === 'a single column of 2 panels, one above the other',
+  'layout words for 2');
+const col = sheetGrid.panelBlock(2, ['a dog', 'a cat']);
+ok(/equal rectangles, 1 across and 2 down/.test(col), '2: the geometry is stated');
+ok(/In reading order, top to bottom:/.test(col),
+  '2: the reading order names only the axis that exists');
+ok(col.indexOf('Panel 1 (top): a dog') > 0 && col.indexOf('Panel 2 (bottom): a cat') > 0,
+  '2: panels numbered AND named');
 ok(sheetGrid.layoutWords(9) === 'a 3x3 grid of 9 panels', 'layout words for 9');
 
 console.log('the panel block carries her words verbatim');

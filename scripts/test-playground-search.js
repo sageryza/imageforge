@@ -51,10 +51,18 @@ function lift(name) {
   const body = serverSrc.slice(i);
   return body.slice(0, body.indexOf('\n}\n') + 2);
 }
+// A const the lifted functions close over — same rule as the functions: the
+// real line out of server.js, never a second copy of the values.
+function liftConst(name) {
+  const m = new RegExp('^const ' + name + ' = .*;$', 'm').exec(serverSrc);
+  if (!m) throw new Error('no such const in server.js: ' + name);
+  return m[0] + '\n';
+}
 const PL_GPT_STYLES = { evan: { label: 'ChatGPT' }, dreamy: { label: 'Dreamy' } };
 /* eslint-disable no-eval */
 const { promptlabHay, plSearchRuns } = eval(
   '(function (searchGrammar, PL_GPT_STYLES) {'
+  + liftConst('PL_SHAPE_WORD')
   + lift('promptlabHay') + lift('plCompileQuery') + lift('plSearchRuns')
   + 'return { promptlabHay, plSearchRuns };})'
 )(searchGrammar, PL_GPT_STYLES);
@@ -102,8 +110,17 @@ const srvHay = lift('promptlabHay');
   ok(pageHayBody.indexOf(f) >= 0 && srvHay.indexOf(f) >= 0,
     'both the page and the server search ' + f);
 });
-ok(/1:1.*square/s.test(pageHayBody) && /1:1.*square/s.test(srvHay),
+// The canvas WORD is one map in each file now (PL_SHAPE_WORD — pinned equal
+// by test-playground-panels.js), so what this asks is that both haystacks
+// read it rather than keeping a ternary of their own that can drift.
+ok(/PL_SHAPE_WORD\[r\.aspectRatio\]/.test(pageHayBody)
+  && /PL_SHAPE_WORD\[r\.aspectRatio\]/.test(srvHay),
   'and both read the canvas the same way');
+// The 2 option's panels are landscape (sheet-grid.js pins that grid's shape),
+// so the word has to reach them — asserted on the haystack rather than by
+// adding a run to the fixture above, which every count here reads.
+ok(/\blandscape\b/.test(promptlabHay({ prompt: 'a dog / a cat', aspectRatio: '3:2' })),
+  'a landscape run is searchable by that word too');
 
 // ── the real page ────────────────────────────────────────────────────────
 let chromium;

@@ -3187,7 +3187,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
   make a picture and cut it into panels … describe each panel individually —
   it could be a feature or Hairline tab in the playground itself").** On
   PANELS the prompt box becomes N boxes laid out AS the grid (2 · 4 · 9; 25
-  later is one `GRIDS` entry in `sheet-grid.js`); one gpt-image-2 SHEET draws
+  later is one `GRIDS` entry in `sheet-grid.js`) — **the 2 option is two
+  LANDSCAPE panels, one above the other** (2026-08-27, Sophie: "2 option shud
+  be landscape in panels"), a `shape` PINNED on that grid, which borrows the
+  portrait tier's pixel budget and takes the canvas toggle off screen because
+  it decides nothing there. **No new endpoint** (her question the same day): a
+  panels run is the same `POST /api/promptlab` with `panels` + `grid`; one gpt-image-2 SHEET draws
   at the tier budget on a canvas DERIVED to divide into whole-pixel cells,
   the server cuts it apart (sequential, lossless, sharp cache off — the 512MB
   box; **the cut is IMAGE-AWARE since 2026-08-27** — `findSeams` cuts through
@@ -3402,6 +3407,49 @@ before working on that module. Nothing was deleted — the moved text is verbati
       headless — the restore is a state change across three controls and a
       source assertion cannot see it; verified failing pre-fix, 5 in the
       Playground and no button at all in Freeform).
+  **HER OWN CAST — THE CHARACTER PICKER (2026-08-27, Sophie: "add a little
+  button in the playground right next to where it says dreamy make sure it's
+  the same style with a character icon that shows the five most recent
+  characters that were put and then also the rest of the sheet and characters
+  with a search").** A Lucide people glyph beside the style picker — the
+  picker's own ink border at its own 34px, because that is the row she named —
+  opening a sheet of her FIVE most recent across the top and the rest under a
+  search. Picking is two taps; up to `MAX_PICKED` ride, lit with the count on
+  the button.
+  - **IT IS THE CHARACTER CREATOR'S OWN LIBRARY, never a second pile** —
+    `forge-characters`, the same 143 the cast sheet and the dream flow read
+    (measured live 2026-08-27). `GET /api/promptlab/characters` adds only the
+    ORDER: **recent = the last time she DREW with one**, falling back to the
+    day it was made, so drawing here moves a face up the row. `markUsed` in
+    character.js is that one definition, called by the run AND by the old
+    `/used` route.
+  - **THE CAST RIDES AT THE VERY END OF THE ATTACHMENTS**, because `charLine()`
+    — the SHARED sentence in `pad-characters.js`, the same one the Story Room
+    sends — says "the last attached image(s)". **Which is why the photo line
+    has a twin**: `PL_GPT.photoLineWithChars` is that identical instruction
+    re-anchored, sent only when a character rides behind the photo, because
+    "the LAST attached image" is one of THEM by then. A run with no cast sends
+    the original byte for byte.
+  - **THE WORDING IS SERVED, NOT COPIED** — `pad-characters.js` is UMD-wrapped
+    and served at `/pad-characters.js` (the `pause-plan.js` pattern), so the
+    Prompt panel prints the REAL `charLine()` and the page owns no transcript
+    of it to drift.
+  - **NOT `noCharacter`'s business.** That flag is about the SOPHIE CARD,
+    which is the watercolor look by another name; a character she picked is
+    her own subject and rides on every gpt tile, the reference-less ChatGPT
+    one included. Off on the LoRA (no attachment slot) and on PANELS (a sheet
+    is not the surface to argue "the last attached image" on).
+  - **A face is drawn through the derived-thumb service** — a saved character
+    card is a full render (**1.26MB**, measured; its 240px thumb is **5.8KB**),
+    and a picker of 143 of them would be tens of megabytes of originals.
+  - **A reference that will not fetch FAILS the run** rather than quietly
+    drawing a stranger — the Story Room's own rule.
+  - **The sheet opens into the pill's corner**, so both card rows reserve a
+    MEASURED `--charpill` column (`fitCharPill`): pre-fix the pill's own
+    `Fast` label sat on the fifth recent card, and her 47px safe-area inset
+    pushes the pill down onto that card's middle.
+  - Test: `node scripts/test-playground-characters.js` (verified failing 3
+    against the unreserved rows).
   **TWO QUALITY LADDERS, AT THE RIGHT END WITH GENERATE (Aug 2026, Sophie:
   "add a little oval next to the pyramid, colored on top, white empty on
   bottom, signifying medium, and high. when pressed, it kicks off 1 medium and
@@ -4303,6 +4351,35 @@ before working on that module. Nothing was deleted — the moved text is verbati
   the output AND, on the changer, the recording that went in — and each card
   has a ⤓ that downloads it through our own server (`GET /api/voicelab/file/:id`,
   `?src=1` for the source); a Storage url alone only plays inline.
+  **A RENDER KILLED BY A DEPLOY IS RECOVERED, NEVER RE-RENDERED (2026-08-27,
+  Sophie: "voice studio render killed").** A render is a fire-and-forget job in
+  this process, so a deploy that swaps the instance out kills it between
+  "ElevenLabs finished" and "we saved it": the doc sits on `rendering` forever
+  and the page — which polls every 2s while a take says that — **spins on it
+  with nothing on screen ever admitting it is dead**. It happened for real: her
+  4,842-character Max take, started 8:16pm Pacific, four minutes after #1794's
+  deploy merged; ~2,700 credits spent and 5:29 of audio with nowhere to land.
+  **The audio was never lost — ElevenLabs keeps every generation in its own
+  history and hands the mp3 back for FREE**, so the sweep fetches what she
+  already paid for rather than charging her twice (the Playground's
+  banked-sheet call, same shape). Recovery is tried BEFORE anything is marked
+  failed; `POST /api/voicelab/render/:id/recover` is the hand crank (`dry:true`
+  is free) and `node scripts/recover-voicelab-render.js` (dry by default) runs
+  the same code from a container.
+  - **The one thing it can get wrong is picking the WRONG take**, and that
+    lives in `voicelab-recover.js` alone — pure, no network. She re-renders the
+    same words over and over (six "magic pills" takes in ninety seconds), so
+    "the right voice at about the right time" is not specific enough. The
+    rules: the **request id** (stamped the moment the response HEADERS arrive,
+    i.e. before nearly every kill — the one exact key), else the **exact text +
+    voice + window** for TTS, else **voice + window** for a conversion **and
+    only when exactly one qualifies** — an STS item carries no words to tell
+    two apart, and handing her another take's audio under this take's name is
+    worse than leaving the card failed. In every case an item sitting nearer to
+    ANOTHER of her renders belongs to that one, so a stuck doc can never steal
+    the generation a doc that finished normally already used.
+  - Test: `node scripts/test-voicelab-recover.js` (her real killed take, the
+    six-identical-takes case, and the two refusals).
   **Full details: `docs/modules/audio-and-film.md`.**
 - **Audio drop** (`audio.js`, `/api/audio`) — the generic destination for audio
   off her phone: dump first, label afterwards, files keyed by byte md5, readable
@@ -6090,7 +6167,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - **It spends nothing** — no model calls; one single-orderBy Firestore read
     plus chatfeed's exported registry cache for display names.
   - `POST /backfill {dry?}` (dry by default, never pushes) sweeps existing
-    registry media pins in, so the list started full. Tests:
+    registry media pins in, so the list started full. It dedupes by url
+    (two chats pinning one file = one hand-over, newest pin wins), writes
+    the PIN's own date, and re-running repairs its own records while never
+    touching a live door's — the launch-day version recorded per chat
+    through the live update path and stamped today's date on week-old
+    films (Sophie caught it: "evan says today"). Tests:
     `node scripts/test-deliverables.js` (pure).
 - **Getting original art OUT of a Google Drawing** — for a lot of her old scanned
   artwork the embedded copy is the only one left, and **the SVG export is the only
