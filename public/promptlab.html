@@ -13,6 +13,11 @@
      the Story Room draws with, so the sentence the picked characters add to
      her words is written down exactly once. See /pad-characters.js. -->
 <script src="/pad-characters.js"></script>
+<!-- The caption's required third slot, shared the same way (2026-08-27) — the
+     SAME derivation the server files a picture with, so the caption she reads
+     on this page and the one on the filed record cannot disagree about which
+     rung a picture was drawn on. See /size-tier.js. -->
+<script src="/size-tier.js"></script>
 <script src="/asset-lightbox.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2746,6 +2751,24 @@
     var parts = [runStyleLabel(r)];
     if (r.engine === 'gptimage') {
       if (r.quality) parts.push(r.quality);
+      // THE REQUIRED THIRD SLOT — 1K / 2K / 4K, or "1/4 (4K)" for a panel cut
+      // out of a sheet (2026-08-27, Sophie, looking at this very caption:
+      // "shud say quality and 1k,2k/4k · 1/4 — I thought we already fixed
+      // this"). It HAD been fixed, on the other half: her Aug 2026 ask named
+      // "the playground and assets and Meta assets", and that was built as
+      // what the Playground FILES — every creation carries the slot, and Meta
+      // Assets and My Creations print it. This caption is drawn client-side
+      // out of the run doc instead, so it was never in scope and had never
+      // carried a size at all, for a panels run or a plain one. The PANELS tab
+      // then added two slots of its own beside the missing one, which is what
+      // made it loud enough to see.
+      //
+      // Right after quality, so it reads in the house caption order
+      // (model · quality · size) rather than as a fourth thing on the end.
+      // The run doc has carried everything this needs since the tier toggle
+      // shipped — `res`, `size` (the sheet's canvas) and `grid.count`.
+      var slot = window.__sizeTier ? window.__sizeTier.runSize(r) : '';
+      if (slot) parts.push(slot);
       if (r.aspectRatio) parts.push(r.aspectRatio);
       // A panels run says so — its pictures are cut out of one sheet, which
       // is the one fact that explains their size and their price.

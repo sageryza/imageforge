@@ -3344,6 +3344,15 @@ app.get('/pad-characters.js', (req, res) => {
   res.set('Cache-Control', 'no-cache, must-revalidate');
   res.sendFile(__dirname + '/pad-characters.js');
 });
+// The caption's third slot, shared the same way (2026-08-27): the Playground
+// draws its own caption client-side out of the run doc, and it must land on
+// the same rung the filing path writes onto the record. A tier table copied
+// into the page would drift from these boundaries the day they move.
+app.get('/size-tier.js', (req, res) => {
+  res.type('application/javascript');
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/size-tier.js');
+});
 // Chunking: the clip library — a shelf of every short self-contained piece the
 // app has made, four to a row, with search as the whole interface. Engine is
 // /api/clips (clips.js). `/clips` is the honest alias; `/chunking` is the name
