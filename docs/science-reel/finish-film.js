@@ -30,14 +30,14 @@ const app = admin.initializeApp({ credential: admin.credential.cert(DECK_SA), st
     if (m) seconds = Math.round(Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]));
   }
   await app.firestore().collection('forge-scratchpad').doc(pad).set({
-    film: { status: 'done', url, seconds, at: Date.now(), pictures: 28, notes: 0, style: 'dreamy' },
+    film: { status: 'done', url, seconds, at: Date.now(), pictures: 31, notes: 0, style: 'dreamy' },
     updatedAt: Date.now(),
   }, { merge: true });
   console.log('film stamped on pad:', url, seconds + 's');
   const mm = Math.floor(seconds / 60), ss = String(seconds % 60).padStart(2, '0');
   const pin = await fetch('https://imageforge-q125.onrender.com/api/chatfeed/pin', {
     method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ chat: CHAT, session: SESSION, url, title: `Science & Belief — the reel v1 (${mm}:${ss})`, kind: 'film' }),
+    body: JSON.stringify({ chat: CHAT, session: SESSION, url, title: `Science & Belief — the reel v2 — her pictures in (${mm}:${ss})`, kind: 'film' }),
   });
   console.log('pin:', await pin.text());
 })().then(() => process.exit(0)).catch((e) => { console.error(e.message); process.exit(1); });

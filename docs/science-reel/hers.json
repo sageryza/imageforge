@@ -1,0 +1,67 @@
+{
+  "note": "Sophie's own Playground pictures for this memo (all Dreamy, hearted by her unless said). Swapped into the reel where they apply; every picture they displace stays in that beat's past-pictures row.",
+  "images": {
+    "triumphant": {
+      "run": "tY7zfw3FeBTSulsO7S7L", "quality": "medium", "canvas": "1024x1536", "tier": "1K",
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1787714729728-nuqpip.webp",
+      "prompt": "a group of rowdy scientists running through their laboratory, knocking over tables and beakers, looking triumphant and angry, like they are going into battle",
+      "label": "The scientists triumphant — hers"
+    },
+    "woo": {
+      "run": "iV07Ipgx5tNW8gd1y7GT", "quality": "high", "canvas": "1024x1536", "tier": "1K",
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1787714573543-fqxtas.webp",
+      "prompt": "the town magician, an older, squat woman with straight gray hair, smiling mysteriously and emitting smoke in the shape of a large spiral, somewhat concealing her, emanating from her finger or solar plexus. she is crouched in a cave at the edge of a cliff overlooking a body of water. front facing violet and white color scheme \"the ever formidable woo\"",
+      "label": "The ever formidable woo — hers"
+    },
+    "fitin": {
+      "run": "jw7L7CbyX0yOHDw90JlP", "quality": "low", "canvas": "1024x1536", "tier": "1K", "hearted": false,
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1787714241975-1cuksp.webp",
+      "prompt": "the same blonde braided girl as above, looking up at a group of boys who are slightly taller than her, some wearing striped shirts and glasses, all very serious looking. She is trying to fit in. they are not having her text: \"she is trying to fit in\"",
+      "label": "She is trying to fit in — hers",
+      "why": "the one SHE placed on her own science pad for this line"
+    },
+    "papers": {
+      "run": "vrp406heXuPZvWJzYWZ6", "quality": "medium", "canvas": "1024x1536", "tier": "1K",
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1787619354058-bshho6.webp",
+      "prompt": "scientist, looking guy, curly orange hair, a long rat like face, and round wire Glasses, shoving a stack of paper papers into a the face of a girl walking by, in a public studying, the sidewalk near shops. The girl looks be amused. The papers are a mess.",
+      "label": "Findings shoved in her face — hers"
+    },
+    "water": {
+      "run": "jmLHuGCJbqLybxxiS4sQ", "quality": "high", "canvas": "1024x1536", "tier": "1K",
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1787620455292-5g1ynr.webp",
+      "prompt": "scientists did a study on water showing that it's good to drink more water. There's three reasons why, and you should be drinking gallons and gallons of water, more water, right now. (make up three crazy, insane ideas)",
+      "label": "MORE WATER! RIGHT NOW! — hers"
+    },
+    "nuggets1": {
+      "run": "uZEjTK82thyz83gD9MyO", "quality": "high", "canvas": "1024x1536", "tier": "1K",
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1787724309570-u86m7a.webp",
+      "prompt": "a group of scientists, on a cloud, dropping solid golden dinosaur chicken nuggets, into random people walking along the street. a little blonde boy catches one, and holds it up, amazed at the treasure, other people look at the dropped golden nuggets on the ground, accepting it as the truth, and contemplating what to do",
+      "label": "Dino nuggets from the sky — hers"
+    },
+    "nuggets2": {
+      "run": "WiqLqaGR0XCPhpVS3L8b", "quality": "medium", "canvas": "1024x1536", "tier": "1K",
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1787789680188-obsh3x.webp",
+      "prompt": "a group of scientists, on a cloud, dropping solid-gold, shining (dinosaur) nuggets from their hands onto random people walking along the street. everyone is amazed at the treasure",
+      "label": "Dino nuggets, everyone amazed — hers",
+      "why": "the 'another dino nuggets' she asked for"
+    },
+    "hiding": {
+      "run": "eJyKsTMJPejrrkar1IJF", "quality": "low", "canvas": "1024x1536", "tier": "1K",
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1787788320195-gxi82b.webp",
+      "prompt": "scientists, hiding in a small corner",
+      "label": "Scientists hiding in a corner — hers"
+    }
+  },
+  "plan": [
+    { "beat": 2,  "action": "split", "at": 13.86, "hers": [null, "woo"], "swapFirst": "triumphant",
+      "voA": "If science had a battle cry, it would be stop all this nonsense,",
+      "voB": "folkism, superstition, and the ever formidable woo. We've put up with nonsense for far too long." },
+    { "beat": 4,  "action": "swap", "hers": "fitin" },
+    { "beat": 10, "action": "swap", "hers": "water" },
+    { "beat": 12, "action": "split3", "at": [117.76, 120.46], "hers": ["papers", "nuggets1", "nuggets2"],
+      "voA": "In fact, they could say almost anything. And I, like most people, would believe it,",
+      "voB": "delivering these nuggets of truth and wisdom",
+      "voC": "that we no longer have to worry about, like manna from the sky." },
+    { "beat": 14, "action": "swap", "hers": "hiding" }
+  ]
+}
