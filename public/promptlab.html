@@ -3363,6 +3363,87 @@
     return false;
   };
 
+  /* ── THE PAGE HEALS ITS OWN STALENESS (2026-08-27, Sophie: "it's not
+     there", about the back-to-top arrow — then "self heal").
+     MEASURED that hour, and this is why the fix is here rather than in the
+     pill: the bytes Render serves carry the arrow, and the live html renders
+     it at her viewport with the iPhone 13's 47px safe-area inset. What she
+     was looking at was an OLD PAGE. The iOS app keeps the three recent tools
+     alive in a ZStack, so this page loads ONCE per app process and
+     re-entering the tool shows the same one — no deploy can reach it, which
+     is the Film Editor's round-three finding arriving at the tool she is in
+     most.
+
+     A HASH, NOT A CONST. The build id is derived server-side from the page
+     file plus the pill (pageBuildId in server.js), so nobody has to remember
+     to bump anything — the Film Editor's hand-kept `var BUILD` is one
+     forgotten edit away from a self-heal that never fires.
+
+     IT ONLY RELOADS WHEN NOTHING WOULD BE LOST, which is the half the Film
+     Editor could take for granted and this page cannot: its whole state is
+     server-side, and the Playground holds real unsaved things. Her typed
+     prompt, an attached photo, a picked cast, the quality and size she has
+     moved off default and a search she is in the middle of are all
+     DELIBERATELY not persisted, so a silent reload would throw them away —
+     a worse bug than the one being fixed. Everything else already survives
+     (the view, the filters, the columns, the canvas, the panel words, her
+     prompt overrides, and pending runs, which live in localStorage).
+     When she IS holding something, it waits and asks again; the common
+     stale case — the tool opened after a night in the background, nothing
+     typed yet — heals on the spot.
+
+     THE VISIBILITY CHECK IS THE ONE THAT MATTERS. Coming back to the tool is
+     the moment a stale page is about to be used; the five-minute timer is
+     the fallback for a page left open. Exposed as window.__plBuildCheck for
+     the test. ── */
+  // READ LAZILY, never at parse time: serveGated APPENDS the stamp after the
+  // page (and after the pill), so at the moment this script runs
+  // window.__forgeBuild does not exist yet. Caching it here would leave
+  // PL_BUILD empty forever and the self-heal silently disabled — which every
+  // "same build" assertion would still pass, vacuously.
+  function plBuild() { return window.__forgeBuild || ''; }
+  // The values a FRESH load would take, read here rather than written down —
+  // a literal would drift the day a default moves.
+  var plQ0 = quality, plR0 = resTier;
+  var plTouchedAt = 0;
+  ['pointerdown', 'keydown'].forEach(function (ev) {
+    document.addEventListener(ev, function () { plTouchedAt = Date.now(); }, true);
+  });
+  function plHolding() {
+    if (Date.now() - plTouchedAt < 10000) return true;      // under her thumb
+    var el = document.activeElement;
+    if (el && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')) return true;
+    if (document.getElementById('prompt').value.trim()) return true;
+    if (photoRef) return true;
+    if (pickedChars.length) return true;
+    if (quality !== plQ0 || resTier !== plR0) return true;
+    var q = document.getElementById('q');
+    if (q && q.value.trim()) return true;
+    if (lbIsOpen()) return true;
+    if (document.getElementById('ask').classList.contains('on')) return true;
+    if (charsOpen) return true;
+    var pp = document.getElementById('promptpanel');
+    if (pp && pp.classList.contains('on')) return true;
+    return false;
+  }
+  function plBuildCheck() {
+    var mine = plBuild();
+    if (!mine) return Promise.resolve(false);      // older server, nothing to compare
+    return fetch('/api/promptlab/build', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        if (!r || !r.build || r.build === mine) return false;
+        if (plHolding()) return false;
+        location.reload();
+        return true;
+      }).catch(function () { return false; });
+  }
+  window.__plBuildCheck = plBuildCheck;
+  setInterval(plBuildCheck, 5 * 60 * 1000);
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') plBuildCheck();
+  });
+
   if (window.__nativeNavBar) document.body.classList.add('native');
   renderStyles(); updateShape(); syncControls(); syncTab(); applyLiked(false); applyHideX(false); applyView(); loadRuns();
   if (pendingList().length) { renderPendings(); startPolling(); }

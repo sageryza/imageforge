@@ -756,6 +756,12 @@ const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
 // the pill into their HTML, so it only ever lives in one place; a page that
 // generates its own markup (chats/writing/storyroom/wall) keeps importing the
 // same source through its gen-*.py script.
+// The build id of a served page — the content hash of the page file plus the
+// shared pill. ONE copy, in page-build.js, so a test can ask it the same
+// question the server does; see that file for why it is a hash and not a
+// const, and why the pill is folded in.
+const { pageBuildId } = require('./page-build');
+
 function serveGated(file, opts = {}) {
   return (req, res) => {
     if (STUDIO_TOKEN) {
@@ -811,6 +817,11 @@ function serveGated(file, opts = {}) {
     // nothing at all.
     out += '<script src="/pagehead.js" defer></script>';
     if (opts.pill) out += require('./chatfeed').pillInject();
+    // The stamp every gated page can compare itself against. One line here, so
+    // a page that wants to self-heal needs no BUILD const of its own — see
+    // page-build.js and GET /api/promptlab/build for the first reader.
+    out += '<script>window.__forgeBuild='
+      + JSON.stringify(pageBuildId(file, !!opts.pill)) + '</script>';
     res.type('html').send(out);
   };
 }
@@ -6689,6 +6700,22 @@ app.get('/api/promptlab/characters', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// THE PAGE ASKS WHETHER IT IS STALE (2026-08-27, Sophie: "it's not there" —
+// about the back-to-top arrow, which had been live and correct on the served
+// page for a day; measured that hour, the bytes Render answers with carry it
+// and render it at her viewport). The iOS app keeps recent tools ALIVE in a
+// ZStack, so /playground loads ONCE per app process and re-entering the tool
+// shows the SAME page: no deploy can reach it. That is the Film Editor's
+// round-three finding, and the Playground is the tool she is in most.
+//
+// MUST stay above `/api/promptlab/:id`, like /styles and /characters — Express
+// matches in order and `:id` would otherwise answer "run not found".
+app.get('/api/promptlab/build', (req, res) => {
+  // no-store, or the very cache this route exists to defeat answers it.
+  res.set('Cache-Control', 'no-store');
+  res.json({ build: pageBuildId('promptlab.html', true) });
 });
 
 app.get('/api/promptlab/:id', async (req, res) => {
