@@ -3263,6 +3263,15 @@ router.post('/pin', async (req, res) => {
       turns: 0,
     } : del;
     await regRef(target).set({ pinned }, { merge: true });
+    // A MEDIA pin is a deliverable being handed over (a film, an audio cut) —
+    // it also lands on the running deliverables list (/deliverables), which
+    // buzzes her on a NEW url whatever the chat's bell says (Sophie's ask,
+    // 2026-08-27). Fire-and-forget: the list can never fail a pin.
+    if (u && require('./deliverables').pinDeliverable(pinned)) {
+      require('./deliverables')
+        .record({ chat: target, url: u, title: pinned.title, kind: pinned.kind, source: 'pin' })
+        .catch((e) => console.warn('deliverables: pin record failed', e.message));
+    }
     res.json({ ok: true, chat: target, pinned: u ? pinned : null });
   } catch (err) { fail(res, err); }
 });

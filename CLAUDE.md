@@ -25,6 +25,15 @@ The numbers are measured, not guessed.
    most chats should have NO pin. A third case is not yours to declare — run
    it by Sophie first. (Full rules: *THE PINNED LINK* in the Chats app
    section.)
+3c. **Handed her a FILM, an AUDIO CUT, or a finished page? It goes on the
+   DELIVERABLES LIST** (Sophie, 2026-08-27: "watch them all in one place
+   newest first"). A media pin records itself; a deliverable you did NOT pin
+   gets `POST /api/deliverables {chat, session, url, title, kind?}`. The list
+   is https://imageforge-q125.onrender.com/deliverables, and a NEW url buzzes
+   her phone past the per-chat bell — so never POST a test render there.
+   Re-POSTing the same url updates the row silently. Images stay out (the
+   gallery is their place). Full rules: *THE DELIVERABLES LIST* in the
+   inbox-and-odds-and-ends section.
 
 **When the work WRAPS UP (not every turn)**
 3b. **Leave a WRAP-UP** — `POST /api/chatfeed/wrapup {chat, session, line,
@@ -6012,9 +6021,33 @@ before working on that module. Nothing was deleted — the moved text is verbati
   message on the registry doc, which rides the feed read to her phone 276
   chats at a time.
   Tests: `node scripts/test-push-gate.js`, `node scripts/test-chats-bell.js`.
-  Dormant until the APNs key exists — only Sophie can mint it.
+  **LIVE since Aug 2026 (measured 2026-08-27: `GET /api/push/status` answers
+  `configured:true, devices:1`)** — the APNs key is in Render's secret files.
+  This line used to say "dormant until the key exists"; that is history.
   **The home-screen widget** reads one small JSON (`GET /api/chatfeed/widget`) and
   must NEVER pull the real feed. **Full details: `docs/modules/inbox-and-misc.md`.**
+- **THE DELIVERABLES LIST** (`deliverables.js`, `/api/deliverables`, page at
+  `/deliverables` — Aug 2026, Sophie: "is there a running list of deliverables?
+  … can you make one, and have the notification go off when a new deliverable
+  is added, even if I didn't set notifications true for the chat that made it,
+  so I can watch them all in one place newest first"). One doc per URL
+  (sha1(url), `forge-deliverables`), sorted by `updatedAt` desc — a re-render
+  at the same url surfaces with a version count instead of duplicating.
+  - **Two doors in:** every MEDIA pin (video/audio) records itself from
+    chatfeed's `POST /pin` — a pinned film IS a hand-over — and anything else
+    is an explicit `POST /api/deliverables {chat, session, url, title, kind?}`
+    (checklist item 3c). Link pins do NOT auto-record: most are pages being
+    worked on, not deliverables. Images stay out by design — the gallery /
+    Meta Assets is their one place, and 2,488 of them would bury the films.
+  - **The push BYPASSES the bell ON PURPOSE — that is the whole ask.** A NEW
+    url calls `push.notifyChat` directly (`debounce:false`, the module's own
+    60s collapse), whatever `chatNotifies` says; tapping it opens the making
+    chat. A re-POST of the same url is silent. So never POST a test render.
+  - **It spends nothing** — no model calls; one single-orderBy Firestore read
+    plus chatfeed's exported registry cache for display names.
+  - `POST /backfill {dry?}` (dry by default, never pushes) sweeps existing
+    registry media pins in, so the list started full. Tests:
+    `node scripts/test-deliverables.js` (pure).
 - **Getting original art OUT of a Google Drawing** — for a lot of her old scanned
   artwork the embedded copy is the only one left, and **the SVG export is the only
   way out at full size**. `python3 scripts/gdrawing-extract.py <url-or-id>` does
