@@ -1537,3 +1537,51 @@ invisible in code review and obvious in her ears.
   ~6% faster. Illustrated episodes render panels through the diary-comic style ref
   `refs/dream-mystery.jpg` (gpt-image edits) then animate with Wan (`VIDEO_MODELS`
   in `movies.js`). See also `what-sage-should-do-at-her-computer.md`.
+
+## THE CLEAN EXPORT — standard for every FINAL video (Sophie, 2026-08-27)
+
+**Any video that is the final version being exported for posting gets a
+metadata-stripped CLEAN COPY, filed where she can download it.** Her ask,
+made standing after the PWC reel: "make that standard procedure for any
+video." (Images will get their own version of this later — not built yet.)
+
+The procedure, start to finish:
+
+1. **Strip with a stream copy — pixels must stay byte-identical:**
+   ```
+   ffmpeg -i final.mp4 -map 0 -c copy -map_metadata -1 \
+     -movflags +faststart -fflags +bitexact -flags:v +bitexact -flags:a +bitexact \
+     clean.mp4
+   ```
+   `-c copy` means no re-encode; `bitexact` keeps the muxer from writing its
+   own encoder tag back in. **Verify, never assume:** the decoded video
+   stream must hash identical before and after
+   (`ffmpeg -i f.mp4 -map 0:v -c copy -f md5 -`), and `ffmpeg -i clean.mp4`
+   must show no `encoder` line.
+2. **File it into the Dump with a real filename** —
+   `POST /api/drop/upload-file?session=&bundle=&filename=<name> - clean.mp4`
+   with the raw bytes as the body. A real name matters: a Safari download
+   otherwise lands as `too many men 2.mp4` (the lesson from the first time
+   this was done, in `too-many-men-reel`).
+3. **Hand her the direct save link** — `/api/drop/file/<item id>` downloads
+   instead of playing. Every Dump item also has Save in the app.
+
+**What this does and does not remove:** it removes the container metadata
+(the `encoder: Lavf…` tag, handler names, creation times). Our own renders
+carry no C2PA credential at all — measured by the `ai-media-detection` chat
+with the official C2PA reader — because AI-generated source images lose
+their provenance chunk the moment ffmpeg re-encodes them into frames. The
+x264 SEI line inside the stream survives a stream copy, but it names an
+encoder, not an AI.
+
+**The paid-ads carve-out (ai-media-detection's finding): do NOT strip before
+running a PAID ad.** On organic posts stripping is harmless-to-pointless; on
+paid, provenance rules differ. When a film becomes an ad, upload the regular
+export, not the clean copy.
+
+**Aspect ratio: a 9:16 (1080x1920) reel is Instagram's native full-frame —
+never letterbox it.** Black bars would shrink the picture inside the same
+9:16 canvas and the bars ship as part of the film. The feed/grid PREVIEW
+center-crops (~4:5 and the grid's 3:4) — that is how every reel behaves, and
+opening the reel shows the full frame. Keep anything that must survive the
+preview crop near the vertical center; do not "fix" the crop with bars.
