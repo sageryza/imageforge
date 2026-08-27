@@ -35,6 +35,13 @@ The numbers are measured, not guessed.
    gallery is their place). Full rules: *THE DELIVERABLES LIST* in the
    inbox-and-odds-and-ends section.
 
+3e. **A FINAL video being exported for posting gets a CLEAN COPY** —
+   metadata stripped with a stream copy (pixels byte-identical, verified by
+   hash), filed into the Dump with a real filename, direct save link
+   (`/api/drop/file/<id>`) in the reply. NOT for paid ads — they keep their
+   metadata. Full procedure: *THE CLEAN EXPORT* in
+   `docs/modules/audio-and-film.md`. (Images: not built yet, hers to ask.)
+
 **When the work WRAPS UP (not every turn)**
 3b. **Leave a WRAP-UP** — `POST /api/chatfeed/wrapup {chat, session, line,
    asked, did, next}`. It is **her three questions, ONE SENTENCE EACH** (Aug
