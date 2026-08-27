@@ -100,5 +100,62 @@
     "height": 1753
    }
   ]
+ },
+ {
+  "sheet": 2,
+  "id": "0deOCGKGAeovAxQrJjIc",
+  "beats": [
+   9,
+   10,
+   11,
+   12
+  ],
+  "images": [
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/0df4b96273a96befd746a4d7.webp",
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/f3009a15bf45e526ea537ba4.webp",
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/9b61022f21810bab3e24ddf8.webp",
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/e7b945f2ec8e9e06a8d1ba96.webp"
+  ],
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/e15d4de3eea220e5dc27459e.webp",
+  "fullPrompt": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\nThis page is a 2x2 grid of 4 separate panels — equal rectangles, 2 across and 2 down, with straight edges exactly on the grid lines, no gutters and no outer margin. Each panel is its own complete, self-contained illustration. In reading order, left to right, top to bottom:\nPanel 1 (top left): scientists in white coats proclaiming from a balcony to a cheering crowd\nPanel 2 (top right): a person happily drinking from a glass of water taller than they are\nPanel 3 (bottom left): a staircase of stepping stones rising into the clouds, people climbing it single file\nPanel 4 (bottom right): nuggets of gold raining gently from the sky while people below catch them in baskets\n\nRender as a 2x2 grid of 4 panels — each panel its own complete illustration, inside its own hand-drawn border like the frames in the style reference. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition.",
+  "usage": {
+   "input_tokens": 1750,
+   "input_tokens_details": {
+    "image_tokens": 1505,
+    "text_tokens": 245
+   },
+   "output_tokens": 3912,
+   "output_tokens_details": {
+    "image_tokens": 3912,
+    "text_tokens": 0
+   },
+   "total_tokens": 5662
+  },
+  "rects": [
+   {
+    "left": 0,
+    "top": 0,
+    "width": 1096,
+    "height": 1858
+   },
+   {
+    "left": 1096,
+    "top": 0,
+    "width": 1240,
+    "height": 1858
+   },
+   {
+    "left": 0,
+    "top": 1858,
+    "width": 1096,
+    "height": 1646
+   },
+   {
+    "left": 1096,
+    "top": 1858,
+    "width": 1240,
+    "height": 1646
+   }
+  ]
  }
 ]
