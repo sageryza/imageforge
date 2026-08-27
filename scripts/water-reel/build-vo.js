@@ -74,11 +74,13 @@ const SLICES = {
   e1:    [160.3, 182.0],   // the bridge, DNA/gills, supercharges your brain
   e2:    [195.0, 211.0],   // sandpaper, opens portals, fill yourself up and overflow
   f12:   [216.5, 226.2],   // thirst demons (f2's only complete take)
-  f1b:   [234.8, 239.3],   // ghosts in your knees — her later, cleanly
-                           // separated take. She read it once more at 261.5,
-                           // but that one runs straight into the g section's
-                           // words with no gap (whisper folds all its times
-                           // onto one stamp) — the last CLEAN take wins.
+  f1b:   [234.8, 239.3],   // ghosts in your knees — her last CLEAN take. Her
+                           // literal last is 261.5 and was TRIED (2026-08-25):
+                           // she runs it straight into the g section with no
+                           // breath, and whisper resolves only FOUR of its ten
+                           // words even on a fresh listen of that window alone,
+                           // so there is nothing to cut to. The one line in the
+                           // reel not on her literal last take, and this is why.
   f3:    [230.4, 235.3],   // aura's reservoir (her second pass at it)
   g:     [260.5, 279.0],   // lubricates thoughts · confuses cells · secret rafts
   h:     [292.5, 311.0],   // washed clean · extra water · cells swim
@@ -177,11 +179,20 @@ const SHOTS = [
 // Plain trims to PCM: exact seeking, and nothing is re-compressed. Her voice
 // is never loudnormed and never filtered here.
 const srcDir = path.join(WORK, 'src'); fs.mkdirSync(srcDir, { recursive: true });
+// A SLICE IS KEYED BY ITS WINDOW, NOT BY ITS NAME (2026-08-25). Moving a
+// take's window and re-running left the old wav in place — the name had not
+// changed — so the reel kept the previous take and every downstream cache
+// agreed with itself. Same shape as the stitch cache keying pictures by path.
+// The window is written beside the wav and re-cut whenever it differs.
 for (const [name, [t0, t1]] of Object.entries(SLICES)) {
   const out = path.join(srcDir, `${name}.wav`);
-  if (!fs.existsSync(out)) {
+  const stamp = `${out}.window`;
+  const want = `${t0}-${t1}`;
+  const have = fs.existsSync(stamp) ? fs.readFileSync(stamp, 'utf8') : null;
+  if (!fs.existsSync(out) || have !== want) {
     run(['-v', 'error', '-y', '-ss', String(t0), '-to', String(t1), '-i', VO, '-c:a', 'pcm_s16le', out]);
-    console.log(`slice ${name}: ${(t1 - t0).toFixed(1)}s`);
+    fs.writeFileSync(stamp, want);
+    console.log(`slice ${name}: ${(t1 - t0).toFixed(1)}s${have ? ` (was ${have})` : ''}`);
   }
 }
 
