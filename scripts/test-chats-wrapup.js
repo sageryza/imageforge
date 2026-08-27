@@ -35,6 +35,13 @@ function lift(name) {
   }
   throw new Error('unbalanced ' + name);
 }
+// …and the one-line consts beside them, so the test runs the REAL rules rather
+// than a second copy of them.
+function liftLine(name) {
+  const m = new RegExp('^const ' + name + ' = .*$', 'm').exec(src);
+  if (!m) throw new Error('chatfeed.js has no const ' + name);
+  return m[0] + '\n';
+}
 // `admin` is stubbed so a deleted field is a value the test can recognise —
 // the freeze CLEARS an answer it does not have rather than writing "".
 const DEL = '<<delete>>';
@@ -227,9 +234,10 @@ console.log('her own sentence on the asked line');
 {
   const herAskOf = new Function('const HER_ASK_MAX=200;' + lift('herAskOf')
     + ' return herAskOf;')();
-  const lastHerText = new Function('const isCompacted=(t)=>'
+  const herAskText = new Function('const isCompacted=(t)=>'
     + '/^\\s*\\[?\\s*this session is being continued from a previous conversation/i'
-    + '.test(String(t||""));' + lift('lastHerText') + ' return lastHerText;')();
+    + '.test(String(t||""));' + liftLine('SLASH_ONLY') + liftLine('isAskable')
+    + lift('herAskText') + ' return herAskText;')();
 
   const LONG = 'can you make the dashes pink and also '.repeat(12);
   const cases = [
@@ -261,16 +269,66 @@ console.log('her own sentence on the asked line');
     { from: 'sophie', text: 'now make the dashes pink' },
     { from: 'claude', text: 'shipped it' },
   ];
-  ok('it reads HER newest message', lastHerText(thread) === 'now make the dashes pink');
-  ok('a reply is never mistaken for her', lastHerText([{ from: 'claude', text: 'mine' }]) === '');
-  ok('an empty thread yields nothing', lastHerText([]) === '' && lastHerText(null) === '');
+  ok('it reads HER newest message', herAskText(thread) === 'now make the dashes pink');
+  ok('a reply is never mistaken for her', herAskText([{ from: 'claude', text: 'mine' }]) === '');
+  ok('an empty thread yields nothing', herAskText([]) === '' && herAskText(null) === '');
   // A CONTEXT-COMPACTION SUMMARY IS NOT HER MESSAGE — the harness hands it over
   // as a user turn and the hook lifts it exactly like something she typed, so
   // it would file thousands of characters of recited rules as what she asked.
   ok('a compaction summary is skipped, and the real ask behind it wins',
-    lastHerText(thread.concat([{ from: 'sophie',
+    herAskText(thread.concat([{ from: 'sophie',
       text: 'This session is being continued from a previous conversation that ran out of context.' }]))
       === 'now make the dashes pink');
+
+  // WHEN SHE SENDS SEVERAL IN A ROW, THE ASK IS THE FIRST OF THEM (2026-08-27,
+  // Sophie: "multiple messages only log the last one in chats app" / "first
+  // shud be under what i asked"). The request comes first and the
+  // qualifications follow it, so reading her LAST message files the
+  // afterthought — measured live: "pills", "view", "j".
+  const run = [
+    { from: 'claude', text: 'shipped the last thing' },
+    { from: 'sophie', text: 'we made a couple panels yesterday and they never got cut' },
+    { from: 'sophie', text: 'also the glove ones' },
+    { from: 'sophie', text: 'pills' },
+  ];
+  ok('a run of hers files the FIRST message, not the last',
+    herAskText(run) === 'we made a couple panels yesterday and they never got cut',
+    herAskText(run));
+  // The moment a reply lands the run ends, so an ordinary back-and-forth is
+  // untouched — this can only ever reach back over messages nothing answered.
+  ok('a reply ends the run', herAskText(run.concat([
+    { from: 'claude', text: 'cut them, here they are' },
+    { from: 'sophie', text: 'now do the dance ones' },
+  ])) === 'now do the dance ones');
+  ok('a run that reaches the top of the thread still starts at her first',
+    herAskText(run.slice(1)) === 'we made a couple panels yesterday and they never got cut');
+  // A compaction summary inside a run is machinery wearing her name: stepped
+  // over, never treated as the ask and never as the boundary either.
+  ok('a compaction summary does not break a run in half',
+    herAskText([
+      { from: 'claude', text: 'done' },
+      { from: 'sophie', text: 'the real ask' },
+      { from: 'sophie', text: 'This session is being continued from a previous conversation.' },
+      { from: 'sophie', text: 'ok' },
+    ]) === 'the real ask');
+
+  // A SLASH COMMAND IS NOT AN ASK — she types `/concise` and the harness hands
+  // it over as an ordinary user turn (found live on instagram-video-crop,
+  // whose run opened on a bare `/concise`). Only a message that is NOTHING BUT
+  // a command is skipped.
+  ok('a bare slash command is never the asked line',
+    herAskText([{ from: 'claude', text: 'done' }, { from: 'sophie', text: '/concise' },
+      { from: 'sophie', text: 'add black bars to the top and bottom' }])
+      === 'add black bars to the top and bottom');
+  ok('…and one with arguments is skipped too',
+    herAskText([{ from: 'sophie', text: '/loop 5m check the deploy' },
+      { from: 'sophie', text: 'tell me when it is green' }])
+      === 'tell me when it is green');
+  ok('a message that merely mentions a command is HERS',
+    herAskText([{ from: 'sophie', text: 'the /concise style is too short, undo it' }])
+      === 'the /concise style is too short, undo it');
+  ok('a run of nothing but commands leaves the line empty',
+    herAskText([{ from: 'sophie', text: '/concise' }]) === '');
 
   // THE CUTOFF, for the backfill only (2026-08-24): a summary written on the
   // 20th must be paired with the question she was asking on the 20th. Taking
@@ -282,12 +340,14 @@ console.log('her own sentence on the asked line');
     { from: 'sophie', created: '2026-08-20T09:00:00Z', text: 'now make the dashes pink' },
     { from: 'sophie', created: '2026-08-24T09:00:00Z', text: 'a whole new thing entirely' },
   ];
-  ok('with no cutoff it is still her newest',
-    lastHerText(dated) === 'a whole new thing entirely');
+  // The last two of hers are a RUN — no reply between them — so the ask is the
+  // first of the two, and the cutoff still reads the run as of that moment.
+  ok('with no cutoff it is the start of her latest run',
+    herAskText(dated) === 'now make the dashes pink', herAskText(dated));
   ok('a cutoff reads what she was asking THEN',
-    lastHerText(dated, '2026-08-20T20:00:00Z') === 'now make the dashes pink');
+    herAskText(dated, '2026-08-20T20:00:00Z') === 'now make the dashes pink');
   ok('a cutoff before anything of hers yields nothing',
-    lastHerText(dated, '2026-08-01T00:00:00Z') === '');
+    herAskText(dated, '2026-08-01T00:00:00Z') === '');
 
   // The freeze prefers hers and keeps the Update card's paraphrase as the
   // fallback for a chat she never posted into.
@@ -491,17 +551,22 @@ console.log('\nputting her words back on the ones already on file');
     src.indexOf("router.post('/wrapup/write'"));
   ok('it is DRY by default, like every other bulk operation here',
     /const dry = !\(req\.body && req\.body\.dry === false\)/.test(body));
-  ok('a summary already carrying her words is skipped',
-    /if \(r\.wrapAskedHers === true\) return;/.test(body));
+  ok('a summary already carrying her words is skipped unless `redo` reopens it',
+    /if \(r\.wrapAskedHers === true && !redo\) return;/.test(body)
+    && /const redo = !!\(req\.body && req\.body\.redo\)/.test(body));
   ok('a chat with no asked answer at all is left alone',
     /if \(!String\(r\.wrapAsked \|\| ''\)\.trim\(\)\) return;/.test(body));
   ok('it reads her message AS OF when the summary was written',
-    /lastHerText\(msgs, t\.r\.wrapUpAt\)/.test(body));
+    /herAskText\(msgs, t\.r\.wrapUpAt\)/.test(body));
   ok('a chat she never posted into keeps its own answer, and is NAMED',
     /if \(!hers\) \{ noMessage\.push\(t\.chat\); continue; \}/.test(body)
     && /noMessageOfHers: noMessage/.test(body));
   ok('the patch touches only `wrapAsked`, its flag, and the old line it keeps',
-    /const patch = \{ wrapAsked: hers, wrapAskedHers: true, wrapAskedWas: t\.r\.wrapAsked \};/
+    /const patch = \{ wrapAsked: hers, wrapAskedHers: true \};/.test(body));
+  // A re-pointing pass must not overwrite the ORIGINAL paraphrase with the
+  // sentence of hers it is replacing, or the undo stops being an undo.
+  ok('…and the kept line is written once, never overwritten by a redo',
+    /if \(!String\(t\.r\.wrapAskedWas \|\| ''\)\.trim\(\)\) patch\.wrapAskedWas = t\.r\.wrapAsked;/
       .test(body));
   ok('…so what the chat DID and what is NEXT are never reworded',
     !/patch\.wrapDid|patch\.wrapNext|patch\.wrapLine|patch\.wrapLong/.test(body));
@@ -511,7 +576,7 @@ console.log('\nputting her words back on the ones already on file');
   // a quality bar over her own words, so keeping the paraphrase is what makes
   // that call reversible instead of permanent.
   ok('the paraphrase is kept rather than overwritten',
-    /wrapAskedWas: t\.r\.wrapAsked/.test(body));
+    /patch\.wrapAskedWas = t\.r\.wrapAsked;/.test(body));
   ok('the prose mirror is rebuilt ONLY when it provably IS the three joined',
     /String\(t\.r\.wrapUp \|\| ''\)\.trim\(\) === mirror/.test(body));
   ok('it spends nothing — no model call in the pass',

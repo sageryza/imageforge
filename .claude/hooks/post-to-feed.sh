@@ -3,6 +3,18 @@
 # its image deliverables into the iOS "My Creations" gallery — zero model
 # tokens, nothing to remember. Runs as a Stop hook after every reply.
 #
+# v18 (2026-08-27) — …AND IT NO LONGER LANDS TWICE. The harness JOINS messages
+# she sent back to back into ONE user record, separated by a blank line
+# (measured in this fix's own transcript: the queue record held her first
+# message, the user record held the first AND the second joined). The queue
+# reconciliation matched on WHOLE text only, so the queue entry found no home,
+# posted as a message of its own, and her first message landed twice — once
+# alone and once inside the joined record. 12 such pairs across her 3,768
+# messages the day it was found. A queue entry is matched against a record's
+# SEGMENTS as a fallback now, and one record can absorb several of them.
+# Whole-text still wins first, so nothing about the old matching moved.
+# Test: scripts/test-chats-first-message.js.
+#
 # v16 (2026-08-26) — TWO MESSAGES IN A ROW: THE FIRST NO LONGER VANISHES.
 # Sophie: "my first message is missing from this chat. I sent two messages in a
 # row." Her half baselined `users[:-1]` on a session's first firing, which is
@@ -419,6 +431,8 @@ queued = []     # …and the ones she sent MID-TURN, which arrive a different wa
 # system-reminder blocks ride along inside her real messages, so they're cut out
 # rather than used to reject the message.
 REMINDER = re.compile(r'(?is)<system-reminder>.*?</system-reminder>')
+# How the harness joins messages she sent back to back into one user record.
+SPLITMSG = re.compile(r'\n\s*\n')
 NOISE = re.compile(r'''(?is)^\s*(\[Request interrupted|\[SYSTEM NOTIFICATION'''
                    r'''|<task-notification|<github-webhook-activity|<command-name'''
                    r'''|<wake\s|<wake>'''
@@ -547,14 +561,42 @@ if queued:
     # as proof it already went out. Still a multiset — one queue entry is
     # consumed per matching record — so repeating a short phrase can't let the
     # first swallow the second.
-    by_text = {}
+    #
+    # AND THE HARNESS JOINS BACK-TO-BACK MESSAGES INTO ONE USER RECORD,
+    # separated by a blank line (measured 2026-08-27 in this chat's own
+    # transcript: the queue record held her first message, the user record held
+    # the first AND the second joined by \n\n). Matching on the WHOLE text
+    # alone therefore missed, so the queue entry was posted as a message of its
+    # own AND again inside the joined record — her first message twice. Live
+    # count that day: 12 such pairs across 3,768 of her messages. So a queue
+    # entry is matched against a record's SEGMENTS as well as its whole text,
+    # and one record can absorb several of them.
+    # WHOLE TEXT FIRST, SEGMENTS ONLY AS THE FALLBACK — two passes, so the
+    # matching every mid-turn message has always relied on is untouched and a
+    # joined record can never out-bid the plain record that really is that
+    # message.
+    whole = {}
     for u in users:
-        by_text.setdefault(_norm(u['text']), []).append(u)
+        whole.setdefault(_norm(u['text']), []).append(u)
+    segcells = {}   # id(record) -> [[normalised segment, taken?], …]
+    for u in users:
+        segs = [x for x in SPLITMSG.split(u['text']) if x.strip()]
+        segcells[id(u)] = [[_norm(x), False] for x in segs] if len(segs) > 1 else []
+    def _take(q):
+        n = _norm(q['text'])
+        for u in whole.get(n) or []:
+            if not u.get('aliases'):
+                return u
+        for u in users:
+            for cell in segcells[id(u)]:
+                if not cell[1] and cell[0] == n:
+                    cell[1] = True
+                    return u
+        return None
     for q in queued:
-        bucket = by_text.get(_norm(q['text'])) or []
-        target = next((u for u in bucket if not u.get('alias')), None)
+        target = _take(q)
         if target is not None:
-            target['alias'] = q['uuid']
+            target.setdefault('aliases', []).append(q['uuid'])
             continue
         users.append(q)
     users.sort(key=lambda u: u.get('at') or '')
@@ -600,12 +642,13 @@ if uf and users:
             if u['uuid'] not in keep:
                 new_useen.add(u['uuid'])
     for u in users:
-        # either id counts as already-posted: the queue record's key and the
-        # user record's uuid are the SAME message (see the alias pass above)
-        if u['uuid'] in new_useen or (u.get('alias') and u['alias'] in new_useen):
-            new_useen.add(u['uuid'])          # remember both, so next run is a fast skip
-            if u.get('alias'):
-                new_useen.add(u['alias'])
+        # ANY of these ids counts as already-posted: the queue record's key and
+        # the user record's uuid are the SAME message, and a joined record
+        # carries one key per message it swallowed (see the alias pass above)
+        al = u.get('aliases') or []
+        if u['uuid'] in new_useen or any(a in new_useen for a in al):
+            new_useen.add(u['uuid'])          # remember them all, so next run is a fast skip
+            new_useen.update(al)
             continue
         mine = {"chat": os.environ['NAME'], "text": u['text'][:8000]}
         if u['at']:
@@ -618,8 +661,7 @@ if uf and users:
             mine["explicit"] = True
         print('U\t' + json.dumps(mine))
         new_useen.add(u['uuid'])
-        if u.get('alias'):
-            new_useen.add(u['alias'])
+        new_useen.update(u.get('aliases') or [])
     os.makedirs(os.path.dirname(uf), exist_ok=True)
     open(uf, 'w').write('\n'.join(sorted(new_useen)))
 
