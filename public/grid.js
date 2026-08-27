@@ -143,6 +143,23 @@
     x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
   };
 
+  // THE TILE IS A DERIVED COPY, NEVER THE ORIGINAL (2026-08-27, Sophie on a
+  // 30-tile grid of cut 4K panels: "no images in the compare top"). Every
+  // picture was there and public — each one a ~1.4MB LOSSLESS webp straight
+  // out of the panel cutter, so the page asked her phone for ~42MB at once and
+  // nothing finished arriving. That is the house webp rule (never serve a raw
+  // generated image to a page) reaching the one renderer that had never
+  // applied it. /api/story/thumb bakes an 800px copy once and 302s to it,
+  // redirecting to the ORIGINAL on any failure, so a tile can never come up
+  // blank because a thumb could not be made.
+  // The original is untouched where it matters: `data-full` still carries it,
+  // and the lightbox opens from the ITEM (views.open(it) reads it.full /
+  // it.url), never from the tile's src.
+  var THUMB_HOST = /^https:\/\/(storage\.googleapis\.com|firebasestorage\.googleapis\.com)\//;
+  function tileSrc(u) {
+    return THUMB_HOST.test(u) ? '/api/story/thumb?w=800&url=' + encodeURIComponent(u) : u;
+  }
+
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -316,7 +333,8 @@
           var media = it.img
             ? '<img class="' + (it.url ? '' : 'zoom') + '" '
               + (it.url ? 'data-lb="' + esc(it.id) + '" ' : '')
-              + 'src="' + esc(it.img) + '" alt="' + esc(it.label || '') + '"'
+              + 'loading="lazy" decoding="async" '
+              + 'src="' + esc(tileSrc(it.img)) + '" alt="' + esc(it.label || '') + '"'
               + (it.full ? ' data-full="' + esc(it.full) + '"' : '') + '>'
             : '<div class="gd-txt">' + esc(it.text || '') + '</div>';
           var cap = [it.model, it.quality].filter(Boolean).join(' · ');
