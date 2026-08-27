@@ -232,6 +232,51 @@ them needs from her. Read-only; the queue is edited here, where it is run.
 
 ---
 
+### Grab the newest Anthony Chene interview (YouTube is asking for a login)
+- **Why:** "Doorway to Oneness — With Julien Chameroy (Podcast episode 3)"
+  (2026-07-05, 44:52) is the newest full interview on the channel and the next
+  one the NDE pipeline wants. `/api/ytdl` cannot get it: YouTube answers
+  "Sign in to confirm you're not a bot" for this channel right now, on Render
+  AND on a session container, after the full retry ladder and every yt-dlp
+  client fallback. Your Mac has the one thing neither has — a logged-in
+  browser whose cookies satisfy that check.
+- **Not a general block, and worth not re-diagnosing:** Render's own probe
+  read an unrelated video fine in 6.4s the same minute. Measured 2026-08-27 —
+  video AND audio of the interview blocked, a 97-second Chene Short blocked
+  too, so it is the channel, not the one video and not the file size.
+- **Where:** ~/imageforge
+- **Run:**
+  ```bash
+  cd ~/imageforge && git checkout main && git pull origin main && ./scripts/grab
+  ```
+  Paste this when it asks, then press Return on an empty line:
+  ```
+  https://www.youtube.com/watch?v=2lvyZgX9lDM
+  ```
+  That banks the AUDIO where the cutter reads it (Storage `nde-audio/`,
+  Firestore `forge-nde-videos`) — which is what the NDE pipeline needs.
+  Want the picture as well, for the Dump / Assembly / the Film Editor:
+  ```bash
+  cd ~/imageforge && yt-dlp --cookies-from-browser chrome \
+    -f "bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/best[height<=480]" \
+    --merge-output-format mp4 -o "~/Downloads/chene-ep3.%(ext)s" \
+    "https://www.youtube.com/watch?v=2lvyZgX9lDM"
+  ```
+  (swap `chrome` for `safari` or `firefox` — whichever browser is signed in to
+  YouTube). 480p lands about 175MB; 720p is ~308MB, which is over the 300MB
+  cap `/api/ytdl` would have had to respect anyway.
+- **Needs from her:** nothing beyond being signed in to YouTube in a browser
+  on that Mac. If she wants the video half in the Dump afterwards, upload
+  `~/Downloads/chene-ep3.mp4` from the Dump's SEND tab.
+- **Try the cloud first — it may just work by then.** This kind of gating
+  comes and goes. One free check, no download and no cost:
+  `curl -sS "https://imageforge-q125.onrender.com/api/ytdl/status?probe=1"`
+  then re-fire the grab that is already on file:
+  `curl -sS -X POST "https://imageforge-q125.onrender.com/api/ytdl/1240021800a3c35abfd3/retry" -H 'content-type: application/json' -d '{}'`
+  If that comes back with a url, skip this whole task.
+- **Queued:** 2026-08-27 by anthony-chene-video-download
+
+
 ## DONE
 
 ### Hand Apple's Voice Memos transcripts to the archive — SUPERSEDED, then solved another way
