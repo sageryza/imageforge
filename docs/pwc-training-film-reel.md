@@ -440,3 +440,41 @@ redundant with the camera: the 30-degree diagram label (the caption box
 already says the line), card 6's STEP 2 (the pull-out already frames it, and
 the arrow follows seconds later), and the WE-DON'T-INTERFERE seal (the camera
 is fully pushed into it). 16 marks stand.
+
+## v11 — the hook tightened, and the FAIL slams on
+
+**The live cut:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v11-stamp-slam.mp4 (1:26)
+
+**The pause she heard inside the title line was REAL and Whisper hid it.**
+"How to Look ... Without Looking" carried a 0.23s hole between "Look" and
+"Without" — Clyde's own phrasing, no break tag anywhere — and Whisper's word
+stamps snapped shut across it (Look 5.16-5.46, Without 5.46-5.90), so every
+timestamp-based check said there was no pause. `silencedetect` found it in
+one pass. A third splice takes 6 frames out of it, same discipline as the
+other two: both cut points inside measured quiet, the picture shortened by
+the same frames in the title card. This is the doc's own v3 lesson
+("Whisper's word timestamps snap shut across a silence") — trust
+silencedetect for gaps, always.
+
+**The FAIL stamps itself on now** (her ask — the card is ChatGPT's, so
+redrawing was allowed, and "we have a good bad thing for the Tinder that you
+could look into"):
+
+- **The clean plate** is a gpt-image-2 `/edits` inpaint (quality high, ~17¢,
+  the one paid step): the original card plus a mask over the stamp region
+  only, and the model's pixels composited back ONLY inside that mask — the
+  rest of the card is her original, untouched. Filed in the Assets tab with
+  its prompt. Note: **gpt-image-2 rejects `input_fidelity`** (that was a
+  gpt-image-1 parameter); the mask-and-composite does the same job.
+- **The stamp art is HER OWN, not a redraw** — extracted from the original
+  card by red chroma (`r-g > 45 & r-b > 55`, softened near strong pixels;
+  the stamp is the one saturated-red thing on a sepia card). So the settled
+  final frame is pixel-for-pixel the card as it always looked.
+- **The animation is the judge deck's GOOD/BAD stamp** — her Decision Deck v3
+  values: in at 2.5x and blurred, invisible until it is nearly down, an
+  overshoot, settled in 560ms (`scripts/pwc-film-stamp.py`, 17 frames).
+- **Contact lands on the thud already in the mix** — the v5 fail-thud was
+  placed at the camera's FAIL arrival (beat 1.84), so the stamp uses the same
+  beat: camera, sound and slam are one instant, nothing re-timed.
+- It rides the same page-space overlay as the ink, so the camera's push keeps
+  it registered to the card.
