@@ -228,6 +228,13 @@
     var onDown=function(e){ downPaused = (e.target===v) ? v.paused : null; };
     var onWrapTap=function(e){
       if(e.target!==v) return;
+      // THE BOTTOM BAND IS THE NATIVE CONTROLS' OWN (2026-08-27, her ask:
+      // "yes scrub bar exemption"): a tap down there is her aiming at the
+      // scrubber — while paused it used to start playback instead of
+      // seeking. The toggle never fires in the strip where iOS draws its
+      // bar; the tap shows/keeps the overlay, so the window arms.
+      var r=v.getBoundingClientRect();
+      if(r.height && e.clientY && r.bottom - e.clientY < 64){ downPaused=null; scrimAt=Date.now(); return; }
       if(downPaused!==null && v.paused!==downPaused){ downPaused=null; scrimAt=Date.now(); syncBtn(); return; }
       downPaused=null;
       if(sheet){                          // tap = play = save and disappear

@@ -207,6 +207,10 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 #pinfull .x{position:absolute; top:calc(env(safe-area-inset-top,0px) + 10px); right:12px; z-index:2;
   width:36px; height:36px; border-radius:6px; border:1px solid rgba(255,255,255,.35); background:rgba(0,0,0,.45);
   color:#fff; display:flex; align-items:center; justify-content:center; font-size:20px; line-height:1;}
+/* a near-miss on the ✕ used to land on the film and pause it ("it's hard to
+   exit the film", 2026-08-27) — the drawn box stays 36px, the tap box is
+   ~64px via the invisible extension */
+#pinfull .x::after{content:''; position:absolute; inset:-14px;}
 /* TAP-TO-NOTE on a pinned film (Aug 2026, Sophie; REWORKED same day after her
    first real use: "even pressing play on the video triggers the note thing").
    No capture layer any more — a floating NOTE button pops up when she touches
