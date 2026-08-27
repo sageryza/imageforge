@@ -206,8 +206,70 @@ router.get('/voices', async (req, res) => {
   }
 });
 
+// ── a job orphaned by a server restart ──────────────────────────────
+// A render is fire-and-forget IN THIS PROCESS (the doc is the state), so a
+// Render deploy landing mid-render kills the job with nobody left to write
+// 'failed' — and the doc sits on `rendering` forever while the page polls it
+// every 2s, forever. Found live 2026-08-27: Sophie's 4,842-character science
+// take started 8:16pm, #1794 deployed at 8:12, and her card spun all evening.
+// She read that as the Voice Studio being missing, which is exactly right —
+// a take that never arrives and never fails is missing.
+//
+// The same shape the Playground's panels sweep already fixes (#1784), and the
+// same answer: RECOVER ON READ. No timer, no new machinery — the two routes
+// that look at these docs sweep the stale ones on the way past.
+//
+// `LIVE` is the honest half: a job this process is really working on is never
+// swept however long it takes. A job in ANOTHER process (a deploy overlap) is
+// not in our set, which is why the AGE gate has to cover the longest legitimate
+// job — the STS timeout is 300s plus a 25MB upload either side of it.
+const LIVE = new Set();
+const STUCK_MS = 10 * 60 * 1000;
+
+// Only ever `rendering` → `failed`, and only if it is STILL `rendering` when
+// the write lands: an old process finishing a second after we swept it must
+// keep its `done`. A finished take always wins over our guess that it died.
+// The decision on its own, so it can be tested without a Firestore.
+//
+// A row we cannot DATE is never swept, and the date is read strictly for one
+// reason the test caught before this shipped: `Date.parse(x || 0)` — the
+// obvious spelling — hands `Date.parse` the NUMBER 0, which it coerces to the
+// STRING "0" and parses as the year 2000. Every undated doc would have read as
+// twenty-six years old and been failed on the next page load. Parsing only a
+// real string leaves anything else as NaN, and every comparison against NaN is
+// false, which is the safe direction: a doc we cannot date is one we cannot
+// claim is dead. (Every write here stamps an ISO string; a doc carrying a
+// Firestore Timestamp instead would simply never be swept, which is fine.)
+function isStuck(r, now, live) {
+  if (!r || !r.id || r.status !== 'rendering') return false;
+  if (live && live.has(r.id)) return false;
+  const at = typeof r.createdAt === 'string' ? Date.parse(r.createdAt) : NaN;
+  return now - at > STUCK_MS;
+}
+
+async function sweepStuck(rows) {
+  const now = Date.now();
+  const stale = (rows || []).filter((r) => isStuck(r, now, LIVE));
+  if (!stale.length) return rows;
+  const reason = 'interrupted by a server restart — nothing was lost but the render itself';
+  await Promise.all(stale.map(async (r) => {
+    try {
+      await admin.firestore().runTransaction(async (tx) => {
+        const ref = admin.firestore().collection(COL).doc(r.id);
+        const snap = await tx.get(ref);
+        if ((snap.data() || {}).status !== 'rendering') return;
+        tx.update(ref, { status: 'failed', error: reason, failedAt: new Date().toISOString() });
+      });
+      r.status = 'failed';
+      r.error = reason;
+    } catch (e) { /* the read it rode in on must still answer */ }
+  }));
+  return rows;
+}
+
 async function renderJob(id, voiceId, voiceName, text) {
   const doc = admin.firestore().collection(COL).doc(id);
+  LIVE.add(id);
   try {
     const audio = await (await elFetch(`/text-to-speech/${voiceId}?output_format=mp3_44100_192`, {
       method: 'POST',
@@ -240,6 +302,8 @@ async function renderJob(id, voiceId, voiceName, text) {
     } catch (e) { /* the render itself is safe either way */ }
   } catch (err) {
     await doc.update({ status: 'failed', error: String(err.message || err).slice(0, 400) }).catch(() => {});
+  } finally {
+    LIVE.delete(id);
   }
 }
 
@@ -252,6 +316,7 @@ async function renderJob(id, voiceId, voiceName, text) {
 async function changeJob(id, voiceId, voiceName, tmp, ext) {
   const doc = admin.firestore().collection(COL).doc(id);
   const bucket = admin.storage().bucket();
+  LIVE.add(id);
   const srcDest = `${SOURCE_FOLDER}/${id}.${ext}`;
   try {
     await bucket.upload(tmp, { destination: srcDest, metadata: { contentType: mimeFor(ext) } });
@@ -285,6 +350,7 @@ async function changeJob(id, voiceId, voiceName, tmp, ext) {
   } catch (err) {
     await doc.update({ status: 'failed', error: String(err.message || err).slice(0, 400) }).catch(() => {});
   } finally {
+    LIVE.delete(id);
     fs.unlink(tmp, () => {});
   }
 }
@@ -362,7 +428,61 @@ router.get('/render/:id', async (req, res) => {
   try {
     const snap = await admin.firestore().collection(COL).doc(String(req.params.id)).get();
     if (!snap.exists) return res.status(404).json({ error: 'not found' });
-    res.json(snap.data());
+    // The page polls this every 2s while a take is rendering, so it is where an
+    // orphan is noticed first — and where the spinner has to stop.
+    const row = snap.data();
+    await sweepStuck([row]);
+    res.json(row);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Render that take AGAIN — same voice, same words, nothing retyped.
+// A failed take used to be a dead end: her text lives on the doc, but the only
+// way back was pasting 4,842 characters into the box a second time. The retry
+// is a NEW take on purpose (a new id, its own row) — a re-render is a fresh
+// render, and overwriting the failed one would erase the record of what
+// happened. A voice-changer take retries from the SOURCE audio, which is kept
+// exactly so this is possible.
+router.post('/render/:id/again', async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
+    if (!elKey()) return res.status(503).json({ error: 'ELEVENLABS_API_KEY is not set' });
+    const old = String(req.params.id || '');
+    if (!/^vl[a-f0-9]{12}$/.test(old)) return res.status(400).json({ error: 'bad id' });
+    const snap = await admin.firestore().collection(COL).doc(old).get();
+    if (!snap.exists) return res.status(404).json({ error: 'not found' });
+    const r = snap.data() || {};
+    if (r.status === 'rendering' && LIVE.has(old)) {
+      return res.status(409).json({ error: 'that one is still rendering' });
+    }
+    const id = `vl${crypto.randomBytes(6).toString('hex')}`;
+    const base = {
+      id, voiceId: r.voiceId, voiceName: r.voiceName || '',
+      model: r.kind === 'sts' ? STS_MODEL : MODEL_ID,
+      status: 'rendering', createdAt: new Date().toISOString(), againOf: old,
+    };
+
+    if ((r.kind || 'tts') === 'sts') {
+      if (!r.sourceUrl) return res.status(409).json({ error: 'that take has no recording to run again' });
+      const ext = String(r.sourceExt || 'mp3').replace(/[^a-z0-9]/g, '').slice(0, 5) || 'mp3';
+      const tmp = path.join(os.tmpdir(), `${id}-again.${ext}`);
+      const src = await fetch(r.sourceUrl, { timeout: 120000 });
+      if (!src.ok) return res.status(502).json({ error: 'could not read that recording back' });
+      fs.writeFileSync(tmp, await src.buffer());
+      await admin.firestore().collection(COL).doc(id).set({
+        ...base, kind: 'sts', text: r.text || 'Recorded take', sourceExt: ext,
+      });
+      changeJob(id, r.voiceId, base.voiceName, tmp, ext);
+    } else {
+      if (!r.text) return res.status(409).json({ error: 'that take has no text to say again' });
+      await admin.firestore().collection(COL).doc(id).set({
+        ...base, text: r.text, chars: r.text.length,
+      });
+      renderJob(id, r.voiceId, base.voiceName, r.text);
+    }
+    res.json({ id });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -378,6 +498,7 @@ router.get('/history', async (req, res) => {
       .orderBy('createdAt', 'desc').limit(kind ? 90 : 30).get();
     let rows = snap.docs.map((d) => d.data());
     if (kind) rows = rows.filter((r) => (r.kind || 'tts') === kind).slice(0, 30);
+    await sweepStuck(rows);
     res.json({ renders: rows });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -432,4 +553,4 @@ router.delete('/render/:id', async (req, res) => {
   }
 });
 
-module.exports = { router };
+module.exports = { router, isStuck, STUCK_MS };
