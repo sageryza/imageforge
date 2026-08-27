@@ -6291,6 +6291,20 @@ before working on that module. Nothing was deleted — the moved text is verbati
   so I can watch them all in one place newest first"). One doc per URL
   (sha1(url), `forge-deliverables`), sorted by `updatedAt` desc — a re-render
   at the same url surfaces with a version count instead of duplicating.
+  - **ONE ROW PER WORK, ITS LATEST VERSION (2026-08-27, Sophie: "only put the
+    latest version").** A new cut is a new url, so every take had its own row:
+    measured that day, the Water reel filled **7 of the 32 rows**, the PWC
+    training film 3 and Evan 2 — the newest of each buried among its own older
+    takes. The join is the TITLE STEM (`workKey`), which works because every
+    title here follows the house shape `<name> v<N> — what changed (0:41)`:
+    cut at the version marker and what is left is the work. **It must cross
+    CHATS** — the Water reel is cut in three of them — so grouping by chat
+    cannot do it. Two things not to undo: **newest is by DATE, never by
+    version number** (two chats cutting one reel both call theirs v14), and **a
+    title with no version marker is its own whole stem**, which is what keeps
+    PWC ep005 and ep006 two rows instead of hiding an episode. Nothing is
+    dropped — the earlier takes fold under the row, so a wrong merge costs a
+    tap and never a deliverable. Live: 32 rows → 23 works.
   - **Two doors in:** every MEDIA pin (video/audio) records itself from
     chatfeed's `POST /pin` — a pinned film IS a hand-over — and anything else
     is an explicit `POST /api/deliverables {chat, session, url, title, kind?}`
@@ -6310,7 +6324,10 @@ before working on that module. Nothing was deleted — the moved text is verbati
     touching a live door's — the launch-day version recorded per chat
     through the live update path and stamped today's date on week-old
     films (Sophie caught it: "evan says today"). Tests:
-    `node scripts/test-deliverables.js` (pure).
+    `node scripts/test-deliverables.js` (pure) and
+    `node scripts/test-deliverables-page.js` (the real page headless — the
+    fold, and the toggle's own tap asked with `elementFromPoint`, since the
+    row is an `<a>` and a nested control would be eaten by the link).
 - **Getting original art OUT of a Google Drawing** — for a lot of her old scanned
   artwork the embedded copy is the only one left, and **the SVG export is the only
   way out at full size**. `python3 scripts/gdrawing-extract.py <url-or-id>` does

@@ -28,6 +28,16 @@
   .dv .tm{ display:block; font-size:11px; letter-spacing:.04em; color:var(--dim);
     margin-top:5px; text-transform:uppercase; }
   .dv .v{ color:var(--accent); }
+  /* The older takes of one work. The toggle is the house truncation opener —
+     an underlined word inline, never a button with a box — and it is a SIBLING
+     of the row, because the row is an <a> and a nested control would eat the
+     tap that opens the film. */
+  .vmore{ display:block; margin:-3px 0 8px 13px; padding:0; border:0; background:none;
+    font:inherit; font-size:12px; color:var(--dim); text-decoration:underline;
+    cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .vold{ margin:0 0 7px 13px; }
+  .vold .dv{ padding:8px 11px; }
+  .vold .dv .tt{ font-size:13px; font-weight:500; color:var(--dim); }
   .empty{ color:var(--dim); font-size:14px; padding:14px 2px; }
 </style>
 <body class="tool">
@@ -77,21 +87,45 @@
     } catch (e) { return ''; }
   }
 
+  function row(d, extra){
+    var meta = [esc(d.chatName || d.chat || ''), when(d.updatedAt || d.at)]
+      .filter(Boolean).join(' · ');
+    if (extra) meta += (meta ? ' · ' : '') + extra;
+    return '<a class="dv" href="' + esc(d.url) + '" target="_blank" rel="noopener">' +
+             '<span class="tt">' + (IC[d.kind] || IC.link) + esc(d.title || d.url) + '</span>' +
+             (meta ? '<span class="tm">' + meta + '</span>' : '') +
+           '</a>';
+  }
+  function takes(n){ return n + ' earlier ' + (n === 1 ? 'take' : 'takes'); }
+
+  /* One row per work — its LATEST version. The earlier takes are never
+     dropped, only folded: they open under the row, so a title the server
+     grouped wrongly costs one tap, never a lost deliverable. */
   function render(items){
     if (!items.length) {
       listEl.innerHTML = '<div class="empty">Nothing handed over yet.</div>';
       return;
     }
     listEl.innerHTML = items.map(function(d){
-      var meta = [esc(d.chatName || d.chat || ''), when(d.updatedAt || d.at)]
-        .filter(Boolean).join(' · ');
-      if (d.versions > 1) meta += ' · <span class="v">v' + d.versions + '</span>';
-      return '<a class="dv" href="' + esc(d.url) + '" target="_blank" rel="noopener">' +
-               '<span class="tt">' + (IC[d.kind] || IC.link) + esc(d.title || d.url) + '</span>' +
-               (meta ? '<span class="tm">' + meta + '</span>' : '') +
-             '</a>';
+      var older = d.older || [];
+      return row(d, d.versions > 1 ? '<span class="v">re-cut</span>' : '') +
+        (older.length
+          ? '<button class="vmore" type="button" aria-expanded="false" data-n="' + older.length + '">' +
+              takes(older.length) +
+            '</button>' +
+            '<div class="vold" hidden>' + older.map(function(o){ return row(o); }).join('') + '</div>'
+          : '');
     }).join('');
   }
+
+  listEl.addEventListener('click', function(e){
+    var b = e.target.closest && e.target.closest('.vmore');
+    if (!b) return;
+    var open = b.getAttribute('aria-expanded') === 'true';
+    b.setAttribute('aria-expanded', open ? 'false' : 'true');
+    b.nextElementSibling.hidden = open;
+    b.textContent = open ? takes(+b.dataset.n) : 'hide earlier takes';
+  });
 
   var help = document.getElementById('help'), card = document.getElementById('helpcard');
   help.onclick = function(){ card.hidden = !card.hidden; };

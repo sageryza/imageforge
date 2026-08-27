@@ -6,13 +6,13 @@
 //      usually a page being worked on, not a hand-over).
 //   3. decideRecord()  — a NEW url is a new row (→ push); the same url again
 //      is a silent update that bumps updatedAt + versions and can fix a title.
-//   4. rowsOf()        — newest first by updatedAt, display names joined from
-//      the registry map, slugs surviving where no name exists.
+//   4. rowsOf()      — ONE row per work (workKey), its latest version, older
+//      takes folded onto `older`; newest first; display names joined.
 //
 // Run: node scripts/test-deliverables.js
 'use strict';
 const { _internals, pinDeliverable } = require('../deliverables');
-const { kindOf, decideRecord, rowsOf, idFor, backfillPlan, backfillDoc } = _internals;
+const { kindOf, decideRecord, rowsOf, idFor, backfillPlan, backfillDoc, workKey } = _internals;
 
 let fails = 0;
 function ok(name, cond, extra) {
@@ -113,6 +113,55 @@ console.log('backfill — the launch-day date bug, pinned (2026-08-27, "evan say
   ok('…a POSTed one too', backfillDoc(posted, plan[0], now) === null);
   const noAt = backfillDoc(null, { chat: 'c', url: 'https://x/a.mp4', title: '', kind: 'video', at: '' }, now);
   ok('a pin with no at falls back to now', noAt.at === now);
+}
+
+console.log('workKey / rowsOf — one row per work, its latest version');
+{
+  // Her REAL titles the day she asked (2026-08-27, "only put the latest
+  // version"): the Water reel filled seven rows, PWC three, Evan two.
+  const real = [
+    ['Water reel v16 — ramps from the spine line to 3x (1:31)', 'water reel'],
+    ['Water reel v15 SLOW — the crop lands on the last word (1:42)', 'water reel'],
+    ['Water reel v14 ramp — 1.15 to 1.55 (1:34)', 'water reel'],
+    ['Water reel v13 fast (1:20) — slower cuts coming', 'water reel'],
+    ['Water reel v8 — her voice, 2:12 (the base for the re-cut)', 'water reel'],
+    ['PWC Training Film No. 001 — v11, FAIL slams on (1:26)', 'pwc training film no. 001'],
+    ['PWC Training Film No. 001 — v7, tight open (1:27)', 'pwc training film no. 001'],
+    ['Evan — v17: your ten notes, fixed (4:24)', 'evan'],
+    ['Evan v13 — your cut, read back and repaired, 4:21', 'evan'],
+    ['dreams — the bird costume, all her art (v2, 0:45)', 'dreams — the bird costume, all her art'],
+    ['Vibrilify MAX — live action v3 (1:13)', 'vibrilify max — live action'],
+    ['Abundance and scarcity — v2, one voice take (0:33)', 'abundance and scarcity'],
+  ];
+  real.forEach(([t, want]) => ok('“' + t.slice(0, 42) + '…” → ' + want, workKey(t) === want, workKey(t)));
+
+  // A title with NO version marker is its own stem — which is what keeps two
+  // EPISODES apart. Merging these would hide a whole film.
+  const ep5 = 'PWC ep005 — Chicago + logo end card (0:35)';
+  const ep6 = 'PWC ep006 — the building across the street (0:41)';
+  ok('ep005 and ep006 do NOT merge', workKey(ep5) !== workKey(ep6));
+  ok('…and neither is mistaken for a version', /ep00/.test(workKey(ep6)));
+  ok('a title that is only a version keeps itself', workKey('v3 — the cut') === 'v3 — the cut');
+  ok('“version 2” spelled out also cuts', workKey('The spot version 2 (0:43)') === 'the spot');
+
+  // Two DIFFERENT reels must not collide on a shared word.
+  ok('“Hands — the reel” ≠ “PROOF reel — draft”',
+    workKey('Hands — the reel v1 (0:18)') !== workKey('PROOF reel — draft v1 (4:55)'));
+
+  const docs = [
+    { url: 'u16', title: 'Water reel v16 — ramps (1:31)', chat: 'a', updatedAt: '2026-08-27T07:00:00Z' },
+    { url: 'u14', title: 'Water reel v14 ramp — 1.15 (1:34)', chat: 'b', updatedAt: '2026-08-27T05:00:00Z' },
+    { url: 'u8',  title: 'Water reel v8 — her voice', chat: 'c', updatedAt: '2026-08-25T00:00:00Z' },
+    { url: 'ev',  title: 'Evan — v17: your ten notes', chat: 'd', updatedAt: '2026-08-19T00:00:00Z' },
+  ];
+  const rows = rowsOf(docs, { a: { displayName: 'Water notes' } });
+  ok('several takes of one reel become ONE row', rows.length === 2, rows.map((r) => r.title));
+  ok('…the newest by DATE leads', rows[0].url === 'u16');
+  ok('…crossing chats (v14 was a different chat)', rows[0].older.map((o) => o.url).join() === 'u14,u8');
+  ok('…older takes stay newest-first', rows[0].older[0].url === 'u14');
+  ok('…nothing is dropped', 1 + rows[0].older.length + 1 + rows[1].older.length === docs.length);
+  ok('a lone work carries an empty older list', rows[1].older.length === 0);
+  ok('display names still join', rows[0].chatName === 'Water notes');
 }
 
 console.log('idFor — content-addressed by url');
