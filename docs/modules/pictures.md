@@ -312,6 +312,83 @@ ceiling are all in `docs/image-pipeline.md` (*The walker is the prompt*).
   it finishes (`status:'ready'`, then `'done'`), so the grid fills in as they
   arrive. One failed call costs its image, not the run.
 
+### The character picker (2026-08-27)
+
+Sophie: "add a little button in the playground right next to where it says
+dreamy make sure it's the same style with a character icon that shows the five
+most recent characters that were put and then also the rest of the sheet and
+characters with a search."
+
+`#charsbtn` sits in `.styles` beside `#stylepick`, wearing that control's own
+ink border at its own 34px — the row she named, not the control row under it.
+It opens `#charpanel`: the five most recent across the top, then a search box,
+then the rest. Typing searches the WHOLE library (names and aliases), because a
+search that skipped the five she can see would answer "no such character" about
+one of them; with the box empty the lower grid is the REST, so the top row is
+not printed twice.
+
+**Where the library comes from.** `GET /api/promptlab/characters` →
+`character.js`'s own `listCharacters()` over `forge-characters` — the same pile
+the cast sheet and the dream flow read (143 of them, measured live
+2026-08-27), never a second one. The only thing the route adds is the ORDER
+Sophie's ask names: **recent = `lastUsedAt`, falling back to `createdAt`**, so
+the five slots are the five she reached for last. Drawing here calls
+`markUsed()`, which is also what the old `POST /api/character/used` route
+calls — one definition of "recent", so the picker and the cast sheet can never
+disagree.
+
+**What rides, and in what order.** The picked ids resolve through
+`charactersByIds()` and their bytes attach at the VERY END, after the style
+references, after the Sophie card and after her photo reference. That order is
+forced by the disclosure: `charLine()` in `pad-characters.js` — the same
+sentence the Story Room sends — says "the last attached image(s)".
+
+Which is why `PL_GPT.photoLineWithChars` exists. The photo's line has always
+said "the LAST attached image is a photo reference", and the moment a character
+rides behind it that sentence describes the wrong picture. The twin is the
+identical instruction re-anchored ("the attached image just before the
+character reference(s) at the end"), sent only when characters really ride;
+the reference-less ChatGPT tile owns its own copy of both, since neither of
+its lines may mention a style reference it does not have. **A run with no cast
+sends the original byte for byte.**
+
+**One copy of the wording.** `pad-characters.js` is UMD-wrapped (the
+`pause-plan.js` pattern) and served at `/pad-characters.js`, so the Prompt
+panel prints the REAL `charLine()` rather than a transcription of it that
+drifts the day the sentence is reworded.
+
+**Where it is NOT.** Off on the WTR LoRA — a trigger word and no attachment
+slot at all — and off on PANELS, for the reason the photo ref is: a sheet is
+not the surface to argue "the last attached image" on. It is deliberately NOT
+gated on `noCharacter`: that flag is about the SOPHIE CARD, which is the
+watercolor look by another name, where a character Sophie picked herself is her
+own subject and belongs on every gpt tile.
+
+**Details worth not undoing.**
+
+- **Not persisted**, the rule quality and the photo reference already follow —
+  a cast picked last week riding today's run is a hidden ingredient that costs
+  money (~1.2c a reference). It survives between runs in one sitting.
+- **The cap is the shared `MAX_PICKED`** (6), served to the page, hardcoded
+  nowhere.
+- **A reference that will not fetch FAILS the run** rather than best-effort
+  skipping it — a picture she aimed at Doug must not quietly come back without
+  him. Bytes are cached per process.
+- **Faces are derived display copies** — `FeedKit.thumbFor(url, 240)`. A saved
+  character card is a full render (1.26MB measured; its thumb is 5.8KB), and a
+  picker of 143 originals would be tens of megabytes over cell.
+- **Both card rows reserve the pill's column**, measured by `fitCharPill()`:
+  the sheet opens exactly where the injected autoscroll pill is fixed, and
+  pre-fix its own `Fast` label sat on the fifth recent card — with her phone's
+  47px safe-area inset the pill rides lower still, onto that card's middle.
+- **`imageTypeOf()`** declares each attached reference as what its BYTES say it
+  is. Every reference used to be labelled `image/png` whatever it held, which
+  happened to work while they were PNGs from `refs/`; a character card off
+  Storage is a webp.
+- Test: `node scripts/test-playground-characters.js` (the server contract and
+  the one-copy rules pure, then the real page with the real injected pill —
+  verified failing 3 against the unreserved rows).
+
 ### The PANELS tab (Aug 2026, Sophie: "cut it into panels … describe each panel individually")
 
 A hairline **PICTURE · PANELS** row at the top of `/playground`. On PANELS the

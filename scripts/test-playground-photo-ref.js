@@ -53,7 +53,10 @@ ok(/photoBuf \? photoLine : ''/.test(serverSrc),
 // Since 2026-08-24 a STYLE may own the sentence: the house one names a style
 // reference, which is a lie on the reference-less ChatGPT tile where her photo
 // is the only attachment. See scripts/test-playground-plain.js.
-ok(/const photoLine = st\.photoLine \? ` \$\{st\.photoLine\}` : PL_GPT\.photoLine;/.test(serverSrc),
+// (2026-08-27: the line is now picked from a PAIR — the same sentence
+// re-anchored when character references ride behind the photo — so this pins
+// the RULE rather than one spelling of it. See test-playground-characters.js.)
+ok(/\(st\.photoLine \? ` \$\{st\.photoLine\}` : PL_GPT\.photoLine\)/.test(serverSrc),
   "and a style's own line wins over the house one");
 ok(/photoLine: PL_GPT\.photoLine/.test(serverSrc),
   'the photo line is SERVED to the page, not copied into it');

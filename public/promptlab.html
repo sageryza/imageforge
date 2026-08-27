@@ -9,6 +9,10 @@
      the keyed reconcile, the derived display copy and the toast. ONE copy,
      so a second feed can never hand-copy them. -->
 <script src="/feedkit.js"></script>
+<!-- The character-reference rules — the SAME file the server draws with and
+     the Story Room draws with, so the sentence the picked characters add to
+     her words is written down exactly once. See /pad-characters.js. -->
+<script src="/pad-characters.js"></script>
 <script src="/asset-lightbox.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -43,7 +47,7 @@
      slab was the heaviest thing on a page of pale controls. The INK BORDER
      stays: it is what still separates the one control that decides the run
      from the pale `.stylebtn` neighbours. */
-  .styles { display: flex; margin-bottom: 10px; }
+  .styles { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
   #stylepick { appearance: none; -webkit-appearance: none; border: 1px solid #2b2622; border-radius: 6px;
     padding: 8px 32px 8px 12px; font: inherit; font-size: 16px; background-color: #fdfcf9; color: #2b2622;
     background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232b2622' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
@@ -440,6 +444,63 @@
     border: 1px solid #2b2622; border-radius: 6px; padding: 7px 10px;
     background: #fdfcf9; color: #2b2622; }
   #beattag.on { display: block; }
+  /* ── THE CHARACTER PICKER (2026-08-27, Sophie: "a little button in the
+     playground right next to where it says dreamy, make sure it's the same
+     style, with a character icon that shows the five most recent characters
+     that were put and then also the rest of the sheet and characters with a
+     search").
+     THE BUTTON sits in `.styles` beside the style picker — not in `.controls`
+     below it — because that is the row she named, and it wears the picker's
+     own ink border at the same 34px so the two read as one pair. Lit and
+     filled when a cast is riding, with the COUNT on it: a reference she has
+     forgotten she picked is paid input tokens and a face she did not ask for,
+     so the button never stays quiet about it. */
+  #charsbtn { flex: none; display: inline-flex; align-items: center; gap: 5px;
+    height: 34px; box-sizing: border-box; padding: 0 10px; border: 1px solid #2b2622;
+    border-radius: 6px; background: #fdfcf9; color: #2b2622; font: inherit; font-size: 13px;
+    cursor: pointer; }
+  #charsbtn svg { width: 17px; height: 17px; display: block; }
+  #charsbtn.on { background: #2b2622; color: #faf7f2; }
+  #charsn:empty { display: none; }
+  /* THE SHEET opens under the style row like the Prompt panel, and is the
+     same flat 6px box — one shape for "a panel this row opened". */
+  #charpanel { display: none; margin: 0 0 8px; border: 1px solid #d8d0c4; border-radius: 6px;
+    background: #fdfcf9; padding: 10px; }
+  #charpanel.on { display: block; }
+  #charpanel .plab { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase;
+    color: #9a9186; margin: 0 0 6px; }
+  #charpanel .plab + .plab, #charpanel .chargrid + .plab { margin-top: 12px; }
+  /* Her five most recent run ACROSS, one row, so the ones she reaches for are
+     never behind a scroll. The rest wrap into a grid under the search.
+     BOTH ROWS END BEFORE THE PILL'S COLUMN. The sheet opens near the top of
+     the page, which is exactly where the injected autoscroll pill is fixed —
+     measured, its `Fast` label sat on the FIFTH recent card, and with her
+     phone's 47px safe-area inset the pill rides lower still and covers that
+     card's middle. So `--charpill` is a MEASURED reservation (fitCharPill),
+     never a hardcoded band: the pill is conditional and its top follows the
+     inset. It goes on the two CARD rows rather than on the panel, so the
+     panel keeps the width of everything else on screen and the two rows stay
+     aligned with each other. */
+  .charrow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px;
+    padding-right: var(--charpill, 0px); }
+  .chargrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px;
+    padding-right: var(--charpill, 0px);
+    max-height: 40vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  /* A card is the face and the NAME a prompt calls them by — the name is not
+     decoration here, it is the word she has to type into her prompt for the
+     reference to mean anything, so it is never cropped away. */
+  .charcard { display: block; width: 100%; padding: 0; border: 1px solid #d8d0c4; border-radius: 6px;
+    background: #fff; color: #2b2622; font: inherit; text-align: center; cursor: pointer;
+    overflow: hidden; -webkit-tap-highlight-color: transparent; }
+  .charcard img { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; background: #f0ece5; }
+  .charcard .nm { display: block; font-size: 11px; line-height: 1.25; padding: 3px 3px 4px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .charcard.on { border-color: #2b2622; box-shadow: inset 0 0 0 2px #2b2622; }
+  .charcard.on .nm { background: #2b2622; color: #faf7f2; }
+  /* 16px or iOS zooms the page on focus — every box she types into. */
+  #charq { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; color: #2b2622;
+    background: #fff; border: 1px solid #d8d0c4; border-radius: 6px; padding: 7px 9px; margin: 0 0 8px; }
+  #charpanel .cnote { font-size: 11.5px; color: #9a9186; margin: 8px 0 0; }
   /* The PROMPT panel — what is wrapped around her words, and editable (Aug
      2026, Sophie). Opens under the style row, above her box, because that is
      where the wrapping happens. Flat, 6px, no gradient like everything else. */
@@ -506,7 +567,16 @@
     <button type="button" id="t-picture" class="on">Picture</button>
     <button type="button" id="t-panels">Panels</button>
   </div>
-  <div class="styles"><select id="stylepick" aria-label="Style"></select></div>
+  <div class="styles"><select id="stylepick" aria-label="Style"></select><button type="button" id="charsbtn" hidden aria-label="Character references" title="Character references"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/></svg><span id="charsn"></span></button></div>
+  <div id="charpanel">
+    <div class="plab">Most recent</div>
+    <div class="charrow" id="charrecent"></div>
+    <div class="plab" id="charalllab">All characters</div>
+    <input id="charq" type="search" placeholder="Search characters" aria-label="Search characters"
+           autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="search">
+    <div class="chargrid" id="charall"></div>
+    <div class="cnote" id="charnote"></div>
+  </div>
   <div id="reftag"></div>
   <div id="beattag"></div>
   <div id="promptpanel"></div>
@@ -1197,6 +1267,174 @@
     if (promptOpen) paintPromptPanel();
   });
 
+  // ── HER OWN CAST — THE CHARACTER PICKER (2026-08-27) ──────────────
+  // Sophie: "a little button in the playground right next to where it says
+  // dreamy, make sure it's the same style, with a character icon that shows
+  // the five most recent characters that were put and then also the rest of
+  // the sheet and characters with a search".
+  //
+  // The library is the Character Creator's own — /api/promptlab/characters is
+  // `forge-characters` in most-recently-DRAWN-WITH order, never a second pile
+  // and never an ordering invented here. Picking is two taps: the button, then
+  // the face.
+  //
+  // NOT PERSISTED, the same rule quality and the photo reference follow: a
+  // cast picked last week silently riding today's run is exactly the hidden
+  // ingredient the Prompt panel exists to prevent — and every reference is
+  // paid input tokens (~1.2c each), so it would be a hidden ingredient that
+  // costs money. It survives between runs in one sitting, so a re-roll is one
+  // tap.
+  var CHAR_RECENT = 5;             // her number — the top row
+  var charList = null;             // the library, once fetched
+  var charMax = (window.__padCharacters && window.__padCharacters.MAX_PICKED) || 6;
+  var pickedChars = [];            // ids, in the order she picked them
+  var charsOpen = false;
+  var charsBtn = document.getElementById('charsbtn');
+  var charPanel = document.getElementById('charpanel');
+
+  // The characters riding this run, as records — what charLine() needs, and
+  // what the Prompt panel prints. Her pick ORDER is the attach order, so a
+  // named list in the prompt lines up with the pictures behind it.
+  function pickedCharRecords() {
+    if (!charList) return [];
+    return pickedChars.map(function (id) {
+      for (var i = 0; i < charList.length; i++) if (charList[i].id === id) return charList[i];
+      return null;
+    }).filter(Boolean);
+  }
+  // The line that will really ride, from the REAL shared rule — the page owns
+  // no copy of the wording.
+  function charsLine() {
+    var f = window.__padCharacters && window.__padCharacters.charLine;
+    return f ? f(pickedCharRecords()) : '';
+  }
+  function paintCharsBtn() {
+    var n = pickedChars.length;
+    charsBtn.classList.toggle('on', n > 0);
+    document.getElementById('charsn').textContent = n ? String(n) : '';
+    charsBtn.setAttribute('aria-label', n
+      ? 'Character references — ' + n + ' picked' : 'Character references');
+  }
+  function charHay(c) {
+    return (String(c.name || '') + ' ' + (c.aliases || []).join(' ')).toLowerCase();
+  }
+  function charCard(c) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'charcard' + (pickedChars.indexOf(c.id) >= 0 ? ' on' : '');
+    b.setAttribute('data-id', c.id);
+    b.setAttribute('aria-pressed', pickedChars.indexOf(c.id) >= 0 ? 'true' : 'false');
+    var im = document.createElement('img');
+    // A DERIVED DISPLAY COPY, never the original — the house webp rule. A
+    // saved character card is a full gpt-image-2 render (measured: 1.2MB
+    // apiece), and a picker of 143 faces at 52px would be tens of megabytes
+    // of originals over cell. thumbFor is the feed's own one, and it leaves
+    // anything not in Storage exactly as it is.
+    // (FeedKit's own, not the page's `thumbFor` — that one is bound to the
+    // FEED's width and a 52px card wants its own.)
+    im.src = window.FeedKit.thumbFor(c.url, 240); im.alt = ''; im.loading = 'lazy';
+    var nm = document.createElement('span');
+    nm.className = 'nm';
+    nm.textContent = c.name || 'unnamed';
+    b.appendChild(im); b.appendChild(nm);
+    b.addEventListener('click', function () { toggleChar(c.id); });
+    return b;
+  }
+  function toggleChar(id) {
+    var at = pickedChars.indexOf(id);
+    if (at >= 0) pickedChars.splice(at, 1);
+    // The cap is the shared one (pad-characters.js): every reference is paid
+    // input tokens, so a draw carries a few characters, never the library.
+    else if (pickedChars.length >= charMax) {
+      toast('That is ' + charMax + ' characters — as many as one drawing takes');
+      return;
+    } else pickedChars.push(id);
+    paintCharsBtn();
+    paintCharPanel();
+    // The picked cast adds a line to the prompt, so an open Prompt panel has
+    // to say so the moment it changes — same rule as the Sophie card.
+    if (promptOpen) paintPromptPanel();
+  }
+  // THE PILL OWNS THAT CORNER, AND THE SHEET OPENS INTO IT. Measured against
+  // the pill's REAL rect rather than a hardcoded band — it is conditional
+  // (no pill until there is something to scroll) and its top rides
+  // env(safe-area-inset-top), so on her phone it sits ~33px lower than it
+  // does in a plain headless browser, which is the difference between
+  // clipping a card's corner and covering its middle.
+  function fitCharPill() {
+    var pill = document.querySelector('.float');
+    var row = document.getElementById('charrecent');
+    if (!pill || !row) { charPanel.style.setProperty('--charpill', '0px'); return; }
+    var p = pill.getBoundingClientRect();
+    var r = row.getBoundingClientRect();
+    if (!p.width || !r.width) { charPanel.style.setProperty('--charpill', '0px'); return; }
+    // The row's own right edge against the pill's left one, plus a hair of
+    // air. `#spd` — the pill's speed label — hangs BELOW the capsule and is
+    // the part that actually reached the cards, so the wider of the two wins.
+    var spd = document.getElementById('spd');
+    var left = spd ? Math.min(p.left, spd.getBoundingClientRect().left || p.left) : p.left;
+    var over = Math.max(0, Math.round(r.right - left) + 4);
+    charPanel.style.setProperty('--charpill', over + 'px');
+  }
+  window.addEventListener('resize', function () { if (charsOpen) fitCharPill(); });
+
+  function paintCharPanel() {
+    var recentBox = document.getElementById('charrecent');
+    var allBox = document.getElementById('charall');
+    var note = document.getElementById('charnote');
+    recentBox.innerHTML = ''; allBox.innerHTML = '';
+    if (!charList) { note.textContent = 'Loading your characters…'; return; }
+    if (!charList.length) {
+      note.textContent = 'No characters saved yet — the Character Creator is where they are made.';
+      return;
+    }
+    var q = document.getElementById('charq').value.trim().toLowerCase();
+    var recent = charList.slice(0, CHAR_RECENT);
+    recent.forEach(function (c) { recentBox.appendChild(charCard(c)); });
+    // NO SEARCH → the REST, so the top row is not printed twice. TYPING →
+    // the whole library, because a search that skipped the five she uses most
+    // would answer "no such character" about a character she can see.
+    var rest = q
+      ? charList.filter(function (c) { return charHay(c).indexOf(q) >= 0; })
+      : charList.slice(CHAR_RECENT);
+    document.getElementById('charalllab').textContent = q ? 'Matches' : 'All characters';
+    rest.forEach(function (c) { allBox.appendChild(charCard(c)); });
+    note.textContent = q && !rest.length
+      ? 'Nothing matches “' + q + '”.'
+      : (pickedChars.length
+        ? 'Riding this drawing: ' + pickedCharRecords().map(function (c) { return c.name || 'unnamed'; }).join(', ')
+          + ' — write their names in your prompt.'
+        : 'Pick up to ' + charMax + '. The name under a face is what to write in your prompt.');
+  }
+  function loadChars() {
+    if (charList) return Promise.resolve(charList);
+    return fetch('/api/promptlab/characters').then(function (r) { return r.json(); }).then(function (d) {
+      charList = (d.characters || []).filter(function (c) { return c && c.id && c.url; });
+      if (d.max) charMax = d.max;
+      paintCharPanel();
+      // The pill only exists once there is something to scroll, and the sheet
+      // filling with faces is often what makes that true — so measure again
+      // after the cards land, not only when the sheet opened empty.
+      setTimeout(fitCharPill, 60);
+      return charList;
+    }).catch(function () {
+      document.getElementById('charnote').textContent = 'Could not load your characters.';
+    });
+  }
+  charsBtn.addEventListener('click', function () {
+    charsOpen = !charsOpen;
+    charPanel.classList.toggle('on', charsOpen);
+    if (charsOpen) { paintCharPanel(); fitCharPill(); loadChars(); }
+  });
+  // The house search helpers, both of them: iOS dictation can fill a box
+  // without ever firing `input`, and Return has nothing to submit to.
+  (function () {
+    var box = document.getElementById('charq');
+    var live = liveInput(box, paintCharPanel);
+    enterSubmits(box, function () { paintCharPanel(); live.sync(); });
+  })();
+  paintCharsBtn();
+
   // ── ARRIVED FROM A STORY ROOM BEAT (2026-08-26, Sophie) ───────────
   // Her ask, in three parts: the beat's drawing prompt lands in the box (the
   // ?prompt= block below does that, the same door an image's "open in the
@@ -1315,6 +1553,7 @@
   // without the page saying so.
   var BAKED = null;                  // {gptStyleId: {label, prefix, suffix, refs}}
   var PHOTO_LINE = '';               // the line server.js adds when a photo is attached
+  var PHOTO_LINE_CHARS = '';         // …and the same one re-anchored when characters ride behind it
   var promptOpen = false;
   var OVERKEY = 'promptlab_prompt_';  // + gptStyle id
 
@@ -1434,7 +1673,17 @@
     // The style's OWN photo line wins where it has one — the house sentence
     // says the drawing style "comes from the style reference above", which is
     // a lie on the plain ChatGPT tile where her photo is the only attachment.
-    if (photoRef && !onPanels()) { var pl = (p.baked && p.baked.photoLine) || PHOTO_LINE; if (pl) extras.push(pl); }
+    // Her own cast, and the photo line RE-ANCHORED when one rides behind it —
+    // character cards attach at the very end, so "the LAST attached image" is
+    // no longer the photo. Both halves are served, never written here.
+    var cline = onPanels() ? '' : charsLine();
+    if (photoRef && !onPanels()) {
+      var pl = cline
+        ? ((p.baked && p.baked.photoLineWithChars) || PHOTO_LINE_CHARS)
+        : ((p.baked && p.baked.photoLine) || PHOTO_LINE);
+      if (pl) extras.push(pl);
+    }
+    if (cline) extras.push(cline);
     if (onPanels() && PANELS_CFG && PANELS_CFG.grids[curGrid()]) {
       extras.push(PANELS_CFG.grids[curGrid()].sentence);
     }
@@ -1506,6 +1755,8 @@
   fetch('/api/promptlab/styles').then(function (r) { return r.json(); })
     .then(function (d) {
       BAKED = d.styles || {}; PHOTO_LINE = d.photoLine || '';
+      PHOTO_LINE_CHARS = d.photoLineWithChars || PHOTO_LINE;
+      if (d.maxChars) charMax = d.maxChars;
       RES = d.res || null; RES_DEFAULT = d.resDefault || '1k';
       if (RES && !RES[canvas]) canvas = 'portrait';
       if (RES && RES[canvas] && !RES[canvas].tiers[resTier]) resTier = RES_DEFAULT;
@@ -1794,6 +2045,19 @@
     var panels = onPanels();
     document.querySelector('.promptwrap').hidden = panels;
     document.getElementById('charpick').hidden = !gpt || panels || !!STYLES[styleKey].noCharacter;
+    // HER CAST rides gpt-image-2's edits call like the photo does, so the LoRA
+    // — which takes a trigger word and has no attachment slot at all — shows
+    // no button rather than one that would change nothing. It is NOT gated on
+    // `noCharacter`: that flag is about the SOPHIE CARD, which is the
+    // watercolor look by another name; a character she picked herself is her
+    // own subject and belongs on every gpt tile, the reference-less one
+    // included. Panels are out for the reason the photo is — charLine() names
+    // "the last attached image", and a sheet is not the surface to argue that
+    // on. When the button goes, so does the sheet: a panel open over a style
+    // that cannot use it is a control with nothing behind it.
+    var charsOff = !gpt || panels;
+    charsBtn.hidden = charsOff;
+    if (charsOff && charsOpen) { charsOpen = false; charPanel.classList.remove('on'); }
     // The photo rides gpt-image-2's EDITS call. The WTR LoRA has no
     // attachment slot at all — it takes a trigger word and nothing else — so
     // the button comes off rather than sitting there doing nothing.
@@ -1883,6 +2147,10 @@
           // Her uploaded photo reference, when there is one. Absent otherwise,
           // so an ordinary run is byte-for-byte what it always was.
           photo: photoRef ? photoRef.data : undefined,
+          // The cast she picked, by id, in her pick order — which is the
+          // order they attach in and the order charLine() names them. Absent
+          // when she picked none, so an ordinary run is unchanged.
+          characters: pickedChars.length ? pickedChars.slice() : undefined,
           // Only sent when she has actually edited it — an absent field means
           // "use the house text", so a normal run is byte-for-byte what it
           // always was.
