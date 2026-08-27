@@ -3669,6 +3669,23 @@ before working on that module. Nothing was deleted — the moved text is verbati
     closes the box first) and the copy action.
   - **A half with nothing filed shows no Style|Content pair** — the
     Playground's no-style-half silence, now everyone's.
+  - **`votesBelow` PUTS TWO BUTTON FAMILIES ON ONE LINE, SO `.vbelow` SIZES
+    THEM (2026-08-27, Sophie: "bottom buttons are all different sizes in the
+    playground light box … find what size they were 24 hours ago and make them
+    all that size").** `.vote` is 38px because it was drawn for the screen's
+    TOP CORNERS, and `.lbacts button` is 34px; `votesBelow` moves the votes
+    into that row, so ♥ ✕ sat visibly bigger than copy · save · story beside
+    them, with the 38px note-send under both. **The size she asked for is the
+    Playground's own**, read off its hand-rolled lightbox as it stood the day
+    before the port (`.lbbtn` — 46x46, a 21px glyph, 22px apart), where all
+    five really were one class. It is a `.vbelow` rule in `asset-lightbox.js`,
+    scoped like every other hook, so the Assets tab, Meta Assets and the grid
+    pages — which pass no layout hook — keep the sizes they have. **A hook
+    that MOVES a control into another row inherits that row's problem: check
+    the sizes on both sides of the join.** Pinned by the size block in
+    `node scripts/test-playground-lightbox.js`, MEASURED off the real boxes
+    (two rules winning on two different buttons is invisible to any class
+    assertion) — verified failing 2 pre-fix, naming all three sizes.
   What SURVIVED the move, as caller wiring: the thumb-first open with the
   original swapping in from the ONE fetch Save needs (below); the style half
   derived from THIS run's `fullPrompt` (`runPromptHalves`, below); ♥/✕ to the
