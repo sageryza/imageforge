@@ -3172,11 +3172,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
   work failed, and `POST /api/promptlab/:id/recut` does the same on demand
   for a failed-with-sheet or cutFailed run (recovery-only: an already-cut run
   is refused, a second cut would file duplicates). **AND A SHEET IS ONE
-  OUTPUT** — the serialize-the-bulk-batch note (Opinions section) counts
-  concurrent OUTPUT buffers on the box; a panels run buffers one sheet, so
-  2-3 sheets in parallel is well under the sixteen that crashed it, and a
-  chat drawing many sheets should NOT run them one at a time (measured: a
-  serialized 10-sheet batch took ~12 minutes that parallel-3 does in ~4).
+  OUTPUT** — the bulk-batch CEILING LEDGER (Opinions section) counts
+  concurrent OUTPUT buffers on the box; a panels run buffers one sheet.
+  Run a sheet batch at the ledger's largest measured clean number (never
+  one at a time — a serialized 10-sheet batch cost 12 minutes for no
+  protection the box needed), and ratchet the ledger when you measure
+  higher.
   Full rules: *The PANELS
   tab* in `docs/modules/pictures.md`. Tests: `node scripts/test-sheet-grid.js`
   and `node scripts/test-playground-panels.js`.
@@ -5314,32 +5315,36 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (`public/opinions-gun.png`), not a line icon. Candidate batches go on a
   review deck for her ♥ first; a single-option batch she has delegated goes
   straight in.
-  **SERIALIZE A BULK BATCH THE SERVER IS DRAWING — `/api/promptlab`, from a
-  script (measured 2026-08-19):** two parallel 4-run × 4-output batches each
-  died "interrupted by a server restart" partway (the 512MB box restarting
-  under **16 concurrent buffered images** + whiten passes is the suspect,
-  though one restart also happened idle); 13 draws run strictly
-  one-run-at-a-time completed clean. One run at a time, poll to done, then
-  the next.
+  **A BULK BATCH THE SERVER IS DRAWING (`/api/promptlab` from a script) IS
+  PACED BY A MEASURED CEILING, AND THE CEILING RATCHETS UP — never
+  one-at-a-time (Sophie, 2026-08-27, after a chat spent 12 minutes
+  serializing ten sheets: "deleting that one at a time note … asking chats
+  to see how many they can do at once, and whichever chat tries the largest
+  number can enter that as a new note").** What matters is **concurrent
+  OUTPUT buffers on the 512MB box** — a panels SHEET counts as ONE output
+  however many panels it holds. The measured ledger, which is the rule:
+  - **Broke it: 16** concurrent outputs + whiten passes (2026-08-19, two
+    parallel 4-run × 4-output batches — the restarts that killed them).
+  - **Largest measured clean so far: 3** (the Playground's own ladders fire
+    2-3 concurrent renders all day, and parallel-3 chat batches run clean).
+  - **Run your batch at the largest clean number on this ledger.** If your
+    batch NEEDS more, try one notch higher, watch it (a run dying
+    "interrupted by a server restart" with the box mid-batch is the tell),
+    and — success or failure — UPDATE the ledger lines above with what you
+    measured and the date. That is how the ceiling finds itself; a chat that
+    silently serializes instead is spending her minutes on a protection the
+    box may not need. (Since 2026-08-27 an interrupted panels run with a
+    banked sheet auto-recovers, so probing costs a retry, not money.)
   **THE SCOPE IS THE BOX, NOT THE WORD "PLAYGROUND" (2026-08-20, Sophie
-  mid-run: "why are you doing them one at a time?").** This note read as a
-  rule about anything Playground-shaped and cost her five minutes on a
-  five-image batch that never touched the server. Two things it does NOT
-  cover:
+  mid-run: "why are you doing them one at a time?").** Two things this note
+  does NOT cover:
   - **A chat drawing in its OWN container** (`gen-dream-distilled.js` and
     friends, posting straight to OpenAI). The Render box is not in the loop
-    at all, so there is nothing to protect — measured 2026-08-20, the same
+    at all, so there is nothing to pace — measured 2026-08-20, the same
     five images took 4m39s serial and **57s in parallel**.
   - **The PLAYGROUND ITSELF, which has never serialized** — its ladders fire
-    `Promise.all` (the pyramid starts low+low+medium at once, the oval
-    medium+high) and `runPromptLabGptJob` is fired without `await`, so
-    nothing queues server-side either. Her own taps are 2-3 at a time, nowhere
-    near the sixteen that broke it.
-  The number that mattered is **concurrent OUTPUTS on our box**, so scale a
-  bulk server batch by that and leave everything else parallel. **A PANELS
-  SHEET IS ONE OUTPUT** (2026-08-27): a chat drawing many sheets through the
-  Panels tab's API should run 2-3 in parallel, not one at a time — a
-  serialized batch of ten took ~12 minutes for no protection the box needed.
+    `Promise.all` and `runPromptLabGptJob` is fired without `await`, so
+    nothing queues server-side either.
 - **The Dump** (`dropbox.js`, `/api/drop`, sort page at `/dump`, iOS tile with
   SEND and SORT tabs) — **dump first, label afterwards**. Dropping asks no
   questions; only the bundle (a Photos album) and the session are captured,
