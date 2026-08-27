@@ -4529,7 +4529,22 @@ before working on that module. Nothing was deleted — the moved text is verbati
   `.forgeWebToolBar` took that bar away the tool went NAMELESS, showing a bare
   chevron and nothing else (2026-08-27, Sophie: "this header doesn't match the
   app pattern"). There are still no character counts; credits live behind the
-  ⓘ on the tab row. **Every take is kept** —
+  ⓘ on the tab row.
+  **THE WORDS BOX EXPANDS (2026-08-27, Sophie: "add an expand text box button
+  in the voice studio").** A 26px rounded square inside `#text`'s bottom-right
+  corner toggles the SAME textarea to 46vh and back — the Playground's
+  `#bigprompt` answer lifted in SHAPE, never a second field to keep in sync.
+  Four things not to undo: the box reserves that corner with `padding-bottom`
+  (or her last line is typed under the button); the toggle clears any
+  hand-dragged inline height, since the box is `resize:vertical` and "back to
+  small" would otherwise leave it where she dragged it; it is **NOT sticky**
+  (the compact box is the page's shape — her WORDS are kept in localStorage,
+  the size is not); and it sits **56px in from the right**, not in the exact
+  corner, because `/voice` is served `{ pill: true }` and the injected pill
+  owns that fixed column — a z-index lift is not the fix, it steals the pill's
+  own ▼. Test: `node scripts/test-voicelab-bigbox.js` (the real page headless,
+  with the real pill and the iPhone 13's 47px inset simulated).
+  **Every take is kept** —
   the output AND, on the changer, the recording that went in — and each card
   has a ⤓ that downloads it through our own server (`GET /api/voicelab/file/:id`,
   `?src=1` for the source); a Storage url alone only plays inline.
