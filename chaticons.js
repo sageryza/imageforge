@@ -138,20 +138,27 @@ const SUBJECT_SYSTEM = [
   '- A picture of the SUBJECT, not of the software: prefer the thing the chat is about.',
 ].join('\n');
 
-/** Ask Claude for one drawing subject per chat. One call for the whole batch. */
+/** Ask Claude for one drawing subject per chat. One call for the whole batch.
+ *
+ *  IT THROWS RATHER THAN COMING BACK EMPTY, and that is the fix for a real
+ *  failure: the first live run drew 76 of 101 because one batch's naming call
+ *  came back unparseable, the old code swallowed it into blank subjects, and
+ *  `drawBatch` then had nothing to draw — so 25 chats were skipped with a
+ *  `done` run, no error, and nothing on the record saying they had been. A
+ *  daily job that fails silently is a daily job that quietly stops working.
+ *  The caller records the batch as failed and carries on to the next one. */
 async function subjectsFor(items) {
-  const fallback = () => items.map((it) => ({ chat: it.chat, draw: '' }));
-  if (!anthropic.available()) return fallback();
+  if (!anthropic.available()) throw new Error('ANTHROPIC_API_KEY not set — the subjects are written by Claude');
   const user = 'Name the icon for each of these chats.\n\n'
     + items.map((it, i) => `${i + 1}. slug: ${it.chat}\n   ${it.about}`).join('\n')
     + '\n\nAnswer as JSON: {"icons":[{"n":1,"draw":"..."}, ...]} with one entry per numbered chat, in order.';
-  try {
-    const out = await anthropic.chatJSON({ system: SUBJECT_SYSTEM, user, maxTokens: 2000 });
-    const byN = new Map((out && out.icons ? out.icons : []).map((x) => [Number(x.n), String(x.draw || '').trim()]));
-    return items.map((it, i) => ({ chat: it.chat, draw: byN.get(i + 1) || '' }));
-  } catch (e) {
-    return fallback();
-  }
+  // 120 tokens a chat: the answers run 4-12 words, and the cap is what truncated
+  // the JSON mid-array on the batch that failed.
+  const out = await anthropic.chatJSON({ system: SUBJECT_SYSTEM, user, maxTokens: 120 * items.length + 400 });
+  const byN = new Map((out && out.icons ? out.icons : []).map((x) => [Number(x.n), String(x.draw || '').trim()]));
+  const named = items.map((it, i) => ({ chat: it.chat, draw: byN.get(i + 1) || '' }));
+  if (!named.some((x) => x.draw)) throw new Error('no subjects came back for this batch');
+  return named;
 }
 
 // ---- drawing one sheet ----------------------------------------------------
@@ -216,13 +223,21 @@ async function runSweep(id, { limit = PER_SHEET } = {}) {
     const sheets = [];
     for (let i = 0; i < take.length; i += PER_SHEET) {
       const batch = take.slice(i, i + PER_SHEET);
-      await patch(id, { step: `naming ${i + 1}-${i + batch.length} of ${take.length}` });
-      const named = await subjectsFor(batch);
-      await patch(id, { step: `drawing ${i + 1}-${i + batch.length} of ${take.length}` });
-      const out = await drawBatch(named);
-      drawn.push(...out.drawn);
-      failed.push(...out.failed);
-      if (out.sheet) sheets.push(out.sheet);
+      // ONE BAD BATCH COSTS ITS OWN 25, NEVER THE RUN — and it says so on the
+      // doc. The chats in it keep no icon, so the next sweep picks them up
+      // again by itself; what must not happen is the run reporting `done` with
+      // them quietly missing, which is what the first live run did.
+      try {
+        await patch(id, { step: `naming ${i + 1}-${i + batch.length} of ${take.length}` });
+        const named = await subjectsFor(batch);
+        await patch(id, { step: `drawing ${i + 1}-${i + batch.length} of ${take.length}` });
+        const out = await drawBatch(named);
+        drawn.push(...out.drawn);
+        failed.push(...out.failed);
+        if (out.sheet) sheets.push(out.sheet);
+      } catch (e) {
+        failed.push(...batch.map((b) => ({ chat: b.chat, error: String(e.message || e) })));
+      }
       await patch(id, { drawn, failed, sheets });
     }
     await patch(id, { status: 'done', step: '', drawn, failed, sheets, finishedAt: new Date().toISOString(), cost: sheets.length * 0.06 });
@@ -334,6 +349,6 @@ router.get('/runs', async (req, res) => {
 });
 
 module.exports = {
-  router, sweepDue, waitingFrom, drawable, lineFor, GENERIC,
+  router, sweepDue, waitingFrom, drawable, lineFor, GENERIC, subjectsFor,
   PER_SHEET, QUALITY, DUE_MS, SUBJECT_SYSTEM,
 };

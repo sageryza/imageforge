@@ -75,3 +75,47 @@ t('one sheet is 25 — the price of an icon depends on it', () => {
 });
 
 console.log(`\n${n} passed`);
+
+// ---- the silent-skip regression -------------------------------------------
+// The first live run drew 76 of 101: one batch's naming call came back
+// unparseable, the old code turned that into blank subjects, and the run
+// reported `done` with 25 chats quietly missing. subjectsFor must THROW so the
+// caller can record the batch instead of losing it.
+const chaticons = require('../chaticons');
+const anthropic = require('../anthropic');
+
+(async () => {
+  let m = 0;
+  const ta = async (name, fn) => { await fn(); m++; console.log('  ok', name); };
+  const batch = [{ chat: 'a', about: 'x' }, { chat: 'b', about: 'y' }];
+
+  await ta('no key → throws, never blank subjects', async () => {
+    anthropic.available = () => false;
+    await assert.rejects(() => chaticons.subjectsFor(batch), /ANTHROPIC_API_KEY/);
+  });
+
+  await ta('an unparseable answer → throws (this is the 76-of-101 bug)', async () => {
+    anthropic.available = () => true;
+    anthropic.chatJSON = async () => { throw new Error('no JSON in the reply'); };
+    await assert.rejects(() => chaticons.subjectsFor(batch), /no JSON/);
+  });
+
+  await ta('an answer with no usable subjects → throws rather than drawing nothing', async () => {
+    anthropic.chatJSON = async () => ({ icons: [] });
+    await assert.rejects(() => chaticons.subjectsFor(batch), /no subjects/);
+  });
+
+  await ta('a good answer maps back by position', async () => {
+    anthropic.chatJSON = async () => ({ icons: [{ n: 1, draw: 'a red kettle' }, { n: 2, draw: 'a paper boat' }] });
+    assert.deepStrictEqual(await chaticons.subjectsFor(batch),
+      [{ chat: 'a', draw: 'a red kettle' }, { chat: 'b', draw: 'a paper boat' }]);
+  });
+
+  await ta('a partial answer keeps what came back and blanks the rest', async () => {
+    anthropic.chatJSON = async () => ({ icons: [{ n: 2, draw: 'a paper boat' }] });
+    assert.deepStrictEqual(await chaticons.subjectsFor(batch),
+      [{ chat: 'a', draw: '' }, { chat: 'b', draw: 'a paper boat' }]);
+  });
+
+  console.log(`${m} passed`);
+})();
