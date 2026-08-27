@@ -139,7 +139,7 @@ const SHOTS = [
   { id: 'a3', s: A, src: 'intro', tx: 0.790, ty: 0.561, z: 3.35, phrases: ['Three it keeps you feeling good'] },
   // z/ty from the MEASURED panel band (y 0.413-0.830): at z 2.45 the window
   // opened at 0.431 and clipped the first text line — her screenshot, v10.
-  { id: 'c1', s: C, src: 'c1a', tx: 0.188, ty: 0.622, z: 2.30, slowZoom: 2.4, phrases: [], extra: [
+  { id: 'c1', s: C, src: 'c1a', tx: 0.188, ty: 0.622, z: 2.30, phrases: [], extra: [
     { source: 'c1a', phrase: 'Water lubricates your ideas so they can slip out faster and stranger' },
     { source: 'c1c', phrase: 'Than ever before' },
   ] },
@@ -220,16 +220,33 @@ if (!fs.existsSync(path.join(srcDir, `${LAURA}.wav`))) {
 
 // ── 2. one nominal zoom clip per shot ──────────────────────────────────────
 // vo-film RETIMES a `video` shot to its own narration, so the length here is
-// only nominal — the ease still lands in the first third of the shot.
+// only nominal — every move is written against it as a FRACTION, which is what
+// lets a whole-clip move land on the shot's last spoken word.
 const clipDir = path.join(WORK, 'clips'); fs.mkdirSync(clipDir, { recursive: true });
 for (const s of SHOTS) {
   const out = path.join(clipDir, `${s.id}.mp4`);
   if (fs.existsSync(out)) continue;
   const d = Math.round(NOMINAL * FPS);
-  // a shot may slow its own zoom-in (`slowZoom`, seconds) — her 2026-08-27
-  // note on c1: "zoom slower into first one slip"
-  const zf = Math.round((s.slowZoom || 1.1) * FPS);
+  const zf = Math.round(1.1 * FPS);
+  // the QUICK push — a poster beat settling to its full edge, and the finale's
+  // opening move before it glides. Ease-out cubic, done in the first third.
   const ease = `(1-pow(1-min(on/${zf},1),3))`;
+  // THE CROP LANDS ON HER LAST WORD (2026-08-27: "make it zoom into the
+  // pictures more slowly so that it only gets to cropping it right at the
+  // picture at the last word of that picture"). A panel shot used to reach its
+  // crop in ~1.1s of a 4s nominal clip and then HOLD, so the picture arrived in
+  // the first third and the rest of the line played against a still frame.
+  //
+  // vo-film retimes a `video` shot to its own narration by scaling PTS, so a
+  // move spanning the whole NOMINAL clip spans the whole SPOKEN line — the
+  // landing is her last word whatever that take's length turns out to be, with
+  // nothing here to keep in step with the audio.
+  //
+  // SMOOTHSTEP, not the ease-out cubic stretched: eased-out over the full
+  // length is 87% done at the halfway mark, which still reads as arriving
+  // early. This starts gently, travels, and settles ON the crop.
+  const t = `min(on/${d - 1},1)`;
+  const slow = `(3*pow(${t},2)-2*pow(${t},3))`;
   let z0, z1, txe, tye;
   if (s.full) { z0 = 1.06; z1 = 1.0; txe = '0.5'; tye = '0.5'; }
   else if (s.pan) {
@@ -244,7 +261,12 @@ for (const s of SHOTS) {
     txe = `(${s.pan.from}+${(s.pan.to - s.pan.from).toFixed(4)}*${g})`;
   } else if (s.push) { z0 = 1.0; z1 = 1.08; txe = String(s.tx); tye = String(s.ty); }
   else { z0 = 1.0; z1 = s.z; txe = String(s.tx); tye = String(s.ty); }
-  let zx = s.pan ? String(z0) : `${z0}+${(z1 - z0).toFixed(4)}*${ease}+0.03*on/${d}`;
+  // A slow move has no held frame to enliven, so the old +0.03 creep is only
+  // kept on the quick-push shots — and dropping it lands a panel shot exactly
+  // on its MEASURED band rather than 0.03 past it.
+  let zx = s.pan ? String(z0)
+    : s.full ? `${z0}+${(z1 - z0).toFixed(4)}*${ease}+0.03*on/${d}`
+    : `${z0}+${(z1 - z0).toFixed(4)}*${slow}`;
   if (s.glide) { // the third-eye shot slides down onto the burst, one move
     const f1 = Math.round(0.45 * d), fg = Math.round(0.35 * d);
     const g = `(1-pow(1-min(max((on-${f1})/${fg},0),1),2))`;
