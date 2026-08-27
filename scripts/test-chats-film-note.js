@@ -93,6 +93,11 @@ const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{}');
 });
 const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
+// static: the note sheet rides above the iOS keyboard (the /witchvideo lift —
+// a keyboard can't be simulated headless, so the wiring is pinned at source)
+if (!fs.readFileSync(path.join(PUB, 'filmnote.js'), 'utf8').includes('visualViewport')) {
+  fail('filmnote.js does not lift the note sheet over the iOS keyboard (visualViewport)');
+}
 (async () => {
   await new Promise((r) => server.listen(0, r));
   const base = 'http://127.0.0.1:' + server.address().port;

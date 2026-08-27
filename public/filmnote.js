@@ -180,6 +180,21 @@
     w.classList.add('filmnote-host');
     var mrec = null;
     var sheet=null, finishFn=null;
+    // The sheet sits at the exact bottom the iOS keyboard rises over when she
+    // taps the box to edit — the /witchvideo sheet's lift, same formula: ride
+    // up by however much of the layout viewport the keyboard covers. Where
+    // the browser pans the input into view itself, offsetTop absorbs the pan
+    // and the lift computes to zero, so it can never double-shift.
+    var fitSheet=function(){
+      if(!sheet) return;
+      var vv=window.visualViewport;
+      var kb=vv ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) : 0;
+      sheet.style.transform = kb ? 'translateY(-'+kb+'px)' : '';
+    };
+    if(window.visualViewport){
+      window.visualViewport.addEventListener('resize', fitSheet);
+      window.visualViewport.addEventListener('scroll', fitSheet);
+    }
     var toastEl=null, toastT=null, dead=false;
     function toast(msg){
       if(dead) return;
@@ -333,6 +348,7 @@
       sheet.querySelector('.cxl').onclick=function(){ finishFn=null; resume(); };
       sheet.querySelector('.send').onclick=function(){ var f=finishFn; if(f) f(); v.play().catch(function(){}); };
       w.appendChild(sheet);
+      fitSheet();
       syncBtn();
     };
     w.appendChild(nb);
@@ -346,6 +362,10 @@
       // .cmp-vlb) — leave nothing behind, or listeners stack per open
       w.removeEventListener('pointerdown', onDown);
       w.removeEventListener('click', onWrapTap);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', fitSheet);
+        window.visualViewport.removeEventListener('scroll', fitSheet);
+      }
       v.removeEventListener('play', onPlay);
       v.removeEventListener('pause', syncBtn);
       w.classList.remove('filmnote-host');
