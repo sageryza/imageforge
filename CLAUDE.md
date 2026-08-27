@@ -4307,6 +4307,35 @@ before working on that module. Nothing was deleted — the moved text is verbati
   the output AND, on the changer, the recording that went in — and each card
   has a ⤓ that downloads it through our own server (`GET /api/voicelab/file/:id`,
   `?src=1` for the source); a Storage url alone only plays inline.
+  **A RENDER KILLED BY A DEPLOY IS RECOVERED, NEVER RE-RENDERED (2026-08-27,
+  Sophie: "voice studio render killed").** A render is a fire-and-forget job in
+  this process, so a deploy that swaps the instance out kills it between
+  "ElevenLabs finished" and "we saved it": the doc sits on `rendering` forever
+  and the page — which polls every 2s while a take says that — **spins on it
+  with nothing on screen ever admitting it is dead**. It happened for real: her
+  4,842-character Max take, started 8:16pm Pacific, four minutes after #1794's
+  deploy merged; ~2,700 credits spent and 5:29 of audio with nowhere to land.
+  **The audio was never lost — ElevenLabs keeps every generation in its own
+  history and hands the mp3 back for FREE**, so the sweep fetches what she
+  already paid for rather than charging her twice (the Playground's
+  banked-sheet call, same shape). Recovery is tried BEFORE anything is marked
+  failed; `POST /api/voicelab/render/:id/recover` is the hand crank (`dry:true`
+  is free) and `node scripts/recover-voicelab-render.js` (dry by default) runs
+  the same code from a container.
+  - **The one thing it can get wrong is picking the WRONG take**, and that
+    lives in `voicelab-recover.js` alone — pure, no network. She re-renders the
+    same words over and over (six "magic pills" takes in ninety seconds), so
+    "the right voice at about the right time" is not specific enough. The
+    rules: the **request id** (stamped the moment the response HEADERS arrive,
+    i.e. before nearly every kill — the one exact key), else the **exact text +
+    voice + window** for TTS, else **voice + window** for a conversion **and
+    only when exactly one qualifies** — an STS item carries no words to tell
+    two apart, and handing her another take's audio under this take's name is
+    worse than leaving the card failed. In every case an item sitting nearer to
+    ANOTHER of her renders belongs to that one, so a stuck doc can never steal
+    the generation a doc that finished normally already used.
+  - Test: `node scripts/test-voicelab-recover.js` (her real killed take, the
+    six-identical-takes case, and the two refusals).
   **Full details: `docs/modules/audio-and-film.md`.**
 - **Audio drop** (`audio.js`, `/api/audio`) — the generic destination for audio
   off her phone: dump first, label afterwards, files keyed by byte md5, readable
