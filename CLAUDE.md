@@ -48,6 +48,15 @@ The numbers are measured, not guessed.
    what a chat was, so it earns more care than the status card. *Measured
    2026-08-14: 73 of her 88 archived chats showed nothing but a name.* You
    cannot be asked for it later — you are asleep by the time she archives.
+3d. **Tagged `bug fix`? ARCHIVE YOURSELF when the fix landed clean** (Sophie,
+   2026-08-27: "chats tagged bug fix shud auto archive themselves if there's
+   no problems or questions"). Read your tags off `GET /api/chatfeed/status
+   ?chat=&session=` (`labels`, added the same day). If `bug fix`/`bugfix` is
+   on you AND nothing is open — the fix works and is merged, no problem left,
+   no question of hers unanswered, your `need` empty — leave the wrap-up (3b)
+   and then `POST /api/chatfeed/archive {chat, archived:true}` (it freezes the
+   wrap-up for the archive row). Anything still open → stay live and say what
+   it is. Full rule: *A BUG-FIX CHAT PUTS ITSELF AWAY* in the Chats section.
 
 **Writing an image prompt (before any of the below)**
 - **Short, action-only, and NAME the thing rather than listing its parts** —
@@ -82,6 +91,12 @@ The numbers are measured, not guessed.
 **When she messages you** — check what is waiting, in one sweep: asset ♥/✕ and
 notes (`GET /api/gallery/assets/notes?chat=`), Writing Room notes, the running
 to-do list. Act on them, then answer on the image itself. **Never on a timer.**
+- **A QUICK-QUESTION chat SETS ITS OWN BELL** (Sophie, 2026-08-27: "a 'quick
+  question' chat shud set its own bell as true"). If she is using you for
+  quick questions — she says "quick question mode", or `quick question` is in
+  your `labels` on `GET /api/chatfeed/status` — `POST /api/chatfeed/notify
+  {chat, notify:true}` once, so the answer buzzes her phone. Turning a bell
+  OFF stays hers alone.
 
 **While you work**
 - **BUILDING OR POSTING A PAGE? THE RULES FIRST — this is the thing that
@@ -1514,10 +1529,40 @@ them off the reference sheet, not off the old filenames.
   row is a `<button>` and a nested button would eat the tap. `waitMarkHtml` is
   the one renderer and `syncWaitMark` repaints the thread header, which is
   built once — the Organize sheet opens from inside that same thread, so
-  without it the screen she is standing on is the last to know. **Nothing
-  tells the CHAT** — `GET /api/chatfeed/status` carries no labels, so a chat
-  cannot see that she is waiting on it. Test:
+  without it the screen she is standing on is the last to know. **A chat CAN
+  see its labels since 2026-08-27** — `GET /api/chatfeed/status` returns
+  `labels` (added for the bug-fix auto-archive and quick-question bell rules);
+  this line used to say it carried none. Reading them is fine; FILING is still
+  hers and the auto-sorter's. Test:
   `node scripts/test-chats-waiting-mark.js`.
+- **A BUG-FIX CHAT WEARS A BUG AND PUTS ITSELF AWAY (2026-08-27, Sophie: "add
+  a tag on the chat ex bug fix - a picture of a bug in the list. start w just
+  bugs" · "a bug fix tag button on the right in the header on all 3 account
+  pages" · "chats tagged bug fix shud auto archive themselves if there's no
+  problems or questions").** Three halves, one tag:
+  - **THE MARK.** A chat labelled `bug fix` (or `bugfix`/`bug`/`bugs` — her
+    dictation) draws a small Lucide bug at the front of its row, in the tile's
+    name and in the thread's `<h1>` — the watch's slot, but in the quiet ink,
+    not the marks' red: a bug fix is what the chat IS, never a debt she is
+    owed. `TAG_MARKS` in `chats.html` is the table (one renderer,
+    `tagMarkHtml`), and **the next picture-tag is a row in that table** —
+    "start w just bugs" means the bug is the first, not the only shape the
+    table will ever hold.
+  - **THE BUTTON.** A bug icon at the right of the header's tool row on the
+    chat list — the three account tabs are views of that list, so it rides
+    all three (the Instagram icon's float, `#bugbtn`). Tapping it narrows the
+    screen to the bug-fix chats; lit while on, session-only like ★, and it
+    reaches INTO the archive on purpose — the auto-archive rule below would
+    otherwise empty the pile exactly as it starts working.
+  - **THE AUTO-ARCHIVE is the CHAT'S OWN job, at wrap-up** (see 3d in the
+    checklist): tagged `bug fix` + nothing open (fix works and is merged, no
+    problem left, no unanswered question of hers, `need` empty) → wrap-up,
+    then `POST /api/chatfeed/archive {chat, archived:true}`. Anything open →
+    stay live and name it. Nothing server-side archives for you — a wrong
+    auto-archive hides a chat she is still waiting on, so the judgement stays
+    with the chat that did the work. She finds them again on the bug button,
+    in the archive, or by un-archiving.
+  Tests: `node scripts/test-chats-bug-tag.js` (the real page, headless).
   **ALL THREE UPDATE BOXES WEAR A CHIP ON THIS ROW (Aug 2026, Sophie: "'maybe
   never' isn't on the tag list in the account area" → "give them both a
   chip").** `come back to` had one because it was already a folder of hers;
@@ -6125,6 +6170,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
   and in front of BOTH doors (a finished reply and a new Compare page), and it
   compares `notify === true` rather than truthiness — silence is the safe
   direction for an opt-in.
+  **ONE exception she asked for (2026-08-27): a QUICK-QUESTION chat sets its
+  own bell ON** ("a 'quick question' chat shud set its own bell as true") —
+  she says "quick question mode" or the chat wears the `quick question` label,
+  the chat POSTs `{chat, notify:true}` itself, once. A chat never turns a bell
+  OFF; that stays hers alone.
   **A REPLY ONLY BUZZES WHEN IT IS ANSWERING HER (`push-gate.js`, Aug 2026,
   Sophie: "I don't need a notification when I send a message. I need a
   notification when they respond to my message").** Two comparisons against
