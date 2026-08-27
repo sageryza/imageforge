@@ -210,21 +210,29 @@ router.get('/voices', async (req, res) => {
 // A render is fire-and-forget IN THIS PROCESS (the doc is the state), so a
 // Render deploy landing mid-render kills the job with nobody left to write
 // 'failed' — and the doc sits on `rendering` forever while the page polls it
-// every 2s, forever. Found live 2026-08-27: Sophie's 4,842-character science
-// take started 8:16pm, #1794 deployed at 8:12, and her card spun all evening.
-// She read that as the Voice Studio being missing, which is exactly right —
-// a take that never arrives and never fails is missing.
+// every 2s, forever. A take that never arrives and never fails is missing.
 //
 // The same shape the Playground's panels sweep already fixes (#1784), and the
 // same answer: RECOVER ON READ. No timer, no new machinery — the two routes
 // that look at these docs sweep the stale ones on the way past.
 //
-// `LIVE` is the honest half: a job this process is really working on is never
-// swept however long it takes. A job in ANOTHER process (a deploy overlap) is
-// not in our set, which is why the AGE gate has to cover the longest legitimate
-// job — the STS timeout is 300s plus a 25MB upload either side of it.
+// THE AGE GATE IS SET FROM A MEASUREMENT, AND THE MEASUREMENT IS SURPRISING
+// (2026-08-27). Sophie's 4,842-character science take took **735 seconds** —
+// 12m15s — and finished perfectly well; the identical text re-sent twelve
+// minutes later came back in **75 seconds**. So ElevenLabs' own latency swings
+// 10x on the same input, and any gate under ~12 minutes would mark her real
+// renders dead. 25 minutes is twice the slowest one on record.
+//
+// (This is also why the 180s `timeout` on the call does not fire: node-fetch's
+// timeout is socket INACTIVITY, not total duration, and a slow steady stream
+// never idles. Do not "fix" that into a hard cap — it would abort exactly the
+// legitimate 12-minute render this note is about.)
+//
+// `LIVE` is the other half: a job this process is really working on is never
+// swept however long it takes, so the gate only ever has to catch a job whose
+// process is GONE.
 const LIVE = new Set();
-const STUCK_MS = 10 * 60 * 1000;
+const STUCK_MS = 25 * 60 * 1000;
 
 // Only ever `rendering` → `failed`, and only if it is STILL `rendering` when
 // the write lands: an old process finishing a second after we swept it must

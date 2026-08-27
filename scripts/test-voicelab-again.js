@@ -168,6 +168,39 @@ const ok = (m) => console.log('  ok — ' + m);
   if (!after.oldStillThere || !after.oldStillFailed) fail('the retry ate the failed take');
   else ok('the failed take stays on the page, saying what happened');
 
+  // 5 — a spinner with a clock on it. This is the half that answers what
+  // actually went wrong: her take really was working (735s), but "rendering…"
+  // with no elapsed time on it looks exactly like a dead one.
+  const spin = await page.evaluate(() => {
+    // Two live takes: one a minute in, one eight minutes in.
+    window.card({ id: 'vlspin000001', voiceName: 'Sophie — morning', text: 'a short one',
+      status: 'rendering', createdAt: new Date(Date.now() - 90e3).toISOString() });
+    window.card({ id: 'vlspin000002', voiceName: 'Sophie — morning', text: 'a long one',
+      status: 'rendering', createdAt: new Date(Date.now() - 8 * 60e3).toISOString() });
+    // And one with nothing to count from — it must still say something.
+    window.card({ id: 'vlspin000003', voiceName: 'Sophie — morning', text: 'undated',
+      status: 'rendering' });
+    const txt = (id) => {
+      const s = document.querySelector('.render[data-id="' + id + '"] .spin');
+      return s ? s.textContent.trim() : null;
+    };
+    return { young: txt('vlspin000001'), old: txt('vlspin000002'), undated: txt('vlspin000003') };
+  }).catch(() => null);
+
+  if (!spin) fail('could not drive the rendering cards — is card() still global?');
+  else {
+    if (!/^rendering… 1m$/.test(spin.young)) fail('a one-minute render does not show its minute: ' + JSON.stringify(spin.young));
+    else ok('a live render counts the minutes');
+    if (!/^rendering… 8m/.test(spin.old)) fail('an eight-minute render lost its count: ' + JSON.stringify(spin.old));
+    else ok('a long render still counts');
+    if (!/past 10m/.test(spin.old)) fail('a long render does not say that long is normal: ' + JSON.stringify(spin.old));
+    else ok('past five minutes it says a long one is normal');
+    if (/past 10m/.test(spin.young)) fail('a one-minute render is being warned about');
+    else ok('a young render is not warned about');
+    if (spin.undated !== 'rendering…') fail('an undated live render says: ' + JSON.stringify(spin.undated));
+    else ok('an undated render still says it is rendering, with no invented count');
+  }
+
   await browser.close();
   server.close();
   if (!process.exitCode) console.log('\nAll good.');

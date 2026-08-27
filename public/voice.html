@@ -385,6 +385,20 @@ function dlLink(id, src){
     +' title="'+(src?'Download what you recorded':'Download this take')+'"'
     +' aria-label="'+(src?'Download what you recorded':'Download this take')+'">'+DL_SVG+'</a>';
 }
+// A bare "rendering…" says nothing, and that is what actually went wrong on
+// 2026-08-27: Sophie's science take really was working — it took 735 seconds,
+// against 75 for the same text re-sent later — but a spinner with no clock on
+// it looks identical to a dead one, so a slow render read as a lost take.
+// The poll repaints this card every 2s, so the count keeps itself current.
+function spinLabel(r){
+  var t=Date.parse(r.createdAt||'');
+  if(!t) return 'rendering…';
+  var m=Math.floor((Date.now()-t)/60000);
+  if(m<1) return 'rendering…';
+  // Past five minutes, say that this is normal rather than leaving her to
+  // guess — a long line can genuinely run past ten.
+  return 'rendering… '+m+'m'+(m>=5?' · long ones can run past 10m':'');
+}
 function card(r){
   var el=cards[r.id];
   rdata[r.id]=r;
@@ -402,7 +416,7 @@ function card(r){
   // (Sophie, Aug 2026: "I don't need to know how many characters everything is").
   var body='<div class="rtext">'+esc(r.text)+'</div>'
     +'<div class="rmeta"><span>'+esc(r.voiceName||'')+'</span>'
-    +(r.status==='rendering'?'<span class="spin">rendering…</span>':'')
+    +(r.status==='rendering'?'<span class="spin">'+esc(spinLabel(r))+'</span>':'')
     +(r.status==='done' && r.url
       ? (sentTo[r.id]
         ? '<span class="bsent">in “'+esc(sentTo[r.id])+'”</span>'
@@ -476,7 +490,7 @@ function renderAgain(btn){
       if(!d.id) throw new Error(d.error||'couldn’t start it again');
       setPending(pendingIds().concat([d.id]));
       card({id:d.id, kind:was.kind, voiceName:was.voiceName, text:was.text,
-            sourceUrl:was.sourceUrl, status:'rendering'});
+            sourceUrl:was.sourceUrl, status:'rendering', createdAt:new Date().toISOString()});
       poll(d.id);
     })
     .catch(function(e){ btn.disabled=false; alert(e.message||'Couldn’t start it again'); });
@@ -507,7 +521,7 @@ go.onclick=function(){
       if(!d.id) throw new Error(d.error||'failed');
       paintGo();   // the box KEEPS her words — she renders the same line voice after voice
       setPending(pendingIds().concat([d.id]));
-      card({id:d.id, voiceName:picked.name, chars:text.length, text:text, status:'rendering'});
+      card({id:d.id, voiceName:picked.name, chars:text.length, text:text, status:'rendering', createdAt:new Date().toISOString()});
       poll(d.id);
     })
     .catch(function(e){ alert(e.message||'Couldn’t start the render'); paintGo(); });
@@ -680,7 +694,7 @@ chgo.onclick=function(){
     if(!d.id){ alert(d.error||'Couldn’t start the change'); paintCh(); return; }
     setPending(pendingIds().concat([d.id]));
     card({id:d.id, kind:'sts', voiceName:picked.name, text:take.name,
-          chars:0, status:'rendering'});
+          chars:0, status:'rendering', createdAt:new Date().toISOString()});
     poll(d.id);
     paintCh();   // the take STAYS — she runs the same recording through voice after voice
   };

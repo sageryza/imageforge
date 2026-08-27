@@ -1,17 +1,18 @@
 #!/usr/bin/env node
 // test-voicelab-stuck.js — the orphaned-render rule, pure, no network.
 //
-// The bug it pins (found live 2026-08-27): a Voice Studio render is
-// fire-and-forget IN THE SERVER PROCESS, so a Render deploy landing mid-render
-// kills the job with nobody left to write 'failed'. Sophie's 4,842-character
-// science take started at 8:16pm, #1794 deployed at 8:12, and her card spun on
-// "rendering…" all evening while the page polled it every 2s forever. From her
-// side the take was simply missing, which is what she reported.
+// A Voice Studio render is fire-and-forget IN THE SERVER PROCESS, so a Render
+// deploy landing mid-render kills the job with nobody left to write 'failed'
+// and the doc spins on `rendering` forever.
 //
 // Two ends have to hold, and they pull against each other:
-//   * a job that is REALLY running is never swept, however long it takes
-//     (STS is a 300s timeout with a 25MB upload either side of it), and
-//   * a job nothing is working on stops spinning and offers a way back.
+//   * a job nothing is working on stops spinning and offers a way back, and
+//   * a job that is REALLY running is never swept, however long it takes.
+//
+// The second end is the one with teeth, and it is set from a MEASUREMENT.
+// Sophie's 4,842-character science take (2026-08-27) took **735 seconds** and
+// finished perfectly well; the identical text re-sent twelve minutes later came
+// back in 75. A gate anywhere near ten minutes would have killed her real take.
 
 const assert = require('assert');
 const { isStuck, STUCK_MS } = require('../voicelab');
@@ -27,27 +28,28 @@ const none = new Set();
 // ── the case this exists for ────────────────────────────────────────
 ok(isStuck(row(), NOW, none), 'a rendering doc nothing is working on, long past the cap, is stuck');
 
-// Sophie's own take, to the minute: started 8:16pm, still 'rendering' when she
-// asked at 8:21pm — and NOT yet sweepable then, which is correct. A five-minute
-// render is ordinary; the sweep must not call one dead.
-ok(!isStuck(row({ createdAt: ago(5 * 60e3) }), NOW, none), 'five minutes in is not stuck yet');
-ok(isStuck(row({ createdAt: ago(11 * 60e3) }), NOW, none), 'eleven minutes in, with no job behind it, is');
-
-// ── the age gate has to clear the longest legitimate job ────────────
-// The STS timeout is 300s. Anything at or under that must be inside the cap
-// with room to spare, or a real conversion gets marked failed under her.
-ok(STUCK_MS > 300e3 * 1.5, 'the cap leaves headroom over the 300s speech-to-speech timeout');
+// ── the measurement, as an assertion ────────────────────────────────
+// Her science take ran 735s and was FINE. This is the regression that matters:
+// a chat tightening the gate to a number that "feels like enough" would start
+// failing her real renders, and nothing but this line would notice.
+const SOPHIES_SLOWEST_MS = 735e3;
+ok(!isStuck(row({ createdAt: ago(SOPHIES_SLOWEST_MS) }), NOW, none),
+  'a render as slow as her real 735s one is NOT called dead');
+ok(STUCK_MS > SOPHIES_SLOWEST_MS * 2, 'the gate is twice the slowest render on record');
+ok(!isStuck(row({ createdAt: ago(5 * 60e3) }), NOW, none), 'five minutes in is ordinary');
+ok(!isStuck(row({ createdAt: ago(20 * 60e3) }), NOW, none), 'twenty minutes in is still given the benefit');
+ok(isStuck(row({ createdAt: ago(26 * 60e3) }), NOW, none), 'past the gate, with no job behind it, is stuck');
 
 // ── a live job is untouchable, whatever the clock says ──────────────
 const live = new Set(['vlaaaaaaaaaaaa']);
-ok(!isStuck(row({ createdAt: ago(60 * 60e3) }), NOW, live),
-  'a job this process is really working on is never swept, even an hour in');
-ok(isStuck(row({ id: 'vlbbbbbbbbbbbb', createdAt: ago(60 * 60e3) }), NOW, live),
+ok(!isStuck(row({ createdAt: ago(90 * 60e3) }), NOW, live),
+  'a job this process is really working on is never swept, even ninety minutes in');
+ok(isStuck(row({ id: 'vlbbbbbbbbbbbb', createdAt: ago(90 * 60e3) }), NOW, live),
   'but a DIFFERENT id in the same read still is');
 
 // ── only ever rendering → failed ────────────────────────────────────
 for (const status of ['done', 'failed', undefined, '']) {
-  ok(!isStuck(row({ status, createdAt: ago(99 * 60e3) }), NOW, none),
+  ok(!isStuck(row({ status, createdAt: ago(999 * 60e3) }), NOW, none),
     `a ${status || 'status-less'} doc is left alone`);
 }
 
@@ -62,7 +64,7 @@ for (const createdAt of [undefined, '', 'sometime tuesday', null]) {
 
 // ── garbage in ──────────────────────────────────────────────────────
 ok(!isStuck(null, NOW, none), 'no row');
-ok(!isStuck({ status: 'rendering', createdAt: ago(99 * 60e3) }, NOW, none), 'a row with no id');
+ok(!isStuck({ status: 'rendering', createdAt: ago(999 * 60e3) }, NOW, none), 'a row with no id');
 ok(isStuck(row(), NOW, undefined), 'no live set at all still decides');
 
 console.log(`voicelab stuck-render rule: ${pass} checks passed`);
