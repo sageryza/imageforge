@@ -99,8 +99,17 @@ cuts.push(total);
 const tmp = [];
 for (let i = 0; i < factors.length; i++) {
   const seg = path.join(path.dirname(OUT), `_spd${i}.mp4`);
-  execFileSync(ffmpeg, ['-v', 'error', '-y', '-i', IN,
-    '-ss', cuts[i].toFixed(3), '-to', cuts[i + 1].toFixed(3), '-filter_complex',
+  // THE SEEK MUST HAPPEN ON THE INPUT, BEFORE THE RETIME (bug found 2026-08-27,
+  // measured: a ramp asked for 90.3s of source came out 76.9s, and the cut
+  // played a line from thirty seconds later at the joint). `-ss`/`-to` written
+  // AFTER `-i` are OUTPUT options, so they slice the stream the filter has
+  // ALREADY compressed — span i then grabbed source [cut*f, cut*f] instead of
+  // [cut, cut], overlapping its neighbour and skipping whole lines. Every ramp
+  // cut from v11 to v15 shipped with this. `-ss`/`-t` before `-i` seek the real
+  // source, and the concat below then joins spans that actually abut.
+  execFileSync(ffmpeg, ['-v', 'error', '-y',
+    '-ss', cuts[i].toFixed(3), '-t', (cuts[i + 1] - cuts[i]).toFixed(3), '-i', IN,
+    '-filter_complex',
     `[0:v]setpts=PTS/${factors[i]}[v];[0:a]${atempo(factors[i])}[a]`, '-map', '[v]', '-map', '[a]',
     '-video_track_timescale', '90000', ...enc.slice(0, -2), seg], { stdio: ['ignore', 'inherit', 'inherit'] });
   tmp.push(seg);
