@@ -15,7 +15,7 @@
 // back in 75. A gate anywhere near ten minutes would have killed her real take.
 
 const assert = require('assert');
-const { isStuck, STUCK_MS } = require('../voicelab');
+const { isStuck, STUCK_AFTER_MS: STUCK_MS } = require('../voicelab');
 
 let pass = 0;
 const ok = (cond, what) => { assert.ok(cond, what); pass++; };

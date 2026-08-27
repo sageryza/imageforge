@@ -29,6 +29,8 @@
 //                          → { id }  (the VOICE CHANGER — speech to speech)
 //   GET    /history?kind= → newest 30 renders ('tts' | 'sts' | omitted = both)
 //   GET    /file/:id?src= → that take's audio as a same-origin ATTACHMENT
+//   POST   /render/:id/recover → pull a KILLED render's audio back out of the
+//                          ElevenLabs history (free — it was already paid for)
 //   DELETE /render/:id   → remove a render (doc + audio)
 
 const express = require('express');
@@ -39,6 +41,7 @@ const FormData = require('form-data');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { pickHistoryItem } = require('./voicelab-recover');
 
 const COL = 'forge-voicelab';
 const STORAGE_FOLDER = 'voice-lab';
@@ -206,108 +209,72 @@ router.get('/voices', async (req, res) => {
   }
 });
 
-// ── a job orphaned by a server restart ──────────────────────────────
-// A render is fire-and-forget IN THIS PROCESS (the doc is the state), so a
-// Render deploy landing mid-render kills the job with nobody left to write
-// 'failed' — and the doc sits on `rendering` forever while the page polls it
-// every 2s, forever. A take that never arrives and never fails is missing.
-//
-// The same shape the Playground's panels sweep already fixes (#1784), and the
-// same answer: RECOVER ON READ. No timer, no new machinery — the two routes
-// that look at these docs sweep the stale ones on the way past.
-//
-// THE AGE GATE IS SET FROM A MEASUREMENT, AND THE MEASUREMENT IS SURPRISING
-// (2026-08-27). Sophie's 4,842-character science take took **735 seconds** —
-// 12m15s — and finished perfectly well; the identical text re-sent twelve
-// minutes later came back in **75 seconds**. So ElevenLabs' own latency swings
-// 10x on the same input, and any gate under ~12 minutes would mark her real
-// renders dead. 25 minutes is twice the slowest one on record.
-//
-// (This is also why the 180s `timeout` on the call does not fire: node-fetch's
-// timeout is socket INACTIVITY, not total duration, and a slow steady stream
-// never idles. Do not "fix" that into a hard cap — it would abort exactly the
-// legitimate 12-minute render this note is about.)
-//
-// `LIVE` is the other half: a job this process is really working on is never
-// swept however long it takes, so the gate only ever has to catch a job whose
-// process is GONE.
+// The tail every finished take shares — the audio in hand, saved and marked
+// done. Pulled out of renderJob so the RECOVERY below finishes a killed render
+// exactly the way the render itself would have, rather than a lookalike copy
+// of it that drifts the first time one of them changes.
+async function saveTake(id, audio, extra = {}) {
+  if (!audio || !audio.length) throw new Error('ElevenLabs returned empty audio');
+  const tmp = path.join(os.tmpdir(), `${id}.mp3`);
+  fs.writeFileSync(tmp, audio);
+  const bucket = admin.storage().bucket();
+  const dest = `${STORAGE_FOLDER}/${id}.mp3`;
+  await bucket.upload(tmp, { destination: dest, metadata: { contentType: 'audio/mpeg' } });
+  await bucket.file(dest).makePublic();
+  fs.unlink(tmp, () => {});
+  const url = `https://storage.googleapis.com/${bucket.name}/${dest}`;
+  await admin.firestore().collection(COL).doc(id)
+    .update({ status: 'done', url, doneAt: new Date().toISOString(), ...extra });
+  return url;
+}
+
+// Save it into the Assets tab: label = her words, PROMPT = the exact text and
+// settings. Best-effort — a filing hiccup must not fail a done render.
+async function fileTakeToAssets(url, voiceId, voiceName, text) {
+  try {
+    const label = text.length > 90 ? `${text.slice(0, 90).trim()}…` : text;
+    await admin.firestore().collection('forge-chat-assets').add({
+      chat: ASSETS_CHAT, url, urlKey: url, kind: 'audio',
+      prompt: 'elevenlabs · eleven_multilingual_v2 · voice studio',
+      description: label,
+      promptStyle: `${STYLE_LINE} · voice "${voiceName}" (${voiceId})`,
+      promptContent: text.slice(0, 6000),
+      created: new Date().toISOString(), wip: true,
+    });
+  } catch (e) { /* the render itself is safe either way */ }
+}
+
+// The ElevenLabs request id, stamped the moment the response HEADERS arrive —
+// before the body is buffered and before the upload, i.e. before nearly every
+// place a restart can kill this. It is the one key that identifies a killed
+// render's generation with no guessing at all. Unawaited on purpose: a slow
+// Firestore write must not sit in front of her audio.
+function stampRequestId(id, res) {
+  try {
+    const rid = res && res.headers && res.headers.get('request-id');
+    if (rid) admin.firestore().collection(COL).doc(id).update({ requestId: rid }).catch(() => {});
+  } catch (e) { /* the render does not depend on this */ }
+}
+
+// The ids this process is really working on right now. The sweep below skips
+// them, so however slow a render is, the job that is actually running it can
+// never be declared dead underneath itself. It only ever has to catch a job
+// whose process is GONE — which is the only case there is.
 const LIVE = new Set();
-const STUCK_MS = 25 * 60 * 1000;
-
-// Only ever `rendering` → `failed`, and only if it is STILL `rendering` when
-// the write lands: an old process finishing a second after we swept it must
-// keep its `done`. A finished take always wins over our guess that it died.
-// The decision on its own, so it can be tested without a Firestore.
-//
-// A row we cannot DATE is never swept, and the date is read strictly for one
-// reason the test caught before this shipped: `Date.parse(x || 0)` — the
-// obvious spelling — hands `Date.parse` the NUMBER 0, which it coerces to the
-// STRING "0" and parses as the year 2000. Every undated doc would have read as
-// twenty-six years old and been failed on the next page load. Parsing only a
-// real string leaves anything else as NaN, and every comparison against NaN is
-// false, which is the safe direction: a doc we cannot date is one we cannot
-// claim is dead. (Every write here stamps an ISO string; a doc carrying a
-// Firestore Timestamp instead would simply never be swept, which is fine.)
-function isStuck(r, now, live) {
-  if (!r || !r.id || r.status !== 'rendering') return false;
-  if (live && live.has(r.id)) return false;
-  const at = typeof r.createdAt === 'string' ? Date.parse(r.createdAt) : NaN;
-  return now - at > STUCK_MS;
-}
-
-async function sweepStuck(rows) {
-  const now = Date.now();
-  const stale = (rows || []).filter((r) => isStuck(r, now, LIVE));
-  if (!stale.length) return rows;
-  const reason = 'interrupted by a server restart — nothing was lost but the render itself';
-  await Promise.all(stale.map(async (r) => {
-    try {
-      await admin.firestore().runTransaction(async (tx) => {
-        const ref = admin.firestore().collection(COL).doc(r.id);
-        const snap = await tx.get(ref);
-        if ((snap.data() || {}).status !== 'rendering') return;
-        tx.update(ref, { status: 'failed', error: reason, failedAt: new Date().toISOString() });
-      });
-      r.status = 'failed';
-      r.error = reason;
-    } catch (e) { /* the read it rode in on must still answer */ }
-  }));
-  return rows;
-}
 
 async function renderJob(id, voiceId, voiceName, text) {
   const doc = admin.firestore().collection(COL).doc(id);
   LIVE.add(id);
   try {
-    const audio = await (await elFetch(`/text-to-speech/${voiceId}?output_format=mp3_44100_192`, {
+    const res = await elFetch(`/text-to-speech/${voiceId}?output_format=mp3_44100_192`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', accept: 'audio/mpeg' },
       body: JSON.stringify({ text, model_id: MODEL_ID, voice_settings: VOICE_SETTINGS }),
       timeout: 180000,
-    })).buffer();
-    if (!audio.length) throw new Error('ElevenLabs returned empty audio');
-    const tmp = path.join(os.tmpdir(), `${id}.mp3`);
-    fs.writeFileSync(tmp, audio);
-    const bucket = admin.storage().bucket();
-    const dest = `${STORAGE_FOLDER}/${id}.mp3`;
-    await bucket.upload(tmp, { destination: dest, metadata: { contentType: 'audio/mpeg' } });
-    await bucket.file(dest).makePublic();
-    fs.unlink(tmp, () => {});
-    const url = `https://storage.googleapis.com/${bucket.name}/${dest}`;
-    await doc.update({ status: 'done', url, doneAt: new Date().toISOString() });
-    // Save it into the Assets tab: label = her words, PROMPT = the exact text
-    // and settings. Best-effort — a filing hiccup must not fail a done render.
-    try {
-      const label = text.length > 90 ? `${text.slice(0, 90).trim()}…` : text;
-      await admin.firestore().collection('forge-chat-assets').add({
-        chat: ASSETS_CHAT, url, urlKey: url, kind: 'audio',
-        prompt: 'elevenlabs · eleven_multilingual_v2 · voice studio',
-        description: label,
-        promptStyle: `${STYLE_LINE} · voice "${voiceName}" (${voiceId})`,
-        promptContent: text.slice(0, 6000),
-        created: new Date().toISOString(), wip: true,
-      });
-    } catch (e) { /* the render itself is safe either way */ }
+    });
+    stampRequestId(id, res);
+    const url = await saveTake(id, await res.buffer());
+    await fileTakeToAssets(url, voiceId, voiceName, text);
   } catch (err) {
     await doc.update({ status: 'failed', error: String(err.message || err).slice(0, 400) }).catch(() => {});
   } finally {
@@ -324,8 +291,8 @@ async function renderJob(id, voiceId, voiceName, text) {
 async function changeJob(id, voiceId, voiceName, tmp, ext) {
   const doc = admin.firestore().collection(COL).doc(id);
   const bucket = admin.storage().bucket();
-  LIVE.add(id);
   const srcDest = `${SOURCE_FOLDER}/${id}.${ext}`;
+  LIVE.add(id);
   try {
     await bucket.upload(tmp, { destination: srcDest, metadata: { contentType: mimeFor(ext) } });
     await bucket.file(srcDest).makePublic();
@@ -339,22 +306,11 @@ async function changeJob(id, voiceId, voiceName, tmp, ext) {
     body.append('model_id', STS_MODEL);
     body.append('voice_settings', JSON.stringify(VOICE_SETTINGS));
     body.append('audio', fs.createReadStream(tmp), { filename: `source.${ext}`, contentType: mimeFor(ext) });
-    const audio = await (await elFetch(`/speech-to-speech/${voiceId}?output_format=mp3_44100_192`, {
+    const res = await elFetch(`/speech-to-speech/${voiceId}?output_format=mp3_44100_192`, {
       method: 'POST', headers: { accept: 'audio/mpeg' }, body, timeout: 300000,
-    })).buffer();
-    if (!audio.length) throw new Error('ElevenLabs returned empty audio');
-
-    const outTmp = path.join(os.tmpdir(), `${id}-out.mp3`);
-    fs.writeFileSync(outTmp, audio);
-    const dest = `${STORAGE_FOLDER}/${id}.mp3`;
-    await bucket.upload(outTmp, { destination: dest, metadata: { contentType: 'audio/mpeg' } });
-    await bucket.file(dest).makePublic();
-    fs.unlink(outTmp, () => {});
-    await doc.update({
-      status: 'done',
-      url: `https://storage.googleapis.com/${bucket.name}/${dest}`,
-      doneAt: new Date().toISOString(),
     });
+    stampRequestId(id, res);
+    await saveTake(id, await res.buffer());
   } catch (err) {
     await doc.update({ status: 'failed', error: String(err.message || err).slice(0, 400) }).catch(() => {});
   } finally {
@@ -367,6 +323,136 @@ function mimeFor(ext) {
   return { mp3: 'audio/mpeg', m4a: 'audio/mp4', mp4: 'audio/mp4', wav: 'audio/wav',
     webm: 'audio/webm', ogg: 'audio/ogg', caf: 'audio/x-caf', aac: 'audio/aac' }[ext] || 'audio/mpeg';
 }
+
+// ── a killed render is RECOVERED, never re-rendered ──────────────────
+// Both jobs above are fire-and-forget in this process, so a deploy that swaps
+// the instance out mid-render kills them between "ElevenLabs finished" and
+// "we saved it": the doc sits on `rendering` forever and the page — which
+// polls every 2s while a take says that — spins on it until she gives up.
+// THE EXAMPLE THIS WAS BUILT ON TURNED OUT NOT TO BE ONE — worth knowing,
+// because it is the same wrong guess twice over. Sophie's 4,842-character Max
+// take (2026-08-27T03:16Z) started four minutes after a deploy merged and was
+// read by two chats as killed by it. It was not: it finished on its own at
+// 03:28:45, `done`, with a url — it had simply taken 735 seconds. Nothing was
+// orphaned and no credits were lost.
+//
+// The mechanism below is still real and still worth having (a fire-and-forget
+// job in a process that goes away leaves nobody to write 'failed'). But what
+// she was actually looking at was a working render with no clock on its
+// spinner, which is why the PAGE now counts the minutes — see spinLabel in
+// public/voice.html. A slow render and a dead one used to look identical.
+//
+// The audio is NOT lost. ElevenLabs keeps every generation in its own history
+// and hands the mp3 back for FREE, so the fix is to go and fetch what she
+// already paid for rather than charge her a second time — the same call the
+// Playground's banked-sheet recovery makes. Which item is hers is
+// `voicelab-recover.js`, the one place that can get this wrong.
+// THE CUTOFF IS A MEASUREMENT, AND THE OBVIOUS NUMBER IS WRONG (2026-08-27).
+// This line read `10 * 60 * 1000`, on the reasoning that "no legitimate render
+// outlives its 5-minute API timeout". Both halves are false, and the render
+// that disproves them is the very take this recovery was built for: Sophie's
+// 4,842-character science take ran **735 seconds** — 12m15s — and finished
+// perfectly well, `done`, with a url and no error. (The identical text re-sent
+// twelve minutes later came back in 75 seconds, so ElevenLabs' own latency
+// swings 10x on the same input.)
+//
+// The timeout does not cap it either: node-fetch's `timeout` is socket
+// INACTIVITY, not total duration, and a slow steady stream never idles. Do not
+// "fix" that into a hard cap — it would abort exactly the 12-minute render
+// this note is about.
+//
+// So at ten minutes the sweep would have gone looking for her real take in the
+// ElevenLabs history while it was still being made. 25 minutes is twice the
+// slowest render on record, and `LIVE` above means the cutoff only ever has to
+// judge a job whose process is already gone.
+const STUCK_AFTER_MS = 25 * 60 * 1000;
+const HISTORY_PAGE = 60;
+
+async function elHistory(pageSize = HISTORY_PAGE) {
+  const data = await (await elFetch(`/history?page_size=${pageSize}`)).json();
+  return data.history || [];
+}
+
+// Every render doc we can see, so the matcher knows which takes are already
+// spoken for — a stuck doc must never claim the generation a doc that finished
+// normally already used.
+async function recentRenders(limit = 120) {
+  const snap = await admin.firestore().collection(COL).orderBy('createdAt', 'desc').limit(limit).get();
+  return snap.docs.map((d) => d.data());
+}
+
+async function recoverRender(id, opts = {}) {
+  if (!admin.apps.length) throw new Error('firestore unavailable');
+  if (!elKey()) throw new Error('ELEVENLABS_API_KEY is not set');
+  const ref = admin.firestore().collection(COL).doc(id);
+  const snap = await ref.get();
+  if (!snap.exists) return { ok: false, why: 'not found' };
+  const rec = snap.data() || {};
+  if (rec.status === 'done' && !opts.force) return { ok: false, why: 'already done' };
+
+  const all = opts.all || await recentRenders();
+  const items = opts.items || await elHistory();
+  const claimed = all.map((r) => r.historyItemId).filter(Boolean).filter((h) => h !== rec.historyItemId);
+  const { item, by, why } = pickHistoryItem(rec, items, { others: all, claimed });
+  if (!item) return { ok: false, why: why || 'no generation matches this take' };
+  if (opts.dry) return { ok: true, dry: true, by, historyItemId: item.history_item_id, chars: (item.text || '').length };
+
+  const audio = await (await elFetch(`/history/${item.history_item_id}/audio`, { timeout: 180000 })).buffer();
+  const url = await saveTake(id, audio, {
+    historyItemId: item.history_item_id,
+    recovered: 'the render was killed mid-flight — this is the generation ElevenLabs had already made',
+    recoveredAt: new Date().toISOString(),
+    error: admin.firestore.FieldValue.delete(),
+  });
+  if ((rec.kind || 'tts') !== 'sts') await fileTakeToAssets(url, rec.voiceId, rec.voiceName || '', rec.text || '');
+  return { ok: true, by, url, historyItemId: item.history_item_id, bytes: audio.length };
+}
+
+// The decision on its own, so it can be tested without a Firestore or a clock.
+//
+// The date is read STRICTLY, for one reason a test caught before it shipped:
+// `Date.parse(x || 0)` — the obvious spelling — hands `Date.parse` the NUMBER
+// 0, which it coerces to the STRING "0" and parses as the year 2000, so every
+// undated doc reads as twenty-six years old. Parsing only a real string leaves
+// anything else NaN, and every comparison against NaN is false — a doc we
+// cannot date is one we cannot claim is dead.
+function isStuck(r, now, live) {
+  if (!r || !r.id || r.status !== 'rendering') return false;
+  if (live && live.has(r.id)) return false;
+  const at = typeof r.createdAt === 'string' ? Date.parse(r.createdAt) : NaN;
+  return now - at > STUCK_AFTER_MS;
+}
+
+async function sweepStuckRenders() {
+  try {
+    if (!admin.apps.length || !elKey()) return;
+    const all = await recentRenders();
+    const stuck = all.filter((r) => isStuck(r, Date.now(), LIVE));
+    if (!stuck.length) return;
+    let items = [];
+    try { items = await elHistory(); } catch (e) { console.warn('voicelab sweep: history —', e.message); }
+    for (const r of stuck) {
+      let done = false;
+      try {
+        const out = await recoverRender(r.id, { all, items });
+        done = out.ok;
+        if (done) console.log(`voicelab sweep: recovered killed render ${r.id} from ElevenLabs history (${out.by})`);
+      } catch (e) { console.warn(`voicelab sweep: recovery of ${r.id} —`, e.message); }
+      if (done) continue;
+      await admin.firestore().collection(COL).doc(r.id).update({
+        status: 'failed',
+        error: 'interrupted by a server restart — the audio could not be found in the ElevenLabs history either',
+      }).catch(() => {});
+      console.log(`voicelab sweep: marked stuck render ${r.id} failed`);
+    }
+  } catch (e) { console.warn('voicelab sweep:', e.message); }
+}
+// `.unref()` on both, or merely REQUIRING this module holds a process open
+// forever — which is what a test or a one-shot script does. The server has its
+// own HTTP listener keeping the loop alive, so nothing changes in production;
+// without it, `node scripts/test-voicelab-stuck.js` simply never exits.
+setTimeout(sweepStuckRenders, 90 * 1000).unref();
+setInterval(sweepStuckRenders, 10 * 60 * 1000).unref();
 
 // Raw body, not base64 in JSON — a voice memo is megabytes and base64 inflates
 // it by a third for no reason (the `audio.js` /upload-file precedent), and XHR
@@ -436,23 +522,24 @@ router.get('/render/:id', async (req, res) => {
   try {
     const snap = await admin.firestore().collection(COL).doc(String(req.params.id)).get();
     if (!snap.exists) return res.status(404).json({ error: 'not found' });
-    // The page polls this every 2s while a take is rendering, so it is where an
-    // orphan is noticed first — and where the spinner has to stop.
-    const row = snap.data();
-    await sweepStuck([row]);
-    res.json(row);
+    res.json(snap.data());
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
 // Render that take AGAIN — same voice, same words, nothing retyped.
-// A failed take used to be a dead end: her text lives on the doc, but the only
-// way back was pasting 4,842 characters into the box a second time. The retry
-// is a NEW take on purpose (a new id, its own row) — a re-render is a fresh
-// render, and overwriting the failed one would erase the record of what
-// happened. A voice-changer take retries from the SOURCE audio, which is kept
-// exactly so this is possible.
+//
+// This is the LAST resort, after /recover: recovery fetches audio she has
+// already paid for and this spends credits a second time, so the page only
+// ever offers it on a take that is already `failed` — i.e. one the sweep
+// could not find in the ElevenLabs history either. What it buys is that a
+// failed take stops being a dead end; her words are right there on the doc,
+// and the alternative was pasting 4,842 characters into the box again.
+//
+// A NEW id on purpose: a re-render is a fresh take, and overwriting the failed
+// one would erase the record of what happened to it. A voice-changer take
+// re-runs from its SOURCE audio, which is kept for exactly this.
 router.post('/render/:id/again', async (req, res) => {
   try {
     if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
@@ -468,7 +555,7 @@ router.post('/render/:id/again', async (req, res) => {
     const id = `vl${crypto.randomBytes(6).toString('hex')}`;
     const base = {
       id, voiceId: r.voiceId, voiceName: r.voiceName || '',
-      model: r.kind === 'sts' ? STS_MODEL : MODEL_ID,
+      model: (r.kind || 'tts') === 'sts' ? STS_MODEL : MODEL_ID,
       status: 'rendering', createdAt: new Date().toISOString(), againOf: old,
     };
 
@@ -480,7 +567,7 @@ router.post('/render/:id/again', async (req, res) => {
       if (!src.ok) return res.status(502).json({ error: 'could not read that recording back' });
       fs.writeFileSync(tmp, await src.buffer());
       await admin.firestore().collection(COL).doc(id).set({
-        ...base, kind: 'sts', text: r.text || 'Recorded take', sourceExt: ext,
+        ...base, kind: 'sts', text: r.text || 'a recording', sourceExt: ext,
       });
       changeJob(id, r.voiceId, base.voiceName, tmp, ext);
     } else {
@@ -506,7 +593,6 @@ router.get('/history', async (req, res) => {
       .orderBy('createdAt', 'desc').limit(kind ? 90 : 30).get();
     let rows = snap.docs.map((d) => d.data());
     if (kind) rows = rows.filter((r) => (r.kind || 'tts') === kind).slice(0, 30);
-    await sweepStuck(rows);
     res.json({ renders: rows });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -549,6 +635,22 @@ router.get('/file/:id', async (req, res) => {
   }
 });
 
+// Pull a killed render's audio back out of the ElevenLabs history. The sweep
+// does this by itself ten minutes after the kill; this is the door for a take
+// that was swept to `failed` before the recovery existed, and for a chat that
+// wants to see the match first (`dry:true` costs nothing and writes nothing).
+router.post('/render/:id/recover', express.json({ limit: '8kb' }), async (req, res) => {
+  try {
+    const id = String(req.params.id || '');
+    if (!/^vl[a-f0-9]{12}$/.test(id)) return res.status(400).json({ error: 'bad id' });
+    const body = req.body || {};
+    const out = await recoverRender(id, { dry: body.dry === true, force: body.force === true });
+    res.json(out);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.delete('/render/:id', async (req, res) => {
   try {
     const id = String(req.params.id);
@@ -561,4 +663,4 @@ router.delete('/render/:id', async (req, res) => {
   }
 });
 
-module.exports = { router, isStuck, STUCK_MS };
+module.exports = { router, recoverRender, sweepStuckRenders, isStuck, STUCK_AFTER_MS };
