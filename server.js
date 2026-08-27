@@ -6296,6 +6296,22 @@ async function runPromptLabJob(docRef, cfg) {
   }
 }
 
+// THE STORY SHEET'S WRAPPER (2026-08-27, Sophie: "a sheet where i give
+// instructions for a story, and have the image model decide the exact
+// panels"). She writes the STORY; the model decides the panel count, sizes
+// and arrangement — the opposite of the grid sentence, which dictates all
+// three. `line` rides the head directly before her words (disclosed: it is
+// served by GET /styles and printed in the Prompt panel, and it lands in the
+// filed style half like every wrapper); `layout` fills the sheet swap's
+// `{layout}` slot, so a tail's anti-grid clause is swapped exactly as on a
+// grid sheet rather than argued with. ONE copy, here — the page holds none.
+const PL_STORY = {
+  line: 'Tell this story as a multi-panel comic page. YOU decide how many '
+    + 'panels there are, their sizes and their arrangement — whatever tells '
+    + 'the story best. The story:',
+  layout: 'a multi-panel comic page — however many panels tell the story best',
+};
+
 app.post('/api/promptlab', async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
     return res.status(401).json({ error: 'unauthorized' });
@@ -6448,6 +6464,44 @@ app.post('/api/promptlab', async (req, res) => {
         return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
       }
 
+      // A STORY SHEET (2026-08-27, Sophie: "a sheet where i give instructions
+      // for a story, and have the image model decide the exact panels") — her
+      // story rides whole and the MODEL lays out the page: panel count, sizes
+      // and arrangement are its call. There is no grid to cut along, so the
+      // picture is delivered UNCUT — mechanically it is a single run (the
+      // plain tier canvas the toggle picked, runPromptLabGptJob, votes and the
+      // lightbox as-is) wearing `storySheet`, which is what files it in the
+      // panels gallery and under its Sheets view. The story line is part of
+      // the head, so the filed style half discloses it; the tail's anti-grid
+      // clause is swapped exactly as on a grid sheet (her edited tail no-ops
+      // the swap and her wording wins). The Sophie card, her photo and the
+      // cast are OFF, the panels branch's own reasoning: their wordings name
+      // "the second/last attached image" for ONE picture.
+      if (req.body.story) {
+        const sheetTail = applyNoText(
+          sheetGrid.applySheet(suffix, st.sheet, PL_STORY.layout), st, noText);
+        const p0 = prefix.trim();
+        const storyHead = `${p0}${p0 ? '\n\n' : ''}${PL_STORY.line}`;
+        const storyPrompt = `${storyHead}\n\n${typed}${sheetTail ? `\n\n${sheetTail}` : ''}`;
+        const docRef = admin.firestore().collection(PROMPTLAB).doc();
+        await docRef.set({
+          id: docRef.id, status: 'running', engine: 'gptimage', prompt: typed,
+          fullPrompt: storyPrompt, model: PL_GPT.id, gptStyle: styleId, quality,
+          size: canvas.size, aspectRatio: canvas.aspectRatio, res: resId,
+          promptEdited: edited, noText, storySheet: true,
+          styleRef: (st.refFiles || []).concat(st.storageRefs || []).join(','),
+          outputs: 1, character: false, photoRef: '', images: [],
+          createdAt: admin.firestore.Timestamp.now(),
+          ...(padTarget ? { padTarget } : {}),
+        });
+        runPromptLabGptJob(docRef, {
+          fullPrompt: storyPrompt, head: storyHead, tail: sheetTail, outputs: 1,
+          quality, prompt: typed, character: false, styleId,
+          size: canvas.size, photoBuf: null, chars: [], padTarget,
+        });
+        return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
+      }
+
       const docRef = admin.firestore().collection(PROMPTLAB).doc();
       await docRef.set({
         id: docRef.id, status: 'running', engine: 'gptimage', prompt: typed, fullPrompt,
@@ -6572,6 +6626,10 @@ app.get('/api/promptlab/styles', (req, res) => {
       });
     });
   });
+  // The STORY sheet's wrapper — the line before her story and the layout
+  // phrase the sheet swap fills — served like everything else the prompt
+  // carries, so the page prints the real sentence and holds no copy.
+  panels.story = { line: PL_STORY.line, layout: PL_STORY.layout };
   // `sizes` is the old flat shape and stays exactly as it was — a page cached
   // on her phone reads it, and this endpoint is the only thing that serves it.
   res.json({ styles: out, sizes: PL_GPT.sizes, res: PL_GPT.res, resDefault: PL_GPT.resDefault,
@@ -6763,6 +6821,7 @@ function promptlabHay(r) {
     // but the words are listed too in case a later shape stops joining.
     ...(r.panels || []),
     r.grid && r.grid.count ? `panels ${r.grid.across}x${r.grid.down}` : '',
+    r.storySheet ? 'story sheet' : '',
   ].filter(Boolean).join('  ');
 }
 // The house grammar (search-grammar.js), matched the FEED's way — every term
@@ -6797,9 +6856,10 @@ function plSearchRuns(runs, q) {
 // (pinned by scripts/test-playground-panels.js): the two must never disagree,
 // or a run would sit in one tab's gallery on the server and the other's on
 // the phone. A failed panels run still carries `panels`, so it stays in the
-// panels gallery where its retry belongs.
+// panels gallery where its retry belongs. A STORY sheet carries neither
+// panels nor a grid — the model laid it out — so it wears its own flag.
 function plRunIsPanels(r) {
-  return !!(r.grid && r.grid.count) || !!(r.panels && r.panels.length);
+  return !!(r.grid && r.grid.count) || !!(r.panels && r.panels.length) || !!r.storySheet;
 }
 function plKindKeeps(kind, r) {
   if (kind === 'panels') return plRunIsPanels(r);
