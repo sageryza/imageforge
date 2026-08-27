@@ -133,7 +133,10 @@ question" / "quick question" / "file this")? then repeat THAT question in bold
 on its own line and answer under it — otherwise never echo a question back**
 (see *Answering a question*; the bare word alone is not the mark) · small
 question, short answer · full clickable links · no markdown tables · times in 12-hour
-Pacific · files and images LAST · working links at the very bottom.
+Pacific · files and images LAST · working links at the very bottom ·
+**briefing her on OTHER chats? every chat you name gets a
+`/chats?chat=<slug>` link back to it at the bottom** (see *BRIEFING HER ON
+OTHER CHATS* in Design rules).
 
 ## Where everything is
 
@@ -3118,6 +3121,35 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   fits *that* product rather than reaching for the studio tokens by reflex.
 - **Always use full clickable links** in updates — app pages, the deployed URL,
   PRs — never bare text the user has to assemble.
+- **BRIEFING HER ON OTHER CHATS? EVERY CHAT YOU NAME GETS A LINK BACK TO IT, AT
+  THE BOTTOM (Aug 2026, Sophie: "i've been asking a couple of chats to give me
+  briefings on other chats where they give me status updates … they should
+  always have a link back to the chat that they're talking about at the bottom
+  of their analysis").** Any reply that reports on OTHER chats — a status
+  sweep, a roundup, "what's happening in X", a comparison across threads, an
+  audit naming which chat did what — ends with one link per chat you talked
+  about, under your analysis. The point is that reading about a chat and
+  GOING to it are one tap apart; without the links she has to hunt each name
+  down her list.
+  - **The link is the chat in Deck Factory, never a claude.ai session url** —
+    `https://imageforge-q125.onrender.com/chats?chat=<slug>` — the same rule
+    the morning brief already follows. On her phone that is a universal link
+    and opens the app on that thread.
+  - **Label it with what she calls the chat**, not the slug:
+    `[Water reel](https://imageforge-q125.onrender.com/chats?chat=water-reel-v16)`.
+    Her `displayName` is on `GET /api/chatfeed/status?chat=&session=` (as
+    `note`'s neighbour) and on `GET /api/chatfeed/name?chat=&session=`; the
+    feed read you did to write the briefing already carries it, so this costs
+    no extra request.
+  - **The SLUG must be the effective one** — a chat's identity is its session,
+    so a thread can be forked to `<slug>-<sid6>`. Use the slug the feed/registry
+    gives you for that thread, never one you reconstructed from a branch name,
+    or the link opens nothing.
+  - **One link per chat, deduped**, at the very bottom with the rest of the
+    working links — the house *files and links last* order, unchanged. Mention
+    a chat inline in prose all you like; the links still collect at the end.
+  - This is about chats you REPORT ON. A reply about your own work does not
+    link to itself.
 - **Always include clickable testing links** when something is ready to test:
   the deployed page for the feature plus the PR link.
 - **Copy-paste / handoff messages = one code block.** When the user asks for a
