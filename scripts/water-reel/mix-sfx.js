@@ -69,21 +69,35 @@ const PEAK_CEIL = -6;                        // dBFS, no effect may spike past t
 //         located by transcribing that one shot (cached by its bytes)
 const BED = [
   { line: 'Scientists did a study', fx: [
-    // her ask: the reel opens on the WORD, then the gurgle — not over it
-    ['persongurgle', 0.95, +2]] },
-  { line: 'hydrates your body', fx: [['gulp', 0.20, 0]] },
+    // her ask: the reel opens on the WORD, then the sound — not over it.
+    // persongurgle → gargle (her 2026-08-27 note on that spot: "not this
+    // effect"): a person playfully gargling, freshly generated.
+    ['gargle', 0.95, +2]] },
+  // starts ON "it" of "it hydrates" — her 2026-08-27 note: "effect shud
+  // start on 'it'". The word is located in the cut, the lullaby's mechanism.
+  { line: 'hydrates your body', fx: [['gulp', { word: 'it' }, 0]] },
   { line: 'supports your brain', fx: [['sparkle', 0.30, 0]] },
   { line: 'keeps you feeling good', fx: [['chime', 0.25, +1]] },
 
   { line: 'lubricates your ideas', fx: [['cooler', 0.35, +1]] },
   { line: 'miniature fish', fx: [
-    // the lullaby starts ON the word, her ask — located in the cut itself
-    ['lalala', { word: 'that' }, +3]] },
-  { line: 'bones are secretly plants', fx: [['sparkle', 0.50, 0]] },
+    // the lullaby starts ON the word, her ask — located in the cut itself.
+    // spill 0.9: "one more la" (2026-08-27) — one la is ~0.8s, so the song
+    // rings one la past the line instead of stopping with it.
+    ['lalala', { word: 'that' }, +3, 0.9]] },
+  { line: 'bones are secretly plants', fx: [['sparkle', 0.50, 0],
+    // "sound of plants growing so it plays in the pause" (2026-08-27) —
+    // starts on "growing" and spills into the pause after the line.
+    ['plantgrow', { word: 'growing' }, +1, 1.6]] },
 
   { line: 'greetings that live in your ears', fx: [['goblin', 0.35, +2]] },
-  { line: 'liquid light making you visible', fx: [['sparkle', 0.30, +1]] },
-  { line: 'boat inside your stomach', fx: [['surf', 0.40, 0]] },
+  // sparkle → shimmer ("new effect", 2026-08-27): a glowing-liquid sheen,
+  // freshly generated, so liquid light stops sharing reason two's sparkle.
+  { line: 'liquid light making you visible', fx: [['shimmer', 0.30, +1]] },
+  // surf → boatcreak (2026-08-27: "sounds more like water pouring out. Is
+  // there one of like a boat or something on the water?") — a wooden boat
+  // creaking with water lapping the hull.
+  { line: 'boat inside your stomach', fx: [['boatcreak', 0.40, 0]] },
   { line: 'Drink gallons Live legendary', fx: [['gulp', 0.25, +1]] },
 
   { line: 'ghosts that live in your spine', fx: [['spooky', 0.60, +1]] },

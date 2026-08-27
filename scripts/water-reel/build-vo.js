@@ -139,7 +139,7 @@ const SHOTS = [
   { id: 'a3', s: A, src: 'intro', tx: 0.790, ty: 0.561, z: 3.35, phrases: ['Three it keeps you feeling good'] },
   // z/ty from the MEASURED panel band (y 0.413-0.830): at z 2.45 the window
   // opened at 0.431 and clipped the first text line — her screenshot, v10.
-  { id: 'c1', s: C, src: 'c1a', tx: 0.188, ty: 0.622, z: 2.30, phrases: [], extra: [
+  { id: 'c1', s: C, src: 'c1a', tx: 0.188, ty: 0.622, z: 2.30, slowZoom: 2.4, phrases: [], extra: [
     { source: 'c1a', phrase: 'Water lubricates your ideas so they can slip out faster and stranger' },
     { source: 'c1c', phrase: 'Than ever before' },
   ] },
@@ -226,7 +226,9 @@ for (const s of SHOTS) {
   const out = path.join(clipDir, `${s.id}.mp4`);
   if (fs.existsSync(out)) continue;
   const d = Math.round(NOMINAL * FPS);
-  const zf = Math.round(1.1 * FPS);
+  // a shot may slow its own zoom-in (`slowZoom`, seconds) — her 2026-08-27
+  // note on c1: "zoom slower into first one slip"
+  const zf = Math.round((s.slowZoom || 1.1) * FPS);
   const ease = `(1-pow(1-min(on/${zf},1),3))`;
   let z0, z1, txe, tye;
   if (s.full) { z0 = 1.06; z1 = 1.0; txe = '0.5'; tye = '0.5'; }

@@ -278,3 +278,42 @@ it. She read the reasons WITHOUT the panel numbers. The sheet's tagline
 "Drink gallons. Live legendary." is not on the tape, so by her v9 rule
 ("if I didn't include sections, then include the lower voice LAURA") Laura
 keeps exactly that one line (b4) until she records it.]*
+
+## On the v13 slow cut (2026-08-27, asset notes) — ANSWERED IN v14
+
+> [0:02] not this effect
+
+*[the opening gargle after "Scientists" — persongurgle swapped for a freshly
+generated playful gargle.]*
+
+> [0:06] effect shud start on "it" (hydrates
+
+*[reason one's gulp now starts ON "it" of "it hydrates your body", located in
+the cut — the lullaby's word mechanism.]*
+
+> [0:13] zoom slower into first one slip
+
+*[shot c1 ("…slip out faster and stranger") — its zoom-in ease slowed from
+1.1s to 2.4s (`slowZoom` on the shot).]*
+
+> [0:18] one more la
+
+*[the lullaby rings one la (~0.9s) past its line instead of stopping with it
+— `spill` on the pin; the stop-with-the-line rule still holds everywhere
+else.]*
+
+> [0:22] sound of plants growing so it plays in the pause
+
+*[new generated effect `plantgrow`, starting on "growing" and spilling 1.6s
+into the pause after "…keeps them growing on the inside".]*
+
+> [0:25] new effect
+
+*[the liquid-light sparkle swapped for a freshly generated glowing shimmer —
+it had been sharing reason two's sparkle.]*
+
+> [0:29] this one sounds more like water pouring out. Is there one of like a
+> boat or something on the water? I don't know.
+
+*[the boat line's surf swapped for a generated wooden-boat creak with water
+lapping the hull.]*
