@@ -42,8 +42,11 @@ for (const r of runs) r.beats.forEach((n, i) => { urlFor[n] = r.images[i]; });
     lines.push(`file '${png}'`);
     lines.push(`duration ${(s.t1 - s.t0).toFixed(3)}`);
   }
-  // hold the last picture to the end of the audio
+  // hold the last picture to the end of the audio (the recording carries a
+  // couple of seconds of air past the last word; -shortest trims to it)
   const last = path.join(work, `p${String(spans[spans.length - 1].n).padStart(2, '0')}.png`);
+  lines.push(`file '${last}'`);
+  lines.push('duration 6');
   lines.push(`file '${last}'`);
   const list = path.join(work, 'list.txt');
   fs.writeFileSync(list, lines.join('\n') + '\n');

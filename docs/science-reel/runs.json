@@ -328,5 +328,62 @@
     "height": 1751
    }
   ]
+ },
+ {
+  "sheet": 6,
+  "id": "BkXwbgm8JT1MEPObEkpT",
+  "beats": [
+   25,
+   26,
+   27,
+   28
+  ],
+  "images": [
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/9453231ba996b67a380d6cbf.webp",
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/bd8c12c1cd9d9171885487f2.webp",
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/b08540fc7da27ad0b4c4ea99.webp",
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/03bfb0b44d8385b472482dd3.webp"
+  ],
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/4ebff2cfcac9c08e9705102a.webp",
+  "fullPrompt": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\nThis page is a 2x2 grid of 4 separate panels — equal rectangles, 2 across and 2 down, with straight edges exactly on the grid lines, no gutters and no outer margin. Each panel is its own complete, self-contained illustration. In reading order, left to right, top to bottom:\nPanel 1 (top left): a willow tree by a river handing down a strip of its bark to an outstretched hand\nPanel 2 (top right): a yellow wildflower gently lifting a person out of a dark pit\nPanel 3 (bottom left): a man squinting at a potted plant through a magnifying glass while the plant patiently waits\nPanel 4 (bottom right): a vast tangled web of glowing threads connecting thousands of seeds, one person trying to trace a single thread\n\nRender as a 2x2 grid of 4 panels — each panel its own complete illustration, inside its own hand-drawn border like the frames in the style reference. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition.",
+  "usage": {
+   "input_tokens": 1766,
+   "input_tokens_details": {
+    "image_tokens": 1505,
+    "text_tokens": 261
+   },
+   "output_tokens": 3912,
+   "output_tokens_details": {
+    "image_tokens": 3912,
+    "text_tokens": 0
+   },
+   "total_tokens": 5678
+  },
+  "rects": [
+   {
+    "left": 0,
+    "top": 0,
+    "width": 1170,
+    "height": 1752
+   },
+   {
+    "left": 1170,
+    "top": 0,
+    "width": 1166,
+    "height": 1752
+   },
+   {
+    "left": 0,
+    "top": 1752,
+    "width": 1170,
+    "height": 1752
+   },
+   {
+    "left": 1170,
+    "top": 1752,
+    "width": 1166,
+    "height": 1752
+   }
+  ]
  }
 ]
