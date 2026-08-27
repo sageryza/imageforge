@@ -325,6 +325,13 @@
     ' object-fit:contain;border-radius:6px;display:inline-block;}' +
     '.jg-label{font-size:15px;color:var(--ink);padding-top:8px;text-align:center;}' +
     '.jg-row{display:flex;justify-content:center;gap:18px;padding:16px 0 6px;}' +
+    // TWO OPPOSING WORDS SIT AT OPPOSITE ENDS (2026-08-27, Sophie, asking for
+    // an Archive/Keep deck: "don't put the archive and not archive button too
+    // close together"). A pair of custom states is a yes and a no, and 18px
+    // between them is a mis-tap waiting to happen — so exactly two spread to
+    // the row's ends, the same shape her ✕ and ♥ already make. Three or more
+    // keep the centred row: they are a scale, not opposites.
+    '.jg-row.two{justify-content:space-between;padding-left:12px;padding-right:12px;}' +
     '.jg-btn{width:54px;height:54px;border-radius:50%;border:1.5px solid var(--line);' +
     ' background:var(--surface);display:flex;align-items:center;justify-content:center;padding:0;}' +
     '.jg-btn svg{width:24px;height:24px;}' +
@@ -1378,7 +1385,8 @@
           + (voice && !momUI ? '<button type="button" class="jg-mic' + (recActive() ? ' rec' : '')
             + '" data-act="mic" aria-label="voice note">' + I.mic + '</button>' : '')
           + '</div></div>'   // the card, then its non-scrolling wrapper
-          + '<div class="' + (momUI ? 'jg-momfoot' + (voice ? ' mic' : '') : 'jg-row')
+          + '<div class="' + (momUI ? 'jg-momfoot' + (voice ? ' mic' : '')
+            : 'jg-row' + (states && states.length === 2 ? ' two' : ''))
           + '">' + row + '</div></div>';
         // the red mark, over the card she has already decided (see paintStamp)
         paintStamp(it);
