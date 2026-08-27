@@ -404,24 +404,64 @@ router.get('/', gated, async (req, res) => {
   }
 });
 
-// Record that these characters were just used in a dream render — powers the
-// cast sheet's "5 frequent/recent" slots. Fire-and-forget from the client.
+// Record that these characters were just used — powers the "5 most recent"
+// slots on the cast sheet AND on the Playground's character picker. ONE copy
+// of the rule: the route below and the Playground's own run (server.js) both
+// call this, so "recent" can never mean two different things.
+async function markUsed(ids) {
+  const d = db();
+  if (!d) return 0;
+  const list = (Array.isArray(ids) ? ids : []).map(String).filter(Boolean).slice(0, 20);
+  const now = new Date().toISOString();
+  for (const id of list) {
+    await d.collection(COLLECTION).doc(id)
+      .update({ usedCount: admin.firestore.FieldValue.increment(1), lastUsedAt: now })
+      .catch(() => {});   // a deleted character is fine to skip
+  }
+  return list.length;
+}
+
+// Fire-and-forget from the client.
 router.post('/used', gated, async (req, res) => {
   try {
-    const d = db();
-    if (!d) return res.status(503).json({ error: 'firestore unavailable' });
-    const ids = (Array.isArray(req.body?.ids) ? req.body.ids : []).map(String).filter(Boolean).slice(0, 20);
-    const now = new Date().toISOString();
-    for (const id of ids) {
-      await d.collection(COLLECTION).doc(id)
-        .update({ usedCount: admin.firestore.FieldValue.increment(1), lastUsedAt: now })
-        .catch(() => {});   // a deleted character is fine to skip
-    }
-    res.json({ ok: true, updated: ids.length });
+    if (!db()) return res.status(503).json({ error: 'firestore unavailable' });
+    res.json({ ok: true, updated: await markUsed(req.body?.ids) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
+// The saved characters a picker can offer, newest-USED first — the ordering
+// the Playground's five recent slots read. Kept beside markUsed so "recent"
+// has one definition: her last use of a character, falling back to the day it
+// was made for one she has never drawn with.
+async function listCharacters(limit = 200) {
+  const d = db();
+  if (!d) return [];
+  const snap = await d.collection(COLLECTION).orderBy('createdAt', 'desc').limit(limit).get();
+  return snap.docs.map((s) => {
+    const v = s.data();
+    return { id: s.id, name: v.name || '', url: v.url || '',
+      aliases: Array.isArray(v.aliases) ? v.aliases : [],
+      tier: v.tier || 'side',
+      lastUsedAt: v.lastUsedAt || null,
+      createdAt: v.createdAt && v.createdAt.toMillis ? v.createdAt.toMillis() : null };
+  }).filter((c) => /^https?:\/\//.test(c.url));
+}
+
+// The ids a run picked → the saved records, in the order she picked them,
+// deduped and capped. An id that no longer exists is simply dropped, the way
+// pickCharacters drops one a story has forgotten.
+async function charactersByIds(ids, max = 6) {
+  const d = db();
+  if (!d) return [];
+  const want = [...new Set((Array.isArray(ids) ? ids : []).map(String).filter(Boolean))].slice(0, max);
+  if (!want.length) return [];
+  const snaps = await Promise.all(want.map((id) => d.collection(COLLECTION).doc(id).get().catch(() => null)));
+  return snaps
+    .map((s, i) => (s && s.exists ? { id: want[i], name: s.data().name || '', url: s.data().url || '' } : null))
+    .filter((c) => c && /^https?:\/\//.test(c.url));
+}
 
 // Flip a saved character between main (on sheet) and side.
 router.post('/:id/tier', gated, async (req, res) => {
@@ -547,4 +587,5 @@ router.post('/batch/generate', gated, async (req, res) => {
   }
 });
 
-module.exports = { router, generatePortrait, buildPrompt, matchCharacters, matchCandidates, matchScore };
+module.exports = { router, generatePortrait, buildPrompt, matchCharacters, matchCandidates, matchScore,
+  markUsed, listCharacters, charactersByIds };

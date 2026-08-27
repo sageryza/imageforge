@@ -16,6 +16,19 @@
 // cards ride the gpt-image-2 edit as the LAST attached images, behind the
 // style reference (and, on watercolor, behind the Sophie card), and the
 // prompt discloses them with charLine() below.
+//
+// SERVED TO THE BROWSER TOO, at /pad-characters.js (2026-08-27, when the
+// Playground grew its own character picker). The Playground's Prompt panel
+// prints the exact line that will ride with her words, and a page carrying
+// its own copy of that wording is a copy that drifts the first time the
+// sentence is reworded here — so the page loads THIS file and calls
+// charLine() itself. The UMD wrapper is pause-plan.js's, for the same
+// reason: one description of a rule, loaded on both sides.
+
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.__padCharacters = factory();
+}(typeof self !== 'undefined' ? self : this, function () {
 
 const MAX_CHARACTERS = 30; // per story — a cast, not a library
 // Per draw. Every reference is paid input tokens (~1.2c each at any
@@ -74,4 +87,5 @@ function charLine(chars) {
     'as shown in their own image, keeping their look consistent.';
 }
 
-module.exports = { MAX_CHARACTERS, MAX_PICKED, normalizeCharacters, pickCharacters, charLine };
+return { MAX_CHARACTERS, MAX_PICKED, normalizeCharacters, pickCharacters, charLine };
+}));

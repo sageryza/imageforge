@@ -3323,6 +3323,49 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - **gpt-image-2 only.** The WTR LoRA takes a trigger word and has no
     attachment slot at all, so the button comes off there rather than sitting
     there doing nothing. Test: `node scripts/test-playground-photo-ref.js`.
+  **HER OWN CAST — THE CHARACTER PICKER (2026-08-27, Sophie: "add a little
+  button in the playground right next to where it says dreamy make sure it's
+  the same style with a character icon that shows the five most recent
+  characters that were put and then also the rest of the sheet and characters
+  with a search").** A Lucide people glyph beside the style picker — the
+  picker's own ink border at its own 34px, because that is the row she named —
+  opening a sheet of her FIVE most recent across the top and the rest under a
+  search. Picking is two taps; up to `MAX_PICKED` ride, lit with the count on
+  the button.
+  - **IT IS THE CHARACTER CREATOR'S OWN LIBRARY, never a second pile** —
+    `forge-characters`, the same 143 the cast sheet and the dream flow read
+    (measured live 2026-08-27). `GET /api/promptlab/characters` adds only the
+    ORDER: **recent = the last time she DREW with one**, falling back to the
+    day it was made, so drawing here moves a face up the row. `markUsed` in
+    character.js is that one definition, called by the run AND by the old
+    `/used` route.
+  - **THE CAST RIDES AT THE VERY END OF THE ATTACHMENTS**, because `charLine()`
+    — the SHARED sentence in `pad-characters.js`, the same one the Story Room
+    sends — says "the last attached image(s)". **Which is why the photo line
+    has a twin**: `PL_GPT.photoLineWithChars` is that identical instruction
+    re-anchored, sent only when a character rides behind the photo, because
+    "the LAST attached image" is one of THEM by then. A run with no cast sends
+    the original byte for byte.
+  - **THE WORDING IS SERVED, NOT COPIED** — `pad-characters.js` is UMD-wrapped
+    and served at `/pad-characters.js` (the `pause-plan.js` pattern), so the
+    Prompt panel prints the REAL `charLine()` and the page owns no transcript
+    of it to drift.
+  - **NOT `noCharacter`'s business.** That flag is about the SOPHIE CARD,
+    which is the watercolor look by another name; a character she picked is
+    her own subject and rides on every gpt tile, the reference-less ChatGPT
+    one included. Off on the LoRA (no attachment slot) and on PANELS (a sheet
+    is not the surface to argue "the last attached image" on).
+  - **A face is drawn through the derived-thumb service** — a saved character
+    card is a full render (**1.26MB**, measured; its 240px thumb is **5.8KB**),
+    and a picker of 143 of them would be tens of megabytes of originals.
+  - **A reference that will not fetch FAILS the run** rather than quietly
+    drawing a stranger — the Story Room's own rule.
+  - **The sheet opens into the pill's corner**, so both card rows reserve a
+    MEASURED `--charpill` column (`fitCharPill`): pre-fix the pill's own
+    `Fast` label sat on the fifth recent card, and her 47px safe-area inset
+    pushes the pill down onto that card's middle.
+  - Test: `node scripts/test-playground-characters.js` (verified failing 3
+    against the unreserved rows).
   **TWO QUALITY LADDERS, AT THE RIGHT END WITH GENERATE (Aug 2026, Sophie:
   "add a little oval next to the pyramid, colored on top, white empty on
   bottom, signifying medium, and high. when pressed, it kicks off 1 medium and

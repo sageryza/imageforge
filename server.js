@@ -426,6 +426,9 @@ loadConfig().then(() => {
   app.use('/api/storylink', require('./storylink').router); // one story across Story Timeline, the Story Room and Cutting Blocks
   app.use('/api/googleads', googleads.router); // Google Ads API credential health check
   app.use('/api/character', character.router); // Character Creator (photo + name -> diary-comic ref)
+  // …and hand the same instance to the Playground's character picker, which
+  // must never require it itself — see setCharacterLib for why.
+  setCharacterLib(character);
   app.use('/api/tarot-email', tarotEmail.router); // tap-to-reveal Card of the Day email (Brevo)
   app.use('/api/nde', nde.router); // Anthony Chene NDE interview → moments database
   app.use('/api/editor', editor.router); // Episode Editor: transcript spans → snippet cards → rendered audio
@@ -3326,6 +3329,15 @@ app.get('/pause-plan.js', (req, res) => {
   res.set('Cache-Control', 'no-cache, must-revalidate');
   res.sendFile(__dirname + '/pause-plan.js');
 });
+// The character-reference rules, shared the same way (2026-08-27): the
+// Playground's Prompt panel prints the exact sentence the picked characters
+// will add to her words, so the page calls the REAL charLine() rather than
+// keeping a second copy of the wording that drifts the day it is reworded.
+app.get('/pad-characters.js', (req, res) => {
+  res.type('application/javascript');
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/pad-characters.js');
+});
 // Chunking: the clip library — a shelf of every short self-contained piece the
 // app has made, four to a row, with search as the whole interface. Engine is
 // /api/clips (clips.js). `/clips` is the honest alias; `/chunking` is the name
@@ -5089,6 +5101,19 @@ app.post('/api/generate/gptimage', async (req, res) => {
   }
 });
 
+// What a buffer of image bytes REALLY is, from its magic number — never from
+// a filename, which for a reference fetched off Storage may not exist and for
+// a photo she pasted is whatever the sender felt like. PNG, JPEG and WEBP are
+// the three gpt-image-2's edits endpoint takes; anything else keeps the old
+// default rather than inventing a type.
+function imageTypeOf(buf) {
+  const b = Buffer.isBuffer(buf) ? buf : Buffer.from(buf || []);
+  if (b.length >= 8 && b[0] === 0x89 && b.toString('latin1', 1, 4) === 'PNG') return { ext: 'png', type: 'image/png' };
+  if (b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return { ext: 'jpg', type: 'image/jpeg' };
+  if (b.length >= 12 && b.toString('latin1', 0, 4) === 'RIFF' && b.toString('latin1', 8, 12) === 'WEBP') return { ext: 'webp', type: 'image/webp' };
+  return { ext: 'png', type: 'image/png' };
+}
+
 // ─── House style: gpt-image-2 EDITS with Sophie's style-reference images ──
 // The same engine the illustrated lessons use (not a LoRA): the two style refs
 // are attached as pure STYLE anchors and the house style prompt is prepended.
@@ -5135,7 +5160,17 @@ async function openaiImageEditRefs(prompt, refBuffers, { quality = 'low', size =
       // and the original it derives from has to stay full quality. Sophie
       // caught it as graininess on fine ink hatching, 2026-08-19. Do not put
       // a compression back on a generation call.
-      refBuffers.forEach((b, i) => form.append('image[]', b, { filename: `ref${i + 1}.png`, contentType: 'image/png' }));
+      // EACH REFERENCE IS DECLARED AS WHAT IT ACTUALLY IS (2026-08-27). Every
+      // buffer used to be labelled `ref.png`/`image/png` whatever it held,
+      // which happened to work while the refs were PNGs banked in refs/ and a
+      // JPEG photo she attached. The character cards are WEBP off Storage, and
+      // a lie about the type is the kind of thing an endpoint rejects for
+      // reasons that read as a bug. The bytes say which — the magic numbers,
+      // never a filename — and anything unrecognised keeps the old default.
+      refBuffers.forEach((b, i) => {
+        const t = imageTypeOf(b);
+        form.append('image[]', b, { filename: `ref${i + 1}.${t.ext}`, contentType: t.type });
+      });
       const res = await fetch('https://api.openai.com/v1/images/edits', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, ...form.getHeaders() },
@@ -5319,6 +5354,25 @@ app.post('/api/generate/replicate', async (req, res) => {
 // localStorage if it was closed mid-run.
 const PROMPTLAB = 'forge-promptlab';
 
+// The character-reference rules — the SAME file the Story Room draws from and
+// the same file the Playground's page loads at /pad-characters.js, so the
+// sentence that rides with her words is written down exactly once.
+const padChars = require('./pad-characters');
+// Her saved cast lives in character.js — but that module is required inside
+// loadConfig().then() so it reads its keys AFTER the config doc has hydrated
+// process.env, and `require` caches: requiring it from here would capture the
+// un-hydrated env and hand that same crippled instance to the Character
+// Creator's own routes for the life of the process. So the loader HANDS it
+// over instead (setCharacterLib below) and nothing here ever requires it.
+// Until the loader resolves — a sub-second window at startup — the two routes
+// that need it answer honestly rather than half-working.
+let characterLib = null;
+function setCharacterLib(m) { characterLib = m; }
+function charLib() {
+  if (!characterLib) throw new Error('character library not ready yet — try again in a moment');
+  return characterLib;
+}
+
 // ─── The Playground's 3rd style: gpt-image-2 + Sophie's style reference ──
 // Not a LoRA. Her own scanned ink-and-watercolour page is attached to
 // gpt-image-2's EDITS endpoint as a pure STYLE reference at quality MEDIUM,
@@ -5419,6 +5473,18 @@ const PL_GPT = {
   photoLine: ' The LAST attached image is a photo reference: use it for the ' +
     'subject described below — the person, place or object in it — and NOT ' +
     'for the drawing style, which comes from the style reference above.',
+  // AND THE SAME SENTENCE RE-ANCHORED, for the one run that carries BOTH a
+  // photo and character references (2026-08-27). Character cards ride at the
+  // very end — charLine() in pad-characters.js says "the last attached
+  // image(s)" and that wording is shared with the Story Room — so the moment
+  // one rides, "the LAST attached image" stops being the photo and the line
+  // above becomes a lie about which picture is which. Same instruction, one
+  // anchor changed; a run with no characters sends the original byte for
+  // byte, which is what every run before this one sent.
+  photoLineWithChars: ' The attached image just before the character ' +
+    'reference(s) at the end is a photo reference: use it for the subject ' +
+    'described below — the person, place or object in it — and NOT for the ' +
+    'drawing style, which comes from the style reference above.',
 };
 // The ChatGPT engine's selectable styles (Aug 2026). Each is the same recipe
 // — gpt-image-2 edits, refs attached as pure STYLE references, quality/size
@@ -5465,6 +5531,15 @@ const PL_GPT_STYLES = {
     prefix: '', suffix: '',
     photoLine: 'The attached image is a photo reference: use it for the ' +
       'subject described below — the person, place or object in it.',
+    // With character cards riding at the end, "the attached image" is no
+    // longer the only one — see PL_GPT.photoLineWithChars. No style-reference
+    // clause here either, for the same reason the line above has none.
+    photoLineWithChars: 'The attached image just before the character ' +
+      'reference(s) at the end is a photo reference: use it for the subject ' +
+      'described below — the person, place or object in it.',
+    // NO Sophie character card — see below. Character references SHE picks
+    // are a different thing entirely (her own cast, not a style by another
+    // name) and ride here exactly as they do on every other tile.
     noCharacter: true,
   },
   // "Scarry" (Sophie's name for it): Instagram saves she sent (busy-animal
@@ -5647,6 +5722,26 @@ async function playgroundRefs(st) {
   const local = (st.refFiles || []).map(playgroundRef);
   const remote = await Promise.all((st.storageRefs || []).map(loadHouseRef));
   return local.concat(remote);
+}
+
+// The bytes behind the character references a run picked, in her order,
+// cached for the life of the process — a cast is a handful of images drawn
+// against again and again. Mirrors charRefs() in scratchpad.js, and is
+// deliberately NOT best-effort: a picture she asked to have Doug in must fail
+// rather than come back without him.
+const plCharBytes = new Map();
+async function playgroundCharRefs(chars) {
+  const out = [];
+  for (const c of (Array.isArray(chars) ? chars : [])) {
+    if (!plCharBytes.has(c.url)) {
+      const r = await fetch(c.url, { timeout: 30000 });
+      if (!r.ok) throw new Error(`character reference fetch ${r.status}`);
+      if (plCharBytes.size >= 40) plCharBytes.delete(plCharBytes.keys().next().value);
+      plCharBytes.set(c.url, await r.buffer());
+    }
+    out.push(plCharBytes.get(c.url));
+  }
+  return out;
 }
 
 // Cancelled run ids (in-process — the job and the cancel route are the same
@@ -5854,9 +5949,17 @@ async function runPromptLabGptJob(docRef, cfg) {
     const st = PL_GPT_STYLES[cfg.styleId] || PL_GPT_STYLES.evan;
     const refs = await playgroundRefs(st);
     if (cfg.character) refs.push(playgroundRef(PL_GPT.characterFile));
-    // Her uploaded photo rides LAST — see PL_GPT.photoLine for why the order
-    // matters (the character line names "the second attached image").
+    // Her uploaded photo rides after those — see PL_GPT.photoLine for why the
+    // order matters (the character line names "the second attached image").
     if (cfg.photoBuf) refs.push(cfg.photoBuf);
+    // HER OWN CAST RIDES AT THE VERY END (2026-08-27, Sophie's character
+    // picker). charLine() names them "the last attached image(s)", which is
+    // the same wording the Story Room sends, so they must genuinely be last —
+    // and a photo riding with them says so in its own re-anchored line.
+    // FAILING LOUDLY IS RIGHT HERE: a run she aimed at a character must not
+    // quietly draw a stranger, so a reference that will not fetch fails the
+    // run rather than being skipped best-effort the way a photo is.
+    for (const b of await playgroundCharRefs(cfg.chars)) refs.push(b);
     const images = [];
     const usage = [];              // the API's own token counts, one per render
     let failed = 0;
@@ -6253,8 +6356,27 @@ app.post('/api/promptlab', async (req, res) => {
       // on a style with no prefix), so one is added when something precedes
       // it. PL_GPT.photoLine's own leading space is left alone — it is byte
       // for byte what the other five tiles have always sent.
-      const photoLine = st.photoLine ? ` ${st.photoLine}` : PL_GPT.photoLine;
-      const head = `${prefix}${character ? st.characterLine : ''}${photoBuf ? photoLine : ''}`.trim();
+      // HER OWN CAST (2026-08-27, Sophie: "a little button in the playground
+      // right next to where it says dreamy … with a character icon that shows
+      // the five most recent characters"). The ids she picked resolve to the
+      // Character Creator's saved records — the SAME library the cast sheet
+      // and the dream flow read, never a second pile — and ride as the last
+      // attached images. A style with no reference at all takes them too: a
+      // character card is her own subject, not a style by another name, which
+      // is what `noCharacter` is about (the Sophie card).
+      // Asked for ONLY when she actually picked somebody — a run with no cast
+      // must not depend on the character library being reachable at all, so
+      // the ordinary run is untouched right down to which modules it needs.
+      const pickedChars = (Array.isArray(req.body.characters) && req.body.characters.length)
+        ? await charLib().charactersByIds(req.body.characters, padChars.MAX_PICKED)
+        : [];
+      const charsLine = padChars.charLine(pickedChars);
+      // The photo's sentence is re-anchored when characters ride behind it —
+      // "the LAST attached image" is one of them by then.
+      const photoLine = pickedChars.length
+        ? (st.photoLineWithChars ? ` ${st.photoLineWithChars}` : PL_GPT.photoLineWithChars)
+        : (st.photoLine ? ` ${st.photoLine}` : PL_GPT.photoLine);
+      const head = `${prefix}${character ? st.characterLine : ''}${photoBuf ? photoLine : ''}${charsLine}`.trim();
       const fullPrompt = `${head}${head ? '\n\n' : ''}${typed}${tail ? `\n\n${tail}` : ''}`;
       const outputs = Math.min(Math.max(Number(req.body.outputs) || PL_GPT.outputs, 1), PL_GPT.maxOutputs);
       const quality = PL_GPT.qualities.includes(req.body.quality) ? req.body.quality : PL_GPT.quality;
@@ -6323,13 +6445,20 @@ app.post('/api/promptlab', async (req, res) => {
         aspectRatio: canvas.aspectRatio, res: resId, promptEdited: edited, noText,
         styleRef: (st.refFiles || []).concat(st.storageRefs || []).join(','), outputs,
         character, photoRef: photoUrl, images: [], createdAt: admin.firestore.Timestamp.now(),
+        // WHICH characters rode this run, by id and name — the provenance the
+        // pad's own draws keep, so a picture can say who is in it.
+        ...(pickedChars.length ? { characters: pickedChars } : {}),
         ...(padTarget ? { padTarget } : {}),
       });
+      // "Recent" means the last time she DREW with one, so drawing here is
+      // what moves a character up the picker. Fire and forget — a failed
+      // bookkeeping write must never cost her the picture.
+      if (pickedChars.length) charLib().markUsed(pickedChars.map((c) => c.id)).catch(() => {});
       // head/tail ride along so the filed style half is what ACTUALLY wrapped
       // her words on this run — her prefix/suffix override if she made one,
       // the character line and the photo line only when they were really
       // attached — rather than the style's baked default.
-      runPromptLabGptJob(docRef, { fullPrompt, head, tail, outputs, quality, prompt: typed, character, styleId, size: canvas.size, photoBuf, padTarget });
+      runPromptLabGptJob(docRef, { fullPrompt, head, tail, outputs, quality, prompt: typed, character, styleId, size: canvas.size, photoBuf, chars: pickedChars, padTarget });
       return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
     }
 
@@ -6390,6 +6519,9 @@ app.get('/api/promptlab/styles', (req, res) => {
       // The photo line this style would really add, so the Prompt panel prints
       // the sentence that is actually sent. Absent = the house one below.
       photoLine: st.photoLine || '',
+      // And the one it sends INSTEAD when character references ride behind
+      // the photo — same sentence, re-anchored. Absent = the house one.
+      photoLineWithChars: st.photoLineWithChars || '',
       // The sheet swap a panels run would apply to this style's tail, or null
       // — served so the Prompt panel can print the tail that is really sent
       // on a sheet, the same disclosure rule as everything above.
@@ -6425,7 +6557,37 @@ app.get('/api/promptlab/styles', (req, res) => {
   // `sizes` is the old flat shape and stays exactly as it was — a page cached
   // on her phone reads it, and this endpoint is the only thing that serves it.
   res.json({ styles: out, sizes: PL_GPT.sizes, res: PL_GPT.res, resDefault: PL_GPT.resDefault,
-    max: PL_GPT.promptMax, photoLine: PL_GPT.photoLine, panels });
+    max: PL_GPT.promptMax, photoLine: PL_GPT.photoLine,
+    photoLineWithChars: PL_GPT.photoLineWithChars, maxChars: padChars.MAX_PICKED, panels });
+});
+
+// HER CAST, FOR THE PICKER (2026-08-27, Sophie: "a little button … with a
+// character icon that shows the five most recent characters that were put and
+// then also the rest of the sheet and characters with a search").
+//
+// It is the Character Creator's OWN library — `forge-characters`, the same
+// pile the cast sheet and the dream flow read — never a second one. What this
+// route adds is the ORDER her ask names: most-recent first, where recent means
+// the last time she DREW with a character, falling back to the day it was
+// made for one she has never used. So the five slots at the top of the picker
+// are the five she reached for last, and using one here moves it up.
+//
+// MUST stay above `/api/promptlab/:id`, like /styles — Express matches in
+// order and `:id` would otherwise answer "run not found".
+app.get('/api/promptlab/characters', async (req, res) => {
+  try {
+    const list = await charLib().listCharacters(200);
+    // The sort is here rather than in the query because the two keys live in
+    // different fields (`lastUsedAt` is an ISO string written on use,
+    // `createdAt` a Timestamp) and Firestore cannot order across them.
+    const at = (c) => (c.lastUsedAt ? Date.parse(c.lastUsedAt) || 0 : 0) || c.createdAt || 0;
+    const characters = list.slice().sort((a, b) => at(b) - at(a))
+      .map((c) => ({ id: c.id, name: c.name, url: c.url, aliases: c.aliases, tier: c.tier,
+        usedAt: at(c), used: !!c.lastUsedAt }));
+    res.json({ characters, max: padChars.MAX_PICKED });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.get('/api/promptlab/:id', async (req, res) => {
