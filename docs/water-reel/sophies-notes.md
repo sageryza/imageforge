@@ -226,9 +226,15 @@ shorter because shots came out.]*
 
 > [0:53] it says knees twice
 
-*[transcribed — that shot says it once. The sheet two before says the same
-sentence about her SPINE; the echo is her own copy across two sheets. OPEN:
-dropping one is hers to call.]*
+*[SHE WAS RIGHT, and the first answer was wrong. v13 was answered with "that
+shot says it once — the spine sheet is the echo", after transcribing shot f1
+ALONE. Transcribing the delivered master across the f1→f2 joint (2026-08-27)
+hears "…live in your knees. / knees. / It offends…" — a literal double. The
+stray sat at the HEAD of shot f2: its slice (`f12`) opened at 216.5s and held
+the tail of the f1 line she read just before it, and the cut's leading edge
+grabbed that last word. Fixed in v14 by opening the slice at 221.2s — a slice
+must hold ONE line's takes and nothing of its neighbours. The lesson: verify a
+"says X twice" report across the JOINT, never inside one shot.]*
 
 > [0:57] find your backflips and the other ones are not zoomed into that
 > moment specifically enough
@@ -259,3 +265,55 @@ PAN across, all of them, instead of a token nudge.]*
 *[the last slower cuts were v11's: flat 1.3x (1:57) and ramp 1.15→1.55
 (1:45). The answer is v13 — with all the fixes — rendered at both of those
 speeds, hers to pick from.]*
+
+## 2026-08-27 — the goblin-sheet recording arrives
+
+> use my voice to replace the Laura voice / i did some extra words and takes
+> to get ready. just use the last take - 3 reasons / ignore intro
+
+*[her 45s recording (`assets/water-reel/sophie-goblin-sheet.m4a`): 0-20s a
+warm-up run, 24.7-31.6 an intro re-read (ignored, her word), 32.4-43.0 the
+last take of the three reasons — that window is the `bs` slice, b1-b3 ride
+it. She read the reasons WITHOUT the panel numbers. The sheet's tagline
+"Drink gallons. Live legendary." is not on the tape, so by her v9 rule
+("if I didn't include sections, then include the lower voice LAURA") Laura
+keeps exactly that one line (b4) until she records it.]*
+
+## On the v13 slow cut (2026-08-27, asset notes) — ANSWERED IN v14
+
+> [0:02] not this effect
+
+*[the opening gargle after "Scientists" — persongurgle swapped for a freshly
+generated playful gargle.]*
+
+> [0:06] effect shud start on "it" (hydrates
+
+*[reason one's gulp now starts ON "it" of "it hydrates your body", located in
+the cut — the lullaby's word mechanism.]*
+
+> [0:13] zoom slower into first one slip
+
+*[shot c1 ("…slip out faster and stranger") — its zoom-in ease slowed from
+1.1s to 2.4s (`slowZoom` on the shot).]*
+
+> [0:18] one more la
+
+*[the lullaby rings one la (~0.9s) past its line instead of stopping with it
+— `spill` on the pin; the stop-with-the-line rule still holds everywhere
+else.]*
+
+> [0:22] sound of plants growing so it plays in the pause
+
+*[new generated effect `plantgrow`, starting on "growing" and spilling 1.6s
+into the pause after "…keeps them growing on the inside".]*
+
+> [0:25] new effect
+
+*[the liquid-light sparkle swapped for a freshly generated glowing shimmer —
+it had been sharing reason two's sparkle.]*
+
+> [0:29] this one sounds more like water pouring out. Is there one of like a
+> boat or something on the water? I don't know.
+
+*[the boat line's surf swapped for a generated wooden-boat creak with water
+lapping the hull.]*
