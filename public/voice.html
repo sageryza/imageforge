@@ -117,7 +117,17 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
 .render .rmeta{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink2); margin:6px 0 8px; display:flex; gap:8px; align-items:center;}
 .render audio{width:100%; display:block;}
 .render.pending .rmeta .spin{color:var(--rose);}
-.render .rerr{font-family:-apple-system,sans-serif; font-size:12px; color:var(--chg);}
+.render .rerr{font-family:-apple-system,sans-serif; font-size:12px; color:var(--chg);
+  display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
+/* A failed take's way back. Same box as .toblocks — house rounded rectangle,
+   hugging its words — so the two buttons on this page read as one family. */
+.render .again{flex:0 0 auto; border:1px solid var(--line); border-radius:6px;
+  background:var(--barbg); color:var(--ink2); cursor:pointer; padding:5px 9px;
+  font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em; text-transform:uppercase;
+  display:flex; align-items:center; gap:6px;}
+.render .again[disabled]{opacity:.45;}
+.render .again svg{width:13px; height:13px; stroke:currentColor; fill:none; stroke-width:1.8;
+  stroke-linecap:round; stroke-linejoin:round;}
 /* → Cutting Blocks. VOICE is one of the two tributaries into BLOCKS on the
    pipeline map, and until this button the connection meant download +
    re-upload by hand. It sits on the meta row of a finished render; tapping
@@ -367,10 +377,27 @@ var BLOCKS_SVG='<svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8"
 // Lucide `download`. The link goes to OUR server, not to Storage: a
 // cross-origin href ignores `download` and the phone just plays the file.
 var DL_SVG='<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>';
+// Lucide `rotate-ccw`. A failed take used to be a dead end — her words are
+// right there on the card, but the only way back was retyping them.
+var AGAIN_SVG='<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>';
 function dlLink(id, src){
   return '<a class="dl" href="'+API+'/file/'+encodeURIComponent(id)+(src?'?src=1':'')+'" download'
     +' title="'+(src?'Download what you recorded':'Download this take')+'"'
     +' aria-label="'+(src?'Download what you recorded':'Download this take')+'">'+DL_SVG+'</a>';
+}
+// A bare "rendering…" says nothing, and that is what actually went wrong on
+// 2026-08-27: Sophie's science take really was working — it took 735 seconds,
+// against 75 for the same text re-sent later — but a spinner with no clock on
+// it looks identical to a dead one, so a slow render read as a lost take.
+// The poll repaints this card every 2s, so the count keeps itself current.
+function spinLabel(r){
+  var t=Date.parse(r.createdAt||'');
+  if(!t) return 'rendering…';
+  var m=Math.floor((Date.now()-t)/60000);
+  if(m<1) return 'rendering…';
+  // Past five minutes, say that this is normal rather than leaving her to
+  // guess — a long line can genuinely run past ten.
+  return 'rendering… '+m+'m'+(m>=5?' · long ones can run past 10m':'');
 }
 function card(r){
   var el=cards[r.id];
@@ -389,7 +416,7 @@ function card(r){
   // (Sophie, Aug 2026: "I don't need to know how many characters everything is").
   var body='<div class="rtext">'+esc(r.text)+'</div>'
     +'<div class="rmeta"><span>'+esc(r.voiceName||'')+'</span>'
-    +(r.status==='rendering'?'<span class="spin">rendering…</span>':'')
+    +(r.status==='rendering'?'<span class="spin">'+esc(spinLabel(r))+'</span>':'')
     +(r.status==='done' && r.url
       ? (sentTo[r.id]
         ? '<span class="bsent">in “'+esc(sentTo[r.id])+'”</span>'
@@ -402,7 +429,10 @@ function card(r){
     body+='<div class="rsrc"><span>what went in</span>'+dlLink(r.id, true)+'</div>'
       +'<audio controls preload="none" src="'+esc(r.sourceUrl)+'"></audio>';
   }
-  if(r.status==='failed') body+='<div class="rerr">'+esc(r.error||'render failed')+'</div>';
+  if(r.status==='failed'){
+    body+='<div class="rerr">'+esc(r.error||'render failed')
+      +'<button class="again" data-id="'+esc(r.id)+'" title="Render this again">'+AGAIN_SVG+' Render again</button></div>';
+  }
   el.className='render'+(r.status==='rendering'?' pending':'');
   el.innerHTML=body;
 }
@@ -444,7 +474,27 @@ function openBlocksPick(id){
 document.addEventListener('click', function(e){
   var tb=e.target.closest('.toblocks');
   if(tb) openBlocksPick(tb.dataset.id);
+  var ag=e.target.closest('.again');
+  if(ag) renderAgain(ag);
 });
+
+// The retry lands as its OWN card — a re-render is a fresh take, and the failed
+// one stays on the page saying what happened. The card is drawn from the old
+// take's own words, so it reads right before the server has answered anything.
+function renderAgain(btn){
+  var old=btn.dataset.id, was=rdata[old]||{};
+  btn.disabled=true;
+  fetch(API+'/render/'+encodeURIComponent(old)+'/again',{method:'POST'})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(!d.id) throw new Error(d.error||'couldn’t start it again');
+      setPending(pendingIds().concat([d.id]));
+      card({id:d.id, kind:was.kind, voiceName:was.voiceName, text:was.text,
+            sourceUrl:was.sourceUrl, status:'rendering', createdAt:new Date().toISOString()});
+      poll(d.id);
+    })
+    .catch(function(e){ btn.disabled=false; alert(e.message||'Couldn’t start it again'); });
+}
 
 function poll(id){
   fetch(API+'/render/'+id).then(function(r){return r.json()}).then(function(d){
@@ -471,7 +521,7 @@ go.onclick=function(){
       if(!d.id) throw new Error(d.error||'failed');
       paintGo();   // the box KEEPS her words — she renders the same line voice after voice
       setPending(pendingIds().concat([d.id]));
-      card({id:d.id, voiceName:picked.name, chars:text.length, text:text, status:'rendering'});
+      card({id:d.id, voiceName:picked.name, chars:text.length, text:text, status:'rendering', createdAt:new Date().toISOString()});
       poll(d.id);
     })
     .catch(function(e){ alert(e.message||'Couldn’t start the render'); paintGo(); });
@@ -644,7 +694,7 @@ chgo.onclick=function(){
     if(!d.id){ alert(d.error||'Couldn’t start the change'); paintCh(); return; }
     setPending(pendingIds().concat([d.id]));
     card({id:d.id, kind:'sts', voiceName:picked.name, text:take.name,
-          chars:0, status:'rendering'});
+          chars:0, status:'rendering', createdAt:new Date().toISOString()});
     poll(d.id);
     paintCh();   // the take STAYS — she runs the same recording through voice after voice
   };

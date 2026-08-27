@@ -4356,9 +4356,23 @@ before working on that module. Nothing was deleted — the moved text is verbati
   this process, so a deploy that swaps the instance out kills it between
   "ElevenLabs finished" and "we saved it": the doc sits on `rendering` forever
   and the page — which polls every 2s while a take says that — **spins on it
-  with nothing on screen ever admitting it is dead**. It happened for real: her
-  4,842-character Max take, started 8:16pm Pacific, four minutes after #1794's
-  deploy merged; ~2,700 credits spent and 5:29 of audio with nowhere to land.
+  with nothing on screen ever admitting it is dead**.
+  **BUT THE TAKE THIS WAS BUILT ON WAS NEVER KILLED — TWO CHATS GUESSED THE
+  SAME WRONG CAUSE ON THE SAME NIGHT (2026-08-27).** Her 4,842-character Max
+  take started 8:16pm Pacific, four minutes after #1794's deploy merged, which
+  is what made "killed by the deploy" look obvious. Measured on the doc
+  afterwards: it finished on its own at 8:28:45pm, `done`, with a url and no
+  error — it had taken **735 seconds**, and the identical text re-sent twelve
+  minutes later came back in **75**. So ElevenLabs' own latency swings 10x on
+  the same input, nothing was orphaned, and no credits were lost.
+  **What she was looking at was a working render with no clock on its spinner**
+  — a slow one and a dead one were the same picture — so `spinLabel` in
+  `public/voice.html` counts the minutes now ("rendering… 4m", and past five
+  "· long ones can run past 10m"), and a failed take carries a **Render again**
+  button instead of being a retype of 4,842 characters. The recovery below is
+  still right and still worth having; it just answers a case that had not
+  happened yet. **A deploy four minutes before a symptom is a coincidence
+  until the doc says otherwise — read `doneAt` before believing it.**
   **The audio was never lost — ElevenLabs keeps every generation in its own
   history and hands the mp3 back for FREE**, so the sweep fetches what she
   already paid for rather than charging her twice (the Playground's
