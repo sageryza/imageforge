@@ -213,13 +213,22 @@ late or never.
 - **URGENT is the only interrupt** — she is blocked without it, or it expires.
   Say so plainly in the reply AND queue it anyway, so it survives her not being
   near the computer. "It would be faster" is not urgent.
-- **A video url: TRY `POST /api/ytdl/grab` FIRST, but it is often refused and
-  the queue is still the fallback (measured 2026-08-27).** Render's IP is
-  substantially bot-blocked — 3 of 4 distinct videos refused on every player
-  client — so the grab is worth one attempt and no more hope than that. When it
-  answers `blocked:true`, queue it here. A SESSION container is luckier than
-  Render (2 of 3 the same minute), so a chat that needs the bytes can also run
-  yt-dlp itself and POST the file to the Dump / audio library.
+- **A video url: RUN yt-dlp IN YOUR OWN CONTAINER — not `/api/ytdl/grab`
+  (Sophie's call, 2026-08-27: "use container not render for YouTube
+  downloads").** Render's IP is the bot-blocked one — 3 of 4 distinct videos
+  refused on every player client, including two of her own grabs — and its
+  `GET /status?probe=1` stayed green throughout, so the endpoint reads healthy
+  while her downloads fail. A session container is a different IP, so a chat
+  that needs the bytes fetches `yt-dlp_linux` from the GitHub release, pulls
+  the file itself, and POSTs it to the Dump (`/api/drop/upload-file`) or the
+  audio library (`/api/audio/upload-file`) — the same two routes `/api/ytdl`
+  files through, so it lands where the tools look either way.
+  **A CONTAINER IS BETTER ODDS, NOT A GUARANTEE — say what happened.** Measured
+  from this container 2026-08-27: metadata read on 3 of 4 videos, and the BYTES
+  came down for only **1 of 3** — the other two answered 403 or "sign in to
+  confirm you're not a bot" on every player client on the ladder. When the
+  container is refused too, queue it here: the desktop trip with her logged-in
+  browser's cookies is still the only sure path.
 - **What counts as desktop-only:** anything needing her logged-in browser,
   keychain or Photos library, a plugged-in device, local files that live only on
   the Mac, and big uploads that must be chunked on her home connection. Anything
@@ -4676,8 +4685,17 @@ before working on that module. Nothing was deleted — the moved text is verbati
   serves, so **`GET /status?probe=1` went green throughout two days of her
   grabs failing. A green probe says ONE video on ONE client works and nothing
   more; never quote it as the endpoint being healthy.**
-  So: the grab is worth one attempt, it fails honestly with `blocked:true` in
-  yt-dlp's own words, and **the desktop queue is still the real fallback.**
+  **SO THE CONTAINER IS THE FIRST MOVE AND THIS ROUTE IS NOT (Sophie's call,
+  2026-08-27: "use container not render for YouTube downloads").** A chat that
+  needs a YouTube file runs yt-dlp in its OWN container — fetch
+  `yt-dlp_linux` from the GitHub release, pull the file, POST it to
+  `/api/drop/upload-file` or `/api/audio/upload-file`, which are the exact two
+  routes this module files through, so the result is indistinguishable from a
+  grab. Reach for `POST /grab` only when the container is refused too and it is
+  worth one more IP; it fails honestly with `blocked:true` in yt-dlp's own
+  words. **And the container is only better odds** — measured from one
+  2026-08-27, metadata read on 3 of 4 videos and the bytes came down for 1 of 3.
+  Both refused → **the desktop queue is still the real fallback.**
   Cookies (`--cookies`) are the documented remedy and need her logged-in
   browser, i.e. the desktop trip this was built to avoid.
   **It costs nothing** — no model call; it is bandwidth and ffmpeg on our own
