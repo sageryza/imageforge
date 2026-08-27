@@ -6727,15 +6727,42 @@ window.__openThread=function(name){
   var v=document.querySelector('.pageview');
   var from=v && v.__page;
   if(v && v.__close) v.__close();
-  openChat(name);
   // Remember the page this link came OUT of, so the thread's back button
   // returns her to it (2026-08-26, Sophie: "the back button goes back out of
-  // just to chat. It should go back to the artifact"). Set AFTER openChat —
-  // openChat forgets a return that no longer matches the chat on screen.
-  if(from) backToPage={p:from, chat:name};
+  // just to chat. It should go back to the artifact"). Pushed BEFORE openChat
+  // now that the trail STACKS: openChat keeps a trail whose top expects the
+  // chat it is opening and forgets any other, so the push has to be the top
+  // it sees.
+  if(from) backTrail.push({p:from, chat:name});
+  openChat(name);
   window.scrollTo(0,0);
   return true;
 };
+
+// A CHAT LINK INSIDE A MESSAGE OPENS IN PLACE, WITH THE WAY BACK
+// (2026-08-27, Sophie: "this is especially useful if I'm asking a chat to
+// give me a bunch of other chats that I need to look at"). Message links
+// render target=_blank, so a /chats?chat=… link in a reply used to leave
+// the app entirely (Safari, or a native hop with no trail back). A link to
+// a chat this feed knows opens the thread right here and pushes the one she
+// was reading onto backTrail — the back chevron returns to it, exactly as
+// it returns to a page (#1754). Anything else — another host, another tool,
+// a chat the feed never met — keeps its old behaviour untouched. Capture
+// phase, and the tap goes no further: it must not also toggle the message
+// open or reach the autoscroll's tap-to-toggle.
+document.addEventListener('click', function(e){
+  var a=e.target && e.target.closest && e.target.closest('#thread a[href]');
+  if(!a) return;
+  var u; try{ u=new URL(a.href); }catch(_){ return; }
+  if(u.host!==location.host && u.host!=='imageforge-q125.onrender.com') return;
+  if(u.pathname!=='/chats') return;
+  var to=u.searchParams.get('chat');
+  if(!to || !chats[to] || to===cur) return;
+  e.preventDefault(); e.stopPropagation();
+  if(cur) backTrail.push({from:cur, chat:to});   // before openChat — see backTrail
+  curTab='chat'; openChat(to);
+  window.scrollTo(0,0);
+}, true);
 
 // Is the pinned link CURRENT — i.e. did this chat update it in the last turn it
 // finished? (Aug 2026, Sophie: "a tag on it that says like current or recent,
@@ -6852,7 +6879,7 @@ function renderQuestion(q){
   return row;
 }
 function openChat(name, keepScroll, focusId, noFetch){
-  if(backToPage && backToPage.chat!==name) backToPage=null;
+  if(backTop() && backTop().chat!==name) backTrail=[];
   if(window.__jumpsRecheck) setTimeout(window.__jumpsRecheck, 0);
   if(!cur) homeY=window.scrollY;   // remember the feed spot for back
   scrollStop(); cur=name;
@@ -7962,13 +7989,20 @@ function mkPagePill(getWin){
 // iframe, with a pill (above) that scrolls the iframe. Freezes the page
 // behind it, like the lightbox (design rule). embed=1 tells the server not to
 // inject its own in-page pill (this parent pill drives it instead).
-// THE WAY BACK TO A PAGE SHE LEFT THROUGH A LINK (2026-08-26). When a link
-// inside a Compare page opens a thread (any of the three escape paths: the
-// __openThread bridge, the click interceptor, the load net), the page is
-// remembered here and the thread's BACK BUTTON reopens it — once — instead of
-// going home. Consumed on use; forgotten the moment she opens a DIFFERENT
-// chat, so a stale return can never teleport her later.
-var backToPage=null;
+// THE WAY BACK TO WHERE A LINK CAME FROM (2026-08-26 #1754, grown
+// 2026-08-27, Sophie: "link to a chat, click on the link and then when I
+// finish there go back to the chat I was in — especially useful if I'm
+// asking a chat to give me a bunch of other chats that I need to look at").
+// When a link opens a thread — out of a Compare page (the three escape
+// paths: the __openThread bridge, the click interceptor, the load net) or
+// out of a MESSAGE in another thread — where she came from is pushed here,
+// and the thread's BACK BUTTON walks it back: `p` reopens that page (once,
+// exactly as #1754 shipped it), `from` reopens that chat. Hops STACK, so
+// B → C backs out to B and then to wherever B came from. Each entry is
+// consumed on use, and the whole trail is forgotten the moment she opens a
+// chat no entry expects — a stale return can never teleport her later.
+var backTrail=[];
+function backTop(){ return backTrail[backTrail.length-1]||null; }
 function openPage(p){
   scrollStop();
   var pvY=window.scrollY;   // the house overlay rule — restored by __close below
@@ -8028,7 +8062,7 @@ function openPage(p){
           v.__close();
           // land on the MESSAGES tab — curTab still says which tab the
           // thread behind the viewer was on, and a chat link means the chat
-          if(wantChat && chats[wantChat]){ curTab='chat'; openChat(wantChat); backToPage={p:p, chat:wantChat}; }
+          if(wantChat && chats[wantChat]){ backTrail.push({p:p, chat:wantChat}); curTab='chat'; openChat(wantChat); }
           else if(wantChat) location.href='/chats?chat='+encodeURIComponent(wantChat);
           return;
         }
@@ -8049,7 +8083,7 @@ function openPage(p){
         e.preventDefault(); e.stopPropagation();
         var chat=u.searchParams.get('chat');
         v.__close();
-        if(chat && chats[chat]){ curTab='chat'; openChat(chat); backToPage={p:p, chat:chat}; }
+        if(chat && chats[chat]){ backTrail.push({p:p, chat:chat}); curTab='chat'; openChat(chat); }
         else location.href=u.href;
       }, true);
       // A page that drives its OWN scrolling declares
@@ -8926,10 +8960,16 @@ function goHome(dropSearch){
 // Wrapped, never passed straight to onclick — the click Event would arrive as
 // `dropSearch` and every back-out would throw the search away.
 document.getElementById('back').onclick=function(){
-  // She came to this thread through a link on a page — back means back to the
-  // page, once. Closing the reopened viewer lands on the thread; back again
-  // goes home as ever.
-  if(backToPage && cur===backToPage.chat){ var b=backToPage; backToPage=null; openPage(b.p); return; }
+  // She came to this thread through a link — back means back to where the
+  // link was: the page it sat on (reopened once; closing it lands on the
+  // thread, back again goes home as ever), or the chat whose message carried
+  // it. A stacked trail walks B → C back to B and then to where B came from.
+  var t=backTop();
+  if(t && cur===t.chat){
+    backTrail.pop();
+    if(t.p){ openPage(t.p); return; }
+    if(t.from && chats[t.from]){ curTab='chat'; openChat(t.from); window.scrollTo(0,0); return; }
+  }
   goHome(); };
 
 // ── THE SEARCH FILTERS — one builder, both boxes ──────────────────────────
