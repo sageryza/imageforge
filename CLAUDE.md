@@ -2551,15 +2551,21 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   which the caption's own three were the first three — the required slot was
   found by adding it beside five other facts rather than by making room for
   it. `lbCaption` in promptlab.html is the lightbox's own builder now:
-  **MODEL · QUALITY · SIZE**, plus `panel 4 of 9` where a run has more than
-  one picture (which one she is looking at is navigation, not a fact about the
-  run). `runParts` is untouched and still tags the run's CARD with the style,
-  the ratio, the grid, `photo ref` — over a picture she is LOOKING at, the
-  ratio and the grid are things she can see and the style is behind the Prompt
-  door. **Slot 1 is the model id, not the style label**, which is what that
-  same picture's filed caption already says in My Creations and Meta Assets —
-  so one picture stopped reading two different ways in two places. A LoRA run
-  has neither a quality nor a tier and keeps its card tags.
+  **the STYLE · QUALITY · SIZE and nothing else.** `runParts` is untouched and
+  still tags the run's CARD with the ratio, the grid, `photo ref` — over a
+  picture she is LOOKING at, the ratio and the grid are things she can see and
+  the wording is behind the Prompt door. A LoRA run has neither a quality nor
+  a tier and keeps its card tags.
+  **THREE MEANS THREE, AND SLOT 1 IS THE TILE SHE DREW WITH (2026-08-27, her
+  correction the same hour: "u added panel 2/4 and the chatgpt2 … get
+  rid").** The first cut read her "model" as the model ID (`gpt-image-2`, to
+  match what that picture's FILED caption says in My Creations and Meta
+  Assets) and kept `panel 4 of 9` on the end as navigation — which one of the
+  run she is looking at. Both were things that had not been on the line
+  before, on a line she had just asked to be three: **the Playground's tiles
+  ARE the models to her**, and the size slot already says a picture is a
+  quarter. So the filed caption and this one disagree about slot 1 on
+  purpose.
   **AND THE HARNESSES COULD NOT SERVE IT** — `scripts/lib/public-asset.js`
   answered out of `public/` only, so the three root-level shared files
   (`pause-plan.js`, `pad-characters.js`, `size-tier.js`) 404'd in every
