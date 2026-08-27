@@ -3268,6 +3268,18 @@ out. The headlines, so you know when to go and look:
   copy-paste into a new module fails there instead of silently costing a batch
   of originals. Need a smaller file for a page? Derive one — `webp-assets.js`,
   or the `thumbs/` service in `server.js`.
+  **AND WITHOUT THAT FLAG, `output_format:'webp'` COMES BACK LOSSLESS — webp is
+  the CONTAINER, not a compression (measured 2026-08-27, Sophie asked: "why
+  webp? are they compressed?").** Read the fourth chunk id of the actual bytes:
+  a lossless webp is **`VP8L`**, a lossy one is `VP8 `. Every original this app
+  stores is VP8L — a character card is 1,262,818 bytes for 1024x1024 (1.18
+  bytes/pixel, which is lossless territory; a lossy webp of the same picture is
+  a tenth of that) and a 4K Playground render is 3,051,188. The derived thumbs
+  are `VP8 ` and are MEANT to be — that is the display copy the rule above is
+  about. So "it's a webp" is never on its own evidence that something was
+  compressed: **check the chunk id, and check whether the file is an original
+  or a derived copy.** One command:
+  `python3 -c "import sys;d=open(sys.argv[1],'rb').read();print(d[12:16])" <file>`.
 - **THE HEADER TOP IS ONE NUMBER AND `pagehead.js` ENFORCES IT (2026-08-23,
   Sophie: "the header is different in both, and not at the top").** Measured
   that day: across all 39 gated pages the gap above the header ran 0 to 42px,
