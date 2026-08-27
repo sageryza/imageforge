@@ -100,10 +100,23 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
    at the top-right and the box's own corner can land inside it on a phone,
    where a tap reaches the pill's ▼ instead. Lifting the button's z-index is
    NOT the fix — that steals the pill's own tap. Same number as the Playground,
-   for the same reason. */
+   for the same reason.
+   THE BIG BOX FITS THE WORDS (2026-08-27, Sophie: "why not expand based on
+   text, not static"). It was a flat 46vh whatever was in it, which is a box
+   with an empty half under two lines and a box that still scrolls under a long
+   dictation — the size said nothing about what was in it. So `.big` is the
+   CAP, never the height: the height is measured off the content on the tap,
+   on every keystroke while it is open, and on a resize. The FLOOR is what
+   keeps the button worth tapping on an empty box — this is a field she WRITES
+   in, so "expand" has to mean room to write before the words exist; that is
+   the difference from the `.moretxt` opener, which only ever reveals text
+   that is already there and so may hide itself.
+   BOTH BOUNDS ARE CSS, NOT JS ARITHMETIC — the browser clamps the inline
+   height between them, so the two numbers live in one place and no `vh` has
+   to be re-derived in script. */
 .promptwrap{position:relative;}
 .promptwrap textarea{padding-bottom:34px;}
-#text.big{min-height:46vh;}
+#text.big{min-height:24vh; max-height:46vh;}
 #bigtext{position:absolute; right:56px; bottom:6px; width:26px; height:26px;
   display:flex; align-items:center; justify-content:center; padding:0; margin:0;
   border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink2); cursor:pointer;}
@@ -390,10 +403,28 @@ clr.onclick=function(){ ta.value=''; saveText(); paintGo(); ta.focus(); };
 // is a moment of reading or fixing a long dictation. The textarea is
 // `resize:vertical`, so any hand-dragged height is cleared on the toggle —
 // otherwise "back to small" would leave the box exactly where she dragged it.
+//
+// THE BIG BOX FITS THE WORDS (2026-08-27, Sophie: "why not expand based on
+// text, not static"). `fitBig` measures the content and sets the height to it;
+// `.big`'s min/max-height clamp the result, so the two bounds live in the CSS
+// and nothing re-derives a `vh` here. It runs on the tap, on every keystroke
+// while the box is open (so it grows under a dictation as she speaks) and on a
+// resize — a rotation changes what `vh` means.
+//   `height:auto` FIRST is what makes the measurement honest: scrollHeight of
+// a box already sized to its old height reports that height, so measuring
+// without the reset can only ever grow the box, never shrink it back when she
+// deletes a paragraph. The border is added back because the box is
+// `border-box` and scrollHeight excludes borders — without it every fit is two
+// pixels short and the box scrolls its own last line.
 (function(){
   var MAX='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>';
   var MIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>';
   var btn=document.getElementById('bigtext');
+  function fitBig(){
+    if(!ta.classList.contains('big')) return;
+    ta.style.height='auto';
+    ta.style.height=(ta.scrollHeight + (ta.offsetHeight - ta.clientHeight))+'px';
+  }
   function paint(){
     var big=ta.classList.contains('big');
     btn.innerHTML=big?MIN:MAX;
@@ -403,8 +434,14 @@ clr.onclick=function(){ ta.value=''; saveText(); paintGo(); ta.focus(); };
   btn.addEventListener('click', function(){
     ta.classList.toggle('big');
     ta.style.height='';
+    fitBig();
     paint();
   });
+  ta.addEventListener('input', fitBig);
+  window.addEventListener('resize', fitBig);
+  // The serif lands after the page does and it moves the wrap, so a box fitted
+  // before it loaded is fitted to the fallback font's line count.
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(fitBig);
   paint();
 })();
 

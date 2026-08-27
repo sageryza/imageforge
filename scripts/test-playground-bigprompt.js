@@ -15,8 +15,15 @@
 //      safe-area inset applied — the pill sits 33px higher without one, so a
 //      plain headless check misses the collision — and the pill's ▼ still
 //      takes its own tap,
-//   2. one tap makes the SAME textarea big — over a third of the screen —
-//      with her words still in it (never a second field to sync),
+//   2. one tap makes the SAME textarea big, with her words still in it (never
+//      a second field to sync),
+//   2b. the big box FITS THE WORDS rather than being a flat height (2026-08-27,
+//      Sophie: "why not expand based on text, not static") — a short prompt
+//      and a long one open at DIFFERENT heights, which is the assertion a
+//      static box could never pass; it stops at the cap, shrinks back when she
+//      deletes a paragraph (the `height:auto` reset), refits when a prompt is
+//      copied BACK into the box (which fires no `input` event), and an EMPTY
+//      box still opens to the floor, because this is a field she writes IN,
 //   3. the glyph and label swap to "back to small",
 //   4. the next tap shrinks it back, even after a hand-dragged resize left an
 //      inline height behind,
@@ -146,9 +153,62 @@ const ok = (c, m) => { if (c) console.log('  ok  ' + m); else fail(m); };
     words: document.getElementById('prompt').value,
     label: document.getElementById('bigprompt').getAttribute('aria-label'),
   }));
-  ok(big.h >= 844 * 0.35, `one tap: the box is big (${Math.round(small)} → ${Math.round(big.h)}px)`);
+  ok(big.h > small, `one tap: the box is bigger (${Math.round(small)} → ${Math.round(big.h)}px)`);
   ok(/fox asleep/.test(big.words), 'the same textarea — her words are still in it');
   ok(/small/i.test(big.label), `the label now offers the way back (${big.label})`);
+
+  // THE SIZE FOLLOWS THE WORDS (2026-08-27, Sophie: "why not expand based on
+  // text, not static"). A flat height is what this replaces, so the assertion
+  // that matters is that TWO different prompts open at TWO different heights —
+  // a check against one number would pass against the old static box.
+  console.log('IT FITS THE WORDS, IT IS NOT A FIXED SIZE');
+  const CAP = Math.round(844 * 0.52), FLOOR = Math.round(844 * 0.24);
+  ok(big.h < CAP - 8, `a one-line prompt does not open at the cap (${Math.round(big.h)}px, cap ${CAP})`);
+  ok(big.h >= FLOOR - 2,
+    `and never below the floor, so the button is worth tapping on a short one (floor ${FLOOR})`);
+
+  const grown = await page.evaluate(() => {
+    const t = document.getElementById('prompt');
+    t.value = new Array(40).join('a fox asleep on a radiator, and the apartment holding its breath. ');
+    t.dispatchEvent(new Event('input'));
+    return t.getBoundingClientRect().height;
+  });
+  ok(grown > big.h, `a long dictation opens taller than a short one (${Math.round(big.h)} → ${Math.round(grown)}px)`);
+  ok(Math.abs(grown - CAP) <= 2, `and stops at the cap rather than running off the screen (${Math.round(grown)}px)`);
+
+  // The `height:auto` reset is the whole of this one: scrollHeight on a box
+  // already sized to its old height reports that height, so without the reset
+  // the box can only ever grow.
+  const shrunk = await page.evaluate(() => {
+    const t = document.getElementById('prompt');
+    t.value = 'a fox asleep on a radiator.';
+    t.dispatchEvent(new Event('input'));
+    return t.getBoundingClientRect().height;
+  });
+  ok(shrunk < grown - 20, `and it shrinks back when she deletes a paragraph (${Math.round(grown)} → ${Math.round(shrunk)}px)`);
+
+  // PUTTING A PROMPT BACK REFITS THE BOX. `copyPromptIn` sets `.value`
+  // directly, which fires no `input` event — without the explicit call the run
+  // she just copied would sit in a box fitted to whatever was there before.
+  const copied = await page.evaluate(() => {
+    const t = document.getElementById('prompt');
+    t.value = new Array(40).join('a fox asleep on a radiator, and the apartment holding its breath. ');
+    if (window.__fitBigPrompt) window.__fitBigPrompt();
+    return { h: t.getBoundingClientRect().height, hook: !!window.__fitBigPrompt };
+  });
+  ok(copied.hook, 'the fitter is exposed for copy-back (window.__fitBigPrompt)');
+  ok(Math.abs(copied.h - CAP) <= 2,
+    `a copied-back prompt refits the box, though it fires no input event (${Math.round(copied.h)}px)`);
+
+  const empty = await page.evaluate(() => {
+    const t = document.getElementById('prompt');
+    t.value = '';
+    t.dispatchEvent(new Event('input'));
+    return t.getBoundingClientRect().height;
+  });
+  ok(empty >= FLOOR - 2 && empty <= FLOOR + 2,
+    `an EMPTY box still opens to the floor — this is a field she writes in (${Math.round(empty)}px)`);
+  await page.fill('#prompt', 'a fox asleep on a radiator, and the whole apartment holding its breath');
 
   console.log('AND BACK');
   // A hand-dragged resize (desktop) leaves an inline height behind — the
