@@ -98,6 +98,11 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
 if (!fs.readFileSync(path.join(PUB, 'filmnote.js'), 'utf8').includes('visualViewport')) {
   fail('filmnote.js does not lift the note sheet over the iOS keyboard (visualViewport)');
 }
+// static: the Compare lightbox's ✕ carries the same near-miss hit extension
+// as #pinfull's (the page half of this test only drives the pinned player)
+if (!fs.readFileSync(path.join(PUB, 'compare.js'), 'utf8').includes('cmp-vlb-x::after')) {
+  fail('compare.js lightbox ✕ lost its near-miss hit extension');
+}
 (async () => {
   await new Promise((r) => server.listen(0, r));
   const base = 'http://127.0.0.1:' + server.address().port;
@@ -172,6 +177,20 @@ if (!fs.readFileSync(path.join(PUB, 'filmnote.js'), 'utf8').includes('visualView
   if (!await page.evaluate(() => document.querySelector('#pinfull video').paused)) fail('the tap after dismissing the overlay did not pause');
   await page.evaluate(() => { window.__filmNote.SCRIM_MS = 0; });
 
+  // 1c. the bottom band is the native scrub bar's own (2026-08-27, her ask):
+  //     a tap there never toggles, playing or paused
+  const bandTap = () => page.evaluate(() => {
+    const v = document.querySelector('#pinfull video');
+    const r = v.getBoundingClientRect();
+    v.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + r.width / 2, clientY: r.bottom - 20 }));
+  });
+  await tapFilm();   // paused → play
+  await bandTap();
+  if (await page.evaluate(() => document.querySelector('#pinfull video').paused)) fail('a scrub-bar tap paused the playing film');
+  await tapFilm();   // playing → pause
+  await bandTap();
+  if (!await page.evaluate(() => document.querySelector('#pinfull video').paused)) fail('a scrub-bar tap started playback from paused');
+
   // 2. Note raises the stamped sheet with the mic already on (the film is
   //    already paused from 1b's last tap)
   await page.click('#pinfull .notebtn');
@@ -201,7 +220,14 @@ if (!fs.readFileSync(path.join(PUB, 'filmnote.js'), 'utf8').includes('visualView
   }
 
   // 4. tapping the box stops the mic and lands the words there for editing
-  await page.click('#pinfull .x');
+  //    — closed via a NEAR-MISS on the ✕ ("it's hard to exit the film",
+  //    2026-08-27): 7px outside the drawn box must still close, not land on
+  //    the film and pause it
+  {
+    const xr = await page.$eval('#pinfull .x', (n) => { const b = n.getBoundingClientRect(); return { x: b.left, y: b.top + b.height / 2 }; });
+    await page.mouse.click(xr.x - 7, xr.y);
+    if (await page.$('#pinfull')) fail('a near-miss on the ✕ did not close the player');
+  }
   await openFilm();
   await page.evaluate(() => { window.__recStopped = false; });
   await tapFilm();
