@@ -21,7 +21,7 @@
  *      her texts verbatim.
  *   6. THE DREAMY SHEET-SWAP COMPOSES WITH THE NO-TEXT SWAP. `sheet.from`
  *      must be a verbatim substring of the LIVE dreamy suffix and the swap
- *      must leave `noText.from` ('no text.') intact — the two swaps touch
+ *      must leave `noText.from` intact — the two swaps touch
  *      disjoint clauses of one tail, and only reading the real literals out
  *      of server.js can prove they still do (the test-playground-notext.js
  *      pinning pattern). An edited tail must make applySheet a NO-OP.
@@ -241,7 +241,12 @@ console.log('the panel block carries her words verbatim');
 const block = sheetGrid.panelBlock(4, ['a fox', 'a moon', 'a boat', 'a key']);
 ok(block.indexOf('a 2x2 grid of 4 separate panels') > 0, 'the grid sentence names the grid');
 ok(/equal rectangles, 2 across and 2 down/.test(block), 'the geometry is stated');
-ok(/no gutters and no outer margin/.test(block), 'no gutters, no margin — the cut lines');
+// HER WORDING, 2026-08-27: the second geometry clause ("with straight edges
+// exactly on the grid lines, no gutters and no outer margin") is gone at her
+// ask, and findSeams — not the sentence — is what keeps the cut off the
+// borders. Pinned so nobody "restores" it.
+ok(!/gutter|outer margin|exactly on the grid lines/i.test(block),
+  'the second geometry clause stays OUT — her wording');
 ok(block.indexOf('Panel 1 (top left): a fox') > 0
   && block.indexOf('Panel 4 (bottom right): a key') > 0, 'panels numbered AND named');
 ok(block.indexOf('a fox') < block.indexOf('a moon')
@@ -278,16 +283,22 @@ while ((idx = dreamyBlock.indexOf('to:', idx)) >= 0) {
 ok(dreamySuffix && /NOT a grid/.test(dreamySuffix), 'read the live dreamy suffix');
 const sheetSwap = froms.map((f, i) => ({ from: f, to: tos[i] }))
   .find((p) => p.from && /NOT a grid/.test(p.from));
-const noTextFrom = froms.find((f) => f === 'no text.');
+// DERIVED, never a hardcoded literal: the no-text swap is simply the pair
+// that is not the sheet swap. Both clauses have been reworded more than once
+// (the tail said "Minimal text only." then "no text." and is back to
+// "minimal text." with the toggle sending "no text."), and a test naming
+// either one goes red on her next dictation instead of on a real break.
+const noTextFrom = froms.find((f) => f && !/NOT a grid/.test(f));
 ok(!!sheetSwap, 'dreamy carries a sheet swap whose `from` is the anti-grid clause');
-ok(noTextFrom === 'no text.', 'dreamy still carries the no-text swap');
+ok(!!noTextFrom && dreamySuffix.includes(noTextFrom),
+  'dreamy still carries a no-text swap whose `from` is verbatim in the tail');
 if (sheetSwap && dreamySuffix) {
   ok(dreamySuffix.includes(sheetSwap.from),
     'sheet.from is a VERBATIM substring of the live suffix');
   const swapped = sheetGrid.applySheet(dreamySuffix, sheetSwap, sheetGrid.layoutWords(9));
   ok(!/NOT a grid/.test(swapped), 'the anti-grid clause is gone after the swap');
   ok(/a 3x3 grid of 9 panels/.test(swapped), '{layout} filled with the real grid');
-  ok(swapped.includes('no text.'), "the no-text clause survives — the swaps compose");
+  ok(swapped.includes(noTextFrom), 'the text clause survives — the swaps compose');
   ok(/STYLE reference\s+only/.test(swapped) || /STYLE reference only/.test(swapped),
     'the anti-content close survives');
   // Her edited tail wins: a tail without the clause is returned untouched.

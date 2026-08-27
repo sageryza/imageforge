@@ -5656,6 +5656,24 @@ const PL_GPT_STYLES = {
     // Still gone and still deliberately unmentioned: "no caption boxes" and any
     // word about shape ("vertical"), because the canvas toggles portrait/square
     // and a prompt naming one would fight the other.
+    //
+    // TWO MORE OF HERS, 2026-08-27, both dictated:
+    //   • THE TEXT CLAUSE IS BACK TO "minimal text." AS THE DEFAULT, with the
+    //     toggle swapping it for "no text." — "just two options minimal and
+    //     none and it should just be those words not the whole paragraph."
+    //     So the second bullet above is history: the flat ban is now what the
+    //     TOGGLE sends, not what ships baked in, and the spelled-out paragraph
+    //     ("no letters, no numbers, no captions, no handwriting") is gone
+    //     entirely. Do not put it back — she asked for the words themselves.
+    //   • THE GREEN TANK TOP: "the woman w the green tank top appears nowhere.
+    //     if text asks for a woman, invent a different woman, with different
+    //     clothing." The one figure the model keeps lifting off
+    //     `refs/dream-mystery.jpg` — her own diary-comic page, which is full of
+    //     drawn people — so the general "do not draw its content" sentence was
+    //     not enough and this names her. It rides at the very END of the tail,
+    //     after that sentence, which is also why it is clear of BOTH swaps:
+    //     `noText.from` and `sheet.from` target earlier clauses and neither
+    //     regex reaches it.
     // THE ORIGINAL WORDING IS STILL IN THE REPO AND IS STILL VALID for what it
     // was built for — `scripts/nde-panel.py` (a full-bleed NDE panel wants
     // those bans) and `scripts/style-triptych.js`. Both carry a note pointing
@@ -5663,23 +5681,26 @@ const PL_GPT_STYLES = {
     // deliberately; this one is Sophie's current wording, not the only one.
     suffix: 'Render as ONE single illustration — NOT a grid, NOT split panels. ' +
       'Draw it inside a hand-drawn border, like the frames in the style ' +
-      'reference. no text. Again: the attached image is a STYLE reference ' +
-      'only — do not draw its content, its subjects or its composition.',
+      'reference. minimal text. Again: the attached image is a STYLE ' +
+      'reference only — do not draw its content, its subjects or its ' +
+      'composition. The woman in the green tank top appears nowhere. If the ' +
+      'text asks for a woman, invent a different woman, with different ' +
+      'clothing.',
     // THE NO-TEXT TOGGLE (Aug 2026, Sophie: "add a no text line to the prompt
     // that can be toggled on and off with a little toggle"). It SWAPS the
     // tail's own text clause rather than appending a second sentence arguing
-    // with it, so `from` has to track the tail VERBATIM — her 2026-08-22
-    // wording says "no text." where the old one said "Minimal text only.", so
-    // this moved with it (`test-playground-notext.js` pins the two together).
-    // The toggle still earns its place: her tail bans text in three quiet
-    // words, and turning it on spells the ban out — no letters, no numbers, no
-    // captions, no handwriting. Off is the default and the baked tail is
-    // unchanged, so a run with the toggle off is byte-for-byte what she asked
-    // for.
+    // with it, so `from` has to track the tail VERBATIM — reword the tail's
+    // text clause without moving `from` and the toggle silently APPENDS
+    // instead of swapping (`test-playground-notext.js` pins the two together).
+    // TWO WORDS EACH SINCE 2026-08-27 (Sophie: "just two options minimal and
+    // none and it should just be those words not the whole paragraph") — the
+    // toggle is now literally her two options, off = `minimal text.` and on =
+    // `no text.`, and the spelled-out ban it used to send is gone. Off is the
+    // default and the baked tail is unchanged, so a run with the toggle off is
+    // byte-for-byte what she asked for.
     noText: {
-      from: 'no text.',
-      to: 'NO text anywhere in the image — no words, no letters, no numbers, ' +
-        'no captions, no handwriting.',
+      from: 'minimal text.',
+      to: 'no text.',
     },
     // THE PANELS SHEET SWAP (Aug 2026). On a panel-sheet run the tail's
     // anti-grid clause is poison — two sentences arguing about the layout

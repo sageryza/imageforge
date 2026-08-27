@@ -180,10 +180,16 @@ function layoutWords(grid) {
 
 /**
  * The content block: the grid sentence, then one line per panel with her
- * words VERBATIM. The panels are going to be cut on the mathematical grid
- * lines, so the sentence asks for exactly that geometry — equal rectangles,
- * edges on the lines, no gutters, no outer margin — and says nothing about
- * borders or caption boxes, which are the style's business.
+ * words VERBATIM. It asks for the geometry the cut assumes — equal
+ * rectangles, this many across and down — and says nothing about borders or
+ * caption boxes, which are the style's business.
+ *
+ * THE WORDING IS HERS, dictated 2026-08-27, and it is SHORTER than what
+ * shipped: the second geometry clause ("with straight edges exactly on the
+ * grid lines, no gutters and no outer margin") is gone at her ask. Nothing
+ * depended on it — findSeams below cuts through the middle of the real gutter
+ * wherever the model drew it, which is what makes the clause unnecessary
+ * rather than load-bearing. Do not "restore" it.
  */
 function panelBlock(grid, texts) {
   const g = GRIDS[Number(grid)];
@@ -202,9 +208,8 @@ function panelBlock(grid, texts) {
     (t, i) => `Panel ${i + 1} (${names[i]}): ${String(t || '').trim()}`);
   return [
     `This page is ${shape} — equal rectangles, ${g.across} across and `
-    + `${g.down} down, with straight edges exactly on the grid lines, no `
-    + 'gutters and no outer margin. Each panel is its own complete, '
-    + `self-contained illustration. In reading order, ${order}:`,
+    + `${g.down} down. Each panel is its own complete, self-contained `
+    + `illustration. In reading order, ${order}:`,
     ...lines,
   ].join('\n');
 }
