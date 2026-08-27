@@ -215,6 +215,8 @@ const slotOff = (s) => Boolean(s && s.off);
 // its own dependency-free file so it can be tested without a node_modules,
 // and so /image and a finished draw share ONE copy of the rules.
 const { swapArt } = require('./pad-art');
+// One story becomes two — fresh beat ids, no renders carried, art optional.
+const { dupPad } = require('./pad-duplicate');
 // Which side a picture belongs on when nobody said — the pure decision
 // (evidence from the picture's own run record, playground-port's rule).
 const { padSideOf, shouldReveal } = require('./pad-side');
@@ -866,6 +868,38 @@ router.post('/pads', async (req, res) => {
     const ref = db().collection(COL).doc();
     await ref.set({ title, beats: [], updatedAt: Date.now(), ...(folder ? { folder } : {}) });
     res.json({ ok: true, pad: ref.id, title, folder: folder || null });
+  } catch (e) { fail(res, e); }
+});
+
+// DUPLICATE A STORY — the same words, drawn twice (2026-08-27, Sophie: "can
+// u duplicate the hate of the game story room story so i can do my own
+// pictures name one (mine) and the other (claude) as suffix").
+//
+// `art:false` (the default) is the case she asked for: the copy keeps the
+// beats, their words, their colours, the story's inbox and its recordings,
+// and starts with a BLANK canvas for her own pictures. `art:true` is a
+// faithful clone. Either way the copy gets fresh beat ids and does NOT carry
+// the other version's renders — the rules, and why, live in pad-duplicate.js.
+//
+// It costs nothing: one read, one write, no model call and no new bytes —
+// both stories point at the same pictures wherever those really live.
+router.post('/pads/duplicate', async (req, res) => {
+  try {
+    const from = String(req.body.pad || req.body.from || '').trim();
+    if (!from) return res.status(400).json({ error: 'pad required' });
+    const snap = await padRef(from).get();
+    if (!snap.exists) return res.status(404).json({ error: 'no such story' });
+    const src = snap.data() || {};
+    const title = String(req.body.title ?? `${src.title || 'Untitled'} (copy)`)
+      .slice(0, 200).trim();
+    const art = req.body.art === true || req.body.art === 'true';
+    const ref = db().collection(COL).doc();
+    const doc = dupPad(src, {
+      title, art, styles: STYLES, slotKeys: SLOT_KEYS,
+      mkId: () => db().collection(COL).doc().id,
+    });
+    await ref.set(doc);
+    res.json({ ok: true, pad: ref.id, from, title, art, beats: doc.beats.length });
   } catch (e) { fail(res, e); }
 });
 
