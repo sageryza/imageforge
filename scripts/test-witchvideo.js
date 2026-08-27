@@ -130,6 +130,17 @@ ok('no text input ships with a value', () => {
 ok('the page script is wrapped in an IIFE', () => {
   assert.ok(/\(function \(\) \{\s*'use strict';/.test(PAGE));
 });
+ok('the note boxes sit on the 16px iOS floor (the asset-lightbox lesson)', () => {
+  const boxes = (PAGE.match(/font:16px\/1\.5 Georgia/g) || []).length;
+  assert.ok(boxes >= 3, `only ${boxes} of the three note boxes are 16px`);
+  assert.ok(!/font:15px\/1\.5 Georgia/.test(PAGE), 'a note box is still under the floor');
+});
+ok('the sheet rides above the iOS keyboard (visualViewport wired)', () => {
+  assert.ok(PAGE.includes('visualViewport'), 'nothing lifts the fixed-bottom sheet over the keyboard');
+});
+ok('a failed send has somewhere to say so', () => {
+  assert.ok(PAGE.includes('id="sheeterr"') && PAGE.includes('id="lberr"'));
+});
 
 console.log(`\n${pass} pure checks passed`);
 if (process.exitCode) process.exit(1);
@@ -214,24 +225,58 @@ const DRIVE = `
     ok(document.getElementById('sheet').hidden, 'the chevron closes it', document.getElementById('sheet').hidden);
     ok(paused === true, 'without restarting the video on its own', paused);
 
-    // a still opens the overlay and FREEZES the page behind it
-    document.querySelectorAll('.sgrid button')[0].click();
-    ok(!document.getElementById('lb').hidden, 'a still opens big', document.getElementById('lb').hidden);
-    ok(document.body.style.overflow === 'hidden', 'with the page frozen behind it', document.body.style.overflow);
-    ok(/opening altar/.test(document.getElementById('lblabel').textContent), 'named', document.getElementById('lblabel').textContent);
-    document.getElementById('lbnote').value = 'more purple smoke';
-    document.getElementById('lbsend').click();
-    setTimeout(function(){
-      ok(document.getElementById('lb').hidden, 'sending the note closes the overlay', document.getElementById('lb').hidden);
-      ok(document.body.style.overflow === '', 'and unfreezes the page', document.body.style.overflow);
-      ok(document.querySelectorAll('#thread .nt').length === 3, 'the note lands in the thread', document.querySelectorAll('#thread .nt').length);
+    // tap again → resume; tap mid-play with the sheet up → the sheet closes
+    // and the video rolls on (never playback under an open note box)
+    document.getElementById('stage').click();
+    ok(paused === false, 'a tap on the paused video resumes it', paused);
+    document.getElementById('stage').click();
+    ok(!document.getElementById('sheet').hidden && paused === true, 'the next tap pauses into the sheet again', paused);
+    document.getElementById('stage').click();
+    ok(document.getElementById('sheet').hidden, 'a tap with the sheet up closes it', document.getElementById('sheet').hidden);
+    ok(paused === false, 'and resumes the video', paused);
 
-      // an idea from the box
-      document.getElementById('ideabox').value = 'protection jar for travel';
-      document.getElementById('ideasend').click();
+    // a video note: double-tapping Send must post ONCE, close, resume
+    document.getElementById('stage').click();
+    document.getElementById('notebox').value = 'tighten the ending';
+    document.getElementById('notesend').click();
+    document.getElementById('notesend').click();
+    setTimeout(function(){
+      ok(document.getElementById('sheet').hidden, 'sending the note closes the sheet', document.getElementById('sheet').hidden);
+      ok(paused === false, 'and resumes playback', paused);
+      ok(document.querySelectorAll('#thread .nt').length === 3, 'the video note lands in the thread once', document.querySelectorAll('#thread .nt').length);
+
+      // ♥ on this video must NOT stay lit on the next one (the leak), and
+      // switching videos closes any open sheet with it
+      document.getElementById('love').click();
       setTimeout(function(){
-        ok(document.getElementById('ideabox').value === '', 'sending an idea clears the box', document.getElementById('ideabox').value);
-        send('/result?r=' + encodeURIComponent(L.join(' | ')));
+        ok(document.getElementById('love').classList.contains('on'), 'the heart lights on its own video', document.getElementById('love').className);
+        document.getElementById('stage').click();       // playing → pause + sheet
+        document.querySelectorAll('.vrow')[0].click();  // switch to Moon water
+        ok(document.getElementById('vtitle').textContent === 'Moon water', 'the shelf switches videos', document.getElementById('vtitle').textContent);
+        ok(document.getElementById('sheet').hidden, 'switching videos closes the note sheet', document.getElementById('sheet').hidden);
+        ok(!document.getElementById('love').classList.contains('on'), 'the heart does not leak onto the next video', document.getElementById('love').className);
+        document.querySelectorAll('.vrow')[0].click();  // back to Candle magic
+
+        // a still opens the overlay and FREEZES the page behind it
+        document.querySelectorAll('.sgrid button')[0].click();
+        ok(!document.getElementById('lb').hidden, 'a still opens big', document.getElementById('lb').hidden);
+        ok(document.body.style.overflow === 'hidden', 'with the page frozen behind it', document.body.style.overflow);
+        ok(/opening altar/.test(document.getElementById('lblabel').textContent), 'named', document.getElementById('lblabel').textContent);
+        document.getElementById('lbnote').value = 'more purple smoke';
+        document.getElementById('lbsend').click();
+        setTimeout(function(){
+          ok(document.getElementById('lb').hidden, 'sending the note closes the overlay', document.getElementById('lb').hidden);
+          ok(document.body.style.overflow === '', 'and unfreezes the page', document.body.style.overflow);
+          ok(document.querySelectorAll('#thread .nt').length === 4, 'the still note lands in the thread', document.querySelectorAll('#thread .nt').length);
+
+          // an idea from the box
+          document.getElementById('ideabox').value = 'protection jar for travel';
+          document.getElementById('ideasend').click();
+          setTimeout(function(){
+            ok(document.getElementById('ideabox').value === '', 'sending an idea clears the box', document.getElementById('ideabox').value);
+            send('/result?r=' + encodeURIComponent(L.join(' | ')));
+          }, 250);
+        }, 250);
       }, 250);
     }, 250);
   }, 600);
@@ -286,7 +331,11 @@ server.listen(0, '127.0.0.1', () => {
     const check = (c, m) => { console.log('  ' + (c ? 'ok  ' : 'FAIL ') + m); if (!c) bad = true; };
     check(posts.some((p) => p.route === '/api/witchvideo/seen' && p.body.id === 'candle-magic-ab12'),
       'opening a NEW video posts /seen');
-    const note = posts.find((p) => p.route === '/api/witchvideo/note');
+    const vnotes = posts.filter((p) => p.route === '/api/witchvideo/note' && p.body.text === 'tighten the ending');
+    check(vnotes.length === 1, `a double-tapped Send posts the note ONCE (got ${vnotes.length})`);
+    check(vnotes[0] && vnotes[0].body.id === 'candle-magic-ab12' && vnotes[0].body.t === 0,
+      'the video note carries its video id and the paused second');
+    const note = posts.find((p) => p.route === '/api/witchvideo/note' && p.body.still);
     check(note && note.body.still === 'https://example.invalid/s1.png' && note.body.text === 'more purple smoke',
       'the still note carries its image url and her words');
     const idea = posts.find((p) => p.route === '/api/witchvideo/idea');
