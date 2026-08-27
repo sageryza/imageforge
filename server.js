@@ -5938,6 +5938,10 @@ async function runPromptLabGptJob(docRef, cfg) {
   }
 }
 
+// The shape WORD a run's cell ratio is searchable by — keep in step with the
+// page's own copy in promptlab.html (`PL_SHAPE_WORD` there too).
+const PL_SHAPE_WORD = { '2:3': 'portrait', '1:1': 'square', '3:2': 'landscape' };
+
 // ── A PANELS RUN: one sheet, cut apart ─────────────────────────────────
 // (Aug 2026, Sophie: "we make a picture and cut it into panels … describe
 // each panel individually. It's a way of saving money on the picture,
@@ -6410,15 +6414,23 @@ app.get('/api/promptlab/styles', (req, res) => {
   // Adding 25 later is a GRIDS entry in sheet-grid.js and nothing here.
   const panels = { grids: {}, sheets: {} };
   Object.keys(sheetGrid.GRIDS).forEach((g) => {
+    const pin = sheetGrid.GRIDS[g].shape;
     panels.grids[g] = {
       ...sheetGrid.GRIDS[g],
       count: sheetGrid.GRIDS[g].across * sheetGrid.GRIDS[g].down,
       positions: sheetGrid.positions(g),
       layout: sheetGrid.layoutWords(g),
       sentence: sheetGrid.panelBlock(g, []),
+      // A grid that PINS its cell shape (the 2 option is landscape) serves the
+      // cell's ratio, so the page wears it on the boxes and on the pending
+      // placeholders instead of following a toggle that decides nothing here.
+      aspectRatio: pin ? sheetGrid.SHAPES[pin].aspectRatio : null,
     };
   });
-  Object.keys(sheetGrid.SHAPES).forEach((shape) => {
+  // Only the shapes with a tier table of their own get a sheets map — a pinned
+  // shape (landscape) borrows its budget and is reached through the grid, so
+  // sheets[portrait][2] and sheets[square][2] are the same landscape sheet.
+  Object.keys(sheetGrid.SHAPES).filter((sh) => PL_GPT.res[sh]).forEach((shape) => {
     panels.sheets[shape] = {};
     Object.keys(sheetGrid.GRIDS).forEach((g) => {
       panels.sheets[shape][g] = {};
@@ -6580,7 +6592,7 @@ function promptlabHay(r) {
   const st = PL_GPT_STYLES[r.gptStyle || ''] || null;
   // The canvas is stored as a ratio and shown to her as one, but the button
   // she picked it with says Portrait or Square — so both words find it.
-  const shape = r.aspectRatio === '1:1' ? 'square' : (r.aspectRatio === '2:3' ? 'portrait' : '');
+  const shape = PL_SHAPE_WORD[r.aspectRatio] || '';
   return [r.prompt, st && st.label, r.gptStyle, r.model, r.quality, r.aspectRatio, shape,
     r.status === 'failed' ? 'failed' : '', r.status === 'cancelled' ? 'cancelled' : '',
     r.photoRef ? 'photo ref' : '',

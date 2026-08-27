@@ -39,8 +39,12 @@ ok('the panel and its button are gated on having a wrapper, not on the engine');
 
 // The canvas and tier toggles are still gpt-only — the LoRA has one output
 // size and rides aspect_ratio, so those would be controls that change nothing.
-assert.ok(/ct\.style\.display = gpt \? 'flex' : 'none'/.test(PAGE),
+// Same reasoning now covers a PANELS grid that PINS its cell shape (the 2
+// option is landscape): a control that decides nothing comes off.
+assert.ok(/ct\.style\.display = \(gpt && canvasApplies\(\)\) \? 'flex' : 'none'/.test(PAGE),
   'the canvas toggle stays gpt-only');
+assert.ok(/function canvasApplies\(\) \{ return !\(onPanels\(\) && gridPin\(curGrid\(\)\)\); \}/.test(PAGE),
+  'and stands down on a grid that pins its own cell shape');
 ok('the size controls stay gpt-only — they would change nothing on a LoRA');
 
 (async () => {

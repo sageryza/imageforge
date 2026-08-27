@@ -319,9 +319,35 @@ one prompt box becomes N boxes laid out AS the grid — she writes into the
 layout she gets back — and Generate draws ONE gpt-image-2 sheet at the tier
 budget, cuts it into N pictures server-side, and the run's `images` ARE the
 cut panels, so the feed, tiles, votes, lightbox and search need nothing new.
-Grids: **2 (side by side), 4 (2x2), 9 (3x3)** — 25 later is one `GRIDS` entry
-in `sheet-grid.js` (plus a `promptMax` look: nine dictated panels fit under
-4000 chars at ~350 each; twenty-five will not).
+Grids: **2 (two LANDSCAPE panels, stacked), 4 (2x2), 9 (3x3)** — 25 later is
+one `GRIDS` entry in `sheet-grid.js` (plus a `promptMax` look: nine dictated
+panels fit under 4000 chars at ~350 each; twenty-five will not).
+
+- **THE 2 OPTION PINS ITS CELL SHAPE (2026-08-27, Sophie: "2 option shud be
+  landscape in panels").** It used to be two PORTRAIT panels side by side,
+  following the canvas toggle like 4 and 9 — the one grid where the toggle
+  produced a shape nobody wants: a pair of tall narrow panels on a wide sheet.
+  A `GRIDS` entry may now carry `shape`, and 2 is `{ across: 1, down: 2, shape:
+  'landscape' }` — two wide panels one above the other, which is what a
+  two-panel page is. Three things fall out of the pin, and none of them is a
+  new route (her question, "add endpoint?": **no** — a panels run is the same
+  `POST /api/promptlab` with `panels` + `grid`, and the geometry is derived):
+  - **`landscape` is the portrait cell rotated and has NO res row of its own**
+    — `SHAPES.landscape.budget = 'portrait'` names the tier table it borrows
+    its pixel budget from, so a landscape 2K panel is exactly as many pixels as
+    a portrait 2K one and there is no second copy of the budgets to keep in
+    step. Sheets: 1K **1104x1472** · 2K **1680x2240** · 4K **2448x3264**, cells
+    3:2 (1104x736 · 1680x1120 · 2448x1632).
+  - **The canvas toggle decides NOTHING for a pinned grid, so the page hides
+    it** (`canvasApplies()` in promptlab.html) rather than leaving a control
+    that changes nothing — the same rule the LoRA's hidden knobs follow.
+    `sheetFor('square', 2, …)` and `sheetFor('portrait', 2, …)` derive the
+    identical sheet, which is what makes hiding it honest.
+  - **The naming and the grid sentence follow the geometry**: a single column
+    is named `top` / `bottom` (never "top left" — there is no right-hand one)
+    and its reading order is "top to bottom" alone. A run's cell ratio `3:2` is
+    searchable as **landscape** (`PL_SHAPE_WORD`, one map in server.js and one
+    in promptlab.html, pinned equal by the panels test).
 
 - **The geometry lives in `sheet-grid.js` and is SERVED, never copied** —
   `GET /api/promptlab/styles` answers `panels` (grids, cell names, the grid
@@ -329,8 +355,9 @@ in `sheet-grid.js` (plus a `promptMax` look: nine dictated panels fit under
   is DERIVED so every cut lands on whole pixels: the 2x2 grids land exactly on
   the live tier canvases, and a 1×1 derivation reproduces all six Playground
   canvases from the constraints alone (`scripts/test-sheet-grid.js` pins it).
-  The canvas toggle picks the CELL's shape; the 1K/2K/4K tier is the SHEET's
-  pixel budget.
+  The canvas toggle picks the CELL's shape — unless the grid PINS one (the 2
+  option), and then the toggle comes off; the 1K/2K/4K tier is the SHEET's
+  pixel budget either way.
 - **The style tail's anti-grid clause is SWAPPED, never argued with** —
   Dreamy's "Render as ONE single illustration — NOT a grid…" is load-bearing
   on an ordinary run and poison on a sheet, so `PL_GPT_STYLES.dreamy.sheet`

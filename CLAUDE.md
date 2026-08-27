@@ -3187,7 +3187,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
   make a picture and cut it into panels … describe each panel individually —
   it could be a feature or Hairline tab in the playground itself").** On
   PANELS the prompt box becomes N boxes laid out AS the grid (2 · 4 · 9; 25
-  later is one `GRIDS` entry in `sheet-grid.js`); one gpt-image-2 SHEET draws
+  later is one `GRIDS` entry in `sheet-grid.js`) — **the 2 option is two
+  LANDSCAPE panels, one above the other** (2026-08-27, Sophie: "2 option shud
+  be landscape in panels"), a `shape` PINNED on that grid, which borrows the
+  portrait tier's pixel budget and takes the canvas toggle off screen because
+  it decides nothing there. **No new endpoint** (her question the same day): a
+  panels run is the same `POST /api/promptlab` with `panels` + `grid`; one gpt-image-2 SHEET draws
   at the tier budget on a canvas DERIVED to divide into whole-pixel cells,
   the server cuts it apart (sequential, lossless, sharp cache off — the 512MB
   box; **the cut is IMAGE-AWARE since 2026-08-27** — `findSeams` cuts through
