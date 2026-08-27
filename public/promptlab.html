@@ -769,6 +769,9 @@
 
   // ─── SEARCH (Aug 2026, Sophie: "can u add a little search bar that fits in
   // the space between the heart toggle (next to tiles/grid)") ──────────────
+  // The shape WORD a run is searchable by — the twin of server.js's own
+  // PL_SHAPE_WORD, pinned equal by scripts/test-playground-panels.js.
+  var PL_SHAPE_WORD = { '2:3': 'portrait', '1:1': 'square', '3:2': 'landscape' };
   // It filters the feed by RUN — her words are a run's, not a picture's — so
   // in list view whole boxes drop out and in tiles every picture from a
   // matching run stays on the wall. It stacks with the heart the same way the
@@ -797,7 +800,7 @@
     // The canvas is stored and shown as a ratio, but the button she picked it
     // with says Portrait or Square — so both words find it. (The server's own
     // haystack, promptlabHay in server.js, is the same list.)
-    var shape = r.aspectRatio === '1:1' ? 'square' : (r.aspectRatio === '2:3' ? 'portrait' : '');
+    var shape = PL_SHAPE_WORD[r.aspectRatio] || '';
     return [r.prompt, runStyleLabel(r), r.gptStyle, r.model, r.quality, r.aspectRatio, shape,
       r.status === 'failed' ? 'failed' : '', r.status === 'cancelled' ? 'cancelled' : '',
       r.photoRef ? 'photo ref' : '']
@@ -991,6 +994,20 @@
   // switching 9 → 4 → 9 loses nothing.
   var PANELS_CFG = null;
   var TABKEY = 'promptlab_tab', GRIDKEY = 'promptlab_grid';
+  // A grid may PIN its cell shape — the 2 option is two LANDSCAPE panels, one
+  // above the other (2026-08-27, Sophie: "2 option shud be landscape in
+  // panels"). The ratio is SERVED (sheet-grid.js is the one geometry), and a
+  // pinned grid ignores the canvas toggle outright, so the toggle comes off
+  // rather than sitting there changing nothing — the same rule the LoRA's
+  // hidden knobs follow.
+  function gridPin(g) {
+    var m = PANELS_CFG && PANELS_CFG.grids[g];
+    return (m && m.aspectRatio) || '';
+  }
+  function cellAr(g) {
+    return gridPin(g) || (canvas === 'square' ? '1:1' : '2:3');
+  }
+  function canvasApplies() { return !(onPanels() && gridPin(curGrid())); }
   function curTab() { return localStorage.getItem(TABKEY) === 'panels' ? 'panels' : 'picture'; }
   function onPanels() { return curTab() === 'panels'; }
   function curGrid() {
@@ -1030,8 +1047,9 @@
     var g = curGrid(), meta = PANELS_CFG.grids[g];
     box.style.display = 'grid';
     box.style.gridTemplateColumns = 'repeat(' + meta.across + ', 1fr)';
-    // The boxes wear the CELL's shape, following the canvas toggle.
-    box.style.setProperty('--pcell', canvas === 'square' ? '1 / 1' : '2 / 3');
+    // The boxes wear the CELL's shape: the grid's own when it PINS one (the 2
+    // option is landscape), else the canvas toggle's.
+    box.style.setProperty('--pcell', arCss(cellAr(g)));
     var saved = panelTexts(g);
     box.innerHTML = '';
     for (var i = 0; i < meta.count; i++) {
@@ -1062,7 +1080,7 @@
     var b = e.target.closest('button[data-grid]');
     if (!b) return;
     try { localStorage.setItem(GRIDKEY, b.getAttribute('data-grid')); } catch (err) { /* private mode */ }
-    paintGridPick(); buildPanelGrid(); paintRes(); paintPromptPanel();
+    paintGridPick(); buildPanelGrid(); syncControls(); paintRes(); paintPromptPanel();
   });
   // GENERATE on the Panels tab: every box must hold words — the error names
   // how many are still empty rather than a generic refusal. One sheet, one
@@ -1104,7 +1122,7 @@
         // N placeholders in the CELL's shape — the wall must not re-flow
         // when the cut panels land.
         count: (PANELS_CFG.grids[g] || {}).count || g, quality: quality,
-        ar: canvas === 'square' ? '1:1' : '2:3', grid: g,
+        ar: cellAr(g), grid: g,
       });
       setPending(list); renderPendings(); startPolling();
     });
@@ -1741,7 +1759,7 @@
       pb.hidden = !bakedFor(styleKey);
       pb.classList.toggle('edited', !!overrideFor(styleKey));
     }
-    if (ct) ct.style.display = gpt ? 'flex' : 'none';
+    if (ct) ct.style.display = (gpt && canvasApplies()) ? 'flex' : 'none';
     // The tiers are gpt-image-2's too — the WTR LoRA has one output size and
     // rides `aspect_ratio`, so the toggle comes off there rather than offering
     // a choice that would change nothing. `hidden` rather than a display

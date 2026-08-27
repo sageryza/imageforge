@@ -32,17 +32,30 @@
 // The grids on offer. 25 later is one { across: 5, down: 5 } entry — nothing
 // else in the module counts the panels. (Sophie, 2026-08-26: "2, 4, 9 —
 // possible 25 later".)
+//
+// THE 2 OPTION IS TWO LANDSCAPE PANELS, ONE ABOVE THE OTHER — a grid may PIN
+// its cell shape, and this one does (2026-08-27, Sophie: "2 option shud be
+// landscape in panels"). It used to be two PORTRAIT panels side by side,
+// following the canvas toggle like 4 and 9 — which is the one grid where the
+// toggle produced a shape nobody wants: a pair of tall narrow panels on a
+// wide sheet. Two wide panels stacked is what a two-panel page is. A pinned
+// shape means the canvas toggle decides NOTHING for that grid, so the page
+// hides it rather than leaving a control that changes nothing on screen.
 const GRIDS = {
-  2: { across: 2, down: 1 },
+  2: { across: 1, down: 2, shape: 'landscape' },
   4: { across: 2, down: 2 },
   9: { across: 3, down: 3 },
 };
 
 // Cell shapes mirror the Playground's canvas toggle: the toggle picks what
 // shape each PANEL comes out, and the sheet's own shape falls out of the grid.
+// `landscape` is the portrait cell rotated, so it has no res row of its own —
+// `budget` names the tier table it borrows its pixel budget from, and a
+// landscape 2K panel is exactly as many pixels as a portrait 2K one.
 const SHAPES = {
   portrait: { w: 2, h: 3, aspectRatio: '2:3' },
   square: { w: 1, h: 1, aspectRatio: '1:1' },
+  landscape: { w: 3, h: 2, aspectRatio: '3:2', budget: 'portrait' },
 };
 
 // gpt-image-2's published constraints (see PL_GPT.res in server.js).
@@ -88,10 +101,17 @@ function derive(shapeW, shapeH, across, down, budget) {
  * canvases, never a copy that can drift.
  */
 function sheetFor(shape, grid, tier, resTable) {
-  const s = SHAPES[shape];
   const g = GRIDS[Number(grid)];
-  const row = resTable && resTable[shape] && resTable[shape].tiers
-    && resTable[shape].tiers[tier];
+  // A grid may PIN its cell shape (the 2 option is landscape), and then the
+  // canvas toggle is ignored outright rather than half-applied — a pinned
+  // shape borrows its pixel budget from the table named by SHAPES[…].budget,
+  // so `sheetFor('square', 2, …)` and `sheetFor('portrait', 2, …)` are the
+  // same sheet, which is what lets the page hide the toggle honestly.
+  const cellShape = (g && g.shape) || shape;
+  const s = SHAPES[cellShape];
+  const budgetShape = (s && s.budget) || cellShape;
+  const row = resTable && resTable[budgetShape] && resTable[budgetShape].tiers
+    && resTable[budgetShape].tiers[tier];
   if (!s || !g || !row) return null;
   const m = /^(\d+)x(\d+)$/.exec(String(row.size || ''));
   if (!m) return null;
@@ -104,7 +124,7 @@ function sheetFor(shape, grid, tier, resTable) {
     across: g.across, down: g.down, count: g.across * g.down,
     // The CELL's ratio — it is what each finished panel is, and what the
     // Playground feed renders the run's pictures with.
-    aspectRatio: s.aspectRatio,
+    aspectRatio: s.aspectRatio, shape: cellShape,
   };
 }
 
@@ -129,6 +149,12 @@ function positions(grid) {
     return across === 2 ? ['left', 'right']
       : ['left', 'middle', 'right'].slice(0, across);
   }
+  // A single COLUMN names its rows and nothing else — "top left" on a grid
+  // one panel wide reads as though there were a right-hand one.
+  if (across === 1) {
+    return down === 2 ? ['top', 'bottom']
+      : ['top', 'middle', 'bottom'].slice(0, down);
+  }
   const rows = down === 2 ? ['top', 'bottom'] : ['top', 'middle', 'bottom'];
   const cols = across === 2 ? ['left', 'right'] : ['left', 'middle', 'right'];
   const out = [];
@@ -147,9 +173,9 @@ function layoutWords(grid) {
   const g = GRIDS[Number(grid)];
   if (!g) return '';
   const count = g.across * g.down;
-  return g.down === 1
-    ? `a single row of ${count} panels, side by side`
-    : `a ${g.across}x${g.down} grid of ${count} panels`;
+  if (g.down === 1) return `a single row of ${count} panels, side by side`;
+  if (g.across === 1) return `a single column of ${count} panels, one above the other`;
+  return `a ${g.across}x${g.down} grid of ${count} panels`;
 }
 
 /**
@@ -163,18 +189,22 @@ function panelBlock(grid, texts) {
   const g = GRIDS[Number(grid)];
   if (!g) return '';
   const count = g.across * g.down;
-  const shape = g.down === 1
-    ? `a single row of ${count} separate panels, side by side`
-    : `a ${g.across}x${g.down} grid of ${count} separate panels`;
+  let shape;
+  if (g.down === 1) shape = `a single row of ${count} separate panels, side by side`;
+  else if (g.across === 1) shape = `a single column of ${count} separate panels, one above the other`;
+  else shape = `a ${g.across}x${g.down} grid of ${count} separate panels`;
   const names = positions(grid);
+  // The reading order names only the axes that exist — "left to right" on a
+  // single column is an instruction about a dimension the page has not got.
+  const order = g.down === 1 ? 'left to right'
+    : (g.across === 1 ? 'top to bottom' : 'left to right, top to bottom');
   const lines = (texts || []).map(
     (t, i) => `Panel ${i + 1} (${names[i]}): ${String(t || '').trim()}`);
   return [
     `This page is ${shape} — equal rectangles, ${g.across} across and `
     + `${g.down} down, with straight edges exactly on the grid lines, no `
     + 'gutters and no outer margin. Each panel is its own complete, '
-    + 'self-contained illustration. In reading order, left to right, top to '
-    + 'bottom:',
+    + `self-contained illustration. In reading order, ${order}:`,
     ...lines,
   ].join('\n');
 }
