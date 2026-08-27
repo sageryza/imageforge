@@ -179,9 +179,13 @@ late or never.
 - **URGENT is the only interrupt** — she is blocked without it, or it expires.
   Say so plainly in the reply AND queue it anyway, so it survives her not being
   near the computer. "It would be faster" is not urgent.
-- **A video url is NOT a desktop task** — `POST /api/ytdl/grab` downloads it
-  from the cloud (*Grab a video* under Audio & film, measured live 2026-08-23).
-  If a grab ever comes back `blocked:true`, then queue it here.
+- **A video url: TRY `POST /api/ytdl/grab` FIRST, but it is often refused and
+  the queue is still the fallback (measured 2026-08-27).** Render's IP is
+  substantially bot-blocked — 3 of 4 distinct videos refused on every player
+  client — so the grab is worth one attempt and no more hope than that. When it
+  answers `blocked:true`, queue it here. A SESSION container is luckier than
+  Render (2 of 3 the same minute), so a chat that needs the bytes can also run
+  yt-dlp itself and POST the file to the Dump / audio library.
 - **What counts as desktop-only:** anything needing her logged-in browser,
   keychain or Photos library, a plugged-in device, local files that live only on
   the Mac, and big uploads that must be chunked on her home connection. Anything
@@ -2628,6 +2632,27 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     a real iframe and `test-back-to-top.js` sweeps the baked copies. **Seven
     files, and only a test notices one left behind** — the resume revert had to
     touch all seven.
+  - **THERE IS A THIRD PILL — THE NATIVE ONE — AND WHETHER IT DRAWS IS DERIVED
+    NOW, NOT LISTED (2026-08-27, Sophie on the Characters page: "two pills").**
+    `RootView`'s `AutoScrollPill` shows on every screen that has nothing else
+    drawing one, and it used to decide that from a hand-kept BLACKLIST of tools
+    whose page already carries one. Forgetting a tool is SILENT — the two
+    capsules stack in the same fixed corner, offset by the native one's own
+    padding, and "Fast" prints twice. It had been missed once already (Voice
+    Studio, Aug 2026, and its own comment says so) and, measured the day this
+    was fixed, **five more were still wrong: Dreams, Shop Report, Characters,
+    Song Station and Films** — every one of them a page served with
+    `{ pill: true }`. So the answer comes from `Tool.webPath` (which page each
+    tool hosts) plus `forgePillPages` (every page that carries one — injected,
+    or baked from `pill.py`), and `node scripts/test-native-pill.js` derives
+    the real set from server.js and fails on drift **in both directions**: a
+    page missing from the set draws two pills, a page listed that has none
+    draws nothing and leaves her with no way back to the top. It also fails if
+    a per-tool `if t == .x` opt-out grows back beside the derived rule. The
+    only two that survive are not about a page: `.filmeditor` (one screen,
+    never scrolls) and `.movie` while the Story Room is pushed inside it.
+    **The fix ships with a TestFlight build, not a deploy** — until she
+    installs one, the five above still show two.
   - **The app's copy has no `id="ptop"` on purpose** — `chats.html`'s own pill
     owns that id and the sweep above counts exactly one per file; the viewer's
     button is `class="ptop"` only.
@@ -3666,6 +3691,23 @@ before working on that module. Nothing was deleted — the moved text is verbati
     closes the box first) and the copy action.
   - **A half with nothing filed shows no Style|Content pair** — the
     Playground's no-style-half silence, now everyone's.
+  - **`votesBelow` PUTS TWO BUTTON FAMILIES ON ONE LINE, SO `.vbelow` SIZES
+    THEM (2026-08-27, Sophie: "bottom buttons are all different sizes in the
+    playground light box … find what size they were 24 hours ago and make them
+    all that size").** `.vote` is 38px because it was drawn for the screen's
+    TOP CORNERS, and `.lbacts button` is 34px; `votesBelow` moves the votes
+    into that row, so ♥ ✕ sat visibly bigger than copy · save · story beside
+    them, with the 38px note-send under both. **The size she asked for is the
+    Playground's own**, read off its hand-rolled lightbox as it stood the day
+    before the port (`.lbbtn` — 46x46, a 21px glyph, 22px apart), where all
+    five really were one class. It is a `.vbelow` rule in `asset-lightbox.js`,
+    scoped like every other hook, so the Assets tab, Meta Assets and the grid
+    pages — which pass no layout hook — keep the sizes they have. **A hook
+    that MOVES a control into another row inherits that row's problem: check
+    the sizes on both sides of the join.** Pinned by the size block in
+    `node scripts/test-playground-lightbox.js`, MEASURED off the real boxes
+    (two rules winning on two different buttons is invisible to any class
+    assertion) — verified failing 2 pre-fix, naming all three sizes.
   What SURVIVED the move, as caller wiring: the thumb-first open with the
   original swapping in from the ONE fetch Save needs (below); the style half
   derived from THIS run's `fullPrompt` (`runPromptHalves`, below); ♥/✕ to the
@@ -4267,14 +4309,20 @@ before working on that module. Nothing was deleted — the moved text is verbati
   metadata AND pulled a real 3.3MB m4a and a 17MB 720p mp4, first try, no
   cookies. That is the exact shape CLAUDE.md warns about at the top — a dated
   measurement going stale when the environment moves underneath it.
-  **AND THEN MEASURED ON RENDER ITSELF, the same day, because one cloud egress
-  is not a population:** probe 4.8s, a 3.4MB m4a down in under 6s, and a 360p
-  mp4 merged by ffmpeg, postered by the Dump and filed, at 9.1MB. Both test
-  records were deleted afterwards. **Render is not blocked.** It can regress —
-  the blocking is YouTube's to change — so `GET /api/ytdl/status?probe=1`
-  re-runs the measurement on demand (metadata only, no bytes, no cost), and a
-  block lands on the doc as `blocked:true` in yt-dlp's own words, so the one
-  failure with a different remedy never reads like a generic error.
+  **BUT "RENDER IS NOT BLOCKED" WAS WRONG, AND IT TOOK THREE TRIES TO SEE IT
+  (2026-08-27).** Two successful downloads on 08-23 were read as the endpoint
+  working. Measured properly four days later: Render refused **3 of 4** distinct
+  videos, on EVERY player client, twice over — including two of Sophie's own
+  grabs. A session container got **2 of 3** the same minute, so it is Render's
+  IP reputation, not YouTube in general. What made this survive so long is that
+  `dQw4w9WgXcQ` — the probe's hardcoded video — is one of the few Render still
+  serves, so **`GET /status?probe=1` went green throughout two days of her
+  grabs failing. A green probe says ONE video on ONE client works and nothing
+  more; never quote it as the endpoint being healthy.**
+  So: the grab is worth one attempt, it fails honestly with `blocked:true` in
+  yt-dlp's own words, and **the desktop queue is still the real fallback.**
+  Cookies (`--cookies`) are the documented remedy and need her logged-in
+  browser, i.e. the desktop trip this was built to avoid.
   **It costs nothing** — no model call; it is bandwidth and ffmpeg on our own
   box. `POST /grab {url, kind:'audio'|'video', quality?, to?}` returns an id in
   ~0.3s and the work runs behind it (`GET /:id/job` to poll).
@@ -5132,6 +5180,32 @@ before working on that module. Nothing was deleted — the moved text is verbati
     seeding of a hand-worked pad, the split beat's adds landing in place, the
     re-derived caption and the reworded one that is left alone, and the two
     invariants: a pull never drops a beat, an order never changes the count).
+- **Character Creator** (`character.js`, `/api/character`, page at `/character`,
+  iOS tile "Characters", and a sheet inside Dreams) — the recurring people in
+  her dreams and stories: a photo + a name + her aliases ("me"/"Sophie",
+  "Daddy"/"Dad") become a diary-comic reference the dream render matches each
+  dream's cast against, so a face stays the same picture to picture. Drawing is
+  a DETACHED server job — it saves itself even if she closes the sheet mid-draw,
+  and `localStorage` picks an in-flight one back up.
+  **IT WAS THE PAGE THE PILL/HEADER RULES CAUGHT UP WITH LAST (2026-08-27,
+  Sophie: "two pills and there's no way to search. shud follow pill/header hard
+  rules").** Three of the four faults were structural rather than cosmetic and
+  are worth not re-earning: it had **no `.app-header`**, so `pagehead.js` had
+  nothing to sit in and injected a bare strip of its own — under a "‹ Story
+  Room" line that put a second thing above the one title; its rows ran **under
+  the injected pill's fixed corner**, so "Hide sheet" read "Hide" (reserved by
+  `fitPillGap` against the pill's REAL rect now, re-measured by a
+  ResizeObserver because the pill is conditional and this page's content
+  arrives from a fetch); and its lightbox locked the background but never
+  **stopped the autoscroll or restored the scroll position**, so the pill
+  walked the page under an open picture. The SEARCH is the house grammar over
+  the sheet — name, aliases, tier, model, quality — through `/feedkit.js`
+  (`qparse`/`qmatch`/`liveInput`/`enterSubmits`), and **typing opens the sheet**,
+  because a box that only works once she has found and tapped "Show sheet" is
+  one more thing to remember. The second pill was NATIVE and is fixed in the
+  app — see *THERE IS A THIRD PILL* in the design rules. Test:
+  `node scripts/test-character-page.js` (the real page headless, the pill
+  collision asked with `elementFromPoint`; verified failing 10 pre-fix).
 - **Writing Room** (`writing.js`, `/api/writing`, `/writing`, iOS tile) — every
   dating-book date in two versions ("Claude's" and "Mine") with every changed word
   marked red, autoscroll, and per-paragraph notes (text or voice memo). **Notes are
