@@ -6792,16 +6792,50 @@ function plSearchRuns(runs, q) {
   });
 }
 
+// A run's KIND — a panels run cut its pictures out of one sheet, a single run
+// drew one picture. The page's own runIsPanels is this function's twin
+// (pinned by scripts/test-playground-panels.js): the two must never disagree,
+// or a run would sit in one tab's gallery on the server and the other's on
+// the phone. A failed panels run still carries `panels`, so it stays in the
+// panels gallery where its retry belongs.
+function plRunIsPanels(r) {
+  return !!(r.grid && r.grid.count) || !!(r.panels && r.panels.length);
+}
+function plKindKeeps(kind, r) {
+  if (kind === 'panels') return plRunIsPanels(r);
+  if (kind === 'single') return !plRunIsPanels(r);
+  return true;                       // no kind (an older cached page) = everything
+}
+
 app.get('/api/promptlab', async (req, res) => {
   try {
     if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
     const limit = Math.min(Number(req.query.limit) || 40, 100);
     const before = Number(req.query.before) || 0;
+    // The gallery is SEPARATE per tab (2026-08-27, Sophie: "separate the
+    // gallery for playground for single pics vs panels"): kind=panels |
+    // kind=single scopes the answer. Absent — an older cached page — the
+    // route answers exactly as it always did.
+    const kind = String(req.query.kind || '').trim();
     // A search answers over the whole history at once — there is no `before`
     // walk behind it, so the page hides "Older" while one is running.
     const search = String(req.query.q || '').trim();
     if (search) {
-      const hits = plSearchRuns(await promptlabScan(), search);
+      const hits = plSearchRuns(await promptlabScan(), search)
+        .filter((r) => plKindKeeps(kind, r));
+      return res.json({
+        runs: hits.slice(0, Math.min(Math.max(Number(req.query.limit) || PL_SEARCH_MAX, 1), PL_SEARCH_MAX)),
+        more: false,
+        matched: hits.length,
+      });
+    }
+    // kind=panels takes the SEARCH path's scan, not the `before` walk: panels
+    // runs are a sliver of the feed, so paging 40 mixed docs at a time to find
+    // them would make "Older" a button that mostly adds nothing. The scan is
+    // the same 60s-cached read a search takes, and it answers the tab's whole
+    // history at once — which is why the page hides "Older" on that tab.
+    if (kind === 'panels') {
+      const hits = (await promptlabScan()).filter(plRunIsPanels);
       return res.json({
         runs: hits.slice(0, Math.min(Math.max(Number(req.query.limit) || PL_SEARCH_MAX, 1), PL_SEARCH_MAX)),
         more: false,
@@ -6813,7 +6847,11 @@ app.get('/api/promptlab', async (req, res) => {
     if (before) q = q.where('createdAt', '<', admin.firestore.Timestamp.fromMillis(before));
     const snap = await q.limit(limit).get();
     res.json({
-      runs: snap.docs.map(s => { const d = s.data(); return { ...d, createdAt: d.createdAt?.toMillis?.() || null }; }),
+      // kind=single drops the panels runs AFTER the page is read, so `more`
+      // still means "there are docs behind this page" — a short page is fine,
+      // the client's Older keeps walking.
+      runs: snap.docs.map(s => { const d = s.data(); return { ...d, createdAt: d.createdAt?.toMillis?.() || null }; })
+        .filter((r) => plKindKeeps(kind, r)),
       more: snap.size === limit,
     });
   } catch (err) {
