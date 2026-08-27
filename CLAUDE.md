@@ -3165,7 +3165,19 @@ before working on that module. Nothing was deleted — the moved text is verbati
   fraction and the SHEET's tier, never the panel's own pixels). Dreamy's
   anti-grid tail clause is SWAPPED for a sheet, the no-text mechanism again
   (`sheet` beside `noText`); the paid sheet is banked BEFORE the cut and a
-  failed cut keeps it, disclosed as "uncut sheet". Full rules: *The PANELS
+  failed cut keeps it, disclosed as "uncut sheet". **A DEPLOY RESTART CANNOT
+  LOSE A BANKED SHEET (2026-08-27, measured: three merges deployed in a row
+  and orphaned four paid 4K sheets mid-run)** — the stuck-run sweep finishes
+  an orphaned panels run from its banked sheet (free) instead of marking paid
+  work failed, and `POST /api/promptlab/:id/recut` does the same on demand
+  for a failed-with-sheet or cutFailed run (recovery-only: an already-cut run
+  is refused, a second cut would file duplicates). **AND A SHEET IS ONE
+  OUTPUT** — the serialize-the-bulk-batch note (Opinions section) counts
+  concurrent OUTPUT buffers on the box; a panels run buffers one sheet, so
+  2-3 sheets in parallel is well under the sixteen that crashed it, and a
+  chat drawing many sheets should NOT run them one at a time (measured: a
+  serialized 10-sheet batch took ~12 minutes that parallel-3 does in ~4).
+  Full rules: *The PANELS
   tab* in `docs/modules/pictures.md`. Tests: `node scripts/test-sheet-grid.js`
   and `node scripts/test-playground-panels.js`.
   **SANDY MIRROR AND CHATGPT ARE TWO TILES SINCE 2026-08-24 (Sophie: "add one
@@ -5324,7 +5336,10 @@ before working on that module. Nothing was deleted — the moved text is verbati
     nothing queues server-side either. Her own taps are 2-3 at a time, nowhere
     near the sixteen that broke it.
   The number that mattered is **concurrent OUTPUTS on our box**, so scale a
-  bulk server batch by that and leave everything else parallel.
+  bulk server batch by that and leave everything else parallel. **A PANELS
+  SHEET IS ONE OUTPUT** (2026-08-27): a chat drawing many sheets through the
+  Panels tab's API should run 2-3 in parallel, not one at a time — a
+  serialized batch of ten took ~12 minutes for no protection the box needed.
 - **The Dump** (`dropbox.js`, `/api/drop`, sort page at `/dump`, iOS tile with
   SEND and SORT tabs) — **dump first, label afterwards**. Dropping asks no
   questions; only the bundle (a Photos album) and the session are captured,
