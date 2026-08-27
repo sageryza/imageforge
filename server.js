@@ -5786,9 +5786,23 @@ const plCancelled = new Set();
 async function sweepStuckPromptlabRuns() {
   try {
     if (!admin.apps.length) return;
-    const q = await admin.firestore().collection(PROMPTLAB).where('status', '==', 'running').get();
+    const db = admin.firestore();
+    // A PANELS run parks on 'ready' while its sheet is on screen and the cut
+    // runs behind it, so the orphan check has to reach that status too — the
+    // very restart this sweep exists for would otherwise leave a paid sheet
+    // uncut AND unswept. Only a panels run with a banked sheet and no cut
+    // panels is taken from there: an ordinary 'ready' run already holds its
+    // pictures and must never be marked failed.
+    const [running, ready] = await Promise.all([
+      db.collection(PROMPTLAB).where('status', '==', 'running').get(),
+      db.collection(PROMPTLAB).where('status', '==', 'ready').get(),
+    ]);
+    const stale = running.docs.concat(ready.docs.filter((d) => {
+      const r = d.data();
+      return r.panels && r.sheetUrl && !(r.images || []).length;
+    }));
     const cutoff = Date.now() - 10 * 60 * 1000;
-    for (const d of q.docs) {
+    for (const d of stale) {
       const r = d.data();
       const at = r.createdAt?.toMillis?.() || 0;
       if (!(at && at < cutoff)) continue;
@@ -6159,9 +6173,12 @@ async function finishPanelsCut(docRef, cfg, sheetBuf, sheetUrl) {
     });
     return [sheetUrl];
   }
-  // One write straight to done — the cut takes seconds against a 30-90s
-  // render, and a 'ready' stage showing the SHEET in cells shaped for
-  // panels would distort it. A recovered run sheds its failed/cutFailed
+  // The cut lands in one write to done, and the panels replace the sheet the
+  // page has been showing since 'ready' (see runPromptLabPanelsJob). This
+  // used to be the ONLY write, on the reasoning that "a 'ready' stage showing
+  // the SHEET in cells shaped for panels would distort it" — that was true of
+  // the cell shape and not of the stage, so the page draws the sheet in the
+  // SHEET's own ratio instead. A recovered run sheds its failed/cutFailed
   // marks here.
   await docRef.update({ status: 'done', images,
     error: admin.firestore.FieldValue.delete(),
@@ -6265,7 +6282,15 @@ async function runPromptLabPanelsJob(docRef, cfg) {
     // a picture that has already been billed, and the banked url is also what
     // makes a deploy restart recoverable (the sweep recuts from it).
     const sheetUrl = await saveBufferToFirebase(sheetBuf, 'image/webp', 'promptlab');
-    await docRef.update({ sheetUrl, ...(data.usage ? { usage: [data.usage] } : {}) });
+    // THE SHEET SHOWS THE MOMENT IT IS PAID FOR (2026-08-27, Sophie: "the
+    // uncut sheet shud show before it's cut as soon as it's done (in
+    // panels"). The run parks on 'ready' with the banked sheet and no images
+    // — the page's swap poller already knows that shape — so the picture is
+    // on screen while the cut and the filing run behind it, and the panels
+    // replace it on 'done'. The page draws it in the SHEET's own ratio, never
+    // the panel cell's.
+    await docRef.update({ sheetUrl, status: 'ready',
+      ...(data.usage ? { usage: [data.usage] } : {}) });
     await finishPanelsCut(docRef, cfg, sheetBuf, sheetUrl);
   } catch (err) {
     console.warn('promptlab panels job failed:', err.message);
