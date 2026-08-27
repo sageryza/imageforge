@@ -125,3 +125,40 @@ Everything she asked for is in v13 except these, and each is hers:
   sounded pretty slow"; 1.7x was then "the speed you liked"; on 2026-08-27 she
   asked for the slower pace back, and then for a cut that ramps from the spine
   line to 3x by the end. All of them exist; she has not named a final one.
+
+## Her takes, browsable (2026-08-27)
+
+> I know I did multiple takes … could you find each of my takes for each part
+> and put them into collapsible section so I can listen to each part compared
+> to each take.
+
+`scripts/water-reel/takes-*.js` — free, no model call beyond one whisper pass
+per recording (~5c total, and the word JSON is cached in `/tmp/takes`):
+
+```
+node scripts/water-reel/takes-find.js <work>/spec.json   # locate every take
+node scripts/water-reel/takes-cut.js                     # cut each to its own mp3
+node scripts/water-reel/takes-page.js                    # build the page
+node scripts/water-reel/takes-test.js                    # headless, before posting
+```
+
+Measured on her two recordings: **62 takes across 35 lines**, and every line's
+used take identified. Three things that were wrong on the first pass and are
+worth not re-earning:
+
+- **A LINE IS FOUND BY ITS DISTINCTIVE WORDS, NOT ITS SCORE.** Her sheets say
+  near-identical things — "water flushes out the tiny greetings that live in
+  your EARS" shares 8 of 12 words with "water flush out the ghosts that live in
+  your SPINE" — so a plain ratio filed one shot's takes under another, four
+  times over. A window must carry most of the line's rare words (those it does
+  not share with two or more other lines) before its score counts.
+- **THE USED TAKE IS FOUND BY MIDPOINT, NOT CONTAINMENT.** The finder's window
+  flexes with the line's length, so a located take often runs a beat wider than
+  the slice it sits in and a containment test marked the real take as unused.
+  An `extra` phrase also carries its OWN source (c1's "than ever before" is a
+  separate pickup), which the first pass read off the shot instead.
+- **THE CHEVRON GOES ON THE LEFT AND THE ROW BOX SHORTENS.** Every row on a
+  scrolling page passes under the pill's fixed top-right corner; measured, it
+  covered the summary's right end outright, and `compare.js` hangs the note +
+  at `right:7px` of the item's PADDING box, so a padding reserve does not move
+  it. `margin-right` on the row is what clears it.
