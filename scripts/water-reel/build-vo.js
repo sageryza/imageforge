@@ -24,10 +24,10 @@
  *        --vo sophie-vo.m4a --work <dir> [--spec-only]
  *   node scripts/vo-film.js <work>/spec.json --dir <work>/film --final
  *
- * v9: the ear-goblins sheet is back, narrated by LAURA — she never recorded
- * any of its three lines ("I missed one… just use Laura's voice for that for
- * now"). It is the one borrowed section; `scripts/water-reel/tts-fill.js`
- * renders it, and swapping it back to her own take is one line in SLICES.
+ * v9-v14: the ear-goblins sheet was read by LAURA, a stock voice, because she
+ * had no take of it. She recorded it on 2026-08-27 and cut the one line she
+ * never read ("Drink gallons. Live legendary."), so the reel is now entirely
+ * her own voice and `synthSources` is empty.
  *
  * Zoom targets are fractions of each 1024x1536 sheet, measured off the ink
  * rather than guessed (a band's dark-pixel bounds decide tx/ty/z). Two sheets
@@ -104,19 +104,18 @@ const SLICES = {
   bs:    [31.9, 45.4, 2],
 };
 
-// Laura is down to ONE line since 2026-08-27: Sophie recorded the goblin
-// sheet's three reasons ("use my voice to replace the Laura voice … just use
-// the last take - 3 reasons, ignore intro"), so b1-b3 ride her `bs` slice.
-// The sheet's tagline "Drink gallons. Live legendary." has no take of hers,
-// and her standing rule (v9: "if I didn't include sections, then include the
-// lower voice LAURA") keeps Laura on exactly that one shot (b4) until she
-// records it — then b4 gets a slice too and this const goes.
-const LAURA = 'b';
+// THERE IS NO BORROWED VOICE IN THIS REEL ANY MORE (2026-08-27: "get rid of
+// the last remaining LAURA voice that says live legendary. We don't need that
+// anymore"). Sophie recorded the goblin sheet's three reasons that morning, so
+// b1-b3 moved to her own `bs` slice, and the sheet's tagline shot — the last
+// thing Laura read — is CUT rather than re-recorded. Every word is hers.
+// `scripts/water-reel/tts-fill.js` and `assets/water-reel/laura-goblin-sheet.mp3`
+// are kept as history; nothing in the build reads either.
 
 // ── the sheets ─────────────────────────────────────────────────────────────
 const A = { img: '1787619512551-35kqb3.webp', pad: 'f1d3a5', dir: 'images' }; // the earnest one
 const C = { img: '1787620392223-lfveov.webp', pad: 'eacfa1', dir: 'images' }; // funnel · fish · plants
-const B = { img: '1787620306161-xsmta2.webp', pad: 'f2e2bd', dir: 'images' }; // ear greetings · liquid light · stomach boat  [LAURA]
+const B = { img: '1787620306161-xsmta2.webp', pad: 'f2e2bd', dir: 'images' }; // ear greetings · liquid light · stomach boat
 const D = { img: '1787620455292-5g1ynr.webp', pad: 'eacda1', dir: 'images' }; // ghosts · lightning · knee
 const E = { img: '1787620576755-6n0olq.webp', pad: 'f0deba', dir: 'montage' }; // DNA · brain · portals
 const F = { img: '1787620578088-6fr3hh.webp', pad: 'ead0a2', dir: 'montage' }; // knees · demons · aura
@@ -152,7 +151,6 @@ const SHOTS = [
   { id: 'b1', s: B, src: 'bs', tx: 0.185, ty: 0.600, z: 2.55, phrases: ['Water flushes out the tiny greetings that live in your ears'] },
   { id: 'b2', s: B, src: 'bs', tx: 0.487, ty: 0.600, z: 2.55, phrases: ['Enough water turns your sweat into liquid light making you visible to good luck'] },
   { id: 'b3', s: B, src: 'bs', tx: 0.790, ty: 0.600, z: 2.55, phrases: ["Water builds a boat inside your stomach so you can sail through life's soup"] },
-  { id: 'b4', s: B, src: 'b', tx: 0.180, ty: 0.875, z: 2.60, phrases: ['Drink gallons Live legendary'] },
 
   // no "One": she said "One gallon of—" and restarted; the clean take starts
   // at "gallons" (measured — asking for the One would drag the flub back in)
@@ -211,11 +209,6 @@ for (const [name, [t0, t1, which]] of Object.entries(SLICES)) {
     run(['-v', 'error', '-y', '-ss', String(t0), '-to', String(t1), '-i', which === 2 ? VO2 : VO, '-c:a', 'pcm_s16le', out]);
     console.log(`slice ${name}: ${(t1 - t0).toFixed(1)}s${which === 2 ? ' (vo2)' : ''}`);
   }
-}
-
-if (!fs.existsSync(path.join(srcDir, `${LAURA}.wav`))) {
-  console.error(`missing ${LAURA}.wav — render it first with scripts/water-reel/tts-fill.js`);
-  process.exit(1);
 }
 
 // ── 2. one nominal zoom clip per shot ──────────────────────────────────────
@@ -288,7 +281,7 @@ for (const s of SHOTS) {
 // slices, so the master-level energy detector has little room tone to measure
 // and nothing between shots to remove — vo-film's per-shot WORD-TIMING clean
 // (the one that finds pauses by the absence of words) does the work.
-const SOURCES = [...Object.keys(SLICES), LAURA];
+const SOURCES = Object.keys(SLICES);
 const spec = {
   title: 'MORE WATER, RIGHT NOW — in her voice',
   width: W, height: PADH, fps: FPS, bg: '#f1d3a5', out: 'water-reel-v13',
@@ -299,8 +292,6 @@ const spec = {
   // everyone else — and the rule is in the shot cut cache key, so changing
   // this number re-cuts rather than serving a stale cut.
   edge: { max: 0.45, keep: 0.22 },
-  // not her voice — the mix may level these freely (see mix-sfx SYNTH_CAP)
-  synthSources: [LAURA],
   // cut on a fresh per-span re-listen, never on the bulk chunk timings alone —
   // her v9 note: word beginnings and ends were clipped (vo-film's relistenSpan)
   relisten: true,
