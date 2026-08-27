@@ -427,6 +427,7 @@ loadConfig().then(() => {
   app.use('/api/brief', require('./brief').router); // the update button — the five things worth knowing, then the quieter ones
   app.use('/api/deliverables', require('./deliverables').router); // the running deliverables list (newest first; new entries push past the bell)
   app.use('/api/review', require('./review').router); // the review queue — every deck/grid page still waiting on her
+  app.use('/api/filmshots', require('./filmshots').router); // which picture is on screen at which second — the Prompt door on a paused film
   app.use('/api/storylink', require('./storylink').router); // one story across Story Timeline, the Story Room and Cutting Blocks
   app.use('/api/googleads', googleads.router); // Google Ads API credential health check
   app.use('/api/character', character.router); // Character Creator (photo + name -> diary-comic ref)
