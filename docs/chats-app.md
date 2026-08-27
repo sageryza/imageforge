@@ -1763,6 +1763,11 @@
     until she taps a bell, which is her sentence read literally and also the
     safe failure direction (a caller that forgets the flag goes quiet rather
     than buzzing her). It compares `notify === true`, never truthiness.
+    **One exception she asked for (2026-08-27): a quick-question chat sets its
+    own bell ON** ("a 'quick question' chat shud set its own bell as true") —
+    when she runs a chat in quick-question mode, or it wears the `quick
+    question` label, the chat POSTs `{chat, notify:true}` itself. Never OFF;
+    that stays hers.
   - **The bell is FILLED, GOLD when lit, and NOT Lucide's** (Sophie's second
     pass, same week: "change the bell colour to yellow and make it filled in
     rather than just the outline"). It shipped stroked, with a comment here
@@ -2320,9 +2325,11 @@
           thread, so without it the screen she is standing on is the last to
           know. The lists need no such thing: `saveLabels` mutates `chats`
           synchronously before its callers redraw.
-        - **Nothing tells the CHAT.** `GET /api/chatfeed/status` returns her
-          note, the status card and the pinned link — no labels — so a chat
-          cannot see that she is waiting on it. That half is unbuilt.
+        - **A chat CAN read its labels since 2026-08-27.** `GET
+          /api/chatfeed/status` returns `labels` alongside her note, the
+          status card and the pinned link (added for the bug-fix auto-archive
+          and quick-question bell rules — see CLAUDE.md). Reading is the whole
+          grant: filing stays hers and the auto-sorter's.
         - Test: `node scripts/test-chats-waiting-mark.js` (the real page,
           headless — verified failing 8 of 14 against the pre-fix page).
     - **`to be reviewed` → THE REVIEW ROW** ("movies that are done, images

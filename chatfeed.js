@@ -3299,6 +3299,11 @@ router.get('/status', async (req, res) => {
       // whether its link is still up there and whether the "current" tag is
       // still lit (`turns` — see pinBump) without re-pinning blind.
       pinned: (d.pinned && d.pinned.url) ? d.pinned : null,
+      // …and its LABELS (2026-08-27, Sophie's tag rules) — so a chat can act
+      // on the words it wears: `bug fix` archives itself when the fix lands
+      // clean, `quick question` sets its own bell. Read-only here; filing is
+      // still hers and the auto-sorter's, never the chat's.
+      labels: labelsOf(d),
     });
   } catch (err) { fail(res, err); }
 });
