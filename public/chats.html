@@ -207,6 +207,10 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 #pinfull .x{position:absolute; top:calc(env(safe-area-inset-top,0px) + 10px); right:12px; z-index:2;
   width:36px; height:36px; border-radius:6px; border:1px solid rgba(255,255,255,.35); background:rgba(0,0,0,.45);
   color:#fff; display:flex; align-items:center; justify-content:center; font-size:20px; line-height:1;}
+/* a near-miss on the ✕ used to land on the film and pause it ("it's hard to
+   exit the film", 2026-08-27) — the drawn box stays 36px, the tap box is
+   ~64px via the invisible extension */
+#pinfull .x::after{content:''; position:absolute; inset:-14px;}
 /* TAP-TO-NOTE on a pinned film (Aug 2026, Sophie; REWORKED same day after her
    first real use: "even pressing play on the video triggers the note thing").
    No capture layer any more — a floating NOTE button pops up when she touches
@@ -685,6 +689,16 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
   color:var(--chg); margin-right:-1px;}
 .cr-wait svg{width:14px; height:14px; display:block;}
 .t-name .cr-wait,h1 .cr-wait{margin-right:4px;}
+/* A TAG CAN WEAR A PICTURE (2026-08-27, Sophie: "add a tag on the chat ex bug
+   fix - a picture of a bug in the list. start w just bugs"). The same slot the
+   watch rides — the front of the row, a mark with no control of its own — but
+   in the quiet ink, not the marks' red: a bug fix is what the chat IS, never a
+   debt she is owed. TAG_MARKS in the JS is the table; the bug is its first row
+   and the next picture-tag joins there. */
+.cr-tag{flex:none; display:inline-flex; align-items:center; vertical-align:-2px;
+  color:var(--ink2); margin-right:-1px;}
+.cr-tag svg{width:14px; height:14px; display:block;}
+.t-name .cr-tag,h1 .cr-tag{margin-right:4px;}
 /* PINNED TO THE TOP — the pushpin is a CONTROL on the row (Aug 2026, Sophie:
    "I was assuming it would go right on the main page not inside of it"), so it
    sits with the hide button rather than being a mark at the front of the row.
@@ -1759,6 +1773,17 @@ body.newspick > .float{display:none !important;}
            trademark reasons, and this is the same mark the grid mockup draws
            on every tile. Shown by paintHomeChrome(); hidden everywhere else. -->
       <button id="iglink" class="iconbtn igbtn" hidden aria-label="Instagram — the two grid mockups"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M2 8h20M8.5 2 12 8M15 2l3.5 6"/><path d="m10.5 12.5 4.5 2.6-4.5 2.6z" fill="currentColor"/></svg></button>
+      <!-- BUG FIX CHATS — a bug at the right of this row, on the chat list
+           (2026-08-27, Sophie: "a bug fix tag button on the right in the
+           header on all 3 account pages"). The Instagram icon's twin: a RIGHT
+           FLOAT after #pillnotch, so it lands immediately left of the pill's
+           reserved corner. Tapping it narrows the screen to the chats tagged
+           `bug fix` — and the pile reaches INTO the archive like ★ does,
+           because bug-fix chats archive themselves when the fix lands clean
+           (CLAUDE.md), so a live-only pile would go empty exactly as that
+           rule starts working. Shown by paintHomeChrome(); lit while on.
+           The glyph is Lucide `bug`, the same drawing the row mark wears. -->
+      <button id="bugbtn" class="iconbtn igbtn bugbtn" hidden aria-label="Bug-fix chats"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.8 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.2 3.8 1.9 4 4"/></svg></button>
       <button id="selbtn" class="iconbtn" aria-label="Select chats to file"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg></button>
       <div id="catrow" class="catrow"></div>
     </div>
@@ -2551,6 +2576,32 @@ function waitMarkHtml(name){
     ? '<span class="cr-wait" title="Waiting for a response" aria-label="Waiting for a response">'+WAITREPLY+'</span>'
     : '';
 }
+// A TAG CAN WEAR A PICTURE (2026-08-27, Sophie: "add a tag on the chat ex bug
+// fix - a picture of a bug in the list. start w just bugs"). TAG_MARKS maps a
+// label out of her own vocabulary to a small drawing at the front of the row —
+// the watch's slot — and the next picture-tag is a row in this table, never a
+// second renderer. `bugfix` is the vocabulary's own spelling variant (TAG_LIST
+// and the sorter's WORK_KINDS carry both), so both draw; a bare `bug`/`bugs`
+// is the word she dictates, so it draws too.
+var BUG_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.8 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.2 3.8 1.9 4 4"/></svg>';
+var TAG_MARKS=[
+  { labels:['bug fix','bugfix','bug','bugs'], cls:'cr-bug', title:'Bug fix', svg:BUG_SVG },
+];
+function tagMarkHtml(name){
+  var have=chatLabels(name), out='';
+  TAG_MARKS.forEach(function(t){
+    if(t.labels.some(function(l){ return have.indexOf(l)>-1; })){
+      out+='<span class="cr-tag '+t.cls+'" title="'+t.title+'" aria-label="'+t.title+'">'+t.svg+'</span>';
+    }
+  });
+  return out;
+}
+// The header's bug button asks the same table, so the button and the mark can
+// never disagree about which words mean a bug fix.
+function chatBugTag(name){
+  var have=chatLabels(name);
+  return TAG_MARKS[0].labels.some(function(l){ return have.indexOf(l)>-1; });
+}
 // The thread's copy of the mark is built ONCE with the header, and the tag is
 // put on from the Organize sheet — which opens from inside that same thread. So
 // the tap has to repaint it, or the one screen she is standing on is the last
@@ -2563,9 +2614,19 @@ function syncWaitMark(name){
   var m=h.querySelector('.cr-wait');
   if(waitingReply(name)){ if(!m) h.insertAdjacentHTML('afterbegin', waitMarkHtml(name)); }
   else if(m) m.remove();
+  // …and the picture-tags (the bug) follow the same tap, drawn AFTER the
+  // watch so the order matches the rows'.
+  Array.prototype.forEach.call(h.querySelectorAll('.cr-tag'), function(t){ t.remove(); });
+  var tags=tagMarkHtml(name);
+  if(tags){
+    var w=h.querySelector('.cr-wait');
+    if(w) w.insertAdjacentHTML('afterend', tags);
+    else h.insertAdjacentHTML('afterbegin', tags);
+  }
 }
 function starHtml(name){
   return waitMarkHtml(name)
+       + tagMarkHtml(name)
        + (chatKept(name) ? '<span class="cr-kept">'+BMK_SVG+'</span>' : '')
        + (chatStar(name) ? '<span class="cr-star">'+STAR+'</span>' : '');
 }
@@ -2739,6 +2800,15 @@ function paintHomeChrome(){
   // UPDATE tab, and this row is shared with every other view.
   var ig=document.getElementById('iglink');
   if(ig) ig.hidden = homeView!=='news';
+  // …and the BUG button is the chat list's own (2026-08-27, Sophie: "a bug
+  // fix tag button on the right in the header on all 3 account pages") — the
+  // three account tabs are views of that list, so it shows there and nowhere
+  // else. Lit while the filter is on.
+  var bug=document.getElementById('bugbtn');
+  if(bug){
+    bug.hidden = otherView() || homeView==='archive';
+    bug.classList.toggle('on', bugOnly);
+  }
   if(other && selMode) exitSelect();
   // The to-do list is not chats: the whole tool row and the search bar (which
   // searches MESSAGES) would both be controls that do nothing to it.
@@ -4430,6 +4500,11 @@ function catsMoreShown(){ return catsMore || (!!cat && !isTask(cat)); }
 // IGNORES `archived`. Starred chats are the ones she has finished with and put
 // away, so a star pile that stopped at the archive would miss most of them.
 var starOnly=false;
+// The header's bug button (2026-08-27) — narrows the screen to the chats
+// tagged `bug fix`. Session-only like ★, and mutually exclusive with it and
+// with a lit chip: each of the three replaces the whole list, so two lit at
+// once would be a filter she cannot see the whole of.
+var bugOnly=false;
 // ---- CATEGORIES AND TAGS ARE ONE THING (Aug 2026, Sophie: "right now you can
 // only be in one category at a time, for example witch or to be reviewed, and
 // you can't add tags — I think it would make sense to just combine them and let
@@ -4998,7 +5073,7 @@ function paintCatRow(g){
   var sb=document.createElement('button');
   sb.className='catchip starchip'+(starOnly?' on':'');
   sb.innerHTML=STAR; sb.setAttribute('aria-label','Starred chats');
-  sb.onclick=function(){ starOnly=!starOnly; if(starOnly) cat=''; renderHome(); window.scrollTo(0,0); };
+  sb.onclick=function(){ starOnly=!starOnly; if(starOnly){ cat=''; bugOnly=false; } renderHome(); window.scrollTo(0,0); };
   row.appendChild(sb);
   // Counted BEFORE anything is painted, because the TAGS button needs the sum
   // of them while the chips themselves are away.
@@ -5046,7 +5121,7 @@ function paintCatRow(g){
     // not hers, and two numbers on a chip read as noise.
     b.innerHTML=esc(catLabel(c))+(fresh?'<span class="cc-new">'+fresh+'</span>':'');
     b.setAttribute('aria-label', catLabel(c)+(fresh? ' — '+fresh+' answered you' : ''));
-    b.onclick=function(){ cat=(cat===c?'':c); starOnly=false; renderHome(); window.scrollTo(0,0); };
+    b.onclick=function(){ cat=(cat===c?'':c); starOnly=false; bugOnly=false; renderHome(); window.scrollTo(0,0); };
     row.appendChild(b);
   };
   // TASK words first, in workflow order (TASK_LABELS), then the categories —
@@ -5402,6 +5477,19 @@ function renderHome(){
     paintSelBar();
     if(!st.length){ el.innerHTML='<div class="state">No starred chats on account '+acctFilter()+' — open one and tap the star in its header.</div>'; return; }
     renderList(el,g,st);
+    return;
+  }
+  // BUG FIX — the header's bug button (2026-08-27). Same shape as ★: it
+  // replaces the whole list, and it reaches INTO the archive on purpose —
+  // bug-fix chats archive themselves when the fix lands clean (CLAUDE.md),
+  // so a live-only pile would empty itself exactly as that rule works.
+  if(bugOnly && homeView!=='news'){
+    var bg=all.filter(chatBugTag);
+    paintHomeChrome(); paintAcctTabs(g); paintCatRow(g);
+    document.getElementById('selbtn').classList.toggle('on', selMode);
+    paintSelBar();
+    if(!bg.length){ el.innerHTML='<div class="state">No bug-fix chats on account '+acctFilter()+' — tag one from its Organize sheet.</div>'; return; }
+    renderList(el,g,bg);
     return;
   }
   var live=all.filter(function(n){ return !(chats[n]&&chats[n].archived); });
@@ -5791,7 +5879,7 @@ function renderTiles(el,g,names){
     var tline=st.note || st.need || st.doing || status || '';
     var lineHtml=tline?'<span class="t-tldr t-note">'+esc(tline)+'</span>':'';
     b.innerHTML='<span class="t-cover">'+iconHtml(name,'',true)+(unread?'<span class="t-new"></span>':'')+'</span>'
-      +'<span class="t-name">'+waitMarkHtml(name)+esc(dispName(name))+'</span>'
+      +'<span class="t-name">'+waitMarkHtml(name)+tagMarkHtml(name)+esc(dispName(name))+'</span>'
       +(about? '<span class="t-about">'+esc(about)+'</span>':'')
       +lineHtml
       +'<span class="t-meta">'+(last? ago(last.created) : 'no messages')+'</span>';
@@ -6693,7 +6781,7 @@ function openChat(name, keepScroll, focusId, noFetch){
   var list=(groups()[name])||[];
   var head=document.createElement('header');
   head.innerHTML='<div class="no"></div>'
-    +'<div class="thread-head">'+iconHtml(name)+'<h1>'+waitMarkHtml(name)+esc(dispName(name))+'</h1><button class="renamebtn" aria-label="Rename this chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div>'
+    +'<div class="thread-head">'+iconHtml(name)+'<h1>'+waitMarkHtml(name)+tagMarkHtml(name)+esc(dispName(name))+'</h1><button class="renamebtn" aria-label="Rename this chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div>'
     +'<div class="headbtns"><div class="viewtog" style="margin:0"><button class="tg-chat on">Chat</button><button class="tg-assets">Assets</button><button class="tg-compare">Compare</button></div>'
     +'<button class="tbtn threadsearch" aria-label="Search this chat" style="padding:6px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>'
     +'<button class="tbtn threadrefresh" aria-label="Refresh" style="padding:6px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button></div><div class="rule"></div>';
@@ -9257,6 +9345,12 @@ document.getElementById('bmklink').onclick=function(){ setHomeView('bookmarks');
 // The Instagram mockups — a page, not a view of this list, so it navigates the
 // way the Update and Review doors on the same screen do.
 document.getElementById('iglink').onclick=function(){ location.href='/instagram'; };
+// The bug button is a FILTER, not a page — it narrows the list it sits over.
+document.getElementById('bugbtn').onclick=function(){
+  bugOnly=!bugOnly;
+  if(bugOnly){ cat=''; starOnly=false; }
+  renderHome(); window.scrollTo(0,0);
+};
 
 // Which Claude account is signed into the iOS app right now — the switch on
 // the header's title line. Its knob has one notch per account (ACCOUNTS) and

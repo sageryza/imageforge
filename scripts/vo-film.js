@@ -47,9 +47,13 @@
  *             cleaned master. `"denoise": false` on a source skips the
  *             detector (a synthesized take has no room tone to measure).
  *   2 cut     per shot: editor.js's phraseSpan + clampBounds + snapToSilence
- *             locate every span in the cleaned master; spans from one source
- *             are clamped non-overlapping in TIME; then the shot is cleaned
- *             on WORD TIMING (see below). TTS renders on
+ *             locate every span in the cleaned master; with `"relisten":
+ *             true` each span is then RE-TRANSCRIBED in a small window and
+ *             cut on the fresh timings (see relistenSpan — bulk timings
+ *             locate, a re-listen cuts; cutting on the bulk pass alone
+ *             clipped word edges on the water reel, 2026-08-25); spans from
+ *             one source are clamped non-overlapping in TIME; then the shot
+ *             is cleaned on WORD TIMING (see below). TTS renders on
  *             eleven_multilingual_v2 (NEVER v3), cached by text.
  *   3 verify  per shot: transcribe THIS SHOT once (cached by its md5), LCS
  *             word-diff against its own phrases, wordless-gap measurement.
@@ -112,7 +116,15 @@ const FORCE = flag('force');
 
 const W = SPEC.width || 1000, H = SPEC.height || 1500, FPS = SPEC.fps || 30, BG = SPEC.bg || '#f7f3ea';
 const VOICE = SPEC.voice || 'UTkHGl2ImiT6gwtAFCql'; // "Sophie — morning"
-const TOOLV = 'vofilm-1'; // bump to invalidate every cache
+const TOOLV = 'vofilm-4'; // bump to invalidate every cache (v4: bridge boundaries land in quiet)
+// A spec's edge rule changes every cut, so it belongs in the shot cache key.
+const EDGEV = JSON.stringify(SPEC.edge || {});
+// `"relisten": true` — re-transcribe a small window around every located span
+// and cut on the FRESH timings (see relistenSpan). Opt-in per spec: it adds a
+// whisper call per span, and a spec that was already approved must not have
+// its cuts silently move. New timings change the span times, which are in the
+// shot cache key, so flipping it re-cuts exactly the shots it moves.
+const RELISTEN = !!SPEC.relisten;
 
 const md5 = (buf) => crypto.createHash('md5').update(buf).digest('hex');
 const md5f = (f) => md5(fs.readFileSync(f));
@@ -237,6 +249,78 @@ async function prepSources() {
   return out;
 }
 
+// THE BULK PASS LOCATES, THE RE-LISTEN CUTS (the Cutting Room's own rule,
+// finally applied here — Sophie 2026-08-25, hearing clipped word edges: "make
+// sure that the audio is cut exactly … whisper doesn't cut exactly to the
+// words"). A master's chunked word timestamps are chips-only accuracy: good
+// enough to FIND a phrase, tens of ms off at the word edges — and clampBounds
+// pads as little as 0.02s/0.03s when her takes run back to back, so a late
+// whisper start or an early whisper end (its habit) clips the word. So each
+// located span is re-transcribed in a small window around itself, relocated
+// on the fresh timings, snapped against the window's real silences, and then
+// a VOICING GUARD walks each edge outward while the 20ms RMS is still hot —
+// never past the neighbouring word, so a back-to-back take can't bleed in.
+// A missed relocation keeps the bulk timings (whisper on a short window can
+// drop opening words — the 1s prepended silence is that documented fix).
+async function relistenSpan(sources, source, phrase, t0, t1, label) {
+  const clean = sources[source].clean;
+  const cleanMd5 = md5f(clean);
+  const ck = `relisten|${TOOLV}|${source}|${cleanMd5}|${sha1(phrase)}`;
+  const hit0 = cache(ck);
+  if (hit0) return hit0.span; // null (missed) is a cached answer too
+  const total = dur(clean);
+  const PADS = 1.0;
+  const winStart = Math.max(0, t0 - 2.5);
+  const winEnd = Math.min(total, t1 + 2.5);
+  const win = path.join(DIR, `_relisten-${sha1(ck).slice(0, 10)}.mp3`);
+  run(FFMPEG, ['-v', 'error', '-y', '-ss', winStart.toFixed(3), '-t', (winEnd - winStart).toFixed(3),
+    '-i', clean, '-af', `adelay=${PADS * 1000}:all=1`, '-ac', '1', '-ar', '16000', '-b:a', '48k', win]);
+  let span = null;
+  try {
+    const w2 = await whisperWords(win);
+    const hit = ed.phraseSpan(w2, phrase);
+    if (hit && hit.score >= 0.6) {
+      let [rs, re] = ed.clampBounds(w2, hit.start, hit.end);
+      const nxt = w2[hit.end + 1] ? w2[hit.end + 1].start : null;
+      const prv = hit.start > 0 ? w2[hit.start - 1].end : null;
+      const sn = ed.snapToSilence(rs, re, await ed.detectSilences(win), nxt);
+      if (Array.isArray(sn)) [rs, re] = sn;
+      // THE CUT EDGES LAND IN REAL QUIET, never merely at a cold bin
+      // (2026-08-25, her ear again: the film opened INSIDE "Scientists" —
+      // whisper's start was late, the fixed 0.15s pad wasn't enough, and the
+      // first hot-bin check stopped on the quiet of an /s/ fricative). Each
+      // edge walks outward until it finds 0.12s of consecutive near-floor
+      // audio, capped, bounded by the neighbouring word so a back-to-back
+      // take cannot bleed in.
+      const bins = rmsProfile(win);
+      const LOW = pct(bins, 0.85) - 25;
+      const quietRun = (i) => {
+        for (let k = i; k < i + 6; k++) {
+          if (k < 0 || k >= bins.length) continue;
+          if (bins[k] >= LOW) return false;
+        }
+        return true;
+      };
+      let j = Math.floor(re / B);
+      const endLim = Math.min(j + Math.round(0.45 / B),
+        nxt == null ? Infinity : Math.floor((nxt - 0.02) / B));
+      while (!quietRun(j) && j < endLim) j++;
+      re = Math.max(re, j * B);
+      j = Math.floor(rs / B);
+      const startLim = Math.max(j - Math.round(0.50 / B),
+        prv == null ? 0 : Math.ceil((prv + 0.02) / B));
+      while (!quietRun(j - 6) && j > startLim) j--;
+      rs = Math.min(rs, j * B);
+      span = [Math.max(0, winStart + rs - PADS), winStart + re - PADS];
+    }
+  } catch (err) {
+    console.warn(`  relisten ${label}: ${err.message} — bulk timings kept`);
+  }
+  fs.rmSync(win, { force: true });
+  put(ck, { span });
+  return span;
+}
+
 // ---- stage 2: cut shots ----------------------------------------------------
 function locateSpans(sources) {
   const spans = []; // {shotIdx, order, source, t0, t1, text}
@@ -259,16 +343,26 @@ function locateSpans(sources) {
         const maxEnd = words[hit.end + 1] ? words[hit.end + 1].start : null;
         const snapped = ed.snapToSilence(t0, t1, await silOf(source), maxEnd);
         if (Array.isArray(snapped)) [t0, t1] = snapped;
+        if (RELISTEN) {
+          const fresh = await relistenSpan(sources, source, phrase, t0, t1, `${shot.id}.${pi}`);
+          if (fresh) [t0, t1] = fresh;
+          else console.warn(`  relisten missed on ${shot.id}.${pi} — bulk timings kept`);
+        }
         spans.push({ shotIdx: si, order: pi, source, t0, t1, text: phrase });
       }
     }
     // non-overlapping in TIME per source — a padded cut reaching into the next
-    // word's onset replays a sliver ("…behind | behind…", 17 joins on Evan)
+    // word's onset replays a sliver ("…behind | behind…", 17 joins on Evan).
+    // THE HEAD WINS THE OVERLAP (2026-08-25): the earlier span's tail is an
+    // over-reach into breath, the later span's head is its first WORD — a
+    // head cannot over-reach backward (the relisten bounds it at the previous
+    // word), so pushing the head forward instead ate "Two" at every numbered
+    // panel joint. Trim the tail, keep the head.
     const bySrc = {};
     spans.forEach((s) => (bySrc[s.source] ||= []).push(s));
     for (const k of Object.keys(bySrc)) {
       const list = bySrc[k].sort((a, b) => a.t0 - b.t0);
-      for (let i = 1; i < list.length; i++) if (list[i].t0 < list[i - 1].t1) list[i].t0 = list[i - 1].t1;
+      for (let i = 1; i < list.length; i++) if (list[i].t0 < list[i - 1].t1) list[i - 1].t1 = list[i].t0;
     }
     return spans;
   })();
@@ -444,8 +538,15 @@ async function cutShot(shot, si, spans, sources, filmSpeech85) {
     if (b - cur > 0.02) split.push([cur, b]);
   }
   const regions = split.filter(([a, b]) => b - a > 0.02);
-  // long wordless edges only
-  const EDGE_MAX = 1.2, EDGE_KEEP = 0.3;
+  // long wordless edges only. The default keeps any edge under 1.2s whole —
+  // that is her breath, and trimming every edge to whisper's words dropped
+  // three quiet words it never heard. A spec may tighten it (`"edge": {"max":
+  // 0.45, "keep": 0.22}`) when the film is one continuous read and the kept
+  // edges meet at every joint: on the water reel a ~1.2s tail against the
+  // next shot's ~1.2s head measured 8 dead-air runs over 1s. Defaults
+  // unchanged, so no existing spec moves.
+  const EDGE_MAX = (SPEC.edge && SPEC.edge.max) || 1.2;
+  const EDGE_KEEP = (SPEC.edge && SPEC.edge.keep != null) ? SPEC.edge.keep : 0.3;
   if (regions.length) {
     if (regions[0][0] <= EDGE_MAX) regions[0][0] = 0; else regions[0][0] -= EDGE_KEEP;
     const last = regions[regions.length - 1];
@@ -461,6 +562,43 @@ async function cutShot(shot, si, spans, sources, filmSpeech85) {
     }
     return best == null ? null : [best * B, (best + n) * B];
   };
+  // A GAP WITH SUSTAINED VOICING IS A MISSED WORD, NOT A PAUSE (2026-08-25,
+  // found by Sophie's ear: "secret" — present in the source words, whispered
+  // quietly — went untranscribed on the SHOT pass, fell between two word
+  // regions, and the bridge replaced it with room tone). The threshold is
+  // FLOOR-referenced, never speech-referenced: measured, her whispered
+  // "secret" sits ~-38dB against speech at -13 — a speech-14 test misses it
+  // entirely — while it holds 0.30s continuously above floor+10 and the real
+  // pause beside it holds ~0s there. That is exactly the skill's laugh test
+  // (a laugh holds 0.40s above floor+10; a dead stretch holds 0.00s). One
+  // blip bin of tolerance, and only gaps under 1.6s qualify — a fan surge
+  // inside a long hole must not protect the hole (the Mason lesson).
+  const floorDb = pct(bins, 0.10), VOICED = floorDb + 10;
+  const gapHasSpeech = (g0, g1) => {
+    if (g1 - g0 > 1.6) return false;
+    let run = 0, blip = 0;
+    for (let i = Math.floor(g0 / B); i < Math.ceil(g1 / B) && i < bins.length; i++) {
+      if (bins[i] > VOICED) { run++; blip = 0; }
+      else if (run && ++blip > 1) { run = 0; blip = 0; }
+      if (run * B >= 0.25) return true;
+    }
+    return false;
+  };
+  // A BRIDGE'S BOUNDARIES LAND IN QUIET, never on whisper's word times
+  // (2026-08-25, "More" and "Less": each follows a pause, whisper timed the
+  // word's start late, and the bridge — cut exactly to the late boundary —
+  // replaced the pause INCLUDING the word's onset). Each end of a gap walks
+  // toward the gap's middle until the audio outside it is genuinely quiet,
+  // so a mistimed onset stays with its word.
+  const HOTF = floorDb + 8;
+  const hotAt = (i) => i >= 0 && i < bins.length && bins[i] > HOTF;
+  const shrinkGap = (g0, g1) => {
+    let a = Math.floor(g0 / B), b = Math.ceil(g1 / B);
+    const capA = a + Math.round(0.5 / B), capB = b - Math.round(0.5 / B);
+    while (a < capA && a < b && (hotAt(a) || hotAt(a + 1))) a++;
+    while (b > capB && b > a && (hotAt(b - 1) || hotAt(b - 2))) b--;
+    return [a * B, b * B];
+  };
   const segs = [];
   for (let i = 0; i < regions.length; i++) {
     segs.push(regions[i]);
@@ -468,8 +606,13 @@ async function cutShot(shot, si, spans, sources, filmSpeech85) {
       const g0 = regions[i][1], g1 = regions[i + 1][0];
       const len = (g1 - g0) >= 0.9 ? 0.34 : 0.22;
       if (g1 - g0 <= len + 0.02) { segs.push([g0, g1]); continue; }
-      const q = quietWindow(g0, g1, len);
-      if (q) segs.push(q);
+      if (gapHasSpeech(g0, g1)) { segs.push([g0, g1]); continue; }
+      const [q0, q1] = shrinkGap(g0, g1);
+      // the voiced margins stay with their words verbatim
+      if (q0 > g0 + 0.01) segs.push([g0, q0]);
+      if (q1 - q0 > len + 0.02) { const q = quietWindow(q0, q1, len); if (q) segs.push(q); }
+      else if (q1 > q0 + 0.01) segs.push([q0, q1]);
+      if (q1 < g1 - 0.01) segs.push([q1, g1]);
     }
   }
   const fin = [];
@@ -486,7 +629,9 @@ async function cutShot(shot, si, spans, sources, filmSpeech85) {
 }
 
 // ---- stage 3: verify one shot (cached by its bytes) -------------------------
-const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9' ]+/g, ' ').split(/\s+/).filter(Boolean);
+const DIGITS = { 0: 'zero', 1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five', 6: 'six', 7: 'seven', 8: 'eight', 9: 'nine', 10: 'ten' };
+const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9' ]+/g, ' ').split(/\s+/)
+  .filter(Boolean).map((w) => DIGITS[w] || w);
 function lcsMissing(want, got) {
   // Longest missing contiguous run of script words, via a FULL LCS table +
   // proper backtrack. (v1 of this function kept only per-row equality flags
@@ -512,21 +657,29 @@ function lcsMissing(want, got) {
     else k--;
   }
   let longest = 0, curRun = 0, missing = 0;
+  const lost = []; // each unmatched script word, with a word of context either side
   for (let x = 0; x < n; x++) {
-    if (!matched[x]) { curRun++; missing++; longest = Math.max(longest, curRun); }
-    else curRun = 0;
+    if (!matched[x]) {
+      curRun++; missing++; longest = Math.max(longest, curRun);
+      lost.push(`${want[x - 1] || '^'} [${want[x]}] ${want[x + 1] || '$'}`);
+    } else curRun = 0;
   }
-  return { missing, longest };
+  return { missing, longest, lost };
 }
 
 async function verifyShot(shot, cutInfo) {
   const h = md5f(cutInfo.file);
-  const ck = `verify|${TOOLV}.2|${shot.id}|${h}`;
+  const ck = `verify|${TOOLV}.3|${shot.id}|${h}`;
   const hit = cache(ck);
   if (hit) return { ...hit, cached: true };
   const tmp = path.join(DIR, '_v.mp3');
-  run(FFMPEG, ['-v', 'error', '-y', '-i', cutInfo.file, '-ac', '1', '-ar', '16000', '-b:a', '48k', tmp]);
-  const w = await whisperWords(tmp);
+  // 1s of prepended silence — whisper on a clip that opens mid-speech drops
+  // the opening words (the skill's own pad-before-you-judge rule), so an
+  // UNPADDED verify both under-reports the head and false-flags "starts late"
+  const VPAD = 1.0;
+  run(FFMPEG, ['-v', 'error', '-y', '-i', cutInfo.file,
+    '-af', `adelay=${VPAD * 1000}:all=1`, '-ac', '1', '-ar', '16000', '-b:a', '48k', tmp]);
+  const w = (await whisperWords(tmp)).map((x) => ({ word: x.word, start: Math.max(0, x.start - VPAD), end: Math.max(0, x.end - VPAD) }));
   const seconds = dur(cutInfo.file);
   // wordless gaps + edges
   let worstGap = 0, gapSec = 0;
@@ -536,11 +689,11 @@ async function verifyShot(shot, cutInfo) {
   }
   const lead = w.length ? w[0].start : seconds;
   const tail = w.length ? seconds - w[w.length - 1].end : seconds;
-  const { missing, longest } = lcsMissing(norm(cutInfo.text), w.map((x) => norm(x.word)[0] || ''));
+  const { missing, longest, lost } = lcsMissing(norm(cutInfo.text), w.map((x) => norm(x.word)[0] || ''));
   const verdict = {
     seconds: +seconds.toFixed(2),
     heard: w.length,
-    missingWords: missing, longestMissingRun: longest,
+    missingWords: missing, longestMissingRun: longest, lost,
     worstGap: +worstGap.toFixed(2), gapSec: +gapSec.toFixed(1),
     lead: +lead.toFixed(2), tail: +tail.toFixed(2),
     ok: longest < 4 && worstGap <= 1.5 && lead <= 1.5 && tail <= 1.5,
@@ -642,7 +795,7 @@ function deadAir(file) { // vo-verify's film check, local and free
     const mine = spans.filter((s) => s.shotIdx === si);
     const ck = `cut|${TOOLV}|${shot.id}|${sha1(JSON.stringify({
       spans: mine.map((s) => [s.source, +s.t0.toFixed(3), +s.t1.toFixed(3), s.text]),
-      tts: shot.ttsText || shot.tts || null, speech: +filmSpeech85.toFixed(1),
+      tts: shot.ttsText || shot.tts || null, speech: +filmSpeech85.toFixed(1), edge: EDGEV,
     }))}`;
     const OUTD = path.join(DIR, 'shots');
     const finalPath = path.join(OUTD, `shot-${String(si).padStart(2, '0')}-${shot.id}.wav`);
@@ -663,14 +816,40 @@ function deadAir(file) { // vo-verify's film check, local and free
       process.exit(1);
     }
     console.log(`ok ${shot.id}: ${v.seconds}s, worst gap ${v.worstGap}s, tail ${v.tail}s${v.cached ? ' (cached)' : ''}`);
+    if (v.lost && v.lost.length) console.log(`   unheard in ${shot.id}: ${v.lost.join(' · ')}`);
     shots.push(info);
+    shot.__lost = v.lost || [];
   }
   if (reused) console.log(`${reused}/${SPEC.shots.length} shots unchanged (cache)`);
+  // EVERY word the verify pass could not hear, in one place — most are
+  // whisper mishears (Scientists→Science), some are real losses (a whispered
+  // "secret" the bridge ate). The builder READS this list and judges each
+  // against the source words and its RMS before delivering; "the gate passed"
+  // alone has shipped clipped words twice (Sophie, 2026-08-25: her examples
+  // were examples, not the list).
+  const allLost = SPEC.shots.filter((s2) => (s2.__lost || []).length);
+  if (allLost.length) {
+    console.log(`\nWORD SWEEP — ${allLost.reduce((a, s2) => a + s2.__lost.length, 0)} script word(s) not heard back, by shot:`);
+    for (const s2 of allLost) console.log(`  ${s2.id}: ${s2.__lost.join(' · ')}`);
+    console.log('  (judge each: mishear or loss — check the source words + RMS at that spot)');
+  } else {
+    console.log('\nWORD SWEEP — every script word heard back in its shot.');
+  }
 
   // stitch — skipped wholesale when nothing feeding it changed
+  // THE PICTURES ARE KEYED BY THEIR BYTES, NEVER BY THEIR PATH (2026-08-25).
+  // A clip re-rendered to the same filename — which is exactly what happens
+  // when a zoom is corrected and the builder re-runs — left this key identical,
+  // so the stitch was served from cache and the OLD picture shipped. The audio
+  // half was right, the film looked untouched, and a frame check was the only
+  // thing that caught it. Local files are hashed; a remote url keys by itself.
+  const picKey = (sh) => {
+    const src = sh.video || sh.image;
+    try { return fs.existsSync(src) ? md5f(src) : String(src); } catch (_) { return String(src); }
+  };
   const stitchKey = `stitch|${TOOLV}|${sha1(JSON.stringify({
     shots: shots.map((s) => md5f(s.file)),
-    images: SPEC.shots.map((s) => s.video || s.image), W, H, FPS, BG, out: SPEC.out || 'film',
+    images: SPEC.shots.map(picKey), W, H, FPS, BG, out: SPEC.out || 'film',
   }))}`;
   const outPath = path.join(DIR, (SPEC.out || 'film') + '.mp4');
   let out, lens;

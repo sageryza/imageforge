@@ -13,14 +13,35 @@ body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--i
 [hidden]{display:none !important;}
 .wrap{max-width:34em; margin:0 auto; padding:5vh 5vw 16vh;}
 .state{font-style:italic; color:var(--ink2); text-align:center; padding:2.5em 0;}
-/* NO PAGE HEADER (Sophie, Aug 2026: "it says Voice Studio twice, once at the
-   top and once below it… get rid of basically the whole header, including the
-   line"). The native tool bar already carries the title, so the page's own
-   brand row, h1, credits line and rule are gone and the tabs are the first
-   thing on screen. The credits moved behind the ⓘ on the tab row.
-   The autoscroll pill still floats over the top-right corner, so the rows that
-   now sit in its band (the tabs, the voice squares, the dropdown) each keep the
-   56px reserve — a control there is untappable. */
+/* THE TITLE, ONCE — the house header row (2026-08-27, Sophie: "this header
+   doesn't match the app pattern", looking at a screen whose whole header was a
+   lone chevron in a box with nothing beside it).
+
+   THIS PAGE HAD NO HEADER ROW AT ALL, and that was RIGHT until the native bar
+   went. Sophie's earlier ask (Aug 2026: "it says Voice Studio twice, once at
+   the top and once below it… get rid of basically the whole header, including
+   the line") was about Apple's nav bar and the page's own brand row saying the
+   same thing one above the other — so the brand row, the h1, the credits line
+   and the rule came off and the tabs became the first thing on screen. Then
+   `.forgeWebToolBar` took Apple's bar away from every web-wrapped tool, and the
+   half that was carrying the name went with it: pagehead.js found no row to sit
+   in, fell through to its row-less branch, and drew a bare `#forgehead` strip
+   holding the chevron and nothing else. The tool was nameless.
+
+   So the page owns its header now, which is the house rule for a web-wrapped
+   tool. One row, the `.app-header` shape Meta Assets and the other titled pages
+   use: pagehead inserts the chevron into it and `.fh` centres the title on the
+   SCREEN between the chevron and the pill's corner. There is still only one
+   "Voice Studio" on the page — her complaint was never that the title existed.
+   The credits stay behind the ⓘ on the tab row.
+
+   The autoscroll pill floats over the top-right corner, so this row and the
+   rows in its band (the tabs, the voice squares, the dropdown) each keep the
+   reserve — a control there is untappable. 64px here (56 is a hair tight at
+   390pt), 56 below, matching what each row already measured. */
+.app-header{display:flex; align-items:center; min-height:34px; padding-right:64px; margin:0 0 14px;}
+.app-header h1{font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:11px; letter-spacing:.34em;
+  color:var(--ink2); text-transform:uppercase; font-weight:400; margin:0;}
 .info{flex:0 0 auto; width:22px; height:22px; align-self:center; margin-right:10px;
   border-radius:50%; border:1.2px solid var(--line); background:none; color:var(--ink2);
   cursor:pointer; padding:0; font-family:-apple-system,sans-serif; font-size:12px; line-height:1;
@@ -96,7 +117,17 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
 .render .rmeta{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink2); margin:6px 0 8px; display:flex; gap:8px; align-items:center;}
 .render audio{width:100%; display:block;}
 .render.pending .rmeta .spin{color:var(--rose);}
-.render .rerr{font-family:-apple-system,sans-serif; font-size:12px; color:var(--chg);}
+.render .rerr{font-family:-apple-system,sans-serif; font-size:12px; color:var(--chg);
+  display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
+/* A failed take's way back. Same box as .toblocks — house rounded rectangle,
+   hugging its words — so the two buttons on this page read as one family. */
+.render .again{flex:0 0 auto; border:1px solid var(--line); border-radius:6px;
+  background:var(--barbg); color:var(--ink2); cursor:pointer; padding:5px 9px;
+  font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em; text-transform:uppercase;
+  display:flex; align-items:center; gap:6px;}
+.render .again[disabled]{opacity:.45;}
+.render .again svg{width:13px; height:13px; stroke:currentColor; fill:none; stroke-width:1.8;
+  stroke-linecap:round; stroke-linejoin:round;}
 /* → Cutting Blocks. VOICE is one of the two tributaries into BLOCKS on the
    pipeline map, and until this button the connection meant download +
    re-upload by hand. It sits on the meta row of a finished render; tapping
@@ -218,6 +249,8 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
 .render .dl:focus-visible{outline:2px solid var(--rose); outline-offset:1px;}
 </style>
 <div class="wrap">
+  <header class="app-header"><h1>Voice Studio</h1></header>
+
   <div class="acctabs" id="tabs" data-on="0">
     <button class="info" id="info" type="button" aria-label="What a render costs">i</button>
     <button class="acctab on" id="tab-say" type="button">Text</button>
@@ -344,10 +377,27 @@ var BLOCKS_SVG='<svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8"
 // Lucide `download`. The link goes to OUR server, not to Storage: a
 // cross-origin href ignores `download` and the phone just plays the file.
 var DL_SVG='<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>';
+// Lucide `rotate-ccw`. A failed take used to be a dead end — her words are
+// right there on the card, but the only way back was retyping them.
+var AGAIN_SVG='<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>';
 function dlLink(id, src){
   return '<a class="dl" href="'+API+'/file/'+encodeURIComponent(id)+(src?'?src=1':'')+'" download'
     +' title="'+(src?'Download what you recorded':'Download this take')+'"'
     +' aria-label="'+(src?'Download what you recorded':'Download this take')+'">'+DL_SVG+'</a>';
+}
+// A bare "rendering…" says nothing, and that is what actually went wrong on
+// 2026-08-27: Sophie's science take really was working — it took 735 seconds,
+// against 75 for the same text re-sent later — but a spinner with no clock on
+// it looks identical to a dead one, so a slow render read as a lost take.
+// The poll repaints this card every 2s, so the count keeps itself current.
+function spinLabel(r){
+  var t=Date.parse(r.createdAt||'');
+  if(!t) return 'rendering…';
+  var m=Math.floor((Date.now()-t)/60000);
+  if(m<1) return 'rendering…';
+  // Past five minutes, say that this is normal rather than leaving her to
+  // guess — a long line can genuinely run past ten.
+  return 'rendering… '+m+'m'+(m>=5?' · long ones can run past 10m':'');
 }
 function card(r){
   var el=cards[r.id];
@@ -366,7 +416,7 @@ function card(r){
   // (Sophie, Aug 2026: "I don't need to know how many characters everything is").
   var body='<div class="rtext">'+esc(r.text)+'</div>'
     +'<div class="rmeta"><span>'+esc(r.voiceName||'')+'</span>'
-    +(r.status==='rendering'?'<span class="spin">rendering…</span>':'')
+    +(r.status==='rendering'?'<span class="spin">'+esc(spinLabel(r))+'</span>':'')
     +(r.status==='done' && r.url
       ? (sentTo[r.id]
         ? '<span class="bsent">in “'+esc(sentTo[r.id])+'”</span>'
@@ -379,7 +429,10 @@ function card(r){
     body+='<div class="rsrc"><span>what went in</span>'+dlLink(r.id, true)+'</div>'
       +'<audio controls preload="none" src="'+esc(r.sourceUrl)+'"></audio>';
   }
-  if(r.status==='failed') body+='<div class="rerr">'+esc(r.error||'render failed')+'</div>';
+  if(r.status==='failed'){
+    body+='<div class="rerr">'+esc(r.error||'render failed')
+      +'<button class="again" data-id="'+esc(r.id)+'" title="Render this again">'+AGAIN_SVG+' Render again</button></div>';
+  }
   el.className='render'+(r.status==='rendering'?' pending':'');
   el.innerHTML=body;
 }
@@ -421,7 +474,27 @@ function openBlocksPick(id){
 document.addEventListener('click', function(e){
   var tb=e.target.closest('.toblocks');
   if(tb) openBlocksPick(tb.dataset.id);
+  var ag=e.target.closest('.again');
+  if(ag) renderAgain(ag);
 });
+
+// The retry lands as its OWN card — a re-render is a fresh take, and the failed
+// one stays on the page saying what happened. The card is drawn from the old
+// take's own words, so it reads right before the server has answered anything.
+function renderAgain(btn){
+  var old=btn.dataset.id, was=rdata[old]||{};
+  btn.disabled=true;
+  fetch(API+'/render/'+encodeURIComponent(old)+'/again',{method:'POST'})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(!d.id) throw new Error(d.error||'couldn’t start it again');
+      setPending(pendingIds().concat([d.id]));
+      card({id:d.id, kind:was.kind, voiceName:was.voiceName, text:was.text,
+            sourceUrl:was.sourceUrl, status:'rendering', createdAt:new Date().toISOString()});
+      poll(d.id);
+    })
+    .catch(function(e){ btn.disabled=false; alert(e.message||'Couldn’t start it again'); });
+}
 
 function poll(id){
   fetch(API+'/render/'+id).then(function(r){return r.json()}).then(function(d){
@@ -448,7 +521,7 @@ go.onclick=function(){
       if(!d.id) throw new Error(d.error||'failed');
       paintGo();   // the box KEEPS her words — she renders the same line voice after voice
       setPending(pendingIds().concat([d.id]));
-      card({id:d.id, voiceName:picked.name, chars:text.length, text:text, status:'rendering'});
+      card({id:d.id, voiceName:picked.name, chars:text.length, text:text, status:'rendering', createdAt:new Date().toISOString()});
       poll(d.id);
     })
     .catch(function(e){ alert(e.message||'Couldn’t start the render'); paintGo(); });
@@ -621,7 +694,7 @@ chgo.onclick=function(){
     if(!d.id){ alert(d.error||'Couldn’t start the change'); paintCh(); return; }
     setPending(pendingIds().concat([d.id]));
     card({id:d.id, kind:'sts', voiceName:picked.name, text:take.name,
-          chars:0, status:'rendering'});
+          chars:0, status:'rendering', createdAt:new Date().toISOString()});
     poll(d.id);
     paintCh();   // the take STAYS — she runs the same recording through voice after voice
   };

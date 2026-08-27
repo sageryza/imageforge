@@ -11,6 +11,17 @@
  *     button — but it shouldn't pull up the note thing; pressing it again…
  *     start it playing again."  A tap on the film TOGGLES pause/play and
  *     never opens the sheet.
+ *   - "when i tap to get rid of the tinted pause screen, it also pauses the
+ *     video" (2026-08-27). The hosts run the video with NATIVE controls, so
+ *     iOS draws its own tinted overlay on any tap and fades it ~4s later
+ *     while the film plays. A tap during that window is her putting the
+ *     overlay AWAY, not asking to pause — but no API says whether iOS's
+ *     overlay is on screen, so the toggle mirrors its clock: every tap on
+ *     the film arms a window (SCRIM_MS), and a tap on a PLAYING film inside
+ *     it only dismisses (and clears the window, exactly as iOS hides the
+ *     overlay on that same tap — so the NEXT tap pauses). A paused film
+ *     never treats a tap as dismissal: pausing keeps the overlay up, and a
+ *     tap there has always meant play.
  *   - The NOTE button shows while the film is PAUSED — pausing is one tap
  *     now, so the pause IS the moment the option presents itself. No fade
  *     timers, no touch-to-reveal.
@@ -157,6 +168,11 @@
   setInterval(flush, 45000);             // no-ops on an empty queue
   setTimeout(flush, 1200);               // opening any page that loads this flushes stragglers
 
+  // How long iOS keeps its tinted controls overlay up on a playing film
+  // after a tap (~4s) — the dismiss-only window above. Overridable so the
+  // headless test can drive it without real seconds.
+  var SCRIM_DEFAULT = 3800;
+
   window.__filmNote = function (opts) {
     opts = opts || {};
     var w = opts.wrap, v = opts.video, chat = opts.chat, url = opts.url;
@@ -164,6 +180,21 @@
     w.classList.add('filmnote-host');
     var mrec = null;
     var sheet=null, finishFn=null;
+    // The sheet sits at the exact bottom the iOS keyboard rises over when she
+    // taps the box to edit — the /witchvideo sheet's lift, same formula: ride
+    // up by however much of the layout viewport the keyboard covers. Where
+    // the browser pans the input into view itself, offsetTop absorbs the pan
+    // and the lift computes to zero, so it can never double-shift.
+    var fitSheet=function(){
+      if(!sheet) return;
+      var vv=window.visualViewport;
+      var kb=vv ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) : 0;
+      sheet.style.transform = kb ? 'translateY(-'+kb+'px)' : '';
+    };
+    if(window.visualViewport){
+      window.visualViewport.addEventListener('resize', fitSheet);
+      window.visualViewport.addEventListener('scroll', fitSheet);
+    }
     var toastEl=null, toastT=null, dead=false;
     function toast(msg){
       if(dead) return;
@@ -190,19 +221,35 @@
     // The pointerdown snapshot guards against a browser whose own controls
     // already flipped playback on this same tap (desktop Chrome toggles on a
     // body click; iOS does not) — no second flip.
-    var downPaused=null;
+    // scrimAt is the native-overlay clock (the header's tinted-pause-screen
+    // rule): armed by every tap on the film, read only while it PLAYS.
+    var downPaused=null, scrimAt=0;
+    var scrimMs=function(){ var n=window.__filmNote&&window.__filmNote.SCRIM_MS; return typeof n==='number'?n:3800; };
     var onDown=function(e){ downPaused = (e.target===v) ? v.paused : null; };
     var onWrapTap=function(e){
       if(e.target!==v) return;
-      if(downPaused!==null && v.paused!==downPaused){ downPaused=null; syncBtn(); return; }
+      // THE BOTTOM BAND IS THE NATIVE CONTROLS' OWN (2026-08-27, her ask:
+      // "yes scrub bar exemption"): a tap down there is her aiming at the
+      // scrubber — while paused it used to start playback instead of
+      // seeking. The toggle never fires in the strip where iOS draws its
+      // bar; the tap shows/keeps the overlay, so the window arms.
+      var r=v.getBoundingClientRect();
+      if(r.height && e.clientY && r.bottom - e.clientY < 64){ downPaused=null; scrimAt=Date.now(); return; }
+      if(downPaused!==null && v.paused!==downPaused){ downPaused=null; scrimAt=Date.now(); syncBtn(); return; }
       downPaused=null;
       if(sheet){                          // tap = play = save and disappear
         if(finishFn) finishFn();
         v.play().catch(function(){});
+        scrimAt=Date.now();
         syncBtn(); return;
+      }
+      if(!v.paused && Date.now()-scrimAt < scrimMs()){
+        scrimAt=0;                        // iOS hid its overlay on this tap;
+        return;                           // the next tap pauses as always
       }
       if(v.paused) v.play().catch(function(){});
       else v.pause();
+      scrimAt=Date.now();
       syncBtn();
     };
     w.addEventListener('pointerdown', onDown);
@@ -308,6 +355,7 @@
       sheet.querySelector('.cxl').onclick=function(){ finishFn=null; resume(); };
       sheet.querySelector('.send').onclick=function(){ var f=finishFn; if(f) f(); v.play().catch(function(){}); };
       w.appendChild(sheet);
+      fitSheet();
       syncBtn();
     };
     w.appendChild(nb);
@@ -321,6 +369,10 @@
       // .cmp-vlb) — leave nothing behind, or listeners stack per open
       w.removeEventListener('pointerdown', onDown);
       w.removeEventListener('click', onWrapTap);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', fitSheet);
+        window.visualViewport.removeEventListener('scroll', fitSheet);
+      }
       v.removeEventListener('play', onPlay);
       v.removeEventListener('pause', syncBtn);
       w.classList.remove('filmnote-host');
@@ -329,4 +381,5 @@
       nb.remove();
     } };
   };
+  window.__filmNote.SCRIM_MS = SCRIM_DEFAULT;
 })();

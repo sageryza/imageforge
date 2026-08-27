@@ -573,6 +573,36 @@ All 12 NDE-category stories were linked to their montage episodes on
     headless — the tap asked with `elementFromPoint` at the mark's own centre,
     which is the only honest way to ask what a tap reaches).
 
+### DUPLICATE A STORY — the same words, drawn twice (2026-08-27)
+Sophie: "can u duplicate the hate of the game story room story so i can do my
+own pictures name one (mine) and the other (claude) as suffix". So "For the
+Hate of the Game" is now **(claude)** — the original, with the pictures a chat
+drew — and **(mine)**, its twin, carrying the whole story with a blank canvas.
+`POST /api/scratchpad/pads/duplicate {pad, title?, art?}`; the rules are in
+`pad-duplicate.js`, its own dependency-free file (the pad-art.js / pad-side.js
+pattern), tested by `node scripts/test-pad-duplicate.js`.
+- **`art:false` is the DEFAULT and is the case she asked for** — the copy keeps
+  the beats, their words, their frame colours, their drawing prompts, her voice
+  takes, the story's own inbox and its recordings, and takes only the
+  PICTURES. A blank canvas carrying the story. `art:true` is a faithful clone.
+- **Every beat gets a FRESH id.** A shared id is a beat that belongs to two
+  stories: `/text`, `/image`, `/color` and `/remove` all find a beat by id
+  inside one pad, and the Story Link's `fromMoments` join is by id too.
+- **It is a DENY-list, not a copy-list.** A field a chat adds next month rides
+  along by itself; what must NOT travel is the other version's output — its
+  renders (`film`/`films`), its Episode Editor `episodes`, and its place on the
+  shelf (`pinned`). `gen` is dropped from every slot either way — it marks a
+  draw running right now in the OTHER story, and a copy of that marker is a
+  beat waiting forever for a job nobody started.
+- **The art is emptied through scratchpad.js's own `SLOT_KEYS`, never by wiping
+  the beat** — the words, the colour, her voice takes and the chunk link live at
+  the beat root and belong to BOTH sides. The lists (`STYLES`, `SLOT_KEYS`) are
+  passed IN, so a fourth style needs no change here.
+- **The pinned shelf `cover` is dropped when the art is** — it is a URL of the
+  other version's picture, so keeping it tiles an artless story with art.
+- **It costs nothing and copies no bytes** — one read, one write, no model
+  call; both stories point at the same pictures wherever those really live.
+
 ## Story Room (forge-story) — THE story surface (merged July 2026)
 - **Making art for the "Evan" story? Read `docs/evan-film-style.md` FIRST.**
   Its style is settled (Aug 2026) and the headline rule is counter-intuitive:

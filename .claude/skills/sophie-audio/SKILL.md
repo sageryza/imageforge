@@ -73,6 +73,23 @@ widen that phrase to the word after the laugh, or cut that one shot by hand.
   imported by every tool that cuts. Do NOT hand-roll span cutting — the
   edge cases (gap-aware padding, snap caps, repeated words) each cost real
   debugging once.
+- **BULK TIMINGS LOCATE, A RE-LISTEN CUTS (2026-08-25, shipped wrong on the
+  water reel — she heard the clipped word edges).** The chunked master
+  whisper pass is chips-only accuracy: whisper's word ends run early, its
+  starts can run late, and on back-to-back takes `clampBounds` pads shrink
+  to 0.02s — so a cut placed on bulk timings clips the word. Re-transcribe a
+  small window around every located span and cut on the FRESH timings — the
+  Cutting Room's `cutSection` has always done this; `vo-film.js` does it
+  with `"relisten": true` on the spec (`relistenSpan`, plus a voicing guard
+  that refuses to cut through sound, bounded by the neighbouring word). Full
+  rule: `docs/nde-precise-cutting.md`, *Rules that must survive any
+  refactor* — which also carries the triage for any "clipped word" report
+  (three root causes: a bad cut, a slurred/truncated TAKE, a whispered word
+  a gap-bridge ate — measure which before changing the cutter), the
+  floor-referenced whispered-word guard, and the WORD SWEEP vo-film's verify
+  now prints (every script word not heard back — the >=4-run gate alone has
+  shipped single clipped words twice). The evan film paid for several of the
+  same rules independently: `scripts/evan-v14-rebuild/README.md`.
 - Removing something from the MIDDLE of speech is a splice, and a splice is
   approved by ear, not shipped invisibly (the reason pause removal lives in
   the Cutting Room, not inside the Episode Editor's render).
@@ -137,6 +154,15 @@ Full findings in `docs/nde-precise-cutting.md`. In short:
 
 - **NEVER loudnorm her voice** — she rejected the dynamic squeezing. Cuts
   are plain cuts of the original bytes; clips get 12ms edge micro-fades only.
+  A **STATIC per-shot gain is not that** and is allowed when she asks whether
+  her level is even (2026-08-25): a constant trim, capped (±2.5dB on the water
+  reel), applied at the MIX so the cut stays byte-exact — it moves nothing
+  inside a shot. Compression, loudnorm and any dynamic curve stay forbidden,
+  and a cap is what stops a bad take being rescued by turning it up.
+- **ANYTHING PLACED AGAINST A MOMENT IS PINNED TO HER LINE, NOT TO A SHOT
+  SLOT** (a sound effect, a hold, a card). A shot id is a position, so a re-cut
+  silently re-points every table keyed by one — this moved a sound effect she
+  had asked to keep. Full rule: `docs/nde-precise-cutting.md`.
 - **A MULTI-SHOT TTS NARRATION IS ONE RENDER, SPLIT — never one call per
   shot (Aug 2026, Sophie: "you're supposed to pick one clip and then chain
   them all together so that they don't change the register so much").** Every

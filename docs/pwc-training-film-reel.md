@@ -282,6 +282,13 @@ id with nothing added to the account. His natural pace matches Bill's to within
 (`GET /api/chatfeed/search?q=`), then read the thread — the id is in the
 preview URL's `/voices/<id>/` path, which is the only place it appears.
 
+**Clyde is on the Voice Studio picker now (Aug 26 2026, Sophie's ask), with
+Max beside him** — `dqbqOZM4uhsyx1WtTAgT`, "Max - 1940s RP British voice", the
+Pathé-newsreel runner-up from the same shortlist. Both are pinned to the TOP of
+`/voice` (`PINNED_VOICE_IDS` in `voicelab.js`), so they serve the Text tab and
+the voice CHANGER alike. Max was added to the ElevenLabs account that day;
+Clyde was already on it.
+
 ### The hand-drawn markup
 
 Her note: *"maybe draw some sloppy circles over what you're talking about in
@@ -442,6 +449,7 @@ redundant with the camera: the 30-degree diagram label (the caption box
 already says the line), card 6's STEP 2 (the pull-out already frames it, and
 the arrow follows seconds later), and the WE-DON'T-INTERFERE seal (the camera
 is fully pushed into it). 16 marks stand.
+<<<<<<< HEAD
 
 ## v11 — the hook tightened, and the FAIL slams on
 
@@ -480,3 +488,5 @@ could look into"):
   beat: camera, sound and slam are one instant, nothing re-timed.
 - It rides the same page-space overlay as the ink, so the camera's push keeps
   it registered to the card.
+=======
+>>>>>>> origin/main

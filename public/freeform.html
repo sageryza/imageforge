@@ -65,7 +65,12 @@
   .up input{position:absolute;inset:0;opacity:0;font-size:0}
   /* Feed */
   .run{background:#fff;border:1px solid #e0d8ca;border-radius:6px;padding:11px;margin-bottom:11px}
-  .run .p{font-size:15px;margin-bottom:6px;white-space:pre-wrap}
+  .runhead{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
+  .run .p{font-size:15px;white-space:pre-wrap;flex:1;min-width:0}
+  /* A rounded SQUARE, the house 6px — never a circle (2026-08-24). */
+  .copybtn{flex:none;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;
+           padding:0;border:1px solid #d8cfc0;border-radius:6px;background:#fdfbf7;color:#6f675e}
+  .copybtn svg{width:14px;height:14px}
   .tags{font-size:11px;color:#9a8f7d;margin-bottom:8px}
   .outs{display:flex;gap:7px;flex-wrap:wrap}
   .outs img{width:calc(50% - 4px);border-radius:4px;display:block;background:#f1ece2}
@@ -328,6 +333,56 @@ document.getElementById('file').addEventListener('change', function (e) {
   }).catch(function () { toast('Upload failed'); });
 });
 
+// ── PUTTING A PROMPT BACK PUTS ITS REFERENCES BACK (2026-08-27, Sophie:
+//    "playground and other image tools shud save the reference photo and
+//    reload when copy to prompt box") ───────────────────────────────────────
+//
+// Freeform's references are a LIBRARY rather than a per-run upload, so the
+// bytes were never in danger — but which ones a run carried was, and there was
+// no way back to a prompt at all: this page had no put-back button of any
+// kind. It has the Playground's now, and it restores both halves of the
+// request, because in Freeform the references ARE half the prompt (nothing
+// else is added to her words).
+//
+// The run doc has stored `refIds` since the module shipped, so nothing new is
+// saved and every run already on file gets this. A reference she has since
+// DELETED cannot come back — the ids that are still in the library are
+// re-selected and the answer SAYS how many were not, rather than quietly
+// starting the next run one reference short.
+var ICON_COPY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<rect x="9" y="9" width="12" height="12" rx="2"></rect>' +
+  '<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+
+function copyRunIn(run) {
+  if (!run) return;
+  // The library is fetched on load, so a tap inside that first round trip
+  // would find `known` empty and report every reference as deleted. Ask once,
+  // then apply — an empty library resolves straight through.
+  if (!Object.keys(known).length) { loadRefs().then(function () { applyRunIn(run); }); return; }
+  applyRunIn(run);
+}
+function applyRunIn(run) {
+  var box = document.getElementById('prompt');
+  box.value = run.prompt || '';
+  // Only change what the record knows: a run with references re-attaches
+  // exactly those, and a run drawn with NONE clears whatever is attached —
+  // leaving one on would put an ingredient into the next run that this one
+  // never had.
+  var want = Array.isArray(run.refIds) ? run.refIds : [];
+  picked = {};
+  var gone = 0;
+  want.forEach(function (id) { if (known[id]) picked[id] = true; else gone++; });
+  document.querySelectorAll('.ref').forEach(function (d) {
+    d.classList.toggle('on', !!picked[d.id.slice(4)]);
+  });
+  drawPicked();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  toast(gone
+    ? 'Prompt is back — ' + gone + (gone === 1 ? ' reference is' : ' references are') + ' no longer in the library'
+    : (want.length ? 'Prompt and its references are back' : 'Prompt is back in the box'));
+}
+
 // ── Runs ────────────────────────────────────────────────────────────────────
 function runCard(run) {
   var el = document.getElementById('run-' + run.id);
@@ -338,7 +393,11 @@ function runCard(run) {
     document.getElementById('feed').insertBefore(el, document.getElementById('feed').firstChild);
   }
   var tags = [run.model || 'gpt-image-2', run.quality, run.size].filter(Boolean).join(' · ');
-  var html = '<div class="p"></div><div class="tags">' + tags + '</div>';
+  var html = '<div class="runhead"><div class="p"></div>' +
+    '<button class="copybtn" data-copy="' + run.id + '" ' +
+    'aria-label="Put this prompt and its references back" ' +
+    'title="Put this prompt and its references back">' + ICON_COPY + '</button></div>' +
+    '<div class="tags">' + tags + '</div>';
   html += '<div class="outs">';
   (run.images || []).forEach(function (u) { html += '<img src="' + u + '" alt="" data-full="' + u + '">'; });
   if (run.status === 'drawing' || run.status === 'ready') {
@@ -354,6 +413,7 @@ function runCard(run) {
   }
   el.innerHTML = html;
   el.querySelector('.p').textContent = run.prompt || '';
+  el.querySelector('.copybtn').addEventListener('click', function () { copyRunIn(run); });
   el.querySelectorAll('img[data-full]').forEach(function (im) {
     im.addEventListener('click', function () { openLb(im.dataset.full); });
   });
@@ -396,8 +456,11 @@ document.getElementById('go').addEventListener('click', function () {
   api('/run', { method: 'POST', body: JSON.stringify(body) }).then(function (d) {
     go.disabled = false;
     if (!d || !d.id) return toast((d && d.error) || 'Could not start');
+    // `refIds` rides the optimistic card so its put-back is honest before the
+    // first poll swaps the real doc in — without it, copying a run back the
+    // second after starting it would CLEAR the references it is drawing with.
     runCard({ id: d.id, prompt: body.prompt, quality: body.quality, size: body.size,
-              outputs: body.outputs, refs: [], images: [], status: 'drawing' });
+              outputs: body.outputs, refs: [], refIds: body.refs.slice(), images: [], status: 'drawing' });
     poll(d.id); savePending();
     toast('Drawing…');
   }).catch(function () { go.disabled = false; toast('Could not start'); });

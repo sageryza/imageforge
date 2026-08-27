@@ -25,6 +25,15 @@ The numbers are measured, not guessed.
    most chats should have NO pin. A third case is not yours to declare — run
    it by Sophie first. (Full rules: *THE PINNED LINK* in the Chats app
    section.)
+3c. **Handed her a FILM, an AUDIO CUT, or a finished page? It goes on the
+   DELIVERABLES LIST** (Sophie, 2026-08-27: "watch them all in one place
+   newest first"). A media pin records itself; a deliverable you did NOT pin
+   gets `POST /api/deliverables {chat, session, url, title, kind?}`. The list
+   is https://imageforge-q125.onrender.com/deliverables, and a NEW url buzzes
+   her phone past the per-chat bell — so never POST a test render there.
+   Re-POSTing the same url updates the row silently. Images stay out (the
+   gallery is their place). Full rules: *THE DELIVERABLES LIST* in the
+   inbox-and-odds-and-ends section.
 
 **When the work WRAPS UP (not every turn)**
 3b. **Leave a WRAP-UP** — `POST /api/chatfeed/wrapup {chat, session, line,
@@ -39,6 +48,15 @@ The numbers are measured, not guessed.
    what a chat was, so it earns more care than the status card. *Measured
    2026-08-14: 73 of her 88 archived chats showed nothing but a name.* You
    cannot be asked for it later — you are asleep by the time she archives.
+3d. **Tagged `bug fix`? ARCHIVE YOURSELF when the fix landed clean** (Sophie,
+   2026-08-27: "chats tagged bug fix shud auto archive themselves if there's
+   no problems or questions"). Read your tags off `GET /api/chatfeed/status
+   ?chat=&session=` (`labels`, added the same day). If `bug fix`/`bugfix` is
+   on you AND nothing is open — the fix works and is merged, no problem left,
+   no question of hers unanswered, your `need` empty — leave the wrap-up (3b)
+   and then `POST /api/chatfeed/archive {chat, archived:true}` (it freezes the
+   wrap-up for the archive row). Anything still open → stay live and say what
+   it is. Full rule: *A BUG-FIX CHAT PUTS ITSELF AWAY* in the Chats section.
 
 **Writing an image prompt (before any of the below)**
 - **Short, action-only, and NAME the thing rather than listing its parts** —
@@ -73,6 +91,12 @@ The numbers are measured, not guessed.
 **When she messages you** — check what is waiting, in one sweep: asset ♥/✕ and
 notes (`GET /api/gallery/assets/notes?chat=`), Writing Room notes, the running
 to-do list. Act on them, then answer on the image itself. **Never on a timer.**
+- **A QUICK-QUESTION chat SETS ITS OWN BELL** (Sophie, 2026-08-27: "a 'quick
+  question' chat shud set its own bell as true"). If she is using you for
+  quick questions — she says "quick question mode", or `quick question` is in
+  your `labels` on `GET /api/chatfeed/status` — `POST /api/chatfeed/notify
+  {chat, notify:true}` once, so the answer buzzes her phone. Turning a bell
+  OFF stays hers alone.
 
 **While you work**
 - **BUILDING OR POSTING A PAGE? THE RULES FIRST — this is the thing that
@@ -179,9 +203,13 @@ late or never.
 - **URGENT is the only interrupt** — she is blocked without it, or it expires.
   Say so plainly in the reply AND queue it anyway, so it survives her not being
   near the computer. "It would be faster" is not urgent.
-- **A video url is NOT a desktop task** — `POST /api/ytdl/grab` downloads it
-  from the cloud (*Grab a video* under Audio & film, measured live 2026-08-23).
-  If a grab ever comes back `blocked:true`, then queue it here.
+- **A video url: TRY `POST /api/ytdl/grab` FIRST, but it is often refused and
+  the queue is still the fallback (measured 2026-08-27).** Render's IP is
+  substantially bot-blocked — 3 of 4 distinct videos refused on every player
+  client — so the grab is worth one attempt and no more hope than that. When it
+  answers `blocked:true`, queue it here. A SESSION container is luckier than
+  Render (2 of 3 the same minute), so a chat that needs the bytes can also run
+  yt-dlp itself and POST the file to the Dump / audio library.
 - **What counts as desktop-only:** anything needing her logged-in browser,
   keychain or Photos library, a plugged-in device, local files that live only on
   the Mac, and big uploads that must be chunked on her home connection. Anything
@@ -1501,10 +1529,40 @@ them off the reference sheet, not off the old filenames.
   row is a `<button>` and a nested button would eat the tap. `waitMarkHtml` is
   the one renderer and `syncWaitMark` repaints the thread header, which is
   built once — the Organize sheet opens from inside that same thread, so
-  without it the screen she is standing on is the last to know. **Nothing
-  tells the CHAT** — `GET /api/chatfeed/status` carries no labels, so a chat
-  cannot see that she is waiting on it. Test:
+  without it the screen she is standing on is the last to know. **A chat CAN
+  see its labels since 2026-08-27** — `GET /api/chatfeed/status` returns
+  `labels` (added for the bug-fix auto-archive and quick-question bell rules);
+  this line used to say it carried none. Reading them is fine; FILING is still
+  hers and the auto-sorter's. Test:
   `node scripts/test-chats-waiting-mark.js`.
+- **A BUG-FIX CHAT WEARS A BUG AND PUTS ITSELF AWAY (2026-08-27, Sophie: "add
+  a tag on the chat ex bug fix - a picture of a bug in the list. start w just
+  bugs" · "a bug fix tag button on the right in the header on all 3 account
+  pages" · "chats tagged bug fix shud auto archive themselves if there's no
+  problems or questions").** Three halves, one tag:
+  - **THE MARK.** A chat labelled `bug fix` (or `bugfix`/`bug`/`bugs` — her
+    dictation) draws a small Lucide bug at the front of its row, in the tile's
+    name and in the thread's `<h1>` — the watch's slot, but in the quiet ink,
+    not the marks' red: a bug fix is what the chat IS, never a debt she is
+    owed. `TAG_MARKS` in `chats.html` is the table (one renderer,
+    `tagMarkHtml`), and **the next picture-tag is a row in that table** —
+    "start w just bugs" means the bug is the first, not the only shape the
+    table will ever hold.
+  - **THE BUTTON.** A bug icon at the right of the header's tool row on the
+    chat list — the three account tabs are views of that list, so it rides
+    all three (the Instagram icon's float, `#bugbtn`). Tapping it narrows the
+    screen to the bug-fix chats; lit while on, session-only like ★, and it
+    reaches INTO the archive on purpose — the auto-archive rule below would
+    otherwise empty the pile exactly as it starts working.
+  - **THE AUTO-ARCHIVE is the CHAT'S OWN job, at wrap-up** (see 3d in the
+    checklist): tagged `bug fix` + nothing open (fix works and is merged, no
+    problem left, no unanswered question of hers, `need` empty) → wrap-up,
+    then `POST /api/chatfeed/archive {chat, archived:true}`. Anything open →
+    stay live and name it. Nothing server-side archives for you — a wrong
+    auto-archive hides a chat she is still waiting on, so the judgement stays
+    with the chat that did the work. She finds them again on the bug button,
+    in the archive, or by un-archiving.
+  Tests: `node scripts/test-chats-bug-tag.js` (the real page, headless).
   **ALL THREE UPDATE BOXES WEAR A CHIP ON THIS ROW (Aug 2026, Sophie: "'maybe
   never' isn't on the tag list in the account area" → "give them both a
   chip").** `come back to` had one because it was already a folder of hers;
@@ -2092,6 +2150,44 @@ them off the reference sheet, not off the old filenames.
     name-row cap pure, then the real page headless — opt-in, both toggles
     reaching the server, the chip wearing the state, and the controls' right
     edge measured against the pill's column).
+- **EVERY CHAT HAS A LITTLE DRAWING BESIDE ITS NAME, AND IT SWEEPS ITSELF
+  (`chaticons.js`, `/api/chaticons`, Aug 2026, Sophie: "the icons that just
+  have big letters next to each chat and the update tab — I'd like to replace
+  them with icons").** A chat with no `icon` on its registry doc drew a box
+  with a giant letter in it; 356 were drawn by hand in one sitting and the
+  rest arrive on their own.
+  - **25 TO A SHEET IS THE WHOLE DESIGN.** One gpt-image-2 sheet in the pastel
+    house style is ~6c at medium, so an icon costs **0.24c**; drawing each
+    chat the moment it appeared would be a separate ~6c call, 25x the price
+    for the same pictures. So the sweep WAITS until enough have piled up, and
+    a brand-new chat wears a letter for a day or two. That is the trade, and
+    it is the right way round. Measured 2026-08-15: **104 new chats in one
+    hour**, which is why hand-running batches was never going to hold.
+  - **It skips ARCHIVED chats** (her rule: "obviously skip archived chats"),
+    the trash, and any chat with **nothing to draw from** — no display name,
+    no note, no status/update card, and a generic slug (`new-session-7f3e9a`).
+    There is no picture of an unnamed session and a wrong one is worse than a
+    letter; it comes back into range by itself when the chat says what it is.
+  - **It draws from the REGISTRY, not the threads** — her name for it, her
+    note, the chat's own cards, its wrap-up, the slug. 23KB for 250 chats, so
+    the reading costs nothing; Claude turns each line into one drawing subject
+    (one call per sheet).
+  - **It never touches the TRACER.** `/api/vector/sheet` draws, cuts AND traces
+    every cell to SVG, and the trace is what hangs — two sheets stalled half an
+    hour on one cell with the other 24 done, and pinning `ink` did not stop the
+    second. An icon needs the CUT, never the SVG, so this calls `drawSheet` +
+    `sheetPrompt` and vectorize's `slice`/`cutout` directly. The same lesson is
+    in `scripts/gen-chat-icons.js`, which is still how you redraw a SPECIFIC
+    set by hand (`--sheet <n>`, `--recut` off the banked sheet for free).
+  - **The daily tick is hourly and the due check is in FIRESTORE** (`lastRunAt`
+    on the module's state doc). This service restarts on every deploy, so a
+    24-hour interval counted from boot would either never fire or fire on every
+    restart — and the stored clock also means a dev container that boots the app
+    spends nothing. The tick only runs where `RENDER_EXTERNAL_URL` is set.
+  - `POST /run {limit?, dry?}` sweeps on demand — **`dry:true` is free** and
+    names exactly who is about to be drawn and what it will cost.
+    `GET /status` and `GET /waiting` are free reads. Tests:
+    `node scripts/test-chat-icons.js` (the decision table, pure).
 - **A claim about what OTHER sessions do is a POPULATION fact — measure it, never
   reason it out.** See the case study at the top of this file. Most chats run an
   older hook than the repo's, so a feature that depends on a new hook simply does
@@ -2590,6 +2686,27 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     a real iframe and `test-back-to-top.js` sweeps the baked copies. **Seven
     files, and only a test notices one left behind** — the resume revert had to
     touch all seven.
+  - **THERE IS A THIRD PILL — THE NATIVE ONE — AND WHETHER IT DRAWS IS DERIVED
+    NOW, NOT LISTED (2026-08-27, Sophie on the Characters page: "two pills").**
+    `RootView`'s `AutoScrollPill` shows on every screen that has nothing else
+    drawing one, and it used to decide that from a hand-kept BLACKLIST of tools
+    whose page already carries one. Forgetting a tool is SILENT — the two
+    capsules stack in the same fixed corner, offset by the native one's own
+    padding, and "Fast" prints twice. It had been missed once already (Voice
+    Studio, Aug 2026, and its own comment says so) and, measured the day this
+    was fixed, **five more were still wrong: Dreams, Shop Report, Characters,
+    Song Station and Films** — every one of them a page served with
+    `{ pill: true }`. So the answer comes from `Tool.webPath` (which page each
+    tool hosts) plus `forgePillPages` (every page that carries one — injected,
+    or baked from `pill.py`), and `node scripts/test-native-pill.js` derives
+    the real set from server.js and fails on drift **in both directions**: a
+    page missing from the set draws two pills, a page listed that has none
+    draws nothing and leaves her with no way back to the top. It also fails if
+    a per-tool `if t == .x` opt-out grows back beside the derived rule. The
+    only two that survive are not about a page: `.filmeditor` (one screen,
+    never scrolls) and `.movie` while the Story Room is pushed inside it.
+    **The fix ships with a TestFlight build, not a deploy** — until she
+    installs one, the five above still show two.
   - **The app's copy has no `id="ptop"` on purpose** — `chats.html`'s own pill
     owns that id and the sweep above counts exactly one per file; the viewer's
     button is `class="ptop"` only.
@@ -3111,6 +3228,43 @@ before working on that module. Nothing was deleted — the moved text is verbati
   Replicate LoRA), **Sandy mirror**, **ChatGPT**, **Dreamy**, Scarry, Pastel,
   Hoonies (all gpt-image-2, her own scans attached as style refs, kept in
   `PL_GPT_STYLES` in server.js).
+  **A hairline PICTURE · PANELS tab sits at the top (2026-08-26, Sophie: "we
+  make a picture and cut it into panels … describe each panel individually —
+  it could be a feature or Hairline tab in the playground itself").** On
+  PANELS the prompt box becomes N boxes laid out AS the grid (2 · 4 · 9; 25
+  later is one `GRIDS` entry in `sheet-grid.js`) — **the 2 option is two
+  LANDSCAPE panels, one above the other** (2026-08-27, Sophie: "2 option shud
+  be landscape in panels"), a `shape` PINNED on that grid, which borrows the
+  portrait tier's pixel budget and takes the canvas toggle off screen because
+  it decides nothing there. **No new endpoint** (her question the same day): a
+  panels run is the same `POST /api/promptlab` with `panels` + `grid`; one gpt-image-2 SHEET draws
+  at the tier budget on a canvas DERIVED to divide into whole-pixel cells,
+  the server cuts it apart (sequential, lossless, sharp cache off — the 512MB
+  box; **the cut is IMAGE-AWARE since 2026-08-27** — `findSeams` cuts through
+  the middle of the real gutter near each math line, math as the fallback,
+  because the model draws the grid slightly off and a blind cut landed on two
+  panels' frame edges in her first live look), and each panel files into My
+  Creations with its own words as the
+  label and the **`1/9 (4K)`** size slot (`size-tier.js cutSize` — the
+  fraction and the SHEET's tier, never the panel's own pixels). Dreamy's
+  anti-grid tail clause is SWAPPED for a sheet, the no-text mechanism again
+  (`sheet` beside `noText`); the paid sheet is banked BEFORE the cut and a
+  failed cut keeps it, disclosed as "uncut sheet". **A DEPLOY RESTART CANNOT
+  LOSE A BANKED SHEET (2026-08-27, measured: three merges deployed in a row
+  and orphaned four paid 4K sheets mid-run)** — the stuck-run sweep finishes
+  an orphaned panels run from its banked sheet (free) instead of marking paid
+  work failed, and `POST /api/promptlab/:id/recut` does the same on demand
+  for a failed-with-sheet or cutFailed run (recovery-only: an already-cut run
+  is refused, a second cut would file duplicates). **AND A SHEET IS ONE
+  OUTPUT** — the bulk-batch CEILING LEDGER (Opinions section) counts
+  concurrent OUTPUT buffers on the box; a panels run buffers one sheet.
+  Run a sheet batch at the ledger's largest measured clean number (never
+  one at a time — a serialized 10-sheet batch cost 12 minutes for no
+  protection the box needed), and ratchet the ledger when you measure
+  higher.
+  Full rules: *The PANELS
+  tab* in `docs/modules/pictures.md`. Tests: `node scripts/test-sheet-grid.js`
+  and `node scripts/test-playground-panels.js`.
   **SANDY MIRROR AND CHATGPT ARE TWO TILES SINCE 2026-08-24 (Sophie: "add one
   more endpoint option to the playground, which is called ChatGPT and change
   the one that's called ChatGPT right now to make it be called Sandy mirror.
@@ -3254,6 +3408,93 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - **gpt-image-2 only.** The WTR LoRA takes a trigger word and has no
     attachment slot at all, so the button comes off there rather than sitting
     there doing nothing. Test: `node scripts/test-playground-photo-ref.js`.
+  - **PUTTING A PROMPT BACK PUTS ITS REFERENCE BACK (2026-08-27, Sophie:
+    "playground and other image tools shud save the reference photo and reload
+    when copy to prompt box").** The photo was already SAVED — `photoRef` on
+    the run doc is the Storage url it was uploaded to, and the whole doc rides
+    the feed — but nothing on the page ever read it back, so a picture drawn
+    with a photo could not be re-run with the same photo: the bytes existed and
+    were unreachable. Every copy-back path restores it now (the run card's
+    button in both views, the lightbox action, a panels run, a pending run).
+    - **THE RULE IS "ONLY CHANGE WHAT THE RECORD KNOWS", and the CLEAR is the
+      half that is easy to skip:** a url on the record attaches it, a record
+      carrying NONE takes an attached one OFF (a panels run, a LoRA run, a
+      picture she drew with nothing on it — leaving one on would put an
+      ingredient into the next run that the one she copied never had), and no
+      record at all leaves it alone. A test that only checks the attach passes
+      against a page that never clears.
+    - **The restored value is the URL, not a dataURL**, and `restorePhoto`
+      accepts only `^https?://` — the same test server.js applies to `photo`.
+      The two agreeing is the point: the page must never attach something the
+      run would silently drop, leaving her looking at a thumbnail that did not
+      ride the request. Nothing is re-uploaded; the run's record points at the
+      same object.
+    - **A pending run's doc is stashed by the POLL** (`runsById[d.id] = d`) —
+      the pending ENTRY cannot carry a photo, since it lives in localStorage
+      where a 1600px dataURL is most of the quota.
+    - **NOT PERSISTED across loads is UNTOUCHED and is still hers.** Her tap on
+      a copy button is the opposite of silent: the thumbnail appears in the row
+      as she taps, and the Prompt panel's photo line comes back with it.
+    - **FREEFORM IS THE OTHER IMAGE TOOL, and it had no put-back button at
+      all.** It has the Playground's now, and it restores both halves, because
+      there the references ARE half the prompt (nothing else is added to her
+      words). The run doc has stored `refIds` since the module shipped, so
+      nothing new is saved and every run already on file gets this; a reference
+      she has since DELETED cannot come back, so the ones still in the library
+      are re-selected and the toast SAYS how many were not, rather than quietly
+      starting the next run one reference short. The optimistic card carries
+      `refIds` too, or copying a run back the second after starting it would
+      clear the references it is drawing with.
+    - **The Assets PORT is deliberately not this** (`playground-port.js`): it
+      identifies a picture by EVIDENCE in its filed prompt text and never knows
+      the run, and a filed prompt records no photo. Don't invent one.
+    - Test: `node scripts/test-copy-restores-reference.js` (both real pages
+      headless — the restore is a state change across three controls and a
+      source assertion cannot see it; verified failing pre-fix, 5 in the
+      Playground and no button at all in Freeform).
+  **HER OWN CAST — THE CHARACTER PICKER (2026-08-27, Sophie: "add a little
+  button in the playground right next to where it says dreamy make sure it's
+  the same style with a character icon that shows the five most recent
+  characters that were put and then also the rest of the sheet and characters
+  with a search").** A Lucide people glyph beside the style picker — the
+  picker's own ink border at its own 34px, because that is the row she named —
+  opening a sheet of her FIVE most recent across the top and the rest under a
+  search. Picking is two taps; up to `MAX_PICKED` ride, lit with the count on
+  the button.
+  - **IT IS THE CHARACTER CREATOR'S OWN LIBRARY, never a second pile** —
+    `forge-characters`, the same 143 the cast sheet and the dream flow read
+    (measured live 2026-08-27). `GET /api/promptlab/characters` adds only the
+    ORDER: **recent = the last time she DREW with one**, falling back to the
+    day it was made, so drawing here moves a face up the row. `markUsed` in
+    character.js is that one definition, called by the run AND by the old
+    `/used` route.
+  - **THE CAST RIDES AT THE VERY END OF THE ATTACHMENTS**, because `charLine()`
+    — the SHARED sentence in `pad-characters.js`, the same one the Story Room
+    sends — says "the last attached image(s)". **Which is why the photo line
+    has a twin**: `PL_GPT.photoLineWithChars` is that identical instruction
+    re-anchored, sent only when a character rides behind the photo, because
+    "the LAST attached image" is one of THEM by then. A run with no cast sends
+    the original byte for byte.
+  - **THE WORDING IS SERVED, NOT COPIED** — `pad-characters.js` is UMD-wrapped
+    and served at `/pad-characters.js` (the `pause-plan.js` pattern), so the
+    Prompt panel prints the REAL `charLine()` and the page owns no transcript
+    of it to drift.
+  - **NOT `noCharacter`'s business.** That flag is about the SOPHIE CARD,
+    which is the watercolor look by another name; a character she picked is
+    her own subject and rides on every gpt tile, the reference-less ChatGPT
+    one included. Off on the LoRA (no attachment slot) and on PANELS (a sheet
+    is not the surface to argue "the last attached image" on).
+  - **A face is drawn through the derived-thumb service** — a saved character
+    card is a full render (**1.26MB**, measured; its 240px thumb is **5.8KB**),
+    and a picker of 143 of them would be tens of megabytes of originals.
+  - **A reference that will not fetch FAILS the run** rather than quietly
+    drawing a stranger — the Story Room's own rule.
+  - **The sheet opens into the pill's corner**, so both card rows reserve a
+    MEASURED `--charpill` column (`fitCharPill`): pre-fix the pill's own
+    `Fast` label sat on the fifth recent card, and her 47px safe-area inset
+    pushes the pill down onto that card's middle.
+  - Test: `node scripts/test-playground-characters.js` (verified failing 3
+    against the unreserved rows).
   **TWO QUALITY LADDERS, AT THE RIGHT END WITH GENERATE (Aug 2026, Sophie:
   "add a little oval next to the pyramid, colored on top, white empty on
   bottom, signifying medium, and high. when pressed, it kicks off 1 medium and
@@ -3596,6 +3837,23 @@ before working on that module. Nothing was deleted — the moved text is verbati
     closes the box first) and the copy action.
   - **A half with nothing filed shows no Style|Content pair** — the
     Playground's no-style-half silence, now everyone's.
+  - **`votesBelow` PUTS TWO BUTTON FAMILIES ON ONE LINE, SO `.vbelow` SIZES
+    THEM (2026-08-27, Sophie: "bottom buttons are all different sizes in the
+    playground light box … find what size they were 24 hours ago and make them
+    all that size").** `.vote` is 38px because it was drawn for the screen's
+    TOP CORNERS, and `.lbacts button` is 34px; `votesBelow` moves the votes
+    into that row, so ♥ ✕ sat visibly bigger than copy · save · story beside
+    them, with the 38px note-send under both. **The size she asked for is the
+    Playground's own**, read off its hand-rolled lightbox as it stood the day
+    before the port (`.lbbtn` — 46x46, a 21px glyph, 22px apart), where all
+    five really were one class. It is a `.vbelow` rule in `asset-lightbox.js`,
+    scoped like every other hook, so the Assets tab, Meta Assets and the grid
+    pages — which pass no layout hook — keep the sizes they have. **A hook
+    that MOVES a control into another row inherits that row's problem: check
+    the sizes on both sides of the join.** Pinned by the size block in
+    `node scripts/test-playground-lightbox.js`, MEASURED off the real boxes
+    (two rules winning on two different buttons is invisible to any class
+    assertion) — verified failing 2 pre-fix, naming all three sizes.
   What SURVIVED the move, as caller wiring: the thumb-first open with the
   original swapping in from the ONE fetch Save needs (below); the style half
   derived from THIS run's `fullPrompt` (`runPromptHalves`, below); ♥/✕ to the
@@ -4128,12 +4386,59 @@ before working on that module. Nothing was deleted — the moved text is verbati
 - **Voice Studio** (`voicelab.js`, `/voice`) — her cloned voices, two hairline
   tabs: TEXT (TTS, stock v2 defaults, no settings by design) and VOICE
   (speech-to-speech on `eleven_multilingual_sts_v2`, which keeps the performance
-  and swaps only the voice). Her words stay in the box after a render. The page
-  carries NO header of its own (the native bar has the title) and no character
-  counts; credits live behind the ⓘ on the tab row. **Every take is kept** —
+  and swaps only the voice). Her words stay in the box after a render. **The
+  page OWNS its header** (one `.app-header` row, the title centred by
+  pagehead) — it carried none while Apple's nav bar had the title, and when
+  `.forgeWebToolBar` took that bar away the tool went NAMELESS, showing a bare
+  chevron and nothing else (2026-08-27, Sophie: "this header doesn't match the
+  app pattern"). There are still no character counts; credits live behind the
+  ⓘ on the tab row. **Every take is kept** —
   the output AND, on the changer, the recording that went in — and each card
   has a ⤓ that downloads it through our own server (`GET /api/voicelab/file/:id`,
   `?src=1` for the source); a Storage url alone only plays inline.
+  **A RENDER KILLED BY A DEPLOY IS RECOVERED, NEVER RE-RENDERED (2026-08-27,
+  Sophie: "voice studio render killed").** A render is a fire-and-forget job in
+  this process, so a deploy that swaps the instance out kills it between
+  "ElevenLabs finished" and "we saved it": the doc sits on `rendering` forever
+  and the page — which polls every 2s while a take says that — **spins on it
+  with nothing on screen ever admitting it is dead**.
+  **BUT THE TAKE THIS WAS BUILT ON WAS NEVER KILLED — TWO CHATS GUESSED THE
+  SAME WRONG CAUSE ON THE SAME NIGHT (2026-08-27).** Her 4,842-character Max
+  take started 8:16pm Pacific, four minutes after #1794's deploy merged, which
+  is what made "killed by the deploy" look obvious. Measured on the doc
+  afterwards: it finished on its own at 8:28:45pm, `done`, with a url and no
+  error — it had taken **735 seconds**, and the identical text re-sent twelve
+  minutes later came back in **75**. So ElevenLabs' own latency swings 10x on
+  the same input, nothing was orphaned, and no credits were lost.
+  **What she was looking at was a working render with no clock on its spinner**
+  — a slow one and a dead one were the same picture — so `spinLabel` in
+  `public/voice.html` counts the minutes now ("rendering… 4m", and past five
+  "· long ones can run past 10m"), and a failed take carries a **Render again**
+  button instead of being a retype of 4,842 characters. The recovery below is
+  still right and still worth having; it just answers a case that had not
+  happened yet. **A deploy four minutes before a symptom is a coincidence
+  until the doc says otherwise — read `doneAt` before believing it.**
+  **The audio was never lost — ElevenLabs keeps every generation in its own
+  history and hands the mp3 back for FREE**, so the sweep fetches what she
+  already paid for rather than charging her twice (the Playground's
+  banked-sheet call, same shape). Recovery is tried BEFORE anything is marked
+  failed; `POST /api/voicelab/render/:id/recover` is the hand crank (`dry:true`
+  is free) and `node scripts/recover-voicelab-render.js` (dry by default) runs
+  the same code from a container.
+  - **The one thing it can get wrong is picking the WRONG take**, and that
+    lives in `voicelab-recover.js` alone — pure, no network. She re-renders the
+    same words over and over (six "magic pills" takes in ninety seconds), so
+    "the right voice at about the right time" is not specific enough. The
+    rules: the **request id** (stamped the moment the response HEADERS arrive,
+    i.e. before nearly every kill — the one exact key), else the **exact text +
+    voice + window** for TTS, else **voice + window** for a conversion **and
+    only when exactly one qualifies** — an STS item carries no words to tell
+    two apart, and handing her another take's audio under this take's name is
+    worse than leaving the card failed. In every case an item sitting nearer to
+    ANOTHER of her renders belongs to that one, so a stuck doc can never steal
+    the generation a doc that finished normally already used.
+  - Test: `node scripts/test-voicelab-recover.js` (her real killed take, the
+    six-identical-takes case, and the two refusals).
   **Full details: `docs/modules/audio-and-film.md`.**
 - **Audio drop** (`audio.js`, `/api/audio`) — the generic destination for audio
   off her phone: dump first, label afterwards, files keyed by byte md5, readable
@@ -4193,14 +4498,20 @@ before working on that module. Nothing was deleted — the moved text is verbati
   metadata AND pulled a real 3.3MB m4a and a 17MB 720p mp4, first try, no
   cookies. That is the exact shape CLAUDE.md warns about at the top — a dated
   measurement going stale when the environment moves underneath it.
-  **AND THEN MEASURED ON RENDER ITSELF, the same day, because one cloud egress
-  is not a population:** probe 4.8s, a 3.4MB m4a down in under 6s, and a 360p
-  mp4 merged by ffmpeg, postered by the Dump and filed, at 9.1MB. Both test
-  records were deleted afterwards. **Render is not blocked.** It can regress —
-  the blocking is YouTube's to change — so `GET /api/ytdl/status?probe=1`
-  re-runs the measurement on demand (metadata only, no bytes, no cost), and a
-  block lands on the doc as `blocked:true` in yt-dlp's own words, so the one
-  failure with a different remedy never reads like a generic error.
+  **BUT "RENDER IS NOT BLOCKED" WAS WRONG, AND IT TOOK THREE TRIES TO SEE IT
+  (2026-08-27).** Two successful downloads on 08-23 were read as the endpoint
+  working. Measured properly four days later: Render refused **3 of 4** distinct
+  videos, on EVERY player client, twice over — including two of Sophie's own
+  grabs. A session container got **2 of 3** the same minute, so it is Render's
+  IP reputation, not YouTube in general. What made this survive so long is that
+  `dQw4w9WgXcQ` — the probe's hardcoded video — is one of the few Render still
+  serves, so **`GET /status?probe=1` went green throughout two days of her
+  grabs failing. A green probe says ONE video on ONE client works and nothing
+  more; never quote it as the endpoint being healthy.**
+  So: the grab is worth one attempt, it fails honestly with `blocked:true` in
+  yt-dlp's own words, and **the desktop queue is still the real fallback.**
+  Cookies (`--cookies`) are the documented remedy and need her logged-in
+  browser, i.e. the desktop trip this was built to avoid.
   **It costs nothing** — no model call; it is bandwidth and ffmpeg on our own
   box. `POST /grab {url, kind:'audio'|'video', quality?, to?}` returns an id in
   ~0.3s and the work runs behind it (`GET /:id/job` to poll).
@@ -4224,16 +4535,23 @@ before working on that module. Nothing was deleted — the moved text is verbati
     for `to:"audio"` deliberately. The other way round, a music grab nobody
     thought about puts lyrics in among the notes she searches, with no undo
     beyond hunting the memo down.
-  - **THE BOT-BLOCK IS INTERMITTENT AND IS RETRIED, NEVER REPORTED FIRST TIME
-    (measured 2026-08-24).** The same video read fine, then was refused twice
-    in a row a second later, same box and same IP — so it is rate-limiting, not
-    a standing ban. A grab retries a block 3 times over ~46s and only calls it
-    `blocked:true` once that ladder is exhausted; anything else (a dead url, a
-    private video) fails at once rather than wasting her time. Reporting the
-    first refusal as a block would send her to her computer for something that
-    works on the next attempt — the worst failure this module can have.
-    Render measured 6/6 clean at ~4s the same day, so its IP is in better
-    standing than a session container's, but neither is immune.
+  - **THE BOT-BLOCK IS PER PLAYER CLIENT — not per IP, and not per video
+    (measured 2026-08-27, and this REPLACES the "it is just intermittent
+    rate-limiting" reading that stood here for three days).** On ONE box within
+    a few seconds, asking for the same video: `default`, `android_vr`,
+    `android`, `ios_music` and `android_music` all answered, while `tv`,
+    `tv_simply`, `web`, `web_safari`, `web_music`, `ios` and `mweb` were every
+    one of them refused. The web/tv clients want a JS challenge the box has no
+    runtime for; the android family does not ask.
+    **This is why a passing probe proved nothing.** Six real grabs of Sophie's
+    on 2026-08-25 failed, four of them bot-blocked, while
+    `GET /status?probe=1` answered fine throughout — the probe's video happened
+    to be one `default` would still serve. A green probe says that ONE video on
+    ONE client works, never that the endpoint works.
+    So a refusal now walks the CLIENT ladder first and only then waits, and a
+    grab records the `client` that answered. Anything that is not a block (a
+    dead url, a private video) still fails at once rather than wasting her
+    time.
   - **The 300MB cap is a MEMORY fact, not a preference** — both sibling routes
     sit behind `express.raw`, which buffers the whole body, and the box has
     512MB. Raise `YTDL_MAX_MB` only if that changes.
@@ -5051,6 +5369,32 @@ before working on that module. Nothing was deleted — the moved text is verbati
     seeding of a hand-worked pad, the split beat's adds landing in place, the
     re-derived caption and the reworded one that is left alone, and the two
     invariants: a pull never drops a beat, an order never changes the count).
+- **Character Creator** (`character.js`, `/api/character`, page at `/character`,
+  iOS tile "Characters", and a sheet inside Dreams) — the recurring people in
+  her dreams and stories: a photo + a name + her aliases ("me"/"Sophie",
+  "Daddy"/"Dad") become a diary-comic reference the dream render matches each
+  dream's cast against, so a face stays the same picture to picture. Drawing is
+  a DETACHED server job — it saves itself even if she closes the sheet mid-draw,
+  and `localStorage` picks an in-flight one back up.
+  **IT WAS THE PAGE THE PILL/HEADER RULES CAUGHT UP WITH LAST (2026-08-27,
+  Sophie: "two pills and there's no way to search. shud follow pill/header hard
+  rules").** Three of the four faults were structural rather than cosmetic and
+  are worth not re-earning: it had **no `.app-header`**, so `pagehead.js` had
+  nothing to sit in and injected a bare strip of its own — under a "‹ Story
+  Room" line that put a second thing above the one title; its rows ran **under
+  the injected pill's fixed corner**, so "Hide sheet" read "Hide" (reserved by
+  `fitPillGap` against the pill's REAL rect now, re-measured by a
+  ResizeObserver because the pill is conditional and this page's content
+  arrives from a fetch); and its lightbox locked the background but never
+  **stopped the autoscroll or restored the scroll position**, so the pill
+  walked the page under an open picture. The SEARCH is the house grammar over
+  the sheet — name, aliases, tier, model, quality — through `/feedkit.js`
+  (`qparse`/`qmatch`/`liveInput`/`enterSubmits`), and **typing opens the sheet**,
+  because a box that only works once she has found and tapped "Show sheet" is
+  one more thing to remember. The second pill was NATIVE and is fixed in the
+  app — see *THERE IS A THIRD PILL* in the design rules. Test:
+  `node scripts/test-character-page.js` (the real page headless, the pill
+  collision asked with `elementFromPoint`; verified failing 10 pre-fix).
 - **Writing Room** (`writing.js`, `/api/writing`, `/writing`, iOS tile) — every
   dating-book date in two versions ("Claude's" and "Mine") with every changed word
   marked red, autoscroll, and per-paragraph notes (text or voice memo). **Notes are
@@ -5234,29 +5578,36 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (`public/opinions-gun.png`), not a line icon. Candidate batches go on a
   review deck for her ♥ first; a single-option batch she has delegated goes
   straight in.
-  **SERIALIZE A BULK BATCH THE SERVER IS DRAWING — `/api/promptlab`, from a
-  script (measured 2026-08-19):** two parallel 4-run × 4-output batches each
-  died "interrupted by a server restart" partway (the 512MB box restarting
-  under **16 concurrent buffered images** + whiten passes is the suspect,
-  though one restart also happened idle); 13 draws run strictly
-  one-run-at-a-time completed clean. One run at a time, poll to done, then
-  the next.
+  **A BULK BATCH THE SERVER IS DRAWING (`/api/promptlab` from a script) IS
+  PACED BY A MEASURED CEILING, AND THE CEILING RATCHETS UP — never
+  one-at-a-time (Sophie, 2026-08-27, after a chat spent 12 minutes
+  serializing ten sheets: "deleting that one at a time note … asking chats
+  to see how many they can do at once, and whichever chat tries the largest
+  number can enter that as a new note").** What matters is **concurrent
+  OUTPUT buffers on the 512MB box** — a panels SHEET counts as ONE output
+  however many panels it holds. The measured ledger, which is the rule:
+  - **Broke it: 16** concurrent outputs + whiten passes (2026-08-19, two
+    parallel 4-run × 4-output batches — the restarts that killed them).
+  - **Largest measured clean so far: 3** (the Playground's own ladders fire
+    2-3 concurrent renders all day, and parallel-3 chat batches run clean).
+  - **Run your batch at the largest clean number on this ledger.** If your
+    batch NEEDS more, try one notch higher, watch it (a run dying
+    "interrupted by a server restart" with the box mid-batch is the tell),
+    and — success or failure — UPDATE the ledger lines above with what you
+    measured and the date. That is how the ceiling finds itself; a chat that
+    silently serializes instead is spending her minutes on a protection the
+    box may not need. (Since 2026-08-27 an interrupted panels run with a
+    banked sheet auto-recovers, so probing costs a retry, not money.)
   **THE SCOPE IS THE BOX, NOT THE WORD "PLAYGROUND" (2026-08-20, Sophie
-  mid-run: "why are you doing them one at a time?").** This note read as a
-  rule about anything Playground-shaped and cost her five minutes on a
-  five-image batch that never touched the server. Two things it does NOT
-  cover:
+  mid-run: "why are you doing them one at a time?").** Two things this note
+  does NOT cover:
   - **A chat drawing in its OWN container** (`gen-dream-distilled.js` and
     friends, posting straight to OpenAI). The Render box is not in the loop
-    at all, so there is nothing to protect — measured 2026-08-20, the same
+    at all, so there is nothing to pace — measured 2026-08-20, the same
     five images took 4m39s serial and **57s in parallel**.
   - **The PLAYGROUND ITSELF, which has never serialized** — its ladders fire
-    `Promise.all` (the pyramid starts low+low+medium at once, the oval
-    medium+high) and `runPromptLabGptJob` is fired without `await`, so
-    nothing queues server-side either. Her own taps are 2-3 at a time, nowhere
-    near the sixteen that broke it.
-  The number that mattered is **concurrent OUTPUTS on our box**, so scale a
-  bulk server batch by that and leave everything else parallel.
+    `Promise.all` and `runPromptLabGptJob` is fired without `await`, so
+    nothing queues server-side either.
 - **The Dump** (`dropbox.js`, `/api/drop`, sort page at `/dump`, iOS tile with
   SEND and SORT tabs) — **dump first, label afterwards**. Dropping asks no
   questions; only the bundle (a Photos album) and the session are captured,
@@ -5819,6 +6170,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
   and in front of BOTH doors (a finished reply and a new Compare page), and it
   compares `notify === true` rather than truthiness — silence is the safe
   direction for an opt-in.
+  **ONE exception she asked for (2026-08-27): a QUICK-QUESTION chat sets its
+  own bell ON** ("a 'quick question' chat shud set its own bell as true") —
+  she says "quick question mode" or the chat wears the `quick question` label,
+  the chat POSTs `{chat, notify:true}` itself, once. A chat never turns a bell
+  OFF; that stays hers alone.
   **A REPLY ONLY BUZZES WHEN IT IS ANSWERING HER (`push-gate.js`, Aug 2026,
   Sophie: "I don't need a notification when I send a message. I need a
   notification when they respond to my message").** Two comparisons against
@@ -5850,9 +6206,38 @@ before working on that module. Nothing was deleted — the moved text is verbati
   message on the registry doc, which rides the feed read to her phone 276
   chats at a time.
   Tests: `node scripts/test-push-gate.js`, `node scripts/test-chats-bell.js`.
-  Dormant until the APNs key exists — only Sophie can mint it.
+  **LIVE since Aug 2026 (measured 2026-08-27: `GET /api/push/status` answers
+  `configured:true, devices:1`)** — the APNs key is in Render's secret files.
+  This line used to say "dormant until the key exists"; that is history.
   **The home-screen widget** reads one small JSON (`GET /api/chatfeed/widget`) and
   must NEVER pull the real feed. **Full details: `docs/modules/inbox-and-misc.md`.**
+- **THE DELIVERABLES LIST** (`deliverables.js`, `/api/deliverables`, page at
+  `/deliverables` — Aug 2026, Sophie: "is there a running list of deliverables?
+  … can you make one, and have the notification go off when a new deliverable
+  is added, even if I didn't set notifications true for the chat that made it,
+  so I can watch them all in one place newest first"). One doc per URL
+  (sha1(url), `forge-deliverables`), sorted by `updatedAt` desc — a re-render
+  at the same url surfaces with a version count instead of duplicating.
+  - **Two doors in:** every MEDIA pin (video/audio) records itself from
+    chatfeed's `POST /pin` — a pinned film IS a hand-over — and anything else
+    is an explicit `POST /api/deliverables {chat, session, url, title, kind?}`
+    (checklist item 3c). Link pins do NOT auto-record: most are pages being
+    worked on, not deliverables. Images stay out by design — the gallery /
+    Meta Assets is their one place, and 2,488 of them would bury the films.
+  - **The push BYPASSES the bell ON PURPOSE — that is the whole ask.** A NEW
+    url calls `push.notifyChat` directly (`debounce:false`, the module's own
+    60s collapse), whatever `chatNotifies` says; tapping it opens the making
+    chat. A re-POST of the same url is silent. So never POST a test render.
+  - **It spends nothing** — no model calls; one single-orderBy Firestore read
+    plus chatfeed's exported registry cache for display names.
+  - `POST /backfill {dry?}` (dry by default, never pushes) sweeps existing
+    registry media pins in, so the list started full. It dedupes by url
+    (two chats pinning one file = one hand-over, newest pin wins), writes
+    the PIN's own date, and re-running repairs its own records while never
+    touching a live door's — the launch-day version recorded per chat
+    through the live update path and stamped today's date on week-old
+    films (Sophie caught it: "evan says today"). Tests:
+    `node scripts/test-deliverables.js` (pure).
 - **Getting original art OUT of a Google Drawing** — for a lot of her old scanned
   artwork the embedded copy is the only one left, and **the SVG export is the only
   way out at full size**. `python3 scripts/gdrawing-extract.py <url-or-id>` does

@@ -246,7 +246,77 @@ enum Tool: String, CaseIterable, Identifiable {
         case .review:    ReviewQueueView()
         }
     }
+
+    /// The server page this tool HOSTS, or nil for a native screen. Query
+    /// strings are not part of it — `/blog?embed=1` is the `/blog` page.
+    ///
+    /// WHY THIS EXISTS: `showAutoScroll` below used to be a hand-kept blacklist
+    /// of "tools whose page already carries a pill", and forgetting one is
+    /// SILENT — you get two pills stacked in the same corner and the speed
+    /// label reading "Fast" twice. It had already been missed once (Voice
+    /// Studio, Aug 2026) and was missed FIVE more times: Dreams, Shop Report,
+    /// Characters, Song Station and Films were all drawing two (2026-08-27,
+    /// Sophie's screenshot of the Characters page: "two pills"). So the answer
+    /// is DERIVED from this map plus `forgePillPages`, and
+    /// `scripts/test-native-pill.js` reads both out of this file and compares
+    /// them against server.js — the ForgeLinks/applinks contract, same shape.
+    var webPath: String? {
+        switch self {
+        case .blog:       return "/blog"
+        case .product:    return "/studio"
+        case .report:     return "/report"
+        case .dreams:     return "/dreams"
+        case .story:      return "/storyroom"
+        case .lessons:    return "/lessons"
+        case .writing:    return "/writing"
+        case .editor:     return "/editor"
+        case .cutroom:    return "/cuttingroom"
+        case .search:     return "/search"
+        case .cutmarks:   return "/cutmarks"
+        case .blocks:     return "/blocks"
+        case .pausing:    return "/pausing"
+        case .chats:      return "/chats"
+        case .playground: return "/playground"
+        case .scratchpad: return "/scratchpad"
+        case .voice:      return "/voice"
+        case .song:       return "/song"
+        case .character:  return "/character"
+        case .films:      return "/films"
+        case .freeform:   return "/freeform"
+        case .vector:     return "/vector"
+        case .chunking:   return "/chunking"
+        case .assembly:   return "/assembly"
+        case .filmeditor: return "/filmeditor"
+        case .timeline:   return "/timeline"
+        case .review:     return "/review"
+        // Native screens — nothing to collide with.
+        case .movie, .sticker, .coloring, .storybook, .greeting, .instagram,
+             .ads, .test, .dump:
+            return nil
+        }
+    }
 }
+
+/// EVERY PAGE THAT ALREADY CARRIES AN AUTOSCROLL PILL — the ones the server
+/// injects it into (`serveGated(…, { pill: true })` in server.js) plus the two
+/// that BAKE their own copy from scripts/pill.py (chats.html, writing.html).
+///
+/// The app cannot read server.js, so this is a mirror — and a mirror nothing
+/// but a test compares is exactly how the six double-pill tools happened.
+/// `scripts/test-native-pill.js` derives the real set from server.js and the
+/// baked pages and fails on drift, in either direction: a page listed here
+/// that has no pill loses its native one (no way back to the top), and a page
+/// missing from here draws two.
+let forgePillPages: Set<String> = [
+    "/assembly", "/assets", "/audio", "/blocks", "/blog", "/brief", "/character",
+    "/chunking", "/clips", "/crystals", "/crystalsplit", "/cutmarks", "/cuttingroom",
+    "/desktop", "/dreams", "/dreams-archive", "/dump", "/editor", "/films",
+    "/freeform", "/import", "/instagram", "/pausing", "/photo", "/playground",
+    "/promptlab", "/report", "/review", "/scratchpad", "/search", "/song",
+    "/storyroom", "/studio", "/timeline", "/vector", "/voice",
+    // baked in-page from scripts/pill.py, not injected
+    "/chats", "/gallery", "/wall", "/writing",
+]
 
 /// Renders a tool's bar/corner icon: an SF Symbol, or a bundled custom asset
 /// (template-rendered so it still takes the foreground color) for tools whose
@@ -603,57 +673,24 @@ struct RootView: View {
         }
     }
 
+    /// The native pill, on every screen that has nothing else drawing one.
+    /// DERIVED from `Tool.webPath` + `forgePillPages` — never a per-tool list
+    /// again; see the note on `webPath` for what the list cost.
     private var showAutoScroll: Bool {
         switch screen {
         case .home: return false
-        // Meta Assets is a web page carrying the server-injected pill — the
-        // native one on top of it would be two pills in one corner.
+        // Meta Assets is the /assets web page, which carries the injected pill.
         case .gallery: return false
         case .tool(let t):
-            // Story Room is a web page with its own in-page pill.
-            if t == .writing || t == .chats || t == .story { return false }
-            // Episode Editor is a web page too — an arranging tool, not a read,
-            // and the pill would sit on top of its sticky header.
-            if t == .editor { return false }
-            // Playground is a short web form + grid — nothing to autoscroll,
-            // and the pill would cover its Generate corner. Same for the two
-            // business forms: the pill sat on their first card.
-            if t == .playground || t == .product || t == .blog { return false }
-            // Cutting Room is a web page with its own injected pill.
-            if t == .cutroom { return false }
-            // Search is a web page with its own injected pill too.
-            if t == .search { return false }
-            // Cut Marks too — same family, same injected pill.
-            if t == .cutmarks { return false }
-            // Cutting Blocks too — same family, same injected pill.
-            if t == .blocks { return false }
-            // Pausing too — same family, same injected pill.
-            if t == .pausing { return false }
-            // Scratch Pad is a web page with its own injected pill — showing
-            // the native one too would stack two pills.
-            if t == .scratchpad { return false }
-            // Freeform is a web page with its own injected pill too.
-            if t == .freeform { return false }
-            // Vector is a web page with its own injected pill too.
-            if t == .vector { return false }
-            // Chunking is a web page with its own injected pill too.
-            if t == .chunking { return false }
-            // Assembly is served with { pill: true } as well.
-            if t == .assembly { return false }
-            // Film Editor is ONE screen that never scrolls — no pill at all.
+            // The page already has one. Two in one corner is the bug this
+            // whole map exists to make impossible.
+            if let p = t.webPath, forgePillPages.contains(p) { return false }
+            // Film Editor is ONE screen that never scrolls — no pill at all,
+            // which is also why /filmeditor is not in the set above.
             if t == .filmeditor { return false }
-            // Story Timeline is served with { pill: true } as well.
-            if t == .timeline { return false }
-            // Review Queue is served with { pill: true } as well.
-            if t == .review { return false }
-            // Voice Studio is served with { pill: true } as well — it was the
-            // one injected-pill page missing from this list, so both pills
-            // drew and the speed label read "Fast" twice (Sophie's
-            // screenshot, Aug 2026).
-            if t == .voice { return false }
-            // The Story Room (pushed inside the movies tool) is a web page
-            // with its own in-page pill — showing the native one too would
-            // stack two pills on top of each other.
+            // The Story Room, pushed INSIDE the movies tool, is a web page with
+            // its own in-page pill — the one case a tool's pill depends on
+            // where it currently is rather than on which page it hosts.
             if t == .movie && autoScroll.webPillActive { return false }
             return true
         }

@@ -139,30 +139,52 @@ t('video defaults to the Dump, where video is looked for', () => {
   assert.strictEqual(ytdl.defaultTo('video'), 'dump');
 });
 
-console.log('\nthe bot-block is retried, not reported');
-t('a block that clears is never surfaced as a failure', async () => {
-  let n = 0;
-  const got = await ytdl.pastTheBlock('x', () => {
-    n++;
-    if (n < 2) throw new Error('Sign in to confirm you are not a bot');
-    return 'the file';
-  }, async () => {}, [1, 1, 1]);
-  assert.strictEqual(got, 'the file');
-  assert.strictEqual(n, 2);
+console.log('\nthe bot-block is answered by changing client');
+// Measured 2026-08-27: a refusal is per PLAYER CLIENT. The android family
+// answers where the web/tv clients are refused, on the same box in the same
+// second — so waiting alone left real grabs failing while the probe passed.
+t('default asks for no extractor-args at all', () => {
+  assert.deepStrictEqual(ytdl.clientArgs('default'), []);
+  assert.deepStrictEqual(ytdl.clientArgs(''), []);
 });
-t('an ordinary failure is NOT retried — that would just waste her time', async () => {
+t('a named client becomes a real yt-dlp flag', () => {
+  assert.deepStrictEqual(ytdl.clientArgs('android_vr'),
+    ['--extractor-args', 'youtube:player_client=android_vr']);
+});
+t('no web or tv client is in the ladder — every one was refused', () => {
+  const bad = ytdl.CLIENTS.filter((c) => /^(web|tv|mweb|ios)$|^web_|^tv_/.test(c));
+  assert.deepStrictEqual(bad, [], `refused clients in the ladder: ${bad}`);
+});
+t('a refusal moves to the NEXT client, and the winner is reported', async () => {
+  const tried = [];
+  const got = await ytdl.pastTheBlock('x', (c) => {
+    tried.push(c);
+    if (c !== 'android') throw new Error('Sign in to confirm you are not a bot');
+    return 'the file';
+  }, async () => {}, [1]);
+  assert.strictEqual(got.value, 'the file');
+  assert.strictEqual(got.client, 'android');
+  assert.deepStrictEqual(tried, ['default', 'android_vr', 'android']);
+});
+t('an ordinary failure is NOT retried on any client', async () => {
   let n = 0;
   await assert.rejects(() => ytdl.pastTheBlock('x', () => {
     n++; throw new Error('Video unavailable');
-  }, async () => {}, [1, 1, 1]));
+  }, async () => {}, [1]));
   assert.strictEqual(n, 1, `retried ${n} times`);
 });
-t('a block that never clears IS reported, after the whole ladder', async () => {
+t('every client refusing IS reported, after the whole ladder', async () => {
   let n = 0;
   await assert.rejects(() => ytdl.pastTheBlock('x', () => {
     n++; throw new Error('Sign in to confirm you are not a bot');
-  }, async () => {}, [1, 1, 1]), /not a bot/);
-  assert.strictEqual(n, ytdl.BLOCK_TRIES);
+  }, async () => {}, [1]), /not a bot/);
+  assert.strictEqual(n, ytdl.CLIENTS.length * ytdl.BLOCK_ROUNDS);
+});
+t('the caller can put its own client first', async () => {
+  const tried = [];
+  await ytdl.pastTheBlock('x', (c) => { tried.push(c); return 1; },
+    async () => {}, [1], ['ios_music', 'default']);
+  assert.deepStrictEqual(tried, ['ios_music']);
 });
 
 console.log('\ncontent types');

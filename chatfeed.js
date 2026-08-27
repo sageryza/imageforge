@@ -3263,6 +3263,15 @@ router.post('/pin', async (req, res) => {
       turns: 0,
     } : del;
     await regRef(target).set({ pinned }, { merge: true });
+    // A MEDIA pin is a deliverable being handed over (a film, an audio cut) —
+    // it also lands on the running deliverables list (/deliverables), which
+    // buzzes her on a NEW url whatever the chat's bell says (Sophie's ask,
+    // 2026-08-27). Fire-and-forget: the list can never fail a pin.
+    if (u && require('./deliverables').pinDeliverable(pinned)) {
+      require('./deliverables')
+        .record({ chat: target, url: u, title: pinned.title, kind: pinned.kind, source: 'pin' })
+        .catch((e) => console.warn('deliverables: pin record failed', e.message));
+    }
     res.json({ ok: true, chat: target, pinned: u ? pinned : null });
   } catch (err) { fail(res, err); }
 });
@@ -3290,6 +3299,11 @@ router.get('/status', async (req, res) => {
       // whether its link is still up there and whether the "current" tag is
       // still lit (`turns` — see pinBump) without re-pinning blind.
       pinned: (d.pinned && d.pinned.url) ? d.pinned : null,
+      // …and its LABELS (2026-08-27, Sophie's tag rules) — so a chat can act
+      // on the words it wears: `bug fix` archives itself when the fix lands
+      // clean, `quick question` sets its own bell. Read-only here; filing is
+      // still hers and the auto-sorter's, never the chat's.
+      labels: labelsOf(d),
     });
   } catch (err) { fail(res, err); }
 });
@@ -4773,7 +4787,10 @@ require('./chat-wake').mount(router, { db, regRef, registry, followMoves, resolv
 // `registry` is exported so brief.js can read the SAME 5-minute cache the feed
 // already keeps rather than opening a second one — two caches of one collection
 // is how a stale answer gets served from whichever module happened to answer.
-module.exports = { router, pillInject, archiveActionFor, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry, pickFilm,
+  // `regRef` is exported for chaticons.js — it is the ONE write path that
+  // invalidates the registry cache, so a sweep must not reach the collection
+  // around it.
+module.exports = { router, regRef, pillInject, archiveActionFor, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry, pickFilm,
   rankGroups, phraseRegex, phraseRank, bestPerChat,
   SEARCH_WHO, whoOf, whoParam, whoMatches,
   SEARCH_ARCH, archParam, archMatches, pickOne, pickNameRows, NAME_ROWS,

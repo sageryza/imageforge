@@ -233,7 +233,21 @@
     + '#clightbox.vbelow .clwrap{min-height:0; flex:0 1 auto;}\n'
     + '#clightbox.vbelow img, #clightbox.vbelow.hastalk img, #clightbox.vbelow.hastalk.hasmsgs img,\n'
     + '#clightbox.vbelow.hastalk.hasacts img, #clightbox.vbelow.hastalk.hasacts.hasmsgs img{max-height:min(76vh,100%);}\n'
-    + '#clightbox.vbelow .cltag, #clightbox.vbelow .clcap, #clightbox.vbelow .lbacts, #clightbox.vbelow .lbtalk{flex:none;}\n';
+    + '#clightbox.vbelow .cltag, #clightbox.vbelow .clcap, #clightbox.vbelow .lbacts, #clightbox.vbelow .lbtalk{flex:none;}\n'
+    /* ONE SIZE FOR EVERY BUTTON UNDER THE PICTURE (2026-08-27, Sophie: "bottom
+       buttons are all different sizes in the playground light box ... make them
+       all that size"). The votesBelow row mixes two families that were never
+       meant to share a line: `.vote` is 38px (it was drawn for the screen's top
+       corners) and `.lbacts button` is 34px, so ♥ ✕ sat visibly bigger than
+       copy · save · story beside them, with the 38px note-send under both.
+       The numbers are the Playground's OWN, lifted from its hand-rolled
+       lightbox as it stood the day before the port onto this file (`.lbbtn`,
+       46x46 with a 21px glyph, 22px apart) — where all five really were one
+       size. Scoped to .vbelow: the Assets tab, Meta Assets and the grid pages
+       pass no layout hook and keep the sizes they have. */
+    + '#clightbox.vbelow .lbacts{gap:22px;}\n'
+    + '#clightbox.vbelow .lbacts button, #clightbox.vbelow .lbnote .notesend{width:46px; height:46px;}\n'
+    + '#clightbox.vbelow .lbacts button svg, #clightbox.vbelow .lbnote .notesend svg{width:21px; height:21px;}\n';
   document.head.appendChild(css);
 
   var HEART = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>';

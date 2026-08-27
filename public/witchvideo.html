@@ -89,9 +89,10 @@ h1{margin:0;font-size:18px;font-weight:400;letter-spacing:.02em}
 #notebox{
   width:100%;min-height:76px;resize:none;border:1px solid var(--line);
   border-radius:6px;background:var(--paper);color:var(--ink);
-  font:15px/1.5 Georgia,serif;padding:10px 12px;
+  font:16px/1.5 Georgia,serif;padding:10px 12px;
 }
-#sheet .row2{display:flex;justify-content:flex-end;margin-top:10px}
+#sheet .row2{display:flex;align-items:center;justify-content:flex-end;margin-top:10px}
+#sheeterr{font-size:13px;color:var(--rose);margin-right:auto}
 
 /* ── the thread ────────────────────────────────────────────────────────── */
 #thread{padding:10px 16px 0}
@@ -119,8 +120,10 @@ h1{margin:0;font-size:18px;font-weight:400;letter-spacing:.02em}
 #lbimg{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
 #lbimg img{max-width:100%;max-height:100%;display:block}
 #lb .row2{display:flex;gap:10px;margin-top:10px}
+#lberr{font-size:13px;color:var(--rose);margin-top:8px}
+#lberr:empty{display:none}
 #lbnote{flex:1;border:1px solid var(--line);border-radius:6px;background:var(--card);
-  color:var(--ink);font:15px/1.5 Georgia,serif;padding:9px 12px;min-height:42px;resize:none}
+  color:var(--ink);font:16px/1.5 Georgia,serif;padding:9px 12px;min-height:42px;resize:none}
 
 /* ── the shelf of other videos ─────────────────────────────────────────── */
 #shelf{padding:20px 16px 0}
@@ -139,7 +142,7 @@ h1{margin:0;font-size:18px;font-weight:400;letter-spacing:.02em}
   letter-spacing:.06em;text-transform:uppercase;font-family:-apple-system,system-ui,sans-serif}
 #ideabox{width:100%;min-height:64px;resize:none;border:1px solid var(--line);
   border-radius:6px;background:var(--card);color:var(--ink);
-  font:15px/1.5 Georgia,serif;padding:10px 12px}
+  font:16px/1.5 Georgia,serif;padding:10px 12px}
 #ideas .row2{display:flex;align-items:center;gap:10px;justify-content:flex-end;margin-top:8px}
 #ideasent{font-size:13px;color:var(--ink2);margin-right:auto}
 </style>
@@ -203,7 +206,7 @@ h1{margin:0;font-size:18px;font-weight:400;letter-spacing:.02em}
     </button>
   </div>
   <textarea id="notebox" placeholder="Note…"></textarea>
-  <div class="row2"><button class="btn" id="notesend">Send</button></div>
+  <div class="row2"><span id="sheeterr"></span><button class="btn" id="notesend">Send</button></div>
 </div>
 
 <div id="lb" hidden>
@@ -213,6 +216,7 @@ h1{margin:0;font-size:18px;font-weight:400;letter-spacing:.02em}
     </button>
   </div>
   <div id="lbimg"><img alt=""></div>
+  <div id="lberr"></div>
   <div class="row2"><textarea id="lbnote" placeholder="Note…"></textarea><button class="btn" id="lbsend">Send</button></div>
 </div>
 
@@ -282,6 +286,9 @@ h1{margin:0;font-size:18px;font-weight:400;letter-spacing:.02em}
   /* ── open one video ───────────────────────────────────────────────────── */
   function open(v, first) {
     cur = v;
+    // The sheet belongs to the video it opened on — carrying it across a
+    // switch would file the note on the WRONG video with a stale timestamp.
+    closeSheet(false);
     if (!first) history.pushState({}, '', '?who=' + encodeURIComponent(WHO) + '&v=' + encodeURIComponent(v.id));
     $('note0').hidden = true;
     $('current').hidden = false;
@@ -292,6 +299,9 @@ h1{margin:0;font-size:18px;font-weight:400;letter-spacing:.02em}
     var has = Boolean(v.cut);
     $('stage').hidden = !has; $('seekrow').hidden = !has; $('acts').hidden = !has;
     $('saved').textContent = '';
+    // The lit ♥/✕ is this video's own state, never the last video's tap.
+    $('love').classList.toggle('on', v.state === 'approved');
+    $('redo').classList.toggle('on', v.state === 'changes');
     if (has && player.src !== v.cut.url) { player.src = v.cut.url; player.load(); }
     showPlay(true);
     paintThread(); paintStills();
@@ -301,12 +311,19 @@ h1{margin:0;font-size:18px;font-weight:400;letter-spacing:.02em}
   /* ── the player: tap to pause IS the note box ─────────────────────────── */
   var player = $('player');
   function showPlay(on) { $('bigplay').hidden = !on; }
-  $('bigplay').onclick = function (e) { e.stopPropagation(); player.play(); };
+  $('bigplay').onclick = function (e) {
+    e.stopPropagation();
+    // With the sheet up, resuming without closing it leaves an open note box
+    // wearing a stale timestamp — the tap means "back to watching".
+    if (!$('sheet').hidden) { closeSheet(true); return; }
+    player.play();
+  };
   player.addEventListener('play', function () { showPlay(false); });
   player.addEventListener('pause', function () { showPlay(true); });
   player.addEventListener('ended', function () { showPlay(true); });
   $('stage').addEventListener('click', function (e) {
     if (e.target.closest('#bigplay')) return;
+    if (!$('sheet').hidden) { closeSheet(true); return; }
     if (player.paused) { player.play(); return; }
     player.pause();
     openSheet(player.currentTime);
@@ -322,41 +339,76 @@ h1{margin:0;font-size:18px;font-weight:400;letter-spacing:.02em}
   });
 
   /* ── the note sheet ───────────────────────────────────────────────────── */
+  // The sheet is fixed to the bottom, where the iOS keyboard sits — the very
+  // keyboard her note opens. visualViewport says how much of the layout
+  // viewport the keyboard covers; the sheet rides up by that much (and the
+  // still overlay pads by it), so the box she is dictating into stays on
+  // screen. No visualViewport (an old browser) → everything stays put.
+  function fitOverlays() {
+    var vv = window.visualViewport;
+    var kb = vv ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) : 0;
+    var s = $('sheet');
+    s.style.transform = (!s.hidden && kb) ? 'translateY(-' + kb + 'px)' : '';
+    $('lb').style.paddingBottom = (!$('lb').hidden && kb) ? kb + 'px' : '';
+  }
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', fitOverlays);
+    window.visualViewport.addEventListener('scroll', fitOverlays);
+  }
+
   var sheetT = null;
   function openSheet(t) {
     sheetT = (typeof t === 'number') ? t : null;
     $('attime').textContent = sheetT != null ? 'at ' + fmt(sheetT) : '';
+    $('sheeterr').textContent = '';
     $('sheet').hidden = false;
     $('notebox').focus();
+    fitOverlays();
   }
   function closeSheet(resume) {
     $('sheet').hidden = true;
     $('notebox').blur();
-    if (resume && cur && cur.cut) player.play();
+    fitOverlays();
+    if (resume && cur && cur.cut) {
+      var p = player.play();
+      if (p && p.catch) p.catch(function () {});
+    }
   }
   $('sheetclose').onclick = function () { closeSheet(false); };
+  var noteBusy = false;
   $('notesend').onclick = function () {
     var text = $('notebox').value.trim();
-    if (!text || !cur) return;
-    var body = { who: WHO, id: cur.id, text: text };
-    if (sheetT != null) body.t = sheetT;
+    if (!text || !cur || noteBusy) return;
+    noteBusy = true;
+    var forId = cur.id, forT = sheetT;
+    var body = { who: WHO, id: forId, text: text };
+    if (forT != null) body.t = forT;
     api('/note', body).then(function (d) {
-      if (d && d.error) { $('saved').textContent = d.error; return; }
-      cur.thread.push({ from: (feed.reviewer.name || 'me'), text: text, t: sheetT, at: new Date().toISOString() });
-      cur.state = (d && d.state) || cur.state;
+      noteBusy = false;
+      if (d && d.error) { $('sheeterr').textContent = d.error; return; }
       $('notebox').value = '';
+      $('saved').textContent = 'sent to the studio';
+      // She may have opened another video while this was in flight — the note
+      // landed on the right doc server-side; only paint if she is still there.
+      if (!cur || cur.id !== forId) return;
+      cur.thread.push({ from: (feed.reviewer.name || 'me'), text: text, t: forT, at: new Date().toISOString() });
+      cur.state = (d && d.state) || cur.state;
       paintThread();
       $('vmeta').querySelector('.st').textContent = STATES[cur.state] || cur.state;
       closeSheet(true);
-      $('saved').textContent = 'sent to the studio';
+    }).catch(function () {
+      noteBusy = false;
+      $('sheeterr').textContent = "couldn't send — try again";
     });
   };
 
   /* ── ♥ / ✕ ────────────────────────────────────────────────────────────── */
   function verdict(mark) {
     if (!cur) return;
-    api('/verdict', { who: WHO, id: cur.id, mark: mark }).then(function (d) {
+    var forId = cur.id;
+    api('/verdict', { who: WHO, id: forId, mark: mark }).then(function (d) {
       if (d && d.error) { $('saved').textContent = d.error; return; }
+      if (!cur || cur.id !== forId) return;
       cur.state = (d && d.state) || cur.state;
       var st = $('vmeta').querySelector('.st');
       st.textContent = STATES[cur.state] || cur.state;
@@ -364,6 +416,8 @@ h1{margin:0;font-size:18px;font-weight:400;letter-spacing:.02em}
       $('love').classList.toggle('on', mark === 'love');
       $('redo').classList.toggle('on', mark === 'changes');
       $('saved').textContent = 'sent to the studio';
+    }).catch(function () {
+      $('saved').textContent = "couldn't send — try again";
     });
   }
   $('love').onclick = function () { verdict('love'); };
@@ -419,36 +473,54 @@ h1{margin:0;font-size:18px;font-weight:400;letter-spacing:.02em}
     savedY = window.scrollY;
     document.body.style.overflow = 'hidden';
     $('lblabel').textContent = i.label || '';
+    $('lberr').textContent = '';
     $('lb').querySelector('img').src = i.url;
     $('lb').hidden = false;
+    fitOverlays();
   }
   function closeLb() {
     $('lb').hidden = true;
     document.body.style.overflow = '';
+    fitOverlays();
     window.scrollTo(0, savedY);
   }
   $('lbclose').onclick = closeLb;
+  var lbBusy = false;
   $('lbsend').onclick = function () {
     var text = $('lbnote').value.trim();
-    if (!text || !cur || !lbItem) return;
-    api('/note', { who: WHO, id: cur.id, text: text, still: lbItem.url }).then(function (d) {
-      if (d && d.error) return;
-      cur.thread.push({ from: (feed.reviewer.name || 'me'), text: text, still: lbItem.url, at: new Date().toISOString() });
+    if (!text || !cur || !lbItem || lbBusy) return;
+    lbBusy = true;
+    var forId = cur.id, forStill = lbItem.url;
+    api('/note', { who: WHO, id: forId, text: text, still: forStill }).then(function (d) {
+      lbBusy = false;
+      if (d && d.error) { $('lberr').textContent = d.error; return; }
       $('lbnote').value = '';
-      paintThread();
+      if (cur && cur.id === forId) {
+        cur.thread.push({ from: (feed.reviewer.name || 'me'), text: text, still: forStill, at: new Date().toISOString() });
+        paintThread();
+      }
       closeLb();
       $('saved').textContent = 'sent to the studio';
+    }).catch(function () {
+      lbBusy = false;
+      $('lberr').textContent = "couldn't send — try again";
     });
   };
 
   /* ── a new idea ───────────────────────────────────────────────────────── */
+  var ideaBusy = false;
   $('ideasend').onclick = function () {
     var text = $('ideabox').value.trim();
-    if (!text) return;
+    if (!text || ideaBusy) return;
+    ideaBusy = true;
     api('/idea', { who: WHO, pitch: text }).then(function (d) {
+      ideaBusy = false;
       if (d && d.error) { $('ideasent').textContent = d.error; return; }
       $('ideabox').value = '';
       $('ideasent').textContent = 'sent to the studio';
+    }).catch(function () {
+      ideaBusy = false;
+      $('ideasent').textContent = "couldn't send — try again";
     });
   };
 
