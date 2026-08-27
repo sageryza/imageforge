@@ -63,6 +63,10 @@ ok(/sharp\.cache\(false\)/.test(cutSrc), 'the cut turns the sharp cache OFF (512
 ok(/webp\(\{ lossless: true \}\)/.test(cutSrc), 'panels are cut LOSSLESS');
 ok(/for \(const r of rects\)/.test(cutSrc) && !/Promise\.all/.test(cutSrc),
   'the crops run SEQUENTIALLY, never Promise.all');
+ok(/sheetGrid\.findSeams\(/.test(cutSrc) && /sheetGrid\.seamBoxes\(/.test(cutSrc),
+  'the cut is IMAGE-AWARE — mid-gutter seams, math as the fallback');
+ok(/canvas: r \? `\$\{r\.width\}x\$\{r\.height\}` : plan\.cell/.test(serverSrc),
+  "each panel files its REAL post-seam canvas");
 const jobSrc = serverSrc.slice(serverSrc.indexOf('async function runPromptLabPanelsJob'),
   serverSrc.indexOf('async function runPromptLabJob'));
 ok(jobSrc.indexOf('sheetUrl') < jobSrc.indexOf('cutSheet(sheetBuf'),

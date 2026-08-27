@@ -199,6 +199,122 @@ function cellRects(W, H, across, down) {
 }
 
 /**
+ * THE CUT IS IMAGE-AWARE — MID-GUTTER, NEVER BLINDLY ON THE MATH LINE
+ * (2026-08-26, Sophie, on the first live sheet: "the cut should be in the
+ * middle of the tan area, but two of them got one side cut right on the
+ * black edge. the framing isn't right"). The model draws the panel grid
+ * SLIGHTLY off the exact lines, so a mathematically perfect cut can land on
+ * a panel's hand-drawn border instead of the paper gutter beside it.
+ *
+ * findSeams looks at the picture: near each mathematical line (a window of
+ * ±12% of the cell dimension — small on purpose, so a pale patch INSIDE a
+ * panel can never drag a seam into the art) it profiles the ink per
+ * column/row and takes the light VALLEY — the run of near-paper pixels
+ * between the two dark frame edges — cutting through its middle. A valley
+ * only qualifies when the window has real contrast (it holds both a border
+ * and paper) and the run is at least a few pixels wide; anything less falls
+ * back to the exact math line, so on a full-bleed style with no gutters the
+ * worst case is byte-for-byte the old behavior.
+ *
+ * Pure over a plain luminance buffer, so the tests need no sharp and no
+ * network — the caller derives `gray` from the raw decode it already has.
+ */
+const SEAM_WINDOW = 0.12;   // half-width of the search window, as a cell fraction
+const SEAM_SMOOTH = 2;      // moving-average radius over the profile
+const SEAM_CONTRAST = 60;   // min (hi - lo) ink for a window that can hold a gutter
+const SEAM_MIN_RUN = 3;     // px — a "valley" narrower than this is noise
+
+function smooth(arr, r) {
+  const out = new Array(arr.length);
+  for (let i = 0; i < arr.length; i++) {
+    let s = 0, n = 0;
+    for (let j = Math.max(0, i - r); j <= Math.min(arr.length - 1, i + r); j++) { s += arr[j]; n++; }
+    out[i] = s / n;
+  }
+  return out;
+}
+
+// One seam: the ink profile inside [from, to), the qualifying valley runs,
+// and the middle of the run closest to the math line. `null` = fall back.
+function findSeam(profile, from, to, mathLine) {
+  const win = smooth(profile.slice(from, to), SEAM_SMOOTH);
+  let lo = Infinity, hi = -Infinity;
+  win.forEach((v) => { if (v < lo) lo = v; if (v > hi) hi = v; });
+  if (hi - lo < SEAM_CONTRAST) return null;          // no border+paper here — no gutter
+  const cap = lo + Math.max(12, 0.15 * (hi - lo));
+  const runs = [];
+  let start = -1;
+  for (let i = 0; i <= win.length; i++) {
+    const inRun = i < win.length && win[i] <= cap;
+    if (inRun && start < 0) start = i;
+    if (!inRun && start >= 0) {
+      if (i - start >= SEAM_MIN_RUN) runs.push({ mid: from + Math.round((start + i - 1) / 2) });
+      start = -1;
+    }
+  }
+  if (!runs.length) return null;
+  runs.sort((a, b) => Math.abs(a.mid - mathLine) - Math.abs(b.mid - mathLine));
+  return runs[0].mid;
+}
+
+/**
+ * The interior cut positions for an across×down grid over a W×H luminance
+ * buffer. Returns { xs, ys } — xs has across-1 entries, ys down-1 — each the
+ * mid-gutter position, or the exact math line where no gutter qualifies.
+ */
+function findSeams(gray, W, H, across, down) {
+  // Column ink = mean over y of (255 - gray); row ink likewise. Computed
+  // whole — one pass over the buffer, integer adds, cheap even at 8MP.
+  const colInk = new Float64Array(W);
+  const rowInk = new Float64Array(H);
+  for (let y = 0; y < H; y++) {
+    const base = y * W;
+    for (let x = 0; x < W; x++) {
+      const ink = 255 - gray[base + x];
+      colInk[x] += ink;
+      rowInk[y] += ink;
+    }
+  }
+  for (let x = 0; x < W; x++) colInk[x] /= H;
+  for (let y = 0; y < H; y++) rowInk[y] /= W;
+  const seams = (profile, len, parts, cell) => {
+    const out = [];
+    const half = Math.max(4, Math.round(cell * SEAM_WINDOW));
+    for (let i = 1; i < parts; i++) {
+      const line = Math.round((i * len) / parts);
+      const at = findSeam(Array.from(profile), Math.max(0, line - half),
+        Math.min(len, line + half), line);
+      out.push(at == null ? line : at);
+    }
+    return out;
+  };
+  return {
+    xs: seams(colInk, W, across, W / across),
+    ys: seams(rowInk, H, down, H / down),
+  };
+}
+
+/**
+ * The cut rects from seam positions, reading order — tiles the sheet
+ * exactly, whatever the seams did (each panel spans seam to seam, the outer
+ * edges are the sheet's own).
+ */
+function seamBoxes(xs, ys, W, H) {
+  const xEdges = [0].concat(xs, [W]);
+  const yEdges = [0].concat(ys, [H]);
+  const out = [];
+  for (let r = 0; r < yEdges.length - 1; r++) {
+    for (let c = 0; c < xEdges.length - 1; c++) {
+      out.push({
+        left: xEdges[c], top: yEdges[r],
+        width: xEdges[c + 1] - xEdges[c], height: yEdges[r + 1] - yEdges[r],
+      });
+    }
+  }
+  return out;
+}
+
+/**
  * A style's tail can FIGHT a sheet — Dreamy's ends "Render as ONE single
  * illustration — NOT a grid, NOT split panels", which is load-bearing on an
  * ordinary run (its reference IS a multi-panel comic page) and poison on a
@@ -218,4 +334,4 @@ function applySheet(suffix, swap, layout) {
   return s.replace(swap.from, String(swap.to || '').replace('{layout}', layout || ''));
 }
 
-module.exports = { GRIDS, SHAPES, sheetFor, derive, positions, layoutWords, panelBlock, cellRects, applySheet };
+module.exports = { GRIDS, SHAPES, sheetFor, derive, positions, layoutWords, panelBlock, cellRects, applySheet, findSeams, seamBoxes };

@@ -136,6 +136,61 @@ console.log('cellRects tiles the sheet — no gap, no overlap, reading order');
 ok(sheetGrid.cellRects(1000, 900, 3, 1) === null,
   'a sheet that does not divide answers null, never a rounded rect');
 
+console.log('the seams land mid-gutter, not on the math line');
+// A synthetic sheet: tan paper, each panel a dark 3px border, the whole
+// interior grid OFFSET from the mathematical lines — exactly the live bug
+// (the fox and key panels cut on their frame edge, 2026-08-26).
+function drawSheet(W, H, across, down, offset, opts) {
+  const paper = (opts && opts.paper) != null ? opts.paper : 225;   // light
+  const inkPx = (opts && opts.ink) != null ? opts.ink : 30;        // dark
+  const g = new Uint8Array(W * H).fill(paper);
+  if (opts && opts.flat) return g;
+  const GUT = 8, BORDER = 3;
+  const xEdges = [0].concat(Array.from({ length: across - 1 },
+    (_, i) => Math.round(((i + 1) * W) / across) + offset), [W]);
+  const yEdges = [0].concat(Array.from({ length: down - 1 },
+    (_, i) => Math.round(((i + 1) * H) / down) + offset), [H]);
+  const rect = (x0, y0, x1, y1) => {
+    for (let y = y0; y < y1; y++) {
+      for (let x = x0; x < x1; x++) {
+        const onEdge = x < x0 + BORDER || x >= x1 - BORDER || y < y0 + BORDER || y >= y1 - BORDER;
+        if (onEdge) g[y * W + x] = inkPx;
+      }
+    }
+  };
+  for (let r = 0; r < down; r++) {
+    for (let c = 0; c < across; c++) {
+      rect(xEdges[c] + (c ? GUT : GUT), yEdges[r] + GUT,
+        xEdges[c + 1] - GUT, yEdges[r + 1] - GUT);
+    }
+  }
+  return g;
+}
+[[400, 600, 2, 2, 9], [402, 603, 3, 3, -7], [480, 360, 2, 1, 11]].forEach(([W, H, a, d, off]) => {
+  const g = drawSheet(W, H, a, d, off);
+  const s = sheetGrid.findSeams(g, W, H, a, d);
+  const mathX = Array.from({ length: a - 1 }, (_, i) => Math.round(((i + 1) * W) / a));
+  const mathY = Array.from({ length: d - 1 }, (_, i) => Math.round(((i + 1) * H) / d));
+  const nearTrue = (got, math) => got.every((v, i) => Math.abs(v - (math[i] + off)) <= 2);
+  ok(nearTrue(s.xs, mathX) && nearTrue(s.ys, mathY),
+    `${a}x${d} grid offset ${off}px: every seam within 2px of the TRUE gutter middle`);
+  ok(s.xs.every((v, i) => v !== mathX[i]) || off === 0,
+    '  (and provably NOT the math line — the old cut fails this sheet)');
+  const boxes = sheetGrid.seamBoxes(s.xs, s.ys, W, H);
+  ok(boxes.length === a * d
+    && boxes.reduce((n, b) => n + b.width * b.height, 0) === W * H
+    && boxes[0].left === 0 && boxes[boxes.length - 1].left + boxes[boxes.length - 1].width === W,
+    '  seamBoxes tile the sheet exactly, reading order');
+});
+// The fallback: a sheet with no gutters cuts EXACTLY on the math lines —
+// the worst case is byte-for-byte the old behavior.
+[{ flat: true }, { paper: 40, ink: 30 }].forEach((opts, i) => {
+  const g = drawSheet(300, 450, 3, 3, 6, opts);
+  const s = sheetGrid.findSeams(g, 300, 450, 3, 3);
+  ok(String(s.xs) === '100,200' && String(s.ys) === '150,300',
+    (i ? 'a low-contrast sheet' : 'a flat borderless sheet') + ' falls back to the exact math lines');
+});
+
 console.log('naming');
 ok(String(sheetGrid.positions(2)) === 'left,right', '2: left, right');
 ok(String(sheetGrid.positions(4)) === 'top left,top right,bottom left,bottom right',

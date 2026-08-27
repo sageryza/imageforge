@@ -5938,8 +5938,6 @@ async function runPromptLabGptJob(docRef, cfg) {
 async function cutSheet(sheetBuf, plan) {
   const sharp = require('sharp');
   sharp.cache(false);
-  const rects = sheetGrid.cellRects(plan.W, plan.H, plan.across, plan.down);
-  if (!rects) throw new Error('sheet does not divide into whole cells');
   const { data, info } = await sharp(sheetBuf).ensureAlpha().raw()
     .toBuffer({ resolveWithObject: true });
   // The model answers the requested canvas; anything else means the cut
@@ -5947,6 +5945,19 @@ async function cutSheet(sheetBuf, plan) {
   if (info.width !== plan.W || info.height !== plan.H) {
     throw new Error(`sheet came back ${info.width}x${info.height}, wanted ${plan.sheet}`);
   }
+  // THE CUT IS IMAGE-AWARE (2026-08-26, Sophie: "the cut should be in the
+  // middle of the tan area, but two of them got one side cut right on the
+  // black edge"): the model draws the grid slightly off the exact lines, so
+  // findSeams reads the picture and cuts through the middle of the real
+  // gutter near each math line, falling back to the math line where no
+  // gutter qualifies. Luminance derived from the ONE decode already in hand.
+  const gray = new Uint8Array(info.width * info.height);
+  for (let i = 0, p = 0; i < gray.length; i++, p += info.channels) {
+    // Rec. 601 integer luma — close enough for an ink/paper valley.
+    gray[i] = (data[p] * 77 + data[p + 1] * 150 + data[p + 2] * 29) >> 8;
+  }
+  const seams = sheetGrid.findSeams(gray, info.width, info.height, plan.across, plan.down);
+  const rects = sheetGrid.seamBoxes(seams.xs, seams.ys, info.width, info.height);
   const raw = { width: info.width, height: info.height, channels: info.channels };
   const urls = [];
   for (const r of rects) {
@@ -5954,7 +5965,7 @@ async function cutSheet(sheetBuf, plan) {
       .webp({ lossless: true }).toBuffer();
     urls.push(await saveBufferToFirebase(buf, 'image/webp', 'promptlab'));
   }
-  return urls;
+  return { urls, rects };
 }
 
 // Sibling of runPromptLabGptJob: same refs, same edits/generations choice,
@@ -5987,9 +5998,9 @@ async function runPromptLabPanelsJob(docRef, cfg) {
     await docRef.update({ sheetUrl, ...(data.usage ? { usage: [data.usage] } : {}) });
     const sizeTier = require('./size-tier');
     const style = `${st.label} · ${cfg.quality}`;
-    let images;
+    let images, rects;
     try {
-      images = await cutSheet(sheetBuf, plan);
+      ({ urls: images, rects } = await cutSheet(sheetBuf, plan));
     } catch (err) {
       // The cut failed (a resized answer, a sharp hiccup): the run is still
       // DONE — the sheet is the picture, misdrawn ratio and all, and the doc
@@ -6033,8 +6044,12 @@ async function runPromptLabPanelsJob(docRef, cfg) {
     };
     images.forEach((url, i) => {
       const seam = seamFor(cfg.panels[i]);
+      // The panel's REAL canvas — the seams move to the gutters, so a panel
+      // can differ from the nominal cell by a few pixels either side.
+      const r = rects && rects[i];
       fileCreationDoc({
-        url, prompt: cfg.panels[i], canvas: plan.cell, sizeSlot: cut,
+        url, prompt: cfg.panels[i],
+        canvas: r ? `${r.width}x${r.height}` : plan.cell, sizeSlot: cut,
         style, model: PL_GPT.id, quality: cfg.quality, fullPrompt: cfg.fullPrompt,
         promptPrefix: seam.prefix, promptSuffix: seam.suffix, source: 'playground',
       });

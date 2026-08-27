@@ -3156,7 +3156,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
   later is one `GRIDS` entry in `sheet-grid.js`); one gpt-image-2 SHEET draws
   at the tier budget on a canvas DERIVED to divide into whole-pixel cells,
   the server cuts it apart (sequential, lossless, sharp cache off — the 512MB
-  box), and each panel files into My Creations with its own words as the
+  box; **the cut is IMAGE-AWARE since 2026-08-27** — `findSeams` cuts through
+  the middle of the real gutter near each math line, math as the fallback,
+  because the model draws the grid slightly off and a blind cut landed on two
+  panels' frame edges in her first live look), and each panel files into My
+  Creations with its own words as the
   label and the **`1/9 (4K)`** size slot (`size-tier.js cutSize` — the
   fraction and the SHEET's tier, never the panel's own pixels). Dreamy's
   anti-grid tail clause is SWAPPED for a sheet, the no-text mechanism again
