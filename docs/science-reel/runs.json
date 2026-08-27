@@ -271,5 +271,62 @@
     "height": 1751
    }
   ]
+ },
+ {
+  "sheet": 5,
+  "id": "2dOtIydxBxrCj2L7wU5K",
+  "beats": [
+   21,
+   22,
+   23,
+   24
+  ],
+  "images": [
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/a31418241e7847688308c9d3.webp",
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/10982ecf81f62e98038885ce.webp",
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/e51ad0e055d506084667a95b.webp",
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/bfcdf60c287a605d7a7636e4.webp"
+  ],
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/55c7246f6f80db1fe57ee720.webp",
+  "fullPrompt": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\nThis page is a 2x2 grid of 4 separate panels — equal rectangles, 2 across and 2 down, with straight edges exactly on the grid lines, no gutters and no outer margin. Each panel is its own complete, self-contained illustration. In reading order, left to right, top to bottom:\nPanel 1 (top left): a beam of light splitting into ripples through two slits while a giant eye watches from above\nPanel 2 (top right): clocks melting and spinning backwards around a shrugging woman\nPanel 3 (bottom left): a tycoon in a top hat ransacking a grandmother's herb garden, stuffing plants into a money bag\nPanel 4 (bottom right): tweezers pulling one golden thread out of a whole tapestry as the tapestry goes dim\n\nRender as a 2x2 grid of 4 panels — each panel its own complete illustration, inside its own hand-drawn border like the frames in the style reference. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition.",
+  "usage": {
+   "input_tokens": 1762,
+   "input_tokens_details": {
+    "image_tokens": 1505,
+    "text_tokens": 257
+   },
+   "output_tokens": 3912,
+   "output_tokens_details": {
+    "image_tokens": 3912,
+    "text_tokens": 0
+   },
+   "total_tokens": 5674
+  },
+  "rects": [
+   {
+    "left": 0,
+    "top": 0,
+    "width": 1168,
+    "height": 1753
+   },
+   {
+    "left": 1168,
+    "top": 0,
+    "width": 1168,
+    "height": 1753
+   },
+   {
+    "left": 0,
+    "top": 1753,
+    "width": 1168,
+    "height": 1751
+   },
+   {
+    "left": 1168,
+    "top": 1753,
+    "width": 1168,
+    "height": 1751
+   }
+  ]
  }
 ]
