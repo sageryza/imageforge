@@ -169,12 +169,14 @@ const server = http.createServer((req, res) => {
 const cards = (page) => page.$$eval('#grid .nwcard', (ns) => ns.map((n) => n.dataset.chat));
 const listed = (page) => page.$$eval('#grid .crow[data-chat]', (ns) => ns.map((n) => n.dataset.chat).sort());
 // Every section header on the Update tab, in DOM order, with its own cards —
-// which is how "at the top" is measured rather than eyeballed.
+// which is how "at the top" is measured rather than eyeballed. Walked as a
+// flat document-order list rather than `#grid > *`, because the two red boxes
+// (2026-08-27) wrap their header and cards in an outlined container.
 const sections = (page) => page.evaluate(() => {
   const out = []; let cur = null;
-  document.querySelectorAll('#grid > *').forEach((n) => {
+  document.querySelectorAll('#grid .sthead, #grid .nwcard').forEach((n) => {
     if (n.classList.contains('sthead')) { cur = { head: n.textContent.replace(/\s+/g, ' ').trim(), chats: [] }; out.push(cur); }
-    else if (n.classList.contains('nwcard') && cur) cur.chats.push(n.dataset.chat);
+    else if (cur) cur.chats.push(n.dataset.chat);
   });
   return out;
 });
@@ -200,14 +202,20 @@ const sections = (page) => page.evaluate(() => {
   else ok('…and it is gone once she has answered or dismissed');
 
   // ---- 2. above everything ---------------------------------------------
+  // Since the two red boxes (2026-08-27) the pin has no section of its own:
+  // it LEADS the Most urgent box, which is the same promise — above every
+  // ordinary card — kept by the box that outranks everything.
   let secs = await sections(page);
   const pinAt = secs.findIndex((s) => s.chats.indexOf('pinme') > -1);
   const plainAt = secs.findIndex((s) => s.chats.indexOf('plain') > -1);
   if (pinAt < 0 || plainAt < 0) fail('lost a section: ' + JSON.stringify(secs));
   else if (!(pinAt < plainAt)) fail('the pin is not above the ordinary sections: ' + secs.map((s) => s.head).join(' / '));
-  else ok('…and it sits above the three sections');
-  if (pinAt > -1 && !/waiting for a response/i.test(secs[pinAt].head)) {
-    fail('the pinned section is not named after the tag: "' + secs[pinAt].head + '"');
+  else ok('…and it sits above the ordinary cards');
+  if (pinAt > -1 && !/most urgent/i.test(secs[pinAt].head)) {
+    fail('the pinned chat does not lead the Most urgent box: "' + secs[pinAt].head + '"');
+  }
+  if (pinAt > -1 && secs[pinAt].chats[0] !== 'pinme') {
+    fail('the pin does not LEAD the Most urgent box: ' + secs[pinAt].chats.join(','));
   }
 
   // ---- 4. the review word folds behind one row -------------------------

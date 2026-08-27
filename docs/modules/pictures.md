@@ -426,6 +426,35 @@ panels fit under 4000 chars at ~350 each; twenty-five will not).
     searchable as **landscape** (`PL_SHAPE_WORD`, one map in server.js and one
     in promptlab.html, pinned equal by the panels test).
 
+- **THE SHEETS VIEW (2026-08-27, Sophie: "add a section to see just the
+  finished sheets, uncut, by themselves").** A third chip in the filter box,
+  PANELS tab only, sticky like its neighbours: lit, the gallery shows ONE
+  cell per run — the banked uncut sheet (`sheetUrl`). A story sheet and a
+  cut-failed run already ARE their sheet, so they open at their ordinary
+  index with votes and notes intact; a cut grid run's sheet opens at the
+  VIRTUAL index `-1` — view-only (votes are indexed into the cut panels, so
+  no ♥/✕ and no note thread; put-back refills the grid, Save works). The
+  ♥/✕ chips stand down while it is lit — a sticky heart silently emptying
+  the sheets view would be a filter acting on things it cannot match.
+  `sheetCellOf` / `sheetArOf` in promptlab.html are the whole rule.
+- **THE STORY OPTION (2026-08-27, Sophie: "a sheet where i give instructions
+  for a story, and have the image model decide the exact panels").** A
+  fourth stop on the grid picker — **2 · 4 · 9 · Story** — where the boxes
+  become ONE box (placeholder "The story", her words persisted like the
+  panel texts) and the MODEL decides the panel count, sizes and arrangement.
+  There is no grid to cut along, so the sheet is delivered UNCUT — it is a
+  story, not a failed cut, and the card says **story sheet**. Mechanically a
+  single run (`story: true` on the POST): the plain tier canvas the toggle
+  picked (the toggle stays on screen — it decides the SHEET here),
+  `runPromptLabGptJob`, votes and the lightbox as-is; `storySheet` on the
+  doc is what files it in the panels gallery and under Sheets, and both
+  kind-rule twins carry it. The wrapper is `PL_STORY` in server.js — the
+  `line` rides the head directly before her words (served by /styles,
+  printed in the Prompt panel, landing in the filed style half), and
+  `layout` fills the sheet swap so a tail's anti-grid clause is swapped
+  exactly as on a grid sheet. Sophie card, photo ref and cast are OFF, the
+  panels branch's own reasoning. `'story sheet'` is searchable in both
+  haystacks; a story run's copy button refills the story box.
 - **THE GALLERY UNDER THE TAB IS SEPARATE PER TAB (2026-08-27, Sophie:
   "separate the gallery for playground for single pics vs panels").** The
   feed follows the PICTURE · PANELS row: each tab shows only its own runs —

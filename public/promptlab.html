@@ -13,6 +13,11 @@
      the Story Room draws with, so the sentence the picked characters add to
      her words is written down exactly once. See /pad-characters.js. -->
 <script src="/pad-characters.js"></script>
+<!-- The caption's required third slot, shared the same way (2026-08-27) — the
+     SAME derivation the server files a picture with, so the caption she reads
+     on this page and the one on the filed record cannot disagree about which
+     rung a picture was drawn on. See /size-tier.js. -->
+<script src="/size-tier.js"></script>
 <script src="/asset-lightbox.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -289,6 +294,12 @@
   .likefilt svg { width: 16px; height: 16px; }
   .likefilt.on { background: #c25a72; color: #fff; }
   .xfilt.on { background: #9a938a; color: #fff; }
+  /* The sheets view lit in INK, not the rose and not the grey — it is a mode
+     (what the cells ARE), not a like/dislike filter, and three chips in one
+     box lighting two colours would read as three of one kind. */
+  .sheetfilt.on { background: #2b2622; color: #fff; }
+  /* The story box: one tall field, never a grid cell's shape. */
+  #panelgrid textarea[data-story] { aspect-ratio: auto; min-height: 120px; }
   /* THE SEARCH BOX FILLS THE GAP THE ROW ALREADY HAD (Aug 2026, Sophie: "a
      little search bar that fits in the space between the heart toggle and
      tiles/grid") — `flex: 1` between the heart and the 56px the autoscroll
@@ -614,6 +625,7 @@
   <div class="filttog" role="group" aria-label="Filters">
     <button class="likefilt" id="v-liked" aria-label="Show only the ones you hearted" title="Hearts only"></button>
     <button class="likefilt xfilt" id="v-hidex" aria-label="Hide the ones you have crossed out" title="Hide the &times;'d"></button>
+    <button class="likefilt sheetfilt" id="v-sheets" hidden aria-label="Just the finished sheets, uncut" title="Just the finished sheets, uncut"></button>
   </div>
   <div class="feedsearch">
     <input id="q" type="search" placeholder="Search" aria-label="Search your runs"
@@ -779,6 +791,30 @@
     applyHideX(true);
   });
 
+  // JUST THE FINISHED SHEETS, UNCUT (2026-08-27, Sophie: "add a section to
+  // see just the finished sheets, uncut, by themselves"). A third chip in the
+  // filter box, on the PANELS tab only: lit, the gallery shows ONE cell per
+  // run — the banked uncut sheet (a story sheet and a cut-failed run already
+  // ARE their sheet). Sticky like its neighbours. The ♥/✕ chips step aside
+  // while it is lit: votes belong to the cut panels, and a filter that can
+  // never match anything on screen is a control lying about what it does.
+  document.getElementById('v-sheets').innerHTML =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 12h18"/><path d="M12 3v18"/></svg>';
+  function sheetsOnly() { return localStorage.getItem('promptlab_sheets') === '1'; }
+  function sheetsMode() { return onPanels() && sheetsOnly(); }
+  function paintFiltRow() {
+    var sm = sheetsMode();
+    document.getElementById('v-sheets').hidden = !onPanels();
+    document.getElementById('v-sheets').classList.toggle('on', sm);
+    document.getElementById('v-liked').hidden = sm;
+    document.getElementById('v-hidex').hidden = sm;
+  }
+  document.getElementById('v-sheets').addEventListener('click', function () {
+    localStorage.setItem('promptlab_sheets', sheetsOnly() ? '' : '1');
+    paintFiltRow();
+    renderFeed();
+  });
+
   // THE BIGGER PROMPT BOX (2026-08-25, Sophie: "can you put a button so I can
   // see the prompt in a bigger box as an option"). One textarea, two sizes —
   // the corner button toggles `.big` on #prompt and swaps its own glyph.
@@ -878,7 +914,8 @@
       // as the server's promptlabHay lists them — the two haystacks must
       // never disagree or the view changes under her a beat after she types.
       .concat(r.panels || [])
-      .concat([r.grid && r.grid.count ? 'panels ' + r.grid.across + 'x' + r.grid.down : ''])
+      .concat([r.grid && r.grid.count ? 'panels ' + r.grid.across + 'x' + r.grid.down : '',
+        r.storySheet ? 'story sheet' : ''])
       .filter(Boolean).join('  ');
   }
   function pendHay(p) {
@@ -894,7 +931,7 @@
   // scripts/test-playground-panels.js): a failed panels run still carries
   // `panels`, so it stays in the panels gallery where its retry belongs.
   function runIsPanels(r) {
-    return !!(r.grid && r.grid.count) || !!(r.panels && r.panels.length);
+    return !!(r.grid && r.grid.count) || !!(r.panels && r.panels.length) || !!r.storySheet;
   }
   // A pending entry stores its grid as a NUMBER (the run doc grows the object
   // when the sheet is cut) — truthy is the whole test.
@@ -916,6 +953,7 @@
   }
   function emptyNote() {
     if (qGroups.length) return '<div class="emptynote">Nothing matches that</div>';
+    if (sheetsMode()) return '<div class="emptynote">No sheets yet</div>';
     if (likedOnly()) return '<div class="emptynote">Nothing hearted yet</div>';
     if (hideX()) return '<div class="emptynote">Everything here is crossed out</div>';
     return onPanels() ? '<div class="emptynote">No panels yet</div>' : '';
@@ -1045,8 +1083,19 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
     toast('Panels are back in the boxes');
   }
+  // A STORY run's copy button refills the STORY box — its words came out of
+  // it, the same reasoning as copyPanelsIn.
+  function copyStoryIn(r) {
+    try { localStorage.setItem(STORYTEXTKEY, String(r.prompt || '')); } catch (e) { /* private mode */ }
+    try { localStorage.setItem(GRIDKEY, 'story'); } catch (e) { /* private mode */ }
+    restorePhoto(r);          // a story run never carries one → clears, honestly
+    setTab('panels');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast('The story is back in the box');
+  }
   function copyRunIn(r) {
-    if (r && r.panels && r.panels.length) copyPanelsIn(r);
+    if (r && r.storySheet) copyStoryIn(r);
+    else if (r && r.panels && r.panels.length) copyPanelsIn(r);
     else if (r) { copyPromptIn(r.prompt); restorePhoto(r); }
   }
   // ONE PICTURE'S WORDS GO IN THE ONE BOX (2026-08-27, Sophie: "pressing the
@@ -1154,13 +1203,22 @@
   function cellAr(g) {
     return gridPin(g) || (canvas === 'square' ? '1:1' : '2:3');
   }
-  function canvasApplies() { return !(onPanels() && gridPin(curGrid())); }
+  function canvasApplies() { return !(onPanels() && !storyMode() && gridPin(curGrid())); }
   function curTab() { return localStorage.getItem(TABKEY) === 'panels' ? 'panels' : 'picture'; }
   function onPanels() { return curTab() === 'panels'; }
+  // THE STORY OPTION (2026-08-27, Sophie: "a sheet where i give instructions
+  // for a story, and have the image model decide the exact panels") — a
+  // fourth stop on the grid picker. She writes the STORY in one box and the
+  // MODEL lays out the page; there is no grid, so the sheet is delivered
+  // uncut. `curGrid()` deliberately keeps answering a real grid (its callers
+  // are grid math); everything story-shaped asks storyMode() first.
+  function storyMode() { return onPanels() && localStorage.getItem(GRIDKEY) === 'story'; }
   function curGrid() {
     var g = parseInt(localStorage.getItem(GRIDKEY), 10);
     return (PANELS_CFG && PANELS_CFG.grids[g]) ? g : 4;
   }
+  var STORYTEXTKEY = 'promptlab_story';
+  function storyText() { return localStorage.getItem(STORYTEXTKEY) || ''; }
   function panelTexts(g) {
     try {
       var a = JSON.parse(localStorage.getItem('promptlab_panels_' + g) || '[]');
@@ -1191,6 +1249,22 @@
     if (!onPanels()) { box.hidden = true; return; }
     box.hidden = false;
     if (!PANELS_CFG) { box.style.display = 'block'; box.innerHTML = '<div class="emptynote">Loading…</div>'; return; }
+    // STORY: one tall box for the whole story — her words persist like the
+    // panel texts, so switching 9 → Story → 9 loses nothing either way. The
+    // placeholder NAMES the field and nothing more (the house rule).
+    if (storyMode()) {
+      box.style.display = 'block';
+      box.innerHTML = '';
+      var st = document.createElement('textarea');
+      st.setAttribute('data-story', '1');
+      st.placeholder = 'The story';
+      st.value = storyText();
+      st.addEventListener('input', function () {
+        try { localStorage.setItem(STORYTEXTKEY, st.value); } catch (e) { /* private mode */ }
+      });
+      box.appendChild(st);
+      return;
+    }
     var g = curGrid(), meta = PANELS_CFG.grids[g];
     box.style.display = 'grid';
     box.style.gridTemplateColumns = 'repeat(' + meta.across + ', 1fr)';
@@ -1217,17 +1291,23 @@
     var el = document.getElementById('gridpick');
     el.hidden = !onPanels();
     if (!PANELS_CFG || !onPanels()) { el.innerHTML = ''; return; }
-    var g = curGrid();
+    var g = curGrid(), story = storyMode();
     el.innerHTML = Object.keys(PANELS_CFG.grids).map(function (k) {
       return '<button type="button" data-grid="' + k + '"'
-        + (Number(k) === g ? ' class="on"' : '') + '>' + k + '</button>';
-    }).join('');
+        + (!story && Number(k) === g ? ' class="on"' : '') + '>' + k + '</button>';
+    }).join('')
+      // The fourth stop: the model decides the panels. A word, not a number,
+      // because the number is exactly what she is not choosing.
+      + '<button type="button" data-grid="story"' + (story ? ' class="on"' : '')
+      + ' title="You write the story; the model decides the panels">Story</button>';
   }
   document.getElementById('gridpick').addEventListener('click', function (e) {
     var b = e.target.closest('button[data-grid]');
     if (!b) return;
     try { localStorage.setItem(GRIDKEY, b.getAttribute('data-grid')); } catch (err) { /* private mode */ }
-    paintGridPick(); buildPanelGrid(); syncControls(); paintRes(); paintPromptPanel();
+    // paintCanvas too: Story ↔ a grid moves what the toggle DECIDES (the
+    // sheet itself vs each cell), so the titles must move with it.
+    paintGridPick(); buildPanelGrid(); syncControls(); paintCanvas(); paintRes(); paintPromptPanel();
   });
   // GENERATE on the Panels tab: every box must hold words — the error names
   // how many are still empty rather than a generic refusal. One sheet, one
@@ -1236,6 +1316,15 @@
     var err = document.getElementById('err');
     err.hidden = true;
     if (!PANELS_CFG) { err.textContent = 'Still loading — one second.'; err.hidden = false; return; }
+    if (storyMode()) {
+      var story = (document.querySelector('#panelgrid textarea[data-story]') || {}).value || '';
+      story = story.trim();
+      if (!story) { err.textContent = 'Type the story first.'; err.hidden = false; return; }
+      var sbtn = document.getElementById('go');
+      sbtn.disabled = true;
+      startStoryRun(story).catch(showErr).finally(function () { sbtn.disabled = false; });
+      return;
+    }
     var g = curGrid();
     var texts = panelVals().map(function (s) { return s.trim(); });
     var empty = texts.filter(function (s) { return !s; }).length;
@@ -1274,6 +1363,31 @@
       setPending(list); renderPendings(); startPolling();
     });
   }
+  // A story run is a single picture on the sheet's own canvas — the toggle's
+  // shape at the tier — with `story: true` telling the server to wrap her
+  // words in the served story line and swap the tail's anti-grid clause.
+  function startStoryRun(story) {
+    var S = STYLES[styleKey];
+    var over = overrideFor(styleKey);
+    return fetch('/api/promptlab', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: story, model: S.model, style: S.gptStyle, story: true,
+        quality: quality, canvas: canvas, res: resTier,
+        prefix: over ? over.prefix : undefined, suffix: over ? over.suffix : undefined,
+        noText: noTextFor(styleKey),
+      }),
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d.id) throw new Error(d.error || 'Could not start.');
+      var list = pendingList();
+      list.push({
+        id: d.id, prompt: story, style: S.label, engine: 'gptimage',
+        count: 1, quality: quality,
+        ar: canvas === 'square' ? '1:1' : '2:3', grid: 'story',
+      });
+      setPending(list); renderPendings(); startPolling();
+    });
+  }
   function setTab(t) {
     try { localStorage.setItem(TABKEY, t); } catch (e) { /* private mode */ }
     // The LoRA has one output size and no attachment slot — a sheet needs
@@ -1291,7 +1405,9 @@
     // The gallery under the tab follows it — each tab shows its own runs
     // (2026-08-27, Sophie: "separate the gallery for playground for single
     // pics vs panels"). The panels tab pulls its whole history the first
-    // time it opens, and a live search re-asks scoped to the new tab.
+    // time it opens, and a live search re-asks scoped to the new tab. The
+    // Sheets chip lives on the panels tab only.
+    paintFiltRow();
     renderPendings(); renderFeed();
     if (panels) loadPanelsSweep();
     if (query) { hits = null; runSearch(); }
@@ -1768,8 +1884,10 @@
       if (pl) extras.push(pl);
     }
     if (cline) extras.push(cline);
-    if (onPanels() && PANELS_CFG && PANELS_CFG.grids[curGrid()]) {
-      extras.push(PANELS_CFG.grids[curGrid()].sentence);
+    if (onPanels() && PANELS_CFG) {
+      // STORY mode sends the served story line; a grid sends its sentence.
+      if (storyMode() && PANELS_CFG.story) extras.push(PANELS_CFG.story.line);
+      else if (PANELS_CFG.grids[curGrid()]) extras.push(PANELS_CFG.grids[curGrid()].sentence);
     }
     if (extras.length) {
       var al = document.createElement('div'); al.className = 'plab';
@@ -1780,17 +1898,21 @@
     }
     var y = document.createElement('div'); y.className = 'plab'; y.textContent = 'Your words';
     var yv = document.createElement('div'); yv.className = 'yours';
-    yv.textContent = onPanels()
-      ? (panelVals().map(function (s) { return s.trim(); }).filter(Boolean).join(' / ') || '(the boxes below, one per panel)')
-      : (document.getElementById('prompt').value.trim() || '(the box below)');
+    yv.textContent = storyMode()
+      ? ((document.querySelector('#panelgrid textarea[data-story]') || {}).value || '').trim() || '(the story box below)'
+      : onPanels()
+        ? (panelVals().map(function (s) { return s.trim(); }).filter(Boolean).join(' / ') || '(the boxes below, one per panel)')
+        : (document.getElementById('prompt').value.trim() || '(the box below)');
     el.appendChild(y); el.appendChild(yv);
     field('After your words', p.suffix, 'suffix');
     // The sheet swap, disclosed like the no-text one: on a panel sheet the
     // tail's anti-grid clause is sent SWAPPED (never two arguing sentences),
     // and if she has edited the clause away her tail goes untouched.
-    if (onPanels() && p.baked.sheet && PANELS_CFG && PANELS_CFG.grids[curGrid()]) {
+    if (onPanels() && p.baked.sheet && PANELS_CFG
+        && (storyMode() ? PANELS_CFG.story : PANELS_CFG.grids[curGrid()])) {
       var shsw = document.createElement('div'); shsw.className = 'swapped';
-      var shto = String(p.baked.sheet.to || '').replace('{layout}', PANELS_CFG.grids[curGrid()].layout);
+      var shto = String(p.baked.sheet.to || '').replace('{layout}',
+        storyMode() ? PANELS_CFG.story.layout : PANELS_CFG.grids[curGrid()].layout);
       shsw.textContent = p.suffix.indexOf(p.baked.sheet.from) >= 0
         ? 'On a panel sheet — “' + p.baked.sheet.from.trim() + '” is sent as “' + shto.trim() + '”'
         : 'Your tail is sent as written — the house anti-grid clause is not in it';
@@ -1959,9 +2081,11 @@
   function paintCanvas() {
     document.getElementById('c-portrait').classList.toggle('on', canvas === 'portrait');
     document.getElementById('c-square').classList.toggle('on', canvas === 'square');
-    if (onPanels()) {
+    if (onPanels() && !storyMode()) {
       // On the Panels tab the toggle picks each PANEL's shape; the 1K price
       // lines belong to the single-picture canvases and would mislead here.
+      // In STORY mode the toggle picks the SHEET itself (there are no cells),
+      // so the plain titles below are the honest ones there.
       document.getElementById('c-portrait').title = 'Portrait panels — each cut panel is 2:3';
       document.getElementById('c-square').title = 'Square panels — each cut panel is 1:1';
       return;
@@ -2029,7 +2153,9 @@
     // cannot be priced) — the tooltip shows the real sheet and cell and marks
     // the nearest-tier cents as APPROXIMATE. Never an invented exact number;
     // the run stores the API's own `usage`, which is the truth.
-    var psh = onPanels() && PANELS_CFG && PANELS_CFG.sheets[canvas]
+    // A STORY sheet is the plain tier canvas (the model draws the panels on
+    // it), so its tooltip is the measured one below, never a derived grid's.
+    var psh = onPanels() && !storyMode() && PANELS_CFG && PANELS_CFG.sheets[canvas]
       && PANELS_CFG.sheets[canvas][curGrid()] && PANELS_CFG.sheets[canvas][curGrid()][resTier];
     if (psh) {
       rpick.title = t.label + ' sheet ' + psh.sheet + ' \u2192 ' + curGrid() + ' panels of '
@@ -2505,6 +2631,28 @@
     return (r.images && r.images.length) ? r.images : (r.tempImages || []);
   }
 
+  // THE SHEETS VIEW'S CELL — a run's finished sheet, uncut. A story sheet and
+  // a cut-failed run already ARE their sheet (images[0], which is a real
+  // picture with real votes, so it opens at its ordinary index); a cut grid
+  // run banks its sheet beside the panels (`sheetUrl`), which is not in
+  // `images` and opens at the VIRTUAL index -1 — view-only, since votes are
+  // indexed into the cut panels. A run with no sheet at all (a failed draw)
+  // has nothing to show here.
+  function sheetCellOf(r) {
+    if (r.storySheet || r.cutFailed) {
+      var u = runImages(r)[0];
+      return u ? { i: '0', src: u } : null;
+    }
+    if (r.sheetUrl) return { i: '-1', src: r.sheetUrl };
+    return null;
+  }
+  // The sheet's own shape: the stored WxH canvas when there is one (a grid's
+  // derived sheet), else the run's ratio (a story sheet is the plain canvas).
+  function sheetArOf(r) {
+    var m = /^(\d+)x(\d+)$/.exec(String(r.sheet || r.size || ''));
+    return m ? m[1] + ' / ' + m[2] : arCss(r.aspectRatio);
+  }
+
   // ── DERIVED DISPLAY COPIES + REPAINT WITHOUT REBUILDING (Aug 2026, Sophie:
   // "the playground flashes a lot and sometimes things don't load") ────────
   //
@@ -2603,10 +2751,31 @@
     var parts = [runStyleLabel(r)];
     if (r.engine === 'gptimage') {
       if (r.quality) parts.push(r.quality);
+      // THE REQUIRED THIRD SLOT — 1K / 2K / 4K, or "1/4 (4K)" for a panel cut
+      // out of a sheet (2026-08-27, Sophie, looking at this very caption:
+      // "shud say quality and 1k,2k/4k · 1/4 — I thought we already fixed
+      // this"). It HAD been fixed, on the other half: her Aug 2026 ask named
+      // "the playground and assets and Meta assets", and that was built as
+      // what the Playground FILES — every creation carries the slot, and Meta
+      // Assets and My Creations print it. This caption is drawn client-side
+      // out of the run doc instead, so it was never in scope and had never
+      // carried a size at all, for a panels run or a plain one. The PANELS tab
+      // then added two slots of its own beside the missing one, which is what
+      // made it loud enough to see.
+      //
+      // Right after quality, so it reads in the house caption order
+      // (model · quality · size) rather than as a fourth thing on the end.
+      // The run doc has carried everything this needs since the tier toggle
+      // shipped — `res`, `size` (the sheet's canvas) and `grid.count`.
+      var slot = window.__sizeTier ? window.__sizeTier.runSize(r) : '';
+      if (slot) parts.push(slot);
       if (r.aspectRatio) parts.push(r.aspectRatio);
       // A panels run says so — its pictures are cut out of one sheet, which
       // is the one fact that explains their size and their price.
       if (r.grid && r.grid.count) parts.push('panels ' + r.grid.across + 'x' + r.grid.down);
+      // A story sheet says so — the model laid out the panels, and the one
+      // picture is the whole page by design, not a failed cut.
+      if (r.storySheet) parts.push('story sheet');
       // The cut failed and the one picture IS the uncut sheet — disclosed on
       // the card rather than leaving her to wonder why one wide picture came
       // back instead of nine.
@@ -2700,8 +2869,12 @@
           r.quality, r.aspectRatio, r.character ? 'c' : '', r.loraScale, r.seed,
           r.grid && r.grid.count ? 'g' + r.grid.count : '']);
       });
-      var only = likedOnly();
-      var nox = hideX();
+      // In SHEETS mode the ♥/✕ filters stand down with their chips — votes
+      // belong to the cut panels, and a sticky heart silently emptying the
+      // sheets view would be a filter she cannot see acting on things it
+      // cannot match.
+      var only = likedOnly() && !sheetsMode();
+      var nox = hideX() && !sheetsMode();
       var items = [];
       groups.forEach(function (g) {
         var head = g.items[0];
@@ -2718,6 +2891,11 @@
         // that picture's real settings and a ♥ goes on the right doc.
         var cells = [];
         g.items.slice().reverse().forEach(function (r) {
+          if (sheetsMode()) {
+            var s = sheetCellOf(r);
+            if (s) cells.push({ key: r.id + '|s', src: thumbFor(s.src), vote: '', runId: r.id, i: s.i, ar: sheetArOf(r) });
+            return;
+          }
           var votes = r.votes || {};
           runImages(r).forEach(function (u, i) {
             var v = votes[i];
@@ -2771,13 +2949,14 @@
   // feed — a picture on its way has its place in it before it lands.
   function renderTiles() {
     var items = [];
-    var only = likedOnly();
-    var nox = hideX();
+    var only = likedOnly() && !sheetsMode();
+    var nox = hideX() && !sheetsMode();
     // A picture on its way has not been hearted, so the waiting squares are a
     // list-of-everything thing: with the heart lit the wall is hearts only.
+    // In sheets mode a drawing run is ONE square — the sheet on its way.
     if (!only) pendingKept().slice().reverse().forEach(function (p) {
       if (qGroups.length && !qmatch(pendHay(p), qGroups)) return;
-      var slots = p.count || OUTPUTS;
+      var slots = sheetsMode() ? 1 : (p.count || OUTPUTS);
       for (var i = 0; i < slots; i++) items.push({ key: 'ph|' + p.id + '|' + i, ph: true, ar: arCss(p.ar) });
     });
     // Straight off `feed` — it is already sorted newest-first. (Walking
@@ -2785,6 +2964,11 @@
     // property of the map, not of the wall's intended order.)
     visibleRuns().forEach(function (r) {
       if (r.status === 'failed') return;
+      if (sheetsMode()) {
+        var s = sheetCellOf(r);
+        if (s) items.push({ key: r.id + '|s', src: thumbFor(s.src), vote: '', runId: r.id, i: s.i, ar: sheetArOf(r) });
+        return;
+      }
       var votes = r.votes || {};
       runImages(r).forEach(function (u, i) {
         var v = votes[i];
@@ -3025,7 +3209,12 @@
   function showLB(id, i) {
     var r = runsById[id];
     if (!r || !window.__assetLightbox) return;
-    var src = runImages(r)[i];
+    // i === -1 is the VIRTUAL sheet index (the Sheets view): the banked uncut
+    // sheet, which is not in `images`. View-only — votes are indexed into the
+    // cut panels, so no ♥/✕ and no note thread ride it (asset-lightbox draws
+    // both only when _cast is wired).
+    var isSheet = i === -1;
+    var src = isSheet ? (r.sheetUrl || '') : runImages(r)[i];
     if (!src) return;
     // The door's state rides a STEP and dies with a fresh open (her rule:
     // "the half she picked rides along as she steps; a fresh open always
@@ -3039,7 +3228,8 @@
     // What drew it — model, quality/scale, seed — as the MODEL · QUALITY tag.
     // This page has no per-picture label, so the tag is the whole caption.
     var meta = runParts(r);
-    if (r.panels && r.panels.length && !r.cutFailed) meta.push('panel ' + (i + 1) + ' of ' + runImages(r).length);
+    if (isSheet) meta.push('uncut sheet' + (r.grid && r.grid.count ? ' · ' + r.grid.across + 'x' + r.grid.down : ''));
+    else if (r.panels && r.panels.length && !r.cutFailed) meta.push('panel ' + (i + 1) + ' of ' + runImages(r).length);
     else if (runImages(r).length > 1) meta.push('image ' + (i + 1));
     var seq = lbSeq(), at = -1;
     for (var k = 0; k < seq.length; k++) if (seq[k].id === id && seq[k].i === i) { at = k; break; }
@@ -3047,13 +3237,13 @@
       prompt: meta.join(' · '),
       promptStyle: h.style,
       promptContent: h.content,
-      vote: (r.votes || {})[i] || null,
-      thread: noteCache[src] || [],
+      vote: isSheet ? null : ((r.votes || {})[i] || null),
+      thread: isSheet ? [] : (noteCache[src] || []),
       // The old Playground arrangement, as the shared file's hooks (2026-08-26,
       // Sophie): ♥/✕ lead the row under the picture, the tag right under it.
       votesBelow: true,
       capUnderImage: true,
-      _cast: castLB,
+      _cast: isSheet ? null : castLB,
       // The note lands on the picture's own thread in my-creations, where
       // every Playground picture is filed — the Panels wiring, verbatim, so a
       // chat sweeping its notes finds it where it expects.
@@ -3090,6 +3280,10 @@
       ],
     };
     if (carry) { asset.promptSide = carry.side; asset.promptOpen = carry.open; }
+    // The virtual sheet keeps put-back (refills the panel boxes via
+    // copyRunIn's fallthrough) and Save; the Story Room walk goes — the room
+    // re-reads the run by index, and the sheet has none.
+    if (isSheet) asset.actions = asset.actions.slice(0, 2);
     lbAsset = asset;
     // ── THE PICTURE IS ON SCREEN AT ONCE (2026-08-26, Sophie: "it seems like
     // it takes quite a while to load the images in light box view") ─────────
@@ -3122,7 +3316,10 @@
     }
     // The thread is ONE doc read, asked for after the picture is already up —
     // the sibling /notes route answers with a whole chat's worth and would be
-    // the wrong thing to fetch to open one picture.
+    // the wrong thing to fetch to open one picture. Not for the virtual
+    // sheet: with no _cast wired the box never renders, so the read would be
+    // an answer nothing displays.
+    if (isSheet) return;
     fetch('/api/gallery/assets/note?chat=' + encodeURIComponent(NOTE_CHAT)
       + '&url=' + encodeURIComponent(src))
       .then(function (res) { return res.json(); })

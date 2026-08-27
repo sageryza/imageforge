@@ -119,9 +119,9 @@ ok(swServer && swServer['3:2'] === 'landscape', "and it knows the landscape cell
 // files with no shared script — server.js's plRunIsPanels and the page's
 // runIsPanels must be the same expression, or a run sits in one tab's
 // gallery on the server and the other's on the phone.
-const KIND_EXPR = '!!(r.grid && r.grid.count) || !!(r.panels && r.panels.length)';
+const KIND_EXPR = '!!(r.grid && r.grid.count) || !!(r.panels && r.panels.length) || !!r.storySheet';
 ok(serverSrc.indexOf(KIND_EXPR) >= 0 && /function plRunIsPanels/.test(serverSrc),
-  'server.js has plRunIsPanels');
+  'server.js has plRunIsPanels (story sheets included)');
 ok(pageSrc.indexOf(KIND_EXPR) >= 0 && /function runIsPanels/.test(pageSrc),
   'promptlab.html has the identical runIsPanels');
 ok(/req\.query\.kind/.test(serverSrc), 'the feed route takes kind=');
@@ -134,6 +134,25 @@ ok(/qGroups\.length \|\| onPanels\(\) \|\|/.test(pageSrc),
   'Older is hidden on the panels tab (the sweep already answered everything)');
 ok(/&kind=' \+ \(onPanels\(\)/.test(pageSrc), 'a search is scoped to the tab server-side too');
 
+// THE STORY SHEET (2026-08-27, Sophie: "a sheet where i give instructions for
+// a story, and have the image model decide the exact panels").
+ok(/req\.body\.story/.test(serverSrc) && /storySheet: true/.test(serverSrc),
+  'the POST route has a story branch and stamps storySheet');
+ok(/panels\.story = \{ line: PL_STORY\.line/.test(serverSrc),
+  'the story line is SERVED by /styles');
+ok(pageSrc.indexOf('multi-panel comic page') < 0,
+  'and the page holds NO copy of it');
+ok(/sheetGrid\.applySheet\(suffix, st\.sheet, PL_STORY\.layout\)/.test(serverSrc),
+  "the tail's anti-grid clause is swapped on a story sheet too");
+ok(/r\.storySheet \? 'story sheet' : ''/.test(serverSrc)
+  && /r\.storySheet \? 'story sheet' : ''/.test(pageSrc),
+  "'story sheet' is searchable, in both haystacks");
+// THE SHEETS VIEW (same day: "add a section to see just the finished sheets,
+// uncut, by themselves").
+ok(/function sheetCellOf/.test(pageSrc) && /id="v-sheets"/.test(pageSrc),
+  'the page has the Sheets chip and its cell rule');
+ok(/data-grid="story"/.test(pageSrc), 'and the Story stop on the grid picker');
+
 // ── the real page ────────────────────────────────────────────────────────
 let chromium;
 try { ({ chromium } = require('playwright')); }
@@ -142,6 +161,13 @@ catch {
   console.log(fails ? '\n' + fails + ' FAILED' : '\nall pass');
   process.exit(fails ? 1 : 0);
 }
+
+// The REAL story wrapper out of server.js — never a second copy.
+const PL_STORY_LIVE = (() => {
+  const i = serverSrc.indexOf('const PL_STORY = {');
+  const lit = serverSrc.slice(i + 'const PL_STORY = '.length, serverSrc.indexOf('\n};', i) + 2);
+  return eval('(' + lit + ')');                        // eslint-disable-line no-eval
+})();
 
 // The REAL served geometry — computed exactly the way the styles route does.
 function panelsPayload() {
@@ -169,6 +195,7 @@ function panelsPayload() {
       });
     });
   });
+  panels.story = { line: PL_STORY_LIVE.line, layout: PL_STORY_LIVE.layout };
   return panels;
 }
 
@@ -183,8 +210,20 @@ function panelsPayload() {
     quality: 'low', size: '2304x3456', aspectRatio: '2:3', res: '4k',
     panels: nine, grid: { across: 3, down: 3, count: 9 },
     sheet: '2304x3456', cell: '768x1152',
+    sheetUrl: 'http://127.0.0.1:0/img/sheet.png',
     images: nine.map((_, i) => 'http://127.0.0.1:0/img/p' + i + '.png').map((u) => u),
     createdAt: Date.now() - 60000,
+  };
+  // A finished STORY sheet — the model laid out the panels, the picture IS
+  // the sheet, votes and the lightbox at its ordinary index.
+  const storyRun = {
+    id: 'rs', status: 'done', engine: 'gptimage', gptStyle: 'dreamy', model: 'gpt-image-2',
+    prompt: 'a witch loses her cat and follows it into a dream',
+    fullPrompt: 'DPREF\n\n' + PL_STORY_LIVE.line + '\n\na witch loses her cat and follows it into a dream\n\nDTAIL',
+    quality: 'low', size: '1024x1536', aspectRatio: '2:3', res: '1k',
+    storySheet: true, outputs: 1,
+    images: ['http://127.0.0.1:0/img/story.png'],
+    createdAt: Date.now() - 120000,
   };
   // 1x1 webp for every image the page asks for.
   const PIXEL = Buffer.from(
@@ -208,7 +247,7 @@ function panelsPayload() {
     if (url.pathname === '/api/promptlab') {
       feedGets.push(url.search);
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ runs: [doneRun], more: false }));
+      return res.end(JSON.stringify({ runs: [doneRun, storyRun], more: false }));
     }
     if (url.pathname === '/api/promptlab/styles') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -358,6 +397,37 @@ function panelsPayload() {
   await page.click('#gridpick button[data-grid="9"]');
   await page.waitForFunction(() => document.querySelectorAll('#panelgrid textarea').length === 9);
 
+  console.log('the STORY option — the model decides the panels');
+  // 2026-08-27, Sophie: "a sheet where i give instructions for a story, and
+  // have the image model decide the exact panels".
+  await page.click('#gridpick button[data-grid="story"]');
+  await page.waitForFunction(() => !!document.querySelector('#panelgrid textarea[data-story]'));
+  ok((await page.$$eval('#panelgrid textarea', (t) => t.length)) === 1, 'ONE box — the story');
+  ok((await page.getAttribute('#panelgrid textarea[data-story]', 'placeholder')) === 'The story',
+    "named 'The story' and nothing more");
+  ok(await page.inputValue('#panelgrid textarea[data-story]') === '', 'and it ships EMPTY');
+  ok(await page.isVisible('#canvastog'),
+    'the canvas toggle applies — it picks the SHEET itself here');
+  const postedBefore = posted.length;
+  await page.click('#go');
+  await page.waitForFunction(() => !document.getElementById('err').hidden);
+  ok(/Type the story first/.test(await page.textContent('#err')), 'an empty story refuses');
+  ok(posted.length === postedBefore, 'and POSTs nothing');
+  await page.fill('#panelgrid textarea[data-story]', 'a witch loses her cat and follows it into a dream');
+  const cellsBefore = await page.$$eval('#pendings .cell', (c) => c.length);
+  await page.click('#go');
+  await page.waitForFunction((n) => document.querySelectorAll('#pendings .cell').length === n + 1,
+    cellsBefore);
+  const sp = posted[posted.length - 1] || {};
+  ok(sp.story === true && sp.prompt === 'a witch loses her cat and follows it into a dream',
+    'the POST carries story:true and her words');
+  ok(!sp.panels && !sp.grid, 'and NO panels/grid — the model decides');
+  ok(!!(sp.canvas && sp.quality && sp.res), 'with the canvas, quality and tier');
+  ok((await page.$$eval('#pendings .cell', (c) => c.length)) === cellsBefore + 1,
+    'the pending card holds ONE placeholder — one sheet');
+  await page.click('#gridpick button[data-grid="9"]');
+  await page.waitForFunction(() => document.querySelectorAll('#panelgrid textarea').length === 9);
+
   console.log('the feed');
   const runCells = await page.$$eval('#runs .run', (runs) => runs.map((r) => ({
     cells: r.querySelectorAll('.grid img').length,
@@ -375,6 +445,21 @@ function panelsPayload() {
   });
   const lbText = await page.evaluate(() => document.getElementById('clightbox').textContent);
   ok(/panel 4 of 9/.test(lbText), "the caption says 'panel 4 of 9'");
+  // THE REQUIRED THIRD SLOT (2026-08-27, Sophie's screenshot of this caption:
+  // "shud say quality and 1k,2k/4k · 1/4"). It had never carried one — the
+  // slot was built into what the Playground FILES and this caption is drawn
+  // client-side from the run doc, so it was out of scope and stayed empty for
+  // four days while the panels tab added two slots of its own beside it.
+  // A cut panel says the FRACTION and the SHEET's tier, never its own pixels
+  // (a ninth of a 4K sheet lands on the 1K rung and reads as a small picture).
+  ok(/1\/9 \(4K\)/.test(lbText), "and the size slot says '1/9 (4K)', not the panel's own rung");
+  // The house caption ORDER — model · quality · size — so the slot reads as
+  // the third part of a caption rather than a fourth thing tacked on the end.
+  ok(/low\s*·\s*1\/9 \(4K\)/.test(lbText), 'and it sits right after the quality');
+  // Drawn by the SHARED derivation, not a tier table copied into the page —
+  // a copy drifts the day the boundaries move.
+  ok(await page.evaluate(() => !!(window.__sizeTier && window.__sizeTier.runSize)),
+    'the page loaded the real /size-tier.js');
   // The prompt door opens on CONTENT = that panel's own words.
   const lbHas = await page.evaluate(() => {
     const el = document.getElementById('clightbox');
@@ -443,6 +528,41 @@ function panelsPayload() {
   await page.waitForFunction((n) => document.querySelectorAll('#pendings .cell').length === n, pendOnPanels);
   await page.waitForFunction(() => document.querySelectorAll('#runs img[data-run="r9"]').length === 9);
   ok(true, 'and everything comes back on PANELS');
+  ok((await page.$$eval('#runs img[data-run="rs"]', (i) => i.length)) === 1,
+    'a story sheet lives in the PANELS gallery too');
+  const rsTags = await page.$$eval('#runs .run', (runs) => runs
+    .map((r) => Array.prototype.map.call(r.querySelectorAll('.tag'), (t) => t.textContent))
+    .find((t) => t.indexOf('story sheet') >= 0));
+  ok(!!rsTags, "tagged 'story sheet'");
+
+  console.log('the sheets view — just the finished sheets, uncut');
+  // 2026-08-27, Sophie: "add a section to see just the finished sheets,
+  // uncut, by themselves".
+  ok(await page.isVisible('#v-sheets'), 'the Sheets chip is on the panels tab');
+  await page.click('#v-sheets');
+  await page.waitForFunction(() => document.querySelectorAll('#runs img[data-i="-1"]').length === 1);
+  ok(true, "the grid run's cell is its banked UNCUT sheet (virtual index -1)");
+  ok(/sheet\.png/.test(await page.getAttribute('#runs img[data-i="-1"]', 'src') || ''),
+    'and it points at sheetUrl, never a cut panel');
+  ok((await page.$$eval('#runs img[data-run="r9"]', (i) => i.length)) === 1,
+    'the nine cut panels are folded to the one sheet');
+  ok((await page.$$eval('#runs img[data-run="rs"]', (i) => i.length)) === 1,
+    'a story sheet shows as itself — it IS its sheet');
+  ok(!(await page.isVisible('#v-liked')) && !(await page.isVisible('#v-hidex')),
+    'the ♥/✕ chips stand down (votes belong to the cut panels)');
+  await page.click('#runs img[data-i="-1"]');
+  await page.waitForFunction(() => {
+    const el = document.getElementById('clightbox');
+    return el && el.style.display !== 'none';
+  });
+  ok(/uncut sheet · 3x3/.test(await page.evaluate(() => document.getElementById('clightbox').textContent)),
+    "captioned 'uncut sheet · 3x3'");
+  ok((await page.$$eval('#clightbox .vote', (b) => b.length)) === 0,
+    'no ♥/✕ on the virtual sheet');
+  await page.evaluate(() => { if (window.__assetLightboxClose) window.__assetLightboxClose(); });
+  await page.click('#v-sheets');
+  await page.waitForFunction(() => document.querySelectorAll('#runs img[data-i="-1"]').length === 0);
+  ok(await page.isVisible('#v-liked'), 'off again — the ♥/✕ chips return');
 
   console.log('arriving with a ported prompt');
   // The tab is STICKY, and a panel image is exactly the picture she is on the

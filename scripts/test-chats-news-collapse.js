@@ -42,7 +42,17 @@ const iso = (ms) => new Date(ms).toISOString();
 // chat-page  — a fresh Compare page      → DELIVERABLES
 // chat-read  — a plain unread reply      → TO READ
 // chat-need1 / chat-need2 — an open need → QUICK DECISIONS (the big pile)
+// …plus ten FILLERS (2026-08-27, the two red boxes): five with needs newer
+// than everything (they fill Most urgent) and five starred+pinned (they fill
+// Most important), so the four chats above all land in THE REST — where the
+// kind sections this test is about live now, behind the fold.
+const FILL = [];
+for (let i = 1; i <= 5; i++) {
+  FILL.push({ id: 'fu' + i, chat: 'urg' + i, from: 'claude', text: 'ask ' + i, tldr: 'ask ' + i, created: iso(T0 - i * 60000), postedAt: iso(T0 - i * 60000) });
+  FILL.push({ id: 'fi' + i, chat: 'imp' + i, from: 'claude', text: 'starred ' + i, tldr: 'starred ' + i, created: iso(T0 - (5 + i) * 60000), postedAt: iso(T0 - (5 + i) * 60000) });
+}
 const MSGS = [
+  ...FILL,
   { id: 'm1', chat: 'chat-page', from: 'claude', text: 'v2 is up', tldr: 'page v2', created: iso(T0 - 2 * H), postedAt: iso(T0 - 2 * H) },
   { id: 'm2', chat: 'chat-read', from: 'claude', text: 'wrote it up', tldr: 'the write-up', created: iso(T0 - 1 * H), postedAt: iso(T0 - 1 * H) },
   { id: 'm3', chat: 'chat-need1', from: 'claude', text: 'two options ready', tldr: 'two options', created: iso(T0 - 40 * 60000), postedAt: iso(T0 - 40 * 60000) },
@@ -54,9 +64,15 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/api/chatfeed' && req.method === 'GET') {
     const since = url.searchParams.get('since');
     res.writeHead(200, { 'Content-Type': 'application/json' });
+    const fillers = {};
+    for (let i = 1; i <= 5; i++) {
+      fillers['urg' + i] = { account: '1', statusNeed: 'say go on thing ' + i };
+      fillers['imp' + i] = { account: '1', starred: true, pinTop: true };
+    }
     return res.end(JSON.stringify({
       build: 'test-build-1',
       chats: {
+        ...fillers,
         'chat-page': { account: '1' },
         'chat-read': { account: '1' },
         'chat-need1': { account: '1', statusNeed: 'pick a palette, 10 seconds' },
@@ -98,22 +114,33 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   const browser = await chromium.launch(preinstalled ? { executablePath: preinstalled } : {});
   const page = await browser.newPage({ viewport: { width: 390, height: 780 } });
 
+  // The kind sections live INSIDE the rest fold since the two red boxes
+  // (2026-08-27), and that fold starts SHUT — so reaching them is: open the
+  // Update view, wait for the fold head, open it.
   const openUpdate = async () => {
-    await page.waitForSelector('#grid [data-chat="chat-page"]');
+    await page.waitForSelector('#grid [data-chat="chat-page"], #grid [data-chat="urg1"]');
     await page.click('#accrow .acctab[data-acct="new"]');
-    await page.waitForSelector('#grid .sthead', { timeout: 4000 });
+    await page.waitForSelector('#grid .sthead[data-kind="rest"]', { timeout: 4000 });
+    if (await page.$('#grid .sthead[data-kind="rest"].folded')) {
+      await page.click('#grid .sthead[data-kind="rest"]');
+    }
+    await page.waitForSelector('#grid .sthead[data-kind="decide"]', { timeout: 4000 });
   };
-  // Walk #grid in order: header → the cards under it, until the next header.
-  const sections = () => page.$$eval('#grid > *', (ns) => {
+  // Walk the grid in document order: header → the cards under it, until the
+  // next header. Flat (not `#grid > *`), because the two red boxes wrap their
+  // header and cards in an outlined container; the KIND sections are what
+  // this test folds, so the walk keeps only those three.
+  const sections = () => page.$$eval('#grid .sthead, #grid .nwcard', (ns) => {
     const out = []; let cur = null;
     ns.forEach((n) => {
       if (n.classList.contains('sthead')) {
-        cur = { head: n.textContent.trim(), tag: n.tagName, folded: n.classList.contains('folded'),
+        cur = { head: n.textContent.trim(), kind: n.dataset.kind, tag: n.tagName,
+          folded: n.classList.contains('folded'),
           chevron: !!n.querySelector('.nwfoldic svg'), cards: [] };
         out.push(cur);
-      } else if (n.classList.contains('nwcard') && cur) cur.cards.push(n.dataset.chat);
+      } else if (cur) cur.cards.push(n.dataset.chat);
     });
-    return out;
+    return out.filter((s) => ['look', 'read', 'decide'].indexOf(s.kind) > -1);
   });
   const quick = '#grid .sthead[data-kind="decide"]';
 
