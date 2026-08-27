@@ -991,6 +991,21 @@ them off the reference sheet, not off the old filenames.
     The robust setup is to configure one environment once with all three:
     Network access (add the domain), the Setup script (auto-poster), and
     `FIREBASE_SERVICE_ACCOUNT`.
+- **THE HARNESS JOINS HER BACK-TO-BACK MESSAGES INTO ONE USER RECORD, and the
+  hook's queue reconciliation has to know it (hook v18, 2026-08-27).** Measured
+  in this fix's own transcript: she sent two messages in a row, the
+  `queue-operation` record held the FIRST alone and the user record held the
+  first AND the second joined by a blank line. The reconciliation matched on
+  WHOLE normalised text only, so the queue entry found no home, posted as a
+  message of its own, and **her first message landed twice** — once alone and
+  once inside the joined record. Live count that day: **12 such pairs across
+  her 3,768 messages**. A queue entry is matched against a record's SEGMENTS as
+  a FALLBACK now, and one record can absorb several of them (`aliases`, a list,
+  where there used to be one `alias`). **Whole text still wins first** — two
+  passes, so nothing about the old matching moved and a joined record can never
+  out-bid the plain record that really is that message; and it stays a multiset,
+  so repeating a short phrase can't let the first swallow the second. Test:
+  `node scripts/test-chats-first-message.js` (verified failing 2 pre-fix).
 - **A CHAT THAT NEVER POSTED CANNOT HEAL ITS OWN PAST — back it up on purpose
   (Aug 2026).** The hook BASELINES on its first firing in a session (only the
   latest turn posts), so fixing a silent chat also throws its history away.
@@ -1120,6 +1135,38 @@ them off the reference sheet, not off the old filenames.
       as a user turn and the hook lifts it exactly like something she typed, so
       it would file 7,000 characters of recited rules as what she asked for.
       `isCompacted` is exported from `questions.js` — ONE copy of that rule.
+    - **AND WHEN SHE SENDS SEVERAL IN A ROW IT IS THE FIRST OF THEM
+      (2026-08-27, Sophie: "recurring issue - multiple messages only log the
+      last one in chats app" / "first shud be under what i asked").** She talks
+      the way she talks: the request, then the qualifications — "also the glove
+      ones", "notify when done", "j" — so reading her LAST message filed the
+      afterthought as the one line she reads months later to remember what a
+      chat was. `herAskText` in `chatfeed.js` (it REPLACED `lastHerText`, so
+      there is one reader for one question) takes the START of her latest RUN:
+      her consecutive messages with **no reply between them**, which is exactly
+      "the chat never got a word in, so all of it is one ask". The moment a
+      reply lands the run ends, so an ordinary back-and-forth is untouched and
+      this can only ever reach back over messages nothing has answered.
+      Measured over her 215 stored wrap-ups the hour it landed: **14 change**,
+      from "pills" to "we made a couple panels yesterday and I think they never
+      got cut", from "view" to "pressing the playground button on images made
+      by panels should copy the prompt", from "j" to "dreamt style".
+      **Deliberately NOT time-bounded** — a stretch the chat worked through
+      without replying is still one ask, and a clock here is a rule she never
+      asked for.
+      - **A BARE SLASH COMMAND IS NOT AN ASK** (`SLASH_ONLY` / `isAskable`).
+        She types `/concise` and the harness hands it over as an ordinary user
+        turn, so the hook lifts it like anything she said — and one of the 14
+        chats measured above opened its run on exactly that. Only a message
+        that is NOTHING BUT a command is skipped; one that merely mentions one
+        is hers. Same family as `isCompacted`, applied in the same place.
+      - **AND THE RECORDS ALREADY ON FILE CARRY THE LAST OF A RUN** — a
+        wrap-up is STORED, not derived on read, so `POST /wrapup/rehers` grew
+        `redo:true`, which reopens the summaries already marked
+        `wrapAskedHers`. Dry by default and free, like the rest of that pass;
+        `wrapAskedWas` keeps the ORIGINAL paraphrase and is written once, so a
+        re-pointing pass cannot overwrite the undo with the sentence it is
+        replacing.
     - **The bold question over the line** is `UPD_LABELS[0][1]` ("What you
       asked"), the Update tab's own vocabulary, drawn ONLY when the line really
       is the asked answer (`wrapLineIsAsk`) — labelling a line that fell

@@ -1246,16 +1246,51 @@ function herAskOf(s) {
 // written on the 20th is her question of the 20th paired with what the chat did
 // by the 20th; taking her newest message instead would file a question she
 // asked afterwards over answers that predate it.
-function lastHerText(msgs, before) {
-  for (let i = (msgs || []).length - 1; i >= 0; i--) {
-    const m = msgs[i] || {};
-    if (m.from !== 'sophie') continue;
+// A SLASH COMMAND IS NOT AN ASK. She types `/concise`, `/loop 5m …` and the
+// harness hands it over as an ordinary user turn, so the hook lifts it exactly
+// like something she said. Filing it as what she asked for puts a control she
+// pressed where her question should be (found 2026-08-27 on
+// instagram-video-crop, whose run opened on a bare `/concise`). Only a message
+// that is NOTHING BUT a command is skipped — a message that merely mentions one
+// is hers.
+const SLASH_ONLY = /^\/[A-Za-z][\w:-]*(\s+\S.*)?$/;
+const isAskable = (t) => !!t && !isCompacted(t) && !SLASH_ONLY.test(t);
+
+// WHEN SHE SENDS SEVERAL IN A ROW, THE ASK IS THE FIRST OF THEM (2026-08-27,
+// Sophie: "recurring issue - multiple messages only log the last one in chats
+// app" / "first shud be under what i asked").
+//
+// She talks the way she talks: the request, then the qualifications — "and the
+// same for the glove ones", "notify when done", "j". Reading her LAST message
+// files the afterthought instead, so the one line she reads months later to
+// remember what a chat was is the throwaway. Measured over her 215
+// stored wrap-ups the hour this landed: 14 change, and they change from "pills"
+// to "we made a couple panels yesterday and I think they never got cut", from
+// "view" to "pressing the playground button on images made by panels should
+// copy the prompt", from "j" to "dreamt style".
+//
+// A RUN is her consecutive messages with NO reply between them — the chat never
+// got a word in, so all of it is one ask. The moment a reply lands the run ends,
+// so an ordinary back-and-forth is untouched and this can only ever reach back
+// over messages nothing has answered. Deliberately NOT time-bounded: a stretch
+// the chat worked through without replying is still one ask, and a clock here
+// would be a rule she never asked for.
+function herAskText(msgs, before) {
+  const list = msgs || [];
+  let found = '';
+  for (let i = list.length - 1; i >= 0; i--) {
+    const m = list[i] || {};
     if (before && String(m.created || '') > String(before)) continue;
     const t = String(m.text || '').trim();
-    if (!t || isCompacted(t)) continue;
-    return t;
+    if (m.from === 'sophie') {
+      if (isAskable(t)) { found = t; continue; }
+      // A compaction summary or a bare slash command is machinery wearing her
+      // name: it is neither the ask nor a boundary, so step over it.
+      continue;
+    }
+    if (found) break;    // the reply that ended the run — stop here
   }
-  return '';
+  return found;
 }
 // The same thing for a caller that has not loaded the thread. One equality
 // filter, sorted in memory — the house rule in this file, so Firestore needs no
@@ -1265,7 +1300,7 @@ async function herAskFor(chat) {
     const snap = await db().collection(MSGS).where('chat', '==', chat).get();
     const msgs = snap.docs.map((d) => d.data())
       .sort((a, b) => (String(a.created || '') < String(b.created || '') ? -1 : 1));
-    return herAskOf(lastHerText(msgs));
+    return herAskOf(herAskText(msgs));
   } catch (_) { return ''; }
 }
 
@@ -1551,7 +1586,7 @@ router.post('/wrapup/trim', async (req, res) => {
 //      `wrapLine` and `wrapLong` are the chat's own account of its work and
 //      are never reworded.
 //   2. HER MESSAGE AS OF WHEN THE SUMMARY WAS WRITTEN (`wrapUpAt`), not her
-//      newest — see `lastHerText`'s `before`. A summary is a moment, and
+//      newest — see `herAskText`'s `before`. A summary is a moment, and
 //      pairing today's question with last week's answers reads as nonsense.
 //   3. A chat she never posted into is LEFT ALONE. There is nothing of hers to
 //      lift, and the chat's `asked` is the honest fallback exactly as it is on
@@ -1559,6 +1594,7 @@ router.post('/wrapup/trim', async (req, res) => {
 router.post('/wrapup/rehers', async (req, res) => {
   try {
     const dry = !(req.body && req.body.dry === false);
+    const redo = !!(req.body && req.body.redo);
     const only = String((req.body || {}).chat || '').trim();
     const snap = await db().collection(REG).get();
     const todo = [];
@@ -1566,7 +1602,11 @@ router.post('/wrapup/rehers', async (req, res) => {
       if (d.id === SETTINGS_DOC) return;
       if (only && d.id !== only) return;
       const r = d.data() || {};
-      if (r.wrapAskedHers === true) return;             // already hers
+      // ALREADY HERS is normally the stopping rule — this pass exists to
+      // replace a PARAPHRASE. `redo:true` reopens them, which is what the
+      // first-of-the-run change (2026-08-27) needed: a record already carrying
+      // her words carries the LAST of a run, and her rule is the first.
+      if (r.wrapAskedHers === true && !redo) return;
       if (!String(r.wrapAsked || '').trim()) return;    // nothing to replace
       todo.push({ chat: d.id, r });
     });
@@ -1580,7 +1620,7 @@ router.post('/wrapup/rehers', async (req, res) => {
         msgs = ms.docs.map((x) => x.data())
           .sort((a, b) => (String(a.created || '') < String(b.created || '') ? -1 : 1));
       } catch (_) { /* best-effort, exactly like herAskFor */ }
-      const hers = herAskOf(lastHerText(msgs, t.r.wrapUpAt));
+      const hers = herAskOf(herAskText(msgs, t.r.wrapUpAt));
       if (!hers) { noMessage.push(t.chat); continue; }
       if (hers === t.r.wrapAsked) continue;             // identical already
       // NOTHING IS DESTROYED — the paraphrase moves aside rather than being
@@ -1595,7 +1635,11 @@ router.post('/wrapup/rehers', async (req, res) => {
       // already made twice (see *Answering a question*). Keeping the old line
       // is what makes that the cheap, reversible call instead of a permanent
       // one.
-      const patch = { wrapAsked: hers, wrapAskedHers: true, wrapAskedWas: t.r.wrapAsked };
+      // `wrapAskedWas` is the ORIGINAL paraphrase and is written once — a
+      // re-pointing pass (`redo`) must not overwrite it with the sentence of
+      // hers this pass is replacing, or the undo stops being an undo.
+      const patch = { wrapAsked: hers, wrapAskedHers: true };
+      if (!String(t.r.wrapAskedWas || '').trim()) patch.wrapAskedWas = t.r.wrapAsked;
       // The prose mirror is rebuilt ONLY when it is provably the three answers
       // joined — anything else is a summary written as a paragraph, and
       // splicing her sentence into someone's prose would leave a broken one.
@@ -1606,7 +1650,7 @@ router.post('/wrapup/rehers', async (req, res) => {
       changed.push({ chat: t.chat, was: t.r.wrapAsked, now: hers, mirror: !!patch.wrapUp });
       if (!dry) await regRef(t.chat).set(patch, { merge: true });
     }
-    res.json({ ok: true, dry, checked: todo.length, rewrote: changed.length,
+    res.json({ ok: true, dry, redo, checked: todo.length, rewrote: changed.length,
       // Named rather than silently skipped: a chat she never posted into keeps
       // its chat-written answer, which is the same fallback the live paths use.
       noMessageOfHers: noMessage,
@@ -1735,7 +1779,7 @@ router.post('/wrapup/write', async (req, res) => {
     // basically just the beginning of my last message"). The model still
     // ANSWERS `asked` — it costs nothing extra and it is the fallback for a
     // chat with no message of hers in it — but her words win when they exist.
-    const hers = herAskOf(lastHerText(msgs));
+    const hers = herAskOf(herAskText(msgs));
     const asked = hers || wrapPartOf(out && out.asked);
     const did = wrapPartOf(out && out.did);
     const next = wrapPartOf(out && (out.next !== undefined ? out.next : out.open));
