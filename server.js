@@ -422,6 +422,7 @@ loadConfig().then(() => {
   app.use('/api/gdrive', gdrive.router); // Google Drive OAuth (read/move/rename/trash)
   app.use('/api/chatfeed', chatfeed.router); // the Chat app (replies from every chat, in one feed)
   app.use('/api/brief', require('./brief').router); // the update button — the five things worth knowing, then the quieter ones
+  app.use('/api/deliverables', require('./deliverables').router); // the running deliverables list (newest first; new entries push past the bell)
   app.use('/api/review', require('./review').router); // the review queue — every deck/grid page still waiting on her
   app.use('/api/storylink', require('./storylink').router); // one story across Story Timeline, the Story Room and Cutting Blocks
   app.use('/api/googleads', googleads.router); // Google Ads API credential health check
@@ -891,6 +892,11 @@ app.get('/opinions', serveGated('opinions.html'));
 // Sophie, Aug 2026). Served WITHOUT the pill: a list she taps open, not a
 // page she reads hands-free.
 app.get('/desktop', serveGated('desktop.html', { pill: true }));
+// Deliverables: the running list of everything chats have handed her — films,
+// audio cuts, pages — one place, newest first (Sophie's ask, 2026-08-27).
+// Auto-fed by media pins + POST /api/deliverables; a new entry pushes past
+// the per-chat bell. Served WITH the pill: a list that scrolls.
+app.get('/deliverables', serveGated('deliverables.html', { pill: true }));
 // The Sophie character card, for the pad's draw-here toggle (refs/ is not
 // web-served, so this one file is exposed deliberately — it's her own
 // hearted render, and the page behind the gate is the only thing asking).
