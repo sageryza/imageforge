@@ -4,6 +4,11 @@
 // mic and asserts her rules:
 //   1. a tap anywhere on the film PAUSES it (and raises the Note button —
 //      no sheet); a second tap plays it again and the button goes away,
+//   1b. a tap on a PLAYING film while iOS's tinted controls overlay is still
+//      up (the scrim window after any tap) only DISMISSES the overlay — it
+//      never pauses (2026-08-27, Sophie: "when i tap to get rid of the
+//      tinted pause screen, it also pauses the video"); the dismissing tap
+//      clears the window, so the very next tap pauses as always,
 //   2. Note raises the sheet stamped m:ss with the mic ALREADY recording,
 //   3. ONE Done while recording: the sheet closes INSTANTLY, the video
 //      resumes, and the note goes out in the background (voice held with
@@ -132,6 +137,9 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
       Object.defineProperty(v, 'paused', { get: () => paused, configurable: true });
       v.play = function () { paused = false; v.__played = true; v.dispatchEvent(new Event('play')); return Promise.resolve(); };
       v.pause = function () { paused = true; v.__paused = true; v.dispatchEvent(new Event('pause')); };
+      // the test taps faster than iOS's real scrim ever fades — the window is
+      // off by default here and raised only by the step that tests it (1b)
+      window.__filmNote.SCRIM_MS = 0;
     });
   };
   const tapFilm = () => page.evaluate(() => document.querySelector('#pinfull video').click());
@@ -147,8 +155,20 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   if (await page.evaluate(() => document.querySelector('#pinfull video').paused)) fail('a second tap did not play the film again');
   if (!await page.$eval('#pinfull .notebtn', (n) => n.classList.contains('off'))) fail('playing did not put the Note button away');
 
-  // 2. Note raises the stamped sheet with the mic already on
-  await tapFilm();
+  // 1b. iOS's tinted overlay is up right after a tap — with the window at its
+  //     real width, the next tap only puts the overlay away, and the one
+  //     after THAT pauses (the dismissing tap cleared the window)
+  //     The film is PLAYING and step 1's last tap just armed the window —
+  //     exactly the state her report describes.
+  await page.evaluate(() => { window.__filmNote.SCRIM_MS = 3800; });
+  await tapFilm();   // overlay up on a playing film → dismiss only
+  if (await page.evaluate(() => document.querySelector('#pinfull video').paused)) fail('a scrim-dismiss tap paused the film');
+  await tapFilm();   // the dismiss cleared the window → this one pauses
+  if (!await page.evaluate(() => document.querySelector('#pinfull video').paused)) fail('the tap after dismissing the overlay did not pause');
+  await page.evaluate(() => { window.__filmNote.SCRIM_MS = 0; });
+
+  // 2. Note raises the stamped sheet with the mic already on (the film is
+  //    already paused from 1b's last tap)
   await page.click('#pinfull .notebtn');
   await page.waitForSelector('#pinfull .nsheet', { timeout: 2000 }).catch(() => fail('Note did not raise the sheet'));
   if (!await page.evaluate(() => document.querySelector('#pinfull video').paused)) fail('the film did not stay paused under the sheet');
