@@ -5665,11 +5665,23 @@ async function sweepStuckPromptlabRuns() {
     const q = await admin.firestore().collection(PROMPTLAB).where('status', '==', 'running').get();
     const cutoff = Date.now() - 10 * 60 * 1000;
     for (const d of q.docs) {
-      const at = d.data().createdAt?.toMillis?.() || 0;
-      if (at && at < cutoff) {
-        await d.ref.update({ status: 'failed', error: 'interrupted by a server restart' });
-        console.log(`promptlab sweep: marked stuck run ${d.id} failed`);
+      const r = d.data();
+      const at = r.createdAt?.toMillis?.() || 0;
+      if (!(at && at < cutoff)) continue;
+      // A PANELS run whose sheet was already banked lost only the FREE half
+      // — the cut — to the restart (measured live 2026-08-27: three deploys
+      // in a row orphaned four paid 4K sheets). Finish it from the banked
+      // sheet instead of marking paid work failed; only a run that never
+      // banked a sheet is genuinely dead.
+      if (r.panels && r.sheetUrl && !(r.images || []).length) {
+        try {
+          await recutPanelsRun(d.ref, r);
+          console.log(`promptlab sweep: finished orphaned panels run ${d.id} from its banked sheet`);
+          continue;
+        } catch (e) { console.warn(`promptlab sweep: recut of ${d.id} failed:`, e.message); }
       }
+      await d.ref.update({ status: 'failed', error: 'interrupted by a server restart' });
+      console.log(`promptlab sweep: marked stuck run ${d.id} failed`);
     }
   } catch (e) { console.warn('promptlab sweep:', e.message); }
 }
@@ -5971,6 +5983,114 @@ async function cutSheet(sheetBuf, plan) {
 // Sibling of runPromptLabGptJob: same refs, same edits/generations choice,
 // same whiten and usage capture — one render, then the cut, then filing.
 // NOT cancellable, like every gpt run: the sheet is billed when requested.
+// The cut-and-file half of a panels run, shared between the live job and the
+// RECOVERY paths (the sweep and POST /:id/recut) — everything after the sheet
+// is banked is free and re-runnable, so a run orphaned by a deploy restart
+// can be finished later from its banked sheet instead of losing paid work.
+async function finishPanelsCut(docRef, cfg, sheetBuf, sheetUrl) {
+  const plan = cfg.plan;
+  const sizeTier = require('./size-tier');
+  const st = PL_GPT_STYLES[cfg.styleId] || PL_GPT_STYLES.evan;
+  const style = `${st.label} · ${cfg.quality}`;
+  let images, rects;
+  try {
+    ({ urls: images, rects } = await cutSheet(sheetBuf, plan));
+  } catch (err) {
+    // The cut failed (a resized answer, a sharp hiccup): the run is still
+    // DONE — the sheet is the picture, misdrawn ratio and all, and the doc
+    // says why so the page can tell her.
+    console.warn('promptlab sheet cut failed:', err.message);
+    await docRef.update({ status: 'done', images: [sheetUrl], cutFailed: true,
+      error: admin.firestore.FieldValue.delete() });
+    fileCreationDoc({
+      url: sheetUrl, prompt: `the sheet — ${plan.count} panels`,
+      promptContent: cfg.prompt, style, model: PL_GPT.id, quality: cfg.quality,
+      canvas: plan.sheet, fullPrompt: cfg.fullPrompt,
+      promptPrefix: cfg.head, promptSuffix: cfg.tail, source: 'playground',
+    });
+    return [sheetUrl];
+  }
+  // One write straight to done — the cut takes seconds against a 30-90s
+  // render, and a 'ready' stage showing the SHEET in cells shaped for
+  // panels would distort it. A recovered run sheds its failed/cutFailed
+  // marks here.
+  await docRef.update({ status: 'done', images,
+    error: admin.firestore.FieldValue.delete(),
+    cutFailed: admin.firestore.FieldValue.delete() });
+  // File the sheet and every panel into My Creations. The sheet's caption
+  // is a line this repo wrote, so `promptContent` says what her words
+  // really were (see fileCreationDoc). Each panel files with its OWN
+  // description and the '1/9 (4K)' size slot — a cut panel's own pixels
+  // land on a lower rung and would read as an ordinary small picture
+  // (size-tier.js cutSize; fileCreationDoc's sizeSlot exists for this).
+  const cut = sizeTier.cutSize(plan.sheet, plan.count);
+  fileCreationDoc({
+    url: sheetUrl, prompt: `the sheet — ${plan.count} panels`,
+    promptContent: cfg.prompt, style, model: PL_GPT.id, quality: cfg.quality,
+    canvas: plan.sheet, fullPrompt: cfg.fullPrompt,
+    promptPrefix: cfg.head, promptSuffix: cfg.tail, source: 'playground',
+  });
+  // A panel's style half is everything around ITS words in the sent text —
+  // the panel line sits verbatim in fullPrompt, so the seam is real.
+  const seamFor = (text) => {
+    const i = cfg.fullPrompt.indexOf(text);
+    if (i < 0) return { prefix: cfg.head, suffix: cfg.tail };
+    return {
+      prefix: cfg.fullPrompt.slice(0, i).trim(),
+      suffix: cfg.fullPrompt.slice(i + text.length).trim(),
+    };
+  };
+  images.forEach((url, i) => {
+    const seam = seamFor(cfg.panels[i]);
+    // The panel's REAL canvas — the seams move to the gutters, so a panel
+    // can differ from the nominal cell by a few pixels either side.
+    const r = rects && rects[i];
+    fileCreationDoc({
+      url, prompt: cfg.panels[i],
+      canvas: r ? `${r.width}x${r.height}` : plan.cell, sizeSlot: cut,
+      style, model: PL_GPT.id, quality: cfg.quality, fullPrompt: cfg.fullPrompt,
+      promptPrefix: seam.prefix, promptSuffix: seam.suffix, source: 'playground',
+    });
+  });
+  return images;
+}
+
+// Rebuild what finishPanelsCut needs from a run DOC alone — everything it
+// takes was stored at run time, so an orphaned run is finishable by any later
+// process. The head/tail seam is recovered by finding the panel block (a
+// deterministic rebuild from the stored panels) inside the stored fullPrompt;
+// where it no longer matches, empty halves are the honest fallback.
+function panelsCfgOf(d) {
+  const m = /^(\d+)x(\d+)$/.exec(String(d.sheet || ''));
+  const g = d.grid || {};
+  if (!m || !g.across || !g.down || !Array.isArray(d.panels)) return null;
+  const plan = {
+    W: Number(m[1]), H: Number(m[2]), sheet: d.sheet, cell: String(d.cell || ''),
+    across: g.across, down: g.down, count: g.count || g.across * g.down,
+  };
+  const full = String(d.fullPrompt || '');
+  const block = sheetGrid.panelBlock(plan.count, d.panels);
+  const at = block ? full.indexOf(block) : -1;
+  return {
+    plan, panels: d.panels, prompt: String(d.prompt || ''), fullPrompt: full,
+    head: at > 0 ? full.slice(0, at).trim() : '',
+    tail: at >= 0 ? full.slice(at + block.length).trim() : '',
+    quality: d.quality || 'medium', styleId: d.gptStyle || 'evan',
+  };
+}
+
+// Finish an orphaned or cut-failed panels run from its BANKED sheet — free,
+// no model call: download the sheet, cut, file. Throws when the run is not
+// recoverable (no banked sheet, not a panels run, sheet gone).
+async function recutPanelsRun(docRef, d) {
+  const cfg = panelsCfgOf(d);
+  if (!cfg || !d.sheetUrl) throw new Error('not a recuttable panels run');
+  const r = await fetch(d.sheetUrl);
+  if (!r.ok) throw new Error(`could not fetch the banked sheet (${r.status})`);
+  const sheetBuf = Buffer.from(await r.arrayBuffer());
+  return finishPanelsCut(docRef, cfg, sheetBuf, d.sheetUrl);
+}
+
 async function runPromptLabPanelsJob(docRef, cfg) {
   const plan = cfg.plan;
   try {
@@ -5993,67 +6113,11 @@ async function runPromptLabPanelsJob(docRef, cfg) {
     // panel inherits it. Best-effort, as on an ordinary run.
     if (st.whiten) { try { sheetBuf = await whitenBackground(sheetBuf); } catch (e) { console.warn('promptlab whiten failed:', e.message); } }
     // THE PAID SHEET IS BANKED BEFORE THE CUT — a failed cut must never lose
-    // a picture that has already been billed.
+    // a picture that has already been billed, and the banked url is also what
+    // makes a deploy restart recoverable (the sweep recuts from it).
     const sheetUrl = await saveBufferToFirebase(sheetBuf, 'image/webp', 'promptlab');
     await docRef.update({ sheetUrl, ...(data.usage ? { usage: [data.usage] } : {}) });
-    const sizeTier = require('./size-tier');
-    const style = `${st.label} · ${cfg.quality}`;
-    let images, rects;
-    try {
-      ({ urls: images, rects } = await cutSheet(sheetBuf, plan));
-    } catch (err) {
-      // The cut failed (a resized answer, a sharp hiccup): the run is still
-      // DONE — the sheet is the picture, misdrawn ratio and all, and the doc
-      // says why so the page can tell her.
-      console.warn('promptlab sheet cut failed:', err.message);
-      await docRef.update({ status: 'done', images: [sheetUrl], cutFailed: true });
-      fileCreationDoc({
-        url: sheetUrl, prompt: `the sheet — ${plan.count} panels`,
-        promptContent: cfg.prompt, style, model: PL_GPT.id, quality: cfg.quality,
-        canvas: plan.sheet, fullPrompt: cfg.fullPrompt,
-        promptPrefix: cfg.head, promptSuffix: cfg.tail, source: 'playground',
-      });
-      return;
-    }
-    // One write straight to done — the cut takes seconds against a 30-90s
-    // render, and a 'ready' stage showing the SHEET in cells shaped for
-    // panels would distort it.
-    await docRef.update({ status: 'done', images });
-    // File the sheet and every panel into My Creations. The sheet's caption
-    // is a line this repo wrote, so `promptContent` says what her words
-    // really were (see fileCreationDoc). Each panel files with its OWN
-    // description and the '1/9 (4K)' size slot — a cut panel's own pixels
-    // land on a lower rung and would read as an ordinary small picture
-    // (size-tier.js cutSize; fileCreationDoc's sizeSlot exists for this).
-    const cut = sizeTier.cutSize(plan.sheet, plan.count);
-    fileCreationDoc({
-      url: sheetUrl, prompt: `the sheet — ${plan.count} panels`,
-      promptContent: cfg.prompt, style, model: PL_GPT.id, quality: cfg.quality,
-      canvas: plan.sheet, fullPrompt: cfg.fullPrompt,
-      promptPrefix: cfg.head, promptSuffix: cfg.tail, source: 'playground',
-    });
-    // A panel's style half is everything around ITS words in the sent text —
-    // the panel line sits verbatim in fullPrompt, so the seam is real.
-    const seamFor = (text) => {
-      const i = cfg.fullPrompt.indexOf(text);
-      if (i < 0) return { prefix: cfg.head, suffix: cfg.tail };
-      return {
-        prefix: cfg.fullPrompt.slice(0, i).trim(),
-        suffix: cfg.fullPrompt.slice(i + text.length).trim(),
-      };
-    };
-    images.forEach((url, i) => {
-      const seam = seamFor(cfg.panels[i]);
-      // The panel's REAL canvas — the seams move to the gutters, so a panel
-      // can differ from the nominal cell by a few pixels either side.
-      const r = rects && rects[i];
-      fileCreationDoc({
-        url, prompt: cfg.panels[i],
-        canvas: r ? `${r.width}x${r.height}` : plan.cell, sizeSlot: cut,
-        style, model: PL_GPT.id, quality: cfg.quality, fullPrompt: cfg.fullPrompt,
-        promptPrefix: seam.prefix, promptSuffix: seam.suffix, source: 'playground',
-      });
-    });
+    await finishPanelsCut(docRef, cfg, sheetBuf, sheetUrl);
   } catch (err) {
     console.warn('promptlab panels job failed:', err.message);
     await docRef.update({ status: 'failed', error: err.message }).catch(() => {});
@@ -6415,6 +6479,33 @@ app.post('/api/promptlab/:id/cancel', async (req, res) => {
 
 // ♥/✕ on one image of a run (votes: { <imageIndex>: 'like'|'dislike' } on the
 // doc). Sending the same vote again clears it — the page's toggles.
+// Finish a panels run from its BANKED sheet — free, no model call. For a run
+// a deploy restart orphaned (status 'failed' with a sheetUrl), or one whose
+// cut failed (cutFailed). RECOVERY-ONLY on purpose: a run that already has
+// its cut panels is refused, because a second cut would file a duplicate set
+// of pictures beside the first.
+app.post('/api/promptlab/:id/recut', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
+    const ref = admin.firestore().collection(PROMPTLAB).doc(req.params.id);
+    const snap = await ref.get();
+    if (!snap.exists) return res.status(404).json({ error: 'not found' });
+    const d = snap.data();
+    if (!d.panels || !d.sheetUrl) return res.status(400).json({ error: 'not a panels run with a banked sheet' });
+    const cutPanels = (d.images || []).filter((u) => u !== d.sheetUrl);
+    if (d.status === 'done' && !d.cutFailed && cutPanels.length) {
+      return res.status(400).json({ error: 'already cut — a recut would file a duplicate set' });
+    }
+    const images = await recutPanelsRun(ref, d);
+    res.json({ ok: true, id: req.params.id, images });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/promptlab/:id/vote', async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
     return res.status(401).json({ error: 'unauthorized' });

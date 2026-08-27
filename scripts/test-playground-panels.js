@@ -67,7 +67,19 @@ ok(/sheetGrid\.findSeams\(/.test(cutSrc) && /sheetGrid\.seamBoxes\(/.test(cutSrc
   'the cut is IMAGE-AWARE — mid-gutter seams, math as the fallback');
 ok(/canvas: r \? `\$\{r\.width\}x\$\{r\.height\}` : plan\.cell/.test(serverSrc),
   "each panel files its REAL post-seam canvas");
-const jobSrc = serverSrc.slice(serverSrc.indexOf('async function runPromptLabPanelsJob'),
+// A deploy restart cannot lose a banked sheet: the sweep finishes an orphaned
+// panels run from it instead of marking paid work failed, and the recut route
+// recovers on demand — but never re-cuts a run that already has its panels.
+ok(/recutPanelsRun\(d\.ref, r\)/.test(serverSrc),
+  'the stuck-run sweep RECUTS an orphaned panels run from its banked sheet');
+ok(/\/api\/promptlab\/:id\/recut/.test(serverSrc), 'the recut route exists');
+ok(/already cut — a recut would file a duplicate set/.test(serverSrc),
+  'and refuses a run that already has its panels');
+ok(/function panelsCfgOf/.test(serverSrc) && /sheetGrid\.panelBlock\(plan\.count, d\.panels\)/.test(serverSrc),
+  'the recovery rebuilds its config from the run DOC alone');
+// The whole panels block: finishPanelsCut (the shared cut-and-file half),
+// panelsCfgOf, recutPanelsRun and the job itself.
+const jobSrc = serverSrc.slice(serverSrc.indexOf('async function finishPanelsCut'),
   serverSrc.indexOf('async function runPromptLabJob'));
 ok(jobSrc.indexOf('sheetUrl') < jobSrc.indexOf('cutSheet(sheetBuf'),
   'the paid sheet is banked BEFORE the cut');
