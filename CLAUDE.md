@@ -4185,9 +4185,13 @@ before working on that module. Nothing was deleted — the moved text is verbati
 - **Voice Studio** (`voicelab.js`, `/voice`) — her cloned voices, two hairline
   tabs: TEXT (TTS, stock v2 defaults, no settings by design) and VOICE
   (speech-to-speech on `eleven_multilingual_sts_v2`, which keeps the performance
-  and swaps only the voice). Her words stay in the box after a render. The page
-  carries NO header of its own (the native bar has the title) and no character
-  counts; credits live behind the ⓘ on the tab row. **Every take is kept** —
+  and swaps only the voice). Her words stay in the box after a render. **The
+  page OWNS its header** (one `.app-header` row, the title centred by
+  pagehead) — it carried none while Apple's nav bar had the title, and when
+  `.forgeWebToolBar` took that bar away the tool went NAMELESS, showing a bare
+  chevron and nothing else (2026-08-27, Sophie: "this header doesn't match the
+  app pattern"). There are still no character counts; credits live behind the
+  ⓘ on the tab row. **Every take is kept** —
   the output AND, on the changer, the recording that went in — and each card
   has a ⤓ that downloads it through our own server (`GET /api/voicelab/file/:id`,
   `?src=1` for the source); a Storage url alone only plays inline.

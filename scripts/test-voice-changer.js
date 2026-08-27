@@ -77,8 +77,23 @@ const server = http.createServer((req, res) => {
       status: 'done', url: 'https://example.invalid/new.mp3', sourceUrl: 'https://example.invalid/src.m4a' });
   }
   if (url.pathname === '/voice') {
+    // Exactly what serveGated does — `?embed=1` (which is how the iOS wrapper
+    // asks for it) and pagehead.js on top. Without those the header can only
+    // ever be measured in its browser state, which is the ONE state the app
+    // never shows her.
+    let out = fs.readFileSync(path.join(PUB, 'voice.html'), 'utf8');
+    if (url.searchParams.get('embed') === '1') {
+      out += '<style>body.embed .app-header,body.embed .tool-eyebrow'
+        + '{display:none !important}</style>'
+        + '<script>if(!window.__forgeLeave)document.body.classList.add("embed")</script>';
+    }
+    out += '<script src="/pagehead.js" defer></script>';
     res.writeHead(200, { 'Content-Type': 'text/html' });
-    return res.end(fs.readFileSync(path.join(PUB, 'voice.html'), 'utf8'));
+    return res.end(out);
+  }
+  if (url.pathname === '/pagehead.js') {
+    res.writeHead(200, { 'Content-Type': 'text/javascript' });
+    return res.end(fs.readFileSync(path.join(PUB, 'pagehead.js'), 'utf8'));
   }
   res.writeHead(404); res.end('no');
 });
@@ -290,6 +305,77 @@ const ok = (m) => console.log('  ok — ' + m);
     if (hit.reserve < 50) fail(`only ${hit.reserve.toFixed(0)}px reserved for the pill at ${w}px`);
     else ok(`the pill's corner is reserved at ${w}px`);
   }
+
+  // 7 — THE HEADER (2026-08-27, Sophie: "this header doesn't match the app
+  // pattern"). This page deliberately had no header row while Apple's nav bar
+  // carried the title; once `.forgeWebToolBar` took that bar away, pagehead
+  // found nothing to sit in and drew a bare strip holding a chevron and NOTHING
+  // ELSE — the tool was nameless. Measured in BOTH build states, because the
+  // failure her earlier ask fixed (the name twice, one strip above the other)
+  // and the one this fixes (no name at all) live on opposite sides of the same
+  // flag, and a check of one state alone cannot see the other coming back.
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  // (a) the NEW build: Apple's bar is gone and the bridge is there.
+  const app = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  app.on('pageerror', () => { /* the stub upsets some fetches; the header must draw anyway */ });
+  await app.addInitScript('window.__nativeNavBar = true; window.__forgeLeave = function () {};');
+  await app.goto(base + '/voice?embed=1', { waitUntil: 'domcontentloaded' });
+  await app.waitForSelector('#forgeback', { state: 'attached' });
+  await app.waitForTimeout(700);                       // levelRow's post-load syncs
+  const head = await app.evaluate(() => {
+    const h1s = [...document.querySelectorAll('h1')];
+    const h1 = document.querySelector('.app-header h1');
+    const b = document.getElementById('forgeback');
+    if (!h1 || !b) return { none: !h1, nochev: !b };
+    const r = h1.getBoundingClientRect(), q = b.getBoundingClientRect();
+    // Is the name actually ON SCREEN and readable, or is it a 0-box / clipped
+    // to nothing? A hidden element passes every "the markup is there" check.
+    const mid = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return {
+      titles: h1s.length,
+      text: h1.textContent.trim(),
+      inRow: b.parentElement === h1.parentElement,
+      // centred on the SCREEN, not on the leftover flex space
+      offCentre: Math.abs((r.left + r.right) / 2 - window.innerWidth / 2),
+      clearsChevron: r.left >= q.right,
+      // the injected pill owns x 324-374 at 390pt
+      clearsPill: r.right <= 324,
+      onScreen: !!(mid && (mid === h1 || h1.contains(mid))),
+      aboveTabs: r.bottom <= document.getElementById('tabs').getBoundingClientRect().top,
+    };
+  });
+  await app.close();
+  if (head.none) fail('the tool is nameless in the app — no .app-header h1');
+  else if (head.titles !== 1) fail('the name is on screen ' + head.titles + ' times, not once');
+  else if (head.text !== 'Voice Studio') fail('the header reads "' + head.text + '"');
+  else ok('the header says Voice Studio, once');
+  if (!head.none) {
+    if (!head.inRow) fail('the chevron sits in a strip of its own, not in the title row');
+    else ok('the chevron and the title share one row');
+    if (!head.onScreen) fail('the title is in the markup but nothing is painted there');
+    else ok('the title really paints');
+    if (head.offCentre > 2) fail('the title is ' + head.offCentre.toFixed(0) + 'px off centre');
+    else ok('the title is centred on the screen');
+    if (!head.clearsChevron || !head.clearsPill) fail('the title runs under the chevron or the pill');
+    else ok('the title clears the chevron and the pill\u2019s column');
+    if (!head.aboveTabs) fail('the header overlaps the tab row');
+    else ok('the tabs sit below the header');
+  }
+
+  // (b) the OLD build: Apple's bar is still up, so the page must NOT add a
+  // second name under it — her original complaint, which this must not undo.
+  const old = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  old.on('pageerror', () => {});
+  await old.goto(base + '/voice?embed=1', { waitUntil: 'domcontentloaded' });
+  await old.waitForTimeout(400);
+  const hidden = await old.evaluate(() => {
+    const h = document.querySelector('.app-header');
+    return !h || getComputedStyle(h).display === 'none';
+  });
+  await old.close();
+  if (!hidden) fail('on the old build the page draws a title UNDER Apple\u2019s bar — twice again');
+  else ok('on the old build the native bar keeps the title, alone');
 
   await browser.close();
   server.close();

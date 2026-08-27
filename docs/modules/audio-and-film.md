@@ -729,13 +729,46 @@ touches the shelf).
   she runs the same line through voice after voice. **Clear** is the only
   thing that empties it, and it only shows when there is something to clear —
   at the FAR RIGHT of the row, as far from Render as the row allows.
-- **NO PAGE HEADER, and NO CHARACTER COUNTS ANYWHERE (Aug 18 2026, Sophie:
-  "it says Voice Studio twice, once at the top and once below it… get rid of
-  basically the whole header, including the line" / "I don't need to know how
-  many characters everything is").** The native tool bar carries the title, so
-  the page's brand row, h1, credits line and rule are gone and the tabs are the
-  first thing on screen. The credits moved **behind an ⓘ** at the left of the
-  tab row — the number is still fetched at boot, it just costs a tap to read.
+- **NO CHARACTER COUNTS ANYWHERE, and the header is ONE ROW (Aug 18 2026,
+  Sophie: "it says Voice Studio twice, once at the top and once below it… get
+  rid of basically the whole header, including the line" / "I don't need to know
+  how many characters everything is").** The brand row, the credits line and the
+  rule are gone and the credits moved **behind an ⓘ** at the left of the tab
+  row — the number is still fetched at boot, it just costs a tap to read.
+  - **THE TITLE CAME BACK WHEN APPLE'S BAR WENT (2026-08-27, Sophie: "this
+    header doesn't match the app pattern").** Her complaint above was the name
+    twice, one strip above the other — so the page's own h1 came off and the
+    NATIVE bar carried it. Then `.forgeWebToolBar` removed that bar from every
+    web-wrapped tool, and the half holding the name went with it: pagehead.js
+    found no header row to sit in, fell through to its row-less branch, and drew
+    a bare `#forgehead` strip holding the chevron and NOTHING ELSE. **The tool
+    was nameless, and the screen looked like nothing else in the app.**
+    - The page owns its header now, which is the house rule for a web-wrapped
+      tool: one `.app-header` row of the shape Meta Assets uses, into which
+      pagehead inserts the chevron and whose title `.fh` centres on the SCREEN
+      between the chevron and the pill's column (64px reserved here — 56 is a
+      hair tight at 390pt).
+    - **STILL ONLY ONE "Voice Studio" ON SCREEN, on either build.** `?embed=1`
+      hides `.app-header` when `window.__forgeLeave` is absent, so on an older
+      build Apple's bar keeps the title alone and her original complaint cannot
+      come back. `node scripts/test-voice-changer.js` measures BOTH states —
+      the two failures live on opposite sides of that one flag, and a check of
+      one state alone cannot see the other coming.
+    - **The lesson is the STALE NOTE, not the header.** "The native tool bar
+      carries the title" was true when it was written and was quietly falsified
+      by a change in another file; both this doc and CLAUDE.md went on telling
+      the next chat to keep the page headerless. A page that leans on chrome it
+      does not own should say WHICH chrome, so the day that chrome goes the
+      note reads as a question rather than an instruction.
+  - **This page had no `<h1>` at all, and it is not the only one** — swept
+    2026-08-27, of the 38 gated pages **10 have no header row** for pagehead to
+    sit in (dump, dreams, dreams-archive, films, character, instagram, ingest,
+    crystals, audio, voice). Seven of those still draw an `<h1>` in their
+    content, so they read as a bare chevron strip ABOVE their own title rather
+    than as one row; **`dump.html` and `dreams.html` have no title anywhere**,
+    the same nameless shape this fixed. Neither is a `GatedWebTool` today (the
+    Dump and Dreams are native screens), so neither shows Sophie a chevron —
+    but the day either is opened as a wrapped web tool, it ships nameless.
   Render and Apply voice are the same height as Clear (`align-items:stretch`
   on `.renderrow`, because their borders differ by half a pixel).
   The rows that now sit in the injected pill's top-right band each keep the
