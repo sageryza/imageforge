@@ -214,5 +214,62 @@
     "height": 1754
    }
   ]
+ },
+ {
+  "sheet": 4,
+  "id": "p6G1FydIMGh7M8uR72Kx",
+  "beats": [
+   17,
+   18,
+   19,
+   20
+  ],
+  "images": [
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/0aa2a3bdd7577d042f3ca2ff.webp",
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/cb3b7530bfc0b2edba859f05.webp",
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/5e3d681197b6378c21fe412d.webp",
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/bc3346f95cddc9939f2d45b2.webp"
+  ],
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/ac75f7eec1887457e19a8d4b.webp",
+  "fullPrompt": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\nThis page is a 2x2 grid of 4 separate panels — equal rectangles, 2 across and 2 down, with straight edges exactly on the grid lines, no gutters and no outer margin. Each panel is its own complete, self-contained illustration. In reading order, left to right, top to bottom:\nPanel 1 (top left): a jigsaw puzzle almost finished, the last piece glowing and refusing to fit\nPanel 2 (top right): identical twins standing side by side, casting two different shadows\nPanel 3 (bottom left): a small glowing soul rising out of an open book while its author looks away, pretending not to notice\nPanel 4 (bottom right): a woman opening door after door in a long hallway, a starry sky pouring out of each one\n\nRender as a 2x2 grid of 4 panels — each panel its own complete illustration, inside its own hand-drawn border like the frames in the style reference. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition.",
+  "usage": {
+   "input_tokens": 1760,
+   "input_tokens_details": {
+    "image_tokens": 1505,
+    "text_tokens": 255
+   },
+   "output_tokens": 3912,
+   "output_tokens_details": {
+    "image_tokens": 3912,
+    "text_tokens": 0
+   },
+   "total_tokens": 5672
+  },
+  "rects": [
+   {
+    "left": 0,
+    "top": 0,
+    "width": 1169,
+    "height": 1753
+   },
+   {
+    "left": 1169,
+    "top": 0,
+    "width": 1167,
+    "height": 1753
+   },
+   {
+    "left": 0,
+    "top": 1753,
+    "width": 1169,
+    "height": 1751
+   },
+   {
+    "left": 1169,
+    "top": 1753,
+    "width": 1167,
+    "height": 1751
+   }
+  ]
  }
 ]
