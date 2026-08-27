@@ -33,7 +33,7 @@ const PROMPT = 'a group of scientists, on a cloud, dropping solid golden dinosau
   + 'the dropped golden nuggets on the ground, contemplating what to do';
 const RUNS = [{
   id: 'run0', prompt: PROMPT, status: 'done', engine: 'gptimage',
-  model: 'gpt-image-2', quality: 'low', aspectRatio: '2:3', style: 'dreamy', res: '2k',
+  model: 'gpt-image-2', gptStyle: 'dreamy', quality: 'low', aspectRatio: '2:3', res: '2k',
   images: ['/px.png'], votes: {}, createdAt: 1786000000000,
 }];
 
@@ -111,8 +111,8 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
     // MODEL · QUALITY · SIZE and nothing else (2026-08-27, Sophie: "extra
     // notes - dreamy etc … just need model quality and pixels + 1/4") — the
     // ratio used to sit on this line and is on the run's CARD now.
-    if (!/^gpt-image-2 · low · 2K$/.test(m.text.trim()))
-      fail(`${tag}: the MODEL · QUALITY · SIZE line is missing (${m.text})`);
+    if (!/^Dreamy · low · 2K$/.test(m.text.trim()))
+      fail(`${tag}: the STYLE · QUALITY · SIZE line is missing (${m.text})`);
     // The picture must end above the caption, not on top of it.
     if (m.img.bottom > m.cap.top)
       fail(`${tag}: the picture ends at ${m.img.bottom} and the label starts at ${m.cap.top} — covered by ${m.img.bottom - m.cap.top}px`);

@@ -531,8 +531,8 @@ function panelsPayload() {
     const el = document.querySelector('#clightbox .cltag, #clightbox .clcap');
     return el ? el.textContent.trim() : '';
   });
-  ok(/^gpt-image-2 · \w+ · \w+$/.test(cutLb) && !/uncut sheet|cutting/.test(cutLb),
-    'the lightbox caption stays model · quality · size — got: ' + cutLb);
+  ok(/^Dreamy · \w+ · \w+$/.test(cutLb) && !/uncut sheet|cutting/.test(cutLb),
+    'the lightbox caption stays style · quality · size — got: ' + cutLb);
   await page.evaluate(() => { if (window.__assetLightboxClose) window.__assetLightboxClose(); });
 
   console.log('the lightbox');
@@ -542,7 +542,6 @@ function panelsPayload() {
     return el && el.style.display !== 'none';
   });
   const lbText = await page.evaluate(() => document.getElementById('clightbox').textContent);
-  ok(/panel 4 of 9/.test(lbText), "the caption says 'panel 4 of 9'");
   // THE REQUIRED THIRD SLOT (2026-08-27, Sophie's screenshot of this caption:
   // "shud say quality and 1k,2k/4k · 1/4"). It had never carried one — the
   // slot was built into what the Playground FILES and this caption is drawn
@@ -554,17 +553,19 @@ function panelsPayload() {
   // The house caption ORDER — model · quality · size — so the slot reads as
   // the third part of a caption rather than a fourth thing tacked on the end.
   ok(/low\s*·\s*1\/9 \(4K\)/.test(lbText), 'and it sits right after the quality');
-  // THE CAPTION IS THE HOUSE CAPTION AND NOTHING ELSE (2026-08-27, Sophie:
-  // "extra notes - dreamy etc … just need model quality and pixels + 1/4").
-  // Slot 1 is the MODEL, exactly as the same picture's filed caption reads in
-  // My Creations — not the style label; the ratio and the grid are on the
-  // card's tag row, where a run's other facts belong.
+  // THE CAPTION IS THREE SLOTS AND NOTHING ELSE (2026-08-27, Sophie: "extra
+  // notes - dreamy etc … just need model quality and pixels + 1/4", then, on
+  // the first cut of it: "u added panel 2/4 and the chatgpt2 … get rid").
+  // Slot 1 is the STYLE — the tile she drew with, which is the model as far
+  // as this page is concerned; the ratio, the grid and which panel this is
+  // are on the card's tag row or in the size slot already.
   const cap = await page.evaluate(() => {
     const el = document.querySelector('#clightbox .cltag, #clightbox .clcap');
     return el ? el.textContent.trim() : '';
   });
-  ok(cap === 'gpt-image-2 · low · 1/9 (4K) · panel 4 of 9',
-    'the whole caption is model · quality · size · which one — got: ' + cap);
+  ok(cap === 'Dreamy · low · 1/9 (4K)',
+    'the whole caption is style · quality · size — got: ' + cap);
+  ok(!/panel|of 9|gpt-image-2/.test(cap), 'no panel counter and no model id');
   // Drawn by the SHARED derivation, not a tier table copied into the page —
   // a copy drifts the day the boundaries move.
   ok(await page.evaluate(() => !!(window.__sizeTier && window.__sizeTier.runSize)),
@@ -673,9 +674,9 @@ function panelsPayload() {
     const el = document.querySelector('#clightbox .cltag, #clightbox .clcap');
     return el ? el.textContent.trim() : '';
   });
-  ok(sheetCap === 'gpt-image-2 · low · 4K',
+  ok(sheetCap === 'Dreamy · low · 4K',
     "the sheet is captioned with its OWN tier — got: " + sheetCap);
-  ok(!/1\/9|uncut sheet|panels 3x3|2:3|Dreamy/.test(sheetCap),
+  ok(!/1\/9|uncut sheet|panels 3x3|2:3|panel/.test(sheetCap),
     'and carries none of the extra notes');
   // THE THREE BUTTONS THE SHEET HAD LOST (same day: "missing three buttons
   // too") — ♥, ✕ and the Story Room walk. A banked sheet is a picture she

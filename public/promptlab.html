@@ -2862,10 +2862,12 @@
   // the grid, a photo ref); over a picture she is looking at, the ratio and
   // the grid are things she can SEE and the style is behind the Prompt door.
   //
-  // The slot-1 model is the model ID, not the style label — which is exactly
-  // what this picture's own FILED caption says in My Creations and Meta
-  // Assets, so the same picture no longer reads two different ways in two
-  // places.
+  // SLOT 1 IS THE STYLE, and that is her correction (2026-08-27, on the first
+  // cut of this: "u added panel 2/4 and the chatgpt2 … get rid"). It shipped
+  // as the model ID — `gpt-image-2` — to match what the same picture's FILED
+  // caption says in My Creations and Meta Assets; she read that as a new
+  // thing appearing where the name of the tile she drew with had been. The
+  // tile IS the model to her, so the label is the answer here.
   //
   // The size slot is sheet-aware: a cut panel is "1/4 (4K)" (the fraction and
   // the SHEET's tier), the banked uncut sheet is the sheet's own "4K".
@@ -2875,7 +2877,7 @@
     // it down to and her ask was about the gpt-image-2 one.
     if (r.engine !== 'gptimage') return runParts(r);
     var st = window.__sizeTier;
-    var parts = [r.model || 'gpt-image-2'];
+    var parts = [runStyleLabel(r)];
     if (r.quality) parts.push(r.quality);
     var slot = st ? (i === -1 ? st.sheetSize(r) : st.runSize(r)) : '';
     if (slot) parts.push(slot);
@@ -3335,15 +3337,12 @@
     lbCur = { id: id, i: i };
     lbSrc = src;
     var h = runPromptHalves(r, i);
-    // MODEL · QUALITY · SIZE, and then WHICH picture of the run this is —
-    // which is navigation rather than a fact about the run, and the one thing
-    // the three slots cannot say. The sheet needs no such line: its size slot
-    // is the whole sheet's tier where a panel's is a fraction, so the two can
-    // never be mistaken for each other. (The card's tag row still says
-    // 'sheet — cutting…' while a cut is running.)
+    // THREE SLOTS, FULL STOP (2026-08-27, Sophie: "u added panel 2/4 and the
+    // chatgpt2 … get rid"). `panel 2 of 4` was kept as navigation — which one
+    // of the run she is looking at — and it is still a fourth thing on a line
+    // she asked to be three. The size slot already says it is a quarter, and
+    // the card's tag row still says 'sheet — cutting…' while a cut runs.
     var meta = lbCaption(r, i);
-    if (!isSheet && r.panels && r.panels.length && !r.cutFailed) meta.push('panel ' + (i + 1) + ' of ' + runImages(r).length);
-    else if (!isSheet && runImages(r).length > 1) meta.push('image ' + (i + 1));
     var seq = lbSeq(), at = -1;
     for (var k = 0; k < seq.length; k++) if (seq[k].id === id && seq[k].i === i) { at = k; break; }
     var asset = {
