@@ -339,10 +339,21 @@ in `sheet-grid.js` (plus a `promptMax` look: nine dictated panels fit under
   An edited tail no-ops the swap — her wording wins, disclosed in the Prompt
   panel. Hoonies' PREFIX also fights grids ("alone on a plain white
   background") and is deliberately left as-is — she can edit it per style.
-- **The cut is exact math, sequential, lossless, cache-off** (`cutSheet` in
-  server.js): decode ONCE to raw (~33MB for a 4K sheet on the 512MB box),
-  `extract` each cell in a plain for-loop, `webp({lossless:true})`. The paid
-  sheet is banked to Storage BEFORE the cut; a failed cut ends
+- **The cut is IMAGE-AWARE — mid-gutter, never blindly on the math line
+  (2026-08-26, Sophie's first live look: "the cut should be in the middle of
+  the tan area, but two of them got one side cut right on the black edge").**
+  The model draws the grid slightly off the exact lines, so `findSeams`
+  (sheet-grid.js) profiles the ink near each math line — a window of ±12% of
+  the cell, small so a pale patch inside a panel can never pull a seam into
+  the art — and cuts through the middle of the real paper valley between the
+  frame edges; no qualifying valley (a full-bleed style, no contrast) falls
+  back to the exact math line, so the worst case is the old behavior.
+  Verified against the very sheet she screenshotted: seams moved x 512→507,
+  y 768→774 and both flagged panels came out framed. Each panel files its
+  REAL post-seam canvas. Mechanics otherwise unchanged (`cutSheet`): decode
+  ONCE to raw (~33MB for a 4K sheet on the 512MB box), `extract` each cell
+  in a plain for-loop, `webp({lossless:true})`. The paid sheet is banked to
+  Storage BEFORE the cut; a failed cut ends
   `done, images:[sheetUrl], cutFailed:true` — the money is never lost, and
   the card says "uncut sheet".
 - **Filing**: the sheet files once (caption = the sheet's own tier), each
