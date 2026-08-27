@@ -205,6 +205,14 @@ async function hashUrl(url) {
   });
   const kept = plan.filter((s) => (flag('loose') ? s.url : s.keep));
   console.log(`\n${kept.length} of ${plan.length} shots mapped.`);
+  // `--json <file>` writes the map exactly as it would be POSTed, so a chat
+  // can read the plan, correct a row by hand and file that instead.
+  const jsonOut = arg('json');
+  if (jsonOut) {
+    fs.writeFileSync(jsonOut, JSON.stringify({ chat, url: film, seconds: duration, source: 'detect',
+      shots: kept.map((s) => ({ at: s.at, url: s.url, title: s.title })) }, null, 1));
+    console.log('wrote', jsonOut);
+  }
 
   if (!flag('go')) {
     console.log('dry run — add --go to file this map.');
