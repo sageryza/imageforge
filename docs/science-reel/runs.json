@@ -157,5 +157,62 @@
     "height": 1646
    }
   ]
+ },
+ {
+  "sheet": 3,
+  "id": "crA22rQjSiynTnKZ7nEg",
+  "beats": [
+   13,
+   14,
+   15,
+   16
+  ],
+  "images": [
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/87a5870435c2a2b6edc03f96.webp",
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/76f8cda8d3a97e1e5daa4112.webp",
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/3d66658c6b82006d26340035.webp",
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/7dd0509b49b20f0915f94630.webp"
+  ],
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/b579415b2180c67c77227bd0.webp",
+  "fullPrompt": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\nThis page is a 2x2 grid of 4 separate panels — equal rectangles, 2 across and 2 down, with straight edges exactly on the grid lines, no gutters and no outer margin. Each panel is its own complete, self-contained illustration. In reading order, left to right, top to bottom:\nPanel 1 (top left): a candlelit dinner date, the student leaning across the table to whisper\nPanel 2 (top right): an advisor secretly tipping a great brass scale in a dark laboratory at night\nPanel 3 (bottom left): a student standing at a fork in a long road, looking back at seven milestones behind him\nPanel 4 (bottom right): a woman reading an enormous thick book by lamplight in the middle of the night, giggling\n\nRender as a 2x2 grid of 4 panels — each panel its own complete illustration, inside its own hand-drawn border like the frames in the style reference. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition.",
+  "usage": {
+   "input_tokens": 1760,
+   "input_tokens_details": {
+    "image_tokens": 1505,
+    "text_tokens": 255
+   },
+   "output_tokens": 3912,
+   "output_tokens_details": {
+    "image_tokens": 3912,
+    "text_tokens": 0
+   },
+   "total_tokens": 5672
+  },
+  "rects": [
+   {
+    "left": 0,
+    "top": 0,
+    "width": 1164,
+    "height": 1750
+   },
+   {
+    "left": 1164,
+    "top": 0,
+    "width": 1172,
+    "height": 1750
+   },
+   {
+    "left": 0,
+    "top": 1750,
+    "width": 1164,
+    "height": 1754
+   },
+   {
+    "left": 1164,
+    "top": 1750,
+    "width": 1172,
+    "height": 1754
+   }
+  ]
  }
 ]
