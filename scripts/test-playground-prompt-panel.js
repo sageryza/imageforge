@@ -43,8 +43,10 @@ ok('the panel and its button are gated on having a wrapper, not on the engine');
 // option is landscape): a control that decides nothing comes off.
 assert.ok(/ct\.style\.display = \(gpt && canvasApplies\(\)\) \? 'flex' : 'none'/.test(PAGE),
   'the canvas toggle stays gpt-only');
-assert.ok(/function canvasApplies\(\) \{ return !\(onPanels\(\) && gridPin\(curGrid\(\)\)\); \}/.test(PAGE),
-  'and stands down on a grid that pins its own cell shape');
+// STORY mode is carved out on purpose (2026-08-27): a story sheet has no
+// cells, so the toggle picks the SHEET itself and must stay on screen.
+assert.ok(/function canvasApplies\(\) \{ return !\(onPanels\(\) && !storyMode\(\) && gridPin\(curGrid\(\)\)\); \}/.test(PAGE),
+  'and stands down on a grid that pins its own cell shape (story mode excepted)');
 ok('the size controls stay gpt-only — they would change nothing on a LoRA');
 
 (async () => {
