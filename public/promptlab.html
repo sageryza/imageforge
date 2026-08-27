@@ -603,7 +603,7 @@
     <span id="photowrap"><button id="photopick" type="button" aria-label="Attach a photo reference" title="Attach a photo reference"></button><button id="photoclear" type="button" aria-label="Take the photo reference off" title="Take the photo reference off"></button></span>
     <input type="file" id="photofile" accept="image/*" hidden>
     <button class="stylebtn" id="promptbtn" title="What is wrapped around your words">Prompt</button>
-    <button class="stylebtn notextbtn" id="notextbtn" hidden aria-pressed="false" title="Ask for no text at all in the picture">No text</button>
+    <button class="stylebtn notextbtn" id="notextbtn" hidden aria-pressed="false" title="Text: minimal by default — press for none">No text</button>
     <div class="canvastog" id="canvastog" role="group" aria-label="Canvas shape">
       <button id="c-portrait" type="button">Portrait</button><button id="c-square" type="button">Square</button>
     </div>
@@ -1809,10 +1809,14 @@
 
   // ── NO TEXT — one toggle on the styles that allow text (Aug 2026, Sophie:
   // "add a no text line to the prompt that can be toggled on and off with a
-  // little toggle"). Dreamy is the only one today: its tail says "Minimal text
-  // only" on purpose, and this swaps that clause for a flat ban. The server
-  // owns the wording and says per style whether the toggle exists at all, so
-  // the page has no copy of the line to drift out of step.
+  // little toggle"). Dreamy is the only one today: its tail asks for minimal
+  // text on purpose, and this swaps that clause for the flat ban. TWO WORDS
+  // EACH since 2026-08-27 (Sophie: "just two options minimal and none and it
+  // should just be those words not the whole paragraph"), where the toggle
+  // used to send a spelled-out paragraph. The wordings themselves are NOT
+  // written here — the server owns them and says per style whether the toggle
+  // exists at all, so the page has no copy of either line to drift out of
+  // step, and a test fails if one appears.
   // Kept per style in localStorage — unlike quality and the canvas it costs
   // nothing, so carrying it into the next visit can never spend money unmeant.
   var NOTEXTKEY = 'promptlab_notext_';

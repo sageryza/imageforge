@@ -3324,6 +3324,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
   it decides nothing there. **No new endpoint** (her question the same day): a
   panels run is the same `POST /api/promptlab` with `panels` + `grid`; one gpt-image-2 SHEET draws
   at the tier budget on a canvas DERIVED to divide into whole-pixel cells,
+  wrapped in the GRID SENTENCE (`sheetGrid.panelBlock` — **hers, dictated
+  2026-08-27, and shorter than what shipped: the second geometry clause
+  "with straight edges exactly on the grid lines, no gutters and no outer
+  margin" is out at her ask, and `findSeams` is what keeps the cut off the
+  borders, so don't restore it**),
   the server cuts it apart (sequential, lossless, sharp cache off — the 512MB
   box; **the cut is IMAGE-AWARE since 2026-08-27** — `findSeams` cuts through
   the middle of the real gutter near each math line, math as the fallback,
@@ -3397,11 +3402,26 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **the BORDER is asked for again** ("Draw it inside a hand-drawn border, like
   the frames in the style reference" — an earlier cut added one and she pulled
   it the same day, "take your borderline out"; this time she dictated it
-  herself), and **"Minimal text only." became a flat "no text."** Still gone
+  herself), and **"Minimal text only." became a flat "no text."** — **AND ON 2026-08-27 SHE
+  MOVED IT BACK: the tail asks for `minimal text.` again and the TOGGLE sends
+  `no text.`** ("change the no text thing so there's another option called
+  minimal text. This is the default actually just two options minimal and none
+  and it should just be those words not the whole paragraph"). So the flat ban
+  is what the switch sends, not what ships baked in, and the spelled-out
+  paragraph the toggle used to send — no letters, no numbers, no captions, no
+  handwriting — is GONE. Two words each, hers. Still gone
   and still unmentioned: **"no caption boxes"** (the reference IS a diary comic
   and its boxes are the look) and **"vertical"** (the canvas toggles, so a
   prompt naming one shape fights the other). The wording before this was the
   dream feed's, imported 2026-08-20.
+  **THE GREEN TANK TOP — a named ban at the very end of the tail (2026-08-27,
+  Sophie: "the woman w the green tank top appears nowhere. if text asks for a
+  woman, invent a different woman, with different clothing").** `dream-mystery.jpg`
+  IS her diary-comic page and is full of drawn people, and the model kept
+  lifting one of them; the general "do not draw its content" sentence was not
+  enough, so this one names her. It rides AFTER that sentence, at the very end,
+  which is also what keeps it clear of both swaps — `noText.from` and
+  `sheet.from` target earlier clauses and neither reaches it.
   **THE OLDER WORDING IS SIGNPOSTED, NOT ORPHANED (her ask: "a note that says
   there's a new prompt in town … so other chats can decide if they want that
   one or the new one").** `scripts/nde-panel.py` and
