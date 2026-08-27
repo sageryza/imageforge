@@ -3358,6 +3358,50 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - **gpt-image-2 only.** The WTR LoRA takes a trigger word and has no
     attachment slot at all, so the button comes off there rather than sitting
     there doing nothing. Test: `node scripts/test-playground-photo-ref.js`.
+  - **PUTTING A PROMPT BACK PUTS ITS REFERENCE BACK (2026-08-27, Sophie:
+    "playground and other image tools shud save the reference photo and reload
+    when copy to prompt box").** The photo was already SAVED — `photoRef` on
+    the run doc is the Storage url it was uploaded to, and the whole doc rides
+    the feed — but nothing on the page ever read it back, so a picture drawn
+    with a photo could not be re-run with the same photo: the bytes existed and
+    were unreachable. Every copy-back path restores it now (the run card's
+    button in both views, the lightbox action, a panels run, a pending run).
+    - **THE RULE IS "ONLY CHANGE WHAT THE RECORD KNOWS", and the CLEAR is the
+      half that is easy to skip:** a url on the record attaches it, a record
+      carrying NONE takes an attached one OFF (a panels run, a LoRA run, a
+      picture she drew with nothing on it — leaving one on would put an
+      ingredient into the next run that the one she copied never had), and no
+      record at all leaves it alone. A test that only checks the attach passes
+      against a page that never clears.
+    - **The restored value is the URL, not a dataURL**, and `restorePhoto`
+      accepts only `^https?://` — the same test server.js applies to `photo`.
+      The two agreeing is the point: the page must never attach something the
+      run would silently drop, leaving her looking at a thumbnail that did not
+      ride the request. Nothing is re-uploaded; the run's record points at the
+      same object.
+    - **A pending run's doc is stashed by the POLL** (`runsById[d.id] = d`) —
+      the pending ENTRY cannot carry a photo, since it lives in localStorage
+      where a 1600px dataURL is most of the quota.
+    - **NOT PERSISTED across loads is UNTOUCHED and is still hers.** Her tap on
+      a copy button is the opposite of silent: the thumbnail appears in the row
+      as she taps, and the Prompt panel's photo line comes back with it.
+    - **FREEFORM IS THE OTHER IMAGE TOOL, and it had no put-back button at
+      all.** It has the Playground's now, and it restores both halves, because
+      there the references ARE half the prompt (nothing else is added to her
+      words). The run doc has stored `refIds` since the module shipped, so
+      nothing new is saved and every run already on file gets this; a reference
+      she has since DELETED cannot come back, so the ones still in the library
+      are re-selected and the toast SAYS how many were not, rather than quietly
+      starting the next run one reference short. The optimistic card carries
+      `refIds` too, or copying a run back the second after starting it would
+      clear the references it is drawing with.
+    - **The Assets PORT is deliberately not this** (`playground-port.js`): it
+      identifies a picture by EVIDENCE in its filed prompt text and never knows
+      the run, and a filed prompt records no photo. Don't invent one.
+    - Test: `node scripts/test-copy-restores-reference.js` (both real pages
+      headless — the restore is a state change across three controls and a
+      source assertion cannot see it; verified failing pre-fix, 5 in the
+      Playground and no button at all in Freeform).
   **TWO QUALITY LADDERS, AT THE RIGHT END WITH GENERATE (Aug 2026, Sophie:
   "add a little oval next to the pyramid, colored on top, white empty on
   bottom, signifying medium, and high. when pressed, it kicks off 1 medium and
