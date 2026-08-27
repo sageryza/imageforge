@@ -179,9 +179,13 @@ late or never.
 - **URGENT is the only interrupt** — she is blocked without it, or it expires.
   Say so plainly in the reply AND queue it anyway, so it survives her not being
   near the computer. "It would be faster" is not urgent.
-- **A video url is NOT a desktop task** — `POST /api/ytdl/grab` downloads it
-  from the cloud (*Grab a video* under Audio & film, measured live 2026-08-23).
-  If a grab ever comes back `blocked:true`, then queue it here.
+- **A video url: TRY `POST /api/ytdl/grab` FIRST, but it is often refused and
+  the queue is still the fallback (measured 2026-08-27).** Render's IP is
+  substantially bot-blocked — 3 of 4 distinct videos refused on every player
+  client — so the grab is worth one attempt and no more hope than that. When it
+  answers `blocked:true`, queue it here. A SESSION container is luckier than
+  Render (2 of 3 the same minute), so a chat that needs the bytes can also run
+  yt-dlp itself and POST the file to the Dump / audio library.
 - **What counts as desktop-only:** anything needing her logged-in browser,
   keychain or Photos library, a plugged-in device, local files that live only on
   the Mac, and big uploads that must be chunked on her home connection. Anything
@@ -4266,14 +4270,20 @@ before working on that module. Nothing was deleted — the moved text is verbati
   metadata AND pulled a real 3.3MB m4a and a 17MB 720p mp4, first try, no
   cookies. That is the exact shape CLAUDE.md warns about at the top — a dated
   measurement going stale when the environment moves underneath it.
-  **AND THEN MEASURED ON RENDER ITSELF, the same day, because one cloud egress
-  is not a population:** probe 4.8s, a 3.4MB m4a down in under 6s, and a 360p
-  mp4 merged by ffmpeg, postered by the Dump and filed, at 9.1MB. Both test
-  records were deleted afterwards. **Render is not blocked.** It can regress —
-  the blocking is YouTube's to change — so `GET /api/ytdl/status?probe=1`
-  re-runs the measurement on demand (metadata only, no bytes, no cost), and a
-  block lands on the doc as `blocked:true` in yt-dlp's own words, so the one
-  failure with a different remedy never reads like a generic error.
+  **BUT "RENDER IS NOT BLOCKED" WAS WRONG, AND IT TOOK THREE TRIES TO SEE IT
+  (2026-08-27).** Two successful downloads on 08-23 were read as the endpoint
+  working. Measured properly four days later: Render refused **3 of 4** distinct
+  videos, on EVERY player client, twice over — including two of Sophie's own
+  grabs. A session container got **2 of 3** the same minute, so it is Render's
+  IP reputation, not YouTube in general. What made this survive so long is that
+  `dQw4w9WgXcQ` — the probe's hardcoded video — is one of the few Render still
+  serves, so **`GET /status?probe=1` went green throughout two days of her
+  grabs failing. A green probe says ONE video on ONE client works and nothing
+  more; never quote it as the endpoint being healthy.**
+  So: the grab is worth one attempt, it fails honestly with `blocked:true` in
+  yt-dlp's own words, and **the desktop queue is still the real fallback.**
+  Cookies (`--cookies`) are the documented remedy and need her logged-in
+  browser, i.e. the desktop trip this was built to avoid.
   **It costs nothing** — no model call; it is bandwidth and ffmpeg on our own
   box. `POST /grab {url, kind:'audio'|'video', quality?, to?}` returns an id in
   ~0.3s and the work runs behind it (`GET /:id/job` to poll).
