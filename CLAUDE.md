@@ -42,6 +42,16 @@ The numbers are measured, not guessed.
    metadata. Full procedure: *THE CLEAN EXPORT* in
    `docs/modules/audio-and-film.md`. (Images: not built yet, hers to ask.)
 
+3f. **Handed her a FILM MADE OF PICTURES? FILE ITS SHOT MAP** —
+   `POST /api/filmshots {chat, session, url, seconds, shots:[{at, url}]}`,
+   one entry per picture with the second it comes on screen. It is what puts
+   the **Prompt** button on the paused player, and you are the only one who
+   knows the cut list — the same *file it while you know it* rule as the
+   MODEL · QUALITY · SIZE caption. No map, no button (never a wrong prompt
+   under her finger). An older film is measured instead:
+   `node scripts/film-shots-detect.js --film <url> --chat <slug>` (dry; add
+   `--go`). Full rules: *THE PROMPT ON A PAUSED FILM* in the Chats section.
+
 **When the work WRAPS UP (not every turn)**
 3b. **Leave a WRAP-UP** — `POST /api/chatfeed/wrapup {chat, session, line,
    asked, did, next}`. It is **her three questions, ONE SENTENCE EACH** (Aug
@@ -1407,6 +1417,46 @@ them off the reference sheet, not off the old filenames.
     what a covered row passes every width assertion while failing).
   - Tests: `node scripts/test-pin-current.js` (the kind + tag rules, pure) and
     `node scripts/test-chats-pin.js` (the real page, headless).
+- **THE PROMPT ON A PAUSED FILM — what drew the picture she just stopped on
+  (`filmshots.js`, `/api/filmshots`, 2026-08-27, Sophie: "in the play pause
+  feedback pinned video tool, add a way to see image prompts. example: hate
+  of the game").** The paused screen already offered a NOTE; it now also
+  offers **Prompt**, opposite it, and behind it the picture's label, its
+  MODEL · QUALITY · SIZE caption and both halves of its exact prompt.
+  - **THE WORDS ARE NEVER COPIED — only the TIMES are stored.** A film's doc
+    (`forge-film-shots`, id = sha1(the film's url)) holds `[{at, url}]` and
+    nothing else; the label, caption and both prompt halves are resolved from
+    the chat's own filed pictures (`forge-chat-assets`) on every read. So a
+    prompt corrected in the Assets tab is corrected in the player, and the
+    exact-prompt rule keeps ONE copy of the text (*nothing stands between the
+    source and the output*). The join is url, then FILENAME — one picture,
+    two roads, `asset-union.js`'s own subject.
+  - **NO MAP, OR NOTHING FILED FOR THAT SHOT → NO BUTTON.** The Assets tab's
+    own silence: reading one picture's prompt believing it belongs to another
+    is the one failure this must not have, and a label alone is not a prompt.
+    Every film made before this simply looks as it always did.
+  - **TWO DOORS IN.** A chat that CUTS a film knows its shot list and POSTs it
+    the same turn it pins the film (checklist 3f) — exact, free. An EXISTING
+    film is MEASURED: `scripts/film-shots-detect.js` finds the cuts with
+    ffmpeg and matches each shot's own frame against the chat's filed
+    pictures by perceptual hash (dHash). On her example — Hate of the Game —
+    the reel v1, 5:42 — 39 cuts → 40 shots and **40 of 40 matched the right
+    picture**, each the nearest candidate by a clear margin. **A shot it is
+    not sure about is LEFT OUT, never guessed in** (`--loose` overrides; say
+    so if you use it). No model call anywhere; it is bandwidth and ffmpeg on
+    our own box.
+  - **It rides BOTH hosts of the player** — the Chats app's pinned film and
+    compare.js's video lightbox — because the door lives in the ONE shared
+    `public/filmnote.js`, beside tap-to-note.
+  - **The words stop above the button row, not at the bottom of the screen**:
+    the scrubber, play and NOTE stay hers while she reads ("this prompt is
+    wrong" is the likeliest thing she has to say about the picture she is
+    standing on). Content opens by default and the half she picks rides along
+    as she steps; a tap on the words puts them away and never reaches the
+    film's own pause/play toggle underneath.
+  - Tests: `node scripts/test-filmshots.js` (the map, the join and the
+    detector's refusals — pure) and `node scripts/test-film-prompt.js` (the
+    real page + the real filmnote.js, headless).
 - **A SECOND, UNRELATED PIN — the PUSHPIN keeps a CHAT at the top of her list
   (Aug 2026, Sophie: "an option to pin chat to the top so they always show
   first when they come out of hiding and they never disappeared to the bottom
