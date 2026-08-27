@@ -207,6 +207,24 @@ const server = http.createServer((req, res) => {
       first: lb.querySelector('.lbacts button').getAttribute('aria-label'),
       tagUnderImg: tag.top >= img.bottom - 1 && tag.bottom <= acts.top + 1,
       heartAboveNotes: hb.top >= img.bottom - 1 && hb.bottom <= note.top + 1,
+      // ONE SIZE FOR EVERY BUTTON UNDER THE PICTURE (2026-08-27). The row
+      // mixes .vote (38px) with .lbacts button (34px), so this is MEASURED
+      // off the real boxes — a class assertion cannot see two rules winning
+      // on two different buttons. The numbers are the Playground's own from
+      // the day before the port onto the shared file (.lbbtn, 46 / 21).
+      btns: Array.prototype.map.call(
+        lb.querySelectorAll('.lbacts button, .lbnote .notesend'),
+        function (b) {
+          var r = b.getBoundingClientRect(), s = b.querySelector('svg');
+          var sr = s ? s.getBoundingClientRect() : { width: 0, height: 0 };
+          return {
+            label: b.getAttribute('aria-label') || 'send',
+            w: Math.round(r.width), h: Math.round(r.height),
+            sw: Math.round(sr.width), sh: Math.round(sr.height),
+          };
+        }),
+      // and the row still fits the phone it is read on
+      rowFits: acts.left >= 0 && acts.right <= window.innerWidth,
     };
   });
   ok(layout.topVotes === 0, 'no ♥/✕ in the top band');
@@ -214,6 +232,15 @@ const server = http.createServer((req, res) => {
   ok(layout.first === 'Heart', 'and it is the FIRST button in that row');
   ok(layout.tagUnderImg, 'MODEL · QUALITY sits right under the picture, above the buttons');
   ok(layout.heartAboveNotes, 'the ♥ sits under the picture, above the note box');
+  ok(layout.btns.length === 6,
+    'six buttons under the picture (♥ ✕ · copy · save · story · send)');
+  const odd = layout.btns.filter((b) => b.w !== 46 || b.h !== 46);
+  ok(odd.length === 0, 'every one of them is 46x46 — the size they were before the port ('
+    + (odd.length ? odd.map((b) => b.label + ' ' + b.w + 'x' + b.h).join(', ') : 'all 46') + ')');
+  const oddg = layout.btns.filter((b) => b.sw !== 21 || b.sh !== 21);
+  ok(oddg.length === 0, 'and every glyph inside them is 21x21 ('
+    + (oddg.length ? oddg.map((b) => b.label + ' ' + b.sw + 'x' + b.sh).join(', ') : 'all 21') + ')');
+  ok(layout.rowFits, 'the row still fits the screen at this width');
   await page.evaluate(() => document.getElementById('clightbox').click());
   ok(!(await shown()), '(closed again)');
   await page.locator('#tiles .cell:not(.ph) img').first().click();
