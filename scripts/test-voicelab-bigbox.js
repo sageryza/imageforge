@@ -17,6 +17,12 @@
 //      takes its own tap,
 //   4. one tap makes the SAME textarea big, with her words still in it (never
 //      a second field to keep in sync),
+//   4b. the big box FITS THE WORDS rather than being a flat height (2026-08-27,
+//      Sophie: "why not expand based on text, not static") — a short prompt
+//      and a long one open at DIFFERENT heights, which is the assertion a
+//      static box could never pass; it stops at the cap, shrinks back when she
+//      deletes a paragraph (the `height:auto` reset), and an EMPTY box still
+//      opens to the floor, because this is a field she writes IN,
 //   5. the glyph and label swap to "back to small",
 //   6. the next tap shrinks it back, even after a hand-dragged resize left an
 //      inline height behind (the box is `resize:vertical`),
@@ -156,10 +162,50 @@ const ok = (c, m) => { if (c) console.log('  ok  ' + m); else fail(m); };
     label: document.getElementById('bigtext').getAttribute('aria-label'),
     fields: document.querySelectorAll('#pane-say textarea').length,
   }));
-  ok(big.h >= 844 * 0.3, `one tap: the box is big (${Math.round(small)} → ${Math.round(big.h)}px)`);
+  ok(big.h > small, `one tap: the box is bigger (${Math.round(small)} → ${Math.round(big.h)}px)`);
   ok(big.fields === 1, 'still ONE textarea — never a second field to keep in sync');
   ok(/parking lot/.test(big.words), 'the same textarea — her words are still in it');
   ok(/small/i.test(big.label), `the label now offers the way back (${big.label})`);
+
+  // THE SIZE FOLLOWS THE WORDS (2026-08-27, Sophie: "why not expand based on
+  // text, not static"). A flat height is what this replaces, so the test that
+  // matters is that TWO different texts open at TWO different heights — an
+  // assertion against one number would pass against the old static box.
+  console.log('IT FITS THE WORDS, IT IS NOT A FIXED SIZE');
+  const CAP = Math.round(844 * 0.46), FLOOR = Math.round(844 * 0.24);
+  ok(big.h < CAP - 8, `a one-line prompt does not open at the cap (${Math.round(big.h)}px, cap ${CAP})`);
+  ok(big.h >= FLOOR - 2,
+    `and never below the floor, so the button is worth tapping on a short one (floor ${FLOOR})`);
+
+  const grown = await page.evaluate(() => {
+    const t = document.getElementById('text');
+    t.value = new Array(40).join('the moon came up over the parking lot, and then it kept going. ');
+    t.dispatchEvent(new Event('input'));
+    return t.getBoundingClientRect().height;
+  });
+  ok(grown > big.h, `a long dictation opens taller than a short one (${Math.round(big.h)} → ${Math.round(grown)}px)`);
+  ok(Math.abs(grown - CAP) <= 2, `and stops at the cap rather than running off the screen (${Math.round(grown)}px)`);
+
+  // The `height:auto` reset is the whole of this one: scrollHeight on a box
+  // already sized to its old height reports that height, so without the reset
+  // the box can only ever grow.
+  const shrunk = await page.evaluate(() => {
+    const t = document.getElementById('text');
+    t.value = 'one short line.';
+    t.dispatchEvent(new Event('input'));
+    return t.getBoundingClientRect().height;
+  });
+  ok(shrunk < grown - 20, `and it shrinks back when she deletes a paragraph (${Math.round(grown)} → ${Math.round(shrunk)}px)`);
+
+  const empty = await page.evaluate(() => {
+    const t = document.getElementById('text');
+    t.value = '';
+    t.dispatchEvent(new Event('input'));
+    return t.getBoundingClientRect().height;
+  });
+  ok(empty >= FLOOR - 2 && empty <= FLOOR + 2,
+    `an EMPTY box still opens to the floor — this is a field she writes in (${Math.round(empty)}px)`);
+  await page.fill('#text', 'the moon came up over the parking lot like it had somewhere else to be');
 
   console.log('AND BACK');
   // A hand-dragged resize leaves an inline height behind (the box is

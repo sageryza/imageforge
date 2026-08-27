@@ -3850,11 +3850,36 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **THE PROMPT BOX HAS A BIGGER-BOX TOGGLE (2026-08-25, Sophie: "can you put a
   button so I can see the prompt in a bigger box as an option").** A 26px
   rounded square inside the textarea's bottom-**RIGHT** corner (Lucide
-  `maximize-2`/`minimize-2`) toggles the SAME `#prompt` textarea to 52vh and
-  back — never a second field, so nothing syncs. The compact box reserves that
+  `maximize-2`/`minimize-2`) toggles the SAME `#prompt` textarea open and shut
+  — never a second field, so nothing syncs. The compact box reserves that
   corner with `padding-bottom`, so her last line is never typed under the
   button; the toggle clears any hand-dragged inline height or "back to small"
   would not shrink; deliberately NOT sticky.
+  **AND THE BIG BOX FITS THE WORDS — this REPLACES the flat 52vh (2026-08-27,
+  Sophie: "why not expand based on text, not static").** A fixed height is an
+  empty half under two lines and still a scrollbar under a long dictation, so
+  the size said nothing about what was in it. `.big` is now the **CAP**
+  (`max-height:52vh`) over a **FLOOR** (`min-height:24vh`), and `fitBig`
+  measures the content into the height between them — on the tap, on every
+  keystroke while it is open, and on a resize.
+  - **BOTH BOUNDS ARE CSS.** The browser clamps the inline height, so the two
+    numbers live in one place and no `vh` is re-derived in script.
+  - **`height:auto` FIRST or the box can only ever GROW.** `scrollHeight` on a
+    box already sized to its old height reports that height, so a fit without
+    the reset never shrinks back when she deletes a paragraph.
+  - **The border is added back** (`offsetHeight - clientHeight`): the box is
+    `border-box` and `scrollHeight` excludes borders, so every fit is
+    otherwise two pixels short and the box scrolls its own last line.
+  - **THE FLOOR IS WHY THE BUTTON IS NEVER HIDDEN, and that is the difference
+    from the `.moretxt` opener.** That opener is drawn only where a
+    measurement says text is really cut, because it REVEALS words that already
+    exist; this is a field she WRITES in, so "expand" has to mean room to
+    write **before** the words are there. Don't "fix" it into hiding itself on
+    a short prompt.
+  - **PUTTING A PROMPT BACK REFITS IT** — `copyPromptIn` sets `.value`
+    directly, which fires no `input` event, so it calls `window.__fitBigPrompt`
+    or the copied run sits in a box fitted to whatever was there before.
+  - The same rule, and the same two lessons, are in Voice Studio's words box.
   **ON THE RIGHT, SLID CLEAR OF THE PILL'S COLUMN — settled over two rounds
   on 2026-08-26.** The button shipped in the exact bottom-right corner, where
   on her phone the injected autoscroll pill's ▼ sits dead on it (measured at
@@ -4557,8 +4582,17 @@ before working on that module. Nothing was deleted — the moved text is verbati
   ⓘ on the tab row.
   **THE WORDS BOX EXPANDS (2026-08-27, Sophie: "add an expand text box button
   in the voice studio").** A 26px rounded square inside `#text`'s bottom-right
-  corner toggles the SAME textarea to 46vh and back — the Playground's
+  corner toggles the SAME textarea open and shut — the Playground's
   `#bigprompt` answer lifted in SHAPE, never a second field to keep in sync.
+  **IT FITS THE WORDS, IT IS NOT A FIXED SIZE (2026-08-27, Sophie: "why not
+  expand based on text, not static")** — `min-height:24vh` / `max-height:46vh`
+  are the floor and the cap, and `fitBig` measures the content into the height
+  between them on the tap, on every keystroke and on a resize. The three rules
+  behind that (both bounds in CSS, `height:auto` before measuring or the box
+  can only grow, the border added back on a `border-box` box) and the reason
+  the button never hides itself are written out once, under *THE PROMPT BOX HAS
+  A BIGGER-BOX TOGGLE* in the Playground section — read them there before
+  touching either copy.
   Four things not to undo: the box reserves that corner with `padding-bottom`
   (or her last line is typed under the button); the toggle clears any
   hand-dragged inline height, since the box is `resize:vertical` and "back to
@@ -5103,9 +5137,14 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **AND EITHER BOX OPENS BIGGER, AS AN OPTION (2026-08-26, Sophie: "make it
   possible to open the caption and the drawing prompt in bigger boxes so I can
   edit them but don't make that the default").** A 26px rounded square inside
-  each box's bottom-right corner toggles the SAME textarea to 46vh and back —
+  each box's bottom-right corner toggles the SAME textarea open and shut —
   the Playground's `#bigprompt` answer lifted in SHAPE, not copied, so there is
-  never a second field to sync. Four things not to undo: the textarea reserves
+  never a second field to sync. **AND IT FITS THE WORDS since 2026-08-27**
+  (`min-height:24vh` / `max-height:46vh` as the floor and the cap, `fitBig`
+  measuring the content into the height between them, on the tap and on every
+  keystroke) — the rule and its two traps are written out once under *THE
+  PROMPT BOX HAS A BIGGER-BOX TOGGLE* in the Playground section. Four things
+  not to undo: the textarea reserves
   that corner with `padding-bottom` (or her last line is typed under the
   button); `resetBig()` puts both back small on every card open, because *not
   the default* means not sticky either; expanding calls `scrollIntoView` since

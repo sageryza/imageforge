@@ -82,7 +82,19 @@
      So `right: 56px`: still the right end of the box, clear of the pill's
      50px column plus margin at 390pt AND at 320pt, both controls tappable at
      every scroll position. Don't slide it back into the corner, and don't
-     move it off the right side — both are hers. */
+     move it off the right side — both are hers.
+
+     THE BIG BOX FITS THE WORDS (2026-08-27, Sophie: "why not expand based on
+     text, not static"). It was a flat 52vh whatever was in it — an empty half
+     under two lines, and still scrolling under a long dictation — so the size
+     said nothing about what was in it. `.big` is the CAP now, never the
+     height: the height is measured off the content on the tap, on every
+     keystroke while it is open, and on a resize. The FLOOR is what keeps the
+     button worth tapping on an empty box — this is a field she WRITES in, so
+     "expand" has to mean room to write before the words exist; that is the
+     difference from the `.moretxt` opener, which only ever reveals text that
+     is already there and so may hide itself. Both bounds are CSS, so the
+     browser clamps the inline height and no `vh` is re-derived in script. */
   /* THE BOX DOES NOT SIT ON THE BUTTONS (2026-08-26, Sophie: "there was no
      padding between the buttons and the bottom of the text prompt box").
      Measured: `.styles` gives the box 10px of air ABOVE it and `.promptwrap`
@@ -92,7 +104,7 @@
      card has one rhythm rather than a number picked per gap. */
   .promptwrap { position: relative; margin-bottom: 10px; }
   .promptwrap textarea { display: block; box-sizing: border-box; padding-bottom: 34px; }
-  #prompt.big { min-height: 52vh; }
+  #prompt.big { min-height: 24vh; max-height: 52vh; }
   #bigprompt { position: absolute; right: 56px; bottom: 6px; width: 26px; height: 26px;
     display: flex; align-items: center; justify-content: center; padding: 0; margin: 0;
     border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #6f675e; cursor: pointer; }
@@ -821,9 +833,31 @@
   // Deliberately NOT sticky: the compact box is the page's shape, and the big
   // one is a moment of reading a long dictation. Any hand-dragged resize
   // (desktop) is cleared on the toggle so shrinking back actually shrinks.
+  //
+  // AND THE BIG BOX FITS THE WORDS (2026-08-27, Sophie: "why not expand based
+  // on text, not static"). `fitBig` measures the content and sets the height to
+  // it; `.big`'s min/max-height clamp the result, so both bounds live in the
+  // CSS and nothing re-derives a `vh` here. It runs on the tap, on every
+  // keystroke while the box is open (so it grows under a dictation as she
+  // speaks) and on a resize — a rotation changes what `vh` means.
+  //   `height:auto` FIRST is what makes the measurement honest: scrollHeight of
+  // a box already sized to its old height reports that height, so measuring
+  // without the reset can only ever grow the box, never shrink it back when she
+  // deletes a paragraph. The border is added back because the box is
+  // `border-box` and scrollHeight excludes borders — without it every fit is
+  // two pixels short and the box scrolls its own last line.
+  //   `window.__fitBigPrompt` is what `copyPromptIn` calls: putting a prompt
+  // back in the box sets `.value` directly, which fires no `input` event, so
+  // without it the run she just copied would sit in a box fitted to whatever
+  // was there before.
   (function () {
     var btn = document.getElementById('bigprompt');
     var box = document.getElementById('prompt');
+    function fitBig() {
+      if (!box.classList.contains('big')) return;
+      box.style.height = 'auto';
+      box.style.height = (box.scrollHeight + (box.offsetHeight - box.clientHeight)) + 'px';
+    }
     function paint() {
       var big = box.classList.contains('big');
       btn.innerHTML = big ? ICONS.minimize : ICONS.maximize;
@@ -833,8 +867,12 @@
     btn.addEventListener('click', function () {
       box.classList.toggle('big');
       box.style.height = '';
+      fitBig();
       paint();
     });
+    box.addEventListener('input', fitBig);
+    window.addEventListener('resize', fitBig);
+    window.__fitBigPrompt = fitBig;
     paint();
   })();
 
@@ -1059,6 +1097,8 @@
   function copyPromptIn(text) {
     var box = document.getElementById('prompt');
     box.value = text || '';
+    // Setting `.value` fires no `input` event, so the big box has to be told.
+    if (window.__fitBigPrompt) window.__fitBigPrompt();
     updateShape();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     toast('Prompt is back in the box');
