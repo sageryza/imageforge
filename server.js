@@ -6,6 +6,9 @@ const promptRecord = require('./prompt-record');
 // The panel sheet's geometry — derived canvases, the grid sentence, the cut
 // rects and the style-tail sheet swap. See sheet-grid.js.
 const sheetGrid = require('./sheet-grid');
+// What a failed Playground run tells her, instead of "see the server log" —
+// see render-fail.js.
+const { renderFailMessage } = require('./render-fail');
 const cors = require('cors');
 const fetch = require('node-fetch');
 const path = require('path');
@@ -5977,6 +5980,14 @@ async function runPromptLabGptJob(docRef, cfg) {
     for (const b of await playgroundCharRefs(cfg.chars)) refs.push(b);
     const images = [];
     const usage = [];              // the API's own token counts, one per render
+    // WHY A RENDER DIED, KEPT (2026-08-27). Every render's real error — the
+    // API's own sentence, a timeout, a refusal — was console.warn'd and then
+    // thrown away, and a fully-failed run reported "see the server log" to a
+    // woman who cannot open the server log. So the one fact she needs to know
+    // whether to tap Generate again or change the prompt existed for the
+    // length of one request and was gone. Kept per render, because one run
+    // can draw several and they can fail differently.
+    const errs = [];
     let failed = 0;
     const want = Math.min(Math.max(Number(cfg.outputs) || 1, 1), PL_GPT.maxOutputs);
     await Promise.all(Array.from({ length: want }, async () => {
@@ -6022,11 +6033,16 @@ async function runPromptLabGptJob(docRef, cfg) {
         await docRef.update({ status: 'ready', images: images.slice() });
       } catch (err) {
         failed++;
+        errs.push(String(err.message || err));
         console.warn('promptlab gpt-image render failed:', err.message);
       }
     }));
-    if (!images.length) throw new Error('every gpt-image-2 render failed — see the server log');
+    // The REAL sentence leads, and the count rides behind it when a run asked
+    // for several — "1 of 4" is the difference between a bad prompt and a bad
+    // minute. Only a run that failed with nothing to say falls back.
+    if (!images.length) throw new Error(renderFailMessage(errs, want));
     await docRef.update({ status: 'done', images, failedRenders: failed,
+      ...(errs.length ? { renderErrors: errs } : {}),
       ...(usage.length ? { usage } : {}) });
     // `cfg.fullPrompt` is the literal string that went to the model two dozen
     // lines up — pass it rather than rebuilding, so the stored text cannot
