@@ -4285,16 +4285,23 @@ before working on that module. Nothing was deleted — the moved text is verbati
     for `to:"audio"` deliberately. The other way round, a music grab nobody
     thought about puts lyrics in among the notes she searches, with no undo
     beyond hunting the memo down.
-  - **THE BOT-BLOCK IS INTERMITTENT AND IS RETRIED, NEVER REPORTED FIRST TIME
-    (measured 2026-08-24).** The same video read fine, then was refused twice
-    in a row a second later, same box and same IP — so it is rate-limiting, not
-    a standing ban. A grab retries a block 3 times over ~46s and only calls it
-    `blocked:true` once that ladder is exhausted; anything else (a dead url, a
-    private video) fails at once rather than wasting her time. Reporting the
-    first refusal as a block would send her to her computer for something that
-    works on the next attempt — the worst failure this module can have.
-    Render measured 6/6 clean at ~4s the same day, so its IP is in better
-    standing than a session container's, but neither is immune.
+  - **THE BOT-BLOCK IS PER PLAYER CLIENT — not per IP, and not per video
+    (measured 2026-08-27, and this REPLACES the "it is just intermittent
+    rate-limiting" reading that stood here for three days).** On ONE box within
+    a few seconds, asking for the same video: `default`, `android_vr`,
+    `android`, `ios_music` and `android_music` all answered, while `tv`,
+    `tv_simply`, `web`, `web_safari`, `web_music`, `ios` and `mweb` were every
+    one of them refused. The web/tv clients want a JS challenge the box has no
+    runtime for; the android family does not ask.
+    **This is why a passing probe proved nothing.** Six real grabs of Sophie's
+    on 2026-08-25 failed, four of them bot-blocked, while
+    `GET /status?probe=1` answered fine throughout — the probe's video happened
+    to be one `default` would still serve. A green probe says that ONE video on
+    ONE client works, never that the endpoint works.
+    So a refusal now walks the CLIENT ladder first and only then waits, and a
+    grab records the `client` that answered. Anything that is not a block (a
+    dead url, a private video) still fails at once rather than wasting her
+    time.
   - **The 300MB cap is a MEMORY fact, not a preference** — both sibling routes
     sit behind `express.raw`, which buffers the whole body, and the box has
     512MB. Raise `YTDL_MAX_MB` only if that changes.
