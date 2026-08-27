@@ -2902,7 +2902,11 @@ function loadSend(runId,i){
     .then(function(r){return r.json()})
     .then(function(d){
       var imgs=(d.images&&d.images.length)?d.images:(d.tempImages||[]);
-      var url=imgs[i];
+      /* i = -1 is the Playground's VIRTUAL index for a panels run's banked
+         UNCUT sheet — the whole page, which is not in `images` (2026-08-27,
+         Sophie: "missing three buttons too"). Every other index is an
+         ordinary picture of the run. */
+      var url=i<0?(d.sheetUrl||''):imgs[i];
       // A run that cannot be read (a deploy mid-fetch, a pruned run) must not
       // strand her here holding nothing: the band still offers the way back.
       if(!url){ sendBack={url:null, from:'playground'}; paintSend(); return; }
@@ -3783,7 +3787,7 @@ window.__navBack=function(){
      taps arms it. */
   var send=q.get('send');
   if(send){
-    loadSend(send, Math.max(0, parseInt(q.get('i'),10)||0));
+    loadSend(send, Math.max(-1, parseInt(q.get('i'),10)||0));
     // Leaving the tool must un-eat the sender's web view — see armTripRestore.
     armTripRestore('/playground');
   }

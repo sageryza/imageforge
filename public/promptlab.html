@@ -795,9 +795,11 @@
   // see just the finished sheets, uncut, by themselves"). A third chip in the
   // filter box, on the PANELS tab only: lit, the gallery shows ONE cell per
   // run — the banked uncut sheet (a story sheet and a cut-failed run already
-  // ARE their sheet). Sticky like its neighbours. The ♥/✕ chips step aside
-  // while it is lit: votes belong to the cut panels, and a filter that can
-  // never match anything on screen is a control lying about what it does.
+  // ARE their sheet). Sticky like its neighbours. The ♥/✕ chips stay — a
+  // banked sheet carries its own vote at the virtual index -1 since
+  // 2026-08-27, so the filters match what is on screen here like anywhere
+  // else. (They used to step aside, for the reason that has now gone: while
+  // the sheet was view-only a heart could never match anything in this view.)
   document.getElementById('v-sheets').innerHTML =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 12h18"/><path d="M12 3v18"/></svg>';
   function sheetsOnly() { return localStorage.getItem('promptlab_sheets') === '1'; }
@@ -806,8 +808,6 @@
     var sm = sheetsMode();
     document.getElementById('v-sheets').hidden = !onPanels();
     document.getElementById('v-sheets').classList.toggle('on', sm);
-    document.getElementById('v-liked').hidden = sm;
-    document.getElementById('v-hidex').hidden = sm;
   }
   document.getElementById('v-sheets').addEventListener('click', function () {
     localStorage.setItem('promptlab_sheets', sheetsOnly() ? '' : '1');
@@ -2635,9 +2635,9 @@
   // a cut-failed run already ARE their sheet (images[0], which is a real
   // picture with real votes, so it opens at its ordinary index); a cut grid
   // run banks its sheet beside the panels (`sheetUrl`), which is not in
-  // `images` and opens at the VIRTUAL index -1 — view-only, since votes are
-  // indexed into the cut panels. A run with no sheet at all (a failed draw)
-  // has nothing to show here.
+  // `images` and opens at the VIRTUAL index -1 — which carries its OWN ♥/✕
+  // since 2026-08-27, on the run doc under that index. A run with no sheet at
+  // all (a failed draw) has nothing to show here.
   function sheetCellOf(r) {
     if (r.storySheet || r.cutFailed) {
       var u = runImages(r)[0];
@@ -2661,13 +2661,13 @@
   // nothing left to draw. ONE cell, in the SHEET's own ratio (a wide sheet in
   // cells cut for 2:3 panels would be squashed — that shape, not the stage
   // itself, is what this used to be avoided for), at the virtual index -1 the
-  // Sheets view already opens: view-only, since votes are indexed into panels
-  // that do not exist yet. The swap poller replaces it with the panels on
-  // 'done'.
+  // Sheets view already opens — which carries its own ♥/✕ since 2026-08-27,
+  // so this cell is not view-only any more. The swap poller replaces it with
+  // the panels on 'done'.
   function cuttingSheet(r) {
     if (!r || !r.sheetUrl || !r.panels || !r.panels.length) return null;
     if (r.status !== 'ready' || runImages(r).length) return null;
-    return { key: r.id + '|s', src: thumbFor(r.sheetUrl), vote: '',
+    return { key: r.id + '|s', src: thumbFor(r.sheetUrl), vote: (r.votes || {})['-1'] || '',
       runId: r.id, i: '-1', ar: sheetArOf(r) };
   }
 
@@ -2813,6 +2813,35 @@
     return parts;
   }
 
+  // THE LIGHTBOX CAPTION IS THE HOUSE CAPTION AND NOTHING ELSE — MODEL ·
+  // QUALITY · SIZE (2026-08-27, Sophie, pointing at the banked sheet's caption:
+  // "extra notes - dreamy etc … just need model quality and pixels + 1/4").
+  // It read "Dreamy · medium · 1/4 (1K) · 1:1 · panels 2x2 · uncut sheet · 2x2"
+  // — six things, of which the caption's own three were the first three. The
+  // card's tag row is where a run's other facts belong (the style, the ratio,
+  // the grid, a photo ref); over a picture she is looking at, the ratio and
+  // the grid are things she can SEE and the style is behind the Prompt door.
+  //
+  // The slot-1 model is the model ID, not the style label — which is exactly
+  // what this picture's own FILED caption says in My Creations and Meta
+  // Assets, so the same picture no longer reads two different ways in two
+  // places.
+  //
+  // The size slot is sheet-aware: a cut panel is "1/4 (4K)" (the fraction and
+  // the SHEET's tier), the banked uncut sheet is the sheet's own "4K".
+  function lbCaption(r, i) {
+    // A LoRA run has neither a quality nor a tier — its caption is what it
+    // always was (the card's tags), because there is no house caption to trim
+    // it down to and her ask was about the gpt-image-2 one.
+    if (r.engine !== 'gptimage') return runParts(r);
+    var st = window.__sizeTier;
+    var parts = [r.model || 'gpt-image-2'];
+    if (r.quality) parts.push(r.quality);
+    var slot = st ? (i === -1 ? st.sheetSize(r) : st.runSize(r)) : '';
+    if (slot) parts.push(slot);
+    return parts;
+  }
+
   // Fold a page of runs into the feed. Fresh copies WIN (a vote or a status
   // moved), and the whole list is re-sorted by time — so a head refresh and an
   // Older page can arrive in any order without scrambling it.
@@ -2891,12 +2920,8 @@
           r.quality, r.aspectRatio, r.character ? 'c' : '', r.loraScale, r.seed,
           r.grid && r.grid.count ? 'g' + r.grid.count : '']);
       });
-      // In SHEETS mode the ♥/✕ filters stand down with their chips — votes
-      // belong to the cut panels, and a sticky heart silently emptying the
-      // sheets view would be a filter she cannot see acting on things it
-      // cannot match.
-      var only = likedOnly() && !sheetsMode();
-      var nox = hideX() && !sheetsMode();
+      var only = likedOnly();
+      var nox = hideX();
       var items = [];
       groups.forEach(function (g) {
         var head = g.items[0];
@@ -2915,14 +2940,22 @@
         g.items.slice().reverse().forEach(function (r) {
           if (sheetsMode()) {
             var s = sheetCellOf(r);
-            if (s) cells.push({ key: r.id + '|s', src: thumbFor(s.src), vote: '', runId: r.id, i: s.i, ar: sheetArOf(r) });
+            if (!s) return;
+            var sv = (r.votes || {})[s.i] || '';
+            if (only && sv !== 'like') return;
+            if (nox && sv === 'dislike') return;
+            cells.push({ key: r.id + '|s', src: thumbFor(s.src), vote: sv, runId: r.id, i: s.i, ar: sheetArOf(r) });
             return;
           }
-          // Its panels are still being cut: the sheet stands in for them.
-          // Dropped with the heart lit, like a run still drawing — a picture
-          // nobody has been able to heart yet is not a hearted one.
+          // Its panels are still being cut: the sheet stands in for them. It
+          // is votable at -1 like the banked sheet, so it obeys the filters
+          // rather than being dropped whenever the heart is lit.
           var cut = cuttingSheet(r);
-          if (cut) { if (!only) cells.push(cut); return; }
+          if (cut) {
+            if (only && cut.vote !== 'like') return;
+            if (nox && cut.vote === 'dislike') return;
+            cells.push(cut); return;
+          }
           var votes = r.votes || {};
           runImages(r).forEach(function (u, i) {
             var v = votes[i];
@@ -2976,8 +3009,8 @@
   // feed — a picture on its way has its place in it before it lands.
   function renderTiles() {
     var items = [];
-    var only = likedOnly() && !sheetsMode();
-    var nox = hideX() && !sheetsMode();
+    var only = likedOnly();
+    var nox = hideX();
     // A picture on its way has not been hearted, so the waiting squares are a
     // list-of-everything thing: with the heart lit the wall is hearts only.
     // In sheets mode a drawing run is ONE square — the sheet on its way.
@@ -2993,11 +3026,19 @@
       if (r.status === 'failed') return;
       if (sheetsMode()) {
         var s = sheetCellOf(r);
-        if (s) items.push({ key: r.id + '|s', src: thumbFor(s.src), vote: '', runId: r.id, i: s.i, ar: sheetArOf(r) });
+        if (!s) return;
+        var sv = (r.votes || {})[s.i] || '';
+        if (only && sv !== 'like') return;
+        if (nox && sv === 'dislike') return;
+        items.push({ key: r.id + '|s', src: thumbFor(s.src), vote: sv, runId: r.id, i: s.i, ar: sheetArOf(r) });
         return;
       }
       var cutting = cuttingSheet(r);
-      if (cutting) { if (!only) items.push(cutting); return; }
+      if (cutting) {
+        if (only && cutting.vote !== 'like') return;
+        if (nox && cutting.vote === 'dislike') return;
+        items.push(cutting); return;
+      }
       var votes = r.votes || {};
       runImages(r).forEach(function (u, i) {
         var v = votes[i];
@@ -3254,27 +3295,35 @@
     lbCur = { id: id, i: i };
     lbSrc = src;
     var h = runPromptHalves(r, i);
-    // What drew it — model, quality/scale, seed — as the MODEL · QUALITY tag.
-    // This page has no per-picture label, so the tag is the whole caption.
-    var meta = runParts(r);
-    // A run still being cut already says 'sheet — cutting…' and 'panels 3x3'
-    // in runParts, so repeating it here would caption the same picture twice.
-    if (isSheet && !cuttingSheet(r)) meta.push('uncut sheet' + (r.grid && r.grid.count ? ' · ' + r.grid.across + 'x' + r.grid.down : ''));
-    else if (r.panels && r.panels.length && !r.cutFailed) meta.push('panel ' + (i + 1) + ' of ' + runImages(r).length);
-    else if (runImages(r).length > 1) meta.push('image ' + (i + 1));
+    // MODEL · QUALITY · SIZE, and then WHICH picture of the run this is —
+    // which is navigation rather than a fact about the run, and the one thing
+    // the three slots cannot say. The sheet needs no such line: its size slot
+    // is the whole sheet's tier where a panel's is a fraction, so the two can
+    // never be mistaken for each other. (The card's tag row still says
+    // 'sheet — cutting…' while a cut is running.)
+    var meta = lbCaption(r, i);
+    if (!isSheet && r.panels && r.panels.length && !r.cutFailed) meta.push('panel ' + (i + 1) + ' of ' + runImages(r).length);
+    else if (!isSheet && runImages(r).length > 1) meta.push('image ' + (i + 1));
     var seq = lbSeq(), at = -1;
     for (var k = 0; k < seq.length; k++) if (seq[k].id === id && seq[k].i === i) { at = k; break; }
     var asset = {
       prompt: meta.join(' · '),
       promptStyle: h.style,
       promptContent: h.content,
-      vote: isSheet ? null : ((r.votes || {})[i] || null),
-      thread: isSheet ? [] : (noteCache[src] || []),
+      // THE SHEET IS A PICTURE LIKE ANY OTHER (2026-08-27, Sophie: "missing
+      // three buttons too" — the banked sheet's lightbox had lost the ♥, the
+      // ✕ and the Story Room walk). It was view-only because votes are indexed
+      // into `images` and the sheet is not in it; it rides the VIRTUAL index
+      // -1 now, on the run doc and on the Assets record its own filing made
+      // ("the sheet — N panels"). It is a picture she paid for, and on a story
+      // sheet it is the only picture the run has.
+      vote: (r.votes || {})[i] || null,
+      thread: noteCache[src] || [],
       // The old Playground arrangement, as the shared file's hooks (2026-08-26,
       // Sophie): ♥/✕ lead the row under the picture, the tag right under it.
       votesBelow: true,
       capUnderImage: true,
-      _cast: isSheet ? null : castLB,
+      _cast: castLB,
       // The note lands on the picture's own thread in my-creations, where
       // every Playground picture is filed — the Panels wiring, verbatim, so a
       // chat sweeping its notes finds it where it expects.
@@ -3306,15 +3355,14 @@
         // run and which of its pictures ride the link (?send=<run>&i=<n>) —
         // never the url, because the room re-reads the run and gets the whole
         // provenance with it, the same src the pad's own inbox pick sends.
+        // The banked sheet walks too, at its virtual index -1 — the room
+        // resolves that to `sheetUrl` (loadSend). A whole comic page is
+        // exactly the kind of picture a beat wants.
         { label: 'Send to the Story Room', icon: ICONS.share,
           onClick: function () { location.href = '/storyroom?send=' + encodeURIComponent(id) + '&i=' + i; } },
       ],
     };
     if (carry) { asset.promptSide = carry.side; asset.promptOpen = carry.open; }
-    // The virtual sheet keeps put-back (refills the panel boxes via
-    // copyRunIn's fallthrough) and Save; the Story Room walk goes — the room
-    // re-reads the run by index, and the sheet has none.
-    if (isSheet) asset.actions = asset.actions.slice(0, 2);
     lbAsset = asset;
     // ── THE PICTURE IS ON SCREEN AT ONCE (2026-08-26, Sophie: "it seems like
     // it takes quite a while to load the images in light box view") ─────────
@@ -3347,10 +3395,9 @@
     }
     // The thread is ONE doc read, asked for after the picture is already up —
     // the sibling /notes route answers with a whole chat's worth and would be
-    // the wrong thing to fetch to open one picture. Not for the virtual
-    // sheet: with no _cast wired the box never renders, so the read would be
-    // an answer nothing displays.
-    if (isSheet) return;
+    // the wrong thing to fetch to open one picture. The virtual sheet asks
+    // too: it is filed as its own asset ("the sheet — N panels"), so a note
+    // left on it has somewhere real to land.
     fetch('/api/gallery/assets/note?chat=' + encodeURIComponent(NOTE_CHAT)
       + '&url=' + encodeURIComponent(src))
       .then(function (res) { return res.json(); })

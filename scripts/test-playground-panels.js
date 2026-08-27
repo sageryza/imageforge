@@ -226,6 +226,7 @@ function panelsPayload() {
 
 (async () => {
   const posted = [];
+  const votes = [];      // every POST /api/promptlab/:id/vote the page sent
   const feedGets = [];   // every GET /api/promptlab query string the page sent
   const nine = ['a fox', 'a moon', 'a boat', 'a key', 'a well', 'a crow', 'a comb', 'a bell', 'a door'];
   const doneRun = {
@@ -304,6 +305,19 @@ function panelsPayload() {
     if (url.pathname.startsWith('/img/')) {
       res.writeHead(200, { 'Content-Type': 'image/webp' });
       return res.end(PIXEL);
+    }
+    if (/^\/api\/promptlab\/[^/]+\/vote$/.test(url.pathname) && req.method === 'POST') {
+      let body = '';
+      req.on('data', (c) => { body += c; });
+      return req.on('end', () => {
+        votes.push({ id: url.pathname.split('/')[3], body: JSON.parse(body || '{}') });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+      });
+    }
+    if (url.pathname === '/api/gallery/assets/note') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ thread: [] }));
     }
     if (url.pathname === '/api/gallery/assets/notes') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -510,9 +524,15 @@ function panelsPayload() {
     const el = document.getElementById('clightbox');
     return el && el.style.display !== 'none';
   });
-  const cutLb = await page.evaluate(() => document.getElementById('clightbox').textContent);
-  ok(/cutting/.test(cutLb) && !/uncut sheet/.test(cutLb),
-    'the lightbox says it once — never "cutting…" and "uncut sheet" both');
+  // The CARD carries "sheet — cutting…" (asserted above); the lightbox caption
+  // is the house three slots and nothing else (2026-08-27, Sophie: "just need
+  // model quality and pixels + 1/4"), so the stage is never said twice.
+  const cutLb = await page.evaluate(() => {
+    const el = document.querySelector('#clightbox .cltag, #clightbox .clcap');
+    return el ? el.textContent.trim() : '';
+  });
+  ok(/^gpt-image-2 · \w+ · \w+$/.test(cutLb) && !/uncut sheet|cutting/.test(cutLb),
+    'the lightbox caption stays model · quality · size — got: ' + cutLb);
   await page.evaluate(() => { if (window.__assetLightboxClose) window.__assetLightboxClose(); });
 
   console.log('the lightbox');
@@ -534,6 +554,17 @@ function panelsPayload() {
   // The house caption ORDER — model · quality · size — so the slot reads as
   // the third part of a caption rather than a fourth thing tacked on the end.
   ok(/low\s*·\s*1\/9 \(4K\)/.test(lbText), 'and it sits right after the quality');
+  // THE CAPTION IS THE HOUSE CAPTION AND NOTHING ELSE (2026-08-27, Sophie:
+  // "extra notes - dreamy etc … just need model quality and pixels + 1/4").
+  // Slot 1 is the MODEL, exactly as the same picture's filed caption reads in
+  // My Creations — not the style label; the ratio and the grid are on the
+  // card's tag row, where a run's other facts belong.
+  const cap = await page.evaluate(() => {
+    const el = document.querySelector('#clightbox .cltag, #clightbox .clcap');
+    return el ? el.textContent.trim() : '';
+  });
+  ok(cap === 'gpt-image-2 · low · 1/9 (4K) · panel 4 of 9',
+    'the whole caption is model · quality · size · which one — got: ' + cap);
   // Drawn by the SHARED derivation, not a tier table copied into the page —
   // a copy drifts the day the boundaries move.
   ok(await page.evaluate(() => !!(window.__sizeTier && window.__sizeTier.runSize)),
@@ -626,21 +657,45 @@ function panelsPayload() {
     'the nine cut panels are folded to the one sheet');
   ok((await page.$$eval('#runs img[data-run="rs"]', (i) => i.length)) === 1,
     'a story sheet shows as itself — it IS its sheet');
-  ok(!(await page.isVisible('#v-liked')) && !(await page.isVisible('#v-hidex')),
-    'the ♥/✕ chips stand down (votes belong to the cut panels)');
+  ok(await page.isVisible('#v-liked') && await page.isVisible('#v-hidex'),
+    'the ♥/✕ chips STAY — a sheet carries its own vote now');
   await page.click('#runs img[data-run="r9"][data-i="-1"]');
   await page.waitForFunction(() => {
     const el = document.getElementById('clightbox');
     return el && el.style.display !== 'none';
   });
-  ok(/uncut sheet · 3x3/.test(await page.evaluate(() => document.getElementById('clightbox').textContent)),
-    "captioned 'uncut sheet · 3x3'");
-  ok((await page.$$eval('#clightbox .vote', (b) => b.length)) === 0,
-    'no ♥/✕ on the virtual sheet');
+  // THE SHEET'S OWN SLOT IS THE WHOLE SHEET (2026-08-27, Sophie's screenshot:
+  // it read "1/4 (1K) · 1:1 · panels 2x2 · uncut sheet · 2x2" — the run's
+  // fraction printed over the picture that is every panel at once, then
+  // contradicted two slots later). Its tier says it is the sheet; nothing has
+  // to spell that out beside a fraction that no longer claims otherwise.
+  const sheetCap = await page.evaluate(() => {
+    const el = document.querySelector('#clightbox .cltag, #clightbox .clcap');
+    return el ? el.textContent.trim() : '';
+  });
+  ok(sheetCap === 'gpt-image-2 · low · 4K',
+    "the sheet is captioned with its OWN tier — got: " + sheetCap);
+  ok(!/1\/9|uncut sheet|panels 3x3|2:3|Dreamy/.test(sheetCap),
+    'and carries none of the extra notes');
+  // THE THREE BUTTONS THE SHEET HAD LOST (same day: "missing three buttons
+  // too") — ♥, ✕ and the Story Room walk. A banked sheet is a picture she
+  // paid for; it was view-only only because a vote is an index into `images`.
+  ok((await page.$$eval('#clightbox .vote', (b) => b.length)) === 2,
+    '♥ and ✕ are on the virtual sheet');
+  const sheetActs = await page.$$eval('#clightbox .lbacts button',
+    (bs) => bs.map((b) => b.getAttribute('aria-label') || ''));
+  ok(sheetActs.some((l) => /story room/i.test(l)),
+    'and the Story Room walk — got: ' + sheetActs.join(' | '));
+  // The ♥ posts at the virtual index, which is what the run doc keys it on.
+  await page.evaluate(() => document.querySelector('#clightbox .vote.heart').click());
+  for (let t = 0; t < 40 && !votes.length; t++) await new Promise((r) => setTimeout(r, 50));
+  const cast = votes[votes.length - 1];
+  ok(cast && cast.id === 'r9' && cast.body && cast.body.image === -1 && cast.body.vote === 'like',
+    'the heart casts at image -1 on the run — got: ' + JSON.stringify(cast));
   await page.evaluate(() => { if (window.__assetLightboxClose) window.__assetLightboxClose(); });
   await page.click('#v-sheets');
   await page.waitForFunction(() => document.querySelectorAll('#runs img[data-run="r9"][data-i="-1"]').length === 0);
-  ok(await page.isVisible('#v-liked'), 'off again — the ♥/✕ chips return');
+  ok(await page.isVisible('#v-liked'), 'off again — the chips are unchanged');
 
   console.log('arriving with a ported prompt');
   // The tab is STICKY, and a panel image is exactly the picture she is on the

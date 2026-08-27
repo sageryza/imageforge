@@ -90,11 +90,27 @@ function cutSize(sheetCanvas, parts) {
  */
 function runSize(run) {
   const r = run || {};
-  const sheet = r.size || r.canvas || '';
   const n = r.grid && r.grid.count;
-  if (n > 1 && !r.cutFailed) return cutSize(sheet, n);
-  return captionSize(r.res || sheet);
+  if (n > 1 && !r.cutFailed) return cutSize(r.size || r.canvas || '', n);
+  return sheetSize(r);
 }
 
-return { tierOf, captionSize, cutSize, runSize };
+/**
+ * THE WHOLE SHEET'S OWN SLOT, never a fraction of itself (2026-08-27, Sophie,
+ * looking at the banked sheet's caption in the Playground lightbox: it read
+ * "1/4 (1K) … uncut sheet", which is the run's slot printed over a picture
+ * that is the run's every panel at once).
+ *
+ * `runSize` answers for the RUN — a panels run's pictures are its cut panels,
+ * so its slot is the fraction. The banked uncut sheet is the one picture of
+ * that run which is not a cut, so it takes the sheet's own tier instead.
+ *
+ *   sheetSize({ res:'4k', size:'2304x3456', grid:{count:9} })  →  '4K'
+ */
+function sheetSize(run) {
+  const r = run || {};
+  return captionSize(r.res || r.size || r.canvas || '');
+}
+
+return { tierOf, captionSize, cutSize, runSize, sheetSize };
 }));

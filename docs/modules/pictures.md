@@ -465,12 +465,21 @@ panels fit under 4000 chars at ~350 each; twenty-five will not).
   PANELS tab only, sticky like its neighbours: lit, the gallery shows ONE
   cell per run — the banked uncut sheet (`sheetUrl`). A story sheet and a
   cut-failed run already ARE their sheet, so they open at their ordinary
-  index with votes and notes intact; a cut grid run's sheet opens at the
-  VIRTUAL index `-1` — view-only (votes are indexed into the cut panels, so
-  no ♥/✕ and no note thread; put-back refills the grid, Save works). The
-  ♥/✕ chips stand down while it is lit — a sticky heart silently emptying
-  the sheets view would be a filter acting on things it cannot match.
-  `sheetCellOf` / `sheetArOf` in promptlab.html are the whole rule.
+  index; a cut grid run's sheet opens at the VIRTUAL index `-1`.
+  **THAT INDEX IS A REAL PICTURE, NOT A PREVIEW (2026-08-27, Sophie:
+  "missing three buttons too").** It was view-only, because a vote is an
+  index into `images` and the sheet is not in it — so the one picture of the
+  run she actually paid a 4K sheet for had no ♥, no ✕ and no way to the
+  Story Room. All three ride `-1` now: the vote route takes it (keyed
+  `votes["-1"]`, synced onto the Assets record its own filing made, "the
+  sheet — N panels"), the note thread loads, and the Story Room walk carries
+  `&i=-1` which `loadSend` resolves to `sheetUrl`. So the ♥/✕ chips STAY lit
+  in this view and filter it like any other. `sheetCellOf` / `sheetArOf` in
+  promptlab.html are the cell rule.
+  **And its caption is `sizeTier.sheetSize` — the sheet's OWN tier (`4K`),
+  never the run's fraction**: printing `1/9 (4K)` over the picture that is
+  every panel at once is what made the old caption contradict itself two
+  slots later ("1/4 (1K) … uncut sheet").
 - **THE STORY OPTION (2026-08-27, Sophie: "a sheet where i give instructions
   for a story, and have the image model decide the exact panels").** A
   fourth stop on the grid picker — **2 · 4 · 9 · Story** — where the boxes
