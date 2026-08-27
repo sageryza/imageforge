@@ -43,5 +43,62 @@
     "height": 1797
    }
   ]
+ },
+ {
+  "sheet": 1,
+  "id": "VrXfkWeonKUxq7lbjXQO",
+  "beats": [
+   5,
+   6,
+   7,
+   8
+  ],
+  "images": [
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/8240e78242397740a060db10.webp",
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/15c94a77dcebfc98b4fc1cdd.webp",
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/5e32b33762281b3159271dd7.webp",
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/4b82511f2e4cae00d63d0016.webp"
+  ],
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/b079cf7b39355acfed1d5c4a.webp",
+  "fullPrompt": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\nThis page is a 2x2 grid of 4 separate panels — equal rectangles, 2 across and 2 down, with straight edges exactly on the grid lines, no gutters and no outer margin. Each panel is its own complete, self-contained illustration. In reading order, left to right, top to bottom:\nPanel 1 (top left): frightened villagers trading their candles to a salesman for one glowing lightbulb\nPanel 2 (top right): a beautiful glass machine of funnels and sieves straining a muddy river into one clear drop\nPanel 3 (bottom left): a woman holding up one tiny glowing crystal in a vast darkness\nPanel 4 (bottom right): glass blocks stacking themselves into a towering cathedral\n\nRender as a 2x2 grid of 4 panels — each panel its own complete illustration, inside its own hand-drawn border like the frames in the style reference. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition.",
+  "usage": {
+   "input_tokens": 1746,
+   "input_tokens_details": {
+    "image_tokens": 1505,
+    "text_tokens": 241
+   },
+   "output_tokens": 3912,
+   "output_tokens_details": {
+    "image_tokens": 3912,
+    "text_tokens": 0
+   },
+   "total_tokens": 5658
+  },
+  "rects": [
+   {
+    "left": 0,
+    "top": 0,
+    "width": 1170,
+    "height": 1751
+   },
+   {
+    "left": 1170,
+    "top": 0,
+    "width": 1166,
+    "height": 1751
+   },
+   {
+    "left": 0,
+    "top": 1751,
+    "width": 1170,
+    "height": 1753
+   },
+   {
+    "left": 1170,
+    "top": 1751,
+    "width": 1166,
+    "height": 1753
+   }
+  ]
  }
 ]
