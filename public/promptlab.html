@@ -2653,6 +2653,24 @@
     return m ? m[1] + ' / ' + m[2] : arCss(r.aspectRatio);
   }
 
+  // THE UNCUT SHEET, WHILE THE CUT RUNS (2026-08-27, Sophie: "the uncut sheet
+  // shud show before it's cut as soon as it's done (in panels"). The paid
+  // render is banked and the run parks on 'ready' seconds before the panels
+  // are cut, sized and filed — so the picture she just paid for goes up at
+  // once instead of the run sitting on "drawing…" through work that has
+  // nothing left to draw. ONE cell, in the SHEET's own ratio (a wide sheet in
+  // cells cut for 2:3 panels would be squashed — that shape, not the stage
+  // itself, is what this used to be avoided for), at the virtual index -1 the
+  // Sheets view already opens: view-only, since votes are indexed into panels
+  // that do not exist yet. The swap poller replaces it with the panels on
+  // 'done'.
+  function cuttingSheet(r) {
+    if (!r || !r.sheetUrl || !r.panels || !r.panels.length) return null;
+    if (r.status !== 'ready' || runImages(r).length) return null;
+    return { key: r.id + '|s', src: thumbFor(r.sheetUrl), vote: '',
+      runId: r.id, i: '-1', ar: sheetArOf(r) };
+  }
+
   // ── DERIVED DISPLAY COPIES + REPAINT WITHOUT REBUILDING (Aug 2026, Sophie:
   // "the playground flashes a lot and sometimes things don't load") ────────
   //
@@ -2780,6 +2798,10 @@
       // the card rather than leaving her to wonder why one wide picture came
       // back instead of nine.
       if (r.cutFailed) parts.push('uncut sheet');
+      // The sheet is up and the cut is still running — the tag says why one
+      // wide picture is standing in for the panels, and that it is not the
+      // end state (a cut that never lands says 'uncut sheet' instead).
+      if (cuttingSheet(r)) parts.push('sheet — cutting…');
       // A run made with a photo attached says so on its card — otherwise two
       // runs of the same words look identical and only one had the photo.
       if (r.photoRef) parts.push('photo ref');
@@ -2896,6 +2918,11 @@
             if (s) cells.push({ key: r.id + '|s', src: thumbFor(s.src), vote: '', runId: r.id, i: s.i, ar: sheetArOf(r) });
             return;
           }
+          // Its panels are still being cut: the sheet stands in for them.
+          // Dropped with the heart lit, like a run still drawing — a picture
+          // nobody has been able to heart yet is not a hearted one.
+          var cut = cuttingSheet(r);
+          if (cut) { if (!only) cells.push(cut); return; }
           var votes = r.votes || {};
           runImages(r).forEach(function (u, i) {
             var v = votes[i];
@@ -2969,6 +2996,8 @@
         if (s) items.push({ key: r.id + '|s', src: thumbFor(s.src), vote: '', runId: r.id, i: s.i, ar: sheetArOf(r) });
         return;
       }
+      var cutting = cuttingSheet(r);
+      if (cutting) { if (!only) items.push(cutting); return; }
       var votes = r.votes || {};
       runImages(r).forEach(function (u, i) {
         var v = votes[i];
@@ -3228,7 +3257,9 @@
     // What drew it — model, quality/scale, seed — as the MODEL · QUALITY tag.
     // This page has no per-picture label, so the tag is the whole caption.
     var meta = runParts(r);
-    if (isSheet) meta.push('uncut sheet' + (r.grid && r.grid.count ? ' · ' + r.grid.across + 'x' + r.grid.down : ''));
+    // A run still being cut already says 'sheet — cutting…' and 'panels 3x3'
+    // in runParts, so repeating it here would caption the same picture twice.
+    if (isSheet && !cuttingSheet(r)) meta.push('uncut sheet' + (r.grid && r.grid.count ? ' · ' + r.grid.across + 'x' + r.grid.down : ''));
     else if (r.panels && r.panels.length && !r.cutFailed) meta.push('panel ' + (i + 1) + ' of ' + runImages(r).length);
     else if (runImages(r).length > 1) meta.push('image ' + (i + 1));
     var seq = lbSeq(), at = -1;

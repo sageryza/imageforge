@@ -72,6 +72,17 @@ ok(/canvas: r \? `\$\{r\.width\}x\$\{r\.height\}` : plan\.cell/.test(serverSrc),
 // recovers on demand — but never re-cuts a run that already has its panels.
 ok(/recutPanelsRun\(d\.ref, r\)/.test(serverSrc),
   'the stuck-run sweep RECUTS an orphaned panels run from its banked sheet');
+// The sheet shows the moment it is paid for, so a panels run PARKS on 'ready'
+// while the cut runs — which means the orphan sweep has to reach that status
+// too, or the very restart it exists for leaves a paid sheet uncut AND
+// unswept. It must not sweep an ordinary 'ready' run (that one already holds
+// its pictures) — hence the panels+sheet+no-images filter.
+const sweepSrc = serverSrc.slice(serverSrc.indexOf('async function sweepStuckPromptlabRuns'),
+  serverSrc.indexOf('async function sweepStuckPromptlabRuns') + 2200);
+ok(/where\('status', '==', 'ready'\)/.test(sweepSrc),
+  "the sweep also looks at 'ready' runs (a panels run parks there while it cuts)");
+ok(/r\.panels && r\.sheetUrl && !\(r\.images \|\| \[\]\)\.length/.test(sweepSrc),
+  'and takes ONLY a panels run with a banked sheet and no cut panels from there');
 ok(/\/api\/promptlab\/:id\/recut/.test(serverSrc), 'the recut route exists');
 ok(/already cut — a recut would file a duplicate set/.test(serverSrc),
   'and refuses a run that already has its panels');
@@ -83,6 +94,13 @@ const jobSrc = serverSrc.slice(serverSrc.indexOf('async function finishPanelsCut
   serverSrc.indexOf('async function runPromptLabJob'));
 ok(jobSrc.indexOf('sheetUrl') < jobSrc.indexOf('cutSheet(sheetBuf'),
   'the paid sheet is banked BEFORE the cut');
+// 2026-08-27, Sophie: "the uncut sheet shud show before it's cut as soon as
+// it's done (in panels" — the banking write parks the run on 'ready', which
+// is what puts the picture on screen while the cut and the filing run.
+ok(/docRef\.update\(\{ sheetUrl, status: 'ready',/.test(jobSrc),
+  "banking the sheet parks the run on 'ready' — the sheet shows at once");
+ok(jobSrc.indexOf("status: 'ready'") < jobSrc.lastIndexOf('await finishPanelsCut(docRef'),
+  'before the cut is even started');
 ok(/cutFailed: true/.test(jobSrc), 'a failed cut keeps the sheet as the picture, disclosed');
 ok(/sizeTier\.cutSize\(plan\.sheet, plan\.count\)/.test(jobSrc),
   "every cut panel files with the '1/9 (4K)' slot");
@@ -92,6 +110,13 @@ ok(/i > 24/.test(serverSrc) && !/i > 3\)/.test(serverSrc),
 ok(/panels\.grids\[g\]/.test(serverSrc) || /panels: \{ grids/.test(serverSrc)
   || /const panels = \{ grids/.test(serverSrc),
   'the styles route serves the panels geometry');
+ok(/function cuttingSheet/.test(pageSrc)
+  && /r\.status !== 'ready' \|\| runImages\(r\)\.length/.test(pageSrc),
+  'the page draws the sheet for a run parked on ready with no panels yet');
+ok(/ar: sheetArOf\(r\)/.test(pageSrc.slice(pageSrc.indexOf('function cuttingSheet'),
+  pageSrc.indexOf('function cuttingSheet') + 900)),
+  "in the SHEET's own ratio, never the panel cell's");
+
 // The page copies no geometry and no prompt wording of its own.
 ok(pageSrc.indexOf('equal rectangles') < 0, 'promptlab.html holds NO copy of the grid sentence');
 ok(pageSrc.indexOf('top middle') < 0, 'and no copy of the cell names');
@@ -225,6 +250,22 @@ function panelsPayload() {
     images: ['http://127.0.0.1:0/img/story.png'],
     createdAt: Date.now() - 120000,
   };
+  // A run PARKED ON 'ready': the paid sheet is banked, the panels are still
+  // being cut and filed. This is what she is looking at for the seconds
+  // between the render landing and the panels existing (2026-08-27: "the
+  // uncut sheet shud show before it's cut as soon as it's done (in panels").
+  const cuttingRun = {
+    id: 'rc', status: 'ready', engine: 'gptimage', gptStyle: 'dreamy', model: 'gpt-image-2',
+    prompt: 'four little scenes',
+    fullPrompt: 'PREFIX\n\ngrid sentence\n\nTAIL',
+    quality: 'low', size: '2304x1536', aspectRatio: '3:2', res: '2k',
+    panels: ['a fox', 'a moon', 'a boat', 'a key'],
+    grid: { across: 2, down: 2, count: 4 },
+    sheet: '2304x1536', cell: '1152x768',
+    sheetUrl: 'http://127.0.0.1:0/img/cutting.png',
+    images: [],
+    createdAt: Date.now() - 20000,
+  };
   // 1x1 webp for every image the page asks for.
   const PIXEL = Buffer.from(
     'UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA==', 'base64');
@@ -247,7 +288,7 @@ function panelsPayload() {
     if (url.pathname === '/api/promptlab') {
       feedGets.push(url.search);
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ runs: [doneRun, storyRun], more: false }));
+      return res.end(JSON.stringify({ runs: [doneRun, storyRun, cuttingRun], more: false }));
     }
     if (url.pathname === '/api/promptlab/styles') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -437,6 +478,43 @@ function panelsPayload() {
   ok(!!panelsRun, 'the done panels run renders its nine cut panels');
   ok(panelsRun && panelsRun.tags.indexOf('panels 3x3') >= 0, "tagged 'panels 3x3'");
 
+  console.log('the uncut sheet, while the cut runs');
+  // 2026-08-27, Sophie: "the uncut sheet shud show before it's cut as soon as
+  // it's done (in panels". The run is parked on 'ready' with a banked sheet
+  // and no panels yet.
+  ok((await page.$$eval('#runs img[data-run="rc"]', (i) => i.length)) === 1,
+    'a run mid-cut shows ONE picture — its sheet');
+  ok((await page.getAttribute('#runs img[data-run="rc"]', 'data-i')) === '-1',
+    'at the virtual sheet index');
+  ok(/cutting\.png/.test(await page.getAttribute('#runs img[data-run="rc"]', 'src') || ''),
+    'pointing at sheetUrl');
+  // MEASURED, not read off markup: a wide sheet drawn in cells cut for 2:3
+  // panels renders as a plausible picture and is simply squashed — the whole
+  // reason this stage used to be skipped.
+  const cutBox = await page.evaluate(() => {
+    const im = document.querySelector('#runs img[data-run="rc"]');
+    const r = im.closest('.cell').getBoundingClientRect();
+    return { w: r.width, h: r.height };
+  });
+  ok(Math.abs((cutBox.w / cutBox.h) - (2304 / 1536)) < 0.02,
+    "in the SHEET's own 3:2 shape (measured), never the panel cell's 2:3");
+  const cutTags = await page.$$eval('#runs .run', (runs) => runs
+    .map((r) => ({
+      run: r.querySelector('img') && r.querySelector('img').getAttribute('data-run'),
+      tags: Array.prototype.map.call(r.querySelectorAll('.tag'), (t) => t.textContent),
+    })).find((x) => x.run === 'rc'));
+  ok(!!cutTags && cutTags.tags.some((t) => /cutting/.test(t)),
+    "and the card says it is still cutting");
+  await page.click('#runs img[data-run="rc"]');
+  await page.waitForFunction(() => {
+    const el = document.getElementById('clightbox');
+    return el && el.style.display !== 'none';
+  });
+  const cutLb = await page.evaluate(() => document.getElementById('clightbox').textContent);
+  ok(/cutting/.test(cutLb) && !/uncut sheet/.test(cutLb),
+    'the lightbox says it once — never "cutting…" and "uncut sheet" both');
+  await page.evaluate(() => { if (window.__assetLightboxClose) window.__assetLightboxClose(); });
+
   console.log('the lightbox');
   await page.click('#runs img[data-run="r9"][data-i="3"]');
   await page.waitForFunction(() => {
@@ -468,7 +546,6 @@ function panelsPayload() {
     return document.getElementById('clightbox').textContent;
   });
   ok(/a key/.test(lbHas), "and the prompt shows THAT panel's own words");
-  await page.evaluate(() => { if (window.__assetLightboxClose) window.__assetLightboxClose(); });
 
   console.log("the lightbox's put-back — ONE picture, ONE box");
   // 2026-08-27, Sophie: "pressing the playground button on images made by
@@ -490,6 +567,7 @@ function panelsPayload() {
   ok(/\bon\b/.test(await page.getAttribute('#t-picture', 'class') || ''),
     'and it switches to the PICTURE tab, where that box lives');
   ok(await page.isVisible('.promptwrap'), 'so the words she was handed are on screen');
+  await page.evaluate(() => { if (window.__assetLightboxClose) window.__assetLightboxClose(); });
 
   console.log('the copy button');
   // Wipe the boxes, then ask the run's copy button to refill them.
@@ -540,9 +618,9 @@ function panelsPayload() {
   // uncut, by themselves".
   ok(await page.isVisible('#v-sheets'), 'the Sheets chip is on the panels tab');
   await page.click('#v-sheets');
-  await page.waitForFunction(() => document.querySelectorAll('#runs img[data-i="-1"]').length === 1);
+  await page.waitForFunction(() => document.querySelectorAll('#runs img[data-run="r9"][data-i="-1"]').length === 1);
   ok(true, "the grid run's cell is its banked UNCUT sheet (virtual index -1)");
-  ok(/sheet\.png/.test(await page.getAttribute('#runs img[data-i="-1"]', 'src') || ''),
+  ok(/sheet\.png/.test(await page.getAttribute('#runs img[data-run="r9"][data-i="-1"]', 'src') || ''),
     'and it points at sheetUrl, never a cut panel');
   ok((await page.$$eval('#runs img[data-run="r9"]', (i) => i.length)) === 1,
     'the nine cut panels are folded to the one sheet');
@@ -550,7 +628,7 @@ function panelsPayload() {
     'a story sheet shows as itself — it IS its sheet');
   ok(!(await page.isVisible('#v-liked')) && !(await page.isVisible('#v-hidex')),
     'the ♥/✕ chips stand down (votes belong to the cut panels)');
-  await page.click('#runs img[data-i="-1"]');
+  await page.click('#runs img[data-run="r9"][data-i="-1"]');
   await page.waitForFunction(() => {
     const el = document.getElementById('clightbox');
     return el && el.style.display !== 'none';
@@ -561,7 +639,7 @@ function panelsPayload() {
     'no ♥/✕ on the virtual sheet');
   await page.evaluate(() => { if (window.__assetLightboxClose) window.__assetLightboxClose(); });
   await page.click('#v-sheets');
-  await page.waitForFunction(() => document.querySelectorAll('#runs img[data-i="-1"]').length === 0);
+  await page.waitForFunction(() => document.querySelectorAll('#runs img[data-run="r9"][data-i="-1"]').length === 0);
   ok(await page.isVisible('#v-liked'), 'off again — the ♥/✕ chips return');
 
   console.log('arriving with a ported prompt');
