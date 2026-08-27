@@ -756,6 +756,12 @@ const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
 // the pill into their HTML, so it only ever lives in one place; a page that
 // generates its own markup (chats/writing/storyroom/wall) keeps importing the
 // same source through its gen-*.py script.
+// The build id of a served page — the content hash of the page file plus the
+// shared pill. ONE copy, in page-build.js, so a test can ask it the same
+// question the server does; see that file for why it is a hash and not a
+// const, and why the pill is folded in.
+const { pageBuildId } = require('./page-build');
+
 function serveGated(file, opts = {}) {
   return (req, res) => {
     if (STUDIO_TOKEN) {
@@ -811,6 +817,11 @@ function serveGated(file, opts = {}) {
     // nothing at all.
     out += '<script src="/pagehead.js" defer></script>';
     if (opts.pill) out += require('./chatfeed').pillInject();
+    // The stamp every gated page can compare itself against. One line here, so
+    // a page that wants to self-heal needs no BUILD const of its own — see
+    // page-build.js and GET /api/promptlab/build for the first reader.
+    out += '<script>window.__forgeBuild='
+      + JSON.stringify(pageBuildId(file, !!opts.pill)) + '</script>';
     res.type('html').send(out);
   };
 }
@@ -5775,9 +5786,23 @@ const plCancelled = new Set();
 async function sweepStuckPromptlabRuns() {
   try {
     if (!admin.apps.length) return;
-    const q = await admin.firestore().collection(PROMPTLAB).where('status', '==', 'running').get();
+    const db = admin.firestore();
+    // A PANELS run parks on 'ready' while its sheet is on screen and the cut
+    // runs behind it, so the orphan check has to reach that status too — the
+    // very restart this sweep exists for would otherwise leave a paid sheet
+    // uncut AND unswept. Only a panels run with a banked sheet and no cut
+    // panels is taken from there: an ordinary 'ready' run already holds its
+    // pictures and must never be marked failed.
+    const [running, ready] = await Promise.all([
+      db.collection(PROMPTLAB).where('status', '==', 'running').get(),
+      db.collection(PROMPTLAB).where('status', '==', 'ready').get(),
+    ]);
+    const stale = running.docs.concat(ready.docs.filter((d) => {
+      const r = d.data();
+      return r.panels && r.sheetUrl && !(r.images || []).length;
+    }));
     const cutoff = Date.now() - 10 * 60 * 1000;
-    for (const d of q.docs) {
+    for (const d of stale) {
       const r = d.data();
       const at = r.createdAt?.toMillis?.() || 0;
       if (!(at && at < cutoff)) continue;
@@ -6148,9 +6173,12 @@ async function finishPanelsCut(docRef, cfg, sheetBuf, sheetUrl) {
     });
     return [sheetUrl];
   }
-  // One write straight to done — the cut takes seconds against a 30-90s
-  // render, and a 'ready' stage showing the SHEET in cells shaped for
-  // panels would distort it. A recovered run sheds its failed/cutFailed
+  // The cut lands in one write to done, and the panels replace the sheet the
+  // page has been showing since 'ready' (see runPromptLabPanelsJob). This
+  // used to be the ONLY write, on the reasoning that "a 'ready' stage showing
+  // the SHEET in cells shaped for panels would distort it" — that was true of
+  // the cell shape and not of the stage, so the page draws the sheet in the
+  // SHEET's own ratio instead. A recovered run sheds its failed/cutFailed
   // marks here.
   await docRef.update({ status: 'done', images,
     error: admin.firestore.FieldValue.delete(),
@@ -6254,7 +6282,15 @@ async function runPromptLabPanelsJob(docRef, cfg) {
     // a picture that has already been billed, and the banked url is also what
     // makes a deploy restart recoverable (the sweep recuts from it).
     const sheetUrl = await saveBufferToFirebase(sheetBuf, 'image/webp', 'promptlab');
-    await docRef.update({ sheetUrl, ...(data.usage ? { usage: [data.usage] } : {}) });
+    // THE SHEET SHOWS THE MOMENT IT IS PAID FOR (2026-08-27, Sophie: "the
+    // uncut sheet shud show before it's cut as soon as it's done (in
+    // panels"). The run parks on 'ready' with the banked sheet and no images
+    // — the page's swap poller already knows that shape — so the picture is
+    // on screen while the cut and the filing run behind it, and the panels
+    // replace it on 'done'. The page draws it in the SHEET's own ratio, never
+    // the panel cell's.
+    await docRef.update({ sheetUrl, status: 'ready',
+      ...(data.usage ? { usage: [data.usage] } : {}) });
     await finishPanelsCut(docRef, cfg, sheetBuf, sheetUrl);
   } catch (err) {
     console.warn('promptlab panels job failed:', err.message);
@@ -6689,6 +6725,22 @@ app.get('/api/promptlab/characters', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// THE PAGE ASKS WHETHER IT IS STALE (2026-08-27, Sophie: "it's not there" —
+// about the back-to-top arrow, which had been live and correct on the served
+// page for a day; measured that hour, the bytes Render answers with carry it
+// and render it at her viewport). The iOS app keeps recent tools ALIVE in a
+// ZStack, so /playground loads ONCE per app process and re-entering the tool
+// shows the SAME page: no deploy can reach it. That is the Film Editor's
+// round-three finding, and the Playground is the tool she is in most.
+//
+// MUST stay above `/api/promptlab/:id`, like /styles and /characters — Express
+// matches in order and `:id` would otherwise answer "run not found".
+app.get('/api/promptlab/build', (req, res) => {
+  // no-store, or the very cache this route exists to defeat answers it.
+  res.set('Cache-Control', 'no-store');
+  res.json({ build: pageBuildId('promptlab.html', true) });
 });
 
 app.get('/api/promptlab/:id', async (req, res) => {
