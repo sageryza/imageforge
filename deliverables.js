@@ -144,16 +144,53 @@ function backfillDoc(existing, e, nowIso) {
   };
 }
 
+// ONE ROW PER WORK, ITS LATEST VERSION (2026-08-27, Sophie: "only put the
+// latest version"). A new cut is a new URL, so every version of one film had
+// its own row: measured that day, the Water reel filled 7 of the 32, the PWC
+// training film 3 and Evan 2 — the newest of each buried among its own older
+// takes.
+//
+// The join is the TITLE STEM, which works because every title here follows the
+// house shape `<name> v<N> — what changed (0:41)`: cut at the version marker
+// and what is left is the work. It has to cross CHATS — the Water reel is cut
+// in three of them and she wants one row — so grouping by chat cannot do it.
+// A title with no version marker is its own whole stem, which is why PWC ep005
+// and ep006 stay two rows: different episodes, not two takes of one.
+const VER = /\b(?:v|version\s*)\d+/i;
+function workKey(title) {
+  const t = String(title || '').trim();
+  const m = VER.exec(t);
+  const stem = (m ? t.slice(0, m.index) : t)
+    // the separator that introduced the version goes with it
+    .replace(/[\s—–\-:,(\[]+$/, '')
+    .trim().toLowerCase().replace(/\s+/g, ' ');
+  return stem || t.toLowerCase();       // a title that IS a version keeps itself
+}
+
 // Rows for the page: newest first by updatedAt (a re-render surfaces), chat
-// display names joined from the registry map (slug → doc).
+// display names joined from the registry map (slug → doc), and each work
+// collapsed to its newest version with the older ones riding along.
+//
+// NEWEST IS BY DATE, NEVER BY VERSION NUMBER: two chats cutting one reel both
+// call theirs v14, so the number is per-chat naming and the date is the fact.
+// And NOTHING IS DROPPED — the older takes ride on `older`, one tap down on
+// the page, because a wrong merge must cost her a tap and never a deliverable.
 function rowsOf(docs, chats) {
-  return docs
+  const sorted = docs
     .slice()
     .sort((a, b) => String(b.updatedAt || b.at || '').localeCompare(String(a.updatedAt || a.at || '')))
     .map((d) => {
       const reg = (chats && chats[d.chat]) || {};
       return { ...d, chatName: reg.displayName || d.chat };
     });
+  const byWork = new Map();
+  for (const r of sorted) {
+    const key = workKey(r.title);
+    const head = byWork.get(key);
+    if (!head) byWork.set(key, { ...r, older: [] });   // first seen = newest
+    else head.older.push(r);
+  }
+  return [...byWork.values()];
 }
 
 // ---- the push (bypasses the bell BY DESIGN — see header) -------------------
@@ -261,4 +298,4 @@ router.post('/backfill', async (req, res) => {
 });
 
 module.exports = { router, record, pinDeliverable,
-  _internals: { kindOf, decideRecord, rowsOf, idFor, backfillPlan, backfillDoc } };
+  _internals: { kindOf, decideRecord, rowsOf, idFor, backfillPlan, backfillDoc, workKey } };
