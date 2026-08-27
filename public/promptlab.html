@@ -2464,6 +2464,12 @@
   //     picture's thread in my-creations, where every Playground picture is
   //     filed (the Panels wiring, verbatim); actions — put the prompt back
   //     in the box, Save to Photos, Send to the Story Room.
+  //   the layout — `votesBelow` + `capUnderImage` (2026-08-26, Sophie: "put
+  //     the heart where they were before exactly … the quality model etc.
+  //     should go right under the picture not below the note area"): ♥/✕
+  //     lead the button row under the picture (♥ ✕ · copy · save · story,
+  //     where this page has always kept them), the MODEL · QUALITY tag sits
+  //     directly under the picture, and the picture keeps its old 76vh room.
   function openLB(id, i) {
     if (!runsById[id]) return;
     // Opening an image freezes the page behind it (design rule): the shared
@@ -2614,6 +2620,10 @@
       promptContent: h.content,
       vote: (r.votes || {})[i] || null,
       thread: noteCache[src] || [],
+      // The old Playground arrangement, as the shared file's hooks (2026-08-26,
+      // Sophie): ♥/✕ lead the row under the picture, the tag right under it.
+      votesBelow: true,
+      capUnderImage: true,
       _cast: castLB,
       // The note lands on the picture's own thread in my-creations, where
       // every Playground picture is filed — the Panels wiring, verbatim, so a
