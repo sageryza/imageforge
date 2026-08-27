@@ -884,17 +884,41 @@
   function pendHay(p) {
     return [p.prompt, p.style, p.quality].filter(Boolean).join('  ');
   }
-  // What the feed shows: everything, the server's answer, or — while that is
-  // still in flight — the same filter run over what is already loaded.
+  // ─── THE GALLERY IS SEPARATE PER TAB (2026-08-27, Sophie: "separate the
+  // gallery for playground for single pics vs panels") ─────────────────────
+  // The PICTURE · PANELS tab already separates the making; the feed under it
+  // now follows: Picture shows single-pic runs, Panels shows panels runs —
+  // pendings, list, tiles, search and the lightbox walk all scoped the same
+  // way, because they all come through visibleRuns/pendingKept. runIsPanels
+  // is the twin of server.js's plRunIsPanels (pinned by
+  // scripts/test-playground-panels.js): a failed panels run still carries
+  // `panels`, so it stays in the panels gallery where its retry belongs.
+  function runIsPanels(r) {
+    return !!(r.grid && r.grid.count) || !!(r.panels && r.panels.length);
+  }
+  // A pending entry stores its grid as a NUMBER (the run doc grows the object
+  // when the sheet is cut) — truthy is the whole test.
+  function pendIsPanels(p) { return !!p.grid; }
+  function tabKeepsRun(r) { return runIsPanels(r) === onPanels(); }
+  function pendingKept() {
+    return pendingList().filter(function (p) { return pendIsPanels(p) === onPanels(); });
+  }
+  // What the feed shows: everything ON THIS TAB, the server's answer, or —
+  // while that is still in flight — the same filter run over what is already
+  // loaded. The tab filter runs over the server's hits too: a stale answer
+  // from before a tab switch can land, and it must not leak the other
+  // gallery's runs into this one.
   function visibleRuns() {
-    if (!qGroups.length) return feed;
-    if (hits) return hits;
-    return feed.filter(function (r) { return qmatch(runHay(r), qGroups); });
+    var mine = (qGroups.length && hits ? hits : feed).filter(tabKeepsRun);
+    if (!qGroups.length) return mine;
+    if (hits) return mine;
+    return mine.filter(function (r) { return qmatch(runHay(r), qGroups); });
   }
   function emptyNote() {
     if (qGroups.length) return '<div class="emptynote">Nothing matches that</div>';
     if (likedOnly()) return '<div class="emptynote">Nothing hearted yet</div>';
-    return hideX() ? '<div class="emptynote">Everything here is crossed out</div>' : '';
+    if (hideX()) return '<div class="emptynote">Everything here is crossed out</div>';
+    return onPanels() ? '<div class="emptynote">No panels yet</div>' : '';
   }
 
   // A SEARCH READS THE WHOLE FEED, NOT THE PAGE SHE IS LOOKING AT — the
@@ -907,7 +931,9 @@
   function runSearch() {
     var seq = ++qSeq, want = query;
     if (!want) { hits = null; return; }
-    fetch('/api/promptlab?q=' + encodeURIComponent(want) + '&limit=300')
+    // The search is scoped to THIS tab's gallery server-side too — the 300
+    // cap must never hide a panels hit behind three hundred single ones.
+    fetch('/api/promptlab?q=' + encodeURIComponent(want) + '&limit=300&kind=' + (onPanels() ? 'panels' : 'single'))
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (seq !== qSeq) return;                       // she typed on; this answer is stale
@@ -1262,6 +1288,13 @@
     plTabLine();
     renderStyles(); syncControls(); buildPanelGrid(); paintGridPick();
     paintPromptPanel(); paintCanvas(); paintRes();
+    // The gallery under the tab follows it — each tab shows its own runs
+    // (2026-08-27, Sophie: "separate the gallery for playground for single
+    // pics vs panels"). The panels tab pulls its whole history the first
+    // time it opens, and a live search re-asks scoped to the new tab.
+    renderPendings(); renderFeed();
+    if (panels) loadPanelsSweep();
+    if (query) { hits = null; runSearch(); }
   }
   document.getElementById('t-picture').addEventListener('click', function () { setTab('picture'); });
   document.getElementById('t-panels').addEventListener('click', function () { setTab('panels'); });
@@ -2340,7 +2373,9 @@
   // which sits above #runs, so a fresh Generate is always the first thing on the
   // page — never a finished older run sitting where the new one should be.
   function renderPendings() {
-    var list = pendingList().slice().reverse();
+    // Only THIS tab's pending runs — a drawing sheet belongs to the panels
+    // gallery and a drawing picture to the other, same as the finished ones.
+    var list = pendingKept().slice().reverse();
     if (qGroups.length) list = list.filter(function (p) { return qmatch(pendHay(p), qGroups); });
     var groups = groupBy(list, function (p) {
       return sameRunKey([p.engine, p.style, (p.prompt || '').trim(), p.quality, p.scale, p.seed]);
@@ -2614,16 +2649,37 @@
     }).catch(function () {});
   }
 
-  // One more page, behind the oldest run the feed holds. The cursor is that
-  // run's createdAt, NOT an offset — runs land at the top while she reads, and
-  // an offset would shift under her and repeat or skip one.
+  // The PANELS tab's whole gallery in one read — the server sweeps its scan
+  // for panels runs (they are a sliver of the feed, so paging 40 mixed docs
+  // to find them would make Older a button that mostly adds nothing). Asked
+  // once per visit; a failed fetch un-marks itself so the next tab switch
+  // tries again.
+  var panelsSwept = false;
+  function loadPanelsSweep() {
+    if (panelsSwept) return;
+    panelsSwept = true;
+    fetch('/api/promptlab?kind=panels&limit=300').then(function (r) { return r.json(); }).then(function (d) {
+      mergeRuns((d.runs || []).filter(function (r) { return r.status !== 'running'; }));
+      renderFeed();
+    }).catch(function () { panelsSwept = false; });
+  }
+
+  // One more page, behind the oldest SINGLE run the feed holds. The cursor is
+  // that run's createdAt, NOT an offset — runs land at the top while she
+  // reads, and an offset would shift under her and repeat or skip one. Oldest
+  // SINGLE, not oldest anything: the panels sweep merges runs from the whole
+  // history into `feed`, and a cursor taken off an ancient panels run would
+  // skip every single-pic run between here and it. (Older only shows on the
+  // Picture tab, so the walk is always the single runs'.)
   function loadMore() {
     if (paging || !feedMore) return;
     var oldest = null;
-    for (var i = feed.length - 1; i >= 0; i--) { if (feed[i].createdAt) { oldest = feed[i].createdAt; break; } }
+    for (var i = feed.length - 1; i >= 0; i--) {
+      if (feed[i].createdAt && !runIsPanels(feed[i])) { oldest = feed[i].createdAt; break; }
+    }
     if (!oldest) return;
     paging = true; renderMoreBtn();
-    fetch('/api/promptlab?limit=' + PAGE + '&before=' + oldest)
+    fetch('/api/promptlab?limit=' + PAGE + '&before=' + oldest + '&kind=single')
       .then(function (r) { return r.json(); })
       .then(function (d) {
         feedMore = !!d.more;
@@ -2697,8 +2753,10 @@
   function renderMoreBtn() {
     var el = document.getElementById('more');
     // "Older" walks the BROWSE feed; a search is already answered over the
-    // whole collection, so there is nothing behind it to page in.
-    if (qGroups.length || !feed.length || !feedMore) { el.innerHTML = ''; return; }
+    // whole collection, so there is nothing behind it to page in. The PANELS
+    // tab has no Older either — its sweep (loadPanelsSweep) answered the
+    // tab's whole history in one read, like a search.
+    if (qGroups.length || onPanels() || !feed.length || !feedMore) { el.innerHTML = ''; return; }
     el.innerHTML = '<button class="morebtn"' + (paging ? ' disabled' : '') + '>' +
       (paging ? 'Loading…' : 'Older') + '</button>';
   }
@@ -2717,7 +2775,7 @@
     var nox = hideX();
     // A picture on its way has not been hearted, so the waiting squares are a
     // list-of-everything thing: with the heart lit the wall is hearts only.
-    if (!only) pendingList().slice().reverse().forEach(function (p) {
+    if (!only) pendingKept().slice().reverse().forEach(function (p) {
       if (qGroups.length && !qmatch(pendHay(p), qGroups)) return;
       var slots = p.count || OUTPUTS;
       for (var i = 0; i < slots; i++) items.push({ key: 'ph|' + p.id + '|' + i, ph: true, ar: arCss(p.ar) });

@@ -426,6 +426,28 @@ panels fit under 4000 chars at ~350 each; twenty-five will not).
     searchable as **landscape** (`PL_SHAPE_WORD`, one map in server.js and one
     in promptlab.html, pinned equal by the panels test).
 
+- **THE GALLERY UNDER THE TAB IS SEPARATE PER TAB (2026-08-27, Sophie:
+  "separate the gallery for playground for single pics vs panels").** The
+  feed follows the PICTURE · PANELS row: each tab shows only its own runs —
+  pendings, list, tiles, the search and the lightbox walk all scoped the same
+  way, because they all come through `visibleRuns`/`pendingKept`. The kind
+  rule is `runIsPanels` (promptlab.html) / `plRunIsPanels` (server.js), the
+  identical expression pinned by the panels test — a failed panels run still
+  carries `panels`, so it stays in the panels gallery where its retry belongs.
+  Three mechanics worth knowing:
+  - **The PANELS tab has no "Older"** — panels runs are a sliver of the feed,
+    so paging 40 mixed docs to find them would make Older a button that
+    mostly adds nothing. Opening the tab sweeps its WHOLE history in one read
+    (`GET /api/promptlab?kind=panels`, the search path's 60s-cached scan).
+  - **The PICTURE tab's Older cursor is the oldest SINGLE run**, never the
+    oldest anything: the sweep merges ancient panels runs into the shared
+    `feed`, and a cursor off one of those would skip every single run between
+    here and it. The walk asks `kind=single`.
+  - **A search is scoped to the tab server-side too** (`kind=` on the query),
+    so the 300-hit cap can never hide a panels hit behind single ones; the
+    client still filters `hits` by tab, because a stale answer from before a
+    tab switch can land. An older cached page sends no `kind` and the route
+    answers exactly as it always did.
 - **The geometry lives in `sheet-grid.js` and is SERVED, never copied** —
   `GET /api/promptlab/styles` answers `panels` (grids, cell names, the grid
   sentence, derived sheet/cell canvases per shape × grid × tier). The canvas

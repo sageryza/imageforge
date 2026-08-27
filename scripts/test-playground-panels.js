@@ -114,6 +114,26 @@ ok(swServer && swPage && JSON.stringify(swServer) === JSON.stringify(swPage),
   'PL_SHAPE_WORD is the same map in server.js and promptlab.html');
 ok(swServer && swServer['3:2'] === 'landscape', "and it knows the landscape cell");
 
+// THE GALLERY IS SEPARATE PER TAB (2026-08-27, Sophie: "separate the gallery
+// for playground for single pics vs panels"). The kind rule lives in TWO
+// files with no shared script — server.js's plRunIsPanels and the page's
+// runIsPanels must be the same expression, or a run sits in one tab's
+// gallery on the server and the other's on the phone.
+const KIND_EXPR = '!!(r.grid && r.grid.count) || !!(r.panels && r.panels.length)';
+ok(serverSrc.indexOf(KIND_EXPR) >= 0 && /function plRunIsPanels/.test(serverSrc),
+  'server.js has plRunIsPanels');
+ok(pageSrc.indexOf(KIND_EXPR) >= 0 && /function runIsPanels/.test(pageSrc),
+  'promptlab.html has the identical runIsPanels');
+ok(/req\.query\.kind/.test(serverSrc), 'the feed route takes kind=');
+ok(/kind=panels&limit=300/.test(pageSrc), 'the panels tab sweeps its whole history in one read');
+ok(/&kind=single/.test(pageSrc), "and the PICTURE tab's Older walk asks for singles only");
+ok(/!runIsPanels\(feed\[i\]\)/.test(pageSrc),
+  "Older's cursor is the oldest SINGLE run — the sweep merges ancient panels runs into `feed`, "
+  + 'and a cursor off one of those would skip every single run between here and it');
+ok(/qGroups\.length \|\| onPanels\(\) \|\|/.test(pageSrc),
+  'Older is hidden on the panels tab (the sweep already answered everything)');
+ok(/&kind=' \+ \(onPanels\(\)/.test(pageSrc), 'a search is scoped to the tab server-side too');
+
 // ── the real page ────────────────────────────────────────────────────────
 let chromium;
 try { ({ chromium } = require('playwright')); }
@@ -154,6 +174,7 @@ function panelsPayload() {
 
 (async () => {
   const posted = [];
+  const feedGets = [];   // every GET /api/promptlab query string the page sent
   const nine = ['a fox', 'a moon', 'a boat', 'a key', 'a well', 'a crow', 'a comb', 'a bell', 'a door'];
   const doneRun = {
     id: 'r9', status: 'done', engine: 'gptimage', gptStyle: 'dreamy', model: 'gpt-image-2',
@@ -185,6 +206,7 @@ function panelsPayload() {
       return res.end(JSON.stringify({ id: 'x1', status: 'running', images: [] }));
     }
     if (url.pathname === '/api/promptlab') {
+      feedGets.push(url.search);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ runs: [doneRun], more: false }));
     }
@@ -399,6 +421,28 @@ function panelsPayload() {
   });
   ok(true, 'the copy button refills the nine boxes');
   ok(/\bon\b/.test(await page.getAttribute('#t-panels', 'class') || ''), 'on the Panels tab');
+
+  console.log('the gallery is separate per tab');
+  // 2026-08-27, Sophie: "separate the gallery for playground for single pics
+  // vs panels". The feed under the tab follows it — a panels run (and its
+  // pending placeholders) live in the PANELS gallery and nowhere else.
+  ok(feedGets.some((s) => /kind=panels/.test(s)),
+    'the panels tab swept its history (GET ?kind=panels)');
+  ok((await page.$$eval('#runs img[data-run="r9"]', (i) => i.length)) === 9,
+    'the panels run is in the PANELS gallery');
+  ok((await page.$$eval('#more .morebtn', (b) => b.length)) === 0,
+    'no Older button on the panels tab');
+  const pendOnPanels = await page.$$eval('#pendings .cell', (c) => c.length);
+  ok(pendOnPanels > 0, 'the pending sheets are on this tab');
+  await page.click('#t-picture');
+  await page.waitForFunction(() => document.querySelectorAll('#runs img[data-run="r9"]').length === 0);
+  ok(true, 'and OUT of the PICTURE gallery');
+  ok((await page.$$eval('#pendings .cell', (c) => c.length)) === 0,
+    'the pending sheets step out with it');
+  await page.click('#t-panels');
+  await page.waitForFunction((n) => document.querySelectorAll('#pendings .cell').length === n, pendOnPanels);
+  await page.waitForFunction(() => document.querySelectorAll('#runs img[data-run="r9"]').length === 9);
+  ok(true, 'and everything comes back on PANELS');
 
   console.log('arriving with a ported prompt');
   // The tab is STICKY, and a panel image is exactly the picture she is on the
