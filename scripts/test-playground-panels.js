@@ -375,6 +375,21 @@ function panelsPayload() {
   });
   const lbText = await page.evaluate(() => document.getElementById('clightbox').textContent);
   ok(/panel 4 of 9/.test(lbText), "the caption says 'panel 4 of 9'");
+  // THE REQUIRED THIRD SLOT (2026-08-27, Sophie's screenshot of this caption:
+  // "shud say quality and 1k,2k/4k · 1/4"). It had never carried one — the
+  // slot was built into what the Playground FILES and this caption is drawn
+  // client-side from the run doc, so it was out of scope and stayed empty for
+  // four days while the panels tab added two slots of its own beside it.
+  // A cut panel says the FRACTION and the SHEET's tier, never its own pixels
+  // (a ninth of a 4K sheet lands on the 1K rung and reads as a small picture).
+  ok(/1\/9 \(4K\)/.test(lbText), "and the size slot says '1/9 (4K)', not the panel's own rung");
+  // The house caption ORDER — model · quality · size — so the slot reads as
+  // the third part of a caption rather than a fourth thing tacked on the end.
+  ok(/low\s*·\s*1\/9 \(4K\)/.test(lbText), 'and it sits right after the quality');
+  // Drawn by the SHARED derivation, not a tier table copied into the page —
+  // a copy drifts the day the boundaries move.
+  ok(await page.evaluate(() => !!(window.__sizeTier && window.__sizeTier.runSize)),
+    'the page loaded the real /size-tier.js');
   // The prompt door opens on CONTENT = that panel's own words.
   const lbHas = await page.evaluate(() => {
     const el = document.getElementById('clightbox');

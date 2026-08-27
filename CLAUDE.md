@@ -2499,6 +2499,40 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   takes `--size`, and `meta-assets.js` joins the three parts. **An absent slot
   is left out, never guessed** — nothing on an older record says how big it is,
   exactly as with quality.
+  **A CAPTION A PAGE DRAWS ITSELF IS A FOURTH SURFACE, AND IT WAS MISSED FOR
+  FOUR DAYS (2026-08-27, Sophie's screenshot of the Playground lightbox:
+  "shud say quality and 1k,2k/4k · 1/4 — I thought we already fixed this").**
+  She had, and this is the shape of the miss worth remembering: her ask named
+  "the playground and assets and Meta assets", and every one of those was built
+  as **what a picture is FILED with** — the creation doc, `post-to-gallery.js`,
+  the Meta Assets join. But the **Playground page draws its own caption
+  client-side out of the RUN doc** (`runParts` in promptlab.html), and that
+  builder was never in scope: it had never carried a size at all, for a panels
+  run or a plain one. The PANELS tab then added `panels 2x2` and `panel 4 of 4`
+  to that same line, which is what finally made the missing required slot loud
+  enough to see. **So when a caption rule lands, ask which surfaces DERIVE the
+  caption rather than reading the filed one** — a filing fix cannot reach them.
+  Swept the same day: the Playground was the only one wrong. Freeform, Meta
+  Assets and iOS My Creations (`Creation.madeWith`) all carry the slot; the
+  Assets tab and the Compare pages read the filed caption; Character Creator
+  draws one canvas and has no tier to say; and the old `/gallery` page reads
+  Storage custom metadata, which carries no model or quality either and falls
+  back to the folder name — no caption there to be missing a slot from.
+  **`/size-tier.js` IS SERVED TO THE PAGE NOW (the `pause-plan.js` pattern),
+  so there is one derivation.** `runSize(run)` is the one reader for both
+  shapes — a panels run is a cut of its SHEET (`1/4 (4K)`), anything else is
+  its own tier — and a run whose cut FAILED is the sheet itself, so it takes
+  the sheet's tier rather than a fraction of a thing that was never cut. A
+  tier table copied into a page would drift from the boundaries the day they
+  move. Pinned by `node scripts/test-playground-panels.js`.
+  **AND THE HARNESSES COULD NOT SERVE IT** — `scripts/lib/public-asset.js`
+  answered out of `public/` only, so the three root-level shared files
+  (`pause-plan.js`, `pad-characters.js`, `size-tier.js`) 404'd in every
+  Playground harness, which is the quiet failure that file exists to end: the
+  page guards the global it could not load, renders without that behaviour and
+  the test passes. It serves them too now, from a list **derived from
+  server.js's own `sendFile` routes**, so the next root-level shared file needs
+  no harness change.
   (it upgrades an already-filed tile in place; search matches it).
   **AND A RE-POST CAN NOW CORRECT A CAPTION, WHICH IT COULD NOT UNTIL
   2026-08-23.** The write only landed on a BLANK or a generic `from <chat>`
