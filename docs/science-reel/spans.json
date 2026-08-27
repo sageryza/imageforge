@@ -1,0 +1,254 @@
+[
+ {
+  "n": 1,
+  "t0": 0.0,
+  "t1": 9.26,
+  "firstWord": "it's",
+  "lastWord": "reality",
+  "matched": 16,
+  "of": 16
+ },
+ {
+  "n": 2,
+  "t0": 9.26,
+  "t1": 20.62,
+  "firstWord": "if",
+  "lastWord": "long",
+  "matched": 29,
+  "of": 29
+ },
+ {
+  "n": 3,
+  "t0": 20.62,
+  "t1": 26.12,
+  "firstWord": "now",
+  "lastWord": "got",
+  "matched": 21,
+  "of": 21
+ },
+ {
+  "n": 4,
+  "t0": 26.12,
+  "t1": 39.78,
+  "firstWord": "and",
+  "lastWord": "out",
+  "matched": 43,
+  "of": 43
+ },
+ {
+  "n": 5,
+  "t0": 39.78,
+  "t1": 52.16,
+  "firstWord": "we",
+  "lastWord": "wrong",
+  "matched": 31,
+  "of": 31
+ },
+ {
+  "n": 6,
+  "t0": 52.16,
+  "t1": 64.68,
+  "firstWord": "but",
+  "lastWord": "possible",
+  "matched": 35,
+  "of": 35
+ },
+ {
+  "n": 7,
+  "t0": 64.68,
+  "t1": 78.98,
+  "firstWord": "in",
+  "lastWord": "it",
+  "matched": 36,
+  "of": 37
+ },
+ {
+  "n": 8,
+  "t0": 78.98,
+  "t1": 88,
+  "firstWord": "and",
+  "lastWord": "systems",
+  "matched": 29,
+  "of": 29
+ },
+ {
+  "n": 9,
+  "t0": 88,
+  "t1": 96.24,
+  "firstWord": "we",
+  "lastWord": "thing",
+  "matched": 22,
+  "of": 22
+ },
+ {
+  "n": 10,
+  "t0": 96.24,
+  "t1": 105.78,
+  "firstWord": "sometimes",
+  "lastWord": "lot",
+  "matched": 29,
+  "of": 30
+ },
+ {
+  "n": 11,
+  "t0": 105.78,
+  "t1": 112.54,
+  "firstWord": "but",
+  "lastWord": "everything",
+  "matched": 21,
+  "of": 21
+ },
+ {
+  "n": 12,
+  "t0": 112.54,
+  "t1": 124.66,
+  "firstWord": "in",
+  "lastWord": "sky",
+  "matched": 35,
+  "of": 35
+ },
+ {
+  "n": 13,
+  "t0": 124.66,
+  "t1": 129.88,
+  "firstWord": "the",
+  "lastWord": "ucla",
+  "matched": 17,
+  "of": 17
+ },
+ {
+  "n": 14,
+  "t0": 129.88,
+  "t1": 137.8,
+  "firstWord": "and",
+  "lastWord": "years",
+  "matched": 22,
+  "of": 22
+ },
+ {
+  "n": 15,
+  "t0": 137.8,
+  "t1": 150,
+  "firstWord": "now",
+  "lastWord": "involved",
+  "matched": 24,
+  "of": 24
+ },
+ {
+  "n": 16,
+  "t0": 150,
+  "t1": 162,
+  "firstWord": "in",
+  "lastWord": "children",
+  "matched": 39,
+  "of": 39
+ },
+ {
+  "n": 17,
+  "t0": 162,
+  "t1": 177.06,
+  "firstWord": "he",
+  "lastWord": "way",
+  "matched": 40,
+  "of": 40
+ },
+ {
+  "n": 18,
+  "t0": 177.06,
+  "t1": 183.88,
+  "firstWord": "even",
+  "lastWord": "percentage",
+  "matched": 13,
+  "of": 13
+ },
+ {
+  "n": 19,
+  "t0": 183.88,
+  "t1": 203.56,
+  "firstWord": "given",
+  "lastWord": "ambiguity",
+  "matched": 48,
+  "of": 48
+ },
+ {
+  "n": 20,
+  "t0": 203.56,
+  "t1": 211.2,
+  "firstWord": "is",
+  "lastWord": "god",
+  "matched": 24,
+  "of": 24
+ },
+ {
+  "n": 21,
+  "t0": 211.2,
+  "t1": 226.98,
+  "firstWord": "i",
+  "lastWord": "the",
+  "matched": 48,
+  "of": 48
+ },
+ {
+  "n": 22,
+  "t0": 226.98,
+  "t1": 233.76,
+  "firstWord": "meaning",
+  "lastWord": "possible",
+  "matched": 13,
+  "of": 14
+ },
+ {
+  "n": 23,
+  "t0": 233.76,
+  "t1": 246.28,
+  "firstWord": "after",
+  "lastWord": "wort",
+  "matched": 34,
+  "of": 34
+ },
+ {
+  "n": 24,
+  "t0": 246.28,
+  "t1": 265.16,
+  "firstWord": "what",
+  "lastWord": "effective",
+  "matched": 43,
+  "of": 43
+ },
+ {
+  "n": 25,
+  "t0": 265.16,
+  "t1": 276.52,
+  "firstWord": "similarly",
+  "lastWord": "plant",
+  "matched": 35,
+  "of": 35
+ },
+ {
+  "n": 26,
+  "t0": 276.52,
+  "t1": 283.34,
+  "firstWord": "and",
+  "lastWord": "prozac",
+  "matched": 18,
+  "of": 18
+ },
+ {
+  "n": 27,
+  "t0": 283.34,
+  "t1": 296.58,
+  "firstWord": "my",
+  "lastWord": "body",
+  "matched": 47,
+  "of": 47
+ },
+ {
+  "n": 28,
+  "t0": 296.58,
+  "t1": 301.23999999999995,
+  "firstWord": "the",
+  "lastWord": "interactions",
+  "matched": 14,
+  "of": 15
+ }
+]
