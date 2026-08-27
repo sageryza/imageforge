@@ -1,0 +1,47 @@
+[
+ {
+  "sheet": 0,
+  "id": "OxiJsiE8Ad7smmj5a2L4",
+  "beats": [
+   1,
+   2,
+   3,
+   4
+  ],
+  "images": [
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/51ed23400db13f913ca99f03.webp",
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/21ec6681c83a7604d16dcddb.webp",
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/81a8236d262e755ad1d1c6a6.webp",
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/bfcfdccd8ca8bf5c1069e4d8.webp"
+  ],
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1787795390422-9jcaow.webp",
+  "fullPrompt": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\nThis page is a 2x2 grid of 4 separate panels — equal rectangles, 2 across and 2 down, with straight edges exactly on the grid lines, no gutters and no outer margin. Each panel is its own complete, self-contained illustration. In reading order, left to right, top to bottom:\nPanel 1 (top left): a witch and a scientist trading places on a seesaw while a crowd below cheers\nPanel 2 (top right): an army in white lab coats marching with banners, shouting one battle cry, trampling little charms underfoot\nPanel 3 (bottom left): a magician's hat turned upside down and shaken empty over a bare stone table\nPanel 4 (bottom right): a young woman standing very straight in a lecture hall full of suited men, dark ink soaking up through her from the floor\n\nRender as a 2x2 grid of 4 panels — each panel its own complete illustration, inside its own hand-drawn border like the frames in the style reference. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition.",
+  "usage": null,
+  "rects": [
+   {
+    "left": 0,
+    "top": 0,
+    "width": 1171,
+    "height": 1707
+   },
+   {
+    "left": 1171,
+    "top": 0,
+    "width": 1165,
+    "height": 1707
+   },
+   {
+    "left": 0,
+    "top": 1707,
+    "width": 1171,
+    "height": 1797
+   },
+   {
+    "left": 1171,
+    "top": 1707,
+    "width": 1165,
+    "height": 1797
+   }
+  ]
+ }
+]
