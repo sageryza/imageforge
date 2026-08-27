@@ -449,7 +449,6 @@ redundant with the camera: the 30-degree diagram label (the caption box
 already says the line), card 6's STEP 2 (the pull-out already frames it, and
 the arrow follows seconds later), and the WE-DON'T-INTERFERE seal (the camera
 is fully pushed into it). 16 marks stand.
-<<<<<<< HEAD
 
 ## v11 — the hook tightened, and the FAIL slams on
 
@@ -488,5 +487,3 @@ could look into"):
   beat: camera, sound and slam are one instant, nothing re-timed.
 - It rides the same page-space overlay as the ink, so the camera's push keeps
   it registered to the card.
-=======
->>>>>>> origin/main
