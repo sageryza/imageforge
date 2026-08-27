@@ -34,6 +34,12 @@ for (let i = 0; i < 30; i++) {
   MSGS.push({ id: 'fb' + i, chat: 'chat-b', from: 'claude', created: iso(T0 - 8e5 + i * 1000),
     postedAt: iso(T0 - 8e5 + i * 1000), text: 'other chat reply ' + i + '\n\n' + 'y'.repeat(400), tldr: 'other ' + i });
 }
+// One reply in chat-a carries a link to chat-b — "asking a chat to give me a
+// bunch of other chats that I need to look at" (2026-08-27). __HOST__ is
+// stamped with the stub's real host at serve time, because the message
+// linkifier only anchors absolute urls.
+MSGS.push({ id: 'link1', chat: 'chat-a', from: 'claude', created: iso(T0 - 1e5), postedAt: iso(T0 - 1e5),
+  text: 'Look at this one: http://__HOST__/chats?chat=chat-b when you get a minute.', tldr: 'a chat to look at' });
 // A posted page carrying the two links that can spring the trap: ANOTHER
 // known chat's thread (the brief's fallback shape) and a chat this feed
 // never met. (A link back to the SAME chat also escapes; it just lands on
@@ -47,7 +53,7 @@ const PAGEHTML = '<!doctype html><html><head><meta charset="utf-8"><title>t</tit
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x'), p = url.pathname;
   const send = (t, b) => { res.writeHead(200, { 'Content-Type': t }); res.end(b); };
-  const json = (o) => send('application/json', JSON.stringify(o));
+  const json = (o) => send('application/json', JSON.stringify(o).split('__HOST__').join(req.headers.host));
   if (p === '/' || p === '/chats') return send('text/html; charset=utf-8', fs.readFileSync(path.join(PUB, 'chats.html'), 'utf8'));
   if (p === '/api/chatfeed/thread') return json({ messages: MSGS.filter((m) => m.chat === (url.searchParams.get('chat') || 'chat-a')) });
   if (p === '/api/chatfeed/pages') return json({ pages: [{ id: 'p1', title: 'Test page', created: iso(T0 - 3e5) }] });
@@ -153,6 +159,39 @@ async function openViewer(page) {
   ok(!st.viewer && home, 'back again goes home — the return was consumed');
 
   // back into a thread so the next block can open its Compare tab
+  await page.click('.crow[data-chat="chat-a"]');
+  await page.waitForSelector('.msg', { timeout: 8000 });
+
+  // ---- A CHAT LINK INSIDE A MESSAGE (2026-08-27, Sophie: "especially
+  // useful if I'm asking a chat to give me a bunch of other chats that I
+  // need to look at"): opens the thread in place — it used to leave the app
+  // (message links render target=_blank) — and the back chevron returns to
+  // the chat she was reading, not home.
+  await page.waitForTimeout(800);   // let the full thread (with the link message) land
+  const msgLink = await page.evaluate(() => {
+    const a = document.querySelector('#thread a[href*="chat=chat-b"]');
+    if (!a) return false; a.click(); return true;
+  });
+  await page.waitForTimeout(600);
+  st = await page.evaluate(PROBE);
+  let h = await page.evaluate(() => (document.querySelector('#thread h1') || {}).textContent || '');
+  ok(msgLink && /chat-b/.test(h), 'message link: opens the linked thread in place (' + h.trim() + ')');
+  ok(!st.viewer && st.floats === 1, 'message link: no viewer, one pill');
+  await page.evaluate(() => document.getElementById('back').click());
+  await page.waitForTimeout(600);
+  h = await page.evaluate(() => (document.querySelector('#thread h1') || {}).textContent || '');
+  ok(/chat-a/.test(h), 'message link: back returns to the chat she was reading (' + h.trim() + ')');
+
+  // ---- HOPS STACK: page → chat-b (escape) → chat-a (message link inside
+  // chat-b? chat-b has none, so the chain is built the other way) —
+  // chat-a's message link to chat-b on TOP of a page return: back walks to
+  // chat-a, and back again reopens nothing stale (trail spent, home).
+  await page.evaluate(() => document.getElementById('back').click());
+  await page.waitForTimeout(400);
+  const home2 = await page.evaluate(() => document.getElementById('home').style.display !== 'none');
+  ok(home2, 'after the message-link return, back goes home — trail spent');
+
+  // back into a thread so the strange-link block can open its Compare tab
   await page.click('.crow[data-chat="chat-a"]');
   await page.waitForSelector('.msg', { timeout: 8000 });
 
