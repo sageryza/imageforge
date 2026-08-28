@@ -231,7 +231,10 @@ const server = http.createServer((req, res) => {
       words,
       // the whole row, clear of the injected pill's 56px column
       right: t.closest('.stylerow').getBoundingClientRect().right,
-      lastRight: document.querySelector('.stylerow .sw:last-child').getBoundingClientRect().right,
+      // The last WORD — not `.sw:last-child`, because the row's last child is
+      // the SHAPE button now (2026-08-28) and that selector silently matched
+      // nothing the day it landed.
+      lastRight: [...document.querySelectorAll('.stylerow .sw')].pop().getBoundingClientRect().right,
       oneLine: [...document.querySelectorAll('.stylerow .sw')]
         .every((b, _, all) => Math.abs(b.getBoundingClientRect().top - all[0].getBoundingClientRect().top) < 1),
       row: t.closest('.stylerow').getBoundingClientRect().top
