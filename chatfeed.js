@@ -1051,6 +1051,16 @@ router.post('/', async (req, res) => {
           pushBody(doc.text, doc.tldr).slice(0, 240), { debounce: false });
       } catch (e) { /* push must never fail a post */ }
     }
+    // A FINISHED REPLY IS ALSO WHAT LETS A HELD BUZZ OUT (2026-08-28, Sophie:
+    // "I get notified a few seconds before chats actually finish their turn").
+    // A deliverable, a Compare page and an auto-compare grid are all filed
+    // mid-turn and QUEUE their push; this is the moment the turn really ends.
+    // Suppressed when the reply itself just buzzed her — same chat, same
+    // second, same collapse-id, so the second one is only ever noise.
+    if (!working) {
+      try { require('./push').flushChat(doc.chat, { suppress: gate.push }); }
+      catch (e) { /* push must never fail a post */ }
+    }
     // END OF TURN: the chat files itself (Aug 2026 — "that could be a start of
     // turn or end of turn activity"). END, not start: at the start of a turn
     // the newest thing in the thread is her message and the turn's work hasn't
@@ -4015,7 +4025,7 @@ async function runAutoCompare(chat) {
       try {
         const { chats } = await registry();
         const reg = chats[slug] || {};
-        if (chatNotifies(reg)) require('./push').notifyChat(slug, reg.displayName || slug, plan.title);
+        if (chatNotifies(reg)) require('./push').queueChat(slug, reg.displayName || slug, plan.title);
       } catch (e) { /* push must never fail a filing */ }
       out.push({ kind: plan.kind, ok: true, id, created: true });
     }
@@ -4082,7 +4092,7 @@ router.post('/page', async (req, res) => {
       try {
         const { chats } = await registry();
         const reg = chats[tdoc.chat] || {};
-        if (chatNotifies(reg)) require('./push').notifyChat(tdoc.chat, reg.displayName || tdoc.chat, tdoc.title);
+        if (chatNotifies(reg)) require('./push').queueChat(tdoc.chat, reg.displayName || tdoc.chat, tdoc.title);
       } catch (e) { /* push must never fail a post */ }
       // sheet = page-<id>: unique per page, and a new version is a new page,
       // so the verdict sheet's identity carries the item set's shape for free
@@ -4115,15 +4125,17 @@ router.post('/page', async (req, res) => {
     doc.path = file.name;
     await ref.set(doc);
     // A new Compare page is a delivery even when the chat says nothing — the
-    // same reason the Update tab counts it as an arrival. Same debounce, so a
-    // page and the reply that follows it in one turn are one buzz. And the
-    // same BELL: a chat she has not belled never reaches her lock screen, by
+    // same reason the Update tab counts it as an arrival. QUEUED, not sent: a
+    // page is posted mid-turn, so sending here buzzes her before the chat has
+    // finished (see push.js, THE BUZZ WAITS FOR THE TURN TO END). A page and
+    // the reply that follows it in one turn are still one buzz. And the same
+    // BELL: a chat she has not belled never reaches her lock screen, by
     // either door.
     try {
       const { chats } = await registry();
       const reg = chats[doc.chat] || {};
       const name = reg.displayName || doc.chat;
-      if (chatNotifies(reg)) require('./push').notifyChat(doc.chat, name, doc.title);
+      if (chatNotifies(reg)) require('./push').queueChat(doc.chat, name, doc.title);
     } catch (e) { /* push must never fail a post */ }
     const body = { ok: true, id: ref.id, url: `/api/chatfeed/page/${ref.id}` };
     if (warnings.length) body.warnings = warnings;   // never blocks the post
