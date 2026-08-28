@@ -1718,7 +1718,17 @@ them off the reference sheet, not off the old filenames.
     at all. Measured live the hour it shipped: of 18 picture rows, the 7 with
     nothing labeled were ALL background catches (a generated chat icon, a
     film's cover frame, a poster) and every labeled row read as a real
-    hand-over. A path blacklist would grow a line per surface forever. `deliverables-feed.js` is the whole
+    hand-over. A path blacklist would grow a line per surface forever.
+    **TWO RULES SHE ADDED THE HOUR IT SHIPPED** (2026-08-28: "newest replaces
+    oldest" · "disappears if i write back"): a film already collapses by title
+    stem and a chat's PICTURES collapse by chat, so a second batch REPLACES the
+    first — nothing dropped, the earlier ones ride along as `older` and the row
+    says how many; and a row LEAVES the list once she has written back to that
+    chat since it landed (`lastHerAt`, her real send time, stamped by the one
+    route both her doors come through). So the tab is what has been handed to
+    her and not yet dealt with, and it empties itself; a chat that delivers
+    again after she wrote back comes back on its own.
+    `deliverables-feed.js` is the whole
     rule (pure); `GET /api/deliverables/feed` is the read, two cached queries
     and no model call.
   - **THE BUG PILE IS ONE STATE UNDER TWO DOORS** — the header's bug button

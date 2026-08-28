@@ -4739,7 +4739,12 @@ function paintDelivered(el, items){
       ? (it.count===1 ? '1 picture' : it.count+' pictures') : 'Untitled'));
     var meta = name + (when? ' &middot; '+when : '')
       + (it.kind==='images' && it.count>1 ? ' &middot; '+it.count+' pictures' : '')
-      + (it.versions>1 ? ' &middot; v'+it.versions : '');
+      + (it.versions>1 ? ' &middot; v'+it.versions : '')
+      // NEWEST REPLACES OLDEST (2026-08-28) — the earlier hand-overs from this
+      // chat are folded under this row rather than dropped, and the line says
+      // so, because a list that silently swallows things is worse than a long
+      // one.
+      + (it.older && it.older.length ? ' &middot; '+it.older.length+' earlier' : '');
     head.innerHTML='<span class="dv-ic">'+mark+'</span><span class="dv-txt">'
       +'<span class="dv-t">'+title+'</span><span class="dv-m">'+meta+'</span></span>';
     // A FILM IS THE LINK SHE ASKED FOR — the house player, so tap-to-note and

@@ -59,16 +59,17 @@ const chats = { panels: { displayName: 'Rat panels' }, filmy: {}, cuts: {} };
 const { items } = buildFeed({ deliverables, assets, chats });
 
 t('films and pictures are ONE list in time order', () => {
-  // the film (10m), this morning's pictures (30m), the cut (5h), last
-  // night's pictures (9h) — interleaved, one list
-  assert.deepStrictEqual(items.map((i) => i.kind), ['video', 'images', 'audio', 'images']);
+  // the film (10m), this morning's pictures (30m), the cut (5h) — last
+  // night's burst folds under this morning's, per "newest replaces oldest"
+  assert.deepStrictEqual(items.map((i) => i.kind), ['video', 'images', 'audio']);
 });
 
 t('a chat\'s pictures split into bursts', () => {
-  const im = items.filter((i) => i.kind === 'images');
-  assert.strictEqual(im.length, 2, 'two hand-overs, two rows');
-  assert.strictEqual(im[0].count, 4);
-  assert.strictEqual(im[1].count, 1);
+  // the bursts are still what a row IS — the older one is folded, not merged
+  const burst = burstsFor(assets.filter((a) => a.chat === 'panels' && a.description));
+  assert.strictEqual(burst.length, 2, 'two hand-overs, two bursts');
+  assert.strictEqual(burst[0].length, 4);
+  assert.strictEqual(burst[1].length, 1);
 });
 
 t('a row shows three and says how many there were', () => {
@@ -103,6 +104,32 @@ t('an audio asset is not a picture row', () => {
 t('names come off the registry', () => {
   assert.strictEqual(items.find((i) => i.kind === 'images').chatName, 'Rat panels');
   assert.strictEqual(items[0].chatName, 'filmy', 'no display name → the slug');
+});
+
+// ── her two rules, 2026-08-28 ───────────────────────────────────────────────
+t('newest replaces oldest — one picture row per chat, the earlier ones folded', () => {
+  const im = items.filter((i) => i.kind === 'images');
+  assert.strictEqual(im.length, 1, 'a chat should leave ONE picture row');
+  assert.strictEqual(im[0].count, 4, 'and it is the newest hand-over');
+  assert.strictEqual(im[0].older.length, 1, 'the earlier one rides along, never dropped');
+});
+
+t('a row disappears once she has written back since it landed', () => {
+  // she answered `filmy` after its film and `panels` before its pictures
+  const answered = buildFeed({ deliverables, assets, chats: Object.assign({}, chats, {
+    filmy: { lastHerAt: at(2 * MIN) },
+    panels: { displayName: 'Rat panels', lastHerAt: at(6 * HOUR) },
+  }) });
+  const kinds = answered.items.map((i) => i.kind);
+  assert.ok(!kinds.includes('video'), 'the film she answered is still on the list');
+  assert.ok(kinds.includes('images'), 'a hand-over OLDER than her message was dropped');
+});
+
+t('…and it comes back when the chat delivers again', () => {
+  const again = buildFeed({ deliverables, assets, chats: Object.assign({}, chats, {
+    filmy: { lastHerAt: at(20 * MIN) },   // she wrote BEFORE the film landed
+  }) });
+  assert.ok(again.items.some((i) => i.kind === 'video'));
 });
 
 t('an unlabeled picture is not a delivery', () => {
