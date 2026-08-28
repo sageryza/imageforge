@@ -19,7 +19,13 @@
   .app-header{display:flex;align-items:center;min-height:34px;padding-right:64px;margin:0 0 8px}
   .app-header h1{font:400 11px/1 -apple-system,'Helvetica Neue',sans-serif;letter-spacing:.34em;
                  text-transform:uppercase;color:#6f675e;margin:0}
-  .panel{background:#fff;border:1px solid #e0d8ca;border-radius:6px;padding:12px;margin-bottom:14px}
+  /* THE PILL'S COLUMN IS RESERVED BY WHATEVER SITS UNDER IT AT REST — and the
+     BOX shortens rather than padding, because a panel has an outline and a
+     padded one keeps drawing its border under the capsule (chats.html's
+     `.pinned` lesson). `--pillgap` is written by fitPillGap() from the pill's
+     REAL rect; a page with no pill leaves it 0 and nothing moves. */
+  .panel{background:#fff;border:1px solid #e0d8ca;border-radius:6px;padding:12px;margin-bottom:14px;
+         margin-right:var(--pillgap,0px);margin-top:var(--pilltop,0px)}
   .lab{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#9a8f7d;margin-bottom:7px}
   textarea{width:100%;min-height:110px;border:1px solid #d8cfc0;border-radius:6px;padding:9px;
            font:16px/1.4 -apple-system,Georgia,serif;background:#fdfbf7;color:#2b2620;resize:vertical}
@@ -214,6 +220,101 @@ document.addEventListener('focusin', function (e) {
   if (t && t.closest && t.closest('.float')) return;
   if (window.__scrollStop) window.__scrollStop();
 });
+
+// ── THE PILL'S COLUMN, MEASURED (2026-08-28, Sophie: "pill broken in
+// freeform"). The page used to open with a lede paragraph carrying
+// `padding-right:56px`, so the panels began BELOW the pill's band. When the
+// lede came off (#1857) the two panels moved straight up into it: the
+// Reference panel's box drew under the capsule, the pill's own `Fast` label
+// printed inside the Prompt panel, and — measured with elementFromPoint at
+// the iPhone 13's real 47px safe-area inset — the fourth-column reference
+// tile was COVERED BY THE PILL and could not be tapped at all.
+//
+// MEASURED against the pill's real rect, never a hardcoded 56/64 band: the
+// pill is conditional (it only exists once there is something to scroll) and
+// its top rides env(safe-area-inset-top), so the band is a different height
+// on her phone than in any headless check.
+//
+// Judged at the TOP OF THE PAGE on purpose. A live viewport test would change
+// a panel's width as it scrolled past the capsule; the run cards below scroll
+// under the rail exactly as they do on every other page here.
+// A WRITE THAT CHANGES NOTHING IS NOT A WRITE. Every observer below can be
+// woken by a style attribute, so a pass that re-set an identical value would
+// wake itself and spin a frame forever.
+function setGap(el, name, v) {
+  if (el.style.getPropertyValue(name) === v) return;
+  el.style.setProperty(name, v);
+}
+// TWO ANSWERS, AND THE CHOICE IS WHICHEVER COSTS LESS. A panel deep in the
+// band SHORTENS — that is the only thing that makes the Reference panel's
+// fourth-column tile tappable, and nudging it clear would push the whole top
+// of the page down by most of a pill. A panel that merely DIPS into the bottom
+// of the band is nudged instead: shortening that one costs 58px off a row that
+// already fits three controls and wraps them onto a third line, for the sake
+// of an overlap of about thirty pixels (the Playground's own note about this
+// corner says a third line of controls is not a price to pay unasked).
+//
+// The threshold is the column's own width: if clearing the pill vertically
+// costs more than reserving it horizontally, reserve it horizontally.
+//
+// EVERY PANEL IS MEASURED WITH BOTH RESERVATIONS AT ZERO FIRST, in one pass,
+// so a panel is never judged on a position this function gave it — that is
+// what would oscillate: nudge it clear, find it clear, drop the nudge, find
+// it colliding again, forever.
+function fitPillGap() {
+  var panels = document.querySelectorAll('.panel');
+  var pill = document.querySelector('body > .float');
+  var p = (pill && pill.getClientRects().length) ? pill.getBoundingClientRect() : null;
+  var y = window.scrollY || 0, i;
+  for (i = 0; i < panels.length; i++) { setGap(panels[i], '--pillgap', '0px'); setGap(panels[i], '--pilltop', '0px'); }
+  if (!p) return;
+  var nat = [];
+  for (i = 0; i < panels.length; i++) nat.push(panels[i].getBoundingClientRect());  // natural, unreserved
+  for (i = 0; i < panels.length; i++) {
+    var el = panels[i], r = nat[i], top = r.top + y, bot = r.bottom + y;
+    // the pill is fixed, so its viewport rect IS its resting position in the
+    // document; compare the panel there rather than where it is right now
+    if (bot <= p.top || top >= p.bottom) continue;
+    var clear = Math.ceil(p.bottom - top) + 8;        // what a nudge would cost
+    if (clear > 56) setGap(el, '--pillgap', Math.max(0, Math.ceil(r.right - p.left) + 8) + 'px');
+    // the 14px it already has collapses into this one, so add it back or the
+    // panel moves down by 14px less than it was asked to
+    else setGap(el, '--pilltop', (14 + clear) + 'px');
+  }
+}
+window.__fitPillGap = fitPillGap;
+// The pill appears only once the page has something to scroll, and this page
+// fetches its references and its runs after it loads — so a check at load
+// would run before the pill exists. Watch instead, coalesced to one pass a
+// frame, the way the pill watches for the same reason.
+(function () {
+  var q = false;
+  function soon() { if (q) return; q = true; requestAnimationFrame(function () { q = false; fitPillGap(); }); }
+  window.__fitPillSoon = soon;
+  window.addEventListener('resize', soon, { passive: true });
+  window.addEventListener('orientationchange', soon);
+  window.addEventListener('load', soon);
+  // the pill settles into its final height a beat after it appears (its speed
+  // label lands with the font), and a height change of the pill is a change to
+  // the band — two cheap settling passes rather than trusting one moment
+  setTimeout(soon, 400); setTimeout(soon, 1500);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(soon);
+  if (window.ResizeObserver) {
+    var ro = new ResizeObserver(soon);
+    ro.observe(document.documentElement);
+    if (document.body) ro.observe(document.body);
+  }
+  // THE PILL IS APPENDED AFTER THIS SCRIPT (the server adds it to a page it has
+  // never met) and it is shown and hidden by a style attribute — so watch for
+  // it arriving, then watch the element itself. A ResizeObserver hears both
+  // halves: display:none is a size of 0, and coming back is a size again.
+  (function waitForPill(tries) {
+    var f = document.querySelector('body > .float');
+    if (f) { if (window.ResizeObserver) new ResizeObserver(soon).observe(f); soon(); return; }
+    if (tries > 0) setTimeout(function () { waitForPill(tries - 1); }, 120);
+  })(20);
+  soon();
+})();
 
 // ── Lightbox: pause scroll, lock the body, and RESTORE the exact position on
 // close — pausing alone is not enough, since overflow:hidden doesn't stop

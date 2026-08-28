@@ -4811,6 +4811,42 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **AND THE PAGE HAS NO INFO TEXT AT THE TOP** (2026-08-28, Sophie: "get rid of
   the info text at the top of Freeform") — the header is the whole top of the
   page; the lede paragraph explaining the module is gone.
+  **AND THAT LEDE WAS RESERVING THE PILL'S COLUMN — TAKING IT OFF BROKE THE
+  PILL (2026-08-28, Sophie: "pill broken in freeform").** The paragraph carried
+  `padding-right:56px`, so the page's two panels began BELOW the injected
+  pill's band; with it gone they moved straight up into it, and nothing
+  replaced the reservation. Measured at the iPhone 13's real **47px safe-area
+  inset** (which is 0 in headless Chromium, so this was only ever visible in
+  her hand): the Reference panel's white box drew under the capsule, the pill's
+  own `Fast` label printed inside the Prompt panel, and the fourth-column
+  reference tile came back **COVERED BY THE PILL** — `elementFromPoint`
+  answered `float`, i.e. a tile she could not tap at all.
+  - **`fitPillGap` MEASURES the pill's real rect** — never a hardcoded 56/64
+    band, because the pill is conditional and its top rides
+    `env(safe-area-inset-top)`.
+  - **SHORTEN THE PANEL THAT OWNS THE CORNER, NUDGE THE ONE THAT ONLY DIPS, and
+    the threshold is the column's own width.** The Reference panel shortens
+    (`--pillgap` on its margin) — that is the only thing that makes its fourth
+    tile tappable. The Prompt panel's top merely dips into the bottom of the
+    band, and cutting 58px off a row that already fits three controls wraps
+    them onto a third line for the sake of ~30px of overlap — the Playground's
+    own note about this corner says a third line of controls is not a price to
+    pay unasked — so it is moved (`--pilltop`) instead.
+  - **EVERY PANEL IS MEASURED WITH BOTH RESERVATIONS AT ZERO FIRST**, in one
+    pass, so a panel is never judged on a position this function gave it: nudge
+    it clear, find it clear, drop the nudge, find it colliding — forever. For
+    the same reason a write that changes nothing is skipped, since the
+    observers that call this back are woken by a style attribute.
+  - Judged at the TOP OF THE PAGE: a live viewport test would change a panel's
+    width as it scrolled past, and the run cards below pass under the rail
+    exactly as they do on every other page here.
+  - **THE LESSON BEYOND THIS PAGE: a `padding-right` near the top of a page is
+    usually load-bearing.** Removing the thing that carried it is a pill bug
+    with nothing on screen naming the pill.
+  Test: `node scripts/test-freeform-pill.js` (the real page + the real injected
+  pill, headless, at both insets with the library folded and open — verified
+  failing 14 pre-fix; the covered tile is asked with `elementFromPoint`, which
+  is what a covered control passes every width assertion while failing).
   Test: `node scripts/test-freeform-boiler.js` (it reads the real table out of
   server.js, so a stale style id or a pasted copy fails there).
   **Full details: `docs/modules/pictures.md`.**
