@@ -4515,7 +4515,25 @@ before working on that module. Nothing was deleted — the moved text is verbati
   no suffix, not even a trailing-period trim. `promptSent` is stored on every run
   so anyone can verify nothing was added — the "if you add anything to a prompt
   Sophie gave, tell her" rule made structural. References are a LIBRARY, not a
-  per-run upload. **Full details: `docs/modules/pictures.md`.**
+  per-run upload.
+  **ONE EXCEPTION, AND IT IS A BUTTON — the BOILERPLATE STYLE toggle
+  (2026-08-28, Sophie: "add a default boiler style not content prompt to
+  freeform with a toggle on off button" · "boiler plate").** A stock STYLE
+  line — how a picture is drawn, never what is in it, so it can ride any words
+  without arguing with them — appended after her words while the toggle is lit.
+  Four things keep it from breaking the module's whole promise, and none is
+  optional: it is **OFF by default and NOT sticky** (a wrapper remembered from
+  last week silently riding today's run is exactly the surprise this surface
+  exists to avoid); the lit button **prints the exact line it adds**, so nothing
+  is ever added invisibly; the **text is SERVED** (`GET /api/freeform/style`,
+  `BOILER` in freeform.js) and the page keeps no copy, so the two cannot drift;
+  and the run stores `boiler` plus `promptSent`/`promptStyle`/`promptContent`
+  through the ONE builder (`prompt-record.js`) — **off files NO style half at
+  all**, which is the honest answer rather than a reconstruction. Putting a run
+  back restores the toggle to what THAT run had, the same *only change what the
+  record knows* rule the references follow. `boilerFields` is the one assembler.
+  Test: `node scripts/test-freeform-boiler.js`.
+  **Full details: `docs/modules/pictures.md`.**
 - **Vector pipeline** (`vector.js`, `/api/vector`, page at `/vector`, iOS tile
   under the PICTURES filter) — describe 1-25 drawings -> ONE gpt-image-2 sheet in
   the pastel house style (~6c, the only cost) -> cut into cells -> trace each to
