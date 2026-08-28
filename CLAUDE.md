@@ -6158,15 +6158,19 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - **The square film frame is 1.17MP against portrait's 1.5** — UNDER the
     budget the OOM note beside `FILM` proves this 512MB box survives. That
     number, not the width, is what a third shape has to stay inside.
-  **AND SHE DOES NOT HAVE TO PICK IT — THE SHAPE FOLLOWS THE STORY'S FIRST
-  PICTURE (2026-08-28, her next message: "automatic by first picture").** The
-  toggle stays for when she wants it; the ordinary path is that the first
-  picture PLACED on a story decides — her pick out of the inbox, a Playground
-  send, a photo off her phone, a chat seeding art. Four things:
-  - **"Nobody has decided" is one field: a pad with no `shape` at all.** Her
-    tap writes one, so from then on the story is hers and this never runs
-    again — the `catBy` rule, spelled with the value's own presence instead of
-    a second field to keep in step. `autoShapePatch` in `scratchpad.js`.
+  **THE SHAPE FOLLOWS THE STORY'S FIRST PICTURE, AND THERE IS NO CONTROL FOR
+  IT (2026-08-28, "automatic by first picture" then "get rid of button").** The
+  first picture PLACED on a story decides — her pick out of the inbox, a
+  Playground send, a photo off her phone, a chat seeding art — and that is the
+  whole of it. **The toggle shipped for one afternoon and she retired it**: a
+  control beside an answer the story already has is a second way to say one
+  thing, sitting on the row she reads for the STYLE. `POST /shape` is still
+  there for a chat to correct one on her ask; nothing on the page calls it.
+  Four things:
+  - **"Nobody has decided" is one field: a pad with no `shape` at all**, so
+    the rule fires once and the picture that fired it is the one that decided
+    — the `catBy` rule, spelled with the value's own presence instead of a
+    second field to keep in step. `autoShapePatch` in `scratchpad.js`.
   - **A picture the pad DREW can never decide it** — it was drawn AT the
     story's shape, so reading it back would only confirm the default. A test
     fails if the rule is ever wired into the draw.
