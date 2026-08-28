@@ -16,6 +16,13 @@ The numbers are measured, not guessed.
 3. **Spent real money this turn? Say how much.** ONLY then — a reply that
    reports "$0" or "nothing spent" is noise she has to read (Sophie,
    2026-08-15: "they should just tell me if they DID spend something").
+3z. **A MEASUREMENT SHE DID NOT ASK FOR STAYS OUT OF THE REPLY** (Sophie,
+   2026-08-28: "why r u telling me that" · "every chat tells me that like 70
+   times"). Token counts, what a reference costs, how long a call took, what
+   you learned about the pipeline on the way: interesting to you, noise to
+   her, and she reads it in every chat. It goes in the PR, the commit or this
+   file — never into her reply unless she asked or it changes what she does
+   next. Full rule: *DON'T HAND HER YOUR FINDINGS* in Design rules.
 3a. **PIN THE LINK — but ONLY in her two cases** (`POST /api/chatfeed/pin
    {chat, session, url, title}`): a page you are **actively working on**
    (`/science`, `/chunking`), or a deliverable you are **actively handing her
@@ -3344,6 +3351,24 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   reading time is the reason. "Small question → short answer" and "quick
   question mode" below are the tighter ends of the same dial, not exceptions
   to a verbose default.
+- **DON'T HAND HER YOUR FINDINGS (2026-08-28, Sophie: "why r u telling me
+  that", then "every chat tells me that like 70 times").** The reply that
+  earned it ended with a free measurement — the style reference costs 1,505
+  image tokens, most of the bill on a low run — which she had not asked about
+  and which changed nothing she was doing. It is the same reflex in every
+  chat: a chat measures something on the way to the work and reports it
+  because it was interesting to MEASURE, and she gets the same aside dozens of
+  times over.
+  - **The test is whether it changes what she does next**, not whether it is
+    true or hard-won. Token counts, per-call latencies, cache behaviour, what
+    a route does internally, why an approach was slow: out.
+  - **Money she is spending is the one that stays in** — the checklist's rule
+    is unchanged (say what a turn spent, estimate a batch, ask above $3). A
+    per-token breakdown of a bill she has already been told is not that.
+  - **The finding is not lost, it is FILED**: the PR description, the commit
+    message, or a line in this file where the next chat will read it. That is
+    where a measurement belongs, and it is why writing it into her reply buys
+    nothing.
 - **Small question → short answer.** When Sophie asks a quick or small
   question, reply with just the answer — no suggestions about what to do next,
   no updates on work already done, no recaps. Save those for when she asks.
