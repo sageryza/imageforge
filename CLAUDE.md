@@ -4762,6 +4762,30 @@ before working on that module. Nothing was deleted — the moved text is verbati
   the heart the pictures) and hides "Older" while it is running. Searchable:
   her words, the style by its LABEL and its key, quality, the canvas by its
   ratio AND by the word on the button, `photo ref`, failed/cancelled.
+  **AND IT TAKES ITS OWN LINE WHILE SHE IS SEARCHING (2026-08-28, Sophie:
+  "search way too small. why can't it show behind pill column").** Measured at
+  390pt: the row is List·Tiles·3 (148) + the filter chips (70, or 104 with the
+  sheets chip) + the 56 the injected pill owns, which left the box **76px, or
+  41 on the PANELS tab** — her screenshot shows the placeholder clipped to
+  "Se" with the caret in it. **It cannot run behind the pill and that is the
+  answer to her question:** `.feedbar` is `position:sticky; top:0`, so unlike
+  ordinary content — which passes under the pill's fixed corner on its way up
+  — this row sits inside that corner PERMANENTLY, so anything under those 56px
+  is covered and untappable for good, and the right end of the box is exactly
+  where the ✕ and the caret live. So the room comes from a SECOND LINE: while
+  the box is focused or holds words the row wraps and the search takes a full
+  line of its own (310px), and **nothing is hidden to pay for it**. Stepping
+  the view switch or the chips aside was built first and reverted — switching
+  to tiles over the hits and lighting the heart on them are two of the things
+  a search is FOR, and a lit filter she cannot see is the silent-filter
+  failure this app keeps getting burned by. The 40px is spent only while she
+  is searching; an empty box is byte-for-byte the row it always was, and a
+  query with the keyboard down KEEPS the line (Return blurs the box, and
+  taking the line back while she is still reading the answer is the change
+  arriving at the wrong moment). Test:
+  `node scripts/test-playground-search-room.js` (every state measured off the
+  real boxes, the controls asked with `elementFromPoint`; verified failing 5
+  pre-fix).
   **IT ASKS THE SERVER, and that is the point** — `GET /api/promptlab?q=`
   scans the whole run history (a few hundred ~1KB docs, capped 1500, held
   60s) because a box that only filters the loaded page answers "nothing
