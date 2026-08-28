@@ -1093,6 +1093,21 @@
     paintPhoto();
   }
 
+  // PUTTING A PROMPT BACK MOVES THE SCREEN TO THE BOX (2026-08-28, Sophie:
+  // "prompt us back in box shud move screen to box"). Every copy path already
+  // asked for that scroll, and from the LIGHTBOX it never happened: closing an
+  // overlay RESTORES the position she opened it from (the house rule — she
+  // closes an image exactly where she opened it), and asset-lightbox.js
+  // re-asserts that restore on the NEXT frame, which cancels a smooth scroll
+  // started in the same tick. So the scroll is asked for immediately AND again
+  // once the restore's own frames have run: the last word has to be ours, or
+  // the words land in a box she is nowhere near.
+  function scrollToPrompt() {
+    var go = function () { window.scrollTo({ top: 0, behavior: 'smooth' }); };
+    go();
+    requestAnimationFrame(function () { requestAnimationFrame(go); });
+  }
+
   // The copy button beside a run's words: puts that prompt back into the box.
   function copyPromptIn(text) {
     var box = document.getElementById('prompt');
@@ -1100,7 +1115,7 @@
     // Setting `.value` fires no `input` event, so the big box has to be told.
     if (window.__fitBigPrompt) window.__fitBigPrompt();
     updateShape();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollToPrompt();
     toast('Prompt is back in the box');
   }
   // A PANELS run's copy button refills the panel BOXES — switching to the
@@ -1120,7 +1135,7 @@
     savePanelTexts(r.grid.count, r.panels.slice());
     try { localStorage.setItem(GRIDKEY, String(r.grid.count)); } catch (e) { /* private mode */ }
     setTab('panels');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollToPrompt();
     toast('Panels are back in the boxes');
   }
   // A STORY run's copy button refills the STORY box — its words came out of
@@ -1130,7 +1145,7 @@
     try { localStorage.setItem(GRIDKEY, 'story'); } catch (e) { /* private mode */ }
     restorePhoto(r);          // a story run never carries one → clears, honestly
     setTab('panels');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollToPrompt();
     toast('The story is back in the box');
   }
   function copyRunIn(r) {

@@ -3737,6 +3737,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
       headless — the restore is a state change across three controls and a
       source assertion cannot see it; verified failing pre-fix, 5 in the
       Playground and no button at all in Freeform).
+  **AND IT MOVES THE SCREEN TO THE BOX — `scrollToPrompt` (2026-08-28, Sophie:
+  "prompt us back in box shud move screen to box").** Every copy path had asked
+  for that scroll since the buttons shipped, and from the LIGHTBOX it never
+  happened, so on the one path where she cannot see the box at all the words
+  landed somewhere she was not. **It is two house rules meeting, not a missing
+  call:** closing an overlay RESTORES the position she opened it from (she
+  closes an image exactly where she opened it) and `asset-lightbox.js`
+  re-asserts that restore on the NEXT frame — which lands on top of a smooth
+  scroll started in the same tick and cancels it. So the scroll is asked for
+  immediately AND again once the restore's own frames have run: **the last word
+  has to be ours.** One helper for all three copy paths (the one box, the panel
+  boxes, the story box), so a fourth cannot ship without it. The restore itself
+  is untouched — closing the lightbox WITHOUT copying still puts her back where
+  she opened it, and the test pins both. **A grep passes against the pre-fix
+  page** (the call was always there); the only honest question is where the
+  window ends up a moment after her tap. Test:
+  `node scripts/test-playground-copy-scroll.js` (the real page headless,
+  verified failing pre-fix on the lightbox path).
   **HER OWN CAST — THE CHARACTER PICKER (2026-08-27, Sophie: "add a little
   button in the playground right next to where it says dreamy make sure it's
   the same style with a character icon that shows the five most recent
