@@ -3532,8 +3532,23 @@ before working on that module. Nothing was deleted — the moved text is verbati
   one at a time — a serialized 10-sheet batch cost 12 minutes for no
   protection the box needed), and ratchet the ledger when you measure
   higher.
+  **THE BOXES FOLD (2026-08-28, Sophie: "make the panels grid
+  collapsible")** — nine 2:3 boxes is most of a screen and the controls and
+  Generate sit under them, so a row above the grid puts them away (measured:
+  the controls come up ~460px at 390pt). Sticky, and **OPEN by default** —
+  the boxes are the prompt on this tab, so shut is a state she has to have
+  chosen. Three things not to undo. It hides them with **`display:none`,
+  leaving the textareas in the DOM**, so a fold can never lose her words and
+  `panelVals()` still reads them: a folded Generate POSTs every panel, and a
+  test pins that. **Shut, the row says how many are written** ("Panels · 3 of
+  9 written" / "Story · written") and open it does not — the boxes are right
+  there, the archive summary's don't-say-it-twice rule. And **anything that
+  means "write in these boxes" OPENS it** — picking a grid or Story, a run's
+  copy button putting panels back, and a Generate error naming an empty
+  panel, because an error pointing at a box she cannot see is no error.
   Full rules: *The PANELS
-  tab* in `docs/modules/pictures.md`. Tests: `node scripts/test-sheet-grid.js`
+  tab* in `docs/modules/pictures.md`. Tests: `node
+  scripts/test-playground-panel-fold.js`, `node scripts/test-sheet-grid.js`
   and `node scripts/test-playground-panels.js`.
   **SANDY MIRROR AND CHATGPT ARE TWO TILES SINCE 2026-08-24 (Sophie: "add one
   more endpoint option to the playground, which is called ChatGPT and change
