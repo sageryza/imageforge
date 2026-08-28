@@ -1,6 +1,8 @@
 # Xi commercial ideas — from her recordings, 2026-08-27
 
-Sophie sent three recordings and said: *"these ideas for xi commercials."* Xi
+Sophie sent three recordings and said: *"these ideas for xi commercials"* — then,
+about the video: *"the video is a voiceover for one."* So it is TWO concepts and
+ONE recorded voiceover take, not three concepts. Xi
 (Memory Library / incaseofamnesia.com) has **two ads shot** — *Skip the small
 talk* (0:31) and *The fight — the receipts* (0:25) — and seven empty slots on
 its Instagram grid (`public/instagram-grids.json`, account `xi`).
@@ -51,19 +53,27 @@ story they always tell.
 This is a MONTAGE spot rather than a two-hander, and it wants illustrated
 tableaux (the restaurant shot is fully art-directed above).
 
-## 3. "Start over from square one" — the black video
+## 3. "Start over from square one" — HER VOICEOVER TAKE
 
-Thirty seconds, picture black, audio is a performed script. A breakup bit that
-lands on first-date small talk:
+**Not a third concept — it is a recorded VOICEOVER for one of the ads** (her
+own correction, 2026-08-27: *"the video is a voiceover for one"*). The picture
+is black for thirty seconds because she was recording audio; the take is the
+whole file, performed, both voices.
 
 > Breakups are hard, but you know what the worst part is? Having to start over
 > from square one. So uh what's your favorite color? — Um sometimes I like
 > purple but then on Wednesdays I kind of like green more, and then if it's a
 > Tuesday kind of day, and then don't get me started on red.
 
-Sibling of the shot *Skip the small talk*, so it is the one to check against
-that cut before shooting — same territory, different joke (there the small talk
-is skipped, here it is endured).
+So this is a **usable production asset**, not something to write: it is her
+voice, her timing, her deadpan on the second half. The one thing NOT settled is
+which ad it belongs to — the small-talk territory it lives in is already shot
+as *Skip the small talk* (0:31), so it is either a re-voice of that or the VO
+for a new cut. **Ask her before cutting picture to it.**
+
+**Her voice is never re-rendered from a take she performed** — the recording is
+the take (house rule: her own recording always wins over TTS). The audio is
+extracted clean from the .mov and filed in the memo library at the id above.
 
 ## Also in Night ideas, NOT a commercial
 
