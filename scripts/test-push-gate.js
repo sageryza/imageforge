@@ -8,7 +8,7 @@
 //
 //   node scripts/test-push-gate.js
 
-const { shouldPushReply, chatNotifies, pushBody } = require('../push-gate');
+const { shouldPushReply, chatNotifies, needEscalates, pushAlert, pushBody } = require('../push-gate');
 
 let pass = 0; const fails = [];
 function is(name, got, want) {
@@ -181,6 +181,59 @@ is('a reply that is nothing but a bolded question still says it',
 is('an empty reply is an empty body, not a crash',
   pushBody('', ''),
   '');
+
+
+// ── A CHAT BLOCKED ON HER RINGS WITHOUT A BELL (2026-08-28, Sophie: "can u
+// make chats bell themselves based on importance") ──────────────────────────
+{
+  const A = '2026-08-28T06:00:00.000Z';
+  const B = '2026-08-28T07:00:00.000Z';
+  is('no need at all → nothing to buzz about', needEscalates({}), false);
+  is('a blank need is no need', needEscalates({ statusNeed: '  ', needSetAt: A }), false);
+  // The whole point: a chat re-states its need at the end of EVERY turn, so
+  // "a need exists" would buzz her on a loop for one ask.
+  is('a need never stamped as changed → silent',
+    needEscalates({ statusNeed: 'pick a take' }), false);
+  is('a NEW ask → buzz',
+    needEscalates({ statusNeed: 'pick a take', needSetAt: A }), true);
+  is('the same ask, already buzzed → silent',
+    needEscalates({ statusNeed: 'pick a take', needSetAt: A, needPushedAt: A }), false);
+  is('a SECOND, different ask → buzz again',
+    needEscalates({ statusNeed: 'now pick a cut', needSetAt: B, needPushedAt: A }), true);
+  // Her bell is untouched: importance is a property of the moment, and a
+  // self-set bell would stick forever and eat the whitelist.
+  is('the escalation does not read her bell',
+    needEscalates({ statusNeed: 'x', needSetAt: A, notify: false }), true);
+  is('a missing registry is safe', needEscalates(null), false);
+}
+
+// ── WHAT THE BANNER SAYS (2026-08-28, Sophie: "and notification more
+// informative") — the chat is always the title, the kind leads the body ─────
+{
+  const need = pushAlert('need', { chatName: 'Evan film', need: 'pick a take 1-4' });
+  is('need: the chat is the title', need.title, 'Evan film');
+  is('need: the ask leads the body', need.body, 'Needs you · pick a take 1-4');
+  const film = pushAlert('video', { chatName: 'Evan film', title: 'Evan v18 (4:23)' });
+  is('film: the chat is the title, not "New deliverable"', film.title, 'Evan film');
+  is('film: the kind leads the body', film.body, 'New film · Evan v18 (4:23)');
+  is('audio names itself',
+    pushAlert('audio', { chatName: 'c', title: 'cut 3' }).body, 'New audio · cut 3');
+  is('a page names itself',
+    pushAlert('page', { chatName: 'c', title: 'Sheet v2' }).body, 'New page · Sheet v2');
+  is('an unknown kind falls back rather than saying nothing',
+    pushAlert('whatever', { chatName: 'c', title: 'x' }).body, 'New deliverable · x');
+  is('an answer still leads with its TLDR',
+    pushAlert('answer', { chatName: 'c', text: 'body', tldr: 'TLDR line' }).body, 'TLDR line');
+  // The 2026-08-15 rule survives the move: a reply opening with her own
+  // question in bold must never come back to her as the banner.
+  is('and still skips her own bolded question',
+    pushAlert('answer', { chatName: 'c', text: '**Can you fix it?**\nYes — done.' }).body,
+    'Yes — done.');
+  is('markdown is stripped from the name too',
+    pushAlert('need', { chatName: '**Evan**', need: '`x`' }).title, 'Evan');
+  is('a nameless chat still gets a title',
+    pushAlert('need', { chatName: '', need: 'x' }).title, 'Deck Factory');
+}
 
 if (fails.length) {
   console.error(`\n${fails.length} FAILED (${pass} passed)\n`);

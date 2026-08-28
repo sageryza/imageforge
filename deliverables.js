@@ -208,13 +208,16 @@ function rowsOf(docs, chats) {
 // bypass is untouched, because no reply push fires on an unbelled chat to
 // swallow it.
 let lastPushAt = 0;
-function pushNew(chat, chatName, title) {
+function pushNew(chat, chatName, title, kind) {
   try {
     const now = Date.now();
     if (now - lastPushAt < 60 * 1000) return false;
     lastPushAt = now;
-    require('./push').queueChat(chat, 'New deliverable',
-      `${title} — ${chatName}`, { debounce: false });
+    // The CHAT is the title on every door now (2026-08-28, Sophie: "and
+    // notification more informative") — which chat it came from is the fact
+    // she needs first, and the body says what kind of thing arrived.
+    const a = require('./push-gate').pushAlert(kind || 'link', { chatName, title });
+    require('./push').queueChat(chat, a.title, a.body, { debounce: false });
     return true;
   } catch (e) { console.warn('deliverables: push failed', e.message); return false; }
 }
@@ -239,7 +242,7 @@ async function record(input) {
       const reg = await require('./chatfeed').registry();
       chatName = ((reg.chats || {})[chat] || {}).displayName || chat;
     } catch (e) { /* registry down — push with the slug */ }
-    pushed = pushNew(chat, chatName, doc.title);
+    pushed = pushNew(chat, chatName, doc.title, doc.kind);
   }
   return { ok: true, isNew, pushed, id: ref.id };
 }
