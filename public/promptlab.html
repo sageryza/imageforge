@@ -13,6 +13,10 @@
      the Story Room draws with, so the sentence the picked characters add to
      her words is written down exactly once. See /pad-characters.js. -->
 <script src="/pad-characters.js"></script>
+<!-- The panel sheet's own module, served the same way: the characters clause
+     her typed cast sends is built by the REAL sheetGrid.castBlock, so the
+     page keeps no copy of that wording either. -->
+<script src="/sheet-grid.js"></script>
 <!-- The caption's required third slot, shared the same way (2026-08-27) — the
      SAME derivation the server files a picture with, so the caption she reads
      on this page and the one on the filed record cannot disagree about which
@@ -471,6 +475,24 @@
     border-radius: 6px; background: #fdfcf9; color: #2b2622; font: inherit; font-size: 13px;
     cursor: pointer; }
   #charsbtn svg { width: 17px; height: 17px; display: block; }
+  /* HER TYPED CAST (2026-08-27, Sophie: "text boxes that say character 1: add
+     character, name, description … etc up to n" · "I want both. Descriptions
+     as well as pictures"). The WORDS half of a cast; the picker beside the
+     style is the PICTURES half, and a run may carry either, both or neither.
+     The boxes ship EMPTY and their placeholders NAME the field and nothing
+     more — the house rule. */
+  #castbox { margin: 10px 0 0; }
+  .castrow { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .castrow input { flex: 1 1 0; min-width: 0; font: inherit; font-size: 14px;
+    color: #2b2622; background: #fdfcf9; border: 1px solid #d8d0c4;
+    border-radius: 6px; padding: 7px 9px; }
+  .castrow input.cnm { flex: 1 1 90px; }
+  .castrow input.cds { flex: 3 1 160px; }
+  .castrow .cx { flex: none; width: 30px; height: 32px; padding: 0; font-size: 16px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #6f675e; }
+  #castadd { font: inherit; font-size: 13.5px; padding: 6px 11px;
+    border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #2b2622; }
   #charsbtn.on { background: #2b2622; color: #faf7f2; }
   #charsn:empty { display: none; }
   /* THE SHEET opens under the style row like the Prompt panel, and is the
@@ -593,6 +615,11 @@
   <div id="promptpanel"></div>
   <div class="promptwrap"><textarea id="prompt"></textarea><button type="button" id="bigprompt" aria-label="Bigger box" title="Bigger box"></button></div>
   <div id="panelgrid" hidden></div>
+  <div id="castbox" hidden>
+    <div class="plab">Characters</div>
+    <div id="castrows"></div>
+    <button type="button" id="castadd">Add a character</button>
+  </div>
   <div class="controls">
     <div class="canvastog" id="gridpick" role="group" aria-label="How many panels" hidden></div>
     <label id="scalewrap">LoRA scale <input type="number" id="scale" value="1" step="0.1" min="0" max="2"></label>
@@ -1245,6 +1272,7 @@
     if (!row.__tl) { row.__tl = 1; requestAnimationFrame(function () { row.classList.add('tl'); }); }
   }
   function buildPanelGrid() {
+    buildCastBox();
     var box = document.getElementById('panelgrid');
     if (!onPanels()) { box.hidden = true; return; }
     box.hidden = false;
@@ -1283,6 +1311,93 @@
       box.appendChild(t);
     }
   }
+  // ── HER TYPED CAST (2026-08-27, Sophie: "add a characters clause / text
+  // boxes that say character 1: add character, name, description … etc up to
+  // n" · "I want both. Descriptions as well as pictures: two options" · "The
+  // character clause only applies if there's at least one character").
+  //
+  // The WORDS half. The picker beside the style is the PICTURES half and the
+  // two are independent: a run may carry either, both or neither. Kept in
+  // localStorage like the panel texts — a cast is the story she is working
+  // on, and losing it on a reload would be losing work, where quality and the
+  // canvas are deliberately not remembered because they cost money.
+  //
+  // THE CLAUSE ITSELF IS NEVER WRITTEN HERE — sheetGrid.castBlock builds it,
+  // the same function the server sends, so the panel prints exactly what will
+  // ride. An empty cast returns the empty string, which is her rule.
+  var CASTKEY = 'promptlab_cast';
+  var castMax = 12;
+  function castAll() {
+    try {
+      var a = JSON.parse(localStorage.getItem(CASTKEY) || '[]');
+      return Array.isArray(a) ? a.map(function (c) {
+        return { name: String((c && c.name) || ''), description: String((c && c.description) || '') };
+      }).slice(0, castMax) : [];
+    } catch (e) { return []; }
+  }
+  function saveCast(arr) {
+    try { localStorage.setItem(CASTKEY, JSON.stringify(arr)); } catch (e) { /* private mode */ }
+  }
+  // The rows with something in them — what actually rides, and what decides
+  // whether the clause exists at all.
+  function castRows() {
+    var f = window.__sheetGrid && window.__sheetGrid.castRows;
+    return f ? f(castAll()) : [];
+  }
+  function castClause() {
+    var f = window.__sheetGrid && window.__sheetGrid.castBlock;
+    return f ? f(castAll()) : '';
+  }
+  function buildCastBox() {
+    var box = document.getElementById('castbox');
+    if (!box) return;
+    box.hidden = !onPanels();
+    if (box.hidden) return;
+    var rows = document.getElementById('castrows');
+    var arr = castAll();
+    rows.innerHTML = '';
+    arr.forEach(function (c, i) {
+      var d = document.createElement('div');
+      d.className = 'castrow';
+      var nm = document.createElement('input');
+      nm.type = 'text'; nm.className = 'cnm'; nm.value = c.name;
+      // The placeholders NAME the field and nothing more (the house rule).
+      nm.placeholder = 'Name'; nm.setAttribute('aria-label', 'Character ' + (i + 1) + ' name');
+      var ds = document.createElement('input');
+      ds.type = 'text'; ds.className = 'cds'; ds.value = c.description;
+      ds.placeholder = 'Description'; ds.setAttribute('aria-label', 'Character ' + (i + 1) + ' description');
+      function stash() {
+        var a = castAll();
+        a[i] = { name: nm.value, description: ds.value };
+        saveCast(a);
+        // The clause is part of the prompt, so an open panel says so the
+        // moment it changes — the same rule the picked cast follows.
+        if (promptOpen) paintPromptPanel();
+      }
+      nm.addEventListener('input', stash);
+      ds.addEventListener('input', stash);
+      var x = document.createElement('button');
+      x.type = 'button'; x.className = 'cx';
+      x.setAttribute('aria-label', 'Remove character ' + (i + 1));
+      x.textContent = '\u00d7';
+      x.addEventListener('click', function () {
+        var a = castAll(); a.splice(i, 1); saveCast(a);
+        buildCastBox(); if (promptOpen) paintPromptPanel();
+      });
+      d.appendChild(nm); d.appendChild(ds); d.appendChild(x);
+      rows.appendChild(d);
+    });
+    document.getElementById('castadd').hidden = arr.length >= castMax;
+  }
+  document.getElementById('castadd').addEventListener('click', function () {
+    var a = castAll();
+    if (a.length >= castMax) return;
+    a.push({ name: '', description: '' });
+    saveCast(a); buildCastBox();
+    var last = document.querySelectorAll('#castrows .cnm');
+    if (last.length) last[last.length - 1].focus();
+  });
+
   function stashPanels() {
     if (!PANELS_CFG) return;
     savePanelTexts(curGrid(), panelVals());
@@ -1347,6 +1462,11 @@
       body: JSON.stringify({
         prompt: joined, model: S.model, style: S.gptStyle, panels: texts, grid: g,
         quality: quality, canvas: canvas, res: resTier,
+        // Both halves of her cast — the typed rows and the picked cards.
+        // Absent when she used neither, so a run without one is the request
+        // it has always been.
+        cast: castRows().length ? castRows() : undefined,
+        characters: pickedChars.length ? pickedChars.slice() : undefined,
         prefix: over ? over.prefix : undefined, suffix: over ? over.suffix : undefined,
         noText: noTextFor(styleKey),
       }),
@@ -1374,6 +1494,8 @@
       body: JSON.stringify({
         prompt: story, model: S.model, style: S.gptStyle, story: true,
         quality: quality, canvas: canvas, res: resTier,
+        cast: castRows().length ? castRows() : undefined,
+        characters: pickedChars.length ? pickedChars.slice() : undefined,
         prefix: over ? over.prefix : undefined, suffix: over ? over.suffix : undefined,
         noText: noTextFor(styleKey),
       }),
@@ -1880,7 +2002,7 @@
     // Her own cast, and the photo line RE-ANCHORED when one rides behind it —
     // character cards attach at the very end, so "the LAST attached image" is
     // no longer the photo. Both halves are served, never written here.
-    var cline = onPanels() ? '' : charsLine();
+    var cline = charsLine();
     if (photoRef && !onPanels()) {
       var pl = cline
         ? ((p.baked && p.baked.photoLineWithChars) || PHOTO_LINE_CHARS)
@@ -1889,6 +2011,10 @@
     }
     if (cline) extras.push(cline);
     if (onPanels() && PANELS_CFG) {
+      // Her TYPED cast, when there is one — the clause is left out entirely
+      // when nobody is in it (her rule), so the panel says nothing either.
+      var ct = castClause();
+      if (ct) extras.push(ct);
       // STORY mode sends the served story line; a grid sends its sentence.
       if (storyMode() && PANELS_CFG.story) extras.push(PANELS_CFG.story.line);
       else if (PANELS_CFG.grids[curGrid()]) extras.push(PANELS_CFG.grids[curGrid()].sentence);
@@ -2265,11 +2391,14 @@
     // `noCharacter`: that flag is about the SOPHIE CARD, which is the
     // watercolor look by another name; a character she picked herself is her
     // own subject and belongs on every gpt tile, the reference-less one
-    // included. Panels are out for the reason the photo is — charLine() names
-    // "the last attached image", and a sheet is not the surface to argue that
-    // on. When the button goes, so does the sheet: a panel open over a style
-    // that cannot use it is a control with nothing behind it.
-    var charsOff = !gpt || panels;
+    // included. PANELS TAKE IT TOO since 2026-08-27 (Sophie: "I want both.
+    // Descriptions as well as pictures: two options") — charLine() names "the
+    // last attached image(s)", which is as true of a sheet as of a single
+    // picture, so this one could simply be turned on where the Sophie card
+    // and the photo, which name a POSITION for ONE picture, still cannot be.
+    // When the button goes, so does the sheet: a panel open over a style that
+    // cannot use it is a control with nothing behind it.
+    var charsOff = !gpt;
     charsBtn.hidden = charsOff;
     if (charsOff && charsOpen) { charsOpen = false; charPanel.classList.remove('on'); }
     // The photo rides gpt-image-2's EDITS call. The WTR LoRA has no

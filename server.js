@@ -3356,6 +3356,15 @@ app.get('/size-tier.js', (req, res) => {
   res.set('Cache-Control', 'no-cache, must-revalidate');
   res.sendFile(__dirname + '/size-tier.js');
 });
+// The panel sheet's geometry AND its content block, shared with the page the
+// same way — so the Playground's Prompt panel prints the REAL characters
+// clause her typed cast will send (sheetGrid.castBlock), rather than keeping
+// a second copy of the wording that drifts the day the clause is reworded.
+app.get('/sheet-grid.js', (req, res) => {
+  res.type('application/javascript');
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/sheet-grid.js');
+});
 // Chunking: the clip library — a shelf of every short self-contained piece the
 // app has made, four to a row, with search as the whole interface. Engine is
 // /api/clips (clips.js). `/clips` is the honest alias; `/chunking` is the name
@@ -6255,6 +6264,11 @@ async function runPromptLabPanelsJob(docRef, cfg) {
   try {
     const st = PL_GPT_STYLES[cfg.styleId] || PL_GPT_STYLES.evan;
     const refs = await playgroundRefs(st);
+    // Her picked characters ride LAST, the order she picked them — the same
+    // order charLine() names them in the head. A reference that will not
+    // fetch fails the run rather than quietly drawing a stranger (the Story
+    // Room's rule, and playgroundCharRefs is where it lives).
+    for (const b of await playgroundCharRefs(cfg.chars)) refs.push(b);
     const data = refs.length
       ? await openaiImageEditRefs(cfg.fullPrompt, refs, {
         quality: cfg.quality, size: plan.sheet, timeout: 300000,
@@ -6351,6 +6365,12 @@ async function runPromptLabJob(docRef, cfg) {
 // filed style half like every wrapper); `layout` fills the sheet swap's
 // `{layout}` slot, so a tail's anti-grid clause is swapped exactly as on a
 // grid sheet rather than argued with. ONE copy, here — the page holds none.
+// How many typed characters one sheet may carry. Generous rather than tight —
+// unlike the PICTURE cast (padChars.MAX_PICKED), whose cap exists because
+// every attached reference is paid input tokens, a typed row costs a line of
+// prompt. It is a guard against a runaway paste, not a design limit.
+const CAST_MAX = 12;
+
 const PL_STORY = {
   line: 'Tell this story as a multi-panel comic page. YOU decide how many '
     + 'panels there are, their sizes and their arrangement — whatever tells '
@@ -6468,9 +6488,25 @@ app.post('/api/promptlab', async (req, res) => {
       // the cut panels so votes, the lightbox and search need nothing new.
       // The canvas toggle picks the CELL shape and the tier the sheet's
       // pixel budget; the sheet canvas itself is derived (sheet-grid.js).
-      // The character card and her photo ref are deliberately OFF here —
-      // both wordings name "the second/last attached image" for ONE
-      // picture, and a sheet is not the surface to argue that on.
+      // The SOPHIE CARD and her photo ref are deliberately OFF here — both
+      // wordings name "the second/last attached image" for ONE picture, and
+      // a sheet is not the surface to argue that on.
+      //
+      // HER CAST IS ON, BOTH HALVES (2026-08-27, Sophie: "I want both.
+      // Descriptions as well as pictures: two options"). They are different
+      // things and neither replaces the other:
+      //   • PICTURES — the character picker's saved cards, attached as the
+      //     last references with charLine()'s own sentence. It says "the last
+      //     attached image(s)", which is true of a sheet exactly as it is of
+      //     a single picture; that is why this one could simply be turned on,
+      //     where the Sophie card and the photo — which name a POSITION for
+      //     ONE picture — still cannot be.
+      //   • DESCRIPTIONS — `cast`, her typed name + description rows, written
+      //     into the prompt as a clause before the panel lines
+      //     (sheetGrid.castBlock). Empty cast, no clause at all: "the
+      //     character clause only applies if there's at least one character."
+      // Both land in the HEAD, so `cfg.head` — which is what a panel's filed
+      // style half is cut from — carries them without another change.
       if (Array.isArray(req.body.panels) && req.body.panels.length) {
         const grid = Number(req.body.grid) || req.body.panels.length;
         if (!sheetGrid.GRIDS[grid]) return res.status(400).json({ error: `unknown grid ${grid}` });
@@ -6486,9 +6522,20 @@ app.post('/api/promptlab', async (req, res) => {
         // wins). The no-text swap composes after it — disjoint clauses.
         const sheetTail = applyNoText(
           sheetGrid.applySheet(suffix, st.sheet, sheetGrid.layoutWords(grid)), st, noText);
-        const sheetHead = prefix.trim();
+        // Her typed cast, trimmed and capped. Cut rather than refused, like
+        // the panel words themselves — this is a live editor, and a long
+        // description is worth sending short rather than not at all.
+        const cast = sheetGrid.castRows(req.body.cast).slice(0, CAST_MAX).map((c) => ({
+          name: c.name.slice(0, 60), description: c.description.slice(0, 300),
+        }));
+        const castTxt = sheetGrid.castBlock(cast);
+        // The picked cards' sentence rides the head with the style prefix; the
+        // typed cast is its own paragraph in front of the panel lines, where
+        // it establishes who these people are before anything refers to them.
+        const sheetHead = `${prefix}${charsLine}`.trim();
         const blockTxt = sheetGrid.panelBlock(grid, panels);
-        const sheetPrompt = `${sheetHead}${sheetHead ? '\n\n' : ''}${blockTxt}${sheetTail ? `\n\n${sheetTail}` : ''}`;
+        const sheetBody = castTxt ? `${castTxt}\n\n${blockTxt}` : blockTxt;
+        const sheetPrompt = `${sheetHead}${sheetHead ? '\n\n' : ''}${sheetBody}${sheetTail ? `\n\n${sheetTail}` : ''}`;
         const docRef = admin.firestore().collection(PROMPTLAB).doc();
         await docRef.set({
           id: docRef.id, status: 'running', engine: 'gptimage', prompt: typed,
@@ -6501,11 +6548,16 @@ app.post('/api/promptlab', async (req, res) => {
           outputs: 1, character: false, photoRef: '', images: [],
           panels, grid: { across: plan.across, down: plan.down, count: plan.count },
           sheet: plan.sheet, cell: plan.cell,
+          // Both halves of her cast, as provenance — the typed rows and WHICH
+          // saved characters rode, by id and name. Absent when she used
+          // neither, so a run without a cast is the request it always was.
+          ...(cast.length ? { cast } : {}),
+          ...(pickedChars.length ? { characters: pickedChars } : {}),
           createdAt: admin.firestore.Timestamp.now(),
         });
         runPromptLabPanelsJob(docRef, {
           fullPrompt: sheetPrompt, head: sheetHead, tail: sheetTail,
-          quality, prompt: typed, styleId, panels, plan,
+          quality, prompt: typed, styleId, panels, plan, chars: pickedChars,
         });
         return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
       }
@@ -6521,13 +6573,22 @@ app.post('/api/promptlab', async (req, res) => {
       // the head, so the filed style half discloses it; the tail's anti-grid
       // clause is swapped exactly as on a grid sheet (her edited tail no-ops
       // the swap and her wording wins). The Sophie card, her photo and the
-      // cast are OFF, the panels branch's own reasoning: their wordings name
-      // "the second/last attached image" for ONE picture.
+      // Sophie card and her photo are OFF, the panels branch's own reasoning:
+      // their wordings name "the second/last attached image" for ONE picture.
+      // HER CAST IS ON, both halves, on the same terms as a grid sheet.
       if (req.body.story) {
         const sheetTail = applyNoText(
           sheetGrid.applySheet(suffix, st.sheet, PL_STORY.layout), st, noText);
-        const p0 = prefix.trim();
-        const storyHead = `${p0}${p0 ? '\n\n' : ''}${PL_STORY.line}`;
+        // Her cast rides a story sheet on the same terms as a grid one — the
+        // picked cards in the head with charLine()'s sentence, the typed rows
+        // as their own clause before her story, and nothing at all when she
+        // used neither.
+        const cast = sheetGrid.castRows(req.body.cast).slice(0, CAST_MAX).map((c) => ({
+          name: c.name.slice(0, 60), description: c.description.slice(0, 300),
+        }));
+        const castTxt = sheetGrid.castBlock(cast);
+        const p0 = `${prefix}${charsLine}`.trim();
+        const storyHead = `${p0}${p0 ? '\n\n' : ''}${castTxt ? `${castTxt}\n\n` : ''}${PL_STORY.line}`;
         const storyPrompt = `${storyHead}\n\n${typed}${sheetTail ? `\n\n${sheetTail}` : ''}`;
         const docRef = admin.firestore().collection(PROMPTLAB).doc();
         await docRef.set({
@@ -6537,13 +6598,15 @@ app.post('/api/promptlab', async (req, res) => {
           promptEdited: edited, noText, storySheet: true,
           styleRef: (st.refFiles || []).concat(st.storageRefs || []).join(','),
           outputs: 1, character: false, photoRef: '', images: [],
+          ...(cast.length ? { cast } : {}),
+          ...(pickedChars.length ? { characters: pickedChars } : {}),
           createdAt: admin.firestore.Timestamp.now(),
           ...(padTarget ? { padTarget } : {}),
         });
         runPromptLabGptJob(docRef, {
           fullPrompt: storyPrompt, head: storyHead, tail: sheetTail, outputs: 1,
           quality, prompt: typed, character: false, styleId,
-          size: canvas.size, photoBuf: null, chars: [], padTarget,
+          size: canvas.size, photoBuf: null, chars: pickedChars, padTarget,
         });
         return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
       }
@@ -6676,6 +6739,9 @@ app.get('/api/promptlab/styles', (req, res) => {
   // phrase the sheet swap fills — served like everything else the prompt
   // carries, so the page prints the real sentence and holds no copy.
   panels.story = { line: PL_STORY.line, layout: PL_STORY.layout };
+  // The typed cast's own wording, SERVED like every other wrapper — the page
+  // prints the real clause in the Prompt panel rather than keeping a copy.
+  panels.cast = { intro: sheetGrid.CAST_INTRO, max: CAST_MAX };
   // `sizes` is the old flat shape and stays exactly as it was — a page cached
   // on her phone reads it, and this endpoint is the only thing that serves it.
   res.json({ styles: out, sizes: PL_GPT.sizes, res: PL_GPT.res, resDefault: PL_GPT.resDefault,

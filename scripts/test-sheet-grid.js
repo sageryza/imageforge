@@ -252,6 +252,36 @@ ok(block.indexOf('Panel 1 (top left): a fox') > 0
 ok(block.indexOf('a fox') < block.indexOf('a moon')
   && block.indexOf('a boat') < block.indexOf('a key'), 'reading order preserved');
 
+console.log('the characters clause');
+// HER RULE, stated outright (2026-08-27): "The character clause only applies
+// if there's at least one character." An empty cast — absent, [], or rows
+// with nothing typed in them — sends NO clause, never an introduction to
+// nobody.
+ok(sheetGrid.castBlock() === '', 'no cast at all: nothing');
+ok(sheetGrid.castBlock([]) === '', 'an empty list: nothing');
+ok(sheetGrid.castBlock([{ name: '  ', description: '' }]) === '',
+  'rows with nothing typed in them: nothing');
+const cb = sheetGrid.castBlock([
+  { name: 'Nina', description: 'twelve, red coat, always carrying the cat' },
+  { name: '', description: 'a tall man with a limp' },
+  { name: 'Bo', description: '' },
+]);
+ok(cb.split('\n').length === 4, 'an intro and one line per character');
+ok(cb.startsWith(sheetGrid.CAST_INTRO), 'the intro leads, and it is the served one');
+ok(cb.includes('Character 1 (Nina): twelve, red coat, always carrying the cat'),
+  'both halves: name in the parenthesis, her description after it');
+// A half-filled row is written SHORT rather than padded with invented filler —
+// every word in the clause is hers.
+ok(cb.includes('Character 2: a tall man with a limp') && !/Character 2 \(/.test(cb),
+  'description only: no empty parenthesis');
+ok(cb.includes('Character 3: Bo.') && !/Character 3 \(/.test(cb),
+  'name only: no invented description');
+ok(!/undefined|null/.test(cb), 'and nothing leaks through as undefined');
+// The rows are the gate the caller reads to decide whether to send anything.
+ok(sheetGrid.castRows([{ name: ' Nina ', description: '' }, { name: '', description: '' }])
+  .length === 1, 'castRows drops the empty rows and trims the rest');
+ok(sheetGrid.castRows([{ name: ' Nina ' }])[0].name === 'Nina', 'and trims');
+
 console.log('the dreamy sheet-swap composes with the no-text swap (live literals)');
 // The live dreamy suffix and noText.from, read out of server.js the way
 // test-playground-notext.js reads them — never a copy.
