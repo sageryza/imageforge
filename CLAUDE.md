@@ -115,6 +115,19 @@ The numbers are measured, not guessed.
 **When she messages you** — check what is waiting, in one sweep: asset ♥/✕ and
 notes (`GET /api/gallery/assets/notes?chat=`), Writing Room notes, the running
 to-do list. Act on them, then answer on the image itself. **Never on a timer.**
+- **AND SWEEP THE NOTES AGAIN BEFORE YOU SAY YOU ARE DONE — HER NOTES ARRIVE
+  AFTER THE MESSAGE THAT ANNOUNCES THEM.** Measured 2026-08-28: she wrote
+  "added some notes … i suggested 3 examples in the notes" at **23:17:29** and
+  the notes themselves landed **23:29:54-23:31:11, twelve minutes later**. The
+  chat swept once at 23:18, found nothing, said so, and delivered 135 pictures
+  ignoring every ask she had left. She announces the intent, then watches and
+  writes WHILE you work — so one read at turn start is the wrong shape.
+  **"No notes yet" means NOT YET, never "she left none"**, and a note on a
+  FILM never appears in `GET /api/gallery/assets` at all (it rides the pinned
+  film's url with no label) — only `/notes` sees it. A note POST now rings
+  your wake doorbell (2026-08-28), so a note landing mid-turn can reach you,
+  but the re-read is what catches one that lands while you are still writing
+  the reply.
 - **A QUICK-QUESTION chat SETS ITS OWN BELL** (Sophie, 2026-08-27: "a 'quick
   question' chat shud set its own bell as true"). If she is using you for
   quick questions — she says "quick question mode", or `quick question` is in
@@ -2166,12 +2179,24 @@ them off the reference sheet, not off the old filenames.
       `GET /api/gallery/assets?chat=` does not** — a sweep that walks the
       Assets tab looking for `note`/`thread` fields is blind to every note she
       leaves on a film.
-    - **NOT BUILT, and it is the actual fix:** nothing tells a chat a note
-      arrived. The wake doorbell fires on her MESSAGE, and a note is not a
-      message — so the only thing standing between her asks and being ignored
-      is a chat remembering to look twice. A note POST should ring
-      `chat-wake.ring` the way `witchvideo.js` already does for its reviewer
-      notes; until it does, the re-read above is the whole protection.
+    - **THE BELL IS BUILT NOW (2026-08-28, Sophie: "fix the note bell").** A
+      note she writes rings the owning chat's wake doorbell, so a note landing
+      while the chat is asleep can reach it instead of waiting for her to
+      message again. It lives in **`appendAssetMessage` in server.js** — the
+      ONE place all four note paths funnel through (her text note, the legacy
+      single note, a voice note, and a film note's timestamped line), so the
+      bell has no holes. Three things not to undo: it rings only for
+      `who === 'sophie'` (a chat answering on an image would wake itself in a
+      loop), it is **never awaited** and its failure is caught (a note must
+      land on the doc whether or not anything is wakeable — witchvideo.js's
+      `ringChat` has exactly this shape), and it goes through `chat-wake.ring`
+      with `registry` + `followMoves` so a forked or re-keyed chat still
+      resolves. Pinned by `node scripts/test-asset-note-bell.js`.
+    - **THE BELL IS NOT A SUBSTITUTE FOR THE RE-READ.** A chat mid-turn is
+      already awake, so nothing wakes it — the doorbell only helps a chat that
+      has finished. The note that got ignored landed while a chat was working.
+      So the re-read before reporting done is still the protection, and the
+      bell is what covers the case after.
     - **AND DO NOT "VERIFY" WITH AN ORDERED FIRESTORE QUERY.** The same
       session reported the notes collection **empty** from
       `.orderBy('updatedAt','desc')` — but the docs carry `updated`, not
@@ -4793,6 +4818,42 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **AND THE PAGE HAS NO INFO TEXT AT THE TOP** (2026-08-28, Sophie: "get rid of
   the info text at the top of Freeform") — the header is the whole top of the
   page; the lede paragraph explaining the module is gone.
+  **AND THAT LEDE WAS RESERVING THE PILL'S COLUMN — TAKING IT OFF BROKE THE
+  PILL (2026-08-28, Sophie: "pill broken in freeform").** The paragraph carried
+  `padding-right:56px`, so the page's two panels began BELOW the injected
+  pill's band; with it gone they moved straight up into it, and nothing
+  replaced the reservation. Measured at the iPhone 13's real **47px safe-area
+  inset** (which is 0 in headless Chromium, so this was only ever visible in
+  her hand): the Reference panel's white box drew under the capsule, the pill's
+  own `Fast` label printed inside the Prompt panel, and the fourth-column
+  reference tile came back **COVERED BY THE PILL** — `elementFromPoint`
+  answered `float`, i.e. a tile she could not tap at all.
+  - **`fitPillGap` MEASURES the pill's real rect** — never a hardcoded 56/64
+    band, because the pill is conditional and its top rides
+    `env(safe-area-inset-top)`.
+  - **SHORTEN THE PANEL THAT OWNS THE CORNER, NUDGE THE ONE THAT ONLY DIPS, and
+    the threshold is the column's own width.** The Reference panel shortens
+    (`--pillgap` on its margin) — that is the only thing that makes its fourth
+    tile tappable. The Prompt panel's top merely dips into the bottom of the
+    band, and cutting 58px off a row that already fits three controls wraps
+    them onto a third line for the sake of ~30px of overlap — the Playground's
+    own note about this corner says a third line of controls is not a price to
+    pay unasked — so it is moved (`--pilltop`) instead.
+  - **EVERY PANEL IS MEASURED WITH BOTH RESERVATIONS AT ZERO FIRST**, in one
+    pass, so a panel is never judged on a position this function gave it: nudge
+    it clear, find it clear, drop the nudge, find it colliding — forever. For
+    the same reason a write that changes nothing is skipped, since the
+    observers that call this back are woken by a style attribute.
+  - Judged at the TOP OF THE PAGE: a live viewport test would change a panel's
+    width as it scrolled past, and the run cards below pass under the rail
+    exactly as they do on every other page here.
+  - **THE LESSON BEYOND THIS PAGE: a `padding-right` near the top of a page is
+    usually load-bearing.** Removing the thing that carried it is a pill bug
+    with nothing on screen naming the pill.
+  Test: `node scripts/test-freeform-pill.js` (the real page + the real injected
+  pill, headless, at both insets with the library folded and open — verified
+  failing 14 pre-fix; the covered tile is asked with `elementFromPoint`, which
+  is what a covered control passes every width assertion while failing).
   Test: `node scripts/test-freeform-boiler.js` (it reads the real table out of
   server.js, so a stale style id or a pasted copy fails there).
   **Full details: `docs/modules/pictures.md`.**
