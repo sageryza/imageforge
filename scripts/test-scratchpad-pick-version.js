@@ -22,6 +22,7 @@ const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 const { swapArt } = require('../pad-art');
+const servePublic = require('./lib/public-asset');
 
 let chromium;
 try { ({ chromium } = require('playwright')); }
@@ -75,6 +76,8 @@ let beats = [{
 const posted = [];
 
 const server = http.createServer((req, res) => {
+  // Anything the page links out of public/ — /feedkit.js, /tritoggle.*, …
+  if (servePublic(req, res)) return;
   const url = new URL(req.url, 'http://x');
   const json = (o) => { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
   if (req.method === 'POST') {

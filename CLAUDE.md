@@ -5945,6 +5945,22 @@ before working on that module. Nothing was deleted — the moved text is verbati
   changes. server.js hands the membry Firestore in (`scratchpadMod.init`,
   the dreamapp pattern); without `STORY_FIREBASE_SERVICE_ACCOUNT` the route
   refuses honestly. Test: `node scripts/test-storyroom-shoebox.js`.
+  **THE ADD SHEET'S PICTURES ARE SEARCHABLE (2026-08-28, Sophie: "add search
+  in story room - pictures").** A box over the grid on the PICTURES tab,
+  the house grammar and both live-box helpers from `/feedkit.js` — linked,
+  never copied. Four things not to undo: it filters **CLIENT-SIDE**, because
+  `/inbox` sends the whole inbox in one read and there is no page behind the
+  page (the CLIPS tab next door asks the server for the opposite reason — its
+  shelf is a library this page never loads whole); it searches the words that
+  MADE a picture (prompt, style, model, engine, quality, and an upload's own
+  name) and **never the url**, whose Storage filename is a random id that
+  would light tiles for no reason she can see; the box is drawn from the
+  **UNFILTERED** inbox, so a query matching nothing cannot take the box off
+  the screen mid-search; and it is **not drawn at all** when nothing in the
+  inbox carries a word — a story's own gathered art can arrive with no
+  prompts, and a box that could never match anything is a dead control.
+  Test: `node scripts/test-storyroom-picture-search.js` (the real page
+  headless; verified failing pre-fix).
   **A picture can be taken OUT of that inbox — the ✕ on its tile (2026-08-26,
   her ask) — and it HIDES rather than deletes**, because a Playground heart
   and a Dump upload belong to other places and only the story's own gathered
