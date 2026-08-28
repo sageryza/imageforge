@@ -94,6 +94,15 @@ const jobSrc = serverSrc.slice(serverSrc.indexOf('async function finishPanelsCut
   serverSrc.indexOf('async function runPromptLabJob'));
 ok(jobSrc.indexOf('sheetUrl') < jobSrc.indexOf('cutSheet(sheetBuf'),
   'the paid sheet is banked BEFORE the cut');
+// ONE CUT AT A TIME (2026-08-28, Sophie's two-phase rule: banked arrivals may
+// stack, the ~33MB decodes may not — concurrent cuts are the measured
+// box-killer). finishPanelsCut is the one door every caller — the live job,
+// the boot sweep, /recut — comes through, so the gate on it covers them all;
+// the heavy body must not be callable around it.
+ok(/async function finishPanelsCut\(docRef, cfg, sheetBuf, sheetUrl\) \{\s*\n\s*return gateCut\(/.test(serverSrc),
+  'finishPanelsCut queues through gateCut — one cut at a time');
+ok((serverSrc.match(/finishPanelsCutInner\(/g) || []).length === 2,
+  'the ungated body is called ONLY from inside the gate');
 // 2026-08-27, Sophie: "the uncut sheet shud show before it's cut as soon as
 // it's done (in panels" — the banking write parks the run on 'ready', which
 // is what puts the picture on screen while the cut and the filing run.
