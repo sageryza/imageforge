@@ -493,7 +493,17 @@
      style is the PICTURES half, and a run may carry either, both or neither.
      The boxes ship EMPTY and their placeholders NAME the field and nothing
      more — the house rule. */
-  #castbox { margin: 10px 0 0; }
+  /* THE TWO HALVES SHARE ONE SHEET (2026-08-28, Sophie: "add character
+     description be within the existing icon - hairline toggle between
+     description and pictures"). The typed cast shipped as its own box under
+     the panel grid, which made two places to say who is in a picture; it is
+     the second half of the character icon now, behind the house hairline
+     row. `.chartabs` is the SAME .plabtabs rule the PICTURE · PANELS row
+     uses and the SAME measurer (plTabLine) — nothing declares a tab count. */
+  .chartabs { padding-right: var(--charpill, 0px); margin-bottom: 10px; }
+  .casthdr { display: flex; gap: 6px; padding: 0 38px 0 0; }
+  .casthdr .plab:first-child { flex: 1 1 90px; }
+  .casthdr .plab:last-child { flex: 3 1 160px; }
   .castrow { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
   .castrow input { flex: 1 1 0; min-width: 0; font: inherit; font-size: 14px;
     color: #2b2622; background: #fdfcf9; border: 1px solid #d8d0c4;
@@ -627,13 +637,24 @@
   </div>
   <div class="styles"><select id="stylepick" aria-label="Style"></select><button type="button" id="charsbtn" hidden aria-label="Character references" title="Character references"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/></svg><span id="charsn"></span></button></div>
   <div id="charpanel">
-    <div class="plab">Most recent</div>
-    <div class="charrow" id="charrecent"></div>
-    <div class="plab" id="charalllab">All characters</div>
-    <input id="charq" type="search" placeholder="Search characters" aria-label="Search characters"
-           autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="search">
-    <div class="chargrid" id="charall"></div>
-    <div class="cnote" id="charnote"></div>
+    <div class="plabtabs chartabs" id="chartabs" hidden>
+      <button type="button" data-ct="pics" class="on">Pictures</button>
+      <button type="button" data-ct="desc">Descriptions</button>
+    </div>
+    <div id="charpics">
+      <div class="plab">Most recent</div>
+      <div class="charrow" id="charrecent"></div>
+      <div class="plab" id="charalllab">All characters</div>
+      <input id="charq" type="search" placeholder="Search characters" aria-label="Search characters"
+             autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="search">
+      <div class="chargrid" id="charall"></div>
+      <div class="cnote" id="charnote"></div>
+    </div>
+    <div id="chardesc" hidden>
+      <div class="casthdr"><span class="plab">Name</span><span class="plab">Description</span></div>
+      <div id="castrows"></div>
+      <button type="button" id="castadd">Add a character</button>
+    </div>
   </div>
   <div id="reftag"></div>
   <div id="beattag"></div>
@@ -641,11 +662,6 @@
   <div class="promptwrap"><textarea id="prompt"></textarea><button type="button" id="bigprompt" aria-label="Bigger box" title="Bigger box"></button></div>
   <button type="button" id="panelfold" hidden aria-expanded="true" aria-controls="panelgrid"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg><span id="panelfoldlab">Panels</span></button>
   <div id="panelgrid" hidden></div>
-  <div id="castbox" hidden>
-    <div class="plab">Characters</div>
-    <div id="castrows"></div>
-    <button type="button" id="castadd">Add a character</button>
-  </div>
   <div class="controls">
     <div class="canvastog" id="gridpick" role="group" aria-label="How many panels" hidden></div>
     <label id="scalewrap">LoRA scale <input type="number" id="scale" value="1" step="0.1" min="0" max="2"></label>
@@ -1334,8 +1350,9 @@
   }
   // The measured underline — chats.html's tabLine, this page's copy (the rows
   // measure their own line; nothing declares a tab count).
-  function plTabLine() {
-    var row = document.getElementById('plabtabs');
+  function plTabLine(id) {
+    var row = document.getElementById(id || 'plabtabs');
+    if (!row) return;
     var on = row.querySelector('button.on');
     if (!on) return;
     var r = row.getBoundingClientRect(), t = on.getBoundingClientRect();
@@ -1384,7 +1401,7 @@
     setPanelsShut(!panelsShut());
   });
   function buildPanelGrid() {
-    buildCastBox();
+    paintCharTabs(); buildCastBox();
     var box = document.getElementById('panelgrid');
     if (!onPanels()) { box.hidden = true; paintPanelFold(); return; }
     box.hidden = false;
@@ -1467,12 +1484,42 @@
     var f = window.__sheetGrid && window.__sheetGrid.castBlock;
     return f ? f(castAll()) : '';
   }
+  // THE SHEET'S TWO HALVES (2026-08-28, Sophie: "add character description be
+  // within the existing icon - hairline toggle between description and
+  // pictures"). Pictures and Descriptions are the same question asked two
+  // ways, so they belong behind the same icon rather than in two places on
+  // the page. Sticky, because a run is usually cast the same way twice.
+  //
+  // DESCRIPTIONS ONLY EXIST ON THE PANELS TAB, so the ROW only exists there:
+  // the clause is written into a sheet's prompt (grid or story) and a single
+  // picture has nowhere to put it, and a tab that changes nothing is worse
+  // than no tab. On the Picture tab the sheet is exactly what it always was.
+  var CHARTABKEY = 'promptlab_chartab';
+  function charTab() {
+    return (onPanels() && localStorage.getItem(CHARTABKEY) === 'desc') ? 'desc' : 'pics';
+  }
+  function paintCharTabs() {
+    var row = document.getElementById('chartabs');
+    var t = charTab();
+    row.hidden = !onPanels();
+    Array.prototype.forEach.call(row.querySelectorAll('button'), function (b) {
+      b.classList.toggle('on', b.getAttribute('data-ct') === t);
+    });
+    document.getElementById('charpics').hidden = t !== 'pics';
+    document.getElementById('chardesc').hidden = t !== 'desc';
+    if (!row.hidden) plTabLine('chartabs');
+  }
+  document.getElementById('chartabs').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-ct]');
+    if (!b) return;
+    try { localStorage.setItem(CHARTABKEY, b.getAttribute('data-ct')); } catch (er) { /* private mode */ }
+    paintCharTabs();
+    if (charTab() === 'desc') buildCastBox();
+  });
+
   function buildCastBox() {
-    var box = document.getElementById('castbox');
-    if (!box) return;
-    box.hidden = !onPanels();
-    if (box.hidden) return;
     var rows = document.getElementById('castrows');
+    if (!rows) return;
     var arr = castAll();
     rows.innerHTML = '';
     arr.forEach(function (c, i) {
@@ -1489,6 +1536,10 @@
         var a = castAll();
         a[i] = { name: nm.value, description: ds.value };
         saveCast(a);
+        // The badge is the whole cast, so it moves as she types — the row is
+        // not rebuilt on input, and without this the count stayed stale until
+        // she closed and reopened the sheet.
+        paintCharsBtn();
         // The clause is part of the prompt, so an open panel says so the
         // moment it changes — the same rule the picked cast follows.
         if (promptOpen) paintPromptPanel();
@@ -1507,6 +1558,7 @@
       rows.appendChild(d);
     });
     document.getElementById('castadd').hidden = arr.length >= castMax;
+    paintCharsBtn();
   }
   document.getElementById('castadd').addEventListener('click', function () {
     var a = castAll();
@@ -1756,12 +1808,18 @@
     var f = window.__padCharacters && window.__padCharacters.charLine;
     return f ? f(pickedCharRecords()) : '';
   }
+  // THE COUNT IS THE WHOLE CAST — pictures plus typed descriptions, because
+  // that is what the button now opens onto and what will ride the run. A
+  // person entered both ways counts twice, which is her doing and visible in
+  // the sheet; a badge showing only half of it would be the misleading one.
   function paintCharsBtn() {
-    var n = pickedChars.length;
+    var pics = pickedChars.length;
+    var desc = castRows().length;
+    var n = pics + desc;
     charsBtn.classList.toggle('on', n > 0);
     document.getElementById('charsn').textContent = n ? String(n) : '';
     charsBtn.setAttribute('aria-label', n
-      ? 'Character references — ' + n + ' picked' : 'Character references');
+      ? 'Characters — ' + n + ' on this run' : 'Characters');
   }
   function charHay(c) {
     return (String(c.name || '') + ' ' + (c.aliases || []).join(' ')).toLowerCase();
@@ -1872,7 +1930,9 @@
   charsBtn.addEventListener('click', function () {
     charsOpen = !charsOpen;
     charPanel.classList.toggle('on', charsOpen);
-    if (charsOpen) { paintCharPanel(); fitCharPill(); loadChars(); }
+    if (charsOpen) {
+      paintCharTabs(); buildCastBox(); paintCharPanel(); fitCharPill(); loadChars();
+    }
   });
   // The house search helpers, both of them: iOS dictation can fill a box
   // without ever firing `input`, and Return has nothing to submit to.
