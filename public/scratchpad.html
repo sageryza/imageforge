@@ -134,6 +134,20 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   -webkit-tap-highlight-color:transparent;}
 .stylerow .sw.on{color:var(--ink); font-weight:600;}
 .stylerow .tri{--tri-track:var(--ink); --tri-knob:var(--paper); --tri-ink:var(--ink);}
+/* THE STORY'S SHAPE — portrait or square (2026-08-28, Sophie: "add a new
+   square story type in story room"). The glyph IS the shape: a tall rectangle
+   or a square, drawn at the size the tiles really are, so nothing has to be
+   read. That is the pyramid's rule (a picture of the thing beats a word for
+   it), and it is why this is not a third word on a row that already carries
+   the styles.
+   A rounded SQUARE at the house 6px, never a circle, and it takes the row's
+   far end (`margin-left:auto`) — the styles are which pictures, this is what
+   shape they are, and they are different questions. */
+.stylerow .shapebtn{margin-left:auto; width:28px; height:28px; flex:none;
+  display:flex; align-items:center; justify-content:center; padding:0;
+  background:none; border:1px solid var(--line); border-radius:6px;
+  color:var(--ink); cursor:pointer; -webkit-tap-highlight-color:transparent;}
+.stylerow .shapebtn svg{width:16px; height:16px; display:block;}
 /* THE SHELF (Aug 2026, the media-asset-survey prototype v5, ~15 rounds with
    Sophie): category chips + portrait tiles four across. A tile is a REAL
    picture from that story — portrait 2:3 so nothing crops the art — with the
@@ -174,6 +188,12 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 .stile .frame img,.stile .frame .none{position:absolute; top:5px; left:5px;
   width:calc(100% - 10px); height:calc(100% - 10px); border-radius:2px; background:var(--barbg);}
 .stile .frame img{object-fit:cover;}
+/* A SQUARE story's cover sits WHOLE on the mat instead of being cropped to
+   the portrait footprint. The tile keeps ONE size on purpose — that is what
+   holds the names level across a row (the note above) — and the mat is
+   already white, so a square picture centred on it reads as a framed square
+   rather than as a picture that failed to fill its frame. */
+.stile .frame.sq img{object-fit:contain;}
 .stile .frame .none{box-sizing:border-box; border:1px dashed var(--line);}
 /* THE PUSHPIN — round head, straight spike, never the Maps teardrop (the
    house rule). It rides the tile's top-left corner because the injected
@@ -267,7 +287,16 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    below the tile never pushes its neighbours around. */
 #pad{display:flex; flex-wrap:wrap; justify-content:center; align-items:flex-start; gap:16px 12px; margin-top:1.3em;}
 .beatwrap{width:calc(25% - 9px); display:flex; flex-direction:column; gap:5px;}
-.beat{position:relative; width:100%; aspect-ratio:2/3; border:1.5px solid var(--line); border-radius:4px;
+/* `--ar` IS THE STORY'S SHAPE — portrait 2/3 or square 1/1 (2026-08-28,
+   Sophie: "add a new square story type in story room"). It is set once on the
+   root when a story opens, so every surface that draws a beat-sized box reads
+   the same number and none of them counts the shapes: the tiles, a chunk's
+   frame, the past-pictures strip and the popup's blank paper. The FALLBACK is
+   2/3 everywhere, so a page whose story hasn't loaded yet — and every story
+   that carries no shape at all — is byte-for-byte what it was.
+   Not the inbox: those are Playground pictures of every shape, not this
+   story's, and cropping them to it would be a lie about what she hearted. */
+.beat{position:relative; width:100%; aspect-ratio:var(--ar,2/3); border:1.5px solid var(--line); border-radius:4px;
   background:var(--barbg); padding:0; overflow:hidden; cursor:pointer;}
 /* A blank beat whose picture is on its way breathes, so it reads as coming
    rather than broken (flat colors trading places — not a gradient). */
@@ -290,7 +319,7 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 .beat.c-pink{border:3px solid var(--pink);}
 /* A chunk: linked beats in ONE tile's width — side-by-side slices sharing a
    frame (and a color). Tapping a slice opens that member's popup. */
-.chunk{display:flex; gap:1px; width:100%; aspect-ratio:2/3; border:1.5px solid var(--line); border-radius:4px;
+.chunk{display:flex; gap:1px; width:100%; aspect-ratio:var(--ar,2/3); border:1.5px solid var(--line); border-radius:4px;
   background:var(--barbg); overflow:hidden;}
 .chunk.c-mustard{border:3px solid var(--mustard);} .chunk.c-green{border:3px solid var(--green);}
 .chunk.c-blue{border:3px solid var(--blue);} .chunk.c-pink{border:3px solid var(--pink);}
@@ -563,7 +592,7 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    (Sophie: "drawing a new picture replaces the old, but keeps it in the
    stacked squares icon"). Newest first, the current one ringed. */
 #verrow{flex:none; display:flex; flex-wrap:wrap; gap:6px; justify-content:center; max-width:100%;}
-#verrow button{width:44px; aspect-ratio:2/3; padding:0; border:1.5px solid var(--line); border-radius:4px;
+#verrow button{width:44px; aspect-ratio:var(--ar,2/3); padding:0; border:1.5px solid var(--line); border-radius:4px;
   overflow:hidden; background:var(--paper); cursor:pointer;}
 #verrow button.cur{border:2.5px solid var(--ink);}
 #verrow img{width:100%; height:100%; object-fit:cover; display:block;}
@@ -582,7 +611,7 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 /* The blank tile is now just the empty paper at the picture's size — its
    two icons moved into #artrow under it, beside the star, so the ways to
    make art sit in ONE place whether the beat has a picture or not. */
-#popblank{aspect-ratio:2/3; max-height:100%; border:3px solid var(--line); border-radius:4px;
+#popblank{aspect-ratio:var(--ar,2/3); max-height:100%; border:3px solid var(--line); border-radius:4px;
   background:var(--paper); box-sizing:border-box;}
 /* NOTHING DRAWN YET → THE EMPTY PAPER GETS OUT OF THE WAY (2026-08-24,
    Sophie: "if there's no image then make the image box smaller ... and show
@@ -932,6 +961,10 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
     <button class="sw on" id="swwater" type="button" data-style="watercolor">Watercolor</button>
     <button class="sw" id="swdreamy" type="button" data-style="dreamy">Dreamy</button>
     <button class="sw" id="swpastel" type="button" data-style="pastel">Pastel</button>
+    <!-- Portrait or square, for the whole story — the drawing canvas, the
+         tiles, the popup's blank paper and the film's frame. Its picture is
+         redrawn from SHAPES, so it never needs a word beside it. -->
+    <button class="shapebtn" id="shapetog" type="button"></button>
   </div>
   <div id="filmrow" hidden><span class="filmnote" id="filmnote"></span></div>
   <div id="pad"></div>
@@ -1199,6 +1232,48 @@ var STYLES=[
   {key:'pastel',     word:'Pastel',     i:'P'}
 ];
 var padStyle='watercolor';
+/* THE STORY'S SHAPE (2026-08-28, Sophie: "add a new square story type in
+   story room"). One shape per story, all the way down — the canvas its beats
+   are drawn on, every tile, the popup's blank paper and the film's frame.
+   `ar` is the ONE number the CSS reads (`--ar` on the root); `w`/`h` are the
+   glyph's own box, drawn at the shape it names so the button needs no word.
+   NOTHING COUNTS THE SHAPES BUT THIS LIST — the first entry is the default
+   and the fallback, and it must stay portrait: that is what every story made
+   before this is, and a story carrying no shape at all must not move.
+   Keep the keys equal to SHAPES in scratchpad.js. */
+var SHAPES=[
+  {key:'portrait', word:'Portrait', ar:'2 / 3', w:11, h:16.5},
+  {key:'square',   word:'Square',   ar:'1 / 1', w:14, h:14}
+];
+var padShape='portrait';
+function shapeIx(s){ for(var i=0;i<SHAPES.length;i++)if(SHAPES[i].key===s)return i; return 0; }
+function shapeCur(){ return SHAPES[shapeIx(padShape)]; }
+/* The glyph is the shape itself — a box of those proportions, centred in the
+   button's own 16px square. */
+function shapeGlyph(sh){
+  var x=(16-sh.w)/2, y=(16-sh.h)/2;
+  return '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">'
+    +'<rect x="'+x+'" y="'+y+'" width="'+sh.w+'" height="'+sh.h+'" rx="1.5"/></svg>';
+}
+function renderShape(){
+  var sh=shapeCur(), b=document.getElementById('shapetog');
+  /* The ONE place the shape reaches the layout: every beat-sized box reads
+     --ar off the root, so nothing else counts the shapes. */
+  document.documentElement.style.setProperty('--ar', sh.ar);
+  if(!b)return;
+  b.innerHTML=shapeGlyph(sh);
+  var nx=SHAPES[(shapeIx(padShape)+1)%SHAPES.length];
+  /* The label says what the tap DOES, because the glyph already says what it
+     is now — an aria-label repeating the picture would leave the one thing a
+     screen reader can't see unsaid. */
+  b.setAttribute('aria-label', sh.word+' — tap for '+nx.word.toLowerCase());
+  b.title=b.getAttribute('aria-label');
+}
+function setShape(s){
+  if(s===padShape)return;
+  padShape=s; renderShape();
+  api('/shape',{method:'POST',body:JSON.stringify({shape:s})}).catch(function(){});
+}
 function styleIx(s){ for(var i=0;i<STYLES.length;i++)if(STYLES[i].key===s)return i; return 0; }
 function slotFor(b,s){ return s==='watercolor' ? b : ((b.alt&&b.alt[s])||{}); }
 function slotOf(b){ return slotFor(b,padStyle); }
@@ -1245,6 +1320,16 @@ document.getElementById('styletog').onclick=function(ev){
 Array.prototype.forEach.call(document.querySelectorAll('.stylerow .sw'),function(b){
   b.onclick=function(ev){ ev.stopPropagation(); setStyle(b.getAttribute('data-style')); };
 });
+/* Two shapes, so a tap has nowhere else it could mean — this is not the cycle
+   the house rule forbids (that is about a control with stops she can AIM at).
+   A third shape makes it one, and then it wants /tritoggle.js like the styles. */
+document.getElementById('shapetog').onclick=function(ev){
+  ev.stopPropagation();
+  setShape(SHAPES[(shapeIx(padShape)+1)%SHAPES.length].key);
+};
+// The button's picture is DRAWN, so it has to be drawn once before any story
+// arrives — the page opens on the shelf and the row is already behind it.
+renderShape();
 
 function lock(v){document.body.style.overflow=v?'hidden':'';}
 
@@ -2000,6 +2085,7 @@ function load(){
   api('').then(function(r){return r.json()}).then(function(d){
     beats=d.beats||[]; padTitle=d.title||''; film=d.film||null;
     padStyle=STYLES.some(function(s){return s.key===d.style;})?d.style:'watercolor'; renderStyle();
+    padShape=SHAPES.some(function(x){return x.key===d.shape;})?d.shape:SHAPES[0].key; renderShape();
     uploads=d.uploads||[];
     /* The cast is per STORY, and the picked set does not survive a story
        switch (or a reload) — a reference she picked last time must never
@@ -2115,7 +2201,11 @@ function shelfTile(o){
   }
   // The FRONT card. Everything that paints lives on it, so a folder's cards
   // behind sit behind the whole thing rather than behind the picture only.
-  var fr=document.createElement('span'); fr.className='frame'; cov.appendChild(fr);
+  // A square story's cover is sat WHOLE on the mat rather than cropped to the
+  // portrait footprint (see .stile .frame.sq). A folder takes the shape of
+  // the story whose cover it is showing.
+  var fr=document.createElement('span');
+  fr.className='frame'+(o.shape==='square'?' sq':''); cov.appendChild(fr);
   if(o.cover){
     var im=document.createElement('img'); im.alt=''; im.loading='lazy';
     im.src=thumbOf(o.cover); fr.appendChild(im);
@@ -2181,7 +2271,7 @@ function shelfRows(){
   shelfPads.filter(function(p){ return (p.category||SHELF_DEFAULT)===shelfCat; })
     .forEach(function(p){
       if(!p.folder){
-        rows.push({ pad:p, cover:p.cover, name:p.title, pinned:!!p.pinned,
+        rows.push({ pad:p, cover:p.cover, name:p.title, pinned:!!p.pinned, shape:p.shape,
           cur:p.id===padId, go:function(){ openPad(p.id); } });
         return;
       }
@@ -2191,7 +2281,8 @@ function shelfRows(){
       var inIt=shelfPads.filter(function(q){ return q.folder===name; });
       var withArt=inIt.filter(function(q){ return q.cover; })[0];
       rows.push({
-        cover:withArt?withArt.cover:null, name:name, count:inIt.length,
+        cover:withArt?withArt.cover:null, shape:withArt?withArt.shape:null,
+        name:name, count:inIt.length,
         pads:inIt,
         pinned:inIt.some(function(q){ return q.pinned; }),
         cur:inIt.some(function(q){ return q.id===padId; }),
@@ -2311,7 +2402,7 @@ function openPad(id){
   film=null; padUpdated=0; dirtySinceFilm=false; autoplayWanted=false; renderFilm();
   player.pause(); audios=[];
   padDesc=''; padDescAudio=null; padVoice=null; padVoiceText=''; renderAudios();
-  padStyle='watercolor'; renderStyle(); uploads=[];
+  padStyle='watercolor'; renderStyle(); padShape=SHAPES[0].key; renderShape(); uploads=[];
   closeShelf();
   beats=[]; padTitle=''; render();
   load();

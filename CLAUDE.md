@@ -1772,6 +1772,31 @@ them off the reference sheet, not off the old filenames.
     with the chat that did the work. She finds them again on the bug button,
     in the archive, or by un-archiving.
   Tests: `node scripts/test-chats-bug-tag.js` (the real page, headless).
+- **EVERY CHAT LIST IS SEPARATED BY DATE, AND THE DAY TURNS OVER AT 5AM
+  PACIFIC (2026-08-28, Sophie: "separate chats by date" · "5am pst cut off").**
+  A hairline heading — Today · Yesterday · Tue, Aug 26 — over the rows of each
+  working day. The list was already newest-first, so this only NAMES where one
+  day stops; nothing about the sort moved.
+  - **The cut is hers and it is the whole point.** She works past midnight, so
+    a reply at 2am belongs to the day she is still having — the clock's own
+    midnight would cut one working night into two headings, which is exactly
+    what a date heading exists to stop.
+  - **Read through the IANA zone (`America/Los_Angeles`), never a fixed -8** —
+    she says PST and it is PDT half the year, and an offset would put every
+    heading an hour out all summer (the chat-icons sweep's own lesson). The
+    hour is asked in WALL CLOCK terms rather than by shifting the instant five
+    hours, so it still lands on 5am on a DST day.
+  - **A PINNED chat gets its own `Pinned` heading, never a date one.** It sits
+    above the sort by her override, so its date says nothing about where it is
+    — read as a date it would put an older heading above a newer one and then
+    repeat the newer one underneath it.
+  - `dayKey` / `dayLabel` / `chatDayKey` / `mkDayRule` in `chats.html` are the
+    one implementation, and the headings are drawn inside `renderList` and
+    `renderTiles` — so every pile gets them from one place (live, ALL, ★, bug
+    fix, the hidden pile, the archive) and a new pile needs nothing.
+  - Test: `node scripts/test-chats-day-rules.js` (the real page headless, with
+    an INDEPENDENT copy of the 5am rule in the test rather than the page's own
+    arithmetic read back to itself; verified failing 10 pre-fix).
 - **THE CHAT AREA IS THREE LISTS, AND THE ROW TAKES TURNS WITH THE ACCOUNTS
   (2026-08-28, Sophie: "i'm thinking about restructuring chat area based on bug
   fixes and deliverables, so they're on two separate lists" · "one tab ALL
@@ -6046,6 +6071,45 @@ before working on that module. Nothing was deleted — the moved text is verbati
     rule for the inbox flow and this one).
   - Test: `node scripts/test-playground-story-share.js` (the trip driven as
     ONE walk — the Playground's real tap lands on the real room).
+  **A STORY IS PORTRAIT OR SQUARE, AND IT IS ONE SHAPE ALL THE WAY DOWN
+  (2026-08-28, Sophie: "add a new square story type in story room").** `SHAPES`
+  in `scratchpad.js` and its twin in `gen-scratchpad.py` are the whole list —
+  portrait 1024x1536 / a 1000x1500 film, square 1024x1024 / 1080x1080 — and
+  nothing counts them, so landscape would be a row in each. The shape decides
+  the canvas a beat is DRAWN on, every tile on the pad, the popup's blank
+  paper and the film's frame; it lives on the PAD, not on a beat, because half
+  a story square is a film that letterboxes every other shot (the call
+  `movie.aspect` already makes). Six things not to undo:
+  - **PORTRAIT IS FIRST AND IS THE FALLBACK.** A pad carrying no `shape` at
+    all is portrait, so every story already on the shelf is byte-for-byte what
+    it was with nothing to migrate — and `/pads` writes no field unless a
+    shape is asked for.
+  - **ONE CSS VARIABLE — `--ar` on the root**, set by `renderShape()` when a
+    story loads, read by `.beat`, `.chunk`, `#verrow button` and `#popblank`
+    with a `2/3` fallback. **NOT the inbox**: those are Playground pictures of
+    every shape, not this story's, and cropping them to it would be a lie
+    about what she hearted.
+  - **THE ROUTE IS `POST /shape`, TOP LEVEL, NEVER `/pads/shape`.** The page
+    marks the film stale for any POST outside its own allowlist, and `/pads*`
+    is on it (that is the shelf-TIDYING family, which must not stale a
+    render). A shape change moves the film's frame, so it has to fall
+    outside. Like `/style` it does NOT bump `updatedAt` — the shelf's
+    newest-first order is about her words and pictures, not the canvas.
+  - **NOTHING ALREADY DRAWN IS TOUCHED.** A portrait picture in a story
+    flipped square is kept and letterboxed on white by the film's own
+    scale+pad chain — the pad has never destroyed a picture. The frame is IN
+    the segment cache key, so a flip re-encodes and a flip back finds the old
+    shots still banked.
+  - **THE SHELF KEEPS ONE TILE FOOTPRINT** — that is what holds the names
+    level across a row — so a square story's cover is sat WHOLE on the white
+    mat (`object-fit:contain`) rather than cropped to a portrait tile.
+  - **The square film frame is 1.17MP against portrait's 1.5** — UNDER the
+    budget the OOM note beside `FILM` proves this 512MB box survives. That
+    number, not the width, is what a third shape has to stay inside.
+  Test: `node scripts/test-storyroom-shape.js` (the two lists pinned equal and
+  the copy-paste guards pure, then the real page headless — every ratio
+  MEASURED off a real box, because the whole thing rides one CSS variable and
+  a broken wire renders as a page that looks fine and never changes shape).
   **PHILOSOPHY — do not "improve" this: the pad is minimal, the frame
   colours are UNLABELLED everywhere but that drop-down, and no machinery
   lives on the canvas.**

@@ -140,6 +140,39 @@ const ART = {
   characterLine: ' Use the second attached image as a character reference. ' +
     'Her name is Sophie. Whenever the prompt mentions Sophie, draw her as that girl.',
 };
+
+// ── THE STORY'S SHAPE — portrait, or SQUARE (2026-08-28, Sophie: "add a new
+// square story type in story room") ─────────────────────────────────
+// A story is ONE shape the whole way down: the canvas its beats are drawn on,
+// the tiles on the pad, the blank paper in the popup, and the film's frame.
+// Half a story square and half portrait is a film that letterboxes every
+// other shot, which is why this lives on the pad rather than on a beat — the
+// same call `movie.aspect` makes in movies.js, the only other per-project
+// shape in the repo.
+//
+// PORTRAIT IS WHAT THE PAD HAS ALWAYS BEEN, and it is the shape a pad
+// carrying no `shape` at all gets — so every story already on the shelf is
+// byte-for-byte what it was, with nothing to migrate.
+//
+// The words are the Playground's own (PL_GPT.sizes in server.js), because
+// the pad draws in the Playground's recipe and two names for one canvas is
+// how a caption ends up disagreeing with the picture.
+//
+// NOTHING COUNTS THE SHAPES BUT THIS LIST — a third one (landscape) is a row
+// here plus its word in the page's own SHAPES, and the draw, the film, the
+// tiles and the toggle all follow without knowing how many there are.
+const SHAPES = [
+  { key: 'portrait', size: '1024x1536', ar: '2 / 3', film: { w: 1000, h: 1500 } },
+  // 1080x1080 is 1.17 megapixels against portrait's 1.5 — UNDER the frame
+  // size the OOM note below FILM proves this 512MB box survives, which is the
+  // number that matters, not the width.
+  { key: 'square', size: '1024x1024', ar: '1 / 1', film: { w: 1080, h: 1080 } },
+];
+const SHAPE_KEYS = SHAPES.map((s) => s.key);
+// A pad with no shape is portrait — the honest default and the only one every
+// existing story can have.
+const shapeOf = (pad) => SHAPES.find((s) => s.key === (pad && pad.shape)) || SHAPES[0];
+
 const refCache = {};
 function artRef(file) {
   if (!refCache[file]) refCache[file] = fs.readFileSync(path.join(__dirname, 'refs', file));
@@ -458,6 +491,9 @@ async function readPad(padId) {
     title: v.title || '', beats: Array.isArray(v.beats) ? v.beats : [],
     // Which art set the story is showing — see the STYLE TOGGLE block above.
     style: STYLES.includes(v.style) ? v.style : 'watercolor',
+    // Portrait or square — see THE STORY'S SHAPE above. Absent means
+    // portrait, which is what every story made before this is.
+    shape: SHAPE_KEYS.includes(v.shape) ? v.shape : SHAPE_KEYS[0],
     film: v.film || null, films: Array.isArray(v.films) ? v.films : [],
     inbox: Array.isArray(v.inbox) ? v.inbox : null,
     // Photos and movies she added straight off her phone (POST /upload) —
@@ -638,6 +674,31 @@ router.post('/style', async (req, res) => {
     }
     await padRef(pid).set({ style }, { merge: true });
     res.json({ ok: true, pad: pid, style });
+  } catch (e) { fail(res, e); }
+});
+
+// The story's SHAPE — portrait or square (see THE STORY'S SHAPE above).
+// Like /style, deliberately NO updatedAt bump: the shelf's newest-first order
+// is about the story's words and pictures, not about the canvas they sit on.
+//
+// It is a TOP-LEVEL route on purpose, not /pads/shape: the page marks the
+// film stale for any POST outside its own allowlist, and a shape change is
+// exactly that — the film's frame moved, so the render she has is of the old
+// canvas. Naming it under /pads would have quietly filed it with the
+// shelf-tidying writes that must NOT stale the film.
+//
+// Nothing already drawn is touched. A portrait picture in a square story is
+// kept and letterboxed on white by the film's own scale+pad chain, which is
+// the honest answer — the pad has never destroyed a picture.
+router.post('/shape', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const shape = String(req.body.shape || '');
+    if (!SHAPE_KEYS.includes(shape)) {
+      return res.status(400).json({ error: `shape must be one of ${SHAPE_KEYS.join('/')}` });
+    }
+    await padRef(pid).set({ shape }, { merge: true });
+    res.json({ ok: true, pad: pid, shape });
   } catch (e) { fail(res, e); }
 });
 
@@ -849,6 +910,10 @@ router.get('/pads', async (req, res) => {
         // pinned one wins over the first-art derivation.
         cover: v.cover || (withArt ? faceOf(withArt) : (inboxArt ? inboxArt.url : null)),
         category: v.category || null, folder: v.folder || null,
+        // Portrait or square — the shelf keeps ONE tile footprint (that is
+        // what holds the names level across a row), so this only decides
+        // whether the cover is cropped to the mat or sat on it whole.
+        shape: SHAPE_KEYS.includes(v.shape) ? v.shape : SHAPE_KEYS[0],
         pinned: v.pinned === true, updatedAt: v.updatedAt || 0,
       };
     }).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
@@ -865,9 +930,14 @@ router.post('/pads', async (req, res) => {
     // while a folder is open). Absent everywhere else, so a plain new story
     // still lands loose on the shelf.
     const folder = String(req.body.folder || '').slice(0, FOLDER_MAX).trim();
+    // A story can be born SQUARE (see THE STORY'S SHAPE). Absent — which is
+    // what the shelf's + sends unless she picked one — writes no field at
+    // all, so a plain new story is portrait exactly as it always was.
+    const shape = SHAPE_KEYS.includes(req.body.shape) ? req.body.shape : null;
     const ref = db().collection(COL).doc();
-    await ref.set({ title, beats: [], updatedAt: Date.now(), ...(folder ? { folder } : {}) });
-    res.json({ ok: true, pad: ref.id, title, folder: folder || null });
+    await ref.set({ title, beats: [], updatedAt: Date.now(),
+      ...(folder ? { folder } : {}), ...(shape ? { shape } : {}) });
+    res.json({ ok: true, pad: ref.id, title, folder: folder || null, shape: shape || SHAPE_KEYS[0] });
   } catch (e) { fail(res, e); }
 });
 
@@ -1336,7 +1406,11 @@ async function patchBeat(padId, id, fn) {
 // at once with the beat marked drawing, the page polls the pad, and leaving
 // the app can't lose the picture. Superseded art is never deleted — it goes
 // to beat.imageHistory.
-async function runArtJob(padId, id, { prompt, quality, character, style, chars }) {
+async function runArtJob(padId, id, { prompt, quality, character, style, chars, shape }) {
+  // The STORY's canvas, not a per-draw one (see THE STORY'S SHAPE). An
+  // unknown or absent shape lands on portrait, which is what every beat drawn
+  // before this used.
+  const canvas = shapeOf({ shape });
   const recipe = STYLE_ART[style] || null;   // null = watercolor, the pad's original
   try {
     // A non-watercolor style draws its Playground tile's recipe: that tile's
@@ -1367,7 +1441,7 @@ async function runArtJob(padId, id, { prompt, quality, character, style, chars }
     const form = new FormData();
     form.append('model', 'gpt-image-2');
     form.append('prompt', full);
-    form.append('size', ART.size);
+    form.append('size', canvas.size);
     form.append('quality', quality);
     form.append('output_format', 'webp');
     // NO output_compression — it is lossy, OpenAI applies it before the bytes
@@ -1570,7 +1644,7 @@ router.post('/drawall', async (req, res) => {
       await Promise.all(Array.from({ length: 2 }, async () => {
         while (queue.length) {
           const t = queue.shift();
-          await runArtJob(pid, t.id, { prompt: t.prompt, quality, character, style });
+          await runArtJob(pid, t.id, { prompt: t.prompt, quality, character, style, shape: pad.shape });
         }
       }));
     })();
@@ -1596,8 +1670,12 @@ router.post('/generate', async (req, res) => {
     // resolved against the pad's cast, in its order, deduped and capped; an
     // id the story doesn't know is dropped rather than failing the draw.
     // They ride EVERY style, unlike the Sophie card above.
+    // Read once: the cast she picked for this draw AND the story's canvas
+    // both come off the pad, and asking twice is a second Firestore read for
+    // one document.
+    const pad = await readPad(pid);
     const picked = Array.isArray(req.body.characters) && req.body.characters.length
-      ? pickCharacters((await readPad(pid)).characters, req.body.characters)
+      ? pickCharacters(pad.characters, req.body.characters)
       : [];
     const beats = await patchBeat(pid, id, (b) => {
       const slot = artSlot(b, style, true);
@@ -1607,7 +1685,7 @@ router.post('/generate', async (req, res) => {
       // Art here again un-deletes this side (see `off` above).
       delete slot.off;
     });
-    runArtJob(pid, id, { prompt, quality, character, style, chars: picked });   // fire and forget
+    runArtJob(pid, id, { prompt, quality, character, style, chars: picked, shape: pad.shape });   // fire and forget
     res.json({ ok: true, beats });
   } catch (e) { fail(res, e); }
 });
@@ -1699,14 +1777,16 @@ function cancelError() { const e = new Error('canceled'); e.canceled = true; ret
 // short by construction (they come off the Chunking shelf).
 // `beat` here is the shot's ART SLOT (the beat root for watercolor, the
 // dreamy slot under dreamy) — it carries the clip's url/title either way.
-async function clipSegment(dir, u, beat, job = null) {
+// `size` is the STORY's film frame ({w,h} off shapeOf) — a clip is normalized
+// onto the same canvas as the stills or the concat-copy join is not safe.
+async function clipSegment(dir, u, beat, job = null, size = FILM) {
   const src = path.join(dir, `c${u}-src`);
   await fetchTo(beat.url, src);
   const { hasVideo, hasAudio } = await probeStreams(src);
   if (!hasVideo) throw new Error(`"${beat.title || 'a clip'}" has no video in it`);
   const seg = path.join(dir, `s${u}-clip.mp4`);
   await run(FFMPEG, ['-y', '-i', src, '-an',
-    '-vf', `scale=${FILM.w}:${FILM.h}:force_original_aspect_ratio=decrease,pad=${FILM.w}:${FILM.h}:(ow-iw)/2:(oh-ih)/2:color=white,fps=${FILM.fps},setsar=1,format=yuv420p`,
+    '-vf', `scale=${size.w}:${size.h}:force_original_aspect_ratio=decrease,pad=${size.w}:${size.h}:(ow-iw)/2:(oh-ih)/2:color=white,fps=${FILM.fps},setsar=1,format=yuv420p`,
     '-threads', '1', '-x264opts', 'ref=1:rc-lookahead=12',
     '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-movflags', '+faststart', seg], 900000, job);
   const seconds = await mediaSeconds(seg);
@@ -1750,6 +1830,11 @@ async function runFilmJob(padId) {
     // AND its clips (both live in the slot). A beat with nothing in this
     // style is simply not a shot — same as a blank beat always was.
     const style = pad.style;
+    // The film's frame is the STORY's shape (see THE STORY'S SHAPE) — every
+    // shot, still or clip, is normalized onto it, so the concat-copy join
+    // stays safe and a picture drawn in the other shape is letterboxed on
+    // white rather than cropped.
+    const frame = shapeOf(pad).film;
     const shots = pad.beats.filter((b) => artSlot(b, style).url);
     if (!shots.length) throw new Error('draw some art first — the film is made of the pictures and clips');
 
@@ -1764,7 +1849,7 @@ async function runFilmJob(padId) {
       // A FILM CLIP is its own shot, whole: its pictures, its sound, its
       // length. No TTS — reading its note aloud would talk over the tape.
       if (slotClip(slot)) {
-        const cut = await clipSegment(dir, u, slot, job);
+        const cut = await clipSegment(dir, u, slot, job, frame);
         segs.push(cut.seg);
         auds.push(cut.wav);
         total += cut.seconds;
@@ -1825,7 +1910,10 @@ async function runFilmJob(padId) {
         // the beats the tweak touched; everything else is a small download.
         // Bump FILM.segVersion whenever the encode recipe changes.
         const segKey = crypto.createHash('sha1')
-          .update(`${FILM.segVersion}|${pics[p].url}|${each.toFixed(3)}|${FILM.w}x${FILM.h}@${FILM.fps}`).digest('hex');
+          // The frame is IN the key, so a story flipped to square re-encodes
+          // its shots rather than serving the portrait ones back out of the
+          // cache — and flipping back finds them still banked.
+          .update(`${FILM.segVersion}|${pics[p].url}|${each.toFixed(3)}|${frame.w}x${frame.h}@${FILM.fps}`).digest('hex');
         const cached = admin.storage().bucket().file(`scratchpad/film-cache/${segKey}.mp4`);
         let fromCache = false;
         try {
@@ -1834,7 +1922,7 @@ async function runFilmJob(padId) {
         if (!fromCache) {
           const img = await fetchTo(pics[p].url, path.join(dir, `i${u}-${p}`));
           await run(FFMPEG, ['-y', '-loop', '1', '-i', img, '-t', each.toFixed(3),
-            '-vf', `scale=${FILM.w}:${FILM.h}:force_original_aspect_ratio=decrease,pad=${FILM.w}:${FILM.h}:(ow-iw)/2:(oh-ih)/2:color=white,format=yuv420p`,
+            '-vf', `scale=${frame.w}:${frame.h}:force_original_aspect_ratio=decrease,pad=${frame.w}:${frame.h}:(ow-iw)/2:(oh-ih)/2:color=white,format=yuv420p`,
             '-r', String(FILM.fps), '-threads', '1', '-x264opts', 'ref=1:rc-lookahead=12',
             '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', seg], 600000, job);
           try { await admin.storage().bucket().upload(seg, { destination: `scratchpad/film-cache/${segKey}.mp4`, metadata: { contentType: 'video/mp4' } }); }
