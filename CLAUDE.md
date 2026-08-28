@@ -6002,9 +6002,15 @@ before working on that module. Nothing was deleted — the moved text is verbati
       (2026-08-28 — seven runs lost, the crash that produced `gateCut`).
     - **Clean: 5** concurrent 9-panel 4K sheets (2026-08-28), and any number
       of draws once `gateCut` is in.
-    - **Raise the gate a notch and write what you measured, with the date**,
-      if a batch ever needs more than one cut in flight. That is the only
-      notch left: the draws have no ceiling to ratchet.
+    - **DO NOT RAISE THE GATE — the cap was MEASURED and it is 1 (2026-08-28,
+      container, the exact cutSheet recipe on a 4K sheet):** ONE cut peaks
+      **+153MB** over baseline and TWO concurrent peak **+241MB** — sharp's
+      pipeline holds several dimension-sized buffers at once, so a cut costs
+      ~3x the naive 33MB-decode estimate. The 512MB box's headroom fits ONE.
+      The gate at 1 is the ceiling, not caution, and the prize for raising it
+      is seconds: a cut is ~2s, so even a ten-sheet batch queues ~20s of
+      cutting total. (This retires the "raise a notch and write what you
+      measured" ratchet that stood here — the measurement is done.)
   - **A run refused with a 502 on the POST was never created and never
     billed** (measured 2026-08-28) — a start failure is free, so retrying a
     start costs nothing. What is genuinely lost is a run whose sheet died
