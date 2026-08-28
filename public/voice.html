@@ -280,6 +280,40 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
 .render .dl svg{width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:1.8;
   stroke-linecap:round; stroke-linejoin:round; display:block;}
 .render .dl:focus-visible{outline:2px solid var(--rose); outline-offset:1px;}
+/* ♥ / ✕ ON A TAKE, AND THE TWO FILTERS OVER THEM (2026-08-28, Sophie: "add
+   the same playground heart x hide pattern in voice studio"). The Playground's
+   rule, brought over whole rather than reinvented: a mark on each item, tap the
+   lit one to clear it, and one segmented box of two filters above the list —
+   ♥ keeps only what it names, ✕ drops what it names.
+
+   THE TWO FILTERS MUST NOT LOOK ALIKE WHEN LIT. They do opposite things, so
+   the heart takes the rose and the ✕ the quiet grey; two rose buttons side by
+   side read as two of the same thing. Same reasoning as the Playground's own
+   `.xfilt.on`. */
+.render .vote{flex:0 0 auto; border:1px solid var(--line); border-radius:6px;
+  background:var(--barbg); color:var(--ink2); cursor:pointer; padding:5px 7px;
+  display:flex; align-items:center; -webkit-tap-highlight-color:transparent;}
+.render .vote svg{width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:1.8;
+  stroke-linecap:round; stroke-linejoin:round; display:block;}
+.render .vote.on{background:var(--rose); border-color:var(--rose); color:#fff;}
+.render .vote.no.on{background:var(--ink2); border-color:var(--ink2); color:#fff;}
+.render .vote:focus-visible{outline:2px solid var(--rose); outline-offset:1px;}
+/* The list's own header line carries the pair on its right. It reserves the
+   injected pill's fixed corner the same 56px `.acctabs` and the bigger-box
+   button already do on this page — the row scrolls through that band. */
+.secthead{display:flex; align-items:flex-end; gap:10px; padding-right:56px;}
+.secthead .sect{flex:1 1 auto; margin-bottom:.7em;}
+.filttog{flex:0 0 auto; display:flex; border:1px solid var(--line); border-radius:6px;
+  overflow:hidden; background:var(--barbg); margin-bottom:.7em;}
+.filttog button{display:flex; align-items:center; justify-content:center; width:34px; height:30px;
+  border:none; background:none; color:var(--ink2); cursor:pointer; padding:0;
+  -webkit-tap-highlight-color:transparent;}
+.filttog button + button{border-left:1px solid var(--line);}
+.filttog button svg{width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.8;
+  stroke-linecap:round; stroke-linejoin:round; display:block;}
+.filttog button.on{background:var(--rose); color:#fff;}
+.filttog button.xfilt.on{background:var(--ink2); color:#fff;}
+.emptynote{font-style:italic; color:var(--ink2); text-align:center; padding:2.5em 0;}
 </style>
 <div class="wrap">
   <header class="app-header"><h1>Voice Studio</h1></header>
@@ -305,7 +339,11 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
       <button class="clrbtn" id="clr" hidden>Clear</button>
     </div>
 
-    <div class="sect">Renders</div>
+    <div class="secthead"><div class="sect">Renders</div>
+      <div class="filttog" role="group" aria-label="Filters">
+        <button type="button" class="likefilt" data-filt="liked" aria-label="Show only the ones you hearted" title="Hearts only"></button>
+        <button type="button" class="likefilt xfilt" data-filt="hidex" aria-label="Hide the ones you have crossed out" title="Hide the &times;'d"></button>
+      </div></div>
     <div id="renders"><div class="state">Nothing rendered yet.</div></div>
   </div>
 
@@ -328,7 +366,11 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
     </div>
     <div class="bar" id="upbar" hidden><i></i></div>
 
-    <div class="sect">Changed</div>
+    <div class="secthead"><div class="sect">Changed</div>
+      <div class="filttog" role="group" aria-label="Filters">
+        <button type="button" class="likefilt" data-filt="liked" aria-label="Show only the ones you hearted" title="Hearts only"></button>
+        <button type="button" class="likefilt xfilt" data-filt="hidex" aria-label="Hide the ones you have crossed out" title="Hide the &times;'d"></button>
+      </div></div>
     <div id="changes"><div class="state">Nothing changed yet.</div></div>
   </div>
 </div>
@@ -484,6 +526,10 @@ var BLOCKS_SVG='<svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8"
 var DL_SVG='<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>';
 // Lucide `rotate-ccw`. A failed take used to be a dead end — her words are
 // right there on the card, but the only way back was retyping them.
+// Lucide `heart` / `x` — the Playground's own two marks, so a ♥ reads the
+// same on both pages.
+var HEART_SVG='<svg viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>';
+var X_SVG='<svg viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
 var AGAIN_SVG='<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>';
 function dlLink(id, src){
   return '<a class="dl" href="'+API+'/file/'+encodeURIComponent(id)+(src?'?src=1':'')+'" download'
@@ -528,6 +574,10 @@ function card(r){
         : '<button class="toblocks" data-id="'+esc(r.id)+'" title="Land this line in a Cutting Blocks project">'+BLOCKS_SVG+' Blocks</button>')
       : '')
     +(r.status==='done' && r.url ? dlLink(r.id, false) : '')
+    // The marks come LAST on the row, after the download arrow. A take that is
+    // still rendering or that failed carries none — there is nothing finished
+    // to have an opinion about yet (the Playground's own rule for a failed run).
+    +(r.status==='done' && r.url ? voteBtns(r) : '')
     +'</div>';
   if(r.status==='done' && r.url) body+='<audio controls preload="metadata" src="'+esc(r.url)+'"></audio>';
   if(r.kind==='sts' && r.sourceUrl){
@@ -541,7 +591,86 @@ function card(r){
   el.className='render'+(r.status==='rendering'?' pending':'');
   el.innerHTML=body;
   if(r.status==='done' && r.url && watching[r.id]) playOnce(el, r.id);
+  // A take arriving (or finishing) has to be judged by the live filter, or a
+  // fresh render appears on a hearts-only list nothing has hearted.
+  if(typeof applyFilt==='function') applyFilt();
 }
+// ── ♥ / ✕ and the two filters (2026-08-28) ──────────────────────────
+// One state for BOTH tabs (her call: hearts-only stays lit when she switches
+// Text ↔ Voice), so the two `.filttog` boxes are two views of one setting —
+// one reader, one writer, and `paintFilt` repaints every copy. A filter lit on
+// the tab she is not looking at is the silent-filter failure this app keeps
+// getting burned by, and one shared state is what makes it impossible.
+function likedOnly(){ try{ return localStorage.getItem('voicelab_liked')==='1'; }catch(e){ return false; } }
+function hideX(){ try{ return localStorage.getItem('voicelab_hidex')==='1'; }catch(e){ return false; } }
+function voteBtns(r){
+  var v=r.vote||'';
+  return '<button type="button" class="vote yes'+(v==='like'?' on':'')+'" data-vote="like" data-id="'+esc(r.id)+'"'
+    +' aria-label="Heart this take" aria-pressed="'+(v==='like')+'" title="Heart this take">'+HEART_SVG+'</button>'
+    +'<button type="button" class="vote no'+(v==='dislike'?' on':'')+'" data-vote="dislike" data-id="'+esc(r.id)+'"'
+    +' aria-label="Cross this take out" aria-pressed="'+(v==='dislike')+'" title="Cross this take out">'+X_SVG+'</button>';
+}
+function paintFilt(){
+  var lk=likedOnly(), hx=hideX();
+  [].forEach.call(document.querySelectorAll('.filttog [data-filt]'), function(b){
+    var on = b.dataset.filt==='liked' ? lk : hx;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+// A card is hidden, never removed — the poll repaints it in place and it comes
+// straight back when she clears the filter.
+function applyFilt(){
+  var lk=likedOnly(), hx=hideX();
+  Object.keys(cards).forEach(function(id){
+    var r=rdata[id]||{}, v=r.vote||'';
+    var done = r.status==='done' && r.url;
+    // Hearts-only drops anything unhearted, an unfinished take included — it
+    // has no take to have hearted yet. Hide-the-✕'d only ever drops a ✕.
+    var out = (lk && v!=='like') || (hx && v==='dislike' && done);
+    cards[id].hidden = !!out;
+  });
+  [document.getElementById('renders'), document.getElementById('changes')].forEach(function(box){
+    if(!box) return;
+    var any=false;
+    [].forEach.call(box.querySelectorAll('.render'), function(el){ if(!el.hidden) any=true; });
+    var has = !!box.querySelector('.render');
+    var note=box.querySelector('.emptynote');
+    if(has && !any){
+      if(!note){ note=document.createElement('div'); note.className='emptynote'; box.appendChild(note); }
+      note.textContent = likedOnly() ? 'Nothing hearted yet' : 'Everything here is crossed out';
+    } else if(note) note.remove();
+  });
+}
+// The glyphs are drawn here rather than sitting in the markup, so the ♥ and ✕
+// on a filter and on a card are provably the same two paths.
+[].forEach.call(document.querySelectorAll('.filttog [data-filt]'), function(b){
+  b.innerHTML = b.dataset.filt==='liked' ? HEART_SVG : X_SVG;
+});
+paintFilt();
+document.addEventListener('click', function(e){
+  var f=e.target.closest && e.target.closest('.filttog [data-filt]');
+  if(f){
+    var key = f.dataset.filt==='liked' ? 'voicelab_liked' : 'voicelab_hidex';
+    var was = f.dataset.filt==='liked' ? likedOnly() : hideX();
+    try{ localStorage.setItem(key, was ? '' : '1'); }catch(err){}
+    paintFilt(); applyFilt();
+    return;
+  }
+  var v=e.target.closest && e.target.closest('.vote');
+  if(!v) return;
+  var id=v.dataset.id, r=rdata[id]; if(!r) return;
+  // Tapping the lit one clears it — the Playground's rule.
+  var next = (r.vote===v.dataset.vote) ? '' : v.dataset.vote;
+  r.vote = next;
+  card(r);          // repaint from the doc we just changed, so nothing drifts
+  applyFilt();
+  fetch(API+'/render/'+encodeURIComponent(id)+'/vote', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ vote: next }),
+  }).catch(function(){});
+});
+
 // ── the Blocks hand-off: pick a project, land the line ──
 // The picker unfolds INSIDE the render's card (no overlay machinery on this
 // page, and the card is the thing being sent). A second tap on the button

@@ -2892,6 +2892,10 @@ app.post('/api/gallery/assets/vote', express.json(), async (req, res) => {
     // doc, so the Playground's own feed agrees — see syncVoteToPlayground.
     if (vote !== undefined) {
       await syncVoteToPlayground(url, vote);
+      // …and onto its Voice Studio take, for an audio one (2026-08-28). Same
+      // reasoning as the Playground: a ♥ means the same thing wherever it is
+      // tapped, and a clear here must not leave a stuck heart there.
+      await require('./voicelab').voteFromAssets(url, vote);
     }
     res.json({ ok: true });
   } catch (err) {
