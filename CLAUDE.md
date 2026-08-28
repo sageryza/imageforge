@@ -6167,11 +6167,34 @@ before working on that module. Nothing was deleted — the moved text is verbati
     an empty story places straight away because it has no gap to tap.
   - **"Into the inbox" is not rebuilt and does not need to be**: the pad's
     inbox already reads her hearted Playground pictures live, so ♥ is that
-    door. Putting a picture onto an EXISTING beat is that beat's own "fill it
-    in" — a tap on a beat while placing is still a no-op, deliberately (one
-    rule for the inbox flow and this one).
+    door.
   - Test: `node scripts/test-playground-story-share.js` (the trip driven as
     ONE walk — the Playground's real tap lands on the real room).
+  **A PICTURE LANDS ON A MOMENT SHE TAPS, NOT ONLY IN A GAP (2026-08-28,
+  Sophie: "i can only add between · I can't add to an existing moment by
+  clicking that moment").** While she is holding a picture — from the inbox,
+  from the + , or walked in from the Playground — a tap on a BEAT now puts the
+  picture on that beat, where it used to be a **deliberate no-op** and the gaps
+  between beats were the only targets. That reasoning is history: on a pad of
+  empty beats waiting for art (her Science story is 20 of them) tapping the
+  beat is the first thing anyone tries, and it did nothing at all, with nothing
+  on screen saying why.
+  - **TWO DOORS, ONE WRITE — `landOn(target, it)`.** The beat popup's own
+    "fill it in" (`fillBeat`) and this tap are the same call, so a picture
+    landed either way carries the same style side and the same provenance
+    `src`, and the beat opens after it — confirmation by sight.
+  - **NOTHING IS DESTROYED.** The server banks the picture that side already
+    had in the beat's own past-pictures row (`/image` → `placeOnBeat` →
+    `pad-art.js`), so a wrong landing is one tap from undone — which is what
+    makes this the cheap direction rather than a dangerous one.
+  - **AN EMPTY PENDING (the +) LANDS NOWHERE.** There is no picture in it, and
+    "add a blank beat onto this beat" means nothing; the gaps stay armed.
+  - **The gaps are untouched** — a tap between two beats still adds a new beat
+    there, and the band names both ways in ("Tap a moment, or a gap").
+  - Test: `node scripts/test-storyroom-land-on-beat.js` (the real page
+    headless, asking what the tap actually POSTs — a source assertion cannot
+    tell a no-op from a landing; verified failing pre-fix, where the gaps never
+    even come down).
   **A STORY IS PORTRAIT OR SQUARE, AND IT IS ONE SHAPE ALL THE WAY DOWN
   (2026-08-28, Sophie: "add a new square story type in story room").** `SHAPES`
   in `scratchpad.js` and its twin in `gen-scratchpad.py` are the whole list —

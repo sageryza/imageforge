@@ -1501,7 +1501,7 @@ function render(){
       var el=document.createElement('button');
       el.className='beat'+(b.color?' c-'+b.color:'')+(slotDrawing(b)?' drawing':'');
       fillTile(el, b);
-      el.onclick=function(ev){ev.stopPropagation(); if(pending)return; openBeat(beatById(b.id)||b);};
+      el.onclick=function(ev){ev.stopPropagation(); if(pending){landOn(b, pending); return;} openBeat(beatById(b.id)||b);};
       wrap.appendChild(el);
       capFor(wrap, b);
     } else {
@@ -1509,7 +1509,7 @@ function render(){
       u.members.forEach(function(m){
         var sl=document.createElement('button'); sl.className='slice';
         fillTile(sl, m);
-        sl.onclick=function(ev){ev.stopPropagation(); if(pending)return; openBeat(beatById(m.id)||m);};
+        sl.onclick=function(ev){ev.stopPropagation(); if(pending){landOn(m, pending); return;} openBeat(beatById(m.id)||m);};
         ck.appendChild(sl);
       });
       wrap.appendChild(ck);
@@ -2810,29 +2810,43 @@ document.getElementById('inboxclose').onclick=function(){
   lock(false);
 };
 
+/* ── LANDING A PICTURE ON A BEAT THAT ALREADY EXISTS ──
+   TWO DOORS, ONE WRITE. The beat popup's own “fill it in” opens the inbox
+   with `fillBeat` set, and — since 2026-08-28 — a tap on the beat ITSELF
+   while she is holding a picture lands it there too (Sophie: “i can only
+   add between · I can't add to an existing moment by clicking that
+   moment”). Placing used to be gaps only and a tap on a beat was a
+   deliberate no-op — which, on a pad of empty beats waiting for art, is the
+   one thing she is most likely to try. That reasoning is history now.
+   Nothing is destroyed: the server banks the picture that side already had
+   in the beat's own past-pictures row, so a wrong landing is one tap from
+   undone. An EMPTY pending (the +) still lands nowhere — there is no picture
+   in it, and “add a blank beat onto this beat” means nothing. */
+function landOn(target, it){
+  if(!target||!it||it.empty)return;
+  pending=null;
+  var body, path;
+  if(it.film){ path='/clip'; body={id:target.id, clip:it.clip, style:padStyle}; }
+  else {
+    path='/image';
+    // style rides along so the picture lands on the side she is looking at
+    // (an upload has no run to remember, so it carries no src).
+    body={id:target.id, url:it.url, style:padStyle};
+    if(it.runId!==undefined) body.src={runId:it.runId,i:it.i,prompt:it.prompt,model:it.model,engine:it.engine,quality:it.quality};
+  }
+  render();   // the gaps come down the moment she has chosen
+  api(path,{method:'POST',body:JSON.stringify(body)})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(it===sendIt) endSend(true);   // landed on a beat — trip over, way back stays
+      if(d.beats){ beats=d.beats; render(); }
+      var fresh=beats.find(function(x){return x.id===target.id;});
+      if(fresh) openBeat(fresh); else { lock(false); paintSend(); }
+    });
+}
 function pick(it){
   document.getElementById('inbox').hidden=true;
-  if(fillBeat){
-    var target=fillBeat; fillBeat=null;
-    var body, path;
-    if(it.film){ path='/clip'; body={id:target.id, clip:it.clip, style:padStyle}; }
-    else {
-      path='/image';
-      // style rides along so the picture lands on the side she is looking at
-      // (an upload has no run to remember, so it carries no src).
-      body={id:target.id, url:it.url, style:padStyle};
-      if(it.runId!==undefined) body.src={runId:it.runId,i:it.i,prompt:it.prompt,model:it.model,engine:it.engine,quality:it.quality};
-    }
-    api(path,{method:'POST',body:JSON.stringify(body)})
-      .then(function(r){return r.json()})
-      .then(function(d){
-        if(it===sendIt) endSend(true);   // landed on a beat — trip over, way back stays
-        if(d.beats){ beats=d.beats; render(); }
-        var fresh=beats.find(function(x){return x.id===target.id;});
-        if(fresh) openBeat(fresh); else lock(false);
-      });
-    return;
-  }
+  if(fillBeat){ var target=fillBeat; fillBeat=null; landOn(target, it); return; }
   lock(false);
   if(!beats.length){ place(0, it); return; }
   pending=it; render();
@@ -2932,7 +2946,9 @@ function paintSend(){
   document.getElementById('sendword').textContent = sendIt
     ? (onShelf
         ? 'Pick a story for this picture'
-        : (pending===sendIt ? 'Tap where it goes' : 'Tap to place this picture'))
+        // Both ways in are named, because a tap on a moment is the newer of
+        // the two and nothing else on screen says it is allowed.
+        : (pending===sendIt ? 'Tap a moment, or a gap' : 'Tap to place this picture'))
     : ((sendBack.placed?'Placed · back':'Back')+' to '+sendHomeName());
   // The ✕ means "not now" while she holds the picture and "stay here" after.
   document.getElementById('senddrop').setAttribute('aria-label', sendIt?'Not now':'Stay here');
