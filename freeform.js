@@ -46,6 +46,28 @@ const SIZES = {
   landscape: '1536x1024',
 };
 const QUALITIES = ['low', 'medium', 'high'];
+
+// A render is fire-and-forget IN THIS PROCESS, so a deploy that swaps the
+// instance out between "OpenAI answered" and "we saved it" leaves the doc on
+// `drawing` forever — and the page polls a run that says that, so the card
+// spins with nothing on screen ever admitting it is dead (found live
+// 2026-08-28: a square run stuck two hours, which read as "freeform can't do
+// squares"). A draw is 30-90s and every path stamps done/failed, so a run
+// still unfinished after this long is orphaned, never slow. Judged on READ —
+// there is no sweep to schedule and a restart cannot lose it.
+const STUCK_MS = 15 * 60 * 1000;
+
+// Pure, so the rule is testable without a Firestore. A run that already landed
+// SOME images is `done` with what it has (`ready` means outputs were arriving);
+// one with none is honestly failed. Returns null when nothing should change.
+function stuckPatch(run, now = Date.now()) {
+  const st = run && run.status;
+  if (st !== 'drawing' && st !== 'ready') return null;
+  if (now - (run.createdAt || 0) < STUCK_MS) return null;
+  const images = Array.isArray(run.images) ? run.images : [];
+  if (images.length) return { status: 'done', finishedAt: now };
+  return { status: 'failed', error: 'interrupted — the server restarted mid-draw', finishedAt: now };
+}
 // Roughly what a single image costs at each tier — shown on the page so a
 // `high` run is a deliberate choice rather than a surprise.
 const COST = { low: 0.02, medium: 0.06, high: 0.25 };
@@ -350,6 +372,12 @@ router.get('/runs', async (req, res) => {
     const runs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
       .slice(0, limit);
+    await Promise.all(runs.map(async r => {
+      const patch = stuckPatch(r);
+      if (!patch) return;
+      Object.assign(r, patch);
+      await db().collection(RUNS).doc(r.id).set(patch, { merge: true }).catch(() => {});
+    }));
     res.json({ ok: true, runs });
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
@@ -358,7 +386,13 @@ router.get('/run/:id', async (req, res) => {
   try {
     const doc = await db().collection(RUNS).doc(String(req.params.id)).get();
     if (!doc.exists) return res.status(404).json({ error: 'not found' });
-    res.json({ ok: true, id: doc.id, ...doc.data() });
+    const run = { id: doc.id, ...doc.data() };
+    const patch = stuckPatch(run);
+    if (patch) {
+      Object.assign(run, patch);
+      await doc.ref.set(patch, { merge: true }).catch(() => {});
+    }
+    res.json({ ok: true, ...run });
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
 
@@ -369,4 +403,4 @@ router.delete('/run/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
 
-module.exports = { router, SIZES, QUALITIES, refOrder, BOILER, boilerFields, init };
+module.exports = { router, SIZES, QUALITIES, refOrder, BOILER, boilerFields, stuckPatch, STUCK_MS, init };
