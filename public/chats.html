@@ -9183,12 +9183,20 @@ function buildFilters(mount, keys, onChange){
   };
   // ONE pass over the snippet with every term alternated — bolding term by
   // term would let a later term match inside the <b> a previous one wrote.
+  //
+  // ANCHORED AT A WORD START, exactly like the matcher (2026-08-28, from her
+  // `red dress` search). The bold had no anchor at all, so `red` lit up inside
+  // "tired" — a word the search itself would never have matched — and the mark
+  // was telling her a row was found for a reason it was not. The highlight and
+  // the match must be the same question asked twice, or the bold is a lie
+  // about why the row is on screen.
   function hl(snip,q){
     var e=esc(snip||''), ts=qterms(q);
     if(!ts.length) return e;
     try{
       var rx=new RegExp('('+ts.map(function(v){
-        return v.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/\s+/g,'\\s+');
+        return (/^[a-z0-9]/i.test(v)?'\\b':'')
+          +v.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/\s+/g,'\\s+');
       }).join('|')+')','ig');
       return e.replace(rx,'<b>$1</b>');
     }catch(_){ return e; }

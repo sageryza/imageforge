@@ -2165,6 +2165,26 @@ them off the reference sheet, not off the old filenames.
     regex and prefers it; with no phrase in the message it is the old
     rare-term rule, untouched. A rank and a snippet that disagree are worse
     than either alone, because she judges a row by the words she can see.
+  - **AND A WHOLE WORD BEATS A PREFIX, IN THE WINDOW AND IN THE BOLD
+    (2026-08-28, her `red dress` screenshot).** Every term is anchored at a
+    word START and nowhere else — right for MATCHING, since the prefix `bound`
+    must still find "boundaries" — so `red` really does match "redraw", and
+    five of her eight rows opened on "redraw"/"redo"/"reduces" with `dress`
+    nowhere on screen. **The rows were right and the presentation was lying**:
+    every one of them held both her words. Two halves, and each is one rule
+    disagreeing with itself:
+    - **The WINDOW.** Measured on the row she screenshotted: `red` once,
+      inside "redraw", 2,000 characters from the only `dress` — a rarity TIE,
+      which the old rule broke by taking the term she typed FIRST. A hit that
+      lands on a whole word now wins outright, a term prefers its own
+      whole-word occurrence over an earlier prefix one, and rarity only
+      decides between two of a kind.
+    - **The BOLD.** `hl` in `chats.html` had NO anchor at all, so `red` lit up
+      inside "tired" — a word the search itself would never have matched. The
+      highlight and the match must be the same question asked twice, or the
+      mark claims a row was found for a reason it was not.
+    Tests: `node scripts/test-search-grammar.js` and `node
+    scripts/test-chats-live-search.js` (both verified failing pre-fix).
   - **Two things not to undo:** the phrase is its own regex pass (a
     left-to-right walk takes the EARLIEST match of each word and would miss an
     adjacent pair further along — "maybe … never … maybe never" is the

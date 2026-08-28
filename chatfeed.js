@@ -536,19 +536,28 @@ function queryMatches(s, groups) {
 function snippetAnchor(src, groups, phraseRe) {
   if (phraseRe) {
     const hit = src.match(phraseRe);
-    if (hit) return { i: src.search(phraseRe), len: hit[0].length, n: 0 };
+    if (hit) return { i: src.search(phraseRe), len: hit[0].length, n: 0, whole: true };
   }
   let best = null;
   for (const g of groups) {
     if (g.neg) continue;
     for (const t of g.terms) {
       if (!t.re) continue;
-      const found = src.match(t.re);
-      if (!found) continue;
       const all = new RegExp(t.re.source, 'gi');
-      let n = 0;
-      while (all.exec(src) && n < 60) n++;
-      if (!best || n < best.n) best = { i: src.search(t.re), len: found[0].length, n };
+      let m; let n = 0; let pick = null;
+      while ((m = all.exec(src)) && n < 60) {
+        n++;
+        // A hit is WHOLE when the word ends where the term does — `dress` in
+        // "dress", not `red` in "redraw". Terms are anchored at a word START
+        // only, so the prefix hit is a real match and still counts for
+        // matching; it is only a poor thing to open the window on.
+        const whole = !/[a-z0-9]/i.test(src.charAt(m.index + m[0].length) || '');
+        if (!pick || (whole && !pick.whole)) pick = { i: m.index, len: m[0].length, whole };
+        if (all.lastIndex === m.index) all.lastIndex++;
+      }
+      if (!pick) continue;
+      const cand = { i: pick.i, len: pick.len, n, whole: pick.whole };
+      if (!best || (cand.whole !== best.whole ? cand.whole : cand.n < best.n)) best = cand;
     }
   }
   return best;
