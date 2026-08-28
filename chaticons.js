@@ -41,9 +41,14 @@
 // ROUTES
 //   GET  /status                what is waiting, when it last ran (open, free)
 //   GET  /waiting               the chats it would draw next, with their lines
-//   POST /run { limit?, dry? }  sweep now — background job, returns an id
+//   POST /run { limit?, dry?, force? }  sweep now — background job, returns an id
 //   GET  /run/:id               poll one run
 //   GET  /runs                  recent runs
+//
+// HER HOURS: the automatic tick only fires between 11am and 11pm Pacific (her
+// ask, and her clock — she is Pacific, not UTC). A hand `POST /run` is not
+// bound by it. Only ONE run goes at a time, tick or hand: two runs each read
+// who is waiting at their own start and then draw the same chats twice.
 //
 // The DAILY tick lives in server.js and calls `sweepDue()` — see that block.
 // Nothing here is on a timer of its own; a module that schedules itself would
@@ -250,6 +255,46 @@ async function runSweep(id, { limit = PER_SHEET } = {}) {
   }
 }
 
+/** Is a run going right now?
+ *
+ *  A LOCK, BECAUSE TWO RUNS DRAW THE SAME CHATS TWICE. Found live: the daily
+ *  tick fired four minutes into a hand-run and both were working off their own
+ *  snapshot of who was waiting, so a sheet's worth of chats was drawn, filed,
+ *  and then drawn and filed again — about 6c for nothing. Each run reads
+ *  `waitingFrom` once at the start and nothing re-checks mid-run, which is
+ *  right for a single run and exactly what makes two of them collide.
+ *
+ *  The staleness window is cutmarks.js's takeover rule: a run still marked
+ *  `running` after 20 minutes is a job whose process died (a deploy mid-sweep),
+ *  and it must not wedge the sweep forever. */
+const STALE_RUN_MS = 20 * 60 * 1000;
+async function runningNow() {
+  const q = await db().collection(COL).where('status', '==', 'running').get();
+  const live = q.docs
+    .map((d) => d.data())
+    .filter((r) => Date.now() - Date.parse(r.createdAt || 0) < STALE_RUN_MS);
+  return live.length ? live[0] : null;
+}
+
+/** The hour on HER clock, 0-23.
+ *
+ *  Sophie is Pacific ("i'm on pst not utc jsyk"), and the IANA zone is what
+ *  actually tracks the clock she reads — it is PDT half the year, and a fixed
+ *  -8 would fire an hour off all summer. */
+function pacificHour(at = new Date()) {
+  return Number(new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Los_Angeles', hour: 'numeric', hour12: false,
+  }).format(at));
+}
+// Her window for the automatic sweep: 11am to 11pm Pacific. A HAND run
+// (POST /run) is not bound by it — she asked for the hours the tick keeps, not
+// a curfew on her own button.
+const WINDOW = { from: 11, to: 23 };
+function inWindow(at = new Date()) {
+  const h = pacificHour(at);
+  return h >= WINDOW.from && h < WINDOW.to;
+}
+
 /** The daily entry point, called by the hourly tick in server.js.
  *
  *  The DUE CHECK IS IN FIRESTORE, NOT IN THE INTERVAL. The web service restarts
@@ -258,6 +303,9 @@ async function runSweep(id, { limit = PER_SHEET } = {}) {
  *  A stored `lastRunAt` is the only thing that survives a restart. */
 async function sweepDue({ force = false } = {}) {
   if (!admin.apps.length || !process.env.OPENAI_API_KEY) return { skipped: 'not configured' };
+  if (!force && !inWindow()) return { skipped: 'outside her hours', pacificHour: pacificHour() };
+  const busy = await runningNow();
+  if (busy) return { skipped: 'a run is already going', running: busy.id };
   const snap = await stateRef().get();
   const last = (snap.exists && snap.data().lastRunAt) || '';
   if (!force && last && Date.now() - Date.parse(last) < DUE_MS) return { skipped: 'not due', last };
@@ -284,6 +332,10 @@ router.get('/status', async (req, res) => {
     perSheet: PER_SHEET,
     quality: QUALITY,
     costPerSheet: 0.06,
+    // Her hours, and where the clock is in them right now.
+    hours: `${WINDOW.from}:00-${WINDOW.to}:00 Pacific`,
+    pacificHour: pacificHour(),
+    inWindow: inWindow(),
   };
   try {
     const [{ chats }, snap] = await Promise.all([registry(), stateRef().get()]);
@@ -325,6 +377,12 @@ router.post('/run', async (req, res) => {
         items: named,
       });
     }
+    // The same lock the tick obeys: two runs draw the same chats twice, and it
+    // does not matter which one started it. `force:true` is the way past it.
+    const busy = await runningNow();
+    if (busy && !(req.body && req.body.force)) {
+      return res.status(409).json({ error: 'a run is already going', running: busy.id, poll: `/api/chaticons/run/${busy.id}` });
+    }
     const id = `run-${Date.now().toString(36)}`;
     await patch(id, { id, status: 'running', step: 'starting', by: 'hand', createdAt: new Date().toISOString() });
     runSweep(id, { limit });
@@ -351,4 +409,5 @@ router.get('/runs', async (req, res) => {
 module.exports = {
   router, sweepDue, waitingFrom, drawable, lineFor, GENERIC, subjectsFor,
   PER_SHEET, QUALITY, DUE_MS, SUBJECT_SYSTEM,
+  pacificHour, inWindow, WINDOW, STALE_RUN_MS,
 };

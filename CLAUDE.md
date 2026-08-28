@@ -2300,6 +2300,21 @@ them off the reference sheet, not off the old filenames.
     24-hour interval counted from boot would either never fire or fire on every
     restart — and the stored clock also means a dev container that boots the app
     spends nothing. The tick only runs where `RENDER_EXTERNAL_URL` is set.
+  - **THE AUTOMATIC SWEEP KEEPS HER HOURS — 11am to 11pm PACIFIC (Aug 2026,
+    Sophie: "i'm on pst not utc jsyk" · "11am-11pm").** Read through the IANA
+    zone (`America/Los_Angeles`), never a fixed -8: she says PST but it is PDT
+    half the year, and an offset would fire an hour out all summer. A HAND
+    `POST /run` ignores the window — she asked for the hours the tick keeps,
+    not a curfew on her own button. With the 20-hour due gap the run time drifts
+    earlier each day until it hits 11am and settles there.
+  - **ONE RUN AT A TIME, tick or hand** — found live: the tick fired four
+    minutes into a hand run, each had read who was waiting at its own start,
+    and a sheet's worth of chats was drawn and filed twice for about 6c.
+    Nothing re-checks mid-run, which is right for one run and exactly what
+    makes two collide. A run still `running` after 20 minutes is a dead
+    process (a deploy mid-sweep) and stops blocking — cutmarks.js's takeover
+    rule. `POST /run` answers 409 with the live run's id; `force:true` is the
+    way past it.
   - `POST /run {limit?, dry?}` sweeps on demand — **`dry:true` is free** and
     names exactly who is about to be drawn and what it will cost.
     `GET /status` and `GET /waiting` are free reads. Tests:
