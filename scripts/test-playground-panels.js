@@ -57,8 +57,16 @@ const RES = resTable();
 console.log('the server wiring');
 ok(/Array\.isArray\(req\.body\.panels\)/.test(serverSrc), 'the POST route has a panels branch');
 ok(/function runPromptLabPanelsJob/.test(serverSrc), 'the panels job exists');
-const cutSrc = serverSrc.slice(serverSrc.indexOf('async function cutSheet('),
+const cutSrc = serverSrc.slice(serverSrc.indexOf('async function cutSheetNow('),
   serverSrc.indexOf('async function runPromptLabPanelsJob'));
+// ONE CUT AT A TIME (2026-08-28, Sophie's two-phase rule: banked arrivals may
+// stack, the ~33MB decodes may not — 8 concurrent 4K cuts is the ledger's
+// measured break). cutSheet is the queue door and every caller goes through
+// it, so the heavy body must not be callable around the lock.
+ok(/function cutSheet\(sheetBuf, plan\) \{\s*\n\s*return withCutTurn\(/.test(serverSrc),
+  'cutSheet queues through withCutTurn — one decode at a time');
+ok((serverSrc.match(/cutSheetNow\(/g) || []).length === 2,
+  'cutSheetNow is called ONLY from inside the queue');
 ok(/sharp\.cache\(false\)/.test(cutSrc), 'the cut turns the sharp cache OFF (512MB box)');
 ok(/webp\(\{ lossless: true \}\)/.test(cutSrc), 'panels are cut LOSSLESS');
 ok(/for \(const r of rects\)/.test(cutSrc) && !/Promise\.all/.test(cutSrc),

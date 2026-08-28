@@ -6132,7 +6132,28 @@ const PL_SHAPE_WORD = { '2:3': 'portrait', '1:1': 'square', '3:2': 'landscape' }
 // cache on are how a batch of extracts balloons. Lossless webp on every
 // panel: the model's own pixels are the source and nothing lossy may stand
 // between them and the cut (the house no-generation-compression rule).
-async function cutSheet(sheetBuf, plan) {
+// ONE CUT AT A TIME, ACROSS EVERY RUN (2026-08-28, Sophie's two-phase rule:
+// "sheets come in, get banked, then cut only after banked"). The phases have
+// very different weights: a sheet WAITING costs nothing, an ARRIVING sheet is
+// a ~3MB buffer, and a CUT decodes ~33MB of raw pixels plus working buffers —
+// on the 512MB box, 8 sheets arriving together and cutting together is the
+// ledger's measured 8-break. Banking already happens before the cut, so
+// arrivals may stack; the decodes may not. A promise chain rather than a
+// counter: a cut is seconds long, and a run waiting its turn holds only its
+// webp buffer, never a decode. Every caller (the live job, the boot sweep,
+// POST /:id/recut) comes through cutSheet, so all of them queue.
+let cutTurn = Promise.resolve();
+function withCutTurn(fn) {
+  const run = cutTurn.then(fn, fn);
+  cutTurn = run.then(() => {}, () => {});
+  return run;
+}
+
+function cutSheet(sheetBuf, plan) {
+  return withCutTurn(() => cutSheetNow(sheetBuf, plan));
+}
+
+async function cutSheetNow(sheetBuf, plan) {
   const sharp = require('sharp');
   sharp.cache(false);
   const { data, info } = await sharp(sheetBuf).ensureAlpha().raw()
