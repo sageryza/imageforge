@@ -70,12 +70,27 @@ const COST = { low: 0.02, medium: 0.06, high: 0.25 };
 const BOILER_STYLE = 'evan';
 const BOILER = { id: BOILER_STYLE, label: 'Boilerplate style', prefix: '', suffix: '' };
 
+// ONE CLAUSE IS DROPPED HERE (2026-08-28, Sophie: "get rid of the color
+// line"). Sandy mirror invites the model to pick its own palette; in Freeform
+// the reference she attached is usually the whole point of attaching it, so
+// the line argues with her. Cut as a NAMED clause rather than by rewriting the
+// text — the swap pattern PL_GPT_STYLES.dreamy's own no-text toggle uses — so
+// this stays the house wording minus one sentence, and the Playground's Sandy
+// mirror tile is untouched.
+// A REWORD IN server.js MUST MOVE THIS STRING: `BOILER.colorCut` records
+// whether it was found, and the test fails when it stops matching, rather than
+// the clause silently coming back.
+const COLOR_CLAUSE = 'You can choose your own colors rather than copying the '
+  + 'colors of the style reference.';
+
 // Called by server.js once PL_GPT_STYLES exists (it is defined long after the
 // mount, so this cannot be a require).
 function init({ gptStyles } = {}) {
   const st = (gptStyles && gptStyles[BOILER_STYLE]) || null;
   if (!st) return;
-  BOILER.prefix = String(st.prefix || '');
+  const prefix = String(st.prefix || '');
+  BOILER.colorCut = prefix.includes(COLOR_CLAUSE);
+  BOILER.prefix = prefix.split(COLOR_CLAUSE).join('').replace(/\s+/g, ' ').trim();
   BOILER.suffix = String(st.suffix || '');
   BOILER.from = st.label || BOILER_STYLE;
 }

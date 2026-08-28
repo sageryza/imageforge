@@ -69,6 +69,15 @@ ok('freeform.js keeps no copy of the wording', !FREEFORM_SRC.includes('ignore it
 // subject, or it would fight every prompt it rode on.
 ok('the boiler names no subject of its own', !/a cat|a woman|a girl/i.test(BOILER.prefix + BOILER.suffix));
 
+// THE COLOUR LINE IS CUT (2026-08-28, Sophie: "get rid of the color line").
+// Cut as a named clause, so a reword in server.js fails HERE rather than
+// letting the sentence quietly come back.
+ok('the colour clause was found to cut', BOILER.colorCut === true);
+ok('the boiler no longer offers its own colours', !/colors/i.test(BOILER.prefix));
+ok('the rest of the house clause survives the cut',
+  /style of the attached style reference/.test(BOILER.prefix) && /ignore its content/.test(BOILER.prefix));
+ok('the Playground\'s own Sandy mirror still has it', /own colors/.test(grab('prefix')));
+
 // ── pure: the assembler ────────────────────────────────────────────────────
 const off = boilerFields('a cat on a fence', false);
 ok('off sends her words untouched', off.sent === 'a cat on a fence');
@@ -143,6 +152,10 @@ function report() {
   // page with its own copy passes every rendered assertion right up until
   // someone rewords the style in server.js.
   const src = fs.readFileSync(path.join(PUB, 'freeform.html'), 'utf8');
+  // THE INFO TEXT IS GONE (2026-08-28, Sophie: "get rid of the info text at
+  // the top of Freeform"). The header is the whole top of the page now.
+  ok('no lede paragraph at the top', !/class="lede"/.test(src));
+
   ok('the page keeps no copy of the boiler text',
     !src.includes(BOILER.prefix.slice(0, 40)) && !src.includes(BOILER.suffix.slice(0, 20)));
 
