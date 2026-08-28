@@ -6,6 +6,7 @@ const promptRecord = require('./prompt-record');
 // The panel sheet's geometry — derived canvases, the grid sentence, the cut
 // rects and the style-tail sheet swap. See sheet-grid.js.
 const sheetGrid = require('./sheet-grid');
+const responsesBg = require('./responses-bg');
 // What a failed Playground run tells her, instead of "see the server log" —
 // see render-fail.js.
 const { renderFailMessage } = require('./render-fail');
@@ -5882,6 +5883,30 @@ async function sweepStuckPromptlabRuns() {
           continue;
         } catch (e) { console.warn(`promptlab sweep: recut of ${d.id} failed:`, e.message); }
       }
+      // A run orphaned mid-DRAW still has its work sitting on OpenAI's side:
+      // the sheet is a background job whose id was banked before the first
+      // poll, so COLLECT it rather than writing off a sheet that was billed
+      // when it was requested (2026-08-28 — the 15 runs, about $1.75, this
+      // whole path exists for). Free, and `pending` means still drawing, so a
+      // live run is left alone instead of being marked failed at ten minutes.
+      if (r.panels && r.bgResponseId && !r.sheetUrl) {
+        try {
+          const state = await resumePanelsRun(d.ref, r);
+          if (state !== 'pending') {
+            console.log(`promptlab sweep: recovered orphaned panels run ${d.id} from its background draw`);
+            continue;
+          }
+          // Still drawing: leave it. But a run pending for an HOUR is the
+          // zombie 'drawing…' this sweep was written to clear — no sheet has
+          // ever taken that long, so at that point believe the run is dead
+          // rather than pinning it to the top of her Playground forever.
+          if (at > Date.now() - 60 * 60 * 1000) {
+            console.log(`promptlab sweep: panels run ${d.id} is still drawing at OpenAI — left alone`);
+            continue;
+          }
+          console.warn(`promptlab sweep: panels run ${d.id} still pending after an hour — failing it`);
+        } catch (e) { console.warn(`promptlab sweep: resume of ${d.id} failed:`, e.message); }
+      }
       await d.ref.update({ status: 'failed', error: 'interrupted by a server restart' });
       console.log(`promptlab sweep: marked stuck run ${d.id} failed`);
     }
@@ -6346,8 +6371,66 @@ async function recutPanelsRun(docRef, d) {
   return finishPanelsCut(docRef, cfg, sheetBuf, d.sheetUrl);
 }
 
+// Everything after the sheet's bytes arrive — the whiten, the bank, the
+// 'ready' stage and the cut. The bytes are identical whether THIS process
+// submitted the draw or a rebooted one collected it off the response id, so
+// the live job and the boot recovery both come through here.
+async function finishPanelsDraw(docRef, cfg, out) {
+  if (out.state !== 'done') throw new Error(out.error || 'the background draw failed');
+  const st = PL_GPT_STYLES[cfg.styleId] || PL_GPT_STYLES.evan;
+  let sheetBuf = Buffer.from(out.b64, 'base64');
+  // Pastel's flood-fill whiten runs on the SHEET, before the cut, so every
+  // panel inherits it. Best-effort, as on an ordinary run.
+  if (st.whiten) { try { sheetBuf = await whitenBackground(sheetBuf); } catch (e) { console.warn('promptlab whiten failed:', e.message); } }
+  // THE PAID SHEET IS BANKED BEFORE THE CUT — a failed cut must never lose
+  // a picture that has already been billed, and the banked url is also what
+  // makes a deploy restart recoverable (the sweep recuts from it).
+  const sheetUrl = await saveBufferToFirebase(sheetBuf, 'image/webp', 'promptlab');
+  // THE RECORD SAYS WHAT REALLY DREW THE PICTURE. The Responses API puts a
+  // router model between her words and gpt-image-2, and `revised_prompt` is
+  // the text that actually reached it — measured verbatim under the
+  // pass-through instruction, but MEASURED, never assumed (responses-bg.js
+  // carries the numbers). Storing it as `fullPrompt` is what keeps the hard
+  // rule true: the whole prompt is stored wherever an image is made, and it
+  // is the LITERAL text sent, never a reconstruction. `promptRewritten` is
+  // written only when the two differ, so drift is countable over real runs
+  // instead of argued about — if it ever starts appearing, this is the
+  // migration to revisit.
+  const sent = out.sentPrompt || cfg.fullPrompt;
+  const rewritten = sent !== cfg.fullPrompt;
+  const cut = rewritten ? { ...cfg, fullPrompt: sent } : cfg;
+  // THE SHEET SHOWS THE MOMENT IT IS PAID FOR (2026-08-27, Sophie: "the
+  // uncut sheet shud show before it's cut as soon as it's done (in
+  // panels"). The run parks on 'ready' with the banked sheet and no images
+  // — the page's swap poller already knows that shape — so the picture is
+  // on screen while the cut and the filing run behind it, and the panels
+  // replace it on 'done'. The page draws it in the SHEET's own ratio, never
+  // the panel cell's.
+  await docRef.update({ sheetUrl, status: 'ready',
+    ...(rewritten ? { fullPrompt: sent, promptRewritten: true } : {}),
+    ...(out.usage ? { usage: [out.usage] } : {}) });
+  await finishPanelsCut(docRef, cut, sheetBuf, sheetUrl);
+}
+
+// A PANELS SHEET IS DRAWN AS A BACKGROUND JOB (2026-08-28, Sophie, after a
+// restart landing mid-generation lost 15 runs — about $1.75 of 4K medium
+// sheets — in one evening). `/v1/images/edits` is SYNCHRONOUS, so the only
+// handle on the work is the open socket: a deploy takes it, and the Images
+// API has no result tracking to ask afterwards, so a sheet billed when it was
+// requested is simply gone. A Responses job with `background:true` answers in
+// about a third of a second with an id, THE ID GOES ON THE DOC BEFORE THE
+// FIRST POLL, and any later process can collect the finished bytes off it —
+// which is exactly what the boot sweep now does. The banked-sheet recovery
+// already covered a kill AFTER the sheet arrived; this covers the 60-180s it
+// was in the air.
+//
+// PANELS ONLY, deliberately. It is the expensive case — a 4K sheet is 20-47c
+// against a 1K run's fraction of a cent — and the one whose loss she measured;
+// every other Playground path stays on the direct Images call, which has no
+// router model between her words and gpt-image-2. The whole trade, the four
+// probe measurements behind it and the two honest residuals are written out
+// in responses-bg.js. Read that before moving another surface onto this.
 async function runPromptLabPanelsJob(docRef, cfg) {
-  const plan = cfg.plan;
   try {
     const st = PL_GPT_STYLES[cfg.styleId] || PL_GPT_STYLES.evan;
     const refs = await playgroundRefs(st);
@@ -6356,40 +6439,38 @@ async function runPromptLabPanelsJob(docRef, cfg) {
     // fetch fails the run rather than quietly drawing a stranger (the Story
     // Room's rule, and playgroundCharRefs is where it lives).
     for (const b of await playgroundCharRefs(cfg.chars)) refs.push(b);
-    const data = refs.length
-      ? await openaiImageEditRefs(cfg.fullPrompt, refs, {
-        quality: cfg.quality, size: plan.sheet, timeout: 300000,
-      })
-      : await openaiImage({
-        model: PL_GPT.id, prompt: cfg.fullPrompt, n: 1,
-        size: plan.sheet, quality: cfg.quality,
-        output_format: 'webp', moderation: 'low',
-      }, 2, 300000);
-    if (data.error) throw new Error(data.error.message || 'gpt-image-2 error');
-    const b64 = data.data?.[0]?.b64_json;
-    if (!b64) throw new Error('gpt-image-2 returned no image');
-    let sheetBuf = Buffer.from(b64, 'base64');
-    // Pastel's flood-fill whiten runs on the SHEET, before the cut, so every
-    // panel inherits it. Best-effort, as on an ordinary run.
-    if (st.whiten) { try { sheetBuf = await whitenBackground(sheetBuf); } catch (e) { console.warn('promptlab whiten failed:', e.message); } }
-    // THE PAID SHEET IS BANKED BEFORE THE CUT — a failed cut must never lose
-    // a picture that has already been billed, and the banked url is also what
-    // makes a deploy restart recoverable (the sweep recuts from it).
-    const sheetUrl = await saveBufferToFirebase(sheetBuf, 'image/webp', 'promptlab');
-    // THE SHEET SHOWS THE MOMENT IT IS PAID FOR (2026-08-27, Sophie: "the
-    // uncut sheet shud show before it's cut as soon as it's done (in
-    // panels"). The run parks on 'ready' with the banked sheet and no images
-    // — the page's swap poller already knows that shape — so the picture is
-    // on screen while the cut and the filing run behind it, and the panels
-    // replace it on 'done'. The page draws it in the SHEET's own ratio, never
-    // the panel cell's.
-    await docRef.update({ sheetUrl, status: 'ready',
-      ...(data.usage ? { usage: [data.usage] } : {}) });
-    await finishPanelsCut(docRef, cfg, sheetBuf, sheetUrl);
+    const { id } = await responsesBg.bgSubmit({
+      prompt: cfg.fullPrompt, refBuffers: refs, quality: cfg.quality,
+      size: cfg.plan.sheet, moderation: 'low', model: PL_GPT.id,
+    });
+    // IMMEDIATELY, and awaited. A restart between the id arriving and the id
+    // being durable is the one window this cannot close, so nothing is allowed
+    // between those two lines — no logging, no filing, no poll.
+    await docRef.update({ bgResponseId: id });
+    const out = await responsesBg.bgAwait(id, cfg.fullPrompt);
+    // Still drawing when this poll gave up: hand it to the stuck sweep rather
+    // than touching the doc. Marking a run failed on OUR clock, while the
+    // sheet it paid for is still being drawn, is the exact loss this replaces.
+    if (out.state === 'pending') return;
+    await finishPanelsDraw(docRef, cfg, out);
   } catch (err) {
     console.warn('promptlab panels job failed:', err.message);
     await docRef.update({ status: 'failed', error: err.message }).catch(() => {});
   }
+}
+
+// Finish a panels run orphaned mid-DRAW, from its response id — the half the
+// banked-sheet recovery could never reach, because there was no sheet yet.
+// FREE: the sheet was billed when it was requested and this only collects
+// bytes already paid for. Answers 'pending' while OpenAI is still drawing, so
+// a live run is left alone rather than written off at the ten-minute cutoff.
+async function resumePanelsRun(docRef, d) {
+  const cfg = panelsCfgOf(d);
+  if (!cfg || !d.bgResponseId) throw new Error('not a resumable panels run');
+  const out = responsesBg.readResponse(await responsesBg.bgFetch(d.bgResponseId), cfg.fullPrompt);
+  if (out.state === 'pending') return 'pending';
+  await finishPanelsDraw(docRef, cfg, out);
+  return 'done';
 }
 
 async function runPromptLabJob(docRef, cfg) {
