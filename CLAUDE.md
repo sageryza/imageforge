@@ -954,6 +954,18 @@ them off the reference sheet, not off the old filenames.
   contained the literal setup.sh pipe-to-shell one-liner inside a long
   message (the same string alone in a small body passes — it's a scored
   filter, not a string match). Two consequences:
+  - **IT HAPPENED AGAIN 2026-08-28, IN A CHAT THAT HAD JUST READ THIS RULE, AND
+    THE FIX IS A URL RATHER THAN BETTER INTENTIONS (Sophie: "where's ur
+    message").** The reply recommending she switch the environment's Setup
+    script to the one-liner naturally CONTAINED the one-liner, so the post was
+    blocked and her screenshot showed her message with no answer under it. The
+    hook behaved correctly — v10 refuses to record an unconfirmed post, so it
+    retried on every later event and was blocked every time, i.e. **a reply
+    carrying that string is not delayed, it is unpostable forever.** Describing
+    the command in prose is the rule, but a command she has to TYPE is no use
+    on a phone, which is why the rule kept losing. So the line is SERVED:
+    **`/setup-line.txt`** — she opens it, selects all, copies. A chat handing
+    her any pipe-to-shell command links that file and never writes the string.
   - **Don't put the literal `curl … | bash` one-liner in a reply.** When a
     reply needs to tell Sophie or another chat about the self-heal, DESCRIBE
     it ("fetch /setup.sh with curl and run it with bash", or point at this
