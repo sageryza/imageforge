@@ -3441,6 +3441,11 @@ document.getElementById('arplay').onclick=function(ev){
     q+='&pad='+encodeURIComponent(padId)+'&beat='+encodeURIComponent(b.id)
       +'&padstyle='+encodeURIComponent(padStyle);
     if(p) q+='&prompt='+encodeURIComponent(p);
+    /* t — the beat's own words, so the Playground's banner can NAME the beat
+       it is aimed at rather than saying "a beat" (2026-08-28, Sophie: "this
+       picture doesn't belong here"). Cut short: it is a label, not the text. */
+    var t=String(b.text||'').replace(/\s+/g,' ').trim().slice(0,60);
+    if(t) q+='&t='+encodeURIComponent(t);
   }
   Promise.all([saveNote(),savePrompt()]).then(function(){ location.href=q; },
                                              function(){ location.href=q; });
