@@ -108,4 +108,26 @@ ok('a term that is not in the text anchors nothing', () => {
   assert.strictEqual(snippetAnchor('nothing here', compileQuery('raincoat')), null);
 });
 
+group('the snippet opens on a WHOLE word, not a prefix');
+// 2026-08-28, from her `red dress` search: `red` is anchored at a word start
+// and nowhere else, so it legitimately matches "redraw" — and the window
+// opened there, 2,000 characters from the only "dress", on a row that had
+// matched BOTH her words. A rarity tie, broken by whichever she typed first.
+const RED = "say so and I'll redraw the mother. " + 'x'.repeat(300) + ' She is in a red dress.';
+// Her row exactly: ONE `red`, inside "redraw", and ONE `dress`, whole — a
+// rarity tie, which the old rule broke by taking the term she typed first.
+const TIE = "say so and I'll redraw the mother. " + 'x'.repeat(300) + ' She is wearing the dress.';
+ok('a prefix hit loses to the whole word she typed', () => {
+  const at = snippetAnchor(TIE, compileQuery('red dress'));
+  assert.strictEqual(TIE.slice(at.i, at.i + at.len).toLowerCase(), 'dress');
+});
+ok('a term prefers its own whole-word hit over an earlier prefix one', () => {
+  const at = snippetAnchor(RED, compileQuery('red'));
+  assert.strictEqual(RED.slice(at.i - 1, at.i + at.len + 1).toLowerCase(), ' red ');
+});
+ok('a prefix hit still anchors when it is all there is', () => {
+  const at = snippetAnchor('nothing but a redraw here', compileQuery('red'));
+  assert.strictEqual(at.i, 14);
+});
+
 console.log('\n' + pass + ' checks passed');
