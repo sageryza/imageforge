@@ -253,7 +253,9 @@ const server = http.createServer((req, res) => {
     await page.waitForSelector('.lbacts');
     const labels = await page.$$eval('.lbacts button',
       (es) => es.map((e) => e.getAttribute('aria-label')));
-    if (labels.join('|') !== 'Open the chat|Open in Playground|Save to Photos') {
+    // ♥/✕ lead the under-picture row since 2026-08-28 — the one layout,
+    // every caller ("a single lightbox view … it's not in meta assets?")
+    if (labels.join('|') !== 'Heart|Reject|Open the chat|Open in Playground|Save to Photos') {
       fail('wrong action icons on a chat image: ' + JSON.stringify(labels));
     }
     await page.click('#clightbox', { position: { x: 10, y: 800 } });
@@ -263,7 +265,7 @@ const server = http.createServer((req, res) => {
     await page.waitForSelector('.lbacts');
     const appLabels = await page.$$eval('.lbacts button',
       (es) => es.map((e) => e.getAttribute('aria-label')));
-    if (appLabels.join('|') !== 'Open in Playground|Save to Photos') {
+    if (appLabels.join('|') !== 'Heart|Reject|Open in Playground|Save to Photos') {
       fail('wrong action icons on an app creation: ' + JSON.stringify(appLabels));
     }
     await page.click('#clightbox', { position: { x: 10, y: 800 } });

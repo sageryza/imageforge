@@ -3504,7 +3504,15 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     way to ask what a tap reaches; verified failing against the pre-fix page).
   - **EVERY SURFACE SHARES THE ONE FILE SINCE 2026-08-28 (Sophie: "create a
     single lightbox view, sync to all surfaces … ex assets, meta assets, story
-    room, playground").** The last three hand copies retired in one pass: the
+    room, playground").** And **THE ONE LAYOUT IS THE PLAYGROUND'S,
+    EVERYWHERE** (her check the same day: "it's not in meta assets?" — one
+    code was not one view while the layout stayed per-page): ♥/✕ lead the
+    row UNDER the picture with the caller's actions, all one 46px size, the
+    MODEL · QUALITY tag and label directly under the picture, Prompt · Chat
+    alone in the top band, the picture at 76vh yielding through flex. The
+    old `votesBelow` / `capUnderImage` hooks are accepted and IGNORED — they
+    are the layout now; don't reintroduce a per-page layout flag.
+    The last three hand copies retired in one pass: the
     STORY ROOM's (its pick and step zones ride two new hooks — `cta`, a
     labeled primary button under the picture for "Use this one", and
     `onClose`, which lets a page whose beat popup holds the body lock
@@ -4628,11 +4636,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
     them, with the 38px note-send under both. **The size she asked for is the
     Playground's own**, read off its hand-rolled lightbox as it stood the day
     before the port (`.lbbtn` — 46x46, a 21px glyph, 22px apart), where all
-    five really were one class. It is a `.vbelow` rule in `asset-lightbox.js`,
-    scoped like every other hook, so the Assets tab, Meta Assets and the grid
-    pages — which pass no layout hook — keep the sizes they have. **A hook
-    that MOVES a control into another row inherits that row's problem: check
-    the sizes on both sides of the join.** Pinned by the size block in
+    five really were one class. It is a `.vbelow` rule in `asset-lightbox.js`
+    — and since 2026-08-28 `.vbelow` IS every caller's layout ("a single
+    lightbox view … it's not in meta assets?"), so the Assets tab, Meta
+    Assets and the grid pages carry the same 46px row now. **A hook that
+    MOVES a control into another row inherits that row's problem: check the
+    sizes on both sides of the join.** Pinned by the size block in
     `node scripts/test-playground-lightbox.js`, MEASURED off the real boxes
     (two rules winning on two different buttons is invisible to any class
     assertion) — verified failing 2 pre-fix, naming all three sizes.
