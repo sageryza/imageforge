@@ -13,7 +13,10 @@
 //   5. her SOURCE LIBRARIES are not deliveries (the Dump, crystals, ingest),
 //   6. a DERIVED thumbnail is not a delivery,
 //   7. an audio file in the assets is not a picture row,
-//   8. display names come off the registry.
+//   8. display names come off the registry,
+//   9. an UNLABELED picture is not a delivery — the house rule that a chat
+//      labels every image it hands over, which is what tells a hand-over from
+//      the hook's background catch (a chat icon, a film's cover frame).
 const assert = require('assert');
 const { buildFeed, burstsFor } = require('../deliverables-feed');
 
@@ -38,6 +41,10 @@ const assets = [
   pic({ url: 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/phone-photo.jpg',              created: at(20 * MIN), md5: 'ff' }),
   pic({ url: 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/crystals/rock.jpg',                  created: at(21 * MIN), md5: 'gg' }),
   pic({ url: 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/thumbs/deadbeef.webp',               created: at(22 * MIN), md5: 'hh' }),
+  // a generated chat icon and a film's cover frame — filed by the hook, named
+  // by nobody. Measured live: every unlabeled row was one of these.
+  pic({ url: 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/Voice_Memos.png', created: at(24 * MIN), md5: 'jj' }),
+  pic({ url: 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/covers/c.webp', created: at(25 * MIN), md5: 'kk', prompt: 'from pwc' }),
   pic({ url: 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/assets/take.m4a', kind: 'audio',          created: at(23 * MIN), md5: 'ii' }),
 ];
 
@@ -96,6 +103,12 @@ t('an audio asset is not a picture row', () => {
 t('names come off the registry', () => {
   assert.strictEqual(items.find((i) => i.kind === 'images').chatName, 'Rat panels');
   assert.strictEqual(items[0].chatName, 'filmy', 'no display name → the slug');
+});
+
+t('an unlabeled picture is not a delivery', () => {
+  const all = JSON.stringify(items);
+  assert.ok(!/chat-feed\/icons/.test(all), 'a generated chat icon is on the list');
+  assert.ok(!/covers\//.test(all), 'a film cover frame is on the list');
 });
 
 t('an empty world is an empty list, never a throw', () => {
