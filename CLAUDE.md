@@ -1771,6 +1771,31 @@ them off the reference sheet, not off the old filenames.
     with the chat that did the work. She finds them again on the bug button,
     in the archive, or by un-archiving.
   Tests: `node scripts/test-chats-bug-tag.js` (the real page, headless).
+- **EVERY CHAT LIST IS SEPARATED BY DATE, AND THE DAY TURNS OVER AT 5AM
+  PACIFIC (2026-08-28, Sophie: "separate chats by date" · "5am pst cut off").**
+  A hairline heading — Today · Yesterday · Tue, Aug 26 — over the rows of each
+  working day. The list was already newest-first, so this only NAMES where one
+  day stops; nothing about the sort moved.
+  - **The cut is hers and it is the whole point.** She works past midnight, so
+    a reply at 2am belongs to the day she is still having — the clock's own
+    midnight would cut one working night into two headings, which is exactly
+    what a date heading exists to stop.
+  - **Read through the IANA zone (`America/Los_Angeles`), never a fixed -8** —
+    she says PST and it is PDT half the year, and an offset would put every
+    heading an hour out all summer (the chat-icons sweep's own lesson). The
+    hour is asked in WALL CLOCK terms rather than by shifting the instant five
+    hours, so it still lands on 5am on a DST day.
+  - **A PINNED chat gets its own `Pinned` heading, never a date one.** It sits
+    above the sort by her override, so its date says nothing about where it is
+    — read as a date it would put an older heading above a newer one and then
+    repeat the newer one underneath it.
+  - `dayKey` / `dayLabel` / `chatDayKey` / `mkDayRule` in `chats.html` are the
+    one implementation, and the headings are drawn inside `renderList` and
+    `renderTiles` — so every pile gets them from one place (live, ALL, ★, bug
+    fix, the hidden pile, the archive) and a new pile needs nothing.
+  - Test: `node scripts/test-chats-day-rules.js` (the real page headless, with
+    an INDEPENDENT copy of the 5am rule in the test rather than the page's own
+    arithmetic read back to itself; verified failing 10 pre-fix).
 - **THE CHAT AREA IS THREE LISTS, AND THE ROW TAKES TURNS WITH THE ACCOUNTS
   (2026-08-28, Sophie: "i'm thinking about restructuring chat area based on bug
   fixes and deliverables, so they're on two separate lists" · "one tab ALL

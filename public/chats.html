@@ -565,6 +565,15 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .viewtog button.on{background:color-mix(in srgb, var(--chg) 18%, var(--paper));}
 /* list view */
 .clist{display:flex; flex-direction:column;}
+/* THE DATE HEADINGS — one hairline row per working day, in both views (see
+   dayKey: the day turns over at 5am Pacific). Sans and quiet, so a heading
+   reads as furniture rather than as another chat. */
+.dayrule{display:flex; align-items:center; gap:10px; margin:16px 0 3px;
+  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--ink2);}
+.dayrule::after{content:''; flex:1; height:1px; background:var(--line);}
+.clist > .dayrule:first-child, #chatgrid > .dayrule:first-child{margin-top:0;}
+#chatgrid > .dayrule{grid-column:1/-1;}
 .crow{display:flex; align-items:center; gap:11px; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:9px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
 .bmknote{flex:1 0 100%; margin:8px 0 0;}
 .bmknote input{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:15px;
@@ -2192,6 +2201,66 @@ function ago(iso){
   if(s<5400) return Math.round(s/60)+'m ago';
   if(s<129600) return Math.round(s/3600)+'h ago';
   return Math.round(s/86400)+'d ago';
+}
+
+/* THE DAY BOUNDARY IS 5AM PACIFIC (2026-08-28, Sophie: "separate chats by
+   date" · "5am pst cut off"). Every chat list is already newest-first, so the
+   dates are the shape the list already has — they were just never named. A
+   reply at 1am belongs to the day she is STILL HAVING: the clock's own
+   midnight would cut one working night into two headings, which is the exact
+   thing a date heading is supposed to stop.
+
+   Read through the IANA zone, never a fixed -8 — she says PST and it is PDT
+   half the year, and an offset would put every heading an hour out all
+   summer (the chat-icons sweep's own lesson). And the cut is asked in WALL
+   CLOCK terms — the hour as Los Angeles reads it — rather than by shifting
+   the instant five hours, so it lands on 5am on a DST day too. */
+var DAY_CUT_H=5;
+var DAY_TZ='America/Los_Angeles';
+var _dayFmt=null;
+function pad2(n){ return (n<10?'0':'')+n; }
+function laStamp(iso){
+  var d=new Date(iso); if(!iso||isNaN(d.getTime())) return null;
+  try{
+    if(!_dayFmt) _dayFmt=new Intl.DateTimeFormat('en-CA',{timeZone:DAY_TZ,
+      year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23'});
+    var p={}; _dayFmt.formatToParts(d).forEach(function(x){ p[x.type]=x.value; });
+    return {y:+p.year, m:+p.month, d:+p.day, h:(+p.hour)%24};
+  }catch(e){ return {y:d.getFullYear(), m:d.getMonth()+1, d:d.getDate(), h:d.getHours()}; }
+}
+// 'YYYY-MM-DD' of the WORKING day an instant falls in. Anything before 5am
+// carries back to the day before.
+function dayKey(iso){
+  var p=laStamp(iso); if(!p) return '';
+  var t=Date.UTC(p.y,p.m-1,p.d);
+  if(p.h<DAY_CUT_H) t-=86400000;
+  var q=new Date(t);
+  return q.getUTCFullYear()+'-'+pad2(q.getUTCMonth()+1)+'-'+pad2(q.getUTCDate());
+}
+function dayLabel(key){
+  if(key==='pin') return 'Pinned';
+  if(!key) return 'No messages yet';
+  var today=dayKey(new Date().toISOString());
+  if(key===today) return 'Today';
+  var y=new Date(Date.UTC(+today.slice(0,4),+today.slice(5,7)-1,+today.slice(8,10))-86400000);
+  if(key===y.getUTCFullYear()+'-'+pad2(y.getUTCMonth()+1)+'-'+pad2(y.getUTCDate())) return 'Yesterday';
+  var d=new Date(Date.UTC(+key.slice(0,4),+key.slice(5,7)-1,+key.slice(8,10)));
+  var opt={timeZone:'UTC',weekday:'short',month:'short',day:'numeric'};
+  if(key.slice(0,4)!==today.slice(0,4)) opt.year='numeric';
+  try{ return new Intl.DateTimeFormat('en-US',opt).format(d); }catch(e){ return key; }
+}
+// A PINNED CHAT KEEPS ITS OWN HEADING. It sits above the sort by her own
+// override, so its date says nothing about where it is in the list — reading
+// it as a date would put an older heading above a newer one and then repeat
+// the newer one underneath.
+function chatDayKey(name, last){
+  if(chatPinTop(name)) return 'pin';
+  return last? dayKey(last.created) : '';
+}
+function mkDayRule(key){
+  var d=document.createElement('div'); d.className='dayrule';
+  d.innerHTML='<span>'+esc(dayLabel(key))+'</span>';
+  return d;
 }
 
 
@@ -6222,9 +6291,15 @@ function toggleMark(name,last,container){
 }
 function renderTiles(el,g,names){
   var grid=document.createElement('div'); grid.id='chatgrid'; el.appendChild(grid);
+  var curDay=null;
   names.forEach(function(name){
     var list=g[name]||[];
     var last=list.length? list[list.length-1] : null;
+    // The same headings as the list — a control or a marker that works in one
+    // of the two views and not the other is a bug, not restraint. The rule
+    // spans the grid (grid-column:1/-1) so the row under it starts clean.
+    var dk=chatDayKey(name,last);
+    if(dk!==curDay){ curDay=dk; grid.appendChild(mkDayRule(dk)); }
     var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
     var status=statusFor(list);
     var about=(chats[name]&&chats[name].about)||'';
@@ -6593,9 +6668,15 @@ function paintWrapUps(el){
 
 function renderList(el,g,names){
   var wrap=document.createElement('div'); wrap.className='clist'; el.appendChild(wrap);
+  var curDay=null;
   names.forEach(function(name){
     var list=g[name]||[];
     var last=list.length? list[list.length-1] : null;
+    // SEPARATED BY DATE (2026-08-28). The list is already in the right order —
+    // this only names where one day stops. Every pile comes through here (live,
+    // ALL, ★, bug fix, the archive), so they all get it from one place.
+    var dk=chatDayKey(name,last);
+    if(dk!==curDay){ curDay=dk; wrap.appendChild(mkDayRule(dk)); }
     var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
     var row=document.createElement('button'); row.className='crow'+(chatMuted(name,last)?' done':'')+(chatWorking(name,last)?' live':'');
     row.dataset.chat=name;
