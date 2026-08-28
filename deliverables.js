@@ -198,13 +198,22 @@ function rowsOf(docs, chats) {
 // notifyChat's default debounce is skipped because its 10-minute per-chat
 // window would swallow a second real deliverable; the 60s here is the only
 // throttle a doorbell needs.
+//
+// QUEUED, NOT SENT (2026-08-28, Sophie: "I get notified on my phone a few
+// seconds before chats actually finish their turn"). The checklist has a chat
+// pin its film mid-turn, before its cards and its reply — measured against her
+// real deliverables that day, the gap to the chat's finished reply ran 19s,
+// 23s, 42s, 58s, 103s. push.queueChat holds it until the chat posts a finished
+// reply (or a 15-minute fallback, for a chat that never posts one); the bell
+// bypass is untouched, because no reply push fires on an unbelled chat to
+// swallow it.
 let lastPushAt = 0;
 function pushNew(chat, chatName, title) {
   try {
     const now = Date.now();
     if (now - lastPushAt < 60 * 1000) return false;
     lastPushAt = now;
-    require('./push').notifyChat(chat, 'New deliverable',
+    require('./push').queueChat(chat, 'New deliverable',
       `${title} — ${chatName}`, { debounce: false });
     return true;
   } catch (e) { console.warn('deliverables: push failed', e.message); return false; }

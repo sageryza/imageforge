@@ -6867,6 +6867,28 @@ before working on that module. Nothing was deleted — the moved text is verbati
   replies** — it swallowed the answer to a follow-up she sent four minutes
   later; her message is the gate now. A chat that has never lifted one of her
   messages keeps the old behaviour rather than going quiet.
+  **THE BUZZ WAITS FOR THE TURN TO END (2026-08-28, Sophie: "I get notified on
+  my phone a few seconds before chats actually finish their turn").** The
+  FINISHED-REPLY door was always honest — it fires from the hook's Stop pass.
+  **The other three doors are filed MID-TURN and used to push the instant they
+  were filed:** a media pin recording a DELIVERABLE (the checklist has a chat
+  pin its film before its cards and its reply), a new Compare page
+  (`POST /page`), and an auto-compare grid the server files when a prompt or
+  caption lands. Measured against her real deliverables that day, the gap from
+  the filing to that chat's finished reply: **19s, 23s, 42s, 58s, 103s** — her
+  "a few seconds", exactly. Those doors call `push.queueChat` now and the
+  finished reply calls `push.flushChat`, so the doorbell rings when the turn
+  really ends. Three rules not to undo: **a reply push SWALLOWS the held one**
+  (same chat, same second, same collapse-id — the reply's TLDR is the better
+  banner, and an UNBELLED chat still gets its deliverable buzz because no reply
+  push fires there to swallow it, which is the deliverables list's whole ask);
+  **one entry per chat, newest news wins, and re-queueing never moves the
+  DEADLINE** (or a chat filing every few minutes pushes its own doorbell out
+  forever); and **a 15-minute fallback timer**, because a hookless session, a
+  chat killed mid-turn or a script filing a film never posts a finished reply
+  and a doorbell that waits forever never rings. A deploy drops a held buzz,
+  which is fine — the deliverables list and the Update tab are the catch-all.
+  Test: `node scripts/test-push-pending.js`.
   **THE BODY IS NEVER HER OWN WORDS (`pushBody`, found live 2026-08-15 from
   her screenshot — this, not the timing, is what she was actually reporting).**
   Two house rules collided: *Answering a question* at the time REQUIRED a
