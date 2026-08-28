@@ -173,6 +173,81 @@ const SHAPE_KEYS = SHAPES.map((s) => s.key);
 // existing story can have.
 const shapeOf = (pad) => SHAPES.find((s) => s.key === (pad && pad.shape)) || SHAPES[0];
 
+// A STORY'S SHAPE FOLLOWS ITS FIRST PICTURE (2026-08-28, Sophie: "automatic
+// by first picture") — so the toggle is there for when she wants it, not
+// something she has to remember before she starts.
+//
+// It fires on a picture PLACED on a story that has no shape yet: her pick out
+// of the inbox, a Playground send, a photo off her phone, a chat seeding art.
+// A picture the pad DREW can never teach the story anything — it was drawn AT
+// the story's shape, so reading it back would only ever confirm the default.
+//
+// NOBODY-HAS-DECIDED IS THE WHOLE GUARD, and it is one field: a pad carrying
+// no `shape` at all. Her tap on the toggle writes one (POST /shape), so from
+// then on the story is hers and this never runs again — the `catBy` rule the
+// chat sorter follows, spelled with the value's own presence instead of a
+// second field to keep in step.
+const SHAPE_AUTO_TOL = 0.20;   // ±22%, in log space so both shapes are judged evenly
+// The shape this picture IS, or null when it is not really either of them.
+// A landscape phone photo and a 16:9 clip poster decide NOTHING: portrait is
+// the fallback, and a story quietly turned square by a picture that is
+// neither shape is worse than one left at the default she can see and change.
+function shapeForSize(w, h) {
+  if (!(w > 0) || !(h > 0)) return null;
+  const r = Math.log(w / h);
+  let best = null;
+  let bestD = Infinity;
+  SHAPES.forEach((sh) => {
+    const [aw, ah] = String(sh.ar).split('/').map((x) => Number(x.trim()));
+    const d = Math.abs(r - Math.log(aw / ah));
+    if (d < bestD) { bestD = d; best = sh; }
+  });
+  return bestD <= SHAPE_AUTO_TOL ? best : null;
+}
+// The picture's size from its HEADER — a ranged read of the first few
+// kilobytes, never the whole file (an original here is 1-3MB). image-size.js
+// parses the container itself because sharp REFUSES a truncated webp header,
+// which is the format nearly everything here is stored in; sharp is the
+// fallback for a format it doesn't know. Best-effort throughout: this is a
+// convenience on top of a working default, so nothing it does may fail a
+// placement.
+async function fetchImageSize(url) {
+  const { imageSize, HEADER_BYTES } = require('./image-size');
+  try {
+    const r = await fetch(url, {
+      headers: { Range: `bytes=0-${HEADER_BYTES - 1}` },
+      timeout: 8000,
+    });
+    if (!r.ok && r.status !== 206) return null;
+    // A host that ignores Range sends the whole file; we only ever read the
+    // front of the buffer either way.
+    const buf = (await r.buffer()).subarray(0, HEADER_BYTES);
+    const s = imageSize(buf);
+    if (s) return s;
+    try {
+      const m = await require('sharp')(buf).metadata();
+      return (m && m.width && m.height) ? { w: m.width, h: m.height } : null;
+    } catch { return null; }
+  } catch { return null; }
+}
+// What to merge onto the pad, or {} for "leave it alone". Read BEFORE the
+// write (it needs the network), and the transaction re-checks that nothing
+// decided in between.
+async function autoShapePatch(padId, url) {
+  if (!url || !/^https?:\/\//.test(url)) return {};
+  try {
+    const snap = await padRef(padId).get();
+    if (snap.exists && snap.data().shape) return {};   // already decided
+    const size = await fetchImageSize(url);
+    const sh = size && shapeForSize(size.w, size.h);
+    // The first picture DECIDES, portrait included — writing it is what
+    // makes this happen once. A picture that is neither shape (a landscape
+    // photo, a clip's 16:9 poster) writes nothing and leaves the story open,
+    // which is the honest answer to "I can't tell from this one".
+    return sh ? { shape: sh.key } : {};
+  } catch { return {}; }
+}
+
 const refCache = {};
 function artRef(file) {
   if (!refCache[file]) refCache[file] = fs.readFileSync(path.join(__dirname, 'refs', file));
@@ -678,6 +753,12 @@ router.post('/style', async (req, res) => {
 });
 
 // The story's SHAPE — portrait or square (see THE STORY'S SHAPE above).
+//
+// THIS ROUTE IS "SOMEBODY DECIDED", and that is what turns the automatic rule
+// off for good: autoShapePatch only ever fires on a pad with no `shape` at
+// all, so her tap here (or a chat's deliberate one) is the last word, and no
+// later picture can move it under her.
+//
 // Like /style, deliberately NO updatedAt bump: the shelf's newest-first order
 // is about the story's words and pictures, not about the canvas they sit on.
 //
@@ -1202,6 +1283,10 @@ router.post('/add', async (req, res) => {
     // A picture placed while the story shows DREAMY lands in the dreamy slot;
     // the watercolor side of the new beat stays blank (and vice versa).
     if (url) { const slot = artSlot(beat, style, true); slot.url = url; slot.src = src; }
+    // A STORY'S SHAPE FOLLOWS ITS FIRST PICTURE — read ahead of the write,
+    // because it needs the picture's own header off the network. {} unless
+    // this really is the first picture on a story nobody has decided yet.
+    const shapePatch = await autoShapePatch(pid, url);
     // Single-user tool, but the read-modify-write still goes through a
     // transaction so two quick adds can't drop each other.
     const beats = await db().runTransaction(async (tx) => {
@@ -1214,10 +1299,15 @@ router.post('/add', async (req, res) => {
       // A derived placement may also flip the toggle — only onto a story
       // whose showing side holds no art at all (revealPatch).
       if (!named && url) Object.assign(patch, revealPatch(snap.exists ? snap.data() : null, cur, style));
+      // Re-checked HERE: another placement may have decided the shape while
+      // this one was reading its picture's header.
+      if (shapePatch.shape && !(snap.exists && snap.data().shape)) Object.assign(patch, shapePatch);
       tx.set(padRef(pid), patch, { merge: true });
       return cur;
     });
-    res.json({ ok: true, beat, beats });
+    // The shape rides the answer so the page can follow it without a reload —
+    // her first picture landing is exactly when the tiles change shape.
+    res.json({ ok: true, beat, beats, ...(shapePatch.shape ? { shape: shapePatch.shape } : {}) });
   } catch (e) { fail(res, e); }
 });
 
@@ -1234,8 +1324,12 @@ router.post('/image', async (req, res) => {
     // side the picture's own run record claims (sideFromEvidence).
     const named = styleNamed(req);
     const style = named || (await sideFromEvidence(url, src)) || 'watercolor';
-    const beats = await placeOnBeat(padIdOf(req), id, url, style, src, { derived: !named });
-    res.json({ ok: true, beats });
+    const pid = padIdOf(req);
+    // A STORY'S SHAPE FOLLOWS ITS FIRST PICTURE (see autoShapePatch) — {}
+    // unless this is the first picture on a story nobody has decided yet.
+    const shapePatch = await autoShapePatch(pid, url);
+    const beats = await placeOnBeat(pid, id, url, style, src, { derived: !named, shapePatch });
+    res.json({ ok: true, beats, ...(shapePatch.shape ? { shape: shapePatch.shape } : {}) });
   } catch (e) { fail(res, e); }
 });
 
@@ -1263,6 +1357,11 @@ async function placeOnBeat(padId, beatId, url, style, src, opts) {
     // page's) may flip the toggle onto its side, but only when the showing
     // side holds no art at all (revealPatch).
     if (opts && opts.derived) Object.assign(patch, revealPatch(snap.exists ? snap.data() : null, cur, st));
+    // The story's shape, decided by this picture if it is the first one — the
+    // caller read it ahead of the write; re-checked here in case another
+    // placement decided in between.
+    const sp = (opts && opts.shapePatch) || {};
+    if (sp.shape && !(snap.exists && snap.data().shape)) Object.assign(patch, sp);
     tx.set(padRef(padId), patch, { merge: true });
     return cur;
   });
@@ -2275,4 +2374,4 @@ async function attachVoiceUrl(padId, beatId, url) {
   });
 }
 
-module.exports = { router, attachVoiceUrl, placeOnBeat, drawablePrompt, promptFor, clipsNeedingPoster };
+module.exports = { router, attachVoiceUrl, placeOnBeat, autoShapePatch, drawablePrompt, promptFor, clipsNeedingPoster };

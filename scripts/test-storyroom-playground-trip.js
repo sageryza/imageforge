@@ -72,7 +72,12 @@ ok(/module\.exports = \{ router, attachVoiceUrl, placeOnBeat,/.test(padSrc),
   'and exports it, so server.js uses the same one');
 const route = padSrc.slice(padSrc.indexOf("router.post('/image'"),
   padSrc.indexOf('async function placeOnBeat'));
-ok(/placeOnBeat\(padIdOf\(req\)/.test(route), 'POST /image goes through it');
+// The pad is resolved into a local now (the route reads it twice — the
+// placement and the automatic shape rule), so this asks that the route goes
+// through placeOnBeat with the pad it resolved, not that the call spells
+// padIdOf(req) inline.
+ok(/const pid = padIdOf\(req\)/.test(route) && /placeOnBeat\(pid,/.test(route),
+  'POST /image goes through it');
 ok(!/swapArt\(/.test(route), 'and holds no second copy of the bookkeeping');
 
 console.log('the order: oldest first');

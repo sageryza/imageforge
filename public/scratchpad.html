@@ -1274,6 +1274,17 @@ function setShape(s){
   padShape=s; renderShape();
   api('/shape',{method:'POST',body:JSON.stringify({shape:s})}).catch(function(){});
 }
+/* A STORY'S SHAPE FOLLOWS ITS FIRST PICTURE (2026-08-28, Sophie: "automatic
+   by first picture") — the server decides it as the picture lands, so every
+   door gets it, a chat seeding art included. A placement that decided one
+   answers with `shape`; this applies it and deliberately does NOT post it
+   back, because the server has already written it. Without this the tiles
+   would keep the old shape until the next load, which is the one moment she
+   is actually looking at them. */
+function shapeFromAnswer(d){
+  if(!d||!d.shape||d.shape===padShape)return;
+  padShape=d.shape; renderShape();
+}
 function styleIx(s){ for(var i=0;i<STYLES.length;i++)if(STYLES[i].key===s)return i; return 0; }
 function slotFor(b,s){ return s==='watercolor' ? b : ((b.alt&&b.alt[s])||{}); }
 function slotOf(b){ return slotFor(b,padStyle); }
@@ -2760,7 +2771,7 @@ function place(at, it){
   }
   api(path,{method:'POST',body:JSON.stringify(body)})
     .then(function(r){return r.json()})
-    .then(function(d){if(d.beats)beats=d.beats;render();});
+    .then(function(d){shapeFromAnswer(d);if(d.beats)beats=d.beats;render();});
   render();
 }
 /* + adds an EMPTY beat — a blank tile whose art comes later (its popup has
@@ -2932,6 +2943,10 @@ function placeMatch(c){
       if(d&&d.error) throw new Error(d.error);
       if(pending===it){ pending=null; render(); }
       endSend(true);
+      // The story it landed in may have just taken its shape from it — and
+      // openPad below resets to the default and then loads, so this is only
+      // for the case where it IS the story already open.
+      shapeFromAnswer(d);
       // Confirmation by sight: open that story ON the beat, picture landed —
       // the ?pad=&beat= return trip's own move. The way-back band stays.
       openAfterLoad=c.beat;
@@ -3728,6 +3743,7 @@ document.getElementById('lbuse').onclick=function(ev){
   api('/image',{method:'POST',body:JSON.stringify({id:b.id,url:url,style:padStyle})})
     .then(function(r){return r.json()})
     .then(function(d){
+      shapeFromAnswer(d);
       if(d.beats){ beats=d.beats; render(); }
       closeLb();
       var fresh=beats.find(function(x){return x.id===b.id;});

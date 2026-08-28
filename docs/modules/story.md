@@ -290,6 +290,45 @@ All 12 NDE-category stories were linked to their montage episodes on
     the size the OOM note beside `FILM` proves this 512MB box survives. The
     pixels are the budget, not the width; a third shape has to stay inside
     the same number, and the test fails if one does not.
+  - **SHE DOES NOT HAVE TO PICK IT — the shape follows the story's FIRST
+    PICTURE (2026-08-28, her next message: "automatic by first picture").**
+    The toggle stays for when she wants it; the ordinary path is that the
+    first picture PLACED on a story decides it. Every door gets it, because
+    the decision is made server-side as the picture lands: `POST /add`,
+    `POST /image` (her inbox pick, a version picked back, the send-trip
+    match) and `landOnBeat` in server.js (a Playground run she sent to a
+    beat). `autoShapePatch` is the one rule and it is exported for that last
+    one.
+    - **"Nobody has decided" is one field — a pad with no `shape` at all.**
+      `POST /shape` writes one, so her tap (or a chat's deliberate one) is
+      the last word and no later picture can move it under her. That is the
+      `catBy` rule, spelled with the value's own presence rather than a
+      second field to keep in step.
+    - **The first picture DECIDES, portrait included.** Writing portrait is
+      what makes this happen once; leaving it unwritten would let the third
+      picture in a story re-decide it.
+    - **A picture the pad DREW never decides it.** It was drawn AT the
+      story's shape, so reading it back can only confirm the default — the
+      test fails if the rule is ever wired into `runArtJob`.
+    - **A picture that is neither shape decides NOTHING** (`SHAPE_AUTO_TOL`,
+      ±22% measured in log space so both shapes are judged evenly). A 16:9
+      clip poster and a landscape phone photo leave the story portrait and
+      still open for the next picture. 3:4 is near enough to portrait and
+      lands there.
+    - **The size comes from the picture's HEADER** — a ranged request for the
+      first 4KB, never the whole 1-3MB original — parsed by `image-size.js`.
+      **That file exists for a measured reason: sharp reads a truncated PNG
+      and JPEG header and REFUSES a truncated webp**, which is the format
+      nearly everything here is stored in, so a sharp-only ranged read would
+      have fallen back to downloading whole originals on exactly the common
+      case. sharp stays the fallback for a format it does not know, and
+      `test-image-size.js` re-measures that claim so the note cannot go stale.
+    - **Read BEFORE the write, re-checked INSIDE the transaction.** The read
+      is a network call, so another placement can decide while it is waiting;
+      both writers ask again against the snapshot they are writing on.
+    - **The placing routes answer with `shape`**, and the page applies it
+      without posting it back — the server has already written it, and her
+      first picture landing is the one moment she is looking at the tiles.
   - `dupPad` copies the whole doc minus `DROP`, so a duplicated story keeps
     its shape with nothing added.
   - Test: `node scripts/test-storyroom-shape.js` — the two lists and the

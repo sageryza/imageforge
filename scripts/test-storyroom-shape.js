@@ -92,6 +92,35 @@ ok(!/scale=\$\{FILM\.w\}/.test(padSrc) && /scale=\$\{frame\.w\}/.test(padSrc),
 ok(/\$\{frame\.w\}x\$\{frame\.h\}@/.test(padSrc),
   'the segment cache key carries the frame — a flipped story re-encodes instead of serving the other shape back');
 
+// ── THE AUTOMATIC RULE — a story's shape follows its FIRST picture ──
+// The decision table is the half that can be wrong quietly: a tolerance too
+// wide turns a landscape photo into a square story, one too narrow means the
+// rule never fires at all, and both look like nothing happening.
+const shapeForSize = (() => {
+  const at = padSrc.indexOf('function shapeForSize(');
+  const end = padSrc.indexOf('\n}', at);
+  const tol = Number((padSrc.match(/const SHAPE_AUTO_TOL = ([\d.]+)/) || [, '0'])[1]);
+  // eslint-disable-next-line no-new-func
+  return new Function('SHAPES', 'SHAPE_AUTO_TOL',
+    `${padSrc.slice(at, end + 2)} return shapeForSize;`)(SRV, tol);
+})();
+const call = (w, h) => { const r = shapeForSize(w, h); return r && r.key; };
+ok(call(1024, 1536) === 'portrait' && call(2336, 3504) === 'portrait',
+  'a 2:3 picture makes the story portrait, at either tier');
+ok(call(1024, 1024) === 'square' && call(2880, 2880) === 'square',
+  'a 1:1 picture makes it square, at either tier');
+// 3:4 is the shape a phone photo crops to and the one a person would call
+// "portrait-ish" — it has to land somewhere, and portrait is nearer.
+ok(call(1200, 1600) === 'portrait', 'a 3:4 photo is near enough to portrait');
+// The refusals matter more than the matches: portrait is the fallback she can
+// see and change, and a story silently turned square by a picture that is
+// neither shape is the failure worth avoiding.
+ok(call(1920, 1080) === null && call(1600, 900) === null,
+  'a 16:9 picture — a clip\'s poster — decides NOTHING');
+ok(call(4032, 3024) === null, 'a landscape phone photo decides nothing either');
+ok(call(0, 100) === null && call(100, 0) === null && call(null, null) === null,
+  'and a size it could not read decides nothing');
+
 // A shape change moves the FILM's frame, so the page must count it as making
 // the render she has stale. It marks dirty for any POST outside its own
 // allowlist — which is exactly why this route is /shape and not /pads/shape.
@@ -100,6 +129,31 @@ ok(allow && !/'\/shape'/.test(allow) && !/indexOf\('\/shape'\)/.test(allow),
   'changing the shape stales the film — /shape is not in the page\'s allowlist');
 ok(/router\.post\('\/shape'/.test(padSrc) && !/router\.post\('\/pads\/shape'/.test(padSrc),
   'the route is /shape (top level), never /pads/shape — /pads* is the tidying allowlist');
+
+// The automatic rule fires ONLY on a pad nobody has decided, and it re-checks
+// that inside the transaction — a placement reads its picture's header over
+// the network, so another one can decide while it is waiting.
+ok(/if \(snap\.exists && snap\.data\(\)\.shape\) return \{\};/.test(padSrc),
+  'autoShapePatch stands down the moment a story already has a shape');
+ok((padSrc.match(/!\(snap\.exists && snap\.data\(\)\.shape\)/g) || []).length === 2,
+  'and BOTH writers re-check that inside their transaction');
+// The header read must stay a header read: pulling whole originals here would
+// put a 1-3MB download in front of a placement she is watching.
+ok(/headers: \{ Range: `bytes=0-\$\{HEADER_BYTES - 1\}` \}/.test(padSrc),
+  'the size is read from a RANGED request, never a whole original');
+ok(/require\('\.\/image-size'\)/.test(padSrc),
+  'and parsed by image-size.js, which reads the truncated webp sharp refuses');
+// A DRAWN picture was drawn AT the story's shape, so it can teach the story
+// nothing — the rule must not be wired into the draw.
+const drawFn = (() => {
+  const at = padSrc.indexOf('async function runArtJob');
+  // Its BODY only — the file's own module.exports names autoShapePatch, and
+  // slicing to the end of the file would read that as the draw using it.
+  const end = padSrc.indexOf('\nrouter.post(', at);
+  return padSrc.slice(at, end > at ? end : padSrc.length);
+})();
+ok(drawFn.length > 200 && !/autoShapePatch/.test(drawFn),
+  'a picture the pad DREW never decides the shape — that would only confirm the default');
 
 // ── headless ────────────────────────────────────────────────────────
 let chromium;
@@ -119,7 +173,16 @@ const beats = [
   { id: 'b2', color: null, text: 'no picture yet' },
 ];
 let padShape = 'portrait';
+// A third story that is EMPTY and undecided — the automatic rule's own case.
+// With no beats, tapping an inbox picture places it straight away, which is
+// the shortest real path to "her first picture lands".
+let serveBeats = null;   // null = the two-beat story; [] = the empty one
 const posted = [];
+const INBOX_ITEM = { url: 'http://127.0.0.1:0/px.png?inbox', runId: 'r1', i: 0,
+  prompt: 'the first picture', model: 'gpt-image-2', quality: 'medium' };
+// What the server answers a placement with when that picture decided the
+// story's shape (autoShapePatch). null = it decided nothing.
+let placedShape = null;
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
@@ -131,10 +194,22 @@ const server = http.createServer((req, res) => {
       const b = JSON.parse(body || '{}');
       posted.push([url.pathname, b]);
       if (url.pathname === '/api/scratchpad/shape') padShape = b.shape;
-      json({ ok: true, beats, shape: padShape });
+      // The two placing routes answer with the shape the picture decided —
+      // exactly what the real ones do, and the page must follow it with no
+      // reload and without posting it back.
+      if (url.pathname === '/api/scratchpad/add' || url.pathname === '/api/scratchpad/image') {
+        const placed = [{ id: 'p1', url: fixUrl(INBOX_ITEM.url), color: null, text: '' }];
+        if (serveBeats) serveBeats = placed;
+        return json({ ok: true, beat: placed[0], beats: placed,
+          ...(placedShape ? { shape: placedShape } : {}) });
+      }
+      json({ ok: true, beats: serveBeats || beats, shape: padShape });
     });
   }
-  if (url.pathname === '/api/scratchpad/inbox') return json({ count: 0, items: [], source: 'playground', uploads: [] });
+  if (url.pathname === '/api/scratchpad/inbox') {
+    return json({ count: 1, items: [{ ...INBOX_ITEM, url: fixUrl(INBOX_ITEM.url) }],
+      source: 'playground', uploads: [] });
+  }
   // Two stories, one of each shape — the shelf tile rule below needs both.
   if (url.pathname === '/api/scratchpad/pads') {
     return json({ count: 2, pads: [
@@ -145,8 +220,10 @@ const server = http.createServer((req, res) => {
     ] });
   }
   if (url.pathname === '/api/scratchpad') {
-    return json({ beats, title: 'shape test', style: 'watercolor', shape: padShape,
-      film: null, audios: [], uploads: [] });
+    return json({ beats: serveBeats || beats, title: 'shape test', style: 'watercolor',
+      // A story nobody has decided answers with the FALLBACK, which is what
+      // readPad really does — the field's absence is the whole guard.
+      shape: padShape, film: null, audios: [], uploads: [] });
   }
   if (url.pathname === '/px.png') { res.writeHead(200, { 'Content-Type': 'image/png' }); return res.end(PX); }
   if (url.pathname.startsWith('/api/story/thumb')) { res.writeHead(200, { 'Content-Type': 'image/png' }); return res.end(PX); }
@@ -161,12 +238,19 @@ const server = http.createServer((req, res) => {
   res.writeHead(404); res.end();
 });
 
+// The stub answers with same-origin urls, and the port is only known once it
+// is listening — so the rewrite has to be a function the handlers call, not a
+// value baked in at module load.
+let PORT_BASE = '';
+function fixUrl(u) { return String(u).replace('http://127.0.0.1:0', PORT_BASE); }
+
 const near = (a, b, tol) => Math.abs(a - b) <= tol;
 
 (async () => {
   await new Promise((r) => server.listen(0, r));
   const base = 'http://127.0.0.1:' + server.address().port;
-  const fix = (u) => u.replace('http://127.0.0.1:0', base);
+  PORT_BASE = base;
+  const fix = fixUrl;
   beats.forEach((b) => { if (b.url) b.url = fix(b.url); });
 
   const preinstalled = ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
@@ -271,7 +355,7 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
   // The reset in openPad puts the shape back to the default until the story's
   // own arrives; without the load wiring it would simply stay there.
   padShape = 'square';
-  await page.evaluate(() => { const c = document.getElementById('popclose'); if (c) c.click(); });
+  await page.evaluate(() => { if (typeof closeBeat === 'function') closeBeat(); });
   await page.evaluate((id) => window.openPad(id), 'sq');
   await page.waitForSelector('#pad .beat');
   const opened = await page.evaluate(() => ({
@@ -283,6 +367,55 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
   // And it did NOT re-save on the way in — a load must never look like an edit.
   ok(posted.filter((p) => p[0] === '/api/scratchpad/shape').length === 1,
     'loading a story never POSTs its shape back');
+
+  // ── the automatic rule, end to end on the real page ────────────────
+  // A story nobody has decided, with nothing on it yet: her first picture
+  // lands, the server says the story is square, and the tiles have to BE
+  // square with no reload — the moment she is actually looking at them.
+  await page.evaluate(() => { if (typeof closeBeat === 'function') closeBeat(); });
+  padShape = 'portrait';
+  serveBeats = [];
+  placedShape = 'square';
+  const shapePostsBefore = posted.filter((p) => p[0] === '/api/scratchpad/shape').length;
+  await page.evaluate((id) => window.openPad(id), 'empty');
+  await page.waitForFunction(() =>
+    getComputedStyle(document.documentElement).getPropertyValue('--ar').trim() === '2 / 3');
+  await page.click('#inboxbtn');
+  await page.waitForSelector('#inboxgrid button img');
+  // With no beats there is no placement slot to aim at — the picture goes
+  // straight down, which is the shortest real path to "her first picture".
+  await page.click('#inboxgrid button');
+  await page.waitForSelector('#pad .beat', { timeout: 5000 });
+  await page.waitForFunction(() =>
+    getComputedStyle(document.documentElement).getPropertyValue('--ar').trim() === '1 / 1',
+    { timeout: 5000 }).catch(() => {});
+  const auto = await page.evaluate(() => {
+    const r = document.querySelector('#pad .beat').getBoundingClientRect();
+    const btn = document.getElementById('shapetog').querySelector('rect').getBBox();
+    return { ar: getComputedStyle(document.documentElement).getPropertyValue('--ar').trim(),
+      ratio: r.height / r.width, glyph: btn.height / btn.width };
+  });
+  ok(auto.ar === '1 / 1' && near(auto.ratio, 1, 0.04),
+    `her first picture makes the story square by itself (${auto.ratio.toFixed(2)})`);
+  ok(near(auto.glyph, 1, 0.04), 'and the button says so — its glyph is a square now');
+  ok(posted.filter((p) => p[0] === '/api/scratchpad/shape').length === shapePostsBefore,
+    'the page never posts it back — the server already wrote it');
+
+  // A placement that decided NOTHING (a landscape photo, a clip poster) must
+  // leave the story exactly where it was.
+  padShape = 'portrait';
+  serveBeats = [];
+  placedShape = null;
+  await page.evaluate((id) => window.openPad(id), 'empty2');
+  await page.waitForFunction(() =>
+    getComputedStyle(document.documentElement).getPropertyValue('--ar').trim() === '2 / 3');
+  await page.click('#inboxbtn');
+  await page.waitForSelector('#inboxgrid button img');
+  await page.click('#inboxgrid button');
+  await page.waitForSelector('#pad .beat', { timeout: 5000 });
+  const stayed = await page.evaluate(() =>
+    getComputedStyle(document.documentElement).getPropertyValue('--ar').trim());
+  ok(stayed === '2 / 3', 'a placement that decided nothing leaves the story portrait');
 
   await browser.close();
   server.close();
