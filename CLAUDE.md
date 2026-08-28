@@ -1712,7 +1712,13 @@ them off the reference sheet, not off the old filenames.
     there really were. **There is deliberately NO image door into the
     deliverables collection** — 2,488 filed pictures would bury the films — and
     her SOURCE LIBRARIES (the Dump, crystals, ingest), derived `thumbs/` copies
-    and audio records are not deliveries. `deliverables-feed.js` is the whole
+    and audio records are not deliveries. **NOR IS ANYTHING UNLABELED, and
+    that is the load-bearing rule** — the house rule that a chat labels every
+    image it delivers, used as the test for whether a picture was handed over
+    at all. Measured live the hour it shipped: of 18 picture rows, the 7 with
+    nothing labeled were ALL background catches (a generated chat icon, a
+    film's cover frame, a poster) and every labeled row read as a real
+    hand-over. A path blacklist would grow a line per surface forever. `deliverables-feed.js` is the whole
     rule (pure); `GET /api/deliverables/feed` is the read, two cached queries
     and no model call.
   - **THE BUG PILE IS ONE STATE UNDER TWO DOORS** — the header's bug button

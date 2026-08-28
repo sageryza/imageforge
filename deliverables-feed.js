@@ -26,6 +26,16 @@
 //   • an unlabeled `claude-deliveries/` twin of a picture already in the row.
 //     The md5 join is the Assets tab's own first key; the copy carrying the
 //     LABEL wins the url, because the label is what the row reads as.
+//   • ANYTHING WITH NO LABEL AT ALL. This is the load-bearing one, and it is
+//     the house rule rather than a new judgement: a chat LABELS every image it
+//     delivers ("[Penny — the blue Kleenex](url)", never a bare url), so an
+//     unlabeled record is a background catch — the hook filing a picture a
+//     chat merely touched, a generated chat ICON, a film's cover frame, a
+//     poster. Measured against the live feed the hour this shipped: of 18
+//     picture rows, the 7 with nothing labeled were ALL of that kind
+//     (`chat-feed/icons/`, `…/covers/`, `…/posters/`) and every labeled row
+//     read as a real hand-over. A path blacklist would have had to grow a line
+//     per surface forever; the label is what a delivery already has.
 //
 // Pure — no Firestore, no network, no clock of its own. deliverables.js does
 // the reading; this decides what the list says.
@@ -61,6 +71,9 @@ function deliverablePicture(a) {
   if (a.kind === 'audio' || !IMG_URL_RE.test(url)) return false;
   if (derivedPrefix(url)) return false;        // a thumbnail is not a delivery
   if (sourceLibraryPrefix(url)) return false;  // her own pile, not a hand-over
+  // A hand-over is LABELED — see the header. An unlabeled record is a
+  // background catch, and `from <chat>` is the hook's own filler, not a name.
+  if (!String(a.description || '').trim()) return false;
   return true;
 }
 
