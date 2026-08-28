@@ -6038,6 +6038,33 @@ before working on that module. Nothing was deleted — the moved text is verbati
   from here carries the `src` that made it, so picking it back restores its
   own prompt, and where nothing is known the src is DROPPED rather than left
   behind (the previous picture's run is a lie about what drew this one).
+  **AND ONE CAN BE CULLED — the ✕ on each thumbnail (2026-08-28, Sophie: "how
+  to cull beat pictures").** "Nothing here deletes a picture" is right for a
+  SWAP and had no answer for *this one was never mine*: a picture that landed
+  on the wrong beat — the whole of #1889's five strays on one caption — sat in
+  that row forever, and the only exits were the trash button (which takes the
+  beat, words and all) or drawing over it, which only makes the row longer.
+  `forgetArt` in `pad-art.js` beside `swapArt`, so the two ways the row changes
+  cannot disagree; `POST /api/scratchpad/image/forget {id, url, style}`.
+  - **NOTHING IS DESTROYED.** The picture stays in Storage and in My
+    Creations, and what the beat had is banked in `pad.trash` exactly as a
+    removed side is. The cull only forgets that this BEAT had it.
+  - **CULLING THE CURRENT ART PROMOTES THE NEWEST PICTURE IN THE ROW**, with
+    its own `src` — that is what a cull means when you are looking at the
+    thing you are culling. An empty row leaves the side with no art, which is
+    a normal state (most beats have none) and **never `off`**, which would
+    take the beat off that side altogether.
+  - **THE ROW OPENS AT ONE PICTURE NOW, not at two.** It used to appear only
+    once a draw had replaced something, which was right while it was somewhere
+    to LOOK; it is the only place a picture comes off a beat now, so a beat
+    left holding one wrong picture has to be reachable.
+  - **The ✕ is a SIBLING of the thumbnail, never nested** (a button inside a
+    button is invalid and the tap would open the picture), and the row stays
+    OPEN after a cull — she is culling several, and a fold that shut under her
+    would cost a tap per picture.
+  - A **clip** is refused: nothing in that row is a film, and clearing a clip
+    slot through here would leave `kind`/`poster`/`seconds` behind. Removing a
+    clip is the beat's own delete.
   Tests: `node scripts/test-pad-art.js` (pure) and `node
   scripts/test-scratchpad-pick-version.js` (the real page headless, its stub
   `/image` running the real `pad-art.js`).

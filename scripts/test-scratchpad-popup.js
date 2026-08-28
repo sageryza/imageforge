@@ -246,7 +246,9 @@ const VW = 390, VH = 780;
   ok(!(await shown('#verrow')), 'the past pictures are folded away');
   await page.click('#arvers');
   ok(await shown('#verrow'), 'tapping it opens them');
-  ok((await page.$$('#verrow button')).length === 3, 'current + two older');
+  // Thumbnails, not every button in the row — since 2026-08-28 each picture
+  // is a cell carrying its own cull ✕ beside the thumbnail.
+  ok((await page.$$('#verrow .verthumb')).length === 3, 'current + two older');
   await page.click('#arvers');
   ok(!(await shown('#verrow')), 'and folds them back');
 
