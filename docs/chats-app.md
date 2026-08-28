@@ -1524,6 +1524,22 @@
       other invented folder (rule 3 is untouched); and a kind with NO subject
       beside it still files, because "sure it was a bug fix, unsure which
       corner of the app" is an honest answer to what that pile is for.
+    - **BUG FIX IS THE LENIENT KIND, and it measures TURNAROUND (2026-08-28,
+      Sophie: "square story type should've already existed, so it's a bug" ·
+      "it's more about how quickly it'll get done, and how soon I can archive
+      it").** Not "was code broken": small bounded work that lands in a turn
+      or two and can be put away is a bug fix — gap-fills in an existing
+      surface (a missing shape, a control its siblings have, an iOS/web
+      mismatch, something a restructure lost), tweaks, repairs. `new feature`
+      is **A WHOLE NEW TOOL** (same day, v2: "new feature is like a whole new
+      tool" · "restricted chat chat is also big — we had to iterate") — a tool,
+      board or surface that did not exist, or a restructure big enough to
+      iterate over; anything ADDED TO an existing tool is a bug fix however
+      new the behaviour. Her worked filings are in the prompt: the + story
+      button, date grouping, autoplay, the square shape = bug fixes; the
+      Polaroid board and the chat-area restructure = new features. The rule
+      lives in `SORT_SYS`; the tests pin her turnaround wording and the
+      whole-new-tool bar.
     - **`WORK_KINDS` is a HINT OVER HER LIVE VOCABULARY, never an addition to
       it.** A word in it she does not have annotates nothing; a folder she
       invents next month is still offered and still fileable, it just is not
@@ -1536,6 +1552,16 @@
     - **Chats she filed herself never move** (rule 1), and auto-filed ones
       reach the new rule on their next re-check (`RESORT_*`) — or immediately
       with `POST /api/chatfeed/sort {chat, force:true}`, ~a cent a chat.
+    - **The re-check keeps pace with KINDS now (2026-08-28, found live: "none
+      of my recent bug fix chats are in that tab").** The old rest — a week,
+      re-ask after the thread TRIPLED — assumed a tag names the SUBJECT, which
+      is stable. A kind names the chat's NEWEST work and turns over in hours:
+      the chat-area chat spent a morning repairing the hidden pile its own
+      restructure lost — a bug-fix chat by her rule — wearing yesterday's
+      `meta` with six days of rest to go, and the Bug fixes tab showed nothing
+      newer than 11 hours. Now: a DAY's rest and EIGHT new messages, both
+      (`RETRY_MS` + `RESORT_MIN_NEW` in `chat-sort.js`), so only a chat that is
+      actively worked re-asks, at most daily, under a cent.
   - **`look at` and `come back to` are OFF LIMITS** (`TRIAGE`). They say WHEN
     she wants something, not what it is; nothing outside her head can know
     that, and guessing buries real work in a to-do folder. She still files

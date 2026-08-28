@@ -180,6 +180,12 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
   border-radius:6px; background:var(--barbg); color:var(--ink); font-family:'EBGaramond',Georgia,serif;
   font-size:1em; padding:8px 11px; margin-bottom:6px; cursor:pointer;}
 .bpick .bnote{font-family:-apple-system,sans-serif; font-size:11px; color:var(--ink2);}
+/* NEW STORY — the first row of the picker, and the only one that makes
+   something. The + sits in the row rather than beside it, so the tap target is
+   the whole row exactly like every project under it. */
+.bpick .bp.bnew{display:flex; align-items:center; gap:8px;}
+.bpick .bp.bnew svg{width:14px; height:14px; flex:0 0 auto; stroke:currentColor; fill:none;
+  stroke-width:2; stroke-linecap:round;}
 /* TWO TABS — SPEAK and CHANGE (Aug 2026, Sophie: "a separate hairline tab in
    the voice studio"). The witch-shop / chats `.acctabs` pattern verbatim: no
    boxes, two half-width labels over a hairline, the line sliding under the one
@@ -521,6 +527,8 @@ function playOnce(el, id){
 }
 // Cutting Blocks' tile glyph — SF `rectangle.split.3x1`, hand-inlined.
 var BLOCKS_SVG='<svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="2"/><path d="M9 8v8"/><path d="M15 8v8"/></svg>';
+// the same + Cutting Blocks' own header wears for a new story
+var PLUS_SVG='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
 // Lucide `download`. The link goes to OUR server, not to Storage: a
 // cross-origin href ignores `download` and the phone just plays the file.
 var DL_SVG='<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>';
@@ -684,17 +692,16 @@ function openBlocksPick(id){
   el.appendChild(box);
   fetch('/api/blocks/').then(function(x){return x.json()}).then(function(d){
     var ps=((d&&d.projects)||[]).filter(function(p){ return p.status==='ready'; }).slice(0,12);
-    if(!ps.length){
-      box.innerHTML='<div class="bnote">No open Blocks projects yet — open a recording in Cutting Blocks first, then send this line again.</div>';
-      return;
-    }
+    // + NEW STORY leads the list and is offered even when there are none: a
+    // blank story is a Cutting Blocks story with no recording behind it, so a
+    // line that belongs to no cut has somewhere to go without a trip to the
+    // other room first. It costs nothing (nothing is transcribed).
     box.innerHTML='<div class="bnote" style="margin-bottom:6px">Land this line in…</div>'
+      +'<button class="bp bnew">'+PLUS_SVG+'New story</button>'
       +ps.map(function(p){ return '<button class="bp" data-p="'+esc(p.id)+'">'+esc(p.title||'untitled')+'</button>'; }).join('');
-    box.onclick=function(ev){
-      var b=ev.target.closest('.bp'); if(!b) return;
-      var pid=b.dataset.p, title=b.textContent;
-      b.disabled=true;
-      fetch('/api/blocks/'+pid+'/line',{method:'POST',headers:{'content-type':'application/json'},
+    // the LINE is the only deliverable, so both roads end in the same POST
+    function land(pid, title, b){
+      return fetch('/api/blocks/'+pid+'/line',{method:'POST',headers:{'content-type':'application/json'},
         body:JSON.stringify({url:r.url, text:r.text||('a line in '+(r.voiceName||'a voice'))})})
         .then(function(x){return x.json()})
         .then(function(res){
@@ -703,6 +710,25 @@ function openBlocksPick(id){
           card(r);   // repaint — the card now says where the line went
         })
         .catch(function(err){ alert(err.message||'Couldn’t send it to Blocks'); b.disabled=false; });
+    }
+    box.onclick=function(ev){
+      var b=ev.target.closest('.bp'); if(!b) return;
+      b.disabled=true;
+      if(b.classList.contains('bnew')){
+        // the story is named after the line it is being made for — a shelf of
+        // stories all called "New story" is the thing that made her uploads
+        // disappear into the wrong project once already
+        fetch('/api/blocks/blank',{method:'POST',headers:{'content-type':'application/json'},
+          body:JSON.stringify({ title:(r.text||'').slice(0,60).trim() || 'New story' })})
+          .then(function(x){return x.json()})
+          .then(function(made){
+            if(!made || !made.id) throw new Error(made && made.error || 'couldn’t make the story');
+            return land(made.id, (r.text||'').slice(0,60).trim() || 'New story', b);
+          })
+          .catch(function(err){ alert(err.message||'Couldn’t make a new story'); b.disabled=false; });
+        return;
+      }
+      land(b.dataset.p, b.textContent, b);
     };
   }).catch(function(){ box.innerHTML='<div class="bnote">Couldn’t reach Cutting Blocks.</div>'; });
 }

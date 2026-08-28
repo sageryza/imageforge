@@ -245,6 +245,98 @@ All 12 NDE-category stories were linked to their montage episodes on
     the cast list is not on the timeline; a draw that uses one is.
   - Tests: `node scripts/test-pad-characters.js` (the line, the pick, the
     caps, and source pins on both halves of the wiring).
+- **THE STORY'S SHAPE — portrait or SQUARE (2026-08-28, Sophie: "add a new
+  square story type in story room").** A story is ONE shape all the way down:
+  the canvas its beats are drawn on, the tiles on the pad, the past-pictures
+  strip, the popup's blank paper and the film's frame. Stored as `pad.shape`,
+  written by `POST /api/scratchpad/shape {pad, shape}`, and flipped by the
+  small button at the far end of the style row — whose glyph IS the shape (a
+  tall rectangle, or a square), so there is no word to read. It is the
+  pyramid's rule: a picture of the thing beats a name for it.
+  - **The list is `SHAPES`, once in `scratchpad.js` and once in
+    `gen-scratchpad.py`, pinned equal by the test.** Portrait draws 1024x1536
+    and films 1000x1500; square draws 1024x1024 and films 1080x1080. Nothing
+    counts them — landscape is a row in each.
+  - **PORTRAIT IS FIRST, AND FIRST MEANS THE FALLBACK.** `shapeOf` on the
+    server and `SHAPES[0]` on the page both land there, so a pad carrying no
+    `shape` — every story made before this — is byte-for-byte what it was.
+    `POST /pads` writes no field at all unless a shape is asked for, so the
+    shelf's + still makes a portrait story.
+  - **It lives on the PAD, not on a beat.** Half a story square is a film
+    that letterboxes every other shot. `movie.aspect` in movies.js is the
+    same call, and it is the only other per-project shape in the repo.
+  - **The page reads ONE variable — `--ar` on the root**, set by
+    `renderShape()`, with `2/3` as the CSS fallback everywhere. **The inbox
+    is deliberately not on it**: those tiles are Playground pictures of every
+    shape, not this story's, and cropping them to it would misdescribe what
+    she hearted.
+  - **`POST /shape` IS TOP-LEVEL ON PURPOSE.** The page marks the film stale
+    for any POST outside its allowlist, and `/pads*` is on that list — that
+    family is shelf TIDYING (folder, category, pin), which must never stale a
+    render. A shape change moves the film's frame, so it has to fall outside.
+    Like `/style` it does NOT bump `updatedAt`.
+  - **Nothing already drawn is touched.** A portrait picture in a story
+    flipped square is kept and letterboxed on white by the film's own
+    scale+pad chain — the pad has never destroyed a picture. The frame is IN
+    the segment cache key (`${frame.w}x${frame.h}@fps`), so a flip re-encodes
+    its shots rather than serving the other shape back out of the cache, and
+    flipping back finds them still banked.
+  - **The shelf keeps ONE tile footprint** — that is what holds the names
+    level across a row — so a square story's cover sits WHOLE on the white
+    mat (`.stile .frame.sq img{object-fit:contain}`) instead of being cropped
+    to a portrait tile. A folder takes the shape of the story whose cover it
+    is showing.
+  - **The square film frame is 1.17MP against portrait's 1.5MP**, i.e. UNDER
+    the size the OOM note beside `FILM` proves this 512MB box survives. The
+    pixels are the budget, not the width; a third shape has to stay inside
+    the same number, and the test fails if one does not.
+  - **SHE DOES NOT HAVE TO PICK IT — the shape follows the story's FIRST
+    PICTURE (2026-08-28, her next message: "automatic by first picture").**
+    The toggle stays for when she wants it; the ordinary path is that the
+    first picture PLACED on a story decides it. Every door gets it, because
+    the decision is made server-side as the picture lands: `POST /add`,
+    `POST /image` (her inbox pick, a version picked back, the send-trip
+    match) and `landOnBeat` in server.js (a Playground run she sent to a
+    beat). `autoShapePatch` is the one rule and it is exported for that last
+    one.
+    - **"Nobody has decided" is one field — a pad with no `shape` at all.**
+      `POST /shape` writes one, so her tap (or a chat's deliberate one) is
+      the last word and no later picture can move it under her. That is the
+      `catBy` rule, spelled with the value's own presence rather than a
+      second field to keep in step.
+    - **The first picture DECIDES, portrait included.** Writing portrait is
+      what makes this happen once; leaving it unwritten would let the third
+      picture in a story re-decide it.
+    - **A picture the pad DREW never decides it.** It was drawn AT the
+      story's shape, so reading it back can only confirm the default — the
+      test fails if the rule is ever wired into `runArtJob`.
+    - **A picture that is neither shape decides NOTHING** (`SHAPE_AUTO_TOL`,
+      ±22% measured in log space so both shapes are judged evenly). A 16:9
+      clip poster and a landscape phone photo leave the story portrait and
+      still open for the next picture. 3:4 is near enough to portrait and
+      lands there.
+    - **The size comes from the picture's HEADER** — a ranged request for the
+      first 4KB, never the whole 1-3MB original — parsed by `image-size.js`.
+      **That file exists for a measured reason: sharp reads a truncated PNG
+      and JPEG header and REFUSES a truncated webp**, which is the format
+      nearly everything here is stored in, so a sharp-only ranged read would
+      have fallen back to downloading whole originals on exactly the common
+      case. sharp stays the fallback for a format it does not know, and
+      `test-image-size.js` re-measures that claim so the note cannot go stale.
+    - **Read BEFORE the write, re-checked INSIDE the transaction.** The read
+      is a network call, so another placement can decide while it is waiting;
+      both writers ask again against the snapshot they are writing on.
+    - **The placing routes answer with `shape`**, and the page applies it
+      without posting it back — the server has already written it, and her
+      first picture landing is the one moment she is looking at the tiles.
+  - `dupPad` copies the whole doc minus `DROP`, so a duplicated story keeps
+    its shape with nothing added.
+  - Test: `node scripts/test-storyroom-shape.js` — the two lists and the
+    copy-paste guards pure (the draw must read the story's canvas, the film
+    the story's frame), then the real page headless with every ratio
+    MEASURED off a real box. A source assertion cannot see this: the whole
+    thing rides one CSS variable, and a broken wire renders as a page that
+    looks completely fine and just never changes shape.
 - **THE STYLE TOGGLE — watercolor · dreamy · pastel (Aug 2026, Sophie: "I
   want to have the same beats but I wanna fill them with new art … a style
   toggle at the top of a story that alternates between dreamy and watercolor …

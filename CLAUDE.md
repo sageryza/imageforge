@@ -162,7 +162,8 @@ anything else, **each answered ONCE** · **did she MARK a question ("i have a
 question" / "quick question" / "file this")? then repeat THAT question in bold
 on its own line and answer under it — otherwise never echo a question back**
 (see *Answering a question*; the bare word alone is not the mark) · small
-question, short answer · full clickable links · no markdown tables · times in 12-hour
+question, short answer · **asking HER something? plain text, never the
+questions/option-picker UI** (2026-08-28, her rule) · full clickable links · no markdown tables · times in 12-hour
 Pacific · files and images LAST · working links at the very bottom ·
 **briefing her on OTHER chats? every chat you name gets a
 `/chats?chat=<slug>` link back to it at the bottom** (see *BRIEFING HER ON
@@ -1771,6 +1772,31 @@ them off the reference sheet, not off the old filenames.
     with the chat that did the work. She finds them again on the bug button,
     in the archive, or by un-archiving.
   Tests: `node scripts/test-chats-bug-tag.js` (the real page, headless).
+- **EVERY CHAT LIST IS SEPARATED BY DATE, AND THE DAY TURNS OVER AT 5AM
+  PACIFIC (2026-08-28, Sophie: "separate chats by date" · "5am pst cut off").**
+  A hairline heading — Today · Yesterday · Tue, Aug 26 — over the rows of each
+  working day. The list was already newest-first, so this only NAMES where one
+  day stops; nothing about the sort moved.
+  - **The cut is hers and it is the whole point.** She works past midnight, so
+    a reply at 2am belongs to the day she is still having — the clock's own
+    midnight would cut one working night into two headings, which is exactly
+    what a date heading exists to stop.
+  - **Read through the IANA zone (`America/Los_Angeles`), never a fixed -8** —
+    she says PST and it is PDT half the year, and an offset would put every
+    heading an hour out all summer (the chat-icons sweep's own lesson). The
+    hour is asked in WALL CLOCK terms rather than by shifting the instant five
+    hours, so it still lands on 5am on a DST day.
+  - **A PINNED chat gets its own `Pinned` heading, never a date one.** It sits
+    above the sort by her override, so its date says nothing about where it is
+    — read as a date it would put an older heading above a newer one and then
+    repeat the newer one underneath it.
+  - `dayKey` / `dayLabel` / `chatDayKey` / `mkDayRule` in `chats.html` are the
+    one implementation, and the headings are drawn inside `renderList` and
+    `renderTiles` — so every pile gets them from one place (live, ALL, ★, bug
+    fix, the hidden pile, the archive) and a new pile needs nothing.
+  - Test: `node scripts/test-chats-day-rules.js` (the real page headless, with
+    an INDEPENDENT copy of the 5am rule in the test rather than the page's own
+    arithmetic read back to itself; verified failing 10 pre-fix).
 - **THE CHAT AREA IS THREE LISTS, AND THE ROW TAKES TURNS WITH THE ACCOUNTS
   (2026-08-28, Sophie: "i'm thinking about restructuring chat area based on bug
   fixes and deliverables, so they're on two separate lists" · "one tab ALL
@@ -3613,6 +3639,15 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     message, or a line in this file where the next chat will read it. That is
     where a measurement belongs, and it is why writing it into her reply buys
     nothing.
+- **NEVER THE QUESTIONS UI — ASK IN PLAIN TEXT (2026-08-28, Sophie: "from now
+  on never questions mode · questions go as plain text").** When you need
+  something from her, ask it as ordinary words in your reply — the option
+  picker is out, always, whatever the harness offers. She dictates and reads on
+  a phone, so a card of buttons is a shape she has to stop and operate where a
+  sentence is one she can answer in the same breath. Ask ONE question, name the
+  option you would take, and keep going with everything that does not depend on
+  the answer (the *deliver the work* rule is unchanged — a question is a last
+  resort, not a way to hand the decision back).
 - **Small question → short answer.** When Sophie asks a quick or small
   question, reply with just the answer — no suggestions about what to do next,
   no updates on work already done, no recaps. Save those for when she asks.
@@ -6057,6 +6092,76 @@ before working on that module. Nothing was deleted — the moved text is verbati
     rule for the inbox flow and this one).
   - Test: `node scripts/test-playground-story-share.js` (the trip driven as
     ONE walk — the Playground's real tap lands on the real room).
+  **A STORY IS PORTRAIT OR SQUARE, AND IT IS ONE SHAPE ALL THE WAY DOWN
+  (2026-08-28, Sophie: "add a new square story type in story room").** `SHAPES`
+  in `scratchpad.js` and its twin in `gen-scratchpad.py` are the whole list —
+  portrait 1024x1536 / a 1000x1500 film, square 1024x1024 / 1080x1080 — and
+  nothing counts them, so landscape would be a row in each. The shape decides
+  the canvas a beat is DRAWN on, every tile on the pad, the popup's blank
+  paper and the film's frame; it lives on the PAD, not on a beat, because half
+  a story square is a film that letterboxes every other shot (the call
+  `movie.aspect` already makes). Six things not to undo:
+  - **PORTRAIT IS FIRST AND IS THE FALLBACK.** A pad carrying no `shape` at
+    all is portrait, so every story already on the shelf is byte-for-byte what
+    it was with nothing to migrate — and `/pads` writes no field unless a
+    shape is asked for.
+  - **ONE CSS VARIABLE — `--ar` on the root**, set by `renderShape()` when a
+    story loads, read by `.beat`, `.chunk`, `#verrow button` and `#popblank`
+    with a `2/3` fallback. **NOT the inbox**: those are Playground pictures of
+    every shape, not this story's, and cropping them to it would be a lie
+    about what she hearted.
+  - **THE ROUTE IS `POST /shape`, TOP LEVEL, NEVER `/pads/shape`.** The page
+    marks the film stale for any POST outside its own allowlist, and `/pads*`
+    is on it (that is the shelf-TIDYING family, which must not stale a
+    render). A shape change moves the film's frame, so it has to fall
+    outside. Like `/style` it does NOT bump `updatedAt` — the shelf's
+    newest-first order is about her words and pictures, not the canvas.
+  - **NOTHING ALREADY DRAWN IS TOUCHED.** A portrait picture in a story
+    flipped square is kept and letterboxed on white by the film's own
+    scale+pad chain — the pad has never destroyed a picture. The frame is IN
+    the segment cache key, so a flip re-encodes and a flip back finds the old
+    shots still banked.
+  - **THE SHELF KEEPS ONE TILE FOOTPRINT** — that is what holds the names
+    level across a row — so a square story's cover is sat WHOLE on the white
+    mat (`object-fit:contain`) rather than cropped to a portrait tile.
+  - **The square film frame is 1.17MP against portrait's 1.5** — UNDER the
+    budget the OOM note beside `FILM` proves this 512MB box survives. That
+    number, not the width, is what a third shape has to stay inside.
+  **AND SHE DOES NOT HAVE TO PICK IT — THE SHAPE FOLLOWS THE STORY'S FIRST
+  PICTURE (2026-08-28, her next message: "automatic by first picture").** The
+  toggle stays for when she wants it; the ordinary path is that the first
+  picture PLACED on a story decides — her pick out of the inbox, a Playground
+  send, a photo off her phone, a chat seeding art. Four things:
+  - **"Nobody has decided" is one field: a pad with no `shape` at all.** Her
+    tap writes one, so from then on the story is hers and this never runs
+    again — the `catBy` rule, spelled with the value's own presence instead of
+    a second field to keep in step. `autoShapePatch` in `scratchpad.js`.
+  - **A picture the pad DREW can never decide it** — it was drawn AT the
+    story's shape, so reading it back would only confirm the default. A test
+    fails if the rule is ever wired into the draw.
+  - **A picture that is NEITHER shape decides nothing** (`SHAPE_AUTO_TOL`,
+    ±22% in log space): a landscape phone photo or a clip's 16:9 poster leaves
+    the story portrait and open for the next one. Portrait is the fallback she
+    can see and change; a story silently turned square by a picture that is
+    neither is the failure worth avoiding.
+  - **The size is read from the picture's HEADER — a ranged request for the
+    first 4KB, never a whole 1-3MB original** — by `image-size.js`. That file
+    exists for a MEASURED reason: **sharp reads a truncated PNG and JPEG
+    header and REFUSES a truncated webp** ("unable to parse image"), and webp
+    is what this app stores nearly everything in, so a sharp-only ranged read
+    would have failed on exactly the common case. sharp stays the fallback for
+    a format `image-size.js` does not know. Best-effort throughout — nothing
+    it does may fail a placement.
+  The placing routes answer with the `shape` when one was decided, and the
+  page applies it without posting it back: her first picture landing is the
+  one moment she is actually looking at the tiles.
+  Tests: `node scripts/test-storyroom-shape.js` (the two lists pinned equal,
+  the copy-paste guards and the automatic rule's decision table pure, then the
+  real page headless — every ratio MEASURED off a real box, because the whole
+  thing rides one CSS variable and a broken wire renders as a page that looks
+  fine and never changes shape) and `node scripts/test-image-size.js` (every
+  format driven from REAL encoded files, including the sharp-refuses-webp
+  measurement, so the note above cannot go stale unnoticed).
   **PHILOSOPHY — do not "improve" this: the pad is minimal, the frame
   colours are UNLABELLED everywhere but that drop-down, and no machinery
   lives on the canvas.**
