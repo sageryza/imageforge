@@ -67,6 +67,27 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
   overflow:visible; white-space:nowrap; position:relative; z-index:2; pointer-events:none;}
 .hrow{display:flex; flex-wrap:nowrap; align-items:center; gap:6px; padding-right:56px;}
 .hctl{display:flex; align-items:center; gap:4px; margin-left:auto; flex:0 0 auto;}
+/* ── DELIVERED (2026-08-28) — the films and the pictures as they were handed
+   over. A row is a hairline-ruled block like the chat rows above it: one line
+   she taps (the film opens the house player, a picture strip opens the shared
+   Assets lightbox), never a card with a border of its own. */
+/* `.acctabs` sets display:flex, and an author display rule beats the `hidden`
+   attribute — the house rule stated further up this stylesheet. */
+#listrow[hidden]{display:none !important;}
+.rowtog[hidden]{display:none !important;}
+.dvrow{border-bottom:1px solid var(--line); padding:11px 0;}
+.dvhead{display:flex; gap:9px; align-items:flex-start; width:100%; text-align:left;
+  background:none; border:none; padding:0; cursor:pointer; color:inherit; font:inherit;
+  -webkit-tap-highlight-color:transparent;}
+.dv-ic{flex:none; color:var(--ink2); margin-top:2px; display:flex;}
+.dv-txt{min-width:0; display:flex; flex-direction:column; gap:2px;}
+.dv-t{font-size:14px; line-height:1.35; color:var(--ink);}
+.dv-m{font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink2);}
+/* Three across, her size — the Update tab's own strip. */
+.dvpics{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:6px; margin:8px 0 2px;}
+.dvpic{padding:0; border:none; background:none; cursor:pointer; -webkit-tap-highlight-color:transparent;}
+.dvpic img{display:block; width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:6px;
+  background:var(--line);}
 .rule{height:1px; background:var(--line); margin:.7em 0 1em;}
 /* Inside a thread the rule is the last thing before her note and the summary
    under it, and she asked for that summary closer to the top — so its lower
@@ -1754,6 +1775,17 @@ body.newspick > .float{display:none !important;}
                icon, which costs ~26px against the word's ~56px. -->
           <button id="trashlink" class="trashbtn" aria-label="Deleted chats"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
           <button id="acctog" class="tri" aria-label="Which Claude account is signed into the app"></button>
+          <!-- WHICH ROW THE TABS ARE (2026-08-28, Sophie: "also have a toggle
+               next to account switcher that goes back to 3 tabs 1 per
+               account"). One row under the header, two modes: the three LISTS
+               (All · Delivered · Bug fixes) and the accounts it has always
+               been. The glyph is what the tap GIVES her, not what she is
+               looking at, so the button reads as a door rather than a state.
+               Shown only on the chat list, where the row it swaps is on
+               screen — the header's control row is already five wide at
+               390pt, and a control that changes nothing is worse than none.
+               Sticky, so she comes back to the row she left. -->
+          <button id="rowtog" class="trashbtn rowtog" hidden aria-label="Show the account tabs"></button>
         </div>
       </div>
       <div class="rule"></div>
@@ -1836,6 +1868,18 @@ body.newspick > .float{display:none !important;}
          everything the tabs govern. Painted by paintNewsDoors(); empty and
          hidden on every other view. -->
     <div id="nwdoors" class="nwdoors" hidden></div>
+    <!-- THE THREE LISTS (2026-08-28, Sophie: "one tab ALL chats, in timing
+         order · one - list of deliverables AS they're delivered · bug fix tab
+         third"). It stands in the ACCOUNT row's place rather than under it —
+         one row, two modes, swapped by #rowtog beside the account switcher —
+         because two hairline rows stacked is 26px of chrome on the screen she
+         opens to find out what happened. `.acctabs` verbatim, so the sliding
+         line measures itself and nothing here declares a tab count. -->
+    <div id="listrow" class="acctabs" data-on="all" hidden>
+      <button class="acctab" data-list="all">All</button>
+      <button class="acctab" data-list="delivered">Delivered</button>
+      <button class="acctab" data-list="bugs">Bug fixes</button>
+    </div>
     <div id="accrow" class="acctabs" data-on="1">
       <button class="acctab" data-acct="new"></button>
       <button class="acctab" data-acct="1"></button>
@@ -2820,7 +2864,7 @@ function paintHomeChrome(){
   var bug=document.getElementById('bugbtn');
   if(bug){
     bug.hidden = otherView() || homeView==='archive';
-    bug.classList.toggle('on', bugOnly);
+    bug.classList.toggle('on', bugPile());
   }
   if(other && selMode) exitSelect();
   // The to-do list is not chats: the whole tool row and the search bar (which
@@ -4421,7 +4465,7 @@ function renderNews(el){
         }
       }
     }
-    paintAcctTabs(g);                        // the badge, once the pictures land
+    paintAcctTabs(g); paintListTabs();                        // the badge, once the pictures land
     paintNewsChips(g);                       // …and the boxes' counts with it
     if(window.__jumpsRecheck) window.__jumpsRecheck();
   }
@@ -4591,7 +4635,142 @@ var starOnly=false;
 // tagged `bug fix`. Session-only like ★, and mutually exclusive with it and
 // with a lit chip: each of the three replaces the whole list, so two lit at
 // once would be a filter she cannot see the whole of.
-var bugOnly=false;
+// (2026-08-28) The bug pile moved onto `listTab` — one state, two doors (the
+// header button and the third tab). `bugPile()` is the reader.
+// ── THE CHAT AREA IS THREE LISTS ────────────────────────────────────────────
+// (2026-08-28, Sophie: "i'm thinking about restructuring chat area based on
+// bug fixes and deliverables, so they're on two separate lists" → "one tab ALL
+// chats, in timing order · one - list of deliverables AS they're delivered. so
+// - just the link to a movie, previews of images and whatnot · bug fix tab
+// third" · "just three images, like the update tab".)
+//
+// ALL IS NOT TODAY'S HOME LIST, and that is the point of the tab: the home
+// list is an unfiled INBOX, so filing a chat takes it off and a folder word
+// hides it. ALL is every chat on this account in timing order, whatever it is
+// filed under — her word, in caps. The Archive and the Trash are still their
+// own rooms: those are chats she put away on purpose.
+//
+// THE BUG PILE IS ONE STATE UNDER TWO DOORS. The header's bug button
+// (2026-08-27) and this row's third tab write the same `listTab`, so they can
+// never disagree about which pile she is looking at — the pushpin's rule.
+var LIST_TABS=['all','delivered','bugs'];
+function stickyOne(key, vals, dflt){
+  try{ var v=localStorage.getItem(key); return vals.indexOf(v)>-1 ? v : dflt; }
+  catch(e){ return dflt; }
+}
+function stickySet(key, v){ try{ localStorage.setItem(key, v); }catch(e){} }
+var listTab=stickyOne('forge.chats.listtab', LIST_TABS, 'all');
+var rowMode=stickyOne('forge.chats.rowmode', ['lists','accounts'], 'lists');
+function setListTab(t){ listTab=t; stickySet('forge.chats.listtab', t); }
+function setRowMode(m){ rowMode=m; stickySet('forge.chats.rowmode', m); }
+// THE LISTS GOVERN THE CHAT LIST ONLY. Update, the archive, the trash, the
+// bookmarks and the to-do are their own views; the row goes back to the
+// accounts there whatever mode she left this in — the UPDATE tab lives ON the
+// account row, so a mode that hid it would take away the only way in.
+function listsOn(){ return rowMode==='lists' && homeView==='live'; }
+function bugPile(){ return listsOn() && listTab==='bugs'; }
+// The glyph on #rowtog is what the tap GIVES her, never what she is looking
+// at — a door, not a state.
+var ICON_ACCTABS='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+var ICON_LISTTABS='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>';
+function paintListTabs(){
+  var row=document.getElementById('listrow'); var acc=document.getElementById('accrow');
+  var on=listsOn();
+  var tog=document.getElementById('rowtog');
+  if(tog){
+    tog.hidden=(homeView!=='live');
+    tog.innerHTML = on ? ICON_ACCTABS : ICON_LISTTABS;
+    tog.setAttribute('aria-label', on ? 'Show the account tabs' : 'Show the three lists');
+  }
+  if(row) row.hidden=!on;
+  // The ACCOUNT row is paintHomeChrome's to hide on every other view (it uses
+  // `style.display`, and an author display rule beats the `hidden` attribute —
+  // the house rule that has bitten this page before). So this only ever speaks
+  // for the LIVE chat list, where the two rows share one place; anywhere else
+  // it says nothing and paintHomeChrome's answer stands. This runs after it,
+  // so the order is what makes that work.
+  if(acc && homeView==='live') acc.style.display = on ? 'none' : '';
+  if(!row || !on) return;
+  row.setAttribute('data-on', listTab);
+  Array.prototype.forEach.call(row.querySelectorAll('.acctab'), function(b){
+    var v=b.dataset.list;
+    b.classList.toggle('on', v===listTab);
+    b.onclick=function(){ if(listTab===v) return; setListTab(v); renderHome(); window.scrollTo(0,0); };
+  });
+}
+
+// ── DELIVERED — the films and the pictures, as they were handed over ────────
+// The rows come from /api/deliverables/feed: the films are the deliverables
+// list the /deliverables page already reads, and the picture rows are DERIVED
+// from the chats' own filed images the way the Update tab's strip is (there is
+// no image door into that collection, and there must not be one — 2,488 filed
+// pictures would bury the films). Held 60s server-side; this keeps the last
+// answer so switching tabs repaints instantly instead of blinking empty.
+var delivCache=null, delivAt=0, delivWait=false;
+var DELIV_MS=60*1000;
+function renderDelivered(el){
+  if(delivCache) paintDelivered(el, delivCache);
+  else el.innerHTML='<div class="state">Loading&hellip;</div>';
+  if(delivWait || (delivCache && Date.now()-delivAt<DELIV_MS)) return;
+  delivWait=true;
+  api('/api/deliverables/feed?limit=60').then(function(r){ return r.json(); }).then(function(d){
+    delivWait=false;
+    if(!d || !d.items) return;
+    delivCache=d.items; delivAt=Date.now();
+    // she may have left the tab while it loaded
+    if(listsOn() && listTab==='delivered') paintDelivered(document.getElementById('grid'), delivCache);
+  }).catch(function(){
+    delivWait=false;
+    if(!delivCache && listsOn() && listTab==='delivered')
+      document.getElementById('grid').innerHTML='<div class="state">Couldn’t load the deliverables.</div>';
+  });
+}
+function paintDelivered(el, items){
+  if(!el) return;
+  el.innerHTML='';
+  if(!items.length){ el.innerHTML='<div class="state">Nothing delivered yet.</div>'; return; }
+  items.forEach(function(it){
+    var row=document.createElement('div'); row.className='dvrow';
+    var head=document.createElement('button'); head.className='dvhead';
+    var mark = it.kind==='images' ? IC_PIC : it.kind==='audio' ? IC_WAVE : IC_PLAY;
+    var when = it.at ? ago(it.at) : '';
+    var name = esc(it.chatName||it.chat||'');
+    var title = esc(it.title || (it.kind==='images'
+      ? (it.count===1 ? '1 picture' : it.count+' pictures') : 'Untitled'));
+    var meta = name + (when? ' &middot; '+when : '')
+      + (it.kind==='images' && it.count>1 ? ' &middot; '+it.count+' pictures' : '')
+      + (it.versions>1 ? ' &middot; v'+it.versions : '');
+    head.innerHTML='<span class="dv-ic">'+mark+'</span><span class="dv-txt">'
+      +'<span class="dv-t">'+title+'</span><span class="dv-m">'+meta+'</span></span>';
+    // A FILM IS THE LINK SHE ASKED FOR — the house player, so tap-to-note and
+    // the scroll-position rule come with it rather than being re-invented.
+    head.onclick=function(){
+      if(it.kind==='images'){ openChat(it.chat); return; }
+      openPinned({ url:it.url, kind:(it.kind==='audio'?'audio':'video') }, it.chat);
+    };
+    row.appendChild(head);
+    if(it.kind==='images' && it.images && it.images.length){
+      var strip=document.createElement('div'); strip.className='dvpics';
+      it.images.forEach(function(p){
+        var b=document.createElement('button'); b.className='dvpic';
+        var im=document.createElement('img');
+        im.loading='lazy'; im.alt=p.label||'';
+        im.src=assetThumb(p.url);
+        im.onerror=function(){ if(im.src!==p.url) im.src=p.url; };
+        b.appendChild(im);
+        // The shared lightbox (/asset-lightbox.js) — the one copy, so a ♥ or a
+        // note left here lands in the Assets tab like everywhere else.
+        b.onclick=function(){ lightbox(p.url, { url:p.url, description:p.label, prompt:p.caption, chat:it.chat }); };
+        strip.appendChild(b);
+      });
+      row.appendChild(strip);
+    }
+    el.appendChild(row);
+  });
+}
+var IC_PLAY='<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+var IC_WAVE='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 10v4M8 6v12M12 3v18M16 7v10M20 10v4"/></svg>';
+var IC_PIC='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.6"/><path d="m21 15-5-5L5 21"/></svg>';
 // ---- CATEGORIES AND TAGS ARE ONE THING (Aug 2026, Sophie: "right now you can
 // only be in one category at a time, for example witch or to be reviewed, and
 // you can't add tags — I think it would make sense to just combine them and let
@@ -5160,7 +5339,7 @@ function paintCatRow(g){
   var sb=document.createElement('button');
   sb.className='catchip starchip'+(starOnly?' on':'');
   sb.innerHTML=STAR; sb.setAttribute('aria-label','Starred chats');
-  sb.onclick=function(){ starOnly=!starOnly; if(starOnly){ cat=''; bugOnly=false; } renderHome(); window.scrollTo(0,0); };
+  sb.onclick=function(){ starOnly=!starOnly; if(starOnly){ cat=''; if(bugPile()) setListTab('all'); } renderHome(); window.scrollTo(0,0); };
   row.appendChild(sb);
   // Counted BEFORE anything is painted, because the TAGS button needs the sum
   // of them while the chips themselves are away.
@@ -5208,7 +5387,7 @@ function paintCatRow(g){
     // not hers, and two numbers on a chip read as noise.
     b.innerHTML=esc(catLabel(c))+(fresh?'<span class="cc-new">'+fresh+'</span>':'');
     b.setAttribute('aria-label', catLabel(c)+(fresh? ' — '+fresh+' answered you' : ''));
-    b.onclick=function(){ cat=(cat===c?'':c); starOnly=false; bugOnly=false; renderHome(); window.scrollTo(0,0); };
+    b.onclick=function(){ cat=(cat===c?'':c); starOnly=false; if(bugPile()) setListTab('all'); renderHome(); window.scrollTo(0,0); };
     row.appendChild(b);
   };
   // TASK words first, in workflow order (TASK_LABELS), then the categories —
@@ -5552,6 +5731,38 @@ function renderHome(){
   // filter this app keeps getting burned by.
   var everyone=sortedChatNames(g);
   var all=everyone.filter(acctMatch);
+  // ALL — every chat on this account in timing order, filed or not (2026-08-28,
+  // her caps). The home list below is the unfiled INBOX and always has been, so
+  // this is a different question, not a wider version of the same one: a chat
+  // filed under `witch` is still a chat she had. The ARCHIVE and the TRASH stay
+  // their own rooms — she put those away deliberately — and the hidden pile is
+  // folded in rather than split off, because "all" is the whole answer.
+  if(listsOn() && listTab==='all'){
+    // A LIT CHIP STILL NARROWS IT. The category row is on screen here, and a
+    // filter she can see that does nothing is the silent-filter failure this
+    // app keeps warning about — so ALL means "filed or not", never "ignore
+    // what she picked".
+    var every=all.filter(function(n){
+      if(chatDeleted(n) || (chats[n]&&chats[n].archived)) return false;
+      return cat ? chatInCat(n,cat) : true;
+    });
+    paintHomeChrome(); paintAcctTabs(g); paintListTabs(); paintCatRow(g);
+    document.getElementById('selbtn').classList.toggle('on', selMode);
+    paintSelBar();
+    if(!every.length){ el.innerHTML='<div class="state">No chats on account '+acctFilter()+'.</div>'; return; }
+    if(view==='list') renderList(el,g,every); else renderTiles(el,g,every);
+    return;
+  }
+  // DELIVERED — not chats at all: the films, cuts and pictures as they were
+  // handed over. It is the one tab whose rows are things rather than threads,
+  // which is why it paints its own list instead of going through renderList.
+  if(listsOn() && listTab==='delivered'){
+    paintHomeChrome(); paintAcctTabs(g); paintListTabs(); paintCatRow(g);
+    document.getElementById('selbtn').classList.toggle('on', selMode);
+    paintSelBar();
+    renderDelivered(el);
+    return;
+  }
   // ★ is its own pile and it reaches INTO the archive: these are chats she has
   // finished with and put away, so stopping at `archived` would hide most of
   // them. It replaces the whole list rather than narrowing it.
@@ -5559,7 +5770,7 @@ function renderHome(){
   // left on from earlier would otherwise swallow the whole view.
   if(starOnly && homeView!=='news'){
     var st=all.filter(chatStar);
-    paintHomeChrome(); paintAcctTabs(g); paintCatRow(g);
+    paintHomeChrome(); paintAcctTabs(g); paintListTabs(); paintCatRow(g);
     document.getElementById('selbtn').classList.toggle('on', selMode);
     paintSelBar();
     if(!st.length){ el.innerHTML='<div class="state">No starred chats on account '+acctFilter()+' — open one and tap the star in its header.</div>'; return; }
@@ -5570,9 +5781,9 @@ function renderHome(){
   // replaces the whole list, and it reaches INTO the archive on purpose —
   // bug-fix chats archive themselves when the fix lands clean (CLAUDE.md),
   // so a live-only pile would empty itself exactly as that rule works.
-  if(bugOnly && homeView!=='news'){
+  if(bugPile()){
     var bg=all.filter(chatBugTag);
-    paintHomeChrome(); paintAcctTabs(g); paintCatRow(g);
+    paintHomeChrome(); paintAcctTabs(g); paintListTabs(); paintCatRow(g);
     document.getElementById('selbtn').classList.toggle('on', selMode);
     paintSelBar();
     if(!bg.length){ el.innerHTML='<div class="state">No bug-fix chats on account '+acctFilter()+' — tag one from its Organize sheet.</div>'; return; }
@@ -5602,7 +5813,7 @@ function renderHome(){
   var arch=everyone.filter(function(n){ return chats[n]&&chats[n].archived; });
   if(cat) arch=arch.filter(function(n){ return chatInCat(n,cat); });
   paintHomeChrome();
-  paintAcctTabs(g);
+  paintAcctTabs(g); paintListTabs();
   paintCatRow(g);
   document.getElementById('selbtn').classList.toggle('on', selMode);
   paintSelBar();
@@ -9481,9 +9692,18 @@ document.getElementById('bmklink').onclick=function(){ setHomeView('bookmarks');
 // way the Update and Review doors on the same screen do.
 document.getElementById('iglink').onclick=function(){ location.href='/instagram'; };
 // The bug button is a FILTER, not a page — it narrows the list it sits over.
+// The row toggle beside the account switcher — one row, two modes.
+document.getElementById('rowtog').onclick=function(){
+  setRowMode(listsOn() ? 'accounts' : 'lists');
+  renderHome(); window.scrollTo(0,0);
+};
 document.getElementById('bugbtn').onclick=function(){
-  bugOnly=!bugOnly;
-  if(bugOnly){ cat=''; starOnly=false; }
+  // ONE STATE, TWO DOORS — the button and the row's third tab both write
+  // `listTab`, and the button brings the row with it so the pile she is
+  // looking at is named on screen.
+  var want = bugPile() ? 'all' : 'bugs';
+  setRowMode('lists'); setListTab(want);
+  if(want==='bugs'){ cat=''; starOnly=false; }
   renderHome(); window.scrollTo(0,0);
 };
 

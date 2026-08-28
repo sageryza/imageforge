@@ -124,6 +124,11 @@ const ok = () => { checks++; };
   else ok();
   if (await page.$eval('#bugbtn', (n) => n.hidden)) fail('the bug button is hidden on the chat list');
   else ok();
+  // The UPDATE tab lives on the ACCOUNT row, and since 2026-08-28 that row
+  // takes turns with the three lists — so this reaches it the way she does,
+  // through the toggle beside the account switcher.
+  await page.click('#rowtog');
+  await page.waitForTimeout(50);
   await page.click('.acctab[data-acct="new"]');   // the Update view
   await page.waitForTimeout(150);
   if (!await page.$eval('#bugbtn', (n) => n.hidden)) fail('the bug button stayed on the Update view — it belongs to the chat list');

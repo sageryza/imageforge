@@ -1686,6 +1686,48 @@ them off the reference sheet, not off the old filenames.
     with the chat that did the work. She finds them again on the bug button,
     in the archive, or by un-archiving.
   Tests: `node scripts/test-chats-bug-tag.js` (the real page, headless).
+- **THE CHAT AREA IS THREE LISTS, AND THE ROW TAKES TURNS WITH THE ACCOUNTS
+  (2026-08-28, Sophie: "i'm thinking about restructuring chat area based on bug
+  fixes and deliverables, so they're on two separate lists" · "one tab ALL
+  chats, in timing order · one - list of deliverables AS they're delivered. so
+  - just the link to a movie, previews of images and whatnot · bug fix tab
+  third" · "also have a toggle next to account switcher that goes back to 3
+  tabs 1 per account").** One hairline row under the header with two modes,
+  swapped by `#rowtog` beside the account switcher — the three LISTS, or the
+  ACCOUNT tabs it has always been. Sticky, opening on the lists.
+  - **ALL IS NOT THE HOME INBOX, and that is the tab.** The ordinary home list
+    is the UNFILED pile, so a pile word takes a chat off it; ALL is every chat
+    on the account in timing order, filed or not — her word, in caps. The
+    ARCHIVE and the TRASH stay their own rooms (she put those away on
+    purpose), and **a lit category chip still narrows it** — the chip row is on
+    screen there, and a filter she can see that does nothing is the
+    silent-filter failure this app keeps getting burned by.
+  - **DELIVERED is the only tab whose rows are THINGS, not threads** — the
+    films and cuts from `forge-deliverables` (a pinned film is a hand-over, so
+    nothing new is filed) interleaved by time with PICTURE rows derived the way
+    the Update tab's strip is. **A picture row is a BURST, not a chat**: a
+    chat's images split wherever it went `BURST_MS` without filing another, so
+    the morning's nine and the evening's three are two rows — "as they're
+    delivered" is the ask. Three thumbs, her size, and the row says how many
+    there really were. **There is deliberately NO image door into the
+    deliverables collection** — 2,488 filed pictures would bury the films — and
+    her SOURCE LIBRARIES (the Dump, crystals, ingest), derived `thumbs/` copies
+    and audio records are not deliveries. `deliverables-feed.js` is the whole
+    rule (pure); `GET /api/deliverables/feed` is the read, two cached queries
+    and no model call.
+  - **THE BUG PILE IS ONE STATE UNDER TWO DOORS** — the header's bug button
+    (2026-08-27) and this row's third tab both write `listTab`, and the button
+    brings the row with it, so the pile she is looking at is always named on
+    screen. `bugOnly` is gone; `bugPile()` is the reader.
+  - **THE UPDATE TAB LIVES ON THE ACCOUNT ROW**, so it is one toggle-tap away
+    while the lists are showing — and entering any other view (Update, the
+    archive, bookmarks, the to-do) puts the account row back whatever mode she
+    left this in. `paintListTabs` speaks ONLY for the live chat list; anywhere
+    else `paintHomeChrome`'s answer stands, and it hides that row with
+    `style.display`, which beats the `hidden` attribute (the house rule).
+  - Tests: `node scripts/test-deliverables-feed.js` (the bursts and the
+    exclusions, pure) and `node scripts/test-chats-list-tabs.js` (the real
+    page, headless — verified failing against the pre-fix page).
   **ALL THREE UPDATE BOXES WEAR A CHIP ON THIS ROW (Aug 2026, Sophie: "'maybe
   never' isn't on the tag list in the account area" → "give them both a
   chip").** `come back to` had one because it was already a folder of hers;
