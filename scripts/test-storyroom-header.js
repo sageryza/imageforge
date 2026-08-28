@@ -36,6 +36,7 @@
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
+const servePublic = require('./lib/public-asset');
 
 const PUB = path.join(__dirname, '..', 'public');
 let chromium;
@@ -76,6 +77,8 @@ const PAD = { pad: { id: 'a', title: 'Evan', beats: [], category: null } };
    point: a hand-copied page would pass this while the shipped one broke. */
 function serve() {
   return http.createServer((req, res) => {
+  // Anything the page links out of public/ — /feedkit.js, /tritoggle.*, …
+  if (servePublic(req, res)) return;
     const u = new URL(req.url, 'http://x');
     if (u.pathname.startsWith('/api/scratchpad/pads')) {
       res.writeHead(200, { 'content-type': 'application/json' });

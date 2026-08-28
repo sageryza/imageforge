@@ -23,6 +23,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const servePublic = require('./lib/public-asset');
 
 let chromium;
 try { ({ chromium } = require('playwright')); } catch {
@@ -68,6 +69,8 @@ function padDoc(url) {
 }
 
 const server = http.createServer((req, res) => {
+  // Anything the page links out of public/ — /feedkit.js, /tritoggle.*, …
+  if (servePublic(req, res)) return;
   const u = req.url;
   if (u.startsWith('/api/scratchpad/inbox')) {
     res.setHeader('Content-Type', 'application/json');

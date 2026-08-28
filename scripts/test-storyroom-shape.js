@@ -27,6 +27,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const servePublic = require('./lib/public-asset');
 
 let failures = 0;
 function ok(cond, name) {
@@ -187,6 +188,8 @@ const INBOX_ITEM = { url: 'http://127.0.0.1:0/px.png?inbox', runId: 'r1', i: 0,
 let placedShape = null;
 
 const server = http.createServer((req, res) => {
+  // Anything the page links out of public/ — /feedkit.js, /tritoggle.*, …
+  if (servePublic(req, res)) return;
   const url = new URL(req.url, 'http://x');
   const json = (o) => { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
   if (req.method === 'POST') {

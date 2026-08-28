@@ -45,6 +45,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const servePublic = require('./lib/public-asset');
 
 let chromium;
 try { ({ chromium } = require('playwright')); }
@@ -83,6 +84,8 @@ const PX = Buffer.from(
   'base64');
 
 const server = http.createServer((req, res) => {
+  // Anything the page links out of public/ — /feedkit.js, /tritoggle.*, …
+  if (servePublic(req, res)) return;
   const url = new URL(req.url, 'http://x');
   if (url.pathname === '/api/scratchpad/pads') {
     res.writeHead(200, { 'Content-Type': 'application/json' });

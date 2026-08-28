@@ -26,6 +26,7 @@
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
+const servePublic = require('./lib/public-asset');
 
 const PUB = path.join(__dirname, '..', 'public');
 let chromium;
@@ -64,6 +65,8 @@ const state = { film: null, cancels: 0, holdGet: null };
 
 function serve() {
   return http.createServer((req, res) => {
+  // Anything the page links out of public/ — /feedkit.js, /tritoggle.*, …
+  if (servePublic(req, res)) return;
     const u = new URL(req.url, 'http://x');
     const json = (o) => { res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
     if (u.pathname === '/api/scratchpad/film/cancel') {
