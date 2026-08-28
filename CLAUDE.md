@@ -162,7 +162,8 @@ anything else, **each answered ONCE** · **did she MARK a question ("i have a
 question" / "quick question" / "file this")? then repeat THAT question in bold
 on its own line and answer under it — otherwise never echo a question back**
 (see *Answering a question*; the bare word alone is not the mark) · small
-question, short answer · full clickable links · no markdown tables · times in 12-hour
+question, short answer · **asking HER something? plain text, never the
+questions/option-picker UI** (2026-08-28, her rule) · full clickable links · no markdown tables · times in 12-hour
 Pacific · files and images LAST · working links at the very bottom ·
 **briefing her on OTHER chats? every chat you name gets a
 `/chats?chat=<slug>` link back to it at the bottom** (see *BRIEFING HER ON
@@ -3606,6 +3607,15 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     message, or a line in this file where the next chat will read it. That is
     where a measurement belongs, and it is why writing it into her reply buys
     nothing.
+- **NEVER THE QUESTIONS UI — ASK IN PLAIN TEXT (2026-08-28, Sophie: "from now
+  on never questions mode · questions go as plain text").** When you need
+  something from her, ask it as ordinary words in your reply — the option
+  picker is out, always, whatever the harness offers. She dictates and reads on
+  a phone, so a card of buttons is a shape she has to stop and operate where a
+  sentence is one she can answer in the same breath. Ask ONE question, name the
+  option you would take, and keep going with everything that does not depend on
+  the answer (the *deliver the work* rule is unchanged — a question is a last
+  resort, not a way to hand the decision back).
 - **Small question → short answer.** When Sophie asks a quick or small
   question, reply with just the answer — no suggestions about what to do next,
   no updates on work already done, no recaps. Save those for when she asks.
