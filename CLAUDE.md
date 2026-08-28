@@ -6106,10 +6106,41 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - **The square film frame is 1.17MP against portrait's 1.5** — UNDER the
     budget the OOM note beside `FILM` proves this 512MB box survives. That
     number, not the width, is what a third shape has to stay inside.
-  Test: `node scripts/test-storyroom-shape.js` (the two lists pinned equal and
-  the copy-paste guards pure, then the real page headless — every ratio
-  MEASURED off a real box, because the whole thing rides one CSS variable and
-  a broken wire renders as a page that looks fine and never changes shape).
+  **AND SHE DOES NOT HAVE TO PICK IT — THE SHAPE FOLLOWS THE STORY'S FIRST
+  PICTURE (2026-08-28, her next message: "automatic by first picture").** The
+  toggle stays for when she wants it; the ordinary path is that the first
+  picture PLACED on a story decides — her pick out of the inbox, a Playground
+  send, a photo off her phone, a chat seeding art. Four things:
+  - **"Nobody has decided" is one field: a pad with no `shape` at all.** Her
+    tap writes one, so from then on the story is hers and this never runs
+    again — the `catBy` rule, spelled with the value's own presence instead of
+    a second field to keep in step. `autoShapePatch` in `scratchpad.js`.
+  - **A picture the pad DREW can never decide it** — it was drawn AT the
+    story's shape, so reading it back would only confirm the default. A test
+    fails if the rule is ever wired into the draw.
+  - **A picture that is NEITHER shape decides nothing** (`SHAPE_AUTO_TOL`,
+    ±22% in log space): a landscape phone photo or a clip's 16:9 poster leaves
+    the story portrait and open for the next one. Portrait is the fallback she
+    can see and change; a story silently turned square by a picture that is
+    neither is the failure worth avoiding.
+  - **The size is read from the picture's HEADER — a ranged request for the
+    first 4KB, never a whole 1-3MB original** — by `image-size.js`. That file
+    exists for a MEASURED reason: **sharp reads a truncated PNG and JPEG
+    header and REFUSES a truncated webp** ("unable to parse image"), and webp
+    is what this app stores nearly everything in, so a sharp-only ranged read
+    would have failed on exactly the common case. sharp stays the fallback for
+    a format `image-size.js` does not know. Best-effort throughout — nothing
+    it does may fail a placement.
+  The placing routes answer with the `shape` when one was decided, and the
+  page applies it without posting it back: her first picture landing is the
+  one moment she is actually looking at the tiles.
+  Tests: `node scripts/test-storyroom-shape.js` (the two lists pinned equal,
+  the copy-paste guards and the automatic rule's decision table pure, then the
+  real page headless — every ratio MEASURED off a real box, because the whole
+  thing rides one CSS variable and a broken wire renders as a page that looks
+  fine and never changes shape) and `node scripts/test-image-size.js` (every
+  format driven from REAL encoded files, including the sharp-refuses-webp
+  measurement, so the note above cannot go stale unnoticed).
   **PHILOSOPHY — do not "improve" this: the pad is minimal, the frame
   colours are UNLABELLED everywhere but that drop-down, and no machinery
   lives on the canvas.**

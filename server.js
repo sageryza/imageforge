@@ -6031,13 +6031,20 @@ function padTargetOf(body) {
 }
 async function landOnBeat(target, images, runId, meta) {
   if (!target || !images || !images.length) return;
-  const { placeOnBeat } = require('./scratchpad');
+  const { placeOnBeat, autoShapePatch } = require('./scratchpad');
+  // A STORY'S SHAPE FOLLOWS ITS FIRST PICTURE (2026-08-28, Sophie: "automatic
+  // by first picture"). A run she sent here from the Playground is a picture
+  // she chose the canvas for, so it decides exactly like a picture placed in
+  // the room — and only ever on a story nobody has decided ({} otherwise).
+  // Read once for the whole run: the second image of a run cannot decide,
+  // because the first one already did.
+  const shapePatch = await autoShapePatch(target.pad, images[0]).catch(() => ({}));
   for (let i = 0; i < images.length; i++) {
     try {
       await placeOnBeat(target.pad, target.beat, images[i], target.style, {
         runId, i, prompt: meta.prompt || null, model: meta.model || null,
         engine: meta.engine || null, quality: meta.quality || null,
-      });
+      }, { shapePatch });
     } catch (err) { console.warn('promptlab → beat failed:', err.message); }
   }
 }
