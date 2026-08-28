@@ -3540,11 +3540,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
   an orphaned panels run from its banked sheet (free) instead of marking paid
   work failed, and `POST /api/promptlab/:id/recut` does the same on demand
   for a failed-with-sheet or cutFailed run (recovery-only: an already-cut run
-  is refused, a second cut would file duplicates). **AND A SHEET IS ONE
-  OUTPUT** — a panels run buffers one sheet however many panels it holds, so
-  a sheet batch goes **ALL AT ONCE, no notches and never one at a time**
-  (Sophie, 2026-08-28; full rule under *A BULK BATCH THE SERVER IS DRAWING*
-  in the Opinions section).
+  is refused, a second cut would file duplicates). **AND DRAWING AND CUTTING ARE PACED
+  SEPARATELY** — fire the whole sheet batch AT ONCE (the draw is on OpenAI's
+  hardware), while the CUT is queued one at a time by the server itself
+  (`gateCut`), so a chat never staggers its own launches (Sophie,
+  2026-08-28; full rule under *DRAWING AND CUTTING ARE PACED SEPARATELY* in
+  the Opinions section).
   **THE BOXES FOLD (2026-08-28, Sophie: "make the panels grid
   collapsible")** — nine 2:3 boxes is most of a screen and the controls and
   Generate sit under them, so a row above the grid puts them away (measured:
@@ -5972,32 +5973,38 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (`public/opinions-gun.png`), not a line icon. Candidate batches go on a
   review deck for her ♥ first; a single-option batch she has delegated goes
   straight in.
-  **A BULK BATCH THE SERVER IS DRAWING (`/api/promptlab` from a script) GOES
-  ALL AT ONCE — FIRE THE WHOLE BATCH, NO NOTCHES (Sophie, 2026-08-28:
-  "please all at once … change the rule / no notches").** This replaces the
-  ratchet that stood here for one day, and the ratchet is HISTORY rather
-  than a rule: it told a chat to run at the largest number on a ledger and
-  step up one at a time, which is still a chat rationing her minutes against
-  a limit nobody has hit — she had already deleted the one-at-a-time note
-  for the same reason the day before (2026-08-27, after a chat spent 12
-  minutes serializing ten sheets), and this is the same correction going all
-  the way. **Send every run in the batch together and let them land.**
-  - **What is actually at risk is small, and it is not the drawing.** The
-    draw happens on OpenAI's hardware and costs the box nothing; only the
-    CUT is local (~33MB of raw decode per 4K sheet on a 512MB box), and a
-    cut takes seconds against a 60-180s draw, so cuts almost never overlap.
-    A panels SHEET is ONE output buffer however many panels it holds.
-  - **A restart mid-batch is NOT a reason to serialize** — it is a reason
-    the recovery exists. Since 2026-08-27 an interrupted panels run with a
-    banked sheet auto-recovers free, and a sheet that died before its bytes
-    arrived is unrecoverable at any concurrency. Firing all at once does not
-    change either.
-  - **Measured, for the record, not as a permission slip:** 16 concurrent
-    outputs + whiten passes broke it once (2026-08-19); 5 concurrent 9-panel
-    4K sheets ran clean (2026-08-28); 15 fired together the same day. If you
-    ever DO see a batch die with "interrupted by a server restart" across
-    the board, say so in your reply and write the number here with the date
-    — but do not pre-emptively pace a batch to avoid finding out.
+  **DRAWING AND CUTTING ARE PACED SEPARATELY — TWO NUMBERS, NOT ONE (Sophie,
+  2026-08-28: "ok fine back to notches. but separate running sheets and
+  cutting").** One ceiling was always wrong here because the two halves of a
+  panels run live on different machines, and conflating them is what made
+  every version of this note either too slow or too fragile:
+  - **DRAWS: fire the WHOLE batch at once, no ceiling.** The draw happens on
+    OpenAI's hardware and costs this box nothing. Serializing them is a chat
+    spending her minutes for no protection — the mistake she deleted twice
+    (2026-08-27, a 12-minute ten-sheet batch; 2026-08-28, "please all at
+    once").
+  - **CUTS: one at a time, and the SERVER enforces it now** (`gateCut` in
+    server.js, 2026-08-28). A cut decodes the sheet to raw — ~33MB for a 4K
+    sheet on a 512MB instance — so N sheets finishing together used to stack
+    N decodes and kill the instance mid-batch. A cut takes seconds against a
+    60-180s draw, so the queue costs a batch almost nothing and makes peak
+    memory independent of batch size. **A chat no longer staggers its
+    launches**; if you find yourself wanting to, the gate is broken, say so.
+  - **The ledger, which is the CUT ceiling and ratchets like she asked:**
+    - **Broke it: 16** concurrent outputs + whiten passes (2026-08-19), and
+      **10** concurrent 9-panel 4K sheets whose cuts landed together
+      (2026-08-28 — seven runs lost, the crash that produced `gateCut`).
+    - **Clean: 5** concurrent 9-panel 4K sheets (2026-08-28), and any number
+      of draws once `gateCut` is in.
+    - **Raise the gate a notch and write what you measured, with the date**,
+      if a batch ever needs more than one cut in flight. That is the only
+      notch left: the draws have no ceiling to ratchet.
+  - **A run refused with a 502 on the POST was never created and never
+    billed** (measured 2026-08-28) — a start failure is free, so retrying a
+    start costs nothing. What is genuinely lost is a run whose sheet died
+    in flight: billed, no bytes, unrecoverable at any concurrency. A run
+    whose sheet was BANKED recovers free (the 2026-08-27 sweep, and
+    `POST /api/promptlab/:id/recut`).
   **THE SCOPE IS THE BOX, NOT THE WORD "PLAYGROUND" (2026-08-20, Sophie
   mid-run: "why are you doing them one at a time?").** Two things this note
   does NOT cover:
