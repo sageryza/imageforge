@@ -2183,6 +2183,15 @@ them off the reference sheet, not off the old filenames.
       inside "tired" — a word the search itself would never have matched. The
       highlight and the match must be the same question asked twice, or the
       mark claims a row was found for a reason it was not.
+    - **AND WHEN NEITHER HIT IS A WHOLE WORD, SHE GETS A WINDOW EACH.** The
+      rule above cannot reach her own row: `red` inside "redraw" and `dress`
+      inside "dressed" are both prefixes, so the tie falls back to rarity, both
+      are 1, and the window opens on "redraw" again. No ordering of ONE window
+      answers that — the two words are 2,000 characters apart — so a message
+      whose terms are far apart is cut into one window per word, joined by an
+      ellipsis, narrower (35/55 rather than 45/70) so the pair still fits the
+      row's one line. Windows that overlap merge back into one, a phrase hit
+      stays one window, and a one-word query is byte-for-byte what it was.
     Tests: `node scripts/test-search-grammar.js` and `node
     scripts/test-chats-live-search.js` (both verified failing pre-fix).
   - **Two things not to undo:** the phrase is its own regex pass (a

@@ -563,6 +563,71 @@ function snippetAnchor(src, groups, phraseRe) {
   return best;
 }
 
+// ONE WINDOW PER WORD SHE TYPED (2026-08-28, the half the whole-word rule
+// above cannot reach). `red dress` on a row holding "redraw" 2,000 characters
+// from "dressed": NEITHER hit is a whole word, so the tie-break falls back to
+// rarity, both are 1, and the window opens on "redraw" — a row that matched
+// both her words showing her neither of them. There is no ordering of one
+// window that answers this: the two words are simply not near each other. So a
+// message whose terms are far apart gets a window EACH, joined by an ellipsis,
+// and the snippet says why the row is on screen rather than arguing about
+// which half to show. A phrase hit is still ONE window — the words are
+// adjacent, so there is nothing to join.
+const SNIP_MAX = 2;              // windows; two words is her case, more is a wall
+function anchorFor(src, g) {
+  let best = null;
+  for (const t of g.terms) {
+    if (!t.re) continue;
+    const all = new RegExp(t.re.source, 'gi');
+    let m; let n = 0; let pick = null;
+    while ((m = all.exec(src)) && n < 60) {
+      n++;
+      const whole = !/[a-z0-9]/i.test(src.charAt(m.index + m[0].length) || '');
+      if (!pick || (whole && !pick.whole)) pick = { i: m.index, len: m[0].length, whole };
+      if (all.lastIndex === m.index) all.lastIndex++;
+    }
+    if (!pick) continue;
+    const cand = { i: pick.i, len: pick.len, n, whole: pick.whole };
+    if (!best || (cand.whole !== best.whole ? cand.whole : cand.n < best.n)) best = cand;
+  }
+  return best;
+}
+// The windows to cut, in reading order, already merged where they overlap.
+// Narrower when there are two, so the pair still fits the one 200-character
+// line her row draws.
+function snippetWindows(src, groups, phraseRe) {
+  if (phraseRe) {
+    const at = snippetAnchor(src, groups, phraseRe);
+    return at ? [{ s: Math.max(0, at.i - 45), e: at.i + at.len + 70 }] : [];
+  }
+  const hits = [];
+  for (const g of groups) {
+    if (g.neg) continue;
+    const at = anchorFor(src, g);
+    if (at) hits.push(at);
+  }
+  if (!hits.length) return [];
+  // The rarest/wholest first, so a cap of two keeps the most telling ones…
+  hits.sort((a, b) => (a.whole === b.whole ? a.n - b.n : (a.whole ? -1 : 1)));
+  const keep = hits.slice(0, SNIP_MAX).sort((a, b) => a.i - b.i);   // …then reading order
+  const pad = keep.length > 1 ? { before: 35, after: 55 } : { before: 45, after: 70 };
+  const out = [];
+  for (const at of keep) {
+    const w = { s: Math.max(0, at.i - pad.before), e: at.i + at.len + pad.after };
+    const last = out[out.length - 1];
+    if (last && w.s <= last.e) last.e = Math.max(last.e, w.e);   // one window, not two ellipses
+    else out.push(w);
+  }
+  return out;
+}
+function snippetOf(src, groups, phraseRe) {
+  const wins = snippetWindows(src, groups, phraseRe);
+  if (!wins.length) return String(src || '').slice(0, 200).trim();
+  return wins.map((w, i) => (w.s > 0 ? '…' : '')
+    + src.slice(w.s, w.e).replace(/\s+/g, ' ')
+    + (w.e < src.length || i < wins.length - 1 ? '…' : '')).join(' ').trim();
+}
+
 // ---- THE PHRASE COMES FIRST, AND NOTHING ELSE JUMPS THE QUEUE ------------
 // Sophie, 2026-08-19: "also i noticed typing: maybe never finds / The chats
 // were those words appear in the same order as typed should appear at the top
@@ -757,15 +822,7 @@ router.get('/search', async (req, res) => {
       // Snippet centred on the match — prefer the body, else the tldr/chat name.
       const inBody = m.text ? snippetAnchor(m.text, groups, phraseRe) : null;
       const src = inBody ? m.text : (m.tldr && snippetAnchor(m.tldr, groups, phraseRe) ? m.tldr : (m.text || m.tldr || ''));
-      const at = inBody || snippetAnchor(src, groups, phraseRe);
-      let snip = src;
-      if (at && at.i > -1) {
-        const s = Math.max(0, at.i - 45);
-        const end = at.i + at.len + 70;
-        snip = (s > 0 ? '…' : '') + src.slice(s, end).replace(/\s+/g, ' ')
-          + (end < src.length ? '…' : '');
-      }
-      return { chat: m.chat, id: m.id, snippet: snip.slice(0, 200).trim(), created: m.created, url: m.url || '' };
+      return { chat: m.chat, id: m.id, snippet: snippetOf(src, groups, phraseRe).slice(0, 220).trim(), created: m.created, url: m.url || '' };
     });
     res.json({ results, chatMatches, indexed: searchIndex.length });
   } catch (err) { fail(res, err); }
@@ -4844,7 +4901,7 @@ require('./chat-wake').mount(router, { db, regRef, registry, followMoves, resolv
   // invalidates the registry cache, so a sweep must not reach the collection
   // around it.
 module.exports = { router, regRef, pillInject, archiveActionFor, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry, pickFilm,
-  rankGroups, phraseRegex, phraseRank, bestPerChat,
+  rankGroups, phraseRegex, phraseRank, bestPerChat, snippetWindows, snippetOf,
   SEARCH_WHO, whoOf, whoParam, whoMatches,
   SEARCH_ARCH, archParam, archMatches, pickOne, pickNameRows, NAME_ROWS,
   autoComparePoke, runAutoCompare,
