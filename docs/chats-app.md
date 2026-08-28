@@ -1531,9 +1531,15 @@
       or two and can be put away is a bug fix — gap-fills in an existing
       surface (a missing shape, a control its siblings have, an iOS/web
       mismatch, something a restructure lost), tweaks, repairs. `new feature`
-      is reserved for genuinely new capability with real scope, the kind of
-      chat that stays open a while. The rule lives in `SORT_SYS`; the test
-      pins her turnaround wording.
+      is **A WHOLE NEW TOOL** (same day, v2: "new feature is like a whole new
+      tool" · "restricted chat chat is also big — we had to iterate") — a tool,
+      board or surface that did not exist, or a restructure big enough to
+      iterate over; anything ADDED TO an existing tool is a bug fix however
+      new the behaviour. Her worked filings are in the prompt: the + story
+      button, date grouping, autoplay, the square shape = bug fixes; the
+      Polaroid board and the chat-area restructure = new features. The rule
+      lives in `SORT_SYS`; the tests pin her turnaround wording and the
+      whole-new-tool bar.
     - **`WORK_KINDS` is a HINT OVER HER LIVE VOCABULARY, never an addition to
       it.** A word in it she does not have annotates nothing; a folder she
       invents next month is still offered and still fileable, it just is not

@@ -277,6 +277,9 @@ ok('the model is asked whether the work finished', /"state"/.test(p.system));
 // done, and how soon I can archive it"). Her test is turnaround — pinned so a
 // prompt rewrite can't quietly lose it.
 ok('the prompt carries her turnaround test', /TURNAROUND/.test(p.system));
+// (same day, v2: "new feature is like a whole new tool" — a button, toggle or
+// grouping ADDED to an existing tool is a bug fix however new the behaviour.)
+ok('…and her whole-new-tool bar', /A WHOLE NEW TOOL/.test(p.system));
 ok('…with her square-story example in it', /square story type/.test(p.system));
 ok('her note is in there — it is what she calls the thing', /chats app stuff/.test(p.user));
 ok('the status card rides along', /tag chips/.test(p.user));
