@@ -35,6 +35,16 @@ later.
   writing is yours, and what to encourage when she asks for one — never a
   reason to trim her words. Anything you add is named word for word in the
   reply.
+- **Attaching a character reference? Say NOT to copy the expression.** A
+  reference sheet's face reads to the model as permission to copy that face
+  wholesale, blank expression included — so the subject arrives in the right
+  clothes wearing the wrong feeling, in a scene whose whole point is how she
+  feels. Add: *use the reference for her face and clothes only, never her
+  expression — give her an expression that fits what is happening here.*
+  Found twice: the Marla storybook (2026-08-15, whose every page said her face
+  was "still and unreadable") and a Xi commercial date shot (2026-08-28,
+  Sophie: "add a line saying not to copy the expression").
+
 - Full rules: `docs/image-pipeline.md` (*DESCRIBE THE ACTION* · *WRITE IT
   SHORT* · *NAME THE PHENOMENON*).
 
