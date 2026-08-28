@@ -465,12 +465,17 @@
   #reftag.on { display: block; }
   #reftag.same { border-color: #2b2622; color: #2b2622; }
   /* Arrived from a Story Room BEAT: what a run made here is going to do
-     (?pad=&beat=). It is a status line the page writes, not a control — the
-     landing is a side effect and a side effect she cannot see is a trap. */
+     (?pad=&beat=). A status line — the landing is a side effect and a side
+     effect she cannot see is a trap — and, since 2026-08-28, the way to END
+     it: `Stop` puts the beat down. */
   #beattag { display: none; margin: 0 0 8px; font-size: 12px; line-height: 1.35;
     border: 1px solid #2b2622; border-radius: 6px; padding: 7px 10px;
     background: #fdfcf9; color: #2b2622; }
   #beattag.on { display: block; }
+  /* The house inline opener's paint: underlined word, no box, inherits the
+     type around it (see TRUNCATED TEXT in the design rules). */
+  #beatstop { border: 0; background: none; padding: 0; margin: 0 0 0 4px;
+    font: inherit; color: inherit; text-decoration: underline; cursor: pointer; }
   /* ── THE CHARACTER PICKER (2026-08-27, Sophie: "a little button in the
      playground right next to where it says dreamy, make sure it's the same
      style, with a character icon that shows the five most recent characters
@@ -1956,7 +1961,30 @@
   //
   // NOT PERSISTED and not remembered: the context is the query string, so
   // opening the Playground any other way is byte-for-byte what it always was.
+  //
+  // AND IT HAS TO BE PUT DOWN (2026-08-28, Sophie, looking at a rooftop
+  // stranger on a beat whose caption reads "Folkism,": "this picture doesn't
+  // belong here"). The aim was set from the query and then held for the life
+  // of the page, with nothing to end it — and the app keeps a tool's web view
+  // alive for the whole app process, so the Playground stayed pointed at that
+  // one beat until a force-quit. Measured on her pad that hour: FOUR runs in
+  // two minutes, about a panels sheet, an earthquake news shot and her mom
+  // tearing up at commercials, every one of them landing on "Folkism,".
+  // Three things end it now, and the third is why the other two are not
+  // enough on their own:
+  //   • Stop, in the banner — her own gesture, named on screen.
+  //   • Tapping the way back — going back to the room is being done here, and
+  //     it is the ONLY thing that helps a kept-alive page she returns to.
+  //   • The query is SPENT on arrival, so a reload can never re-arm the aim.
+  //     (The Story Room spends its own the same way, for the same reason.)
   var padBack = null;    // { pad, beat, style } while she is drawing for a beat
+  function stopPad() {
+    padBack = null;
+    var chip = document.getElementById('backchip');
+    if (chip) chip.href = '/scratchpad';
+    var tag = document.getElementById('beattag');
+    if (tag) { tag.classList.remove('on'); tag.textContent = ''; }
+  }
   (function () {
     var q = new URLSearchParams(location.search);
     if (!/[?&]from=scratchpad\b/.test(location.search)) return;
@@ -1965,11 +1993,30 @@
     var pad = q.get('pad'), beat = q.get('beat');
     if (!pad || !beat) return;    // came from the room, not from one beat
     padBack = { pad: pad, beat: beat, style: q.get('padstyle') || 'watercolor' };
-    // Back to the exact beat, popup open — /scratchpad reads both.
+    // Back to the exact beat, popup open — /scratchpad reads both. Tapping it
+    // is her saying she is done drawing for this beat.
     chip.href = '/scratchpad?pad=' + encodeURIComponent(pad) + '&beat=' + encodeURIComponent(beat);
+    chip.addEventListener('click', stopPad);
+    // NAME THE BEAT. "a beat in the Story Room" is true of any of them, and
+    // the whole failure above is a picture landing on a beat she was not
+    // thinking about — so the banner says which one. `t` rides the link from
+    // the room; an older room page sends none and the line stays generic.
+    var words = (q.get('t') || '').replace(/\s+/g, ' ').trim();
     var tag = document.getElementById('beattag');
-    tag.textContent = 'Drawing for a beat in the Story Room — every picture you make here lands on it, newest as its art and the rest in its past pictures.';
+    tag.textContent = (words ? 'Drawing for “' + words + '” in the Story Room' : 'Drawing for a beat in the Story Room')
+      + ' — every picture you make here lands on it, newest as its art and the rest in its past pictures.';
+    var stop = document.createElement('button');
+    stop.id = 'beatstop'; stop.type = 'button'; stop.textContent = 'Stop';
+    stop.setAttribute('aria-label', 'Stop drawing for this beat');
+    stop.onclick = stopPad;
+    tag.appendChild(stop);
     tag.classList.add('on');
+    // Spend it: the aim lives in `padBack` from here on, so a reload lands on
+    // a plain Playground instead of silently re-aiming at a beat she left.
+    // DEFERRED — two more blocks below read `location.search` (the ported
+    // prompt and style, which this very link carries, and ?res=), and wiping
+    // the query out from under them would drop her words on the way in.
+    setTimeout(function () { try { history.replaceState(null, '', '/playground'); } catch (e) {} }, 0);
   })();
 
   // Arrived with a generation's settings (an image's "open in the Playground"):

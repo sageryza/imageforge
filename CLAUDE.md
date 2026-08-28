@@ -6025,7 +6025,40 @@ before working on that module. Nothing was deleted — the moved text is verbati
     own prompt when the box has one, else the caption as it reads right now),
     so two ways to the same picture cannot disagree about the words.
     `padstyle` is which SIDE of the beat it lands on, the one the story is
-    showing.
+    showing. **And `t`, the beat's own words**, so the banner can NAME the
+    beat — see below.
+  - **THE AIM HAS TO BE PUT DOWN, AND UNTIL 2026-08-28 IT COULD NOT BE
+    (Sophie, looking at a caped stranger on a rooftop over a caption reading
+    "Folkism,": "this picture doesn't belong here").** `padBack` was set from
+    the query and then held for the life of the page, with nothing anywhere to
+    end it — and **the app keeps a tool's web view alive for the whole app
+    process**, so the Playground stayed pointed at that one beat until a
+    force-quit. Measured on her pad that hour: **five runs in six minutes —
+    a creepy-guy panels cut, an earthquake news shot at two qualities, her mom
+    tearing up at commercials — every one of them landing on "Folkism,"**,
+    each pushing the last into that beat's past-pictures row. The banner had
+    always disclosed it ("every picture you make here lands on it"), which is
+    the half that was right; a state you can read and cannot leave is still a
+    trap. Three things end it now, and the third is why the other two are not
+    enough alone:
+    - **Stop**, inline on the banner (the house underlined opener's paint, no
+      box) — her own gesture, named on screen.
+    - **Tapping the way back**, because going back to the room is being done
+      here, and it is the ONLY one of the three that reaches a kept-alive page
+      she returns to later.
+    - **The query is SPENT on arrival** (`replaceState`), so a reload can
+      never silently re-aim — including the page's OWN self-heal, which
+      `location.reload()`s on a new build and would otherwise re-arm an aim
+      she had stopped. **Deferred one tick**, because two blocks further down
+      the script read `location.search` (the ported prompt this very link
+      carries, and `?res=`) and wiping it out from under them drops her words.
+    - **The banner NAMES the beat** ("Drawing for "Folkism," …"). "A beat in
+      the Story Room" is true of any of them, and the whole failure is a
+      picture landing on a beat she was not thinking about. An older room page
+      sends no `t` and the line stays generic.
+    - **Multi-run is still the design and was not touched** — re-rolling for
+      one beat is the feature ("whatever I just made, there should also be for
+      that beat"); what was missing was the end of it.
   - **THE PICTURE IS LANDED BY THE SERVER, NEVER BY THE PAGE** (`padTargetOf`
     / `landOnBeat` in server.js, stored on the run doc as `padTarget`). A
     medium picture takes 30-90s, so a page that placed it on the way out would
