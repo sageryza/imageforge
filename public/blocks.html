@@ -478,7 +478,11 @@
     var host=document.getElementById('secs'); host.innerHTML='';
     SECS.forEach(function(sec){
       var s=document.createElement('div');
-      s.className='s'; s.dataset.sec=sec.key; s.dataset.lv='0';
+      s.className='s'; s.dataset.sec=sec.key;
+      /* A paragraph with no lines behind it is a BLANK story's one section:
+         it opens all the way, because folded it shows nothing at all and the
+         + slots she adds a line through only exist at this level. */
+      s.dataset.lv=sec.blocks.length ? '0' : '3';
       s.dataset.state=state[sec.key]||'';
       s.innerHTML='<div class="hd"><button class="tw" aria-label="open this paragraph">'+I.right+'</button>'
         +'<button class="php" aria-label="hear this paragraph">&#9654;</button>'
@@ -1147,15 +1151,20 @@
     selectTab(+b.dataset.tab);
   });
 
-  /* the + — a new story is a recording nothing has come apart yet, so it puts
-     her on the Recordings list rather than inventing an empty project. From
-     inside a project it steps back out to the shelf first. */
-  document.getElementById('newbtn').addEventListener('click', function(){
-    if(PID) showHome();
-    // a deliberate tap re-reads the library — a recording she added since the
-    // page loaded is exactly the one she is reaching for
-    document.getElementById('sources').dataset.done='';
-    selectTab(1);
+  /* the + — a BLANK story, opened straight away: no recording, just the lines
+     she types or sends over from the Voice Studio. Starting from a recording
+     is the Recordings tab, which is unchanged; this is the door that did not
+     exist. It costs nothing (nothing is transcribed) and the shelf still lists
+     it, so an accidental one is one tap from deleted. */
+  var newbtn=document.getElementById('newbtn');
+  newbtn.addEventListener('click', function(){
+    if(newbtn.disabled) return;
+    newbtn.disabled=true;
+    post('/blank', {}).then(function(res){
+      newbtn.disabled=false;
+      if(res.error || !res.id) return;
+      openProject(res.id);
+    }).catch(function(){ newbtn.disabled=false; });
   });
 
   function loadHome(){
@@ -1168,7 +1177,9 @@
         b.className='src'; b.dataset.pid=p.id;
         b.innerHTML=(p.status==='ready'?'<span class="dot"></span>':'')
           +'<span class="nm">'+esc(p.title)+'</span>'
-          +'<span class="mt">'+(p.status==='ready' ? p.blockCount+' lines' : esc(p.status))+'</span>';
+          +'<span class="mt">'+(p.status!=='ready' ? esc(p.status)
+            : p.blank ? (p.lineCount ? p.lineCount+' lines' : 'empty')
+            : p.blockCount+' lines')+'</span>';
         host.appendChild(b);
       });
     });
