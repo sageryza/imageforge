@@ -20,6 +20,7 @@
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
+const servePublic = require('./lib/public-asset');
 
 const PUB = path.join(__dirname, '..', 'public');
 let chromium;
@@ -97,6 +98,8 @@ function serve(shape) {
     audios: s.audios,
   };
   return http.createServer((req, res) => {
+  // Anything the page links out of public/ — /feedkit.js, /tritoggle.*, …
+  if (servePublic(req, res)) return;
     const u = new URL(req.url, 'http://x');
     if (u.pathname.startsWith('/au/')) {
       const b = wav(6);
