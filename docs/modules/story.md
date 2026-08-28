@@ -196,7 +196,21 @@ All 12 NDE-category stories were linked to their montage episodes on
   toggle (refs/ is otherwise never web-served). **Versions (Aug 2026):** once a
   beat has more than one generation, the popup shows every one as same-size
   thumbnails, newest first, current ringed — tap for the lightbox
-  (`beat.imageHistory` + current). **Delete a beat** from its popup's trash
+  (`beat.imageHistory` + current). **The lightbox is THE SHARED ONE since
+  2026-08-28** (`/asset-lightbox.js` — Sophie: "create a single lightbox view,
+  sync to all surfaces … ex assets, meta assets, story room, playground"): the
+  page builds none of its own. What it needs rides the shared file's hooks —
+  `nav` steps through `lbVers` (the past-pictures row's own order), `cta` is
+  the labeled "Use this one" (a hook built for this page: she picks by
+  looking, and an icon circle cannot carry that), and `onClose` re-asserts the
+  beat popup's body lock, because the lightbox opens OVER the popup and the
+  shared close clears `body.overflow`. The one page-level rule is
+  `#clightbox{z-index:60}` — this page's overlays run sheet 40 / beatpop 50 /
+  filmplay 70 and the shared file ships z-index 30. Closing follows the shared
+  contract everywhere now: a tap on any dead space closes, a tap on the
+  picture never does. Tests: `node scripts/test-scratchpad-pick-version.js`,
+  `node scripts/test-storyroom-lightbox-nav.js`, and the source pin in
+  `node scripts/test-asset-lightbox.js`. **Delete a beat** from its popup's trash
   icon, behind an are-you-sure; the record moves to `pad.trash` (capped 50,
   never surfaced) and its images stay in Storage / My Creations
   (`POST /remove {id}`; a chunk left with one member un-chunks).

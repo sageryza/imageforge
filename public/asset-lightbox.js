@@ -60,9 +60,26 @@
        step, never on a fresh open).
      `window.__assetLightboxClose()` — closes it exactly as a backdrop tap
        would, for a page whose app chevron asks the page first.
+     `onClose()` — called once as the lightbox closes, whichever way (backdrop
+       tap, the chevron's __assetLightboxClose, a caller's own close). For a
+       page that opens the lightbox OVER an overlay of its own holding the
+       body's scroll lock (the Story Room's beat popup): the close here clears
+       body overflow, so that caller re-asserts its lock in onClose.
    A toggle half with NOTHING filed is not offered (the Playground's rule,
    now everyone's): one empty half hides its button, and a prompt with only
    one half shows no Style|Content pair at all — the words alone.
+
+   THE CTA HOOK (2026-08-28, Sophie: "create a single lightbox view, sync to
+   all surfaces … ex assets, meta assets, story room, playground") — what let
+   the STORY ROOM retire its hand copy. Its lightbox is where an older picture
+   is picked BACK as a beat's art, and a 34px action circle cannot carry that:
+   she picks by looking, so the button is a labeled primary — cream on the
+   dark wash, the serif, the house 6px — directly under the picture.
+     `cta: { label, onClick(e) }` — one labeled button under the picture (and
+       under the actions row when one is drawn). The caller owns what it does;
+       `e.currentTarget` is the button, so a caller can mark it `.busy` while
+       a POST is in flight. The picture yields to 78vh while a cta is shown
+       (the Story Room's own pick-state number). Pass null/omit for no button.
 
    THE PLAYGROUND LAYOUT HOOKS (2026-08-26, Sophie, the day after the port:
    "put the heart where they were before exactly … the quality model etc.
@@ -247,7 +264,18 @@
        pass no layout hook and keep the sizes they have. */
     + '#clightbox.vbelow .lbacts{gap:22px;}\n'
     + '#clightbox.vbelow .lbacts button, #clightbox.vbelow .lbnote .notesend{width:46px; height:46px;}\n'
-    + '#clightbox.vbelow .lbacts button svg, #clightbox.vbelow .lbnote .notesend svg{width:21px; height:21px;}\n';
+    + '#clightbox.vbelow .lbacts button svg, #clightbox.vbelow .lbnote .notesend svg{width:21px; height:21px;}\n'
+    /* THE CTA — one labeled primary button under the picture (the Story Room's
+       "Use this one"). Cream on the dark wash in BOTH themes — the backdrop is
+       a fixed dark, so tokens are the wrong tool: a theme's --paper can be
+       nearly the backdrop's own colour. The serif, the house 6px, never a
+       pill. Only a lightbox carrying one gives up height for it — a plain
+       look at a picture keeps every pixel it always had. */
+    + '#clightbox .lbcta{background:#f6f2e9; color:#26221c; border:1.5px solid #f6f2e9; border-radius:6px;\n'
+    + "  padding:9px 18px; margin-top:12px; font-family:'EBGaramond',Georgia,serif; font-size:16px;\n"
+    + '  font-weight:600; cursor:pointer; flex:none; box-shadow:0 1px 4px rgba(0,0,0,.2);}\n'
+    + '#clightbox .lbcta.busy{opacity:.45;}\n'
+    + '#clightbox.hascta img{max-height:78vh;}\n';
   document.head.appendChild(css);
 
   var HEART = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>';
@@ -285,6 +313,7 @@
     lb.classList.remove('hastalk');   // last image's thread must not shrink this one
     lb.classList.remove('hasmsgs');   // ...nor whether that thread had letters in it
     lb.classList.remove('hasacts');   // ...nor its actions row
+    lb.classList.remove('hascta');    // ...nor its labeled button
     // the votesBelow layout is the caller's, per open — never carried over
     lb.classList.toggle('vbelow', !!(asset && asset.votesBelow));
     // THE STEP ZONES — a feed surface steps through its pictures without
@@ -323,6 +352,19 @@
       });
       lb.appendChild(acts);
       lb.classList.add('hasacts');
+    }
+    // THE CTA — one labeled primary button under the picture (the Story
+    // Room's "Use this one"). The caller owns what it does; the button rides
+    // to onClick as e.currentTarget so a POST in flight can mark it `.busy`.
+    var cta = (asset && asset.cta) || null;
+    if (cta && cta.onClick) {
+      var ctab = document.createElement('button');
+      ctab.type = 'button';
+      ctab.className = 'lbcta';
+      ctab.textContent = cta.label || '';
+      ctab.onclick = function (e) { e.stopPropagation(); cta.onClick(e); };
+      lb.appendChild(ctab);
+      lb.classList.add('hascta');
     }
     // The generating prompt, over the image: Style left, Content right, tap the
     // PROMPT button to cover/uncover the picture. Only offered when a chat
@@ -594,11 +636,15 @@
         lb.classList.remove('hastalk');
         lb.classList.remove('hasmsgs');
         lb.classList.remove('hasacts');
+        lb.classList.remove('hascta');
         lb.classList.remove('vbelow');
       });
       window.scrollTo(0, lbY);
       // …and again next frame, for the keyboard-dismissal scroll that lands late.
       requestAnimationFrame(function () { window.scrollTo(0, lbY); });
+      // The caller's own cleanup, LAST — a page whose beat popup holds the
+      // body lock re-asserts it here, over the overflow clear above.
+      if (asset && asset.onClose) { try { asset.onClose(); } catch (_) { /* close stands */ } }
     }
     lb.onclick = function (e) {
       var t = e && e.target;

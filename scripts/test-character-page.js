@@ -191,6 +191,8 @@ const server = http.createServer((req, res) => {
     await page.click('#toggleSheet');
     await page.waitForSelector('.cell', { timeout: 8000 });
   }
+  // the lightbox is THE SHARED ONE (/asset-lightbox.js) since 2026-08-28 —
+  // #clightbox, shown with style.display, closed by a dead-space tap
   const lb = await page.evaluate(async () => {
     let stopped = 0;
     const real = window.__scrollStop;
@@ -200,12 +202,14 @@ const server = http.createServer((req, res) => {
     await new Promise((r) => setTimeout(r, 60));
     const before = window.scrollY;
     document.querySelector('.cell img').click();
-    const open = document.querySelector('.lb').classList.contains('open');
+    const box = document.getElementById('clightbox');
+    const open = !!box && box.style.display === 'flex';
     const locked = document.body.style.overflow === 'hidden';
-    const radius = getComputedStyle(document.getElementById('lbimg')).borderTopLeftRadius;
+    const radius = getComputedStyle(box.querySelector('img')).borderTopLeftRadius;
     window.scrollBy(0, 400);                             // as the pill would
-    document.querySelector('.lb').click();
-    await new Promise((r) => setTimeout(r, 60));
+    // close on the backdrop — the shared skip list keeps the picture itself open
+    box.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 120));
     return { stopped, before, open, locked, radius, after: window.scrollY,
       unlocked: document.body.style.overflow === '' };
   });

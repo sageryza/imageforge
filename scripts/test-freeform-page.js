@@ -138,7 +138,11 @@ const box = (el) => (el ? { x: Math.round(el.x), y: Math.round(el.y), w: Math.ro
     await pg.evaluate(() => window.__scrollStart(1)); await pg.waitForTimeout(150);
     await pg.click('#quality', { force: true }); await pg.waitForTimeout(200);
     ok('a tap on a control stops it', !(await playing(pg)));
-    ok('the lightbox is closed', await pg.evaluate(() => getComputedStyle(document.getElementById('lb')).display) === 'none');
+    // the shared lightbox (/asset-lightbox.js): closed = absent or display:none
+    ok('the lightbox is closed', await pg.evaluate(() => {
+      const el = document.getElementById('clightbox');
+      return !el || el.style.display !== 'flex';
+    }));
     await ctx.close();
   }
 
