@@ -4592,21 +4592,38 @@ before working on that module. Nothing was deleted — the moved text is verbati
   per-run upload.
   **ONE EXCEPTION, AND IT IS A BUTTON — the BOILERPLATE STYLE toggle
   (2026-08-28, Sophie: "add a default boiler style not content prompt to
-  freeform with a toggle on off button" · "boiler plate").** A stock STYLE
-  line — how a picture is drawn, never what is in it, so it can ride any words
-  without arguing with them — appended after her words while the toggle is lit.
+  freeform with a toggle on off button" · "boiler plate").** While the toggle
+  is lit, the house style-reference recipe wraps her words — its prefix before
+  them, its tail after — so she can attach her own reference and say "copy the
+  style, not the content" with one tap.
+  **THE WORDING IS SERVER.JS'S, NOT A NEW ONE, and the first cut got this
+  wrong** (Sophie: "the text we use for dreamy or watercolor" · "ex: copy the
+  style etc / not content"). It shipped with an invented style line, which is
+  exactly the reconstruction the exact-prompt rule forbids — and needless,
+  since `PL_GPT_STYLES` already holds the settled recipe. It is
+  `PL_GPT_STYLES.evan` (**Sandy mirror**, her ink-and-watercolour page),
+  **HANDED IN at mount time** — `require('./freeform').init({gptStyles})` right
+  after that table, the movies.js pattern, because freeform is mounted hundreds
+  of lines above it and a require would read it before it exists.
+  **WHY THAT ONE AND NOT DREAMY:** this wording names "the attached style
+  reference" and nothing else, so it travels onto whatever SHE attached here;
+  Dreamy's tail names its own picture (its hand-drawn frames, the woman in the
+  green tank top) and would be nonsense over her references. Switching is one
+  line — `BOILER_STYLE` in freeform.js.
   Four things keep it from breaking the module's whole promise, and none is
   optional: it is **OFF by default and NOT sticky** (a wrapper remembered from
   last week silently riding today's run is exactly the surprise this surface
-  exists to avoid); the lit button **prints the exact line it adds**, so nothing
-  is ever added invisibly; the **text is SERVED** (`GET /api/freeform/style`,
-  `BOILER` in freeform.js) and the page keeps no copy, so the two cannot drift;
-  and the run stores `boiler` plus `promptSent`/`promptStyle`/`promptContent`
-  through the ONE builder (`prompt-record.js`) — **off files NO style half at
-  all**, which is the honest answer rather than a reconstruction. Putting a run
-  back restores the toggle to what THAT run had, the same *only change what the
-  record knows* rule the references follow. `boilerFields` is the one assembler.
-  Test: `node scripts/test-freeform-boiler.js`.
+  exists to avoid); the lit button **prints both halves and says where each
+  lands**, so nothing is ever added invisibly; the **text is SERVED**
+  (`GET /api/freeform/style`) and neither the page nor freeform.js keeps a copy,
+  so nothing can drift from the table; and the run stores `boiler` plus
+  `promptSent`/`promptStyle`/`promptContent` through the ONE builder
+  (`prompt-record.js`) — **off files NO style half at all**, which is the honest
+  answer rather than a reconstruction. Putting a run back restores the toggle to
+  what THAT run had, the same *only change what the record knows* rule the
+  references follow. `boilerFields` is the one assembler.
+  Test: `node scripts/test-freeform-boiler.js` (it reads the real table out of
+  server.js, so a stale style id or a pasted copy fails there).
   **Full details: `docs/modules/pictures.md`.**
 - **Vector pipeline** (`vector.js`, `/api/vector`, page at `/vector`, iOS tile
   under the PICTURES filter) — describe 1-25 drawings -> ONE gpt-image-2 sheet in

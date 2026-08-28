@@ -50,27 +50,44 @@ const QUALITIES = ['low', 'medium', 'high'];
 // `high` run is a deliberate choice rather than a surprise.
 const COST = { low: 0.02, medium: 0.06, high: 0.25 };
 
-// THE BOILERPLATE STYLE (her word: "boiler plate") — the one thing this module may add, and only on her tap.
-// STYLE ONLY: how it is drawn, never what is in it, so it can ride any words
-// without arguing with them. Served by `GET /style` and printed on the page
-// while the toggle is lit — the page keeps NO copy of this text, so there is
-// one place it can drift from.
-const BOILER = {
-  id: 'boiler',
-  label: 'Boilerplate style',
-  text: 'Hand-drawn ink and watercolour, loose confident linework, soft muted washes, '
-      + 'visible paper grain, generous white space. No text, no lettering, no captions.',
-};
+// THE BOILERPLATE STYLE (her word: "boiler plate") — the one thing this module
+// may add, and only on her tap.
+//
+// IT IS THE HOUSE TEXT, NOT A NEW ONE (2026-08-28, Sophie: "the text we use for
+// dreamy or watercolor"). The first cut invented a style line, which is exactly
+// the reconstruction this repo's exact-prompt rule forbids — and there was no
+// need for one: the Playground already sends a settled style-reference recipe
+// around her words. So this is `PL_GPT_STYLES.evan` — Sandy mirror, her scanned
+// ink-and-watercolour page — HANDED IN at mount time (`init`, the movies.js
+// pattern) rather than copied, because server.js owns what is actually sent and
+// a second copy would drift the day she rewords one.
+//
+// WHY THAT ONE AND NOT DREAMY: this wording names "the attached style
+// reference" and nothing else, so it travels onto whatever SHE has attached
+// here. Dreamy's tail names its own picture (its hand-drawn frames, the woman
+// in the green tank top) and would be nonsense over her references. Switching
+// is one line — the style id below.
+const BOILER_STYLE = 'evan';
+const BOILER = { id: BOILER_STYLE, label: 'Boilerplate style', prefix: '', suffix: '' };
+
+// Called by server.js once PL_GPT_STYLES exists (it is defined long after the
+// mount, so this cannot be a require).
+function init({ gptStyles } = {}) {
+  const st = (gptStyles && gptStyles[BOILER_STYLE]) || null;
+  if (!st) return;
+  BOILER.prefix = String(st.prefix || '');
+  BOILER.suffix = String(st.suffix || '');
+  BOILER.from = st.label || BOILER_STYLE;
+}
 
 // ONE assembler, exported so the seam is testable without a Firestore: the
 // route calls this and nothing else builds the sent text.
 function boilerFields(prompt, on) {
   const words = String(prompt || '');
-  const sent = on ? `${words}\n\n${BOILER.text}` : words;
-  return {
-    sent,
-    ...promptFields(promptRecord({ full: sent, content: words, suffix: on ? BOILER.text : '' })),
-  };
+  const prefix = on ? BOILER.prefix : '';
+  const suffix = on ? BOILER.suffix : '';
+  const rec = promptRecord({ prefix, content: words, suffix });
+  return { sent: rec.fullPrompt, ...promptFields(rec) };
 }
 
 const MAX_PROMPT = 4000;
@@ -337,4 +354,4 @@ router.delete('/run/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
 
-module.exports = { router, SIZES, QUALITIES, refOrder, BOILER, boilerFields };
+module.exports = { router, SIZES, QUALITIES, refOrder, BOILER, boilerFields, init };
