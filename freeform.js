@@ -8,6 +8,15 @@
 // the model — no prefix, no suffix, no trigger word, no trailing-period trim.
 // If the prompt should say something about style, you say it.
 //
+// ONE deliberate exception, and it is a BUTTON (2026-08-28, Sophie: "add a
+// default boiler style not content prompt to freeform with a toggle on off
+// button"). The BOILER style is a stock STYLE line — it says how a picture is
+// drawn and never what is in it — appended after her words when the toggle is
+// ON. It is OFF by default and not sticky, the page prints the exact text it
+// adds while it is lit, and the run stores `promptSent` / `promptStyle` /
+// `promptContent`, so nothing is ever added invisibly. With the toggle off
+// this module is byte-for-byte the verbatim surface it has always been.
+//
 // That rule matters enough to be load-bearing: the "if you add anything to a
 // prompt Sophie gave, tell her" rule in CLAUDE.md exists because a "plain" run
 // once shipped with invented style language in it. Here there is nothing to
@@ -23,6 +32,7 @@
 // persisted so leaving the app never loses an image already paid for.
 const express = require('express');
 const admin = require('firebase-admin');
+const { promptRecord, promptFields } = require('./prompt-record');
 
 const router = express.Router();
 const RUNS = 'forge-freeform';
@@ -39,6 +49,61 @@ const QUALITIES = ['low', 'medium', 'high'];
 // Roughly what a single image costs at each tier — shown on the page so a
 // `high` run is a deliberate choice rather than a surprise.
 const COST = { low: 0.02, medium: 0.06, high: 0.25 };
+
+// THE BOILERPLATE STYLE (her word: "boiler plate") — the one thing this module
+// may add, and only on her tap.
+//
+// IT IS THE HOUSE TEXT, NOT A NEW ONE (2026-08-28, Sophie: "the text we use for
+// dreamy or watercolor"). The first cut invented a style line, which is exactly
+// the reconstruction this repo's exact-prompt rule forbids — and there was no
+// need for one: the Playground already sends a settled style-reference recipe
+// around her words. So this is `PL_GPT_STYLES.evan` — Sandy mirror, her scanned
+// ink-and-watercolour page — HANDED IN at mount time (`init`, the movies.js
+// pattern) rather than copied, because server.js owns what is actually sent and
+// a second copy would drift the day she rewords one.
+//
+// WHY THAT ONE AND NOT DREAMY: this wording names "the attached style
+// reference" and nothing else, so it travels onto whatever SHE has attached
+// here. Dreamy's tail names its own picture (its hand-drawn frames, the woman
+// in the green tank top) and would be nonsense over her references. Switching
+// is one line — the style id below.
+const BOILER_STYLE = 'evan';
+const BOILER = { id: BOILER_STYLE, label: 'Boilerplate style', prefix: '', suffix: '' };
+
+// ONE CLAUSE IS DROPPED HERE (2026-08-28, Sophie: "get rid of the color
+// line"). Sandy mirror invites the model to pick its own palette; in Freeform
+// the reference she attached is usually the whole point of attaching it, so
+// the line argues with her. Cut as a NAMED clause rather than by rewriting the
+// text — the swap pattern PL_GPT_STYLES.dreamy's own no-text toggle uses — so
+// this stays the house wording minus one sentence, and the Playground's Sandy
+// mirror tile is untouched.
+// A REWORD IN server.js MUST MOVE THIS STRING: `BOILER.colorCut` records
+// whether it was found, and the test fails when it stops matching, rather than
+// the clause silently coming back.
+const COLOR_CLAUSE = 'You can choose your own colors rather than copying the '
+  + 'colors of the style reference.';
+
+// Called by server.js once PL_GPT_STYLES exists (it is defined long after the
+// mount, so this cannot be a require).
+function init({ gptStyles } = {}) {
+  const st = (gptStyles && gptStyles[BOILER_STYLE]) || null;
+  if (!st) return;
+  const prefix = String(st.prefix || '');
+  BOILER.colorCut = prefix.includes(COLOR_CLAUSE);
+  BOILER.prefix = prefix.split(COLOR_CLAUSE).join('').replace(/\s+/g, ' ').trim();
+  BOILER.suffix = String(st.suffix || '');
+  BOILER.from = st.label || BOILER_STYLE;
+}
+
+// ONE assembler, exported so the seam is testable without a Firestore: the
+// route calls this and nothing else builds the sent text.
+function boilerFields(prompt, on) {
+  const words = String(prompt || '');
+  const prefix = on ? BOILER.prefix : '';
+  const suffix = on ? BOILER.suffix : '';
+  const rec = promptRecord({ prefix, content: words, suffix });
+  return { sent: rec.fullPrompt, ...promptFields(rec) };
+}
 
 const MAX_PROMPT = 4000;
 const MAX_REFS = 12;                // the edits endpoint accepts up to 16 images
@@ -155,8 +220,13 @@ router.get('/status', (req, res) => {
     sizes: Object.keys(SIZES),
     qualities: QUALITIES,
     cost: COST,
+    boiler: BOILER,
   });
 });
+
+// The boiler text, served rather than copied into the page (the Playground's
+// `/styles` rule): server.js owns what is actually sent.
+router.get('/style', (req, res) => res.json({ ok: true, style: BOILER }));
 
 // ── Reference library ──────────────────────────────────────────────────────
 // POST /refs { images:[dataURL|https url], name? } — add references.
@@ -235,6 +305,10 @@ router.post('/run', async (req, res) => {
     const quality = QUALITIES.includes(b.quality) ? b.quality : 'medium';
     const size = SIZES[b.size] || (Object.values(SIZES).includes(b.size) ? b.size : SIZES.portrait);
     const outputs = Math.min(Math.max(Number(b.outputs) || 1, 1), MAX_OUTPUTS);
+    // Her toggle. Anything but an explicit true leaves this the verbatim
+    // surface — silence is the safe direction for a wrapper.
+    const boiler = b.boiler === true || b.boiler === 'true';
+    const { sent, ...promptRec } = boilerFields(prompt, boiler);
 
     // Refs may be library ids or plain urls; resolve ids to their stored url.
     const wanted = (Array.isArray(b.refs) ? b.refs : []).slice(0, MAX_REFS).map(String);
@@ -254,15 +328,17 @@ router.post('/run', async (req, res) => {
     const ref = db().collection(RUNS).doc();
     const doc = {
       prompt,
-      // What was actually sent, byte for byte. This module adds nothing, so the
-      // two are identical by construction — it is stored anyway so the page can
-      // show it and any later reader can verify that for themselves.
-      promptSent: prompt,
+      // What was actually sent, byte for byte. With the boiler toggle off the
+      // two are identical by construction; with it on this is her words plus
+      // the one style line, and `promptStyle` marks the seam with [content].
+      promptSent: sent,
+      boiler,
+      ...promptRec,
       refs: refUrls, refIds, quality, size, outputs,
       model: 'gpt-image-2', status: 'drawing', images: [], createdAt: Date.now(),
     };
     await ref.set(doc);
-    render(ref.id, { prompt, refUrls, quality, size, outputs });   // deliberately not awaited
+    render(ref.id, { prompt: sent, refUrls, quality, size, outputs });   // deliberately not awaited
     res.json({ ok: true, id: ref.id, status: 'drawing', poll: `/api/freeform/run/${ref.id}` });
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
@@ -293,4 +369,4 @@ router.delete('/run/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
 
-module.exports = { router, SIZES, QUALITIES, refOrder };
+module.exports = { router, SIZES, QUALITIES, refOrder, BOILER, boilerFields, init };

@@ -99,6 +99,27 @@ ok(/cast: castRows\(\)\.length \? castRows\(\) : undefined/.test(pageSrc),
   'a panels run sends the typed cast, absent when empty');
 ok(/var charsOff = !gpt;/.test(pageSrc),
   'and the character picker is no longer hidden on the panels tab');
+// ONE SHEET, TWO HALVES (2026-08-28, Sophie: "add character description be
+// within the existing icon - hairline toggle between description and
+// pictures"). The typed cast shipped as its own box under the panel grid,
+// which made two places on the page to say who is in a picture.
+ok(pageSrc.indexOf('id="castbox"') < 0, 'the standalone cast box is gone');
+ok(/<div class="plabtabs chartabs" id="chartabs"/.test(pageSrc),
+  'the sheet carries the house hairline row');
+ok(/data-ct="pics"/.test(pageSrc) && /data-ct="desc"/.test(pageSrc),
+  'with the two halves on it');
+ok(/id="charpics"/.test(pageSrc) && /id="chardesc"/.test(pageSrc),
+  'and each half is a real box the row shows and hides');
+ok(/function plTabLine\(id\)/.test(pageSrc) && /plTabLine\('chartabs'\)/.test(pageSrc),
+  'ONE measurer for both rows — nothing declares a tab count');
+// The row only exists where the clause does: a panels/story sheet. A tab that
+// changes nothing on the Picture tab is worse than no tab.
+ok(/row\.hidden = !onPanels\(\)/.test(pageSrc),
+  'the row is on the Panels tab only, where the clause exists');
+ok(/onPanels\(\) && localStorage\.getItem\(CHARTABKEY\)/.test(pageSrc),
+  'and Descriptions cannot be the open half off that tab');
+ok(/var n = pics \+ desc;/.test(pageSrc),
+  'the badge counts the whole cast, both halves');
 
 console.log('the server wiring');
 ok(/Array\.isArray\(req\.body\.panels\)/.test(serverSrc), 'the POST route has a panels branch');
@@ -325,6 +346,7 @@ function panelsPayload() {
   // 1x1 webp for every image the page asks for.
   const PIXEL = Buffer.from(
     'UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA==', 'base64');
+  let base0 = '';
   const server = http.createServer((req, res) => {
     if (servePublic(req, res)) return;
     const url = new URL(req.url, 'http://x');
@@ -370,6 +392,13 @@ function panelsPayload() {
         res.end(JSON.stringify({ ok: true }));
       });
     }
+    if (url.pathname === '/api/promptlab/characters') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({
+        characters: [{ id: 'c1', name: 'Nina', url: base0 + '/img/c1.webp', aliases: [] }],
+        max: 6,
+      }));
+    }
     if (url.pathname === '/api/gallery/assets/note') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ thread: [] }));
@@ -383,6 +412,7 @@ function panelsPayload() {
   });
   await new Promise((r) => server.listen(0, r));
   const base = 'http://127.0.0.1:' + server.address().port;
+  base0 = base;
   let browser;
   try { browser = await chromium.launch(); }
   catch { browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }); }
@@ -435,6 +465,64 @@ function panelsPayload() {
   await page.waitForFunction(() => document.querySelectorAll('#panelgrid textarea').length === 9);
   const boxes9 = await page.$$eval('#panelgrid textarea', (ts) => ts.map((t) => Math.round(t.getBoundingClientRect().left)));
   ok(new Set(boxes9).size === 3, '9 boxes sit 3 across');
+
+  // ONE SHEET, TWO HALVES (2026-08-28, Sophie: "add character description be
+  // within the existing icon - hairline toggle between description and
+  // pictures"). Driven rather than grepped: the halves are shown and hidden
+  // by a row that measures its own underline, and "is it on screen" is the
+  // only honest question about that.
+  console.log('the character sheet: pictures and descriptions');
+  // A gpt tile — the sheet rides gpt-image-2's edits call, so pick one by name
+  // rather than trusting whichever style the page happened to open on.
+  await page.evaluate(() => {
+    const sel = document.getElementById('stylepick');
+    const opt = Array.prototype.find.call(sel.options, (o) => /dreamy/i.test(o.textContent));
+    if (opt && sel.value !== opt.value) {
+      sel.value = opt.value;
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  });
+  ok(await page.isVisible('#charsbtn'), 'the character icon is on the PANELS tab');
+  await page.click('#charsbtn');
+  await page.waitForSelector('#charpanel.on');
+  ok(await page.isVisible('#chartabs'), 'the sheet carries the hairline row');
+  ok(await page.isVisible('#charpics') && !(await page.isVisible('#chardesc')),
+    'and opens on Pictures');
+  const cline = await page.evaluate(() => {
+    const row = document.getElementById('chartabs');
+    const on = row.querySelector('button.on').getBoundingClientRect();
+    return { tx: parseFloat(row.style.getPropertyValue('--tx')), left: on.left - row.getBoundingClientRect().left,
+      tw: parseFloat(row.style.getPropertyValue('--tw')), w: on.width };
+  });
+  ok(Math.abs(cline.tx - cline.left) < 2 && Math.abs(cline.tw - cline.w) < 2,
+    'its underline is MEASURED too — the same one function');
+
+  await page.click('#chartabs button[data-ct="desc"]');
+  ok(await page.isVisible('#chardesc') && !(await page.isVisible('#charpics')),
+    'Descriptions takes the sheet');
+  ok((await page.$$('#castrows .castrow')).length === 0, 'and starts with no rows');
+  await page.click('#castadd');
+  await page.waitForSelector('#castrows .castrow');
+  const ph = await page.$$eval('#castrows .castrow input',
+    (is) => is.map((i) => i.placeholder));
+  ok(ph.length === 2 && ph[0] === 'Name' && ph[1] === 'Description',
+    'a row is a name and a description, and the placeholders NAME the fields');
+  await page.fill('#castrows .castrow .cnm', 'Nina');
+  await page.waitForFunction(() => document.getElementById('charsn').textContent === '1');
+  ok((await page.textContent('#charsn')) === '1', 'the badge counts the typed cast');
+  ok(/\bon\b/.test(await page.getAttribute('#charsbtn', 'class') || ''),
+    'and the icon lights');
+
+  // The clause only exists on a sheet, so the ROW only exists there.
+  await page.click('#t-picture');
+  await page.waitForFunction(() => document.querySelector('.promptwrap') && !document.querySelector('.promptwrap').hidden);
+  ok(!(await page.isVisible('#chartabs')), 'off the Panels tab the row is gone');
+  ok(await page.isVisible('#charpics'), 'and the sheet is what it always was');
+  await page.click('#t-panels');
+  await page.waitForFunction(() => document.querySelectorAll('#panelgrid textarea').length > 0);
+  ok(await page.isVisible('#chardesc'),
+    'coming back, the half she was on is still the open one');
+  await page.click('#charsbtn');
 
   console.log('generate');
   // Fill six of nine — the refusal must count the empty ones and POST nothing.

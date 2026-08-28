@@ -1013,6 +1013,77 @@ them off the reference sheet, not off the old filenames.
   out-bid the plain record that really is that message; and it stays a multiset,
   so repeating a short phrase can't let the first swallow the second. Test:
   `node scripts/test-chats-first-message.js` (verified failing 2 pre-fix).
+- **A CHAT NAMED AFTER ITS SESSION ID SWALLOWS HER MESSAGES — hook v19
+  (2026-08-28, Sophie: "issues w chat hooks today · slug").** Measured that
+  morning: **3 of the day's 29 chats carried a meaningless slug**
+  (`chat-5d92c228`, `chat-9cac7ca2`, `new-session-56f2b0`) against **one in the
+  whole four days before it** — and `chat-9cac7ca2` held **exactly one message:
+  hers, unanswered for seven hours**, because no session was reading a thread
+  nobody could recognise. (It had also self-archived at 01:16 under the bug-fix
+  rule; her message landed at 01:56, into a chat that was already asleep.)
+  - **The cause was the branch scan accepting ONLY `claude/*`.** A session
+    created with no repo attached clones it mid-turn and lands on an ORDINARY
+    working branch — `chat-5d92c228`'s own first reply says it: "The repo isn't
+    cloned in this container. Let me attach it." Its branch was
+    `panels-background-draw`, which `claude/*` never matched, so the name fell
+    through to `chat-<sid8>` — and **session-first binding makes that permanent
+    on the first post**, so the chat can never recover its own name.
+  - **The fix is two halves, and the second one is why the slug does not move.**
+    The scan now takes a plain working branch when there is no `claude/` one
+    (default branches — main/master/develop/trunk — say nothing about the work
+    and are skipped), and `name_repair` fills the **DISPLAY name** on a chat
+    already stuck with a fallback. It never touches the slug: a moving slug is
+    what orphaned "Imprint". It only ever fills a BLANK name, on a slug that is
+    plainly the fallback shape, once per session, backgrounded.
+  - **The three already stuck were repaired by hand** with `POST
+    /api/chatfeed/rename` — cosmetic, reversible with her pencil, and it re-keys
+    nothing. That is the repair for any future one too; a merge is heavier and
+    is hers to approve.
+  - **The FORK tail is NOT this and is working as designed** — 8 of the day's 29
+    chats carry a `-<sid6>` tail because the harness re-uses branch names, which
+    is what keeps two sessions out of one thread. What it costs is real though:
+    her Playground back-to-top question lived across FOUR slugs
+    (`playground-back-to-top`, `-01hhcz`, `-01k54v`, `chat-9cac7ca2`), none of
+    them knowing the others' history.
+  - **AND THE ENVIRONMENT'S PASTED HOOK IS STALE — v14 against the repo's and
+    the served one's v18 (measured the same morning in this container).** The
+    Setup script field holds a LITERAL copy, so it froze whenever she last
+    pasted it; sessions starting at `/home/user` (multi-repo) or with no repo
+    run that copy, missing v15/v16/v18 — the two fixes for her back-to-back
+    messages vanishing and landing twice. **Not what broke today** (no duplicate
+    shape in the live window), but it is one field of hers: re-paste the Setup
+    script into the environment. Sessions starting inside imageforge run the
+    repo's copy and are unaffected.
+  - Test: `node scripts/test-chat-slug.js` — the naming block EXTRACTED from the
+    live hook (never copied) and driven against real fixture repos; verified
+    failing 3 against the pre-fix rule via `FORGE_HOOK_FILE`.
+- **A HOOK THAT CRASHES POSTS NOTHING AND EXITS 0 — THE SILENCE LOOKS LIKE A
+  DEAD CHAT, NOT A BUG (2026-08-28, Sophie: "ur chat hook is weird").** Her
+  chat showed ONE mangled message in the app while its transcript held eleven
+  turns. The cause was in v18's own queue reconciliation: `segcells` is built
+  from `users` BEFORE the loop, and an unmatched queue entry is APPENDED to
+  `users` — so the next entry's segment pass walked a record `segcells` had
+  never seen, `segcells[id(u)]` raised a KeyError, and the parser died. The
+  hook's python is behind `2>/dev/null` and its output is consumed by the
+  shell, so the whole thing printed nothing and exited 0: **no replies, none
+  of her messages, silently, for the life of the session.** It needs TWO
+  queued messages that match no user record — she sends afterthoughts while a
+  turn runs, so it is not rare. `segcells.get(id(u)) or ()` is the fix, in all
+  THREE copies (`public/setup.sh`, `docs/chats-autopost-setup-script.sh`,
+  `.claude/hooks/post-to-feed.sh`), and `node
+  scripts/test-chats-first-message.js` now drives that shape against the real
+  hook (verified failing: it posted `[]`).
+  - **A LIVE SESSION KEEPS THE BROKEN COPY** — the fix reaches a NEW session
+    with the deploy, and an existing one only when it re-runs the setup
+    script. A chat that has gone quiet in the app is worth healing before it
+    is diagnosed as anything else.
+  - **`scripts/backfill-chat-history.sh` HAD ITS OWN SILENT FAILURE, found in
+    the same sitting:** `FORGE_BACKFILL=1 ${ACCT:+FORGE_ACCOUNT="$ACCT"} bash
+    "$HOOK"` — the conditional expands AFTER bash has parsed assignment
+    prefixes, so the shell read `FORGE_ACCOUNT=1` as the COMMAND NAME, died
+    with "command not found", and the script still printed "done". It is
+    `env FORGE_BACKFILL=1 …` now. **Any recovery tool that can report success
+    without having posted is worse than no tool.**
 - **A CHAT THAT NEVER POSTED CANNOT HEAL ITS OWN PAST — back it up on purpose
   (Aug 2026).** The hook BASELINES on its first firing in a session (only the
   latest turn posts), so fixing a silent chat also throws its history away.
@@ -1674,9 +1745,10 @@ them off the reference sheet, not off the old filenames.
   - **THE BUTTON.** A bug icon at the right of the header's tool row on the
     chat list — the three account tabs are views of that list, so it rides
     all three (the Instagram icon's float, `#bugbtn`). Tapping it narrows the
-    screen to the bug-fix chats; lit while on, session-only like ★, and it
-    reaches INTO the archive on purpose — the auto-archive rule below would
-    otherwise empty the pile exactly as it starts working.
+    screen to the OPEN bug-fix chats; lit while on, sticky with the row's
+    third tab (2026-08-28), and it LEAVES THE ARCHIVE ALONE — see the
+    reversal in the three-lists section: the emptying as chats auto-archive
+    is the feature, not a hole to plug.
   - **THE AUTO-ARCHIVE is the CHAT'S OWN job, at wrap-up** (see 3d in the
     checklist): tagged `bug fix` + nothing open (fix works and is merged, no
     problem left, no unanswered question of hers, `need` empty) → wrap-up,
@@ -1686,6 +1758,73 @@ them off the reference sheet, not off the old filenames.
     with the chat that did the work. She finds them again on the bug button,
     in the archive, or by un-archiving.
   Tests: `node scripts/test-chats-bug-tag.js` (the real page, headless).
+- **THE CHAT AREA IS THREE LISTS, AND THE ROW TAKES TURNS WITH THE ACCOUNTS
+  (2026-08-28, Sophie: "i'm thinking about restructuring chat area based on bug
+  fixes and deliverables, so they're on two separate lists" · "one tab ALL
+  chats, in timing order · one - list of deliverables AS they're delivered. so
+  - just the link to a movie, previews of images and whatnot · bug fix tab
+  third" · "also have a toggle next to account switcher that goes back to 3
+  tabs 1 per account").** One hairline row under the header with two modes,
+  swapped by `#rowtog` beside the account switcher — the three LISTS, or the
+  ACCOUNT tabs it has always been. Sticky, opening on the lists.
+  - **ALL IS NOT THE HOME INBOX, and that is the tab.** The ordinary home list
+    is the UNFILED pile, so a pile word takes a chat off it; ALL is every chat
+    on the account in timing order, filed or not — her word, in caps. The
+    ARCHIVE and the TRASH stay their own rooms (she put those away on
+    purpose), and **a lit category chip still narrows it** — the chip row is on
+    screen there, and a filter she can see that does nothing is the
+    silent-filter failure this app keeps getting burned by.
+  - **DELIVERED is the only tab whose rows are THINGS, not threads** — the
+    films and cuts from `forge-deliverables` (a pinned film is a hand-over, so
+    nothing new is filed) interleaved by time with PICTURE rows derived the way
+    the Update tab's strip is. **A picture row is a BURST, not a chat**: a
+    chat's images split wherever it went `BURST_MS` without filing another, so
+    the morning's nine and the evening's three are two rows — "as they're
+    delivered" is the ask. Three thumbs, her size, and the row says how many
+    there really were. **There is deliberately NO image door into the
+    deliverables collection** — 2,488 filed pictures would bury the films — and
+    her SOURCE LIBRARIES (the Dump, crystals, ingest), derived `thumbs/` copies
+    and audio records are not deliveries. **NOR IS ANYTHING UNLABELED, and
+    that is the load-bearing rule** — the house rule that a chat labels every
+    image it delivers, used as the test for whether a picture was handed over
+    at all. Measured live the hour it shipped: of 18 picture rows, the 7 with
+    nothing labeled were ALL background catches (a generated chat icon, a
+    film's cover frame, a poster) and every labeled row read as a real
+    hand-over. A path blacklist would grow a line per surface forever.
+    **TWO RULES SHE ADDED THE HOUR IT SHIPPED** (2026-08-28: "newest replaces
+    oldest" · "disappears if i write back"): a film already collapses by title
+    stem and a chat's PICTURES collapse by chat, so a second batch REPLACES the
+    first — nothing dropped, the earlier ones ride along as `older` and the row
+    says how many; and a row LEAVES the list once she has written back to that
+    chat since it landed (`lastHerAt`, her real send time, stamped by the one
+    route both her doors come through). So the tab is what has been handed to
+    her and not yet dealt with, and it empties itself; a chat that delivers
+    again after she wrote back comes back on its own.
+    `deliverables-feed.js` is the whole
+    rule (pure); `GET /api/deliverables/feed` is the read, two cached queries
+    and no model call.
+  - **AND THE BUG PILE DOES NOT REACH INTO THE ARCHIVE (2026-08-28, Sophie:
+    "archive doesn't pop out ur insane that's the point of archive").** It
+    shipped reaching in — the 2026-08-27 reasoning was that bug-fix chats
+    archive themselves when a fix lands clean, so a live-only pile would empty
+    itself exactly as that rule starts working. She overruled it: an archived
+    chat is one she put away, and a pile that hands it back is the archive not
+    working. **The emptying IS the feature** — the tab is the bug work still
+    open, and a finished one is in the archive, which has its own `bug fix`
+    filter chip. That old reasoning is history, not a rule.
+  - **THE BUG PILE IS ONE STATE UNDER TWO DOORS** — the header's bug button
+    (2026-08-27) and this row's third tab both write `listTab`, and the button
+    brings the row with it, so the pile she is looking at is always named on
+    screen. `bugOnly` is gone; `bugPile()` is the reader.
+  - **THE UPDATE TAB LIVES ON THE ACCOUNT ROW**, so it is one toggle-tap away
+    while the lists are showing — and entering any other view (Update, the
+    archive, bookmarks, the to-do) puts the account row back whatever mode she
+    left this in. `paintListTabs` speaks ONLY for the live chat list; anywhere
+    else `paintHomeChrome`'s answer stands, and it hides that row with
+    `style.display`, which beats the `hidden` attribute (the house rule).
+  - Tests: `node scripts/test-deliverables-feed.js` (the bursts and the
+    exclusions, pure) and `node scripts/test-chats-list-tabs.js` (the real
+    page, headless — verified failing against the pre-fix page).
   **ALL THREE UPDATE BOXES WEAR A CHIP ON THIS ROW (Aug 2026, Sophie: "'maybe
   never' isn't on the tag list in the account area" → "give them both a
   chip").** `come back to` had one because it was already a folder of hers;
@@ -1989,6 +2128,37 @@ them off the reference sheet, not off the old filenames.
   - Legacy single `note` strings show up as a one-message thread from her, so
     old notes are never lost, and `note` keeps mirroring her LATEST ask for any
     older reader. Her tile shows a green count badge until she opens your reply.
+  - **HER NOTES USUALLY ARRIVE *AFTER* THE MESSAGE THAT ANNOUNCES THEM — SWEEP
+    AGAIN BEFORE YOU SAY YOU ARE DONE (2026-08-28, TO FIX).** Measured on the
+    hate-of-the-game reel: she wrote "added some notes … i suggested 3 examples
+    in the notes" at **23:17:29**, and the seven notes themselves landed
+    **23:29:54-23:31:11 — twelve minutes later**. The chat swept at 23:18,
+    correctly found nothing, told her so, and built 135 pictures ignoring
+    every one of her specific asks. Reading them at turn START is not enough:
+    she announces the intent, then watches the film and writes while the chat
+    works. **Re-read `GET /api/gallery/assets/notes?chat=` right before you
+    report finished**, and treat "no notes yet" as "not yet", never as "she
+    left none".
+    - **A NOTE ON A FILM IS NOT ON AN ASSET TILE, so the assets listing never
+      shows it.** Those seven landed on the PINNED REEL's url with no
+      `description` (the `[0:18] …` timestamp form `filmnote.js` writes). They
+      ride the same `forge-asset-votes` doc, so **`/notes` finds them and
+      `GET /api/gallery/assets?chat=` does not** — a sweep that walks the
+      Assets tab looking for `note`/`thread` fields is blind to every note she
+      leaves on a film.
+    - **NOT BUILT, and it is the actual fix:** nothing tells a chat a note
+      arrived. The wake doorbell fires on her MESSAGE, and a note is not a
+      message — so the only thing standing between her asks and being ignored
+      is a chat remembering to look twice. A note POST should ring
+      `chat-wake.ring` the way `witchvideo.js` already does for its reviewer
+      notes; until it does, the re-read above is the whole protection.
+    - **AND DO NOT "VERIFY" WITH AN ORDERED FIRESTORE QUERY.** The same
+      session reported the notes collection **empty** from
+      `.orderBy('updatedAt','desc')` — but the docs carry `updated`, not
+      `updatedAt`, and **Firestore silently omits every document missing the
+      orderBy field**. The collection held **1,262 docs**. That wrong reading
+      is what turned "not yet" into a confident "nothing saved anywhere".
+      Count with a bare `.get()` before concluding anything is empty.
 - **Prompts on Assets images — POST THE PROMPT FOR EVERY IMAGE YOU MAKE (July
   2026).** Sophie taps **PROMPT** on an image in the Assets tab and the prompt
   covers the picture, with a **Style / Content** toggle (style left, content
@@ -2141,6 +2311,35 @@ them off the reference sheet, not off the old filenames.
     regex and prefers it; with no phrase in the message it is the old
     rare-term rule, untouched. A rank and a snippet that disagree are worse
     than either alone, because she judges a row by the words she can see.
+  - **AND A WHOLE WORD BEATS A PREFIX, IN THE WINDOW AND IN THE BOLD
+    (2026-08-28, her `red dress` screenshot).** Every term is anchored at a
+    word START and nowhere else — right for MATCHING, since the prefix `bound`
+    must still find "boundaries" — so `red` really does match "redraw", and
+    five of her eight rows opened on "redraw"/"redo"/"reduces" with `dress`
+    nowhere on screen. **The rows were right and the presentation was lying**:
+    every one of them held both her words. Two halves, and each is one rule
+    disagreeing with itself:
+    - **The WINDOW.** Measured on the row she screenshotted: `red` once,
+      inside "redraw", 2,000 characters from the only `dress` — a rarity TIE,
+      which the old rule broke by taking the term she typed FIRST. A hit that
+      lands on a whole word now wins outright, a term prefers its own
+      whole-word occurrence over an earlier prefix one, and rarity only
+      decides between two of a kind.
+    - **The BOLD.** `hl` in `chats.html` had NO anchor at all, so `red` lit up
+      inside "tired" — a word the search itself would never have matched. The
+      highlight and the match must be the same question asked twice, or the
+      mark claims a row was found for a reason it was not.
+    - **AND WHEN NEITHER HIT IS A WHOLE WORD, SHE GETS A WINDOW EACH.** The
+      rule above cannot reach her own row: `red` inside "redraw" and `dress`
+      inside "dressed" are both prefixes, so the tie falls back to rarity, both
+      are 1, and the window opens on "redraw" again. No ordering of ONE window
+      answers that — the two words are 2,000 characters apart — so a message
+      whose terms are far apart is cut into one window per word, joined by an
+      ellipsis, narrower (35/55 rather than 45/70) so the pair still fits the
+      row's one line. Windows that overlap merge back into one, a phrase hit
+      stays one window, and a one-word query is byte-for-byte what it was.
+    Tests: `node scripts/test-search-grammar.js` and `node
+    scripts/test-chats-live-search.js` (both verified failing pre-fix).
   - **Two things not to undo:** the phrase is its own regex pass (a
     left-to-right walk takes the EARLIEST match of each word and would miss an
     adjacent pair further along — "maybe … never … maybe never" is the
@@ -3699,6 +3898,19 @@ before working on that module. Nothing was deleted — the moved text is verbati
     — or the other way round — is written the SHORT way rather than padded
     with invented filler, because the point of the clause is that every word
     in it is hers.
+  **BOTH LIVE BEHIND THE ONE CHARACTER ICON (2026-08-28, Sophie: "add
+  character description be within the existing icon - hairline toggle between
+  description and pictures").** The typed cast shipped as its own box under
+  the panel grid, which made two places on the page to say who is in a
+  picture; it is the second half of the character sheet now, behind a
+  **Pictures · Descriptions** hairline row. Three things not to undo: it is
+  the SAME `.plabtabs` rule and the SAME measurer (`plTabLine`, which took an
+  id for this) as the PICTURE · PANELS row, so nothing declares a tab count;
+  the ROW only exists on the Panels tab, because the clause is written into a
+  SHEET's prompt and a tab that changes nothing on the Picture tab is worse
+  than no tab; and the **badge counts the whole cast, both halves**, repainted
+  as she TYPES (the row is not rebuilt on input, so without that the count sat
+  stale until she closed and reopened the sheet — found by the test).
   Both land in the HEAD, which is what a panel's filed style half is cut from,
   so provenance needed no other change; both are stored on the run and are
   absent when unused. **`sheet-grid.js` IS SERVED TO THE PAGE NOW** (the
@@ -4516,7 +4728,54 @@ before working on that module. Nothing was deleted — the moved text is verbati
   no suffix, not even a trailing-period trim. `promptSent` is stored on every run
   so anyone can verify nothing was added — the "if you add anything to a prompt
   Sophie gave, tell her" rule made structural. References are a LIBRARY, not a
-  per-run upload. **Full details: `docs/modules/pictures.md`.**
+  per-run upload.
+  **ONE EXCEPTION, AND IT IS A BUTTON — the BOILERPLATE STYLE toggle
+  (2026-08-28, Sophie: "add a default boiler style not content prompt to
+  freeform with a toggle on off button" · "boiler plate").** While the toggle
+  is lit, the house style-reference recipe wraps her words — its prefix before
+  them, its tail after — so she can attach her own reference and say "copy the
+  style, not the content" with one tap.
+  **THE WORDING IS SERVER.JS'S, NOT A NEW ONE, and the first cut got this
+  wrong** (Sophie: "the text we use for dreamy or watercolor" · "ex: copy the
+  style etc / not content"). It shipped with an invented style line, which is
+  exactly the reconstruction the exact-prompt rule forbids — and needless,
+  since `PL_GPT_STYLES` already holds the settled recipe. It is
+  `PL_GPT_STYLES.evan` (**Sandy mirror**, her ink-and-watercolour page),
+  **HANDED IN at mount time** — `require('./freeform').init({gptStyles})` right
+  after that table, the movies.js pattern, because freeform is mounted hundreds
+  of lines above it and a require would read it before it exists.
+  **WHY THAT ONE AND NOT DREAMY:** this wording names "the attached style
+  reference" and nothing else, so it travels onto whatever SHE attached here;
+  Dreamy's tail names its own picture (its hand-drawn frames, the woman in the
+  green tank top) and would be nonsense over her references. Switching is one
+  line — `BOILER_STYLE` in freeform.js.
+  **ONE CLAUSE IS DROPPED — the colour line** (2026-08-28, Sophie: "get rid of
+  the color line"). Sandy mirror invites the model to pick its own palette; in
+  Freeform the reference she attached is usually the whole point of attaching
+  it, so the sentence argues with her. It is cut as a NAMED clause
+  (`COLOR_CLAUSE`, the swap pattern Dreamy's no-text toggle already uses), so
+  this stays the house wording minus one sentence and **the Playground's Sandy
+  mirror tile is untouched**; `BOILER.colorCut` records that the clause was
+  found, and the test fails on a reword rather than letting it silently come
+  back.
+  Four things keep it from breaking the module's whole promise, and none is
+  optional: it is **OFF by default and NOT sticky** (a wrapper remembered from
+  last week silently riding today's run is exactly the surprise this surface
+  exists to avoid); the lit button **prints both halves and says where each
+  lands**, so nothing is ever added invisibly; the **text is SERVED**
+  (`GET /api/freeform/style`) and neither the page nor freeform.js keeps a copy,
+  so nothing can drift from the table; and the run stores `boiler` plus
+  `promptSent`/`promptStyle`/`promptContent` through the ONE builder
+  (`prompt-record.js`) — **off files NO style half at all**, which is the honest
+  answer rather than a reconstruction. Putting a run back restores the toggle to
+  what THAT run had, the same *only change what the record knows* rule the
+  references follow. `boilerFields` is the one assembler.
+  **AND THE PAGE HAS NO INFO TEXT AT THE TOP** (2026-08-28, Sophie: "get rid of
+  the info text at the top of Freeform") — the header is the whole top of the
+  page; the lede paragraph explaining the module is gone.
+  Test: `node scripts/test-freeform-boiler.js` (it reads the real table out of
+  server.js, so a stale style id or a pasted copy fails there).
+  **Full details: `docs/modules/pictures.md`.**
 - **Vector pipeline** (`vector.js`, `/api/vector`, page at `/vector`, iOS tile
   under the PICTURES filter) — describe 1-25 drawings -> ONE gpt-image-2 sheet in
   the pastel house style (~6c, the only cost) -> cut into cells -> trace each to
@@ -4536,6 +4795,22 @@ before working on that module. Nothing was deleted — the moved text is verbati
 - **Movies** (`movies.js`, `/api/movies`, iOS Movies tab — no web page) — story ->
   ~8-12 self-contained scenes -> gpt-image-2 panels -> Replicate image-to-video ->
   ffmpeg stitch, ~$1.35 for a 12-scene film.
+  **480p WAN CANNOT DO A SHORT CLIP — `num_frames` HAS A FLOOR OF 81
+  (2026-08-28, Sophie: "does 480p wan have a timing option - can it do 1 or 2
+  seconds instead of 5? if so? is it cheaper?").** No, and the question of
+  whether short is cheaper does not arise. `wan-2.2-i2v-fast` refuses anything
+  under 81 frames at validation — *"input.num_frames: Must be greater than or
+  equal to 81"* — so at its 16fps the usable range is **5s to 7.5s** (81-121
+  frames), and there is no 1s or 2s clip to price. **The probe cost nothing:
+  a 422 is refused before it is billed**, which makes this shape of question
+  free to settle — ask the API, do not reason about it.
+  The schema also settles why the house price is BANDED rather than
+  per-second: it says pricing is "based on the video duration at 16 fps", and
+  the only two rungs inside 81-121 frames are the 6c/8c the ledger already
+  records. **Want 1-2 seconds of motion? Render 81 frames and TRIM** (ffmpeg
+  on our own box, free) — same 6c either way, and she picks which second. Wan
+  **2.7** genuinely takes 2-15s and is per-second, but has no 480p at all, so
+  a 2s clip there is 20c at 720p rather than 6c.
   **THE ANIMATE BUTTON CAN RUN WAN 2.7 SINCE AUG 2026 (Sophie's ask), AND IT IS
   NOT A FREE UPGRADE — it is priced per SECOND** ($0.10/s at 720p, $0.15/s at
   1080p, so 50¢ and 75¢ for the standard five seconds against draft's 16¢).
@@ -6760,6 +7035,63 @@ before working on that module. Nothing was deleted — the moved text is verbati
   replies** — it swallowed the answer to a follow-up she sent four minutes
   later; her message is the gate now. A chat that has never lifted one of her
   messages keeps the old behaviour rather than going quiet.
+  **A CHAT BELLS ITSELF WHEN IT IS BLOCKED ON HER (2026-08-28, Sophie: "can u
+  make chats bell themselves based on importance").** The bell is a whitelist
+  she taps, which is what keeps 260 live chats off her lock screen — and the
+  gap it leaves is the one case where the CHAT, not she, knows something
+  matters: it has stopped and is waiting on her. Measured that day: **48 chats
+  set a `need` in two days and only 6 of them were belled** — 42 asks she could
+  only find by opening the app. So a finished reply whose `need` is NEW buzzes
+  her whatever the bell says (`needEscalates` in `push-gate.js`).
+  - **IT IS NOT A FLIP OF HER BELL.** A self-set bell sticks (only she turns
+    one off), so every chat that ever had one important moment would be belled
+    forever and the whitelist would quietly become everything. **Importance is
+    a property of the MOMENT, not of the chat** — this escalates ONE reply and
+    changes no stored flag of hers. Making it sticky is hers to ask for.
+  - **IT IS NOT "a need exists".** A chat re-states its need at the end of
+    every turn, so that would buzz her on a loop for one ask. `POST /status`
+    stamps **`needSetAt` only when the text CHANGED** (read off the doc, not
+    the registry cache — the route runs once a turn, and a stale read would
+    either drop a real ask or repeat one), and the reply compares it against
+    `needPushedAt`: one buzz per distinct ask.
+  - **It skips the answers-her test on purpose** — a chat that hit a blocker
+    working on its own is exactly the case that test exists to silence, and
+    exactly the case she wants to hear about. Clearing the need (`need:""`)
+    deletes the stamp, so a withdrawn ask can never ring later.
+  **AND THE BANNER SAYS WHICH CHAT AND WHAT KIND (2026-08-28, Sophie: "and
+  notification more informative").** It used to be the chat's name over the
+  reply's TLDR, and on a deliverable the words "New deliverable" over a title
+  with the chat trailing after an em dash — so the one fact she needs first
+  (WHICH chat) moved depending on which door rang, and nothing said what kind
+  of arrival it was. One shape now, `pushAlert` in `push-gate.js`: **the CHAT
+  is always the title**, and the body leads with the kind — `Needs you · pick a
+  take 1-4` · `New film · Evan v18 (4:23)` · `New page · Sheet v2` — with an
+  answer still leading on its TLDR. **The ask WINS the banner** when a reply
+  carries one: a chat that just asked her something is not better described by
+  its own summary. The 2026-08-15 rule survives inside it — a reply opening
+  with her own question in bold never comes back as the banner.
+  **THE BUZZ WAITS FOR THE TURN TO END (2026-08-28, Sophie: "I get notified on
+  my phone a few seconds before chats actually finish their turn").** The
+  FINISHED-REPLY door was always honest — it fires from the hook's Stop pass.
+  **The other three doors are filed MID-TURN and used to push the instant they
+  were filed:** a media pin recording a DELIVERABLE (the checklist has a chat
+  pin its film before its cards and its reply), a new Compare page
+  (`POST /page`), and an auto-compare grid the server files when a prompt or
+  caption lands. Measured against her real deliverables that day, the gap from
+  the filing to that chat's finished reply: **19s, 23s, 42s, 58s, 103s** — her
+  "a few seconds", exactly. Those doors call `push.queueChat` now and the
+  finished reply calls `push.flushChat`, so the doorbell rings when the turn
+  really ends. Three rules not to undo: **a reply push SWALLOWS the held one**
+  (same chat, same second, same collapse-id — the reply's TLDR is the better
+  banner, and an UNBELLED chat still gets its deliverable buzz because no reply
+  push fires there to swallow it, which is the deliverables list's whole ask);
+  **one entry per chat, newest news wins, and re-queueing never moves the
+  DEADLINE** (or a chat filing every few minutes pushes its own doorbell out
+  forever); and **a 15-minute fallback timer**, because a hookless session, a
+  chat killed mid-turn or a script filing a film never posts a finished reply
+  and a doorbell that waits forever never rings. A deploy drops a held buzz,
+  which is fine — the deliverables list and the Update tab are the catch-all.
+  Test: `node scripts/test-push-pending.js`.
   **THE BODY IS NEVER HER OWN WORDS (`pushBody`, found live 2026-08-15 from
   her screenshot — this, not the timing, is what she was actually reporting).**
   Two house rules collided: *Answering a question* at the time REQUIRED a

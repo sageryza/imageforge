@@ -47,6 +47,20 @@ cat > /home/user/.claude/hooks/post-to-feed.sh << 'HOOK'
 # its image deliverables into the iOS "My Creations" gallery — zero model
 # tokens, nothing to remember. Runs as a Stop hook after every reply.
 #
+# v19 (2026-08-28) — A CHAT IS NOT NAMED AFTER ITS SESSION ID ANY MORE.
+# Sophie: "issues w chat hooks today · slug". Measured that morning: THREE of
+# the day's 29 chats carried a meaningless slug (chat-5d92c228, chat-9cac7ca2,
+# new-session-56f2b0) against ONE in the four days before it — and one of them,
+# chat-9cac7ca2, held exactly one message: hers, unanswered for seven hours,
+# because no session was reading a thread nobody could recognise.
+# The cause was the branch scan below accepting ONLY `claude/*`. A session
+# created without a repo attached clones it mid-turn and lands on an ordinary
+# working branch, which never matched, so the name fell through to the session
+# id — and session-first binding makes that permanent on the first post.
+# Two halves: the scan takes a plain working branch when there is no claude/
+# one, and `name_repair` fills the DISPLAY name (never the slug — a moving slug
+# is what orphaned "Imprint") on a chat already stuck with a fallback.
+#
 # v18 (2026-08-27) — …AND IT NO LONGER LANDS TWICE. The harness JOINS messages
 # she sent back to back into ONE user record, separated by a blank line
 # (measured in this fix's own transcript: the queue record held her first
@@ -176,14 +190,39 @@ sid=$(printf '%s' "$input" | jq -r '.session_id // empty')
 [ -n "$sid" ] || sid="${CLAUDE_CODE_SESSION_ID:-x}"
 event=$(printf '%s' "$input" | jq -r '.hook_event_name // empty')
 
+# Where the repos live. A variable only so the slug rules can be tested
+# against fixture repos (scripts/test-chat-slug.js) — never set in production.
+REPO_ROOT="${FORGE_REPO_ROOT:-/home/user}"
+
 # Chat name: FORGE_CHAT env wins; else a slug of a repo's claude/<name> branch
 # (random 6-char suffix dropped); else a short session id.
 name="${FORGE_CHAT:-}"
 if [ -z "$name" ]; then
-  for d in /home/user/*/; do
+  for d in "$REPO_ROOT"/*/; do
     b=$(git -C "$d" branch --show-current 2>/dev/null)
     case "$b" in
       claude/*) name=$(printf '%s' "${b#claude/}" | sed -E 's/-[a-z0-9]{6}$//'); break;;
+    esac
+  done
+fi
+# v19 (2026-08-28) — A SESSION WITH NO claude/* BRANCH IS NOT NAMELESS ANY MORE.
+# Measured on Sophie's report: THREE chats fell to the last-resort `chat-<sid8>`
+# slug in one day, against one in the whole four days before it — and one of
+# them swallowed a message of hers that was never answered by anybody. The
+# cause is this scan. A session created with no repo attached clones it mid-turn
+# and lands on an ORDINARY working branch (`panels-background-draw`), which
+# `claude/*` never matches, so the name fell all the way through to the session
+# id — and session-first binding then makes that permanent. A working branch is
+# a real name; take it when there is no claude/ one.
+# The 6-char tail is deliberately NOT stripped on this path: the harness appends
+# one to the branches IT names, a person naming a branch does not, and stripping
+# would eat a real last word.
+if [ -z "$name" ]; then
+  for d in "$REPO_ROOT"/*/; do
+    b=$(git -C "$d" branch --show-current 2>/dev/null)
+    case "$b" in
+      ""|main|master|HEAD|develop|trunk) :;;
+      *) name=$(printf '%s' "$b" | tr 'A-Z/' 'a-z-' | tr -dc 'a-z0-9._-' | cut -c1-60); break;;
     esac
   done
 fi
@@ -194,6 +233,10 @@ fi
 case "$name" in
   new-session|session|untitled) name="${name}-$(printf '%s' "$sid" | tr -dc 'a-z0-9' | cut -c1-6)";;
 esac
+# What the branches could actually tell us, kept before the last-resort fallback
+# overwrites it — `name_repair` below needs to know whether a readable name was
+# available at all.
+branch_name="$name"
 [ -n "$name" ] || name="chat-$(printf '%s' "$sid" | cut -c1-8)"
 
 rsid="${CLAUDE_CODE_REMOTE_SESSION_ID:-$sid}"; rsid="${rsid#cse_}"
@@ -359,6 +402,32 @@ fi
 
 # ── FINAL pass (Stop / UserPromptSubmit) ───────────────────────────────────
 resolve_name
+# v19 — AND A CHAT ALREADY STUCK WITH A NAMELESS SLUG GETS A READABLE NAME.
+# The server binds a session to its slug on the FIRST post and keeps it forever,
+# so a name found later can never re-key the thread — and that is right: a
+# moving slug is what orphaned "Imprint". What CAN move is the DISPLAY name, the
+# same field her pencil writes, so this sets it once and re-keys nothing. It
+# only ever fills a BLANK name on a slug that is plainly the fallback
+# (chat-<8 hex>, new-session-<tail>), and never touches one she typed.
+# Backgrounded, once per session, silent on failure — a hook must never make her
+# wait, and a lost repair only costs a name.
+name_repair () {
+  case "$name" in
+    chat-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]|new-session-*) :;;
+    *) return;;
+  esac
+  [ -n "$branch_name" ] || return
+  [ "$branch_name" = "$name" ] && return
+  rpstate="$HOME/.claude/forge-named-${sid}"
+  [ -f "$rpstate" ] && return
+  : > "$rpstate"
+  cur=$(curl -s -m 20 ${STUDIO_TOKEN:+-H "x-studio-token: $STUDIO_TOKEN"} \
+    "$FEED/name?chat=$(printf '%s' "$name" | jq -sRr @uri)&session=$(printf '%s' "$rsid" | jq -sRr @uri)" \
+    | jq -r '.displayName // empty' 2>/dev/null)
+  [ -n "$cur" ] && return
+  post "$FEED/rename" "$(jq -nc --arg c "$name" --arg n "$branch_name" '{chat:$c,name:$n}')"
+}
+name_repair >/dev/null 2>&1 &
 
 # TURN STARTED (v8, Aug 2026) — tell the feed this chat is now working, so the
 # Chats app can tint it pink until the reply lands. This is a separate one-line
@@ -632,7 +701,15 @@ if queued:
             if not u.get('aliases'):
                 return u
         for u in users:
-            for cell in segcells[id(u)]:
+            # `.get`, NOT `[]` — an unmatched queue entry is APPENDED to `users`
+            # below, so the next _take walks a record segcells has never seen and
+            # the whole parser dies with a KeyError. The hook then prints NOTHING
+            # and exits 0, so the session posts no replies and none of her
+            # messages, silently, forever (found live 2026-08-28: a chat with one
+            # mangled message in the app and 11 turns in its transcript). An
+            # appended entry has no segments to donate, so empty is the right
+            # answer as well as the safe one.
+            for cell in segcells.get(id(u)) or ():
                 if not cell[1] and cell[0] == n:
                     cell[1] = True
                     return u

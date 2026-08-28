@@ -5757,6 +5757,12 @@ const PL_GPT_STYLES = {
     noCharacter: true,
   },
 };
+// FREEFORM'S BOILERPLATE TOGGLE SENDS THIS TABLE'S OWN WORDING (2026-08-28,
+// Sophie: "the text we use for dreamy or watercolor"). Handed in rather than
+// required, because freeform.js is mounted hundreds of lines above this const
+// and a require would read it before it exists. server.js stays the one owner
+// of what is actually sent.
+require('./freeform').init({ gptStyles: PL_GPT_STYLES });
 // The no-text switch on a style's tail. It SWAPS the style's own text clause
 // where that clause is there to swap, so the sent prompt says one thing about
 // text instead of two contradicting things; if she has edited the tail and her

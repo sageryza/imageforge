@@ -352,10 +352,17 @@ const CAST = ['doug', 'sophie', 'jonathan', 'mommy', 'shayna', 'penny', 'evan', 
     'gone on the WTR LoRA, which has no attachment slot at all');
   ok(await page.evaluate(() => !document.getElementById('charpanel').classList.contains('on')),
     'and the sheet closes with it, rather than sitting open over nothing');
+  // PANELS TAKE IT NOW (2026-08-27, Sophie: "I want both. Descriptions as well
+  // as pictures: two options"). This assertion read the other way for one day,
+  // on the reasoning that charLine() names "the last attached image" — but
+  // that sentence says "image(s)" and is as true of a sheet as of a single
+  // picture. The two that genuinely cannot ride a sheet are the Sophie card
+  // and her photo, which name a POSITION for ONE picture, and those are
+  // asserted off in test-playground-panels.js.
   await page.evaluate(() => { setStyle('dreamy'); setTab('panels'); });
   await page.waitForTimeout(200);
-  ok(await page.evaluate(() => !document.getElementById('charsbtn').offsetParent),
-    'gone on the Panels tab — a sheet is not the surface to argue "the last attached image" on');
+  ok(await page.evaluate(() => !!document.getElementById('charsbtn').offsetParent),
+    'STAYS on the Panels tab — a sheet carries a cast like any other picture');
 
   console.log('an ordinary run is unchanged');
   await page.evaluate(() => { setTab('picture'); setStyle('dreamy'); pickedChars.length = 0; paintCharsBtn(); });

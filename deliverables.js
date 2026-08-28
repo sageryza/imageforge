@@ -34,6 +34,8 @@
 // Routes (STUDIO_TOKEN gate, GET /status open):
 //   GET  /api/deliverables/status      → { ok, firebase, push }
 //   GET  /api/deliverables?limit=      → { items } newest first, chat names on
+//   GET  /api/deliverables/feed?limit= → { items } films AND picture bursts,
+//        newest first — what the Chats app's DELIVERED tab draws
 //   POST /api/deliverables             → { chat, session?, url, title, kind? }
 //   POST /api/deliverables/backfill    → { dry? } — sweep existing registry
 //        media pins into the list (dry by default, never pushes)
@@ -43,6 +45,8 @@
 const express = require('express');
 const admin = require('firebase-admin');
 const crypto = require('crypto');
+
+const { buildFeed } = require('./deliverables-feed');
 
 const router = express.Router();
 const COLL = 'forge-deliverables';
@@ -198,14 +202,26 @@ function rowsOf(docs, chats) {
 // notifyChat's default debounce is skipped because its 10-minute per-chat
 // window would swallow a second real deliverable; the 60s here is the only
 // throttle a doorbell needs.
+//
+// QUEUED, NOT SENT (2026-08-28, Sophie: "I get notified on my phone a few
+// seconds before chats actually finish their turn"). The checklist has a chat
+// pin its film mid-turn, before its cards and its reply — measured against her
+// real deliverables that day, the gap to the chat's finished reply ran 19s,
+// 23s, 42s, 58s, 103s. push.queueChat holds it until the chat posts a finished
+// reply (or a 15-minute fallback, for a chat that never posts one); the bell
+// bypass is untouched, because no reply push fires on an unbelled chat to
+// swallow it.
 let lastPushAt = 0;
-function pushNew(chat, chatName, title) {
+function pushNew(chat, chatName, title, kind) {
   try {
     const now = Date.now();
     if (now - lastPushAt < 60 * 1000) return false;
     lastPushAt = now;
-    require('./push').notifyChat(chat, 'New deliverable',
-      `${title} — ${chatName}`, { debounce: false });
+    // The CHAT is the title on every door now (2026-08-28, Sophie: "and
+    // notification more informative") — which chat it came from is the fact
+    // she needs first, and the body says what kind of thing arrived.
+    const a = require('./push-gate').pushAlert(kind || 'link', { chatName, title });
+    require('./push').queueChat(chat, a.title, a.body, { debounce: false });
     return true;
   } catch (e) { console.warn('deliverables: push failed', e.message); return false; }
 }
@@ -230,7 +246,7 @@ async function record(input) {
       const reg = await require('./chatfeed').registry();
       chatName = ((reg.chats || {})[chat] || {}).displayName || chat;
     } catch (e) { /* registry down — push with the slug */ }
-    pushed = pushNew(chat, chatName, doc.title);
+    pushed = pushNew(chat, chatName, doc.title, doc.kind);
   }
   return { ok: true, isNew, pushed, id: ref.id };
 }
@@ -241,6 +257,45 @@ router.get('/status', async (req, res) => {
   let pushConfigured = false;
   try { pushConfigured = !!require('./push')._internals.apnsKey(); } catch (e) { pushConfigured = false; }
   res.json({ ok: true, firebase: firebaseUp(), push: pushConfigured });
+});
+
+// ---- the DELIVERED tab's feed: films AND pictures, newest first ------------
+// Sophie, 2026-08-28: "list of deliverables AS they're delivered ... just the
+// link to a movie, previews of images and whatnot" / "just three images, like
+// the update tab". The films are these docs; the pictures are DERIVED from the
+// chats' own filed assets (there is no image door into this collection, and
+// there must not be one — see deliverables-feed.js for why). One cached read
+// of each, held 60s, no model call.
+const FEED_ASSETS = 400;          // one small query; brief.js scans 300 for a strip
+let feedCache = null, feedAt = 0;
+const FEED_MS = 60 * 1000;
+
+router.get('/feed', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    if (!firebaseUp()) return res.status(503).json({ error: 'no firebase' });
+    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit, 10) || 60));
+    if (!req.query.fresh && feedCache && feedCache.limit === limit && Date.now() - feedAt < FEED_MS) {
+      return res.json({ ...feedCache.body, cached: true });
+    }
+    const [dsnap, asnap] = await Promise.all([
+      db().collection(COLL).orderBy('updatedAt', 'desc').limit(200).get(),
+      // Records written before `created` existed are simply absent from an
+      // orderBy — fine for a newest-first feed, which is all this is.
+      db().collection('forge-chat-assets').orderBy('created', 'desc').limit(FEED_ASSETS).get(),
+    ]);
+    let chats = {};
+    try { chats = (await require('./chatfeed').registry()).chats || {}; }
+    catch (e) { /* names degrade to slugs */ }
+    const body = { ok: true, ...buildFeed({
+      deliverables: rowsOf(dsnap.docs.map((d) => d.data()), chats),
+      assets: asnap.docs.map((d) => d.data()),
+      chats,
+      limit,
+    }) };
+    feedCache = { limit, body }; feedAt = Date.now();
+    res.json(body);
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.get('/', async (req, res) => {
