@@ -140,10 +140,11 @@ const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
       search: r(document.querySelector('.feedsearch')),
     };
   });
-  const tops = [row.view.top, row.filt.top, row.search.top];
-  ok(tops.every(t => Math.abs(t - tops[0]) < 1), 'the three groups share one line');
+  // The two control groups share one line; the search has its own line under
+  // them since 2026-08-28 ("i don't need to tap"), so the bar is two rows.
+  ok(Math.abs(row.view.top - row.filt.top) < 1, 'the two control groups share one line');
   ok(Math.abs(row.heart.top - row.x.top) < 1, 'the heart and the ✕ share their box');
-  ok(row.bar.h < 60, `the bar is still one row tall (${Math.round(row.bar.h)}px)`);
+  ok(row.bar.h < 100, `the bar is the controls plus the search line (${Math.round(row.bar.h)}px)`);
   ok(Math.abs(row.x.w - row.heart.w) < 1 && Math.abs(row.x.h - row.heart.h) < 1,
     `the ✕ is the same box as the heart (${Math.round(row.x.w)}x${Math.round(row.x.h)})`);
 

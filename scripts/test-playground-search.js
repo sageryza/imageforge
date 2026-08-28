@@ -194,9 +194,13 @@ const OLD = { id: 'r9', prompt: 'a horse nobody has scrolled back to', engine: '
       fs: parseFloat(getComputedStyle(document.querySelector('.feedsearch input')).fontSize) };
   });
   ok(box.search && box.search.width > 40, 'the search box has real width (' + Math.round(box.search.width) + 'px)');
-  ok(Math.abs(box.tog.top - box.search.top) < 2 && Math.abs(box.heart.top - box.search.top) < 2,
-    'the whole row is on ONE line — nothing wrapped to make room');
-  ok(box.search.left >= box.heart.right - 1, 'it starts to the RIGHT of the heart');
+  // The CONTROLS share one line; the search has a line of its own UNDER them
+  // (2026-08-28, Sophie: "search way too small" → "i don't need to tap") —
+  // 76px beside the chips was a field she could not read her own query in.
+  ok(Math.abs(box.tog.top - box.heart.top) < 2,
+    'the controls are on ONE line — nothing wrapped among them');
+  ok(box.search.top >= box.heart.bottom - 1, 'the search box has the line UNDER them');
+  ok(box.search.left <= box.tog.left + 1, 'and it starts at the left edge, the full width of the row');
   ok(box.search.right <= box.bar.right - box.pad + 1,
     'and ends before the 56px the autoscroll pill owns');
   ok(box.fs >= 16, 'the input is 16px or more — under it iOS zooms and cannot zoom back');
