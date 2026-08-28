@@ -55,6 +55,11 @@
   .ref .x{position:absolute;bottom:3px;right:3px;width:20px;height:20px;border-radius:4px;
           background:rgba(255,255,255,.9);border:1px solid #d8cfc0;font-size:11px;line-height:18px;text-align:center;padding:0}
   .empty{color:#9a8f7d;font-size:13px;padding:6px 2px}
+  /* The boiler toggle: the house rounded rectangle, filled when it is ON so a
+     wrapper can never be riding along unnoticed. */
+  #boiler.on{background:#2b2620;border-color:#2b2620;color:#f6f2ea}
+  .boilertext{margin-top:8px;font-size:12px;line-height:1.45;color:#6f675e;
+              border-left:2px solid #d8cfc0;padding-left:8px;white-space:pre-wrap}
   #reftog.on{border-color:#2b2620}
   /* The attached strip — small, one row, always shown while anything is on. */
   .picked{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
@@ -90,7 +95,8 @@
 <body>
 <header class="app-header"><h1>Freeform</h1></header>
 <p class="lede">Your references, your words, nothing added. Whatever you type is exactly what gets sent —
-no style prompt, no trigger word, no extra lines. If you want a style, say it yourself.</p>
+no style prompt, no trigger word, no extra lines. If you want a style, say it yourself, or tap
+<b>Boilerplate style</b> for the stock one — it prints exactly what it adds.</p>
 
 <div class="panel">
   <div class="lab">Reference images</div>
@@ -124,9 +130,14 @@ no style prompt, no trigger word, no extra lines. If you want a style, say it yo
       <option value="3">3 images</option>
       <option value="4">4 images</option>
     </select>
+    <button id="boiler" aria-pressed="false"
+            title="Add the stock style line after your words">Boilerplate style</button>
     <button class="go" id="go">Draw</button>
     <span class="cost" id="cost"></span>
   </div>
+  <!-- Lit, this prints the EXACT line that will ride after her words. A
+       wrapper this module adds may never be invisible. -->
+  <div class="boilertext" id="boilertext" hidden></div>
 </div>
 
 <div id="feed"></div>
@@ -377,6 +388,11 @@ function applyRunIn(run) {
     d.classList.toggle('on', !!picked[d.id.slice(4)]);
   });
   drawPicked();
+  // Same rule as the references: a run drawn WITH the boiler turns it on, one
+  // drawn without it turns it off, so the next run has exactly the ingredients
+  // the one she copied had.
+  boilerOn = !!run.boiler;
+  paintBoiler();
   window.scrollTo({ top: 0, behavior: 'smooth' });
   toast(gone
     ? 'Prompt is back — ' + gone + (gone === 1 ? ' reference is' : ' references are') + ' no longer in the library'
@@ -392,7 +408,8 @@ function runCard(run) {
     el.id = 'run-' + run.id;
     document.getElementById('feed').insertBefore(el, document.getElementById('feed').firstChild);
   }
-  var tags = [run.model || 'gpt-image-2', run.quality, run.size].filter(Boolean).join(' · ');
+  var tags = [run.model || 'gpt-image-2', run.quality, run.size,
+              run.boiler ? 'boilerplate style' : ''].filter(Boolean).join(' · ');
   var html = '<div class="runhead"><div class="p"></div>' +
     '<button class="copybtn" data-copy="' + run.id + '" ' +
     'aria-label="Put this prompt and its references back" ' +
@@ -441,6 +458,31 @@ function savePending() {
   try { localStorage.setItem('freeform_pending', JSON.stringify(live)); } catch (e) {}
 }
 
+// ── The boiler style toggle ────────────────────────────────────────────────
+// OFF on every load and deliberately NOT sticky: this is the one surface whose
+// whole promise is that nothing is added, so a wrapper remembered from last
+// week silently riding today's run is exactly the surprise it exists to avoid.
+// The TEXT is fetched, never copied into this page — the server owns what is
+// actually sent (the Playground's `/styles` rule).
+var boilerOn = false;
+var boilerText = '';
+function paintBoiler() {
+  var b = document.getElementById('boiler');
+  var t = document.getElementById('boilertext');
+  b.classList.toggle('on', boilerOn);
+  b.setAttribute('aria-pressed', boilerOn ? 'true' : 'false');
+  t.textContent = boilerText ? 'Added after your words: ' + boilerText : '';
+  t.hidden = !(boilerOn && boilerText);
+}
+api('/style').then(function (d) {
+  boilerText = (d && d.style && d.style.text) || '';
+  paintBoiler();
+}).catch(function () {});
+document.getElementById('boiler').addEventListener('click', function () {
+  boilerOn = !boilerOn;
+  paintBoiler();
+});
+
 document.getElementById('go').addEventListener('click', function () {
   var prompt = document.getElementById('prompt').value;
   if (!prompt.trim()) return toast('Type something first');
@@ -450,6 +492,7 @@ document.getElementById('go').addEventListener('click', function () {
     quality: document.getElementById('quality').value,
     size: document.getElementById('size').value,
     outputs: Number(document.getElementById('outputs').value) || 1,
+    boiler: boilerOn,
   };
   var go = document.getElementById('go');
   go.disabled = true;
@@ -460,7 +503,8 @@ document.getElementById('go').addEventListener('click', function () {
     // first poll swaps the real doc in — without it, copying a run back the
     // second after starting it would CLEAR the references it is drawing with.
     runCard({ id: d.id, prompt: body.prompt, quality: body.quality, size: body.size,
-              outputs: body.outputs, refs: [], refIds: body.refs.slice(), images: [], status: 'drawing' });
+              outputs: body.outputs, refs: [], refIds: body.refs.slice(), images: [],
+              boiler: body.boiler, status: 'drawing' });
     poll(d.id); savePending();
     toast('Drawing…');
   }).catch(function () { go.disabled = false; toast('Could not start'); });
