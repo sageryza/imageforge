@@ -3489,7 +3489,34 @@ before working on that module. Nothing was deleted — the moved text is verbati
 
 ### Pictures
 - **Playground** (`/playground`, `public/promptlab.html` + `/api/promptlab`, iOS
-  tile) — the prompt tester. Fixed recipe per style so runs stay comparable: ONE
+  tile) — the prompt tester.
+  **THE FEED IS HERS — A CHAT DOES NOT DRAW INTO IT (2026-08-28, Sophie: "it
+  shouldn't go in the playground. It should go in assets your assets tab which
+  it would, and then it would end up in meta assets" · "The playground is for
+  me that's why it's called the playground").** A chat making pictures for her
+  calls `POST /api/promptlab` because it is the one route that already knows
+  the styles, the tiers and the panels cut — and every run it starts lands in
+  the feed she scrolls, between the things she drew herself. Ten of a chat's
+  test panels at the top of the Picture tab is the same complaint as the rat
+  bump, arriving by a different door.
+  - **A chat's pictures belong in ITS OWN Assets tab** (`POST /api/gallery`
+    with the label, the MODEL · QUALITY · SIZE caption and the filed prompt),
+    which is what Meta Assets is a view over — so they are already in the one
+    place she reviews everything from, and her feed stays what she put in it.
+  - **So DRAW IN YOUR OWN CONTAINER for chat work**: post to OpenAI directly,
+    cut with sharp (`cutSheet`'s recipe, `sheet-grid.js` does the geometry),
+    upload with the Deck Factory service account, then file. **This file used
+    to name the run record — "it shows in your feed, it tiles in the gallery,
+    it can be copied back" — as the REASON to prefer Render, and she
+    overruled it: that record is the cost, not the benefit.** The container is
+    also immune to a deploy restart, which is worth real money on a batch.
+  - **Render's `/api/promptlab` is for HER TAPS**, and for a run she asked to
+    exist in the Playground (a ladder she wants to compare there, a picture
+    she will re-roll from the page). Ask before starting one on her behalf.
+  - **There is NO delete route for a run** — `/vote` and `/cancel` are all
+    there is, and the ✕ that hides a picture is hers to cast. So a run a chat
+    starts in her feed cannot be tidied away afterwards without an Admin
+    write. Don't start it. Fixed recipe per style so runs stay comparable: ONE
   image a run, 2:3, Generate is the stars icon. Seven styles: WTR (the only
   Replicate LoRA), **Sandy mirror**, **ChatGPT**, **Dreamy**, Scarry, Pastel,
   Hoonies (all gpt-image-2, her own scans attached as style refs, kept in
