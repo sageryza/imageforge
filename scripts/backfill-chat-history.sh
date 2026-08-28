@@ -105,8 +105,17 @@ if [ -z "$GO" ]; then
 fi
 
 echo; echo "── posting ──"
-FORGE_BACKFILL=1 ${ACCT:+FORGE_ACCOUNT="$ACCT"} \
-  bash "$HOOK" <<EOF
+# `${ACCT:+FORGE_ACCOUNT="$ACCT"}` looked like an assignment but is produced by
+# EXPANSION, and bash only treats an assignment as one when it is literal in the
+# source — so it landed in command position and bash tried to run a program
+# called `FORGE_ACCOUNT=1`. The hook never ran: every --account backfill (and
+# every run in a session that already has FORGE_ACCOUNT set, which is all of
+# them on a configured environment) printed "command not found" and posted
+# NOTHING, while still ending with "done — open the chat in the app". Export it
+# instead. Found 2026-08-28 repairing a chat whose 11 turns were all stuck as
+# live drafts.
+[ -n "$ACCT" ] && export FORGE_ACCOUNT="$ACCT"
+FORGE_BACKFILL=1 bash "$HOOK" <<EOF
 {"session_id": $(printf '%s' "${sid:-x}" | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read()))'), "transcript_path": $(printf '%s' "$tr" | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read()))'), "hook_event_name": "Stop"}
 EOF
 echo "done — open the chat in the app and check the oldest message."
