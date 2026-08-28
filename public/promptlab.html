@@ -86,7 +86,19 @@
      So `right: 56px`: still the right end of the box, clear of the pill's
      50px column plus margin at 390pt AND at 320pt, both controls tappable at
      every scroll position. Don't slide it back into the corner, and don't
-     move it off the right side — both are hers. */
+     move it off the right side — both are hers.
+
+     THE BIG BOX FITS THE WORDS (2026-08-27, Sophie: "why not expand based on
+     text, not static"). It was a flat 52vh whatever was in it — an empty half
+     under two lines, and still scrolling under a long dictation — so the size
+     said nothing about what was in it. `.big` is the CAP now, never the
+     height: the height is measured off the content on the tap, on every
+     keystroke while it is open, and on a resize. The FLOOR is what keeps the
+     button worth tapping on an empty box — this is a field she WRITES in, so
+     "expand" has to mean room to write before the words exist; that is the
+     difference from the `.moretxt` opener, which only ever reveals text that
+     is already there and so may hide itself. Both bounds are CSS, so the
+     browser clamps the inline height and no `vh` is re-derived in script. */
   /* THE BOX DOES NOT SIT ON THE BUTTONS (2026-08-26, Sophie: "there was no
      padding between the buttons and the bottom of the text prompt box").
      Measured: `.styles` gives the box 10px of air ABOVE it and `.promptwrap`
@@ -96,7 +108,7 @@
      card has one rhythm rather than a number picked per gap. */
   .promptwrap { position: relative; margin-bottom: 10px; }
   .promptwrap textarea { display: block; box-sizing: border-box; padding-bottom: 34px; }
-  #prompt.big { min-height: 52vh; }
+  #prompt.big { min-height: 24vh; max-height: 52vh; }
   #bigprompt { position: absolute; right: 56px; bottom: 6px; width: 26px; height: 26px;
     display: flex; align-items: center; justify-content: center; padding: 0; margin: 0;
     border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #6f675e; cursor: pointer; }
@@ -587,6 +599,19 @@
      a floor so a 3-across box still fits a dictated sentence. Boxes ship
      EMPTY; the placeholder only NAMES the cell ("top left"). 16px or iOS
      zooms the page on focus. */
+  /* THE BOXES FOLD (2026-08-28, Sophie: "make the panels grid collapsible").
+     Nine 2:3 boxes is most of a screen, and the controls and Generate sit
+     under them — so the row above the grid puts them away. The boxes are
+     DISPLAY-hidden and stay in the DOM, so a fold can never lose her words
+     and Generate still reads them. Shut, the row says how many are written:
+     the one thing the boxes are no longer saying. Open, it does not — they
+     are right there (the archive summary's don't-say-it-twice rule). */
+  #panelfold { display: flex; align-items: center; gap: 6px; width: 100%;
+    border: 0; background: none; margin: 0 0 6px; padding: 2px 0; cursor: pointer;
+    font-family: inherit; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase;
+    color: #9a9186; text-align: left; -webkit-tap-highlight-color: transparent; }
+  #panelfold svg { width: 13px; height: 13px; flex: none; transition: transform .15s ease; }
+  #panelfold.shut svg { transform: rotate(-90deg); }
   #panelgrid { display: grid; gap: 6px; margin: 0 0 4px; }
   #panelgrid textarea { width: 100%; box-sizing: border-box; border: 1px solid #d8d0c4;
     border-radius: 6px; background: #fdfcf9; color: inherit; font: inherit; font-size: 16px;
@@ -614,6 +639,7 @@
   <div id="beattag"></div>
   <div id="promptpanel"></div>
   <div class="promptwrap"><textarea id="prompt"></textarea><button type="button" id="bigprompt" aria-label="Bigger box" title="Bigger box"></button></div>
+  <button type="button" id="panelfold" hidden aria-expanded="true" aria-controls="panelgrid"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg><span id="panelfoldlab">Panels</span></button>
   <div id="panelgrid" hidden></div>
   <div id="castbox" hidden>
     <div class="plab">Characters</div>
@@ -822,9 +848,11 @@
   // see just the finished sheets, uncut, by themselves"). A third chip in the
   // filter box, on the PANELS tab only: lit, the gallery shows ONE cell per
   // run — the banked uncut sheet (a story sheet and a cut-failed run already
-  // ARE their sheet). Sticky like its neighbours. The ♥/✕ chips step aside
-  // while it is lit: votes belong to the cut panels, and a filter that can
-  // never match anything on screen is a control lying about what it does.
+  // ARE their sheet). Sticky like its neighbours. The ♥/✕ chips stay — a
+  // banked sheet carries its own vote at the virtual index -1 since
+  // 2026-08-27, so the filters match what is on screen here like anywhere
+  // else. (They used to step aside, for the reason that has now gone: while
+  // the sheet was view-only a heart could never match anything in this view.)
   document.getElementById('v-sheets').innerHTML =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 12h18"/><path d="M12 3v18"/></svg>';
   function sheetsOnly() { return localStorage.getItem('promptlab_sheets') === '1'; }
@@ -833,8 +861,6 @@
     var sm = sheetsMode();
     document.getElementById('v-sheets').hidden = !onPanels();
     document.getElementById('v-sheets').classList.toggle('on', sm);
-    document.getElementById('v-liked').hidden = sm;
-    document.getElementById('v-hidex').hidden = sm;
   }
   document.getElementById('v-sheets').addEventListener('click', function () {
     localStorage.setItem('promptlab_sheets', sheetsOnly() ? '' : '1');
@@ -848,9 +874,31 @@
   // Deliberately NOT sticky: the compact box is the page's shape, and the big
   // one is a moment of reading a long dictation. Any hand-dragged resize
   // (desktop) is cleared on the toggle so shrinking back actually shrinks.
+  //
+  // AND THE BIG BOX FITS THE WORDS (2026-08-27, Sophie: "why not expand based
+  // on text, not static"). `fitBig` measures the content and sets the height to
+  // it; `.big`'s min/max-height clamp the result, so both bounds live in the
+  // CSS and nothing re-derives a `vh` here. It runs on the tap, on every
+  // keystroke while the box is open (so it grows under a dictation as she
+  // speaks) and on a resize — a rotation changes what `vh` means.
+  //   `height:auto` FIRST is what makes the measurement honest: scrollHeight of
+  // a box already sized to its old height reports that height, so measuring
+  // without the reset can only ever grow the box, never shrink it back when she
+  // deletes a paragraph. The border is added back because the box is
+  // `border-box` and scrollHeight excludes borders — without it every fit is
+  // two pixels short and the box scrolls its own last line.
+  //   `window.__fitBigPrompt` is what `copyPromptIn` calls: putting a prompt
+  // back in the box sets `.value` directly, which fires no `input` event, so
+  // without it the run she just copied would sit in a box fitted to whatever
+  // was there before.
   (function () {
     var btn = document.getElementById('bigprompt');
     var box = document.getElementById('prompt');
+    function fitBig() {
+      if (!box.classList.contains('big')) return;
+      box.style.height = 'auto';
+      box.style.height = (box.scrollHeight + (box.offsetHeight - box.clientHeight)) + 'px';
+    }
     function paint() {
       var big = box.classList.contains('big');
       btn.innerHTML = big ? ICONS.minimize : ICONS.maximize;
@@ -860,8 +908,12 @@
     btn.addEventListener('click', function () {
       box.classList.toggle('big');
       box.style.height = '';
+      fitBig();
       paint();
     });
+    box.addEventListener('input', fitBig);
+    window.addEventListener('resize', fitBig);
+    window.__fitBigPrompt = fitBig;
     paint();
   })();
 
@@ -1082,12 +1134,29 @@
     paintPhoto();
   }
 
+  // PUTTING A PROMPT BACK MOVES THE SCREEN TO THE BOX (2026-08-28, Sophie:
+  // "prompt us back in box shud move screen to box"). Every copy path already
+  // asked for that scroll, and from the LIGHTBOX it never happened: closing an
+  // overlay RESTORES the position she opened it from (the house rule — she
+  // closes an image exactly where she opened it), and asset-lightbox.js
+  // re-asserts that restore on the NEXT frame, which cancels a smooth scroll
+  // started in the same tick. So the scroll is asked for immediately AND again
+  // once the restore's own frames have run: the last word has to be ours, or
+  // the words land in a box she is nowhere near.
+  function scrollToPrompt() {
+    var go = function () { window.scrollTo({ top: 0, behavior: 'smooth' }); };
+    go();
+    requestAnimationFrame(function () { requestAnimationFrame(go); });
+  }
+
   // The copy button beside a run's words: puts that prompt back into the box.
   function copyPromptIn(text) {
     var box = document.getElementById('prompt');
     box.value = text || '';
+    // Setting `.value` fires no `input` event, so the big box has to be told.
+    if (window.__fitBigPrompt) window.__fitBigPrompt();
     updateShape();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollToPrompt();
     toast('Prompt is back in the box');
   }
   // A PANELS run's copy button refills the panel BOXES — switching to the
@@ -1106,8 +1175,11 @@
     restorePhoto(r);
     savePanelTexts(r.grid.count, r.panels.slice());
     try { localStorage.setItem(GRIDKEY, String(r.grid.count)); } catch (e) { /* private mode */ }
+    // "Back in the boxes" has to be true on screen — a shut fold would put
+    // them somewhere she cannot see.
+    openPanels();
     setTab('panels');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollToPrompt();
     toast('Panels are back in the boxes');
   }
   // A STORY run's copy button refills the STORY box — its words came out of
@@ -1116,8 +1188,9 @@
     try { localStorage.setItem(STORYTEXTKEY, String(r.prompt || '')); } catch (e) { /* private mode */ }
     try { localStorage.setItem(GRIDKEY, 'story'); } catch (e) { /* private mode */ }
     restorePhoto(r);          // a story run never carries one → clears, honestly
+    openPanels();             // same rule as copyPanelsIn — the box must be on screen
     setTab('panels');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollToPrompt();
     toast('The story is back in the box');
   }
   function copyRunIn(r) {
@@ -1271,17 +1344,61 @@
     row.style.setProperty('--tx', (t.left - r.left - row.clientLeft) + 'px');
     if (!row.__tl) { row.__tl = 1; requestAnimationFrame(function () { row.classList.add('tl'); }); }
   }
+  // THE FOLD (2026-08-28, Sophie: "make the panels grid collapsible"). Sticky
+  // and OPEN by default — the boxes are the prompt on this tab, so shut is a
+  // state she has to have chosen. Shut hides them with `display:none` and
+  // leaves them in the DOM, so panelVals() still reads her words and Generate
+  // works folded; the tab's own `hidden` is separate and always wins (the
+  // page's `[hidden]{display:none!important}`). Anything that means "write in
+  // these boxes" — picking a grid, putting a prompt back, an error naming an
+  // empty one — OPENS it, because an error pointing at a box she cannot see
+  // is worse than no error.
+  var FOLDKEY = 'promptlab_panelfold';
+  function panelsShut() {
+    try { return localStorage.getItem(FOLDKEY) === '1'; } catch (e) { return false; }
+  }
+  function setPanelsShut(v) {
+    try { localStorage.setItem(FOLDKEY, v ? '1' : '0'); } catch (e) { /* private mode */ }
+    paintPanelFold();
+  }
+  function openPanels() { if (panelsShut()) setPanelsShut(false); }
+  function panelFoldLabel() {
+    if (storyMode()) return storyText().trim() ? 'Story · written' : 'Story';
+    var vals = panelVals();
+    var n = vals.filter(function (s) { return s.trim(); }).length;
+    return 'Panels · ' + n + ' of ' + vals.length + ' written';
+  }
+  function paintPanelFold() {
+    var row = document.getElementById('panelfold');
+    var box = document.getElementById('panelgrid');
+    row.hidden = !onPanels();
+    if (!onPanels()) return;
+    var shut = panelsShut();
+    box.style.display = shut ? 'none' : (box.getAttribute('data-mode') || 'grid');
+    row.classList.toggle('shut', shut);
+    row.setAttribute('aria-expanded', shut ? 'false' : 'true');
+    document.getElementById('panelfoldlab').textContent =
+      shut ? panelFoldLabel() : (storyMode() ? 'Story' : 'Panels');
+  }
+  document.getElementById('panelfold').addEventListener('click', function () {
+    setPanelsShut(!panelsShut());
+  });
   function buildPanelGrid() {
     buildCastBox();
     var box = document.getElementById('panelgrid');
-    if (!onPanels()) { box.hidden = true; return; }
+    if (!onPanels()) { box.hidden = true; paintPanelFold(); return; }
     box.hidden = false;
-    if (!PANELS_CFG) { box.style.display = 'block'; box.innerHTML = '<div class="emptynote">Loading…</div>'; return; }
+    if (!PANELS_CFG) {
+      box.setAttribute('data-mode', 'block');
+      box.innerHTML = '<div class="emptynote">Loading…</div>';
+      paintPanelFold();
+      return;
+    }
     // STORY: one tall box for the whole story — her words persist like the
     // panel texts, so switching 9 → Story → 9 loses nothing either way. The
     // placeholder NAMES the field and nothing more (the house rule).
     if (storyMode()) {
-      box.style.display = 'block';
+      box.setAttribute('data-mode', 'block');
       box.innerHTML = '';
       var st = document.createElement('textarea');
       st.setAttribute('data-story', '1');
@@ -1291,10 +1408,11 @@
         try { localStorage.setItem(STORYTEXTKEY, st.value); } catch (e) { /* private mode */ }
       });
       box.appendChild(st);
+      paintPanelFold();
       return;
     }
     var g = curGrid(), meta = PANELS_CFG.grids[g];
-    box.style.display = 'grid';
+    box.setAttribute('data-mode', 'grid');
     box.style.gridTemplateColumns = 'repeat(' + meta.across + ', 1fr)';
     // The boxes wear the CELL's shape: the grid's own when it PINS one (the 2
     // option is landscape), else the canvas toggle's.
@@ -1310,6 +1428,7 @@
       t.addEventListener('input', stashPanels);
       box.appendChild(t);
     }
+    paintPanelFold();
   }
   // ── HER TYPED CAST (2026-08-27, Sophie: "add a characters clause / text
   // boxes that say character 1: add character, name, description … etc up to
@@ -1420,6 +1539,8 @@
     var b = e.target.closest('button[data-grid]');
     if (!b) return;
     try { localStorage.setItem(GRIDKEY, b.getAttribute('data-grid')); } catch (err) { /* private mode */ }
+    // Picking a layout is her saying she is about to write into it.
+    openPanels();
     // paintCanvas too: Story ↔ a grid moves what the toggle DECIDES (the
     // sheet itself vs each cell), so the titles must move with it.
     paintGridPick(); buildPanelGrid(); syncControls(); paintCanvas(); paintRes(); paintPromptPanel();
@@ -1434,7 +1555,11 @@
     if (storyMode()) {
       var story = (document.querySelector('#panelgrid textarea[data-story]') || {}).value || '';
       story = story.trim();
-      if (!story) { err.textContent = 'Type the story first.'; err.hidden = false; return; }
+      if (!story) {
+        err.textContent = 'Type the story first.'; err.hidden = false;
+        openPanels();          // an error about a box she cannot see is no error
+        return;
+      }
       var sbtn = document.getElementById('go');
       sbtn.disabled = true;
       startStoryRun(story).catch(showErr).finally(function () { sbtn.disabled = false; });
@@ -1447,6 +1572,7 @@
       err.textContent = empty === texts.length ? 'Type each panel first.'
         : (empty + (empty === 1 ? ' panel still needs words.' : ' panels still need words.'));
       err.hidden = false;
+      openPanels();            // the empty box the error names has to be on screen
       return;
     }
     var btn = document.getElementById('go');
@@ -1470,7 +1596,7 @@
         prefix: over ? over.prefix : undefined, suffix: over ? over.suffix : undefined,
         noText: noTextFor(styleKey),
       }),
-    }).then(function (r) { return r.json(); }).then(function (d) {
+    }).then(readJson).then(function (d) {
       if (!d.id) throw new Error(d.error || 'Could not start.');
       var list = pendingList();
       list.push({
@@ -1499,7 +1625,7 @@
         prefix: over ? over.prefix : undefined, suffix: over ? over.suffix : undefined,
         noText: noTextFor(styleKey),
       }),
-    }).then(function (r) { return r.json(); }).then(function (d) {
+    }).then(readJson).then(function (d) {
       if (!d.id) throw new Error(d.error || 'Could not start.');
       var list = pendingList();
       list.push({
@@ -2512,7 +2638,7 @@
     return fetch('/api/promptlab', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-    }).then(function (r) { return r.json(); }).then(function (d) {
+    }).then(readJson).then(function (d) {
       if (!d.id) throw new Error(d.error || 'Could not start.');
       var list = pendingList();
       list.push(gpt
@@ -2536,9 +2662,29 @@
     }
     return true;
   }
+  // A mid-deploy answer is Render's 502 page or an empty body, and Safari's
+  // words for JSON that isn't there — "The string did not match the expected
+  // pattern" — reached the error line verbatim (Sophie, 2026-08-28). Read the
+  // body as text and say what actually happened instead.
+  function readJson(r) {
+    return r.text().then(function (t) {
+      try { return JSON.parse(t); }
+      catch (e) {
+        throw new Error(r.ok
+          ? 'The server sent a broken answer — try again.'
+          : 'The server answered ' + r.status + ' — probably mid-deploy. Try again in a minute.');
+      }
+    });
+  }
   function showErr(e) {
     var err = document.getElementById('err');
-    err.textContent = (e && e.message) || 'Network error — try again.'; err.hidden = false;
+    var m = (e && e.message) || '';
+    // Any path still handing over a browser-internal message gets the same
+    // honest line: WebKit's JSON miss, Chrome's, and Safari's bare network
+    // failure ("Load failed") all mean the server never answered properly.
+    if (/did not match the expected pattern|JSON Parse error|Unexpected token|Load failed|Failed to fetch/i.test(m))
+      m = 'The server hiccuped (probably mid-deploy) — try again in a minute.';
+    err.textContent = m || 'Network error — try again.'; err.hidden = false;
   }
 
   function go() {
@@ -2768,9 +2914,9 @@
   // a cut-failed run already ARE their sheet (images[0], which is a real
   // picture with real votes, so it opens at its ordinary index); a cut grid
   // run banks its sheet beside the panels (`sheetUrl`), which is not in
-  // `images` and opens at the VIRTUAL index -1 — view-only, since votes are
-  // indexed into the cut panels. A run with no sheet at all (a failed draw)
-  // has nothing to show here.
+  // `images` and opens at the VIRTUAL index -1 — which carries its OWN ♥/✕
+  // since 2026-08-27, on the run doc under that index. A run with no sheet at
+  // all (a failed draw) has nothing to show here.
   function sheetCellOf(r) {
     if (r.storySheet || r.cutFailed) {
       var u = runImages(r)[0];
@@ -2784,6 +2930,24 @@
   function sheetArOf(r) {
     var m = /^(\d+)x(\d+)$/.exec(String(r.sheet || r.size || ''));
     return m ? m[1] + ' / ' + m[2] : arCss(r.aspectRatio);
+  }
+
+  // THE UNCUT SHEET, WHILE THE CUT RUNS (2026-08-27, Sophie: "the uncut sheet
+  // shud show before it's cut as soon as it's done (in panels"). The paid
+  // render is banked and the run parks on 'ready' seconds before the panels
+  // are cut, sized and filed — so the picture she just paid for goes up at
+  // once instead of the run sitting on "drawing…" through work that has
+  // nothing left to draw. ONE cell, in the SHEET's own ratio (a wide sheet in
+  // cells cut for 2:3 panels would be squashed — that shape, not the stage
+  // itself, is what this used to be avoided for), at the virtual index -1 the
+  // Sheets view already opens — which carries its own ♥/✕ since 2026-08-27,
+  // so this cell is not view-only any more. The swap poller replaces it with
+  // the panels on 'done'.
+  function cuttingSheet(r) {
+    if (!r || !r.sheetUrl || !r.panels || !r.panels.length) return null;
+    if (r.status !== 'ready' || runImages(r).length) return null;
+    return { key: r.id + '|s', src: thumbFor(r.sheetUrl), vote: (r.votes || {})['-1'] || '',
+      runId: r.id, i: '-1', ar: sheetArOf(r) };
   }
 
   // ── DERIVED DISPLAY COPIES + REPAINT WITHOUT REBUILDING (Aug 2026, Sophie:
@@ -2913,6 +3077,10 @@
       // the card rather than leaving her to wonder why one wide picture came
       // back instead of nine.
       if (r.cutFailed) parts.push('uncut sheet');
+      // The sheet is up and the cut is still running — the tag says why one
+      // wide picture is standing in for the panels, and that it is not the
+      // end state (a cut that never lands says 'uncut sheet' instead).
+      if (cuttingSheet(r)) parts.push('sheet — cutting…');
       // A run made with a photo attached says so on its card — otherwise two
       // runs of the same words look identical and only one had the photo.
       if (r.photoRef) parts.push('photo ref');
@@ -2921,6 +3089,37 @@
       if (r.seed != null) parts.push('seed ' + r.seed);
     }
     if (r.status === 'cancelled') parts.push('cancelled');
+    return parts;
+  }
+
+  // THE LIGHTBOX CAPTION IS THE HOUSE CAPTION AND NOTHING ELSE — MODEL ·
+  // QUALITY · SIZE (2026-08-27, Sophie, pointing at the banked sheet's caption:
+  // "extra notes - dreamy etc … just need model quality and pixels + 1/4").
+  // It read "Dreamy · medium · 1/4 (1K) · 1:1 · panels 2x2 · uncut sheet · 2x2"
+  // — six things, of which the caption's own three were the first three. The
+  // card's tag row is where a run's other facts belong (the style, the ratio,
+  // the grid, a photo ref); over a picture she is looking at, the ratio and
+  // the grid are things she can SEE and the style is behind the Prompt door.
+  //
+  // SLOT 1 IS THE STYLE, and that is her correction (2026-08-27, on the first
+  // cut of this: "u added panel 2/4 and the chatgpt2 … get rid"). It shipped
+  // as the model ID — `gpt-image-2` — to match what the same picture's FILED
+  // caption says in My Creations and Meta Assets; she read that as a new
+  // thing appearing where the name of the tile she drew with had been. The
+  // tile IS the model to her, so the label is the answer here.
+  //
+  // The size slot is sheet-aware: a cut panel is "1/4 (4K)" (the fraction and
+  // the SHEET's tier), the banked uncut sheet is the sheet's own "4K".
+  function lbCaption(r, i) {
+    // A LoRA run has neither a quality nor a tier — its caption is what it
+    // always was (the card's tags), because there is no house caption to trim
+    // it down to and her ask was about the gpt-image-2 one.
+    if (r.engine !== 'gptimage') return runParts(r);
+    var st = window.__sizeTier;
+    var parts = [runStyleLabel(r)];
+    if (r.quality) parts.push(r.quality);
+    var slot = st ? (i === -1 ? st.sheetSize(r) : st.runSize(r)) : '';
+    if (slot) parts.push(slot);
     return parts;
   }
 
@@ -3002,12 +3201,8 @@
           r.quality, r.aspectRatio, r.character ? 'c' : '', r.loraScale, r.seed,
           r.grid && r.grid.count ? 'g' + r.grid.count : '']);
       });
-      // In SHEETS mode the ♥/✕ filters stand down with their chips — votes
-      // belong to the cut panels, and a sticky heart silently emptying the
-      // sheets view would be a filter she cannot see acting on things it
-      // cannot match.
-      var only = likedOnly() && !sheetsMode();
-      var nox = hideX() && !sheetsMode();
+      var only = likedOnly();
+      var nox = hideX();
       var items = [];
       groups.forEach(function (g) {
         var head = g.items[0];
@@ -3026,8 +3221,21 @@
         g.items.slice().reverse().forEach(function (r) {
           if (sheetsMode()) {
             var s = sheetCellOf(r);
-            if (s) cells.push({ key: r.id + '|s', src: thumbFor(s.src), vote: '', runId: r.id, i: s.i, ar: sheetArOf(r) });
+            if (!s) return;
+            var sv = (r.votes || {})[s.i] || '';
+            if (only && sv !== 'like') return;
+            if (nox && sv === 'dislike') return;
+            cells.push({ key: r.id + '|s', src: thumbFor(s.src), vote: sv, runId: r.id, i: s.i, ar: sheetArOf(r) });
             return;
+          }
+          // Its panels are still being cut: the sheet stands in for them. It
+          // is votable at -1 like the banked sheet, so it obeys the filters
+          // rather than being dropped whenever the heart is lit.
+          var cut = cuttingSheet(r);
+          if (cut) {
+            if (only && cut.vote !== 'like') return;
+            if (nox && cut.vote === 'dislike') return;
+            cells.push(cut); return;
           }
           var votes = r.votes || {};
           runImages(r).forEach(function (u, i) {
@@ -3082,8 +3290,8 @@
   // feed — a picture on its way has its place in it before it lands.
   function renderTiles() {
     var items = [];
-    var only = likedOnly() && !sheetsMode();
-    var nox = hideX() && !sheetsMode();
+    var only = likedOnly();
+    var nox = hideX();
     // A picture on its way has not been hearted, so the waiting squares are a
     // list-of-everything thing: with the heart lit the wall is hearts only.
     // In sheets mode a drawing run is ONE square — the sheet on its way.
@@ -3099,8 +3307,18 @@
       if (r.status === 'failed') return;
       if (sheetsMode()) {
         var s = sheetCellOf(r);
-        if (s) items.push({ key: r.id + '|s', src: thumbFor(s.src), vote: '', runId: r.id, i: s.i, ar: sheetArOf(r) });
+        if (!s) return;
+        var sv = (r.votes || {})[s.i] || '';
+        if (only && sv !== 'like') return;
+        if (nox && sv === 'dislike') return;
+        items.push({ key: r.id + '|s', src: thumbFor(s.src), vote: sv, runId: r.id, i: s.i, ar: sheetArOf(r) });
         return;
+      }
+      var cutting = cuttingSheet(r);
+      if (cutting) {
+        if (only && cutting.vote !== 'like') return;
+        if (nox && cutting.vote === 'dislike') return;
+        items.push(cutting); return;
       }
       var votes = r.votes || {};
       runImages(r).forEach(function (u, i) {
@@ -3358,25 +3576,32 @@
     lbCur = { id: id, i: i };
     lbSrc = src;
     var h = runPromptHalves(r, i);
-    // What drew it — model, quality/scale, seed — as the MODEL · QUALITY tag.
-    // This page has no per-picture label, so the tag is the whole caption.
-    var meta = runParts(r);
-    if (isSheet) meta.push('uncut sheet' + (r.grid && r.grid.count ? ' · ' + r.grid.across + 'x' + r.grid.down : ''));
-    else if (r.panels && r.panels.length && !r.cutFailed) meta.push('panel ' + (i + 1) + ' of ' + runImages(r).length);
-    else if (runImages(r).length > 1) meta.push('image ' + (i + 1));
+    // THREE SLOTS, FULL STOP (2026-08-27, Sophie: "u added panel 2/4 and the
+    // chatgpt2 … get rid"). `panel 2 of 4` was kept as navigation — which one
+    // of the run she is looking at — and it is still a fourth thing on a line
+    // she asked to be three. The size slot already says it is a quarter, and
+    // the card's tag row still says 'sheet — cutting…' while a cut runs.
+    var meta = lbCaption(r, i);
     var seq = lbSeq(), at = -1;
     for (var k = 0; k < seq.length; k++) if (seq[k].id === id && seq[k].i === i) { at = k; break; }
     var asset = {
       prompt: meta.join(' · '),
       promptStyle: h.style,
       promptContent: h.content,
-      vote: isSheet ? null : ((r.votes || {})[i] || null),
-      thread: isSheet ? [] : (noteCache[src] || []),
+      // THE SHEET IS A PICTURE LIKE ANY OTHER (2026-08-27, Sophie: "missing
+      // three buttons too" — the banked sheet's lightbox had lost the ♥, the
+      // ✕ and the Story Room walk). It was view-only because votes are indexed
+      // into `images` and the sheet is not in it; it rides the VIRTUAL index
+      // -1 now, on the run doc and on the Assets record its own filing made
+      // ("the sheet — N panels"). It is a picture she paid for, and on a story
+      // sheet it is the only picture the run has.
+      vote: (r.votes || {})[i] || null,
+      thread: noteCache[src] || [],
       // The old Playground arrangement, as the shared file's hooks (2026-08-26,
       // Sophie): ♥/✕ lead the row under the picture, the tag right under it.
       votesBelow: true,
       capUnderImage: true,
-      _cast: isSheet ? null : castLB,
+      _cast: castLB,
       // The note lands on the picture's own thread in my-creations, where
       // every Playground picture is filed — the Panels wiring, verbatim, so a
       // chat sweeping its notes finds it where it expects.
@@ -3408,15 +3633,14 @@
         // run and which of its pictures ride the link (?send=<run>&i=<n>) —
         // never the url, because the room re-reads the run and gets the whole
         // provenance with it, the same src the pad's own inbox pick sends.
+        // The banked sheet walks too, at its virtual index -1 — the room
+        // resolves that to `sheetUrl` (loadSend). A whole comic page is
+        // exactly the kind of picture a beat wants.
         { label: 'Send to the Story Room', icon: ICONS.share,
           onClick: function () { location.href = '/storyroom?send=' + encodeURIComponent(id) + '&i=' + i; } },
       ],
     };
     if (carry) { asset.promptSide = carry.side; asset.promptOpen = carry.open; }
-    // The virtual sheet keeps put-back (refills the panel boxes via
-    // copyRunIn's fallthrough) and Save; the Story Room walk goes — the room
-    // re-reads the run by index, and the sheet has none.
-    if (isSheet) asset.actions = asset.actions.slice(0, 2);
     lbAsset = asset;
     // ── THE PICTURE IS ON SCREEN AT ONCE (2026-08-26, Sophie: "it seems like
     // it takes quite a while to load the images in light box view") ─────────
@@ -3449,10 +3673,9 @@
     }
     // The thread is ONE doc read, asked for after the picture is already up —
     // the sibling /notes route answers with a whole chat's worth and would be
-    // the wrong thing to fetch to open one picture. Not for the virtual
-    // sheet: with no _cast wired the box never renders, so the read would be
-    // an answer nothing displays.
-    if (isSheet) return;
+    // the wrong thing to fetch to open one picture. The virtual sheet asks
+    // too: it is filed as its own asset ("the sheet — N panels"), so a note
+    // left on it has somewhere real to land.
     fetch('/api/gallery/assets/note?chat=' + encodeURIComponent(NOTE_CHAT)
       + '&url=' + encodeURIComponent(src))
       .then(function (res) { return res.json(); })
@@ -3495,6 +3718,87 @@
     if (lbIsOpen()) { closeLB(); return true; }
     return false;
   };
+
+  /* ── THE PAGE HEALS ITS OWN STALENESS (2026-08-27, Sophie: "it's not
+     there", about the back-to-top arrow — then "self heal").
+     MEASURED that hour, and this is why the fix is here rather than in the
+     pill: the bytes Render serves carry the arrow, and the live html renders
+     it at her viewport with the iPhone 13's 47px safe-area inset. What she
+     was looking at was an OLD PAGE. The iOS app keeps the three recent tools
+     alive in a ZStack, so this page loads ONCE per app process and
+     re-entering the tool shows the same one — no deploy can reach it, which
+     is the Film Editor's round-three finding arriving at the tool she is in
+     most.
+
+     A HASH, NOT A CONST. The build id is derived server-side from the page
+     file plus the pill (pageBuildId in server.js), so nobody has to remember
+     to bump anything — the Film Editor's hand-kept `var BUILD` is one
+     forgotten edit away from a self-heal that never fires.
+
+     IT ONLY RELOADS WHEN NOTHING WOULD BE LOST, which is the half the Film
+     Editor could take for granted and this page cannot: its whole state is
+     server-side, and the Playground holds real unsaved things. Her typed
+     prompt, an attached photo, a picked cast, the quality and size she has
+     moved off default and a search she is in the middle of are all
+     DELIBERATELY not persisted, so a silent reload would throw them away —
+     a worse bug than the one being fixed. Everything else already survives
+     (the view, the filters, the columns, the canvas, the panel words, her
+     prompt overrides, and pending runs, which live in localStorage).
+     When she IS holding something, it waits and asks again; the common
+     stale case — the tool opened after a night in the background, nothing
+     typed yet — heals on the spot.
+
+     THE VISIBILITY CHECK IS THE ONE THAT MATTERS. Coming back to the tool is
+     the moment a stale page is about to be used; the five-minute timer is
+     the fallback for a page left open. Exposed as window.__plBuildCheck for
+     the test. ── */
+  // READ LAZILY, never at parse time: serveGated APPENDS the stamp after the
+  // page (and after the pill), so at the moment this script runs
+  // window.__forgeBuild does not exist yet. Caching it here would leave
+  // PL_BUILD empty forever and the self-heal silently disabled — which every
+  // "same build" assertion would still pass, vacuously.
+  function plBuild() { return window.__forgeBuild || ''; }
+  // The values a FRESH load would take, read here rather than written down —
+  // a literal would drift the day a default moves.
+  var plQ0 = quality, plR0 = resTier;
+  var plTouchedAt = 0;
+  ['pointerdown', 'keydown'].forEach(function (ev) {
+    document.addEventListener(ev, function () { plTouchedAt = Date.now(); }, true);
+  });
+  function plHolding() {
+    if (Date.now() - plTouchedAt < 10000) return true;      // under her thumb
+    var el = document.activeElement;
+    if (el && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')) return true;
+    if (document.getElementById('prompt').value.trim()) return true;
+    if (photoRef) return true;
+    if (pickedChars.length) return true;
+    if (quality !== plQ0 || resTier !== plR0) return true;
+    var q = document.getElementById('q');
+    if (q && q.value.trim()) return true;
+    if (lbIsOpen()) return true;
+    if (document.getElementById('ask').classList.contains('on')) return true;
+    if (charsOpen) return true;
+    var pp = document.getElementById('promptpanel');
+    if (pp && pp.classList.contains('on')) return true;
+    return false;
+  }
+  function plBuildCheck() {
+    var mine = plBuild();
+    if (!mine) return Promise.resolve(false);      // older server, nothing to compare
+    return fetch('/api/promptlab/build', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        if (!r || !r.build || r.build === mine) return false;
+        if (plHolding()) return false;
+        location.reload();
+        return true;
+      }).catch(function () { return false; });
+  }
+  window.__plBuildCheck = plBuildCheck;
+  setInterval(plBuildCheck, 5 * 60 * 1000);
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') plBuildCheck();
+  });
 
   if (window.__nativeNavBar) document.body.classList.add('native');
   renderStyles(); updateShape(); syncControls(); syncTab(); applyLiked(false); applyHideX(false); applyView(); loadRuns();

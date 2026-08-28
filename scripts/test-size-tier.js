@@ -65,6 +65,22 @@ is(tierOf('1/4 (4K)'), null, 'and is never mistaken for a canvas');
 // The tier a quarter would get from its OWN pixels — the thing this avoids.
 is(tierOf('1168x1752'), '1K', "a 4K sheet's quarter is only 1K by pixel count");
 
+// A WHOLE RUN'S SLOT, and the SHEET'S (2026-08-27, Sophie, on the banked
+// sheet's caption in the Playground lightbox: it read "1/4 (1K) … uncut
+// sheet" — the RUN's slot printed over the one picture of that run which is
+// not a cut). `runSize` answers for the run's pictures, `sheetSize` for the
+// sheet they were cut out of.
+const { runSize, sheetSize } = require(path.join(__dirname, '..', 'size-tier'));
+is(runSize({ res: '4k' }), '4K', 'a plain run is its own tier');
+is(runSize({ size: '2336x3504', grid: { count: 4 } }), '1/4 (4K)',
+  "a panels run's pictures are quarters of its sheet");
+is(runSize({ size: '2336x3504', grid: { count: 4 }, cutFailed: true }), '4K',
+  'a cut that failed is the sheet itself, never a fraction of one');
+is(sheetSize({ res: '4k', size: '2304x3456', grid: { count: 9 } }), '4K',
+  'the banked sheet is the WHOLE sheet, whatever the run was cut into');
+is(sheetSize({ size: '1568x2352' }), '2K', 'and falls back to its canvas');
+is(sheetSize({}), '', 'nothing known says nothing');
+
 // The readers agree — meta-assets builds the caption from the same helper.
 const meta = fs.readFileSync(path.join(__dirname, '..', 'meta-assets.js'), 'utf8');
 assert(/sizeTier\.captionSize\(c\.size\)/.test(meta),

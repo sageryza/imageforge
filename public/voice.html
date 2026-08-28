@@ -88,6 +88,39 @@ textarea{display:block; width:100%; box-sizing:border-box; min-height:7.5em; res
   font-family:'EBGaramond',Georgia,serif; font-size:17px; line-height:1.45;
   border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink); padding:10px 12px;}
 textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
+/* THE BIGGER WORDS BOX (2026-08-27, Sophie: "add an expand text box button in
+   the voice studio"). The Playground's `#bigprompt` answer, lifted in SHAPE
+   rather than copied: ONE textarea at two sizes, so there is never a second
+   field to keep in sync with the first. A 26px rounded square inside the box's
+   own bottom corner — the house 6px, never a circle.
+   THE CORNER IS RESERVED with `padding-bottom`, or her last line is typed
+   under the button.
+   AND IT SITS 56px IN FROM THE RIGHT, not in the exact corner: this page is
+   served `{ pill: true }`, so the injected autoscroll pill owns a fixed column
+   at the top-right and the box's own corner can land inside it on a phone,
+   where a tap reaches the pill's ▼ instead. Lifting the button's z-index is
+   NOT the fix — that steals the pill's own tap. Same number as the Playground,
+   for the same reason.
+   THE BIG BOX FITS THE WORDS (2026-08-27, Sophie: "why not expand based on
+   text, not static"). It was a flat 46vh whatever was in it, which is a box
+   with an empty half under two lines and a box that still scrolls under a long
+   dictation — the size said nothing about what was in it. So `.big` is the
+   CAP, never the height: the height is measured off the content on the tap,
+   on every keystroke while it is open, and on a resize. The FLOOR is what
+   keeps the button worth tapping on an empty box — this is a field she WRITES
+   in, so "expand" has to mean room to write before the words exist; that is
+   the difference from the `.moretxt` opener, which only ever reveals text
+   that is already there and so may hide itself.
+   BOTH BOUNDS ARE CSS, NOT JS ARITHMETIC — the browser clamps the inline
+   height between them, so the two numbers live in one place and no `vh` has
+   to be re-derived in script. */
+.promptwrap{position:relative;}
+.promptwrap textarea{padding-bottom:34px;}
+#text.big{min-height:24vh; max-height:46vh;}
+#bigtext{position:absolute; right:56px; bottom:6px; width:26px; height:26px;
+  display:flex; align-items:center; justify-content:center; padding:0; margin:0;
+  border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink2); cursor:pointer;}
+#bigtext svg{width:14px; height:14px;}
 /* stretch, so Render and Clear are the same height by construction — their
    borders differ by half a pixel and padding alone left them one pixel apart. */
 .renderrow{display:flex; align-items:stretch; gap:12px; margin-top:10px;}
@@ -263,7 +296,7 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
 
   <div id="pane-say">
     <div class="sect">Words</div>
-    <textarea id="text"></textarea>
+    <div class="promptwrap"><textarea id="text"></textarea><button type="button" id="bigtext" aria-label="Bigger box" title="Bigger box"></button></div>
     <div class="renderrow">
       <button class="gobtn" id="go" disabled>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg>
@@ -362,6 +395,55 @@ function saveText(){ try{ localStorage.setItem(TKEY, ta.value||''); }catch(e){} 
 try{ var kept=localStorage.getItem(TKEY); if(kept) ta.value=kept; }catch(e){}
 ta.addEventListener('input', function(){ paintGo(); saveText(); });
 clr.onclick=function(){ ta.value=''; saveText(); paintGo(); ta.focus(); };
+
+// THE BIGGER WORDS BOX (2026-08-27, Sophie: "add an expand text box button in
+// the voice studio"). One textarea, two sizes — the corner button toggles
+// `.big` on #text and swaps its own glyph. Lucide `maximize-2`/`minimize-2`.
+// Deliberately NOT sticky: the compact box is the page's shape, and the big one
+// is a moment of reading or fixing a long dictation. The textarea is
+// `resize:vertical`, so any hand-dragged height is cleared on the toggle —
+// otherwise "back to small" would leave the box exactly where she dragged it.
+//
+// THE BIG BOX FITS THE WORDS (2026-08-27, Sophie: "why not expand based on
+// text, not static"). `fitBig` measures the content and sets the height to it;
+// `.big`'s min/max-height clamp the result, so the two bounds live in the CSS
+// and nothing re-derives a `vh` here. It runs on the tap, on every keystroke
+// while the box is open (so it grows under a dictation as she speaks) and on a
+// resize — a rotation changes what `vh` means.
+//   `height:auto` FIRST is what makes the measurement honest: scrollHeight of
+// a box already sized to its old height reports that height, so measuring
+// without the reset can only ever grow the box, never shrink it back when she
+// deletes a paragraph. The border is added back because the box is
+// `border-box` and scrollHeight excludes borders — without it every fit is two
+// pixels short and the box scrolls its own last line.
+(function(){
+  var MAX='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>';
+  var MIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>';
+  var btn=document.getElementById('bigtext');
+  function fitBig(){
+    if(!ta.classList.contains('big')) return;
+    ta.style.height='auto';
+    ta.style.height=(ta.scrollHeight + (ta.offsetHeight - ta.clientHeight))+'px';
+  }
+  function paint(){
+    var big=ta.classList.contains('big');
+    btn.innerHTML=big?MIN:MAX;
+    btn.setAttribute('aria-label', big?'Back to the small box':'Bigger box');
+    btn.title=big?'Back to the small box':'Bigger box';
+  }
+  btn.addEventListener('click', function(){
+    ta.classList.toggle('big');
+    ta.style.height='';
+    fitBig();
+    paint();
+  });
+  ta.addEventListener('input', fitBig);
+  window.addEventListener('resize', fitBig);
+  // The serif lands after the page does and it moves the wrap, so a box fitted
+  // before it loaded is fitted to the fallback font's line count.
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(fitBig);
+  paint();
+})();
 
 // ── renders: history + live jobs. Pending ids survive leaving the page. ──
 var rbox=document.getElementById('renders'), cbox=document.getElementById('changes');

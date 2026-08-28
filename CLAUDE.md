@@ -42,6 +42,16 @@ The numbers are measured, not guessed.
    metadata. Full procedure: *THE CLEAN EXPORT* in
    `docs/modules/audio-and-film.md`. (Images: not built yet, hers to ask.)
 
+3f. **Handed her a FILM MADE OF PICTURES? FILE ITS SHOT MAP** —
+   `POST /api/filmshots {chat, session, url, seconds, shots:[{at, url}]}`,
+   one entry per picture with the second it comes on screen. It is what puts
+   the **Prompt** button on the paused player, and you are the only one who
+   knows the cut list — the same *file it while you know it* rule as the
+   MODEL · QUALITY · SIZE caption. No map, no button (never a wrong prompt
+   under her finger). An older film is measured instead:
+   `node scripts/film-shots-detect.js --film <url> --chat <slug>` (dry; add
+   `--go`). Full rules: *THE PROMPT ON A PAUSED FILM* in the Chats section.
+
 **When the work WRAPS UP (not every turn)**
 3b. **Leave a WRAP-UP** — `POST /api/chatfeed/wrapup {chat, session, line,
    asked, did, next}`. It is **her three questions, ONE SENTENCE EACH** (Aug
@@ -213,13 +223,22 @@ late or never.
 - **URGENT is the only interrupt** — she is blocked without it, or it expires.
   Say so plainly in the reply AND queue it anyway, so it survives her not being
   near the computer. "It would be faster" is not urgent.
-- **A video url: TRY `POST /api/ytdl/grab` FIRST, but it is often refused and
-  the queue is still the fallback (measured 2026-08-27).** Render's IP is
-  substantially bot-blocked — 3 of 4 distinct videos refused on every player
-  client — so the grab is worth one attempt and no more hope than that. When it
-  answers `blocked:true`, queue it here. A SESSION container is luckier than
-  Render (2 of 3 the same minute), so a chat that needs the bytes can also run
-  yt-dlp itself and POST the file to the Dump / audio library.
+- **A video url: RUN yt-dlp IN YOUR OWN CONTAINER — not `/api/ytdl/grab`
+  (Sophie's call, 2026-08-27: "use container not render for YouTube
+  downloads").** Render's IP is the bot-blocked one — 3 of 4 distinct videos
+  refused on every player client, including two of her own grabs — and its
+  `GET /status?probe=1` stayed green throughout, so the endpoint reads healthy
+  while her downloads fail. A session container is a different IP, so a chat
+  that needs the bytes fetches `yt-dlp_linux` from the GitHub release, pulls
+  the file itself, and POSTs it to the Dump (`/api/drop/upload-file`) or the
+  audio library (`/api/audio/upload-file`) — the same two routes `/api/ytdl`
+  files through, so it lands where the tools look either way.
+  **A CONTAINER IS BETTER ODDS, NOT A GUARANTEE — say what happened.** Measured
+  from this container 2026-08-27: metadata read on 3 of 4 videos, and the BYTES
+  came down for only **1 of 3** — the other two answered 403 or "sign in to
+  confirm you're not a bot" on every player client on the ladder. When the
+  container is refused too, queue it here: the desktop trip with her logged-in
+  browser's cookies is still the only sure path.
 - **What counts as desktop-only:** anything needing her logged-in browser,
   keychain or Photos library, a plugged-in device, local files that live only on
   the Mac, and big uploads that must be chunked on her home connection. Anything
@@ -972,6 +991,21 @@ them off the reference sheet, not off the old filenames.
     The robust setup is to configure one environment once with all three:
     Network access (add the domain), the Setup script (auto-poster), and
     `FIREBASE_SERVICE_ACCOUNT`.
+- **THE HARNESS JOINS HER BACK-TO-BACK MESSAGES INTO ONE USER RECORD, and the
+  hook's queue reconciliation has to know it (hook v18, 2026-08-27).** Measured
+  in this fix's own transcript: she sent two messages in a row, the
+  `queue-operation` record held the FIRST alone and the user record held the
+  first AND the second joined by a blank line. The reconciliation matched on
+  WHOLE normalised text only, so the queue entry found no home, posted as a
+  message of its own, and **her first message landed twice** — once alone and
+  once inside the joined record. Live count that day: **12 such pairs across
+  her 3,768 messages**. A queue entry is matched against a record's SEGMENTS as
+  a FALLBACK now, and one record can absorb several of them (`aliases`, a list,
+  where there used to be one `alias`). **Whole text still wins first** — two
+  passes, so nothing about the old matching moved and a joined record can never
+  out-bid the plain record that really is that message; and it stays a multiset,
+  so repeating a short phrase can't let the first swallow the second. Test:
+  `node scripts/test-chats-first-message.js` (verified failing 2 pre-fix).
 - **A CHAT THAT NEVER POSTED CANNOT HEAL ITS OWN PAST — back it up on purpose
   (Aug 2026).** The hook BASELINES on its first firing in a session (only the
   latest turn posts), so fixing a silent chat also throws its history away.
@@ -1101,6 +1135,38 @@ them off the reference sheet, not off the old filenames.
       as a user turn and the hook lifts it exactly like something she typed, so
       it would file 7,000 characters of recited rules as what she asked for.
       `isCompacted` is exported from `questions.js` — ONE copy of that rule.
+    - **AND WHEN SHE SENDS SEVERAL IN A ROW IT IS THE FIRST OF THEM
+      (2026-08-27, Sophie: "recurring issue - multiple messages only log the
+      last one in chats app" / "first shud be under what i asked").** She talks
+      the way she talks: the request, then the qualifications — "also the glove
+      ones", "notify when done", "j" — so reading her LAST message filed the
+      afterthought as the one line she reads months later to remember what a
+      chat was. `herAskText` in `chatfeed.js` (it REPLACED `lastHerText`, so
+      there is one reader for one question) takes the START of her latest RUN:
+      her consecutive messages with **no reply between them**, which is exactly
+      "the chat never got a word in, so all of it is one ask". The moment a
+      reply lands the run ends, so an ordinary back-and-forth is untouched and
+      this can only ever reach back over messages nothing has answered.
+      Measured over her 215 stored wrap-ups the hour it landed: **14 change**,
+      from "pills" to "we made a couple panels yesterday and I think they never
+      got cut", from "view" to "pressing the playground button on images made
+      by panels should copy the prompt", from "j" to "dreamt style".
+      **Deliberately NOT time-bounded** — a stretch the chat worked through
+      without replying is still one ask, and a clock here is a rule she never
+      asked for.
+      - **A BARE SLASH COMMAND IS NOT AN ASK** (`SLASH_ONLY` / `isAskable`).
+        She types `/concise` and the harness hands it over as an ordinary user
+        turn, so the hook lifts it like anything she said — and one of the 14
+        chats measured above opened its run on exactly that. Only a message
+        that is NOTHING BUT a command is skipped; one that merely mentions one
+        is hers. Same family as `isCompacted`, applied in the same place.
+      - **AND THE RECORDS ALREADY ON FILE CARRY THE LAST OF A RUN** — a
+        wrap-up is STORED, not derived on read, so `POST /wrapup/rehers` grew
+        `redo:true`, which reopens the summaries already marked
+        `wrapAskedHers`. Dry by default and free, like the rest of that pass;
+        `wrapAskedWas` keeps the ORIGINAL paraphrase and is written once, so a
+        re-pointing pass cannot overwrite the undo with the sentence it is
+        replacing.
     - **The bold question over the line** is `UPD_LABELS[0][1]` ("What you
       asked"), the Update tab's own vocabulary, drawn ONLY when the line really
       is the asked answer (`wrapLineIsAsk`) — labelling a line that fell
@@ -1398,6 +1464,46 @@ them off the reference sheet, not off the old filenames.
     what a covered row passes every width assertion while failing).
   - Tests: `node scripts/test-pin-current.js` (the kind + tag rules, pure) and
     `node scripts/test-chats-pin.js` (the real page, headless).
+- **THE PROMPT ON A PAUSED FILM — what drew the picture she just stopped on
+  (`filmshots.js`, `/api/filmshots`, 2026-08-27, Sophie: "in the play pause
+  feedback pinned video tool, add a way to see image prompts. example: hate
+  of the game").** The paused screen already offered a NOTE; it now also
+  offers **Prompt**, opposite it, and behind it the picture's label, its
+  MODEL · QUALITY · SIZE caption and both halves of its exact prompt.
+  - **THE WORDS ARE NEVER COPIED — only the TIMES are stored.** A film's doc
+    (`forge-film-shots`, id = sha1(the film's url)) holds `[{at, url}]` and
+    nothing else; the label, caption and both prompt halves are resolved from
+    the chat's own filed pictures (`forge-chat-assets`) on every read. So a
+    prompt corrected in the Assets tab is corrected in the player, and the
+    exact-prompt rule keeps ONE copy of the text (*nothing stands between the
+    source and the output*). The join is url, then FILENAME — one picture,
+    two roads, `asset-union.js`'s own subject.
+  - **NO MAP, OR NOTHING FILED FOR THAT SHOT → NO BUTTON.** The Assets tab's
+    own silence: reading one picture's prompt believing it belongs to another
+    is the one failure this must not have, and a label alone is not a prompt.
+    Every film made before this simply looks as it always did.
+  - **TWO DOORS IN.** A chat that CUTS a film knows its shot list and POSTs it
+    the same turn it pins the film (checklist 3f) — exact, free. An EXISTING
+    film is MEASURED: `scripts/film-shots-detect.js` finds the cuts with
+    ffmpeg and matches each shot's own frame against the chat's filed
+    pictures by perceptual hash (dHash). On her example — Hate of the Game —
+    the reel v1, 5:42 — 39 cuts → 40 shots and **40 of 40 matched the right
+    picture**, each the nearest candidate by a clear margin. **A shot it is
+    not sure about is LEFT OUT, never guessed in** (`--loose` overrides; say
+    so if you use it). No model call anywhere; it is bandwidth and ffmpeg on
+    our own box.
+  - **It rides BOTH hosts of the player** — the Chats app's pinned film and
+    compare.js's video lightbox — because the door lives in the ONE shared
+    `public/filmnote.js`, beside tap-to-note.
+  - **The words stop above the button row, not at the bottom of the screen**:
+    the scrubber, play and NOTE stay hers while she reads ("this prompt is
+    wrong" is the likeliest thing she has to say about the picture she is
+    standing on). Content opens by default and the half she picks rides along
+    as she steps; a tap on the words puts them away and never reaches the
+    film's own pause/play toggle underneath.
+  - Tests: `node scripts/test-filmshots.js` (the map, the join and the
+    detector's refusals — pure) and `node scripts/test-film-prompt.js` (the
+    real page + the real filmnote.js, headless).
 - **A SECOND, UNRELATED PIN — the PUSHPIN keeps a CHAT at the top of her list
   (Aug 2026, Sophie: "an option to pin chat to the top so they always show
   first when they come out of hiding and they never disappeared to the bottom
@@ -2194,6 +2300,21 @@ them off the reference sheet, not off the old filenames.
     24-hour interval counted from boot would either never fire or fire on every
     restart — and the stored clock also means a dev container that boots the app
     spends nothing. The tick only runs where `RENDER_EXTERNAL_URL` is set.
+  - **THE AUTOMATIC SWEEP KEEPS HER HOURS — 11am to 11pm PACIFIC (Aug 2026,
+    Sophie: "i'm on pst not utc jsyk" · "11am-11pm").** Read through the IANA
+    zone (`America/Los_Angeles`), never a fixed -8: she says PST but it is PDT
+    half the year, and an offset would fire an hour out all summer. A HAND
+    `POST /run` ignores the window — she asked for the hours the tick keeps,
+    not a curfew on her own button. With the 20-hour due gap the run time drifts
+    earlier each day until it hits 11am and settles there.
+  - **ONE RUN AT A TIME, tick or hand** — found live: the tick fired four
+    minutes into a hand run, each had read who was waiting at its own start,
+    and a sheet's worth of chats was drawn and filed twice for about 6c.
+    Nothing re-checks mid-run, which is right for one run and exactly what
+    makes two collide. A run still `running` after 20 minutes is a dead
+    process (a deploy mid-sweep) and stops blocking — cutmarks.js's takeover
+    rule. `POST /run` answers 409 with the live run's id; `force:true` is the
+    way past it.
   - `POST /run {limit?, dry?}` sweeps on demand — **`dry:true` is free** and
     names exactly who is about to be drawn and what it will cost.
     `GET /status` and `GET /waiting` are free reads. Tests:
@@ -2535,6 +2656,28 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   the sheet's tier rather than a fraction of a thing that was never cut. A
   tier table copied into a page would drift from the boundaries the day they
   move. Pinned by `node scripts/test-playground-panels.js`.
+  **AND THE CAPTION IS THOSE THREE SLOTS AND NOTHING ELSE (2026-08-27,
+  Sophie's next screenshot of the same line, which by then read "Dreamy ·
+  medium · 1/4 (1K) · 1:1 · panels 2x2 · uncut sheet · 2x2": "extra notes -
+  dreamy etc … just need model quality and pixels + 1/4").** Six things, of
+  which the caption's own three were the first three — the required slot was
+  found by adding it beside five other facts rather than by making room for
+  it. `lbCaption` in promptlab.html is the lightbox's own builder now:
+  **the STYLE · QUALITY · SIZE and nothing else.** `runParts` is untouched and
+  still tags the run's CARD with the ratio, the grid, `photo ref` — over a
+  picture she is LOOKING at, the ratio and the grid are things she can see and
+  the wording is behind the Prompt door. A LoRA run has neither a quality nor
+  a tier and keeps its card tags.
+  **THREE MEANS THREE, AND SLOT 1 IS THE TILE SHE DREW WITH (2026-08-27, her
+  correction the same hour: "u added panel 2/4 and the chatgpt2 … get
+  rid").** The first cut read her "model" as the model ID (`gpt-image-2`, to
+  match what that picture's FILED caption says in My Creations and Meta
+  Assets) and kept `panel 4 of 9` on the end as navigation — which one of the
+  run she is looking at. Both were things that had not been on the line
+  before, on a line she had just asked to be three: **the Playground's tiles
+  ARE the models to her**, and the size slot already says a picture is a
+  quarter. So the filed caption and this one disagree about slot 1 on
+  purpose.
   **AND THE HARNESSES COULD NOT SERVE IT** — `scripts/lib/public-asset.js`
   answered out of `public/` only, so the three root-level shared files
   (`pause-plan.js`, `pad-characters.js`, `size-tier.js`) 404'd in every
@@ -2700,6 +2843,19 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   running autoscroll first. Source is `scripts/pill.py` (re-run
   `python3 scripts/gen-pill-inject.py` after editing); full rules in
   `docs/design-rules.md`, pinned by `node scripts/test-back-to-top.js`.
+  - **"IT'S NOT THERE" CAN MEAN THE PAGE IS OLD, NOT THAT THE ARROW IS
+    MISSING (2026-08-27, Sophie about the Playground, twice).** Measured that
+    hour before changing anything: the bytes Render answers with carry the
+    pill VERBATIM, and the live html renders the arrow at her viewport with
+    the iPhone 13's 47px safe-area inset — lit, 38px, tappable, in both list
+    and tiles view. Nothing was wrong with the arrow. **The app keeps the
+    three recent tools alive in a ZStack, so a wrapped page loads ONCE per app
+    process and no deploy can reach it** — the Film Editor's round-three
+    finding, arriving at the tool she is in most. The answer was the
+    self-heal (see the Playground bullet), not a second arrow. **So when a
+    shipped page feature is reported missing, check the SERVED bytes first
+    and her page's age second — building it again is the one move that cannot
+    help.**
   - **THERE IS A SECOND PILL AND IT DRIFTS — `mkPagePill` in `chats.html`
     (2026-08-24, Sophie on a Compare page: "the auto scroll doesn't work on my
     image prompt artifact so I can't scroll back up only down").** A Compare
@@ -3313,6 +3469,45 @@ before working on that module. Nothing was deleted — the moved text is verbati
   Replicate LoRA), **Sandy mirror**, **ChatGPT**, **Dreamy**, Scarry, Pastel,
   Hoonies (all gpt-image-2, her own scans attached as style refs, kept in
   `PL_GPT_STYLES` in server.js).
+  **THE PAGE HEALS ITS OWN STALENESS (2026-08-27, Sophie: "it's not there" —
+  about the back-to-top arrow, which had been live and correct for a day —
+  then "self heal").** The app keeps the three recent tools alive in a ZStack,
+  so this page loads ONCE per app process and re-entering the tool shows the
+  SAME page: no deploy can reach it. That is the Film Editor's round-three
+  finding arriving at the tool she is in most.
+  - **THE BUILD ID IS A HASH, NEVER A HAND-BUMPED CONST** — `page-build.js`
+    (`pageBuildId(file, pill)`), the content hash of exactly what
+    `serveGated` sends, stamped into every gated page as
+    `window.__forgeBuild` and answered by `GET /api/promptlab/build`
+    (registered ABOVE `/api/promptlab/:id`, like `/styles`). The Film
+    Editor keeps `var BUILD = 'fe-2026-08-23d'` in its own html, which is one
+    forgotten edit away from a self-heal that never fires. **The PILL is
+    folded into the hash** — it lives in another file, and the arrow that
+    started this is a pill change and nothing else.
+  - **READ THE STAMP LAZILY.** `serveGated` APPENDS it after the page and the
+    pill, so at parse time `window.__forgeBuild` does not exist yet; caching
+    it in a const leaves the check permanently disabled, and every
+    "same build → no reload" assertion still passes, vacuously. The test asks
+    whether it really CALLED the server for exactly that reason.
+  - **IT RELOADS ONLY WHEN NOTHING WOULD BE LOST, and that is the half the
+    Film Editor could take for granted.** Its state is all server-side; this
+    page holds real unsaved things, every one of them deliberately not
+    persisted: her typed prompt, an attached photo ref, a picked cast, a
+    quality or size tier moved off default, a search in progress, an open
+    lightbox / cancel dialog / prompt panel / character picker, and any tap in
+    the last 10s. A silent reload throwing one of those away is a worse bug
+    than the one being fixed. Everything else already survives a reload (the
+    view, the filters, the columns, the canvas, the panel words, her prompt
+    overrides, pending runs). The DEFAULTS are read at load (`plQ0`/`plR0`),
+    never written down, so a moved default cannot make the guard lie.
+  - **COMING BACK TO THE TOOL IS THE CHECK THAT MATTERS** —
+    `visibilitychange` → visible is the moment a stale page is about to be
+    used; the 5-minute timer is only the fallback for a page left open.
+  - Test: `node scripts/test-playground-selfheal.js` (the hash pure — both
+    files move it — then the real page headless: the stamp, the no-op, the
+    heal, every guard, and the release; verified failing against the pre-fix
+    page). **Another page wanting this needs two lines** — its own
+    `/build` route calling `pageBuildId`, and this block.
   **A hairline PICTURE · PANELS tab sits at the top (2026-08-26, Sophie: "we
   make a picture and cut it into panels … describe each panel individually —
   it could be a feature or Hairline tab in the playground itself").** On
@@ -3330,7 +3525,13 @@ before working on that module. Nothing was deleted — the moved text is verbati
   margin" is out at her ask, and `findSeams` is what keeps the cut off the
   borders, so don't restore it**),
   the server cuts it apart (sequential, lossless, sharp cache off — the 512MB
-  box; **the cut is IMAGE-AWARE since 2026-08-27** — `findSeams` cuts through
+  box; **and ONE CUT AT A TIME ACROSS ALL RUNS since 2026-08-28** — Sophie's
+  two-phase rule, "sheets come in, get banked, then cut only after banked":
+  waiting sheets cost nothing, a banked arrival is ~3MB, a cut decodes ~33MB,
+  so arrivals may stack and the decodes queue (`gateCut` in server.js, which
+  every caller of `finishPanelsCut` — the live job, the boot sweep, `/recut` —
+  comes through; full rules in the Opinions section's ceiling ledger);
+  **the cut is IMAGE-AWARE since 2026-08-27** — `findSeams` cuts through
   the middle of the real gutter near each math line, math as the fallback,
   because the model draws the grid slightly off and a blind cut landed on two
   panels' frame edges in her first live look), and each panel files into My
@@ -3345,15 +3546,29 @@ before working on that module. Nothing was deleted — the moved text is verbati
   an orphaned panels run from its banked sheet (free) instead of marking paid
   work failed, and `POST /api/promptlab/:id/recut` does the same on demand
   for a failed-with-sheet or cutFailed run (recovery-only: an already-cut run
-  is refused, a second cut would file duplicates). **AND A SHEET IS ONE
-  OUTPUT** — the bulk-batch CEILING LEDGER (Opinions section) counts
-  concurrent OUTPUT buffers on the box; a panels run buffers one sheet.
-  Run a sheet batch at the ledger's largest measured clean number (never
-  one at a time — a serialized 10-sheet batch cost 12 minutes for no
-  protection the box needed), and ratchet the ledger when you measure
-  higher.
+  is refused, a second cut would file duplicates). **AND DRAWING AND CUTTING ARE PACED
+  SEPARATELY** — fire the whole sheet batch AT ONCE (the draw is on OpenAI's
+  hardware), while the CUT is queued one at a time by the server itself
+  (`gateCut`), so a chat never staggers its own launches (Sophie,
+  2026-08-28; full rule under *DRAWING AND CUTTING ARE PACED SEPARATELY* in
+  the Opinions section).
+  **THE BOXES FOLD (2026-08-28, Sophie: "make the panels grid
+  collapsible")** — nine 2:3 boxes is most of a screen and the controls and
+  Generate sit under them, so a row above the grid puts them away (measured:
+  the controls come up ~460px at 390pt). Sticky, and **OPEN by default** —
+  the boxes are the prompt on this tab, so shut is a state she has to have
+  chosen. Three things not to undo. It hides them with **`display:none`,
+  leaving the textareas in the DOM**, so a fold can never lose her words and
+  `panelVals()` still reads them: a folded Generate POSTs every panel, and a
+  test pins that. **Shut, the row says how many are written** ("Panels · 3 of
+  9 written" / "Story · written") and open it does not — the boxes are right
+  there, the archive summary's don't-say-it-twice rule. And **anything that
+  means "write in these boxes" OPENS it** — picking a grid or Story, a run's
+  copy button putting panels back, and a Generate error naming an empty
+  panel, because an error pointing at a box she cannot see is no error.
   Full rules: *The PANELS
-  tab* in `docs/modules/pictures.md`. Tests: `node scripts/test-sheet-grid.js`
+  tab* in `docs/modules/pictures.md`. Tests: `node
+  scripts/test-playground-panel-fold.js`, `node scripts/test-sheet-grid.js`
   and `node scripts/test-playground-panels.js`.
   **SANDY MIRROR AND CHATGPT ARE TWO TILES SINCE 2026-08-24 (Sophie: "add one
   more endpoint option to the playground, which is called ChatGPT and change
@@ -3583,6 +3798,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
       headless — the restore is a state change across three controls and a
       source assertion cannot see it; verified failing pre-fix, 5 in the
       Playground and no button at all in Freeform).
+  **AND IT MOVES THE SCREEN TO THE BOX — `scrollToPrompt` (2026-08-28, Sophie:
+  "prompt us back in box shud move screen to box").** Every copy path had asked
+  for that scroll since the buttons shipped, and from the LIGHTBOX it never
+  happened, so on the one path where she cannot see the box at all the words
+  landed somewhere she was not. **It is two house rules meeting, not a missing
+  call:** closing an overlay RESTORES the position she opened it from (she
+  closes an image exactly where she opened it) and `asset-lightbox.js`
+  re-asserts that restore on the NEXT frame — which lands on top of a smooth
+  scroll started in the same tick and cancels it. So the scroll is asked for
+  immediately AND again once the restore's own frames have run: **the last word
+  has to be ours.** One helper for all three copy paths (the one box, the panel
+  boxes, the story box), so a fourth cannot ship without it. The restore itself
+  is untouched — closing the lightbox WITHOUT copying still puts her back where
+  she opened it, and the test pins both. **A grep passes against the pre-fix
+  page** (the call was always there); the only honest question is where the
+  window ends up a moment after her tap. Test:
+  `node scripts/test-playground-copy-scroll.js` (the real page headless,
+  verified failing pre-fix on the lightbox path).
   **HER OWN CAST — THE CHARACTER PICKER (2026-08-27, Sophie: "add a little
   button in the playground right next to where it says dreamy make sure it's
   the same style with a character icon that shows the five most recent
@@ -3819,11 +4052,36 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **THE PROMPT BOX HAS A BIGGER-BOX TOGGLE (2026-08-25, Sophie: "can you put a
   button so I can see the prompt in a bigger box as an option").** A 26px
   rounded square inside the textarea's bottom-**RIGHT** corner (Lucide
-  `maximize-2`/`minimize-2`) toggles the SAME `#prompt` textarea to 52vh and
-  back — never a second field, so nothing syncs. The compact box reserves that
+  `maximize-2`/`minimize-2`) toggles the SAME `#prompt` textarea open and shut
+  — never a second field, so nothing syncs. The compact box reserves that
   corner with `padding-bottom`, so her last line is never typed under the
   button; the toggle clears any hand-dragged inline height or "back to small"
   would not shrink; deliberately NOT sticky.
+  **AND THE BIG BOX FITS THE WORDS — this REPLACES the flat 52vh (2026-08-27,
+  Sophie: "why not expand based on text, not static").** A fixed height is an
+  empty half under two lines and still a scrollbar under a long dictation, so
+  the size said nothing about what was in it. `.big` is now the **CAP**
+  (`max-height:52vh`) over a **FLOOR** (`min-height:24vh`), and `fitBig`
+  measures the content into the height between them — on the tap, on every
+  keystroke while it is open, and on a resize.
+  - **BOTH BOUNDS ARE CSS.** The browser clamps the inline height, so the two
+    numbers live in one place and no `vh` is re-derived in script.
+  - **`height:auto` FIRST or the box can only ever GROW.** `scrollHeight` on a
+    box already sized to its old height reports that height, so a fit without
+    the reset never shrinks back when she deletes a paragraph.
+  - **The border is added back** (`offsetHeight - clientHeight`): the box is
+    `border-box` and `scrollHeight` excludes borders, so every fit is
+    otherwise two pixels short and the box scrolls its own last line.
+  - **THE FLOOR IS WHY THE BUTTON IS NEVER HIDDEN, and that is the difference
+    from the `.moretxt` opener.** That opener is drawn only where a
+    measurement says text is really cut, because it REVEALS words that already
+    exist; this is a field she WRITES in, so "expand" has to mean room to
+    write **before** the words are there. Don't "fix" it into hiding itself on
+    a short prompt.
+  - **PUTTING A PROMPT BACK REFITS IT** — `copyPromptIn` sets `.value`
+    directly, which fires no `input` event, so it calls `window.__fitBigPrompt`
+    or the copied run sits in a box fitted to whatever was there before.
+  - The same rule, and the same two lessons, are in Voice Studio's words box.
   **ON THE RIGHT, SLID CLEAR OF THE PILL'S COLUMN — settled over two rounds
   on 2026-08-26.** The button shipped in the exact bottom-right corner, where
   on her phone the injected autoscroll pill's ▼ sits dead on it (measured at
@@ -4147,6 +4405,29 @@ before working on that module. Nothing was deleted — the moved text is verbati
   canvas is the dear one, not the cheap one), deliberately not
   persisted. Cancel is Replicate-only on purpose. The feed pages backwards through
   time and has LIST and TILES views. **Full details: `docs/modules/pictures.md`.**
+  **BUMPING RUNS TO THE TOP RE-DATES THEM, AND THE SET MUST BE EXACTLY WHAT SHE
+  NAMED (2026-08-28, Sophie: "why did all the rat images get moved to the top of
+  playground" → "I only wanted the dance, creepy guy once").** The feed is
+  `orderBy('createdAt','desc')`, so the only way to gather a group at the top is
+  to rewrite its dates — `scripts/playground-bump.js` (dry by default, ids TOP
+  FIRST, the real date kept as `createdAtWas`, `--undo --go` puts it back).
+  It works and it is reversible; what went wrong was the SCOPE. She asked for
+  the creepy-guy panels "old and new every version" and then "then same for all
+  dance/glove ones" — read as three stories, that bumped **27 single glove/rat
+  runs** along with the 5 panels runs, and 27 copies of one picture at the top
+  of the Picture tab is what she was looking at.
+  - **A bump is a LOUD change to a surface she scans every day**, so it is one
+    tap's worth of scope: name the runs back to her BEFORE writing, and when a
+    phrase of hers could mean two sets, bump the smaller one and say what the
+    other would be. Guessing wide is not the cheap direction here even though
+    the write is reversible — she has to notice and ask.
+  - **The bumped runs carry `createdAtWas`, which is how you tell a bump from a
+    real run** and how any later chat scopes an undo: sweep the feed for it
+    rather than trusting an id list from a reply.
+  - **Never stamp AHEAD of now.** The first pass stamped a few hours into the
+    future so a chat drawing concurrently could not land above the block — which
+    means anything she genuinely draws next sorts UNDER it until the clock
+    catches up. `--at` defaults to now; leave it there.
 - **Freeform** (`freeform.js`, `/api/freeform`, `/freeform`) — the one image
   surface with **no opinion**: the prompt goes to gpt-image-2 verbatim, no prefix,
   no suffix, not even a trailing-period trim. `promptSent` is stored on every run
@@ -4523,7 +4804,31 @@ before working on that module. Nothing was deleted — the moved text is verbati
   `.forgeWebToolBar` took that bar away the tool went NAMELESS, showing a bare
   chevron and nothing else (2026-08-27, Sophie: "this header doesn't match the
   app pattern"). There are still no character counts; credits live behind the
-  ⓘ on the tab row. **Every take is kept** —
+  ⓘ on the tab row.
+  **THE WORDS BOX EXPANDS (2026-08-27, Sophie: "add an expand text box button
+  in the voice studio").** A 26px rounded square inside `#text`'s bottom-right
+  corner toggles the SAME textarea open and shut — the Playground's
+  `#bigprompt` answer lifted in SHAPE, never a second field to keep in sync.
+  **IT FITS THE WORDS, IT IS NOT A FIXED SIZE (2026-08-27, Sophie: "why not
+  expand based on text, not static")** — `min-height:24vh` / `max-height:46vh`
+  are the floor and the cap, and `fitBig` measures the content into the height
+  between them on the tap, on every keystroke and on a resize. The three rules
+  behind that (both bounds in CSS, `height:auto` before measuring or the box
+  can only grow, the border added back on a `border-box` box) and the reason
+  the button never hides itself are written out once, under *THE PROMPT BOX HAS
+  A BIGGER-BOX TOGGLE* in the Playground section — read them there before
+  touching either copy.
+  Four things not to undo: the box reserves that corner with `padding-bottom`
+  (or her last line is typed under the button); the toggle clears any
+  hand-dragged inline height, since the box is `resize:vertical` and "back to
+  small" would otherwise leave it where she dragged it; it is **NOT sticky**
+  (the compact box is the page's shape — her WORDS are kept in localStorage,
+  the size is not); and it sits **56px in from the right**, not in the exact
+  corner, because `/voice` is served `{ pill: true }` and the injected pill
+  owns that fixed column — a z-index lift is not the fix, it steals the pill's
+  own ▼. Test: `node scripts/test-voicelab-bigbox.js` (the real page headless,
+  with the real pill and the iPhone 13's 47px inset simulated).
+  **Every take is kept** —
   the output AND, on the changer, the recording that went in — and each card
   has a ⤓ that downloads it through our own server (`GET /api/voicelab/file/:id`,
   `?src=1` for the source); a Storage url alone only plays inline.
@@ -4639,8 +4944,17 @@ before working on that module. Nothing was deleted — the moved text is verbati
   serves, so **`GET /status?probe=1` went green throughout two days of her
   grabs failing. A green probe says ONE video on ONE client works and nothing
   more; never quote it as the endpoint being healthy.**
-  So: the grab is worth one attempt, it fails honestly with `blocked:true` in
-  yt-dlp's own words, and **the desktop queue is still the real fallback.**
+  **SO THE CONTAINER IS THE FIRST MOVE AND THIS ROUTE IS NOT (Sophie's call,
+  2026-08-27: "use container not render for YouTube downloads").** A chat that
+  needs a YouTube file runs yt-dlp in its OWN container — fetch
+  `yt-dlp_linux` from the GitHub release, pull the file, POST it to
+  `/api/drop/upload-file` or `/api/audio/upload-file`, which are the exact two
+  routes this module files through, so the result is indistinguishable from a
+  grab. Reach for `POST /grab` only when the container is refused too and it is
+  worth one more IP; it fails honestly with `blocked:true` in yt-dlp's own
+  words. **And the container is only better odds** — measured from one
+  2026-08-27, metadata read on 3 of 4 videos and the bytes came down for 1 of 3.
+  Both refused → **the desktop queue is still the real fallback.**
   Cookies (`--cookies`) are the documented remedy and need her logged-in
   browser, i.e. the desktop trip this was built to avoid.
   **It costs nothing** — no model call; it is bandwidth and ffmpeg on our own
@@ -5048,9 +5362,14 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **AND EITHER BOX OPENS BIGGER, AS AN OPTION (2026-08-26, Sophie: "make it
   possible to open the caption and the drawing prompt in bigger boxes so I can
   edit them but don't make that the default").** A 26px rounded square inside
-  each box's bottom-right corner toggles the SAME textarea to 46vh and back —
+  each box's bottom-right corner toggles the SAME textarea open and shut —
   the Playground's `#bigprompt` answer lifted in SHAPE, not copied, so there is
-  never a second field to sync. Four things not to undo: the textarea reserves
+  never a second field to sync. **AND IT FITS THE WORDS since 2026-08-27**
+  (`min-height:24vh` / `max-height:46vh` as the floor and the cap, `fitBig`
+  measuring the content into the height between them, on the tap and on every
+  keystroke) — the rule and its two traps are written out once under *THE
+  PROMPT BOX HAS A BIGGER-BOX TOGGLE* in the Playground section. Four things
+  not to undo: the textarea reserves
   that corner with `padding-bottom` (or her last line is typed under the
   button); `resetBig()` puts both back small on every card open, because *not
   the default* means not sticky either; expanding calls `scrollIntoView` since
@@ -5709,26 +6028,63 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (`public/opinions-gun.png`), not a line icon. Candidate batches go on a
   review deck for her ♥ first; a single-option batch she has delegated goes
   straight in.
-  **A BULK BATCH THE SERVER IS DRAWING (`/api/promptlab` from a script) IS
-  PACED BY A MEASURED CEILING, AND THE CEILING RATCHETS UP — never
-  one-at-a-time (Sophie, 2026-08-27, after a chat spent 12 minutes
-  serializing ten sheets: "deleting that one at a time note … asking chats
-  to see how many they can do at once, and whichever chat tries the largest
-  number can enter that as a new note").** What matters is **concurrent
-  OUTPUT buffers on the 512MB box** — a panels SHEET counts as ONE output
-  however many panels it holds. The measured ledger, which is the rule:
-  - **Broke it: 16** concurrent outputs + whiten passes (2026-08-19, two
-    parallel 4-run × 4-output batches — the restarts that killed them).
-  - **Largest measured clean so far: 3** (the Playground's own ladders fire
-    2-3 concurrent renders all day, and parallel-3 chat batches run clean).
-  - **Run your batch at the largest clean number on this ledger.** If your
-    batch NEEDS more, try one notch higher, watch it (a run dying
-    "interrupted by a server restart" with the box mid-batch is the tell),
-    and — success or failure — UPDATE the ledger lines above with what you
-    measured and the date. That is how the ceiling finds itself; a chat that
-    silently serializes instead is spending her minutes on a protection the
-    box may not need. (Since 2026-08-27 an interrupted panels run with a
-    banked sheet auto-recovers, so probing costs a retry, not money.)
+  **DRAWING AND CUTTING ARE PACED SEPARATELY — TWO NUMBERS, NOT ONE (Sophie,
+  2026-08-28: "ok fine back to notches. but separate running sheets and
+  cutting").** One ceiling was always wrong here because the two halves of a
+  panels run live on different machines, and conflating them is what made
+  every version of this note either too slow or too fragile:
+  - **DRAWS: fire the WHOLE batch at once, no ceiling.** The draw happens on
+    OpenAI's hardware and costs this box nothing. Serializing them is a chat
+    spending her minutes for no protection — the mistake she deleted twice
+    (2026-08-27, a 12-minute ten-sheet batch; 2026-08-28, "please all at
+    once").
+  - **CUTS: one at a time, and the SERVER enforces it now** (`gateCut` in
+    server.js, 2026-08-28). A cut decodes the sheet to raw — ~33MB for a 4K
+    sheet on a 512MB instance — so N sheets finishing together used to stack
+    N decodes and kill the instance mid-batch. A cut takes seconds against a
+    60-180s draw, so the queue costs a batch almost nothing and makes peak
+    memory independent of batch size. **A chat no longer staggers its
+    launches**; if you find yourself wanting to, the gate is broken, say so.
+  - **The ledger, which is the CUT ceiling and ratchets like she asked:**
+    - **Broke it: 16** concurrent outputs + whiten passes (2026-08-19), and
+      **10** concurrent 9-panel 4K sheets whose cuts landed together
+      (2026-08-28 — seven runs lost, the crash that produced `gateCut`).
+    - **Clean: 5** concurrent 9-panel 4K sheets (2026-08-28), and any number
+      of draws once `gateCut` is in.
+    - **DO NOT RAISE THE GATE — the cap was MEASURED and it is 1 (2026-08-28,
+      container, the exact cutSheet recipe on a 4K sheet):** ONE cut peaks
+      **+153MB** over baseline and TWO concurrent peak **+241MB** — sharp's
+      pipeline holds several dimension-sized buffers at once, so a cut costs
+      ~3x the naive 33MB-decode estimate. The 512MB box's headroom fits ONE.
+      The gate at 1 is the ceiling, not caution, and the prize for raising it
+      is seconds: a cut is ~2s, so even a ten-sheet batch queues ~20s of
+      cutting total. (This retires the "raise a notch and write what you
+      measured" ratchet that stood here — the measurement is done.)
+  - **A run refused with a 502 on the POST was never created and never
+    billed** (measured 2026-08-28) — a start failure is free, so retrying a
+    start costs nothing. What is genuinely lost is a run whose sheet died
+    in flight: billed, no bytes, unrecoverable at any concurrency. A run
+    whose sheet was BANKED recovers free (the 2026-08-27 sweep, and
+    `POST /api/promptlab/:id/recut`).
+  - **Broke it: 8** concurrent 4K panels SHEETS (2026-08-28, ~6:04pm Pacific,
+    another chat's shoebox batches — the box restarted with NO deploy in
+    flight, so the concurrency alone did it; 5 of the 8 died mid-generation.
+    That measurement is what `gateCut` above now removes the cause of.)
+  - **THE RECOVERY ONLY COVERS A KILL AFTER THE SHEET IS BANKED — a restart
+    DURING GENERATION loses the paid sheet outright (measured 2026-08-28: 15
+    failed panels runs that evening, NONE with a banked sheet — ~$1.75 of 4K
+    medium sheets gone, billed when requested and never received).** So a
+    deploy landing while sheets are in flight is the expensive kill, and
+    merges cannot be paused with many chats working. **A chat running MORE
+    than the ledger's clean number of sheets should draw them in its OWN
+    CONTAINER** (post to OpenAI directly — the `gen-dream-distilled.js`
+    pattern; `OPENAI_API_KEY` is in the environment) **and cut them there
+    too** (sharp runs anywhere; the cut recipe is `cutSheet` in server.js),
+    then file panels via the normal gallery/prompt POSTs. A container is
+    immune to deploys, shares nothing with the 512MB box, and parallel
+    generation there is limited only by OpenAI's rate limits (measured
+    2026-08-20: 5 parallel in 57s). Render's `/api/promptlab` panels stay
+    for HER taps and small batches (≤3).
   **THE SCOPE IS THE BOX, NOT THE WORD "PLAYGROUND" (2026-08-20, Sophie
   mid-run: "why are you doing them one at a time?").** Two things this note
   does NOT cover:

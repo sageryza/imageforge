@@ -580,7 +580,7 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    flex:1 with a min-height, so a big box takes its room off the PICTURE
    rather than off the words. */
 .bigwrap{position:relative; flex:1; min-width:0; display:flex; width:100%;}
-.bigwrap textarea.big{min-height:46vh;}
+.bigwrap textarea.big{min-height:24vh; max-height:46vh;}   /* the FLOOR and the CAP; fitBig sets the height between them */
 .bigbtn{position:absolute; right:6px; bottom:6px; width:26px; height:26px;
   display:flex; align-items:center; justify-content:center; padding:0; margin:0;
   border:1px solid var(--line); border-radius:6px; background:var(--paper);
@@ -2902,7 +2902,11 @@ function loadSend(runId,i){
     .then(function(r){return r.json()})
     .then(function(d){
       var imgs=(d.images&&d.images.length)?d.images:(d.tempImages||[]);
-      var url=imgs[i];
+      /* i = -1 is the Playground's VIRTUAL index for a panels run's banked
+         UNCUT sheet — the whole page, which is not in `images` (2026-08-27,
+         Sophie: "missing three buttons too"). Every other index is an
+         ordinary picture of the run. */
+      var url=i<0?(d.sheetUrl||''):imgs[i];
       // A run that cannot be read (a deploy mid-fetch, a pruned run) must not
       // strand her here holding nothing: the band still offers the way back.
       if(!url){ sendBack={url:null, from:'playground'}; paintSend(); return; }
@@ -3420,10 +3424,27 @@ function paintProm(){
 }
 /* ── the bigger box, on the caption and on the drawing prompt ────────
    ONE pair of glyphs and one wiring loop for both, so the two boxes can
-   never end up behaving differently. Lucide `maximize-2` / `minimize-2`. */
+   never end up behaving differently. Lucide `maximize-2` / `minimize-2`.
+
+   THE BIG BOX FITS THE WORDS (2026-08-27, Sophie: "why not expand based on
+   text, not static"). It was a flat 46vh whatever was in it, so the size said
+   nothing about what was in it; `.big` is the CAP over a FLOOR now and fitBig
+   measures the content into the height between them. Both bounds are CSS, so
+   the browser clamps and no `vh` is re-derived here. Two things not to undo:
+   `height:auto` FIRST or scrollHeight reports the box's own old height and the
+   box can only ever GROW, never shrink back when she deletes a line; and the
+   border added back, because the box is `border-box` and scrollHeight excludes
+   borders. The FLOOR is what keeps the button worth tapping on an EMPTY beat —
+   these are fields she writes in, so expand has to mean room to write before
+   the words exist. The same rule is in the Playground and Voice Studio. */
 var ICON_BIGGER='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>';
 var ICON_SMALLER='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>';
 var BIGBOX=[['pnote','pnotebig'],['dprompt','dpromptbig']];
+function fitBig(box){
+  if(!box.classList.contains('big')) return;
+  box.style.height='auto';
+  box.style.height=(box.scrollHeight + (box.offsetHeight - box.clientHeight))+'px';
+}
 function paintBig(){
   BIGBOX.forEach(function(p){
     var box=document.getElementById(p[0]), btn=document.getElementById(p[1]);
@@ -3450,11 +3471,14 @@ BIGBOX.forEach(function(p){
     // A hand-dragged resize (desktop) would otherwise out-rank the class and
     // "back to small" would not shrink.
     box.style.height='';
+    fitBig(box);
     paintBig();
     // The card is a scroller, so a box that just grew past its bottom is a box
     // she has to go and find. Bring it back under her thumb.
     if(box.classList.contains('big')) box.scrollIntoView({block:'nearest'});
   };
+  // She dictates into these, so the box has to grow under her as she speaks.
+  document.getElementById(p[0]).addEventListener('input',function(){ fitBig(this); });
 });
 paintBig();
 function setBoxes(capOpen, promOpen){
@@ -3783,7 +3807,7 @@ window.__navBack=function(){
      taps arms it. */
   var send=q.get('send');
   if(send){
-    loadSend(send, Math.max(0, parseInt(q.get('i'),10)||0));
+    loadSend(send, Math.max(-1, parseInt(q.get('i'),10)||0));
     // Leaving the tool must un-eat the sender's web view — see armTripRestore.
     armTripRestore('/playground');
   }

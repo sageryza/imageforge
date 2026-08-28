@@ -6,11 +6,25 @@
 // it works, but it hands the file to her Files app, so every download still
 // needs a second trip to upload it into whichever tool wanted it.
 //
-// RENDER IS NOT BLOCKED — measured live 2026-08-23: probe 4.8s, a 3.4MB m4a in
-// under 6s, a 360p mp4 merged, postered and filed at 9.1MB. It can regress
-// (the blocking is YouTube's to change), so `GET /status?probe=1` re-runs that
-// measurement on demand, and a real block lands as `blocked:true` on the doc
-// with yt-dlp's own words rather than as a hung job.
+// RENDER *IS* BLOCKED, AND THIS ROUTE IS THE FALLBACK — NOT THE FIRST MOVE.
+// Sophie's call, 2026-08-27: "use container not render for YouTube downloads."
+// A chat that needs a YouTube file runs yt-dlp in its OWN session container
+// (fetch yt-dlp_linux from the GitHub release) and POSTs the result to
+// /api/drop/upload-file or /api/audio/upload-file — the exact two routes this
+// module files through, so the outcome is indistinguishable from a grab.
+//   Why: measured 2026-08-27, Render refused 3 of 4 distinct videos on EVERY
+//   player client, twice over, including two of her own grabs. The header used
+//   to say "RENDER IS NOT BLOCKED" off two lucky downloads on 08-23 — that is
+//   the stale-confident-claim shape CLAUDE.md warns about, and it survived
+//   because dQw4w9WgXcQ (the probe's hardcoded video) is one of the few Render
+//   still serves, so `GET /status?probe=1` went green through two days of her
+//   downloads failing. A GREEN PROBE SAYS ONE VIDEO ON ONE CLIENT WORKS AND
+//   NOTHING MORE — never quote it as the endpoint being healthy.
+//   A container is better odds, not a guarantee (measured from one the same
+//   day: metadata on 3 of 4, bytes on 1 of 3). Refused in both → the desktop
+//   queue, where her logged-in browser's cookies are the documented remedy.
+// A real block still lands as `blocked:true` on the doc with yt-dlp's own
+// words rather than as a hung job.
 //
 // THE BINARY IS FETCHED AT RUNTIME AND REFRESHES ITSELF WEEKLY, deliberately.
 // Render's stock Node image has no yt-dlp and no Python, so the choices were a

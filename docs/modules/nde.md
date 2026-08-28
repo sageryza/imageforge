@@ -39,8 +39,15 @@ The near-death-experience interview database, the montage pipeline, and the wate
   transcript scraping needs no key), plus the usual Firebase creds. Without
   Firebase the pipeline still runs but nothing persists (in-memory only).
 - **Adding videos runs on SOPHIE'S Mac — for the LAYOUT, not because the cloud
-  is blocked** (measured live 2026-08-23: `/api/ytdl` grabs fine). Use
-  `/api/ytdl` when you just need the bytes.
+  is blocked outright.** When you just need the bytes, **run yt-dlp in your own
+  container, not `/api/ytdl`** (Sophie's call, 2026-08-27: "use container not
+  render for YouTube downloads") — Render's IP is the bot-blocked one, 3 of 4
+  videos refused on every player client, and its probe stays green through the
+  refusals. A container is better odds and not a guarantee: measured the same
+  day, metadata read on 3 of 4 and the bytes came down for 1 of 3. Refused
+  there too → the desktop queue with her logged-in browser's cookies.
+  (The older "`/api/ytdl` grabs fine, 2026-08-23" line here was two lucky
+  downloads read as a working endpoint.)
   `scripts/nde-grab-local.py` is the local grabber:
   URLs in → audio + captions down → banked in the exact layout the cutter reads
   (Storage `nde-audio/<videoId>.<ext>` public, raw bestaudio/webm, no re-encode;
@@ -189,8 +196,9 @@ do not pull it into these renders. The pastel stills-videos are SCRAPPED.
   white paper whether the prompt says so or not.
 - **Only nine people have an approved likeness.** The other ~30 experiencers
   across the montages have no reference photo, and new ones cannot be grabbed
-  from a cloud session — not because YouTube blocks it (that was re-measured
-  stale 2026-08-23; `/api/ytdl` grabs fine) but because a likeness has to be
+  from a cloud session — not mainly because of the download (a container can
+  often pull the bytes; see the grabbing rule above) but because a likeness
+  has to be
   APPROVED, and that is Sophie's call rather than a download. Standing rule:
   **never invent a face for a real person** — draw them from behind, from
   above, or far enough back that the face is not the subject.

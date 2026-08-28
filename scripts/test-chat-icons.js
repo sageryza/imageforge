@@ -119,3 +119,50 @@ const anthropic = require('../anthropic');
 
   console.log(`${m} passed`);
 })();
+
+// ---- her hours, and one run at a time --------------------------------------
+// Both come from live findings: the daily tick fired four minutes into a hand
+// run and redrew a sheet's worth of chats for nothing, and Sophie asked for the
+// automatic sweep to keep to 11am-11pm on HER clock ("i'm on pst not utc").
+(async () => {
+  let k = 0;
+  const tw = (name, fn) => { fn(); k++; console.log('  ok', name); };
+  const { pacificHour, inWindow, WINDOW, STALE_RUN_MS } = chaticons;
+  // 2026-08-27 is PDT (UTC-7); 2026-01-15 is PST (UTC-8).
+  const utc = (s) => new Date(s);
+
+  tw('the window is her 11am-11pm', () => {
+    assert.deepStrictEqual(WINDOW, { from: 11, to: 23 });
+  });
+
+  tw('summer: the hour is read in PDT, not UTC', () => {
+    assert.strictEqual(pacificHour(utc('2026-08-27T18:30:00Z')), 11);   // 11:30am PDT
+    assert.strictEqual(inWindow(utc('2026-08-27T18:30:00Z')), true);
+    assert.strictEqual(pacificHour(utc('2026-08-27T17:30:00Z')), 10);   // 10:30am PDT
+    assert.strictEqual(inWindow(utc('2026-08-27T17:30:00Z')), false);
+  });
+
+  tw('winter: the SAME wall-clock hours, on PST', () => {
+    assert.strictEqual(pacificHour(utc('2026-01-15T19:30:00Z')), 11);   // 11:30am PST
+    assert.strictEqual(inWindow(utc('2026-01-15T19:30:00Z')), true);
+    assert.strictEqual(pacificHour(utc('2026-01-15T18:30:00Z')), 10);
+    assert.strictEqual(inWindow(utc('2026-01-15T18:30:00Z')), false);
+  });
+  // A fixed -8 offset would put both summer cases an hour out — that is the
+  // whole reason this reads the IANA zone rather than subtracting.
+
+  tw('11pm is shut, 10:59pm is open — the top of the window is exclusive', () => {
+    assert.strictEqual(inWindow(utc('2026-08-28T05:59:00Z')), true);    // 10:59pm PDT
+    assert.strictEqual(inWindow(utc('2026-08-28T06:00:00Z')), false);   // 11:00pm PDT
+  });
+
+  tw('the middle of the night is shut', () => {
+    assert.strictEqual(inWindow(utc('2026-08-27T10:00:00Z')), false);   // 3am PDT
+  });
+
+  tw('a run stuck "running" stops blocking after 20 minutes', () => {
+    assert.strictEqual(STALE_RUN_MS, 20 * 60 * 1000);
+  });
+
+  console.log(`${k} passed`);
+})();
