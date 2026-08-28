@@ -1,23 +1,22 @@
 #!/usr/bin/env node
-// THE SEARCH BOX TAKES ITS OWN LINE WHILE SHE IS SEARCHING (2026-08-28,
-// Sophie: "search way too small. why can't it show behind pill column").
+// THE SEARCH BOX HAS ITS OWN LINE, ALWAYS (2026-08-28, Sophie: "search way
+// too small. why can't it show behind pill column" → "i don't need to tap" →
+// "put x on other side").
 //
 // It cannot go behind the pill — `.feedbar` is sticky at top:0, so it sits
-// inside the pill's fixed corner permanently rather than passing under it, and
-// the ✕ and the caret live at the right end of that box. So the room comes
-// from a second line, and NOTHING is hidden to pay for it. Drives the REAL
-// public/promptlab.html in headless Chromium at 390pt and MEASURES the box in
-// every state, because "way too small" is a width and nothing else:
-//   1. at rest the row is one line and every control is on it,
-//   2. focused, the box takes a full line of its own and is 3-4x wider,
-//   3. the view switch and the filter chips are still there and still take a
-//      tap (asked with elementFromPoint) — switching view over the hits and
-//      lighting the heart on them are two of the things a search is FOR,
-//   4. a query with the keyboard down keeps the line — she is still reading
-//      the answer to it,
-//   5. cleared and blurred, the row is exactly what it was, to the pixel,
-//   6. the 56px the injected autoscroll pill owns is never eaten, on either
-//      line.
+// inside the pill's fixed corner permanently rather than passing under it. So
+// the room comes from a line of its own, unconditionally: a box that is only
+// usable once it is tapped is a box she has to ask for. Drives the REAL
+// public/promptlab.html in headless Chromium at 390pt and MEASURES it,
+// because "way too small" is a width and nothing else:
+//   1. untouched, before any tap, the search is on a line of its own and is
+//      3-4x the width the shared row left it,
+//   2. nothing is hidden to pay for it — the view switch and the filter chips
+//      are still there and still take a tap (asked with elementFromPoint),
+//   3. focusing, typing and clearing never change the layout: no state, no
+//      repaint, nothing that can appear or disappear under her,
+//   4. the ✕ is at the LEFT end of the field, and the words start clear of it,
+//   5. the 56px the injected autoscroll pill owns is never eaten.
 //
 //   npm install playwright --no-save && node scripts/test-playground-search-room.js
 const http = require('http');
@@ -89,53 +88,52 @@ const ok = (c, m) => { if (c) console.log('  ok  ' + m); else fail(m); };
   const focus = () => page.focus('#q');
   const blur = () => page.evaluate(() => document.getElementById('q').blur());
 
-  // 1 ── at rest
+  // 1 ── untouched, before any tap
   let s = await snap();
   const rest = s.search.w;
-  ok(s.view.shown && s.filt.shown, 'at rest the view switch and the filters are on the row');
-  ok(s.lines === 1, 'at rest the row is one line');
-  ok(s.search.right <= s.barRight - PILL + 1, 'at rest the box stops before the pill column');
+  ok(s.lines === 2, 'untouched, the search is already on a line of its own');
+  ok(rest > 250, 'untouched, it is a real search field (' + rest + 'px)');
+  ok(s.search.right <= s.barRight - PILL + 1, 'and it stops before the pill column');
 
-  // 2 ── focused: the box takes its own line
-  await focus(); await page.waitForTimeout(150);
-  s = await snap();
-  ok(s.lines === 2, 'focused, the search is on a line of its own');
-  ok(s.search.w > rest * 3, 'focused, the box is 3x wider than at rest (' + rest + ' → ' + s.search.w + ')');
-  ok(s.search.w > 250, 'focused, the box is a real search field (' + s.search.w + 'px)');
-  ok(s.search.right <= s.barRight - PILL + 1, 'focused, the second line still stops before the pill column');
-
-  // 3 ── nothing was hidden to pay for it
-  ok(s.view.shown && s.filt.shown, 'focused, the view switch and the filters are still on the row');
+  // 2 ── nothing is hidden to pay for it
+  ok(s.view.shown && s.filt.shown, 'the view switch and the filters are still on the row');
   const reachable = () => page.evaluate(() => ['v-list', 'v-tiles', 'v-liked', 'v-hidex'].every((id) => {
     const r = document.getElementById(id).getBoundingClientRect();
     const e = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
     return !!(e && e.closest('#' + id));
   }));
   ok(await reachable(), 'and every one of them really takes a tap there (elementFromPoint)');
-  await page.click('#v-liked'); await page.waitForTimeout(150);
-  ok(await page.evaluate(() => !!document.querySelector('#v-liked.on')),
-     'the heart can be lit mid-search without leaving the box');
-  await page.click('#v-liked'); await page.waitForTimeout(150);
-  await page.click('#v-tiles'); await page.waitForTimeout(150);
-  ok(await page.evaluate(() => !!document.querySelector('#v-tiles.on')),
-     'and the view can be switched over the hits');
-  await page.click('#v-list'); await page.waitForTimeout(150);
 
-  // 4 ── a query with the keyboard down keeps the line
-  await focus();
-  await page.type('#q', 'prompt');
-  await page.waitForTimeout(500);
-  await blur(); await page.waitForTimeout(150);
-  s = await snap();
-  ok(s.lines === 2, 'blurred with a query, the line stays — she is still reading the answer');
-  ok(s.search.w > rest * 3, 'and the box is still wide (' + s.search.w + ')');
-  ok(await reachable(), 'and every control is still reachable');
+  // 3 ── no state: focus, type and clear never move the layout
+  await focus(); await page.waitForTimeout(150);
+  let f = await snap();
+  ok(f.search.w === rest && f.lines === 2, 'focusing changes nothing — there is nothing to expand');
+  await page.type('#q', 'prompt'); await page.waitForTimeout(500);
+  f = await snap();
+  ok(f.search.w === rest && f.lines === 2, 'typing changes nothing');
+  ok(await reachable(), 'and every control is still reachable with a query live');
+  ok(await page.evaluate(() => !document.querySelector('.feedbar').className.includes('searching')),
+     'and the row carries no searching state at all');
 
-  // 5 ── cleared and blurred: back to exactly what it was
-  await page.click('#qclear'); await blur(); await page.waitForTimeout(300);
-  s = await snap();
-  ok(s.lines === 1, 'cleared, the row is one line again');
-  ok(s.search.w === rest, 'cleared, the row is exactly what it was (' + s.search.w + ' = ' + rest + ')');
+  // 4 ── the ✕ is on the LEFT, and the words start clear of it
+  const x = await page.evaluate(() => {
+    const b = document.getElementById('qclear').getBoundingClientRect();
+    const i = document.getElementById('q').getBoundingClientRect();
+    const pad = parseFloat(getComputedStyle(document.getElementById('q')).paddingLeft);
+    const hit = document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2);
+    return { shown: !document.getElementById('qclear').hidden, onLeft: b.x < i.x + i.width / 2,
+             pad: pad, w: b.width, takesTap: !!(hit && hit.closest('#qclear')) };
+  });
+  ok(x.shown, 'the ✕ shows once there are words to wipe');
+  ok(x.onLeft, 'and it is at the LEFT end of the field');
+  ok(x.pad >= x.w, 'and the words start clear of it (padding ' + x.pad + ' ≥ ' + Math.round(x.w) + ')');
+  ok(x.takesTap, 'and it really takes a tap there (elementFromPoint)');
+  await page.click('#qclear'); await page.waitForTimeout(300);
+  ok(await page.evaluate(() => document.getElementById('q').value === '' &&
+       document.activeElement === document.getElementById('q')),
+     'it empties the box and keeps her in it');
+  f = await snap();
+  ok(f.search.w === rest && f.lines === 2, 'and clearing changes nothing either');
 
   await b.close(); server.close();
   if (!process.exitCode) console.log('\nAll good.');

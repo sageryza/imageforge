@@ -327,42 +327,42 @@
      back out is then blocked — one tap would leave the whole page stuck
      zoomed (found live on her phone on /assets, Aug 2026). */
   .feedsearch { flex: 1; min-width: 0; margin-left: 8px; position: relative; display: flex; }
-  /* The right padding reserves room for the ✕, which only exists once there
-     are words to wipe — so an EMPTY box keeps the 19px for its own
-     placeholder (2026-08-25, when the columns segment joined the view switch
-     and the row got tight). `.hasq` is toggled beside `qclear.hidden`. */
+  /* THE ✕ IS ON THE LEFT (2026-08-28, Sophie: "put x on other side") — the
+     right end of this box is the end the injected pill's column reaches
+     toward, and it is also where her caret sits and where the text she is
+     dictating grows; the left end is the one place in the field that is
+     never doing anything else. The padding it reserves is only ever there
+     once there are words to wipe, so an EMPTY box keeps its full width for
+     its own placeholder. `.hasq` is toggled beside `qclear.hidden`. */
   .feedsearch input { width: 100%; min-width: 0; font: inherit; font-size: 16px; color: #2b2622;
     background: #fdfcf9; border: 1px solid #d8d0c4; border-radius: 6px; padding: 6px 9px; }
-  .feedsearch input.hasq { padding-right: 28px; }
+  .feedsearch input.hasq { padding-left: 28px; }
   .feedsearch input:focus { outline: none; border-color: #c25a72; }
   .feedsearch input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
-  /* THE BOX TAKES ITS OWN LINE WHILE SHE IS SEARCHING (2026-08-28, Sophie:
-     "search way too small. why can't it show behind pill column").
-       IT CANNOT GO BEHIND THE PILL, and that is the whole answer: `.feedbar`
-     is `position: sticky; top: 0`, so unlike ordinary content — which passes
-     under the pill's fixed corner on its way up — this row sits inside that
-     corner PERMANENTLY. Anything under those 56px is covered and untappable
-     for good, and the right end of this box is where the ✕ lives and where
-     the caret sits.
-       So the room comes from a SECOND LINE rather than from a neighbour:
-     while the box is focused or holds words, the row wraps and the search
-     takes a full line of its own — measured at 390pt, 76px (or 41 with the
-     sheets chip out) becomes 310. NOTHING IS HIDDEN TO PAY FOR IT: the view
-     switch and the filter chips stay exactly where they are, tappable, on the
-     line above. Stepping one of them aside was tried first and it costs her
-     real gestures mid-search — switching to tiles over the hits she just
-     found, or lighting the heart on them, are two of the things a search is
-     FOR, and a lit filter she cannot see is the silent-filter failure this
-     app keeps getting burned by.
-       The 40px it costs is only ever spent while she is searching, and the
-     row is byte-for-byte what it was the moment the box is empty again. The
-     second line reserves the pill's 56px as well — the pill's band is taller
+  /* THE BOX HAS ITS OWN LINE, ALWAYS (2026-08-28, Sophie: "search way too
+     small. why can't it show behind pill column" → "i don't need to tap").
+       IT CANNOT GO BEHIND THE PILL, and that is the answer to her question:
+     `.feedbar` is `position: sticky; top: 0`, so unlike ordinary content —
+     which passes under the pill's fixed corner on its way up — this row sits
+     inside that corner PERMANENTLY. Anything under those 56px is covered and
+     untappable for good, and the end of this box is where the ✕ and the caret
+     live.
+       So the room comes from a line of its own: 76px (41 with the sheets chip
+     out) becomes 310, measured at 390pt. NOTHING IS HIDDEN TO PAY FOR IT —
+     the view switch and the filter chips stay exactly where they are, on the
+     line above.
+       IT SHIPPED FOR AN HOUR AS A LINE THAT APPEARED ON FOCUS and she cut
+     that: "i don't need to tap". A box that is only usable once it is tapped
+     is a box she has to ask for, and the 40px it costs is a fixed 40px on a
+     page whose feed is already scrolling. So there is no `.searching` state,
+     nothing to repaint and no JS at all — the row simply wraps.
+       The line reserves the pill's 56px as well: the pill's band is taller
      than one row, so a wrapped line is inside that column too. */
-  .feedbar.searching { flex-wrap: wrap; }
-  .feedbar.searching .feedsearch { flex-basis: 100%; margin-left: 0; margin-top: 8px; }
+  .feedbar { flex-wrap: wrap; }
+  .feedsearch { flex-basis: 100%; margin-left: 0; margin-top: 8px; }
   /* CLEAR, not dismiss: it empties the box and keeps her in it. Shown only
      while there are words to wipe. */
-  .qclear { position: absolute; right: 0; top: 0; height: 100%; width: 28px; border: 0; background: none;
+  .qclear { position: absolute; left: 0; top: 0; height: 100%; width: 28px; border: 0; background: none;
     color: #8a8177; font-size: 18px; line-height: 1; padding: 0; }
   /* THREE OR FOUR ACROSS — the THIRD SEGMENT of the view switch (2026-08-25,
      Sophie: "the 3/4 switch button is in a weird place. It should not be in
@@ -1114,7 +1114,6 @@
     qGroups = qparse(query);
     document.getElementById('qclear').hidden = !query;
     box.classList.toggle('hasq', !!box.value);          // the ✕'s padding, only while it shows
-    paintSearchWide();
     hits = null;                                        // the loaded feed answers meanwhile
     clearTimeout(qTimer);
     if (query) qTimer = setTimeout(runSearch, 350);
@@ -1133,23 +1132,6 @@
   document.getElementById('qclear').addEventListener('click', function () {
     var box = document.getElementById('q');
     box.value = ''; qLive.sync(); readSearch(); box.focus();
-  });
-  // THE SEARCH TAKES ITS OWN LINE WHILE SHE IS SEARCHING (2026-08-28) — see
-  // `.searching` in the CSS for why the box cannot simply run under the
-  // pill's column, and why the room comes from a second line rather than from
-  // a neighbour that would have to be hidden.
-  // WIDE while the box is focused OR holds words: Return blurs the box (the
-  // house `enterSubmits` drops the keyboard so she is left looking at the
-  // answer), and taking the line away out from under the query she is still
-  // reading would be the change arriving at exactly the wrong moment.
-  function paintSearchWide() {
-    var box = document.getElementById('q');
-    var bar = document.querySelector('.feedbar');
-    var wide = document.activeElement === box || !!(box.value || '').trim();
-    bar.classList.toggle('searching', wide);
-  }
-  ['focus', 'blur'].forEach(function (e) {
-    document.getElementById('q').addEventListener(e, paintSearchWide);
   });
 
   // ── PUTTING A PROMPT BACK ALSO PUTS ITS PHOTO BACK (2026-08-27, Sophie:
