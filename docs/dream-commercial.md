@@ -396,6 +396,11 @@ https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-comme
 Nothing here is blocking — it is the one thing to do before the song is
 baked into a video that goes out.
 
+**DECIDED (2026-08-22): no words on screen.** Sophie's call. The spot carries
+the song and nothing lettered, so the only permission the film needs is the
+sync licence below. Do not re-open this or re-propose it — it already cost this
+chat several rounds.
+
 - **A commercial needs a sync licence**, which is a different permission from
   streaming it or playing it. Two rights, always: the **composition** (the
   writers/publishers) and the **master recording** (the label). Posting a
