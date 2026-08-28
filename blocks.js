@@ -476,7 +476,9 @@ router.get('/', async (req, res) => {
         const p = doc.data();
         return {
           id: doc.id, title: p.title || 'untitled', status: p.status || 'new',
+          blank: Boolean(p.blank),
           seconds: p.seconds || null, blockCount: p.blockCount || 0,
+          lineCount: Object.keys(p.added || {}).length,
           renders: (p.renders || []).length, updatedAt: p.updatedAt || p.createdAt || '',
         };
       })
@@ -531,6 +533,41 @@ router.post('/open', async (req, res) => {
       return res.json({ id, started: true, project: effective || null });
     }
     res.json({ id, started: false, project: effective || null });
+  } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+// A BLANK STORY — a story with no recording (2026-08-28, Sophie's pick when
+// two Voice Studio takes had to move somewhere that was not an existing cut).
+// Every other project here is content-addressed by a recording, so until this
+// route there was nowhere for spoken or typed lines to live on their own, and
+// the + in the header could only ever point at the Recordings list.
+//
+// It writes the two Storage files a project always has, EMPTY, rather than
+// leaving them absent — the page fetches `blocksUrl` unconditionally and the
+// render reads both, so a missing file is a 404 in the middle of her work.
+// The one section it seeds is what typed lines hang off: build() drops an
+// added line into `.s .l3` and draws nothing at all when there is no section.
+//
+// Nothing is transcribed, so it costs nothing and is ready the moment it
+// answers.
+router.post('/blank', async (req, res) => {
+  try {
+    const title = String((req.body && req.body.title) || '').slice(0, 120).trim() || 'New story';
+    const id = crypto.randomBytes(8).toString('hex');
+    const wordsUrl = await saveJson(wordsPathFor(id), { v: 1, words: [] });
+    const blocksUrl = await saveJson(blocksPathFor(id), {
+      v: 1, blocks: [], sections: [{ key: 's0', title, blocks: [] }],
+    });
+    bump(id, { words: [], blocks: [] });
+    const project = await audioProject.ensureProject({ title }).catch(() => null);
+    await patchDoc(id, {
+      id, title, project: project || null, blank: true,
+      source: null, status: 'ready', error: null,
+      seconds: 0, wordsUrl, blocksUrl, blockCount: 0, sectionCount: 1, wordCount: 0,
+      marks: {}, custom: {}, whoOver: {}, added: {}, ttsUrls: {}, order: [], secMeld: {}, place: {},
+      renders: [], job: null, createdAt: nowIso(),
+    });
+    res.json({ id, blank: true, project: project || null });
   } catch (err) { res.status(400).json({ error: err.message }); }
 });
 

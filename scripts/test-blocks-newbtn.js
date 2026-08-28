@@ -2,21 +2,21 @@
 /**
  * THE + (NEW STORY) BUTTON IN CUTTING BLOCKS — the real page, headless.
  *
- * A "new story" here is a recording nothing has come apart yet, so the button
- * cannot create anything on its own: it puts her on the RECORDINGS list, which
- * is where opening one starts a project. Three things are worth measuring
- * rather than reading off the markup:
+ * The + makes a BLANK story — no recording, just the lines she types or sends
+ * over from the Voice Studio — and opens it. Starting from a recording is the
+ * Recordings tab and is untouched. Three things are worth measuring rather
+ * than reading off the markup:
  *
  *   - it is REACHABLE. The header reserves 56px for the injected autoscroll
  *     pill's fixed corner and this button sits inside that row, so the only
  *     honest question is what a tap at its own centre actually hits
  *     (`elementFromPoint` — a covered control passes every width assertion).
- *   - it RE-READS the library. The sources list caches itself with
- *     `dataset.done`, so a deliberate tap must clear it or a recording she
- *     added since the page loaded — exactly the one she is reaching for — is
- *     not on the list.
- *   - from INSIDE a project it steps back to the shelf first, or she lands on
- *     a Recordings tab hidden behind the open project.
+ *   - the blank story's one section OPENS. Folded it draws nothing at all —
+ *     a story with no lines and no way to see the ones you add — and the
+ *     slots a line is added through only exist at the deepest level.
+ *   - a line already on a blank story is DRAWN. `build()` hangs an added line
+ *     off `.s .l3`, so a project with no section at all silently shows an
+ *     empty screen rather than her words.
  */
 const http = require('http');
 const fs = require('fs');
@@ -32,15 +32,20 @@ const ok = (name, cond, extra) => {
   else { failed += 1; console.log('  FAIL', name, extra === undefined ? '' : `— ${extra}`); }
 };
 
-// the library grows between page load and her tap — that is the point of test 6
-let SOURCES = [
+const SOURCES = [
   { itemId: 'a1', url: 'https://storage.googleapis.com/b/one.mp3', name: 'the first recording', seconds: 61 },
 ];
-const PROJECT = {
-  id: 'p1', title: 'a project', status: 'ready', seconds: 61, blockCount: 2,
-  source: { url: SOURCES[0].url }, marks: {}, custom: {}, whoOver: {}, added: {},
-  ttsUrls: {}, order: [], secMeld: {}, place: {}, renders: [], job: null,
+// the blank story the stub's /blank mints — one line already on it, the shape
+// a Voice Studio hand-off leaves behind
+const BLANK = {
+  id: 'blank1', title: 'New story', status: 'ready', blank: true, seconds: 0,
+  blockCount: 0, source: null,
+  marks: {}, custom: {}, whoOver: {},
+  added: { n0: 'we call that retroactive pattern recognition.' },
+  ttsUrls: { n0: 'https://storage.googleapis.com/b/vl0.mp3' },
+  order: [], secMeld: {}, place: {}, renders: [], job: null,
 };
+let blankMade = 0;
 
 function json(res, body) {
   res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -51,11 +56,19 @@ const server = http.createServer((req, res) => {
   if (servePublic(req, res)) return;
   const u = new URL(req.url, 'http://x');
   const p = u.pathname;
-  if (p === '/api/blocks/') return json(res, { projects: [{ id: 'p1', title: 'a project', status: 'ready', blockCount: 2, updatedAt: '2026-08-28' }] });
+  if (p === '/api/blocks/') {
+    return json(res, { projects: [
+      { id: 'p1', title: 'a project', status: 'ready', blockCount: 2, updatedAt: '2026-08-28' },
+      { id: 'blank1', title: 'New story', status: 'ready', blank: true, blockCount: 0, lineCount: 1, updatedAt: '2026-08-28' },
+    ] });
+  }
   if (p === '/api/blocks/sources') return json(res, { sources: SOURCES });
-  if (p === '/api/blocks/p1') return json(res, { project: PROJECT });
-  if (p === '/api/blocks/p1/job') return json(res, { job: null, status: 'ready', renders: [] });
+  if (p === '/api/blocks/blank') { blankMade += 1; return json(res, { id: 'blank1', blank: true }); }
+  if (p === '/api/blocks/blank1') return json(res, { project: { ...BLANK, blocksUrl: '/blank-blocks.json' } });
+  if (p === '/api/blocks/blank1/job') return json(res, { job: null, status: 'ready', renders: [] });
   if (p.startsWith('/api/blocks/')) return json(res, { ok: true });
+  // what the server writes for a blank story: no blocks, one seeded section
+  if (p === '/blank-blocks.json') return json(res, { v: 1, blocks: [], sections: [{ key: 's0', title: 'New story', blocks: [] }] });
   if (p.endsWith('.json')) return json(res, { v: 1, blocks: [], sections: [], words: [] });
   res.writeHead(200, { 'Content-Type': 'text/html' });
   res.end(PAGE);
@@ -90,32 +103,30 @@ const server = http.createServer((req, res) => {
   const radius = await btn.evaluate((el) => getComputedStyle(el).borderRadius);
   ok('rounded square, not a circle', /^6px/.test(radius), radius);
 
-  // 3. the tap opens the Recordings list
-  ok('opens on Working on', await page.locator('#projects').isVisible() && !(await page.locator('#sources').isVisible()));
-  await btn.click();
-  await page.waitForFunction(() => !document.getElementById('sources').hidden);
-  ok('the + shows the Recordings list', await page.locator('#sources').isVisible());
-  ok('and the Recordings tab is the lit one', await page.locator('.tabs button[data-tab="1"]').evaluate((el) => el.classList.contains('on')));
-  await page.waitForFunction(() => document.querySelectorAll('#sources [data-url]').length > 0);
-  ok('the library is listed', (await page.locator('#sources [data-url]').count()) === 1);
+  // 3. the shelf says a blank story is empty rather than "0 lines"
+  await page.waitForFunction(() => document.querySelectorAll('#projects [data-pid]').length === 2);
+  ok('a blank story with a line reads as lines', (await page.locator('#projects [data-pid="blank1"] .mt').textContent()).trim() === '1 lines');
 
-  // 4. from inside a project it steps back out to the shelf first
-  await page.locator('.tabs button[data-tab="0"]').click();
-  await page.locator('#projects [data-pid]').click();
+  // 4. the + makes a blank story and opens it
+  await btn.click();
   await page.waitForFunction(() => !document.getElementById('work').hidden);
-  ok('the + is still there inside a project', await btn.isVisible());
-  await btn.click();
-  await page.waitForFunction(() => !document.getElementById('home').hidden);
-  ok('it comes back out to the shelf', await page.locator('#home').isVisible() && !(await page.locator('#work').isVisible()));
-  ok('…on the Recordings list', await page.locator('#sources').isVisible());
+  ok('the + made exactly one blank story', blankMade === 1, `made ${blankMade}`);
+  ok('and opened it', await page.locator('#work').isVisible() && !(await page.locator('#home').isVisible()));
+  ok('the story wears its name', (await page.locator('header h1').textContent()) === 'New story');
 
-  // 5. a deliberate tap re-reads the library
-  SOURCES = SOURCES.concat([{ itemId: 'a2', url: 'https://storage.googleapis.com/b/two.mp3', name: 'recorded since', seconds: 30 }]);
-  await page.locator('.tabs button[data-tab="0"]').click();
-  await btn.click();
-  await page.waitForFunction(() => document.querySelectorAll('#sources [data-url]').length === 2, null, { timeout: 4000 })
-    .then(() => ok('a recording added since the page loaded is on the list', true))
-    .catch(() => ok('a recording added since the page loaded is on the list', false, 'the list was served from its cache'));
+  // 5. its one section is OPEN, and the line already on it is drawn
+  await page.waitForSelector('.s');
+  ok('the blank story opens its paragraph', (await page.locator('.s').getAttribute('data-lv')) === '3');
+  ok('the line already on it is drawn', (await page.locator('.s .l3 .c').count()) === 1);
+  ok('…with her words in it', (await page.locator('.s .l3 .c .ed').textContent()).indexOf('retroactive pattern recognition') >= 0);
+  ok('and it can be rendered (the bar is up)', await page.locator('#bar').isVisible());
+
+  // 6. the way back out, and the Recordings tab is untouched
+  await page.locator('#back').click();
+  await page.waitForFunction(() => !document.getElementById('home').hidden);
+  await page.locator('.tabs button[data-tab="1"]').click();
+  await page.waitForFunction(() => document.querySelectorAll('#sources [data-url]').length > 0);
+  ok('starting from a recording still works', (await page.locator('#sources [data-url]').count()) === 1);
 
   await browser.close();
   server.close();
