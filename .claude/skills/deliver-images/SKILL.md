@@ -132,3 +132,9 @@ are the only chat that can honestly file what it finds.
 - When she next messages you, sweep her ♥/✕ votes, notes
   (`GET /api/gallery/assets/notes?chat=`), and reply ON the image
   (`POST /api/gallery/assets/note { chat, url, text, from:"chat" }`).
+- **SWEEP THE NOTES AGAIN RIGHT BEFORE YOU REPORT DONE.** Her notes usually
+  arrive AFTER the message announcing them — measured 2026-08-28, twelve
+  minutes after, while the chat was working — and a chat that read once at the
+  start delivered 135 pictures ignoring every ask she had left. "No notes yet"
+  means NOT YET. A note on a FILM never shows in `GET /api/gallery/assets`
+  either; only `/notes` sees it.
