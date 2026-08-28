@@ -1536,6 +1536,16 @@
     - **Chats she filed herself never move** (rule 1), and auto-filed ones
       reach the new rule on their next re-check (`RESORT_*`) — or immediately
       with `POST /api/chatfeed/sort {chat, force:true}`, ~a cent a chat.
+    - **The re-check keeps pace with KINDS now (2026-08-28, found live: "none
+      of my recent bug fix chats are in that tab").** The old rest — a week,
+      re-ask after the thread TRIPLED — assumed a tag names the SUBJECT, which
+      is stable. A kind names the chat's NEWEST work and turns over in hours:
+      the chat-area chat spent a morning repairing the hidden pile its own
+      restructure lost — a bug-fix chat by her rule — wearing yesterday's
+      `meta` with six days of rest to go, and the Bug fixes tab showed nothing
+      newer than 11 hours. Now: a DAY's rest and EIGHT new messages, both
+      (`RETRY_MS` + `RESORT_MIN_NEW` in `chat-sort.js`), so only a chat that is
+      actively worked re-asks, at most daily, under a cent.
   - **`look at` and `come back to` are OFF LIMITS** (`TRIAGE`). They say WHEN
     she wants something, not what it is; nothing outside her head can know
     that, and guessing buries real work in a to-do folder. She still files

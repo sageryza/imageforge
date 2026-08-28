@@ -75,34 +75,36 @@ ok('an unfiled chat with a real thread is sortable', s.shouldAutoSort({}, many).
 is('she said leave it unfiled, so it stays unfiled',
   s.shouldAutoSort({ catNone: true }, many).why, 'hers-unfiled');
 
-// ── When a filed chat is looked at again (Sophie: "how often would a chat
-// need to be refiled once it's filed … maybe it could ask again") ───────────
-// The risk is a chat filed EARLY: 3 messages in it looks like whatever it
-// opened with. So the signal is growth, not a clock.
+// ── When a filed chat is looked at again ────────────────────────────────────
+// A tag names the chat's NEWEST work now that the vocabulary is mostly kinds
+// (bug fix · new feature), and a kind turns over in hours — the week-long rest
+// let an active chat wear yesterday's tag for six more days (2026-08-28, found
+// live: "none of my recent bug fix chats are in that tab"). So: a day's rest
+// AND eight new messages, both, before a re-ask.
 const NOW = Date.UTC(2026, 7, 15, 12);
 const ago = (days) => new Date(NOW - days * 86400 * 1000).toISOString();
 const filed = (days, msgs) => ({ category: 'meta', catBy: 'auto', catSortedAt: ago(days), catMsgs: msgs });
 
-is('filed yesterday, not re-asked however much it grew',
-  s.shouldAutoSort(filed(1, 4), { messages: 500, now: NOW }).why, 'already-sorted');
-is('a week on but barely grown, still left alone',
-  s.shouldAutoSort(filed(9, 40), { messages: 55, now: NOW }).why, 'not-grown');
-is('a week on and tripled, looked at again',
-  s.shouldAutoSort(filed(9, 40), { messages: 130, now: NOW }).why, 're-sort');
-// The floor: tripling 4 messages is 12, which is still nothing to judge on.
-is('a thin early filing does not re-ask at 3x alone',
-  s.shouldAutoSort(filed(9, 4), { messages: 12, now: NOW }).why, 'not-grown');
-ok('…but it does once there is real material',
-  s.shouldAutoSort(filed(9, 4), { messages: 26, now: NOW }).sort);
+is('sorted an hour ago, not re-asked however much it grew',
+  s.shouldAutoSort(filed(1 / 24, 4), { messages: 500, now: NOW }).why, 'already-sorted');
+is('a day on but barely grown, still left alone',
+  s.shouldAutoSort(filed(1.5, 40), { messages: 45, now: NOW }).why, 'not-grown');
+// …the feature chat that became a bug-fix chat overnight, her live case.
+is('a day on and eight new messages, looked at again',
+  s.shouldAutoSort(filed(1.5, 40), { messages: 48, now: NOW }).why, 're-sort');
+ok('a thin early filing re-asks once there is real material',
+  s.shouldAutoSort(filed(1.5, 4), { messages: 12, now: NOW }).sort);
 
 // A wrap-up is the best description of a chat that will ever exist, and it
 // means the work is finished — so it reopens the question immediately, once.
 is('a wrap-up written after the filing reopens it, rest period or not',
   s.shouldAutoSort({ ...filed(1, 400), wrapUpAt: ago(0) }, { messages: 401, now: NOW }).why,
   'wrapped-up');
+// The pin here is that the OLD wrap-up does not fire 'wrapped-up' — rest and
+// growth answer for themselves.
 is('a wrap-up written BEFORE the filing is old news',
-  s.shouldAutoSort({ ...filed(1, 400), wrapUpAt: ago(30) }, { messages: 401, now: NOW }).why,
-  'already-sorted');
+  s.shouldAutoSort({ ...filed(1.5, 400), wrapUpAt: ago(30) }, { messages: 401, now: NOW }).why,
+  'not-grown');
 
 // And the rule that outranks all of it: a chat SHE filed is never revisited,
 // however old, however much it grew, wrap-up or no.
