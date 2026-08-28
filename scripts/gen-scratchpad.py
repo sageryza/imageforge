@@ -48,6 +48,13 @@ page = r"""<!doctype html>
      and a lone <input type=search> outside a <form> has nothing for RETURN to
      submit to. The picture search in the add sheet rides it. -->
 <script src="/feedkit.js"></script>
+<!-- THE ONE SHARED LIGHTBOX (/asset-lightbox.js) — never a second copy
+     (2026-08-28, Sophie: "create a single lightbox view, sync to all
+     surfaces … ex assets, meta assets, story room, playground"). This page
+     kept a hand copy for months and it drifted exactly the way the
+     Playground's did; the pick button and the step zones ride the shared
+     file's hooks (cta, nav) now. -->
+<script src="/asset-lightbox.js"></script>
 <style>
 @font-face{font-family:'EBGaramond';font-weight:400 700;font-display:swap;src:url(data:font/ttf;base64,__FONT__) format('truetype');}
 :root{ --paper:#f6f2e9; --ink:#26221c; --ink2:#8a8377; --line:#d9d2c2; --barbg:#fffdf7; --gold:#a8845c;
@@ -761,45 +768,12 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 .bulkrow #bulkyes{background:var(--ink); color:var(--paper); border-color:var(--ink); font-weight:600;}
 #popblank.c-mustard{border-color:var(--mustard);} #popblank.c-green{border-color:var(--green);}
 #popblank.c-blue{border-color:var(--blue);} #popblank.c-pink{border-color:var(--pink);}
-#lightbox{position:fixed; inset:0; z-index:60; display:flex; flex-direction:column; align-items:center;
-  justify-content:center; gap:12px; background:rgba(20,17,12,.94); padding:3vw;}
-/* The stage is the IMAGE AREA — the picture and the two step zones over it,
-   ending where the Use button starts. The zones are sized to IT rather than
-   to the window, so a tap "on the left or right of the picture" means exactly
-   that and the button underneath is never covered. */
-.lbstage{position:relative; display:flex; align-items:center; justify-content:center;
-  min-height:0; max-width:100%;}
-#lightbox img{max-width:94vw; max-height:88vh; border-radius:4px; display:block;}
-/* STEP TO THE NEXT PICTURE THIS BEAT HAS HAD — the past-pictures row, in the
-   same order, without closing and re-opening (2026-08-26, Sophie: "in the
-   story room, can you make it so that I can tap the right or left of the
-   screen to see the next option if I have it in lightbox mode").
-   IT IS THE TAP AND NOTHING ELSE — no bar, no chip, no arrow, the Playground's
-   own settled rule: a mark drawn at the outer edge of a zone sits on top of
-   the picture she opened the lightbox to judge. The zone was always the
-   control, so drawing nothing takes nothing away.
-   Hidden when there is nothing that way — the ends are the ends, and with the
-   zone gone a tap there closes, exactly as it did before this existed. */
-.lbnav{position:absolute; top:0; bottom:0; width:28%; z-index:61;
-  border:0; background:none; padding:0; cursor:pointer;}
-.lbnav[hidden]{display:none;}
-#lbprev{left:0;} #lbnext{right:0;}
-/* Picking an older picture happens HERE, looking at it big — the row's
-   thumbnails are 44px, which is not enough to choose by (Sophie,
-   2026-08-24: "make the past picture thumbnails so that I can actually pick
-   one"). Shown only for a picture that is NOT the current one, so the button
-   never offers her what she is already looking at. */
-/* Cream on the dark, in BOTH themes — the backdrop above is a fixed dark
-   wash, so the tokens are the wrong tool here: --paper is nearly the
-   backdrop's own colour on a dark phone. The page's serif, like the confirm
-   box's buttons, never a pill. */
-#lbuse{background:#f6f2e9; color:#26221c; border:1.5px solid #f6f2e9;
-  border-radius:6px; padding:9px 18px; font-family:'EBGaramond',Georgia,serif;
-  font-size:16px; font-weight:600; cursor:pointer;}
-#lbuse.busy{opacity:.45;}
-/* Only the picking state gives up height for the button — a plain look at a
-   picture keeps every pixel it always had. */
-#lightbox.pick img{max-height:78vh;}
+/* THE LIGHTBOX IS THE SHARED ONE — /asset-lightbox.js brings its own CSS.
+   The one page-level rule is LAYERING, which is this page's architecture and
+   not the lightbox's design: the shared file ships z-index 30, and this
+   page's overlays run sheet 40 / beatpop 50 / filmplay 70 — the lightbox
+   opens OVER the beat popup, so it takes the slot the hand copy held (60). */
+#clightbox{z-index:60;}
 /* Listen rows — every recording attached to this story, behind the waveform
    button on the title row (Aug 2026, Sophie: "a story can hold multiple
    audios … hide them all behind a single icon that has a wave form"). Two
@@ -1181,14 +1155,6 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   </div>
   </div></div>
 </div>
-
-<div id="lightbox" hidden>
-  <div class="lbstage">
-    <img id="lbimg" alt="">
-    <button class="lbnav" id="lbprev" hidden aria-label="The picture before this one"></button>
-    <button class="lbnav" id="lbnext" hidden aria-label="The next picture"></button>
-  </div>
-  <button id="lbuse" hidden>Use this one</button></div>
 
 <div id="delask" hidden>
   <div class="bulkbox">
@@ -3793,35 +3759,40 @@ document.getElementById('speak').onclick=function(ev){
   btn.classList.add('busy');
   saveNote().then(function(){ speakBeat(b, btn); });
 };
-/* ── the lightbox ──────────────────────────────────────────────────
-   ONE open and ONE close path, because the Use button's state has to be
-   right every single time: `pick` is the url this picture WOULD become the
-   beat's art from, or null for the picture that already is. */
-var lbPick=null;
-/* The pictures the lightbox can step through, in the past-pictures row's own
-   order (current first, then newest-first history) — written by openBeat, so
-   the row and the lightbox can never disagree about what comes next. `lbHasCur`
-   says whether index 0 IS the beat's art, which is the one picture with nothing
-   to pick. */
+/* ── the lightbox — THE SHARED ONE (/asset-lightbox.js) ─────────────────
+   2026-08-28, Sophie: "create a single lightbox view, sync to all surfaces …
+   ex assets, meta assets, story room, playground". This page kept the last
+   hand copy after the Playground's port; everything it needs rides the shared
+   file's hooks now, never a fork:
+     stepping — `nav`, the two invisible zones over the picture, walking
+       lbVers (the past-pictures row's own order, written by openBeat, so the
+       row and the lightbox can never disagree about what comes next);
+     the pick — `cta`, the labeled "Use this one" (built FOR this page: she
+       picks by looking, and a 44px thumb is not enough to choose by). Shown
+       only for a picture that is NOT the beat's art — never offering her what
+       she is already looking at. It is the inbox's own POST /image, so a pick
+       and a fresh placement are the same write;
+     the lock — `onClose` re-asserts this page's body lock, because the
+       lightbox opens OVER the beat popup and the shared close clears
+       body.overflow on its way out. */
 var lbVers=[], lbHasCur=false, lbAt=-1;
+function lbShowing(){
+  var el=document.getElementById('clightbox');
+  return !!el && el.style.display!=='' && el.style.display!=='none';
+}
 function openLbAt(i){
   if(i<0||i>=lbVers.length)return;
   lbAt=i;
   var url=lbVers[i];
-  lbPick=(i===0&&lbHasCur)?null:url;
-  document.getElementById('lbimg').src=url;
-  var u=document.getElementById('lbuse');
-  u.hidden=!lbPick; u.classList.remove('busy');
-  var lb=document.getElementById('lightbox');
-  lb.classList.toggle('pick',Boolean(lbPick));
-  lb.hidden=false;
-  syncLbNav();
-}
-/* A zone is a real button (aria-label, hidden at the ends) that simply draws
-   nothing — see the .lbnav note in the CSS. */
-function syncLbNav(){
-  document.getElementById('lbprev').hidden=lbAt<=0;
-  document.getElementById('lbnext').hidden=lbAt<0||lbAt>=lbVers.length-1;
+  var pick=(i===0&&lbHasCur)?null:url;
+  window.__assetLightbox(url,{
+    nav:{
+      prev: i>0 ? function(){ openLbAt(lbAt-1); } : null,
+      next: i<lbVers.length-1 ? function(){ openLbAt(lbAt+1); } : null
+    },
+    cta: pick ? { label:'Use this one', onClick:function(e){ usePick(pick, e.currentTarget); } } : null,
+    onClose:function(){ lbAt=-1; if(popBeat)lock(true); }
+  });
 }
 function openLb(url,pick){
   // Every caller goes through the list, so stepping works from the card's own
@@ -3832,36 +3803,21 @@ function openLb(url,pick){
   openLbAt(i);
 }
 function closeLb(){
-  lbPick=null; lbAt=-1;
-  document.getElementById('lbuse').hidden=true;
-  document.getElementById('lbprev').hidden=true;
-  document.getElementById('lbnext').hidden=true;
-  var lb=document.getElementById('lightbox');
-  lb.classList.remove('pick'); lb.hidden=true;
+  if(window.__assetLightboxClose)window.__assetLightboxClose();
 }
-document.getElementById('lbprev').onclick=function(ev){ ev.stopPropagation(); openLbAt(lbAt-1); };
-document.getElementById('lbnext').onclick=function(ev){ ev.stopPropagation(); openLbAt(lbAt+1); };
 /* Tapping the thumbnail opens it big — a lightbox over the popup. */
 document.getElementById('popimg').onclick=function(ev){
   ev.stopPropagation();
   if(!popBeat)return;
   openLb(slotOf(popBeat).url,null);
 };
-document.getElementById('lightbox').onclick=function(ev){
-  ev.stopPropagation();
-  // The side zones are STEPPING, not leaving — closing on them would shut the
-  // lightbox on every tap.
-  if(ev.target.closest('.lbnav'))return;
-  closeLb();
-};
 /* Take this older picture back as the beat's art. The same POST the inbox
    makes — /image swaps it in, banks the one it replaces in the past-pictures
    row and lifts this one OUT of that row (pad-art.js), so nothing is lost
    and nothing shows twice. */
-document.getElementById('lbuse').onclick=function(ev){
-  ev.stopPropagation();
-  var url=lbPick, b=popBeat; if(!url||!b)return;
-  this.classList.add('busy');
+function usePick(url, btn){
+  var b=popBeat; if(!url||!b)return;
+  if(btn)btn.classList.add('busy');
   api('/image',{method:'POST',body:JSON.stringify({id:b.id,url:url,style:padStyle})})
     .then(function(r){return r.json()})
     .then(function(d){
@@ -3871,8 +3827,8 @@ document.getElementById('lbuse').onclick=function(ev){
       var fresh=beats.find(function(x){return x.id===b.id;});
       if(fresh){ popBeat=fresh; openBeat(fresh); }
     })
-    .catch(function(){ document.getElementById('lbuse').classList.remove('busy'); });
-};
+    .catch(function(){ if(btn)btn.classList.remove('busy'); });
+}
 /* Make this beat's art the story's cover on the shelf. The button fills in
    dark as the ack and the popup stays open (same manner as the color chips). */
 /* ADD TO SHOEBOX — the /cover shape exactly: the server takes the picture
@@ -3965,8 +3921,7 @@ if(window.__nativeNavBar) document.body.classList.add('native');
 window.__navBack=function(){
   var el=document.getElementById('filmplay');
   if(!el.hidden){ document.getElementById('filmvid').pause(); el.hidden=true; lock(false); return true; }
-  el=document.getElementById('lightbox');
-  if(!el.hidden){ closeLb(); return true; }
+  if(lbShowing()){ closeLb(); return true; }
   el=document.getElementById('delask');
   if(!el.hidden){ el.hidden=true; return true; }
   el=document.getElementById('bulkask');

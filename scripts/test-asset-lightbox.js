@@ -86,6 +86,27 @@ window.__open = function () {
 };
 </script>`;
 
+// ── THE SOURCE PIN: ONE LIGHTBOX, NO HAND COPIES (2026-08-28, Sophie:
+//    "create a single lightbox view, sync to all surfaces … ex assets, meta
+//    assets, story room, playground"). Every surface that opens a picture big
+//    links THIS file; a page growing its own dark-wash overlay again is the
+//    drift that put the same bugs in front of her three times. ──
+{
+  const PUB = path.join(__dirname, '..', 'public');
+  const surfaces = ['chats.html', 'assets.html', 'promptlab.html',
+    'scratchpad.html', 'freeform.html', 'character.html'];
+  for (const f of surfaces) {
+    const src = fs.readFileSync(path.join(PUB, f), 'utf8');
+    ok(`${f} links the shared lightbox`, /src="\/asset-lightbox\.js"/.test(src));
+  }
+  // the retired hand copies stay retired
+  for (const f of ['scratchpad.html', 'freeform.html', 'character.html']) {
+    const src = fs.readFileSync(path.join(PUB, f), 'utf8');
+    ok(`${f} builds no lightbox of its own`,
+      !/id="lightbox"|id="lb"[ >]|id="lbimg"/.test(src));
+  }
+}
+
 (async () => {
   const executablePath = exe();
   const browser = await chromium.launch(executablePath ? { executablePath } : {});
@@ -349,16 +370,68 @@ window.__open = function () {
     vb.imgH > 0.6 * 844);
   ok('the note box still fits on screen', vb.noteFits);
 
+  // ── THE CTA + onClose HOOKS (2026-08-28, Sophie: "create a single lightbox
+  //    view, sync to all surfaces … ex assets, meta assets, story room,
+  //    playground") — what let the STORY ROOM retire its hand copy: a labeled
+  //    primary button under the picture ("Use this one"), and a close
+  //    callback so a page whose beat popup holds the body lock can re-assert
+  //    it after the shared close clears body.overflow. ──
+  await page.evaluate((px) => {
+    window.__ctaTaps = 0; window.__closedBack = 0;
+    window.__assetLightbox(px, {
+      cta: { label: 'Use this one', onClick: function (e) { window.__ctaTaps++; e.currentTarget.classList.add('busy'); } },
+      onClose: function () { window.__closedBack++; document.body.style.overflow = 'hidden'; },
+    });
+  }, PX);
+  await page.waitForTimeout(120);
+  const cta = await page.evaluate(() => {
+    const lb = document.getElementById('clightbox');
+    const b = lb.querySelector('.lbcta');
+    const img = lb.querySelector('img').getBoundingClientRect();
+    const r = b.getBoundingClientRect();
+    const cs = getComputedStyle(b);
+    return { label: b.textContent, under: r.top >= img.bottom - 1,
+      radius: cs.borderRadius, serif: /EBGaramond|Georgia/.test(cs.fontFamily),
+      hascta: lb.classList.contains('hascta') };
+  });
+  is('the cta says its label', cta.label, 'Use this one');
+  ok('and sits under the picture', cta.under);
+  is('house radius, never a pill', cta.radius, '6px');
+  ok('in the serif', cta.serif);
+  ok('the lightbox knows it carries one', cta.hascta);
+  await page.click('#clightbox .lbcta');
+  const tapped = await page.evaluate(() => ({
+    taps: window.__ctaTaps, busy: !!document.querySelector('#clightbox .lbcta.busy'),
+    open: document.getElementById('clightbox').style.display === 'flex',
+  }));
+  is('tapping it reaches the caller once', tapped.taps, 1);
+  ok('the caller can mark it busy through e.currentTarget', tapped.busy);
+  ok('and the tap alone never closes the lightbox — the close is the caller\'s call', tapped.open);
+  // close on dead space: onClose fires once, after the shared close's own
+  // overflow clear, so the caller's re-lock is what stands
+  await page.mouse.click(8, 8);
+  await page.waitForTimeout(120);
+  const closed = await page.evaluate(() => ({
+    back: window.__closedBack,
+    overflow: document.body.style.overflow,
+    display: document.getElementById('clightbox').style.display,
+  }));
+  is('onClose fired exactly once', closed.back, 1);
+  is('and it has the last word over the body lock', closed.overflow, 'hidden');
+  is('the lightbox really closed', closed.display, 'none');
+  await page.evaluate(() => { document.body.style.overflow = ''; });
+
   // an image opened with NO extras is untouched — every existing caller
   await page.evaluate(() => window.__assetLightbox('data:image/gif;base64,R0lGODlhAQABAAAAACw=', {}));
   await page.waitForTimeout(80);
   const bare = await page.evaluate(() => {
     const lb = document.getElementById('clightbox');
     return { acts: lb.querySelectorAll('.lbacts').length, who: lb.querySelectorAll('.clwho').length,
-      hasacts: lb.classList.contains('hasacts') };
+      hasacts: lb.classList.contains('hasacts'), ctas: lb.querySelectorAll('.lbcta').length,
+      hascta: lb.classList.contains('hascta') };
   });
-  is('no extras passed → no actions row, no who line, no shrink class', bare,
-    { acts: 0, who: 0, hasacts: false });
+  is('no extras passed → no actions row, no who line, no cta, no shrink class', bare,
+    { acts: 0, who: 0, hasacts: false, ctas: 0, hascta: false });
 
   await browser.close();
   if (fails.length) {

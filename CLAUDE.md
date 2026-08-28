@@ -3502,6 +3502,24 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     opens the shared lightbox and builds none of its own; step 11 taps the dead
     space, found by scanning each row with `elementFromPoint` — the only honest
     way to ask what a tap reaches; verified failing against the pre-fix page).
+  - **EVERY SURFACE SHARES THE ONE FILE SINCE 2026-08-28 (Sophie: "create a
+    single lightbox view, sync to all surfaces … ex assets, meta assets, story
+    room, playground").** The last three hand copies retired in one pass: the
+    STORY ROOM's (its pick and step zones ride two new hooks — `cta`, a
+    labeled primary button under the picture for "Use this one", and
+    `onClose`, which lets a page whose beat popup holds the body lock
+    re-assert it after the shared close clears `body.overflow`; the page's one
+    rule is `#clightbox{z-index:60}`, its own overlay layering), FREEFORM's
+    (an output opens with the verbatim `promptSent` behind the PROMPT door and
+    steps the run's pictures; a reference opens plain) and the CHARACTER
+    page's (a bare open). The shared close contract is everyone's now — a tap
+    on dead space closes, a tap on the picture never does, the Story Room
+    included. `node scripts/test-asset-lightbox.js` carries the SOURCE PIN:
+    all six surfaces link the file and none builds a lightbox of its own — a
+    seventh surface joins the sweep by linking it. Not migrated, by design:
+    compare.js's own `.cmp-lb` zoom (hand-built Compare pages are FROZEN when
+    posted, so changing their host risks every page already filed) and the
+    public apps with their own identity (dream feed, witch).
 - **THE BOTTOM BAR'S THREE ARE PERMANENT — Story Room · Story Timeline ·
   Playground (2026-08-26, Sophie: "right now the bottom real icons switch off
   can you change it so they're permanent I want the story room, the story
