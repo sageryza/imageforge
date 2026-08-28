@@ -496,6 +496,29 @@ function setPending(ids){ localStorage.setItem('voicelab.pending', JSON.stringif
 var cards={};
 var rdata={};    // render id -> its latest doc, for the Blocks hand-off
 var sentTo={};   // render id -> the Blocks project title it landed in (this visit)
+// A take she is WAITING on plays itself the moment it lands — she tapped
+// Render and then sat there, so the one thing she wants next is to hear it.
+// `watching` is set by poll(), which only ever runs on a render this page
+// started or resumed, so a history card can never play on its own; `heard`
+// makes it once and only once, so a repaint (the Blocks hand-off repaints the
+// card) never restarts a take she is halfway through.
+var watching={};
+var heard={};
+function playOnce(el, id){
+  if(heard[id]) return;
+  heard[id]=true;
+  var a=el.querySelector('audio'); if(!a) return;
+  // She may have walked off — a take that lands in the background must not
+  // start talking out of her pocket. The card is still there when she returns.
+  if(document.hidden) return;
+  // Two finishing together would talk over each other; the newest one wins.
+  Array.prototype.forEach.call(document.querySelectorAll('audio'), function(o){
+    if(o!==a && !o.paused) o.pause();
+  });
+  // iOS can refuse a play() that is not inside a gesture. Nothing is lost —
+  // the player is right there — so a refusal is silent rather than an error.
+  try{ var p=a.play(); if(p && p.catch) p.catch(function(){}); }catch(_){}
+}
 // Cutting Blocks' tile glyph — SF `rectangle.split.3x1`, hand-inlined.
 var BLOCKS_SVG='<svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="2"/><path d="M9 8v8"/><path d="M15 8v8"/></svg>';
 // Lucide `download`. The link goes to OUR server, not to Storage: a
@@ -567,6 +590,7 @@ function card(r){
   }
   el.className='render'+(r.status==='rendering'?' pending':'');
   el.innerHTML=body;
+  if(r.status==='done' && r.url && watching[r.id]) playOnce(el, r.id);
   // A take arriving (or finishing) has to be judged by the live filter, or a
   // fresh render appears on a hearts-only list nothing has hearted.
   if(typeof applyFilt==='function') applyFilt();
@@ -708,6 +732,7 @@ function renderAgain(btn){
 }
 
 function poll(id){
+  watching[id]=true;   // she is waiting on this one — it plays itself when it lands
   fetch(API+'/render/'+id).then(function(r){return r.json()}).then(function(d){
     if(d && d.id) card(d);
     if(d && d.status==='rendering'){ setTimeout(function(){ poll(id); }, 2000); }

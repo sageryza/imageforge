@@ -54,6 +54,11 @@
     display:flex; align-items:center; flex:none}
   #helpbtn{flex:none; width:24px; height:24px; border-radius:50%; border:1.5px solid var(--goldline);
     background:transparent; color:var(--goldline); font:600 13px/1 -apple-system,sans-serif; cursor:pointer}
+  /* a rounded square, never a circle — the house icon-button rule */
+  #newbtn{flex:none; width:26px; height:26px; border-radius:6px; border:1.5px solid var(--goldline);
+    background:transparent; color:var(--goldline); cursor:pointer; padding:0;
+    display:flex; align-items:center; justify-content:center}
+  #newbtn svg{width:16px; height:16px}
   .helpcard{position:fixed; inset:auto 12px auto 12px; top:70px; z-index:40; background:var(--card);
     border:1.5px solid var(--line); border-radius:6px; padding:14px 15px; font-size:14px; line-height:1.5;
     box-shadow:0 8px 30px rgba(0,0,0,.14)}
@@ -277,6 +282,7 @@
 <header>
   <button id="back" aria-label="back" hidden><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
   <h1 class="tool-eyebrow">Cutting Blocks</h1>
+  <button id="newbtn" aria-label="new story" title="new story"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
   <button id="helpbtn" aria-label="what this is">?</button>
 </header>
 
@@ -1124,9 +1130,8 @@
 
   /* ── the home screen ────────────────────────────────────────────────── */
   var tabs=document.querySelector('.tabs');
-  tabs.addEventListener('click', function(e){
-    var b=e.target.closest('button[data-tab]'); if(!b) return;
-    var i=+b.dataset.tab;
+  function selectTab(i){
+    var b=tabs.querySelector('button[data-tab="'+i+'"]'); if(!b) return;
     [].forEach.call(tabs.querySelectorAll('button'), function(x){ x.classList.toggle('on', x===b); });
     // the row measures its own underline — adding a tab costs no layout work
     var n=tabs.querySelectorAll('button').length;
@@ -1136,6 +1141,21 @@
     document.getElementById('projects').hidden=(i!==0);
     document.getElementById('sources').hidden=(i!==1);
     if(i===1) loadSources();
+  }
+  tabs.addEventListener('click', function(e){
+    var b=e.target.closest('button[data-tab]'); if(!b) return;
+    selectTab(+b.dataset.tab);
+  });
+
+  /* the + — a new story is a recording nothing has come apart yet, so it puts
+     her on the Recordings list rather than inventing an empty project. From
+     inside a project it steps back out to the shelf first. */
+  document.getElementById('newbtn').addEventListener('click', function(){
+    if(PID) showHome();
+    // a deliberate tap re-reads the library — a recording she added since the
+    // page loaded is exactly the one she is reaching for
+    document.getElementById('sources').dataset.done='';
+    selectTab(1);
   });
 
   function loadHome(){

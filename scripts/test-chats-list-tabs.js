@@ -20,7 +20,10 @@
 //   7. the toggle beside the account switcher swaps the row back to the
 //      accounts, and swaps back,
 //   8. the choice is sticky across a reload,
-//   9. nothing in the row is under the autoscroll pill's fixed corner.
+//   9. nothing in the row is under the autoscroll pill's fixed corner,
+//  10. the HIDDEN pile is on ALL, behind the SAME fold bar as the live list
+//      (2026-08-28, Sophie: "put hidden back in the new tab structure · same
+//      ui") — it went missing because this tab renders its own list.
 //
 //   npm install playwright-core --no-save && node scripts/test-chats-list-tabs.js
 const http = require('http');
@@ -42,6 +45,7 @@ const MSGS = [
   { id: 'm3', chat: 'bugged', from: 'claude', text: 'fixed a thing',  tldr: 'fixed',  created: iso(T0 - 3 * HOUR), postedAt: iso(T0 - 3 * HOUR) },
   { id: 'm4', chat: 'gone',   from: 'claude', text: 'archived',       tldr: 'gone',   created: iso(T0 - 4 * HOUR), postedAt: iso(T0 - 4 * HOUR) },
   { id: 'm5', chat: 'binned', from: 'claude', text: 'deleted',        tldr: 'binned', created: iso(T0 - 5 * HOUR), postedAt: iso(T0 - 5 * HOUR) },
+  { id: 'm6', chat: 'parked', from: 'claude', text: 'parked for now',  tldr: 'parked', created: iso(T0 - 6 * HOUR), postedAt: iso(T0 - 6 * HOUR) },
 ];
 
 const FEED = [
@@ -70,6 +74,8 @@ const server = http.createServer((req, res) => {
         bugged: { lastSeen: MSGS[2].created, labels: ['bug fix'] },
         gone:   { lastSeen: MSGS[3].created, archived: true },
         binned: { lastSeen: MSGS[4].created, deletedAt: iso(T0 - 5 * HOUR) },
+        // hidden AFTER its last message, so it is really parked
+        parked: { lastSeen: MSGS[5].created, hiddenAt: iso(T0 - 5.5 * HOUR) },
       } }));
   }
   if (url.pathname === '/api/deliverables/feed') {
@@ -139,6 +145,29 @@ const ok = () => { checks++; };
   const order = await page.$$eval('#grid .crow', (r) => r.map((x) => x.dataset.chat));
   if (order.slice(0, 3).join(',') !== 'plain,filed,bugged') fail('not in timing order: ' + order.join(','));
   else ok();
+
+  // ── 4a. THE HIDDEN PILE, SAME BAR ────────────────────────────────────────
+  if (await page.$(row('parked'))) fail('a hidden chat is loose in the ALL list — it belongs behind the bar');
+  else ok();
+  const bar = await page.$('#grid .hidebar');
+  if (!bar) fail('no hidden bar on ALL — the pile has nowhere to live');
+  else ok();
+  if (bar) {
+    const label = await page.$eval('#grid .hidebar', (b) => b.textContent.replace(/\s+/g, ' ').trim());
+    if (!/Hidden 1/.test(label)) fail('the bar does not count the pile: ' + label);
+    else ok();
+    await page.click('#grid .hidebar');
+    await page.waitForTimeout(150);
+    if (!await page.$(row('parked'))) fail('opening the bar did not show the hidden chat');
+    else ok();
+    // the open pile is the whole screen, exactly as on the live list
+    if (await page.$(row('plain'))) fail('the open pile still shows the rest of the list');
+    else ok();
+    await page.click('#grid .hidebar');
+    await page.waitForTimeout(150);
+    if (!await page.$(row('plain'))) fail('closing the bar did not bring the list back');
+    else ok();
+  }
 
   // ── 4b. NEVER BOTH ROWS, THROUGH A REPAINT ───────────────────────────────
   // Her screenshot, 2026-08-28: the lists row AND the account row stacked. The
