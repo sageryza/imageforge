@@ -1013,6 +1013,50 @@ them off the reference sheet, not off the old filenames.
   out-bid the plain record that really is that message; and it stays a multiset,
   so repeating a short phrase can't let the first swallow the second. Test:
   `node scripts/test-chats-first-message.js` (verified failing 2 pre-fix).
+- **A CHAT NAMED AFTER ITS SESSION ID SWALLOWS HER MESSAGES — hook v19
+  (2026-08-28, Sophie: "issues w chat hooks today · slug").** Measured that
+  morning: **3 of the day's 29 chats carried a meaningless slug**
+  (`chat-5d92c228`, `chat-9cac7ca2`, `new-session-56f2b0`) against **one in the
+  whole four days before it** — and `chat-9cac7ca2` held **exactly one message:
+  hers, unanswered for seven hours**, because no session was reading a thread
+  nobody could recognise. (It had also self-archived at 01:16 under the bug-fix
+  rule; her message landed at 01:56, into a chat that was already asleep.)
+  - **The cause was the branch scan accepting ONLY `claude/*`.** A session
+    created with no repo attached clones it mid-turn and lands on an ORDINARY
+    working branch — `chat-5d92c228`'s own first reply says it: "The repo isn't
+    cloned in this container. Let me attach it." Its branch was
+    `panels-background-draw`, which `claude/*` never matched, so the name fell
+    through to `chat-<sid8>` — and **session-first binding makes that permanent
+    on the first post**, so the chat can never recover its own name.
+  - **The fix is two halves, and the second one is why the slug does not move.**
+    The scan now takes a plain working branch when there is no `claude/` one
+    (default branches — main/master/develop/trunk — say nothing about the work
+    and are skipped), and `name_repair` fills the **DISPLAY name** on a chat
+    already stuck with a fallback. It never touches the slug: a moving slug is
+    what orphaned "Imprint". It only ever fills a BLANK name, on a slug that is
+    plainly the fallback shape, once per session, backgrounded.
+  - **The three already stuck were repaired by hand** with `POST
+    /api/chatfeed/rename` — cosmetic, reversible with her pencil, and it re-keys
+    nothing. That is the repair for any future one too; a merge is heavier and
+    is hers to approve.
+  - **The FORK tail is NOT this and is working as designed** — 8 of the day's 29
+    chats carry a `-<sid6>` tail because the harness re-uses branch names, which
+    is what keeps two sessions out of one thread. What it costs is real though:
+    her Playground back-to-top question lived across FOUR slugs
+    (`playground-back-to-top`, `-01hhcz`, `-01k54v`, `chat-9cac7ca2`), none of
+    them knowing the others' history.
+  - **AND THE ENVIRONMENT'S PASTED HOOK IS STALE — v14 against the repo's and
+    the served one's v18 (measured the same morning in this container).** The
+    Setup script field holds a LITERAL copy, so it froze whenever she last
+    pasted it; sessions starting at `/home/user` (multi-repo) or with no repo
+    run that copy, missing v15/v16/v18 — the two fixes for her back-to-back
+    messages vanishing and landing twice. **Not what broke today** (no duplicate
+    shape in the live window), but it is one field of hers: re-paste the Setup
+    script into the environment. Sessions starting inside imageforge run the
+    repo's copy and are unaffected.
+  - Test: `node scripts/test-chat-slug.js` — the naming block EXTRACTED from the
+    live hook (never copied) and driven against real fixture repos; verified
+    failing 3 against the pre-fix rule via `FORGE_HOOK_FILE`.
 - **A CHAT THAT NEVER POSTED CANNOT HEAL ITS OWN PAST — back it up on purpose
   (Aug 2026).** The hook BASELINES on its first firing in a session (only the
   latest turn posts), so fixing a silent chat also throws its history away.
