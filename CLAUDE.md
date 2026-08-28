@@ -4610,6 +4610,15 @@ before working on that module. Nothing was deleted — the moved text is verbati
   Dreamy's tail names its own picture (its hand-drawn frames, the woman in the
   green tank top) and would be nonsense over her references. Switching is one
   line — `BOILER_STYLE` in freeform.js.
+  **ONE CLAUSE IS DROPPED — the colour line** (2026-08-28, Sophie: "get rid of
+  the color line"). Sandy mirror invites the model to pick its own palette; in
+  Freeform the reference she attached is usually the whole point of attaching
+  it, so the sentence argues with her. It is cut as a NAMED clause
+  (`COLOR_CLAUSE`, the swap pattern Dreamy's no-text toggle already uses), so
+  this stays the house wording minus one sentence and **the Playground's Sandy
+  mirror tile is untouched**; `BOILER.colorCut` records that the clause was
+  found, and the test fails on a reword rather than letting it silently come
+  back.
   Four things keep it from breaking the module's whole promise, and none is
   optional: it is **OFF by default and NOT sticky** (a wrapper remembered from
   last week silently riding today's run is exactly the surprise this surface
@@ -4622,6 +4631,9 @@ before working on that module. Nothing was deleted — the moved text is verbati
   answer rather than a reconstruction. Putting a run back restores the toggle to
   what THAT run had, the same *only change what the record knows* rule the
   references follow. `boilerFields` is the one assembler.
+  **AND THE PAGE HAS NO INFO TEXT AT THE TOP** (2026-08-28, Sophie: "get rid of
+  the info text at the top of Freeform") — the header is the whole top of the
+  page; the lede paragraph explaining the module is gone.
   Test: `node scripts/test-freeform-boiler.js` (it reads the real table out of
   server.js, so a stale style id or a pasted copy fails there).
   **Full details: `docs/modules/pictures.md`.**
