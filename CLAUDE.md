@@ -3707,6 +3707,19 @@ before working on that module. Nothing was deleted — the moved text is verbati
     — or the other way round — is written the SHORT way rather than padded
     with invented filler, because the point of the clause is that every word
     in it is hers.
+  **BOTH LIVE BEHIND THE ONE CHARACTER ICON (2026-08-28, Sophie: "add
+  character description be within the existing icon - hairline toggle between
+  description and pictures").** The typed cast shipped as its own box under
+  the panel grid, which made two places on the page to say who is in a
+  picture; it is the second half of the character sheet now, behind a
+  **Pictures · Descriptions** hairline row. Three things not to undo: it is
+  the SAME `.plabtabs` rule and the SAME measurer (`plTabLine`, which took an
+  id for this) as the PICTURE · PANELS row, so nothing declares a tab count;
+  the ROW only exists on the Panels tab, because the clause is written into a
+  SHEET's prompt and a tab that changes nothing on the Picture tab is worse
+  than no tab; and the **badge counts the whole cast, both halves**, repainted
+  as she TYPES (the row is not rebuilt on input, so without that the count sat
+  stale until she closed and reopened the sheet — found by the test).
   Both land in the HEAD, which is what a panel's filed style half is cut from,
   so provenance needed no other change; both are stored on the run and are
   absent when unused. **`sheet-grid.js` IS SERVED TO THE PAGE NOW** (the
