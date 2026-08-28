@@ -4402,6 +4402,37 @@ before working on that module. Nothing was deleted — the moved text is verbati
     future so a chat drawing concurrently could not land above the block — which
     means anything she genuinely draws next sorts UNDER it until the clock
     catches up. `--at` defaults to now; leave it there.
+  **AND A KIND-FILTERED FEED PAGE IS FILLED, NEVER JUST READ (2026-08-28,
+  Sophie, the same morning: "aldo all the older ones r gone").** The PICTURE and
+  PANELS tabs have separate galleries, and `kind=single` drops the panels runs
+  **after** the page of docs is read — on the reasoning, written into the route,
+  that "a short page is fine, the client's Older keeps walking". That is true
+  while the page is SHORT and false when it is EMPTY, and empty is what happened:
+  measured that morning, **the newest 40 docs were 40 panels runs**, so the
+  Picture tab's first page came back with nothing at all over **1,140 runs going
+  back to Aug 2** — and an empty page has no oldest single to take a cursor
+  from, so `loadMore` bailed on the missing cursor and **Older could not walk
+  out of it either**. An empty tab over 1,100 pictures reads as the pictures
+  being deleted.
+  - **The walk is `pl-feed-fill.js`** — pure, injected with the route's own
+    reader, so the paging rules are testable with no Firestore. It keeps
+    reading until it HAS its limit, bounded at `PL_FILL_PASSES` (an unbounded
+    fill would let one request read the whole collection). **An unfiltered read
+    — no `kind`, which is what every older cached page on her phone sends —
+    still costs exactly ONE read and answers as it always did**, and a test
+    pins that.
+  - **`more` means "there are docs behind this page"**, so it is the last
+    read being FULL, never the number of keepers — a page of 3 at the end of
+    the feed must say false or Older never stops.
+  - **The page asks with `kind=single` on its FIRST load too**, not only in
+    Older (that was the whole asymmetry), and Older keeps a last-resort cursor
+    off the oldest run of ANY kind so a stale cached page can still walk out.
+  - **The lesson beyond this feed: "the caller can just ask again" is only a
+    design while the caller still HAS something to ask with.** Filter-after-read
+    paging hands back an empty page and, with it, the cursor the next request
+    needed.
+  - Test: `node scripts/test-playground-feed-fill.js` (the walk over fixtures,
+    then the two page halves and the route's use of the shared fill).
 - **Freeform** (`freeform.js`, `/api/freeform`, `/freeform`) — the one image
   surface with **no opinion**: the prompt goes to gpt-image-2 verbatim, no prefix,
   no suffix, not even a trailing-period trim. `promptSent` is stored on every run
