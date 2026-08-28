@@ -141,3 +141,54 @@ v17 of record: `story/films/evan-v17.mp4` (4:24.2, 53 shots, vo-verify PASS,
 keeps 2.5-4.0 + 258.9-260.4). Replacement clips:
 `evan-v17/msci-scientist-in-england-v2.mp3`,
 `evan-v17/s45-actual-hit-rate.mp3` (deckfactory).
+
+## v18 (2026-08-28) — "cut sweet lady jane part"
+
+Her note, two words, and it is one phrase in one line. v17 says *"I was
+walking to Sweet Lady Jane when I found this video about this guy."*; v18
+says *"I was walking when I found this video about this guy."* Only the
+words **"to Sweet Lady Jane"** come out — "I was walking" stays, because
+the shot under it IS her walking looking at her phone and that phrase is
+what gives the picture its line.
+
+`build-v18.js` is the whole render, and it is a **surgical cut on the
+finished v17**, not a re-derivation from her Cutting Blocks marks: the span
+sits inside one shot, so removing it from both streams leaves every later
+shot exactly where it was. Free — ffmpeg on this box; ~10c of whisper for
+the boundary probes and the read-back gate.
+
+Two things it earned:
+
+- **The word list put the boundary in the wrong place, and the read-back
+  caught it.** Whisper had "walking" ending 53.80 and "to" at 53.80-54.00;
+  a 20ms RMS profile says the voiced run ends **53.86**, a 0.13s stop
+  closure follows, and "to" is **54.00-54.07**. Cutting at 54.10 left "to"
+  audible — the read-back came back *"I was walking to sleep when"*. Probe
+  cuts ending 53.87 / 53.95 / 54.00 read "I was walking." / "I was walking
+  to school." / "I was walking to school.", which is the boundary. v17's
+  own rule, re-earned: **word times LOCATE, energy TRIMS.**
+- **`select`+`setpts` in one pass silently ships the v13 defect.** The
+  first build used `-vf select='not(between(n,a,b))',setpts=N/30/TB` and
+  produced a file whose container said 263.4s while the VIDEO stream ended
+  at ~204s — 6126 packets where 7903 were due, no error anywhere, and a
+  seek to 250s returning no frame. (The `trim`+`concat` filter is no good
+  either: concat consumes the first branch whole, so the second buffers
+  6000+ raw 1000x1500 frames and the encode stalls — it stopped dead at
+  frame 1707.) Two segment encodes plus the **concat demuxer** is the house
+  recipe, and `build-v18.js` gates on `video >= audio` after it.
+
+Verified: 7903 frames = 7928 − 25, duration 263.434 video / 263.410 audio,
+frames present at 100s / 200s / 262s, and a whole-film read-back diffed
+against v17's — **the only deletion is "to sweetly in june"** (98.95% word
+match; the other four diffs are whisper variance on identical audio,
+"like"/"only" and three "okay"/"ok").
+
+v18 of record: `story/films/evan-v18.mp4` (4:23.4).
+The script as v18 plays it: `docs/evan-film-script.md`.
+
+**Still open:** her second note that day, *"spider-man switches"*. Measured
+but not acted on — in the master the exchange ends on HER (*"I said, we do
+live in that world and I wish we didn't"*, 37.10-40.20 of
+`evan-v7-lite.mp3`) and the film cuts that, so it ends on Evan's *"But
+unfortunately, we don't live in that world."* Which way she wants it is
+hers to say; don't guess it.
