@@ -1441,27 +1441,67 @@ function fillTile(el, b){
 function capFor(wrap, b){
   if(!b.text)return;
   var cap=document.createElement('div'); cap.className='bcap'; cap.textContent=b.text;
-  cap.onclick=function(ev){ev.stopPropagation(); if(pending)return; speakBeat(b, cap);};
+  cap.onclick=function(ev){ev.stopPropagation(); if(pending)return; speakBeat(beatById(b.id)||b, cap);};
   wrap.appendChild(cap);
 }
+/* THE CANVAS ONLY REPAINTS WHAT CHANGED (2026-08-28, Sophie: "story room
+   blinks a lot"). render() used to wipe #pad and rebuild every tile on every
+   call — and the draw poll calls it every 4 seconds for the whole life of a
+   30-90s draw, closing the beat popup calls it, and every POST that answers
+   with beats calls it. Each rebuild recreated every <img> with the full-size
+   original, which decodes async on iOS, so the whole canvas flashed blank and
+   popped back — every 4 seconds, for minutes.
+   Two rules, both reading the SAME values render draws (art, color, drawing,
+   caption, clip, order), so a skip can never disagree with the screen:
+     • an identical canvas is not rebuilt at all (padSig);
+     • inside a rebuild, a unit whose own signature is unchanged KEEPS its DOM
+       node — its <img> stays decoded, so one picture landing repaints one
+       tile, not twenty. The unit signature deliberately omits the position,
+       so a reorder moves the decoded tiles instead of redrawing them.
+   A kept node's closures outlive a `beats=d.beats` swap, so every tap
+   resolves its beat by id AT TAP TIME — never the object captured at build. */
+function beatById(id){ for(var i=0;i<beats.length;i++){ if(beats[i].id===id) return beats[i]; } return null; }
+function unitSig(u){
+  return u.members.map(function(m){
+    return [m.id, m.color||'', slotDrawing(m)?1:0, artOf(m)||'', clipOf(m)?1:0, m.text||''].join('\u0001');
+  }).join('\u0002');
+}
+function padSig(units){
+  return (pending?'P':'')+'\u0003'+beats.length+'\u0003'+
+    units.map(function(u){ return u.at+'\u0002'+unitSig(u); }).join('\u0003');
+}
+var lastPadSig=null;
 function render(){
-  var pad=document.getElementById('pad'); pad.innerHTML='';
+  var pad=document.getElementById('pad');
+  var units=padUnits();
+  var sig=padSig(units);
+  /* renderDrawall and paintSend watch their own inputs and repaint tiny
+     boxes — they still run when the canvas itself is skipped. */
+  if(sig===lastPadSig){ renderDrawall(); paintSend(); return; }
+  lastPadSig=sig;
   document.getElementById('empty').hidden=Boolean(beats.length||pending);
+  var bank={};
+  Array.prototype.slice.call(pad.children).forEach(function(n){
+    if(n._usig && !bank[n._usig]) bank[n._usig]=n;
+  });
+  var frag=document.createDocumentFragment();
   function slot(at){
     var s=document.createElement('button'); s.className='slot'; s.setAttribute('aria-label','Place here');
     s.onclick=function(ev){ev.stopPropagation(); place(at);};
-    pad.appendChild(s);
+    frag.appendChild(s);
   }
-  var units=padUnits();
   units.forEach(function(u){
     if(pending) slot(u.at);
-    var wrap=document.createElement('div'); wrap.className='beatwrap';
+    var usig=unitSig(u);
+    var kept=bank[usig];
+    if(kept){ delete bank[usig]; frag.appendChild(kept); return; }
+    var wrap=document.createElement('div'); wrap.className='beatwrap'; wrap._usig=usig;
     if(u.members.length===1){
       var b=u.members[0];
       var el=document.createElement('button');
       el.className='beat'+(b.color?' c-'+b.color:'')+(slotDrawing(b)?' drawing':'');
       fillTile(el, b);
-      el.onclick=function(ev){ev.stopPropagation(); if(pending)return; openBeat(b);};
+      el.onclick=function(ev){ev.stopPropagation(); if(pending)return; openBeat(beatById(b.id)||b);};
       wrap.appendChild(el);
       capFor(wrap, b);
     } else {
@@ -1469,15 +1509,17 @@ function render(){
       u.members.forEach(function(m){
         var sl=document.createElement('button'); sl.className='slice';
         fillTile(sl, m);
-        sl.onclick=function(ev){ev.stopPropagation(); if(pending)return; openBeat(m);};
+        sl.onclick=function(ev){ev.stopPropagation(); if(pending)return; openBeat(beatById(m.id)||m);};
         ck.appendChild(sl);
       });
       wrap.appendChild(ck);
       capFor(wrap, u.members[0]);
     }
-    pad.appendChild(wrap);
+    frag.appendChild(wrap);
   });
   if(pending&&beats.length) slot(beats.length);
+  if(pad.replaceChildren) pad.replaceChildren(frag);
+  else { pad.innerHTML=''; pad.appendChild(frag); }
   renderDrawall();
   /* The band's words depend on whether the picture she walked in with is
      armed, and placing is cancelled from anywhere (the document-level tap) —
