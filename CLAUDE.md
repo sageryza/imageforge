@@ -1982,6 +1982,37 @@ them off the reference sheet, not off the old filenames.
   - Legacy single `note` strings show up as a one-message thread from her, so
     old notes are never lost, and `note` keeps mirroring her LATEST ask for any
     older reader. Her tile shows a green count badge until she opens your reply.
+  - **HER NOTES USUALLY ARRIVE *AFTER* THE MESSAGE THAT ANNOUNCES THEM — SWEEP
+    AGAIN BEFORE YOU SAY YOU ARE DONE (2026-08-28, TO FIX).** Measured on the
+    hate-of-the-game reel: she wrote "added some notes … i suggested 3 examples
+    in the notes" at **23:17:29**, and the seven notes themselves landed
+    **23:29:54-23:31:11 — twelve minutes later**. The chat swept at 23:18,
+    correctly found nothing, told her so, and built 135 pictures ignoring
+    every one of her specific asks. Reading them at turn START is not enough:
+    she announces the intent, then watches the film and writes while the chat
+    works. **Re-read `GET /api/gallery/assets/notes?chat=` right before you
+    report finished**, and treat "no notes yet" as "not yet", never as "she
+    left none".
+    - **A NOTE ON A FILM IS NOT ON AN ASSET TILE, so the assets listing never
+      shows it.** Those seven landed on the PINNED REEL's url with no
+      `description` (the `[0:18] …` timestamp form `filmnote.js` writes). They
+      ride the same `forge-asset-votes` doc, so **`/notes` finds them and
+      `GET /api/gallery/assets?chat=` does not** — a sweep that walks the
+      Assets tab looking for `note`/`thread` fields is blind to every note she
+      leaves on a film.
+    - **NOT BUILT, and it is the actual fix:** nothing tells a chat a note
+      arrived. The wake doorbell fires on her MESSAGE, and a note is not a
+      message — so the only thing standing between her asks and being ignored
+      is a chat remembering to look twice. A note POST should ring
+      `chat-wake.ring` the way `witchvideo.js` already does for its reviewer
+      notes; until it does, the re-read above is the whole protection.
+    - **AND DO NOT "VERIFY" WITH AN ORDERED FIRESTORE QUERY.** The same
+      session reported the notes collection **empty** from
+      `.orderBy('updatedAt','desc')` — but the docs carry `updated`, not
+      `updatedAt`, and **Firestore silently omits every document missing the
+      orderBy field**. The collection held **1,262 docs**. That wrong reading
+      is what turned "not yet" into a confident "nothing saved anywhere".
+      Count with a bare `.get()` before concluding anything is empty.
 - **Prompts on Assets images — POST THE PROMPT FOR EVERY IMAGE YOU MAKE (July
   2026).** Sophie taps **PROMPT** on an image in the Assets tab and the prompt
   covers the picture, with a **Style / Content** toggle (style left, content
@@ -4484,6 +4515,22 @@ before working on that module. Nothing was deleted — the moved text is verbati
 - **Movies** (`movies.js`, `/api/movies`, iOS Movies tab — no web page) — story ->
   ~8-12 self-contained scenes -> gpt-image-2 panels -> Replicate image-to-video ->
   ffmpeg stitch, ~$1.35 for a 12-scene film.
+  **480p WAN CANNOT DO A SHORT CLIP — `num_frames` HAS A FLOOR OF 81
+  (2026-08-28, Sophie: "does 480p wan have a timing option - can it do 1 or 2
+  seconds instead of 5? if so? is it cheaper?").** No, and the question of
+  whether short is cheaper does not arise. `wan-2.2-i2v-fast` refuses anything
+  under 81 frames at validation — *"input.num_frames: Must be greater than or
+  equal to 81"* — so at its 16fps the usable range is **5s to 7.5s** (81-121
+  frames), and there is no 1s or 2s clip to price. **The probe cost nothing:
+  a 422 is refused before it is billed**, which makes this shape of question
+  free to settle — ask the API, do not reason about it.
+  The schema also settles why the house price is BANDED rather than
+  per-second: it says pricing is "based on the video duration at 16 fps", and
+  the only two rungs inside 81-121 frames are the 6c/8c the ledger already
+  records. **Want 1-2 seconds of motion? Render 81 frames and TRIM** (ffmpeg
+  on our own box, free) — same 6c either way, and she picks which second. Wan
+  **2.7** genuinely takes 2-15s and is per-second, but has no 480p at all, so
+  a 2s clip there is 20c at 720p rather than 6c.
   **THE ANIMATE BUTTON CAN RUN WAN 2.7 SINCE AUG 2026 (Sophie's ask), AND IT IS
   NOT A FREE UPGRADE — it is priced per SECOND** ($0.10/s at 720p, $0.15/s at
   1080p, so 50¢ and 75¢ for the standard five seconds against draft's 16¢).
