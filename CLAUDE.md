@@ -3629,6 +3629,32 @@ before working on that module. Nothing was deleted — the moved text is verbati
   and its boxes are the look) and **"vertical"** (the canvas toggles, so a
   prompt naming one shape fights the other). The wording before this was the
   dream feed's, imported 2026-08-20.
+  **HER CAST RIDES A SHEET — BOTH HALVES, AND THEY ARE DIFFERENT THINGS
+  (2026-08-27, Sophie: "I want both. Descriptions as well as pictures: two
+  options").** A panels run (and a story sheet) now carries either, both or
+  neither:
+  - **PICTURES** — the character picker's saved cards, attached last, named by
+    the shared `charLine()`. This one could simply be turned ON where the
+    Sophie card and her photo still cannot: **`charLine()` says "the last
+    attached image(s)", which is as true of a sheet as of a single picture,
+    where those two name a POSITION for ONE picture.** That asymmetry is the
+    whole reason panels were excluded in the first place, and it is pinned.
+  - **DESCRIPTIONS** — her typed name + description rows (`cast` on the
+    request), written in as a clause before the panel lines by
+    `sheetGrid.castBlock`. **THE CLAUSE ONLY EXISTS IF THERE IS AT LEAST ONE
+    CHARACTER** (her rule, stated outright): an empty cast sends nothing at
+    all, never an introduction to nobody. A row with a name but no description
+    — or the other way round — is written the SHORT way rather than padded
+    with invented filler, because the point of the clause is that every word
+    in it is hers.
+  Both land in the HEAD, which is what a panel's filed style half is cut from,
+  so provenance needed no other change; both are stored on the run and are
+  absent when unused. **`sheet-grid.js` IS SERVED TO THE PAGE NOW** (the
+  `pause-plan.js` pattern, so the harnesses pick it up automatically), which
+  is what lets the Prompt panel print the REAL clause instead of keeping a
+  second copy of the wording. Tests: `node scripts/test-sheet-grid.js` (the
+  clause, pure) and `node scripts/test-playground-panels.js` (the wiring, and
+  that the Sophie card and the photo are still off).
   **THE GREEN TANK TOP — a named ban at the very end of the tail (2026-08-27,
   Sophie: "the woman w the green tank top appears nowhere. if text asks for a
   woman, invent a different woman, with different clothing").** `dream-mystery.jpg`

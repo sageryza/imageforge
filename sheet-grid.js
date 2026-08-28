@@ -25,8 +25,14 @@
  * more than the edge cap allows.
  *
  * Pure and dependency-free on purpose, so the tests need neither sharp nor
- * a network.
+ * a network — and SERVED TO THE PAGE at /sheet-grid.js (the pause-plan.js
+ * pattern), so the Playground's Prompt panel prints the real characters
+ * clause rather than keeping a second copy of the wording.
  */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.__sheetGrid = factory();
+}(typeof self !== 'undefined' ? self : this, function () {
 'use strict';
 
 // The grids on offer. 25 later is one { across: 5, down: 5 } entry — nothing
@@ -215,6 +221,46 @@ function panelBlock(grid, texts) {
 }
 
 /**
+ * THE CHARACTERS CLAUSE (2026-08-27, Sophie: "add a characters clause / text
+ * boxes that say character 1: add character, name, description … etc up to n"
+ * · "The character clause only applies if there's at least one character").
+ * Named people established ONCE, before the panel lines, so the model draws
+ * each of them the same in every panel — the words half of her cast. The
+ * PICTURES half is the Playground's character picker, which attaches saved
+ * character cards as references and says its own sentence (charLine() in
+ * pad-characters.js). Both ride a panels run and neither replaces the other:
+ * she asked for "descriptions as well as pictures: two options."
+ *
+ * AN EMPTY CAST RETURNS THE EMPTY STRING, and that is her rule stated
+ * outright — a run with nobody in it sends no clause at all, not an
+ * introduction to nothing. A row with a name but no description (or the other
+ * way round) is written the short way rather than padded with invented
+ * filler: the point of the clause is that every word in it is hers.
+ */
+const CAST_INTRO = 'The same characters recur across the panels — draw each '
+  + 'one the same wherever they appear:';
+
+function castRows(cast) {
+  return (Array.isArray(cast) ? cast : [])
+    .map((c) => ({
+      name: String((c && c.name) || '').trim(),
+      description: String((c && c.description) || '').trim(),
+    }))
+    .filter((c) => c.name || c.description);
+}
+
+function castBlock(cast) {
+  const rows = castRows(cast);
+  if (!rows.length) return '';
+  return [CAST_INTRO, ...rows.map((c, i) => {
+    const n = `Character ${i + 1}`;
+    if (c.name && c.description) return `${n} (${c.name}): ${c.description}`;
+    if (c.name) return `${n}: ${c.name}.`;
+    return `${n}: ${c.description}`;
+  })].join('\n');
+}
+
+/**
  * The cut boxes, reading order. Exact by construction — the sheet divides
  * into whole-pixel cells, so left/top are plain products and the rects tile
  * the sheet with no gap and no overlap (the test proves it rather than
@@ -369,4 +415,6 @@ function applySheet(suffix, swap, layout) {
   return s.replace(swap.from, String(swap.to || '').replace('{layout}', layout || ''));
 }
 
-module.exports = { GRIDS, SHAPES, sheetFor, derive, positions, layoutWords, panelBlock, cellRects, applySheet, findSeams, seamBoxes };
+return { GRIDS, SHAPES, sheetFor, derive, positions, layoutWords, panelBlock,
+  CAST_INTRO, castRows, castBlock, cellRects, applySheet, findSeams, seamBoxes };
+}));

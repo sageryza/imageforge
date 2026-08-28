@@ -54,6 +54,52 @@ function resTable() {
 }
 const RES = resTable();
 
+console.log('the cast — both halves ride a sheet');
+// TWO INDEPENDENT HALVES (2026-08-27, Sophie: "I want both. Descriptions as
+// well as pictures: two options"). Neither replaces the other and a run may
+// carry either, both or neither.
+//  • PICTURES — the saved character cards, attached last, named by
+//    charLine(). The Sophie card and her photo are still OUT, and that
+//    asymmetry is the point: those two name a POSITION for ONE picture,
+//    where charLine() says "the last attached image(s)", which is as true of
+//    a sheet as of a single picture.
+//  • DESCRIPTIONS — her typed rows, written in by sheetGrid.castBlock.
+const panelsBranch = serverSrc.slice(
+  serverSrc.indexOf('if (Array.isArray(req.body.panels)'),
+  serverSrc.indexOf('// A STORY SHEET'));
+ok(/sheetGrid\.castRows\(req\.body\.cast\)/.test(panelsBranch),
+  'the panels branch reads her typed cast');
+ok(/const castTxt = sheetGrid\.castBlock\(cast\)/.test(panelsBranch),
+  'and builds the clause with the shared builder, never its own wording');
+ok(/castTxt \? `\$\{castTxt\}/.test(panelsBranch),
+  'the clause is only in the prompt when there IS one — her rule');
+ok(/const sheetHead = `\$\{prefix\}\$\{charsLine\}`/.test(panelsBranch),
+  "the picked cards' sentence rides the head");
+ok(/chars: pickedChars/.test(panelsBranch), 'and the cards themselves reach the job');
+ok(/character: false/.test(panelsBranch),
+  'the SOPHIE card is still off — it names the second attached image');
+ok(!/photoBuf/.test(panelsBranch), 'and so is her photo, for the same reason');
+const panelsJob = serverSrc.slice(serverSrc.indexOf('async function runPromptLabPanelsJob'),
+  serverSrc.indexOf('async function runPromptLabPanelsJob') + 1400);
+ok(/playgroundCharRefs\(cfg\.chars\)/.test(panelsJob),
+  'the job attaches the picked cards, last');
+// The clause and the picked line both land in the HEAD, which is what a
+// panel's filed style half is cut from — so provenance needs no other change.
+ok(/\.\.\.\(cast\.length \? \{ cast \} : \{\}\)/.test(panelsBranch)
+  && /\.\.\.\(pickedChars\.length \? \{ characters: pickedChars \} : \{\}\)/.test(panelsBranch),
+  'both halves are stored on the run as provenance, absent when unused');
+// ONE derivation: the page prints the REAL clause rather than a copy.
+ok(/app\.get\('\/sheet-grid\.js'/.test(serverSrc), 'sheet-grid.js is served to the page');
+ok(/<script src="\/sheet-grid\.js"><\/script>/.test(pageSrc), 'and the page links it');
+ok(/window\.__sheetGrid && window\.__sheetGrid\.castBlock/.test(pageSrc),
+  'the page builds the clause with it');
+ok(pageSrc.indexOf('The same characters recur') < 0,
+  'promptlab.html holds NO copy of the clause wording');
+ok(/cast: castRows\(\)\.length \? castRows\(\) : undefined/.test(pageSrc),
+  'a panels run sends the typed cast, absent when empty');
+ok(/var charsOff = !gpt;/.test(pageSrc),
+  'and the character picker is no longer hidden on the panels tab');
+
 console.log('the server wiring');
 ok(/Array\.isArray\(req\.body\.panels\)/.test(serverSrc), 'the POST route has a panels branch');
 ok(/function runPromptLabPanelsJob/.test(serverSrc), 'the panels job exists');
