@@ -5984,6 +5984,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
   however many panels it holds. The measured ledger, which is the rule:
   - **Broke it: 16** concurrent outputs + whiten passes (2026-08-19, two
     parallel 4-run × 4-output batches — the restarts that killed them).
+  - **Broke it: 8** concurrent 4K panels SHEETS (2026-08-28, ~6:04pm Pacific,
+    the shoebox batches — the box restarted with NO deploy in flight, so the
+    concurrency alone did it; 5 of the 8 died mid-generation, unrecoverable).
+    The same evening's earlier waves (8-10 at a time) died to DEPLOYS
+    (#1833-#1835 merged 5:17-5:47pm), which is a different killer the ledger
+    cannot protect against — see the deploy note below.
   - **Largest measured clean so far: 3** (the Playground's own ladders fire
     2-3 concurrent renders all day, and parallel-3 chat batches run clean).
   - **Run your batch at the largest clean number on this ledger.** If your
@@ -5994,6 +6000,21 @@ before working on that module. Nothing was deleted — the moved text is verbati
     silently serializes instead is spending her minutes on a protection the
     box may not need. (Since 2026-08-27 an interrupted panels run with a
     banked sheet auto-recovers, so probing costs a retry, not money.)
+  - **THE RECOVERY ONLY COVERS A KILL AFTER THE SHEET IS BANKED — a restart
+    DURING GENERATION loses the paid sheet outright (measured 2026-08-28: 15
+    failed panels runs that evening, NONE with a banked sheet — ~$1.75 of 4K
+    medium sheets gone, billed when requested and never received).** So a
+    deploy landing while sheets are in flight is the expensive kill, and
+    merges cannot be paused with many chats working. **A chat running MORE
+    than the ledger's clean number of sheets should draw them in its OWN
+    CONTAINER** (post to OpenAI directly — the `gen-dream-distilled.js`
+    pattern; `OPENAI_API_KEY` is in the environment) **and cut them there
+    too** (sharp runs anywhere; the cut recipe is `cutSheet` in server.js),
+    then file panels via the normal gallery/prompt POSTs. A container is
+    immune to deploys, shares nothing with the 512MB box, and parallel
+    generation there is limited only by OpenAI's rate limits (measured
+    2026-08-20: 5 parallel in 57s). Render's `/api/promptlab` panels stay
+    for HER taps and small batches (≤3).
   **THE SCOPE IS THE BOX, NOT THE WORD "PLAYGROUND" (2026-08-20, Sophie
   mid-run: "why are you doing them one at a time?").** Two things this note
   does NOT cover:
