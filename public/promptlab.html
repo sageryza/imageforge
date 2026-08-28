@@ -577,6 +577,19 @@
      a floor so a 3-across box still fits a dictated sentence. Boxes ship
      EMPTY; the placeholder only NAMES the cell ("top left"). 16px or iOS
      zooms the page on focus. */
+  /* THE BOXES FOLD (2026-08-28, Sophie: "make the panels grid collapsible").
+     Nine 2:3 boxes is most of a screen, and the controls and Generate sit
+     under them — so the row above the grid puts them away. The boxes are
+     DISPLAY-hidden and stay in the DOM, so a fold can never lose her words
+     and Generate still reads them. Shut, the row says how many are written:
+     the one thing the boxes are no longer saying. Open, it does not — they
+     are right there (the archive summary's don't-say-it-twice rule). */
+  #panelfold { display: flex; align-items: center; gap: 6px; width: 100%;
+    border: 0; background: none; margin: 0 0 6px; padding: 2px 0; cursor: pointer;
+    font-family: inherit; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase;
+    color: #9a9186; text-align: left; -webkit-tap-highlight-color: transparent; }
+  #panelfold svg { width: 13px; height: 13px; flex: none; transition: transform .15s ease; }
+  #panelfold.shut svg { transform: rotate(-90deg); }
   #panelgrid { display: grid; gap: 6px; margin: 0 0 4px; }
   #panelgrid textarea { width: 100%; box-sizing: border-box; border: 1px solid #d8d0c4;
     border-radius: 6px; background: #fdfcf9; color: inherit; font: inherit; font-size: 16px;
@@ -604,6 +617,7 @@
   <div id="beattag"></div>
   <div id="promptpanel"></div>
   <div class="promptwrap"><textarea id="prompt"></textarea><button type="button" id="bigprompt" aria-label="Bigger box" title="Bigger box"></button></div>
+  <button type="button" id="panelfold" hidden aria-expanded="true" aria-controls="panelgrid"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg><span id="panelfoldlab">Panels</span></button>
   <div id="panelgrid" hidden></div>
   <div class="controls">
     <div class="canvastog" id="gridpick" role="group" aria-label="How many panels" hidden></div>
@@ -1134,6 +1148,9 @@
     restorePhoto(r);
     savePanelTexts(r.grid.count, r.panels.slice());
     try { localStorage.setItem(GRIDKEY, String(r.grid.count)); } catch (e) { /* private mode */ }
+    // "Back in the boxes" has to be true on screen — a shut fold would put
+    // them somewhere she cannot see.
+    openPanels();
     setTab('panels');
     scrollToPrompt();
     toast('Panels are back in the boxes');
@@ -1144,6 +1161,7 @@
     try { localStorage.setItem(STORYTEXTKEY, String(r.prompt || '')); } catch (e) { /* private mode */ }
     try { localStorage.setItem(GRIDKEY, 'story'); } catch (e) { /* private mode */ }
     restorePhoto(r);          // a story run never carries one → clears, honestly
+    openPanels();             // same rule as copyPanelsIn — the box must be on screen
     setTab('panels');
     scrollToPrompt();
     toast('The story is back in the box');
@@ -1299,16 +1317,60 @@
     row.style.setProperty('--tx', (t.left - r.left - row.clientLeft) + 'px');
     if (!row.__tl) { row.__tl = 1; requestAnimationFrame(function () { row.classList.add('tl'); }); }
   }
+  // THE FOLD (2026-08-28, Sophie: "make the panels grid collapsible"). Sticky
+  // and OPEN by default — the boxes are the prompt on this tab, so shut is a
+  // state she has to have chosen. Shut hides them with `display:none` and
+  // leaves them in the DOM, so panelVals() still reads her words and Generate
+  // works folded; the tab's own `hidden` is separate and always wins (the
+  // page's `[hidden]{display:none!important}`). Anything that means "write in
+  // these boxes" — picking a grid, putting a prompt back, an error naming an
+  // empty one — OPENS it, because an error pointing at a box she cannot see
+  // is worse than no error.
+  var FOLDKEY = 'promptlab_panelfold';
+  function panelsShut() {
+    try { return localStorage.getItem(FOLDKEY) === '1'; } catch (e) { return false; }
+  }
+  function setPanelsShut(v) {
+    try { localStorage.setItem(FOLDKEY, v ? '1' : '0'); } catch (e) { /* private mode */ }
+    paintPanelFold();
+  }
+  function openPanels() { if (panelsShut()) setPanelsShut(false); }
+  function panelFoldLabel() {
+    if (storyMode()) return storyText().trim() ? 'Story · written' : 'Story';
+    var vals = panelVals();
+    var n = vals.filter(function (s) { return s.trim(); }).length;
+    return 'Panels · ' + n + ' of ' + vals.length + ' written';
+  }
+  function paintPanelFold() {
+    var row = document.getElementById('panelfold');
+    var box = document.getElementById('panelgrid');
+    row.hidden = !onPanels();
+    if (!onPanels()) return;
+    var shut = panelsShut();
+    box.style.display = shut ? 'none' : (box.getAttribute('data-mode') || 'grid');
+    row.classList.toggle('shut', shut);
+    row.setAttribute('aria-expanded', shut ? 'false' : 'true');
+    document.getElementById('panelfoldlab').textContent =
+      shut ? panelFoldLabel() : (storyMode() ? 'Story' : 'Panels');
+  }
+  document.getElementById('panelfold').addEventListener('click', function () {
+    setPanelsShut(!panelsShut());
+  });
   function buildPanelGrid() {
     var box = document.getElementById('panelgrid');
-    if (!onPanels()) { box.hidden = true; return; }
+    if (!onPanels()) { box.hidden = true; paintPanelFold(); return; }
     box.hidden = false;
-    if (!PANELS_CFG) { box.style.display = 'block'; box.innerHTML = '<div class="emptynote">Loading…</div>'; return; }
+    if (!PANELS_CFG) {
+      box.setAttribute('data-mode', 'block');
+      box.innerHTML = '<div class="emptynote">Loading…</div>';
+      paintPanelFold();
+      return;
+    }
     // STORY: one tall box for the whole story — her words persist like the
     // panel texts, so switching 9 → Story → 9 loses nothing either way. The
     // placeholder NAMES the field and nothing more (the house rule).
     if (storyMode()) {
-      box.style.display = 'block';
+      box.setAttribute('data-mode', 'block');
       box.innerHTML = '';
       var st = document.createElement('textarea');
       st.setAttribute('data-story', '1');
@@ -1318,10 +1380,11 @@
         try { localStorage.setItem(STORYTEXTKEY, st.value); } catch (e) { /* private mode */ }
       });
       box.appendChild(st);
+      paintPanelFold();
       return;
     }
     var g = curGrid(), meta = PANELS_CFG.grids[g];
-    box.style.display = 'grid';
+    box.setAttribute('data-mode', 'grid');
     box.style.gridTemplateColumns = 'repeat(' + meta.across + ', 1fr)';
     // The boxes wear the CELL's shape: the grid's own when it PINS one (the 2
     // option is landscape), else the canvas toggle's.
@@ -1337,6 +1400,7 @@
       t.addEventListener('input', stashPanels);
       box.appendChild(t);
     }
+    paintPanelFold();
   }
   function stashPanels() {
     if (!PANELS_CFG) return;
@@ -1360,6 +1424,8 @@
     var b = e.target.closest('button[data-grid]');
     if (!b) return;
     try { localStorage.setItem(GRIDKEY, b.getAttribute('data-grid')); } catch (err) { /* private mode */ }
+    // Picking a layout is her saying she is about to write into it.
+    openPanels();
     // paintCanvas too: Story ↔ a grid moves what the toggle DECIDES (the
     // sheet itself vs each cell), so the titles must move with it.
     paintGridPick(); buildPanelGrid(); syncControls(); paintCanvas(); paintRes(); paintPromptPanel();
@@ -1374,7 +1440,11 @@
     if (storyMode()) {
       var story = (document.querySelector('#panelgrid textarea[data-story]') || {}).value || '';
       story = story.trim();
-      if (!story) { err.textContent = 'Type the story first.'; err.hidden = false; return; }
+      if (!story) {
+        err.textContent = 'Type the story first.'; err.hidden = false;
+        openPanels();          // an error about a box she cannot see is no error
+        return;
+      }
       var sbtn = document.getElementById('go');
       sbtn.disabled = true;
       startStoryRun(story).catch(showErr).finally(function () { sbtn.disabled = false; });
@@ -1387,6 +1457,7 @@
       err.textContent = empty === texts.length ? 'Type each panel first.'
         : (empty + (empty === 1 ? ' panel still needs words.' : ' panels still need words.'));
       err.hidden = false;
+      openPanels();            // the empty box the error names has to be on screen
       return;
     }
     var btn = document.getElementById('go');

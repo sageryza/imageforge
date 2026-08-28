@@ -434,6 +434,32 @@ Grids: **2 (two LANDSCAPE panels, stacked), 4 (2x2), 9 (3x3)** — 25 later is
 one `GRIDS` entry in `sheet-grid.js` (plus a `promptMax` look: nine dictated
 panels fit under 4000 chars at ~350 each; twenty-five will not).
 
+- **THE BOXES FOLD (2026-08-28, Sophie: "make the panels grid collapsible").**
+  Nine 2:3 boxes is most of a screen, and the controls and Generate sit under
+  them — measured at 390pt, folding brings `.controls` up about 460px. A row
+  above the grid (`#panelfold`, the page's own section label with a chevron)
+  puts them away. Sticky in localStorage (`promptlab_panelfold`) and **OPEN by
+  default**: the boxes ARE the prompt on this tab, so shut has to be a state
+  she chose. Four rules, each of them a thing a fold must not cost:
+  - **It hides with `display:none` and leaves the textareas in the DOM.** A
+    fold can never lose her words, and `panelVals()` still reads them — so a
+    folded Generate POSTs every panel and a folded story run sends the story.
+    The tab's own `hidden` is separate and always wins (the page's
+    `[hidden]{display:none!important}`). `buildPanelGrid` writes the mode onto
+    `data-mode` and `paintPanelFold` is the ONE place that sets `display`, so
+    a rebuild can never reopen a shut fold.
+  - **Shut, the row says how many are written** — "Panels · 3 of 9 written",
+    or "Story · written". **Open it does not**: the boxes are right there, and
+    saying it twice is the archive summary's own lesson.
+  - **Anything that means "write in these boxes" OPENS it** — picking a grid
+    or Story, a run's copy button ("panels are back in the boxes" has to be
+    true on screen), and a Generate error naming an empty panel, because an
+    error pointing at a box she cannot see is no error.
+  - Test: `node scripts/test-playground-panel-fold.js` (the real page
+    headless — the fold measured as the controls moving, the words read out of
+    the hidden boxes, the POST, the stickiness across a reload, and each door
+    that reopens it).
+
 - **THE 2 OPTION PINS ITS CELL SHAPE (2026-08-27, Sophie: "2 option shud be
   landscape in panels").** It used to be two PORTRAIT panels side by side,
   following the canvas toggle like 4 and 9 — the one grid where the toggle
