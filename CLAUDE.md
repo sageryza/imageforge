@@ -4379,6 +4379,29 @@ before working on that module. Nothing was deleted — the moved text is verbati
   canvas is the dear one, not the cheap one), deliberately not
   persisted. Cancel is Replicate-only on purpose. The feed pages backwards through
   time and has LIST and TILES views. **Full details: `docs/modules/pictures.md`.**
+  **BUMPING RUNS TO THE TOP RE-DATES THEM, AND THE SET MUST BE EXACTLY WHAT SHE
+  NAMED (2026-08-28, Sophie: "why did all the rat images get moved to the top of
+  playground" → "I only wanted the dance, creepy guy once").** The feed is
+  `orderBy('createdAt','desc')`, so the only way to gather a group at the top is
+  to rewrite its dates — `scripts/playground-bump.js` (dry by default, ids TOP
+  FIRST, the real date kept as `createdAtWas`, `--undo --go` puts it back).
+  It works and it is reversible; what went wrong was the SCOPE. She asked for
+  the creepy-guy panels "old and new every version" and then "then same for all
+  dance/glove ones" — read as three stories, that bumped **27 single glove/rat
+  runs** along with the 5 panels runs, and 27 copies of one picture at the top
+  of the Picture tab is what she was looking at.
+  - **A bump is a LOUD change to a surface she scans every day**, so it is one
+    tap's worth of scope: name the runs back to her BEFORE writing, and when a
+    phrase of hers could mean two sets, bump the smaller one and say what the
+    other would be. Guessing wide is not the cheap direction here even though
+    the write is reversible — she has to notice and ask.
+  - **The bumped runs carry `createdAtWas`, which is how you tell a bump from a
+    real run** and how any later chat scopes an undo: sweep the feed for it
+    rather than trusting an id list from a reply.
+  - **Never stamp AHEAD of now.** The first pass stamped a few hours into the
+    future so a chat drawing concurrently could not land above the block — which
+    means anything she genuinely draws next sorts UNDER it until the clock
+    catches up. `--at` defaults to now; leave it there.
 - **Freeform** (`freeform.js`, `/api/freeform`, `/freeform`) — the one image
   surface with **no opinion**: the prompt goes to gpt-image-2 verbatim, no prefix,
   no suffix, not even a trailing-period trim. `promptSent` is stored on every run
