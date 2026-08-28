@@ -3528,8 +3528,9 @@ before working on that module. Nothing was deleted — the moved text is verbati
   box; **and ONE CUT AT A TIME ACROSS ALL RUNS since 2026-08-28** — Sophie's
   two-phase rule, "sheets come in, get banked, then cut only after banked":
   waiting sheets cost nothing, a banked arrival is ~3MB, a cut decodes ~33MB,
-  so arrivals may stack and the decodes queue (`withCutTurn` in server.js;
-  the ledger's 8-break above is the PRE-queue measurement);
+  so arrivals may stack and the decodes queue (`gateCut` in server.js, which
+  every caller of `finishPanelsCut` — the live job, the boot sweep, `/recut` —
+  comes through; full rules in the Opinions section's ceiling ledger);
   **the cut is IMAGE-AWARE since 2026-08-27** — `findSeams` cuts through
   the middle of the real gutter near each math line, math as the fallback,
   because the model draws the grid slightly off and a blind cut landed on two
