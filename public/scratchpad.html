@@ -134,20 +134,6 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   -webkit-tap-highlight-color:transparent;}
 .stylerow .sw.on{color:var(--ink); font-weight:600;}
 .stylerow .tri{--tri-track:var(--ink); --tri-knob:var(--paper); --tri-ink:var(--ink);}
-/* THE STORY'S SHAPE — portrait or square (2026-08-28, Sophie: "add a new
-   square story type in story room"). The glyph IS the shape: a tall rectangle
-   or a square, drawn at the size the tiles really are, so nothing has to be
-   read. That is the pyramid's rule (a picture of the thing beats a word for
-   it), and it is why this is not a third word on a row that already carries
-   the styles.
-   A rounded SQUARE at the house 6px, never a circle, and it takes the row's
-   far end (`margin-left:auto`) — the styles are which pictures, this is what
-   shape they are, and they are different questions. */
-.stylerow .shapebtn{margin-left:auto; width:28px; height:28px; flex:none;
-  display:flex; align-items:center; justify-content:center; padding:0;
-  background:none; border:1px solid var(--line); border-radius:6px;
-  color:var(--ink); cursor:pointer; -webkit-tap-highlight-color:transparent;}
-.stylerow .shapebtn svg{width:16px; height:16px; display:block;}
 /* THE SHELF (Aug 2026, the media-asset-survey prototype v5, ~15 rounds with
    Sophie): category chips + portrait tiles four across. A tile is a REAL
    picture from that story — portrait 2:3 so nothing crops the art — with the
@@ -961,10 +947,6 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
     <button class="sw on" id="swwater" type="button" data-style="watercolor">Watercolor</button>
     <button class="sw" id="swdreamy" type="button" data-style="dreamy">Dreamy</button>
     <button class="sw" id="swpastel" type="button" data-style="pastel">Pastel</button>
-    <!-- Portrait or square, for the whole story — the drawing canvas, the
-         tiles, the popup's blank paper and the film's frame. Its picture is
-         redrawn from SHAPES, so it never needs a word beside it. -->
-    <button class="shapebtn" id="shapetog" type="button"></button>
   </div>
   <div id="filmrow" hidden><span class="filmnote" id="filmnote"></span></div>
   <div id="pad"></div>
@@ -1245,44 +1227,31 @@ var padStyle='watercolor';
 /* THE STORY'S SHAPE (2026-08-28, Sophie: "add a new square story type in
    story room"). One shape per story, all the way down — the canvas its beats
    are drawn on, every tile, the popup's blank paper and the film's frame.
-   `ar` is the ONE number the CSS reads (`--ar` on the root); `w`/`h` are the
-   glyph's own box, drawn at the shape it names so the button needs no word.
+   `ar` is the ONE number the page needs — `--ar` on the root — because the
+   shape is decided server-side from the story's first picture and there is no
+   control here to draw. (It used to carry a word and a glyph box for a
+   toggle; she asked for the toggle to go, so the list is what is read and
+   nothing more.)
    NOTHING COUNTS THE SHAPES BUT THIS LIST — the first entry is the default
    and the fallback, and it must stay portrait: that is what every story made
    before this is, and a story carrying no shape at all must not move.
    Keep the keys equal to SHAPES in scratchpad.js. */
 var SHAPES=[
-  {key:'portrait', word:'Portrait', ar:'2 / 3', w:11, h:16.5},
-  {key:'square',   word:'Square',   ar:'1 / 1', w:14, h:14}
+  {key:'portrait', ar:'2 / 3'},
+  {key:'square',   ar:'1 / 1'}
 ];
 var padShape='portrait';
 function shapeIx(s){ for(var i=0;i<SHAPES.length;i++)if(SHAPES[i].key===s)return i; return 0; }
 function shapeCur(){ return SHAPES[shapeIx(padShape)]; }
-/* The glyph is the shape itself — a box of those proportions, centred in the
-   button's own 16px square. */
-function shapeGlyph(sh){
-  var x=(16-sh.w)/2, y=(16-sh.h)/2;
-  return '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">'
-    +'<rect x="'+x+'" y="'+y+'" width="'+sh.w+'" height="'+sh.h+'" rx="1.5"/></svg>';
-}
+/* THERE IS NO SHAPE CONTROL ON THE PAGE (2026-08-28, Sophie: "get rid of
+   button"). The shape follows the story's first picture and that is the whole
+   of it — a toggle beside it was a second answer to a question already
+   answered, sitting on the row she reads for the STYLE. `POST /shape` is
+   still there for a chat to correct one on her ask; nothing here calls it.
+   So this is the ONE place the shape reaches the layout: every beat-sized box
+   reads --ar off the root, and nothing else counts the shapes. */
 function renderShape(){
-  var sh=shapeCur(), b=document.getElementById('shapetog');
-  /* The ONE place the shape reaches the layout: every beat-sized box reads
-     --ar off the root, so nothing else counts the shapes. */
-  document.documentElement.style.setProperty('--ar', sh.ar);
-  if(!b)return;
-  b.innerHTML=shapeGlyph(sh);
-  var nx=SHAPES[(shapeIx(padShape)+1)%SHAPES.length];
-  /* The label says what the tap DOES, because the glyph already says what it
-     is now — an aria-label repeating the picture would leave the one thing a
-     screen reader can't see unsaid. */
-  b.setAttribute('aria-label', sh.word+' — tap for '+nx.word.toLowerCase());
-  b.title=b.getAttribute('aria-label');
-}
-function setShape(s){
-  if(s===padShape)return;
-  padShape=s; renderShape();
-  api('/shape',{method:'POST',body:JSON.stringify({shape:s})}).catch(function(){});
+  document.documentElement.style.setProperty('--ar', shapeCur().ar);
 }
 /* A STORY'S SHAPE FOLLOWS ITS FIRST PICTURE (2026-08-28, Sophie: "automatic
    by first picture") — the server decides it as the picture lands, so every
@@ -1341,15 +1310,8 @@ document.getElementById('styletog').onclick=function(ev){
 Array.prototype.forEach.call(document.querySelectorAll('.stylerow .sw'),function(b){
   b.onclick=function(ev){ ev.stopPropagation(); setStyle(b.getAttribute('data-style')); };
 });
-/* Two shapes, so a tap has nowhere else it could mean — this is not the cycle
-   the house rule forbids (that is about a control with stops she can AIM at).
-   A third shape makes it one, and then it wants /tritoggle.js like the styles. */
-document.getElementById('shapetog').onclick=function(ev){
-  ev.stopPropagation();
-  setShape(SHAPES[(shapeIx(padShape)+1)%SHAPES.length].key);
-};
-// The button's picture is DRAWN, so it has to be drawn once before any story
-// arrives — the page opens on the shelf and the row is already behind it.
+// --ar has a 2/3 fallback in the CSS, so a page with no story open already
+// draws portrait; this only makes the variable exist from the start.
 renderShape();
 
 function lock(v){document.body.style.overflow=v?'hidden':'';}

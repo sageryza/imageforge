@@ -68,7 +68,10 @@ console.log('one write puts a picture on a beat');
 // placement flip the toggle onto a story with no visible art (pad-side.js).
 ok(/async function placeOnBeat\(padId, beatId, url, style, src, opts\)/.test(padSrc),
   'scratchpad.js owns it');
-ok(/module\.exports = \{ router, attachVoiceUrl, placeOnBeat,/.test(padSrc),
+// Asked as "is placeOnBeat in the exports", not as the whole list spelled out
+// — the old regex pinned every name in order and went red the day `init` was
+// added beside `router`, which had nothing to do with this trip.
+ok(/^module\.exports = \{[^}]*\bplaceOnBeat\b/m.test(padSrc),
   'and exports it, so server.js uses the same one');
 const route = padSrc.slice(padSrc.indexOf("router.post('/image'"),
   padSrc.indexOf('async function placeOnBeat'));
