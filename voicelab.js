@@ -651,6 +651,67 @@ router.post('/render/:id/recover', express.json({ limit: '8kb' }), async (req, r
   }
 });
 
+// ── ♥ / ✕ on a take (2026-08-28, Sophie: "add the same playground heart x
+// hide pattern in voice studio"). One field on the take's own doc, cleared by
+// tapping the lit one again — the Playground's rule, and the same three values
+// the Assets tab uses, so the two can be compared without translating.
+//
+// A ♥ here ALSO lands on the take's Assets record (her call: "so the two
+// agree"), and the Assets route calls back the other way — an un-heart on one
+// surface must never leave a stuck heart on the other. Only a TTS take has an
+// Assets record to sync with (`fileTakeToAssets` files those and not the voice
+// changer's), so a changed take's mark lives on its doc alone.
+function voteValue(v) {
+  return (v === 'like' || v === 'dislike') ? v : '';
+}
+// Best-effort in BOTH directions: a sync failure must never fail the vote —
+// the mark she just tapped is the thing that has to land.
+async function syncVoteToAssets(url, vote) {
+  if (!url || !admin.apps.length) return;
+  try {
+    const id = crypto.createHash('sha1').update(`${ASSETS_CHAT}|${url}`).digest('hex');
+    await admin.firestore().collection('forge-asset-votes').doc(id).set({
+      chat: ASSETS_CHAT,
+      url: String(url).slice(0, 500),
+      vote: vote ? vote : admin.firestore.FieldValue.delete(),
+      updated: new Date().toISOString(),
+    }, { merge: true });
+  } catch (e) { /* the vote itself is already saved */ }
+}
+
+// The Assets tab's own vote route calls this, so hearting the audio there
+// lights the take here. Matched by url — the only key the two records share.
+async function voteFromAssets(url, vote) {
+  if (!url || !/\/voice-lab\//.test(String(url)) || !admin.apps.length) return;
+  try {
+    const snap = await admin.firestore().collection(COL)
+      .where('url', '==', String(url)).limit(1).get();
+    if (snap.empty) return;
+    const v = voteValue(vote);
+    await snap.docs[0].ref.update({
+      vote: v || admin.firestore.FieldValue.delete(),
+    });
+  } catch (e) { /* best-effort */ }
+}
+
+router.post('/render/:id/vote', express.json({ limit: '8kb' }), async (req, res) => {
+  try {
+    const id = String(req.params.id || '');
+    if (!/^vl[a-f0-9]{12}$/.test(id)) return res.status(400).json({ error: 'bad id' });
+    if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
+    const vote = voteValue((req.body || {}).vote);
+    const ref = admin.firestore().collection(COL).doc(id);
+    const snap = await ref.get();
+    if (!snap.exists) return res.status(404).json({ error: 'not found' });
+    await ref.update({ vote: vote || admin.firestore.FieldValue.delete() });
+    const r = snap.data() || {};
+    if (r.url && (r.kind || 'tts') !== 'sts') await syncVoteToAssets(r.url, vote);
+    res.json({ ok: true, vote });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.delete('/render/:id', async (req, res) => {
   try {
     const id = String(req.params.id);
@@ -663,4 +724,5 @@ router.delete('/render/:id', async (req, res) => {
   }
 });
 
-module.exports = { router, recoverRender, sweepStuckRenders, isStuck, STUCK_AFTER_MS };
+module.exports = { router, recoverRender, sweepStuckRenders, isStuck, STUCK_AFTER_MS,
+  voteFromAssets, voteValue };
