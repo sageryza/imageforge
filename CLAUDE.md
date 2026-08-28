@@ -6005,6 +6005,25 @@ before working on that module. Nothing was deleted — the moved text is verbati
     in flight: billed, no bytes, unrecoverable at any concurrency. A run
     whose sheet was BANKED recovers free (the 2026-08-27 sweep, and
     `POST /api/promptlab/:id/recut`).
+  - **Broke it: 8** concurrent 4K panels SHEETS (2026-08-28, ~6:04pm Pacific,
+    another chat's shoebox batches — the box restarted with NO deploy in
+    flight, so the concurrency alone did it; 5 of the 8 died mid-generation.
+    That measurement is what `gateCut` above now removes the cause of.)
+  - **THE RECOVERY ONLY COVERS A KILL AFTER THE SHEET IS BANKED — a restart
+    DURING GENERATION loses the paid sheet outright (measured 2026-08-28: 15
+    failed panels runs that evening, NONE with a banked sheet — ~$1.75 of 4K
+    medium sheets gone, billed when requested and never received).** So a
+    deploy landing while sheets are in flight is the expensive kill, and
+    merges cannot be paused with many chats working. **A chat running MORE
+    than the ledger's clean number of sheets should draw them in its OWN
+    CONTAINER** (post to OpenAI directly — the `gen-dream-distilled.js`
+    pattern; `OPENAI_API_KEY` is in the environment) **and cut them there
+    too** (sharp runs anywhere; the cut recipe is `cutSheet` in server.js),
+    then file panels via the normal gallery/prompt POSTs. A container is
+    immune to deploys, shares nothing with the 512MB box, and parallel
+    generation there is limited only by OpenAI's rate limits (measured
+    2026-08-20: 5 parallel in 57s). Render's `/api/promptlab` panels stay
+    for HER taps and small batches (≤3).
   **THE SCOPE IS THE BOX, NOT THE WORD "PLAYGROUND" (2026-08-20, Sophie
   mid-run: "why are you doing them one at a time?").** Two things this note
   does NOT cover:
