@@ -5893,6 +5893,27 @@ before working on that module. Nothing was deleted — the moved text is verbati
 - **Scratch Pad / Story Room** (`scratchpad.js`, `/api/scratchpad`, page built by
   `scripts/gen-scratchpad.py`) — thinking with pictures. Hearted Playground images
   are its inbox (read live — nothing is copied).
+  **ADD TO SHOEBOX (2026-08-28, Sophie: "add to shoebox button option in
+  share in story room" → "this is too complicated" → the settled one-button
+  version).** A share icon (the iOS square-and-arrow-up) in the beat popup's
+  art row files the picture she is looking at as a MEMORY in her Memory
+  Library — membry `users/{uid}/memories`, the collection the Shoebox at
+  incaseofamnesia.com/shoebox is a polaroid view over — with the beat's words
+  as the title and the picture as `illustration.url`. It lands in the Shoebox
+  LIBRARY as a developed polaroid; pinning it to a board stays hers, in the
+  shoebox. `POST /api/scratchpad/shoebox {id, style}` — the /cover shape, so
+  the picture comes off the side she is LOOKING at. Four things not to undo:
+  a NEW memory is stamped `createdAt` (the library's one query ORDERS BY IT —
+  a doc without it is silently omitted, the Firestore orderBy trap) and a
+  re-add keeps the original; the memory id is content-addressed off the
+  picture (`sb-<sha1>`), so a second tap updates one memory rather than
+  making a twin; her uid is DISCOVERED (rank `collectionGroup('memories')`
+  parents by count — the find-gallery-uid technique; `SHOEBOX_UID` env
+  overrides, a tie REFUSES rather than guessing whose library it is) and is
+  never committed; and the tap does not stale the film — nothing on the pad
+  changes. server.js hands the membry Firestore in (`scratchpadMod.init`,
+  the dreamapp pattern); without `STORY_FIREBASE_SERVICE_ACCOUNT` the route
+  refuses honestly. Test: `node scripts/test-storyroom-shoebox.js`.
   **A picture can be taken OUT of that inbox — the ✕ on its tile (2026-08-26,
   her ask) — and it HIDES rather than deletes**, because a Playground heart
   and a Dump upload belong to other places and only the story's own gathered

@@ -360,7 +360,12 @@ loadConfig().then(() => {
   // Paste a video url, get the file — filed straight into the Dump (video) or
   // the audio library (audio), so it is usable without a trip through her phone.
   app.use('/api/ytdl', require('./ytdl').router);
-  app.use('/api/scratchpad', require('./scratchpad').router); // Scratch Pad — stage one of a story (hearted Playground images → beats)
+  // Scratch Pad — stage one of a story (hearted Playground images → beats).
+  // Its Add-to-Shoebox button writes a memory into her Memory Library, which
+  // lives in membry — hand in the membry Firestore the dreamapp way.
+  const scratchpadMod = require('./scratchpad');
+  scratchpadMod.init({ membryDb: storyDb });
+  app.use('/api/scratchpad', scratchpadMod.router);
   // Freeform — your own reference images + your own words, sent verbatim. The
   // one image surface that adds NOTHING to a prompt (no style prefix/suffix).
   app.use('/api/freeform', require('./freeform').router);

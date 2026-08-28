@@ -1159,6 +1159,87 @@ router.post('/cover', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
+// ── ADD TO SHOEBOX (2026-08-28, Sophie: "add to shoebox button option in
+// share in story room", settled after "this is too complicated" as the one
+// simple version) ─────────────────────────────────────────────────────────
+// One tap on a beat's popup files the picture she is looking at as a MEMORY
+// in her Memory Library (membry users/{uid}/memories — the collection the
+// Shoebox at incaseofamnesia.com/shoebox is a polaroid view over): the
+// beat's words as the title, the picture as `illustration.url`. It lands in
+// the Shoebox LIBRARY as a developed polaroid; pinning it to a board stays
+// hers, in the shoebox. Nothing else is written anywhere.
+//
+// The membry handles are HANDED IN by server.js (init below) — the pattern
+// every membry-touching module here uses — because the credential lives on
+// STORY_FIREBASE_SERVICE_ACCOUNT and this module's own admin app is Deck
+// Factory's.
+//
+// WHOSE LIBRARY: her uid is DISCOVERED, never committed — the house
+// find-gallery-uid technique (rank collectionGroup parents by count; her
+// pile is thousands of memories against a family member's handful from a
+// Versus game). SHOEBOX_UID in the environment overrides the scan, and the
+// answer is cached for the life of the process. A tie or an empty scan is a
+// refusal, not a guess — writing into the wrong person's library is the one
+// failure this must not have.
+let membryWiring = null;
+function init(w) { membryWiring = w || null; }
+let shoeboxUidCache = null;
+async function shoeboxUid(mdb) {
+  if (process.env.SHOEBOX_UID) return process.env.SHOEBOX_UID;
+  if (shoeboxUidCache) return shoeboxUidCache;
+  const q = await mdb.collectionGroup('memories').limit(1000).get();
+  const counts = {};
+  q.docs.forEach((d) => {
+    const uid = d.ref.parent.parent && d.ref.parent.parent.id;
+    if (uid) counts[uid] = (counts[uid] || 0) + 1;
+  });
+  const ranked = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  if (!ranked.length || (ranked[1] && ranked[1][1] === ranked[0][1])) {
+    throw new Error('could not tell whose memory library this is — set SHOEBOX_UID in the environment');
+  }
+  shoeboxUidCache = ranked[0][0];
+  return shoeboxUidCache;
+}
+router.post('/shoebox', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const beatId = String(req.body.id || '').trim();
+    if (!beatId) return res.status(400).json({ error: 'beat id required' });
+    const pad = await readPad(pid);
+    const beat = (pad.beats || []).find((b) => b.id === beatId);
+    // The picture is the side she is LOOKING at — the /cover rule.
+    const style = styleOf(req);
+    const art = beat ? slotFace(artSlot(beat, style)) : null;
+    if (!art || !/^https?:\/\//.test(art)) return res.status(400).json({ error: 'that beat has no picture' });
+    const mdb = membryWiring && membryWiring.membryDb && await membryWiring.membryDb();
+    if (!mdb) return res.status(503).json({ error: 'the memory library credential (STORY_FIREBASE_SERVICE_ACCOUNT) is not set' });
+    const uid = await shoeboxUid(mdb);
+    // Content-addressed by the picture, so tapping twice updates ONE memory
+    // (the deliverables-list rule) — and the doc id is prefixed so it can
+    // never collide with an addDoc id.
+    const id = 'sb-' + crypto.createHash('sha1').update(art).digest('hex').slice(0, 24);
+    const ref = mdb.collection('users').doc(uid).collection('memories').doc(id);
+    const now = new Date();
+    const FV = require('firebase-admin').firestore.FieldValue;
+    const snap = await ref.get();
+    // The shape useMemories/Shoebox read: title on the chin, illustration.url
+    // as the picture, createdAt because the library's one query ORDERS BY IT
+    // (a doc without it is silently omitted — the Firestore orderBy trap).
+    const doc = {
+      title: String(beat.text || '').trim().slice(0, 140),
+      hashtags: ['storyroom'],
+      illustration: { url: art },
+      source: 'storyroom', pad: pid, beat: beatId,
+      timestamp: now.toISOString(),
+      dateTime: now.toLocaleDateString('en-US'),
+      updatedAt: FV.serverTimestamp(),
+    };
+    if (!snap.exists) { doc.content = ''; doc.createdAt = FV.serverTimestamp(); }
+    await ref.set(doc, { merge: true });
+    res.json({ ok: true, id });
+  } catch (e) { fail(res, e); }
+});
+
 // The inbox. A story that carries its OWN inbox shows that instead of the
 // Playground hearts (Aug 2026, Sophie): the art a story already has —
 // gathered from the chats that made it — is what she wants to place on the
@@ -2374,4 +2455,4 @@ async function attachVoiceUrl(padId, beatId, url) {
   });
 }
 
-module.exports = { router, attachVoiceUrl, placeOnBeat, autoShapePatch, drawablePrompt, promptFor, clipsNeedingPoster };
+module.exports = { router, init, attachVoiceUrl, placeOnBeat, autoShapePatch, drawablePrompt, promptFor, clipsNeedingPoster };

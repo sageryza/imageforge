@@ -1138,6 +1138,14 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
     <button id="ardraw" aria-label="Draw it here">__STAR__</button>
     <button id="arplay" aria-label="Make its art in the Playground">__PLAYICON__</button>
     <button id="arinbox" aria-label="Pick from the inbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
+    <!-- ADD TO SHOEBOX (2026-08-28, Sophie): one tap files this picture as
+         a memory in her Memory Library, so it shows up in the Shoebox
+         (incaseofamnesia.com/shoebox) as a developed polaroid — pinning it
+         to a board stays hers, over there. The glyph is the iOS
+         square-and-arrow-up, her word for it ("share"), the Playground's
+         own send icon. Hidden while the beat has no picture, and on a clip
+         like the rest of the row. -->
+    <button id="arshoe" hidden aria-label="Add to Shoebox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg></button>
     <button id="arvers" hidden aria-label="Past pictures"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h12a1 1 0 0 1 1 1v12"/><path d="M6 7h11a1 1 0 0 1 1 1v11"/><rect x="3" y="10" width="12" height="11" rx="1"/></svg></button>
   </div>
   <div id="verrow" hidden></div>
@@ -1237,7 +1245,9 @@ function api(p,opts){
        fresh. */
     /* `/character*` doesn't stale the film either: the cast list is not on
        the timeline — a DRAW that uses one is, and /generate marks it. */
-    if(p.indexOf('/film')!==0&&p.indexOf('/pads')!==0&&p.indexOf('/character')!==0&&p!=='/tts'&&p!=='/style'&&p!=='/upload') dirtySinceFilm=true;
+    /* /shoebox doesn't stale the film either: it writes into her Memory
+       Library, nothing on this pad changes. */
+    if(p.indexOf('/film')!==0&&p.indexOf('/pads')!==0&&p.indexOf('/character')!==0&&p!=='/tts'&&p!=='/style'&&p!=='/upload'&&p!=='/shoebox') dirtySinceFilm=true;
   } else if(p.indexOf('/pads')!==0){
     p+=(p.indexOf('?')>=0?'&':'?')+'pad='+encodeURIComponent(padId);
   }
@@ -1932,6 +1942,7 @@ var HELP=[
   {sel:'#ardraw', nm:'Draw it', what:'Draws this beat here, from its words.'},
   {sel:'#arplay', nm:'Playground', what:'Opens the Playground to make its art there instead.'},
   {sel:'#arinbox', nm:'From the inbox', what:'Swaps in a picture or clip you already have.'},
+  {sel:'#arshoe', nm:'Add to Shoebox', what:'Files this picture into your Memory Library, so it shows up in the Shoebox as a polaroid — pin it to a board there.'},
   {sel:'#dchars', nm:'Character references', what:'Under Drawing prompt: pick one or more of the story’s characters to ride along with this drawing. The count on the button says how many are coming.'},
   {sel:'#dgo', nm:'Draw', what:'Under Drawing prompt: draws it, at the quality on the toggle beside it. Low is where it starts.'},
   {sel:'#speak', nm:'Hear it', what:'Reads the beat aloud in your voice.'},
@@ -3080,6 +3091,10 @@ function openBeat(b){
   document.getElementById('captext').textContent=document.getElementById('pnote').value;
   document.getElementById('coverbtn').hidden=!artOf(b);
   document.getElementById('coverbtn').classList.remove('on');
+  /* Add to Shoebox only exists where there is a picture to add — same rule
+     as the cover pin; the clip case is #artrow's own hidden below. */
+  document.getElementById('arshoe').hidden=!artOf(b);
+  document.getElementById('arshoe').classList.remove('on');
   // Every generation this beat has had — thumbnails, newest first, current
   // ringed — folded behind the stacked-squares button, which only appears
   // once a draw has actually replaced something.
@@ -3787,6 +3802,19 @@ document.getElementById('lbuse').onclick=function(ev){
 };
 /* Make this beat's art the story's cover on the shelf. The button fills in
    dark as the ack and the popup stays open (same manner as the color chips). */
+/* ADD TO SHOEBOX — the /cover shape exactly: the server takes the picture
+   off the side she is LOOKING at, files it as a memory (beat words as the
+   title), and tapping twice updates the same memory rather than making a
+   twin. The lit button is the receipt. */
+document.getElementById('arshoe').onclick=function(ev){
+  ev.stopPropagation();
+  var b=popBeat; if(!b||!artOf(b))return;
+  var btn=this;
+  api('/shoebox',{method:'POST',body:JSON.stringify({id:b.id,style:padStyle})})
+    .then(function(r){return r.json()})
+    .then(function(d){ if(d&&d.ok){ btn.classList.add('on'); } })
+    .catch(function(){});
+};
 document.getElementById('coverbtn').onclick=function(ev){
   ev.stopPropagation();
   var b=popBeat; if(!b||!artOf(b))return;
