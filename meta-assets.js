@@ -156,7 +156,14 @@ function buildMetaAssets(docs, creations) {
     if (covering) {
       covering.forEach((row) => {
         Object.keys(words).forEach((k) => {
-          if (!String(row[k] || '').trim() && words[k]) row[k] = words[k];
+          // A caption reading "from <chat>" is the hook's own background
+          // mark, never curated (asset-guard's rule) — it counts as BLANK
+          // here, so the creation's real STYLE · MODEL · QUALITY · SIZE
+          // caption replaces it (measured 2026-08-28: 130 tiles were
+          // keeping the mark over a real caption).
+          const cur = String(row[k] || '').trim();
+          const blank = !cur || (k === 'prompt' && /^from /.test(cur));
+          if (blank && words[k]) row[k] = words[k];
         });
         if (c.compressedAtBirth === true) row.compressedAtBirth = true;
       });
