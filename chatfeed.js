@@ -71,7 +71,7 @@ const { spawn } = require('child_process');
 const fetch = require('node-fetch');
 const { buildQuestions, answeredOnly, isCompacted } = require('./questions');
 const { parseQuery } = require('./search-grammar');
-const { shouldPushReply, chatNotifies, pushBody } = require('./push-gate');
+const { shouldPushReply, chatNotifies, needEscalates, pushAlert, pushBody } = require('./push-gate');
 const chatSort = require('./chat-sort');
 const pageTemplates = require('./page-templates');
 const assetUnion = require('./asset-union');
@@ -1036,19 +1036,31 @@ router.post('/', async (req, res) => {
         pushedAt: mine.pushedAt,
       })
       : { push: false, why: 'bell-off' };
+    // A CHAT BLOCKED ON HER RINGS WITHOUT A BELL (2026-08-28, Sophie: "can u
+    // make chats bell themselves based on importance"). One buzz per distinct
+    // ask, and NOT a flip of her bell — see needEscalates in push-gate.js.
+    const asks = !working && needEscalates(mine);
     // Stamped in the SAME registry write the reply already makes — and stamped
     // before the send, not after: the push is fire-and-forget, so waiting on it
     // would leave a window where a second reply could push again.
     if (gate.push) reg.pushedAt = doc.postedAt;
+    if (asks) reg.needPushedAt = doc.postedAt;
     await regRef(doc.chat).set(reg, { merge: true });
     // Fire-and-forget by contract; notifyChat can never fail this route. The
     // title is the name SHE gave the chat, when there is one. `debounce:false`
     // because her message is the gate now — a time window on top of it would
     // swallow the answer to a follow-up she sent four minutes later.
-    if (gate.push) {
+    // THE ASK WINS THE BANNER when there is one: "Needs you · pick a take 1-4"
+    // is the one line worth stopping for, and a chat that just asked her
+    // something is not better described by its own TLDR.
+    if (gate.push || asks) {
       try {
-        require('./push').notifyChat(doc.chat, mine.displayName || doc.chat,
-          pushBody(doc.text, doc.tldr).slice(0, 240), { debounce: false });
+        const alert = asks
+          ? pushAlert('need', { chatName: mine.displayName || doc.chat, need: mine.statusNeed })
+          : pushAlert('answer', { chatName: mine.displayName || doc.chat,
+            text: doc.text, tldr: doc.tldr });
+        require('./push').notifyChat(doc.chat, alert.title, alert.body.slice(0, 240),
+          { debounce: false });
       } catch (e) { /* push must never fail a post */ }
     }
     // A FINISHED REPLY IS ALSO WHAT LETS A HELD BUZZ OUT (2026-08-28, Sophie:
@@ -1058,7 +1070,7 @@ router.post('/', async (req, res) => {
     // Suppressed when the reply itself just buzzed her — same chat, same
     // second, same collapse-id, so the second one is only ever noise.
     if (!working) {
-      try { require('./push').flushChat(doc.chat, { suppress: gate.push }); }
+      try { require('./push').flushChat(doc.chat, { suppress: gate.push || asks }); }
       catch (e) { /* push must never fail a post */ }
     }
     // END OF TURN: the chat files itself (Aug 2026 — "that could be a start of
@@ -3044,11 +3056,28 @@ router.post('/status', async (req, res) => {
     if (!chat) return res.status(400).json({ error: 'chat required' });
     const resolved = await resolveChat(chat, String(session || '').slice(0, 120));
     const del = admin.firestore.FieldValue.delete();
-    const patch = { statusAt: new Date().toISOString() };
+    const now = new Date().toISOString();
+    const patch = { statusAt: now };
     // Only the fields sent change; sending "" clears one.
     if (need !== undefined) patch.statusNeed = statusLine(need) || del;
     if (doing !== undefined) patch.statusDoing = statusLine(doing) || del;
-    await regRef(resolved).set(patch, { merge: true });
+    // `needSetAt` — WHEN THE ASK ITSELF CHANGED, which is what lets a chat
+    // blocked on her reach her lock screen without a bell (see needEscalates
+    // in push-gate.js). It must NOT move on a re-post of the same words: a
+    // chat re-states its need at the end of every turn, and a stamp bumped
+    // each time would buzz her on a loop for one ask. Read straight off the
+    // doc rather than the registry cache — this route runs once a turn, and a
+    // stale read here would either drop a real ask or repeat one.
+    const ref = regRef(resolved);   // one ref: regRef drops the registry cache
+    if (need !== undefined) {
+      const line = statusLine(need);
+      let was = '';
+      try { was = ((await ref.get()).data() || {}).statusNeed || ''; }
+      catch (e) { /* best effort — a failed read just re-stamps */ }
+      if (line && line !== was) patch.needSetAt = now;
+      if (!line) patch.needSetAt = del;      // ask withdrawn: nothing to buzz
+    }
+    await ref.set(patch, { merge: true });
     res.json({ ok: true, chat: resolved });
   } catch (err) { fail(res, err); }
 });
@@ -4025,7 +4054,10 @@ async function runAutoCompare(chat) {
       try {
         const { chats } = await registry();
         const reg = chats[slug] || {};
-        if (chatNotifies(reg)) require('./push').queueChat(slug, reg.displayName || slug, plan.title);
+        if (chatNotifies(reg)) {
+          const a = pushAlert('page', { chatName: reg.displayName || slug, title: plan.title });
+          require('./push').queueChat(slug, a.title, a.body);
+        }
       } catch (e) { /* push must never fail a filing */ }
       out.push({ kind: plan.kind, ok: true, id, created: true });
     }
@@ -4092,7 +4124,10 @@ router.post('/page', async (req, res) => {
       try {
         const { chats } = await registry();
         const reg = chats[tdoc.chat] || {};
-        if (chatNotifies(reg)) require('./push').queueChat(tdoc.chat, reg.displayName || tdoc.chat, tdoc.title);
+        if (chatNotifies(reg)) {
+          const a = pushAlert('page', { chatName: reg.displayName || tdoc.chat, title: tdoc.title });
+          require('./push').queueChat(tdoc.chat, a.title, a.body);
+        }
       } catch (e) { /* push must never fail a post */ }
       // sheet = page-<id>: unique per page, and a new version is a new page,
       // so the verdict sheet's identity carries the item set's shape for free
@@ -4135,7 +4170,10 @@ router.post('/page', async (req, res) => {
       const { chats } = await registry();
       const reg = chats[doc.chat] || {};
       const name = reg.displayName || doc.chat;
-      if (chatNotifies(reg)) require('./push').queueChat(doc.chat, name, doc.title);
+      if (chatNotifies(reg)) {
+        const a = pushAlert('page', { chatName: name, title: doc.title });
+        require('./push').queueChat(doc.chat, a.title, a.body);
+      }
     } catch (e) { /* push must never fail a post */ }
     const body = { ok: true, id: ref.id, url: `/api/chatfeed/page/${ref.id}` };
     if (warnings.length) body.warnings = warnings;   // never blocks the post

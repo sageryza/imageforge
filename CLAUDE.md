@@ -6867,6 +6867,41 @@ before working on that module. Nothing was deleted — the moved text is verbati
   replies** — it swallowed the answer to a follow-up she sent four minutes
   later; her message is the gate now. A chat that has never lifted one of her
   messages keeps the old behaviour rather than going quiet.
+  **A CHAT BELLS ITSELF WHEN IT IS BLOCKED ON HER (2026-08-28, Sophie: "can u
+  make chats bell themselves based on importance").** The bell is a whitelist
+  she taps, which is what keeps 260 live chats off her lock screen — and the
+  gap it leaves is the one case where the CHAT, not she, knows something
+  matters: it has stopped and is waiting on her. Measured that day: **48 chats
+  set a `need` in two days and only 6 of them were belled** — 42 asks she could
+  only find by opening the app. So a finished reply whose `need` is NEW buzzes
+  her whatever the bell says (`needEscalates` in `push-gate.js`).
+  - **IT IS NOT A FLIP OF HER BELL.** A self-set bell sticks (only she turns
+    one off), so every chat that ever had one important moment would be belled
+    forever and the whitelist would quietly become everything. **Importance is
+    a property of the MOMENT, not of the chat** — this escalates ONE reply and
+    changes no stored flag of hers. Making it sticky is hers to ask for.
+  - **IT IS NOT "a need exists".** A chat re-states its need at the end of
+    every turn, so that would buzz her on a loop for one ask. `POST /status`
+    stamps **`needSetAt` only when the text CHANGED** (read off the doc, not
+    the registry cache — the route runs once a turn, and a stale read would
+    either drop a real ask or repeat one), and the reply compares it against
+    `needPushedAt`: one buzz per distinct ask.
+  - **It skips the answers-her test on purpose** — a chat that hit a blocker
+    working on its own is exactly the case that test exists to silence, and
+    exactly the case she wants to hear about. Clearing the need (`need:""`)
+    deletes the stamp, so a withdrawn ask can never ring later.
+  **AND THE BANNER SAYS WHICH CHAT AND WHAT KIND (2026-08-28, Sophie: "and
+  notification more informative").** It used to be the chat's name over the
+  reply's TLDR, and on a deliverable the words "New deliverable" over a title
+  with the chat trailing after an em dash — so the one fact she needs first
+  (WHICH chat) moved depending on which door rang, and nothing said what kind
+  of arrival it was. One shape now, `pushAlert` in `push-gate.js`: **the CHAT
+  is always the title**, and the body leads with the kind — `Needs you · pick a
+  take 1-4` · `New film · Evan v18 (4:23)` · `New page · Sheet v2` — with an
+  answer still leading on its TLDR. **The ask WINS the banner** when a reply
+  carries one: a chat that just asked her something is not better described by
+  its own summary. The 2026-08-15 rule survives inside it — a reply opening
+  with her own question in bold never comes back as the banner.
   **THE BUZZ WAITS FOR THE TURN TO END (2026-08-28, Sophie: "I get notified on
   my phone a few seconds before chats actually finish their turn").** The
   FINISHED-REPLY door was always honest — it fires from the hook's Stop pass.
