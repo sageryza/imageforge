@@ -37,6 +37,24 @@
 //     read as a real hand-over. A path blacklist would have had to grow a line
 //     per surface forever; the label is what a delivery already has.
 //
+// TWO RULES SHE ADDED THE HOUR IT SHIPPED (2026-08-28: "newest replaces
+// oldest" · "disappears if i write back"):
+//
+//   • ONE ROW PER WORK, ITS NEWEST. A film already collapsed by title stem
+//     (deliverables.js `workKey`); a chat's PICTURES collapse by chat, so a
+//     second batch replaces the first rather than stacking beside it. Nothing
+//     is lost — the earlier ones ride along as `older` and the row says how
+//     many. This narrows the "as they're delivered" rule rather than undoing
+//     it: the bursts are still what a row IS, only the older ones fold.
+//
+//   • ANSWERED IS DONE. A row leaves the list once she has written back to
+//     that chat since it was delivered — `lastHerAt` on the registry, her REAL
+//     send time, stamped by the one route both her doors come through (the
+//     hook lifting her words out of the Claude app, and the app's reply box).
+//     So the tab is what has been handed to her and not yet dealt with, and it
+//     empties itself. A chat that delivers again after she wrote back comes
+//     back, because the new delivery is newer than her message.
+//
 // Pure — no Firestore, no network, no clock of its own. deliverables.js does
 // the reading; this decides what the list says.
 // Tests: node scripts/test-deliverables-feed.js
@@ -161,7 +179,27 @@ function buildFeed({ deliverables, assets, chats, limit = 60 } = {}) {
   });
 
   rows.sort((a, b) => ms(b.at) - ms(a.at));
-  return { items: rows.slice(0, limit) };
+
+  // ANSWERED IS DONE — her own message since the hand-over takes the row off.
+  const live = rows.filter((r) => {
+    const her = reg[r.chat] && reg[r.chat].lastHerAt;
+    return !(her && ms(her) > ms(r.at));
+  });
+
+  // NEWEST REPLACES OLDEST. The films arrive already collapsed by work; the
+  // pictures collapse by CHAT, which is the same question asked of a surface
+  // that has no title stem to group on. Sorted newest-first above, so the
+  // first one seen is the keeper and everything after it folds under it.
+  const seen = new Map();
+  const out = [];
+  live.forEach((r) => {
+    if (r.kind !== 'images') { out.push(r); return; }
+    const keep = seen.get(r.chat);
+    if (!keep) { r.older = []; seen.set(r.chat, r); out.push(r); return; }
+    keep.older.push({ at: r.at, count: r.count, title: r.title });
+  });
+
+  return { items: out.slice(0, limit) };
 }
 
 module.exports = { buildFeed, burstsFor, deliverablePicture, BURST_MS, IMAGES_PER_ROW };
