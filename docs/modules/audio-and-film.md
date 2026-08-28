@@ -724,6 +724,32 @@ touches the shelf).
   new = add the id + a colour there; **culling one is just dropping its id**,
   which is how Richard v1/v2/v3, Miriam, Gilad, Alpha and "Sophie — doctor"
   came off the picker on Aug 18 2026. Nothing was deleted at ElevenLabs.
+- **♥ / ✕ ON A TAKE, AND THE TWO FILTERS OVER THEM (2026-08-28, Sophie: "add
+  the same playground heart x hide pattern in voice studio").** Both marks on
+  every FINISHED take's meta row (after the ⤓), tapping the lit one clears it;
+  one segmented box of two filters on each list's header line. The full rules —
+  one setting across both tabs, the two lit colours differing, the both-ways
+  Assets sync, no marks on an unfinished or failed take, and a filtered card
+  hidden rather than removed — are written out once in CLAUDE.md's Voice Studio
+  bullet. The mechanics here:
+  - `POST /api/voicelab/render/:id/vote {vote:'like'|'dislike'|''}` writes one
+    `vote` field on the `forge-voicelab` doc. `/history` already returns whole
+    docs, so nothing about the read changed and every take already on file
+    picks this up.
+  - `syncVoteToAssets` writes the `forge-asset-votes` doc keyed
+    `sha1(ASSETS_CHAT|url)` — the same id `assetVoteRef` in server.js derives,
+    which is what makes the two records the same record. `voteFromAssets` is
+    the return trip, exported and called from `/api/gallery/assets/vote`
+    beside `syncVoteToPlayground`; it matches on `url` and does nothing for a
+    url outside `voice-lab/`.
+  - The page keeps the marks and the filters in ONE place
+    (`voteBtns` / `paintFilt` / `applyFilt` in `public/voice.html`), and
+    `card()` calls `applyFilt` on every repaint — a take arriving or finishing
+    has to be judged by the live filter, or a fresh render appears on a
+    hearts-only list nothing has hearted.
+  - The `.secthead` row reserves the injected pill's column the same 56px
+    `.acctabs` and the bigger-box button already reserve on this page.
+  - Test: `node scripts/test-voicelab-votes.js`.
 - **Her words STAY in the box** (Sophie, Aug 2026): a render does not empty it
   and neither does leaving the page (`localStorage['voicelab_text']`), because
   she runs the same line through voice after voice. **Clear** is the only

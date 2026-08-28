@@ -5778,11 +5778,30 @@ function renderHome(){
       if(chatDeleted(n) || (chats[n]&&chats[n].archived)) return false;
       return cat ? chatInCat(n,cat) : true;
     });
+    // THE HIDDEN PILE RIDES HERE TOO, and it is the SAME bar (2026-08-28,
+    // Sophie: "put hidden back in the new tab structure · same ui"). It went
+    // missing because this tab renders its own list rather than falling
+    // through to the live branch, and the fold lives there. `renderHiddenBar`
+    // is called, never copied — the count, the "N new", the working glow and
+    // the open-pile-is-the-whole-screen rule are one implementation.
+    var everyVis=every.filter(function(n){ return !chatHidden(n, lastOf(g,n)); });
+    var everyHid=every.filter(function(n){ return chatHidden(n, lastOf(g,n)); });
     paintHomeChrome(); paintAcctTabs(g); paintListTabs(); paintCatRow(g);
     document.getElementById('selbtn').classList.toggle('on', selMode);
     paintSelBar();
     if(!every.length){ el.innerHTML='<div class="state">No chats on account '+acctFilter()+'.</div>'; return; }
-    if(view==='list') renderList(el,g,every); else renderTiles(el,g,every);
+    renderHiddenBar(el,g,everyHid);
+    // Opening the pile takes the whole screen, exactly as it does on the live
+    // list — guarded on the pile still having something in it, or a chat
+    // popping out while she is in there would leave a blank screen.
+    if(hideOpen && everyHid.length){ if(window.__jumpsRecheck) window.__jumpsRecheck(); return; }
+    if(!everyVis.length){
+      // append, never innerHTML — the bar is already in this element
+      var none=document.createElement('div'); none.className='state';
+      none.textContent='Everything here is hidden — tap the bar to see it.';
+      el.appendChild(none); return;
+    }
+    if(view==='list') renderList(el,g,everyVis); else renderTiles(el,g,everyVis);
     return;
   }
   // DELIVERED — not chats at all: the films, cuts and pictures as they were

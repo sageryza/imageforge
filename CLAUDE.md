@@ -1830,6 +1830,13 @@ them off the reference sheet, not off the old filenames.
     (2026-08-27) and this row's third tab both write `listTab`, and the button
     brings the row with it, so the pile she is looking at is always named on
     screen. `bugOnly` is gone; `bugPile()` is the reader.
+  - **THE HIDDEN PILE RIDES ALL, BEHIND THE SAME BAR** (2026-08-28, Sophie:
+    "put hidden back in the new tab structure · same ui"). It went missing
+    because this tab renders its own list rather than falling through to the
+    live branch, where the fold lives. `renderHiddenBar` is CALLED, never
+    copied — the count, the "N new", the working glow and the
+    open-pile-is-the-whole-screen rule are one implementation, so a chat she
+    parks behaves the same wherever she is standing.
   - **ONE ROW, SO ONE WRITER (2026-08-28, her screenshot: both rows stacked).**
     `paintHomeChrome` un-hides the account row and EVERY repaint comes through
     it, while `paintListTabs` only runs on the four branches that rebuild the
@@ -5270,6 +5277,38 @@ before working on that module. Nothing was deleted — the moved text is verbati
   owns that fixed column — a z-index lift is not the fix, it steals the pill's
   own ▼. Test: `node scripts/test-voicelab-bigbox.js` (the real page headless,
   with the real pill and the iPhone 13's 47px inset simulated).
+  **♥ / ✕ ON A TAKE, AND THE TWO FILTERS OVER THEM (2026-08-28, Sophie: "add
+  the same playground heart x hide pattern in voice studio").** The
+  Playground's pattern brought over whole rather than reinvented: both marks on
+  every finished take's meta row, tapping the lit one clears it
+  (`POST /api/voicelab/render/:id/vote`, one field on the take's own doc), and
+  one segmented box of two filters on the list's header line — ♥ keeps only
+  what it names, ✕ drops only what it names, and they stack. Five things not to
+  undo:
+  - **ONE SETTING ACROSS BOTH TABS** (her call): Text and Voice are two views
+    of one state (`voicelab_liked` / `voicelab_hidex`), so `paintFilt`
+    repaints every copy. A filter lit on the tab she is not looking at is the
+    silent-filter failure this app keeps getting burned by.
+  - **THE TWO LIT COLOURS MUST DIFFER** — the heart takes the rose and the ✕
+    the quiet grey. They do opposite things, and two rose buttons side by side
+    read as two of the same thing (the Playground's own `.xfilt.on`).
+  - **A ♥ SYNCS WITH THE ASSETS TAB, BOTH WAYS** (her call: "so the two
+    agree") — the take is already filed into `professional-voice-plan-review`,
+    so the vote route writes the `forge-asset-votes` doc and the Assets vote
+    route calls `voicelab.voteFromAssets` back. One direction only would leave
+    a stuck heart on whichever surface she did not tap. Best-effort on both
+    sides: the mark she tapped has to land whatever the sync does. **Only a
+    TTS take has an Assets record** — `fileTakeToAssets` skips the changer —
+    so a changed take's mark lives on its doc alone, honestly.
+  - **AN UNFINISHED OR FAILED TAKE WEARS NO MARKS** and hearts-only drops it,
+    the Playground's rule for a failed run: there is nothing finished to have
+    an opinion about. Hide-the-✕'d only ever drops a ✕, so a failure stays.
+  - **A filtered-away card is HIDDEN, never removed** (the poll repaints it in
+    place), and an emptied list SAYS why — "Nothing hearted yet" /
+    "Everything here is crossed out" — rather than looking like a lost history.
+  Test: `node scripts/test-voicelab-votes.js` (the server contract by source,
+  then the real page headless with the real pill and the iPhone 13's 47px
+  inset; verified failing 3 against the pre-fix page).
   **Every take is kept** —
   the output AND, on the changer, the recording that went in — and each card
   has a ⤓ that downloads it through our own server (`GET /api/voicelab/file/:id`,
