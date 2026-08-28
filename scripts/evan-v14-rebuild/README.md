@@ -192,3 +192,59 @@ live in that world and I wish we didn't"*, 37.10-40.20 of
 `evan-v7-lite.mp3`) and the film cuts that, so it ends on Evan's *"But
 unfortunately, we don't live in that world."* Which way she wants it is
 hers to say; don't guess it.
+
+## v19 (2026-08-28) — "spider-man switches", and where the answer actually was
+
+Her note was two words and the answer was **not in the film — it was in the
+Cutting Blocks page**. She split `b05` and moved a piece; the whole
+instruction is in the verdict doc's `__order`:
+
+```
+was  … b04, b05,                   b06 …
+now  … b04, b05@0, b05@17, b05@11, b06 …
+     __seg:b05@11 = "b05:11-17"   __seg:b05@17 = "b05:17-27"
+```
+
+b05's 27 words are *"He said, wouldn't it be cool to live in a world |
+where everything's like Spider Man, and | people can do stuff and they have
+special powers. I—"*, so `0/17/11` puts the Spider-Man clause **last**:
+
+> "…wouldn't it be cool to live in a world — people can do stuff and they
+> have special powers — where everything's like Spider-Man, and"
+
+**READ HER MARKS, DON'T GUESS FROM THE FILM.** `GET
+/api/chatfeed/verdict?chat=cutting-blocks-artifact&sheet=blocks-s96` is live
+and diffing it against an earlier pull names her change exactly — seven keys
+changed and one of them was `__order`. Reading the three segment texts flat,
+without hearing the liaison at the seam, made it look like broken English;
+it is not, and a build spent on the wrong guess would have been worse than
+the read.
+
+**No video re-encode.** The whole reorder sits inside ONE shot (shot 4,
+21.6-35.8s, the Spider-Man wall) and the three spans keep their total
+length, so nothing downstream moves: v19 is v18's video stream with a new
+audio track (`-c:v copy`). Seconds, not minutes, and no generational loss.
+`build-v19.js` gates on the audio length being unchanged.
+
+Boundaries measured on a 10ms RMS profile (v17's rule again — word times
+LOCATE, energy TRIMS):
+
+- `"world" | "where"` — dip 23.52-23.62, bottom 23.56 → split **23.565**
+- `"and" | "people"` — dip 25.89-26.01 → split **25.95**
+- `"powers."` ends 28.07, silence to 28.39 → end **28.10**
+
+Ending the moved span at 28.10 leaves that 0.3s beat in the TAIL, which is
+what keeps the trailing "…and" from running into her "I said, no…".
+
+Read-back gate: 98.99% word match against v18, and the only structural diff
+is `"where everything's like spider man and"` moving from before "people"
+to after "powers" — her reorder and nothing else.
+
+v19 of record: `story/films/evan-v19.mp4` (4:23.4). Shot map copied from
+v18 (identical video stream, 40 of 48 shots).
+
+**Still not done, and not asked for:** the film cuts her closing line of
+that exchange — *"I said, we do live in that world and I wish we didn't"*
+(37.10-40.20 of `evan-v7-lite.mp3`) — so the beat still ends on Evan's
+*"But unfortunately, we don't live in that world."* And the third-eye
+image at 0:45 is still the one she said should be *"inside the mind"*.

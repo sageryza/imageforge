@@ -1,12 +1,12 @@
-# The Evan film — the script, as v18 plays it
+# The Evan film — the script, as v19 plays it
 
-Machine read-back of `story/films/evan-v18.mp4` (whisper word-timestamps,
-2026-08-28), sentence-joined, with the timestamps of **v18**. It is her
+Machine read-back of `story/films/evan-v19.mp4` (whisper word-timestamps,
+2026-08-28), sentence-joined, with the timestamps of **v19**. It is her
 recording, so it reads as speech, not as a written script.
 
 One correction is applied against the raw read-back: whisper hears
 **"Sweet Lady Jane"** as "Sweetly in June" — and v18 cuts that phrase
-anyway, so the line here is the line v18 plays.
+anyway, so the line here is the line v19 plays.
 
 Posted as a page she can leave a note on, per line:
 `/api/chatfeed/page/AWoYAwvZ14EwuP7S2SFm` (chat `sweet-lady-jane-cut`,
@@ -14,12 +14,11 @@ sheet `evan-script-v18`).
 
 **Where the two open notes land:**
 
-- **0:21-0:35 — the Spider-Man exchange.** In her master
-  (`story/films/evan-v7-lite.mp3`) it ends on HER: *"I said, we do live in
-  that world and I wish we didn't"* (37.10-40.20). The film cuts that, so
-  the beat ends on Evan's *"But unfortunately, we don't live in that
-  world"* — her position and his are switched round by the end. Her note
-  reads "spider-man switches"; which way she wants it is hers to say.
+- **0:21-0:35 — the Spider-Man exchange.** Reordered in v19 off her own
+  Cutting Blocks marks (`__order`: `b05@0, b05@17, b05@11`), so the
+  Spider-Man clause lands last. Her master also ends the beat on HER —
+  *"I said, we do live in that world and I wish we didn't"*, 37.10-40.20
+  of `evan-v7-lite.mp3` — and the film still cuts that; unasked, so left.
 - **0:52 — Sweet Lady Jane.** Cut in v18.
 
 ---
@@ -32,7 +31,7 @@ sheet `evan-script-v18`).
 0:10  I said, oh yeah, but I don't know if it's a coincidence.
 0:14  He said, haha, what, you think it's magic or something?
 0:16  I said, yeah, well, I don't know if I'd call it magic, I think there's some science behind it, I just don't know what it is.
-0:21  He said, wouldn't it be cool to live in a world where everything's like Spider-Man, and people can do stuff, and they have special powers?
+0:21  He said, wouldn't it be cool to live in a world — people can do stuff and they have special powers — where everything's like Spider-Man, and
 0:28  I said, no, it would not be cool, and we do live in that world.
 0:31  He said, wouldn't it be nice, though?
 0:33  But unfortunately, we don't live in that world.
