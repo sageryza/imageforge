@@ -1,30 +1,82 @@
 #!/usr/bin/env node
-/* THE BOILER STYLE TOGGLE IN FREEFORM (2026-08-28, Sophie: "add a default
-   boiler style not content prompt to freeform with a toggle on off button").
+/* THE BOILERPLATE STYLE TOGGLE IN FREEFORM (2026-08-28, Sophie: "add a default
+   boiler style not content prompt to freeform with a toggle on off button" ·
+   "boiler plate" · "the text we use for dreamy or watercolor" · "ex: copy the
+   style etc / not content").
 
-   Freeform's whole promise is that nothing is added, so the one thing this
-   test really guards is that the toggle can never add words INVISIBLY:
+   THE WORDING IS SERVER.JS'S. The first cut invented a style line, which is
+   the reconstruction this repo's exact-prompt rule forbids — and needless,
+   since PL_GPT_STYLES already holds the settled recipe. So the assertions
+   below read the real table out of server.js: this test fails the day the
+   style id goes stale, and the day someone pastes a copy into freeform.js or
+   into the page.
+
+   Freeform's whole promise is that nothing is added, so what this really
+   guards is that the toggle can never add words INVISIBLY:
 
    - OFF is byte-for-byte the verbatim surface it has always been, and files
-     NO style half (an empty one would be a reconstruction — prompt-record's
-     own rule).
-   - ON appends the one served line and marks the seam with [content].
-   - The page keeps NO copy of the text: it prints what the SERVER served, so
-     the two can never drift.
+     NO style half (an empty one would be a reconstruction).
+   - ON wraps her words the way the house recipe does — prefix before, suffix
+     after — with her words untouched in the middle and the seam marked
+     [content].
+   - The page prints BOTH halves and says where each lands.
    - It is OFF on every load and not sticky.
-   - Putting a run back restores the toggle to what THAT run had — the same
-     "only change what the record knows" rule the references follow.
+   - Putting a run back restores the toggle to what THAT run had.
 
    Run: node scripts/test-freeform-boiler.js */
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
 
-const PUB = path.join(__dirname, '..', 'public');
-const { BOILER, boilerFields } = require('../freeform.js');
+const PUB = path.join(PATHROOT(), 'public');
+function PATHROOT() { return path.join(__dirname, '..'); }
 
 const fails = []; let pass = 0;
 const ok = (what, cond) => { if (cond) pass += 1; else fails.push(what); };
+
+const ff = require('../freeform.js');
+const { BOILER, boilerFields } = ff;
+
+// ── the house table, read out of server.js and handed in as server.js hands
+//    it in ────────────────────────────────────────────────────────────────
+const SERVER = fs.readFileSync(path.join(PATHROOT(), 'server.js'), 'utf8');
+const FREEFORM_SRC = fs.readFileSync(path.join(PATHROOT(), 'freeform.js'), 'utf8');
+const styleBlock = SERVER.slice(SERVER.indexOf('const PL_GPT_STYLES = {'));
+const entryStart = styleBlock.indexOf('\n  ' + BOILER.id + ': {');
+const entry = entryStart < 0 ? '' : styleBlock.slice(entryStart, styleBlock.indexOf('\n  },', entryStart));
+const joined = (lit) => lit.split(/'\s*\+\s*'/).join('').replace(/^'/, '').replace(/'\s*$/, '');
+function grab(key) {
+  const m = entry.match(new RegExp(key + ":\\s*((?:'[^']*'\\s*\\+?\\s*)+|PL_GPT\\.\\w+)"));
+  if (!m) return null;
+  if (/^PL_GPT\./.test(m[1])) {
+    const name = m[1].split('.')[1];
+    const head = SERVER.slice(SERVER.indexOf('const PL_GPT = {'));
+    const m2 = head.match(new RegExp('\\n  ' + name + ":\\s*((?:'[^']*'\\s*\\+?\\s*)+)"));
+    return m2 ? joined(m2[1].trim()) : null;
+  }
+  return joined(m[1].trim());
+}
+ff.init({ gptStyles: { [BOILER.id]: { label: 'Sandy mirror', prefix: grab('prefix'), suffix: grab('suffix') } } });
+
+ok('the boiler style id exists in PL_GPT_STYLES', entryStart >= 0);
+ok('server.js hands the style table in',
+  /require\('\.\/freeform'\)\.init\(\{\s*gptStyles: PL_GPT_STYLES/.test(SERVER));
+ok('the wording came out of server.js', !!BOILER.prefix && !!BOILER.suffix);
+ok('the prefix is the house style-reference clause', /style of the attached style reference/.test(BOILER.prefix));
+ok('it says the style and NOT the content', /ignore its content/i.test(BOILER.prefix));
+ok('freeform.js keeps no copy of the wording', !FREEFORM_SRC.includes('ignore its content'));
+// STYLE, NOT CONTENT: the clause is about the drawing and never about a
+// subject, or it would fight every prompt it rode on.
+ok('the boiler names no subject of its own', !/a cat|a woman|a girl/i.test(BOILER.prefix + BOILER.suffix));
+
+// THE COLOUR LINE IS CUT (2026-08-28, Sophie: "get rid of the color line").
+// Cut as a named clause, so a reword in server.js fails HERE rather than
+// letting the sentence quietly come back.
+ok('the colour clause was found to cut', BOILER.colorCut === true);
+ok('the boiler no longer offers its own colours', !/colors/i.test(BOILER.prefix));
+ok('the rest of the house clause survives the cut',
+  /style of the attached style reference/.test(BOILER.prefix) && /ignore its content/.test(BOILER.prefix));
+ok('the Playground\'s own Sandy mirror still has it', /own colors/.test(grab('prefix')));
 
 // ── pure: the assembler ────────────────────────────────────────────────────
 const off = boilerFields('a cat on a fence', false);
@@ -33,16 +85,13 @@ ok('off files no style half', !('promptStyle' in off));
 ok('off files the content half', off.promptContent === 'a cat on a fence');
 
 const on = boilerFields('a cat on a fence', true);
-ok('on appends the boiler line', on.sent === 'a cat on a fence\n\n' + BOILER.text);
-ok('on keeps her words verbatim at the front', on.sent.startsWith('a cat on a fence'));
+ok('on wraps her words the way the house recipe does',
+  on.sent === BOILER.prefix + '\n\na cat on a fence\n\n' + BOILER.suffix);
+ok('on keeps her words verbatim in the middle', on.sent.includes('\n\na cat on a fence\n\n'));
 ok('on files the whole sent text', on.fullPrompt === on.sent);
-ok('on marks the seam with [content]', on.promptStyle === '[content]\n\n' + BOILER.text);
+ok('on marks the seam with [content]',
+  on.promptStyle === BOILER.prefix + '\n\n[content]\n\n' + BOILER.suffix);
 ok('on never puts her words in the style half', !on.promptStyle.includes('a cat'));
-
-// STYLE, NOT CONTENT — her words for it. A boiler line that named a subject
-// would fight every prompt it rode on.
-ok('the boiler line names no subject', !/\b(a |an |the )\w+ (on|in|at|with) /i.test(BOILER.text));
-ok('the boiler line is one short line', BOILER.text.length < 260);
 
 // ── the real page ──────────────────────────────────────────────────────────
 let chromium;
@@ -92,13 +141,23 @@ function serve() {
   });
 }
 
+function report() {
+  console.log(`freeform boiler: ${pass} passed, ${fails.length} failed`);
+  fails.forEach((f) => console.log('  ✗ ' + f));
+  process.exit(fails.length ? 1 : 0);
+}
+
 (async () => {
-  // THE PAGE MUST NOT CARRY THE WORDS. Checked as source, because a page with
-  // its own copy passes every rendered assertion below right up until someone
-  // changes the constant.
+  // The page must not carry the words either — checked as source, because a
+  // page with its own copy passes every rendered assertion right up until
+  // someone rewords the style in server.js.
   const src = fs.readFileSync(path.join(PUB, 'freeform.html'), 'utf8');
-  const firstWords = BOILER.text.split(',')[0];
-  ok('the page keeps no copy of the boiler text', !src.includes(firstWords));
+  // THE INFO TEXT IS GONE (2026-08-28, Sophie: "get rid of the info text at
+  // the top of Freeform"). The header is the whole top of the page now.
+  ok('no lede paragraph at the top', !/class="lede"/.test(src));
+
+  ok('the page keeps no copy of the boiler text',
+    !src.includes(BOILER.prefix.slice(0, 40)) && !src.includes(BOILER.suffix.slice(0, 20)));
 
   if (!chromium) { report(); return; }
   const srv = serve();
@@ -125,15 +184,18 @@ function serve() {
   let s = await state();
   ok('the toggle is OFF on load', !s.lit && s.pressed === 'false');
   ok('nothing is disclosed while it is off', !s.shown);
-  ok('the button says what it is', /boilerplate/i.test(s.label));
+  await page.waitForFunction(() => /style/i.test(document.getElementById('boiler').textContent));
+  ok('the button names the style it sends', /sandy mirror/i.test((await state()).label));
 
   await page.fill('#prompt', 'a cat on a fence');
   await page.click('#boiler');
   s = await state();
   ok('tapping lights it', s.lit && s.pressed === 'true');
-  ok('lit, it prints the exact served line', s.shown && s.text.includes(BOILER.text));
+  ok('lit, it prints both halves exactly as served',
+    s.shown && s.text.includes(BOILER.prefix) && s.text.includes(BOILER.suffix));
+  ok('it says where each half lands',
+    /before your words/i.test(s.text) && /after your words/i.test(s.text));
 
-  // The tap must reach the button, not something sitting over it.
   const reach = await page.evaluate(() => {
     const r = document.getElementById('boiler').getBoundingClientRect();
     const el = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
@@ -144,18 +206,14 @@ function serve() {
   await page.click('#go');
   await page.waitForFunction(() => document.querySelectorAll('.run').length > 2);
   ok('the run carries boiler:true', posted && posted.boiler === true);
-  ok('the run still sends her words alone — the server adds the line',
+  ok('the run still sends her words alone — the server wraps them',
     posted && posted.prompt === 'a cat on a fence');
 
-  // NOT STICKY: a wrapper remembered across loads is the surprise this
-  // surface exists to avoid.
   await page.reload();
   await page.waitForFunction(() => document.querySelectorAll('.run').length > 0);
-  s = await state();
-  ok('it is off again after a reload', !s.lit);
+  ok('it is off again after a reload', !(await state()).lit);
 
-  // Put-back restores what THAT run had, in both directions.
-  await page.click('.run[data-id="r1"] .copybtn, .run:nth-of-type(1) .copybtn');
+  await page.click('.run:nth-of-type(1) .copybtn');
   await page.waitForFunction(() => document.getElementById('boiler').classList.contains('on'));
   ok('putting back a boiler run turns it ON', (await state()).lit);
   await page.click('.run:nth-of-type(2) .copybtn');
@@ -165,9 +223,3 @@ function serve() {
   await browser.close(); srv.close();
   report();
 })().catch((e) => { console.error(e); process.exit(1); });
-
-function report() {
-  console.log(`freeform boiler: ${pass} passed, ${fails.length} failed`);
-  fails.forEach((f) => console.log('  ✗ ' + f));
-  process.exit(fails.length ? 1 : 0);
-}

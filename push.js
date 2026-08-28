@@ -235,6 +235,87 @@ function notifyChat(chat, title, body, opts) {
   } catch (e) { console.warn('push: notify failed', e.message); }
 }
 
+// ---- THE BUZZ WAITS FOR THE TURN TO END ------------------------------------
+// (2026-08-28, Sophie: "I get notified on my phone a few seconds before chats
+// actually finish their turn.")
+//
+// The FINISHED-REPLY door has always been honest — it fires from the hook's
+// Stop pass, i.e. at the end of the turn. The other three doors are not:
+//   • a media pin recording a DELIVERABLE (deliverables.js — the checklist
+//     tells a chat to pin its film mid-turn, before its cards and its reply),
+//   • a new Compare page (POST /page),
+//   • an auto-compare grid the server files when a prompt or caption lands.
+// Every one of those is filed WHILE the chat is still working, and each
+// pushed the instant it was filed. Measured against her real data
+// 2026-08-28, the gap between a deliverable landing and that chat's finished
+// reply: 19s, 23s, 42s, 58s, 103s — her "a few seconds before", exactly.
+//
+// So those doors QUEUE instead of sending, and the finished reply is what
+// lets the buzz out. One entry per chat (newest news wins; the banner
+// collapses per chat on the phone anyway, so a queue of several would only
+// ever show the last one).
+//
+// Two rules worth not undoing:
+//   • A REPLY THAT PUSHES SWALLOWS THE PENDING ONE. Both would arrive in the
+//     same second under one collapse-id, so the second is only ever noise —
+//     and the reply's own TLDR is the better banner. A chat she has NOT
+//     belled still gets its deliverable buzz, because no reply push fires
+//     there to swallow it (that bypass is the deliverables list's whole ask).
+//   • A FALLBACK TIMER, because not every chat replies. A hookless session,
+//     a chat killed mid-turn, a film filed by a script — none of those ever
+//     posts a finished reply, and a doorbell that waits forever is a doorbell
+//     that never rings. 15 minutes: long enough to sit out the long turns
+//     measured above (25 and 42 minutes exist, so a few of these will still
+//     ring early — the alternative is holding real news for an hour).
+// A deploy restart drops a pending buzz, and that is fine: the deliverables
+// list and the Update tab are the catch-all, the push is their doorbell.
+const PENDING_MS = 15 * 60 * 1000;
+const pending = Object.create(null);
+// The one seam the test needs: notifyChat talks to Apple through a module-
+// scope sendAll that nothing outside can rebind, so the release goes through
+// this indirection and a test can watch it without a device or a socket.
+const wire = { notify: (chat, title, body, opts) => notifyChat(chat, title, body, opts) };
+
+/**
+ * Hold a buzz until this chat finishes its turn (or the fallback fires).
+ * Same arguments as notifyChat — `opts` rides along to the eventual send.
+ */
+function queueChat(chat, title, body, opts) {
+  try {
+    if (!configured()) return;
+    const key = String(chat || '');
+    const prev = pending[key];
+    // Keep the ORIGINAL deadline: a chat filing a deliverable every ten
+    // minutes must not be able to push its own doorbell out forever.
+    if (prev && prev.timer) clearTimeout(prev.timer);
+    const at = (prev && prev.at) || Date.now();
+    const timer = setTimeout(() => { flushChat(key); },
+      Math.max(0, at + PENDING_MS - Date.now()));
+    if (timer.unref) timer.unref();
+    pending[key] = { title, body, opts, at, timer };
+  } catch (e) { console.warn('push: queue failed', e.message); }
+}
+
+/**
+ * The chat's turn ended — let its held buzz out, or drop it when the reply
+ * itself already buzzed her.
+ * @param {string} chat
+ * @param {{suppress?: boolean}} [opts] suppress: a reply push just fired
+ * @returns {boolean} whether a held buzz was sent
+ */
+function flushChat(chat, opts) {
+  try {
+    const key = String(chat || '');
+    const held = pending[key];
+    if (!held) return false;
+    delete pending[key];
+    if (held.timer) clearTimeout(held.timer);
+    if (opts && opts.suppress) return false;
+    wire.notify(key, held.title, held.body, held.opts);
+    return true;
+  } catch (e) { console.warn('push: flush failed', e.message); return false; }
+}
+
 // ---- Routes ----------------------------------------------------------------
 // WHICH PIECE IS MISSING, not just "not configured" (Aug 2026 — the setup is
 // four separate things pasted into two different places on a phone, and a bare
@@ -296,4 +377,4 @@ router.post('/test', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-module.exports = { router, notifyChat, _internals: { providerJwt, apnsKey, apnsSend, sendAll, jwtCache } };
+module.exports = { router, notifyChat, queueChat, flushChat, _internals: { providerJwt, apnsKey, apnsSend, sendAll, jwtCache, pending, PENDING_MS, wire } };

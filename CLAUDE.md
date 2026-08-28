@@ -4640,21 +4640,50 @@ before working on that module. Nothing was deleted — the moved text is verbati
   per-run upload.
   **ONE EXCEPTION, AND IT IS A BUTTON — the BOILERPLATE STYLE toggle
   (2026-08-28, Sophie: "add a default boiler style not content prompt to
-  freeform with a toggle on off button" · "boiler plate").** A stock STYLE
-  line — how a picture is drawn, never what is in it, so it can ride any words
-  without arguing with them — appended after her words while the toggle is lit.
+  freeform with a toggle on off button" · "boiler plate").** While the toggle
+  is lit, the house style-reference recipe wraps her words — its prefix before
+  them, its tail after — so she can attach her own reference and say "copy the
+  style, not the content" with one tap.
+  **THE WORDING IS SERVER.JS'S, NOT A NEW ONE, and the first cut got this
+  wrong** (Sophie: "the text we use for dreamy or watercolor" · "ex: copy the
+  style etc / not content"). It shipped with an invented style line, which is
+  exactly the reconstruction the exact-prompt rule forbids — and needless,
+  since `PL_GPT_STYLES` already holds the settled recipe. It is
+  `PL_GPT_STYLES.evan` (**Sandy mirror**, her ink-and-watercolour page),
+  **HANDED IN at mount time** — `require('./freeform').init({gptStyles})` right
+  after that table, the movies.js pattern, because freeform is mounted hundreds
+  of lines above it and a require would read it before it exists.
+  **WHY THAT ONE AND NOT DREAMY:** this wording names "the attached style
+  reference" and nothing else, so it travels onto whatever SHE attached here;
+  Dreamy's tail names its own picture (its hand-drawn frames, the woman in the
+  green tank top) and would be nonsense over her references. Switching is one
+  line — `BOILER_STYLE` in freeform.js.
+  **ONE CLAUSE IS DROPPED — the colour line** (2026-08-28, Sophie: "get rid of
+  the color line"). Sandy mirror invites the model to pick its own palette; in
+  Freeform the reference she attached is usually the whole point of attaching
+  it, so the sentence argues with her. It is cut as a NAMED clause
+  (`COLOR_CLAUSE`, the swap pattern Dreamy's no-text toggle already uses), so
+  this stays the house wording minus one sentence and **the Playground's Sandy
+  mirror tile is untouched**; `BOILER.colorCut` records that the clause was
+  found, and the test fails on a reword rather than letting it silently come
+  back.
   Four things keep it from breaking the module's whole promise, and none is
   optional: it is **OFF by default and NOT sticky** (a wrapper remembered from
   last week silently riding today's run is exactly the surprise this surface
-  exists to avoid); the lit button **prints the exact line it adds**, so nothing
-  is ever added invisibly; the **text is SERVED** (`GET /api/freeform/style`,
-  `BOILER` in freeform.js) and the page keeps no copy, so the two cannot drift;
-  and the run stores `boiler` plus `promptSent`/`promptStyle`/`promptContent`
-  through the ONE builder (`prompt-record.js`) — **off files NO style half at
-  all**, which is the honest answer rather than a reconstruction. Putting a run
-  back restores the toggle to what THAT run had, the same *only change what the
-  record knows* rule the references follow. `boilerFields` is the one assembler.
-  Test: `node scripts/test-freeform-boiler.js`.
+  exists to avoid); the lit button **prints both halves and says where each
+  lands**, so nothing is ever added invisibly; the **text is SERVED**
+  (`GET /api/freeform/style`) and neither the page nor freeform.js keeps a copy,
+  so nothing can drift from the table; and the run stores `boiler` plus
+  `promptSent`/`promptStyle`/`promptContent` through the ONE builder
+  (`prompt-record.js`) — **off files NO style half at all**, which is the honest
+  answer rather than a reconstruction. Putting a run back restores the toggle to
+  what THAT run had, the same *only change what the record knows* rule the
+  references follow. `boilerFields` is the one assembler.
+  **AND THE PAGE HAS NO INFO TEXT AT THE TOP** (2026-08-28, Sophie: "get rid of
+  the info text at the top of Freeform") — the header is the whole top of the
+  page; the lede paragraph explaining the module is gone.
+  Test: `node scripts/test-freeform-boiler.js` (it reads the real table out of
+  server.js, so a stale style id or a pasted copy fails there).
   **Full details: `docs/modules/pictures.md`.**
 - **Vector pipeline** (`vector.js`, `/api/vector`, page at `/vector`, iOS tile
   under the PICTURES filter) — describe 1-25 drawings -> ONE gpt-image-2 sheet in
@@ -6915,6 +6944,63 @@ before working on that module. Nothing was deleted — the moved text is verbati
   replies** — it swallowed the answer to a follow-up she sent four minutes
   later; her message is the gate now. A chat that has never lifted one of her
   messages keeps the old behaviour rather than going quiet.
+  **A CHAT BELLS ITSELF WHEN IT IS BLOCKED ON HER (2026-08-28, Sophie: "can u
+  make chats bell themselves based on importance").** The bell is a whitelist
+  she taps, which is what keeps 260 live chats off her lock screen — and the
+  gap it leaves is the one case where the CHAT, not she, knows something
+  matters: it has stopped and is waiting on her. Measured that day: **48 chats
+  set a `need` in two days and only 6 of them were belled** — 42 asks she could
+  only find by opening the app. So a finished reply whose `need` is NEW buzzes
+  her whatever the bell says (`needEscalates` in `push-gate.js`).
+  - **IT IS NOT A FLIP OF HER BELL.** A self-set bell sticks (only she turns
+    one off), so every chat that ever had one important moment would be belled
+    forever and the whitelist would quietly become everything. **Importance is
+    a property of the MOMENT, not of the chat** — this escalates ONE reply and
+    changes no stored flag of hers. Making it sticky is hers to ask for.
+  - **IT IS NOT "a need exists".** A chat re-states its need at the end of
+    every turn, so that would buzz her on a loop for one ask. `POST /status`
+    stamps **`needSetAt` only when the text CHANGED** (read off the doc, not
+    the registry cache — the route runs once a turn, and a stale read would
+    either drop a real ask or repeat one), and the reply compares it against
+    `needPushedAt`: one buzz per distinct ask.
+  - **It skips the answers-her test on purpose** — a chat that hit a blocker
+    working on its own is exactly the case that test exists to silence, and
+    exactly the case she wants to hear about. Clearing the need (`need:""`)
+    deletes the stamp, so a withdrawn ask can never ring later.
+  **AND THE BANNER SAYS WHICH CHAT AND WHAT KIND (2026-08-28, Sophie: "and
+  notification more informative").** It used to be the chat's name over the
+  reply's TLDR, and on a deliverable the words "New deliverable" over a title
+  with the chat trailing after an em dash — so the one fact she needs first
+  (WHICH chat) moved depending on which door rang, and nothing said what kind
+  of arrival it was. One shape now, `pushAlert` in `push-gate.js`: **the CHAT
+  is always the title**, and the body leads with the kind — `Needs you · pick a
+  take 1-4` · `New film · Evan v18 (4:23)` · `New page · Sheet v2` — with an
+  answer still leading on its TLDR. **The ask WINS the banner** when a reply
+  carries one: a chat that just asked her something is not better described by
+  its own summary. The 2026-08-15 rule survives inside it — a reply opening
+  with her own question in bold never comes back as the banner.
+  **THE BUZZ WAITS FOR THE TURN TO END (2026-08-28, Sophie: "I get notified on
+  my phone a few seconds before chats actually finish their turn").** The
+  FINISHED-REPLY door was always honest — it fires from the hook's Stop pass.
+  **The other three doors are filed MID-TURN and used to push the instant they
+  were filed:** a media pin recording a DELIVERABLE (the checklist has a chat
+  pin its film before its cards and its reply), a new Compare page
+  (`POST /page`), and an auto-compare grid the server files when a prompt or
+  caption lands. Measured against her real deliverables that day, the gap from
+  the filing to that chat's finished reply: **19s, 23s, 42s, 58s, 103s** — her
+  "a few seconds", exactly. Those doors call `push.queueChat` now and the
+  finished reply calls `push.flushChat`, so the doorbell rings when the turn
+  really ends. Three rules not to undo: **a reply push SWALLOWS the held one**
+  (same chat, same second, same collapse-id — the reply's TLDR is the better
+  banner, and an UNBELLED chat still gets its deliverable buzz because no reply
+  push fires there to swallow it, which is the deliverables list's whole ask);
+  **one entry per chat, newest news wins, and re-queueing never moves the
+  DEADLINE** (or a chat filing every few minutes pushes its own doorbell out
+  forever); and **a 15-minute fallback timer**, because a hookless session, a
+  chat killed mid-turn or a script filing a film never posts a finished reply
+  and a doorbell that waits forever never rings. A deploy drops a held buzz,
+  which is fine — the deliverables list and the Update tab are the catch-all.
+  Test: `node scripts/test-push-pending.js`.
   **THE BODY IS NEVER HER OWN WORDS (`pushBody`, found live 2026-08-15 from
   her screenshot — this, not the timing, is what she was actually reporting).**
   Two house rules collided: *Answering a question* at the time REQUIRED a

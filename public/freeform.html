@@ -19,7 +19,6 @@
   .app-header{display:flex;align-items:center;min-height:34px;padding-right:64px;margin:0 0 8px}
   .app-header h1{font:400 11px/1 -apple-system,'Helvetica Neue',sans-serif;letter-spacing:.34em;
                  text-transform:uppercase;color:#6f675e;margin:0}
-  .lede{color:#7a6f60;font-size:13px;margin-bottom:16px;padding-right:56px}
   .panel{background:#fff;border:1px solid #e0d8ca;border-radius:6px;padding:12px;margin-bottom:14px}
   .lab{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#9a8f7d;margin-bottom:7px}
   textarea{width:100%;min-height:110px;border:1px solid #d8cfc0;border-radius:6px;padding:9px;
@@ -94,10 +93,6 @@
 </head>
 <body>
 <header class="app-header"><h1>Freeform</h1></header>
-<p class="lede">Your references, your words, nothing added. Whatever you type is exactly what gets sent —
-no style prompt, no trigger word, no extra lines. If you want a style, say it yourself, or tap
-<b>Boilerplate style</b> for the stock one — it prints exactly what it adds.</p>
-
 <div class="panel">
   <div class="lab">Reference images</div>
   <div class="row">
@@ -465,17 +460,25 @@ function savePending() {
 // The TEXT is fetched, never copied into this page — the server owns what is
 // actually sent (the Playground's `/styles` rule).
 var boilerOn = false;
-var boilerText = '';
+var boiler = { prefix: '', suffix: '' };
 function paintBoiler() {
   var b = document.getElementById('boiler');
   var t = document.getElementById('boilertext');
   b.classList.toggle('on', boilerOn);
   b.setAttribute('aria-pressed', boilerOn ? 'true' : 'false');
-  t.textContent = boilerText ? 'Added after your words: ' + boilerText : '';
-  t.hidden = !(boilerOn && boilerText);
+  // Both halves, each labelled with WHERE it lands — this is the house recipe,
+  // so it wraps her words rather than only following them.
+  var parts = [];
+  if (boiler.prefix) parts.push('Before your words: ' + boiler.prefix);
+  if (boiler.suffix) parts.push('After your words: ' + boiler.suffix);
+  t.textContent = parts.join('\n\n');
+  t.hidden = !(boilerOn && parts.length);
 }
 api('/style').then(function (d) {
-  boilerText = (d && d.style && d.style.text) || '';
+  boiler = (d && d.style) || boiler;
+  var b = document.getElementById('boiler');
+  // Name the style it is, so a lit toggle says WHICH house recipe is riding.
+  if (boiler.from) b.textContent = boiler.from + ' style';
   paintBoiler();
 }).catch(function () {});
 document.getElementById('boiler').addEventListener('click', function () {

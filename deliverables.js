@@ -202,14 +202,26 @@ function rowsOf(docs, chats) {
 // notifyChat's default debounce is skipped because its 10-minute per-chat
 // window would swallow a second real deliverable; the 60s here is the only
 // throttle a doorbell needs.
+//
+// QUEUED, NOT SENT (2026-08-28, Sophie: "I get notified on my phone a few
+// seconds before chats actually finish their turn"). The checklist has a chat
+// pin its film mid-turn, before its cards and its reply — measured against her
+// real deliverables that day, the gap to the chat's finished reply ran 19s,
+// 23s, 42s, 58s, 103s. push.queueChat holds it until the chat posts a finished
+// reply (or a 15-minute fallback, for a chat that never posts one); the bell
+// bypass is untouched, because no reply push fires on an unbelled chat to
+// swallow it.
 let lastPushAt = 0;
-function pushNew(chat, chatName, title) {
+function pushNew(chat, chatName, title, kind) {
   try {
     const now = Date.now();
     if (now - lastPushAt < 60 * 1000) return false;
     lastPushAt = now;
-    require('./push').notifyChat(chat, 'New deliverable',
-      `${title} — ${chatName}`, { debounce: false });
+    // The CHAT is the title on every door now (2026-08-28, Sophie: "and
+    // notification more informative") — which chat it came from is the fact
+    // she needs first, and the body says what kind of thing arrived.
+    const a = require('./push-gate').pushAlert(kind || 'link', { chatName, title });
+    require('./push').queueChat(chat, a.title, a.body, { debounce: false });
     return true;
   } catch (e) { console.warn('deliverables: push failed', e.message); return false; }
 }
@@ -234,7 +246,7 @@ async function record(input) {
       const reg = await require('./chatfeed').registry();
       chatName = ((reg.chats || {})[chat] || {}).displayName || chat;
     } catch (e) { /* registry down — push with the slug */ }
-    pushed = pushNew(chat, chatName, doc.title);
+    pushed = pushNew(chat, chatName, doc.title, doc.kind);
   }
   return { ok: true, isNew, pushed, id: ref.id };
 }
