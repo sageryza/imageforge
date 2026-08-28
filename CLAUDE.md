@@ -115,6 +115,19 @@ The numbers are measured, not guessed.
 **When she messages you** — check what is waiting, in one sweep: asset ♥/✕ and
 notes (`GET /api/gallery/assets/notes?chat=`), Writing Room notes, the running
 to-do list. Act on them, then answer on the image itself. **Never on a timer.**
+- **AND SWEEP THE NOTES AGAIN BEFORE YOU SAY YOU ARE DONE — HER NOTES ARRIVE
+  AFTER THE MESSAGE THAT ANNOUNCES THEM.** Measured 2026-08-28: she wrote
+  "added some notes … i suggested 3 examples in the notes" at **23:17:29** and
+  the notes themselves landed **23:29:54-23:31:11, twelve minutes later**. The
+  chat swept once at 23:18, found nothing, said so, and delivered 135 pictures
+  ignoring every ask she had left. She announces the intent, then watches and
+  writes WHILE you work — so one read at turn start is the wrong shape.
+  **"No notes yet" means NOT YET, never "she left none"**, and a note on a
+  FILM never appears in `GET /api/gallery/assets` at all (it rides the pinned
+  film's url with no label) — only `/notes` sees it. A note POST now rings
+  your wake doorbell (2026-08-28), so a note landing mid-turn can reach you,
+  but the re-read is what catches one that lands while you are still writing
+  the reply.
 - **A QUICK-QUESTION chat SETS ITS OWN BELL** (Sophie, 2026-08-27: "a 'quick
   question' chat shud set its own bell as true"). If she is using you for
   quick questions — she says "quick question mode", or `quick question` is in
@@ -2146,12 +2159,24 @@ them off the reference sheet, not off the old filenames.
       `GET /api/gallery/assets?chat=` does not** — a sweep that walks the
       Assets tab looking for `note`/`thread` fields is blind to every note she
       leaves on a film.
-    - **NOT BUILT, and it is the actual fix:** nothing tells a chat a note
-      arrived. The wake doorbell fires on her MESSAGE, and a note is not a
-      message — so the only thing standing between her asks and being ignored
-      is a chat remembering to look twice. A note POST should ring
-      `chat-wake.ring` the way `witchvideo.js` already does for its reviewer
-      notes; until it does, the re-read above is the whole protection.
+    - **THE BELL IS BUILT NOW (2026-08-28, Sophie: "fix the note bell").** A
+      note she writes rings the owning chat's wake doorbell, so a note landing
+      while the chat is asleep can reach it instead of waiting for her to
+      message again. It lives in **`appendAssetMessage` in server.js** — the
+      ONE place all four note paths funnel through (her text note, the legacy
+      single note, a voice note, and a film note's timestamped line), so the
+      bell has no holes. Three things not to undo: it rings only for
+      `who === 'sophie'` (a chat answering on an image would wake itself in a
+      loop), it is **never awaited** and its failure is caught (a note must
+      land on the doc whether or not anything is wakeable — witchvideo.js's
+      `ringChat` has exactly this shape), and it goes through `chat-wake.ring`
+      with `registry` + `followMoves` so a forked or re-keyed chat still
+      resolves. Pinned by `node scripts/test-asset-note-bell.js`.
+    - **THE BELL IS NOT A SUBSTITUTE FOR THE RE-READ.** A chat mid-turn is
+      already awake, so nothing wakes it — the doorbell only helps a chat that
+      has finished. The note that got ignored landed while a chat was working.
+      So the re-read before reporting done is still the protection, and the
+      bell is what covers the case after.
     - **AND DO NOT "VERIFY" WITH AN ORDERED FIRESTORE QUERY.** The same
       session reported the notes collection **empty** from
       `.orderBy('updatedAt','desc')` — but the docs carry `updated`, not

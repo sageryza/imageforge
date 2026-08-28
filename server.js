@@ -2814,6 +2814,29 @@ async function appendAssetMessage(ref, chat, url, from, text) {
     tx.set(ref, patch, { merge: true });
     return next;
   });
+  // RING THE OWNING CHAT'S DOORBELL when SHE wrote (2026-08-28, Sophie: "fix
+  // the note bell"). Until this, nothing told a chat a note had arrived: the
+  // doorbell fires on her MESSAGE and a note is not a message, so the only
+  // protection was a chat remembering to look twice — and one didn't, then
+  // built 135 pictures ignoring every ask she had left on the film. Measured
+  // that day: she announced the notes at 23:17:29 and wrote them
+  // 23:29:54-23:31:11, twelve minutes after the chat had already swept.
+  //
+  // This is the ONE place to do it: all four note paths (her text note, the
+  // legacy single note, the voice note, and a film note's timestamped line)
+  // land here. `from:'chat'` must NOT ring — a chat answering on an image
+  // would wake itself in a loop.
+  //
+  // Best-effort and never awaited: a note must land on the doc whether or not
+  // anything can be woken, exactly as witchvideo.js's ringChat has it.
+  if (who === 'sophie') {
+    (async () => {
+      const wake = require('./chat-wake');
+      const chatfeed = require('./chatfeed');
+      return wake.ring({ db: () => admin.firestore(), registry: chatfeed.registry,
+        followMoves: chatfeed.followMoves }, chat);
+    })().catch((err) => console.warn('asset note wake failed:', err.message));
+  }
   return { message: msg, thread };
 }
 
