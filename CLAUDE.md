@@ -966,6 +966,11 @@ them off the reference sheet, not off the old filenames.
     on a phone, which is why the rule kept losing. So the line is SERVED:
     **`/setup-line.txt`** — she opens it, selects all, copies. A chat handing
     her any pipe-to-shell command links that file and never writes the string.
+    **AND THE ONE-LINER IS NOT FOR THE SETUP SCRIPT FIELD (Sophie, the same
+    day: "no").** Session init has no network, so a Setup script that fetches
+    installs nothing — her flat correction retired that recommendation within
+    the hour. The field takes the FULL `/setup.sh` paste; the served line
+    stays only for telling a RUNNING session to self-heal.
   - **Don't put the literal `curl … | bash` one-liner in a reply.** When a
     reply needs to tell Sophie or another chat about the self-heal, DESCRIBE
     it ("fetch /setup.sh with curl and run it with bash", or point at this
@@ -1080,6 +1085,20 @@ them off the reference sheet, not off the old filenames.
     shape in the live window), but it is one field of hers: re-paste the Setup
     script into the environment. Sessions starting inside imageforge run the
     repo's copy and are unaffected.
+  - **THE NEXT PASTE IS THE LAST ONE (2026-08-28, Sophie: "it's gotta be an
+    easier way than paste every time" — and her "no" to a fetching Setup
+    script: session init has no network, so a curl in that field installs
+    nothing).** The pasted settings now register a command that prefers the
+    IMAGEFORGE CHECKOUT's hook (`/home/user/imageforge/.claude/hooks/…`) and
+    falls back to the baked copy only when no checkout exists. The checkout is
+    cloned fresh from main every session, so once this paste is in, a hook fix
+    reaches every imageforge-touching session with the deploy — nothing to
+    re-paste per version. Resolved at EVENT time (hooks re-read per event), so
+    a repo cloned mid-turn upgrades on its very next event — the exact
+    no-repo-at-start shape that produced today's nameless chats. The
+    registration UPGRADES an old fixed-path entry rather than sitting beside
+    it. Test: `node scripts/test-setup-registration.js` (the block extracted
+    from the real generated setup.sh, driven against fixtures).
   - Test: `node scripts/test-chat-slug.js` — the naming block EXTRACTED from the
     live hook (never copied) and driven against real fixture repos; verified
     failing 3 against the pre-fix rule via `FORGE_HOOK_FILE`.

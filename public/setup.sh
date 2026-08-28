@@ -989,8 +989,21 @@ try:
     s = json.load(open(p))
 except Exception:
     s = {}
-entry = {"hooks": [{"type": "command",
-         "command": "bash /home/user/.claude/hooks/post-to-feed.sh"}]}
+# THE COMMAND PREFERS THE IMAGEFORGE CHECKOUT'S HOOK (2026-08-28, Sophie:
+# "it's gotta be an easier way than paste every time" — and her correction
+# that the Setup script field cannot fetch anything at session init, so a
+# curl-in-the-field design is dead on arrival). The checkout's copy is
+# cloned fresh from main at session start, so it IS the current hook; the
+# baked copy written above is only the fallback for a session that never
+# clones imageforge. With this in place a hook fix reaches every
+# imageforge-touching session with the deploy, and the paste is needed
+# ONCE — to install this preference — never per hook version again.
+# Resolved at EVENT time, not registration time: hooks re-read per event,
+# so a repo cloned mid-turn (the chat-5d92c228 shape) upgrades the very
+# next event.
+CMD = ("bash -c 'h=/home/user/imageforge/.claude/hooks/post-to-feed.sh; "
+       "[ -f $h ] || h=/home/user/.claude/hooks/post-to-feed.sh; bash $h'")
+entry = {"hooks": [{"type": "command", "command": CMD}]}
 # Register on THREE events. Stop fires when a reply finishes cleanly.
 # UserPromptSubmit fires when Sophie sends her next message — it sweeps up
 # INTERRUPTED replies: an interrupted turn skips the Stop hook, but the partial
@@ -1005,7 +1018,13 @@ entry = {"hooks": [{"type": "command",
 # the registration below appends any event still missing.
 for event in ('Stop', 'UserPromptSubmit', 'PostToolUse'):
     arr = s.setdefault('hooks', {}).setdefault(event, [])
-    if not any('post-to-feed' in json.dumps(x) for x in arr):
+    # UPGRADE, not only append: an environment pasted before the
+    # checkout-preference carries the old fixed-path command, and an
+    # append-if-missing check would leave it there forever. Any entry
+    # naming post-to-feed under a different command is replaced.
+    arr[:] = [x for x in arr
+              if 'post-to-feed' not in json.dumps(x) or x == entry]
+    if entry not in arr:
         arr.append(entry)
 # The /concise output style — Sophie's ask (Aug 2026): every chat leads with
 # the result and keeps replies short. setdefault, so an explicit choice already
