@@ -81,20 +81,22 @@
        a POST is in flight. The picture yields to 78vh while a cta is shown
        (the Story Room's own pick-state number). Pass null/omit for no button.
 
-   THE PLAYGROUND LAYOUT HOOKS (2026-08-26, Sophie, the day after the port:
-   "put the heart where they were before exactly … the quality model etc.
-   should go right under the picture not below the note area"). The migration
-   onto this file had moved that page's ♥/✕ to the screen's top corners,
-   shrunk the picture, and left the MODEL · QUALITY tag below the note box.
-     `votesBelow` — ♥/✕ lead the actions row UNDER the picture (♥ ✕ · copy ·
-       save · story, one row — where the Playground has always kept them);
-       the top band keeps only Prompt · Chat, centred, and the picture gets
-       back the room the top-corner layout's caps took (76vh, yielding only
-       when the screen is short).
-     `capUnderImage` — the MODEL · QUALITY tag and the label sit directly
-       under the picture, above that row and the notes.
-   Both opt-in per caller; the Assets tab, Meta Assets and the grid pages
-   pass neither and are untouched.
+   THE ONE LAYOUT IS THE PLAYGROUND'S, EVERYWHERE (2026-08-28, Sophie:
+   "create a single lightbox view, sync to all surfaces" — then, checking:
+   "it's not in meta assets?"). What began as the Playground's opt-in hooks
+   (`votesBelow` + `capUnderImage`, 2026-08-26: "put the heart where they
+   were before exactly … the quality model etc. should go right under the
+   picture not below the note area") is the DEFAULT for every caller now —
+   one code was not one view while the layout stayed per-page:
+     ♥/✕ lead the actions row UNDER the picture (♥ ✕ · then the caller's
+       actions, one row, all one 46px size); the top band keeps only
+       Prompt · Chat, centred; the picture takes 76vh and shrinks through
+       flex when the screen is short.
+     the MODEL · QUALITY tag and the label sit directly under the picture,
+       above that row and the notes.
+   `votesBelow` / `capUnderImage` on an asset are accepted and ignored —
+   they ARE the layout. Don't reintroduce a per-page layout flag: that is
+   exactly the drift she was pointing at.
    ♥/✕ and the note box appear only when the caller wires _cast (votes) —
    the caller owns WHERE a vote lands (the Assets tab posts the asset vote;
    a grid page also saves its page verdict), same as it always did.
@@ -248,6 +250,12 @@
        fixed 46-62vh steps. Every selector the step caps use is re-listed so
        none of them out-specifies this. */
     + '#clightbox.vbelow .clwrap{min-height:0; flex:0 1 auto;}\n'
+    /* the .pon floor must SURVIVE the flex layout: with the prompt showing on
+       a not-yet-loaded picture the wrap is 0x0, and min-height:0 above
+       out-specifies the plain .pon rule — the words would render as an
+       unreadable stamp (caught by test-meta-assets-page the day the layout
+       became every caller's) */
+    + '#clightbox.vbelow .clwrap.pon{min-height:min(52vh,420px);}\n'
     + '#clightbox.vbelow img, #clightbox.vbelow.hastalk img, #clightbox.vbelow.hastalk.hasmsgs img,\n'
     + '#clightbox.vbelow.hastalk.hasacts img, #clightbox.vbelow.hastalk.hasacts.hasmsgs img{max-height:min(76vh,100%);}\n'
     + '#clightbox.vbelow .cltag, #clightbox.vbelow .clcap, #clightbox.vbelow .lbacts, #clightbox.vbelow .lbtalk{flex:none;}\n'
@@ -314,8 +322,9 @@
     lb.classList.remove('hasmsgs');   // ...nor whether that thread had letters in it
     lb.classList.remove('hasacts');   // ...nor its actions row
     lb.classList.remove('hascta');    // ...nor its labeled button
-    // the votesBelow layout is the caller's, per open — never carried over
-    lb.classList.toggle('vbelow', !!(asset && asset.votesBelow));
+    // THE ONE LAYOUT (2026-08-28): the under-picture row and the 76vh room
+    // are every caller's now, not the Playground's opt-in.
+    lb.classList.add('vbelow');
     // THE STEP ZONES — a feed surface steps through its pictures without
     // leaving the lightbox (the Playground). A null side draws NOTHING, so at
     // the ends of the feed a tap there closes like any other dead space. The
@@ -534,25 +543,19 @@
       if (promptBtn) mid.appendChild(promptBtn);
       mid.appendChild(more);
       var frame = lb.querySelector('.clframe');
-      if (asset.votesBelow) {
-        // ♥/✕ lead the row UNDER the picture (2026-08-26, Sophie: "put the
-        // heart where they were before exactly") — the Playground kept them
-        // there, ♥ ✕ · copy · save · story in one row, until the port onto
-        // this file moved them to the screen's top corners. The top band
-        // keeps only Prompt · Chat, centred.
-        var arow = lb.querySelector('.lbacts');
-        if (!arow) {
-          arow = document.createElement('div'); arow.className = 'lbacts';
-          lb.appendChild(arow); lb.classList.add('hasacts');
-        }
-        arow.insertBefore(xb, arow.firstChild);
-        arow.insertBefore(hb, arow.firstChild);
-        row.style.justifyContent = 'center';
-        row.appendChild(mid);
-      } else {
-        // ♥ left, Prompt · Chat together in the middle, ✕ right (space-between)
-        row.appendChild(hb); row.appendChild(mid); row.appendChild(xb);
+      // ♥/✕ lead the row UNDER the picture — every caller's layout since
+      // 2026-08-28 ("a single lightbox view"); it was the Playground's
+      // opt-in ("put the heart where they were before exactly"). The top
+      // band keeps only Prompt · Chat, centred.
+      var arow = lb.querySelector('.lbacts');
+      if (!arow) {
+        arow = document.createElement('div'); arow.className = 'lbacts';
+        lb.appendChild(arow); lb.classList.add('hasacts');
       }
+      arow.insertBefore(xb, arow.firstChild);
+      arow.insertBefore(hb, arow.firstChild);
+      row.style.justifyContent = 'center';
+      row.appendChild(mid);
       (frame || lb).appendChild(row);
       lb.appendChild(talk);   // thread + note box below the image, never over it
       lb.classList.add('hastalk');   // shrinks the picture so the thread has room
@@ -573,12 +576,12 @@
     // at all still has to say it, so the mark gets its own tag row rather than
     // riding on a string that may not exist.
     var comp = !!(asset && asset.compressedAtBirth);
-    // RIGHT UNDER THE PICTURE when the caller asks (2026-08-26, Sophie: "the
-    // quality model etc. should go right under the picture not below the note
-    // area") — above the button row and the notes, the old Playground order.
-    // Default stays the very bottom, which is the Assets tab's own design.
-    var capAnchor = (asset && asset.capUnderImage)
-      ? (lb.querySelector('.lbacts') || lb.querySelector('.lbtalk')) : null;
+    // RIGHT UNDER THE PICTURE, everywhere (2026-08-26, Sophie: "the quality
+    // model etc. should go right under the picture not below the note area";
+    // default for every caller since 2026-08-28) — above the button row and
+    // the notes. With neither row present it lands at the end, which is the
+    // same place.
+    var capAnchor = lb.querySelector('.lbacts') || lb.querySelector('.lbtalk');
     function fileCap(el) { if (capAnchor) lb.insertBefore(el, capAnchor); else lb.appendChild(el); }
     if (comp || tag) {
       var tc = document.createElement('div'); tc.className = 'cltag';
