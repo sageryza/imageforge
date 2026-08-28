@@ -299,6 +299,39 @@ them needs from her. Read-only; the queue is edited here, where it is run.
   If that comes back with a url, skip this whole task.
 - **Queued:** 2026-08-27 by anthony-chene-video-download
 
+### Add the background-draw test to the prompt-guard workflow
+- **Why it is here:** a cloud session's GitHub token has no `workflow` scope,
+  so a push touching `.github/workflows/*` is refused outright ("refusing to
+  allow an OAuth App to create or update workflow ... without `workflow`
+  scope"). Nothing about the change is desktop-specific — it just needs
+  credentials this session cannot have. Any chat that needs to edit a workflow
+  will hit exactly this, so the wording is worth reusing.
+- **What it is:** `scripts/test-responses-bg.js` guards the same whole-prompt
+  rule `prompt-guard.yml` already runs two tests for, arriving by a new door —
+  the panels sheet now draws through the Responses API, which puts a router
+  model between her words and gpt-image-2, and that model rewrites the prompt
+  unless the pass-through instruction stops it. Built-ins only, no install
+  step, sub-second, so it fits the job's stated rule exactly.
+- **The edit**, appended after the `test-sheet-grid.js` step in
+  `.github/workflows/prompt-guard.yml`:
+  ```yaml
+      - name: the background draw (pass-through prompt, the id banked first, no double cut)
+        run: node scripts/test-responses-bg.js
+  ```
+- **Commands:**
+  ```sh
+  cd ~/imageforge && git checkout main && git pull origin main
+  # make the edit above, then:
+  node scripts/test-responses-bg.js   # expect: 46 passed, 0 failed
+  git add .github/workflows/prompt-guard.yml
+  git commit -m "Prompt guard: run the background-draw test too"
+  git push origin main
+  ```
+- **Needs from her:** nothing beyond her own git credentials on that Mac.
+- **Not urgent.** The test is green and is named in CLAUDE.md's panels bullet,
+  so a chat still runs it by hand; this only makes it automatic.
+- **Queued:** 2026-08-28 by chat-5d92c228
+
 
 ## DONE
 
