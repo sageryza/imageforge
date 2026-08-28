@@ -190,11 +190,15 @@ sid=$(printf '%s' "$input" | jq -r '.session_id // empty')
 [ -n "$sid" ] || sid="${CLAUDE_CODE_SESSION_ID:-x}"
 event=$(printf '%s' "$input" | jq -r '.hook_event_name // empty')
 
+# Where the repos live. A variable only so the slug rules can be tested
+# against fixture repos (scripts/test-chat-slug.js) — never set in production.
+REPO_ROOT="${FORGE_REPO_ROOT:-/home/user}"
+
 # Chat name: FORGE_CHAT env wins; else a slug of a repo's claude/<name> branch
 # (random 6-char suffix dropped); else a short session id.
 name="${FORGE_CHAT:-}"
 if [ -z "$name" ]; then
-  for d in /home/user/*/; do
+  for d in "$REPO_ROOT"/*/; do
     b=$(git -C "$d" branch --show-current 2>/dev/null)
     case "$b" in
       claude/*) name=$(printf '%s' "${b#claude/}" | sed -E 's/-[a-z0-9]{6}$//'); break;;
@@ -214,7 +218,7 @@ fi
 # one to the branches IT names, a person naming a branch does not, and stripping
 # would eat a real last word.
 if [ -z "$name" ]; then
-  for d in /home/user/*/; do
+  for d in "$REPO_ROOT"/*/; do
     b=$(git -C "$d" branch --show-current 2>/dev/null)
     case "$b" in
       ""|main|master|HEAD|develop|trunk) :;;
@@ -697,7 +701,15 @@ if queued:
             if not u.get('aliases'):
                 return u
         for u in users:
-            for cell in segcells[id(u)]:
+            # `.get`, NOT `[]` — an unmatched queue entry is APPENDED to `users`
+            # below, so the next _take walks a record segcells has never seen and
+            # the whole parser dies with a KeyError. The hook then prints NOTHING
+            # and exits 0, so the session posts no replies and none of her
+            # messages, silently, forever (found live 2026-08-28: a chat with one
+            # mangled message in the app and 11 turns in its transcript). An
+            # appended entry has no segments to donate, so empty is the right
+            # answer as well as the safe one.
+            for cell in segcells.get(id(u)) or ():
                 if not cell[1] and cell[0] == n:
                     cell[1] = True
                     return u

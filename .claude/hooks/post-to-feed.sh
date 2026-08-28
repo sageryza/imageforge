@@ -657,7 +657,15 @@ if queued:
             if not u.get('aliases'):
                 return u
         for u in users:
-            for cell in segcells[id(u)]:
+            # `.get`, NOT `[]` — an unmatched queue entry is APPENDED to `users`
+            # below, so the next _take walks a record segcells has never seen and
+            # the whole parser dies with a KeyError. The hook then prints NOTHING
+            # and exits 0, so the session posts no replies and none of her
+            # messages, silently, forever (found live 2026-08-28: a chat with one
+            # mangled message in the app and 11 turns in its transcript). An
+            # appended entry has no segments to donate, so empty is the right
+            # answer as well as the safe one.
+            for cell in segcells.get(id(u)) or ():
                 if not cell[1] and cell[0] == n:
                     cell[1] = True
                     return u
