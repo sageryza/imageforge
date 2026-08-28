@@ -1390,7 +1390,7 @@
         prefix: over ? over.prefix : undefined, suffix: over ? over.suffix : undefined,
         noText: noTextFor(styleKey),
       }),
-    }).then(function (r) { return r.json(); }).then(function (d) {
+    }).then(readJson).then(function (d) {
       if (!d.id) throw new Error(d.error || 'Could not start.');
       var list = pendingList();
       list.push({
@@ -1417,7 +1417,7 @@
         prefix: over ? over.prefix : undefined, suffix: over ? over.suffix : undefined,
         noText: noTextFor(styleKey),
       }),
-    }).then(function (r) { return r.json(); }).then(function (d) {
+    }).then(readJson).then(function (d) {
       if (!d.id) throw new Error(d.error || 'Could not start.');
       var list = pendingList();
       list.push({
@@ -2423,7 +2423,7 @@
     return fetch('/api/promptlab', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-    }).then(function (r) { return r.json(); }).then(function (d) {
+    }).then(readJson).then(function (d) {
       if (!d.id) throw new Error(d.error || 'Could not start.');
       var list = pendingList();
       list.push(gpt
@@ -2447,9 +2447,29 @@
     }
     return true;
   }
+  // A mid-deploy answer is Render's 502 page or an empty body, and Safari's
+  // words for JSON that isn't there — "The string did not match the expected
+  // pattern" — reached the error line verbatim (Sophie, 2026-08-28). Read the
+  // body as text and say what actually happened instead.
+  function readJson(r) {
+    return r.text().then(function (t) {
+      try { return JSON.parse(t); }
+      catch (e) {
+        throw new Error(r.ok
+          ? 'The server sent a broken answer — try again.'
+          : 'The server answered ' + r.status + ' — probably mid-deploy. Try again in a minute.');
+      }
+    });
+  }
   function showErr(e) {
     var err = document.getElementById('err');
-    err.textContent = (e && e.message) || 'Network error — try again.'; err.hidden = false;
+    var m = (e && e.message) || '';
+    // Any path still handing over a browser-internal message gets the same
+    // honest line: WebKit's JSON miss, Chrome's, and Safari's bare network
+    // failure ("Load failed") all mean the server never answered properly.
+    if (/did not match the expected pattern|JSON Parse error|Unexpected token|Load failed|Failed to fetch/i.test(m))
+      m = 'The server hiccuped (probably mid-deploy) — try again in a minute.';
+    err.textContent = m || 'Network error — try again.'; err.hidden = false;
   }
 
   function go() {
