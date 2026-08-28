@@ -50,6 +50,7 @@
 const GRIDS = {
   2: { across: 1, down: 2, shape: 'landscape' },
   4: { across: 2, down: 2 },
+  6: { across: 2, down: 3 },
   9: { across: 3, down: 3 },
 };
 

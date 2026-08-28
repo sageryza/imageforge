@@ -1982,6 +1982,37 @@ them off the reference sheet, not off the old filenames.
   - Legacy single `note` strings show up as a one-message thread from her, so
     old notes are never lost, and `note` keeps mirroring her LATEST ask for any
     older reader. Her tile shows a green count badge until she opens your reply.
+  - **HER NOTES USUALLY ARRIVE *AFTER* THE MESSAGE THAT ANNOUNCES THEM — SWEEP
+    AGAIN BEFORE YOU SAY YOU ARE DONE (2026-08-28, TO FIX).** Measured on the
+    hate-of-the-game reel: she wrote "added some notes … i suggested 3 examples
+    in the notes" at **23:17:29**, and the seven notes themselves landed
+    **23:29:54-23:31:11 — twelve minutes later**. The chat swept at 23:18,
+    correctly found nothing, told her so, and built 135 pictures ignoring
+    every one of her specific asks. Reading them at turn START is not enough:
+    she announces the intent, then watches the film and writes while the chat
+    works. **Re-read `GET /api/gallery/assets/notes?chat=` right before you
+    report finished**, and treat "no notes yet" as "not yet", never as "she
+    left none".
+    - **A NOTE ON A FILM IS NOT ON AN ASSET TILE, so the assets listing never
+      shows it.** Those seven landed on the PINNED REEL's url with no
+      `description` (the `[0:18] …` timestamp form `filmnote.js` writes). They
+      ride the same `forge-asset-votes` doc, so **`/notes` finds them and
+      `GET /api/gallery/assets?chat=` does not** — a sweep that walks the
+      Assets tab looking for `note`/`thread` fields is blind to every note she
+      leaves on a film.
+    - **NOT BUILT, and it is the actual fix:** nothing tells a chat a note
+      arrived. The wake doorbell fires on her MESSAGE, and a note is not a
+      message — so the only thing standing between her asks and being ignored
+      is a chat remembering to look twice. A note POST should ring
+      `chat-wake.ring` the way `witchvideo.js` already does for its reviewer
+      notes; until it does, the re-read above is the whole protection.
+    - **AND DO NOT "VERIFY" WITH AN ORDERED FIRESTORE QUERY.** The same
+      session reported the notes collection **empty** from
+      `.orderBy('updatedAt','desc')` — but the docs carry `updated`, not
+      `updatedAt`, and **Firestore silently omits every document missing the
+      orderBy field**. The collection held **1,262 docs**. That wrong reading
+      is what turned "not yet" into a confident "nothing saved anywhere".
+      Count with a bare `.get()` before concluding anything is empty.
 - **Prompts on Assets images — POST THE PROMPT FOR EVERY IMAGE YOU MAKE (July
   2026).** Sophie taps **PROMPT** on an image in the Assets tab and the prompt
   covers the picture, with a **Style / Content** toggle (style left, content
@@ -2134,6 +2165,35 @@ them off the reference sheet, not off the old filenames.
     regex and prefers it; with no phrase in the message it is the old
     rare-term rule, untouched. A rank and a snippet that disagree are worse
     than either alone, because she judges a row by the words she can see.
+  - **AND A WHOLE WORD BEATS A PREFIX, IN THE WINDOW AND IN THE BOLD
+    (2026-08-28, her `red dress` screenshot).** Every term is anchored at a
+    word START and nowhere else — right for MATCHING, since the prefix `bound`
+    must still find "boundaries" — so `red` really does match "redraw", and
+    five of her eight rows opened on "redraw"/"redo"/"reduces" with `dress`
+    nowhere on screen. **The rows were right and the presentation was lying**:
+    every one of them held both her words. Two halves, and each is one rule
+    disagreeing with itself:
+    - **The WINDOW.** Measured on the row she screenshotted: `red` once,
+      inside "redraw", 2,000 characters from the only `dress` — a rarity TIE,
+      which the old rule broke by taking the term she typed FIRST. A hit that
+      lands on a whole word now wins outright, a term prefers its own
+      whole-word occurrence over an earlier prefix one, and rarity only
+      decides between two of a kind.
+    - **The BOLD.** `hl` in `chats.html` had NO anchor at all, so `red` lit up
+      inside "tired" — a word the search itself would never have matched. The
+      highlight and the match must be the same question asked twice, or the
+      mark claims a row was found for a reason it was not.
+    - **AND WHEN NEITHER HIT IS A WHOLE WORD, SHE GETS A WINDOW EACH.** The
+      rule above cannot reach her own row: `red` inside "redraw" and `dress`
+      inside "dressed" are both prefixes, so the tie falls back to rarity, both
+      are 1, and the window opens on "redraw" again. No ordering of ONE window
+      answers that — the two words are 2,000 characters apart — so a message
+      whose terms are far apart is cut into one window per word, joined by an
+      ellipsis, narrower (35/55 rather than 45/70) so the pair still fits the
+      row's one line. Windows that overlap merge back into one, a phrase hit
+      stays one window, and a one-word query is byte-for-byte what it was.
+    Tests: `node scripts/test-search-grammar.js` and `node
+    scripts/test-chats-live-search.js` (both verified failing pre-fix).
   - **Two things not to undo:** the phrase is its own regex pass (a
     left-to-right walk takes the EARLIEST match of each word and would miss an
     adjacent pair further along — "maybe … never … maybe never" is the
@@ -4441,12 +4501,61 @@ before working on that module. Nothing was deleted — the moved text is verbati
     future so a chat drawing concurrently could not land above the block — which
     means anything she genuinely draws next sorts UNDER it until the clock
     catches up. `--at` defaults to now; leave it there.
+  **AND A KIND-FILTERED FEED PAGE IS FILLED, NEVER JUST READ (2026-08-28,
+  Sophie, the same morning: "aldo all the older ones r gone").** The PICTURE and
+  PANELS tabs have separate galleries, and `kind=single` drops the panels runs
+  **after** the page of docs is read — on the reasoning, written into the route,
+  that "a short page is fine, the client's Older keeps walking". That is true
+  while the page is SHORT and false when it is EMPTY, and empty is what happened:
+  measured that morning, **the newest 40 docs were 40 panels runs**, so the
+  Picture tab's first page came back with nothing at all over **1,140 runs going
+  back to Aug 2** — and an empty page has no oldest single to take a cursor
+  from, so `loadMore` bailed on the missing cursor and **Older could not walk
+  out of it either**. An empty tab over 1,100 pictures reads as the pictures
+  being deleted.
+  - **The walk is `pl-feed-fill.js`** — pure, injected with the route's own
+    reader, so the paging rules are testable with no Firestore. It keeps
+    reading until it HAS its limit, bounded at `PL_FILL_PASSES` (an unbounded
+    fill would let one request read the whole collection). **An unfiltered read
+    — no `kind`, which is what every older cached page on her phone sends —
+    still costs exactly ONE read and answers as it always did**, and a test
+    pins that.
+  - **`more` means "there are docs behind this page"**, so it is the last
+    read being FULL, never the number of keepers — a page of 3 at the end of
+    the feed must say false or Older never stops.
+  - **The page asks with `kind=single` on its FIRST load too**, not only in
+    Older (that was the whole asymmetry), and Older keeps a last-resort cursor
+    off the oldest run of ANY kind so a stale cached page can still walk out.
+  - **The lesson beyond this feed: "the caller can just ask again" is only a
+    design while the caller still HAS something to ask with.** Filter-after-read
+    paging hands back an empty page and, with it, the cursor the next request
+    needed.
+  - Test: `node scripts/test-playground-feed-fill.js` (the walk over fixtures,
+    then the two page halves and the route's use of the shared fill).
 - **Freeform** (`freeform.js`, `/api/freeform`, `/freeform`) — the one image
   surface with **no opinion**: the prompt goes to gpt-image-2 verbatim, no prefix,
   no suffix, not even a trailing-period trim. `promptSent` is stored on every run
   so anyone can verify nothing was added — the "if you add anything to a prompt
   Sophie gave, tell her" rule made structural. References are a LIBRARY, not a
-  per-run upload. **Full details: `docs/modules/pictures.md`.**
+  per-run upload.
+  **ONE EXCEPTION, AND IT IS A BUTTON — the BOILERPLATE STYLE toggle
+  (2026-08-28, Sophie: "add a default boiler style not content prompt to
+  freeform with a toggle on off button" · "boiler plate").** A stock STYLE
+  line — how a picture is drawn, never what is in it, so it can ride any words
+  without arguing with them — appended after her words while the toggle is lit.
+  Four things keep it from breaking the module's whole promise, and none is
+  optional: it is **OFF by default and NOT sticky** (a wrapper remembered from
+  last week silently riding today's run is exactly the surprise this surface
+  exists to avoid); the lit button **prints the exact line it adds**, so nothing
+  is ever added invisibly; the **text is SERVED** (`GET /api/freeform/style`,
+  `BOILER` in freeform.js) and the page keeps no copy, so the two cannot drift;
+  and the run stores `boiler` plus `promptSent`/`promptStyle`/`promptContent`
+  through the ONE builder (`prompt-record.js`) — **off files NO style half at
+  all**, which is the honest answer rather than a reconstruction. Putting a run
+  back restores the toggle to what THAT run had, the same *only change what the
+  record knows* rule the references follow. `boilerFields` is the one assembler.
+  Test: `node scripts/test-freeform-boiler.js`.
+  **Full details: `docs/modules/pictures.md`.**
 - **Vector pipeline** (`vector.js`, `/api/vector`, page at `/vector`, iOS tile
   under the PICTURES filter) — describe 1-25 drawings -> ONE gpt-image-2 sheet in
   the pastel house style (~6c, the only cost) -> cut into cells -> trace each to
@@ -4466,6 +4575,22 @@ before working on that module. Nothing was deleted — the moved text is verbati
 - **Movies** (`movies.js`, `/api/movies`, iOS Movies tab — no web page) — story ->
   ~8-12 self-contained scenes -> gpt-image-2 panels -> Replicate image-to-video ->
   ffmpeg stitch, ~$1.35 for a 12-scene film.
+  **480p WAN CANNOT DO A SHORT CLIP — `num_frames` HAS A FLOOR OF 81
+  (2026-08-28, Sophie: "does 480p wan have a timing option - can it do 1 or 2
+  seconds instead of 5? if so? is it cheaper?").** No, and the question of
+  whether short is cheaper does not arise. `wan-2.2-i2v-fast` refuses anything
+  under 81 frames at validation — *"input.num_frames: Must be greater than or
+  equal to 81"* — so at its 16fps the usable range is **5s to 7.5s** (81-121
+  frames), and there is no 1s or 2s clip to price. **The probe cost nothing:
+  a 422 is refused before it is billed**, which makes this shape of question
+  free to settle — ask the API, do not reason about it.
+  The schema also settles why the house price is BANDED rather than
+  per-second: it says pricing is "based on the video duration at 16 fps", and
+  the only two rungs inside 81-121 frames are the 6c/8c the ledger already
+  records. **Want 1-2 seconds of motion? Render 81 frames and TRIM** (ffmpeg
+  on our own box, free) — same 6c either way, and she picks which second. Wan
+  **2.7** genuinely takes 2-15s and is per-second, but has no 480p at all, so
+  a 2s clip there is 20c at 720p rather than 6c.
   **THE ANIMATE BUTTON CAN RUN WAN 2.7 SINCE AUG 2026 (Sophie's ask), AND IT IS
   NOT A FREE UPGRADE — it is priced per SECOND** ($0.10/s at 720p, $0.15/s at
   1080p, so 50¢ and 75¢ for the standard five seconds against draft's 16¢).

@@ -108,4 +108,55 @@ ok('a term that is not in the text anchors nothing', () => {
   assert.strictEqual(snippetAnchor('nothing here', compileQuery('raincoat')), null);
 });
 
+group('the snippet opens on a WHOLE word, not a prefix');
+// 2026-08-28, from her `red dress` search: `red` is anchored at a word start
+// and nowhere else, so it legitimately matches "redraw" — and the window
+// opened there, 2,000 characters from the only "dress", on a row that had
+// matched BOTH her words. A rarity tie, broken by whichever she typed first.
+const RED = "say so and I'll redraw the mother. " + 'x'.repeat(300) + ' She is in a red dress.';
+// Her row exactly: ONE `red`, inside "redraw", and ONE `dress`, whole — a
+// rarity tie, which the old rule broke by taking the term she typed first.
+const TIE = "say so and I'll redraw the mother. " + 'x'.repeat(300) + ' She is wearing the dress.';
+ok('a prefix hit loses to the whole word she typed', () => {
+  const at = snippetAnchor(TIE, compileQuery('red dress'));
+  assert.strictEqual(TIE.slice(at.i, at.i + at.len).toLowerCase(), 'dress');
+});
+ok('a term prefers its own whole-word hit over an earlier prefix one', () => {
+  const at = snippetAnchor(RED, compileQuery('red'));
+  assert.strictEqual(RED.slice(at.i - 1, at.i + at.len + 1).toLowerCase(), ' red ');
+});
+ok('a prefix hit still anchors when it is all there is', () => {
+  const at = snippetAnchor('nothing but a redraw here', compileQuery('red'));
+  assert.strictEqual(at.i, 14);
+});
+
+group('a window for each word she typed');
+// 2026-08-28, the half the whole-word rule cannot reach: `red dress` on a row
+// holding "redraw" 2,000 characters from "dressed" — NEITHER is a whole word,
+// so no ordering of one window shows her both. She gets one each.
+const { snippetOf, snippetWindows } = require('../chatfeed');
+const FAR = "I'll redraw the mother. " + 'x'.repeat(400) + ' She is dressed for a party.';
+ok('two words far apart get a window each', () => {
+  const out = snippetOf(FAR, compileQuery('red dress'));
+  assert.ok(/redraw/.test(out), 'the first word is missing: ' + out);
+  assert.ok(/dressed/.test(out), 'the second word is missing: ' + out);
+  assert.ok(/… …/.test(out), 'the two windows were not cut apart: ' + out);
+  assert.ok(out.length < FAR.length / 2, 'the whole message came back: ' + out.length);
+});
+ok('the pair still fits the row', () => {
+  assert.ok(snippetOf(FAR, compileQuery('red dress')).length <= 220);
+});
+ok('words NEAR each other stay one window, with one ellipsis pair', () => {
+  const NEAR = 'x'.repeat(200) + ' she is in a red dress at the party ' + 'y'.repeat(200);
+  const out = snippetOf(NEAR, compileQuery('red dress'));
+  assert.strictEqual(snippetWindows(NEAR, compileQuery('red dress')).length, 1);
+  assert.ok(/red dress/.test(out), out);
+});
+ok('one word is one window, exactly as before', () => {
+  assert.strictEqual(snippetWindows(MSG, compileQuery('raincoat')).length, 1);
+});
+ok('an excluded term gets no window of its own', () => {
+  assert.strictEqual(snippetWindows(MSG, compileQuery('prompt -bicycle')).length, 1);
+});
+
 console.log('\n' + pass + ' checks passed');

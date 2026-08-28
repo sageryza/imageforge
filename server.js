@@ -6990,6 +6990,8 @@ app.post('/api/promptlab/:id/vote', async (req, res) => {
 // costs one read of it however many keystrokes land.
 const PL_SEARCH_SCAN = 1500;    // newest runs a search ever reads
 const PL_SEARCH_MAX = 300;      // matches handed back
+const PL_FILL_PASSES = 12;      // pages a kind-filtered feed read will walk to fill one
+const plFeedFill = require('./pl-feed-fill');
 let plScan = { at: 0, runs: null };
 async function promptlabScan() {
   if (plScan.runs && Date.now() - plScan.at < 60000) return plScan.runs;
@@ -7098,18 +7100,29 @@ app.get('/api/promptlab', async (req, res) => {
         matched: hits.length,
       });
     }
-    let q = admin.firestore().collection(PROMPTLAB).orderBy('createdAt', 'desc');
-    // Inequality on the same field the query orders by — no composite index.
-    if (before) q = q.where('createdAt', '<', admin.firestore.Timestamp.fromMillis(before));
-    const snap = await q.limit(limit).get();
-    res.json({
-      // kind=single drops the panels runs AFTER the page is read, so `more`
-      // still means "there are docs behind this page" — a short page is fine,
-      // the client's Older keeps walking.
-      runs: snap.docs.map(s => { const d = s.data(); return { ...d, createdAt: d.createdAt?.toMillis?.() || null }; })
-        .filter((r) => plKindKeeps(kind, r)),
-      more: snap.size === limit,
-    });
+    // THE PAGE IS FILLED, NOT JUST READ (2026-08-28, Sophie: "aldo all the
+    // older ones r gone"). kind=single drops the panels runs AFTER the docs
+    // are read, and the old rule — "a short page is fine, the client's Older
+    // keeps walking" — is only true while the page is SHORT. Measured that
+    // morning: the newest 40 docs were 40 panels runs, so the Picture tab's
+    // first page came back EMPTY, and an empty page has no oldest single to
+    // take a cursor from, so Older could not walk either (loadMore bails on a
+    // missing cursor). An empty tab over 1,100 pictures reads as the pictures
+    // being gone. So a filtered page keeps reading until it HAS its limit.
+    // The walk itself is `pl-feed-fill.js` — pure, injected with this reader,
+    // so the paging rules have a test that needs no Firestore.
+    const read = async (cursor, n) => {
+      let q = admin.firestore().collection(PROMPTLAB).orderBy('createdAt', 'desc');
+      // Inequality on the same field the query orders by — no composite index.
+      if (cursor) q = q.where('createdAt', '<', admin.firestore.Timestamp.fromMillis(cursor));
+      const snap = await q.limit(n).get();
+      return snap.docs.map(s => { const d = s.data(); return { ...d, createdAt: d.createdAt?.toMillis?.() || null }; });
+    };
+    // Unfiltered (no kind — an older cached page) fills on the first read
+    // every time, so this answers exactly as it always did.
+    res.json(await plFeedFill.fillPage({
+      read, keeps: (r) => plKindKeeps(kind, r), limit, before, passes: PL_FILL_PASSES,
+    }));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
