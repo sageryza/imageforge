@@ -625,10 +625,23 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    (Sophie: "drawing a new picture replaces the old, but keeps it in the
    stacked squares icon"). Newest first, the current one ringed. */
 #verrow{flex:none; display:flex; flex-wrap:wrap; gap:6px; justify-content:center; max-width:100%;}
-#verrow button{width:44px; aspect-ratio:var(--ar,2/3); padding:0; border:1.5px solid var(--line); border-radius:4px;
+/* Each picture is a CELL: the thumbnail, and the cull beside it. A SIBLING,
+   never nested — a button inside a button is invalid markup and the tap would
+   bubble straight into opening the picture. */
+#verrow .vercell{position:relative; flex:none; line-height:0;}
+#verrow .verthumb{width:44px; aspect-ratio:var(--ar,2/3); padding:0; border:1.5px solid var(--line); border-radius:4px;
   overflow:hidden; background:var(--paper); cursor:pointer;}
-#verrow button.cur{border:2.5px solid var(--ink);}
+#verrow .verthumb.cur{border:2.5px solid var(--ink);}
 #verrow img{width:100%; height:100%; object-fit:cover; display:block;}
+/* The cull. Rounded square at the house 6px, never a circle. It hangs off the
+   thumbnail's top-right corner so its 22px target barely eats the 44px
+   picture, and it is only ever reachable with the row deliberately folded
+   open. */
+#verrow .vercull{position:absolute; top:-7px; right:-7px; width:22px; height:22px; padding:0;
+  display:flex; align-items:center; justify-content:center; border:1.5px solid var(--line);
+  border-radius:6px; background:var(--paper); color:var(--ink); cursor:pointer; line-height:0;}
+#verrow .vercull svg{width:12px; height:12px;}
+#verrow .vercull.busy{opacity:.45;}
 #delask{position:fixed; inset:0; z-index:55; display:flex; align-items:center; justify-content:center;
   background:rgba(20,17,12,.55); padding:24px;}
 #speak.busy,#micbtn.busy{opacity:.45;}
@@ -3154,10 +3167,16 @@ function openBeat(b){
   // left/right taps can never disagree.
   lbVers=vers; lbHasCur=Boolean(su.url&&!clip);
   var av=document.getElementById('arvers');
-  av.hidden=vers.length<2; av.classList.remove('on'); vr.hidden=true;
-  if(vers.length>1){
+  // OPEN AT ONE, not at two (2026-08-28, the cull). It used to appear only
+  // once a draw had replaced something, which was right while the row was
+  // somewhere to LOOK — now it is the only place a picture comes off a beat,
+  // and a beat left holding one wrong picture has to be reachable.
+  av.hidden=vers.length<1; av.classList.remove('on'); vr.hidden=true;
+  if(vers.length){
     vers.forEach(function(u,i){
-      var t=document.createElement('button'); if(i===0&&su.url)t.className='cur';
+      var cell=document.createElement('span'); cell.className='vercell';
+      var t=document.createElement('button');
+      t.className='verthumb'+((i===0&&su.url)?' cur':'');
       var ti=document.createElement('img'); ti.src=u; ti.alt=''; ti.loading='lazy'; t.appendChild(ti);
       // Tapping a thumbnail opens it BIG with a way to take it — the
       // current one opens plain, since "use this one" for the picture
@@ -3166,7 +3185,9 @@ function openBeat(b){
         ev.stopPropagation();
         openLbAt(i);
       };
-      vr.appendChild(t);
+      cell.appendChild(t);
+      cell.appendChild(mkCull(u));
+      vr.appendChild(cell);
     });
   }
   // Two separate icons so a chunk can grow past two: link = add the NEXT
@@ -3298,6 +3319,48 @@ document.getElementById('arvers').onclick=function(ev){
   vr.hidden=!vr.hidden;
   this.classList.toggle('on',!vr.hidden);
 };
+/* THE CULL — take one picture off this beat (2026-08-28, Sophie: "how to cull
+   beat pictures"). The row is where it happens because it is the one place
+   that shows every picture a beat has; the rules live server-side in
+   pad-art.js, so the page only ever names the picture.
+   Nothing is destroyed: the picture stays in Storage and in My Creations, and
+   what the beat had is banked in the pad's trash. */
+function mkCull(url){
+  var x=document.createElement('button');
+  x.className='vercull'; x.type='button';
+  x.setAttribute('aria-label','Take this picture off the beat');
+  x.title='Take this picture off the beat';
+  x.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"'
+    +' stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>';
+  x.onclick=function(ev){
+    ev.stopPropagation();
+    var b=popBeat; if(!b)return;
+    var btn=this; if(btn.classList.contains('busy'))return;
+    btn.classList.add('busy');
+    api('/image/forget',{method:'POST',body:JSON.stringify({id:b.id,url:url,style:padStyle})})
+      .then(function(r){return r.json()})
+      .then(function(d){
+        if(d.error){ btn.classList.remove('busy'); alert(d.error); return; }
+        if(d.beats)beats=d.beats;
+        render();
+        /* Repaint the beat from the answer and leave the row OPEN — she is
+           culling several, and a fold that shuts under her would cost a tap
+           per picture. openBeat rebuilds #verrow, so the flag is re-applied
+           after it. */
+        var fresh=beats.find(function(x2){return x2.id===b.id;});
+        if(fresh){ popBeat=fresh; openBeat(fresh); openVers(); }
+      })
+      .catch(function(){ btn.classList.remove('busy'); });
+  };
+  return x;
+}
+/* Fold the past pictures open — used after a cull, so the row she is working
+   in stays where it was. */
+function openVers(){
+  var vr=document.getElementById('verrow'), av=document.getElementById('arvers');
+  if(av.hidden)return;
+  vr.hidden=false; av.classList.add('on');
+}
 document.getElementById('drawbox').onclick=function(ev){ev.stopPropagation();};
 document.getElementById('dchar').onclick=function(ev){
   ev.stopPropagation();

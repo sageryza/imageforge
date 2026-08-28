@@ -27,7 +27,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
-const { swapArt } = require('../pad-art');
+const { swapArt, forgetArt } = require('../pad-art');
 const servePublic = require('./lib/public-asset');
 
 let chromium;
@@ -97,6 +97,10 @@ const server = http.createServer((req, res) => {
         const beat = beats.find((x) => x.id === b.id);
         if (beat) swapArt(beat, b.url, b.src || null);
       }
+      if (url.pathname === '/api/scratchpad/image/forget') {
+        const beat = beats.find((x) => x.id === b.id);
+        if (beat) forgetArt(beat, b.url);
+      }
       json({ ok: true, beats });
     });
   }
@@ -165,9 +169,12 @@ function ok(cond, name) {
     const r = el.getBoundingClientRect();
     return { x: r.left, y: r.top, w: r.width, h: r.height, b: r.bottom };
   });
-  const thumbs = () => page.$$eval('#verrow button', (bs) => bs.map((b) => ({
+  // Each picture is a CELL — the thumbnail and its cull ✕ — so the row is
+  // read off the thumbnails, never off every button inside it.
+  const thumbs = () => page.$$eval('#verrow .verthumb', (bs) => bs.map((b) => ({
     url: new URL(b.querySelector('img').src).search, cur: b.classList.contains('cur'),
   })));
+  const nthThumb = (n) => '#verrow .vercell:nth-child(' + n + ') .verthumb';
   const curSrc = () => page.$eval('#popimg', (el) => new URL(el.src).search);
 
   await page.click('#pad .beat');
@@ -195,14 +202,14 @@ function ok(cond, name) {
   ok(row[0].cur && row[0].url === '?cur', 'the current one is first and ringed');
 
   // the CURRENT one in the row: still nothing to pick
-  await page.click('#verrow button:nth-child(1)');
+  await page.click(nthThumb(1));
   await waitLbOpen();
   ok(!(await hasUse()), 'the ringed thumbnail offers no Use button either');
   await tapOut();
   await waitLbClosed();
 
   // an OLDER one: look at it big, then take it
-  await page.click('#verrow button:nth-child(2)');
+  await page.click(nthThumb(2));
   await waitLbOpen();
   ok(await hasUse(), 'an older picture opens big WITH a way to take it');
   ok(await page.$eval('#clightbox img', (el) => new URL(el.src).search) === '?old2',
@@ -228,7 +235,7 @@ function ok(cond, name) {
   ok(row.some((r) => r.url === '?cur'), 'the one it replaced is in the row');
 
   // and the picked picture can be picked back
-  await page.click('#verrow button:nth-child(2)');
+  await page.click(nthThumb(2));
   await page.waitForSelector('#clightbox .lbcta');
   await page.click('#clightbox .lbcta');
   await waitLbClosed();
@@ -241,6 +248,63 @@ function ok(cond, name) {
   // when she closes the card
   ok(await page.$eval('#pad .beat img', (el) => new URL(el.src).search) === '?cur',
     'the pad tile shows the picture she picked back');
+
+  // ── THE CULL (2026-08-28, Sophie: "how to cull beat pictures") ────────
+  // The row is the one place that shows every picture a beat has, so it is
+  // where one comes off. The ✕ is a SIBLING of the thumbnail, never nested —
+  // a button inside a button is invalid and the tap would open the picture.
+  ok(await page.$eval(nthThumb(1), (el) => !el.querySelector('button')),
+    'the cull is not inside the thumbnail button');
+  const cull = (n) => '#verrow .vercell:nth-child(' + n + ') .vercull';
+  ok(await shown(cull(1)), 'every picture in the row carries one');
+  const crad = await page.$eval(cull(1), (el) => getComputedStyle(el).borderRadius);
+  ok(crad === '6px', 'rounded square at the house 6px, never a circle (' + crad + ')');
+  // What a tap at its centre actually reaches — the honest question, since a
+  // badge over a 44px thumbnail is exactly where a mis-tap would open the
+  // picture instead.
+  const cb = await box(cull(2));
+  const hit = await page.evaluate(([x, y]) => {
+    const el = document.elementFromPoint(x, y);
+    return el && el.closest('button') ? el.closest('button').className : 'none';
+  }, [cb.x + cb.w / 2, cb.y + cb.h / 2]);
+  ok(/vercull/.test(hit), 'and a tap on it reaches the cull, not the thumbnail (' + hit + ')');
+
+  // An OLDER picture: off the row, the beat's art untouched.
+  let before = (await thumbs()).map((r) => r.url);
+  const drop = before[1];
+  await page.click(cull(2));
+  await page.waitForFunction((n) => document.querySelectorAll('#verrow .verthumb').length === n,
+    before.length - 1);
+  ok(posted.some(([pth, b]) => pth === '/api/scratchpad/image/forget' && b.url.indexOf(drop.slice(1)) >= 0),
+    'it POSTs /image/forget for that picture');
+  row = await thumbs();
+  ok(!row.some((r) => r.url === drop), 'the picture is off the beat (' + row.map((r) => r.url).join() + ')');
+  ok(row[0].url === before[0], 'and the beat\'s art is untouched');
+  ok(await shown('#verrow'), 'the row stays OPEN, so culling several is one tap each');
+  ok(await shown('#beatpop'), 'and the popup stays on the beat');
+
+  // The CURRENT one: "no, not that one" shows the previous one.
+  before = (await thumbs()).map((r) => r.url);
+  await page.click(cull(1));
+  await page.waitForFunction((u) => {
+    const im = document.getElementById('popimg');
+    return im && !new URL(im.src).search.startsWith(u);
+  }, before[0]);
+  ok(await curSrc() === before[1], 'culling the current one promotes the next picture in the row');
+  row = await thumbs();
+  ok(row.length === 1 && row[0].url === before[1] && row[0].cur,
+    'which is the ringed current, once (' + row.map((r) => r.url).join() + ')');
+
+  // The LAST one: the side is simply left with no picture — and the row must
+  // still have been reachable to get here, which is why it opens at one.
+  ok(await shown('#arvers'), 'the row is reachable with a single picture left');
+  await page.click(cull(1));
+  await page.waitForFunction(() => document.getElementById('popimg').hidden
+    || !document.getElementById('popimg').getAttribute('src'));
+  ok(await page.$eval('#pad .beat', (el) => !el.querySelector('img')),
+    'the beat keeps its place with no picture at all');
+  ok(await page.$eval('#pnote', (el) => el.value === 'the beat says this'),
+    'and its words');
 
   await browser.close();
   server.close();

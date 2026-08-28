@@ -322,7 +322,7 @@ const slotOff = (s) => Boolean(s && s.off);
 // Swapping a picture into a slot — the past-pictures bookkeeping lives in
 // its own dependency-free file so it can be tested without a node_modules,
 // and so /image and a finished draw share ONE copy of the rules.
-const { swapArt } = require('./pad-art');
+const { swapArt, forgetArt } = require('./pad-art');
 // One story becomes two — fresh beat ids, no renders carried, art optional.
 const { dupPad } = require('./pad-duplicate');
 // Which side a picture belongs on when nobody said — the pure decision
@@ -1447,6 +1447,49 @@ async function placeOnBeat(padId, beatId, url, style, src, opts) {
     return cur;
   });
 }
+
+// TAKE ONE PICTURE OFF A BEAT (2026-08-28, Sophie: "how to cull beat
+// pictures"). The past-pictures row had no exit: swapArt never deletes, so a
+// picture that landed on the wrong beat — the whole of #1889's five strays on
+// one caption — sat in that row forever, and the only ways out were the trash
+// button (which takes the beat, words and all) or drawing over it, which only
+// makes the row longer.
+//
+// NOTHING IS DESTROYED. The picture stays in Storage and in My Creations, and
+// what the beat had is banked in `pad.trash` exactly as a removed side is —
+// the same 50-deep list, so a cull is undoable and a chat can see what went.
+// The rules (an older one dropped, the current one replaced by the newest in
+// the row, a clip refused) live in pad-art.js beside swapArt, so the two ways
+// this row changes can never disagree about it.
+router.post('/image/forget', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const id = String(req.body.id || '');
+    const url = String(req.body.url || '').trim();
+    if (!id) return res.status(400).json({ error: 'beat id required' });
+    if (!url) return res.status(400).json({ error: 'image url required' });
+    const style = styleOf(req);
+    const out = await db().runTransaction(async (tx) => {
+      const snap = await tx.get(padRef(pid));
+      const v = snap.exists ? snap.data() : {};
+      const cur = Array.isArray(v.beats) ? v.beats : [];
+      const b = cur.find((x) => x.id === id);
+      if (!b) throw new Error('no such beat');
+      const gone = forgetArt(artSlot(b, style, true), url);
+      // Not on this beat any more — she tapped twice, or another session got
+      // there first. Answering ok with the beats as they stand repaints her
+      // row correctly instead of showing an error for a thing already done.
+      if (!gone) return { beats: cur, forgot: false };
+      const trash = Array.isArray(v.trash) ? v.trash : [];
+      const kept = { beatId: b.id, style, text: b.text || '', picture: gone, removedAt: Date.now() };
+      tx.set(padRef(pid), {
+        beats: cur, trash: trash.concat([kept]).slice(-50), updatedAt: Date.now(),
+      }, { merge: true });
+      return { beats: cur, forgot: true };
+    });
+    res.json({ ok: true, ...out });
+  } catch (e) { fail(res, e); }
+});
 
 // ── MATCH A SENT PICTURE TO ITS BEAT (2026-08-26, Sophie: "if I'm in the
 // playground and I want to send a drawing to the story room then it does
