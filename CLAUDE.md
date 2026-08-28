@@ -3546,7 +3546,62 @@ before working on that module. Nothing was deleted — the moved text is verbati
   an orphaned panels run from its banked sheet (free) instead of marking paid
   work failed, and `POST /api/promptlab/:id/recut` does the same on demand
   for a failed-with-sheet or cutFailed run (recovery-only: an already-cut run
-  is refused, a second cut would file duplicates). **AND DRAWING AND CUTTING ARE PACED
+  is refused, a second cut would file duplicates).
+  **AND THE SHEET NOW SURVIVES A RESTART LANDING *DURING* GENERATION TOO
+  (2026-08-28, Sophie: the banked-sheet recovery only ever covered a kill
+  AFTER the bytes arrived, and a deploy mid-draw lost 15 runs — about $1.75 of
+  4K medium sheets — in one evening, billed when requested and gone).**
+  `/v1/images/edits` is SYNCHRONOUS, so the only handle on the work is the
+  open socket: a restart takes it, and the Images API has no result tracking
+  to ask afterwards. A panels sheet is submitted as an OpenAI **Responses**
+  job with `background:true` instead (`responses-bg.js`): the POST answers in
+  ~0.3s with an id, **the id goes on the run doc before the first poll**
+  (`bgResponseId`), and the stuck-run sweep RE-POLLS a run that has one and no
+  sheet rather than marking paid work failed — `pending` means still drawing
+  and the run is left alone. **PANELS ONLY, deliberately** — it is the
+  expensive case (20-47c a sheet against a 1K run's fraction of a cent) and
+  the one whose loss she measured; every other Playground path stays on the
+  direct Images call.
+  - **MEASURED FIRST, in four probe calls (~2.2c total), because three of the
+    four could have killed the migration:** an ARBITRARY canvas works
+    (`size:"1568x2352"` accepted AND the bytes really come back 1568x2352, so
+    the 2K/4K tiers survive — the documented preset list is not the limit);
+    reference images work and the call reports **`action:"edit"`**, the same
+    engine `/v1/images/edits` reaches; `moderation:"low"` is accepted; and the
+    bytes are **VP8L, lossless**, despite the tool echoing an
+    output-compression field of its own — checked, not assumed. There is NO
+    async door on the Images API: `background` there is the picture's own
+    background and refuses a boolean.
+  - **THE COST IS A ROUTER MODEL BETWEEN HER WORDS AND gpt-image-2, AND THAT
+    IS THE THING TO WATCH.** The Responses API has a mainline model choose the
+    tool's `prompt`. Asked conversationally it rewrote a nine-word request into
+    1,200 characters of invented hex colours and corner radii; given the
+    pass-through instruction in `responses-bg.js` it copied the real grid
+    sentence back BYTE FOR BYTE, with and without references attached. That is
+    a model behaviour, not a contract, and nothing can un-spend a sheet drawn
+    from a paraphrase — so it is CHECKED rather than trusted: `revised_prompt`
+    (what actually reached the model) is stored as `fullPrompt`, keeping the
+    hard rule true that the whole prompt is stored wherever an image is made
+    and is the LITERAL text sent, and a run whose text differs is stamped
+    **`promptRewritten`** so drift is countable over real runs. **If that stamp
+    starts appearing, this is the migration to revisit.**
+  - **The poll hands off at NINE minutes against the sweep's ten, and that is
+    load-bearing:** the live poll and the sweep can both finish a run, and if
+    both ever did the same paid sheet would be banked, cut and filed twice. A
+    timeout returns *pending* and the job simply stops — it must never mark a
+    run failed on our own clock while the sheet is still being drawn.
+  - **TWO HONEST RESIDUALS.** The window is smaller, not gone: a restart in the
+    ~0.3s between the POST leaving and the id being durable still loses the
+    sheet, and it cannot be swept up because `GET /v1/responses` refuses an API
+    key ("must be made with a session key"), so an orphan cannot be found. And
+    the router is a new dependency — measured on this key the same day,
+    `gpt-4o` and `gpt-4.1` answer 403 "organization must be verified" while
+    `gpt-5-mini` works, so `OPENAI_BG_ROUTER_MODEL`'s default is what the
+    account can actually reach, not a preference.
+  - Test: `node scripts/test-responses-bg.js` (the submit body, the
+    pass-through clauses, the whole `readResponse` decision table, the rewrite
+    detection, and the handoff pinned SHORTER than the sweep's cutoff read out
+    of server.js — verified failing against each of those four mistakes). **AND DRAWING AND CUTTING ARE PACED
   SEPARATELY** — fire the whole sheet batch AT ONCE (the draw is on OpenAI's
   hardware), while the CUT is queued one at a time by the server itself
   (`gateCut`), so a chat never staggers its own launches (Sophie,
@@ -3568,8 +3623,9 @@ before working on that module. Nothing was deleted — the moved text is verbati
   panel, because an error pointing at a box she cannot see is no error.
   Full rules: *The PANELS
   tab* in `docs/modules/pictures.md`. Tests: `node
-  scripts/test-playground-panel-fold.js`, `node scripts/test-sheet-grid.js`
-  and `node scripts/test-playground-panels.js`.
+  scripts/test-playground-panel-fold.js`, `node scripts/test-sheet-grid.js`,
+  `node scripts/test-responses-bg.js` and `node
+  scripts/test-playground-panels.js`.
   **SANDY MIRROR AND CHATGPT ARE TWO TILES SINCE 2026-08-24 (Sophie: "add one
   more endpoint option to the playground, which is called ChatGPT and change
   the one that's called ChatGPT right now to make it be called Sandy mirror.
