@@ -51,6 +51,37 @@ is the whole difference** — at 3000px wide the same close-ups are crisp. If on
 Google Drawing copy of a page survives, `scripts/gdrawing-extract.py` gets the
 full-size original out (`docs/modules/inbox-and-misc.md`).
 
+## The narration
+
+A shot can carry a `line`, and `--voice <elevenlabs id>` speaks it: each take is
+rendered, and its real length sets that shot's `sec` (`lead` before the words,
+`tail` after), so the camera arrives when the words do. Takes are cached by
+(voice, model, text) — re-cutting the film re-spends nothing, only an edited line
+is re-rendered. Always `eleven_multilingual_v2`; **never `eleven_v3`**, which
+collapses a clone's likeness.
+
+The bed is assembled in PCM and muxed once, not concatenated from AAC pieces
+(~24ms of priming per join walks the voice off the pictures).
+
+Sophie's dad is the **Steve Ryza** clone, `ZOw6P0YnswJ6JNjpj9wF` — not Steve
+Herrington, a different man on the same account. Voices live in `voicelab.js`.
+
+## Starting wide, and going back out
+
+Sophie, 2026-08-18: *"zoom should start on the whole page and zoom into each part
+when it's relevant."* So the page itself is the home position: the film opens on
+it, and between panels the camera pulls back out to it before pushing into the
+next part. Two mechanics make that read as one camera instead of a slideshow:
+
+- **`"from": "prev"`** starts a shot exactly where the last one ended. A rect
+  that is merely close is not close enough — the join ghosts two copies of the
+  page.
+- **`"dissolve": 0` on a shot that continues the move.** During an overlap the
+  outgoing shot is still travelling while the incoming one waits at its start
+  rect, so blending a continuation always doubles the image. Cross-fades are for
+  a real cut between two different views; a continued move is cut into, not
+  faded into.
+
 ## Timing it to a voice
 
 The durations in a shot list are a reading pace, written so the film stands up
@@ -71,5 +102,9 @@ silent. When the real voice arrives:
   whole page → daddy → the pointing finger to her face → the caption → the bunk
   room rising to the boy on the ceiling → the moon in the window → the second
   boy → Dave → back out to the whole page.
-  v1 (silent):
-  https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/films/daddy-flying/daddy-flying-v1-silent.mp4
+  - v1, silent, 51s:
+    https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/films/daddy-flying/daddy-flying-v1-silent.mp4
+  - v2, 1:05, her dad's clone reading a made-up script (Claude's words, not his
+    and not hers — 860 characters, ~$0.19 of ElevenLabs credit), the camera
+    opening wide and going back out to the page between panels:
+    https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/films/daddy-flying/daddy-flying-v2-dad-voice.mp4

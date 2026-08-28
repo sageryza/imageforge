@@ -4,8 +4,10 @@
   "fps": 30,
   "dissolve": 0.6,
   "margin": 0.05,
+  "lead": 0.45,
+  "tail": 0.7,
 
-  "_note": "Rects are pixels on the trimmed 1122x1378 page. The four panels sit at x 65-531 / 590-1056 and y 32-701 / 733-1336; each panel's caption is the strip under its art. The durations are a reading pace - re-time them to Dad's take with --fit-audio, or by hand, shot by shot.",
+  "_note": "v2. The camera opens on the whole page and goes back out to it between panels, so every zoom starts from the map and lands on the part he is talking about. Rects are pixels on the trimmed 1122x1378 page: panels at x 65-531 / 590-1056, y 32-701 / 733-1336, each caption the strip under its art. The `line` fields are a made-up script in her dad's voice (Claude wrote the words, not Sophie, not him) - rendered on his clone, Steve Ryza ZOw6P0YnswJ6JNjpj9wF, eleven_multilingual_v2. Shot lengths come from the takes; don't hand-set sec on a shot that has a line.",
 
   "boxes": {
     "panel1":      [65, 32, 466, 388],
@@ -29,17 +31,49 @@
   },
 
   "shots": [
-    {"name": "the whole page",        "from": "page",        "to": "page",       "zoom": 1.05, "sec": 5.0, "ease": "inout"},
-    {"name": "daddy",                 "from": "panel1",      "to": "daddy-face", "sec": 5.5},
-    {"name": "the pointing",          "from": "the-finger",  "to": "her-face",   "sec": 4.5},
-    {"name": "a freeloader",          "from": "caption1",    "zoom": 1.05,       "sec": 5.5},
-    {"name": "the bunk room",         "from": "panel2",      "to": "the-boy-up", "sec": 6.0},
-    {"name": "almost to the ceiling", "from": "caption2",    "zoom": 1.04,       "sec": 4.0},
-    {"name": "the moon",              "from": "the-window",  "zoom": 1.12,       "sec": 3.5},
-    {"name": "and Dave did too",      "from": "boy-falling", "to": "boy-face",   "sec": 5.5},
-    {"name": "Dave did too",          "from": "caption3",    "zoom": 1.05,       "sec": 3.0},
-    {"name": "Dave",                  "from": "dave",        "to": "dave-eyes",  "sec": 6.5},
-    {"name": "same birthday",         "from": "caption4",    "zoom": 1.05,       "sec": 3.5},
-    {"name": "back out",              "from": "panel4",      "to": "page",       "sec": 5.5, "ease": "out"}
+    {"name": "the whole page", "from": "page", "to": "page", "zoom": 1.04, "ease": "inout",
+     "line": "My daughter draws these little comic pages. This one is about me."},
+
+    {"name": "daddy", "from": "prev", "to": "daddy-face", "dissolve": 0,
+     "line": "She told me once that when you dream about flying, it means your soul has nothing to do."},
+
+    {"name": "the pointing", "from": "daddy-face", "to": "her-face", "dissolve": 0,
+     "line": "I said, so it's a freeloader. Lives in my house, eats my food, no job."},
+
+    {"name": "a freeloader", "from": "caption1", "zoom": 1.04,
+     "line": "She went and wrote the whole thing down."},
+
+    {"name": "out to the page", "from": "prev", "to": "page", "sec": 1.7, "ease": "out", "dissolve": 0},
+
+    {"name": "the bunk room", "from": "page", "to": "the-boy-up", "dissolve": 0,
+     "line": "What I told her was, when I was a boy I slept on the top bunk. Some nights I came up off the mattress."},
+
+    {"name": "almost to the ceiling", "from": "caption2", "zoom": 1.04,
+     "line": "Not far. Close enough to the ceiling that I could see the paint on it."},
+
+    {"name": "the moon", "from": "the-window", "zoom": 1.1,
+     "line": "The whole house asleep, the window right there, and the moon."},
+
+    {"name": "out again", "from": "prev", "to": "page", "sec": 1.7, "ease": "out", "dissolve": 0},
+
+    {"name": "the boy on the wall", "from": "page", "to": "boy-falling", "dissolve": 0,
+     "line": "I never said anything about it at the time. You don't, when you're eight."},
+
+    {"name": "Dave did too", "from": "caption3", "zoom": 1.05,
+     "line": "Then Dave tells me he did it too."},
+
+    {"name": "out once more", "from": "prev", "to": "page", "sec": 1.6, "ease": "out", "dissolve": 0},
+
+    {"name": "Dave", "from": "page", "to": "dave", "dissolve": 0,
+     "line": "That's Dave. He works for me. Twenty-two years now."},
+
+    {"name": "Dave's eyes", "from": "dave", "to": "dave-eyes", "dissolve": 0,
+     "line": "One afternoon he says it like he's telling me the weather. He used to float."},
+
+    {"name": "same birthday", "from": "caption4", "zoom": 1.05,
+     "line": "And he's got my birthday. Same day, same year."},
+
+    {"name": "back out", "from": "prev", "to": "page", "ease": "out", "dissolve": 0,
+     "line": "So there's two of us in one building. I don't know what it means. I know it happened."}
   ]
 }
