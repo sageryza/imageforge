@@ -272,6 +272,12 @@ ok('each folder is taught by her own chats', /secretly A Witch app/.test(p.user)
 ok('a folder she just made is offered by name, never suppressed',
   /a new folder, nothing filed in it yet/.test(p.user));
 ok('the model is asked whether the work finished', /"state"/.test(p.system));
+// BUG FIX IS THE LENIENT ONE (2026-08-28, Sophie: "square story type should've
+// already existed, so it's a bug" · "it's more about how quickly it'll get
+// done, and how soon I can archive it"). Her test is turnaround — pinned so a
+// prompt rewrite can't quietly lose it.
+ok('the prompt carries her turnaround test', /TURNAROUND/.test(p.system));
+ok('…with her square-story example in it', /square story type/.test(p.system));
 ok('her note is in there — it is what she calls the thing', /chats app stuff/.test(p.user));
 ok('the status card rides along', /tag chips/.test(p.user));
 ok('the opening of the thread is there', /archive rows show a summary/.test(p.user));
