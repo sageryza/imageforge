@@ -118,4 +118,14 @@ echo; echo "── posting ──"
 FORGE_BACKFILL=1 bash "$HOOK" <<EOF
 {"session_id": $(printf '%s' "${sid:-x}" | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read()))'), "transcript_path": $(printf '%s' "$tr" | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read()))'), "hook_event_name": "Stop"}
 EOF
+rc=$?
+# The other half of the same bug: this line printed unconditionally, so a run
+# that posted NOTHING still signed off as if it had worked — which is how the
+# failure above survived. Say which happened.
+if [ "$rc" -ne 0 ]; then
+  echo
+  echo "FAILED — the hook exited $rc and nothing was posted."
+  echo "Re-run and read the output above; the chat's history is unchanged."
+  exit "$rc"
+fi
 echo "done — open the chat in the app and check the oldest message."
