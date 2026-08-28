@@ -6132,28 +6132,7 @@ const PL_SHAPE_WORD = { '2:3': 'portrait', '1:1': 'square', '3:2': 'landscape' }
 // cache on are how a batch of extracts balloons. Lossless webp on every
 // panel: the model's own pixels are the source and nothing lossy may stand
 // between them and the cut (the house no-generation-compression rule).
-// ONE CUT AT A TIME, ACROSS EVERY RUN (2026-08-28, Sophie's two-phase rule:
-// "sheets come in, get banked, then cut only after banked"). The phases have
-// very different weights: a sheet WAITING costs nothing, an ARRIVING sheet is
-// a ~3MB buffer, and a CUT decodes ~33MB of raw pixels plus working buffers —
-// on the 512MB box, 8 sheets arriving together and cutting together is the
-// ledger's measured 8-break. Banking already happens before the cut, so
-// arrivals may stack; the decodes may not. A promise chain rather than a
-// counter: a cut is seconds long, and a run waiting its turn holds only its
-// webp buffer, never a decode. Every caller (the live job, the boot sweep,
-// POST /:id/recut) comes through cutSheet, so all of them queue.
-let cutTurn = Promise.resolve();
-function withCutTurn(fn) {
-  const run = cutTurn.then(fn, fn);
-  cutTurn = run.then(() => {}, () => {});
-  return run;
-}
-
-function cutSheet(sheetBuf, plan) {
-  return withCutTurn(() => cutSheetNow(sheetBuf, plan));
-}
-
-async function cutSheetNow(sheetBuf, plan) {
+async function cutSheet(sheetBuf, plan) {
   const sharp = require('sharp');
   sharp.cache(false);
   const { data, info } = await sharp(sheetBuf).ensureAlpha().raw()
@@ -6193,7 +6172,32 @@ async function cutSheetNow(sheetBuf, plan) {
 // RECOVERY paths (the sweep and POST /:id/recut) — everything after the sheet
 // is banked is free and re-runnable, so a run orphaned by a deploy restart
 // can be finished later from its banked sheet instead of losing paid work.
+// DRAWING AND CUTTING ARE PACED SEPARATELY (2026-08-28, Sophie: "separate
+// running sheets and cutting"). A DRAW happens on OpenAI's hardware and
+// costs this box nothing, so a chat fires its whole batch at once. A CUT is
+// local and decodes the sheet to raw — ~33MB for a 4K sheet on a 512MB
+// instance — and every finished sheet used to cut the instant it landed, so
+// a batch whose sheets finished together stacked those decodes and killed
+// the instance mid-batch (measured that day: ten 9-panel 4K sheets fired
+// together, seven runs lost). The gate below is the fix, and it is why a
+// chat no longer has to stagger its launches to protect the box.
+//
+// One cut at a time, process-wide. The cut takes seconds against a 60-180s
+// draw, so a queue costs a batch almost nothing in wall time while making
+// the peak memory of N simultaneous finishes independent of N.
+let cutChain = Promise.resolve();
+function gateCut(fn) {
+  const run = cutChain.then(fn, fn);
+  // the chain must never reject, or every later cut is skipped
+  cutChain = run.then(() => {}, () => {});
+  return run;
+}
+
 async function finishPanelsCut(docRef, cfg, sheetBuf, sheetUrl) {
+  return gateCut(() => finishPanelsCutInner(docRef, cfg, sheetBuf, sheetUrl));
+}
+
+async function finishPanelsCutInner(docRef, cfg, sheetBuf, sheetUrl) {
   const plan = cfg.plan;
   const sizeTier = require('./size-tier');
   const st = PL_GPT_STYLES[cfg.styleId] || PL_GPT_STYLES.evan;

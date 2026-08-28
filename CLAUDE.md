@@ -3545,13 +3545,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
   an orphaned panels run from its banked sheet (free) instead of marking paid
   work failed, and `POST /api/promptlab/:id/recut` does the same on demand
   for a failed-with-sheet or cutFailed run (recovery-only: an already-cut run
-  is refused, a second cut would file duplicates). **AND A SHEET IS ONE
-  OUTPUT** — the bulk-batch CEILING LEDGER (Opinions section) counts
-  concurrent OUTPUT buffers on the box; a panels run buffers one sheet.
-  Run a sheet batch at the ledger's largest measured clean number (never
-  one at a time — a serialized 10-sheet batch cost 12 minutes for no
-  protection the box needed), and ratchet the ledger when you measure
-  higher.
+  is refused, a second cut would file duplicates). **AND DRAWING AND CUTTING ARE PACED
+  SEPARATELY** — fire the whole sheet batch AT ONCE (the draw is on OpenAI's
+  hardware), while the CUT is queued one at a time by the server itself
+  (`gateCut`), so a chat never staggers its own launches (Sophie,
+  2026-08-28; full rule under *DRAWING AND CUTTING ARE PACED SEPARATELY* in
+  the Opinions section).
   **THE BOXES FOLD (2026-08-28, Sophie: "make the panels grid
   collapsible")** — nine 2:3 boxes is most of a screen and the controls and
   Generate sit under them, so a row above the grid puts them away (measured:
@@ -5979,32 +5978,42 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (`public/opinions-gun.png`), not a line icon. Candidate batches go on a
   review deck for her ♥ first; a single-option batch she has delegated goes
   straight in.
-  **A BULK BATCH THE SERVER IS DRAWING (`/api/promptlab` from a script) IS
-  PACED BY A MEASURED CEILING, AND THE CEILING RATCHETS UP — never
-  one-at-a-time (Sophie, 2026-08-27, after a chat spent 12 minutes
-  serializing ten sheets: "deleting that one at a time note … asking chats
-  to see how many they can do at once, and whichever chat tries the largest
-  number can enter that as a new note").** What matters is **concurrent
-  OUTPUT buffers on the 512MB box** — a panels SHEET counts as ONE output
-  however many panels it holds. The measured ledger, which is the rule:
-  - **Broke it: 16** concurrent outputs + whiten passes (2026-08-19, two
-    parallel 4-run × 4-output batches — the restarts that killed them).
+  **DRAWING AND CUTTING ARE PACED SEPARATELY — TWO NUMBERS, NOT ONE (Sophie,
+  2026-08-28: "ok fine back to notches. but separate running sheets and
+  cutting").** One ceiling was always wrong here because the two halves of a
+  panels run live on different machines, and conflating them is what made
+  every version of this note either too slow or too fragile:
+  - **DRAWS: fire the WHOLE batch at once, no ceiling.** The draw happens on
+    OpenAI's hardware and costs this box nothing. Serializing them is a chat
+    spending her minutes for no protection — the mistake she deleted twice
+    (2026-08-27, a 12-minute ten-sheet batch; 2026-08-28, "please all at
+    once").
+  - **CUTS: one at a time, and the SERVER enforces it now** (`gateCut` in
+    server.js, 2026-08-28). A cut decodes the sheet to raw — ~33MB for a 4K
+    sheet on a 512MB instance — so N sheets finishing together used to stack
+    N decodes and kill the instance mid-batch. A cut takes seconds against a
+    60-180s draw, so the queue costs a batch almost nothing and makes peak
+    memory independent of batch size. **A chat no longer staggers its
+    launches**; if you find yourself wanting to, the gate is broken, say so.
+  - **The ledger, which is the CUT ceiling and ratchets like she asked:**
+    - **Broke it: 16** concurrent outputs + whiten passes (2026-08-19), and
+      **10** concurrent 9-panel 4K sheets whose cuts landed together
+      (2026-08-28 — seven runs lost, the crash that produced `gateCut`).
+    - **Clean: 5** concurrent 9-panel 4K sheets (2026-08-28), and any number
+      of draws once `gateCut` is in.
+    - **Raise the gate a notch and write what you measured, with the date**,
+      if a batch ever needs more than one cut in flight. That is the only
+      notch left: the draws have no ceiling to ratchet.
+  - **A run refused with a 502 on the POST was never created and never
+    billed** (measured 2026-08-28) — a start failure is free, so retrying a
+    start costs nothing. What is genuinely lost is a run whose sheet died
+    in flight: billed, no bytes, unrecoverable at any concurrency. A run
+    whose sheet was BANKED recovers free (the 2026-08-27 sweep, and
+    `POST /api/promptlab/:id/recut`).
   - **Broke it: 8** concurrent 4K panels SHEETS (2026-08-28, ~6:04pm Pacific,
-    the shoebox batches — the box restarted with NO deploy in flight, so the
-    concurrency alone did it; 5 of the 8 died mid-generation, unrecoverable).
-    The same evening's earlier waves (8-10 at a time) died to DEPLOYS
-    (#1833-#1835 merged 5:17-5:47pm), which is a different killer the ledger
-    cannot protect against — see the deploy note below.
-  - **Largest measured clean so far: 3** (the Playground's own ladders fire
-    2-3 concurrent renders all day, and parallel-3 chat batches run clean).
-  - **Run your batch at the largest clean number on this ledger.** If your
-    batch NEEDS more, try one notch higher, watch it (a run dying
-    "interrupted by a server restart" with the box mid-batch is the tell),
-    and — success or failure — UPDATE the ledger lines above with what you
-    measured and the date. That is how the ceiling finds itself; a chat that
-    silently serializes instead is spending her minutes on a protection the
-    box may not need. (Since 2026-08-27 an interrupted panels run with a
-    banked sheet auto-recovers, so probing costs a retry, not money.)
+    another chat's shoebox batches — the box restarted with NO deploy in
+    flight, so the concurrency alone did it; 5 of the 8 died mid-generation.
+    That measurement is what `gateCut` above now removes the cause of.)
   - **THE RECOVERY ONLY COVERS A KILL AFTER THE SHEET IS BANKED — a restart
     DURING GENERATION loses the paid sheet outright (measured 2026-08-28: 15
     failed panels runs that evening, NONE with a banked sheet — ~$1.75 of 4K
