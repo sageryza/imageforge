@@ -64,11 +64,27 @@
  *    it replaces. It cannot be swept up afterwards either: `GET /v1/responses`
  *    (the list endpoint) refuses an API key — "must be made with a session
  *    key" — so an orphaned job cannot be found by metadata or any other means.
- *  - THE ROUTER MODEL IS AN ADDED DEPENDENCY. Measured on this key the same
- *    day: `gpt-4o` and `gpt-4.1` answer 403 "your organization must be
- *    verified", while `gpt-5-mini` works — so the default below is not a
- *    preference, it is the model this account can actually reach. Its tokens
- *    are a fraction of a cent against a 20-47c sheet, but they are new.
+ *  - THE ROUTER MODEL IS AN ADDED DEPENDENCY, AND IT IS HANDED HER REFERENCE
+ *    IMAGES. Measured on this key: `gpt-4o` and `gpt-4.1` answer 403 "your
+ *    organization must be verified", while `gpt-5-mini` works — so the default
+ *    below is not a preference, it is the model this account can actually
+ *    reach. Its tokens are a fraction of a cent against a 20-47c sheet
+ *    (measured: 6,391 in / 1,622 out with one reference, 3,157 / 1,355 with
+ *    two), but they are new.
+ *
+ *    SAY PLAINLY WHAT IT DOES AND DOES NOT DO, because a mini model in an
+ *    image path reads like the thing Sophie has banned (2026-08-28: no paid
+ *    API call may look at or judge a picture — a chat uses its own eyes).
+ *    This is NOT that. The router never judges, rates, describes or picks an
+ *    image, and nothing here asks it a question about one; its only act is to
+ *    forward her prompt to gpt-image-2. But the references DO pass through it
+ *    as `input_image`, because the Responses API's image_generation tool takes
+ *    its edit references from the conversation input — that is the only way to
+ *    reach `action:"edit"` at all, so it is inherent to having an id that
+ *    survives a restart, not a choice made here. If a mini model touching her
+ *    references is unacceptable, the migration cannot be done: there is no
+ *    other async door (see the Images API note above), and panels goes back to
+ *    losing a paid sheet on every restart that lands mid-draw.
  *
  * Pure and dependency-free on purpose — `buildSubmit` and `readResponse` are
  * plain functions over plain objects, so the test needs neither a network nor
