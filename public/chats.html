@@ -76,7 +76,13 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 #listrow[hidden]{display:none !important;}
 .rowtog[hidden]{display:none !important;}
 .dvrow{border-bottom:1px solid var(--line); padding:11px 0;}
-.dvhead{display:flex; gap:9px; align-items:flex-start; width:100%; text-align:left;
+.dvtop{display:flex; align-items:flex-start; gap:8px;}
+/* The way back to the chat that made it — quiet, so it never competes with the
+   title it sits beside. */
+.dvchat{flex:none; background:none; border:none; padding:4px 0 4px 4px; margin-top:1px;
+  color:var(--ink2); cursor:pointer; display:flex; -webkit-tap-highlight-color:transparent;}
+.dvchat svg{display:block;}
+.dvhead{display:flex; gap:9px; align-items:flex-start; flex:1; min-width:0; text-align:left;
   background:none; border:none; padding:0; cursor:pointer; color:inherit; font:inherit;
   -webkit-tap-highlight-color:transparent;}
 .dv-ic{flex:none; color:var(--ink2); margin-top:2px; display:flex;}
@@ -2846,11 +2852,22 @@ function paintHomeChrome(){
   // on is the least interesting thing about it, and the error is in the safe
   // direction — she sees MORE than before, never less.
   var acc=document.getElementById('accrow');
-  var accOff = (other && homeView!=='news') || homeView==='archive';
+  // …and it gives way to the THREE LISTS when the row is in that mode
+  // (2026-08-28, Sophie's screenshot: both rows on screen at once). It is ONE
+  // row with two modes, so exactly one thing may decide which is showing —
+  // and it has to be this function, because every repaint comes through here
+  // while paintListTabs only runs on the four that rebuild the list. A second
+  // writer meant the poll, a note save or a search put the account row back
+  // underneath the lists.
+  var accOff = (other && homeView!=='news') || homeView==='archive' || listsOn();
   if(acc) acc.style.display = accOff ? 'none' : '';
   // The Update/Review doors are the UPDATE screen's own chrome — they sit
   // above the tabs, so every other view has to put them away itself
   // (renderNews is the only thing that ever fills them).
+  // The lists row is painted from HERE too, so the two halves of one row can
+  // never disagree about which is showing — the four list branches call it as
+  // well, which is a harmless repeat of the same answer.
+  paintListTabs();
   var doors=document.getElementById('nwdoors');
   if(doors && homeView!=='news'){ doors.hidden=true; doors.innerHTML=''; }
   // The Instagram mockups ride the same rule: her ask put the icon on the
@@ -4674,7 +4691,7 @@ function bugPile(){ return listsOn() && listTab==='bugs'; }
 var ICON_ACCTABS='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
 var ICON_LISTTABS='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>';
 function paintListTabs(){
-  var row=document.getElementById('listrow'); var acc=document.getElementById('accrow');
+  var row=document.getElementById('listrow');
   var on=listsOn();
   var tog=document.getElementById('rowtog');
   if(tog){
@@ -4683,13 +4700,8 @@ function paintListTabs(){
     tog.setAttribute('aria-label', on ? 'Show the account tabs' : 'Show the three lists');
   }
   if(row) row.hidden=!on;
-  // The ACCOUNT row is paintHomeChrome's to hide on every other view (it uses
-  // `style.display`, and an author display rule beats the `hidden` attribute —
-  // the house rule that has bitten this page before). So this only ever speaks
-  // for the LIVE chat list, where the two rows share one place; anywhere else
-  // it says nothing and paintHomeChrome's answer stands. This runs after it,
-  // so the order is what makes that work.
-  if(acc && homeView==='live') acc.style.display = on ? 'none' : '';
+  // The ACCOUNT row is paintHomeChrome's alone — see the note there. Two
+  // writers is exactly what put both rows on screen at once.
   if(!row || !on) return;
   row.setAttribute('data-on', listTab);
   Array.prototype.forEach.call(row.querySelectorAll('.acctab'), function(b){
@@ -4731,6 +4743,7 @@ function paintDelivered(el, items){
   if(!items.length){ el.innerHTML='<div class="state">Nothing delivered yet.</div>'; return; }
   items.forEach(function(it){
     var row=document.createElement('div'); row.className='dvrow';
+    var top=document.createElement('div'); top.className='dvtop';
     var head=document.createElement('button'); head.className='dvhead';
     var mark = it.kind==='images' ? IC_PIC : it.kind==='audio' ? IC_WAVE : IC_PLAY;
     var when = it.at ? ago(it.at) : '';
@@ -4753,7 +4766,20 @@ function paintDelivered(el, items){
       if(it.kind==='images'){ openChat(it.chat); return; }
       openPinned({ url:it.url, kind:(it.kind==='audio'?'audio':'video') }, it.chat);
     };
-    row.appendChild(head);
+    top.appendChild(head);
+    // BACK TO THE CHAT (2026-08-28, Sophie: "add back to chat icon in
+    // deliverables tab"). A film row's tap PLAYS the film, so without this
+    // there is no way from a delivery to the chat that made it — the one
+    // place to say anything about it. Its own <button>, a sibling of the
+    // row's, never nested: a button inside a button is invalid and the tap
+    // would bubble into the player.
+    var toChat=document.createElement('button'); toChat.className='dvchat';
+    toChat.innerHTML=IC_CHAT;
+    toChat.setAttribute('aria-label','Open '+(it.chatName||it.chat));
+    toChat.title='Open '+(it.chatName||it.chat);
+    toChat.onclick=function(e){ e.stopPropagation(); openChat(it.chat); };
+    top.appendChild(toChat);
+    row.appendChild(top);
     if(it.kind==='images' && it.images && it.images.length){
       var strip=document.createElement('div'); strip.className='dvpics';
       it.images.forEach(function(p){
@@ -4775,6 +4801,7 @@ function paintDelivered(el, items){
 }
 var IC_PLAY='<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
 var IC_WAVE='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 10v4M8 6v12M12 3v18M16 7v10M20 10v4"/></svg>';
+var IC_CHAT='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
 var IC_PIC='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.6"/><path d="m21 15-5-5L5 21"/></svg>';
 // ---- CATEGORIES AND TAGS ARE ONE THING (Aug 2026, Sophie: "right now you can
 // only be in one category at a time, for example witch or to be reviewed, and
@@ -9388,7 +9415,10 @@ function buildFilters(mount, keys, onChange){
   // The account tabs govern the GRID, and a search deliberately looks across
   // both accounts — so they come off with it and back with it.
   var accrow=document.getElementById('accrow');
-  function showAcc(on){ if(accrow) accrow.style.display = on ? '' : 'none'; }
+  // …and never back on top of the three lists (2026-08-28) — the row has two
+  // modes and this is the third thing that used to write it. `listsOn()` is
+  // the one rule; everything that shows the account row asks it.
+  function showAcc(on){ if(accrow) accrow.style.display = (on && !listsOn()) ? '' : 'none'; }
   function showGrid(){ sr.style.display='none'; sr.innerHTML=''; grid.style.display=''; paintHomeChrome(); }
   // The ✕'s visibility is the ROW's business now (it is shown whenever the
   // bar is open, because it doubles as the way to fold the bar away), so

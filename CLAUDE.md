@@ -1829,6 +1829,19 @@ them off the reference sheet, not off the old filenames.
     (2026-08-27) and this row's third tab both write `listTab`, and the button
     brings the row with it, so the pile she is looking at is always named on
     screen. `bugOnly` is gone; `bugPile()` is the reader.
+  - **ONE ROW, SO ONE WRITER (2026-08-28, her screenshot: both rows stacked).**
+    `paintHomeChrome` un-hides the account row and EVERY repaint comes through
+    it, while `paintListTabs` only runs on the four branches that rebuild the
+    list — so the poll, a note save or leaving a search put the account row
+    back underneath the lists. `listsOn()` is asked inside `paintHomeChrome`
+    now, and the search's own `showAcc` asks it too; nothing else may write
+    that row's display.
+  - **EVERY DELIVERED ROW HAS A WAY BACK TO ITS CHAT** (2026-08-28, Sophie:
+    "add back to chat icon in deliverables tab") — a film row's own tap PLAYS
+    the film, so without it a delivery had no route to the one place she can
+    say anything about it. Its own `<button>`, a sibling of the row's, never
+    nested: a button inside a button is invalid and the tap would bubble into
+    the player.
   - **THE UPDATE TAB LIVES ON THE ACCOUNT ROW**, so it is one toggle-tap away
     while the lists are showing — and entering any other view (Update, the
     archive, bookmarks, the to-do) puts the account row back whatever mode she

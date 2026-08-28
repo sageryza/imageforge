@@ -140,6 +140,19 @@ const ok = () => { checks++; };
   if (order.slice(0, 3).join(',') !== 'plain,filed,bugged') fail('not in timing order: ' + order.join(','));
   else ok();
 
+  // ── 4b. NEVER BOTH ROWS, THROUGH A REPAINT ───────────────────────────────
+  // Her screenshot, 2026-08-28: the lists row AND the account row stacked. The
+  // cause was two writers — paintHomeChrome un-hides the account row on every
+  // repaint, and only the four list branches put it back, so the poll, a note
+  // save or a search left both on screen. So this asks again AFTER a repaint
+  // that does not go through those branches.
+  // `_resetSearch` is a REAL path — leaving a search calls paintHomeChrome and
+  // nothing else, which is exactly the shape that put the row back.
+  await page.evaluate(() => window._resetSearch && window._resetSearch());
+  await page.waitForTimeout(120);
+  if (await shown('#accrow')) fail('a bare chrome repaint put the account row back UNDER the lists — two rows at once');
+  else ok();
+
   // ── 5. DELIVERED ──────────────────────────────────────────────────────────
   await page.click('#listrow .acctab[data-list="delivered"]');
   await page.waitForSelector('#grid .dvrow');
@@ -158,6 +171,28 @@ const ok = () => { checks++; };
   const tops = await page.$$eval('#grid .dvpic', (b) => b.map((x) => Math.round(x.getBoundingClientRect().top)));
   if (new Set(tops).size !== 1) fail('the three pictures are not on one row');
   else ok();
+  // BACK TO THE CHAT — a film row's own tap plays the film, so the icon is the
+  // only way from a delivery to the chat that made it.
+  const chats = await page.$$('#grid .dvrow .dvchat');
+  if (chats.length !== 3) fail('every delivered row needs a way back to its chat — found ' + chats.length);
+  else ok();
+  // it must be reachable, not sitting under the row's own button
+  const hit = await page.$eval('#grid .dvrow:first-child .dvchat', (b) => {
+    const r = b.getBoundingClientRect();
+    const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return el && el.closest('.dvchat') ? 'ok' : (el ? el.className : 'nothing');
+  });
+  if (hit !== 'ok') fail('the back-to-chat icon is covered by ' + hit);
+  else ok();
+  await page.click('#grid .dvrow:first-child .dvchat');
+  await page.waitForTimeout(200);
+  if (await page.$('#pinfull')) fail('the chat icon started the film instead — the tap bubbled into the row');
+  else ok();
+  if (await page.$eval('#thread', (e) => e.style.display === 'none')) fail('the chat icon did not open the chat');
+  else ok();
+  await page.click('#back');
+  await page.waitForSelector('#grid .dvrow');
+
   // a film row opens the house player rather than navigating away
   await page.click('#grid .dvrow:first-child .dvhead');
   if (!await page.$('#pinfull video')) fail('tapping a film did not open the player');
