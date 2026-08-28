@@ -1829,6 +1829,13 @@ them off the reference sheet, not off the old filenames.
     (2026-08-27) and this row's third tab both write `listTab`, and the button
     brings the row with it, so the pile she is looking at is always named on
     screen. `bugOnly` is gone; `bugPile()` is the reader.
+  - **THE HIDDEN PILE RIDES ALL, BEHIND THE SAME BAR** (2026-08-28, Sophie:
+    "put hidden back in the new tab structure · same ui"). It went missing
+    because this tab renders its own list rather than falling through to the
+    live branch, where the fold lives. `renderHiddenBar` is CALLED, never
+    copied — the count, the "N new", the working glow and the
+    open-pile-is-the-whole-screen rule are one implementation, so a chat she
+    parks behaves the same wherever she is standing.
   - **ONE ROW, SO ONE WRITER (2026-08-28, her screenshot: both rows stacked).**
     `paintHomeChrome` un-hides the account row and EVERY repaint comes through
     it, while `paintListTabs` only runs on the four branches that rebuild the
