@@ -1013,6 +1013,33 @@ them off the reference sheet, not off the old filenames.
   out-bid the plain record that really is that message; and it stays a multiset,
   so repeating a short phrase can't let the first swallow the second. Test:
   `node scripts/test-chats-first-message.js` (verified failing 2 pre-fix).
+- **A HOOK THAT CRASHES POSTS NOTHING AND EXITS 0 — THE SILENCE LOOKS LIKE A
+  DEAD CHAT, NOT A BUG (2026-08-28, Sophie: "ur chat hook is weird").** Her
+  chat showed ONE mangled message in the app while its transcript held eleven
+  turns. The cause was in v18's own queue reconciliation: `segcells` is built
+  from `users` BEFORE the loop, and an unmatched queue entry is APPENDED to
+  `users` — so the next entry's segment pass walked a record `segcells` had
+  never seen, `segcells[id(u)]` raised a KeyError, and the parser died. The
+  hook's python is behind `2>/dev/null` and its output is consumed by the
+  shell, so the whole thing printed nothing and exited 0: **no replies, none
+  of her messages, silently, for the life of the session.** It needs TWO
+  queued messages that match no user record — she sends afterthoughts while a
+  turn runs, so it is not rare. `segcells.get(id(u)) or ()` is the fix, in all
+  THREE copies (`public/setup.sh`, `docs/chats-autopost-setup-script.sh`,
+  `.claude/hooks/post-to-feed.sh`), and `node
+  scripts/test-chats-first-message.js` now drives that shape against the real
+  hook (verified failing: it posted `[]`).
+  - **A LIVE SESSION KEEPS THE BROKEN COPY** — the fix reaches a NEW session
+    with the deploy, and an existing one only when it re-runs the setup
+    script. A chat that has gone quiet in the app is worth healing before it
+    is diagnosed as anything else.
+  - **`scripts/backfill-chat-history.sh` HAD ITS OWN SILENT FAILURE, found in
+    the same sitting:** `FORGE_BACKFILL=1 ${ACCT:+FORGE_ACCOUNT="$ACCT"} bash
+    "$HOOK"` — the conditional expands AFTER bash has parsed assignment
+    prefixes, so the shell read `FORGE_ACCOUNT=1` as the COMMAND NAME, died
+    with "command not found", and the script still printed "done". It is
+    `env FORGE_BACKFILL=1 …` now. **Any recovery tool that can report success
+    without having posted is worse than no tool.**
 - **A CHAT THAT NEVER POSTED CANNOT HEAL ITS OWN PAST — back it up on purpose
   (Aug 2026).** The hook BASELINES on its first firing in a session (only the
   latest turn posts), so fixing a silent chat also throws its history away.
