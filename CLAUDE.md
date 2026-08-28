@@ -5945,6 +5945,22 @@ before working on that module. Nothing was deleted — the moved text is verbati
   changes. server.js hands the membry Firestore in (`scratchpadMod.init`,
   the dreamapp pattern); without `STORY_FIREBASE_SERVICE_ACCOUNT` the route
   refuses honestly. Test: `node scripts/test-storyroom-shoebox.js`.
+  **THE ADD SHEET'S PICTURES ARE SEARCHABLE (2026-08-28, Sophie: "add search
+  in story room - pictures").** A box over the grid on the PICTURES tab,
+  the house grammar and both live-box helpers from `/feedkit.js` — linked,
+  never copied. Four things not to undo: it filters **CLIENT-SIDE**, because
+  `/inbox` sends the whole inbox in one read and there is no page behind the
+  page (the CLIPS tab next door asks the server for the opposite reason — its
+  shelf is a library this page never loads whole); it searches the words that
+  MADE a picture (prompt, style, model, engine, quality, and an upload's own
+  name) and **never the url**, whose Storage filename is a random id that
+  would light tiles for no reason she can see; the box is drawn from the
+  **UNFILTERED** inbox, so a query matching nothing cannot take the box off
+  the screen mid-search; and it is **not drawn at all** when nothing in the
+  inbox carries a word — a story's own gathered art can arrive with no
+  prompts, and a box that could never match anything is a dead control.
+  Test: `node scripts/test-storyroom-picture-search.js` (the real page
+  headless; verified failing pre-fix).
   **A picture can be taken OUT of that inbox — the ✕ on its tile (2026-08-26,
   her ask) — and it HIDES rather than deletes**, because a Playground heart
   and a Dump upload belong to other places and only the story's own gathered
@@ -6009,7 +6025,40 @@ before working on that module. Nothing was deleted — the moved text is verbati
     own prompt when the box has one, else the caption as it reads right now),
     so two ways to the same picture cannot disagree about the words.
     `padstyle` is which SIDE of the beat it lands on, the one the story is
-    showing.
+    showing. **And `t`, the beat's own words**, so the banner can NAME the
+    beat — see below.
+  - **THE AIM HAS TO BE PUT DOWN, AND UNTIL 2026-08-28 IT COULD NOT BE
+    (Sophie, looking at a caped stranger on a rooftop over a caption reading
+    "Folkism,": "this picture doesn't belong here").** `padBack` was set from
+    the query and then held for the life of the page, with nothing anywhere to
+    end it — and **the app keeps a tool's web view alive for the whole app
+    process**, so the Playground stayed pointed at that one beat until a
+    force-quit. Measured on her pad that hour: **five runs in six minutes —
+    a creepy-guy panels cut, an earthquake news shot at two qualities, her mom
+    tearing up at commercials — every one of them landing on "Folkism,"**,
+    each pushing the last into that beat's past-pictures row. The banner had
+    always disclosed it ("every picture you make here lands on it"), which is
+    the half that was right; a state you can read and cannot leave is still a
+    trap. Three things end it now, and the third is why the other two are not
+    enough alone:
+    - **Stop**, inline on the banner (the house underlined opener's paint, no
+      box) — her own gesture, named on screen.
+    - **Tapping the way back**, because going back to the room is being done
+      here, and it is the ONLY one of the three that reaches a kept-alive page
+      she returns to later.
+    - **The query is SPENT on arrival** (`replaceState`), so a reload can
+      never silently re-aim — including the page's OWN self-heal, which
+      `location.reload()`s on a new build and would otherwise re-arm an aim
+      she had stopped. **Deferred one tick**, because two blocks further down
+      the script read `location.search` (the ported prompt this very link
+      carries, and `?res=`) and wiping it out from under them drops her words.
+    - **The banner NAMES the beat** ("Drawing for "Folkism," …"). "A beat in
+      the Story Room" is true of any of them, and the whole failure is a
+      picture landing on a beat she was not thinking about. An older room page
+      sends no `t` and the line stays generic.
+    - **Multi-run is still the design and was not touched** — re-rolling for
+      one beat is the feature ("whatever I just made, there should also be for
+      that beat"); what was missing was the end of it.
   - **THE PICTURE IS LANDED BY THE SERVER, NEVER BY THE PAGE** (`padTargetOf`
     / `landOnBeat` in server.js, stored on the run doc as `padTarget`). A
     medium picture takes 30-90s, so a page that placed it on the way out would
@@ -6158,15 +6207,19 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - **The square film frame is 1.17MP against portrait's 1.5** — UNDER the
     budget the OOM note beside `FILM` proves this 512MB box survives. That
     number, not the width, is what a third shape has to stay inside.
-  **AND SHE DOES NOT HAVE TO PICK IT — THE SHAPE FOLLOWS THE STORY'S FIRST
-  PICTURE (2026-08-28, her next message: "automatic by first picture").** The
-  toggle stays for when she wants it; the ordinary path is that the first
-  picture PLACED on a story decides — her pick out of the inbox, a Playground
-  send, a photo off her phone, a chat seeding art. Four things:
-  - **"Nobody has decided" is one field: a pad with no `shape` at all.** Her
-    tap writes one, so from then on the story is hers and this never runs
-    again — the `catBy` rule, spelled with the value's own presence instead of
-    a second field to keep in step. `autoShapePatch` in `scratchpad.js`.
+  **THE SHAPE FOLLOWS THE STORY'S FIRST PICTURE, AND THERE IS NO CONTROL FOR
+  IT (2026-08-28, "automatic by first picture" then "get rid of button").** The
+  first picture PLACED on a story decides — her pick out of the inbox, a
+  Playground send, a photo off her phone, a chat seeding art — and that is the
+  whole of it. **The toggle shipped for one afternoon and she retired it**: a
+  control beside an answer the story already has is a second way to say one
+  thing, sitting on the row she reads for the STYLE. `POST /shape` is still
+  there for a chat to correct one on her ask; nothing on the page calls it.
+  Four things:
+  - **"Nobody has decided" is one field: a pad with no `shape` at all**, so
+    the rule fires once and the picture that fired it is the one that decided
+    — the `catBy` rule, spelled with the value's own presence instead of a
+    second field to keep in step. `autoShapePatch` in `scratchpad.js`.
   - **A picture the pad DREW can never decide it** — it was drawn AT the
     story's shape, so reading it back would only confirm the default. A test
     fails if the rule is ever wired into the draw.

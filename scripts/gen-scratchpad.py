@@ -42,6 +42,12 @@ page = r"""<!doctype html>
      tap landing on the stop under the thumb rather than cycling. -->
 <link rel="stylesheet" href="/tritoggle.css">
 <script src="/tritoggle.js"></script>
+<!-- THE HOUSE SEARCH, linked and never copied (/feedkit.js): the grammar the
+     Chats app and the Playground speak, plus the two helpers every live box
+     here needs — iOS dictation can fill a field without ever firing `input`,
+     and a lone <input type=search> outside a <form> has nothing for RETURN to
+     submit to. The picture search in the add sheet rides it. -->
+<script src="/feedkit.js"></script>
 <style>
 @font-face{font-family:'EBGaramond';font-weight:400 700;font-display:swap;src:url(data:font/ttf;base64,__FONT__) format('truetype');}
 :root{ --paper:#f6f2e9; --ink:#26221c; --ink2:#8a8377; --line:#d9d2c2; --barbg:#fffdf7; --gold:#a8845c;
@@ -168,20 +174,6 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   -webkit-tap-highlight-color:transparent;}
 .stylerow .sw.on{color:var(--ink); font-weight:600;}
 .stylerow .tri{--tri-track:var(--ink); --tri-knob:var(--paper); --tri-ink:var(--ink);}
-/* THE STORY'S SHAPE — portrait or square (2026-08-28, Sophie: "add a new
-   square story type in story room"). The glyph IS the shape: a tall rectangle
-   or a square, drawn at the size the tiles really are, so nothing has to be
-   read. That is the pyramid's rule (a picture of the thing beats a word for
-   it), and it is why this is not a third word on a row that already carries
-   the styles.
-   A rounded SQUARE at the house 6px, never a circle, and it takes the row's
-   far end (`margin-left:auto`) — the styles are which pictures, this is what
-   shape they are, and they are different questions. */
-.stylerow .shapebtn{margin-left:auto; width:28px; height:28px; flex:none;
-  display:flex; align-items:center; justify-content:center; padding:0;
-  background:none; border:1px solid var(--line); border-radius:6px;
-  color:var(--ink); cursor:pointer; -webkit-tap-highlight-color:transparent;}
-.stylerow .shapebtn svg{width:16px; height:16px; display:block;}
 /* THE SHELF (Aug 2026, the media-asset-survey prototype v5, ~15 rounds with
    Sophie): category chips + portrait tiles four across. A tile is a REAL
    picture from that story — portrait 2:3 so nothing crops the art — with the
@@ -424,7 +416,7 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    knows which one it is — four across left no room for either). The tile is
    the clip's POSTER, never the mp4: a grid of decoding videos is what makes
    a picker crawl on a phone. */
-#clipq{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:1em;
+#clipq,#picq{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:1em;
   padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:var(--barbg);
   color:var(--ink); -webkit-appearance:none;}
 #clipgrid{display:grid; grid-template-columns:repeat(2,1fr); gap:14px 10px; margin-top:1.1em;}
@@ -995,10 +987,6 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
     <button class="sw on" id="swwater" type="button" data-style="watercolor">Watercolor</button>
     <button class="sw" id="swdreamy" type="button" data-style="dreamy">Dreamy</button>
     <button class="sw" id="swpastel" type="button" data-style="pastel">Pastel</button>
-    <!-- Portrait or square, for the whole story — the drawing canvas, the
-         tiles, the popup's blank paper and the film's frame. Its picture is
-         redrawn from SHAPES, so it never needs a word beside it. -->
-    <button class="shapebtn" id="shapetog" type="button"></button>
   </div>
   <div id="filmrow" hidden><span class="filmnote" id="filmnote"></span></div>
   <div id="pad"></div>
@@ -1042,6 +1030,14 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
       <button class="acctab" id="tab-clips" type="button">Clips</button>
     </div>
     <div id="picpane">
+      <!-- SEARCH THE PICTURES (2026-08-28, Sophie: "add search in story room -
+           pictures"). Client-side over the grid she is looking at — the whole
+           inbox is already in hand, so there is nothing to ask the server and
+           it filters as she dictates. Hidden when NOTHING in the inbox carries
+           a word (a story whose gathered art has no prompts): a box that could
+           never match anything is a dead control. -->
+      <input id="picq" type="search" enterkeyhint="search" autocomplete="off"
+             spellcheck="false" placeholder="Search pictures" hidden>
       <div id="inboxgrid"></div>
       <div class="state" id="inboxempty" hidden>Nothing hearted in the Playground yet.</div>
       <div id="inboxundo" hidden></div>
@@ -1279,44 +1275,31 @@ var padStyle='watercolor';
 /* THE STORY'S SHAPE (2026-08-28, Sophie: "add a new square story type in
    story room"). One shape per story, all the way down — the canvas its beats
    are drawn on, every tile, the popup's blank paper and the film's frame.
-   `ar` is the ONE number the CSS reads (`--ar` on the root); `w`/`h` are the
-   glyph's own box, drawn at the shape it names so the button needs no word.
+   `ar` is the ONE number the page needs — `--ar` on the root — because the
+   shape is decided server-side from the story's first picture and there is no
+   control here to draw. (It used to carry a word and a glyph box for a
+   toggle; she asked for the toggle to go, so the list is what is read and
+   nothing more.)
    NOTHING COUNTS THE SHAPES BUT THIS LIST — the first entry is the default
    and the fallback, and it must stay portrait: that is what every story made
    before this is, and a story carrying no shape at all must not move.
    Keep the keys equal to SHAPES in scratchpad.js. */
 var SHAPES=[
-  {key:'portrait', word:'Portrait', ar:'2 / 3', w:11, h:16.5},
-  {key:'square',   word:'Square',   ar:'1 / 1', w:14, h:14}
+  {key:'portrait', ar:'2 / 3'},
+  {key:'square',   ar:'1 / 1'}
 ];
 var padShape='portrait';
 function shapeIx(s){ for(var i=0;i<SHAPES.length;i++)if(SHAPES[i].key===s)return i; return 0; }
 function shapeCur(){ return SHAPES[shapeIx(padShape)]; }
-/* The glyph is the shape itself — a box of those proportions, centred in the
-   button's own 16px square. */
-function shapeGlyph(sh){
-  var x=(16-sh.w)/2, y=(16-sh.h)/2;
-  return '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">'
-    +'<rect x="'+x+'" y="'+y+'" width="'+sh.w+'" height="'+sh.h+'" rx="1.5"/></svg>';
-}
+/* THERE IS NO SHAPE CONTROL ON THE PAGE (2026-08-28, Sophie: "get rid of
+   button"). The shape follows the story's first picture and that is the whole
+   of it — a toggle beside it was a second answer to a question already
+   answered, sitting on the row she reads for the STYLE. `POST /shape` is
+   still there for a chat to correct one on her ask; nothing here calls it.
+   So this is the ONE place the shape reaches the layout: every beat-sized box
+   reads --ar off the root, and nothing else counts the shapes. */
 function renderShape(){
-  var sh=shapeCur(), b=document.getElementById('shapetog');
-  /* The ONE place the shape reaches the layout: every beat-sized box reads
-     --ar off the root, so nothing else counts the shapes. */
-  document.documentElement.style.setProperty('--ar', sh.ar);
-  if(!b)return;
-  b.innerHTML=shapeGlyph(sh);
-  var nx=SHAPES[(shapeIx(padShape)+1)%SHAPES.length];
-  /* The label says what the tap DOES, because the glyph already says what it
-     is now — an aria-label repeating the picture would leave the one thing a
-     screen reader can't see unsaid. */
-  b.setAttribute('aria-label', sh.word+' — tap for '+nx.word.toLowerCase());
-  b.title=b.getAttribute('aria-label');
-}
-function setShape(s){
-  if(s===padShape)return;
-  padShape=s; renderShape();
-  api('/shape',{method:'POST',body:JSON.stringify({shape:s})}).catch(function(){});
+  document.documentElement.style.setProperty('--ar', shapeCur().ar);
 }
 /* A STORY'S SHAPE FOLLOWS ITS FIRST PICTURE (2026-08-28, Sophie: "automatic
    by first picture") — the server decides it as the picture lands, so every
@@ -1375,15 +1358,8 @@ document.getElementById('styletog').onclick=function(ev){
 Array.prototype.forEach.call(document.querySelectorAll('.stylerow .sw'),function(b){
   b.onclick=function(ev){ ev.stopPropagation(); setStyle(b.getAttribute('data-style')); };
 });
-/* Two shapes, so a tap has nowhere else it could mean — this is not the cycle
-   the house rule forbids (that is about a control with stops she can AIM at).
-   A third shape makes it one, and then it wants /tritoggle.js like the styles. */
-document.getElementById('shapetog').onclick=function(ev){
-  ev.stopPropagation();
-  setShape(SHAPES[(shapeIx(padShape)+1)%SHAPES.length].key);
-};
-// The button's picture is DRAWN, so it has to be drawn once before any story
-// arrives — the page opens on the shelf and the row is already behind it.
+// --ar has a 2/3 fallback in the CSS, so a page with no story open already
+// draws portrait; this only makes the variable exist from the start.
 renderShape();
 
 function lock(v){document.body.style.overflow=v?'hidden':'';}
@@ -2693,6 +2669,48 @@ function rmMark(url){
   };
   return m;
 }
+/* ── SEARCHING THE PICTURES (2026-08-28, Sophie: "add search in story room
+   - pictures") ──────────────────────────────────────────
+   The whole inbox is already in hand — /inbox sends it in one read — so this
+   filters what the grid holds and asks the server nothing. That is the honest
+   half of the Assets tab's own lesson: a client-side box is fine when there is
+   no page behind the page, and the CLIPS tab next door searches the server for
+   the opposite reason (its shelf is a library this page never loads whole).
+   The GRAMMAR and both live-box helpers are /feedkit.js, never a copy. */
+var picQ='', picGroups=[];
+/* A picture is found by the words that MADE it — its prompt first, then the
+   recipe (style, model, engine, quality) — and an upload by the name it came
+   off her phone with. Nothing here reads the url: a Storage filename is a
+   random id and matching one would light tiles for no reason she can see. */
+function picHay(it){
+  return [it.prompt, it.title, it.style, it.model, it.engine, it.quality]
+    .filter(Boolean).join(' · ').toLowerCase();
+}
+function picMatch(it){
+  if(!picGroups.length) return true;
+  return window.FeedKit ? FeedKit.qmatch(picHay(it), picGroups) : true;
+}
+/* The box lives only while there is something to search. A story's own
+   gathered art can arrive with no prompt on any item, and a search box that
+   can never match anything is a dead control — so it is drawn from the
+   UNFILTERED list, or her own query would take it off screen mid-search. */
+function paintPicSearch(all){
+  var box=document.getElementById('picq');
+  if(!box) return;
+  box.hidden=!(picQ||all.some(function(it){ return picHay(it); }));
+}
+(function(){
+  var box=document.getElementById('picq');
+  if(!box||!window.FeedKit) return;
+  box.onclick=function(ev){ ev.stopPropagation(); };
+  function run(){
+    picQ=box.value.trim();
+    picGroups=FeedKit.qparse(picQ);
+    renderInboxGrid();
+  }
+  FeedKit.liveInput(box, run);
+  FeedKit.enterSubmits(box, run);
+})();
 function renderInboxGrid(){
   var g=document.getElementById('inboxgrid'); g.innerHTML='';
   var onPad=urlsOnPad();
@@ -2701,6 +2719,11 @@ function renderInboxGrid(){
      places as a CLIP beat; a photo places as a picture. Phone photos are
      huge, so the tile loads a derived thumb, never the original. */
   var ups=uploads.filter(function(u){ return u&&u.url&&!onPad[u.url]&&!gone[u.url]; });
+  var items=inboxItems.filter(function(it){ return !onPad[it.url]&&!gone[it.url]; });
+  /* The box's own life is decided BEFORE her words narrow anything, or a
+     query that matches nothing would take the box off the screen with it. */
+  paintPicSearch(ups.concat(items));
+  ups=ups.filter(picMatch); items=items.filter(picMatch);
   ups.forEach(function(u){
     var el=document.createElement('button');
     var face=u.kind==='clip'?(u.poster||null):thumbOf(u.url);
@@ -2715,8 +2738,11 @@ function renderInboxGrid(){
     el.appendChild(rmMark(u.url));
     g.appendChild(el);
   });
-  var items=inboxItems.filter(function(it){ return !onPad[it.url]&&!gone[it.url]; });
-  document.getElementById('inboxempty').hidden=Boolean(items.length||ups.length);
+  var em=document.getElementById('inboxempty');
+  em.hidden=Boolean(items.length||ups.length);
+  em.textContent=(picQ&&!items.length&&!ups.length)
+    ? 'No pictures match that.'
+    : 'Nothing hearted in the Playground yet.';
   items.forEach(function(it){
     var el=document.createElement('button');
     var im=document.createElement('img'); im.src=it.url; im.alt=''; im.loading='lazy'; el.appendChild(im);
@@ -3521,6 +3547,11 @@ document.getElementById('arplay').onclick=function(ev){
     q+='&pad='+encodeURIComponent(padId)+'&beat='+encodeURIComponent(b.id)
       +'&padstyle='+encodeURIComponent(padStyle);
     if(p) q+='&prompt='+encodeURIComponent(p);
+    /* t — the beat's own words, so the Playground's banner can NAME the beat
+       it is aimed at rather than saying "a beat" (2026-08-28, Sophie: "this
+       picture doesn't belong here"). Cut short: it is a label, not the text. */
+    var t=String(b.text||'').replace(/\s+/g,' ').trim().slice(0,60);
+    if(t) q+='&t='+encodeURIComponent(t);
   }
   Promise.all([saveNote(),savePrompt()]).then(function(){ location.href=q; },
                                              function(){ location.href=q; });

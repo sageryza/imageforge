@@ -249,10 +249,12 @@ All 12 NDE-category stories were linked to their montage episodes on
   square story type in story room").** A story is ONE shape all the way down:
   the canvas its beats are drawn on, the tiles on the pad, the past-pictures
   strip, the popup's blank paper and the film's frame. Stored as `pad.shape`,
-  written by `POST /api/scratchpad/shape {pad, shape}`, and flipped by the
-  small button at the far end of the style row — whose glyph IS the shape (a
-  tall rectangle, or a square), so there is no word to read. It is the
-  pyramid's rule: a picture of the thing beats a name for it.
+  written by `POST /api/scratchpad/shape {pad, shape}` — and **decided
+  automatically from the story's first picture, with NO control on the page**
+  (see below). It shipped with a small toggle at the far end of the style row
+  for one afternoon and she asked for it to go the same day the automatic rule
+  landed: "get rid of button". That glyph (a tall rectangle, or a square) and
+  its reasoning are history, not a rule.
   - **The list is `SHAPES`, once in `scratchpad.js` and once in
     `gen-scratchpad.py`, pinned equal by the test.** Portrait draws 1024x1536
     and films 1000x1500; square draws 1024x1024 and films 1080x1080. Nothing
@@ -290,20 +292,21 @@ All 12 NDE-category stories were linked to their montage episodes on
     the size the OOM note beside `FILM` proves this 512MB box survives. The
     pixels are the budget, not the width; a third shape has to stay inside
     the same number, and the test fails if one does not.
-  - **SHE DOES NOT HAVE TO PICK IT — the shape follows the story's FIRST
-    PICTURE (2026-08-28, her next message: "automatic by first picture").**
-    The toggle stays for when she wants it; the ordinary path is that the
-    first picture PLACED on a story decides it. Every door gets it, because
+  - **THE SHAPE FOLLOWS THE STORY'S FIRST PICTURE (2026-08-28: "automatic by
+    first picture", then "get rid of button").** The first picture PLACED on a
+    story decides it, and there is nothing on the page to override that — a
+    control beside an answer the story already has is a second way to say one
+    thing, on the row she reads for the style. Every door gets it, because
     the decision is made server-side as the picture lands: `POST /add`,
     `POST /image` (her inbox pick, a version picked back, the send-trip
     match) and `landOnBeat` in server.js (a Playground run she sent to a
     beat). `autoShapePatch` is the one rule and it is exported for that last
     one.
     - **"Nobody has decided" is one field — a pad with no `shape` at all.**
-      `POST /shape` writes one, so her tap (or a chat's deliberate one) is
-      the last word and no later picture can move it under her. That is the
-      `catBy` rule, spelled with the value's own presence rather than a
-      second field to keep in step.
+      The rule fires once, so the picture that fired it is the one that
+      decided, and `POST /shape` (a chat correcting one on her ask) is the
+      last word after that. The `catBy` rule, spelled with the value's own
+      presence rather than a second field to keep in step.
     - **The first picture DECIDES, portrait included.** Writing portrait is
       what makes this happen once; leaving it unwritten would let the third
       picture in a story re-decide it.

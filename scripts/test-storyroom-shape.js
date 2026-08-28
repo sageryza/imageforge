@@ -16,8 +16,10 @@
 //
 // HEADLESS — the whole thing rides ONE CSS variable, so a broken wire renders
 // as a page that looks completely fine and just never changes shape. Every
-// assertion here MEASURES a real box: a beat tile, the blank paper in the
-// popup, and the button's own glyph.
+// assertion here MEASURES a real box: a beat tile and the blank paper in the
+// popup. There is deliberately NO control to test — she asked for the toggle
+// to go once the shape became automatic, so the row carrying none is itself
+// one of the assertions.
 //
 //   node scripts/test-storyroom-shape.js
 //
@@ -25,6 +27,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const servePublic = require('./lib/public-asset');
 
 let failures = 0;
 function ok(cond, name) {
@@ -185,6 +188,8 @@ const INBOX_ITEM = { url: 'http://127.0.0.1:0/px.png?inbox', runId: 'r1', i: 0,
 let placedShape = null;
 
 const server = http.createServer((req, res) => {
+  // Anything the page links out of public/ — /feedkit.js, /tritoggle.*, …
+  if (servePublic(req, res)) return;
   const url = new URL(req.url, 'http://x');
   const json = (o) => { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
   if (req.method === 'POST') {
@@ -283,61 +288,24 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
   await page.waitForSelector('#pad .beat');
   const read = () => page.evaluate(() => {
     const tile = document.querySelector('#pad .beat').getBoundingClientRect();
-    const btn = document.getElementById('shapetog');
-    const bb = btn.getBoundingClientRect();
-    const rect = btn.querySelector('rect');
-    const g = rect ? rect.getBBox() : null;
-    const words = [...document.querySelectorAll('.stylerow .sw')];
-    const last = words[words.length - 1].getBoundingClientRect();
     return {
       ar: getComputedStyle(document.documentElement).getPropertyValue('--ar').trim(),
       tileRatio: tile.height / tile.width,
-      glyphRatio: g ? g.height / g.width : null,
-      btnRight: bb.right, btnTop: bb.top, btnW: bb.width, btnH: bb.height,
-      rowRight: btn.closest('.stylerow').getBoundingClientRect().right,
-      sameLine: Math.abs(bb.top + bb.height / 2 - (last.top + last.height / 2)) < 3,
-      // Whatever the tap actually reaches at the button's own centre — the
-      // only honest way to ask whether the pill's column is sitting on it.
-      // The glyph fills the button, so the topmost node here is its <svg> —
-      // walk up to the control, and an id of '' then really does mean
-      // something else is sitting on it.
-      hit: (() => {
-        const el = document.elementFromPoint(bb.left + bb.width / 2, bb.top + bb.height / 2);
-        const b2 = el && el.closest ? el.closest('button') : null;
-        return (b2 && b2.id) || (el && el.id) || '';
-      })(),
-      label: btn.getAttribute('aria-label') || '',
+      // THERE IS NO SHAPE CONTROL (2026-08-28, Sophie: "get rid of button").
+      // Asked as "is there anything in the page at all", not as "is #shapetog
+      // gone", so a renamed copy of it fails here too.
+      controls: document.querySelectorAll('.stylerow button:not(.sw):not(.tri)').length,
     };
   });
 
   let s = await read();
   ok(s.ar === '2 / 3', 'a portrait story sets --ar to 2 / 3');
   ok(near(s.tileRatio, 1.5, 0.06), `and a beat tile MEASURES 2:3 (${s.tileRatio.toFixed(2)})`);
-  ok(s.glyphRatio !== null && near(s.glyphRatio, 1.5, 0.06),
-    'the button\'s glyph is that shape — a tall rectangle, nothing to read');
-  ok(/portrait/i.test(s.label) && /square/i.test(s.label),
-    `the label says what it is and what the tap does: "${s.label}"`);
-  ok(s.sameLine, 'the button rides the style row, on the words\' line');
-  ok(near(s.btnW, s.btnH, 0.5) && s.btnW >= 26,
-    `it is a rounded SQUARE at a real tap size (${Math.round(s.btnW)}px), never a circle`);
-  // The row reserves the injected pill's 56px column; the button is the
-  // rightmost thing on it now, so it is the one that has to clear it.
-  ok(s.btnRight <= s.rowRight + 0.5 && s.hit === 'shapetog',
-    'it sits clear of the pill\'s column and takes its own tap');
-
-  // ── the flip ────────────────────────────────────────────────────────
-  await page.click('#shapetog');
-  await page.waitForFunction(() =>
-    getComputedStyle(document.documentElement).getPropertyValue('--ar').trim() === '1 / 1');
-  s = await read();
-  ok(near(s.tileRatio, 1, 0.04), `the beat tiles MEASURE square (${s.tileRatio.toFixed(2)})`);
-  ok(near(s.glyphRatio, 1, 0.04), 'and the glyph is a square now');
-  const shapePosts = posted.filter((p) => p[0] === '/api/scratchpad/shape');
-  ok(shapePosts.length === 1 && shapePosts[0][1].shape === 'square',
-    'the flip is saved with POST /shape {shape:"square"}');
+  ok(s.controls === 0, 'and the style row carries NO shape control — the shape is automatic');
 
   // The popup's blank paper is the other box that has to follow — a beat with
-  // no picture is where she stands while she writes what to draw.
+  // no picture is where she stands while she writes what to draw. (It reads
+  // the same --ar, so this story being portrait is the case it checks.)
   await page.evaluate(() => {
     const t = [...document.querySelectorAll('#pad .beat')].pop();
     t.click();
@@ -348,8 +316,10 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
     const r = el.getBoundingClientRect();
     return { shown: r.width > 20 && r.height > 20, ratio: r.height / r.width };
   });
-  ok(!blank.shown || near(blank.ratio, 1, 0.05),
-    `the popup's blank paper follows the story's shape (${blank.shown ? blank.ratio.toFixed(2) : 'not shown'})`);
+  // Compared against the TILE's ratio rather than a number, so this asserts
+  // "the same shape as the story" whatever shape the story happens to be.
+  ok(!blank.shown || near(blank.ratio, s.tileRatio, 0.06),
+    `the popup's blank paper follows the story's shape (${blank.shown ? blank.ratio.toFixed(2) : 'not shown'} vs ${s.tileRatio.toFixed(2)})`);
 
   // ── a story that is ALREADY square opens square ─────────────────────
   // The reset in openPad puts the shape back to the default until the story's
@@ -364,8 +334,9 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
   }));
   ok(opened.ar === '1 / 1' && near(opened.ratio, 1, 0.04),
     'opening a square story opens it square, with no tap of hers');
-  // And it did NOT re-save on the way in — a load must never look like an edit.
-  ok(posted.filter((p) => p[0] === '/api/scratchpad/shape').length === 1,
+  // And it did NOT save on the way in — a load must never look like an edit.
+  // Nothing on this page posts /shape at all now, so the count is zero.
+  ok(posted.filter((p) => p[0] === '/api/scratchpad/shape').length === 0,
     'loading a story never POSTs its shape back');
 
   // ── the automatic rule, end to end on the real page ────────────────
@@ -391,13 +362,11 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
     { timeout: 5000 }).catch(() => {});
   const auto = await page.evaluate(() => {
     const r = document.querySelector('#pad .beat').getBoundingClientRect();
-    const btn = document.getElementById('shapetog').querySelector('rect').getBBox();
     return { ar: getComputedStyle(document.documentElement).getPropertyValue('--ar').trim(),
-      ratio: r.height / r.width, glyph: btn.height / btn.width };
+      ratio: r.height / r.width };
   });
   ok(auto.ar === '1 / 1' && near(auto.ratio, 1, 0.04),
     `her first picture makes the story square by itself (${auto.ratio.toFixed(2)})`);
-  ok(near(auto.glyph, 1, 0.04), 'and the button says so — its glyph is a square now');
   ok(posted.filter((p) => p[0] === '/api/scratchpad/shape').length === shapePostsBefore,
     'the page never posts it back — the server already wrote it');
 
