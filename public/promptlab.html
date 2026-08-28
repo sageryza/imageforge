@@ -3140,7 +3140,11 @@
   // Refresh the newest page. Anything already paged in behind it is kept — a
   // finished run must never throw away the older runs she scrolled back to.
   function loadRuns() {
-    fetch('/api/promptlab?limit=' + PAGE).then(function (r) { return r.json(); }).then(function (d) {
+    // kind=single, like Older's own walk: the Picture tab's gallery is the
+    // single-pic runs, and asking for a mixed page means a morning of panels
+    // runs fills all 40 slots with nothing this tab can draw (2026-08-28).
+    // The PANELS tab has its own sweep and never comes through here.
+    fetch('/api/promptlab?limit=' + PAGE + '&kind=single').then(function (r) { return r.json(); }).then(function (d) {
       var runs = (d.runs || []).filter(function (r) { return r.status !== 'running'; });
       // Only page one can answer "is there more" — once she has paged deeper,
       // the tail fetch owns that flag.
@@ -3177,6 +3181,15 @@
     var oldest = null;
     for (var i = feed.length - 1; i >= 0; i--) {
       if (feed[i].createdAt && !runIsPanels(feed[i])) { oldest = feed[i].createdAt; break; }
+    }
+    // A LAST-RESORT CURSOR, so Older is never a dead button. Normally this is
+    // the oldest SINGLE run; with none in the feed at all (an old cached page
+    // whose first read came back all panels) the oldest run of ANY kind still
+    // walks backwards, which is what unsticks it.
+    if (!oldest) {
+      for (var j = feed.length - 1; j >= 0; j--) {
+        if (feed[j].createdAt) { oldest = feed[j].createdAt; break; }
+      }
     }
     if (!oldest) return;
     paging = true; renderMoreBtn();
