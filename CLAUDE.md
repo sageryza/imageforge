@@ -1674,9 +1674,10 @@ them off the reference sheet, not off the old filenames.
   - **THE BUTTON.** A bug icon at the right of the header's tool row on the
     chat list — the three account tabs are views of that list, so it rides
     all three (the Instagram icon's float, `#bugbtn`). Tapping it narrows the
-    screen to the bug-fix chats; lit while on, session-only like ★, and it
-    reaches INTO the archive on purpose — the auto-archive rule below would
-    otherwise empty the pile exactly as it starts working.
+    screen to the OPEN bug-fix chats; lit while on, sticky with the row's
+    third tab (2026-08-28), and it LEAVES THE ARCHIVE ALONE — see the
+    reversal in the three-lists section: the emptying as chats auto-archive
+    is the feature, not a hole to plug.
   - **THE AUTO-ARCHIVE is the CHAT'S OWN job, at wrap-up** (see 3d in the
     checklist): tagged `bug fix` + nothing open (fix works and is merged, no
     problem left, no unanswered question of hers, `need` empty) → wrap-up,
@@ -1731,6 +1732,15 @@ them off the reference sheet, not off the old filenames.
     `deliverables-feed.js` is the whole
     rule (pure); `GET /api/deliverables/feed` is the read, two cached queries
     and no model call.
+  - **AND THE BUG PILE DOES NOT REACH INTO THE ARCHIVE (2026-08-28, Sophie:
+    "archive doesn't pop out ur insane that's the point of archive").** It
+    shipped reaching in — the 2026-08-27 reasoning was that bug-fix chats
+    archive themselves when a fix lands clean, so a live-only pile would empty
+    itself exactly as that rule starts working. She overruled it: an archived
+    chat is one she put away, and a pile that hands it back is the archive not
+    working. **The emptying IS the feature** — the tab is the bug work still
+    open, and a finished one is in the archive, which has its own `bug fix`
+    filter chip. That old reasoning is history, not a rule.
   - **THE BUG PILE IS ONE STATE UNDER TWO DOORS** — the header's bug button
     (2026-08-27) and this row's third tab both write `listTab`, and the button
     brings the row with it, so the pile she is looking at is always named on

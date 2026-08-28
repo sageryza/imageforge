@@ -18,10 +18,11 @@
 //      would eat the tap,
 //   6. the bug BUTTON shows on the chat list (all three account tabs are views
 //      of it) and hides on the Update view, where the Instagram icon lives,
-//   7. tapping it narrows the screen to the bug-fix chats — INCLUDING an
-//      archived one, because bug-fix chats archive themselves when the fix
-//      lands clean and a live-only pile would go empty exactly as that rule
-//      works — and lights the button,
+//   7. tapping it narrows the screen to the OPEN bug-fix chats and lights the
+//      button — an archived one stays archived (2026-08-28, Sophie: "archive
+//      doesn't pop out ur insane that's the point of archive"; it reached in
+//      for one day, and the emptying IS the feature — a finished bug chat is
+//      in the archive, which has its own `bug fix` chip),
 //   8. tapping it again puts the whole list back.
 //
 //   npm install playwright-core --no-save && node scripts/test-chats-bug-tag.js
@@ -136,16 +137,18 @@ const ok = () => { checks++; };
   await page.click('.acctab[data-acct="1"]');     // back to an account page
   await page.waitForSelector(row('plain'));
 
-  // ── 7. the tap narrows, reaches the archive, and lights ──────────────────
+  // ── 7. the tap narrows, LEAVES the archive alone, and lights ─────────────
   await page.click('#bugbtn');
   await page.waitForTimeout(150);
   if (await page.$(row('plain'))) fail('the bug filter left an untagged chat on screen');
   else ok();
   if (!await page.$(row('bugged')) || !await page.$(row('varian'))) fail('the bug filter dropped a tagged chat');
   else ok();
-  if (!await page.$(row('putaway'))) {
-    fail('the bug filter does not reach the ARCHIVED bug-fix chat — the auto-archive rule empties a live-only pile');
-  } else ok();
+  // AN ARCHIVED CHAT STAYS ARCHIVED (2026-08-28, Sophie: "archive doesn't pop
+  // out ur insane that's the point of archive"). This asserted the opposite
+  // for a day; her word retired that.
+  if (await page.$(row('putaway'))) fail('the bug pile handed back an ARCHIVED chat — the archive is where she put it');
+  else ok();
   if (!await page.$eval('#bugbtn', (n) => n.classList.contains('on'))) fail('the button is not lit while the filter is on');
   else ok();
 
