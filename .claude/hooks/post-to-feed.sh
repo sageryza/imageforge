@@ -582,13 +582,20 @@ if queued:
     for u in users:
         segs = [x for x in SPLITMSG.split(u['text']) if x.strip()]
         segcells[id(u)] = [[_norm(x), False] for x in segs] if len(segs) > 1 else []
+    # THE SEGMENT PASS WALKS A SNAPSHOT, NEVER `users` ITSELF (2026-08-28).
+    # An unmatched queue entry is APPENDED to `users` below, and that entry has
+    # no `segcells` row — so the next `_take` raised KeyError, python3 exited
+    # non-zero, and the shell swallowed it on 2>/dev/null: the whole hook then
+    # posted NOTHING, silently, for the rest of the session. Found live in a
+    # chat where she sent many mid-turn messages (19 turns parsed, zero posted).
+    seg_users = list(users)
     def _take(q):
         n = _norm(q['text'])
         for u in whole.get(n) or []:
             if not u.get('aliases'):
                 return u
-        for u in users:
-            for cell in segcells[id(u)]:
+        for u in seg_users:
+            for cell in segcells.get(id(u)) or []:
                 if not cell[1] and cell[0] == n:
                     cell[1] = True
                     return u

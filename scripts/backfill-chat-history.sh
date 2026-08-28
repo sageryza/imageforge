@@ -105,7 +105,10 @@ if [ -z "$GO" ]; then
 fi
 
 echo; echo "── posting ──"
-FORGE_BACKFILL=1 ${ACCT:+FORGE_ACCOUNT="$ACCT"} \
+# `env` and not a bare ${ACCT:+FORGE_ACCOUNT=…}: an assignment that arrives by
+# EXPANSION is not an assignment, it is the command name — so passing an account
+# ran `FORGE_ACCOUNT=1: command not found` and posted nothing at all.
+env FORGE_BACKFILL=1 ${ACCT:+FORGE_ACCOUNT="$ACCT"} \
   bash "$HOOK" <<EOF
 {"session_id": $(printf '%s' "${sid:-x}" | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read()))'), "transcript_path": $(printf '%s' "$tr" | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read()))'), "hook_event_name": "Stop"}
 EOF
