@@ -5889,14 +5889,16 @@ async function sweepStuckPromptlabRuns() {
     const now = Date.now();
     for (const d of stale) {
       const r = d.data();
-      const at = r.createdAt?.toMillis?.() || 0;
+      // A redraw RESTARTS the staleness clock (redrawnAt) — without it the
+      // next tick would fail the very draw the last one started (a 4K sheet
+      // can draw 14 minutes).
+      const at = r.redrawnAt?.toMillis?.() || r.createdAt?.toMillis?.() || 0;
       const act = plSweep.sweepAction({ ...r, id: d.id, createdAt: at }, { now, cutting: cuttingNow });
       if (!act) continue;
       // A PANELS run whose sheet was already banked lost only the FREE half
       // — the cut — to the restart (measured live 2026-08-27: three deploys
       // in a row orphaned four paid 4K sheets). Finish it from the banked
-      // sheet instead of marking paid work failed; only a run that never
-      // banked a sheet is genuinely dead.
+      // sheet instead of marking paid work failed.
       if (act === 'recut') {
         try {
           await recutPanelsRun(d.ref, r);
@@ -5907,6 +5909,22 @@ async function sweepStuckPromptlabRuns() {
         // it is called dead — the picture is paid for and a later sweep (or
         // her own /recut) may still land it.
         if (now - at < plSweep.STUCK_MS) continue;
+      }
+      // A panels run that never BANKED a sheet was killed mid-generation —
+      // billed, no bytes (2026-08-28: ~$1.75 of 4K sheets in one evening;
+      // 2026-08-29, Sophie: "this can't happen again"). The doc stores
+      // everything the draw needs, so draw it AGAIN instead of marking paid
+      // work failed. One more sheet's cost, capped at REDRAW_CAP so a deploy
+      // storm cannot re-bill forever; her feed position (createdAt) is kept.
+      if (act === 'redraw') {
+        const n = (r.redraws || 0) + 1;
+        await d.ref.update({ redraws: n, redrawnAt: admin.firestore.Timestamp.now(),
+          status: 'running', error: admin.firestore.FieldValue.delete() });
+        const cfg = plSweep.panelsCfgOf(r);
+        cfg.chars = r.characters || [];
+        runPromptLabPanelsJob(d.ref, cfg);
+        console.log(`promptlab sweep: redrawing orphaned panels run ${d.id} (attempt ${n} of ${plSweep.REDRAW_CAP})`);
+        continue;
       }
       await d.ref.update({ status: 'failed', error: 'interrupted by a server restart' });
       console.log(`promptlab sweep: marked stuck run ${d.id} failed`);
@@ -6437,29 +6455,10 @@ async function finishPanelsCutInner(docRef, cfg, sheetBuf, sheetUrl) {
   return images;
 }
 
-// Rebuild what finishPanelsCut needs from a run DOC alone — everything it
-// takes was stored at run time, so an orphaned run is finishable by any later
-// process. The head/tail seam is recovered by finding the panel block (a
-// deterministic rebuild from the stored panels) inside the stored fullPrompt;
-// where it no longer matches, empty halves are the honest fallback.
-function panelsCfgOf(d) {
-  const m = /^(\d+)x(\d+)$/.exec(String(d.sheet || ''));
-  const g = d.grid || {};
-  if (!m || !g.across || !g.down || !Array.isArray(d.panels)) return null;
-  const plan = {
-    W: Number(m[1]), H: Number(m[2]), sheet: d.sheet, cell: String(d.cell || ''),
-    across: g.across, down: g.down, count: g.count || g.across * g.down,
-  };
-  const full = String(d.fullPrompt || '');
-  const block = sheetGrid.panelBlock(plan.count, d.panels);
-  const at = block ? full.indexOf(block) : -1;
-  return {
-    plan, panels: d.panels, prompt: String(d.prompt || ''), fullPrompt: full,
-    head: at > 0 ? full.slice(0, at).trim() : '',
-    tail: at >= 0 ? full.slice(at + block.length).trim() : '',
-    quality: d.quality || 'medium', styleId: d.gptStyle || 'evan',
-  };
-}
+// panelsCfgOf moved to promptlab-sweep.js (2026-08-29) — the sweep's redraw
+// decision asks it too (is this doc rebuildable at all?), and the decision
+// is pure there so it has a test that needs no Firestore.
+const panelsCfgOf = plSweep.panelsCfgOf;
 
 // Finish an orphaned or cut-failed panels run from its BANKED sheet — free,
 // no model call: download the sheet, cut, file. Throws when the run is not

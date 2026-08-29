@@ -149,13 +149,20 @@ const sweepSrc = serverSrc.slice(serverSrc.indexOf('async function sweepStuckPro
   serverSrc.indexOf('async function sweepStuckPromptlabRuns') + 2200);
 ok(/where\('status', '==', 'ready'\)/.test(sweepSrc),
   "the sweep also looks at 'ready' runs (a panels run parks there while it cuts)");
-ok(/r\.panels && r\.sheetUrl && !\(r\.images \|\| \[\]\)\.length/.test(sweepSrc),
+// (the filter is plSweep.isOrphanedSheet since the 2026-08-29 sweep refactor
+// — the panels+sheet+no-images rule is pinned in test-promptlab-sweep.js)
+ok(/plSweep\.isOrphanedSheet\(d\.data\(\)\)/.test(sweepSrc),
   'and takes ONLY a panels run with a banked sheet and no cut panels from there');
 ok(/\/api\/promptlab\/:id\/recut/.test(serverSrc), 'the recut route exists');
 ok(/already cut — a recut would file a duplicate set/.test(serverSrc),
   'and refuses a run that already has its panels');
-ok(/function panelsCfgOf/.test(serverSrc) && /sheetGrid\.panelBlock\(plan\.count, d\.panels\)/.test(serverSrc),
-  'the recovery rebuilds its config from the run DOC alone');
+// panelsCfgOf moved to promptlab-sweep.js (2026-08-29) so the sweep's redraw
+// decision could ask it — the rebuild claim is pinned against that file now,
+// and test-promptlab-sweep.js carries the decision table.
+const orphSrc = fs.readFileSync(path.join(__dirname, '..', 'promptlab-sweep.js'), 'utf8');
+ok(/function panelsCfgOf/.test(orphSrc) && /sheetGrid\.panelBlock\(plan\.count, d\.panels\)/.test(orphSrc)
+  && /plSweep\.panelsCfgOf/.test(serverSrc),
+  'the recovery rebuilds its config from the run DOC alone (promptlab-sweep.js)');
 // The whole panels block: finishPanelsCut (the shared cut-and-file half),
 // panelsCfgOf, recutPanelsRun and the job itself.
 const jobSrc = serverSrc.slice(serverSrc.indexOf('async function finishPanelsCut'),
@@ -167,7 +174,9 @@ ok(jobSrc.indexOf('sheetUrl') < jobSrc.indexOf('cutSheet(sheetBuf'),
 // box-killer). finishPanelsCut is the one door every caller — the live job,
 // the boot sweep, /recut — comes through, so the gate on it covers them all;
 // the heavy body must not be callable around it.
-ok(/async function finishPanelsCut\(docRef, cfg, sheetBuf, sheetUrl\) \{\s*\n\s*return gateCut\(/.test(serverSrc),
+// (finishPanelsCut also books the run into cuttingNow around the gate since
+// 2026-08-29 — the sweep's short recut wait leans on that set)
+ok(/async function finishPanelsCut\(docRef, cfg, sheetBuf, sheetUrl\) \{[^}]*?return await gateCut\(/.test(serverSrc),
   'finishPanelsCut queues through gateCut — one cut at a time');
 ok((serverSrc.match(/finishPanelsCutInner\(/g) || []).length === 2,
   'the ungated body is called ONLY from inside the gate');
