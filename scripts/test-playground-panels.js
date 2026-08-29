@@ -154,8 +154,13 @@ ok(/r\.panels && r\.sheetUrl && !\(r\.images \|\| \[\]\)\.length/.test(sweepSrc)
 ok(/\/api\/promptlab\/:id\/recut/.test(serverSrc), 'the recut route exists');
 ok(/already cut — a recut would file a duplicate set/.test(serverSrc),
   'and refuses a run that already has its panels');
-ok(/function panelsCfgOf/.test(serverSrc) && /sheetGrid\.panelBlock\(plan\.count, d\.panels\)/.test(serverSrc),
-  'the recovery rebuilds its config from the run DOC alone');
+// panelsCfgOf moved to pl-orphans.js (2026-08-29) so the sweep's redraw
+// decision could ask it — the rebuild claim is pinned against that file now,
+// and test-pl-orphans.js carries the decision table.
+const orphSrc = fs.readFileSync(path.join(__dirname, '..', 'pl-orphans.js'), 'utf8');
+ok(/function panelsCfgOf/.test(orphSrc) && /sheetGrid\.panelBlock\(plan\.count, d\.panels\)/.test(orphSrc)
+  && /plOrphans\.panelsCfgOf/.test(serverSrc),
+  'the recovery rebuilds its config from the run DOC alone (pl-orphans.js)');
 // The whole panels block: finishPanelsCut (the shared cut-and-file half),
 // panelsCfgOf, recutPanelsRun and the job itself.
 const jobSrc = serverSrc.slice(serverSrc.indexOf('async function finishPanelsCut'),

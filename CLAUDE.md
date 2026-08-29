@@ -4030,7 +4030,17 @@ before working on that module. Nothing was deleted — the moved text is verbati
   an orphaned panels run from its banked sheet (free) instead of marking paid
   work failed, and `POST /api/promptlab/:id/recut` does the same on demand
   for a failed-with-sheet or cutFailed run (recovery-only: an already-cut run
-  is refused, a second cut would file duplicates). **AND DRAWING AND CUTTING ARE PACED
+  is refused, a second cut would file duplicates).
+  **AND A RESTART DURING GENERATION REDRAWS ITSELF NOW (2026-08-29, Sophie —
+  her creepy-guy sheet died at 14 minutes to a deploy: "this can't happen
+  again").** A panels run killed before its sheet was banked used to be
+  marked failed with the money already spent; the sweep REDRAWS it instead —
+  the run doc stores everything the draw needs (`pl-orphans.js`, the pure
+  decision). One more sheet's cost, capped at 2 redraws (deploys land in
+  bursts), `redrawnAt` restarts the staleness clock so the next tick cannot
+  kill the draw the last one started, and her feed position is kept. A
+  SINGLE run killed mid-draw still fails — its cfg is not rebuilt from the
+  doc yet. Test: `node scripts/test-pl-orphans.js`. **AND DRAWING AND CUTTING ARE PACED
   SEPARATELY** — fire the whole sheet batch AT ONCE (the draw is on OpenAI's
   hardware), while the CUT is queued one at a time by the server itself
   (`gateCut`), so a chat never staggers its own launches (Sophie,
@@ -7194,12 +7204,13 @@ before working on that module. Nothing was deleted — the moved text is verbati
     another chat's shoebox batches — the box restarted with NO deploy in
     flight, so the concurrency alone did it; 5 of the 8 died mid-generation.
     That measurement is what `gateCut` above now removes the cause of.)
-  - **THE RECOVERY ONLY COVERS A KILL AFTER THE SHEET IS BANKED — a restart
-    DURING GENERATION loses the paid sheet outright (measured 2026-08-28: 15
-    failed panels runs that evening, NONE with a banked sheet — ~$1.75 of 4K
-    medium sheets gone, billed when requested and never received).** So a
-    deploy landing while sheets are in flight is the expensive kill, and
-    merges cannot be paused with many chats working. **A chat running MORE
+  - **A KILL DURING GENERATION SELF-HEALS SINCE 2026-08-29 — the sweep
+    REDRAWS it (capped at 2; see the Playground bullet).** The first bill is
+    still lost (measured 2026-08-28: 15 failed panels runs in one evening,
+    NONE with a banked sheet — ~$1.75 of 4K medium sheets billed and never
+    received), so a deploy landing while sheets are in flight still wastes
+    one sheet's cost per run, and merges cannot be paused with many chats
+    working. **A chat running MORE
     than the ledger's clean number of sheets should draw them in its OWN
     CONTAINER** (post to OpenAI directly — the `gen-dream-distilled.js`
     pattern; `OPENAI_API_KEY` is in the environment) **and cut them there
