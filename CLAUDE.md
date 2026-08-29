@@ -4222,6 +4222,40 @@ before working on that module. Nothing was deleted — the moved text is verbati
   than no tab; and the **badge counts the whole cast, both halves**, repainted
   as she TYPES (the row is not rebuilt on input, so without that the count sat
   stale until she closed and reopened the sheet — found by the test).
+  **AND A DESCRIPTION OPENS IN A BIGGER BOX (2026-08-29, Sophie: "expand
+  character description button add").** A description is a sentence of hers —
+  "long beard, glasses, all black, with a cape and a belt, sickeningly sweet
+  smile" — and the compact row showed about a third of it, so the field she
+  writes the most in was the one on the page with no way to see what was in
+  it. The corner toggle is `#prompt.big`'s answer in SHAPE, not a copy of its
+  code: one field, two sizes, never a second box to keep in sync, and the two
+  measuring lessons (`height:auto` before measuring or the box can only grow;
+  add the border back on a `border-box` box) are lifted with it. Four things
+  not to undo:
+  - **Expanding drops the description onto its OWN LINE at full width** — the
+    row wraps and `order` keeps the name, the toggle and the ✕ on the line
+    above. On a 390pt phone a taller box three columns wide is still a column
+    (measured: 153px of a 318px row), so the WIDTH is half of what expanding
+    has to buy here; the prompt box is already full width and never needed it.
+  - **The field is a `<textarea>` and is still ONE LINE by contract.**
+    `castBlock` writes a character per line and `castParse` reads them back
+    that way, so a newline inside a description would cut a clause in half on
+    the road home from Meta Assets. Enter is refused and a pasted newline
+    collapses to a space — exactly what the `<input>` it replaced already did,
+    so nothing about what she can put in the field changed.
+  - **`min-height: 0` on the compact box**, or the page-wide
+    `textarea { min-height: 64px }` makes the row two lines tall and
+    "expand" starts from nowhere. Both `.big` bounds are CSS (18vh floor,
+    44vh cap) so the browser clamps the fitted height and no `vh` is
+    re-derived in script.
+  - **NOT sticky, and it stores nothing** — the compact row is the sheet's
+    shape and a big box is a moment, the same call `#prompt.big` makes; the
+    size is not one of her words. The FLOOR is what keeps the button worth
+    tapping on an EMPTY row: this is a field she WRITES in, so it never hides
+    itself the way the `.moretxt` opener does.
+  Test: `node scripts/test-playground-expand-cast.js` (every assertion a
+  MEASUREMENT — a `.big` class and a real bigger box look identical to any
+  markup assertion; verified failing pre-fix).
   Both land in the HEAD, which is what a panel's filed style half is cut from,
   so provenance needed no other change; both are stored on the run and are
   absent when unused. **`sheet-grid.js` IS SERVED TO THE PAGE NOW** (the

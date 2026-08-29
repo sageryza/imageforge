@@ -175,7 +175,7 @@ const SHEET_HEAD = 'DPREF\n\n' + sheetGrid.castBlock(CAST)
   catch { browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }); }
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
 
-  const castRows = () => page.$$eval('#castrows .castrow input',
+  const castRows = () => page.$$eval('#castrows .castrow input, #castrows .castrow textarea',
     (is) => is.map((i) => i.value));
   const openDesc = async () => {
     await page.click('#charsbtn');
