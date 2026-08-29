@@ -4043,6 +4043,39 @@ before working on that module. Nothing was deleted — the moved text is verbati
   tab* in `docs/modules/pictures.md`. Tests: `node
   scripts/test-playground-panel-fold.js`, `node scripts/test-sheet-grid.js`
   and `node scripts/test-playground-panels.js`.
+  **HER WORDS COME WITH HER WHEN SHE CHANGES GRID (2026-08-29, Sophie: "if
+  there's text in one of the grids if I transferred to that grid, my words
+  don't transfer. They should transfer, but if the text that was saved as a
+  draft has never been drawn trigger a pop-up").** Each grid kept its own
+  separate draft (`promptlab_panels_<g>`), so switching 4 → 9 showed her nine
+  empty boxes and the words she had just typed were reachable only by tapping
+  back. A switch now CARRIES what is in the boxes into the grid she is
+  arriving at, first cell to first cell. Five things not to undo:
+  - **The grid she LEAVES keeps its own copy**, untouched — so a carry can
+    only ever overwrite the grid she is ARRIVING at, which is what makes one
+    question enough, and what makes 9 → 2 safe (the seven that do not fit are
+    still in the nine, and the pop-up's fine print says how many).
+  - **The pop-up asks only over UNSEEN WORK.** Silent when the target is
+    empty, when it already says the same thing, or when what it says has been
+    **drawn** — that sheet is in her feed and its prompt copies back with one
+    tap, so replacing the draft costs nothing.
+  - **"Drawn" is the EXACT array that was sent** (`promptlab_panels_drawn_<g>`,
+    stamped by a panels run and by a run's copy-back button), so editing one
+    box after a draw makes that grid undrawn again — the words sitting there
+    are not the words that were drawn. A draft from before this shipped
+    matches no stamp and asks once, which is the safe direction.
+  - **"Keep what's there" still takes her to the grid she tapped.** She asked
+    to go there; the only question was whose words it holds.
+  - **STORY IS OUT OF IT, BOTH DIRECTIONS** — a story is one prose block and
+    the panels are a line per cell, so "transfer" there would mean rewriting
+    her words rather than moving them.
+  The cancel dialog became **the one confirm box** (`askOpen`, words and both
+  answers per opening) rather than a second copy of itself. Test: `node
+  scripts/test-playground-panel-carry.js` (the real page — a source assertion
+  cannot tell a carry from a grid that happened to hold the same words, nor
+  see a pop-up that never opened; verified failing 8 pre-fix).
+  `test-playground-panels.js`'s old "9 → 4 → 9 loses nothing" assertion was
+  the OLD separate-drafts contract and is superseded, not broken.
   **SANDY MIRROR AND CHATGPT ARE TWO TILES SINCE 2026-08-24 (Sophie: "add one
   more endpoint option to the playground, which is called ChatGPT and change
   the one that's called ChatGPT right now to make it be called Sandy mirror.

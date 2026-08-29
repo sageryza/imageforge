@@ -460,6 +460,49 @@ panels fit under 4000 chars at ~350 each; twenty-five will not).
     the hidden boxes, the POST, the stickiness across a reload, and each door
     that reopens it).
 
+- **HER WORDS COME WITH HER WHEN SHE CHANGES GRID (2026-08-29, Sophie: "if
+  there's text in one of the grids if I transferred to that grid, my words
+  don't transfer. They should transfer, but if the text that was saved as a
+  draft has never been drawn trigger a pop-up").** Each grid keeps its own
+  draft (`promptlab_panels_<g>`), which is right for coming BACK to one and
+  was the whole of the behaviour — so switching 4 → 9 gave her nine empty
+  boxes and the paragraph she had just dictated was reachable only by tapping
+  back. `carryInto(to)` reads the boxes and writes them into the arriving
+  grid, first cell to first cell, before the switch paints.
+  - **The grid she LEAVES is never written to.** Its own copy is already
+    saved (every box stashes on input), so a carry can only overwrite the
+    grid she is ARRIVING at. That is what makes one question enough, and what
+    makes 9 → 2 safe: the seven that do not fit are still in the nine, and
+    the pop-up's fine print says how many stayed behind.
+  - **The pop-up is only ever about UNSEEN WORK.** It is silent when the
+    target is empty, when it already says the same thing, or when what it
+    says has been **drawn** — that sheet is in her feed and its prompt copies
+    back in one tap, so replacing the draft costs her nothing.
+  - **"Drawn" is the EXACT array that was sent**, stamped per grid at the
+    moment a panels run starts (`promptlab_panels_drawn_<g>`) and by a run's
+    copy-back button (words put back out of a finished run were drawn by
+    definition). So editing one box after a draw makes that grid undrawn
+    again — which is honest, because the words sitting there are not the
+    words that were drawn. Nothing clears a stamp; it only stops matching.
+    A draft written before this shipped matches no stamp and asks once.
+  - **A carry that would land empty-handed is not a carry** — going 9 → 2
+    with words only in panels 3-9 must not wipe the target with blanks.
+  - **"Keep what's there" still takes her to the grid she tapped.** She asked
+    to go there; the only question was whose words it holds.
+  - **STORY IS OUT OF IT, BOTH DIRECTIONS.** A story is one prose block and
+    the panels are a line per cell, so a transfer either way would mean
+    rewriting her words rather than moving them.
+  - **The cancel dialog became THE confirm box** (`askOpen({msg, fine, no,
+    yes, onYes, onNo})`) rather than a second copy of itself; both answers
+    close the box FIRST, because either may repaint the page. A third thing
+    that needs to ask her something calls it.
+  - Test: `node scripts/test-playground-panel-carry.js` (the real page
+    headless — a source assertion cannot tell a carry from a grid that
+    happened to hold the same words, nor see a pop-up that never opened;
+    verified failing 8 pre-fix). `test-playground-panels.js`'s old
+    "9 → 4 → 9 loses nothing" assertion was the OLD separate-drafts contract
+    and is superseded, not broken.
+
 - **THE 2 OPTION PINS ITS CELL SHAPE (2026-08-27, Sophie: "2 option shud be
   landscape in panels").** It used to be two PORTRAIT panels side by side,
   following the canvas toggle like 4 and 9 — the one grid where the toggle
