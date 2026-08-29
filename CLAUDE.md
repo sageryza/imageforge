@@ -4035,12 +4035,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
   her creepy-guy sheet died at 14 minutes to a deploy: "this can't happen
   again").** A panels run killed before its sheet was banked used to be
   marked failed with the money already spent; the sweep REDRAWS it instead —
-  the run doc stores everything the draw needs (`pl-orphans.js`, the pure
-  decision). One more sheet's cost, capped at 2 redraws (deploys land in
+  the run doc stores everything the draw needs (`promptlab-sweep.js`, the
+  pure decision). One more sheet's cost, capped at 2 redraws (deploys land in
   bursts), `redrawnAt` restarts the staleness clock so the next tick cannot
   kill the draw the last one started, and her feed position is kept. A
   SINGLE run killed mid-draw still fails — its cfg is not rebuilt from the
-  doc yet. Test: `node scripts/test-pl-orphans.js`. **AND DRAWING AND CUTTING ARE PACED
+  doc yet. Test: `node scripts/test-promptlab-sweep.js`. **AND DRAWING AND CUTTING ARE PACED
   SEPARATELY** — fire the whole sheet batch AT ONCE (the draw is on OpenAI's
   hardware), while the CUT is queued one at a time by the server itself
   (`gateCut`), so a chat never staggers its own launches (Sophie,

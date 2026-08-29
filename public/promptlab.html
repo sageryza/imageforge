@@ -679,6 +679,25 @@
   #panelgrid textarea { width: 100%; box-sizing: border-box; border: 1px solid #d8d0c4;
     border-radius: 6px; background: #fdfcf9; color: inherit; font: inherit; font-size: 16px;
     padding: 8px; resize: none; min-height: 64px; aspect-ratio: var(--pcell, 2 / 3); }
+  /* EVERY PANEL BOX EXPANDS (2026-08-29, Sophie: "can u add a expand button
+     per text box in each panel"). #bigprompt's answer, one per cell: the SAME
+     textarea, two sizes, never a second field to sync. Big SPANS THE WHOLE
+     ROW — a 9-grid cell is a third of the screen wide, so height alone buys
+     almost nothing for a dictated line — drops the cell's aspect ratio, and
+     fits the words between the CSS floor and cap (fitBig's two lessons:
+     height:auto before measuring or the box can only ever grow, and the
+     border added back on a border-box box). Not sticky, and a grid rebuild
+     opens everything small — the compact grid is the tab's shape. The
+     textarea reserves the button's corner with padding so her last line is
+     never typed under it. */
+  #panelgrid .pcell { position: relative; min-width: 0; }
+  #panelgrid .pcell textarea { padding-bottom: 36px; }
+  #panelgrid .pcell.big { grid-column: 1 / -1; }
+  #panelgrid .pcell.big textarea { aspect-ratio: auto; min-height: 20vh; max-height: 46vh; }
+  .pbig { position: absolute; right: 6px; bottom: 6px; width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center; padding: 0; margin: 0;
+    border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #6f675e; cursor: pointer; }
+  .pbig svg { width: 14px; height: 14px; }
 </style></head><body>
 <a id="backchip" href="/scratchpad">&lsaquo; Scratch Pad</a>
 <header class="app-header"><h1>Playground</h1></header>
@@ -1629,16 +1648,57 @@
     var saved = panelTexts(g);
     box.innerHTML = '';
     for (var i = 0; i < meta.count; i++) {
+      var cell = document.createElement('div');
+      cell.className = 'pcell';
       var t = document.createElement('textarea');
       t.setAttribute('data-panel', String(i));
       // The placeholder NAMES the cell and nothing more (the house rule).
       t.placeholder = meta.positions[i] || ('panel ' + (i + 1));
       t.value = saved[i] || '';
       t.addEventListener('input', stashPanels);
-      box.appendChild(t);
+      cell.appendChild(t);
+      cell.appendChild(mkPanelBig(cell, t));
+      box.appendChild(cell);
     }
     paintPanelFold();
   }
+  // EVERY PANEL BOX EXPANDS (2026-08-29, Sophie: "can u add a expand button
+  // per text box in each panel") — the CSS note above #panelgrid .pcell has
+  // the shape. The button is a SIBLING of the textarea inside the cell (a
+  // control cannot live inside a textarea), and the toggle clears any inline
+  // height so shrinking back actually shrinks.
+  function fitPanelBig(cell, t) {
+    if (!cell.classList.contains('big')) return;
+    t.style.height = 'auto';
+    t.style.height = (t.scrollHeight + (t.offsetHeight - t.clientHeight)) + 'px';
+  }
+  function mkPanelBig(cell, t) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'pbig';
+    function paint() {
+      var big = cell.classList.contains('big');
+      b.innerHTML = big ? ICONS.minimize : ICONS.maximize;
+      b.setAttribute('aria-label', big ? 'Back to the small box' : 'Bigger box');
+      b.title = big ? 'Back to the small box' : 'Bigger box';
+    }
+    b.addEventListener('click', function () {
+      cell.classList.toggle('big');
+      t.style.height = '';
+      fitPanelBig(cell, t);
+      paint();
+    });
+    t.addEventListener('input', function () { fitPanelBig(cell, t); });
+    paint();
+    return b;
+  }
+  // ONE resize listener for however many boxes are big — a rotation changes
+  // what `vh` means, and per-cell window listeners would pile up across grid
+  // rebuilds.
+  window.addEventListener('resize', function () {
+    Array.prototype.forEach.call(document.querySelectorAll('#panelgrid .pcell.big'),
+      function (c) { fitPanelBig(c, c.querySelector('textarea')); });
+  });
   // ── HER TYPED CAST (2026-08-27, Sophie: "add a characters clause / text
   // boxes that say character 1: add character, name, description … etc up to
   // n" · "I want both. Descriptions as well as pictures: two options" · "The
