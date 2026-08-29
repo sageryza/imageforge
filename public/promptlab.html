@@ -3063,7 +3063,7 @@
           // 'ready' = the first images are in, the rest still landing: the swap
           // poller keeps refreshing until 'done'.
           if (d.status === 'ready') { swapping[p.id] = true; startSwapPolling(); }
-          renderPendings(); loadRuns();
+          renderPendings(); landRun(d);
         }
       }).catch(function () {});
     });
@@ -3076,7 +3076,7 @@
       if (!ids.length) { clearInterval(swapTimer); swapTimer = null; return; }
       ids.forEach(function (id) {
         fetch('/api/promptlab/' + id).then(function (r) { return r.json(); }).then(function (d) {
-          if (d.status === 'done' || d.status === 'failed') { delete swapping[id]; loadRuns(); }
+          if (d.status === 'done' || d.status === 'failed') { delete swapping[id]; landRun(d); }
         }).catch(function () {});
       });
     }, 5000);
@@ -3311,6 +3311,36 @@
     // Merged, never replaced: a search hit can be an older run this feed has
     // not paged in, and the lightbox reads its settings out of here.
     Object.keys(byId).forEach(function (k) { runsById[k] = byId[k]; });
+  }
+
+  // A RUN THAT STOPS DRAWING LANDS IN ITS OWN GALLERY (2026-08-28, Sophie on
+  // the PANELS tab: "the tile appears and then disappears").
+  //
+  // The poll drops the "drawing…" placeholder the moment a run reaches
+  // 'ready', and then asked `loadRuns()` to bring the real run in — but
+  // loadRuns only ever fetches **kind=single** (2026-08-28, so that a morning
+  // of panels runs cannot fill all 40 slots of the Picture tab's page). The
+  // PANELS gallery comes from `loadPanelsSweep`, which is asked ONCE per page
+  // load and never again. So on that tab the placeholder came down and
+  // nothing replaced it: the tile vanished, and stayed vanished until the
+  // page itself was reloaded — which in the app can be a long time, since a
+  // tool's web view lives for the whole app process.
+  //
+  // Nothing needs fetching: the poll is holding the finished doc. Merging it
+  // is exact, costs no request, and lands the run in whichever gallery it
+  // belongs to — which is also what finally lets the UNCUT SHEET show while
+  // the cut is queued (`cuttingSheet`, her 2026-08-27 ask: "the uncut sheet
+  // shud show before it's cut as soon as it's done"). That was built and
+  // could never appear, because at 'ready' the run reached the feed on
+  // neither tab. `gateCut` (one cut at a time) made the gap long enough to
+  // matter.
+  //
+  // The single gallery still refreshes its page: loadRuns owns `feedMore` and
+  // the newest-page walk, which one merged doc says nothing about.
+  function landRun(d) {
+    if (!d || !d.id) return;
+    mergeRuns([d]);
+    if (runIsPanels(d)) renderFeed(); else loadRuns();
   }
 
   // Refresh the newest page. Anything already paged in behind it is kept — a

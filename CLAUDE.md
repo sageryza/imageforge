@@ -3987,7 +3987,33 @@ before working on that module. Nothing was deleted — the moved text is verbati
   fraction and the SHEET's tier, never the panel's own pixels). Dreamy's
   anti-grid tail clause is SWAPPED for a sheet, the no-text mechanism again
   (`sheet` beside `noText`); the paid sheet is banked BEFORE the cut and a
-  failed cut keeps it, disclosed as "uncut sheet". **A DEPLOY RESTART CANNOT
+  failed cut keeps it, disclosed as "uncut sheet".
+  **A RUN THAT STOPS DRAWING LANDS IN ITS OWN GALLERY — `landRun` (2026-08-28,
+  Sophie on the PANELS tab: "the tile appears and then disappears. Is the date
+  wrong?").** The dates were fine (measured: no run in the top 40 was
+  future-dated, nothing carried a bump's `createdAtWas`). What happened is that
+  the poll drops the "drawing…" placeholder the moment a run reaches `ready`
+  and then asked `loadRuns()` for the real run — and **`loadRuns` only ever
+  fetches `kind=single`** (2026-08-28, so a morning of panels runs cannot fill
+  all 40 slots of the Picture tab's page), while the PANELS gallery comes from
+  `loadPanelsSweep`, which is asked **ONCE per page load and never again**. So
+  on that tab the placeholder came down and nothing replaced it: the tile
+  vanished and **stayed vanished until the page itself was reloaded** — which
+  inside the app is the whole app process. The poll is holding the finished
+  doc, so nothing needs fetching: `landRun(d)` merges it, which is exact, costs
+  no request, and lands the run in whichever gallery it belongs to. The single
+  gallery still refreshes its page, because `loadRuns` owns `feedMore` and the
+  newest-page walk that one merged doc says nothing about.
+  **IT IS ALSO WHAT FINALLY LETS THE UNCUT SHEET SHOW** — `cuttingSheet` was
+  built for her 2026-08-27 ask ("the uncut sheet shud show before it's cut as
+  soon as it's done") and could never appear, because at `ready` the run
+  reached the feed on neither tab. `gateCut` (one cut at a time) is what made
+  that gap long enough to see. Test:
+  `node scripts/test-playground-ready-tile.js` — the run walked through
+  running → ready → done and COUNTED at every step, because a test that looks
+  only once it is `done` passes against the pre-fix page: the bug is the gap
+  (verified failing 8 pre-fix, including 45 of 45 blank samples across the cut).
+  **A DEPLOY RESTART CANNOT
   LOSE A BANKED SHEET (2026-08-27, measured: three merges deployed in a row
   and orphaned four paid 4K sheets mid-run)** — the stuck-run sweep finishes
   an orphaned panels run from its banked sheet (free) instead of marking paid
