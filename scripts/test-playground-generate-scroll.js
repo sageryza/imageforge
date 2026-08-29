@@ -1,20 +1,19 @@
 #!/usr/bin/env node
 /*
- * test-playground-generate-scroll.js — A GENERATE TAP HAS TO BE VISIBLE
- * (2026-08-28, Sophie, looking at the Panels tab: "why didn't it draw").
+ * test-playground-generate-scroll.js — A GENERATE TAP CONFIRMS ITSELF WHERE
+ * SHE IS STANDING, AND NEVER MOVES THE PAGE (2026-08-29, Sophie: "it scrolls
+ * me down in the playground").
  *
- * It HAD drawn — twice, a minute apart, two 2x2 sheets cut into four panels
- * each, both `done` on the server while she was asking. What went wrong is
- * that the tap changed nothing where she was standing: the new run's
- * placeholder lands in #pendings, which sits BELOW the feedbar, and on the
- * PANELS tab the boxes are several hundred pixels tall — so the card that
- * says "drawing…" is off the bottom edge and nothing on screen answers the
- * tap. She tapped again a minute later, and asked.
+ * The walk shipped 2026-08-28 for a real report — on the Panels tab the new
+ * run's placeholder lands off the bottom edge, so a tap that changed nothing
+ * read as a tap that did nothing ("why didn't it draw"). She overruled the
+ * ANSWER, not the reading: the page moving under her on every generation is
+ * worse than the card being out of sight. So the tap says "Drawing…" in the
+ * toast and the window stays exactly where she put it.
  *
- * IT HAS TO BE MEASURED IN A REAL BROWSER. "Did it start a run?" was true the
- * whole time — that is the bug — so the only honest question is where the
- * window ends up a moment after her tap, and whether the placeholder is
- * really on screen when it settles.
+ * IT HAS TO BE MEASURED IN A REAL BROWSER. "Did it start a run?" is true
+ * either way — the only honest question is where the window ends up a moment
+ * after her tap.
  *
  * All three starters are swept, because the shape of the miss is one of them
  * being added later without it: the one box, the PANELS grid, and Story.
@@ -38,17 +37,21 @@ const ok = (cond, what) => {
   else { console.log('  FAIL ' + what); fails++; }
 };
 
-// Every starter calls it — the shape of this bug is a fourth one shipping
-// without the scroll, so ask the source as well as the browser.
+// Every starter confirms the tap — the shape of this bug is a fourth one
+// shipping silent, so ask the source as well as the browser.
 const pageSrc = fs.readFileSync(path.join(PUB, 'promptlab.html'), 'utf8');
-console.log('\nevery starter walks to the card');
+console.log('\nevery starter confirms the tap');
 ['startRun', 'startPanelsRun', 'startStoryRun'].forEach((fn) => {
+  // Read to the NEXT top-level function, never a fixed window: startRun has
+  // outgrown one twice, and the sweep then passes vacuously on nothing.
   const i = pageSrc.indexOf('function ' + fn + '(');
-  const body = pageSrc.slice(i, i + 3000);
-  const stop = body.indexOf('\n  function ', 10);
-  ok(/scrollToPending\(\)/.test(stop > 0 ? body.slice(0, stop) : body),
-    fn + ' calls scrollToPending()');
+  const rest = pageSrc.slice(i);
+  const stop = rest.indexOf('\n  function ', 10);
+  ok(/confirmStarted\(\)/.test(stop > 0 ? rest.slice(0, stop) : rest),
+    fn + ' calls confirmStarted()');
 });
+// And nothing on the page scrolls the window on a Generate tap ever again.
+ok(!/scrollToPending/.test(pageSrc), 'the walk to the placeholder is gone');
 
 // The real `res` literal out of server.js — never a second copy.
 function resTable() {
@@ -207,20 +210,24 @@ async function run(browser) {
     }
     return y();
   };
-  // Is the "drawing…" card really on screen where the page settled? An
-  // element can be in the DOM, sized and "visible" while sitting below the
-  // fold — which is the whole of the bug.
+  // The placeholder still has to EXIST — the run is really on its way — it
+  // just no longer decides where the window is.
   const placeholder = () => page.evaluate(() => {
     var box = document.getElementById('pendings');
     if (box.hidden) box = document.getElementById('tiles');
     var card = box && box.firstElementChild;
     if (!card) return null;
     var r = card.getBoundingClientRect();
-    // Its HEAD is what says "drawing…", so the card counts as answering the
-    // tap only when that line is really on screen — a card whose top edge is
-    // 20px off the bottom is not an answer to anything.
     return { top: r.top, inView: r.top >= 0 && r.top <= window.innerHeight - 60,
              says: /drawing/i.test(card.textContent || '') };
+  });
+  // The toast is what answers the tap now, and it has to be really painted —
+  // a hidden element with the right words in it says nothing to her.
+  const toastShowing = () => page.evaluate(() => {
+    const t = document.getElementById('toast');
+    if (!t) return null;
+    const st = getComputedStyle(t);
+    return { text: (t.textContent || '').trim(), on: Number(st.opacity) > 0.5 };
   });
   // Stand her where the controls are — the Generate button in view, the feed
   // below the fold, which is where a tall panels grid leaves her.
@@ -258,20 +265,23 @@ async function run(browser) {
       + ' to make is somewhere she cannot see');
 
   console.log('\ntapping Generate on PANELS');
+  const before = await y();
   await page.evaluate(() => document.getElementById('go').click());
   await page.waitForTimeout(200);
   ok(started === 1, 'the run really starts (' + started + ' POSTed)');
+  const tst = await toastShowing();
+  ok(tst && tst.on && /drawing/i.test(tst.text),
+    'the toast says it is drawing' + (tst ? ' ("' + tst.text + '")' : ''));
   const at = await settle();
+  ok(Math.abs(at - before) < 4,
+    'and the page has NOT moved (' + before + ' → ' + at + ')');
   const ph = await placeholder();
   ok(!!ph, 'a placeholder card is rendered');
   ok(ph && ph.says, 'and it says it is drawing');
-  ok(ph && ph.inView,
-    'and the page has walked to it, so the tap is visible'
-      + (ph ? ' (card top ' + Math.round(ph.top) + ', settled at ' + at + ')' : ''));
 
-  console.log('\nit does not fight the poll');
+  console.log('\nand the poll does not move her either');
   const held = await settle();
-  ok(Math.abs(held - at) < 8, 'the page stays where it landed (' + held + ' vs ' + at + ')');
+  ok(Math.abs(held - before) < 4, 'the page stays put (' + held + ' vs ' + before + ')');
 
   console.log('\nthe PICTURE tab\'s one box');
   await page.click('#t-picture');
@@ -281,28 +291,28 @@ async function run(browser) {
     t.value = 'a raffle, paper tickets, drawing lots';
     t.dispatchEvent(new Event('input', { bubbles: true }));
   });
-  await standAtControls();
+  const before2 = (await standAtControls()).y;
   await page.evaluate(() => document.getElementById('go').click());
   await page.waitForTimeout(200);
   ok(started === 2, 'the run starts');
-  await settle();
+  const at2 = await settle();
+  ok(Math.abs(at2 - before2) < 4,
+    'the page stays where she left it here too (' + before2 + ' → ' + at2 + ')');
   const ph2 = await placeholder();
-  ok(ph2 && ph2.inView && ph2.says,
-    'the drawing card is on screen here too'
-      + (ph2 ? ' (card top ' + Math.round(ph2.top) + ')' : ' (no card found)'));
+  ok(ph2 && ph2.says, 'and the drawing card is really there in the feed');
 
   console.log('\nTILES view — the placeholder lives on the wall instead');
   await page.evaluate(() => document.getElementById('v-tiles').click());
   await page.waitForTimeout(250);
-  await standAtControls();
+  const before3 = (await standAtControls()).y;
   await page.evaluate(() => document.getElementById('go').click());
   await page.waitForTimeout(200);
   ok(started === 3, 'the third run starts');
-  await settle();
+  const at3 = await settle();
+  ok(Math.abs(at3 - before3) < 4,
+    'the wall does not move her either (' + before3 + ' → ' + at3 + ')');
   const ph3 = await placeholder();
-  ok(ph3 && ph3.inView,
-    'the wall\'s waiting square is on screen too'
-      + (ph3 ? ' (card top ' + Math.round(ph3.top) + ')' : ' (no card found)'));
+  ok(!!ph3, 'and the wall\'s waiting square is really rendered');
 
   await ctx.close();
   server.close();

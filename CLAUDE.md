@@ -4335,26 +4335,32 @@ before working on that module. Nothing was deleted — the moved text is verbati
   window ends up a moment after her tap. Test:
   `node scripts/test-playground-copy-scroll.js` (the real page headless,
   verified failing pre-fix on the lightbox path).
-  **AND THE OTHER DIRECTION — A GENERATE TAP HAS TO BE VISIBLE, `scrollToPending`
-  (2026-08-28, Sophie on the PANELS tab: "why didn't it draw").** It HAD drawn,
-  twice a minute apart, and both sheets were `done` on the server while she was
-  asking — nothing was broken but the feedback. The new run's placeholder lands
-  in `#pendings`, which sits BELOW the feedbar, and on Panels the boxes plus the
-  character sheet fill the app's web view, so the card that says "drawing…" was
-  off the bottom edge: the tap changed nothing where she was standing, so she
-  tapped again. The page walks down to that card now, from **all three starters**
-  (`startRun` · `startPanelsRun` · `startStoryRun` — the shape of the miss is a
-  fourth one shipping without it, so the test sweeps them by name), and it
-  follows the card wherever it is drawn: `#pendings` in list view, the front of
-  the wall in tiles.
-  **IT IS ONLY EVER A MEASUREMENT** — "did it start a run?" was true the whole
-  time, which is exactly the bug, so the honest questions are where the window
-  settles and whether the card's HEAD is really on screen (a card whose top edge
-  is 20px off the bottom answers nothing). And **the bug does not reproduce at a
-  bare 390x844**: the panels card fits there. The test uses **390x700**, the app's
-  web view with its own bottom bar taken off, which is the viewport her
-  screenshot was taken in. Test:
-  `node scripts/test-playground-generate-scroll.js` (verified failing 4 pre-fix).
+  **AND A GENERATE TAP CONFIRMS ITSELF WHERE SHE IS STANDING — IT NEVER MOVES
+  THE PAGE, `confirmStarted` (2026-08-29, Sophie: "it scrolls me down in the
+  playground").** This shipped 2026-08-28 as `scrollToPending`, a walk down to
+  the new run's placeholder, for a real report of hers ("why didn't it draw" —
+  it had, twice: on the PANELS tab the boxes plus the character sheet fill the
+  app's web view, so the card saying "drawing…" was off the bottom edge and the
+  tap changed nothing where she was standing). **She overruled the ANSWER, not
+  the reading**: the window moving under her on EVERY generation is worse than
+  the card being out of sight — she is looking at the box she just typed in,
+  often about to type the next one. So the tap raises the toast ("Drawing…")
+  and the scroll position is left exactly where she put it. **A scroll on
+  Generate is HISTORY, not a rule — do not bring one back**, conditional or
+  otherwise, and that includes the reasoning above about the card being off
+  screen. All three starters call it (`startRun` · `startPanelsRun` ·
+  `startStoryRun` — the shape of the miss is a fourth one shipping silent, so
+  the test sweeps them by name; it reads each function to the NEXT top-level
+  one rather than a fixed window, which `startRun` has outgrown twice, passing
+  the sweep vacuously both times).
+  **IT IS ONLY EVER A MEASUREMENT** — "did it start a run?" is true either way,
+  so the honest question is where the window ends up a moment after her tap,
+  and whether the toast is really PAINTED (a hidden element carrying the right
+  words says nothing to her). The test stands her at 390x700 — the app's web
+  view with its own bottom bar taken off — because that is her screenshot's
+  viewport and the one the old walk moved the furthest. Test:
+  `node scripts/test-playground-generate-scroll.js` (verified failing 5 against
+  the pre-fix page, which walked her 670px down the Panels tab).
   **HER OWN CAST — THE CHARACTER PICKER (2026-08-27, Sophie: "add a little
   button in the playground right next to where it says dreamy make sure it's
   the same style with a character icon that shows the five most recent
