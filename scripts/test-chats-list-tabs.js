@@ -67,11 +67,14 @@ const server = http.createServer((req, res) => {
     // `witch` is a PILE word, so `filed` is off the ordinary home list and
     // must still be on ALL. `bug fix` is a plain tag and stays.
     return res.end(JSON.stringify({ build: 'test', truncated: [], messages: MSGS, delta: false,
-      settings: { categories: ['witch', 'bug fix'], pileLabels: ['witch'] },
+      settings: { categories: ['witch', 'bug fix', 'bugs'], pileLabels: ['witch'] },
       chats: {
         plain:  { lastSeen: MSGS[0].created },
         filed:  { lastSeen: MSGS[1].created, labels: ['witch'], filedAt: iso(T0 - 2 * HOUR), catBy: 'sophie' },
-        bugged: { lastSeen: MSGS[2].created, labels: ['bug fix'] },
+        // `bugs` is her own dictated spelling and is NOT an archive word, so it
+        // is offered as a chip on the home row — which is what makes the ALL
+        // tab's bug carve-out reachable from a real tap.
+        bugged: { lastSeen: MSGS[2].created, labels: ['bug fix', 'bugs'] },
         gone:   { lastSeen: MSGS[3].created, archived: true },
         binned: { lastSeen: MSGS[4].created, deletedAt: iso(T0 - 5 * HOUR) },
         // hidden AFTER its last message, so it is really parked
@@ -141,9 +144,40 @@ const ok = () => { checks++; };
   if (await page.$(row('binned'))) fail('a DELETED chat is on ALL — the trash is its own room');
   else ok();
 
+  // ── 3a. BUG-FIX CHATS ARE NOT ON ALL (2026-08-29, her ask) ────────────────
+  // They have the third tab and the header's bug button; listing them here too
+  // is the same pile twice. The CHIP is the carve-out — lighting `bug fix` is
+  // her asking for them by name.
+  if (await page.$(row('bugged'))) fail('a BUG-FIX chat is on ALL — it belongs to the Bug fixes tab');
+  else ok();
+  // The chips live behind the TAGS button, and the categories behind SEE MORE.
+  const litChip = async (re) => {
+    await page.click('#catrow .tagsbtn');
+    await page.waitForTimeout(120);
+    const more = await page.$('#catrow .morechip');
+    if (more) { await more.click(); await page.waitForTimeout(120); }
+    return page.$$eval('#catrow .catchip', (ns, src) => {
+      const i = ns.findIndex((n) => new RegExp(src, 'i').test(n.textContent));
+      if (i > -1) ns[i].click();
+      return i > -1;
+    }, re);
+  };
+  if (!await litChip('bugs')) fail('no `bugs` chip in the category row to light');
+  else ok();
+  await page.waitForTimeout(150);
+  if (!await page.$(row('bugged'))) fail('a lit bug word did not bring the bug chats back — a filter she can see must never return nothing');
+  else ok();
+  await page.$$eval('#catrow .catchip.on', (ns) => ns.forEach((n) => n.click()));
+  await page.click('#catrow .tagsbtn');
+  await page.waitForTimeout(150);
+  if (await page.$(row('bugged'))) fail('clearing the filter left the bug chat on ALL');
+  else ok();
+  if (!await page.$(row('plain'))) fail('clearing the filter lost the rest of the list');
+  else ok();
+
   // ── 4. timing order ───────────────────────────────────────────────────────
   const order = await page.$$eval('#grid .crow', (r) => r.map((x) => x.dataset.chat));
-  if (order.slice(0, 3).join(',') !== 'plain,filed,bugged') fail('not in timing order: ' + order.join(','));
+  if (order.slice(0, 2).join(',') !== 'plain,filed') fail('not in timing order: ' + order.join(','));
   else ok();
 
   // ── 4a. THE HIDDEN PILE, SAME BAR ────────────────────────────────────────
