@@ -277,21 +277,32 @@ router.get('/sets', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
+// The set write, callable from a sibling module too (shoebox.js's Square-it
+// door builds a one-picture set through this) — the route and the caller must
+// share one implementation or their sets would merge by different rules.
+async function createSet(rawTitle, rawItems) {
+  if (!hasFirebase()) throw new Error('Firebase is not configured');
+  const title = String(rawTitle || '').trim().slice(0, 120);
+  const fresh = buildItems(rawItems);
+  if (!fresh.length) throw new Error('no usable pictures — each item needs an http(s) url');
+  const id = setId(title, fresh);
+  const ref = db().collection(SETS).doc(id);
+  const snap = await ref.get();
+  const old = snap.exists ? (snap.data() || {}) : {};
+  const items = mergeItems(old.items, fresh);
+  await ref.set({ id, title, items, hidden: false,
+    createdAt: old.createdAt || Date.now(), updatedAt: Date.now() }, { merge: true });
+  return { ok: true, id, count: items.length, url: '/crop?set=' + id };
+}
+
 router.post('/sets', async (req, res) => {
   try {
     if (!hasFirebase()) return noDb(res);
-    const title = String(req.body.title || '').trim().slice(0, 120);
-    const fresh = buildItems(req.body.items);
-    if (!fresh.length) return res.status(400).json({ error: 'no usable pictures — each item needs an http(s) url' });
-    const id = setId(title, fresh);
-    const ref = db().collection(SETS).doc(id);
-    const snap = await ref.get();
-    const old = snap.exists ? (snap.data() || {}) : {};
-    const items = mergeItems(old.items, fresh);
-    await ref.set({ id, title, items, hidden: false,
-      createdAt: old.createdAt || Date.now(), updatedAt: Date.now() }, { merge: true });
-    res.json({ ok: true, id, count: items.length, url: '/crop?set=' + id });
-  } catch (e) { fail(res, e); }
+    res.json(await createSet(req.body.title, req.body.items));
+  } catch (e) {
+    if (/no usable pictures/.test(e.message || '')) return res.status(400).json({ error: e.message });
+    fail(res, e);
+  }
 });
 
 router.get('/sets/:id', async (req, res) => {
@@ -364,4 +375,4 @@ router.post('/sets/:id/hide', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
-module.exports = { router, init, cropBox, clamp01, posOf, buildItems, mergeItems, needsCut, setId, cleanApply, jobLive };
+module.exports = { router, init, cropBox, clamp01, posOf, buildItems, mergeItems, needsCut, setId, cleanApply, jobLive, createSet };

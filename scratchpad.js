@@ -2542,4 +2542,6 @@ async function attachVoiceUrl(padId, beatId, url) {
   });
 }
 
-module.exports = { router, init, attachVoiceUrl, placeOnBeat, autoShapePatch, drawablePrompt, promptFor, clipsNeedingPoster };
+// shoeboxUid is exported so shoebox.js (the Shoebox viewer) asks the SAME
+// discovery — one copy of "whose library is this", never a second guess.
+module.exports = { router, init, attachVoiceUrl, placeOnBeat, autoShapePatch, drawablePrompt, promptFor, clipsNeedingPoster, shoeboxUid };

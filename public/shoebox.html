@@ -1,0 +1,225 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Shoebox</title>
+<!--
+  shoebox.html — the Shoebox inside Deck Factory (2026-08-29, Sophie: "can u
+  add the shoebox as a module on deck factory"). Every polaroid in her Memory
+  Library — the pictures the Story Room, Meta Assets and Playground doors have
+  filed, and the ones the Memory Library drew itself — on one shelf, newest
+  first.
+
+  READ-ONLY over her library: nothing here edits or deletes a memory —
+  removing a polaroid or pinning it to a board stays in the Shoebox app
+  itself. The one action is "Square it", which opens the existing Squaring
+  tool on that polaroid (its save lands back on the memory doc).
+
+  Tiles are DERIVED thumbs (/api/story/thumb); the lightbox is the ONE shared
+  /asset-lightbox.js — this page builds no lightbox of its own. Search asks
+  the SERVER (the full library index), never just the loaded page.
+-->
+<link rel="stylesheet" href="/tool.css">
+<style>
+  .wrap{ max-width:720px; margin:0 auto; padding:10px 14px 40px; }
+  /* The search row. The field runs wide; the ✕ appears only while there are
+     words to wipe (the house clear rule). */
+  .srow{ display:flex; align-items:center; gap:8px; margin:2px 0 12px; }
+  .sbox{ position:relative; flex:1; }
+  .sbox input{ width:100%; border:1px solid var(--border); border-radius:6px;
+    background:var(--surface); color:var(--ink); font:inherit; font-size:15px;
+    padding:8px 10px; -webkit-appearance:none; }
+  .sbox input:focus{ outline:none; border-color:var(--dim); }
+  .sbox .clr{ position:absolute; right:6px; top:50%; transform:translateY(-50%);
+    width:22px; height:22px; border:0; border-radius:6px; background:none;
+    color:var(--dim); font-size:15px; line-height:1; padding:0; cursor:pointer; }
+  .sbox.hasq input{ padding-right:32px; }
+
+  /* The shelf: three polaroids to a row, each wearing its own picture's shape
+     on a white mat with the chin under it. align-start + minmax(0,1fr) — a
+     bare 1fr lets one odd shape blow its column out (the Playground's own
+     measured lesson). */
+  #shelf{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr));
+    gap:12px; align-items:start; }
+  .pol{ border:1px solid var(--border); border-radius:6px; background:#fff;
+    padding:6px 6px 7px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .pol img{ display:block; width:100%; height:auto; border-radius:2px; }
+  .pol .chin{ font-family:Georgia,'Times New Roman',serif; font-size:11px;
+    line-height:1.35; color:var(--ink); margin-top:6px;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+    overflow:hidden; min-height:15px; }
+  .pol .tm{ font-size:9px; letter-spacing:.05em; text-transform:uppercase;
+    color:var(--dim); margin-top:3px; }
+
+  .foot{ margin:16px 0 0; text-align:center; }
+  .older{ border:1px solid var(--border); border-radius:6px; background:var(--surface);
+    color:var(--ink); font:inherit; font-size:13px; padding:7px 14px; cursor:pointer; }
+  .empty{ color:var(--dim); font-size:14px; padding:14px 2px; }
+</style>
+<body class="tool">
+<div class="head">
+  <span class="eyebrow tool-eyebrow">SHOEBOX</span>
+  <button id="help" type="button" aria-label="What this is">?</button>
+</div>
+<div class="helpcard" id="helpcard" hidden>
+  <b>Every polaroid in your Memory Library, newest first.</b> Pictures sent
+  from the Story Room, Meta Assets and the Playground land here, beside the
+  ones the Memory Library drew itself. Tap one to see it big — its prompt
+  rides along when it was filed. <b>Square it</b> opens the Squaring tool on
+  that polaroid. Boards and removing stay in the
+  <a href="https://incaseofamnesia.com/shoebox" target="_blank" rel="noopener">Shoebox itself</a>.
+</div>
+
+<main class="wrap">
+  <div class="srow">
+    <div class="sbox" id="sbox">
+      <input id="q" type="search" enterkeyhint="search" autocomplete="off"
+        autocorrect="off" autocapitalize="none" placeholder="Search the shoebox&hellip;"
+        aria-label="Search the shoebox">
+      <button class="clr" id="clr" type="button" aria-label="Clear the search" hidden>&#10005;</button>
+    </div>
+  </div>
+  <div id="shelf"><div class="empty">Opening the shoebox&hellip;</div></div>
+  <div class="foot" id="foot" hidden><button class="older" id="older" type="button">Older</button></div>
+</main>
+
+<script src="/feedkit.js"></script>
+<script src="/asset-lightbox.js"></script>
+<script>
+/* IIFE — the injected autoscroll pill runs in global scope with its own
+   `var raf`/`var I`, so nothing of this page's may leak out. */
+(function(){
+  'use strict';
+  var K = window.FeedKit || {};
+  var shelf = document.getElementById('shelf');
+  var foot = document.getElementById('foot');
+  var older = document.getElementById('older');
+  var qEl = document.getElementById('q');
+  var sbox = document.getElementById('sbox');
+  var clr = document.getElementById('clr');
+
+  var items = [];        // what the shelf currently shows, in order
+  var total = 0;
+  var query = '';
+  var loading = false;
+
+  function esc(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+  function when(ms){
+    if (!ms) return '';
+    try {
+      return new Date(ms).toLocaleDateString('en-US',
+        { timeZone:'America/Los_Angeles', month:'short', day:'numeric', year:'numeric' });
+    } catch (e) { return ''; }
+  }
+  /* Tiles load the derived display copy, never the 1-3MB original (the house
+     webp rule). The lightbox gets the original. FeedKit owns the mapping. */
+  function thumb(u){ return K.thumbFor ? K.thumbFor(u, 480) : u; }
+
+  function render(reset){
+    if (reset) shelf.innerHTML = '';
+    if (!items.length) {
+      shelf.innerHTML = '<div class="empty">' +
+        (query ? 'Nothing in the shoebox matches that.' : 'Nothing in the shoebox yet.') +
+        '</div>';
+      foot.hidden = true;
+      return;
+    }
+    /* Only the NEW tiles are appended — an Older tap must not rebuild the
+       pictures already decoded (the repaint rule). */
+    var have = shelf.querySelectorAll('.pol').length;
+    if (have === 0) shelf.innerHTML = '';   // drop the placeholder/empty line
+    var html = '';
+    for (var i = have; i < items.length; i++) {
+      var it = items[i];
+      html += '<div class="pol" data-i="' + i + '" role="button" tabindex="0">' +
+          '<img src="' + esc(thumb(it.url)) + '" alt="" loading="lazy">' +
+          '<div class="chin">' + esc(it.title || '') + '</div>' +
+          (when(it.at) ? '<div class="tm">' + when(it.at) + '</div>' : '') +
+        '</div>';
+    }
+    shelf.insertAdjacentHTML('beforeend', html);
+    foot.hidden = items.length >= total;
+  }
+
+  function loadPage(reset){
+    if (loading) return;
+    loading = true;
+    var offset = reset ? 0 : items.length;
+    var u = '/api/shoebox/feed?limit=60&offset=' + offset +
+      (query ? '&q=' + encodeURIComponent(query) : '');
+    fetch(u).then(function(r){ return r.json(); }).then(function(j){
+      if (j.error) throw new Error(j.error);
+      total = j.total || 0;
+      items = reset ? (j.items || []) : items.concat(j.items || []);
+      render(reset);
+    }).catch(function(err){
+      shelf.innerHTML = '<div class="empty">Couldn’t open the shoebox — ' +
+        esc(String(err.message || err)) + '</div>';
+      foot.hidden = true;
+    }).then(function(){ loading = false; });
+  }
+
+  older.onclick = function(){ loadPage(false); };
+
+  /* ── the lightbox: the ONE shared file, stepping through the shelf ────── */
+  function openAt(i){
+    var it = items[i];
+    if (!it) return;
+    var asset = {
+      description: it.title || '',
+      prompt: it.caption || '',
+      promptContent: it.promptContent || '',
+      who: it.source || '',
+      actions: [{
+        label: 'Square it',
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>',
+        onClick: function(){
+          fetch('/api/shoebox/square', { method:'POST',
+            headers:{ 'content-type':'application/json' },
+            body: JSON.stringify({ id: it.id }) })
+          .then(function(r){ return r.json(); })
+          .then(function(j){
+            if (j && j.url) location.href = j.url;
+            else alert((j && j.error) || 'could not build the squaring set');
+          }).catch(function(e){ alert(String(e.message || e)); });
+        }
+      }],
+      nav: {
+        prev: i > 0 ? function(){ openAt(i - 1); } : null,
+        next: i < items.length - 1 ? function(){ openAt(i + 1); } : null
+      }
+    };
+    window.__assetLightbox(it.url, asset);
+  }
+  shelf.addEventListener('click', function(e){
+    var p = e.target.closest && e.target.closest('.pol');
+    if (!p) return;
+    openAt(+p.dataset.i);
+  });
+
+  /* ── search: the house grammar, asked of the SERVER over the full index ── */
+  var live = null;
+  function runSearch(){
+    query = qEl.value.trim();
+    sbox.classList.toggle('hasq', Boolean(qEl.value));
+    clr.hidden = !qEl.value;
+    loadPage(true);
+  }
+  if (K.liveInput) live = K.liveInput(qEl, runSearch);
+  if (K.enterSubmits) K.enterSubmits(qEl, function(){ if (live) live.sync(); runSearch(); });
+  clr.onclick = function(){
+    qEl.value = '';
+    if (live) live.sync();
+    runSearch();
+  };
+
+  var help = document.getElementById('help'), card = document.getElementById('helpcard');
+  help.onclick = function(){ card.hidden = !card.hidden; };
+  card.onclick = function(e){ if (!e.target.closest('a')) card.hidden = true; };
+
+  loadPage(true);
+})();
+</script>
+</body>
