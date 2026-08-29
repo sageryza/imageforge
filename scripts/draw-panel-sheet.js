@@ -19,6 +19,10 @@
 // Writes <job>.out.json with the sheet url, the cut urls, the plan and the
 // exact full prompt — file those with the label, the MODEL · QUALITY · SIZE
 // caption and both prompt halves, per the deliver-images ritual.
+// It also files the DONE run into the Playground's PANELS tab by itself
+// (POST /api/promptlab/panels-import — 2026-08-28, Sophie: "the playground
+// is for me, but panels should go in panels"); pass `chat` in job.json so
+// the record says who drew it.
 //
 // Needs OPENAI_API_KEY and FIREBASE_SERVICE_ACCOUNT (Deck Factory) in the
 // environment, and `npm install sharp form-data node-fetch@2 firebase-admin`.
@@ -101,4 +105,26 @@ async function cut(buf, plan) {
   fs.writeFileSync(`${process.argv[2]}.out.json`,
     JSON.stringify({ sheetUrl, urls, plan, full, usage, job }, null, 1));
   urls.forEach((u, i) => console.log(i + 1, u));
+  // File the DONE run into the Playground's PANELS tab (2026-08-28, Sophie:
+  // "the playground is for me, but panels should go in panels") — a record
+  // only, no generation and no cut on Render. Best-effort: the sheet is
+  // already banked and filed above, so a failed import loses nothing but the
+  // tab entry; re-run the POST by hand from the .out.json if it prints FAILED.
+  try {
+    const r = await fetch('https://imageforge-q125.onrender.com/api/promptlab/panels-import', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        // urls are one per CELL in reading order; panels map to the leading
+        // cells, so the pairing is exact and a trailing filler cut stays out.
+        panels: job.panels, images: urls.slice(0, job.panels.length),
+        grid: { across: plan.across, down: plan.down },
+        style: 'dreamy', quality: job.quality, res: job.tier,
+        size: plan.sheet, aspectRatio: job.shape === 'square' ? '1:1' : '2:3',
+        sheetUrl, fullPrompt: full, cast: sheetGrid.castRows(job.cast),
+        chat: job.chat || process.env.FORGE_CHAT || '',
+      }),
+    });
+    const j = await r.json().catch(() => ({}));
+    console.log(j.ok ? `panels tab: run ${j.id}` : `panels-import FAILED: ${j.error || r.status}`);
+  } catch (e) { console.log('panels-import FAILED:', e.message); }
 })().catch((e) => { console.error('FAILED', e.message); process.exit(1); });
