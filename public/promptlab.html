@@ -794,9 +794,16 @@
     download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>',
     sprout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>',
     copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
-    // Send to the Story Room — Lucide `share`, the iOS square-and-arrow-up
-    // (her word for the button: "share icon").
+    // ADD TO SHOEBOX — Lucide `share`, the iOS square-and-arrow-up. The SAME
+    // mark the Story Room's beat popup and Meta Assets already wear for this
+    // (2026-08-29): the three doors are one door, so they read as one thing.
+    // It used to be the Story Room WALK's glyph here; that button wears the
+    // Story Room's own icon now (a button that opens another tool wears THAT
+    // tool's icon), which is what freed the share mark for its real owner.
     share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>',
+    // The Story Room's own tile glyph — books on a shelf (Lucide `library`,
+    // the web mirror of the iOS tile's SF Symbols `books.vertical`).
+    books: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg>',
     // The photo-reference button (Aug 2026) — Lucide `image-plus`, a picture
     // with a plus, so the control says "add a photo" rather than "a file".
     imagePlus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"/><line x1="16" x2="22" y1="5" y2="5"/><line x1="19" x2="19" y1="2" y2="8"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>',
@@ -4088,6 +4095,39 @@
         { label: 'Put this prompt back in the box', icon: ICONS.copy,
           onClick: function () { closeLB(); copyPictureIn(r, i); } },
         { label: 'Save to Photos', icon: ICONS.download, onClick: saveFromLB },
+        // ADD TO SHOEBOX — the third door onto the ONE memory (2026-08-29,
+        // Sophie: "how do i send a picture to shoebox in the playground").
+        // The Story Room's beat popup and Meta Assets already had one and the
+        // tool she draws in did not, so a Playground picture had to be found
+        // again somewhere else before it could be kept. Same route, same
+        // content-addressed id (`sb-<sha1>` off the picture), so adding the
+        // same picture from two doors updates ONE memory rather than making
+        // twins — and re-adding keeps the original's `createdAt`, which is
+        // the field the library's one query orders by.
+        //
+        // THE TITLE IS HER OWN WORDS — the picture's content half, which on a
+        // panels run is THAT panel's line (runPromptHalves), never the style
+        // wrapper and never the MODEL · QUALITY caption. It becomes the
+        // polaroid's title in the Shoebox, so it has to be the thing the
+        // picture is OF. Meta Assets sends the label she reviews by for the
+        // same reason; here the typed prompt IS that label.
+        { label: 'Add to Shoebox', icon: ICONS.share,
+          onClick: function (ev) {
+            // The lit button is the receipt — this walks nowhere, so without
+            // it a tap that worked and a tap that did nothing look identical.
+            var btn = ev && ev.currentTarget;
+            fetch('/api/scratchpad/shoebox-url', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url: src, title: h.content || '', source: 'playground' }),
+            }).then(function (res) { return res.json(); })
+              .then(function (d) {
+                if (d && d.ok) {
+                  if (btn) { btn.style.background = '#3a3530'; btn.style.color = '#faf7f0'; }
+                  toast('In the Shoebox');
+                } else toast((d && d.error) || 'That didn\u2019t save');
+              })
+              .catch(function () { toast('That didn\u2019t save'); });
+          } },
         // SEND TO THE STORY ROOM — it WALKS THERE (2026-08-26, Sophie: "rather
         // than this weird pop-up, it should take me to the story room so I can
         // pick myself"). A NAVIGATION that decides nothing about a story: the
@@ -4097,7 +4137,7 @@
         // The banked sheet walks too, at its virtual index -1 — the room
         // resolves that to `sheetUrl` (loadSend). A whole comic page is
         // exactly the kind of picture a beat wants.
-        { label: 'Send to the Story Room', icon: ICONS.share,
+        { label: 'Send to the Story Room', icon: ICONS.books,
           onClick: function () { location.href = '/storyroom?send=' + encodeURIComponent(id) + '&i=' + i; } },
       ],
     };
