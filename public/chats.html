@@ -2353,7 +2353,7 @@ window.addEventListener('pagehide',scrollStop);
     if(window.__scrollStop) window.__scrollStop();
     try{ window.scrollTo({top:0, behavior:'smooth'}); }catch(_){ window.scrollTo(0,0); }
   };
-  function sync(){ b.classList.toggle('on', window.scrollY > window.innerHeight); }
+  function sync(){ b.classList.toggle('on', window.scrollY > 150); }
   window.__pillTopSync=sync;
   window.addEventListener('scroll',sync,{passive:true});
   window.addEventListener('resize',sync,{passive:true});
@@ -8369,7 +8369,7 @@ function mkPagePill(getWin){
     try{ w.scrollTo({top:0, behavior:'smooth'}); }catch(_){ try{ w.scrollTo(0,0); }catch(__){} } };
   function syncTop(){ var w=getWin(); if(!w){ pt.classList.remove('on'); return; }
     try{ var d=w.document.documentElement;
-      pt.classList.toggle('on', w.scrollY > w.innerHeight && d.scrollHeight > w.innerHeight+4);
+      pt.classList.toggle('on', w.scrollY > 150 && d.scrollHeight > w.innerHeight+4);
     }catch(_){ pt.classList.remove('on'); } }
   paint(); syncTop(); pill._stop=stop;
   pill._playing=function(){ return playing; };

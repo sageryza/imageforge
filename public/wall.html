@@ -342,7 +342,7 @@ if(_ptop){
 }
 function syncPtop(){
   if(!_ptop) return;
-  _ptop.classList.toggle('on', sTop() > sView() && pageScrolls());
+  _ptop.classList.toggle('on', sTop() > 150 && pageScrolls());
 }
 window.__pillTopSync=syncPtop;
 window.addEventListener('scroll',syncPtop,{passive:true});
