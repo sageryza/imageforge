@@ -3765,18 +3765,45 @@
 
   // The PANELS tab's whole gallery in one read — the server sweeps its scan
   // for panels runs (they are a sliver of the feed, so paging 40 mixed docs
-  // to find them would make Older a button that mostly adds nothing). Asked
-  // once per visit; a failed fetch un-marks itself so the next tab switch
-  // tries again.
-  var panelsSwept = false;
-  function loadPanelsSweep() {
-    if (panelsSwept) return;
-    panelsSwept = true;
+  // to find them would make Older a button that mostly adds nothing).
+  //
+  // IT RE-ASKS, AND THAT IS THE POINT (2026-08-29, Sophie about a sheet drawn
+  // in a container: "is not in playground"). It used to be asked ONCE per page
+  // load and never again — fine while every panels run was started from this
+  // page, since the poll lands its own run (`landRun`). But the house path for
+  // a CHAT's panels is to draw in its own container and file the finished run
+  // with POST /api/promptlab/panels-import ("the playground is for me, but
+  // panels should go in panels"), and NO poll here is tracking one of those.
+  // So an imported run was on the server, in this very query's answer, and
+  // unreachable until the page itself reloaded — which inside the app means
+  // the whole app process, since a tool's web view is kept alive. The run had
+  // landed correctly and read as lost.
+  //
+  // Cheap enough to re-ask: one capped query, and `mergeRuns` is keyed by id,
+  // so a re-sweep can only ever ADD (her votes and her place are untouched).
+  // Throttled, because entering the tab is a tap she may repeat; the FIRST
+  // paint is still instant, drawn from what the feed already holds.
+  var panelsSweptAt = 0, panelsSweeping = false;
+  var PANELS_RESWEEP = 20000;
+  function loadPanelsSweep(force) {
+    if (panelsSweeping) return;
+    if (!force && panelsSweptAt && Date.now() - panelsSweptAt < PANELS_RESWEEP) return;
+    panelsSweeping = true;
     fetch('/api/promptlab?kind=panels&limit=300').then(function (r) { return r.json(); }).then(function (d) {
+      panelsSweptAt = Date.now();
+      panelsSweeping = false;
       mergeRuns((d.runs || []).filter(function (r) { return r.status !== 'running'; }));
       renderFeed();
-    }).catch(function () { panelsSwept = false; });
+    }).catch(function () { panelsSweeping = false; });
   }
+  // Coming back to the tool is the moment a stale gallery is about to be read
+  // — the same reasoning as the page's own build check — so it asks PAST the
+  // throttle. The throttle is there for a tab tap she may repeat; a visibility
+  // flip is her leaving and returning, which is exactly when a chat's sheet
+  // has had time to land.
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && onPanels()) loadPanelsSweep(true);
+  });
 
   // One more page, behind the oldest SINGLE run the feed holds. The cursor is
   // that run's createdAt, NOT an offset — runs land at the top while she

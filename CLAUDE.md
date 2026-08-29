@@ -4007,7 +4007,8 @@ before working on that module. Nothing was deleted — the moved text is verbati
   and then asked `loadRuns()` for the real run — and **`loadRuns` only ever
   fetches `kind=single`** (2026-08-28, so a morning of panels runs cannot fill
   all 40 slots of the Picture tab's page), while the PANELS gallery comes from
-  `loadPanelsSweep`, which is asked **ONCE per page load and never again**. So
+  `loadPanelsSweep`, which was then asked **ONCE per page load and never
+  again** (that latch is gone — see the next paragraph). So
   on that tab the placeholder came down and nothing replaced it: the tile
   vanished and **stayed vanished until the page itself was reloaded** — which
   inside the app is the whole app process. The poll is holding the finished
@@ -4024,6 +4025,28 @@ before working on that module. Nothing was deleted — the moved text is verbati
   running → ready → done and COUNTED at every step, because a test that looks
   only once it is `done` passes against the pre-fix page: the bug is the gap
   (verified failing 8 pre-fix, including 45 of 45 blank samples across the cut).
+  **AND THE PANELS SWEEP RE-ASKS NOW, WHICH IS WHAT A CONTAINER-DRAWN SHEET
+  NEEDED (2026-08-29, Sophie about a sheet drawn in a chat's container: "is not
+  in playground").** `landRun` above lands a run THIS PAGE STARTED — the poll
+  is holding the doc. But the house path for a chat's panels is to draw in its
+  own container and file the finished run with `POST
+  /api/promptlab/panels-import` ("the playground is for me, but panels should
+  go in panels"), and **no poll of hers is behind one of those**: it is `done`
+  the moment it exists. With the sweep a one-shot, such a run sat on the
+  server, inside the very answer that query returns, and was unreachable until
+  the page itself reloaded — which inside the app is the whole app process,
+  since a tool's web view is kept alive. **The run had landed correctly and
+  read as lost**, which is the worst shape a filing bug can take. So the latch
+  is a THROTTLE (`panelsSweptAt` / `PANELS_RESWEEP`, 20s) rather than a
+  one-shot: entering the tab re-asks, and `visibilitychange`→visible asks
+  **past** the throttle while she is on that tab — coming back to the tool is
+  the moment a stale gallery is about to be read, and the throttle is only
+  there for a tab tap she may repeat. Safe because `mergeRuns` is keyed by id,
+  so a re-sweep can only ADD; her votes and her place are untouched, and the
+  first paint is still instant off what the feed already holds. Test:
+  `node scripts/test-playground-imported-run.js` — and **it must never
+  reload**, because a reload sweeps the run in on the pre-fix page too and the
+  test would pass against the bug (verified failing 3 pre-fix).
   **A DEPLOY RESTART CANNOT
   LOSE A BANKED SHEET (2026-08-27, measured: three merges deployed in a row
   and orphaned four paid 4K sheets mid-run)** — the stuck-run sweep finishes
