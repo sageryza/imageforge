@@ -4087,6 +4087,18 @@ before working on that module. Nothing was deleted — the moved text is verbati
   tab* in `docs/modules/pictures.md`. Tests: `node
   scripts/test-playground-panel-fold.js`, `node scripts/test-sheet-grid.js`
   and `node scripts/test-playground-panels.js`.
+  **AND THE ROW CARRIES A CLEAR (2026-08-29, Sophie: "add a clear button at
+  the top of panels")** — an underlined word at the end of the fold row, the
+  house inline opener's paint, emptying the grid she is ON (or the story box)
+  and no other grid's draft. Four things not to undo: it is a **SIBLING** of
+  the fold, since that row is a `<button>` and a nested button is invalid and
+  would fold the boxes away on the tap; it is **drawn only while something is
+  written**, so it is never a control that does nothing; it asks first **only
+  over UNSEEN work** — a draft that was DRAWN clears silently, because that
+  sheet is in her feed with its prompt one tap from copying back, which is the
+  carry's own question for the carry's own reason; and clearing **OPENS the
+  fold**, since she is about to write in the boxes again. Test: `node
+  scripts/test-playground-panel-clear.js`.
   **HER WORDS COME WITH HER WHEN SHE CHANGES GRID (2026-08-29, Sophie: "if
   there's text in one of the grids if I transferred to that grid, my words
   don't transfer. They should transfer, but if the text that was saved as a

@@ -669,8 +669,21 @@
      and Generate still reads them. Shut, the row says how many are written:
      the one thing the boxes are no longer saying. Open, it does not — they
      are right there (the archive summary's don't-say-it-twice rule). */
-  #panelfold { display: flex; align-items: center; gap: 6px; width: 100%;
-    border: 0; background: none; margin: 0 0 6px; padding: 2px 0; cursor: pointer;
+  /* THE CLEAR IS A SIBLING OF THE FOLD, NEVER INSIDE IT (2026-08-29, Sophie:
+     "add a clear button at the top of panels"). The fold row is a <button>,
+     so a nested button is invalid and the tap would bubble into folding the
+     boxes away — the row is a flex wrapper with the two side by side. It is
+     the house inline opener's paint (an underlined word, no box, no plate),
+     because it sits on a 10.5px label row where a bordered control would be
+     the heaviest thing on the screen; and it is drawn ONLY while there are
+     words to wipe, so it is never a control that does nothing. */
+  #panelrow { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; }
+  #panelclear { flex: none; border: 0; background: none; margin: 0; padding: 2px 0;
+    font: inherit; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase;
+    color: #9a9186; text-decoration: underline; cursor: pointer;
+    -webkit-tap-highlight-color: transparent; }
+  #panelfold { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0;
+    border: 0; background: none; margin: 0; padding: 2px 0; cursor: pointer;
     font-family: inherit; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase;
     color: #9a9186; text-align: left; -webkit-tap-highlight-color: transparent; }
   #panelfold svg { width: 13px; height: 13px; flex: none; transition: transform .15s ease; }
@@ -743,7 +756,7 @@
   <div id="beattag"></div>
   <div id="promptpanel"></div>
   <div class="promptwrap"><textarea id="prompt"></textarea><button type="button" id="bigprompt" aria-label="Bigger box" title="Bigger box"></button></div>
-  <button type="button" id="panelfold" hidden aria-expanded="true" aria-controls="panelgrid"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg><span id="panelfoldlab">Panels</span></button>
+  <div id="panelrow" hidden><button type="button" id="panelfold" aria-expanded="true" aria-controls="panelgrid"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg><span id="panelfoldlab">Panels</span></button><button type="button" id="panelclear" hidden>Clear</button></div>
   <div id="panelgrid" hidden></div>
   <div class="controls">
     <div class="canvastog" id="gridpick" role="group" aria-label="How many panels" hidden></div>
@@ -1606,10 +1619,13 @@
     var n = vals.filter(function (s) { return s.trim(); }).length;
     return 'Panels · ' + n + ' of ' + vals.length + ' written';
   }
+  function panelWords() {
+    return storyMode() ? [storyText()] : panelVals();
+  }
   function paintPanelFold() {
     var row = document.getElementById('panelfold');
     var box = document.getElementById('panelgrid');
-    row.hidden = !onPanels();
+    document.getElementById('panelrow').hidden = !onPanels();
     if (!onPanels()) return;
     var shut = panelsShut();
     box.style.display = shut ? 'none' : (box.getAttribute('data-mode') || 'grid');
@@ -1617,9 +1633,42 @@
     row.setAttribute('aria-expanded', shut ? 'false' : 'true');
     document.getElementById('panelfoldlab').textContent =
       shut ? panelFoldLabel() : (storyMode() ? 'Story' : 'Panels');
+    // Never a dead control: with nothing written there is nothing to clear.
+    document.getElementById('panelclear').hidden = !anyWords(panelWords());
   }
   document.getElementById('panelfold').addEventListener('click', function () {
     setPanelsShut(!panelsShut());
+  });
+  // CLEAR (2026-08-29, Sophie: "add a clear button at the top of panels").
+  // It empties the boxes she is looking at — the panel grid she is on, or the
+  // story box — and nothing else: the OTHER grids' drafts are their own copies
+  // and clearing one has never meant clearing them (the carry rule's half that
+  // makes switching back safe). It asks first only over UNSEEN work, the same
+  // question the carry asks and for the same reason: a draft that has been
+  // DRAWN is in her feed with its prompt one tap from copying back, so wiping
+  // it costs nothing, and one that never has is the only thing this can lose.
+  function wipePanels() {
+    if (storyMode()) {
+      try { localStorage.removeItem(STORYTEXTKEY); } catch (e) { /* private mode */ }
+    } else {
+      savePanelTexts(curGrid(), []);
+    }
+    buildPanelGrid();          // closes an open popup and rebuilds the cells empty
+    openPanels();              // she is about to write in them again
+    paintPromptPanel();
+  }
+  document.getElementById('panelclear').addEventListener('click', function () {
+    var words = panelWords();
+    if (!anyWords(words)) return;
+    if (!storyMode() && sameWords(panelVals(), panelsDrawn(curGrid()))) { wipePanels(); return; }
+    var n = words.filter(function (s) { return String(s || '').trim(); }).length;
+    askOpen({
+      msg: storyMode() ? 'Clear the story?' : 'Clear these panels?',
+      fine: storyMode() ? 'It was never drawn.'
+        : (n + (n === 1 ? ' panel here was' : ' panels here were') + ' never drawn.'),
+      no: 'Keep them', yes: 'Clear',
+      onYes: wipePanels,
+    });
   });
   function buildPanelGrid() {
     // A rebuild replaces the cells, so a popup left open would point at a
@@ -1647,6 +1696,7 @@
       st.value = storyText();
       st.addEventListener('input', function () {
         try { localStorage.setItem(STORYTEXTKEY, st.value); } catch (e) { /* private mode */ }
+        paintPanelFold();      // the Clear appears with the first word, and leaves with the last
       });
       box.appendChild(st);
       paintPanelFold();
@@ -1880,6 +1930,7 @@
   function stashPanels() {
     if (!PANELS_CFG) return;
     savePanelTexts(curGrid(), panelVals());
+    paintPanelFold();          // the Clear appears with the first word, and leaves with the last
   }
   function paintGridPick() {
     var el = document.getElementById('gridpick');

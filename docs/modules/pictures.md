@@ -459,6 +459,33 @@ panels fit under 4000 chars at ~350 each; twenty-five will not).
     headless — the fold measured as the controls moving, the words read out of
     the hidden boxes, the POST, the stickiness across a reload, and each door
     that reopens it).
+- **AND THE ROW CARRIES A CLEAR (2026-08-29, Sophie: "add a clear button at
+  the top of panels").** `#panelclear`, an underlined word at the end of the
+  fold row — the house inline opener's paint (no box, no plate), because the
+  row is a 10.5px label line where a bordered control would be the heaviest
+  thing on the screen. It empties the grid she is ON, or the story box, and
+  nothing else. Four rules:
+  - **It is a SIBLING of the fold, never inside it.** `#panelfold` is a
+    `<button>`, so a nested button is invalid AND the tap would bubble into
+    folding the boxes away; `#panelrow` is the flex wrapper that holds the two
+    side by side, and it is the wrapper `paintPanelFold` hides off the Picture
+    tab now.
+  - **It is drawn only while something is written** — `anyWords(panelWords())`
+    on every repaint, which is why `stashPanels` and the story box's own input
+    handler call `paintPanelFold`: the clear arrives with her first word and
+    leaves with her last, and is never a control that does nothing.
+  - **It asks first ONLY over UNSEEN work.** A draft that matches
+    `promptlab_panels_drawn_<g>` clears silently — that sheet is in her feed
+    with its prompt one tap from copying back — and one that never drew asks
+    through the page's one `askOpen` box. Same question as the carry, for the
+    same reason.
+  - **Clearing OPENS the fold**, since she is about to write in the boxes
+    again, and it goes through `buildPanelGrid`, which closes an open panel
+    popup rather than leaving it pointed at a dead node.
+  - Test: `node scripts/test-playground-panel-clear.js` (the real page
+    headless — the tap asked with `elementFromPoint`, the boxes still open
+    after it, both answers to the pop-up, the other grid's draft untouched,
+    the drawn draft's silence, and Story).
 
 - **HER WORDS COME WITH HER WHEN SHE CHANGES GRID (2026-08-29, Sophie: "if
   there's text in one of the grids if I transferred to that grid, my words
