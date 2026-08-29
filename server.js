@@ -366,6 +366,12 @@ loadConfig().then(() => {
   const scratchpadMod = require('./scratchpad');
   scratchpadMod.init({ membryDb: storyDb, fileCreation: fileCreationDoc });
   app.use('/api/scratchpad', scratchpadMod.router);
+  // Squaring — crop pictures to square by tapping arrows, one number per
+  // picture. Takes the membry handle too: a squared Shoebox polaroid is
+  // written straight back onto its memory doc.
+  const cropperMod = require('./cropper');
+  cropperMod.init({ membryDb: storyDb });
+  app.use('/api/crop', cropperMod.router);
   // Freeform — your own reference images + your own words, sent verbatim. The
   // one image surface that adds NOTHING to a prompt (no style prefix/suffix).
   app.use('/api/freeform', require('./freeform').router);
@@ -883,6 +889,8 @@ app.get('/freeform', serveGated('freeform.html', { pill: true }));
 // Vector: describe drawings -> art that scales, and change its colours after
 // the fact for nothing. The front for /api/vector; see docs/vector-pipeline.md.
 app.get('/vector', serveGated('vector.html', { pill: true }));
+// One screen, never scrolls — so no autoscroll pill, like /opinions.
+app.get('/crop', serveGated('crop.html'));
 // Story Timeline: dictated moments -> cards you can order, join into
 // sequences, edit, divide and delete. The front for /api/timeline.
 app.get('/timeline', serveGated('timeline.html', { pill: true }));

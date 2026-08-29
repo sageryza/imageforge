@@ -56,6 +56,7 @@ enum ForgeLinks {
         "/song": "song",
         "/character": "character",
         "/films": "films",
+        "/crop": "crop",
     ]
 
     /// The destination a tapped web link means, or nil if it is not ours.

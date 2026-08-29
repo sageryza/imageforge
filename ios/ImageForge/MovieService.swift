@@ -22,9 +22,15 @@ enum MovieAPIError: LocalizedError {
 @MainActor
 final class MovieService {
     static let shared = MovieService()
-    static let defaultServer = "https://imageforge-q125.onrender.com"
+    // NONISOLATED, both of them: ForgeLinks.serverHost asks which host the app
+    // is configured for from a nonisolated context, and a main-actor-isolated
+    // computed property is an ERROR there — which is what has had the iOS
+    // build red on main since 2026-08-26 (#1743, the PR that added
+    // serverHost). Nothing about either of these needs the main actor: it is
+    // one UserDefaults read, and UserDefaults is thread-safe.
+    nonisolated static let defaultServer = "https://imageforge-q125.onrender.com"
 
-    static var serverURL: String {
+    nonisolated static var serverURL: String {
         let s = (UserDefaults.standard.string(forKey: "forge.serverURL") ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return s.isEmpty ? defaultServer : s
