@@ -122,6 +122,10 @@ body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--i
 <div id="clightbox"></div>
 <div id="toast"></div>
 <script src="/playground-port.js"></script>
+<!-- The characters clause is written by sheet-grid.js and read back by it —
+     ONE copy of that wording, so a panel's cast can ride the Playground link
+     without this page keeping a transcript of it. -->
+<script src="/sheet-grid.js"></script>
 <script src="/asset-lightbox.js"></script>
 <script>
 (function(){   // IIFE — the injected pill runs in global scope; never collide
@@ -271,6 +275,18 @@ function playgroundQuery(it){
        +'&sameref='+(m.matched?'1':'0');
   var qual=port.matchQuality(it.promptStyle, it.prompt);
   if(qual) q+='&quality='+qual;
+  // THE CAST COMES TOO (2026-08-29, Sophie: "panels adds a character / if i
+  // import solo to playground / can it auto add the character description
+  // from the original multi sheet / ex creepy guy"). A cut panel's filed
+  // STYLE half is everything in the sheet's prompt before that panel's own
+  // line, so the characters clause is sitting in it verbatim — castParse
+  // reads the rows straight back out. Nothing is invented: no clause on the
+  // record means no rows and the link is exactly what it always was. The
+  // Playground adds them without replacing anything she has typed, and says
+  // on arrival how many landed.
+  var sg=window.__sheetGrid;
+  var cast=sg&&sg.castParse?sg.castParse(it.promptStyle):[];
+  if(cast&&cast.length) q+='&cast='+encodeURIComponent(JSON.stringify(cast));
   return q;
 }
 
