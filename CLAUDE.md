@@ -7168,6 +7168,30 @@ before working on that module. Nothing was deleted — the moved text is verbati
     little farther"). The old ✕ · note · ♥ row cost ~78px of mostly empty
     band. **A SHORT card is deliberately untouched** — there the big centred
     name is the design.
+  - **A DECK REOPENS WHERE SHE LEFT OFF (2026-08-29, Sophie: "I swipe through
+    the Tinder thing does it save my place rather than showing me things I've
+    already swiped on").** Her MARKS always came back — they live on the
+    verdict doc — but the resume jumped to the first UNMARKED card, and in
+    **browse mode a mark never moves the deck**, so every card she read past
+    without marking pulled her backwards on the next open. Her place is one
+    more field on that same doc (`at`, an item id), written by `savePlace` in
+    judge.js on every move and flushed on `pagehide`.
+    - **The id, never the index.** The sheet name already carries the item
+      set's shape, but an id says what it means, and a card that has since
+      gone falls through to the old first-unmarked rule instead of landing
+      her on whatever moved into that slot.
+    - **A place is not a verdict.** It rides `POST /api/chatfeed/verdict` for
+      the identity and the one doc, in its own field — so saving a place can
+      never mark a card, and the route now takes `item` OR `at`.
+    - **A FINISHED deck still opens on the PILES**, ahead of her place: "you
+      are done" is the honest screen for a finished deck, and her last card is
+      one tap from it.
+    - **A ♥ arriving from the Assets tab must not yank her off a restored
+      place** — `loadAssetVotes` can finish the deck mid-resume, and it used
+      to re-aim at the first unmarked card when it did.
+    - Test: `node scripts/test-judge-place.js` — the deck is LOADED TWICE
+      against a server that really keeps the doc, because a source assertion
+      cannot tell a saved place from a lucky index (verified failing pre-fix).
   - **ONE PAGE, TWO VIEWS (Aug 2026 v4, Sophie: "the compare page, and tinder
     swipe shud be TWO views of the the same page, since they have the same
     content. that way I can swipe back and forth, and see them at full size,

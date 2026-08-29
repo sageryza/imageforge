@@ -4886,8 +4886,9 @@ async function applyPageVerdict(sheet, item, ok) {
 
 router.post('/verdict', express.json({ limit: '64kb' }), async (req, res) => {
   try {
-    const { chat, sheet, item, ok, text } = req.body || {};
-    if (!chat || !sheet || item === undefined) return res.status(400).json({ error: 'chat, sheet and item are required' });
+    const { chat, sheet, item, ok, text, at } = req.body || {};
+    if (!chat || !sheet) return res.status(400).json({ error: 'chat and sheet are required' });
+    if (item === undefined && at === undefined) return res.status(400).json({ error: 'item or at is required' });
     const db = admin.firestore();
     const id = `${String(chat).slice(0, 80)}__${String(sheet).slice(0, 80)}`;
     const patch = { chat, sheet, updatedAt: new Date().toISOString() };
@@ -4895,13 +4896,25 @@ router.post('/verdict', express.json({ limit: '64kb' }), async (req, res) => {
     // Booleans stay booleans (♥/✕ and every older vote page). A SHORT STRING
     // rides through unchanged for the judge template's piles ('maybe' /
     // 'later' — judge.js, Aug 2026); anything else coerces to boolean as before.
-    if (ok !== undefined) {
+    if (ok !== undefined && item !== undefined) {
       patch.items = {
         [String(item)]: ok === null ? null
           : typeof ok === 'string' ? String(ok).slice(0, 24) : !!ok,
       };
     }
     if (text !== undefined) patch.texts = { [String(item)]: String(text || '').slice(0, 2000) };
+    // HER PLACE IN THE DECK (2026-08-29, Sophie: "does it save my place rather
+    // than showing me things I've already swiped on"). One item id, on the doc
+    // her verdicts already live on — so it costs no extra read, it follows her
+    // between devices, and a deck she left half-read reopens where her thumb
+    // was rather than at the first card she happened to skip past.
+    //
+    // It rides this route rather than getting one of its own because it is the
+    // same doc and the same identity, and because a place is only ever written
+    // by the surface that is also writing verdicts. It is deliberately NOT a
+    // verdict: it lands in its own field, so saving a place can never mark a
+    // card and clearing a mark can never move her.
+    if (at !== undefined) patch.at = at === null ? '' : String(at).slice(0, 80);
     await db.collection('forge-chat-verdicts').doc(id).set(patch, { merge: true });
     // A VERDICT THAT ACTUALLY DOES THE THING (Aug 2026, Sophie: she marked
     // eleven cards "Archive", told the chat "I archived all of them", and not
@@ -4914,7 +4927,7 @@ router.post('/verdict', express.json({ limit: '64kb' }), async (req, res) => {
     // "run this on tap" hook: archiving is one reversible, visible act, and
     // that is what makes it safe to fire from a card.
     let archived = null;
-    if (ok !== undefined) {
+    if (ok !== undefined && item !== undefined) {
       try { archived = await applyPageVerdict(String(sheet), String(item), ok); }
       catch (e) { /* her mark is saved either way — never fail the tap */ }
     }
@@ -4930,7 +4943,7 @@ router.get('/verdict', async (req, res) => {
     const id = `${String(chat).slice(0, 80)}__${String(sheet).slice(0, 80)}`;
     const doc = await admin.firestore().collection('forge-chat-verdicts').doc(id).get();
     const d = doc.exists ? doc.data() : {};
-    res.json({ ok: true, items: d.items || {}, texts: d.texts || {} });
+    res.json({ ok: true, items: d.items || {}, texts: d.texts || {}, at: d.at || '' });
   } catch (err) {
     res.status(502).json({ error: err.message });
   }

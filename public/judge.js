@@ -31,7 +31,9 @@
    ok = true/false/'maybe'/'later'), so a chat reads them back with
    GET /api/chatfeed/verdict?chat=&sheet= exactly like vote chips. Notes ride
    the same doc's text field (the standing every-reviewable-thing rule).
-   Reopening the page resumes at the first unjudged item; when everything is
+   Reopening the page resumes WHERE SHE LEFT OFF (the `at` field on the same
+   doc — see savePlace), falling back to the first unjudged item when there is
+   no place on file or the card it names has gone; when everything is
    judged it opens on the PILES view — Loved / Maybe / Later / Passed — where
    tapping any tile re-opens that item to re-judge it.
 
@@ -903,10 +905,40 @@
       clearTimeout(noteTimer);
       noteTimer = setTimeout(function () { post({ item: id, text: text }); }, 700);
     }
+
+    // ── HER PLACE (2026-08-29, Sophie: "I swipe through the Tinder thing does
+    // it save my place rather than showing me things I've already swiped
+    // on"). It did not, quite: her MARKS came back but reopening jumped to the
+    // first UNMARKED card, so a card she browsed past without marking pulled
+    // her backwards every time she came back.
+    //
+    // The place is the ITEM ID, never the index — the sheet name carries the
+    // item set's shape, but an id says what it means and a card that has since
+    // gone simply falls through to the old rule instead of landing her on
+    // whatever moved into that slot.
+    //
+    // Debounced, because a swipe through thirty cards is thirty moves and only
+    // the last one is where she stopped.
+    var placeTimer = null, placeAt = null, placeRestored = false;
+    function savePlace() {
+      if (view !== 'card') return;          // the piles view is not a place
+      var it = items[cur];
+      if (!it || it.id === placeAt) return;
+      placeAt = it.id;
+      clearTimeout(placeTimer);
+      placeTimer = setTimeout(function () { post({ at: placeAt }); }, 600);
+    }
     window.addEventListener('pagehide', function () {
       // a half-typed note survives leaving (same contract as __compareNotes)
       var it = items[cur];
       if (!it) return;
+      // …and so does her place: the debounce above is 600ms, and closing the
+      // tab is exactly the moment it has not fired yet
+      if (view === 'card' && placeAt !== it.id) {
+        placeAt = it.id;
+        clearTimeout(placeTimer);
+        beacon({ at: it.id });
+      }
       var text = null;
       var mb = mount.querySelector('.jg-momnote');
       if (mb && momNote && momNote.item === it.id && mb.value.trim()) {
@@ -916,13 +948,20 @@
         if (box && box.value.trim()) text = box.value;
       }
       if (!text) return;
-      try {
-        navigator.sendBeacon('/api/chatfeed/verdict', new Blob([JSON.stringify({
-          chat: chat, sheet: sheet, item: it.id, text: text,
-        })], { type: 'application/json' }));
-      } catch (_) { /* nothing else to do */ }
+      beacon({ item: it.id, text: text });
     });
+    function beacon(body) {
+      body.chat = chat; body.sheet = sheet;
+      try {
+        navigator.sendBeacon('/api/chatfeed/verdict',
+          new Blob([JSON.stringify(body)], { type: 'application/json' }));
+      } catch (_) { /* nothing else to do */ }
+    }
 
+    function indexOfId(id) {
+      for (var i = 0; i < items.length; i++) if (items[i].id === id) return i;
+      return -1;   // the card has gone — fall through to the old rule
+    }
     function firstUnjudged() {
       for (var i = 0; i < items.length; i++) if (verdicts[items[i].id] === undefined) return i;
       return -1;
@@ -962,20 +1001,20 @@
           if (cur !== leaving || view !== 'card') return;
           var n = firstUnjudged();
           if (n === -1) { view = 'piles'; } else { cur = n; }
-          render(true);
+          render(true); savePlace();
         }, 620);
         return;
       } else {
         var next = firstUnjudged();
         if (next === -1) { view = 'piles'; } else { cur = next; }
       }
-      render(true);
+      render(true); savePlace();
     }
     function nav(step) {
       var to = cur + step;
       if (to < 0) return;
       if (to > items.length - 1) { view = 'piles'; render(true); return; }
-      cur = to; view = 'card'; render(true);
+      cur = to; view = 'card'; render(true); savePlace();
     }
     function undo() {
       var u = undoStack.pop();
@@ -987,7 +1026,7 @@
       if (was === true || was === false || u.prev === true || u.prev === false) {
         mirrorVote(it, u.prev === undefined ? null : u.prev);
       }
-      cur = u.i; view = 'card'; render(true);
+      cur = u.i; view = 'card'; render(true); savePlace();
     }
 
     // the card-face menu (Aug 2026): square (the XI deck), portrait (a story
@@ -1555,7 +1594,7 @@
       if (open !== null && open !== undefined && open !== '') {
         cur = items.findIndex(function (it) { return it.id === open; });
         if (cur < 0) cur = 0;
-        view = 'card'; render(true); return;
+        view = 'card'; render(true); savePlace(); return;
       }
       var st = b.getAttribute('data-state');
       if (st !== null && st !== undefined && st !== '' && states) {
@@ -1722,8 +1761,15 @@
             if (tx[it.id]) notes[it.id] = tx[it.id];
           });
           if (move) {
+            // WHERE SHE LEFT OFF WINS OVER THE FIRST UNMARKED CARD — that is
+            // the whole of the 2026-08-29 fix. A deck she has finished still
+            // opens on the PILES, because "you are done" is the honest screen
+            // for a finished deck and her place is one tap away from it.
             var next = firstUnjudged();
-            if (next === -1) view = 'piles'; else cur = next;
+            var save = d && d.at ? indexOfId(d.at) : -1;
+            if (next === -1) { view = 'piles'; placeAt = d && d.at ? d.at : null; }
+            else if (save >= 0) { cur = save; placeAt = d.at; placeRestored = true; }
+            else cur = next;
           }
           render();
           return loadAssetVotes(move);
@@ -1765,7 +1811,9 @@
             verdicts[it.id] = v === 'like';
             moved = true;
           });
-          if (moved && move) {
+          // a ♥ from the Assets tab can finish the deck, but it must never
+          // yank her off the place she was restored to
+          if (moved && move && !placeRestored) {
             var next = firstUnjudged();
             if (next === -1) view = 'piles'; else cur = next;
           }
