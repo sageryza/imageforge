@@ -1,18 +1,22 @@
 #!/usr/bin/env node
 /*
- * test-playground-panel-bigbox.js — every panel box expands
- * (2026-08-29, Sophie: "can u add a expand button per text box in each panel").
+ * test-playground-panel-bigbox.js — every panel box expands, as a POPUP
+ * (2026-08-29, Sophie: "can u add a expand button per text box in each
+ * panel" → "expand as a popup").
  *
- * #bigprompt's answer, one per cell. Everything here is a MEASUREMENT or a
- * real tap, because the whole feature is what a box looks like on screen:
+ * Everything here is a MEASUREMENT or a real tap, because the whole feature
+ * is what a box looks like on screen:
  *
  *   - every panel box carries its own corner button, inside its own cell
  *   - the button is really reachable (elementFromPoint, not isVisible)
- *   - big SPANS THE WHOLE ROW and fits the words between the floor and cap
- *   - typing while big grows the box under the dictation
- *   - a big box is still the ONE textarea — Generate reads her words from it
- *   - the toggle back really shrinks (the height:auto lesson)
- *   - a grid rebuild opens everything small — not sticky, by design
+ *   - the tap lifts the SAME textarea over a backdrop — it never leaves
+ *     #panelgrid, so panelVals/drafts/carry/Generate read it unchanged
+ *   - the popup fits her words between the floor and cap and grows as she
+ *     dictates; the grid behind the backdrop does not reflow
+ *   - the house overlay rules: page locked while open, scroll position
+ *     restored exactly on close
+ *   - backdrop tap, the button, and a grid rebuild all close it — nothing
+ *     can strand the backdrop with the page locked
  *
  *   node scripts/test-playground-panel-bigbox.js
  *   (needs: npm install playwright --no-save)
@@ -155,72 +159,121 @@ function panelsPayload() {
   });
   ok(reach, 'and the tap reaches it (elementFromPoint)');
 
-  console.log('\nexpanding');
+  console.log('\nopening the popup');
   for (let i = 0; i < 9; i++) await page.fill('#panelgrid textarea[data-panel="' + i + '"]', nine[i]);
+  // Scroll first, then snapshot — rects are viewport-relative, and the
+  // restore assertion needs the y the page can really reach (the harness
+  // page is short).
   const small = await page.evaluate(() => {
+    window.scrollTo(0, 120);
     const t = document.querySelectorAll('#panelgrid textarea')[4];
     const r = t.getBoundingClientRect();
-    return { w: r.width, h: r.height };
+    const n = document.querySelectorAll('#panelgrid textarea')[5].getBoundingClientRect();
+    return { w: r.width, h: r.height, y: window.scrollY, neighbour: { top: n.top, left: n.left } };
   });
   await page.evaluate(() => document.querySelectorAll('#panelgrid .pbig')[4].click());
-  const big = await page.evaluate(() => {
+  const pop = await page.evaluate(() => {
     const c = document.querySelectorAll('#panelgrid .pcell')[4];
     const t = c.querySelector('textarea');
-    const g = document.getElementById('panelgrid').getBoundingClientRect();
     const r = t.getBoundingClientRect();
-    return { big: c.classList.contains('big'), w: r.width, h: r.height, gw: g.width, vh: window.innerHeight };
+    const n = document.querySelectorAll('#panelgrid textarea')[5].getBoundingClientRect();
+    const bg = document.getElementById('panelbg');
+    const mid = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    const go = document.getElementById('go');
+    const gr = go.getBoundingClientRect();
+    const goHit = document.elementFromPoint(gr.left + gr.width / 2, gr.top + gr.height / 2);
+    return {
+      pop: c.classList.contains('pop'),
+      fixed: getComputedStyle(t).position === 'fixed',
+      w: r.width, h: r.height, top: r.top, vw: window.innerWidth, vh: window.innerHeight,
+      bgUp: !!bg && !bg.hidden,
+      midIsBox: mid === t,
+      inGrid: t.closest('#panelgrid') === document.getElementById('panelgrid'),
+      locked: document.body.style.overflow === 'hidden',
+      neighbour: { top: n.top, left: n.left },
+      goBlocked: goHit !== go && !go.contains(goHit),
+    };
   });
-  ok(big.big, 'the tap marks the cell big');
-  ok(big.w > small.w * 2 && Math.abs(big.w - big.gw) < 2,
-    'big spans the whole row — a third-of-the-screen cell taller is not bigger');
-  ok(big.h >= big.vh * 0.19, 'with the floor holding room to write before the words exist');
-  // The cell's aspect is DROPPED: full-width at the cell's own ratio would be
-  // ~40vh+ (square) or the 46vh cap (2:3); a short line fits at the floor.
-  ok(big.h <= big.vh * 0.22, 'and no taller than the words need — the cell aspect is dropped');
+  ok(pop.pop && pop.fixed, 'the tap lifts the box into a fixed popup');
+  ok(pop.bgUp, 'over a backdrop');
+  ok(Math.abs(pop.w - pop.vw * 0.9) < 3 && pop.w > small.w * 2, 'the popup is ~the whole width');
+  ok(pop.h >= pop.vh * 0.29, 'with the floor holding room to write');
+  ok(pop.h <= pop.vh * 0.35, 'and no taller than the words need — the cell aspect is dropped');
+  ok(pop.top >= pop.vh * 0.09, 'sat high enough that the keyboard never covers it, below the very top');
+  ok(pop.midIsBox, 'the box itself takes the tap — above the backdrop and the pill');
+  ok(pop.inGrid, 'and the textarea NEVER left #panelgrid — every reader of it is untouched');
+  ok(pop.locked, 'the page behind is locked (the house overlay rule)');
+  ok(pop.goBlocked, 'and the backdrop really covers the controls behind it');
+  ok(Math.abs(pop.neighbour.top - small.neighbour.top) < 2 && Math.abs(pop.neighbour.left - small.neighbour.left) < 2,
+    'the grid behind the backdrop does not reflow — the cell keeps its footprint');
 
-  console.log('\nit grows under her words, and Generate still reads them');
-  const longText = nine[4] + ' ' + 'and then a long dictated line about what happens in this panel, '.repeat(8);
+  console.log('\nit grows under her words');
+  const longText = nine[4] + ' ' + 'and then a long dictated line about what happens in this panel, '.repeat(10);
   await page.fill('#panelgrid textarea[data-panel="4"]', longText);
   const grown = await page.evaluate(() => {
     const t = document.querySelectorAll('#panelgrid textarea')[4];
     return { h: t.getBoundingClientRect().height, scrolls: t.scrollHeight > t.clientHeight + 2, vh: window.innerHeight };
   });
-  ok(grown.h > big.h + 30, 'typing while big grows the box');
-  ok(grown.h <= grown.vh * 0.47, 'clamped at the cap');
-  ok(!grown.scrolls || grown.h >= grown.vh * 0.45,
+  ok(grown.h > pop.h + 30, 'typing while popped grows the box');
+  ok(grown.h <= grown.vh * 0.61, 'clamped at the cap');
+  ok(!grown.scrolls || grown.h >= grown.vh * 0.59,
     'and it only scrolls once the cap is really spent');
+
+  console.log('\nclosing — backdrop tap, and what it must restore');
+  await page.evaluate(() => document.getElementById('panelbg').click());
+  const closed = await page.evaluate(() => {
+    const c = document.querySelectorAll('#panelgrid .pcell')[4];
+    const t = c.querySelector('textarea');
+    return {
+      pop: c.classList.contains('pop'),
+      w: t.getBoundingClientRect().width, inline: t.style.height,
+      bgUp: !document.getElementById('panelbg').hidden,
+      locked: document.body.style.overflow === 'hidden',
+      y: window.scrollY, val: t.value,
+    };
+  });
+  ok(!closed.pop && !closed.bgUp, 'a backdrop tap closes the popup');
+  ok(Math.abs(closed.w - small.w) < 2, 'and the box is really back in its column');
+  ok(closed.inline === '', 'with the fitted inline height cleared, not left behind');
+  ok(!closed.locked && Math.abs(closed.y - small.y) < 2,
+    'the page unlocks and she is exactly where she opened it');
+  ok(closed.val === longText, 'her words survived the round trip');
+
+  console.log('\nGenerate reads the words she wrote in the popup');
   posted.length = 0;
   await page.click('#go');
   await page.waitForTimeout(300);
   const sent = posted[0] && posted[0].panels;
   // The run trims each panel on the way out, so compare trimmed.
   ok(posted.length === 1 && sent && sent[4] === longText.trim() && sent[0] === nine[0],
-    'a big box is still THE box — the run carries the words in it');
+    'the popup box is still THE box — the run carries the words in it');
 
-  console.log('\nshrinking back');
-  await page.evaluate(() => document.querySelectorAll('#panelgrid .pbig')[4].click());
-  const back = await page.evaluate(() => {
-    const c = document.querySelectorAll('#panelgrid .pcell')[4];
-    const t = c.querySelector('textarea');
-    return { big: c.classList.contains('big'), w: t.getBoundingClientRect().width, inline: t.style.height };
-  });
-  ok(!back.big && Math.abs(back.w - small.w) < 2, 'the second tap really shrinks it back to its column');
-  ok(back.inline === '', 'with the fitted inline height cleared, not left behind');
-
-  console.log('\nnot sticky');
+  console.log('\nthe button closes it too, and a rebuild closes it');
   await page.evaluate(() => document.querySelectorAll('#panelgrid .pbig')[2].click());
-  await page.click('#gridpick button[data-grid="4"]');
-  await page.waitForFunction(() => !document.getElementById('askpop') || document.querySelector('#askpop button') || true);
-  // The carry pop-up may ask about the words; take whatever lands us on the 4-grid.
+  ok(await page.evaluate(() => document.querySelectorAll('#panelgrid .pcell')[2].classList.contains('pop')), 'open again');
+  await page.evaluate(() => document.querySelectorAll('#panelgrid .pbig')[2].click());
+  ok(await page.evaluate(() =>
+    !document.querySelectorAll('#panelgrid .pcell')[2].classList.contains('pop')
+    && document.getElementById('panelbg').hidden), 'the same button closes it');
+  // A rebuild while a popup is open must not strand the backdrop + lock.
+  await page.evaluate(() => document.querySelectorAll('#panelgrid .pbig')[1].click());
+  await page.evaluate(() => {
+    const b = document.querySelector('#gridpick button[data-grid="4"]');
+    b.click();                       // behind the backdrop for her; defensive path
+  });
   await page.evaluate(() => {
     const b = Array.from(document.querySelectorAll('button'))
       .find((x) => x.offsetParent && /bring|keep/i.test(x.textContent || ''));
     if (b) b.click();
   });
   await page.waitForFunction(() => document.querySelectorAll('#panelgrid textarea').length === 4);
-  const fresh = await page.evaluate(() =>
-    document.querySelectorAll('#panelgrid .pcell.big').length);
-  ok(fresh === 0, 'a grid rebuild opens everything small — the compact grid is the tab\'s shape');
+  const fresh = await page.evaluate(() => ({
+    pops: document.querySelectorAll('#panelgrid .pcell.pop').length,
+    bgUp: !document.getElementById('panelbg').hidden,
+    locked: document.body.style.overflow === 'hidden',
+  }));
+  ok(fresh.pops === 0 && !fresh.bgUp && !fresh.locked,
+    'a grid rebuild closes the popup and unlocks the page — nothing stranded');
 
   await page.close();
   await browser.close();

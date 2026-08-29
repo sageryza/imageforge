@@ -679,21 +679,31 @@
   #panelgrid textarea { width: 100%; box-sizing: border-box; border: 1px solid #d8d0c4;
     border-radius: 6px; background: #fdfcf9; color: inherit; font: inherit; font-size: 16px;
     padding: 8px; resize: none; min-height: 64px; aspect-ratio: var(--pcell, 2 / 3); }
-  /* EVERY PANEL BOX EXPANDS (2026-08-29, Sophie: "can u add a expand button
-     per text box in each panel"). #bigprompt's answer, one per cell: the SAME
-     textarea, two sizes, never a second field to sync. Big SPANS THE WHOLE
-     ROW — a 9-grid cell is a third of the screen wide, so height alone buys
-     almost nothing for a dictated line — drops the cell's aspect ratio, and
-     fits the words between the CSS floor and cap (fitBig's two lessons:
-     height:auto before measuring or the box can only ever grow, and the
-     border added back on a border-box box). Not sticky, and a grid rebuild
-     opens everything small — the compact grid is the tab's shape. The
-     textarea reserves the button's corner with padding so her last line is
-     never typed under it. */
+  /* EVERY PANEL BOX EXPANDS — AS A POPUP (2026-08-29, Sophie: "can u add a
+     expand button per text box in each panel" → "expand as a popup"; it
+     shipped first spanning the grid row and she asked for the popup the same
+     day, so the span is history, not a rule). The corner button lifts the
+     SAME textarea over a dim backdrop — never a second field to sync, which
+     is what keeps panelVals(), the drafts, the carry and a folded Generate
+     reading it unchanged: the node never leaves its cell, only its paint
+     goes fixed. The popped box fits the words between the CSS floor and cap
+     (fitBig's two lessons: height:auto before measuring or the box can only
+     ever grow, and the border added back on a border-box box) and sits at
+     10vh so the iOS keyboard never covers it. The CELL keeps its own aspect
+     while its textarea is lifted out, so the grid behind the backdrop does
+     not reflow under her. The button rides ABOVE the popup's top-right
+     corner, on the backdrop, so it can never sit on her words; the small
+     box still reserves its corner with padding. Backdrop tap or the button
+     closes; not sticky, and a grid rebuild closes it. */
   #panelgrid .pcell { position: relative; min-width: 0; }
   #panelgrid .pcell textarea { padding-bottom: 36px; }
-  #panelgrid .pcell.big { grid-column: 1 / -1; }
-  #panelgrid .pcell.big textarea { aspect-ratio: auto; min-height: 20vh; max-height: 46vh; }
+  #panelgrid .pcell.pop { aspect-ratio: var(--pcell, 2 / 3); }
+  #panelgrid .pcell.pop textarea { position: fixed; left: 5vw; width: 90vw; top: 10vh;
+    z-index: 60; aspect-ratio: auto; min-height: 30vh; max-height: 60vh;
+    box-shadow: 0 12px 40px rgba(43, 38, 34, .35); }
+  #panelgrid .pcell.pop .pbig { position: fixed; right: 5vw; top: calc(10vh - 34px); z-index: 61; }
+  #panelbg { position: fixed; inset: 0; z-index: 59; border: 0; padding: 0; margin: 0;
+    background: rgba(43, 38, 34, .45); }
   .pbig { position: absolute; right: 6px; bottom: 6px; width: 26px; height: 26px;
     display: flex; align-items: center; justify-content: center; padding: 0; margin: 0;
     border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #6f675e; cursor: pointer; }
@@ -1612,6 +1622,9 @@
     setPanelsShut(!panelsShut());
   });
   function buildPanelGrid() {
+    // A rebuild replaces the cells, so a popup left open would point at a
+    // dead node with the backdrop still up and the page still locked.
+    closePanelPop();
     paintCharTabs(); buildCastBox();
     var box = document.getElementById('panelgrid');
     if (!onPanels()) { box.hidden = true; paintPanelFold(); return; }
@@ -1662,42 +1675,81 @@
     }
     paintPanelFold();
   }
-  // EVERY PANEL BOX EXPANDS (2026-08-29, Sophie: "can u add a expand button
-  // per text box in each panel") — the CSS note above #panelgrid .pcell has
-  // the shape. The button is a SIBLING of the textarea inside the cell (a
-  // control cannot live inside a textarea), and the toggle clears any inline
-  // height so shrinking back actually shrinks.
+  // EVERY PANEL BOX EXPANDS — AS A POPUP (2026-08-29, Sophie: "can u add a
+  // expand button per text box in each panel" → "expand as a popup") — the
+  // CSS note above #panelgrid .pcell has the shape and the history. The
+  // button is a SIBLING of the textarea inside the cell (a control cannot
+  // live inside a textarea), and the textarea NEVER leaves the cell — the
+  // popup is paint, so every reader of `#panelgrid textarea` is untouched.
+  // The house overlay rules apply: any running autoscroll stops, background
+  // scroll locks with the position saved, and closing restores it exactly.
+  // One popup at a time; opening another closes the first; closing clears
+  // the fitted inline height so the small box is really small again.
+  var popCell = null, popScrollY = 0;
+  function panelBg() {
+    var bg = document.getElementById('panelbg');
+    if (!bg) {
+      bg = document.createElement('button');
+      bg.type = 'button';
+      bg.id = 'panelbg';
+      bg.hidden = true;
+      bg.setAttribute('aria-label', 'Close the big box');
+      bg.addEventListener('click', closePanelPop);
+      document.body.appendChild(bg);
+    }
+    return bg;
+  }
   function fitPanelBig(cell, t) {
-    if (!cell.classList.contains('big')) return;
+    if (!cell.classList.contains('pop')) return;
     t.style.height = 'auto';
     t.style.height = (t.scrollHeight + (t.offsetHeight - t.clientHeight)) + 'px';
+  }
+  function closePanelPop() {
+    if (!popCell) return;
+    var t = popCell.querySelector('textarea');
+    popCell.classList.remove('pop');
+    if (t) t.style.height = '';
+    if (popCell.__paintBig) popCell.__paintBig();
+    popCell = null;
+    panelBg().hidden = true;
+    document.body.style.overflow = '';
+    window.scrollTo(0, popScrollY);
+  }
+  function openPanelPop(cell, t) {
+    closePanelPop();
+    popCell = cell;
+    popScrollY = window.scrollY;
+    if (window.__scrollStop) window.__scrollStop();
+    document.body.style.overflow = 'hidden';
+    panelBg().hidden = false;
+    cell.classList.add('pop');
+    t.style.height = '';
+    fitPanelBig(cell, t);
+    if (cell.__paintBig) cell.__paintBig();
+    t.focus();
   }
   function mkPanelBig(cell, t) {
     var b = document.createElement('button');
     b.type = 'button';
     b.className = 'pbig';
     function paint() {
-      var big = cell.classList.contains('big');
-      b.innerHTML = big ? ICONS.minimize : ICONS.maximize;
-      b.setAttribute('aria-label', big ? 'Back to the small box' : 'Bigger box');
-      b.title = big ? 'Back to the small box' : 'Bigger box';
+      var pop = cell.classList.contains('pop');
+      b.innerHTML = pop ? ICONS.minimize : ICONS.maximize;
+      b.setAttribute('aria-label', pop ? 'Close the big box' : 'Open in a big box');
+      b.title = pop ? 'Close the big box' : 'Open in a big box';
     }
+    cell.__paintBig = paint;
     b.addEventListener('click', function () {
-      cell.classList.toggle('big');
-      t.style.height = '';
-      fitPanelBig(cell, t);
-      paint();
+      if (cell.classList.contains('pop')) closePanelPop();
+      else openPanelPop(cell, t);
     });
     t.addEventListener('input', function () { fitPanelBig(cell, t); });
     paint();
     return b;
   }
-  // ONE resize listener for however many boxes are big — a rotation changes
-  // what `vh` means, and per-cell window listeners would pile up across grid
-  // rebuilds.
+  // A rotation changes what `vh` means; refit the one popup that can be open.
   window.addEventListener('resize', function () {
-    Array.prototype.forEach.call(document.querySelectorAll('#panelgrid .pcell.big'),
-      function (c) { fitPanelBig(c, c.querySelector('textarea')); });
+    if (popCell) fitPanelBig(popCell, popCell.querySelector('textarea'));
   });
   // ── HER TYPED CAST (2026-08-27, Sophie: "add a characters clause / text
   // boxes that say character 1: add character, name, description … etc up to
