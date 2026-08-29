@@ -5867,6 +5867,10 @@ const plCancelled = new Set();
 // orphaned by the 2026-08-04 deploy). No legitimate run outlives its 5-minute
 // API timeout, so anything 'running' past 10 minutes is dead: sweep it into
 // 'failed' shortly after boot and every 10 minutes after.
+//
+// A PANELS run parked on 'ready' with its sheet banked is a DIFFERENT loss and
+// is on a much shorter clock — see promptlab-sweep.js, which owns both rules.
+const plSweep = require('./promptlab-sweep');
 async function sweepStuckPromptlabRuns() {
   try {
     if (!admin.apps.length) return;
@@ -5881,26 +5885,28 @@ async function sweepStuckPromptlabRuns() {
       db.collection(PROMPTLAB).where('status', '==', 'running').get(),
       db.collection(PROMPTLAB).where('status', '==', 'ready').get(),
     ]);
-    const stale = running.docs.concat(ready.docs.filter((d) => {
-      const r = d.data();
-      return r.panels && r.sheetUrl && !(r.images || []).length;
-    }));
-    const cutoff = Date.now() - 10 * 60 * 1000;
+    const stale = running.docs.concat(ready.docs.filter((d) => plSweep.isOrphanedSheet(d.data())));
+    const now = Date.now();
     for (const d of stale) {
       const r = d.data();
       const at = r.createdAt?.toMillis?.() || 0;
-      if (!(at && at < cutoff)) continue;
+      const act = plSweep.sweepAction({ ...r, id: d.id, createdAt: at }, { now, cutting: cuttingNow });
+      if (!act) continue;
       // A PANELS run whose sheet was already banked lost only the FREE half
       // — the cut — to the restart (measured live 2026-08-27: three deploys
       // in a row orphaned four paid 4K sheets). Finish it from the banked
       // sheet instead of marking paid work failed; only a run that never
       // banked a sheet is genuinely dead.
-      if (r.panels && r.sheetUrl && !(r.images || []).length) {
+      if (act === 'recut') {
         try {
           await recutPanelsRun(d.ref, r);
           console.log(`promptlab sweep: finished orphaned panels run ${d.id} from its banked sheet`);
           continue;
         } catch (e) { console.warn(`promptlab sweep: recut of ${d.id} failed:`, e.message); }
+        // A banked sheet whose recut will not run keeps the LONG grace before
+        // it is called dead — the picture is paid for and a later sweep (or
+        // her own /recut) may still land it.
+        if (now - at < plSweep.STUCK_MS) continue;
       }
       await d.ref.update({ status: 'failed', error: 'interrupted by a server restart' });
       console.log(`promptlab sweep: marked stuck run ${d.id} failed`);
@@ -6343,8 +6349,21 @@ function gateCut(fn) {
   return run;
 }
 
+// The runs whose cut is queued or running IN THIS PROCESS. The gate above
+// serializes cuts, so a banked sheet can legitimately sit uncut for minutes
+// waiting its turn — and the stuck-run sweep must never recut one of those,
+// or the run files a second set of panels. This set answers "is anything
+// still going to cut this?" exactly, which is what lets the sweep act on a
+// genuinely orphaned sheet in two minutes instead of ten.
+const cuttingNow = new Set();
+
 async function finishPanelsCut(docRef, cfg, sheetBuf, sheetUrl) {
-  return gateCut(() => finishPanelsCutInner(docRef, cfg, sheetBuf, sheetUrl));
+  cuttingNow.add(docRef.id);
+  try {
+    return await gateCut(() => finishPanelsCutInner(docRef, cfg, sheetBuf, sheetUrl));
+  } finally {
+    cuttingNow.delete(docRef.id);
+  }
 }
 
 async function finishPanelsCutInner(docRef, cfg, sheetBuf, sheetUrl) {
