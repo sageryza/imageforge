@@ -51,6 +51,9 @@ ok(/panelsSweptAt/.test(pageSrc) && /PANELS_RESWEEP/.test(pageSrc),
   'a throttle stands in for it, so a repeated tap is still one query');
 ok(/visibilitychange[\s\S]{0,400}onPanels\(\)[\s\S]{0,60}loadPanelsSweep\(true\)/.test(pageSrc),
   'and coming back to the tool re-asks while she is on the panels tab');
+ok(/pointerdown[\s\S]{0,120}onPanels\(\)[\s\S]{0,40}loadPanelsSweep\(\)/.test(pageSrc)
+  && /pointerdown[\s\S]{0,600}\}, true\)/.test(pageSrc),
+  'and so does her first tap, on capture — the app never fires visibilitychange on a tool switch');
 
 function resTable() {
   const i = serverSrc.indexOf('\n  res: {');
@@ -239,6 +242,47 @@ async function run(browser) {
   ok(panelQueries === before,
     'four round trips through the tab added no queries (' + (panelQueries - before) + ')');
   ok((await cells()) === 4, 'and the run is still on screen');
+
+  console.log('\na TAP on dead space re-asks — the app fires no visibilitychange on a tool switch');
+  // A second import lands while she is parked on the tab. Nothing flips
+  // visibility here on purpose: inside the app the ZStack only toggles a
+  // tool's opacity, so the flip above never happens — her first tap is the
+  // one event that always does. The tap goes to MEASURED dead space, never a
+  // coordinate guessed at: a tap that happens to land on the tab row calls
+  // syncTab, which sweeps on its own, and the test would pass against a page
+  // with no tap listener at all (it did, at (0,0), before this was measured).
+  // The throttle is shrunk rather than waited out (PANELS_RESWEEP is a
+  // top-level var, so it is on window).
+  OLD.push({ ...IMPORTED, id: 'imported2', createdAt: now + 1000 });
+  await page.evaluate(() => { PANELS_RESWEEP = 200; });
+  await page.waitForTimeout(300);
+  const tapCells = () => page.evaluate(() => document.querySelectorAll(
+    '#runs img[data-run="imported2"]').length);
+  ok((await tapCells()) === 0, 'the second import is not on screen yet');
+  const spot = await page.evaluate(() => {
+    // Walk down the left margin for a point whose element is not a control —
+    // body, a wrapper, a bare div. The cards and rows all start further in.
+    for (let y = 60; y < 800; y += 20) {
+      const e = document.elementFromPoint(3, y);
+      if (!e) continue;
+      if (e.closest('button,a,input,textarea,select,label,[onclick]')) continue;
+      return { x: 3, y, tag: e.tagName + (e.id ? '#' + e.id : '') };
+    }
+    return null;
+  });
+  ok(!!spot, 'a dead spot exists to tap (' + (spot && spot.tag) + ')');
+  await page.mouse.click(spot.x, spot.y);
+  let landed2 = 0;
+  for (let i = 0; i < 40; i++) {
+    landed2 = await tapCells();
+    if (landed2 === 4) break;
+    await page.waitForTimeout(200);
+  }
+  const stillPanels = await page.evaluate(() =>
+    document.getElementById('t-panels').classList.contains('on'));
+  ok(stillPanels, 'the tap changed no tab — it really was dead space');
+  ok(landed2 === 4,
+    'one tap, no visibility flip, and it is on screen (' + landed2 + ' cells)');
 
   await ctx.close();
   server.close();
