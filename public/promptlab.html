@@ -3804,6 +3804,19 @@
   document.addEventListener('visibilitychange', function () {
     if (!document.hidden && onPanels()) loadPanelsSweep(true);
   });
+  // …AND HER FIRST TAP BACK IS THE EVENT THAT ALWAYS ARRIVES (2026-08-29,
+  // Sophie's second report: "fix the sweep issue" — the visibility flip alone
+  // was not enough on her phone). Inside the app a tool's web view is kept
+  // alive in the ZStack and a tool switch only toggles its OPACITY, so
+  // `visibilitychange` may never fire on the way out or the way back — the
+  // Story Room's documented gap (its audio-stop note), landing here. There is
+  // no page-side event for "the tool came back"; what there always is, is her
+  // first tap on it. Capture phase, so an overlay's stopPropagation cannot
+  // starve it; NOT forced, so the 20s throttle keeps a working screen to one
+  // query, and the tap that just re-entered the tab costs nothing extra.
+  document.addEventListener('pointerdown', function () {
+    if (onPanels()) loadPanelsSweep();
+  }, true);
 
   // One more page, behind the oldest SINGLE run the feed holds. The cursor is
   // that run's createdAt, NOT an offset — runs land at the top while she
