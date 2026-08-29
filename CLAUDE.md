@@ -4830,6 +4830,32 @@ before working on that module. Nothing was deleted — the moved text is verbati
   CSS or `#lb` of its own), `test-playground-liked-arrows.js` (the zones,
   now the `nav` hook), `test-playground-lightbox-caption.js`,
   `test-asset-lightbox.js` (the hooks themselves).
+  **ADD TO SHOEBOX — THE THIRD DOOR ONTO THE ONE MEMORY (2026-08-29, Sophie:
+  "how do i send a picture to shoebox in the playground").** She could not:
+  the Story Room's beat popup and Meta Assets both grew one on 2026-08-28 and
+  the tool she actually DRAWS in had none, so keeping a Playground picture
+  meant hearting it, walking to Meta Assets and finding it again. It is
+  `POST /api/scratchpad/shoebox-url` — the same route, the same
+  content-addressed id (`sb-<sha1>` off the picture) — so adding one picture
+  from two doors updates ONE memory rather than making twins, and a re-add
+  keeps the original's `createdAt` (the field the library's one query orders
+  by). Three things not to undo:
+  - **THE TITLE IS HER OWN WORDS** — the picture's content half
+    (`runPromptHalves`), which on a panels run is THAT panel's line, never the
+    style wrapper and never the MODEL · QUALITY caption. It becomes the
+    polaroid's title, so it has to be what the picture is OF.
+  - **THE LIT BUTTON IS THE RECEIPT.** This door WALKS NOWHERE, unlike the two
+    others in that row, so without a mark a tap that landed and a tap that did
+    nothing render identically.
+  - **THE SHARE GLYPH BELONGS TO THE SHOEBOX, so the Story Room walk gave it
+    up.** The two sibling doors both wear the square-and-arrow-up, and it was
+    the WALK's mark here — two buttons in one row drawn identically is
+    invisible to every label assertion. The walk wears `ICONS.books` now, the
+    web mirror of the Story Room tile's own `books.vertical` (a button that
+    opens another tool wears THAT tool's icon).
+  Test: `node scripts/test-playground-shoebox.js` (the real page headless —
+  what the request CARRIES, the receipt, the panel's own line, and the two
+  doors' glyphs compared; verified failing 11 pre-fix).
   **THE THREE 2026-08-26 ASKS BELOW WERE BUILT ON THE OLD HAND COPY and are
   kept as the record of WHY the behaviours exist — the mechanics described
   (element ids, the band, `.lbpwrap`) are that copy's and are gone.**
