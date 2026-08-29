@@ -393,6 +393,14 @@ async function pageTests() {
     await page.click('.askwrap .askrow button:not(.go)');
     await page.waitForTimeout(200);
 
+    // The home screen's one hairline row takes turns between the three LISTS
+    // and the ACCOUNT tabs, and opens on the lists — so the ordinary unfiled
+    // home list is one toggle away.
+    const homeList = async () => {
+      if (await page.$('#listrow .acctab.on')) await page.click('#rowtog');
+      await page.waitForTimeout(150);
+    };
+
     // ---- the archive's filter row ----------------------------------------
     await page.click('#thread header .no .archlink.hide-r').catch(() => {});
     await page.goto(base + '/chats');
@@ -403,6 +411,11 @@ async function pageTests() {
     // power to hide a chat; only a PILE word (`PILE_SEEDS` / `pileLabels`) has
     // it now, and `bug fix` is not one — so live-one, tagged two steps ago, is
     // still sitting on her list.
+    // Asked on the UNFILED home list, behind the row toggle: since 2026-08-29
+    // the ALL tab deliberately leaves bug-fix chats to their own tab (Sophie:
+    // "make the bug fix chats not show up in the all section"), which is a
+    // different rule from a tag filing a chat away.
+    await homeList();
     ok('a chat tagged in the sheet is still on the unfiled list',
       !!(await page.$('#grid [data-chat="live-one"]')));
     ok('no tag filter row on the chat list', !(await page.$('#grid .arctagrow')));
@@ -433,6 +446,8 @@ async function pageTests() {
     ok('the filter is really set right now',
       await page.evaluate(() => window.__archTag()) === 'bug fix');
     await page.reload();
+    await page.waitForSelector('#grid');
+    await homeList();
     await page.waitForSelector('#grid [data-chat="live-one"]');
     await page.click('#archlink');
     await page.waitForSelector('#grid .arctagrow');

@@ -5872,8 +5872,20 @@ function renderHome(){
     // filter she can see that does nothing is the silent-filter failure this
     // app keeps warning about — so ALL means "filed or not", never "ignore
     // what she picked".
+    // …AND THE BUG-FIX CHATS ARE NOT ON IT (2026-08-29, Sophie: "make the bug
+    // fix chats not show up in the all section"). They have a tab of their
+    // own — the third one, and the header's bug button — so listing them here
+    // too is the same pile twice, and on a day of bug work it is most of what
+    // ALL shows. The one carve-out is the CHIP: a lit `bug fix` is her asking
+    // for them by name, and a filter she can see that returns nothing is the
+    // silent-filter failure this app keeps getting burned by. `bug fix` and
+    // `bugfix` are ARCHIVE_PROGRESS words and are not offered as chips on this
+    // row; `bug`/`bugs`, her own dictated spellings, are — so the carve-out is
+    // reachable from a real tap, and stays true if the others ever join it.
+    var catIsBug = cat && TAG_MARKS[0].labels.indexOf(cat)>-1;
     var every=all.filter(function(n){
       if(chatDeleted(n) || (chats[n]&&chats[n].archived)) return false;
+      if(!catIsBug && chatBugTag(n)) return false;
       return cat ? chatInCat(n,cat) : true;
     });
     // THE HIDDEN PILE RIDES HERE TOO, and it is the SAME bar (2026-08-28,

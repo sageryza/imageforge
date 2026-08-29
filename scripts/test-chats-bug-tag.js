@@ -86,11 +86,17 @@ const ok = () => { checks++; };
   await page.waitForSelector(row('plain'));
 
   // ── 1/2. who wears it ─────────────────────────────────────────────────────
+  // An untagged chat is asked on ALL, where it lives; the tagged ones are asked
+  // on the BUG PILE, because since 2026-08-29 a bug-fix chat is not on ALL at
+  // all (Sophie: "make the bug fix chats not show up in the all section"). The
+  // mark is drawn by renderList either way — one renderer, both piles.
+  if (await page.$(row('plain') + ' .cr-tag')) fail('an untagged chat drew a tag mark');
+  else ok();
+  await page.click('#bugbtn');
+  await page.waitForSelector(row('bugged'));
   if (!await page.$(row('bugged') + ' .cr-tag.cr-bug')) fail('the `bug fix` chat has no bug on its row');
   else ok();
   if (!await page.$(row('varian') + ' .cr-tag.cr-bug')) fail('the `bugfix` spelling drew no bug — TAG_MARKS must match her vocabulary, not one string');
-  else ok();
-  if (await page.$(row('plain') + ' .cr-tag')) fail('an untagged chat drew a tag mark');
   else ok();
 
   // ── 3. the glyph ─────────────────────────────────────────────────────────

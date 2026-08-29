@@ -1844,6 +1844,17 @@ them off the reference sheet, not off the old filenames.
     purpose), and **a lit category chip still narrows it** — the chip row is on
     screen there, and a filter she can see that does nothing is the
     silent-filter failure this app keeps getting burned by.
+  - **…EXCEPT THE BUG-FIX CHATS, WHICH ARE NOT ON IT (2026-08-29, Sophie: "make
+    the bug fix chats not show up in the all section").** They have a tab of
+    their own — the third one, and the header's bug button — so listing them on
+    ALL too is the same pile twice, and on a day of bug work it is most of what
+    ALL shows. The carve-out is the CHIP: a lit bug word is her asking for them
+    by name, and a filter she can see that returns nothing is the same
+    silent-filter failure. `bug fix`/`bugfix` are ARCHIVE_PROGRESS words and are
+    not offered as chips on the home row; `bug`/`bugs`, her own dictated
+    spellings, are — so the carve-out is reachable from a real tap. The live
+    home list, the hidden pile, the ★ pile and the archive are all untouched;
+    this is the ALL branch alone.
   - **DELIVERED is the only tab whose rows are THINGS, not threads** — the
     films and cuts from `forge-deliverables` (a pinned film is a hand-over, so
     nothing new is filed) interleaved by time with PICTURE rows derived the way
