@@ -4834,6 +4834,63 @@ before working on that module. Nothing was deleted — the moved text is verbati
     needed.
   - Test: `node scripts/test-playground-feed-fill.js` (the walk over fixtures,
     then the two page halves and the route's use of the shared fill).
+- **Squaring** (`cropper.js`, `/api/crop`, page at `/crop`, iOS tile under the
+  PICTURES filter) — crop pictures to square by TAPPING ARROWS. Sophie's ask
+  (2026-08-29), after twelve automatically-squared pictures came back missing
+  the thing each one was about: "the shirt is crucial, the elbow isn't" →
+  "could you make a cropping tool where I move it up or down with arrows
+  rather than dragging."
+  **IT COSTS NOTHING** — a download, sharp and an upload on our own box, no
+  model call anywhere; opening it spends nothing.
+  - **THE WHOLE TOOL IS ONE NUMBER PER PICTURE.** `pos` 0..1 is where the
+    square sits along the LONG edge — 0 flush with the top (or the left), 1
+    with the bottom, 0.5 dead centre, which is exactly what an automatic crop
+    gives and exactly what she was correcting. A square out of a 2:3 has ONE
+    degree of freedom, so there is no zoom and nothing to drag; a LANDSCAPE
+    source turns the same two arrows into left/right, and a picture that is
+    already square disables them rather than leaving two dead controls.
+  - **THE PREVIEW SHOWS WHAT IS LOST, NOT ONLY WHAT SURVIVES.** She is looking
+    at the WHOLE picture with the discarded bands dimmed and the kept square
+    outlined — a square preview alone answers the wrong question, since what
+    she is correcting is what falls outside it.
+  - **THE PAGE AND THE SERVER CANNOT DISAGREE ABOUT THE CROP** — `cropBox()`
+    in cropper.js and `box()` in crop.html are the same arithmetic, and
+    `test-cropper.js` EXTRACTS the page's copy out of the real html and drives
+    it against the server's over six shapes at five positions. A preview that
+    lies about the cut is the one failure this must not have; re-typing the
+    page's function into the test would only pin the test against itself.
+  - **POSITIONS SAVE THEMSELVES; SAVE IS WHAT CUTS.** An arrow tap is a
+    thought, not a commitment, so `POST /pos` writes the number alone
+    (debounced — a hold-to-repeat is ONE write, and the debounce is
+    deliberately longer than the repeat interval or the first write lands
+    mid-hold). **Save crops** is the background job: download, cut, upload,
+    apply, poll. Only pictures she has MOVED since their last cut are re-cut,
+    compared as numbers — so nudging one away and back costs nothing.
+  - **NOTHING IS DESTROYED.** The source is never touched or replaced; a cut
+    writes a NEW copy and points whatever asked (`apply`) at it. `pos` rides
+    in the filename, so a re-crop is a different object and no year-long CDN
+    cache can serve her yesterday's crop. A set is HIDDEN, never deleted.
+  - **`apply` IS HOW A SQUARE GETS HOME.** One kind so far —
+    `{kind:'memory', uid, id}` → the membry memory doc's `illustration.url`,
+    i.e. a Shoebox polaroid. Whitelisted (`cleanApply`), so nothing else on
+    the object is ever stored. The membry handle is HANDED IN by server.js
+    (`cropperMod.init({ membryDb })`), the scratchpad pattern.
+  - **RE-SEEDING KEEPS HER WORK.** The doc id is `sha1(title + the urls)`, so
+    the same set POSTed twice IS the same set: `mergeItems` keeps every
+    position and every cut copy, and takes only the label and the apply target
+    from the new POST.
+  - **NO PILL** — one screen, never scrolls, like `/filmeditor` and
+    `/opinions`. The page is still written to survive one (its script is in an
+    IIFE and declares no pill global), and the test injects the real pill to
+    pin that.
+  - **A CHAT SEEDS IT AND HANDS HER THE LINK:** `POST /api/crop/sets {title,
+    items:[{url, label, pos?, apply?}]}` → `/crop?set=<id>`. The label is what
+    the crop has to CONTAIN — her words for that picture — and it is on screen
+    under the arrows, because that is the whole question she is answering.
+  - Tests: `node scripts/test-cropper.js` (the arithmetic and the set rules,
+    pure) and `node scripts/test-crop-page.js` (the real page headless — every
+    assertion a MEASUREMENT of the real boxes, since a wrong crop renders as a
+    perfectly plausible picture).
 - **Freeform** (`freeform.js`, `/api/freeform`, `/freeform`) — the one image
   surface with **no opinion**: the prompt goes to gpt-image-2 verbatim, no prefix,
   no suffix, not even a trailing-period trim. `promptSent` is stored on every run
