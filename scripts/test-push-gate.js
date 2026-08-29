@@ -212,7 +212,9 @@ is('an empty reply is an empty body, not a crash',
 {
   const need = pushAlert('need', { chatName: 'Evan film', need: 'pick a take 1-4' });
   is('need: the chat is the title', need.title, 'Evan film');
-  is('need: the ask leads the body', need.body, 'Needs you · pick a take 1-4');
+  // No label in front of it: the ask is already a sentence asking her for
+  // something, and the banner's first words are what a lock screen shows.
+  is('need: the ask stands alone', need.body, 'pick a take 1-4');
   const film = pushAlert('video', { chatName: 'Evan film', title: 'Evan v18 (4:23)' });
   is('film: the chat is the title, not "New deliverable"', film.title, 'Evan film');
   is('film: the kind leads the body', film.body, 'New film · Evan v18 (4:23)');
@@ -231,6 +233,8 @@ is('an empty reply is an empty body, not a crash',
     'Yes — done.');
   is('markdown is stripped from the name too',
     pushAlert('need', { chatName: '**Evan**', need: '`x`' }).title, 'Evan');
+  is('and from the ask itself',
+    pushAlert('need', { chatName: 'c', need: '**pick** a take' }).body, 'pick a take');
   is('a nameless chat still gets a title',
     pushAlert('need', { chatName: '', need: 'x' }).title, 'Deck Factory');
 }

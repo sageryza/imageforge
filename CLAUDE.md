@@ -7581,9 +7581,13 @@ before working on that module. Nothing was deleted — the moved text is verbati
   with the chat trailing after an em dash — so the one fact she needs first
   (WHICH chat) moved depending on which door rang, and nothing said what kind
   of arrival it was. One shape now, `pushAlert` in `push-gate.js`: **the CHAT
-  is always the title**, and the body leads with the kind — `Needs you · pick a
-  take 1-4` · `New film · Evan v18 (4:23)` · `New page · Sheet v2` — with an
-  answer still leading on its TLDR. **The ask WINS the banner** when a reply
+  is always the title**, and the body leads with the kind — `New film · Evan
+  v18 (4:23)` · `New page · Sheet v2` — with an answer still leading on its
+  TLDR. **AN ASK CARRIES NO LABEL AT ALL** (2026-08-28, her correction the same
+  hour: "they also need you that's redundant. None of them need to say that"):
+  a `need` line is already a sentence asking her for something, in the chat's
+  own words, so `Needs you ·` in front of it said nothing the sentence had not
+  said and spent the banner's first words — the ones a lock screen shows. **The ask WINS the banner** when a reply
   carries one: a chat that just asked her something is not better described by
   its own summary. The 2026-08-15 rule survives inside it — a reply opening
   with her own question in bold never comes back as the banner.
