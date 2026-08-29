@@ -2446,6 +2446,26 @@
   });
   paintPhoto();
 
+  // ?photo= — A PICTURE SENT HERE AS THE PHOTO REFERENCE (2026-08-28, Sophie:
+  // "meta assets missing its send to playground"). Meta Assets' Playground
+  // door ports the filed prompt when one exists; a picture with NO prompt on
+  // file has nothing to port honestly, so it arrives as the photo reference
+  // instead — her own image attached, no words invented. Same rules as the
+  // copy-back restore: https only, disclosed by the thumbnail in the row and
+  // the Prompt panel's photo line, never persisted across loads. This block
+  // MUST run after `var photoRef` above — earlier, that declaration would
+  // wipe the restore back to null (the ported-prompt block's own lesson).
+  (function () {
+    var p = new URLSearchParams(location.search).get('photo');
+    if (!p || !/^https?:\/\//.test(p)) return;
+    try { localStorage.setItem(TABKEY, 'picture'); } catch (e) { /* private mode */ }
+    // The LoRA has no attachment slot at all, so a photo arriving while WTR
+    // is the sticky style lands on the reference-less ChatGPT tile — the one
+    // place her picture is the whole recipe, with nothing baked added.
+    if (!isGpt(styleKey)) setStyle('plain');
+    restorePhoto({ photoRef: p });
+  })();
+
   // ── THE CANVAS — portrait or square (Aug 2026, Sophie) ──────────────────
   // gpt-image-2 charges MORE for the SQUARE — 0.6c/5.3c/21.1c for 1024x1024
   // against 0.5c/4.1c/16.5c for 1024x1536, the inversion the price table warns

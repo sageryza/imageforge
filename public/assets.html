@@ -210,6 +210,9 @@ var XMARK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-wid
 var CHATICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-8a2 2 0 0 1-2-2v-1"/></svg>';
 // Lucide arrow-down-to-line — save to Photos (the iOS gallery's own glyph).
 var SAVEICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17V3"/><path d="m6 11 6 6 6-6"/><path d="M19 21H5"/></svg>';
+// The Story Room's own Add-to-Shoebox glyph (the iOS square-and-arrow-up) —
+// the two doors are the same door, so they wear the same mark.
+var SHOEICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>';
 
 // The Playground's own wire-loop drawing (the shared tool glyph — a button
 // that opens another tool wears THAT tool's icon). Mirrors ICON_PLAY in
@@ -292,11 +295,29 @@ function lightbox(url, asset){
       acts.push({label:'Open the chat', icon:CHATICON, onClick:function(){
         location.href='/chats?chat='+encodeURIComponent(asset.chat); }});
     }
-    var pq=playgroundQuery(asset);
-    if(pq){
-      acts.push({label:'Open in Playground', icon:PLAYICON, onClick:function(){
-        location.href='/playground?'+pq; }});
-    }
+    // EVERY picture has a way to the Playground (2026-08-28, Sophie: "meta
+    // assets missing its send to playground/shoebox"). With a filed prompt it
+    // ports exactly as before; with none there is nothing to port HONESTLY,
+    // so the picture itself rides along as the photo reference instead —
+    // her own image attached, no words invented.
+    var pq=playgroundQuery(asset) || 'photo='+encodeURIComponent(url);
+    acts.push({label:'Open in Playground', icon:PLAYICON, onClick:function(){
+      location.href='/playground?'+pq; }});
+    // ADD TO SHOEBOX — the Story Room door's twin (same share glyph, same
+    // content-addressed memory, so the two doors can never make twins). The
+    // label she reviews by becomes the polaroid's title; the lit button is
+    // the receipt.
+    acts.push({label:'Add to Shoebox', icon:SHOEICON, onClick:function(ev){
+      var btn=ev&&ev.currentTarget;
+      api('/api/scratchpad/shoebox-url',{method:'POST',
+        body:JSON.stringify({url:url, title:asset.description||''})})
+        .then(function(r){return r.json()})
+        .then(function(d){
+          if(d&&d.ok){ if(btn){btn.style.background='#3a3530'; btn.style.color='#faf7f0';} toast('In the Shoebox'); }
+          else toast((d&&d.error)||'That didn’t save');
+        })
+        .catch(function(){ toast('That didn’t save'); });
+    }});
     acts.push({label:'Save to Photos', icon:SAVEICON, onClick:function(){ saveImage(url); }});
     asset.actions=acts;
     asset.who=whoLabel(asset);

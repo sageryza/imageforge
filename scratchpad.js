@@ -1222,6 +1222,35 @@ async function shoeboxUid(mdb) {
   shoeboxUidCache = ranked[0][0];
   return shoeboxUidCache;
 }
+// THE MEMORY WRITE, one shape for BOTH doors — the beat popup's and the Meta
+// Assets lightbox's (2026-08-28, Sophie: "meta assets missing its send to
+// playground/shoebox"). Content-addressed by the picture (`sb-<sha1(url)>`),
+// so tapping twice updates ONE memory, AND the two doors converge on the
+// same memory for the same picture — they can never make twins. The shape is
+// what useMemories/Shoebox read: title on the chin, illustration.url as the
+// picture, createdAt because the library's one query ORDERS BY IT (a doc
+// without it is silently omitted — the Firestore orderBy trap).
+async function shoeboxPut(art, title, meta) {
+  const mdb = membryWiring && membryWiring.membryDb && await membryWiring.membryDb();
+  if (!mdb) return null;   // no credential — the caller answers 503
+  const uid = await shoeboxUid(mdb);
+  const id = 'sb-' + crypto.createHash('sha1').update(art).digest('hex').slice(0, 24);
+  const ref = mdb.collection('users').doc(uid).collection('memories').doc(id);
+  const now = new Date();
+  const FV = require('firebase-admin').firestore.FieldValue;
+  const snap = await ref.get();
+  const doc = Object.assign({
+    title: String(title || '').trim().slice(0, 140),
+    hashtags: [(meta && meta.source) || 'storyroom'],
+    illustration: { url: art },
+    timestamp: now.toISOString(),
+    dateTime: now.toLocaleDateString('en-US'),
+    updatedAt: FV.serverTimestamp(),
+  }, meta || {});
+  if (!snap.exists) { doc.content = ''; doc.createdAt = FV.serverTimestamp(); }
+  await ref.set(doc, { merge: true });
+  return { ok: true, id };
+}
 router.post('/shoebox', async (req, res) => {
   try {
     const pid = padIdOf(req);
@@ -1233,32 +1262,22 @@ router.post('/shoebox', async (req, res) => {
     const style = styleOf(req);
     const art = beat ? slotFace(artSlot(beat, style)) : null;
     if (!art || !/^https?:\/\//.test(art)) return res.status(400).json({ error: 'that beat has no picture' });
-    const mdb = membryWiring && membryWiring.membryDb && await membryWiring.membryDb();
-    if (!mdb) return res.status(503).json({ error: 'the memory library credential (STORY_FIREBASE_SERVICE_ACCOUNT) is not set' });
-    const uid = await shoeboxUid(mdb);
-    // Content-addressed by the picture, so tapping twice updates ONE memory
-    // (the deliverables-list rule) — and the doc id is prefixed so it can
-    // never collide with an addDoc id.
-    const id = 'sb-' + crypto.createHash('sha1').update(art).digest('hex').slice(0, 24);
-    const ref = mdb.collection('users').doc(uid).collection('memories').doc(id);
-    const now = new Date();
-    const FV = require('firebase-admin').firestore.FieldValue;
-    const snap = await ref.get();
-    // The shape useMemories/Shoebox read: title on the chin, illustration.url
-    // as the picture, createdAt because the library's one query ORDERS BY IT
-    // (a doc without it is silently omitted — the Firestore orderBy trap).
-    const doc = {
-      title: String(beat.text || '').trim().slice(0, 140),
-      hashtags: ['storyroom'],
-      illustration: { url: art },
-      source: 'storyroom', pad: pid, beat: beatId,
-      timestamp: now.toISOString(),
-      dateTime: now.toLocaleDateString('en-US'),
-      updatedAt: FV.serverTimestamp(),
-    };
-    if (!snap.exists) { doc.content = ''; doc.createdAt = FV.serverTimestamp(); }
-    await ref.set(doc, { merge: true });
-    res.json({ ok: true, id });
+    const out = await shoeboxPut(art, String(beat.text || ''), { source: 'storyroom', pad: pid, beat: beatId });
+    if (!out) return res.status(503).json({ error: 'the memory library credential (STORY_FIREBASE_SERVICE_ACCOUNT) is not set' });
+    res.json(out);
+  } catch (e) { fail(res, e); }
+});
+// A PICTURE ANYWHERE CAN GO TO THE SHOEBOX — the Meta Assets lightbox door
+// (2026-08-28, her check of the unified lightbox). The picture's own url and
+// its label; nothing else is written anywhere.
+router.post('/shoebox-url', async (req, res) => {
+  try {
+    const art = String(req.body.url || '').trim();
+    if (!/^https?:\/\//.test(art)) return res.status(400).json({ error: 'a picture url is required' });
+    const out = await shoeboxPut(art, String(req.body.title || ''),
+      { source: String(req.body.source || 'meta-assets').slice(0, 40) });
+    if (!out) return res.status(503).json({ error: 'the memory library credential (STORY_FIREBASE_SERVICE_ACCOUNT) is not set' });
+    res.json(out);
   } catch (e) { fail(res, e); }
 });
 

@@ -65,6 +65,7 @@ const DEEP = { chat: 'knitting', name: 'Knitting', url: 'http://127.0.0.1:PORT/i
 
 const votes = [];   // every vote POST the page sends, captured
 const searches = [];  // every q= the page asked the server
+const shoeboxed = [];  // every Add-to-Shoebox POST
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
   if (url.pathname === '/api/gallery/assets/all') {
@@ -89,6 +90,16 @@ const server = http.createServer((req, res) => {
       votes.push(JSON.parse(body));
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end('{"ok":true}');
+    });
+    return;
+  }
+  if (url.pathname === '/api/scratchpad/shoebox-url' && req.method === 'POST') {
+    let body = '';
+    req.on('data', (c) => { body += c; });
+    req.on('end', () => {
+      shoeboxed.push(JSON.parse(body));
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end('{"ok":true,"id":"sb-test"}');
     });
     return;
   }
@@ -254,9 +265,25 @@ const server = http.createServer((req, res) => {
     const labels = await page.$$eval('.lbacts button',
       (es) => es.map((e) => e.getAttribute('aria-label')));
     // ♥/✕ lead the under-picture row since 2026-08-28 — the one layout,
-    // every caller ("a single lightbox view … it's not in meta assets?")
-    if (labels.join('|') !== 'Heart|Reject|Open the chat|Open in Playground|Save to Photos') {
+    // every caller ("a single lightbox view … it's not in meta assets?") —
+    // and the Shoebox door rides beside the Playground's ("meta assets
+    // missing its send to playground/shoebox")
+    if (labels.join('|') !== 'Heart|Reject|Open the chat|Open in Playground|Add to Shoebox|Save to Photos') {
       fail('wrong action icons on a chat image: ' + JSON.stringify(labels));
+    }
+    // ADD TO SHOEBOX — one tap files the picture as a memory, titled by the
+    // label she reviews by, and the lightbox stays open (the lit button is
+    // the receipt)
+    await page.click('.lbacts button[aria-label="Add to Shoebox"]');
+    for (let i = 0; i < 40 && !shoeboxed.length; i++) await new Promise((r) => setTimeout(r, 50));
+    if (!shoeboxed.length) fail('Add to Shoebox never POSTed');
+    else {
+      const sb = shoeboxed[0];
+      if (!/newest\.png$/.test(sb.url || '')) fail('shoebox POST carries the wrong picture: ' + sb.url);
+      if (sb.title !== 'Evan — hospital window') fail('shoebox POST carries the wrong title: ' + sb.title);
+    }
+    if (!(await page.$eval('#clightbox', (e) => e.style.display === 'flex'))) {
+      fail('Add to Shoebox closed the lightbox');
     }
     await page.click('#clightbox', { position: { x: 10, y: 800 } });
     await page.waitForFunction(() => document.getElementById('clightbox').style.display === 'none');
@@ -265,11 +292,29 @@ const server = http.createServer((req, res) => {
     await page.waitForSelector('.lbacts');
     const appLabels = await page.$$eval('.lbacts button',
       (es) => es.map((e) => e.getAttribute('aria-label')));
-    if (appLabels.join('|') !== 'Heart|Reject|Open in Playground|Save to Photos') {
+    if (appLabels.join('|') !== 'Heart|Reject|Open in Playground|Add to Shoebox|Save to Photos') {
       fail('wrong action icons on an app creation: ' + JSON.stringify(appLabels));
     }
     await page.click('#clightbox', { position: { x: 10, y: 800 } });
     await page.waitForFunction(() => document.getElementById('clightbox').style.display === 'none');
+    // …and a picture with NO prompt on file still gets the Playground door —
+    // it has nothing to port honestly, so it goes as the PHOTO REFERENCE
+    // ("meta assets missing its send to playground"). Clicking it navigates,
+    // so this is the lightbox section's last stop.
+    await page.evaluate(() => document.querySelector('.assetgrid .acell:nth-child(3) > button').click());
+    await page.waitForSelector('.lbacts');
+    const bareLabels = await page.$$eval('.lbacts button', (es) => es.map((e) => e.getAttribute('aria-label')));
+    if (bareLabels.indexOf('Open in Playground') < 0) {
+      fail('a promptless picture has no Playground door: ' + JSON.stringify(bareLabels));
+    }
+    await page.click('.lbacts button[aria-label="Open in Playground"]');
+    await page.waitForFunction(() => location.pathname === '/playground');
+    const pq = await page.evaluate(() => location.search);
+    if (!/^\?photo=/.test(pq) || pq.indexOf(encodeURIComponent('/i/oldest.png')) < 0) {
+      fail('the promptless Playground door does not carry the picture as photo=: ' + pq);
+    }
+    await page.goBack();
+    await page.waitForSelector('.assetgrid .acell');
 
     // 8 — the chat icon lands in the Chats app, on THIS image's chat
     await page.evaluate(() => document.querySelector('.assetgrid .acell:nth-child(1) > button').click());

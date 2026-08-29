@@ -26,24 +26,31 @@ const ok = (c, n) => { console.log((c ? 'PASS' : 'FAIL') + '  ' + n); if (!c) fa
 // ── 1. the server contract, by source ────────────────────────────────────
 const sp = fs.readFileSync(path.join(__dirname, '..', 'scratchpad.js'), 'utf8');
 const sv = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
-const route = sp.slice(sp.indexOf("router.post('/shoebox'"), sp.indexOf('// The inbox.'));
-ok(route.length > 100, 'the /shoebox route exists in scratchpad.js');
+// ONE WRITER, TWO DOORS since 2026-08-28 ("meta assets missing its send to
+// playground/shoebox"): shoeboxPut is the memory write, called by the beat
+// door (/shoebox) and the Meta Assets lightbox door (/shoebox-url).
+const route = sp.slice(sp.indexOf('async function shoeboxPut'), sp.indexOf('// The inbox.'));
+ok(route.length > 100, 'the shoebox writer and both routes exist in scratchpad.js');
+ok(route.indexOf("router.post('/shoebox'") >= 0 && route.indexOf("router.post('/shoebox-url'") >= 0,
+  'both doors — the beat popup\'s and the Meta Assets lightbox\'s — go through it');
 ok(/doc\.createdAt = FV\.serverTimestamp\(\)/.test(route),
   'a NEW memory is stamped createdAt (the library orders by it — absent means invisible)');
 ok(route.indexOf('if (!snap.exists) { doc.content = \'\'; doc.createdAt') >= 0,
   'a re-add keeps the original createdAt (only a missing doc gets one)');
 ok(/sha1/.test(route) && /'sb-'/.test(route),
-  'the memory id is content-addressed off the picture — a second tap updates, never twins');
+  'the memory id is content-addressed off the picture — a second tap updates, never twins, and the two doors converge on ONE memory');
 ok(/slotFace\(artSlot\(beat, style\)\)/.test(route),
   "the picture comes off the side she is LOOKING at — /cover's own rule");
-ok(/illustration: \{ url: art \}/.test(route) && /title: String\(beat\.text/.test(route),
+ok(/illustration: \{ url: art \}/.test(route) && /shoeboxPut\(art, String\(beat\.text/.test(route),
   'the doc is what the Shoebox reads: illustration.url + the beat words as the title');
+ok(/\^https\?:\\\/\\\//.test(route.slice(route.indexOf("router.post('/shoebox-url'"))),
+  'the url door refuses anything that is not a picture url');
 const uidFn = sp.slice(sp.indexOf('async function shoeboxUid'), sp.indexOf("router.post('/shoebox'"));
 ok(/SHOEBOX_UID/.test(uidFn) && /collectionGroup\('memories'\)/.test(uidFn),
   'her uid is env override or DISCOVERED by ranking (find-gallery-uid technique) — never committed');
 ok(/ranked\[1\] && ranked\[1\]\[1\] === ranked\[0\]\[1\]/.test(uidFn),
   'a tie refuses rather than guessing whose library it is');
-ok(/scratchpadMod\.init\(\{ membryDb: storyDb \}\)/.test(sv),
+ok(/scratchpadMod\.init\(\{ membryDb: storyDb\b/.test(sv),
   'server.js hands the membry Firestore in (the dreamapp init pattern)');
 ok(!/sageryza|@gmail/.test(sp), 'no email or personal id committed in scratchpad.js');
 

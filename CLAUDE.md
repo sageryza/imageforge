@@ -3484,10 +3484,25 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     at it chose to patch the copy. The shared file grew HOOKS for them instead,
     and 226 lines of duplicate came out of the page:
     - **`actions:[{label, icon, onClick}]`** — a row of small circular icon
-      buttons directly under the picture (open the chat · Playground · Save to
-      Photos). `label` becomes the aria-label AND the title; the empty space
-      between them closes the lightbox, because the close rule asks the tap's
-      TARGET. `.hasacts` shrinks the picture to 46vh so the note box still fits.
+      buttons directly under the picture (open the chat · Playground · Add to
+      Shoebox · Save to Photos). `label` becomes the aria-label AND the title;
+      the empty space between them closes the lightbox, because the close rule
+      asks the tap's TARGET. `.hasacts` shrinks the picture to 46vh so the
+      note box still fits.
+      **The Playground door is on EVERY picture and the Shoebox door exists
+      since 2026-08-28** (Sophie: "meta assets missing its send to
+      playground/shoebox"): with a filed prompt the Playground door ports it
+      exactly as before; with none there is nothing to port honestly, so the
+      picture rides as the PHOTO REFERENCE instead (`/playground?photo=<url>`
+      — promptlab attaches it through the same restore the copy buttons use,
+      stepping a LoRA sticky style onto the reference-less ChatGPT tile,
+      which has the slot). Add to Shoebox is the Story Room door's twin:
+      `POST /api/scratchpad/shoebox-url {url, title}` through the SAME
+      content-addressed writer (`shoeboxPut`), so the two doors converge on
+      one memory for one picture; the label she reviews by is the polaroid's
+      title. Tests: `node scripts/test-meta-assets-page.js`,
+      `node scripts/test-storyroom-shoebox.js`,
+      `node scripts/test-playground-photo-ref.js`.
     - **`who`** — the small uppercase origin-chat line under the caption, for a
       surface that mixes many chats.
     Both optional and additive, so no existing caller changed. **The next
