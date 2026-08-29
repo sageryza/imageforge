@@ -356,10 +356,19 @@
      is a box she has to ask for, and the 40px it costs is a fixed 40px on a
      page whose feed is already scrolling. So there is no `.searching` state,
      nothing to repaint and no JS at all — the row simply wraps.
-       The line reserves the pill's 56px as well: the pill's band is taller
-     than one row, so a wrapped line is inside that column too. */
+       AND THE LINE RUNS INTO THE PILL'S COLUMN (2026-08-28, her third
+     correction: "you put it in the row under, I said I wanted it in the pill
+     column"). Every other row here reserves the pill's 56px, and this is the
+     one row that can give them up: the ✕ moved to the LEFT end the same day,
+     so nothing on the right of this box is a control — only the tail of a
+     query, which she reads from the left. So it cancels `.feedbar`'s own
+     `padding-right` with a negative margin and runs the full width of the
+     page, 310 → 366. The pill still floats over that tail and still takes its
+     own taps; a query long enough to reach it is one she is reading the front
+     of. The CONTROLS' line keeps its reservation — every one of those IS a
+     tap target. */
   .feedbar { flex-wrap: wrap; }
-  .feedsearch { flex-basis: 100%; margin-left: 0; margin-top: 8px; }
+  .feedsearch { flex-basis: calc(100% + 56px); margin-left: 0; margin-right: -56px; margin-top: 8px; }
   /* CLEAR, not dismiss: it empties the box and keeps her in it. Shown only
      while there are words to wipe. */
   .qclear { position: absolute; left: 0; top: 0; height: 100%; width: 28px; border: 0; background: none;

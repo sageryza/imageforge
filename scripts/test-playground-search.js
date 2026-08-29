@@ -201,8 +201,13 @@ const OLD = { id: 'r9', prompt: 'a horse nobody has scrolled back to', engine: '
     'the controls are on ONE line — nothing wrapped among them');
   ok(box.search.top >= box.heart.bottom - 1, 'the search box has the line UNDER them');
   ok(box.search.left <= box.tog.left + 1, 'and it starts at the left edge, the full width of the row');
-  ok(box.search.right <= box.bar.right - box.pad + 1,
-    'and ends before the 56px the autoscroll pill owns');
+  // It RUNS INTO the pill's column since 2026-08-28 (Sophie: "I said I wanted
+  // it in the pill column") — the ✕ moved to the left end, so nothing on the
+  // right of this box is a control. The CONTROLS' line still reserves it.
+  ok(box.search.right >= box.bar.right - 1,
+    'and it runs the full width, into the pill column');
+  ok(box.tog.right <= box.bar.right - box.pad + 1,
+    'while the controls still end before the 56px the pill owns');
   ok(box.fs >= 16, 'the input is 16px or more — under it iOS zooms and cannot zoom back');
 
   console.log('\ntyping');
