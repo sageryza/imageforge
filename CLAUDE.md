@@ -5256,9 +5256,15 @@ before working on that module. Nothing was deleted — the moved text is verbati
     SIZE line, Pin/Take off, Square it.
   - **Tiles are derived thumbs** (`FeedKit.thumbFor`); the board and the
     detail card load the ORIGINAL — a pinned polaroid is looked at up close.
-    The star paper tile is committed at `public/shoebox/star-paper.webp`
+    The star paper tile is committed at `public/shoebox-papers/star-paper.webp`
     (mirrored/seamless, fixed 1600px so the stars stay her photographed
-    size).
+    size). **NEVER `public/shoebox/` — a `public/<name>/` DIRECTORY shadows
+    `app.get('/<name>')` (found live 2026-08-29):** express.static is mounted
+    above every page route and answers a request matching a directory with a
+    301 to the slash form, so committing the tile there took the whole
+    /shoebox route down to a redirect loop the moment it deployed. Reproduced
+    and pinned: an asset directory for a tool must not share the tool's route
+    name.
   - Tests: `node scripts/test-shoebox.js` — the index/caption/search rules
     and the board doc's compatibility rules pure, then the real page
     headless: pinning from the detail card, string-tying by taps, order
