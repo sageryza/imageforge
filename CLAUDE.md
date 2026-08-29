@@ -6428,24 +6428,36 @@ before working on that module. Nothing was deleted — the moved text is verbati
     one thing on screen says what is being placed. It outlives `pending` on
     purpose: the document-level tap cancels placing, and without the band
     there would be no way back to the picture but the Playground.
-  - **THE MATCH CARD RIDES ABOVE THE BAND (2026-08-26, Sophie: "it does some
-    sort of a check to match it to the right beat and then asks me to confirm
-    or choose a different one").** The moment she arrives holding a picture,
-    the room asks `GET /api/scratchpad/send-match?q=<the run's typed prompt>`
-    — FREE, one collection read, no model call — which ranks every beat on
-    the shelf against the prompt's words (`send-match.js`, the one tested
-    matcher: ≥3 shared stemmed roots or a wholly-contained tiny caption;
-    lands/landing/landed fold to one root; an exact copy of a beat's own
-    drawing prompt wins outright; capped at 4, recency breaks ties). The card
-    proposes them best first — story name, the beat's words, its face —
-    and **nothing places without her tap**: a row is the confirm (the same
-    `POST /image` every placement takes, aimed cross-pad by naming the pad,
-    with NO style so the side comes from the run's own record), the other
-    rows are "a different one", and *Pick by hand* (or ending the trip) is
-    the ordinary flow untouched. A confirmed match opens that story ON that
-    beat's popup — confirmation by sight — with the way-back band intact.
-    No match means no card, silently. Test:
-    `node scripts/test-send-match.js`.
+  - **THE LAST THREE STORIES RIDE ABOVE THE BAND, AS THUMBNAILS (2026-08-29,
+    Sophie: "auto pick story not work (playground image to story room
+    transfer) · instead: use last three stories · just thumbnails · keep
+    select by hand button").** The card over the shelf while she is holding a
+    picture: the three stories she touched last, each a square cover with its
+    name under it. **Tapping one OPENS it and places NOTHING** — the picture
+    stays in her hand and the band goes on saying what to do with it, so the
+    placing is the room's ordinary flow (tap the band, tap a moment or a
+    gap). *Pick by hand* puts the card away and leaves her shelf, her
+    picture and every story on it untouched.
+    - **The three are the top of `GET /pads`**, which already answers newest
+      `updatedAt` first — the top of her shelf, never a second ranking. Not
+      the PINNED order: a pin is where a story lives on the shelf, and this
+      card is about what she was just doing. A story with no art anywhere
+      tiles as an empty square, and the covers ride the derived-thumb
+      service like every other tile.
+    - **The card is a way INTO a story, so it shows on the shelf only** (and
+      stands down under a beat popup, like the band).
+    - **THE GUESSING IS HISTORY.** It shipped 2026-08-26 as a MATCH card —
+      the room reading the run's prompt against every beat's words and
+      proposing a BEAT to confirm, with a cross-pad `POST /image` behind the
+      row. She retired it three days later: *auto pick story not work*.
+      `send-match.js` and `GET /api/scratchpad/send-match` still exist and
+      are still tested, and **nothing calls them** — do not wire the guess
+      back without her.
+    - Test: `node scripts/test-storyroom-recent-stories.js` (the real page
+      headless — the count, the order, the empty tile, that a tap writes
+      nothing, and that the picture survives every step; verified failing
+      against the pre-fix page). `node scripts/test-send-match.js` still
+      covers the dormant matcher.
   - **AND THE ENDED BAND IS THE WAY BACK (2026-08-26, Sophie: "when I go to
     put a picture into the story room there's no way to get back to the
     playground" — she was right, and the cause is that the walk is a

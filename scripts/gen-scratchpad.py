@@ -886,29 +886,31 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 #sendband .sw{flex:1; min-width:0; font-size:13px; line-height:1.3;}
 #senddrop{flex:none; width:30px; height:30px; border-radius:6px; border:1px solid rgba(250,247,242,.35);
   background:none; color:var(--paper); font-size:15px; line-height:1; padding:0;}
-/* THE MATCH CARD (2026-08-26, Sophie: "it does some sort of a check to match
-   it to the right beat and then asks me to confirm or choose a different
-   one"). The room's guess at where the picture she is holding goes: the
-   candidate beats whose WORDS match the run's prompt, best first, riding
-   just above the band. A row's tap IS the confirm; Pick by hand (or ending
-   the trip) drops to the ordinary flow unchanged. Same fixed column as the
-   band, same stand-down while a beat popup is open. */
+/* THE RECENT STORIES CARD (2026-08-29, Sophie: "auto pick story not work …
+   instead: use last three stories, just thumbnails, keep select by hand
+   button"). It shipped 2026-08-26 as a MATCH card — the room guessing which
+   BEAT the picture belonged on by reading the run's prompt against every
+   beat's words — and the guessing is what she retired: three thumbnails of
+   the stories she touched last, tapping one opens it, and the placing is the
+   room's ordinary flow. `send-match.js` and GET /send-match are unused by the
+   page now; do not wire them back without her.
+   Same fixed column as the band, same stand-down while a beat popup is open. */
 #matchcard{position:fixed; left:12px; right:12px; bottom:calc(70px + env(safe-area-inset-bottom));
   z-index:45; background:var(--barbg); color:var(--ink); border:1px solid var(--line);
   border-radius:6px; padding:6px 8px; max-width:520px; margin:0 auto;
   box-shadow:0 6px 20px rgba(20,18,16,.18); max-height:46vh; overflow-y:auto;}
 #matchcard .mhead{font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:10px;
   letter-spacing:.14em; text-transform:uppercase; color:var(--ink2); margin:4px 2px 2px;}
-.mrow{display:flex; align-items:center; gap:10px; width:100%; background:none; border:0;
-  border-top:1px solid var(--line); padding:8px 2px; font:inherit; color:inherit; text-align:left;}
-#matchrows .mrow:first-of-type{border-top:0;}
-.mrow img{flex:none; width:36px; height:36px; object-fit:cover; background:var(--paper);
-  border:1px solid var(--line); border-radius:4px;}
-.mrow .mtx{flex:1; min-width:0;}
-.mrow .mstory{display:block; font-family:-apple-system,'Helvetica Neue',sans-serif;
-  font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--gold);}
-.mrow .mwords{display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
-  overflow:hidden; font-size:14px; line-height:1.35;}
+/* Three across, each one a square thumbnail with the story's name under it —
+   the shelf's own tile at card size, never a row of words. */
+#matchrows{display:flex; gap:8px; padding:2px 0 2px;}
+.mrow{flex:1 1 0; min-width:0; display:block; background:none; border:0; padding:0;
+  font:inherit; color:inherit; text-align:center;}
+.mrow img,.mrow .none{display:block; width:100%; aspect-ratio:1/1; object-fit:cover;
+  background:var(--paper); border:1px solid var(--line); border-radius:4px;}
+.mrow .mstory{display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; margin-top:4px; font-family:-apple-system,'Helvetica Neue',sans-serif;
+  font-size:11px; line-height:1.25; color:var(--ink2);}
 #matchhand{display:block; margin:2px 0 4px auto; background:none; border:0; padding:4px 2px;
   font:inherit; font-size:12px; color:var(--ink2); text-decoration:underline; text-underline-offset:2px;}
 #filmplay{position:fixed; inset:0; z-index:70; display:flex; align-items:center; justify-content:center;
@@ -1191,7 +1193,7 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 </div>
 <div id="filmplay" hidden><video id="filmvid" controls playsinline></video></div>
 <div id="matchcard" hidden>
-  <div class="mhead">Looks like it goes here &#8212; tap to confirm</div>
+  <div class="mhead">Recent stories</div>
   <div id="matchrows"></div>
   <button id="matchhand">Pick by hand</button>
 </div>
@@ -2991,84 +2993,74 @@ document.getElementById('senddrop').onclick=function(ev){
   }
   sendBack=null; paintSend();   // she is staying in the room
 };
-/* ── THE MATCH CARD (2026-08-26, Sophie: "it does some sort of a check to
-   match it to the right beat and then asks me to confirm or choose a
-   different one") ──
-   The moment she walks in holding a picture, the room asks the server which
-   beats the run's own PROMPT reads like (GET /send-match — free, one
-   collection read, no model call; send-match.js carries the rules and their
-   test). The card proposes them best first, and NOTHING places without her
-   tap: a row is the confirm, the other rows are "a different one", and Pick
-   by hand (or just using the shelf as ever) is the old flow untouched. */
-var matchCands=null;
+/* ── THE RECENT STORIES CARD (2026-08-29, Sophie: "auto pick story not work
+   … instead: use last three stories / just thumbnails / keep select by hand
+   button") ──
+   It was a MATCH card for three days: the room read the run's prompt against
+   every beat's words and proposed the beat it thought the picture belonged
+   on (GET /send-match). She retired the guessing, so the shortcut is now the
+   thing she can check at a glance — the three stories she touched last, as
+   thumbnails. Tapping one OPENS it; nothing is placed until she taps a
+   moment or a gap, exactly as picking off the shelf. `send-match.js` and its
+   route still exist, tested, and nothing calls them; do not wire the guess
+   back without her.
+   The three are the newest by `updatedAt`, which is the order /pads already
+   answers in — so this is the top of her shelf, never a second ranking.
+   NOT the pinned order: a pin is where a story LIVES on the shelf, and this
+   card is about what she was just doing. */
+var recentPads=null;
+var RECENT_N=3;
 function paintMatch(){
   var el=document.getElementById('matchcard');
   if(!el) return;
-  el.hidden=!(sendIt&&matchCands&&matchCands.length&&document.getElementById('beatpop').hidden);
+  // On the SHELF only: the card is a way into a story, so inside one it
+  // would be offering her the trip she has already taken.
+  el.hidden=!(sendIt&&recentPads&&recentPads.length
+    &&!document.getElementById('stories').hidden
+    &&document.getElementById('beatpop').hidden);
 }
 function loadMatch(){
-  if(!sendIt||!sendIt.prompt) return;
+  if(!sendIt) return;
   var it=sendIt;
-  api('/send-match?q='+encodeURIComponent(it.prompt.slice(0,2000)))
+  api('/pads')
     .then(function(r){return r.json()})
     .then(function(d){
       // She may have placed it, dropped it, or walked on while this read ran.
       if(sendIt!==it) return;
-      matchCands=(d.candidates||[]);
+      recentPads=(d.pads||[]).slice(0,RECENT_N);
       var rows=document.getElementById('matchrows'); rows.innerHTML='';
-      matchCands.forEach(function(c,i){
+      recentPads.forEach(function(p){
         var b=document.createElement('button'); b.className='mrow';
-        var im=document.createElement('img'); im.alt='';
-        // An empty square is information: the matched beat has no picture
-        // yet, which is usually exactly the one she drew this for.
-        if(c.art) im.src=thumbOf(c.art);
-        b.appendChild(im);
-        var tx=document.createElement('span'); tx.className='mtx';
+        b.title='Open '+(p.title||'Untitled');
+        // A story with no art anywhere yet tiles as an empty square rather
+        // than a broken picture — the shelf's own `none`.
+        if(p.cover){
+          var im=document.createElement('img'); im.alt=''; im.loading='lazy';
+          im.src=thumbOf(p.cover); b.appendChild(im);
+        } else {
+          var n=document.createElement('span'); n.className='none'; b.appendChild(n);
+        }
         var st=document.createElement('span'); st.className='mstory';
-        st.textContent=(c.padTitle||'Untitled')+(i===0?' · best match':'');
-        var wd=document.createElement('span'); wd.className='mwords';
-        wd.textContent=c.words||'';
-        tx.appendChild(st); tx.appendChild(wd); b.appendChild(tx);
-        b.onclick=function(ev){ ev.stopPropagation(); placeMatch(c); };
+        st.textContent=p.title||'Untitled'; b.appendChild(st);
+        b.onclick=function(ev){ ev.stopPropagation(); openRecent(p); };
         rows.appendChild(b);
       });
       paintMatch();
     })
-    .catch(function(){});   // no guess is a normal answer — the flow stands
+    .catch(function(){});   // no shortcut is a normal answer — the shelf stands
 }
-function placeMatch(c){
-  var it=sendIt; if(!it) return;
-  matchCands=null;
-  // The same one write every placement takes (POST /image → placeOnBeat),
-  // aimed across pads by naming the pad outright. NO style on purpose: she
-  // is not standing in that story, so the side comes from the picture's own
-  // run record (sideFromEvidence — the chat-seeding rule).
-  var body={pad:c.pad, id:c.beat, url:it.url};
-  if(it.runId!==undefined) body.src={runId:it.runId,i:it.i,prompt:it.prompt,model:it.model,engine:it.engine,quality:it.quality};
-  api('/image',{method:'POST',body:JSON.stringify(body)})
-    .then(function(r){return r.json()})
-    .then(function(d){
-      if(d&&d.error) throw new Error(d.error);
-      if(pending===it){ pending=null; render(); }
-      endSend(true);
-      // The story it landed in may have just taken its shape from it — and
-      // openPad below resets to the default and then loads, so this is only
-      // for the case where it IS the story already open.
-      shapeFromAnswer(d);
-      // Confirmation by sight: open that story ON the beat, picture landed —
-      // the ?pad=&beat= return trip's own move. The way-back band stays.
-      openAfterLoad=c.beat;
-      openPad(c.pad);
-    })
-    .catch(function(){
-      // A beat deleted since the match must not eat the picture she holds:
-      // the card goes away and she still has the whole ordinary flow.
-      matchCands=null; paintMatch();
-    });
+/* The tap is a shelf tile's tap and nothing more (openPad), so the picture
+   stays in her hand and the band goes on saying what to do with it. */
+function openRecent(p){
+  if(!sendIt) return;
+  openPad(p.id);
+  paintSend();
 }
 document.getElementById('matchhand').onclick=function(ev){
   ev.stopPropagation();
-  matchCands=null; paintMatch();
+  // "Pick by hand" only puts the shortcut away — her shelf is already behind
+  // it, and the picture in her hand is untouched.
+  recentPads=null; paintMatch();
 };
 // A tap on the card's own frame must not fall through to the document-level
 // cancel and drop an armed placing.

@@ -178,7 +178,9 @@ const ok = (cond, what) => { console.log((cond ? 'ok   ' : 'FAIL ') + what); if 
   await page.locator('#shelftiles .stile', { hasText: 'The Meteorite' }).click();
   await page.waitForFunction(() => document.querySelectorAll('#pad .slot').length === 3);
   ok(await page.locator('#stories').isHidden(), 'the shelf steps aside');
-  ok(/Tap where it goes/i.test(await page.locator('#sendword').textContent()),
+  // The band's wording moved when a tap on a MOMENT became a way to place
+  // (2026-08-28); this assertion still asked for the older sentence.
+  ok(/Tap (to place|a moment)/i.test(await page.locator('#sendword').textContent()),
     'the band says what to do next');
 
   // ── 5 · a gap places it THERE, with the provenance ────────────────────
