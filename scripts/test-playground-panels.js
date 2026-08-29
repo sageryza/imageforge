@@ -112,12 +112,13 @@ ok(/id="charpics"/.test(pageSrc) && /id="chardesc"/.test(pageSrc),
   'and each half is a real box the row shows and hides');
 ok(/function plTabLine\(id\)/.test(pageSrc) && /plTabLine\('chartabs'\)/.test(pageSrc),
   'ONE measurer for both rows — nothing declares a tab count');
-// The row only exists where the clause does: a panels/story sheet. A tab that
-// changes nothing on the Picture tab is worse than no tab.
-ok(/row\.hidden = !onPanels\(\)/.test(pageSrc),
-  'the row is on the Panels tab only, where the clause exists');
-ok(/onPanels\(\) && localStorage\.getItem\(CHARTABKEY\)/.test(pageSrc),
-  'and Descriptions cannot be the open half off that tab');
+// THE ROW IS ON BOTH TABS (2026-08-29) — the clause rides a single picture
+// now, so the reason it was Panels-only ("a tab that changes nothing on the
+// Picture tab is worse than no tab") no longer holds.
+ok(/row\.hidden = false;/.test(pageSrc),
+  'the row shows wherever the sheet does — the clause exists on both tabs');
+ok(/localStorage\.getItem\(CHARTABKEY\) === 'desc' \? 'desc' : 'pics'/.test(pageSrc),
+  'and the half she was on is remembered whichever tab she is on');
 ok(/var n = pics \+ desc;/.test(pageSrc),
   'the badge counts the whole cast, both halves');
 
@@ -513,11 +514,16 @@ function panelsPayload() {
   ok(/\bon\b/.test(await page.getAttribute('#charsbtn', 'class') || ''),
     'and the icon lights');
 
-  // The clause only exists on a sheet, so the ROW only exists there.
+  // THE ROW IS ON BOTH TABS NOW (2026-08-29, Sophie: "if i import solo to
+  // playground / can it auto add the character description"). It used to be
+  // Panels-only, on the reasoning that a single picture had nowhere to put
+  // the clause — which stopped being true the moment the clause started
+  // riding a single run.
   await page.click('#t-picture');
   await page.waitForFunction(() => document.querySelector('.promptwrap') && !document.querySelector('.promptwrap').hidden);
-  ok(!(await page.isVisible('#chartabs')), 'off the Panels tab the row is gone');
-  ok(await page.isVisible('#charpics'), 'and the sheet is what it always was');
+  ok(await page.isVisible('#chartabs'), 'the row is there on the Picture tab too');
+  ok(await page.isVisible('#chardesc'),
+    'and the half she was on is still the open one');
   await page.click('#t-panels');
   await page.waitForFunction(() => document.querySelectorAll('#panelgrid textarea').length > 0);
   ok(await page.isVisible('#chardesc'),

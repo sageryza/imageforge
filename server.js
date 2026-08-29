@@ -6573,6 +6573,11 @@ async function runPromptLabJob(docRef, cfg) {
 // every attached reference is paid input tokens, a typed row costs a line of
 // prompt. It is a guard against a runaway paste, not a design limit.
 const CAST_MAX = 12;
+// One cap per field, in one place — the panels sheet, the story sheet and a
+// single picture all trim the same way, so a row cannot survive one door and
+// be cut at another.
+const CAST_NAME = 60;
+const CAST_DESC = 300;
 
 const PL_STORY = {
   line: 'Tell this story as a multi-panel comic page. YOU decide how many '
@@ -6671,7 +6676,28 @@ app.post('/api/promptlab', async (req, res) => {
       const photoLine = pickedChars.length
         ? (st.photoLineWithChars ? ` ${st.photoLineWithChars}` : PL_GPT.photoLineWithChars)
         : (st.photoLine ? ` ${st.photoLine}` : PL_GPT.photoLine);
-      const head = `${prefix}${character ? st.characterLine : ''}${photoBuf ? photoLine : ''}${charsLine}`.trim();
+      // HER TYPED CAST RIDES A SINGLE PICTURE TOO (2026-08-29, Sophie:
+      // "panels adds a character / if i import solo to playground / can it
+      // auto add the character description from the original multi sheet /
+      // ex creepy guy"). It used to be a PANELS-only field: a panel pulled
+      // out of a sheet and re-run alone lost the one thing that said the
+      // creepy guy is that creepy guy, silently, with nothing on screen
+      // admitting it. Same rows, same builder, the SINGLE opening line
+      // (sheetGrid.CAST_INTRO_ONE — the sheet's own sentence names "the
+      // panels", which is untrue over one picture).
+      //
+      // It is its OWN PARAGRAPH after the head's run-on sentence, exactly as
+      // it is on a sheet — that shape is what lets castParse read the clause
+      // back out of a filed style half whichever surface wrote it.
+      //
+      // An empty cast sends NOTHING, so an ordinary run is byte-for-byte the
+      // request it has always been, right down to the blank lines.
+      const soloCast = sheetGrid.castRows(req.body.cast).slice(0, CAST_MAX).map((c) => ({
+        name: c.name.slice(0, CAST_NAME), description: c.description.slice(0, CAST_DESC),
+      }));
+      const soloCastTxt = sheetGrid.castBlock(soloCast, true);
+      const headLine = `${prefix}${character ? st.characterLine : ''}${photoBuf ? photoLine : ''}${charsLine}`.trim();
+      const head = [headLine, soloCastTxt].filter(Boolean).join('\n\n');
       const fullPrompt = `${head}${head ? '\n\n' : ''}${typed}${tail ? `\n\n${tail}` : ''}`;
       const outputs = Math.min(Math.max(Number(req.body.outputs) || PL_GPT.outputs, 1), PL_GPT.maxOutputs);
       const quality = PL_GPT.qualities.includes(req.body.quality) ? req.body.quality : PL_GPT.quality;
@@ -6729,7 +6755,7 @@ app.post('/api/promptlab', async (req, res) => {
         // the panel words themselves — this is a live editor, and a long
         // description is worth sending short rather than not at all.
         const cast = sheetGrid.castRows(req.body.cast).slice(0, CAST_MAX).map((c) => ({
-          name: c.name.slice(0, 60), description: c.description.slice(0, 300),
+          name: c.name.slice(0, CAST_NAME), description: c.description.slice(0, CAST_DESC),
         }));
         const castTxt = sheetGrid.castBlock(cast);
         // The picked cards' sentence rides the head with the style prefix; the
@@ -6787,7 +6813,7 @@ app.post('/api/promptlab', async (req, res) => {
         // as their own clause before her story, and nothing at all when she
         // used neither.
         const cast = sheetGrid.castRows(req.body.cast).slice(0, CAST_MAX).map((c) => ({
-          name: c.name.slice(0, 60), description: c.description.slice(0, 300),
+          name: c.name.slice(0, CAST_NAME), description: c.description.slice(0, CAST_DESC),
         }));
         const castTxt = sheetGrid.castBlock(cast);
         const p0 = `${prefix}${charsLine}`.trim();
@@ -6824,6 +6850,10 @@ app.post('/api/promptlab', async (req, res) => {
         // WHICH characters rode this run, by id and name — the provenance the
         // pad's own draws keep, so a picture can say who is in it.
         ...(pickedChars.length ? { characters: pickedChars } : {}),
+        // Her typed cast, as provenance — the rows, so putting this run back
+        // in the box restores the same people (the only-change-what-the-
+        // record-knows rule). Absent when she used none.
+        ...(soloCast.length ? { cast: soloCast } : {}),
         ...(padTarget ? { padTarget } : {}),
       });
       // "Recent" means the last time she DREW with one, so drawing here is
@@ -6944,7 +6974,9 @@ app.get('/api/promptlab/styles', (req, res) => {
   panels.story = { line: PL_STORY.line, layout: PL_STORY.layout };
   // The typed cast's own wording, SERVED like every other wrapper — the page
   // prints the real clause in the Prompt panel rather than keeping a copy.
-  panels.cast = { intro: sheetGrid.CAST_INTRO, max: CAST_MAX };
+  // Both openings — the page prints the SINGLE one on the Picture tab and
+  // the sheet one on Panels, so nothing keeps a copy of either wording.
+  panels.cast = { intro: sheetGrid.CAST_INTRO, introOne: sheetGrid.CAST_INTRO_ONE, max: CAST_MAX };
   // `sizes` is the old flat shape and stays exactly as it was — a page cached
   // on her phone reads it, and this endpoint is the only thing that serves it.
   res.json({ styles: out, sizes: PL_GPT.sizes, res: PL_GPT.res, resDefault: PL_GPT.resDefault,
