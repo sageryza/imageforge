@@ -4276,6 +4276,26 @@ before working on that module. Nothing was deleted — the moved text is verbati
   window ends up a moment after her tap. Test:
   `node scripts/test-playground-copy-scroll.js` (the real page headless,
   verified failing pre-fix on the lightbox path).
+  **AND THE OTHER DIRECTION — A GENERATE TAP HAS TO BE VISIBLE, `scrollToPending`
+  (2026-08-28, Sophie on the PANELS tab: "why didn't it draw").** It HAD drawn,
+  twice a minute apart, and both sheets were `done` on the server while she was
+  asking — nothing was broken but the feedback. The new run's placeholder lands
+  in `#pendings`, which sits BELOW the feedbar, and on Panels the boxes plus the
+  character sheet fill the app's web view, so the card that says "drawing…" was
+  off the bottom edge: the tap changed nothing where she was standing, so she
+  tapped again. The page walks down to that card now, from **all three starters**
+  (`startRun` · `startPanelsRun` · `startStoryRun` — the shape of the miss is a
+  fourth one shipping without it, so the test sweeps them by name), and it
+  follows the card wherever it is drawn: `#pendings` in list view, the front of
+  the wall in tiles.
+  **IT IS ONLY EVER A MEASUREMENT** — "did it start a run?" was true the whole
+  time, which is exactly the bug, so the honest questions are where the window
+  settles and whether the card's HEAD is really on screen (a card whose top edge
+  is 20px off the bottom answers nothing). And **the bug does not reproduce at a
+  bare 390x844**: the panels card fits there. The test uses **390x700**, the app's
+  web view with its own bottom bar taken off, which is the viewport her
+  screenshot was taken in. Test:
+  `node scripts/test-playground-generate-scroll.js` (verified failing 4 pre-fix).
   **HER OWN CAST — THE CHARACTER PICKER (2026-08-27, Sophie: "add a little
   button in the playground right next to where it says dreamy make sure it's
   the same style with a character icon that shows the five most recent

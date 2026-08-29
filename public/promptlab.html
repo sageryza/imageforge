@@ -1197,6 +1197,27 @@
     requestAnimationFrame(function () { requestAnimationFrame(go); });
   }
 
+  // THE OTHER DIRECTION: a Generate tap has to be VISIBLE (Sophie, 2026-08-28:
+  // "why didn't it draw" — it had, twice, and she had tapped again a minute
+  // apart). The new run's card lands in the feed, which starts below the
+  // feedbar; on a phone the prompt card fills the screen, so the placeholder is
+  // off the bottom and the tap changes nothing where she is standing. So the
+  // page walks down to the card that is about to hold the picture.
+  // Same last-word-has-to-be-ours shape as scrollToPrompt: the placeholder is
+  // drawn in this tick, so ask again once it has really been laid out.
+  function scrollToPending() {
+    var go = function () {
+      var box = document.getElementById('pendings');
+      if (box.hidden) box = document.getElementById('tiles');
+      var card = box && box.firstElementChild;
+      if (!card) return;
+      var y = window.scrollY + card.getBoundingClientRect().top - 8;
+      window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+    };
+    go();
+    requestAnimationFrame(function () { requestAnimationFrame(go); });
+  }
+
   // The copy button beside a run's words: puts that prompt back into the box.
   function copyPromptIn(text) {
     var box = document.getElementById('prompt');
@@ -1690,7 +1711,7 @@
         count: (PANELS_CFG.grids[g] || {}).count || g, quality: quality,
         ar: cellAr(g), grid: g,
       });
-      setPending(list); renderPendings(); startPolling();
+      setPending(list); renderPendings(); startPolling(); scrollToPending();
     });
   }
   // A story run is a single picture on the sheet's own canvas — the toggle's
@@ -1717,7 +1738,7 @@
         count: 1, quality: quality,
         ar: canvas === 'square' ? '1:1' : '2:3', grid: 'story',
       });
-      setPending(list); renderPendings(); startPolling();
+      setPending(list); renderPendings(); startPolling(); scrollToPending();
     });
   }
   function setTab(t) {
@@ -2805,6 +2826,7 @@
         : { id: d.id, prompt: prompt, scale: scale, style: S.label, engine: 'replicate', count: OUTPUTS, seed: seed, key: key, ar: '2:3' });
       setPending(list);
       renderPendings(); startPolling();
+      scrollToPending();
     });
   }
 
