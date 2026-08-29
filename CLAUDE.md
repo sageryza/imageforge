@@ -4810,45 +4810,41 @@ before working on that module. Nothing was deleted — the moved text is verbati
   the heart the pictures) and hides "Older" while it is running. Searchable:
   her words, the style by its LABEL and its key, quality, the canvas by its
   ratio AND by the word on the button, `photo ref`, failed/cancelled.
-  **AND IT HAS ITS OWN LINE, ALWAYS (2026-08-28, Sophie: "search way too
-  small. why can't it show behind pill column" → "i don't need to tap" → "put
-  x on other side").** Measured at 390pt: the row is List·Tiles·3 (148) + the
-  filter chips (70, or 104 with the sheets chip) + the 56 the injected pill
-  owns, which left the box **76px, or 41 on the PANELS tab** — her screenshot
-  shows the placeholder clipped to "Se" with the caret in it. **It cannot run
-  behind the pill and that is the answer to her question:** `.feedbar` is
+  **AND IT RUNS INTO THE PILL'S COLUMN, ON THE ROW IT HAS ALWAYS BEEN ON
+  (2026-08-28, Sophie, four messages: "search way too small. why can't it show
+  behind pill column" → "i don't need to tap" → "put x on other side" → "you
+  put it on a separate row? I specifically asked for it to stay where it
+  is").** Measured at 390pt: the row is List·Tiles·3 (148) + the filter chips
+  (70, or 104 with the sheets chip) + the 56 the injected pill owns, which
+  left the box **76px, or 41 on the PANELS tab** — her screenshot shows the
+  placeholder clipped to "Se" with the caret in it. **The ROW cannot go under
+  the pill and that is the answer to her question:** `.feedbar` is
   `position:sticky; top:0`, so unlike ordinary content — which passes under
-  the pill's fixed corner on its way up — this row sits inside that corner
-  PERMANENTLY, so anything under those 56px is covered and untappable for
-  good, and the end of the box is exactly where the ✕ and the caret live. So
-  the room comes from a LINE OF ITS OWN (310px), and **nothing is hidden to
-  pay for it**: the view switch and the chips stay on the line above.
-  Stepping one of them aside was built first and reverted — switching to
-  tiles over the hits and lighting the heart on them are two of the things a
-  search is FOR, and a lit filter she cannot see is the silent-filter failure
-  this app keeps getting burned by.
-  **AND THE LINE IS UNCONDITIONAL — IT SHIPPED FOR AN HOUR AS A LINE THAT
-  APPEARED ON FOCUS AND SHE CUT THAT ("i don't need to tap").** A box only
-  usable once it is tapped is a box she has to ask for; the 40px is simply
-  spent. So there is no `.searching` class, nothing to repaint and no JS at
-  all — the row wraps, and focusing, typing and clearing move nothing.
-  **THE ✕ IS AT THE LEFT END OF THE FIELD** (her third message): the right end
-  is what the pill's column reaches toward, and it is where her caret sits and
-  where dictated text grows — the left end is the one part of the field never
-  doing anything else. Its 28px of padding exists only while the ✕ does, so an
-  empty box keeps its whole width for the placeholder.
-  **AND THE LINE RUNS INTO THE PILL'S COLUMN (her fourth: "you put it in the
-  row under, I said I wanted it in the pill column")** — 310 → **366, the full
-  width of the page**. Every other row here reserves the pill's 56px and this
-  is the one row that can give them up, *because* the ✕ moved left: nothing on
-  the right of this box is a control any more, only the tail of a query she
-  reads from the left, and the pill still floats over that tail and still
-  takes its own taps. **The CONTROLS' line keeps its reservation** — every one
-  of those IS a tap target. So the answer to her original question turned out
-  to be "the ROW can't, this line can, once nothing tappable is at its right
-  end". Test:
-  `node scripts/test-playground-search-room.js` (every state measured off the
-  real boxes, the ✕ and the controls asked with `elementFromPoint`).
+  the pill's fixed corner on its way up — it sits inside that corner
+  PERMANENTLY, and anything tappable in those 56px is covered for good. **But
+  the FIELD can, and does** (`margin-right:-56px`, 76 → 132): the ✕ moved to
+  its LEFT end the same day, so nothing on its right is a control any more,
+  only the tail of a query she reads from the left, and the pill still floats
+  over that tail and still takes its own taps. The other controls keep the
+  reservation — every one of those IS a tap target.
+  **TWO OTHER SHAPES SHIPPED FIRST AND SHE CUT BOTH; NEITHER IS A RULE.** A
+  line that appeared when the box was focused ("i don't need to tap" — a box
+  only usable once it is tapped is one she has to ask for), and a second line
+  of its own under the controls ("I specifically asked for it to stay where it
+  is"). So the box **stays on the row**, there is no `.searching` state,
+  nothing to repaint and no JS at all — and stepping a neighbour aside to make
+  room is out for its own reason: switching to tiles over the hits and
+  lighting the heart on them are two of the things a search is FOR, and a lit
+  filter she cannot see is the silent-filter failure this app keeps getting
+  burned by.
+  **THE ✕ IS AT THE LEFT END OF THE FIELD** (her third message), which is what
+  buys the column: the right end is where her caret sits and where dictated
+  text grows, and the left end is the one part of the field never doing
+  anything else. Its 28px of padding exists only while the ✕ does, so an empty
+  box keeps its whole width for the placeholder. Test:
+  `node scripts/test-playground-search-room.js` (the real page with the real
+  injected pill at the iPhone 13's 47px inset — one row, the field into the
+  column, the controls and the pill asked with `elementFromPoint`).
   **IT ASKS THE SERVER, and that is the point** — `GET /api/promptlab?q=`
   scans the whole run history (a few hundred ~1KB docs, capped 1500, held
   60s) because a box that only filters the loaded page answers "nothing

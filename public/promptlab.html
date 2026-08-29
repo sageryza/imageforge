@@ -339,36 +339,30 @@
   .feedsearch input.hasq { padding-left: 28px; }
   .feedsearch input:focus { outline: none; border-color: #c25a72; }
   .feedsearch input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
-  /* THE BOX HAS ITS OWN LINE, ALWAYS (2026-08-28, Sophie: "search way too
-     small. why can't it show behind pill column" → "i don't need to tap").
-       IT CANNOT GO BEHIND THE PILL, and that is the answer to her question:
-     `.feedbar` is `position: sticky; top: 0`, so unlike ordinary content —
-     which passes under the pill's fixed corner on its way up — this row sits
-     inside that corner PERMANENTLY. Anything under those 56px is covered and
-     untappable for good, and the end of this box is where the ✕ and the caret
-     live.
-       So the room comes from a line of its own: 76px (41 with the sheets chip
-     out) becomes 310, measured at 390pt. NOTHING IS HIDDEN TO PAY FOR IT —
-     the view switch and the filter chips stay exactly where they are, on the
-     line above.
-       IT SHIPPED FOR AN HOUR AS A LINE THAT APPEARED ON FOCUS and she cut
-     that: "i don't need to tap". A box that is only usable once it is tapped
-     is a box she has to ask for, and the 40px it costs is a fixed 40px on a
-     page whose feed is already scrolling. So there is no `.searching` state,
-     nothing to repaint and no JS at all — the row simply wraps.
-       AND THE LINE RUNS INTO THE PILL'S COLUMN (2026-08-28, her third
-     correction: "you put it in the row under, I said I wanted it in the pill
-     column"). Every other row here reserves the pill's 56px, and this is the
-     one row that can give them up: the ✕ moved to the LEFT end the same day,
-     so nothing on the right of this box is a control — only the tail of a
-     query, which she reads from the left. So it cancels `.feedbar`'s own
-     `padding-right` with a negative margin and runs the full width of the
-     page, 310 → 366. The pill still floats over that tail and still takes its
-     own taps; a query long enough to reach it is one she is reading the front
-     of. The CONTROLS' line keeps its reservation — every one of those IS a
-     tap target. */
-  .feedbar { flex-wrap: wrap; }
-  .feedsearch { flex-basis: calc(100% + 56px); margin-left: 0; margin-right: -56px; margin-top: 8px; }
+  /* THE BOX STAYS ON THE ROW AND RUNS INTO THE PILL'S COLUMN (2026-08-28,
+     Sophie: "search way too small. why can't it show behind pill column" →
+     "i don't need to tap" → "put x on other side" → "you put it on a separate
+     row? I specifically asked for it to stay where it is").
+       Every other thing on this row reserves the injected pill's 56px, and
+     the SEARCH is the one that can give them up — because the ✕ moved to the
+     LEFT end of the field the same day, nothing on the right of this box is a
+     control any more: only the tail of a query she reads from the left. So it
+     cancels `.feedbar`'s own `padding-right` with a negative margin and runs
+     to the edge of the page, 76px → 132 (41 → 97 on the PANELS tab, where the
+     sheets chip is out). The pill floats over that tail and still takes its
+     own taps.
+       WHAT IT IS NOT: the ROW cannot go under there — `.feedbar` is
+     `position: sticky; top: 0`, so unlike ordinary content, which passes
+     under the pill's corner on its way up, this row sits inside that corner
+     permanently, and anything tappable in those 56px is covered for good.
+     That is why the CONTROLS keep the reservation and only the field gives it
+     up.
+       TWO SHAPES SHIPPED BEFORE THIS AND SHE CUT BOTH: a line that appeared
+     when the box was focused ("i don't need to tap" — a box only usable once
+     it is tapped is one she has to ask for), and a second line of its own
+     ("I specifically asked for it to stay where it is"). Neither is a rule;
+     both are history. The box stays on the row. */
+  .feedsearch { margin-right: -56px; }
   /* CLEAR, not dismiss: it empties the box and keeps her in it. Shown only
      while there are words to wipe. */
   .qclear { position: absolute; left: 0; top: 0; height: 100%; width: 28px; border: 0; background: none;
