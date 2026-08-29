@@ -543,6 +543,15 @@ function runCard(run) {
     run.refs.forEach(function (u) { html += '<img src="' + u + '" alt="" data-full="' + u + '">'; });
     html += '</div>';
   }
+  /* THE CARD ONLY REBUILDS WHEN IT CHANGED (2026-08-28, the Story Room's
+     "blinks a lot" rule). The poll calls this every 2.5s for the life of a
+     run, and re-assigning identical HTML recreates the reference thumbs and
+     every picture already landed — the card flashed the whole time a run was
+     drawing. The signature is the exact HTML plus the prompt (which is set
+     as textContent below, outside the HTML string). */
+  var sig = html + '' + (run.prompt || '');
+  if (el.__sig === sig) return;
+  el.__sig = sig;
   el.innerHTML = html;
   el.querySelector('.p').textContent = run.prompt || '';
   el.querySelector('.copybtn').addEventListener('click', function () { copyRunIn(run); });

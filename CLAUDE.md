@@ -3807,6 +3807,12 @@ out. The headlines, so you know when to go and look:
   `node scripts/test-header-top.js` measures every `serveGated` page (the
   list is derived from server.js, so a new page is covered the day it is
   registered). Full rules in `docs/design-rules.md`.
+- **A REPAINT NEVER REBUILDS WHAT DID NOT CHANGE (2026-08-28, Sophie: "this
+  shud be the automatic best practices").** A poll or refresh that wipes and
+  recreates image DOM strobes the page blank on iOS — the Story Room's
+  "blinks a lot", found live on three more pages the same day. The pattern is
+  a signature skip reading the same values the paint draws; full rule and
+  worked examples in `docs/design-rules.md`.
 - **The hairline `.acctabs` rows measure their own underline** — no row anywhere
   declares a tab count. Add a tab and the line still lands under the word.
 - **Custom icons are framed at 1.11x the SF Symbol point size**, and every

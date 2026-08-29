@@ -70,8 +70,20 @@ function dayLabel(iso){
   if(days<2 && new Date(now-86400000).toDateString()===d.toDateString()) return 'YESTERDAY';
   return (d.getMonth()+1)+'/'+d.getDate();
 }
+/* THE FEED ONLY REBUILDS WHEN IT CHANGED (2026-08-28, the Story Room's
+   "blinks a lot" rule). load() re-runs every 60 seconds and on every return
+   to the app, and a wipe-and-rebuild recreates hundreds of <img>s for a feed
+   that is usually identical. The signature reads the same values the tiles
+   draw (url, folder, day, the NEW dot), so anything that would change the
+   screen still rebuilds. */
+var wallSig=null;
 function render(){
   var feed=document.getElementById('feed');
+  var sig=all.length+'\\u0001'+shown+'\\u0001'+all.slice(0,shown).map(function(im){
+    return im.url+'\\u0002'+(im.folder||'')+'\\u0002'+im.created+'\\u0002'+((lastSeen&&im.created>lastSeen)?1:0);
+  }).join('\\u0003');
+  if(sig===wallSig) return;
+  wallSig=sig;
   feed.innerHTML='';
   if(!all.length){ feed.innerHTML='<div class="state">Nothing on the wall yet.</div>'; return; }
   var curDay=null, grid=null;
