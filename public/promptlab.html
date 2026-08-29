@@ -1182,6 +1182,43 @@
     paintPhoto();
   }
 
+  // …AND PUTS THE CAST BACK TOO (2026-08-29, Sophie: "light box view /
+  // characters in playground"). The photo reference has been restored on
+  // every copy path since 2026-08-27 ("playground and other image tools shud
+  // save the reference photo and reload when copy to prompt box") — her
+  // picked CHARACTERS shipped the same day and were never wired into it, so
+  // a picture drawn with a cast could not be re-run with that cast: the ids
+  // were on the run doc the whole time and nothing read them back.
+  //
+  // Same three answers as restorePhoto, and the CLEAR is the half that is
+  // easy to skip:
+  //   characters on the record -> pick exactly those,
+  //   a record with none       -> put down whoever is picked (leaving them on
+  //                               would add a paid reference the run she
+  //                               copied never had),
+  //   no record at all         -> leave it alone; nothing here knows.
+  // The ids are what the run POSTs, so restoring them is enough on its own —
+  // the library is fetched in the background only so the picker and the
+  // Prompt panel can NAME them.
+  function restoreChars(r) {
+    if (!r) return;
+    var want = (Array.isArray(r.characters) ? r.characters : [])
+      .map(function (c) { return c && c.id ? String(c.id) : ''; })
+      .filter(Boolean)
+      .slice(0, charMax);
+    if (want.join(',') === pickedChars.join(',')) return;
+    pickedChars = want;
+    paintCharsBtn();
+    paintCharPanel();
+    if (promptOpen) paintPromptPanel();
+    if (want.length && !charList) {
+      loadChars().then(function () {
+        paintCharPanel();
+        if (promptOpen) paintPromptPanel();
+      });
+    }
+  }
+
   // PUTTING A PICTURE BACK BRINGS ITS PEOPLE (2026-08-29, Sophie: "panels
   // adds a character / if i import solo to playground / can it auto add the
   // character description from the original multi sheet / ex creepy guy").
@@ -1274,13 +1311,15 @@
     if (!r || !r.panels || !r.grid || !PANELS_CFG || !PANELS_CFG.grids[r.grid.count]) {
       copyPromptIn(r && r.prompt);
       restorePhoto(r);
+      restoreChars(r);
       return;
     }
     // A panels run never carries a photo (the button is off on that tab), so
     // its record answers "none" and the restore CLEARS one that is attached —
     // the same rule everywhere, and the honest one here.
     restorePhoto(r);
-    restoreCast(r.cast);
+    restoreChars(r);     // the picked FACES rode the whole sheet
+    restoreCast(r.cast); // …and so did her typed rows
     savePanelTexts(r.grid.count, r.panels.slice());
     // Words put back out of a finished run have been drawn by definition, so
     // they are never the unseen draft the carry stops to ask about.
@@ -1299,6 +1338,7 @@
     try { localStorage.setItem(STORYTEXTKEY, String(r.prompt || '')); } catch (e) { /* private mode */ }
     try { localStorage.setItem(GRIDKEY, 'story'); } catch (e) { /* private mode */ }
     restorePhoto(r);          // a story run never carries one → clears, honestly
+    restoreChars(r);          // …but a story sheet CAN carry a cast
     restoreCast(r.cast);
     openPanels();             // same rule as copyPanelsIn — the box must be on screen
     setTab('panels');
@@ -1308,7 +1348,9 @@
   function copyRunIn(r) {
     if (r && r.storySheet) copyStoryIn(r);
     else if (r && r.panels && r.panels.length) copyPanelsIn(r);
-    else if (r) { copyPromptIn(r.prompt); restorePhoto(r); restoreCast(r.cast); }
+    else if (r) {
+      copyPromptIn(r.prompt); restorePhoto(r); restoreChars(r); restoreCast(r.cast);
+    }
   }
   // ONE PICTURE'S WORDS GO IN THE ONE BOX (2026-08-27, Sophie: "pressing the
   // playground button on images made by panels should copy text into the
@@ -1325,6 +1367,7 @@
     setTab('picture');
     copyPromptIn(String(panel));
     restorePhoto(r);
+    restoreChars(r);
     // The people the sheet established come with the panel — the whole of her
     // 2026-08-29 ask. Said out loud, because a clause that rides her next run
     // must never arrive silently.
@@ -3185,7 +3228,7 @@
     if (cp) {
       var pid = cp.getAttribute('data-copy');
       var pend = pendingList().filter(function (x) { return x.id === pid; })[0];
-      if (pend) { copyPromptIn(pend.prompt); restorePhoto(runsById[pid]); }
+      if (pend) { copyPromptIn(pend.prompt); restorePhoto(runsById[pid]); restoreChars(runsById[pid]); }
       return;
     }
     var btn = e.target.closest('[data-kill]');
@@ -4005,6 +4048,16 @@
       // sheet it is the only picture the run has.
       vote: (r.votes || {})[i] || null,
       thread: noteCache[src] || [],
+      // WHO IS IN IT (2026-08-29, Sophie: "light box view / characters in
+      // playground") — the character references that really rode this run,
+      // read off the run's own record, so a picture says who it was drawn
+      // with instead of only saying so in a sentence behind the Prompt door.
+      // A picture drawn with nobody passes nothing and the row is not drawn.
+      // Faces go through the DERIVED thumb service (a saved card is a ~1.2MB
+      // render — the house webp rule), the picker's own 240px copy.
+      cast: (Array.isArray(r.characters) ? r.characters : []).map(function (c) {
+        return { name: c && c.name, url: (c && c.url) ? window.FeedKit.thumbFor(c.url, 240) : '' };
+      }),
       // The old Playground arrangement, as the shared file's hooks (2026-08-26,
       // Sophie): ♥/✕ lead the row under the picture, the tag right under it.
       votesBelow: true,

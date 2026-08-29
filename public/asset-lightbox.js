@@ -40,6 +40,12 @@
        AND the title, `onClick(e)` is called with the tap.
      `who` — one small uppercase line at the very bottom, under the caption:
        which chat this picture came from, on a surface that mixes many.
+     `cast: [{name, url}]` — who is IN the picture: the character references
+       that rode the run, as a small face plus its NAME under the caption.
+       The name is the half that matters (it is what she writes in a prompt
+       to draw that character again); the caller passes whatever url it wants
+       drawn, so it can hand over a derived thumb rather than the 1.2MB card.
+       Marks, not buttons — the row stays dead space that closes the box.
    Both are optional and additive, so every existing caller is untouched. Add
    a hook rather than a copy the next time a surface needs something extra.
 
@@ -188,6 +194,17 @@
     + '.lbacts button{width:34px; height:34px; border-radius:50%; border:none; cursor:pointer; margin:0;\n'
     + '  background:rgba(250,247,240,.9); color:#3a3530; display:flex; align-items:center; justify-content:center; padding:0;}\n'
     + '.lbacts button svg{width:17px; height:17px; display:block;}\n'
+    /* THE CAST — who is in this picture, drawn under the caption: a small
+       face and its NAME for every character reference that rode the run.
+       The name is the load-bearing half (it is what she writes in a prompt
+       to draw that character again); the face is what makes the row
+       readable at a glance. Marks, never buttons — nothing here is tappable,
+       so the close rule keeps working over the whole row. */
+    + '#clightbox .clcast{display:flex; flex-wrap:wrap; gap:6px 12px; justify-content:center;\n'
+    + '  margin-top:10px; padding:0 12px;}\n'
+    + '#clightbox .clchar{display:inline-flex; align-items:center; gap:6px; color:#b9b2a4; font-size:11px;}\n'
+    + '#clightbox .clchar img{width:24px; height:24px; border-radius:5px; object-fit:cover;\n'
+    + '  background:rgba(250,247,240,.15); display:block;}\n'
     /* WHO - which chat it came from: the last line, and the quietest */
     + '#clightbox .clwho{color:#8a8377; font-family:-apple-system,sans-serif; font-size:10px; margin-top:8px;\n'
     + '  text-align:center; letter-spacing:.12em; text-transform:uppercase;}\n'
@@ -595,6 +612,28 @@
       fileCap(tc);
     }
     if (cap) { var cc = document.createElement('div'); cc.className = 'clcap'; cc.textContent = cap; fileCap(cc); }
+    // WHO IS IN IT — the character references that rode this picture, under
+    // the caption. Optional and additive like every other hook: a caller that
+    // passes none draws nothing, so no existing surface moved. The caller
+    // supplies the url it wants drawn (a DERIVED thumb — a saved character
+    // card is a full ~1.2MB render, the house webp rule).
+    var cast = (asset && Array.isArray(asset.cast)) ? asset.cast.filter(Boolean) : [];
+    if (cast.length) {
+      var cr = document.createElement('div'); cr.className = 'clcast';
+      cast.forEach(function (c) {
+        var one = document.createElement('span'); one.className = 'clchar';
+        if (c.url) {
+          var ci = document.createElement('img');
+          ci.src = c.url; ci.alt = ''; ci.loading = 'lazy';
+          one.appendChild(ci);
+        }
+        var cn = document.createElement('span');
+        cn.textContent = c.name || 'unnamed';
+        one.appendChild(cn);
+        cr.appendChild(one);
+      });
+      fileCap(cr);
+    }
     var who = asset ? (asset.who || '') : '';
     if (who) { var wc = document.createElement('div'); wc.className = 'clwho'; wc.textContent = who; lb.appendChild(wc); }
     lb.style.display = 'flex'; document.body.style.overflow = 'hidden'; document.body.classList.add('ontop');

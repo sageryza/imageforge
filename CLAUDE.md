@@ -4392,6 +4392,34 @@ before working on that module. Nothing was deleted — the moved text is verbati
     and a picker of 143 of them would be tens of megabytes of originals.
   - **A reference that will not fetch FAILS the run** rather than quietly
     drawing a stranger — the Story Room's own rule.
+  - **THE LIGHTBOX SAYS WHO IS IN THE PICTURE, AND PUTTING THE PROMPT BACK PUTS
+    THE CAST BACK (2026-08-29, Sophie: "light box view / characters in
+    playground").** The run doc has carried `characters:[{id,name,url}]` since
+    the picker shipped and **nothing ever read it back**, so both halves were
+    invisible: a picture drawn with a cast looked like one drawn with nobody
+    (except as a sentence buried in the style half behind the Prompt door), and
+    copying its prompt back re-ran it with the cast missing.
+    - **`cast:[{name,url}]` is a new hook on `asset-lightbox.js`** — a small
+      face and its NAME under the caption — never a Playground-only control
+      (the never-a-fourth-copy rule). The **name** is the load-bearing half:
+      it is what she writes in a prompt to draw that character again. They are
+      MARKS, not buttons, so the row stays dead space that closes the box. A
+      caller passing none draws nothing, so no other surface moved. Faces go
+      through the derived-thumb service — a card is a ~1.26MB render.
+    - **`restoreChars` is `restorePhoto`'s twin**, on the same *only change
+      what the record knows* rule, wired into every copy path: characters on
+      the record pick exactly those, **a record with NONE puts down whoever is
+      picked** (leaving them on would add a paid reference the run she copied
+      never had), and no record at all leaves it alone. The **ids are what the
+      run POSTs**, so restoring them is enough on its own; the library is
+      fetched behind it only so the picker and the Prompt panel can NAME them.
+    - **Not persisted across loads** — that rule is hers and is untouched: a
+      cast picked last week silently riding today's run is the hidden
+      ingredient the Prompt panel exists to prevent.
+    - Test: `node scripts/test-playground-cast-lightbox.js` (the real page
+      headless — the row's names, its faces really decoding, the tap that must
+      still close, and the restore read off the button's count and the
+      picker's lit cards; verified failing 7 pre-fix).
   - **The sheet opens into the pill's corner**, so both card rows reserve a
     MEASURED `--charpill` column (`fitCharPill`): pre-fix the pill's own
     `Fast` label sat on the fifth recent card, and her 47px safe-area inset
