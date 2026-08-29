@@ -20,7 +20,7 @@
 //      (2026-08-25, Sophie: "the 3/4 switch button is in a weird place. It
 //      should not be in the auto scroll roll row"). So: it is inside
 //      `.viewtog`, out of the pill's rail entirely (nothing fixed), the same
-//      height as List/Tiles, the controls stay on one line, the search box
+//      height as List/Tiles, the feed row stays one line, the search box
 //      still holds its whole placeholder, and it is reachable at its own
 //      centre (the pill must not be sitting on it).
 //
@@ -170,9 +170,7 @@ const ok = (c, m) => { if (c) console.log('  ok  ' + m); else fail(m); };
   ok(home.reachable, 'a tap at its own centre reaches it');
   ok(home.have >= home.need,
     `"Search" fits (needs ${Math.round(home.need)}px, has ${Math.round(home.have)}px)`);
-  // Two rows since 2026-08-28: the controls, and the search's own line under
-  // them (Sophie: "i don't need to tap").
-  ok(home.barH <= 96, `the feed bar is the controls plus the search line (${home.barH}px)`);
+  ok(home.barH <= 48, `the feed row is one line (${home.barH}px)`);
 
   await browser.close();
   server.close();

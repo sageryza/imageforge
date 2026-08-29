@@ -1,22 +1,23 @@
 #!/usr/bin/env node
-// THE SEARCH BOX HAS ITS OWN LINE, ALWAYS (2026-08-28, Sophie: "search way
-// too small. why can't it show behind pill column" → "i don't need to tap" →
-// "put x on other side").
+// THE SEARCH BOX STAYS ON THE ROW AND RUNS INTO THE PILL'S COLUMN
+// (2026-08-28, Sophie: "search way too small. why can't it show behind pill
+// column" → "i don't need to tap" → "put x on other side" → "you put it on a
+// separate row? I specifically asked for it to stay where it is").
 //
-// It cannot go behind the pill — `.feedbar` is sticky at top:0, so it sits
-// inside the pill's fixed corner permanently rather than passing under it. So
-// the room comes from a line of its own, unconditionally: a box that is only
-// usable once it is tapped is a box she has to ask for. Drives the REAL
-// public/promptlab.html in headless Chromium at 390pt and MEASURES it,
-// because "way too small" is a width and nothing else:
-//   1. untouched, before any tap, the search is on a line of its own and is
-//      3-4x the width the shared row left it,
-//   2. nothing is hidden to pay for it — the view switch and the filter chips
-//      are still there and still take a tap (asked with elementFromPoint),
-//   3. focusing, typing and clearing never change the layout: no state, no
-//      repaint, nothing that can appear or disappear under her,
-//   4. the ✕ is at the LEFT end of the field, and the words start clear of it,
-//   5. the 56px the injected autoscroll pill owns is never eaten.
+// The ROW cannot go under the pill — `.feedbar` is sticky at top:0, so it sits
+// inside the pill's fixed corner permanently rather than passing under it, and
+// anything tappable in those 56px is covered for good. But the FIELD can, now
+// that the ✕ is at its left end: nothing on its right is a control, only the
+// tail of a query. Drives the REAL public/promptlab.html with the REAL
+// injected pill in headless Chromium at 390pt, at the iPhone 13's 47px
+// safe-area inset, and MEASURES it — "way too small" is a width and nothing
+// else:
+//   1. the search is on the SAME line as the controls — one row, no wrap,
+//   2. it runs to the edge of the page, into the pill's column,
+//   3. the CONTROLS still stop before that column and every one takes a tap,
+//      and so does the pill itself over the field's tail,
+//   4. focusing, typing and clearing never change the layout — no state,
+//   5. the ✕ is at the LEFT end and the words start clear of it.
 //
 //   npm install playwright --no-save && node scripts/test-playground-search-room.js
 const http = require('http');
@@ -101,16 +102,17 @@ const ok = (c, m) => { if (c) console.log('  ok  ' + m); else fail(m); };
   const focus = () => page.focus('#q');
   const blur = () => page.evaluate(() => document.getElementById('q').blur());
 
-  // 1 ── untouched, before any tap
+  // 1 ── one row: the search sits with the controls
   let s = await snap();
   const rest = s.search.w;
-  ok(s.lines === 2, 'untouched, the search is already on a line of its own');
-  ok(rest > 250, 'untouched, it is a real search field (' + rest + 'px)');
-  ok(s.search.right >= s.barRight - 1,
-     'and it runs the whole width, into the pill\'s column (her ask)');
-  ok(rest >= 360, 'so it is the full width of the page (' + rest + 'px)');
+  ok(s.lines === 1, 'the search is on the SAME line as the controls — one row');
 
-  // 2 ── nothing is hidden to pay for it
+  // 2 ── and it runs into the pill's column
+  ok(s.search.right >= s.barRight - 1,
+     'it runs to the edge of the page, into the pill\'s column (her ask)');
+  ok(rest >= 120, 'so it is wider than the row alone would leave it (' + rest + 'px)');
+
+  // 3 ── the controls keep the reservation, and everything still takes a tap
   ok(s.view.shown && s.filt.shown, 'the view switch and the filters are still on the row');
   const ctrlClear = await page.evaluate((pill) => {
     const bar = document.querySelector('.feedbar').getBoundingClientRect();
@@ -119,26 +121,34 @@ const ok = (c, m) => { if (c) console.log('  ok  ' + m); else fail(m); };
       return r.right <= bar.right - pill + 1;
     });
   }, PILL);
-  ok(ctrlClear, 'and THEIR line still stops before the pill column — every one is a tap target');
+  ok(ctrlClear, 'the CONTROLS still stop before the pill column — every one is a tap target');
   const reachable = () => page.evaluate(() => ['v-list', 'v-tiles', 'v-liked', 'v-hidex'].every((id) => {
     const r = document.getElementById(id).getBoundingClientRect();
     const e = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
     return !!(e && e.closest('#' + id));
   }));
   ok(await reachable(), 'and every one of them really takes a tap there (elementFromPoint)');
+  const pillTap = await page.evaluate(() => {
+    const f = document.querySelector('body > .float');
+    if (!f) return 'no pill';
+    const r = f.getBoundingClientRect();
+    const e = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+    return !!(e && e.closest('.float'));
+  });
+  ok(pillTap === true, 'and the pill still takes its own taps over the field\'s tail');
 
-  // 3 ── no state: focus, type and clear never move the layout
+  // 4 ── no state: focus, type and clear never move the layout
   await focus(); await page.waitForTimeout(150);
   let f = await snap();
-  ok(f.search.w === rest && f.lines === 2, 'focusing changes nothing — there is nothing to expand');
+  ok(f.search.w === rest && f.lines === 1, 'focusing changes nothing — there is nothing to expand');
   await page.type('#q', 'prompt'); await page.waitForTimeout(500);
   f = await snap();
-  ok(f.search.w === rest && f.lines === 2, 'typing changes nothing');
+  ok(f.search.w === rest && f.lines === 1, 'typing changes nothing');
   ok(await reachable(), 'and every control is still reachable with a query live');
   ok(await page.evaluate(() => !document.querySelector('.feedbar').className.includes('searching')),
      'and the row carries no searching state at all');
 
-  // 4 ── the ✕ is on the LEFT, and the words start clear of it
+  // 5 ── the ✕ is on the LEFT, and the words start clear of it
   const x = await page.evaluate(() => {
     const b = document.getElementById('qclear').getBoundingClientRect();
     const i = document.getElementById('q').getBoundingClientRect();
@@ -151,22 +161,12 @@ const ok = (c, m) => { if (c) console.log('  ok  ' + m); else fail(m); };
   ok(x.onLeft, 'and it is at the LEFT end of the field');
   ok(x.pad >= x.w, 'and the words start clear of it (padding ' + x.pad + ' ≥ ' + Math.round(x.w) + ')');
   ok(x.takesTap, 'and it really takes a tap there (elementFromPoint)');
-  const pillTakesTap = await page.evaluate(() => {
-    const f = document.querySelector('.float');
-    if (!f) return 'no pill';
-    const r = f.getBoundingClientRect();
-    const e = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
-    return !!(e && e.closest('.float'));
-  });
-  ok(pillTakesTap === true || pillTakesTap === 'no pill',
-     'the pill still takes its own taps over the search line (' + pillTakesTap + ')');
-
   await page.click('#qclear'); await page.waitForTimeout(300);
   ok(await page.evaluate(() => document.getElementById('q').value === '' &&
        document.activeElement === document.getElementById('q')),
      'it empties the box and keeps her in it');
   f = await snap();
-  ok(f.search.w === rest && f.lines === 2, 'and clearing changes nothing either');
+  ok(f.search.w === rest && f.lines === 1, 'and clearing changes nothing either');
 
   await b.close(); server.close();
   if (!process.exitCode) console.log('\nAll good.');
