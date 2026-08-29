@@ -5116,8 +5116,15 @@ app.post('/api/witch/cart/update', async (req, res) => {
 // the one shared filer (style-test and deck-batch proxy into these routes
 // internally, so they are covered by the same four calls). Fire-and-forget:
 // a gallery hiccup must never fail a render that already exists.
+// AWAITED BY EVERY CALLER SINCE 2026-08-28 (Sophie: "any other fire and
+// forget"). These routes are STATELESS — no run doc survives them — so a
+// filing killed by a deploy restart was unrecoverable: the picture existed in
+// Storage with no record anywhere that it was ever made. Awaiting couples the
+// filing to the response: either she gets the url AND the record, or neither
+// (a kill before the response loses the url too, so nothing new is at risk).
+// Still best-effort — a gallery hiccup logs and never fails a render.
 function fileGenerateRoute({ url, prompt, full, prefix, suffix, model, quality, canvas, style }) {
-  Promise.resolve()
+  return Promise.resolve()
     .then(() => fileCreationDoc({
       url, prompt, fullPrompt: full || prompt, promptPrefix: prefix, promptSuffix: suffix,
       model, quality, canvas, style, source: 'teststation',
@@ -5142,7 +5149,7 @@ app.post('/api/generate/dalle', async (req, res) => {
     const permanentUrl = await saveToFirebase(data.data[0].url, 'dalle');
     // What WE sent is the record; DALL·E's own rewrite rides the style slot so
     // neither text is lost and neither is filed as the other.
-    fileGenerateRoute({ url: permanentUrl, prompt, full: prompt,
+    await fileGenerateRoute({ url: permanentUrl, prompt, full: prompt,
       model: 'dall-e-3', quality, canvas: size,
       style: data.data[0].revised_prompt ? 'dalle rewrote the prompt' : '' });
     res.json({ url: permanentUrl, revised_prompt: data.data[0].revised_prompt });
@@ -5164,7 +5171,7 @@ app.post('/api/generate/gptimage', async (req, res) => {
     const url = await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/webp', 'openai');
     // Verbatim surface — her words go through untouched, so there is no style
     // half to file and the full prompt IS the content.
-    fileGenerateRoute({ url, prompt, full: prompt,
+    await fileGenerateRoute({ url, prompt, full: prompt,
       model: 'gpt-image-2', quality, canvas: size });
     res.json({ url });
   } catch (err) {
@@ -5281,7 +5288,7 @@ app.post('/api/generate/housestyle', async (req, res) => {
     const url = await saveBufferToFirebase(buf, 'image/webp', 'housestyle');
     // `full` is the literal string handed to the edits call two lines up; the
     // style's own prompt and tail are the wrapper around her words.
-    fileGenerateRoute({ url, prompt, full,
+    await fileGenerateRoute({ url, prompt, full,
       prefix: style.stylePrompt || '', suffix: style.end || '',
       model: 'gpt-image-2', quality, canvas: '1024x1024', style: style.name || styleId });
     res.json({ url });
@@ -5402,7 +5409,7 @@ app.post('/api/generate/replicate', async (req, res) => {
     // The LoRA's wrapper is its trigger in front and its suffix behind —
     // `fullPrompt` is what was actually sent. One filing per output.
     for (const u of permanentUrls) {
-      fileGenerateRoute({ url: u, prompt, full: fullPrompt,
+      await fileGenerateRoute({ url: u, prompt, full: fullPrompt,
         prefix: known ? known.trigger : '', suffix: known?.promptSuffix || '',
         model, style: known ? known.name : '' });
     }
@@ -6052,12 +6059,29 @@ async function reconcileCreationFiling() {
       if (!images.length) continue;
       const st = PL_GPT_STYLES[r.gptStyle];
       const label = (st && st.label) || (r.style === 'watercolor' ? 'WTR' : '');
+      const styleSlot = label ? `${label}${r.quality ? ' · ' + r.quality : ''}` : '';
+      const createdMs = r.createdAt && r.createdAt.toMillis ? r.createdAt.toMillis() : 0;
+      // A PANELS run's pieces carry their OWN words and the '1/9 (4K)' size
+      // slot — filing nine panels under the run's joined prompt would break
+      // the label-every-picture rule the live path keeps.
+      if (Array.isArray(r.panels) && r.panels.length && images.length === r.panels.length) {
+        const cut = r.sheet ? require('./size-tier').cutSize(r.sheet, r.panels.length) : '';
+        for (let i = 0; i < images.length; i++) {
+          await fileCreationDoc({
+            url: images[i], prompt: r.panels[i], style: styleSlot,
+            model: r.model || PL_GPT.id, quality: r.quality,
+            canvas: r.cell || '', sizeSlot: cut,
+            fullPrompt: r.fullPrompt, createdMs,
+            source: 'playground',
+          });
+        }
+        continue;
+      }
       await fileRunToCreations(images, {
-        prompt: r.prompt,
-        style: label ? `${label}${r.quality ? ' · ' + r.quality : ''}` : '',
+        prompt: r.prompt, style: styleSlot,
         model: r.model || (r.gptStyle ? PL_GPT.id : ''),
         quality: r.quality, size: r.size, fullPrompt: r.fullPrompt,
-        createdMs: r.createdAt && r.createdAt.toMillis ? r.createdAt.toMillis() : 0,
+        createdMs,
       });
     }
     const ffMod = require('./freeform');

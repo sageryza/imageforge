@@ -36,8 +36,8 @@ assert.ok(/promptStyle: r\.promptStyle \|\| ''/.test(freeform),
 assert.ok(/async function reconcileCreationFiling\(\)/.test(server), 'reconcile sweep exists');
 assert.ok(/RENDER_EXTERNAL_URL[\s\S]{0,200}reconcileCreationFiling\(\)/.test(server),
   'the sweep only runs where a real deploy runs');
-assert.ok(/createdMs: r\.createdAt && r\.createdAt\.toMillis/.test(server),
-  'the reconcile passes the run’s own timestamp');
+assert.ok(/const createdMs = r\.createdAt && r\.createdAt\.toMillis/.test(server),
+  'the reconcile derives the run’s own timestamp');
 assert.ok(/createdMs\s*\?\s*admin\.firestore\.Timestamp\.fromMillis/.test(server),
   'fileRunToCreations honours it');
 
@@ -50,5 +50,22 @@ assert.ok(/\.catch\(\(\) => \{\}\);\n\}/.test(scratchpad.match(/function fileBea
   'filing can never fail a placement');
 assert.ok(/fileCreation: fileCreationDoc/.test(server.match(/scratchpadMod\.init\([^)]*\)/)[0]),
   'server hands scratchpad the writer');
+
+// 4. Test Station and photostudio no longer race the kill-window: their
+//    filings are AWAITED (Test Station is stateless — a lost filing there was
+//    unrecoverable; photostudio's scene prompt exists nowhere else).
+const photostudio = fs.readFileSync(require.resolve('../photostudio.js'), 'utf8');
+assert.ok(/return Promise\.resolve\(\)/.test(server.match(/function fileGenerateRoute\([\s\S]{0,700}/)[0]),
+  'fileGenerateRoute returns its promise');
+assert.strictEqual((server.match(/await fileGenerateRoute\(/g) || []).length, 4,
+  'all four generate routes await the filing');
+assert.ok(/await Promise\.resolve\(\)\.then\(\(\) => fileCreation\(/.test(photostudio),
+  'photostudio awaits its filing');
+
+// 5. The reconcile files a panels run's pieces with their own words.
+assert.ok(/Array\.isArray\(r\.panels\)[\s\S]{0,600}prompt: r\.panels\[i\]/.test(server),
+  'a reconciled panel carries its own words');
+assert.ok(/sizeSlot: cut/.test(server.match(/Array\.isArray\(r\.panels\)[\s\S]{0,900}/)[0]),
+  'and the 1/N sheet size slot');
 
 console.log('creation-filing: all pins hold — freeform files, the boot sweep re-files, the placing doors file');
