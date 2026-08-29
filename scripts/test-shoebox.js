@@ -139,8 +139,8 @@ async function pageHalf() {
   const pill = fs.readFileSync(path.join(__dirname, '..', 'public', 'pill-inject.html'), 'utf8');
 
   ok('page links /feedkit.js', /src="\/feedkit\.js"/.test(html));
-  ok('page carries the star paper', /shoebox\/star-paper\.webp/.test(html));
-  ok('star paper tile is committed', fs.existsSync(path.join(__dirname, '..', 'public', 'shoebox', 'star-paper.webp')));
+  ok('page carries the star paper', /shoebox-papers\/star-paper\.webp/.test(html));
+  ok('star paper tile is committed', fs.existsSync(path.join(__dirname, '..', 'public', 'shoebox-papers', 'star-paper.webp')));
 
   const server = http.createServer((req, res) => {
     const u = new URL(req.url, 'http://x');
