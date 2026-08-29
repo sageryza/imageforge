@@ -4694,6 +4694,58 @@
     if (document.visibilityState === 'visible') plBuildCheck();
   });
 
+  /* ── THE ARROW'S WATCHDOG (2026-08-29, Sophie's THIRD back-to-top report:
+     "it's still not there and i reload it like every hour … there was one,
+     it's gone"). Measured that hour: the served page and every vintage back
+     to Aug 24 draw the arrow lit and tappable in headless Chromium AND real
+     WebKit, at her viewport, in her exact flow — so the failure lives in a
+     state only her device reaches, and re-fixing the page again is the one
+     move that cannot help. Two jobs, the Film Editor's telemetry lesson:
+     REPAIR — every few seconds the pill's own exported resync
+     (__pillTopSync) is asked to re-derive the arrow from live state, so a
+     missed scroll event or a dead listener costs seconds, not the session.
+     REPORT — the moment the arrow is caught wrong (dark while the page is a
+     full screen down, or only lit because this tick lit it), the device
+     files its own account to /api/promptlab/pilltop: build, scroll state,
+     the button's computed display and class. That is what turns the next
+     "it's not there" from a guessing game into one GET.
+     Skipped while an overlay owns the screen — there the pill may honestly
+     be driving the sheet, not the page. Capped to one report a minute. ── */
+  var ptopReported = 0;
+  function ptopWrong(lit, litAfter, y, ih) {
+    return (!lit && litAfter) || (!litAfter && y > ih + 4);
+  }
+  function ptopWatch() {
+    var p = document.getElementById('ptop');
+    if (!p || !window.__pillTopSync) return;
+    if (lbIsOpen() || charsOpen) return;
+    var lit = p.classList.contains('on');
+    window.__pillTopSync();
+    var litAfter = p.classList.contains('on');
+    if (!ptopWrong(lit, litAfter, window.scrollY, window.innerHeight)) return;
+    if (Date.now() - ptopReported < 60000) return;
+    ptopReported = Date.now();
+    var body = JSON.stringify({
+      build: plBuild(), scrollY: Math.round(window.scrollY),
+      ih: window.innerHeight, sh: document.documentElement.scrollHeight,
+      lit: lit, litAfter: litAfter,
+      disp: getComputedStyle(p).display, cls: p.className,
+      corrected: !lit && litAfter,
+    });
+    try {
+      var sent = navigator.sendBeacon && navigator.sendBeacon(
+        '/api/promptlab/pilltop', new Blob([body], { type: 'application/json' }));
+      if (!sent) {
+        fetch('/api/promptlab/pilltop', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body,
+        }).catch(function () {});
+      }
+    } catch (e) {}
+  }
+  window.__plPtopWatch = ptopWatch;
+  window.__plPtopWrong = ptopWrong;
+  setInterval(ptopWatch, 4000);
+
   if (window.__nativeNavBar) document.body.classList.add('native');
   renderStyles(); updateShape(); syncControls(); syncTab(); applyLiked(false); applyHideX(false); applyView(); loadRuns();
   if (pendingList().length) { renderPendings(); startPolling(); }

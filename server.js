@@ -7057,6 +7057,49 @@ app.get('/api/promptlab/build', (req, res) => {
   res.json({ build: pageBuildId('promptlab.html', true) });
 });
 
+// THE ARROW'S OWN ACCOUNT (2026-08-29, Sophie's THIRD back-to-top report:
+// "it's still not there and i reload it like every hour … there was one, it's
+// gone"). Measured that hour: the served page and every vintage back to Aug 24
+// render the arrow lit and tappable in headless Chromium AND real WebKit at
+// her viewport, in her exact flow — so the failure lives in a state only her
+// device reaches, and no amount of re-fixing the page can find it from here.
+// This is the Film Editor's telemetry lesson (its round-three finding): a bug
+// report from her hand has to come with the device's own account.
+//
+// The page's watchdog POSTs here ONLY when it caught the arrow wrong (see
+// promptlab.html); reading is free. Firestore-backed (an in-memory list dies
+// with every deploy, and deploys are constant here), one doc, newest first,
+// capped. MUST stay above `/api/promptlab/:id`, like /build and /styles.
+const PILLTOP_CAP = 40;
+app.get('/api/promptlab/pilltop', async (req, res) => {
+  try {
+    const doc = await admin.firestore().collection(PROMPTLAB).doc('__pilltop').get();
+    res.json({ reports: (doc.exists && doc.data().reports) || [] });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+app.post('/api/promptlab/pilltop', async (req, res) => {
+  try {
+    const b = req.body || {};
+    const report = {
+      at: Date.now(),
+      build: String(b.build || '').slice(0, 32),
+      ua: String(req.get('user-agent') || '').slice(0, 160),
+      // The pill's real state at the moment it was caught wrong.
+      scrollY: Number(b.scrollY) || 0, ih: Number(b.ih) || 0, sh: Number(b.sh) || 0,
+      lit: Boolean(b.lit), litAfter: Boolean(b.litAfter),
+      disp: String(b.disp || '').slice(0, 20), cls: String(b.cls || '').slice(0, 60),
+      corrected: Boolean(b.corrected),
+    };
+    const ref = admin.firestore().collection(PROMPTLAB).doc('__pilltop');
+    await admin.firestore().runTransaction(async (tx) => {
+      const doc = await tx.get(ref);
+      const list = [report].concat((doc.exists && doc.data().reports) || []).slice(0, PILLTOP_CAP);
+      tx.set(ref, { reports: list }, { merge: true });
+    });
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // A container-drawn panel sheet files into the PANELS tab (2026-08-28,
 // Sophie: "the playground is for me, but panels should go in panels"). The
 // "THE FEED IS HERS" rule sends chat sheet work to the chat's own container,
