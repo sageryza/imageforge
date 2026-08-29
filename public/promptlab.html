@@ -743,7 +743,7 @@
 
 <div id="ask">
   <div class="askbox">
-    <p>Are you sure you want to cancel?</p>
+    <p id="askmsg">Are you sure you want to cancel?</p>
     <div class="fine" id="askfine"></div>
     <div class="askrow">
       <button id="askno">Keep going</button>
@@ -1222,6 +1222,9 @@
     // the same rule everywhere, and the honest one here.
     restorePhoto(r);
     savePanelTexts(r.grid.count, r.panels.slice());
+    // Words put back out of a finished run have been drawn by definition, so
+    // they are never the unseen draft the carry stops to ask about.
+    savePanelsDrawn(r.grid.count, r.panels.slice());
     try { localStorage.setItem(GRIDKEY, String(r.grid.count)); } catch (e) { /* private mode */ }
     // "Back in the boxes" has to be true on screen — a shut fold would put
     // them somewhere she cannot see.
@@ -1375,6 +1378,32 @@
   }
   function savePanelTexts(g, arr) {
     try { localStorage.setItem('promptlab_panels_' + g, JSON.stringify(arr)); } catch (e) { /* private mode */ }
+  }
+  // HAS THIS DRAFT BEEN DRAWN? (2026-08-29, Sophie: "if the text that was
+  // saved as a draft has never been drawn trigger a pop-up"). A panels run
+  // stamps the EXACT array it sent under the grid it sent it for, so editing
+  // one box after a draw makes that grid undrawn again — which is the honest
+  // answer, since the words sitting there are not the words that were drawn.
+  // Nothing here is ever cleared: a stamp only stops matching.
+  function panelsDrawn(g) {
+    try {
+      var a = JSON.parse(localStorage.getItem('promptlab_panels_drawn_' + g) || '[]');
+      return Array.isArray(a) ? a : [];
+    } catch (e) { return []; }
+  }
+  function savePanelsDrawn(g, arr) {
+    try { localStorage.setItem('promptlab_panels_drawn_' + g, JSON.stringify(arr)); } catch (e) { /* private mode */ }
+  }
+  function sameWords(a, b) {
+    a = a || []; b = b || [];
+    if (a.length !== b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (String(a[i] || '').trim() !== String(b[i] || '').trim()) return false;
+    }
+    return true;
+  }
+  function anyWords(a) {
+    return (a || []).some(function (s) { return String(s || '').trim(); });
   }
   function panelVals() {
     return Array.prototype.map.call(document.querySelectorAll('#panelgrid textarea'),
@@ -1619,15 +1648,69 @@
       + '<button type="button" data-grid="story"' + (story ? ' class="on"' : '')
       + ' title="You write the story; the model decides the panels">Story</button>';
   }
-  document.getElementById('gridpick').addEventListener('click', function (e) {
-    var b = e.target.closest('button[data-grid]');
-    if (!b) return;
-    try { localStorage.setItem(GRIDKEY, b.getAttribute('data-grid')); } catch (err) { /* private mode */ }
+  // HER WORDS COME WITH HER (2026-08-29, Sophie: "if there's text in one of
+  // the grids if I transferred to that grid, my words don't transfer. They
+  // should transfer, but if the text that was saved as a draft has never been
+  // drawn trigger a pop-up").
+  //
+  // The per-grid drafts stay exactly as they were — the grid she is LEAVING
+  // keeps its own copy, so switching back always restores it and a transfer
+  // can only ever overwrite the grid she is arriving at. That is what makes
+  // the one question worth asking: the arriving grid's draft is the only
+  // thing a carry can lose, and only when it was never drawn.
+  //
+  // Story is out of it, both directions: a story is one prose block and the
+  // panels are a line per cell, so "transfer" would mean rewriting her words
+  // rather than moving them.
+  function carryInto(to) {
+    var from = curGrid();
+    if (storyMode() || String(to) === 'story' || Number(to) === from) return null;
+    var carry = panelVals().map(function (s) { return String(s || '').trim(); });
+    if (!anyWords(carry)) return null;                 // nothing to bring
+    var meta = PANELS_CFG && PANELS_CFG.grids[to];
+    if (!meta) return null;
+    var next = [];
+    for (var i = 0; i < meta.count; i++) next.push(carry[i] || '');
+    // A carry that would land empty-handed is not a carry — going 9 → 2 with
+    // words only in panels 3-9 must not wipe the target with blanks.
+    if (!anyWords(next)) return null;
+    // Words left behind are still in the grid she came from; say how many, so
+    // "where did panels 5-9 go" is answered before she has to ask.
+    var left = carry.filter(function (s, j) { return s && j >= meta.count; }).length;
+    return { to: Number(to), next: next, left: left, had: panelTexts(to) };
+  }
+  function applyGrid(g) {
+    try { localStorage.setItem(GRIDKEY, String(g)); } catch (err) { /* private mode */ }
     // Picking a layout is her saying she is about to write into it.
     openPanels();
     // paintCanvas too: Story ↔ a grid moves what the toggle DECIDES (the
     // sheet itself vs each cell), so the titles must move with it.
     paintGridPick(); buildPanelGrid(); syncControls(); paintCanvas(); paintRes(); paintPromptPanel();
+  }
+  document.getElementById('gridpick').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-grid]');
+    if (!b) return;
+    var pick = b.getAttribute('data-grid');
+    var c = carryInto(pick);
+    if (!c) { applyGrid(pick); return; }
+    function go() { savePanelTexts(c.to, c.next); applyGrid(pick); }
+    var had = c.had;
+    // Silent when there is nothing to lose: the target is empty, it already
+    // says the same thing, or what it says has been DRAWN (that sheet is in
+    // her feed and its prompt copies back with one tap).
+    if (!anyWords(had) || sameWords(had, c.next) || sameWords(had, panelsDrawn(c.to))) { go(); return; }
+    var n = had.filter(function (s) { return String(s || '').trim(); }).length;
+    askOpen({
+      msg: 'The ' + c.to + '-panel grid already has words.',
+      fine: n + (n === 1 ? ' panel there was' : ' panels there were') + ' never drawn.'
+        + ' Bringing yours over replaces them.'
+        + (c.left ? ' (' + c.left + ' of yours stay behind in the ' + curGrid() + '-panel grid.)' : ''),
+      no: 'Keep what’s there', yes: 'Bring mine over',
+      onYes: go,
+      // "Keep what's there" still takes her to the grid she tapped — she asked
+      // to go there; the only question was whose words it holds.
+      onNo: function () { applyGrid(pick); },
+    });
   });
   // GENERATE on the Panels tab: every box must hold words — the error names
   // how many are still empty rather than a generic refusal. One sheet, one
@@ -1682,6 +1765,9 @@
       }),
     }).then(readJson).then(function (d) {
       if (!d.id) throw new Error(d.error || 'Could not start.');
+      // These exact words are drawn now, so this grid's draft is no longer
+      // unseen work — a later carry can replace it without asking.
+      savePanelsDrawn(g, texts);
       var list = pendingList();
       list.push({
         id: d.id, prompt: joined, style: S.label, engine: 'gptimage',
@@ -2975,6 +3061,21 @@
     if (curView() === 'tiles') renderTiles();
   }
 
+  // THE ONE CONFIRM BOX. It was the cancel dialog with its words baked into
+  // the markup; the panel-transfer question (2026-08-29) is the second thing
+  // that has to ask her something, so the box takes its words and its answer
+  // per opening rather than growing a second copy of itself.
+  var askYes = null, askNo = null;
+  function askOpen(o) {
+    askYes = o.onYes || null; askNo = o.onNo || null;
+    document.getElementById('askmsg').textContent = o.msg || '';
+    document.getElementById('askfine').textContent = o.fine || '';
+    document.getElementById('askno').textContent = o.no || 'Keep going';
+    document.getElementById('askyes').textContent = o.yes || 'Do it';
+    document.getElementById('ask').classList.add('on');
+    document.body.style.overflow = 'hidden';
+  }
+
   // Cancel: X on a running LoRA job → "are you sure" → POST /cancel. Replicate
   // stops the prediction and only bills the compute already run.
   var askId = null;
@@ -2989,24 +3090,33 @@
     var btn = e.target.closest('[data-kill]');
     if (!btn) return;
     askId = btn.getAttribute('data-kill');
-    document.getElementById('askfine').textContent =
-      'It stops the run — you’re only charged for what has already run.';
-    document.getElementById('ask').classList.add('on');
-    document.body.style.overflow = 'hidden';
+    askOpen({
+      msg: 'Are you sure you want to cancel?',
+      fine: 'It stops the run — you’re only charged for what has already run.',
+      no: 'Keep going', yes: 'Cancel it',
+      onYes: function () {
+        var ids = (askId || '').split(',').filter(Boolean);   // a grouped box holds several
+        if (!ids.length) return;
+        Promise.all(ids.map(function (id) {
+          return fetch('/api/promptlab/' + id + '/cancel', { method: 'POST' }).then(function (r) { return r.json(); });
+        })).then(function () { poll(); }).catch(showErr);
+      },
+    });
   });
   function closeAsk() {
-    askId = null;
+    askId = null; askYes = null; askNo = null;
     document.getElementById('ask').classList.remove('on');
     document.body.style.overflow = '';
   }
-  document.getElementById('askno').addEventListener('click', closeAsk);
+  document.getElementById('askno').addEventListener('click', function () {
+    var fn = askNo;
+    closeAsk();                                   // close FIRST: the answer may repaint the page
+    if (fn) fn();
+  });
   document.getElementById('askyes').addEventListener('click', function () {
-    var ids = (askId || '').split(',').filter(Boolean);   // a grouped box holds several
-    closeAsk();
-    if (!ids.length) return;
-    Promise.all(ids.map(function (id) {
-      return fetch('/api/promptlab/' + id + '/cancel', { method: 'POST' }).then(function (r) { return r.json(); });
-    })).then(function () { poll(); }).catch(showErr);
+    var fn = askYes;
+    closeAsk();                                   // close FIRST: the answer may repaint the page
+    if (fn) fn();
   });
 
   function startPolling() {
