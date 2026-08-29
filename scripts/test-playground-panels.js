@@ -112,12 +112,13 @@ ok(/id="charpics"/.test(pageSrc) && /id="chardesc"/.test(pageSrc),
   'and each half is a real box the row shows and hides');
 ok(/function plTabLine\(id\)/.test(pageSrc) && /plTabLine\('chartabs'\)/.test(pageSrc),
   'ONE measurer for both rows — nothing declares a tab count');
-// The row only exists where the clause does: a panels/story sheet. A tab that
-// changes nothing on the Picture tab is worse than no tab.
-ok(/row\.hidden = !onPanels\(\)/.test(pageSrc),
-  'the row is on the Panels tab only, where the clause exists');
-ok(/onPanels\(\) && localStorage\.getItem\(CHARTABKEY\)/.test(pageSrc),
-  'and Descriptions cannot be the open half off that tab');
+// THE ROW IS ON BOTH TABS (2026-08-29) — the clause rides a single picture
+// now, so the reason it was Panels-only ("a tab that changes nothing on the
+// Picture tab is worse than no tab") no longer holds.
+ok(/row\.hidden = false;/.test(pageSrc),
+  'the row shows wherever the sheet does — the clause exists on both tabs');
+ok(/localStorage\.getItem\(CHARTABKEY\) === 'desc' \? 'desc' : 'pics'/.test(pageSrc),
+  'and the half she was on is remembered whichever tab she is on');
 ok(/var n = pics \+ desc;/.test(pageSrc),
   'the badge counts the whole cast, both halves');
 
@@ -461,8 +462,7 @@ function panelsPayload() {
     return el === b || b.contains(el);
   });
   ok(pickHit, 'the grid picker is reachable (elementFromPoint)');
-  await page.click('#gridpick button[data-grid="9"]');
-  await page.waitForFunction(() => document.querySelectorAll('#panelgrid textarea').length === 9);
+  await pickGrid(9);
   const boxes9 = await page.$$eval('#panelgrid textarea', (ts) => ts.map((t) => Math.round(t.getBoundingClientRect().left)));
   ok(new Set(boxes9).size === 3, '9 boxes sit 3 across');
 
@@ -513,11 +513,16 @@ function panelsPayload() {
   ok(/\bon\b/.test(await page.getAttribute('#charsbtn', 'class') || ''),
     'and the icon lights');
 
-  // The clause only exists on a sheet, so the ROW only exists there.
+  // THE ROW IS ON BOTH TABS NOW (2026-08-29, Sophie: "if i import solo to
+  // playground / can it auto add the character description"). It used to be
+  // Panels-only, on the reasoning that a single picture had nowhere to put
+  // the clause — which stopped being true the moment the clause started
+  // riding a single run.
   await page.click('#t-picture');
   await page.waitForFunction(() => document.querySelector('.promptwrap') && !document.querySelector('.promptwrap').hidden);
-  ok(!(await page.isVisible('#chartabs')), 'off the Panels tab the row is gone');
-  ok(await page.isVisible('#charpics'), 'and the sheet is what it always was');
+  ok(await page.isVisible('#chartabs'), 'the row is there on the Picture tab too');
+  ok(await page.isVisible('#chardesc'),
+    'and the half she was on is still the open one');
   await page.click('#t-panels');
   await page.waitForFunction(() => document.querySelectorAll('#panelgrid textarea').length > 0);
   ok(await page.isVisible('#chardesc'),
@@ -545,13 +550,33 @@ function panelsPayload() {
   ok((await page.$$eval('#pendings .cell', (c) => c.length)) === 9,
     'the pending card holds nine breathing placeholders');
 
-  console.log('her words survive a grid switch');
-  await page.click('#gridpick button[data-grid="4"]');
-  await page.waitForFunction(() => document.querySelectorAll('#panelgrid textarea').length === 4);
-  await page.click('#gridpick button[data-grid="9"]');
-  await page.waitForFunction(() => document.querySelectorAll('#panelgrid textarea').length === 9);
+  // HER WORDS COME WITH HER (2026-08-29, Sophie: "if there's text in one of
+  // the grids if I transferred to that grid, my words don't transfer"). This
+  // block used to assert that 9 → 4 → 9 came back with all NINE — i.e. that
+  // each grid kept its own separate draft, untouched. That is superseded: a
+  // switch now CARRIES what is in the boxes into the grid she is arriving at.
+  // The carry's own rules (the pop-up over an undrawn draft, the silence over
+  // a drawn one) live in test-playground-panel-carry.js; this only pins that
+  // the switch itself moves her words and loses none of them.
+  // Picking a grid can now stop to ask (an undrawn draft is about to be
+  // replaced); this test is not about that question, so it answers "bring
+  // mine over" and carries on.
+  async function pickGrid(g) {
+    await page.click('#gridpick button[data-grid="' + g + '"]');
+    if (await page.isVisible('#ask')) await page.click('#askyes');
+    await page.waitForFunction((sel) => (sel === 'story'
+      ? !!document.querySelector('#panelgrid textarea[data-story]')
+      : document.querySelectorAll('#panelgrid textarea').length === Number(sel)), String(g));
+  }
+
+  console.log('her words come with her across a grid switch');
+  await pickGrid(4);
+  const four = await page.$$eval('#panelgrid textarea', (ts) => ts.map((t) => t.value));
+  ok(four.join('|') === nine.slice(0, 4).join('|'), '9 → 4 brings the first four with her');
+  await pickGrid(9);
   const back = await page.$$eval('#panelgrid textarea', (ts) => ts.map((t) => t.value));
-  ok(back.join('|') === nine.join('|'), '9 → 4 → 9 loses nothing');
+  ok(back.join('|') === nine.slice(0, 4).concat(['', '', '', '', '']).join('|'),
+    'and 4 → 9 puts those four back in their own cells');
 
   // THE 2 OPTION IS TWO LANDSCAPE PANELS, STACKED (2026-08-27, Sophie: "2
   // option shud be landscape in panels"). Measured off the real boxes: a
@@ -560,8 +585,7 @@ function panelsPayload() {
   // two <textarea>s. And the canvas toggle must come OFF, because it decides
   // nothing here.
   console.log('the 2 option is landscape, stacked, and the toggle stands down');
-  await page.click('#gridpick button[data-grid="2"]');
-  await page.waitForFunction(() => document.querySelectorAll('#panelgrid textarea').length === 2);
+  await pickGrid(2);
   const two = await page.$$eval('#panelgrid textarea', (ts) => ts.map((t) => {
     const r = t.getBoundingClientRect();
     return { x: Math.round(r.left), y: Math.round(r.top), w: r.width, h: r.height, ph: t.placeholder };
@@ -589,17 +613,14 @@ function panelsPayload() {
   ok(phAr === '3/2|3/2',
     'the pending placeholders wear the landscape cell, so the wall cannot re-flow');
   // …and the toggle comes back the moment the grid stops pinning a shape.
-  await page.click('#gridpick button[data-grid="4"]');
-  await page.waitForFunction(() => document.querySelectorAll('#panelgrid textarea').length === 4);
+  await pickGrid(4);
   ok(await page.isVisible('#canvastog'), 'and comes back on a grid that follows it');
-  await page.click('#gridpick button[data-grid="9"]');
-  await page.waitForFunction(() => document.querySelectorAll('#panelgrid textarea').length === 9);
+  await pickGrid(9);
 
   console.log('the STORY option — the model decides the panels');
   // 2026-08-27, Sophie: "a sheet where i give instructions for a story, and
   // have the image model decide the exact panels".
-  await page.click('#gridpick button[data-grid="story"]');
-  await page.waitForFunction(() => !!document.querySelector('#panelgrid textarea[data-story]'));
+  await pickGrid('story');
   ok((await page.$$eval('#panelgrid textarea', (t) => t.length)) === 1, 'ONE box — the story');
   ok((await page.getAttribute('#panelgrid textarea[data-story]', 'placeholder')) === 'The story',
     "named 'The story' and nothing more");
@@ -623,8 +644,7 @@ function panelsPayload() {
   ok(!!(sp.canvas && sp.quality && sp.res), 'with the canvas, quality and tier');
   ok((await page.$$eval('#pendings .cell', (c) => c.length)) === cellsBefore + 1,
     'the pending card holds ONE placeholder — one sheet');
-  await page.click('#gridpick button[data-grid="9"]');
-  await page.waitForFunction(() => document.querySelectorAll('#panelgrid textarea').length === 9);
+  await pickGrid(9);
 
   console.log('the feed');
   const runCells = await page.$$eval('#runs .run', (runs) => runs.map((r) => ({

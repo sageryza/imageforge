@@ -319,8 +319,8 @@ enum Tool: String, CaseIterable, Identifiable {
 let forgePillPages: Set<String> = [
     "/assembly", "/assets", "/audio", "/blocks", "/blog", "/brief", "/character",
     "/chunking", "/clips", "/crystals", "/crystalsplit", "/cutmarks", "/cuttingroom",
-    "/desktop", "/dreams", "/dreams-archive", "/dump", "/editor", "/films",
-    "/freeform", "/import", "/instagram", "/pausing", "/photo", "/playground",
+    "/deliverables", "/desktop", "/dreams", "/dreams-archive", "/dump", "/editor",
+    "/films", "/freeform", "/import", "/instagram", "/pausing", "/photo", "/playground",
     "/promptlab", "/report", "/review", "/scratchpad", "/search", "/song",
     "/storyroom", "/studio", "/timeline", "/vector", "/voice",
     // baked in-page from scripts/pill.py, not injected

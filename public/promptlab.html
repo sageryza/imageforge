@@ -743,7 +743,7 @@
 
 <div id="ask">
   <div class="askbox">
-    <p>Are you sure you want to cancel?</p>
+    <p id="askmsg">Are you sure you want to cancel?</p>
     <div class="fine" id="askfine"></div>
     <div class="askrow">
       <button id="askno">Keep going</button>
@@ -1219,6 +1219,44 @@
     }
   }
 
+  // PUTTING A PICTURE BACK BRINGS ITS PEOPLE (2026-08-29, Sophie: "panels
+  // adds a character / if i import solo to playground / can it auto add the
+  // character description from the original multi sheet / ex creepy guy").
+  // A panels run stores the typed rows it was cast with, so pulling ONE panel
+  // into the picture box can bring the descriptions that made the creepy guy
+  // that creepy guy. Without it the panel is re-run as an anonymous man in
+  // black, and nothing on screen says a thing was dropped.
+  //
+  // IT ONLY EVER ADDS, and that is the deliberate difference from
+  // restorePhoto's three-answer rule. A photo is not persisted and was never
+  // typed; the cast is BOTH — sticky in localStorage and written out by hand,
+  // row by row — so "a record with none clears it" would throw away work she
+  // did rather than an ingredient she forgot. She asked for the add. A row
+  // whose name she already has is left exactly as she wrote it: the record is
+  // filling gaps, never correcting her.
+  function restoreCast(rows) {
+    var add = (window.__sheetGrid && window.__sheetGrid.castRows)
+      ? window.__sheetGrid.castRows(rows) : [];
+    if (!add.length) return 0;
+    var have = castAll();
+    var seen = {};
+    have.forEach(function (c) { seen[String(c.name || '').trim().toLowerCase()] = 1; });
+    var n = 0;
+    add.forEach(function (c) {
+      if (have.length >= castMax) return;
+      var k = String(c.name || '').trim().toLowerCase();
+      if (k && seen[k]) return;
+      if (k) seen[k] = 1;
+      have.push({ name: c.name, description: c.description });
+      n++;
+    });
+    if (!n) return 0;
+    saveCast(have);
+    buildCastBox();
+    if (promptOpen) paintPromptPanel();
+    return n;
+  }
+
   // PUTTING A PROMPT BACK MOVES THE SCREEN TO THE BOX (2026-08-28, Sophie:
   // "prompt us back in box shud move screen to box"). Every copy path already
   // asked for that scroll, and from the LIGHTBOX it never happened: closing an
@@ -1280,8 +1318,12 @@
     // its record answers "none" and the restore CLEARS one that is attached —
     // the same rule everywhere, and the honest one here.
     restorePhoto(r);
-    restoreChars(r);   // a panels run's cast rode the whole sheet
+    restoreChars(r);     // the picked FACES rode the whole sheet
+    restoreCast(r.cast); // …and so did her typed rows
     savePanelTexts(r.grid.count, r.panels.slice());
+    // Words put back out of a finished run have been drawn by definition, so
+    // they are never the unseen draft the carry stops to ask about.
+    savePanelsDrawn(r.grid.count, r.panels.slice());
     try { localStorage.setItem(GRIDKEY, String(r.grid.count)); } catch (e) { /* private mode */ }
     // "Back in the boxes" has to be true on screen — a shut fold would put
     // them somewhere she cannot see.
@@ -1297,6 +1339,7 @@
     try { localStorage.setItem(GRIDKEY, 'story'); } catch (e) { /* private mode */ }
     restorePhoto(r);          // a story run never carries one → clears, honestly
     restoreChars(r);          // …but a story sheet CAN carry a cast
+    restoreCast(r.cast);
     openPanels();             // same rule as copyPanelsIn — the box must be on screen
     setTab('panels');
     scrollToPrompt();
@@ -1305,7 +1348,9 @@
   function copyRunIn(r) {
     if (r && r.storySheet) copyStoryIn(r);
     else if (r && r.panels && r.panels.length) copyPanelsIn(r);
-    else if (r) { copyPromptIn(r.prompt); restorePhoto(r); restoreChars(r); }
+    else if (r) {
+      copyPromptIn(r.prompt); restorePhoto(r); restoreChars(r); restoreCast(r.cast);
+    }
   }
   // ONE PICTURE'S WORDS GO IN THE ONE BOX (2026-08-27, Sophie: "pressing the
   // playground button on images made by panels should copy text into the
@@ -1323,6 +1368,12 @@
     copyPromptIn(String(panel));
     restorePhoto(r);
     restoreChars(r);
+    // The people the sheet established come with the panel — the whole of her
+    // 2026-08-29 ask. Said out loud, because a clause that rides her next run
+    // must never arrive silently.
+    var n = restoreCast(r && r.cast);
+    if (n) toast(n === 1 ? 'Prompt and 1 character description are back'
+      : 'Prompt and ' + n + ' character descriptions are back');
   }
   document.getElementById('seedbtn').innerHTML = ICONS.sprout;
 
@@ -1437,6 +1488,32 @@
   }
   function savePanelTexts(g, arr) {
     try { localStorage.setItem('promptlab_panels_' + g, JSON.stringify(arr)); } catch (e) { /* private mode */ }
+  }
+  // HAS THIS DRAFT BEEN DRAWN? (2026-08-29, Sophie: "if the text that was
+  // saved as a draft has never been drawn trigger a pop-up"). A panels run
+  // stamps the EXACT array it sent under the grid it sent it for, so editing
+  // one box after a draw makes that grid undrawn again — which is the honest
+  // answer, since the words sitting there are not the words that were drawn.
+  // Nothing here is ever cleared: a stamp only stops matching.
+  function panelsDrawn(g) {
+    try {
+      var a = JSON.parse(localStorage.getItem('promptlab_panels_drawn_' + g) || '[]');
+      return Array.isArray(a) ? a : [];
+    } catch (e) { return []; }
+  }
+  function savePanelsDrawn(g, arr) {
+    try { localStorage.setItem('promptlab_panels_drawn_' + g, JSON.stringify(arr)); } catch (e) { /* private mode */ }
+  }
+  function sameWords(a, b) {
+    a = a || []; b = b || [];
+    if (a.length !== b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (String(a[i] || '').trim() !== String(b[i] || '').trim()) return false;
+    }
+    return true;
+  }
+  function anyWords(a) {
+    return (a || []).some(function (s) { return String(s || '').trim(); });
   }
   function panelVals() {
     return Array.prototype.map.call(document.querySelectorAll('#panelgrid textarea'),
@@ -1574,9 +1651,9 @@
     var f = window.__sheetGrid && window.__sheetGrid.castRows;
     return f ? f(castAll()) : [];
   }
-  function castClause() {
+  function castClause(single) {
     var f = window.__sheetGrid && window.__sheetGrid.castBlock;
-    return f ? f(castAll()) : '';
+    return f ? f(castAll(), single) : '';
   }
   // THE SHEET'S TWO HALVES (2026-08-28, Sophie: "add character description be
   // within the existing icon - hairline toggle between description and
@@ -1584,18 +1661,22 @@
   // ways, so they belong behind the same icon rather than in two places on
   // the page. Sticky, because a run is usually cast the same way twice.
   //
-  // DESCRIPTIONS ONLY EXIST ON THE PANELS TAB, so the ROW only exists there:
-  // the clause is written into a sheet's prompt (grid or story) and a single
-  // picture has nowhere to put it, and a tab that changes nothing is worse
-  // than no tab. On the Picture tab the sheet is exactly what it always was.
+  // DESCRIPTIONS USED TO EXIST ONLY ON THE PANELS TAB, and that is history
+  // (2026-08-29, Sophie: "panels adds a character / if i import solo to
+  // playground / can it auto add the character description from the original
+  // multi sheet"). The reason given here was that "a single picture has
+  // nowhere to put it, and a tab that changes nothing is worse than no tab" —
+  // true until the clause started riding a single run, which is exactly what
+  // her ask needed: a panel pulled out of a sheet is the same person, and the
+  // description is the only thing that says so. The row is on both tabs now.
   var CHARTABKEY = 'promptlab_chartab';
   function charTab() {
-    return (onPanels() && localStorage.getItem(CHARTABKEY) === 'desc') ? 'desc' : 'pics';
+    return localStorage.getItem(CHARTABKEY) === 'desc' ? 'desc' : 'pics';
   }
   function paintCharTabs() {
     var row = document.getElementById('chartabs');
     var t = charTab();
-    row.hidden = !onPanels();
+    row.hidden = false;
     Array.prototype.forEach.call(row.querySelectorAll('button'), function (b) {
       b.classList.toggle('on', b.getAttribute('data-ct') === t);
     });
@@ -1681,15 +1762,69 @@
       + '<button type="button" data-grid="story"' + (story ? ' class="on"' : '')
       + ' title="You write the story; the model decides the panels">Story</button>';
   }
-  document.getElementById('gridpick').addEventListener('click', function (e) {
-    var b = e.target.closest('button[data-grid]');
-    if (!b) return;
-    try { localStorage.setItem(GRIDKEY, b.getAttribute('data-grid')); } catch (err) { /* private mode */ }
+  // HER WORDS COME WITH HER (2026-08-29, Sophie: "if there's text in one of
+  // the grids if I transferred to that grid, my words don't transfer. They
+  // should transfer, but if the text that was saved as a draft has never been
+  // drawn trigger a pop-up").
+  //
+  // The per-grid drafts stay exactly as they were — the grid she is LEAVING
+  // keeps its own copy, so switching back always restores it and a transfer
+  // can only ever overwrite the grid she is arriving at. That is what makes
+  // the one question worth asking: the arriving grid's draft is the only
+  // thing a carry can lose, and only when it was never drawn.
+  //
+  // Story is out of it, both directions: a story is one prose block and the
+  // panels are a line per cell, so "transfer" would mean rewriting her words
+  // rather than moving them.
+  function carryInto(to) {
+    var from = curGrid();
+    if (storyMode() || String(to) === 'story' || Number(to) === from) return null;
+    var carry = panelVals().map(function (s) { return String(s || '').trim(); });
+    if (!anyWords(carry)) return null;                 // nothing to bring
+    var meta = PANELS_CFG && PANELS_CFG.grids[to];
+    if (!meta) return null;
+    var next = [];
+    for (var i = 0; i < meta.count; i++) next.push(carry[i] || '');
+    // A carry that would land empty-handed is not a carry — going 9 → 2 with
+    // words only in panels 3-9 must not wipe the target with blanks.
+    if (!anyWords(next)) return null;
+    // Words left behind are still in the grid she came from; say how many, so
+    // "where did panels 5-9 go" is answered before she has to ask.
+    var left = carry.filter(function (s, j) { return s && j >= meta.count; }).length;
+    return { to: Number(to), next: next, left: left, had: panelTexts(to) };
+  }
+  function applyGrid(g) {
+    try { localStorage.setItem(GRIDKEY, String(g)); } catch (err) { /* private mode */ }
     // Picking a layout is her saying she is about to write into it.
     openPanels();
     // paintCanvas too: Story ↔ a grid moves what the toggle DECIDES (the
     // sheet itself vs each cell), so the titles must move with it.
     paintGridPick(); buildPanelGrid(); syncControls(); paintCanvas(); paintRes(); paintPromptPanel();
+  }
+  document.getElementById('gridpick').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-grid]');
+    if (!b) return;
+    var pick = b.getAttribute('data-grid');
+    var c = carryInto(pick);
+    if (!c) { applyGrid(pick); return; }
+    function go() { savePanelTexts(c.to, c.next); applyGrid(pick); }
+    var had = c.had;
+    // Silent when there is nothing to lose: the target is empty, it already
+    // says the same thing, or what it says has been DRAWN (that sheet is in
+    // her feed and its prompt copies back with one tap).
+    if (!anyWords(had) || sameWords(had, c.next) || sameWords(had, panelsDrawn(c.to))) { go(); return; }
+    var n = had.filter(function (s) { return String(s || '').trim(); }).length;
+    askOpen({
+      msg: 'The ' + c.to + '-panel grid already has words.',
+      fine: n + (n === 1 ? ' panel there was' : ' panels there were') + ' never drawn.'
+        + ' Bringing yours over replaces them.'
+        + (c.left ? ' (' + c.left + ' of yours stay behind in the ' + curGrid() + '-panel grid.)' : ''),
+      no: 'Keep what’s there', yes: 'Bring mine over',
+      onYes: go,
+      // "Keep what's there" still takes her to the grid she tapped — she asked
+      // to go there; the only question was whose words it holds.
+      onNo: function () { applyGrid(pick); },
+    });
   });
   // GENERATE on the Panels tab: every box must hold words — the error names
   // how many are still empty rather than a generic refusal. One sheet, one
@@ -1744,6 +1879,9 @@
       }),
     }).then(readJson).then(function (d) {
       if (!d.id) throw new Error(d.error || 'Could not start.');
+      // These exact words are drawn now, so this grid's draft is no longer
+      // unseen work — a later carry can replace it without asking.
+      savePanelsDrawn(g, texts);
       var list = pendingList();
       list.push({
         id: d.id, prompt: joined, style: S.label, engine: 'gptimage',
@@ -2121,6 +2259,7 @@
   // NOT re-derived here — the Playground never sees the filed prompt, only the
   // content half — so the flag travels with the link.
   var portedFrom = null;   // the tile the picture was actually made on, or null
+  var portedCast = 0;      // how many character descriptions rode the link in
   (function () {
     var q = new URLSearchParams(location.search);
     if (!q.get('prompt') && !q.get('style')) return;
@@ -2145,6 +2284,19 @@
     var sc = parseFloat(q.get('scale'));
     if (!isNaN(sc)) document.getElementById('scale').value = sc;
     if (q.get('sameref') !== null) portedFrom = (q.get('sameref') === '1' && st && STYLES[st]) ? st : '';
+    // ?cast=<json rows> — the character descriptions the picture was made
+    // with (2026-08-29, Sophie: "can it auto add the character description
+    // from the original multi sheet"). A cut panel's filed STYLE half carries
+    // the clause verbatim, so the Assets / Meta Assets door reads the rows
+    // back out of it (sheetGrid.castParse) and sends them here; nothing is
+    // invented anywhere on that road. Add-only, like every other restore of
+    // it — see restoreCast. A bad or absent value is simply ignored.
+    var cj = q.get('cast');
+    if (cj) {
+      var rows = null;
+      try { rows = JSON.parse(cj); } catch (e) { rows = null; }
+      if (Array.isArray(rows)) portedCast = restoreCast(rows);
+    }
     paintRefTag();
     updateShape();
   })();
@@ -2173,6 +2325,15 @@
       el.className = 'on';
       el.textContent = 'On ' + here + '. This picture was made on '
         + (STYLES[portedFrom] ? STYLES[portedFrom].label : portedFrom) + '.';
+    }
+    // WHO CAME WITH IT (2026-08-29). The descriptions ride the next run's
+    // prompt, so the one line that already speaks on arrival says how many
+    // landed — an ingredient added by a link must never be silent, and the
+    // sheet behind the character icon is where she reads or removes them.
+    if (portedCast) {
+      el.textContent += ' ' + (portedCast === 1
+        ? 'Its character description came too.'
+        : 'Its ' + portedCast + ' character descriptions came too.');
     }
   }
 
@@ -2332,11 +2493,13 @@
       if (pl) extras.push(pl);
     }
     if (cline) extras.push(cline);
+    // Her TYPED cast, when there is one — the clause is left out entirely
+    // when nobody is in it (her rule), so the panel says nothing either. It
+    // rides EVERY tab since 2026-08-29, with the single-picture opening on
+    // the Picture tab; both wordings are served, never written here.
+    var ct = castClause(!onPanels());
+    if (ct) extras.push(ct);
     if (onPanels() && PANELS_CFG) {
-      // Her TYPED cast, when there is one — the clause is left out entirely
-      // when nobody is in it (her rule), so the panel says nothing either.
-      var ct = castClause();
-      if (ct) extras.push(ct);
       // STORY mode sends the served story line; a grid sends its sentence.
       if (storyMode() && PANELS_CFG.story) extras.push(PANELS_CFG.story.line);
       else if (PANELS_CFG.grids[curGrid()]) extras.push(PANELS_CFG.grids[curGrid()].sentence);
@@ -2836,6 +2999,10 @@
           // order they attach in and the order charLine() names them. Absent
           // when she picked none, so an ordinary run is unchanged.
           characters: pickedChars.length ? pickedChars.slice() : undefined,
+          // Her TYPED cast — the words half, which rides a single picture as
+          // well as a sheet now (2026-08-29). Absent when nobody is in it, so
+          // an ordinary run is byte-for-byte the request it always was.
+          cast: castRows().length ? castRows() : undefined,
           // Only sent when she has actually edited it — an absent field means
           // "use the house text", so a normal run is byte-for-byte what it
           // always was.
@@ -3038,6 +3205,21 @@
     if (curView() === 'tiles') renderTiles();
   }
 
+  // THE ONE CONFIRM BOX. It was the cancel dialog with its words baked into
+  // the markup; the panel-transfer question (2026-08-29) is the second thing
+  // that has to ask her something, so the box takes its words and its answer
+  // per opening rather than growing a second copy of itself.
+  var askYes = null, askNo = null;
+  function askOpen(o) {
+    askYes = o.onYes || null; askNo = o.onNo || null;
+    document.getElementById('askmsg').textContent = o.msg || '';
+    document.getElementById('askfine').textContent = o.fine || '';
+    document.getElementById('askno').textContent = o.no || 'Keep going';
+    document.getElementById('askyes').textContent = o.yes || 'Do it';
+    document.getElementById('ask').classList.add('on');
+    document.body.style.overflow = 'hidden';
+  }
+
   // Cancel: X on a running LoRA job → "are you sure" → POST /cancel. Replicate
   // stops the prediction and only bills the compute already run.
   var askId = null;
@@ -3052,24 +3234,33 @@
     var btn = e.target.closest('[data-kill]');
     if (!btn) return;
     askId = btn.getAttribute('data-kill');
-    document.getElementById('askfine').textContent =
-      'It stops the run — you’re only charged for what has already run.';
-    document.getElementById('ask').classList.add('on');
-    document.body.style.overflow = 'hidden';
+    askOpen({
+      msg: 'Are you sure you want to cancel?',
+      fine: 'It stops the run — you’re only charged for what has already run.',
+      no: 'Keep going', yes: 'Cancel it',
+      onYes: function () {
+        var ids = (askId || '').split(',').filter(Boolean);   // a grouped box holds several
+        if (!ids.length) return;
+        Promise.all(ids.map(function (id) {
+          return fetch('/api/promptlab/' + id + '/cancel', { method: 'POST' }).then(function (r) { return r.json(); });
+        })).then(function () { poll(); }).catch(showErr);
+      },
+    });
   });
   function closeAsk() {
-    askId = null;
+    askId = null; askYes = null; askNo = null;
     document.getElementById('ask').classList.remove('on');
     document.body.style.overflow = '';
   }
-  document.getElementById('askno').addEventListener('click', closeAsk);
+  document.getElementById('askno').addEventListener('click', function () {
+    var fn = askNo;
+    closeAsk();                                   // close FIRST: the answer may repaint the page
+    if (fn) fn();
+  });
   document.getElementById('askyes').addEventListener('click', function () {
-    var ids = (askId || '').split(',').filter(Boolean);   // a grouped box holds several
-    closeAsk();
-    if (!ids.length) return;
-    Promise.all(ids.map(function (id) {
-      return fetch('/api/promptlab/' + id + '/cancel', { method: 'POST' }).then(function (r) { return r.json(); });
-    })).then(function () { poll(); }).catch(showErr);
+    var fn = askYes;
+    closeAsk();                                   // close FIRST: the answer may repaint the page
+    if (fn) fn();
   });
 
   function startPolling() {
@@ -3104,7 +3295,7 @@
           // 'ready' = the first images are in, the rest still landing: the swap
           // poller keeps refreshing until 'done'.
           if (d.status === 'ready') { swapping[p.id] = true; startSwapPolling(); }
-          renderPendings(); loadRuns();
+          renderPendings(); landRun(d);
         }
       }).catch(function () {});
     });
@@ -3117,7 +3308,7 @@
       if (!ids.length) { clearInterval(swapTimer); swapTimer = null; return; }
       ids.forEach(function (id) {
         fetch('/api/promptlab/' + id).then(function (r) { return r.json(); }).then(function (d) {
-          if (d.status === 'done' || d.status === 'failed') { delete swapping[id]; loadRuns(); }
+          if (d.status === 'done' || d.status === 'failed') { delete swapping[id]; landRun(d); }
         }).catch(function () {});
       });
     }, 5000);
@@ -3352,6 +3543,36 @@
     // Merged, never replaced: a search hit can be an older run this feed has
     // not paged in, and the lightbox reads its settings out of here.
     Object.keys(byId).forEach(function (k) { runsById[k] = byId[k]; });
+  }
+
+  // A RUN THAT STOPS DRAWING LANDS IN ITS OWN GALLERY (2026-08-28, Sophie on
+  // the PANELS tab: "the tile appears and then disappears").
+  //
+  // The poll drops the "drawing…" placeholder the moment a run reaches
+  // 'ready', and then asked `loadRuns()` to bring the real run in — but
+  // loadRuns only ever fetches **kind=single** (2026-08-28, so that a morning
+  // of panels runs cannot fill all 40 slots of the Picture tab's page). The
+  // PANELS gallery comes from `loadPanelsSweep`, which is asked ONCE per page
+  // load and never again. So on that tab the placeholder came down and
+  // nothing replaced it: the tile vanished, and stayed vanished until the
+  // page itself was reloaded — which in the app can be a long time, since a
+  // tool's web view lives for the whole app process.
+  //
+  // Nothing needs fetching: the poll is holding the finished doc. Merging it
+  // is exact, costs no request, and lands the run in whichever gallery it
+  // belongs to — which is also what finally lets the UNCUT SHEET show while
+  // the cut is queued (`cuttingSheet`, her 2026-08-27 ask: "the uncut sheet
+  // shud show before it's cut as soon as it's done"). That was built and
+  // could never appear, because at 'ready' the run reached the feed on
+  // neither tab. `gateCut` (one cut at a time) made the gap long enough to
+  // matter.
+  //
+  // The single gallery still refreshes its page: loadRuns owns `feedMore` and
+  // the newest-page walk, which one merged doc says nothing about.
+  function landRun(d) {
+    if (!d || !d.id) return;
+    mergeRuns([d]);
+    if (runIsPanels(d)) renderFeed(); else loadRuns();
   }
 
   // Refresh the newest page. Anything already paged in behind it is kept — a

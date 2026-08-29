@@ -3987,7 +3987,33 @@ before working on that module. Nothing was deleted — the moved text is verbati
   fraction and the SHEET's tier, never the panel's own pixels). Dreamy's
   anti-grid tail clause is SWAPPED for a sheet, the no-text mechanism again
   (`sheet` beside `noText`); the paid sheet is banked BEFORE the cut and a
-  failed cut keeps it, disclosed as "uncut sheet". **A DEPLOY RESTART CANNOT
+  failed cut keeps it, disclosed as "uncut sheet".
+  **A RUN THAT STOPS DRAWING LANDS IN ITS OWN GALLERY — `landRun` (2026-08-28,
+  Sophie on the PANELS tab: "the tile appears and then disappears. Is the date
+  wrong?").** The dates were fine (measured: no run in the top 40 was
+  future-dated, nothing carried a bump's `createdAtWas`). What happened is that
+  the poll drops the "drawing…" placeholder the moment a run reaches `ready`
+  and then asked `loadRuns()` for the real run — and **`loadRuns` only ever
+  fetches `kind=single`** (2026-08-28, so a morning of panels runs cannot fill
+  all 40 slots of the Picture tab's page), while the PANELS gallery comes from
+  `loadPanelsSweep`, which is asked **ONCE per page load and never again**. So
+  on that tab the placeholder came down and nothing replaced it: the tile
+  vanished and **stayed vanished until the page itself was reloaded** — which
+  inside the app is the whole app process. The poll is holding the finished
+  doc, so nothing needs fetching: `landRun(d)` merges it, which is exact, costs
+  no request, and lands the run in whichever gallery it belongs to. The single
+  gallery still refreshes its page, because `loadRuns` owns `feedMore` and the
+  newest-page walk that one merged doc says nothing about.
+  **IT IS ALSO WHAT FINALLY LETS THE UNCUT SHEET SHOW** — `cuttingSheet` was
+  built for her 2026-08-27 ask ("the uncut sheet shud show before it's cut as
+  soon as it's done") and could never appear, because at `ready` the run
+  reached the feed on neither tab. `gateCut` (one cut at a time) is what made
+  that gap long enough to see. Test:
+  `node scripts/test-playground-ready-tile.js` — the run walked through
+  running → ready → done and COUNTED at every step, because a test that looks
+  only once it is `done` passes against the pre-fix page: the bug is the gap
+  (verified failing 8 pre-fix, including 45 of 45 blank samples across the cut).
+  **A DEPLOY RESTART CANNOT
   LOSE A BANKED SHEET (2026-08-27, measured: three merges deployed in a row
   and orphaned four paid 4K sheets mid-run)** — the stuck-run sweep finishes
   an orphaned panels run from its banked sheet (free) instead of marking paid
@@ -4017,6 +4043,39 @@ before working on that module. Nothing was deleted — the moved text is verbati
   tab* in `docs/modules/pictures.md`. Tests: `node
   scripts/test-playground-panel-fold.js`, `node scripts/test-sheet-grid.js`
   and `node scripts/test-playground-panels.js`.
+  **HER WORDS COME WITH HER WHEN SHE CHANGES GRID (2026-08-29, Sophie: "if
+  there's text in one of the grids if I transferred to that grid, my words
+  don't transfer. They should transfer, but if the text that was saved as a
+  draft has never been drawn trigger a pop-up").** Each grid kept its own
+  separate draft (`promptlab_panels_<g>`), so switching 4 → 9 showed her nine
+  empty boxes and the words she had just typed were reachable only by tapping
+  back. A switch now CARRIES what is in the boxes into the grid she is
+  arriving at, first cell to first cell. Five things not to undo:
+  - **The grid she LEAVES keeps its own copy**, untouched — so a carry can
+    only ever overwrite the grid she is ARRIVING at, which is what makes one
+    question enough, and what makes 9 → 2 safe (the seven that do not fit are
+    still in the nine, and the pop-up's fine print says how many).
+  - **The pop-up asks only over UNSEEN WORK.** Silent when the target is
+    empty, when it already says the same thing, or when what it says has been
+    **drawn** — that sheet is in her feed and its prompt copies back with one
+    tap, so replacing the draft costs nothing.
+  - **"Drawn" is the EXACT array that was sent** (`promptlab_panels_drawn_<g>`,
+    stamped by a panels run and by a run's copy-back button), so editing one
+    box after a draw makes that grid undrawn again — the words sitting there
+    are not the words that were drawn. A draft from before this shipped
+    matches no stamp and asks once, which is the safe direction.
+  - **"Keep what's there" still takes her to the grid she tapped.** She asked
+    to go there; the only question was whose words it holds.
+  - **STORY IS OUT OF IT, BOTH DIRECTIONS** — a story is one prose block and
+    the panels are a line per cell, so "transfer" there would mean rewriting
+    her words rather than moving them.
+  The cancel dialog became **the one confirm box** (`askOpen`, words and both
+  answers per opening) rather than a second copy of itself. Test: `node
+  scripts/test-playground-panel-carry.js` (the real page — a source assertion
+  cannot tell a carry from a grid that happened to hold the same words, nor
+  see a pop-up that never opened; verified failing 8 pre-fix).
+  `test-playground-panels.js`'s old "9 → 4 → 9 loses nothing" assertion was
+  the OLD separate-drafts contract and is superseded, not broken.
   **SANDY MIRROR AND CHATGPT ARE TWO TILES SINCE 2026-08-24 (Sophie: "add one
   more endpoint option to the playground, which is called ChatGPT and change
   the one that's called ChatGPT right now to make it be called Sandy mirror.
@@ -6783,6 +6842,35 @@ before working on that module. Nothing was deleted — the moved text is verbati
   dream's cast against, so a face stays the same picture to picture. Drawing is
   a DETACHED server job — it saves itself even if she closes the sheet mid-draw,
   and `localStorage` picks an in-flight one back up.
+  **HER OWN PICTURE CAN BE THE CHARACTER — the button beside ✦ (2026-08-29,
+  Sophie: "add my own picture button to characters").** Not every character
+  wants to be redrawn: a photo she already has, a Playground picture, a face
+  from another story. `POST /api/character/own` saves the picture AS the
+  character — no draw, no wait, **no money at all** (one Storage upload and one
+  Firestore write). It lands in the same collection with the same name,
+  aliases and ★ Add to sheet, so the cast sheet, the Playground's picker and
+  the dream matcher know no difference.
+  - **HER BYTES ARE STORED UNTOUCHED** (the house *nothing stands between the
+    source and the output* rule): a png/jpeg/webp/gif sitting upright goes to
+    Storage byte for byte. Only the two shapes that would otherwise arrive
+    broken are re-encoded, and only **losslessly to PNG** — an EXIF-rotated
+    phone photo (every cell would draw it sideways) and a format no `<img>`
+    can decode. Never a lossy webp, which is what the generate path stores
+    because a generated picture is born as one.
+  - **IT FILES NO PROMPT AND NO MODEL · QUALITY**, because nothing generated
+    it — the exact-prompt rule's own answer, file nothing rather than a
+    reconstruction. `own:true` on the doc is what lets the cell say **"your
+    picture"** instead of leaving the caption blank, and it is why nothing
+    invents one.
+  - **Regenerate is hidden on an own picture** — a button that would replace
+    her picture with a drawn one is the opposite of what she asked this for.
+    The flag is state, so `New one` clears it or the next DRAWN character
+    silently loses its re-roll.
+  - The button is the same 44px square as ✦ but **outlined, never gold**: the
+    gold is the house generate treatment, and this tap spends nothing.
+  - Test: `node scripts/test-character-own.js` (the byte rule over REAL
+    encoded images — a mime assertion passes against a page that silently
+    re-encodes everything — then the real page headless).
   **IT WAS THE PAGE THE PILL/HEADER RULES CAUGHT UP WITH LAST (2026-08-27,
   Sophie: "two pills and there's no way to search. shud follow pill/header hard
   rules").** Three of the four faults were structural rather than cosmetic and

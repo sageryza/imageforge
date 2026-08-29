@@ -237,9 +237,21 @@ function panelBlock(grid, texts) {
  * introduction to nothing. A row with a name but no description (or the other
  * way round) is written the short way rather than padded with invented
  * filler: the point of the clause is that every word in it is hers.
+ *
+ * IT RIDES A SINGLE PICTURE TOO, WITH ITS OWN OPENING LINE (2026-08-29,
+ * Sophie: "panels adds a character / if i import solo to playground / can it
+ * auto add the character description from the original multi sheet"). A panel
+ * pulled out of a sheet and re-run on its own is the same person in the same
+ * clothes, and the description is the only thing that says so — but the
+ * sheet's own sentence names "the panels", which is a lie over one picture.
+ * So there are TWO intros and one set of rows: `castBlock(cast, true)` is the
+ * single-picture opening. Nothing else about the clause changes, which is
+ * what lets castParse read a clause back whichever surface wrote it.
  */
 const CAST_INTRO = 'The same characters recur across the panels — draw each '
   + 'one the same wherever they appear:';
+const CAST_INTRO_ONE = 'Named characters in this picture — draw each one as '
+  + 'described:';
 
 function castRows(cast) {
   return (Array.isArray(cast) ? cast : [])
@@ -250,15 +262,59 @@ function castRows(cast) {
     .filter((c) => c.name || c.description);
 }
 
-function castBlock(cast) {
+function castBlock(cast, single) {
   const rows = castRows(cast);
   if (!rows.length) return '';
-  return [CAST_INTRO, ...rows.map((c, i) => {
+  return [single ? CAST_INTRO_ONE : CAST_INTRO, ...rows.map((c, i) => {
     const n = `Character ${i + 1}`;
     if (c.name && c.description) return `${n} (${c.name}): ${c.description}`;
     if (c.name) return `${n}: ${c.name}.`;
     return `${n}: ${c.description}`;
   })].join('\n');
+}
+
+/**
+ * castParse — the clause read back into rows, so a picture can carry its cast
+ * across a surface that only ever sees the filed TEXT (2026-08-29, Sophie:
+ * "can it auto add the character description from the original multi sheet").
+ *
+ * A cut panel's filed STYLE half is everything in the sheet's prompt before
+ * that panel's own line, so the cast clause is sitting in it verbatim — the
+ * words are already there and nothing here invents any. The Playground's own
+ * lightbox has the run doc's `cast` rows and never needs this; the Assets /
+ * Meta Assets door has only the two filed halves, and this is what lets that
+ * door carry the same thing.
+ *
+ * IT READS EITHER INTRO, which is why the two share one row format. Rows stop
+ * at the first line that is not a `Character N:` line — the panel block, the
+ * grid sentence, a blank line — so it can never swallow prose after the
+ * clause. Nothing matched at all is an empty array, never a guess.
+ *
+ * ONE ASYMMETRY, NAMED: `Character 1: X` is written by a row that had a name
+ * OR a description and not both, and the text does not say which. It comes
+ * back as a DESCRIPTION — the half worth keeping — so a name-only row returns
+ * as a description of that name. The words that ride the next run are the
+ * same either way; only which box they land in differs.
+ */
+const CAST_LINE = /^Character\s+\d+\s*(?:\(([^)]*)\))?\s*:\s*(.*)$/;
+
+function castParse(text) {
+  const lines = String(text || '').split(/\r?\n/);
+  const at = lines.findIndex((l) => {
+    const t = l.trim();
+    return t === CAST_INTRO || t === CAST_INTRO_ONE;
+  });
+  if (at < 0) return [];
+  const out = [];
+  for (let i = at + 1; i < lines.length; i++) {
+    const m = lines[i].trim().match(CAST_LINE);
+    if (!m) break;
+    const name = (m[1] || '').trim();
+    const rest = (m[2] || '').trim();
+    if (name) out.push({ name, description: rest });
+    else if (rest) out.push({ name: '', description: rest.replace(/\.$/, '') });
+  }
+  return castRows(out);
 }
 
 /**
@@ -417,5 +473,5 @@ function applySheet(suffix, swap, layout) {
 }
 
 return { GRIDS, SHAPES, sheetFor, derive, positions, layoutWords, panelBlock,
-  CAST_INTRO, castRows, castBlock, cellRects, applySheet, findSeams, seamBoxes };
+  CAST_INTRO, CAST_INTRO_ONE, castRows, castBlock, castParse, cellRects, applySheet, findSeams, seamBoxes };
 }));

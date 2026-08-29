@@ -19,6 +19,11 @@
  *   4. cellRects TILES THE SHEET — no gap, no overlap, reading order.
  *   5. NAMING AND THE GRID SENTENCE — positions, layoutWords, panelBlock with
  *      her texts verbatim.
+ *   5b. THE CAST CLAUSE ROUND-TRIPS. Two openings, one row format, and
+ *      castParse reads either back — that is what lets a cut panel carry its
+ *      character descriptions to the Playground through nothing but the filed
+ *      style half (2026-08-29, Sophie: "can it auto add the character
+ *      description from the original multi sheet").
  *   6. THE DREAMY SHEET-SWAP COMPOSES WITH THE NO-TEXT SWAP. `sheet.from`
  *      must be a verbatim substring of the LIVE dreamy suffix and the swap
  *      must leave `noText.from` intact — the two swaps touch
@@ -310,6 +315,52 @@ while ((idx = dreamyBlock.indexOf('to:', idx)) >= 0) {
   if (got != null) tos.push(got);
   idx += 3;
 }
+// ── 5b. THE CAST CLAUSE, BOTH WAYS ────────────────────────────────────────
+console.log('\nthe characters clause');
+const CAST = [
+  { name: 'the creepy guy', description: 'long beard, glasses, all black, with a cape' },
+  { name: 'the woman', description: 'longish curly brown hair, a blue and white dress' },
+];
+const sheetClause = sheetGrid.castBlock(CAST);
+const soloClause = sheetGrid.castBlock(CAST, true);
+ok(sheetClause.startsWith(sheetGrid.CAST_INTRO), 'a sheet opens with the sheet line');
+ok(soloClause.startsWith(sheetGrid.CAST_INTRO_ONE), 'one picture opens with its own line');
+ok(sheetGrid.CAST_INTRO_ONE !== sheetGrid.CAST_INTRO
+  && !/panel/i.test(sheetGrid.CAST_INTRO_ONE),
+  'and that line does not name panels — it rides ONE picture');
+ok(sheetClause.split('\n').slice(1).join('\n') === soloClause.split('\n').slice(1).join('\n'),
+  'the ROWS are identical either way — one format, two openings');
+ok(sheetGrid.castBlock([], true) === '' && sheetGrid.castBlock([]) === '',
+  'an empty cast is still the empty string on both');
+
+// The road her ask actually travels: a panel's filed style half is everything
+// in the sheet's prompt BEFORE that panel's line, so the clause is in it
+// verbatim and nothing downstream has to invent a word.
+const filedStyleHalf = [
+  'The FIRST attached image is a STYLE reference — copy its drawing style.',
+  '',
+  sheetClause,
+  '',
+  sheetGrid.panelBlock(4, ['a', 'b', 'c', 'd']).split('\nPanel 3')[0],
+].join('\n');
+const back = sheetGrid.castParse(filedStyleHalf);
+ok(JSON.stringify(back) === JSON.stringify(CAST),
+  'castParse reads the rows back out of a filed style half, exactly');
+ok(JSON.stringify(sheetGrid.castParse(soloClause)) === JSON.stringify(CAST),
+  'and reads the single-picture opening the same way');
+ok(sheetGrid.castParse('a prompt with no clause in it at all').length === 0,
+  'no clause on the record means NO rows — never a guess');
+ok(sheetGrid.castParse(sheetClause + '\n\nPanel 1 (top left): a boy').length === 2,
+  'rows stop at the first line that is not a Character line');
+// A row with only one half: the words that ride the next run are the same
+// either way, which is the documented asymmetry.
+const oneHalf = sheetGrid.castBlock([{ name: '', description: 'a boy in red' }]);
+ok(sheetGrid.castParse(oneHalf)[0].description === 'a boy in red',
+  'a description-only row round-trips');
+const nameOnly = sheetGrid.castParse(sheetGrid.castBlock([{ name: 'Nina', description: '' }]));
+ok(nameOnly.length === 1 && (nameOnly[0].name === 'Nina' || nameOnly[0].description === 'Nina'),
+  'a name-only row comes back carrying the same word');
+
 ok(dreamySuffix && /NOT a grid/.test(dreamySuffix), 'read the live dreamy suffix');
 const sheetSwap = froms.map((f, i) => ({ from: f, to: tos[i] }))
   .find((p) => p.from && /NOT a grid/.test(p.from));
