@@ -91,7 +91,10 @@ async function cut(buf, plan) {
   const castTxt = sheetGrid.castBlock(cast);
   const block = sheetGrid.panelBlock(job.grid, job.panels);
   const body = castTxt ? `${castTxt}\n\n${block}` : block;
-  const full = `${st.prefix}\n\n${body}\n\n${tail}`;
+  // job.full re-sends an EXACT prompt (e.g. one Sophie already ran with her
+  // own edited prefix/tail) verbatim, rather than rebuilding it from the
+  // house halves — a rebuild can differ by a clause she deliberately cut.
+  const full = job.full || `${st.prefix}\n\n${body}\n\n${tail}`;
   fs.writeFileSync(`${process.argv[2]}.prompt.txt`, full);
   console.log('sheet', plan.sheet, 'cell', plan.cell);
   const ref = fs.readFileSync(path.join(REPO, 'refs', 'dream-mystery.jpg'));
