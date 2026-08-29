@@ -6755,6 +6755,35 @@ before working on that module. Nothing was deleted — the moved text is verbati
   dream's cast against, so a face stays the same picture to picture. Drawing is
   a DETACHED server job — it saves itself even if she closes the sheet mid-draw,
   and `localStorage` picks an in-flight one back up.
+  **HER OWN PICTURE CAN BE THE CHARACTER — the button beside ✦ (2026-08-29,
+  Sophie: "add my own picture button to characters").** Not every character
+  wants to be redrawn: a photo she already has, a Playground picture, a face
+  from another story. `POST /api/character/own` saves the picture AS the
+  character — no draw, no wait, **no money at all** (one Storage upload and one
+  Firestore write). It lands in the same collection with the same name,
+  aliases and ★ Add to sheet, so the cast sheet, the Playground's picker and
+  the dream matcher know no difference.
+  - **HER BYTES ARE STORED UNTOUCHED** (the house *nothing stands between the
+    source and the output* rule): a png/jpeg/webp/gif sitting upright goes to
+    Storage byte for byte. Only the two shapes that would otherwise arrive
+    broken are re-encoded, and only **losslessly to PNG** — an EXIF-rotated
+    phone photo (every cell would draw it sideways) and a format no `<img>`
+    can decode. Never a lossy webp, which is what the generate path stores
+    because a generated picture is born as one.
+  - **IT FILES NO PROMPT AND NO MODEL · QUALITY**, because nothing generated
+    it — the exact-prompt rule's own answer, file nothing rather than a
+    reconstruction. `own:true` on the doc is what lets the cell say **"your
+    picture"** instead of leaving the caption blank, and it is why nothing
+    invents one.
+  - **Regenerate is hidden on an own picture** — a button that would replace
+    her picture with a drawn one is the opposite of what she asked this for.
+    The flag is state, so `New one` clears it or the next DRAWN character
+    silently loses its re-roll.
+  - The button is the same 44px square as ✦ but **outlined, never gold**: the
+    gold is the house generate treatment, and this tap spends nothing.
+  - Test: `node scripts/test-character-own.js` (the byte rule over REAL
+    encoded images — a mime assertion passes against a page that silently
+    re-encodes everything — then the real page headless).
   **IT WAS THE PAGE THE PILL/HEADER RULES CAUGHT UP WITH LAST (2026-08-27,
   Sophie: "two pills and there's no way to search. shud follow pill/header hard
   rules").** Three of the four faults were structural rather than cosmetic and
