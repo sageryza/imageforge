@@ -1183,6 +1183,28 @@ router.post('/cover', async (req, res) => {
 // failure this must not have.
 let membryWiring = null;
 function init(w) { membryWiring = w || null; }
+
+// EVERY PICTURE PLACED ON A BEAT IS FINDABLE (2026-08-28, Sophie: "i wanna
+// make sure every picture I've ever created can be found"). Chat-seeded story
+// art — the Marla storybook pages, witch lesson art — reached beats through
+// /add and /image and was filed NOWHERE, so Meta Assets could not show it
+// (117 pictures, measured that day). The placing door now files it into My
+// Creations best-effort, with whatever the record honestly knows: the src's
+// own prompt (a run's words) or the beat's text as the label, never an
+// invention. fileCreationDoc dedupes by url, so a Playground picture that is
+// already filed no-ops, and a failure can never fail the placement.
+function fileBeatArt(url, src, label) {
+  const fc = membryWiring && membryWiring.fileCreation;
+  if (!fc || !url) return;
+  const s = src || {};
+  fc({
+    url, type: 'image', source: 'story placement',
+    prompt: label || s.prompt || '',
+    model: s.model || '', quality: s.quality || '',
+    fullPrompt: s.promptUsed || '',
+    promptContent: s.prompt || label || '',
+  }).catch(() => {});
+}
 let shoeboxUidCache = null;
 async function shoeboxUid(mdb) {
   if (process.env.SHOEBOX_UID) return process.env.SHOEBOX_UID;
@@ -1386,6 +1408,7 @@ router.post('/add', async (req, res) => {
       tx.set(padRef(pid), patch, { merge: true });
       return cur;
     });
+    if (url) fileBeatArt(url, src, '');
     // The shape rides the answer so the page can follow it without a reload —
     // her first picture landing is exactly when the tiles change shape.
     res.json({ ok: true, beat, beats, ...(shapePatch.shape ? { shape: shapePatch.shape } : {}) });
@@ -1410,6 +1433,8 @@ router.post('/image', async (req, res) => {
     // unless this is the first picture on a story nobody has decided yet.
     const shapePatch = await autoShapePatch(pid, url);
     const beats = await placeOnBeat(pid, id, url, style, src, { derived: !named, shapePatch });
+    const placed = (beats || []).find((b) => b.id === id);
+    fileBeatArt(url, src, (placed && placed.text) || '');
     res.json({ ok: true, beats, ...(shapePatch.shape ? { shape: shapePatch.shape } : {}) });
   } catch (e) { fail(res, e); }
 });

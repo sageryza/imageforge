@@ -364,7 +364,7 @@ loadConfig().then(() => {
   // Its Add-to-Shoebox button writes a memory into her Memory Library, which
   // lives in membry — hand in the membry Firestore the dreamapp way.
   const scratchpadMod = require('./scratchpad');
-  scratchpadMod.init({ membryDb: storyDb });
+  scratchpadMod.init({ membryDb: storyDb, fileCreation: fileCreationDoc });
   app.use('/api/scratchpad', scratchpadMod.router);
   // Freeform — your own reference images + your own words, sent verbatim. The
   // one image surface that adds NOTHING to a prompt (no style prefix/suffix).
@@ -5794,7 +5794,7 @@ const PL_GPT_STYLES = {
 // required, because freeform.js is mounted hundreds of lines above this const
 // and a require would read it before it exists. server.js stays the one owner
 // of what is actually sent.
-require('./freeform').init({ gptStyles: PL_GPT_STYLES });
+require('./freeform').init({ gptStyles: PL_GPT_STYLES, fileCreation: fileCreationDoc });
 // The no-text switch on a style's tail. It SWAPS the style's own text clause
 // where that clause is there to swap, so the sent prompt says one thing about
 // text instead of two contradicting things; if she has edited the tail and her
@@ -5906,7 +5906,7 @@ setInterval(sweepStuckPromptlabRuns, 10 * 60 * 1000);
 // frame to decode, so without one it would tile as a blank square. Best-effort
 // throughout and de-duped by url: filing must never fail the work that made the
 // thing, and re-filing the same url must never add a second tile.
-async function fileCreationDoc({ url, type, prompt, poster, model, quality, style, source, createdMs, canvas, sizeSlot, fullPrompt, promptPrefix, promptSuffix, promptContent } = {}) {
+async function fileCreationDoc({ url, type, prompt, poster, model, quality, style, source, createdMs, canvas, sizeSlot, fullPrompt, promptPrefix, promptSuffix, promptContent, promptStyle } = {}) {
   try {
     if (!url) return null;
     await storyDb();
@@ -5934,11 +5934,18 @@ async function fileCreationDoc({ url, type, prompt, poster, model, quality, styl
     // words — but not always: a caller may caption a picture with a line this
     // repo wrote. `promptContent` lets it say what her words really were
     // rather than filing ours as hers.
-    Object.assign(doc, promptRecord.promptFields({
-      full: fullPrompt,
-      content: promptContent != null ? promptContent : prompt,
-      prefix: promptPrefix, suffix: promptSuffix,
-    }));
+    // A caller that already STORES the two halves (freeform's run doc keeps
+    // promptStyle with the [content] seam in place) passes them as a record —
+    // re-deriving from prefix/suffix it no longer has would drop the style
+    // half, which is how Freeform's creations filed with none.
+    Object.assign(doc, promptRecord.promptFields(promptStyle !== undefined
+      ? { fullPrompt: String(fullPrompt || ''), promptStyle: String(promptStyle || ''),
+        promptContent: String(promptContent != null ? promptContent : prompt || '') }
+      : {
+        full: fullPrompt,
+        content: promptContent != null ? promptContent : prompt,
+        prefix: promptPrefix, suffix: promptSuffix,
+      }));
     if (model) doc.model = String(model).slice(0, 80);
     if (quality) doc.quality = String(quality).slice(0, 40);
     // THE THIRD CAPTION SLOT, same as fileRunToCreations writes for a
@@ -5963,7 +5970,7 @@ async function fileCreationDoc({ url, type, prompt, poster, model, quality, styl
 // writes, with `source:'playground'` so they're identifiable. De-dupes by url.
 // Best-effort by design: a gallery hiccup must never fail a run whose images
 // are already saved and on the page.
-async function fileRunToCreations(images, { prompt, style, model, quality, size, fullPrompt, promptPrefix, promptSuffix } = {}) {
+async function fileRunToCreations(images, { prompt, style, model, quality, size, fullPrompt, promptPrefix, promptSuffix, createdMs } = {}) {
   const sizeTier = require('./size-tier');
   try {
     if (!images || !images.length) return;
@@ -5976,7 +5983,12 @@ async function fileRunToCreations(images, { prompt, style, model, quality, size,
       if (!dup.empty) continue;
       const doc = {
         type: 'image', url, prompt: String(prompt || '').slice(0, 500), stickers: null,
-        createdAt: admin.firestore.Timestamp.now(), source: 'playground',
+        // The reconcile sweep passes the RUN's own time — a re-filed picture
+        // must slot into history, never land at the top of her gallery.
+        createdAt: createdMs
+          ? admin.firestore.Timestamp.fromMillis(Number(createdMs))
+          : admin.firestore.Timestamp.now(),
+        source: 'playground',
       };
       if (style) doc.style = String(style).slice(0, 80);
       // THE WHOLE PROMPT — see fileCreationDoc. A Playground run has always
@@ -6009,6 +6021,58 @@ async function fileRunToCreations(images, { prompt, style, model, quality, size,
   } catch (err) {
     console.warn('promptlab → My Creations failed:', err.message);
   }
+}
+
+// ── EVERY FINISHED RUN'S PICTURES REACH MY CREATIONS, EVEN WHEN THE LIVE
+// FILING WAS KILLED (2026-08-28, Sophie: "i wanna make sure every picture
+// I've ever created can be found"; measured that day: 186 Playground and 27
+// Freeform outputs invisible in Meta Assets). The live filing above is
+// fire-and-forget, so a deploy restart between "the run finished" and "the
+// filing landed" loses it silently and forever — and a WTR LoRA run never
+// filed at all (only the gpt job ever called fileRunToCreations). This sweep
+// runs once per boot: the instance restarts on every deploy, so it is
+// effectively continuous, and it re-derives each recent run's filing from the
+// RUN DOC itself — the record that survives the restart — writing only what
+// is missing (both filers dedupe by url) with the run's own timestamp, so a
+// re-filed picture slots into history rather than landing at the top of her
+// gallery. Nothing is invented: every field comes off the run doc. The
+// standing audit is scripts/backfill-meta-coverage.js (dry names every gap).
+const RECONCILE_DAYS = 14;
+async function reconcileCreationFiling() {
+  try {
+    if (!admin.apps.length) return;
+    const cutoff = Date.now() - RECONCILE_DAYS * 86400 * 1000;
+    const pl = await admin.firestore().collection('forge-promptlab')
+      .where('createdAt', '>', admin.firestore.Timestamp.fromMillis(cutoff)).get();
+    for (const d of pl.docs) {
+      const r = d.data() || {};
+      if (r.status !== 'done') continue;
+      const images = [].concat(r.images || [])
+        .map((u) => (typeof u === 'string' ? u : u && u.url)).filter(Boolean);
+      if (!images.length) continue;
+      const st = PL_GPT_STYLES[r.gptStyle];
+      const label = (st && st.label) || (r.style === 'watercolor' ? 'WTR' : '');
+      await fileRunToCreations(images, {
+        prompt: r.prompt,
+        style: label ? `${label}${r.quality ? ' · ' + r.quality : ''}` : '',
+        model: r.model || (r.gptStyle ? PL_GPT.id : ''),
+        quality: r.quality, size: r.size, fullPrompt: r.fullPrompt,
+        createdMs: r.createdAt && r.createdAt.toMillis ? r.createdAt.toMillis() : 0,
+      });
+    }
+    const ffMod = require('./freeform');
+    const ff = await admin.firestore().collection('forge-freeform')
+      .where('createdAt', '>', cutoff).get();
+    for (const d of ff.docs) {
+      const r = d.data() || {};
+      if (r.status === 'done' && (r.images || []).length) await ffMod.fileRunImages(d.id);
+    }
+  } catch (e) { console.warn('creation-filing reconcile failed:', e.message); }
+}
+// Only where a real deploy runs (the chaticons rule) — a dev container
+// booting the app must not spend reads or write her gallery.
+if (process.env.RENDER_EXTERNAL_URL) {
+  setTimeout(() => { reconcileCreationFiling(); }, 2 * 60 * 1000);
 }
 
 // ── A RUN STARTED FROM A STORY BEAT LANDS ON THAT BEAT ──────────────
