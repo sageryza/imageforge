@@ -4441,6 +4441,30 @@ before working on that module. Nothing was deleted — the moved text is verbati
     MEASURED `--charpill` column (`fitCharPill`): pre-fix the pill's own
     `Fast` label sat on the fifth recent card, and her 47px safe-area inset
     pushes the pill down onto that card's middle.
+  - **THE SHEET SAYS WHAT IT ADDS TO HER PROMPT (2026-08-29, Sophie: "when I
+    click characters, it doesn't show how it looks in the Full prompt on
+    playground").** The Prompt panel had printed both lines since the picker
+    shipped — the picked faces' `charLine()` and her typed cast's
+    `castBlock()` — and **the panel is not where she is standing**: it is
+    CLOSED by default and it lives BELOW the sheet, which is a library.
+    Measured with a 25-face cast at 390x844, with the sheet open and the panel
+    opened by hand, the panel began **703px down an 844px viewport**; her real
+    library is 143. So the sheet discloses its own lines at its foot, from the
+    SAME served rules (`window.__padCharacters.charLine` /
+    `window.__sheetGrid.castBlock`) — the page still holds no copy of either
+    wording, and the panel and the sheet cannot disagree about the prompt.
+    Four things not to undo: **nothing riding draws nothing at all** (an empty
+    cast adds no clause — her rule — so there is nothing to disclose and no
+    empty box); it is at the **FOOT** of the sheet because appearing there
+    moves no card row, where a block above the cards would shift a face out
+    from under her thumb between two picks; the **note under the cards stopped
+    naming who rides** the day the real sentence started naming them; and
+    `.says` gives the library grid's slack back (26vh) while it shows, because
+    the first cut passed at 844 and left **21px of itself showing at 390x700**
+    — the app's own web view, and the identical failure one box higher.
+    Test: `node scripts/test-playground-char-says.js` (both heights, every
+    assertion a MEASUREMENT — a block that renders below the fold passes every
+    markup assertion ever written about it).
   - Test: `node scripts/test-playground-characters.js` (verified failing 3
     against the unreserved rows).
   **TWO QUALITY LADDERS, AT THE RIGHT END WITH GENERATE (Aug 2026, Sophie:

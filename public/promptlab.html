@@ -588,6 +588,27 @@
   #charq { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; color: #2b2622;
     background: #fff; border: 1px solid #d8d0c4; border-radius: 6px; padding: 7px 9px; margin: 0 0 8px; }
   #charpanel .cnote { font-size: 11.5px; color: #9a9186; margin: 8px 0 0; }
+  /* WHAT THE CAST ADDS TO HER PROMPT, SAID WHERE SHE IS STANDING (2026-08-29,
+     Sophie: "when I click characters, it doesn't show how it looks in the Full
+     prompt on playground"). The Prompt panel has always printed these lines
+     and that is not where she is: it is CLOSED by default, it lives BELOW this
+     sheet, and this sheet is a library — measured with 25 characters the panel
+     started 703px down an 844px viewport, and her library is 143. So the sheet
+     discloses its own lines, from the SAME served rules the panel reads
+     (charLine / castBlock), never a copy of the wording. Same ink rule as the
+     panel's `.added`, so the two read as one kind of thing. */
+  #charpanel .added { font-size: 12px; color: #6f675e; line-height: 1.4;
+    border-left: 2px solid #2b2622; padding: 2px 0 2px 8px; margin: 4px 0 0; }
+  #charpanel #charsays { margin-top: 12px; }
+  /* AND IT HAS TO BE ON SCREEN, which is the whole complaint — measured at
+     390x700 (the app's web view, its bottom bar taken off) the block landed
+     at y 679 with 21px showing, i.e. exactly the Prompt panel's problem one
+     box higher. The library grid is the only thing here with slack, so it
+     gives some back while a cast is riding. It shrinks the grid's WINDOW and
+     never moves the rows above it: a card row shifting under her thumb
+     between two picks is a worse bug than the one being fixed, so the block
+     stays at the FOOT of the sheet where appearing moves nothing she taps. */
+  #charpanel.says .chargrid { max-height: 26vh; }
   /* The PROMPT panel — what is wrapped around her words, and editable (Aug
      2026, Sophie). Opens under the style row, above her box, because that is
      where the wrapping happens. Flat, 6px, no gradient like everything else. */
@@ -687,6 +708,7 @@
       <div id="castrows"></div>
       <button type="button" id="castadd">Add a character</button>
     </div>
+    <div id="charsays" hidden><div class="plab">Added to your prompt</div><div class="added" id="charsaystxt"></div></div>
   </div>
   <div id="reftag"></div>
   <div id="beattag"></div>
@@ -2051,6 +2073,37 @@
     document.getElementById('charsn').textContent = n ? String(n) : '';
     charsBtn.setAttribute('aria-label', n
       ? 'Characters — ' + n + ' on this run' : 'Characters');
+    // Every cast change comes through here — a pick, a typed row, a removal,
+    // a run copied back — so the disclosure moves with the badge and cannot
+    // be forgotten by a new caller.
+    paintCharSays();
+  }
+  // WHAT THE CAST ADDS TO HER PROMPT, PRINTED IN THE SHEET (2026-08-29,
+  // Sophie: "when I click characters, it doesn't show how it looks in the Full
+  // prompt on playground"). Both halves — the picked faces' sentence and her
+  // typed cast's clause — exactly as the Prompt panel prints them and exactly
+  // as the run will send them, because they come from the SAME served rules
+  // (window.__padCharacters.charLine / window.__sheetGrid.castBlock) rather
+  // than from any wording written here. Nothing riding → the block is not
+  // drawn at all, which is her own rule about the clause: an empty cast adds
+  // no sentence, so there is nothing to disclose.
+  function paintCharSays() {
+    var box = document.getElementById('charsays');
+    if (!box) return;
+    var parts = [];
+    var cl = charsLine();
+    if (cl) parts.push(cl);
+    // The single/sheet wording is the tab's, so this says the same thing the
+    // Prompt panel and the run will say — never the other tab's sentence.
+    var ct = castClause(!onPanels());
+    if (ct) parts.push(ct);
+    var txt = parts.join(' ').trim();
+    box.hidden = !txt;
+    // The sheet gives the library grid's slack back while this is showing —
+    // see the `.says` rule. On the panel, so the grid needs no knowledge of
+    // what is under it.
+    charPanel.classList.toggle('says', !!txt);
+    document.getElementById('charsaystxt').textContent = txt;
   }
   function charHay(c) {
     return (String(c.name || '') + ' ' + (c.aliases || []).join(' ')).toLowerCase();
@@ -2138,10 +2191,11 @@
     rest.forEach(function (c) { allBox.appendChild(charCard(c)); });
     note.textContent = q && !rest.length
       ? 'Nothing matches “' + q + '”.'
-      : (pickedChars.length
-        ? 'Riding this drawing: ' + pickedCharRecords().map(function (c) { return c.name || 'unnamed'; }).join(', ')
-          + ' — write their names in your prompt.'
-        : 'Pick up to ' + charMax + '. The name under a face is what to write in your prompt.');
+      // The block at the foot of the sheet already prints the sentence that
+      // will ride, naming them — so the note keeps only what that sentence
+      // does not say: how many she may pick, and that the name under a face
+      // is the word to type.
+      : 'Pick up to ' + charMax + '. The name under a face is what to write in your prompt.';
   }
   function loadChars() {
     if (charList) return Promise.resolve(charList);
@@ -2149,6 +2203,9 @@
       charList = (d.characters || []).filter(function (c) { return c && c.id && c.url; });
       if (d.max) charMax = d.max;
       paintCharPanel();
+      // A cast restored from a copied run is ids only until the library
+      // lands, and charLine() needs the NAMES — so say it again now.
+      paintCharSays();
       // The pill only exists once there is something to scroll, and the sheet
       // filling with faces is often what makes that true — so measure again
       // after the cards land, not only when the sheet opened empty.
@@ -2162,7 +2219,7 @@
     charsOpen = !charsOpen;
     charPanel.classList.toggle('on', charsOpen);
     if (charsOpen) {
-      paintCharTabs(); buildCastBox(); paintCharPanel(); fitCharPill(); loadChars();
+      paintCharTabs(); buildCastBox(); paintCharPanel(); paintCharSays(); fitCharPill(); loadChars();
     }
   });
   // The house search helpers, both of them: iOS dictation can fill a box
@@ -2905,6 +2962,9 @@
     var charsOff = !gpt;
     charsBtn.hidden = charsOff;
     if (charsOff && charsOpen) { charsOpen = false; charPanel.classList.remove('on'); }
+    // The typed cast's clause is worded for ONE picture or for a SHEET, so
+    // moving between the tabs changes the sentence the sheet is disclosing.
+    if (charsOpen) paintCharSays();
     // The photo rides gpt-image-2's EDITS call. The WTR LoRA has no
     // attachment slot at all — it takes a trigger word and nothing else — so
     // the button comes off rather than sitting there doing nothing.
