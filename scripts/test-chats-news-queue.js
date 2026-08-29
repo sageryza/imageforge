@@ -150,6 +150,9 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   await page.waitForSelector('#grid [data-chat="chat-a"]');
 
   // into the UPDATE view
+  // The row takes turns with the three lists (2026-08-28) and opens on the
+  // LISTS, so the account row — the UPDATE tab's own home — is one tap away.
+  if (!await page.isVisible('#accrow')) await page.click('#rowtog');
   await page.click('#accrow .acctab[data-acct="new"]');
   await page.waitForSelector('.nwcard[data-chat="chat-a"]');
 

@@ -119,6 +119,9 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   // Update view, wait for the fold head, open it.
   const openUpdate = async () => {
     await page.waitForSelector('#grid [data-chat="chat-page"], #grid [data-chat="urg1"]');
+    // The row takes turns with the three lists (2026-08-28) and opens on the
+    // LISTS, so the account row — the UPDATE tab's own home — is one tap away.
+    if (!await page.isVisible('#accrow')) await page.click('#rowtog');
     await page.click('#accrow .acctab[data-acct="new"]');
     await page.waitForSelector('#grid .sthead[data-kind="rest"]', { timeout: 4000 });
     if (await page.$('#grid .sthead[data-kind="rest"].folded')) {
