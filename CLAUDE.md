@@ -5209,36 +5209,61 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - Test: `node scripts/test-playground-feed-fill.js` (the walk over fixtures,
     then the two page halves and the route's use of the shared fill).
 - **Shoebox** (`shoebox.js`, `/api/shoebox`, page at `/shoebox`, iOS tile
-  under the PICTURES filter) — the SHOEBOX inside Deck Factory (2026-08-29,
-  Sophie: "can u add the shoebox as a module on deck factory"): every polaroid
-  in her Memory Library on one shelf, newest first, with the house search.
-  The Shoebox itself lives at incaseofamnesia.com/shoebox (memory-library-react,
-  a polaroid view over membry `users/{uid}/memories`); Deck Factory already had
-  three doors INTO it (Story Room, Meta Assets, Playground → `shoeboxPut`) and
-  no way to SEE what they filed. **It costs nothing** — no model call anywhere;
-  a feed read is one cached Firestore `select()` query.
-  - **READ-ONLY OVER HER LIBRARY, deliberately.** Nothing here writes, edits or
-    deletes a memory — boards, pinning and removing stay in the Shoebox app.
-    The one action, **Square it** in the lightbox, builds a one-picture
-    Squaring set through `cropper.createSet` whose save lands back on that
-    memory doc — and even that writes a NEW copy, never the source.
-  - **A polaroid is a memory WITH `illustration.url`.** Measured 2026-08-29:
-    626 memories, 76 illustrated (45 of them the doors' own `sb-*`), every doc
-    carrying `createdAt` — so the whole library is one cheap read, cached 90s,
-    and **search filters the FULL index server-side** (the Assets-tab truncate
-    lesson), over title/content/source/hashtags/the filed prompt — never the
-    url. Whose library it is comes from scratchpad.js's `shoeboxUid` — the ONE
-    copy of the uid discovery, now exported; the uid never rides a response.
-  - **The caption is what the record honestly carries** — the panels-import
-    door writes model/quality/size/prompt inside `illustration`, and absent
-    parts are left out, never guessed (the house caption rule).
-  - **Tiles are derived thumbs** (`FeedKit.thumbFor` → `/api/story/thumb`);
-    the lightbox is the ONE shared `/asset-lightbox.js` (original url, the
-    caption, the stored content half behind Prompt, prev/next stepping) — the
-    page builds no lightbox of its own, and the test's source pin says so.
-  - Tests: `node scripts/test-shoebox.js` (the index/caption/search rules
-    pure, then the real page headless — three across measured, Older keeping
-    node identity, the query reaching the server, Square-it's POST).
+  under the PICTURES filter) — the WHOLE Shoebox inside Deck Factory
+  (2026-08-29, Sophie: "can u add the shoebox as a module on deck factory",
+  then on the first cut that shipped only a picture shelf: "you forgot the
+  library and the boards and the strings in the play button and everything
+  else"). A faithful vanilla port of memory-library-react's
+  `src/components/shoebox/` — read that source before reworking this page;
+  the two should stay siblings. **It costs nothing** — no model call
+  anywhere.
+  - **TWO SURFACES OVER THE SAME MEMORIES, exactly like the real Shoebox at
+    incaseofamnesia.com/shoebox.** The LIBRARY: every memory as a true
+    600-film polaroid (square picture, deep chin in the Caveat handwriting,
+    stable tilt per memory; a pictureless memory shows its words on
+    undeveloped film), Developed/All filter + the house search. The BOARD: a
+    corkboard camera (pan / pinch / ± / Fit), draggable pins, red-string
+    constellations tied by taps (**String** mode — tap cards one after
+    another; tapping two chains' members merges them), **Order** numbering
+    the play sequence, and **▶ Play** — the camera glides pin to pin, and on
+    the star paper the closing wide shot ignites every constellation into
+    real four-point stars while the polaroids fade into the night.
+  - **THE BOARD DOC IS THE REAL SHOEBOX'S OWN — same doc, same shape.**
+    `GET/POST /api/shoebox/board-state` reads and writes membry
+    `users/{uid}/preferences/shoebox` (boards, current, per-board `bg`
+    paper, top-level pins/strings MIRRORED for older cached pages of the
+    app), normalized server-side by `normBoard`/`fromRaw` — ported from
+    `useShoeboxState.js`, every shape the doc has ever had, an unknown paper
+    id surviving a round trip. So a board arranged here IS the board there
+    (verified live 2026-08-29: her 12 real boards — Memories 27 pins /
+    6 strings, the two star-paper boards — read back exactly). The page
+    debounces whole-state saves 700ms, flushes on pagehide, and **never
+    saves before a load succeeded** (the hook's own clobber guard).
+  - **MEMORIES STAY READ-ONLY.** Nothing here writes, edits or deletes one;
+    the one action near them, **Square it** on the detail card, builds a
+    one-picture Squaring set through `cropper.createSet` whose save lands
+    back on that memory doc — a NEW copy, never the source.
+  - **The library is one cheap read** — measured 2026-08-29: 626 memories,
+    all carrying `createdAt`; the whole `select()` index cached 90s, the
+    feed's `q` filtered over the FULL index (the Assets-tab truncate
+    lesson), never the url. The page loads the whole library once, so its
+    own search box is honestly client-side. Whose library it is comes from
+    scratchpad.js's `shoeboxUid` (exported — the ONE copy of the uid
+    discovery); the uid never rides a response.
+  - **The detail card is the SHOEBOX'S OWN, not the shared asset lightbox**
+    — the dream-feed/witch rule: an app with its own identity keeps it. The
+    big polaroid, the memory's words on paper, the honest MODEL · QUALITY ·
+    SIZE line, Pin/Take off, Square it.
+  - **Tiles are derived thumbs** (`FeedKit.thumbFor`); the board and the
+    detail card load the ORIGINAL — a pinned polaroid is looked at up close.
+    The star paper tile is committed at `public/shoebox/star-paper.webp`
+    (mirrored/seamless, fixed 1600px so the stars stay her photographed
+    size).
+  - Tests: `node scripts/test-shoebox.js` — the index/caption/search rules
+    and the board doc's compatibility rules pure, then the real page
+    headless: pinning from the detail card, string-tying by taps, order
+    numbering, the play walk really MOVING the camera, the finale lighting
+    real stars, and every edit reaching the debounced `POST /board-state`.
 - **Squaring** (`cropper.js`, `/api/crop`, page at `/crop`, iOS tile under the
   PICTURES filter) — crop pictures to square by TAPPING ARROWS. Sophie's ask
   (2026-08-29), after twelve automatically-squared pictures came back missing
