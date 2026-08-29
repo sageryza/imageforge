@@ -51,8 +51,12 @@ const server = http.createServer((req, res) => {
       'base64'));
   }
   if (url.pathname === '/' || url.pathname === '/playground') {
+    // The REAL page plus the REAL injected pill — the pill is what owns the
+    // column this line now runs into, so a harness without it cannot see the
+    // one thing that could go wrong here.
     res.writeHead(200, { 'Content-Type': 'text/html' });
-    return res.end(fs.readFileSync(path.join(PUB, 'promptlab.html'), 'utf8'));
+    return res.end(fs.readFileSync(path.join(PUB, 'promptlab.html'), 'utf8') +
+                   fs.readFileSync(path.join(PUB, 'pill-inject.html'), 'utf8'));
   }
   res.writeHead(404).end();
 });
@@ -65,6 +69,15 @@ const ok = (c, m) => { if (c) console.log('  ok  ' + m); else fail(m); };
   const port = server.address().port;
   const b = await chromium.launch();
   const page = await b.newPage({ viewport: { width: 390, height: 844 } });
+  // The iPhone 13's safe-area inset is 47px and headless Chromium's is 0 —
+  // the pill's top rides it, so without this the collision cannot be judged.
+  await page.addInitScript(() => {
+    addEventListener('DOMContentLoaded', () => {
+      const st = document.createElement('style');
+      st.textContent = '.float{top:47px !important}';
+      document.head.appendChild(st);
+    });
+  });
   await page.goto('http://127.0.0.1:' + port + '/playground');
   await page.waitForSelector('#tiles .tile, #runs .run', { timeout: 8000 }).catch(() => {});
   await page.waitForTimeout(400);
@@ -93,10 +106,20 @@ const ok = (c, m) => { if (c) console.log('  ok  ' + m); else fail(m); };
   const rest = s.search.w;
   ok(s.lines === 2, 'untouched, the search is already on a line of its own');
   ok(rest > 250, 'untouched, it is a real search field (' + rest + 'px)');
-  ok(s.search.right <= s.barRight - PILL + 1, 'and it stops before the pill column');
+  ok(s.search.right >= s.barRight - 1,
+     'and it runs the whole width, into the pill\'s column (her ask)');
+  ok(rest >= 360, 'so it is the full width of the page (' + rest + 'px)');
 
   // 2 ── nothing is hidden to pay for it
   ok(s.view.shown && s.filt.shown, 'the view switch and the filters are still on the row');
+  const ctrlClear = await page.evaluate((pill) => {
+    const bar = document.querySelector('.feedbar').getBoundingClientRect();
+    return ['.viewtog', '.filttog'].every((sel) => {
+      const r = document.querySelector(sel).getBoundingClientRect();
+      return r.right <= bar.right - pill + 1;
+    });
+  }, PILL);
+  ok(ctrlClear, 'and THEIR line still stops before the pill column — every one is a tap target');
   const reachable = () => page.evaluate(() => ['v-list', 'v-tiles', 'v-liked', 'v-hidex'].every((id) => {
     const r = document.getElementById(id).getBoundingClientRect();
     const e = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
@@ -128,6 +151,16 @@ const ok = (c, m) => { if (c) console.log('  ok  ' + m); else fail(m); };
   ok(x.onLeft, 'and it is at the LEFT end of the field');
   ok(x.pad >= x.w, 'and the words start clear of it (padding ' + x.pad + ' ≥ ' + Math.round(x.w) + ')');
   ok(x.takesTap, 'and it really takes a tap there (elementFromPoint)');
+  const pillTakesTap = await page.evaluate(() => {
+    const f = document.querySelector('.float');
+    if (!f) return 'no pill';
+    const r = f.getBoundingClientRect();
+    const e = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+    return !!(e && e.closest('.float'));
+  });
+  ok(pillTakesTap === true || pillTakesTap === 'no pill',
+     'the pill still takes its own taps over the search line (' + pillTakesTap + ')');
+
   await page.click('#qclear'); await page.waitForTimeout(300);
   ok(await page.evaluate(() => document.getElementById('q').value === '' &&
        document.activeElement === document.getElementById('q')),

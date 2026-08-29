@@ -4815,7 +4815,17 @@ before working on that module. Nothing was deleted — the moved text is verbati
   is what the pill's column reaches toward, and it is where her caret sits and
   where dictated text grows — the left end is the one part of the field never
   doing anything else. Its 28px of padding exists only while the ✕ does, so an
-  empty box keeps its whole width for the placeholder. Test:
+  empty box keeps its whole width for the placeholder.
+  **AND THE LINE RUNS INTO THE PILL'S COLUMN (her fourth: "you put it in the
+  row under, I said I wanted it in the pill column")** — 310 → **366, the full
+  width of the page**. Every other row here reserves the pill's 56px and this
+  is the one row that can give them up, *because* the ✕ moved left: nothing on
+  the right of this box is a control any more, only the tail of a query she
+  reads from the left, and the pill still floats over that tail and still
+  takes its own taps. **The CONTROLS' line keeps its reservation** — every one
+  of those IS a tap target. So the answer to her original question turned out
+  to be "the ROW can't, this line can, once nothing tappable is at its right
+  end". Test:
   `node scripts/test-playground-search-room.js` (every state measured off the
   real boxes, the ✕ and the controls asked with `elementFromPoint`).
   **IT ASKS THE SERVER, and that is the point** — `GET /api/promptlab?q=`
