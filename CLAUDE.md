@@ -3484,10 +3484,25 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     at it chose to patch the copy. The shared file grew HOOKS for them instead,
     and 226 lines of duplicate came out of the page:
     - **`actions:[{label, icon, onClick}]`** — a row of small circular icon
-      buttons directly under the picture (open the chat · Playground · Save to
-      Photos). `label` becomes the aria-label AND the title; the empty space
-      between them closes the lightbox, because the close rule asks the tap's
-      TARGET. `.hasacts` shrinks the picture to 46vh so the note box still fits.
+      buttons directly under the picture (open the chat · Playground · Add to
+      Shoebox · Save to Photos). `label` becomes the aria-label AND the title;
+      the empty space between them closes the lightbox, because the close rule
+      asks the tap's TARGET. `.hasacts` shrinks the picture to 46vh so the
+      note box still fits.
+      **The Playground door is on EVERY picture and the Shoebox door exists
+      since 2026-08-28** (Sophie: "meta assets missing its send to
+      playground/shoebox"): with a filed prompt the Playground door ports it
+      exactly as before; with none there is nothing to port honestly, so the
+      picture rides as the PHOTO REFERENCE instead (`/playground?photo=<url>`
+      — promptlab attaches it through the same restore the copy buttons use,
+      stepping a LoRA sticky style onto the reference-less ChatGPT tile,
+      which has the slot). Add to Shoebox is the Story Room door's twin:
+      `POST /api/scratchpad/shoebox-url {url, title}` through the SAME
+      content-addressed writer (`shoeboxPut`), so the two doors converge on
+      one memory for one picture; the label she reviews by is the polaroid's
+      title. Tests: `node scripts/test-meta-assets-page.js`,
+      `node scripts/test-storyroom-shoebox.js`,
+      `node scripts/test-playground-photo-ref.js`.
     - **`who`** — the small uppercase origin-chat line under the caption, for a
       surface that mixes many chats.
     Both optional and additive, so no existing caller changed. **The next
@@ -3502,6 +3517,32 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     opens the shared lightbox and builds none of its own; step 11 taps the dead
     space, found by scanning each row with `elementFromPoint` — the only honest
     way to ask what a tap reaches; verified failing against the pre-fix page).
+  - **EVERY SURFACE SHARES THE ONE FILE SINCE 2026-08-28 (Sophie: "create a
+    single lightbox view, sync to all surfaces … ex assets, meta assets, story
+    room, playground").** And **THE ONE LAYOUT IS THE PLAYGROUND'S,
+    EVERYWHERE** (her check the same day: "it's not in meta assets?" — one
+    code was not one view while the layout stayed per-page): ♥/✕ lead the
+    row UNDER the picture with the caller's actions, all one 46px size, the
+    MODEL · QUALITY tag and label directly under the picture, Prompt · Chat
+    alone in the top band, the picture at 76vh yielding through flex. The
+    old `votesBelow` / `capUnderImage` hooks are accepted and IGNORED — they
+    are the layout now; don't reintroduce a per-page layout flag.
+    The last three hand copies retired in one pass: the
+    STORY ROOM's (its pick and step zones ride two new hooks — `cta`, a
+    labeled primary button under the picture for "Use this one", and
+    `onClose`, which lets a page whose beat popup holds the body lock
+    re-assert it after the shared close clears `body.overflow`; the page's one
+    rule is `#clightbox{z-index:60}`, its own overlay layering), FREEFORM's
+    (an output opens with the verbatim `promptSent` behind the PROMPT door and
+    steps the run's pictures; a reference opens plain) and the CHARACTER
+    page's (a bare open). The shared close contract is everyone's now — a tap
+    on dead space closes, a tap on the picture never does, the Story Room
+    included. `node scripts/test-asset-lightbox.js` carries the SOURCE PIN:
+    all six surfaces link the file and none builds a lightbox of its own — a
+    seventh surface joins the sweep by linking it. Not migrated, by design:
+    compare.js's own `.cmp-lb` zoom (hand-built Compare pages are FROZEN when
+    posted, so changing their host risks every page already filed) and the
+    public apps with their own identity (dream feed, witch).
 - **THE BOTTOM BAR'S THREE ARE PERMANENT — Story Room · Story Timeline ·
   Playground (2026-08-26, Sophie: "right now the bottom real icons switch off
   can you change it so they're permanent I want the story room, the story
@@ -3781,6 +3822,12 @@ out. The headlines, so you know when to go and look:
   `node scripts/test-header-top.js` measures every `serveGated` page (the
   list is derived from server.js, so a new page is covered the day it is
   registered). Full rules in `docs/design-rules.md`.
+- **A REPAINT NEVER REBUILDS WHAT DID NOT CHANGE (2026-08-28, Sophie: "this
+  shud be the automatic best practices").** A poll or refresh that wipes and
+  recreates image DOM strobes the page blank on iOS — the Story Room's
+  "blinks a lot", found live on three more pages the same day. The pattern is
+  a signature skip reading the same values the paint draws; full rule and
+  worked examples in `docs/design-rules.md`.
 - **The hairline `.acctabs` rows measure their own underline** — no row anywhere
   declares a tab count. Add a tab and the line still lands under the word.
 - **Custom icons are framed at 1.11x the SF Symbol point size**, and every
@@ -4621,11 +4668,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
     them, with the 38px note-send under both. **The size she asked for is the
     Playground's own**, read off its hand-rolled lightbox as it stood the day
     before the port (`.lbbtn` — 46x46, a 21px glyph, 22px apart), where all
-    five really were one class. It is a `.vbelow` rule in `asset-lightbox.js`,
-    scoped like every other hook, so the Assets tab, Meta Assets and the grid
-    pages — which pass no layout hook — keep the sizes they have. **A hook
-    that MOVES a control into another row inherits that row's problem: check
-    the sizes on both sides of the join.** Pinned by the size block in
+    five really were one class. It is a `.vbelow` rule in `asset-lightbox.js`
+    — and since 2026-08-28 `.vbelow` IS every caller's layout ("a single
+    lightbox view … it's not in meta assets?"), so the Assets tab, Meta
+    Assets and the grid pages carry the same 46px row now. **A hook that
+    MOVES a control into another row inherits that row's problem: check the
+    sizes on both sides of the join.** Pinned by the size block in
     `node scripts/test-playground-lightbox.js`, MEASURED off the real boxes
     (two rules winning on two different buttons is invisible to any class
     assertion) — verified failing 2 pre-fix, naming all three sizes.
@@ -4773,6 +4821,41 @@ before working on that module. Nothing was deleted — the moved text is verbati
   the heart the pictures) and hides "Older" while it is running. Searchable:
   her words, the style by its LABEL and its key, quality, the canvas by its
   ratio AND by the word on the button, `photo ref`, failed/cancelled.
+  **AND IT RUNS INTO THE PILL'S COLUMN, ON THE ROW IT HAS ALWAYS BEEN ON
+  (2026-08-28, Sophie, four messages: "search way too small. why can't it show
+  behind pill column" → "i don't need to tap" → "put x on other side" → "you
+  put it on a separate row? I specifically asked for it to stay where it
+  is").** Measured at 390pt: the row is List·Tiles·3 (148) + the filter chips
+  (70, or 104 with the sheets chip) + the 56 the injected pill owns, which
+  left the box **76px, or 41 on the PANELS tab** — her screenshot shows the
+  placeholder clipped to "Se" with the caret in it. **The ROW cannot go under
+  the pill and that is the answer to her question:** `.feedbar` is
+  `position:sticky; top:0`, so unlike ordinary content — which passes under
+  the pill's fixed corner on its way up — it sits inside that corner
+  PERMANENTLY, and anything tappable in those 56px is covered for good. **But
+  the FIELD can, and does** (`margin-right:-56px`, 76 → 132): the ✕ moved to
+  its LEFT end the same day, so nothing on its right is a control any more,
+  only the tail of a query she reads from the left, and the pill still floats
+  over that tail and still takes its own taps. The other controls keep the
+  reservation — every one of those IS a tap target.
+  **TWO OTHER SHAPES SHIPPED FIRST AND SHE CUT BOTH; NEITHER IS A RULE.** A
+  line that appeared when the box was focused ("i don't need to tap" — a box
+  only usable once it is tapped is one she has to ask for), and a second line
+  of its own under the controls ("I specifically asked for it to stay where it
+  is"). So the box **stays on the row**, there is no `.searching` state,
+  nothing to repaint and no JS at all — and stepping a neighbour aside to make
+  room is out for its own reason: switching to tiles over the hits and
+  lighting the heart on them are two of the things a search is FOR, and a lit
+  filter she cannot see is the silent-filter failure this app keeps getting
+  burned by.
+  **THE ✕ IS AT THE LEFT END OF THE FIELD** (her third message), which is what
+  buys the column: the right end is where her caret sits and where dictated
+  text grows, and the left end is the one part of the field never doing
+  anything else. Its 28px of padding exists only while the ✕ does, so an empty
+  box keeps its whole width for the placeholder. Test:
+  `node scripts/test-playground-search-room.js` (the real page with the real
+  injected pill at the iPhone 13's 47px inset — one row, the field into the
+  column, the controls and the pill asked with `elementFromPoint`).
   **IT ASKS THE SERVER, and that is the point** — `GET /api/promptlab?q=`
   scans the whole run history (a few hundred ~1KB docs, capped 1500, held
   60s) because a box that only filters the loaded page answers "nothing
@@ -4845,6 +4928,63 @@ before working on that module. Nothing was deleted — the moved text is verbati
     needed.
   - Test: `node scripts/test-playground-feed-fill.js` (the walk over fixtures,
     then the two page halves and the route's use of the shared fill).
+- **Squaring** (`cropper.js`, `/api/crop`, page at `/crop`, iOS tile under the
+  PICTURES filter) — crop pictures to square by TAPPING ARROWS. Sophie's ask
+  (2026-08-29), after twelve automatically-squared pictures came back missing
+  the thing each one was about: "the shirt is crucial, the elbow isn't" →
+  "could you make a cropping tool where I move it up or down with arrows
+  rather than dragging."
+  **IT COSTS NOTHING** — a download, sharp and an upload on our own box, no
+  model call anywhere; opening it spends nothing.
+  - **THE WHOLE TOOL IS ONE NUMBER PER PICTURE.** `pos` 0..1 is where the
+    square sits along the LONG edge — 0 flush with the top (or the left), 1
+    with the bottom, 0.5 dead centre, which is exactly what an automatic crop
+    gives and exactly what she was correcting. A square out of a 2:3 has ONE
+    degree of freedom, so there is no zoom and nothing to drag; a LANDSCAPE
+    source turns the same two arrows into left/right, and a picture that is
+    already square disables them rather than leaving two dead controls.
+  - **THE PREVIEW SHOWS WHAT IS LOST, NOT ONLY WHAT SURVIVES.** She is looking
+    at the WHOLE picture with the discarded bands dimmed and the kept square
+    outlined — a square preview alone answers the wrong question, since what
+    she is correcting is what falls outside it.
+  - **THE PAGE AND THE SERVER CANNOT DISAGREE ABOUT THE CROP** — `cropBox()`
+    in cropper.js and `box()` in crop.html are the same arithmetic, and
+    `test-cropper.js` EXTRACTS the page's copy out of the real html and drives
+    it against the server's over six shapes at five positions. A preview that
+    lies about the cut is the one failure this must not have; re-typing the
+    page's function into the test would only pin the test against itself.
+  - **POSITIONS SAVE THEMSELVES; SAVE IS WHAT CUTS.** An arrow tap is a
+    thought, not a commitment, so `POST /pos` writes the number alone
+    (debounced — a hold-to-repeat is ONE write, and the debounce is
+    deliberately longer than the repeat interval or the first write lands
+    mid-hold). **Save crops** is the background job: download, cut, upload,
+    apply, poll. Only pictures she has MOVED since their last cut are re-cut,
+    compared as numbers — so nudging one away and back costs nothing.
+  - **NOTHING IS DESTROYED.** The source is never touched or replaced; a cut
+    writes a NEW copy and points whatever asked (`apply`) at it. `pos` rides
+    in the filename, so a re-crop is a different object and no year-long CDN
+    cache can serve her yesterday's crop. A set is HIDDEN, never deleted.
+  - **`apply` IS HOW A SQUARE GETS HOME.** One kind so far —
+    `{kind:'memory', uid, id}` → the membry memory doc's `illustration.url`,
+    i.e. a Shoebox polaroid. Whitelisted (`cleanApply`), so nothing else on
+    the object is ever stored. The membry handle is HANDED IN by server.js
+    (`cropperMod.init({ membryDb })`), the scratchpad pattern.
+  - **RE-SEEDING KEEPS HER WORK.** The doc id is `sha1(title + the urls)`, so
+    the same set POSTed twice IS the same set: `mergeItems` keeps every
+    position and every cut copy, and takes only the label and the apply target
+    from the new POST.
+  - **NO PILL** — one screen, never scrolls, like `/filmeditor` and
+    `/opinions`. The page is still written to survive one (its script is in an
+    IIFE and declares no pill global), and the test injects the real pill to
+    pin that.
+  - **A CHAT SEEDS IT AND HANDS HER THE LINK:** `POST /api/crop/sets {title,
+    items:[{url, label, pos?, apply?}]}` → `/crop?set=<id>`. The label is what
+    the crop has to CONTAIN — her words for that picture — and it is on screen
+    under the arrows, because that is the whole question she is answering.
+  - Tests: `node scripts/test-cropper.js` (the arithmetic and the set rules,
+    pure) and `node scripts/test-crop-page.js` (the real page headless — every
+    assertion a MEASUREMENT of the real boxes, since a wrong crop renders as a
+    perfectly plausible picture).
 - **Freeform** (`freeform.js`, `/api/freeform`, `/freeform`) — the one image
   surface with **no opinion**: the prompt goes to gpt-image-2 verbatim, no prefix,
   no suffix, not even a trailing-period trim. `promptSent` is stored on every run
@@ -6007,6 +6147,33 @@ before working on that module. Nothing was deleted — the moved text is verbati
   from here carries the `src` that made it, so picking it back restores its
   own prompt, and where nothing is known the src is DROPPED rather than left
   behind (the previous picture's run is a lie about what drew this one).
+  **AND ONE CAN BE CULLED — the ✕ on each thumbnail (2026-08-28, Sophie: "how
+  to cull beat pictures").** "Nothing here deletes a picture" is right for a
+  SWAP and had no answer for *this one was never mine*: a picture that landed
+  on the wrong beat — the whole of #1889's five strays on one caption — sat in
+  that row forever, and the only exits were the trash button (which takes the
+  beat, words and all) or drawing over it, which only makes the row longer.
+  `forgetArt` in `pad-art.js` beside `swapArt`, so the two ways the row changes
+  cannot disagree; `POST /api/scratchpad/image/forget {id, url, style}`.
+  - **NOTHING IS DESTROYED.** The picture stays in Storage and in My
+    Creations, and what the beat had is banked in `pad.trash` exactly as a
+    removed side is. The cull only forgets that this BEAT had it.
+  - **CULLING THE CURRENT ART PROMOTES THE NEWEST PICTURE IN THE ROW**, with
+    its own `src` — that is what a cull means when you are looking at the
+    thing you are culling. An empty row leaves the side with no art, which is
+    a normal state (most beats have none) and **never `off`**, which would
+    take the beat off that side altogether.
+  - **THE ROW OPENS AT ONE PICTURE NOW, not at two.** It used to appear only
+    once a draw had replaced something, which was right while it was somewhere
+    to LOOK; it is the only place a picture comes off a beat now, so a beat
+    left holding one wrong picture has to be reachable.
+  - **The ✕ is a SIBLING of the thumbnail, never nested** (a button inside a
+    button is invalid and the tap would open the picture), and the row stays
+    OPEN after a cull — she is culling several, and a fold that shut under her
+    would cost a tap per picture.
+  - A **clip** is refused: nothing in that row is a film, and clearing a clip
+    slot through here would leave `kind`/`poster`/`seconds` behind. Removing a
+    clip is the beat's own delete.
   Tests: `node scripts/test-pad-art.js` (pure) and `node
   scripts/test-scratchpad-pick-version.js` (the real page headless, its stub
   `/image` running the real `pad-art.js`).
@@ -6178,11 +6345,34 @@ before working on that module. Nothing was deleted — the moved text is verbati
     an empty story places straight away because it has no gap to tap.
   - **"Into the inbox" is not rebuilt and does not need to be**: the pad's
     inbox already reads her hearted Playground pictures live, so ♥ is that
-    door. Putting a picture onto an EXISTING beat is that beat's own "fill it
-    in" — a tap on a beat while placing is still a no-op, deliberately (one
-    rule for the inbox flow and this one).
+    door.
   - Test: `node scripts/test-playground-story-share.js` (the trip driven as
     ONE walk — the Playground's real tap lands on the real room).
+  **A PICTURE LANDS ON A MOMENT SHE TAPS, NOT ONLY IN A GAP (2026-08-28,
+  Sophie: "i can only add between · I can't add to an existing moment by
+  clicking that moment").** While she is holding a picture — from the inbox,
+  from the + , or walked in from the Playground — a tap on a BEAT now puts the
+  picture on that beat, where it used to be a **deliberate no-op** and the gaps
+  between beats were the only targets. That reasoning is history: on a pad of
+  empty beats waiting for art (her Science story is 20 of them) tapping the
+  beat is the first thing anyone tries, and it did nothing at all, with nothing
+  on screen saying why.
+  - **TWO DOORS, ONE WRITE — `landOn(target, it)`.** The beat popup's own
+    "fill it in" (`fillBeat`) and this tap are the same call, so a picture
+    landed either way carries the same style side and the same provenance
+    `src`, and the beat opens after it — confirmation by sight.
+  - **NOTHING IS DESTROYED.** The server banks the picture that side already
+    had in the beat's own past-pictures row (`/image` → `placeOnBeat` →
+    `pad-art.js`), so a wrong landing is one tap from undone — which is what
+    makes this the cheap direction rather than a dangerous one.
+  - **AN EMPTY PENDING (the +) LANDS NOWHERE.** There is no picture in it, and
+    "add a blank beat onto this beat" means nothing; the gaps stay armed.
+  - **The gaps are untouched** — a tap between two beats still adds a new beat
+    there, and the band names both ways in ("Tap a moment, or a gap").
+  - Test: `node scripts/test-storyroom-land-on-beat.js` (the real page
+    headless, asking what the tap actually POSTs — a source assertion cannot
+    tell a no-op from a landing; verified failing pre-fix, where the gaps never
+    even come down).
   **A STORY IS PORTRAIT OR SQUARE, AND IT IS ONE SHAPE ALL THE WAY DOWN
   (2026-08-28, Sophie: "add a new square story type in story room").** `SHAPES`
   in `scratchpad.js` and its twin in `gen-scratchpad.py` are the whole list —
@@ -7398,9 +7588,13 @@ before working on that module. Nothing was deleted — the moved text is verbati
   with the chat trailing after an em dash — so the one fact she needs first
   (WHICH chat) moved depending on which door rang, and nothing said what kind
   of arrival it was. One shape now, `pushAlert` in `push-gate.js`: **the CHAT
-  is always the title**, and the body leads with the kind — `Needs you · pick a
-  take 1-4` · `New film · Evan v18 (4:23)` · `New page · Sheet v2` — with an
-  answer still leading on its TLDR. **The ask WINS the banner** when a reply
+  is always the title**, and the body leads with the kind — `New film · Evan
+  v18 (4:23)` · `New page · Sheet v2` — with an answer still leading on its
+  TLDR. **AN ASK CARRIES NO LABEL AT ALL** (2026-08-28, her correction the same
+  hour: "they also need you that's redundant. None of them need to say that"):
+  a `need` line is already a sentence asking her for something, in the chat's
+  own words, so `Needs you ·` in front of it said nothing the sentence had not
+  said and spent the banner's first words — the ones a lock screen shows. **The ask WINS the banner** when a reply
   carries one: a chat that just asked her something is not better described by
   its own summary. The 2026-08-15 rule survives inside it — a reply opening
   with her own question in bold never comes back as the banner.

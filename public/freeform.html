@@ -91,9 +91,9 @@
   .again{margin-top:7px;padding:6px 11px;font-size:14px}
   .usedrefs{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
   .usedrefs img{width:34px;height:34px;object-fit:cover;border-radius:4px;border:1px solid #e0d8ca}
-  #lb{position:fixed;inset:0;background:rgba(20,16,10,.93);display:none;align-items:center;
-      justify-content:center;z-index:60;padding:10px}
-  #lb img{max-width:100%;max-height:100%}
+  /* The lightbox is THE SHARED ONE (/asset-lightbox.js) — it brings its own
+     CSS. This page kept a bare hand copy (#lb) until 2026-08-28 (Sophie:
+     "create a single lightbox view, sync to all surfaces"). */
   .toast{position:fixed;left:12px;bottom:12px;background:#2b2620;color:#f6f2ea;font-size:13px;
          border-radius:6px;padding:7px 11px;opacity:0;transition:opacity .25s;z-index:70}
   .toast.show{opacity:1}
@@ -145,9 +145,9 @@
 
 <div id="feed"></div>
 
-<div id="lb"><img id="lbi" src="" alt=""></div>
 <div class="toast" id="toast"></div>
 
+<script src="/asset-lightbox.js"></script>
 <script>
 var TOKEN = '__STUDIO_TOKEN__';
 if (TOKEN.indexOf('__') === 0) TOKEN = '';
@@ -200,7 +200,7 @@ document.addEventListener('click', function (e) {
   var t = e.target;
   var fromPill = pillTap; pillTap = false;
   if (fromPill || (t && t.closest && t.closest('.float'))) return;
-  if (t && t.closest && (t.closest('#lb') || t.closest('img[data-full]'))) return;
+  if (t && t.closest && (t.closest('#clightbox') || t.closest('img[data-full]'))) return;
   var interactive = (window.__pillInteractive && window.__pillInteractive(t)) ||
                     (t && t.closest && t.closest('.ref'));   // library tiles select refs
   if (interactive) {
@@ -316,20 +316,32 @@ window.__fitPillGap = fitPillGap;
   soon();
 })();
 
-// ── Lightbox: pause scroll, lock the body, and RESTORE the exact position on
-// close — pausing alone is not enough, since overflow:hidden doesn't stop
-// window.scrollBy if anything restarts the scroll underneath.
-var lb = document.getElementById('lb'), lbi = document.getElementById('lbi'), savedY = 0;
+// ── Lightbox: THE SHARED ONE (/asset-lightbox.js) — never a second copy
+// (2026-08-28, Sophie: "create a single lightbox view, sync to all surfaces").
+// It stops the autoscroll, locks the body and restores the exact scroll
+// position itself. An OUTPUT opens with this run's prompt behind the PROMPT
+// button — the module's whole promise made readable: promptSent is the
+// verbatim content half, and the style half exists only when the boiler
+// really rode along — plus the two invisible step zones through the run's
+// pictures. A REFERENCE opens plain: her own photo, no prompt to show.
 function openLb(src) {
   if (window.__scrollStop) window.__scrollStop();
-  savedY = window.scrollY;
-  lbi.src = src; lb.style.display = 'flex'; document.body.style.overflow = 'hidden';
+  window.__assetLightbox(src, null);
 }
-lb.addEventListener('click', function () {
+function openRunImage(run, i) {
   if (window.__scrollStop) window.__scrollStop();
-  lb.style.display = 'none'; lbi.src = ''; document.body.style.overflow = '';
-  window.scrollTo(0, savedY);
-});
+  var imgs = run.images || [];
+  window.__assetLightbox(imgs[i], {
+    prompt: [run.model || 'gpt-image-2', run.quality, run.size,
+             run.boiler ? 'boilerplate style' : ''].filter(Boolean).join(' · '),
+    promptContent: run.promptContent || run.promptSent || run.prompt || '',
+    promptStyle: run.promptStyle || '',
+    nav: {
+      prev: i > 0 ? function () { openRunImage(run, i - 1); } : null,
+      next: i < imgs.length - 1 ? function () { openRunImage(run, i + 1); } : null,
+    },
+  });
+}
 
 function updateCost() {
   var q = document.getElementById('quality').value;
@@ -514,7 +526,7 @@ function runCard(run) {
     'title="Put this prompt and its references back">' + ICON_COPY + '</button></div>' +
     '<div class="tags">' + tags + '</div>';
   html += '<div class="outs">';
-  (run.images || []).forEach(function (u) { html += '<img src="' + u + '" alt="" data-full="' + u + '">'; });
+  (run.images || []).forEach(function (u, i) { html += '<img src="' + u + '" alt="" data-full="' + u + '" data-i="' + i + '">'; });
   if (run.status === 'drawing' || run.status === 'ready') {
     var missing = Math.max((run.outputs || 1) - (run.images || []).length, 0);
     for (var i = 0; i < missing; i++) html += '<div class="ph"></div>';
@@ -531,13 +543,27 @@ function runCard(run) {
     run.refs.forEach(function (u) { html += '<img src="' + u + '" alt="" data-full="' + u + '">'; });
     html += '</div>';
   }
+  /* THE CARD ONLY REBUILDS WHEN IT CHANGED (2026-08-28, the Story Room's
+     "blinks a lot" rule). The poll calls this every 2.5s for the life of a
+     run, and re-assigning identical HTML recreates the reference thumbs and
+     every picture already landed — the card flashed the whole time a run was
+     drawing. The signature is the exact HTML plus the prompt (which is set
+     as textContent below, outside the HTML string). */
+  var sig = html + '' + (run.prompt || '');
+  if (el.__sig === sig) return;
+  el.__sig = sig;
   el.innerHTML = html;
   el.querySelector('.p').textContent = run.prompt || '';
   el.querySelector('.copybtn').addEventListener('click', function () { copyRunIn(run); });
   var again = el.querySelector('.again');
   if (again) again.addEventListener('click', function () { startRun(retryBody(run), again); });
   el.querySelectorAll('img[data-full]').forEach(function (im) {
-    im.addEventListener('click', function () { openLb(im.dataset.full); });
+    im.addEventListener('click', function () {
+      // an OUTPUT (data-i) carries this run's prompt and steps through the
+      // run's pictures; a reference thumbnail opens plain
+      if (im.dataset.i != null) openRunImage(run, Number(im.dataset.i));
+      else openLb(im.dataset.full);
+    });
   });
 }
 

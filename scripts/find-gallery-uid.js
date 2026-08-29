@@ -42,7 +42,15 @@ function arg(name, dflt) {
 }
 
 const TOP = Math.max(1, parseInt(arg('top', '10'), 10) || 10);
-const SCAN = Math.max(50, parseInt(arg('scan', '1000'), 10) || 1000);
+// THE SCAN CAP IS A TRAP AT 1000, MEASURED 2026-08-28: the collection-group
+// read below is UNORDERED, so the cap takes an arbitrary 1000 docs — and on
+// membry that window held the device's uid ZERO times while returning eleven
+// strangers with 1-3 creations each. The closing line of this script says
+// "the device is the one with many creations", so a chat reading that output
+// would have filed her deliverables under a stranger's uid. At 3000 the
+// device turned up immediately with 2,984. Default raised, and a truncated
+// scan now says so out loud rather than presenting a partial count as a rank.
+const SCAN = Math.max(50, parseInt(arg('scan', '5000'), 10) || 5000);
 
 function credentials() {
   const raw =
@@ -85,6 +93,13 @@ function credentials() {
 
   const rows = [...byUid.entries()].sort((a, b) => b[1].latest - a[1].latest);
   console.log(`project ${projectId} — scanned ${snap.size} creations, ${rows.length} uids\n`);
+  if (snap.size >= SCAN) {
+    console.log(
+      `NOTE: the scan hit its ${SCAN}-doc cap, so these counts are a SAMPLE and the\n` +
+        'device may be missing entirely (the read is unordered). Re-run with a\n' +
+        `bigger --scan before trusting the ranking.\n`
+    );
+  }
   if (!rows.length) {
     console.log('No creations found. Wrong project, or the app has never written any.');
     process.exit(0);

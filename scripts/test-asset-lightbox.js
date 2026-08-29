@@ -86,6 +86,27 @@ window.__open = function () {
 };
 </script>`;
 
+// ── THE SOURCE PIN: ONE LIGHTBOX, NO HAND COPIES (2026-08-28, Sophie:
+//    "create a single lightbox view, sync to all surfaces … ex assets, meta
+//    assets, story room, playground"). Every surface that opens a picture big
+//    links THIS file; a page growing its own dark-wash overlay again is the
+//    drift that put the same bugs in front of her three times. ──
+{
+  const PUB = path.join(__dirname, '..', 'public');
+  const surfaces = ['chats.html', 'assets.html', 'promptlab.html',
+    'scratchpad.html', 'freeform.html', 'character.html'];
+  for (const f of surfaces) {
+    const src = fs.readFileSync(path.join(PUB, f), 'utf8');
+    ok(`${f} links the shared lightbox`, /src="\/asset-lightbox\.js"/.test(src));
+  }
+  // the retired hand copies stay retired
+  for (const f of ['scratchpad.html', 'freeform.html', 'character.html']) {
+    const src = fs.readFileSync(path.join(PUB, f), 'utf8');
+    ok(`${f} builds no lightbox of its own`,
+      !/id="lightbox"|id="lb"[ >]|id="lbimg"/.test(src));
+  }
+}
+
 (async () => {
   const executablePath = exe();
   const browser = await chromium.launch(executablePath ? { executablePath } : {});
@@ -130,20 +151,39 @@ window.__open = function () {
   ok('no page errors', errors.length === 0);
   ok('it opened', await shown());
 
-  // ── the ♥/✕ strip: the buttons are at its two ends, so the middle of that
-  //    row is dead space — exactly where she was tapping ──────────────────
+  // ── THE ONE LAYOUT (2026-08-28, Sophie: "a single lightbox view … it's not
+  //    in meta assets?"): ♥/✕ lead the row UNDER the picture for EVERY
+  //    caller — the Playground's layout is the default now, not an opt-in —
+  //    and the empty space beside a button is still dead space that closes ──
   const strip = await page.evaluate(() => {
-    const r = document.querySelector('#clightbox .lbtop').getBoundingClientRect();
-    const hb = document.querySelector('#clightbox .vote.heart').getBoundingClientRect();
-    const pb = document.querySelector('#clightbox .promptbtn').getBoundingClientRect();
-    // the real dead space: between the ♥ and the Prompt button, which is where
-    // she was tapping ("between the image and the prompt")
-    const gap = { x: (hb.right + pb.left) / 2, y: r.top + r.height / 2 };
-    const el = document.elementFromPoint(gap.x, gap.y);
-    return { gap, heart: { x: hb.left + hb.width / 2, y: hb.top + hb.height / 2 },
-      gapIs: el ? el.className : '' };
+    const top = document.querySelector('#clightbox .lbtop');
+    const hb = document.querySelector('#clightbox .lbacts .vote.heart');
+    const hr = hb ? hb.getBoundingClientRect() : null;
+    // the dead space is the 22px gap between ♥ and ✕ — the row shrink-wraps
+    // its buttons (the column centres its children), so scan for the first
+    // point that is not a control, exactly the way a stray thumb lands
+    let gap = null, gapIs = '';
+    const bs = [...document.querySelectorAll('#clightbox .lbacts button')];
+    for (let k = 0; k + 1 < bs.length && !gap; k++) {
+      const a = bs[k].getBoundingClientRect(), b = bs[k + 1].getBoundingClientRect();
+      const y = Math.round(a.top + a.height / 2);
+      for (let x = Math.round(a.right) + 1; x < Math.round(b.left); x++) {
+        const el = document.elementFromPoint(x, y);
+        if (el && el.closest && !el.closest('button') && el.closest('#clightbox')) {
+          gap = { x, y }; gapIs = el.className; break;
+        }
+      }
+    }
+    return {
+      topVotes: top.querySelectorAll('.vote').length,
+      heartBelow: !!hb,
+      heart: hr ? { x: hr.left + hr.width / 2, y: hr.top + hr.height / 2 } : null,
+      gap, gapIs,
+    };
   });
-  is('the gap really is the strip itself, not a control', strip.gapIs, 'lbtop');
+  is('no vote circles in the top band — the one layout, every caller', strip.topVotes, 0);
+  ok('the ♥ leads the row under the picture', strip.heartBelow);
+  is('the gap really is the row itself, not a control', strip.gapIs, 'lbacts');
   await tapAt(strip.heart.x, strip.heart.y);
   ok('a tap on the ♥ does NOT close it', await shown());
   await tapAt(strip.gap.x, strip.gap.y);
@@ -205,12 +245,13 @@ window.__open = function () {
   await open();
   const acts = await page.$$eval('#clightbox .lbacts button',
     (es) => es.map((e) => e.getAttribute('aria-label')));
-  is('the actions row draws one button per action, in order', acts,
-    ['Open the chat', 'Save to Photos']);
+  // ♥/✕ lead that row under the one layout; the caller's actions follow in order
+  is('the row reads ♥ ✕ then one button per action, in order', acts,
+    ['Heart', 'Reject', 'Open the chat', 'Save to Photos']);
   is('`who` draws as the last line', await page.$eval('#clightbox .clwho', (e) => e.textContent),
     'Dating Book');
   // an action fires its own onClick and does NOT close — it is a button
-  const abox = await page.$eval('#clightbox .lbacts button', (e) => {
+  const abox = await page.$eval('#clightbox .lbacts button[aria-label="Open the chat"]', (e) => {
     const r = e.getBoundingClientRect();
     return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
   });
@@ -241,7 +282,8 @@ window.__open = function () {
   const lbCls = await page.$eval('#clightbox', (e) => [...e.classList].sort().join(' '));
   // `hasmsgs` rides along here because this fixture's asset carries a thread —
   // the empty-thread case is its own check further down.
-  is('both shrink classes are on', lbCls, 'hasacts hasmsgs hastalk');
+  is('both shrink classes are on (vbelow is the one layout, always)', lbCls,
+    'hasacts hasmsgs hastalk vbelow');
   const fits = await page.evaluate(() => {
     const n = document.querySelector('#clightbox .lbnote');
     return n.getBoundingClientRect().bottom <= window.innerHeight + 1;
@@ -252,8 +294,11 @@ window.__open = function () {
   // a picture nobody had ever written on. `hasmsgs` is what buys the room, and
   // it comes from the thread that was actually drawn — so the SAME picture
   // must come out taller with an empty thread than with letters in it.
-  // A TALL picture, because `max-height` is what is being measured — the
-  // wide fixture above never reaches its cap, so both states render identical.
+  // A TALL picture ON A SHORT SCREEN: under the one layout the picture holds
+  // 76vh and yields through FLEX when the column overflows, so the room the
+  // thread takes only shows once the screen is short enough for the column
+  // to be squeezed — exactly the phones this matters on.
+  await page.setViewportSize({ width: 390, height: 600 });
   const TALL = 'data:image/svg+xml,' + encodeURIComponent(
     "<svg xmlns='http://www.w3.org/2000/svg' width='800' height='1200'>"
     + "<rect width='800' height='1200' fill='#c9a'/></svg>");
@@ -301,6 +346,7 @@ window.__open = function () {
     return { hasmsgs: lb.classList.contains('hasmsgs'), h: lb.querySelector('img').getBoundingClientRect().height };
   });
   ok('her first letter takes the room back', after.hasmsgs && after.h < empty.h);
+  await page.setViewportSize({ width: 390, height: 844 });
 
   // ── THE PLAYGROUND LAYOUT HOOKS (2026-08-26, Sophie: "put the heart where
   //    they were before exactly … the quality model etc. should go right
@@ -349,16 +395,68 @@ window.__open = function () {
     vb.imgH > 0.6 * 844);
   ok('the note box still fits on screen', vb.noteFits);
 
+  // ── THE CTA + onClose HOOKS (2026-08-28, Sophie: "create a single lightbox
+  //    view, sync to all surfaces … ex assets, meta assets, story room,
+  //    playground") — what let the STORY ROOM retire its hand copy: a labeled
+  //    primary button under the picture ("Use this one"), and a close
+  //    callback so a page whose beat popup holds the body lock can re-assert
+  //    it after the shared close clears body.overflow. ──
+  await page.evaluate((px) => {
+    window.__ctaTaps = 0; window.__closedBack = 0;
+    window.__assetLightbox(px, {
+      cta: { label: 'Use this one', onClick: function (e) { window.__ctaTaps++; e.currentTarget.classList.add('busy'); } },
+      onClose: function () { window.__closedBack++; document.body.style.overflow = 'hidden'; },
+    });
+  }, PX);
+  await page.waitForTimeout(120);
+  const cta = await page.evaluate(() => {
+    const lb = document.getElementById('clightbox');
+    const b = lb.querySelector('.lbcta');
+    const img = lb.querySelector('img').getBoundingClientRect();
+    const r = b.getBoundingClientRect();
+    const cs = getComputedStyle(b);
+    return { label: b.textContent, under: r.top >= img.bottom - 1,
+      radius: cs.borderRadius, serif: /EBGaramond|Georgia/.test(cs.fontFamily),
+      hascta: lb.classList.contains('hascta') };
+  });
+  is('the cta says its label', cta.label, 'Use this one');
+  ok('and sits under the picture', cta.under);
+  is('house radius, never a pill', cta.radius, '6px');
+  ok('in the serif', cta.serif);
+  ok('the lightbox knows it carries one', cta.hascta);
+  await page.click('#clightbox .lbcta');
+  const tapped = await page.evaluate(() => ({
+    taps: window.__ctaTaps, busy: !!document.querySelector('#clightbox .lbcta.busy'),
+    open: document.getElementById('clightbox').style.display === 'flex',
+  }));
+  is('tapping it reaches the caller once', tapped.taps, 1);
+  ok('the caller can mark it busy through e.currentTarget', tapped.busy);
+  ok('and the tap alone never closes the lightbox — the close is the caller\'s call', tapped.open);
+  // close on dead space: onClose fires once, after the shared close's own
+  // overflow clear, so the caller's re-lock is what stands
+  await page.mouse.click(8, 8);
+  await page.waitForTimeout(120);
+  const closed = await page.evaluate(() => ({
+    back: window.__closedBack,
+    overflow: document.body.style.overflow,
+    display: document.getElementById('clightbox').style.display,
+  }));
+  is('onClose fired exactly once', closed.back, 1);
+  is('and it has the last word over the body lock', closed.overflow, 'hidden');
+  is('the lightbox really closed', closed.display, 'none');
+  await page.evaluate(() => { document.body.style.overflow = ''; });
+
   // an image opened with NO extras is untouched — every existing caller
   await page.evaluate(() => window.__assetLightbox('data:image/gif;base64,R0lGODlhAQABAAAAACw=', {}));
   await page.waitForTimeout(80);
   const bare = await page.evaluate(() => {
     const lb = document.getElementById('clightbox');
     return { acts: lb.querySelectorAll('.lbacts').length, who: lb.querySelectorAll('.clwho').length,
-      hasacts: lb.classList.contains('hasacts') };
+      hasacts: lb.classList.contains('hasacts'), ctas: lb.querySelectorAll('.lbcta').length,
+      hascta: lb.classList.contains('hascta') };
   });
-  is('no extras passed → no actions row, no who line, no shrink class', bare,
-    { acts: 0, who: 0, hasacts: false });
+  is('no extras passed → no actions row, no who line, no cta, no shrink class', bare,
+    { acts: 0, who: 0, hasacts: false, ctas: 0, hascta: false });
 
   await browser.close();
   if (fails.length) {

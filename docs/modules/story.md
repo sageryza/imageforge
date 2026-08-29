@@ -196,7 +196,21 @@ All 12 NDE-category stories were linked to their montage episodes on
   toggle (refs/ is otherwise never web-served). **Versions (Aug 2026):** once a
   beat has more than one generation, the popup shows every one as same-size
   thumbnails, newest first, current ringed — tap for the lightbox
-  (`beat.imageHistory` + current). **Delete a beat** from its popup's trash
+  (`beat.imageHistory` + current). **The lightbox is THE SHARED ONE since
+  2026-08-28** (`/asset-lightbox.js` — Sophie: "create a single lightbox view,
+  sync to all surfaces … ex assets, meta assets, story room, playground"): the
+  page builds none of its own. What it needs rides the shared file's hooks —
+  `nav` steps through `lbVers` (the past-pictures row's own order), `cta` is
+  the labeled "Use this one" (a hook built for this page: she picks by
+  looking, and an icon circle cannot carry that), and `onClose` re-asserts the
+  beat popup's body lock, because the lightbox opens OVER the popup and the
+  shared close clears `body.overflow`. The one page-level rule is
+  `#clightbox{z-index:60}` — this page's overlays run sheet 40 / beatpop 50 /
+  filmplay 70 and the shared file ships z-index 30. Closing follows the shared
+  contract everywhere now: a tap on any dead space closes, a tap on the
+  picture never does. Tests: `node scripts/test-scratchpad-pick-version.js`,
+  `node scripts/test-storyroom-lightbox-nav.js`, and the source pin in
+  `node scripts/test-asset-lightbox.js`. **Delete a beat** from its popup's trash
   icon, behind an are-you-sure; the record moves to `pad.trash` (capped 50,
   never surfaced) and its images stay in Storage / My Creations
   (`POST /remove {id}`; a chunk left with one member un-chunks).
@@ -510,6 +524,25 @@ All 12 NDE-category stories were linked to their montage episodes on
     4b) — the five words in her order, AND the negative half: neither the pad
     nor the picture may name any of them. A reworded label is the paraphrase
     this repo keeps having to undo.
+- **THE CANVAS ONLY REPAINTS WHAT CHANGED (2026-08-28, Sophie: "story room
+  blinks a lot").** render() used to wipe #pad and rebuild every tile on
+  every call — and the draw poll calls it every 4 seconds for the whole life
+  of a 30-90s draw, closing the beat popup calls it, and every POST that
+  answers with beats calls it. Each rebuild recreated every `<img>` with the
+  full-size original, which decodes async on iOS, so the whole canvas
+  flashed blank and popped back — every 4 seconds, for minutes. Two
+  signature rules in `gen-scratchpad.py`, both reading the SAME values
+  render draws (art, color, drawing, caption, clip, order): an identical
+  canvas is not rebuilt at all (`padSig`), and inside a rebuild a unit whose
+  own signature is unchanged KEEPS its DOM node (`unitSig` — which omits the
+  position on purpose, so a reorder moves the decoded tiles instead of
+  redrawing them). One picture landing repaints one tile, not twenty.
+  **Because a kept node's closures outlive a `beats=d.beats` swap, every
+  tile tap resolves its beat by id AT TAP TIME (`beatById`)** — never the
+  object captured at build; without that, a kept tile would open week-old
+  beat data after a poll. Test: `node scripts/test-storyroom-blink.js`
+  (node IDENTITY, the only honest question — a src assertion passes on a
+  freshly recreated img every time; verified failing 5 pre-fix).
 - **PHILOSOPHY (Sophie, Aug 2026 — do not "improve" this):** the pad is a
   place for thinking on paper, so it is MINIMAL. The frame colors are
   deliberately UNLABELLED indicators — never write "example"/"explanation"/

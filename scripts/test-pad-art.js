@@ -12,7 +12,7 @@
 // slot rather than rendering an image url as a film.
 //
 //   node scripts/test-pad-art.js
-const { swapArt } = require('../pad-art');
+const { swapArt, forgetArt } = require('../pad-art');
 
 let failures = 0;
 function ok(cond, name) {
@@ -97,6 +97,68 @@ const all = (slot) => [slot.url].concat(urls(slot));
   const slot = { url: 'C', imageHistory: [null, { url: 'B', at: 1 }, {}] };
   swapArt(slot, 'B', null, 10);
   ok(urls(slot).filter(Boolean).join() === 'C', 'empty entries are swept, not carried');
+}
+
+// ── THE CULL: taking one picture off a beat ─────────────────────────
+// (2026-08-28, Sophie: "how to cull beat pictures".) swapArt never deletes,
+// which is right for a swap and left no answer for a picture that landed on
+// the wrong beat.
+{
+  const slot = {
+    url: 'C', src: { prompt: 'c' },
+    imageHistory: [{ url: 'A', at: 1, src: { prompt: 'a' } }, { url: 'B', at: 2 }],
+  };
+  const gone = forgetArt(slot, 'A');
+  ok(gone && gone.url === 'A', 'it hands back what was taken off');
+  ok(gone.src && gone.src.prompt === 'a', 'with the run that made it, so the trash can name it');
+  ok(slot.url === 'C', 'an older picture leaves the beat\'s art alone');
+  ok(urls(slot).join() === 'B', 'and comes out of the row (' + urls(slot).join() + ')');
+}
+{
+  // The current one: "no, not that one" shows the previous one.
+  const slot = {
+    url: 'C', src: { prompt: 'c' }, gen: { id: 'g' },
+    imageHistory: [{ url: 'A', at: 1 }, { url: 'B', at: 2, src: { prompt: 'b' } }],
+  };
+  const gone = forgetArt(slot, 'C');
+  ok(gone.src && gone.src.prompt === 'c', 'culling the current one banks its own src');
+  ok(slot.url === 'B', 'the NEWEST picture in the row takes its place');
+  ok(slot.src && slot.src.prompt === 'b', 'carrying its own provenance, never the culled one\'s');
+  ok(urls(slot).join() === 'A', 'and it is out of the row, so nothing shows twice');
+  ok(slot.gen === undefined, 'a finished draw record cannot outlive the picture it drew');
+}
+{
+  // The last picture: the side is simply left with none — a normal state.
+  const slot = { url: 'A', src: { prompt: 'a' } };
+  forgetArt(slot, 'A');
+  ok(slot.url === undefined && slot.src === undefined, 'the last picture leaves the side empty');
+  ok(slot.off === undefined, 'and NEVER `off` — that would take the beat off this side');
+  ok(slot.imageHistory === undefined, 'with no empty history array left behind');
+}
+{
+  // Provenance that would be a lie is dropped, exactly as swapArt drops it.
+  const slot = { url: 'C', src: { prompt: 'c' }, imageHistory: [{ url: 'B', at: 2 }] };
+  forgetArt(slot, 'C');
+  ok(slot.url === 'B' && slot.src === undefined,
+    'a promoted picture with no src of its own carries none');
+}
+{
+  const slot = { url: 'C', imageHistory: [{ url: 'B', at: 1 }] };
+  ok(forgetArt(slot, 'NOPE') === null, 'a picture this beat does not have is a no-op');
+  ok(all(slot).join() === 'C,B', 'and nothing moved');
+  ok(forgetArt(slot, '') === null, 'so is no url at all');
+}
+{
+  // Defensive: a row must never be left showing what the cull was asked to
+  // take off it, however it came to be in there twice.
+  const slot = { url: 'X', imageHistory: [{ url: 'B', at: 1 }, { url: 'B', at: 2 }] };
+  forgetArt(slot, 'B');
+  ok(urls(slot).length === 0, 'every entry carrying that url goes, not just the first');
+}
+{
+  const slot = { kind: 'clip', url: 'film.mp4', poster: 'p.jpg', seconds: 4 };
+  ok(forgetArt(slot, 'film.mp4') === null, 'a clip is refused — removing one is the beat\'s own delete');
+  ok(slot.url === 'film.mp4' && slot.kind === 'clip', 'and the slot is untouched');
 }
 
 console.log(failures ? '\n' + failures + ' FAILED' : '\nall good');

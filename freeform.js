@@ -107,7 +107,14 @@ const COLOR_CLAUSE = 'You can choose your own colors rather than copying the '
 
 // Called by server.js once PL_GPT_STYLES exists (it is defined long after the
 // mount, so this cannot be a require).
-function init({ gptStyles } = {}) {
+function init({ gptStyles, fileCreation } = {}) {
+  // My Creations filing (2026-08-28, Sophie: "i wanna make sure every picture
+  // I've ever created can be found"). Freeform never filed its outputs at all
+  // — 27 finished pictures were invisible in Meta Assets until the coverage
+  // backfill found them. server.js hands the writer in (the movies.js
+  // pattern); wired BEFORE the style check, because the boiler style being
+  // unavailable must not also turn the filing off.
+  if (typeof fileCreation === 'function') fileCreationFn = fileCreation;
   const st = (gptStyles && gptStyles[BOILER_STYLE]) || null;
   if (!st) return;
   const prefix = String(st.prefix || '');
@@ -208,6 +215,29 @@ async function draw(prompt, refBuffers, { quality, size }) {
   return Buffer.from(d.data[0].b64_json, 'base64');
 }
 
+// The My Creations writer, handed in by server.js at init (this module holds
+// no membry credential of its own). Reads the RUN DOC rather than taking the
+// fields as arguments, so the filed record and the stored record cannot
+// disagree — and so the boot reconciliation can call it for an older run.
+let fileCreationFn = null;
+async function fileRunImages(id) {
+  if (!fileCreationFn) return;
+  const snap = await db().collection(RUNS).doc(id).get();
+  if (!snap.exists) return;
+  const r = snap.data() || {};
+  for (const url of (r.images || [])) {
+    await fileCreationFn({
+      url, type: 'image', source: 'freeform',
+      prompt: r.prompt || '', model: 'gpt-image-2',
+      quality: r.quality || '', canvas: r.size || '',
+      createdMs: r.createdAt || undefined,
+      fullPrompt: r.fullPrompt || r.promptSent || '',
+      promptStyle: r.promptStyle || '',
+      promptContent: r.promptContent || r.prompt || '',
+    }).catch(() => {});
+  }
+}
+
 // Fire-and-forget: the request has already been answered by the time this runs.
 // Each output lands on the doc as it finishes, so the grid fills in as they
 // arrive and one failed call costs its image, not the run.
@@ -228,6 +258,12 @@ async function render(id, { prompt, refUrls, quality, size, outputs }) {
     })()));
     if (!images.length) throw firstErr || new Error('no images produced');
     await doc.set({ status: 'done', images, finishedAt: Date.now() }, { merge: true });
+    // Every finished picture goes to My Creations, with the run's own record
+    // verbatim (promptSent is the literal sent text; the boiler halves are
+    // already stored with the [content] seam). Best-effort and fire-and-forget
+    // — filing must never fail the run — and the boot reconciliation in
+    // server.js re-files anything a deploy restart kills here.
+    fileRunImages(id).catch(() => {});
   } catch (e) {
     await doc.set({ status: 'failed', error: String(e.message || e).slice(0, 400), finishedAt: Date.now() },
       { merge: true }).catch(() => {});
@@ -403,4 +439,4 @@ router.delete('/run/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
 
-module.exports = { router, SIZES, QUALITIES, refOrder, BOILER, boilerFields, stuckPatch, STUCK_MS, init };
+module.exports = { router, SIZES, QUALITIES, refOrder, BOILER, boilerFields, stuckPatch, STUCK_MS, init, fileRunImages };

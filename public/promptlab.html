@@ -327,18 +327,45 @@
      back out is then blocked — one tap would leave the whole page stuck
      zoomed (found live on her phone on /assets, Aug 2026). */
   .feedsearch { flex: 1; min-width: 0; margin-left: 8px; position: relative; display: flex; }
-  /* The right padding reserves room for the ✕, which only exists once there
-     are words to wipe — so an EMPTY box keeps the 19px for its own
-     placeholder (2026-08-25, when the columns segment joined the view switch
-     and the row got tight). `.hasq` is toggled beside `qclear.hidden`. */
+  /* THE ✕ IS ON THE LEFT (2026-08-28, Sophie: "put x on other side") — the
+     right end of this box is the end the injected pill's column reaches
+     toward, and it is also where her caret sits and where the text she is
+     dictating grows; the left end is the one place in the field that is
+     never doing anything else. The padding it reserves is only ever there
+     once there are words to wipe, so an EMPTY box keeps its full width for
+     its own placeholder. `.hasq` is toggled beside `qclear.hidden`. */
   .feedsearch input { width: 100%; min-width: 0; font: inherit; font-size: 16px; color: #2b2622;
     background: #fdfcf9; border: 1px solid #d8d0c4; border-radius: 6px; padding: 6px 9px; }
-  .feedsearch input.hasq { padding-right: 28px; }
+  .feedsearch input.hasq { padding-left: 28px; }
   .feedsearch input:focus { outline: none; border-color: #c25a72; }
   .feedsearch input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+  /* THE BOX STAYS ON THE ROW AND RUNS INTO THE PILL'S COLUMN (2026-08-28,
+     Sophie: "search way too small. why can't it show behind pill column" →
+     "i don't need to tap" → "put x on other side" → "you put it on a separate
+     row? I specifically asked for it to stay where it is").
+       Every other thing on this row reserves the injected pill's 56px, and
+     the SEARCH is the one that can give them up — because the ✕ moved to the
+     LEFT end of the field the same day, nothing on the right of this box is a
+     control any more: only the tail of a query she reads from the left. So it
+     cancels `.feedbar`'s own `padding-right` with a negative margin and runs
+     to the edge of the page, 76px → 132 (41 → 97 on the PANELS tab, where the
+     sheets chip is out). The pill floats over that tail and still takes its
+     own taps.
+       WHAT IT IS NOT: the ROW cannot go under there — `.feedbar` is
+     `position: sticky; top: 0`, so unlike ordinary content, which passes
+     under the pill's corner on its way up, this row sits inside that corner
+     permanently, and anything tappable in those 56px is covered for good.
+     That is why the CONTROLS keep the reservation and only the field gives it
+     up.
+       TWO SHAPES SHIPPED BEFORE THIS AND SHE CUT BOTH: a line that appeared
+     when the box was focused ("i don't need to tap" — a box only usable once
+     it is tapped is one she has to ask for), and a second line of its own
+     ("I specifically asked for it to stay where it is"). Neither is a rule;
+     both are history. The box stays on the row. */
+  .feedsearch { margin-right: -56px; }
   /* CLEAR, not dismiss: it empties the box and keeps her in it. Shown only
      while there are words to wipe. */
-  .qclear { position: absolute; right: 0; top: 0; height: 100%; width: 28px; border: 0; background: none;
+  .qclear { position: absolute; left: 0; top: 0; height: 100%; width: 28px; border: 0; background: none;
     color: #8a8177; font-size: 18px; line-height: 1; padding: 0; }
   /* THREE OR FOUR ACROSS — the THIRD SEGMENT of the view switch (2026-08-25,
      Sophie: "the 3/4 switch button is in a weird place. It should not be in
@@ -2421,6 +2448,26 @@
     rd.readAsDataURL(f);
   });
   paintPhoto();
+
+  // ?photo= — A PICTURE SENT HERE AS THE PHOTO REFERENCE (2026-08-28, Sophie:
+  // "meta assets missing its send to playground"). Meta Assets' Playground
+  // door ports the filed prompt when one exists; a picture with NO prompt on
+  // file has nothing to port honestly, so it arrives as the photo reference
+  // instead — her own image attached, no words invented. Same rules as the
+  // copy-back restore: https only, disclosed by the thumbnail in the row and
+  // the Prompt panel's photo line, never persisted across loads. This block
+  // MUST run after `var photoRef` above — earlier, that declaration would
+  // wipe the restore back to null (the ported-prompt block's own lesson).
+  (function () {
+    var p = new URLSearchParams(location.search).get('photo');
+    if (!p || !/^https?:\/\//.test(p)) return;
+    try { localStorage.setItem(TABKEY, 'picture'); } catch (e) { /* private mode */ }
+    // The LoRA has no attachment slot at all, so a photo arriving while WTR
+    // is the sticky style lands on the reference-less ChatGPT tile — the one
+    // place her picture is the whole recipe, with nothing baked added.
+    if (!isGpt(styleKey)) setStyle('plain');
+    restorePhoto({ photoRef: p });
+  })();
 
   // ── THE CANVAS — portrait or square (Aug 2026, Sophie) ──────────────────
   // gpt-image-2 charges MORE for the SQUARE — 0.6c/5.3c/21.1c for 1024x1024

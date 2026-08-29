@@ -197,8 +197,13 @@ const OLD = { id: 'r9', prompt: 'a horse nobody has scrolled back to', engine: '
   ok(Math.abs(box.tog.top - box.search.top) < 2 && Math.abs(box.heart.top - box.search.top) < 2,
     'the whole row is on ONE line — nothing wrapped to make room');
   ok(box.search.left >= box.heart.right - 1, 'it starts to the RIGHT of the heart');
-  ok(box.search.right <= box.bar.right - box.pad + 1,
-    'and ends before the 56px the autoscroll pill owns');
+  // The FIELD runs INTO the pill's column since 2026-08-28 (Sophie: "I said I
+  // wanted it in the pill column") — the ✕ moved to its left end, so nothing
+  // on its right is a control. The other controls still reserve those 56px.
+  ok(box.search.right >= box.bar.right - 1,
+    'and it runs to the edge of the page, into the pill column');
+  ok(box.tog.right <= box.bar.right - box.pad + 1,
+    'while the controls still end before the 56px the pill owns');
   ok(box.fs >= 16, 'the input is 16px or more — under it iOS zooms and cannot zoom back');
 
   console.log('\ntyping');

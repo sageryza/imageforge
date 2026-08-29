@@ -133,8 +133,8 @@ function needEscalates(reg) {
 // an em dash — so the one fact she needs first (WHICH chat) was in a different
 // place depending on which door rang, and nothing said what kind of arrival it
 // was. One shape now: the CHAT is always the title, and the body leads with
-// the kind. An ask leads with "Needs you", which is the one banner worth
-// stopping for.
+// the kind — except an ASK, which is already a sentence asking her for
+// something and needs no label in front of it (see below).
 const KINDS = { video: 'film', audio: 'audio', page: 'page', link: 'link' };
 /**
  * @param {string} kind 'need' | 'answer' | 'page' | 'video' | 'audio' | 'link'
@@ -144,7 +144,13 @@ const KINDS = { video: 'film', audio: 'audio', page: 'page', link: 'link' };
 function pushAlert(kind, o) {
   const d = o || {};
   const name = plain(d.chatName) || 'Deck Factory';
-  if (kind === 'need') return { title: name, body: 'Needs you · ' + plain(d.need) };
+  // THE ASK STANDS ALONE (2026-08-28, Sophie: "they also need you that's
+  // redundant. None of them need to say that"). A need line is already an ask
+  // in her own chat's words — "pick a take 1-4", "watch the overlay, say
+  // what's off" — so a "Needs you" in front of it says nothing the sentence
+  // has not already said, and it costs the banner's first words, which are
+  // the ones a lock screen shows.
+  if (kind === 'need') return { title: name, body: plain(d.need) };
   if (kind === 'answer') return { title: name, body: pushBody(d.text, d.tldr) };
   const word = KINDS[kind] || 'deliverable';
   return { title: name, body: 'New ' + word + ' · ' + plain(d.title) };

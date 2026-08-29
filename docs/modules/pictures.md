@@ -649,6 +649,15 @@ panels fit under 4000 chars at ~350 each; twenty-five will not).
   pending ids in `localStorage`, and resumes on return. STUDIO_TOKEN-gated
   (only `GET /status` open). Routes: `/status`, `POST/GET/PATCH/DELETE /refs`,
   `POST /run`, `GET /runs`, `GET/DELETE /run/:id`.
+- **The lightbox is THE SHARED ONE since 2026-08-28** (`/asset-lightbox.js` —
+  Sophie: "create a single lightbox view, sync to all surfaces"): the page
+  builds none of its own. An OUTPUT opens with this run's prompt behind the
+  PROMPT door (the verbatim `promptSent` as the content half; a style half
+  only when the boiler really rode along — no wrapper, no Style button, the
+  module's whole promise made readable) and steps through the run's pictures
+  with the invisible `nav` zones; a REFERENCE thumbnail opens plain — her own
+  photo, no prompt to show. Pinned by the source pin in
+  `node scripts/test-asset-lightbox.js`.
 
 ## Vector pipeline (`/api/vector`) — described drawings → art that scales
 - **Making vector art, or touching `vector.js` / `vectorize.js`? Read

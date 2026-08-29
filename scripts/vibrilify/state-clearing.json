@@ -1,0 +1,57 @@
+{
+  "shots": {
+    "tangle": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/movies/panels/1787958050719-a36ca726.webp",
+      "promptUsed": "Frame from the 3D mechanism-of-action animation inside a TV pharmaceutical commercial: glossy soft-body render, smooth blobby translucent shapes with subsurface glow, clean pale background, soft studio lighting, shallow depth of field. A single dense snarled knot of thick glossy translucent lavender cords hovering in the center of the frame, hopelessly tangled around itself, every strand crossing every other strand. Clean pale off-white background with soft depth haze.",
+      "style": "Frame from the 3D mechanism-of-action animation inside a TV pharmaceutical commercial: glossy soft-body render, smooth blobby translucent shapes with subsurface glow, clean pale background, soft studio lighting, shallow depth of field. ",
+      "content": "A single dense snarled knot of thick glossy translucent lavender cords hovering in the center of the frame, hopelessly tangled around itself, every strand crossing every other strand. Clean pale off-white background with soft depth haze.",
+      "quality": "medium",
+      "at": 1787958051632
+    },
+    "star": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/movies/panels/1787958105997-282a3c8d.webp",
+      "promptUsed": "A shimmering rainbow shooting star streaking across a flat solid lavender field, its trail a soft iridescent rainbow of glittering particles, the star's head a bright white shimmer. Clean, glossy, studio-lit commercial animation. No text.",
+      "style": "",
+      "content": "A shimmering rainbow shooting star streaking across a flat solid lavender field, its trail a soft iridescent rainbow of glittering particles, the star's head a bright white shimmer. Clean, glossy, studio-lit commercial animation. No text.",
+      "quality": "medium",
+      "at": 1787958106957
+    },
+    "unfurled": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/movies/panels/1787958220926-943baf86.webp",
+      "promptUsed": "Frame from the 3D mechanism-of-action animation inside a TV pharmaceutical commercial: glossy soft-body render, smooth blobby translucent shapes with subsurface glow, clean pale background, soft studio lighting, shallow depth of field. The attached photo is this SAME SHOT a moment EARLIER — the same tangled knot of cords, floating in the same place. Compose this frame to match its framing, object scale, camera distance, lighting and background EXACTLY. The SAME cords a moment later, completely untangled: the thick glossy translucent lavender cords have pulled free of one another and now hang across the middle of the frame as a row of separate, evenly spaced, gently curving strands, each one whole and distinct, calm and resolved. Clean pale off-white background with soft depth haze.",
+      "style": "Frame from the 3D mechanism-of-action animation inside a TV pharmaceutical commercial: glossy soft-body render, smooth blobby translucent shapes with subsurface glow, clean pale background, soft studio lighting, shallow depth of field. The attached photo is this SAME SHOT a moment EARLIER — the same tangled knot of cords, floating in the same place. Compose this frame to match its framing, object scale, camera distance, lighting and background EXACTLY. ",
+      "content": "The SAME cords a moment later, completely untangled: the thick glossy translucent lavender cords have pulled free of one another and now hang across the middle of the frame as a row of separate, evenly spaced, gently curving strands, each one whole and distinct, calm and resolved. Clean pale off-white background with soft depth haze.",
+      "ref": "tangle",
+      "quality": "medium",
+      "at": 1787958222094
+    }
+  },
+  "clips": {
+    "unfurl": {
+      "url": "https://replicate.delivery/xezq/suqKGzX8NCIyC11eSRkhrCfZ5TVTfERAOSWIrQnrB87sx4PuA/output_30fps.mp4",
+      "at": 1787958330760,
+      "cost": 0.06
+    },
+    "star": {
+      "url": "https://replicate.delivery/xezq/AKKjpE6iShrNJ1S5Y9QH633kjfsNC2rFY9FBLLdTUVegZ8HXA/output_30fps.mp4",
+      "at": 1787958373226,
+      "cost": 0.06
+    }
+  },
+  "sfx": {},
+  "vo": {
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/movies/voiceover/1787958279647-864fd2df.wav",
+    "text": "Vibrilify MAX. Clearing things up.",
+    "at": 1787958279647
+  },
+  "film": {
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/vibrilify/segments/1787958652440-61f02966.mp4",
+    "duration": 12.5,
+    "beats": [
+      "unfurl",
+      "star",
+      "end card"
+    ],
+    "at": 1787958654021
+  }
+}

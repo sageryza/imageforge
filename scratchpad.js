@@ -322,7 +322,7 @@ const slotOff = (s) => Boolean(s && s.off);
 // Swapping a picture into a slot — the past-pictures bookkeeping lives in
 // its own dependency-free file so it can be tested without a node_modules,
 // and so /image and a finished draw share ONE copy of the rules.
-const { swapArt } = require('./pad-art');
+const { swapArt, forgetArt } = require('./pad-art');
 // One story becomes two — fresh beat ids, no renders carried, art optional.
 const { dupPad } = require('./pad-duplicate');
 // Which side a picture belongs on when nobody said — the pure decision
@@ -1183,6 +1183,28 @@ router.post('/cover', async (req, res) => {
 // failure this must not have.
 let membryWiring = null;
 function init(w) { membryWiring = w || null; }
+
+// EVERY PICTURE PLACED ON A BEAT IS FINDABLE (2026-08-28, Sophie: "i wanna
+// make sure every picture I've ever created can be found"). Chat-seeded story
+// art — the Marla storybook pages, witch lesson art — reached beats through
+// /add and /image and was filed NOWHERE, so Meta Assets could not show it
+// (117 pictures, measured that day). The placing door now files it into My
+// Creations best-effort, with whatever the record honestly knows: the src's
+// own prompt (a run's words) or the beat's text as the label, never an
+// invention. fileCreationDoc dedupes by url, so a Playground picture that is
+// already filed no-ops, and a failure can never fail the placement.
+function fileBeatArt(url, src, label) {
+  const fc = membryWiring && membryWiring.fileCreation;
+  if (!fc || !url) return;
+  const s = src || {};
+  fc({
+    url, type: 'image', source: 'story placement',
+    prompt: label || s.prompt || '',
+    model: s.model || '', quality: s.quality || '',
+    fullPrompt: s.promptUsed || '',
+    promptContent: s.prompt || label || '',
+  }).catch(() => {});
+}
 let shoeboxUidCache = null;
 async function shoeboxUid(mdb) {
   if (process.env.SHOEBOX_UID) return process.env.SHOEBOX_UID;
@@ -1200,6 +1222,35 @@ async function shoeboxUid(mdb) {
   shoeboxUidCache = ranked[0][0];
   return shoeboxUidCache;
 }
+// THE MEMORY WRITE, one shape for BOTH doors — the beat popup's and the Meta
+// Assets lightbox's (2026-08-28, Sophie: "meta assets missing its send to
+// playground/shoebox"). Content-addressed by the picture (`sb-<sha1(url)>`),
+// so tapping twice updates ONE memory, AND the two doors converge on the
+// same memory for the same picture — they can never make twins. The shape is
+// what useMemories/Shoebox read: title on the chin, illustration.url as the
+// picture, createdAt because the library's one query ORDERS BY IT (a doc
+// without it is silently omitted — the Firestore orderBy trap).
+async function shoeboxPut(art, title, meta) {
+  const mdb = membryWiring && membryWiring.membryDb && await membryWiring.membryDb();
+  if (!mdb) return null;   // no credential — the caller answers 503
+  const uid = await shoeboxUid(mdb);
+  const id = 'sb-' + crypto.createHash('sha1').update(art).digest('hex').slice(0, 24);
+  const ref = mdb.collection('users').doc(uid).collection('memories').doc(id);
+  const now = new Date();
+  const FV = require('firebase-admin').firestore.FieldValue;
+  const snap = await ref.get();
+  const doc = Object.assign({
+    title: String(title || '').trim().slice(0, 140),
+    hashtags: [(meta && meta.source) || 'storyroom'],
+    illustration: { url: art },
+    timestamp: now.toISOString(),
+    dateTime: now.toLocaleDateString('en-US'),
+    updatedAt: FV.serverTimestamp(),
+  }, meta || {});
+  if (!snap.exists) { doc.content = ''; doc.createdAt = FV.serverTimestamp(); }
+  await ref.set(doc, { merge: true });
+  return { ok: true, id };
+}
 router.post('/shoebox', async (req, res) => {
   try {
     const pid = padIdOf(req);
@@ -1211,32 +1262,22 @@ router.post('/shoebox', async (req, res) => {
     const style = styleOf(req);
     const art = beat ? slotFace(artSlot(beat, style)) : null;
     if (!art || !/^https?:\/\//.test(art)) return res.status(400).json({ error: 'that beat has no picture' });
-    const mdb = membryWiring && membryWiring.membryDb && await membryWiring.membryDb();
-    if (!mdb) return res.status(503).json({ error: 'the memory library credential (STORY_FIREBASE_SERVICE_ACCOUNT) is not set' });
-    const uid = await shoeboxUid(mdb);
-    // Content-addressed by the picture, so tapping twice updates ONE memory
-    // (the deliverables-list rule) — and the doc id is prefixed so it can
-    // never collide with an addDoc id.
-    const id = 'sb-' + crypto.createHash('sha1').update(art).digest('hex').slice(0, 24);
-    const ref = mdb.collection('users').doc(uid).collection('memories').doc(id);
-    const now = new Date();
-    const FV = require('firebase-admin').firestore.FieldValue;
-    const snap = await ref.get();
-    // The shape useMemories/Shoebox read: title on the chin, illustration.url
-    // as the picture, createdAt because the library's one query ORDERS BY IT
-    // (a doc without it is silently omitted — the Firestore orderBy trap).
-    const doc = {
-      title: String(beat.text || '').trim().slice(0, 140),
-      hashtags: ['storyroom'],
-      illustration: { url: art },
-      source: 'storyroom', pad: pid, beat: beatId,
-      timestamp: now.toISOString(),
-      dateTime: now.toLocaleDateString('en-US'),
-      updatedAt: FV.serverTimestamp(),
-    };
-    if (!snap.exists) { doc.content = ''; doc.createdAt = FV.serverTimestamp(); }
-    await ref.set(doc, { merge: true });
-    res.json({ ok: true, id });
+    const out = await shoeboxPut(art, String(beat.text || ''), { source: 'storyroom', pad: pid, beat: beatId });
+    if (!out) return res.status(503).json({ error: 'the memory library credential (STORY_FIREBASE_SERVICE_ACCOUNT) is not set' });
+    res.json(out);
+  } catch (e) { fail(res, e); }
+});
+// A PICTURE ANYWHERE CAN GO TO THE SHOEBOX — the Meta Assets lightbox door
+// (2026-08-28, her check of the unified lightbox). The picture's own url and
+// its label; nothing else is written anywhere.
+router.post('/shoebox-url', async (req, res) => {
+  try {
+    const art = String(req.body.url || '').trim();
+    if (!/^https?:\/\//.test(art)) return res.status(400).json({ error: 'a picture url is required' });
+    const out = await shoeboxPut(art, String(req.body.title || ''),
+      { source: String(req.body.source || 'meta-assets').slice(0, 40) });
+    if (!out) return res.status(503).json({ error: 'the memory library credential (STORY_FIREBASE_SERVICE_ACCOUNT) is not set' });
+    res.json(out);
   } catch (e) { fail(res, e); }
 });
 
@@ -1386,6 +1427,7 @@ router.post('/add', async (req, res) => {
       tx.set(padRef(pid), patch, { merge: true });
       return cur;
     });
+    if (url) fileBeatArt(url, src, '');
     // The shape rides the answer so the page can follow it without a reload —
     // her first picture landing is exactly when the tiles change shape.
     res.json({ ok: true, beat, beats, ...(shapePatch.shape ? { shape: shapePatch.shape } : {}) });
@@ -1410,6 +1452,8 @@ router.post('/image', async (req, res) => {
     // unless this is the first picture on a story nobody has decided yet.
     const shapePatch = await autoShapePatch(pid, url);
     const beats = await placeOnBeat(pid, id, url, style, src, { derived: !named, shapePatch });
+    const placed = (beats || []).find((b) => b.id === id);
+    fileBeatArt(url, src, (placed && placed.text) || '');
     res.json({ ok: true, beats, ...(shapePatch.shape ? { shape: shapePatch.shape } : {}) });
   } catch (e) { fail(res, e); }
 });
@@ -1447,6 +1491,49 @@ async function placeOnBeat(padId, beatId, url, style, src, opts) {
     return cur;
   });
 }
+
+// TAKE ONE PICTURE OFF A BEAT (2026-08-28, Sophie: "how to cull beat
+// pictures"). The past-pictures row had no exit: swapArt never deletes, so a
+// picture that landed on the wrong beat — the whole of #1889's five strays on
+// one caption — sat in that row forever, and the only ways out were the trash
+// button (which takes the beat, words and all) or drawing over it, which only
+// makes the row longer.
+//
+// NOTHING IS DESTROYED. The picture stays in Storage and in My Creations, and
+// what the beat had is banked in `pad.trash` exactly as a removed side is —
+// the same 50-deep list, so a cull is undoable and a chat can see what went.
+// The rules (an older one dropped, the current one replaced by the newest in
+// the row, a clip refused) live in pad-art.js beside swapArt, so the two ways
+// this row changes can never disagree about it.
+router.post('/image/forget', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const id = String(req.body.id || '');
+    const url = String(req.body.url || '').trim();
+    if (!id) return res.status(400).json({ error: 'beat id required' });
+    if (!url) return res.status(400).json({ error: 'image url required' });
+    const style = styleOf(req);
+    const out = await db().runTransaction(async (tx) => {
+      const snap = await tx.get(padRef(pid));
+      const v = snap.exists ? snap.data() : {};
+      const cur = Array.isArray(v.beats) ? v.beats : [];
+      const b = cur.find((x) => x.id === id);
+      if (!b) throw new Error('no such beat');
+      const gone = forgetArt(artSlot(b, style, true), url);
+      // Not on this beat any more — she tapped twice, or another session got
+      // there first. Answering ok with the beats as they stand repaints her
+      // row correctly instead of showing an error for a thing already done.
+      if (!gone) return { beats: cur, forgot: false };
+      const trash = Array.isArray(v.trash) ? v.trash : [];
+      const kept = { beatId: b.id, style, text: b.text || '', picture: gone, removedAt: Date.now() };
+      tx.set(padRef(pid), {
+        beats: cur, trash: trash.concat([kept]).slice(-50), updatedAt: Date.now(),
+      }, { merge: true });
+      return { beats: cur, forgot: true };
+    });
+    res.json({ ok: true, ...out });
+  } catch (e) { fail(res, e); }
+});
 
 // ── MATCH A SENT PICTURE TO ITS BEAT (2026-08-26, Sophie: "if I'm in the
 // playground and I want to send a drawing to the story room then it does

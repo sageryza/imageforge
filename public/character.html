@@ -66,12 +66,10 @@
   .qitem input { flex:1; min-width:0; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:14px; }
   .qitem .seg button { padding:6px 10px; font-size:12px; }
   .qitem .x { border:none; background:none; color:var(--muted); font-size:18px; cursor:pointer; padding:0 4px; }
-  .lb { position:fixed; inset:0; background:rgba(20,16,10,.9); display:none; align-items:center;
-        justify-content:center; z-index:50; }
-  .lb.open { display:flex; }
-  /* NO ROUNDED CORNER ON THE PICTURE ITSELF — at this size a radius reads as
-     a crop rather than as chrome (her rule on the review deck's lightbox). */
-  .lb img { max-width:92vw; max-height:88vh; }
+  /* The lightbox is THE SHARED ONE (/asset-lightbox.js) — it brings its own
+     CSS, the un-rounded picture included. This page kept a bare hand copy
+     (.lb) until 2026-08-28 (Sophie: "create a single lightbox view, sync to
+     all surfaces"). */
   /* THE PILL OWNS THE TOP-RIGHT CORNER, so a row that runs through it ends
      BEFORE it (2026-08-27, her screenshot: "Hide sheet" read "Hide" with the
      capsule sitting on the rest of it). Measured against the pill's real rect
@@ -151,10 +149,10 @@
     <div class="side" id="sideSheet"></div>
   </section>
 
-  <div class="lb" id="lb"><img id="lbimg" alt=""></div>
 </main>
 
 <script src="/feedkit.js"></script>
+<script src="/asset-lightbox.js"></script>
 <script>
   const STUDIO_TOKEN = '__STUDIO_TOKEN__';
   const _tok = STUDIO_TOKEN.indexOf('__') === 0 ? '' : STUDIO_TOKEN;
@@ -391,24 +389,15 @@
     if (!$('sheetView').classList.contains('hidden')) loadSheet();
   };
 
-  // lightbox (freezes the page behind it)
+  // lightbox — THE SHARED ONE (/asset-lightbox.js), never a second copy
+  // (2026-08-28, Sophie: "create a single lightbox view, sync to all
+  // surfaces"). It stops the autoscroll, locks the background and restores
+  // the exact scroll position itself — the house overlay rule, in the one
+  // file every surface shares.
   function bindZoom() { document.querySelectorAll('.cell img, .portrait').forEach(im => im.onclick = () => openLb(im.src)); }
   $('portrait').onclick = () => openLb($('portrait').src);
-  // OPENING A PICTURE FREEZES THE PAGE BEHIND IT — the house overlay rule, all
-  // three parts: stop any autoscroll (overflow:hidden does NOT stop
-  // window.scrollBy, so the pill would walk the page under the open image),
-  // lock the background, and restore the EXACT scroll position on close so she
-  // comes back where she was.
-  let lbY = 0;
   function openLb(src) {
     if (window.__scrollStop) window.__scrollStop();
-    lbY = window.scrollY;
-    $('lbimg').src = src; $('lb').classList.add('open');
-    document.body.style.overflow = 'hidden';
+    window.__assetLightbox(src, null);
   }
-  $('lb').onclick = () => {
-    $('lb').classList.remove('open');
-    document.body.style.overflow = '';
-    window.scrollTo(0, lbY);
-  };
 </script>

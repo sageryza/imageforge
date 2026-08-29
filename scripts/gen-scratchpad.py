@@ -48,6 +48,13 @@ page = r"""<!doctype html>
      and a lone <input type=search> outside a <form> has nothing for RETURN to
      submit to. The picture search in the add sheet rides it. -->
 <script src="/feedkit.js"></script>
+<!-- THE ONE SHARED LIGHTBOX (/asset-lightbox.js) — never a second copy
+     (2026-08-28, Sophie: "create a single lightbox view, sync to all
+     surfaces … ex assets, meta assets, story room, playground"). This page
+     kept a hand copy for months and it drifted exactly the way the
+     Playground's did; the pick button and the step zones ride the shared
+     file's hooks (cta, nav) now. -->
+<script src="/asset-lightbox.js"></script>
 <style>
 @font-face{font-family:'EBGaramond';font-weight:400 700;font-display:swap;src:url(data:font/ttf;base64,__FONT__) format('truetype');}
 :root{ --paper:#f6f2e9; --ink:#26221c; --ink2:#8a8377; --line:#d9d2c2; --barbg:#fffdf7; --gold:#a8845c;
@@ -618,10 +625,23 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    (Sophie: "drawing a new picture replaces the old, but keeps it in the
    stacked squares icon"). Newest first, the current one ringed. */
 #verrow{flex:none; display:flex; flex-wrap:wrap; gap:6px; justify-content:center; max-width:100%;}
-#verrow button{width:44px; aspect-ratio:var(--ar,2/3); padding:0; border:1.5px solid var(--line); border-radius:4px;
+/* Each picture is a CELL: the thumbnail, and the cull beside it. A SIBLING,
+   never nested — a button inside a button is invalid markup and the tap would
+   bubble straight into opening the picture. */
+#verrow .vercell{position:relative; flex:none; line-height:0;}
+#verrow .verthumb{width:44px; aspect-ratio:var(--ar,2/3); padding:0; border:1.5px solid var(--line); border-radius:4px;
   overflow:hidden; background:var(--paper); cursor:pointer;}
-#verrow button.cur{border:2.5px solid var(--ink);}
+#verrow .verthumb.cur{border:2.5px solid var(--ink);}
 #verrow img{width:100%; height:100%; object-fit:cover; display:block;}
+/* The cull. Rounded square at the house 6px, never a circle. It hangs off the
+   thumbnail's top-right corner so its 22px target barely eats the 44px
+   picture, and it is only ever reachable with the row deliberately folded
+   open. */
+#verrow .vercull{position:absolute; top:-7px; right:-7px; width:22px; height:22px; padding:0;
+  display:flex; align-items:center; justify-content:center; border:1.5px solid var(--line);
+  border-radius:6px; background:var(--paper); color:var(--ink); cursor:pointer; line-height:0;}
+#verrow .vercull svg{width:12px; height:12px;}
+#verrow .vercull.busy{opacity:.45;}
 #delask{position:fixed; inset:0; z-index:55; display:flex; align-items:center; justify-content:center;
   background:rgba(20,17,12,.55); padding:24px;}
 #speak.busy,#micbtn.busy{opacity:.45;}
@@ -761,45 +781,12 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 .bulkrow #bulkyes{background:var(--ink); color:var(--paper); border-color:var(--ink); font-weight:600;}
 #popblank.c-mustard{border-color:var(--mustard);} #popblank.c-green{border-color:var(--green);}
 #popblank.c-blue{border-color:var(--blue);} #popblank.c-pink{border-color:var(--pink);}
-#lightbox{position:fixed; inset:0; z-index:60; display:flex; flex-direction:column; align-items:center;
-  justify-content:center; gap:12px; background:rgba(20,17,12,.94); padding:3vw;}
-/* The stage is the IMAGE AREA — the picture and the two step zones over it,
-   ending where the Use button starts. The zones are sized to IT rather than
-   to the window, so a tap "on the left or right of the picture" means exactly
-   that and the button underneath is never covered. */
-.lbstage{position:relative; display:flex; align-items:center; justify-content:center;
-  min-height:0; max-width:100%;}
-#lightbox img{max-width:94vw; max-height:88vh; border-radius:4px; display:block;}
-/* STEP TO THE NEXT PICTURE THIS BEAT HAS HAD — the past-pictures row, in the
-   same order, without closing and re-opening (2026-08-26, Sophie: "in the
-   story room, can you make it so that I can tap the right or left of the
-   screen to see the next option if I have it in lightbox mode").
-   IT IS THE TAP AND NOTHING ELSE — no bar, no chip, no arrow, the Playground's
-   own settled rule: a mark drawn at the outer edge of a zone sits on top of
-   the picture she opened the lightbox to judge. The zone was always the
-   control, so drawing nothing takes nothing away.
-   Hidden when there is nothing that way — the ends are the ends, and with the
-   zone gone a tap there closes, exactly as it did before this existed. */
-.lbnav{position:absolute; top:0; bottom:0; width:28%; z-index:61;
-  border:0; background:none; padding:0; cursor:pointer;}
-.lbnav[hidden]{display:none;}
-#lbprev{left:0;} #lbnext{right:0;}
-/* Picking an older picture happens HERE, looking at it big — the row's
-   thumbnails are 44px, which is not enough to choose by (Sophie,
-   2026-08-24: "make the past picture thumbnails so that I can actually pick
-   one"). Shown only for a picture that is NOT the current one, so the button
-   never offers her what she is already looking at. */
-/* Cream on the dark, in BOTH themes — the backdrop above is a fixed dark
-   wash, so the tokens are the wrong tool here: --paper is nearly the
-   backdrop's own colour on a dark phone. The page's serif, like the confirm
-   box's buttons, never a pill. */
-#lbuse{background:#f6f2e9; color:#26221c; border:1.5px solid #f6f2e9;
-  border-radius:6px; padding:9px 18px; font-family:'EBGaramond',Georgia,serif;
-  font-size:16px; font-weight:600; cursor:pointer;}
-#lbuse.busy{opacity:.45;}
-/* Only the picking state gives up height for the button — a plain look at a
-   picture keeps every pixel it always had. */
-#lightbox.pick img{max-height:78vh;}
+/* THE LIGHTBOX IS THE SHARED ONE — /asset-lightbox.js brings its own CSS.
+   The one page-level rule is LAYERING, which is this page's architecture and
+   not the lightbox's design: the shared file ships z-index 30, and this
+   page's overlays run sheet 40 / beatpop 50 / filmplay 70 — the lightbox
+   opens OVER the beat popup, so it takes the slot the hand copy held (60). */
+#clightbox{z-index:60;}
 /* Listen rows — every recording attached to this story, behind the waveform
    button on the title row (Aug 2026, Sophie: "a story can hold multiple
    audios … hide them all behind a single icon that has a wave form"). Two
@@ -1182,14 +1169,6 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   </div></div>
 </div>
 
-<div id="lightbox" hidden>
-  <div class="lbstage">
-    <img id="lbimg" alt="">
-    <button class="lbnav" id="lbprev" hidden aria-label="The picture before this one"></button>
-    <button class="lbnav" id="lbnext" hidden aria-label="The next picture"></button>
-  </div>
-  <button id="lbuse" hidden>Use this one</button></div>
-
 <div id="delask" hidden>
   <div class="bulkbox">
     <p id="delline">Delete this beat? Its pictures are already saved in your galleries.</p>
@@ -1475,27 +1454,67 @@ function fillTile(el, b){
 function capFor(wrap, b){
   if(!b.text)return;
   var cap=document.createElement('div'); cap.className='bcap'; cap.textContent=b.text;
-  cap.onclick=function(ev){ev.stopPropagation(); if(pending)return; speakBeat(b, cap);};
+  cap.onclick=function(ev){ev.stopPropagation(); if(pending)return; speakBeat(beatById(b.id)||b, cap);};
   wrap.appendChild(cap);
 }
+/* THE CANVAS ONLY REPAINTS WHAT CHANGED (2026-08-28, Sophie: "story room
+   blinks a lot"). render() used to wipe #pad and rebuild every tile on every
+   call — and the draw poll calls it every 4 seconds for the whole life of a
+   30-90s draw, closing the beat popup calls it, and every POST that answers
+   with beats calls it. Each rebuild recreated every <img> with the full-size
+   original, which decodes async on iOS, so the whole canvas flashed blank and
+   popped back — every 4 seconds, for minutes.
+   Two rules, both reading the SAME values render draws (art, color, drawing,
+   caption, clip, order), so a skip can never disagree with the screen:
+     • an identical canvas is not rebuilt at all (padSig);
+     • inside a rebuild, a unit whose own signature is unchanged KEEPS its DOM
+       node — its <img> stays decoded, so one picture landing repaints one
+       tile, not twenty. The unit signature deliberately omits the position,
+       so a reorder moves the decoded tiles instead of redrawing them.
+   A kept node's closures outlive a `beats=d.beats` swap, so every tap
+   resolves its beat by id AT TAP TIME — never the object captured at build. */
+function beatById(id){ for(var i=0;i<beats.length;i++){ if(beats[i].id===id) return beats[i]; } return null; }
+function unitSig(u){
+  return u.members.map(function(m){
+    return [m.id, m.color||'', slotDrawing(m)?1:0, artOf(m)||'', clipOf(m)?1:0, m.text||''].join('\u0001');
+  }).join('\u0002');
+}
+function padSig(units){
+  return (pending?'P':'')+'\u0003'+beats.length+'\u0003'+
+    units.map(function(u){ return u.at+'\u0002'+unitSig(u); }).join('\u0003');
+}
+var lastPadSig=null;
 function render(){
-  var pad=document.getElementById('pad'); pad.innerHTML='';
+  var pad=document.getElementById('pad');
+  var units=padUnits();
+  var sig=padSig(units);
+  /* renderDrawall and paintSend watch their own inputs and repaint tiny
+     boxes — they still run when the canvas itself is skipped. */
+  if(sig===lastPadSig){ renderDrawall(); paintSend(); return; }
+  lastPadSig=sig;
   document.getElementById('empty').hidden=Boolean(beats.length||pending);
+  var bank={};
+  Array.prototype.slice.call(pad.children).forEach(function(n){
+    if(n._usig && !bank[n._usig]) bank[n._usig]=n;
+  });
+  var frag=document.createDocumentFragment();
   function slot(at){
     var s=document.createElement('button'); s.className='slot'; s.setAttribute('aria-label','Place here');
     s.onclick=function(ev){ev.stopPropagation(); place(at);};
-    pad.appendChild(s);
+    frag.appendChild(s);
   }
-  var units=padUnits();
   units.forEach(function(u){
     if(pending) slot(u.at);
-    var wrap=document.createElement('div'); wrap.className='beatwrap';
+    var usig=unitSig(u);
+    var kept=bank[usig];
+    if(kept){ delete bank[usig]; frag.appendChild(kept); return; }
+    var wrap=document.createElement('div'); wrap.className='beatwrap'; wrap._usig=usig;
     if(u.members.length===1){
       var b=u.members[0];
       var el=document.createElement('button');
       el.className='beat'+(b.color?' c-'+b.color:'')+(slotDrawing(b)?' drawing':'');
       fillTile(el, b);
-      el.onclick=function(ev){ev.stopPropagation(); if(pending)return; openBeat(b);};
+      el.onclick=function(ev){ev.stopPropagation(); if(pending){landOn(b, pending); return;} openBeat(beatById(b.id)||b);};
       wrap.appendChild(el);
       capFor(wrap, b);
     } else {
@@ -1503,15 +1522,17 @@ function render(){
       u.members.forEach(function(m){
         var sl=document.createElement('button'); sl.className='slice';
         fillTile(sl, m);
-        sl.onclick=function(ev){ev.stopPropagation(); if(pending)return; openBeat(m);};
+        sl.onclick=function(ev){ev.stopPropagation(); if(pending){landOn(m, pending); return;} openBeat(beatById(m.id)||m);};
         ck.appendChild(sl);
       });
       wrap.appendChild(ck);
       capFor(wrap, u.members[0]);
     }
-    pad.appendChild(wrap);
+    frag.appendChild(wrap);
   });
   if(pending&&beats.length) slot(beats.length);
+  if(pad.replaceChildren) pad.replaceChildren(frag);
+  else { pad.innerHTML=''; pad.appendChild(frag); }
   renderDrawall();
   /* The band's words depend on whether the picture she walked in with is
      armed, and placing is cancelled from anywhere (the document-level tap) —
@@ -2802,29 +2823,43 @@ document.getElementById('inboxclose').onclick=function(){
   lock(false);
 };
 
+/* ── LANDING A PICTURE ON A BEAT THAT ALREADY EXISTS ──
+   TWO DOORS, ONE WRITE. The beat popup's own “fill it in” opens the inbox
+   with `fillBeat` set, and — since 2026-08-28 — a tap on the beat ITSELF
+   while she is holding a picture lands it there too (Sophie: “i can only
+   add between · I can't add to an existing moment by clicking that
+   moment”). Placing used to be gaps only and a tap on a beat was a
+   deliberate no-op — which, on a pad of empty beats waiting for art, is the
+   one thing she is most likely to try. That reasoning is history now.
+   Nothing is destroyed: the server banks the picture that side already had
+   in the beat's own past-pictures row, so a wrong landing is one tap from
+   undone. An EMPTY pending (the +) still lands nowhere — there is no picture
+   in it, and “add a blank beat onto this beat” means nothing. */
+function landOn(target, it){
+  if(!target||!it||it.empty)return;
+  pending=null;
+  var body, path;
+  if(it.film){ path='/clip'; body={id:target.id, clip:it.clip, style:padStyle}; }
+  else {
+    path='/image';
+    // style rides along so the picture lands on the side she is looking at
+    // (an upload has no run to remember, so it carries no src).
+    body={id:target.id, url:it.url, style:padStyle};
+    if(it.runId!==undefined) body.src={runId:it.runId,i:it.i,prompt:it.prompt,model:it.model,engine:it.engine,quality:it.quality};
+  }
+  render();   // the gaps come down the moment she has chosen
+  api(path,{method:'POST',body:JSON.stringify(body)})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(it===sendIt) endSend(true);   // landed on a beat — trip over, way back stays
+      if(d.beats){ beats=d.beats; render(); }
+      var fresh=beats.find(function(x){return x.id===target.id;});
+      if(fresh) openBeat(fresh); else { lock(false); paintSend(); }
+    });
+}
 function pick(it){
   document.getElementById('inbox').hidden=true;
-  if(fillBeat){
-    var target=fillBeat; fillBeat=null;
-    var body, path;
-    if(it.film){ path='/clip'; body={id:target.id, clip:it.clip, style:padStyle}; }
-    else {
-      path='/image';
-      // style rides along so the picture lands on the side she is looking at
-      // (an upload has no run to remember, so it carries no src).
-      body={id:target.id, url:it.url, style:padStyle};
-      if(it.runId!==undefined) body.src={runId:it.runId,i:it.i,prompt:it.prompt,model:it.model,engine:it.engine,quality:it.quality};
-    }
-    api(path,{method:'POST',body:JSON.stringify(body)})
-      .then(function(r){return r.json()})
-      .then(function(d){
-        if(it===sendIt) endSend(true);   // landed on a beat — trip over, way back stays
-        if(d.beats){ beats=d.beats; render(); }
-        var fresh=beats.find(function(x){return x.id===target.id;});
-        if(fresh) openBeat(fresh); else lock(false);
-      });
-    return;
-  }
+  if(fillBeat){ var target=fillBeat; fillBeat=null; landOn(target, it); return; }
   lock(false);
   if(!beats.length){ place(0, it); return; }
   pending=it; render();
@@ -2924,7 +2959,9 @@ function paintSend(){
   document.getElementById('sendword').textContent = sendIt
     ? (onShelf
         ? 'Pick a story for this picture'
-        : (pending===sendIt ? 'Tap where it goes' : 'Tap to place this picture'))
+        // Both ways in are named, because a tap on a moment is the newer of
+        // the two and nothing else on screen says it is allowed.
+        : (pending===sendIt ? 'Tap a moment, or a gap' : 'Tap to place this picture'))
     : ((sendBack.placed?'Placed · back':'Back')+' to '+sendHomeName());
   // The ✕ means "not now" while she holds the picture and "stay here" after.
   document.getElementById('senddrop').setAttribute('aria-label', sendIt?'Not now':'Stay here');
@@ -3130,10 +3167,16 @@ function openBeat(b){
   // left/right taps can never disagree.
   lbVers=vers; lbHasCur=Boolean(su.url&&!clip);
   var av=document.getElementById('arvers');
-  av.hidden=vers.length<2; av.classList.remove('on'); vr.hidden=true;
-  if(vers.length>1){
+  // OPEN AT ONE, not at two (2026-08-28, the cull). It used to appear only
+  // once a draw had replaced something, which was right while the row was
+  // somewhere to LOOK — now it is the only place a picture comes off a beat,
+  // and a beat left holding one wrong picture has to be reachable.
+  av.hidden=vers.length<1; av.classList.remove('on'); vr.hidden=true;
+  if(vers.length){
     vers.forEach(function(u,i){
-      var t=document.createElement('button'); if(i===0&&su.url)t.className='cur';
+      var cell=document.createElement('span'); cell.className='vercell';
+      var t=document.createElement('button');
+      t.className='verthumb'+((i===0&&su.url)?' cur':'');
       var ti=document.createElement('img'); ti.src=u; ti.alt=''; ti.loading='lazy'; t.appendChild(ti);
       // Tapping a thumbnail opens it BIG with a way to take it — the
       // current one opens plain, since "use this one" for the picture
@@ -3142,7 +3185,9 @@ function openBeat(b){
         ev.stopPropagation();
         openLbAt(i);
       };
-      vr.appendChild(t);
+      cell.appendChild(t);
+      cell.appendChild(mkCull(u));
+      vr.appendChild(cell);
     });
   }
   // Two separate icons so a chunk can grow past two: link = add the NEXT
@@ -3274,6 +3319,48 @@ document.getElementById('arvers').onclick=function(ev){
   vr.hidden=!vr.hidden;
   this.classList.toggle('on',!vr.hidden);
 };
+/* THE CULL — take one picture off this beat (2026-08-28, Sophie: "how to cull
+   beat pictures"). The row is where it happens because it is the one place
+   that shows every picture a beat has; the rules live server-side in
+   pad-art.js, so the page only ever names the picture.
+   Nothing is destroyed: the picture stays in Storage and in My Creations, and
+   what the beat had is banked in the pad's trash. */
+function mkCull(url){
+  var x=document.createElement('button');
+  x.className='vercull'; x.type='button';
+  x.setAttribute('aria-label','Take this picture off the beat');
+  x.title='Take this picture off the beat';
+  x.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"'
+    +' stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>';
+  x.onclick=function(ev){
+    ev.stopPropagation();
+    var b=popBeat; if(!b)return;
+    var btn=this; if(btn.classList.contains('busy'))return;
+    btn.classList.add('busy');
+    api('/image/forget',{method:'POST',body:JSON.stringify({id:b.id,url:url,style:padStyle})})
+      .then(function(r){return r.json()})
+      .then(function(d){
+        if(d.error){ btn.classList.remove('busy'); alert(d.error); return; }
+        if(d.beats)beats=d.beats;
+        render();
+        /* Repaint the beat from the answer and leave the row OPEN — she is
+           culling several, and a fold that shuts under her would cost a tap
+           per picture. openBeat rebuilds #verrow, so the flag is re-applied
+           after it. */
+        var fresh=beats.find(function(x2){return x2.id===b.id;});
+        if(fresh){ popBeat=fresh; openBeat(fresh); openVers(); }
+      })
+      .catch(function(){ btn.classList.remove('busy'); });
+  };
+  return x;
+}
+/* Fold the past pictures open — used after a cull, so the row she is working
+   in stays where it was. */
+function openVers(){
+  var vr=document.getElementById('verrow'), av=document.getElementById('arvers');
+  if(av.hidden)return;
+  vr.hidden=false; av.classList.add('on');
+}
 document.getElementById('drawbox').onclick=function(ev){ev.stopPropagation();};
 document.getElementById('dchar').onclick=function(ev){
   ev.stopPropagation();
@@ -3751,35 +3838,40 @@ document.getElementById('speak').onclick=function(ev){
   btn.classList.add('busy');
   saveNote().then(function(){ speakBeat(b, btn); });
 };
-/* ── the lightbox ──────────────────────────────────────────────────
-   ONE open and ONE close path, because the Use button's state has to be
-   right every single time: `pick` is the url this picture WOULD become the
-   beat's art from, or null for the picture that already is. */
-var lbPick=null;
-/* The pictures the lightbox can step through, in the past-pictures row's own
-   order (current first, then newest-first history) — written by openBeat, so
-   the row and the lightbox can never disagree about what comes next. `lbHasCur`
-   says whether index 0 IS the beat's art, which is the one picture with nothing
-   to pick. */
+/* ── the lightbox — THE SHARED ONE (/asset-lightbox.js) ─────────────────
+   2026-08-28, Sophie: "create a single lightbox view, sync to all surfaces …
+   ex assets, meta assets, story room, playground". This page kept the last
+   hand copy after the Playground's port; everything it needs rides the shared
+   file's hooks now, never a fork:
+     stepping — `nav`, the two invisible zones over the picture, walking
+       lbVers (the past-pictures row's own order, written by openBeat, so the
+       row and the lightbox can never disagree about what comes next);
+     the pick — `cta`, the labeled "Use this one" (built FOR this page: she
+       picks by looking, and a 44px thumb is not enough to choose by). Shown
+       only for a picture that is NOT the beat's art — never offering her what
+       she is already looking at. It is the inbox's own POST /image, so a pick
+       and a fresh placement are the same write;
+     the lock — `onClose` re-asserts this page's body lock, because the
+       lightbox opens OVER the beat popup and the shared close clears
+       body.overflow on its way out. */
 var lbVers=[], lbHasCur=false, lbAt=-1;
+function lbShowing(){
+  var el=document.getElementById('clightbox');
+  return !!el && el.style.display!=='' && el.style.display!=='none';
+}
 function openLbAt(i){
   if(i<0||i>=lbVers.length)return;
   lbAt=i;
   var url=lbVers[i];
-  lbPick=(i===0&&lbHasCur)?null:url;
-  document.getElementById('lbimg').src=url;
-  var u=document.getElementById('lbuse');
-  u.hidden=!lbPick; u.classList.remove('busy');
-  var lb=document.getElementById('lightbox');
-  lb.classList.toggle('pick',Boolean(lbPick));
-  lb.hidden=false;
-  syncLbNav();
-}
-/* A zone is a real button (aria-label, hidden at the ends) that simply draws
-   nothing — see the .lbnav note in the CSS. */
-function syncLbNav(){
-  document.getElementById('lbprev').hidden=lbAt<=0;
-  document.getElementById('lbnext').hidden=lbAt<0||lbAt>=lbVers.length-1;
+  var pick=(i===0&&lbHasCur)?null:url;
+  window.__assetLightbox(url,{
+    nav:{
+      prev: i>0 ? function(){ openLbAt(lbAt-1); } : null,
+      next: i<lbVers.length-1 ? function(){ openLbAt(lbAt+1); } : null
+    },
+    cta: pick ? { label:'Use this one', onClick:function(e){ usePick(pick, e.currentTarget); } } : null,
+    onClose:function(){ lbAt=-1; if(popBeat)lock(true); }
+  });
 }
 function openLb(url,pick){
   // Every caller goes through the list, so stepping works from the card's own
@@ -3790,36 +3882,21 @@ function openLb(url,pick){
   openLbAt(i);
 }
 function closeLb(){
-  lbPick=null; lbAt=-1;
-  document.getElementById('lbuse').hidden=true;
-  document.getElementById('lbprev').hidden=true;
-  document.getElementById('lbnext').hidden=true;
-  var lb=document.getElementById('lightbox');
-  lb.classList.remove('pick'); lb.hidden=true;
+  if(window.__assetLightboxClose)window.__assetLightboxClose();
 }
-document.getElementById('lbprev').onclick=function(ev){ ev.stopPropagation(); openLbAt(lbAt-1); };
-document.getElementById('lbnext').onclick=function(ev){ ev.stopPropagation(); openLbAt(lbAt+1); };
 /* Tapping the thumbnail opens it big — a lightbox over the popup. */
 document.getElementById('popimg').onclick=function(ev){
   ev.stopPropagation();
   if(!popBeat)return;
   openLb(slotOf(popBeat).url,null);
 };
-document.getElementById('lightbox').onclick=function(ev){
-  ev.stopPropagation();
-  // The side zones are STEPPING, not leaving — closing on them would shut the
-  // lightbox on every tap.
-  if(ev.target.closest('.lbnav'))return;
-  closeLb();
-};
 /* Take this older picture back as the beat's art. The same POST the inbox
    makes — /image swaps it in, banks the one it replaces in the past-pictures
    row and lifts this one OUT of that row (pad-art.js), so nothing is lost
    and nothing shows twice. */
-document.getElementById('lbuse').onclick=function(ev){
-  ev.stopPropagation();
-  var url=lbPick, b=popBeat; if(!url||!b)return;
-  this.classList.add('busy');
+function usePick(url, btn){
+  var b=popBeat; if(!url||!b)return;
+  if(btn)btn.classList.add('busy');
   api('/image',{method:'POST',body:JSON.stringify({id:b.id,url:url,style:padStyle})})
     .then(function(r){return r.json()})
     .then(function(d){
@@ -3829,8 +3906,8 @@ document.getElementById('lbuse').onclick=function(ev){
       var fresh=beats.find(function(x){return x.id===b.id;});
       if(fresh){ popBeat=fresh; openBeat(fresh); }
     })
-    .catch(function(){ document.getElementById('lbuse').classList.remove('busy'); });
-};
+    .catch(function(){ if(btn)btn.classList.remove('busy'); });
+}
 /* Make this beat's art the story's cover on the shelf. The button fills in
    dark as the ack and the popup stays open (same manner as the color chips). */
 /* ADD TO SHOEBOX — the /cover shape exactly: the server takes the picture
@@ -3923,8 +4000,7 @@ if(window.__nativeNavBar) document.body.classList.add('native');
 window.__navBack=function(){
   var el=document.getElementById('filmplay');
   if(!el.hidden){ document.getElementById('filmvid').pause(); el.hidden=true; lock(false); return true; }
-  el=document.getElementById('lightbox');
-  if(!el.hidden){ closeLb(); return true; }
+  if(lbShowing()){ closeLb(); return true; }
   el=document.getElementById('delask');
   if(!el.hidden){ el.hidden=true; return true; }
   el=document.getElementById('bulkask');

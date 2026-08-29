@@ -75,6 +75,21 @@ assert.strictEqual(withApp.length, 3, 'chat row + two app rows');
   assert.strictEqual(shared.promptContent, 'also filed by a chat',
     'a plain image creation hands its prompt to the PROMPT overlay too');
 }
+// 6b2: a "from <chat>" caption is the hook's background mark, never curated —
+// it counts as BLANK, so the creation's real caption replaces it. (Measured
+// 2026-08-28: 130 live tiles kept the mark over a real caption without this.)
+{
+  const marked = buildMetaAssets(
+    [{ chat: 'evan-film', url: 'https://x/marked.png', created: iso(10),
+      prompt: 'from evan-film' }],
+    [{ url: 'https://x/marked.png', prompt: 'a boy getting out of his car', ms: 2000,
+      model: 'gpt-image-2', quality: 'low', size: '1024x1536' }]);
+  assert.strictEqual(marked.length, 1, 'still one row');
+  assert.strictEqual(marked[0].prompt, 'gpt-image-2 · low · 1K',
+    'the hook mark yields to the creation’s real caption');
+  assert.strictEqual(marked[0].description, 'a boy getting out of his car',
+    'and the label still fills as before');
+}
 // 6c: …and anything the chat actually filed is curated — never overwritten.
 {
   const kept = buildMetaAssets(

@@ -200,6 +200,22 @@ const PHOTO_LINE = ' The LAST attached image is a photo reference: use it for th
   ok(await page.evaluate(() => !document.getElementById('photowrap').offsetParent),
     'the button is gone on the WTR LoRA, which has no attachment slot');
 
+  console.log('?photo= — a picture sent from Meta Assets');
+  // (2026-08-28, Sophie: "meta assets missing its send to playground") — a
+  // promptless picture arrives as the PHOTO REFERENCE. The sticky style is
+  // the LoRA from the block above, which has no attachment slot, so the link
+  // must also land her somewhere the photo can actually ride.
+  const SENT = base + '/i/sent-from-meta.png';
+  await page.goto(base + '/playground?photo=' + encodeURIComponent(SENT));
+  await page.waitForTimeout(400);
+  ok(await page.evaluate((u) => window.photoRef && window.photoRef.data === u, SENT),
+    'the picture is attached as the photo reference, by its own url');
+  ok(await page.evaluate(() => document.getElementById('photowrap').classList.contains('has')),
+    'and the button lights');
+  ok(await page.evaluate(() => window.STYLES[window.styleKey]
+      && window.STYLES[window.styleKey].engine === 'gptimage'),
+    'a LoRA sticky style steps aside for one with an attachment slot');
+
   await browser.close();
   server.close();
   console.log(fails ? '\n' + fails + ' FAILED' : '\nall pass');

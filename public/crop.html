@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Squaring</title>
+<link rel="stylesheet" href="/tool.css">
+<style>
+/* ONE SCREEN, NEVER SCROLLS. The picture is the page; the arrows sit under it
+   and the strip under them, all inside the viewport (Sophie's standing rule).
+   Everything below sizes off `svh` so the iOS toolbar appearing cannot push
+   the arrows off the bottom. */
+html,body{ height:100%; overflow:hidden; }
+body.tool{ display:flex; flex-direction:column; height:100svh; }
+main{ flex:1; min-height:0; display:flex; flex-direction:column;
+  padding:6px 14px calc(8px + env(safe-area-inset-bottom)); gap:8px; }
+
+/* the count / set name line. This page is served WITHOUT the autoscroll pill
+   (it is one screen and never scrolls, like /filmeditor and /opinions), so
+   there is no fixed corner to reserve — but the page is still written to
+   survive one: its script is in an IIFE and declares no pill global. */
+.top{ display:flex; align-items:baseline; gap:8px; padding:0 2px; flex:none;
+  font-size:12px; letter-spacing:1.4px; text-transform:uppercase; color:var(--dim); }
+.top .who{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* THE PICTURE IS SHOWN WHOLE, WITH WHAT IS BEING CUT DIMMED — that is the
+   design. A square preview alone shows what survives; it does not show what
+   she is losing, which is the entire thing she was correcting. */
+.stage{ flex:1; min-height:0; display:flex; align-items:center; justify-content:center; }
+.frame{ position:relative; display:block; max-width:100%; max-height:100%; }
+.frame img{ display:block; max-width:100%; max-height:100%;
+  width:auto; height:auto; border:1px solid var(--border); }
+.frame .band{ position:absolute; background:var(--paper); opacity:.72; pointer-events:none; }
+.frame .keep{ position:absolute; outline:2px solid var(--ink); pointer-events:none; }
+.frame.loading img{ opacity:.35; }
+
+/* her words for this picture — what the crop has to contain */
+.cap{ flex:none; font-size:13px; line-height:1.4; color:var(--dim);
+  max-height:2.9em; overflow:hidden; }
+
+/* ── the arrows ──────────────────────────────────────────────────────────
+   Big square taps, the house 6px radius. `touch-action:manipulation` kills
+   the 300ms double-tap delay, which on a hold-to-repeat control reads as the
+   button ignoring her. */
+.arrows{ flex:none; display:flex; gap:10px; align-items:center; justify-content:center; }
+.arrows .sq{ width:64px; height:52px; border-radius:var(--r); border:1px solid var(--border);
+  background:var(--surface); color:var(--ink); display:flex; align-items:center; justify-content:center;
+  cursor:pointer; touch-action:manipulation; -webkit-user-select:none; user-select:none; padding:0; }
+.arrows .sq:disabled{ opacity:.35; }
+.arrows .sq svg{ width:26px; height:26px; }
+.arrows .step{ width:44px; }
+.arrows .gap{ width:6px; }
+
+/* ── the strip: every picture in the set, tap to jump ── */
+.strip{ flex:none; display:flex; gap:6px; overflow-x:auto; padding-bottom:2px;
+  scrollbar-width:none; }
+.strip::-webkit-scrollbar{ display:none; }
+.strip button{ flex:0 0 auto; width:40px; height:40px; padding:0; overflow:hidden;
+  border:1px solid var(--border); border-radius:var(--r); background:var(--surface2); cursor:pointer; }
+.strip button.on{ outline:2px solid var(--accent); outline-offset:-2px; }
+.strip button img{ width:100%; height:100%; object-fit:cover; display:block; }
+
+.foot{ flex:none; display:flex; gap:10px; align-items:center; }
+.foot .note{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.empty{ padding:24px 2px; color:var(--dim); font-size:14px; line-height:1.6; }
+.empty a{ color:var(--accent); }
+</style>
+</head>
+<body class="tool">
+
+<div class="head">
+  <div class="eyebrow tool-eyebrow">SQUARING</div>
+  <button id="help" aria-label="What is this?">?</button>
+</div>
+<div class="helpcard" id="helpcard" hidden>
+  <b>Move the square, not the picture.</b> The arrows slide the square crop
+  along the picture; the dimmed bands are what gets cut off. There is nothing
+  to drag and nothing to zoom — a square out of a tall picture only moves one
+  way.<br><br>
+  Positions save themselves as you tap. <b>Save crops</b> is what actually cuts
+  them and sends each one back where it came from. The original picture is
+  never touched, and re-cropping just makes another copy.
+</div>
+
+<main>
+  <div class="top"><span id="count"></span><span class="who" id="who"></span></div>
+  <div class="stage">
+    <div class="frame" id="frame" hidden>
+      <img id="pic" alt="">
+      <div class="band" id="bandA"></div>
+      <div class="band" id="bandB"></div>
+      <div class="keep" id="keep"></div>
+    </div>
+    <div class="empty" id="empty" hidden></div>
+  </div>
+  <div class="cap" id="cap"></div>
+  <div class="arrows" id="arrows" hidden>
+    <button class="sq" id="prev" aria-label="Previous picture"></button>
+    <span class="gap"></span>
+    <button class="sq step" id="up" aria-label="Move the crop up"></button>
+    <button class="sq step" id="down" aria-label="Move the crop down"></button>
+    <span class="gap"></span>
+    <button class="sq" id="next" aria-label="Next picture"></button>
+  </div>
+  <div class="strip" id="strip"></div>
+  <div class="foot">
+    <span class="note" id="msg"></span>
+    <button class="btn" id="save" hidden>Save crops</button>
+  </div>
+</main>
+
+<script>
+/* WRAPPED IN AN IIFE — the injected autoscroll pill's script runs in this same
+   global scope declaring `var raf`, `var I`, `var playing`…, so a page-level
+   `let` sharing one of those names is a SyntaxError that kills the whole pill
+   at parse time (found live on /search and /cutmarks). */
+(function () {
+  'use strict';
+  var TOKEN = '__STUDIO_TOKEN__';
+  var $ = function (id) { return document.getElementById(id); };
+  var api = function (path, opts) {
+    opts = opts || {};
+    opts.headers = Object.assign({ 'content-type': 'application/json' },
+      /^__/.test(TOKEN) ? {} : { 'x-studio-token': TOKEN }, opts.headers || {});
+    return fetch('/api/crop' + path, opts).then(function (r) {
+      return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || r.status); return j; });
+    });
+  };
+
+  var I = {
+    up:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>',
+    down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>',
+    left: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>',
+    right:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>',
+    prev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
+    next: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>'
+  };
+  $('prev').innerHTML = I.prev; $('next').innerHTML = I.next;
+
+  var STEP = 0.04;              // one tap; ~25 taps end to end
+  var SAVE_AFTER = 500;        // longer than HOLD_EVERY, so a hold is ONE write
+  var HOLD_AFTER = 350, HOLD_EVERY = 110;
+
+  var set = null, at = 0, saveTimer = null, poll = null;
+
+  /* ── the crop box, the SERVER'S arithmetic (cropper.js cropBox) ─────────
+     Kept identical on purpose and pinned by scripts/test-cropper.js: a
+     preview that disagrees with the cut is the one failure this must not
+     have. Returns fractions of the drawn picture, so it maps straight onto
+     the overlay boxes whatever size the picture is rendered at. */
+  function box(w, h, pos) {
+    var n = Number(pos);
+    var p = isFinite(n) ? Math.max(0, Math.min(1, n)) : 0.5;
+    if (h >= w) {
+      var vis = w / h;                     // portrait: the square's share of the height
+      return { x: 0, y: p * (1 - vis), w: 1, h: vis, axis: h === w ? null : 'y' };
+    }
+    var visx = h / w;
+    return { x: p * (1 - visx), y: 0, w: visx, h: 1, axis: 'x' };
+  }
+  window.__cropBox = box;   // the test drives the real function, never a copy
+
+  function item() { return set && set.items ? set.items[at] : null; }
+
+  function paintOverlay() {
+    var it = item(), img = $('pic');
+    if (!it || !img.naturalWidth) return;
+    var b = box(img.naturalWidth, img.naturalHeight, it.pos);
+    // Measure the DRAWN picture, not the frame: the img is max-width/height
+    // constrained, so the two differ on almost every screen.
+    var W = img.clientWidth, H = img.clientHeight;
+    var A = $('bandA'), B = $('bandB'), K = $('keep');
+    K.style.left = (b.x * W) + 'px'; K.style.top = (b.y * H) + 'px';
+    K.style.width = (b.w * W) + 'px'; K.style.height = (b.h * H) + 'px';
+    if (b.axis === 'x') {
+      A.style.cssText = 'left:0;top:0;height:' + H + 'px;width:' + (b.x * W) + 'px';
+      B.style.cssText = 'right:0;top:0;height:' + H + 'px;width:' + ((1 - b.x - b.w) * W) + 'px';
+    } else {
+      A.style.cssText = 'left:0;top:0;width:' + W + 'px;height:' + (b.y * H) + 'px';
+      B.style.cssText = 'left:0;bottom:0;width:' + W + 'px;height:' + ((1 - b.y - b.h) * H) + 'px';
+    }
+    var square = b.axis === null;
+    A.hidden = square; B.hidden = square; K.hidden = square;
+    // A square source has nowhere to move, so the arrows go DEAD rather than
+    // sitting there doing nothing when she taps them.
+    $('up').disabled = square; $('down').disabled = square;
+    $('up').innerHTML = b.axis === 'x' ? I.left : I.up;
+    $('down').innerHTML = b.axis === 'x' ? I.right : I.down;
+    $('up').setAttribute('aria-label', b.axis === 'x' ? 'Move the crop left' : 'Move the crop up');
+    $('down').setAttribute('aria-label', b.axis === 'x' ? 'Move the crop right' : 'Move the crop down');
+  }
+
+  function paint() {
+    var it = item();
+    if (!it) return;
+    $('count').textContent = (at + 1) + ' / ' + set.items.length;
+    $('who').textContent = set.title || '';
+    $('cap').textContent = it.label || '';
+    var img = $('pic');
+    if (img.getAttribute('src') !== it.url) {
+      $('frame').classList.add('loading');
+      img.setAttribute('src', it.url);
+    } else { paintOverlay(); }
+    $('prev').disabled = at === 0;
+    $('next').disabled = at >= set.items.length - 1;
+    Array.prototype.forEach.call($('strip').children, function (b, i) {
+      b.classList.toggle('on', i === at);
+    });
+  }
+
+  // Measure on the NEXT frame as well as now. `load` fires before layout has
+  // necessarily re-flowed the img to the new picture's intrinsic size, so a
+  // single paint here reads the PREVIOUS picture's box — which draws the crop
+  // window at the wrong size on every step between two differently-shaped
+  // pictures, silently.
+  $('pic').addEventListener('load', function () {
+    $('frame').classList.remove('loading');
+    paintOverlay();
+    requestAnimationFrame(paintOverlay);
+  });
+  window.addEventListener('resize', paintOverlay);
+
+  /* Positions save themselves — an arrow tap is a thought, not a commitment,
+     and losing twelve of them to a closed tab would be the worst bug here.
+     Debounced so a hold-repeat is one write, not thirty. */
+  function nudge(d) {
+    var it = item();
+    if (!it) return;
+    it.pos = Math.max(0, Math.min(1, (it.pos == null ? 0.5 : it.pos) + d));
+    paintOverlay();
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function () {
+      api('/sets/' + set.id + '/pos', { method: 'POST', body: JSON.stringify({ key: it.key, pos: it.pos }) })
+        .then(function () { showSave(); })
+        .catch(function (e) { $('msg').textContent = 'not saved — ' + e.message; });
+    }, SAVE_AFTER);
+  }
+
+  // Tap once, or hold to keep going. Pointer events so a finger and a mouse
+  // take the same path; `setPointerCapture` keeps the repeat running if her
+  // thumb slides off the button mid-hold.
+  function holdable(el, fn) {
+    var timer = null, rep = null;
+    var stop = function () { clearTimeout(timer); clearInterval(rep); timer = rep = null; };
+    el.addEventListener('pointerdown', function (e) {
+      if (el.disabled) return;
+      e.preventDefault();
+      try { el.setPointerCapture(e.pointerId); } catch (err) { /* not fatal */ }
+      fn();
+      timer = setTimeout(function () { rep = setInterval(fn, HOLD_EVERY); }, HOLD_AFTER);
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) {
+      el.addEventListener(ev, stop);
+    });
+  }
+  holdable($('up'), function () { nudge(-STEP); });
+  holdable($('down'), function () { nudge(STEP); });
+
+  function go(n) {
+    if (!set || !set.items.length) return;
+    at = Math.max(0, Math.min(set.items.length - 1, n));
+    paint();
+    var b = $('strip').children[at];
+    if (b && b.scrollIntoView) b.scrollIntoView({ block: 'nearest', inline: 'center' });
+  }
+  $('prev').addEventListener('click', function () { go(at - 1); });
+  $('next').addEventListener('click', function () { go(at + 1); });
+
+  function dirty() {
+    return (set.items || []).filter(function (it) {
+      return !it.out || it.outPos == null || Math.abs(it.outPos - it.pos) > 1e-6;
+    }).length;
+  }
+  function showSave() {
+    var n = dirty();
+    $('save').hidden = n === 0;
+    $('save').textContent = n === (set.items || []).length ? 'Save crops' : 'Save ' + n;
+  }
+
+  $('save').addEventListener('click', function () {
+    $('save').disabled = true;
+    $('msg').textContent = 'cutting…';
+    api('/sets/' + set.id + '/save', { method: 'POST', body: '{}' })
+      .then(function () { watch(); })
+      .catch(function (e) { $('msg').textContent = e.message; $('save').disabled = false; });
+  });
+
+  // The cut is a background job, so leaving the app must not lose it: the set
+  // id is remembered and the poll picks straight back up on return.
+  function watch() {
+    try { localStorage.setItem('cropJob', set.id); } catch (e) { /* private mode */ }
+    clearInterval(poll);
+    poll = setInterval(function () {
+      api('/sets/' + set.id + '/job').then(function (j) {
+        var job = j.job || {};
+        (j.items || []).forEach(function (u) {
+          var it = (set.items || []).filter(function (x) { return x.key === u.key; })[0];
+          if (it) { it.out = u.out; it.outPos = u.outPos; }
+        });
+        if (job.status === 'running') {
+          $('msg').textContent = 'cutting… ' + (job.done || 0) + ' of ' + (job.total || 0);
+          return;
+        }
+        clearInterval(poll); poll = null;
+        try { localStorage.removeItem('cropJob'); } catch (e) { /* ignore */ }
+        $('save').disabled = false;
+        showSave();
+        $('msg').textContent = job.failed
+          ? (job.failed + ' didn’t cut — ' + (job.error || ''))
+          : 'saved';
+      }).catch(function () { /* one missed poll is not a failure */ });
+    }, 1200);
+  }
+
+  function strip() {
+    var el = $('strip');
+    el.innerHTML = '';
+    (set.items || []).forEach(function (it, i) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.setAttribute('aria-label', 'Picture ' + (i + 1));
+      var im = document.createElement('img');
+      im.src = it.url; im.alt = '';
+      b.appendChild(im);
+      b.addEventListener('click', function () { go(i); });
+      el.appendChild(b);
+    });
+  }
+
+  function noSet(html) {
+    $('empty').innerHTML = html;
+    $('empty').hidden = false;
+    $('frame').hidden = true;
+    $('arrows').hidden = true;
+  }
+
+  function load(id) {
+    api('/sets/' + id).then(function (s) {
+      set = s; at = 0;
+      if (!set.items || !set.items.length) return noSet('That set has no pictures in it.');
+      $('frame').hidden = false; $('arrows').hidden = false; $('empty').hidden = true;
+      strip(); paint(); showSave();
+      try { if (localStorage.getItem('cropJob') === set.id) watch(); } catch (e) { /* ignore */ }
+    }).catch(function (e) { noSet('Couldn’t open that set — ' + e.message); });
+  }
+
+  function list() {
+    api('/sets').then(function (r) {
+      if (!r.sets.length) return noSet('Nothing to square yet. A chat makes a set of pictures for you and hands you the link.');
+      var h = '<b>Pick a set</b><br><br>';
+      r.sets.forEach(function (s) {
+        h += '<a href="/crop?set=' + s.id + '">' + (s.title || 'Untitled') + '</a> — '
+          + s.cropped + ' of ' + s.count + ' squared<br>';
+      });
+      noSet(h);
+    }).catch(function (e) { noSet('Couldn’t read the sets — ' + e.message); });
+  }
+
+  var want = new URLSearchParams(location.search).get('set');
+  if (want) load(want); else list();
+
+  // The help card floats and any tap closes it (the Cutting Room pattern).
+  $('help').addEventListener('click', function (e) {
+    e.stopPropagation();
+    $('helpcard').hidden = !$('helpcard').hidden;
+  });
+  document.addEventListener('click', function () { $('helpcard').hidden = true; });
+}());
+</script>
+</body>
+</html>
