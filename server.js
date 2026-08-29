@@ -372,6 +372,11 @@ loadConfig().then(() => {
   const cropperMod = require('./cropper');
   cropperMod.init({ membryDb: storyDb });
   app.use('/api/crop', cropperMod.router);
+  // Shoebox — the polaroids in her Memory Library, viewable inside the app.
+  // Read-only over membry; the membry handle is handed in like its siblings'.
+  const shoeboxMod = require('./shoebox');
+  shoeboxMod.init({ membryDb: storyDb });
+  app.use('/api/shoebox', shoeboxMod.router);
   // Freeform — your own reference images + your own words, sent verbatim. The
   // one image surface that adds NOTHING to a prompt (no style prefix/suffix).
   app.use('/api/freeform', require('./freeform').router);
@@ -891,6 +896,9 @@ app.get('/freeform', serveGated('freeform.html', { pill: true }));
 app.get('/vector', serveGated('vector.html', { pill: true }));
 // One screen, never scrolls — so no autoscroll pill, like /opinions.
 app.get('/crop', serveGated('crop.html'));
+// Shoebox: the polaroids in her Memory Library, on one shelf in the app. The
+// front for /api/shoebox; read-only over her memories.
+app.get('/shoebox', serveGated('shoebox.html', { pill: true }));
 // Story Timeline: dictated moments -> cards you can order, join into
 // sequences, edit, divide and delete. The front for /api/timeline.
 app.get('/timeline', serveGated('timeline.html', { pill: true }));

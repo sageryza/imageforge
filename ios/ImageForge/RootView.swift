@@ -5,7 +5,7 @@ import UIKit   // UIImage(systemName:) — the SF Symbol existence check in Tool
 /// fixed: Home (the grid) and Gallery at the ends, and the three in `barTools`
 /// between them. Everything else is reached from the home grid or a deep link.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, blocks, pausing, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector, chunking, assembly, filmeditor, timeline, review, crop
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, blocks, pausing, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector, chunking, assembly, filmeditor, timeline, review, crop, shoebox
     var id: String { rawValue }
 
     var title: String {
@@ -47,6 +47,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .timeline:  return "Story Timeline"
         case .review:    return "Review Queue"
         case .crop:      return "Squaring"
+        case .shoebox:   return "Shoebox"
         }
     }
 
@@ -89,6 +90,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .filmeditor: return "Cut a film with taps — split, trim, reorder, one audio track."
         case .review:    return "Everything still waiting on your swipe — one pile."
         case .crop:      return "Crop pictures square with arrows — nothing to drag."
+        case .shoebox:   return "Every polaroid in your Memory Library — one shelf."
         }
     }
 
@@ -135,6 +137,9 @@ enum Tool: String, CaseIterable, Identifiable {
         case .vector:    return "point.topleft.down.curvedto.point.bottomright.up"
         // A crop frame: what the whole tool does, in one glyph.
         case .crop:      return "crop"
+        // An archive box — a shoebox of kept things. Distinct from the Dump's
+        // tray-with-arrow (an inbox) and Product Creator's shippingbox.
+        case .shoebox:   return "archivebox"
         // A stack of playable pieces — the library of PARTS you already own.
         //
         // It was `rectangle.split.3x1`, which is the SAME symbol .blocks wears
@@ -231,6 +236,10 @@ enum Tool: String, CaseIterable, Identifiable {
         // own header via pagehead.js — no Apple bar (the Aug 2026 rule).
         case .crop:      GatedWebTool(path: "/crop", name: "Squaring", icon: "crop",
                                       navTitle: "Squaring")
+        // Shoebox: the Memory Library's polaroids, read-only. The page draws
+        // its own header via pagehead.js — no Apple bar (the Aug 2026 rule).
+        case .shoebox:   GatedWebTool(path: "/shoebox", name: "the Shoebox", icon: "archivebox",
+                                      navTitle: "Shoebox")
         // Chunking: the clip library. A shelf + a search box, so the native
         // bar carries the name and the page never repeats it (?embed=1).
         case .chunking:  GatedWebTool(path: "/chunking", name: "Chunking", icon: "play.square.stack",
@@ -298,6 +307,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .timeline:   return "/timeline"
         case .review:     return "/review"
         case .crop:       return "/crop"
+        case .shoebox:    return "/shoebox"
         // Native screens — nothing to collide with.
         case .movie, .sticker, .coloring, .storybook, .greeting, .instagram,
              .ads, .test, .dump:
@@ -321,7 +331,7 @@ let forgePillPages: Set<String> = [
     "/chunking", "/clips", "/crystals", "/crystalsplit", "/cutmarks", "/cuttingroom",
     "/deliverables", "/desktop", "/dreams", "/dreams-archive", "/dump", "/editor",
     "/films", "/freeform", "/import", "/instagram", "/pausing", "/photo", "/playground",
-    "/promptlab", "/report", "/review", "/scratchpad", "/search", "/song",
+    "/promptlab", "/report", "/review", "/scratchpad", "/search", "/shoebox", "/song",
     "/storyroom", "/studio", "/timeline", "/vector", "/voice",
     // baked in-page from scripts/pill.py, not injected
     "/chats", "/gallery", "/wall", "/writing",
@@ -892,7 +902,7 @@ private struct HomeGrid: View {
     /// test tube beside the masthead. Playground and **Freeform** also sit on
     /// the DEFAULT home (Sophie, Aug 2026: "put Freeform in the default") —
     /// this filter narrows to them, it doesn't own them.
-    private static let imageTools: [Tool] = [.playground, .test, .freeform, .vector, .crop]
+    private static let imageTools: [Tool] = [.playground, .test, .freeform, .vector, .crop, .shoebox]
 
     /// What the cards show: the normal list, or one filter's slice.
     private var shown: [Tool] {
