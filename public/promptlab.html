@@ -537,14 +537,40 @@
   .casthdr .plab:first-child { flex: 1 1 90px; }
   .casthdr .plab:last-child { flex: 3 1 160px; }
   .castrow { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
-  .castrow input { flex: 1 1 0; min-width: 0; font: inherit; font-size: 14px;
+  .castrow input, .castrow textarea { flex: 1 1 0; min-width: 0; font: inherit; font-size: 14px;
     color: #2b2622; background: #fdfcf9; border: 1px solid #d8d0c4;
     border-radius: 6px; padding: 7px 9px; }
-  .castrow input.cnm { flex: 1 1 90px; }
-  .castrow input.cds { flex: 3 1 160px; }
-  .castrow .cx { flex: none; width: 30px; height: 32px; padding: 0; font-size: 16px;
+  .castrow input.cnm { flex: 1 1 90px; order: 0; }
+  /* `min-height: 0` beats the page-wide `textarea { min-height: 64px }` —
+     without it the compact row is two lines tall and "expand" starts from
+     nowhere. */
+  .castrow textarea.cds { flex: 3 1 160px; order: 1; box-sizing: border-box;
+    height: 32px; min-height: 0; resize: none; overflow: hidden; line-height: 1.15; }
+  .castrow .cx, .castrow .cbig { flex: none; width: 30px; height: 32px; padding: 0; font-size: 16px;
     display: inline-flex; align-items: center; justify-content: center;
     border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #6f675e; }
+  .castrow .cbig { order: 2; }
+  .castrow .cx { order: 3; }
+  .castrow .cbig svg { width: 13px; height: 13px; }
+  /* THE BIGGER DESCRIPTION BOX (2026-08-29, Sophie: "expand character
+     description button add"). A description is a sentence of hers — long
+     beard, glasses, all black, with a cape and a belt — and the compact row
+     shows about a third of it, so the field she writes the most in was the
+     one field on the page with no way to see what was in it. The corner
+     button is the PROMPT box's answer in shape, not a copy of its code: one
+     field, two sizes, never a second box to keep in sync.
+       Expanding drops the description onto its OWN LINE at full width (the
+     row wraps, and `order` keeps the name, the toggle and the × on the line
+     above), because on a 390pt phone a taller box three columns wide is
+     still a column — the width is half of what "expand" has to buy here and
+     the prompt box, which is already full width, never needed it.
+       Both bounds are CSS so the browser clamps `fitCds`'s inline height and
+     no `vh` is re-derived in script — and the FLOOR is what keeps the button
+     worth tapping on an empty row (a field she WRITES in, the `.moretxt`
+     opener's difference, spelled out at #prompt.big). */
+  .castrow.big { flex-wrap: wrap; }
+  .castrow.big textarea.cds { flex: 1 1 100%; order: 4; height: auto;
+    min-height: 18vh; max-height: 44vh; overflow-y: auto; }
   #castadd { font: inherit; font-size: 13.5px; padding: 6px 11px;
     border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #2b2622; }
   #charsbtn.on { background: #2b2622; color: #faf7f2; }
@@ -1887,10 +1913,29 @@
       nm.type = 'text'; nm.className = 'cnm'; nm.value = c.name;
       // The placeholders NAME the field and nothing more (the house rule).
       nm.placeholder = 'Name'; nm.setAttribute('aria-label', 'Character ' + (i + 1) + ' name');
-      var ds = document.createElement('input');
-      ds.type = 'text'; ds.className = 'cds'; ds.value = c.description;
+      // A TEXTAREA, so it can be a bigger box — but it is still ONE LINE by
+      // contract: castBlock writes a character per line and castParse reads
+      // them back the same way, so a newline inside a description would cut a
+      // clause in half on the road home from Meta Assets. Enter is refused
+      // and a pasted newline collapses to a space, which is exactly what the
+      // <input> this replaced already did — nothing about what she can put in
+      // this field changed.
+      var ds = document.createElement('textarea');
+      ds.className = 'cds'; ds.rows = 1; ds.value = c.description;
       ds.placeholder = 'Description'; ds.setAttribute('aria-label', 'Character ' + (i + 1) + ' description');
+      ds.addEventListener('keydown', function (e) { if (e.key === 'Enter') e.preventDefault(); });
+      // `height:auto` FIRST or the box can only ever grow — scrollHeight of a
+      // box already sized to its old height reports that height back. The
+      // border is added on because the box is border-box and scrollHeight
+      // excludes it (both lessons are #prompt.big's, learned there first).
+      function fitCds() {
+        if (!d.classList.contains('big')) { ds.style.height = ''; return; }
+        ds.style.height = 'auto';
+        ds.style.height = (ds.scrollHeight + (ds.offsetHeight - ds.clientHeight)) + 'px';
+      }
       function stash() {
+        if (/[\r\n]/.test(ds.value)) ds.value = ds.value.replace(/\s*[\r\n]+\s*/g, ' ');
+        fitCds();
         var a = castAll();
         a[i] = { name: nm.value, description: ds.value };
         saveCast(a);
@@ -1904,6 +1949,25 @@
       }
       nm.addEventListener('input', stash);
       ds.addEventListener('input', stash);
+      // Deliberately NOT sticky, and not stored on the row: the compact row is
+      // the sheet's shape and a big box is a moment of reading or writing one
+      // description — the same call #prompt.big makes.
+      var big = document.createElement('button');
+      big.type = 'button'; big.className = 'cbig';
+      function paintBig() {
+        var on = d.classList.contains('big');
+        big.innerHTML = on ? ICONS.minimize : ICONS.maximize;
+        var w = (on ? 'Back to the small box' : 'Bigger box') + ' for character ' + (i + 1);
+        big.setAttribute('aria-label', w); big.title = w;
+        big.setAttribute('aria-expanded', on ? 'true' : 'false');
+      }
+      ds.__fit = fitCds;                       // one resize handler refits every open row
+      big.addEventListener('click', function () {
+        d.classList.toggle('big');
+        fitCds(); paintBig();
+        if (d.classList.contains('big')) ds.focus();
+      });
+      paintBig();
       var x = document.createElement('button');
       x.type = 'button'; x.className = 'cx';
       x.setAttribute('aria-label', 'Remove character ' + (i + 1));
@@ -1912,12 +1976,19 @@
         var a = castAll(); a.splice(i, 1); saveCast(a);
         buildCastBox(); if (promptOpen) paintPromptPanel();
       });
-      d.appendChild(nm); d.appendChild(ds); d.appendChild(x);
+      d.appendChild(nm); d.appendChild(ds); d.appendChild(big); d.appendChild(x);
       rows.appendChild(d);
     });
     document.getElementById('castadd').hidden = arr.length >= castMax;
     paintCharsBtn();
   }
+  // ONE listener for the whole box, registered once — a rotation changes what
+  // `vh` means, and a per-row handler would be re-added on every rebuild.
+  window.addEventListener('resize', function () {
+    Array.prototype.forEach.call(document.querySelectorAll('#castrows .cds'), function (t) {
+      if (t.__fit) t.__fit();
+    });
+  });
   document.getElementById('castadd').addEventListener('click', function () {
     var a = castAll();
     if (a.length >= castMax) return;

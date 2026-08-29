@@ -518,7 +518,7 @@ function panelsPayload() {
   ok((await page.$$('#castrows .castrow')).length === 0, 'and starts with no rows');
   await page.click('#castadd');
   await page.waitForSelector('#castrows .castrow');
-  const ph = await page.$$eval('#castrows .castrow input',
+  const ph = await page.$$eval('#castrows .castrow input, #castrows .castrow textarea',
     (is) => is.map((i) => i.placeholder));
   ok(ph.length === 2 && ph[0] === 'Name' && ph[1] === 'Description',
     'a row is a name and a description, and the placeholders NAME the fields');
