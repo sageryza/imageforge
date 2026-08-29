@@ -322,7 +322,7 @@ router.post('/save', gated, async (req, res) => {
 // Write the character doc. Shared by /save and the detached /make job — so a
 // generate that finishes after the client left still persists. Characters keep
 // their original backgrounds (no transparent version is made).
-async function saveCharacterDoc({ url, name, gender, tier, aliases, quality = null, model = null, fullPrompt = '' }) {
+async function saveCharacterDoc({ url, name, gender, tier, aliases, quality = null, model = null, fullPrompt = '', own = false }) {
   const d = db();
   if (!d) throw new Error('firestore unavailable');
   const doc = {
@@ -338,6 +338,12 @@ async function saveCharacterDoc({ url, name, gender, tier, aliases, quality = nu
     // there is no typed "content" half here, so the whole prompt IS the
     // record.
     ...(fullPrompt ? { fullPrompt: String(fullPrompt).slice(0, 6000) } : {}),
+    // HER OWN PICTURE, kept as such. Nothing drew it, so there is no prompt to
+    // file and no MODEL / QUALITY to say — the exact-prompt rule's own answer
+    // (file nothing rather than a reconstruction). The flag is what lets a
+    // surface say "your picture" instead of leaving a blank where a caption
+    // goes, and it is why nothing here invents one.
+    ...(own ? { own: true } : {}),
   };
   const ref = await d.collection(COLLECTION).add(doc);
   return { id: ref.id, ...doc };
@@ -384,6 +390,50 @@ router.get('/make/:id', gated, (req, res) => {
   res.json(job);
 });
 
+// ── HER OWN PICTURE, AS THE CHARACTER (2026-08-29, Sophie: "add my own
+// picture button to characters") ──────────────────────────────────────────
+// Not every character wants to be redrawn. A photo she already has, a
+// picture she made in the Playground, a face from another story — this saves
+// it AS the character, with no draw at all. It costs NOTHING: no model call,
+// one Storage upload and one Firestore write.
+//
+// NOTHING STANDS BETWEEN THE SOURCE AND THE OUTPUT (the house rule): a
+// picture that a browser can already show, sitting upright, is stored BYTE
+// FOR BYTE. Only the two shapes that would otherwise arrive broken are
+// touched, and only losslessly — a phone photo carrying an EXIF orientation
+// tag (which every cell would draw sideways) and a format no <img> can
+// decode (HEIC), both re-encoded to PNG rather than to a lossy webp.
+const OWN_OK = new Set(['jpeg', 'png', 'webp', 'gif']);
+async function ownPicture(buffer) {
+  const sharp = require('sharp');
+  let meta = null;
+  try { meta = await sharp(buffer).metadata(); } catch { meta = null; }
+  const upright = !meta || !meta.orientation || meta.orientation === 1;
+  if (meta && OWN_OK.has(meta.format) && upright) {
+    const type = meta.format === 'jpeg' ? 'image/jpeg' : 'image/' + meta.format;
+    return { buffer, contentType: type, converted: false };   // her bytes, untouched
+  }
+  const out = await sharp(buffer).rotate().toColourspace('srgb').png().toBuffer();
+  return { buffer: out, contentType: 'image/png', converted: true };
+}
+
+router.post('/own', gated, async (req, res) => {
+  try {
+    const { photo, name, gender, tier, aliases } = req.body || {};
+    if (!name || !String(name).trim()) return res.status(400).json({ error: 'name required' });
+    const m = /^data:([^;]+);base64,(.*)$/.exec(String(photo || ''));
+    if (!m) return res.status(400).json({ error: 'photo (a data URL) required' });
+    const { buffer, contentType, converted } = await ownPicture(Buffer.from(m[2], 'base64'));
+    const url = await saveBufferToStorage(buffer, contentType, 'characters');
+    // No quality, no model, no fullPrompt — nothing generated this picture,
+    // and an invented caption is worse than none.
+    const character = await saveCharacterDoc({ url, name, gender, tier, aliases, own: true });
+    res.json({ ok: true, character, converted });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // List saved characters (newest first).
 router.get('/', gated, async (req, res) => {
   try {
@@ -394,7 +444,7 @@ router.get('/', gated, async (req, res) => {
       const v = s.data();
       return { id: s.id, name: v.name, gender: v.gender, url: v.url, cleanUrl: v.url, tier: v.tier,
         aliases: Array.isArray(v.aliases) ? v.aliases : [],
-        quality: v.quality || null, model: v.model || null,
+        quality: v.quality || null, model: v.model || null, own: v.own === true,
         usedCount: v.usedCount || 0, lastUsedAt: v.lastUsedAt || null,
         createdAt: v.createdAt && v.createdAt.toMillis ? v.createdAt.toMillis() : null };
     });
@@ -588,4 +638,4 @@ router.post('/batch/generate', gated, async (req, res) => {
 });
 
 module.exports = { router, generatePortrait, buildPrompt, matchCharacters, matchCandidates, matchScore,
-  markUsed, listCharacters, charactersByIds };
+  markUsed, listCharacters, charactersByIds, ownPicture };
