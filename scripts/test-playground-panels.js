@@ -341,12 +341,18 @@ function panelsPayload() {
   // being cut and filed. This is what she is looking at for the seconds
   // between the render landing and the panels existing (2026-08-27: "the
   // uncut sheet shud show before it's cut as soon as it's done (in panels").
+  const cuttingPanels = ['a fox', 'a moon', 'a boat', 'a key'];
   const cuttingRun = {
     id: 'rc', status: 'ready', engine: 'gptimage', gptStyle: 'dreamy', model: 'gpt-image-2',
-    prompt: 'four little scenes',
-    fullPrompt: 'PREFIX\n\ngrid sentence\n\nTAIL',
+    prompt: cuttingPanels.join(' / '),
+    // The REAL sent shape — head, the characters clause, the panel block, the
+    // tail — built by the live sheet-grid.js, because the sheet's Prompt door
+    // has to find the seam in exactly what the server really sends.
+    fullPrompt: ['SHEET PREFIX — copy the drawing style.',
+      sheetGrid.castBlock([{ name: 'Joan', description: 'long black hair, beady eyes' }]),
+      sheetGrid.panelBlock(4, cuttingPanels), 'SHEET TAIL'].join('\n\n'),
     quality: 'low', size: '2304x1536', aspectRatio: '3:2', res: '2k',
-    panels: ['a fox', 'a moon', 'a boat', 'a key'],
+    panels: cuttingPanels,
     grid: { across: 2, down: 2, count: 4 },
     sheet: '2304x1536', cell: '1152x768',
     sheetUrl: 'http://127.0.0.1:0/img/cutting.png',
@@ -705,6 +711,32 @@ function panelsPayload() {
   });
   ok(/^Dreamy · \w+ · \w+$/.test(cutLb) && !/uncut sheet|cutting/.test(cutLb),
     'the lightbox caption stays style · quality · size — got: ' + cutLb);
+
+  console.log("the SHEET's prompt door — the whole prompt, not just her words");
+  // 2026-08-29, Sophie's screenshot of exactly this view: "why is this prompt
+  // incomplete??? it's missing the style half, and characters etc". The run's
+  // `prompt` is the ' / '-joined box text, which is NOT verbatim in the sent
+  // string, so the split failed silently and the sheet's overlay showed no
+  // style half at all — and no Style button, which is indistinguishable from
+  // the plain tile's honest silence. Verified failing 3 against the pre-fix
+  // page.
+  const sheetPrompt = await page.evaluate(() => {
+    const el = document.getElementById('clightbox');
+    const btns = el.querySelectorAll('button');
+    for (const bt of btns) if (/prompt/i.test(bt.textContent)) { bt.click(); break; }
+    const style = Array.prototype.find.call(
+      el.querySelectorAll('button'), (b) => /^style$/i.test(b.textContent.trim()));
+    const words = el.textContent;
+    if (style) style.click();
+    return { hasStyleBtn: !!style, words, after: style ? el.textContent : '' };
+  });
+  ok(/Panel 1 \(top left\): a fox/.test(sheetPrompt.words),
+    "the content is the labeled panel block — the words really sent");
+  ok(sheetPrompt.hasStyleBtn, 'the sheet has a STYLE half to open at all');
+  ok(/SHEET PREFIX/.test(sheetPrompt.after),
+    'the style half carries the style head');
+  ok(/Joan/.test(sheetPrompt.after) && /long black hair/.test(sheetPrompt.after),
+    'and the CHARACTERS clause — the half her screenshot was missing');
   await page.evaluate(() => { if (window.__assetLightboxClose) window.__assetLightboxClose(); });
 
   console.log('the lightbox');
