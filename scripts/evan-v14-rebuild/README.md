@@ -248,3 +248,69 @@ that exchange — *"I said, we do live in that world and I wish we didn't"*
 (37.10-40.20 of `evan-v7-lite.mp3`) — so the beat still ends on Evan's
 *"But unfortunately, we don't live in that world."* And the third-eye
 image at 0:45 is still the one she said should be *"inside the mind"*.
+
+## v20 (2026-08-29) — the "where" back in, and the walking sentence struck out
+
+Two notes on v19, and one question that her own marks already answered.
+
+**"Make the Spider-Man thing make sense with the word where added in the
+right place."** v19's reorder left *"…live in a world | people can do
+stuff…"*. A **copy of her own "where"** — the one the reorder moved to the
+head of the Spider-Man clause — goes back in after "world":
+
+> "…wouldn't it be cool to live in a world **where** people can do stuff and
+> they have special powers, **where** everything's like Spider-Man, and"
+
+Her word, her voice, twice. Nothing synthesised, and nothing re-recorded:
+the clip is `v19[25.715 : 26.148]`, 13 frames, taken from where the reorder
+put it. (Its source shape in the master is the dip at 23.52-23.62 to the
+silence at 23.95.)
+
+**"What you call a pink highlight was me crossing that part out — get rid of
+it."** Her pink covered *"when I found this video about this guy."*, and
+*"to Sweet Lady Jane"* was already out in v18, so the whole sentence goes.
+**"I was walking" went with it** — on its own it is a two-word sentence
+about nothing, and the walking picture still carries *"Later, I found out
+the science behind it."* That is two words more than she struck through and
+is named in the reply for that reason. The line is now:
+
+> "Later, I found out the science behind it. He's a scientist in England.
+>  So I decided to test that hypothesis."
+
+**"Did you cut the wish-we-didn't line?"** No. `b07@8` — *"I said, we do
+live in that world, and I wish we didn't."* — is marked **`cut` in her own
+marks**, present in the very first verdict pull, i.e. from the original v14
+marking session. Per her instruction ("if it was already cut, leave it") it
+stays cut. Worth checking that way round before ever "restoring" something:
+the marks say who cut what.
+
+**This is the first version where the PICTURE had to change**, so everything
+is frame-quantised at 30fps. Both edits sit entirely inside ONE shot each —
+the insert in the Spider-Man wall (21.6-35.8), the cut in the walking shot
+(46.5-58.5) — so a shot only gets longer or shorter and no boundary moves
+relative to the words:
+
+```
+insert 13 frames at frame 707      (0.4333s, the "where")
+drop   frames 1587..1694           (3.6000s, the walking sentence)
+7903 + 13 - 108 = 7808 frames = 260.2667s   (audio 260.2431s)
+```
+
+The inserted picture is a still lifted from v19 at the insert point and
+held — a duplicate of the frame already on screen, so it is invisible. Four
+segment encodes plus the concat demuxer (never `select`+`setpts` in one
+pass — see v18).
+
+Read-back gate: 98.46% word match against v19, and the only structural diff
+is `"i was walking when i found this video about this guy"` deleted. The
+"where" does not show in that diff because whisper transcribed a "where"
+there in v19 too, off the liaison at the reorder seam — it is confirmed
+instead by a windowed read of v20 (*"in a world where people can do stuff
+and they have special powers where everything's like spider-man"*) and by
+the inserted clip being real audio of measured length.
+
+v20 of record: `story/films/evan-v20.mp4` (4:20.3). Shot map derived from
+v18's by shifting the two edits (40 shots).
+
+**Still open, still not asked for:** the third-eye image at 0:45 is the one
+she said should be *"inside the mind"*.
