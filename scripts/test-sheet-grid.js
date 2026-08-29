@@ -388,5 +388,43 @@ if (sheetSwap && dreamySuffix) {
     'an edited tail makes the swap a NO-OP — never a second arguing sentence');
 }
 
+console.log('\nsheetSeam — the sheet’s own verbatim seam');
+// 2026-08-29, Sophie's screenshot of a sheet's Prompt overlay: "why is this
+// prompt incomplete??? it's missing the style half, and characters etc". The
+// run's `prompt` is the ' / '-joined box text, which is not verbatim in the
+// sent string — so every reader that split around it answered an empty style
+// half. The real seam is the contiguous panel-lines block.
+{
+  const panels = ['a fox by a well', 'a moon over water', 'a boat', 'a key in a lock'];
+  const cast = [{ name: 'Joan', description: 'long black hair, narrow face' }];
+  const head = 'STYLE PREFIX — copy the drawing style.';
+  const tail = 'THE TAIL — minimal text.';
+  const full = [head, sheetGrid.castBlock(cast), sheetGrid.panelBlock(4, panels), tail].join('\n\n');
+  const seam = sheetGrid.sheetSeam(full, panels);
+  ok(!!seam, 'a real panels prompt yields a seam');
+  ok(seam && seam.prefix.includes(head), 'the prefix carries the style head');
+  ok(seam && seam.prefix.includes(sheetGrid.CAST_INTRO) && /Joan/.test(seam.prefix),
+    'the prefix carries the CHARACTERS clause — the half her screenshot was missing');
+  ok(seam && /This page is a 2x2 grid/.test(seam.prefix),
+    'the grid sentence rides the prefix, not the content');
+  ok(seam && seam.content.startsWith('Panel 1 (') && seam.content.includes('a key in a lock')
+    && !seam.content.includes(tail), 'the content is the labeled panel-lines block, verbatim');
+  ok(seam && seam.suffix === tail, 'the suffix is the tail');
+  // EVERY WORD OF THE SENT TEXT appears exactly once across the halves — the
+  // exact-prompt rule, checked as reassembly rather than trusted. Whitespace
+  // at the two seams is normalized (the block joins with '\n' where the
+  // convention rejoins with '\n\n'); `fullPrompt` stays the literal record.
+  const squash = (s) => s.replace(/\s+/g, ' ').trim();
+  ok(seam && squash([seam.prefix, seam.content, seam.suffix].join('\n')) === squash(full),
+    'prefix + content + suffix reassemble the sent text, word for word');
+  // The ' / '-joined run prompt is provably NOT in the sent text — the very
+  // fact that made the old split fail, pinned so nobody "simplifies" back.
+  ok(full.indexOf(panels.join(' / ')) < 0,
+    'the joined box text is NOT verbatim in fullPrompt (why the old split failed)');
+  ok(sheetGrid.sheetSeam('unrelated words', panels) === null,
+    'nothing matched → null, never a guess');
+  ok(sheetGrid.sheetSeam(full, []) === null, 'no panels → null');
+}
+
 console.log(fails ? `\n${fails} FAILED` : '\nall good');
 process.exit(fails ? 1 : 0);

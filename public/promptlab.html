@@ -4202,13 +4202,34 @@
   // which is the honest answer and what hides the STYLE button.
   function runPromptHalves(r, i) {
     var content = String((r && r.prompt) || '');
+    var full = String((r && r.fullPrompt) || '');
+    var panels = (r && r.panels && r.panels.length) ? r.panels : null;
+    // THE SHEET ITSELF (the virtual index -1, a run still cutting, or a
+    // cutFailed run whose one picture IS the sheet): the run's `prompt` is
+    // the ' / '-joined box text, which is NOT verbatim in the sent string —
+    // so the split below always failed and the sheet's overlay showed her
+    // panel words with NO style half and no characters clause at all
+    // (2026-08-29, Sophie: "why is this prompt incomplete??? it's missing
+    // the style half, and characters etc"). The real seam is the contiguous
+    // panel-lines block, and sheetSeam (sheet-grid.js — the ONE copy, shared
+    // with server.js's filing) slices it verbatim out of fullPrompt.
+    var isSheet = panels && (i == null || i === -1 || r.cutFailed || panels[i] == null);
+    if (isSheet && window.__sheetGrid && window.__sheetGrid.sheetSeam) {
+      var seam = window.__sheetGrid.sheetSeam(full, panels);
+      if (seam) {
+        return {
+          content: seam.content,
+          style: (seam.prefix || seam.suffix)
+            ? [seam.prefix, '[content]', seam.suffix].filter(Boolean).join('\n\n') : '',
+        };
+      }
+    }
     // A panels run: picture i's content is THAT panel's own words — they sit
     // verbatim in the sent text (one labeled line per panel), so the style
     // half below splits correctly around them.
-    if (r && r.panels && r.panels.length && i != null && r.panels[i] != null) {
+    if (panels && i != null && r.panels[i] != null) {
       content = String(r.panels[i]);
     }
-    var full = String((r && r.fullPrompt) || '');
     if (!full || !content) return { content: content, style: '' };
     var at = full.indexOf(content);
     if (at < 0) {

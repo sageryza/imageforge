@@ -6389,6 +6389,16 @@ async function finishPanelsCutInner(docRef, cfg, sheetBuf, sheetUrl) {
   const sizeTier = require('./size-tier');
   const st = PL_GPT_STYLES[cfg.styleId] || PL_GPT_STYLES.evan;
   const style = `${st.label} · ${cfg.quality}`;
+  // THE SHEET's own seam (2026-08-29, Sophie: "it's missing the style half,
+  // and characters etc"). head/tail alone LOSE the middle of the sent text —
+  // the cast clause and the grid sentence sit between them — and cfg.prompt
+  // (the ' / '-joined box text) is not verbatim in fullPrompt, so the filed
+  // record broke the exact-prompt rule on every sheet. sheetSeam slices the
+  // panel-lines block verbatim; the SAME function feeds the page's lightbox,
+  // so the two doors cannot disagree. Falls back to the old head/tail shape
+  // only when nothing matched (never expected for a run this job drew).
+  const sheetSeam = sheetGrid.sheetSeam(cfg.fullPrompt, cfg.panels)
+    || { prefix: cfg.head, content: cfg.prompt, suffix: cfg.tail };
   let images, rects;
   try {
     ({ urls: images, rects } = await cutSheet(sheetBuf, plan));
@@ -6401,9 +6411,9 @@ async function finishPanelsCutInner(docRef, cfg, sheetBuf, sheetUrl) {
       error: admin.firestore.FieldValue.delete() });
     fileCreationDoc({
       url: sheetUrl, prompt: `the sheet — ${plan.count} panels`,
-      promptContent: cfg.prompt, style, model: PL_GPT.id, quality: cfg.quality,
+      promptContent: sheetSeam.content, style, model: PL_GPT.id, quality: cfg.quality,
       canvas: plan.sheet, fullPrompt: cfg.fullPrompt,
-      promptPrefix: cfg.head, promptSuffix: cfg.tail, source: 'playground',
+      promptPrefix: sheetSeam.prefix, promptSuffix: sheetSeam.suffix, source: 'playground',
     });
     return [sheetUrl];
   }
@@ -6426,9 +6436,9 @@ async function finishPanelsCutInner(docRef, cfg, sheetBuf, sheetUrl) {
   const cut = sizeTier.cutSize(plan.sheet, plan.count);
   fileCreationDoc({
     url: sheetUrl, prompt: `the sheet — ${plan.count} panels`,
-    promptContent: cfg.prompt, style, model: PL_GPT.id, quality: cfg.quality,
+    promptContent: sheetSeam.content, style, model: PL_GPT.id, quality: cfg.quality,
     canvas: plan.sheet, fullPrompt: cfg.fullPrompt,
-    promptPrefix: cfg.head, promptSuffix: cfg.tail, source: 'playground',
+    promptPrefix: sheetSeam.prefix, promptSuffix: sheetSeam.suffix, source: 'playground',
   });
   // A panel's style half is everything around ITS words in the sent text —
   // the panel line sits verbatim in fullPrompt, so the seam is real.

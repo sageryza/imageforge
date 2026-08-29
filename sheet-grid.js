@@ -472,6 +472,52 @@ function applySheet(suffix, swap, layout) {
   return s.replace(swap.from, String(swap.to || '').replace('{layout}', layout || ''));
 }
 
+/**
+ * THE SHEET'S OWN SEAM (2026-08-29, Sophie's screenshot of a sheet's Prompt
+ * overlay showing her four panel lines and NOTHING else — no style half, no
+ * characters clause: "why is this prompt incomplete??? it's missing the style
+ * half, and characters etc").
+ *
+ * A panels run's `prompt` is the ' / '-joined box text (and panels-import's is
+ * newline-joined) — neither string sits verbatim in the sent text, so every
+ * reader that split fullPrompt around it FAILED silently and answered with an
+ * empty style half. And "no style half" is indistinguishable from the plain
+ * ChatGPT tile's honest silence, which is why it kept shipping as "fixed".
+ *
+ * Her words in the SENT text are the panel LINES — one contiguous labeled
+ * block (`Panel 1 (top left): …` through the last panel's text), so the sheet
+ * has ONE real seam after all: everything before the block (style prefix,
+ * character line, cast clause, the grid sentence) is the style head,
+ * everything after it is the tail, and the block itself is the content half,
+ * sliced VERBATIM out of fullPrompt — never rebuilt, per the exact-prompt
+ * rule. Nothing matched → null, so a caller falls back rather than guessing.
+ *
+ * ONE implementation for the page's lightbox AND server.js's creation filing
+ * (this file is served at /sheet-grid.js), so the two doors cannot disagree
+ * about where the seam is.
+ */
+function sheetSeam(fullPrompt, panels) {
+  const full = String(fullPrompt || '');
+  const list = (Array.isArray(panels) ? panels : []).map((p) => String(p || '').trim()).filter(Boolean);
+  if (!full || !list.length) return null;
+  const first = full.indexOf(list[0]);
+  const lastTxt = list[list.length - 1];
+  const lastAt = full.lastIndexOf(lastTxt);
+  const end = lastAt + lastTxt.length;
+  if (first < 0 || lastAt < 0 || end <= first) return null;
+  // Walk back from the first panel's own words to the start of its labeled
+  // line, so the block keeps its `Panel 1 (top left): ` label — the label was
+  // sent, and a content half that silently dropped it would be a lie about
+  // what drew the picture.
+  const nl = full.lastIndexOf('\n', first);
+  const start = nl < 0 ? 0 : nl + 1;
+  return {
+    prefix: full.slice(0, start).replace(/\s+$/, ''),
+    content: full.slice(start, end),
+    suffix: full.slice(end).replace(/^\s+/, ''),
+  };
+}
+
 return { GRIDS, SHAPES, sheetFor, derive, positions, layoutWords, panelBlock,
-  CAST_INTRO, CAST_INTRO_ONE, castRows, castBlock, castParse, cellRects, applySheet, findSeams, seamBoxes };
+  CAST_INTRO, CAST_INTRO_ONE, castRows, castBlock, castParse, cellRects, applySheet, findSeams, seamBoxes, sheetSeam };
 }));
