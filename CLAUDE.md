@@ -1926,6 +1926,33 @@ them off the reference sheet, not off the old filenames.
   Full rules in `docs/chats-app.md`; tests `node
   scripts/test-chats-labels.js`, `node scripts/test-chats-queue-chips.js` and
   the same file as the tags above.
+  **AND `IN A MINUTE` STAYS ON THE SCREEN, IN MINT (2026-08-29, Sophie: "can u
+  turn chats green tint if in a minute filed / stay on scre[en]" · "mint").**
+  The one box of the three that is not a deferral: `come back to` is later
+  today or this week and `maybe never` is probably not at all, but IN A MINUTE
+  is something she is coming straight back to — and a card that vanished into
+  a box the instant she said so was one she then had to go and find again. So
+  `soon` is the deliberate exception to *an item is in exactly one place*: the
+  card stays on the main Update list wearing a mint wash (`.nwcard.soon`,
+  `--mint`/`--mintline`) AND its box still holds it, because the box is what
+  she opens to see only those. Four things not to undo: the **BACKGROUND**
+  carries the tint and never the border, since `picked` is a 2px border and
+  she picks a card in order to file it — the two marks have to show at once;
+  **inside the open box nothing is tinted**, where every card is one and the
+  mint would say nothing; the **badge counts the mint cards**, because the
+  number has to be exactly what she finds when she opens the tab; and the
+  other two boxes are **untouched** — a card filed there still leaves the
+  list. This is the Update CARD only; the chat's own row on the home list is
+  unchanged. Test: `node scripts/test-chats-news-mint.js` (the colour MEASURED
+  off the real computed background — a class name says nothing about what
+  renders; verified failing pre-fix).
+  **AND TEN HEADLESS TESTS COULD NOT REACH THE UPDATE TAB AT ALL** — the row
+  that carries it takes turns with the three lists (2026-08-28) and opens on
+  the LISTS, so `#accrow` is hidden and every `click('.acctab[data-acct=
+  "new"]')` timed out. They tap `#rowtog` first now; a new test on that screen
+  must too. (Four went green with that one line; `test-chats-come-back-to.js`,
+  `test-chats-news.js` and `test-chats-tags-button.js` still fail for their
+  own unrelated reasons, measured identical before and after this change.)
 - **STATUS CARDS — every chat keeps one, updated at the END of every turn
   (Aug 2026, Sophie's ask: "a line on what they need and a summary of what
   that chat is currently working on").** The card shows under the chat's name

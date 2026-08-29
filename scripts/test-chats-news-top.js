@@ -218,6 +218,9 @@ const server = http.createServer((req, res) => {
   // ?view=news is consumed and stripped on the first load, so a reload lands
   // on the chat list — walk back onto the Update tab the way she would.
   await page.reload();
+  // The row takes turns with the three lists (2026-08-28) and opens on the
+  // LISTS, so the account row — the UPDATE tab's own home — is one tap away.
+  if (!await page.isVisible('#accrow')) await page.click('#rowtog');
   await page.waitForSelector('#accrow .acctab[data-acct="new"]');
   await page.click('#accrow .acctab[data-acct="new"]');
   await page.waitForSelector('#grid .sthead[data-kind="rest"]');

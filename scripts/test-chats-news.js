@@ -228,6 +228,9 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
     });
 
   // 2/3. open it: the title says New, the line slides to the third slot
+  // The row takes turns with the three lists (2026-08-28) and opens on the
+  // LISTS, so the account row — the UPDATE tab's own home — is one tap away.
+  if (!await page.isVisible('#accrow')) await page.click('#rowtog');
   await page.click('#accrow .acctab[data-acct="new"]');
   await page.waitForFunction(() => document.getElementById('htitle').textContent === 'Update')
     .catch(() => fail('tapping the first tab never opened the Update view'));
