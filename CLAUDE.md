@@ -3820,6 +3820,17 @@ before working on that module. Nothing was deleted — the moved text is verbati
     it can be copied back" — as the REASON to prefer Render, and she
     overruled it: that record is the cost, not the benefit.** The container is
     also immune to a deploy restart, which is worth real money on a batch.
+  - **BUT A PANEL SHEET GOES IN PANELS (2026-08-28, Sophie: "the playground
+    is for me, but panels should go in panels").** The PICTURE tab is hers
+    alone; a container-drawn PANEL SHEET files its finished record into the
+    Panels tab — `POST /api/promptlab/panels-import` writes a DONE run doc
+    (no generation, no cut, no money on Render), and kind=single can never
+    see it, so the Picture tab stays untouched by construction.
+    `scripts/draw-panel-sheet.js` calls it by itself; a hand-rolled container
+    draw must POST it too (panels+images PAIRED, the real draw time, the
+    exact fullPrompt or nothing — `panels-import.js` refuses a mismatch).
+    This does not replace the Assets-tab filing — the ritual still runs; the
+    import deliberately files no creations, or it would double every picture.
   - **Render's `/api/promptlab` is for HER TAPS**, and for a run she asked to
     exist in the Playground (a ladder she wants to compare there, a picture
     she will re-roll from the page). Ask before starting one on her behalf.

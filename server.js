@@ -6901,6 +6901,40 @@ app.get('/api/promptlab/build', (req, res) => {
   res.json({ build: pageBuildId('promptlab.html', true) });
 });
 
+// A container-drawn panel sheet files into the PANELS tab (2026-08-28,
+// Sophie: "the playground is for me, but panels should go in panels"). The
+// "THE FEED IS HERS" rule sends chat sheet work to the chat's own container,
+// which left a finished sheet with no run doc — invisible to the Panels tab.
+// This writes the DONE record: no generation, no cut, no money — the work
+// already happened in the container. A doc carrying panels+grid is a panels
+// run to plRunIsPanels, so kind=single (the Picture tab) never sees it and
+// her own feed stays hers. Validation — the pairing rule, the never-ahead
+// createdAt, the refused unknown style — lives in panels-import.js (pure,
+// tested). The chat still files creations/assets itself per deliver-images;
+// this route deliberately files nothing there, or an import after the ritual
+// would double every picture.
+const panelsImport = require('./panels-import');
+app.post('/api/promptlab/panels-import', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
+    const out = panelsImport.buildImportRun(req.body, {
+      styleIds: Object.keys(PL_GPT_STYLES) });
+    if (out.error) return res.status(400).json({ error: out.error });
+    const ref = admin.firestore().collection(PROMPTLAB).doc();
+    // `id` rides INSIDE the doc like every real run's — the page keys votes,
+    // copy-back and the lightbox on r.id, and the feed reads only doc data.
+    await ref.set({ id: ref.id, ...out.run,
+      createdAt: admin.firestore.Timestamp.fromMillis(out.createdMs) });
+    plScan = { at: 0, runs: null };  // the 60s scan cache — show it now
+    res.json({ ok: true, id: ref.id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/promptlab/:id', async (req, res) => {
   try {
     if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
