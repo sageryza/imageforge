@@ -709,7 +709,7 @@
      box still reserves its corner with padding. Backdrop tap or the button
      closes; not sticky, and a grid rebuild closes it. */
   #panelgrid .pcell { position: relative; min-width: 0; }
-  #panelgrid .pcell textarea { padding-bottom: 36px; }
+  #panelgrid .pcell textarea { padding-top: 26px; padding-bottom: 36px; }
   #panelgrid .pcell.pop { aspect-ratio: var(--pcell, 2 / 3); }
   #panelgrid .pcell.pop textarea { position: fixed; left: 5vw; width: 90vw; top: 10vh;
     z-index: 60; aspect-ratio: auto; min-height: 30vh; max-height: 60vh;
@@ -717,6 +717,27 @@
   #panelgrid .pcell.pop .pbig { position: fixed; right: 5vw; top: calc(10vh - 34px); z-index: 61; }
   #panelbg { position: fixed; inset: 0; z-index: 59; border: 0; padding: 0; margin: 0;
     background: rgba(43, 38, 34, .45); }
+  /* THE PER-BOX CLEAR — one panel's words, wiped where they are (2026-08-29,
+     Sophie: "clear button at the top of textbox in panels"). The row's own
+     Clear empties the WHOLE grid; this empties the one box she is looking at,
+     which is what a nine-panel grid needs — re-writing one panel meant
+     selecting a dictated sentence by hand on a phone. It is a bare ✕ at the
+     top-right corner of the cell, drawn ONLY while that box has words (never
+     a dead control, the row Clear's own rule), and the textarea reserves the
+     strip with `padding-top` rather than `padding-right`: a 3-across cell is
+     ~118px wide, so a reserved right column would take a fifth of every line.
+     It asks NOTHING — one box is one dictated sentence, where the row Clear
+     can lose nine, and a confirm on every wipe is the heavier cost. THE STORY
+     BOX GETS NONE: it is the only box on that screen, so the row's Clear IS
+     its per-box clear and a second one beside it says the same thing twice.
+     Popped, it rides on the backdrop beside the big-box toggle. */
+  .pclr { position: absolute; right: 6px; top: 6px; width: 20px; height: 20px;
+    display: flex; align-items: center; justify-content: center; padding: 0; margin: 0;
+    border: 0; background: none; color: #9a9186; cursor: pointer;
+    -webkit-tap-highlight-color: transparent; }
+  .pclr svg { width: 13px; height: 13px; }
+  #panelgrid .pcell.pop .pclr { position: fixed; right: calc(5vw + 34px); top: calc(10vh - 34px);
+    z-index: 61; }
   .pbig { position: absolute; right: 6px; bottom: 6px; width: 26px; height: 26px;
     display: flex; align-items: center; justify-content: center; padding: 0; margin: 0;
     border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #6f675e; cursor: pointer; }
@@ -1720,6 +1741,7 @@
       t.value = saved[i] || '';
       t.addEventListener('input', stashPanels);
       cell.appendChild(t);
+      cell.appendChild(mkPanelClear(cell, t));
       cell.appendChild(mkPanelBig(cell, t));
       box.appendChild(cell);
     }
@@ -1777,6 +1799,30 @@
     fitPanelBig(cell, t);
     if (cell.__paintBig) cell.__paintBig();
     t.focus();
+  }
+  // The per-box clear (2026-08-29) — the CSS note above .pclr has the shape
+  // and the reasoning. It wipes THIS box and nothing else, saves the drafts
+  // through the same stashPanels() her typing goes through (so the row's
+  // label and its Clear follow), refits an open popup, and leaves the caret
+  // in the box: she taps it in order to write the panel again.
+  function mkPanelClear(cell, t) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'pclr';
+    b.innerHTML = ICONS.x;
+    b.setAttribute('aria-label', 'Clear this panel');
+    b.title = 'Clear this panel';
+    function paint() { b.hidden = !t.value.trim(); }
+    b.addEventListener('click', function () {
+      t.value = '';
+      stashPanels();
+      paint();
+      fitPanelBig(cell, t);
+      t.focus();
+    });
+    t.addEventListener('input', paint);
+    paint();
+    return b;
   }
   function mkPanelBig(cell, t) {
     var b = document.createElement('button');

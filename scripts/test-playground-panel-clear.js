@@ -208,6 +208,52 @@ ok(!/id="panelclear"/.test(foldTag.slice(0, foldTag.indexOf('</button>'))),
   ok(!(await page.isVisible('#ask.on')),
     'no pop-up — that sheet is in her feed and its prompt copies back');
 
+  console.log('\nand every box has a clear of its own');
+  await page.evaluate(() => localStorage.removeItem('promptlab_panels_drawn_4'));
+  await fill(four);
+  const cellOf = (i) => '#panelgrid .pcell:nth-child(' + (i + 1) + ')';
+  ok((await page.$$('#panelgrid .pcell .pclr')).length === 4, 'one per cell');
+  const box = await page.evaluate(() => {
+    const cell = document.querySelector('#panelgrid .pcell');
+    const t = cell.querySelector('textarea');
+    const b = cell.querySelector('.pclr');
+    const tr = t.getBoundingClientRect(), br = b.getBoundingClientRect();
+    const cs = getComputedStyle(t);
+    const hit = document.elementFromPoint(br.left + br.width / 2, br.top + br.height / 2);
+    return {
+      inside: br.top >= tr.top - 1 && br.right <= tr.right + 1,
+      right: br.right > tr.left + tr.width / 2,
+      clearsWords: br.bottom <= tr.top + parseFloat(cs.paddingTop) + 1,
+      hit: hit && (hit.closest ? (hit.closest('.pclr') ? 'pclr' : hit.tagName) : hit.tagName),
+    };
+  });
+  ok(box.inside && box.right, 'at the top-right corner of its own box');
+  ok(box.clearsWords, 'and the box reserves that strip — it never sits on her words');
+  ok(String(box.hit).indexOf('pclr') >= 0, 'a tap at its centre really reaches it');
+  await page.click(cellOf(1) + ' .pclr');
+  await page.waitForFunction(() => !document.querySelectorAll('#panelgrid textarea')[1].value);
+  ok((await vals()).join('|') === 'a fox||a boat|a key', 'it wipes THAT box and no other');
+  ok(!(await page.isVisible('#ask.on')), 'and asks nothing — one box is one sentence');
+  ok(!(await page.isVisible(cellOf(1) + ' .pclr')), 'it leaves with the last word in its box');
+  ok(await page.isVisible(cellOf(0) + ' .pclr'), 'while the written boxes keep theirs');
+  const saved = JSON.parse((await draft(4)) || '[]');
+  ok((saved[1] || '') === '', 'the draft follows');
+  ok(await page.isVisible('#panelclear'), 'and the row Clear stays — three boxes still written');
+  const popped = await page.evaluate(async () => {
+    const cell = document.querySelector('#panelgrid .pcell');
+    cell.querySelector('.pbig').click();
+    await new Promise((r) => setTimeout(r, 60));
+    const b = cell.querySelector('.pclr'), t = cell.querySelector('textarea');
+    const br = b.getBoundingClientRect(), tr = t.getBoundingClientRect();
+    const hit = document.elementFromPoint(br.left + br.width / 2, br.top + br.height / 2);
+    return { above: br.bottom <= tr.top + 1,
+      hit: hit && (hit.closest ? (hit.closest('.pclr') ? 'pclr' : hit.tagName) : hit.tagName) };
+  });
+  ok(popped.above, 'popped, it rides above the big box instead of on her words');
+  ok(String(popped.hit).indexOf('pclr') >= 0, 'and the backdrop never takes its tap');
+  await page.click('#panelbg');
+  await page.evaluate(() => { localStorage.removeItem('promptlab_panels_4'); });
+
   console.log('\nStory clears its own box');
   await page.click('#gridpick button[data-grid="story"]');
   await page.waitForFunction(() => !!document.querySelector('#panelgrid textarea[data-story]'));
