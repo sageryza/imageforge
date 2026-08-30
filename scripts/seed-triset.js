@@ -55,17 +55,22 @@ const SEEDS = [
   { slug: 'lemon', title: 'a lemon with leaves' },
 ];
 
+// --file <json>: draw a batch SHE dictated (e.g. asset-note card ideas)
+// instead of the built-in list — [{slug, title}, …], titles verbatim hers.
+const fileArg = process.argv.indexOf('--file');
+const LIST = fileArg > -1 && process.argv[fileArg + 1]
+  ? JSON.parse(fs.readFileSync(process.argv[fileArg + 1], 'utf8')) : SEEDS;
 const DRY = process.argv.includes('--dry') || !process.argv.includes('--go');
 const sha1 = (s) => crypto.createHash('sha1').update(String(s)).digest('hex');
 
 triset.init({ gptStyles: { dreamy: dreamyStyle() } });
 
 async function main() {
-  const cents = (SEEDS.length * triset.COST_CENTS).toFixed(0);
-  console.log(`${SEEDS.length} seed cards · ${triset.QUALITY} ${triset.CANVAS} · ~${cents}c`);
+  const cents = (LIST.length * triset.COST_CENTS).toFixed(0);
+  console.log(`${LIST.length} seed cards · ${triset.QUALITY} ${triset.CANVAS} · ~${cents}c`);
   if (DRY) {
-    for (const s of SEEDS) console.log('  ' + s.slug.padEnd(18) + s.title);
-    const rec = triset.cardPrompt(SEEDS[0].title, { invent: false });
+    for (const s of LIST) console.log('  ' + s.slug.padEnd(18) + s.title);
+    const rec = triset.cardPrompt(LIST[0].title, { invent: false });
     console.log('\nfirst full prompt:\n' + rec.fullPrompt);
     console.log('\n(dry — pass --go to draw)');
     return;
@@ -86,7 +91,7 @@ async function main() {
   fs.mkdirSync(outDir, { recursive: true });
 
   // 1) draw — all at once (OpenAI's hardware; the container pacing rule)
-  const results = await Promise.all(SEEDS.map(async (s) => {
+  const results = await Promise.all(LIST.map(async (s) => {
     const rec = triset.cardPrompt(s.title, { invent: false });
     try {
       const f = path.join(outDir, s.slug + '.webp');
