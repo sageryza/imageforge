@@ -7361,6 +7361,40 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - **The PLAYGROUND ITSELF, which has never serialized** — its ladders fire
     `Promise.all` and `runPromptLabGptJob` is fired without `await`, so
     nothing queues server-side either.
+- **Triset** (`triset.js`, `/api/triset`, page at `/triset`, no iOS tile yet) —
+  triangular SET solitaire (Sophie's concept, 2026-08-30). A pool of
+  triangular picture cards; three are dealt around a middle inverted triangle
+  that is a TEXT BOX. She writes what they have in common — or taps a card to
+  swap it — until she finds a set. Two kinds: **all the same** (one shared
+  thing, named in the middle) and **each different** (each card shares
+  something DIFFERENT with a 4th thing; the middle names the 4th thing, three
+  side boxes name the connections). **Finding a set GENERATES A NEW CARD** —
+  the venn center: her named qualities become the prompt for one new subject
+  that unites them, drawn as a new triangular card that joins the pool. The
+  game feeds itself.
+  - **The style is Dreamy, HANDED IN** (`init({ gptStyles, fileCreation })`,
+    the freeform pattern — server.js owns the wording). Two swaps on the tail,
+    both the swap-never-argue mechanism: the border clause (anchored on
+    `dreamy.sheet.from`) becomes the TRIANGLE clause, and her own noText swap
+    runs (cards carry no text). Anchor stops matching → the triangle clause is
+    APPENDED, never lost; the test pins it.
+  - **Her words are the content half, verbatim**; the one connective line
+    (INVENT_LINE) rides in the wrapper and is disclosed in `promptStyle` with
+    the `[content]` seam. The whole prompt is stored on every card doc.
+  - **Money:** a found set draws ONE gpt-image-2 medium 1024x1024 edit with
+    the dreamy reference — ~6.5c, only on her deliberate star tap. Opening
+    the page spends nothing. **Seeding is a container job** —
+    `node scripts/seed-triset.js` (dry by default, `--go` draws; all draws
+    fire at once, the container pacing rule) — never Render's.
+  - Firestore `forge-triset-cards`, one doc per card; seeds content-addressed
+    sha1(url) so re-seeding dedupes; made cards carry `from` (which three
+    cards, which kind, her words). Nothing deleted — `hidden` is the verb.
+  - The page is one screen, NO pill; the mid slot is `pointer-events:none`
+    (its rectangle overlaps the two lower cards) — only the textarea takes
+    taps. Made cards land in My Creations via the handed-in fileCreation.
+  - Tests: `node scripts/test-triset.js` (pure + headless page half; reads
+    the real dreamy wording out of server.js via
+    `scripts/lib/dreamy-style.js`).
 - **The Dump** (`dropbox.js`, `/api/drop`, sort page at `/dump`, iOS tile with
   SEND and SORT tabs) — **dump first, label afterwards**. Dropping asks no
   questions; only the bundle (a Photos album) and the session are captured,

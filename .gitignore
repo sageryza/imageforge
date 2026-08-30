@@ -51,3 +51,4 @@ docs/marla/
 # Her unpublished stories — same reason as docs/marla/. Banked to membry
 # Storage at storybooks/ instead.
 docs/storybooks/
+.seed-triset/
