@@ -519,6 +519,25 @@
     border-radius: 6px; background: #fdfcf9; color: #2b2622; font: inherit; font-size: 13px;
     cursor: pointer; }
   #charsbtn svg { width: 17px; height: 17px; display: block; }
+  /* THE PROMPT'S OWN CLEAR (2026-08-29, Sophie, circling the empty space next
+     to the character button: "add clear button red circle"). The panel boxes
+     each got one; the ONE box on the Picture tab had none, so wiping a long
+     dictation meant selecting it by hand on a phone. It sits where she
+     circled — in `.styles`, straight after the character button — at that
+     row's own 34px, and it is PAPER with the pale line rather than the
+     picker's ink: the two controls that decide the run are the heavy ones,
+     and this one only empties a box. It is drawn ONLY while that box is on
+     screen with words in it, so it is never a dead control and never offers
+     to clear the box the Panels tab has put away. It asks first over words
+     that were never DRAWN — the panels Clear's own question, for the same
+     reason: a prompt that HAS been drawn is in her feed with a copy button
+     one tap from putting it back, and one that never has is the only thing
+     this can lose. */
+  #promptclear { flex: none; display: inline-flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; box-sizing: border-box; padding: 0; border: 1px solid #d8d0c4;
+    border-radius: 6px; background: #fdfcf9; color: #6f675e; cursor: pointer;
+    -webkit-tap-highlight-color: transparent; }
+  #promptclear svg { width: 16px; height: 16px; display: block; }
   /* HER TYPED CAST (2026-08-27, Sophie: "text boxes that say character 1: add
      character, name, description … etc up to n" · "I want both. Descriptions
      as well as pictures"). The WORDS half of a cast; the picker beside the
@@ -777,7 +796,7 @@
     <button type="button" id="t-picture" class="on">Picture</button>
     <button type="button" id="t-panels">Panels</button>
   </div>
-  <div class="styles"><select id="stylepick" aria-label="Style"></select><button type="button" id="charsbtn" hidden aria-label="Character references" title="Character references"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/></svg><span id="charsn"></span></button></div>
+  <div class="styles"><select id="stylepick" aria-label="Style"></select><button type="button" id="charsbtn" hidden aria-label="Character references" title="Character references"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/></svg><span id="charsn"></span></button><button type="button" id="promptclear" hidden aria-label="Clear the prompt" title="Clear the prompt"></button></div>
   <div id="charpanel">
     <div class="plabtabs chartabs" id="chartabs" hidden>
       <button type="button" data-ct="pics" class="on">Pictures</button>
@@ -954,6 +973,7 @@
   document.getElementById('medhigh').innerHTML = ICONS.oval;
   document.getElementById('photopick').innerHTML = ICONS.imagePlus;
   document.getElementById('photoclear').innerHTML = ICONS.x;
+  document.getElementById('promptclear').innerHTML = ICONS.x;
 
   // LIST (a box per run) or TILES (a wall of thumbnails). Sticky across loads.
   // Both buttons are always on screen and always labelled — the switch can
@@ -1409,6 +1429,10 @@
     box.value = text || '';
     // Setting `.value` fires no `input` event, so the big box has to be told.
     if (window.__fitBigPrompt) window.__fitBigPrompt();
+    // A prompt put back IS a drawn one — it came off a run — so clearing it
+    // asks nothing, exactly as the panels copy-back stamps its grid.
+    savePromptDrawn(String(text || '').trim());
+    paintPromptClear();
     updateShape();
     scrollToPrompt();
     toast('Prompt is back in the box');
@@ -2613,7 +2637,10 @@
     try { localStorage.setItem(TABKEY, 'picture'); } catch (e) { /* private mode */ }
     var st = q.get('style');
     if (st && STYLES[st]) setStyle(st);
-    if (q.get('prompt')) document.getElementById('prompt').value = q.get('prompt');
+    if (q.get('prompt')) {
+      document.getElementById('prompt').value = q.get('prompt');
+      paintPromptClear();               // ported words arrive with no `input` event
+    }
     var qq = q.get('quality');
     if (qq && QUALITIES.indexOf(qq) >= 0) { quality = qq; paintQuality(); }
     if (q.get('character') === '1' && isGpt(styleKey) && !STYLES[styleKey].noCharacter) { charOn = true; document.getElementById('charpick').classList.add('on'); }
@@ -3225,6 +3252,7 @@
     // SAME prompt at several qualities, which on a sheet is several sheets.
     var panels = onPanels();
     document.querySelector('.promptwrap').hidden = panels;
+    paintPromptClear();        // the box she cannot see must not offer a clear
     document.getElementById('charpick').hidden = !gpt || panels || !!STYLES[styleKey].noCharacter;
     // HER CAST rides gpt-image-2's edits call like the photo does, so the LoRA
     // — which takes a trigger word and has no attachment slot at all — shows
@@ -3320,6 +3348,40 @@
 
   // `q` overrides the quality dropdown for one run — the low·low·medium button
   // draws its own ladder without touching what the dropdown says.
+  // THE PROMPT'S OWN CLEAR — the CSS note above #promptclear has the shape and
+  // the reasoning. It empties the one box on the Picture tab and nothing else
+  // (the Panels tab has its own row Clear and its per-box ones).
+  var PROMPTDRAWNKEY = 'promptlab_prompt_drawn';
+  function promptDrawn() {
+    try { return localStorage.getItem(PROMPTDRAWNKEY) || ''; } catch (e) { return ''; }
+  }
+  function savePromptDrawn(t) {
+    try { localStorage.setItem(PROMPTDRAWNKEY, t || ''); } catch (e) { /* private mode */ }
+  }
+  function paintPromptClear() {
+    var box = document.getElementById('prompt');
+    var wrap = document.querySelector('.promptwrap');
+    document.getElementById('promptclear').hidden = wrap.hidden || !box.value.trim();
+  }
+  function wipePrompt() {
+    var box = document.getElementById('prompt');
+    box.value = '';
+    if (window.__fitBigPrompt) window.__fitBigPrompt();
+    paintPromptClear();
+    box.focus();                       // she taps it in order to write the next one
+  }
+  document.getElementById('prompt').addEventListener('input', paintPromptClear);
+  document.getElementById('promptclear').addEventListener('click', function () {
+    var words = document.getElementById('prompt').value.trim();
+    if (!words) return;
+    if (words === promptDrawn()) { wipePrompt(); return; }
+    askOpen({
+      msg: 'Clear the prompt?',
+      fine: 'These words were never drawn.',
+      no: 'Keep them', yes: 'Clear',
+      onYes: wipePrompt,
+    });
+  });
   function startRun(scale, q) {
     var prompt = document.getElementById('prompt').value.trim();
     var S = STYLES[styleKey];
@@ -3372,6 +3434,10 @@
         // way, before it has any images to be recognised by.
         : { id: d.id, prompt: prompt, scale: scale, style: S.label, engine: 'replicate', count: OUTPUTS, seed: seed, key: key, ar: '2:3' });
       setPending(list);
+      // HAS THIS PROMPT BEEN DRAWN? — the panels stamp's twin, for the one
+      // box. The EXACT words that were sent, so editing them afterwards makes
+      // the box undrawn again: what is sitting there is not what was drawn.
+      savePromptDrawn(prompt);
       renderPendings(); startPolling();
       confirmStarted();
     });
