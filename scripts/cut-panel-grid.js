@@ -4,107 +4,138 @@
 // Not the Playground's `cutSheet`: that one knows the grid it asked for and
 // slices by arithmetic. This is for a sheet NOBODY laid out for us — a comic
 // page, a contact sheet, a scan of hand-drawn strips — where the panels are
-// hand-ruled, slightly wavy, unevenly spaced, and the row may hold a different
-// number of panels than the row above it.
+// hand-ruled, unevenly wide, and a row may hold a different number of panels
+// than the row above it. On the sheet this was built for, the rows are also
+// SLANTED (row 4's panels start at y=609 on the left and y=623 on the right)
+// and the panels get shorter down the page, so nothing here may assume one
+// top edge per row, one width, or one height.
 //
-// The rule: a panel's border is a closed dark rectangle, and any drawing that
-// touches it joins the same connected component — so ONE dark component's
-// bounding box IS the panel, drawing or no drawing. Titles and the little
-// "1./2./3." numbers are their own small components and fall out by size.
-// Two components overlapping are one panel whose border broke into two pieces
-// (hand-drawn ink does that) and are merged rather than cut twice.
+//   node scripts/cut-panel-grid.js <sheet.png> [outDir] [--pad 2]
 //
-// Deliberately NOT a projection/line detector: measured on a real sheet, a
-// wavy hand-ruled border never produces a full-height dark run, so vertical
-// line detection found ~60% of the borders while the component pass found
-// 69 of 69.
+// Prints one JSON object per panel (row, col, box, file). Lossless: every
+// panel is an `extract` of the original bytes (the house rule — a derived
+// display copy may be small, a cut of her original may not be lossy).
 //
-//   node scripts/cut-panel-grid.js <sheet.png> [outDir] [--min 78] [--max 150]
+// ── How it finds a panel, and the wrong way that shipped first ──────────────
 //
-// Prints one JSON line per panel (row, col, box, file) so a caller can label
-// them. Lossless: every panel is an `extract` of the original bytes, never a
-// re-encode of a resized copy (the house rule — a derived copy may be small,
-// a cut of her original may not be lossy).
+// The first version took CONNECTED COMPONENTS of the dark pixels, on the
+// theory that a panel's border is a closed rectangle and any drawing touching
+// it joins the same blob, so one blob's bounding box IS the panel. It counted
+// 69 of 69 panels and was still WRONG, in the way that matters: where the ink
+// of a border is broken — and hand-drawn ink is broken constantly — the blob
+// is only PART of the panel, so the box came in tight and the crop sliced
+// through the drawing. Sophie's word for the result was "cut wrong". A count
+// that comes out right is not the same as boxes that come out right; check
+// the crops, not the tally.
+//
+// What works is projections, in three passes, each one narrowing the last:
+//
+//   1. ROWS. Count dark pixels per scanline over the whole width. A row of
+//      panels is dense (>15% of the width); the titles between them are not.
+//      That gives a rough band per row of panels.
+//   2. COLUMNS, inside one band. Count dark pixels per column. Between two
+//      panels the count falls to ZERO — the gap is white all the way down the
+//      band — so the panels are simply the non-zero runs wider than 60px.
+//      This is why it survives a broken border: a gap in the ink still leaves
+//      the panel's own drawing in that column.
+//   3. THE PANEL'S OWN TOP AND BOTTOM. Within its x-range, a border is a
+//      near-solid line, so the first scanline covering >=55% of the panel's
+//      width IS the top edge. Title text never reaches 55%. Done per panel,
+//      which is what follows a slanted row.
+//
+// Pass 3 runs TWICE and that is load-bearing: a wide search window reaches
+// into the row above (a title, or the previous row's bottom border) and finds
+// a false edge tens of pixels out. So it searches tight first (+-18px of the
+// band), takes the MEDIAN top and bottom of the row — robust to a panel or
+// two missing an edge — and then searches each panel again within +-20px of
+// that median. The row's own geometry becomes the window for its panels.
+//
+// The threshold is 200, not 128: the lighter passages of hand-drawn ink are
+// well above mid-grey, and at 150 two panels in the test sheet lost their
+// side borders and came out 30% narrow.
 
 const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 
-async function panelBoxes(src, { min = 78, max = 150, pad = 2, thresh = 150 } = {}) {
+const MIN_PANEL = 60;      // px — narrower than this is a stray mark, not a panel
+const MIN_BAND = 60;       // px — shorter than this is a title line, not a row
+const DARK = 200;          // grey level counted as ink
+const BAND_DENSITY = 0.15; // share of the sheet's width that makes a row "dense"
+const EDGE_COVER = 0.55;   // share of a panel's width that makes a scanline its border
+const ROUGH = 18;          // px — pass-1 search either side of the band
+const FINE = 20;           // px — pass-2 search either side of the row's median edge
+
+const median = a => a.slice().sort((x, y) => x - y)[Math.floor(a.length / 2)];
+
+async function panelBoxes(src, { pad = 2 } = {}) {
   const { data, info } = await sharp(src).greyscale().raw().toBuffer({ resolveWithObject: true });
   const W = info.width, H = info.height;
-  const dark = new Uint8Array(W * H);
-  for (let i = 0; i < W * H; i++) dark[i] = data[i] < thresh ? 1 : 0;
+  const ink = new Uint8Array(W * H);
+  for (let i = 0; i < W * H; i++) ink[i] = data[i] < DARK ? 1 : 0;
 
-  const lab = new Int32Array(W * H).fill(-1);
-  const stack = new Int32Array(W * H);
-  const boxes = [];
-  for (let i = 0; i < W * H; i++) {
-    if (!dark[i] || lab[i] >= 0) continue;
-    const id = boxes.length; let sp = 0; stack[sp++] = i; lab[i] = id;
-    let x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1, n = 0;
-    while (sp) {
-      const p = stack[--sp], x = p % W, y = (p - x) / W; n++;
-      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
-      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-        if (!dx && !dy) continue;
-        const nx = x + dx, ny = y + dy;
-        if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
-        const q = ny * W + nx;
-        if (dark[q] && lab[q] < 0) { lab[q] = id; stack[sp++] = q; }
-      }
+  // 1. Rows of panels: the dense scanlines.
+  const bands = [];
+  let start = -1;
+  for (let y = 0; y <= H; y++) {
+    let dense = 0;
+    if (y < H) { let c = 0; for (let x = 0; x < W; x++) c += ink[y * W + x]; dense = c > W * BAND_DENSITY ? 1 : 0; }
+    if (dense && start < 0) start = y;
+    else if (!dense && start >= 0) { if (y - start > MIN_BAND) bands.push([start, y - 1]); start = -1; }
+  }
+
+  const panels = [];
+  bands.forEach(([a, b], bi) => {
+    // 2. Panels within the band: the non-zero column runs.
+    const runs = [];
+    let t = -1;
+    for (let x = 0; x <= W; x++) {
+      let on = 0;
+      if (x < W) { for (let y = a; y <= b && !on; y++) if (ink[y * W + x]) on = 1; }
+      if (on && t < 0) t = x;
+      else if (!on && t >= 0) { if (x - t >= MIN_PANEL) runs.push([t, x - 1]); t = -1; }
     }
-    boxes.push({ x0, y0, x1, y1, n, w: x1 - x0 + 1, h: y1 - y0 + 1 });
-  }
 
-  // Panel-sized components, biggest first so a merge grows onto the real border.
-  const cand = boxes
-    .filter(b => b.w >= min && b.w <= max && b.h >= min && b.h <= max && b.n > 200)
-    .sort((a, b) => b.n - a.n);
-  const keep = [];
-  for (const b of cand) {
-    const hit = keep.find(k => !(b.x1 < k.x0 || b.x0 > k.x1 || b.y1 < k.y0 || b.y0 > k.y1));
-    if (hit) {
-      hit.x0 = Math.min(hit.x0, b.x0); hit.y0 = Math.min(hit.y0, b.y0);
-      hit.x1 = Math.max(hit.x1, b.x1); hit.y1 = Math.max(hit.y1, b.y1);
-    } else keep.push({ ...b });
-  }
+    // 3. Each panel's own top and bottom border.
+    const cover = (y, x0, x1) => { let c = 0; for (let x = x0; x <= x1; x++) c += ink[y * W + x]; return c; };
+    const edge = (x0, x1, lo, hi, downward) => {
+      const need = Math.round((x1 - x0 + 1) * EDGE_COVER);
+      lo = Math.max(0, lo); hi = Math.min(H - 1, hi);
+      if (downward) { for (let y = lo; y <= hi; y++) if (cover(y, x0, x1) >= need) return y; }
+      else { for (let y = hi; y >= lo; y--) if (cover(y, x0, x1) >= need) return y; }
+      return null;
+    };
 
-  // Rows: panels within ~a third of a panel height of each other share a row.
-  keep.sort((a, b) => a.y0 - b.y0);
-  const rows = [];
-  keep.forEach(b => {
-    const r = rows.find(r => Math.abs(r[0].y0 - b.y0) < min / 2);
-    if (r) r.push(b); else rows.push([b]);
-  });
-  rows.forEach(r => r.sort((a, b) => a.x0 - b.x0));
+    const tops = [], bots = [];
+    runs.forEach(([x0, x1]) => {
+      const t0 = edge(x0, x1, a - ROUGH, a + ROUGH, true); if (t0 !== null) tops.push(t0);
+      const b0 = edge(x0, x1, b - ROUGH, b + ROUGH, false); if (b0 !== null) bots.push(b0);
+    });
+    const mt = tops.length ? median(tops) : a;
+    const mb = bots.length ? median(bots) : b;
 
-  // A row is cut on ONE top and ONE bottom, so the cards line up even though
-  // each panel's own ink stops a pixel or two short.
-  const out = [];
-  rows.forEach((r, ri) => {
-    const top = Math.max(0, Math.min(...r.map(b => b.y0)) - pad);
-    const bot = Math.min(H - 1, Math.max(...r.map(b => b.y1)) + pad);
-    r.forEach((b, ci) => {
-      const left = Math.max(0, b.x0 - pad);
-      out.push({
-        row: ri + 1, col: ci + 1,
-        left, top,
-        width: Math.min(W - left, b.x1 - b.x0 + 1 + pad * 2),
-        height: Math.min(H - top, bot - top + 1),
+    runs.forEach(([x0, x1], ci) => {
+      const top = edge(x0, x1, mt - FINE, mt + FINE, true) ?? mt;
+      const bot = edge(x0, x1, mb - FINE, mb + FINE, false) ?? mb;
+      const left = Math.max(0, x0 - pad), y = Math.max(0, top - pad);
+      panels.push({
+        row: bi + 1, col: ci + 1,
+        left, top: y,
+        width: Math.min(W - left, x1 - x0 + 1 + pad * 2),
+        height: Math.min(H - y, bot - top + 1 + pad * 2),
       });
     });
   });
-  return { W, H, rows: rows.map(r => r.length), panels: out };
+  return { width: W, height: H, rows: bands.map((_, i) => panels.filter(p => p.row === i + 1).length), panels };
 }
 
 async function main() {
   const args = process.argv.slice(2);
   const src = args[0];
-  if (!src) { console.error('usage: cut-panel-grid.js <sheet.png> [outDir] [--min N] [--max N]'); process.exit(1); }
+  if (!src) { console.error('usage: cut-panel-grid.js <sheet.png> [outDir] [--pad N]'); process.exit(1); }
   const outDir = args[1] && !args[1].startsWith('--') ? args[1] : 'panels';
-  const num = f => { const i = args.indexOf(f); return i < 0 ? undefined : Number(args[i + 1]); };
-  const { rows, panels } = await panelBoxes(src, { min: num('--min'), max: num('--max') });
+  const pi = args.indexOf('--pad');
+  const { rows, panels } = await panelBoxes(src, { pad: pi < 0 ? undefined : Number(args[pi + 1]) });
   fs.mkdirSync(outDir, { recursive: true });
   for (const p of panels) {
     p.file = path.join(outDir, `r${p.row}c${p.col}.png`);
