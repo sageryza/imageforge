@@ -69,7 +69,9 @@ async function main() {
   const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
   admin.initializeApp({
     credential: admin.credential.cert(sa),
-    storageBucket: `${sa.project_id}.appspot.com`,
+    // the newer Firebase default bucket — `<id>.appspot.com` does not exist
+    // on this project (server.js line ~264 is the reference)
+    storageBucket: `${sa.project_id}.firebasestorage.app`,
   });
   const bucket = admin.storage().bucket();
   const db = admin.firestore();
@@ -82,8 +84,14 @@ async function main() {
   const results = await Promise.all(SEEDS.map(async (s) => {
     const rec = triset.cardPrompt(s.title, { invent: false });
     try {
-      const buf = await triset.draw(rec.fullPrompt, refs);
       const f = path.join(outDir, s.slug + '.webp');
+      // a banked draw is PAID work — a re-run after an upload failure must
+      // never draw (and bill) it again
+      if (fs.existsSync(f) && fs.statSync(f).size > 10000) {
+        console.log('banked ' + s.slug);
+        return { ...s, rec, file: f, madeAt: fs.statSync(f).mtimeMs };
+      }
+      const buf = await triset.draw(rec.fullPrompt, refs);
       fs.writeFileSync(f, buf);
       console.log('drawn  ' + s.slug + '  ' + (buf.length / 1024).toFixed(0) + 'KB');
       return { ...s, rec, file: f, madeAt: Date.now() };

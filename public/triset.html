@@ -58,14 +58,15 @@ h1.tool-eyebrow{
 #s-left{left:0;top:50%}
 #s-right{left:50%;top:50%}
 #s-mid{left:25%;top:50%;cursor:default}
-.face{position:absolute;inset:0;background:var(--cream)}
+/* a WHITE mat — the drawn cards sit on white with their own cream borders,
+   so the mat disappears behind them (the Story Room shelf's white-mat rule) */
+.face{position:absolute;inset:0;background:#fff}
 .slot img{
   position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;
   clip-path:polygon(50% 0,100% 100%,0 100%);
-  transform:scale(.93);transform-origin:50% 66.7%;
 }
 /* the middle inverted triangle — a text box */
-#s-mid .face{clip-path:polygon(0 0,100% 0,50% 100%)}
+#s-mid .face{clip-path:polygon(0 0,100% 0,50% 100%);background:var(--cream)}
 /* the mid slot's RECTANGLE overlaps the two lower cards — only the textarea
    may take taps, or the cards' inner corners go dead */
 #s-mid{pointer-events:none}
@@ -130,10 +131,10 @@ button.btn{
   padding:30px;cursor:pointer;
 }
 #reveal .rc{position:relative;width:min(84vw,420px);aspect-ratio:1000/880}
-#reveal .rc .face{position:absolute;inset:0;background:var(--cream);clip-path:polygon(50% 0,100% 100%,0 100%)}
+#reveal .rc .face{position:absolute;inset:0;background:#fff;clip-path:polygon(50% 0,100% 100%,0 100%)}
 #reveal .rc img{
   position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
-  clip-path:polygon(50% 0,100% 100%,0 100%);transform:scale(.93);transform-origin:50% 66.7%;
+  clip-path:polygon(50% 0,100% 100%,0 100%);
 }
 #reveal .rt{
   margin-top:16px;color:var(--paper);font-size:17px;text-align:center;max-width:320px;line-height:1.4;
