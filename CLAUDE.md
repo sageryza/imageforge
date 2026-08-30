@@ -5239,10 +5239,26 @@ before working on that module. Nothing was deleted — the moved text is verbati
     6 strings, the two star-paper boards — read back exactly). The page
     debounces whole-state saves 700ms, flushes on pagehide, and **never
     saves before a load succeeded** (the hook's own clobber guard).
-  - **MEMORIES STAY READ-ONLY.** Nothing here writes, edits or deletes one;
-    the one action near them, **Square it** on the detail card, builds a
-    one-picture Squaring set through `cropper.createSet` whose save lands
-    back on that memory doc — a NEW copy, never the source.
+  - **MEMORIES STAY READ-ONLY, WITH ONE CARVE-OUT SHE ASKED FOR (2026-08-29:
+    "a step to add tags and customize the actual card writing").** The detail
+    card's **Edit** opens two fields prefilled with her saved values — the
+    card's writing (the title) and its tags — saved by `POST /api/shoebox/
+    memory`, a whitelisted patch of `title` + `hashtags` and nothing else (it
+    refuses a missing doc — an edit must never invent a memory). Everything
+    else about a memory is untouchable here; **Square it** still builds a
+    one-picture Squaring set through `cropper.createSet` (a NEW copy, never
+    the source). Tags show as chips on the card and are searchable.
+  - **Round 3 (2026-08-29, her asks):** search covers the FULL prompt, the
+    memory's words, tags, caption and source (never the url) — and
+    `shoeboxPut` now keeps a >140-char title's full text in `content` on
+    first filing, so a Playground prompt survives whole; the hand is
+    **Patrick Hand** (she asked for a different one — "darb?" matched no
+    font in any repo, so this is the stand-in until she names it); **no
+    date on the chin**; the finale is **v3** ported verbatim from
+    memory-library-react #354 (five-point stars, dashes not dots, 3s
+    twinkle, polaroids fade to a ghost); and **▶ Play opens ON the first
+    card** — no whole-board shot first; the wide shot lives only at the
+    end, where the finale needs the zoom-out.
   - **The library is one cheap read** — measured 2026-08-29: 626 memories,
     all carrying `createdAt`; the whole `select()` index cached 90s, the
     feed's `q` filtered over the FULL index (the Assets-tab truncate

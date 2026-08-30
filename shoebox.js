@@ -40,6 +40,9 @@
 //   GET  /board-state   → { boards, current } (normalized)
 //   POST /board-state   → { boards, current } — validated, whole-state save
 //                         (the React hook's own debounced-whole-doc shape)
+//   POST /memory        → { id, title?, tags? } — the ONE memory edit
+//                         (2026-08-29, her ask): the card's writing and its
+//                         tags, whitelisted; everything else stays read-only
 //   POST /square        → { id } → { ok, url:'/crop?set=…' }
 //
 // Tests: node scripts/test-shoebox.js (the index/caption/search/board rules
@@ -108,6 +111,7 @@ function itemOf(id, m) {
     at: atMillis(m),
     ts: String(m.timestamp || ''),
     source: String(m.source || (Array.isArray(m.hashtags) && m.hashtags[0]) || '').trim(),
+    tags: (Array.isArray(m.hashtags) ? m.hashtags : []).map((t) => String(t || '').trim()).filter(Boolean),
     caption: captionOf(ill),
     promptContent: String(ill.prompt || '').trim(),
   };
@@ -289,6 +293,38 @@ router.post('/board-state', async (req, res) => {
       updatedAt: FV.serverTimestamp(),
     }, { merge: true });
     res.json({ ok: true, boards: st.boards.length, current: st.current });
+  } catch (e) { fail(res, e); }
+});
+
+// THE CARD'S WRITING AND ITS TAGS — the ONE edit memories allow (2026-08-29,
+// Sophie: "a step to add tags and customize the actual card writing"). A
+// whitelisted patch: title and hashtags, nothing else — the picture, the
+// content and the memory's dates are never touched, so "memories stay
+// read-only" holds for everything but the two fields she asked to own here.
+router.post('/memory', async (req, res) => {
+  try {
+    const id = String(req.body.id || '').trim();
+    if (!id) return res.status(400).json({ error: 'a memory id is required' });
+    const mdb = await membryDb();
+    if (!mdb) return noMembry(res);
+    const { shoeboxUid } = require('./scratchpad');
+    const uid = await shoeboxUid(mdb);
+    const ref = mdb.collection('users').doc(uid).collection('memories').doc(id);
+    const snap = await ref.get();
+    // set({merge}) on a missing doc still writes it (the phantom-chat
+    // lesson) — an edit must never invent a memory.
+    if (!snap.exists) return res.status(404).json({ error: 'no memory with that id' });
+    const patch = {};
+    if (typeof req.body.title === 'string') patch.title = req.body.title.trim().slice(0, 300);
+    if (Array.isArray(req.body.tags)) {
+      patch.hashtags = req.body.tags.map((t) => String(t || '').trim().slice(0, 40))
+        .filter(Boolean).slice(0, 20);
+    }
+    if (!Object.keys(patch).length) return res.status(400).json({ error: 'nothing to change' });
+    patch.updatedAt = require('firebase-admin').firestore.FieldValue.serverTimestamp();
+    await ref.set(patch, { merge: true });
+    cache = null;   // the next feed read carries the edit
+    res.json({ ok: true, id });
   } catch (e) { fail(res, e); }
 });
 
