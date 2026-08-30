@@ -380,6 +380,10 @@ loadConfig().then(() => {
   // Freeform — your own reference images + your own words, sent verbatim. The
   // one image surface that adds NOTHING to a prompt (no style prefix/suffix).
   app.use('/api/freeform', require('./freeform').router);
+  // Triset — triangular SET solitaire: a pool of triangular picture cards,
+  // find a set, and the named qualities draw a NEW card (the venn center).
+  // Mounted here so config-loader has hydrated OPENAI_API_KEY first.
+  app.use('/api/triset', require('./triset').router);
   // Vector Studio — described drawings → a pastel sheet → cut-outs → SVG. The
   // one surface whose output is resolution-free, so a drawing can go on a
   // poster, a shirt or a die-cut sticker. Mounted here so config-loader has
@@ -925,6 +929,8 @@ app.get('/instagram', serveGated('instagram.html', { pill: true }));
 // from opinions-feed.json + /api/opinions extras. Served WITHOUT the pill:
 // one screen, the page never scrolls.
 app.get('/opinions', serveGated('opinions.html'));
+// Triset — triangular SET solitaire. No pill: one screen, never scrolls.
+app.get('/triset', serveGated('triset.html'));
 // Desktop queue: the Mac-only tasks chats have batched into
 // docs/desktop-tasks.md, and the ones already checked off. Read-only, and
 // deliberately UNLINKED — no tile, no wrapper ("somewhere out-of-the-way",
@@ -5818,6 +5824,9 @@ const PL_GPT_STYLES = {
 // and a require would read it before it exists. server.js stays the one owner
 // of what is actually sent.
 require('./freeform').init({ gptStyles: PL_GPT_STYLES, fileCreation: fileCreationDoc });
+// Triset draws its cards in the Dreamy recipe with a triangle-card clause
+// swapped in — handed in for the same reason as freeform's boiler above.
+require('./triset').init({ gptStyles: PL_GPT_STYLES, fileCreation: fileCreationDoc });
 // The no-text switch on a style's tail. It SWAPS the style's own text clause
 // where that clause is there to swap, so the sent prompt says one thing about
 // text instead of two contradicting things; if she has edited the tail and her
