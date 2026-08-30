@@ -44,19 +44,31 @@ ok('server.js serves the page', /app\.get\('\/triset', serveGated\('triset\.html
 ok('triset.js keeps no copy of the dreamy wording', !MOD.includes('green tank top'));
 
 /* ── the swaps against the REAL tail ─────────────────────────────────────── */
+const tailUp = triset.cardPrompt('x', { invent: false }).fullPrompt;
 ok('the border clause was found to swap (anchor still matches)', triset.STYLE.swapped === true);
-ok('the tail asks for a triangle card', triset.STYLE.suffix.includes('TRIANGLE-SHAPED CARD'));
-ok('the border clause is gone', !triset.STYLE.suffix.includes('Draw it inside a hand-drawn border'));
+ok('the tail asks for an EQUILATERAL triangle card (2026-08-30, "the shapes are off")',
+  tailUp.includes('EQUILATERAL TRIANGLE-SHAPED CARD') && tailUp.includes('all three sides exactly the same length'));
+ok('a pool card is point up', tailUp.includes('point up'));
+ok('the border clause is gone', !tailUp.includes('Draw it inside a hand-drawn border'));
 ok('cards carry no text (her own two words swapped in)',
-  triset.STYLE.suffix.includes('no text.') && !triset.STYLE.suffix.includes('minimal text.'));
-ok('the anti-content bookend survives', /do not draw its content/.test(triset.STYLE.suffix));
+  tailUp.includes('no text.') && !tailUp.includes('minimal text.'));
+ok('the anti-content bookend survives', /do not draw its content/.test(tailUp));
+
+// A MADE card — the venn center — is upside down (her rule: "the middle card
+// has to be upside down").
+const tailDown = triset.cardPrompt('x', { invent: true, invert: true }).fullPrompt;
+ok('a made card is drawn point down', tailDown.includes('point down, upside down'));
+ok('the placeholder never leaks into a sent prompt',
+  !tailUp.includes('{triangle}') && !tailDown.includes('{triangle}'));
+ok('/found draws inverted and stamps flip on the doc',
+  /invert: true/.test(MOD) && /flip: true/.test(MOD));
 
 // A reworded tail (anchor gone) APPENDS the triangle clause, never loses it.
-const t2 = { ...triset };
 const alt = { ...dreamy, suffix: 'A reworded tail with no anchor.', sheet: { from: 'nope', to: '' } };
 triset.init({ gptStyles: { dreamy: alt } });
+const reworded = triset.cardPrompt('x', { invent: false }).fullPrompt;
 ok('a reworded tail still gets the triangle clause (appended)',
-  triset.STYLE.suffix.includes('TRIANGLE-SHAPED CARD') && triset.STYLE.suffix.includes('A reworded tail'));
+  reworded.includes('EQUILATERAL TRIANGLE-SHAPED CARD') && reworded.includes('A reworded tail'));
 ok('an appended tail says so', triset.STYLE.swapped === false);
 triset.init({ gptStyles: { dreamy } }); // restore
 
@@ -151,7 +163,7 @@ async function headless() {
       res.writeHead(200, { 'content-type': 'application/json' });
       return res.end(JSON.stringify(pollCount < 2
         ? { ok: true, status: 'drawing' }
-        : { ok: true, status: 'ready', title: 'the moon', url: 'https://storage.googleapis.com/x/triset/cards/made1.webp' }));
+        : { ok: true, status: 'ready', title: 'the moon', flip: true, url: 'https://storage.googleapis.com/x/triset/cards/made1.webp' }));
     }
     if (u.pathname === '/api/story/thumb') {
       res.writeHead(200, { 'content-type': 'image/webp' });
@@ -201,27 +213,57 @@ async function headless() {
   ok('the side boxes are empty', await pg.evaluate(() =>
     ['side-top', 'side-left', 'side-right'].every(id => document.getElementById(id).value === '')));
 
-  // found posts exactly what the module validates, and the reveal lands
+  // found posts exactly what the module validates, and the new card lands IN
+  // THE MIDDLE, upside down (her rule: "shud show, in the middle, when drawn")
   await pg.fill('#middle', 'the moon');
   await pg.fill('#side-top', 'round');
   await pg.fill('#side-left', 'out at night');
   await pg.fill('#side-right', 'glows');
   await pg.click('#found');
-  await pg.waitForFunction(() => !document.getElementById('reveal').hidden, null, { timeout: 15000 });
+  await pg.waitForFunction(() => !document.getElementById('midimg').hidden, null, { timeout: 15000 });
   ok('found POSTed once', founds.length === 1);
   const f = founds[0] || {};
   ok('…with three different card ids', f.cards && new Set(f.cards).size === 3);
   ok('…the kind and her words', f.kind === 'each' && f.middle === 'the moon' && (f.sides || []).join('|') === 'round|out at night|glows');
   ok('…and the module would accept it', triset.validFound(f) === null);
-  ok('the reveal shows the new card and her words', await pg.evaluate(() =>
-    document.querySelector('#reveal .rt').textContent === 'the moon'
-    && (document.querySelector('#reveal img').getAttribute('src') || '').includes('made1')));
+  ok('the made card shows in the middle slot', await pg.evaluate(() =>
+    (document.getElementById('midimg').getAttribute('src') || '').includes('made1')
+    && document.getElementById('midwrap').hidden));
+  // computed clip-path serializes 0 as 0px — normalize before asking which way
+  ok('…clipped point down', await pg.evaluate(() => {
+    const c = getComputedStyle(document.getElementById('midimg')).clipPath
+      .replace(/px/g, '').replace(/%/g, '').replace(/\s/g, '');
+    return c.startsWith('polygon(00,1000,50100');
+  }));
 
-  // tap to keep playing: boxes clear, a fresh hand deals
-  await pg.click('#reveal', { position: { x: 20, y: 20 } });
-  ok('the reveal closes and the boxes clear', await pg.evaluate(() =>
-    document.getElementById('reveal').hidden && document.getElementById('middle').value === ''
-    && document.getElementById('side-top').value === ''));
+  // tapping the made card deals the next hand: boxes clear, text box back
+  await pg.click('#midimg', { position: { x: 90, y: 30 } });
+  ok('the next hand deals and the boxes clear', await pg.evaluate(() =>
+    document.getElementById('midimg').hidden && !document.getElementById('midwrap').hidden
+    && document.getElementById('middle').value === '' && document.getElementById('side-top').value === ''));
+
+  // the made card is upside down FOR LIFE — swap it into a corner slot and it
+  // clips point down there too
+  // the fresh deal may already hold made1 in ANY slot — check all three, and
+  // only swap the top slot hunting for it when no slot has it yet
+  const findMade = () => pg.evaluate(() => {
+    for (const s of ['top', 'left', 'right']) {
+      const el = document.getElementById('s-' + s);
+      if ((el.querySelector('img').src || '').includes('made1')) {
+        return { down: el.classList.contains('down'),
+          clip: getComputedStyle(el.querySelector('img')).clipPath
+            .replace(/px/g, '').replace(/%/g, '').replace(/\s/g, '') };
+      }
+    }
+    return null;
+  });
+  let corner = await findMade();
+  for (let i = 0; i < 80 && !corner; i++) {
+    await pg.click('#s-top', { position: { x: 90, y: 120 } });
+    corner = await findMade();
+  }
+  ok('a made card dealt to a corner stays upside down',
+    corner && corner.down && corner.clip.startsWith('polygon(00,1000,50100'));
 
   await browser.close();
   srv.close();

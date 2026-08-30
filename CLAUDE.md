@@ -7378,6 +7378,15 @@ before working on that module. Nothing was deleted — the moved text is verbati
     `dreamy.sheet.from`) becomes the TRIANGLE clause, and her own noText swap
     runs (cards carry no text). Anchor stops matching → the triangle clause is
     APPENDED, never lost; the test pins it.
+  - **EQUILATERAL is spelled out, and a MADE card is UPSIDE DOWN (2026-08-30,
+    Sophie: "u didn't specify equalateral so the shapes are off" · "the middle
+    card has to be upside down, and shud show, in the middle, when drawn").**
+    The first 12 seeds came back steep isosceles — they stay in the pool
+    (gorgeous, her word) unless she asks for a redraw. A found set's card is
+    drawn point DOWN, lands IN the middle inverted slot when ready (no
+    overlay), and carries `flip` on its doc — the page clips it point-down
+    wherever it is dealt, forever, which is also how you tell the cards the
+    game made from the seeds.
   - **Her words are the content half, verbatim**; the one connective line
     (INVENT_LINE) rides in the wrapper and is disclosed in `promptStyle` with
     the `[content]` seam. The whole prompt is stored on every card doc.

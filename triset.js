@@ -78,11 +78,22 @@ const sha1 = (s) => crypto.createHash('sha1').update(String(s)).digest('hex');
 // The TRIANGLE clause — this module's one piece of style wording. It replaces
 // dreamy's border clause (the tail names a rectangular hand-drawn frame; a
 // triangle card needs a triangle). Stored in promptStyle like everything else.
-const TRIANGLE_CLAUSE = 'Render as ONE single illustration — NOT a grid, NOT '
-  + 'split panels. The illustration is a TRIANGLE-SHAPED CARD, point up: a '
-  + 'triangle with a plain paper border and a hand-drawn frame line, like the '
-  + 'frames in the style reference but triangular, on a plain white '
-  + 'background, the whole composition inside the triangle. ';
+// EQUILATERAL is spelled out twice (2026-08-30, Sophie: "u didn't specify
+// equalateral so the shapes are off") — the first batch came back as steep
+// isosceles cards. And a MADE card (the venn center, the middle slot) is
+// drawn POINT DOWN (her rule: "the middle card has to be upside down") —
+// `flip` on the doc is what tells the page which way to clip it, forever.
+const TRIANGLE_UP = 'point up — the flat side on the bottom, one corner at the top';
+const TRIANGLE_DOWN = 'point down, upside down — the flat side on TOP, one corner at the bottom';
+function triangleClause(invert) {
+  return 'Render as ONE single illustration — NOT a grid, NOT split panels. '
+    + 'The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three '
+    + 'sides exactly the same length, ' + (invert ? TRIANGLE_DOWN : TRIANGLE_UP)
+    + ': a triangle with a plain paper border and a hand-drawn frame line, '
+    + 'like the frames in the style reference but triangular, on a plain '
+    + 'white background, the whole composition inside the triangle. ';
+}
+const TRIANGLE_CLAUSE = triangleClause(false);
 // The connective line for a MADE card (the venn center). Rides in the wrapper
 // prefix, so promptStyle discloses it; her words stay verbatim in the content.
 const INVENT_LINE = 'Invent ONE new subject that unites the qualities named '
@@ -103,13 +114,14 @@ function init({ gptStyles, fileCreation } = {}) {
   STYLE.swapped = false;
   // Border → triangle, the swap-never-argue mechanism. `sheet.from` is the
   // tail's own border clause verbatim; when it stops matching (a reword in
-  // server.js) the triangle clause is appended instead, never lost.
+  // server.js) the triangle clause is appended instead, never lost. The
+  // orientation is per CARD, so the tail holds a placeholder cardPrompt fills.
   const anchor = st.sheet && st.sheet.from;
   if (anchor && tail.includes(anchor)) {
-    tail = tail.split(anchor).join(TRIANGLE_CLAUSE);
+    tail = tail.split(anchor).join('{triangle}');
     STYLE.swapped = true;
   } else {
-    tail = TRIANGLE_CLAUSE + tail;
+    tail = '{triangle}' + tail;
   }
   // Her own two words: cards carry no text.
   if (st.noText && st.noText.from && tail.includes(st.noText.from)) {
@@ -135,9 +147,11 @@ function foundContent({ kind, middle, sides } = {}) {
 
 // The full record for a card drawn by this module. `invent` marks a made card
 // (the venn center gets the connective line); a seed card is just its subject.
-function cardPrompt(content, { invent = true } = {}) {
+// `invert` draws it point down — the made card is the middle, upside-down slot.
+function cardPrompt(content, { invent = true, invert = false } = {}) {
   const prefix = [STYLE.prefix, invent ? INVENT_LINE : ''].filter(Boolean).join('\n\n');
-  return promptRecord({ prefix, content, suffix: STYLE.suffix });
+  const suffix = STYLE.suffix.split('{triangle}').join(triangleClause(invert));
+  return promptRecord({ prefix, content, suffix });
 }
 
 // null when well-formed, else a one-line reason.
@@ -285,10 +299,13 @@ router.post('/found', async (req, res) => {
     const sides = kind === 'each'
       ? (b.sides || []).map(s => clip(s, MAX_WORDS)).filter(Boolean) : [];
     const content = foundContent({ kind, middle, sides });
-    const rec = cardPrompt(content, { invent: true });
+    const rec = cardPrompt(content, { invent: true, invert: true });
     const ref = db().collection(CARDS).doc();
     const doc = {
-      title: middle, source: 'made', status: 'drawing',
+      // flip: a made card is upside down for life — the page clips it point
+      // down wherever it is dealt, which is also how you can tell the cards
+      // the game made from the seeds.
+      title: middle, source: 'made', status: 'drawing', flip: true,
       from: { cards: (b.cards || []).map(String), kind, middle, sides },
       model: 'gpt-image-2', quality: QUALITY, canvas: CANVAS, size: SIZE_TIER,
       ...promptFields(rec),
@@ -366,7 +383,7 @@ router.post('/seed', async (req, res) => {
 module.exports = {
   router, init,
   foundContent, cardPrompt, validFound, stuckPatch,
-  KINDS, STYLE, TRIANGLE_CLAUSE, INVENT_LINE, STUCK_MS, COST_CENTS,
+  KINDS, STYLE, TRIANGLE_CLAUSE, triangleClause, INVENT_LINE, STUCK_MS, COST_CENTS,
   // for scripts/seed-triset.js — the seed batch must draw through the exact
   // call a found set draws through, or the pool and the made cards drift.
   draw, refBuffers, QUALITY, CANVAS, SIZE_TIER,

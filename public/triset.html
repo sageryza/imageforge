@@ -49,11 +49,10 @@ h1.tool-eyebrow{
 
 /* ── the board: three cards + the middle text triangle ────────────────── */
 #board{
-  position:relative;width:min(94vw,470px);aspect-ratio:1000/880;
+  position:relative;width:min(94vw,470px);aspect-ratio:1000/866;
   margin:10px auto 0;
 }
 .slot{position:absolute;width:50%;height:50%;padding:0;border:none;background:none;cursor:pointer}
-.slot.up .face{clip-path:polygon(50% 0,100% 100%,0 100%)}
 #s-top{left:25%;top:0}
 #s-left{left:0;top:50%}
 #s-right{left:50%;top:50%}
@@ -61,16 +60,22 @@ h1.tool-eyebrow{
 /* a WHITE mat — the drawn cards sit on white with their own cream borders,
    so the mat disappears behind them (the Story Room shelf's white-mat rule) */
 .face{position:absolute;inset:0;background:#fff}
-.slot img{
-  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;
-  clip-path:polygon(50% 0,100% 100%,0 100%);
-}
-/* the middle inverted triangle — a text box */
+.slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+/* orientation is per CARD — a made card (the venn center) is upside down for
+   life, wherever it is dealt (flip on its doc) */
+.slot.up img,.slot.up .face{clip-path:polygon(50% 0,100% 100%,0 100%)}
+.slot.down img,.slot.down .face{clip-path:polygon(0 0,100% 0,50% 100%)}
+/* the middle inverted triangle — a text box, until a made card lands in it */
 #s-mid .face{clip-path:polygon(0 0,100% 0,50% 100%);background:var(--cream)}
+#s-mid.made .face{background:#fff}
+#midimg{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;
+  clip-path:polygon(0 0,100% 0,50% 100%);cursor:pointer;
+}
 /* the mid slot's RECTANGLE overlaps the two lower cards — only the textarea
    may take taps, or the cards' inner corners go dead */
 #s-mid{pointer-events:none}
-#s-mid #middle{pointer-events:auto}
+#s-mid #middle,#s-mid #midimg{pointer-events:auto}
 #midwrap{position:absolute;left:24%;right:24%;top:6%;height:44%;display:flex}
 #middle{
   flex:1;background:none;border:none;resize:none;text-align:center;
@@ -124,25 +129,6 @@ button.btn{
 #msg{margin:4px 18px 18px;font-family:-apple-system,system-ui,sans-serif;font-size:13px;color:var(--ink2);min-height:18px}
 #msg.bad{color:var(--rose)}
 
-/* ── the reveal: the new card, big ────────────────────────────────────── */
-#reveal{
-  position:fixed;inset:0;background:rgba(43,38,34,.5);z-index:70;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:30px;cursor:pointer;
-}
-#reveal .rc{position:relative;width:min(84vw,420px);aspect-ratio:1000/880}
-#reveal .rc .face{position:absolute;inset:0;background:#fff;clip-path:polygon(50% 0,100% 100%,0 100%)}
-#reveal .rc img{
-  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
-  clip-path:polygon(50% 0,100% 100%,0 100%);
-}
-#reveal .rt{
-  margin-top:16px;color:var(--paper);font-size:17px;text-align:center;max-width:320px;line-height:1.4;
-}
-#reveal .rh{
-  margin-top:8px;color:rgba(247,243,236,.7);font-family:-apple-system,system-ui,sans-serif;
-  font-size:12px;letter-spacing:.14em;text-transform:uppercase;
-}
 </style>
 </head>
 <body class="tool">
@@ -161,6 +147,7 @@ button.btn{
     <span class="face"></span>
     <div id="midwrap"><textarea id="middle" rows="3"></textarea></div>
     <div id="middrawing" hidden>drawing</div>
+    <img id="midimg" alt="" hidden>
   </div>
 </div>
 
@@ -181,12 +168,6 @@ button.btn{
 </div>
 <div id="msg"></div>
 
-<div id="reveal" hidden>
-  <div class="rc"><span class="face"></span><img alt=""></div>
-  <div class="rt"></div>
-  <div class="rh">tap to keep playing</div>
-</div>
-
 <div id="helpcard" hidden>
   <div>
     <b>Triset.</b> Three triangular cards around a middle triangle.
@@ -197,7 +178,8 @@ button.btn{
     fourth thing; the middle names the fourth thing, the three lines name each
     card's connection.<br><br>
     Found a set draws a brand-new card from your qualities — the center of the
-    venn diagram — and it joins the pool. About 7¢ a card.
+    venn diagram. It appears upside down in the middle, joins the pool, and a
+    tap on it deals the next hand. About 7¢ a card.
   </div>
 </div>
 
@@ -226,8 +208,13 @@ var PKEY = 'triset.pending';
 function poolLine(){ $('#pool').textContent = pool.length ? pool.length + ' cards' : ''; }
 
 function setImg(slot, card){
-  var img = $('#s-' + slot + ' img');
-  if (card) { img.src = thumb(card.url); img.hidden = false; }
+  var el = $('#s-' + slot);
+  var img = el.querySelector('img');
+  if (card) {
+    img.src = thumb(card.url); img.hidden = false;
+    el.classList.toggle('down', !!card.flip);
+    el.classList.toggle('up', !card.flip);
+  }
   else { img.removeAttribute('src'); img.hidden = true; }
 }
 
@@ -267,7 +254,7 @@ function setKind(k){
 }
 
 function drawingUI(on){
-  $('#middle').hidden = on;
+  $('#midwrap').hidden = on;
   $('#middrawing').hidden = !on;
   $('#found').disabled = on;
 }
@@ -309,9 +296,9 @@ function poll(){
         pending = null;
         try { localStorage.removeItem(PKEY); } catch(e){}
         drawingUI(false);
-        pool.unshift({ id:id, url:d.url, title:d.title, status:'ready' });
+        pool.unshift({ id:id, url:d.url, title:d.title, status:'ready', flip:true });
         poolLine();
-        reveal(d);
+        showMade(d);
       } else if (d.status === 'failed' || d.error === 'not found') {
         pending = null;
         try { localStorage.removeItem(PKEY); } catch(e){}
@@ -324,16 +311,24 @@ function poll(){
     .catch(function(){ pollTimer = setTimeout(poll, 5000); });
 }
 
-function reveal(card){
-  var r = $('#reveal');
-  r.querySelector('img').src = thumb(card.url);
-  r.querySelector('.rt').textContent = card.title || '';
-  r.hidden = false;
+// the new card lands IN the middle slot, upside down — her rule ("shud show,
+// in the middle, when drawn"); tapping it starts the next hand.
+function showMade(card){
+  var mid = $('#s-mid');
+  mid.classList.add('made');
+  $('#midwrap').hidden = true;
+  var img = $('#midimg');
+  img.src = thumb(card.url); img.hidden = false;
+  say('“' + (card.title || 'the new card') + '” joined the pool — tap it for the next hand');
 }
-function closeReveal(){
-  $('#reveal').hidden = true;
+function nextHand(){
+  var mid = $('#s-mid');
+  mid.classList.remove('made');
+  $('#midimg').hidden = true; $('#midimg').removeAttribute('src');
+  $('#midwrap').hidden = false;
   $('#middle').value = '';
   ['side-top','side-left','side-right'].forEach(function(id){ document.getElementById(id).value = ''; });
+  say('');
   deal();
 }
 
@@ -365,12 +360,12 @@ $('#k-same').onclick = function(){ setKind('same'); };
 $('#k-each').onclick = function(){ setKind('each'); };
 $('#help').onclick = function(){ $('#helpcard').hidden = false; };
 $('#helpcard').onclick = function(){ $('#helpcard').hidden = true; };
-$('#reveal').onclick = closeReveal;
+$('#midimg').onclick = nextHand;
 
 // the app's chevron closes an open layer before it leaves the tool
 window.__navBack = function(){
   if (!$('#helpcard').hidden) { $('#helpcard').hidden = true; return true; }
-  if (!$('#reveal').hidden) { closeReveal(); return true; }
+  if (!$('#midimg').hidden) { nextHand(); return true; }
   return false;
 };
 
