@@ -29,6 +29,9 @@ const triset = require('../triset');
 const { dreamyStyle } = require('./lib/dreamy-style');
 
 const CHAT = 'triangular-set-solitaire';
+// bump per redrawn generation: the objects are served immutable, so a redraw
+// needs a new url, and the doc id is sha1(url)
+const SEED_VER = 'seed2';
 const SESSION = (process.env.CLAUDE_CODE_REMOTE_SESSION_ID || '').replace(/^cse_/, '');
 const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
 
@@ -36,18 +39,20 @@ const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
 // night, steam, round things — so a set is findable in most hands. Short,
 // thing-named prompts (the house rule: name the thing, not its parts).
 const SEEDS = [
-  { slug: 'girl-and-cow', title: 'a girl resting her head against her cow' },
-  { slug: 'crescent-moon', title: 'a crescent moon' },
-  { slug: 'snail', title: 'a snail' },
-  { slug: 'black-cat', title: 'a black cat' },
-  { slug: 'spotted-mushroom', title: 'a spotted mushroom' },
-  { slug: 'teacup', title: 'a steaming cup of tea' },
-  { slug: 'lit-candle', title: 'a lit candle' },
+  // the five she hearted, redrawn equilateral (2026-08-30)
   { slug: 'garden-snake', title: 'a garden snake' },
+  { slug: 'sunflower', title: 'a sunflower' },
   { slug: 'mountain', title: 'a mountain' },
   { slug: 'spotted-egg', title: 'a spotted egg in a nest' },
-  { slug: 'umbrella-rain', title: 'an umbrella in the rain' },
-  { slug: 'sunflower', title: 'a sunflower' },
+  { slug: 'teacup', title: 'a steaming cup of tea' },
+  // fresh subjects for the seven she did not — same overlapping-qualities idea
+  { slug: 'beehive', title: 'a beehive dripping with honey' },
+  { slug: 'lighthouse', title: 'a lighthouse at night' },
+  { slug: 'sleeping-fox', title: 'a fox curled up asleep' },
+  { slug: 'watermelon', title: 'a slice of watermelon' },
+  { slug: 'ladybug', title: 'a ladybug on a leaf' },
+  { slug: 'moon-in-lake', title: 'a full moon reflected in a lake' },
+  { slug: 'lemon', title: 'a lemon with leaves' },
 ];
 
 const DRY = process.argv.includes('--dry') || !process.argv.includes('--go');
@@ -105,7 +110,7 @@ async function main() {
 
   // 2) upload + card docs (content-addressed: re-running updates in place)
   for (const r of good) {
-    const p = `triset/cards/seed-${r.slug}.webp`;
+    const p = `triset/cards/${SEED_VER}-${r.slug}.webp`;
     await bucket.upload(r.file, {
       destination: p,
       metadata: { contentType: 'image/webp', cacheControl: 'public, max-age=31536000, immutable' },
@@ -129,7 +134,7 @@ async function main() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         assetsOnly: true, chat: CHAT, session: SESSION, url: r.url,
-        description: 'Triset seed card — ' + r.title, prompt: caption,
+        description: 'Triset ' + SEED_VER + ' card — ' + r.title, prompt: caption,
         created: r.madeAt,
       }),
     }).then(x => x.json()).catch(e => ({ error: e.message }));
@@ -155,7 +160,7 @@ async function main() {
   for (const r of good) {
     try {
       execFileSync('node', [path.join(__dirname, 'post-to-gallery.js'),
-        '--url', r.url, '--prompt', 'Triset seed card — ' + r.title,
+        '--url', r.url, '--prompt', 'Triset ' + SEED_VER + ' card — ' + r.title,
         '--model', 'gpt-image-2', '--quality', triset.QUALITY, '--size', triset.CANVAS,
         '--created', String(r.madeAt), '--source', 'triset', '--uid', uid,
       ], { stdio: 'pipe' });

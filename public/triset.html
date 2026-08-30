@@ -154,6 +154,7 @@ button.btn{
 <div id="kinds">
   <button id="k-same" class="on">All the same</button>
   <button id="k-each">Each different</button>
+  <button id="k-auto">Model finds it</button>
 </div>
 
 <div id="sides" hidden>
@@ -164,7 +165,7 @@ button.btn{
 
 <div id="acts">
   <button class="btn" id="deal">Deal</button>
-  <button class="btn" id="found"><span id="star"></span>Found a set <span class="cost">~7¢</span></button>
+  <button class="btn" id="found"><span id="star"></span>Found a set <span class="cost">~2¢</span></button>
 </div>
 <div id="msg"></div>
 
@@ -176,10 +177,12 @@ button.btn{
     <b>All the same</b> — all three share one thing; write it in the middle.<br>
     <b>Each different</b> — each card shares something <i>different</i> with a
     fourth thing; the middle names the fourth thing, the three lines name each
-    card's connection.<br><br>
+    card's connection.<br>
+    <b>Model finds it</b> — nothing to type: the three cards are shown to the
+    image model with the rules, and it finds the connection itself (~5¢).<br><br>
     Found a set draws a brand-new card from your qualities — the center of the
     venn diagram. It appears upside down in the middle, joins the pool, and a
-    tap on it deals the next hand. About 7¢ a card.
+    tap on it deals the next hand. About 2¢ a card.
   </div>
 </div>
 
@@ -248,13 +251,18 @@ function say(t, bad){
 
 function setKind(k){
   kind = k;
-  $('#k-same').classList.toggle('on', k === 'same');
-  $('#k-each').classList.toggle('on', k === 'each');
+  ['same','each','auto'].forEach(function(x){
+    $('#k-' + x).classList.toggle('on', k === x);
+  });
   $('#sides').hidden = (k !== 'each');
+  // auto: the model reads the cards itself — nothing to type, so the middle
+  // box steps aside (three more input images ride along, hence the price)
+  if (!pending && $('#midimg').hidden) $('#midwrap').hidden = (k === 'auto');
+  $('#found').querySelector('.cost').textContent = (k === 'auto') ? '~5¢' : '~2¢';
 }
 
 function drawingUI(on){
-  $('#midwrap').hidden = on;
+  $('#midwrap').hidden = on || (kind === 'auto');
   $('#middrawing').hidden = !on;
   $('#found').disabled = on;
 }
@@ -262,11 +270,12 @@ function drawingUI(on){
 function found(){
   if (pending) return;
   var middle = $('#middle').value.trim();
-  if (!middle) { say('write what they share in the middle triangle', true); return; }
+  if (kind !== 'auto' && !middle) { say('write what they share in the middle triangle', true); return; }
   var body = {
     cards: [hand.top, hand.left, hand.right].map(function(c){ return c && c.id; }),
-    kind: kind, middle: middle,
+    kind: kind,
   };
+  if (kind !== 'auto') body.middle = middle;
   if (body.cards.some(function(id){ return !id; })) { say('deal three cards first', true); return; }
   if (kind === 'each') {
     body.sides = [$('#side-top').value.trim(), $('#side-left').value.trim(), $('#side-right').value.trim()];
@@ -325,7 +334,7 @@ function nextHand(){
   var mid = $('#s-mid');
   mid.classList.remove('made');
   $('#midimg').hidden = true; $('#midimg').removeAttribute('src');
-  $('#midwrap').hidden = false;
+  $('#midwrap').hidden = (kind === 'auto');
   $('#middle').value = '';
   ['side-top','side-left','side-right'].forEach(function(id){ document.getElementById(id).value = ''; });
   say('');
@@ -358,6 +367,7 @@ $('#deal').onclick = deal;
 $('#found').onclick = found;
 $('#k-same').onclick = function(){ setKind('same'); };
 $('#k-each').onclick = function(){ setKind('each'); };
+$('#k-auto').onclick = function(){ setKind('auto'); };
 $('#help').onclick = function(){ $('#helpcard').hidden = false; };
 $('#helpcard').onclick = function(){ $('#helpcard').hidden = true; };
 $('#midimg').onclick = nextHand;

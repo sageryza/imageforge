@@ -96,6 +96,20 @@ ok('a good same-set passes', V({ cards: ['a', 'b', 'c'], kind: 'same', middle: '
 ok("'each' needs three sides", V({ cards: ['a', 'b', 'c'], kind: 'each', middle: 'moon', sides: ['x', 'y'] }) !== null);
 ok("a good each-set passes", V({ cards: ['a', 'b', 'c'], kind: 'each', middle: 'moon', sides: ['x', 'y', 'z'] }) === null);
 
+/* ── the AUTO kind (2026-08-30, her idea: "a prompt explaining the rules of
+   set and have the image model come up w something that shares each one") ── */
+ok('an auto set needs no middle', V({ cards: ['a', 'b', 'c'], kind: 'auto' }) === null);
+const autoRec = triset.cardPrompt('', { auto: true, invert: true });
+ok('the rules ride the wrapper and cover BOTH kinds',
+  autoRec.promptStyle.includes(triset.AUTO_RULES)
+  && /ONE quality all three cards share/.test(triset.AUTO_RULES)
+  && /DIFFERENT quality with each/.test(triset.AUTO_RULES));
+ok('an auto card has an honestly empty content half', autoRec.promptContent === '');
+ok('an auto card is still upside down', autoRec.fullPrompt.includes('point down, upside down'));
+ok('auto content is empty by construction', triset.foundContent({ kind: 'auto' }) === '');
+ok('the route resolves and attaches the three source cards',
+  /srcCards/.test(MOD) && /card\.from && card\.from\.urls/.test(MOD));
+
 /* ── the stuck rule ──────────────────────────────────────────────────────── */
 const now = Date.now();
 ok('a fresh draw is left alone', triset.stuckPatch({ status: 'drawing', createdAt: now - 60e3 }, now) === null);
@@ -111,7 +125,7 @@ ok('the page script is an IIFE', /<script>\s*\(function\(\)\{/.test(PAGE));
 ok('the five pill tokens are defined', ['--paper', '--ink', '--chg', '--rose', '--line'].every(t => PAGE.includes(t)));
 ok('[hidden] beats author display rules', PAGE.includes('[hidden]{display:none !important}'));
 ok('the paid button wears the star and the cost',
-  /id="found"/.test(PAGE) && /~7¢/.test(PAGE) && /id="star"/.test(PAGE));
+  /id="found"/.test(PAGE) && /~2¢/.test(PAGE) && /id="star"/.test(PAGE));
 ok('the title is the tool-eyebrow, once',
   (PAGE.match(/tool-eyebrow/g) || []).length >= 1 && (PAGE.match(/<h1/g) || []).length === 1);
 ok('the mid slot cannot eat card taps', /#s-mid\{pointer-events:none\}/.test(PAGE));
@@ -244,6 +258,20 @@ async function headless() {
 
   // the made card is upside down FOR LIFE — swap it into a corner slot and it
   // clips point down there too
+  // the AUTO tab: nothing to type — the middle box steps aside and found
+  // posts kind:'auto' with no middle at all
+  await pg.click('#k-auto');
+  ok('auto mode hides the middle box', await pg.$eval('#midwrap', el => el.hidden));
+  ok('auto mode prices its bigger call', await pg.$eval('#found .cost', el => el.textContent) === '~5¢');
+  await pg.click('#found');
+  await pg.waitForFunction(() => !document.getElementById('midimg').hidden, null, { timeout: 15000 });
+  const fa = founds[1] || {};
+  ok('auto found POSTs the kind and no middle', fa.kind === 'auto' && !('middle' in fa));
+  ok('…and the module would accept it too', triset.validFound(fa) === null);
+  await pg.click('#midimg', { position: { x: 90, y: 30 } });
+  await pg.click('#k-same');
+  ok('leaving auto brings the middle box back', await pg.$eval('#midwrap', el => !el.hidden));
+
   // the fresh deal may already hold made1 in ANY slot — check all three, and
   // only swap the top slot hunting for it when no slot has it yet
   const findMade = () => pg.evaluate(() => {
