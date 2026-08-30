@@ -1239,15 +1239,23 @@ async function shoeboxPut(art, title, meta) {
   const now = new Date();
   const FV = require('firebase-admin').firestore.FieldValue;
   const snap = await ref.get();
+  const full = String(title || '').trim();
   const doc = Object.assign({
-    title: String(title || '').trim().slice(0, 140),
+    title: full.slice(0, 140),
     hashtags: [(meta && meta.source) || 'storyroom'],
     illustration: { url: art },
     timestamp: now.toISOString(),
     dateTime: now.toLocaleDateString('en-US'),
     updatedAt: FV.serverTimestamp(),
   }, meta || {});
-  if (!snap.exists) { doc.content = ''; doc.createdAt = FV.serverTimestamp(); }
+  // A title longer than the chin's 140 (a Playground prompt) keeps its FULL
+  // text in `content`, so the whole prompt stays searchable and readable on
+  // the detail card (2026-08-29, Sophie: search should cover the full
+  // prompt). Never on a re-add — content may since carry her own words.
+  if (!snap.exists) {
+    doc.content = full.length > 140 ? full : '';
+    doc.createdAt = FV.serverTimestamp();
+  }
   await ref.set(doc, { merge: true });
   return { ok: true, id };
 }

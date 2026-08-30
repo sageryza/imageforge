@@ -117,7 +117,7 @@ async function pageHalf() {
 
   const ITEMS = [
     { id: 'a', title: 'the red dress', content: 'she wore it to the reading', url: 'https://storage.googleapis.com/bkt/a.png',
-      at: 3000, ts: '', source: 'playground', caption: 'gpt-image-2 · medium · 2K', promptContent: 'a red dress' },
+      at: 3000, ts: '', source: 'playground', tags: ['snakes'], caption: 'gpt-image-2 · medium · 2K', promptContent: 'a red dress' },
     { id: 'b', title: 'tired mason', content: '', url: 'https://storage.googleapis.com/bkt/b.png',
       at: 2000, ts: '', source: '', caption: '', promptContent: '' },
     { id: 'c', title: 'moon milk', content: '', url: 'https://storage.googleapis.com/bkt/c.png',
@@ -134,6 +134,7 @@ async function pageHalf() {
   };
   const posts = [];
   const squares = [];
+  const edits = [];
 
   const html = fs.readFileSync(path.join(__dirname, '..', 'public', 'shoebox.html'), 'utf8');
   const pill = fs.readFileSync(path.join(__dirname, '..', 'public', 'pill-inject.html'), 'utf8');
@@ -141,6 +142,13 @@ async function pageHalf() {
   ok('page links /feedkit.js', /src="\/feedkit\.js"/.test(html));
   ok('page carries the star paper', /shoebox-papers\/star-paper\.webp/.test(html));
   ok('star paper tile is committed', fs.existsSync(path.join(__dirname, '..', 'public', 'shoebox-papers', 'star-paper.webp')));
+  // Round 3 (2026-08-29): the hand is Patrick Hand, the chin carries no
+  // date, and the finale is v3 (five-point star, real dashes, 3s twinkle).
+  ok('the hand is Patrick Hand, not Caveat', /Patrick\+Hand/.test(html) && !/Caveat/.test(html));
+  ok('no date anywhere on a polaroid', !/chindate/.test(html));
+  ok('the star has five points (finale v3)', /L39\.35 21\.89/.test(html) && !/C36 22/.test(html));
+  ok('the strings are dashes, not dots', /stroke-dasharray:11 9/.test(html));
+  ok('the polaroids fade to a ghost, not gone', /opacity:\.28/.test(html));
 
   const server = http.createServer((req, res) => {
     const u = new URL(req.url, 'http://x');
@@ -163,6 +171,15 @@ async function pageHalf() {
       req.on('data', (d) => { body += d; });
       return req.on('end', () => {
         posts.push(JSON.parse(body || '{}'));
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end('{"ok":true}');
+      });
+    }
+    if (u.pathname === '/api/shoebox/memory') {
+      let body = '';
+      req.on('data', (d) => { body += d; });
+      return req.on('end', () => {
+        edits.push(JSON.parse(body || '{}'));
         res.writeHead(200, { 'content-type': 'application/json' });
         res.end('{"ok":true}');
       });
@@ -256,9 +273,16 @@ async function pageHalf() {
   const t0 = await page.evaluate(() => document.getElementById('cork').style.transform);
   await page.click('#playbtn');
   ok('playing hides the chrome', await page.evaluate(() => document.body.classList.contains('playing')));
+  // NO opening wide shot (2026-08-29, her ask): the very first camera is a
+  // PIN — zoomed well past the whole-board fit (~0.15 on this board).
+  const z0 = await page.evaluate(() => {
+    const m = /scale\(([\d.]+)\)/.exec(document.getElementById('cork').style.transform);
+    return m ? Number(m[1]) : 0;
+  });
+  ok('play opens ON the first card, not the whole board', z0 > 0.5);
   await page.waitForTimeout(1300);
   const t1 = await page.evaluate(() => document.getElementById('cork').style.transform);
-  ok('the camera moved to a pin', t1 !== t0 && Boolean(t1));
+  ok('the camera moved to the next pin', t1 !== t0 && Boolean(t1));
   // 3 pins → wide, three cards, closing wide → the constellation finale
   await page.waitForSelector('.sb-star', { timeout: 9000 });
   is('the finale lights a four-point star per tied pin',
@@ -271,12 +295,43 @@ async function pageHalf() {
   await page.waitForFunction(() => !document.body.classList.contains('playing'), null, { timeout: 3000 });
   is('tapping out puts the board back', await page.locator('.sb-star').count(), 0);
 
-  /* ── Square it, from the board's own detail card ── */
+  /* ── the edit step: the card's writing and its tags (2026-08-29) ── */
   await page.click('.sb-pincard[data-id="a"]');
+  await page.waitForSelector('#dEdit', { timeout: 3000 });
+  ok('the detail card shows her tags', await page.evaluate(() => {
+    const t = document.querySelector('.sb-tag');
+    return t && t.textContent === 'snakes';
+  }));
+  await page.click('#dEdit');
+  await page.waitForSelector('#eTitle', { timeout: 3000 });
+  is('the writing field holds HER saved title', await page.inputValue('#eTitle'), 'the red dress');
+  is('the tags field holds HER saved tags', await page.inputValue('#eTags'), 'snakes');
+  await page.fill('#eTitle', 'the crimson dress');
+  await page.fill('#eTags', 'dress, velvet');
+  await page.click('#eSave');
+  await page.waitForFunction(() => {
+    const t = document.querySelector('.sb-bigcard .sb-chintitle');
+    return t && /crimson/.test(t.textContent);
+  }, null, { timeout: 3000 });
+  is('the edit POSTed title + tags, nothing else',
+    edits, [{ id: 'a', title: 'the crimson dress', tags: ['dress', 'velvet'] }]);
+  await page.click('#dClose');
+
+  // A tag is searchable the moment it is saved.
+  await page.click('#tabLib');
+  await page.fill('#q', 'velvet');
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => document.querySelectorAll('.sb-cell').length === 1, null, { timeout: 3000 });
+  ok('search finds her by her new tag', true);
+  await page.click('#clr');
+
+  /* ── Square it, from the board's own detail card ── */
+  await page.click('#tabBoard');
+  await page.click('.sb-pincard[data-id="b"]');
   await page.waitForSelector('#dSquare', { timeout: 3000 });
   await page.click('#dSquare');
   await page.waitForFunction(() => location.pathname === '/crop', null, { timeout: 5000 }).catch(() => {});
-  is('Square it POSTed the memory id', squares, [{ id: 'a' }]);
+  is('Square it POSTed the memory id', squares, [{ id: 'b' }]);
 
   await browser.close();
   server.close();
