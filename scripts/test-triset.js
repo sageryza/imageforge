@@ -254,11 +254,15 @@ async function headless() {
   }));
   // the image is scaled past the slot so the inset cut fills it — the cut,
   // not the whole canvas, is what shows
-  ok('…and the made card is mapped, not squeezed', await pg.evaluate(() => {
+  ok('…and the made card is mapped with a cream border around the cut', await pg.evaluate(() => {
     const img = document.getElementById('midimg');
     const s = document.getElementById('s-mid').getBoundingClientRect();
     const r = img.getBoundingClientRect();
-    return r.width > s.width * 1.15 && r.top < s.top;
+    // scaled to the inner triangle (×1.0714 of the slot), sitting above it,
+    // over the cream face
+    const cream = getComputedStyle(document.querySelector('#s-mid .face')).backgroundColor;
+    return r.width > s.width * 1.04 && r.width < s.width * 1.12
+      && r.top < s.top && cream === 'rgb(243, 231, 201)';
   }));
 
   // tapping the made card deals the next hand: boxes clear, text box back

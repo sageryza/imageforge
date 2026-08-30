@@ -57,8 +57,10 @@ h1.tool-eyebrow{
 #s-left{left:0;top:50%}
 #s-right{left:50%;top:50%}
 #s-mid{left:25%;top:50%;cursor:default}
-/* a WHITE mat behind each card */
-.face{position:absolute;inset:0;background:#fff}
+/* a CREAM mat behind each card — the cut image sits on an inner triangle,
+   so the mat shows as an even cream border around every card (2026-08-30,
+   Sophie: "still needs a cream border") */
+.face{position:absolute;inset:0;background:var(--cream)}
 /* THE CUT IS THE PAGE'S, EXACTLY EQUILATERAL (2026-08-30, Sophie: "the
    triangles need to be cut equilateral to fit, even if the model draws it
    wrong … there's just paper around, just cut it different"). The SLOT is
@@ -67,17 +69,20 @@ h1.tool-eyebrow{
    (50%,19.3%), base y 92%, sides x 8%..92%, side/height = 0.866 — lands
    exactly on the slot. The cut passes through the drawn card's own paper,
    so a card drawn slightly wrong is simply trimmed, nothing is added.
-   scale = 1/0.84; offsets = the cut's origin times the scale. */
+   The cut lands on an INNER triangle scaled 0.90 about the slot's centroid,
+   so the cream face shows as an even border around it. Numbers: base scale
+   1/0.84, then ×0.90 = 107.143%; offsets are the mapped origin — and note
+   CSS top% is in SLOT-HEIGHT units (0.866 of the width), which is where the
+   first pass slipped. */
 .slot.up{clip-path:polygon(50% 0,100% 100%,0 100%)}
 .slot.down{clip-path:polygon(0 0,100% 0,50% 100%)}
-.slot img,#midimg{position:absolute;display:block;width:119.048%;height:auto;left:-9.524%}
-.slot.up img{top:-22.924%}
-.slot.down img,#midimg{top:-9.524%}
+.slot img,#midimg{position:absolute;display:block;width:107.143%;height:auto;left:-3.571%}
+.slot.up img{top:-17.161%}
+.slot.down img,#midimg{top:-6.564%}
 /* the middle inverted triangle — a text box, until a made card lands in it.
    The SLOT is not clipped (the venn boxes ride its edges); the face and the
    made-card cutter carry their own triangles. */
 #s-mid .face{clip-path:polygon(0 0,100% 0,50% 100%);background:var(--cream)}
-#s-mid.made .face{background:#fff}
 #midcut{position:absolute;inset:0;clip-path:polygon(0 0,100% 0,50% 100%)}
 #midimg{cursor:pointer;pointer-events:auto}
 /* 'each' mode is a VENN DIAGRAM (2026-08-30, Sophie: "the 'what each has in
