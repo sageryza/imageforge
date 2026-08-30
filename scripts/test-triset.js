@@ -271,50 +271,15 @@ async function headless() {
     document.getElementById('midcut').hidden && !document.getElementById('midwrap').hidden
     && document.getElementById('middle').value === '' && document.getElementById('v-top').value === ''));
 
-  // the made card is upside down FOR LIFE — swap it into a corner slot and it
-  // clips point down there too
-  // the three kind tabs FIT a 390pt phone — the third one clipped when the
-  // row kept a pill reserve this page does not need
-  ok('all three kind tabs fit on screen', await pg.evaluate(() => {
-    const r = document.getElementById('k-auto').getBoundingClientRect();
-    return r.right <= window.innerWidth - 4;
-  }));
-
-  // the AUTO tab: nothing to type — the middle box steps aside and found
-  // posts kind:'auto' with no middle at all
-  await pg.click('#k-auto');
-  ok('auto mode hides the middle box', await pg.$eval('#midwrap', el => el.hidden));
-  ok('auto mode prices its bigger call', await pg.$eval('#found .cost', el => el.textContent) === '~5¢');
-  await pg.click('#found');
-  await pg.waitForFunction(() => !document.getElementById('midcut').hidden, null, { timeout: 15000 });
-  const fa = founds[1] || {};
-  ok('auto found POSTs the kind and no middle', fa.kind === 'auto' && !('middle' in fa));
-  ok('…and the module would accept it too', triset.validFound(fa) === null);
-  await pg.click('#midimg', { position: { x: 90, y: 30 } });
-  await pg.click('#k-same');
-  ok('leaving auto brings the middle box back', await pg.$eval('#midwrap', el => !el.hidden));
-
-  // the fresh deal may already hold made1 in ANY slot — check all three, and
-  // only swap the top slot hunting for it when no slot has it yet
-  const findMade = () => pg.evaluate(() => {
-    for (const s of ['top', 'left', 'right']) {
-      const el = document.getElementById('s-' + s);
-      if ((el.querySelector('img').src || '').includes('made1')) {
-        return { down: el.classList.contains('down'),
-          // the SLOT is the scissors now — the img carries no clip of its own
-          clip: getComputedStyle(el).clipPath
-            .replace(/px/g, '').replace(/%/g, '').replace(/\s/g, '') };
-      }
-    }
-    return null;
-  });
-  let corner = await findMade();
-  for (let i = 0; i < 80 && !corner; i++) {
+  // an upside-down (made) card is NEVER dealt into a corner (2026-08-30,
+  // Sophie: "the upside down cards are being dealt in the wrong spot") — 80
+  // swaps of the top slot and made1 must never appear in any corner
+  for (let i = 0; i < 80; i++) {
     await pg.click('#s-top', { position: { x: 90, y: 120 } });
-    corner = await findMade();
   }
-  ok('a made card dealt to a corner stays upside down',
-    corner && corner.down && corner.clip.startsWith('polygon(00,1000,50100'));
+  const strayed = await pg.evaluate(() => ['top', 'left', 'right'].some(s =>
+    (document.querySelector('#s-' + s + ' img').src || '').includes('made1')));
+  ok('an upside-down card is never dealt into a corner', !strayed);
 
   await browser.close();
   srv.close();

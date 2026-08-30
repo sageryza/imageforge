@@ -237,15 +237,21 @@ function setImg(slot, card){
   else { img.removeAttribute('src'); img.hidden = true; }
 }
 
+// An upside-down (made) card is never dealt into a corner — the corners are
+// point-up spots and a point-down card there reads as broken (2026-08-30,
+// Sophie: "the upside down cards are being dealt in the wrong spot"). Where
+// they SHOULD live is her open call; until then they stay in the pool,
+// undealt.
+function dealable(){ return pool.filter(function(c){ return !c.flip; }); }
 function others(){
   var used = [hand.top, hand.left, hand.right].filter(Boolean).map(function(c){ return c.id; });
-  return pool.filter(function(c){ return used.indexOf(c.id) < 0; });
+  return dealable().filter(function(c){ return used.indexOf(c.id) < 0; });
 }
 function randOf(list){ return list[Math.floor(Math.random() * list.length)]; }
 
 function deal(){
-  if (pool.length < 3) { say('not enough cards in the pool yet', true); return; }
-  var rest = pool.slice();
+  if (dealable().length < 3) { say('not enough cards in the pool yet', true); return; }
+  var rest = dealable();
   ['top','left','right'].forEach(function(s){
     var c = randOf(rest);
     rest.splice(rest.indexOf(c), 1);
