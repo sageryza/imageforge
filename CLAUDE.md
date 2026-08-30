@@ -7406,9 +7406,18 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - **Her words are the content half, verbatim**; the one connective line
     (INVENT_LINE) rides in the wrapper and is disclosed in `promptStyle` with
     the `[content]` seam. The whole prompt is stored on every card doc.
-  - **Money:** a found set draws ONE gpt-image-2 medium 1024x1024 edit with
-    the dreamy reference — ~6.5c, only on her deliberate star tap. Opening
-    the page spends nothing. **Seeding is a container job** —
+  - **Money:** a found set draws ONE gpt-image-2 edit with the dreamy
+    reference — LOW while the prompts are tuned (her call, 2026-08-30), ~1.8c,
+    only on her deliberate star tap; `QUALITY` in triset.js is the one line
+    that raises it back. Opening the page spends nothing.
+  - **A THIRD KIND — `auto` ("Model finds it", 2026-08-30, her idea tried the
+    same day and it worked: sunflower+lemon+beehive → a yellow umbrella in
+    grey rain).** The three dealt cards are ATTACHED behind the style
+    reference and `AUTO_RULES` explains both set kinds; the model finds the
+    connection and draws the venn center itself. Nothing typed → the content
+    half is honestly EMPTY, the title is the three source titles joined, and
+    `from.urls` is resolved at /found time (a bad id refuses before money
+    moves). ~5c — the three card images ride as input tokens. **Seeding is a container job** —
     `node scripts/seed-triset.js` (dry by default, `--go` draws; all draws
     fire at once, the container pacing rule) — never Render's.
   - Firestore `forge-triset-cards`, one doc per card; seeds content-addressed

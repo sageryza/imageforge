@@ -57,21 +57,44 @@ h1.tool-eyebrow{
 #s-left{left:0;top:50%}
 #s-right{left:50%;top:50%}
 #s-mid{left:25%;top:50%;cursor:default}
-/* a WHITE mat — the drawn cards sit on white with their own cream borders,
-   so the mat disappears behind them (the Story Room shelf's white-mat rule) */
+/* a WHITE mat behind each card */
 .face{position:absolute;inset:0;background:#fff}
-.slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
-/* orientation is per CARD — a made card (the venn center) is upside down for
-   life, wherever it is dealt (flip on its doc) */
-.slot.up img,.slot.up .face{clip-path:polygon(50% 0,100% 100%,0 100%)}
-.slot.down img,.slot.down .face{clip-path:polygon(0 0,100% 0,50% 100%)}
-/* the middle inverted triangle — a text box, until a made card lands in it */
+/* THE CUT IS THE PAGE'S, EXACTLY EQUILATERAL (2026-08-30, Sophie: "the
+   triangles need to be cut equilateral to fit, even if the model draws it
+   wrong … there's just paper around, just cut it different"). The SLOT is
+   the scissors: its clip-path is a true equilateral triangle, and the image
+   is scaled and offset so an inset equilateral cut of the drawn card — apex
+   (50%,19.3%), base y 92%, sides x 8%..92%, side/height = 0.866 — lands
+   exactly on the slot. The cut passes through the drawn card's own paper,
+   so a card drawn slightly wrong is simply trimmed, nothing is added.
+   scale = 1/0.84; offsets = the cut's origin times the scale. */
+.slot.up{clip-path:polygon(50% 0,100% 100%,0 100%)}
+.slot.down{clip-path:polygon(0 0,100% 0,50% 100%)}
+.slot img,#midimg{position:absolute;display:block;width:119.048%;height:auto;left:-9.524%}
+.slot.up img{top:-22.924%}
+.slot.down img,#midimg{top:-9.524%}
+/* the middle inverted triangle — a text box, until a made card lands in it.
+   The SLOT is not clipped (the venn boxes ride its edges); the face and the
+   made-card cutter carry their own triangles. */
 #s-mid .face{clip-path:polygon(0 0,100% 0,50% 100%);background:var(--cream)}
 #s-mid.made .face{background:#fff}
-#midimg{
-  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;
-  clip-path:polygon(0 0,100% 0,50% 100%);cursor:pointer;
+#midcut{position:absolute;inset:0;clip-path:polygon(0 0,100% 0,50% 100%)}
+#midimg{cursor:pointer;pointer-events:auto}
+/* 'each' mode is a VENN DIAGRAM (2026-08-30, Sophie: "the 'what each has in
+   common' shud show as a venn diagram on the overlapping side: a text box")
+   — one line per SIDE of the middle triangle, each on the edge it shares
+   with that card, rotated to lie along it; the 4th thing sits in the
+   center. Positions are the edge midpoints nudged toward the centroid. */
+.venn{
+  position:absolute;width:50%;height:24px;background:none;border:none;
+  text-align:center;font-family:Georgia,serif;font-size:12px;color:var(--ink);
+  outline:none;padding:0;pointer-events:auto;
 }
+#v-top{left:25%;top:2.5%}
+#v-left{left:6.9%;top:calc(45.4% - 12px);transform:rotate(60deg)}
+#v-right{left:43.1%;top:calc(45.4% - 12px);transform:rotate(-60deg)}
+#s-mid.each #midwrap{left:31%;right:31%;top:25%;height:32%}
+#s-mid.each #middle{font-size:13px}
 /* the mid slot's RECTANGLE overlaps the two lower cards — only the textarea
    may take taps, or the cards' inner corners go dead */
 #s-mid{pointer-events:none}
@@ -91,29 +114,19 @@ h1.tool-eyebrow{
 @keyframes pulse{0%,100%{opacity:.35}50%{opacity:.9}}
 
 /* ── the kind of set: two hairline tabs ───────────────────────────────── */
-#kinds{display:flex;margin:16px 18px 0;border-bottom:1px solid var(--line);padding-right:64px}
+/* no pill on this page, so the row keeps no corner reserve — three tabs
+   must fit a 390pt phone */
+#kinds{display:flex;margin:16px 18px 0;border-bottom:1px solid var(--line)}
 #kinds button{
   flex:0 0 auto;background:none;border:none;cursor:pointer;padding:8px 0 9px;
-  margin-right:22px;font-family:-apple-system,system-ui,sans-serif;font-size:12px;
-  letter-spacing:.16em;text-transform:uppercase;color:var(--ink2);position:relative;
+  margin-right:16px;font-family:-apple-system,system-ui,sans-serif;font-size:11px;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);position:relative;
 }
 #kinds button.on{color:var(--ink)}
 #kinds button.on::after{
   content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--ink);
 }
 
-/* 'each' mode: one line per card, in card order */
-#sides{margin:10px 18px 0}
-#sides .srow{display:flex;align-items:center;gap:10px;margin-top:8px}
-#sides .srow span{
-  flex:0 0 44px;font-family:-apple-system,system-ui,sans-serif;font-size:10px;
-  letter-spacing:.14em;text-transform:uppercase;color:var(--ink2);
-}
-#sides .srow input{
-  flex:1;font-family:Georgia,serif;font-size:15px;color:var(--ink);
-  background:var(--card);border:1px solid var(--line);border-radius:6px;padding:7px 10px;
-}
-#sides .srow input:focus{outline:none;border-color:var(--ink2)}
 
 /* ── the buttons: hug their words ─────────────────────────────────────── */
 #acts{display:flex;align-items:center;gap:12px;margin:16px 18px 8px}
@@ -146,25 +159,23 @@ button.btn{
   <div class="slot" id="s-mid">
     <span class="face"></span>
     <div id="midwrap"><textarea id="middle" rows="3"></textarea></div>
+    <input id="v-top" class="venn" hidden>
+    <input id="v-left" class="venn" hidden>
+    <input id="v-right" class="venn" hidden>
     <div id="middrawing" hidden>drawing</div>
-    <img id="midimg" alt="" hidden>
+    <div id="midcut" hidden><img id="midimg" alt=""></div>
   </div>
 </div>
 
 <div id="kinds">
   <button id="k-same" class="on">All the same</button>
   <button id="k-each">Each different</button>
-</div>
-
-<div id="sides" hidden>
-  <div class="srow"><span>Top</span><input id="side-top"></div>
-  <div class="srow"><span>Left</span><input id="side-left"></div>
-  <div class="srow"><span>Right</span><input id="side-right"></div>
+  <button id="k-auto">Model finds it</button>
 </div>
 
 <div id="acts">
   <button class="btn" id="deal">Deal</button>
-  <button class="btn" id="found"><span id="star"></span>Found a set <span class="cost">~7¢</span></button>
+  <button class="btn" id="found"><span id="star"></span>Found a set <span class="cost">~2¢</span></button>
 </div>
 <div id="msg"></div>
 
@@ -175,11 +186,14 @@ button.btn{
     until you find a set.<br><br>
     <b>All the same</b> — all three share one thing; write it in the middle.<br>
     <b>Each different</b> — each card shares something <i>different</i> with a
-    fourth thing; the middle names the fourth thing, the three lines name each
-    card's connection.<br><br>
+    fourth thing; the middle names the fourth thing, and each card's
+    connection is written on the side of the middle triangle it touches, venn
+    style.<br>
+    <b>Model finds it</b> — nothing to type: the three cards are shown to the
+    image model with the rules, and it finds the connection itself (~5¢).<br><br>
     Found a set draws a brand-new card from your qualities — the center of the
     venn diagram. It appears upside down in the middle, joins the pool, and a
-    tap on it deals the next hand. About 7¢ a card.
+    tap on it deals the next hand. About 2¢ a card.
   </div>
 </div>
 
@@ -246,15 +260,23 @@ function say(t, bad){
   m.className = bad ? 'bad' : '';
 }
 
+var VENN = ['v-top','v-left','v-right'];
 function setKind(k){
   kind = k;
-  $('#k-same').classList.toggle('on', k === 'same');
-  $('#k-each').classList.toggle('on', k === 'each');
-  $('#sides').hidden = (k !== 'each');
+  ['same','each','auto'].forEach(function(x){
+    $('#k-' + x).classList.toggle('on', k === x);
+  });
+  $('#s-mid').classList.toggle('each', k === 'each');
+  VENN.forEach(function(id){ document.getElementById(id).hidden = (k !== 'each') || !$('#midcut').hidden || !$('#middrawing').hidden; });
+  // auto: the model reads the cards itself — nothing to type, so the middle
+  // box steps aside (three more input images ride along, hence the price)
+  if (!pending && $('#midcut').hidden) $('#midwrap').hidden = (k === 'auto');
+  $('#found').querySelector('.cost').textContent = (k === 'auto') ? '~5¢' : '~2¢';
 }
 
 function drawingUI(on){
-  $('#midwrap').hidden = on;
+  $('#midwrap').hidden = on || (kind === 'auto');
+  VENN.forEach(function(id){ document.getElementById(id).hidden = on || (kind !== 'each'); });
   $('#middrawing').hidden = !on;
   $('#found').disabled = on;
 }
@@ -262,15 +284,16 @@ function drawingUI(on){
 function found(){
   if (pending) return;
   var middle = $('#middle').value.trim();
-  if (!middle) { say('write what they share in the middle triangle', true); return; }
+  if (kind !== 'auto' && !middle) { say('write what they share in the middle triangle', true); return; }
   var body = {
     cards: [hand.top, hand.left, hand.right].map(function(c){ return c && c.id; }),
-    kind: kind, middle: middle,
+    kind: kind,
   };
+  if (kind !== 'auto') body.middle = middle;
   if (body.cards.some(function(id){ return !id; })) { say('deal three cards first', true); return; }
   if (kind === 'each') {
-    body.sides = [$('#side-top').value.trim(), $('#side-left').value.trim(), $('#side-right').value.trim()];
-    if (body.sides.some(function(s){ return !s; })) { say('name each card’s connection', true); return; }
+    body.sides = VENN.map(function(id){ return document.getElementById(id).value.trim(); });
+    if (body.sides.some(function(s){ return !s; })) { say('write each card’s connection on its side of the middle triangle', true); return; }
   }
   say('');
   drawingUI(true);
@@ -317,17 +340,21 @@ function showMade(card){
   var mid = $('#s-mid');
   mid.classList.add('made');
   $('#midwrap').hidden = true;
-  var img = $('#midimg');
-  img.src = thumb(card.url); img.hidden = false;
+  VENN.forEach(function(id){ document.getElementById(id).hidden = true; });
+  $('#midimg').src = thumb(card.url);
+  $('#midcut').hidden = false;
   say('“' + (card.title || 'the new card') + '” joined the pool — tap it for the next hand');
 }
 function nextHand(){
   var mid = $('#s-mid');
   mid.classList.remove('made');
-  $('#midimg').hidden = true; $('#midimg').removeAttribute('src');
-  $('#midwrap').hidden = false;
+  $('#midcut').hidden = true; $('#midimg').removeAttribute('src');
+  $('#midwrap').hidden = (kind === 'auto');
+  VENN.forEach(function(id){
+    var el = document.getElementById(id);
+    el.value = ''; el.hidden = (kind !== 'each');
+  });
   $('#middle').value = '';
-  ['side-top','side-left','side-right'].forEach(function(id){ document.getElementById(id).value = ''; });
   say('');
   deal();
 }
@@ -358,6 +385,7 @@ $('#deal').onclick = deal;
 $('#found').onclick = found;
 $('#k-same').onclick = function(){ setKind('same'); };
 $('#k-each').onclick = function(){ setKind('each'); };
+$('#k-auto').onclick = function(){ setKind('auto'); };
 $('#help').onclick = function(){ $('#helpcard').hidden = false; };
 $('#helpcard').onclick = function(){ $('#helpcard').hidden = true; };
 $('#midimg').onclick = nextHand;
@@ -365,7 +393,7 @@ $('#midimg').onclick = nextHand;
 // the app's chevron closes an open layer before it leaves the tool
 window.__navBack = function(){
   if (!$('#helpcard').hidden) { $('#helpcard').hidden = true; return true; }
-  if (!$('#midimg').hidden) { nextHand(); return true; }
+  if (!$('#midcut').hidden) { nextHand(); return true; }
   return false;
 };
 

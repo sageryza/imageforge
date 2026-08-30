@@ -27,9 +27,10 @@
 // with the [content] seam, so nothing is added invisibly. The whole prompt is
 // stored on every card (prompt-record — the hard rule).
 //
-// MONEY: finding a set draws ONE gpt-image-2 medium 1024x1024 edit with the
-// dreamy reference attached — about 6.5c (5.3c the image + ~1.2c the
-// reference's input tokens). That call happens only on her deliberate "found a
+// MONEY: finding a set draws ONE gpt-image-2 edit with the dreamy reference
+// attached — LOW while the prompts are being tuned, ~1.8c (0.6c the image +
+// ~1.2c the reference's input tokens, which do not get cheaper with the
+// quality). That call happens only on her deliberate "found a
 // set" tap; opening the page spends nothing. Seeding is a chat's container job
 // (scripts/seed-triset.js), never this server.
 //
@@ -62,12 +63,20 @@ const { promptRecord, promptFields } = require('./prompt-record');
 const router = express.Router();
 const CARDS = 'forge-triset-cards';
 
-const QUALITY = 'medium';
+// LOW while the prompts are being perfected (2026-08-30, Sophie: "draw low
+// quality while we perfect the prompts etc") — one line to raise it back.
+const QUALITY = 'low';
 const CANVAS = '1024x1024';
 const SIZE_TIER = '1K';
-const COST_CENTS = 6.5; // 5.3c medium square + ~1.2c dreamy reference input
+const COST_CENTS = 1.8; // 0.6c low square + ~1.2c dreamy reference input
 
-const KINDS = ['same', 'each'];
+// 'auto' (2026-08-30, Sophie: "a prompt explaining the rules of set and have
+// the image model come up w something that shares each one") — the three
+// dealt cards are ATTACHED and the model plays the game itself: it finds the
+// connection (either kind) and draws the venn center. No words of hers ride
+// along, so the content half is honestly empty and the whole prompt is the
+// wrapper.
+const KINDS = ['same', 'each', 'auto'];
 const MAX_WORDS = 300; // per quality field — she dictates, but a paragraph is not a quality
 
 const db = () => admin.firestore();
@@ -98,6 +107,14 @@ const TRIANGLE_CLAUSE = triangleClause(false);
 // prefix, so promptStyle discloses it; her words stay verbatim in the content.
 const INVENT_LINE = 'Invent ONE new subject that unites the qualities named '
   + 'below, and draw that single subject:';
+// The rules line for an 'auto' set — the model reads the three attached cards
+// and finds the connection itself, either kind the game allows.
+const AUTO_RULES = 'After the style reference, the three attached images are '
+  + 'three triangular picture cards from a matching game. Play the game: '
+  + 'either find ONE quality all three cards share, or invent a fourth thing '
+  + 'that shares a DIFFERENT quality with each of the three. Draw ONE new '
+  + 'single subject — the thing that connects them — as a new card. Do not '
+  + "copy any of the three cards' subjects.";
 
 const STYLE = { id: 'dreamy', label: '', prefix: '', suffix: '', refFiles: [], swapped: false };
 let fileCreationFn = null;
@@ -137,6 +154,7 @@ const clip = (s, n) => String(s == null ? '' : s).trim().slice(0, n);
 // 'same': the one shared quality. 'each': the 4th thing, then the three
 // connections in card order (top, left, right).
 function foundContent({ kind, middle, sides } = {}) {
+  if (kind === 'auto') return '';
   const mid = clip(middle, MAX_WORDS);
   if (kind === 'each') {
     const ss = (Array.isArray(sides) ? sides : []).map(s => clip(s, MAX_WORDS)).filter(Boolean);
@@ -148,8 +166,9 @@ function foundContent({ kind, middle, sides } = {}) {
 // The full record for a card drawn by this module. `invent` marks a made card
 // (the venn center gets the connective line); a seed card is just its subject.
 // `invert` draws it point down — the made card is the middle, upside-down slot.
-function cardPrompt(content, { invent = true, invert = false } = {}) {
-  const prefix = [STYLE.prefix, invent ? INVENT_LINE : ''].filter(Boolean).join('\n\n');
+function cardPrompt(content, { invent = true, invert = false, auto = false } = {}) {
+  const line = auto ? AUTO_RULES : (invent ? INVENT_LINE : '');
+  const prefix = [STYLE.prefix, line].filter(Boolean).join('\n\n');
   const suffix = STYLE.suffix.split('{triangle}').join(triangleClause(invert));
   return promptRecord({ prefix, content, suffix });
 }
@@ -160,8 +179,8 @@ function validFound(b) {
   const cards = Array.isArray(b.cards) ? b.cards.map(String).filter(Boolean) : [];
   if (cards.length !== 3) return 'cards must be three ids';
   if (new Set(cards).size !== 3) return 'cards must be three different ids';
-  if (!KINDS.includes(b.kind)) return 'kind must be same|each';
-  if (!clip(b.middle, MAX_WORDS)) return 'middle required';
+  if (!KINDS.includes(b.kind)) return 'kind must be same|each|auto';
+  if (b.kind !== 'auto' && !clip(b.middle, MAX_WORDS)) return 'middle required';
   if (b.kind === 'each') {
     const ss = (Array.isArray(b.sides) ? b.sides : []).map(s => clip(s, MAX_WORDS)).filter(Boolean);
     if (ss.length !== 3) return 'each needs three sides';
@@ -237,7 +256,14 @@ async function render(id) {
   try {
     const snap = await ref.get();
     const card = snap.data() || {};
-    const buf = await draw(card.fullPrompt, refBuffers());
+    const refs = refBuffers();
+    // an auto set rides the three cards behind the style reference
+    for (const u of ((card.from && card.from.urls) || [])) {
+      const r = await fetch(u);
+      if (!r.ok) throw new Error('could not fetch a source card (' + r.status + ')');
+      refs.push(Buffer.from(await r.arrayBuffer()));
+    }
+    const buf = await draw(card.fullPrompt, refs);
     const url = await put(buf, `triset/cards/${id}.webp`);
     await ref.set({ url, status: 'ready', finishedAt: Date.now() }, { merge: true });
     // My Creations, best-effort — filing must never fail the card.
@@ -298,15 +324,31 @@ router.post('/found', async (req, res) => {
     const middle = clip(b.middle, MAX_WORDS);
     const sides = kind === 'each'
       ? (b.sides || []).map(s => clip(s, MAX_WORDS)).filter(Boolean) : [];
+    // An auto set attaches the three cards themselves — resolve them now, so
+    // a bad id refuses before any money moves, and render needs no re-read.
+    const srcCards = [];
+    if (kind === 'auto') {
+      for (const id of b.cards.map(String)) {
+        const snap = await db().collection(CARDS).doc(id).get();
+        const c = snap.exists ? snap.data() : null;
+        if (!c || !c.url) return res.status(400).json({ error: 'unknown card ' + id });
+        srcCards.push({ id, title: c.title || '', url: c.url });
+      }
+    }
     const content = foundContent({ kind, middle, sides });
-    const rec = cardPrompt(content, { invent: true, invert: true });
+    const rec = cardPrompt(content, { invent: kind !== 'auto', invert: true, auto: kind === 'auto' });
+    // The model finds the connection, so nobody typed a name — the honest
+    // title is the three cards it read.
+    const title = kind === 'auto'
+      ? srcCards.map(c => c.title).filter(Boolean).join(' + ') : middle;
     const ref = db().collection(CARDS).doc();
     const doc = {
       // flip: a made card is upside down for life — the page clips it point
       // down wherever it is dealt, which is also how you can tell the cards
       // the game made from the seeds.
-      title: middle, source: 'made', status: 'drawing', flip: true,
-      from: { cards: (b.cards || []).map(String), kind, middle, sides },
+      title, source: 'made', status: 'drawing', flip: true,
+      from: { cards: (b.cards || []).map(String), kind, middle, sides,
+        urls: srcCards.map(c => c.url) },
       model: 'gpt-image-2', quality: QUALITY, canvas: CANVAS, size: SIZE_TIER,
       ...promptFields(rec),
       createdAt: Date.now(),
@@ -383,7 +425,7 @@ router.post('/seed', async (req, res) => {
 module.exports = {
   router, init,
   foundContent, cardPrompt, validFound, stuckPatch,
-  KINDS, STYLE, TRIANGLE_CLAUSE, triangleClause, INVENT_LINE, STUCK_MS, COST_CENTS,
+  KINDS, STYLE, TRIANGLE_CLAUSE, triangleClause, INVENT_LINE, AUTO_RULES, STUCK_MS, COST_CENTS,
   // for scripts/seed-triset.js — the seed batch must draw through the exact
   // call a found set draws through, or the pool and the made cards drift.
   draw, refBuffers, QUALITY, CANVAS, SIZE_TIER,
