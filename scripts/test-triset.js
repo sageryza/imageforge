@@ -120,7 +120,8 @@ ok('an orphaned draw fails honestly', sp && sp.status === 'failed');
 /* ── page source pins ────────────────────────────────────────────────────── */
 ok('the middle box ships EMPTY — no placeholder, no content',
   /<textarea id="middle" rows="3"><\/textarea>/.test(PAGE) && !/id="middle"[^>]*placeholder/.test(PAGE));
-ok('the side boxes ship EMPTY', !/id="side-[a-z]+"[^>]*placeholder/.test(PAGE) && !/id="side-[a-z]+"[^>]*value=/.test(PAGE));
+ok('the venn side boxes ship EMPTY', !/id="v-[a-z]+"[^>]*placeholder/.test(PAGE) && !/id="v-[a-z]+"[^>]*value=/.test(PAGE));
+ok('the venn boxes lie along the middle triangle\'s sides', /#v-left\{[^}]*rotate\(60deg\)/.test(PAGE) && /#v-right\{[^}]*rotate\(-60deg\)/.test(PAGE));
 ok('the page script is an IIFE', /<script>\s*\(function\(\)\{/.test(PAGE));
 ok('the five pill tokens are defined', ['--paper', '--ink', '--chg', '--rose', '--line'].every(t => PAGE.includes(t)));
 ok('[hidden] beats author display rules', PAGE.includes('[hidden]{display:none !important}'));
@@ -220,21 +221,22 @@ async function headless() {
   });
   ok('a lower card\'s inner corner takes the tap (got ' + hit + ')', hit === 'left');
 
-  // the kind toggle shows the three side boxes, empty
-  ok('side boxes hidden in same mode', await pg.$eval('#sides', el => el.hidden));
+  // the kind toggle shows the three venn boxes on the middle triangle's sides
+  ok('venn boxes hidden in same mode', await pg.$eval('#v-top', el => el.hidden));
   await pg.click('#k-each');
-  ok('each mode shows the three side boxes', await pg.$eval('#sides', el => !el.hidden));
-  ok('the side boxes are empty', await pg.evaluate(() =>
-    ['side-top', 'side-left', 'side-right'].every(id => document.getElementById(id).value === '')));
+  ok('each mode shows the three venn boxes', await pg.evaluate(() =>
+    ['v-top', 'v-left', 'v-right'].every(id => !document.getElementById(id).hidden)));
+  ok('the venn boxes are empty', await pg.evaluate(() =>
+    ['v-top', 'v-left', 'v-right'].every(id => document.getElementById(id).value === '')));
 
   // found posts exactly what the module validates, and the new card lands IN
   // THE MIDDLE, upside down (her rule: "shud show, in the middle, when drawn")
   await pg.fill('#middle', 'the moon');
-  await pg.fill('#side-top', 'round');
-  await pg.fill('#side-left', 'out at night');
-  await pg.fill('#side-right', 'glows');
+  await pg.fill('#v-top', 'round');
+  await pg.fill('#v-left', 'out at night');
+  await pg.fill('#v-right', 'glows');
   await pg.click('#found');
-  await pg.waitForFunction(() => !document.getElementById('midimg').hidden, null, { timeout: 15000 });
+  await pg.waitForFunction(() => !document.getElementById('midcut').hidden, null, { timeout: 15000 });
   ok('found POSTed once', founds.length === 1);
   const f = founds[0] || {};
   ok('…with three different card ids', f.cards && new Set(f.cards).size === 3);
@@ -243,28 +245,44 @@ async function headless() {
   ok('the made card shows in the middle slot', await pg.evaluate(() =>
     (document.getElementById('midimg').getAttribute('src') || '').includes('made1')
     && document.getElementById('midwrap').hidden));
-  // computed clip-path serializes 0 as 0px — normalize before asking which way
-  ok('…clipped point down', await pg.evaluate(() => {
-    const c = getComputedStyle(document.getElementById('midimg')).clipPath
+  // computed clip-path serializes 0 as 0px — normalize before asking which
+  // way. The CUTTER is the scissors (the equilateral cut), not the image.
+  ok('…the made card cuts point down', await pg.evaluate(() => {
+    const c = getComputedStyle(document.getElementById('midcut')).clipPath
       .replace(/px/g, '').replace(/%/g, '').replace(/\s/g, '');
     return c.startsWith('polygon(00,1000,50100');
+  }));
+  // the image is scaled past the slot so the inset cut fills it — the cut,
+  // not the whole canvas, is what shows
+  ok('…and the made card is mapped, not squeezed', await pg.evaluate(() => {
+    const img = document.getElementById('midimg');
+    const s = document.getElementById('s-mid').getBoundingClientRect();
+    const r = img.getBoundingClientRect();
+    return r.width > s.width * 1.15 && r.top < s.top;
   }));
 
   // tapping the made card deals the next hand: boxes clear, text box back
   await pg.click('#midimg', { position: { x: 90, y: 30 } });
   ok('the next hand deals and the boxes clear', await pg.evaluate(() =>
-    document.getElementById('midimg').hidden && !document.getElementById('midwrap').hidden
-    && document.getElementById('middle').value === '' && document.getElementById('side-top').value === ''));
+    document.getElementById('midcut').hidden && !document.getElementById('midwrap').hidden
+    && document.getElementById('middle').value === '' && document.getElementById('v-top').value === ''));
 
   // the made card is upside down FOR LIFE — swap it into a corner slot and it
   // clips point down there too
+  // the three kind tabs FIT a 390pt phone — the third one clipped when the
+  // row kept a pill reserve this page does not need
+  ok('all three kind tabs fit on screen', await pg.evaluate(() => {
+    const r = document.getElementById('k-auto').getBoundingClientRect();
+    return r.right <= window.innerWidth - 4;
+  }));
+
   // the AUTO tab: nothing to type — the middle box steps aside and found
   // posts kind:'auto' with no middle at all
   await pg.click('#k-auto');
   ok('auto mode hides the middle box', await pg.$eval('#midwrap', el => el.hidden));
   ok('auto mode prices its bigger call', await pg.$eval('#found .cost', el => el.textContent) === '~5¢');
   await pg.click('#found');
-  await pg.waitForFunction(() => !document.getElementById('midimg').hidden, null, { timeout: 15000 });
+  await pg.waitForFunction(() => !document.getElementById('midcut').hidden, null, { timeout: 15000 });
   const fa = founds[1] || {};
   ok('auto found POSTs the kind and no middle', fa.kind === 'auto' && !('middle' in fa));
   ok('…and the module would accept it too', triset.validFound(fa) === null);
@@ -279,7 +297,8 @@ async function headless() {
       const el = document.getElementById('s-' + s);
       if ((el.querySelector('img').src || '').includes('made1')) {
         return { down: el.classList.contains('down'),
-          clip: getComputedStyle(el.querySelector('img')).clipPath
+          // the SLOT is the scissors now — the img carries no clip of its own
+          clip: getComputedStyle(el).clipPath
             .replace(/px/g, '').replace(/%/g, '').replace(/\s/g, '') };
       }
     }
