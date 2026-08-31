@@ -14,16 +14,18 @@
    BOTH the low and the medium of one subject, they sit BACK TO BACK in
    quality order (low then medium) so the pair reads as one comparison
    rather than two strangers separated by twenty cards.
-   NATURE IS EXCLUDED, because another chat already showed her those
-   (2026-08-31, Sophie: "this is same. dedupe the nature / new pages no
-   nature / look at other chat for which they counted as nature / so i gave
-   all cards no missing no duplicates"). The subject list is NOT a guess at
-   what nature means — it is read off that chat's own two live pages ("The
-   35 nature cards you hearted, in order" + "The 16 hearted cards no longer
-   in the pool") and banked in docs/triset/nature-slugs.json, so the two
-   chats partition her hearts: 50 nature there, 87 here, nothing in both and
-   nothing in neither (verified on every run — the script REFUSES to build
-   if that stops being true).
+   THE NATURE SPLIT WAS REDONE AND THIS SCRIPT OWNS BOTH HALVES NOW
+   (2026-08-31, Sophie: "they did a bad job of deciding what's nature and
+   what's not. redo. things like castle, bridge yes nature, hail roof").
+   The first cut was read off another chat's pages and drew the line at pure
+   wilderness; her rule is the OUTDOOR WORLD — landscapes, weather, sky,
+   animals, plants, and man-made things sitting out in it. The corrected
+   list (with the 24 moved subjects named) is docs/triset/nature-slugs.json.
+   Because that other chat's pages are frozen with the wrong split, this
+   script emits FOUR pages — nature current/retired AND no-nature
+   current/retired — same pair rules on both sides, and the partition is
+   still verified on every run (every heart in exactly one pile, or it
+   REFUSES to build).
 
    Env: FIREBASE_SERVICE_ACCOUNT. Costs nothing — two reads, no model call. */
 const fs = require('fs');
@@ -192,38 +194,54 @@ function build(list) {
   if (hearts.length + natureHearts.length !== beforeNature) throw new Error('the split lost a card');
   if (hearts.some((h) => NATURE.has(h.slug))) throw new Error('a nature card stayed on my pages');
 
-  const heartedSlugs = {};
-  hearts.forEach((h) => { (heartedSlugs[h.slug] = heartedSlugs[h.slug] || []).push(h); });
-  const paired = (h) => heartedSlugs[h.slug].length > 1;
-  const current = hearts.filter((h) => !h.hidden || paired(h));
-  const retired = hearts.filter((h) => h.hidden && !paired(h));
+  const splitPile = (list) => {
+    const bySlug = {};
+    list.forEach((h) => { (bySlug[h.slug] = bySlug[h.slug] || []).push(h); });
+    const paired = (h) => bySlug[h.slug].length > 1;
+    return { current: list.filter((h) => !h.hidden || paired(h)),
+      retired: list.filter((h) => h.hidden && !paired(h)) };
+  };
+  const { current, retired } = splitPile(hearts);
+  const { current: natCurrent, retired: natRetired } = splitPile(natureHearts);
 
   fs.writeFileSync('docs/triset/hearts.json', JSON.stringify({
-    _what: 'Her Triset marks, collected 2026-08-31. hearts = every ♥ she cast on a triset card, '
-      + 'MINUS the nature subjects another chat already showed her (current = still in the pool, '
-      + 'retired = a generation redrawn away); notes = every picture she wrote on, her words verbatim.',
+    _what: 'Her Triset marks, collected 2026-08-31 (nature split REDONE the same day on her rule: '
+      + 'the outdoor world, man-made-in-landscape included). hearts = every ♥ she cast on a triset '
+      + 'card, split nature / no-nature (current = still in the pool, retired = a generation '
+      + 'redrawn away); notes = every picture she wrote on, her words verbatim.',
     counts: { hearts: hearts.length, current: current.length, retired: retired.length,
-      noted: notesAll.length, natureElsewhere: natureHearts.length, allHearts: beforeNature },
-    nature: natureHearts.map((h) => ({ u: h.u, t: h.t, slug: h.slug, q: h.q })),
-    current, retired, notes: notesAll,
+      natureHearts: natureHearts.length, natureCurrent: natCurrent.length, natureRetired: natRetired.length,
+      noted: notesAll.length, allHearts: beforeNature },
+    current, retired, natureCurrent: natCurrent, natureRetired: natRetired, notes: notesAll,
   }, null, 1));
 
   const cur = build(current), ret = build(retired);
-  fs.writeFileSync('/tmp/hearts-current.html', page('Triset hearts', cur,
-    'Every Triset card you hearted that is still in the pool, minus the nature ones — those are '
-    + 'on the other chat\'s two nature pages, so between them and these you see every card once. '
-    + 'One at a time, newest first, '
-    + 'your notes under each. Where you kept BOTH the low and the medium of one subject they sit '
+  const ncur = build(natCurrent), nret = build(natRetired);
+  const pairLine = 'Where you kept BOTH the low and the medium of one subject they sit '
     + 'back to back, low first. Tap a picture for the full-res original with its prompt; '
-    + '♥/✕ and notes there sync with the chat that made it. The retired generations are their own page.'));
-  fs.writeFileSync('/tmp/hearts-retired.html', page('Triset hearts — retired versions', ret,
+    + '♥/✕ and notes there sync with the chat that made it. The retired generations are their own page.';
+  fs.writeFileSync('/tmp/hearts-nature.html', page('Triset hearts — nature v2', ncur,
+    'Every NATURE card you hearted that is still in the pool — nature by your rule: the outdoor '
+    + 'world, castles and bridges and hail on a roof included. One at a time, newest first, your '
+    + 'notes under each. ' + pairLine));
+  fs.writeFileSync('/tmp/hearts-nature-retired.html', page('Triset nature hearts — retired v2', nret,
+    'Nature cards you hearted whose generation was later redrawn away and that you did NOT also '
+    + 'heart at another quality. Where you kept both a low and a medium, the pair is on the main '
+    + 'nature page instead, together.'));
+  fs.writeFileSync('/tmp/hearts-current.html', page('Triset hearts — no nature v2', cur,
+    'Every Triset card you hearted that is still in the pool, minus the nature ones — those are '
+    + 'on the nature v2 page, so between the two you see every card once. '
+    + 'One at a time, newest first, your notes under each. ' + pairLine));
+  fs.writeFileSync('/tmp/hearts-retired.html', page('Triset hearts — retired v2', ret,
     'Cards you hearted whose generation was later redrawn away and that you did NOT also heart at '
     + 'another quality — the picture is still here, it is just no longer the one in the pool. '
     + 'Where you kept BOTH a low and a medium, the pair is on the main hearts page instead, together.'));
 
-  console.log(JSON.stringify({ allHearts: beforeNature, natureElsewhere: natureHearts.length,
-    hearts: hearts.length, current: current.length, retired: retired.length,
-    currentPairs: cur.pairs, retiredPairs: ret.pairs, noted: notesAll.length,
-    bytes: { cur: fs.statSync('/tmp/hearts-current.html').size, ret: fs.statSync('/tmp/hearts-retired.html').size } }, null, 1));
+  console.log(JSON.stringify({ allHearts: beforeNature,
+    nature: { hearts: natureHearts.length, current: natCurrent.length, retired: natRetired.length, currentPairs: ncur.pairs, retiredPairs: nret.pairs },
+    noNature: { hearts: hearts.length, current: current.length, retired: retired.length, currentPairs: cur.pairs, retiredPairs: ret.pairs },
+    noted: notesAll.length,
+    bytes: { natCur: fs.statSync('/tmp/hearts-nature.html').size, natRet: fs.statSync('/tmp/hearts-nature-retired.html').size,
+      cur: fs.statSync('/tmp/hearts-current.html').size, ret: fs.statSync('/tmp/hearts-retired.html').size } }, null, 1));
   process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });
