@@ -1,10 +1,89 @@
 # Sophie's suspicious coincidences — the catalogue
 
-**What this is.** Sophie asked a chat to "go find all my suspicious coincidences"
-(2026-08-31). This is the sweep's result: every story in her own transcript
-libraries where something happened that she read as more than chance — the ones
-she pictured before they arrived, the ones that showed up exactly when she
-needed them, the ones that stopped something, the animals, and the small signs.
+**SHE MEANT THE WITCH APP.** She asked "go find all my suspicious coincidences"
+(2026-08-31), a chat swept her voice memos, and her next message was *"i meant
+from secretly a witch app"* — the **Suspicious coincidence…** box on Secretly a
+Witch's Home screen, where she has been writing one down and drawing it most
+days since July. That book is the first half of this doc. The memo sweep is the
+second half and is kept: they are genuinely different things — the app holds the
+small sightings she logs as they happen, the memos hold the long stories she
+tells. **A future sweep starts with the app.**
+
+---
+
+## Part one — THE WITCH APP'S BOOK (what she meant)
+
+**40 coincidences, 24 Jul → 30 Aug 2026, every one of them drawn.** Posted as a
+stock `deck` into her Compare tab — her own words exactly as she typed them, the
+app's generated title over each, and the picture it drew.
+
+**Where they live.** The Witch app keeps the Book of Shadows in `localStorage`
+and mirrors it to membry Firestore `users/{uid}` under a `data` blob, one key per
+localStorage key (`WITCH_KEYS` in `public/witch.html`). The coincidences are
+`witch_sync_archive` — `[{ id, dateISO, ts, slot, url, desc, label }]` — plus
+`witch_coin_done`, today's three Home boxes before the midnight rollover files
+them. Her uid is a personal identifier and stays OUT of this public repo; find it
+by scanning that collection for docs carrying `data.witch_sync_archive`
+(6 of 29 user docs have any witch data at all).
+
+### Two findings, both worth acting on
+
+**1. A coincidence she types and does NOT draw is gone at midnight.** Measured in
+`public/witch.html`: `syncArchUpsert` — the only thing that files an entry into
+the archive — is reached from the draw-completion paths and nowhere else, while
+`coinDailyRollover` clears the three Home boxes on the day flip **without
+archiving anything undrawn**. The code's own comment already says it: *"drawing
+IS what files it into the Book of Shadows"*. So **"Draw it!" is the save button**,
+and there is nothing on screen that says so. Worth telling her; worth considering
+whether an undrawn box should file text-only rather than vanish.
+
+**2. Her book is split across two sign-ins.** Two user docs carry a
+`witch_sync_archive`. The live one holds all 40 and was written to today; the
+other holds 10, stops 2026-08-07, and covers 25–26 July — five of them the same
+entries by id, and **three are second, fuller re-tellings of the same events**
+that exist nowhere else (the kitten dream, the man outside Pete's, the trip
+gossip). Nothing is lost and the deck is the merge of both, but signing in the
+other way shows her a book missing everything since 7 August.
+
+### How the deck was merged, and the trap in the middle of it
+
+`node scripts/witch-coincidences.js` is the reader — it lists the book, `--pairs`
+reports near-duplicates, `--deck` prints the Compare-page payload. It hardcodes no
+uid (personal identifier, public repo): it reads every user doc carrying a
+`witch_sync_archive` and merges them. Reads only; costs nothing.
+
+**AN ENTRY'S `id` IS UNIQUE INSIDE ONE ACCOUNT AND NOWHERE ELSE.** The midnight
+fold stamps `coin_<today>_<slot>`, so both sign-ins folding their own three Home
+boxes on 2026-07-25 produced **the same three ids for six different
+coincidences**. Measured over her real book: 3 of 47 ids collide, and every
+collision is two unrelated entries. So the first pass is keyed `<uid>|<id>`.
+Deduping by bare id across accounts silently deletes real coincidences, and
+*which* ones depends only on the order Firestore hands back the user docs — the
+first cut of this merge did exactly that and lost her caterpillar and her 201
+wraps to it, while a first-wins rule had looked correct purely by luck.
+
+The second pass is normalised `desc`, keeping the **longest** telling: she
+re-writes an entry rather than editing it, so the longer one is the later
+thought. That is what collapses the same entry synced under both sign-ins.
+
+**A SECOND TELLING WITH A DIFFERENT ID AND DIFFERENT WORDS IS FLAGGED, NEVER
+MERGED**, and here the house near-variant rule is measured rather than assumed.
+Over her book: her two tellings of the kitten dream, which *are* one event, score
+**0.19**; "Richard is being crazy today" and "Richard and Mason both tried Claude
+today", which are two different coincidences, score **0.25**; and her two tellings
+of the trip gossip share so few words that no string measure sees them at all.
+**There is no threshold that catches the real duplicates without eating a real
+coincidence.** So `--pairs` reports and `--drop=<n,…>` records the human's call in
+the command where it can be read back. The posted deck is
+`--drop=2,6,7` over 43 → **40 cards**.
+
+**The words on a card are hers verbatim.** The `label` above them is the app's own
+generated title, carried because it is what her Book of Shadows shows — never
+presented as something she wrote.
+
+---
+
+## Part two — THE VOICE MEMOS (the first sweep)
 
 **Where it came from.** `GET /api/search` over the memo half of the index
 (1,188 recordings, ~11.3M characters) — keyword sweeps on the coincidence
