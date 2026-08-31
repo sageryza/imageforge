@@ -101,20 +101,23 @@ const sha1 = (s) => crypto.createHash('sha1').update(String(s)).digest('hex');
 const TRIANGLE_UP = 'point up — the flat side on the bottom, one corner at the top';
 const TRIANGLE_DOWN = 'point down, upside down — the flat side on TOP, one corner at the bottom';
 function triangleClause(invert) {
+  // THE EQUILATERAL LINE CARRIES THE WEIGHT, AND NOTHING IS ADDED BESIDE IT
+  // (2026-08-31, Sophie: "i didn't ask you to add the triangle lines" · "add
+  // more importance to the equilateral line if anything"). A clause telling
+  // the model to compose INTO the triangle shipped for one batch and she cut
+  // it: it bent the subjects to the frame — a quilt on a line came back
+  // splayed into a triangle. So the shape rule is about the CARD, never
+  // about what is drawn on it, and the way to get better cards is to say
+  // EQUILATERAL harder, not to say more things.
   return 'Render as ONE single illustration — NOT a grid, NOT split panels. '
-    + 'The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three '
-    + 'sides exactly the same length, ' + (invert ? TRIANGLE_DOWN : TRIANGLE_UP)
+    + 'The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD. THIS IS THE '
+    + 'MOST IMPORTANT THING ABOUT THE CARD: a true equilateral triangle, all '
+    + 'three sides exactly the same length and all three angles exactly 60 '
+    + 'degrees — never taller than it is wide, never wider than it is tall, '
+    + 'never a steep or a squat triangle. It is ' + (invert ? TRIANGLE_DOWN : TRIANGLE_UP)
     + ': a triangle with a plain paper border and a hand-drawn frame line, '
     + 'like the frames in the style reference but triangular, on a plain '
-    + 'white background, the whole composition inside the triangle. '
-    // USE THE TRIANGLE (2026-08-31, Sophie on the redwood card: "perfect ·
-    // use of triangle"). The one card she called perfect is the one whose
-    // subject tapers into the shape — so the frame is not just a crop, it is
-    // the composition. Cards drawn before this read as square pictures with
-    // their corners cut off.
-    + 'Compose the subject to USE the triangle: let it follow the sloping '
-    + 'sides and reach into the corners, so the picture could not have been '
-    + 'drawn square. ';
+    + 'white background, the whole composition inside the triangle. ';
 }
 const TRIANGLE_CLAUSE = triangleClause(false);
 // The connective line for a MADE card (the venn center). Rides in the wrapper
