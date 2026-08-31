@@ -4334,6 +4334,41 @@ before working on that module. Nothing was deleted — the moved text is verbati
     the LIVE VALUE that will be sent, the way reopening her waiting-for box
     shows the sentence she already wrote. Her own words go in the main box,
     which still ships empty.
+  - **EITHER HALF OPENS BIGGER (2026-08-31, Sophie: "add extend textbox button
+    to both halves of style prompt playground").** These two boxes hold the
+    longest text on the page — Dreamy's tail is a paragraph — and the compact
+    box showed about two lines of it, so the half she reads most was the one
+    with no way to see what was in it. `#prompt.big`'s corner toggle lifted in
+    SHAPE, never a second field: one textarea, two sizes, both bounds in CSS
+    (24vh floor / 46vh cap), `fitBig` measuring the content between them. The
+    two rules that make the measurement honest — `height:auto` before measuring
+    or the box can only grow, and adding the border back on a `border-box` box
+    — are written out once, under *THE PROMPT BOX HAS A BIGGER-BOX TOGGLE* in
+    this section. Five things not to undo:
+    - **The compact box is 92px, not the 66 it was** — it has to reserve the
+      button's corner with `padding-bottom` or her last line is typed under it,
+      and 92 is what keeps the same two lines of text visible above that band.
+    - **56px in from the right, not the exact corner** — the injected pill owns
+      that fixed column on this page, and a z-lift steals the pill's own ▼
+      instead (the settled answer `#bigprompt` already reached on this card).
+    - **A REPAINT OF THE PANEL SHE IS STANDING ON DOES NOT SHUT THE BOX.** The
+      panel is rebuilt whole whenever anything it prints changes — attaching a
+      photo, tapping the Sophie card, typing in the cast sheet — and springing
+      an expanded box back to compact under her is the Story Room caption's own
+      complaint. `panelBig` is in memory only and is **not sticky**: nothing is
+      stored, and closing the panel or changing style puts both halves back
+      small, because a different style is a different wrapper.
+    - **The fit is re-run after the box is in the document** — `scrollHeight`
+      on a detached node is 0, so a restored `.big` would open at the CSS floor
+      and only find its real height on her next keystroke.
+    - **The LoRA's trigger carries no button.** It is shown read-only (editing
+      it stops the LoRA being selected at all), and the control belongs to the
+      EDIT box — the Story Room's own rule.
+    Test: `node scripts/test-playground-expand-style-prompt.js` (the real page
+    headless; every assertion a MEASUREMENT, since a `.big` class whose CSS
+    never landed, a button under the pill, and a restored box fitted while
+    detached all pass every markup assertion ever written about them —
+    verified failing pre-fix, where neither half has a button at all).
   **A PHOTO REFERENCE OF HER OWN — the file button (Aug 2026, Sophie:
   "Freeform has the ability to upload a photo reference, but playground
   doesn't … in the case of dreamy or watercolor, where they already have

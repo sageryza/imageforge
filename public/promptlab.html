@@ -668,6 +668,29 @@
   #promptpanel textarea { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px;
     line-height: 1.4; color: #2b2622; background: #fff; border: 1px solid #d8d0c4;
     border-radius: 6px; padding: 8px; resize: vertical; min-height: 66px; }
+  /* EITHER HALF OPENS BIGGER (2026-08-31, Sophie: "add extend textbox button to
+     both halves of style prompt playground"). #prompt.big's answer lifted in
+     SHAPE, never a second field: ONE textarea, two sizes, a corner button that
+     swaps its own glyph — so there is nothing to keep in sync and `stash`
+     still reads the same box.
+       Both bounds are CSS, so the browser clamps the fitted height and no `vh`
+     is re-derived in script (#prompt.big's own lesson). The box RESERVES the
+     corner with padding-bottom, or her last line is typed under the button —
+     which is why the compact box is taller here than the 66px it was: 92px
+     keeps the same two lines of text visible above the reserved band.
+       56px in from the right rather than the exact corner, because the
+     injected pill owns that fixed column on this page and a z-lift just steals
+     the pill's own ▼ — the same dodge #bigprompt makes, on the same card.
+       `display:block` on the textarea kills the inline-block baseline gap,
+     which would otherwise sit between the box's real bottom and the wrapper's
+     padding box and float the button below the box it belongs to. */
+  #promptpanel .pwrap { position: relative; margin: 0 0 6px; }
+  #promptpanel .pwrap textarea { display: block; padding-bottom: 34px; min-height: 92px; }
+  #promptpanel .pwrap textarea.big { min-height: 24vh; max-height: 46vh; }
+  #promptpanel .pbig { position: absolute; right: 56px; bottom: 6px; width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center; padding: 0; margin: 0;
+    border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #6f675e; cursor: pointer; }
+  #promptpanel .pbig svg { width: 14px; height: 14px; }
   #promptpanel .yours { font-size: 12px; color: #6f675e; font-style: italic;
     border-left: 2px solid #d8d0c4; padding: 2px 0 2px 8px; margin: 4px 0 0; }
   #promptpanel .prow { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
@@ -2724,6 +2747,15 @@
   var PHOTO_LINE_CHARS = '';         // …and the same one re-anchored when characters ride behind it
   var promptOpen = false;
   var OVERKEY = 'promptlab_prompt_';  // + gptStyle id
+  // WHICH HALVES ARE OPEN BIGGER (see `field()` in paintPromptPanel). Held in
+  // memory only — never localStorage, never on a run — so it is a moment of
+  // reading one wrapper rather than a setting: closing the panel or changing
+  // style puts both halves back small, exactly as #prompt.big and the cast
+  // row's own toggle are "not the default, so not sticky either". It exists
+  // only so a REPAINT of the panel she is standing on cannot shut a box she is
+  // in the middle of reading.
+  var panelBig = {};
+  var panelBigFor = '';
 
   // Where a style's edit is stored. A gpt style is keyed by its SERVER id
   // (shared by every tile pointing at it); a LoRA has no gptStyle, so it is
@@ -2808,16 +2840,72 @@
     // Every style with a wrapper gets the panel — a LoRA has one too (its
     // trigger and its tail), and gating this on isGpt is what left the tile
     // the page opens on with no way to see its style prompt at all.
-    if (!promptOpen || !bakedFor(styleKey)) { el.className = ''; el.innerHTML = ''; return; }
+    if (!promptOpen || !bakedFor(styleKey)) {
+      panelBig = {}; panelBigFor = '';
+      el.className = ''; el.innerHTML = ''; return;
+    }
+    // A different style is a different wrapper, so both halves open compact.
+    if (panelBigFor !== styleKey) { panelBig = {}; panelBigFor = styleKey; }
     var p = sentParts(styleKey);
     el.className = 'on';
     if (!p) { el.innerHTML = '<div class="plab">Prompt</div><div class="yours">Loading…</div>'; return; }
     el.innerHTML = '';
     function field(label, val, name) {
       var l = document.createElement('div'); l.className = 'plab'; l.textContent = label;
+      // EITHER HALF OPENS BIGGER (2026-08-31, Sophie: "add extend textbox
+      // button to both halves of style prompt playground"). The style prefix
+      // and the tail are the longest text on this page — Dreamy's tail is a
+      // paragraph — and the compact box showed about two lines of it, so the
+      // half she reads most was the one with no way to see what was in it.
+      // #prompt.big's answer lifted in SHAPE, not copied: one textarea, two
+      // sizes, both bounds in CSS, and the same two measuring lessons below.
+      var w = document.createElement('div'); w.className = 'pwrap';
       var t = document.createElement('textarea'); t.value = val; t.setAttribute('data-part', name);
       t.addEventListener('input', stash);
-      el.appendChild(l); el.appendChild(t);
+      var big = document.createElement('button');
+      big.type = 'button'; big.className = 'pbig';
+      //   `height:auto` FIRST or the box can only ever grow — scrollHeight of a
+      // box already sized to its old height reports that height back. The
+      // border is added on because the box is border-box and scrollHeight
+      // excludes it. Both are #prompt.big's, learned there first.
+      function fitBig() {
+        if (!t.classList.contains('big')) { t.style.height = ''; return; }
+        t.style.height = 'auto';
+        t.style.height = (t.scrollHeight + (t.offsetHeight - t.clientHeight)) + 'px';
+      }
+      function paintBig() {
+        var on = t.classList.contains('big');
+        big.innerHTML = on ? ICONS.minimize : ICONS.maximize;
+        var word = (on ? 'Back to the small box' : 'Bigger box') + ' — ' + label.toLowerCase();
+        big.setAttribute('aria-label', word); big.title = word;
+        big.setAttribute('aria-expanded', on ? 'true' : 'false');
+      }
+      big.addEventListener('click', function () {
+        t.classList.toggle('big');
+        // A hand-dragged resize (desktop) leaves an inline height behind, so
+        // "back to the small box" would not shrink anything without this.
+        t.style.height = '';
+        panelBig[name] = t.classList.contains('big');
+        fitBig(); paintBig();
+        if (t.classList.contains('big')) t.focus();
+      });
+      t.addEventListener('input', fitBig);
+      t.__fit = fitBig;
+      // A REPAINT OF THE PANEL SHE IS STANDING ON DOES NOT SHUT THE BOX. The
+      // panel is rebuilt whole whenever anything it prints changes — attaching
+      // a photo, picking a character, typing in the cast sheet — and springing
+      // an expanded box back to compact under her is the Story Room caption's
+      // own complaint ("the caption keeps reopening after I close it").
+      // `panelBig` is NOT sticky: nothing is stored, and closing the panel or
+      // changing style puts both halves back small.
+      if (panelBig[name]) t.classList.add('big');
+      paintBig();
+      w.appendChild(t); w.appendChild(big);
+      el.appendChild(l); el.appendChild(w);
+      // Fitted after the box is in the document — scrollHeight on a detached
+      // node is 0, so a restored `.big` would open at the CSS floor and only
+      // find its real height on her next keystroke.
+      fitBig();
     }
     // A LoRA's trigger word is what SELECTS the model, so it is shown as an
     // added line rather than as an editable half — editing it would quietly
@@ -2935,6 +3023,14 @@
   }
   document.getElementById('promptbtn').addEventListener('click', function () {
     promptOpen = !promptOpen; paintPromptPanel();
+  });
+  // A rotation changes what `vh` means, so an open half refits. ONE handler for
+  // the panel rather than one per rebuilt box — the boxes come and go with
+  // every repaint, and a listener added per box would pile up behind them.
+  window.addEventListener('resize', function () {
+    Array.prototype.forEach.call(
+      document.querySelectorAll('#promptpanel textarea.big'),
+      function (t) { if (t.__fit) t.__fit(); });
   });
   fetch('/api/promptlab/styles').then(function (r) { return r.json(); })
     .then(function (d) {
