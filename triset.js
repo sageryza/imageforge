@@ -66,10 +66,15 @@ const CARDS = 'forge-triset-cards';
 
 // LOW while the prompts are being perfected (2026-08-30, Sophie: "draw low
 // quality while we perfect the prompts etc") — one line to raise it back.
-const QUALITY = 'low';
+// TRISET_QUALITY overrides it for ONE container job (2026-08-31, Sophie:
+// "draw as medium triangle squares"), so a batch she asks for at medium does
+// not quietly raise the price of every found-set draw she taps in the game.
+const QUALITY = ['low', 'medium', 'high'].includes(process.env.TRISET_QUALITY)
+  ? process.env.TRISET_QUALITY : 'low';
 const CANVAS = '1024x1024';
 const SIZE_TIER = '1K';
-const COST_CENTS = 1.8; // 0.6c low square + ~1.2c dreamy reference input
+// square 1K output (docs/modules/pictures.md) + ~1.2c of dreamy reference input
+const COST_CENTS = { low: 1.8, medium: 6.5, high: 22.3 }[QUALITY];
 
 // 'auto' (2026-08-30, Sophie: "a prompt explaining the rules of set and have
 // the image model come up w something that shares each one") — the three
