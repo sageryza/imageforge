@@ -8225,8 +8225,66 @@ function openChat(name, keepScroll, focusId, noFetch){
           paint();
           cell.appendChild(hb); cell.appendChild(xb); cell.appendChild(nb);
         }
+        // ── TAP TO NEXT — step tile to tile without leaving the lightbox ──
+        // (2026-08-31, Sophie: "add tap to next on assets like playground").
+        // The zones themselves are the shared file's `nav` hook, so nothing
+        // about the lightbox is copied here — all this surface owes it is
+        // WHAT COMES NEXT.
+        //
+        // THE ORDER IS READ OFF THE GRID SHE IS LOOKING AT — the tiles still
+        // on screen, in DOCUMENT order — the Playground's settled rule. So
+        // the ♥/New/Hide ✕ filter, the search and a dead image narrow the
+        // walk by THEMSELVES, and there is no second copy of applyFilter's
+        // rules to drift from it. Document order rather than the `cells`
+        // array, because a tile can be inserted rather than appended.
+        var lbIt=null;
+        function aSeq(){
+          return Array.prototype.filter.call(grid.querySelectorAll('.acell'), function(c){
+            return c._it && c.style.display!=='none';
+          });
+        }
+        function aAt(seq, it){
+          for(var k=0;k<seq.length;k++) if(seq[k]._it===it) return k;
+          return -1;
+        }
+        function aStep(d){
+          var seq=aSeq(), at=aAt(seq, lbIt);
+          if(at<0) return;
+          var nx=seq[at+d];
+          if(nx) openAsset(nx._it, false);
+        }
+        function openAsset(it, fresh){
+          // THE PROMPT DOOR'S STATE RIDES A STEP AND DIES WITH A FRESH OPEN
+          // (the shared file's rule: "the half she picked rides along as she
+          // steps … a fresh open always starts on content"). Comparing a style
+          // across two pictures is exactly why she would switch it, so the
+          // side is carried off the picture she is LEAVING — and a fresh open
+          // has to CLEAR what her last visit to this same tile left behind,
+          // because unlike the Playground these are long-lived item objects
+          // the lightbox writes onto rather than a rebuilt asset.
+          var carry = (!fresh && lbIt && lbIt!==it)
+            ? { side: lbIt.promptSide, open: lbIt.promptOpen } : null;
+          if(fresh){ delete it.promptSide; delete it.promptOpen; }
+          // The tile she is stepping off keeps a mirror pointed at ♥/✕ buttons
+          // that are no longer in the box; the new open replaces it.
+          if(lbIt && lbIt!==it) lbIt._lbPaint=null;
+          lbIt=it;
+          var seq=aSeq(), at=aAt(seq, it);
+          // A null side draws NO zone, so at the ends of the grid a tap there
+          // closes like any other dead space.
+          it.nav={
+            prev: at>0 ? function(){ aStep(-1); } : null,
+            next: (at>=0 && at<seq.length-1) ? function(){ aStep(1); } : null
+          };
+          it.onClose=function(){ lbIt=null; };
+          // Both halves, always — carrying only a set one would leave the
+          // arriving picture wearing whatever an EARLIER visit left on it.
+          if(carry){ it.promptSide=carry.side; it.promptOpen=carry.open; }
+          lightbox(it.url, it);
+        }
         function addTiles(list){ list.forEach(function(it){
           var cell=document.createElement('div'); cell.className='acell';
+          cell._it=it;   // the step walk reads the grid, not the cells array
           var b=document.createElement('button');
           // What the image IS, when the chat filed one — else the generic "from <chat>"
           var cap=it.description||it.prompt||'';
@@ -8245,7 +8303,7 @@ function openChat(name, keepScroll, focusId, noFetch){
             if(!triedFb && it.thumb){ triedFb=true; img.src=fb; return; }
             it._broken=true; cell.style.display='none'; if(it._lbPaint) it._lbPaint();
           };
-          b.onclick=function(){ lightbox(it.url, it); };
+          b.onclick=function(){ openAsset(it, true); };
           cell.appendChild(b); voteBtns(cell,it);
           if(io) io.observe(img);
           cells.push({cell:cell, it:it});

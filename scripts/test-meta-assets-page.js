@@ -435,7 +435,13 @@ const server = http.createServer((req, res) => {
     // …and the three things that must NOT close: her picture, the note box,
     // and the prompt overlay covering the picture.
     await opened();
-    await page.click('#clightbox img');
+    // The picture is asked by DISPATCH rather than by a point: this fixture is
+    // a 1×1 PNG, so since tap-to-next (2026-08-31) the two 28%-wide step zones
+    // over the picture cover the whole of it and playwright's centre-point
+    // click lands on a zone. The close rule is about the tap's TARGET anyway
+    // (`t.closest('…img…')`), which is exactly what this asks.
+    await page.evaluate(() => document.querySelector('#clightbox img')
+      .dispatchEvent(new MouseEvent('click', { bubbles: true })));
     await page.click('#clightbox .lbnote input');
     await page.click('.promptbtn');
     await page.click('.lbptext');

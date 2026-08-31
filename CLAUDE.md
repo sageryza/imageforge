@@ -3642,6 +3642,37 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     compare.js's own `.cmp-lb` zoom (hand-built Compare pages are FROZEN when
     posted, so changing their host risks every page already filed) and the
     public apps with their own identity (dream feed, witch).
+  - **TAP TO NEXT ON THE ASSETS TAB AND ON META ASSETS (2026-08-31, Sophie:
+    "add tap to next on assets like playground").** The two surfaces she
+    reviews EVERY picture in were the last feeds where seeing the next one
+    meant closing the box, finding the tile and opening again. The zones are
+    the shared file's `nav` hook — nothing about the lightbox is copied — so
+    all each page owes it is WHAT COMES NEXT.
+    - **THE ORDER IS READ OFF THE GRID SHE IS LOOKING AT** — the tiles still
+      on screen, in DOCUMENT order — the Playground's settled rule. So the
+      ♥/New/Hide ✕ filter, the search box and a dead image narrow the walk by
+      THEMSELVES, and there is no second copy of `applyFilter`'s rules to
+      drift from it. Document order rather than the `cells` array is
+      load-bearing in Meta Assets: a newly-arrived page is `insertBefore`'d at
+      the FRONT of the grid while `cells` still pushes it on the end, so the
+      array and the screen genuinely disagree.
+    - **A FRESH OPEN HAS TO CLEAR THE PROMPT DOOR, which the Playground never
+      had to do.** The house rule is that the half she picked rides a STEP and
+      a fresh open always starts shut and on content — but these two pages
+      hand the lightbox their long-lived ITEM objects, which it writes
+      `promptSide`/`promptOpen` onto, where the Playground rebuilds its asset
+      every time. So a fresh open deletes both and a step carries them off the
+      picture she is LEAVING, both halves, always. (Reopening one tile and
+      finding the door still open was a live bug on both pages before this.)
+    - **A tap PAST the end lands on the picture, which never closes** — the
+      shared close contract, unchanged; only the zone that exists is drawn.
+    - Test: `node scripts/test-assets-tap-next.js` (both real pages headless,
+      one sweep — the zones at the ends, a step that really changes the
+      picture, the ♥ filter skipping the tile in between, the ♥ after a step
+      posting the stepped-TO url, and the door's two rules; verified failing
+      against both pre-fix pages). `test-meta-assets-page.js` asks the picture
+      by DISPATCH now: its fixture is a 1×1 PNG, so the two 28% zones cover
+      the whole of it and a centre-point click lands on a zone.
 - **THE BOTTOM BAR'S THREE ARE PERMANENT — Story Room · Story Timeline ·
   Playground (2026-08-26, Sophie: "right now the bottom real icons switch off
   can you change it so they're permanent I want the story room, the story
