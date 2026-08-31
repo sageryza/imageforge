@@ -1,50 +1,62 @@
 #!/usr/bin/env node
-/* Hide Triset pool cards by url substring — the retire step after a REDRAW
-   (2026-08-31, Sophie: "can u redo them all at medium"). A redraw at another
-   quality is a NEW url and a new doc, so without this the pool holds both
-   the old and the new picture of every subject.
+/* Hide Triset cards whose Storage filename starts with a prefix — what a
+   REDRAW needs: the new generation lands at `<ver>-<slug>.webp` (immutable
+   objects, so a redraw is always a new url), and the generation it replaces
+   is put away rather than deleted. `hidden` is the verb in this module;
+   nothing here removes a doc or an object, so an unhide is one flag away.
 
-   Nothing is deleted — `hidden` is the verb (triset.js's own rule), so a
-   hidden card is one flag away from coming back.
+   Dry by default (the house rule for any sweep that writes):
+     node scripts/triset-hide.js --prefix seed2-            (names them)
+     node scripts/triset-hide.js --prefix seed2- --go       (hides them)
+     node scripts/triset-hide.js --prefix seed2- --unhide --go
 
-   Run:  node scripts/triset-hide.js --match /web1- /web2-      (dry)
-         node scripts/triset-hide.js --match /web1- /web2- --go
-         node scripts/triset-hide.js --match /web1- --unhide --go
-   Env:  FIREBASE_SERVICE_ACCOUNT (deckfactory) */
+   --only <json>: restrict to the slugs in a batch file ([{slug,…}, …]), so
+   redrawing 50 of 200 cards puts away exactly those 50. Without it every
+   card carrying the prefix is swept.
+
+   Env: FIREBASE_SERVICE_ACCOUNT (deckfactory). */
+const fs = require('fs');
 const admin = require('firebase-admin');
 
-const argv = process.argv.slice(2);
-const GO = argv.includes('--go');
-const UNHIDE = argv.includes('--unhide');
-const mi = argv.indexOf('--match');
-const MATCH = mi > -1 ? argv.slice(mi + 1).filter(a => !a.startsWith('--')) : [];
-if (!MATCH.length) { console.error('need --match <substring> [more…]'); process.exit(1); }
+const flag = (name, def) => {
+  const i = process.argv.indexOf('--' + name);
+  return i > -1 && process.argv[i + 1] ? process.argv[i + 1] : def;
+};
+const PREFIX = flag('prefix', '');
+const ONLY = flag('only', '');
+const GO = process.argv.includes('--go');
+const HIDDEN = !process.argv.includes('--unhide');
 
-async function main() {
+if (!PREFIX) { console.error('--prefix required (e.g. seed2-)'); process.exit(1); }
+
+const slugs = ONLY
+  ? new Set(JSON.parse(fs.readFileSync(ONLY, 'utf8')).map(s => s.slug))
+  : null;
+
+(async () => {
   const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
   admin.initializeApp({ credential: admin.credential.cert(sa) });
   const db = admin.firestore();
   const snap = await db.collection('forge-triset-cards').get();
-  const hit = [];
-  snap.forEach((d) => {
-    const c = d.data() || {};
-    const url = String(c.url || '');
-    if (!MATCH.some(m => url.includes(m))) return;
-    if (!!c.hidden === !UNHIDE) return; // already in the wanted state
-    hit.push({ id: d.id, title: c.title, url });
-  });
-  console.log(`${hit.length} cards to ${UNHIDE ? 'unhide' : 'hide'}  (match: ${MATCH.join(' ')})`);
-  for (const h of hit.slice(0, 8)) console.log('  ' + h.title);
-  if (hit.length > 8) console.log(`  …and ${hit.length - 8} more`);
-  if (!GO) { console.log('\n(dry — pass --go to write)'); return; }
-  // batched: 500 is Firestore's per-commit cap
-  for (let i = 0; i < hit.length; i += 400) {
-    const b = db.batch();
-    for (const h of hit.slice(i, i + 400)) {
-      b.set(db.collection('forge-triset-cards').doc(h.id), { hidden: !UNHIDE }, { merge: true });
-    }
-    await b.commit();
+
+  const hits = [];
+  for (const d of snap.docs) {
+    const c = d.data();
+    const file = String(c.url || '').split('/').pop();
+    if (!file.startsWith(PREFIX)) continue;
+    if (slugs && !slugs.has(file.slice(PREFIX.length).replace(/\.webp$/, ''))) continue;
+    if (Boolean(c.hidden) === HIDDEN) continue;   // already where it should be
+    hits.push({ ref: d.ref, file, title: c.title, quality: c.quality });
   }
-  console.log('done — ' + hit.length + (UNHIDE ? ' back in the pool' : ' hidden'));
-}
-main().catch((e) => { console.error(e); process.exit(1); });
+
+  console.log(`${hits.length} cards to ${HIDDEN ? 'hide' : 'unhide'} (prefix "${PREFIX}"${ONLY ? ', from ' + ONLY : ''})`);
+  for (const h of hits) console.log('  ' + h.file.padEnd(34) + (h.quality || '?') + '  ' + (h.title || ''));
+  if (!GO) { console.log('\n(dry — pass --go to write)'); process.exit(0); }
+
+  for (const h of hits) await h.ref.set({ hidden: HIDDEN }, { merge: true });
+
+  const left = (await db.collection('forge-triset-cards').get()).docs
+    .map(d => d.data()).filter(c => !c.hidden);
+  console.log(`done — ${hits.length} ${HIDDEN ? 'hidden' : 'unhidden'}; ${left.length} cards visible in the pool`);
+  process.exit(0);
+})().catch((e) => { console.error(e); process.exit(1); });

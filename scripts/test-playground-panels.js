@@ -918,7 +918,8 @@ function panelsPayload() {
   ok(await ported.isVisible('.promptwrap'), 'and that box on screen');
   ok(!(await ported.isVisible('#panelgrid')), 'the panel boxes step aside');
   // Nothing else about the port moved.
-  ok(/Carrying/.test(await ported.textContent('#reftag')), 'the sameref tag still speaks');
+  ok(!(await ported.getAttribute('#reftag', 'class')),
+    'and the sameref tag is still silent (2026-08-31, "delete the red")');
   await ported.close();
 
   // A plain open still honours her sticky tab — the switch is the PORT's, not
