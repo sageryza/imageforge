@@ -257,6 +257,14 @@ function validateTemplate(template, data) {
   // tap" hook: archiving is reversible in a tap and visible on her own list,
   // which is what makes it safe to fire from a card.
   if (data.applyArchive) out.applyArchive = true;
+  // WHICH VIEW IT OPENS ON (2026-08-31, Sophie asking for the "tinder
+  // version" of a comparison already posted as groups). A page has carried
+  // BOTH views since the two were joined, so the template only ever decided
+  // the OPENING one — and a groups page could never open on the swipe half,
+  // which is exactly a spread deck: one card per subject, its versions side
+  // by side. `start` is the only way to say so; anything else falls through
+  // to the template's own default, so nothing already posted moves.
+  if (data.start === 'swipe' || data.start === 'compare') out.start = data.start;
 
   if (template === 'deck') {
     if (!Array.isArray(data.items) || !data.items.length) {
@@ -390,7 +398,7 @@ function renderTemplatePage({ template, title, heading, chat, sheet, data, clean
     + '<script src="/grid.js"></script>\n'
     + '<script src="/page-views.js"></script>\n'
     + `<script>var __pageData = ${payload};`
-    + ` window.__pageViews({ data: window.__pageData, start: '${template === 'grid' ? 'compare' : 'swipe'}' });`
+    + ` window.__pageViews({ data: window.__pageData, start: '${data.start || (template === 'grid' ? 'compare' : 'swipe')}' });`
     + '</script>\n';
 }
 
