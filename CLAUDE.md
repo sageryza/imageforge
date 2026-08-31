@@ -7403,6 +7403,25 @@ before working on that module. Nothing was deleted — the moved text is verbati
     overlay), and carries `flip` on its doc — the page clips it point-down
     wherever it is dealt, forever, which is also how you tell the cards the
     game made from the seeds.
+  - **THE CUT IS MEASURED PER IMAGE — a baked DIE-CUT, never a fixed mapping
+    (2026-08-30, Sophie: "they shud have a cream border · equilateral · the
+    whole image plus outline needs to fit in the triangle · fix the
+    cutting").** The model draws each card with its own cream paper rim and
+    frame line but at a different size/steepness every time, so the first
+    page-side cut (fixed apex/base percentages) cropped into some cards' art
+    and its cream mat could never show through an opaque square image.
+    `triset-cut.js` bakes a derived display copy per card (`cut` on the doc,
+    `triset/cuts/<id>.c1.webp`): flood-fill the white background transparent
+    from the edges (wobbly hand-drawn sides survive exactly; interior white
+    highlights keep), fit the content bbox inside the equilateral slot canvas
+    (1000x866, FIT 0.96, base-aligned up / top-aligned down), transparent
+    around it — the page's cream `.face` shows through as the border. A
+    full-bleed draw falls back to the ideal triangle mask. Bakes: render()
+    right after banking the paid bytes (best-effort — a failed bake still
+    readies the card, the old mapping is the page fallback), `POST /recut`
+    (fire-and-forget sweep, `/status` reports it), `/seed` kicks it, and
+    `node scripts/triset-recut.js` runs it from a container (dry by default).
+    The objects are immutable — bump `CUT_VERSION` to re-bake past the CDN.
   - **Her words are the content half, verbatim**; the one connective line
     (INVENT_LINE) rides in the wrapper and is disclosed in `promptStyle` with
     the `[content]` seam. The whole prompt is stored on every card doc.

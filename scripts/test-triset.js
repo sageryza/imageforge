@@ -110,6 +110,78 @@ ok('auto content is empty by construction', triset.foundContent({ kind: 'auto' }
 ok('the route resolves and attaches the three source cards',
   /srcCards/.test(MOD) && /card\.from && card\.from\.urls/.test(MOD));
 
+/* ── the DIE-CUT (2026-08-30, Sophie: "they shud have a cream border ·
+   equilateral · the whole image plus outline needs to fit in the triangle ·
+   fix the cutting") — measured per image, never a fixed mapping ──────────── */
+const cut = require('../triset-cut');
+{
+  // a synthetic drawn card: white paper, a colored triangle, an interior
+  // white patch (a highlight INSIDE the frame — must survive the flood fill)
+  const w = 60; const h = 60;
+  const data = Buffer.alloc(w * h * 4, 255);
+  const paint = (x, y, r, g, b) => { const i = (y * w + x) * 4; data[i] = r; data[i + 1] = g; data[i + 2] = b; };
+  for (let y = 10; y <= 50; y++) {
+    const half = Math.round(((y - 10) / 40) * 20);
+    for (let x = 30 - half; x <= 30 + half; x++) paint(x, y, 122, 74, 43);
+  }
+  for (let y = 40; y <= 44; y++) for (let x = 28; x <= 32; x++) paint(x, y, 255, 255, 255);
+  const r = cut.dieCutAlpha(data, w, h);
+  ok('the background is removed', r.removed > 0.5);
+  ok('the bbox is the drawn card, not the canvas',
+    r.bbox && r.bbox.x0 === 10 && r.bbox.x1 === 50 && r.bbox.y0 === 10 && r.bbox.y1 === 50);
+  const a = (x, y) => data[(y * w + x) * 4 + 3];
+  ok('outside went transparent', a(2, 2) === 0 && a(57, 57) === 0 && a(5, 55) === 0);
+  ok('the art is opaque', a(30, 30) === 255);
+  ok('an interior white highlight SURVIVES (flood fill, not a chroma key)', a(30, 42) === 255);
+}
+{
+  // fitBox: contain-fit inside the FIT triangle, centered, base/top aligned
+  const innerW = 1000 * cut.FIT; const innerH = 866 * cut.FIT;
+  const steep = cut.fitBox({ x0: 0, y0: 0, x1: 99, y1: 199 });              // taller than equilateral
+  ok('a steep card is height-limited, never cropped',
+    steep.height <= Math.ceil(innerH) && steep.width < innerW / 2);
+  ok('…and centered', Math.abs(steep.left - (1000 - steep.width) / 2) <= 1);
+  ok('…its base on the mat base line (point up)',
+    Math.abs((steep.top + steep.height) - (2 * 866 / 3 + (866 / 3) * cut.FIT)) <= 1);
+  const flat = cut.fitBox({ x0: 0, y0: 0, x1: 199, y1: 59 });               // flatter than equilateral
+  ok('a flat card is width-limited, never cropped', flat.width <= Math.ceil(innerW) && flat.height < innerH / 2);
+  const down = cut.fitBox({ x0: 0, y0: 0, x1: 99, y1: 199 }, { flip: true });
+  ok('a point-down card top-aligns instead',
+    Math.abs(down.top - (866 / 3) * (1 - cut.FIT)) <= 1);
+}
+ok('render banks the paid bytes BEFORE the cut, and a failed bake still readies the card',
+  /await ref\.set\(\{ url \}, \{ merge: true \}\)/.test(MOD)
+  && /\.\.\.\(cut \? \{ cut \} : \{\}\), status: 'ready'/.test(MOD));
+ok('a made card is cut with its flip', /bakeCut\(buf, \{ flip: !!card\.flip \}\)/.test(MOD));
+ok('the recut sweep exists and /seed kicks it', /router\.post\('\/recut'/.test(MOD) && /bakeMissing\(false\)/.test(MOD));
+ok('the page shows the cut when a card has one, the mapping only as fallback',
+  /thumb\(card\.cut \|\| card\.url\)/.test(PAGE) && /classList\.toggle\('whole', !!card\.cut\)/.test(PAGE));
+ok('the reveal shows the cut too', /thumb\(card\.cut \|\| card\.url\)/.test(PAGE.slice(PAGE.indexOf('function showMade'))));
+
+async function bakeChecks() {
+  const sharp = require('sharp');
+  const svg = Buffer.from('<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">'
+    + '<rect width="200" height="200" fill="#fff"/>'
+    + '<polygon points="100,20 180,170 20,170" fill="#7a4a2b"/>'
+    + '<rect x="90" y="120" width="20" height="20" fill="#fff"/></svg>');
+  const { buf, fullBleed } = await cut.bakeCut(await sharp(svg).png().toBuffer());
+  const { data, info } = await sharp(buf).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const px = (x, y) => { const i = (y * info.width + x) * 4; return [data[i], data[i + 1], data[i + 2], data[i + 3]]; };
+  ok('the cut canvas is the slot triangle, 1000x866', info.width === 1000 && info.height === 866);
+  ok('a white-paper card is measured, not masked', fullBleed === false);
+  ok('the corners are transparent (the cream mat shows through)',
+    px(5, 5)[3] === 0 && px(994, 5)[3] === 0 && px(5, 860)[3] === 0);
+  ok('the art lands opaque inside the triangle', px(500, 500)[3] === 255 && px(500, 500)[0] < 200);
+  ok('the interior white patch is opaque in the bake', px(497, 628)[3] === 255 && px(497, 628)[0] > 230);
+  // a full-bleed draw (no white paper) falls back to the ideal triangle mask
+  const solid = await sharp({ create: { width: 120, height: 120, channels: 3, background: '#7a4a2b' } }).png().toBuffer();
+  const fb = await cut.bakeCut(solid);
+  ok('a full-bleed draw says so', fb.fullBleed === true);
+  const raw2 = await sharp(fb.buf).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const p2 = (x, y) => raw2.data[(y * raw2.info.width + x) * 4 + 3];
+  ok('…and still comes out a triangle', p2(5, 5) === 0 && p2(500, 430) === 255);
+}
+
 /* ── the stuck rule ──────────────────────────────────────────────────────── */
 const now = Date.now();
 ok('a fresh draw is left alone', triset.stuckPatch({ status: 'drawing', createdAt: now - 60e3 }, now) === null);
@@ -155,7 +227,8 @@ async function headless() {
   let pollCount = 0;
   const cards = Array.from({ length: 6 }, (_, i) => ({
     id: 'c' + i, title: 'card ' + i, status: 'ready',
-    url: 'https://storage.googleapis.com/x/triset/cards/c' + i + '.webp', createdAt: i,
+    url: 'https://storage.googleapis.com/x/triset/cards/c' + i + '.webp',
+    cut: 'https://storage.googleapis.com/x/triset/cuts/c' + i + '.c1.webp', createdAt: i,
   }));
   const srv = http.createServer((req, res) => {
     const u = new URL(req.url, 'http://x');
@@ -200,6 +273,19 @@ async function headless() {
   const dealt = await pg.evaluate(() => ['top', 'left', 'right']
     .map(s => document.querySelector('#s-' + s + ' img').getAttribute('src') || ''));
   ok('three cards are dealt', dealt.every(s => s.includes('/api/story/thumb')));
+  ok('a card with a die-cut shows the CUT, not the original', dealt.every(s => s.includes('cuts%2F')));
+  // the cut copy fills the slot exactly — no legacy overscan mapping — so the
+  // cream face shows through the copy's transparency as the border
+  ok('the cut fills the slot, measured', await pg.evaluate(() => {
+    return ['top', 'left', 'right'].every(s => {
+      const el = document.getElementById('s-' + s);
+      const r = el.querySelector('img').getBoundingClientRect();
+      const b = el.getBoundingClientRect();
+      return el.querySelector('img').classList.contains('whole')
+        && Math.abs(r.width - b.width) <= 2 && Math.abs(r.top - b.top) <= 2
+        && Math.abs(r.left - b.left) <= 2 && Math.abs(r.height - b.height) <= 2;
+    });
+  }));
   ok('the middle box is EMPTY on open', await pg.$eval('#middle', el => el.value) === '');
 
   // tap a card → it swaps (six cards, three dealt, a swap always changes the id)
@@ -252,9 +338,9 @@ async function headless() {
       .replace(/px/g, '').replace(/%/g, '').replace(/\s/g, '');
     return c.startsWith('polygon(00,1000,50100');
   }));
-  // the image is scaled past the slot so the inset cut fills it — the cut,
-  // not the whole canvas, is what shows
-  ok('…and the made card is mapped with a cream border around the cut', await pg.evaluate(() => {
+  // the stub's made card carries NO `cut` — this is the FALLBACK mapping
+  // (a failed bake): the image scaled past the slot so the inset cut fills it
+  ok('…and a cut-less card falls back to the fixed mapping over the cream face', await pg.evaluate(() => {
     const img = document.getElementById('midimg');
     const s = document.getElementById('s-mid').getBoundingClientRect();
     const r = img.getBoundingClientRect();
@@ -286,6 +372,7 @@ async function headless() {
 }
 
 (async () => {
+  await bakeChecks();
   if (chromium) await headless();
   else console.log('triset: playwright not installed — headless half skipped');
   console.log('');
