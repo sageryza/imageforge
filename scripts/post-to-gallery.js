@@ -48,7 +48,8 @@
  *   GALLERY_UID=<deviceUid> node scripts/post-to-gallery.js \
  *     --file ./image.png --prompt "Kitchen Witchery — hero image" \
  *     [--type image] [--style "Lavender Witch"] [--uid <deviceUid>] [--source claude]
- *     [--model gpt-image-2] [--quality medium]
+ *     [--model gpt-image-2] [--quality medium] [--size 1568x2352]
+ *     [--full "<the literal text sent>"] [--prefix "…"] [--suffix "…"]
  *   # or post an already-hosted URL
  *   GALLERY_UID=<deviceUid> node scripts/post-to-gallery.js --url https://…/image.png --prompt "…"
  */
@@ -126,6 +127,15 @@ async function main() {
   // canvases at different prices. A tier passed directly is taken as given.
   const canvas = arg('size');
   const size = require('../size-tier').captionSize(canvas);
+  // THE WHOLE PROMPT IS STORED WHEREVER AN IMAGE IS MADE (2026-08-24, "this is
+  // a hard rule"). `--full` is the literal text sent to the model; `--prefix`
+  // and `--suffix` are the style wrapper around `--prompt`, and the ONE builder
+  // marks the seam with [content]. A chat filing a picture it wrapped in a
+  // style recipe had no way to say so here, so the creation kept only her
+  // typed words and the exact text died with the request.
+  const promptWrap = require('../prompt-record').promptFields({
+    full: arg('full'), content: prompt, prefix: arg('prefix'), suffix: arg('suffix'),
+  });
   const uid = arg('uid', process.env.GALLERY_UID);
   if (!uid) { console.error('Missing gallery uid: pass --uid or set GALLERY_UID.'); process.exit(1); }
   const source = arg('source', 'claude');
@@ -147,6 +157,7 @@ async function main() {
   if (quality) doc.quality = quality;
   if (size) doc.size = size;
   if (canvas && canvas !== size) doc.canvas = canvas;
+  Object.assign(doc, promptWrap);
 
   const ref = await db.collection('users').doc(uid).collection('creations').add(doc);
   console.log(`gallery doc ${ref.id} → users/${uid}/creations  @ ${new Date(createdMs).toISOString()}`);
