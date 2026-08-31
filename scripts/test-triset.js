@@ -241,6 +241,41 @@ async function bakeChecks() {
   const creamAt = (x, y) => { const [r, g, b, al] = px(x, y); return al === 255 && r > 180 && g > 160 && b > 120; };
   ok('the cut fills the triangle to its corners, in cream',
     creamAt(500, 20) && creamAt(40, 850) && creamAt(960, 850));
+  // NO WHITE SEAM (2026-08-31, Sophie: "the original cut shows as white
+  // lines") — resizing a hard alpha edge rings ~1px brighter than either
+  // side, tracing the flood boundary; the card is flattened onto its cream
+  // BEFORE the resize so the seam is cream meeting cream. Asked on a card
+  // shaped like the REAL ones — brown art inside a drawn CREAM RIM — with
+  // no white art of its own, so any brighter-than-cream pixel inside the
+  // triangle can only be the seam ring. (A rimless dark-edged card still
+  // rings faintly at its own edge — that is ordinary resampling at a
+  // contrast edge, the same as inside any resized picture, and not this.)
+  {
+    const plain = Buffer.from('<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">'
+      + '<rect width="200" height="200" fill="#fff"/>'
+      + '<polygon points="100,14 186,174 14,174" fill="#f3ecdd"/>'
+      + '<polygon points="100,34 172,164 28,164" fill="#7a4a2b"/></svg>');
+    const pb = await cut.bakeCut(await sharp(plain).png().toBuffer());
+    const raw3 = await sharp(pb.buf).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    const p3 = (x, y) => { const i = (y * raw3.info.width + x) * 4; return [raw3.data[i], raw3.data[i + 1], raw3.data[i + 2], raw3.data[i + 3]]; };
+    // a bright pixel NEXT TO INK is ordinary resampling at a contrast edge;
+    // the seam ring sat in FLAT cream (rim one side, fill the other, no ink
+    // for 25px) — so only a bright pixel with no dark neighbour counts
+    const dark = (x, y) => { const [r] = p3(x, y); return r < 150; };
+    let ring = 0;
+    for (let y = 60; y < 820; y += 2) {
+      for (let x = 140; x < 860; x += 2) {
+        const [r, g, b, al] = p3(x, y);
+        if (!(al === 255 && r > cut.CREAM.r + 5 && g > cut.CREAM.g + 5 && b > cut.CREAM.b + 5)) continue;
+        let nearInk = false;
+        for (let dy = -8; dy <= 8 && !nearInk; dy += 4) {
+          for (let dx = -8; dx <= 8; dx += 4) { if (dark(x + dx, y + dy)) { nearInk = true; break; } }
+        }
+        if (!nearInk) ring += 1;
+      }
+    }
+    ok('no seam ring in the flat cream (bright pixels clear of any ink)', ring === 0);
+  }
   // a full-bleed draw (no white paper) falls back to the ideal triangle mask
   const solid = await sharp({ create: { width: 120, height: 120, channels: 3, background: '#7a4a2b' } }).png().toBuffer();
   const fb = await cut.bakeCut(solid);
