@@ -14,12 +14,24 @@
    BOTH the low and the medium of one subject, they sit BACK TO BACK in
    quality order (low then medium) so the pair reads as one comparison
    rather than two strangers separated by twenty cards.
+   NATURE IS EXCLUDED, because another chat already showed her those
+   (2026-08-31, Sophie: "this is same. dedupe the nature / new pages no
+   nature / look at other chat for which they counted as nature / so i gave
+   all cards no missing no duplicates"). The subject list is NOT a guess at
+   what nature means — it is read off that chat's own two live pages ("The
+   35 nature cards you hearted, in order" + "The 16 hearted cards no longer
+   in the pool") and banked in docs/triset/nature-slugs.json, so the two
+   chats partition her hearts: 50 nature there, 87 here, nothing in both and
+   nothing in neither (verified on every run — the script REFUSES to build
+   if that stops being true).
+
    Env: FIREBASE_SERVICE_ACCOUNT. Costs nothing — two reads, no model call. */
 const fs = require('fs');
 const admin = require('firebase-admin');
 admin.initializeApp({ credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)) });
 const db = admin.firestore();
 
+const NATURE = new Set(JSON.parse(fs.readFileSync(__dirname + '/../docs/triset/nature-slugs.json', 'utf8')).slugs);
 const QORDER = { low: 0, medium: 1, high: 2 };
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const thumb = (u) => '/api/story/thumb?w=900&url=' + encodeURIComponent(u);
@@ -167,6 +179,19 @@ function build(list) {
   // exists ONLY on a redrawn-away generation; a retired picture that is the
   // other half of a pair she deliberately kept rides the main page beside
   // its partner, where the comparison is the point.
+  // THE PARTITION IS CHECKED, NOT ASSUMED — but the invariant is about HER
+  // HEARTS, not about the other chat's list. Asking "does every nature
+  // subject still have a heart?" fails on a card she has since un-hearted
+  // (measured: their retired page still shows the nightingale, the sleeping
+  // swan and the zebra, and live she has ✕'d two of them and cleared the
+  // third — their page is stale, nothing is wrong here). What must hold is
+  // that every heart she has lands in exactly one of the two piles.
+  const natureHearts = hearts.filter((h) => NATURE.has(h.slug));
+  const beforeNature = hearts.length;
+  for (let i = hearts.length - 1; i >= 0; i -= 1) if (NATURE.has(hearts[i].slug)) hearts.splice(i, 1);
+  if (hearts.length + natureHearts.length !== beforeNature) throw new Error('the split lost a card');
+  if (hearts.some((h) => NATURE.has(h.slug))) throw new Error('a nature card stayed on my pages');
+
   const heartedSlugs = {};
   hearts.forEach((h) => { (heartedSlugs[h.slug] = heartedSlugs[h.slug] || []).push(h); });
   const paired = (h) => heartedSlugs[h.slug].length > 1;
@@ -174,16 +199,20 @@ function build(list) {
   const retired = hearts.filter((h) => h.hidden && !paired(h));
 
   fs.writeFileSync('docs/triset/hearts.json', JSON.stringify({
-    _what: 'Her Triset marks, collected 2026-08-31. hearts = every ♥ she cast on a triset card '
-      + '(current = still in the pool, retired = a generation redrawn away); notes = every picture '
-      + 'she wrote on, her words verbatim.',
-    counts: { hearts: hearts.length, current: current.length, retired: retired.length, noted: notesAll.length },
+    _what: 'Her Triset marks, collected 2026-08-31. hearts = every ♥ she cast on a triset card, '
+      + 'MINUS the nature subjects another chat already showed her (current = still in the pool, '
+      + 'retired = a generation redrawn away); notes = every picture she wrote on, her words verbatim.',
+    counts: { hearts: hearts.length, current: current.length, retired: retired.length,
+      noted: notesAll.length, natureElsewhere: natureHearts.length, allHearts: beforeNature },
+    nature: natureHearts.map((h) => ({ u: h.u, t: h.t, slug: h.slug, q: h.q })),
     current, retired, notes: notesAll,
   }, null, 1));
 
   const cur = build(current), ret = build(retired);
   fs.writeFileSync('/tmp/hearts-current.html', page('Triset hearts', cur,
-    'Every Triset card you hearted that is still in the pool — one at a time, newest first, '
+    'Every Triset card you hearted that is still in the pool, minus the nature ones — those are '
+    + 'on the other chat\'s two nature pages, so between them and these you see every card once. '
+    + 'One at a time, newest first, '
     + 'your notes under each. Where you kept BOTH the low and the medium of one subject they sit '
     + 'back to back, low first. Tap a picture for the full-res original with its prompt; '
     + '♥/✕ and notes there sync with the chat that made it. The retired generations are their own page.'));
@@ -192,7 +221,8 @@ function build(list) {
     + 'another quality — the picture is still here, it is just no longer the one in the pool. '
     + 'Where you kept BOTH a low and a medium, the pair is on the main hearts page instead, together.'));
 
-  console.log(JSON.stringify({ hearts: hearts.length, current: current.length, retired: retired.length,
+  console.log(JSON.stringify({ allHearts: beforeNature, natureElsewhere: natureHearts.length,
+    hearts: hearts.length, current: current.length, retired: retired.length,
     currentPairs: cur.pairs, retiredPairs: ret.pairs, noted: notesAll.length,
     bytes: { cur: fs.statSync('/tmp/hearts-current.html').size, ret: fs.statSync('/tmp/hearts-retired.html').size } }, null, 1));
   process.exit(0);
