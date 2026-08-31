@@ -287,9 +287,10 @@ catch {
   // Arrived from a picture we could identify → the tile IS the picture's.
   await page.goto(base + '/playground?prompt=a%20cat&style=dreamy&sameref=1');
   let t = await tag();
-  ok(/\bon\b/.test(t.cls) && /same/.test(t.cls), 'matched port: the line shows, marked same');
-  ok(/Dreamy/.test(t.text) && /reference and style prompt/.test(t.text),
-    'and names the tile + what it carries');
+  // 2026-08-31, Sophie: "delete the red" — she scribbled out the sentence
+  // this branch used to draw. Being on the tile the picture was made on is the
+  // ordinary case, so it says NOTHING; the two branches below still speak.
+  ok(!t.cls && !t.text, 'matched port: the line stays silent');
   ok(await page.inputValue('#prompt') === 'a cat', 'the content half landed in the box');
 
   // She taps a different tile — the claim must stop being "this picture's".
@@ -310,11 +311,15 @@ catch {
   t = await tag();
   ok(t.cls === '' && t.text === '', 'a plain visit shows no indicator at all');
 
-  // A LoRA carries no reference, so it must not claim one.
-  await page.goto(base + '/playground?prompt=a%20cat&style=watercolor&sameref=1');
+  // A LoRA carries no reference, so it must not claim one. Asked on a branch
+  // that still SPEAKS: the same-tile one went silent 2026-08-31.
+  await page.goto(base + '/playground?prompt=a%20cat&style=watercolor&sameref=0');
   t = await tag();
   ok(/style prompt/.test(t.text) && !/reference/.test(t.text),
     'WTR says "style prompt" only — it attaches no reference');
+  await page.goto(base + '/playground?prompt=a%20cat&style=watercolor&sameref=1');
+  t = await tag();
+  ok(t.cls === '' && t.text === '', 'and on its own tile it says nothing at all');
 
   // ── the PROMPT button ───────────────────────────────────────────────
   console.log('the prompt button');

@@ -196,7 +196,10 @@ const SHEET_HEAD = 'DPREF\n\n' + sheetGrid.castBlock(CAST)
   ok((await page.textContent('#charsn')) === '2', 'the badge counts the two who came with it');
   const tag = await page.textContent('#reftag');
   ok(/character descriptions came too/.test(tag),
-    'and the line that already speaks on arrival SAYS they came — never silent');
+    'and the arrival line SAYS they came — never silent, even now that the '
+    + 'same-tile sentence beside it is gone (2026-08-31, "delete the red")');
+  ok(!/Carrying/.test(tag), 'and that sentence really is gone');
+  ok(await page.isVisible('#reftag'), 'the cast line lights the box by itself');
   await openDesc();
   ok(await page.isVisible('#chartabs'),
     'the Pictures · Descriptions row is on the Picture tab now');
