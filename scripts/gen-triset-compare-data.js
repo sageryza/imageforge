@@ -17,7 +17,7 @@ const db = admin.firestore();
     if (!m) return;
     cards.push({ id: d.id, ver: m[1], slug: m[2], title: c.title || '', url: c.url || '',
       quality: c.quality || '', createdAt: c.createdAt || 0, hidden: !!c.hidden,
-      promptContent: c.promptContent || '' });
+      promptContent: c.promptContent || '', promptStyle: c.promptStyle || '' });
   });
   const byUrl = {};
   (await db.collection('forge-chat-assets').select('chat', 'url', 'alts').get()).forEach(d => {
