@@ -1654,8 +1654,8 @@ them off the reference sheet, not off the old filenames.
   triset · review cards").** The FOURTH list tab, leading the row, and the one
   answer none of the four marks above gave: `starred` lifts a chat inside a
   list of two hundred, where the tray IS the list — three or four chats and
-  nothing else on screen. **`tray` + `POST /api/chatfeed/tray`**; the sheet's
-  mark puts a chat on, the tile's own mark takes it off.
+  nothing else on screen. **`tray` + `POST /api/chatfeed/tray`**; the Organize
+  sheet's mark is the ONE door and it toggles both ways.
   - **`trayAt` IS THE POINT AND IS NOT BOOKKEEPING — the tray does not
     reshuffle.** It is the one pile in this app that does NOT come through
     `sortedChatNames`: every other list is newest-message-first, which is right
@@ -1683,6 +1683,18 @@ them off the reference sheet, not off the old filenames.
   - **The archive and the trash stay their own rooms** — an archived tray chat
     is not drawn, and the MARK is left on its doc, so un-archiving puts it back
     where it was. Archiving never silently clears her pin.
+  - **A TILE CARRIES NO CONTROL AT ALL (2026-08-31, Sophie: "get rid of the
+    tray icon per chat · too wash to click").** It shipped with a lit tray mark
+    on the corner of every icon — the way off the tray without opening the
+    chat — and two things were wrong with it at the size it really renders: it
+    sat ON the drawing, washing out the one thing this screen is made of, and
+    26px on a 4-across tile is under the tap target anything here should have.
+    So the Organize sheet's mark is the only door, and it already toggles both
+    ways. Three taps to take a chat off against one — and the tray is three or
+    four chats she changes a couple of times a day, so the tap is cheap and the
+    clean icons are not. **Don't put it back**, and don't put a pushpin or a
+    hide eye there either: those are list controls, and the tray is not a list
+    she is triaging.
   - **THE GLYPH IS LUCIDE `inbox` AND IS NEVER FILLED — measured, not
     reasoned.** It shipped filled when lit, like the star and the bookmark
     beside it, and rendered as a **red blob**: those two get away with a fill
@@ -1695,16 +1707,12 @@ them off the reference sheet, not off the old filenames.
     against the ~64px a tab has at 320pt, so it wrapped and made that row 10px
     taller than every other hairline row in the app. Nothing counts the tabs,
     in the page or in the tests, so a fifth costs no layout work.
-  - **`.traybtn` is ONE class in two places and the tile's rule is SCOPED** —
-    `.orgmarks .markchip` (0,2,0) sets the sheet copy's box but declares no
-    `position`, so an unscoped `position:absolute` on the shared class floats
-    that mark out of the marks row.
   - Test: `node scripts/test-chats-tray.js` (the real page headless — four
     across MEASURED off the real cells, the order proved against a fixture
     whose first-added chat has the OLDEST message, and the add driven through a
     deliberately SLOW stub so the OPTIMISTIC order is what renders; verified
-    catching a recency sort, a lost stamp, an unscoped rule, a three-wide grid
-    and a refilled glyph).
+    catching a recency sort, a lost stamp, a three-wide grid, a refilled glyph,
+    a control growing back on a tile, and a sheet mark that can only add).
 - **ORGANIZE — a chat can be filed and tagged from INSIDE it (Aug 2026,
   Sophie: "an ability to tag or categorize something from within the chat
   itself … an icon that says organize and then it pulls up the ability to tag
@@ -4067,9 +4075,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
   swapped for the equilateral triangle-card one; her no-text toggle sits after
   that clause and rides along untouched. **The wording and the swap live in
   `triangle-clause.js`, the ONE copy shared with `triset.js`** — the "new
-  equilateral" half of her ask is that clause, including the 2026-08-31 "USE
-  THE TRIANGLE" composition line she called perfect, so a card she likes in
-  the game and one she draws here can never drift apart. Three things not to
+  equilateral" half of her ask is that clause, so a card she likes in the game
+  and one she draws here can never drift apart. (An earlier "USE THE TRIANGLE"
+  composition line is HISTORY, not a rule — she cut it the same day, "i didn't
+  ask you to add the triangle lines"; the way to better cards is to say
+  EQUILATERAL harder rather than to say more things.) Three things not to
   undo: it is **built by `triangleStyle(PL_GPT_STYLES.dreamy)`**, so a reword
   of hers reaches the tile the day she makes it; it carries **its own panels
   swap**, because dreamy's sheet anchor is the clause this tile consumed and
@@ -4078,9 +4088,35 @@ before working on that module. Nothing was deleted — the moved text is verbati
   equilateral clause quoted LONG** (`playground-port.js`), because a triangle
   card carries Dreamy's filename AND Dreamy's prefix too, and longest evidence
   wins — quote it short and every Triset card ports back as a plain Dreamy
-  picture. Test: `node scripts/test-playground-port.js` (the derivation driven
+  picture. **THAT WENT STALE WITHIN A DAY AND IS THE THING TO WATCH**
+  (2026-08-31): her reword put a sentence between the two halves the port was
+  quoting, so it matched nothing and every triangle card ported back as a plain
+  Dreamy picture — the exact failure the note above predicts, arriving by a
+  reword rather than by a short quote. The test catches it (it is a VERBATIM
+  check against the real clause), so **a reworded clause is a red
+  `test-playground-port.js` and a one-line re-quote**, never a mystery.
+  Test: `node scripts/test-playground-port.js` (the derivation driven
   over the real dreamy literal, the sheet swap, the reworded-tail fallback,
   and the one-copy pin on triset.js).
+  **AND THE TILE PINS THE CANVAS TO SQUARE (2026-08-31, Sophie: "triangle mode
+  shud auto switch to square in playground")** — a Triset card is square
+  (`triset.js` draws every one at 1024x1024), and the canvas toggle is
+  REMEMBERED, so arriving at the tile from a portrait picture drew the card on
+  the wrong shape with nothing on screen saying why. `canvasPin` on the style's
+  own row in `STYLES` (promptlab.html) — a table, so the next pinned style is
+  one field. Three things not to undo: it is a **SWITCH, NOT A LOCK** (the
+  toggle stays on screen, her next tap wins, and nothing re-pins it under her);
+  it fires on **ARRIVAL, which includes opening the page on the tile** — a
+  setStyle-only fix leaves a stored portrait drawing the session's first card
+  wrong; and the load-time half is where the pin is applied for a **ported
+  `?style=triangle`**, because that query is read hundreds of lines above the
+  toggle, where `canvas` is still hoisted-undefined and `paintRes` would throw
+  and take the ported prompt with it. Test:
+  `node scripts/test-playground-canvas-pin.js` (the real page headless — the lit
+  half MEASURED off the two backgrounds and the shape read off what the run
+  really POSTs, since a `.on` class whose CSS never landed and a pin that never
+  reaches the request both pass every markup assertion; verified failing 8
+  pre-fix).
   **THE PAGE HEALS ITS OWN STALENESS (2026-08-27, Sophie: "it's not there" —
   about the back-to-top arrow, which had been live and correct for a day —
   then "self heal").** The app keeps the three recent tools alive in a ZStack,
@@ -5336,6 +5372,23 @@ before working on that module. Nothing was deleted — the moved text is verbati
   and both house helpers (`liveInput`, `enterSubmits`) are wired, and the box
   is deliberately NOT sticky, unlike the view and the heart. Test:
   `node scripts/test-playground-search.js`.
+  **{CURLY BRACKETS} ARE MIDJOURNEY'S PERMUTATION PROMPTS (Aug 2026, Sophie:
+  "u know in midjourney using curly brackets to do multiple prompts" →
+  "yes :)").** `a {red, blue} bird` is two prompts, separate groups multiply,
+  groups nest, `\{` `\}` `\,` are literal, and an unmatched brace is literal
+  (a typo must not eat the prompt). ONE copy of the rule — `public/permute.js`
+  — and EVERY starter (Generate, ×3, both ladders) expands through it, so the
+  braces mean one thing everywhere; each run's doc carries ITS expanded
+  prompt, never the braces. A count line under the controls shows while the
+  prompt really expands ("{…} 4 prompts — Generate draws all 4"), priced from
+  the SERVED cents on a gpt style (the LoRA shows no price — none is served).
+  **The cap is 12 TOTAL RUNS PER TAP, checked as prompts × tiers** — a ladder
+  on a big set is refused with the reason on screen and ZERO runs started,
+  because 12 keeps the 512MB box under the measured 16-concurrent-output
+  ceiling that has restarted it. The LoRA dedupe runs per expanded prompt.
+  **Freeform deliberately does NOT expand** — it is the verbatim, no-opinion
+  surface, and braces there go to the model as typed. Test:
+  `node scripts/test-playground-permute.js`.
   **A Replicate run she already has is never sent again** (Flux with a fixed seed
   is deterministic); ChatGPT is never deduped, because an identical run there
   draws a different picture. Quality low/medium/high 0.5c/4.1c/16.5c at its 2:3

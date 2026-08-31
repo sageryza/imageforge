@@ -151,6 +151,10 @@ ok(/id="promptclear"/.test(stylesRow.slice(0, stylesRow.indexOf('</div>'))),
       sameLine: Math.abs((c.top + c.bottom) / 2 - (s.top + s.bottom) / 2) < 2,
       aboveBox: c.bottom <= box.top + 1,
       clearOfPill: c.right <= 390 - 56,
+      rowFits: (function () {
+        const row = document.querySelector('.styles');
+        return Math.abs(row.getBoundingClientRect().height - c.height) < 4;
+      }()),
       hit: hit && (hit.closest ? (hit.closest('#promptclear') ? 'promptclear' : hit.tagName) : ''),
     };
   });
@@ -160,6 +164,10 @@ ok(/id="promptclear"/.test(stylesRow.slice(0, stylesRow.indexOf('</div>'))),
   ok(geom.aboveBox, 'above the box it clears');
   ok(geom.clearOfPill, 'and clear of the autoscroll pill’s reserved column');
   ok(geom.hit === 'promptclear', 'a tap at its centre really reaches it');
+  ok((await page.textContent('#promptclear')).trim() === 'Clear',
+    'and it says the word — never a ✕ (2026-08-30, her ask)');
+  ok(!(await page.$('#promptclear svg')), 'no glyph on it at all');
+  ok(geom.rowFits, 'the row still fits on one line at 390pt');
 
   console.log('\nit asks over words that were never drawn');
   await page.click('#promptclear');

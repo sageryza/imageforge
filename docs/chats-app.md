@@ -1964,15 +1964,26 @@ little chat drawings.
     until the answer lands.
   - **Re-adding a chat that is already on the tray keeps its ORIGINAL stamp**,
     so a stray double tap cannot send its icon to the end.
-- **Two doors, one write (`setTray` in chats.html).** The mark in the Organize
-  sheet puts a chat on; the same mark, lit, on its tray tile takes it off. Both
-  repaint the whole home, because this changes a list's membership rather than
-  a row's look.
+- **One door, one write (`setTray` in chats.html).** The mark in the Organize
+  sheet puts a chat on and, tapped again while lit, takes it off. It repaints
+  the whole home, because this changes a list's membership rather than a row's
+  look.
+- **A tile carries NO control at all** (2026-08-31, Sophie: *"get rid of the
+  tray icon per chat · too wash to click"*). It shipped with a lit tray mark on
+  the corner of every icon — the way off the tray without opening the chat —
+  and two things were wrong with it at the size it really renders: it sat ON
+  the drawing, washing out the one thing this screen is made of, and 26px on a
+  4-across tile is under the tap target anything here should have. Taking a
+  chat off is three taps now (open it, tag icon, tray) against one, and that is
+  the right trade: the tray is three or four chats she changes a couple of
+  times a day, so the tap is cheap and the clean icons are not. Don't put it
+  back.
 - **What the tile carries, and what it deliberately does not.** The icon (or
   the blank-letter fallback), the unread dot, the wait/bug marks, and the name
   clamped to two lines. NO status line, no timestamp, no about — that question
   is the ALL tab's. NO pushpin and no hide eye either: those are list controls
-  and the tray is not a list she is triaging.
+  and the tray is not a list she is triaging. Tapping it opens the chat, which
+  is its whole job.
 - **No date headings.** The one pile without them, because it is the one pile
   not in timing order — `mkDayRule` over an order she arranged by hand would be
   a heading over a grouping that does not exist.
@@ -1992,16 +2003,13 @@ little chat drawings.
 - **The tab says "My tray", not her whole phrase** — "On my tray" measures
   69.5px against the ~64px a tab has at 320pt with four tabs, so it wrapped and
   made the row 10px taller than every other hairline row. The PWC tab's call.
-- **`.traybtn` is one class in two places and the TILE's rule is scoped to
-  `.traytile`** — `.orgmarks .markchip` (0,2,0) sets the sheet copy's box but
-  declares no `position`, so an unscoped `position:absolute` on the shared
-  class floats that mark out of the marks row.
 - Test: `node scripts/test-chats-tray.js` (the real page headless — four across
   MEASURED off the real cells, the order proved against a fixture whose
   first-added chat has the OLDEST message, and the add driven through a
   deliberately SLOW stub so the OPTIMISTIC order is what renders). Verified
-  catching a recency sort, a lost optimistic stamp, an unscoped CSS rule, a
-  three-wide grid and a refilled glyph.
+  catching a recency sort, a lost optimistic stamp, a three-wide grid, a
+  refilled glyph, a control growing back on a tile, and a sheet mark that can
+  only ever add.
 
   **ORGANIZE — filing and tagging from inside a chat (Aug 2026, Sophie: "an
   ability to tag or categorize something from within the chat itself, for

@@ -23,6 +23,9 @@
      rung a picture was drawn on. See /size-tier.js. -->
 <script src="/size-tier.js"></script>
 <script src="/asset-lightbox.js"></script>
+<!-- Midjourney's curly brackets: `a {red, blue} bird` is two prompts. ONE
+     copy of the expansion rule, shared with the pure test. -->
+<script src="/permute.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   [hidden] { display: none !important; }
@@ -212,6 +215,9 @@
   button.go svg { width: 21px; height: 21px; display: block; }
   button.go:disabled { opacity: .5; }
   .err { font-size: 12.5px; color: #a33; margin-top: 8px; }
+  /* The {curly brackets} count — shown only while the prompt really expands,
+     so a plain prompt's card is byte-for-byte what it always was. */
+  .permline { font-size: 12.5px; color: #6f675e; margin-top: 8px; }
   /* One box per run, so a prompt is unmistakably attached to its own pictures. */
   .run { margin-bottom: 14px; background: #fff; border: 1px solid #e3dcd1; border-radius: 6px; padding: 10px; }
   .runhead { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
@@ -480,17 +486,6 @@
     font-size: 13px; color: #2b2622; text-decoration: none; background: #faf7f2; border: 1px solid #d8d0c4;
     border-radius: 6px; padding: 7px 11px; }
   #backchip.on { display: flex; }
-  /* Arrived from an image's "open in the Playground": whether this tile really
-     carries the reference and style prompt that picture was made with. Flat,
-     no gradient, 6px like every other box on the page. It is NOT a text field
-     — a status line the page writes, so it says something rather than naming a
-     box. Repainted on every style tap: the claim is about the tile SHE is on
-     now, not the one she arrived on. */
-  #reftag { display: none; margin: 0 0 8px; font-size: 12px; line-height: 1.35;
-    border: 1px solid #d8d0c4; border-radius: 6px; padding: 7px 10px;
-    background: #fdfcf9; color: #6f675e; }
-  #reftag.on { display: block; }
-  #reftag.same { border-color: #2b2622; color: #2b2622; }
   /* Arrived from a Story Room BEAT: what a run made here is going to do
      (?pad=&beat=). A status line — the landing is a side effect and a side
      effect she cannot see is a trap — and, since 2026-08-28, the way to END
@@ -533,11 +528,15 @@
      reason: a prompt that HAS been drawn is in her feed with a copy button
      one tap from putting it back, and one that never has is the only thing
      this can lose. */
+  /* IT SAYS THE WORD (2026-08-30, Sophie: "make it say clear not an x"). It
+     shipped as a ✕ to match the per-box clears inside the panel cells; those
+     are ~118px wide and have no room for a word, and this one sits in a row
+     of controls that all say what they are — Prompt, No text, Portrait. A ✕
+     among them is the only mark on the row you have to learn. */
   #promptclear { flex: none; display: inline-flex; align-items: center; justify-content: center;
-    width: 34px; height: 34px; box-sizing: border-box; padding: 0; border: 1px solid #d8d0c4;
-    border-radius: 6px; background: #fdfcf9; color: #6f675e; cursor: pointer;
-    -webkit-tap-highlight-color: transparent; }
-  #promptclear svg { width: 16px; height: 16px; display: block; }
+    height: 34px; box-sizing: border-box; padding: 0 10px; border: 1px solid #d8d0c4;
+    border-radius: 6px; background: #fdfcf9; color: #6f675e; font: inherit; font-size: 13px;
+    cursor: pointer; -webkit-tap-highlight-color: transparent; }
   /* HER TYPED CAST (2026-08-27, Sophie: "text boxes that say character 1: add
      character, name, description … etc up to n" · "I want both. Descriptions
      as well as pictures"). The WORDS half of a cast; the picker beside the
@@ -819,7 +818,7 @@
     <button type="button" id="t-picture" class="on">Picture</button>
     <button type="button" id="t-panels">Panels</button>
   </div>
-  <div class="styles"><select id="stylepick" aria-label="Style"></select><button type="button" id="charsbtn" hidden aria-label="Character references" title="Character references"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/></svg><span id="charsn"></span></button><button type="button" id="promptclear" hidden aria-label="Clear the prompt" title="Clear the prompt"></button></div>
+  <div class="styles"><select id="stylepick" aria-label="Style"></select><button type="button" id="charsbtn" hidden aria-label="Character references" title="Character references"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/></svg><span id="charsn"></span></button><button type="button" id="promptclear" hidden title="Clear the prompt">Clear</button></div>
   <div id="charpanel">
     <div class="plabtabs chartabs" id="chartabs" hidden>
       <button type="button" data-ct="pics" class="on">Pictures</button>
@@ -841,7 +840,6 @@
     </div>
     <div id="charsays" hidden><div class="plab">Added to your prompt</div><div class="added" id="charsaystxt"></div></div>
   </div>
-  <div id="reftag"></div>
   <div id="beattag"></div>
   <div id="promptpanel"></div>
   <div class="promptwrap"><textarea id="prompt"></textarea><button type="button" id="bigprompt" aria-label="Bigger box" title="Bigger box"></button></div>
@@ -869,6 +867,7 @@
       <button class="go" id="go" onclick="go()" aria-label="Generate" title="Generate"></button>
     </div>
   </div>
+  <div class="permline" id="permline" hidden></div>
   <div class="err" id="err" hidden></div>
 </div>
 
@@ -996,7 +995,6 @@
   document.getElementById('medhigh').innerHTML = ICONS.oval;
   document.getElementById('photopick').innerHTML = ICONS.imagePlus;
   document.getElementById('photoclear').innerHTML = ICONS.x;
-  document.getElementById('promptclear').innerHTML = ICONS.x;
 
   // LIST (a box per run) or TILES (a wall of thumbnails). Sticky across loads.
   // Both buttons are always on screen and always labelled — the switch can
@@ -1586,9 +1584,12 @@
     // ask). Same reference image and same tail as Dreamy above, with the
     // border clause swapped for the equilateral triangle-card one — the
     // server derives the whole thing from `dreamy`, so nothing here has to
-    // know more than its id.
+    // know more than its id. It PINS the canvas to square (2026-08-31, Sophie:
+    // "triangle mode shud auto switch to square") — a Triset card is square
+    // (triset.js draws every one at 1024x1024), so a portrait triangle is the
+    // wrong shape for the one thing this tile exists to make.
     triangle:   { model: 'gpt-image-2', label: 'Triangle', engine: 'gptimage', gptStyle: 'triangle',
-                  noCharacter: true },
+                  noCharacter: true, canvasPin: 'square' },
     scarry:     { model: 'gpt-image-2', label: 'Scarry', engine: 'gptimage', gptStyle: 'scarry',
                   noCharacter: true },
     pastel:     { model: 'gpt-image-2', label: 'Pastel', engine: 'gptimage', gptStyle: 'pastel',
@@ -1602,6 +1603,13 @@
   var styleKey = localStorage.getItem('promptlab_style');
   if (!STYLES[styleKey]) styleKey = 'watercolor';
   function isGpt(k) { return STYLES[k] && STYLES[k].engine === 'gptimage'; }
+  // A style may PIN the canvas — a shape its pictures are always drawn on.
+  // A SWITCH, NOT A LOCK: the toggle stays on screen and her next tap wins,
+  // and nothing puts the shape back when she leaves the style (the canvas is
+  // remembered, and a shape springing back on its own is the opposite of the
+  // rule she asked for). A table rather than an `if k === 'triangle'`, so the
+  // next pinned style is one field.
+  function canvasPin(k) { return (STYLES[k] && STYLES[k].canvasPin) || ''; }
 
   // ── PICTURE · PANELS (Aug 2026, Sophie: "we make a picture and cut it into
   // panels … describe each panel individually. It's a way of saving money on
@@ -2642,14 +2650,14 @@
   // style is current. Everything lands prefilled so she can re-run it as-is or
   // nudge one thing.
   //
-  // `sameref` is the honesty flag (Sophie, Aug 2026: "some sort of indicator
-  // saying whether it's using the reference and prompt or not"). The sender
-  // (/playground-port.js) sets it to 1 only when the picture's filed style
-  // half NAMES this tile's own reference or quotes its own baked prompt. It is
-  // NOT re-derived here — the Playground never sees the filed prompt, only the
-  // content half — so the flag travels with the link.
-  var portedFrom = null;   // the tile the picture was actually made on, or null
-  var portedCast = 0;      // how many character descriptions rode the link in
+  // `sameref` STILL RIDES THE LINK AND THIS PAGE NO LONGER READS IT
+  // (2026-08-31, Sophie: "delete the red", twice — the second time over a
+  // different sentence from the same box, then "still there"). It fed one
+  // indicator under the style picker saying whether this tile really carries
+  // the reference and style prompt the picture was made with. Every version of
+  // that sentence is gone; the sender (/playground-port.js) still sets the
+  // flag, so nothing on the other side of the link had to change and a future
+  // reader can pick it back up.
   (function () {
     var q = new URLSearchParams(location.search);
     if (!q.get('prompt') && !q.get('style')) return;
@@ -2676,7 +2684,6 @@
     if (q.get('character') === '1' && isGpt(styleKey) && !STYLES[styleKey].noCharacter) { charOn = true; document.getElementById('charpick').classList.add('on'); }
     var sc = parseFloat(q.get('scale'));
     if (!isNaN(sc)) document.getElementById('scale').value = sc;
-    if (q.get('sameref') !== null) portedFrom = (q.get('sameref') === '1' && st && STYLES[st]) ? st : '';
     // ?cast=<json rows> — the character descriptions the picture was made
     // with (2026-08-29, Sophie: "can it auto add the character description
     // from the original multi sheet"). A cut panel's filed STYLE half carries
@@ -2688,57 +2695,10 @@
     if (cj) {
       var rows = null;
       try { rows = JSON.parse(cj); } catch (e) { rows = null; }
-      if (Array.isArray(rows)) portedCast = restoreCast(rows);
+      if (Array.isArray(rows)) restoreCast(rows);
     }
-    paintRefTag();
     updateShape();
   })();
-
-  // The indicator. Three things it can say, and it only ever speaks when she
-  // arrived from a picture:
-  //   • she is on the tile that made it   — same reference, same style prompt
-  //   • she moved off that tile           — name what she left, so switching
-  //                                         back is obvious
-  //   • nothing identified the picture    — say so plainly rather than letting
-  //                                         the fallback tile imply a match
-  // A LoRA has no reference to attach, so it says "style prompt" alone.
-  function paintRefTag() {
-    var el = document.getElementById('reftag');
-    if (portedFrom === null) { el.className = ''; el.textContent = ''; return; }
-    var here = STYLES[styleKey] ? STYLES[styleKey].label : styleKey;
-    var carries = isGpt(styleKey) ? 'reference and style prompt' : 'style prompt';
-    if (portedFrom === '') {
-      el.className = 'on';
-      el.textContent = 'Nothing on this picture’s record says how it was made, so '
-        + here + '’s ' + carries + ' is attached — not the one behind it.';
-    } else if (portedFrom === styleKey) {
-      // NOTHING TO SAY (2026-08-31, Sophie scribbled this one sentence out:
-      // "delete the red"). She is on the tile the picture was made on — the
-      // ordinary, correct case of arriving from a picture — so the line was
-      // reassurance sitting over the box she was about to type in. The other
-      // two branches stay: each names something she would otherwise not know
-      // (a tile that is NOT the picture's, or a picture nothing identified).
-      el.className = '';
-      el.textContent = '';
-    } else {
-      el.className = 'on';
-      el.textContent = 'On ' + here + '. This picture was made on '
-        + (STYLES[portedFrom] ? STYLES[portedFrom].label : portedFrom) + '.';
-    }
-    // WHO CAME WITH IT (2026-08-29). The descriptions ride the next run's
-    // prompt, so the one line that already speaks on arrival says how many
-    // landed — an ingredient added by a link must never be silent, and the
-    // sheet behind the character icon is where she reads or removes them.
-    // It speaks on the quiet branch above too, and lights the box by itself
-    // when it is the only thing there is to say.
-    if (portedCast) {
-      var came = (portedCast === 1
-        ? 'Its character description came too.'
-        : 'Its ' + portedCast + ' character descriptions came too.');
-      el.textContent = el.textContent ? el.textContent + ' ' + came : came;
-      if (!el.className) el.className = 'on same';
-    }
-  }
 
   // ── THE PROMPT BUTTON — see what is wrapped around her words, and change it
   //    (Aug 2026, Sophie: "add a prompt button so you can see what's being
@@ -3189,6 +3149,18 @@
   var CANVASES = ['portrait', 'square'];
   var canvas = CANVASES.indexOf(localStorage.getItem('promptlab_canvas')) >= 0
     ? localStorage.getItem('promptlab_canvas') : 'square';
+  function storeCanvas(shape) {
+    canvas = shape;
+    // Written on the TAP, not on the run — the shape she is looking at is the
+    // one she comes back to, whether or not she generated anything with it.
+    try { localStorage.setItem('promptlab_canvas', shape); } catch (e) { /* private mode */ }
+  }
+  // A pinned style applies its shape on ARRIVAL, and opening the page on one
+  // is an arrival — otherwise a stored portrait would draw the first triangle
+  // card of the session on the wrong canvas. It runs here rather than in
+  // setStyle for the deep-link case: a ported ?style= is read hundreds of
+  // lines above this, where `canvas` is still hoisted-undefined.
+  if (canvasPin(styleKey)) storeCanvas(canvasPin(styleKey));
   function paintCanvas() {
     document.getElementById('c-portrait').classList.toggle('on', canvas === 'portrait');
     document.getElementById('c-square').classList.toggle('on', canvas === 'square');
@@ -3205,10 +3177,7 @@
     document.getElementById('c-square').title = 'Square 1024x1024 — low 0.6\u00A2 \u00B7 medium 5.3\u00A2 \u00B7 high 21.1\u00A2 (dearer than portrait)';
   }
   function pickCanvas(shape) {
-    canvas = shape;
-    // Written on the TAP, not on the run — the shape she is looking at is the
-    // one she comes back to, whether or not she generated anything with it.
-    try { localStorage.setItem('promptlab_canvas', shape); } catch (e) { /* private mode */ }
+    storeCanvas(shape);
     paintCanvas();
     // The panel boxes wear the cell's shape, so they follow the toggle.
     buildPanelGrid();
@@ -3312,7 +3281,12 @@
   function setStyle(k) {
     styleKey = k;
     localStorage.setItem('promptlab_style', k);
-    renderStyles(); updateShape(); syncControls(); paintRefTag(); paintPromptPanel();
+    // Arriving at a pinned style takes its shape. `canvas &&` because a ported
+    // ?style= calls this partway down the script, before the toggle exists —
+    // boot applies the pin itself a moment later, so nothing is lost there.
+    var pin = canvasPin(k);
+    if (pin && canvas && pin !== canvas) pickCanvas(pin);
+    renderStyles(); updateShape(); syncControls(); paintPromptPanel();
   }
   // LoRA scale, ×3 and the seed are Replicate-only knobs — gpt-image-2 has no
   // equivalent, so they come off the panel for that style rather than sitting
@@ -3495,8 +3469,11 @@
       onYes: wipePrompt,
     });
   });
-  function startRun(scale, q) {
-    var prompt = document.getElementById('prompt').value.trim();
+  // `promptText` overrides the box for one run — a {curly brackets} tap starts
+  // one run per expansion, and each run's doc carries ITS prompt, not the
+  // braces (the stored prompt must be the text actually sent).
+  function startRun(scale, q, promptText) {
+    var prompt = promptText != null ? promptText : document.getElementById('prompt').value.trim();
     var S = STYLES[styleKey];
     var gpt = S.engine === 'gptimage';
     var seed = curSeed();
@@ -3550,7 +3527,10 @@
       // HAS THIS PROMPT BEEN DRAWN? — the panels stamp's twin, for the one
       // box. The EXACT words that were sent, so editing them afterwards makes
       // the box undrawn again: what is sitting there is not what was drawn.
-      savePromptDrawn(prompt);
+      // A {curly brackets} run stamps the BOX's braces — that is what she
+      // drew from, so its Clear asks nothing after a permutation tap either.
+      savePromptDrawn(promptText != null
+        ? document.getElementById('prompt').value.trim() : prompt);
       renderPendings(); startPolling();
       confirmStarted();
     });
@@ -3589,36 +3569,107 @@
     err.textContent = m || 'Network error — try again.'; err.hidden = false;
   }
 
+  // ─── {curly brackets} — Midjourney's permutation prompts (Aug 2026) ──────
+  // `a {red, blue} bird` runs as two prompts, separate groups multiply, and
+  // every starter (Generate, ×3, both ladders) goes through the same
+  // expansion, so the braces mean one thing everywhere. The rule itself is
+  // /permute.js — ONE copy, shared with the pure test.
+  //
+  // The cap is TOTAL RUNS PER TAP, not options: 12 keeps the box under the
+  // measured concurrent-output ceiling that has restarted the server
+  // (CLAUDE.md: 16 buffered outputs, 2026-08-19), and it is checked against
+  // prompts × tiers so a ladder on a big set is refused rather than fired.
+  var PERM_CAP = 12;
+  function expandBox() {
+    var text = document.getElementById('prompt').value.trim();
+    if (window.permutePrompt) return window.permutePrompt(text);
+    // Stale cache with no /permute.js: braces go through literally, as before.
+    return { prompts: [text], clipped: false };
+  }
+  function permGuard(ex, tiers) {
+    var n = ex.prompts.length * tiers;
+    if (!ex.clipped && n <= PERM_CAP) return true;
+    var err = document.getElementById('err');
+    err.textContent = ex.clipped
+      ? 'Those brackets expand past 50 prompts — that can’t be one tap.'
+      : 'That’s ' + n + ' runs in one tap — the cap is ' + PERM_CAP
+        + '. Fewer {options}, or run them in smaller taps.';
+    err.hidden = false;
+    return false;
+  }
+  // The count line under the controls: shown only while the prompt really
+  // expands, priced from the SERVED cents (never a copy in the page). Polled,
+  // not event-wired — iOS dictation fills the box without firing `input`.
+  function permLine() {
+    var el = document.getElementById('permline');
+    var ex = expandBox();
+    var n = ex.prompts.length;
+    if (n < 2 && !ex.clipped) { el.hidden = true; return; }
+    if (ex.clipped) { el.textContent = '{…} over 50 prompts — too many'; el.hidden = false; return; }
+    var line = '{…} ' + n + ' prompts — Generate draws all ' + n;
+    var S = STYLES[styleKey];
+    if (S && S.engine === 'gptimage' && RES && RES[canvas]) {
+      var t = RES[canvas].tiers[resTier];
+      var c = t && t.cents && t.cents[quality];
+      if (c) {
+        var total = c * n;
+        line += ' · ~' + (total >= 100 ? '$' + (total / 100).toFixed(2) : Math.round(total * 10) / 10 + '¢')
+          + ' at ' + quality;
+      }
+    }
+    el.textContent = line; el.hidden = false;
+  }
+  setInterval(permLine, 700);
+
   function go() {
     if (onPanels()) { goPanels(); return; }
     if (!checkPrompt()) return;
     var scale = parseFloat(document.getElementById('scale').value) || 1;
-    var prompt = document.getElementById('prompt').value.trim();
-    if (alreadyRun(plannedKey(STYLES[styleKey], prompt, scale, curSeed()))) {
-      toast('You already have that one — tap the sprout for a new seed');
+    var ex = expandBox();
+    if (!permGuard(ex, 1)) return;
+    var S = STYLES[styleKey], seed = curSeed();
+    // The LoRA dedupe runs per expanded prompt — a set re-tapped after one
+    // rung landed only draws what is missing (ChatGPT is never deduped).
+    var todo = ex.prompts.filter(function (p) {
+      return !alreadyRun(plannedKey(S, p, scale, seed));
+    });
+    if (!todo.length) {
+      toast(ex.prompts.length > 1
+        ? 'You already have all of those — tap the sprout for a new seed'
+        : 'You already have that one — tap the sprout for a new seed');
       return;
+    }
+    if (todo.length < ex.prompts.length) {
+      toast('Drawing ' + todo.length + ' — you already have the other '
+        + (ex.prompts.length - todo.length));
     }
     var btn = document.getElementById('go');
     btn.disabled = true;
-    startRun(scale).catch(showErr).finally(function () { btn.disabled = false; });
+    Promise.all(todo.map(function (p) { return startRun(scale, null, p).catch(showErr); }))
+      .finally(function () { btn.disabled = false; });
   }
 
   // ×3: the strength ladder in one tap — same prompt and seed at 1 / 1.2 / 1.4.
   // Whichever rungs she already has are skipped, so running ×3 after a single
-  // scale-1 run only draws the two that are missing.
+  // scale-1 run only draws the two that are missing. With {curly brackets} the
+  // ladder runs per expanded prompt — 2 prompts is 6 runs, still one tap.
   document.getElementById('xthree').addEventListener('click', function () {
     if (!checkPrompt()) return;
-    var prompt = document.getElementById('prompt').value.trim();
+    var ex = expandBox();
+    if (!permGuard(ex, 3)) return;
     var S = STYLES[styleKey], seed = curSeed();
-    var todo = [], have = [];
-    [1, 1.2, 1.4].forEach(function (s) {
-      (alreadyRun(plannedKey(S, prompt, s, seed)) ? have : todo).push(s);
+    var todo = [], have = 0;
+    ex.prompts.forEach(function (p) {
+      [1, 1.2, 1.4].forEach(function (s) {
+        if (alreadyRun(plannedKey(S, p, s, seed))) have++;
+        else todo.push({ p: p, s: s });
+      });
     });
-    if (!todo.length) { toast('You already have all three — tap the sprout for a new seed'); return; }
-    if (have.length) toast('Drawing scale ' + todo.join(' and ') + ' — you already have ' + have.join(' and '));
+    if (!todo.length) { toast('You already have all of those — tap the sprout for a new seed'); return; }
+    if (have) toast('Drawing ' + todo.length + ' — you already have ' + have);
     var btn = document.getElementById('xthree');
     btn.disabled = true;
-    Promise.all(todo.map(function (s) { return startRun(s).catch(showErr); }))
+    Promise.all(todo.map(function (r) { return startRun(r.s, null, r.p).catch(showErr); }))
       .finally(function () { btn.disabled = false; });
   });
 
@@ -3648,9 +3699,14 @@
   // the tier. `startRun`'s own `q` overrides the toggle for that run only, so
   // neither ladder moves what the knob says.
   function ladder(btn, tiers) {
+    var ex = expandBox();
+    if (!permGuard(ex, tiers.length)) return;
     btn.disabled = true;
-    Promise.all(tiers.map(function (q) { return startRun(1, q).catch(showErr); }))
-      .finally(function () { btn.disabled = false; });
+    var runs = [];
+    ex.prompts.forEach(function (p) {
+      tiers.forEach(function (q) { runs.push(startRun(1, q, p).catch(showErr)); });
+    });
+    Promise.all(runs).finally(function () { btn.disabled = false; });
   }
 
   // Tapping Generate twice on the same prompt is ONE job as far as she's

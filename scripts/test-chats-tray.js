@@ -18,8 +18,12 @@
 //      here, so a hand-picked chat vanishing would be a filter she cannot see,
 //   7. the Organize sheet's tray mark POSTs {tray:true} and the chat lands on
 //      the tray — AT THE END, not the front (the optimistic `trayAt` stamp),
-//   8. the tile's own lit mark POSTs {tray:false} and the tile goes,
-//   9. …and that tap does not also open the chat (a control inside a button),
+//   8. A TRAY TILE CARRIES NO CONTROL AT ALL (2026-08-31, Sophie: "get rid of
+//      the tray icon per chat · too wash to click") — the lit mark that used
+//      to sit on each icon washed out the drawing and was under the tap target
+//      a 4-across tile can give it,
+//   9. …so the SHEET's mark is the one door and it toggles BOTH ways: tapping
+//      it again POSTs {tray:false} and the tile goes,
 //  10. an empty tray names the way in rather than being a screen she can only
 //      leave,
 //  11. the choice is sticky across a reload,
@@ -128,6 +132,25 @@ const ok = () => { checks++; };
     await page.waitForTimeout(180);
   };
   const trayOrder = () => page.$$eval('#traygrid .traytile', (n) => n.map((x) => x.dataset.chat));
+  // The one door off the tray now: open the chat, open Organize, tap the lit
+  // tray mark, walk back. `takeOff` drives exactly that.
+  // Opened from the TRAY TILE itself, which is that tile's whole job — and it
+  // is also the only route that works for every tray chat, since the tray
+  // ignores the account filter and an account-2 chat is not on the ALL tab.
+  const takeOff = async (chat) => {
+    await page.click('#listrow .acctab[data-list="tray"]');
+    await page.waitForSelector('#traygrid .traytile[data-chat="' + chat + '"]');
+    await page.click('#traygrid .traytile[data-chat="' + chat + '"]');
+    await page.waitForTimeout(250);
+    await page.click('.orgbtn');
+    await page.waitForTimeout(250);
+    await page.click('.orgmarks .mk-tray');
+    await page.waitForTimeout(250);
+    await page.click('.askwrap .askbox .go');
+    await page.click('#back');
+    await page.click('#listrow .acctab[data-list="tray"]');
+    await page.waitForTimeout(250);
+  };
 
   await page.goto(base + '/chats');
   await page.waitForSelector('#listrow .acctab[data-list="tray"]');
@@ -276,11 +299,23 @@ const ok = () => { checks++; };
       + ' (an unstamped optimistic write sorts under "" and jumps to the front)');
   else ok();
 
-  // …and on the TILE, where the mark is always lit and therefore has only its
-  // picture to go on.
-  const tileFilled = await page.$$eval('#traygrid .traytile .traybtn svg path, #traygrid .traytile .traybtn svg polyline',
-    (ns) => ns.some((n) => { const f = getComputedStyle(n).fill; return f && f !== 'none' && !/rgba\(0, 0, 0, 0\)/.test(f); }));
-  if (tileFilled) fail('a tray tile\'s mark is filled — it reads as a blob at 15px');
+  // ── 8. NOTHING SITS ON THE DRAWING ────────────────────────────────────────
+  // The tile shipped with a lit tray mark on its corner and she cut it: it
+  // washed out the one thing this screen is made of, and 26px on a 4-across
+  // tile is under the tap target it should have had. Asked as "is anything
+  // painted over the icon", not "is `.traybtn` absent", so a differently-named
+  // control growing back is caught too — and with `elementFromPoint` at the
+  // icon's own corner, which is the only honest way to ask what a tap reaches.
+  const onCover = await page.$$eval('#traygrid .traytile .t-cover',
+    (ns) => ns.some((c) => c.querySelector('button, a, svg')));
+  if (onCover) fail('a tray tile draws a control over its icon — she asked for the icons, clean');
+  else ok();
+  const cornerHit = await page.$eval('#traygrid .traytile[data-chat="triset"] .t-cover', (c) => {
+    const r = c.getBoundingClientRect();
+    const e = document.elementFromPoint(r.right - 10, r.top + 10);
+    return e ? (e.tagName + '.' + (e.getAttribute('class') || '')) : 'none';
+  });
+  if (/button/i.test(cornerHit)) fail('the tile icon\'s corner is still a control — ' + cornerHit);
   else ok();
 
   // ── 13. nothing on the first tray row is under the pill's corner ──────────
@@ -293,22 +328,18 @@ const ok = () => { checks++; };
   if (clash) fail('a tray tile on the first row sits under the autoscroll pill\'s column');
   else ok();
 
-  // ── 8/9. the tile's own mark takes it off, and does not open the chat ─────
+  // ── 9. THE SHEET'S MARK TOGGLES BOTH WAYS ─────────────────────────────────
+  // With the tile's control gone this is the ONLY door off the tray, so a mark
+  // that could only ever add would strand every chat she put there.
   const before = (await trayOrder()).length;
-  await page.click('#traygrid .traytile[data-chat="other"] .traybtn');
-  await page.waitForTimeout(250);
+  await takeOff('other');
   const off = posted[posted.length - 1];
   if (!off || off.chat !== 'other' || off.tray !== false)
-    fail('the tile mark did not POST {tray:false} — ' + JSON.stringify(off || null));
+    fail('tapping the lit sheet mark did not POST {tray:false} — ' + JSON.stringify(off || null));
   else ok();
   if (await page.$('#traygrid .traytile[data-chat="other"]')) fail('the tile is still on the tray after taking it off');
   else ok();
   if ((await trayOrder()).length !== before - 1) fail('the tray count did not drop by one');
-  else ok();
-  // `#thread` is a static section of the page and is in the DOM either way, so
-  // the honest question is whether she is still LOOKING at the tray.
-  const stayed = await page.$eval('#traygrid', (e) => e.getBoundingClientRect().height > 0).catch(() => false);
-  if (!stayed) fail('taking a chat off the tray left the tray — the mark is inside the tile\'s button and the tap bubbled');
   else ok();
 
   // ── 11. sticky across a reload ────────────────────────────────────────────
@@ -319,11 +350,11 @@ const ok = () => { checks++; };
   else ok();
 
   // ── 10. an empty tray names the way in ────────────────────────────────────
-  // Empty it the honest way — take the first tile off, over and over, re-reading
-  // between taps because each removal repaints the whole grid.
-  for (let i = 0; i < 12 && await page.$('#traygrid .traytile'); i++) {
-    await page.$eval('#traygrid .traytile .traybtn', (b) => b.click());
-    await page.waitForTimeout(200);
+  // Empty it the way she really would — through each chat's Organize sheet.
+  for (let i = 0; i < 8; i++) {
+    const left = await trayOrder();
+    if (!left.length) break;
+    await takeOff(left[0]);
   }
   if (await page.$('#traygrid .traytile')) fail('could not empty the tray — ' + (await trayOrder()).join(','));
   else ok();
