@@ -91,7 +91,13 @@
       // Verbatim from triangle-clause.js (the one copy server.js swaps in);
       // scripts/test-playground-port.js pins it against that file.
       refs: [],
-      prefixes: ['EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length'],
+      // WENT STALE ONCE, 2026-08-31: her reword ("i didn't ask you to add the
+      // triangle lines") put a sentence between the two halves this quoted, so
+      // it matched nothing and every triangle card ported back as a plain
+      // Dreamy picture. Re-quote it whenever the clause moves.
+      prefixes: ['EQUILATERAL TRIANGLE-SHAPED CARD. THIS IS THE MOST IMPORTANT THING '
+        + 'ABOUT THE CARD: a true equilateral triangle, all three sides exactly '
+        + 'the same length'],
     },
     {
       key: 'pastel', label: 'Pastel',

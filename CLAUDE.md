@@ -4067,9 +4067,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
   swapped for the equilateral triangle-card one; her no-text toggle sits after
   that clause and rides along untouched. **The wording and the swap live in
   `triangle-clause.js`, the ONE copy shared with `triset.js`** — the "new
-  equilateral" half of her ask is that clause, including the 2026-08-31 "USE
-  THE TRIANGLE" composition line she called perfect, so a card she likes in
-  the game and one she draws here can never drift apart. Three things not to
+  equilateral" half of her ask is that clause, so a card she likes in the game
+  and one she draws here can never drift apart. (An earlier "USE THE TRIANGLE"
+  composition line is HISTORY, not a rule — she cut it the same day, "i didn't
+  ask you to add the triangle lines"; the way to better cards is to say
+  EQUILATERAL harder rather than to say more things.) Three things not to
   undo: it is **built by `triangleStyle(PL_GPT_STYLES.dreamy)`**, so a reword
   of hers reaches the tile the day she makes it; it carries **its own panels
   swap**, because dreamy's sheet anchor is the clause this tile consumed and
@@ -4078,9 +4080,35 @@ before working on that module. Nothing was deleted — the moved text is verbati
   equilateral clause quoted LONG** (`playground-port.js`), because a triangle
   card carries Dreamy's filename AND Dreamy's prefix too, and longest evidence
   wins — quote it short and every Triset card ports back as a plain Dreamy
-  picture. Test: `node scripts/test-playground-port.js` (the derivation driven
+  picture. **THAT WENT STALE WITHIN A DAY AND IS THE THING TO WATCH**
+  (2026-08-31): her reword put a sentence between the two halves the port was
+  quoting, so it matched nothing and every triangle card ported back as a plain
+  Dreamy picture — the exact failure the note above predicts, arriving by a
+  reword rather than by a short quote. The test catches it (it is a VERBATIM
+  check against the real clause), so **a reworded clause is a red
+  `test-playground-port.js` and a one-line re-quote**, never a mystery.
+  Test: `node scripts/test-playground-port.js` (the derivation driven
   over the real dreamy literal, the sheet swap, the reworded-tail fallback,
   and the one-copy pin on triset.js).
+  **AND THE TILE PINS THE CANVAS TO SQUARE (2026-08-31, Sophie: "triangle mode
+  shud auto switch to square in playground")** — a Triset card is square
+  (`triset.js` draws every one at 1024x1024), and the canvas toggle is
+  REMEMBERED, so arriving at the tile from a portrait picture drew the card on
+  the wrong shape with nothing on screen saying why. `canvasPin` on the style's
+  own row in `STYLES` (promptlab.html) — a table, so the next pinned style is
+  one field. Three things not to undo: it is a **SWITCH, NOT A LOCK** (the
+  toggle stays on screen, her next tap wins, and nothing re-pins it under her);
+  it fires on **ARRIVAL, which includes opening the page on the tile** — a
+  setStyle-only fix leaves a stored portrait drawing the session's first card
+  wrong; and the load-time half is where the pin is applied for a **ported
+  `?style=triangle`**, because that query is read hundreds of lines above the
+  toggle, where `canvas` is still hoisted-undefined and `paintRes` would throw
+  and take the ported prompt with it. Test:
+  `node scripts/test-playground-canvas-pin.js` (the real page headless — the lit
+  half MEASURED off the two backgrounds and the shape read off what the run
+  really POSTs, since a `.on` class whose CSS never landed and a pin that never
+  reaches the request both pass every markup assertion; verified failing 8
+  pre-fix).
   **THE PAGE HEALS ITS OWN STALENESS (2026-08-27, Sophie: "it's not there" —
   about the back-to-top arrow, which had been live and correct for a day —
   then "self heal").** The app keeps the three recent tools alive in a ZStack,

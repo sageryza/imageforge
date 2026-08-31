@@ -175,8 +175,13 @@ ok(triangle.prefix === dream.prefix, "and Dreamy's prefix, byte for byte");
 ok(/EQUILATERAL TRIANGLE-SHAPED CARD/.test(triangle.suffix)
   && /all three sides exactly the same length/.test(triangle.suffix),
   'the tail asks for an EQUILATERAL triangle card — her "new equilateral"');
-ok(/Compose the subject to USE the triangle/.test(triangle.suffix),
-  'including the 2026-08-31 composition line she called perfect');
+// NOTHING IS ADDED BESIDE THE EQUILATERAL LINE (2026-08-31, Sophie: "i didn't
+// ask you to add the triangle lines" · "add more importance to the equilateral
+// line if anything"). A clause telling the model to compose INTO the triangle
+// shipped for one batch and she cut it — it bent the subjects to the frame — so
+// this pins its ABSENCE. It used to pin its presence; that is history.
+ok(!/Compose the subject to USE the triangle/i.test(triangle.suffix),
+  'and the composition line she cut is not back');
 ok(!/hand-drawn border, like the frames in the style reference\. minimal/.test(triangle.suffix),
   "and dreamy's rectangular border clause is GONE, not argued with");
 ok(/do not draw its content/i.test(triangle.suffix)

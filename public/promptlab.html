@@ -1593,9 +1593,12 @@
     // ask). Same reference image and same tail as Dreamy above, with the
     // border clause swapped for the equilateral triangle-card one — the
     // server derives the whole thing from `dreamy`, so nothing here has to
-    // know more than its id.
+    // know more than its id. It PINS the canvas to square (2026-08-31, Sophie:
+    // "triangle mode shud auto switch to square") — a Triset card is square
+    // (triset.js draws every one at 1024x1024), so a portrait triangle is the
+    // wrong shape for the one thing this tile exists to make.
     triangle:   { model: 'gpt-image-2', label: 'Triangle', engine: 'gptimage', gptStyle: 'triangle',
-                  noCharacter: true },
+                  noCharacter: true, canvasPin: 'square' },
     scarry:     { model: 'gpt-image-2', label: 'Scarry', engine: 'gptimage', gptStyle: 'scarry',
                   noCharacter: true },
     pastel:     { model: 'gpt-image-2', label: 'Pastel', engine: 'gptimage', gptStyle: 'pastel',
@@ -1609,6 +1612,13 @@
   var styleKey = localStorage.getItem('promptlab_style');
   if (!STYLES[styleKey]) styleKey = 'watercolor';
   function isGpt(k) { return STYLES[k] && STYLES[k].engine === 'gptimage'; }
+  // A style may PIN the canvas — a shape its pictures are always drawn on.
+  // A SWITCH, NOT A LOCK: the toggle stays on screen and her next tap wins,
+  // and nothing puts the shape back when she leaves the style (the canvas is
+  // remembered, and a shape springing back on its own is the opposite of the
+  // rule she asked for). A table rather than an `if k === 'triangle'`, so the
+  // next pinned style is one field.
+  function canvasPin(k) { return (STYLES[k] && STYLES[k].canvasPin) || ''; }
 
   // ── PICTURE · PANELS (Aug 2026, Sophie: "we make a picture and cut it into
   // panels … describe each panel individually. It's a way of saving money on
@@ -3196,6 +3206,18 @@
   var CANVASES = ['portrait', 'square'];
   var canvas = CANVASES.indexOf(localStorage.getItem('promptlab_canvas')) >= 0
     ? localStorage.getItem('promptlab_canvas') : 'square';
+  function storeCanvas(shape) {
+    canvas = shape;
+    // Written on the TAP, not on the run — the shape she is looking at is the
+    // one she comes back to, whether or not she generated anything with it.
+    try { localStorage.setItem('promptlab_canvas', shape); } catch (e) { /* private mode */ }
+  }
+  // A pinned style applies its shape on ARRIVAL, and opening the page on one
+  // is an arrival — otherwise a stored portrait would draw the first triangle
+  // card of the session on the wrong canvas. It runs here rather than in
+  // setStyle for the deep-link case: a ported ?style= is read hundreds of
+  // lines above this, where `canvas` is still hoisted-undefined.
+  if (canvasPin(styleKey)) storeCanvas(canvasPin(styleKey));
   function paintCanvas() {
     document.getElementById('c-portrait').classList.toggle('on', canvas === 'portrait');
     document.getElementById('c-square').classList.toggle('on', canvas === 'square');
@@ -3212,10 +3234,7 @@
     document.getElementById('c-square').title = 'Square 1024x1024 — low 0.6\u00A2 \u00B7 medium 5.3\u00A2 \u00B7 high 21.1\u00A2 (dearer than portrait)';
   }
   function pickCanvas(shape) {
-    canvas = shape;
-    // Written on the TAP, not on the run — the shape she is looking at is the
-    // one she comes back to, whether or not she generated anything with it.
-    try { localStorage.setItem('promptlab_canvas', shape); } catch (e) { /* private mode */ }
+    storeCanvas(shape);
     paintCanvas();
     // The panel boxes wear the cell's shape, so they follow the toggle.
     buildPanelGrid();
@@ -3319,6 +3338,11 @@
   function setStyle(k) {
     styleKey = k;
     localStorage.setItem('promptlab_style', k);
+    // Arriving at a pinned style takes its shape. `canvas &&` because a ported
+    // ?style= calls this partway down the script, before the toggle exists —
+    // boot applies the pin itself a moment later, so nothing is lost there.
+    var pin = canvasPin(k);
+    if (pin && canvas && pin !== canvas) pickCanvas(pin);
     renderStyles(); updateShape(); syncControls(); paintRefTag(); paintPromptPanel();
   }
   // LoRA scale, ×3 and the seed are Replicate-only knobs — gpt-image-2 has no
