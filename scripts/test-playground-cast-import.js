@@ -193,13 +193,14 @@ const SHEET_HEAD = 'DPREF\n\n' + sheetGrid.castBlock(CAST)
   ok((await page.inputValue('#prompt')) === PANELS[1], 'the panel words land in the one box');
   ok(/\bon\b/.test(await page.getAttribute('#t-picture', 'class') || ''),
     'on the PICTURE tab, where one panel belongs');
+  // THE BADGE IS THE DISCLOSURE NOW. It used to be a sentence in the port
+  // indicator under the style picker; Sophie deleted that whole row
+  // (2026-08-31, "delete the red" ×2, then "still there"), so the count on the
+  // character button is what says an ingredient rode the link in — an arrival
+  // must never be silent, and this is the surviving voice.
   ok((await page.textContent('#charsn')) === '2', 'the badge counts the two who came with it');
-  const tag = await page.textContent('#reftag');
-  ok(/character descriptions came too/.test(tag),
-    'and the arrival line SAYS they came — never silent, even now that the '
-    + 'same-tile sentence beside it is gone (2026-08-31, "delete the red")');
-  ok(!/Carrying/.test(tag), 'and that sentence really is gone');
-  ok(await page.isVisible('#reftag'), 'the cast line lights the box by itself');
+  ok(await page.isVisible('#charsn'), 'and it is on screen, so the arrival is not silent');
+  ok(await page.$('#reftag') === null, 'the port indicator row is gone entirely');
   await openDesc();
   ok(await page.isVisible('#chartabs'),
     'the Pictures · Descriptions row is on the Picture tab now');
@@ -226,8 +227,6 @@ const SHEET_HEAD = 'DPREF\n\n' + sheetGrid.castBlock(CAST)
   await page.waitForFunction(() => document.querySelectorAll('#plabtabs button').length === 2);
   ok((await page.textContent('#charsn')) === '2',
     'the same link twice does not duplicate anybody');
-  ok(!/came too/.test(await page.textContent('#reftag')),
-    'and says nothing when nothing new landed');
   await page.evaluate(() => localStorage.setItem('promptlab_cast',
     JSON.stringify([{ name: 'the creepy guy', description: 'MINE — do not touch' }])));
   await page.goto(base + '/playground' + q);

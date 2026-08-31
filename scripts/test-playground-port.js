@@ -12,8 +12,9 @@
  *      point: the port's whole claim is "this tile carries the same reference
  *      and prompt", and it becomes a lie the moment a table drifts.
  * The SECOND drives the real promptlab.html in headless Chromium and asserts
- * the indicator says the right one of its three things — and keeps saying the
- * right one after she taps a different tile.
+ * the port indicator is really gone from the page (2026-08-31, "delete the
+ * red" ×2) — including after she taps a different tile, which used to repaint
+ * it and would now throw if a call to the deleted painter were left behind.
  *
  *   node scripts/test-playground-port.js
  *   (headless half needs: npm install playwright --no-save)
@@ -353,48 +354,35 @@ catch {
   try { browser = await chromium.launch(); }
   catch { browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }); }
   const page = await browser.newPage();
-  const tag = () => page.evaluate(() => {
-    const el = document.getElementById('reftag');
-    return { cls: el.className, text: el.textContent };
-  });
-
-  console.log('the indicator');
-  // Arrived from a picture we could identify → the tile IS the picture's.
+  // ── THE INDICATOR IS GONE (2026-08-31) ──────────────────────────────
+  // Sophie scribbled it out twice — first the same-tile sentence, then, on the
+  // build that shipped without it, the one naming the tile she had moved off:
+  // "delete the red" · "still there". So the whole row went, and the sender's
+  // `sameref` flag (asserted live in the matcher above, and in
+  // test-asset-doors.js) is simply no longer read by this page.
+  console.log('the indicator is gone');
   await page.goto(base + '/playground?prompt=a%20cat&style=dreamy&sameref=1');
-  let t = await tag();
-  // 2026-08-31, Sophie: "delete the red" — she scribbled out the sentence
-  // this branch used to draw. Being on the tile the picture was made on is the
-  // ordinary case, so it says NOTHING; the two branches below still speak.
-  ok(!t.cls && !t.text, 'matched port: the line stays silent');
-  ok(await page.inputValue('#prompt') === 'a cat', 'the content half landed in the box');
+  await page.waitForSelector('#prompt');
+  ok(await page.$('#reftag') === null, 'no indicator on a matched port');
+  ok(await page.inputValue('#prompt') === 'a cat', 'and the content half still landed in the box');
 
-  // She taps a different tile — the claim must stop being "this picture's".
+  // The two branches that used to speak: switching tile, and a port nothing
+  // identified. Neither may draw anything now, and neither may throw — the
+  // painter is deleted, so a leftover call would take the whole script down
+  // and every assertion after it with it.
   await page.selectOption('#stylepick', 'pastel');
-  t = await tag();
-  ok(/\bon\b/.test(t.cls) && !/same/.test(t.cls), 'after switching tile: no longer "same"');
-  ok(/Pastel/.test(t.text) && /Dreamy/.test(t.text),
-    'and it names both where she is and where the picture came from');
-
-  // Nothing identified the picture → say so, do not let the fallback imply it.
+  ok(await page.$('#reftag') === null, 'nothing after switching tile');
+  ok(await page.inputValue('#prompt') === 'a cat',
+    'and the style tap did not throw — her words are still there');
   await page.goto(base + '/playground?prompt=a%20cat&style=chatgpt&sameref=0');
-  t = await tag();
-  ok(/\bon\b/.test(t.cls) && !/same/.test(t.cls), 'unmatched port: the line shows, not "same"');
-  ok(/not the one behind it/.test(t.text), 'and admits the reference is not the picture\'s');
-
-  // A plain visit is not a port — the line must stay silent.
-  await page.goto(base + '/playground');
-  t = await tag();
-  ok(t.cls === '' && t.text === '', 'a plain visit shows no indicator at all');
-
-  // A LoRA carries no reference, so it must not claim one. Asked on a branch
-  // that still SPEAKS: the same-tile one went silent 2026-08-31.
-  await page.goto(base + '/playground?prompt=a%20cat&style=watercolor&sameref=0');
-  t = await tag();
-  ok(/style prompt/.test(t.text) && !/reference/.test(t.text),
-    'WTR says "style prompt" only — it attaches no reference');
-  await page.goto(base + '/playground?prompt=a%20cat&style=watercolor&sameref=1');
-  t = await tag();
-  ok(t.cls === '' && t.text === '', 'and on its own tile it says nothing at all');
+  await page.waitForSelector('#prompt');
+  ok(await page.$('#reftag') === null, 'nothing on an unmatched port either');
+  // innerText, never textContent: the latter includes the <script>, where a
+  // comment about the deleted row lives, so it would fail on the prose
+  // explaining the deletion. The honest question is what RENDERS.
+  const shown = await page.evaluate(() => document.body.innerText);
+  ok(!/reference and style prompt|not the one behind it|This picture was made on/.test(shown),
+    'and none of the three sentences renders anywhere on the page');
 
   // ── the PROMPT button ───────────────────────────────────────────────
   console.log('the prompt button');
