@@ -279,6 +279,14 @@ function validateTemplate(template, data) {
       out.items.push(it);
     }
     if (data.voice) out.voice = true;
+    // THE STAMP IS OFF FOR A COLLECTION (2026-08-31, Sophie, on a deck of
+    // cards she had already hearted: "they all have good on them covering
+    // the image"). The deck fills its verdicts in from the Assets tab, so a
+    // page built OUT OF her hearts arrives fully marked and every card wears
+    // the GOOD IDEA stamp over the picture. judge.js has always taken
+    // `stamp:false`; the template just never let a page say it. A deck that
+    // is a collection rather than a decision turns it off.
+    if (data.stamp === false) out.stamp = false;
     // browse is the deck's whole point — on unless a page turns it off
     out.browse = data.browse === false ? false : true;
     return { ok: true, data: out };
