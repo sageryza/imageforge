@@ -7805,6 +7805,30 @@ before working on that module. Nothing was deleted — the moved text is verbati
         the same band `.long` already reserves. Pinned by
         `node scripts/test-template-link.js`.
     - A deck with its own `states` keeps its chips — her words still win.
+  - **THE PILES VIEW SURVEYS HER NOTES (2026-08-31, Sophie: "add note survey
+    to piles").** Every card she wrote on, read back in one place, at the top
+    of the piles — `Notes · N`, one row each: the card's picture, its name,
+    and the note's whole thread. Five things not to undo:
+    - **It CUTS ACROSS the piles** — a note is a note whether the card ended
+      in Yes or sits unmarked — so it is its own section rather than a mark on
+      a tile, and it LEADS them: the tiles are the pictures she has just been
+      looking at, and a survey four piles down is one she will not read.
+    - **READ-BACK only** (the keep-pile's own rule: "the pile is where a note
+      is READ BACK; the keeping tap is where it is WRITTEN"). The row's name
+      and its picture each open that card, where the note box is.
+    - **The thread is painted by `__compareShell.paintNote`** — compare.js's
+      ONE renderer — and folds with the same `N earlier` caret the card's note
+      has, so a note reads the same in both places.
+    - **The caret is a SIBLING of the name button, never inside it** — a
+      button in a button is invalid and the tap would bubble into re-opening
+      the card, so unfolding would leave the piles view.
+    - **A field that parses to NO message makes no row**, and a deck she has
+      written nothing on shows no survey at all — the common case, and
+      byte-for-byte the view that was there before.
+    Test: `node scripts/test-judge-note-survey.js` (the real page headless, at
+    both looks — every assertion a MEASUREMENT, since a survey *below* the
+    piles is still "present" and a folded thread and an open one carry the
+    same markup; verified failing 15 pre-fix).
   - **THE MINI AUTOSCROLL — conditional, small, on the side (Aug 2026,
     Sophie: "ideally you would add a conditional auto scroll thing, but only
     appears when the text is very long and is smaller than the normal one and
