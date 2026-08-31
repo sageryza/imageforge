@@ -1,271 +1,298 @@
 {
- "_what": "Her Triset marks, collected 2026-08-31. hearts = every ♥ she cast on a triset card (current = still in the pool, retired = a generation redrawn away); notes = every picture she wrote on, her words verbatim.",
+ "_what": "Her Triset marks, collected 2026-08-31. hearts = every ♥ she cast on a triset card, MINUS the nature subjects another chat already showed her (current = still in the pool, retired = a generation redrawn away); notes = every picture she wrote on, her words verbatim.",
  "counts": {
-  "hearts": 137,
-  "current": 104,
-  "retired": 33,
-  "noted": 122
+  "hearts": 87,
+  "current": 68,
+  "retired": 19,
+  "noted": 122,
+  "natureElsewhere": 47,
+  "allHearts": 134
  },
- "current": [
+ "nature": [
   {
    "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed5-poppy-field.webp",
    "t": "a field of orange poppies",
    "slug": "poppy-field",
-   "q": "medium",
-   "cap": "gpt-image-2 · medium · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. Compose the subject to USE the triangle: let it follow the sloping sides and reach into the corners, so the picture could not have been drawn square. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a field of orange poppies",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788151487461
+   "q": "medium"
   },
   {
    "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed5-toucan.webp",
    "t": "a toucan on a jungle branch",
    "slug": "toucan",
-   "q": "medium",
-   "cap": "gpt-image-2 · medium · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. Compose the subject to USE the triangle: let it follow the sloping sides and reach into the corners, so the picture could not have been drawn square. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a toucan on a jungle branch",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788151487007
+   "q": "medium"
   },
   {
    "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed5-hot-spring.webp",
    "t": "a hot spring steaming in the snow",
    "slug": "hot-spring",
-   "q": "medium",
-   "cap": "gpt-image-2 · medium · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. Compose the subject to USE the triangle: let it follow the sloping sides and reach into the corners, so the picture could not have been drawn square. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a hot spring steaming in the snow",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788151486853
+   "q": "medium"
   },
   {
    "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed5-vine-falls.webp",
    "t": "a waterfall behind a curtain of ivy",
    "slug": "vine-falls",
-   "q": "medium",
-   "cap": "gpt-image-2 · medium · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. Compose the subject to USE the triangle: let it follow the sloping sides and reach into the corners, so the picture could not have been drawn square. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a waterfall behind a curtain of ivy",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788151486582
+   "q": "medium"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed4-geese-v.webp",
+   "t": "geese flying in a V",
+   "slug": "geese-v",
+   "q": "low"
   },
   {
    "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed4-turkey-tail.webp",
    "t": "turkey-tail mushrooms shelving up a log",
    "slug": "turkey-tail",
-   "q": "low",
-   "cap": "gpt-image-2 · low · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "turkey-tail mushrooms shelving up a log",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788147956902
+   "q": "low"
   },
   {
    "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed4-dust-devil.webp",
    "t": "a dust devil crossing a desert",
    "slug": "dust-devil",
-   "q": "low",
-   "cap": "gpt-image-2 · low · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a dust devil crossing a desert",
-   "chat": "triangular-set-solitaire",
-   "th": [
-    {
-     "id": "c5d5bffd6f61",
-     "from": "sophie",
-     "text": "yea",
-     "at": "2026-08-31T04:21:42.984Z"
-    },
-    {
-     "id": "383a410dbaee",
-     "from": "sophie",
-     "text": "colors are nice",
-     "at": "2026-08-31T04:21:52.132Z"
-    },
-    {
-     "id": "4d7079a76cbd",
-     "from": "chat",
-     "text": "Keeping it.",
-     "at": "2026-08-31T04:45:18.196Z"
-    }
-   ],
-   "hidden": false,
-   "at": 1788147955328
+   "q": "low"
   },
   {
    "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed4-alligator.webp",
    "t": "an alligator with only its eyes above water",
    "slug": "alligator",
-   "q": "low",
-   "cap": "gpt-image-2 · low · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "an alligator with only its eyes above water",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788147954138
+   "q": "low"
   },
   {
    "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed4-low-tide.webp",
    "t": "a beach at low tide scattered with shells",
    "slug": "low-tide",
-   "q": "low",
-   "cap": "gpt-image-2 · low · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a beach at low tide scattered with shells",
-   "chat": "triangular-set-solitaire",
-   "th": [
-    {
-     "id": "d074f4255b93",
-     "from": "sophie",
-     "text": "lovely",
-     "at": "2026-08-31T04:26:38.914Z"
-    },
-    {
-     "id": "a5c5a1110dfc",
-     "from": "chat",
-     "text": "Keeping it.",
-     "at": "2026-08-31T04:45:10.892Z"
-    }
-   ],
-   "hidden": false,
-   "at": 1788147953476
+   "q": "low"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed4-frozen-falls.webp",
+   "t": "a frozen waterfall",
+   "slug": "frozen-falls",
+   "q": "low"
   },
   {
    "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed4-redwood.webp",
    "t": "a redwood too tall to see the top of",
    "slug": "redwood",
-   "q": "low",
-   "cap": "gpt-image-2 · low · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a redwood too tall to see the top of",
-   "chat": "triangular-set-solitaire",
-   "th": [
-    {
-     "id": "31aac2945e72",
-     "from": "sophie",
-     "text": "perfect",
-     "at": "2026-08-31T04:23:56.548Z"
-    },
-    {
-     "id": "0e1897b1492d",
-     "from": "sophie",
-     "text": "use of triangle",
-     "at": "2026-08-31T04:24:04.812Z"
-    },
-    {
-     "id": "3fe6c5c7f35c",
-     "from": "chat",
-     "text": "Noted — and now every new card asks for the subject to USE the triangle, follow its slopes into the corners. That came from this one.",
-     "at": "2026-08-31T04:45:13.646Z"
-    }
-   ],
-   "hidden": false,
-   "at": 1788147952731
+   "q": "low"
   },
   {
    "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed4-sea-cave.webp",
    "t": "a sea cave lit by green water",
    "slug": "sea-cave",
-   "q": "low",
-   "cap": "gpt-image-2 · low · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a sea cave lit by green water",
-   "chat": "triangular-set-solitaire",
-   "th": [
-    {
-     "id": "1935b404077f",
-     "from": "sophie",
-     "text": "lovely",
-     "at": "2026-08-31T04:30:47.132Z"
-    },
-    {
-     "id": "48df307901cf",
-     "from": "chat",
-     "text": "Keeping it.",
-     "at": "2026-08-31T04:45:04.608Z"
-    }
-   ],
-   "hidden": false,
-   "at": 1788147952691
+   "q": "low"
   },
   {
    "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed4-canyon.webp",
    "t": "a canyon with a river far below",
    "slug": "canyon",
-   "q": "low",
-   "cap": "gpt-image-2 · low · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a canyon with a river far below",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788147951287
+   "q": "low"
   },
   {
    "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed4-salt-flat.webp",
    "t": "a salt flat mirroring the sky",
    "slug": "salt-flat",
-   "q": "low",
-   "cap": "gpt-image-2 · low · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a salt flat mirroring the sky",
-   "chat": "triangular-set-solitaire",
-   "th": [
-    {
-     "id": "da2e4dafe4e3",
-     "from": "sophie",
-     "text": "pretty good",
-     "at": "2026-08-31T04:30:16.129Z"
-    },
-    {
-     "id": "b9ca3f4ea90f",
-     "from": "chat",
-     "text": "Keeping it.",
-     "at": "2026-08-31T04:45:05.820Z"
-    }
-   ],
-   "hidden": false,
-   "at": 1788147951216
+   "q": "low"
   },
   {
    "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed4-firefly-meadow.webp",
    "t": "fireflies over a summer meadow",
    "slug": "firefly-meadow",
-   "q": "low",
-   "cap": "gpt-image-2 · low · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "fireflies over a summer meadow",
-   "chat": "triangular-set-solitaire",
-   "th": [
-    {
-     "id": "250e3f5f36ba",
-     "from": "sophie",
-     "text": "nice",
-     "at": "2026-08-31T04:26:12.972Z"
-    },
-    {
-     "id": "ea078d1377b3",
-     "from": "chat",
-     "text": "Keeping it.",
-     "at": "2026-08-31T04:45:11.986Z"
-    }
-   ],
-   "hidden": false,
-   "at": 1788147950608
+   "q": "low"
   },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed4-gecko.webp",
+   "t": "a gecko on a windowpane at night",
+   "slug": "gecko",
+   "q": "low"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed4-braided-river.webp",
+   "t": "a river braiding through gravel",
+   "slug": "braided-river",
+   "q": "low"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed4-grapevine.webp",
+   "t": "a grapevine heavy with grapes",
+   "slug": "grapevine",
+   "q": "low"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-peaches.webp",
+   "t": "a branch heavy with ripe peaches",
+   "slug": "peaches",
+   "q": "medium"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-mountain-goat.webp",
+   "t": "a mountain goat on a cliff edge",
+   "slug": "mountain-goat",
+   "q": "medium"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-pine-fog.webp",
+   "t": "fog rolling over a pine forest",
+   "slug": "pine-fog",
+   "q": "medium"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-luna-moth.webp",
+   "t": "a luna moth on a window screen",
+   "slug": "luna-moth",
+   "q": "medium"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-comet.webp",
+   "t": "a comet over a desert",
+   "slug": "comet",
+   "q": "medium"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-jellyfish.webp",
+   "t": "a jellyfish drifting in dark water",
+   "slug": "jellyfish",
+   "q": "medium"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-whale.webp",
+   "t": "a whale surfacing under the stars",
+   "slug": "whale",
+   "q": "medium"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-snow-shoot.webp",
+   "t": "a snowdrift with one green shoot",
+   "slug": "snow-shoot",
+   "q": "medium"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-bat.webp",
+   "t": "a bat hanging upside down from a branch",
+   "slug": "bat",
+   "q": "medium"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-deer-stream.webp",
+   "t": "a deer drinking from a stream",
+   "slug": "deer-stream",
+   "q": "medium"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-tide-pool.webp",
+   "t": "a tide pool with a starfish",
+   "slug": "tide-pool",
+   "q": "medium"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-dew-web.webp",
+   "t": "a spiderweb strung with dew",
+   "slug": "dew-web",
+   "q": "medium"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-caterpillar.webp",
+   "t": "a caterpillar on a chewed leaf",
+   "slug": "caterpillar",
+   "q": "medium"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-aurora.webp",
+   "t": "the northern lights over pines",
+   "slug": "aurora",
+   "q": "medium"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-wild-strawberries.webp",
+   "t": "a patch of wild strawberries",
+   "slug": "wild-strawberries",
+   "q": "medium"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-bee-flower.webp",
+   "t": "a honeybee inside a flower",
+   "slug": "bee-flower",
+   "q": "medium"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-lightning-field.webp",
+   "t": "a lightning bolt over a wheat field",
+   "slug": "lightning-field",
+   "q": "medium"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-toadstool-ring.webp",
+   "t": "a fairy ring of toadstools",
+   "slug": "toadstool-ring",
+   "q": "medium"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed2-seashell.webp",
+   "t": "a spiral seashell",
+   "slug": "seashell",
+   "q": "low"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed2-peacock-feather.webp",
+   "t": "a single peacock feather",
+   "slug": "peacock-feather",
+   "q": "low"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed2-star-puddle.webp",
+   "t": "a puddle reflecting the stars",
+   "slug": "star-puddle",
+   "q": "low"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed2-beehive.webp",
+   "t": "a beehive dripping with honey",
+   "slug": "beehive",
+   "q": "low"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed2-ladybug.webp",
+   "t": "a ladybug on a leaf",
+   "slug": "ladybug",
+   "q": "low"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed2-moon-in-lake.webp",
+   "t": "a full moon reflected in a lake",
+   "slug": "moon-in-lake",
+   "q": "low"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed2-lemon.webp",
+   "t": "a lemon with leaves",
+   "slug": "lemon",
+   "q": "low"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed-garden-snake.webp",
+   "t": "a garden snake",
+   "slug": "garden-snake",
+   "q": "medium"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed-sunflower.webp",
+   "t": "a sunflower",
+   "slug": "sunflower",
+   "q": "medium"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed-mountain.webp",
+   "t": "a mountain",
+   "slug": "mountain",
+   "q": "medium"
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed-spotted-egg.webp",
+   "t": "a spotted egg in a nest",
+   "slug": "spotted-egg",
+   "q": "medium"
+  }
+ ],
+ "current": [
   {
    "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed4-hail-roof.webp",
    "t": "hail bouncing off a tin roof",
@@ -303,253 +330,6 @@
    ],
    "hidden": false,
    "at": 1788147950532
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed4-gecko.webp",
-   "t": "a gecko on a windowpane at night",
-   "slug": "gecko",
-   "q": "low",
-   "cap": "gpt-image-2 · low · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a gecko on a windowpane at night",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788147950396
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed4-grapevine.webp",
-   "t": "a grapevine heavy with grapes",
-   "slug": "grapevine",
-   "q": "low",
-   "cap": "gpt-image-2 · low · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a grapevine heavy with grapes",
-   "chat": "triangular-set-solitaire",
-   "th": [
-    {
-     "id": "65965f783103",
-     "from": "sophie",
-     "text": "yes",
-     "at": "2026-08-31T04:22:58.021Z"
-    },
-    {
-     "id": "a117473961cd",
-     "from": "chat",
-     "text": "Keeping it.",
-     "at": "2026-08-31T04:45:15.308Z"
-    }
-   ],
-   "hidden": false,
-   "at": 1788147948758
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-peaches.webp",
-   "t": "a branch heavy with ripe peaches",
-   "slug": "peaches",
-   "q": "medium",
-   "cap": "gpt-image-2 · medium · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a branch heavy with ripe peaches",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788147002144
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-pine-fog.webp",
-   "t": "fog rolling over a pine forest",
-   "slug": "pine-fog",
-   "q": "medium",
-   "cap": "gpt-image-2 · medium · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "fog rolling over a pine forest",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788146995474
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-luna-moth.webp",
-   "t": "a luna moth on a window screen",
-   "slug": "luna-moth",
-   "q": "medium",
-   "cap": "gpt-image-2 · medium · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a luna moth on a window screen",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788146995037
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-comet.webp",
-   "t": "a comet over a desert",
-   "slug": "comet",
-   "q": "medium",
-   "cap": "gpt-image-2 · medium · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a comet over a desert",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788146994678
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-jellyfish.webp",
-   "t": "a jellyfish drifting in dark water",
-   "slug": "jellyfish",
-   "q": "medium",
-   "cap": "gpt-image-2 · medium · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a jellyfish drifting in dark water",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788146993664
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-whale.webp",
-   "t": "a whale surfacing under the stars",
-   "slug": "whale",
-   "q": "medium",
-   "cap": "gpt-image-2 · medium · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a whale surfacing under the stars",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788146993066
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-snow-shoot.webp",
-   "t": "a snowdrift with one green shoot",
-   "slug": "snow-shoot",
-   "q": "medium",
-   "cap": "gpt-image-2 · medium · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a snowdrift with one green shoot",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788146449744
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-bat.webp",
-   "t": "a bat hanging upside down from a branch",
-   "slug": "bat",
-   "q": "medium",
-   "cap": "gpt-image-2 · medium · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a bat hanging upside down from a branch",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788146448742
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-deer-stream.webp",
-   "t": "a deer drinking from a stream",
-   "slug": "deer-stream",
-   "q": "medium",
-   "cap": "gpt-image-2 · medium · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a deer drinking from a stream",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788146447705
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-tide-pool.webp",
-   "t": "a tide pool with a starfish",
-   "slug": "tide-pool",
-   "q": "medium",
-   "cap": "gpt-image-2 · medium · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a tide pool with a starfish",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788146447400
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-dew-web.webp",
-   "t": "a spiderweb strung with dew",
-   "slug": "dew-web",
-   "q": "medium",
-   "cap": "gpt-image-2 · medium · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a spiderweb strung with dew",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788146445208
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-caterpillar.webp",
-   "t": "a caterpillar on a chewed leaf",
-   "slug": "caterpillar",
-   "q": "medium",
-   "cap": "gpt-image-2 · medium · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a caterpillar on a chewed leaf",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788146441429
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-aurora.webp",
-   "t": "the northern lights over pines",
-   "slug": "aurora",
-   "q": "medium",
-   "cap": "gpt-image-2 · medium · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "the northern lights over pines",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788146440498
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-wild-strawberries.webp",
-   "t": "a patch of wild strawberries",
-   "slug": "wild-strawberries",
-   "q": "medium",
-   "cap": "gpt-image-2 · medium · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a patch of wild strawberries",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788146439887
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-bee-flower.webp",
-   "t": "a honeybee inside a flower",
-   "slug": "bee-flower",
-   "q": "medium",
-   "cap": "gpt-image-2 · medium · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a honeybee inside a flower",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788146439029
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-lightning-field.webp",
-   "t": "a lightning bolt over a wheat field",
-   "slug": "lightning-field",
-   "q": "medium",
-   "cap": "gpt-image-2 · medium · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a lightning bolt over a wheat field",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788146438127
   },
   {
    "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/web3-cracked-mirror.webp",
@@ -1730,268 +1510,9 @@
    "th": [],
    "hidden": false,
    "at": 1788131064826
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed2-beehive.webp",
-   "t": "a beehive dripping with honey",
-   "slug": "beehive",
-   "q": "low",
-   "cap": "gpt-image-2 · low · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a beehive dripping with honey",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788126729107
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed2-ladybug.webp",
-   "t": "a ladybug on a leaf",
-   "slug": "ladybug",
-   "q": "low",
-   "cap": "gpt-image-2 · low · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a ladybug on a leaf",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788126721661
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed2-moon-in-lake.webp",
-   "t": "a full moon reflected in a lake",
-   "slug": "moon-in-lake",
-   "q": "low",
-   "cap": "gpt-image-2 · low · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a full moon reflected in a lake",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788126719153
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed2-lemon.webp",
-   "t": "a lemon with leaves",
-   "slug": "lemon",
-   "q": "low",
-   "cap": "gpt-image-2 · low · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a lemon with leaves",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": false,
-   "at": 1788126717878
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed-garden-snake.webp",
-   "t": "a garden snake",
-   "slug": "garden-snake",
-   "q": "medium",
-   "cap": "gpt-image-2 · medium · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is a TRIANGLE-SHAPED CARD, point up: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a garden snake",
-   "chat": "triangular-set-solitaire",
-   "th": [
-    {
-     "id": "b71d92fb1b84",
-     "from": "sophie",
-     "text": "this one",
-     "at": "2026-08-31T05:36:17.048Z"
-    }
-   ],
-   "hidden": false,
-   "at": 1788125143665.98
   }
  ],
  "retired": [
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed4-geese-v.webp",
-   "t": "geese flying in a V",
-   "slug": "geese-v",
-   "q": "low",
-   "cap": "gpt-image-2 · low · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "geese flying in a V",
-   "chat": "triangular-set-solitaire",
-   "th": [
-    {
-     "id": "c7aec19f1784",
-     "from": "sophie",
-     "text": "m",
-     "at": "2026-08-31T04:28:39.246Z"
-    },
-    {
-     "id": "8e0bce46171b",
-     "from": "chat",
-     "text": "Redrawing at medium (in the pool as a new card shortly); the low one is staying until you see it.",
-     "at": "2026-08-31T04:45:08.712Z"
-    }
-   ],
-   "hidden": true,
-   "at": 1788147961224
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed4-nightingale.webp",
-   "t": "a nightingale singing to the moon",
-   "slug": "nightingale",
-   "q": "low",
-   "cap": "gpt-image-2 · low · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a nightingale singing to the moon",
-   "chat": "triangular-set-solitaire",
-   "th": [
-    {
-     "id": "c59ace3fb633",
-     "from": "sophie",
-     "text": "me",
-     "at": "2026-08-31T04:28:06.035Z"
-    },
-    {
-     "id": "038733afa67e",
-     "from": "sophie",
-     "text": "d",
-     "at": "2026-08-31T04:28:09.122Z"
-    },
-    {
-     "id": "bcbe2cbf058f",
-     "from": "chat",
-     "text": "Redrawing at medium (in the pool as a new card shortly); the low one is staying until you see it.",
-     "at": "2026-08-31T04:45:09.806Z"
-    }
-   ],
-   "hidden": true,
-   "at": 1788147954804
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed4-frozen-falls.webp",
-   "t": "a frozen waterfall",
-   "slug": "frozen-falls",
-   "q": "low",
-   "cap": "gpt-image-2 · low · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a frozen waterfall",
-   "chat": "triangular-set-solitaire",
-   "th": [
-    {
-     "id": "16bd96db8542",
-     "from": "sophie",
-     "text": "very nice",
-     "at": "2026-08-31T04:20:57.953Z"
-    },
-    {
-     "id": "a0a1f4bb5417",
-     "from": "sophie",
-     "text": "a little too \"unthreeD\"",
-     "at": "2026-08-31T04:21:10.827Z"
-    },
-    {
-     "id": "33998dbe57dd",
-     "from": "sophie",
-     "text": "maybe redo at medium",
-     "at": "2026-08-31T04:21:17.235Z"
-    },
-    {
-     "id": "7ed01ac2158d",
-     "from": "chat",
-     "text": "Redrawing at medium — that should also fix the flatness.",
-     "at": "2026-08-31T04:45:19.328Z"
-    }
-   ],
-   "hidden": true,
-   "at": 1788147952805
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed4-braided-river.webp",
-   "t": "a river braiding through gravel",
-   "slug": "braided-river",
-   "q": "low",
-   "cap": "gpt-image-2 · low · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a river braiding through gravel",
-   "chat": "triangular-set-solitaire",
-   "th": [
-    {
-     "id": "5be280a0b0ba",
-     "from": "sophie",
-     "text": "m",
-     "at": "2026-08-31T04:29:41.062Z"
-    },
-    {
-     "id": "9c289506d276",
-     "from": "chat",
-     "text": "Redrawing at medium (in the pool as a new card shortly); the low one is staying until you see it.",
-     "at": "2026-08-31T04:45:07.608Z"
-    }
-   ],
-   "hidden": true,
-   "at": 1788147949457
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-mountain-goat.webp",
-   "t": "a mountain goat on a cliff edge",
-   "slug": "mountain-goat",
-   "q": "medium",
-   "cap": "gpt-image-2 · medium · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a mountain goat on a cliff edge",
-   "chat": "triangular-set-solitaire",
-   "th": [
-    {
-     "id": "53c0908236b4",
-     "from": "sophie",
-     "text": "redo",
-     "at": "2026-08-31T03:42:18.152Z"
-    },
-    {
-     "id": "f651a21c9608",
-     "from": "chat",
-     "text": "Redrawing — already medium, so a fresh roll.",
-     "at": "2026-08-31T04:45:22.663Z"
-    }
-   ],
-   "hidden": true,
-   "at": 1788147001172
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed3-toadstool-ring.webp",
-   "t": "a fairy ring of toadstools",
-   "slug": "toadstool-ring",
-   "q": "medium",
-   "cap": "gpt-image-2 · medium · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a fairy ring of toadstools",
-   "chat": "triangular-set-solitaire",
-   "th": [
-    {
-     "id": "fa1da803cd2d",
-     "from": "sophie",
-     "text": "hm",
-     "at": "2026-08-31T02:13:20.096Z"
-    },
-    {
-     "id": "4ab0b6cd52c2",
-     "from": "chat",
-     "text": "Redrawing at medium (in the pool as a new card shortly); the low one is staying until you see it.",
-     "at": "2026-08-31T04:45:26.476Z"
-    }
-   ],
-   "hidden": true,
-   "at": 1788142125208
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed2-seashell.webp",
-   "t": "a spiral seashell",
-   "slug": "seashell",
-   "q": "low",
-   "cap": "gpt-image-2 · low · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a spiral seashell",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": true,
-   "at": 1788141685434
-  },
   {
    "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed2-quilt.webp",
    "t": "a quilt on a clothesline",
@@ -2019,58 +1540,6 @@
    "at": 1788141684248
   },
   {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed2-zebra.webp",
-   "t": "a zebra",
-   "slug": "zebra",
-   "q": "low",
-   "cap": "gpt-image-2 · low · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a zebra",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": true,
-   "at": 1788141682477
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed2-peacock-feather.webp",
-   "t": "a single peacock feather",
-   "slug": "peacock-feather",
-   "q": "low",
-   "cap": "gpt-image-2 · low · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a single peacock feather",
-   "chat": "triangular-set-solitaire",
-   "th": [
-    {
-     "id": "cf2217037532",
-     "from": "sophie",
-     "text": "hm",
-     "at": "2026-08-31T02:10:05.013Z"
-    },
-    {
-     "id": "0934a60da66d",
-     "from": "chat",
-     "text": "Left in the pool for now — a \"hm\" is not a no. Say \"m\" on it and I will redraw it at medium, or \"no\" and it goes.",
-     "at": "2026-08-31T04:45:58.569Z"
-    }
-   ],
-   "hidden": true,
-   "at": 1788141679821
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed2-star-puddle.webp",
-   "t": "a puddle reflecting the stars",
-   "slug": "star-puddle",
-   "q": "low",
-   "cap": "gpt-image-2 · low · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a puddle reflecting the stars",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": true,
-   "at": 1788141678682
-  },
-  {
    "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed2-hot-air-balloon.webp",
    "t": "a hot air balloon over fields",
    "slug": "hot-air-balloon",
@@ -2082,19 +1551,6 @@
    "th": [],
    "hidden": true,
    "at": 1788141676780
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed2-sleeping-swan.webp",
-   "t": "a sleeping swan on dark water",
-   "slug": "sleeping-swan",
-   "q": "low",
-   "cap": "gpt-image-2 · low · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a sleeping swan on dark water",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": true,
-   "at": 1788141676569
   },
   {
    "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/web2-hose-tangle.webp",
@@ -2329,45 +1785,6 @@
    "th": [],
    "hidden": true,
    "at": 1788140024530
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed-sunflower.webp",
-   "t": "a sunflower",
-   "slug": "sunflower",
-   "q": "medium",
-   "cap": "gpt-image-2 · medium · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is a TRIANGLE-SHAPED CARD, point up: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a sunflower",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": true,
-   "at": 1788125143437.98
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed-mountain.webp",
-   "t": "a mountain",
-   "slug": "mountain",
-   "q": "medium",
-   "cap": "gpt-image-2 · medium · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is a TRIANGLE-SHAPED CARD, point up: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a mountain",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": true,
-   "at": 1788125142597.98
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed-spotted-egg.webp",
-   "t": "a spotted egg in a nest",
-   "slug": "spotted-egg",
-   "q": "medium",
-   "cap": "gpt-image-2 · medium · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is a TRIANGLE-SHAPED CARD, point up: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a spotted egg in a nest",
-   "chat": "triangular-set-solitaire",
-   "th": [],
-   "hidden": true,
-   "at": 1788125142577.98
   },
   {
    "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed-teacup.webp",
@@ -4619,6 +4036,12 @@
      "from": "chat",
      "text": "Redrawing — already medium, so a fresh roll.",
      "at": "2026-08-31T04:45:22.663Z"
+    },
+    {
+     "id": "e9715505bcd3",
+     "from": "sophie",
+     "text": "p",
+     "at": "2026-08-31T06:24:22.863Z"
     }
    ]
   },
