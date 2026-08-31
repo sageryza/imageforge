@@ -59,6 +59,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { promptRecord, promptFields } = require('./prompt-record');
+const { bakeCut, cutPath } = require('./triset-cut');
 
 const router = express.Router();
 const CARDS = 'forge-triset-cards';
@@ -264,8 +265,15 @@ async function render(id) {
       refs.push(Buffer.from(await r.arrayBuffer()));
     }
     const buf = await draw(card.fullPrompt, refs);
+    // bank the paid bytes FIRST (still 'drawing' — the poll waits for ready)
     const url = await put(buf, `triset/cards/${id}.webp`);
-    await ref.set({ url, status: 'ready', finishedAt: Date.now() }, { merge: true });
+    await ref.set({ url }, { merge: true });
+    // the die-cut is a derived display copy and best-effort: a bake failure
+    // must never fail a paid card — the page falls back to the fixed mapping
+    let cut = null;
+    try { cut = await put((await bakeCut(buf, { flip: !!card.flip })).buf, cutPath(id)); }
+    catch (e) { /* cut-less card still plays */ }
+    await ref.set({ ...(cut ? { cut } : {}), status: 'ready', finishedAt: Date.now() }, { merge: true });
     // My Creations, best-effort — filing must never fail the card.
     if (fileCreationFn) {
       fileCreationFn({
@@ -282,6 +290,34 @@ async function render(id) {
   }
 }
 
+// ── the die-cut sweep ──────────────────────────────────────────────────────
+// Bake the cut copy for every ready card missing one (a seed batch, a card
+// whose bake failed). One at a time, fire-and-forget; /status reports the
+// job. `force` re-bakes everything — only useful together with a
+// CUT_VERSION bump (the objects are served immutable, so a same-version
+// re-bake hides behind the CDN for a year).
+let recutJob = null;
+async function bakeCard(id, card) {
+  const r = await fetch(card.url);
+  if (!r.ok) throw new Error('fetch ' + r.status);
+  const { buf } = await bakeCut(Buffer.from(await r.arrayBuffer()), { flip: !!card.flip });
+  const cut = await put(buf, cutPath(id));
+  await db().collection(CARDS).doc(id).set({ cut }, { merge: true });
+  return cut;
+}
+async function bakeMissing(force) {
+  const snap = await db().collection(CARDS).get();
+  const need = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    .filter(c => c.status === 'ready' && c.url && (force || !c.cut));
+  recutJob = { running: true, total: need.length, done: 0, failed: 0, startedAt: Date.now() };
+  for (const c of need) {
+    try { await bakeCard(c.id, c); recutJob.done++; }
+    catch (e) { recutJob.failed++; }
+  }
+  recutJob.running = false;
+  return recutJob;
+}
+
 // ── routes ─────────────────────────────────────────────────────────────────
 router.get('/status', async (req, res) => {
   let cards = null;
@@ -289,7 +325,15 @@ router.get('/status', async (req, res) => {
   res.json({
     ok: true, firebase: !!admin.apps.length, openai: !!process.env.OPENAI_API_KEY,
     style: STYLE.label || null, swapped: STYLE.swapped, cards, costCents: COST_CENTS,
+    recut: recutJob,
   });
+});
+
+router.post('/recut', async (req, res) => {
+  if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
+  if (recutJob && recutJob.running) return res.status(409).json({ error: 'already running', job: recutJob });
+  bakeMissing(!!(req.body || {}).force).catch(() => { if (recutJob) recutJob.running = false; });
+  res.json({ ok: true, started: true });
 });
 
 // The whole pool — a few hundred small docs at most; sorted in memory (house
@@ -418,13 +462,16 @@ router.post('/seed', async (req, res) => {
         out.push({ ok: true, id });
       } catch (e) { out.push({ ok: false, error: String(e.message || e).slice(0, 200) }); }
     }
+    // die-cuts for the batch, in the background (best-effort; the sweep or
+    // scripts/triset-recut.js catches anything this misses)
+    if (!(recutJob && recutJob.running)) bakeMissing(false).catch(() => { if (recutJob) recutJob.running = false; });
     res.json({ ok: true, cards: out });
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
 
 module.exports = {
   router, init,
-  foundContent, cardPrompt, validFound, stuckPatch,
+  foundContent, cardPrompt, validFound, stuckPatch, bakeCard,
   KINDS, STYLE, TRIANGLE_CLAUSE, triangleClause, INVENT_LINE, AUTO_RULES, STUCK_MS, COST_CENTS,
   // for scripts/seed-triset.js — the seed batch must draw through the exact
   // call a found set draws through, or the pool and the made cards drift.

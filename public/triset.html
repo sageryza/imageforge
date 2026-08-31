@@ -79,6 +79,13 @@ h1.tool-eyebrow{
 .slot img,#midimg{position:absolute;display:block;width:107.143%;height:auto;left:-3.571%}
 .slot.up img{top:-17.161%}
 .slot.down img,#midimg{top:-6.564%}
+/* A card with a baked DIE-CUT (`cut` on the doc — triset-cut.js) fills the
+   slot exactly: the copy is the slot's own 1000x866 canvas, the drawn card
+   measured and fitted inside with transparency around it, so the cream face
+   shows through as the border and the whole image plus outline fits in the
+   triangle (2026-08-30, Sophie: "fix the cutting"). The fixed mapping above
+   survives only as the fallback for a card whose bake failed. */
+.slot img.whole,#midimg.whole{width:100%;height:100%;left:0;top:0}
 /* the middle inverted triangle — a text box, until a made card lands in it.
    The SLOT is not clipped (the venn boxes ride its edges); the face and the
    made-card cutter carry their own triangles. */
@@ -230,7 +237,8 @@ function setImg(slot, card){
   var el = $('#s-' + slot);
   var img = el.querySelector('img');
   if (card) {
-    img.src = thumb(card.url); img.hidden = false;
+    img.src = thumb(card.cut || card.url); img.hidden = false;
+    img.classList.toggle('whole', !!card.cut);
     el.classList.toggle('down', !!card.flip);
     el.classList.toggle('up', !card.flip);
   }
@@ -330,7 +338,7 @@ function poll(){
         pending = null;
         try { localStorage.removeItem(PKEY); } catch(e){}
         drawingUI(false);
-        pool.unshift({ id:id, url:d.url, title:d.title, status:'ready', flip:true });
+        pool.unshift({ id:id, url:d.url, cut:d.cut, title:d.title, status:'ready', flip:true });
         poolLine();
         showMade(d);
       } else if (d.status === 'failed' || d.error === 'not found') {
@@ -352,7 +360,8 @@ function showMade(card){
   mid.classList.add('made');
   $('#midwrap').hidden = true;
   VENN.forEach(function(id){ document.getElementById(id).hidden = true; });
-  $('#midimg').src = thumb(card.url);
+  $('#midimg').src = thumb(card.cut || card.url);
+  $('#midimg').classList.toggle('whole', !!card.cut);
   $('#midcut').hidden = false;
   say('“' + (card.title || 'the new card') + '” joined the pool — tap it for the next hand');
 }
