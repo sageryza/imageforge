@@ -1648,6 +1648,63 @@ them off the reference sheet, not off the old filenames.
     that's like round with a metal thing sticking down from it — that's a
     different one that you made"). Don't drift it back.
   - Test: `node scripts/test-chats-pin-top.js`.
+- **A THIRD PIN, AND IT IS A SCREEN — ON MY TRAY (2026-08-31, Sophie: "add a
+  tab in chats called 'on my tray' where i can pin chats by their icons for
+  what im working on rn — ex xi to do · review cards illustrations ideas ·
+  triset · review cards").** The FOURTH list tab, leading the row, and the one
+  answer none of the four marks above gave: `starred` lifts a chat inside a
+  list of two hundred, where the tray IS the list — three or four chats and
+  nothing else on screen. **`tray` + `POST /api/chatfeed/tray`**; the sheet's
+  mark puts a chat on, the tile's own mark takes it off.
+  - **`trayAt` IS THE POINT AND IS NOT BOOKKEEPING — the tray does not
+    reshuffle.** It is the one pile in this app that does NOT come through
+    `sortedChatNames`: every other list is newest-message-first, which is right
+    for an inbox and exactly wrong for a dock — icons that move whenever a chat
+    replies are icons she can never learn the position of. The order is when
+    she PUT each one there, oldest first, so the tray grows at the end. The
+    server stamps it (only the write knows the moment), the optimistic copy
+    stamps one too, and re-adding a chat already on the tray KEEPS its original
+    stamp so a stray double tap cannot send its icon to the front.
+  - **SHE ASKED FOR THE ICONS, so the tray is the icons: four across against
+    the tile wall's three, the name under each clamped to two lines, and no
+    status line, no timestamp, no about.** That question — *what am I on* — is
+    answered by looking; *what happened* is the ALL tab next door. Four across
+    is what makes a whole tray one glance rather than a scroll.
+  - **NO DATE HEADINGS**, deliberately, and it is the one pile without them:
+    every other list gets `mkDayRule` because every other list is in timing
+    order. Here a date rule would be a heading over a grouping that does not
+    exist.
+  - **IT IGNORES THE ACCOUNT FILTER**, the way the ★ pile ignores `archived`.
+    The account row is not even on screen while the lists row is (they take
+    turns), so a hand-picked chat vanishing because it belongs to the other
+    account is exactly the silent filter this app keeps getting burned by —
+    she picked these, and that IS the filter. A lit category chip LEAVES the
+    tray onto ALL, the same way it leaves the bug pile, for the same reason.
+  - **The archive and the trash stay their own rooms** — an archived tray chat
+    is not drawn, and the MARK is left on its doc, so un-archiving puts it back
+    where it was. Archiving never silently clears her pin.
+  - **THE GLYPH IS LUCIDE `inbox` AND IS NEVER FILLED — measured, not
+    reasoned.** It shipped filled when lit, like the star and the bookmark
+    beside it, and rendered as a **red blob**: those two get away with a fill
+    because their silhouette IS the shape, where a tray's shape is its OPENING,
+    so filling the body closes the mouth. `.on` is the red stroke and the red
+    box, as it is for the crossed eye. Same finding as the bell's, one glyph
+    over.
+  - **THE TAB SAYS "My tray", NOT HER WHOLE PHRASE** — the PWC tab's call. A
+    fourth tab narrows every one of them, and "On my tray" measures 69.5px
+    against the ~64px a tab has at 320pt, so it wrapped and made that row 10px
+    taller than every other hairline row in the app. Nothing counts the tabs,
+    in the page or in the tests, so a fifth costs no layout work.
+  - **`.traybtn` is ONE class in two places and the tile's rule is SCOPED** —
+    `.orgmarks .markchip` (0,2,0) sets the sheet copy's box but declares no
+    `position`, so an unscoped `position:absolute` on the shared class floats
+    that mark out of the marks row.
+  - Test: `node scripts/test-chats-tray.js` (the real page headless — four
+    across MEASURED off the real cells, the order proved against a fixture
+    whose first-added chat has the OLDEST message, and the add driven through a
+    deliberately SLOW stub so the OPTIMISTIC order is what renders; verified
+    catching a recency sort, a lost stamp, an unscoped rule, a three-wide grid
+    and a refilled glyph).
 - **ORGANIZE — a chat can be filed and tagged from INSIDE it (Aug 2026,
   Sophie: "an ability to tag or categorize something from within the chat
   itself … an icon that says organize and then it pulls up the ability to tag
@@ -1835,8 +1892,12 @@ them off the reference sheet, not off the old filenames.
   - just the link to a movie, previews of images and whatnot · bug fix tab
   third" · "also have a toggle next to account switcher that goes back to 3
   tabs 1 per account").** One hairline row under the header with two modes,
-  swapped by `#rowtog` beside the account switcher — the three LISTS, or the
-  ACCOUNT tabs it has always been. Sticky, opening on the lists.
+  swapped by `#rowtog` beside the account switcher — the LISTS, or the ACCOUNT
+  tabs it has always been. Sticky, opening on the lists.
+  **IT IS FOUR SINCE 2026-08-31** — *My tray* joined at her ask and LEADS the
+  row, so it reads most-focused to broadest left to right; `all` is still the
+  stored default, because a tray she has not filled yet would open the app on
+  an empty screen. Full rules: *A THIRD PIN, AND IT IS A SCREEN* above.
   - **ALL IS NOT THE HOME INBOX, and that is the tab.** The ordinary home list
     is the UNFILED pile, so a pile word takes a chat off it; ALL is every chat
     on the account in timing order, filed or not — her word, in caps. The
