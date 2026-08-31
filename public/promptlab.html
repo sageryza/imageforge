@@ -10,6 +10,9 @@
      so a second feed can never hand-copy them. -->
 <script src="/feedkit.js"></script>
 <script src="/asset-lightbox.js"></script>
+<!-- Midjourney's curly brackets: `a {red, blue} bird` is two prompts. ONE
+     copy of the expansion rule, shared with the pure test. -->
+<script src="/permute.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   [hidden] { display: none !important; }
@@ -183,6 +186,9 @@
   button.go svg { width: 21px; height: 21px; display: block; }
   button.go:disabled { opacity: .5; }
   .err { font-size: 12.5px; color: #a33; margin-top: 8px; }
+  /* The {curly brackets} count — shown only while the prompt really expands,
+     so a plain prompt's card is byte-for-byte what it always was. */
+  .permline { font-size: 12.5px; color: #6f675e; margin-top: 8px; }
   /* One box per run, so a prompt is unmistakably attached to its own pictures. */
   .run { margin-bottom: 14px; background: #fff; border: 1px solid #e3dcd1; border-radius: 6px; padding: 10px; }
   .runhead { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
@@ -503,6 +509,7 @@
       <button class="go" id="go" onclick="go()" aria-label="Generate" title="Generate"></button>
     </div>
   </div>
+  <div class="permline" id="permline" hidden></div>
   <div class="err" id="err" hidden></div>
 </div>
 
@@ -1561,8 +1568,11 @@
 
   // `q` overrides the quality dropdown for one run — the low·low·medium button
   // draws its own ladder without touching what the dropdown says.
-  function startRun(scale, q) {
-    var prompt = document.getElementById('prompt').value.trim();
+  // `promptText` overrides the box for one run — a {curly brackets} tap starts
+  // one run per expansion, and each run's doc carries ITS prompt, not the
+  // braces (the stored prompt must be the text actually sent).
+  function startRun(scale, q, promptText) {
+    var prompt = promptText != null ? promptText : document.getElementById('prompt').value.trim();
     var S = STYLES[styleKey];
     var gpt = S.engine === 'gptimage';
     var seed = curSeed();
@@ -1622,35 +1632,106 @@
     err.textContent = (e && e.message) || 'Network error — try again.'; err.hidden = false;
   }
 
+  // ─── {curly brackets} — Midjourney's permutation prompts (Aug 2026) ──────
+  // `a {red, blue} bird` runs as two prompts, separate groups multiply, and
+  // every starter (Generate, ×3, both ladders) goes through the same
+  // expansion, so the braces mean one thing everywhere. The rule itself is
+  // /permute.js — ONE copy, shared with the pure test.
+  //
+  // The cap is TOTAL RUNS PER TAP, not options: 12 keeps the box under the
+  // measured concurrent-output ceiling that has restarted the server
+  // (CLAUDE.md: 16 buffered outputs, 2026-08-19), and it is checked against
+  // prompts × tiers so a ladder on a big set is refused rather than fired.
+  var PERM_CAP = 12;
+  function expandBox() {
+    var text = document.getElementById('prompt').value.trim();
+    if (window.permutePrompt) return window.permutePrompt(text);
+    // Stale cache with no /permute.js: braces go through literally, as before.
+    return { prompts: [text], clipped: false };
+  }
+  function permGuard(ex, tiers) {
+    var n = ex.prompts.length * tiers;
+    if (!ex.clipped && n <= PERM_CAP) return true;
+    var err = document.getElementById('err');
+    err.textContent = ex.clipped
+      ? 'Those brackets expand past 50 prompts — that can’t be one tap.'
+      : 'That’s ' + n + ' runs in one tap — the cap is ' + PERM_CAP
+        + '. Fewer {options}, or run them in smaller taps.';
+    err.hidden = false;
+    return false;
+  }
+  // The count line under the controls: shown only while the prompt really
+  // expands, priced from the SERVED cents (never a copy in the page). Polled,
+  // not event-wired — iOS dictation fills the box without firing `input`.
+  function permLine() {
+    var el = document.getElementById('permline');
+    var ex = expandBox();
+    var n = ex.prompts.length;
+    if (n < 2 && !ex.clipped) { el.hidden = true; return; }
+    if (ex.clipped) { el.textContent = '{…} over 50 prompts — too many'; el.hidden = false; return; }
+    var line = '{…} ' + n + ' prompts — Generate draws all ' + n;
+    var S = STYLES[styleKey];
+    if (S && S.engine === 'gptimage' && RES && RES[canvas]) {
+      var t = RES[canvas].tiers[resTier];
+      var c = t && t.cents && t.cents[quality];
+      if (c) {
+        var total = c * n;
+        line += ' · ~' + (total >= 100 ? '$' + (total / 100).toFixed(2) : Math.round(total * 10) / 10 + '¢')
+          + ' at ' + quality;
+      }
+    }
+    el.textContent = line; el.hidden = false;
+  }
+  setInterval(permLine, 700);
+
   function go() {
     if (!checkPrompt()) return;
     var scale = parseFloat(document.getElementById('scale').value) || 1;
-    var prompt = document.getElementById('prompt').value.trim();
-    if (alreadyRun(plannedKey(STYLES[styleKey], prompt, scale, curSeed()))) {
-      toast('You already have that one — tap the sprout for a new seed');
+    var ex = expandBox();
+    if (!permGuard(ex, 1)) return;
+    var S = STYLES[styleKey], seed = curSeed();
+    // The LoRA dedupe runs per expanded prompt — a set re-tapped after one
+    // rung landed only draws what is missing (ChatGPT is never deduped).
+    var todo = ex.prompts.filter(function (p) {
+      return !alreadyRun(plannedKey(S, p, scale, seed));
+    });
+    if (!todo.length) {
+      toast(ex.prompts.length > 1
+        ? 'You already have all of those — tap the sprout for a new seed'
+        : 'You already have that one — tap the sprout for a new seed');
       return;
+    }
+    if (todo.length < ex.prompts.length) {
+      toast('Drawing ' + todo.length + ' — you already have the other '
+        + (ex.prompts.length - todo.length));
     }
     var btn = document.getElementById('go');
     btn.disabled = true;
-    startRun(scale).catch(showErr).finally(function () { btn.disabled = false; });
+    Promise.all(todo.map(function (p) { return startRun(scale, null, p).catch(showErr); }))
+      .finally(function () { btn.disabled = false; });
   }
 
   // ×3: the strength ladder in one tap — same prompt and seed at 1 / 1.2 / 1.4.
   // Whichever rungs she already has are skipped, so running ×3 after a single
-  // scale-1 run only draws the two that are missing.
+  // scale-1 run only draws the two that are missing. With {curly brackets} the
+  // ladder runs per expanded prompt — 2 prompts is 6 runs, still one tap.
   document.getElementById('xthree').addEventListener('click', function () {
     if (!checkPrompt()) return;
-    var prompt = document.getElementById('prompt').value.trim();
+    var ex = expandBox();
+    if (!permGuard(ex, 3)) return;
     var S = STYLES[styleKey], seed = curSeed();
-    var todo = [], have = [];
-    [1, 1.2, 1.4].forEach(function (s) {
-      (alreadyRun(plannedKey(S, prompt, s, seed)) ? have : todo).push(s);
+    var todo = [], have = 0;
+    ex.prompts.forEach(function (p) {
+      [1, 1.2, 1.4].forEach(function (s) {
+        if (alreadyRun(plannedKey(S, p, s, seed))) have++;
+        else todo.push({ p: p, s: s });
+      });
     });
-    if (!todo.length) { toast('You already have all three — tap the sprout for a new seed'); return; }
-    if (have.length) toast('Drawing scale ' + todo.join(' and ') + ' — you already have ' + have.join(' and '));
+    if (!todo.length) { toast('You already have all of those — tap the sprout for a new seed'); return; }
+    if (have) toast('Drawing ' + todo.length + ' — you already have ' + have);
     var btn = document.getElementById('xthree');
     btn.disabled = true;
-    Promise.all(todo.map(function (s) { return startRun(s).catch(showErr); }))
+    Promise.all(todo.map(function (r) { return startRun(r.s, null, r.p).catch(showErr); }))
       .finally(function () { btn.disabled = false; });
   });
 
@@ -1680,9 +1761,14 @@
   // the tier. `startRun`'s own `q` overrides the toggle for that run only, so
   // neither ladder moves what the knob says.
   function ladder(btn, tiers) {
+    var ex = expandBox();
+    if (!permGuard(ex, tiers.length)) return;
     btn.disabled = true;
-    Promise.all(tiers.map(function (q) { return startRun(1, q).catch(showErr); }))
-      .finally(function () { btn.disabled = false; });
+    var runs = [];
+    ex.prompts.forEach(function (p) {
+      tiers.forEach(function (q) { runs.push(startRun(1, q, p).catch(showErr)); });
+    });
+    Promise.all(runs).finally(function () { btn.disabled = false; });
   }
 
   // Tapping Generate twice on the same prompt is ONE job as far as she's
