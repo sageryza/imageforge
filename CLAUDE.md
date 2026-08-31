@@ -5336,6 +5336,23 @@ before working on that module. Nothing was deleted — the moved text is verbati
   and both house helpers (`liveInput`, `enterSubmits`) are wired, and the box
   is deliberately NOT sticky, unlike the view and the heart. Test:
   `node scripts/test-playground-search.js`.
+  **{CURLY BRACKETS} ARE MIDJOURNEY'S PERMUTATION PROMPTS (Aug 2026, Sophie:
+  "u know in midjourney using curly brackets to do multiple prompts" →
+  "yes :)").** `a {red, blue} bird` is two prompts, separate groups multiply,
+  groups nest, `\{` `\}` `\,` are literal, and an unmatched brace is literal
+  (a typo must not eat the prompt). ONE copy of the rule — `public/permute.js`
+  — and EVERY starter (Generate, ×3, both ladders) expands through it, so the
+  braces mean one thing everywhere; each run's doc carries ITS expanded
+  prompt, never the braces. A count line under the controls shows while the
+  prompt really expands ("{…} 4 prompts — Generate draws all 4"), priced from
+  the SERVED cents on a gpt style (the LoRA shows no price — none is served).
+  **The cap is 12 TOTAL RUNS PER TAP, checked as prompts × tiers** — a ladder
+  on a big set is refused with the reason on screen and ZERO runs started,
+  because 12 keeps the 512MB box under the measured 16-concurrent-output
+  ceiling that has restarted it. The LoRA dedupe runs per expanded prompt.
+  **Freeform deliberately does NOT expand** — it is the verbatim, no-opinion
+  surface, and braces there go to the model as typed. Test:
+  `node scripts/test-playground-permute.js`.
   **A Replicate run she already has is never sent again** (Flux with a fixed seed
   is deterministic); ChatGPT is never deduped, because an identical run there
   draws a different picture. Quality low/medium/high 0.5c/4.1c/16.5c at its 2:3
