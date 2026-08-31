@@ -7645,27 +7645,34 @@ before working on that module. Nothing was deleted — the moved text is verbati
     overlay), and carries `flip` on its doc — the page clips it point-down
     wherever it is dealt, forever, which is also how you tell the cards the
     game made from the seeds.
-  - **THE CUT IS MEASURED PER IMAGE — a baked DIE-CUT, never a fixed mapping
-    (2026-08-30, Sophie: "they shud have a cream border · equilateral · the
-    whole image plus outline needs to fit in the triangle · fix the
-    cutting").** The model draws each card with its own cream paper rim and
-    frame line but at a different size/steepness every time, so the first
-    page-side cut (fixed apex/base percentages) cropped into some cards' art
-    and its cream mat could never show through an opaque square image.
-    `triset-cut.js` bakes a derived display copy per card (`cut` on the doc,
-    `triset/cuts/<id>.c1.webp`): flood-fill the white background transparent
-    from the edges (wobbly hand-drawn sides survive exactly; interior white
-    highlights keep), fit the content bbox inside the equilateral slot canvas
-    (1000x866, FIT 0.96, base-aligned up / top-aligned down), transparent
-    around it. A full-bleed draw falls back to the ideal triangle mask.
+  - **THE CUT IS A PERFECT EQUILATERAL, MEASURED PER IMAGE (2026-08-30
+    "fix the cutting", settled 2026-08-31: "the original cream cut is wrong
+    which makes these extra wrong. original cut shud all be perfect
+    equilateral").** The model draws each card with its own cream paper rim
+    and frame line but at a different size/steepness every time. The c1 bake
+    preserved the drawn shape (flood-fill, contain-fit at 0.96) — faithful to
+    the drawing and WRONG for a card: every cut came out a slightly different
+    triangle, and on her printed cut-sheets the differences compounded.
+    `triset-cut.js` (c2) bakes a derived display copy per card (`cut` on the
+    doc, `triset/cuts/<id>.c2.webp`): flood-fill the white background
+    transparent from the edges (interior white highlights keep), then
+    **COVER-fit** — scale the drawn card UP just enough that the ideal slot
+    triangle (1000x866, per flip) is entirely inside it (`coverPlan`, minimal
+    scale, placement scanned from centered/base-anchored) — and mask HARD
+    with the exact triangle. What a physical die does: a perfect triangle cut
+    out of an imperfect drawing, the slivers past the die lost — a steep
+    drawing loses its apex, deliberately. A full-bleed draw goes through the
+    same cover path, so there is one geometry. **The contain-fit is HISTORY —
+    don't bring it back for the board's card gap**; that gap is the board's
+    spacing to provide.
     **THE ONLY CREAM BORDER IS THE PAPER RIM THE MODEL DREW INTO THE PICTURE
     (2026-08-31, Sophie: "there shud be no cream border aside from the one
     built into the images").** The first cut of this put a cream `.face` mat
     behind every card so it would show through as the border — which is a
     SECOND band, in a different cream, around the rim already there. So the
     slots draw nothing behind a card and the cut's transparency shows page
-    paper, which reads as the gap between cards; the FIT is what keeps that
-    gap. The middle slot keeps its cream face while it is the WRITING
+    paper outside the triangle (the c2 cut fills its triangle edge to edge —
+    the gap between cards is the board's slot spacing now, not a FIT margin). The middle slot keeps its cream face while it is the WRITING
     SURFACE and drops it under a made card (`#s-mid.made .face`), or the
     doubling comes straight back on the one card that lands there. Bakes: render()
     right after banking the paid bytes (best-effort — a failed bake still

@@ -174,19 +174,29 @@ const cut = require('../triset-cut');
   ok('an interior white highlight SURVIVES (flood fill, not a chroma key)', a(30, 42) === 255);
 }
 {
-  // fitBox: contain-fit inside the FIT triangle, centered, base/top aligned
-  const innerW = 1000 * cut.FIT; const innerH = 866 * cut.FIT;
-  const steep = cut.fitBox({ x0: 0, y0: 0, x1: 99, y1: 199 });              // taller than equilateral
-  ok('a steep card is height-limited, never cropped',
-    steep.height <= Math.ceil(innerH) && steep.width < innerW / 2);
-  ok('…and centered', Math.abs(steep.left - (1000 - steep.width) / 2) <= 1);
-  ok('…its base on the mat base line (point up)',
-    Math.abs((steep.top + steep.height) - (2 * 866 / 3 + (866 / 3) * cut.FIT)) <= 1);
-  const flat = cut.fitBox({ x0: 0, y0: 0, x1: 199, y1: 59 });               // flatter than equilateral
-  ok('a flat card is width-limited, never cropped', flat.width <= Math.ceil(innerW) && flat.height < innerH / 2);
-  const down = cut.fitBox({ x0: 0, y0: 0, x1: 99, y1: 199 }, { flip: true });
-  ok('a point-down card top-aligns instead',
-    Math.abs(down.top - (866 / 3) * (1 - cut.FIT)) <= 1);
+  // coverPlan: the smallest cover of the slot triangle (2026-08-31, Sophie:
+  // "original cut shud all be perfect equilateral" — the c1 contain-fit
+  // preserved each card's wobbly drawn shape and every cut came out a
+  // different triangle). A fully opaque frame covers at the baseline…
+  const w = 100; const h = 100;
+  const solid = Buffer.alloc(w * h * 4, 255);
+  const bbox = { x0: 0, y0: 0, x1: 99, y1: 99 };
+  const plan = cut.coverPlan(solid, w, h, bbox);
+  ok('an opaque frame covers completely', plan.covered === 1);
+  ok('…at (near) the baseline scale', plan.scale <= Math.max(1000 / w, 866 / h) * 1.03);
+  // …and a STEEP drawn triangle must SCALE PAST the baseline to cover the
+  // ideal triangle's base corners — the exact case c1 left as gaps.
+  const steep = Buffer.alloc(w * h * 4, 0);
+  for (let y = 10; y < 95; y += 1) {
+    const half = Math.round(((y - 10) / 85) * 25);            // narrow: half-width 25 at base
+    for (let x = 50 - half; x <= 50 + half; x += 1) steep[(y * w + x) * 4 + 3] = 255;
+  }
+  const sbox = { x0: 25, y0: 10, x1: 75, y1: 94 };
+  const sp = cut.coverPlan(steep, w, h, sbox);
+  ok('a steep card covers the whole triangle — never keeps its own shape',
+    sp.covered === 1);
+  ok('…which crops it vertically: covering a steep drawing costs its ends',
+    85 * sp.scale > 866 * 1.5);
 }
 ok('render banks the paid bytes BEFORE the cut, and a failed bake still readies the card',
   /await ref\.set\(\{ url \}, \{ merge: true \}\)/.test(MOD)
@@ -208,10 +218,25 @@ async function bakeChecks() {
   const px = (x, y) => { const i = (y * info.width + x) * 4; return [data[i], data[i + 1], data[i + 2], data[i + 3]]; };
   ok('the cut canvas is the slot triangle, 1000x866', info.width === 1000 && info.height === 866);
   ok('a white-paper card is measured, not masked', fullBleed === false);
+  // the canvas corners OUTSIDE the triangle — for a point-up cut that is the
+  // two top corners; the bottom corners are inside the perfect cut now
   ok('the corners are transparent (the page paper shows through)',
-    px(5, 5)[3] === 0 && px(994, 5)[3] === 0 && px(5, 860)[3] === 0);
+    px(5, 5)[3] === 0 && px(994, 5)[3] === 0 && px(250, 5)[3] === 0);
   ok('the art lands opaque inside the triangle', px(500, 500)[3] === 255 && px(500, 500)[0] < 200);
-  ok('the interior white patch is opaque in the bake', px(497, 628)[3] === 255 && px(497, 628)[0] > 230);
+  // the interior white highlight survives SOMEWHERE inside the triangle
+  let highlight = false;
+  for (let y = 200; y < 820 && !highlight; y += 4) {
+    for (let x = 150; x < 850; x += 4) {
+      const [r, , , al] = px(x, y);
+      if (al === 255 && r > 230) { highlight = true; break; }
+    }
+  }
+  ok('the interior white patch is opaque in the bake', highlight);
+  // THE CUT IS THE PERFECT EQUILATERAL (2026-08-31): points just inside the
+  // ideal triangle's three vertices are opaque — c1 left the base corners
+  // (steeper card) or the apex (flatter card) transparent, per drawing.
+  ok('the cut fills the triangle to its corners',
+    px(500, 20)[3] === 255 && px(40, 850)[3] === 255 && px(960, 850)[3] === 255);
   // a full-bleed draw (no white paper) falls back to the ideal triangle mask
   const solid = await sharp({ create: { width: 120, height: 120, channels: 3, background: '#7a4a2b' } }).png().toBuffer();
   const fb = await cut.bakeCut(solid);
