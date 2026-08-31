@@ -506,8 +506,21 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     really did make so the two can never be told apart again. **Do the action
     through its own route** (`POST /archive` here) and leave the deck alone —
     and when the work is already done, RETIRE the deck (`POST
-    /page/:id/supersede`) instead of leaving a to-do standing in front of her. `deck` data is `{ items:[…], states?, voice?, browse?, aspect? }`;
-    `grid` data is `{ groups:[{ label?, items:[…] }], states?, aspect? }`.
+    /page/:id/supersede`) instead of leaving a to-do standing in front of her. `deck` data is `{ items:[…], … }`;
+    `grid` data is `{ groups:[{ label?, items:[…] }], … }`, and the rest —
+    `states?`, `aspect?`, `start?`, `help?`, plus the DECK-VIEW fields
+    `voice?`, `browse?`, `stamp?` — is shared by both.
+    **The deck-view three apply to a GRID page too (2026-08-31)**, because
+    every template page has a swipe half since the two views were joined:
+    gating them on `template === 'deck'` was the join's leftover, the same
+    shape page-views.js had already had to repair for `browse` inside the
+    view itself. It is not academic — a grid page of pictures she has
+    already hearted is exactly where `stamp:false` is needed (the deck fills
+    its verdicts from the Assets tab, so every card arrives marked and wears
+    the GOOD IDEA stamp over the picture), and it was the one page that
+    could not say it. **The drop was SILENT**: the POST answered `ok` with
+    no warning and the fields were simply not on the stored data. Pinned by
+    `node scripts/test-page-templates.js`.
     **`aspect` is a MENU, not a free ratio** (Sophie, Aug 2026: square cards
     AND story-fragment rectangles, "options they can pick between"):
     `'square'` (1:1, a card deck's face), `'portrait'` (5:7, the
