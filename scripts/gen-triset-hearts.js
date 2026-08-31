@@ -20,12 +20,30 @@
    The first cut was read off another chat's pages and drew the line at pure
    wilderness; her rule is the OUTDOOR WORLD — landscapes, weather, sky,
    animals, plants, and man-made things sitting out in it. The corrected
-   list (with the 24 moved subjects named) is docs/triset/nature-slugs.json.
+   list (with the moved subjects named) is docs/triset/nature-slugs.json.
    Because that other chat's pages are frozen with the wrong split, this
-   script emits FOUR pages — nature current/retired AND no-nature
+   script owns FOUR pages — nature current/retired AND no-nature
    current/retired — same pair rules on both sides, and the partition is
    still verified on every run (every heart in exactly one pile, or it
    REFUSES to build).
+
+   THEY ARE STOCK TEMPLATE PAGES, NOT HAND-BUILT HTML (2026-08-31, Sophie:
+   "they shud be in the tinder compare sheets"). It POSTs `template:'grid'`
+   with `start:'swipe'`, so each page opens as the Tinder deck and the
+   scrolling wall is one tap away — and the shape is what earns the grid:
+   a subject she hearted at BOTH qualities is a GROUP of two, which the deck
+   view draws as ONE two-up card (low beside medium, her own comparison as
+   one card), and a single is a group of one, which is an ordinary card.
+   Posted as a deck of items, that pair would be two strangers in a row.
+   `stamp:false` because a page built out of her hearts arrives fully marked
+   and every card would wear the GOOD IDEA stamp over the picture; `voice`
+   for the mic. Nothing here writes a verdict — the deck reads her ♥ off the
+   Assets tab by itself, which is the rule (a chat never writes verdicts into
+   her deck).
+
+   --post  actually posts the four pages (and supersedes the ones this
+           script posted last time, read back from docs/triset/hearts.json —
+           a new version is a NEW page, never an edit of the old one).
 
    Env: FIREBASE_SERVICE_ACCOUNT. Costs nothing — two reads, no model call. */
 const fs = require('fs');
@@ -35,102 +53,61 @@ const db = admin.firestore();
 
 const NATURE = new Set(JSON.parse(fs.readFileSync(__dirname + '/../docs/triset/nature-slugs.json', 'utf8')).slugs);
 const QORDER = { low: 0, medium: 1, high: 2 };
-const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const thumb = (u) => '/api/story/thumb?w=900&url=' + encodeURIComponent(u);
+const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
+const CHAT = 'triset-nature-classification';
+const SESSION = process.env.FORGE_SESSION || '01C9mCVCNtkDN5URMUQ1kX2N';
 
-function page(title, rows, help) {
-  return `<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>${esc(title)}</title>
-<link rel="stylesheet" href="/compare.css">
-<style>
-#count{font-size:12px;color:var(--ink2,#7a7466);padding:6px 64px 10px 0}
-.one{margin:0 0 26px}
-.one img{width:100%;display:block;cursor:pointer}
-.one .ttl{font-size:14px;margin-top:6px;color:var(--ink)}
-.one .tq{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink2,#9a9488);margin-top:2px}
-.one .note{font-size:12.5px;line-height:1.4;margin-top:5px;color:var(--ink)}
-.one .note b{font-weight:600;color:var(--ink2,#7a7466)}
-.pairwrap{border-left:2px solid var(--line,#d8d2c6);padding-left:10px;margin:0 0 26px}
-.pairwrap .one{margin-bottom:14px}
-.pairwrap .one:last-child{margin-bottom:0}
-.pairhd{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink2,#9a9488);margin-bottom:6px}
-[hidden]{display:none !important}
-</style>
-<div class="wrap">
-  <h1>${esc(title)}</h1>
-  <div id="count">${rows.n} hearted${rows.pairs ? ' · ' + rows.pairs + ' where you kept both' : ''}</div>
-  ${rows.html}
-</div>
-<script src="/compare.js"></script>
-<script src="/asset-lightbox.js"></script>
-<script>
-(function () {
-  var CARDS = ${JSON.stringify(rows.data)};
-  var byUrl = {}; CARDS.forEach(function (c) { byUrl[c.u] = c; });
-  function openLb(url, side, open) {
-    var c = byUrl[url]; if (!c) return;
-    var seq = CARDS.map(function (x) { return x.u; }), i = seq.indexOf(url);
-    var a = {
-      description: c.t, prompt: c.cap, promptStyle: c.ps, promptContent: c.pc,
-      vote: 'like', thread: c.th || [], who: c.chat || '',
-      nav: {
-        prev: i > 0 ? function () { openLb(seq[i - 1], a.promptSide, a.promptOpen); } : null,
-        next: i < seq.length - 1 ? function () { openLb(seq[i + 1], a.promptSide, a.promptOpen); } : null,
-      },
-      _cast: function (kind) {
-        var next = (kind === 'like') ? null : kind;   // it is hearted here by definition
-        a.vote = next;
-        fetch('/api/gallery/assets/vote', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat: c.chat, url: c.u, vote: next }) }).catch(function () {});
-      },
-      _noteSend: function (text, cb) {
-        fetch('/api/gallery/assets/note', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat: c.chat, url: c.u, text: text, from: 'sophie' }) })
-          .then(function () { a.thread = (a.thread || []).concat([{ from: 'sophie', text: text }]); if (cb) cb(); })
-          .catch(function () { if (cb) cb(); });
-      },
-    };
-    if (side !== undefined) { a.promptSide = side; a.promptOpen = open; }
-    window.__assetLightbox(c.u, a);
-  }
-  Array.prototype.forEach.call(document.querySelectorAll('.one img'), function (im) {
-    im.onclick = function () { openLb(im.dataset.u); };
-  });
-  window.__compareHelp({ html: ${JSON.stringify(help)} });
-})();
-</script>`;
-}
-
-function rowHtml(c) {
-  const notes = (c.th || []).map((m) => `<div class="note"><b>${m.from === 'sophie' ? 'you' : 'chat'}:</b> ${esc(m.text)}</div>`).join('');
-  return `<div class="one">
-      <img loading="lazy" src="${esc(thumb(c.u))}" data-u="${esc(c.u)}" alt="${esc(c.t)}">
-      <div class="ttl">${esc(c.t)}</div>
-      <div class="tq">${esc(c.cap)}</div>
-      ${notes}
-    </div>`;
-}
-
-function build(list) {
-  // group by subject slug so a both-hearted pair rides back to back, low first
-  const bySlug = {};
-  list.forEach((c) => { (bySlug[c.slug] = bySlug[c.slug] || []).push(c); });
-  const seen = {}; const chunks = []; let pairs = 0; const ordered = [];
+/* One GROUP per subject. A subject she hearted at more than one quality is a
+   group of several — a two-up card in the deck, a row in the wall — and the
+   item labels are the quality words, because that is the only thing that
+   differs between them. A single is a group of ONE, and there the TITLE is
+   the item's label: a group label as well would print the same words twice
+   in the wall, and the deck reads a one-card group's name off the item. */
+function groups(list) {
+  const bySlug = {}; const order = [];
   list.forEach((c) => {
-    if (seen[c.slug]) return;
-    seen[c.slug] = 1;
-    const g = bySlug[c.slug].slice().sort((a, b) => (QORDER[a.q] ?? 9) - (QORDER[b.q] ?? 9));
-    g.forEach((x) => ordered.push(x));
-    if (g.length > 1) {
-      pairs += 1;
-      chunks.push(`<div class="pairwrap"><div class="pairhd">you kept ${g.length === 2 ? 'both' : 'all ' + g.length}</div>`
-        + g.map(rowHtml).join('') + '</div>');
-    } else {
-      chunks.push(rowHtml(g[0]));
-    }
+    if (!bySlug[c.slug]) { bySlug[c.slug] = []; order.push(c.slug); }
+    bySlug[c.slug].push(c);
   });
-  return { html: chunks.join('\n'), n: list.length, pairs, data: ordered };
+  let pairs = 0;
+  const out = order.map((slug) => {
+    const g = bySlug[slug].slice().sort((a, b) => (QORDER[a.q] ?? 9) - (QORDER[b.q] ?? 9));
+    const many = g.length > 1;
+    if (many) pairs += 1;
+    return {
+      label: many ? g[0].t : '',
+      items: g.map((c) => ({
+        // the picture is the DERIVED thumb and `full` is the original — the
+        // house webp rule; `url` must be set explicitly BECAUSE of that,
+        // since the item's Assets identity otherwise defaults to `img`, and
+        // a thumb url is not the picture the votes and notes are filed under
+        img: thumb(c.u), full: c.u, url: c.u,
+        label: many ? (c.q || 'this one') : c.t,
+        model: 'gpt-image-2', quality: c.q || '',
+        promptStyle: c.ps || '', promptContent: c.pc || '',
+      })),
+    };
+  });
+  return { groups: out, n: list.length, pairs };
+}
+
+async function post(body) {
+  const r = await fetch(BASE + '/api/chatfeed/page', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || !j.id) throw new Error('post failed: ' + r.status + ' ' + JSON.stringify(j).slice(0, 300));
+  return j;
+}
+
+async function supersede(id, by) {
+  if (!id) return;
+  await fetch(`${BASE}/api/chatfeed/page/${id}/supersede`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat: CHAT, session: SESSION, by }),
+  }).catch(() => {});
 }
 
 (async () => {
@@ -215,33 +192,59 @@ function build(list) {
     current, retired, natureCurrent: natCurrent, natureRetired: natRetired, notes: notesAll,
   }, null, 1));
 
-  const cur = build(current), ret = build(retired);
-  const ncur = build(natCurrent), nret = build(natRetired);
-  const pairLine = 'Where you kept BOTH the low and the medium of one subject they sit '
-    + 'back to back, low first. Tap a picture for the full-res original with its prompt; '
-    + '♥/✕ and notes there sync with the chat that made it. The retired generations are their own page.';
-  fs.writeFileSync('/tmp/hearts-nature.html', page('Triset hearts — nature v2', ncur,
-    'Every NATURE card you hearted that is still in the pool — nature by your rule: the outdoor '
-    + 'world, castles and bridges and hail on a roof included. One at a time, newest first, your '
-    + 'notes under each. ' + pairLine));
-  fs.writeFileSync('/tmp/hearts-nature-retired.html', page('Triset nature hearts — retired v2', nret,
-    'Nature cards you hearted whose generation was later redrawn away and that you did NOT also '
-    + 'heart at another quality. Where you kept both a low and a medium, the pair is on the main '
-    + 'nature page instead, together.'));
-  fs.writeFileSync('/tmp/hearts-current.html', page('Triset hearts — no nature v2', cur,
-    'Every Triset card you hearted that is still in the pool, minus the nature ones — those are '
-    + 'on the nature v2 page, so between the two you see every card once. '
-    + 'One at a time, newest first, your notes under each. ' + pairLine));
-  fs.writeFileSync('/tmp/hearts-retired.html', page('Triset hearts — retired v2', ret,
-    'Cards you hearted whose generation was later redrawn away and that you did NOT also heart at '
-    + 'another quality — the picture is still here, it is just no longer the one in the pool. '
-    + 'Where you kept BOTH a low and a medium, the pair is on the main hearts page instead, together.'));
+  const PAGES = [
+    { key: 'nature', title: 'Triset hearts — nature v2', list: natCurrent,
+      help: 'Every NATURE card you hearted that is still in the pool — nature by your rule: the '
+        + 'outdoor world, castles and bridges and hail on a roof included. Newest first. Where you '
+        + 'kept BOTH the low and the medium of one subject they are ONE card, side by side, low '
+        + 'first — tap "this one" to pick the keeper. Tap a picture for the full-res original with '
+        + 'its prompt and its note thread; ♥/✕ and notes sync with the chat that made it. '
+        + 'Compare shows the whole wall. The retired generations are their own page.' },
+    { key: 'natureRetired', title: 'Triset nature hearts — retired v2', list: natRetired,
+      help: 'Nature cards you hearted whose generation was later redrawn away and that you did NOT '
+        + 'also heart at another quality — the picture is still here, it is just no longer the one '
+        + 'in the pool. Where you kept both a low and a medium, that pair is on the main nature '
+        + 'page instead, as one card.' },
+    { key: 'noNature', title: 'Triset hearts — no nature v2', list: current,
+      help: 'Every Triset card you hearted that is still in the pool, minus the nature ones — those '
+        + 'are on the nature v2 page, so between the two you see every card once. Newest first. '
+        + 'A subject you kept at BOTH qualities is one card, low beside medium. Tap a picture for '
+        + 'the full-res original with its prompt and note thread. Compare shows the whole wall.' },
+    { key: 'noNatureRetired', title: 'Triset hearts — retired v2', list: retired,
+      help: 'Cards you hearted whose generation was later redrawn away and that you did NOT also '
+        + 'heart at another quality. Where you kept BOTH a low and a medium, that pair is on the '
+        + 'main hearts page instead, as one card.' },
+  ];
 
-  console.log(JSON.stringify({ allHearts: beforeNature,
-    nature: { hearts: natureHearts.length, current: natCurrent.length, retired: natRetired.length, currentPairs: ncur.pairs, retiredPairs: nret.pairs },
-    noNature: { hearts: hearts.length, current: current.length, retired: retired.length, currentPairs: cur.pairs, retiredPairs: ret.pairs },
-    noted: notesAll.length,
-    bytes: { natCur: fs.statSync('/tmp/hearts-nature.html').size, natRet: fs.statSync('/tmp/hearts-nature-retired.html').size,
-      cur: fs.statSync('/tmp/hearts-current.html').size, ret: fs.statSync('/tmp/hearts-retired.html').size } }, null, 1));
+  const built = {}; const out = {};
+  PAGES.forEach((pg) => { built[pg.key] = groups(pg.list); });
+
+  if (process.argv.includes('--post')) {
+    // a new version is a NEW page, never an edit of the old one — so the
+    // previous run's ids are superseded rather than overwritten
+    let prev = {};
+    try { prev = (JSON.parse(fs.readFileSync('docs/triset/hearts.json', 'utf8')).pages) || {}; } catch (e) { /* first run */ }
+    for (const pg of PAGES) {
+      const g = built[pg.key];
+      const r = await post({ chat: CHAT, session: SESSION, title: pg.title, template: 'grid',
+        data: { groups: g.groups, help: pg.help, start: 'swipe', stamp: false, voice: true } });
+      if (r.warnings) throw new Error('page came back with warnings: ' + JSON.stringify(r.warnings));
+      await supersede(prev[pg.key] && prev[pg.key].id, r.id);
+      out[pg.key] = { id: r.id, sheet: r.sheet || ('page-' + r.id), title: pg.title,
+        cards: g.n, groups: g.groups.length, pairs: g.pairs,
+        url: BASE + '/api/chatfeed/page/' + r.id };
+    }
+  }
+
+  const doc = JSON.parse(fs.readFileSync('docs/triset/hearts.json', 'utf8'));
+  if (Object.keys(out).length) doc.pages = out;
+  fs.writeFileSync('docs/triset/hearts.json', JSON.stringify(doc, null, 1));
+
+  console.log(JSON.stringify({ allHearts: beforeNature, noted: notesAll.length,
+    nature: { hearts: natureHearts.length, current: natCurrent.length, retired: natRetired.length,
+      currentPairs: built.nature.pairs },
+    noNature: { hearts: hearts.length, current: current.length, retired: retired.length,
+      currentPairs: built.noNature.pairs },
+    posted: Object.keys(out).length ? out : 'dry (pass --post)' }, null, 1));
   process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });

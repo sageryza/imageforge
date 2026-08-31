@@ -655,4 +655,28 @@ ok('archiveMapOf survives junk without throwing', () => {
   assert.deepStrictEqual(archiveMapOf({ applyArchive: true }), {});
 });
 
+ok('the deck-view fields reach a GRID page too — every page has a swipe half', () => {
+  // A grid page of pictures she has already hearted is exactly where
+  // stamp:false is needed, and until 2026-08-31 the grid branch dropped it.
+  const v = validateTemplate('grid', {
+    groups: [{ label: 'castle', items: [{ text: 'a', id: 'one' }, { text: 'b', id: 'two' }] }],
+    stamp: false, voice: true, start: 'swipe',
+  });
+  assert.strictEqual(v.ok, true);
+  assert.strictEqual(v.data.stamp, false, 'a grid page must be able to turn the stamp off');
+  assert.strictEqual(v.data.voice, true, 'the mic rides the swipe half of a grid page');
+  assert.strictEqual(v.data.browse, true, 'browse is the deck view\'s default on either template');
+  assert.strictEqual(v.data.start, 'swipe');
+});
+
+ok('the deck-view fields keep their deck behaviour', () => {
+  const on = validateTemplate('deck', { items: [{ text: 'a' }] });
+  assert.strictEqual(on.data.browse, true);
+  assert.strictEqual('stamp' in on.data, false, 'the stamp stays on unless a page says otherwise');
+  assert.strictEqual('voice' in on.data, false);
+  const off = validateTemplate('deck', { items: [{ text: 'a' }], browse: false, stamp: false });
+  assert.strictEqual(off.data.browse, false);
+  assert.strictEqual(off.data.stamp, false);
+});
+
 console.log(`all ${n} checks passed`);

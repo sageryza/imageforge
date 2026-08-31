@@ -1,14 +1,14 @@
 {
  "_what": "Her Triset marks, collected 2026-08-31 (nature split REDONE the same day on her rule: the outdoor world, man-made-in-landscape included). hearts = every ♥ she cast on a triset card, split nature / no-nature (current = still in the pool, retired = a generation redrawn away); notes = every picture she wrote on, her words verbatim.",
  "counts": {
-  "hearts": 53,
+  "hearts": 52,
   "current": 41,
-  "retired": 12,
+  "retired": 11,
   "natureHearts": 80,
   "natureCurrent": 62,
   "natureRetired": 18,
   "noted": 122,
-  "allHearts": 133
+  "allHearts": 132
  },
  "current": [
   {
@@ -787,19 +787,6 @@
    ],
    "hidden": true,
    "at": 1788140953601
-  },
-  {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/web2-pencil-stub.webp",
-   "t": "a pencil worn down to a stub with a pile of shavings",
-   "slug": "pencil-stub",
-   "q": "low",
-   "cap": "gpt-image-2 · low · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up — the flat side on the bottom, one corner at the top: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a pencil worn down to a stub with a pile of shavings",
-   "chat": "triset-multilevel-patterns",
-   "th": [],
-   "hidden": true,
-   "at": 1788140952059
   },
   {
    "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/web2-deflated-balloon.webp",
@@ -4913,5 +4900,43 @@
     }
    ]
   }
- ]
+ ],
+ "pages": {
+  "nature": {
+   "id": "1BA5CB84lHh6nOSOqVuq",
+   "sheet": "page-1BA5CB84lHh6nOSOqVuq",
+   "title": "Triset hearts — nature v2",
+   "cards": 62,
+   "groups": 54,
+   "pairs": 8,
+   "url": "https://imageforge-q125.onrender.com/api/chatfeed/page/1BA5CB84lHh6nOSOqVuq"
+  },
+  "natureRetired": {
+   "id": "wRof51rcI6zTVME4PFVK",
+   "sheet": "page-wRof51rcI6zTVME4PFVK",
+   "title": "Triset nature hearts — retired v2",
+   "cards": 18,
+   "groups": 18,
+   "pairs": 0,
+   "url": "https://imageforge-q125.onrender.com/api/chatfeed/page/wRof51rcI6zTVME4PFVK"
+  },
+  "noNature": {
+   "id": "BywBfmnx6h0w81nW3C94",
+   "sheet": "page-BywBfmnx6h0w81nW3C94",
+   "title": "Triset hearts — no nature v2",
+   "cards": 41,
+   "groups": 28,
+   "pairs": 13,
+   "url": "https://imageforge-q125.onrender.com/api/chatfeed/page/BywBfmnx6h0w81nW3C94"
+  },
+  "noNatureRetired": {
+   "id": "ryGdKOfKECRqkVlMOIGY",
+   "sheet": "page-ryGdKOfKECRqkVlMOIGY",
+   "title": "Triset hearts — retired v2",
+   "cards": 11,
+   "groups": 11,
+   "pairs": 0,
+   "url": "https://imageforge-q125.onrender.com/api/chatfeed/page/ryGdKOfKECRqkVlMOIGY"
+  }
+ }
 }
