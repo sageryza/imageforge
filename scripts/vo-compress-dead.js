@@ -10,7 +10,9 @@
 // tone (between floor+8 and speech85-20) survives both tools while the
 // verifier calls it dead. This pass closes that gap by asking THE VERIFIER'S
 // OWN QUESTION (20ms RMS bins, runs >= 1s below speech85-20dB) and
-// compressing each run to ~0.3s.
+// compressing each run to ~0.7s (was 0.3 until 2026-08-31 — Sophie: "change the
+// rules so long pauses cut to longer - they're too short"; 0.7 stays under the
+// verifier's own 1s bar).
 //
 // The laugh guard is load-bearing: a run holding >= 0.35s SUSTAINED energy
 // above floor+10dB is KEPT and named (her laugh measures 0.40s above
@@ -42,7 +44,7 @@ const run = (a, t = 600000) => new Promise((res, rej) => execFile(FF, a, { timeo
     let best = 0, cur = 0;
     for (let i = Math.round(a / 0.02); i < Math.round(bb / 0.02); i++) { if (p[i] > laugh) { cur += 0.02; best = Math.max(best, cur); } else cur = 0; }
     if (best >= 0.35) { console.log(`keep ${a.toFixed(1)}-${bb.toFixed(1)} (sustained voicing ${best.toFixed(2)}s — laugh guard)`); continue; }
-    cuts.push([a + 0.15, bb - 0.15]);
+    cuts.push([a + 0.35, bb - 0.35]);
   }
   if (!cuts.length) { console.log('nothing to cut'); fs.copyFileSync(IN, OUT); fs.rmSync(TMP, { recursive: true, force: true }); return; }
   const segs = []; let cur2 = 0; for (const [a, bb] of cuts) { if (a - cur2 > 0.02) segs.push([cur2, a]); cur2 = bb; } if (D - cur2 > 0.02) segs.push([cur2, D]);

@@ -4,7 +4,10 @@
 const fs=require('fs'),path=require('path'),os=require('os'),{execFile}=require('child_process');
 const FF=require('/home/user/imageforge/node_modules/ffmpeg-static');
 const IN=process.argv[2],OUT=process.argv[3];
-const BEAT=Number(process.env.BEAT||0.40), LONGBEAT=Number(process.env.LONGBEAT||0.60);
+// BEAT/LONGBEAT raised 0.40/0.60 -> 0.60/0.90 on 2026-08-31 (Sophie: "change the
+// rules so long pauses cut to longer - they're too short"). LONGBEAT stays under
+// vo-verify's 1s dead-air bar on purpose.
+const BEAT=Number(process.env.BEAT||0.60), LONGBEAT=Number(process.env.LONGBEAT||0.90);
 const TMP=fs.mkdtempSync(path.join(os.tmpdir(),'tg-'));
 const run=(a,t=600000)=>new Promise((res,rej)=>execFile(FF,a,{timeout:t,maxBuffer:1<<27},(e,so,se)=>e?rej(new Error(String(se||e.message).slice(-400))):res({stderr:se})));
 const dur=async f=>{const{stderr}=await run(['-i',f,'-f','null','-']).catch(e=>({stderr:e.message}));const m=String(stderr).match(/Duration: (\d+):(\d+):([\d.]+)/);return m?+m[1]*3600+ +m[2]*60+ +m[3]:0;};

@@ -40,7 +40,10 @@ What works, already debugged — use it, don't re-derive it:
 - **The Cutting Room** (`cuttingroom.js`) runs the same two passes with
   Sophie approving each cut on the transcript — when she should choose what
   comes out, hand her the recording there instead of cutting blind.
-- A removed pause is **compressed to ~0.28s, never deleted outright**.
+- A removed pause is **compressed to ~0.60s (long gaps ~0.90s), never deleted
+  outright** — raised from 0.28s on 2026-08-31, Sophie: "change the rules so
+  long pauses cut to longer - they're too short". Keep every keep under
+  vo-verify's 1s dead-air bar.
 - **Whisper often doesn't transcribe "uh"/"um" at all**, so filler removal by
   transcript alone is partial — the energy passes catch many of them as
   breath pauses.
