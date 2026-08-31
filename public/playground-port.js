@@ -81,6 +81,19 @@
       prefixes: ['copy its drawing style but do NOT copy its content'],
     },
     {
+      key: 'triangle', label: 'Triangle',
+      // The Triset game's triangular cards, and the Playground tile that
+      // draws them (2026-08-31). It attaches the SAME reference file as
+      // Dreamy, so a filename can never tell the two apart — the evidence is
+      // the equilateral clause the tile swaps into the tail, and it is quoted
+      // long on purpose: longest evidence wins, and it has to out-reach
+      // Dreamy's own fragment above, which every triangle card also carries.
+      // Verbatim from triangle-clause.js (the one copy server.js swaps in);
+      // scripts/test-playground-port.js pins it against that file.
+      refs: [],
+      prefixes: ['EQUILATERAL TRIANGLE-SHAPED CARD, all three sides exactly the same length'],
+    },
+    {
       key: 'pastel', label: 'Pastel',
       // sophie snake / sophie animals. Old names style-1.png / style-2.png,
       // which is why the witch-school/ path is kept on the alias: hoonies'
