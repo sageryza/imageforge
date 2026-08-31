@@ -2,8 +2,8 @@
  "_what": "Her Triset marks, collected 2026-08-31. hearts = every ♥ she cast on a triset card (current = still in the pool, retired = a generation redrawn away); notes = every picture she wrote on, her words verbatim.",
  "counts": {
   "hearts": 137,
-  "current": 103,
-  "retired": 34,
+  "current": 104,
+  "retired": 33,
   "noted": 122
  },
  "current": [
@@ -836,7 +836,7 @@
      "at": "2026-08-31T02:19:53.050Z"
     }
    ],
-   "hidden": false,
+   "hidden": true,
    "at": 1788142027044
   },
   {
@@ -889,7 +889,7 @@
    "pc": "a wobbling tower of stacked teacups",
    "chat": "triset-multilevel-patterns",
    "th": [],
-   "hidden": false,
+   "hidden": true,
    "at": 1788142026364
   },
   {
@@ -909,7 +909,7 @@
      "at": "2026-08-31T02:20:45.445Z"
     }
    ],
-   "hidden": false,
+   "hidden": true,
    "at": 1788142026096
   },
   {
@@ -975,7 +975,7 @@
    "pc": "a cat balancing along a fence at dusk",
    "chat": "triset-multilevel-patterns",
    "th": [],
-   "hidden": false,
+   "hidden": true,
    "at": 1788142025581
   },
   {
@@ -1289,7 +1289,7 @@
      "at": "2026-08-31T05:30:10.389Z"
     }
    ],
-   "hidden": true,
+   "hidden": false,
    "at": 1788140956040
   },
   {
@@ -1439,7 +1439,7 @@
      "at": "2026-08-31T05:25:35.078Z"
     }
    ],
-   "hidden": true,
+   "hidden": false,
    "at": 1788140950625
   },
   {
@@ -1544,7 +1544,7 @@
      "at": "2026-08-31T05:22:38.410Z"
     }
    ],
-   "hidden": true,
+   "hidden": false,
    "at": 1788140026758
   },
   {
@@ -1577,7 +1577,7 @@
      "at": "2026-08-31T05:28:44.623Z"
     }
    ],
-   "hidden": true,
+   "hidden": false,
    "at": 1788140024898
   },
   {
@@ -1782,6 +1782,26 @@
    "th": [],
    "hidden": false,
    "at": 1788126717878
+  },
+  {
+   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed-garden-snake.webp",
+   "t": "a garden snake",
+   "slug": "garden-snake",
+   "q": "medium",
+   "cap": "gpt-image-2 · medium · 1K",
+   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is a TRIANGLE-SHAPED CARD, point up: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
+   "pc": "a garden snake",
+   "chat": "triangular-set-solitaire",
+   "th": [
+    {
+     "id": "b71d92fb1b84",
+     "from": "sophie",
+     "text": "this one",
+     "at": "2026-08-31T05:36:17.048Z"
+    }
+   ],
+   "hidden": false,
+   "at": 1788125143665.98
   }
  ],
  "retired": [
@@ -2311,26 +2331,6 @@
    "at": 1788140024530
   },
   {
-   "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed-garden-snake.webp",
-   "t": "a garden snake",
-   "slug": "garden-snake",
-   "q": "medium",
-   "cap": "gpt-image-2 · medium · 1K",
-   "ps": "The FIRST attached image is a STYLE reference — copy its drawing style but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single illustration — NOT a grid, NOT split panels. The illustration is a TRIANGLE-SHAPED CARD, point up: a triangle with a plain paper border and a hand-drawn frame line, like the frames in the style reference but triangular, on a plain white background, the whole composition inside the triangle. no text. Again: the attached image is a STYLE reference only — do not draw its content, its subjects or its composition. The woman in the green tank top appears nowhere. If the text asks for a woman, invent a different woman, with different clothing.",
-   "pc": "a garden snake",
-   "chat": "triangular-set-solitaire",
-   "th": [
-    {
-     "id": "b71d92fb1b84",
-     "from": "sophie",
-     "text": "this one",
-     "at": "2026-08-31T05:36:17.048Z"
-    }
-   ],
-   "hidden": true,
-   "at": 1788125143665.98
-  },
-  {
    "u": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed-sunflower.webp",
    "t": "a sunflower",
    "slug": "sunflower",
@@ -2799,7 +2799,7 @@
    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/web1-overflowing-tub.webp",
    "title": "an overflowing bathtub with a rubber duck",
    "chat": "triset-multilevel-patterns",
-   "hidden": true,
+   "hidden": false,
    "quality": "low",
    "thread": [
     {
@@ -2871,7 +2871,7 @@
    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/web1m-bee-jam.webp",
    "title": "a bee hovering over an open jam jar",
    "chat": "triset-multilevel-patterns",
-   "hidden": false,
+   "hidden": true,
    "quality": "medium",
    "thread": [
     {
@@ -3033,7 +3033,7 @@
    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/web2-teacup-tower.webp",
    "title": "a wobbling tower of stacked teacups",
    "chat": "triset-multilevel-patterns",
-   "hidden": true,
+   "hidden": false,
    "quality": "low",
    "thread": [
     {
@@ -3483,7 +3483,7 @@
    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed2-garden-snake.webp",
    "title": "a garden snake",
    "chat": "triangular-set-solitaire",
-   "hidden": false,
+   "hidden": true,
    "quality": "low",
    "thread": [
     {
@@ -3852,7 +3852,7 @@
    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/web2-fence-cat.webp",
    "title": "a cat balancing along a fence at dusk",
    "chat": "triset-multilevel-patterns",
-   "hidden": true,
+   "hidden": false,
    "quality": "low",
    "thread": [
     {
@@ -3978,7 +3978,7 @@
    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/seed-garden-snake.webp",
    "title": "a garden snake",
    "chat": "triangular-set-solitaire",
-   "hidden": true,
+   "hidden": false,
    "quality": "medium",
    "thread": [
     {
@@ -4356,7 +4356,7 @@
    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/web1m-overflowing-tub.webp",
    "title": "an overflowing bathtub with a rubber duck",
    "chat": "triset-multilevel-patterns",
-   "hidden": false,
+   "hidden": true,
    "quality": "medium",
    "thread": [
     {
@@ -4626,7 +4626,7 @@
    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cards/web1-bee-jam.webp",
    "title": "a bee hovering over an open jam jar",
    "chat": "triset-multilevel-patterns",
-   "hidden": true,
+   "hidden": false,
    "quality": "low",
    "thread": [
     {
