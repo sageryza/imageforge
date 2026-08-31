@@ -7,18 +7,27 @@
    the top (Sophie's ask): hearted only / hide the crossed-out / show notes;
    the NEWEST generation's vote is the group's verdict for filtering.
    Votes and notes ride each card's own chat's Assets thread (both ways).
+   Tapping a picture opens THE shared Assets lightbox (/asset-lightbox.js,
+   2026-08-31, Sophie: "i need lightbox view") — never compare.js's bare
+   zoom and never a hand copy: full-res original, the caption, the Prompt
+   door (both filed halves), ♥/✕ and the note box, `who` naming the owning
+   chat, and the invisible step zones walking the VISIBLE figures in page
+   order, the prompt door's half riding each step (the house rules).
    Post via POST /api/chatfeed/page — a re-post is a NEW page version.
    Test: node scripts/test-triset-compare.js */
 const fs = require('fs');
 const groups = JSON.parse(fs.readFileSync('/tmp/tricards.json', 'utf8'));
 const chats = [...new Set(groups.flatMap(g => g.versions.map(v => v.chat)).filter(Boolean))];
+// the style half is the same dreamy wrapper on nearly every card — store the
+// unique strings once and reference by index, or the page triples in size
+const PS = []; const psIdx = t => { if (!t) return -1; let i = PS.indexOf(t); if (i < 0) { PS.push(t); i = PS.length - 1; } return i; };
 const data = groups.map(g => ({
   slug: g.slug, t: g.title,
   vs: g.versions.map((v, i) => {
     let tag = v.quality || '?';
     if (i > 0 && v.promptContent && v.promptContent !== g.versions[0].promptContent) tag += ' · new prompt';
     else if (g.versions.slice(0, i).some(p => p.quality === v.quality)) tag += ' · redo';
-    return { u: v.url, chat: v.chat, tag };
+    return { u: v.url, chat: v.chat, tag, q: v.quality || '', ps: psIdx(v.promptStyle || ''), pc: v.promptContent || '' };
   }),
 }));
 const html = `<meta charset="utf-8">
@@ -67,10 +76,11 @@ body.noNotes .vnotes{display:none}
   </div>
   <div id="wall"></div>
 </div>
-<script src="/compare.js"></script>
+<script src="/compare.js"></script>\n<script src="/asset-lightbox.js"></script>
 <script>
 (function () {
   var GROUPS = ${JSON.stringify(data)};
+  var PS = ${JSON.stringify(PS)};
   var votes = {};
   var HEART_SVG = document.getElementById('fheart').innerHTML;
   var X_SVG = document.getElementById('fx').innerHTML;
@@ -89,18 +99,17 @@ body.noNotes .vnotes{display:none}
     var row = card.querySelector('.vrow');
     g.vs.forEach(function (v) {
       var f = document.createElement('figure');
-      f.dataset.url = v.u;
+      f.dataset.url = v.u; f._v = v; f._t = g.t;
       f.innerHTML = '<span class="tag">' + esc(v.tag) + '</span>' +
         '<img loading="lazy" src="' + esc(thumb(v.u)) + '" data-full="' + esc(v.u) + '" alt="' + esc(g.t + ' — ' + v.tag) + '">' +
         (v.chat ? '<div class="vacts">' +
           '<button class="v-like" aria-label="Heart">' + HEART_SVG + '</button>' +
-          '<button class="v-x" aria-label="Cross out">' + X_SVG + '</button>' +
-          '<button class="addn" aria-label="Add a note">+</button></div>' : '') +
+          '<button class="v-x" aria-label="Cross out">' + X_SVG + '</button></div>' : '') +
         '<div class="vnotes"></div>';
-      var like = f.querySelector('.v-like'), x = f.querySelector('.v-x'), addn = f.querySelector('.addn');
+      var like = f.querySelector('.v-like'), x = f.querySelector('.v-x');
       if (like) like.onclick = function () { cast(f, v, 'like'); };
       if (x) x.onclick = function () { cast(f, v, 'dislike'); };
-      if (addn) addn.onclick = function () { openNote(f, v); };
+      f.querySelector('img').onclick = function () { openLb(f); };
       row.appendChild(f);
     });
     wall.appendChild(card);
@@ -146,24 +155,47 @@ body.noNotes .vnotes{display:none}
     fetch('/api/gallery/assets/vote', { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat: v.chat, url: v.u, vote: next }) }).catch(function () {});
   }
-  // notes go onto the ASSET THREAD (rings the chat that made the card) —
-  // one pile of notes per picture, never a second verdict pile
-  function openNote(f, v) {
-    fNotes = true; save(); applyFilters();
-    var box = f.querySelector('.vnotes');
-    if (box.querySelector('textarea')) return;
-    var ta = document.createElement('textarea');
-    var send = document.createElement('button'); send.textContent = 'Send'; send.className = 'btn';
-    box.appendChild(ta); box.appendChild(send); ta.focus();
-    send.onclick = function () {
-      var t = (ta.value || '').trim(); if (!t) { ta.remove(); send.remove(); return; }
-      fetch('/api/gallery/assets/note', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat: v.chat, url: v.u, text: t, from: 'sophie' }) })
-        .then(function () {
-          votes[v.u] = votes[v.u] || {}; votes[v.u].thread = (votes[v.u].thread || []).concat([{ from: 'sophie', text: t }]);
-          ta.remove(); send.remove(); paintFig(f);
-        }).catch(function () { send.textContent = 'Failed — tap again'; });
+  // THE SHARED ASSETS LIGHTBOX — one view everywhere (the house rule). The
+  // step zones walk the VISIBLE figures in document order, so the top
+  // filters narrow the walk by themselves; the prompt door's half rides a
+  // step and a fresh open starts shut on content.
+  function visibleFigs() {
+    return Array.prototype.filter.call(document.querySelectorAll('.grp:not([hidden]) figure'), function (x) { return x._v; });
+  }
+  function openLb(f, doorSide, doorOpen) {
+    var v = f._v, seq = visibleFigs(), i = seq.indexOf(f);
+    var rec = votes[v.u] || {};
+    var a = {
+      description: f._t + ' \u2014 ' + v.tag,
+      prompt: v.q ? 'gpt-image-2 \u00b7 ' + v.q + ' \u00b7 1K' : '',
+      promptStyle: v.ps >= 0 ? PS[v.ps] : '', promptContent: v.pc,
+      vote: rec.vote || null, thread: rec.thread || [],
+      who: v.chat || '',
+      nav: {
+        prev: i > 0 ? function () { openLb(seq[i - 1], a.promptSide, a.promptOpen); } : null,
+        next: i < seq.length - 1 ? function () { openLb(seq[i + 1], a.promptSide, a.promptOpen); } : null,
+      },
     };
+    if (doorSide !== undefined) { a.promptSide = doorSide; a.promptOpen = doorOpen; }
+    if (v.chat) {
+      a._cast = function (kind) {
+        var cur = (votes[v.u] || {}).vote || null, next = (cur === kind) ? null : kind;
+        votes[v.u] = votes[v.u] || {}; votes[v.u].vote = next; a.vote = next;
+        paintFig(f); applyFilters();
+        fetch('/api/gallery/assets/vote', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat: v.chat, url: v.u, vote: next }) }).catch(function () {});
+      };
+      a._noteSend = function (text, cb) {
+        fetch('/api/gallery/assets/note', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat: v.chat, url: v.u, text: text, from: 'sophie' }) })
+          .then(function () {
+            votes[v.u] = votes[v.u] || {};
+            votes[v.u].thread = (votes[v.u].thread || []).concat([{ from: 'sophie', text: text }]);
+            a.thread = votes[v.u].thread; paintFig(f); if (cb) cb();
+          }).catch(function () { if (cb) cb(); });
+      };
+    }
+    window.__assetLightbox(v.u, a);
   }
 
   var CHATS = ${JSON.stringify(chats)};
@@ -186,7 +218,7 @@ body.noNotes .vnotes{display:none}
     + 'Oldest left, newest right; the tag says the quality. Tap a picture for the FULL-RES original. '
     + '\\u2665 and \\u2715 mark one generation and sync with that chat\\u2019s Assets tab; '
     + 'the top toggles filter by the NEWEST generation\\u2019s mark (hearted only \\u00b7 hide the crossed-out) '
-    + 'and show the notes. + writes a note to the chat that made that version.' });
+    + 'and show the notes. Inside the lightbox: step left/right by tapping the picture\\u2019s edges, '\n    + 'PROMPT shows the exact filed halves, and the note box writes to the chat that made that version.' });
 })();
 </script>`;
 fs.writeFileSync('/tmp/tripage.html', html);
