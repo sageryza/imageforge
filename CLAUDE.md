@@ -7728,26 +7728,29 @@ before working on that module. Nothing was deleted — the moved text is verbati
     overlay), and carries `flip` on its doc — the page clips it point-down
     wherever it is dealt, forever, which is also how you tell the cards the
     game made from the seeds.
-  - **THE CUT IS A PERFECT EQUILATERAL WITH A GUARANTEED CREAM BORDER
-    (2026-08-30 "fix the cutting"; settled 2026-08-31 round three, off her
-    print sheets: "they're cut straight to the line in some spaces. they all
-    need to have a MINIMUM border of cream space, and extra on the sides if
-    it's narrow or extra at the top if squat").** Three cuts, two of them
-    history: c1 preserved each card's wobbly drawn shape (every cut a
-    different triangle — compounded on a printed cut-sheet); c2 cover-fit +
-    hard mask (a perfect equilateral that CROPPED — the cut ran straight
-    through art, rejected on sight). `triset-cut.js` (c3,
-    `triset/cuts/<id>.c3.webp`): flood-fill the white away (interior white
-    highlights keep), **contain the drawn card INSIDE the slot triangle
-    inset by MIN_BORDER** (`inscribePlan` — largest scale, base-anchored and
-    centered, so a narrow card gets its extra cream at the sides and a squat
-    one at the top, her words), and **fill the whole triangle with CREAM
-    sampled from the card's own drawn rim** (`rimColor`, median of the outer
-    band; a dark rimless edge falls back to the house CREAM rather than an
-    art-coloured smear). The cut edge is the exact equilateral and always
-    runs through cream — never art. A full-bleed draw goes through the same
-    path. **Cover-fitting or shape-preserving are HISTORY — don't bring
-    either back.**
+  - **THE CUT IS AN EQUILATERAL WINDOW INTO THE ORIGINAL (settled 2026-08-31
+    after four rounds; her closing words: "did he just fill w flat color? be
+    honest do u not have the originals to cut from" · "the original is square
+    or triangle? just recut the original").** The model draws each card —
+    art, frame line, cream rim — on a white 1024 square. The cut
+    (`triset-cut.js`, c5, `triset/cuts/<id>.c5.webp`) finds the drawn card
+    (flood fill on a probe copy), picks the largest window placement keeping
+    every drawn pixel MIN_BORDER inside the slot triangle (`inscribePlan` —
+    base-anchored, centered: a narrow card's extra room lands at its sides, a
+    squat one's at the top), then EXTRACTS that triangular region of the
+    original and masks it. The border is the original's own paper — real
+    pixels, real grain, no seam, nothing synthesized. **The window MUST
+    overhang the square frame** (her drawn cards fill ~950 of 1024 —
+    measured, all of them) and the overhang continues in the frame's own
+    measured paper colour, flat against the flat white the model draws on.
+    **The roads not taken, each shipped for a day and rejected on sight —
+    don't bring any back:** c1 preserved the drawn shape (every cut a
+    different triangle); c2 cover-fit (cropped art, "cut straight to the
+    line"); c3/c4 contained the card and filled the triangle with sampled
+    flat cream ("did he just fill w flat color?" — yes, and the seam showed
+    as white lines). A full-bleed draw is cover-fit + mask, honestly
+    borderless. **sharp runs extract BEFORE extend in one pipeline** — the
+    extended frame is materialised first or the extract throws.
     **THE ONLY CREAM BORDER IS THE PAPER RIM THE MODEL DREW INTO THE PICTURE
     (2026-08-31, Sophie: "there shud be no cream border aside from the one
     built into the images").** The first cut of this put a cream `.face` mat
