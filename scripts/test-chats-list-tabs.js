@@ -59,6 +59,7 @@ const FEED = [
   { kind: 'audio', at: iso(T0 - 3 * HOUR), chat: 'cuts', chatName: 'Cuts', title: 'Her VO v3 (0:30)',
     url: 'https://example.test/vo.m4a', versions: 1, older: [] },
 ];
+const DISMISSED = [];   // what the ✕ really POSTs
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
@@ -84,6 +85,20 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/api/deliverables/feed') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ ok: true, items: FEED }));
+  }
+  if (url.pathname === '/api/deliverables/dismiss' && req.method === 'POST') {
+    let b = '';
+    req.on('data', (d) => { b += d; });
+    req.on('end', () => {
+      try { DISMISSED.push(JSON.parse(b)); } catch (e) { DISMISSED.push({ bad: b }); }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end('{"ok":true}');
+    });
+    return;
+  }
+  if (url.pathname === '/__dismissed') {                     // the test reads back
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(DISMISSED));
   }
   if (url.pathname === '/api/story/thumb') {                 // the derived copy
     res.writeHead(302, { Location: '/px.png' }); return res.end();
@@ -264,6 +279,39 @@ const ok = () => { checks++; };
   if (!await page.$('#pinfull video')) fail('tapping a film did not open the player');
   else ok();
   await page.click('#pinfull .x');
+
+  // ── 5a. HER ✕ PUTS A ROW AWAY (2026-08-31, Sophie: "deliverables don't
+  // leave when i answer them and there's no way to swipe them away") ────────
+  // One per row, reachable, and the tap posts the row's own identity — a film
+  // by its url, a pictures row by its chat — then takes the row off now,
+  // without waiting out the 60s cache.
+  const xs = await page.$$('#grid .dvrow .dvx');
+  if (xs.length !== 3) fail('every delivered row needs an ✕ — found ' + xs.length);
+  else ok();
+  const xhit = await page.$eval('#grid .dvrow:first-child .dvx', (b) => {
+    const r = b.getBoundingClientRect();
+    const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return el && el.closest('.dvx') ? 'ok' : (el ? el.className : 'nothing');
+  });
+  if (xhit !== 'ok') fail('the ✕ is covered by ' + xhit);
+  else ok();
+  await page.click('#grid .dvrow:first-child .dvx');
+  await page.waitForTimeout(200);
+  if (await page.$('#pinfull')) fail('the ✕ started the film instead — the tap bubbled into the row');
+  else ok();
+  const left = await page.$$eval('#grid .dvrow', (r) => r.map((x) => x.querySelector('.dv-t').textContent.trim()));
+  if (left.length !== 2 || /Evan/.test(left.join('|'))) fail('the ✕ did not take the row off: ' + left.join(' | '));
+  else ok();
+  // the pictures row posts its CHAT (it has no url of its own)
+  await page.click('#grid .dvrow:first-child .dvx');
+  await page.waitForTimeout(200);
+  const posted = await (await fetch(base + '/__dismissed')).json();
+  if (posted.length !== 2) fail('expected two dismiss POSTs, got ' + posted.length);
+  else ok();
+  if (posted[0].url !== 'https://example.test/film-v18.mp4') fail('the film ✕ posted ' + JSON.stringify(posted[0]));
+  else ok();
+  if (posted[1].chat !== 'panels' || posted[1].url) fail('the pictures ✕ posted ' + JSON.stringify(posted[1]));
+  else ok();
 
   // ── 6. the bug button and the third tab are ONE state ─────────────────────
   await page.click('#bugbtn');

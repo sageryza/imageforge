@@ -82,6 +82,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .dvchat{flex:none; background:none; border:none; padding:4px 0 4px 4px; margin-top:1px;
   color:var(--ink2); cursor:pointer; display:flex; -webkit-tap-highlight-color:transparent;}
 .dvchat svg{display:block;}
+/* Her ✕ — put a delivery away. Quiet like the chat button beside it; a mark,
+   not a plate (the no-circles rule). */
+.dvx{flex:none; background:none; border:none; padding:4px 2px 4px 6px; margin-top:1px;
+  color:var(--ink2); cursor:pointer; font-size:13px; line-height:1;
+  -webkit-tap-highlight-color:transparent;}
 .dvhead{display:flex; gap:9px; align-items:flex-start; flex:1; min-width:0; text-align:left;
   background:none; border:none; padding:0; cursor:pointer; color:inherit; font:inherit;
   -webkit-tap-highlight-color:transparent;}
@@ -4948,6 +4953,28 @@ function paintDelivered(el, items){
     toChat.title='Open '+(it.chatName||it.chat);
     toChat.onclick=function(e){ e.stopPropagation(); openChat(it.chat); };
     top.appendChild(toChat);
+    // HER ✕ — PUT THE ROW AWAY (2026-08-31, Sophie: "deliverables don't leave
+    // when i answer them and there's no way to swipe them away"). Answering by
+    // message is not the only way she deals with a delivery — a note on the
+    // paused film, a ♥, a decision made elsewhere — so the ✕ is the
+    // deterministic way out. A tap, never a swipe (the house rule: everything
+    // is a tap, nothing drags). Its own <button>, a sibling, never nested.
+    // A newer delivery from the same chat comes back by itself — the stamp
+    // only covers what was handed over before the tap.
+    var x=document.createElement('button'); x.className='dvx';
+    x.textContent='✕';
+    x.setAttribute('aria-label','Put this delivery away');
+    x.title='Put away';
+    x.onclick=function(e){
+      e.stopPropagation();
+      // Optimistic: the row goes now; the stamp makes it stick.
+      delivCache=(delivCache||[]).filter(function(o){ return o!==it; });
+      paintDelivered(el, delivCache);
+      api('/api/deliverables/dismiss', {method:'POST',
+        body: JSON.stringify(it.kind==='images' ? {chat:it.chat} : {url:it.url})
+      }).catch(function(){});
+    };
+    top.appendChild(x);
     row.appendChild(top);
     if(it.kind==='images' && it.images && it.images.length){
       var strip=document.createElement('div'); strip.className='dvpics';
