@@ -188,20 +188,13 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    which of two similar drawings this is. */
 #traygrid .t-name{font-size:.98em; margin-top:6px;
   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
-/* Top-RIGHT of the icon: the pushpin owns top-left on every other tile, and a
-   different control in that slot would read as the pin at a glance. 26px so it
-   is a real tap target on a 4-across tile (~84px at 390pt) without covering
-   the drawing it sits on.
-   SCOPED TO `.traytile` ON PURPOSE — the same `.traybtn` class is the mark in
-   the Organize sheet, where `.orgmarks .markchip` (0,2,0) sets its size and
-   box but declares no `position`, so an unscoped `position:absolute` here
-   would leak in and float that mark out of the row. */
-.traytile .traybtn{position:absolute; top:4px; right:4px; width:26px; height:26px; padding:0;
-  display:flex; align-items:center; justify-content:center; z-index:3;
-  border:1px solid var(--line); border-radius:6px; background:var(--paper);
-  color:var(--ink2); cursor:pointer; -webkit-tap-highlight-color:transparent;}
-.traytile .traybtn svg{width:15px; height:15px; display:block;}
-.traytile .traybtn.on{color:var(--chg); border-color:var(--chg);}
+/* A TRAY TILE HAS NOTHING ON ITS CORNER (2026-08-31, Sophie: "get rid of the
+   tray icon per chat · too wash to click"). The lit mark that used to sit
+   there washed out the drawing underneath it, and at 26px on a 4-across tile
+   it was under the tap target anything here should have. The Organize sheet's
+   mark is the one door on and off, and it toggles both ways. `.traybtn` is
+   now the SHEET's class alone — it needs no `position`, which is also what
+   made the old rule here have to be scoped. */
 .tile{display:flex; flex-direction:column; gap:0; background:none; border:none; padding:0; cursor:pointer;
   color:var(--ink); font-family:'EBGaramond',Georgia,serif; text-align:center; min-width:0;}
 .tile:focus-visible{outline:2px solid var(--rose); border-radius:4px;}
@@ -6507,8 +6500,19 @@ function renderTiles(el,g,names){
 // the order she built it, so a date rule here would be a heading over a
 // grouping that does not exist.
 //
-// The only control is the tray mark itself, lit, which takes the chat off. A
-// tile does not carry the pushpin or the hide eye: those are list controls,
+// A TILE CARRIES NO CONTROL AT ALL (2026-08-31, Sophie: "get rid of the tray
+// icon per chat · too wash to click"). It shipped with a lit tray mark on the
+// corner of every icon — the way off the tray without opening the chat — and
+// two things were wrong with it at the size it really renders. It sat ON the
+// drawing, washing out the one thing this screen is made of; and a 26px box on
+// a 4-across tile is under the tap target anything here should have, so the
+// control she was offered was one she could not reliably hit.
+//
+// So the ORGANIZE SHEET's mark is the only door, and it already toggles both
+// ways: open the chat, tag icon, tray. Three taps to take a chat off against
+// one — and the tray is three or four chats she changes a couple of times a
+// day, so the tap is cheap and the clean icons are not. Do not put it back.
+// A tile carries no pushpin and no hide eye either: those are list controls,
 // and the tray is not a list she is triaging.
 function renderTray(el,g,names){
   var grid=document.createElement('div'); grid.id='traygrid'; el.appendChild(grid);
@@ -6520,11 +6524,6 @@ function renderTray(el,g,names){
     b.dataset.chat=name;
     b.innerHTML='<span class="t-cover">'+iconHtml(name,'',true)+(unread?'<span class="t-new"></span>':'')+'</span>'
       +'<span class="t-name">'+waitMarkHtml(name)+tagMarkHtml(name)+esc(dispName(name))+'</span>';
-    var off=document.createElement('button');
-    off.className='traybtn on'; off.innerHTML=TRAY_SVG;
-    off.setAttribute('aria-label','Take '+dispName(name)+' off your tray');
-    off.onclick=function(e){ e.stopPropagation(); setTray(name,false); };
-    b.querySelector('.t-cover').appendChild(off);
     b.onclick=function(){ openChat(name); };
     grid.appendChild(b);
   });
