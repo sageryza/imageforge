@@ -176,12 +176,14 @@ a track "pause-free" that a human heard as full of gaps). What works:
 3. **Then a room-tone pass.** Floor = 8th percentile of all 20ms bins; any
    run ≥ 0.45s within 4dB of the floor is a residual gap. (This one catches
    what pass 1 leaves; on its own it misses the loud breath pauses.)
-4. **Compress to ~0.28s, never delete** — zero-gap joins sound robotic.
+4. **Compress to ~0.60s, never delete** — zero-gap joins sound robotic. (Was
+   0.28s until 2026-08-31; Sophie: "change the rules so long pauses cut to
+   longer - they're too short". Long gaps >4s keep ~0.90s in vo-tighten-gaps.)
 5. **Verify by chunked re-transcription ratio** (≥93% or fail the run).
    Full-file transcription is NOT a valid verifier (see the phantom gaps).
 
 Tool: `node scripts/vo-remove-pauses.js in.mp3 out.mp3 [--script script.txt]
-[--edits edits.json] [--keep 0.28]` — both passes + verification; `--edits`
+[--edits edits.json] [--keep 0.60]` — both passes + verification; `--edits`
 dumps the cut list so frame timings can be remapped arithmetically instead of
 re-transcribed.
 
@@ -234,7 +236,7 @@ least once; the verifier below is what caught them.
 3. **Word gaps do not find holes — energy does.** Whisper folds trailing noise
    into a word, so a span that looks continuous by word timing can carry a
    multi-second hole (one carried **16 seconds** of untranscribed audio). After
-   locating a take, measure its own energy and compress any dead run to ~0.28s.
+   locating a take, measure its own energy and compress any dead run to ~0.60s.
 4. **Spans disjoint in WORD INDEX can still overlap in TIME.** `clampBounds`
    pads +0.30s and `snapToSilence` may run to the next word's onset, so a sliver
    of the next word plays at the end of one cut and again at the start of the
