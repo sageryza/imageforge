@@ -486,17 +486,6 @@
     font-size: 13px; color: #2b2622; text-decoration: none; background: #faf7f2; border: 1px solid #d8d0c4;
     border-radius: 6px; padding: 7px 11px; }
   #backchip.on { display: flex; }
-  /* Arrived from an image's "open in the Playground": whether this tile really
-     carries the reference and style prompt that picture was made with. Flat,
-     no gradient, 6px like every other box on the page. It is NOT a text field
-     — a status line the page writes, so it says something rather than naming a
-     box. Repainted on every style tap: the claim is about the tile SHE is on
-     now, not the one she arrived on. */
-  #reftag { display: none; margin: 0 0 8px; font-size: 12px; line-height: 1.35;
-    border: 1px solid #d8d0c4; border-radius: 6px; padding: 7px 10px;
-    background: #fdfcf9; color: #6f675e; }
-  #reftag.on { display: block; }
-  #reftag.same { border-color: #2b2622; color: #2b2622; }
   /* Arrived from a Story Room BEAT: what a run made here is going to do
      (?pad=&beat=). A status line — the landing is a side effect and a side
      effect she cannot see is a trap — and, since 2026-08-28, the way to END
@@ -847,7 +836,6 @@
     </div>
     <div id="charsays" hidden><div class="plab">Added to your prompt</div><div class="added" id="charsaystxt"></div></div>
   </div>
-  <div id="reftag"></div>
   <div id="beattag"></div>
   <div id="promptpanel"></div>
   <div class="promptwrap"><textarea id="prompt"></textarea><button type="button" id="bigprompt" aria-label="Bigger box" title="Bigger box"></button></div>
@@ -2659,14 +2647,14 @@
   // style is current. Everything lands prefilled so she can re-run it as-is or
   // nudge one thing.
   //
-  // `sameref` is the honesty flag (Sophie, Aug 2026: "some sort of indicator
-  // saying whether it's using the reference and prompt or not"). The sender
-  // (/playground-port.js) sets it to 1 only when the picture's filed style
-  // half NAMES this tile's own reference or quotes its own baked prompt. It is
-  // NOT re-derived here — the Playground never sees the filed prompt, only the
-  // content half — so the flag travels with the link.
-  var portedFrom = null;   // the tile the picture was actually made on, or null
-  var portedCast = 0;      // how many character descriptions rode the link in
+  // `sameref` STILL RIDES THE LINK AND THIS PAGE NO LONGER READS IT
+  // (2026-08-31, Sophie: "delete the red", twice — the second time over a
+  // different sentence from the same box, then "still there"). It fed one
+  // indicator under the style picker saying whether this tile really carries
+  // the reference and style prompt the picture was made with. Every version of
+  // that sentence is gone; the sender (/playground-port.js) still sets the
+  // flag, so nothing on the other side of the link had to change and a future
+  // reader can pick it back up.
   (function () {
     var q = new URLSearchParams(location.search);
     if (!q.get('prompt') && !q.get('style')) return;
@@ -2693,7 +2681,6 @@
     if (q.get('character') === '1' && isGpt(styleKey) && !STYLES[styleKey].noCharacter) { charOn = true; document.getElementById('charpick').classList.add('on'); }
     var sc = parseFloat(q.get('scale'));
     if (!isNaN(sc)) document.getElementById('scale').value = sc;
-    if (q.get('sameref') !== null) portedFrom = (q.get('sameref') === '1' && st && STYLES[st]) ? st : '';
     // ?cast=<json rows> — the character descriptions the picture was made
     // with (2026-08-29, Sophie: "can it auto add the character description
     // from the original multi sheet"). A cut panel's filed STYLE half carries
@@ -2705,57 +2692,10 @@
     if (cj) {
       var rows = null;
       try { rows = JSON.parse(cj); } catch (e) { rows = null; }
-      if (Array.isArray(rows)) portedCast = restoreCast(rows);
+      if (Array.isArray(rows)) restoreCast(rows);
     }
-    paintRefTag();
     updateShape();
   })();
-
-  // The indicator. Three things it can say, and it only ever speaks when she
-  // arrived from a picture:
-  //   • she is on the tile that made it   — same reference, same style prompt
-  //   • she moved off that tile           — name what she left, so switching
-  //                                         back is obvious
-  //   • nothing identified the picture    — say so plainly rather than letting
-  //                                         the fallback tile imply a match
-  // A LoRA has no reference to attach, so it says "style prompt" alone.
-  function paintRefTag() {
-    var el = document.getElementById('reftag');
-    if (portedFrom === null) { el.className = ''; el.textContent = ''; return; }
-    var here = STYLES[styleKey] ? STYLES[styleKey].label : styleKey;
-    var carries = isGpt(styleKey) ? 'reference and style prompt' : 'style prompt';
-    if (portedFrom === '') {
-      el.className = 'on';
-      el.textContent = 'Nothing on this picture’s record says how it was made, so '
-        + here + '’s ' + carries + ' is attached — not the one behind it.';
-    } else if (portedFrom === styleKey) {
-      // NOTHING TO SAY (2026-08-31, Sophie scribbled this one sentence out:
-      // "delete the red"). She is on the tile the picture was made on — the
-      // ordinary, correct case of arriving from a picture — so the line was
-      // reassurance sitting over the box she was about to type in. The other
-      // two branches stay: each names something she would otherwise not know
-      // (a tile that is NOT the picture's, or a picture nothing identified).
-      el.className = '';
-      el.textContent = '';
-    } else {
-      el.className = 'on';
-      el.textContent = 'On ' + here + '. This picture was made on '
-        + (STYLES[portedFrom] ? STYLES[portedFrom].label : portedFrom) + '.';
-    }
-    // WHO CAME WITH IT (2026-08-29). The descriptions ride the next run's
-    // prompt, so the one line that already speaks on arrival says how many
-    // landed — an ingredient added by a link must never be silent, and the
-    // sheet behind the character icon is where she reads or removes them.
-    // It speaks on the quiet branch above too, and lights the box by itself
-    // when it is the only thing there is to say.
-    if (portedCast) {
-      var came = (portedCast === 1
-        ? 'Its character description came too.'
-        : 'Its ' + portedCast + ' character descriptions came too.');
-      el.textContent = el.textContent ? el.textContent + ' ' + came : came;
-      if (!el.className) el.className = 'on same';
-    }
-  }
 
   // ── THE PROMPT BUTTON — see what is wrapped around her words, and change it
   //    (Aug 2026, Sophie: "add a prompt button so you can see what's being
@@ -3343,7 +3283,7 @@
     // boot applies the pin itself a moment later, so nothing is lost there.
     var pin = canvasPin(k);
     if (pin && canvas && pin !== canvas) pickCanvas(pin);
-    renderStyles(); updateShape(); syncControls(); paintRefTag(); paintPromptPanel();
+    renderStyles(); updateShape(); syncControls(); paintPromptPanel();
   }
   // LoRA scale, ×3 and the seed are Replicate-only knobs — gpt-image-2 has no
   // equivalent, so they come off the panel for that style rather than sitting
