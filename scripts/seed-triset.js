@@ -28,10 +28,17 @@ const ROOT = path.join(__dirname, '..');
 const triset = require('../triset');
 const { dreamyStyle } = require('./lib/dreamy-style');
 
-const CHAT = 'triangular-set-solitaire';
+// --chat/--ver: a batch SHE dictated in ANOTHER chat files into THAT chat's
+// Assets tab, where she is reviewing it (the house rule: a chat's pictures
+// belong in its own tab). The cards still join the one pool either way.
+const argOf = (name, dflt) => {
+  const i = process.argv.indexOf('--' + name);
+  return i > -1 && process.argv[i + 1] ? process.argv[i + 1] : dflt;
+};
+const CHAT = argOf('chat', 'triangular-set-solitaire');
 // bump per redrawn generation: the objects are served immutable, so a redraw
 // needs a new url, and the doc id is sha1(url)
-const SEED_VER = 'seed2';
+const SEED_VER = argOf('ver', 'seed2');
 const SESSION = (process.env.CLAUDE_CODE_REMOTE_SESSION_ID || '').replace(/^cse_/, '');
 const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
 
@@ -94,7 +101,13 @@ async function main() {
   const results = await Promise.all(LIST.map(async (s) => {
     const rec = triset.cardPrompt(s.title, { invent: false });
     try {
-      const f = path.join(outDir, s.slug + '.webp');
+      // THE BANK IS KEYED ON THE PROMPT, NOT THE SLUG (2026-08-31). It was
+      // the slug alone, so re-running a slug whose TITLE had changed — a
+      // re-roll carrying her note ("just the hands, no ppl") — silently
+      // re-uploaded the OLD picture and filed the NEW prompt against it. The
+      // saving is real and worth keeping; the identity has to be what was
+      // actually drawn.
+      const f = path.join(outDir, s.slug + '-' + sha1(rec.fullPrompt).slice(0, 8) + '.webp');
       // a banked draw is PAID work — a re-run after an upload failure must
       // never draw (and bill) it again
       if (fs.existsSync(f) && fs.statSync(f).size > 10000) {
@@ -164,9 +177,15 @@ async function main() {
   const { execFileSync } = require('child_process');
   for (const r of good) {
     try {
+      // THE WHOLE PROMPT RIDES ONTO THE CREATION TOO — the hard rule. The
+      // caption line is her SUBJECT (promptContent), not the tile's label:
+      // the "Triset <ver> card" context is on the Assets tile's description,
+      // and a style half rebuilt from these two halves is the real wrapper.
+      const [pre, suf] = r.rec.promptStyle.split('\n\n[content]\n\n');
       execFileSync('node', [path.join(__dirname, 'post-to-gallery.js'),
-        '--url', r.url, '--prompt', 'Triset ' + SEED_VER + ' card — ' + r.title,
+        '--url', r.url, '--prompt', r.rec.promptContent || r.title,
         '--model', 'gpt-image-2', '--quality', triset.QUALITY, '--size', triset.CANVAS,
+        '--full', r.rec.fullPrompt, '--prefix', pre || '', '--suffix', suf || '',
         '--created', String(r.madeAt), '--source', 'triset', '--uid', uid,
       ], { stdio: 'pipe' });
     } catch (e) { console.log('creation FAILED ' + r.slug + ': ' + String(e.message).slice(0, 120)); }
