@@ -2705,8 +2705,14 @@
       el.textContent = 'Nothing on this picture’s record says how it was made, so '
         + here + '’s ' + carries + ' is attached — not the one behind it.';
     } else if (portedFrom === styleKey) {
-      el.className = 'on same';
-      el.textContent = 'Carrying ' + here + '’s ' + carries + ' — the ones this picture was made with.';
+      // NOTHING TO SAY (2026-08-31, Sophie scribbled this one sentence out:
+      // "delete the red"). She is on the tile the picture was made on — the
+      // ordinary, correct case of arriving from a picture — so the line was
+      // reassurance sitting over the box she was about to type in. The other
+      // two branches stay: each names something she would otherwise not know
+      // (a tile that is NOT the picture's, or a picture nothing identified).
+      el.className = '';
+      el.textContent = '';
     } else {
       el.className = 'on';
       el.textContent = 'On ' + here + '. This picture was made on '
@@ -2716,10 +2722,14 @@
     // prompt, so the one line that already speaks on arrival says how many
     // landed — an ingredient added by a link must never be silent, and the
     // sheet behind the character icon is where she reads or removes them.
+    // It speaks on the quiet branch above too, and lights the box by itself
+    // when it is the only thing there is to say.
     if (portedCast) {
-      el.textContent += ' ' + (portedCast === 1
+      var came = (portedCast === 1
         ? 'Its character description came too.'
         : 'Its ' + portedCast + ' character descriptions came too.');
+      el.textContent = el.textContent ? el.textContent + ' ' + came : came;
+      if (!el.className) el.className = 'on same';
     }
   }
 
