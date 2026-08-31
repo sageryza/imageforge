@@ -63,10 +63,12 @@ const SEEDS = [
 ];
 
 // --file <json>: draw a batch SHE dictated (e.g. asset-note card ideas)
-// instead of the built-in list — [{slug, title}, …], titles verbatim hers.
+// instead of the built-in list — [{slug, title}, …] or {cards:[…]} (a batch
+// doc that carries its design notes alongside the cards); titles verbatim.
 const fileArg = process.argv.indexOf('--file');
-const LIST = fileArg > -1 && process.argv[fileArg + 1]
-  ? JSON.parse(fs.readFileSync(process.argv[fileArg + 1], 'utf8')) : SEEDS;
+const fileJson = fileArg > -1 && process.argv[fileArg + 1]
+  ? JSON.parse(fs.readFileSync(process.argv[fileArg + 1], 'utf8')) : null;
+const LIST = Array.isArray(fileJson) ? fileJson : (fileJson && fileJson.cards) || SEEDS;
 const DRY = process.argv.includes('--dry') || !process.argv.includes('--go');
 const sha1 = (s) => crypto.createHash('sha1').update(String(s)).digest('hex');
 
