@@ -178,6 +178,9 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
   background:var(--chg); color:var(--paper); font-size:9px; font-weight:700;
   letter-spacing:0;}
 .state{font-style:italic; color:var(--ink2); text-align:center; padding:4em 0;}
+/* The archive count under a lit tag's pile — a footnote, not an empty
+   state, so it does not take a screen's worth of padding. */
+.state.catarch{padding:1.6em 0 2.4em; font-size:13px;}
 #chatgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:20px 14px;}
 /* ON MY TRAY (2026-08-31) — FOUR across where the tile wall is three, because
    she asked for the icons and nothing else: no status line, no timestamp, so a
@@ -5988,6 +5991,61 @@ function renderHome(){
     renderTray(el,g,tr);
     return;
   }
+  // ---- A LIT TAG IS ITS OWN PILE, AND IT SHOWS EVERYTHING WEARING THE WORD
+  // (2026-08-31, Sophie: "things get hidden in chats in multiple ways" · "come
+  // back to shud show allll not just ones not on another list" · "any tag shud
+  // show all") ---------------------------------------------------------------
+  // A chip used to NARROW whichever list she was standing on, so every filter
+  // that list already applied went on applying — and they stack. Measured
+  // against her live feed the morning she asked: `come back to` is on 34 chats,
+  // and the lit chip rendered ONE row. The four that ate the other 33:
+  //
+  //   • the HIDDEN pile — 23 of the 28 live ones, nearly all of them stuck
+  //     there by the aged-out-park bug (see repliedSince);
+  //   • the ACCOUNT tabs — the survivors were 10/9/8 across accounts 1/2/3, so
+  //     no single tab could ever show her the pile;
+  //   • the BUG-FIX carve-out on ALL, which drops a chat wearing both words;
+  //   • the seven-day MORE fold under the live list.
+  //
+  // So a lit chip is a PLACE SHE WENT, like ★ and the tray and the bug tab —
+  // it replaces the list rather than narrowing it, and none of the four apply.
+  // It reaches ACROSS THE ACCOUNTS for the tray's own reason: the account row
+  // is not even on screen while the lists row is, and a hand-picked pile
+  // silently missing two thirds of itself is exactly the filter she cannot see.
+  // She picked the word — that IS the filter.
+  //
+  // THE ARCHIVE STILL DOES NOT POP OUT, and that is her rule, not an oversight
+  // (2026-08-28: "archive doesn't pop out ur insane that's the point of
+  // archive"). It has its own filter row, so a word is still findable in there.
+  // What is new is that the count is NAMED under the list — silently dropping
+  // 6 of 34 is the thing this whole change is about.
+  //
+  // DELIVERED is left alone above: its rows are films and pictures, not chats,
+  // so there is nothing for a chat tag to narrow.
+  if(cat && homeView==='live' && !(listsOn() && listTab==='delivered')){
+    var pool=everyone.filter(function(n){ return chatInCat(n,cat) && !chatDeleted(n); });
+    var pl=pool.filter(function(n){ return !(chats[n]&&chats[n].archived); });
+    var plArch=pool.length-pl.length;
+    paintHomeChrome(); paintAcctTabs(g); paintListTabs(); paintCatRow(g);
+    document.getElementById('selbtn').classList.toggle('on', selMode);
+    paintSelBar();
+    if(!pl.length){
+      el.innerHTML='<div class="state">Nothing under '+esc(catLabel(cat))
+        +(plArch? ' except '+plArch+' in the Archive.' : ' yet — tap the checkbox to file some chats.')+'</div>';
+      return;
+    }
+    if(view==='list') renderList(el,g,pl); else renderTiles(el,g,pl);
+    // Nothing is dropped without a number saying so — the same reason the
+    // hidden bar names what is behind it.
+    if(plArch){
+      var an=document.createElement('div');
+      an.className='state catarch';
+      an.textContent=plArch+(plArch===1?' more is':' more are')+' in the Archive.';
+      el.appendChild(an);
+    }
+    if(window.__jumpsRecheck) window.__jumpsRecheck();
+    return;
+  }
   if(listsOn() && listTab==='all'){
     // A LIT CHIP STILL NARROWS IT. The category row is on screen here, and a
     // filter she can see that does nothing is the silent-filter failure this
@@ -6003,6 +6061,12 @@ function renderHome(){
     // `bugfix` are ARCHIVE_PROGRESS words and are not offered as chips on this
     // row; `bug`/`bugs`, her own dictated spellings, are — so the carve-out is
     // reachable from a real tap, and stays true if the others ever join it.
+    // …AND A LIT CHIP NEVER REACHES HERE ANY MORE (2026-08-31): it is its own
+    // pile above, which is what took the carve-out off it — a chat wearing
+    // `story` AND `bug fix` was dropped from `story`, which is exactly the
+    // "not just ones not on another list" she was pointing at. The carve-out
+    // below is now only ever the UNFILTERED tab's, and `catIsBug` is what
+    // keeps that true if the guard above is ever narrowed.
     var catIsBug = cat && TAG_MARKS[0].labels.indexOf(cat)>-1;
     var every=all.filter(function(n){
       if(chatDeleted(n) || (chats[n]&&chats[n].archived)) return false;
@@ -6090,6 +6154,9 @@ function renderHome(){
   // UNFILED = carries no PILE word (chatFiled). Plain tags leave a chat exactly
   // where it was — Sophie, the day after the merge: "tagging shouldn't hide
   // everything … whereas other ones shouldn't take it off the main feed".
+  // On `live` a lit chip is handled by its own pile above, so this only ever
+  // runs unfiltered here — the `cat` arm still stands for the OTHER views that
+  // fall through to this branch (the archive reads `arch` below).
   live=live.filter(function(n){
     return cat ? chatInCat(n,cat) : (!chatFiled(n) || chatBack(n, lastOf(g,n)));
   });
@@ -6198,6 +6265,30 @@ function unparked(stamp,last){
   if(last.working) return false;             // still writing — not done yet
   return (last.postedAt||last.created||'') > stamp;
 }
+// …AND THE LOADED FEED IS NOT THE WHOLE STORY — THE REGISTRY OUTLIVES IT
+// (2026-08-31, Sophie: "things get hidden in chats in multiple ways").
+// `unparked` above can only answer from the messages this page has, and one
+// feed read carries ~260 messages for ~770 chats. So a chat parked at turn
+// start, that replied a minute later, fell back into the hidden pile the day
+// its reply scrolled out of that window — and stayed there forever, because
+// nothing was ever going to load it again.
+//
+// MEASURED THE MORNING THIS SHIPPED, against her live feed: 125 of her 294
+// live chats were sitting in the hidden pile, and 122 of those had no loaded
+// message AT ALL. `come back to` carries 34 chats; the lit chip rendered ONE
+// row. That is the biggest of the "multiple ways", and none of it was a filing
+// decision she made.
+//
+// `repliedAt` is stamped by chatfeed.js in the one write that knows a turn
+// FINISHED, carrying that reply's `postedAt` — so it satisfies both rules
+// `unparked` enforces by construction: it is monotonic (never `created`, which
+// predates the park), and a live draft never writes it. It is only ever
+// consulted when the feed has NOTHING to say, so a loaded message always wins
+// and nothing about the rule above moved.
+function repliedSince(name,stamp){
+  var r=chats[name]||{};
+  return !!r.repliedAt && r.repliedAt > stamp;
+}
 // THE LEASH (Aug 2026, Sophie: "three hours is way too long to wait", then
 // "could it just be like three minutes"). An AUTOMATIC park promises a reply:
 // the turn-start ping and her answered message both tuck the chat away
@@ -6228,7 +6319,12 @@ function parkTripped(name,last){
 }
 function chatHidden(name,last){
   var a=(chats[name]&&chats[name].hiddenAt)||'';
-  return !!a && !unparked(a,last) && !parkTripped(name,last);
+  if(!a) return false;
+  // The registry fallback is asked ONLY when this page holds no message for the
+  // chat — see repliedSince. With a message loaded, `unparked` is the whole
+  // rule exactly as it always was.
+  if(!last && repliedSince(name,a)) return false;
+  return !unparked(a,last) && !parkTripped(name,last);
 }
 // A chat counts as WORKING on either of two signals, and it needs both:
 //

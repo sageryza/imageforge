@@ -1839,6 +1839,70 @@ them off the reference sheet, not off the old filenames.
   this line used to say it carried none. Reading them is fine; FILING is still
   hers and the auto-sorter's. Test:
   `node scripts/test-chats-waiting-mark.js`.
+- **A LIT TAG IS ITS OWN PILE AND SHOWS EVERY CHAT WEARING THE WORD
+  (2026-08-31, Sophie: "things get hidden in chats in multiple ways" · "come
+  back to shud show allll not just ones not on another list" · "any tag shud
+  show all" · "verify first - how does it work now").** A chip used to NARROW
+  whichever list she was standing on, so every filter that list already applied
+  went on applying — and they STACK. **Measured against her live feed before
+  anything was changed: `come back to` is on 34 chats and the lit chip rendered
+  ONE row.** The four that ate the other 33, each a chat she had filed under the
+  word herself:
+  - **the HIDDEN pile** — 23 of the 28 live ones, and nearly all of those by the
+    bug below rather than by anything she did;
+  - **the ACCOUNT tabs** — the survivors were 10/9/8 across accounts 1/2/3, so
+    **no single account tab could ever have shown her the pile**;
+  - **the BUG-FIX carve-out on ALL**, which drops a chat wearing both words —
+    literally "ones on another list";
+  - **the seven-day MORE fold** under the live list.
+  So a lit chip is a PLACE SHE WENT, like ★ and the tray and the bug tab: it
+  replaces the list rather than narrowing it, and none of the four apply. It
+  reaches ACROSS THE ACCOUNTS for the tray's own reason — the account row is not
+  even on screen while the lists row is, and a hand-picked pile silently missing
+  two thirds of itself is exactly the filter she cannot see. **She picked the
+  word; that IS the filter.**
+  - **THE ARCHIVE STILL DOES NOT POP OUT** (2026-08-28: "archive doesn't pop out
+    ur insane that's the point of archive") — but the count is NAMED under the
+    list, because silently dropping 6 of 34 is the whole complaint. The archive
+    has its own filter row for finding one in there.
+  - DELIVERED is untouched: its rows are films and pictures, not chats.
+  - Test: `node scripts/test-chats-tag-shows-all.js` (the real page headless —
+    every assertion a MEASUREMENT, since a chat folded behind "More" and one
+    that was never rendered look identical to any source assertion, and the
+    account filter is invisible to one entirely; verified failing 7 pre-fix).
+- **A PARK NEVER EXPIRED ONCE ITS REPLY AGED OUT OF THE LOADED FEED — the
+  biggest of the "multiple ways", and it was nobody's filing decision
+  (2026-08-31).** `chatHidden` asks "did this chat write anything after I parked
+  it?" and could only ever answer it from the messages the page has loaded —
+  **one feed read carries ~260 messages for ~770 chats**. So a chat auto-parked
+  at turn start that replied a minute later fell back into the hidden pile the
+  day its reply scrolled out of that window, and stayed there forever, because
+  nothing was ever going to load it again. **Measured live: 125 of her 294 live
+  chats were sitting in the hidden pile and 122 of them had no loaded message at
+  all.**
+  - **`repliedAt` on the registry doc is the evidence that outlives the
+    window** — stamped by `chatfeed.js` in the one write that knows a turn
+    FINISHED, carrying that reply's `postedAt`. It satisfies both rules
+    `unparked` enforces by construction: monotonic (never `created`, which
+    predates the park — the bug the note on `unparked` was written about), and a
+    live draft never writes it. **`lastSeen` beside it IS `created` and is not a
+    substitute.**
+  - **The loaded message always wins.** `repliedSince` is consulted ONLY when
+    the page holds nothing for that chat, so the rule above did not move: a live
+    draft still keeps a chat parked, and a reply loaded from before the park
+    still keeps it hidden.
+  - **`chatBack` was deliberately NOT given the same fallback.** It is the same
+    bug, but popping 100+ filed chats onto her main inbox is a loud change she
+    did not ask for. Worth raising with her; do not just do it.
+  - **The already-stuck chats needed their own pass** — a shipped fix to a WRITE
+    path leaves the existing records wrong (`/wrapup/rehers`'s lesson).
+    `POST /api/chatfeed/repliedat-backfill` is free, dry by default, writes
+    `repliedAt` and nothing else, and **never touches `hiddenAt`**: it supplies
+    the missing evidence, it does not decide anything, so a chat she parked by
+    hand that has said nothing since stays parked.
+  - Test: `node scripts/test-chats-unpark.js`. Its harness also stubs
+    `reviewHeld`, which had been undefined — **four `chatBack` assertions were
+    dying on a ReferenceError on main and the runner never reached them.**
 - **A BUG-FIX CHAT WEARS A BUG AND PUTS ITSELF AWAY (2026-08-27, Sophie: "add
   a tag on the chat ex bug fix - a picture of a bug in the list. start w just
   bugs" · "a bug fix tag button on the right in the header on all 3 account
