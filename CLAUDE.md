@@ -7415,8 +7415,17 @@ before working on that module. Nothing was deleted — the moved text is verbati
     from the edges (wobbly hand-drawn sides survive exactly; interior white
     highlights keep), fit the content bbox inside the equilateral slot canvas
     (1000x866, FIT 0.96, base-aligned up / top-aligned down), transparent
-    around it — the page's cream `.face` shows through as the border. A
-    full-bleed draw falls back to the ideal triangle mask. Bakes: render()
+    around it. A full-bleed draw falls back to the ideal triangle mask.
+    **THE ONLY CREAM BORDER IS THE PAPER RIM THE MODEL DREW INTO THE PICTURE
+    (2026-08-31, Sophie: "there shud be no cream border aside from the one
+    built into the images").** The first cut of this put a cream `.face` mat
+    behind every card so it would show through as the border — which is a
+    SECOND band, in a different cream, around the rim already there. So the
+    slots draw nothing behind a card and the cut's transparency shows page
+    paper, which reads as the gap between cards; the FIT is what keeps that
+    gap. The middle slot keeps its cream face while it is the WRITING
+    SURFACE and drops it under a made card (`#s-mid.made .face`), or the
+    doubling comes straight back on the one card that lands there. Bakes: render()
     right after banking the paid bytes (best-effort — a failed bake still
     readies the card, the old mapping is the page fallback), `POST /recut`
     (fire-and-forget sweep, `/status` reports it), `/seed` kicks it, and

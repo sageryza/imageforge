@@ -57,10 +57,15 @@ h1.tool-eyebrow{
 #s-left{left:0;top:50%}
 #s-right{left:50%;top:50%}
 #s-mid{left:25%;top:50%;cursor:default}
-/* a CREAM mat behind each card — the cut image sits on an inner triangle,
-   so the mat shows as an even cream border around every card (2026-08-30,
-   Sophie: "still needs a cream border") */
-.face{position:absolute;inset:0;background:var(--cream)}
+/* NO MAT BEHIND A CARD — the only cream is the paper rim the model drew
+   INTO the picture (2026-08-31, Sophie: "there shud be no cream border
+   aside from the one built into the images"). The cream mat added a day
+   earlier doubled it: the drawn rim, then a second band of a different
+   cream around it. The die-cut's transparency shows the page paper now,
+   which reads as the gap between cards rather than as a border. The face
+   span survives for the MIDDLE slot alone (below) — there it is the
+   writing surface, not a border. */
+.face{position:absolute;inset:0}
 /* THE CUT IS THE PAGE'S, EXACTLY EQUILATERAL (2026-08-30, Sophie: "the
    triangles need to be cut equilateral to fit, even if the model draws it
    wrong … there's just paper around, just cut it different"). The SLOT is
@@ -90,6 +95,9 @@ h1.tool-eyebrow{
    The SLOT is not clipped (the venn boxes ride its edges); the face and the
    made-card cutter carry their own triangles. */
 #s-mid .face{clip-path:polygon(0 0,100% 0,50% 100%);background:var(--cream)}
+/* …and it steps aside the moment a made card lands there, or it would be
+   exactly the doubled border she asked to be rid of */
+#s-mid.made .face{background:none}
 #midcut{position:absolute;inset:0;clip-path:polygon(0 0,100% 0,50% 100%)}
 #midimg{cursor:pointer;pointer-events:auto}
 /* 'each' mode is a VENN DIAGRAM (2026-08-30, Sophie: "the 'what each has in

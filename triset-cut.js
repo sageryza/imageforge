@@ -22,9 +22,14 @@
 //      its centroid, base-aligned (point-up) or top-aligned (point-down).
 //      Contain-fit: a steeper or flatter drawn card is scaled DOWN to fit,
 //      never cropped — the whole image plus outline fits in the triangle.
-//   4. Transparent everywhere else. The page's cream mat shows through as
-//      the border, and fills the drawn card's rounded corners seamlessly
-//      (the drawn paper rim and the mat are near the same cream).
+//   4. Transparent everywhere else — the page paper shows through, which
+//      reads as the gap between cards. THE ONLY CREAM BORDER IS THE PAPER
+//      RIM THE MODEL DREW INTO THE PICTURE (2026-08-31, Sophie: "there shud
+//      be no cream border aside from the one built into the images"); a mat
+//      behind the card would be a second band of a different cream around
+//      the one that is already there. So the cut must keep the drawn rim —
+//      that is what step 1's flood fill stops at, and what FIT leaves room
+//      for — and the page must put nothing behind it.
 //
 // A card with no white background to remove (a full-bleed draw — the model
 // ignored the border clause) falls back to masking with the ideal triangle:

@@ -169,7 +169,7 @@ async function bakeChecks() {
   const px = (x, y) => { const i = (y * info.width + x) * 4; return [data[i], data[i + 1], data[i + 2], data[i + 3]]; };
   ok('the cut canvas is the slot triangle, 1000x866', info.width === 1000 && info.height === 866);
   ok('a white-paper card is measured, not masked', fullBleed === false);
-  ok('the corners are transparent (the cream mat shows through)',
+  ok('the corners are transparent (the page paper shows through)',
     px(5, 5)[3] === 0 && px(994, 5)[3] === 0 && px(5, 860)[3] === 0);
   ok('the art lands opaque inside the triangle', px(500, 500)[3] === 255 && px(500, 500)[0] < 200);
   ok('the interior white patch is opaque in the bake', px(497, 628)[3] === 255 && px(497, 628)[0] > 230);
@@ -286,6 +286,17 @@ async function headless() {
         && Math.abs(r.left - b.left) <= 2 && Math.abs(r.height - b.height) <= 2;
     });
   }));
+  // the ONLY cream border is the paper rim drawn INTO each picture — a mat
+  // behind a card is a second band of a different cream around the first
+  // (2026-08-31, Sophie: "there shud be no cream border aside from the one
+  // built into the images")
+  ok('a card slot draws no cream mat behind the cut', await pg.evaluate(() =>
+    ['top', 'left', 'right'].every(s =>
+      getComputedStyle(document.querySelector('#s-' + s + ' .face')).backgroundColor === 'rgba(0, 0, 0, 0)')));
+  // …while the EMPTY middle triangle keeps its cream: it is the writing
+  // surface, not a border on anything
+  ok('the empty middle triangle keeps its cream writing surface', await pg.evaluate(() =>
+    getComputedStyle(document.querySelector('#s-mid .face')).backgroundColor === 'rgb(243, 231, 201)'));
   ok('the middle box is EMPTY on open', await pg.$eval('#middle', el => el.value) === '');
 
   // tap a card → it swaps (six cards, three dealt, a swap always changes the id)
@@ -340,16 +351,17 @@ async function headless() {
   }));
   // the stub's made card carries NO `cut` — this is the FALLBACK mapping
   // (a failed bake): the image scaled past the slot so the inset cut fills it
-  ok('…and a cut-less card falls back to the fixed mapping over the cream face', await pg.evaluate(() => {
+  ok('…and a cut-less card falls back to the fixed mapping', await pg.evaluate(() => {
     const img = document.getElementById('midimg');
     const s = document.getElementById('s-mid').getBoundingClientRect();
     const r = img.getBoundingClientRect();
-    // scaled to the inner triangle (×1.0714 of the slot), sitting above it,
-    // over the cream face
-    const cream = getComputedStyle(document.querySelector('#s-mid .face')).backgroundColor;
-    return r.width > s.width * 1.04 && r.width < s.width * 1.12
-      && r.top < s.top && cream === 'rgb(243, 231, 201)';
+    return r.width > s.width * 1.04 && r.width < s.width * 1.12 && r.top < s.top;
   }));
+  // …and NOTHING cream behind it (2026-08-31, Sophie: "there shud be no
+  // cream border aside from the one built into the images") — the mid face
+  // is the writing surface and must step aside under a card
+  ok('a made card gets no cream mat behind it', await pg.evaluate(() =>
+    getComputedStyle(document.querySelector('#s-mid .face')).backgroundColor === 'rgba(0, 0, 0, 0)'));
 
   // tapping the made card deals the next hand: boxes clear, text box back
   await pg.click('#midimg', { position: { x: 90, y: 30 } });
