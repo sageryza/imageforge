@@ -43,6 +43,17 @@ body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--i
 .app-header{display:flex; align-items:center; min-height:34px; padding-right:64px; margin:0 0 14px;}
 .app-header h1{font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:11px; letter-spacing:.34em;
   color:var(--ink2); text-transform:uppercase; font-weight:400; margin:0;}
+/* REFRESH (2026-08-31, Sophie: "add a refresh button to meta assets") — a
+   rounded square at the house 6px, never a circle and never the Chats home's
+   pill (that one is the named exception, not a pattern). It sits at the flex
+   end of the header, which the row's own padding-right:64px already keeps
+   clear of the injected pill's fixed column. */
+#refreshbtn{margin-left:auto; flex:none; width:34px; height:34px; padding:0; cursor:pointer;
+  border:1.5px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink2);
+  display:flex; align-items:center; justify-content:center;}
+#refreshbtn svg{width:16px; height:16px; display:block;}
+#refreshbtn.spin svg{animation:rbspin .9s linear infinite;}
+@keyframes rbspin{to{transform:rotate(360deg)}}
 .state{font-style:italic; color:var(--ink2); text-align:center; padding:4em 0;}
 .state.more{padding:1.4em 0;}
 /* ── the Assets tab's own widgets, verbatim from chats.html ─────────────── */
@@ -116,7 +127,9 @@ body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--i
 </style>
 <body>
 <div class="wrap">
-  <header class="app-header"><h1>Meta Assets</h1></header>
+  <header class="app-header"><h1>Meta Assets</h1>
+    <button id="refreshbtn" aria-label="Refresh" title="Refresh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></button>
+  </header>
   <div id="content"><div class="state">Loading images&hellip;</div></div>
 </div>
 <div id="clightbox"></div>
@@ -547,26 +560,66 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
     // until she reloaded it by hand). Quiet: newest-first means fresh rows
     // belong at the TOP; nothing repaints unless something actually arrived,
     // and a live search is left alone.
+    // Fold a fresh page 0 into the top of the browse walk — newest-first means
+    // fresh rows belong at the TOP; nothing repaints unless something actually
+    // arrived. Shared by the quiet catch-up below and the refresh button.
+    function foldFresh(p){
+      var have={}; browseItems.forEach(function(x){ have[keyOf(x)]=1; });
+      var fresh=canon((p&&p.assets)||[]).filter(function(x){ return !have[keyOf(x)]; });
+      if(!fresh.length) return 0;
+      if(p&&p.total) total=p.total;
+      loaded+=fresh.length;               // the walk's offset shifted by this many
+      browseItems=fresh.concat(browseItems);
+      addTiles(fresh, grid.firstElementChild);
+      applyFilter();
+      return fresh.length;
+    }
     var lastLoadAt=Date.now();
     document.addEventListener('visibilitychange', function(){
       if(document.hidden || q || Date.now()-lastLoadAt<60000) return;
       lastLoadAt=Date.now();
       api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
         .then(function(r){return r.json()})
-        .then(function(p){
-          if(q) return;
-          var have={}; browseItems.forEach(function(x){ have[keyOf(x)]=1; });
-          var fresh=canon((p&&p.assets)||[]).filter(function(x){ return !have[keyOf(x)]; });
-          if(!fresh.length) return;
-          if(p&&p.total) total=p.total;
-          loaded+=fresh.length;               // the walk's offset shifted by this many
-          browseItems=fresh.concat(browseItems);
-          addTiles(fresh, grid.firstElementChild);
-          applyFilter();
-        }).catch(function(){});
+        .then(function(p){ if(!q) foldFresh(p); }).catch(function(){});
     });
+    // THE REFRESH BUTTON (2026-08-31, Sophie: "add a refresh button to meta
+    // assets"). The quiet catch-up above only fires on coming back to the
+    // tab, throttled a minute and behind the server's 60s cache — so a
+    // picture filed a moment ago was unreachable without reloading the whole
+    // page (which inside the app is the whole app process). Her tap skips
+    // both: fresh=1 rebuilds the server's list (the route has always taken
+    // it), new rows land at the top, and the toast says what arrived —
+    // "Nothing new" is an answer, because a button that sometimes visibly
+    // does nothing reads as broken. During a live search it rebuilds the
+    // cache and re-runs the SAME search, so it is never a dead control there.
+    var rb=document.getElementById('refreshbtn'), rbBusy=false;
+    if(rb) rb.onclick=function(){
+      if(rbBusy) return;
+      rbBusy=true; rb.classList.add('spin');
+      var done=function(msg){ rbBusy=false; rb.classList.remove('spin'); if(msg) toast(msg); };
+      if(q){
+        api('/api/gallery/assets/all?limit=1&offset=0&fresh=1')
+          .then(function(){ serverSearch(); done(); })
+          .catch(function(){ done('Couldn’t refresh'); });
+        return;
+      }
+      lastLoadAt=Date.now();
+      api('/api/gallery/assets/all?limit='+PAGE+'&offset=0&fresh=1')
+        .then(function(r){return r.json()})
+        .then(function(p){
+          if(q){ done(); return; }
+          var n=foldFresh(p);
+          done(n ? (n===1 ? '1 new picture' : n+' new pictures') : 'Nothing new');
+        })
+        .catch(function(){ done('Couldn’t refresh'); });
+    };
   })
-  .catch(function(){ content.innerHTML='<div class="state">Couldn\u2019t load images.</div>'; });
+  .catch(function(){
+    content.innerHTML='<div class="state">Couldn\u2019t load images.</div>';
+    // the one page state where a full reload IS the refresh
+    var rb=document.getElementById('refreshbtn');
+    if(rb) rb.onclick=function(){ location.reload(); };
+  });
 })();
 </script>
 </body>
