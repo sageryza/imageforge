@@ -58,6 +58,45 @@ ok('the anti-content bookend survives', /do not draw its content/.test(tailUp));
 // has to be upside down").
 const tailDown = triset.cardPrompt('x', { invent: true, invert: true }).fullPrompt;
 ok('a made card is drawn point down', tailDown.includes('point down, upside down'));
+
+/* ── editions (2026-08-31, "triset color edition") ───────────────────────── */
+// a made card stays in its edition only when ALL THREE sources share one
+ok('editionOf: three the same', triset.editionOf(['color', 'color', 'color']) === 'color');
+ok('editionOf: a disagreement files plain', triset.editionOf(['color', 'color', null]) === null
+  && triset.editionOf(['color', 'color', 'x']) === null);
+ok('editionOf: no editions files plain', triset.editionOf([null, null, null]) === null
+  && triset.editionOf([]) === null);
+ok('/found stamps the shared edition on the made doc',
+  /\.\.\.\(edition \? \{ edition \} : \{\}\)/.test(MOD) && /editionOf\(srcDocs\.map/.test(MOD));
+ok('the seeder can file an edition', /EDITION \? \{ edition: EDITION \}/.test(
+  fs.readFileSync(path.join(ROOT, 'scripts', 'seed-triset.js'), 'utf8')));
+
+// three HEX cards mix in CODE — free, subtractive like paint, pastels stay
+// pastel (geometric mean, not a straight multiply)
+ok('mixHex: red + yellow makes orange', (() => {
+  const m = triset.mixHex(['#e67774', '#efcb52', '#ee975d']);
+  if (!/^#[0-9a-f]{6}$/.test(m)) return false;
+  const [r, g, b] = [1, 3, 5].map(i => parseInt(m.slice(i, i + 2), 16));
+  return r > g && g > b && r > 180; // warm, orange-ordered, still pastel-bright
+})());
+ok('mixHex: blue + yellow lose their blue (subtractive, not additive-grey)', (() => {
+  const m = triset.mixHex(['#8ca2c5', '#efcb52', '#cbc46a']);
+  const [r, g, b] = [1, 3, 5].map(i => parseInt(m.slice(i, i + 2), 16));
+  // a straight RGB average would keep b within ~30 of g; subtractive drops it
+  return b < g - 50 && b < r - 50 && g > 150;
+})());
+ok('mixHex refuses a short or malformed list',
+  triset.mixHex(['#e67774', '#efcb52']) === null && triset.mixHex(['x', '#efcb52', '#ee975d']) === null);
+ok('/found answers a hex set READY with no render (nothing drawn, nothing billed)',
+  /const hex = mixHex\(srcDocs\.map\(c => c\.hex\)\)/.test(MOD)
+  && /return res\.json\(\{ ok: true, id: ref\.id, status: 'ready', hex,/.test(MOD));
+ok('a hex set refuses auto honestly (no picture for the model to read)',
+  /color cards mix by themselves/.test(MOD));
+ok('the page renders a hex card as a flat SVG triangle',
+  /function hexSrc\(hex, down\)/.test(PAGE) && /data:image\/svg\+xml/.test(PAGE));
+ok('the page deals by edition and the chips row is derived from the pool',
+  /!c\.flip && \(!edition \|\| c\.edition === edition\)/.test(PAGE) && /function paintEds\(\)/.test(PAGE));
+ok('a pool card needs a url OR a hex', /c\.status === 'ready' && \(c\.url \|\| c\.hex\)/.test(PAGE));
 ok('the placeholder never leaks into a sent prompt',
   !tailUp.includes('{triangle}') && !tailDown.includes('{triangle}'));
 ok('/found draws inverted and stamps flip on the doc',
@@ -155,8 +194,8 @@ ok('render banks the paid bytes BEFORE the cut, and a failed bake still readies 
 ok('a made card is cut with its flip', /bakeCut\(buf, \{ flip: !!card\.flip \}\)/.test(MOD));
 ok('the recut sweep exists and /seed kicks it', /router\.post\('\/recut'/.test(MOD) && /bakeMissing\(false\)/.test(MOD));
 ok('the page shows the cut when a card has one, the mapping only as fallback',
-  /thumb\(card\.cut \|\| card\.url\)/.test(PAGE) && /classList\.toggle\('whole', !!card\.cut\)/.test(PAGE));
-ok('the reveal shows the cut too', /thumb\(card\.cut \|\| card\.url\)/.test(PAGE.slice(PAGE.indexOf('function showMade'))));
+  /thumb\(card\.cut \|\| card\.url\)/.test(PAGE) && /classList\.toggle\('whole', !!card\.cut \|\| !!card\.hex\)/.test(PAGE));
+ok('the reveal shows the cut too', /cardSrc\(card, true\)/.test(PAGE.slice(PAGE.indexOf('function showMade'))));
 
 async function bakeChecks() {
   const sharp = require('sharp');
@@ -230,25 +269,37 @@ async function headless() {
     url: 'https://storage.googleapis.com/x/triset/cards/c' + i + '.webp',
     cut: 'https://storage.googleapis.com/x/triset/cuts/c' + i + '.c1.webp', createdAt: i,
   }));
+  // phase 2 swaps in a pool that ALSO holds three hex color cards
+  let cardsResp = cards;
+  let madeHex = null; // the hex /found answered with, phase 2
   const srv = http.createServer((req, res) => {
     const u = new URL(req.url, 'http://x');
     if (u.pathname === '/api/triset/cards') {
       res.writeHead(200, { 'content-type': 'application/json' });
-      return res.end(JSON.stringify({ ok: true, cards }));
+      return res.end(JSON.stringify({ ok: true, cards: cardsResp }));
     }
     if (u.pathname === '/api/triset/found') {
       let body = '';
       req.on('data', (c) => { body += c; });
       req.on('end', () => {
-        founds.push(JSON.parse(body));
+        const f = JSON.parse(body);
+        founds.push(f);
         res.writeHead(200, { 'content-type': 'application/json' });
+        // a set of three hex cards answers READY at once — the mix is code
+        if ((f.cards || []).every(id => String(id).startsWith('h'))) {
+          madeHex = '#e09a63';
+          return res.end(JSON.stringify({ ok: true, id: 'made2', status: 'ready', hex: madeHex }));
+        }
         res.end(JSON.stringify({ ok: true, id: 'made1', status: 'drawing' }));
       });
       return;
     }
     if (u.pathname.startsWith('/api/triset/card/')) {
-      pollCount += 1;
       res.writeHead(200, { 'content-type': 'application/json' });
+      if (u.pathname.endsWith('/made2')) {
+        return res.end(JSON.stringify({ ok: true, status: 'ready', title: 'orange', flip: true, hex: madeHex, edition: 'color' }));
+      }
+      pollCount += 1;
       return res.end(JSON.stringify(pollCount < 2
         ? { ok: true, status: 'drawing' }
         : { ok: true, status: 'ready', title: 'the moon', flip: true, url: 'https://storage.googleapis.com/x/triset/cards/made1.webp' }));
@@ -378,6 +429,51 @@ async function headless() {
   const strayed = await pg.evaluate(() => ['top', 'left', 'right'].some(s =>
     (document.querySelector('#s-' + s + ' img').src || '').includes('made1')));
   ok('an upside-down card is never dealt into a corner', !strayed);
+
+  /* ── phase 2: the COLOR EDITION — hex cards, chips, the free mix ───────
+     (2026-08-31, "for now the digital version just hex colors") */
+  ok('no editions in the pool → no chips row', await pg.$eval('#eds', el => el.hidden));
+  cardsResp = cards.concat([
+    { id: 'h0', title: 'pastel red', hex: '#e67774', edition: 'color', status: 'ready', createdAt: 10 },
+    { id: 'h1', title: 'pastel yellow', hex: '#efcb52', edition: 'color', status: 'ready', createdAt: 11 },
+    { id: 'h2', title: 'pastel blue', hex: '#8ca2c5', edition: 'color', status: 'ready', createdAt: 12 },
+  ]);
+  await pg.reload({ waitUntil: 'networkidle' });
+  ok('the chips row derives from the pool (All cards · Colors)', await pg.evaluate(() => {
+    const row = document.getElementById('eds');
+    const words = Array.from(row.querySelectorAll('button')).map(b => b.textContent);
+    return !row.hidden && words.join('|') === 'All cards|Colors'
+      && row.querySelector('button').classList.contains('on');
+  }));
+  ok('the whole pool counts in the header', await pg.$eval('#pool', el => el.textContent) === '9 cards');
+  await pg.click('#eds button:nth-child(2)');
+  ok('a lit edition deals ONLY its cards, as flat SVG triangles', await pg.evaluate(() =>
+    ['top', 'left', 'right'].every(s => {
+      const img = document.querySelector('#s-' + s + ' img');
+      return (img.getAttribute('src') || '').startsWith('data:image/svg')
+        && img.classList.contains('whole');
+    })));
+  ok('…and the header says so', await pg.$eval('#pool', el => el.textContent) === '3 colors');
+  ok('a hand of three colors mixes FREE — the button says so',
+    await pg.$eval('#found .cost', el => el.textContent) === 'free');
+
+  // find the mix: instant, no drawing wait, the blend lands in the middle
+  await pg.fill('#middle', 'orange');
+  await pg.click('#k-same');
+  await pg.click('#found');
+  await pg.waitForFunction(() => !document.getElementById('midcut').hidden, null, { timeout: 15000 });
+  const fh = founds[founds.length - 1] || {};
+  ok('the hex found posted the three hex ids', (fh.cards || []).join('|') === ['h0', 'h1', 'h2'].sort().join('|')
+    || (fh.cards || []).every(id => String(id).startsWith('h')));
+  ok('the made MIX shows in the middle as its color, point down', await pg.evaluate(() => {
+    const src = document.getElementById('midimg').getAttribute('src') || '';
+    return src.startsWith('data:image/svg') && decodeURIComponent(src).includes('#e09a63');
+  }));
+  // tap it → the next hand stays inside the lit edition
+  await pg.click('#midimg', { position: { x: 90, y: 30 } });
+  ok('the next hand stays in the edition', await pg.evaluate(() =>
+    ['top', 'left', 'right'].every(s =>
+      (document.querySelector('#s-' + s + ' img').getAttribute('src') || '').startsWith('data:image/svg'))));
 
   await browser.close();
   srv.close();
