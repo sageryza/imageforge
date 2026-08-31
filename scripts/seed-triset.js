@@ -69,6 +69,10 @@ const fileArg = process.argv.indexOf('--file');
 const fileJson = fileArg > -1 && process.argv[fileArg + 1]
   ? JSON.parse(fs.readFileSync(process.argv[fileArg + 1], 'utf8')) : null;
 const LIST = Array.isArray(fileJson) ? fileJson : (fileJson && fileJson.cards) || SEEDS;
+// --edition (or `edition` in the batch file): the cards join a named DECK
+// within the pool — the page's edition chips narrow the deal to it, and a
+// set found inside one keeps its made card in it. '' files them plain.
+const EDITION = argOf('edition', (fileJson && fileJson.edition) || '');
 const DRY = process.argv.includes('--dry') || !process.argv.includes('--go');
 const sha1 = (s) => crypto.createHash('sha1').update(String(s)).digest('hex');
 
@@ -138,7 +142,11 @@ async function main() {
     await bucket.file(p).makePublic();
     r.url = `https://storage.googleapis.com/${bucket.name}/${p}`;
     const doc = {
-      title: r.title, url: r.url, source: 'seed', status: 'ready',
+      // `name` is the DISPLAY title when the drawn content is a wordy
+      // instruction ("a flat wash of pastel red paint…" reads as "pastel
+      // red"); the exact prompt fields below stay verbatim either way.
+      title: r.name || r.title, url: r.url, source: 'seed', status: 'ready',
+      ...(EDITION ? { edition: EDITION } : {}),
       model: 'gpt-image-2', quality: triset.QUALITY, canvas: triset.CANVAS, size: triset.SIZE_TIER,
       fullPrompt: r.rec.fullPrompt, promptStyle: r.rec.promptStyle, promptContent: r.rec.promptContent,
       createdAt: r.madeAt,
@@ -154,7 +162,7 @@ async function main() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         assetsOnly: true, chat: CHAT, session: SESSION, url: r.url,
-        description: 'Triset ' + SEED_VER + ' card — ' + r.title, prompt: caption,
+        description: 'Triset ' + SEED_VER + ' card — ' + (r.name || r.title), prompt: caption,
         created: r.madeAt,
       }),
     }).then(x => x.json()).catch(e => ({ error: e.message }));

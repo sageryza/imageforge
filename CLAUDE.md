@@ -1950,8 +1950,27 @@ them off the reference sheet, not off the old filenames.
     route both her doors come through). So the tab is what has been handed to
     her and not yet dealt with, and it empties itself; a chat that delivers
     again after she wrote back comes back on its own.
+    **ANSWERED IS JUDGED ON THE FIRST HAND-OVER, NEVER `updatedAt`
+    (2026-08-31, Sophie: "deliverables don't leave when i answer them").**
+    A chat that acts on her answer re-pins the same url at the end of that very
+    turn — its checklist duty — and `record()` bumps `updatedAt`, so a row
+    judged by it was re-dated past her message every time she wrote: it could
+    never STAY answered. The leave rule compares `lastHerAt` against the doc's
+    own `at` (`firstAt` on the row), which never moves for a url; only a
+    genuinely NEW version (a new url → a fresh doc) brings the work back.
+    **AND EVERY ROW HAS HER ✕ (same message: "there's no way to swipe them
+    away").** Answering by message is not the only way she deals with a
+    delivery — a note on the paused film, a ♥, a decision made elsewhere — and
+    none of those stamp `lastHerAt`. The ✕ (`POST /api/deliverables/dismiss`,
+    a film row by its url, a pictures row by its chat) stamps a dismissal into
+    ONE map doc (`__dismissed`, carrying no `updatedAt` on purpose so the
+    orderBy queries can never surface it as a row); the rule is the answered
+    rule's shape — everything handed over before the tap is dealt with, a
+    delivery newer than the stamp shows by itself. A tap, never a swipe (the
+    house rule), and **the ✕ is HERS — a chat must never call the route to
+    tidy its own row away.**
     `deliverables-feed.js` is the whole
-    rule (pure); `GET /api/deliverables/feed` is the read, two cached queries
+    rule (pure); `GET /api/deliverables/feed` is the read, three cached queries
     and no model call.
   - **AND THE BUG PILE DOES NOT REACH INTO THE ARCHIVE (2026-08-28, Sophie:
     "archive doesn't pop out ur insane that's the point of archive").** It
@@ -7645,6 +7664,7 @@ before working on that module. Nothing was deleted — the moved text is verbati
     overlay), and carries `flip` on its doc — the page clips it point-down
     wherever it is dealt, forever, which is also how you tell the cards the
     game made from the seeds.
+<<<<<<< HEAD
   - **THE CUT IS A PERFECT EQUILATERAL WITH A GUARANTEED CREAM BORDER
     (2026-08-30 "fix the cutting"; settled 2026-08-31 round three, off her
     print sheets: "they're cut straight to the line in some spaces. they all
@@ -7665,6 +7685,28 @@ before working on that module. Nothing was deleted — the moved text is verbati
     runs through cream — never art. A full-bleed draw goes through the same
     path. **Cover-fitting or shape-preserving are HISTORY — don't bring
     either back.**
+=======
+  - **THE CUT IS A PERFECT EQUILATERAL, MEASURED PER IMAGE (2026-08-30
+    "fix the cutting", settled 2026-08-31: "the original cream cut is wrong
+    which makes these extra wrong. original cut shud all be perfect
+    equilateral").** The model draws each card with its own cream paper rim
+    and frame line but at a different size/steepness every time. The c1 bake
+    preserved the drawn shape (flood-fill, contain-fit at 0.96) — faithful to
+    the drawing and WRONG for a card: every cut came out a slightly different
+    triangle, and on her printed cut-sheets the differences compounded.
+    `triset-cut.js` (c2) bakes a derived display copy per card (`cut` on the
+    doc, `triset/cuts/<id>.c2.webp`): flood-fill the white background
+    transparent from the edges (interior white highlights keep), then
+    **COVER-fit** — scale the drawn card UP just enough that the ideal slot
+    triangle (1000x866, per flip) is entirely inside it (`coverPlan`, minimal
+    scale, placement scanned from centered/base-anchored) — and mask HARD
+    with the exact triangle. What a physical die does: a perfect triangle cut
+    out of an imperfect drawing, the slivers past the die lost — a steep
+    drawing loses its apex, deliberately. A full-bleed draw goes through the
+    same cover path, so there is one geometry. **The contain-fit is HISTORY —
+    don't bring it back for the board's card gap**; that gap is the board's
+    spacing to provide.
+>>>>>>> origin/main
     **THE ONLY CREAM BORDER IS THE PAPER RIM THE MODEL DREW INTO THE PICTURE
     (2026-08-31, Sophie: "there shud be no cream border aside from the one
     built into the images").** The first cut of this put a cream `.face` mat

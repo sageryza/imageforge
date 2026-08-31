@@ -1,0 +1,78 @@
+{
+  "note": "Triset COLOR EDITION (2026-08-31, Sophie: 'triset color edition' + her 12-pastel-triangle-tiles concept sheet). The color wheel as cards: 3 primary, 3 secondary, 6 tertiary. Sets are color mixes \u2014 red + yellow around the middle makes orange, which the venn draw paints itself. Flat pastel wash filling the card, no subject, no text. 2026-08-31 v2, her correction mid-turn: NOT dreamy \u2014 'for now the digital version just hex colors' (the drawn color1 cards are hidden from the pool, kept in the Assets tab). Hexes SAMPLED from her own concept sheet, not guessed. The physical concept she described for later: light wood tiles, slightly varnished, imperfect hand-painted hues (blue-tape edges, tiny imperfections but a mostly clean line), wood outline ~1/3 cm, tiles approx 2-2.5 inch.",
+  "cards": [
+    {
+      "slug": "color-red",
+      "title": "a flat wash of pastel red paint filling the whole card, nothing else",
+      "name": "pastel red",
+      "hex": "#e67774"
+    },
+    {
+      "slug": "color-yellow",
+      "title": "a flat wash of pastel yellow paint filling the whole card, nothing else",
+      "name": "pastel yellow",
+      "hex": "#efcb52"
+    },
+    {
+      "slug": "color-blue",
+      "title": "a flat wash of pastel blue paint filling the whole card, nothing else",
+      "name": "pastel blue",
+      "hex": "#8ca2c5"
+    },
+    {
+      "slug": "color-orange",
+      "title": "a flat wash of pastel orange paint filling the whole card, nothing else",
+      "name": "pastel orange",
+      "hex": "#ee975d"
+    },
+    {
+      "slug": "color-green",
+      "title": "a flat wash of pastel green paint filling the whole card, nothing else",
+      "name": "pastel green",
+      "hex": "#a5bb8b"
+    },
+    {
+      "slug": "color-purple",
+      "title": "a flat wash of pastel purple paint filling the whole card, nothing else",
+      "name": "pastel purple",
+      "hex": "#bb9db8"
+    },
+    {
+      "slug": "color-red-orange",
+      "title": "a flat wash of pastel red-orange paint filling the whole card, nothing else",
+      "name": "pastel red-orange",
+      "hex": "#ed936d"
+    },
+    {
+      "slug": "color-yellow-orange",
+      "title": "a flat wash of pastel yellow-orange paint filling the whole card, nothing else",
+      "name": "pastel yellow-orange",
+      "hex": "#e8ac72"
+    },
+    {
+      "slug": "color-yellow-green",
+      "title": "a flat wash of pastel yellow-green paint filling the whole card, nothing else",
+      "name": "pastel yellow-green",
+      "hex": "#cbc46a"
+    },
+    {
+      "slug": "color-blue-green",
+      "title": "a flat wash of pastel blue-green paint filling the whole card, nothing else",
+      "name": "pastel blue-green",
+      "hex": "#93b3ad"
+    },
+    {
+      "slug": "color-blue-purple",
+      "title": "a flat wash of pastel blue-purple paint filling the whole card, nothing else",
+      "name": "pastel blue-purple",
+      "hex": "#9396b9"
+    },
+    {
+      "slug": "color-red-purple",
+      "title": "a flat wash of pastel red-purple paint filling the whole card, nothing else",
+      "name": "pastel red-purple",
+      "hex": "#ce818a"
+    }
+  ],
+  "edition": "color"
+}
