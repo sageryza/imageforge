@@ -174,32 +174,45 @@ const cut = require('../triset-cut');
   ok('an interior white highlight SURVIVES (flood fill, not a chroma key)', a(30, 42) === 255);
 }
 {
-  // inscribePlan: the largest card INSIDE the bordered triangle (2026-08-31,
-  // round three, off her print sheets: "they're cut straight to the line in
-  // some spaces. they all need to have a MINIMUM border of cream space" —
-  // c2's cover-fit cropped art, and is history).
-  const w = 100; const h = 100;
-  const solid = Buffer.alloc(w * h * 4, 255);
-  const bbox = { x0: 0, y0: 0, x1: 99, y1: 99 };
-  const plan = cut.inscribePlan(solid, w, h, bbox);
+  // inscribePlan (c5): the largest WINDOW into the original that keeps every
+  // drawn pixel MIN_BORDER inside the triangle — and the whole window inside
+  // the source frame, because the cut is an extract of the original. The
+  // synthetics are TRIANGLES like the real drawn cards: a rectangle can
+  // never satisfy both constraints, and no card is one.
+  const w = 200; const h = 200;
+  const tri = (apexY, baseY, x0, x1) => {
+    const buf = Buffer.alloc(w * h * 4, 0);
+    const cx0 = (x0 + x1) / 2;
+    for (let y = apexY; y <= baseY; y += 1) {
+      const f = (y - apexY) / (baseY - apexY);
+      const half = ((x1 - x0) / 2) * f;
+      for (let x = Math.ceil(cx0 - half); x <= Math.floor(cx0 + half); x += 1) buf[(y * w + x) * 4 + 3] = 255;
+    }
+    return buf;
+  };
+  const card = tri(16, 180, 14, 186);
+  const bbox = { x0: 14, y0: 16, x1: 186, y1: 180 };
+  const plan = cut.inscribePlan(card, w, h, bbox);
+  ok('a drawn card gets a real (non-fallback) window', !plan.cover);
+  const k = plan.scale;
+  // NO window-inside-frame assertion: her real cards fill ~950 of a 1024
+  // frame, so the border-keeping window MUST overhang — bakeCut continues
+  // the overhang in the frame's own measured paper colour.
   const [[ax, ay], [bx, by], [cx, cy]] = cut.insetTri(false);
-  const edge = (px, py, x0, y0, x1, y1) => (x1 - x0) * (py - y0) - (y1 - y0) * (px - x0);
+  const edge = (px, py, xa, ya, xb, yb) => (xb - xa) * (py - ya) - (yb - ya) * (px - xa);
   const sgn = edge(cx, cy, ax, ay, bx, by) >= 0 ? 1 : -1;
-  const inside = (px, py) => sgn * edge(px, py, ax, ay, bx, by) >= -1
-    && sgn * edge(px, py, bx, by, cx, cy) >= -1 && sgn * edge(px, py, cx, cy, ax, ay) >= -1;
-  const corners = [
-    [plan.left, plan.top], [plan.left + 99 * plan.scale, plan.top],
-    [plan.left, plan.top + 99 * plan.scale], [plan.left + 99 * plan.scale, plan.top + 99 * plan.scale]];
-  ok('an opaque square lands entirely inside the inset triangle',
-    corners.every(([x, y]) => inside(x, y)));
-  ok('…as large as that allows (not shrunk to nothing)', 99 * plan.scale > 300);
+  const inside = (px, py) => sgn * edge(px, py, ax, ay, bx, by) >= -2
+    && sgn * edge(px, py, bx, by, cx, cy) >= -2 && sgn * edge(px, py, cx, cy, ax, ay) >= -2;
+  const cardPts = [[100, 16], [14, 180], [186, 180], [100, 100]];
+  ok('every drawn pixel lands inside the inset triangle',
+    cardPts.every(([x, y]) => inside(plan.left + (x - bbox.x0) * k, plan.top + (y - bbox.y0) * k)));
   // a squat drawing anchors to the base — the extra room is at the TOP
-  const squat = Buffer.alloc(w * h * 4, 0);
-  for (let y = 60; y < 95; y += 1) for (let x = 10; x < 90; x += 1) squat[(y * w + x) * 4 + 3] = 255;
-  const qb = { x0: 10, y0: 60, x1: 89, y1: 94 };
-  const qp = cut.inscribePlan(squat, w, h, qb);
-  const bottom = qp.top + 35 * qp.scale;
-  ok('a squat card sits at the base, extra cream above it', bottom > 866 - cut.MIN_BORDER - 60);
+  const squat = tri(120, 184, 12, 188);
+  const qp = cut.inscribePlan(squat, w, h, { x0: 12, y0: 120, x1: 188, y1: 184 });
+  ok('a squat card sits at the base, extra room above it',
+    !qp.cover && qp.top + 64 * qp.scale > 866 - cut.MIN_BORDER - 80);
+  // (a full-bleed frame never reaches inscribePlan — bakeCut routes it to
+  // the cover path first, tested end-to-end below)
 }
 ok('render banks the paid bytes BEFORE the cut, and a failed bake still readies the card',
   /await ref\.set\(\{ url \}, \{ merge: true \}\)/.test(MOD)
@@ -235,46 +248,31 @@ async function bakeChecks() {
     }
   }
   ok('the interior white patch is opaque in the bake', highlight);
-  // THE CUT IS THE PERFECT EQUILATERAL AND ITS EDGE IS CREAM (2026-08-31
-  // round three): the triangle fills to its corners — with the rim's own
-  // cream, never with art, so a scissor line can never touch the drawing.
-  const creamAt = (x, y) => { const [r, g, b, al] = px(x, y); return al === 255 && r > 180 && g > 160 && b > 120; };
-  ok('the cut fills the triangle to its corners, in cream',
-    creamAt(500, 20) && creamAt(40, 850) && creamAt(960, 850));
-  // NO WHITE SEAM (2026-08-31, Sophie: "the original cut shows as white
-  // lines") — resizing a hard alpha edge rings ~1px brighter than either
-  // side, tracing the flood boundary; the card is flattened onto its cream
-  // BEFORE the resize so the seam is cream meeting cream. Asked on a card
-  // shaped like the REAL ones — brown art inside a drawn CREAM RIM — with
-  // no white art of its own, so any brighter-than-cream pixel inside the
-  // triangle can only be the seam ring. (A rimless dark-edged card still
-  // rings faintly at its own edge — that is ordinary resampling at a
-  // contrast edge, the same as inside any resized picture, and not this.)
+  // THE CUT IS A WINDOW INTO THE ORIGINAL (2026-08-31, Sophie: "just recut
+  // the original") — the border around the drawn rim is the source's own
+  // paper, so the triangle's corners hold LIGHT original pixels (the
+  // synthetic's paper is white) and nothing dark sits near the cut edge.
+  const lightAt = (x, y) => { const [r, g, b, al] = px(x, y); return al === 255 && r > 200 && g > 200 && b > 180; };
+  ok('the triangle fills to its corners with the original\'s own paper',
+    lightAt(500, 30) && lightAt(50, 850) && lightAt(950, 850));
   {
-    const plain = Buffer.from('<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">'
-      + '<rect width="200" height="200" fill="#fff"/>'
-      + '<polygon points="100,14 186,174 14,174" fill="#f3ecdd"/>'
-      + '<polygon points="100,34 172,164 28,164" fill="#7a4a2b"/></svg>');
-    const pb = await cut.bakeCut(await sharp(plain).png().toBuffer());
-    const raw3 = await sharp(pb.buf).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-    const p3 = (x, y) => { const i = (y * raw3.info.width + x) * 4; return [raw3.data[i], raw3.data[i + 1], raw3.data[i + 2], raw3.data[i + 3]]; };
-    // a bright pixel NEXT TO INK is ordinary resampling at a contrast edge;
-    // the seam ring sat in FLAT cream (rim one side, fill the other, no ink
-    // for 25px) — so only a bright pixel with no dark neighbour counts
-    const dark = (x, y) => { const [r] = p3(x, y); return r < 150; };
-    let ring = 0;
-    for (let y = 60; y < 820; y += 2) {
-      for (let x = 140; x < 860; x += 2) {
-        const [r, g, b, al] = p3(x, y);
-        if (!(al === 255 && r > cut.CREAM.r + 5 && g > cut.CREAM.g + 5 && b > cut.CREAM.b + 5)) continue;
-        let nearInk = false;
-        for (let dy = -8; dy <= 8 && !nearInk; dy += 4) {
-          for (let dx = -8; dx <= 8; dx += 4) { if (dark(x + dx, y + dy)) { nearInk = true; break; } }
-        }
-        if (!nearInk) ring += 1;
+    // MIN_BORDER: walk just inside each edge of the triangle — every pixel
+    // there is paper or rim, never art (a scissor line cannot touch the
+    // drawing). Sampled 10px inside the exact edges.
+    let dark = 0;
+    for (let t = 0.06; t < 0.94; t += 0.02) {
+      const spots = [
+        [500 + (1000 - 500) * t, 0 + 866 * t],            // right edge apex→base-right
+        [500 - 500 * t, 866 * t],                         // left edge
+        [60 + 880 * t, 856],                              // base, 10px up
+      ];
+      for (const [x, y] of spots) {
+        const px2 = Math.round(x + (x < 500 ? 10 : -10)); const py2 = Math.round(Math.min(856, y));
+        const [r, , , al] = px(px2, py2);
+        if (al === 255 && r < 150) dark += 1;
       }
     }
-    ok('no seam ring in the flat cream (bright pixels clear of any ink)', ring === 0);
+    ok('nothing dark within the border band along the cut edges', dark === 0);
   }
   // a full-bleed draw (no white paper) falls back to the ideal triangle mask
   const solid = await sharp({ create: { width: 120, height: 120, channels: 3, background: '#7a4a2b' } }).png().toBuffer();
