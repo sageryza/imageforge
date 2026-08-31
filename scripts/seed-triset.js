@@ -101,7 +101,13 @@ async function main() {
   const results = await Promise.all(LIST.map(async (s) => {
     const rec = triset.cardPrompt(s.title, { invent: false });
     try {
-      const f = path.join(outDir, s.slug + '.webp');
+      // THE BANK IS KEYED ON THE PROMPT, NOT THE SLUG (2026-08-31). It was
+      // the slug alone, so re-running a slug whose TITLE had changed — a
+      // re-roll carrying her note ("just the hands, no ppl") — silently
+      // re-uploaded the OLD picture and filed the NEW prompt against it. The
+      // saving is real and worth keeping; the identity has to be what was
+      // actually drawn.
+      const f = path.join(outDir, s.slug + '-' + sha1(rec.fullPrompt).slice(0, 8) + '.webp');
       // a banked draw is PAID work — a re-run after an upload failure must
       // never draw (and bill) it again
       if (fs.existsSync(f) && fs.statSync(f).size > 10000) {
