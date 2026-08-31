@@ -1,16 +1,31 @@
-// Assemble the all-cards Compare page from /tmp/tricards.json + the shell rules.
+#!/usr/bin/env node
+/* Emit the "Triset — versions compared" page from /tmp/tricards.json (run
+   gen-triset-compare-data.js first). Each subject is one card: its
+   generations side by side, quality tags on top, thumbs in the grid
+   (`/api/story/thumb`) with the ORIGINAL behind the lightbox via data-full —
+   a quality comparison zoomed on a thumb would be a lie. Three toggles at
+   the top (Sophie's ask): hearted only / hide the crossed-out / show notes;
+   the NEWEST generation's vote is the group's verdict for filtering.
+   Votes and notes ride each card's own chat's Assets thread (both ways).
+   Post via POST /api/chatfeed/page — a re-post is a NEW page version.
+   Test: node scripts/test-triset-compare.js */
 const fs = require('fs');
-const cards = JSON.parse(fs.readFileSync('/tmp/tricards.json', 'utf8'));
-const chats = [...new Set(cards.map(c => c.chat).filter(Boolean))];
-const data = cards.map(c => ({
-  id: c.id.slice(0, 12), t: c.title, u: c.url, cut: c.cut || '', chat: c.chat, q: c.quality, f: c.flip ? 1 : 0,
+const groups = JSON.parse(fs.readFileSync('/tmp/tricards.json', 'utf8'));
+const chats = [...new Set(groups.flatMap(g => g.versions.map(v => v.chat)).filter(Boolean))];
+const data = groups.map(g => ({
+  slug: g.slug, t: g.title,
+  vs: g.versions.map((v, i) => {
+    let tag = v.quality || '?';
+    if (i > 0 && v.promptContent && v.promptContent !== g.versions[0].promptContent) tag += ' · new prompt';
+    else if (g.versions.slice(0, i).some(p => p.quality === v.quality)) tag += ' · redo';
+    return { u: v.url, chat: v.chat, tag };
+  }),
 }));
 const html = `<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Triset cards — all chats</title>
+<title>Triset — versions compared</title>
 <link rel="stylesheet" href="/compare.css">
 <style>
-/* filter row: three rounded squares (house 6px), 64px reserved for the pill */
 #filt{position:sticky;top:0;z-index:5;background:var(--paper);display:flex;gap:10px;
   padding:8px 64px 8px 0;align-items:center}
 #filt button{width:34px;height:34px;border:1px solid var(--line,#d8d2c6);border-radius:6px;
@@ -20,31 +35,30 @@ const html = `<meta charset="utf-8">
 #filt #fheart.on svg{fill:#fff}
 #filt #fx.on{background:#8a857c;border-color:#8a857c;color:#fff}
 #filt #fnotes.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
-#count{font-size:12px;color:var(--ink2,#7a7466);margin-left:2px}
-#wall{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 10px;align-items:start}
-.tcell{min-width:0}
-.tcell img{width:100%;display:block;cursor:pointer}
-.tcell img.flip{transform:rotate(180deg)}
-.tt{font-size:11.5px;line-height:1.3;margin-top:4px;color:var(--ink)}
-.tq{font-size:10px;color:var(--ink2,#9a9488);text-transform:uppercase;letter-spacing:.04em}
-.tacts{display:flex;gap:6px;margin-top:4px;align-items:center}
-.tacts button{width:28px;height:28px;border:1px solid var(--line,#d8d2c6);border-radius:6px;
+#count{font-size:12px;color:var(--ink2,#7a7466)}
+.grp h2{font-size:15px;margin:0 0 6px}
+.vrow{display:flex;flex-wrap:wrap;gap:10px}
+.vrow figure{margin:0;flex:0 0 calc(50% - 5px);min-width:0}
+.vrow .tag{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;
+  color:var(--ink2,#7a7466);margin-bottom:3px}
+.vrow img{width:100%;display:block;cursor:pointer}
+.vacts{display:flex;gap:6px;margin-top:4px;align-items:center}
+.vacts button{width:28px;height:28px;border:1px solid var(--line,#d8d2c6);border-radius:6px;
   background:var(--paper);color:var(--ink);display:flex;align-items:center;justify-content:center;padding:0}
-.tacts button svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8}
-.tacts .v-like.on{background:var(--rose,#c46a6a);border-color:var(--rose,#c46a6a);color:#fff}
-.tacts .v-like.on svg{fill:#fff}
-.tacts .v-x.on{background:#8a857c;border-color:#8a857c;color:#fff}
-.tacts .addn{margin-left:auto;font-size:16px;line-height:1}
-.tnotes{margin-top:4px;font-size:11px;line-height:1.35;color:var(--ink)}
-.tnotes .nm{margin-bottom:2px}
-.tnotes .nm b{font-weight:600;color:var(--ink2,#7a7466)}
-.tnotes textarea{width:100%;box-sizing:border-box;border:1px solid var(--line,#d8d2c6);border-radius:6px;
+.vacts button svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8}
+.vacts .v-like.on{background:var(--rose,#c46a6a);border-color:var(--rose,#c46a6a);color:#fff}
+.vacts .v-like.on svg{fill:#fff}
+.vacts .v-x.on{background:#8a857c;border-color:#8a857c;color:#fff}
+.vacts .addn{margin-left:auto;font-size:16px;line-height:1}
+.vnotes{margin-top:4px;font-size:11px;line-height:1.35;color:var(--ink)}
+.vnotes .nm b{font-weight:600;color:var(--ink2,#7a7466)}
+.vnotes textarea{width:100%;box-sizing:border-box;border:1px solid var(--line,#d8d2c6);border-radius:6px;
   background:#fff;font:inherit;font-size:12px;padding:6px;min-height:44px}
-body.noNotes .tnotes{display:none}
+body.noNotes .vnotes{display:none}
 [hidden]{display:none !important}
 </style>
 <div class="wrap">
-  <h1>Triset cards — all chats</h1>
+  <h1>Triset — versions compared</h1>
   <div id="filt">
     <button id="fheart" aria-label="Hearted only" title="Hearted only"><svg viewBox="0 0 24 24"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2C10.5 3.5 9.3 3 7.5 3A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7z"/></svg></button>
     <button id="fx" aria-label="Hide the crossed-out" title="Hide the crossed-out"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
@@ -56,46 +70,50 @@ body.noNotes .tnotes{display:none}
 <script src="/compare.js"></script>
 <script>
 (function () {
-  var CARDS = ${JSON.stringify(data)};
-  var votes = {};   // url -> {vote, thread:[{from,text}]}
+  var GROUPS = ${JSON.stringify(data)};
+  var votes = {};
   var HEART_SVG = document.getElementById('fheart').innerHTML;
   var X_SVG = document.getElementById('fx').innerHTML;
   var st = {};
-  try { st = JSON.parse(localStorage.getItem('trisetAllFilters') || '{}'); } catch (e) {}
+  try { st = JSON.parse(localStorage.getItem('trisetCmpFilters') || '{}'); } catch (e) {}
   var fHeart = !!st.h, fX = !!st.x, fNotes = !!st.n;
-
-  function save() { try { localStorage.setItem('trisetAllFilters', JSON.stringify({ h: fHeart, x: fX, n: fNotes })); } catch (e) {} }
+  function save() { try { localStorage.setItem('trisetCmpFilters', JSON.stringify({ h: fHeart, x: fX, n: fNotes })); } catch (e) {} }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function thumb(u) { return '/api/story/thumb?w=640&url=' + encodeURIComponent(u); }
 
   var wall = document.getElementById('wall');
-  CARDS.forEach(function (c) {
-    var cell = document.createElement('div');
-    cell.className = 'tcell'; cell.dataset.url = c.u;
-    cell.innerHTML =
-      '<img loading="lazy" src="' + esc(c.cut || c.u) + '" alt="' + esc(c.t) + '"' + (c.f ? ' class="flip"' : '') + '>' +
-      '<div class="tt">' + esc(c.t) + '</div>' +
-      '<div class="tq">' + esc(c.q || '') + '</div>' +
-      (c.chat ? '<div class="tacts">' +
-        '<button class="v-like" aria-label="Heart">' + HEART_SVG + '</button>' +
-        '<button class="v-x" aria-label="Cross out">' + X_SVG + '</button>' +
-        '<button class="addn" aria-label="Add a note">+</button></div>' : '') +
-      '<div class="tnotes"></div>';
-    cell._card = c;
-    wall.appendChild(cell);
-    var like = cell.querySelector('.v-like'), x = cell.querySelector('.v-x'), addn = cell.querySelector('.addn');
-    if (like) like.onclick = function () { cast(cell, c, 'like'); };
-    if (x) x.onclick = function () { cast(cell, c, 'dislike'); };
-    if (addn) addn.onclick = function () { openNote(cell, c); };
+  GROUPS.forEach(function (g) {
+    var card = document.createElement('div');
+    card.className = 'card grp'; card._g = g;
+    card.innerHTML = '<h2>' + esc(g.t) + '</h2><div class="vrow"></div>';
+    var row = card.querySelector('.vrow');
+    g.vs.forEach(function (v) {
+      var f = document.createElement('figure');
+      f.dataset.url = v.u;
+      f.innerHTML = '<span class="tag">' + esc(v.tag) + '</span>' +
+        '<img loading="lazy" src="' + esc(thumb(v.u)) + '" data-full="' + esc(v.u) + '" alt="' + esc(g.t + ' — ' + v.tag) + '">' +
+        (v.chat ? '<div class="vacts">' +
+          '<button class="v-like" aria-label="Heart">' + HEART_SVG + '</button>' +
+          '<button class="v-x" aria-label="Cross out">' + X_SVG + '</button>' +
+          '<button class="addn" aria-label="Add a note">+</button></div>' : '') +
+        '<div class="vnotes"></div>';
+      var like = f.querySelector('.v-like'), x = f.querySelector('.v-x'), addn = f.querySelector('.addn');
+      if (like) like.onclick = function () { cast(f, v, 'like'); };
+      if (x) x.onclick = function () { cast(f, v, 'dislike'); };
+      if (addn) addn.onclick = function () { openNote(f, v); };
+      row.appendChild(f);
+    });
+    wall.appendChild(card);
   });
 
   function voteOf(u) { return (votes[u] || {}).vote || null; }
-  function paintCell(cell) {
-    var v = voteOf(cell.dataset.url);
-    var like = cell.querySelector('.v-like'), x = cell.querySelector('.v-x');
+  function paintFig(f) {
+    var v = voteOf(f.dataset.url);
+    var like = f.querySelector('.v-like'), x = f.querySelector('.v-x');
     if (like) like.classList.toggle('on', v === 'like');
     if (x) x.classList.toggle('on', v === 'dislike');
-    var th = (votes[cell.dataset.url] || {}).thread || [];
-    var box = cell.querySelector('.tnotes');
+    var th = (votes[f.dataset.url] || {}).thread || [];
+    var box = f.querySelector('.vnotes');
     if (box && !box.querySelector('textarea')) {
       box.innerHTML = th.map(function (m) {
         return '<div class="nm"><b>' + esc(m.from === 'sophie' ? 'you' : 'chat') + ':</b> ' + esc(m.text || '') + '</div>';
@@ -105,12 +123,14 @@ body.noNotes .tnotes{display:none}
   function applyFilters() {
     var shown = 0;
     document.body.classList.toggle('noNotes', !fNotes);
-    Array.prototype.forEach.call(wall.children, function (cell) {
-      var v = voteOf(cell.dataset.url);
+    Array.prototype.forEach.call(wall.children, function (card) {
+      // the NEWEST generation's vote is the group's verdict
+      var g = card._g, newest = g.vs[g.vs.length - 1], v = voteOf(newest.u);
       var hide = (fHeart && v !== 'like') || (fX && v === 'dislike');
-      cell.hidden = hide; if (!hide) shown++;
+      card.hidden = hide; if (!hide) shown++;
+      if (!hide) Array.prototype.forEach.call(card.querySelectorAll('figure'), paintFig);
     });
-    document.getElementById('count').textContent = shown + ' of ' + CARDS.length;
+    document.getElementById('count').textContent = shown + ' of ' + GROUPS.length;
     document.getElementById('fheart').classList.toggle('on', fHeart);
     document.getElementById('fx').classList.toggle('on', fX);
     document.getElementById('fnotes').classList.toggle('on', fNotes);
@@ -119,18 +139,18 @@ body.noNotes .tnotes{display:none}
   document.getElementById('fx').onclick = function () { fX = !fX; save(); applyFilters(); };
   document.getElementById('fnotes').onclick = function () { fNotes = !fNotes; save(); applyFilters(); };
 
-  function cast(cell, c, v) {
-    var cur = voteOf(c.u), next = (cur === v) ? null : v;
-    votes[c.u] = votes[c.u] || {}; votes[c.u].vote = next;
-    paintCell(cell); applyFilters();
+  function cast(f, v, kind) {
+    var cur = voteOf(v.u), next = (cur === kind) ? null : kind;
+    votes[v.u] = votes[v.u] || {}; votes[v.u].vote = next;
+    paintFig(f); applyFilters();
     fetch('/api/gallery/assets/vote', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat: c.chat, url: c.u, vote: next }) }).catch(function () {});
+      body: JSON.stringify({ chat: v.chat, url: v.u, vote: next }) }).catch(function () {});
   }
-  // a note goes onto the ASSET THREAD (it rings the chat that made the card),
-  // never this page's verdict doc — one pile of notes per picture, not two
-  function openNote(cell, c) {
+  // notes go onto the ASSET THREAD (rings the chat that made the card) —
+  // one pile of notes per picture, never a second verdict pile
+  function openNote(f, v) {
     fNotes = true; save(); applyFilters();
-    var box = cell.querySelector('.tnotes');
+    var box = f.querySelector('.vnotes');
     if (box.querySelector('textarea')) return;
     var ta = document.createElement('textarea');
     var send = document.createElement('button'); send.textContent = 'Send'; send.className = 'btn';
@@ -138,15 +158,14 @@ body.noNotes .tnotes{display:none}
     send.onclick = function () {
       var t = (ta.value || '').trim(); if (!t) { ta.remove(); send.remove(); return; }
       fetch('/api/gallery/assets/note', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat: c.chat, url: c.u, text: t, from: 'sophie' }) })
+        body: JSON.stringify({ chat: v.chat, url: v.u, text: t, from: 'sophie' }) })
         .then(function () {
-          votes[c.u] = votes[c.u] || {}; votes[c.u].thread = (votes[c.u].thread || []).concat([{ from: 'sophie', text: t }]);
-          ta.remove(); send.remove(); paintCell(cell);
+          votes[v.u] = votes[v.u] || {}; votes[v.u].thread = (votes[v.u].thread || []).concat([{ from: 'sophie', text: t }]);
+          ta.remove(); send.remove(); paintFig(f);
         }).catch(function () { send.textContent = 'Failed — tap again'; });
     };
   }
 
-  // live votes + note threads from each chat's Assets tab, merged by url (and alts)
   var CHATS = ${JSON.stringify(chats)};
   Promise.all(CHATS.map(function (ch) {
     return fetch('/api/gallery/assets?chat=' + encodeURIComponent(ch) + '&limit=500')
@@ -158,16 +177,17 @@ body.noNotes .tnotes{display:none}
         [a.url].concat(a.alts || []).forEach(function (u) { if (u) votes[u] = rec; });
       });
     });
-    Array.prototype.forEach.call(wall.children, paintCell);
+    Array.prototype.forEach.call(document.querySelectorAll('.vrow figure'), paintFig);
     applyFilters();
   });
   applyFilters();
 
-  window.__compareHelp({ html: '<b>Every visible Triset card, all chats, newest first.</b> '
-    + 'Heart keeps favorites, ✕ crosses one out — both sync with each chat\\u2019s Assets tab. '
-    + 'The three toggles: hearted only \\u00b7 hide the crossed-out \\u00b7 show notes. '
-    + '+ on a card writes a note to the chat that made it.' });
+  window.__compareHelp({ html: '<b>Every Triset subject drawn more than once — its generations side by side.</b> '
+    + 'Oldest left, newest right; the tag says the quality. Tap a picture for the FULL-RES original. '
+    + '\\u2665 and \\u2715 mark one generation and sync with that chat\\u2019s Assets tab; '
+    + 'the top toggles filter by the NEWEST generation\\u2019s mark (hearted only \\u00b7 hide the crossed-out) '
+    + 'and show the notes. + writes a note to the chat that made that version.' });
 })();
 </script>`;
 fs.writeFileSync('/tmp/tripage.html', html);
-console.log('html bytes:', html.length, 'cards:', data.length, 'chats:', chats.join(', '));
+console.log('html bytes:', html.length, 'groups:', data.length, 'chats:', chats.join(', '));
