@@ -1963,6 +1963,9 @@ body.newspick > .float{display:none !important;}
 </div>
 <div id="toast"></div>
 <div id="clightbox"></div>
+<script src="/playground-port.js"></script>
+<script src="/sheet-grid.js"></script>
+<script src="/asset-actions.js"></script>
 <script src="/asset-lightbox.js"></script>
 <script src="/filmnote.js"></script>
 <script>
@@ -4964,7 +4967,7 @@ function paintDelivered(el, items){
         b.appendChild(im);
         // The shared lightbox (/asset-lightbox.js) — the one copy, so a ♥ or a
         // note left here lands in the Assets tab like everywhere else.
-        b.onclick=function(){ lightbox(p.url, { url:p.url, description:p.label, prompt:p.caption, chat:it.chat }); };
+        b.onclick=function(){ lightbox(p.url, { url:p.url, description:p.label, prompt:p.caption, chat:it.chat, _chatDoor:true }); };
         strip.appendChild(b);
       });
       row.appendChild(strip);
@@ -9571,7 +9574,29 @@ function askArchive(name, cb){
 // to what happens when I open the image in assets… just port that exact code").
 // One copy on purpose — a second hand copy had already drifted once.
 window.scrollStop = scrollStop;   // the shared lightbox pauses our autoscroll
-function lightbox(url, asset){ window.__assetLightbox(url, asset); }
+// AND THE DOORS UNDER THE PICTURE ARE THE SHARED SET TOO (2026-08-31, Sophie:
+// "why the fuck different buttons in assets ex no playground button"). One
+// shared lightbox is not one view while every caller types out its own
+// `actions`: this tab — the surface she reviews EVERY picture in — passed
+// none at all, so a picture she wanted in the Playground had to be found a
+// second time in Meta Assets first. /asset-actions.js is the one set.
+//
+// chatDoor is FALSE here and only here: "Open the chat" would be a button
+// back to the screen she is already standing on.
+//
+// `api` and `toast` live inside this file's IIFE, so they are handed in
+// rather than leaked onto window.
+// GUARDED like every other shared script this page links (/tritoggle.js,
+// /filmnote.js): a page whose shared file 404s must still render. The doors
+// are MEASURED on the real page by test-asset-doors.js, so the guard cannot
+// quietly become "there are no doors" — that is the one thing it is allowed
+// to hide, and something else is watching it.
+var DOORS = window.ForgeAssetActions || null;
+if(DOORS) DOORS.init({ api: api, toast: toast });
+function lightbox(url, asset){
+  if(asset && DOORS) asset.actions=DOORS.build(url, asset, {chatDoor:!!asset._chatDoor});
+  window.__assetLightbox(url, asset);
+}
 // THE SEARCH SURVIVES A BACK-OUT (Aug 2026, Sophie: "when I search something
 // and then I click on one of the options if it's not the one I want when I go
 // back I want that to still be active"). A search is a LIST SHE IS WORKING
