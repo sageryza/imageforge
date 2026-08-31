@@ -790,7 +790,6 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
       Decision Deck sizes exactly.
   - **`grid`** = the classic one-variable comparison: each group is one row
     wrapping at THREE across (2026-08-19 — six ~50px tiles in one phone row
-<<<<<<< HEAD
     was unreadable, whatever the original 2–6 spec said), **ruled off from
     the next group with a hairline** (same day, Sophie: "a line between
     different sets of things being compared, so that if things … wrapped to
@@ -833,23 +832,6 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     tap-to-TOGGLE whose skip list is `[data-nostop],img,figure,.cmp-lb`, and
     without the mark the tap that CLOSED the lightbox started the autoscroll
     behind it.
-=======
-    was unreadable, whatever the original 2–6 spec said), and the tile is
-    **minimal like an Assets tile** (same day, Sophie: "the things I need to
-    compare are staggered and the titles are way too long… just the picture
-    and then two lines underneath it saying what changed"): the PICTURE
-    first, so a row lines up, then the label clamped to two lines — the
-    what-changed line — then ♥/✕ + note + PROMPT (the Assets overlay:
-    content/style split, opens on CONTENT, MODEL · QUALITY at the top; when
-    a row's variants differ in their STYLE half, each variant's style tab
-    marks the lines it does not share in rose). **Tapping an asset-backed
-    picture opens THE Assets-tab lightbox** — `/asset-lightbox.js`, the
-    exact code lifted out of chats.html (her ask: "identical to what happens
-    when I open the image in assets"), so the big image, ♥/✕ on its corners,
-    the note THREAD under it and the Prompt button are one implementation on
-    both surfaces; the lightbox ♥ saves the page verdict and the asset vote
-    together, and the tile repaints under it.
->>>>>>> origin/main
   - **A MISSING PROMPT IS FILLED FROM THE ASSETS TAB ON LOAD (Aug 2026,
     Sophie: "I don't see a prompt box for this chat").** A template page's
     DATA is frozen at post time, so a page whose chat left `promptStyle` /
@@ -892,7 +874,6 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     - **"Auto-compare — same style, different subjects"** — exact-same
       style prompt across different contents (her dream case: one style
       walked across many dreams), shortest content first.
-<<<<<<< HEAD
     - **"Auto-compare — same prompt, drawn again"** (Aug 2026, Sophie: "the
       dream feed chat now has grainy and non-grainy images, can we make this
       auto trigger compare page") — one prompt drawn more than once at the
@@ -915,8 +896,6 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
       the short name, then the draw number, each tried only while the labels
       still collide. (`diffStyleLine` keeps the weaker test, which is the
       right one for grid.js's rose marking between two variants.)
-=======
->>>>>>> origin/main
     A row wears a SHORT tag ("Style 1") with the prompt behind the "?" —
     a group's real header here IS a prompt, and in gold caps between her
     title and the pictures that is exactly the shape the *nothing to read

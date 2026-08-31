@@ -174,7 +174,6 @@ const cut = require('../triset-cut');
   ok('an interior white highlight SURVIVES (flood fill, not a chroma key)', a(30, 42) === 255);
 }
 {
-<<<<<<< HEAD
   // inscribePlan: the largest card INSIDE the bordered triangle (2026-08-31,
   // round three, off her print sheets: "they're cut straight to the line in
   // some spaces. they all need to have a MINIMUM border of cream space" —
@@ -201,31 +200,6 @@ const cut = require('../triset-cut');
   const qp = cut.inscribePlan(squat, w, h, qb);
   const bottom = qp.top + 35 * qp.scale;
   ok('a squat card sits at the base, extra cream above it', bottom > 866 - cut.MIN_BORDER - 60);
-=======
-  // coverPlan: the smallest cover of the slot triangle (2026-08-31, Sophie:
-  // "original cut shud all be perfect equilateral" — the c1 contain-fit
-  // preserved each card's wobbly drawn shape and every cut came out a
-  // different triangle). A fully opaque frame covers at the baseline…
-  const w = 100; const h = 100;
-  const solid = Buffer.alloc(w * h * 4, 255);
-  const bbox = { x0: 0, y0: 0, x1: 99, y1: 99 };
-  const plan = cut.coverPlan(solid, w, h, bbox);
-  ok('an opaque frame covers completely', plan.covered === 1);
-  ok('…at (near) the baseline scale', plan.scale <= Math.max(1000 / w, 866 / h) * 1.03);
-  // …and a STEEP drawn triangle must SCALE PAST the baseline to cover the
-  // ideal triangle's base corners — the exact case c1 left as gaps.
-  const steep = Buffer.alloc(w * h * 4, 0);
-  for (let y = 10; y < 95; y += 1) {
-    const half = Math.round(((y - 10) / 85) * 25);            // narrow: half-width 25 at base
-    for (let x = 50 - half; x <= 50 + half; x += 1) steep[(y * w + x) * 4 + 3] = 255;
-  }
-  const sbox = { x0: 25, y0: 10, x1: 75, y1: 94 };
-  const sp = cut.coverPlan(steep, w, h, sbox);
-  ok('a steep card covers the whole triangle — never keeps its own shape',
-    sp.covered === 1);
-  ok('…which crops it vertically: covering a steep drawing costs its ends',
-    85 * sp.scale > 866 * 1.5);
->>>>>>> origin/main
 }
 ok('render banks the paid bytes BEFORE the cut, and a failed bake still readies the card',
   /await ref\.set\(\{ url \}, \{ merge: true \}\)/.test(MOD)
@@ -261,20 +235,12 @@ async function bakeChecks() {
     }
   }
   ok('the interior white patch is opaque in the bake', highlight);
-<<<<<<< HEAD
   // THE CUT IS THE PERFECT EQUILATERAL AND ITS EDGE IS CREAM (2026-08-31
   // round three): the triangle fills to its corners — with the rim's own
   // cream, never with art, so a scissor line can never touch the drawing.
   const creamAt = (x, y) => { const [r, g, b, al] = px(x, y); return al === 255 && r > 180 && g > 160 && b > 120; };
   ok('the cut fills the triangle to its corners, in cream',
     creamAt(500, 20) && creamAt(40, 850) && creamAt(960, 850));
-=======
-  // THE CUT IS THE PERFECT EQUILATERAL (2026-08-31): points just inside the
-  // ideal triangle's three vertices are opaque — c1 left the base corners
-  // (steeper card) or the apex (flatter card) transparent, per drawing.
-  ok('the cut fills the triangle to its corners',
-    px(500, 20)[3] === 255 && px(40, 850)[3] === 255 && px(960, 850)[3] === 255);
->>>>>>> origin/main
   // a full-bleed draw (no white paper) falls back to the ideal triangle mask
   const solid = await sharp({ create: { width: 120, height: 120, channels: 3, background: '#7a4a2b' } }).png().toBuffer();
   const fb = await cut.bakeCut(solid);
