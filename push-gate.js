@@ -90,6 +90,72 @@ function shouldPushReply({ working, replyCreated, lastHerAt, pushedAt } = {}) {
   return { push: true, why: 'answers-her' };
 }
 
+// ── A CHAT BELLS ITSELF WHEN IT IS BLOCKED ON HER (2026-08-28, Sophie: "can u
+// make chats bell themselves based on importance").
+//
+// The bell is a whitelist she taps, and that is what keeps 260 live chats off
+// her lock screen. The gap it leaves is the one case where the chat, not she,
+// knows something matters: it has stopped and is WAITING ON HER. Measured that
+// day: 48 chats set a `need` in two days and only 6 of them were belled — 42
+// asks she could only find by opening the app.
+//
+// TWO THINGS THIS DELIBERATELY IS NOT:
+//   • NOT A FLIP OF HER BELL. A self-set bell sticks (only she turns one off),
+//     so every chat that ever had one important moment would be belled
+//     forever and the whitelist would quietly become everything. Importance
+//     is a property of the MOMENT, not of the chat, so this escalates ONE
+//     reply and changes no stored flag of hers.
+//   • NOT "a need exists". A chat re-states its need at the end of every turn,
+//     so that would buzz her on a loop for one ask. The trigger is the need
+//     CHANGING — one buzz per distinct ask — which is why /status stamps
+//     `needSetAt` only when the text differs and this compares it against
+//     `needPushedAt`.
+//
+// It also skips the answers-her test on purpose: a chat that hit a blocker
+// working on its own is exactly the case that test exists to silence, and
+// exactly the case she wants to hear about.
+/**
+ * @param {object} reg the chat's registry doc
+ * @returns {boolean} whether this reply carries a new ask worth a buzz
+ */
+function needEscalates(reg) {
+  const r = reg || {};
+  if (!r.statusNeed || !String(r.statusNeed).trim()) return false;
+  if (!r.needSetAt) return false;                       // never stamped a change
+  return !r.needPushedAt || r.needSetAt > r.needPushedAt;
+}
+
+// ── WHAT THE BANNER SAYS (2026-08-28, Sophie: "and notification more
+// informative").
+//
+// It used to be the chat's name over the reply's TLDR, and on a deliverable
+// the words "New deliverable" over a title with the chat name trailing after
+// an em dash — so the one fact she needs first (WHICH chat) was in a different
+// place depending on which door rang, and nothing said what kind of arrival it
+// was. One shape now: the CHAT is always the title, and the body leads with
+// the kind — except an ASK, which is already a sentence asking her for
+// something and needs no label in front of it (see below).
+const KINDS = { video: 'film', audio: 'audio', page: 'page', link: 'link' };
+/**
+ * @param {string} kind 'need' | 'answer' | 'page' | 'video' | 'audio' | 'link'
+ * @param {object} o {chatName, need, tldr, text, title}
+ * @returns {{title: string, body: string}} ready to send (caller caps length)
+ */
+function pushAlert(kind, o) {
+  const d = o || {};
+  const name = plain(d.chatName) || 'Deck Factory';
+  // THE ASK STANDS ALONE (2026-08-28, Sophie: "they also need you that's
+  // redundant. None of them need to say that"). A need line is already an ask
+  // in her own chat's words — "pick a take 1-4", "watch the overlay, say
+  // what's off" — so a "Needs you" in front of it says nothing the sentence
+  // has not already said, and it costs the banner's first words, which are
+  // the ones a lock screen shows.
+  if (kind === 'need') return { title: name, body: plain(d.need) };
+  if (kind === 'answer') return { title: name, body: pushBody(d.text, d.tldr) };
+  const word = KINDS[kind] || 'deliverable';
+  return { title: name, body: 'New ' + word + ' · ' + plain(d.title) };
+}
+
 // ── What the buzz SAYS ──────────────────────────────────────────────────────
 // A push whose body is HER OWN WORDS reads as "you sent a message" no matter
 // how right its timing is — found live 2026-08-15 from her screenshot, and it
@@ -142,4 +208,4 @@ function pushBody(text, tldr) {
   return plain(said || lines[0] || '');
 }
 
-module.exports = { shouldPushReply, chatNotifies, pushBody, _plain: plain };
+module.exports = { shouldPushReply, chatNotifies, needEscalates, pushAlert, pushBody, _plain: plain };

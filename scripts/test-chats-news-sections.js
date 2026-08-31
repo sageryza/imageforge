@@ -66,7 +66,17 @@ const PX = Buffer.from(
 // chat-read    — a plain unread reply, no need → TO READ
 // chat-need    — unread reply + an open need + a fresh LINK pin → QUICK
 //                DECISIONS (a link pin is a bookmark, not a hand-off)
+// …plus ten FILLERS (2026-08-27, the two red boxes): five with needs newer
+// than everything (they fill Most urgent) and five starred+pinned (they fill
+// Most important), so the seven classified chats above all land in THE REST —
+// which is where the three kind sections live now, behind the fold.
+const FILL = [];
+for (let i = 1; i <= 5; i++) {
+  FILL.push({ id: 'fu' + i, chat: 'urg' + i, from: 'claude', text: 'ask ' + i, tldr: 'ask ' + i, created: iso(T0 - i * 60000), postedAt: iso(T0 - i * 60000) });
+  FILL.push({ id: 'fi' + i, chat: 'imp' + i, from: 'claude', text: 'starred ' + i, tldr: 'starred ' + i, created: iso(T0 - (5 + i) * 60000), postedAt: iso(T0 - (5 + i) * 60000) });
+}
 const MSGS = [
+  ...FILL,
   { id: 'm1', chat: 'chat-page', from: 'claude', text: 'v2 is up', tldr: 'page v2', created: iso(T0 - 2 * H), postedAt: iso(T0 - 2 * H) },
   { id: 'm2', chat: 'chat-pics', from: 'claude', text: 'drawing', tldr: 'drawing the set', created: iso(T0 - 6 * H), postedAt: iso(T0 - 6 * H) },
   { id: 'm3', chat: 'chat-oldpics', from: 'claude', text: 'notes answered', tldr: 'answered her notes', created: iso(T0 - 30 * 60000), postedAt: iso(T0 - 30 * 60000) },
@@ -82,9 +92,15 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/api/chatfeed' && req.method === 'GET') {
     const since = url.searchParams.get('since');
     res.writeHead(200, { 'Content-Type': 'application/json' });
+    const fillers = {};
+    for (let i = 1; i <= 5; i++) {
+      fillers['urg' + i] = { account: '1', statusNeed: 'say go on thing ' + i };
+      fillers['imp' + i] = { account: '1', starred: true, pinTop: true };
+    }
     return res.end(JSON.stringify({
       build: 'test-build-1',
       chats: {
+        ...fillers,
         // an open need AND a fresh page — Deliverables must win
         'chat-page': { account: '1', statusNeed: 'peek v2, tell me which column' },
         'chat-pics': { account: '1' },
@@ -171,30 +187,55 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
 
   await page.goto(base + '/chats');
   await page.waitForSelector('#grid [data-chat="chat-page"]');
+  // The row takes turns with the three lists (2026-08-28) and opens on the
+  // LISTS, so the account row — the UPDATE tab's own home — is one tap away.
+  if (!await page.isVisible('#accrow')) await page.click('#rowtog');
   await page.click('#accrow .acctab[data-acct="new"]');
-  await page.waitForSelector('.nwcard[data-chat="chat-page"]');
-  // the sections only settle once the delivered caches land
-  await page.waitForSelector('#grid .sthead', { timeout: 4000 })
-    .catch(() => fail('no section headers on the main Update list'));
-  await page.waitForSelector('.nwcard[data-chat="chat-pics"] .nwimg', { timeout: 4000 }).catch(() => {});
+  await page.waitForSelector('.nwcard[data-chat="urg1"]');
+  // the sections only settle once the delivered caches land — chat-film's
+  // card is raised by its pin but timed against the pages/assets caches, so
+  // "The rest" holding all seven classified chats is the settled state to
+  // WAIT for, not the first paint.
+  await page.waitForFunction(() => {
+    const h = Array.from(document.querySelectorAll('#grid .sthead'));
+    return h.some((n) => /^The rest\s*7/.test(n.textContent.trim()));
+  }, null, { timeout: 6000 }).catch(() => fail('The rest never settled at 7 cards'));
 
-  // Walk #grid in order: header → the cards under it, until the next header.
-  const sections = () => page.$$eval('#grid > *', (ns) => {
+  // Walk the grid in document order: header → the cards under it, until the
+  // next header. Flat (not `#grid > *`), because the two red boxes wrap their
+  // header and cards in an outlined container (2026-08-27).
+  const sections = () => page.$$eval('#grid .sthead, #grid .nwcard', (ns) => {
     const out = []; let cur = null;
     ns.forEach((n) => {
       if (n.classList.contains('sthead')) { cur = { head: n.textContent.trim(), cards: [] }; out.push(cur); }
-      else if (n.classList.contains('nwcard') && cur) cur.cards.push(n.dataset.chat);
+      else if (cur) cur.cards.push(n.dataset.chat);
     });
     return out;
   });
 
-  // 1. three sections, her spoken order, counts on the headers
+  // 0. the seven classified chats are behind THE REST, which starts SHUT —
+  //    the fillers hold the two red boxes, so the kind sections are the fold's
+  //    to show (2026-08-27, the two-red-boxes rework).
   let secs = await sections();
-  const heads = secs.map(s => s.head);
-  if (heads.length !== 3) fail('expected three section headers, got: ' + heads.join(' | '));
+  if (secs.some(s => /^Deliverables/.test(s.head))) {
+    fail('the kind sections are painted while The rest is still folded: ' + secs.map(s => s.head).join(' | '));
+  }
+  const restHead = secs.find(s => /^The rest\s*7$/.test(s.head));
+  if (!restHead) fail('no "The rest 7" fold head: ' + secs.map(s => s.head).join(' | '));
+  await page.click('#grid .sthead[data-kind="rest"]');
+  await page.waitForSelector('#grid .sthead[data-kind="look"]', { timeout: 4000 })
+    .catch(() => fail('opening The rest did not reveal the kind sections'));
+  await page.waitForSelector('.nwcard[data-chat="chat-pics"] .nwimg', { timeout: 4000 }).catch(() => {});
+
+  // 1. three kind sections inside the fold, her spoken order, counts on the
+  //    headers
+  secs = await sections();
+  const heads = secs.map(s => s.head).filter(h => /^(Deliverables|To read|Quick decisions)/.test(h));
+  if (heads.length !== 3) fail('expected three kind section headers, got: ' + heads.join(' | '));
   if (!/^Deliverables\s*4$/.test(heads[0] || '')) fail('Deliverables (4) is not the first section: ' + heads.join(' | '));
   if (!/^To read\s*2$/.test(heads[1] || '')) fail('To read (2) is not the second section: ' + heads.join(' | '));
   if (!/^Quick decisions\s*1$/.test(heads[2] || '')) fail('Quick decisions (1) is not the last section: ' + heads.join(' | '));
+  secs = secs.filter(s => /^(Deliverables|To read|Quick decisions)/.test(s.head));
 
   // …and every card under the right one, newest arrival first within each.
   // chat-film is timed by its PIN (12m — its reply predates her ✓), which is

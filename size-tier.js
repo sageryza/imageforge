@@ -15,7 +15,19 @@
  * (1K ≈ 1.0-1.6MP, 2K ≈ 3.69MP, 4K ≈ 8.2-8.3MP), which is what puts every
  * shape of a tier on the same rung: 1568x2352, 1920x1920 and 2560x1440 are all
  * 3.69 megapixels and all read "2K".
+ *
+ * SERVED TO THE PAGE AS WELL (2026-08-27, at `/size-tier.js` — the
+ * `pause-plan.js` pattern). The Playground draws its own caption client-side
+ * from the run doc, and for four days it drew one with no size slot at all
+ * while the pictures it FILED carried the right one — the required slot was
+ * built into the filing path and the on-screen caption was never in scope.
+ * A hand-copied tier table in the page would drift from these boundaries the
+ * day they move, so the page calls this file rather than a transcript of it.
  */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.__sizeTier = factory();
+}(typeof self !== 'undefined' ? self : this, function () {
 const T1 = 2_400_000;   // sqrt(1.57M × 3.69M) — the 1K|2K midpoint
 const T2 = 5_500_000;   // sqrt(3.69M × 8.19M) — the 2K|4K midpoint
 
@@ -63,4 +75,42 @@ function cutSize(sheetCanvas, parts) {
   return tier ? `1/${n} (${tier})` : `1/${n}`;
 }
 
-module.exports = { tierOf, captionSize, cutSize };
+/**
+ * The caption's third slot for a whole RUN, given the run doc the Playground
+ * already stores. One reader for both shapes, because the page and the server
+ * must never disagree about what a picture is: a panels run is a cut of its
+ * SHEET ("1/4 (4K)"), anything else is its own tier ("2K").
+ *
+ * A run whose cut FAILED is the sheet itself — one picture, uncut — so it takes
+ * the sheet's own tier rather than a fraction of a thing that was never cut.
+ *
+ *   runSize({ res:'4k' })                                   → '4K'
+ *   runSize({ size:'2336x3504', grid:{count:4} })           → '1/4 (4K)'
+ *   runSize({ size:'2336x3504', grid:{count:4}, cutFailed:true }) → '4K'
+ */
+function runSize(run) {
+  const r = run || {};
+  const n = r.grid && r.grid.count;
+  if (n > 1 && !r.cutFailed) return cutSize(r.size || r.canvas || '', n);
+  return sheetSize(r);
+}
+
+/**
+ * THE WHOLE SHEET'S OWN SLOT, never a fraction of itself (2026-08-27, Sophie,
+ * looking at the banked sheet's caption in the Playground lightbox: it read
+ * "1/4 (1K) … uncut sheet", which is the run's slot printed over a picture
+ * that is the run's every panel at once).
+ *
+ * `runSize` answers for the RUN — a panels run's pictures are its cut panels,
+ * so its slot is the fraction. The banked uncut sheet is the one picture of
+ * that run which is not a cut, so it takes the sheet's own tier instead.
+ *
+ *   sheetSize({ res:'4k', size:'2304x3456', grid:{count:9} })  →  '4K'
+ */
+function sheetSize(run) {
+  const r = run || {};
+  return captionSize(r.res || r.size || r.canvas || '');
+}
+
+return { tierOf, captionSize, cutSize, runSize, sheetSize };
+}));

@@ -1524,6 +1524,22 @@
       other invented folder (rule 3 is untouched); and a kind with NO subject
       beside it still files, because "sure it was a bug fix, unsure which
       corner of the app" is an honest answer to what that pile is for.
+    - **BUG FIX IS THE LENIENT KIND, and it measures TURNAROUND (2026-08-28,
+      Sophie: "square story type should've already existed, so it's a bug" ·
+      "it's more about how quickly it'll get done, and how soon I can archive
+      it").** Not "was code broken": small bounded work that lands in a turn
+      or two and can be put away is a bug fix — gap-fills in an existing
+      surface (a missing shape, a control its siblings have, an iOS/web
+      mismatch, something a restructure lost), tweaks, repairs. `new feature`
+      is **A WHOLE NEW TOOL** (same day, v2: "new feature is like a whole new
+      tool" · "restricted chat chat is also big — we had to iterate") — a tool,
+      board or surface that did not exist, or a restructure big enough to
+      iterate over; anything ADDED TO an existing tool is a bug fix however
+      new the behaviour. Her worked filings are in the prompt: the + story
+      button, date grouping, autoplay, the square shape = bug fixes; the
+      Polaroid board and the chat-area restructure = new features. The rule
+      lives in `SORT_SYS`; the tests pin her turnaround wording and the
+      whole-new-tool bar.
     - **`WORK_KINDS` is a HINT OVER HER LIVE VOCABULARY, never an addition to
       it.** A word in it she does not have annotates nothing; a folder she
       invents next month is still offered and still fileable, it just is not
@@ -1536,6 +1552,16 @@
     - **Chats she filed herself never move** (rule 1), and auto-filed ones
       reach the new rule on their next re-check (`RESORT_*`) — or immediately
       with `POST /api/chatfeed/sort {chat, force:true}`, ~a cent a chat.
+    - **The re-check keeps pace with KINDS now (2026-08-28, found live: "none
+      of my recent bug fix chats are in that tab").** The old rest — a week,
+      re-ask after the thread TRIPLED — assumed a tag names the SUBJECT, which
+      is stable. A kind names the chat's NEWEST work and turns over in hours:
+      the chat-area chat spent a morning repairing the hidden pile its own
+      restructure lost — a bug-fix chat by her rule — wearing yesterday's
+      `meta` with six days of rest to go, and the Bug fixes tab showed nothing
+      newer than 11 hours. Now: a DAY's rest and EIGHT new messages, both
+      (`RETRY_MS` + `RESORT_MIN_NEW` in `chat-sort.js`), so only a chat that is
+      actively worked re-asks, at most daily, under a cent.
   - **`look at` and `come back to` are OFF LIMITS** (`TRIAGE`). They say WHEN
     she wants something, not what it is; nothing outside her head can know
     that, and guessing buries real work in a to-do folder. She still files
@@ -1736,6 +1762,10 @@
     - **`pinTop`** = stays at the top of every list. The PUSHPIN, added Aug
       2026 — see *The pushpin* below. It is the one mark whose control is
       **not** in the thread header: it lives on the home row, at her ask.
+    - **`tray`** (+ **`trayAt`**) = one of the three or four things she is
+      working on RIGHT NOW. The TRAY, added 2026-08-31 — see *On my tray*
+      below. The one mark with a SCREEN of its own rather than a position in
+      a list, and the only one that stores a MOMENT beside its boolean.
     - **Three of the marks sit side by side in the thread header** — the
       bookmark, the star, then the bell — so the difference is a choice she
       makes in one place. The keep button is `.bmk.chatbmk`, written that way
@@ -1763,6 +1793,11 @@
     until she taps a bell, which is her sentence read literally and also the
     safe failure direction (a caller that forgets the flag goes quiet rather
     than buzzing her). It compares `notify === true`, never truthiness.
+    **One exception she asked for (2026-08-27): a quick-question chat sets its
+    own bell ON** ("a 'quick question' chat shud set its own bell as true") —
+    when she runs a chat in quick-question mode, or it wears the `quick
+    question` label, the chat POSTs `{chat, notify:true}` itself. Never OFF;
+    that stays hers.
   - **The bell is FILLED, GOLD when lit, and NOT Lucide's** (Sophie's second
     pass, same week: "change the bell colour to yellow and make it filled in
     rather than just the outline"). It shipped stroked, with a comment here
@@ -1898,6 +1933,75 @@
     being a straight line rather than an arc, and the COMPUTED fills proving
     the head is red while the spike is not). Verified failing with the sort
     tier removed.
+
+### On my tray
+
+2026-08-31, Sophie: *"add a tab in chats called 'on my tray' where i can pin
+chats by their icons for what im working on rn — ex xi to do · review cards
+illustrations ideas · triset · review cards"*.
+
+The fourth tab on the lists row, leading it, and a screen of nothing but the
+little chat drawings.
+
+- **Why it is not the star.** `starred` is the nearest thing that already
+  existed and it answers a different question: a star LIFTS a chat inside
+  whatever list she is already looking at, so a starred chat still sits among
+  two hundred others. The tray IS the list — three or four chats, four across,
+  and nothing else on screen.
+- **`tray` + `trayAt`, `POST /api/chatfeed/tray {chat, tray}`.** Same phantom-
+  row guard as `/pin-top`, `/chat-bookmark` and `/notify`: a merge-set on a
+  missing doc CREATES it, and every pile derives from the registry keys. Both
+  fields are DELETED when she takes a chat off, so nothing accumulates.
+- **`trayAt` is the design, not bookkeeping.** The tray is the one pile that
+  does not come through `sortedChatNames`. Every other list here is
+  newest-message-first — right for an inbox, exactly wrong for a dock, because
+  icons that move whenever a chat replies are icons she can never learn the
+  position of. The order is when she PUT each chat there, oldest first, so the
+  tray grows at the end and nothing already on it moves.
+  - The SERVER stamps it (only the write knows the moment).
+  - The optimistic copy on the page stamps one too, or a chat added while the
+    request is in flight sorts under `''` and jumps to the FRONT of the tray
+    until the answer lands.
+  - **Re-adding a chat that is already on the tray keeps its ORIGINAL stamp**,
+    so a stray double tap cannot send its icon to the end.
+- **Two doors, one write (`setTray` in chats.html).** The mark in the Organize
+  sheet puts a chat on; the same mark, lit, on its tray tile takes it off. Both
+  repaint the whole home, because this changes a list's membership rather than
+  a row's look.
+- **What the tile carries, and what it deliberately does not.** The icon (or
+  the blank-letter fallback), the unread dot, the wait/bug marks, and the name
+  clamped to two lines. NO status line, no timestamp, no about — that question
+  is the ALL tab's. NO pushpin and no hide eye either: those are list controls
+  and the tray is not a list she is triaging.
+- **No date headings.** The one pile without them, because it is the one pile
+  not in timing order — `mkDayRule` over an order she arranged by hand would be
+  a heading over a grouping that does not exist.
+- **It ignores the account filter**, the way the ★ pile ignores `archived`. The
+  account row is not even on screen while the lists row is, so a hand-picked
+  chat vanishing because it belongs to the other account would be a filter she
+  cannot see. A lit CATEGORY chip leaves the tray onto ALL, exactly as it
+  leaves the bug pile.
+- **Archived and deleted chats are not drawn, and the mark is left alone** —
+  un-archiving puts the chat back on the tray where it was. Archiving never
+  silently clears a pin of hers.
+- **The glyph is Lucide `inbox` and is NEVER filled.** It shipped filled when
+  lit, like the star and the bookmark beside it, and rendered as a red BLOB:
+  those two get away with a fill because their silhouette IS the shape, where a
+  tray's shape is its OPENING. `.on` is the red stroke and the red box, as it
+  is for the crossed eye.
+- **The tab says "My tray", not her whole phrase** — "On my tray" measures
+  69.5px against the ~64px a tab has at 320pt with four tabs, so it wrapped and
+  made the row 10px taller than every other hairline row. The PWC tab's call.
+- **`.traybtn` is one class in two places and the TILE's rule is scoped to
+  `.traytile`** — `.orgmarks .markchip` (0,2,0) sets the sheet copy's box but
+  declares no `position`, so an unscoped `position:absolute` on the shared
+  class floats that mark out of the marks row.
+- Test: `node scripts/test-chats-tray.js` (the real page headless — four across
+  MEASURED off the real cells, the order proved against a fixture whose
+  first-added chat has the OLDEST message, and the add driven through a
+  deliberately SLOW stub so the OPTIMISTIC order is what renders). Verified
+  catching a recency sort, a lost optimistic stamp, an unscoped CSS rule, a
+  three-wide grid and a refilled glyph.
 
   **ORGANIZE — filing and tagging from inside a chat (Aug 2026, Sophie: "an
   ability to tag or categorize something from within the chat itself, for
@@ -2320,9 +2424,11 @@
           thread, so without it the screen she is standing on is the last to
           know. The lists need no such thing: `saveLabels` mutates `chats`
           synchronously before its callers redraw.
-        - **Nothing tells the CHAT.** `GET /api/chatfeed/status` returns her
-          note, the status card and the pinned link — no labels — so a chat
-          cannot see that she is waiting on it. That half is unbuilt.
+        - **A chat CAN read its labels since 2026-08-27.** `GET
+          /api/chatfeed/status` returns `labels` alongside her note, the
+          status card and the pinned link (added for the bug-fix auto-archive
+          and quick-question bell rules — see CLAUDE.md). Reading is the whole
+          grant: filing stays hers and the auto-sorter's.
         - Test: `node scripts/test-chats-waiting-mark.js` (the real page,
           headless — verified failing 8 of 14 against the pre-fix page).
     - **`to be reviewed` → THE REVIEW ROW** ("movies that are done, images

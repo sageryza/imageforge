@@ -68,11 +68,19 @@ console.log('one write puts a picture on a beat');
 // placement flip the toggle onto a story with no visible art (pad-side.js).
 ok(/async function placeOnBeat\(padId, beatId, url, style, src, opts\)/.test(padSrc),
   'scratchpad.js owns it');
-ok(/module\.exports = \{ router, attachVoiceUrl, placeOnBeat,/.test(padSrc),
+// Asked as "is placeOnBeat in the exports", not as the whole list spelled out
+// — the old regex pinned every name in order and went red the day `init` was
+// added beside `router`, which had nothing to do with this trip.
+ok(/^module\.exports = \{[^}]*\bplaceOnBeat\b/m.test(padSrc),
   'and exports it, so server.js uses the same one');
 const route = padSrc.slice(padSrc.indexOf("router.post('/image'"),
   padSrc.indexOf('async function placeOnBeat'));
-ok(/placeOnBeat\(padIdOf\(req\)/.test(route), 'POST /image goes through it');
+// The pad is resolved into a local now (the route reads it twice — the
+// placement and the automatic shape rule), so this asks that the route goes
+// through placeOnBeat with the pad it resolved, not that the call spells
+// padIdOf(req) inline.
+ok(/const pid = padIdOf\(req\)/.test(route) && /placeOnBeat\(pid,/.test(route),
+  'POST /image goes through it');
 ok(!/swapArt\(/.test(route), 'and holds no second copy of the bookkeeping');
 
 console.log('the order: oldest first');
@@ -161,13 +169,21 @@ const BEATS = [
   await page.waitForSelector('#pad .beat');
   await page.click('#pad .beat');
   await page.waitForSelector('#beatpop:not([hidden])');
+  // The arrival url is captured from the navigation itself, not read back off
+  // the page: since 2026-08-28 the Playground SPENDS its query on arrival (so
+  // a reload — the self-heal's included — can never silently re-aim at a beat
+  // she has left), and reading location afterwards would be a race with it.
+  const navs = [];
+  page.on('framenavigated', (f) => { if (f === page.mainFrame()) navs.push(f.url()); });
   await page.click('#arplay');
   await page.waitForFunction(() => /\/playground/.test(location.pathname));
-  const q = new URL(page.url()).searchParams;
+  const arrived = navs.find((u) => /\/playground\?/.test(u)) || page.url();
+  const q = new URL(arrived).searchParams;
   ok(q.get('prompt') === 'a red door in the rain', 'the beat\'s drawing prompt rides the link');
   ok(q.get('pad') === 'p1' && q.get('beat') === 'b1', 'so do the pad and the beat');
   ok(q.get('padstyle') === 'pastel', 'and the side of the beat the story is showing');
   ok(q.get('from') === 'scratchpad', 'and the way-back flag it always sent');
+  ok(q.get('t') === 'she opens the door', 'and the beat\'s own words, to name it on the banner');
 
   // ── the Playground, arrived from that beat ─────────────────────────────
   console.log('in the Playground');
@@ -189,6 +205,41 @@ const BEATS = [
   ok(posted && posted.padTarget && posted.padTarget.pad === 'p1'
     && posted.padTarget.beat === 'b1' && posted.padTarget.style === 'pastel',
     'a run carries the beat to the server');
+
+  // ── PUTTING THE BEAT DOWN (2026-08-28, Sophie: "this picture doesn't
+  // belong here") ────────────────────────────────────────────────────────
+  // The aim used to be held for the life of the page with nothing to end it,
+  // and the app keeps a tool's web view alive for the whole app process — so
+  // every later run, about anything at all, landed on one beat.
+  console.log('putting the beat down');
+  ok(await page.$eval('#beattag', (el) => el.textContent.indexOf('she opens the door') >= 0),
+    'the banner names WHICH beat it is aimed at');
+  ok(!/[?&]beat=/.test(page.url()), 'the query is spent, so a reload cannot re-aim (' + page.url() + ')');
+  ok(await page.$eval('#beatstop', (el) => !!el.offsetParent), 'and there is a Stop on it');
+  posted = null;
+  await page.click('#beatstop');
+  ok(await page.$eval('#beattag', (el) => !el.classList.contains('on')), 'Stop puts the banner away');
+  ok(await page.$eval('#backchip', (el) => el.getAttribute('href') === '/scratchpad'),
+    'and the way back becomes the shelf');
+  await page.fill('#prompt', 'a completely different picture');
+  await page.click('#go');
+  await page.waitForTimeout(400);
+  ok(posted && posted.padTarget === undefined,
+    'and the next run lands nowhere (' + JSON.stringify(posted && posted.padTarget) + ')');
+
+  // The way back is the other end of it: going back to the room is being done
+  // here, and it is the only thing that reaches a kept-alive page she returns
+  // to later.
+  await page.goto(base + '/playground?from=scratchpad&pad=p1&beat=b1&padstyle=pastel&t=she%20opens%20the%20door');
+  await page.waitForTimeout(300);
+  // The chip is an <a>, so the tap navigates — held here so the page it
+  // leaves can still be asked what the tap did to it.
+  const left = await page.evaluate(() => {
+    document.addEventListener('click', (e) => e.preventDefault(), true);
+    document.getElementById('backchip').click();
+    return !document.getElementById('beattag').classList.contains('on');
+  });
+  ok(left, 'tapping the way back puts the beat down too');
 
   // A Playground opened its own way carries NO target — an ordinary run is
   // byte-for-byte the request it has always been.

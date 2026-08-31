@@ -506,8 +506,21 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     really did make so the two can never be told apart again. **Do the action
     through its own route** (`POST /archive` here) and leave the deck alone —
     and when the work is already done, RETIRE the deck (`POST
-    /page/:id/supersede`) instead of leaving a to-do standing in front of her. `deck` data is `{ items:[…], states?, voice?, browse?, aspect? }`;
-    `grid` data is `{ groups:[{ label?, items:[…] }], states?, aspect? }`.
+    /page/:id/supersede`) instead of leaving a to-do standing in front of her. `deck` data is `{ items:[…], … }`;
+    `grid` data is `{ groups:[{ label?, items:[…] }], … }`, and the rest —
+    `states?`, `aspect?`, `start?`, `help?`, plus the DECK-VIEW fields
+    `voice?`, `browse?`, `stamp?` — is shared by both.
+    **The deck-view three apply to a GRID page too (2026-08-31)**, because
+    every template page has a swipe half since the two views were joined:
+    gating them on `template === 'deck'` was the join's leftover, the same
+    shape page-views.js had already had to repair for `browse` inside the
+    view itself. It is not academic — a grid page of pictures she has
+    already hearted is exactly where `stamp:false` is needed (the deck fills
+    its verdicts from the Assets tab, so every card arrives marked and wears
+    the GOOD IDEA stamp over the picture), and it was the one page that
+    could not say it. **The drop was SILENT**: the POST answered `ok` with
+    no warning and the fields were simply not on the stored data. Pinned by
+    `node scripts/test-page-templates.js`.
     **`aspect` is a MENU, not a free ratio** (Sophie, Aug 2026: square cards
     AND story-fragment rectangles, "options they can pick between"):
     `'square'` (1:1, a card deck's face), `'portrait'` (5:7, the
@@ -663,6 +676,37 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
       opened from the Compare tab shows none. Its **piles view** also carries
       *Open the chat* + **Skip** / **Done**, which stamp the page doc through
       `POST /api/chatfeed/page/:id/review`.
+    - **THE PILES VIEW SURVEYS HER NOTES (2026-08-31, Sophie: "add note survey
+      to piles").** Every card she wrote on, read back in one place, at the
+      TOP of the piles — `Notes · N`, one row each: the card's picture, its
+      name, and the note's whole thread. It **cuts across the piles** (a note
+      is a note whether the card ended in Yes or sits unmarked), so it is its
+      own section rather than a mark on a tile, and it leads them because it
+      is the one thing on that screen that is HERS — the tiles are the
+      pictures she has just been looking at, and a survey four piles down is
+      one she will not read. Five things not to undo:
+      - **It is READ-BACK only** — the keep-pile's own rule ("the pile is
+        where a note is READ BACK; the keeping tap is where it is WRITTEN").
+        The row's name and its picture each open that card, where the note box
+        is; a second editable field here would be two places to write one note.
+      - **The thread is painted by `__compareShell.paintNote`** — compare.js's
+        ONE renderer — and folds with the same `.cmp-note.folded` /
+        `N earlier` caret the card's note has, so a note reads the same in
+        both places and a long back-and-forth cannot bury every other note.
+      - **The caret is a SIBLING of the name button, never inside it.** A
+        button in a button is invalid and the tap would bubble into re-opening
+        the card — so unfolding a thread would leave the piles view.
+      - **A field that parses to NO message makes no row.** The honest test is
+        the parsed thread, not a non-empty string: a bare `— me:` marker trims
+        non-empty and says nothing, and a name with no words under it is worse
+        than no row.
+      - **A deck she has written nothing on shows no survey at all**, which is
+        the common case and byte-for-byte the view that was there before.
+      Test: `node scripts/test-judge-note-survey.js` (the real page headless,
+      at both looks — every assertion a MEASUREMENT, since a survey *below*
+      the piles is still "present", a folded thread and an open one carry the
+      same markup, and a nested caret opens the card while passing every
+      markup assertion ever written about it; verified failing 15 pre-fix).
     - **A MARK NEVER MOVES THE DECK** (Aug 2026, Sophie, on her date deck:
       "hearting, heart or exing should not move the moment, only tapping on
       the sides should go to the next moment"). In BROWSE mode — which every

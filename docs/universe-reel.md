@@ -13,9 +13,43 @@ clips first, then the VO is fitted to them. VO alignment, when it comes, uses
 the NDE precise-cutting pipeline (`docs/nde-precise-cutting.md`), per her
 movie-pipeline memo (`docs/movies/sophies-movie-pipeline.md`).
 
-**Working chat:** `new-session-e0f161` (stills + prompts in its Assets tab,
-storyboard in its Compare tab). Source shot list: her upload 2026-08-16,
-reproduced verbatim below.
+**Working chat:** `thomas-campbell-clip-movie` since 2026-08-27 (Sophie
+archived the animation chat — her note: "opus superseded" — and asked this
+chat to take the movie over). Stills + prompts live in
+`new-session-e0f161`'s Assets tab, storyboard in its Compare tab. Source
+shot list: her upload 2026-08-16, reproduced verbatim below.
+
+## Take-over state (2026-08-27, `thomas-campbell-clip-movie`)
+
+- **The VO now EXISTS** — the "not written yet" note below is history. It is
+  a 1:49 audio spine: Sophie's Max take (ElevenLabs "Max — 1940s RP British",
+  2026-08-27 2:41pm, science-vs-fairies setup ending "Let's ask physics,
+  Steven Puddleboots") joined to a Thomas Campbell podcast clip (Bialik
+  interview 25:13–26:39, the quantum rendering model — "there is no out
+  there. The reality is computed."). Joined by `youtube-video-link-016svr`
+  (Max +3dB, stray "Steven" trimmed).
+  Spine: https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/87cca1463833f59395dc675fa6030468.mp3
+  Timed lines: Cutting Blocks doc `75231e6686856cc6` (18 blocks; Max
+  0:00–52.76, Campbell 53.5–108.72).
+- **Animatic v1 is cut** (free, ffmpeg — 14 cuts of the existing stills on
+  the spine's own line boundaries, 1024x1536):
+  https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/universe-reel/animatic-v1-campbell-max.mp4
+  Unused stills: s04 (Ascension), s10 (Forgetting) — they belong to the
+  original soul-journey narrative, not this VO.
+- **Her word 2026-08-27: "no images"** — do not generate new stills; the 16
+  that exist are the art.
+- **APIFrame credits, re-measured 2026-08-27** (`api-frame-credits-status`):
+  **3,401 credits, and NO expiry field exists in the API** — the earlier
+  "credits do not roll over, they vanish at billing reset" claim in this doc
+  was the archived chat's reading, not a measurement. Burn is by spending
+  (~50/day observed). Whether the $39/mo `af_basic` sub still renews is only
+  visible on https://app.apiframe.ai.
+- **Animation: still not started.** Open calls that are hers:
+  aspect for animation (seedance returns 3:4 with no override — pad sources
+  to 9:16 first, or crop in the edit), the tier, and her ♥/✕ pass on the 16
+  stills (0 of 16 voted as of today). `scripts/reel-animate.js` +
+  `scripts/reel-shots.json` (built on the archived branch, never merged) are
+  now on main via this chat.
 
 ## Production state (2026-08-16)
 

@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Triset</title>
+<style>
+/* The five tokens the shared pill styles itself from — kept even though this
+   page opts out of the pill (one screen): it must never render one black if
+   ever served with it. NO GRADIENTS anywhere (house rule). */
+:root{
+  --paper:#f7f3ec; --card:#fffdf9; --ink:#2b2622; --ink2:#8a7f72;
+  --line:#e5ddd0; --rose:#c4566d; --chg:#c4566d; --gold:#b08434;
+  --cream:#f3e7c9; --headtop:calc(env(safe-area-inset-top) + 4px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:Georgia,'Times New Roman',serif;
+  min-height:100dvh; padding-bottom:env(safe-area-inset-bottom);
+}
+[hidden]{display:none !important}
+
+/* ── header: the name once (tiny), the "?" ────────────────────────────── */
+.app-header{display:flex;align-items:center;gap:10px;padding:var(--headtop) 18px 4px;padding-right:64px}
+h1.tool-eyebrow{
+  margin:0;font-family:-apple-system,system-ui,sans-serif;font-size:11px;
+  font-weight:400;letter-spacing:.22em;text-transform:uppercase;color:var(--ink2);
+}
+.qmark{
+  width:22px;height:22px;border-radius:50%;border:1px solid var(--line);
+  background:var(--card);color:var(--gold);font-size:12px;line-height:20px;
+  text-align:center;cursor:pointer;padding:0;font-family:inherit;flex:0 0 auto;
+}
+#pool{
+  margin-left:auto;font-family:-apple-system,system-ui,sans-serif;font-size:12px;
+  color:var(--ink2);font-variant-numeric:tabular-nums;
+}
+#helpcard{
+  position:fixed;inset:0;background:rgba(43,38,34,.36);z-index:60;
+  display:flex;align-items:center;justify-content:center;padding:26px;
+}
+#helpcard>div{
+  background:var(--card);border:1px solid var(--line);border-radius:6px;
+  padding:20px 22px;max-width:340px;font-size:15px;line-height:1.55;
+}
+
+/* ── the board: three cards + the middle text triangle ────────────────── */
+#board{
+  position:relative;width:min(94vw,470px);aspect-ratio:1000/866;
+  margin:10px auto 0;
+}
+.slot{position:absolute;width:50%;height:50%;padding:0;border:none;background:none;cursor:pointer}
+#s-top{left:25%;top:0}
+#s-left{left:0;top:50%}
+#s-right{left:50%;top:50%}
+#s-mid{left:25%;top:50%;cursor:default}
+/* NO MAT BEHIND A CARD — the only cream is the paper rim the model drew
+   INTO the picture (2026-08-31, Sophie: "there shud be no cream border
+   aside from the one built into the images"). The cream mat added a day
+   earlier doubled it: the drawn rim, then a second band of a different
+   cream around it. The die-cut's transparency shows the page paper now,
+   which reads as the gap between cards rather than as a border. The face
+   span survives for the MIDDLE slot alone (below) — there it is the
+   writing surface, not a border. */
+.face{position:absolute;inset:0}
+/* THE CUT IS THE PAGE'S, EXACTLY EQUILATERAL (2026-08-30, Sophie: "the
+   triangles need to be cut equilateral to fit, even if the model draws it
+   wrong … there's just paper around, just cut it different"). The SLOT is
+   the scissors: its clip-path is a true equilateral triangle, and the image
+   is scaled and offset so an inset equilateral cut of the drawn card — apex
+   (50%,19.3%), base y 92%, sides x 8%..92%, side/height = 0.866 — lands
+   exactly on the slot. The cut passes through the drawn card's own paper,
+   so a card drawn slightly wrong is simply trimmed, nothing is added.
+   The cut lands on an INNER triangle scaled 0.90 about the slot's centroid,
+   so the cream face shows as an even border around it. Numbers: base scale
+   1/0.84, then ×0.90 = 107.143%; offsets are the mapped origin — and note
+   CSS top% is in SLOT-HEIGHT units (0.866 of the width), which is where the
+   first pass slipped. */
+.slot.up{clip-path:polygon(50% 0,100% 100%,0 100%)}
+.slot.down{clip-path:polygon(0 0,100% 0,50% 100%)}
+.slot img,#midimg{position:absolute;display:block;width:107.143%;height:auto;left:-3.571%}
+.slot.up img{top:-17.161%}
+.slot.down img,#midimg{top:-6.564%}
+/* A card with a baked DIE-CUT (`cut` on the doc — triset-cut.js) fills the
+   slot exactly: the copy is the slot's own 1000x866 canvas, the drawn card
+   measured and fitted inside with transparency around it, so the cream face
+   shows through as the border and the whole image plus outline fits in the
+   triangle (2026-08-30, Sophie: "fix the cutting"). The fixed mapping above
+   survives only as the fallback for a card whose bake failed. */
+.slot img.whole,#midimg.whole{width:100%;height:100%;left:0;top:0}
+/* the middle inverted triangle — a text box, until a made card lands in it.
+   The SLOT is not clipped (the venn boxes ride its edges); the face and the
+   made-card cutter carry their own triangles. */
+#s-mid .face{clip-path:polygon(0 0,100% 0,50% 100%);background:var(--cream)}
+/* …and it steps aside the moment a made card lands there, or it would be
+   exactly the doubled border she asked to be rid of */
+#s-mid.made .face{background:none}
+#midcut{position:absolute;inset:0;clip-path:polygon(0 0,100% 0,50% 100%)}
+#midimg{cursor:pointer;pointer-events:auto}
+/* 'each' mode is a VENN DIAGRAM (2026-08-30, Sophie: "the 'what each has in
+   common' shud show as a venn diagram on the overlapping side: a text box")
+   — one line per SIDE of the middle triangle, each on the edge it shares
+   with that card, rotated to lie along it; the 4th thing sits in the
+   center. Positions are the edge midpoints nudged toward the centroid. */
+.venn{
+  position:absolute;width:50%;height:24px;background:none;border:none;
+  text-align:center;font-family:Georgia,serif;font-size:12px;color:var(--ink);
+  outline:none;padding:0;pointer-events:auto;
+}
+#v-top{left:25%;top:2.5%}
+#v-left{left:6.9%;top:calc(45.4% - 12px);transform:rotate(60deg)}
+#v-right{left:43.1%;top:calc(45.4% - 12px);transform:rotate(-60deg)}
+#s-mid.each #midwrap{left:31%;right:31%;top:25%;height:32%}
+#s-mid.each #middle{font-size:13px}
+/* the mid slot's RECTANGLE overlaps the two lower cards — only the textarea
+   may take taps, or the cards' inner corners go dead */
+#s-mid{pointer-events:none}
+#s-mid #middle,#s-mid #midimg{pointer-events:auto}
+#midwrap{position:absolute;left:24%;right:24%;top:6%;height:44%;display:flex}
+#middle{
+  flex:1;background:none;border:none;resize:none;text-align:center;
+  font-family:Georgia,serif;font-size:15px;line-height:1.35;color:var(--ink);
+  outline:none;padding:0;
+}
+#middrawing{
+  position:absolute;left:0;right:0;top:26%;text-align:center;
+  font-family:-apple-system,system-ui,sans-serif;font-size:12px;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--ink2);
+  animation:pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:.35}50%{opacity:.9}}
+
+/* ── the kind of set: two hairline tabs ───────────────────────────────── */
+/* no pill on this page, so the row keeps no corner reserve — three tabs
+   must fit a 390pt phone */
+#kinds{display:flex;margin:16px 18px 0;border-bottom:1px solid var(--line)}
+#kinds button{
+  flex:0 0 auto;background:none;border:none;cursor:pointer;padding:8px 0 9px;
+  margin-right:16px;font-family:-apple-system,system-ui,sans-serif;font-size:11px;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);position:relative;
+}
+#kinds button.on{color:var(--ink)}
+#kinds button.on::after{
+  content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--ink);
+}
+
+
+/* ── the buttons: hug their words ─────────────────────────────────────── */
+#acts{display:flex;align-items:center;gap:12px;margin:16px 18px 8px}
+button.btn{
+  font-family:-apple-system,system-ui,sans-serif;font-size:14px;color:var(--ink);
+  background:var(--card);border:1px solid var(--line);border-radius:6px;
+  padding:9px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;
+}
+#found{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+#found svg{width:17px;height:17px;display:block}
+#found[disabled]{opacity:.45}
+#found .cost{font-size:11px;color:inherit;opacity:.75}
+#msg{margin:4px 18px 18px;font-family:-apple-system,system-ui,sans-serif;font-size:13px;color:var(--ink2);min-height:18px}
+#msg.bad{color:var(--rose)}
+
+</style>
+</head>
+<body class="tool">
+
+<header class="app-header">
+  <h1 class="eyebrow tool-eyebrow">Triset</h1>
+  <button class="qmark" id="help" aria-label="How it works">?</button>
+  <span id="pool"></span>
+</header>
+
+<div id="board">
+  <button class="slot up" id="s-top" aria-label="swap the top card"><span class="face"></span><img alt=""></button>
+  <button class="slot up" id="s-left" aria-label="swap the left card"><span class="face"></span><img alt=""></button>
+  <button class="slot up" id="s-right" aria-label="swap the right card"><span class="face"></span><img alt=""></button>
+  <div class="slot" id="s-mid">
+    <span class="face"></span>
+    <div id="midwrap"><textarea id="middle" rows="3"></textarea></div>
+    <input id="v-top" class="venn" hidden>
+    <input id="v-left" class="venn" hidden>
+    <input id="v-right" class="venn" hidden>
+    <div id="middrawing" hidden>drawing</div>
+    <div id="midcut" hidden><img id="midimg" alt=""></div>
+  </div>
+</div>
+
+<div id="kinds">
+  <button id="k-same" class="on">All the same</button>
+  <button id="k-each">Each different</button>
+  <button id="k-auto">Model finds it</button>
+</div>
+
+<div id="acts">
+  <button class="btn" id="deal">Deal</button>
+  <button class="btn" id="found"><span id="star"></span>Found a set <span class="cost">~2¢</span></button>
+</div>
+<div id="msg"></div>
+
+<div id="helpcard" hidden>
+  <div>
+    <b>Triset.</b> Three triangular cards around a middle triangle.
+    Say what they have in common in the middle — or tap a card to swap it
+    until you find a set.<br><br>
+    <b>All the same</b> — all three share one thing; write it in the middle.<br>
+    <b>Each different</b> — each card shares something <i>different</i> with a
+    fourth thing; the middle names the fourth thing, and each card's
+    connection is written on the side of the middle triangle it touches, venn
+    style.<br>
+    <b>Model finds it</b> — nothing to type: the three cards are shown to the
+    image model with the rules, and it finds the connection itself (~5¢).<br><br>
+    Found a set draws a brand-new card from your qualities — the center of the
+    venn diagram. It appears upside down in the middle, joins the pool, and a
+    tap on it deals the next hand. About 2¢ a card.
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var TOKEN = '__STUDIO_TOKEN__';
+var STAR = '<svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg>';
+document.getElementById('star').innerHTML = STAR;
+
+var $ = function(s){ return document.querySelector(s); };
+function hdrs(json){
+  var h = {};
+  if (TOKEN) h['x-studio-token'] = TOKEN;
+  if (json) h['Content-Type'] = 'application/json';
+  return h;
+}
+function thumb(u){ return '/api/story/thumb?w=800&url=' + encodeURIComponent(u); }
+
+var pool = [];                 // ready cards
+var hand = { top:null, left:null, right:null };
+var kind = 'same';
+var pending = null;            // card id being drawn
+var PKEY = 'triset.pending';
+
+function poolLine(){ $('#pool').textContent = pool.length ? pool.length + ' cards' : ''; }
+
+function setImg(slot, card){
+  var el = $('#s-' + slot);
+  var img = el.querySelector('img');
+  if (card) {
+    img.src = thumb(card.cut || card.url); img.hidden = false;
+    img.classList.toggle('whole', !!card.cut);
+    el.classList.toggle('down', !!card.flip);
+    el.classList.toggle('up', !card.flip);
+  }
+  else { img.removeAttribute('src'); img.hidden = true; }
+}
+
+// An upside-down (made) card is never dealt into a corner — the corners are
+// point-up spots and a point-down card there reads as broken (2026-08-30,
+// Sophie: "the upside down cards are being dealt in the wrong spot"). Where
+// they SHOULD live is her open call; until then they stay in the pool,
+// undealt.
+function dealable(){ return pool.filter(function(c){ return !c.flip; }); }
+function others(){
+  var used = [hand.top, hand.left, hand.right].filter(Boolean).map(function(c){ return c.id; });
+  return dealable().filter(function(c){ return used.indexOf(c.id) < 0; });
+}
+function randOf(list){ return list[Math.floor(Math.random() * list.length)]; }
+
+function deal(){
+  if (dealable().length < 3) { say('not enough cards in the pool yet', true); return; }
+  var rest = dealable();
+  ['top','left','right'].forEach(function(s){
+    var c = randOf(rest);
+    rest.splice(rest.indexOf(c), 1);
+    hand[s] = c; setImg(s, c);
+  });
+}
+function swap(slot){
+  var rest = others();
+  if (!rest.length) { say('no other cards to swap in', true); return; }
+  var c = randOf(rest);
+  hand[slot] = c; setImg(slot, c);
+}
+
+function say(t, bad){
+  var m = $('#msg');
+  m.textContent = t || '';
+  m.className = bad ? 'bad' : '';
+}
+
+var VENN = ['v-top','v-left','v-right'];
+function setKind(k){
+  kind = k;
+  ['same','each','auto'].forEach(function(x){
+    $('#k-' + x).classList.toggle('on', k === x);
+  });
+  $('#s-mid').classList.toggle('each', k === 'each');
+  VENN.forEach(function(id){ document.getElementById(id).hidden = (k !== 'each') || !$('#midcut').hidden || !$('#middrawing').hidden; });
+  // auto: the model reads the cards itself — nothing to type, so the middle
+  // box steps aside (three more input images ride along, hence the price)
+  if (!pending && $('#midcut').hidden) $('#midwrap').hidden = (k === 'auto');
+  $('#found').querySelector('.cost').textContent = (k === 'auto') ? '~5¢' : '~2¢';
+}
+
+function drawingUI(on){
+  $('#midwrap').hidden = on || (kind === 'auto');
+  VENN.forEach(function(id){ document.getElementById(id).hidden = on || (kind !== 'each'); });
+  $('#middrawing').hidden = !on;
+  $('#found').disabled = on;
+}
+
+function found(){
+  if (pending) return;
+  var middle = $('#middle').value.trim();
+  if (kind !== 'auto' && !middle) { say('write what they share in the middle triangle', true); return; }
+  var body = {
+    cards: [hand.top, hand.left, hand.right].map(function(c){ return c && c.id; }),
+    kind: kind,
+  };
+  if (kind !== 'auto') body.middle = middle;
+  if (body.cards.some(function(id){ return !id; })) { say('deal three cards first', true); return; }
+  if (kind === 'each') {
+    body.sides = VENN.map(function(id){ return document.getElementById(id).value.trim(); });
+    if (body.sides.some(function(s){ return !s; })) { say('write each card’s connection on its side of the middle triangle', true); return; }
+  }
+  say('');
+  drawingUI(true);
+  fetch('/api/triset/found', { method:'POST', headers:hdrs(true), body:JSON.stringify(body) })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (!d.ok) throw new Error(d.error || 'could not start the card');
+      pending = d.id;
+      try { localStorage.setItem(PKEY, pending); } catch(e){}
+      poll();
+    })
+    .catch(function(e){ drawingUI(false); say(String(e.message || e), true); });
+}
+
+var pollTimer = null;
+function poll(){
+  if (!pending) return;
+  fetch('/api/triset/card/' + pending, { headers:hdrs() })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.status === 'ready') {
+        var id = pending;
+        pending = null;
+        try { localStorage.removeItem(PKEY); } catch(e){}
+        drawingUI(false);
+        pool.unshift({ id:id, url:d.url, cut:d.cut, title:d.title, status:'ready', flip:true });
+        poolLine();
+        showMade(d);
+      } else if (d.status === 'failed' || d.error === 'not found') {
+        pending = null;
+        try { localStorage.removeItem(PKEY); } catch(e){}
+        drawingUI(false);
+        say(d.status === 'failed' ? ('the card failed: ' + (d.error || '')) : 'lost track of the card', true);
+      } else {
+        pollTimer = setTimeout(poll, 3000);
+      }
+    })
+    .catch(function(){ pollTimer = setTimeout(poll, 5000); });
+}
+
+// the new card lands IN the middle slot, upside down — her rule ("shud show,
+// in the middle, when drawn"); tapping it starts the next hand.
+function showMade(card){
+  var mid = $('#s-mid');
+  mid.classList.add('made');
+  $('#midwrap').hidden = true;
+  VENN.forEach(function(id){ document.getElementById(id).hidden = true; });
+  $('#midimg').src = thumb(card.cut || card.url);
+  $('#midimg').classList.toggle('whole', !!card.cut);
+  $('#midcut').hidden = false;
+  say('“' + (card.title || 'the new card') + '” joined the pool — tap it for the next hand');
+}
+function nextHand(){
+  var mid = $('#s-mid');
+  mid.classList.remove('made');
+  $('#midcut').hidden = true; $('#midimg').removeAttribute('src');
+  $('#midwrap').hidden = (kind === 'auto');
+  VENN.forEach(function(id){
+    var el = document.getElementById(id);
+    el.value = ''; el.hidden = (kind !== 'each');
+  });
+  $('#middle').value = '';
+  say('');
+  deal();
+}
+
+function load(){
+  fetch('/api/triset/cards', { headers:hdrs() })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      pool = (d.cards || []).filter(function(c){ return c.status === 'ready' && c.url; });
+      poolLine();
+      deal();
+      // pick a draw back up after a reload — paid work is never lost
+      var p = null;
+      try { p = localStorage.getItem(PKEY); } catch(e){}
+      if (p) {
+        var mine = (d.cards || []).some(function(c){ return c.id === p; });
+        if (mine) { pending = p; drawingUI(true); poll(); }
+        else { try { localStorage.removeItem(PKEY); } catch(e){} }
+      }
+    })
+    .catch(function(){ say('could not load the cards', true); });
+}
+
+$('#s-top').onclick = function(){ swap('top'); };
+$('#s-left').onclick = function(){ swap('left'); };
+$('#s-right').onclick = function(){ swap('right'); };
+$('#deal').onclick = deal;
+$('#found').onclick = found;
+$('#k-same').onclick = function(){ setKind('same'); };
+$('#k-each').onclick = function(){ setKind('each'); };
+$('#k-auto').onclick = function(){ setKind('auto'); };
+$('#help').onclick = function(){ $('#helpcard').hidden = false; };
+$('#helpcard').onclick = function(){ $('#helpcard').hidden = true; };
+$('#midimg').onclick = nextHand;
+
+// the app's chevron closes an open layer before it leaves the tool
+window.__navBack = function(){
+  if (!$('#helpcard').hidden) { $('#helpcard').hidden = true; return true; }
+  if (!$('#midcut').hidden) { nextHand(); return true; }
+  return false;
+};
+
+load();
+})();
+</script>
+</body>
+</html>

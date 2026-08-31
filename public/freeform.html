@@ -19,8 +19,13 @@
   .app-header{display:flex;align-items:center;min-height:34px;padding-right:64px;margin:0 0 8px}
   .app-header h1{font:400 11px/1 -apple-system,'Helvetica Neue',sans-serif;letter-spacing:.34em;
                  text-transform:uppercase;color:#6f675e;margin:0}
-  .lede{color:#7a6f60;font-size:13px;margin-bottom:16px;padding-right:56px}
-  .panel{background:#fff;border:1px solid #e0d8ca;border-radius:6px;padding:12px;margin-bottom:14px}
+  /* THE PILL'S COLUMN IS RESERVED BY WHATEVER SITS UNDER IT AT REST — and the
+     BOX shortens rather than padding, because a panel has an outline and a
+     padded one keeps drawing its border under the capsule (chats.html's
+     `.pinned` lesson). `--pillgap` is written by fitPillGap() from the pill's
+     REAL rect; a page with no pill leaves it 0 and nothing moves. */
+  .panel{background:#fff;border:1px solid #e0d8ca;border-radius:6px;padding:12px;margin-bottom:14px;
+         margin-right:var(--pillgap,0px);margin-top:var(--pilltop,0px)}
   .lab{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#9a8f7d;margin-bottom:7px}
   textarea{width:100%;min-height:110px;border:1px solid #d8cfc0;border-radius:6px;padding:9px;
            font:16px/1.4 -apple-system,Georgia,serif;background:#fdfbf7;color:#2b2620;resize:vertical}
@@ -55,6 +60,11 @@
   .ref .x{position:absolute;bottom:3px;right:3px;width:20px;height:20px;border-radius:4px;
           background:rgba(255,255,255,.9);border:1px solid #d8cfc0;font-size:11px;line-height:18px;text-align:center;padding:0}
   .empty{color:#9a8f7d;font-size:13px;padding:6px 2px}
+  /* The boiler toggle: the house rounded rectangle, filled when it is ON so a
+     wrapper can never be riding along unnoticed. */
+  #boiler.on{background:#2b2620;border-color:#2b2620;color:#f6f2ea}
+  .boilertext{margin-top:8px;font-size:12px;line-height:1.45;color:#6f675e;
+              border-left:2px solid #d8cfc0;padding-left:8px;white-space:pre-wrap}
   #reftog.on{border-color:#2b2620}
   /* The attached strip — small, one row, always shown while anything is on. */
   .picked{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
@@ -65,18 +75,25 @@
   .up input{position:absolute;inset:0;opacity:0;font-size:0}
   /* Feed */
   .run{background:#fff;border:1px solid #e0d8ca;border-radius:6px;padding:11px;margin-bottom:11px}
-  .run .p{font-size:15px;margin-bottom:6px;white-space:pre-wrap}
+  .runhead{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
+  .run .p{font-size:15px;white-space:pre-wrap;flex:1;min-width:0}
+  /* A rounded SQUARE, the house 6px — never a circle (2026-08-24). */
+  .copybtn{flex:none;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;
+           padding:0;border:1px solid #d8cfc0;border-radius:6px;background:#fdfbf7;color:#6f675e}
+  .copybtn svg{width:14px;height:14px}
   .tags{font-size:11px;color:#9a8f7d;margin-bottom:8px}
   .outs{display:flex;gap:7px;flex-wrap:wrap}
   .outs img{width:calc(50% - 4px);border-radius:4px;display:block;background:#f1ece2}
   .ph{width:calc(50% - 4px);aspect-ratio:2/3;border-radius:4px;background:#f1ece2;animation:br 1.6s ease-in-out infinite}
   @keyframes br{0%,100%{opacity:.5}50%{opacity:1}}
   .err{color:#a0402a;font-size:13px}
+  /* The button hugs its words, like every other button in the house. */
+  .again{margin-top:7px;padding:6px 11px;font-size:14px}
   .usedrefs{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
   .usedrefs img{width:34px;height:34px;object-fit:cover;border-radius:4px;border:1px solid #e0d8ca}
-  #lb{position:fixed;inset:0;background:rgba(20,16,10,.93);display:none;align-items:center;
-      justify-content:center;z-index:60;padding:10px}
-  #lb img{max-width:100%;max-height:100%}
+  /* The lightbox is THE SHARED ONE (/asset-lightbox.js) — it brings its own
+     CSS. This page kept a bare hand copy (#lb) until 2026-08-28 (Sophie:
+     "create a single lightbox view, sync to all surfaces"). */
   .toast{position:fixed;left:12px;bottom:12px;background:#2b2620;color:#f6f2ea;font-size:13px;
          border-radius:6px;padding:7px 11px;opacity:0;transition:opacity .25s;z-index:70}
   .toast.show{opacity:1}
@@ -84,9 +101,6 @@
 </head>
 <body>
 <header class="app-header"><h1>Freeform</h1></header>
-<p class="lede">Your references, your words, nothing added. Whatever you type is exactly what gets sent —
-no style prompt, no trigger word, no extra lines. If you want a style, say it yourself.</p>
-
 <div class="panel">
   <div class="lab">Reference images</div>
   <div class="row">
@@ -119,16 +133,21 @@ no style prompt, no trigger word, no extra lines. If you want a style, say it yo
       <option value="3">3 images</option>
       <option value="4">4 images</option>
     </select>
+    <button id="boiler" aria-pressed="false"
+            title="Add the stock style line after your words">Boilerplate style</button>
     <button class="go" id="go">Draw</button>
     <span class="cost" id="cost"></span>
   </div>
+  <!-- Lit, this prints the EXACT line that will ride after her words. A
+       wrapper this module adds may never be invisible. -->
+  <div class="boilertext" id="boilertext" hidden></div>
 </div>
 
 <div id="feed"></div>
 
-<div id="lb"><img id="lbi" src="" alt=""></div>
 <div class="toast" id="toast"></div>
 
+<script src="/asset-lightbox.js"></script>
 <script>
 var TOKEN = '__STUDIO_TOKEN__';
 if (TOKEN.indexOf('__') === 0) TOKEN = '';
@@ -181,7 +200,7 @@ document.addEventListener('click', function (e) {
   var t = e.target;
   var fromPill = pillTap; pillTap = false;
   if (fromPill || (t && t.closest && t.closest('.float'))) return;
-  if (t && t.closest && (t.closest('#lb') || t.closest('img[data-full]'))) return;
+  if (t && t.closest && (t.closest('#clightbox') || t.closest('img[data-full]'))) return;
   var interactive = (window.__pillInteractive && window.__pillInteractive(t)) ||
                     (t && t.closest && t.closest('.ref'));   // library tiles select refs
   if (interactive) {
@@ -202,20 +221,127 @@ document.addEventListener('focusin', function (e) {
   if (window.__scrollStop) window.__scrollStop();
 });
 
-// ── Lightbox: pause scroll, lock the body, and RESTORE the exact position on
-// close — pausing alone is not enough, since overflow:hidden doesn't stop
-// window.scrollBy if anything restarts the scroll underneath.
-var lb = document.getElementById('lb'), lbi = document.getElementById('lbi'), savedY = 0;
+// ── THE PILL'S COLUMN, MEASURED (2026-08-28, Sophie: "pill broken in
+// freeform"). The page used to open with a lede paragraph carrying
+// `padding-right:56px`, so the panels began BELOW the pill's band. When the
+// lede came off (#1857) the two panels moved straight up into it: the
+// Reference panel's box drew under the capsule, the pill's own `Fast` label
+// printed inside the Prompt panel, and — measured with elementFromPoint at
+// the iPhone 13's real 47px safe-area inset — the fourth-column reference
+// tile was COVERED BY THE PILL and could not be tapped at all.
+//
+// MEASURED against the pill's real rect, never a hardcoded 56/64 band: the
+// pill is conditional (it only exists once there is something to scroll) and
+// its top rides env(safe-area-inset-top), so the band is a different height
+// on her phone than in any headless check.
+//
+// Judged at the TOP OF THE PAGE on purpose. A live viewport test would change
+// a panel's width as it scrolled past the capsule; the run cards below scroll
+// under the rail exactly as they do on every other page here.
+// A WRITE THAT CHANGES NOTHING IS NOT A WRITE. Every observer below can be
+// woken by a style attribute, so a pass that re-set an identical value would
+// wake itself and spin a frame forever.
+function setGap(el, name, v) {
+  if (el.style.getPropertyValue(name) === v) return;
+  el.style.setProperty(name, v);
+}
+// TWO ANSWERS, AND THE CHOICE IS WHICHEVER COSTS LESS. A panel deep in the
+// band SHORTENS — that is the only thing that makes the Reference panel's
+// fourth-column tile tappable, and nudging it clear would push the whole top
+// of the page down by most of a pill. A panel that merely DIPS into the bottom
+// of the band is nudged instead: shortening that one costs 58px off a row that
+// already fits three controls and wraps them onto a third line, for the sake
+// of an overlap of about thirty pixels (the Playground's own note about this
+// corner says a third line of controls is not a price to pay unasked).
+//
+// The threshold is the column's own width: if clearing the pill vertically
+// costs more than reserving it horizontally, reserve it horizontally.
+//
+// EVERY PANEL IS MEASURED WITH BOTH RESERVATIONS AT ZERO FIRST, in one pass,
+// so a panel is never judged on a position this function gave it — that is
+// what would oscillate: nudge it clear, find it clear, drop the nudge, find
+// it colliding again, forever.
+function fitPillGap() {
+  var panels = document.querySelectorAll('.panel');
+  var pill = document.querySelector('body > .float');
+  var p = (pill && pill.getClientRects().length) ? pill.getBoundingClientRect() : null;
+  var y = window.scrollY || 0, i;
+  for (i = 0; i < panels.length; i++) { setGap(panels[i], '--pillgap', '0px'); setGap(panels[i], '--pilltop', '0px'); }
+  if (!p) return;
+  var nat = [];
+  for (i = 0; i < panels.length; i++) nat.push(panels[i].getBoundingClientRect());  // natural, unreserved
+  for (i = 0; i < panels.length; i++) {
+    var el = panels[i], r = nat[i], top = r.top + y, bot = r.bottom + y;
+    // the pill is fixed, so its viewport rect IS its resting position in the
+    // document; compare the panel there rather than where it is right now
+    if (bot <= p.top || top >= p.bottom) continue;
+    var clear = Math.ceil(p.bottom - top) + 8;        // what a nudge would cost
+    if (clear > 56) setGap(el, '--pillgap', Math.max(0, Math.ceil(r.right - p.left) + 8) + 'px');
+    // the 14px it already has collapses into this one, so add it back or the
+    // panel moves down by 14px less than it was asked to
+    else setGap(el, '--pilltop', (14 + clear) + 'px');
+  }
+}
+window.__fitPillGap = fitPillGap;
+// The pill appears only once the page has something to scroll, and this page
+// fetches its references and its runs after it loads — so a check at load
+// would run before the pill exists. Watch instead, coalesced to one pass a
+// frame, the way the pill watches for the same reason.
+(function () {
+  var q = false;
+  function soon() { if (q) return; q = true; requestAnimationFrame(function () { q = false; fitPillGap(); }); }
+  window.__fitPillSoon = soon;
+  window.addEventListener('resize', soon, { passive: true });
+  window.addEventListener('orientationchange', soon);
+  window.addEventListener('load', soon);
+  // the pill settles into its final height a beat after it appears (its speed
+  // label lands with the font), and a height change of the pill is a change to
+  // the band — two cheap settling passes rather than trusting one moment
+  setTimeout(soon, 400); setTimeout(soon, 1500);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(soon);
+  if (window.ResizeObserver) {
+    var ro = new ResizeObserver(soon);
+    ro.observe(document.documentElement);
+    if (document.body) ro.observe(document.body);
+  }
+  // THE PILL IS APPENDED AFTER THIS SCRIPT (the server adds it to a page it has
+  // never met) and it is shown and hidden by a style attribute — so watch for
+  // it arriving, then watch the element itself. A ResizeObserver hears both
+  // halves: display:none is a size of 0, and coming back is a size again.
+  (function waitForPill(tries) {
+    var f = document.querySelector('body > .float');
+    if (f) { if (window.ResizeObserver) new ResizeObserver(soon).observe(f); soon(); return; }
+    if (tries > 0) setTimeout(function () { waitForPill(tries - 1); }, 120);
+  })(20);
+  soon();
+})();
+
+// ── Lightbox: THE SHARED ONE (/asset-lightbox.js) — never a second copy
+// (2026-08-28, Sophie: "create a single lightbox view, sync to all surfaces").
+// It stops the autoscroll, locks the body and restores the exact scroll
+// position itself. An OUTPUT opens with this run's prompt behind the PROMPT
+// button — the module's whole promise made readable: promptSent is the
+// verbatim content half, and the style half exists only when the boiler
+// really rode along — plus the two invisible step zones through the run's
+// pictures. A REFERENCE opens plain: her own photo, no prompt to show.
 function openLb(src) {
   if (window.__scrollStop) window.__scrollStop();
-  savedY = window.scrollY;
-  lbi.src = src; lb.style.display = 'flex'; document.body.style.overflow = 'hidden';
+  window.__assetLightbox(src, null);
 }
-lb.addEventListener('click', function () {
+function openRunImage(run, i) {
   if (window.__scrollStop) window.__scrollStop();
-  lb.style.display = 'none'; lbi.src = ''; document.body.style.overflow = '';
-  window.scrollTo(0, savedY);
-});
+  var imgs = run.images || [];
+  window.__assetLightbox(imgs[i], {
+    prompt: [run.model || 'gpt-image-2', run.quality, run.size,
+             run.boiler ? 'boilerplate style' : ''].filter(Boolean).join(' · '),
+    promptContent: run.promptContent || run.promptSent || run.prompt || '',
+    promptStyle: run.promptStyle || '',
+    nav: {
+      prev: i > 0 ? function () { openRunImage(run, i - 1); } : null,
+      next: i < imgs.length - 1 ? function () { openRunImage(run, i + 1); } : null,
+    },
+  });
+}
 
 function updateCost() {
   var q = document.getElementById('quality').value;
@@ -328,6 +454,61 @@ document.getElementById('file').addEventListener('change', function (e) {
   }).catch(function () { toast('Upload failed'); });
 });
 
+// ── PUTTING A PROMPT BACK PUTS ITS REFERENCES BACK (2026-08-27, Sophie:
+//    "playground and other image tools shud save the reference photo and
+//    reload when copy to prompt box") ───────────────────────────────────────
+//
+// Freeform's references are a LIBRARY rather than a per-run upload, so the
+// bytes were never in danger — but which ones a run carried was, and there was
+// no way back to a prompt at all: this page had no put-back button of any
+// kind. It has the Playground's now, and it restores both halves of the
+// request, because in Freeform the references ARE half the prompt (nothing
+// else is added to her words).
+//
+// The run doc has stored `refIds` since the module shipped, so nothing new is
+// saved and every run already on file gets this. A reference she has since
+// DELETED cannot come back — the ids that are still in the library are
+// re-selected and the answer SAYS how many were not, rather than quietly
+// starting the next run one reference short.
+var ICON_COPY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<rect x="9" y="9" width="12" height="12" rx="2"></rect>' +
+  '<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+
+function copyRunIn(run) {
+  if (!run) return;
+  // The library is fetched on load, so a tap inside that first round trip
+  // would find `known` empty and report every reference as deleted. Ask once,
+  // then apply — an empty library resolves straight through.
+  if (!Object.keys(known).length) { loadRefs().then(function () { applyRunIn(run); }); return; }
+  applyRunIn(run);
+}
+function applyRunIn(run) {
+  var box = document.getElementById('prompt');
+  box.value = run.prompt || '';
+  // Only change what the record knows: a run with references re-attaches
+  // exactly those, and a run drawn with NONE clears whatever is attached —
+  // leaving one on would put an ingredient into the next run that this one
+  // never had.
+  var want = Array.isArray(run.refIds) ? run.refIds : [];
+  picked = {};
+  var gone = 0;
+  want.forEach(function (id) { if (known[id]) picked[id] = true; else gone++; });
+  document.querySelectorAll('.ref').forEach(function (d) {
+    d.classList.toggle('on', !!picked[d.id.slice(4)]);
+  });
+  drawPicked();
+  // Same rule as the references: a run drawn WITH the boiler turns it on, one
+  // drawn without it turns it off, so the next run has exactly the ingredients
+  // the one she copied had.
+  boilerOn = !!run.boiler;
+  paintBoiler();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  toast(gone
+    ? 'Prompt is back — ' + gone + (gone === 1 ? ' reference is' : ' references are') + ' no longer in the library'
+    : (want.length ? 'Prompt and its references are back' : 'Prompt is back in the box'));
+}
+
 // ── Runs ────────────────────────────────────────────────────────────────────
 function runCard(run) {
   var el = document.getElementById('run-' + run.id);
@@ -337,25 +518,52 @@ function runCard(run) {
     el.id = 'run-' + run.id;
     document.getElementById('feed').insertBefore(el, document.getElementById('feed').firstChild);
   }
-  var tags = [run.model || 'gpt-image-2', run.quality, run.size].filter(Boolean).join(' · ');
-  var html = '<div class="p"></div><div class="tags">' + tags + '</div>';
+  var tags = [run.model || 'gpt-image-2', run.quality, run.size,
+              run.boiler ? 'boilerplate style' : ''].filter(Boolean).join(' · ');
+  var html = '<div class="runhead"><div class="p"></div>' +
+    '<button class="copybtn" data-copy="' + run.id + '" ' +
+    'aria-label="Put this prompt and its references back" ' +
+    'title="Put this prompt and its references back">' + ICON_COPY + '</button></div>' +
+    '<div class="tags">' + tags + '</div>';
   html += '<div class="outs">';
-  (run.images || []).forEach(function (u) { html += '<img src="' + u + '" alt="" data-full="' + u + '">'; });
+  (run.images || []).forEach(function (u, i) { html += '<img src="' + u + '" alt="" data-full="' + u + '" data-i="' + i + '">'; });
   if (run.status === 'drawing' || run.status === 'ready') {
     var missing = Math.max((run.outputs || 1) - (run.images || []).length, 0);
     for (var i = 0; i < missing; i++) html += '<div class="ph"></div>';
   }
   html += '</div>';
-  if (run.status === 'failed') html += '<div class="err">' + (run.error || 'failed') + '</div>';
+  if (run.status === 'failed') {
+    html += '<div class="err">' + (run.error || 'failed') + '</div>';
+    // Only where there is something to re-send. A run with no prompt on record
+    // (nothing here writes one, but an older doc could) has nothing to retry.
+    if (run.prompt) html += '<div><button class="again">Try again</button></div>';
+  }
   if ((run.refs || []).length) {
     html += '<div class="usedrefs">';
     run.refs.forEach(function (u) { html += '<img src="' + u + '" alt="" data-full="' + u + '">'; });
     html += '</div>';
   }
+  /* THE CARD ONLY REBUILDS WHEN IT CHANGED (2026-08-28, the Story Room's
+     "blinks a lot" rule). The poll calls this every 2.5s for the life of a
+     run, and re-assigning identical HTML recreates the reference thumbs and
+     every picture already landed — the card flashed the whole time a run was
+     drawing. The signature is the exact HTML plus the prompt (which is set
+     as textContent below, outside the HTML string). */
+  var sig = html + '' + (run.prompt || '');
+  if (el.__sig === sig) return;
+  el.__sig = sig;
   el.innerHTML = html;
   el.querySelector('.p').textContent = run.prompt || '';
+  el.querySelector('.copybtn').addEventListener('click', function () { copyRunIn(run); });
+  var again = el.querySelector('.again');
+  if (again) again.addEventListener('click', function () { startRun(retryBody(run), again); });
   el.querySelectorAll('img[data-full]').forEach(function (im) {
-    im.addEventListener('click', function () { openLb(im.dataset.full); });
+    im.addEventListener('click', function () {
+      // an OUTPUT (data-i) carries this run's prompt and steps through the
+      // run's pictures; a reference thumbnail opens plain
+      if (im.dataset.i != null) openRunImage(run, Number(im.dataset.i));
+      else openLb(im.dataset.full);
+    });
   });
 }
 
@@ -381,27 +589,94 @@ function savePending() {
   try { localStorage.setItem('freeform_pending', JSON.stringify(live)); } catch (e) {}
 }
 
+// ── The boiler style toggle ────────────────────────────────────────────────
+// OFF on every load and deliberately NOT sticky: this is the one surface whose
+// whole promise is that nothing is added, so a wrapper remembered from last
+// week silently riding today's run is exactly the surprise it exists to avoid.
+// The TEXT is fetched, never copied into this page — the server owns what is
+// actually sent (the Playground's `/styles` rule).
+var boilerOn = false;
+var boiler = { prefix: '', suffix: '' };
+function paintBoiler() {
+  var b = document.getElementById('boiler');
+  var t = document.getElementById('boilertext');
+  b.classList.toggle('on', boilerOn);
+  b.setAttribute('aria-pressed', boilerOn ? 'true' : 'false');
+  // Both halves, each labelled with WHERE it lands — this is the house recipe,
+  // so it wraps her words rather than only following them.
+  var parts = [];
+  if (boiler.prefix) parts.push('Before your words: ' + boiler.prefix);
+  if (boiler.suffix) parts.push('After your words: ' + boiler.suffix);
+  t.textContent = parts.join('\n\n');
+  t.hidden = !(boilerOn && parts.length);
+}
+api('/style').then(function (d) {
+  boiler = (d && d.style) || boiler;
+  var b = document.getElementById('boiler');
+  // Name the style it is, so a lit toggle says WHICH house recipe is riding.
+  if (boiler.from) b.textContent = boiler.from + ' style';
+  paintBoiler();
+}).catch(function () {});
+document.getElementById('boiler').addEventListener('click', function () {
+  boilerOn = !boilerOn;
+  paintBoiler();
+});
+
+// ONE starter, so Generate and Try again cannot disagree about what a run is.
+// The optimistic card carries `refIds` or its put-back is dishonest before the
+// first poll swaps the real doc in — without it, copying a run back the second
+// after starting it would CLEAR the references it is drawing with.
+function startRun(body, btn) {
+  if (btn) btn.disabled = true;
+  return api('/run', { method: 'POST', body: JSON.stringify(body) }).then(function (d) {
+    if (btn) btn.disabled = false;
+    if (!d || !d.id) return toast((d && d.error) || 'Could not start');
+    runCard({ id: d.id, prompt: body.prompt, quality: body.quality, size: body.size,
+              outputs: body.outputs, refs: [], refIds: body.refs.slice(), images: [],
+              boiler: body.boiler, status: 'drawing' });
+    poll(d.id); savePending();
+    toast('Drawing…');
+  }).catch(function () { if (btn) btn.disabled = false; toast('Could not start'); });
+}
+
 document.getElementById('go').addEventListener('click', function () {
   var prompt = document.getElementById('prompt').value;
   if (!prompt.trim()) return toast('Type something first');
-  var body = {
+  startRun({
     prompt: prompt,
     refs: Object.keys(picked),
     quality: document.getElementById('quality').value,
     size: document.getElementById('size').value,
     outputs: Number(document.getElementById('outputs').value) || 1,
-  };
-  var go = document.getElementById('go');
-  go.disabled = true;
-  api('/run', { method: 'POST', body: JSON.stringify(body) }).then(function (d) {
-    go.disabled = false;
-    if (!d || !d.id) return toast((d && d.error) || 'Could not start');
-    runCard({ id: d.id, prompt: body.prompt, quality: body.quality, size: body.size,
-              outputs: body.outputs, refs: [], images: [], status: 'drawing' });
-    poll(d.id); savePending();
-    toast('Drawing…');
-  }).catch(function () { go.disabled = false; toast('Could not start'); });
+    boiler: boilerOn,
+  }, document.getElementById('go'));
 });
+
+// ── Try again ───────────────────────────────────────────────────────────────
+// A failed run's whole request is on its own doc, so re-drawing it needs
+// nothing typed and nothing picked — that is the point: the copy button puts a
+// prompt back in the BOX (where she can change it first), and this one draws
+// the SAME request again, for the case where nothing was wrong with it. It is
+// the answer to a run orphaned by a deploy: the card that spun is the card
+// that restarts it.
+//
+// It sends the run's OWN stored values, never the controls on screen — a
+// quality or a size she has moved since is not what she is retrying — and it
+// prefers `refIds` so the new run records its references the way the old one
+// did, falling back to the stored URLs when a reference has left the library
+// (the picture is still in Storage, so the retry is not one reference short).
+function retryBody(run) {
+  var refs = Array.isArray(run.refs) ? run.refs : [];
+  var ids = Array.isArray(run.refIds) ? run.refIds : [];
+  return {
+    prompt: run.prompt || '',
+    refs: (ids.length && ids.length === refs.length) ? ids.slice() : refs.slice(),
+    quality: run.quality,
+    size: run.size,
+    outputs: run.outputs || 1,
+    boiler: !!run.boiler,
+  };
+}
 
 function loadRuns() {
   return api('/runs?limit=40').then(function (d) {

@@ -6,8 +6,15 @@
 // The past-pictures row already held every generation a beat had had, and the
 // lightbox opened exactly one of them — to see the next one she had to close,
 // find the 44px thumbnail, and open again. The zones are the Playground's
-// settled rule, lifted rather than re-invented: a transparent 28% strip over
-// the IMAGE AREA, nothing drawn, hidden at the ends so a tap there closes.
+// settled rule: a transparent 28% strip over the IMAGE AREA, nothing drawn,
+// absent at the ends.
+//
+// SINCE 2026-08-28 THE ZONES ARE THE SHARED FILE'S OWN (`nav` on
+// /asset-lightbox.js — Sophie: "create a single lightbox view, sync to all
+// surfaces"): the box is #clightbox, a zone is .lbzone.prev/.lbzone.next and
+// simply does not EXIST at an end, and closing is the shared contract — any
+// dead space closes, the picture itself never does (its img is on the shared
+// skip list everywhere, the Assets tab included).
 //
 //   node scripts/test-storyroom-lightbox-nav.js
 //
@@ -16,6 +23,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
+const servePublic = require('./lib/public-asset');
 
 let chromium;
 try { ({ chromium } = require('playwright')); }
@@ -69,6 +77,8 @@ const beats = [{
 }];
 
 const server = http.createServer((req, res) => {
+  // Anything the page links out of public/ — /feedkit.js, /tritoggle.*, …
+  if (servePublic(req, res)) return;
   const url = new URL(req.url, 'http://x');
   const json = (o) => { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
   if (req.method === 'POST') {
@@ -108,14 +118,29 @@ function ok(cond, name) {
   await page.evaluate((id) => window.openPad(id), 'pad');
   await page.waitForSelector('#pad .beat');
 
-  // NOT offsetParent — the lightbox is position:fixed, whose offsetParent is
-  // null however plainly visible it is.
-  const shown = (sel) => page.$eval(sel, (el) => !el.hidden && el.getClientRects().length > 0);
+  // The shared lightbox shows/hides with style.display and rebuilds its
+  // content per open — a zone or the cta simply does not exist when absent.
+  const lbOpen = () => page.evaluate(() => {
+    const el = document.getElementById('clightbox');
+    return !!el && el.style.display === 'flex';
+  });
+  const waitLbOpen = () => page.waitForFunction(() => {
+    const el = document.getElementById('clightbox');
+    return el && el.style.display === 'flex';
+  });
+  const has = (sel) => page.evaluate((s) => !!document.querySelector(s), sel);
   const box = (sel) => page.$eval(sel, (el) => {
     const r = el.getBoundingClientRect();
     return { x: r.left, y: r.top, w: r.width, h: r.height, r: r.right, b: r.bottom };
   });
-  const at = () => page.$eval('#lbimg', (el) => new URL(el.src).search);
+  const at = () => page.$eval('#clightbox img', (el) => new URL(el.src).search);
+  // The src changes the instant a step rebuilds the box, but the new <img>
+  // has no LAYOUT until it loads — a tap aimed at the picture in that gap
+  // lands on the backdrop and closes. Wait for the paint, not the attribute.
+  const waitAt = (q) => page.waitForFunction((want) => {
+    const im = document.querySelector('#clightbox img');
+    return im && new URL(im.src).search === want && im.getBoundingClientRect().height > 0;
+  }, q);
   // What a tap at a point actually REACHES — the only honest way to ask.
   const hit = (x, y) => page.evaluate(([px, py]) => {
     const el = document.elementFromPoint(px, py);
@@ -130,14 +155,14 @@ function ok(cond, name) {
   });
 
   await page.click('#popimg');
-  await page.waitForSelector('#lightbox:not([hidden])');
+  await waitLbOpen();
   ok(await at() === '?cur', 'it opens on the beat\'s own picture');
-  ok(!(await shown('#lbprev')), 'nothing before the first one, so no left zone');
-  ok(await shown('#lbnext'), 'and there IS a way onward');
+  ok(!(await has('#clightbox .lbzone.prev')), 'nothing before the first one, so no left zone');
+  ok(await has('#clightbox .lbzone.next'), 'and there IS a way onward');
 
   // NOTHING IS DRAWN in a zone — the whole point of a big target is that it
   // does not have to be shown, and a chip at the edge covers the art.
-  const paint = await page.$eval('#lbnext', (el) => {
+  const paint = await page.$eval('#clightbox .lbzone.next', (el) => {
     const cs = getComputedStyle(el);
     return {
       kids: el.childNodes.length, text: (el.textContent || '').trim(),
@@ -149,39 +174,47 @@ function ok(cond, name) {
   ok(/rgba\(0, 0, 0, 0\)|transparent/.test(paint.bg) && paint.bimg === 'none', 'no plate behind it');
   ok(paint.bw === '0px0px0px0px', 'and no border');
 
-  // The zone is sized to the PICTURE, not the window — so the Use button under
-  // it is never covered.
-  const img = await box('#lbimg'), next = await box('#lbnext'), prevBox = await box('.lbstage');
+  // The zone is sized to the PICTURE (.clwrap shrink-wraps the img), so the
+  // Use button under it is never covered.
+  const img = await box('#clightbox img'), next = await box('#clightbox .lbzone.next'),
+    stage = await box('#clightbox .clwrap');
   ok(Math.abs(next.h - img.h) < 2, 'the zone runs the height of the picture (' + Math.round(next.h) + ' vs ' + Math.round(img.h) + ')');
-  ok(next.w > 60 && next.w < prevBox.w * 0.35, 'a fat strip, not the whole screen (' + Math.round(next.w) + 'px)');
+  ok(next.w > 60 && next.w < stage.w * 0.35, 'a fat strip, not the whole screen (' + Math.round(next.w) + 'px)');
   ok(next.r <= img.r + 1, 'and it sits over the picture, not beside it');
 
   // TAPPING THE RIGHT OF THE PICTURE STEPS FORWARD.
   const midY = img.y + img.h / 2;
-  ok((await hit(img.r - 8, midY)).indexOf('lbnav') >= 0, 'a tap at the right edge of the art reaches the zone');
+  ok((await hit(img.r - 8, midY)).indexOf('lbzone') >= 0, 'a tap at the right edge of the art reaches the zone');
   await page.mouse.click(img.r - 8, midY);
-  await page.waitForFunction(() => new URL(document.getElementById('lbimg').src).search === '?old2');
+  await waitAt('?old2');
   ok(await at() === '?old2', 'it steps to the picture before it — the row\'s own order, newest first');
-  ok(await shown('#lbuse'), 'an older picture carries the way to take it');
-  ok(await shown('#lbprev') && await shown('#lbnext'), 'and both ways are open in the middle');
-  ok(await shown('#lightbox'), 'stepping never closes the lightbox');
+  ok(await has('#clightbox .lbcta'), 'an older picture carries the way to take it');
+  ok((await has('#clightbox .lbzone.prev')) && (await has('#clightbox .lbzone.next')),
+    'and both ways are open in the middle');
+  ok(await lbOpen(), 'stepping never closes the lightbox');
 
   await page.mouse.click(img.x + 8, midY);
-  await page.waitForFunction(() => new URL(document.getElementById('lbimg').src).search === '?cur');
+  await waitAt('?cur');
   ok(await at() === '?cur', 'a tap at the left edge steps back');
-  ok(!(await shown('#lbuse')), 'and the current picture offers no Use button again');
+  ok(!(await has('#clightbox .lbcta')), 'and the current picture offers no Use button again');
 
-  // THE END OF THE ROW IS THE END — the zone goes with it, so a tap there
-  // closes, exactly as it did before this existed.
+  // THE END OF THE ROW IS THE END — the zone goes with it (the shared file
+  // draws none for a null side); the picture itself never closes (the shared
+  // skip list, same as every other surface), and any dead space does.
   await page.mouse.click(img.r - 8, midY);
-  await page.waitForFunction(() => new URL(document.getElementById('lbimg').src).search === '?old2');
+  await waitAt('?old2');
   await page.mouse.click(img.r - 8, midY);
-  await page.waitForFunction(() => new URL(document.getElementById('lbimg').src).search === '?old1');
-  ok(!(await shown('#lbnext')), 'the oldest picture has nothing after it');
-  ok((await hit(img.r - 8, midY)).indexOf('lbnav') < 0, 'so that tap no longer reaches a zone');
+  await waitAt('?old1');
+  ok(!(await has('#clightbox .lbzone.next')), 'the oldest picture has nothing after it');
+  ok((await hit(img.r - 8, midY)).indexOf('lbzone') < 0, 'so that tap no longer reaches a zone');
   await page.mouse.click(img.r - 8, midY);
-  await page.waitForFunction(() => document.getElementById('lightbox').hidden);
-  ok(!(await shown('#lightbox')), 'and it closes instead');
+  ok(await lbOpen(), 'a tap landing on the picture stays open — the shared contract');
+  await page.mouse.click(8, 8);
+  await page.waitForFunction(() => {
+    const el = document.getElementById('clightbox');
+    return !el || el.style.display === 'none';
+  });
+  ok(!(await lbOpen()), 'and a dead-space tap closes it');
 
   // A BEAT WITH ONE PICTURE HAS NOTHING TO STEP THROUGH.
   await page.click('#beatpop .popclose, #popclose').catch(() => {});
@@ -195,11 +228,15 @@ function ok(cond, name) {
     return im && !im.hidden && new URL(im.src).search === '?only';
   });
   await page.click('#popimg');
-  await page.waitForSelector('#lightbox:not([hidden])');
-  ok(!(await shown('#lbprev')) && !(await shown('#lbnext')), 'one picture, no zones at all');
-  await page.click('#lbimg');
-  await page.waitForFunction(() => document.getElementById('lightbox').hidden);
-  ok(!(await shown('#lightbox')), 'and a tap on the picture still closes it');
+  await waitLbOpen();
+  ok(!(await has('#clightbox .lbzone.prev')) && !(await has('#clightbox .lbzone.next')),
+    'one picture, no zones at all');
+  await page.mouse.click(8, 8);
+  await page.waitForFunction(() => {
+    const el = document.getElementById('clightbox');
+    return !el || el.style.display === 'none';
+  });
+  ok(!(await lbOpen()), 'and a dead-space tap closes it');
 
   await browser.close();
   server.close();

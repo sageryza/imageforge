@@ -20,6 +20,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const servePublic = require('./lib/public-asset');
 
 let chromium;
 try { ({ chromium } = require('playwright')); }
@@ -42,10 +43,21 @@ const MSGS = [
   { id: 'm3', chat: 'live-one', from: 'claude', created: iso(T0 - 3000), postedAt: iso(T0 - 3000),
     tldr: 'rare only', text: 'A yellow raincoat, feeding crows on a bench.' },
 ];
+// The snippet the bold rule is measured on: `red` as a real word-START hit
+// (inside "redraw", which the matcher DOES match), `red` buried mid-word in
+// "tired", which it does not, and the whole word she typed.
+const BOLD_SNIP = "say so and I'll redraw. Older, thinner, tired, plain — the red dress.";
 const CHATS = { 'live-one': { account: '1', lastSeen: MSGS[0].created } };
 const searched = [];
 
 const server = http.createServer((req, res) => {
+  // THE SHARED FILES chats.html LINKS, served the way express.static serves
+  // them (scripts/lib/public-asset.js). This harness used to fall through to
+  // its catch-all for every one of them, which is the quiet failure that file
+  // exists to end: the page guards the global it could not load, so the harness
+  // renders a page missing that behaviour and passes — or, when the catch-all's
+  // body is not valid JS, throws a page error nobody asked about.
+  if (servePublic(req, res)) return;
   const url = new URL(req.url, 'http://x');
   if (url.pathname === '/api/chatfeed' && req.method === 'GET') {
     const since = url.searchParams.get('since');
@@ -59,10 +71,12 @@ const server = http.createServer((req, res) => {
     // Record what the box actually asked for — the server's own grammar has
     // its own test (scripts/test-search-grammar.js); this one only proves the
     // query left the page without a checkmark.
-    searched.push(url.searchParams.get('q') || '');
+    const q = url.searchParams.get('q') || '';
+    searched.push(q);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({
-      results: [{ id: 'm1', chat: 'live-one', snippet: 'a yellow raincoat', created: MSGS[0].created }],
+      results: [{ id: 'm1', chat: 'live-one', created: MSGS[0].created,
+        snippet: /dress/.test(q) ? BOLD_SNIP : 'a yellow raincoat' }],
       chatMatches: [],
     }));
   }
@@ -119,6 +133,28 @@ const dictate = (page, sel, text) => page.evaluate(([s, t]) => {
   if (!searched.includes('raincoat')) fail('the dictated query never reached the server: ' + JSON.stringify(searched));
 
   // …and it stops again when the words go away, without her tapping anything.
+  await dictate(page, '#qsearch', '');
+  await page.waitForFunction(() => {
+    const sr = document.getElementById('searchresults');
+    return sr && getComputedStyle(sr).display === 'none';
+  }, null, { timeout: 4000 }).catch(() => fail('clearing the dictated text left the results on screen'));
+
+  // ---- A2. the BOLD says the same thing the MATCH says --------------------
+  // 2026-08-28, from her `red dress` screenshot: the highlight had no word
+  // anchor, so `red` lit up inside "tired" — a word the search itself would
+  // never match — and the mark was claiming a row was found for a reason it
+  // was not.
+  await dictate(page, '#qsearch', 'red dress');
+  await page.waitForSelector('#searchresults .sres b', { timeout: 4000 })
+    .catch(() => fail('nothing bolded in the snippet at all'));
+  const bolds = await page.$$eval('#searchresults .sres b', (ns) => ns.map((n) => n.textContent));
+  if (!bolds.some((b) => /^dress$/i.test(b))) fail('the whole word she typed was not bolded: ' + JSON.stringify(bolds));
+  const tired = await page.$eval('#searchresults .sres', (n) => {
+    const b = Array.from(n.querySelectorAll('b'));
+    return b.some((x) => /tired/i.test((x.parentNode.textContent || '')) && /^red$/i.test(x.textContent)
+      && /ti$/i.test(((x.previousSibling && x.previousSibling.textContent) || '').slice(-2)));
+  });
+  if (tired) fail('`red` was bolded inside "tired" — the bold and the match disagree');
   await dictate(page, '#qsearch', '');
   await page.waitForFunction(() => {
     const sr = document.getElementById('searchresults');

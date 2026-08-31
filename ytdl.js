@@ -6,11 +6,25 @@
 // it works, but it hands the file to her Files app, so every download still
 // needs a second trip to upload it into whichever tool wanted it.
 //
-// RENDER IS NOT BLOCKED — measured live 2026-08-23: probe 4.8s, a 3.4MB m4a in
-// under 6s, a 360p mp4 merged, postered and filed at 9.1MB. It can regress
-// (the blocking is YouTube's to change), so `GET /status?probe=1` re-runs that
-// measurement on demand, and a real block lands as `blocked:true` on the doc
-// with yt-dlp's own words rather than as a hung job.
+// RENDER *IS* BLOCKED, AND THIS ROUTE IS THE FALLBACK — NOT THE FIRST MOVE.
+// Sophie's call, 2026-08-27: "use container not render for YouTube downloads."
+// A chat that needs a YouTube file runs yt-dlp in its OWN session container
+// (fetch yt-dlp_linux from the GitHub release) and POSTs the result to
+// /api/drop/upload-file or /api/audio/upload-file — the exact two routes this
+// module files through, so the outcome is indistinguishable from a grab.
+//   Why: measured 2026-08-27, Render refused 3 of 4 distinct videos on EVERY
+//   player client, twice over, including two of her own grabs. The header used
+//   to say "RENDER IS NOT BLOCKED" off two lucky downloads on 08-23 — that is
+//   the stale-confident-claim shape CLAUDE.md warns about, and it survived
+//   because dQw4w9WgXcQ (the probe's hardcoded video) is one of the few Render
+//   still serves, so `GET /status?probe=1` went green through two days of her
+//   downloads failing. A GREEN PROBE SAYS ONE VIDEO ON ONE CLIENT WORKS AND
+//   NOTHING MORE — never quote it as the endpoint being healthy.
+//   A container is better odds, not a guarantee (measured from one the same
+//   day: metadata on 3 of 4, bytes on 1 of 3). Refused in both → the desktop
+//   queue, where her logged-in browser's cookies are the documented remedy.
+// A real block still lands as `blocked:true` on the doc with yt-dlp's own
+// words rather than as a hung job.
 //
 // THE BINARY IS FETCHED AT RUNTIME AND REFRESHES ITSELF WEEKLY, deliberately.
 // Render's stock Node image has no yt-dlp and no Python, so the choices were a
@@ -323,9 +337,10 @@ async function startJob(id, kind, fn) {
 
 /* ── the work ────────────────────────────────────────────────────────────── */
 
-async function readMeta(bin, source) {
+async function readMeta(bin, source, client) {
   const { out } = await run(bin, [
     '--no-warnings', '--no-playlist', '--skip-download',
+    ...clientArgs(client),
     '--print', '%(id)s\t%(title)s\t%(duration)s\t%(uploader)s\t%(ext)s',
     source,
   ], { timeout: 120000 });
@@ -351,9 +366,10 @@ function formatFor(kind, quality) {
     : `best[height<=${h}][ext=mp4]/best[height<=${h}]/best`;
 }
 
-async function download(bin, source, kind, quality, dir, progress) {
+async function download(bin, source, kind, quality, dir, progress, client) {
   const args = [
     '--no-warnings', '--no-playlist', '--no-part',
+    ...clientArgs(client),
     '--newline',                                  // one progress line at a time
     '--retries', '3', '--fragment-retries', '5',
     '--max-filesize', `${MAX_MB}m`,
@@ -498,29 +514,48 @@ function ctFor(ext) {
 
 /* ── the grab ────────────────────────────────────────────────────────────── */
 
-// THE BOT-BLOCK IS INTERMITTENT, NOT A VERDICT (measured 2026-08-24). The same
-// video read fine, then was refused twice in a row a second later, on the same
-// box and the same IP — so it is rate-limiting, not a standing ban. Reporting
-// the first refusal as `blocked:true` would tell Sophie to go to her computer
-// for something that works on the next attempt, which is the single worst
-// failure this module can have. So a block is RETRIED, with a widening gap;
-// only an exhausted ladder is called a block. Anything else (a dead url, a
-// private video) fails immediately — retrying it just wastes her time.
-const BLOCK_TRIES = 4;
-const BLOCK_WAITS = [4000, 12000, 30000];
+// THE BOT-BLOCK IS PER PLAYER CLIENT — NOT per IP, and not per video
+// (measured 2026-08-27, and this REPLACES the "it is just rate-limiting" note
+// that stood here for three days). On ONE box within a few seconds, asking for
+// the same video: `default`, `android_vr`, `android`, `ios_music` and
+// `android_music` all answered, while `tv`, `tv_simply`, `web`, `web_safari`,
+// `web_music`, `ios` and `mweb` were every one of them refused with "Sign in to
+// confirm you're not a bot". The web and tv clients want a JS challenge solved
+// that this box has no runtime for; the android family does not ask.
+//
+// That is why waiting alone was not enough: six real grabs of Sophie's on
+// Aug 25 failed with four bot-blocks while the endpoint's own probe was
+// answering fine the whole time, because the probe's video happened to be one
+// `default` would still serve. So a refusal is answered by CHANGING CLIENT
+// first and only then by waiting — and anything that is not a block (a dead
+// url, a private video) still fails at once rather than wasting her time.
+const CLIENTS = ['default', 'android_vr', 'android', 'ios_music', 'android_music'];
+const BLOCK_ROUNDS = 2;
+const BLOCK_WAITS = [8000];
 
-async function pastTheBlock(what, fn, progress, waits = BLOCK_WAITS) {
+function clientArgs(client) {
+  return !client || client === 'default'
+    ? [] : ['--extractor-args', `youtube:player_client=${client}`];
+}
+
+// fn(client) → result. Answers { value, client } so the caller can carry the
+// client that worked into the next step instead of re-discovering it.
+async function pastTheBlock(what, fn, progress, waits = BLOCK_WAITS, clients = CLIENTS) {
   let last;
-  for (let i = 0; i < BLOCK_TRIES; i++) {
-    try {
-      return await fn();
-    } catch (e) {
-      last = e;
-      if (!isBlocked(e.message) || i === BLOCK_TRIES - 1) throw e;
-      const wait = waits[Math.min(i, waits.length - 1)];
-      await progress(0, 100, `youtube said wait — retrying ${what}`);
-      console.warn(`ytdl: bot-block on ${what}, retry ${i + 1}/${BLOCK_TRIES - 1} in ${wait}ms`);
-      await new Promise((r) => setTimeout(r, wait));
+  for (let round = 0; round < BLOCK_ROUNDS; round++) {
+    for (const client of clients) {
+      try {
+        return { value: await fn(client), client };
+      } catch (e) {
+        last = e;
+        if (!isBlocked(e.message)) throw e;
+        await progress(0, 100, `youtube refused ${client} — trying another way`);
+        console.warn(`ytdl: ${what} refused on client ${client}`);
+      }
+    }
+    if (round < BLOCK_ROUNDS - 1) {
+      await progress(0, 100, 'youtube said wait — pausing');
+      await new Promise((r) => setTimeout(r, waits[0]));
     }
   }
   throw last;
@@ -536,7 +571,8 @@ async function runGrab(id, progress) {
   const bin = await ytdlp();
 
   await progress(0, 100, 'reading the video');
-  const meta = await pastTheBlock('the lookup', () => readMeta(bin, source), progress);
+  const lookup = await pastTheBlock('the lookup', (c) => readMeta(bin, source, c), progress);
+  const meta = lookup.value;
   if (meta.seconds && meta.seconds > MAX_SECONDS) {
     throw new Error(`that is ${Math.round(meta.seconds / 60)} minutes — the cap is ${Math.round(MAX_SECONDS / 60)}`);
   }
@@ -551,8 +587,13 @@ async function runGrab(id, progress) {
   const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'ytdl-'));
   try {
     await progress(0, 100, 'downloading');
-    const { f: file, size } = await pastTheBlock('the download',
-      () => download(bin, source, kind, quality, dir, progress), progress);
+    // Whichever client answered the lookup goes first for the download — on a
+    // refusal the rest of the ladder is still there behind it.
+    const order = [lookup.client, ...CLIENTS.filter((c) => c !== lookup.client)];
+    const got = await pastTheBlock('the download',
+      (c) => download(bin, source, kind, quality, dir, progress, c),
+      progress, BLOCK_WAITS, order);
+    const { f: file, size } = got.value;
     const ext = (path.extname(file).slice(1) || (kind === 'audio' ? 'm4a' : 'mp4')).toLowerCase();
     const ct = ctFor(ext);
     const nice = (meta.title || 'grab').replace(/[/\\]+/g, '-').slice(0, 120);
@@ -568,7 +609,7 @@ async function runGrab(id, progress) {
     await patchDoc(id, {
       ...filed,
       status: 'done', error: null, blocked: false,
-      ext, bytes: size, md5,
+      ext, bytes: size, md5, client: got.client,
       seconds: filed.seconds || meta.seconds || null,
       finishedAt: Date.now(),
     });
@@ -737,7 +778,7 @@ module.exports = {
   router, COL,
   // exported for scripts/test-ytdl.js — the pure decisions, no network
   checkSource, youtubeId, grabId, formatFor, cleanErr, isBlocked, ctFor, slug,
-  defaultTo, pastTheBlock, BLOCK_TRIES,
+  defaultTo, pastTheBlock, clientArgs, CLIENTS, BLOCK_ROUNDS,
   // The two steps that talk to the outside world, exported so the live test can
   // drive the REAL argv rather than a copy of it that drifts. Nothing else
   // should call these — /grab is the way in.

@@ -430,6 +430,12 @@ async function pageTests() {
   try {
     await page.goto(base + '/chats');
     await page.waitForSelector('#grid [data-chat="nothing-yet"]');
+    // THE UNFILED INBOX IS THE ACCOUNT ROW'S LIST (2026-08-28): the home
+    // screen takes turns between the three lists and the accounts, and ALL is
+    // deliberately everything, filed or not. Filing's own rule is about the
+    // inbox, so this asks it there — through the toggle, the way she does.
+    await page.click('#rowtog');
+    await page.waitForTimeout(100);
     // the old pair of fields files the chat, so it is off the unfiled list
     ok('a chat with the OLD category + tags is filed, as it always was',
       !(await page.$('#grid [data-chat="both-ways"]')));
@@ -630,6 +636,9 @@ async function pageTests() {
     await page.waitForTimeout(150);
     await page.click('#back');
     await page.waitForTimeout(250);
+    // …the inbox again (a thread and back does not change the row's mode, but
+    // say it out loud rather than leaning on that)
+    if (await page.$eval('#listrow', (e) => !e.hidden)) { await page.click('#rowtog'); await page.waitForTimeout(100); }
     ok('once the word is a pile, the chat it is on leaves the list',
       !(await page.$('#grid [data-chat="nothing-yet"]')));
 
@@ -640,6 +649,9 @@ async function pageTests() {
     await page.click('#backbtn').catch(() => {});
     await page.goto(base + '/chats');
     await page.waitForSelector('#catrow .tagsbtn');
+    // a reload comes back on whichever row she left — the chip rules below are
+    // the inbox's, so put it there
+    if (await page.$eval('#listrow', (e) => !e.hidden)) { await page.click('#rowtog'); await page.waitForTimeout(100); }
     if (!(await page.$('#catrow .tagsbtn.on'))) await page.click('#catrow .tagsbtn');
     await page.waitForSelector('#catrow .catchip:not(.starchip):not(.tagsbtn)');
     // `film` is a CATEGORY word, so it lives behind SEE MORE — the row opens

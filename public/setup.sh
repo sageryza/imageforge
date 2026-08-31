@@ -47,6 +47,32 @@ cat > /home/user/.claude/hooks/post-to-feed.sh << 'HOOK'
 # its image deliverables into the iOS "My Creations" gallery — zero model
 # tokens, nothing to remember. Runs as a Stop hook after every reply.
 #
+# v19 (2026-08-28) — A CHAT IS NOT NAMED AFTER ITS SESSION ID ANY MORE.
+# Sophie: "issues w chat hooks today · slug". Measured that morning: THREE of
+# the day's 29 chats carried a meaningless slug (chat-5d92c228, chat-9cac7ca2,
+# new-session-56f2b0) against ONE in the four days before it — and one of them,
+# chat-9cac7ca2, held exactly one message: hers, unanswered for seven hours,
+# because no session was reading a thread nobody could recognise.
+# The cause was the branch scan below accepting ONLY `claude/*`. A session
+# created without a repo attached clones it mid-turn and lands on an ordinary
+# working branch, which never matched, so the name fell through to the session
+# id — and session-first binding makes that permanent on the first post.
+# Two halves: the scan takes a plain working branch when there is no claude/
+# one, and `name_repair` fills the DISPLAY name (never the slug — a moving slug
+# is what orphaned "Imprint") on a chat already stuck with a fallback.
+#
+# v18 (2026-08-27) — …AND IT NO LONGER LANDS TWICE. The harness JOINS messages
+# she sent back to back into ONE user record, separated by a blank line
+# (measured in this fix's own transcript: the queue record held her first
+# message, the user record held the first AND the second joined). The queue
+# reconciliation matched on WHOLE text only, so the queue entry found no home,
+# posted as a message of its own, and her first message landed twice — once
+# alone and once inside the joined record. 12 such pairs across her 3,768
+# messages the day it was found. A queue entry is matched against a record's
+# SEGMENTS as a fallback now, and one record can absorb several of them.
+# Whole-text still wins first, so nothing about the old matching moved.
+# Test: scripts/test-chats-first-message.js.
+#
 # v16 (2026-08-26) — TWO MESSAGES IN A ROW: THE FIRST NO LONGER VANISHES.
 # Sophie: "my first message is missing from this chat. I sent two messages in a
 # row." Her half baselined `users[:-1]` on a session's first firing, which is
@@ -164,14 +190,39 @@ sid=$(printf '%s' "$input" | jq -r '.session_id // empty')
 [ -n "$sid" ] || sid="${CLAUDE_CODE_SESSION_ID:-x}"
 event=$(printf '%s' "$input" | jq -r '.hook_event_name // empty')
 
+# Where the repos live. A variable only so the slug rules can be tested
+# against fixture repos (scripts/test-chat-slug.js) — never set in production.
+REPO_ROOT="${FORGE_REPO_ROOT:-/home/user}"
+
 # Chat name: FORGE_CHAT env wins; else a slug of a repo's claude/<name> branch
 # (random 6-char suffix dropped); else a short session id.
 name="${FORGE_CHAT:-}"
 if [ -z "$name" ]; then
-  for d in /home/user/*/; do
+  for d in "$REPO_ROOT"/*/; do
     b=$(git -C "$d" branch --show-current 2>/dev/null)
     case "$b" in
       claude/*) name=$(printf '%s' "${b#claude/}" | sed -E 's/-[a-z0-9]{6}$//'); break;;
+    esac
+  done
+fi
+# v19 (2026-08-28) — A SESSION WITH NO claude/* BRANCH IS NOT NAMELESS ANY MORE.
+# Measured on Sophie's report: THREE chats fell to the last-resort `chat-<sid8>`
+# slug in one day, against one in the whole four days before it — and one of
+# them swallowed a message of hers that was never answered by anybody. The
+# cause is this scan. A session created with no repo attached clones it mid-turn
+# and lands on an ORDINARY working branch (`panels-background-draw`), which
+# `claude/*` never matches, so the name fell all the way through to the session
+# id — and session-first binding then makes that permanent. A working branch is
+# a real name; take it when there is no claude/ one.
+# The 6-char tail is deliberately NOT stripped on this path: the harness appends
+# one to the branches IT names, a person naming a branch does not, and stripping
+# would eat a real last word.
+if [ -z "$name" ]; then
+  for d in "$REPO_ROOT"/*/; do
+    b=$(git -C "$d" branch --show-current 2>/dev/null)
+    case "$b" in
+      ""|main|master|HEAD|develop|trunk) :;;
+      *) name=$(printf '%s' "$b" | tr 'A-Z/' 'a-z-' | tr -dc 'a-z0-9._-' | cut -c1-60); break;;
     esac
   done
 fi
@@ -182,6 +233,10 @@ fi
 case "$name" in
   new-session|session|untitled) name="${name}-$(printf '%s' "$sid" | tr -dc 'a-z0-9' | cut -c1-6)";;
 esac
+# What the branches could actually tell us, kept before the last-resort fallback
+# overwrites it — `name_repair` below needs to know whether a readable name was
+# available at all.
+branch_name="$name"
 [ -n "$name" ] || name="chat-$(printf '%s' "$sid" | cut -c1-8)"
 
 rsid="${CLAUDE_CODE_REMOTE_SESSION_ID:-$sid}"; rsid="${rsid#cse_}"
@@ -347,6 +402,32 @@ fi
 
 # ── FINAL pass (Stop / UserPromptSubmit) ───────────────────────────────────
 resolve_name
+# v19 — AND A CHAT ALREADY STUCK WITH A NAMELESS SLUG GETS A READABLE NAME.
+# The server binds a session to its slug on the FIRST post and keeps it forever,
+# so a name found later can never re-key the thread — and that is right: a
+# moving slug is what orphaned "Imprint". What CAN move is the DISPLAY name, the
+# same field her pencil writes, so this sets it once and re-keys nothing. It
+# only ever fills a BLANK name on a slug that is plainly the fallback
+# (chat-<8 hex>, new-session-<tail>), and never touches one she typed.
+# Backgrounded, once per session, silent on failure — a hook must never make her
+# wait, and a lost repair only costs a name.
+name_repair () {
+  case "$name" in
+    chat-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]|new-session-*) :;;
+    *) return;;
+  esac
+  [ -n "$branch_name" ] || return
+  [ "$branch_name" = "$name" ] && return
+  rpstate="$HOME/.claude/forge-named-${sid}"
+  [ -f "$rpstate" ] && return
+  : > "$rpstate"
+  cur=$(curl -s -m 20 ${STUDIO_TOKEN:+-H "x-studio-token: $STUDIO_TOKEN"} \
+    "$FEED/name?chat=$(printf '%s' "$name" | jq -sRr @uri)&session=$(printf '%s' "$rsid" | jq -sRr @uri)" \
+    | jq -r '.displayName // empty' 2>/dev/null)
+  [ -n "$cur" ] && return
+  post "$FEED/rename" "$(jq -nc --arg c "$name" --arg n "$branch_name" '{chat:$c,name:$n}')"
+}
+name_repair >/dev/null 2>&1 &
 
 # TURN STARTED (v8, Aug 2026) — tell the feed this chat is now working, so the
 # Chats app can tint it pink until the reply lands. This is a separate one-line
@@ -362,7 +443,14 @@ if [ "$event" = "UserPromptSubmit" ]; then
   # mark the chat stale/current and the app can show it. Telemetry only —
   # nothing here fetches, executes, or instructs (see the v11 header note).
   hook_v=$(md5sum "$HOME/.claude/hooks/post-to-feed.sh" 2>/dev/null | cut -d' ' -f1)
-  ( post "$FEED/working" "$(jq -nc --arg c "$name" --arg s "$session_key" --arg v "$hook_v" '{chat:$c, session:$s, v:$v}')" ) >/dev/null 2>&1 &
+  # v17: the ping carries FORGE_ACCOUNT too. `account` used to be stamped ONLY
+  # by a finished reply, so a chat whose turn never posted one carried no tag —
+  # and the app then fired its "Open in Claude" link blind into whichever
+  # account it was on, dead-ending on the wrong one (Sophie, 2026-08-26: "they
+  # seem to exist, but their button takes me nowhere"). The variable is already
+  # in this environment; it was simply never sent. Empty when unset, and the
+  # server ignores an empty one.
+  ( post "$FEED/working" "$(jq -nc --arg c "$name" --arg s "$session_key" --arg v "$hook_v" --arg a "${FORGE_ACCOUNT:-}" '{chat:$c, session:$s, v:$v} + (if $a == "" then {} else {account:$a} end)')" ) >/dev/null 2>&1 &
 
   # v13: the card reminder, as UserPromptSubmit's additionalContext. This is
   # the ONLY write to stdout anywhere in this script — every other path pipes,
@@ -456,6 +544,8 @@ queued = []     # …and the ones she sent MID-TURN, which arrive a different wa
 # system-reminder blocks ride along inside her real messages, so they're cut out
 # rather than used to reject the message.
 REMINDER = re.compile(r'(?is)<system-reminder>.*?</system-reminder>')
+# How the harness joins messages she sent back to back into one user record.
+SPLITMSG = re.compile(r'\n\s*\n')
 NOISE = re.compile(r'''(?is)^\s*(\[Request interrupted|\[SYSTEM NOTIFICATION'''
                    r'''|<task-notification|<github-webhook-activity|<command-name'''
                    r'''|<wake\s|<wake>'''
@@ -584,14 +674,50 @@ if queued:
     # as proof it already went out. Still a multiset — one queue entry is
     # consumed per matching record — so repeating a short phrase can't let the
     # first swallow the second.
-    by_text = {}
+    #
+    # AND THE HARNESS JOINS BACK-TO-BACK MESSAGES INTO ONE USER RECORD,
+    # separated by a blank line (measured 2026-08-27 in this chat's own
+    # transcript: the queue record held her first message, the user record held
+    # the first AND the second joined by \n\n). Matching on the WHOLE text
+    # alone therefore missed, so the queue entry was posted as a message of its
+    # own AND again inside the joined record — her first message twice. Live
+    # count that day: 12 such pairs across 3,768 of her messages. So a queue
+    # entry is matched against a record's SEGMENTS as well as its whole text,
+    # and one record can absorb several of them.
+    # WHOLE TEXT FIRST, SEGMENTS ONLY AS THE FALLBACK — two passes, so the
+    # matching every mid-turn message has always relied on is untouched and a
+    # joined record can never out-bid the plain record that really is that
+    # message.
+    whole = {}
     for u in users:
-        by_text.setdefault(_norm(u['text']), []).append(u)
+        whole.setdefault(_norm(u['text']), []).append(u)
+    segcells = {}   # id(record) -> [[normalised segment, taken?], …]
+    for u in users:
+        segs = [x for x in SPLITMSG.split(u['text']) if x.strip()]
+        segcells[id(u)] = [[_norm(x), False] for x in segs] if len(segs) > 1 else []
+    def _take(q):
+        n = _norm(q['text'])
+        for u in whole.get(n) or []:
+            if not u.get('aliases'):
+                return u
+        for u in users:
+            # `.get`, NOT `[]` — an unmatched queue entry is APPENDED to `users`
+            # below, so the next _take walks a record segcells has never seen and
+            # the whole parser dies with a KeyError. The hook then prints NOTHING
+            # and exits 0, so the session posts no replies and none of her
+            # messages, silently, forever (found live 2026-08-28: a chat with one
+            # mangled message in the app and 11 turns in its transcript). An
+            # appended entry has no segments to donate, so empty is the right
+            # answer as well as the safe one.
+            for cell in segcells.get(id(u)) or ():
+                if not cell[1] and cell[0] == n:
+                    cell[1] = True
+                    return u
+        return None
     for q in queued:
-        bucket = by_text.get(_norm(q['text'])) or []
-        target = next((u for u in bucket if not u.get('alias')), None)
+        target = _take(q)
         if target is not None:
-            target['alias'] = q['uuid']
+            target.setdefault('aliases', []).append(q['uuid'])
             continue
         users.append(q)
     users.sort(key=lambda u: u.get('at') or '')
@@ -637,12 +763,13 @@ if uf and users:
             if u['uuid'] not in keep:
                 new_useen.add(u['uuid'])
     for u in users:
-        # either id counts as already-posted: the queue record's key and the
-        # user record's uuid are the SAME message (see the alias pass above)
-        if u['uuid'] in new_useen or (u.get('alias') and u['alias'] in new_useen):
-            new_useen.add(u['uuid'])          # remember both, so next run is a fast skip
-            if u.get('alias'):
-                new_useen.add(u['alias'])
+        # ANY of these ids counts as already-posted: the queue record's key and
+        # the user record's uuid are the SAME message, and a joined record
+        # carries one key per message it swallowed (see the alias pass above)
+        al = u.get('aliases') or []
+        if u['uuid'] in new_useen or any(a in new_useen for a in al):
+            new_useen.add(u['uuid'])          # remember them all, so next run is a fast skip
+            new_useen.update(al)
             continue
         mine = {"chat": os.environ['NAME'], "text": u['text'][:8000]}
         if u['at']:
@@ -655,8 +782,7 @@ if uf and users:
             mine["explicit"] = True
         print('U\t' + json.dumps(mine))
         new_useen.add(u['uuid'])
-        if u.get('alias'):
-            new_useen.add(u['alias'])
+        new_useen.update(u.get('aliases') or [])
     os.makedirs(os.path.dirname(uf), exist_ok=True)
     open(uf, 'w').write('\n'.join(sorted(new_useen)))
 
@@ -863,8 +989,21 @@ try:
     s = json.load(open(p))
 except Exception:
     s = {}
-entry = {"hooks": [{"type": "command",
-         "command": "bash /home/user/.claude/hooks/post-to-feed.sh"}]}
+# THE COMMAND PREFERS THE IMAGEFORGE CHECKOUT'S HOOK (2026-08-28, Sophie:
+# "it's gotta be an easier way than paste every time" — and her correction
+# that the Setup script field cannot fetch anything at session init, so a
+# curl-in-the-field design is dead on arrival). The checkout's copy is
+# cloned fresh from main at session start, so it IS the current hook; the
+# baked copy written above is only the fallback for a session that never
+# clones imageforge. With this in place a hook fix reaches every
+# imageforge-touching session with the deploy, and the paste is needed
+# ONCE — to install this preference — never per hook version again.
+# Resolved at EVENT time, not registration time: hooks re-read per event,
+# so a repo cloned mid-turn (the chat-5d92c228 shape) upgrades the very
+# next event.
+CMD = ("bash -c 'h=/home/user/imageforge/.claude/hooks/post-to-feed.sh; "
+       "[ -f $h ] || h=/home/user/.claude/hooks/post-to-feed.sh; bash $h'")
+entry = {"hooks": [{"type": "command", "command": CMD}]}
 # Register on THREE events. Stop fires when a reply finishes cleanly.
 # UserPromptSubmit fires when Sophie sends her next message — it sweeps up
 # INTERRUPTED replies: an interrupted turn skips the Stop hook, but the partial
@@ -879,7 +1018,13 @@ entry = {"hooks": [{"type": "command",
 # the registration below appends any event still missing.
 for event in ('Stop', 'UserPromptSubmit', 'PostToolUse'):
     arr = s.setdefault('hooks', {}).setdefault(event, [])
-    if not any('post-to-feed' in json.dumps(x) for x in arr):
+    # UPGRADE, not only append: an environment pasted before the
+    # checkout-preference carries the old fixed-path command, and an
+    # append-if-missing check would leave it there forever. Any entry
+    # naming post-to-feed under a different command is replaced.
+    arr[:] = [x for x in arr
+              if 'post-to-feed' not in json.dumps(x) or x == entry]
+    if entry not in arr:
         arr.append(entry)
 # The /concise output style — Sophie's ask (Aug 2026): every chat leads with
 # the result and keeps replies short. setdefault, so an explicit choice already

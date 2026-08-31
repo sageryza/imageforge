@@ -8,6 +8,15 @@
 // the model — no prefix, no suffix, no trigger word, no trailing-period trim.
 // If the prompt should say something about style, you say it.
 //
+// ONE deliberate exception, and it is a BUTTON (2026-08-28, Sophie: "add a
+// default boiler style not content prompt to freeform with a toggle on off
+// button"). The BOILER style is a stock STYLE line — it says how a picture is
+// drawn and never what is in it — appended after her words when the toggle is
+// ON. It is OFF by default and not sticky, the page prints the exact text it
+// adds while it is lit, and the run stores `promptSent` / `promptStyle` /
+// `promptContent`, so nothing is ever added invisibly. With the toggle off
+// this module is byte-for-byte the verbatim surface it has always been.
+//
 // That rule matters enough to be load-bearing: the "if you add anything to a
 // prompt Sophie gave, tell her" rule in CLAUDE.md exists because a "plain" run
 // once shipped with invented style language in it. Here there is nothing to
@@ -23,6 +32,7 @@
 // persisted so leaving the app never loses an image already paid for.
 const express = require('express');
 const admin = require('firebase-admin');
+const { promptRecord, promptFields } = require('./prompt-record');
 
 const router = express.Router();
 const RUNS = 'forge-freeform';
@@ -36,9 +46,93 @@ const SIZES = {
   landscape: '1536x1024',
 };
 const QUALITIES = ['low', 'medium', 'high'];
+
+// A render is fire-and-forget IN THIS PROCESS, so a deploy that swaps the
+// instance out between "OpenAI answered" and "we saved it" leaves the doc on
+// `drawing` forever — and the page polls a run that says that, so the card
+// spins with nothing on screen ever admitting it is dead (found live
+// 2026-08-28: a square run stuck two hours, which read as "freeform can't do
+// squares"). A draw is 30-90s and every path stamps done/failed, so a run
+// still unfinished after this long is orphaned, never slow. Judged on READ —
+// there is no sweep to schedule and a restart cannot lose it.
+const STUCK_MS = 15 * 60 * 1000;
+
+// Pure, so the rule is testable without a Firestore. A run that already landed
+// SOME images is `done` with what it has (`ready` means outputs were arriving);
+// one with none is honestly failed. Returns null when nothing should change.
+function stuckPatch(run, now = Date.now()) {
+  const st = run && run.status;
+  if (st !== 'drawing' && st !== 'ready') return null;
+  if (now - (run.createdAt || 0) < STUCK_MS) return null;
+  const images = Array.isArray(run.images) ? run.images : [];
+  if (images.length) return { status: 'done', finishedAt: now };
+  return { status: 'failed', error: 'interrupted — the server restarted mid-draw', finishedAt: now };
+}
 // Roughly what a single image costs at each tier — shown on the page so a
 // `high` run is a deliberate choice rather than a surprise.
 const COST = { low: 0.02, medium: 0.06, high: 0.25 };
+
+// THE BOILERPLATE STYLE (her word: "boiler plate") — the one thing this module
+// may add, and only on her tap.
+//
+// IT IS THE HOUSE TEXT, NOT A NEW ONE (2026-08-28, Sophie: "the text we use for
+// dreamy or watercolor"). The first cut invented a style line, which is exactly
+// the reconstruction this repo's exact-prompt rule forbids — and there was no
+// need for one: the Playground already sends a settled style-reference recipe
+// around her words. So this is `PL_GPT_STYLES.evan` — Sandy mirror, her scanned
+// ink-and-watercolour page — HANDED IN at mount time (`init`, the movies.js
+// pattern) rather than copied, because server.js owns what is actually sent and
+// a second copy would drift the day she rewords one.
+//
+// WHY THAT ONE AND NOT DREAMY: this wording names "the attached style
+// reference" and nothing else, so it travels onto whatever SHE has attached
+// here. Dreamy's tail names its own picture (its hand-drawn frames, the woman
+// in the green tank top) and would be nonsense over her references. Switching
+// is one line — the style id below.
+const BOILER_STYLE = 'evan';
+const BOILER = { id: BOILER_STYLE, label: 'Boilerplate style', prefix: '', suffix: '' };
+
+// ONE CLAUSE IS DROPPED HERE (2026-08-28, Sophie: "get rid of the color
+// line"). Sandy mirror invites the model to pick its own palette; in Freeform
+// the reference she attached is usually the whole point of attaching it, so
+// the line argues with her. Cut as a NAMED clause rather than by rewriting the
+// text — the swap pattern PL_GPT_STYLES.dreamy's own no-text toggle uses — so
+// this stays the house wording minus one sentence, and the Playground's Sandy
+// mirror tile is untouched.
+// A REWORD IN server.js MUST MOVE THIS STRING: `BOILER.colorCut` records
+// whether it was found, and the test fails when it stops matching, rather than
+// the clause silently coming back.
+const COLOR_CLAUSE = 'You can choose your own colors rather than copying the '
+  + 'colors of the style reference.';
+
+// Called by server.js once PL_GPT_STYLES exists (it is defined long after the
+// mount, so this cannot be a require).
+function init({ gptStyles, fileCreation } = {}) {
+  // My Creations filing (2026-08-28, Sophie: "i wanna make sure every picture
+  // I've ever created can be found"). Freeform never filed its outputs at all
+  // — 27 finished pictures were invisible in Meta Assets until the coverage
+  // backfill found them. server.js hands the writer in (the movies.js
+  // pattern); wired BEFORE the style check, because the boiler style being
+  // unavailable must not also turn the filing off.
+  if (typeof fileCreation === 'function') fileCreationFn = fileCreation;
+  const st = (gptStyles && gptStyles[BOILER_STYLE]) || null;
+  if (!st) return;
+  const prefix = String(st.prefix || '');
+  BOILER.colorCut = prefix.includes(COLOR_CLAUSE);
+  BOILER.prefix = prefix.split(COLOR_CLAUSE).join('').replace(/\s+/g, ' ').trim();
+  BOILER.suffix = String(st.suffix || '');
+  BOILER.from = st.label || BOILER_STYLE;
+}
+
+// ONE assembler, exported so the seam is testable without a Firestore: the
+// route calls this and nothing else builds the sent text.
+function boilerFields(prompt, on) {
+  const words = String(prompt || '');
+  const prefix = on ? BOILER.prefix : '';
+  const suffix = on ? BOILER.suffix : '';
+  const rec = promptRecord({ prefix, content: words, suffix });
+  return { sent: rec.fullPrompt, ...promptFields(rec) };
+}
 
 const MAX_PROMPT = 4000;
 const MAX_REFS = 12;                // the edits endpoint accepts up to 16 images
@@ -121,6 +215,29 @@ async function draw(prompt, refBuffers, { quality, size }) {
   return Buffer.from(d.data[0].b64_json, 'base64');
 }
 
+// The My Creations writer, handed in by server.js at init (this module holds
+// no membry credential of its own). Reads the RUN DOC rather than taking the
+// fields as arguments, so the filed record and the stored record cannot
+// disagree — and so the boot reconciliation can call it for an older run.
+let fileCreationFn = null;
+async function fileRunImages(id) {
+  if (!fileCreationFn) return;
+  const snap = await db().collection(RUNS).doc(id).get();
+  if (!snap.exists) return;
+  const r = snap.data() || {};
+  for (const url of (r.images || [])) {
+    await fileCreationFn({
+      url, type: 'image', source: 'freeform',
+      prompt: r.prompt || '', model: 'gpt-image-2',
+      quality: r.quality || '', canvas: r.size || '',
+      createdMs: r.createdAt || undefined,
+      fullPrompt: r.fullPrompt || r.promptSent || '',
+      promptStyle: r.promptStyle || '',
+      promptContent: r.promptContent || r.prompt || '',
+    }).catch(() => {});
+  }
+}
+
 // Fire-and-forget: the request has already been answered by the time this runs.
 // Each output lands on the doc as it finishes, so the grid fills in as they
 // arrive and one failed call costs its image, not the run.
@@ -141,6 +258,12 @@ async function render(id, { prompt, refUrls, quality, size, outputs }) {
     })()));
     if (!images.length) throw firstErr || new Error('no images produced');
     await doc.set({ status: 'done', images, finishedAt: Date.now() }, { merge: true });
+    // Every finished picture goes to My Creations, with the run's own record
+    // verbatim (promptSent is the literal sent text; the boiler halves are
+    // already stored with the [content] seam). Best-effort and fire-and-forget
+    // — filing must never fail the run — and the boot reconciliation in
+    // server.js re-files anything a deploy restart kills here.
+    fileRunImages(id).catch(() => {});
   } catch (e) {
     await doc.set({ status: 'failed', error: String(e.message || e).slice(0, 400), finishedAt: Date.now() },
       { merge: true }).catch(() => {});
@@ -155,8 +278,13 @@ router.get('/status', (req, res) => {
     sizes: Object.keys(SIZES),
     qualities: QUALITIES,
     cost: COST,
+    boiler: BOILER,
   });
 });
+
+// The boiler text, served rather than copied into the page (the Playground's
+// `/styles` rule): server.js owns what is actually sent.
+router.get('/style', (req, res) => res.json({ ok: true, style: BOILER }));
 
 // ── Reference library ──────────────────────────────────────────────────────
 // POST /refs { images:[dataURL|https url], name? } — add references.
@@ -235,6 +363,10 @@ router.post('/run', async (req, res) => {
     const quality = QUALITIES.includes(b.quality) ? b.quality : 'medium';
     const size = SIZES[b.size] || (Object.values(SIZES).includes(b.size) ? b.size : SIZES.portrait);
     const outputs = Math.min(Math.max(Number(b.outputs) || 1, 1), MAX_OUTPUTS);
+    // Her toggle. Anything but an explicit true leaves this the verbatim
+    // surface — silence is the safe direction for a wrapper.
+    const boiler = b.boiler === true || b.boiler === 'true';
+    const { sent, ...promptRec } = boilerFields(prompt, boiler);
 
     // Refs may be library ids or plain urls; resolve ids to their stored url.
     const wanted = (Array.isArray(b.refs) ? b.refs : []).slice(0, MAX_REFS).map(String);
@@ -254,15 +386,17 @@ router.post('/run', async (req, res) => {
     const ref = db().collection(RUNS).doc();
     const doc = {
       prompt,
-      // What was actually sent, byte for byte. This module adds nothing, so the
-      // two are identical by construction — it is stored anyway so the page can
-      // show it and any later reader can verify that for themselves.
-      promptSent: prompt,
+      // What was actually sent, byte for byte. With the boiler toggle off the
+      // two are identical by construction; with it on this is her words plus
+      // the one style line, and `promptStyle` marks the seam with [content].
+      promptSent: sent,
+      boiler,
+      ...promptRec,
       refs: refUrls, refIds, quality, size, outputs,
       model: 'gpt-image-2', status: 'drawing', images: [], createdAt: Date.now(),
     };
     await ref.set(doc);
-    render(ref.id, { prompt, refUrls, quality, size, outputs });   // deliberately not awaited
+    render(ref.id, { prompt: sent, refUrls, quality, size, outputs });   // deliberately not awaited
     res.json({ ok: true, id: ref.id, status: 'drawing', poll: `/api/freeform/run/${ref.id}` });
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
@@ -274,6 +408,12 @@ router.get('/runs', async (req, res) => {
     const runs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
       .slice(0, limit);
+    await Promise.all(runs.map(async r => {
+      const patch = stuckPatch(r);
+      if (!patch) return;
+      Object.assign(r, patch);
+      await db().collection(RUNS).doc(r.id).set(patch, { merge: true }).catch(() => {});
+    }));
     res.json({ ok: true, runs });
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
@@ -282,7 +422,13 @@ router.get('/run/:id', async (req, res) => {
   try {
     const doc = await db().collection(RUNS).doc(String(req.params.id)).get();
     if (!doc.exists) return res.status(404).json({ error: 'not found' });
-    res.json({ ok: true, id: doc.id, ...doc.data() });
+    const run = { id: doc.id, ...doc.data() };
+    const patch = stuckPatch(run);
+    if (patch) {
+      Object.assign(run, patch);
+      await doc.ref.set(patch, { merge: true }).catch(() => {});
+    }
+    res.json({ ok: true, ...run });
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
 
@@ -293,4 +439,4 @@ router.delete('/run/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
 
-module.exports = { router, SIZES, QUALITIES, refOrder };
+module.exports = { router, SIZES, QUALITIES, refOrder, BOILER, boilerFields, stuckPatch, STUCK_MS, init, fileRunImages };

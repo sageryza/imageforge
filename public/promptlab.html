@@ -9,6 +9,19 @@
      the keyed reconcile, the derived display copy and the toast. ONE copy,
      so a second feed can never hand-copy them. -->
 <script src="/feedkit.js"></script>
+<!-- The character-reference rules — the SAME file the server draws with and
+     the Story Room draws with, so the sentence the picked characters add to
+     her words is written down exactly once. See /pad-characters.js. -->
+<script src="/pad-characters.js"></script>
+<!-- The panel sheet's own module, served the same way: the characters clause
+     her typed cast sends is built by the REAL sheetGrid.castBlock, so the
+     page keeps no copy of that wording either. -->
+<script src="/sheet-grid.js"></script>
+<!-- The caption's required third slot, shared the same way (2026-08-27) — the
+     SAME derivation the server files a picture with, so the caption she reads
+     on this page and the one on the filed record cannot disagree about which
+     rung a picture was drawn on. See /size-tier.js. -->
+<script src="/size-tier.js"></script>
 <script src="/asset-lightbox.js"></script>
 <!-- Midjourney's curly brackets: `a {red, blue} bird` is two prompts. ONE
      copy of the expansion rule, shared with the pure test. -->
@@ -46,7 +59,7 @@
      slab was the heaviest thing on a page of pale controls. The INK BORDER
      stays: it is what still separates the one control that decides the run
      from the pale `.stylebtn` neighbours. */
-  .styles { display: flex; margin-bottom: 10px; }
+  .styles { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
   #stylepick { appearance: none; -webkit-appearance: none; border: 1px solid #2b2622; border-radius: 6px;
     padding: 8px 32px 8px 12px; font: inherit; font-size: 16px; background-color: #fdfcf9; color: #2b2622;
     background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232b2622' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
@@ -64,15 +77,31 @@
      over any text beneath it; the textarea reserves that corner with
      padding-bottom so the last line of her words is never under the button.
 
-     BOTTOM-RIGHT IS HER CALL (2026-08-26, Sophie: "put it back exactly where
-     it was"), and it REVERSES the 2026-08-25 move to bottom-left. That move
-     was made because on her phone the injected autoscroll pill's fixed column
-     (x 324-374, y 47-227 at 390x844 with the iPhone 13's real 47px safe-area
-     inset) sat exactly on the button — measured, `elementFromPoint` at the
-     button's centre returned the PILL's svg — so the control was untappable
-     until the page scrolled. She asked for the right corner back knowing
-     where it was; the overlap-at-top-of-page is an accepted cost, not a bug
-     to re-fix by moving the button left again. Don't move it without her. */
+     ON THE RIGHT, SLID CLEAR OF THE PILL'S COLUMN (2026-08-26, two rounds).
+     Sophie asked for the right side back after the one-day move to
+     bottom-left ("put it back exactly where it was"), then reported the
+     exact corner untappable ("i was able to click it before … now i cant") —
+     and it is, measured: at 390x844 with the iPhone 13's real 47px safe-area
+     inset the injected autoscroll pill's ▼ (#vbot, x 325-373 / y 153-206)
+     sits dead on the corner spot (x 333-359 / y 164-190), so a tap there
+     reaches the pill. A z-index lift is NOT the fix — measured, it puts the
+     button over #vbot's own centre and kills the pill's scroll-down instead.
+     So `right: 56px`: still the right end of the box, clear of the pill's
+     50px column plus margin at 390pt AND at 320pt, both controls tappable at
+     every scroll position. Don't slide it back into the corner, and don't
+     move it off the right side — both are hers.
+
+     THE BIG BOX FITS THE WORDS (2026-08-27, Sophie: "why not expand based on
+     text, not static"). It was a flat 52vh whatever was in it — an empty half
+     under two lines, and still scrolling under a long dictation — so the size
+     said nothing about what was in it. `.big` is the CAP now, never the
+     height: the height is measured off the content on the tap, on every
+     keystroke while it is open, and on a resize. The FLOOR is what keeps the
+     button worth tapping on an empty box — this is a field she WRITES in, so
+     "expand" has to mean room to write before the words exist; that is the
+     difference from the `.moretxt` opener, which only ever reveals text that
+     is already there and so may hide itself. Both bounds are CSS, so the
+     browser clamps the inline height and no `vh` is re-derived in script. */
   /* THE BOX DOES NOT SIT ON THE BUTTONS (2026-08-26, Sophie: "there was no
      padding between the buttons and the bottom of the text prompt box").
      Measured: `.styles` gives the box 10px of air ABOVE it and `.promptwrap`
@@ -82,8 +111,8 @@
      card has one rhythm rather than a number picked per gap. */
   .promptwrap { position: relative; margin-bottom: 10px; }
   .promptwrap textarea { display: block; box-sizing: border-box; padding-bottom: 34px; }
-  #prompt.big { min-height: 52vh; }
-  #bigprompt { position: absolute; right: 6px; bottom: 6px; width: 26px; height: 26px;
+  #prompt.big { min-height: 24vh; max-height: 52vh; }
+  #bigprompt { position: absolute; right: 56px; bottom: 6px; width: 26px; height: 26px;
     display: flex; align-items: center; justify-content: center; padding: 0; margin: 0;
     border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #6f675e; cursor: pointer; }
   #bigprompt svg { width: 14px; height: 14px; }
@@ -287,6 +316,12 @@
   .likefilt svg { width: 16px; height: 16px; }
   .likefilt.on { background: #c25a72; color: #fff; }
   .xfilt.on { background: #9a938a; color: #fff; }
+  /* The sheets view lit in INK, not the rose and not the grey — it is a mode
+     (what the cells ARE), not a like/dislike filter, and three chips in one
+     box lighting two colours would read as three of one kind. */
+  .sheetfilt.on { background: #2b2622; color: #fff; }
+  /* The story box: one tall field, never a grid cell's shape. */
+  #panelgrid textarea[data-story] { aspect-ratio: auto; min-height: 120px; }
   /* THE SEARCH BOX FILLS THE GAP THE ROW ALREADY HAD (Aug 2026, Sophie: "a
      little search bar that fits in the space between the heart toggle and
      tiles/grid") — `flex: 1` between the heart and the 56px the autoscroll
@@ -298,18 +333,45 @@
      back out is then blocked — one tap would leave the whole page stuck
      zoomed (found live on her phone on /assets, Aug 2026). */
   .feedsearch { flex: 1; min-width: 0; margin-left: 8px; position: relative; display: flex; }
-  /* The right padding reserves room for the ✕, which only exists once there
-     are words to wipe — so an EMPTY box keeps the 19px for its own
-     placeholder (2026-08-25, when the columns segment joined the view switch
-     and the row got tight). `.hasq` is toggled beside `qclear.hidden`. */
+  /* THE ✕ IS ON THE LEFT (2026-08-28, Sophie: "put x on other side") — the
+     right end of this box is the end the injected pill's column reaches
+     toward, and it is also where her caret sits and where the text she is
+     dictating grows; the left end is the one place in the field that is
+     never doing anything else. The padding it reserves is only ever there
+     once there are words to wipe, so an EMPTY box keeps its full width for
+     its own placeholder. `.hasq` is toggled beside `qclear.hidden`. */
   .feedsearch input { width: 100%; min-width: 0; font: inherit; font-size: 16px; color: #2b2622;
     background: #fdfcf9; border: 1px solid #d8d0c4; border-radius: 6px; padding: 6px 9px; }
-  .feedsearch input.hasq { padding-right: 28px; }
+  .feedsearch input.hasq { padding-left: 28px; }
   .feedsearch input:focus { outline: none; border-color: #c25a72; }
   .feedsearch input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+  /* THE BOX STAYS ON THE ROW AND RUNS INTO THE PILL'S COLUMN (2026-08-28,
+     Sophie: "search way too small. why can't it show behind pill column" →
+     "i don't need to tap" → "put x on other side" → "you put it on a separate
+     row? I specifically asked for it to stay where it is").
+       Every other thing on this row reserves the injected pill's 56px, and
+     the SEARCH is the one that can give them up — because the ✕ moved to the
+     LEFT end of the field the same day, nothing on the right of this box is a
+     control any more: only the tail of a query she reads from the left. So it
+     cancels `.feedbar`'s own `padding-right` with a negative margin and runs
+     to the edge of the page, 76px → 132 (41 → 97 on the PANELS tab, where the
+     sheets chip is out). The pill floats over that tail and still takes its
+     own taps.
+       WHAT IT IS NOT: the ROW cannot go under there — `.feedbar` is
+     `position: sticky; top: 0`, so unlike ordinary content, which passes
+     under the pill's corner on its way up, this row sits inside that corner
+     permanently, and anything tappable in those 56px is covered for good.
+     That is why the CONTROLS keep the reservation and only the field gives it
+     up.
+       TWO SHAPES SHIPPED BEFORE THIS AND SHE CUT BOTH: a line that appeared
+     when the box was focused ("i don't need to tap" — a box only usable once
+     it is tapped is one she has to ask for), and a second line of its own
+     ("I specifically asked for it to stay where it is"). Neither is a rule;
+     both are history. The box stays on the row. */
+  .feedsearch { margin-right: -56px; }
   /* CLEAR, not dismiss: it empties the box and keeps her in it. Shown only
      while there are words to wipe. */
-  .qclear { position: absolute; right: 0; top: 0; height: 100%; width: 28px; border: 0; background: none;
+  .qclear { position: absolute; left: 0; top: 0; height: 100%; width: 28px; border: 0; background: none;
     color: #8a8177; font-size: 18px; line-height: 1; padding: 0; }
   /* THREE OR FOUR ACROSS — the THIRD SEGMENT of the view switch (2026-08-25,
      Sophie: "the 3/4 switch button is in a weird place. It should not be in
@@ -436,12 +498,168 @@
   #reftag.on { display: block; }
   #reftag.same { border-color: #2b2622; color: #2b2622; }
   /* Arrived from a Story Room BEAT: what a run made here is going to do
-     (?pad=&beat=). It is a status line the page writes, not a control — the
-     landing is a side effect and a side effect she cannot see is a trap. */
+     (?pad=&beat=). A status line — the landing is a side effect and a side
+     effect she cannot see is a trap — and, since 2026-08-28, the way to END
+     it: `Stop` puts the beat down. */
   #beattag { display: none; margin: 0 0 8px; font-size: 12px; line-height: 1.35;
     border: 1px solid #2b2622; border-radius: 6px; padding: 7px 10px;
     background: #fdfcf9; color: #2b2622; }
   #beattag.on { display: block; }
+  /* The house inline opener's paint: underlined word, no box, inherits the
+     type around it (see TRUNCATED TEXT in the design rules). */
+  #beatstop { border: 0; background: none; padding: 0; margin: 0 0 0 4px;
+    font: inherit; color: inherit; text-decoration: underline; cursor: pointer; }
+  /* ── THE CHARACTER PICKER (2026-08-27, Sophie: "a little button in the
+     playground right next to where it says dreamy, make sure it's the same
+     style, with a character icon that shows the five most recent characters
+     that were put and then also the rest of the sheet and characters with a
+     search").
+     THE BUTTON sits in `.styles` beside the style picker — not in `.controls`
+     below it — because that is the row she named, and it wears the picker's
+     own ink border at the same 34px so the two read as one pair. Lit and
+     filled when a cast is riding, with the COUNT on it: a reference she has
+     forgotten she picked is paid input tokens and a face she did not ask for,
+     so the button never stays quiet about it. */
+  #charsbtn { flex: none; display: inline-flex; align-items: center; gap: 5px;
+    height: 34px; box-sizing: border-box; padding: 0 10px; border: 1px solid #2b2622;
+    border-radius: 6px; background: #fdfcf9; color: #2b2622; font: inherit; font-size: 13px;
+    cursor: pointer; }
+  #charsbtn svg { width: 17px; height: 17px; display: block; }
+  /* THE PROMPT'S OWN CLEAR (2026-08-29, Sophie, circling the empty space next
+     to the character button: "add clear button red circle"). The panel boxes
+     each got one; the ONE box on the Picture tab had none, so wiping a long
+     dictation meant selecting it by hand on a phone. It sits where she
+     circled — in `.styles`, straight after the character button — at that
+     row's own 34px, and it is PAPER with the pale line rather than the
+     picker's ink: the two controls that decide the run are the heavy ones,
+     and this one only empties a box. It is drawn ONLY while that box is on
+     screen with words in it, so it is never a dead control and never offers
+     to clear the box the Panels tab has put away. It asks first over words
+     that were never DRAWN — the panels Clear's own question, for the same
+     reason: a prompt that HAS been drawn is in her feed with a copy button
+     one tap from putting it back, and one that never has is the only thing
+     this can lose. */
+  #promptclear { flex: none; display: inline-flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; box-sizing: border-box; padding: 0; border: 1px solid #d8d0c4;
+    border-radius: 6px; background: #fdfcf9; color: #6f675e; cursor: pointer;
+    -webkit-tap-highlight-color: transparent; }
+  #promptclear svg { width: 16px; height: 16px; display: block; }
+  /* HER TYPED CAST (2026-08-27, Sophie: "text boxes that say character 1: add
+     character, name, description … etc up to n" · "I want both. Descriptions
+     as well as pictures"). The WORDS half of a cast; the picker beside the
+     style is the PICTURES half, and a run may carry either, both or neither.
+     The boxes ship EMPTY and their placeholders NAME the field and nothing
+     more — the house rule. */
+  /* THE TWO HALVES SHARE ONE SHEET (2026-08-28, Sophie: "add character
+     description be within the existing icon - hairline toggle between
+     description and pictures"). The typed cast shipped as its own box under
+     the panel grid, which made two places to say who is in a picture; it is
+     the second half of the character icon now, behind the house hairline
+     row. `.chartabs` is the SAME .plabtabs rule the PICTURE · PANELS row
+     uses and the SAME measurer (plTabLine) — nothing declares a tab count. */
+  .chartabs { padding-right: var(--charpill, 0px); margin-bottom: 10px; }
+  .casthdr { display: flex; gap: 6px; padding: 0 38px 0 0; }
+  .casthdr .plab:first-child { flex: 1 1 90px; }
+  .casthdr .plab:last-child { flex: 3 1 160px; }
+  .castrow { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .castrow input, .castrow textarea { flex: 1 1 0; min-width: 0; font: inherit; font-size: 14px;
+    color: #2b2622; background: #fdfcf9; border: 1px solid #d8d0c4;
+    border-radius: 6px; padding: 7px 9px; }
+  .castrow input.cnm { flex: 1 1 90px; order: 0; }
+  /* `min-height: 0` beats the page-wide `textarea { min-height: 64px }` —
+     without it the compact row is two lines tall and "expand" starts from
+     nowhere. */
+  .castrow textarea.cds { flex: 3 1 160px; order: 1; box-sizing: border-box;
+    height: 32px; min-height: 0; resize: none; overflow: hidden; line-height: 1.15; }
+  .castrow .cx, .castrow .cbig { flex: none; width: 30px; height: 32px; padding: 0; font-size: 16px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #6f675e; }
+  .castrow .cbig { order: 2; }
+  .castrow .cx { order: 3; }
+  .castrow .cbig svg { width: 13px; height: 13px; }
+  /* THE BIGGER DESCRIPTION BOX (2026-08-29, Sophie: "expand character
+     description button add"). A description is a sentence of hers — long
+     beard, glasses, all black, with a cape and a belt — and the compact row
+     shows about a third of it, so the field she writes the most in was the
+     one field on the page with no way to see what was in it. The corner
+     button is the PROMPT box's answer in shape, not a copy of its code: one
+     field, two sizes, never a second box to keep in sync.
+       Expanding drops the description onto its OWN LINE at full width (the
+     row wraps, and `order` keeps the name, the toggle and the × on the line
+     above), because on a 390pt phone a taller box three columns wide is
+     still a column — the width is half of what "expand" has to buy here and
+     the prompt box, which is already full width, never needed it.
+       Both bounds are CSS so the browser clamps `fitCds`'s inline height and
+     no `vh` is re-derived in script — and the FLOOR is what keeps the button
+     worth tapping on an empty row (a field she WRITES in, the `.moretxt`
+     opener's difference, spelled out at #prompt.big). */
+  .castrow.big { flex-wrap: wrap; }
+  .castrow.big textarea.cds { flex: 1 1 100%; order: 4; height: auto;
+    min-height: 18vh; max-height: 44vh; overflow-y: auto; }
+  #castadd { font: inherit; font-size: 13.5px; padding: 6px 11px;
+    border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #2b2622; }
+  #charsbtn.on { background: #2b2622; color: #faf7f2; }
+  #charsn:empty { display: none; }
+  /* THE SHEET opens under the style row like the Prompt panel, and is the
+     same flat 6px box — one shape for "a panel this row opened". */
+  #charpanel { display: none; margin: 0 0 8px; border: 1px solid #d8d0c4; border-radius: 6px;
+    background: #fdfcf9; padding: 10px; }
+  #charpanel.on { display: block; }
+  #charpanel .plab { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase;
+    color: #9a9186; margin: 0 0 6px; }
+  #charpanel .plab + .plab, #charpanel .chargrid + .plab { margin-top: 12px; }
+  /* Her five most recent run ACROSS, one row, so the ones she reaches for are
+     never behind a scroll. The rest wrap into a grid under the search.
+     BOTH ROWS END BEFORE THE PILL'S COLUMN. The sheet opens near the top of
+     the page, which is exactly where the injected autoscroll pill is fixed —
+     measured, its `Fast` label sat on the FIFTH recent card, and with her
+     phone's 47px safe-area inset the pill rides lower still and covers that
+     card's middle. So `--charpill` is a MEASURED reservation (fitCharPill),
+     never a hardcoded band: the pill is conditional and its top follows the
+     inset. It goes on the two CARD rows rather than on the panel, so the
+     panel keeps the width of everything else on screen and the two rows stay
+     aligned with each other. */
+  .charrow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px;
+    padding-right: var(--charpill, 0px); }
+  .chargrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px;
+    padding-right: var(--charpill, 0px);
+    max-height: 40vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  /* A card is the face and the NAME a prompt calls them by — the name is not
+     decoration here, it is the word she has to type into her prompt for the
+     reference to mean anything, so it is never cropped away. */
+  .charcard { display: block; width: 100%; padding: 0; border: 1px solid #d8d0c4; border-radius: 6px;
+    background: #fff; color: #2b2622; font: inherit; text-align: center; cursor: pointer;
+    overflow: hidden; -webkit-tap-highlight-color: transparent; }
+  .charcard img { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; background: #f0ece5; }
+  .charcard .nm { display: block; font-size: 11px; line-height: 1.25; padding: 3px 3px 4px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .charcard.on { border-color: #2b2622; box-shadow: inset 0 0 0 2px #2b2622; }
+  .charcard.on .nm { background: #2b2622; color: #faf7f2; }
+  /* 16px or iOS zooms the page on focus — every box she types into. */
+  #charq { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; color: #2b2622;
+    background: #fff; border: 1px solid #d8d0c4; border-radius: 6px; padding: 7px 9px; margin: 0 0 8px; }
+  #charpanel .cnote { font-size: 11.5px; color: #9a9186; margin: 8px 0 0; }
+  /* WHAT THE CAST ADDS TO HER PROMPT, SAID WHERE SHE IS STANDING (2026-08-29,
+     Sophie: "when I click characters, it doesn't show how it looks in the Full
+     prompt on playground"). The Prompt panel has always printed these lines
+     and that is not where she is: it is CLOSED by default, it lives BELOW this
+     sheet, and this sheet is a library — measured with 25 characters the panel
+     started 703px down an 844px viewport, and her library is 143. So the sheet
+     discloses its own lines, from the SAME served rules the panel reads
+     (charLine / castBlock), never a copy of the wording. Same ink rule as the
+     panel's `.added`, so the two read as one kind of thing. */
+  #charpanel .added { font-size: 12px; color: #6f675e; line-height: 1.4;
+    border-left: 2px solid #2b2622; padding: 2px 0 2px 8px; margin: 4px 0 0; }
+  #charpanel #charsays { margin-top: 12px; }
+  /* AND IT HAS TO BE ON SCREEN, which is the whole complaint — measured at
+     390x700 (the app's web view, its bottom bar taken off) the block landed
+     at y 679 with 21px showing, i.e. exactly the Prompt panel's problem one
+     box higher. The library grid is the only thing here with slack, so it
+     gives some back while a cast is riding. It shrinks the grid's WINDOW and
+     never moves the rows above it: a card row shifting under her thumb
+     between two picks is a worse bug than the one being fixed, so the block
+     stays at the FOOT of the sheet where appearing moves nothing she taps. */
+  #charpanel.says .chargrid { max-height: 26vh; }
   /* The PROMPT panel — what is wrapped around her words, and editable (Aug
      2026, Sophie). Opens under the style row, above her box, because that is
      where the wrapping happens. Flat, 6px, no gradient like everything else. */
@@ -456,6 +674,29 @@
   #promptpanel textarea { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px;
     line-height: 1.4; color: #2b2622; background: #fff; border: 1px solid #d8d0c4;
     border-radius: 6px; padding: 8px; resize: vertical; min-height: 66px; }
+  /* EITHER HALF OPENS BIGGER (2026-08-31, Sophie: "add extend textbox button to
+     both halves of style prompt playground"). #prompt.big's answer lifted in
+     SHAPE, never a second field: ONE textarea, two sizes, a corner button that
+     swaps its own glyph — so there is nothing to keep in sync and `stash`
+     still reads the same box.
+       Both bounds are CSS, so the browser clamps the fitted height and no `vh`
+     is re-derived in script (#prompt.big's own lesson). The box RESERVES the
+     corner with padding-bottom, or her last line is typed under the button —
+     which is why the compact box is taller here than the 66px it was: 92px
+     keeps the same two lines of text visible above the reserved band.
+       56px in from the right rather than the exact corner, because the
+     injected pill owns that fixed column on this page and a z-lift just steals
+     the pill's own ▼ — the same dodge #bigprompt makes, on the same card.
+       `display:block` on the textarea kills the inline-block baseline gap,
+     which would otherwise sit between the box's real bottom and the wrapper's
+     padding box and float the button below the box it belongs to. */
+  #promptpanel .pwrap { position: relative; margin: 0 0 6px; }
+  #promptpanel .pwrap textarea { display: block; padding-bottom: 34px; min-height: 92px; }
+  #promptpanel .pwrap textarea.big { min-height: 24vh; max-height: 46vh; }
+  #promptpanel .pbig { position: absolute; right: 56px; bottom: 6px; width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center; padding: 0; margin: 0;
+    border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #6f675e; cursor: pointer; }
+  #promptpanel .pbig svg { width: 14px; height: 14px; }
   #promptpanel .yours { font-size: 12px; color: #6f675e; font-style: italic;
     border-left: 2px solid #d8d0c4; padding: 2px 0 2px 8px; margin: 4px 0 0; }
   #promptpanel .prow { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
@@ -478,17 +719,142 @@
     color: #6f675e; font: inherit; font-size: 12.5px; padding: 0 11px; margin: 0; cursor: pointer; }
   .canvastog button + button { border-left: 1px solid var(--ctl-line); }
   .canvastog button.on { background: #2b2622; color: #faf7f2; }
+  /* PICTURE · PANELS — the house hairline tab row (.acctabs pattern, this
+     page's own copy like every page keeps). The right padding is the injected
+     autoscroll pill's reserved column. The line is measured by tabLine(). */
+  .plabtabs { position: relative; display: flex; border-bottom: 1px solid #d8d0c4;
+    margin: 0 0 10px; padding-right: 64px; }
+  .plabtabs button { flex: none; border: none; background: none; cursor: pointer;
+    font-family: inherit; font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+    color: #6f675e; padding: 7px 12px 9px; margin: 0; -webkit-tap-highlight-color: transparent; }
+  .plabtabs button.on { color: #2b2622; }
+  .plabtabs::after { content: ''; position: absolute; left: 0; bottom: -1px; height: 2px;
+    width: var(--tw, 0); background: #2b2622; transform: translateX(var(--tx, 0)); }
+  .plabtabs.tl::after { transition: transform .2s ease, width .2s ease; }
+  /* THE BOXES ARE THE GRID — she writes into the layout she gets back. Each
+     box wears the CELL's shape (2:3 or 1:1, following the canvas toggle) with
+     a floor so a 3-across box still fits a dictated sentence. Boxes ship
+     EMPTY; the placeholder only NAMES the cell ("top left"). 16px or iOS
+     zooms the page on focus. */
+  /* THE BOXES FOLD (2026-08-28, Sophie: "make the panels grid collapsible").
+     Nine 2:3 boxes is most of a screen, and the controls and Generate sit
+     under them — so the row above the grid puts them away. The boxes are
+     DISPLAY-hidden and stay in the DOM, so a fold can never lose her words
+     and Generate still reads them. Shut, the row says how many are written:
+     the one thing the boxes are no longer saying. Open, it does not — they
+     are right there (the archive summary's don't-say-it-twice rule). */
+  /* THE CLEAR IS A SIBLING OF THE FOLD, NEVER INSIDE IT (2026-08-29, Sophie:
+     "add a clear button at the top of panels"). The fold row is a <button>,
+     so a nested button is invalid and the tap would bubble into folding the
+     boxes away — the row is a flex wrapper with the two side by side. It is
+     the house inline opener's paint (an underlined word, no box, no plate),
+     because it sits on a 10.5px label row where a bordered control would be
+     the heaviest thing on the screen; and it is drawn ONLY while there are
+     words to wipe, so it is never a control that does nothing. */
+  #panelrow { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; }
+  #panelclear { flex: none; border: 0; background: none; margin: 0; padding: 2px 0;
+    font: inherit; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase;
+    color: #9a9186; text-decoration: underline; cursor: pointer;
+    -webkit-tap-highlight-color: transparent; }
+  #panelfold { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0;
+    border: 0; background: none; margin: 0; padding: 2px 0; cursor: pointer;
+    font-family: inherit; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase;
+    color: #9a9186; text-align: left; -webkit-tap-highlight-color: transparent; }
+  #panelfold svg { width: 13px; height: 13px; flex: none; transition: transform .15s ease; }
+  #panelfold.shut svg { transform: rotate(-90deg); }
+  #panelgrid { display: grid; gap: 6px; margin: 0 0 4px; }
+  #panelgrid textarea { width: 100%; box-sizing: border-box; border: 1px solid #d8d0c4;
+    border-radius: 6px; background: #fdfcf9; color: inherit; font: inherit; font-size: 16px;
+    padding: 8px; resize: none; min-height: 64px; aspect-ratio: var(--pcell, 2 / 3); }
+  /* EVERY PANEL BOX EXPANDS — AS A POPUP (2026-08-29, Sophie: "can u add a
+     expand button per text box in each panel" → "expand as a popup"; it
+     shipped first spanning the grid row and she asked for the popup the same
+     day, so the span is history, not a rule). The corner button lifts the
+     SAME textarea over a dim backdrop — never a second field to sync, which
+     is what keeps panelVals(), the drafts, the carry and a folded Generate
+     reading it unchanged: the node never leaves its cell, only its paint
+     goes fixed. The popped box fits the words between the CSS floor and cap
+     (fitBig's two lessons: height:auto before measuring or the box can only
+     ever grow, and the border added back on a border-box box) and sits at
+     10vh so the iOS keyboard never covers it. The CELL keeps its own aspect
+     while its textarea is lifted out, so the grid behind the backdrop does
+     not reflow under her. The button rides ABOVE the popup's top-right
+     corner, on the backdrop, so it can never sit on her words; the small
+     box still reserves its corner with padding. Backdrop tap or the button
+     closes; not sticky, and a grid rebuild closes it. */
+  #panelgrid .pcell { position: relative; min-width: 0; }
+  #panelgrid .pcell textarea { padding-top: 26px; padding-bottom: 36px; }
+  #panelgrid .pcell.pop { aspect-ratio: var(--pcell, 2 / 3); }
+  #panelgrid .pcell.pop textarea { position: fixed; left: 5vw; width: 90vw; top: 10vh;
+    z-index: 60; aspect-ratio: auto; min-height: 30vh; max-height: 60vh;
+    box-shadow: 0 12px 40px rgba(43, 38, 34, .35); }
+  #panelgrid .pcell.pop .pbig { position: fixed; right: 5vw; top: calc(10vh - 34px); z-index: 61; }
+  #panelbg { position: fixed; inset: 0; z-index: 59; border: 0; padding: 0; margin: 0;
+    background: rgba(43, 38, 34, .45); }
+  /* THE PER-BOX CLEAR — one panel's words, wiped where they are (2026-08-29,
+     Sophie: "clear button at the top of textbox in panels"). The row's own
+     Clear empties the WHOLE grid; this empties the one box she is looking at,
+     which is what a nine-panel grid needs — re-writing one panel meant
+     selecting a dictated sentence by hand on a phone. It is a bare ✕ at the
+     top-right corner of the cell, drawn ONLY while that box has words (never
+     a dead control, the row Clear's own rule), and the textarea reserves the
+     strip with `padding-top` rather than `padding-right`: a 3-across cell is
+     ~118px wide, so a reserved right column would take a fifth of every line.
+     It asks NOTHING — one box is one dictated sentence, where the row Clear
+     can lose nine, and a confirm on every wipe is the heavier cost. THE STORY
+     BOX GETS NONE: it is the only box on that screen, so the row's Clear IS
+     its per-box clear and a second one beside it says the same thing twice.
+     Popped, it rides on the backdrop beside the big-box toggle. */
+  .pclr { position: absolute; right: 6px; top: 6px; width: 20px; height: 20px;
+    display: flex; align-items: center; justify-content: center; padding: 0; margin: 0;
+    border: 0; background: none; color: #9a9186; cursor: pointer;
+    -webkit-tap-highlight-color: transparent; }
+  .pclr svg { width: 13px; height: 13px; }
+  #panelgrid .pcell.pop .pclr { position: fixed; right: calc(5vw + 34px); top: calc(10vh - 34px);
+    z-index: 61; }
+  .pbig { position: absolute; right: 6px; bottom: 6px; width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center; padding: 0; margin: 0;
+    border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #6f675e; cursor: pointer; }
+  .pbig svg { width: 14px; height: 14px; }
 </style></head><body>
 <a id="backchip" href="/scratchpad">&lsaquo; Scratch Pad</a>
 <header class="app-header"><h1>Playground</h1></header>
 
 <div class="panel">
-  <div class="styles"><select id="stylepick" aria-label="Style"></select></div>
+  <div class="plabtabs" id="plabtabs">
+    <button type="button" id="t-picture" class="on">Picture</button>
+    <button type="button" id="t-panels">Panels</button>
+  </div>
+  <div class="styles"><select id="stylepick" aria-label="Style"></select><button type="button" id="charsbtn" hidden aria-label="Character references" title="Character references"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/></svg><span id="charsn"></span></button><button type="button" id="promptclear" hidden aria-label="Clear the prompt" title="Clear the prompt"></button></div>
+  <div id="charpanel">
+    <div class="plabtabs chartabs" id="chartabs" hidden>
+      <button type="button" data-ct="pics" class="on">Pictures</button>
+      <button type="button" data-ct="desc">Descriptions</button>
+    </div>
+    <div id="charpics">
+      <div class="plab">Most recent</div>
+      <div class="charrow" id="charrecent"></div>
+      <div class="plab" id="charalllab">All characters</div>
+      <input id="charq" type="search" placeholder="Search characters" aria-label="Search characters"
+             autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="search">
+      <div class="chargrid" id="charall"></div>
+      <div class="cnote" id="charnote"></div>
+    </div>
+    <div id="chardesc" hidden>
+      <div class="casthdr"><span class="plab">Name</span><span class="plab">Description</span></div>
+      <div id="castrows"></div>
+      <button type="button" id="castadd">Add a character</button>
+    </div>
+    <div id="charsays" hidden><div class="plab">Added to your prompt</div><div class="added" id="charsaystxt"></div></div>
+  </div>
   <div id="reftag"></div>
   <div id="beattag"></div>
   <div id="promptpanel"></div>
   <div class="promptwrap"><textarea id="prompt"></textarea><button type="button" id="bigprompt" aria-label="Bigger box" title="Bigger box"></button></div>
+  <div id="panelrow" hidden><button type="button" id="panelfold" aria-expanded="true" aria-controls="panelgrid"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg><span id="panelfoldlab">Panels</span></button><button type="button" id="panelclear" hidden>Clear</button></div>
+  <div id="panelgrid" hidden></div>
   <div class="controls">
+    <div class="canvastog" id="gridpick" role="group" aria-label="How many panels" hidden></div>
     <label id="scalewrap">LoRA scale <input type="number" id="scale" value="1" step="0.1" min="0" max="2"></label>
     <button class="xthree" id="xthree" title="Run at scale 1, 1.2 and 1.4">&times;3</button>
     <button class="seedbtn" id="seedbtn" aria-label="Next seed"></button>
@@ -497,7 +863,7 @@
     <span id="photowrap"><button id="photopick" type="button" aria-label="Attach a photo reference" title="Attach a photo reference"></button><button id="photoclear" type="button" aria-label="Take the photo reference off" title="Take the photo reference off"></button></span>
     <input type="file" id="photofile" accept="image/*" hidden>
     <button class="stylebtn" id="promptbtn" title="What is wrapped around your words">Prompt</button>
-    <button class="stylebtn notextbtn" id="notextbtn" hidden aria-pressed="false" title="Ask for no text at all in the picture">No text</button>
+    <button class="stylebtn notextbtn" id="notextbtn" hidden aria-pressed="false" title="Text: minimal by default — press for none">No text</button>
     <div class="canvastog" id="canvastog" role="group" aria-label="Canvas shape">
       <button id="c-portrait" type="button">Portrait</button><button id="c-square" type="button">Square</button>
     </div>
@@ -520,6 +886,7 @@
   <div class="filttog" role="group" aria-label="Filters">
     <button class="likefilt" id="v-liked" aria-label="Show only the ones you hearted" title="Hearts only"></button>
     <button class="likefilt xfilt" id="v-hidex" aria-label="Hide the ones you have crossed out" title="Hide the &times;'d"></button>
+    <button class="likefilt sheetfilt" id="v-sheets" hidden aria-label="Just the finished sheets, uncut" title="Just the finished sheets, uncut"></button>
   </div>
   <div class="feedsearch">
     <input id="q" type="search" placeholder="Search" aria-label="Search your runs"
@@ -536,7 +903,7 @@
 
 <div id="ask">
   <div class="askbox">
-    <p>Are you sure you want to cancel?</p>
+    <p id="askmsg">Are you sure you want to cancel?</p>
     <div class="fine" id="askfine"></div>
     <div class="askrow">
       <button id="askno">Keep going</button>
@@ -587,9 +954,16 @@
     download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>',
     sprout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>',
     copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
-    // Send to the Story Room — Lucide `share`, the iOS square-and-arrow-up
-    // (her word for the button: "share icon").
+    // ADD TO SHOEBOX — Lucide `share`, the iOS square-and-arrow-up. The SAME
+    // mark the Story Room's beat popup and Meta Assets already wear for this
+    // (2026-08-29): the three doors are one door, so they read as one thing.
+    // It used to be the Story Room WALK's glyph here; that button wears the
+    // Story Room's own icon now (a button that opens another tool wears THAT
+    // tool's icon), which is what freed the share mark for its real owner.
     share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>',
+    // The Story Room's own tile glyph — books on a shelf (Lucide `library`,
+    // the web mirror of the iOS tile's SF Symbols `books.vertical`).
+    books: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg>',
     // The photo-reference button (Aug 2026) — Lucide `image-plus`, a picture
     // with a plus, so the control says "add a photo" rather than "a file".
     imagePlus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"/><line x1="16" x2="22" y1="5" y2="5"/><line x1="19" x2="19" y1="2" y2="8"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>',
@@ -629,6 +1003,7 @@
   document.getElementById('medhigh').innerHTML = ICONS.oval;
   document.getElementById('photopick').innerHTML = ICONS.imagePlus;
   document.getElementById('photoclear').innerHTML = ICONS.x;
+  document.getElementById('promptclear').innerHTML = ICONS.x;
 
   // LIST (a box per run) or TILES (a wall of thumbnails). Sticky across loads.
   // Both buttons are always on screen and always labelled — the switch can
@@ -685,15 +1060,61 @@
     applyHideX(true);
   });
 
+  // JUST THE FINISHED SHEETS, UNCUT (2026-08-27, Sophie: "add a section to
+  // see just the finished sheets, uncut, by themselves"). A third chip in the
+  // filter box, on the PANELS tab only: lit, the gallery shows ONE cell per
+  // run — the banked uncut sheet (a story sheet and a cut-failed run already
+  // ARE their sheet). Sticky like its neighbours. The ♥/✕ chips stay — a
+  // banked sheet carries its own vote at the virtual index -1 since
+  // 2026-08-27, so the filters match what is on screen here like anywhere
+  // else. (They used to step aside, for the reason that has now gone: while
+  // the sheet was view-only a heart could never match anything in this view.)
+  document.getElementById('v-sheets').innerHTML =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 12h18"/><path d="M12 3v18"/></svg>';
+  function sheetsOnly() { return localStorage.getItem('promptlab_sheets') === '1'; }
+  function sheetsMode() { return onPanels() && sheetsOnly(); }
+  function paintFiltRow() {
+    var sm = sheetsMode();
+    document.getElementById('v-sheets').hidden = !onPanels();
+    document.getElementById('v-sheets').classList.toggle('on', sm);
+  }
+  document.getElementById('v-sheets').addEventListener('click', function () {
+    localStorage.setItem('promptlab_sheets', sheetsOnly() ? '' : '1');
+    paintFiltRow();
+    renderFeed();
+  });
+
   // THE BIGGER PROMPT BOX (2026-08-25, Sophie: "can you put a button so I can
   // see the prompt in a bigger box as an option"). One textarea, two sizes —
   // the corner button toggles `.big` on #prompt and swaps its own glyph.
   // Deliberately NOT sticky: the compact box is the page's shape, and the big
   // one is a moment of reading a long dictation. Any hand-dragged resize
   // (desktop) is cleared on the toggle so shrinking back actually shrinks.
+  //
+  // AND THE BIG BOX FITS THE WORDS (2026-08-27, Sophie: "why not expand based
+  // on text, not static"). `fitBig` measures the content and sets the height to
+  // it; `.big`'s min/max-height clamp the result, so both bounds live in the
+  // CSS and nothing re-derives a `vh` here. It runs on the tap, on every
+  // keystroke while the box is open (so it grows under a dictation as she
+  // speaks) and on a resize — a rotation changes what `vh` means.
+  //   `height:auto` FIRST is what makes the measurement honest: scrollHeight of
+  // a box already sized to its old height reports that height, so measuring
+  // without the reset can only ever grow the box, never shrink it back when she
+  // deletes a paragraph. The border is added back because the box is
+  // `border-box` and scrollHeight excludes borders — without it every fit is
+  // two pixels short and the box scrolls its own last line.
+  //   `window.__fitBigPrompt` is what `copyPromptIn` calls: putting a prompt
+  // back in the box sets `.value` directly, which fires no `input` event, so
+  // without it the run she just copied would sit in a box fitted to whatever
+  // was there before.
   (function () {
     var btn = document.getElementById('bigprompt');
     var box = document.getElementById('prompt');
+    function fitBig() {
+      if (!box.classList.contains('big')) return;
+      box.style.height = 'auto';
+      box.style.height = (box.scrollHeight + (box.offsetHeight - box.clientHeight)) + 'px';
+    }
     function paint() {
       var big = box.classList.contains('big');
       btn.innerHTML = big ? ICONS.minimize : ICONS.maximize;
@@ -703,8 +1124,12 @@
     btn.addEventListener('click', function () {
       box.classList.toggle('big');
       box.style.height = '';
+      fitBig();
       paint();
     });
+    box.addEventListener('input', fitBig);
+    window.addEventListener('resize', fitBig);
+    window.__fitBigPrompt = fitBig;
     paint();
   })();
 
@@ -745,6 +1170,9 @@
 
   // ─── SEARCH (Aug 2026, Sophie: "can u add a little search bar that fits in
   // the space between the heart toggle (next to tiles/grid)") ──────────────
+  // The shape WORD a run is searchable by — the twin of server.js's own
+  // PL_SHAPE_WORD, pinned equal by scripts/test-playground-panels.js.
+  var PL_SHAPE_WORD = { '2:3': 'portrait', '1:1': 'square', '3:2': 'landscape' };
   // It filters the feed by RUN — her words are a run's, not a picture's — so
   // in list view whole boxes drop out and in tiles every picture from a
   // matching run stays on the wall. It stacks with the heart the same way the
@@ -773,25 +1201,57 @@
     // The canvas is stored and shown as a ratio, but the button she picked it
     // with says Portrait or Square — so both words find it. (The server's own
     // haystack, promptlabHay in server.js, is the same list.)
-    var shape = r.aspectRatio === '1:1' ? 'square' : (r.aspectRatio === '2:3' ? 'portrait' : '');
+    var shape = PL_SHAPE_WORD[r.aspectRatio] || '';
     return [r.prompt, runStyleLabel(r), r.gptStyle, r.model, r.quality, r.aspectRatio, shape,
       r.status === 'failed' ? 'failed' : '', r.status === 'cancelled' ? 'cancelled' : '',
-      r.photoRef ? 'photo ref' : ''].filter(Boolean).join('  ');
+      r.photoRef ? 'photo ref' : '']
+      // A panels run: every panel's own words plus the grid by name, exactly
+      // as the server's promptlabHay lists them — the two haystacks must
+      // never disagree or the view changes under her a beat after she types.
+      .concat(r.panels || [])
+      .concat([r.grid && r.grid.count ? 'panels ' + r.grid.across + 'x' + r.grid.down : '',
+        r.storySheet ? 'story sheet' : ''])
+      .filter(Boolean).join('  ');
   }
   function pendHay(p) {
     return [p.prompt, p.style, p.quality].filter(Boolean).join('  ');
   }
-  // What the feed shows: everything, the server's answer, or — while that is
-  // still in flight — the same filter run over what is already loaded.
+  // ─── THE GALLERY IS SEPARATE PER TAB (2026-08-27, Sophie: "separate the
+  // gallery for playground for single pics vs panels") ─────────────────────
+  // The PICTURE · PANELS tab already separates the making; the feed under it
+  // now follows: Picture shows single-pic runs, Panels shows panels runs —
+  // pendings, list, tiles, search and the lightbox walk all scoped the same
+  // way, because they all come through visibleRuns/pendingKept. runIsPanels
+  // is the twin of server.js's plRunIsPanels (pinned by
+  // scripts/test-playground-panels.js): a failed panels run still carries
+  // `panels`, so it stays in the panels gallery where its retry belongs.
+  function runIsPanels(r) {
+    return !!(r.grid && r.grid.count) || !!(r.panels && r.panels.length) || !!r.storySheet;
+  }
+  // A pending entry stores its grid as a NUMBER (the run doc grows the object
+  // when the sheet is cut) — truthy is the whole test.
+  function pendIsPanels(p) { return !!p.grid; }
+  function tabKeepsRun(r) { return runIsPanels(r) === onPanels(); }
+  function pendingKept() {
+    return pendingList().filter(function (p) { return pendIsPanels(p) === onPanels(); });
+  }
+  // What the feed shows: everything ON THIS TAB, the server's answer, or —
+  // while that is still in flight — the same filter run over what is already
+  // loaded. The tab filter runs over the server's hits too: a stale answer
+  // from before a tab switch can land, and it must not leak the other
+  // gallery's runs into this one.
   function visibleRuns() {
-    if (!qGroups.length) return feed;
-    if (hits) return hits;
-    return feed.filter(function (r) { return qmatch(runHay(r), qGroups); });
+    var mine = (qGroups.length && hits ? hits : feed).filter(tabKeepsRun);
+    if (!qGroups.length) return mine;
+    if (hits) return mine;
+    return mine.filter(function (r) { return qmatch(runHay(r), qGroups); });
   }
   function emptyNote() {
     if (qGroups.length) return '<div class="emptynote">Nothing matches that</div>';
+    if (sheetsMode()) return '<div class="emptynote">No sheets yet</div>';
     if (likedOnly()) return '<div class="emptynote">Nothing hearted yet</div>';
-    return hideX() ? '<div class="emptynote">Everything here is crossed out</div>' : '';
+    if (hideX()) return '<div class="emptynote">Everything here is crossed out</div>';
+    return onPanels() ? '<div class="emptynote">No panels yet</div>' : '';
   }
 
   // A SEARCH READS THE WHOLE FEED, NOT THE PAGE SHE IS LOOKING AT — the
@@ -804,7 +1264,9 @@
   function runSearch() {
     var seq = ++qSeq, want = query;
     if (!want) { hits = null; return; }
-    fetch('/api/promptlab?q=' + encodeURIComponent(want) + '&limit=300')
+    // The search is scoped to THIS tab's gallery server-side too — the 300
+    // cap must never hide a panels hit behind three hundred single ones.
+    fetch('/api/promptlab?q=' + encodeURIComponent(want) + '&limit=300&kind=' + (onPanels() ? 'panels' : 'single'))
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (seq !== qSeq) return;                       // she typed on; this answer is stale
@@ -843,13 +1305,239 @@
     box.value = ''; qLive.sync(); readSearch(); box.focus();
   });
 
+  // ── PUTTING A PROMPT BACK ALSO PUTS ITS PHOTO BACK (2026-08-27, Sophie:
+  //    "playground and other image tools shud save the reference photo and
+  //    reload when copy to prompt box") ─────────────────────────────────────
+  //
+  // The server has always SAVED her photo reference — `photoRef` on the run
+  // doc is the Storage url it was uploaded to, and the whole doc rides the
+  // feed — but nothing on the page ever read it back, so a run drawn with a
+  // photo could not be re-run with the same photo: the bytes existed and were
+  // unreachable. Copying the prompt back now restores the photo that drew it.
+  //
+  // THE RULE IS "ONLY CHANGE WHAT THE RECORD KNOWS", and each of the three
+  // answers matters:
+  //   a url on the record  -> attach it (a re-run is the same request again),
+  //   a record with none   -> CLEAR whatever is attached (a panels run, a LoRA
+  //                           run, or a picture she drew with nothing on it —
+  //                           leaving a photo attached would put an ingredient
+  //                           into the next run that this one never had),
+  //   no record at all     -> leave it alone, because nothing here knows.
+  //
+  // The restored `data` is that url, not a dataURL. Both readers take it: the
+  // thumbnail is an <img src>, and the run POSTs `photo` as-is — server.js
+  // already accepts an https url there and fetches the bytes back, so nothing
+  // is re-uploaded and the run's own record points at the same object.
+  //
+  // This does NOT persist across loads. That rule is untouched and is hers:
+  // a photo attached last week silently riding today's run is the hidden
+  // ingredient the Prompt panel exists to prevent. Her tap on a copy button
+  // is the opposite of silent — the thumbnail appears in the row as she does
+  // it, and the Prompt panel's photo line comes back with it.
+  function restorePhoto(r) {
+    if (!r) return;                                   // nothing known — leave it
+    var url = r.photoRef ? String(r.photoRef) : '';
+    if (!/^https?:\/\//.test(url)) {
+      if (!photoRef) return;
+      photoRef = null;
+      document.getElementById('photofile').value = '';
+      paintPhoto();
+      return;
+    }
+    if (photoRef && photoRef.data === url) return;    // already the one
+    photoRef = { data: url, name: (url.split('/').pop() || '').split('?')[0] };
+    document.getElementById('photofile').value = '';
+    paintPhoto();
+  }
+
+  // …AND PUTS THE CAST BACK TOO (2026-08-29, Sophie: "light box view /
+  // characters in playground"). The photo reference has been restored on
+  // every copy path since 2026-08-27 ("playground and other image tools shud
+  // save the reference photo and reload when copy to prompt box") — her
+  // picked CHARACTERS shipped the same day and were never wired into it, so
+  // a picture drawn with a cast could not be re-run with that cast: the ids
+  // were on the run doc the whole time and nothing read them back.
+  //
+  // Same three answers as restorePhoto, and the CLEAR is the half that is
+  // easy to skip:
+  //   characters on the record -> pick exactly those,
+  //   a record with none       -> put down whoever is picked (leaving them on
+  //                               would add a paid reference the run she
+  //                               copied never had),
+  //   no record at all         -> leave it alone; nothing here knows.
+  // The ids are what the run POSTs, so restoring them is enough on its own —
+  // the library is fetched in the background only so the picker and the
+  // Prompt panel can NAME them.
+  function restoreChars(r) {
+    if (!r) return;
+    var want = (Array.isArray(r.characters) ? r.characters : [])
+      .map(function (c) { return c && c.id ? String(c.id) : ''; })
+      .filter(Boolean)
+      .slice(0, charMax);
+    if (want.join(',') === pickedChars.join(',')) return;
+    pickedChars = want;
+    paintCharsBtn();
+    paintCharPanel();
+    if (promptOpen) paintPromptPanel();
+    if (want.length && !charList) {
+      loadChars().then(function () {
+        paintCharPanel();
+        if (promptOpen) paintPromptPanel();
+      });
+    }
+  }
+
+  // PUTTING A PICTURE BACK BRINGS ITS PEOPLE (2026-08-29, Sophie: "panels
+  // adds a character / if i import solo to playground / can it auto add the
+  // character description from the original multi sheet / ex creepy guy").
+  // A panels run stores the typed rows it was cast with, so pulling ONE panel
+  // into the picture box can bring the descriptions that made the creepy guy
+  // that creepy guy. Without it the panel is re-run as an anonymous man in
+  // black, and nothing on screen says a thing was dropped.
+  //
+  // IT ONLY EVER ADDS, and that is the deliberate difference from
+  // restorePhoto's three-answer rule. A photo is not persisted and was never
+  // typed; the cast is BOTH — sticky in localStorage and written out by hand,
+  // row by row — so "a record with none clears it" would throw away work she
+  // did rather than an ingredient she forgot. She asked for the add. A row
+  // whose name she already has is left exactly as she wrote it: the record is
+  // filling gaps, never correcting her.
+  function restoreCast(rows) {
+    var add = (window.__sheetGrid && window.__sheetGrid.castRows)
+      ? window.__sheetGrid.castRows(rows) : [];
+    if (!add.length) return 0;
+    var have = castAll();
+    var seen = {};
+    have.forEach(function (c) { seen[String(c.name || '').trim().toLowerCase()] = 1; });
+    var n = 0;
+    add.forEach(function (c) {
+      if (have.length >= castMax) return;
+      var k = String(c.name || '').trim().toLowerCase();
+      if (k && seen[k]) return;
+      if (k) seen[k] = 1;
+      have.push({ name: c.name, description: c.description });
+      n++;
+    });
+    if (!n) return 0;
+    saveCast(have);
+    buildCastBox();
+    if (promptOpen) paintPromptPanel();
+    return n;
+  }
+
+  // PUTTING A PROMPT BACK MOVES THE SCREEN TO THE BOX (2026-08-28, Sophie:
+  // "prompt us back in box shud move screen to box"). Every copy path already
+  // asked for that scroll, and from the LIGHTBOX it never happened: closing an
+  // overlay RESTORES the position she opened it from (the house rule — she
+  // closes an image exactly where she opened it), and asset-lightbox.js
+  // re-asserts that restore on the NEXT frame, which cancels a smooth scroll
+  // started in the same tick. So the scroll is asked for immediately AND again
+  // once the restore's own frames have run: the last word has to be ours, or
+  // the words land in a box she is nowhere near.
+  function scrollToPrompt() {
+    var go = function () { window.scrollTo({ top: 0, behavior: 'smooth' }); };
+    go();
+    requestAnimationFrame(function () { requestAnimationFrame(go); });
+  }
+
+  // A GENERATE TAP HAS TO BE VISIBLE — AND IT SAYS SO WHERE SHE IS STANDING,
+  // IT DOES NOT MOVE HER (2026-08-29, Sophie: "it scrolls me down in the
+  // playground"). This shipped 2026-08-28 as a walk down to the new run's
+  // placeholder, because on the Panels tab that card lands off the bottom edge
+  // and a tap that changes nothing reads as a tap that did nothing ("why
+  // didn't it draw"). The reading was right and the answer was wrong: the page
+  // moving under her on EVERY generation is worse than the card being out of
+  // sight, and she is usually looking at the box she just typed in — often
+  // about to type the next one. So the tap is confirmed with a toast and the
+  // window is left exactly where she put it. A scroll on Generate is HISTORY,
+  // not a rule; don't bring it back.
+  function confirmStarted() { toast('Drawing…'); }
+
   // The copy button beside a run's words: puts that prompt back into the box.
   function copyPromptIn(text) {
     var box = document.getElementById('prompt');
     box.value = text || '';
+    // Setting `.value` fires no `input` event, so the big box has to be told.
+    if (window.__fitBigPrompt) window.__fitBigPrompt();
+    // A prompt put back IS a drawn one — it came off a run — so clearing it
+    // asks nothing, exactly as the panels copy-back stamps its grid.
+    savePromptDrawn(String(text || '').trim());
+    paintPromptClear();
     updateShape();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollToPrompt();
     toast('Prompt is back in the box');
+  }
+  // A PANELS run's copy button refills the panel BOXES — switching to the
+  // Panels tab, its grid, and her words in their cells — because that is the
+  // box those words came out of. Falls back to the one box only when the
+  // page has nothing to rebuild the grid from.
+  function copyPanelsIn(r) {
+    if (!r || !r.panels || !r.grid || !PANELS_CFG || !PANELS_CFG.grids[r.grid.count]) {
+      copyPromptIn(r && r.prompt);
+      restorePhoto(r);
+      restoreChars(r);
+      return;
+    }
+    // A panels run never carries a photo (the button is off on that tab), so
+    // its record answers "none" and the restore CLEARS one that is attached —
+    // the same rule everywhere, and the honest one here.
+    restorePhoto(r);
+    restoreChars(r);     // the picked FACES rode the whole sheet
+    restoreCast(r.cast); // …and so did her typed rows
+    savePanelTexts(r.grid.count, r.panels.slice());
+    // Words put back out of a finished run have been drawn by definition, so
+    // they are never the unseen draft the carry stops to ask about.
+    savePanelsDrawn(r.grid.count, r.panels.slice());
+    try { localStorage.setItem(GRIDKEY, String(r.grid.count)); } catch (e) { /* private mode */ }
+    // "Back in the boxes" has to be true on screen — a shut fold would put
+    // them somewhere she cannot see.
+    openPanels();
+    setTab('panels');
+    scrollToPrompt();
+    toast('Panels are back in the boxes');
+  }
+  // A STORY run's copy button refills the STORY box — its words came out of
+  // it, the same reasoning as copyPanelsIn.
+  function copyStoryIn(r) {
+    try { localStorage.setItem(STORYTEXTKEY, String(r.prompt || '')); } catch (e) { /* private mode */ }
+    try { localStorage.setItem(GRIDKEY, 'story'); } catch (e) { /* private mode */ }
+    restorePhoto(r);          // a story run never carries one → clears, honestly
+    restoreChars(r);          // …but a story sheet CAN carry a cast
+    restoreCast(r.cast);
+    openPanels();             // same rule as copyPanelsIn — the box must be on screen
+    setTab('panels');
+    scrollToPrompt();
+    toast('The story is back in the box');
+  }
+  function copyRunIn(r) {
+    if (r && r.storySheet) copyStoryIn(r);
+    else if (r && r.panels && r.panels.length) copyPanelsIn(r);
+    else if (r) {
+      copyPromptIn(r.prompt); restorePhoto(r); restoreChars(r); restoreCast(r.cast);
+    }
+  }
+  // ONE PICTURE'S WORDS GO IN THE ONE BOX (2026-08-27, Sophie: "pressing the
+  // playground button on images made by panels should copy text into the
+  // single picture … not the whole panel"). The LIGHTBOX is showing one
+  // panel, so its put-back is that panel's own words on the PICTURE tab — a
+  // panel is a complete picture in its own right and re-running it is a
+  // single-picture job. The run card's copy button still refills the whole
+  // grid (copyPanelsIn), because that card IS the run and those boxes are
+  // where its words came from; this is the per-PICTURE control, and the two
+  // are different questions.
+  function copyPictureIn(r, i) {
+    var panel = (r && r.panels && r.panels.length && i != null) ? r.panels[i] : null;
+    if (panel == null) { copyRunIn(r); return; }
+    setTab('picture');
+    copyPromptIn(String(panel));
+    restorePhoto(r);
+    restoreChars(r);
+    // The people the sheet established come with the panel — the whole of her
+    // 2026-08-29 ask. Said out loud, because a clause that rides her next run
+    // must never arrive silently.
+    var n = restoreCast(r && r.cast);
+    if (n) toast(n === 1 ? 'Prompt and 1 character description are back'
+      : 'Prompt and ' + n + ' character descriptions are back');
   }
   document.getElementById('seedbtn').innerHTML = ICONS.sprout;
 
@@ -901,6 +1589,13 @@
     // reach for; the server owns its bookended anti-content prompt.
     dreamy:     { model: 'gpt-image-2', label: 'Dreamy', engine: 'gptimage', gptStyle: 'dreamy',
                   noCharacter: true },
+    // Triangle = the Triset game's triangular picture cards (2026-08-31, her
+    // ask). Same reference image and same tail as Dreamy above, with the
+    // border clause swapped for the equilateral triangle-card one — the
+    // server derives the whole thing from `dreamy`, so nothing here has to
+    // know more than its id.
+    triangle:   { model: 'gpt-image-2', label: 'Triangle', engine: 'gptimage', gptStyle: 'triangle',
+                  noCharacter: true },
     scarry:     { model: 'gpt-image-2', label: 'Scarry', engine: 'gptimage', gptStyle: 'scarry',
                   noCharacter: true },
     pastel:     { model: 'gpt-image-2', label: 'Pastel', engine: 'gptimage', gptStyle: 'pastel',
@@ -914,6 +1609,706 @@
   var styleKey = localStorage.getItem('promptlab_style');
   if (!STYLES[styleKey]) styleKey = 'watercolor';
   function isGpt(k) { return STYLES[k] && STYLES[k].engine === 'gptimage'; }
+
+  // ── PICTURE · PANELS (Aug 2026, Sophie: "we make a picture and cut it into
+  // panels … describe each panel individually. It's a way of saving money on
+  // the picture") ─────────────────────────────────────────────────────────
+  // The Panels tab swaps the one prompt box for N boxes laid out AS the grid
+  // — she writes into the layout she gets back. The geometry (grids, cell
+  // names, derived sheet canvases) is SERVED by /api/promptlab/styles and the
+  // page holds no copy of it; until it answers, the tab says so instead of
+  // guessing. Her words persist per grid in localStorage (her OWN text
+  // restored — the one prefill the no-prewritten-text rule allows), so
+  // switching 9 → 4 → 9 loses nothing.
+  var PANELS_CFG = null;
+  var TABKEY = 'promptlab_tab', GRIDKEY = 'promptlab_grid';
+  // A grid may PIN its cell shape — the 2 option is two LANDSCAPE panels, one
+  // above the other (2026-08-27, Sophie: "2 option shud be landscape in
+  // panels"). The ratio is SERVED (sheet-grid.js is the one geometry), and a
+  // pinned grid ignores the canvas toggle outright, so the toggle comes off
+  // rather than sitting there changing nothing — the same rule the LoRA's
+  // hidden knobs follow.
+  function gridPin(g) {
+    var m = PANELS_CFG && PANELS_CFG.grids[g];
+    return (m && m.aspectRatio) || '';
+  }
+  function cellAr(g) {
+    return gridPin(g) || (canvas === 'square' ? '1:1' : '2:3');
+  }
+  function canvasApplies() { return !(onPanels() && !storyMode() && gridPin(curGrid())); }
+  function curTab() { return localStorage.getItem(TABKEY) === 'panels' ? 'panels' : 'picture'; }
+  function onPanels() { return curTab() === 'panels'; }
+  // THE STORY OPTION (2026-08-27, Sophie: "a sheet where i give instructions
+  // for a story, and have the image model decide the exact panels") — a
+  // fourth stop on the grid picker. She writes the STORY in one box and the
+  // MODEL lays out the page; there is no grid, so the sheet is delivered
+  // uncut. `curGrid()` deliberately keeps answering a real grid (its callers
+  // are grid math); everything story-shaped asks storyMode() first.
+  function storyMode() { return onPanels() && localStorage.getItem(GRIDKEY) === 'story'; }
+  function curGrid() {
+    var g = parseInt(localStorage.getItem(GRIDKEY), 10);
+    return (PANELS_CFG && PANELS_CFG.grids[g]) ? g : 4;
+  }
+  var STORYTEXTKEY = 'promptlab_story';
+  function storyText() { return localStorage.getItem(STORYTEXTKEY) || ''; }
+  function panelTexts(g) {
+    try {
+      var a = JSON.parse(localStorage.getItem('promptlab_panels_' + g) || '[]');
+      return Array.isArray(a) ? a : [];
+    } catch (e) { return []; }
+  }
+  function savePanelTexts(g, arr) {
+    try { localStorage.setItem('promptlab_panels_' + g, JSON.stringify(arr)); } catch (e) { /* private mode */ }
+  }
+  // HAS THIS DRAFT BEEN DRAWN? (2026-08-29, Sophie: "if the text that was
+  // saved as a draft has never been drawn trigger a pop-up"). A panels run
+  // stamps the EXACT array it sent under the grid it sent it for, so editing
+  // one box after a draw makes that grid undrawn again — which is the honest
+  // answer, since the words sitting there are not the words that were drawn.
+  // Nothing here is ever cleared: a stamp only stops matching.
+  function panelsDrawn(g) {
+    try {
+      var a = JSON.parse(localStorage.getItem('promptlab_panels_drawn_' + g) || '[]');
+      return Array.isArray(a) ? a : [];
+    } catch (e) { return []; }
+  }
+  function savePanelsDrawn(g, arr) {
+    try { localStorage.setItem('promptlab_panels_drawn_' + g, JSON.stringify(arr)); } catch (e) { /* private mode */ }
+  }
+  function sameWords(a, b) {
+    a = a || []; b = b || [];
+    if (a.length !== b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (String(a[i] || '').trim() !== String(b[i] || '').trim()) return false;
+    }
+    return true;
+  }
+  function anyWords(a) {
+    return (a || []).some(function (s) { return String(s || '').trim(); });
+  }
+  function panelVals() {
+    return Array.prototype.map.call(document.querySelectorAll('#panelgrid textarea'),
+      function (t) { return t.value; });
+  }
+  // The measured underline — chats.html's tabLine, this page's copy (the rows
+  // measure their own line; nothing declares a tab count).
+  function plTabLine(id) {
+    var row = document.getElementById(id || 'plabtabs');
+    if (!row) return;
+    var on = row.querySelector('button.on');
+    if (!on) return;
+    var r = row.getBoundingClientRect(), t = on.getBoundingClientRect();
+    if (!t.width) return;
+    row.style.setProperty('--tw', t.width + 'px');
+    row.style.setProperty('--tx', (t.left - r.left - row.clientLeft) + 'px');
+    if (!row.__tl) { row.__tl = 1; requestAnimationFrame(function () { row.classList.add('tl'); }); }
+  }
+  // THE FOLD (2026-08-28, Sophie: "make the panels grid collapsible"). Sticky
+  // and OPEN by default — the boxes are the prompt on this tab, so shut is a
+  // state she has to have chosen. Shut hides them with `display:none` and
+  // leaves them in the DOM, so panelVals() still reads her words and Generate
+  // works folded; the tab's own `hidden` is separate and always wins (the
+  // page's `[hidden]{display:none!important}`). Anything that means "write in
+  // these boxes" — picking a grid, putting a prompt back, an error naming an
+  // empty one — OPENS it, because an error pointing at a box she cannot see
+  // is worse than no error.
+  var FOLDKEY = 'promptlab_panelfold';
+  function panelsShut() {
+    try { return localStorage.getItem(FOLDKEY) === '1'; } catch (e) { return false; }
+  }
+  function setPanelsShut(v) {
+    try { localStorage.setItem(FOLDKEY, v ? '1' : '0'); } catch (e) { /* private mode */ }
+    paintPanelFold();
+  }
+  function openPanels() { if (panelsShut()) setPanelsShut(false); }
+  function panelFoldLabel() {
+    if (storyMode()) return storyText().trim() ? 'Story · written' : 'Story';
+    var vals = panelVals();
+    var n = vals.filter(function (s) { return s.trim(); }).length;
+    return 'Panels · ' + n + ' of ' + vals.length + ' written';
+  }
+  function panelWords() {
+    return storyMode() ? [storyText()] : panelVals();
+  }
+  function paintPanelFold() {
+    var row = document.getElementById('panelfold');
+    var box = document.getElementById('panelgrid');
+    document.getElementById('panelrow').hidden = !onPanels();
+    if (!onPanels()) return;
+    var shut = panelsShut();
+    box.style.display = shut ? 'none' : (box.getAttribute('data-mode') || 'grid');
+    row.classList.toggle('shut', shut);
+    row.setAttribute('aria-expanded', shut ? 'false' : 'true');
+    document.getElementById('panelfoldlab').textContent =
+      shut ? panelFoldLabel() : (storyMode() ? 'Story' : 'Panels');
+    // Never a dead control: with nothing written there is nothing to clear.
+    document.getElementById('panelclear').hidden = !anyWords(panelWords());
+  }
+  document.getElementById('panelfold').addEventListener('click', function () {
+    setPanelsShut(!panelsShut());
+  });
+  // CLEAR (2026-08-29, Sophie: "add a clear button at the top of panels").
+  // It empties the boxes she is looking at — the panel grid she is on, or the
+  // story box — and nothing else: the OTHER grids' drafts are their own copies
+  // and clearing one has never meant clearing them (the carry rule's half that
+  // makes switching back safe). It asks first only over UNSEEN work, the same
+  // question the carry asks and for the same reason: a draft that has been
+  // DRAWN is in her feed with its prompt one tap from copying back, so wiping
+  // it costs nothing, and one that never has is the only thing this can lose.
+  function wipePanels() {
+    if (storyMode()) {
+      try { localStorage.removeItem(STORYTEXTKEY); } catch (e) { /* private mode */ }
+    } else {
+      savePanelTexts(curGrid(), []);
+    }
+    buildPanelGrid();          // closes an open popup and rebuilds the cells empty
+    openPanels();              // she is about to write in them again
+    paintPromptPanel();
+  }
+  document.getElementById('panelclear').addEventListener('click', function () {
+    var words = panelWords();
+    if (!anyWords(words)) return;
+    if (!storyMode() && sameWords(panelVals(), panelsDrawn(curGrid()))) { wipePanels(); return; }
+    var n = words.filter(function (s) { return String(s || '').trim(); }).length;
+    askOpen({
+      msg: storyMode() ? 'Clear the story?' : 'Clear these panels?',
+      fine: storyMode() ? 'It was never drawn.'
+        : (n + (n === 1 ? ' panel here was' : ' panels here were') + ' never drawn.'),
+      no: 'Keep them', yes: 'Clear',
+      onYes: wipePanels,
+    });
+  });
+  function buildPanelGrid() {
+    // A rebuild replaces the cells, so a popup left open would point at a
+    // dead node with the backdrop still up and the page still locked.
+    closePanelPop();
+    paintCharTabs(); buildCastBox();
+    var box = document.getElementById('panelgrid');
+    if (!onPanels()) { box.hidden = true; paintPanelFold(); return; }
+    box.hidden = false;
+    if (!PANELS_CFG) {
+      box.setAttribute('data-mode', 'block');
+      box.innerHTML = '<div class="emptynote">Loading…</div>';
+      paintPanelFold();
+      return;
+    }
+    // STORY: one tall box for the whole story — her words persist like the
+    // panel texts, so switching 9 → Story → 9 loses nothing either way. The
+    // placeholder NAMES the field and nothing more (the house rule).
+    if (storyMode()) {
+      box.setAttribute('data-mode', 'block');
+      box.innerHTML = '';
+      var st = document.createElement('textarea');
+      st.setAttribute('data-story', '1');
+      st.placeholder = 'The story';
+      st.value = storyText();
+      st.addEventListener('input', function () {
+        try { localStorage.setItem(STORYTEXTKEY, st.value); } catch (e) { /* private mode */ }
+        paintPanelFold();      // the Clear appears with the first word, and leaves with the last
+      });
+      box.appendChild(st);
+      paintPanelFold();
+      return;
+    }
+    var g = curGrid(), meta = PANELS_CFG.grids[g];
+    box.setAttribute('data-mode', 'grid');
+    box.style.gridTemplateColumns = 'repeat(' + meta.across + ', 1fr)';
+    // The boxes wear the CELL's shape: the grid's own when it PINS one (the 2
+    // option is landscape), else the canvas toggle's.
+    box.style.setProperty('--pcell', arCss(cellAr(g)));
+    var saved = panelTexts(g);
+    box.innerHTML = '';
+    for (var i = 0; i < meta.count; i++) {
+      var cell = document.createElement('div');
+      cell.className = 'pcell';
+      var t = document.createElement('textarea');
+      t.setAttribute('data-panel', String(i));
+      // The placeholder NAMES the cell and nothing more (the house rule).
+      t.placeholder = meta.positions[i] || ('panel ' + (i + 1));
+      t.value = saved[i] || '';
+      t.addEventListener('input', stashPanels);
+      cell.appendChild(t);
+      cell.appendChild(mkPanelClear(cell, t));
+      cell.appendChild(mkPanelBig(cell, t));
+      box.appendChild(cell);
+    }
+    paintPanelFold();
+  }
+  // EVERY PANEL BOX EXPANDS — AS A POPUP (2026-08-29, Sophie: "can u add a
+  // expand button per text box in each panel" → "expand as a popup") — the
+  // CSS note above #panelgrid .pcell has the shape and the history. The
+  // button is a SIBLING of the textarea inside the cell (a control cannot
+  // live inside a textarea), and the textarea NEVER leaves the cell — the
+  // popup is paint, so every reader of `#panelgrid textarea` is untouched.
+  // The house overlay rules apply: any running autoscroll stops, background
+  // scroll locks with the position saved, and closing restores it exactly.
+  // One popup at a time; opening another closes the first; closing clears
+  // the fitted inline height so the small box is really small again.
+  var popCell = null, popScrollY = 0;
+  function panelBg() {
+    var bg = document.getElementById('panelbg');
+    if (!bg) {
+      bg = document.createElement('button');
+      bg.type = 'button';
+      bg.id = 'panelbg';
+      bg.hidden = true;
+      bg.setAttribute('aria-label', 'Close the big box');
+      bg.addEventListener('click', closePanelPop);
+      document.body.appendChild(bg);
+    }
+    return bg;
+  }
+  function fitPanelBig(cell, t) {
+    if (!cell.classList.contains('pop')) return;
+    t.style.height = 'auto';
+    t.style.height = (t.scrollHeight + (t.offsetHeight - t.clientHeight)) + 'px';
+  }
+  function closePanelPop() {
+    if (!popCell) return;
+    var t = popCell.querySelector('textarea');
+    popCell.classList.remove('pop');
+    if (t) t.style.height = '';
+    if (popCell.__paintBig) popCell.__paintBig();
+    popCell = null;
+    panelBg().hidden = true;
+    document.body.style.overflow = '';
+    window.scrollTo(0, popScrollY);
+  }
+  function openPanelPop(cell, t) {
+    closePanelPop();
+    popCell = cell;
+    popScrollY = window.scrollY;
+    if (window.__scrollStop) window.__scrollStop();
+    document.body.style.overflow = 'hidden';
+    panelBg().hidden = false;
+    cell.classList.add('pop');
+    t.style.height = '';
+    fitPanelBig(cell, t);
+    if (cell.__paintBig) cell.__paintBig();
+    t.focus();
+  }
+  // The per-box clear (2026-08-29) — the CSS note above .pclr has the shape
+  // and the reasoning. It wipes THIS box and nothing else, saves the drafts
+  // through the same stashPanels() her typing goes through (so the row's
+  // label and its Clear follow), refits an open popup, and leaves the caret
+  // in the box: she taps it in order to write the panel again.
+  function mkPanelClear(cell, t) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'pclr';
+    b.innerHTML = ICONS.x;
+    b.setAttribute('aria-label', 'Clear this panel');
+    b.title = 'Clear this panel';
+    function paint() { b.hidden = !t.value.trim(); }
+    b.addEventListener('click', function () {
+      t.value = '';
+      stashPanels();
+      paint();
+      fitPanelBig(cell, t);
+      t.focus();
+    });
+    t.addEventListener('input', paint);
+    paint();
+    return b;
+  }
+  function mkPanelBig(cell, t) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'pbig';
+    function paint() {
+      var pop = cell.classList.contains('pop');
+      b.innerHTML = pop ? ICONS.minimize : ICONS.maximize;
+      b.setAttribute('aria-label', pop ? 'Close the big box' : 'Open in a big box');
+      b.title = pop ? 'Close the big box' : 'Open in a big box';
+    }
+    cell.__paintBig = paint;
+    b.addEventListener('click', function () {
+      if (cell.classList.contains('pop')) closePanelPop();
+      else openPanelPop(cell, t);
+    });
+    t.addEventListener('input', function () { fitPanelBig(cell, t); });
+    paint();
+    return b;
+  }
+  // A rotation changes what `vh` means; refit the one popup that can be open.
+  window.addEventListener('resize', function () {
+    if (popCell) fitPanelBig(popCell, popCell.querySelector('textarea'));
+  });
+  // ── HER TYPED CAST (2026-08-27, Sophie: "add a characters clause / text
+  // boxes that say character 1: add character, name, description … etc up to
+  // n" · "I want both. Descriptions as well as pictures: two options" · "The
+  // character clause only applies if there's at least one character").
+  //
+  // The WORDS half. The picker beside the style is the PICTURES half and the
+  // two are independent: a run may carry either, both or neither. Kept in
+  // localStorage like the panel texts — a cast is the story she is working
+  // on, and losing it on a reload would be losing work, where quality and the
+  // canvas are deliberately not remembered because they cost money.
+  //
+  // THE CLAUSE ITSELF IS NEVER WRITTEN HERE — sheetGrid.castBlock builds it,
+  // the same function the server sends, so the panel prints exactly what will
+  // ride. An empty cast returns the empty string, which is her rule.
+  var CASTKEY = 'promptlab_cast';
+  var castMax = 12;
+  function castAll() {
+    try {
+      var a = JSON.parse(localStorage.getItem(CASTKEY) || '[]');
+      return Array.isArray(a) ? a.map(function (c) {
+        return { name: String((c && c.name) || ''), description: String((c && c.description) || '') };
+      }).slice(0, castMax) : [];
+    } catch (e) { return []; }
+  }
+  function saveCast(arr) {
+    try { localStorage.setItem(CASTKEY, JSON.stringify(arr)); } catch (e) { /* private mode */ }
+  }
+  // The rows with something in them — what actually rides, and what decides
+  // whether the clause exists at all.
+  function castRows() {
+    var f = window.__sheetGrid && window.__sheetGrid.castRows;
+    return f ? f(castAll()) : [];
+  }
+  function castClause(single) {
+    var f = window.__sheetGrid && window.__sheetGrid.castBlock;
+    return f ? f(castAll(), single) : '';
+  }
+  // THE SHEET'S TWO HALVES (2026-08-28, Sophie: "add character description be
+  // within the existing icon - hairline toggle between description and
+  // pictures"). Pictures and Descriptions are the same question asked two
+  // ways, so they belong behind the same icon rather than in two places on
+  // the page. Sticky, because a run is usually cast the same way twice.
+  //
+  // DESCRIPTIONS USED TO EXIST ONLY ON THE PANELS TAB, and that is history
+  // (2026-08-29, Sophie: "panels adds a character / if i import solo to
+  // playground / can it auto add the character description from the original
+  // multi sheet"). The reason given here was that "a single picture has
+  // nowhere to put it, and a tab that changes nothing is worse than no tab" —
+  // true until the clause started riding a single run, which is exactly what
+  // her ask needed: a panel pulled out of a sheet is the same person, and the
+  // description is the only thing that says so. The row is on both tabs now.
+  var CHARTABKEY = 'promptlab_chartab';
+  function charTab() {
+    return localStorage.getItem(CHARTABKEY) === 'desc' ? 'desc' : 'pics';
+  }
+  function paintCharTabs() {
+    var row = document.getElementById('chartabs');
+    var t = charTab();
+    row.hidden = false;
+    Array.prototype.forEach.call(row.querySelectorAll('button'), function (b) {
+      b.classList.toggle('on', b.getAttribute('data-ct') === t);
+    });
+    document.getElementById('charpics').hidden = t !== 'pics';
+    document.getElementById('chardesc').hidden = t !== 'desc';
+    if (!row.hidden) plTabLine('chartabs');
+  }
+  document.getElementById('chartabs').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-ct]');
+    if (!b) return;
+    try { localStorage.setItem(CHARTABKEY, b.getAttribute('data-ct')); } catch (er) { /* private mode */ }
+    paintCharTabs();
+    if (charTab() === 'desc') buildCastBox();
+  });
+
+  function buildCastBox() {
+    var rows = document.getElementById('castrows');
+    if (!rows) return;
+    var arr = castAll();
+    rows.innerHTML = '';
+    arr.forEach(function (c, i) {
+      var d = document.createElement('div');
+      d.className = 'castrow';
+      var nm = document.createElement('input');
+      nm.type = 'text'; nm.className = 'cnm'; nm.value = c.name;
+      // The placeholders NAME the field and nothing more (the house rule).
+      nm.placeholder = 'Name'; nm.setAttribute('aria-label', 'Character ' + (i + 1) + ' name');
+      // A TEXTAREA, so it can be a bigger box — but it is still ONE LINE by
+      // contract: castBlock writes a character per line and castParse reads
+      // them back the same way, so a newline inside a description would cut a
+      // clause in half on the road home from Meta Assets. Enter is refused
+      // and a pasted newline collapses to a space, which is exactly what the
+      // <input> this replaced already did — nothing about what she can put in
+      // this field changed.
+      var ds = document.createElement('textarea');
+      ds.className = 'cds'; ds.rows = 1; ds.value = c.description;
+      ds.placeholder = 'Description'; ds.setAttribute('aria-label', 'Character ' + (i + 1) + ' description');
+      ds.addEventListener('keydown', function (e) { if (e.key === 'Enter') e.preventDefault(); });
+      // `height:auto` FIRST or the box can only ever grow — scrollHeight of a
+      // box already sized to its old height reports that height back. The
+      // border is added on because the box is border-box and scrollHeight
+      // excludes it (both lessons are #prompt.big's, learned there first).
+      function fitCds() {
+        if (!d.classList.contains('big')) { ds.style.height = ''; return; }
+        ds.style.height = 'auto';
+        ds.style.height = (ds.scrollHeight + (ds.offsetHeight - ds.clientHeight)) + 'px';
+      }
+      function stash() {
+        if (/[\r\n]/.test(ds.value)) ds.value = ds.value.replace(/\s*[\r\n]+\s*/g, ' ');
+        fitCds();
+        var a = castAll();
+        a[i] = { name: nm.value, description: ds.value };
+        saveCast(a);
+        // The badge is the whole cast, so it moves as she types — the row is
+        // not rebuilt on input, and without this the count stayed stale until
+        // she closed and reopened the sheet.
+        paintCharsBtn();
+        // The clause is part of the prompt, so an open panel says so the
+        // moment it changes — the same rule the picked cast follows.
+        if (promptOpen) paintPromptPanel();
+      }
+      nm.addEventListener('input', stash);
+      ds.addEventListener('input', stash);
+      // Deliberately NOT sticky, and not stored on the row: the compact row is
+      // the sheet's shape and a big box is a moment of reading or writing one
+      // description — the same call #prompt.big makes.
+      var big = document.createElement('button');
+      big.type = 'button'; big.className = 'cbig';
+      function paintBig() {
+        var on = d.classList.contains('big');
+        big.innerHTML = on ? ICONS.minimize : ICONS.maximize;
+        var w = (on ? 'Back to the small box' : 'Bigger box') + ' for character ' + (i + 1);
+        big.setAttribute('aria-label', w); big.title = w;
+        big.setAttribute('aria-expanded', on ? 'true' : 'false');
+      }
+      ds.__fit = fitCds;                       // one resize handler refits every open row
+      big.addEventListener('click', function () {
+        d.classList.toggle('big');
+        fitCds(); paintBig();
+        if (d.classList.contains('big')) ds.focus();
+      });
+      paintBig();
+      var x = document.createElement('button');
+      x.type = 'button'; x.className = 'cx';
+      x.setAttribute('aria-label', 'Remove character ' + (i + 1));
+      x.textContent = '\u00d7';
+      x.addEventListener('click', function () {
+        var a = castAll(); a.splice(i, 1); saveCast(a);
+        buildCastBox(); if (promptOpen) paintPromptPanel();
+      });
+      d.appendChild(nm); d.appendChild(ds); d.appendChild(big); d.appendChild(x);
+      rows.appendChild(d);
+    });
+    document.getElementById('castadd').hidden = arr.length >= castMax;
+    paintCharsBtn();
+  }
+  // ONE listener for the whole box, registered once — a rotation changes what
+  // `vh` means, and a per-row handler would be re-added on every rebuild.
+  window.addEventListener('resize', function () {
+    Array.prototype.forEach.call(document.querySelectorAll('#castrows .cds'), function (t) {
+      if (t.__fit) t.__fit();
+    });
+  });
+  document.getElementById('castadd').addEventListener('click', function () {
+    var a = castAll();
+    if (a.length >= castMax) return;
+    a.push({ name: '', description: '' });
+    saveCast(a); buildCastBox();
+    var last = document.querySelectorAll('#castrows .cnm');
+    if (last.length) last[last.length - 1].focus();
+  });
+
+  function stashPanels() {
+    if (!PANELS_CFG) return;
+    savePanelTexts(curGrid(), panelVals());
+    paintPanelFold();          // the Clear appears with the first word, and leaves with the last
+  }
+  function paintGridPick() {
+    var el = document.getElementById('gridpick');
+    el.hidden = !onPanels();
+    if (!PANELS_CFG || !onPanels()) { el.innerHTML = ''; return; }
+    var g = curGrid(), story = storyMode();
+    el.innerHTML = Object.keys(PANELS_CFG.grids).map(function (k) {
+      return '<button type="button" data-grid="' + k + '"'
+        + (!story && Number(k) === g ? ' class="on"' : '') + '>' + k + '</button>';
+    }).join('')
+      // The fourth stop: the model decides the panels. A word, not a number,
+      // because the number is exactly what she is not choosing.
+      + '<button type="button" data-grid="story"' + (story ? ' class="on"' : '')
+      + ' title="You write the story; the model decides the panels">Story</button>';
+  }
+  // HER WORDS COME WITH HER (2026-08-29, Sophie: "if there's text in one of
+  // the grids if I transferred to that grid, my words don't transfer. They
+  // should transfer, but if the text that was saved as a draft has never been
+  // drawn trigger a pop-up").
+  //
+  // The per-grid drafts stay exactly as they were — the grid she is LEAVING
+  // keeps its own copy, so switching back always restores it and a transfer
+  // can only ever overwrite the grid she is arriving at. That is what makes
+  // the one question worth asking: the arriving grid's draft is the only
+  // thing a carry can lose, and only when it was never drawn.
+  //
+  // Story is out of it, both directions: a story is one prose block and the
+  // panels are a line per cell, so "transfer" would mean rewriting her words
+  // rather than moving them.
+  function carryInto(to) {
+    var from = curGrid();
+    if (storyMode() || String(to) === 'story' || Number(to) === from) return null;
+    var carry = panelVals().map(function (s) { return String(s || '').trim(); });
+    if (!anyWords(carry)) return null;                 // nothing to bring
+    var meta = PANELS_CFG && PANELS_CFG.grids[to];
+    if (!meta) return null;
+    var next = [];
+    for (var i = 0; i < meta.count; i++) next.push(carry[i] || '');
+    // A carry that would land empty-handed is not a carry — going 9 → 2 with
+    // words only in panels 3-9 must not wipe the target with blanks.
+    if (!anyWords(next)) return null;
+    // Words left behind are still in the grid she came from; say how many, so
+    // "where did panels 5-9 go" is answered before she has to ask.
+    var left = carry.filter(function (s, j) { return s && j >= meta.count; }).length;
+    return { to: Number(to), next: next, left: left, had: panelTexts(to) };
+  }
+  function applyGrid(g) {
+    try { localStorage.setItem(GRIDKEY, String(g)); } catch (err) { /* private mode */ }
+    // Picking a layout is her saying she is about to write into it.
+    openPanels();
+    // paintCanvas too: Story ↔ a grid moves what the toggle DECIDES (the
+    // sheet itself vs each cell), so the titles must move with it.
+    paintGridPick(); buildPanelGrid(); syncControls(); paintCanvas(); paintRes(); paintPromptPanel();
+  }
+  document.getElementById('gridpick').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-grid]');
+    if (!b) return;
+    var pick = b.getAttribute('data-grid');
+    var c = carryInto(pick);
+    if (!c) { applyGrid(pick); return; }
+    function go() { savePanelTexts(c.to, c.next); applyGrid(pick); }
+    var had = c.had;
+    // Silent when there is nothing to lose: the target is empty, it already
+    // says the same thing, or what it says has been DRAWN (that sheet is in
+    // her feed and its prompt copies back with one tap).
+    if (!anyWords(had) || sameWords(had, c.next) || sameWords(had, panelsDrawn(c.to))) { go(); return; }
+    var n = had.filter(function (s) { return String(s || '').trim(); }).length;
+    askOpen({
+      msg: 'The ' + c.to + '-panel grid already has words.',
+      fine: n + (n === 1 ? ' panel there was' : ' panels there were') + ' never drawn.'
+        + ' Bringing yours over replaces them.'
+        + (c.left ? ' (' + c.left + ' of yours stay behind in the ' + curGrid() + '-panel grid.)' : ''),
+      no: 'Keep what’s there', yes: 'Bring mine over',
+      onYes: go,
+      // "Keep what's there" still takes her to the grid she tapped — she asked
+      // to go there; the only question was whose words it holds.
+      onNo: function () { applyGrid(pick); },
+    });
+  });
+  // GENERATE on the Panels tab: every box must hold words — the error names
+  // how many are still empty rather than a generic refusal. One sheet, one
+  // run; the pending card holds N breathing placeholders in the cell shape.
+  function goPanels() {
+    var err = document.getElementById('err');
+    err.hidden = true;
+    if (!PANELS_CFG) { err.textContent = 'Still loading — one second.'; err.hidden = false; return; }
+    if (storyMode()) {
+      var story = (document.querySelector('#panelgrid textarea[data-story]') || {}).value || '';
+      story = story.trim();
+      if (!story) {
+        err.textContent = 'Type the story first.'; err.hidden = false;
+        openPanels();          // an error about a box she cannot see is no error
+        return;
+      }
+      var sbtn = document.getElementById('go');
+      sbtn.disabled = true;
+      startStoryRun(story).catch(showErr).finally(function () { sbtn.disabled = false; });
+      return;
+    }
+    var g = curGrid();
+    var texts = panelVals().map(function (s) { return s.trim(); });
+    var empty = texts.filter(function (s) { return !s; }).length;
+    if (empty) {
+      err.textContent = empty === texts.length ? 'Type each panel first.'
+        : (empty + (empty === 1 ? ' panel still needs words.' : ' panels still need words.'));
+      err.hidden = false;
+      openPanels();            // the empty box the error names has to be on screen
+      return;
+    }
+    var btn = document.getElementById('go');
+    btn.disabled = true;
+    startPanelsRun(g, texts).catch(showErr).finally(function () { btn.disabled = false; });
+  }
+  function startPanelsRun(g, texts) {
+    var S = STYLES[styleKey];
+    var over = overrideFor(styleKey);
+    var joined = texts.join(' / ');
+    return fetch('/api/promptlab', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: joined, model: S.model, style: S.gptStyle, panels: texts, grid: g,
+        quality: quality, canvas: canvas, res: resTier,
+        // Both halves of her cast — the typed rows and the picked cards.
+        // Absent when she used neither, so a run without one is the request
+        // it has always been.
+        cast: castRows().length ? castRows() : undefined,
+        characters: pickedChars.length ? pickedChars.slice() : undefined,
+        prefix: over ? over.prefix : undefined, suffix: over ? over.suffix : undefined,
+        noText: noTextFor(styleKey),
+      }),
+    }).then(readJson).then(function (d) {
+      if (!d.id) throw new Error(d.error || 'Could not start.');
+      // These exact words are drawn now, so this grid's draft is no longer
+      // unseen work — a later carry can replace it without asking.
+      savePanelsDrawn(g, texts);
+      var list = pendingList();
+      list.push({
+        id: d.id, prompt: joined, style: S.label, engine: 'gptimage',
+        // N placeholders in the CELL's shape — the wall must not re-flow
+        // when the cut panels land.
+        count: (PANELS_CFG.grids[g] || {}).count || g, quality: quality,
+        ar: cellAr(g), grid: g,
+      });
+      setPending(list); renderPendings(); startPolling(); confirmStarted();
+    });
+  }
+  // A story run is a single picture on the sheet's own canvas — the toggle's
+  // shape at the tier — with `story: true` telling the server to wrap her
+  // words in the served story line and swap the tail's anti-grid clause.
+  function startStoryRun(story) {
+    var S = STYLES[styleKey];
+    var over = overrideFor(styleKey);
+    return fetch('/api/promptlab', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: story, model: S.model, style: S.gptStyle, story: true,
+        quality: quality, canvas: canvas, res: resTier,
+        cast: castRows().length ? castRows() : undefined,
+        characters: pickedChars.length ? pickedChars.slice() : undefined,
+        prefix: over ? over.prefix : undefined, suffix: over ? over.suffix : undefined,
+        noText: noTextFor(styleKey),
+      }),
+    }).then(readJson).then(function (d) {
+      if (!d.id) throw new Error(d.error || 'Could not start.');
+      var list = pendingList();
+      list.push({
+        id: d.id, prompt: story, style: S.label, engine: 'gptimage',
+        count: 1, quality: quality,
+        ar: canvas === 'square' ? '1:1' : '2:3', grid: 'story',
+      });
+      setPending(list); renderPendings(); startPolling(); confirmStarted();
+    });
+  }
+  function setTab(t) {
+    try { localStorage.setItem(TABKEY, t); } catch (e) { /* private mode */ }
+    // The LoRA has one output size and no attachment slot — a sheet needs
+    // gpt-image-2, so the Panels tab hops off WTR onto Sandy mirror.
+    if (t === 'panels' && !isGpt(styleKey)) setStyle('chatgpt');
+    syncTab();
+  }
+  function syncTab() {
+    var panels = onPanels();
+    document.getElementById('t-picture').classList.toggle('on', !panels);
+    document.getElementById('t-panels').classList.toggle('on', panels);
+    plTabLine();
+    renderStyles(); syncControls(); buildPanelGrid(); paintGridPick();
+    paintPromptPanel(); paintCanvas(); paintRes();
+    // The gallery under the tab follows it — each tab shows its own runs
+    // (2026-08-27, Sophie: "separate the gallery for playground for single
+    // pics vs panels"). The panels tab pulls its whole history the first
+    // time it opens, and a live search re-asks scoped to the new tab. The
+    // Sheets chip lives on the panels tab only.
+    paintFiltRow();
+    renderPendings(); renderFeed();
+    if (panels) loadPanelsSweep();
+    if (query) { hits = null; runSearch(); }
+  }
+  document.getElementById('t-picture').addEventListener('click', function () { setTab('picture'); });
+  document.getElementById('t-panels').addEventListener('click', function () { setTab('panels'); });
+  window.addEventListener('resize', plTabLine);
 
   // ONE image a run, every style, no picker (Aug 2026, Sophie): tapping the
   // stars draws one picture. The old 1/2/3/4 toggle is gone and the LoRAs no
@@ -966,6 +2361,217 @@
     if (promptOpen) paintPromptPanel();
   });
 
+  // ── HER OWN CAST — THE CHARACTER PICKER (2026-08-27) ──────────────
+  // Sophie: "a little button in the playground right next to where it says
+  // dreamy, make sure it's the same style, with a character icon that shows
+  // the five most recent characters that were put and then also the rest of
+  // the sheet and characters with a search".
+  //
+  // The library is the Character Creator's own — /api/promptlab/characters is
+  // `forge-characters` in most-recently-DRAWN-WITH order, never a second pile
+  // and never an ordering invented here. Picking is two taps: the button, then
+  // the face.
+  //
+  // NOT PERSISTED, the same rule quality and the photo reference follow: a
+  // cast picked last week silently riding today's run is exactly the hidden
+  // ingredient the Prompt panel exists to prevent — and every reference is
+  // paid input tokens (~1.2c each), so it would be a hidden ingredient that
+  // costs money. It survives between runs in one sitting, so a re-roll is one
+  // tap.
+  var CHAR_RECENT = 5;             // her number — the top row
+  var charList = null;             // the library, once fetched
+  var charMax = (window.__padCharacters && window.__padCharacters.MAX_PICKED) || 6;
+  var pickedChars = [];            // ids, in the order she picked them
+  var charsOpen = false;
+  var charsBtn = document.getElementById('charsbtn');
+  var charPanel = document.getElementById('charpanel');
+
+  // The characters riding this run, as records — what charLine() needs, and
+  // what the Prompt panel prints. Her pick ORDER is the attach order, so a
+  // named list in the prompt lines up with the pictures behind it.
+  function pickedCharRecords() {
+    if (!charList) return [];
+    return pickedChars.map(function (id) {
+      for (var i = 0; i < charList.length; i++) if (charList[i].id === id) return charList[i];
+      return null;
+    }).filter(Boolean);
+  }
+  // The line that will really ride, from the REAL shared rule — the page owns
+  // no copy of the wording.
+  function charsLine() {
+    var f = window.__padCharacters && window.__padCharacters.charLine;
+    return f ? f(pickedCharRecords()) : '';
+  }
+  // THE COUNT IS THE WHOLE CAST — pictures plus typed descriptions, because
+  // that is what the button now opens onto and what will ride the run. A
+  // person entered both ways counts twice, which is her doing and visible in
+  // the sheet; a badge showing only half of it would be the misleading one.
+  function paintCharsBtn() {
+    var pics = pickedChars.length;
+    var desc = castRows().length;
+    var n = pics + desc;
+    charsBtn.classList.toggle('on', n > 0);
+    document.getElementById('charsn').textContent = n ? String(n) : '';
+    charsBtn.setAttribute('aria-label', n
+      ? 'Characters — ' + n + ' on this run' : 'Characters');
+    // Every cast change comes through here — a pick, a typed row, a removal,
+    // a run copied back — so the disclosure moves with the badge and cannot
+    // be forgotten by a new caller.
+    paintCharSays();
+  }
+  // WHAT THE CAST ADDS TO HER PROMPT, PRINTED IN THE SHEET (2026-08-29,
+  // Sophie: "when I click characters, it doesn't show how it looks in the Full
+  // prompt on playground"). Both halves — the picked faces' sentence and her
+  // typed cast's clause — exactly as the Prompt panel prints them and exactly
+  // as the run will send them, because they come from the SAME served rules
+  // (window.__padCharacters.charLine / window.__sheetGrid.castBlock) rather
+  // than from any wording written here. Nothing riding → the block is not
+  // drawn at all, which is her own rule about the clause: an empty cast adds
+  // no sentence, so there is nothing to disclose.
+  function paintCharSays() {
+    var box = document.getElementById('charsays');
+    if (!box) return;
+    var parts = [];
+    var cl = charsLine();
+    if (cl) parts.push(cl);
+    // The single/sheet wording is the tab's, so this says the same thing the
+    // Prompt panel and the run will say — never the other tab's sentence.
+    var ct = castClause(!onPanels());
+    if (ct) parts.push(ct);
+    var txt = parts.join(' ').trim();
+    box.hidden = !txt;
+    // The sheet gives the library grid's slack back while this is showing —
+    // see the `.says` rule. On the panel, so the grid needs no knowledge of
+    // what is under it.
+    charPanel.classList.toggle('says', !!txt);
+    document.getElementById('charsaystxt').textContent = txt;
+  }
+  function charHay(c) {
+    return (String(c.name || '') + ' ' + (c.aliases || []).join(' ')).toLowerCase();
+  }
+  function charCard(c) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'charcard' + (pickedChars.indexOf(c.id) >= 0 ? ' on' : '');
+    b.setAttribute('data-id', c.id);
+    b.setAttribute('aria-pressed', pickedChars.indexOf(c.id) >= 0 ? 'true' : 'false');
+    var im = document.createElement('img');
+    // A DERIVED DISPLAY COPY, never the original — the house webp rule. A
+    // saved character card is a full gpt-image-2 render (measured: 1.2MB
+    // apiece), and a picker of 143 faces at 52px would be tens of megabytes
+    // of originals over cell. thumbFor is the feed's own one, and it leaves
+    // anything not in Storage exactly as it is.
+    // (FeedKit's own, not the page's `thumbFor` — that one is bound to the
+    // FEED's width and a 52px card wants its own.)
+    im.src = window.FeedKit.thumbFor(c.url, 240); im.alt = ''; im.loading = 'lazy';
+    var nm = document.createElement('span');
+    nm.className = 'nm';
+    nm.textContent = c.name || 'unnamed';
+    b.appendChild(im); b.appendChild(nm);
+    b.addEventListener('click', function () { toggleChar(c.id); });
+    return b;
+  }
+  function toggleChar(id) {
+    var at = pickedChars.indexOf(id);
+    if (at >= 0) pickedChars.splice(at, 1);
+    // The cap is the shared one (pad-characters.js): every reference is paid
+    // input tokens, so a draw carries a few characters, never the library.
+    else if (pickedChars.length >= charMax) {
+      toast('That is ' + charMax + ' characters — as many as one drawing takes');
+      return;
+    } else pickedChars.push(id);
+    paintCharsBtn();
+    paintCharPanel();
+    // The picked cast adds a line to the prompt, so an open Prompt panel has
+    // to say so the moment it changes — same rule as the Sophie card.
+    if (promptOpen) paintPromptPanel();
+  }
+  // THE PILL OWNS THAT CORNER, AND THE SHEET OPENS INTO IT. Measured against
+  // the pill's REAL rect rather than a hardcoded band — it is conditional
+  // (no pill until there is something to scroll) and its top rides
+  // env(safe-area-inset-top), so on her phone it sits ~33px lower than it
+  // does in a plain headless browser, which is the difference between
+  // clipping a card's corner and covering its middle.
+  function fitCharPill() {
+    var pill = document.querySelector('.float');
+    var row = document.getElementById('charrecent');
+    if (!pill || !row) { charPanel.style.setProperty('--charpill', '0px'); return; }
+    var p = pill.getBoundingClientRect();
+    var r = row.getBoundingClientRect();
+    if (!p.width || !r.width) { charPanel.style.setProperty('--charpill', '0px'); return; }
+    // The row's own right edge against the pill's left one, plus a hair of
+    // air. `#spd` — the pill's speed label — hangs BELOW the capsule and is
+    // the part that actually reached the cards, so the wider of the two wins.
+    var spd = document.getElementById('spd');
+    var left = spd ? Math.min(p.left, spd.getBoundingClientRect().left || p.left) : p.left;
+    var over = Math.max(0, Math.round(r.right - left) + 4);
+    charPanel.style.setProperty('--charpill', over + 'px');
+  }
+  window.addEventListener('resize', function () { if (charsOpen) fitCharPill(); });
+
+  function paintCharPanel() {
+    var recentBox = document.getElementById('charrecent');
+    var allBox = document.getElementById('charall');
+    var note = document.getElementById('charnote');
+    recentBox.innerHTML = ''; allBox.innerHTML = '';
+    if (!charList) { note.textContent = 'Loading your characters…'; return; }
+    if (!charList.length) {
+      note.textContent = 'No characters saved yet — the Character Creator is where they are made.';
+      return;
+    }
+    var q = document.getElementById('charq').value.trim().toLowerCase();
+    var recent = charList.slice(0, CHAR_RECENT);
+    recent.forEach(function (c) { recentBox.appendChild(charCard(c)); });
+    // NO SEARCH → the REST, so the top row is not printed twice. TYPING →
+    // the whole library, because a search that skipped the five she uses most
+    // would answer "no such character" about a character she can see.
+    var rest = q
+      ? charList.filter(function (c) { return charHay(c).indexOf(q) >= 0; })
+      : charList.slice(CHAR_RECENT);
+    document.getElementById('charalllab').textContent = q ? 'Matches' : 'All characters';
+    rest.forEach(function (c) { allBox.appendChild(charCard(c)); });
+    note.textContent = q && !rest.length
+      ? 'Nothing matches “' + q + '”.'
+      // The block at the foot of the sheet already prints the sentence that
+      // will ride, naming them — so the note keeps only what that sentence
+      // does not say: how many she may pick, and that the name under a face
+      // is the word to type.
+      : 'Pick up to ' + charMax + '. The name under a face is what to write in your prompt.';
+  }
+  function loadChars() {
+    if (charList) return Promise.resolve(charList);
+    return fetch('/api/promptlab/characters').then(function (r) { return r.json(); }).then(function (d) {
+      charList = (d.characters || []).filter(function (c) { return c && c.id && c.url; });
+      if (d.max) charMax = d.max;
+      paintCharPanel();
+      // A cast restored from a copied run is ids only until the library
+      // lands, and charLine() needs the NAMES — so say it again now.
+      paintCharSays();
+      // The pill only exists once there is something to scroll, and the sheet
+      // filling with faces is often what makes that true — so measure again
+      // after the cards land, not only when the sheet opened empty.
+      setTimeout(fitCharPill, 60);
+      return charList;
+    }).catch(function () {
+      document.getElementById('charnote').textContent = 'Could not load your characters.';
+    });
+  }
+  charsBtn.addEventListener('click', function () {
+    charsOpen = !charsOpen;
+    charPanel.classList.toggle('on', charsOpen);
+    if (charsOpen) {
+      paintCharTabs(); buildCastBox(); paintCharPanel(); paintCharSays(); fitCharPill(); loadChars();
+    }
+  });
+  // The house search helpers, both of them: iOS dictation can fill a box
+  // without ever firing `input`, and Return has nothing to submit to.
+  (function () {
+    var box = document.getElementById('charq');
+    var live = liveInput(box, paintCharPanel);
+    enterSubmits(box, function () { paintCharPanel(); live.sync(); });
+  })();
+  paintCharsBtn();
+
   // ── ARRIVED FROM A STORY ROOM BEAT (2026-08-26, Sophie) ───────────
   // Her ask, in three parts: the beat's drawing prompt lands in the box (the
   // ?prompt= block below does that, the same door an image's "open in the
@@ -979,7 +2585,30 @@
   //
   // NOT PERSISTED and not remembered: the context is the query string, so
   // opening the Playground any other way is byte-for-byte what it always was.
+  //
+  // AND IT HAS TO BE PUT DOWN (2026-08-28, Sophie, looking at a rooftop
+  // stranger on a beat whose caption reads "Folkism,": "this picture doesn't
+  // belong here"). The aim was set from the query and then held for the life
+  // of the page, with nothing to end it — and the app keeps a tool's web view
+  // alive for the whole app process, so the Playground stayed pointed at that
+  // one beat until a force-quit. Measured on her pad that hour: FOUR runs in
+  // two minutes, about a panels sheet, an earthquake news shot and her mom
+  // tearing up at commercials, every one of them landing on "Folkism,".
+  // Three things end it now, and the third is why the other two are not
+  // enough on their own:
+  //   • Stop, in the banner — her own gesture, named on screen.
+  //   • Tapping the way back — going back to the room is being done here, and
+  //     it is the ONLY thing that helps a kept-alive page she returns to.
+  //   • The query is SPENT on arrival, so a reload can never re-arm the aim.
+  //     (The Story Room spends its own the same way, for the same reason.)
   var padBack = null;    // { pad, beat, style } while she is drawing for a beat
+  function stopPad() {
+    padBack = null;
+    var chip = document.getElementById('backchip');
+    if (chip) chip.href = '/scratchpad';
+    var tag = document.getElementById('beattag');
+    if (tag) { tag.classList.remove('on'); tag.textContent = ''; }
+  }
   (function () {
     var q = new URLSearchParams(location.search);
     if (!/[?&]from=scratchpad\b/.test(location.search)) return;
@@ -988,11 +2617,30 @@
     var pad = q.get('pad'), beat = q.get('beat');
     if (!pad || !beat) return;    // came from the room, not from one beat
     padBack = { pad: pad, beat: beat, style: q.get('padstyle') || 'watercolor' };
-    // Back to the exact beat, popup open — /scratchpad reads both.
+    // Back to the exact beat, popup open — /scratchpad reads both. Tapping it
+    // is her saying she is done drawing for this beat.
     chip.href = '/scratchpad?pad=' + encodeURIComponent(pad) + '&beat=' + encodeURIComponent(beat);
+    chip.addEventListener('click', stopPad);
+    // NAME THE BEAT. "a beat in the Story Room" is true of any of them, and
+    // the whole failure above is a picture landing on a beat she was not
+    // thinking about — so the banner says which one. `t` rides the link from
+    // the room; an older room page sends none and the line stays generic.
+    var words = (q.get('t') || '').replace(/\s+/g, ' ').trim();
     var tag = document.getElementById('beattag');
-    tag.textContent = 'Drawing for a beat in the Story Room — every picture you make here lands on it, newest as its art and the rest in its past pictures.';
+    tag.textContent = (words ? 'Drawing for “' + words + '” in the Story Room' : 'Drawing for a beat in the Story Room')
+      + ' — every picture you make here lands on it, newest as its art and the rest in its past pictures.';
+    var stop = document.createElement('button');
+    stop.id = 'beatstop'; stop.type = 'button'; stop.textContent = 'Stop';
+    stop.setAttribute('aria-label', 'Stop drawing for this beat');
+    stop.onclick = stopPad;
+    tag.appendChild(stop);
     tag.classList.add('on');
+    // Spend it: the aim lives in `padBack` from here on, so a reload lands on
+    // a plain Playground instead of silently re-aiming at a beat she left.
+    // DEFERRED — two more blocks below read `location.search` (the ported
+    // prompt and style, which this very link carries, and ?res=), and wiping
+    // the query out from under them would drop her words on the way in.
+    setTimeout(function () { try { history.replaceState(null, '', '/playground'); } catch (e) {} }, 0);
   })();
 
   // Arrived with a generation's settings (an image's "open in the Playground"):
@@ -1008,18 +2656,47 @@
   // NOT re-derived here — the Playground never sees the filed prompt, only the
   // content half — so the flag travels with the link.
   var portedFrom = null;   // the tile the picture was actually made on, or null
+  var portedCast = 0;      // how many character descriptions rode the link in
   (function () {
     var q = new URLSearchParams(location.search);
     if (!q.get('prompt') && !q.get('style')) return;
+    // A PORTED PROMPT IS ONE PICTURE'S, SO IT LANDS ON THE PICTURE TAB
+    // (2026-08-27, Sophie, about a panel image's Playground button: "should
+    // copy text into the single picture … not the whole panel"). The tab is
+    // sticky, and a panel image is exactly the picture she is on the PANELS
+    // tab when she taps — so the prompt was landing in `.promptwrap`, which
+    // that tab hides, and the run she fired next drew her saved panel boxes
+    // instead. Silent, and the ported words were never used at all.
+    // Stored, never setTab() — this block runs partway down the script, where
+    // syncTab's painters are not all wired yet (rpick is a `var` several
+    // hundred lines below, and calling it here threw before anything else in
+    // this block could run). Boot's own syncTab() paints the tab at the end.
+    try { localStorage.setItem(TABKEY, 'picture'); } catch (e) { /* private mode */ }
     var st = q.get('style');
     if (st && STYLES[st]) setStyle(st);
-    if (q.get('prompt')) document.getElementById('prompt').value = q.get('prompt');
+    if (q.get('prompt')) {
+      document.getElementById('prompt').value = q.get('prompt');
+      paintPromptClear();               // ported words arrive with no `input` event
+    }
     var qq = q.get('quality');
     if (qq && QUALITIES.indexOf(qq) >= 0) { quality = qq; paintQuality(); }
     if (q.get('character') === '1' && isGpt(styleKey) && !STYLES[styleKey].noCharacter) { charOn = true; document.getElementById('charpick').classList.add('on'); }
     var sc = parseFloat(q.get('scale'));
     if (!isNaN(sc)) document.getElementById('scale').value = sc;
     if (q.get('sameref') !== null) portedFrom = (q.get('sameref') === '1' && st && STYLES[st]) ? st : '';
+    // ?cast=<json rows> — the character descriptions the picture was made
+    // with (2026-08-29, Sophie: "can it auto add the character description
+    // from the original multi sheet"). A cut panel's filed STYLE half carries
+    // the clause verbatim, so the Assets / Meta Assets door reads the rows
+    // back out of it (sheetGrid.castParse) and sends them here; nothing is
+    // invented anywhere on that road. Add-only, like every other restore of
+    // it — see restoreCast. A bad or absent value is simply ignored.
+    var cj = q.get('cast');
+    if (cj) {
+      var rows = null;
+      try { rows = JSON.parse(cj); } catch (e) { rows = null; }
+      if (Array.isArray(rows)) portedCast = restoreCast(rows);
+    }
     paintRefTag();
     updateShape();
   })();
@@ -1042,12 +2719,31 @@
       el.textContent = 'Nothing on this picture’s record says how it was made, so '
         + here + '’s ' + carries + ' is attached — not the one behind it.';
     } else if (portedFrom === styleKey) {
-      el.className = 'on same';
-      el.textContent = 'Carrying ' + here + '’s ' + carries + ' — the ones this picture was made with.';
+      // NOTHING TO SAY (2026-08-31, Sophie scribbled this one sentence out:
+      // "delete the red"). She is on the tile the picture was made on — the
+      // ordinary, correct case of arriving from a picture — so the line was
+      // reassurance sitting over the box she was about to type in. The other
+      // two branches stay: each names something she would otherwise not know
+      // (a tile that is NOT the picture's, or a picture nothing identified).
+      el.className = '';
+      el.textContent = '';
     } else {
       el.className = 'on';
       el.textContent = 'On ' + here + '. This picture was made on '
         + (STYLES[portedFrom] ? STYLES[portedFrom].label : portedFrom) + '.';
+    }
+    // WHO CAME WITH IT (2026-08-29). The descriptions ride the next run's
+    // prompt, so the one line that already speaks on arrival says how many
+    // landed — an ingredient added by a link must never be silent, and the
+    // sheet behind the character icon is where she reads or removes them.
+    // It speaks on the quiet branch above too, and lights the box by itself
+    // when it is the only thing there is to say.
+    if (portedCast) {
+      var came = (portedCast === 1
+        ? 'Its character description came too.'
+        : 'Its ' + portedCast + ' character descriptions came too.');
+      el.textContent = el.textContent ? el.textContent + ' ' + came : came;
+      if (!el.className) el.className = 'on same';
     }
   }
 
@@ -1072,8 +2768,18 @@
   // without the page saying so.
   var BAKED = null;                  // {gptStyleId: {label, prefix, suffix, refs}}
   var PHOTO_LINE = '';               // the line server.js adds when a photo is attached
+  var PHOTO_LINE_CHARS = '';         // …and the same one re-anchored when characters ride behind it
   var promptOpen = false;
   var OVERKEY = 'promptlab_prompt_';  // + gptStyle id
+  // WHICH HALVES ARE OPEN BIGGER (see `field()` in paintPromptPanel). Held in
+  // memory only — never localStorage, never on a run — so it is a moment of
+  // reading one wrapper rather than a setting: closing the panel or changing
+  // style puts both halves back small, exactly as #prompt.big and the cast
+  // row's own toggle are "not the default, so not sticky either". It exists
+  // only so a REPAINT of the panel she is standing on cannot shut a box she is
+  // in the middle of reading.
+  var panelBig = {};
+  var panelBigFor = '';
 
   // Where a style's edit is stored. A gpt style is keyed by its SERVER id
   // (shared by every tile pointing at it); a LoRA has no gptStyle, so it is
@@ -1127,10 +2833,14 @@
 
   // ── NO TEXT — one toggle on the styles that allow text (Aug 2026, Sophie:
   // "add a no text line to the prompt that can be toggled on and off with a
-  // little toggle"). Dreamy is the only one today: its tail says "Minimal text
-  // only" on purpose, and this swaps that clause for a flat ban. The server
-  // owns the wording and says per style whether the toggle exists at all, so
-  // the page has no copy of the line to drift out of step.
+  // little toggle"). Dreamy is the only one today: its tail asks for minimal
+  // text on purpose, and this swaps that clause for the flat ban. TWO WORDS
+  // EACH since 2026-08-27 (Sophie: "just two options minimal and none and it
+  // should just be those words not the whole paragraph"), where the toggle
+  // used to send a spelled-out paragraph. The wordings themselves are NOT
+  // written here — the server owns them and says per style whether the toggle
+  // exists at all, so the page has no copy of either line to drift out of
+  // step, and a test fails if one appears.
   // Kept per style in localStorage — unlike quality and the canvas it costs
   // nothing, so carrying it into the next visit can never spend money unmeant.
   var NOTEXTKEY = 'promptlab_notext_';
@@ -1154,16 +2864,72 @@
     // Every style with a wrapper gets the panel — a LoRA has one too (its
     // trigger and its tail), and gating this on isGpt is what left the tile
     // the page opens on with no way to see its style prompt at all.
-    if (!promptOpen || !bakedFor(styleKey)) { el.className = ''; el.innerHTML = ''; return; }
+    if (!promptOpen || !bakedFor(styleKey)) {
+      panelBig = {}; panelBigFor = '';
+      el.className = ''; el.innerHTML = ''; return;
+    }
+    // A different style is a different wrapper, so both halves open compact.
+    if (panelBigFor !== styleKey) { panelBig = {}; panelBigFor = styleKey; }
     var p = sentParts(styleKey);
     el.className = 'on';
     if (!p) { el.innerHTML = '<div class="plab">Prompt</div><div class="yours">Loading…</div>'; return; }
     el.innerHTML = '';
     function field(label, val, name) {
       var l = document.createElement('div'); l.className = 'plab'; l.textContent = label;
+      // EITHER HALF OPENS BIGGER (2026-08-31, Sophie: "add extend textbox
+      // button to both halves of style prompt playground"). The style prefix
+      // and the tail are the longest text on this page — Dreamy's tail is a
+      // paragraph — and the compact box showed about two lines of it, so the
+      // half she reads most was the one with no way to see what was in it.
+      // #prompt.big's answer lifted in SHAPE, not copied: one textarea, two
+      // sizes, both bounds in CSS, and the same two measuring lessons below.
+      var w = document.createElement('div'); w.className = 'pwrap';
       var t = document.createElement('textarea'); t.value = val; t.setAttribute('data-part', name);
       t.addEventListener('input', stash);
-      el.appendChild(l); el.appendChild(t);
+      var big = document.createElement('button');
+      big.type = 'button'; big.className = 'pbig';
+      //   `height:auto` FIRST or the box can only ever grow — scrollHeight of a
+      // box already sized to its old height reports that height back. The
+      // border is added on because the box is border-box and scrollHeight
+      // excludes it. Both are #prompt.big's, learned there first.
+      function fitBig() {
+        if (!t.classList.contains('big')) { t.style.height = ''; return; }
+        t.style.height = 'auto';
+        t.style.height = (t.scrollHeight + (t.offsetHeight - t.clientHeight)) + 'px';
+      }
+      function paintBig() {
+        var on = t.classList.contains('big');
+        big.innerHTML = on ? ICONS.minimize : ICONS.maximize;
+        var word = (on ? 'Back to the small box' : 'Bigger box') + ' — ' + label.toLowerCase();
+        big.setAttribute('aria-label', word); big.title = word;
+        big.setAttribute('aria-expanded', on ? 'true' : 'false');
+      }
+      big.addEventListener('click', function () {
+        t.classList.toggle('big');
+        // A hand-dragged resize (desktop) leaves an inline height behind, so
+        // "back to the small box" would not shrink anything without this.
+        t.style.height = '';
+        panelBig[name] = t.classList.contains('big');
+        fitBig(); paintBig();
+        if (t.classList.contains('big')) t.focus();
+      });
+      t.addEventListener('input', fitBig);
+      t.__fit = fitBig;
+      // A REPAINT OF THE PANEL SHE IS STANDING ON DOES NOT SHUT THE BOX. The
+      // panel is rebuilt whole whenever anything it prints changes — attaching
+      // a photo, picking a character, typing in the cast sheet — and springing
+      // an expanded box back to compact under her is the Story Room caption's
+      // own complaint ("the caption keeps reopening after I close it").
+      // `panelBig` is NOT sticky: nothing is stored, and closing the panel or
+      // changing style puts both halves back small.
+      if (panelBig[name]) t.classList.add('big');
+      paintBig();
+      w.appendChild(t); w.appendChild(big);
+      el.appendChild(l); el.appendChild(w);
+      // Fitted after the box is in the document — scrollHeight on a detached
+      // node is 0, so a restored `.big` would open at the CSS floor and only
+      // find its real height on her next keystroke.
+      fitBig();
     }
     // A LoRA's trigger word is what SELECTS the model, so it is shown as an
     // added line rather than as an editable half — editing it would quietly
@@ -1184,11 +2950,35 @@
     // half of the prompt she edits — taking the photo off is what removes the
     // photo line, and the Sophie button is what removes the character one.
     var extras = [];
-    if (charOn && !STYLES[styleKey].noCharacter && p.baked.characterLine) extras.push(p.baked.characterLine);
+    // The Panels tab sends neither the Sophie card nor a photo (both wordings
+    // name an attachment a sheet does not carry) — and it DOES send the grid
+    // sentence, printed here so nothing rides the prompt unannounced.
+    if (charOn && !onPanels() && !STYLES[styleKey].noCharacter && p.baked.characterLine) extras.push(p.baked.characterLine);
     // The style's OWN photo line wins where it has one — the house sentence
     // says the drawing style "comes from the style reference above", which is
     // a lie on the plain ChatGPT tile where her photo is the only attachment.
-    if (photoRef) { var pl = (p.baked && p.baked.photoLine) || PHOTO_LINE; if (pl) extras.push(pl); }
+    // Her own cast, and the photo line RE-ANCHORED when one rides behind it —
+    // character cards attach at the very end, so "the LAST attached image" is
+    // no longer the photo. Both halves are served, never written here.
+    var cline = charsLine();
+    if (photoRef && !onPanels()) {
+      var pl = cline
+        ? ((p.baked && p.baked.photoLineWithChars) || PHOTO_LINE_CHARS)
+        : ((p.baked && p.baked.photoLine) || PHOTO_LINE);
+      if (pl) extras.push(pl);
+    }
+    if (cline) extras.push(cline);
+    // Her TYPED cast, when there is one — the clause is left out entirely
+    // when nobody is in it (her rule), so the panel says nothing either. It
+    // rides EVERY tab since 2026-08-29, with the single-picture opening on
+    // the Picture tab; both wordings are served, never written here.
+    var ct = castClause(!onPanels());
+    if (ct) extras.push(ct);
+    if (onPanels() && PANELS_CFG) {
+      // STORY mode sends the served story line; a grid sends its sentence.
+      if (storyMode() && PANELS_CFG.story) extras.push(PANELS_CFG.story.line);
+      else if (PANELS_CFG.grids[curGrid()]) extras.push(PANELS_CFG.grids[curGrid()].sentence);
+    }
     if (extras.length) {
       var al = document.createElement('div'); al.className = 'plab';
       al.textContent = 'Also added before your words';
@@ -1198,9 +2988,26 @@
     }
     var y = document.createElement('div'); y.className = 'plab'; y.textContent = 'Your words';
     var yv = document.createElement('div'); yv.className = 'yours';
-    yv.textContent = document.getElementById('prompt').value.trim() || '(the box below)';
+    yv.textContent = storyMode()
+      ? ((document.querySelector('#panelgrid textarea[data-story]') || {}).value || '').trim() || '(the story box below)'
+      : onPanels()
+        ? (panelVals().map(function (s) { return s.trim(); }).filter(Boolean).join(' / ') || '(the boxes below, one per panel)')
+        : (document.getElementById('prompt').value.trim() || '(the box below)');
     el.appendChild(y); el.appendChild(yv);
     field('After your words', p.suffix, 'suffix');
+    // The sheet swap, disclosed like the no-text one: on a panel sheet the
+    // tail's anti-grid clause is sent SWAPPED (never two arguing sentences),
+    // and if she has edited the clause away her tail goes untouched.
+    if (onPanels() && p.baked.sheet && PANELS_CFG
+        && (storyMode() ? PANELS_CFG.story : PANELS_CFG.grids[curGrid()])) {
+      var shsw = document.createElement('div'); shsw.className = 'swapped';
+      var shto = String(p.baked.sheet.to || '').replace('{layout}',
+        storyMode() ? PANELS_CFG.story.layout : PANELS_CFG.grids[curGrid()].layout);
+      shsw.textContent = p.suffix.indexOf(p.baked.sheet.from) >= 0
+        ? 'On a panel sheet — “' + p.baked.sheet.from.trim() + '” is sent as “' + shto.trim() + '”'
+        : 'Your tail is sent as written — the house anti-grid clause is not in it';
+      el.appendChild(shsw);
+    }
     // The toggle is not an edit of hers, so it does not go in the box — the
     // box holds her text. This line under it says what the switch does to the
     // tail on the way out, so nothing is added to the prompt unannounced.
@@ -1241,13 +3048,27 @@
   document.getElementById('promptbtn').addEventListener('click', function () {
     promptOpen = !promptOpen; paintPromptPanel();
   });
+  // A rotation changes what `vh` means, so an open half refits. ONE handler for
+  // the panel rather than one per rebuilt box — the boxes come and go with
+  // every repaint, and a listener added per box would pile up behind them.
+  window.addEventListener('resize', function () {
+    Array.prototype.forEach.call(
+      document.querySelectorAll('#promptpanel textarea.big'),
+      function (t) { if (t.__fit) t.__fit(); });
+  });
   fetch('/api/promptlab/styles').then(function (r) { return r.json(); })
     .then(function (d) {
       BAKED = d.styles || {}; PHOTO_LINE = d.photoLine || '';
+      PHOTO_LINE_CHARS = d.photoLineWithChars || PHOTO_LINE;
+      if (d.maxChars) charMax = d.maxChars;
       RES = d.res || null; RES_DEFAULT = d.resDefault || '1k';
       if (RES && !RES[canvas]) canvas = 'portrait';
       if (RES && RES[canvas] && !RES[canvas].tiers[resTier]) resTier = RES_DEFAULT;
+      // The Panels tab's geometry — grids, cell names, derived sheet
+      // canvases — all computed server-side by sheet-grid.js.
+      PANELS_CFG = d.panels || null;
       paintPromptPanel(); syncControls(); paintRes();
+      syncTab();
     })
     .catch(function () {});
 
@@ -1336,6 +3157,26 @@
   });
   paintPhoto();
 
+  // ?photo= — A PICTURE SENT HERE AS THE PHOTO REFERENCE (2026-08-28, Sophie:
+  // "meta assets missing its send to playground"). Meta Assets' Playground
+  // door ports the filed prompt when one exists; a picture with NO prompt on
+  // file has nothing to port honestly, so it arrives as the photo reference
+  // instead — her own image attached, no words invented. Same rules as the
+  // copy-back restore: https only, disclosed by the thumbnail in the row and
+  // the Prompt panel's photo line, never persisted across loads. This block
+  // MUST run after `var photoRef` above — earlier, that declaration would
+  // wipe the restore back to null (the ported-prompt block's own lesson).
+  (function () {
+    var p = new URLSearchParams(location.search).get('photo');
+    if (!p || !/^https?:\/\//.test(p)) return;
+    try { localStorage.setItem(TABKEY, 'picture'); } catch (e) { /* private mode */ }
+    // The LoRA has no attachment slot at all, so a photo arriving while WTR
+    // is the sticky style lands on the reference-less ChatGPT tile — the one
+    // place her picture is the whole recipe, with nothing baked added.
+    if (!isGpt(styleKey)) setStyle('plain');
+    restorePhoto({ photoRef: p });
+  })();
+
   // ── THE CANVAS — portrait or square (Aug 2026, Sophie) ──────────────────
   // gpt-image-2 charges MORE for the SQUARE — 0.6c/5.3c/21.1c for 1024x1024
   // against 0.5c/4.1c/16.5c for 1024x1536, the inversion the price table warns
@@ -1358,6 +3199,15 @@
   function paintCanvas() {
     document.getElementById('c-portrait').classList.toggle('on', canvas === 'portrait');
     document.getElementById('c-square').classList.toggle('on', canvas === 'square');
+    if (onPanels() && !storyMode()) {
+      // On the Panels tab the toggle picks each PANEL's shape; the 1K price
+      // lines belong to the single-picture canvases and would mislead here.
+      // In STORY mode the toggle picks the SHEET itself (there are no cells),
+      // so the plain titles below are the honest ones there.
+      document.getElementById('c-portrait').title = 'Portrait panels — each cut panel is 2:3';
+      document.getElementById('c-square').title = 'Square panels — each cut panel is 1:1';
+      return;
+    }
     document.getElementById('c-portrait').title = 'Portrait 1024x1536 — low 0.5\u00A2 \u00B7 medium 4.1\u00A2 \u00B7 high 16.5\u00A2';
     document.getElementById('c-square').title = 'Square 1024x1024 — low 0.6\u00A2 \u00B7 medium 5.3\u00A2 \u00B7 high 21.1\u00A2 (dearer than portrait)';
   }
@@ -1367,6 +3217,8 @@
     // one she comes back to, whether or not she generated anything with it.
     try { localStorage.setItem('promptlab_canvas', shape); } catch (e) { /* private mode */ }
     paintCanvas();
+    // The panel boxes wear the cell's shape, so they follow the toggle.
+    buildPanelGrid();
     // Each shape has its OWN tier canvases (portrait 1568x2352 vs square
     // 1920x1920), so the ladder is repainted with the shape. The TIER itself
     // is deliberately not persisted alongside the shape — see paintRes.
@@ -1414,6 +3266,23 @@
     rpick.setAttribute('data-i', (t && t.label) || resTier.toUpperCase());
     if (!t) { rpick.title = ''; rpick.setAttribute('aria-label', 'Resolution'); return; }
     var c = t.cents || {};
+    // The Panels tab draws a DERIVED sheet canvas whose price is not in the
+    // measured table (gpt-image-2 does not price by area, so a derived sheet
+    // cannot be priced) — the tooltip shows the real sheet and cell and marks
+    // the nearest-tier cents as APPROXIMATE. Never an invented exact number;
+    // the run stores the API's own `usage`, which is the truth.
+    // A STORY sheet is the plain tier canvas (the model draws the panels on
+    // it), so its tooltip is the measured one below, never a derived grid's.
+    var psh = onPanels() && !storyMode() && PANELS_CFG && PANELS_CFG.sheets[canvas]
+      && PANELS_CFG.sheets[canvas][curGrid()] && PANELS_CFG.sheets[canvas][curGrid()][resTier];
+    if (psh) {
+      rpick.title = t.label + ' sheet ' + psh.sheet + ' \u2192 ' + curGrid() + ' panels of '
+        + psh.cell + ' \u2014 about low ' + c.low + '\u00A2 \u00B7 medium ' + c.medium
+        + '\u00A2 \u00B7 high ' + c.high + '\u00A2 (nearest measured tier)';
+      rpick.setAttribute('aria-label', 'Sheet resolution ' + t.label + ' ' + psh.sheet
+        + ' \u2014 tap a side to pick one');
+      return;
+    }
     rpick.title = t.label + ' ' + t.size + ' \u2014 low ' + c.low + '\u00A2 \u00B7 medium '
       + c.medium + '\u00A2 \u00B7 high ' + c.high + '\u00A2';
     rpick.setAttribute('aria-label', 'Resolution ' + t.label + ' ' + t.size
@@ -1433,7 +3302,12 @@
   // re-selected so a style added to STYLES needs nothing here.
   function renderStyles() {
     var sel = document.getElementById('stylepick');
-    sel.innerHTML = Object.keys(STYLES).map(function (k) {
+    // A sheet needs gpt-image-2 (the LoRA has one output size and no
+    // attachment slot), so the Panels tab lists only the gpt styles. If the
+    // stored style is the LoRA, hop to Sandy mirror — setTab does the same.
+    var keys = Object.keys(STYLES).filter(function (k) { return !onPanels() || isGpt(k); });
+    if (onPanels() && !isGpt(styleKey)) { styleKey = 'chatgpt'; localStorage.setItem('promptlab_style', styleKey); }
+    sel.innerHTML = keys.map(function (k) {
       return '<option value="' + k + '"' + (k === styleKey ? ' selected' : '') + '>' +
         STYLES[k].label + '</option>';
     }).join('');
@@ -1464,7 +3338,7 @@
       pb.hidden = !bakedFor(styleKey);
       pb.classList.toggle('edited', !!overrideFor(styleKey));
     }
-    if (ct) ct.style.display = gpt ? 'flex' : 'none';
+    if (ct) ct.style.display = (gpt && canvasApplies()) ? 'flex' : 'none';
     // The tiers are gpt-image-2's too — the WTR LoRA has one output size and
     // rides `aspect_ratio`, so the toggle comes off there rather than offering
     // a choice that would change nothing. `hidden` rather than a display
@@ -1492,17 +3366,43 @@
     ['scalewrap', 'xthree', 'seedbtn', 'seedtag'].forEach(function (id) {
       document.getElementById(id).hidden = gpt;
     });
-    document.getElementById('charpick').hidden = !gpt || !!STYLES[styleKey].noCharacter;
+    // The Panels tab: N boxes instead of the one, and the one-picture-only
+    // extras come off — the Sophie card and the photo ref both name "the
+    // second/last attached image" for ONE picture, and the ladders draw the
+    // SAME prompt at several qualities, which on a sheet is several sheets.
+    var panels = onPanels();
+    document.querySelector('.promptwrap').hidden = panels;
+    paintPromptClear();        // the box she cannot see must not offer a clear
+    document.getElementById('charpick').hidden = !gpt || panels || !!STYLES[styleKey].noCharacter;
+    // HER CAST rides gpt-image-2's edits call like the photo does, so the LoRA
+    // — which takes a trigger word and has no attachment slot at all — shows
+    // no button rather than one that would change nothing. It is NOT gated on
+    // `noCharacter`: that flag is about the SOPHIE CARD, which is the
+    // watercolor look by another name; a character she picked herself is her
+    // own subject and belongs on every gpt tile, the reference-less one
+    // included. PANELS TAKE IT TOO since 2026-08-27 (Sophie: "I want both.
+    // Descriptions as well as pictures: two options") — charLine() names "the
+    // last attached image(s)", which is as true of a sheet as of a single
+    // picture, so this one could simply be turned on where the Sophie card
+    // and the photo, which name a POSITION for ONE picture, still cannot be.
+    // When the button goes, so does the sheet: a panel open over a style that
+    // cannot use it is a control with nothing behind it.
+    var charsOff = !gpt;
+    charsBtn.hidden = charsOff;
+    if (charsOff && charsOpen) { charsOpen = false; charPanel.classList.remove('on'); }
+    // The typed cast's clause is worded for ONE picture or for a SHEET, so
+    // moving between the tabs changes the sentence the sheet is disclosing.
+    if (charsOpen) paintCharSays();
     // The photo rides gpt-image-2's EDITS call. The WTR LoRA has no
     // attachment slot at all — it takes a trigger word and nothing else — so
     // the button comes off rather than sitting there doing nothing.
-    document.getElementById('photowrap').classList.toggle('on', gpt);
+    document.getElementById('photowrap').classList.toggle('on', gpt && !panels);
     document.getElementById('qpick').hidden = !gpt;
     if (rt) rt.hidden = !gpt;
     // Both ladders are quality ladders, so both come off the Replicate LoRA,
     // which has no quality parameter at all.
-    document.getElementById('lowmed').hidden = !gpt;
-    document.getElementById('medhigh').hidden = !gpt;
+    document.getElementById('lowmed').hidden = !gpt || panels;
+    document.getElementById('medhigh').hidden = !gpt || panels;
   }
   function styleLabelFor(model) {
     for (var k in STYLES) if (STYLES[k].model === model) return STYLES[k].label;
@@ -1568,6 +3468,40 @@
 
   // `q` overrides the quality dropdown for one run — the low·low·medium button
   // draws its own ladder without touching what the dropdown says.
+  // THE PROMPT'S OWN CLEAR — the CSS note above #promptclear has the shape and
+  // the reasoning. It empties the one box on the Picture tab and nothing else
+  // (the Panels tab has its own row Clear and its per-box ones).
+  var PROMPTDRAWNKEY = 'promptlab_prompt_drawn';
+  function promptDrawn() {
+    try { return localStorage.getItem(PROMPTDRAWNKEY) || ''; } catch (e) { return ''; }
+  }
+  function savePromptDrawn(t) {
+    try { localStorage.setItem(PROMPTDRAWNKEY, t || ''); } catch (e) { /* private mode */ }
+  }
+  function paintPromptClear() {
+    var box = document.getElementById('prompt');
+    var wrap = document.querySelector('.promptwrap');
+    document.getElementById('promptclear').hidden = wrap.hidden || !box.value.trim();
+  }
+  function wipePrompt() {
+    var box = document.getElementById('prompt');
+    box.value = '';
+    if (window.__fitBigPrompt) window.__fitBigPrompt();
+    paintPromptClear();
+    box.focus();                       // she taps it in order to write the next one
+  }
+  document.getElementById('prompt').addEventListener('input', paintPromptClear);
+  document.getElementById('promptclear').addEventListener('click', function () {
+    var words = document.getElementById('prompt').value.trim();
+    if (!words) return;
+    if (words === promptDrawn()) { wipePrompt(); return; }
+    askOpen({
+      msg: 'Clear the prompt?',
+      fine: 'These words were never drawn.',
+      no: 'Keep them', yes: 'Clear',
+      onYes: wipePrompt,
+    });
+  });
   // `promptText` overrides the box for one run — a {curly brackets} tap starts
   // one run per expansion, and each run's doc carries ITS prompt, not the
   // braces (the stored prompt must be the text actually sent).
@@ -1585,6 +3519,14 @@
           // Her uploaded photo reference, when there is one. Absent otherwise,
           // so an ordinary run is byte-for-byte what it always was.
           photo: photoRef ? photoRef.data : undefined,
+          // The cast she picked, by id, in her pick order — which is the
+          // order they attach in and the order charLine() names them. Absent
+          // when she picked none, so an ordinary run is unchanged.
+          characters: pickedChars.length ? pickedChars.slice() : undefined,
+          // Her TYPED cast — the words half, which rides a single picture as
+          // well as a sheet now (2026-08-29). Absent when nobody is in it, so
+          // an ordinary run is byte-for-byte the request it always was.
+          cast: castRows().length ? castRows() : undefined,
           // Only sent when she has actually edited it — an absent field means
           // "use the house text", so a normal run is byte-for-byte what it
           // always was.
@@ -1603,7 +3545,7 @@
     return fetch('/api/promptlab', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-    }).then(function (r) { return r.json(); }).then(function (d) {
+    }).then(readJson).then(function (d) {
       if (!d.id) throw new Error(d.error || 'Could not start.');
       var list = pendingList();
       list.push(gpt
@@ -1615,7 +3557,15 @@
         // way, before it has any images to be recognised by.
         : { id: d.id, prompt: prompt, scale: scale, style: S.label, engine: 'replicate', count: OUTPUTS, seed: seed, key: key, ar: '2:3' });
       setPending(list);
+      // HAS THIS PROMPT BEEN DRAWN? — the panels stamp's twin, for the one
+      // box. The EXACT words that were sent, so editing them afterwards makes
+      // the box undrawn again: what is sitting there is not what was drawn.
+      // A {curly brackets} run stamps the BOX's braces — that is what she
+      // drew from, so its Clear asks nothing after a permutation tap either.
+      savePromptDrawn(promptText != null
+        ? document.getElementById('prompt').value.trim() : prompt);
       renderPendings(); startPolling();
+      confirmStarted();
     });
   }
 
@@ -1627,9 +3577,29 @@
     }
     return true;
   }
+  // A mid-deploy answer is Render's 502 page or an empty body, and Safari's
+  // words for JSON that isn't there — "The string did not match the expected
+  // pattern" — reached the error line verbatim (Sophie, 2026-08-28). Read the
+  // body as text and say what actually happened instead.
+  function readJson(r) {
+    return r.text().then(function (t) {
+      try { return JSON.parse(t); }
+      catch (e) {
+        throw new Error(r.ok
+          ? 'The server sent a broken answer — try again.'
+          : 'The server answered ' + r.status + ' — probably mid-deploy. Try again in a minute.');
+      }
+    });
+  }
   function showErr(e) {
     var err = document.getElementById('err');
-    err.textContent = (e && e.message) || 'Network error — try again.'; err.hidden = false;
+    var m = (e && e.message) || '';
+    // Any path still handing over a browser-internal message gets the same
+    // honest line: WebKit's JSON miss, Chrome's, and Safari's bare network
+    // failure ("Load failed") all mean the server never answered properly.
+    if (/did not match the expected pattern|JSON Parse error|Unexpected token|Load failed|Failed to fetch/i.test(m))
+      m = 'The server hiccuped (probably mid-deploy) — try again in a minute.';
+    err.textContent = m || 'Network error — try again.'; err.hidden = false;
   }
 
   // ─── {curly brackets} — Midjourney's permutation prompts (Aug 2026) ──────
@@ -1685,6 +3655,7 @@
   setInterval(permLine, 700);
 
   function go() {
+    if (onPanels()) { goPanels(); return; }
     if (!checkPrompt()) return;
     var scale = parseFloat(document.getElementById('scale').value) || 1;
     var ex = expandBox();
@@ -1798,7 +3769,9 @@
   // which sits above #runs, so a fresh Generate is always the first thing on the
   // page — never a finished older run sitting where the new one should be.
   function renderPendings() {
-    var list = pendingList().slice().reverse();
+    // Only THIS tab's pending runs — a drawing sheet belongs to the panels
+    // gallery and a drawing picture to the other, same as the finished ones.
+    var list = pendingKept().slice().reverse();
     if (qGroups.length) list = list.filter(function (p) { return qmatch(pendHay(p), qGroups); });
     var groups = groupBy(list, function (p) {
       return sameRunKey([p.engine, p.style, (p.prompt || '').trim(), p.quality, p.scale, p.seed]);
@@ -1839,6 +3812,21 @@
     if (curView() === 'tiles') renderTiles();
   }
 
+  // THE ONE CONFIRM BOX. It was the cancel dialog with its words baked into
+  // the markup; the panel-transfer question (2026-08-29) is the second thing
+  // that has to ask her something, so the box takes its words and its answer
+  // per opening rather than growing a second copy of itself.
+  var askYes = null, askNo = null;
+  function askOpen(o) {
+    askYes = o.onYes || null; askNo = o.onNo || null;
+    document.getElementById('askmsg').textContent = o.msg || '';
+    document.getElementById('askfine').textContent = o.fine || '';
+    document.getElementById('askno').textContent = o.no || 'Keep going';
+    document.getElementById('askyes').textContent = o.yes || 'Do it';
+    document.getElementById('ask').classList.add('on');
+    document.body.style.overflow = 'hidden';
+  }
+
   // Cancel: X on a running LoRA job → "are you sure" → POST /cancel. Replicate
   // stops the prediction and only bills the compute already run.
   var askId = null;
@@ -1847,30 +3835,39 @@
     if (cp) {
       var pid = cp.getAttribute('data-copy');
       var pend = pendingList().filter(function (x) { return x.id === pid; })[0];
-      if (pend) copyPromptIn(pend.prompt);
+      if (pend) { copyPromptIn(pend.prompt); restorePhoto(runsById[pid]); restoreChars(runsById[pid]); }
       return;
     }
     var btn = e.target.closest('[data-kill]');
     if (!btn) return;
     askId = btn.getAttribute('data-kill');
-    document.getElementById('askfine').textContent =
-      'It stops the run — you’re only charged for what has already run.';
-    document.getElementById('ask').classList.add('on');
-    document.body.style.overflow = 'hidden';
+    askOpen({
+      msg: 'Are you sure you want to cancel?',
+      fine: 'It stops the run — you’re only charged for what has already run.',
+      no: 'Keep going', yes: 'Cancel it',
+      onYes: function () {
+        var ids = (askId || '').split(',').filter(Boolean);   // a grouped box holds several
+        if (!ids.length) return;
+        Promise.all(ids.map(function (id) {
+          return fetch('/api/promptlab/' + id + '/cancel', { method: 'POST' }).then(function (r) { return r.json(); });
+        })).then(function () { poll(); }).catch(showErr);
+      },
+    });
   });
   function closeAsk() {
-    askId = null;
+    askId = null; askYes = null; askNo = null;
     document.getElementById('ask').classList.remove('on');
     document.body.style.overflow = '';
   }
-  document.getElementById('askno').addEventListener('click', closeAsk);
+  document.getElementById('askno').addEventListener('click', function () {
+    var fn = askNo;
+    closeAsk();                                   // close FIRST: the answer may repaint the page
+    if (fn) fn();
+  });
   document.getElementById('askyes').addEventListener('click', function () {
-    var ids = (askId || '').split(',').filter(Boolean);   // a grouped box holds several
-    closeAsk();
-    if (!ids.length) return;
-    Promise.all(ids.map(function (id) {
-      return fetch('/api/promptlab/' + id + '/cancel', { method: 'POST' }).then(function (r) { return r.json(); });
-    })).then(function () { poll(); }).catch(showErr);
+    var fn = askYes;
+    closeAsk();                                   // close FIRST: the answer may repaint the page
+    if (fn) fn();
   });
 
   function startPolling() {
@@ -1893,12 +3890,19 @@
           renderPendings();
           return;
         }
+        // Stash the doc: a pending run's copy button needs to know whether it
+        // was drawn with a photo, and the pending ENTRY cannot carry one — it
+        // lives in localStorage, where a 1600px dataURL is most of the quota.
+        // The doc exists from the moment the run starts, so the first poll is
+        // enough; a tap before it lands leaves the photo alone, which is the
+        // "no record" answer restorePhoto is built to give.
+        if (d.id) runsById[d.id] = d;
         if (d.status === 'ready' || d.status === 'done' || d.status === 'failed' || d.status === 'cancelled') {
           setPending(pendingList().filter(function (x) { return x.id !== p.id; }));
           // 'ready' = the first images are in, the rest still landing: the swap
           // poller keeps refreshing until 'done'.
           if (d.status === 'ready') { swapping[p.id] = true; startSwapPolling(); }
-          renderPendings(); loadRuns();
+          renderPendings(); landRun(d);
         }
       }).catch(function () {});
     });
@@ -1911,7 +3915,7 @@
       if (!ids.length) { clearInterval(swapTimer); swapTimer = null; return; }
       ids.forEach(function (id) {
         fetch('/api/promptlab/' + id).then(function (r) { return r.json(); }).then(function (d) {
-          if (d.status === 'done' || d.status === 'failed') { delete swapping[id]; loadRuns(); }
+          if (d.status === 'done' || d.status === 'failed') { delete swapping[id]; landRun(d); }
         }).catch(function () {});
       });
     }, 5000);
@@ -1919,6 +3923,46 @@
 
   function runImages(r) {
     return (r.images && r.images.length) ? r.images : (r.tempImages || []);
+  }
+
+  // THE SHEETS VIEW'S CELL — a run's finished sheet, uncut. A story sheet and
+  // a cut-failed run already ARE their sheet (images[0], which is a real
+  // picture with real votes, so it opens at its ordinary index); a cut grid
+  // run banks its sheet beside the panels (`sheetUrl`), which is not in
+  // `images` and opens at the VIRTUAL index -1 — which carries its OWN ♥/✕
+  // since 2026-08-27, on the run doc under that index. A run with no sheet at
+  // all (a failed draw) has nothing to show here.
+  function sheetCellOf(r) {
+    if (r.storySheet || r.cutFailed) {
+      var u = runImages(r)[0];
+      return u ? { i: '0', src: u } : null;
+    }
+    if (r.sheetUrl) return { i: '-1', src: r.sheetUrl };
+    return null;
+  }
+  // The sheet's own shape: the stored WxH canvas when there is one (a grid's
+  // derived sheet), else the run's ratio (a story sheet is the plain canvas).
+  function sheetArOf(r) {
+    var m = /^(\d+)x(\d+)$/.exec(String(r.sheet || r.size || ''));
+    return m ? m[1] + ' / ' + m[2] : arCss(r.aspectRatio);
+  }
+
+  // THE UNCUT SHEET, WHILE THE CUT RUNS (2026-08-27, Sophie: "the uncut sheet
+  // shud show before it's cut as soon as it's done (in panels"). The paid
+  // render is banked and the run parks on 'ready' seconds before the panels
+  // are cut, sized and filed — so the picture she just paid for goes up at
+  // once instead of the run sitting on "drawing…" through work that has
+  // nothing left to draw. ONE cell, in the SHEET's own ratio (a wide sheet in
+  // cells cut for 2:3 panels would be squashed — that shape, not the stage
+  // itself, is what this used to be avoided for), at the virtual index -1 the
+  // Sheets view already opens — which carries its own ♥/✕ since 2026-08-27,
+  // so this cell is not view-only any more. The swap poller replaces it with
+  // the panels on 'done'.
+  function cuttingSheet(r) {
+    if (!r || !r.sheetUrl || !r.panels || !r.panels.length) return null;
+    if (r.status !== 'ready' || runImages(r).length) return null;
+    return { key: r.id + '|s', src: thumbFor(r.sheetUrl), vote: (r.votes || {})['-1'] || '',
+      runId: r.id, i: '-1', ar: sheetArOf(r) };
   }
 
   // ── DERIVED DISPLAY COPIES + REPAINT WITHOUT REBUILDING (Aug 2026, Sophie:
@@ -2019,7 +4063,39 @@
     var parts = [runStyleLabel(r)];
     if (r.engine === 'gptimage') {
       if (r.quality) parts.push(r.quality);
+      // THE REQUIRED THIRD SLOT — 1K / 2K / 4K, or "1/4 (4K)" for a panel cut
+      // out of a sheet (2026-08-27, Sophie, looking at this very caption:
+      // "shud say quality and 1k,2k/4k · 1/4 — I thought we already fixed
+      // this"). It HAD been fixed, on the other half: her Aug 2026 ask named
+      // "the playground and assets and Meta assets", and that was built as
+      // what the Playground FILES — every creation carries the slot, and Meta
+      // Assets and My Creations print it. This caption is drawn client-side
+      // out of the run doc instead, so it was never in scope and had never
+      // carried a size at all, for a panels run or a plain one. The PANELS tab
+      // then added two slots of its own beside the missing one, which is what
+      // made it loud enough to see.
+      //
+      // Right after quality, so it reads in the house caption order
+      // (model · quality · size) rather than as a fourth thing on the end.
+      // The run doc has carried everything this needs since the tier toggle
+      // shipped — `res`, `size` (the sheet's canvas) and `grid.count`.
+      var slot = window.__sizeTier ? window.__sizeTier.runSize(r) : '';
+      if (slot) parts.push(slot);
       if (r.aspectRatio) parts.push(r.aspectRatio);
+      // A panels run says so — its pictures are cut out of one sheet, which
+      // is the one fact that explains their size and their price.
+      if (r.grid && r.grid.count) parts.push('panels ' + r.grid.across + 'x' + r.grid.down);
+      // A story sheet says so — the model laid out the panels, and the one
+      // picture is the whole page by design, not a failed cut.
+      if (r.storySheet) parts.push('story sheet');
+      // The cut failed and the one picture IS the uncut sheet — disclosed on
+      // the card rather than leaving her to wonder why one wide picture came
+      // back instead of nine.
+      if (r.cutFailed) parts.push('uncut sheet');
+      // The sheet is up and the cut is still running — the tag says why one
+      // wide picture is standing in for the panels, and that it is not the
+      // end state (a cut that never lands says 'uncut sheet' instead).
+      if (cuttingSheet(r)) parts.push('sheet — cutting…');
       // A run made with a photo attached says so on its card — otherwise two
       // runs of the same words look identical and only one had the photo.
       if (r.photoRef) parts.push('photo ref');
@@ -2028,6 +4104,37 @@
       if (r.seed != null) parts.push('seed ' + r.seed);
     }
     if (r.status === 'cancelled') parts.push('cancelled');
+    return parts;
+  }
+
+  // THE LIGHTBOX CAPTION IS THE HOUSE CAPTION AND NOTHING ELSE — MODEL ·
+  // QUALITY · SIZE (2026-08-27, Sophie, pointing at the banked sheet's caption:
+  // "extra notes - dreamy etc … just need model quality and pixels + 1/4").
+  // It read "Dreamy · medium · 1/4 (1K) · 1:1 · panels 2x2 · uncut sheet · 2x2"
+  // — six things, of which the caption's own three were the first three. The
+  // card's tag row is where a run's other facts belong (the style, the ratio,
+  // the grid, a photo ref); over a picture she is looking at, the ratio and
+  // the grid are things she can SEE and the style is behind the Prompt door.
+  //
+  // SLOT 1 IS THE STYLE, and that is her correction (2026-08-27, on the first
+  // cut of this: "u added panel 2/4 and the chatgpt2 … get rid"). It shipped
+  // as the model ID — `gpt-image-2` — to match what the same picture's FILED
+  // caption says in My Creations and Meta Assets; she read that as a new
+  // thing appearing where the name of the tile she drew with had been. The
+  // tile IS the model to her, so the label is the answer here.
+  //
+  // The size slot is sheet-aware: a cut panel is "1/4 (4K)" (the fraction and
+  // the SHEET's tier), the banked uncut sheet is the sheet's own "4K".
+  function lbCaption(r, i) {
+    // A LoRA run has neither a quality nor a tier — its caption is what it
+    // always was (the card's tags), because there is no house caption to trim
+    // it down to and her ask was about the gpt-image-2 one.
+    if (r.engine !== 'gptimage') return runParts(r);
+    var st = window.__sizeTier;
+    var parts = [runStyleLabel(r)];
+    if (r.quality) parts.push(r.quality);
+    var slot = st ? (i === -1 ? st.sheetSize(r) : st.runSize(r)) : '';
+    if (slot) parts.push(slot);
     return parts;
   }
 
@@ -2045,10 +4152,44 @@
     Object.keys(byId).forEach(function (k) { runsById[k] = byId[k]; });
   }
 
+  // A RUN THAT STOPS DRAWING LANDS IN ITS OWN GALLERY (2026-08-28, Sophie on
+  // the PANELS tab: "the tile appears and then disappears").
+  //
+  // The poll drops the "drawing…" placeholder the moment a run reaches
+  // 'ready', and then asked `loadRuns()` to bring the real run in — but
+  // loadRuns only ever fetches **kind=single** (2026-08-28, so that a morning
+  // of panels runs cannot fill all 40 slots of the Picture tab's page). The
+  // PANELS gallery comes from `loadPanelsSweep`, which is asked ONCE per page
+  // load and never again. So on that tab the placeholder came down and
+  // nothing replaced it: the tile vanished, and stayed vanished until the
+  // page itself was reloaded — which in the app can be a long time, since a
+  // tool's web view lives for the whole app process.
+  //
+  // Nothing needs fetching: the poll is holding the finished doc. Merging it
+  // is exact, costs no request, and lands the run in whichever gallery it
+  // belongs to — which is also what finally lets the UNCUT SHEET show while
+  // the cut is queued (`cuttingSheet`, her 2026-08-27 ask: "the uncut sheet
+  // shud show before it's cut as soon as it's done"). That was built and
+  // could never appear, because at 'ready' the run reached the feed on
+  // neither tab. `gateCut` (one cut at a time) made the gap long enough to
+  // matter.
+  //
+  // The single gallery still refreshes its page: loadRuns owns `feedMore` and
+  // the newest-page walk, which one merged doc says nothing about.
+  function landRun(d) {
+    if (!d || !d.id) return;
+    mergeRuns([d]);
+    if (runIsPanels(d)) renderFeed(); else loadRuns();
+  }
+
   // Refresh the newest page. Anything already paged in behind it is kept — a
   // finished run must never throw away the older runs she scrolled back to.
   function loadRuns() {
-    fetch('/api/promptlab?limit=' + PAGE).then(function (r) { return r.json(); }).then(function (d) {
+    // kind=single, like Older's own walk: the Picture tab's gallery is the
+    // single-pic runs, and asking for a mixed page means a morning of panels
+    // runs fills all 40 slots with nothing this tab can draw (2026-08-28).
+    // The PANELS tab has its own sweep and never comes through here.
+    fetch('/api/promptlab?limit=' + PAGE + '&kind=single').then(function (r) { return r.json(); }).then(function (d) {
       var runs = (d.runs || []).filter(function (r) { return r.status !== 'running'; });
       // Only page one can answer "is there more" — once she has paged deeper,
       // the tail fetch owns that flag.
@@ -2058,16 +4199,86 @@
     }).catch(function () {});
   }
 
-  // One more page, behind the oldest run the feed holds. The cursor is that
-  // run's createdAt, NOT an offset — runs land at the top while she reads, and
-  // an offset would shift under her and repeat or skip one.
+  // The PANELS tab's whole gallery in one read — the server sweeps its scan
+  // for panels runs (they are a sliver of the feed, so paging 40 mixed docs
+  // to find them would make Older a button that mostly adds nothing).
+  //
+  // IT RE-ASKS, AND THAT IS THE POINT (2026-08-29, Sophie about a sheet drawn
+  // in a container: "is not in playground"). It used to be asked ONCE per page
+  // load and never again — fine while every panels run was started from this
+  // page, since the poll lands its own run (`landRun`). But the house path for
+  // a CHAT's panels is to draw in its own container and file the finished run
+  // with POST /api/promptlab/panels-import ("the playground is for me, but
+  // panels should go in panels"), and NO poll here is tracking one of those.
+  // So an imported run was on the server, in this very query's answer, and
+  // unreachable until the page itself reloaded — which inside the app means
+  // the whole app process, since a tool's web view is kept alive. The run had
+  // landed correctly and read as lost.
+  //
+  // Cheap enough to re-ask: one capped query, and `mergeRuns` is keyed by id,
+  // so a re-sweep can only ever ADD (her votes and her place are untouched).
+  // Throttled, because entering the tab is a tap she may repeat; the FIRST
+  // paint is still instant, drawn from what the feed already holds.
+  var panelsSweptAt = 0, panelsSweeping = false;
+  var PANELS_RESWEEP = 20000;
+  function loadPanelsSweep(force) {
+    if (panelsSweeping) return;
+    if (!force && panelsSweptAt && Date.now() - panelsSweptAt < PANELS_RESWEEP) return;
+    panelsSweeping = true;
+    fetch('/api/promptlab?kind=panels&limit=300').then(function (r) { return r.json(); }).then(function (d) {
+      panelsSweptAt = Date.now();
+      panelsSweeping = false;
+      mergeRuns((d.runs || []).filter(function (r) { return r.status !== 'running'; }));
+      renderFeed();
+    }).catch(function () { panelsSweeping = false; });
+  }
+  // Coming back to the tool is the moment a stale gallery is about to be read
+  // — the same reasoning as the page's own build check — so it asks PAST the
+  // throttle. The throttle is there for a tab tap she may repeat; a visibility
+  // flip is her leaving and returning, which is exactly when a chat's sheet
+  // has had time to land.
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && onPanels()) loadPanelsSweep(true);
+  });
+  // …AND HER FIRST TAP BACK IS THE EVENT THAT ALWAYS ARRIVES (2026-08-29,
+  // Sophie's second report: "fix the sweep issue" — the visibility flip alone
+  // was not enough on her phone). Inside the app a tool's web view is kept
+  // alive in the ZStack and a tool switch only toggles its OPACITY, so
+  // `visibilitychange` may never fire on the way out or the way back — the
+  // Story Room's documented gap (its audio-stop note), landing here. There is
+  // no page-side event for "the tool came back"; what there always is, is her
+  // first tap on it. Capture phase, so an overlay's stopPropagation cannot
+  // starve it; NOT forced, so the 20s throttle keeps a working screen to one
+  // query, and the tap that just re-entered the tab costs nothing extra.
+  document.addEventListener('pointerdown', function () {
+    if (onPanels()) loadPanelsSweep();
+  }, true);
+
+  // One more page, behind the oldest SINGLE run the feed holds. The cursor is
+  // that run's createdAt, NOT an offset — runs land at the top while she
+  // reads, and an offset would shift under her and repeat or skip one. Oldest
+  // SINGLE, not oldest anything: the panels sweep merges runs from the whole
+  // history into `feed`, and a cursor taken off an ancient panels run would
+  // skip every single-pic run between here and it. (Older only shows on the
+  // Picture tab, so the walk is always the single runs'.)
   function loadMore() {
     if (paging || !feedMore) return;
     var oldest = null;
-    for (var i = feed.length - 1; i >= 0; i--) { if (feed[i].createdAt) { oldest = feed[i].createdAt; break; } }
+    for (var i = feed.length - 1; i >= 0; i--) {
+      if (feed[i].createdAt && !runIsPanels(feed[i])) { oldest = feed[i].createdAt; break; }
+    }
+    // A LAST-RESORT CURSOR, so Older is never a dead button. Normally this is
+    // the oldest SINGLE run; with none in the feed at all (an old cached page
+    // whose first read came back all panels) the oldest run of ANY kind still
+    // walks backwards, which is what unsticks it.
+    if (!oldest) {
+      for (var j = feed.length - 1; j >= 0; j--) {
+        if (feed[j].createdAt) { oldest = feed[j].createdAt; break; }
+      }
+    }
     if (!oldest) return;
     paging = true; renderMoreBtn();
-    fetch('/api/promptlab?limit=' + PAGE + '&before=' + oldest)
+    fetch('/api/promptlab?limit=' + PAGE + '&before=' + oldest + '&kind=single')
       .then(function (r) { return r.json(); })
       .then(function (d) {
         feedMore = !!d.more;
@@ -2085,7 +4296,8 @@
       var groups = groupBy(runs, function (r) {
         if (r.status === 'failed') return 'failed|' + r.id;
         return sameRunKey([r.engine, r.model, r.gptStyle, (r.prompt || '').trim(), r.status,
-          r.quality, r.aspectRatio, r.character ? 'c' : '', r.loraScale, r.seed]);
+          r.quality, r.aspectRatio, r.character ? 'c' : '', r.loraScale, r.seed,
+          r.grid && r.grid.count ? 'g' + r.grid.count : '']);
       });
       var only = likedOnly();
       var nox = hideX();
@@ -2105,6 +4317,24 @@
         // that picture's real settings and a ♥ goes on the right doc.
         var cells = [];
         g.items.slice().reverse().forEach(function (r) {
+          if (sheetsMode()) {
+            var s = sheetCellOf(r);
+            if (!s) return;
+            var sv = (r.votes || {})[s.i] || '';
+            if (only && sv !== 'like') return;
+            if (nox && sv === 'dislike') return;
+            cells.push({ key: r.id + '|s', src: thumbFor(s.src), vote: sv, runId: r.id, i: s.i, ar: sheetArOf(r) });
+            return;
+          }
+          // Its panels are still being cut: the sheet stands in for them. It
+          // is votable at -1 like the banked sheet, so it obeys the filters
+          // rather than being dropped whenever the heart is lit.
+          var cut = cuttingSheet(r);
+          if (cut) {
+            if (only && cut.vote !== 'like') return;
+            if (nox && cut.vote === 'dislike') return;
+            cells.push(cut); return;
+          }
           var votes = r.votes || {};
           runImages(r).forEach(function (u, i) {
             var v = votes[i];
@@ -2140,8 +4370,10 @@
   function renderMoreBtn() {
     var el = document.getElementById('more');
     // "Older" walks the BROWSE feed; a search is already answered over the
-    // whole collection, so there is nothing behind it to page in.
-    if (qGroups.length || !feed.length || !feedMore) { el.innerHTML = ''; return; }
+    // whole collection, so there is nothing behind it to page in. The PANELS
+    // tab has no Older either — its sweep (loadPanelsSweep) answered the
+    // tab's whole history in one read, like a search.
+    if (qGroups.length || onPanels() || !feed.length || !feedMore) { el.innerHTML = ''; return; }
     el.innerHTML = '<button class="morebtn"' + (paging ? ' disabled' : '') + '>' +
       (paging ? 'Loading…' : 'Older') + '</button>';
   }
@@ -2160,9 +4392,10 @@
     var nox = hideX();
     // A picture on its way has not been hearted, so the waiting squares are a
     // list-of-everything thing: with the heart lit the wall is hearts only.
-    if (!only) pendingList().slice().reverse().forEach(function (p) {
+    // In sheets mode a drawing run is ONE square — the sheet on its way.
+    if (!only) pendingKept().slice().reverse().forEach(function (p) {
       if (qGroups.length && !qmatch(pendHay(p), qGroups)) return;
-      var slots = p.count || OUTPUTS;
+      var slots = sheetsMode() ? 1 : (p.count || OUTPUTS);
       for (var i = 0; i < slots; i++) items.push({ key: 'ph|' + p.id + '|' + i, ph: true, ar: arCss(p.ar) });
     });
     // Straight off `feed` — it is already sorted newest-first. (Walking
@@ -2170,6 +4403,21 @@
     // property of the map, not of the wall's intended order.)
     visibleRuns().forEach(function (r) {
       if (r.status === 'failed') return;
+      if (sheetsMode()) {
+        var s = sheetCellOf(r);
+        if (!s) return;
+        var sv = (r.votes || {})[s.i] || '';
+        if (only && sv !== 'like') return;
+        if (nox && sv === 'dislike') return;
+        items.push({ key: r.id + '|s', src: thumbFor(s.src), vote: sv, runId: r.id, i: s.i, ar: sheetArOf(r) });
+        return;
+      }
+      var cutting = cuttingSheet(r);
+      if (cutting) {
+        if (only && cutting.vote !== 'like') return;
+        if (nox && cutting.vote === 'dislike') return;
+        items.push(cutting); return;
+      }
       var votes = r.votes || {};
       runImages(r).forEach(function (u, i) {
         var v = votes[i];
@@ -2187,8 +4435,7 @@
   document.getElementById('runs').addEventListener('click', function (e) {
     var cp = e.target.closest('[data-copy]');
     if (cp) {
-      var r = runsById[cp.getAttribute('data-copy')];
-      if (r) copyPromptIn(r.prompt);
+      copyRunIn(runsById[cp.getAttribute('data-copy')]);
       return;
     }
     var img = e.target.closest('img[data-run]');
@@ -2338,9 +4585,36 @@
   // the Assets PROMPT overlay documents.
   // No wrapper (the plain ChatGPT tile, a verbatim run) → an EMPTY style half,
   // which is the honest answer and what hides the STYLE button.
-  function runPromptHalves(r) {
+  function runPromptHalves(r, i) {
     var content = String((r && r.prompt) || '');
     var full = String((r && r.fullPrompt) || '');
+    var panels = (r && r.panels && r.panels.length) ? r.panels : null;
+    // THE SHEET ITSELF (the virtual index -1, a run still cutting, or a
+    // cutFailed run whose one picture IS the sheet): the run's `prompt` is
+    // the ' / '-joined box text, which is NOT verbatim in the sent string —
+    // so the split below always failed and the sheet's overlay showed her
+    // panel words with NO style half and no characters clause at all
+    // (2026-08-29, Sophie: "why is this prompt incomplete??? it's missing
+    // the style half, and characters etc"). The real seam is the contiguous
+    // panel-lines block, and sheetSeam (sheet-grid.js — the ONE copy, shared
+    // with server.js's filing) slices it verbatim out of fullPrompt.
+    var isSheet = panels && (i == null || i === -1 || r.cutFailed || panels[i] == null);
+    if (isSheet && window.__sheetGrid && window.__sheetGrid.sheetSeam) {
+      var seam = window.__sheetGrid.sheetSeam(full, panels);
+      if (seam) {
+        return {
+          content: seam.content,
+          style: (seam.prefix || seam.suffix)
+            ? [seam.prefix, '[content]', seam.suffix].filter(Boolean).join('\n\n') : '',
+        };
+      }
+    }
+    // A panels run: picture i's content is THAT panel's own words — they sit
+    // verbatim in the sent text (one labeled line per panel), so the style
+    // half below splits correctly around them.
+    if (panels && i != null && r.panels[i] != null) {
+      content = String(r.panels[i]);
+    }
     if (!full || !content) return { content: content, style: '' };
     var at = full.indexOf(content);
     if (at < 0) {
@@ -2405,7 +4679,12 @@
   function showLB(id, i) {
     var r = runsById[id];
     if (!r || !window.__assetLightbox) return;
-    var src = runImages(r)[i];
+    // i === -1 is the VIRTUAL sheet index (the Sheets view): the banked uncut
+    // sheet, which is not in `images`. View-only — votes are indexed into the
+    // cut panels, so no ♥/✕ and no note thread ride it (asset-lightbox draws
+    // both only when _cast is wired).
+    var isSheet = i === -1;
+    var src = isSheet ? (r.sheetUrl || '') : runImages(r)[i];
     if (!src) return;
     // The door's state rides a STEP and dies with a fresh open (her rule:
     // "the half she picked rides along as she steps; a fresh open always
@@ -2415,19 +4694,38 @@
     if (lbSrc !== src) { if (lbObj) { URL.revokeObjectURL(lbObj); lbObj = ''; } lbBlob = null; }
     lbCur = { id: id, i: i };
     lbSrc = src;
-    var h = runPromptHalves(r);
-    // What drew it — model, quality/scale, seed — as the MODEL · QUALITY tag.
-    // This page has no per-picture label, so the tag is the whole caption.
-    var meta = runParts(r);
-    if (runImages(r).length > 1) meta.push('image ' + (i + 1));
+    var h = runPromptHalves(r, i);
+    // THREE SLOTS, FULL STOP (2026-08-27, Sophie: "u added panel 2/4 and the
+    // chatgpt2 … get rid"). `panel 2 of 4` was kept as navigation — which one
+    // of the run she is looking at — and it is still a fourth thing on a line
+    // she asked to be three. The size slot already says it is a quarter, and
+    // the card's tag row still says 'sheet — cutting…' while a cut runs.
+    var meta = lbCaption(r, i);
     var seq = lbSeq(), at = -1;
     for (var k = 0; k < seq.length; k++) if (seq[k].id === id && seq[k].i === i) { at = k; break; }
     var asset = {
       prompt: meta.join(' · '),
       promptStyle: h.style,
       promptContent: h.content,
+      // THE SHEET IS A PICTURE LIKE ANY OTHER (2026-08-27, Sophie: "missing
+      // three buttons too" — the banked sheet's lightbox had lost the ♥, the
+      // ✕ and the Story Room walk). It was view-only because votes are indexed
+      // into `images` and the sheet is not in it; it rides the VIRTUAL index
+      // -1 now, on the run doc and on the Assets record its own filing made
+      // ("the sheet — N panels"). It is a picture she paid for, and on a story
+      // sheet it is the only picture the run has.
       vote: (r.votes || {})[i] || null,
       thread: noteCache[src] || [],
+      // WHO IS IN IT (2026-08-29, Sophie: "light box view / characters in
+      // playground") — the character references that really rode this run,
+      // read off the run's own record, so a picture says who it was drawn
+      // with instead of only saying so in a sentence behind the Prompt door.
+      // A picture drawn with nobody passes nothing and the row is not drawn.
+      // Faces go through the DERIVED thumb service (a saved card is a ~1.2MB
+      // render — the house webp rule), the picker's own 240px copy.
+      cast: (Array.isArray(r.characters) ? r.characters : []).map(function (c) {
+        return { name: c && c.name, url: (c && c.url) ? window.FeedKit.thumbFor(c.url, 240) : '' };
+      }),
       // The old Playground arrangement, as the shared file's hooks (2026-08-26,
       // Sophie): ♥/✕ lead the row under the picture, the tag right under it.
       votesBelow: true,
@@ -2456,15 +4754,51 @@
         // reachable from TILES view: closes the lightbox and lands the
         // picture's prompt in the prompt box.
         { label: 'Put this prompt back in the box', icon: ICONS.copy,
-          onClick: function () { closeLB(); copyPromptIn(r.prompt); } },
+          onClick: function () { closeLB(); copyPictureIn(r, i); } },
         { label: 'Save to Photos', icon: ICONS.download, onClick: saveFromLB },
+        // ADD TO SHOEBOX — the third door onto the ONE memory (2026-08-29,
+        // Sophie: "how do i send a picture to shoebox in the playground").
+        // The Story Room's beat popup and Meta Assets already had one and the
+        // tool she draws in did not, so a Playground picture had to be found
+        // again somewhere else before it could be kept. Same route, same
+        // content-addressed id (`sb-<sha1>` off the picture), so adding the
+        // same picture from two doors updates ONE memory rather than making
+        // twins — and re-adding keeps the original's `createdAt`, which is
+        // the field the library's one query orders by.
+        //
+        // THE TITLE IS HER OWN WORDS — the picture's content half, which on a
+        // panels run is THAT panel's line (runPromptHalves), never the style
+        // wrapper and never the MODEL · QUALITY caption. It becomes the
+        // polaroid's title in the Shoebox, so it has to be the thing the
+        // picture is OF. Meta Assets sends the label she reviews by for the
+        // same reason; here the typed prompt IS that label.
+        { label: 'Add to Shoebox', icon: ICONS.share,
+          onClick: function (ev) {
+            // The lit button is the receipt — this walks nowhere, so without
+            // it a tap that worked and a tap that did nothing look identical.
+            var btn = ev && ev.currentTarget;
+            fetch('/api/scratchpad/shoebox-url', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url: src, title: h.content || '', source: 'playground' }),
+            }).then(function (res) { return res.json(); })
+              .then(function (d) {
+                if (d && d.ok) {
+                  if (btn) { btn.style.background = '#3a3530'; btn.style.color = '#faf7f0'; }
+                  toast('In the Shoebox');
+                } else toast((d && d.error) || 'That didn\u2019t save');
+              })
+              .catch(function () { toast('That didn\u2019t save'); });
+          } },
         // SEND TO THE STORY ROOM — it WALKS THERE (2026-08-26, Sophie: "rather
         // than this weird pop-up, it should take me to the story room so I can
         // pick myself"). A NAVIGATION that decides nothing about a story: the
         // run and which of its pictures ride the link (?send=<run>&i=<n>) —
         // never the url, because the room re-reads the run and gets the whole
         // provenance with it, the same src the pad's own inbox pick sends.
-        { label: 'Send to the Story Room', icon: ICONS.share,
+        // The banked sheet walks too, at its virtual index -1 — the room
+        // resolves that to `sheetUrl` (loadSend). A whole comic page is
+        // exactly the kind of picture a beat wants.
+        { label: 'Send to the Story Room', icon: ICONS.books,
           onClick: function () { location.href = '/storyroom?send=' + encodeURIComponent(id) + '&i=' + i; } },
       ],
     };
@@ -2501,7 +4835,9 @@
     }
     // The thread is ONE doc read, asked for after the picture is already up —
     // the sibling /notes route answers with a whole chat's worth and would be
-    // the wrong thing to fetch to open one picture.
+    // the wrong thing to fetch to open one picture. The virtual sheet asks
+    // too: it is filed as its own asset ("the sheet — N panels"), so a note
+    // left on it has somewhere real to land.
     fetch('/api/gallery/assets/note?chat=' + encodeURIComponent(NOTE_CHAT)
       + '&url=' + encodeURIComponent(src))
       .then(function (res) { return res.json(); })
@@ -2545,8 +4881,141 @@
     return false;
   };
 
+  /* ── THE PAGE HEALS ITS OWN STALENESS (2026-08-27, Sophie: "it's not
+     there", about the back-to-top arrow — then "self heal").
+     MEASURED that hour, and this is why the fix is here rather than in the
+     pill: the bytes Render serves carry the arrow, and the live html renders
+     it at her viewport with the iPhone 13's 47px safe-area inset. What she
+     was looking at was an OLD PAGE. The iOS app keeps the three recent tools
+     alive in a ZStack, so this page loads ONCE per app process and
+     re-entering the tool shows the same one — no deploy can reach it, which
+     is the Film Editor's round-three finding arriving at the tool she is in
+     most.
+
+     A HASH, NOT A CONST. The build id is derived server-side from the page
+     file plus the pill (pageBuildId in server.js), so nobody has to remember
+     to bump anything — the Film Editor's hand-kept `var BUILD` is one
+     forgotten edit away from a self-heal that never fires.
+
+     IT ONLY RELOADS WHEN NOTHING WOULD BE LOST, which is the half the Film
+     Editor could take for granted and this page cannot: its whole state is
+     server-side, and the Playground holds real unsaved things. Her typed
+     prompt, an attached photo, a picked cast, the quality and size she has
+     moved off default and a search she is in the middle of are all
+     DELIBERATELY not persisted, so a silent reload would throw them away —
+     a worse bug than the one being fixed. Everything else already survives
+     (the view, the filters, the columns, the canvas, the panel words, her
+     prompt overrides, and pending runs, which live in localStorage).
+     When she IS holding something, it waits and asks again; the common
+     stale case — the tool opened after a night in the background, nothing
+     typed yet — heals on the spot.
+
+     THE VISIBILITY CHECK IS THE ONE THAT MATTERS. Coming back to the tool is
+     the moment a stale page is about to be used; the five-minute timer is
+     the fallback for a page left open. Exposed as window.__plBuildCheck for
+     the test. ── */
+  // READ LAZILY, never at parse time: serveGated APPENDS the stamp after the
+  // page (and after the pill), so at the moment this script runs
+  // window.__forgeBuild does not exist yet. Caching it here would leave
+  // PL_BUILD empty forever and the self-heal silently disabled — which every
+  // "same build" assertion would still pass, vacuously.
+  function plBuild() { return window.__forgeBuild || ''; }
+  // The values a FRESH load would take, read here rather than written down —
+  // a literal would drift the day a default moves.
+  var plQ0 = quality, plR0 = resTier;
+  var plTouchedAt = 0;
+  ['pointerdown', 'keydown'].forEach(function (ev) {
+    document.addEventListener(ev, function () { plTouchedAt = Date.now(); }, true);
+  });
+  function plHolding() {
+    if (Date.now() - plTouchedAt < 10000) return true;      // under her thumb
+    var el = document.activeElement;
+    if (el && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')) return true;
+    if (document.getElementById('prompt').value.trim()) return true;
+    if (photoRef) return true;
+    if (pickedChars.length) return true;
+    if (quality !== plQ0 || resTier !== plR0) return true;
+    var q = document.getElementById('q');
+    if (q && q.value.trim()) return true;
+    if (lbIsOpen()) return true;
+    if (document.getElementById('ask').classList.contains('on')) return true;
+    if (charsOpen) return true;
+    var pp = document.getElementById('promptpanel');
+    if (pp && pp.classList.contains('on')) return true;
+    return false;
+  }
+  function plBuildCheck() {
+    var mine = plBuild();
+    if (!mine) return Promise.resolve(false);      // older server, nothing to compare
+    return fetch('/api/promptlab/build', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        if (!r || !r.build || r.build === mine) return false;
+        if (plHolding()) return false;
+        location.reload();
+        return true;
+      }).catch(function () { return false; });
+  }
+  window.__plBuildCheck = plBuildCheck;
+  setInterval(plBuildCheck, 5 * 60 * 1000);
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') plBuildCheck();
+  });
+
+  /* ── THE ARROW'S WATCHDOG (2026-08-29, Sophie's THIRD back-to-top report:
+     "it's still not there and i reload it like every hour … there was one,
+     it's gone"). Measured that hour: the served page and every vintage back
+     to Aug 24 draw the arrow lit and tappable in headless Chromium AND real
+     WebKit, at her viewport, in her exact flow — so the failure lives in a
+     state only her device reaches, and re-fixing the page again is the one
+     move that cannot help. Two jobs, the Film Editor's telemetry lesson:
+     REPAIR — every few seconds the pill's own exported resync
+     (__pillTopSync) is asked to re-derive the arrow from live state, so a
+     missed scroll event or a dead listener costs seconds, not the session.
+     REPORT — the moment the arrow is caught wrong (dark while the page is a
+     full screen down, or only lit because this tick lit it), the device
+     files its own account to /api/promptlab/pilltop: build, scroll state,
+     the button's computed display and class. That is what turns the next
+     "it's not there" from a guessing game into one GET.
+     Skipped while an overlay owns the screen — there the pill may honestly
+     be driving the sheet, not the page. Capped to one report a minute. ── */
+  var ptopReported = 0;
+  function ptopWrong(lit, litAfter, y, ih) {
+    return (!lit && litAfter) || (!litAfter && y > ih + 4);
+  }
+  function ptopWatch() {
+    var p = document.getElementById('ptop');
+    if (!p || !window.__pillTopSync) return;
+    if (lbIsOpen() || charsOpen) return;
+    var lit = p.classList.contains('on');
+    window.__pillTopSync();
+    var litAfter = p.classList.contains('on');
+    if (!ptopWrong(lit, litAfter, window.scrollY, window.innerHeight)) return;
+    if (Date.now() - ptopReported < 60000) return;
+    ptopReported = Date.now();
+    var body = JSON.stringify({
+      build: plBuild(), scrollY: Math.round(window.scrollY),
+      ih: window.innerHeight, sh: document.documentElement.scrollHeight,
+      lit: lit, litAfter: litAfter,
+      disp: getComputedStyle(p).display, cls: p.className,
+      corrected: !lit && litAfter,
+    });
+    try {
+      var sent = navigator.sendBeacon && navigator.sendBeacon(
+        '/api/promptlab/pilltop', new Blob([body], { type: 'application/json' }));
+      if (!sent) {
+        fetch('/api/promptlab/pilltop', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body,
+        }).catch(function () {});
+      }
+    } catch (e) {}
+  }
+  window.__plPtopWatch = ptopWatch;
+  window.__plPtopWrong = ptopWrong;
+  setInterval(ptopWatch, 4000);
+
   if (window.__nativeNavBar) document.body.classList.add('native');
-  renderStyles(); updateShape(); syncControls(); applyLiked(false); applyHideX(false); applyView(); loadRuns();
+  renderStyles(); updateShape(); syncControls(); syncTab(); applyLiked(false); applyHideX(false); applyView(); loadRuns();
   if (pendingList().length) { renderPendings(); startPolling(); }
 </script>
 </body></html>

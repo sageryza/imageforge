@@ -133,7 +133,8 @@ ceiling are all in `docs/image-pipeline.md` (*The walker is the prompt*).
     `chatgpt` (Sandy mirror), which is what the unidentified history really is.
   - Test: `node scripts/test-playground-plain.js` (pure — 18 of its 22 checks
     verified failing against the pre-change tree).
-- **Six styles: WTR, Sandy mirror, ChatGPT, Scarry, Pastel, Hoonies.** **WTR**
+- **Eight styles: WTR, Sandy mirror, ChatGPT, Dreamy, Triangle, Scarry,
+  Pastel, Hoonies.** **WTR**
   (`wtr`, the watercolor LoRA — the tile is labelled WTR, but its STYLES key is
   still `watercolor`, which is what localStorage and `?style=` deep links carry)
   is the only Replicate LoRA on the picker: trigger word prepended, suffix
@@ -169,14 +170,30 @@ ceiling are all in `docs/image-pipeline.md` (*The walker is the prompt*).
   carries **no engraving vocabulary on purpose**: tested side by side, a written
   style description pulled the line finer and more modern, away from their blunt
   woodcut feel (the same finding as `docs/evan-film-style.md`). `noCharacter`.
+  **"Triangle"** (2026-08-31, Sophie: "add triangle as a new playground style
+  · w image and prompt w new equilateral") is the Triset game's triangular
+  picture cards as a tile. It is **DERIVED from `dreamy`** at load —
+  `PL_GPT_STYLES.triangle = triangleStyle(PL_GPT_STYLES.dreamy)` — so it is the
+  same reference image, the same prefix and the same tail, with dreamy's
+  rectangular border clause swapped for the equilateral triangle-card clause
+  (`triangle-clause.js`, the one copy `triset.js` also reads). Her no-text
+  toggle still works on it: that clause sits after the border one and the swap
+  never reaches it. It carries its OWN `sheet` swap — dreamy's anchor is the
+  clause it just consumed, so without one a panels run would keep "NOT a grid"
+  in a grid prompt; with it, every cell of a sheet is a triangle card.
+  `noCharacter`, like dreamy. Nothing is written twice, so a reword of hers in
+  `dreamy` reaches the tile and the game together.
   Every gpt style appends a `suffix` at the VERY END of the sent prompt, after
   her words (the no-text rule; Pastel's is the house style's longer wording).
   ChatGPT-engine styles live in `PL_GPT_STYLES` in server.js (keyed `evan` /
-  `plain` / `scarry` / `pastel` / `hoonies`; the page sends `style`,
+  `plain` / `dreamy` / `triangle` / `scarry` / `pastel` / `hoonies`; the page sends `style`,
   absent/unknown → `evan` so old pages keep working) — adding another different-reference style = drop the
   image(s) in `refs/` (or point `storageRefs` at Storage), add a
   `PL_GPT_STYLES` entry + a one-line `STYLES` entry in promptlab.html (the page
-  holds NO prompt copies anymore — see below).
+  holds NO prompt copies anymore — see below) **+ a `PORT_STYLES` entry in
+  `public/playground-port.js`**, which `scripts/test-playground-port.js` pins:
+  the three tables must hold the same keys, and a tile with no evidence can
+  never be ported back onto.
 - **Its prompt is baked in server-side** (`PL_GPT_STYLES`) and her typed words
   sit between the style's prefix and its no-text suffix verbatim — no trigger
   word, no trailing-period trim. **The "Sent as" preview line is GONE (Aug
@@ -312,6 +329,389 @@ ceiling are all in `docs/image-pipeline.md` (*The walker is the prompt*).
   it finishes (`status:'ready'`, then `'done'`), so the grid fills in as they
   arrive. One failed call costs its image, not the run.
 
+#### A failed run says WHY (2026-08-27)
+
+From Sophie's screenshot of the Playground list: a red card reading **"every
+gpt-image-2 render failed — see the server log"** — an instruction she cannot
+follow, on the one card whose whole job is telling her what happened. The real
+reason was `console.warn`'d inside the per-render catch and thrown away, so the
+API's own sentence lived for the length of one request.
+
+- **`render-fail.js` owns the message** (`renderFailMessage(errs, want)`), pure
+  and dependency-free. The API's own sentence leads VERBATIM, identical errors
+  collapse with the COUNT behind them (`(3 of 4 renders)` — the difference
+  between a bad prompt and a bad minute), different errors are all carried, and
+  a run with genuinely nothing to say falls back to a plain sentence that
+  **never points her at a log**. Capped at 300 chars and flattened to one line,
+  because the card draws it under the prompt.
+- **A PARTIAL failure is recorded too** — `renderErrors` beside `failedRenders`
+  on a `done` run, so "3 of 4 came back" carries the reason the fourth didn't.
+- **The panels job was already right** (it surfaces `err.message` straight to
+  the doc); only the multi-output gpt job swallowed it.
+- **The failure that prompted this was TRANSIENT, and that is measured.** Her
+  run `HPpZc0SkXJtbj8Ukl1lN` (5:22am, dreamy + a photo ref, low, 1K) died with
+  nothing to say; the identical `fullPrompt`, style reference and photo re-sent
+  by hand came back with a picture first try, and her own re-runs at 5:24 and
+  5:25 both drew. So the whole cost of the old message was that she could not
+  tell "tap Generate again" from "change the prompt".
+- **What is NOT built, and is hers to ask for:** `openaiImageEditRefs` retries
+  only a THROWN error (network, timeout) — an `error` BODY from OpenAI (a
+  stochastic moderation refusal, a 5xx, a rate limit) fails the render on the
+  first try, which is what she is working around by tapping Generate again. An
+  automatic retry there would spend input tokens (~1.2¢ a reference) on every
+  refusal, so it is a money decision, not a bug fix.
+- Test: `node scripts/test-render-fail.js` (pure — the rules, plus a source pin
+  that the log sentence cannot come back into `server.js`).
+
+### The character picker (2026-08-27)
+
+Sophie: "add a little button in the playground right next to where it says
+dreamy make sure it's the same style with a character icon that shows the five
+most recent characters that were put and then also the rest of the sheet and
+characters with a search."
+
+`#charsbtn` sits in `.styles` beside `#stylepick`, wearing that control's own
+ink border at its own 34px — the row she named, not the control row under it.
+It opens `#charpanel`: the five most recent across the top, then a search box,
+then the rest. Typing searches the WHOLE library (names and aliases), because a
+search that skipped the five she can see would answer "no such character" about
+one of them; with the box empty the lower grid is the REST, so the top row is
+not printed twice.
+
+**Where the library comes from.** `GET /api/promptlab/characters` →
+`character.js`'s own `listCharacters()` over `forge-characters` — the same pile
+the cast sheet and the dream flow read (143 of them, measured live
+2026-08-27), never a second one. The only thing the route adds is the ORDER
+Sophie's ask names: **recent = `lastUsedAt`, falling back to `createdAt`**, so
+the five slots are the five she reached for last. Drawing here calls
+`markUsed()`, which is also what the old `POST /api/character/used` route
+calls — one definition of "recent", so the picker and the cast sheet can never
+disagree.
+
+**What rides, and in what order.** The picked ids resolve through
+`charactersByIds()` and their bytes attach at the VERY END, after the style
+references, after the Sophie card and after her photo reference. That order is
+forced by the disclosure: `charLine()` in `pad-characters.js` — the same
+sentence the Story Room sends — says "the last attached image(s)".
+
+Which is why `PL_GPT.photoLineWithChars` exists. The photo's line has always
+said "the LAST attached image is a photo reference", and the moment a character
+rides behind it that sentence describes the wrong picture. The twin is the
+identical instruction re-anchored ("the attached image just before the
+character reference(s) at the end"), sent only when characters really ride;
+the reference-less ChatGPT tile owns its own copy of both, since neither of
+its lines may mention a style reference it does not have. **A run with no cast
+sends the original byte for byte.**
+
+**One copy of the wording.** `pad-characters.js` is UMD-wrapped (the
+`pause-plan.js` pattern) and served at `/pad-characters.js`, so the Prompt
+panel prints the REAL `charLine()` rather than a transcription of it that
+drifts the day the sentence is reworded.
+
+**Where it is NOT.** Off on the WTR LoRA — a trigger word and no attachment
+slot at all — and off on PANELS, for the reason the photo ref is: a sheet is
+not the surface to argue "the last attached image" on. It is deliberately NOT
+gated on `noCharacter`: that flag is about the SOPHIE CARD, which is the
+watercolor look by another name, where a character Sophie picked herself is her
+own subject and belongs on every gpt tile.
+
+**Details worth not undoing.**
+
+- **Not persisted**, the rule quality and the photo reference already follow —
+  a cast picked last week riding today's run is a hidden ingredient that costs
+  money (~1.2c a reference). It survives between runs in one sitting.
+- **The cap is the shared `MAX_PICKED`** (6), served to the page, hardcoded
+  nowhere.
+- **A reference that will not fetch FAILS the run** rather than best-effort
+  skipping it — a picture she aimed at Doug must not quietly come back without
+  him. Bytes are cached per process.
+- **Faces are derived display copies** — `FeedKit.thumbFor(url, 240)`. A saved
+  character card is a full render (1.26MB measured; its thumb is 5.8KB), and a
+  picker of 143 originals would be tens of megabytes over cell.
+- **Both card rows reserve the pill's column**, measured by `fitCharPill()`:
+  the sheet opens exactly where the injected autoscroll pill is fixed, and
+  pre-fix its own `Fast` label sat on the fifth recent card — with her phone's
+  47px safe-area inset the pill rides lower still, onto that card's middle.
+- **`imageTypeOf()`** declares each attached reference as what its BYTES say it
+  is. Every reference used to be labelled `image/png` whatever it held, which
+  happened to work while they were PNGs from `refs/`; a character card off
+  Storage is a webp.
+- Test: `node scripts/test-playground-characters.js` (the server contract and
+  the one-copy rules pure, then the real page with the real injected pill —
+  verified failing 3 against the unreserved rows).
+
+### The PANELS tab (Aug 2026, Sophie: "cut it into panels … describe each panel individually")
+
+A hairline **PICTURE · PANELS** row at the top of `/playground`. On PANELS the
+one prompt box becomes N boxes laid out AS the grid — she writes into the
+layout she gets back — and Generate draws ONE gpt-image-2 sheet at the tier
+budget, cuts it into N pictures server-side, and the run's `images` ARE the
+cut panels, so the feed, tiles, votes, lightbox and search need nothing new.
+Grids: **2 (two LANDSCAPE panels, stacked), 4 (2x2), 9 (3x3)** — 25 later is
+one `GRIDS` entry in `sheet-grid.js` (plus a `promptMax` look: nine dictated
+panels fit under 4000 chars at ~350 each; twenty-five will not).
+
+- **THE BOXES FOLD (2026-08-28, Sophie: "make the panels grid collapsible").**
+  Nine 2:3 boxes is most of a screen, and the controls and Generate sit under
+  them — measured at 390pt, folding brings `.controls` up about 460px. A row
+  above the grid (`#panelfold`, the page's own section label with a chevron)
+  puts them away. Sticky in localStorage (`promptlab_panelfold`) and **OPEN by
+  default**: the boxes ARE the prompt on this tab, so shut has to be a state
+  she chose. Four rules, each of them a thing a fold must not cost:
+  - **It hides with `display:none` and leaves the textareas in the DOM.** A
+    fold can never lose her words, and `panelVals()` still reads them — so a
+    folded Generate POSTs every panel and a folded story run sends the story.
+    The tab's own `hidden` is separate and always wins (the page's
+    `[hidden]{display:none!important}`). `buildPanelGrid` writes the mode onto
+    `data-mode` and `paintPanelFold` is the ONE place that sets `display`, so
+    a rebuild can never reopen a shut fold.
+  - **Shut, the row says how many are written** — "Panels · 3 of 9 written",
+    or "Story · written". **Open it does not**: the boxes are right there, and
+    saying it twice is the archive summary's own lesson.
+  - **Anything that means "write in these boxes" OPENS it** — picking a grid
+    or Story, a run's copy button ("panels are back in the boxes" has to be
+    true on screen), and a Generate error naming an empty panel, because an
+    error pointing at a box she cannot see is no error.
+  - Test: `node scripts/test-playground-panel-fold.js` (the real page
+    headless — the fold measured as the controls moving, the words read out of
+    the hidden boxes, the POST, the stickiness across a reload, and each door
+    that reopens it).
+- **AND THE ROW CARRIES A CLEAR (2026-08-29, Sophie: "add a clear button at
+  the top of panels").** `#panelclear`, an underlined word at the end of the
+  fold row — the house inline opener's paint (no box, no plate), because the
+  row is a 10.5px label line where a bordered control would be the heaviest
+  thing on the screen. It empties the grid she is ON, or the story box, and
+  nothing else. Four rules:
+  - **It is a SIBLING of the fold, never inside it.** `#panelfold` is a
+    `<button>`, so a nested button is invalid AND the tap would bubble into
+    folding the boxes away; `#panelrow` is the flex wrapper that holds the two
+    side by side, and it is the wrapper `paintPanelFold` hides off the Picture
+    tab now.
+  - **It is drawn only while something is written** — `anyWords(panelWords())`
+    on every repaint, which is why `stashPanels` and the story box's own input
+    handler call `paintPanelFold`: the clear arrives with her first word and
+    leaves with her last, and is never a control that does nothing.
+  - **It asks first ONLY over UNSEEN work.** A draft that matches
+    `promptlab_panels_drawn_<g>` clears silently — that sheet is in her feed
+    with its prompt one tap from copying back — and one that never drew asks
+    through the page's one `askOpen` box. Same question as the carry, for the
+    same reason.
+  - **Clearing OPENS the fold**, since she is about to write in the boxes
+    again, and it goes through `buildPanelGrid`, which closes an open panel
+    popup rather than leaving it pointed at a dead node.
+  - Test: `node scripts/test-playground-panel-clear.js` (the real page
+    headless — the tap asked with `elementFromPoint`, the boxes still open
+    after it, both answers to the pop-up, the other grid's draft untouched,
+    the drawn draft's silence, and Story).
+
+- **HER WORDS COME WITH HER WHEN SHE CHANGES GRID (2026-08-29, Sophie: "if
+  there's text in one of the grids if I transferred to that grid, my words
+  don't transfer. They should transfer, but if the text that was saved as a
+  draft has never been drawn trigger a pop-up").** Each grid keeps its own
+  draft (`promptlab_panels_<g>`), which is right for coming BACK to one and
+  was the whole of the behaviour — so switching 4 → 9 gave her nine empty
+  boxes and the paragraph she had just dictated was reachable only by tapping
+  back. `carryInto(to)` reads the boxes and writes them into the arriving
+  grid, first cell to first cell, before the switch paints.
+  - **The grid she LEAVES is never written to.** Its own copy is already
+    saved (every box stashes on input), so a carry can only overwrite the
+    grid she is ARRIVING at. That is what makes one question enough, and what
+    makes 9 → 2 safe: the seven that do not fit are still in the nine, and
+    the pop-up's fine print says how many stayed behind.
+  - **The pop-up is only ever about UNSEEN WORK.** It is silent when the
+    target is empty, when it already says the same thing, or when what it
+    says has been **drawn** — that sheet is in her feed and its prompt copies
+    back in one tap, so replacing the draft costs her nothing.
+  - **"Drawn" is the EXACT array that was sent**, stamped per grid at the
+    moment a panels run starts (`promptlab_panels_drawn_<g>`) and by a run's
+    copy-back button (words put back out of a finished run were drawn by
+    definition). So editing one box after a draw makes that grid undrawn
+    again — which is honest, because the words sitting there are not the
+    words that were drawn. Nothing clears a stamp; it only stops matching.
+    A draft written before this shipped matches no stamp and asks once.
+  - **A carry that would land empty-handed is not a carry** — going 9 → 2
+    with words only in panels 3-9 must not wipe the target with blanks.
+  - **"Keep what's there" still takes her to the grid she tapped.** She asked
+    to go there; the only question was whose words it holds.
+  - **STORY IS OUT OF IT, BOTH DIRECTIONS.** A story is one prose block and
+    the panels are a line per cell, so a transfer either way would mean
+    rewriting her words rather than moving them.
+  - **The cancel dialog became THE confirm box** (`askOpen({msg, fine, no,
+    yes, onYes, onNo})`) rather than a second copy of itself; both answers
+    close the box FIRST, because either may repaint the page. A third thing
+    that needs to ask her something calls it.
+  - Test: `node scripts/test-playground-panel-carry.js` (the real page
+    headless — a source assertion cannot tell a carry from a grid that
+    happened to hold the same words, nor see a pop-up that never opened;
+    verified failing 8 pre-fix). `test-playground-panels.js`'s old
+    "9 → 4 → 9 loses nothing" assertion was the OLD separate-drafts contract
+    and is superseded, not broken.
+
+- **THE 2 OPTION PINS ITS CELL SHAPE (2026-08-27, Sophie: "2 option shud be
+  landscape in panels").** It used to be two PORTRAIT panels side by side,
+  following the canvas toggle like 4 and 9 — the one grid where the toggle
+  produced a shape nobody wants: a pair of tall narrow panels on a wide sheet.
+  A `GRIDS` entry may now carry `shape`, and 2 is `{ across: 1, down: 2, shape:
+  'landscape' }` — two wide panels one above the other, which is what a
+  two-panel page is. Three things fall out of the pin, and none of them is a
+  new route (her question, "add endpoint?": **no** — a panels run is the same
+  `POST /api/promptlab` with `panels` + `grid`, and the geometry is derived):
+  - **`landscape` is the portrait cell rotated and has NO res row of its own**
+    — `SHAPES.landscape.budget = 'portrait'` names the tier table it borrows
+    its pixel budget from, so a landscape 2K panel is exactly as many pixels as
+    a portrait 2K one and there is no second copy of the budgets to keep in
+    step. Sheets: 1K **1104x1472** · 2K **1680x2240** · 4K **2448x3264**, cells
+    3:2 (1104x736 · 1680x1120 · 2448x1632).
+  - **The canvas toggle decides NOTHING for a pinned grid, so the page hides
+    it** (`canvasApplies()` in promptlab.html) rather than leaving a control
+    that changes nothing — the same rule the LoRA's hidden knobs follow.
+    `sheetFor('square', 2, …)` and `sheetFor('portrait', 2, …)` derive the
+    identical sheet, which is what makes hiding it honest.
+  - **The naming and the grid sentence follow the geometry**: a single column
+    is named `top` / `bottom` (never "top left" — there is no right-hand one)
+    and its reading order is "top to bottom" alone. A run's cell ratio `3:2` is
+    searchable as **landscape** (`PL_SHAPE_WORD`, one map in server.js and one
+    in promptlab.html, pinned equal by the panels test).
+
+- **THE SHEETS VIEW (2026-08-27, Sophie: "add a section to see just the
+  finished sheets, uncut, by themselves").** A third chip in the filter box,
+  PANELS tab only, sticky like its neighbours: lit, the gallery shows ONE
+  cell per run — the banked uncut sheet (`sheetUrl`). A story sheet and a
+  cut-failed run already ARE their sheet, so they open at their ordinary
+  index; a cut grid run's sheet opens at the VIRTUAL index `-1`.
+  **THAT INDEX IS A REAL PICTURE, NOT A PREVIEW (2026-08-27, Sophie:
+  "missing three buttons too").** It was view-only, because a vote is an
+  index into `images` and the sheet is not in it — so the one picture of the
+  run she actually paid a 4K sheet for had no ♥, no ✕ and no way to the
+  Story Room. All three ride `-1` now: the vote route takes it (keyed
+  `votes["-1"]`, synced onto the Assets record its own filing made, "the
+  sheet — N panels"), the note thread loads, and the Story Room walk carries
+  `&i=-1` which `loadSend` resolves to `sheetUrl`. So the ♥/✕ chips STAY lit
+  in this view and filter it like any other. `sheetCellOf` / `sheetArOf` in
+  promptlab.html are the cell rule.
+  **And its caption is `sizeTier.sheetSize` — the sheet's OWN tier (`4K`),
+  never the run's fraction**: printing `1/9 (4K)` over the picture that is
+  every panel at once is what made the old caption contradict itself two
+  slots later ("1/4 (1K) … uncut sheet").
+- **THE STORY OPTION (2026-08-27, Sophie: "a sheet where i give instructions
+  for a story, and have the image model decide the exact panels").** A
+  fourth stop on the grid picker — **2 · 4 · 9 · Story** — where the boxes
+  become ONE box (placeholder "The story", her words persisted like the
+  panel texts) and the MODEL decides the panel count, sizes and arrangement.
+  There is no grid to cut along, so the sheet is delivered UNCUT — it is a
+  story, not a failed cut, and the card says **story sheet**. Mechanically a
+  single run (`story: true` on the POST): the plain tier canvas the toggle
+  picked (the toggle stays on screen — it decides the SHEET here),
+  `runPromptLabGptJob`, votes and the lightbox as-is; `storySheet` on the
+  doc is what files it in the panels gallery and under Sheets, and both
+  kind-rule twins carry it. The wrapper is `PL_STORY` in server.js — the
+  `line` rides the head directly before her words (served by /styles,
+  printed in the Prompt panel, landing in the filed style half), and
+  `layout` fills the sheet swap so a tail's anti-grid clause is swapped
+  exactly as on a grid sheet. Sophie card, photo ref and cast are OFF, the
+  panels branch's own reasoning. `'story sheet'` is searchable in both
+  haystacks; a story run's copy button refills the story box.
+- **THE GALLERY UNDER THE TAB IS SEPARATE PER TAB (2026-08-27, Sophie:
+  "separate the gallery for playground for single pics vs panels").** The
+  feed follows the PICTURE · PANELS row: each tab shows only its own runs —
+  pendings, list, tiles, the search and the lightbox walk all scoped the same
+  way, because they all come through `visibleRuns`/`pendingKept`. The kind
+  rule is `runIsPanels` (promptlab.html) / `plRunIsPanels` (server.js), the
+  identical expression pinned by the panels test — a failed panels run still
+  carries `panels`, so it stays in the panels gallery where its retry belongs.
+  Three mechanics worth knowing:
+  - **The PANELS tab has no "Older"** — panels runs are a sliver of the feed,
+    so paging 40 mixed docs to find them would make Older a button that
+    mostly adds nothing. Opening the tab sweeps its WHOLE history in one read
+    (`GET /api/promptlab?kind=panels`, the search path's 60s-cached scan).
+  - **The PICTURE tab's Older cursor is the oldest SINGLE run**, never the
+    oldest anything: the sweep merges ancient panels runs into the shared
+    `feed`, and a cursor off one of those would skip every single run between
+    here and it. The walk asks `kind=single`.
+  - **A search is scoped to the tab server-side too** (`kind=` on the query),
+    so the 300-hit cap can never hide a panels hit behind single ones; the
+    client still filters `hits` by tab, because a stale answer from before a
+    tab switch can land. An older cached page sends no `kind` and the route
+    answers exactly as it always did.
+- **The geometry lives in `sheet-grid.js` and is SERVED, never copied** —
+  `GET /api/promptlab/styles` answers `panels` (grids, cell names, the grid
+  sentence, derived sheet/cell canvases per shape × grid × tier). The canvas
+  is DERIVED so every cut lands on whole pixels: the 2x2 grids land exactly on
+  the live tier canvases, and a 1×1 derivation reproduces all six Playground
+  canvases from the constraints alone (`scripts/test-sheet-grid.js` pins it).
+  The canvas toggle picks the CELL's shape — unless the grid PINS one (the 2
+  option), and then the toggle comes off; the 1K/2K/4K tier is the SHEET's
+  pixel budget either way.
+- **The style tail's anti-grid clause is SWAPPED, never argued with** —
+  Dreamy's "Render as ONE single illustration — NOT a grid…" is load-bearing
+  on an ordinary run and poison on a sheet, so `PL_GPT_STYLES.dreamy.sheet`
+  carries a `{from, to}` the same shape as the no-text toggle
+  (`sheetGrid.applySheet`; the two swaps touch disjoint clauses and compose).
+  An edited tail no-ops the swap — her wording wins, disclosed in the Prompt
+  panel. Hoonies' PREFIX also fights grids ("alone on a plain white
+  background") and is deliberately left as-is — she can edit it per style.
+- **The cut is IMAGE-AWARE — mid-gutter, never blindly on the math line
+  (2026-08-26, Sophie's first live look: "the cut should be in the middle of
+  the tan area, but two of them got one side cut right on the black edge").**
+  The model draws the grid slightly off the exact lines, so `findSeams`
+  (sheet-grid.js) profiles the ink near each math line — a window of ±12% of
+  the cell, small so a pale patch inside a panel can never pull a seam into
+  the art — and cuts through the middle of the real paper valley between the
+  frame edges; no qualifying valley (a full-bleed style, no contrast) falls
+  back to the exact math line, so the worst case is the old behavior.
+  Verified against the very sheet she screenshotted: seams moved x 512→507,
+  y 768→774 and both flagged panels came out framed. Each panel files its
+  REAL post-seam canvas. Mechanics otherwise unchanged (`cutSheet`): decode
+  ONCE to raw (~33MB for a 4K sheet on the 512MB box), `extract` each cell
+  in a plain for-loop, `webp({lossless:true})`. The paid sheet is banked to
+  Storage BEFORE the cut; a failed cut ends
+  `done, images:[sheetUrl], cutFailed:true` — the money is never lost, and
+  the card says "uncut sheet".
+- **Filing**: the sheet files once (caption = the sheet's own tier), each
+  panel files with ITS OWN words as the caption and
+  `sizeSlot = sizeTier.cutSize(sheet, count)` → **`1/9 (4K)`** — the fraction
+  and the SHEET's tier, because a ninth of a 4K sheet lands on the 1K rung by
+  its own pixels and would read as an ordinary small picture.
+- **Cost is shown as APPROXIMATE, on purpose**: gpt-image-2 does not price by
+  area, so a derived sheet canvas has no measured price — the tier tooltip
+  says "about … (nearest measured tier)" and the run stores the API's own
+  `usage`, which is the truth. Never print an invented exact number.
+- **The honest quality risk**: the model does not always draw panels exactly
+  on the grid lines, so a cut can shave a border. The grid sentence asks for
+  equal rectangles with edges on the lines and no gutters; Dreamy asks for a
+  hand-drawn border per panel, which absorbs small misalignment; and the
+  uncut sheet is always kept on the doc (`sheetUrl`).
+- **A PANEL'S PUT-BACK IS ONE PICTURE'S WORDS, ON THE PICTURE TAB (2026-08-27,
+  Sophie: "pressing the playground button on images made by panels should copy
+  text into the single picture … not the whole panel").** Two per-PICTURE
+  controls were handing her the whole sheet instead, and the second one was
+  silent:
+  - **The lightbox's "Put this prompt back in the box"** called `copyRunIn`,
+    which for a panels run refills all nine boxes — so the button on panel 4
+    answered with the other eight. `copyPictureIn(r, i)` puts THAT panel's own
+    words in the one box and switches to PICTURE; a panel is a complete
+    picture and re-running it is a single-picture job. **The run card's copy
+    button still refills the grid** (`copyPanelsIn`) — that card IS the run,
+    and those boxes are where its words came from. Two different questions.
+  - **An arriving `?prompt=` now lands on the PICTURE tab.** The tab is
+    STICKY, and the Panels tab is exactly where she is when she taps a panel
+    image's Playground button in Meta Assets — so the ported prompt was
+    landing in `.promptwrap`, which that tab HIDES, and the Generate she fired
+    next drew her saved panel boxes instead. Nothing on screen said so and the
+    ported words were never used. It is a `localStorage` write, deliberately
+    **not `setTab()`**: that block runs partway down the script where syncTab's
+    painters are not all wired yet (`rpick` is a `var` several hundred lines
+    below, and calling it there threw before the prompt could even be filled).
+    Boot's own `syncTab()` paints it. A PLAIN open still honours her sticky
+    tab — the switch belongs to the port. The Story Room's beat trip carries
+    `?prompt=` too, so it is fixed by the same line.
+- Character card, photo ref, the ladders and `padTarget` are OFF on this tab
+  (each names or prices ONE picture). The vote route's image-index cap was
+  widened 0-3 → 0-24 for panel hearts — it 400'd on panel 5 of 9.
+- Tests: `node scripts/test-sheet-grid.js` (pure — geometry, naming, the
+  swap pins against the live literals) and
+  `node scripts/test-playground-panels.js` (the real page, headless).
+
 ## Freeform (`/freeform`) — your own refs, your own words, NOTHING added
 - `freeform.js` (`/api/freeform`, page at `public/freeform.html`) — the one image
   surface with **no opinion**. Every other one wraps her words in a house style
@@ -336,6 +736,15 @@ ceiling are all in `docs/image-pipeline.md` (*The walker is the prompt*).
   pending ids in `localStorage`, and resumes on return. STUDIO_TOKEN-gated
   (only `GET /status` open). Routes: `/status`, `POST/GET/PATCH/DELETE /refs`,
   `POST /run`, `GET /runs`, `GET/DELETE /run/:id`.
+- **The lightbox is THE SHARED ONE since 2026-08-28** (`/asset-lightbox.js` —
+  Sophie: "create a single lightbox view, sync to all surfaces"): the page
+  builds none of its own. An OUTPUT opens with this run's prompt behind the
+  PROMPT door (the verbatim `promptSent` as the content half; a style half
+  only when the boiler really rode along — no wrapper, no Style button, the
+  module's whole promise made readable) and steps through the run's pictures
+  with the invisible `nav` zones; a REFERENCE thumbnail opens plain — her own
+  photo, no prompt to show. Pinned by the source pin in
+  `node scripts/test-asset-lightbox.js`.
 
 ## Vector pipeline (`/api/vector`) — described drawings → art that scales
 - **Making vector art, or touching `vector.js` / `vectorize.js`? Read

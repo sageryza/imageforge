@@ -3,6 +3,12 @@ const express = require('express');
 // THE WHOLE PROMPT, one builder — see prompt-record.js (Sophie's hard rule,
 // 2026-08-24: anytime an image is made anywhere, the whole prompt is stored).
 const promptRecord = require('./prompt-record');
+// The panel sheet's geometry — derived canvases, the grid sentence, the cut
+// rects and the style-tail sheet swap. See sheet-grid.js.
+const sheetGrid = require('./sheet-grid');
+// What a failed Playground run tells her, instead of "see the server log" —
+// see render-fail.js.
+const { renderFailMessage } = require('./render-fail');
 const cors = require('cors');
 const fetch = require('node-fetch');
 const path = require('path');
@@ -354,15 +360,39 @@ loadConfig().then(() => {
   // Paste a video url, get the file — filed straight into the Dump (video) or
   // the audio library (audio), so it is usable without a trip through her phone.
   app.use('/api/ytdl', require('./ytdl').router);
-  app.use('/api/scratchpad', require('./scratchpad').router); // Scratch Pad — stage one of a story (hearted Playground images → beats)
+  // Scratch Pad — stage one of a story (hearted Playground images → beats).
+  // Its Add-to-Shoebox button writes a memory into her Memory Library, which
+  // lives in membry — hand in the membry Firestore the dreamapp way.
+  const scratchpadMod = require('./scratchpad');
+  scratchpadMod.init({ membryDb: storyDb, fileCreation: fileCreationDoc });
+  app.use('/api/scratchpad', scratchpadMod.router);
+  // Squaring — crop pictures to square by tapping arrows, one number per
+  // picture. Takes the membry handle too: a squared Shoebox polaroid is
+  // written straight back onto its memory doc.
+  const cropperMod = require('./cropper');
+  cropperMod.init({ membryDb: storyDb });
+  app.use('/api/crop', cropperMod.router);
+  // Shoebox — the polaroids in her Memory Library, viewable inside the app.
+  // Read-only over membry; the membry handle is handed in like its siblings'.
+  const shoeboxMod = require('./shoebox');
+  shoeboxMod.init({ membryDb: storyDb });
+  app.use('/api/shoebox', shoeboxMod.router);
   // Freeform — your own reference images + your own words, sent verbatim. The
   // one image surface that adds NOTHING to a prompt (no style prefix/suffix).
   app.use('/api/freeform', require('./freeform').router);
+  // Triset — triangular SET solitaire: a pool of triangular picture cards,
+  // find a set, and the named qualities draw a NEW card (the venn center).
+  // Mounted here so config-loader has hydrated OPENAI_API_KEY first.
+  app.use('/api/triset', require('./triset').router);
   // Vector Studio — described drawings → a pastel sheet → cut-outs → SVG. The
   // one surface whose output is resolution-free, so a drawing can go on a
   // poster, a shirt or a die-cut sticker. Mounted here so config-loader has
   // hydrated OPENAI_API_KEY before the module reads it.
   app.use('/api/vector', require('./vector').router);
+  // Chat icons — the little drawing beside every chat's name in the Chats app,
+  // swept for new chats 25 to a sheet. Mounted here for OPENAI_API_KEY, same as
+  // the vector module it draws through.
+  app.use('/api/chaticons', require('./chaticons').router);
   // Voice Studio — Sophie's ElevenLabs voices on a page (mounted here so the
   // config-loader has hydrated ELEVENLABS_API_KEY before the module reads it).
   app.use('/api/voicelab', require('./voicelab').router);
@@ -415,10 +445,15 @@ loadConfig().then(() => {
   app.use('/api/gdrive', gdrive.router); // Google Drive OAuth (read/move/rename/trash)
   app.use('/api/chatfeed', chatfeed.router); // the Chat app (replies from every chat, in one feed)
   app.use('/api/brief', require('./brief').router); // the update button — the five things worth knowing, then the quieter ones
+  app.use('/api/deliverables', require('./deliverables').router); // the running deliverables list (newest first; new entries push past the bell)
   app.use('/api/review', require('./review').router); // the review queue — every deck/grid page still waiting on her
+  app.use('/api/filmshots', require('./filmshots').router); // which picture is on screen at which second — the Prompt door on a paused film
   app.use('/api/storylink', require('./storylink').router); // one story across Story Timeline, the Story Room and Cutting Blocks
   app.use('/api/googleads', googleads.router); // Google Ads API credential health check
   app.use('/api/character', character.router); // Character Creator (photo + name -> diary-comic ref)
+  // …and hand the same instance to the Playground's character picker, which
+  // must never require it itself — see setCharacterLib for why.
+  setCharacterLib(character);
   app.use('/api/tarot-email', tarotEmail.router); // tap-to-reveal Card of the Day email (Brevo)
   app.use('/api/nde', nde.router); // Anthony Chene NDE interview → moments database
   app.use('/api/editor', editor.router); // Episode Editor: transcript spans → snippet cards → rendered audio
@@ -742,6 +777,12 @@ const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
 // the pill into their HTML, so it only ever lives in one place; a page that
 // generates its own markup (chats/writing/storyroom/wall) keeps importing the
 // same source through its gen-*.py script.
+// The build id of a served page — the content hash of the page file plus the
+// shared pill. ONE copy, in page-build.js, so a test can ask it the same
+// question the server does; see that file for why it is a hash and not a
+// const, and why the pill is folded in.
+const { pageBuildId } = require('./page-build');
+
 function serveGated(file, opts = {}) {
   return (req, res) => {
     if (STUDIO_TOKEN) {
@@ -797,6 +838,11 @@ function serveGated(file, opts = {}) {
     // nothing at all.
     out += '<script src="/pagehead.js" defer></script>';
     if (opts.pill) out += require('./chatfeed').pillInject();
+    // The stamp every gated page can compare itself against. One line here, so
+    // a page that wants to self-heal needs no BUILD const of its own — see
+    // page-build.js and GET /api/promptlab/build for the first reader.
+    out += '<script>window.__forgeBuild='
+      + JSON.stringify(pageBuildId(file, !!opts.pill)) + '</script>';
     res.type('html').send(out);
   };
 }
@@ -852,6 +898,11 @@ app.get('/freeform', serveGated('freeform.html', { pill: true }));
 // Vector: describe drawings -> art that scales, and change its colours after
 // the fact for nothing. The front for /api/vector; see docs/vector-pipeline.md.
 app.get('/vector', serveGated('vector.html', { pill: true }));
+// One screen, never scrolls — so no autoscroll pill, like /opinions.
+app.get('/crop', serveGated('crop.html'));
+// Shoebox: the polaroids in her Memory Library, on one shelf in the app. The
+// front for /api/shoebox; read-only over her memories.
+app.get('/shoebox', serveGated('shoebox.html', { pill: true }));
 // Story Timeline: dictated moments -> cards you can order, join into
 // sequences, edit, divide and delete. The front for /api/timeline.
 app.get('/timeline', serveGated('timeline.html', { pill: true }));
@@ -878,12 +929,19 @@ app.get('/instagram', serveGated('instagram.html', { pill: true }));
 // from opinions-feed.json + /api/opinions extras. Served WITHOUT the pill:
 // one screen, the page never scrolls.
 app.get('/opinions', serveGated('opinions.html'));
+// Triset — triangular SET solitaire. No pill: one screen, never scrolls.
+app.get('/triset', serveGated('triset.html'));
 // Desktop queue: the Mac-only tasks chats have batched into
 // docs/desktop-tasks.md, and the ones already checked off. Read-only, and
 // deliberately UNLINKED — no tile, no wrapper ("somewhere out-of-the-way",
 // Sophie, Aug 2026). Served WITHOUT the pill: a list she taps open, not a
 // page she reads hands-free.
 app.get('/desktop', serveGated('desktop.html', { pill: true }));
+// Deliverables: the running list of everything chats have handed her — films,
+// audio cuts, pages — one place, newest first (Sophie's ask, 2026-08-27).
+// Auto-fed by media pins + POST /api/deliverables; a new entry pushes past
+// the per-chat bell. Served WITH the pill: a list that scrolls.
+app.get('/deliverables', serveGated('deliverables.html', { pill: true }));
 // The Sophie character card, for the pad's draw-here toggle (refs/ is not
 // web-served, so this one file is exposed deliberately — it's her own
 // hearted render, and the page behind the gate is the only thing asking).
@@ -2783,6 +2841,29 @@ async function appendAssetMessage(ref, chat, url, from, text) {
     tx.set(ref, patch, { merge: true });
     return next;
   });
+  // RING THE OWNING CHAT'S DOORBELL when SHE wrote (2026-08-28, Sophie: "fix
+  // the note bell"). Until this, nothing told a chat a note had arrived: the
+  // doorbell fires on her MESSAGE and a note is not a message, so the only
+  // protection was a chat remembering to look twice — and one didn't, then
+  // built 135 pictures ignoring every ask she had left on the film. Measured
+  // that day: she announced the notes at 23:17:29 and wrote them
+  // 23:29:54-23:31:11, twelve minutes after the chat had already swept.
+  //
+  // This is the ONE place to do it: all four note paths (her text note, the
+  // legacy single note, the voice note, and a film note's timestamped line)
+  // land here. `from:'chat'` must NOT ring — a chat answering on an image
+  // would wake itself in a loop.
+  //
+  // Best-effort and never awaited: a note must land on the doc whether or not
+  // anything can be woken, exactly as witchvideo.js's ringChat has it.
+  if (who === 'sophie') {
+    (async () => {
+      const wake = require('./chat-wake');
+      const chatfeed = require('./chatfeed');
+      return wake.ring({ db: () => admin.firestore(), registry: chatfeed.registry,
+        followMoves: chatfeed.followMoves }, chat);
+    })().catch((err) => console.warn('asset note wake failed:', err.message));
+  }
   return { message: msg, thread };
 }
 
@@ -2838,6 +2919,10 @@ app.post('/api/gallery/assets/vote', express.json(), async (req, res) => {
     // doc, so the Playground's own feed agrees — see syncVoteToPlayground.
     if (vote !== undefined) {
       await syncVoteToPlayground(url, vote);
+      // …and onto its Voice Studio take, for an audio one (2026-08-28). Same
+      // reasoning as the Playground: a ♥ means the same thing wherever it is
+      // tapped, and a clear here must not leave a stuck heart there.
+      await require('./voicelab').voteFromAssets(url, vote);
     }
     res.json({ ok: true });
   } catch (err) {
@@ -3318,6 +3403,33 @@ app.get('/pause-plan.js', (req, res) => {
   res.type('application/javascript');
   res.set('Cache-Control', 'no-cache, must-revalidate');
   res.sendFile(__dirname + '/pause-plan.js');
+});
+// The character-reference rules, shared the same way (2026-08-27): the
+// Playground's Prompt panel prints the exact sentence the picked characters
+// will add to her words, so the page calls the REAL charLine() rather than
+// keeping a second copy of the wording that drifts the day it is reworded.
+app.get('/pad-characters.js', (req, res) => {
+  res.type('application/javascript');
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/pad-characters.js');
+});
+// The caption's third slot, shared the same way (2026-08-27): the Playground
+// draws its own caption client-side out of the run doc, and it must land on
+// the same rung the filing path writes onto the record. A tier table copied
+// into the page would drift from these boundaries the day they move.
+app.get('/size-tier.js', (req, res) => {
+  res.type('application/javascript');
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/size-tier.js');
+});
+// The panel sheet's geometry AND its content block, shared with the page the
+// same way — so the Playground's Prompt panel prints the REAL characters
+// clause her typed cast will send (sheetGrid.castBlock), rather than keeping
+// a second copy of the wording that drifts the day the clause is reworded.
+app.get('/sheet-grid.js', (req, res) => {
+  res.type('application/javascript');
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/sheet-grid.js');
 });
 // Chunking: the clip library — a shelf of every short self-contained piece the
 // app has made, four to a row, with search as the whole interface. Engine is
@@ -5026,8 +5138,15 @@ app.post('/api/witch/cart/update', async (req, res) => {
 // the one shared filer (style-test and deck-batch proxy into these routes
 // internally, so they are covered by the same four calls). Fire-and-forget:
 // a gallery hiccup must never fail a render that already exists.
+// AWAITED BY EVERY CALLER SINCE 2026-08-28 (Sophie: "any other fire and
+// forget"). These routes are STATELESS — no run doc survives them — so a
+// filing killed by a deploy restart was unrecoverable: the picture existed in
+// Storage with no record anywhere that it was ever made. Awaiting couples the
+// filing to the response: either she gets the url AND the record, or neither
+// (a kill before the response loses the url too, so nothing new is at risk).
+// Still best-effort — a gallery hiccup logs and never fails a render.
 function fileGenerateRoute({ url, prompt, full, prefix, suffix, model, quality, canvas, style }) {
-  Promise.resolve()
+  return Promise.resolve()
     .then(() => fileCreationDoc({
       url, prompt, fullPrompt: full || prompt, promptPrefix: prefix, promptSuffix: suffix,
       model, quality, canvas, style, source: 'teststation',
@@ -5052,7 +5171,7 @@ app.post('/api/generate/dalle', async (req, res) => {
     const permanentUrl = await saveToFirebase(data.data[0].url, 'dalle');
     // What WE sent is the record; DALL·E's own rewrite rides the style slot so
     // neither text is lost and neither is filed as the other.
-    fileGenerateRoute({ url: permanentUrl, prompt, full: prompt,
+    await fileGenerateRoute({ url: permanentUrl, prompt, full: prompt,
       model: 'dall-e-3', quality, canvas: size,
       style: data.data[0].revised_prompt ? 'dalle rewrote the prompt' : '' });
     res.json({ url: permanentUrl, revised_prompt: data.data[0].revised_prompt });
@@ -5074,13 +5193,26 @@ app.post('/api/generate/gptimage', async (req, res) => {
     const url = await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/webp', 'openai');
     // Verbatim surface — her words go through untouched, so there is no style
     // half to file and the full prompt IS the content.
-    fileGenerateRoute({ url, prompt, full: prompt,
+    await fileGenerateRoute({ url, prompt, full: prompt,
       model: 'gpt-image-2', quality, canvas: size });
     res.json({ url });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
+// What a buffer of image bytes REALLY is, from its magic number — never from
+// a filename, which for a reference fetched off Storage may not exist and for
+// a photo she pasted is whatever the sender felt like. PNG, JPEG and WEBP are
+// the three gpt-image-2's edits endpoint takes; anything else keeps the old
+// default rather than inventing a type.
+function imageTypeOf(buf) {
+  const b = Buffer.isBuffer(buf) ? buf : Buffer.from(buf || []);
+  if (b.length >= 8 && b[0] === 0x89 && b.toString('latin1', 1, 4) === 'PNG') return { ext: 'png', type: 'image/png' };
+  if (b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return { ext: 'jpg', type: 'image/jpeg' };
+  if (b.length >= 12 && b.toString('latin1', 0, 4) === 'RIFF' && b.toString('latin1', 8, 12) === 'WEBP') return { ext: 'webp', type: 'image/webp' };
+  return { ext: 'png', type: 'image/png' };
+}
 
 // ─── House style: gpt-image-2 EDITS with Sophie's style-reference images ──
 // The same engine the illustrated lessons use (not a LoRA): the two style refs
@@ -5128,7 +5260,17 @@ async function openaiImageEditRefs(prompt, refBuffers, { quality = 'low', size =
       // and the original it derives from has to stay full quality. Sophie
       // caught it as graininess on fine ink hatching, 2026-08-19. Do not put
       // a compression back on a generation call.
-      refBuffers.forEach((b, i) => form.append('image[]', b, { filename: `ref${i + 1}.png`, contentType: 'image/png' }));
+      // EACH REFERENCE IS DECLARED AS WHAT IT ACTUALLY IS (2026-08-27). Every
+      // buffer used to be labelled `ref.png`/`image/png` whatever it held,
+      // which happened to work while the refs were PNGs banked in refs/ and a
+      // JPEG photo she attached. The character cards are WEBP off Storage, and
+      // a lie about the type is the kind of thing an endpoint rejects for
+      // reasons that read as a bug. The bytes say which — the magic numbers,
+      // never a filename — and anything unrecognised keeps the old default.
+      refBuffers.forEach((b, i) => {
+        const t = imageTypeOf(b);
+        form.append('image[]', b, { filename: `ref${i + 1}.${t.ext}`, contentType: t.type });
+      });
       const res = await fetch('https://api.openai.com/v1/images/edits', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, ...form.getHeaders() },
@@ -5168,7 +5310,7 @@ app.post('/api/generate/housestyle', async (req, res) => {
     const url = await saveBufferToFirebase(buf, 'image/webp', 'housestyle');
     // `full` is the literal string handed to the edits call two lines up; the
     // style's own prompt and tail are the wrapper around her words.
-    fileGenerateRoute({ url, prompt, full,
+    await fileGenerateRoute({ url, prompt, full,
       prefix: style.stylePrompt || '', suffix: style.end || '',
       model: 'gpt-image-2', quality, canvas: '1024x1024', style: style.name || styleId });
     res.json({ url });
@@ -5289,7 +5431,7 @@ app.post('/api/generate/replicate', async (req, res) => {
     // The LoRA's wrapper is its trigger in front and its suffix behind —
     // `fullPrompt` is what was actually sent. One filing per output.
     for (const u of permanentUrls) {
-      fileGenerateRoute({ url: u, prompt, full: fullPrompt,
+      await fileGenerateRoute({ url: u, prompt, full: fullPrompt,
         prefix: known ? known.trigger : '', suffix: known?.promptSuffix || '',
         model, style: known ? known.name : '' });
     }
@@ -5311,6 +5453,25 @@ app.post('/api/generate/replicate', async (req, res) => {
 // POST returns the id in ~0.2s and the page polls GET /:id, resuming from
 // localStorage if it was closed mid-run.
 const PROMPTLAB = 'forge-promptlab';
+
+// The character-reference rules — the SAME file the Story Room draws from and
+// the same file the Playground's page loads at /pad-characters.js, so the
+// sentence that rides with her words is written down exactly once.
+const padChars = require('./pad-characters');
+// Her saved cast lives in character.js — but that module is required inside
+// loadConfig().then() so it reads its keys AFTER the config doc has hydrated
+// process.env, and `require` caches: requiring it from here would capture the
+// un-hydrated env and hand that same crippled instance to the Character
+// Creator's own routes for the life of the process. So the loader HANDS it
+// over instead (setCharacterLib below) and nothing here ever requires it.
+// Until the loader resolves — a sub-second window at startup — the two routes
+// that need it answer honestly rather than half-working.
+let characterLib = null;
+function setCharacterLib(m) { characterLib = m; }
+function charLib() {
+  if (!characterLib) throw new Error('character library not ready yet — try again in a moment');
+  return characterLib;
+}
 
 // ─── The Playground's 3rd style: gpt-image-2 + Sophie's style reference ──
 // Not a LoRA. Her own scanned ink-and-watercolour page is attached to
@@ -5412,6 +5573,18 @@ const PL_GPT = {
   photoLine: ' The LAST attached image is a photo reference: use it for the ' +
     'subject described below — the person, place or object in it — and NOT ' +
     'for the drawing style, which comes from the style reference above.',
+  // AND THE SAME SENTENCE RE-ANCHORED, for the one run that carries BOTH a
+  // photo and character references (2026-08-27). Character cards ride at the
+  // very end — charLine() in pad-characters.js says "the last attached
+  // image(s)" and that wording is shared with the Story Room — so the moment
+  // one rides, "the LAST attached image" stops being the photo and the line
+  // above becomes a lie about which picture is which. Same instruction, one
+  // anchor changed; a run with no characters sends the original byte for
+  // byte, which is what every run before this one sent.
+  photoLineWithChars: ' The attached image just before the character ' +
+    'reference(s) at the end is a photo reference: use it for the subject ' +
+    'described below — the person, place or object in it — and NOT for the ' +
+    'drawing style, which comes from the style reference above.',
 };
 // The ChatGPT engine's selectable styles (Aug 2026). Each is the same recipe
 // — gpt-image-2 edits, refs attached as pure STYLE references, quality/size
@@ -5458,6 +5631,15 @@ const PL_GPT_STYLES = {
     prefix: '', suffix: '',
     photoLine: 'The attached image is a photo reference: use it for the ' +
       'subject described below — the person, place or object in it.',
+    // With character cards riding at the end, "the attached image" is no
+    // longer the only one — see PL_GPT.photoLineWithChars. No style-reference
+    // clause here either, for the same reason the line above has none.
+    photoLineWithChars: 'The attached image just before the character ' +
+      'reference(s) at the end is a photo reference: use it for the subject ' +
+      'described below — the person, place or object in it.',
+    // NO Sophie character card — see below. Character references SHE picks
+    // are a different thing entirely (her own cast, not a style by another
+    // name) and ride here exactly as they do on every other tile.
     noCharacter: true,
   },
   // "Scarry" (Sophie's name for it): Instagram saves she sent (busy-animal
@@ -5544,6 +5726,24 @@ const PL_GPT_STYLES = {
     // Still gone and still deliberately unmentioned: "no caption boxes" and any
     // word about shape ("vertical"), because the canvas toggles portrait/square
     // and a prompt naming one would fight the other.
+    //
+    // TWO MORE OF HERS, 2026-08-27, both dictated:
+    //   • THE TEXT CLAUSE IS BACK TO "minimal text." AS THE DEFAULT, with the
+    //     toggle swapping it for "no text." — "just two options minimal and
+    //     none and it should just be those words not the whole paragraph."
+    //     So the second bullet above is history: the flat ban is now what the
+    //     TOGGLE sends, not what ships baked in, and the spelled-out paragraph
+    //     ("no letters, no numbers, no captions, no handwriting") is gone
+    //     entirely. Do not put it back — she asked for the words themselves.
+    //   • THE GREEN TANK TOP: "the woman w the green tank top appears nowhere.
+    //     if text asks for a woman, invent a different woman, with different
+    //     clothing." The one figure the model keeps lifting off
+    //     `refs/dream-mystery.jpg` — her own diary-comic page, which is full of
+    //     drawn people — so the general "do not draw its content" sentence was
+    //     not enough and this names her. It rides at the very END of the tail,
+    //     after that sentence, which is also why it is clear of BOTH swaps:
+    //     `noText.from` and `sheet.from` target earlier clauses and neither
+    //     regex reaches it.
     // THE ORIGINAL WORDING IS STILL IN THE REPO AND IS STILL VALID for what it
     // was built for — `scripts/nde-panel.py` (a full-bleed NDE panel wants
     // those bans) and `scripts/style-triptych.js`. Both carry a note pointing
@@ -5551,23 +5751,46 @@ const PL_GPT_STYLES = {
     // deliberately; this one is Sophie's current wording, not the only one.
     suffix: 'Render as ONE single illustration — NOT a grid, NOT split panels. ' +
       'Draw it inside a hand-drawn border, like the frames in the style ' +
-      'reference. no text. Again: the attached image is a STYLE reference ' +
-      'only — do not draw its content, its subjects or its composition.',
+      'reference. minimal text. Again: the attached image is a STYLE ' +
+      'reference only — do not draw its content, its subjects or its ' +
+      'composition. The woman in the green tank top appears nowhere. If the ' +
+      'text asks for a woman, invent a different woman, with different ' +
+      'clothing.',
     // THE NO-TEXT TOGGLE (Aug 2026, Sophie: "add a no text line to the prompt
     // that can be toggled on and off with a little toggle"). It SWAPS the
     // tail's own text clause rather than appending a second sentence arguing
-    // with it, so `from` has to track the tail VERBATIM — her 2026-08-22
-    // wording says "no text." where the old one said "Minimal text only.", so
-    // this moved with it (`test-playground-notext.js` pins the two together).
-    // The toggle still earns its place: her tail bans text in three quiet
-    // words, and turning it on spells the ban out — no letters, no numbers, no
-    // captions, no handwriting. Off is the default and the baked tail is
-    // unchanged, so a run with the toggle off is byte-for-byte what she asked
-    // for.
+    // with it, so `from` has to track the tail VERBATIM — reword the tail's
+    // text clause without moving `from` and the toggle silently APPENDS
+    // instead of swapping (`test-playground-notext.js` pins the two together).
+    // TWO WORDS EACH SINCE 2026-08-27 (Sophie: "just two options minimal and
+    // none and it should just be those words not the whole paragraph") — the
+    // toggle is now literally her two options, off = `minimal text.` and on =
+    // `no text.`, and the spelled-out ban it used to send is gone. Off is the
+    // default and the baked tail is unchanged, so a run with the toggle off is
+    // byte-for-byte what she asked for.
     noText: {
-      from: 'no text.',
-      to: 'NO text anywhere in the image — no words, no letters, no numbers, ' +
-        'no captions, no handwriting.',
+      from: 'minimal text.',
+      to: 'no text.',
+    },
+    // THE PANELS SHEET SWAP (Aug 2026). On a panel-sheet run the tail's
+    // anti-grid clause is poison — two sentences arguing about the layout
+    // produce one panel with ghosts of the others — so it is SWAPPED, the
+    // no-text mechanism again, never argued with. `from` must track the tail
+    // VERBATIM through "…style reference. " and stop BEFORE 'no text.', so
+    // this swap and the no-text swap touch disjoint clauses of one tail and
+    // compose in either order (test-sheet-grid.js pins all of that against
+    // these live literals). `{layout}` is filled by sheetGrid.applySheet with
+    // the run's real grid. Per-panel hand-drawn borders are truer to the
+    // reference than dropping the border ask — that page IS a bordered
+    // multi-panel comic. If she has edited the tail, applySheet no-ops and
+    // her wording wins.
+    sheet: {
+      from: 'Render as ONE single illustration — NOT a grid, NOT split panels. ' +
+        'Draw it inside a hand-drawn border, like the frames in the style ' +
+        'reference. ',
+      to: 'Render as {layout} — each panel its own complete illustration, ' +
+        'inside its own hand-drawn border like the frames in the style ' +
+        'reference. ',
     },
     noCharacter: true,
   },
@@ -5595,6 +5818,31 @@ const PL_GPT_STYLES = {
     noCharacter: true,
   },
 };
+// "Triangle" (2026-08-31, Sophie: "add triangle as a new playground style ·
+// w image and prompt w new equilateral") — the triangular picture cards the
+// Triset game is made of, offered as a Playground tile so she can draw one of
+// anything instead of only getting them out of a found set.
+// DERIVED FROM `dreamy`, NEVER TRANSCRIBED BESIDE IT: it is the same reference
+// image (refs/dream-mystery.jpg — "w image"), the same anti-content prefix and
+// the same tail, with dreamy's rectangular BORDER clause swapped for the
+// equilateral triangle-card one. So a reword of hers reaches this tile the day
+// she makes it, and the game and the tile can never disagree about what a card
+// is. The wording and the swap live in triangle-clause.js, the one copy shared
+// with triset.js — the "new equilateral" half of her ask is that clause,
+// including the 2026-08-31 "USE THE TRIANGLE" composition line she called
+// perfect. Her no-text toggle rides along untouched (that clause sits after
+// the border one), and the tile carries its own panels swap, because dreamy's
+// anchor is the clause this just consumed.
+PL_GPT_STYLES.triangle = require('./triangle-clause').triangleStyle(PL_GPT_STYLES.dreamy);
+// FREEFORM'S BOILERPLATE TOGGLE SENDS THIS TABLE'S OWN WORDING (2026-08-28,
+// Sophie: "the text we use for dreamy or watercolor"). Handed in rather than
+// required, because freeform.js is mounted hundreds of lines above this const
+// and a require would read it before it exists. server.js stays the one owner
+// of what is actually sent.
+require('./freeform').init({ gptStyles: PL_GPT_STYLES, fileCreation: fileCreationDoc });
+// Triset draws its cards in the Dreamy recipe with a triangle-card clause
+// swapped in — handed in for the same reason as freeform's boiler above.
+require('./triset').init({ gptStyles: PL_GPT_STYLES, fileCreation: fileCreationDoc });
 // The no-text switch on a style's tail. It SWAPS the style's own text clause
 // where that clause is there to swap, so the sent prompt says one thing about
 // text instead of two contradicting things; if she has edited the tail and her
@@ -5622,6 +5870,26 @@ async function playgroundRefs(st) {
   return local.concat(remote);
 }
 
+// The bytes behind the character references a run picked, in her order,
+// cached for the life of the process — a cast is a handful of images drawn
+// against again and again. Mirrors charRefs() in scratchpad.js, and is
+// deliberately NOT best-effort: a picture she asked to have Doug in must fail
+// rather than come back without him.
+const plCharBytes = new Map();
+async function playgroundCharRefs(chars) {
+  const out = [];
+  for (const c of (Array.isArray(chars) ? chars : [])) {
+    if (!plCharBytes.has(c.url)) {
+      const r = await fetch(c.url, { timeout: 30000 });
+      if (!r.ok) throw new Error(`character reference fetch ${r.status}`);
+      if (plCharBytes.size >= 40) plCharBytes.delete(plCharBytes.keys().next().value);
+      plCharBytes.set(c.url, await r.buffer());
+    }
+    out.push(plCharBytes.get(c.url));
+  }
+  return out;
+}
+
 // Cancelled run ids (in-process — the job and the cancel route are the same
 // instance). Replicate runs only; see the /cancel route.
 const plCancelled = new Set();
@@ -5632,17 +5900,67 @@ const plCancelled = new Set();
 // orphaned by the 2026-08-04 deploy). No legitimate run outlives its 5-minute
 // API timeout, so anything 'running' past 10 minutes is dead: sweep it into
 // 'failed' shortly after boot and every 10 minutes after.
+//
+// A PANELS run parked on 'ready' with its sheet banked is a DIFFERENT loss and
+// is on a much shorter clock — see promptlab-sweep.js, which owns both rules.
+const plSweep = require('./promptlab-sweep');
 async function sweepStuckPromptlabRuns() {
   try {
     if (!admin.apps.length) return;
-    const q = await admin.firestore().collection(PROMPTLAB).where('status', '==', 'running').get();
-    const cutoff = Date.now() - 10 * 60 * 1000;
-    for (const d of q.docs) {
-      const at = d.data().createdAt?.toMillis?.() || 0;
-      if (at && at < cutoff) {
-        await d.ref.update({ status: 'failed', error: 'interrupted by a server restart' });
-        console.log(`promptlab sweep: marked stuck run ${d.id} failed`);
+    const db = admin.firestore();
+    // A PANELS run parks on 'ready' while its sheet is on screen and the cut
+    // runs behind it, so the orphan check has to reach that status too — the
+    // very restart this sweep exists for would otherwise leave a paid sheet
+    // uncut AND unswept. Only a panels run with a banked sheet and no cut
+    // panels is taken from there: an ordinary 'ready' run already holds its
+    // pictures and must never be marked failed.
+    const [running, ready] = await Promise.all([
+      db.collection(PROMPTLAB).where('status', '==', 'running').get(),
+      db.collection(PROMPTLAB).where('status', '==', 'ready').get(),
+    ]);
+    const stale = running.docs.concat(ready.docs.filter((d) => plSweep.isOrphanedSheet(d.data())));
+    const now = Date.now();
+    for (const d of stale) {
+      const r = d.data();
+      // A redraw RESTARTS the staleness clock (redrawnAt) — without it the
+      // next tick would fail the very draw the last one started (a 4K sheet
+      // can draw 14 minutes).
+      const at = r.redrawnAt?.toMillis?.() || r.createdAt?.toMillis?.() || 0;
+      const act = plSweep.sweepAction({ ...r, id: d.id, createdAt: at }, { now, cutting: cuttingNow });
+      if (!act) continue;
+      // A PANELS run whose sheet was already banked lost only the FREE half
+      // — the cut — to the restart (measured live 2026-08-27: three deploys
+      // in a row orphaned four paid 4K sheets). Finish it from the banked
+      // sheet instead of marking paid work failed.
+      if (act === 'recut') {
+        try {
+          await recutPanelsRun(d.ref, r);
+          console.log(`promptlab sweep: finished orphaned panels run ${d.id} from its banked sheet`);
+          continue;
+        } catch (e) { console.warn(`promptlab sweep: recut of ${d.id} failed:`, e.message); }
+        // A banked sheet whose recut will not run keeps the LONG grace before
+        // it is called dead — the picture is paid for and a later sweep (or
+        // her own /recut) may still land it.
+        if (now - at < plSweep.STUCK_MS) continue;
       }
+      // A panels run that never BANKED a sheet was killed mid-generation —
+      // billed, no bytes (2026-08-28: ~$1.75 of 4K sheets in one evening;
+      // 2026-08-29, Sophie: "this can't happen again"). The doc stores
+      // everything the draw needs, so draw it AGAIN instead of marking paid
+      // work failed. One more sheet's cost, capped at REDRAW_CAP so a deploy
+      // storm cannot re-bill forever; her feed position (createdAt) is kept.
+      if (act === 'redraw') {
+        const n = (r.redraws || 0) + 1;
+        await d.ref.update({ redraws: n, redrawnAt: admin.firestore.Timestamp.now(),
+          status: 'running', error: admin.firestore.FieldValue.delete() });
+        const cfg = plSweep.panelsCfgOf(r);
+        cfg.chars = r.characters || [];
+        runPromptLabPanelsJob(d.ref, cfg);
+        console.log(`promptlab sweep: redrawing orphaned panels run ${d.id} (attempt ${n} of ${plSweep.REDRAW_CAP})`);
+        continue;
+      }
+      await d.ref.update({ status: 'failed', error: 'interrupted by a server restart' });
+      console.log(`promptlab sweep: marked stuck run ${d.id} failed`);
     }
   } catch (e) { console.warn('promptlab sweep:', e.message); }
 }
@@ -5660,7 +5978,7 @@ setInterval(sweepStuckPromptlabRuns, 10 * 60 * 1000);
 // frame to decode, so without one it would tile as a blank square. Best-effort
 // throughout and de-duped by url: filing must never fail the work that made the
 // thing, and re-filing the same url must never add a second tile.
-async function fileCreationDoc({ url, type, prompt, poster, model, quality, style, source, createdMs, canvas, sizeSlot, fullPrompt, promptPrefix, promptSuffix, promptContent } = {}) {
+async function fileCreationDoc({ url, type, prompt, poster, model, quality, style, source, createdMs, canvas, sizeSlot, fullPrompt, promptPrefix, promptSuffix, promptContent, promptStyle } = {}) {
   try {
     if (!url) return null;
     await storyDb();
@@ -5688,11 +6006,18 @@ async function fileCreationDoc({ url, type, prompt, poster, model, quality, styl
     // words — but not always: a caller may caption a picture with a line this
     // repo wrote. `promptContent` lets it say what her words really were
     // rather than filing ours as hers.
-    Object.assign(doc, promptRecord.promptFields({
-      full: fullPrompt,
-      content: promptContent != null ? promptContent : prompt,
-      prefix: promptPrefix, suffix: promptSuffix,
-    }));
+    // A caller that already STORES the two halves (freeform's run doc keeps
+    // promptStyle with the [content] seam in place) passes them as a record —
+    // re-deriving from prefix/suffix it no longer has would drop the style
+    // half, which is how Freeform's creations filed with none.
+    Object.assign(doc, promptRecord.promptFields(promptStyle !== undefined
+      ? { fullPrompt: String(fullPrompt || ''), promptStyle: String(promptStyle || ''),
+        promptContent: String(promptContent != null ? promptContent : prompt || '') }
+      : {
+        full: fullPrompt,
+        content: promptContent != null ? promptContent : prompt,
+        prefix: promptPrefix, suffix: promptSuffix,
+      }));
     if (model) doc.model = String(model).slice(0, 80);
     if (quality) doc.quality = String(quality).slice(0, 40);
     // THE THIRD CAPTION SLOT, same as fileRunToCreations writes for a
@@ -5717,7 +6042,7 @@ async function fileCreationDoc({ url, type, prompt, poster, model, quality, styl
 // writes, with `source:'playground'` so they're identifiable. De-dupes by url.
 // Best-effort by design: a gallery hiccup must never fail a run whose images
 // are already saved and on the page.
-async function fileRunToCreations(images, { prompt, style, model, quality, size, fullPrompt, promptPrefix, promptSuffix } = {}) {
+async function fileRunToCreations(images, { prompt, style, model, quality, size, fullPrompt, promptPrefix, promptSuffix, createdMs } = {}) {
   const sizeTier = require('./size-tier');
   try {
     if (!images || !images.length) return;
@@ -5730,7 +6055,12 @@ async function fileRunToCreations(images, { prompt, style, model, quality, size,
       if (!dup.empty) continue;
       const doc = {
         type: 'image', url, prompt: String(prompt || '').slice(0, 500), stickers: null,
-        createdAt: admin.firestore.Timestamp.now(), source: 'playground',
+        // The reconcile sweep passes the RUN's own time — a re-filed picture
+        // must slot into history, never land at the top of her gallery.
+        createdAt: createdMs
+          ? admin.firestore.Timestamp.fromMillis(Number(createdMs))
+          : admin.firestore.Timestamp.now(),
+        source: 'playground',
       };
       if (style) doc.style = String(style).slice(0, 80);
       // THE WHOLE PROMPT — see fileCreationDoc. A Playground run has always
@@ -5765,6 +6095,75 @@ async function fileRunToCreations(images, { prompt, style, model, quality, size,
   }
 }
 
+// ── EVERY FINISHED RUN'S PICTURES REACH MY CREATIONS, EVEN WHEN THE LIVE
+// FILING WAS KILLED (2026-08-28, Sophie: "i wanna make sure every picture
+// I've ever created can be found"; measured that day: 186 Playground and 27
+// Freeform outputs invisible in Meta Assets). The live filing above is
+// fire-and-forget, so a deploy restart between "the run finished" and "the
+// filing landed" loses it silently and forever — and a WTR LoRA run never
+// filed at all (only the gpt job ever called fileRunToCreations). This sweep
+// runs once per boot: the instance restarts on every deploy, so it is
+// effectively continuous, and it re-derives each recent run's filing from the
+// RUN DOC itself — the record that survives the restart — writing only what
+// is missing (both filers dedupe by url) with the run's own timestamp, so a
+// re-filed picture slots into history rather than landing at the top of her
+// gallery. Nothing is invented: every field comes off the run doc. The
+// standing audit is scripts/backfill-meta-coverage.js (dry names every gap).
+const RECONCILE_DAYS = 14;
+async function reconcileCreationFiling() {
+  try {
+    if (!admin.apps.length) return;
+    const cutoff = Date.now() - RECONCILE_DAYS * 86400 * 1000;
+    const pl = await admin.firestore().collection('forge-promptlab')
+      .where('createdAt', '>', admin.firestore.Timestamp.fromMillis(cutoff)).get();
+    for (const d of pl.docs) {
+      const r = d.data() || {};
+      if (r.status !== 'done') continue;
+      const images = [].concat(r.images || [])
+        .map((u) => (typeof u === 'string' ? u : u && u.url)).filter(Boolean);
+      if (!images.length) continue;
+      const st = PL_GPT_STYLES[r.gptStyle];
+      const label = (st && st.label) || (r.style === 'watercolor' ? 'WTR' : '');
+      const styleSlot = label ? `${label}${r.quality ? ' · ' + r.quality : ''}` : '';
+      const createdMs = r.createdAt && r.createdAt.toMillis ? r.createdAt.toMillis() : 0;
+      // A PANELS run's pieces carry their OWN words and the '1/9 (4K)' size
+      // slot — filing nine panels under the run's joined prompt would break
+      // the label-every-picture rule the live path keeps.
+      if (Array.isArray(r.panels) && r.panels.length && images.length === r.panels.length) {
+        const cut = r.sheet ? require('./size-tier').cutSize(r.sheet, r.panels.length) : '';
+        for (let i = 0; i < images.length; i++) {
+          await fileCreationDoc({
+            url: images[i], prompt: r.panels[i], style: styleSlot,
+            model: r.model || PL_GPT.id, quality: r.quality,
+            canvas: r.cell || '', sizeSlot: cut,
+            fullPrompt: r.fullPrompt, createdMs,
+            source: 'playground',
+          });
+        }
+        continue;
+      }
+      await fileRunToCreations(images, {
+        prompt: r.prompt, style: styleSlot,
+        model: r.model || (r.gptStyle ? PL_GPT.id : ''),
+        quality: r.quality, size: r.size, fullPrompt: r.fullPrompt,
+        createdMs,
+      });
+    }
+    const ffMod = require('./freeform');
+    const ff = await admin.firestore().collection('forge-freeform')
+      .where('createdAt', '>', cutoff).get();
+    for (const d of ff.docs) {
+      const r = d.data() || {};
+      if (r.status === 'done' && (r.images || []).length) await ffMod.fileRunImages(d.id);
+    }
+  } catch (e) { console.warn('creation-filing reconcile failed:', e.message); }
+}
+// Only where a real deploy runs (the chaticons rule) — a dev container
+// booting the app must not spend reads or write her gallery.
+if (process.env.RENDER_EXTERNAL_URL) {
+  setTimeout(() => { reconcileCreationFiling(); }, 2 * 60 * 1000);
+}
+
 // ── A RUN STARTED FROM A STORY BEAT LANDS ON THAT BEAT ──────────────
 // Sophie, 2026-08-26: tapping the Playground button on a beat should carry
 // its drawing prompt over, and "whatever I just made, there should also be
@@ -5790,13 +6189,20 @@ function padTargetOf(body) {
 }
 async function landOnBeat(target, images, runId, meta) {
   if (!target || !images || !images.length) return;
-  const { placeOnBeat } = require('./scratchpad');
+  const { placeOnBeat, autoShapePatch } = require('./scratchpad');
+  // A STORY'S SHAPE FOLLOWS ITS FIRST PICTURE (2026-08-28, Sophie: "automatic
+  // by first picture"). A run she sent here from the Playground is a picture
+  // she chose the canvas for, so it decides exactly like a picture placed in
+  // the room — and only ever on a story nobody has decided ({} otherwise).
+  // Read once for the whole run: the second image of a run cannot decide,
+  // because the first one already did.
+  const shapePatch = await autoShapePatch(target.pad, images[0]).catch(() => ({}));
   for (let i = 0; i < images.length; i++) {
     try {
       await placeOnBeat(target.pad, target.beat, images[i], target.style, {
         runId, i, prompt: meta.prompt || null, model: meta.model || null,
         engine: meta.engine || null, quality: meta.quality || null,
-      });
+      }, { shapePatch });
     } catch (err) { console.warn('promptlab → beat failed:', err.message); }
   }
 }
@@ -5815,11 +6221,27 @@ async function runPromptLabGptJob(docRef, cfg) {
     const st = PL_GPT_STYLES[cfg.styleId] || PL_GPT_STYLES.evan;
     const refs = await playgroundRefs(st);
     if (cfg.character) refs.push(playgroundRef(PL_GPT.characterFile));
-    // Her uploaded photo rides LAST — see PL_GPT.photoLine for why the order
-    // matters (the character line names "the second attached image").
+    // Her uploaded photo rides after those — see PL_GPT.photoLine for why the
+    // order matters (the character line names "the second attached image").
     if (cfg.photoBuf) refs.push(cfg.photoBuf);
+    // HER OWN CAST RIDES AT THE VERY END (2026-08-27, Sophie's character
+    // picker). charLine() names them "the last attached image(s)", which is
+    // the same wording the Story Room sends, so they must genuinely be last —
+    // and a photo riding with them says so in its own re-anchored line.
+    // FAILING LOUDLY IS RIGHT HERE: a run she aimed at a character must not
+    // quietly draw a stranger, so a reference that will not fetch fails the
+    // run rather than being skipped best-effort the way a photo is.
+    for (const b of await playgroundCharRefs(cfg.chars)) refs.push(b);
     const images = [];
     const usage = [];              // the API's own token counts, one per render
+    // WHY A RENDER DIED, KEPT (2026-08-27). Every render's real error — the
+    // API's own sentence, a timeout, a refusal — was console.warn'd and then
+    // thrown away, and a fully-failed run reported "see the server log" to a
+    // woman who cannot open the server log. So the one fact she needs to know
+    // whether to tap Generate again or change the prompt existed for the
+    // length of one request and was gone. Kept per render, because one run
+    // can draw several and they can fail differently.
+    const errs = [];
     let failed = 0;
     const want = Math.min(Math.max(Number(cfg.outputs) || 1, 1), PL_GPT.maxOutputs);
     await Promise.all(Array.from({ length: want }, async () => {
@@ -5865,11 +6287,16 @@ async function runPromptLabGptJob(docRef, cfg) {
         await docRef.update({ status: 'ready', images: images.slice() });
       } catch (err) {
         failed++;
+        errs.push(String(err.message || err));
         console.warn('promptlab gpt-image render failed:', err.message);
       }
     }));
-    if (!images.length) throw new Error('every gpt-image-2 render failed — see the server log');
+    // The REAL sentence leads, and the count rides behind it when a run asked
+    // for several — "1 of 4" is the difference between a bad prompt and a bad
+    // minute. Only a run that failed with nothing to say falls back.
+    if (!images.length) throw new Error(renderFailMessage(errs, want));
     await docRef.update({ status: 'done', images, failedRenders: failed,
+      ...(errs.length ? { renderErrors: errs } : {}),
       ...(usage.length ? { usage } : {}) });
     // `cfg.fullPrompt` is the literal string that went to the model two dozen
     // lines up — pass it rather than rebuilding, so the stored text cannot
@@ -5889,6 +6316,247 @@ async function runPromptLabGptJob(docRef, cfg) {
     });
   } catch (err) {
     console.warn('promptlab gpt job failed:', err.message);
+    await docRef.update({ status: 'failed', error: err.message }).catch(() => {});
+  }
+}
+
+// The shape WORD a run's cell ratio is searchable by — keep in step with the
+// page's own copy in promptlab.html (`PL_SHAPE_WORD` there too).
+const PL_SHAPE_WORD = { '2:3': 'portrait', '1:1': 'square', '3:2': 'landscape' };
+
+// ── A PANELS RUN: one sheet, cut apart ─────────────────────────────────
+// (Aug 2026, Sophie: "we make a picture and cut it into panels … describe
+// each panel individually. It's a way of saving money on the picture,
+// especially if it's done in 2K or 4K — then the pixels come out right
+// too.") N panel descriptions drawn TOGETHER on one gpt-image-2 sheet at
+// the tier budget, then cut into N pictures locally — the sheet pays the
+// style reference once where N separate draws pay it N times.
+//
+// The cut is exact math on a canvas DERIVED to divide into whole-pixel
+// cells (sheet-grid.js), decoded ONCE to a raw buffer and cropped
+// SEQUENTIALLY — never Promise.all — with sharp's cache off: this box has
+// 512MB, a decoded 4K sheet is ~33MB raw, and per-crop re-decodes with the
+// cache on are how a batch of extracts balloons. Lossless webp on every
+// panel: the model's own pixels are the source and nothing lossy may stand
+// between them and the cut (the house no-generation-compression rule).
+async function cutSheet(sheetBuf, plan) {
+  const sharp = require('sharp');
+  sharp.cache(false);
+  const { data, info } = await sharp(sheetBuf).ensureAlpha().raw()
+    .toBuffer({ resolveWithObject: true });
+  // The model answers the requested canvas; anything else means the cut
+  // lines would land on the wrong pixels, so refuse and keep the sheet.
+  if (info.width !== plan.W || info.height !== plan.H) {
+    throw new Error(`sheet came back ${info.width}x${info.height}, wanted ${plan.sheet}`);
+  }
+  // THE CUT IS IMAGE-AWARE (2026-08-26, Sophie: "the cut should be in the
+  // middle of the tan area, but two of them got one side cut right on the
+  // black edge"): the model draws the grid slightly off the exact lines, so
+  // findSeams reads the picture and cuts through the middle of the real
+  // gutter near each math line, falling back to the math line where no
+  // gutter qualifies. Luminance derived from the ONE decode already in hand.
+  const gray = new Uint8Array(info.width * info.height);
+  for (let i = 0, p = 0; i < gray.length; i++, p += info.channels) {
+    // Rec. 601 integer luma — close enough for an ink/paper valley.
+    gray[i] = (data[p] * 77 + data[p + 1] * 150 + data[p + 2] * 29) >> 8;
+  }
+  const seams = sheetGrid.findSeams(gray, info.width, info.height, plan.across, plan.down);
+  const rects = sheetGrid.seamBoxes(seams.xs, seams.ys, info.width, info.height);
+  const raw = { width: info.width, height: info.height, channels: info.channels };
+  const urls = [];
+  for (const r of rects) {
+    const buf = await sharp(data, { raw }).extract(r)
+      .webp({ lossless: true }).toBuffer();
+    urls.push(await saveBufferToFirebase(buf, 'image/webp', 'promptlab'));
+  }
+  return { urls, rects };
+}
+
+// Sibling of runPromptLabGptJob: same refs, same edits/generations choice,
+// same whiten and usage capture — one render, then the cut, then filing.
+// NOT cancellable, like every gpt run: the sheet is billed when requested.
+// The cut-and-file half of a panels run, shared between the live job and the
+// RECOVERY paths (the sweep and POST /:id/recut) — everything after the sheet
+// is banked is free and re-runnable, so a run orphaned by a deploy restart
+// can be finished later from its banked sheet instead of losing paid work.
+// DRAWING AND CUTTING ARE PACED SEPARATELY (2026-08-28, Sophie: "separate
+// running sheets and cutting"). A DRAW happens on OpenAI's hardware and
+// costs this box nothing, so a chat fires its whole batch at once. A CUT is
+// local and decodes the sheet to raw — ~33MB for a 4K sheet on a 512MB
+// instance — and every finished sheet used to cut the instant it landed, so
+// a batch whose sheets finished together stacked those decodes and killed
+// the instance mid-batch (measured that day: ten 9-panel 4K sheets fired
+// together, seven runs lost). The gate below is the fix, and it is why a
+// chat no longer has to stagger its launches to protect the box.
+//
+// One cut at a time, process-wide. The cut takes seconds against a 60-180s
+// draw, so a queue costs a batch almost nothing in wall time while making
+// the peak memory of N simultaneous finishes independent of N.
+let cutChain = Promise.resolve();
+function gateCut(fn) {
+  const run = cutChain.then(fn, fn);
+  // the chain must never reject, or every later cut is skipped
+  cutChain = run.then(() => {}, () => {});
+  return run;
+}
+
+// The runs whose cut is queued or running IN THIS PROCESS. The gate above
+// serializes cuts, so a banked sheet can legitimately sit uncut for minutes
+// waiting its turn — and the stuck-run sweep must never recut one of those,
+// or the run files a second set of panels. This set answers "is anything
+// still going to cut this?" exactly, which is what lets the sweep act on a
+// genuinely orphaned sheet in two minutes instead of ten.
+const cuttingNow = new Set();
+
+async function finishPanelsCut(docRef, cfg, sheetBuf, sheetUrl) {
+  cuttingNow.add(docRef.id);
+  try {
+    return await gateCut(() => finishPanelsCutInner(docRef, cfg, sheetBuf, sheetUrl));
+  } finally {
+    cuttingNow.delete(docRef.id);
+  }
+}
+
+async function finishPanelsCutInner(docRef, cfg, sheetBuf, sheetUrl) {
+  const plan = cfg.plan;
+  const sizeTier = require('./size-tier');
+  const st = PL_GPT_STYLES[cfg.styleId] || PL_GPT_STYLES.evan;
+  const style = `${st.label} · ${cfg.quality}`;
+  // THE SHEET's own seam (2026-08-29, Sophie: "it's missing the style half,
+  // and characters etc"). head/tail alone LOSE the middle of the sent text —
+  // the cast clause and the grid sentence sit between them — and cfg.prompt
+  // (the ' / '-joined box text) is not verbatim in fullPrompt, so the filed
+  // record broke the exact-prompt rule on every sheet. sheetSeam slices the
+  // panel-lines block verbatim; the SAME function feeds the page's lightbox,
+  // so the two doors cannot disagree. Falls back to the old head/tail shape
+  // only when nothing matched (never expected for a run this job drew).
+  const sheetSeam = sheetGrid.sheetSeam(cfg.fullPrompt, cfg.panels)
+    || { prefix: cfg.head, content: cfg.prompt, suffix: cfg.tail };
+  let images, rects;
+  try {
+    ({ urls: images, rects } = await cutSheet(sheetBuf, plan));
+  } catch (err) {
+    // The cut failed (a resized answer, a sharp hiccup): the run is still
+    // DONE — the sheet is the picture, misdrawn ratio and all, and the doc
+    // says why so the page can tell her.
+    console.warn('promptlab sheet cut failed:', err.message);
+    await docRef.update({ status: 'done', images: [sheetUrl], cutFailed: true,
+      error: admin.firestore.FieldValue.delete() });
+    fileCreationDoc({
+      url: sheetUrl, prompt: `the sheet — ${plan.count} panels`,
+      promptContent: sheetSeam.content, style, model: PL_GPT.id, quality: cfg.quality,
+      canvas: plan.sheet, fullPrompt: cfg.fullPrompt,
+      promptPrefix: sheetSeam.prefix, promptSuffix: sheetSeam.suffix, source: 'playground',
+    });
+    return [sheetUrl];
+  }
+  // The cut lands in one write to done, and the panels replace the sheet the
+  // page has been showing since 'ready' (see runPromptLabPanelsJob). This
+  // used to be the ONLY write, on the reasoning that "a 'ready' stage showing
+  // the SHEET in cells shaped for panels would distort it" — that was true of
+  // the cell shape and not of the stage, so the page draws the sheet in the
+  // SHEET's own ratio instead. A recovered run sheds its failed/cutFailed
+  // marks here.
+  await docRef.update({ status: 'done', images,
+    error: admin.firestore.FieldValue.delete(),
+    cutFailed: admin.firestore.FieldValue.delete() });
+  // File the sheet and every panel into My Creations. The sheet's caption
+  // is a line this repo wrote, so `promptContent` says what her words
+  // really were (see fileCreationDoc). Each panel files with its OWN
+  // description and the '1/9 (4K)' size slot — a cut panel's own pixels
+  // land on a lower rung and would read as an ordinary small picture
+  // (size-tier.js cutSize; fileCreationDoc's sizeSlot exists for this).
+  const cut = sizeTier.cutSize(plan.sheet, plan.count);
+  fileCreationDoc({
+    url: sheetUrl, prompt: `the sheet — ${plan.count} panels`,
+    promptContent: sheetSeam.content, style, model: PL_GPT.id, quality: cfg.quality,
+    canvas: plan.sheet, fullPrompt: cfg.fullPrompt,
+    promptPrefix: sheetSeam.prefix, promptSuffix: sheetSeam.suffix, source: 'playground',
+  });
+  // A panel's style half is everything around ITS words in the sent text —
+  // the panel line sits verbatim in fullPrompt, so the seam is real.
+  const seamFor = (text) => {
+    const i = cfg.fullPrompt.indexOf(text);
+    if (i < 0) return { prefix: cfg.head, suffix: cfg.tail };
+    return {
+      prefix: cfg.fullPrompt.slice(0, i).trim(),
+      suffix: cfg.fullPrompt.slice(i + text.length).trim(),
+    };
+  };
+  images.forEach((url, i) => {
+    const seam = seamFor(cfg.panels[i]);
+    // The panel's REAL canvas — the seams move to the gutters, so a panel
+    // can differ from the nominal cell by a few pixels either side.
+    const r = rects && rects[i];
+    fileCreationDoc({
+      url, prompt: cfg.panels[i],
+      canvas: r ? `${r.width}x${r.height}` : plan.cell, sizeSlot: cut,
+      style, model: PL_GPT.id, quality: cfg.quality, fullPrompt: cfg.fullPrompt,
+      promptPrefix: seam.prefix, promptSuffix: seam.suffix, source: 'playground',
+    });
+  });
+  return images;
+}
+
+// panelsCfgOf moved to promptlab-sweep.js (2026-08-29) — the sweep's redraw
+// decision asks it too (is this doc rebuildable at all?), and the decision
+// is pure there so it has a test that needs no Firestore.
+const panelsCfgOf = plSweep.panelsCfgOf;
+
+// Finish an orphaned or cut-failed panels run from its BANKED sheet — free,
+// no model call: download the sheet, cut, file. Throws when the run is not
+// recoverable (no banked sheet, not a panels run, sheet gone).
+async function recutPanelsRun(docRef, d) {
+  const cfg = panelsCfgOf(d);
+  if (!cfg || !d.sheetUrl) throw new Error('not a recuttable panels run');
+  const r = await fetch(d.sheetUrl);
+  if (!r.ok) throw new Error(`could not fetch the banked sheet (${r.status})`);
+  const sheetBuf = Buffer.from(await r.arrayBuffer());
+  return finishPanelsCut(docRef, cfg, sheetBuf, d.sheetUrl);
+}
+
+async function runPromptLabPanelsJob(docRef, cfg) {
+  const plan = cfg.plan;
+  try {
+    const st = PL_GPT_STYLES[cfg.styleId] || PL_GPT_STYLES.evan;
+    const refs = await playgroundRefs(st);
+    // Her picked characters ride LAST, the order she picked them — the same
+    // order charLine() names them in the head. A reference that will not
+    // fetch fails the run rather than quietly drawing a stranger (the Story
+    // Room's rule, and playgroundCharRefs is where it lives).
+    for (const b of await playgroundCharRefs(cfg.chars)) refs.push(b);
+    const data = refs.length
+      ? await openaiImageEditRefs(cfg.fullPrompt, refs, {
+        quality: cfg.quality, size: plan.sheet, timeout: 300000,
+      })
+      : await openaiImage({
+        model: PL_GPT.id, prompt: cfg.fullPrompt, n: 1,
+        size: plan.sheet, quality: cfg.quality,
+        output_format: 'webp', moderation: 'low',
+      }, 2, 300000);
+    if (data.error) throw new Error(data.error.message || 'gpt-image-2 error');
+    const b64 = data.data?.[0]?.b64_json;
+    if (!b64) throw new Error('gpt-image-2 returned no image');
+    let sheetBuf = Buffer.from(b64, 'base64');
+    // Pastel's flood-fill whiten runs on the SHEET, before the cut, so every
+    // panel inherits it. Best-effort, as on an ordinary run.
+    if (st.whiten) { try { sheetBuf = await whitenBackground(sheetBuf); } catch (e) { console.warn('promptlab whiten failed:', e.message); } }
+    // THE PAID SHEET IS BANKED BEFORE THE CUT — a failed cut must never lose
+    // a picture that has already been billed, and the banked url is also what
+    // makes a deploy restart recoverable (the sweep recuts from it).
+    const sheetUrl = await saveBufferToFirebase(sheetBuf, 'image/webp', 'promptlab');
+    // THE SHEET SHOWS THE MOMENT IT IS PAID FOR (2026-08-27, Sophie: "the
+    // uncut sheet shud show before it's cut as soon as it's done (in
+    // panels"). The run parks on 'ready' with the banked sheet and no images
+    // — the page's swap poller already knows that shape — so the picture is
+    // on screen while the cut and the filing run behind it, and the panels
+    // replace it on 'done'. The page draws it in the SHEET's own ratio, never
+    // the panel cell's.
+    await docRef.update({ sheetUrl, status: 'ready',
+      ...(data.usage ? { usage: [data.usage] } : {}) });
+    await finishPanelsCut(docRef, cfg, sheetBuf, sheetUrl);
+  } catch (err) {
+    console.warn('promptlab panels job failed:', err.message);
     await docRef.update({ status: 'failed', error: err.message }).catch(() => {});
   }
 }
@@ -5951,6 +6619,33 @@ async function runPromptLabJob(docRef, cfg) {
     await docRef.update({ status: 'failed', error: err.message }).catch(() => {});
   }
 }
+
+// THE STORY SHEET'S WRAPPER (2026-08-27, Sophie: "a sheet where i give
+// instructions for a story, and have the image model decide the exact
+// panels"). She writes the STORY; the model decides the panel count, sizes
+// and arrangement — the opposite of the grid sentence, which dictates all
+// three. `line` rides the head directly before her words (disclosed: it is
+// served by GET /styles and printed in the Prompt panel, and it lands in the
+// filed style half like every wrapper); `layout` fills the sheet swap's
+// `{layout}` slot, so a tail's anti-grid clause is swapped exactly as on a
+// grid sheet rather than argued with. ONE copy, here — the page holds none.
+// How many typed characters one sheet may carry. Generous rather than tight —
+// unlike the PICTURE cast (padChars.MAX_PICKED), whose cap exists because
+// every attached reference is paid input tokens, a typed row costs a line of
+// prompt. It is a guard against a runaway paste, not a design limit.
+const CAST_MAX = 12;
+// One cap per field, in one place — the panels sheet, the story sheet and a
+// single picture all trim the same way, so a row cannot survive one door and
+// be cut at another.
+const CAST_NAME = 60;
+const CAST_DESC = 300;
+
+const PL_STORY = {
+  line: 'Tell this story as a multi-panel comic page. YOU decide how many '
+    + 'panels there are, their sizes and their arrangement — whatever tells '
+    + 'the story best. The story:',
+  layout: 'a multi-panel comic page — however many panels tell the story best',
+};
 
 app.post('/api/promptlab', async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
@@ -6022,8 +6717,48 @@ app.post('/api/promptlab', async (req, res) => {
       // on a style with no prefix), so one is added when something precedes
       // it. PL_GPT.photoLine's own leading space is left alone — it is byte
       // for byte what the other five tiles have always sent.
-      const photoLine = st.photoLine ? ` ${st.photoLine}` : PL_GPT.photoLine;
-      const head = `${prefix}${character ? st.characterLine : ''}${photoBuf ? photoLine : ''}`.trim();
+      // HER OWN CAST (2026-08-27, Sophie: "a little button in the playground
+      // right next to where it says dreamy … with a character icon that shows
+      // the five most recent characters"). The ids she picked resolve to the
+      // Character Creator's saved records — the SAME library the cast sheet
+      // and the dream flow read, never a second pile — and ride as the last
+      // attached images. A style with no reference at all takes them too: a
+      // character card is her own subject, not a style by another name, which
+      // is what `noCharacter` is about (the Sophie card).
+      // Asked for ONLY when she actually picked somebody — a run with no cast
+      // must not depend on the character library being reachable at all, so
+      // the ordinary run is untouched right down to which modules it needs.
+      const pickedChars = (Array.isArray(req.body.characters) && req.body.characters.length)
+        ? await charLib().charactersByIds(req.body.characters, padChars.MAX_PICKED)
+        : [];
+      const charsLine = padChars.charLine(pickedChars);
+      // The photo's sentence is re-anchored when characters ride behind it —
+      // "the LAST attached image" is one of them by then.
+      const photoLine = pickedChars.length
+        ? (st.photoLineWithChars ? ` ${st.photoLineWithChars}` : PL_GPT.photoLineWithChars)
+        : (st.photoLine ? ` ${st.photoLine}` : PL_GPT.photoLine);
+      // HER TYPED CAST RIDES A SINGLE PICTURE TOO (2026-08-29, Sophie:
+      // "panels adds a character / if i import solo to playground / can it
+      // auto add the character description from the original multi sheet /
+      // ex creepy guy"). It used to be a PANELS-only field: a panel pulled
+      // out of a sheet and re-run alone lost the one thing that said the
+      // creepy guy is that creepy guy, silently, with nothing on screen
+      // admitting it. Same rows, same builder, the SINGLE opening line
+      // (sheetGrid.CAST_INTRO_ONE — the sheet's own sentence names "the
+      // panels", which is untrue over one picture).
+      //
+      // It is its OWN PARAGRAPH after the head's run-on sentence, exactly as
+      // it is on a sheet — that shape is what lets castParse read the clause
+      // back out of a filed style half whichever surface wrote it.
+      //
+      // An empty cast sends NOTHING, so an ordinary run is byte-for-byte the
+      // request it has always been, right down to the blank lines.
+      const soloCast = sheetGrid.castRows(req.body.cast).slice(0, CAST_MAX).map((c) => ({
+        name: c.name.slice(0, CAST_NAME), description: c.description.slice(0, CAST_DESC),
+      }));
+      const soloCastTxt = sheetGrid.castBlock(soloCast, true);
+      const headLine = `${prefix}${character ? st.characterLine : ''}${photoBuf ? photoLine : ''}${charsLine}`.trim();
+      const head = [headLine, soloCastTxt].filter(Boolean).join('\n\n');
       const fullPrompt = `${head}${head ? '\n\n' : ''}${typed}${tail ? `\n\n${tail}` : ''}`;
       const outputs = Math.min(Math.max(Number(req.body.outputs) || PL_GPT.outputs, 1), PL_GPT.maxOutputs);
       const quality = PL_GPT.qualities.includes(req.body.quality) ? req.body.quality : PL_GPT.quality;
@@ -6036,6 +6771,136 @@ app.post('/api/promptlab', async (req, res) => {
       const shape = PL_GPT.res[shapeId];
       const resId = shape.tiers[String(req.body.res || '')] ? String(req.body.res) : PL_GPT.resDefault;
       const canvas = { size: shape.tiers[resId].size, aspectRatio: shape.aspectRatio };
+
+      // A PANELS RUN (Aug 2026, Sophie: "cut it into panels … describe each
+      // panel individually") — N descriptions drawn together on ONE sheet
+      // and cut apart. Same collection, same feed; the doc's `images` become
+      // the cut panels so votes, the lightbox and search need nothing new.
+      // The canvas toggle picks the CELL shape and the tier the sheet's
+      // pixel budget; the sheet canvas itself is derived (sheet-grid.js).
+      // The SOPHIE CARD and her photo ref are deliberately OFF here — both
+      // wordings name "the second/last attached image" for ONE picture, and
+      // a sheet is not the surface to argue that on.
+      //
+      // HER CAST IS ON, BOTH HALVES (2026-08-27, Sophie: "I want both.
+      // Descriptions as well as pictures: two options"). They are different
+      // things and neither replaces the other:
+      //   • PICTURES — the character picker's saved cards, attached as the
+      //     last references with charLine()'s own sentence. It says "the last
+      //     attached image(s)", which is true of a sheet exactly as it is of
+      //     a single picture; that is why this one could simply be turned on,
+      //     where the Sophie card and the photo — which name a POSITION for
+      //     ONE picture — still cannot be.
+      //   • DESCRIPTIONS — `cast`, her typed name + description rows, written
+      //     into the prompt as a clause before the panel lines
+      //     (sheetGrid.castBlock). Empty cast, no clause at all: "the
+      //     character clause only applies if there's at least one character."
+      // Both land in the HEAD, so `cfg.head` — which is what a panel's filed
+      // style half is cut from — carries them without another change.
+      if (Array.isArray(req.body.panels) && req.body.panels.length) {
+        const grid = Number(req.body.grid) || req.body.panels.length;
+        if (!sheetGrid.GRIDS[grid]) return res.status(400).json({ error: `unknown grid ${grid}` });
+        // Cut, not refused, like the prompt itself — this is a live editor.
+        const panels = req.body.panels.map((p) => String(p || '').trim().slice(0, 350));
+        if (panels.length !== grid || panels.some((p) => !p)) {
+          return res.status(400).json({ error: `all ${grid} panels need words` });
+        }
+        const plan = sheetGrid.sheetFor(shapeId, grid, resId, PL_GPT.res);
+        if (!plan) return res.status(400).json({ error: 'no legal sheet for that grid' });
+        // The style tail's anti-grid clause is SWAPPED, never argued with
+        // (sheet-grid.js applySheet; an edited tail no-ops and her wording
+        // wins). The no-text swap composes after it — disjoint clauses.
+        const sheetTail = applyNoText(
+          sheetGrid.applySheet(suffix, st.sheet, sheetGrid.layoutWords(grid)), st, noText);
+        // Her typed cast, trimmed and capped. Cut rather than refused, like
+        // the panel words themselves — this is a live editor, and a long
+        // description is worth sending short rather than not at all.
+        const cast = sheetGrid.castRows(req.body.cast).slice(0, CAST_MAX).map((c) => ({
+          name: c.name.slice(0, CAST_NAME), description: c.description.slice(0, CAST_DESC),
+        }));
+        const castTxt = sheetGrid.castBlock(cast);
+        // The picked cards' sentence rides the head with the style prefix; the
+        // typed cast is its own paragraph in front of the panel lines, where
+        // it establishes who these people are before anything refers to them.
+        const sheetHead = `${prefix}${charsLine}`.trim();
+        const blockTxt = sheetGrid.panelBlock(grid, panels);
+        const sheetBody = castTxt ? `${castTxt}\n\n${blockTxt}` : blockTxt;
+        const sheetPrompt = `${sheetHead}${sheetHead ? '\n\n' : ''}${sheetBody}${sheetTail ? `\n\n${sheetTail}` : ''}`;
+        const docRef = admin.firestore().collection(PROMPTLAB).doc();
+        await docRef.set({
+          id: docRef.id, status: 'running', engine: 'gptimage', prompt: typed,
+          fullPrompt: sheetPrompt, model: PL_GPT.id, gptStyle: styleId, quality,
+          // `size` is the SHEET; `aspectRatio` is the CELL's — it is what
+          // each finished picture is, and what the feed renders cells with.
+          size: plan.sheet, aspectRatio: plan.aspectRatio, res: resId,
+          promptEdited: edited, noText,
+          styleRef: (st.refFiles || []).concat(st.storageRefs || []).join(','),
+          outputs: 1, character: false, photoRef: '', images: [],
+          panels, grid: { across: plan.across, down: plan.down, count: plan.count },
+          sheet: plan.sheet, cell: plan.cell,
+          // Both halves of her cast, as provenance — the typed rows and WHICH
+          // saved characters rode, by id and name. Absent when she used
+          // neither, so a run without a cast is the request it always was.
+          ...(cast.length ? { cast } : {}),
+          ...(pickedChars.length ? { characters: pickedChars } : {}),
+          createdAt: admin.firestore.Timestamp.now(),
+        });
+        runPromptLabPanelsJob(docRef, {
+          fullPrompt: sheetPrompt, head: sheetHead, tail: sheetTail,
+          quality, prompt: typed, styleId, panels, plan, chars: pickedChars,
+        });
+        return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
+      }
+
+      // A STORY SHEET (2026-08-27, Sophie: "a sheet where i give instructions
+      // for a story, and have the image model decide the exact panels") — her
+      // story rides whole and the MODEL lays out the page: panel count, sizes
+      // and arrangement are its call. There is no grid to cut along, so the
+      // picture is delivered UNCUT — mechanically it is a single run (the
+      // plain tier canvas the toggle picked, runPromptLabGptJob, votes and the
+      // lightbox as-is) wearing `storySheet`, which is what files it in the
+      // panels gallery and under its Sheets view. The story line is part of
+      // the head, so the filed style half discloses it; the tail's anti-grid
+      // clause is swapped exactly as on a grid sheet (her edited tail no-ops
+      // the swap and her wording wins). The Sophie card, her photo and the
+      // Sophie card and her photo are OFF, the panels branch's own reasoning:
+      // their wordings name "the second/last attached image" for ONE picture.
+      // HER CAST IS ON, both halves, on the same terms as a grid sheet.
+      if (req.body.story) {
+        const sheetTail = applyNoText(
+          sheetGrid.applySheet(suffix, st.sheet, PL_STORY.layout), st, noText);
+        // Her cast rides a story sheet on the same terms as a grid one — the
+        // picked cards in the head with charLine()'s sentence, the typed rows
+        // as their own clause before her story, and nothing at all when she
+        // used neither.
+        const cast = sheetGrid.castRows(req.body.cast).slice(0, CAST_MAX).map((c) => ({
+          name: c.name.slice(0, CAST_NAME), description: c.description.slice(0, CAST_DESC),
+        }));
+        const castTxt = sheetGrid.castBlock(cast);
+        const p0 = `${prefix}${charsLine}`.trim();
+        const storyHead = `${p0}${p0 ? '\n\n' : ''}${castTxt ? `${castTxt}\n\n` : ''}${PL_STORY.line}`;
+        const storyPrompt = `${storyHead}\n\n${typed}${sheetTail ? `\n\n${sheetTail}` : ''}`;
+        const docRef = admin.firestore().collection(PROMPTLAB).doc();
+        await docRef.set({
+          id: docRef.id, status: 'running', engine: 'gptimage', prompt: typed,
+          fullPrompt: storyPrompt, model: PL_GPT.id, gptStyle: styleId, quality,
+          size: canvas.size, aspectRatio: canvas.aspectRatio, res: resId,
+          promptEdited: edited, noText, storySheet: true,
+          styleRef: (st.refFiles || []).concat(st.storageRefs || []).join(','),
+          outputs: 1, character: false, photoRef: '', images: [],
+          ...(cast.length ? { cast } : {}),
+          ...(pickedChars.length ? { characters: pickedChars } : {}),
+          createdAt: admin.firestore.Timestamp.now(),
+          ...(padTarget ? { padTarget } : {}),
+        });
+        runPromptLabGptJob(docRef, {
+          fullPrompt: storyPrompt, head: storyHead, tail: sheetTail, outputs: 1,
+          quality, prompt: typed, character: false, styleId,
+          size: canvas.size, photoBuf: null, chars: pickedChars, padTarget,
+        });
+        return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
+      }
+
       const docRef = admin.firestore().collection(PROMPTLAB).doc();
       await docRef.set({
         id: docRef.id, status: 'running', engine: 'gptimage', prompt: typed, fullPrompt,
@@ -6043,13 +6908,24 @@ app.post('/api/promptlab', async (req, res) => {
         aspectRatio: canvas.aspectRatio, res: resId, promptEdited: edited, noText,
         styleRef: (st.refFiles || []).concat(st.storageRefs || []).join(','), outputs,
         character, photoRef: photoUrl, images: [], createdAt: admin.firestore.Timestamp.now(),
+        // WHICH characters rode this run, by id and name — the provenance the
+        // pad's own draws keep, so a picture can say who is in it.
+        ...(pickedChars.length ? { characters: pickedChars } : {}),
+        // Her typed cast, as provenance — the rows, so putting this run back
+        // in the box restores the same people (the only-change-what-the-
+        // record-knows rule). Absent when she used none.
+        ...(soloCast.length ? { cast: soloCast } : {}),
         ...(padTarget ? { padTarget } : {}),
       });
+      // "Recent" means the last time she DREW with one, so drawing here is
+      // what moves a character up the picker. Fire and forget — a failed
+      // bookkeeping write must never cost her the picture.
+      if (pickedChars.length) charLib().markUsed(pickedChars.map((c) => c.id)).catch(() => {});
       // head/tail ride along so the filed style half is what ACTUALLY wrapped
       // her words on this run — her prefix/suffix override if she made one,
       // the character line and the photo line only when they were really
       // attached — rather than the style's baked default.
-      runPromptLabGptJob(docRef, { fullPrompt, head, tail, outputs, quality, prompt: typed, character, styleId, size: canvas.size, photoBuf, padTarget });
+      runPromptLabGptJob(docRef, { fullPrompt, head, tail, outputs, quality, prompt: typed, character, styleId, size: canvas.size, photoBuf, chars: pickedChars, padTarget });
       return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
     }
 
@@ -6110,13 +6986,185 @@ app.get('/api/promptlab/styles', (req, res) => {
       // The photo line this style would really add, so the Prompt panel prints
       // the sentence that is actually sent. Absent = the house one below.
       photoLine: st.photoLine || '',
+      // And the one it sends INSTEAD when character references ride behind
+      // the photo — same sentence, re-anchored. Absent = the house one.
+      photoLineWithChars: st.photoLineWithChars || '',
+      // The sheet swap a panels run would apply to this style's tail, or null
+      // — served so the Prompt panel can print the tail that is really sent
+      // on a sheet, the same disclosure rule as everything above.
+      sheet: st.sheet ? { from: st.sheet.from, to: st.sheet.to } : null,
       refs: (st.refFiles || []).concat(st.storageRefs || []),
     };
   });
+  // THE PANELS TAB'S GEOMETRY, computed by sheet-grid.js — the page copies
+  // nothing: the grids on offer, each grid's cell names (the box
+  // placeholders), the grid sentence the prompt will carry, and the derived
+  // sheet/cell canvas per shape × grid × tier (what the tooltips show).
+  // Adding 25 later is a GRIDS entry in sheet-grid.js and nothing here.
+  const panels = { grids: {}, sheets: {} };
+  Object.keys(sheetGrid.GRIDS).forEach((g) => {
+    const pin = sheetGrid.GRIDS[g].shape;
+    panels.grids[g] = {
+      ...sheetGrid.GRIDS[g],
+      count: sheetGrid.GRIDS[g].across * sheetGrid.GRIDS[g].down,
+      positions: sheetGrid.positions(g),
+      layout: sheetGrid.layoutWords(g),
+      sentence: sheetGrid.panelBlock(g, []),
+      // A grid that PINS its cell shape (the 2 option is landscape) serves the
+      // cell's ratio, so the page wears it on the boxes and on the pending
+      // placeholders instead of following a toggle that decides nothing here.
+      aspectRatio: pin ? sheetGrid.SHAPES[pin].aspectRatio : null,
+    };
+  });
+  // Only the shapes with a tier table of their own get a sheets map — a pinned
+  // shape (landscape) borrows its budget and is reached through the grid, so
+  // sheets[portrait][2] and sheets[square][2] are the same landscape sheet.
+  Object.keys(sheetGrid.SHAPES).filter((sh) => PL_GPT.res[sh]).forEach((shape) => {
+    panels.sheets[shape] = {};
+    Object.keys(sheetGrid.GRIDS).forEach((g) => {
+      panels.sheets[shape][g] = {};
+      Object.keys(PL_GPT.res[shape].tiers).forEach((tier) => {
+        const plan = sheetGrid.sheetFor(shape, Number(g), tier, PL_GPT.res);
+        if (plan) panels.sheets[shape][g][tier] = { sheet: plan.sheet, cell: plan.cell };
+      });
+    });
+  });
+  // The STORY sheet's wrapper — the line before her story and the layout
+  // phrase the sheet swap fills — served like everything else the prompt
+  // carries, so the page prints the real sentence and holds no copy.
+  panels.story = { line: PL_STORY.line, layout: PL_STORY.layout };
+  // The typed cast's own wording, SERVED like every other wrapper — the page
+  // prints the real clause in the Prompt panel rather than keeping a copy.
+  // Both openings — the page prints the SINGLE one on the Picture tab and
+  // the sheet one on Panels, so nothing keeps a copy of either wording.
+  panels.cast = { intro: sheetGrid.CAST_INTRO, introOne: sheetGrid.CAST_INTRO_ONE, max: CAST_MAX };
   // `sizes` is the old flat shape and stays exactly as it was — a page cached
   // on her phone reads it, and this endpoint is the only thing that serves it.
   res.json({ styles: out, sizes: PL_GPT.sizes, res: PL_GPT.res, resDefault: PL_GPT.resDefault,
-    max: PL_GPT.promptMax, photoLine: PL_GPT.photoLine });
+    max: PL_GPT.promptMax, photoLine: PL_GPT.photoLine,
+    photoLineWithChars: PL_GPT.photoLineWithChars, maxChars: padChars.MAX_PICKED, panels });
+});
+
+// HER CAST, FOR THE PICKER (2026-08-27, Sophie: "a little button … with a
+// character icon that shows the five most recent characters that were put and
+// then also the rest of the sheet and characters with a search").
+//
+// It is the Character Creator's OWN library — `forge-characters`, the same
+// pile the cast sheet and the dream flow read — never a second one. What this
+// route adds is the ORDER her ask names: most-recent first, where recent means
+// the last time she DREW with a character, falling back to the day it was
+// made for one she has never used. So the five slots at the top of the picker
+// are the five she reached for last, and using one here moves it up.
+//
+// MUST stay above `/api/promptlab/:id`, like /styles — Express matches in
+// order and `:id` would otherwise answer "run not found".
+app.get('/api/promptlab/characters', async (req, res) => {
+  try {
+    const list = await charLib().listCharacters(200);
+    // The sort is here rather than in the query because the two keys live in
+    // different fields (`lastUsedAt` is an ISO string written on use,
+    // `createdAt` a Timestamp) and Firestore cannot order across them.
+    const at = (c) => (c.lastUsedAt ? Date.parse(c.lastUsedAt) || 0 : 0) || c.createdAt || 0;
+    const characters = list.slice().sort((a, b) => at(b) - at(a))
+      .map((c) => ({ id: c.id, name: c.name, url: c.url, aliases: c.aliases, tier: c.tier,
+        usedAt: at(c), used: !!c.lastUsedAt }));
+    res.json({ characters, max: padChars.MAX_PICKED });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// THE PAGE ASKS WHETHER IT IS STALE (2026-08-27, Sophie: "it's not there" —
+// about the back-to-top arrow, which had been live and correct on the served
+// page for a day; measured that hour, the bytes Render answers with carry it
+// and render it at her viewport). The iOS app keeps recent tools ALIVE in a
+// ZStack, so /playground loads ONCE per app process and re-entering the tool
+// shows the SAME page: no deploy can reach it. That is the Film Editor's
+// round-three finding, and the Playground is the tool she is in most.
+//
+// MUST stay above `/api/promptlab/:id`, like /styles and /characters — Express
+// matches in order and `:id` would otherwise answer "run not found".
+app.get('/api/promptlab/build', (req, res) => {
+  // no-store, or the very cache this route exists to defeat answers it.
+  res.set('Cache-Control', 'no-store');
+  res.json({ build: pageBuildId('promptlab.html', true) });
+});
+
+// THE ARROW'S OWN ACCOUNT (2026-08-29, Sophie's THIRD back-to-top report:
+// "it's still not there and i reload it like every hour … there was one, it's
+// gone"). Measured that hour: the served page and every vintage back to Aug 24
+// render the arrow lit and tappable in headless Chromium AND real WebKit at
+// her viewport, in her exact flow — so the failure lives in a state only her
+// device reaches, and no amount of re-fixing the page can find it from here.
+// This is the Film Editor's telemetry lesson (its round-three finding): a bug
+// report from her hand has to come with the device's own account.
+//
+// The page's watchdog POSTs here ONLY when it caught the arrow wrong (see
+// promptlab.html); reading is free. Firestore-backed (an in-memory list dies
+// with every deploy, and deploys are constant here), one doc, newest first,
+// capped. MUST stay above `/api/promptlab/:id`, like /build and /styles.
+const PILLTOP_CAP = 40;
+app.get('/api/promptlab/pilltop', async (req, res) => {
+  try {
+    const doc = await admin.firestore().collection(PROMPTLAB).doc('__pilltop').get();
+    res.json({ reports: (doc.exists && doc.data().reports) || [] });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+app.post('/api/promptlab/pilltop', async (req, res) => {
+  try {
+    const b = req.body || {};
+    const report = {
+      at: Date.now(),
+      build: String(b.build || '').slice(0, 32),
+      ua: String(req.get('user-agent') || '').slice(0, 160),
+      // The pill's real state at the moment it was caught wrong.
+      scrollY: Number(b.scrollY) || 0, ih: Number(b.ih) || 0, sh: Number(b.sh) || 0,
+      lit: Boolean(b.lit), litAfter: Boolean(b.litAfter),
+      disp: String(b.disp || '').slice(0, 20), cls: String(b.cls || '').slice(0, 60),
+      corrected: Boolean(b.corrected),
+    };
+    const ref = admin.firestore().collection(PROMPTLAB).doc('__pilltop');
+    await admin.firestore().runTransaction(async (tx) => {
+      const doc = await tx.get(ref);
+      const list = [report].concat((doc.exists && doc.data().reports) || []).slice(0, PILLTOP_CAP);
+      tx.set(ref, { reports: list }, { merge: true });
+    });
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// A container-drawn panel sheet files into the PANELS tab (2026-08-28,
+// Sophie: "the playground is for me, but panels should go in panels"). The
+// "THE FEED IS HERS" rule sends chat sheet work to the chat's own container,
+// which left a finished sheet with no run doc — invisible to the Panels tab.
+// This writes the DONE record: no generation, no cut, no money — the work
+// already happened in the container. A doc carrying panels+grid is a panels
+// run to plRunIsPanels, so kind=single (the Picture tab) never sees it and
+// her own feed stays hers. Validation — the pairing rule, the never-ahead
+// createdAt, the refused unknown style — lives in panels-import.js (pure,
+// tested). The chat still files creations/assets itself per deliver-images;
+// this route deliberately files nothing there, or an import after the ritual
+// would double every picture.
+const panelsImport = require('./panels-import');
+app.post('/api/promptlab/panels-import', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
+    const out = panelsImport.buildImportRun(req.body, {
+      styleIds: Object.keys(PL_GPT_STYLES) });
+    if (out.error) return res.status(400).json({ error: out.error });
+    const ref = admin.firestore().collection(PROMPTLAB).doc();
+    // `id` rides INSIDE the doc like every real run's — the page keys votes,
+    // copy-back and the lightbox on r.id, and the feed reads only doc data.
+    await ref.set({ id: ref.id, ...out.run,
+      createdAt: admin.firestore.Timestamp.fromMillis(out.createdMs) });
+    plScan = { at: 0, runs: null };  // the 60s scan cache — show it now
+    res.json({ ok: true, id: ref.id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.get('/api/promptlab/:id', async (req, res) => {
@@ -6170,6 +7218,33 @@ app.post('/api/promptlab/:id/cancel', async (req, res) => {
 
 // ♥/✕ on one image of a run (votes: { <imageIndex>: 'like'|'dislike' } on the
 // doc). Sending the same vote again clears it — the page's toggles.
+// Finish a panels run from its BANKED sheet — free, no model call. For a run
+// a deploy restart orphaned (status 'failed' with a sheetUrl), or one whose
+// cut failed (cutFailed). RECOVERY-ONLY on purpose: a run that already has
+// its cut panels is refused, because a second cut would file a duplicate set
+// of pictures beside the first.
+app.post('/api/promptlab/:id/recut', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
+    const ref = admin.firestore().collection(PROMPTLAB).doc(req.params.id);
+    const snap = await ref.get();
+    if (!snap.exists) return res.status(404).json({ error: 'not found' });
+    const d = snap.data();
+    if (!d.panels || !d.sheetUrl) return res.status(400).json({ error: 'not a panels run with a banked sheet' });
+    const cutPanels = (d.images || []).filter((u) => u !== d.sheetUrl);
+    if (d.status === 'done' && !d.cutFailed && cutPanels.length) {
+      return res.status(400).json({ error: 'already cut — a recut would file a duplicate set' });
+    }
+    const images = await recutPanelsRun(ref, d);
+    res.json({ ok: true, id: req.params.id, images });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/promptlab/:id/vote', async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
     return res.status(401).json({ error: 'unauthorized' });
@@ -6177,7 +7252,16 @@ app.post('/api/promptlab/:id/vote', async (req, res) => {
   try {
     if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
     const i = Number(req.body.image);
-    if (!Number.isInteger(i) || i < 0 || i > 3) return res.status(400).json({ error: 'image index 0-3 required' });
+    // 0-24: a run used to hold at most 4 images, but a panels run's images
+    // are its cut panels — up to 9 today, 25 when the 5x5 grid lands. The
+    // old `i > 3` cap 400'd a heart on panel 5 of 9.
+    //
+    // -1 IS THE BANKED UNCUT SHEET (2026-08-27, Sophie: "missing three buttons
+    // too" — the sheet's lightbox had no ♥/✕ because a vote is an index into
+    // `images` and the sheet is not in it). It is the Playground's own virtual
+    // index for that picture, the one the sheets view already opens it at, and
+    // it lands on the same `votes` map under the key "-1".
+    if (!Number.isInteger(i) || i < -1 || i > 24) return res.status(400).json({ error: 'image index -1 (the sheet) or 0-24 required' });
     const vote = ['like', 'dislike'].includes(req.body.vote) ? req.body.vote : null;
     const ref = admin.firestore().collection(PROMPTLAB).doc(req.params.id);
     await ref.update({ [`votes.${i}`]: vote === null ? admin.firestore.FieldValue.delete() : vote });
@@ -6187,7 +7271,7 @@ app.post('/api/promptlab/:id/vote', async (req, res) => {
     // failure never fails the vote (the helper swallows its own errors).
     try {
       const run = (await ref.get()).data() || {};
-      const url = (run.images || [])[i];
+      const url = i === -1 ? run.sheetUrl : (run.images || [])[i];
       if (url) await syncVoteToAssets(url, vote);
     } catch (e) { /* best-effort */ }
     res.json({ ok: true, image: i, vote });
@@ -6217,6 +7301,8 @@ app.post('/api/promptlab/:id/vote', async (req, res) => {
 // costs one read of it however many keystrokes land.
 const PL_SEARCH_SCAN = 1500;    // newest runs a search ever reads
 const PL_SEARCH_MAX = 300;      // matches handed back
+const PL_FILL_PASSES = 12;      // pages a kind-filtered feed read will walk to fill one
+const plFeedFill = require('./pl-feed-fill');
 let plScan = { at: 0, runs: null };
 async function promptlabScan() {
   if (plScan.runs && Date.now() - plScan.at < 60000) return plScan.runs;
@@ -6235,10 +7321,17 @@ function promptlabHay(r) {
   const st = PL_GPT_STYLES[r.gptStyle || ''] || null;
   // The canvas is stored as a ratio and shown to her as one, but the button
   // she picked it with says Portrait or Square — so both words find it.
-  const shape = r.aspectRatio === '1:1' ? 'square' : (r.aspectRatio === '2:3' ? 'portrait' : '');
+  const shape = PL_SHAPE_WORD[r.aspectRatio] || '';
   return [r.prompt, st && st.label, r.gptStyle, r.model, r.quality, r.aspectRatio, shape,
     r.status === 'failed' ? 'failed' : '', r.status === 'cancelled' ? 'cancelled' : '',
-    r.photoRef ? 'photo ref' : ''].filter(Boolean).join('  ');
+    r.photoRef ? 'photo ref' : '',
+    // A panels run: every panel's own words, and the grid by name — so
+    // "panels" and "3x3" both find it. `prompt` already joins the texts,
+    // but the words are listed too in case a later shape stops joining.
+    ...(r.panels || []),
+    r.grid && r.grid.count ? `panels ${r.grid.across}x${r.grid.down}` : '',
+    r.storySheet ? 'story sheet' : '',
+  ].filter(Boolean).join('  ');
 }
 // The house grammar (search-grammar.js), matched the FEED's way — every term
 // anchored at a word start, a quoted phrase kept adjacent. Same regexes the
@@ -6267,30 +7360,80 @@ function plSearchRuns(runs, q) {
   });
 }
 
+// A run's KIND — a panels run cut its pictures out of one sheet, a single run
+// drew one picture. The page's own runIsPanels is this function's twin
+// (pinned by scripts/test-playground-panels.js): the two must never disagree,
+// or a run would sit in one tab's gallery on the server and the other's on
+// the phone. A failed panels run still carries `panels`, so it stays in the
+// panels gallery where its retry belongs. A STORY sheet carries neither
+// panels nor a grid — the model laid it out — so it wears its own flag.
+function plRunIsPanels(r) {
+  return !!(r.grid && r.grid.count) || !!(r.panels && r.panels.length) || !!r.storySheet;
+}
+function plKindKeeps(kind, r) {
+  if (kind === 'panels') return plRunIsPanels(r);
+  if (kind === 'single') return !plRunIsPanels(r);
+  return true;                       // no kind (an older cached page) = everything
+}
+
 app.get('/api/promptlab', async (req, res) => {
   try {
     if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
     const limit = Math.min(Number(req.query.limit) || 40, 100);
     const before = Number(req.query.before) || 0;
+    // The gallery is SEPARATE per tab (2026-08-27, Sophie: "separate the
+    // gallery for playground for single pics vs panels"): kind=panels |
+    // kind=single scopes the answer. Absent — an older cached page — the
+    // route answers exactly as it always did.
+    const kind = String(req.query.kind || '').trim();
     // A search answers over the whole history at once — there is no `before`
     // walk behind it, so the page hides "Older" while one is running.
     const search = String(req.query.q || '').trim();
     if (search) {
-      const hits = plSearchRuns(await promptlabScan(), search);
+      const hits = plSearchRuns(await promptlabScan(), search)
+        .filter((r) => plKindKeeps(kind, r));
       return res.json({
         runs: hits.slice(0, Math.min(Math.max(Number(req.query.limit) || PL_SEARCH_MAX, 1), PL_SEARCH_MAX)),
         more: false,
         matched: hits.length,
       });
     }
-    let q = admin.firestore().collection(PROMPTLAB).orderBy('createdAt', 'desc');
-    // Inequality on the same field the query orders by — no composite index.
-    if (before) q = q.where('createdAt', '<', admin.firestore.Timestamp.fromMillis(before));
-    const snap = await q.limit(limit).get();
-    res.json({
-      runs: snap.docs.map(s => { const d = s.data(); return { ...d, createdAt: d.createdAt?.toMillis?.() || null }; }),
-      more: snap.size === limit,
-    });
+    // kind=panels takes the SEARCH path's scan, not the `before` walk: panels
+    // runs are a sliver of the feed, so paging 40 mixed docs at a time to find
+    // them would make "Older" a button that mostly adds nothing. The scan is
+    // the same 60s-cached read a search takes, and it answers the tab's whole
+    // history at once — which is why the page hides "Older" on that tab.
+    if (kind === 'panels') {
+      const hits = (await promptlabScan()).filter(plRunIsPanels);
+      return res.json({
+        runs: hits.slice(0, Math.min(Math.max(Number(req.query.limit) || PL_SEARCH_MAX, 1), PL_SEARCH_MAX)),
+        more: false,
+        matched: hits.length,
+      });
+    }
+    // THE PAGE IS FILLED, NOT JUST READ (2026-08-28, Sophie: "aldo all the
+    // older ones r gone"). kind=single drops the panels runs AFTER the docs
+    // are read, and the old rule — "a short page is fine, the client's Older
+    // keeps walking" — is only true while the page is SHORT. Measured that
+    // morning: the newest 40 docs were 40 panels runs, so the Picture tab's
+    // first page came back EMPTY, and an empty page has no oldest single to
+    // take a cursor from, so Older could not walk either (loadMore bails on a
+    // missing cursor). An empty tab over 1,100 pictures reads as the pictures
+    // being gone. So a filtered page keeps reading until it HAS its limit.
+    // The walk itself is `pl-feed-fill.js` — pure, injected with this reader,
+    // so the paging rules have a test that needs no Firestore.
+    const read = async (cursor, n) => {
+      let q = admin.firestore().collection(PROMPTLAB).orderBy('createdAt', 'desc');
+      // Inequality on the same field the query orders by — no composite index.
+      if (cursor) q = q.where('createdAt', '<', admin.firestore.Timestamp.fromMillis(cursor));
+      const snap = await q.limit(n).get();
+      return snap.docs.map(s => { const d = s.data(); return { ...d, createdAt: d.createdAt?.toMillis?.() || null }; });
+    };
+    // Unfiltered (no kind — an older cached page) fills on the first read
+    // every time, so this answers exactly as it always did.
+    res.json(await plFeedFill.fillPage({
+      read, keeps: (r) => plKindKeeps(kind, r), limit, before, passes: PL_FILL_PASSES,
+    }));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -6758,4 +7901,28 @@ if (SELF_URL) {
   console.log('Keep-awake self-ping enabled for', SELF_URL);
 } else {
   console.log('Keep-awake disabled (no RENDER_EXTERNAL_URL)');
+}
+
+// ─── The daily chat-icon sweep ──────────────────────────────────────────
+// New chats appear faster than anyone can hand-draw them (104 in one hour the
+// day the first batch shipped), so the sweep draws whatever has piled up, 25 to
+// a ~6c sheet. See chaticons.js for what it skips and why.
+//
+// THE TICK IS HOURLY AND THE DUE CHECK IS IN FIRESTORE. This service restarts on
+// every deploy and this repo deploys many times a day, so a 24-hour interval
+// counted from boot would either never reach 24 hours or start over each time.
+// `lastRunAt` on the module's state doc is the only clock that survives a
+// restart; the hourly tick just asks whether a day has passed. It also means a
+// dev container that boots the app spends nothing — the live service's own
+// lastRunAt says the work is already done.
+//
+// Only where RENDER_EXTERNAL_URL is set, i.e. the deployed service and not a
+// laptop or a chat's sandbox.
+if (SELF_URL) {
+  const ICON_TICK_MS = 60 * 60 * 1000;
+  const tick = () => require('./chaticons').sweepDue()
+    .then((r) => { if (r && r.started) console.log('chat-icon sweep started', r.started, r.waiting, 'waiting'); })
+    .catch((e) => console.log('chat-icon sweep tick failed:', e.message));
+  setTimeout(tick, 5 * 60 * 1000);        // not during the boot rush
+  setInterval(tick, ICON_TICK_MS);
 }

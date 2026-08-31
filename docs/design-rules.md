@@ -254,6 +254,37 @@ The house rules that only bite when you are actually building a page, an iOS scr
   `hidden` attribute MUST carry `[hidden]{display:none !important}` in its CSS
   (editor.html has it; set.html always did).
 
+- **A REPAINT NEVER REBUILDS WHAT DID NOT CHANGE (2026-08-28, Sophie, after
+  the Story Room fix: "it seems like this shud be the automatic best
+  practices").** The Story Room blinked because its render wiped the canvas
+  and recreated every `<img>` on every call — and a poll called it every 4
+  seconds. The same shape was then found live on THREE more pages (Freeform's
+  pending card, Vector's cell grid, the Wall's whole feed), each written
+  independently, which is what makes this a house rule rather than one bug:
+  a recreated `<img>` decodes async on iOS, so the picture goes blank and
+  pops back — a repaint loop over unchanged image DOM is a strobe.
+  - **The pattern is a SIGNATURE SKIP, and the signature reads the SAME
+    values the render draws** — never a dirty flag kept beside them, which
+    can disagree with the screen. Build the string of everything the paint
+    depends on (urls, labels, order, states); if it matches the last one,
+    return without touching the DOM. The Story Room's `padSig`/`unitSig`
+    (gen-scratchpad.py) is the worked example, including the second tier:
+    inside a real rebuild, a UNIT whose own signature is unchanged keeps its
+    DOM node, so one picture landing repaints one tile, not twenty.
+  - **A kept node's closures outlive the data swap** (`items = d.items`
+    replaces the objects they captured), so a kept tile's tap must resolve
+    its record by id AT TAP TIME — never use the object captured at build.
+  - **The guard is not a freeze**: anything that would change the screen must
+    still repaint, which is why the signature and the paint read the same
+    fields — add a drawn field to one and the other sees it by construction.
+  - **Cheap state changes are class toggles on existing nodes** (a pick
+    highlight, a working tint), never a rebuild — chats.html's `paintLive`
+    and Vector's pick repaint are the pattern.
+  - **Every page with a poll, a job tick, or a refresh-on-return gets this
+    from day one.** The sweep and the four fixes: `node
+    scripts/test-storyroom-blink.js` and `node scripts/test-noblink-repaint.js`
+    — both assert NODE IDENTITY, the only honest question (a src assertion
+    passes on a freshly recreated img every time).
 - **NEVER serve a raw generated PNG to a page — ship webp display copies
   (Aug 2026).** gpt-image-2 writes 1024² PNGs at **~1MB each**, and a page that
   points straight at them is unusably slow on a phone. This was measured, not

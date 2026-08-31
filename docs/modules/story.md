@@ -196,7 +196,21 @@ All 12 NDE-category stories were linked to their montage episodes on
   toggle (refs/ is otherwise never web-served). **Versions (Aug 2026):** once a
   beat has more than one generation, the popup shows every one as same-size
   thumbnails, newest first, current ringed — tap for the lightbox
-  (`beat.imageHistory` + current). **Delete a beat** from its popup's trash
+  (`beat.imageHistory` + current). **The lightbox is THE SHARED ONE since
+  2026-08-28** (`/asset-lightbox.js` — Sophie: "create a single lightbox view,
+  sync to all surfaces … ex assets, meta assets, story room, playground"): the
+  page builds none of its own. What it needs rides the shared file's hooks —
+  `nav` steps through `lbVers` (the past-pictures row's own order), `cta` is
+  the labeled "Use this one" (a hook built for this page: she picks by
+  looking, and an icon circle cannot carry that), and `onClose` re-asserts the
+  beat popup's body lock, because the lightbox opens OVER the popup and the
+  shared close clears `body.overflow`. The one page-level rule is
+  `#clightbox{z-index:60}` — this page's overlays run sheet 40 / beatpop 50 /
+  filmplay 70 and the shared file ships z-index 30. Closing follows the shared
+  contract everywhere now: a tap on any dead space closes, a tap on the
+  picture never does. Tests: `node scripts/test-scratchpad-pick-version.js`,
+  `node scripts/test-storyroom-lightbox-nav.js`, and the source pin in
+  `node scripts/test-asset-lightbox.js`. **Delete a beat** from its popup's trash
   icon, behind an are-you-sure; the record moves to `pad.trash` (capped 50,
   never surfaced) and its images stay in Storage / My Creations
   (`POST /remove {id}`; a chunk left with one member un-chunks).
@@ -245,6 +259,101 @@ All 12 NDE-category stories were linked to their montage episodes on
     the cast list is not on the timeline; a draw that uses one is.
   - Tests: `node scripts/test-pad-characters.js` (the line, the pick, the
     caps, and source pins on both halves of the wiring).
+- **THE STORY'S SHAPE — portrait or SQUARE (2026-08-28, Sophie: "add a new
+  square story type in story room").** A story is ONE shape all the way down:
+  the canvas its beats are drawn on, the tiles on the pad, the past-pictures
+  strip, the popup's blank paper and the film's frame. Stored as `pad.shape`,
+  written by `POST /api/scratchpad/shape {pad, shape}` — and **decided
+  automatically from the story's first picture, with NO control on the page**
+  (see below). It shipped with a small toggle at the far end of the style row
+  for one afternoon and she asked for it to go the same day the automatic rule
+  landed: "get rid of button". That glyph (a tall rectangle, or a square) and
+  its reasoning are history, not a rule.
+  - **The list is `SHAPES`, once in `scratchpad.js` and once in
+    `gen-scratchpad.py`, pinned equal by the test.** Portrait draws 1024x1536
+    and films 1000x1500; square draws 1024x1024 and films 1080x1080. Nothing
+    counts them — landscape is a row in each.
+  - **PORTRAIT IS FIRST, AND FIRST MEANS THE FALLBACK.** `shapeOf` on the
+    server and `SHAPES[0]` on the page both land there, so a pad carrying no
+    `shape` — every story made before this — is byte-for-byte what it was.
+    `POST /pads` writes no field at all unless a shape is asked for, so the
+    shelf's + still makes a portrait story.
+  - **It lives on the PAD, not on a beat.** Half a story square is a film
+    that letterboxes every other shot. `movie.aspect` in movies.js is the
+    same call, and it is the only other per-project shape in the repo.
+  - **The page reads ONE variable — `--ar` on the root**, set by
+    `renderShape()`, with `2/3` as the CSS fallback everywhere. **The inbox
+    is deliberately not on it**: those tiles are Playground pictures of every
+    shape, not this story's, and cropping them to it would misdescribe what
+    she hearted.
+  - **`POST /shape` IS TOP-LEVEL ON PURPOSE.** The page marks the film stale
+    for any POST outside its allowlist, and `/pads*` is on that list — that
+    family is shelf TIDYING (folder, category, pin), which must never stale a
+    render. A shape change moves the film's frame, so it has to fall outside.
+    Like `/style` it does NOT bump `updatedAt`.
+  - **Nothing already drawn is touched.** A portrait picture in a story
+    flipped square is kept and letterboxed on white by the film's own
+    scale+pad chain — the pad has never destroyed a picture. The frame is IN
+    the segment cache key (`${frame.w}x${frame.h}@fps`), so a flip re-encodes
+    its shots rather than serving the other shape back out of the cache, and
+    flipping back finds them still banked.
+  - **The shelf keeps ONE tile footprint** — that is what holds the names
+    level across a row — so a square story's cover sits WHOLE on the white
+    mat (`.stile .frame.sq img{object-fit:contain}`) instead of being cropped
+    to a portrait tile. A folder takes the shape of the story whose cover it
+    is showing.
+  - **The square film frame is 1.17MP against portrait's 1.5MP**, i.e. UNDER
+    the size the OOM note beside `FILM` proves this 512MB box survives. The
+    pixels are the budget, not the width; a third shape has to stay inside
+    the same number, and the test fails if one does not.
+  - **THE SHAPE FOLLOWS THE STORY'S FIRST PICTURE (2026-08-28: "automatic by
+    first picture", then "get rid of button").** The first picture PLACED on a
+    story decides it, and there is nothing on the page to override that — a
+    control beside an answer the story already has is a second way to say one
+    thing, on the row she reads for the style. Every door gets it, because
+    the decision is made server-side as the picture lands: `POST /add`,
+    `POST /image` (her inbox pick, a version picked back, the send-trip
+    match) and `landOnBeat` in server.js (a Playground run she sent to a
+    beat). `autoShapePatch` is the one rule and it is exported for that last
+    one.
+    - **"Nobody has decided" is one field — a pad with no `shape` at all.**
+      The rule fires once, so the picture that fired it is the one that
+      decided, and `POST /shape` (a chat correcting one on her ask) is the
+      last word after that. The `catBy` rule, spelled with the value's own
+      presence rather than a second field to keep in step.
+    - **The first picture DECIDES, portrait included.** Writing portrait is
+      what makes this happen once; leaving it unwritten would let the third
+      picture in a story re-decide it.
+    - **A picture the pad DREW never decides it.** It was drawn AT the
+      story's shape, so reading it back can only confirm the default — the
+      test fails if the rule is ever wired into `runArtJob`.
+    - **A picture that is neither shape decides NOTHING** (`SHAPE_AUTO_TOL`,
+      ±22% measured in log space so both shapes are judged evenly). A 16:9
+      clip poster and a landscape phone photo leave the story portrait and
+      still open for the next picture. 3:4 is near enough to portrait and
+      lands there.
+    - **The size comes from the picture's HEADER** — a ranged request for the
+      first 4KB, never the whole 1-3MB original — parsed by `image-size.js`.
+      **That file exists for a measured reason: sharp reads a truncated PNG
+      and JPEG header and REFUSES a truncated webp**, which is the format
+      nearly everything here is stored in, so a sharp-only ranged read would
+      have fallen back to downloading whole originals on exactly the common
+      case. sharp stays the fallback for a format it does not know, and
+      `test-image-size.js` re-measures that claim so the note cannot go stale.
+    - **Read BEFORE the write, re-checked INSIDE the transaction.** The read
+      is a network call, so another placement can decide while it is waiting;
+      both writers ask again against the snapshot they are writing on.
+    - **The placing routes answer with `shape`**, and the page applies it
+      without posting it back — the server has already written it, and her
+      first picture landing is the one moment she is looking at the tiles.
+  - `dupPad` copies the whole doc minus `DROP`, so a duplicated story keeps
+    its shape with nothing added.
+  - Test: `node scripts/test-storyroom-shape.js` — the two lists and the
+    copy-paste guards pure (the draw must read the story's canvas, the film
+    the story's frame), then the real page headless with every ratio
+    MEASURED off a real box. A source assertion cannot see this: the whole
+    thing rides one CSS variable, and a broken wire renders as a page that
+    looks completely fine and just never changes shape.
 - **THE STYLE TOGGLE — watercolor · dreamy · pastel (Aug 2026, Sophie: "I
   want to have the same beats but I wanna fill them with new art … a style
   toggle at the top of a story that alternates between dreamy and watercolor …
@@ -415,6 +524,25 @@ All 12 NDE-category stories were linked to their montage episodes on
     4b) — the five words in her order, AND the negative half: neither the pad
     nor the picture may name any of them. A reworded label is the paraphrase
     this repo keeps having to undo.
+- **THE CANVAS ONLY REPAINTS WHAT CHANGED (2026-08-28, Sophie: "story room
+  blinks a lot").** render() used to wipe #pad and rebuild every tile on
+  every call — and the draw poll calls it every 4 seconds for the whole life
+  of a 30-90s draw, closing the beat popup calls it, and every POST that
+  answers with beats calls it. Each rebuild recreated every `<img>` with the
+  full-size original, which decodes async on iOS, so the whole canvas
+  flashed blank and popped back — every 4 seconds, for minutes. Two
+  signature rules in `gen-scratchpad.py`, both reading the SAME values
+  render draws (art, color, drawing, caption, clip, order): an identical
+  canvas is not rebuilt at all (`padSig`), and inside a rebuild a unit whose
+  own signature is unchanged KEEPS its DOM node (`unitSig` — which omits the
+  position on purpose, so a reorder moves the decoded tiles instead of
+  redrawing them). One picture landing repaints one tile, not twenty.
+  **Because a kept node's closures outlive a `beats=d.beats` swap, every
+  tile tap resolves its beat by id AT TAP TIME (`beatById`)** — never the
+  object captured at build; without that, a kept tile would open week-old
+  beat data after a poll. Test: `node scripts/test-storyroom-blink.js`
+  (node IDENTITY, the only honest question — a src assertion passes on a
+  freshly recreated img every time; verified failing 5 pre-fix).
 - **PHILOSOPHY (Sophie, Aug 2026 — do not "improve" this):** the pad is a
   place for thinking on paper, so it is MINIMAL. The frame colors are
   deliberately UNLABELLED indicators — never write "example"/"explanation"/
@@ -572,6 +700,36 @@ All 12 NDE-category stories were linked to their montage episodes on
   - Test: `node scripts/test-scratchpad-inbox-remove.js` (the real page,
     headless — the tap asked with `elementFromPoint` at the mark's own centre,
     which is the only honest way to ask what a tap reaches).
+
+### DUPLICATE A STORY — the same words, drawn twice (2026-08-27)
+Sophie: "can u duplicate the hate of the game story room story so i can do my
+own pictures name one (mine) and the other (claude) as suffix". So "For the
+Hate of the Game" is now **(claude)** — the original, with the pictures a chat
+drew — and **(mine)**, its twin, carrying the whole story with a blank canvas.
+`POST /api/scratchpad/pads/duplicate {pad, title?, art?}`; the rules are in
+`pad-duplicate.js`, its own dependency-free file (the pad-art.js / pad-side.js
+pattern), tested by `node scripts/test-pad-duplicate.js`.
+- **`art:false` is the DEFAULT and is the case she asked for** — the copy keeps
+  the beats, their words, their frame colours, their drawing prompts, her voice
+  takes, the story's own inbox and its recordings, and takes only the
+  PICTURES. A blank canvas carrying the story. `art:true` is a faithful clone.
+- **Every beat gets a FRESH id.** A shared id is a beat that belongs to two
+  stories: `/text`, `/image`, `/color` and `/remove` all find a beat by id
+  inside one pad, and the Story Link's `fromMoments` join is by id too.
+- **It is a DENY-list, not a copy-list.** A field a chat adds next month rides
+  along by itself; what must NOT travel is the other version's output — its
+  renders (`film`/`films`), its Episode Editor `episodes`, and its place on the
+  shelf (`pinned`). `gen` is dropped from every slot either way — it marks a
+  draw running right now in the OTHER story, and a copy of that marker is a
+  beat waiting forever for a job nobody started.
+- **The art is emptied through scratchpad.js's own `SLOT_KEYS`, never by wiping
+  the beat** — the words, the colour, her voice takes and the chunk link live at
+  the beat root and belong to BOTH sides. The lists (`STYLES`, `SLOT_KEYS`) are
+  passed IN, so a fourth style needs no change here.
+- **The pinned shelf `cover` is dropped when the art is** — it is a URL of the
+  other version's picture, so keeping it tiles an artless story with art.
+- **It costs nothing and copies no bytes** — one read, one write, no model
+  call; both stories point at the same pictures wherever those really live.
 
 ## Story Room (forge-story) — THE story surface (merged July 2026)
 - **Making art for the "Evan" story? Read `docs/evan-film-style.md` FIRST.**

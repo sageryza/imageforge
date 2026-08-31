@@ -123,25 +123,34 @@ const RETRY_MS = 24 * 60 * 60 * 1000;
 // either means the same chat carrying on under a renamed branch (nothing has
 // changed) or a brand-new session, which is a brand-new unfiled chat anyway.
 //
-// What actually goes stale is a chat filed EARLY. Three messages in, a thread
-// looks like whatever it opened with; two hundred messages later it can be a
-// different project entirely — and the sorter's own first answer is the one
-// most likely to be wrong, because it was made on the least material. So the
-// signal is GROWTH: a chat is looked at again once it has roughly tripled in
-// length since it was filed, with a floor so a 3-message chat doesn't re-ask at
-// 9. That makes re-checks frequent exactly where the risk is (thin early
-// filings) and rare where it isn't (a chat filed with real material behind it).
+// What goes stale, and HOW FAST, changed when her vocabulary did (2026-08-28,
+// found live: "none of my recent bug fix chats are in that tab"). The first
+// version of this rule assumed a tag names the chat's SUBJECT, and a subject is
+// stable — so it rested a filed chat a WEEK and re-asked only after it roughly
+// TRIPLED. But most tags are WORK KINDS now (bug fix · new feature · research),
+// and a kind names the chat's NEWEST work, which turns over in hours: the chat
+// that restructured the chat area (tagged `meta`, then `new feature` work) spent
+// the next morning REPAIRING the hidden pile that restructure lost — a bug-fix
+// chat by her own rule, wearing yesterday's tag with six days of rest to go.
+// Measured that morning: asked fresh, it answered `bug fix`; the Bug fixes tab
+// showed nothing newer than 11 hours. So the rest is now the same 24h every
+// other re-ask uses, and the growth gate is a small ABSOLUTE floor — enough new
+// messages that the chat plausibly moved on, not a multiple that a long chat
+// could never hit inside a month.
 //
-// A WRAP-UP also reopens the question once, whenever it lands: it is the best
+// A WRAP-UP still reopens the question once, whenever it lands: it is the best
 // description of the chat that will ever exist, and it means the work is done.
 //
 // Only the sorter's OWN answers are ever revisited — her filing is final,
 // always. And a re-check that comes back "none" LEAVES THE EXISTING FOLDER
 // ALONE (see sortChat): unsure is a reason not to move a chat, never a reason
 // to unfile one she may have been finding there for weeks.
-const RESORT_GROWTH = 3;                          // × its length when filed
-const RESORT_MIN_NEW = 20;                        // …and at least this many more
-const RESORT_REST_MS = 7 * 24 * 60 * 60 * 1000;   // never more often than weekly
+//
+// COST, since this makes re-checks more frequent: a re-check needs BOTH a day's
+// rest AND eight new messages since the last sort, so only a chat that is
+// actively worked re-asks, at most once a day — a sleeping chat never does. A
+// handful of busy chats a day at well under a cent each.
+const RESORT_MIN_NEW = 8;   // new messages since filed before a re-ask can fire
 
 // The `filedAt` a live sort writes when she has never spoken in the chat: a
 // stamp older than anything, so the chat is in its folder AND on the main list
@@ -243,11 +252,11 @@ function shouldAutoSort(reg, { now = Date.now(), messages = 0, enabled = true } 
     // chat costs nothing at all on the six days a week it is resting.
     const wrapped = Boolean(r.wrapUpAt && r.catSortedAt && r.wrapUpAt > r.catSortedAt);
     const sortedAt = Date.parse(r.catSortedAt || '');
-    const rested = isNaN(sortedAt) || now - sortedAt >= RESORT_REST_MS;
+    const rested = isNaN(sortedAt) || now - sortedAt >= RETRY_MS;
     if (!rested && !wrapped) return { sort: false, why: 'already-sorted' };
     if (wrapped) return { sort: true, why: 'wrapped-up' };
     const was = Number(r.catMsgs) || 0;
-    const grew = messages >= Math.max(was * RESORT_GROWTH, was + RESORT_MIN_NEW);
+    const grew = messages >= was + RESORT_MIN_NEW;
     return grew ? { sort: true, why: 're-sort' } : { sort: false, why: 'not-grown' };
   }
   if (messages < MIN_MESSAGES) return { sort: false, why: 'too-thin' };
@@ -389,6 +398,8 @@ Return JSON: {"category": "...", "kind": "...", "why": "...", "state": "...", "s
 "kind": EXACTLY one of the folders MARKED "what the work IS", or "none". This is what the chat DID, whatever it was about.
 
 WHAT THE WORK IS BEATS WHERE IT HAPPENED. Some of her folders name a subject area and some name what the work is, and the second wins: a chat that only fixed a bug in the Story Room is a BUG FIX, not a story chat. Same for every other subject — a bug fix in the witch app, a new feature in the dream app, a piece of research about film. Answer "kind" whenever the chat's work really is one of those, and the subject folder in "category" as well; she gets filed under the kind.
+BUG FIX IS THE LENIENT ONE, and what it really measures is TURNAROUND — how quickly the work gets done and how soon she can archive the chat. Small, bounded work that lands in a turn or two is a bug fix even when nothing was strictly broken: filling a gap in an existing surface (a shape its siblings already had, a control one page has and another is missing, behaviour that does not match its iOS or web twin, something a restructure lost), a tweak, an adjustment, a repair. Adding a square story type where other story shapes already existed is a BUG FIX — it should have been there, and it is done and archivable fast.
+"new feature" is A WHOLE NEW TOOL — her bar, and it is high: a new tool, board or surface that did not exist, or a restructure big enough that the chat iterated on it over many turns. Anything ADDED TO an existing tool is a bug fix however new the behaviour is — her own filings: a + new-story button, date grouping on the chat list, autoplay, the square shape are ALL bug fixes; the Polaroid memory-library board (a whole new tool) and the chat-area restructure (big, iterated) are new features. When torn between the two, the question is "will this chat be archivable in a day, or are we going to iterate": quick and done → bug fix, big and iterative → new feature.
 Answer "kind": "none" when the chat's work is the subject itself — writing the story, drawing the art, thinking an idea through, a conversation — or when you are not sure. The same unsure rule as below: none is the ordinary answer, not a failure.
 "why": under 90 characters, plain, what the chat is actually about. Never a sales pitch for the folder you picked.
 "state": one of "done", "mid", "blocked".
@@ -476,7 +487,7 @@ function pickCategory(out, cats) {
 module.exports = {
   regLabels,
   TRIAGE, WORK_KINDS, MIN_MESSAGES, RETRY_MS, BEFORE_EVERYTHING, SORT_SYS,
-  RESORT_GROWTH, RESORT_MIN_NEW, RESORT_REST_MS,
+  RESORT_MIN_NEW,
   isWorkKind, workKinds,
   sortableCategories, examplesFor, shouldAutoSort, filedStamp, archiveHint, pickState, pendingAsk,
   digestOf, buildSortPrompt, pickCategory,

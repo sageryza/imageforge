@@ -104,7 +104,7 @@ const box = (el) => (el ? { x: Math.round(el.x), y: Math.round(el.y), w: Math.ro
     const g = (s) => { const e = document.querySelector(s); if (!e) return null;
       const r = e.getBoundingClientRect();
       return { x: r.x, y: r.y, w: r.width, h: r.height, d: getComputedStyle(e).display }; };
-    return { back: g('#forgeback'), head: g('.app-header'), h1: g('h1'), lede: g('.lede'),
+    return { back: g('#forgeback'), head: g('.app-header'), h1: g('h1'), first: g('.panel'),
       float: g('.float'), chevronInRow: !!document.querySelector('.app-header #forgeback') };
   });
   const playing = (pg) => pg.evaluate(() => document.getElementById('vmid').classList.contains('on'));
@@ -118,8 +118,11 @@ const box = (el) => (el ? { x: Math.round(el.x), y: Math.round(el.y), w: Math.ro
     ok('the title is shown on the new build', !!g.h1 && g.h1.d !== 'none' && g.h1.w > 0);
     ok('the title clears the chevron', !!(g.h1 && g.back) && g.h1.x >= g.back.x + g.back.w);
     ok('the header reserves the pill\'s corner', !!(g.h1 && g.float) && g.h1.x + g.h1.w <= g.float.x);
-    ok('the page\'s first paragraph is below the header',
-      !!(g.lede && g.head) && g.lede.y >= g.head.y + g.head.h - 1);
+    // The lede paragraph was removed 2026-08-28 at her ask ("get rid of the
+    // info text at the top of Freeform"), so this measures the first PANEL —
+    // the same question, asked of whatever the page's first content is.
+    ok('the page\'s first content is below the header',
+      !!(g.first && g.head) && g.first.y >= g.head.y + g.head.h - 1);
     ok('the pill shows while the page has something to scroll', !!g.float && g.float.d !== 'none');
 
     // THE PILL'S THREE BUTTONS ACTUALLY WORK
@@ -135,7 +138,11 @@ const box = (el) => (el ? { x: Math.round(el.x), y: Math.round(el.y), w: Math.ro
     await pg.evaluate(() => window.__scrollStart(1)); await pg.waitForTimeout(150);
     await pg.click('#quality', { force: true }); await pg.waitForTimeout(200);
     ok('a tap on a control stops it', !(await playing(pg)));
-    ok('the lightbox is closed', await pg.evaluate(() => getComputedStyle(document.getElementById('lb')).display) === 'none');
+    // the shared lightbox (/asset-lightbox.js): closed = absent or display:none
+    ok('the lightbox is closed', await pg.evaluate(() => {
+      const el = document.getElementById('clightbox');
+      return !el || el.style.display !== 'flex';
+    }));
     await ctx.close();
   }
 

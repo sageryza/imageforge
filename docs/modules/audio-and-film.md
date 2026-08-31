@@ -724,18 +724,77 @@ touches the shelf).
   new = add the id + a colour there; **culling one is just dropping its id**,
   which is how Richard v1/v2/v3, Miriam, Gilad, Alpha and "Sophie — doctor"
   came off the picker on Aug 18 2026. Nothing was deleted at ElevenLabs.
+- **♥ / ✕ ON A TAKE, AND THE TWO FILTERS OVER THEM (2026-08-28, Sophie: "add
+  the same playground heart x hide pattern in voice studio").** Both marks on
+  every FINISHED take's meta row (after the ⤓), tapping the lit one clears it;
+  one segmented box of two filters on each list's header line. The full rules —
+  one setting across both tabs, the two lit colours differing, the both-ways
+  Assets sync, no marks on an unfinished or failed take, and a filtered card
+  hidden rather than removed — are written out once in CLAUDE.md's Voice Studio
+  bullet. The mechanics here:
+  - `POST /api/voicelab/render/:id/vote {vote:'like'|'dislike'|''}` writes one
+    `vote` field on the `forge-voicelab` doc. `/history` already returns whole
+    docs, so nothing about the read changed and every take already on file
+    picks this up.
+  - `syncVoteToAssets` writes the `forge-asset-votes` doc keyed
+    `sha1(ASSETS_CHAT|url)` — the same id `assetVoteRef` in server.js derives,
+    which is what makes the two records the same record. `voteFromAssets` is
+    the return trip, exported and called from `/api/gallery/assets/vote`
+    beside `syncVoteToPlayground`; it matches on `url` and does nothing for a
+    url outside `voice-lab/`.
+  - The page keeps the marks and the filters in ONE place
+    (`voteBtns` / `paintFilt` / `applyFilt` in `public/voice.html`), and
+    `card()` calls `applyFilt` on every repaint — a take arriving or finishing
+    has to be judged by the live filter, or a fresh render appears on a
+    hearts-only list nothing has hearted.
+  - The `.secthead` row reserves the injected pill's column the same 56px
+    `.acctabs` and the bigger-box button already reserve on this page.
+  - Test: `node scripts/test-voicelab-votes.js`.
 - **Her words STAY in the box** (Sophie, Aug 2026): a render does not empty it
   and neither does leaving the page (`localStorage['voicelab_text']`), because
   she runs the same line through voice after voice. **Clear** is the only
   thing that empties it, and it only shows when there is something to clear —
   at the FAR RIGHT of the row, as far from Render as the row allows.
-- **NO PAGE HEADER, and NO CHARACTER COUNTS ANYWHERE (Aug 18 2026, Sophie:
-  "it says Voice Studio twice, once at the top and once below it… get rid of
-  basically the whole header, including the line" / "I don't need to know how
-  many characters everything is").** The native tool bar carries the title, so
-  the page's brand row, h1, credits line and rule are gone and the tabs are the
-  first thing on screen. The credits moved **behind an ⓘ** at the left of the
-  tab row — the number is still fetched at boot, it just costs a tap to read.
+- **NO CHARACTER COUNTS ANYWHERE, and the header is ONE ROW (Aug 18 2026,
+  Sophie: "it says Voice Studio twice, once at the top and once below it… get
+  rid of basically the whole header, including the line" / "I don't need to know
+  how many characters everything is").** The brand row, the credits line and the
+  rule are gone and the credits moved **behind an ⓘ** at the left of the tab
+  row — the number is still fetched at boot, it just costs a tap to read.
+  - **THE TITLE CAME BACK WHEN APPLE'S BAR WENT (2026-08-27, Sophie: "this
+    header doesn't match the app pattern").** Her complaint above was the name
+    twice, one strip above the other — so the page's own h1 came off and the
+    NATIVE bar carried it. Then `.forgeWebToolBar` removed that bar from every
+    web-wrapped tool, and the half holding the name went with it: pagehead.js
+    found no header row to sit in, fell through to its row-less branch, and drew
+    a bare `#forgehead` strip holding the chevron and NOTHING ELSE. **The tool
+    was nameless, and the screen looked like nothing else in the app.**
+    - The page owns its header now, which is the house rule for a web-wrapped
+      tool: one `.app-header` row of the shape Meta Assets uses, into which
+      pagehead inserts the chevron and whose title `.fh` centres on the SCREEN
+      between the chevron and the pill's column (64px reserved here — 56 is a
+      hair tight at 390pt).
+    - **STILL ONLY ONE "Voice Studio" ON SCREEN, on either build.** `?embed=1`
+      hides `.app-header` when `window.__forgeLeave` is absent, so on an older
+      build Apple's bar keeps the title alone and her original complaint cannot
+      come back. `node scripts/test-voice-changer.js` measures BOTH states —
+      the two failures live on opposite sides of that one flag, and a check of
+      one state alone cannot see the other coming.
+    - **The lesson is the STALE NOTE, not the header.** "The native tool bar
+      carries the title" was true when it was written and was quietly falsified
+      by a change in another file; both this doc and CLAUDE.md went on telling
+      the next chat to keep the page headerless. A page that leans on chrome it
+      does not own should say WHICH chrome, so the day that chrome goes the
+      note reads as a question rather than an instruction.
+  - **This page had no `<h1>` at all, and it is not the only one** — swept
+    2026-08-27, of the 38 gated pages **10 have no header row** for pagehead to
+    sit in (dump, dreams, dreams-archive, films, character, instagram, ingest,
+    crystals, audio, voice). Seven of those still draw an `<h1>` in their
+    content, so they read as a bare chevron strip ABOVE their own title rather
+    than as one row; **`dump.html` and `dreams.html` have no title anywhere**,
+    the same nameless shape this fixed. Neither is a `GatedWebTool` today (the
+    Dump and Dreams are native screens), so neither shows Sophie a chevron —
+    but the day either is opened as a wrapped web tool, it ships nameless.
   Render and Apply voice are the same height as Clear (`align-items:stretch`
   on `.renderrow`, because their borders differ by half a pixel).
   The rows that now sit in the injected pill's top-right band each keep the
@@ -1504,3 +1563,51 @@ invisible in code review and obvious in her ears.
   ~6% faster. Illustrated episodes render panels through the diary-comic style ref
   `refs/dream-mystery.jpg` (gpt-image edits) then animate with Wan (`VIDEO_MODELS`
   in `movies.js`). See also `what-sage-should-do-at-her-computer.md`.
+
+## THE CLEAN EXPORT — standard for every FINAL video (Sophie, 2026-08-27)
+
+**Any video that is the final version being exported for posting gets a
+metadata-stripped CLEAN COPY, filed where she can download it.** Her ask,
+made standing after the PWC reel: "make that standard procedure for any
+video." (Images will get their own version of this later — not built yet.)
+
+The procedure, start to finish:
+
+1. **Strip with a stream copy — pixels must stay byte-identical:**
+   ```
+   ffmpeg -i final.mp4 -map 0 -c copy -map_metadata -1 \
+     -movflags +faststart -fflags +bitexact -flags:v +bitexact -flags:a +bitexact \
+     clean.mp4
+   ```
+   `-c copy` means no re-encode; `bitexact` keeps the muxer from writing its
+   own encoder tag back in. **Verify, never assume:** the decoded video
+   stream must hash identical before and after
+   (`ffmpeg -i f.mp4 -map 0:v -c copy -f md5 -`), and `ffmpeg -i clean.mp4`
+   must show no `encoder` line.
+2. **File it into the Dump with a real filename** —
+   `POST /api/drop/upload-file?session=&bundle=&filename=<name> - clean.mp4`
+   with the raw bytes as the body. A real name matters: a Safari download
+   otherwise lands as `too many men 2.mp4` (the lesson from the first time
+   this was done, in `too-many-men-reel`).
+3. **Hand her the direct save link** — `/api/drop/file/<item id>` downloads
+   instead of playing. Every Dump item also has Save in the app.
+
+**What this does and does not remove:** it removes the container metadata
+(the `encoder: Lavf…` tag, handler names, creation times). Our own renders
+carry no C2PA credential at all — measured by the `ai-media-detection` chat
+with the official C2PA reader — because AI-generated source images lose
+their provenance chunk the moment ffmpeg re-encodes them into frames. The
+x264 SEI line inside the stream survives a stream copy, but it names an
+encoder, not an AI.
+
+**The paid-ads carve-out (ai-media-detection's finding): do NOT strip before
+running a PAID ad.** On organic posts stripping is harmless-to-pointless; on
+paid, provenance rules differ. When a film becomes an ad, upload the regular
+export, not the clean copy.
+
+**Aspect ratio: a 9:16 (1080x1920) reel is Instagram's native full-frame —
+never letterbox it.** Black bars would shrink the picture inside the same
+9:16 canvas and the bars ship as part of the film. The feed/grid PREVIEW
+center-crops (~4:5 and the grid's 3:4) — that is how every reel behaves, and
+opening the reel shows the full frame. Keep anything that must survive the
+preview crop near the vertical center; do not "fix" the crop with bars.

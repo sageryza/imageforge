@@ -30,6 +30,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const servePublic = require('./lib/public-asset');
 let chromium;
 try { ({ chromium } = require('playwright')); }
 catch { try { ({ chromium } = require('playwright-core')); }
@@ -49,6 +50,13 @@ const posted = [];
 let notifyFails = false;
 
 const server = http.createServer((req, res) => {
+  // THE SHARED FILES chats.html LINKS, served the way express.static serves
+  // them (scripts/lib/public-asset.js). This harness used to fall through to
+  // its catch-all for every one of them, which is the quiet failure that file
+  // exists to end: the page guards the global it could not load, so the harness
+  // renders a page missing that behaviour and passes — or, when the catch-all's
+  // body is not valid JS, throws a page error nobody asked about.
+  if (servePublic(req, res)) return;
   const url = new URL(req.url, 'http://x');
   if (url.pathname === '/api/chatfeed' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });

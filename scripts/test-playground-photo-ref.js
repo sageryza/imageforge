@@ -53,7 +53,10 @@ ok(/photoBuf \? photoLine : ''/.test(serverSrc),
 // Since 2026-08-24 a STYLE may own the sentence: the house one names a style
 // reference, which is a lie on the reference-less ChatGPT tile where her photo
 // is the only attachment. See scripts/test-playground-plain.js.
-ok(/const photoLine = st\.photoLine \? ` \$\{st\.photoLine\}` : PL_GPT\.photoLine;/.test(serverSrc),
+// (2026-08-27: the line is now picked from a PAIR — the same sentence
+// re-anchored when character references ride behind the photo — so this pins
+// the RULE rather than one spelling of it. See test-playground-characters.js.)
+ok(/\(st\.photoLine \? ` \$\{st\.photoLine\}` : PL_GPT\.photoLine\)/.test(serverSrc),
   "and a style's own line wins over the house one");
 ok(/photoLine: PL_GPT\.photoLine/.test(serverSrc),
   'the photo line is SERVED to the page, not copied into it');
@@ -196,6 +199,22 @@ const PHOTO_LINE = ' The LAST attached image is a photo reference: use it for th
   await page.waitForTimeout(150);
   ok(await page.evaluate(() => !document.getElementById('photowrap').offsetParent),
     'the button is gone on the WTR LoRA, which has no attachment slot');
+
+  console.log('?photo= — a picture sent from Meta Assets');
+  // (2026-08-28, Sophie: "meta assets missing its send to playground") — a
+  // promptless picture arrives as the PHOTO REFERENCE. The sticky style is
+  // the LoRA from the block above, which has no attachment slot, so the link
+  // must also land her somewhere the photo can actually ride.
+  const SENT = base + '/i/sent-from-meta.png';
+  await page.goto(base + '/playground?photo=' + encodeURIComponent(SENT));
+  await page.waitForTimeout(400);
+  ok(await page.evaluate((u) => window.photoRef && window.photoRef.data === u, SENT),
+    'the picture is attached as the photo reference, by its own url');
+  ok(await page.evaluate(() => document.getElementById('photowrap').classList.contains('has')),
+    'and the button lights');
+  ok(await page.evaluate(() => window.STYLES[window.styleKey]
+      && window.STYLES[window.styleKey].engine === 'gptimage'),
+    'a LoRA sticky style steps aside for one with an attachment slot');
 
   await browser.close();
   server.close();

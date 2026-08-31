@@ -105,7 +105,14 @@ if [ -z "$GO" ]; then
 fi
 
 echo; echo "── posting ──"
-FORGE_BACKFILL=1 ${ACCT:+FORGE_ACCOUNT="$ACCT"} \
+# `env`, NOT a bare assignment prefix: `${ACCT:+FORGE_ACCOUNT="$ACCT"}` expands
+# AFTER bash has finished parsing assignment prefixes, so the shell reads the
+# expanded `FORGE_ACCOUNT=1` as the COMMAND NAME and the whole run dies with
+# "FORGE_ACCOUNT=1: command not found" — while the script still prints "done".
+# Found live 2026-08-28 recovering a session's own history: it posted NOTHING
+# and said it had. env parses its arguments at runtime, so the conditional
+# prefix works.
+env FORGE_BACKFILL=1 ${ACCT:+FORGE_ACCOUNT="$ACCT"} \
   bash "$HOOK" <<EOF
 {"session_id": $(printf '%s' "${sid:-x}" | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read()))'), "transcript_path": $(printf '%s' "$tr" | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read()))'), "hook_event_name": "Stop"}
 EOF

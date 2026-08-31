@@ -429,19 +429,34 @@ textarea:focus, input[type=text]:focus{outline:none; border-color:var(--rose);}
     });
   }
 
+  /* THE GRID ONLY REBUILDS WHEN IT CHANGED (2026-08-28, the Story Room's
+     "blinks a lot" rule). The job poll calls this every 2.5s for the life of
+     a trace — which can run minutes — and a wipe-and-rebuild recreates every
+     cell's <img>, so the whole grid flashed on every tick. The signature
+     reads the same values the cells draw; the pick highlight is a class
+     toggle on the existing buttons, never a rebuild, so choosing a cell
+     cannot blink the grid either. */
+  var itemsSig = null;
   function paintItems() {
     var g = $('items');
-    g.innerHTML = '';
-    items.forEach(function (it) {
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.className = (pick && pick.id === it.id ? 'on' : '');
-      b.innerHTML = '<img alt=""><span class="tag"></span>';
-      b.querySelector('img').src = it.png;
-      b.querySelector('img').alt = it.id || '';
-      b.querySelector('.tag').textContent = it.id;
-      b.onclick = function () { choose(it); };
-      g.appendChild(b);
+    var sig = items.map(function (it) { return (it.id || '') + '\u0001' + (it.png || ''); }).join('\u0002');
+    if (sig !== itemsSig) {
+      itemsSig = sig;
+      g.innerHTML = '';
+      items.forEach(function (it) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.dataset.vid = it.id || '';
+        b.innerHTML = '<img alt=""><span class="tag"></span>';
+        b.querySelector('img').src = it.png;
+        b.querySelector('img').alt = it.id || '';
+        b.querySelector('.tag').textContent = it.id;
+        b.onclick = function () { choose(it); };
+        g.appendChild(b);
+      });
+    }
+    Array.prototype.forEach.call(g.children, function (b) {
+      b.className = (pick && pick.id === b.dataset.vid ? 'on' : '');
     });
     gate();
   }

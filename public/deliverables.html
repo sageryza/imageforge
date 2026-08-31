@@ -1,0 +1,142 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Deliverables</title>
+<!--
+  deliverables.html — the running list of everything chats have handed Sophie:
+  films, episodes, audio cuts, pages. One place, newest first (her ask,
+  2026-08-27: "so I can watch them all in one place newest first").
+
+  READ-ONLY: the list is written by the server (media pins auto-record;
+  chats POST /api/deliverables). Tapping a row opens the thing itself —
+  a film or audio plays in the native player, a page opens. The row's small
+  chat line says who made it; a re-recorded url surfaces to the top with a
+  version count instead of duplicating.
+
+  New entries also push past the per-chat bell — the push is the doorbell,
+  this page is the record.
+-->
+<link rel="stylesheet" href="/tool.css">
+<style>
+  .wrap{ max-width:640px; margin:0 auto; }
+  .dv{ display:block; text-decoration:none; color:var(--ink);
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--r);
+    padding:11px 13px; margin:0 0 7px; -webkit-tap-highlight-color:transparent; }
+  .dv .tt{ display:flex; align-items:center; gap:8px; font-size:15px;
+    font-weight:600; line-height:1.3; }
+  .dv .tt svg{ flex:none; width:16px; height:16px; stroke:var(--dim); }
+  .dv .tm{ display:block; font-size:11px; letter-spacing:.04em; color:var(--dim);
+    margin-top:5px; text-transform:uppercase; }
+  .dv .v{ color:var(--accent); }
+  /* The older takes of one work. The toggle is the house truncation opener —
+     an underlined word inline, never a button with a box — and it is a SIBLING
+     of the row, because the row is an <a> and a nested control would eat the
+     tap that opens the film. */
+  .vmore{ display:block; margin:-3px 0 8px 13px; padding:0; border:0; background:none;
+    font:inherit; font-size:12px; color:var(--dim); text-decoration:underline;
+    cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .vold{ margin:0 0 7px 13px; }
+  .vold .dv{ padding:8px 11px; }
+  .vold .dv .tt{ font-size:13px; font-weight:500; color:var(--dim); }
+  .empty{ color:var(--dim); font-size:14px; padding:14px 2px; }
+</style>
+<body class="tool">
+<div class="head">
+  <span class="eyebrow tool-eyebrow">DELIVERABLES</span>
+  <button id="help" type="button" aria-label="What this is">?</button>
+</div>
+<div class="helpcard" id="helpcard" hidden>
+  <b>Everything chats have handed you, newest first.</b> Films, audio cuts and
+  pages land here by themselves when a chat delivers one; tapping a row opens
+  it. A new deliverable also buzzes your phone, whether or not that chat's
+  bell is on — this list is where they all live.
+</div>
+
+<main class="wrap">
+  <div id="list"><div class="empty">Reading the list&hellip;</div></div>
+</main>
+
+<script>
+/* IIFE: the injected autoscroll pill runs in global scope and declares its own
+   `var raf`/`var I`, so a page-level `let` of the same name kills its script at
+   parse time. Nothing of this page's leaks out. */
+(function(){
+  'use strict';
+  var listEl = document.getElementById('list');
+
+  function esc(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+
+  /* Lucide line icons, inlined (CSP-safe) — film / music / image / link. */
+  var IC = {
+    video: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></svg>',
+    audio: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="18" r="4"/><path d="M12 18V2l7 4"/></svg>',
+    image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>',
+    link: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>'
+  };
+
+  /* 12-hour Pacific, the house time rule. */
+  function when(iso){
+    if (!iso) return '';
+    try {
+      return new Date(iso).toLocaleString('en-US', { timeZone:'America/Los_Angeles',
+        month:'short', day:'numeric', hour:'numeric', minute:'2-digit' })
+        .replace(/ (AM|PM)$/i, function(m,p){ return ' ' + p.toLowerCase(); });
+    } catch (e) { return ''; }
+  }
+
+  function row(d, extra){
+    var meta = [esc(d.chatName || d.chat || ''), when(d.updatedAt || d.at)]
+      .filter(Boolean).join(' · ');
+    if (extra) meta += (meta ? ' · ' : '') + extra;
+    return '<a class="dv" href="' + esc(d.url) + '" target="_blank" rel="noopener">' +
+             '<span class="tt">' + (IC[d.kind] || IC.link) + esc(d.title || d.url) + '</span>' +
+             (meta ? '<span class="tm">' + meta + '</span>' : '') +
+           '</a>';
+  }
+  function takes(n){ return n + ' earlier ' + (n === 1 ? 'take' : 'takes'); }
+
+  /* One row per work — its LATEST version. The earlier takes are never
+     dropped, only folded: they open under the row, so a title the server
+     grouped wrongly costs one tap, never a lost deliverable. */
+  function render(items){
+    if (!items.length) {
+      listEl.innerHTML = '<div class="empty">Nothing handed over yet.</div>';
+      return;
+    }
+    listEl.innerHTML = items.map(function(d){
+      var older = d.older || [];
+      return row(d, d.versions > 1 ? '<span class="v">re-cut</span>' : '') +
+        (older.length
+          ? '<button class="vmore" type="button" aria-expanded="false" data-n="' + older.length + '">' +
+              takes(older.length) +
+            '</button>' +
+            '<div class="vold" hidden>' + older.map(function(o){ return row(o); }).join('') + '</div>'
+          : '');
+    }).join('');
+  }
+
+  listEl.addEventListener('click', function(e){
+    var b = e.target.closest && e.target.closest('.vmore');
+    if (!b) return;
+    var open = b.getAttribute('aria-expanded') === 'true';
+    b.setAttribute('aria-expanded', open ? 'false' : 'true');
+    b.nextElementSibling.hidden = open;
+    b.textContent = open ? takes(+b.dataset.n) : 'hide earlier takes';
+  });
+
+  var help = document.getElementById('help'), card = document.getElementById('helpcard');
+  help.onclick = function(){ card.hidden = !card.hidden; };
+  card.onclick = function(){ card.hidden = true; };
+
+  fetch('/api/deliverables').then(function(r){ return r.json(); }).then(function(j){
+    if (!j || !j.ok) throw new Error((j && j.error) || 'no answer');
+    render(j.items || []);
+  }).catch(function(err){
+    listEl.innerHTML = '<div class="empty">Couldn’t read the list — ' + esc(String(err.message || err)) + '</div>';
+  });
+})();
+</script>
+</body>

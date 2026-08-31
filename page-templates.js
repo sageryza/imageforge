@@ -257,6 +257,34 @@ function validateTemplate(template, data) {
   // tap" hook: archiving is reversible in a tap and visible on her own list,
   // which is what makes it safe to fire from a card.
   if (data.applyArchive) out.applyArchive = true;
+  // WHICH VIEW IT OPENS ON (2026-08-31, Sophie asking for the "tinder
+  // version" of a comparison already posted as groups). A page has carried
+  // BOTH views since the two were joined, so the template only ever decided
+  // the OPENING one — and a groups page could never open on the swipe half,
+  // which is exactly a spread deck: one card per subject, its versions side
+  // by side. `start` is the only way to say so; anything else falls through
+  // to the template's own default, so nothing already posted moves.
+  if (data.start === 'swipe' || data.start === 'compare') out.start = data.start;
+
+  // ── THE DECK-VIEW FIELDS, WHICH EVERY PAGE HAS (2026-08-31) ──────────────
+  // These three configure the SWIPE half, and since the two views were joined
+  // every template page has one — so gating them on `template === 'deck'` was
+  // the join's leftover, the same shape page-views.js had already had to
+  // repair for `browse` in the view itself ("a GRID-posted page's swipe view
+  // came up without it"). A grid page of pictures she has already hearted is
+  // exactly where `stamp:false` is needed, and it was the one page that could
+  // not say it.
+  if (data.voice) out.voice = true;
+  // THE STAMP IS OFF FOR A COLLECTION (2026-08-31, Sophie, on a deck of
+  // cards she had already hearted: "they all have good on them covering
+  // the image"). A deck fills its verdicts in from the Assets tab, so a page
+  // built OUT OF her hearts arrives fully marked and every card wears the
+  // GOOD IDEA stamp over the picture. judge.js has always taken
+  // `stamp:false`; the template just never let a page say it. A page that is
+  // a collection rather than a decision turns it off.
+  if (data.stamp === false) out.stamp = false;
+  // browse is the deck's whole point — on unless a page turns it off
+  out.browse = data.browse === false ? false : true;
 
   if (template === 'deck') {
     if (!Array.isArray(data.items) || !data.items.length) {
@@ -270,9 +298,6 @@ function validateTemplate(template, data) {
       if (!it) return { ok: false, error: `item ${i + 1} has neither img nor text` };
       out.items.push(it);
     }
-    if (data.voice) out.voice = true;
-    // browse is the deck's whole point — on unless a page turns it off
-    out.browse = data.browse === false ? false : true;
     return { ok: true, data: out };
   }
 
@@ -390,7 +415,7 @@ function renderTemplatePage({ template, title, heading, chat, sheet, data, clean
     + '<script src="/grid.js"></script>\n'
     + '<script src="/page-views.js"></script>\n'
     + `<script>var __pageData = ${payload};`
-    + ` window.__pageViews({ data: window.__pageData, start: '${template === 'grid' ? 'compare' : 'swipe'}' });`
+    + ` window.__pageViews({ data: window.__pageData, start: '${data.start || (template === 'grid' ? 'compare' : 'swipe')}' });`
     + '</script>\n';
 }
 

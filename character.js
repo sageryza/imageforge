@@ -322,7 +322,7 @@ router.post('/save', gated, async (req, res) => {
 // Write the character doc. Shared by /save and the detached /make job — so a
 // generate that finishes after the client left still persists. Characters keep
 // their original backgrounds (no transparent version is made).
-async function saveCharacterDoc({ url, name, gender, tier, aliases, quality = null, model = null, fullPrompt = '' }) {
+async function saveCharacterDoc({ url, name, gender, tier, aliases, quality = null, model = null, fullPrompt = '', own = false }) {
   const d = db();
   if (!d) throw new Error('firestore unavailable');
   const doc = {
@@ -338,6 +338,12 @@ async function saveCharacterDoc({ url, name, gender, tier, aliases, quality = nu
     // there is no typed "content" half here, so the whole prompt IS the
     // record.
     ...(fullPrompt ? { fullPrompt: String(fullPrompt).slice(0, 6000) } : {}),
+    // HER OWN PICTURE, kept as such. Nothing drew it, so there is no prompt to
+    // file and no MODEL / QUALITY to say — the exact-prompt rule's own answer
+    // (file nothing rather than a reconstruction). The flag is what lets a
+    // surface say "your picture" instead of leaving a blank where a caption
+    // goes, and it is why nothing here invents one.
+    ...(own ? { own: true } : {}),
   };
   const ref = await d.collection(COLLECTION).add(doc);
   return { id: ref.id, ...doc };
@@ -384,6 +390,50 @@ router.get('/make/:id', gated, (req, res) => {
   res.json(job);
 });
 
+// ── HER OWN PICTURE, AS THE CHARACTER (2026-08-29, Sophie: "add my own
+// picture button to characters") ──────────────────────────────────────────
+// Not every character wants to be redrawn. A photo she already has, a
+// picture she made in the Playground, a face from another story — this saves
+// it AS the character, with no draw at all. It costs NOTHING: no model call,
+// one Storage upload and one Firestore write.
+//
+// NOTHING STANDS BETWEEN THE SOURCE AND THE OUTPUT (the house rule): a
+// picture that a browser can already show, sitting upright, is stored BYTE
+// FOR BYTE. Only the two shapes that would otherwise arrive broken are
+// touched, and only losslessly — a phone photo carrying an EXIF orientation
+// tag (which every cell would draw sideways) and a format no <img> can
+// decode (HEIC), both re-encoded to PNG rather than to a lossy webp.
+const OWN_OK = new Set(['jpeg', 'png', 'webp', 'gif']);
+async function ownPicture(buffer) {
+  const sharp = require('sharp');
+  let meta = null;
+  try { meta = await sharp(buffer).metadata(); } catch { meta = null; }
+  const upright = !meta || !meta.orientation || meta.orientation === 1;
+  if (meta && OWN_OK.has(meta.format) && upright) {
+    const type = meta.format === 'jpeg' ? 'image/jpeg' : 'image/' + meta.format;
+    return { buffer, contentType: type, converted: false };   // her bytes, untouched
+  }
+  const out = await sharp(buffer).rotate().toColourspace('srgb').png().toBuffer();
+  return { buffer: out, contentType: 'image/png', converted: true };
+}
+
+router.post('/own', gated, async (req, res) => {
+  try {
+    const { photo, name, gender, tier, aliases } = req.body || {};
+    if (!name || !String(name).trim()) return res.status(400).json({ error: 'name required' });
+    const m = /^data:([^;]+);base64,(.*)$/.exec(String(photo || ''));
+    if (!m) return res.status(400).json({ error: 'photo (a data URL) required' });
+    const { buffer, contentType, converted } = await ownPicture(Buffer.from(m[2], 'base64'));
+    const url = await saveBufferToStorage(buffer, contentType, 'characters');
+    // No quality, no model, no fullPrompt — nothing generated this picture,
+    // and an invented caption is worse than none.
+    const character = await saveCharacterDoc({ url, name, gender, tier, aliases, own: true });
+    res.json({ ok: true, character, converted });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // List saved characters (newest first).
 router.get('/', gated, async (req, res) => {
   try {
@@ -394,7 +444,7 @@ router.get('/', gated, async (req, res) => {
       const v = s.data();
       return { id: s.id, name: v.name, gender: v.gender, url: v.url, cleanUrl: v.url, tier: v.tier,
         aliases: Array.isArray(v.aliases) ? v.aliases : [],
-        quality: v.quality || null, model: v.model || null,
+        quality: v.quality || null, model: v.model || null, own: v.own === true,
         usedCount: v.usedCount || 0, lastUsedAt: v.lastUsedAt || null,
         createdAt: v.createdAt && v.createdAt.toMillis ? v.createdAt.toMillis() : null };
     });
@@ -404,24 +454,64 @@ router.get('/', gated, async (req, res) => {
   }
 });
 
-// Record that these characters were just used in a dream render — powers the
-// cast sheet's "5 frequent/recent" slots. Fire-and-forget from the client.
+// Record that these characters were just used — powers the "5 most recent"
+// slots on the cast sheet AND on the Playground's character picker. ONE copy
+// of the rule: the route below and the Playground's own run (server.js) both
+// call this, so "recent" can never mean two different things.
+async function markUsed(ids) {
+  const d = db();
+  if (!d) return 0;
+  const list = (Array.isArray(ids) ? ids : []).map(String).filter(Boolean).slice(0, 20);
+  const now = new Date().toISOString();
+  for (const id of list) {
+    await d.collection(COLLECTION).doc(id)
+      .update({ usedCount: admin.firestore.FieldValue.increment(1), lastUsedAt: now })
+      .catch(() => {});   // a deleted character is fine to skip
+  }
+  return list.length;
+}
+
+// Fire-and-forget from the client.
 router.post('/used', gated, async (req, res) => {
   try {
-    const d = db();
-    if (!d) return res.status(503).json({ error: 'firestore unavailable' });
-    const ids = (Array.isArray(req.body?.ids) ? req.body.ids : []).map(String).filter(Boolean).slice(0, 20);
-    const now = new Date().toISOString();
-    for (const id of ids) {
-      await d.collection(COLLECTION).doc(id)
-        .update({ usedCount: admin.firestore.FieldValue.increment(1), lastUsedAt: now })
-        .catch(() => {});   // a deleted character is fine to skip
-    }
-    res.json({ ok: true, updated: ids.length });
+    if (!db()) return res.status(503).json({ error: 'firestore unavailable' });
+    res.json({ ok: true, updated: await markUsed(req.body?.ids) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
+// The saved characters a picker can offer, newest-USED first — the ordering
+// the Playground's five recent slots read. Kept beside markUsed so "recent"
+// has one definition: her last use of a character, falling back to the day it
+// was made for one she has never drawn with.
+async function listCharacters(limit = 200) {
+  const d = db();
+  if (!d) return [];
+  const snap = await d.collection(COLLECTION).orderBy('createdAt', 'desc').limit(limit).get();
+  return snap.docs.map((s) => {
+    const v = s.data();
+    return { id: s.id, name: v.name || '', url: v.url || '',
+      aliases: Array.isArray(v.aliases) ? v.aliases : [],
+      tier: v.tier || 'side',
+      lastUsedAt: v.lastUsedAt || null,
+      createdAt: v.createdAt && v.createdAt.toMillis ? v.createdAt.toMillis() : null };
+  }).filter((c) => /^https?:\/\//.test(c.url));
+}
+
+// The ids a run picked → the saved records, in the order she picked them,
+// deduped and capped. An id that no longer exists is simply dropped, the way
+// pickCharacters drops one a story has forgotten.
+async function charactersByIds(ids, max = 6) {
+  const d = db();
+  if (!d) return [];
+  const want = [...new Set((Array.isArray(ids) ? ids : []).map(String).filter(Boolean))].slice(0, max);
+  if (!want.length) return [];
+  const snaps = await Promise.all(want.map((id) => d.collection(COLLECTION).doc(id).get().catch(() => null)));
+  return snaps
+    .map((s, i) => (s && s.exists ? { id: want[i], name: s.data().name || '', url: s.data().url || '' } : null))
+    .filter((c) => c && /^https?:\/\//.test(c.url));
+}
 
 // Flip a saved character between main (on sheet) and side.
 router.post('/:id/tier', gated, async (req, res) => {
@@ -547,4 +637,5 @@ router.post('/batch/generate', gated, async (req, res) => {
   }
 });
 
-module.exports = { router, generatePortrait, buildPrompt, matchCharacters, matchCandidates, matchScore };
+module.exports = { router, generatePortrait, buildPrompt, matchCharacters, matchCandidates, matchScore,
+  markUsed, listCharacters, charactersByIds, ownPicture };

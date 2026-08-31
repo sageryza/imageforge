@@ -22,7 +22,8 @@
 //      a run that wrapped nothing,
 //   4. the door's state RIDES A STEP and dies with a fresh open (her rule:
 //      "the half she picked rides along as she steps"),
-//   5. the actions row — put the prompt back in the box, Save, Story Room.
+//   5. the actions row — put the prompt back in the box, Save, Add to
+//      Shoebox, Story Room.
 //
 //   npm install playwright --no-save && node scripts/test-playground-lightbox.js
 const http = require('http');
@@ -207,6 +208,24 @@ const server = http.createServer((req, res) => {
       first: lb.querySelector('.lbacts button').getAttribute('aria-label'),
       tagUnderImg: tag.top >= img.bottom - 1 && tag.bottom <= acts.top + 1,
       heartAboveNotes: hb.top >= img.bottom - 1 && hb.bottom <= note.top + 1,
+      // ONE SIZE FOR EVERY BUTTON UNDER THE PICTURE (2026-08-27). The row
+      // mixes .vote (38px) with .lbacts button (34px), so this is MEASURED
+      // off the real boxes — a class assertion cannot see two rules winning
+      // on two different buttons. The numbers are the Playground's own from
+      // the day before the port onto the shared file (.lbbtn, 46 / 21).
+      btns: Array.prototype.map.call(
+        lb.querySelectorAll('.lbacts button, .lbnote .notesend'),
+        function (b) {
+          var r = b.getBoundingClientRect(), s = b.querySelector('svg');
+          var sr = s ? s.getBoundingClientRect() : { width: 0, height: 0 };
+          return {
+            label: b.getAttribute('aria-label') || 'send',
+            w: Math.round(r.width), h: Math.round(r.height),
+            sw: Math.round(sr.width), sh: Math.round(sr.height),
+          };
+        }),
+      // and the row still fits the phone it is read on
+      rowFits: acts.left >= 0 && acts.right <= window.innerWidth,
     };
   });
   ok(layout.topVotes === 0, 'no ♥/✕ in the top band');
@@ -214,6 +233,19 @@ const server = http.createServer((req, res) => {
   ok(layout.first === 'Heart', 'and it is the FIRST button in that row');
   ok(layout.tagUnderImg, 'MODEL · QUALITY sits right under the picture, above the buttons');
   ok(layout.heartAboveNotes, 'the ♥ sits under the picture, above the note box');
+  // SEVEN since 2026-08-29 — Add to Shoebox joined the row ("how do i send a
+  // picture to shoebox in the playground"). The COUNT is not the point; the
+  // sizes below are, and a button that joins the row has to join at the row's
+  // one size.
+  ok(layout.btns.length === 7,
+    'seven buttons under the picture (♥ ✕ · copy · save · shoebox · story)');
+  const odd = layout.btns.filter((b) => b.w !== 46 || b.h !== 46);
+  ok(odd.length === 0, 'every one of them is 46x46 — the size they were before the port ('
+    + (odd.length ? odd.map((b) => b.label + ' ' + b.w + 'x' + b.h).join(', ') : 'all 46') + ')');
+  const oddg = layout.btns.filter((b) => b.sw !== 21 || b.sh !== 21);
+  ok(oddg.length === 0, 'and every glyph inside them is 21x21 ('
+    + (oddg.length ? oddg.map((b) => b.label + ' ' + b.sw + 'x' + b.sh).join(', ') : 'all 21') + ')');
+  ok(layout.rowFits, 'the row still fits the screen at this width');
   await page.evaluate(() => document.getElementById('clightbox').click());
   ok(!(await shown()), '(closed again)');
   await page.locator('#tiles .cell:not(.ph) img').first().click();
@@ -317,13 +349,14 @@ const server = http.createServer((req, res) => {
   });
   ok(!fresh.wordsShown, 'a fresh open starts with the door shut');
 
-  // ── 5. THE ACTIONS ROW — copy back to the box, Save, Story Room ──────────
+  // ── 5. THE ACTIONS ROW — copy back, Save, Shoebox, Story Room ───────────
   console.log('\nthe actions row');
   const acts = await page.$$eval('#clightbox .lbacts button',
     (es) => es.map((e) => e.getAttribute('aria-label')));
   ok(JSON.stringify(acts) === JSON.stringify(
-    ['Heart', 'Reject', 'Put this prompt back in the box', 'Save to Photos', 'Send to the Story Room']),
-  '♥ ✕ then the three actions, in order (' + acts.join(' · ') + ')');
+    ['Heart', 'Reject', 'Put this prompt back in the box', 'Save to Photos',
+     'Add to Shoebox', 'Send to the Story Room']),
+  '♥ ✕ then the four actions, in order (' + acts.join(' · ') + ')');
   await page.evaluate(() => document.querySelector(
     '#clightbox .lbacts button[aria-label="Put this prompt back in the box"]').click());
   const copied = await page.evaluate(() => ({

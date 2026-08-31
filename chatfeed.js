@@ -71,7 +71,7 @@ const { spawn } = require('child_process');
 const fetch = require('node-fetch');
 const { buildQuestions, answeredOnly, isCompacted } = require('./questions');
 const { parseQuery } = require('./search-grammar');
-const { shouldPushReply, chatNotifies, pushBody } = require('./push-gate');
+const { shouldPushReply, chatNotifies, needEscalates, pushAlert, pushBody } = require('./push-gate');
 const chatSort = require('./chat-sort');
 const pageTemplates = require('./page-templates');
 const assetUnion = require('./asset-union');
@@ -536,22 +536,96 @@ function queryMatches(s, groups) {
 function snippetAnchor(src, groups, phraseRe) {
   if (phraseRe) {
     const hit = src.match(phraseRe);
-    if (hit) return { i: src.search(phraseRe), len: hit[0].length, n: 0 };
+    if (hit) return { i: src.search(phraseRe), len: hit[0].length, n: 0, whole: true };
   }
   let best = null;
   for (const g of groups) {
     if (g.neg) continue;
     for (const t of g.terms) {
       if (!t.re) continue;
-      const found = src.match(t.re);
-      if (!found) continue;
       const all = new RegExp(t.re.source, 'gi');
-      let n = 0;
-      while (all.exec(src) && n < 60) n++;
-      if (!best || n < best.n) best = { i: src.search(t.re), len: found[0].length, n };
+      let m; let n = 0; let pick = null;
+      while ((m = all.exec(src)) && n < 60) {
+        n++;
+        // A hit is WHOLE when the word ends where the term does — `dress` in
+        // "dress", not `red` in "redraw". Terms are anchored at a word START
+        // only, so the prefix hit is a real match and still counts for
+        // matching; it is only a poor thing to open the window on.
+        const whole = !/[a-z0-9]/i.test(src.charAt(m.index + m[0].length) || '');
+        if (!pick || (whole && !pick.whole)) pick = { i: m.index, len: m[0].length, whole };
+        if (all.lastIndex === m.index) all.lastIndex++;
+      }
+      if (!pick) continue;
+      const cand = { i: pick.i, len: pick.len, n, whole: pick.whole };
+      if (!best || (cand.whole !== best.whole ? cand.whole : cand.n < best.n)) best = cand;
     }
   }
   return best;
+}
+
+// ONE WINDOW PER WORD SHE TYPED (2026-08-28, the half the whole-word rule
+// above cannot reach). `red dress` on a row holding "redraw" 2,000 characters
+// from "dressed": NEITHER hit is a whole word, so the tie-break falls back to
+// rarity, both are 1, and the window opens on "redraw" — a row that matched
+// both her words showing her neither of them. There is no ordering of one
+// window that answers this: the two words are simply not near each other. So a
+// message whose terms are far apart gets a window EACH, joined by an ellipsis,
+// and the snippet says why the row is on screen rather than arguing about
+// which half to show. A phrase hit is still ONE window — the words are
+// adjacent, so there is nothing to join.
+const SNIP_MAX = 2;              // windows; two words is her case, more is a wall
+function anchorFor(src, g) {
+  let best = null;
+  for (const t of g.terms) {
+    if (!t.re) continue;
+    const all = new RegExp(t.re.source, 'gi');
+    let m; let n = 0; let pick = null;
+    while ((m = all.exec(src)) && n < 60) {
+      n++;
+      const whole = !/[a-z0-9]/i.test(src.charAt(m.index + m[0].length) || '');
+      if (!pick || (whole && !pick.whole)) pick = { i: m.index, len: m[0].length, whole };
+      if (all.lastIndex === m.index) all.lastIndex++;
+    }
+    if (!pick) continue;
+    const cand = { i: pick.i, len: pick.len, n, whole: pick.whole };
+    if (!best || (cand.whole !== best.whole ? cand.whole : cand.n < best.n)) best = cand;
+  }
+  return best;
+}
+// The windows to cut, in reading order, already merged where they overlap.
+// Narrower when there are two, so the pair still fits the one 200-character
+// line her row draws.
+function snippetWindows(src, groups, phraseRe) {
+  if (phraseRe) {
+    const at = snippetAnchor(src, groups, phraseRe);
+    return at ? [{ s: Math.max(0, at.i - 45), e: at.i + at.len + 70 }] : [];
+  }
+  const hits = [];
+  for (const g of groups) {
+    if (g.neg) continue;
+    const at = anchorFor(src, g);
+    if (at) hits.push(at);
+  }
+  if (!hits.length) return [];
+  // The rarest/wholest first, so a cap of two keeps the most telling ones…
+  hits.sort((a, b) => (a.whole === b.whole ? a.n - b.n : (a.whole ? -1 : 1)));
+  const keep = hits.slice(0, SNIP_MAX).sort((a, b) => a.i - b.i);   // …then reading order
+  const pad = keep.length > 1 ? { before: 35, after: 55 } : { before: 45, after: 70 };
+  const out = [];
+  for (const at of keep) {
+    const w = { s: Math.max(0, at.i - pad.before), e: at.i + at.len + pad.after };
+    const last = out[out.length - 1];
+    if (last && w.s <= last.e) last.e = Math.max(last.e, w.e);   // one window, not two ellipses
+    else out.push(w);
+  }
+  return out;
+}
+function snippetOf(src, groups, phraseRe) {
+  const wins = snippetWindows(src, groups, phraseRe);
+  if (!wins.length) return String(src || '').slice(0, 200).trim();
+  return wins.map((w, i) => (w.s > 0 ? '…' : '')
+    + src.slice(w.s, w.e).replace(/\s+/g, ' ')
+    + (w.e < src.length || i < wins.length - 1 ? '…' : '')).join(' ').trim();
 }
 
 // ---- THE PHRASE COMES FIRST, AND NOTHING ELSE JUMPS THE QUEUE ------------
@@ -748,15 +822,7 @@ router.get('/search', async (req, res) => {
       // Snippet centred on the match — prefer the body, else the tldr/chat name.
       const inBody = m.text ? snippetAnchor(m.text, groups, phraseRe) : null;
       const src = inBody ? m.text : (m.tldr && snippetAnchor(m.tldr, groups, phraseRe) ? m.tldr : (m.text || m.tldr || ''));
-      const at = inBody || snippetAnchor(src, groups, phraseRe);
-      let snip = src;
-      if (at && at.i > -1) {
-        const s = Math.max(0, at.i - 45);
-        const end = at.i + at.len + 70;
-        snip = (s > 0 ? '…' : '') + src.slice(s, end).replace(/\s+/g, ' ')
-          + (end < src.length ? '…' : '');
-      }
-      return { chat: m.chat, id: m.id, snippet: snip.slice(0, 200).trim(), created: m.created, url: m.url || '' };
+      return { chat: m.chat, id: m.id, snippet: snippetOf(src, groups, phraseRe).slice(0, 220).trim(), created: m.created, url: m.url || '' };
     });
     res.json({ results, chatMatches, indexed: searchIndex.length });
   } catch (err) { fail(res, err); }
@@ -970,20 +1036,42 @@ router.post('/', async (req, res) => {
         pushedAt: mine.pushedAt,
       })
       : { push: false, why: 'bell-off' };
+    // A CHAT BLOCKED ON HER RINGS WITHOUT A BELL (2026-08-28, Sophie: "can u
+    // make chats bell themselves based on importance"). One buzz per distinct
+    // ask, and NOT a flip of her bell — see needEscalates in push-gate.js.
+    const asks = !working && needEscalates(mine);
     // Stamped in the SAME registry write the reply already makes — and stamped
     // before the send, not after: the push is fire-and-forget, so waiting on it
     // would leave a window where a second reply could push again.
     if (gate.push) reg.pushedAt = doc.postedAt;
+    if (asks) reg.needPushedAt = doc.postedAt;
     await regRef(doc.chat).set(reg, { merge: true });
     // Fire-and-forget by contract; notifyChat can never fail this route. The
     // title is the name SHE gave the chat, when there is one. `debounce:false`
     // because her message is the gate now — a time window on top of it would
     // swallow the answer to a follow-up she sent four minutes later.
-    if (gate.push) {
+    // THE ASK WINS THE BANNER when there is one: "Needs you · pick a take 1-4"
+    // is the one line worth stopping for, and a chat that just asked her
+    // something is not better described by its own TLDR.
+    if (gate.push || asks) {
       try {
-        require('./push').notifyChat(doc.chat, mine.displayName || doc.chat,
-          pushBody(doc.text, doc.tldr).slice(0, 240), { debounce: false });
+        const alert = asks
+          ? pushAlert('need', { chatName: mine.displayName || doc.chat, need: mine.statusNeed })
+          : pushAlert('answer', { chatName: mine.displayName || doc.chat,
+            text: doc.text, tldr: doc.tldr });
+        require('./push').notifyChat(doc.chat, alert.title, alert.body.slice(0, 240),
+          { debounce: false });
       } catch (e) { /* push must never fail a post */ }
+    }
+    // A FINISHED REPLY IS ALSO WHAT LETS A HELD BUZZ OUT (2026-08-28, Sophie:
+    // "I get notified a few seconds before chats actually finish their turn").
+    // A deliverable, a Compare page and an auto-compare grid are all filed
+    // mid-turn and QUEUE their push; this is the moment the turn really ends.
+    // Suppressed when the reply itself just buzzed her — same chat, same
+    // second, same collapse-id, so the second one is only ever noise.
+    if (!working) {
+      try { require('./push').flushChat(doc.chat, { suppress: gate.push || asks }); }
+      catch (e) { /* push must never fail a post */ }
     }
     // END OF TURN: the chat files itself (Aug 2026 — "that could be a start of
     // turn or end of turn activity"). END, not start: at the start of a turn
@@ -1246,16 +1334,51 @@ function herAskOf(s) {
 // written on the 20th is her question of the 20th paired with what the chat did
 // by the 20th; taking her newest message instead would file a question she
 // asked afterwards over answers that predate it.
-function lastHerText(msgs, before) {
-  for (let i = (msgs || []).length - 1; i >= 0; i--) {
-    const m = msgs[i] || {};
-    if (m.from !== 'sophie') continue;
+// A SLASH COMMAND IS NOT AN ASK. She types `/concise`, `/loop 5m …` and the
+// harness hands it over as an ordinary user turn, so the hook lifts it exactly
+// like something she said. Filing it as what she asked for puts a control she
+// pressed where her question should be (found 2026-08-27 on
+// instagram-video-crop, whose run opened on a bare `/concise`). Only a message
+// that is NOTHING BUT a command is skipped — a message that merely mentions one
+// is hers.
+const SLASH_ONLY = /^\/[A-Za-z][\w:-]*(\s+\S.*)?$/;
+const isAskable = (t) => !!t && !isCompacted(t) && !SLASH_ONLY.test(t);
+
+// WHEN SHE SENDS SEVERAL IN A ROW, THE ASK IS THE FIRST OF THEM (2026-08-27,
+// Sophie: "recurring issue - multiple messages only log the last one in chats
+// app" / "first shud be under what i asked").
+//
+// She talks the way she talks: the request, then the qualifications — "and the
+// same for the glove ones", "notify when done", "j". Reading her LAST message
+// files the afterthought instead, so the one line she reads months later to
+// remember what a chat was is the throwaway. Measured over her 215
+// stored wrap-ups the hour this landed: 14 change, and they change from "pills"
+// to "we made a couple panels yesterday and I think they never got cut", from
+// "view" to "pressing the playground button on images made by panels should
+// copy the prompt", from "j" to "dreamt style".
+//
+// A RUN is her consecutive messages with NO reply between them — the chat never
+// got a word in, so all of it is one ask. The moment a reply lands the run ends,
+// so an ordinary back-and-forth is untouched and this can only ever reach back
+// over messages nothing has answered. Deliberately NOT time-bounded: a stretch
+// the chat worked through without replying is still one ask, and a clock here
+// would be a rule she never asked for.
+function herAskText(msgs, before) {
+  const list = msgs || [];
+  let found = '';
+  for (let i = list.length - 1; i >= 0; i--) {
+    const m = list[i] || {};
     if (before && String(m.created || '') > String(before)) continue;
     const t = String(m.text || '').trim();
-    if (!t || isCompacted(t)) continue;
-    return t;
+    if (m.from === 'sophie') {
+      if (isAskable(t)) { found = t; continue; }
+      // A compaction summary or a bare slash command is machinery wearing her
+      // name: it is neither the ask nor a boundary, so step over it.
+      continue;
+    }
+    if (found) break;    // the reply that ended the run — stop here
   }
-  return '';
+  return found;
 }
 // The same thing for a caller that has not loaded the thread. One equality
 // filter, sorted in memory — the house rule in this file, so Firestore needs no
@@ -1265,7 +1388,7 @@ async function herAskFor(chat) {
     const snap = await db().collection(MSGS).where('chat', '==', chat).get();
     const msgs = snap.docs.map((d) => d.data())
       .sort((a, b) => (String(a.created || '') < String(b.created || '') ? -1 : 1));
-    return herAskOf(lastHerText(msgs));
+    return herAskOf(herAskText(msgs));
   } catch (_) { return ''; }
 }
 
@@ -1551,7 +1674,7 @@ router.post('/wrapup/trim', async (req, res) => {
 //      `wrapLine` and `wrapLong` are the chat's own account of its work and
 //      are never reworded.
 //   2. HER MESSAGE AS OF WHEN THE SUMMARY WAS WRITTEN (`wrapUpAt`), not her
-//      newest — see `lastHerText`'s `before`. A summary is a moment, and
+//      newest — see `herAskText`'s `before`. A summary is a moment, and
 //      pairing today's question with last week's answers reads as nonsense.
 //   3. A chat she never posted into is LEFT ALONE. There is nothing of hers to
 //      lift, and the chat's `asked` is the honest fallback exactly as it is on
@@ -1559,6 +1682,7 @@ router.post('/wrapup/trim', async (req, res) => {
 router.post('/wrapup/rehers', async (req, res) => {
   try {
     const dry = !(req.body && req.body.dry === false);
+    const redo = !!(req.body && req.body.redo);
     const only = String((req.body || {}).chat || '').trim();
     const snap = await db().collection(REG).get();
     const todo = [];
@@ -1566,7 +1690,11 @@ router.post('/wrapup/rehers', async (req, res) => {
       if (d.id === SETTINGS_DOC) return;
       if (only && d.id !== only) return;
       const r = d.data() || {};
-      if (r.wrapAskedHers === true) return;             // already hers
+      // ALREADY HERS is normally the stopping rule — this pass exists to
+      // replace a PARAPHRASE. `redo:true` reopens them, which is what the
+      // first-of-the-run change (2026-08-27) needed: a record already carrying
+      // her words carries the LAST of a run, and her rule is the first.
+      if (r.wrapAskedHers === true && !redo) return;
       if (!String(r.wrapAsked || '').trim()) return;    // nothing to replace
       todo.push({ chat: d.id, r });
     });
@@ -1580,7 +1708,7 @@ router.post('/wrapup/rehers', async (req, res) => {
         msgs = ms.docs.map((x) => x.data())
           .sort((a, b) => (String(a.created || '') < String(b.created || '') ? -1 : 1));
       } catch (_) { /* best-effort, exactly like herAskFor */ }
-      const hers = herAskOf(lastHerText(msgs, t.r.wrapUpAt));
+      const hers = herAskOf(herAskText(msgs, t.r.wrapUpAt));
       if (!hers) { noMessage.push(t.chat); continue; }
       if (hers === t.r.wrapAsked) continue;             // identical already
       // NOTHING IS DESTROYED — the paraphrase moves aside rather than being
@@ -1595,7 +1723,11 @@ router.post('/wrapup/rehers', async (req, res) => {
       // already made twice (see *Answering a question*). Keeping the old line
       // is what makes that the cheap, reversible call instead of a permanent
       // one.
-      const patch = { wrapAsked: hers, wrapAskedHers: true, wrapAskedWas: t.r.wrapAsked };
+      // `wrapAskedWas` is the ORIGINAL paraphrase and is written once — a
+      // re-pointing pass (`redo`) must not overwrite it with the sentence of
+      // hers this pass is replacing, or the undo stops being an undo.
+      const patch = { wrapAsked: hers, wrapAskedHers: true };
+      if (!String(t.r.wrapAskedWas || '').trim()) patch.wrapAskedWas = t.r.wrapAsked;
       // The prose mirror is rebuilt ONLY when it is provably the three answers
       // joined — anything else is a summary written as a paragraph, and
       // splicing her sentence into someone's prose would leave a broken one.
@@ -1606,7 +1738,7 @@ router.post('/wrapup/rehers', async (req, res) => {
       changed.push({ chat: t.chat, was: t.r.wrapAsked, now: hers, mirror: !!patch.wrapUp });
       if (!dry) await regRef(t.chat).set(patch, { merge: true });
     }
-    res.json({ ok: true, dry, checked: todo.length, rewrote: changed.length,
+    res.json({ ok: true, dry, redo, checked: todo.length, rewrote: changed.length,
       // Named rather than silently skipped: a chat she never posted into keeps
       // its chat-written answer, which is the same fallback the live paths use.
       noMessageOfHers: noMessage,
@@ -1735,7 +1867,7 @@ router.post('/wrapup/write', async (req, res) => {
     // basically just the beginning of my last message"). The model still
     // ANSWERS `asked` — it costs nothing extra and it is the fallback for a
     // chat with no message of hers in it — but her words win when they exist.
-    const hers = herAskOf(lastHerText(msgs));
+    const hers = herAskOf(herAskText(msgs));
     const asked = hers || wrapPartOf(out && out.asked);
     const did = wrapPartOf(out && out.did);
     const next = wrapPartOf(out && (out.next !== undefined ? out.next : out.open));
@@ -2060,6 +2192,45 @@ router.post('/pin-top', async (req, res) => {
     await regRef(slug).set(
       { pinTop: on ? true : admin.firestore.FieldValue.delete() }, { merge: true });
     res.json({ ok: true, chat: slug, pinTop: on });
+  } catch (err) { fail(res, err); }
+});
+
+// ── ON MY TRAY — the handful she is working on RIGHT NOW ────────────────────
+// (2026-08-31, Sophie: "add a tab in chats called 'on my tray' where i can pin
+// chats by their icons for what im working on rn — ex xi to do · review cards
+// illustrations ideas · triset · review cards".)
+//
+// The FIFTH per-chat mark, and the one that answers a question none of the
+// other four do. `starred` is close and is not it: a star lifts a chat inside
+// whatever list she is already looking at, so a starred chat still sits among
+// two hundred others. The tray is a SCREEN of its own holding three or four
+// chats and nothing else — she asked for it by their ICONS, so the tray is a
+// grid of the little drawings and the answer to "what am I on" is one look.
+//
+// `trayAt` IS THE POINT AND IS NOT DECORATION: the tray is ordered by when she
+// PUT each chat on it, oldest first, so the icons never move. Every other pile
+// in this app is sorted by newest message, which is right for an inbox and
+// exactly wrong for a dock — a tray that reshuffles whenever a chat replies is
+// one she can never build muscle memory on. The stamp is written here because
+// only the write knows the moment; deriving it later is impossible.
+//
+// Same phantom-row guard as /pin-top, /chat-bookmark and /notify: a merge-set
+// on a missing doc CREATES it, and every pile derives from the registry keys.
+router.post('/tray', async (req, res) => {
+  try {
+    const { chat, tray } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const on = tray !== false;
+    const slug = await followMoves(String(chat).slice(0, 60));
+    const snap = await db().collection(REG).doc(slug).get();
+    if (!snap.exists) return res.status(404).json({ error: 'no such chat' });
+    const del = admin.firestore.FieldValue.delete();
+    // Re-adding a chat that is ALREADY on the tray keeps its original stamp,
+    // so a stray double tap cannot send its icon to the end of the row.
+    const at = snap.get('trayAt') || new Date().toISOString();
+    await regRef(slug).set(
+      on ? { tray: true, trayAt: at } : { tray: del, trayAt: del }, { merge: true });
+    res.json({ ok: true, chat: slug, tray: on, trayAt: on ? at : null });
   } catch (err) { fail(res, err); }
 });
 
@@ -2924,11 +3095,28 @@ router.post('/status', async (req, res) => {
     if (!chat) return res.status(400).json({ error: 'chat required' });
     const resolved = await resolveChat(chat, String(session || '').slice(0, 120));
     const del = admin.firestore.FieldValue.delete();
-    const patch = { statusAt: new Date().toISOString() };
+    const now = new Date().toISOString();
+    const patch = { statusAt: now };
     // Only the fields sent change; sending "" clears one.
     if (need !== undefined) patch.statusNeed = statusLine(need) || del;
     if (doing !== undefined) patch.statusDoing = statusLine(doing) || del;
-    await regRef(resolved).set(patch, { merge: true });
+    // `needSetAt` — WHEN THE ASK ITSELF CHANGED, which is what lets a chat
+    // blocked on her reach her lock screen without a bell (see needEscalates
+    // in push-gate.js). It must NOT move on a re-post of the same words: a
+    // chat re-states its need at the end of every turn, and a stamp bumped
+    // each time would buzz her on a loop for one ask. Read straight off the
+    // doc rather than the registry cache — this route runs once a turn, and a
+    // stale read here would either drop a real ask or repeat one.
+    const ref = regRef(resolved);   // one ref: regRef drops the registry cache
+    if (need !== undefined) {
+      const line = statusLine(need);
+      let was = '';
+      try { was = ((await ref.get()).data() || {}).statusNeed || ''; }
+      catch (e) { /* best effort — a failed read just re-stamps */ }
+      if (line && line !== was) patch.needSetAt = now;
+      if (!line) patch.needSetAt = del;      // ask withdrawn: nothing to buzz
+    }
+    await ref.set(patch, { merge: true });
     res.json({ ok: true, chat: resolved });
   } catch (err) { fail(res, err); }
 });
@@ -3263,6 +3451,15 @@ router.post('/pin', async (req, res) => {
       turns: 0,
     } : del;
     await regRef(target).set({ pinned }, { merge: true });
+    // A MEDIA pin is a deliverable being handed over (a film, an audio cut) —
+    // it also lands on the running deliverables list (/deliverables), which
+    // buzzes her on a NEW url whatever the chat's bell says (Sophie's ask,
+    // 2026-08-27). Fire-and-forget: the list can never fail a pin.
+    if (u && require('./deliverables').pinDeliverable(pinned)) {
+      require('./deliverables')
+        .record({ chat: target, url: u, title: pinned.title, kind: pinned.kind, source: 'pin' })
+        .catch((e) => console.warn('deliverables: pin record failed', e.message));
+    }
     res.json({ ok: true, chat: target, pinned: u ? pinned : null });
   } catch (err) { fail(res, err); }
 });
@@ -3290,6 +3487,11 @@ router.get('/status', async (req, res) => {
       // whether its link is still up there and whether the "current" tag is
       // still lit (`turns` — see pinBump) without re-pinning blind.
       pinned: (d.pinned && d.pinned.url) ? d.pinned : null,
+      // …and its LABELS (2026-08-27, Sophie's tag rules) — so a chat can act
+      // on the words it wears: `bug fix` archives itself when the fix lands
+      // clean, `quick question` sets its own bell. Read-only here; filing is
+      // still hers and the auto-sorter's, never the chat's.
+      labels: labelsOf(d),
     });
   } catch (err) { fail(res, err); }
 });
@@ -3891,7 +4093,10 @@ async function runAutoCompare(chat) {
       try {
         const { chats } = await registry();
         const reg = chats[slug] || {};
-        if (chatNotifies(reg)) require('./push').notifyChat(slug, reg.displayName || slug, plan.title);
+        if (chatNotifies(reg)) {
+          const a = pushAlert('page', { chatName: reg.displayName || slug, title: plan.title });
+          require('./push').queueChat(slug, a.title, a.body);
+        }
       } catch (e) { /* push must never fail a filing */ }
       out.push({ kind: plan.kind, ok: true, id, created: true });
     }
@@ -3958,7 +4163,10 @@ router.post('/page', async (req, res) => {
       try {
         const { chats } = await registry();
         const reg = chats[tdoc.chat] || {};
-        if (chatNotifies(reg)) require('./push').notifyChat(tdoc.chat, reg.displayName || tdoc.chat, tdoc.title);
+        if (chatNotifies(reg)) {
+          const a = pushAlert('page', { chatName: reg.displayName || tdoc.chat, title: tdoc.title });
+          require('./push').queueChat(tdoc.chat, a.title, a.body);
+        }
       } catch (e) { /* push must never fail a post */ }
       // sheet = page-<id>: unique per page, and a new version is a new page,
       // so the verdict sheet's identity carries the item set's shape for free
@@ -3991,15 +4199,20 @@ router.post('/page', async (req, res) => {
     doc.path = file.name;
     await ref.set(doc);
     // A new Compare page is a delivery even when the chat says nothing — the
-    // same reason the Update tab counts it as an arrival. Same debounce, so a
-    // page and the reply that follows it in one turn are one buzz. And the
-    // same BELL: a chat she has not belled never reaches her lock screen, by
+    // same reason the Update tab counts it as an arrival. QUEUED, not sent: a
+    // page is posted mid-turn, so sending here buzzes her before the chat has
+    // finished (see push.js, THE BUZZ WAITS FOR THE TURN TO END). A page and
+    // the reply that follows it in one turn are still one buzz. And the same
+    // BELL: a chat she has not belled never reaches her lock screen, by
     // either door.
     try {
       const { chats } = await registry();
       const reg = chats[doc.chat] || {};
       const name = reg.displayName || doc.chat;
-      if (chatNotifies(reg)) require('./push').notifyChat(doc.chat, name, doc.title);
+      if (chatNotifies(reg)) {
+        const a = pushAlert('page', { chatName: name, title: doc.title });
+        require('./push').queueChat(doc.chat, a.title, a.body);
+      }
     } catch (e) { /* push must never fail a post */ }
     const body = { ok: true, id: ref.id, url: `/api/chatfeed/page/${ref.id}` };
     if (warnings.length) body.warnings = warnings;   // never blocks the post
@@ -4712,8 +4925,9 @@ async function applyPageVerdict(sheet, item, ok) {
 
 router.post('/verdict', express.json({ limit: '64kb' }), async (req, res) => {
   try {
-    const { chat, sheet, item, ok, text } = req.body || {};
-    if (!chat || !sheet || item === undefined) return res.status(400).json({ error: 'chat, sheet and item are required' });
+    const { chat, sheet, item, ok, text, at } = req.body || {};
+    if (!chat || !sheet) return res.status(400).json({ error: 'chat and sheet are required' });
+    if (item === undefined && at === undefined) return res.status(400).json({ error: 'item or at is required' });
     const db = admin.firestore();
     const id = `${String(chat).slice(0, 80)}__${String(sheet).slice(0, 80)}`;
     const patch = { chat, sheet, updatedAt: new Date().toISOString() };
@@ -4721,13 +4935,25 @@ router.post('/verdict', express.json({ limit: '64kb' }), async (req, res) => {
     // Booleans stay booleans (♥/✕ and every older vote page). A SHORT STRING
     // rides through unchanged for the judge template's piles ('maybe' /
     // 'later' — judge.js, Aug 2026); anything else coerces to boolean as before.
-    if (ok !== undefined) {
+    if (ok !== undefined && item !== undefined) {
       patch.items = {
         [String(item)]: ok === null ? null
           : typeof ok === 'string' ? String(ok).slice(0, 24) : !!ok,
       };
     }
     if (text !== undefined) patch.texts = { [String(item)]: String(text || '').slice(0, 2000) };
+    // HER PLACE IN THE DECK (2026-08-29, Sophie: "does it save my place rather
+    // than showing me things I've already swiped on"). One item id, on the doc
+    // her verdicts already live on — so it costs no extra read, it follows her
+    // between devices, and a deck she left half-read reopens where her thumb
+    // was rather than at the first card she happened to skip past.
+    //
+    // It rides this route rather than getting one of its own because it is the
+    // same doc and the same identity, and because a place is only ever written
+    // by the surface that is also writing verdicts. It is deliberately NOT a
+    // verdict: it lands in its own field, so saving a place can never mark a
+    // card and clearing a mark can never move her.
+    if (at !== undefined) patch.at = at === null ? '' : String(at).slice(0, 80);
     await db.collection('forge-chat-verdicts').doc(id).set(patch, { merge: true });
     // A VERDICT THAT ACTUALLY DOES THE THING (Aug 2026, Sophie: she marked
     // eleven cards "Archive", told the chat "I archived all of them", and not
@@ -4740,7 +4966,7 @@ router.post('/verdict', express.json({ limit: '64kb' }), async (req, res) => {
     // "run this on tap" hook: archiving is one reversible, visible act, and
     // that is what makes it safe to fire from a card.
     let archived = null;
-    if (ok !== undefined) {
+    if (ok !== undefined && item !== undefined) {
       try { archived = await applyPageVerdict(String(sheet), String(item), ok); }
       catch (e) { /* her mark is saved either way — never fail the tap */ }
     }
@@ -4756,7 +4982,7 @@ router.get('/verdict', async (req, res) => {
     const id = `${String(chat).slice(0, 80)}__${String(sheet).slice(0, 80)}`;
     const doc = await admin.firestore().collection('forge-chat-verdicts').doc(id).get();
     const d = doc.exists ? doc.data() : {};
-    res.json({ ok: true, items: d.items || {}, texts: d.texts || {} });
+    res.json({ ok: true, items: d.items || {}, texts: d.texts || {}, at: d.at || '' });
   } catch (err) {
     res.status(502).json({ error: err.message });
   }
@@ -4773,8 +4999,11 @@ require('./chat-wake').mount(router, { db, regRef, registry, followMoves, resolv
 // `registry` is exported so brief.js can read the SAME 5-minute cache the feed
 // already keeps rather than opening a second one — two caches of one collection
 // is how a stale answer gets served from whichever module happened to answer.
-module.exports = { router, pillInject, archiveActionFor, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry, pickFilm,
-  rankGroups, phraseRegex, phraseRank, bestPerChat,
+  // `regRef` is exported for chaticons.js — it is the ONE write path that
+  // invalidates the registry cache, so a sweep must not reach the collection
+  // around it.
+module.exports = { router, regRef, pillInject, archiveActionFor, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry, pickFilm,
+  rankGroups, phraseRegex, phraseRank, bestPerChat, snippetWindows, snippetOf,
   SEARCH_WHO, whoOf, whoParam, whoMatches,
   SEARCH_ARCH, archParam, archMatches, pickOne, pickNameRows, NAME_ROWS,
   autoComparePoke, runAutoCompare,

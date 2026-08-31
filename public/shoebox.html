@@ -1,0 +1,1060 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Shoebox</title>
+<!--
+  shoebox.html — the WHOLE Shoebox inside Deck Factory (2026-08-29, Sophie:
+  "can u add the shoebox as a module on deck factory", then on the first cut:
+  "you forgot the library and the boards and the strings in the play button
+  and everything else").
+
+  A faithful vanilla port of memory-library-react's Shoebox.jsx/Shoebox.css —
+  the polaroid LIBRARY (600-film cards, handwriting chins, undeveloped film
+  for a memory with no picture) and the BOARD (a corkboard camera you pan and
+  pinch, draggable pins, red-string constellations, Order and String modes,
+  ▶ Play gliding pin to pin, the constellation finale on star paper), with
+  multiple boards and per-board papers.
+
+  SAME DATA AS THE REAL SHOEBOX: memories are read-only; the board state is
+  the exact users/{uid}/preferences/shoebox doc the app at
+  incaseofamnesia.com/shoebox saves (via /api/shoebox/board-state), so a
+  board arranged here IS the board there. This page keeps the Shoebox's own
+  visual identity (its polaroid detail card, not the shared asset lightbox) —
+  the dream feed / witch app rule.
+-->
+<link rel="stylesheet" href="/tool.css">
+<!-- Handwriting face for the chins (Patrick Hand — 2026-08-29, Sophie asked
+     for a different hand than the first one). A <link> so a failed fetch degrades to
+     the cursive fallback instead of failing the page. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap">
+<style>
+  /* The page owns one screen: header + tabs fixed, the stage filling the
+     rest. The library scrolls INSIDE the stage (the injected pill adopts a
+     full-screen inner scroller); the board never scrolls at all. */
+  html, body.tool{ height:100dvh; overflow:hidden; }
+  body.tool{ display:flex; flex-direction:column; }
+  .tool .head{ flex:none; position:relative; }
+  #stage{ flex:1; position:relative; overflow:hidden; min-height:0; }
+
+  /* ── tabs + board actions (the Shoebox's own header row) ─────────────── */
+  .sb-bar{ flex:none; display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    padding:8px 64px 8px 16px; background:var(--bg); border-bottom:1px solid var(--border); }
+  .sb-tabs{ display:flex; gap:14px; }
+  .sb-tabs button{ background:none; border:none; padding:4px 1px; font:inherit;
+    font-size:13px; letter-spacing:.09em; color:#6b6153; cursor:pointer;
+    border-bottom:2px solid transparent; }
+  .sb-tabs button.on{ color:#2c2620; border-bottom-color:#800020; }
+  .sb-boardacts{ margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; }
+  .sb-act{ border:1px solid #2c2620; background:#fff; color:#2c2620;
+    border-radius:6px; padding:5px 12px; font-size:14px; font-family:inherit; cursor:pointer; }
+  .sb-act.on{ background:#2c2620; color:#faf8e9; }
+  .sb-act:disabled{ opacity:.4; cursor:default; }
+  .sb-play{ border-color:#800020; color:#800020; }
+  .sb-primary{ background:#800020; border-color:#800020; color:#fff; }
+
+  /* ── the polaroid (true 600-film card) ───────────────────────────────── */
+  .sb-card{ aspect-ratio:88/107; width:100%; background:#fff; border:1px solid #d6d0c0;
+    border-radius:2px; box-shadow:0 2px 7px rgba(58,48,36,.28); padding:6.8% 5.1% 0;
+    display:flex; flex-direction:column; box-sizing:border-box; user-select:none; -webkit-user-select:none; }
+  .sb-photo{ width:100%; aspect-ratio:1/1; border:1px solid #c9c2af; background:#2e2f2a;
+    overflow:hidden; flex:none; box-sizing:border-box; }
+  .sb-photo img{ width:100%; height:100%; object-fit:cover; display:block; -webkit-user-drag:none; }
+  .sb-undev{ width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+    padding:9%; box-sizing:border-box; }
+  .sb-undev span{ font-family:'Patrick Hand',cursive; font-size:17px; line-height:1.25; color:#efe9d6;
+    text-align:center; display:-webkit-box; -webkit-line-clamp:7; -webkit-box-orient:vertical; overflow:hidden; }
+  .sb-chin{ flex:1; min-height:0; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:1px; padding:2% 3%; overflow:hidden; }
+  /* No date on the chin (2026-08-29, Sophie: "get rid of the date") — the
+     writing is the whole caption, so it gets the chin's full height. */
+  .sb-chintitle{ font-family:'Patrick Hand',cursive; font-size:17px; font-weight:600; line-height:1.1;
+    color:#3a332a; text-align:center; display:-webkit-box; -webkit-line-clamp:3;
+    -webkit-box-orient:vertical; overflow:hidden; }
+
+  /* ── library ─────────────────────────────────────────────────────────── */
+  .sb-lib{ position:absolute; inset:0; overflow-y:auto; padding:14px 18px 40px; }
+  .sb-toprow{ display:flex; gap:8px; margin:0 0 14px; align-items:center; flex-wrap:wrap; }
+  .sb-filters{ display:flex; gap:8px; }
+  .sb-filters button{ border:1px solid #d0c9b4; background:#fff; color:#6b6153;
+    border-radius:6px; padding:4px 10px; font-size:13px; font-family:inherit; cursor:pointer; }
+  .sb-filters button.on{ border-color:#2c2620; color:#2c2620; }
+  .sbox{ position:relative; flex:1; min-width:130px; }
+  .sbox input{ width:100%; border:1px solid #d0c9b4; border-radius:6px; background:#fff;
+    color:var(--ink); font:inherit; font-size:16px; padding:5px 9px; -webkit-appearance:none; box-sizing:border-box; }
+  .sbox input:focus{ outline:none; border-color:#2c2620; }
+  .sbox .clr{ position:absolute; right:5px; top:50%; transform:translateY(-50%); width:22px; height:22px;
+    border:0; border-radius:6px; background:none; color:#8b8171; font-size:15px; line-height:1; padding:0; cursor:pointer; }
+  .sbox.hasq input{ padding-right:30px; }
+  .sb-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:26px 20px; }
+  .sb-cell{ position:relative; background:none; border:none; padding:0; cursor:pointer; font-family:inherit; }
+  .sb-pinmark{ position:absolute; top:-5px; right:-3px; width:12px; height:12px; border-radius:50%;
+    background:#c0392b; border:1px solid #8f2a20; }
+  .sb-note{ padding:8px 2px; color:#6b6153; font-size:15px; }
+  @media (max-width:480px){ .sb-grid{ grid-template-columns:repeat(2,1fr); gap:22px 14px; } }
+
+  .sb-warn{ position:absolute; bottom:14px; left:64px; right:12px; z-index:28; margin:0 auto;
+    max-width:420px; background:#fffdf3; border:1px solid #800020; border-radius:6px;
+    color:#2c2620; padding:8px 12px; font-size:14.5px; }
+
+  /* ── board ───────────────────────────────────────────────────────────── */
+  .sb-boardwrap{ position:absolute; inset:0; overflow:hidden; background:#a5773f;
+    touch-action:none; cursor:grab; }
+  .sb-boardwrap.play{ cursor:pointer; }
+  .sb-cork{ position:relative; background:#c19a6b; transform-origin:0 0; }
+  /* papers — each paints the cork AND the wall around it. The star tile is
+     mirrored/seamless, fixed px size so the stars stay her photographed size. */
+  .sb-cork.pp-cork{ background:#c19a6b; }
+  .sb-boardwrap.pp-cork{ background:#a5773f; }
+  .sb-cork.pp-stars{ background:#16294a url(/shoebox-papers/star-paper.webp) 0 0 / 1600px 1600px repeat; }
+  .sb-boardwrap.pp-stars{ background:#101d33; }
+  .pp-stars .sb-empty{ color:#e6ebf7; }
+  .sb-boardwrap.play .sb-cork{
+    transition:transform var(--sb-glide,500ms) cubic-bezier(.45,.05,.2,1);
+    will-change:transform; }
+  .sb-strings{ position:absolute; top:0; left:0; pointer-events:none; }
+  .sb-strings path{ fill:none; stroke:#a3271d; stroke-width:2.5; stroke-linecap:round; }
+  .sb-strings g.cur path{ stroke:#7d150c; stroke-width:4; }
+  .sb-pincard{ position:absolute; touch-action:none; cursor:grab; }
+  .sb-pincard:active{ cursor:grabbing; }
+  .sb-pinhead{ position:absolute; top:-7px; left:50%; width:16px; height:16px; border-radius:50%;
+    background:#c0392b; border:1.5px solid #8f2a20; box-shadow:0 2px 3px rgba(40,25,15,.4); }
+  .sb-pinhead::after{ content:''; position:absolute; top:3px; left:4px; width:4px; height:4px;
+    border-radius:50%; background:#f2d8d2; }
+  .sb-seq{ position:absolute; top:-10px; right:-10px; width:24px; height:24px; border-radius:50%;
+    background:#800020; color:#fff; font-size:13px; display:flex; align-items:center;
+    justify-content:center; border:1.5px solid #fff; z-index:4; }
+  .sb-seq.quiet{ opacity:.55; }
+  .sb-empty{ position:absolute; top:120px; left:40px; max-width:340px; color:#5d4426; font-size:17px; }
+  .sb-orderhint{ position:absolute; bottom:10px; left:0; right:0; text-align:center; color:#faf8e9;
+    background:rgba(44,38,32,.82); margin:0 auto; max-width:420px; padding:8px 14px;
+    border-radius:6px; font-size:14px; z-index:20; }
+  .sb-zoomer{ position:absolute; left:12px; bottom:16px; z-index:25; display:flex;
+    flex-direction:column; gap:8px; }
+  .sb-zbtn{ width:38px; height:38px; border-radius:6px; border:1px solid #2c2620; background:#fff;
+    color:#2c2620; font-size:19px; font-family:inherit; cursor:pointer; padding:0; }
+  .sb-zfit{ font-size:13px; letter-spacing:.02em; }
+
+  /* ── detail (the Shoebox's own card, not the shared lightbox) ────────── */
+  .sb-scrim{ position:absolute; inset:0; z-index:60; background:rgba(24,20,14,.78);
+    display:flex; align-items:center; justify-content:center; padding:20px; }
+  .sb-detail{ max-width:380px; width:100%; max-height:100%; overflow-y:auto; display:flex;
+    flex-direction:column; align-items:center; gap:14px; }
+  .sb-bigcard{ width:min(78vw,320px); }
+  .sb-bigcard .sb-chintitle{ font-size:21px; }
+  .sb-bigcard .sb-undev span{ font-size:21px; }
+  .sb-paper{ background:#fffdf3; border:1px solid #d6d0c0; border-radius:6px; padding:12px 14px;
+    font-size:15.5px; line-height:1.45; max-height:30vh; overflow-y:auto; width:100%; box-sizing:border-box; }
+  .sb-meta{ font-size:12px; letter-spacing:.05em; text-transform:uppercase; color:#cfc6b0; }
+  .sb-detailacts{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+  .sb-tags{ display:flex; gap:6px; flex-wrap:wrap; justify-content:center; }
+  .sb-tag{ border:1px solid #d6d0c0; border-radius:6px; background:#fffdf3;
+    color:#6b6153; font-size:12.5px; padding:2px 8px; }
+  .sb-edit{ width:100%; border:1px solid #d6d0c0; border-radius:6px; background:#fffdf3;
+    color:#2c2620; font-family:inherit; font-size:16px; padding:8px 10px;
+    box-sizing:border-box; resize:vertical; }
+
+  /* ── boards sheet ────────────────────────────────────────────────────── */
+  .sb-boardname{ max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sb-boards{ background:#fffdf3; border:1px solid #d6d0c0; border-radius:6px; padding:14px;
+    width:min(84vw,340px); max-height:70vh; overflow-y:auto; }
+  .sb-boards h2{ margin:0 0 10px; font-size:17px; font-weight:600; letter-spacing:.04em; }
+  .sb-boardrow{ margin-bottom:12px; }
+  .sb-boardrow:last-child{ margin-bottom:0; }
+  .sb-boardline{ display:flex; align-items:stretch; gap:8px; }
+  .sb-paps{ display:flex; gap:6px; margin-top:6px; padding-left:2px; }
+  .sb-pap{ width:30px; height:30px; border-radius:6px; border:1px solid #d0c9b4; padding:0;
+    cursor:pointer; background:#c19a6b; }
+  .sb-pap.pp-cork{ background:#c19a6b; }
+  .sb-pap.pp-stars{ background:#16294a url(/shoebox-papers/star-paper.webp) 32% 36% / 1200% auto no-repeat; }
+  .sb-pap.on{ border:2px solid #800020; box-shadow:0 0 0 1px #fffdf3; }
+  .sb-boardpick{ flex:1; display:flex; flex-direction:column; align-items:flex-start; gap:2px;
+    background:#fff; border:1px solid #d0c9b4; border-radius:6px; padding:8px 10px;
+    font-family:inherit; font-size:15.5px; color:#2c2620; cursor:pointer; text-align:left; }
+  .sb-boardrow.on .sb-boardpick{ border-color:#800020; }
+  .sb-boardnm{ font-weight:600; }
+  .sb-boardmeta{ font-size:12.5px; color:#8b8171; }
+  .sb-boarddel{ width:38px; border:1px solid #d0c9b4; border-radius:6px; background:#fff;
+    color:#8b8171; font-size:15px; cursor:pointer; }
+  .sb-newboard{ display:flex; gap:8px; margin:0 0 14px; }
+  .sb-newboard input{ flex:1; border:1px solid #d0c9b4; border-radius:6px; padding:8px 10px;
+    font-family:inherit; font-size:16px; background:#fff; min-width:0; }
+
+  /* ── the constellation finale (star paper, on the closing wide shot) ───
+     Finale v3, ported verbatim from memory-library-react #354: real dashes
+     (not dots), 3s twinkle, and the polaroids fade to a ghost, not gone. */
+  .pp-stars .sb-strings g.lit path{ stroke:#ffe9a8; stroke-width:3;
+    stroke-dasharray:11 9;               /* dashes, not dots (her call) */
+    stroke-linecap:round; filter:drop-shadow(0 0 5px rgba(255,233,168,.9));
+    animation:sbFlicker 3s linear 1, sbBreathe 2.6s ease-in-out 3s infinite alternate; }
+  .sb-star{ position:absolute; z-index:3; pointer-events:none; fill:#ffe9a8;
+    filter:drop-shadow(0 0 9px rgba(255,233,168,.95)) drop-shadow(0 0 22px rgba(255,233,168,.5));
+    animation:sbStarIn 3s linear 1, sbBreathe 2.6s ease-in-out 3s infinite alternate; }
+  .pp-stars .sb-pincard.lit .sb-pinhead{ opacity:0; transition:opacity .6s ease; }
+  .sb-pincard .sb-card{ transition:opacity 3s ease; }
+  .pp-stars.finale .sb-pincard.lit .sb-card{ opacity:.28; }  /* a ghost, not gone */
+  .pp-stars.finale .sb-seq{ opacity:0; transition:opacity .6s ease; }
+  @keyframes sbStarIn{ 0%{opacity:0;transform:scale(.15);} 6%{opacity:1;transform:scale(1.3);}
+    12%{opacity:.25;} 18%{opacity:1;} 26%{opacity:.5;transform:scale(1);} 34%{opacity:1;}
+    42%{opacity:.3;} 50%{opacity:1;} 58%{opacity:.6;} 66%{opacity:1;} 76%{opacity:.45;}
+    86%{opacity:1;} 93%{opacity:.7;} 100%{opacity:1;transform:scale(1);} }
+  @keyframes sbFlicker{ 0%{opacity:.05;} 6%{opacity:1;} 13%{opacity:.2;} 20%{opacity:1;}
+    28%{opacity:.5;} 36%{opacity:1;} 45%{opacity:.3;} 54%{opacity:1;} 63%{opacity:.6;}
+    72%{opacity:1;} 82%{opacity:.45;} 91%{opacity:1;} 96%{opacity:.7;} 100%{opacity:1;} }
+  @keyframes sbBreathe{ from{opacity:.75;} to{opacity:1;} }
+
+  body.playing .head, body.playing .sb-bar{ display:none; }
+</style>
+<body class="tool">
+<div class="head">
+  <span class="eyebrow tool-eyebrow">SHOEBOX</span>
+  <button id="help" type="button" aria-label="What this is">?</button>
+</div>
+<div class="helpcard" id="helpcard" hidden>
+  <b>Your Memory Library as polaroids, and your corkboards.</b> LIBRARY is
+  every memory — a pictureless one shows its words on undeveloped film. Open
+  one to pin it to the board. On the BOARD, drag polaroids to arrange them,
+  <b>String</b> ties constellations (tap cards one after another), <b>Order</b>
+  numbers the play sequence, and <b>▶ Play</b> glides from pin to pin — on the
+  star paper the constellations light up at the end. Boards and everything you
+  do here are the same boards as the
+  <a href="https://incaseofamnesia.com/shoebox" target="_blank" rel="noopener">Shoebox itself</a>.
+  <b>Square it</b> on a polaroid opens the Squaring tool.
+</div>
+
+<div class="sb-bar">
+  <div class="sb-tabs">
+    <button id="tabLib" type="button">LIBRARY</button>
+    <button id="tabBoard" type="button">BOARD</button>
+  </div>
+  <div class="sb-boardacts" id="boardacts" hidden>
+    <button class="sb-act sb-boardname" id="boardname" type="button"></button>
+    <button class="sb-act" id="stringbtn" type="button">String</button>
+    <button class="sb-act" id="orderbtn" type="button">Order</button>
+    <button class="sb-act sb-play" id="playbtn" type="button">▶ Play</button>
+  </div>
+</div>
+
+<div id="stage">
+  <div class="sb-lib" id="lib">
+    <div class="sb-toprow">
+      <div class="sb-filters">
+        <button id="fDev" type="button"></button>
+        <button id="fAll" type="button"></button>
+      </div>
+      <div class="sbox" id="sboxwrap">
+        <input id="q" type="search" enterkeyhint="search" autocomplete="off"
+          autocorrect="off" autocapitalize="none" placeholder="Search"
+          aria-label="Search the shoebox">
+        <button class="clr" id="clr" type="button" aria-label="Clear the search" hidden>&#10005;</button>
+      </div>
+    </div>
+    <p class="sb-note" id="libnote">Opening the shoebox&hellip;</p>
+    <div class="sb-grid" id="grid"></div>
+  </div>
+
+  <div class="sb-boardwrap" id="boardwrap" hidden>
+    <div class="sb-cork" id="cork">
+      <svg class="sb-strings" id="stringsvg"></svg>
+      <div id="pinlayer"></div>
+      <p class="sb-empty" id="boardempty" hidden>Open a polaroid in the Library and pin it here.</p>
+    </div>
+  </div>
+  <div class="sb-zoomer" id="zoomer" hidden>
+    <button class="sb-zbtn" id="zin" type="button" aria-label="Zoom in">+</button>
+    <button class="sb-zbtn" id="zout" type="button" aria-label="Zoom out">&minus;</button>
+    <button class="sb-zbtn sb-zfit" id="zfit" type="button" aria-label="Fit the whole board">Fit</button>
+  </div>
+  <p class="sb-orderhint" id="hint" hidden></p>
+  <p class="sb-warn" id="warn" hidden></p>
+
+  <div class="sb-scrim" id="detailscrim" hidden></div>
+  <div class="sb-scrim" id="boardscrim" hidden></div>
+</div>
+
+<script src="/feedkit.js"></script>
+<script>
+/* IIFE — the injected autoscroll pill runs in global scope with its own
+   `var raf`/`var I`, so nothing of this page's may leak out. */
+(function(){
+  'use strict';
+  var K = window.FeedKit || {};
+  var $ = function(id){ return document.getElementById(id); };
+
+  /* ── constants, verbatim from Shoebox.jsx ──────────────────────────── */
+  var BOARD_W = 2600, BOARD_H = 1700;
+  var CARD_W = 240, CARD_H = Math.round(CARD_W * 107 / 88);
+  var GLIDE = 500, HOLD = 500, WIDE_HOLD = 600;
+  var PORTRAIT = { w: 1600, h: 2600 };
+  var PAPERS = [
+    { id:'cork',  name:'Cork',       cls:'pp-cork' },
+    { id:'stars', name:'Star paper', cls:'pp-stars' },
+  ];
+  var paperOf = function(id){
+    for (var i = 0; i < PAPERS.length; i++) if (PAPERS[i].id === id) return PAPERS[i];
+    return PAPERS[0];
+  };
+
+  var esc = function(s){
+    return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  };
+  var hashOf = function(s){
+    var h = 0; s = String(s);
+    for (var i = 0; i < s.length; i++) h = ((h * 31) + s.charCodeAt(i)) | 0;
+    return Math.abs(h);
+  };
+  var tiltOf = function(id){ return ((hashOf(String(id)) % 700) / 100) - 3.5; };
+  var chainIds = function(c){ return (c && c.ids) || (Array.isArray(c) ? c : []); };
+  var titleOf = function(m){ return String(m.title || '').replace(/\s*•\s*/g, ' · '); };
+  /* Tiles load the derived display copy (the webp rule); the detail card and
+     the board show the original — a pinned polaroid is looked at up close. */
+  var thumb = function(u){ return K.thumbFor ? K.thumbFor(u, 480) : u; };
+
+  /* One instant photo. Frame: thin outline around the picture, the white
+     border, a thin outline around the whole card; square image, deep chin.
+     A memory with no picture shows its words on undeveloped film. */
+  function polHtml(m, tilt, opts){
+    opts = opts || {};
+    var url = m.url ? (opts.full ? m.url : thumb(m.url)) : '';
+    var title = titleOf(m);
+    return '<div class="sb-card" style="transform:rotate(' + tilt + 'deg)">' +
+      '<div class="sb-photo">' +
+        (url
+          ? '<img src="' + esc(url) + '" alt="' + esc(title || 'memory') + '" draggable="false" loading="lazy">'
+          : '<div class="sb-undev"><span>' + esc(m.content || title) + '</span></div>') +
+      '</div>' +
+      '<div class="sb-chin">' +
+        '<span class="sb-chintitle">' + (esc(title) || '&nbsp;') + '</span>' +
+      '</div>' +
+    '</div>';
+  }
+
+  /* ── state ─────────────────────────────────────────────────────────── */
+  var items = [];      // every memory, newest first
+  var byId = {};
+  var view = 'library';
+  try { view = sessionStorage.getItem('shoeboxView') || 'library'; } catch(e){}
+  var filter = 'developed';
+  var query = '';
+  var ordering = false, stringing = false, curStr = -1;
+  var playStep = null;   // null = not playing; -1 = whole board; 0.. = pins
+  var playTimer = null;
+
+  // Boards — the exact doc the real Shoebox saves, via the server.
+  var S = { boards: [], current: '' };
+  var loaded = false, blocked = true, dirty = false, saveTimer = null;
+
+  function board(){
+    for (var i = 0; i < S.boards.length; i++) if (S.boards[i].id === S.current) return S.boards[i];
+    return S.boards[0] || { id:'b1', name:'Memories', w:BOARD_W, h:BOARD_H, pins:[], strings:[], bg:'cork' };
+  }
+  var BW = function(){ return board().w || BOARD_W; };
+  var BH = function(){ return board().h || BOARD_H; };
+  var pins = function(){ return board().pins || []; };
+  var strings = function(){ return board().strings || []; };
+
+  function save(){
+    dirty = false;
+    if (blocked) return;   // the boards never loaded — never clobber them
+    fetch('/api/shoebox/board-state', { method:'POST',
+      headers:{ 'content-type':'application/json' },
+      body: JSON.stringify({ boards: S.boards, current: S.current }) })
+      .catch(function(){ /* the next edit retries; nothing is lost locally */ });
+  }
+  function touch(){
+    dirty = true;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(save, 700);
+  }
+  // A pending save survives her leaving the page mid-debounce.
+  function flush(){ if (dirty){ clearTimeout(saveTimer); save(); } }
+  document.addEventListener('visibilitychange', function(){
+    if (document.visibilityState === 'hidden') flush();
+  });
+  window.addEventListener('pagehide', flush);
+
+  function patchBoard(fn){
+    var b = board();
+    var patch = fn(b);
+    S.boards = S.boards.map(function(x){ return x.id === b.id ? Object.assign({}, x, patch) : x; });
+    touch();
+  }
+  var setPins = function(fn){ patchBoard(function(b){ return { pins: fn(b.pins || []) }; }); };
+  var setStrings = function(fn){ patchBoard(function(b){ return { strings: fn(b.strings || []) }; }); };
+  var isPinned = function(id){ return pins().some(function(p){ return p.id === id; }); };
+  var pinnedList = function(){ return pins().filter(function(p){ return byId[p.id]; }); };
+
+  function pinMemory(id){
+    if (isPinned(id)) return;
+    var n = pins().length;
+    var x = 170 + ((n % 7) * 330) + ((hashOf(id) % 60) - 30);
+    var y = 140 + (Math.floor(n / 7) * 400) + ((hashOf(id + 'y') % 60) - 30);
+    setPins(function(prev){ return prev.concat([{
+      id: id,
+      x: Math.min(BW() - CARD_W - 40, Math.max(20, x)),
+      y: Math.min(BH() - CARD_H - 40, Math.max(20, y)),
+      seq: null,
+    }]); });
+  }
+  function unpinMemory(id){
+    setPins(function(prev){ return prev.filter(function(p){ return p.id !== id; }); });
+    // A polaroid leaving the board takes its knot with it.
+    setStrings(function(prev){ return prev
+      .map(function(c){ return chainIds(c).filter(function(x){ return x !== id; }); })
+      .filter(function(ids){ return ids.length >= 2; })
+      .map(function(ids){ return { ids: ids }; }); });
+  }
+
+  /* ── tying strings by hand ─────────────────────────────────────────────
+     Tap polaroids one after another to tie them; tap a tied one to untie it.
+     Tapping a member of another string merges the two. */
+  function stringTap(id){
+    var chains = strings().map(function(c){ return chainIds(c).slice(); });
+    var at = -1;
+    chains.forEach(function(ids, i){ if (at === -1 && ids.indexOf(id) !== -1) at = i; });
+    var cur = curStr;
+    if (cur >= chains.length) cur = -1;
+    if (at === -1){
+      if (cur >= 0) chains[cur].push(id);
+      else { chains.push([id]); cur = chains.length - 1; }
+    } else if (cur === -1){
+      cur = at;                                       // pick the string up
+    } else if (at === cur){
+      chains[at] = chains[at].filter(function(x){ return x !== id; });  // untie
+    } else {
+      chains[at] = chains[at].concat(chains[cur]);    // tie two strings into one
+      chains.splice(cur, 1);
+      cur = at > cur ? at - 1 : at;
+    }
+    curStr = cur;
+    setStrings(function(){ return chains.map(function(ids){ return { ids: ids }; }); });
+    drawStrings();
+  }
+  function pruneStrings(){
+    setStrings(function(prev){ return prev
+      .map(chainIds).filter(function(ids){ return ids.length >= 2; })
+      .map(function(ids){ return { ids: ids }; }); });
+  }
+
+  /* ── the board camera (pan / pinch / fit) ──────────────────────────── */
+  var wrap = $('boardwrap'), cork = $('cork');
+  var cam = null, panState = null, dragState = null;
+  var HEADER_H = 8;   // the bar sits above the stage here, so only a breath
+
+  function fitCam(){
+    if (!wrap.clientWidth) return { x:0, y:HEADER_H, z:0.15 };
+    var vw = wrap.clientWidth, vh = wrap.clientHeight;
+    var z = Math.max(0.05, Math.min(vw / BW(), (vh - HEADER_H - 16) / BH()) * 0.97);
+    return { x:(vw - BW() * z) / 2, y:HEADER_H + (vh - HEADER_H - BH() * z) / 2, z:z };
+  }
+  function clampCam(c){
+    var Kp = 120;
+    var z = Math.min(1.6, Math.max(fitCam().z * 0.8, c.z));
+    return {
+      z: z,
+      x: Math.min(wrap.clientWidth - Kp, Math.max(Kp - BW() * z, c.x)),
+      y: Math.min(wrap.clientHeight - Kp, Math.max(Kp - BH() * z, c.y)),
+    };
+  }
+  function applyCam(c){
+    cam = clampCam(c);
+    cork.style.transform = 'translate(' + cam.x + 'px,' + cam.y + 'px) scale(' + cam.z + ')';
+    try { sessionStorage.setItem('shoeboxCam:' + S.current, JSON.stringify(cam)); } catch(e){}
+  }
+  function zoomAt(f, atX, atY){
+    var c = cam || fitCam();
+    var z1 = Math.min(1.6, Math.max(fitCam().z * 0.8, c.z * f));
+    var k = z1 / c.z;
+    var mx = atX != null ? atX : wrap.clientWidth / 2;
+    var my = atY != null ? atY : wrap.clientHeight / 2;
+    applyCam({ z:z1, x:mx - (mx - c.x) * k, y:my - (my - c.y) * k });
+  }
+  function restoreCam(){
+    var c = null;
+    try {
+      var raw = JSON.parse(sessionStorage.getItem('shoeboxCam:' + S.current));
+      if (raw && isFinite(raw.x) && isFinite(raw.y) && isFinite(raw.z) && raw.z > 0) c = raw;
+    } catch(e){}
+    applyCam(c || fitCam());
+  }
+
+  // One-finger pan on the background (a polaroid drags itself; the injected
+  // pill keeps its own taps).
+  wrap.addEventListener('pointerdown', function(e){
+    if (playStep !== null || !cam) return;
+    if (e.target.closest && (e.target.closest('.sb-pincard') || e.target.closest('.float'))) return;
+    try { wrap.setPointerCapture(e.pointerId); } catch(err){}
+    panState = { sx:e.clientX, sy:e.clientY, cx:cam.x, cy:cam.y };
+  });
+  wrap.addEventListener('pointermove', function(e){
+    if (!panState || !cam) return;
+    applyCam({ z:cam.z, x:panState.cx + e.clientX - panState.sx, y:panState.cy + e.clientY - panState.sy });
+  });
+  var endPan = function(){ panState = null; };
+  wrap.addEventListener('pointerup', endPan);
+  wrap.addEventListener('pointercancel', endPan);
+  wrap.addEventListener('click', function(){ if (playStep !== null) stopPlay(); });
+
+  // Pinch: two touches zoom around their midpoint (non-passive, preventDefault).
+  var pinch = null;
+  var dist = function(t){ return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); };
+  wrap.addEventListener('touchstart', function(e){
+    if (e.touches.length === 2){
+      dragState = null; panState = null;
+      var r = wrap.getBoundingClientRect();
+      pinch = {
+        d0: dist(e.touches), cam0: cam || fitCam(),
+        mid: { x:(e.touches[0].clientX + e.touches[1].clientX) / 2 - r.left,
+               y:(e.touches[0].clientY + e.touches[1].clientY) / 2 - r.top },
+      };
+    }
+  }, { passive:true });
+  wrap.addEventListener('touchmove', function(e){
+    if (e.touches.length === 2 && pinch){
+      e.preventDefault();
+      var z1 = Math.min(1.6, Math.max(fitCam().z * 0.8, pinch.cam0.z * (dist(e.touches) / pinch.d0)));
+      var k = z1 / pinch.cam0.z;
+      applyCam({ z:z1,
+        x:pinch.mid.x - (pinch.mid.x - pinch.cam0.x) * k,
+        y:pinch.mid.y - (pinch.mid.y - pinch.cam0.y) * k });
+    }
+  }, { passive:false });
+  var endPinch = function(){ pinch = null; };
+  wrap.addEventListener('touchend', endPinch);
+  wrap.addEventListener('touchcancel', endPinch);
+
+  /* ── the strings, drawn under the polaroids with a little sag ──────── */
+  var stringsvg = $('stringsvg');
+  var finaleOn = false, litChainSet = {}, litIdSet = {};
+  function drawStrings(){
+    stringsvg.setAttribute('width', BW());
+    stringsvg.setAttribute('height', BH());
+    var pinAt = {};
+    pins().forEach(function(p){ pinAt[p.id] = p; });
+    var out = '';
+    strings().forEach(function(chain, ci){
+      var pts = chainIds(chain).map(function(id){ return pinAt[id]; }).filter(Boolean)
+        .map(function(p){ return {
+          id: p.id,
+          x: p.x + CARD_W / 2 + ((hashOf(p.id + 'p') % 26) - 13),
+          y: p.y + 1,
+        }; });
+      var segs = '';
+      for (var i = 0; i + 1 < pts.length; i++){
+        var a = pts[i], b = pts[i + 1];
+        var sag = 22 + (hashOf(a.id + b.id) % 26);
+        segs += '<path d="M ' + a.x + ' ' + a.y + ' Q ' + ((a.x + b.x) / 2) + ' ' +
+          (Math.max(a.y, b.y) + sag) + ' ' + b.x + ' ' + b.y + '"/>';
+      }
+      var cls = [];
+      if (stringing && ci === curStr) cls.push('cur');
+      if (litChainSet[ci]) cls.push('lit');
+      out += '<g' + (cls.length ? ' class="' + cls.join(' ') + '"' : '') + '>' + segs + '</g>';
+    });
+    stringsvg.innerHTML = out;
+  }
+
+  /* ── the pins — painted once per set change, moved directly on drag ──
+     (the repaint rule: a drag must not rebuild decoded pictures). */
+  var pinlayer = $('pinlayer');
+  var pinSig = '';
+  function starSvg(id){
+    var off = (hashOf(id + 'p') % 26) - 13;
+    var sz = 56 + (hashOf(id + 's') % 17);
+    return '<svg class="sb-star" viewBox="0 0 64 64" style="left:calc(50% + ' + off + 'px);top:1px;' +
+      'width:' + sz + 'px;height:' + sz + 'px;margin-left:' + (-sz / 2) + 'px;margin-top:' + (-sz / 2) + 'px">' +
+      // a classic five-point star (finale v3 — Sophie: "5 points, not 4…
+      // no circle in the middle")
+      '<path d="M32 1 L39.35 21.89 L61.48 22.42 L43.89 35.86 L50.22 57.08 L32 44.5 L13.78 57.08 L20.11 35.86 L2.52 22.42 L24.65 21.89 Z"/></svg>';
+  }
+  function paintPins(force){
+    var list = pinnedList();
+    var sig = S.current + '|' + list.map(function(p){ return p.id + ':' + p.seq; }).join(',') +
+      '|' + ordering + '|' + (playStep !== null) + '|' + finaleOn;
+    if (!force && sig === pinSig){ drawStrings(); return; }
+    pinSig = sig;
+    pinlayer.innerHTML = list.map(function(p){
+      var m = byId[p.id];
+      var lit = litIdSet[p.id];
+      var seq = '';
+      if (p.seq != null) seq = '<span class="sb-seq' + (ordering ? '' : ' quiet') + '">' + p.seq + '</span>';
+      if (playStep !== null && !finaleOn) seq = '';
+      return '<div class="sb-pincard' + (lit ? ' lit' : '') + '" data-id="' + esc(p.id) + '"' +
+        ' style="left:' + p.x + 'px;top:' + p.y + 'px;width:' + CARD_W + 'px">' +
+        polHtml(m, tiltOf(p.id), { full:true }) +
+        '<span class="sb-pinhead" style="margin-left:' + ((hashOf(p.id + 'p') % 26) - 13) + 'px"></span>' +
+        (lit ? starSvg(p.id) : '') + seq +
+      '</div>';
+    }).join('');
+    $('boardempty').hidden = Boolean(list.length) || playStep !== null;
+    drawStrings();
+  }
+
+  // Drag a pin (tap = open / order / string; drag = move) — delegated.
+  pinlayer.addEventListener('pointerdown', function(e){
+    if (playStep !== null) return;
+    var el = e.target.closest && e.target.closest('.sb-pincard');
+    if (!el) return;
+    var id = el.dataset.id;
+    var pin = null;
+    pins().forEach(function(p){ if (p.id === id) pin = p; });
+    if (!pin) return;
+    try { el.setPointerCapture(e.pointerId); } catch(err){}
+    dragState = { id:id, el:el, startX:e.clientX, startY:e.clientY, x:pin.x, y:pin.y, moved:false };
+  });
+  pinlayer.addEventListener('pointermove', function(e){
+    var d = dragState;
+    if (!d) return;
+    var z = (cam && cam.z) || 1;
+    var dx = (e.clientX - d.startX) / z;
+    var dy = (e.clientY - d.startY) / z;
+    if (!d.moved && (Math.abs(dx) * z > 6 || Math.abs(dy) * z > 6)) d.moved = true;
+    if (!d.moved) return;
+    var x = Math.min(BW() - CARD_W - 10, Math.max(6, d.x + dx));
+    var y = Math.min(BH() - CARD_H - 10, Math.max(6, d.y + dy));
+    d.nx = x; d.ny = y;
+    d.el.style.left = x + 'px';
+    d.el.style.top = y + 'px';
+    // Live: the pin record follows the finger so the strings ride along.
+    var bpins = pins().map(function(p){ return p.id === d.id ? Object.assign({}, p, { x:x, y:y }) : p; });
+    S.boards = S.boards.map(function(b){ return b.id === board().id ? Object.assign({}, b, { pins:bpins }) : b; });
+    drawStrings();
+  });
+  pinlayer.addEventListener('pointerup', function(e){
+    var d = dragState;
+    dragState = null;
+    if (!d) return;
+    if (d.moved){ touch(); return; }
+    var id = d.id;
+    if (ordering){
+      // Tap numbers the sequence; tapping a numbered one takes its number back.
+      setPins(function(prev){
+        var cur = null;
+        prev.forEach(function(p){ if (p.id === id) cur = p; });
+        if (!cur) return prev;
+        if (cur.seq != null) return prev.map(function(p){ return p.id === id ? Object.assign({}, p, { seq:null }) : p; });
+        var max = prev.reduce(function(m2, p){ return Math.max(m2, p.seq == null ? 0 : p.seq); }, 0);
+        return prev.map(function(p){ return p.id === id ? Object.assign({}, p, { seq:max + 1 }) : p; });
+      });
+      paintPins(true);
+      return;
+    }
+    if (stringing){ stringTap(id); return; }
+    openDetail(id);
+  });
+  pinlayer.addEventListener('pointercancel', function(){ dragState = null; });
+
+  /* ── the life-sequence play (camera glides pin to pin) ─────────────── */
+  function playList(){
+    var pl = pinnedList();
+    var numbered = pl.filter(function(p){ return p.seq != null; })
+      .sort(function(a, b){ return a.seq - b.seq; });
+    return numbered.length ? numbered : pl;
+  }
+  function playCam(step, list){
+    var vw = wrap.clientWidth, vh = wrap.clientHeight;
+    if (step === -1 || step >= list.length){
+      var s = Math.min(vw / BW(), vh / BH()) * 0.96;
+      return { x:(vw - BW() * s) / 2, y:(vh - BH() * s) / 2, z:s };
+    }
+    var pin = list[step];
+    var s2 = Math.min(2.3, (vw * 0.72) / CARD_W, (vh * 0.72) / CARD_H);
+    var cx = pin.x + CARD_W / 2, cy = pin.y + CARD_H / 2;
+    return { x:vw / 2 - cx * s2, y:vh / 2 - cy * s2, z:s2 };
+  }
+  function setFinale(on){
+    finaleOn = on;
+    litChainSet = {}; litIdSet = {};
+    if (on){
+      var pinned2 = {};
+      pins().forEach(function(p){ pinned2[p.id] = true; });
+      strings().forEach(function(c, ci){
+        var members = chainIds(c).filter(function(id){ return pinned2[id]; });
+        if (members.length >= 2){
+          litChainSet[ci] = true;
+          members.forEach(function(id){ litIdSet[id] = true; });
+        }
+      });
+    }
+    wrap.classList.toggle('finale', on);
+    paintPins(true);
+  }
+  function stepPlay(){
+    var list = playList();
+    if (playStep === null) return;
+    // THE CONSTELLATION FINALE (star paper only): nothing lights during the
+    // walk — when the camera pulls back to the closing wide shot, every
+    // constellation ignites at once and the lit sky stays until she taps out.
+    if (playStep >= list.length && paperOf(board().bg).id === 'stars'){
+      setFinale(true);
+      return;
+    }
+    var wide = playStep === -1 || playStep >= list.length;
+    playTimer = setTimeout(function(){
+      if (playStep === null) return;
+      if (playStep >= list.length){ stopPlay(); return; }   // closing shot shown
+      playStep = playStep + 1 > list.length - 1 && playStep !== -1 ? list.length : playStep + 1;
+      var c = playCam(playStep, list);
+      cork.style.transform = 'translate(' + c.x + 'px,' + c.y + 'px) scale(' + c.z + ')';
+      stepPlay();
+    }, GLIDE + (wide ? WIDE_HOLD : HOLD));
+  }
+  function startPlay(){
+    var list = playList();
+    if (!list.length) return;
+    if (ordering) toggleOrdering(false);
+    if (stringing) toggleStringing(false);
+    closeDetail();
+    // Straight to the first card (2026-08-29, Sophie: "get rid of the full
+    // view before the individual cards") — the wide shot lives only at the
+    // END now, where the finale needs the zoom-out.
+    playStep = 0;
+    document.body.classList.add('playing');
+    wrap.classList.add('play');
+    $('zoomer').hidden = true;
+    paintPins(true);
+    var c = playCam(0, list);
+    cork.style.transform = 'translate(' + c.x + 'px,' + c.y + 'px) scale(' + c.z + ')';
+    stepPlay();
+  }
+  function stopPlay(){
+    clearTimeout(playTimer);
+    playStep = null;
+    setFinale(false);
+    document.body.classList.remove('playing');
+    wrap.classList.remove('play');
+    $('zoomer').hidden = view !== 'board';
+    paintPins(true);
+    restoreCam();
+  }
+
+  /* ── views, tabs, modes ────────────────────────────────────────────── */
+  function setPaperClasses(){
+    var p = paperOf(board().bg);
+    ['pp-cork','pp-stars'].forEach(function(c){ wrap.classList.remove(c); cork.classList.remove(c); });
+    wrap.classList.add(p.cls);
+    cork.classList.add(p.cls);
+  }
+  function showBoard(){
+    cork.style.width = BW() + 'px';
+    cork.style.height = BH() + 'px';
+    cork.style.setProperty('--sb-glide', GLIDE + 'ms');
+    setPaperClasses();
+    $('boardname').textContent = board().name + ' ▾';
+    $('playbtn').disabled = !pinnedList().length;
+    cam = null;
+    restoreCam();
+    paintPins(true);
+  }
+  function setView(v){
+    view = v;
+    if (loaded) closeDetail();
+    try { sessionStorage.setItem('shoeboxView', v); } catch(e){}
+    $('tabLib').classList.toggle('on', v === 'library');
+    $('tabBoard').classList.toggle('on', v === 'board');
+    $('lib').hidden = v !== 'library';
+    $('boardwrap').hidden = v !== 'board';
+    $('zoomer').hidden = v !== 'board';
+    $('boardacts').hidden = v !== 'board';
+    hint();
+    if (v === 'board' && loaded) showBoard();
+  }
+  function hint(){
+    var h = $('hint');
+    if (view === 'board' && ordering){ h.textContent = 'Tap polaroids in story order. Tap a number to clear it.'; h.hidden = false; }
+    else if (view === 'board' && stringing){ h.textContent = 'Tap polaroids one after another to tie them together. Tap a tied one to untie it.'; h.hidden = false; }
+    else h.hidden = true;
+  }
+  function toggleStringing(force){
+    var on = force != null ? force : !stringing;
+    if (stringing && !on) pruneStrings();
+    stringing = on;
+    ordering = false;
+    curStr = -1;
+    $('stringbtn').textContent = on ? 'Done tying' : 'String';
+    $('stringbtn').classList.toggle('on', on);
+    $('orderbtn').textContent = 'Order';
+    $('orderbtn').classList.remove('on');
+    hint(); paintPins(true);
+  }
+  function toggleOrdering(force){
+    var on = force != null ? force : !ordering;
+    if (stringing) toggleStringing(false);
+    ordering = on;
+    $('orderbtn').textContent = on ? 'Done ordering' : 'Order';
+    $('orderbtn').classList.toggle('on', on);
+    hint(); paintPins(true);
+  }
+  $('tabLib').onclick = function(){ setView('library'); };
+  $('tabBoard').onclick = function(){ setView('board'); };
+  $('stringbtn').onclick = function(){ toggleStringing(); };
+  $('orderbtn').onclick = function(){ toggleOrdering(); };
+  $('playbtn').onclick = startPlay;
+  $('zin').onclick = function(){ zoomAt(1.4); };
+  $('zout').onclick = function(){ zoomAt(1 / 1.4); };
+  $('zfit').onclick = function(){ applyCam(fitCam()); };
+
+  /* ── library ───────────────────────────────────────────────────────── */
+  var grid = $('grid');
+  function developed(){ return items.filter(function(m){ return m.url; }); }
+  function shelf(){
+    var dev = developed();
+    var base = (filter === 'developed' && dev.length) ? dev : items;
+    if (!query) return base;
+    // The WHOLE library is loaded (one request), so filtering here is the
+    // full index, not a page — the truncate lesson holds. House grammar.
+    var groups = K.qparse ? K.qparse(query) : [];
+    // Everything a polaroid honestly carries: the writing, the memory's own
+    // words, the FULL filed prompt, her tags, the caption, the source.
+    return base.filter(function(m){
+      var hay = [m.title, m.content, m.source, m.caption, m.promptContent,
+        (m.tags || []).join(' ')].join(' \n ');
+      return K.qmatch ? K.qmatch(hay, groups) : true;
+    });
+  }
+  function paintFilters(){
+    $('fDev').textContent = 'Developed (' + developed().length + ')';
+    $('fAll').textContent = 'All (' + items.length + ')';
+    $('fDev').classList.toggle('on', filter === 'developed');
+    $('fAll').classList.toggle('on', filter === 'all');
+  }
+  var gridSig = '';
+  function paintGrid(){
+    paintFilters();
+    var list = shelf();
+    var note = $('libnote');
+    note.hidden = Boolean(list.length);
+    if (!list.length) note.textContent = items.length ? 'Nothing matches that.' : 'No memories yet.';
+    var sig = filter + '|' + query + '|' + list.length + '|' + pins().map(function(p){ return p.id; }).join(',');
+    if (sig === gridSig) return;
+    gridSig = sig;
+    grid.innerHTML = list.map(function(m){
+      return '<button class="sb-cell" type="button" data-id="' + esc(m.id) + '">' +
+        polHtml(m, tiltOf(m.id)) +
+        (isPinned(m.id) ? '<span class="sb-pinmark" title="On the board"></span>' : '') +
+      '</button>';
+    }).join('');
+  }
+  grid.addEventListener('click', function(e){
+    var c = e.target.closest && e.target.closest('.sb-cell');
+    if (c) openDetail(c.dataset.id);
+  });
+  $('fDev').onclick = function(){ filter = 'developed'; paintGrid(); };
+  $('fAll').onclick = function(){ filter = 'all'; paintGrid(); };
+
+  var qEl = $('q'), live = null;
+  function runSearch(){
+    query = qEl.value.trim();
+    $('sboxwrap').classList.toggle('hasq', Boolean(qEl.value));
+    $('clr').hidden = !qEl.value;
+    paintGrid();
+  }
+  if (K.liveInput) live = K.liveInput(qEl, runSearch);
+  if (K.enterSubmits) K.enterSubmits(qEl, function(){ if (live) live.sync(); runSearch(); });
+  $('clr').onclick = function(){ qEl.value = ''; if (live) live.sync(); runSearch(); };
+
+  /* ── detail (the Shoebox's own card) ───────────────────────────────── */
+  var detailscrim = $('detailscrim');
+  function openDetail(id, editing){
+    var m = byId[id];
+    if (!m || playStep !== null) return;
+    var pinnedHere = isPinned(id);
+    var tags = (m.tags || []).filter(Boolean);
+    detailscrim.innerHTML = '<div class="sb-detail">' +
+      '<div class="sb-bigcard">' + polHtml(m, 0, { full:true }) + '</div>' +
+      (editing
+        // THE EDIT STEP (2026-08-29, Sophie: "a step to add tags and
+        // customize the actual card writing"). Two fields, prefilled with
+        // HER OWN saved values — never examples. The writing is the chin;
+        // tags are searchable words of her own.
+        ? '<textarea class="sb-edit" id="eTitle" rows="3" aria-label="The card&#39;s writing"></textarea>' +
+          '<input class="sb-edit" id="eTags" placeholder="Tags" autocomplete="off" aria-label="Tags">' +
+          '<div class="sb-detailacts">' +
+            '<button class="sb-act sb-primary" id="eSave" type="button">Save</button>' +
+            '<button class="sb-act" id="eCancel" type="button">Cancel</button>' +
+          '</div>'
+        : (m.content ? '<div class="sb-paper">' + esc(m.content) + '</div>' : '') +
+          (tags.length ? '<div class="sb-tags">' + tags.map(function(t){
+            return '<span class="sb-tag">' + esc(t) + '</span>'; }).join('') + '</div>' : '') +
+          (m.caption ? '<div class="sb-meta">' + esc(m.caption) + '</div>' : '') +
+          '<div class="sb-detailacts">' +
+            (pinnedHere
+              ? '<button class="sb-act" id="dUnpin" type="button">Take off the board</button>'
+              : '<button class="sb-act sb-primary" id="dPin" type="button">Pin to “' + esc(board().name) + '”</button>') +
+            (m.url ? '<button class="sb-act" id="dSquare" type="button">Square it</button>' : '') +
+            '<button class="sb-act" id="dEdit" type="button">Edit</button>' +
+            '<button class="sb-act" id="dClose" type="button">Close</button>' +
+          '</div>') +
+    '</div>';
+    detailscrim.hidden = false;
+    var inner = detailscrim.querySelector('.sb-detail');
+    inner.onclick = function(e){ e.stopPropagation(); };
+    if (editing){
+      // .value, never baked into the markup — her writing can hold quotes.
+      $('eTitle').value = m.title || '';
+      $('eTags').value = tags.join(', ');
+      $('eTitle').focus();
+      $('eCancel').onclick = function(){ openDetail(id); };
+      $('eSave').onclick = function(){
+        var btn = $('eSave');
+        btn.disabled = true;
+        var title = $('eTitle').value.trim();
+        var newTags = $('eTags').value.split(/[,\n]/).map(function(t){ return t.trim(); }).filter(Boolean);
+        fetch('/api/shoebox/memory', { method:'POST',
+          headers:{ 'content-type':'application/json' },
+          body: JSON.stringify({ id:id, title:title, tags:newTags }) })
+          .then(function(r){ return r.json(); })
+          .then(function(j){
+            if (j && j.error) throw new Error(j.error);
+            m.title = title;
+            m.tags = newTags;
+            gridSig = '';       // the chins changed — repaint them
+            paintGrid();
+            paintPins(true);
+            openDetail(id);
+          })
+          .catch(function(e2){ btn.disabled = false; alert(String(e2.message || e2)); });
+      };
+      return;
+    }
+    var pinBtn = $('dPin'), unpinBtn = $('dUnpin'), sqBtn = $('dSquare');
+    if (pinBtn) pinBtn.onclick = function(){ pinMemory(id); closeDetail(); setView('board'); };
+    if (unpinBtn) unpinBtn.onclick = function(){ unpinMemory(id); closeDetail(); paintPins(true); paintGrid(); };
+    if (sqBtn) sqBtn.onclick = function(){
+      fetch('/api/shoebox/square', { method:'POST',
+        headers:{ 'content-type':'application/json' }, body: JSON.stringify({ id:id }) })
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          if (j && j.url) location.href = j.url;
+          else alert((j && j.error) || 'could not build the squaring set');
+        }).catch(function(e2){ alert(String(e2.message || e2)); });
+    };
+    $('dEdit').onclick = function(){ openDetail(id, true); };
+    $('dClose').onclick = closeDetail;
+  }
+  function closeDetail(){ detailscrim.hidden = true; detailscrim.innerHTML = ''; paintGrid(); paintPins(); }
+  detailscrim.addEventListener('click', function(e){ if (e.target === detailscrim) closeDetail(); });
+
+  /* ── the boards sheet (create / pick / delete, papers per board) ───── */
+  var boardscrim = $('boardscrim');
+  function paintBoards(){
+    boardscrim.innerHTML = '<div class="sb-boards">' +
+      '<h2>Boards</h2>' +
+      '<div class="sb-newboard">' +
+        '<input id="nbName" placeholder="Name" autocomplete="off">' +
+        '<button class="sb-act sb-primary" id="nbGo" type="button">New board</button>' +
+      '</div>' +
+      S.boards.map(function(b){
+        var portrait = Number(b.w) < Number(b.h);
+        return '<div class="sb-boardrow' + (b.id === S.current ? ' on' : '') + '" data-id="' + esc(b.id) + '">' +
+          '<div class="sb-boardline">' +
+            '<button class="sb-boardpick" type="button" data-pick="' + esc(b.id) + '">' +
+              '<span class="sb-boardnm">' + esc(b.name) + '</span>' +
+              '<span class="sb-boardmeta">' + (b.pins || []).length + ' pinned' + (portrait ? ' · portrait' : '') + '</span>' +
+            '</button>' +
+            (S.boards.length > 1
+              ? '<button class="sb-boarddel" type="button" data-del="' + esc(b.id) + '" aria-label="Delete ' + esc(b.name) + '">&#10005;</button>'
+              : '') +
+          '</div>' +
+          // Picking a paper does NOT switch boards — she can re-paper a board
+          // she isn't standing on. A swatch is a sibling, never nested.
+          '<div class="sb-paps">' +
+            PAPERS.map(function(pp){
+              var on = paperOf(b.bg).id === pp.id;
+              return '<button class="sb-pap ' + pp.cls + (on ? ' on' : '') + '" type="button"' +
+                ' data-paper="' + pp.id + '" data-board="' + esc(b.id) + '"' +
+                ' title="' + pp.name + '" aria-label="' + pp.name + ' for ' + esc(b.name) + '"' +
+                ' aria-pressed="' + on + '"></button>';
+            }).join('') +
+          '</div>' +
+        '</div>';
+      }).join('') +
+    '</div>';
+    boardscrim.querySelector('.sb-boards').onclick = function(e){ e.stopPropagation(); };
+    $('nbGo').onclick = function(){
+      var name = $('nbName').value.trim();
+      var id = Math.random().toString(36).slice(2, 8);
+      S.boards = S.boards.concat([{ id:id, name:name || ('Board ' + (S.boards.length + 1)),
+        w:PORTRAIT.w, h:PORTRAIT.h, pins:[], strings:[], bg:'cork' }]);
+      S.current = id;
+      touch();
+      boardscrim.hidden = true;
+      showBoard();
+    };
+    boardscrim.querySelectorAll('[data-pick]').forEach(function(btn){
+      btn.onclick = function(){
+        S.current = btn.dataset.pick;
+        touch();
+        boardscrim.hidden = true;
+        curStr = -1;
+        if (stringing) toggleStringing(false);
+        if (ordering) toggleOrdering(false);
+        showBoard();
+      };
+    });
+    boardscrim.querySelectorAll('[data-del]').forEach(function(btn){
+      btn.onclick = function(){
+        var b = null;
+        S.boards.forEach(function(x){ if (x.id === btn.dataset.del) b = x; });
+        if (!b || S.boards.length <= 1) return;
+        if (!window.confirm('Delete the board “' + b.name + '”? The polaroids stay in the Library.')) return;
+        S.boards = S.boards.filter(function(x){ return x.id !== b.id; });
+        if (S.current === b.id) S.current = S.boards[0].id;
+        touch();
+        paintBoards();
+        showBoard();
+      };
+    });
+    boardscrim.querySelectorAll('[data-paper]').forEach(function(btn){
+      btn.onclick = function(){
+        var bid = btn.dataset.board, pid = btn.dataset.paper;
+        S.boards = S.boards.map(function(b){ return b.id === bid ? Object.assign({}, b, { bg:pid }) : b; });
+        touch();
+        paintBoards();
+        setPaperClasses();
+      };
+    });
+  }
+  $('boardname').onclick = function(){ paintBoards(); boardscrim.hidden = false; };
+  boardscrim.addEventListener('click', function(e){ if (e.target === boardscrim) boardscrim.hidden = true; });
+
+  /* ── the "?" ───────────────────────────────────────────────────────── */
+  var help = $('help'), card = $('helpcard');
+  help.onclick = function(){ card.hidden = !card.hidden; };
+  card.onclick = function(e){ if (!e.target.closest('a')) card.hidden = true; };
+
+  /* ── load ──────────────────────────────────────────────────────────── */
+  function warn(msg){
+    var w = $('warn');
+    w.hidden = !msg;
+    if (msg) w.textContent = msg;
+  }
+  Promise.all([
+    fetch('/api/shoebox/feed?limit=2000').then(function(r){ return r.json(); }),
+    fetch('/api/shoebox/board-state').then(function(r){ return r.json(); }),
+  ]).then(function(res){
+    var feed = res[0], st = res[1];
+    if (feed.error) throw new Error(feed.error);
+    items = feed.items || [];
+    items.forEach(function(m){ byId[m.id] = m; });
+    if (st && Array.isArray(st.boards) && st.boards.length){
+      S = st;
+      blocked = false;
+    } else {
+      // The boards didn't load: show read-only rather than letting a later
+      // edit clobber the real doc with a blank default.
+      blocked = true;
+      warn('Your boards didn’t load (nothing is lost — nothing saves in this state). Reload to try again.');
+      S = { boards:[{ id:'b1', name:'Memories', w:BOARD_W, h:BOARD_H, pins:[], strings:[], bg:'cork' }], current:'b1' };
+    }
+    loaded = true;
+    paintGrid();
+    setView(view);
+  }).catch(function(err){
+    $('libnote').textContent = 'Couldn’t open the shoebox — ' + String(err.message || err);
+  });
+
+  setView(view);
+})();
+</script>
+</body>

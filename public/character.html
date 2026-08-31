@@ -7,9 +7,22 @@
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   body { margin:0; background:var(--paper); color:var(--ink);
          font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
-  main { max-width:640px; margin:0 auto; padding:22px 18px 60px; }
-  h1 { font-size:22px; margin:4px 0 2px; letter-spacing:.3px; }
-  .sub { color:var(--muted); font-size:13px; margin:0 0 18px; }
+  main { max-width:640px; margin:0 auto; padding:var(--headtop, 14px) 18px 60px; }
+  /* THE HEADER, THE HOUSE WAY (2026-08-27, Sophie: "shud follow pill/header
+     hard rules"). One row, the title once, and NOTHING above it — the page
+     used to open with a "‹ Story Room" line sitting over its own h1. The row
+     is a real `.app-header`, which is what `pagehead.js` looks for: without
+     one it injected a bare `#forgehead` strip of its own and the page had a
+     chevron floating above a title it could not centre. */
+  .app-header { display:flex; align-items:center; gap:10px; min-height:34px; margin:0 0 2px; }
+  h1 { font-size:22px; margin:0; letter-spacing:.3px; }
+  /* The web's own way back. In the app the injected chevron IS this, so the
+     link stands down rather than drawing a second one (the same "whoever owns
+     back draws it once" rule the ten __nativeNavBar pages follow). */
+  .back { color:var(--muted); font-size:13px; text-decoration:none; flex:0 0 auto; }
+  body.pagehead .back, body.native .back, body.embed .back { display:none; }
+  .sub { color:var(--muted); font-size:13px; margin:0 0 14px; }
+  #sub { width:calc(100% - var(--pillgap, 0px)); }
   .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; }
   .creator { display:flex; flex-direction:column; align-items:center; gap:12px; }
   .drop { width:132px; height:132px; border-radius:14px; background:var(--box);
@@ -17,13 +30,25 @@
           cursor:pointer; overflow:hidden; position:relative; }
   .drop svg { width:56px; height:56px; color:var(--muted); }
   .drop img { width:100%; height:100%; object-fit:cover; }
-  .namerow { width:132px; display:flex; gap:8px; align-items:stretch; }
-  #name { flex:1; width:132px; padding:10px 12px; font-size:15px; border:1px solid var(--line);
+  /* Three controls now (name · my picture · ✦), so the row takes the card's
+     width rather than the 132px thumbnail's — at 132 the name box was left
+     with nothing. */
+  .namerow { width:100%; display:flex; gap:8px; align-items:stretch; }
+  #name { flex:1; min-width:0; padding:10px 12px; font-size:15px; border:1px solid var(--line);
           border-radius:6px; background:#fff; color:var(--ink); }
   .gen { width:44px; height:44px; border:none; border-radius:6px; background:var(--star);
          display:flex; align-items:center; justify-content:center; cursor:pointer; flex:0 0 auto; }
   .gen svg { width:24px; height:24px; color:#fff; }
   .gen:disabled { opacity:.5; }
+  /* HER OWN PICTURE — the same 44px square as ✦ but OUTLINED, never gold
+     (2026-08-29, Sophie: "add my own picture button to characters"). The gold
+     is the house generate treatment and this button spends nothing: painting
+     them alike would say the two taps cost the same thing. A rounded square
+     at the house 6px, per the no-circles rule. */
+  .own { width:44px; height:44px; border:1px solid var(--line); border-radius:6px; background:#fff;
+         display:flex; align-items:center; justify-content:center; cursor:pointer; flex:0 0 auto; }
+  .own svg { width:22px; height:22px; color:var(--ink); }
+  .own:disabled { opacity:.5; }
   .seg { display:flex; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
   .seg button { border:none; background:#fff; color:var(--muted); padding:8px 16px; font-size:14px; cursor:pointer; }
   .seg button.on { background:var(--accent); color:#fff; }
@@ -53,21 +78,39 @@
   .qitem input { flex:1; min-width:0; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:14px; }
   .qitem .seg button { padding:6px 10px; font-size:12px; }
   .qitem .x { border:none; background:none; color:var(--muted); font-size:18px; cursor:pointer; padding:0 4px; }
-  .lb { position:fixed; inset:0; background:rgba(20,16,10,.9); display:none; align-items:center;
-        justify-content:center; z-index:50; }
-  .lb.open { display:flex; }
-  .lb img { max-width:92vw; max-height:88vh; border-radius:10px; }
-  .toolbar { display:flex; justify-content:flex-end; margin-bottom:8px; }
+  /* The lightbox is THE SHARED ONE (/asset-lightbox.js) — it brings its own
+     CSS, the un-rounded picture included. This page kept a bare hand copy
+     (.lb) until 2026-08-28 (Sophie: "create a single lightbox view, sync to
+     all surfaces"). */
+  /* THE PILL OWNS THE TOP-RIGHT CORNER, so a row that runs through it ends
+     BEFORE it (2026-08-27, her screenshot: "Hide sheet" read "Hide" with the
+     capsule sitting on the rest of it). Measured against the pill's real rect
+     by fitPillGap(), never a hardcoded band — the pill is conditional and its
+     top rides env(safe-area-inset-top). */
+  .toolbar { display:flex; justify-content:flex-end; gap:14px; margin-bottom:8px;
+             width:calc(100% - var(--pillgap, 0px)); }
+  /* SEARCH — the sheet grows without limit and there was no way to find anyone
+     in it (2026-08-27, Sophie: "there's no way to search"). The house grammar
+     and both house helpers ride /feedkit.js; nothing here is a second copy. */
+  .searchrow { margin:0 0 16px; width:calc(100% - var(--pillgap, 0px)); }
+  #q { width:100%; padding:10px 12px; font-size:16px; border:1px solid var(--line);
+       border-radius:6px; background:#fff; color:var(--ink); -webkit-appearance:none; }
   .link { color:var(--accent); background:none; border:none; font-size:14px; cursor:pointer; text-decoration:underline; }
   .hidden { display:none; }
+  [hidden] { display:none !important; }
 </style>
 
 <main>
-  <p style="margin:0 0 6px"><a href="/storyroom" style="color:var(--muted);font-size:13px;text-decoration:none">&#8249; Story Room</a></p>
-  <h1>Character Creator</h1>
-  <p class="sub">Upload a photo, name them, tap ✦ — get a diary-comic character.</p>
+  <header class="app-header">
+    <a class="back" id="back" href="/storyroom">&#8249; Story Room</a>
+    <h1>Character Creator</h1>
+  </header>
+  <p class="sub" id="sub">Upload a photo, name them, tap ✦ for a diary-comic character — or keep the picture as it is.</p>
 
-  <div class="toolbar"><button class="link" id="toggleBatch">Add all characters</button><button class="link" id="toggleSheet">Show sheet</button></div>
+  <div class="toolbar" id="toolbar"><button class="link" id="toggleBatch">Add all characters</button><button class="link" id="toggleSheet">Show sheet</button></div>
+  <div class="searchrow" id="searchrow">
+    <input id="q" type="search" placeholder="Search characters…" enterkeyhint="search" autocomplete="off" spellcheck="false">
+  </div>
 
   <section id="batchView" class="card hidden" style="margin-bottom:16px">
     <div class="drop" id="bdrop" style="width:100%;height:88px;border-radius:10px" title="Choose photos">
@@ -89,6 +132,9 @@
     <input type="file" id="file" accept="image/*" class="hidden">
     <div class="namerow">
       <input id="name" placeholder="Name" autocomplete="off">
+      <button class="own" id="own" title="Use my picture" aria-label="Use my picture" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+      </button>
       <button class="gen" id="gen" title="Generate" disabled>
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l1.9 5.6L19.5 10l-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z"/><path d="M19 15l.7 2.1L22 18l-2.3.7L19 21l-.7-2.3L16 18l2.3-.9z"/></svg>
       </button>
@@ -98,13 +144,17 @@
       <button data-g="she">She</button>
       <button data-g="they" class="on">They</button>
     </div>
-    <input id="aliases" placeholder="Also called… (comma separated)" autocomplete="off"
+    <input id="aliases" placeholder="Also called…" autocomplete="off"
       style="width:100%;margin-top:8px;padding:10px 12px;font-size:14px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink)">
     <div class="status" id="status"></div>
     <div class="result hidden" id="result">
       <img class="portrait" id="portrait" alt="">
       <div class="row" style="margin-top:12px">
         <button class="btn primary" id="saveMain">★ Add to sheet</button>
+        <!-- Regenerate is DRAWN-only: there is nothing to re-draw for a
+             picture she supplied, and a button that would replace her own
+             picture with a generated one is the opposite of what she asked
+             this button for. -->
         <button class="btn" id="regen">Regenerate</button>
         <button class="btn" id="fresh">New one</button>
       </div>
@@ -118,9 +168,10 @@
     <div class="side" id="sideSheet"></div>
   </section>
 
-  <div class="lb" id="lb"><img id="lbimg" alt=""></div>
 </main>
 
+<script src="/feedkit.js"></script>
+<script src="/asset-lightbox.js"></script>
 <script>
   const STUDIO_TOKEN = '__STUDIO_TOKEN__';
   const _tok = STUDIO_TOKEN.indexOf('__') === 0 ? '' : STUDIO_TOKEN;
@@ -131,7 +182,41 @@
     return { ok: res.ok, status: res.status, body: b };
   }
   const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
+    c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
   let photoData = null, gender = 'they', lastUrl = null;
+
+  // ── THE PILL'S COLUMN, MEASURED ─────────────────────────────────────────
+  // The injected autoscroll pill is fixed in the top-right corner, and both
+  // header rows run straight through it — which is how "Hide sheet" ended up
+  // reading "Hide" in her screenshot. Ask the pill's REAL rect (it is
+  // conditional, and its top rides env(safe-area-inset-top), so a hardcoded
+  // band is wrong on exactly the phone that matters) and shorten the row.
+  function fitPillGap(el) {
+    if (!el) return;
+    const pill = document.querySelector('body > .float');
+    if (!pill || !pill.getClientRects().length) { el.style.setProperty('--pillgap', '0px'); return; }
+    el.style.setProperty('--pillgap', '0px');          // measure it unreserved
+    const r = el.getBoundingClientRect(), p = pill.getBoundingClientRect();
+    const want = (r.bottom <= p.top || r.top >= p.bottom)   // vertically clear
+      ? '0px' : Math.max(0, Math.ceil(r.right - p.left) + 8) + 'px';
+    el.style.setProperty('--pillgap', want);
+  }
+  let fitting = false;
+  function fitRows() {
+    if (fitting) return;                 // our own writes resize the body
+    fitting = true;
+    ['sub', 'toolbar', 'searchrow'].forEach(id => fitPillGap($(id)));
+    fitting = false;
+  }
+  window.addEventListener('resize', fitRows);
+  // THE PILL IS CONDITIONAL — it only exists once there is something to
+  // scroll, and this page's content arrives from a fetch. So the reservation
+  // is re-measured whenever the layout moves, exactly the way the pill decides
+  // whether to show itself at all; a one-shot check at load would reserve
+  // nothing on every page that loads its content.
+  try { new ResizeObserver(fitRows).observe(document.body); } catch (e) { /* older engine */ }
+  setTimeout(fitRows, 0); setTimeout(fitRows, 400); setTimeout(fitRows, 1200);
 
   // photo pick
   $('drop').onclick = () => $('file').click();
@@ -142,7 +227,11 @@
     r.readAsDataURL(f);
   };
   $('name').oninput = refreshGen;
-  function refreshGen() { $('gen').disabled = !(photoData && $('name').value.trim()); }
+  function refreshGen() {
+    const ready = !!(photoData && $('name').value.trim());
+    $('gen').disabled = !ready;
+    $('own').disabled = !ready;      // both taps need the same two things
+  }
 
   // gender toggle
   $('seg').querySelectorAll('button').forEach(b => b.onclick = () => {
@@ -154,12 +243,12 @@
   // if you close this sheet mid-draw. localStorage remembers an in-flight job
   // so reopening the page picks the result back up.
   const JOBKEY = 'char_make_job';
-  let lastCharId = null, polling = false;
+  let lastCharId = null, polling = false, lastOwn = false;
 
   async function generate() {
     if (!photoData || !$('name').value.trim()) return;
-    lastCharId = null;
-    $('gen').disabled = true;
+    lastCharId = null; lastOwn = false;
+    $('gen').disabled = true; $('own').disabled = true;
     $('result').classList.add('hidden');
     const aliases = ($('aliases').value || '').split(',').map(s => s.trim()).filter(Boolean);
     $('status').innerHTML = '<span class="spin"></span> Drawing ' + $('name').value.trim() + '… you can tap Done and leave — it saves on its own.';
@@ -179,6 +268,7 @@
         lastCharId = c.id; lastUrl = c.url;
         $('portrait').src = c.url;
         $('result').classList.remove('hidden');
+        paintResultActs();
         $('status').textContent = 'Saved — ' + (name || c.name) + ' is in your characters.';
         try { localStorage.removeItem(JOBKEY); } catch (e) {}
         refreshGen(); loadSheet(); polling = false; return;
@@ -193,6 +283,37 @@
     polling = false;
   }
 
+  // ── HER OWN PICTURE (2026-08-29, Sophie: "add my own picture button to
+  // characters") ────────────────────────────────────────────────────────────
+  // The picture she chose becomes the character as it is — no draw, no wait,
+  // no money. It lands in exactly the same list, with the same name, aliases
+  // and ★ Add to sheet, so nothing downstream knows the difference: the cast
+  // sheet, the Playground's picker and the dream matcher all read one
+  // collection.
+  $('own').onclick = async () => {
+    if (!photoData || !$('name').value.trim()) return;
+    const nm = $('name').value.trim();
+    lastCharId = null; lastOwn = true;
+    $('gen').disabled = true; $('own').disabled = true;
+    $('result').classList.add('hidden');
+    $('status').innerHTML = '<span class="spin"></span> Saving ' + nm + '…';
+    const aliases = ($('aliases').value || '').split(',').map(s => s.trim()).filter(Boolean);
+    const r = await api('/api/character/own', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ photo: photoData, name: nm, gender, aliases, tier: 'side' }) });
+    refreshGen();
+    if (!r.ok || !r.body.character) { $('status').textContent = 'Error: ' + ((r.body && r.body.error) || r.status); return; }
+    const c = r.body.character;
+    lastCharId = c.id; lastUrl = c.url;
+    $('portrait').src = c.url;
+    $('result').classList.remove('hidden');
+    paintResultActs();
+    $('status').textContent = 'Saved — ' + nm + ' is in your characters, your picture as it is.';
+    loadSheet();
+  };
+
+  // Regenerate belongs to a DRAWN character only.
+  function paintResultActs() { $('regen').classList.toggle('hidden', lastOwn === true); }
+
   $('gen').onclick = generate;
   // Regenerate = draw a fresh one; drop the previous auto-saved version so we
   // don't leave duplicates behind.
@@ -200,7 +321,7 @@
     if (lastCharId) { try { await api('/api/character/' + lastCharId, { method:'DELETE' }); } catch (e) {} lastCharId = null; loadSheet(); }
     generate();
   };
-  $('fresh').onclick = () => { $('result').classList.add('hidden'); $('name').value=''; $('aliases').value=''; photoData=null; lastCharId=null;
+  $('fresh').onclick = () => { $('result').classList.add('hidden'); $('name').value=''; $('aliases').value=''; photoData=null; lastCharId=null; lastOwn=false;
     $('thumb').classList.add('hidden'); $('drop').querySelector('svg').classList.remove('hidden'); $('status').textContent=''; refreshGen(); };
 
   // Promote the just-saved (side) character onto the main sheet.
@@ -221,25 +342,60 @@
     } catch (e) {}
   })();
 
-  // sheet
+  // ── the sheet, and searching it ─────────────────────────
+  // Everything the sheet knows is already in memory, so the filter is a
+  // repaint and not a request per keystroke. The GRAMMAR is the house one
+  // (bare words AND within one character, OR, -word, "quoted") — parsed by
+  // /feedkit.js, never a second copy.
+  let CHARS = [];
+  function hayOf(c) {
+    return [c.name, ...(Array.isArray(c.aliases) ? c.aliases : []),
+      c.tier, c.quality, c.model, c.own ? 'own your picture' : ''].filter(Boolean).join(' ');
+  }
   async function loadSheet() {
     const r = await api('/api/character');
     if (!r.ok) return;
-    const chars = (r.body.characters || []);
-    const main = chars.filter(c => c.tier === 'main'), side = chars.filter(c => c.tier !== 'main');
-    $('mainSheet').innerHTML = main.map(cell).join('') || '<p class="sub">No main characters yet.</p>';
-    $('sideSheet').innerHTML = side.map(cell).join('') || '<p class="sub">None yet.</p>';
+    CHARS = r.body.characters || [];
+    paintSheet();
+  }
+  function paintSheet() {
+    const q = ($('q').value || '').trim();
+    const groups = FeedKit.qparse(q);
+    const hit = c => FeedKit.qmatch(hayOf(c), groups);
+    const main = CHARS.filter(c => c.tier === 'main' && hit(c));
+    const side = CHARS.filter(c => c.tier !== 'main' && hit(c));
+    $('mainSheet').innerHTML = main.map(cell).join('')
+      || `<p class="sub">${q ? 'Nobody here matches that.' : 'No main characters yet.'}</p>`;
+    $('sideSheet').innerHTML = side.map(cell).join('')
+      || `<p class="sub">${q ? 'Nobody here matches that.' : 'None yet.'}</p>`;
     bindZoom();
+    fitRows();          // the sheet is what makes the page long enough to scroll
   }
   function cell(c) {
-    const q = c.quality ? `<div class="ql">${c.quality}${c.model?' · '+c.model:''}</div>` : '';
-    return `<div class="cell"><img src="${c.cleanUrl||c.url}" alt="${c.name}"><div class="nm">${(c.name||'').toUpperCase()}</div>${q}</div>`;
+    // Nothing drew an own picture, so there is no MODEL · QUALITY to say —
+    // the caption names it instead of sitting blank where a caption goes.
+    const q = c.own ? '<div class="ql">your picture</div>'
+      : c.quality ? `<div class="ql">${esc(c.quality)}${c.model?' · '+esc(c.model):''}</div>` : '';
+    return `<div class="cell"><img src="${esc(c.cleanUrl||c.url)}" alt="${esc(c.name)}"><div class="nm">${esc((c.name||'').toUpperCase())}</div>${q}</div>`;
   }
-  $('toggleSheet').onclick = () => {
-    const v = $('sheetView'); v.classList.toggle('hidden');
-    $('toggleSheet').textContent = v.classList.contains('hidden') ? 'Show sheet' : 'Hide sheet';
-    if (!v.classList.contains('hidden')) loadSheet();
-  };
+  function showSheet(on) {
+    $('sheetView').classList.toggle('hidden', !on);
+    $('toggleSheet').textContent = on ? 'Hide sheet' : 'Show sheet';
+    if (on) loadSheet();
+    fitRows();
+  }
+  $('toggleSheet').onclick = () => showSheet($('sheetView').classList.contains('hidden'));
+
+  // Typing is the way IN to the sheet as well as the way through it — a
+  // search box that only works once she has found and tapped "Show sheet"
+  // is one more thing to remember.
+  const qh = FeedKit.liveInput($('q'), runSearch);
+  FeedKit.enterSubmits($('q'), runSearch);
+  function runSearch() {
+    qh.sync();                       // or the blur fires an identical second run
+    if (($('q').value || '').trim() && $('sheetView').classList.contains('hidden')) showSheet(true);
+    else if (!$('sheetView').classList.contains('hidden')) paintSheet();
+  }
 
   // ── batch mode ──
   let queue = [];
@@ -291,9 +447,15 @@
     if (!$('sheetView').classList.contains('hidden')) loadSheet();
   };
 
-  // lightbox (freezes the page behind it)
+  // lightbox — THE SHARED ONE (/asset-lightbox.js), never a second copy
+  // (2026-08-28, Sophie: "create a single lightbox view, sync to all
+  // surfaces"). It stops the autoscroll, locks the background and restores
+  // the exact scroll position itself — the house overlay rule, in the one
+  // file every surface shares.
   function bindZoom() { document.querySelectorAll('.cell img, .portrait').forEach(im => im.onclick = () => openLb(im.src)); }
   $('portrait').onclick = () => openLb($('portrait').src);
-  function openLb(src) { $('lbimg').src = src; $('lb').classList.add('open'); document.body.style.overflow = 'hidden'; }
-  $('lb').onclick = () => { $('lb').classList.remove('open'); document.body.style.overflow = ''; };
+  function openLb(src) {
+    if (window.__scrollStop) window.__scrollStop();
+    window.__assetLightbox(src, null);
+  }
 </script>

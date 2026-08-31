@@ -84,6 +84,22 @@ it is machine-verified, not ear-verified.
 
 ## Rules that must survive any refactor
 - Never cut on raw Whisper timestamps without alignment or snapping.
+- **BULK-PASS TIMINGS LOCATE, A RE-LISTEN CUTS (2026-08-25, shipped wrong on
+  the water reel — Sophie heard the clipped word edges herself).** A master's
+  chunked whisper words are chips-only accuracy: right enough to FIND a
+  phrase, tens of ms off at the word edges — whisper's word ends run
+  habitually EARLY and its starts can run late, and on back-to-back takes
+  `clampBounds` pads as little as 0.02s/0.03s, so cutting where the bulk pass
+  says the word is clips it. The Cutting Room has always known this
+  (`cutSection` extracts a padded window, re-transcribes THAT, and cuts on
+  the fresh timings); `vo-film.js` did not, and delivered a reel with word
+  onsets and tails shaved. Its fix is `"relisten": true` on the spec —
+  `relistenSpan`: fresh whisper on a small window (with 1s of prepended
+  silence, the short-clip-drops-opening-words rule), relocate, snap to the
+  window's real silences, then a VOICING GUARD that walks each cut edge
+  outward while the 20ms RMS is still hot, bounded by the neighbouring word
+  so another take cannot bleed in. Any new cutter must re-listen before it
+  cuts; locating and cutting on one bulk pass is the trap.
 - End snapping is forward-only and capped at the next word — both halves of
   that sentence matter.
 - `snippet.timeSec` (the anchor) selects the alignment window — keep it
@@ -91,6 +107,52 @@ it is machine-verified, not ear-verified.
 - Narration cards fail loudly without `ELEVENLABS_API_KEY` — never silently
   skipped.
 - Verify batches with `nde-verify-cuts.py` before delivering.
+- **THE WHISPERED-WORD RULE: a missed-word test is FLOOR-referenced, never
+  speech-referenced (2026-08-25, the water reel's "secret").** She whispers a
+  word at ~-38dB against speech at -13; any speech-relative threshold calls
+  that a pause and a gap-bridge deletes the word. A whispered word holds
+  ~0.3s continuously above floor+10dB while a real pause holds ~0s there —
+  the same separation as the laugh test. `vo-film.js`'s gap guard implements
+  it (gaps ≤1.6s only, so a fan surge can't protect a long hole).
+- **A "CLIPPED WORD" REPORT HAS THREE ROOT CAUSES — measure which before
+  cutting differently (2026-08-25, all three live in one film):** (1) the cut
+  really clips (bulk-timing cut, no re-listen — the rule above); (2) the cut
+  is byte-perfect and the TAKE ITSELF slurs the word — compare the shot's RMS
+  bin-for-bin against the source before touching the cutter, then swap takes
+  (the water reel's "Scientists"; the evan master's "scientist"/"percent"
+  were the same shape: truncated INSIDE the source, fixed only by re-sourcing
+  from the original recording); (3) a word whisper never heard was bridged
+  away (the rule above). The evan chat's earned rules live in
+  `scripts/evan-v14-rebuild/README.md` — including *use word times to
+  LOCATE, a 20ms RMS profile to TRIM*, independently re-earned here as the
+  re-listen + quiet-landing rule. That double payment is why this list is in
+  the doc of record now.
+- **A SOUND EFFECT (or any per-moment decision) IS PINNED TO THE LINE, NEVER TO
+  A SHOT SLOT (2026-08-25, Sophie: "why did it move? It should not move.
+  Nothing should move unless I say to move it").** A shot id is a POSITION in a
+  spec, so when a reel is re-cut — a section added, a line dropped, the whole
+  thing rebuilt around a new recording — every table keyed by shot id silently
+  re-points at different moments. On the water reel a kid giggle she had
+  explicitly asked to keep ended up on a different panel and nothing in the
+  table could have said so. `mix-sfx.js` keys its bed by a FRAGMENT OF HER
+  LINE, resolved against the spec's own phrases: an effect follows its words,
+  and a cut line takes its effect with it under a named warning instead of
+  sliding onto the neighbour. Apply the same rule to anything else placed
+  against a moment — a hold, a colour, a title card.
+- **A CACHE KEYED BY A FILE'S PATH SHIPS THE OLD FILE (2026-08-25).**
+  `vo-film.js`'s stitch key listed each shot's picture by NAME, so a clip
+  re-rendered to the same filename — exactly what a corrected zoom produces —
+  left the key identical and the stitch was served from cache. The audio was
+  right, the run said PASS, and the film silently kept the old framing; a frame
+  check was the only thing that caught it. Key every input by its BYTES.
+  Corollary: **after changing what a shot LOOKS like, look at a frame** — the
+  word sweep and the verify gate are about sound and say nothing about picture.
+- **THE VERIFY GATE PASSING IS NOT A WORD-LEVEL CLAIM.** The gate fails only
+  on ≥4-word contiguous runs, so single clipped or eaten words sail through
+  — two shipped that way. `vo-film.js`'s verify now prints a WORD SWEEP:
+  every script word it could not hear back, per shot, with context. Most are
+  whisper mishears; judge each against the source words and RMS before
+  delivering. Her examples are examples, never the list — sweep everything.
 
 ## Noisy pauses in voice-memo narration (Aug 2026 findings — Tolle shorts)
 The pipeline above cuts SNIPPETS out of interviews. Cutting a whole read-through
@@ -114,12 +176,14 @@ a track "pause-free" that a human heard as full of gaps). What works:
 3. **Then a room-tone pass.** Floor = 8th percentile of all 20ms bins; any
    run ≥ 0.45s within 4dB of the floor is a residual gap. (This one catches
    what pass 1 leaves; on its own it misses the loud breath pauses.)
-4. **Compress to ~0.28s, never delete** — zero-gap joins sound robotic.
+4. **Compress to ~0.60s, never delete** — zero-gap joins sound robotic. (Was
+   0.28s until 2026-08-31; Sophie: "change the rules so long pauses cut to
+   longer - they're too short". Long gaps >4s keep ~0.90s in vo-tighten-gaps.)
 5. **Verify by chunked re-transcription ratio** (≥93% or fail the run).
    Full-file transcription is NOT a valid verifier (see the phantom gaps).
 
 Tool: `node scripts/vo-remove-pauses.js in.mp3 out.mp3 [--script script.txt]
-[--edits edits.json] [--keep 0.28]` — both passes + verification; `--edits`
+[--edits edits.json] [--keep 0.60]` — both passes + verification; `--edits`
 dumps the cut list so frame timings can be remapped arithmetically instead of
 re-transcribed.
 
@@ -172,7 +236,7 @@ least once; the verifier below is what caught them.
 3. **Word gaps do not find holes — energy does.** Whisper folds trailing noise
    into a word, so a span that looks continuous by word timing can carry a
    multi-second hole (one carried **16 seconds** of untranscribed audio). After
-   locating a take, measure its own energy and compress any dead run to ~0.28s.
+   locating a take, measure its own energy and compress any dead run to ~0.60s.
 4. **Spans disjoint in WORD INDEX can still overlap in TIME.** `clampBounds`
    pads +0.30s and `snapToSilence` may run to the next word's onset, so a sliver
    of the next word plays at the end of one cut and again at the start of the

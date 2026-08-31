@@ -227,8 +227,13 @@
       + '.cmp-vlb[hidden]{display:none !important;}'
       + '.cmp-vlb video{width:100%; height:100%; object-fit:contain; background:#000;}'
       + '.cmp-vlb-x{position:absolute; top:max(10px,env(safe-area-inset-top)); right:12px;'
-      + ' width:38px; height:38px; border-radius:50%; border:1.5px solid #fff; background:rgba(0,0,0,.35);'
+      + ' width:38px; height:38px; border-radius:6px; border:1.5px solid #fff; background:rgba(0,0,0,.35);'
       + ' color:#fff; font-size:17px; line-height:1; cursor:pointer;}'
+      // a near-miss on the ✕ lands on the film and pauses it ("it's hard to
+      // exit the film", 2026-08-27) — the drawn circle stays 38px, the tap
+      // box is ~66px via the invisible extension (clicks on a pseudo-element
+      // still target the button, so the close handler needs nothing)
+      + '.cmp-vlb-x::after{content:\'\'; position:absolute; inset:-14px;}'
       // the film row belongs at the TOP of the page, which puts its right end
       // inside the autoscroll pill's fixed corner (x 326-374, y 14-197 on an
       // iPhone 13) — without the reserve the duration is drawn underneath it

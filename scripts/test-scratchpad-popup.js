@@ -34,6 +34,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const servePublic = require('./lib/public-asset');
 
 let chromium;
 try { ({ chromium } = require('playwright')); }
@@ -84,6 +85,8 @@ let beats = [{
 const posted = [];
 
 const server = http.createServer((req, res) => {
+  // Anything the page links out of public/ — /feedkit.js, /tritoggle.*, …
+  if (servePublic(req, res)) return;
   const url = new URL(req.url, 'http://x');
   const json = (o) => { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
   if (req.method === 'POST') {
@@ -243,7 +246,9 @@ const VW = 390, VH = 780;
   ok(!(await shown('#verrow')), 'the past pictures are folded away');
   await page.click('#arvers');
   ok(await shown('#verrow'), 'tapping it opens them');
-  ok((await page.$$('#verrow button')).length === 3, 'current + two older');
+  // Thumbnails, not every button in the row — since 2026-08-28 each picture
+  // is a cell carrying its own cull ✕ beside the thumbnail.
+  ok((await page.$$('#verrow .verthumb')).length === 3, 'current + two older');
   await page.click('#arvers');
   ok(!(await shown('#verrow')), 'and folds them back');
 
@@ -526,18 +531,48 @@ const VW = 390, VH = 780;
     'px of padding under ' + Math.round(dBtn.h) + 'px of button)');
   await page.click('#dpromptbig');
   const dBig = (await box('#dprompt')).h;
-  ok(dBig > dSmall * 1.8, 'tapping it really makes the box bigger (' +
+  ok(dBig > dSmall, 'tapping it really makes the box bigger (' +
     Math.round(dSmall) + ' → ' + Math.round(dBig) + 'px)');
-  // The card is a SCROLLER, so the honest question is not whether a 46vh box
-  // fits under everything else — it is whether she is looking at it after the
-  // tap. Measure how much of it shows inside #cardin's own visible box.
+  // The card is a SCROLLER, so the honest question is not whether the box fits
+  // under everything else — it is whether she is looking at it after the tap.
+  // Measure how much of it shows inside #cardin's own visible box.
   const seen = await page.evaluate(() => {
     const s = document.getElementById('cardin').getBoundingClientRect();
     const t = document.getElementById('dprompt').getBoundingClientRect();
     return Math.min(s.bottom, t.bottom) - Math.max(s.top, t.top);
   });
-  ok(seen > 200, 'and the tap leaves her looking at it (' + Math.round(seen) +
+  ok(seen > 150, 'and the tap leaves her looking at it (' + Math.round(seen) +
     'px of the big box in view)');
+
+  // IT FITS THE WORDS, IT IS NOT A FIXED SIZE (2026-08-27, Sophie: "why not
+  // expand based on text, not static"). A flat height is what this replaces,
+  // so the assertion that matters is that a SHORT box and a LONG one open at
+  // DIFFERENT heights — a check against one number passes against either.
+  const floor = await page.evaluate(() => Math.round(innerHeight * 0.24));
+  const cap = await page.evaluate(() => Math.round(innerHeight * 0.46));
+  ok(Math.abs(dBig - floor) <= 3, 'an EMPTY prompt still opens to the floor — ' +
+    'these are fields she writes IN (' + Math.round(dBig) + 'px, floor ' + floor + ')');
+  const dGrown = await page.evaluate(() => {
+    const t = document.getElementById('dprompt');
+    t.value = new Array(40).join('a red door in the snow, and the light behind it. ');
+    t.dispatchEvent(new Event('input'));
+    return t.getBoundingClientRect().height;
+  });
+  ok(dGrown > dBig, 'a long prompt opens taller than a short one (' +
+    Math.round(dBig) + ' → ' + Math.round(dGrown) + 'px)');
+  ok(Math.abs(dGrown - cap) <= 3, 'and stops at the cap (' + Math.round(dGrown) + 'px)');
+  // The `height:auto` reset is the whole of this one: scrollHeight on a box
+  // already sized to its old height reports that height, so without it the box
+  // can only ever grow.
+  const dShrunk = await page.evaluate(() => {
+    const t = document.getElementById('dprompt');
+    t.value = '';
+    t.dispatchEvent(new Event('input'));
+    return t.getBoundingClientRect().height;
+  });
+  ok(dShrunk < dGrown - 20, 'and it shrinks back when she deletes it (' +
+    Math.round(dGrown) + ' → ' + Math.round(dShrunk) + 'px)');
+
   await page.click('#dpromptbig');
   ok(Math.abs((await box('#dprompt')).h - dSmall) < 2, 'tapping it again shrinks it back');
 
@@ -548,7 +583,7 @@ const VW = 390, VH = 780;
   const cSmall = (await box('#pnote')).h;
   await page.click('#pnotebig');
   const cBig = (await box('#pnote')).h;
-  ok(cBig > cSmall * 1.8, 'the caption box opens bigger too (' +
+  ok(cBig > cSmall, 'the caption box opens bigger too (' +
     Math.round(cSmall) + ' → ' + Math.round(cBig) + 'px)');
   ok(await page.$eval('#pnote', (el) => el.value === 'A RED DOOR IN THE SNOW' ||
     typeof el.value === 'string'), 'and it is the SAME textarea — nothing to sync');

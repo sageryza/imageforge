@@ -3,8 +3,13 @@
 Sophie's seven "People Watching Club: Official Training Film No. 001" cards cut
 into a 9:16 reel, opened with a public-domain 3-2-1 Academy leader countdown.
 
-**Live cut — v9, the markup redone from the images:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v9-fresh-marks.mp4
-(1080x1920, 30fps, 1:27, -15.0 LUFS. Same audio as v7, byte for byte.)
+**Live cut — v11, FAIL slams on:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v11-stamp-slam.mp4
+(1080x1920, 30fps, 1:26. Three title-gap splices; the FAIL stamp slams on at
+the thud; see the v11 section.)
+
+**v10, tight open + clean marks:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v10-tight-clean.mp4
+
+**v9, the markup redone from the images:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v9-fresh-marks.mp4
 
 **v8, v7's marks re-timed only:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v8-marks-on-words.mp4
 
@@ -277,6 +282,13 @@ id with nothing added to the account. His natural pace matches Bill's to within
 (`GET /api/chatfeed/search?q=`), then read the thread — the id is in the
 preview URL's `/voices/<id>/` path, which is the only place it appears.
 
+**Clyde is on the Voice Studio picker now (Aug 26 2026, Sophie's ask), with
+Max beside him** — `dqbqOZM4uhsyx1WtTAgT`, "Max - 1940s RP British voice", the
+Pathé-newsreel runner-up from the same shortlist. Both are pinned to the TOP of
+`/voice` (`PINNED_VOICE_IDS` in `voicelab.js`), so they serve the Text tab and
+the voice CHANGER alike. Max was added to the ElevenLabs account that day;
+Clyde was already on it.
+
 ### The hand-drawn markup
 
 Her note: *"maybe draw some sloppy circles over what you're talking about in
@@ -408,3 +420,70 @@ THINGS push. Her [1:15] "on NOW zoom out" fix from v5 was also silently gone.
   from archive.org (`IMB_SF_R30_C3`, CC-BY 3.0 — curl, not ffmpeg).
 - Verified before shipping by extracting frames at each word Whisper stamped
   and checking the right thing is circled while it is being said.
+
+
+## v10 — her five notes on v9
+
+*"less pause after 'pwc presents', less pause after 'without looking' ... just
+go right in"* — done in the AUDIO, not by re-rendering the voice: two splices
+in v7's finished mix, every cut point inside measured -22dB quiet (keep
+[0,4.575) + [4.7417,6.6334) + [7.4667,end) in v7 time), 30 frames out in
+total. The picture absorbs the same frames in the title's tail (0.50→0.0667)
+and card 2's lead (0.50→0.10), so nothing downstream moved. Measured on the
+finished v10: the presents→How gap is under 0.1s and the title→card-2 gap is
+0.41s. The film is 1:26.
+
+*"cut down on the grainy flashing a little"* — the flicker amplitudes halved
+(0.018/0.011 → 0.008/0.005) and the grain from `noise=alls=4` to `alls=2`.
+The sepia, weave and vignette are untouched.
+
+*"end notice things crosses out, shud underline"* — the line sat at y 0.968,
+which is INSIDE the letters (the text runs 0.944-0.974); it is at 0.979 now,
+between the baseline and the box edge at 0.982, and `line_pts`'s bow dropped
+to ±0.6% of length — a ±2% bow climbs out of a 12px channel. Underline a
+printed word only after measuring its baseline; eyeballing a fraction is how
+this shipped as a strike-through.
+
+*"a couple circles were a little unnecessary"* — three came off, each
+redundant with the camera: the 30-degree diagram label (the caption box
+already says the line), card 6's STEP 2 (the pull-out already frames it, and
+the arrow follows seconds later), and the WE-DON'T-INTERFERE seal (the camera
+is fully pushed into it). 16 marks stand.
+
+## v11 — the hook tightened, and the FAIL slams on
+
+**The live cut:** https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pwc-training-film/film-v11-stamp-slam.mp4 (1:26)
+
+**The pause she heard inside the title line was REAL and Whisper hid it.**
+"How to Look ... Without Looking" carried a 0.23s hole between "Look" and
+"Without" — Clyde's own phrasing, no break tag anywhere — and Whisper's word
+stamps snapped shut across it (Look 5.16-5.46, Without 5.46-5.90), so every
+timestamp-based check said there was no pause. `silencedetect` found it in
+one pass. A third splice takes 6 frames out of it, same discipline as the
+other two: both cut points inside measured quiet, the picture shortened by
+the same frames in the title card. This is the doc's own v3 lesson
+("Whisper's word timestamps snap shut across a silence") — trust
+silencedetect for gaps, always.
+
+**The FAIL stamps itself on now** (her ask — the card is ChatGPT's, so
+redrawing was allowed, and "we have a good bad thing for the Tinder that you
+could look into"):
+
+- **The clean plate** is a gpt-image-2 `/edits` inpaint (quality high, ~17¢,
+  the one paid step): the original card plus a mask over the stamp region
+  only, and the model's pixels composited back ONLY inside that mask — the
+  rest of the card is her original, untouched. Filed in the Assets tab with
+  its prompt. Note: **gpt-image-2 rejects `input_fidelity`** (that was a
+  gpt-image-1 parameter); the mask-and-composite does the same job.
+- **The stamp art is HER OWN, not a redraw** — extracted from the original
+  card by red chroma (`r-g > 45 & r-b > 55`, softened near strong pixels;
+  the stamp is the one saturated-red thing on a sepia card). So the settled
+  final frame is pixel-for-pixel the card as it always looked.
+- **The animation is the judge deck's GOOD/BAD stamp** — her Decision Deck v3
+  values: in at 2.5x and blurred, invisible until it is nearly down, an
+  overshoot, settled in 560ms (`scripts/pwc-film-stamp.py`, 17 frames).
+- **Contact lands on the thud already in the mix** — the v5 fail-thud was
+  placed at the camera's FAIL arrival (beat 1.84), so the stamp uses the same
+  beat: camera, sound and slam are one instant, nothing re-timed.
+- It rides the same page-space overlay as the ink, so the camera's push keeps
+  it registered to the card.

@@ -17,10 +17,16 @@
 FULL = (0.0, 0.0, 1.0, 1.0)
 # card file, vo clip, lead, tail, shots
 CARDS = [
- ("01-title-how-to-look-without-looking.png", "01-title", 0.30, 0.50, [
+ # v10: the title's dead air came out IN THE AUDIO (Sophie: "less pause after
+ # 'pwc presents', less pause after 'without looking' — just go right in").
+ # Two splices in v7's mixed track, both cut at measured -22dB quiet: 5 frames
+ # out of the presents→How gap, 25 frames out of the title→card-2 join. The
+ # title tail (0.50→0.0667) and card 2's lead (0.50→0.10) absorb the same
+ # frames on the picture side, so nothing else moved.
+ ("01-title-how-to-look-without-looking.png", "01-title", 0.30, 0.0667, [
    (*FULL, -0.50, "title — slow push"),
  ]),
- ("02-the-mistake-looking.png", "02-mistake", 0.50, 1.00, [
+ ("02-the-mistake-looking.png", "02-mistake", 0.10, 1.00, [
    (*FULL,                  -0.50, "establish THE MISTAKE"),
    (0.05,0.075,0.95,0.505,   1.00, "him staring — the mistake"),
    (0.13,0.600,0.89,0.755,   4.50, "LOOKING."),

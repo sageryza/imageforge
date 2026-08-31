@@ -76,6 +76,8 @@ const LINKS = [
   ['/song', 'song'],
   ['/character', 'character'],
   ['/films', 'films'],
+  ['/crop', 'crop'],
+  ['/shoebox', 'shoebox'],
 ];
 
 // A component with no "?" key matches ANY query string, which is what carries

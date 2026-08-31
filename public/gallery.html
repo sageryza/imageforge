@@ -273,7 +273,7 @@ window.addEventListener('pagehide',scrollStop);
     if(window.__scrollStop) window.__scrollStop();
     try{ window.scrollTo({top:0, behavior:'smooth'}); }catch(_){ window.scrollTo(0,0); }
   };
-  function sync(){ b.classList.toggle('on', window.scrollY > window.innerHeight); }
+  function sync(){ b.classList.toggle('on', window.scrollY > 150); }
   window.__pillTopSync=sync;
   window.addEventListener('scroll',sync,{passive:true});
   window.addEventListener('resize',sync,{passive:true});

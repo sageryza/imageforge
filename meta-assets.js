@@ -41,10 +41,14 @@ const urlKey = (u) => String(u || '').split('?')[0].split('#')[0].trim().toLower
  * `creations` (optional) are the iOS gallery's docs, mapped to
  * {url, ms, prompt, type, model, quality, size, style}. The ones a CHAT filed ride
  * in as hook copies labeled "from <chat>" and already have a chat row — those
- * are skipped, as is any url a chat row (or its alts) already shows. What
- * survives is the APP-MADE work (stickers, dream pages, in-app generations),
- * which lives nowhere in forge-chat-assets and would otherwise vanish the day
- * the My Creations tile points here. Those rows join as the 'my-creations'
+ * are skipped. A url a chat row (or its alts) already shows stays ONE row —
+ * the chat's — but the creations copy's words FILL that row's blanks
+ * (description, caption, prompt halves), because the creations record is
+ * often the only place the picture's label ever lived and dropping it made
+ * the tile unsearchable (the "getting out of his car" bug, 2026-08-28). What
+ * survives as its own row is the APP-MADE work (stickers, dream pages,
+ * in-app generations), which lives nowhere in forge-chat-assets and would
+ * otherwise vanish the day the My Creations tile points here. Those rows join as the 'my-creations'
  * bucket: prompt→description (it is what the tile is reviewed by, exactly how
  * CreationsView showed it), model·quality·size→the caption slot, and — for plain
  * images — the prompt also lands in promptContent so the PROMPT overlay and
@@ -59,13 +63,19 @@ function buildMetaAssets(docs, creations) {
     if (list) list.push(d); else byChat.set(d.chat, [d]);
   });
   const rows = [];
-  const seenUrls = new Set();
+  const rowsByUrl = new Map(); // urlKey → [rows showing that url or an alt of it]
+  const claim = (u, row) => {
+    const k = urlKey(u);
+    const list = rowsByUrl.get(k);
+    if (list) list.push(row); else rowsByUrl.set(k, [row]);
+  };
   byChat.forEach((list, chat) => {
     assetUnion.unionAssets(list.map((d) => assetUnion.assetRecord(d)))
       .forEach((t) => {
-        rows.push(Object.assign({ chat }, t));
-        seenUrls.add(urlKey(t.url));
-        t.alts.forEach((u) => seenUrls.add(urlKey(u)));
+        const row = Object.assign({ chat }, t);
+        rows.push(row);
+        claim(t.url, row);
+        t.alts.forEach((u) => claim(u, row));
       });
   });
   const appRecs = [];
@@ -73,7 +83,6 @@ function buildMetaAssets(docs, creations) {
     if (!c || !c.url) return;
     const p = String(c.prompt || '');
     if (/^from /.test(p)) return;            // a chat deliverable's hook copy
-    if (seenUrls.has(urlKey(c.url))) return; // already a chat's tile
     // MODEL · QUALITY · SIZE — the size is the third required slot since Aug
     // 2026 (Sophie: "1K 2K 4K should be a third slot in the model/quality
     // required tagging"). gpt-image-2 draws any canvas, so the first two no
@@ -129,14 +138,41 @@ function buildMetaAssets(docs, creations) {
     // only, exactly as before: an absent style half stays absent rather
     // than being reconstructed from the style's LABEL.
     const isImage = (c.type || 'image') === 'image';
-    appRecs.push({
-      url: c.url, ms: c.ms || 0,
+    const words = {
       prompt: made,                          // the STYLE · MODEL · QUALITY · SIZE caption slot
       description: p,                        // what she reviews it by
       promptStyle: String(c.promptStyle || ''),
       promptContent: String(c.promptContent || (isImage ? p : '')),
+    };
+    // A url a chat's tab already shows keeps ONE row — the chat's, so the
+    // ♥/✕/note still syncs with that tab — but the creations copy's WORDS
+    // ride onto it wherever the chat row is blank (2026-08-28, Sophie's
+    // "where is getting out of his car image": the chat copy was an
+    // unlabeled background catch, so dropping the labeled creations twin
+    // left a tile with no description, no caption and no prompt — nothing
+    // for search to match on). Fill only what is empty: anything the chat
+    // actually filed is curated and never overwritten.
+    const covering = rowsByUrl.get(urlKey(c.url));
+    if (covering) {
+      covering.forEach((row) => {
+        Object.keys(words).forEach((k) => {
+          // A caption reading "from <chat>" is the hook's own background
+          // mark, never curated (asset-guard's rule) — it counts as BLANK
+          // here, so the creation's real STYLE · MODEL · QUALITY · SIZE
+          // caption replaces it (measured 2026-08-28: 130 tiles were
+          // keeping the mark over a real caption).
+          const cur = String(row[k] || '').trim();
+          const blank = !cur || (k === 'prompt' && /^from /.test(cur));
+          if (blank && words[k]) row[k] = words[k];
+        });
+        if (c.compressedAtBirth === true) row.compressedAtBirth = true;
+      });
+      return;
+    }
+    appRecs.push(Object.assign({
+      url: c.url, ms: c.ms || 0,
       compressedAtBirth: c.compressedAtBirth === true,
-    });
+    }, words));
   });
   assetUnion.unionAssets(appRecs).forEach((t) => {
     rows.push(Object.assign({ chat: APP_BUCKET, app: true }, t));

@@ -187,6 +187,9 @@ const clickFolder = (page, label) => page.$$eval('#catrow .catchip',
   await page.click('#catrow .tagsbtn');
 
   // 8. the UPDATE row keeps its own boxes, select mode keeps the vocabulary
+  // The row takes turns with the three lists (2026-08-28) and opens on the
+  // LISTS, so the account row — the UPDATE tab's own home — is one tap away.
+  if (!await page.isVisible('#accrow')) await page.click('#rowtog');
   await page.click('#accrow .acctab[data-acct="new"]');
   await page.waitForFunction(() => !document.querySelector('#catrow .tagsbtn'), null, { timeout: 4000 })
     .catch(() => fail('TAGS is on the UPDATE screen, which has its own boxes'));

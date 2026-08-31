@@ -83,6 +83,9 @@ const titleOf = (page) => page.textContent('#htxt');
   const page = await browser.newPage({ viewport: { width: 390, height: 780 } });
 
   await page.goto(base + '/chats');
+  // The row takes turns with the three lists (2026-08-28) and opens on the
+  // LISTS, so the account row — the UPDATE tab's own home — is one tap away.
+  if (!await page.isVisible('#accrow')) await page.click('#rowtog');
   await page.waitForSelector('#accrow .acctab[data-acct="new"]');
 
   // her position: the Update tab, inside the artifact

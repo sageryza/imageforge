@@ -234,8 +234,13 @@ async function makeMockups({ image, scenes = [], includeWhite = true, maxFlatlay
       // The prompt rides the answer AND the gallery record, so it survives the
       // request that built it (the scene half is model-written and exists
       // nowhere else).
+      // AWAITED since 2026-08-28 ("any other fire and forget"): the scene
+      // half of this prompt is model-written and exists NOWHERE else, so a
+      // filing killed by a deploy restart was unrecoverable. The jobs already
+      // run in parallel and each just spent 30-90s drawing; ~200ms of filing
+      // is nothing, and a failure still only warns.
       if (fileCreation && saved.permanent) {
-        Promise.resolve().then(() => fileCreation({
+        await Promise.resolve().then(() => fileCreation({
           url: saved.url, prompt: job.label, fullPrompt: job.prompt,
           model: 'gpt-image-2', quality: 'medium', canvas: size,
           source: 'photostudio',

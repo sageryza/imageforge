@@ -147,6 +147,32 @@ function freshRun(name, lines, event) {
       h.indexOf(ASK) < h.indexOf(THANKS), JSON.stringify(h));
   }
 
+  // ── 1b. TWO UNMATCHED QUEUE ENTRIES KILLED THE WHOLE HOOK ────────────────
+  // Found live 2026-08-28 ("ur chat hook is weird"): a chat with ONE mangled
+  // message in the app and eleven turns in its transcript. `segcells` is built
+  // from `users` before the reconciliation loop, and an unmatched queue entry
+  // is APPENDED to `users` — so the next entry's segment pass walked a record
+  // segcells had never seen and the parser died with a KeyError. The hook
+  // printed nothing and exited 0, so the session posted no replies and none of
+  // her messages, silently, forever.
+  console.log('two queue entries that match nothing');
+  {
+    freshRun('twoqueued', [
+      user('U1', ASK, '2026-08-28T03:08:00Z'),
+      queued('first afterthought', '2026-08-28T03:08:51Z'),
+      queued('second afterthought', '2026-08-28T03:09:20Z'),
+      asst('m1', REPLY, '2026-08-28T03:11:11Z'),
+    ]);
+    await settle();
+    const h = hers();
+    ok('the hook still runs at all — the reply posts',
+      posts().some((p) => p.url === '/api/chatfeed' && p.body && p.body.text),
+      JSON.stringify(posts().map((p) => p.url)));
+    ok('her message posts', h.includes(ASK), JSON.stringify(h));
+    ok('both afterthoughts post', h.includes('first afterthought') && h.includes('second afterthought'),
+      JSON.stringify(h));
+  }
+
   // ── 2. the same shape with two real user records ─────────────────────────
   // A message sent between turns lands as an ordinary user record rather than a
   // queue entry, and the turn it starts is the latest one — so both of hers
@@ -201,6 +227,69 @@ function freshRun(name, lines, event) {
     ok('her message still posts', h.includes(ASK), JSON.stringify(h));
     ok('the wake envelope is never filed as hers',
       !h.some((t) => (t || '').indexOf('<wake') > -1), JSON.stringify(h));
+  }
+
+  // ── 5. the harness JOINS her back-to-back messages ───────────────────────
+  // Measured 2026-08-27 in this feature's own transcript: she sent two messages
+  // in a row, the queue record held the FIRST alone, and the user record held
+  // BOTH joined by a blank line. The old reconciliation matched on whole text
+  // only, so the queue entry found no home, posted as a message of its own, and
+  // her first message landed twice — once alone and once inside the joined
+  // record. 12 such pairs across her 3,768 messages the day this was found.
+  console.log('a joined user record absorbs the queue entries it swallowed');
+  {
+    freshRun('joined', [
+      queued(ASK, '2026-08-26T03:08:00Z'),
+      user('U1', ASK + '\n\n' + THANKS, '2026-08-26T03:08:51Z'),
+      asst('m1', REPLY, '2026-08-26T03:11:11Z'),
+    ]);
+    await settle();
+    const h = hers();
+    ok('nothing of hers is lost', h.some((t) => (t || '').indexOf(ASK) === 0), JSON.stringify(h));
+    ok('and her second message is there too',
+      h.some((t) => (t || '').indexOf(THANKS) > -1), JSON.stringify(h));
+    ok('her first message posts ONCE, not alone AND joined',
+      h.filter((t) => (t || '').indexOf(ASK) > -1).length === 1, JSON.stringify(h));
+  }
+
+  // A joined record can swallow SEVERAL — "why wasn't this chat filed away /
+  // what are the rules / set notify true" is one real record of hers.
+  console.log('a joined record can absorb more than one queue entry');
+  {
+    const A = 'why was this chat filed away'; const B = 'what are the rules';
+    const C = 'set notify true';
+    freshRun('joined3', [
+      queued(A, '2026-08-26T03:08:00Z'),
+      queued(B, '2026-08-26T03:08:10Z'),
+      queued(C, '2026-08-26T03:08:20Z'),
+      user('U1', [A, B, C].join('\n\n'), '2026-08-26T03:08:51Z'),
+      asst('m1', REPLY, '2026-08-26T03:11:11Z'),
+    ]);
+    await settle();
+    const h = hers();
+    ok('all three of her messages reach the feed',
+      h.some((t) => (t || '').indexOf(A) > -1) && h.some((t) => (t || '').indexOf(B) > -1)
+      && h.some((t) => (t || '').indexOf(C) > -1), JSON.stringify(h));
+    ok('and none of them posts twice',
+      [A, B, C].every((x) => h.filter((t) => (t || '').indexOf(x) > -1).length === 1),
+      JSON.stringify(h));
+  }
+
+  // The multiset guard the whole-text match always had: two SEPARATE records
+  // carrying the same short phrase are two messages, and one queue entry must
+  // not stand in for both.
+  console.log('the same short phrase twice is still two messages');
+  {
+    freshRun('twice', [
+      queued('go', '2026-08-26T03:08:00Z'),
+      queued('go', '2026-08-26T03:08:10Z'),
+      user('U1', 'go', '2026-08-26T03:08:51Z'),
+      asst('m1', REPLY, '2026-08-26T03:11:11Z'),
+    ]);
+    await settle();
+    const h = hers().filter((t) => t === 'go');
+    ok('both go out, one record cannot stand in for two',
+      h.length === 2, JSON.stringify(hers()));
   }
 
   server.kill();

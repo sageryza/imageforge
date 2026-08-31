@@ -58,6 +58,9 @@ const RUN = {
   id: 'runA', prompt: 'a fox in the rain', status: 'done',
   engine: 'gptimage', model: 'gpt-image-2', quality: 'medium', aspectRatio: '2:3',
   images: ['/px.png?r=runA&i=0', '/px.png?r=runA&i=1'],
+  // A panels run banks its uncut sheet beside the panels — not in `images`,
+  // which is why it rides the VIRTUAL index -1 (2026-08-27).
+  sheetUrl: '/px.png?r=runA&sheet=1',
   votes: {}, createdAt: T0,
 };
 
@@ -175,7 +178,9 @@ const ok = (cond, what) => { console.log((cond ? 'ok   ' : 'FAIL ') + what); if 
   await page.locator('#shelftiles .stile', { hasText: 'The Meteorite' }).click();
   await page.waitForFunction(() => document.querySelectorAll('#pad .slot').length === 3);
   ok(await page.locator('#stories').isHidden(), 'the shelf steps aside');
-  ok(/Tap where it goes/i.test(await page.locator('#sendword').textContent()),
+  // The band's wording moved when a tap on a MOMENT became a way to place
+  // (2026-08-28); this assertion still asked for the older sentence.
+  ok(/Tap (to place|a moment)/i.test(await page.locator('#sendword').textContent()),
     'the band says what to do next');
 
   // ── 5 · a gap places it THERE, with the provenance ────────────────────
@@ -232,6 +237,24 @@ const ok = (cond, what) => { console.log((cond ? 'ok   ' : 'FAIL ') + what); if 
   const first = posts.pop();
   ok(first && first.path === '/api/scratchpad/add' && first.body.at === 0 && first.body.pad === 'padY',
     'an empty story takes it as its first beat (' + JSON.stringify(first && first.body.at) + ')');
+
+  // ── 9b · THE BANKED SHEET WALKS TOO, at the virtual index -1 ─────────
+  // 2026-08-27, Sophie: "missing three buttons too" — the sheet's lightbox had
+  // no Story Room walk, because the room resolved `?i=` against `images` and
+  // the sheet is not in it. A whole comic page is exactly what a beat wants.
+  posts.length = 0;
+  await page.goto(base + '/storyroom?send=runA&i=-1');
+  await page.waitForSelector('#sendband:not([hidden])');
+  ok(!(await page.locator('#sendthumb').isHidden()), 'the sheet arrives in her hand');
+  // The thumb is the house DERIVED copy, so the sheet's url arrives encoded
+  // inside it — decode before asking which picture it is.
+  const thumbSrc = decodeURIComponent(await page.locator('#sendthumb').getAttribute('src') || '');
+  ok(/sheet=1/.test(thumbSrc) && !/i=[01]/.test(thumbSrc),
+    'and it is the SHEET, never a cut panel (' + thumbSrc + ')');
+  await page.locator('#shelftiles .stile', { hasText: 'Moon Milk' }).click();
+  await page.waitForFunction(() => /Placed/.test(document.getElementById('sendword').textContent || ''));
+  const sheetPost = posts.pop();
+  ok(sheetPost && /sheet=1/.test(sheetPost.body.url || ''), 'and the sheet is what lands on the beat');
 
   // ── 10 · a dead run still offers the way back ────────────────────────
   await page.goto(base + '/storyroom?send=gone&i=0');

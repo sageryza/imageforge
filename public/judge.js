@@ -31,9 +31,17 @@
    ok = true/false/'maybe'/'later'), so a chat reads them back with
    GET /api/chatfeed/verdict?chat=&sheet= exactly like vote chips. Notes ride
    the same doc's text field (the standing every-reviewable-thing rule).
-   Reopening the page resumes at the first unjudged item; when everything is
+   Reopening the page resumes WHERE SHE LEFT OFF (the `at` field on the same
+   doc — see savePlace), falling back to the first unjudged item when there is
+   no place on file or the card it names has gone; when everything is
    judged it opens on the PILES view — Loved / Maybe / Later / Passed — where
    tapping any tile re-opens that item to re-judge it.
+
+   THE PILES VIEW ALSO SURVEYS HER NOTES (2026-08-31, Sophie: "add note survey
+   to piles") — every card she wrote on, read back in one place, leading the
+   piles. It cuts across them: a note is a note whether the card ended in Yes
+   or in Unsure. Read-back only, the keep-pile's rule — the note box is on the
+   card, one tap away down the row's own name or picture.
 
    Style: minimal, cream, the Chats-app look — compare.css provides the tokens
    (which also keep the injected pill styled right). Icon-first controls, so
@@ -325,6 +333,13 @@
     ' object-fit:contain;border-radius:6px;display:inline-block;}' +
     '.jg-label{font-size:15px;color:var(--ink);padding-top:8px;text-align:center;}' +
     '.jg-row{display:flex;justify-content:center;gap:18px;padding:16px 0 6px;}' +
+    // TWO OPPOSING WORDS SIT AT OPPOSITE ENDS (2026-08-27, Sophie, asking for
+    // an Archive/Keep deck: "don't put the archive and not archive button too
+    // close together"). A pair of custom states is a yes and a no, and 18px
+    // between them is a mis-tap waiting to happen — so exactly two spread to
+    // the row's ends, the same shape her ✕ and ♥ already make. Three or more
+    // keep the centred row: they are a scale, not opposites.
+    '.jg-row.two{justify-content:space-between;padding-left:12px;padding-right:12px;}' +
     '.jg-btn{width:54px;height:54px;border-radius:50%;border:1.5px solid var(--line);' +
     ' background:var(--surface);display:flex;align-items:center;justify-content:center;padding:0;}' +
     '.jg-btn svg{width:24px;height:24px;}' +
@@ -426,6 +441,37 @@
     // on a moment deck it wears her cream palette, like everything else there
     '.jg-mombg .jg-mini{border-color:#DDD3C0;background:#FFFDF8;color:#262016;}' +
     '.jg-piles h2{margin-top:22px;}' +
+
+    // ── THE NOTE SURVEY (2026-08-31, Sophie: "add note survey to piles").
+    // Every note she left on this deck, read back in one place. It leads the
+    // piles because it is the one thing on this screen that is HERS — the
+    // piles' own tiles are the pictures, which she has just been looking at,
+    // and a survey she has to scroll past four piles to reach is one she will
+    // not read. Same shape as a pile section (`Name · count`, tap a row to
+    // re-open that card), because a survey of her notes IS a pile of what she
+    // said. It is READ-BACK only: the note box lives on the card, one tap
+    // away — the keep-pile's own rule ("the pile is where a note is READ
+    // BACK; the keeping tap is where it is WRITTEN").
+    '.jg-nrow{display:flex;gap:10px;align-items:flex-start;' +
+    ' padding:10px 0;border-top:1px solid var(--line);}' +
+    '.jg-nrow:first-child{border-top:0;padding-top:2px;}' +
+    '.jg.mom .jg-nrow{border-top-color:#E7DECF;}' +
+    '.jg-nthumb{width:34px;height:34px;flex:none;border-radius:6px;overflow:hidden;padding:0;' +
+    ' border:1px solid var(--line);background:var(--surface);}' +
+    '.jg.mom .jg-nthumb{border-color:#DDD3C0;background:#FFFDF8;}' +
+    '.jg-nthumb img{width:100%;height:100%;object-fit:cover;display:block;}' +
+    // min-width:0 or a long unbroken word in her note pushes the row off the
+    // right of the screen (the folded-middle lesson from the Story Timeline)
+    '.jg-nbody{flex:1;min-width:0;}' +
+    // the name is the way INTO that card, and it is a SIBLING of the fold
+    // caret rather than its parent — a button inside a button is invalid and
+    // the caret's tap would bubble into re-opening the card
+    '.jg-nname{display:block;width:100%;border:0;background:none;padding:0;' +
+    ' text-align:left;font:600 13px/1.35 -apple-system,sans-serif;color:var(--ink);' +
+    ' white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
+    '.jg.mom .jg-nname{color:#262016;}' +
+    '.jg-nrow .cmp-note-text{margin-top:5px;}' +
+
     // ── THE PILES FOOTER (Aug 2026, Sophie — two asks, one row). "Take away
     // the chat list at the bottom and instead offer a link back to the chat in
     // the piles area": the queue is decks now, and the chat that posted this
@@ -896,10 +942,86 @@
       clearTimeout(noteTimer);
       noteTimer = setTimeout(function () { post({ item: id, text: text }); }, 700);
     }
+
+    // ── THE NOTE SURVEY (2026-08-31, Sophie: "add note survey to piles") —
+    // the two helpers the piles view uses. A note field is a THREAD, so the
+    // honest test for "is there a note on this card" is whether the thread
+    // PARSES to anything: a field holding only a bare `— me:` marker trims
+    // non-empty and says nothing, and a row with a name and no words under it
+    // is worse than no row.
+    /** The messages in a note field, through compare.js's own parser. Without
+     *  the shell the whole field is hers, which is what every note written
+     *  before the thread existed already means. */
+    function noteMsgs(text) {
+      var s = String(text == null ? '' : text).trim();
+      if (!s) return [];
+      var MS = window.__compareShell || {};
+      if (MS.parseNoteThread) return MS.parseNoteThread(s);
+      return [{ who: 'me', text: s }];
+    }
+    /** Paint each survey row's thread with the SAME renderer the card's note
+     *  uses, and give it the same fold — more than one message shows the
+     *  newest behind "N earlier" (her ask on the card; a survey of a long
+     *  back-and-forth would otherwise bury every other note under one). */
+    function paintSurvey(noted) {
+      if (!noted || !noted.length) return;
+      var MS = window.__compareShell || {};
+      var rows = [].slice.call(mount.querySelectorAll('.jg-notes .jg-nrow'));
+      rows.forEach(function (row, i) {
+        var n = noted[i];
+        if (!n) return;
+        var wrap = row.querySelector('.cmp-note');
+        var shown = row.querySelector('.cmp-note-text');
+        var caret = row.querySelector('.cmp-note-more');
+        if (!wrap || !shown) return;
+        if (MS.paintNote) MS.paintNote(wrap, notes[n.it.id] || '');
+        else { shown.textContent = n.msgs[0].text; wrap.classList.add('has'); }
+        var many = n.msgs.length > 1;
+        wrap.classList.toggle('foldable', many);
+        wrap.classList.toggle('folded', many);
+        if (!caret) return;
+        caret.hidden = !many;
+        caret.textContent = (n.msgs.length - 1) + ' earlier';
+        // its own listener: the caret carries no data-act/data-open, so the
+        // mount's click handler leaves it alone, and it is a SIBLING of the
+        // name button rather than inside it
+        caret.addEventListener('click', function () { wrap.classList.toggle('folded'); });
+      });
+    }
+
+    // ── HER PLACE (2026-08-29, Sophie: "I swipe through the Tinder thing does
+    // it save my place rather than showing me things I've already swiped
+    // on"). It did not, quite: her MARKS came back but reopening jumped to the
+    // first UNMARKED card, so a card she browsed past without marking pulled
+    // her backwards every time she came back.
+    //
+    // The place is the ITEM ID, never the index — the sheet name carries the
+    // item set's shape, but an id says what it means and a card that has since
+    // gone simply falls through to the old rule instead of landing her on
+    // whatever moved into that slot.
+    //
+    // Debounced, because a swipe through thirty cards is thirty moves and only
+    // the last one is where she stopped.
+    var placeTimer = null, placeAt = null, placeRestored = false;
+    function savePlace() {
+      if (view !== 'card') return;          // the piles view is not a place
+      var it = items[cur];
+      if (!it || it.id === placeAt) return;
+      placeAt = it.id;
+      clearTimeout(placeTimer);
+      placeTimer = setTimeout(function () { post({ at: placeAt }); }, 600);
+    }
     window.addEventListener('pagehide', function () {
       // a half-typed note survives leaving (same contract as __compareNotes)
       var it = items[cur];
       if (!it) return;
+      // …and so does her place: the debounce above is 600ms, and closing the
+      // tab is exactly the moment it has not fired yet
+      if (view === 'card' && placeAt !== it.id) {
+        placeAt = it.id;
+        clearTimeout(placeTimer);
+        beacon({ at: it.id });
+      }
       var text = null;
       var mb = mount.querySelector('.jg-momnote');
       if (mb && momNote && momNote.item === it.id && mb.value.trim()) {
@@ -909,13 +1031,20 @@
         if (box && box.value.trim()) text = box.value;
       }
       if (!text) return;
-      try {
-        navigator.sendBeacon('/api/chatfeed/verdict', new Blob([JSON.stringify({
-          chat: chat, sheet: sheet, item: it.id, text: text,
-        })], { type: 'application/json' }));
-      } catch (_) { /* nothing else to do */ }
+      beacon({ item: it.id, text: text });
     });
+    function beacon(body) {
+      body.chat = chat; body.sheet = sheet;
+      try {
+        navigator.sendBeacon('/api/chatfeed/verdict',
+          new Blob([JSON.stringify(body)], { type: 'application/json' }));
+      } catch (_) { /* nothing else to do */ }
+    }
 
+    function indexOfId(id) {
+      for (var i = 0; i < items.length; i++) if (items[i].id === id) return i;
+      return -1;   // the card has gone — fall through to the old rule
+    }
     function firstUnjudged() {
       for (var i = 0; i < items.length; i++) if (verdicts[items[i].id] === undefined) return i;
       return -1;
@@ -955,20 +1084,20 @@
           if (cur !== leaving || view !== 'card') return;
           var n = firstUnjudged();
           if (n === -1) { view = 'piles'; } else { cur = n; }
-          render(true);
+          render(true); savePlace();
         }, 620);
         return;
       } else {
         var next = firstUnjudged();
         if (next === -1) { view = 'piles'; } else { cur = next; }
       }
-      render(true);
+      render(true); savePlace();
     }
     function nav(step) {
       var to = cur + step;
       if (to < 0) return;
       if (to > items.length - 1) { view = 'piles'; render(true); return; }
-      cur = to; view = 'card'; render(true);
+      cur = to; view = 'card'; render(true); savePlace();
     }
     function undo() {
       var u = undoStack.pop();
@@ -980,7 +1109,7 @@
       if (was === true || was === false || u.prev === true || u.prev === false) {
         mirrorVote(it, u.prev === undefined ? null : u.prev);
       }
-      cur = u.i; view = 'card'; render(true);
+      cur = u.i; view = 'card'; render(true); savePlace();
     }
 
     // the card-face menu (Aug 2026): square (the XI deck), portrait (a story
@@ -1293,8 +1422,39 @@
                 + '<button class="jg-pilebtn" data-act="done">Done</button>' : '')
             + '</div>';
         }
+        // ── THE NOTE SURVEY (2026-08-31, Sophie: "add note survey to piles").
+        // It cuts ACROSS the piles on purpose — a note is a note whether the
+        // card ended up in Yes or in Unsure — so it is its own section rather
+        // than a mark on a tile. Nothing here when she has written nothing,
+        // which is the common case and byte-for-byte the view she had.
+        var noted = items.map(function (it) {
+          return { it: it, msgs: noteMsgs(notes[it.id]) };
+        }).filter(function (n) { return n.msgs.length; });
+        var survey = noted.length
+          ? '<h2>Notes · ' + noted.length + '</h2><div class="jg-notes">'
+            + noted.map(function (n) {
+              var src = n.it.pair ? n.it.pair[0].img : n.it.img;
+              return '<div class="jg-nrow">'
+                // the picture is a way in too, like a pile tile — a SIBLING
+                // of the body, so it never wraps the fold caret
+                + (src ? '<button class="jg-nthumb" data-open="' + esc(n.it.id)
+                  + '"><img src="' + esc(src) + '" alt=""></button>' : '')
+                + '<div class="jg-nbody">'
+                + '<button class="jg-nname" data-open="' + esc(n.it.id) + '">'
+                + esc(n.it.who || n.it.label || n.it.text || n.it.id) + '</button>'
+                // the thread's own markup, painted by compare.js's ONE
+                // renderer below — so a note reads the same here as on the
+                // card, and the fold ("N earlier") is the same fold
+                + '<div class="cmp-note"><div class="cmp-note-text"></div>'
+                + '<button type="button" class="cmp-note-more"></button></div>'
+                + '</div></div>';
+            }).join('') + '</div>'
+          : '';
         mount.innerHTML = '<div class="jg' + momCls + '" data-nostop>' + top + '<div class="jg-piles">'
-          + (sections || '<p class="mini">Nothing here yet.</p>') + foot + '</div></div>';
+          + survey
+          + (sections || (survey ? '' : '<p class="mini">Nothing here yet.</p>'))
+          + foot + '</div></div>';
+        paintSurvey(noted);
       } else {
         var it = items[cur];
         var v = verdicts[it.id];
@@ -1378,7 +1538,8 @@
           + (voice && !momUI ? '<button type="button" class="jg-mic' + (recActive() ? ' rec' : '')
             + '" data-act="mic" aria-label="voice note">' + I.mic + '</button>' : '')
           + '</div></div>'   // the card, then its non-scrolling wrapper
-          + '<div class="' + (momUI ? 'jg-momfoot' + (voice ? ' mic' : '') : 'jg-row')
+          + '<div class="' + (momUI ? 'jg-momfoot' + (voice ? ' mic' : '')
+            : 'jg-row' + (states && states.length === 2 ? ' two' : ''))
           + '">' + row + '</div></div>';
         // the red mark, over the card she has already decided (see paintStamp)
         paintStamp(it);
@@ -1512,7 +1673,12 @@
           + ' sentence lands on the card you were looking at when you started it. ' : '')
         + (momDeck ? 'Piles up top shows everything you’ve sorted —'
           : 'Top row: undo the last one, the grid shows every pile —')
-        + ' tap any tile there to open it again.<br><br>'
+        + ' tap any tile there to open it again.'
+        // the survey is only named when there is one, so the help never
+        // points her at a section that is not on the screen
+        + (items.some(function (x) { return noteMsgs(notes[x.id]).length; })
+          ? ' Every note you’ve left is at the top of it.' : '')
+        + '<br><br>'
         + '<button type="button" class="jg-tourgo">SHOW ME AROUND</button></div>';
       h.addEventListener('click', function (e) {
         h.remove();
@@ -1547,7 +1713,7 @@
       if (open !== null && open !== undefined && open !== '') {
         cur = items.findIndex(function (it) { return it.id === open; });
         if (cur < 0) cur = 0;
-        view = 'card'; render(true); return;
+        view = 'card'; render(true); savePlace(); return;
       }
       var st = b.getAttribute('data-state');
       if (st !== null && st !== undefined && st !== '' && states) {
@@ -1714,8 +1880,15 @@
             if (tx[it.id]) notes[it.id] = tx[it.id];
           });
           if (move) {
+            // WHERE SHE LEFT OFF WINS OVER THE FIRST UNMARKED CARD — that is
+            // the whole of the 2026-08-29 fix. A deck she has finished still
+            // opens on the PILES, because "you are done" is the honest screen
+            // for a finished deck and her place is one tap away from it.
             var next = firstUnjudged();
-            if (next === -1) view = 'piles'; else cur = next;
+            var save = d && d.at ? indexOfId(d.at) : -1;
+            if (next === -1) { view = 'piles'; placeAt = d && d.at ? d.at : null; }
+            else if (save >= 0) { cur = save; placeAt = d.at; placeRestored = true; }
+            else cur = next;
           }
           render();
           return loadAssetVotes(move);
@@ -1757,7 +1930,9 @@
             verdicts[it.id] = v === 'like';
             moved = true;
           });
-          if (moved && move) {
+          // a ♥ from the Assets tab can finish the deck, but it must never
+          // yank her off the place she was restored to
+          if (moved && move && !placeRestored) {
             var next = firstUnjudged();
             if (next === -1) view = 'piles'; else cur = next;
           }

@@ -54,9 +54,58 @@ const withApp = buildMetaAssets(
     { url: 'https://x/drawn.png', prompt: 'a fox in a yellow raincoat', type: 'image',
       style: 'ChatGPT · medium', ms: 4000 },
     { url: 'https://x/hook.png', prompt: 'from evan-film', ms: 3000 },     // hook copy → out
-    { url: 'https://x/shared.png', prompt: 'also filed by a chat', ms: 2000 }, // chat has it → out
+    // chat has it → no second row, but its words fill the chat row's blanks
+    { url: 'https://x/shared.png', prompt: 'also filed by a chat', ms: 2000,
+      model: 'gpt-image-2', quality: 'low', size: '1024x1536' },
   ]);
 assert.strictEqual(withApp.length, 3, 'chat row + two app rows');
+// 6b: THE ADOPTION RULE (2026-08-28, the "getting out of his car" bug). The
+// chat's copy of shared.png is an unlabeled background catch — before this,
+// the labeled creations twin was dropped whole and the one surviving tile had
+// no words at all, so search could never find it. The chat row stays the row
+// (votes key chat+url), and the creations copy's words ride onto its blanks.
+{
+  const shared = withApp.find((r) => r.url === 'https://x/shared.png');
+  assert.strictEqual(shared.chat, 'evan-film', 'the chat keeps the row');
+  assert.ok(!shared.app, 'an adopted row is still a chat row, never app-marked');
+  assert.strictEqual(shared.description, 'also filed by a chat',
+    'the creations label fills the nameless chat tile');
+  assert.strictEqual(shared.prompt, 'gpt-image-2 · low · 1K',
+    'the creations caption fills the empty caption slot');
+  assert.strictEqual(shared.promptContent, 'also filed by a chat',
+    'a plain image creation hands its prompt to the PROMPT overlay too');
+}
+// 6b2: a "from <chat>" caption is the hook's background mark, never curated —
+// it counts as BLANK, so the creation's real caption replaces it. (Measured
+// 2026-08-28: 130 live tiles kept the mark over a real caption without this.)
+{
+  const marked = buildMetaAssets(
+    [{ chat: 'evan-film', url: 'https://x/marked.png', created: iso(10),
+      prompt: 'from evan-film' }],
+    [{ url: 'https://x/marked.png', prompt: 'a boy getting out of his car', ms: 2000,
+      model: 'gpt-image-2', quality: 'low', size: '1024x1536' }]);
+  assert.strictEqual(marked.length, 1, 'still one row');
+  assert.strictEqual(marked[0].prompt, 'gpt-image-2 · low · 1K',
+    'the hook mark yields to the creation’s real caption');
+  assert.strictEqual(marked[0].description, 'a boy getting out of his car',
+    'and the label still fills as before');
+}
+// 6c: …and anything the chat actually filed is curated — never overwritten.
+{
+  const kept = buildMetaAssets(
+    [{ chat: 'evan-film', url: 'https://x/kept.png', created: iso(10),
+      description: 'Penny — the blue Kleenex', prompt: 'gpt-image-2 · medium · 2K' }],
+    [{ url: 'https://x/kept.png', prompt: 'a different label', ms: 2000,
+      model: 'gpt-image-2', quality: 'low', size: '1024x1536',
+      promptContent: 'her words verbatim' }]);
+  assert.strictEqual(kept.length, 1, 'still one row');
+  assert.strictEqual(kept[0].description, 'Penny — the blue Kleenex',
+    'a curated label is never overwritten by the creations twin');
+  assert.strictEqual(kept[0].prompt, 'gpt-image-2 · medium · 2K',
+    'a curated caption is never overwritten');
+  assert.strictEqual(kept[0].promptContent, 'her words verbatim',
+    'a blank half still fills even when other fields are curated');
+}
 const stick = withApp.find((r) => r.url === 'https://x/sticker.png');
 assert.strictEqual(stick.chat, 'my-creations', 'app rows live in the my-creations bucket');
 assert.ok(stick.app, 'app rows are marked');

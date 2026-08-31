@@ -40,6 +40,12 @@
        AND the title, `onClick(e)` is called with the tap.
      `who` — one small uppercase line at the very bottom, under the caption:
        which chat this picture came from, on a surface that mixes many.
+     `cast: [{name, url}]` — who is IN the picture: the character references
+       that rode the run, as a small face plus its NAME under the caption.
+       The name is the half that matters (it is what she writes in a prompt
+       to draw that character again); the caller passes whatever url it wants
+       drawn, so it can hand over a derived thumb rather than the 1.2MB card.
+       Marks, not buttons — the row stays dead space that closes the box.
    Both are optional and additive, so every existing caller is untouched. Add
    a hook rather than a copy the next time a surface needs something extra.
 
@@ -60,24 +66,43 @@
        step, never on a fresh open).
      `window.__assetLightboxClose()` — closes it exactly as a backdrop tap
        would, for a page whose app chevron asks the page first.
+     `onClose()` — called once as the lightbox closes, whichever way (backdrop
+       tap, the chevron's __assetLightboxClose, a caller's own close). For a
+       page that opens the lightbox OVER an overlay of its own holding the
+       body's scroll lock (the Story Room's beat popup): the close here clears
+       body overflow, so that caller re-asserts its lock in onClose.
    A toggle half with NOTHING filed is not offered (the Playground's rule,
    now everyone's): one empty half hides its button, and a prompt with only
    one half shows no Style|Content pair at all — the words alone.
 
-   THE PLAYGROUND LAYOUT HOOKS (2026-08-26, Sophie, the day after the port:
-   "put the heart where they were before exactly … the quality model etc.
-   should go right under the picture not below the note area"). The migration
-   onto this file had moved that page's ♥/✕ to the screen's top corners,
-   shrunk the picture, and left the MODEL · QUALITY tag below the note box.
-     `votesBelow` — ♥/✕ lead the actions row UNDER the picture (♥ ✕ · copy ·
-       save · story, one row — where the Playground has always kept them);
-       the top band keeps only Prompt · Chat, centred, and the picture gets
-       back the room the top-corner layout's caps took (76vh, yielding only
-       when the screen is short).
-     `capUnderImage` — the MODEL · QUALITY tag and the label sit directly
-       under the picture, above that row and the notes.
-   Both opt-in per caller; the Assets tab, Meta Assets and the grid pages
-   pass neither and are untouched.
+   THE CTA HOOK (2026-08-28, Sophie: "create a single lightbox view, sync to
+   all surfaces … ex assets, meta assets, story room, playground") — what let
+   the STORY ROOM retire its hand copy. Its lightbox is where an older picture
+   is picked BACK as a beat's art, and a 34px action circle cannot carry that:
+   she picks by looking, so the button is a labeled primary — cream on the
+   dark wash, the serif, the house 6px — directly under the picture.
+     `cta: { label, onClick(e) }` — one labeled button under the picture (and
+       under the actions row when one is drawn). The caller owns what it does;
+       `e.currentTarget` is the button, so a caller can mark it `.busy` while
+       a POST is in flight. The picture yields to 78vh while a cta is shown
+       (the Story Room's own pick-state number). Pass null/omit for no button.
+
+   THE ONE LAYOUT IS THE PLAYGROUND'S, EVERYWHERE (2026-08-28, Sophie:
+   "create a single lightbox view, sync to all surfaces" — then, checking:
+   "it's not in meta assets?"). What began as the Playground's opt-in hooks
+   (`votesBelow` + `capUnderImage`, 2026-08-26: "put the heart where they
+   were before exactly … the quality model etc. should go right under the
+   picture not below the note area") is the DEFAULT for every caller now —
+   one code was not one view while the layout stayed per-page:
+     ♥/✕ lead the actions row UNDER the picture (♥ ✕ · then the caller's
+       actions, one row, all one 46px size); the top band keeps only
+       Prompt · Chat, centred; the picture takes 76vh and shrinks through
+       flex when the screen is short.
+     the MODEL · QUALITY tag and the label sit directly under the picture,
+       above that row and the notes.
+   `votesBelow` / `capUnderImage` on an asset are accepted and ignored —
+   they ARE the layout. Don't reintroduce a per-page layout flag: that is
+   exactly the drift she was pointing at.
    ♥/✕ and the note box appear only when the caller wires _cast (votes) —
    the caller owns WHERE a vote lands (the Assets tab posts the asset vote;
    a grid page also saves its page verdict), same as it always did.
@@ -169,6 +194,17 @@
     + '.lbacts button{width:34px; height:34px; border-radius:50%; border:none; cursor:pointer; margin:0;\n'
     + '  background:rgba(250,247,240,.9); color:#3a3530; display:flex; align-items:center; justify-content:center; padding:0;}\n'
     + '.lbacts button svg{width:17px; height:17px; display:block;}\n'
+    /* THE CAST — who is in this picture, drawn under the caption: a small
+       face and its NAME for every character reference that rode the run.
+       The name is the load-bearing half (it is what she writes in a prompt
+       to draw that character again); the face is what makes the row
+       readable at a glance. Marks, never buttons — nothing here is tappable,
+       so the close rule keeps working over the whole row. */
+    + '#clightbox .clcast{display:flex; flex-wrap:wrap; gap:6px 12px; justify-content:center;\n'
+    + '  margin-top:10px; padding:0 12px;}\n'
+    + '#clightbox .clchar{display:inline-flex; align-items:center; gap:6px; color:#b9b2a4; font-size:11px;}\n'
+    + '#clightbox .clchar img{width:24px; height:24px; border-radius:5px; object-fit:cover;\n'
+    + '  background:rgba(250,247,240,.15); display:block;}\n'
     /* WHO - which chat it came from: the last line, and the quietest */
     + '#clightbox .clwho{color:#8a8377; font-family:-apple-system,sans-serif; font-size:10px; margin-top:8px;\n'
     + '  text-align:center; letter-spacing:.12em; text-transform:uppercase;}\n'
@@ -231,9 +267,40 @@
        fixed 46-62vh steps. Every selector the step caps use is re-listed so
        none of them out-specifies this. */
     + '#clightbox.vbelow .clwrap{min-height:0; flex:0 1 auto;}\n'
+    /* the .pon floor must SURVIVE the flex layout: with the prompt showing on
+       a not-yet-loaded picture the wrap is 0x0, and min-height:0 above
+       out-specifies the plain .pon rule — the words would render as an
+       unreadable stamp (caught by test-meta-assets-page the day the layout
+       became every caller's) */
+    + '#clightbox.vbelow .clwrap.pon{min-height:min(52vh,420px);}\n'
     + '#clightbox.vbelow img, #clightbox.vbelow.hastalk img, #clightbox.vbelow.hastalk.hasmsgs img,\n'
     + '#clightbox.vbelow.hastalk.hasacts img, #clightbox.vbelow.hastalk.hasacts.hasmsgs img{max-height:min(76vh,100%);}\n'
-    + '#clightbox.vbelow .cltag, #clightbox.vbelow .clcap, #clightbox.vbelow .lbacts, #clightbox.vbelow .lbtalk{flex:none;}\n';
+    + '#clightbox.vbelow .cltag, #clightbox.vbelow .clcap, #clightbox.vbelow .lbacts, #clightbox.vbelow .lbtalk{flex:none;}\n'
+    /* ONE SIZE FOR EVERY BUTTON UNDER THE PICTURE (2026-08-27, Sophie: "bottom
+       buttons are all different sizes in the playground light box ... make them
+       all that size"). The votesBelow row mixes two families that were never
+       meant to share a line: `.vote` is 38px (it was drawn for the screen's top
+       corners) and `.lbacts button` is 34px, so ♥ ✕ sat visibly bigger than
+       copy · save · story beside them, with the 38px note-send under both.
+       The numbers are the Playground's OWN, lifted from its hand-rolled
+       lightbox as it stood the day before the port onto this file (`.lbbtn`,
+       46x46 with a 21px glyph, 22px apart) — where all five really were one
+       size. Scoped to .vbelow: the Assets tab, Meta Assets and the grid pages
+       pass no layout hook and keep the sizes they have. */
+    + '#clightbox.vbelow .lbacts{gap:22px;}\n'
+    + '#clightbox.vbelow .lbacts button, #clightbox.vbelow .lbnote .notesend{width:46px; height:46px;}\n'
+    + '#clightbox.vbelow .lbacts button svg, #clightbox.vbelow .lbnote .notesend svg{width:21px; height:21px;}\n'
+    /* THE CTA — one labeled primary button under the picture (the Story Room's
+       "Use this one"). Cream on the dark wash in BOTH themes — the backdrop is
+       a fixed dark, so tokens are the wrong tool: a theme's --paper can be
+       nearly the backdrop's own colour. The serif, the house 6px, never a
+       pill. Only a lightbox carrying one gives up height for it — a plain
+       look at a picture keeps every pixel it always had. */
+    + '#clightbox .lbcta{background:#f6f2e9; color:#26221c; border:1.5px solid #f6f2e9; border-radius:6px;\n'
+    + "  padding:9px 18px; margin-top:12px; font-family:'EBGaramond',Georgia,serif; font-size:16px;\n"
+    + '  font-weight:600; cursor:pointer; flex:none; box-shadow:0 1px 4px rgba(0,0,0,.2);}\n'
+    + '#clightbox .lbcta.busy{opacity:.45;}\n'
+    + '#clightbox.hascta img{max-height:78vh;}\n';
   document.head.appendChild(css);
 
   var HEART = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>';
@@ -271,8 +338,10 @@
     lb.classList.remove('hastalk');   // last image's thread must not shrink this one
     lb.classList.remove('hasmsgs');   // ...nor whether that thread had letters in it
     lb.classList.remove('hasacts');   // ...nor its actions row
-    // the votesBelow layout is the caller's, per open — never carried over
-    lb.classList.toggle('vbelow', !!(asset && asset.votesBelow));
+    lb.classList.remove('hascta');    // ...nor its labeled button
+    // THE ONE LAYOUT (2026-08-28): the under-picture row and the 76vh room
+    // are every caller's now, not the Playground's opt-in.
+    lb.classList.add('vbelow');
     // THE STEP ZONES — a feed surface steps through its pictures without
     // leaving the lightbox (the Playground). A null side draws NOTHING, so at
     // the ends of the feed a tap there closes like any other dead space. The
@@ -309,6 +378,19 @@
       });
       lb.appendChild(acts);
       lb.classList.add('hasacts');
+    }
+    // THE CTA — one labeled primary button under the picture (the Story
+    // Room's "Use this one"). The caller owns what it does; the button rides
+    // to onClick as e.currentTarget so a POST in flight can mark it `.busy`.
+    var cta = (asset && asset.cta) || null;
+    if (cta && cta.onClick) {
+      var ctab = document.createElement('button');
+      ctab.type = 'button';
+      ctab.className = 'lbcta';
+      ctab.textContent = cta.label || '';
+      ctab.onclick = function (e) { e.stopPropagation(); cta.onClick(e); };
+      lb.appendChild(ctab);
+      lb.classList.add('hascta');
     }
     // The generating prompt, over the image: Style left, Content right, tap the
     // PROMPT button to cover/uncover the picture. Only offered when a chat
@@ -478,25 +560,19 @@
       if (promptBtn) mid.appendChild(promptBtn);
       mid.appendChild(more);
       var frame = lb.querySelector('.clframe');
-      if (asset.votesBelow) {
-        // ♥/✕ lead the row UNDER the picture (2026-08-26, Sophie: "put the
-        // heart where they were before exactly") — the Playground kept them
-        // there, ♥ ✕ · copy · save · story in one row, until the port onto
-        // this file moved them to the screen's top corners. The top band
-        // keeps only Prompt · Chat, centred.
-        var arow = lb.querySelector('.lbacts');
-        if (!arow) {
-          arow = document.createElement('div'); arow.className = 'lbacts';
-          lb.appendChild(arow); lb.classList.add('hasacts');
-        }
-        arow.insertBefore(xb, arow.firstChild);
-        arow.insertBefore(hb, arow.firstChild);
-        row.style.justifyContent = 'center';
-        row.appendChild(mid);
-      } else {
-        // ♥ left, Prompt · Chat together in the middle, ✕ right (space-between)
-        row.appendChild(hb); row.appendChild(mid); row.appendChild(xb);
+      // ♥/✕ lead the row UNDER the picture — every caller's layout since
+      // 2026-08-28 ("a single lightbox view"); it was the Playground's
+      // opt-in ("put the heart where they were before exactly"). The top
+      // band keeps only Prompt · Chat, centred.
+      var arow = lb.querySelector('.lbacts');
+      if (!arow) {
+        arow = document.createElement('div'); arow.className = 'lbacts';
+        lb.appendChild(arow); lb.classList.add('hasacts');
       }
+      arow.insertBefore(xb, arow.firstChild);
+      arow.insertBefore(hb, arow.firstChild);
+      row.style.justifyContent = 'center';
+      row.appendChild(mid);
       (frame || lb).appendChild(row);
       lb.appendChild(talk);   // thread + note box below the image, never over it
       lb.classList.add('hastalk');   // shrinks the picture so the thread has room
@@ -517,12 +593,12 @@
     // at all still has to say it, so the mark gets its own tag row rather than
     // riding on a string that may not exist.
     var comp = !!(asset && asset.compressedAtBirth);
-    // RIGHT UNDER THE PICTURE when the caller asks (2026-08-26, Sophie: "the
-    // quality model etc. should go right under the picture not below the note
-    // area") — above the button row and the notes, the old Playground order.
-    // Default stays the very bottom, which is the Assets tab's own design.
-    var capAnchor = (asset && asset.capUnderImage)
-      ? (lb.querySelector('.lbacts') || lb.querySelector('.lbtalk')) : null;
+    // RIGHT UNDER THE PICTURE, everywhere (2026-08-26, Sophie: "the quality
+    // model etc. should go right under the picture not below the note area";
+    // default for every caller since 2026-08-28) — above the button row and
+    // the notes. With neither row present it lands at the end, which is the
+    // same place.
+    var capAnchor = lb.querySelector('.lbacts') || lb.querySelector('.lbtalk');
     function fileCap(el) { if (capAnchor) lb.insertBefore(el, capAnchor); else lb.appendChild(el); }
     if (comp || tag) {
       var tc = document.createElement('div'); tc.className = 'cltag';
@@ -536,6 +612,28 @@
       fileCap(tc);
     }
     if (cap) { var cc = document.createElement('div'); cc.className = 'clcap'; cc.textContent = cap; fileCap(cc); }
+    // WHO IS IN IT — the character references that rode this picture, under
+    // the caption. Optional and additive like every other hook: a caller that
+    // passes none draws nothing, so no existing surface moved. The caller
+    // supplies the url it wants drawn (a DERIVED thumb — a saved character
+    // card is a full ~1.2MB render, the house webp rule).
+    var cast = (asset && Array.isArray(asset.cast)) ? asset.cast.filter(Boolean) : [];
+    if (cast.length) {
+      var cr = document.createElement('div'); cr.className = 'clcast';
+      cast.forEach(function (c) {
+        var one = document.createElement('span'); one.className = 'clchar';
+        if (c.url) {
+          var ci = document.createElement('img');
+          ci.src = c.url; ci.alt = ''; ci.loading = 'lazy';
+          one.appendChild(ci);
+        }
+        var cn = document.createElement('span');
+        cn.textContent = c.name || 'unnamed';
+        one.appendChild(cn);
+        cr.appendChild(one);
+      });
+      fileCap(cr);
+    }
     var who = asset ? (asset.who || '') : '';
     if (who) { var wc = document.createElement('div'); wc.className = 'clwho'; wc.textContent = who; lb.appendChild(wc); }
     lb.style.display = 'flex'; document.body.style.overflow = 'hidden'; document.body.classList.add('ontop');
@@ -580,11 +678,15 @@
         lb.classList.remove('hastalk');
         lb.classList.remove('hasmsgs');
         lb.classList.remove('hasacts');
+        lb.classList.remove('hascta');
         lb.classList.remove('vbelow');
       });
       window.scrollTo(0, lbY);
       // …and again next frame, for the keyboard-dismissal scroll that lands late.
       requestAnimationFrame(function () { window.scrollTo(0, lbY); });
+      // The caller's own cleanup, LAST — a page whose beat popup holds the
+      // body lock re-asserts it here, over the overflow clear above.
+      if (asset && asset.onClose) { try { asset.onClose(); } catch (_) { /* close stands */ } }
     }
     lb.onclick = function (e) {
       var t = e && e.target;

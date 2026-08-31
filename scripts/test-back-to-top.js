@@ -61,14 +61,16 @@ const ok = (m) => console.log('  ok  ' + m);
   if (await btn.count() !== 1) fail('no back-to-top in the injected pill');
   ok(await btn.isHidden() ? 'hidden at the top of the page' : fail('showing before she scrolled'));
 
-  await pg.evaluate(() => window.scrollTo(0, 2000));
-  await pg.waitForFunction(() => document.getElementById('ptop').classList.contains('on'));
-  ok('shown a full screen down');
-
-  // Half a screen is not enough — the end of the page is still nearly in view.
+  // A LITTLE scroll is enough now (2026-08-29, Sophie: "maybe make the arrow
+  // appear as soon as i scroll down a little") — it used to wait a full
+  // viewport, and that is history, not a rule.
   await pg.evaluate(() => window.scrollTo(0, 300));
+  await pg.waitForFunction(() => document.getElementById('ptop').classList.contains('on'));
+  ok('shown a little way down (300px)');
+
+  await pg.evaluate(() => window.scrollTo(0, 80));
   await pg.waitForFunction(() => !document.getElementById('ptop').classList.contains('on'));
-  ok('and gone again inside the first screen');
+  ok('and gone again near the very top');
 
   console.log('THE TAP');
   await pg.evaluate(() => window.scrollTo(0, 2500));
@@ -121,6 +123,9 @@ const ok = (m) => console.log('  ok  ' + m);
     if (n !== 1) fail(`${f} has ${n} back-to-top buttons, wanted 1`);
     else if (!/\.ptop\s*\{/.test(html)) fail(`${f} has the button but no .ptop rule`);
     else if (!html.includes("getElementById('ptop')")) fail(`${f} has the button but nothing wires it`);
+    // The a-little-scroll threshold (2026-08-29) — a copy left at the old
+    // full-viewport rule is exactly the hand-sync drift this sweep exists for.
+    else if (!/(scrollY|sTop\(\)) > 150/.test(html)) fail(`${f} still waits a full screen`);
     else ok(f);
   }
 

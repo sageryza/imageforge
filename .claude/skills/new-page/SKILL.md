@@ -348,5 +348,17 @@ POST /api/chatfeed/pin { chat, session, url: "https://…/science",
   glyph.
 - Serve **webp display copies**, never raw generated PNGs (~1MB each; webp is
   ~22× smaller — `scripts/webp-assets.js` + the verify gate).
+- **A REPAINT NEVER REBUILDS WHAT DID NOT CHANGE** (2026-08-28, Sophie: "this
+  shud be the automatic best practices"). Any page with a poll, a job tick,
+  or a refresh-on-return must NOT wipe-and-rebuild image DOM on every call —
+  a recreated `<img>` decodes async on iOS, so the pictures strobe blank. The
+  pattern is a SIGNATURE SKIP: build a string of exactly what the paint draws
+  (urls, labels, order, states), skip the rebuild when it matches the last
+  one, and toggle classes on existing nodes for cheap state (a pick, a tint).
+  If a kept node's closures capture data objects, resolve the record by id at
+  tap time — the poll replaces the objects. Worked examples + the full rule:
+  *A REPAINT NEVER REBUILDS WHAT DID NOT CHANGE* in `docs/design-rules.md`;
+  the Story Room's `padSig`/`unitSig` in `scripts/gen-scratchpad.py`. Tests
+  assert NODE IDENTITY (`scripts/test-noblink-repaint.js` is the shape).
 - Full clickable links in the reply when it's ready to test: the page URL and
   the PR.

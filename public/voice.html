@@ -13,14 +13,35 @@ body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--i
 [hidden]{display:none !important;}
 .wrap{max-width:34em; margin:0 auto; padding:5vh 5vw 16vh;}
 .state{font-style:italic; color:var(--ink2); text-align:center; padding:2.5em 0;}
-/* NO PAGE HEADER (Sophie, Aug 2026: "it says Voice Studio twice, once at the
-   top and once below it… get rid of basically the whole header, including the
-   line"). The native tool bar already carries the title, so the page's own
-   brand row, h1, credits line and rule are gone and the tabs are the first
-   thing on screen. The credits moved behind the ⓘ on the tab row.
-   The autoscroll pill still floats over the top-right corner, so the rows that
-   now sit in its band (the tabs, the voice squares, the dropdown) each keep the
-   56px reserve — a control there is untappable. */
+/* THE TITLE, ONCE — the house header row (2026-08-27, Sophie: "this header
+   doesn't match the app pattern", looking at a screen whose whole header was a
+   lone chevron in a box with nothing beside it).
+
+   THIS PAGE HAD NO HEADER ROW AT ALL, and that was RIGHT until the native bar
+   went. Sophie's earlier ask (Aug 2026: "it says Voice Studio twice, once at
+   the top and once below it… get rid of basically the whole header, including
+   the line") was about Apple's nav bar and the page's own brand row saying the
+   same thing one above the other — so the brand row, the h1, the credits line
+   and the rule came off and the tabs became the first thing on screen. Then
+   `.forgeWebToolBar` took Apple's bar away from every web-wrapped tool, and the
+   half that was carrying the name went with it: pagehead.js found no row to sit
+   in, fell through to its row-less branch, and drew a bare `#forgehead` strip
+   holding the chevron and nothing else. The tool was nameless.
+
+   So the page owns its header now, which is the house rule for a web-wrapped
+   tool. One row, the `.app-header` shape Meta Assets and the other titled pages
+   use: pagehead inserts the chevron into it and `.fh` centres the title on the
+   SCREEN between the chevron and the pill's corner. There is still only one
+   "Voice Studio" on the page — her complaint was never that the title existed.
+   The credits stay behind the ⓘ on the tab row.
+
+   The autoscroll pill floats over the top-right corner, so this row and the
+   rows in its band (the tabs, the voice squares, the dropdown) each keep the
+   reserve — a control there is untappable. 64px here (56 is a hair tight at
+   390pt), 56 below, matching what each row already measured. */
+.app-header{display:flex; align-items:center; min-height:34px; padding-right:64px; margin:0 0 14px;}
+.app-header h1{font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:11px; letter-spacing:.34em;
+  color:var(--ink2); text-transform:uppercase; font-weight:400; margin:0;}
 .info{flex:0 0 auto; width:22px; height:22px; align-self:center; margin-right:10px;
   border-radius:50%; border:1.2px solid var(--line); background:none; color:var(--ink2);
   cursor:pointer; padding:0; font-family:-apple-system,sans-serif; font-size:12px; line-height:1;
@@ -67,6 +88,39 @@ textarea{display:block; width:100%; box-sizing:border-box; min-height:7.5em; res
   font-family:'EBGaramond',Georgia,serif; font-size:17px; line-height:1.45;
   border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink); padding:10px 12px;}
 textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
+/* THE BIGGER WORDS BOX (2026-08-27, Sophie: "add an expand text box button in
+   the voice studio"). The Playground's `#bigprompt` answer, lifted in SHAPE
+   rather than copied: ONE textarea at two sizes, so there is never a second
+   field to keep in sync with the first. A 26px rounded square inside the box's
+   own bottom corner — the house 6px, never a circle.
+   THE CORNER IS RESERVED with `padding-bottom`, or her last line is typed
+   under the button.
+   AND IT SITS 56px IN FROM THE RIGHT, not in the exact corner: this page is
+   served `{ pill: true }`, so the injected autoscroll pill owns a fixed column
+   at the top-right and the box's own corner can land inside it on a phone,
+   where a tap reaches the pill's ▼ instead. Lifting the button's z-index is
+   NOT the fix — that steals the pill's own tap. Same number as the Playground,
+   for the same reason.
+   THE BIG BOX FITS THE WORDS (2026-08-27, Sophie: "why not expand based on
+   text, not static"). It was a flat 46vh whatever was in it, which is a box
+   with an empty half under two lines and a box that still scrolls under a long
+   dictation — the size said nothing about what was in it. So `.big` is the
+   CAP, never the height: the height is measured off the content on the tap,
+   on every keystroke while it is open, and on a resize. The FLOOR is what
+   keeps the button worth tapping on an empty box — this is a field she WRITES
+   in, so "expand" has to mean room to write before the words exist; that is
+   the difference from the `.moretxt` opener, which only ever reveals text
+   that is already there and so may hide itself.
+   BOTH BOUNDS ARE CSS, NOT JS ARITHMETIC — the browser clamps the inline
+   height between them, so the two numbers live in one place and no `vh` has
+   to be re-derived in script. */
+.promptwrap{position:relative;}
+.promptwrap textarea{padding-bottom:34px;}
+#text.big{min-height:24vh; max-height:46vh;}
+#bigtext{position:absolute; right:56px; bottom:6px; width:26px; height:26px;
+  display:flex; align-items:center; justify-content:center; padding:0; margin:0;
+  border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink2); cursor:pointer;}
+#bigtext svg{width:14px; height:14px;}
 /* stretch, so Render and Clear are the same height by construction — their
    borders differ by half a pixel and padding alone left them one pixel apart. */
 .renderrow{display:flex; align-items:stretch; gap:12px; margin-top:10px;}
@@ -96,7 +150,17 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
 .render .rmeta{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink2); margin:6px 0 8px; display:flex; gap:8px; align-items:center;}
 .render audio{width:100%; display:block;}
 .render.pending .rmeta .spin{color:var(--rose);}
-.render .rerr{font-family:-apple-system,sans-serif; font-size:12px; color:var(--chg);}
+.render .rerr{font-family:-apple-system,sans-serif; font-size:12px; color:var(--chg);
+  display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
+/* A failed take's way back. Same box as .toblocks — house rounded rectangle,
+   hugging its words — so the two buttons on this page read as one family. */
+.render .again{flex:0 0 auto; border:1px solid var(--line); border-radius:6px;
+  background:var(--barbg); color:var(--ink2); cursor:pointer; padding:5px 9px;
+  font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em; text-transform:uppercase;
+  display:flex; align-items:center; gap:6px;}
+.render .again[disabled]{opacity:.45;}
+.render .again svg{width:13px; height:13px; stroke:currentColor; fill:none; stroke-width:1.8;
+  stroke-linecap:round; stroke-linejoin:round;}
 /* → Cutting Blocks. VOICE is one of the two tributaries into BLOCKS on the
    pipeline map, and until this button the connection meant download +
    re-upload by hand. It sits on the meta row of a finished render; tapping
@@ -116,6 +180,12 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
   border-radius:6px; background:var(--barbg); color:var(--ink); font-family:'EBGaramond',Georgia,serif;
   font-size:1em; padding:8px 11px; margin-bottom:6px; cursor:pointer;}
 .bpick .bnote{font-family:-apple-system,sans-serif; font-size:11px; color:var(--ink2);}
+/* NEW STORY — the first row of the picker, and the only one that makes
+   something. The + sits in the row rather than beside it, so the tap target is
+   the whole row exactly like every project under it. */
+.bpick .bp.bnew{display:flex; align-items:center; gap:8px;}
+.bpick .bp.bnew svg{width:14px; height:14px; flex:0 0 auto; stroke:currentColor; fill:none;
+  stroke-width:2; stroke-linecap:round;}
 /* TWO TABS — SPEAK and CHANGE (Aug 2026, Sophie: "a separate hairline tab in
    the voice studio"). The witch-shop / chats `.acctabs` pattern verbatim: no
    boxes, two half-width labels over a hairline, the line sliding under the one
@@ -216,8 +286,44 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
 .render .dl svg{width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:1.8;
   stroke-linecap:round; stroke-linejoin:round; display:block;}
 .render .dl:focus-visible{outline:2px solid var(--rose); outline-offset:1px;}
+/* ♥ / ✕ ON A TAKE, AND THE TWO FILTERS OVER THEM (2026-08-28, Sophie: "add
+   the same playground heart x hide pattern in voice studio"). The Playground's
+   rule, brought over whole rather than reinvented: a mark on each item, tap the
+   lit one to clear it, and one segmented box of two filters above the list —
+   ♥ keeps only what it names, ✕ drops what it names.
+
+   THE TWO FILTERS MUST NOT LOOK ALIKE WHEN LIT. They do opposite things, so
+   the heart takes the rose and the ✕ the quiet grey; two rose buttons side by
+   side read as two of the same thing. Same reasoning as the Playground's own
+   `.xfilt.on`. */
+.render .vote{flex:0 0 auto; border:1px solid var(--line); border-radius:6px;
+  background:var(--barbg); color:var(--ink2); cursor:pointer; padding:5px 7px;
+  display:flex; align-items:center; -webkit-tap-highlight-color:transparent;}
+.render .vote svg{width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:1.8;
+  stroke-linecap:round; stroke-linejoin:round; display:block;}
+.render .vote.on{background:var(--rose); border-color:var(--rose); color:#fff;}
+.render .vote.no.on{background:var(--ink2); border-color:var(--ink2); color:#fff;}
+.render .vote:focus-visible{outline:2px solid var(--rose); outline-offset:1px;}
+/* The list's own header line carries the pair on its right. It reserves the
+   injected pill's fixed corner the same 56px `.acctabs` and the bigger-box
+   button already do on this page — the row scrolls through that band. */
+.secthead{display:flex; align-items:flex-end; gap:10px; padding-right:56px;}
+.secthead .sect{flex:1 1 auto; margin-bottom:.7em;}
+.filttog{flex:0 0 auto; display:flex; border:1px solid var(--line); border-radius:6px;
+  overflow:hidden; background:var(--barbg); margin-bottom:.7em;}
+.filttog button{display:flex; align-items:center; justify-content:center; width:34px; height:30px;
+  border:none; background:none; color:var(--ink2); cursor:pointer; padding:0;
+  -webkit-tap-highlight-color:transparent;}
+.filttog button + button{border-left:1px solid var(--line);}
+.filttog button svg{width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.8;
+  stroke-linecap:round; stroke-linejoin:round; display:block;}
+.filttog button.on{background:var(--rose); color:#fff;}
+.filttog button.xfilt.on{background:var(--ink2); color:#fff;}
+.emptynote{font-style:italic; color:var(--ink2); text-align:center; padding:2.5em 0;}
 </style>
 <div class="wrap">
+  <header class="app-header"><h1>Voice Studio</h1></header>
+
   <div class="acctabs" id="tabs" data-on="0">
     <button class="info" id="info" type="button" aria-label="What a render costs">i</button>
     <button class="acctab on" id="tab-say" type="button">Text</button>
@@ -230,7 +336,7 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
 
   <div id="pane-say">
     <div class="sect">Words</div>
-    <textarea id="text"></textarea>
+    <div class="promptwrap"><textarea id="text"></textarea><button type="button" id="bigtext" aria-label="Bigger box" title="Bigger box"></button></div>
     <div class="renderrow">
       <button class="gobtn" id="go" disabled>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg>
@@ -239,7 +345,11 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
       <button class="clrbtn" id="clr" hidden>Clear</button>
     </div>
 
-    <div class="sect">Renders</div>
+    <div class="secthead"><div class="sect">Renders</div>
+      <div class="filttog" role="group" aria-label="Filters">
+        <button type="button" class="likefilt" data-filt="liked" aria-label="Show only the ones you hearted" title="Hearts only"></button>
+        <button type="button" class="likefilt xfilt" data-filt="hidex" aria-label="Hide the ones you have crossed out" title="Hide the &times;'d"></button>
+      </div></div>
     <div id="renders"><div class="state">Nothing rendered yet.</div></div>
   </div>
 
@@ -262,7 +372,11 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
     </div>
     <div class="bar" id="upbar" hidden><i></i></div>
 
-    <div class="sect">Changed</div>
+    <div class="secthead"><div class="sect">Changed</div>
+      <div class="filttog" role="group" aria-label="Filters">
+        <button type="button" class="likefilt" data-filt="liked" aria-label="Show only the ones you hearted" title="Hearts only"></button>
+        <button type="button" class="likefilt xfilt" data-filt="hidex" aria-label="Hide the ones you have crossed out" title="Hide the &times;'d"></button>
+      </div></div>
     <div id="changes"><div class="state">Nothing changed yet.</div></div>
   </div>
 </div>
@@ -330,6 +444,55 @@ try{ var kept=localStorage.getItem(TKEY); if(kept) ta.value=kept; }catch(e){}
 ta.addEventListener('input', function(){ paintGo(); saveText(); });
 clr.onclick=function(){ ta.value=''; saveText(); paintGo(); ta.focus(); };
 
+// THE BIGGER WORDS BOX (2026-08-27, Sophie: "add an expand text box button in
+// the voice studio"). One textarea, two sizes — the corner button toggles
+// `.big` on #text and swaps its own glyph. Lucide `maximize-2`/`minimize-2`.
+// Deliberately NOT sticky: the compact box is the page's shape, and the big one
+// is a moment of reading or fixing a long dictation. The textarea is
+// `resize:vertical`, so any hand-dragged height is cleared on the toggle —
+// otherwise "back to small" would leave the box exactly where she dragged it.
+//
+// THE BIG BOX FITS THE WORDS (2026-08-27, Sophie: "why not expand based on
+// text, not static"). `fitBig` measures the content and sets the height to it;
+// `.big`'s min/max-height clamp the result, so the two bounds live in the CSS
+// and nothing re-derives a `vh` here. It runs on the tap, on every keystroke
+// while the box is open (so it grows under a dictation as she speaks) and on a
+// resize — a rotation changes what `vh` means.
+//   `height:auto` FIRST is what makes the measurement honest: scrollHeight of
+// a box already sized to its old height reports that height, so measuring
+// without the reset can only ever grow the box, never shrink it back when she
+// deletes a paragraph. The border is added back because the box is
+// `border-box` and scrollHeight excludes borders — without it every fit is two
+// pixels short and the box scrolls its own last line.
+(function(){
+  var MAX='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>';
+  var MIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>';
+  var btn=document.getElementById('bigtext');
+  function fitBig(){
+    if(!ta.classList.contains('big')) return;
+    ta.style.height='auto';
+    ta.style.height=(ta.scrollHeight + (ta.offsetHeight - ta.clientHeight))+'px';
+  }
+  function paint(){
+    var big=ta.classList.contains('big');
+    btn.innerHTML=big?MIN:MAX;
+    btn.setAttribute('aria-label', big?'Back to the small box':'Bigger box');
+    btn.title=big?'Back to the small box':'Bigger box';
+  }
+  btn.addEventListener('click', function(){
+    ta.classList.toggle('big');
+    ta.style.height='';
+    fitBig();
+    paint();
+  });
+  ta.addEventListener('input', fitBig);
+  window.addEventListener('resize', fitBig);
+  // The serif lands after the page does and it moves the wrap, so a box fitted
+  // before it loaded is fitted to the fallback font's line count.
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(fitBig);
+  paint();
+})();
+
 // ── renders: history + live jobs. Pending ids survive leaving the page. ──
 var rbox=document.getElementById('renders'), cbox=document.getElementById('changes');
 // A doc written before the changer shipped has no `kind` — it was a render.
@@ -339,15 +502,61 @@ function setPending(ids){ localStorage.setItem('voicelab.pending', JSON.stringif
 var cards={};
 var rdata={};    // render id -> its latest doc, for the Blocks hand-off
 var sentTo={};   // render id -> the Blocks project title it landed in (this visit)
+// A take she is WAITING on plays itself the moment it lands — she tapped
+// Render and then sat there, so the one thing she wants next is to hear it.
+// `watching` is set by poll(), which only ever runs on a render this page
+// started or resumed, so a history card can never play on its own; `heard`
+// makes it once and only once, so a repaint (the Blocks hand-off repaints the
+// card) never restarts a take she is halfway through.
+var watching={};
+var heard={};
+function playOnce(el, id){
+  if(heard[id]) return;
+  heard[id]=true;
+  var a=el.querySelector('audio'); if(!a) return;
+  // She may have walked off — a take that lands in the background must not
+  // start talking out of her pocket. The card is still there when she returns.
+  if(document.hidden) return;
+  // Two finishing together would talk over each other; the newest one wins.
+  Array.prototype.forEach.call(document.querySelectorAll('audio'), function(o){
+    if(o!==a && !o.paused) o.pause();
+  });
+  // iOS can refuse a play() that is not inside a gesture. Nothing is lost —
+  // the player is right there — so a refusal is silent rather than an error.
+  try{ var p=a.play(); if(p && p.catch) p.catch(function(){}); }catch(_){}
+}
 // Cutting Blocks' tile glyph — SF `rectangle.split.3x1`, hand-inlined.
 var BLOCKS_SVG='<svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="2"/><path d="M9 8v8"/><path d="M15 8v8"/></svg>';
+// the same + Cutting Blocks' own header wears for a new story
+var PLUS_SVG='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
 // Lucide `download`. The link goes to OUR server, not to Storage: a
 // cross-origin href ignores `download` and the phone just plays the file.
 var DL_SVG='<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>';
+// Lucide `rotate-ccw`. A failed take used to be a dead end — her words are
+// right there on the card, but the only way back was retyping them.
+// Lucide `heart` / `x` — the Playground's own two marks, so a ♥ reads the
+// same on both pages.
+var HEART_SVG='<svg viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>';
+var X_SVG='<svg viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+var AGAIN_SVG='<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>';
 function dlLink(id, src){
   return '<a class="dl" href="'+API+'/file/'+encodeURIComponent(id)+(src?'?src=1':'')+'" download'
     +' title="'+(src?'Download what you recorded':'Download this take')+'"'
     +' aria-label="'+(src?'Download what you recorded':'Download this take')+'">'+DL_SVG+'</a>';
+}
+// A bare "rendering…" says nothing, and that is what actually went wrong on
+// 2026-08-27: Sophie's science take really was working — it took 735 seconds,
+// against 75 for the same text re-sent later — but a spinner with no clock on
+// it looks identical to a dead one, so a slow render read as a lost take.
+// The poll repaints this card every 2s, so the count keeps itself current.
+function spinLabel(r){
+  var t=Date.parse(r.createdAt||'');
+  if(!t) return 'rendering…';
+  var m=Math.floor((Date.now()-t)/60000);
+  if(m<1) return 'rendering…';
+  // Past five minutes, say that this is normal rather than leaving her to
+  // guess — a long line can genuinely run past ten.
+  return 'rendering… '+m+'m'+(m>=5?' · long ones can run past 10m':'');
 }
 function card(r){
   var el=cards[r.id];
@@ -366,23 +575,110 @@ function card(r){
   // (Sophie, Aug 2026: "I don't need to know how many characters everything is").
   var body='<div class="rtext">'+esc(r.text)+'</div>'
     +'<div class="rmeta"><span>'+esc(r.voiceName||'')+'</span>'
-    +(r.status==='rendering'?'<span class="spin">rendering…</span>':'')
+    +(r.status==='rendering'?'<span class="spin">'+esc(spinLabel(r))+'</span>':'')
     +(r.status==='done' && r.url
       ? (sentTo[r.id]
         ? '<span class="bsent">in “'+esc(sentTo[r.id])+'”</span>'
         : '<button class="toblocks" data-id="'+esc(r.id)+'" title="Land this line in a Cutting Blocks project">'+BLOCKS_SVG+' Blocks</button>')
       : '')
     +(r.status==='done' && r.url ? dlLink(r.id, false) : '')
+    // The marks come LAST on the row, after the download arrow. A take that is
+    // still rendering or that failed carries none — there is nothing finished
+    // to have an opinion about yet (the Playground's own rule for a failed run).
+    +(r.status==='done' && r.url ? voteBtns(r) : '')
     +'</div>';
   if(r.status==='done' && r.url) body+='<audio controls preload="metadata" src="'+esc(r.url)+'"></audio>';
   if(r.kind==='sts' && r.sourceUrl){
     body+='<div class="rsrc"><span>what went in</span>'+dlLink(r.id, true)+'</div>'
       +'<audio controls preload="none" src="'+esc(r.sourceUrl)+'"></audio>';
   }
-  if(r.status==='failed') body+='<div class="rerr">'+esc(r.error||'render failed')+'</div>';
+  if(r.status==='failed'){
+    body+='<div class="rerr">'+esc(r.error||'render failed')
+      +'<button class="again" data-id="'+esc(r.id)+'" title="Render this again">'+AGAIN_SVG+' Render again</button></div>';
+  }
   el.className='render'+(r.status==='rendering'?' pending':'');
   el.innerHTML=body;
+  if(r.status==='done' && r.url && watching[r.id]) playOnce(el, r.id);
+  // A take arriving (or finishing) has to be judged by the live filter, or a
+  // fresh render appears on a hearts-only list nothing has hearted.
+  if(typeof applyFilt==='function') applyFilt();
 }
+// ── ♥ / ✕ and the two filters (2026-08-28) ──────────────────────────
+// One state for BOTH tabs (her call: hearts-only stays lit when she switches
+// Text ↔ Voice), so the two `.filttog` boxes are two views of one setting —
+// one reader, one writer, and `paintFilt` repaints every copy. A filter lit on
+// the tab she is not looking at is the silent-filter failure this app keeps
+// getting burned by, and one shared state is what makes it impossible.
+function likedOnly(){ try{ return localStorage.getItem('voicelab_liked')==='1'; }catch(e){ return false; } }
+function hideX(){ try{ return localStorage.getItem('voicelab_hidex')==='1'; }catch(e){ return false; } }
+function voteBtns(r){
+  var v=r.vote||'';
+  return '<button type="button" class="vote yes'+(v==='like'?' on':'')+'" data-vote="like" data-id="'+esc(r.id)+'"'
+    +' aria-label="Heart this take" aria-pressed="'+(v==='like')+'" title="Heart this take">'+HEART_SVG+'</button>'
+    +'<button type="button" class="vote no'+(v==='dislike'?' on':'')+'" data-vote="dislike" data-id="'+esc(r.id)+'"'
+    +' aria-label="Cross this take out" aria-pressed="'+(v==='dislike')+'" title="Cross this take out">'+X_SVG+'</button>';
+}
+function paintFilt(){
+  var lk=likedOnly(), hx=hideX();
+  [].forEach.call(document.querySelectorAll('.filttog [data-filt]'), function(b){
+    var on = b.dataset.filt==='liked' ? lk : hx;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+// A card is hidden, never removed — the poll repaints it in place and it comes
+// straight back when she clears the filter.
+function applyFilt(){
+  var lk=likedOnly(), hx=hideX();
+  Object.keys(cards).forEach(function(id){
+    var r=rdata[id]||{}, v=r.vote||'';
+    var done = r.status==='done' && r.url;
+    // Hearts-only drops anything unhearted, an unfinished take included — it
+    // has no take to have hearted yet. Hide-the-✕'d only ever drops a ✕.
+    var out = (lk && v!=='like') || (hx && v==='dislike' && done);
+    cards[id].hidden = !!out;
+  });
+  [document.getElementById('renders'), document.getElementById('changes')].forEach(function(box){
+    if(!box) return;
+    var any=false;
+    [].forEach.call(box.querySelectorAll('.render'), function(el){ if(!el.hidden) any=true; });
+    var has = !!box.querySelector('.render');
+    var note=box.querySelector('.emptynote');
+    if(has && !any){
+      if(!note){ note=document.createElement('div'); note.className='emptynote'; box.appendChild(note); }
+      note.textContent = likedOnly() ? 'Nothing hearted yet' : 'Everything here is crossed out';
+    } else if(note) note.remove();
+  });
+}
+// The glyphs are drawn here rather than sitting in the markup, so the ♥ and ✕
+// on a filter and on a card are provably the same two paths.
+[].forEach.call(document.querySelectorAll('.filttog [data-filt]'), function(b){
+  b.innerHTML = b.dataset.filt==='liked' ? HEART_SVG : X_SVG;
+});
+paintFilt();
+document.addEventListener('click', function(e){
+  var f=e.target.closest && e.target.closest('.filttog [data-filt]');
+  if(f){
+    var key = f.dataset.filt==='liked' ? 'voicelab_liked' : 'voicelab_hidex';
+    var was = f.dataset.filt==='liked' ? likedOnly() : hideX();
+    try{ localStorage.setItem(key, was ? '' : '1'); }catch(err){}
+    paintFilt(); applyFilt();
+    return;
+  }
+  var v=e.target.closest && e.target.closest('.vote');
+  if(!v) return;
+  var id=v.dataset.id, r=rdata[id]; if(!r) return;
+  // Tapping the lit one clears it — the Playground's rule.
+  var next = (r.vote===v.dataset.vote) ? '' : v.dataset.vote;
+  r.vote = next;
+  card(r);          // repaint from the doc we just changed, so nothing drifts
+  applyFilt();
+  fetch(API+'/render/'+encodeURIComponent(id)+'/vote', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ vote: next }),
+  }).catch(function(){});
+});
+
 // ── the Blocks hand-off: pick a project, land the line ──
 // The picker unfolds INSIDE the render's card (no overlay machinery on this
 // page, and the card is the thing being sent). A second tap on the button
@@ -396,17 +692,16 @@ function openBlocksPick(id){
   el.appendChild(box);
   fetch('/api/blocks/').then(function(x){return x.json()}).then(function(d){
     var ps=((d&&d.projects)||[]).filter(function(p){ return p.status==='ready'; }).slice(0,12);
-    if(!ps.length){
-      box.innerHTML='<div class="bnote">No open Blocks projects yet — open a recording in Cutting Blocks first, then send this line again.</div>';
-      return;
-    }
+    // + NEW STORY leads the list and is offered even when there are none: a
+    // blank story is a Cutting Blocks story with no recording behind it, so a
+    // line that belongs to no cut has somewhere to go without a trip to the
+    // other room first. It costs nothing (nothing is transcribed).
     box.innerHTML='<div class="bnote" style="margin-bottom:6px">Land this line in…</div>'
+      +'<button class="bp bnew">'+PLUS_SVG+'New story</button>'
       +ps.map(function(p){ return '<button class="bp" data-p="'+esc(p.id)+'">'+esc(p.title||'untitled')+'</button>'; }).join('');
-    box.onclick=function(ev){
-      var b=ev.target.closest('.bp'); if(!b) return;
-      var pid=b.dataset.p, title=b.textContent;
-      b.disabled=true;
-      fetch('/api/blocks/'+pid+'/line',{method:'POST',headers:{'content-type':'application/json'},
+    // the LINE is the only deliverable, so both roads end in the same POST
+    function land(pid, title, b){
+      return fetch('/api/blocks/'+pid+'/line',{method:'POST',headers:{'content-type':'application/json'},
         body:JSON.stringify({url:r.url, text:r.text||('a line in '+(r.voiceName||'a voice'))})})
         .then(function(x){return x.json()})
         .then(function(res){
@@ -415,15 +710,55 @@ function openBlocksPick(id){
           card(r);   // repaint — the card now says where the line went
         })
         .catch(function(err){ alert(err.message||'Couldn’t send it to Blocks'); b.disabled=false; });
+    }
+    box.onclick=function(ev){
+      var b=ev.target.closest('.bp'); if(!b) return;
+      b.disabled=true;
+      if(b.classList.contains('bnew')){
+        // the story is named after the line it is being made for — a shelf of
+        // stories all called "New story" is the thing that made her uploads
+        // disappear into the wrong project once already
+        fetch('/api/blocks/blank',{method:'POST',headers:{'content-type':'application/json'},
+          body:JSON.stringify({ title:(r.text||'').slice(0,60).trim() || 'New story' })})
+          .then(function(x){return x.json()})
+          .then(function(made){
+            if(!made || !made.id) throw new Error(made && made.error || 'couldn’t make the story');
+            return land(made.id, (r.text||'').slice(0,60).trim() || 'New story', b);
+          })
+          .catch(function(err){ alert(err.message||'Couldn’t make a new story'); b.disabled=false; });
+        return;
+      }
+      land(b.dataset.p, b.textContent, b);
     };
   }).catch(function(){ box.innerHTML='<div class="bnote">Couldn’t reach Cutting Blocks.</div>'; });
 }
 document.addEventListener('click', function(e){
   var tb=e.target.closest('.toblocks');
   if(tb) openBlocksPick(tb.dataset.id);
+  var ag=e.target.closest('.again');
+  if(ag) renderAgain(ag);
 });
 
+// The retry lands as its OWN card — a re-render is a fresh take, and the failed
+// one stays on the page saying what happened. The card is drawn from the old
+// take's own words, so it reads right before the server has answered anything.
+function renderAgain(btn){
+  var old=btn.dataset.id, was=rdata[old]||{};
+  btn.disabled=true;
+  fetch(API+'/render/'+encodeURIComponent(old)+'/again',{method:'POST'})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(!d.id) throw new Error(d.error||'couldn’t start it again');
+      setPending(pendingIds().concat([d.id]));
+      card({id:d.id, kind:was.kind, voiceName:was.voiceName, text:was.text,
+            sourceUrl:was.sourceUrl, status:'rendering', createdAt:new Date().toISOString()});
+      poll(d.id);
+    })
+    .catch(function(e){ btn.disabled=false; alert(e.message||'Couldn’t start it again'); });
+}
+
 function poll(id){
+  watching[id]=true;   // she is waiting on this one — it plays itself when it lands
   fetch(API+'/render/'+id).then(function(r){return r.json()}).then(function(d){
     if(d && d.id) card(d);
     if(d && d.status==='rendering'){ setTimeout(function(){ poll(id); }, 2000); }
@@ -448,7 +783,7 @@ go.onclick=function(){
       if(!d.id) throw new Error(d.error||'failed');
       paintGo();   // the box KEEPS her words — she renders the same line voice after voice
       setPending(pendingIds().concat([d.id]));
-      card({id:d.id, voiceName:picked.name, chars:text.length, text:text, status:'rendering'});
+      card({id:d.id, voiceName:picked.name, chars:text.length, text:text, status:'rendering', createdAt:new Date().toISOString()});
       poll(d.id);
     })
     .catch(function(e){ alert(e.message||'Couldn’t start the render'); paintGo(); });
@@ -621,7 +956,7 @@ chgo.onclick=function(){
     if(!d.id){ alert(d.error||'Couldn’t start the change'); paintCh(); return; }
     setPending(pendingIds().concat([d.id]));
     card({id:d.id, kind:'sts', voiceName:picked.name, text:take.name,
-          chars:0, status:'rendering'});
+          chars:0, status:'rendering', createdAt:new Date().toISOString()});
     poll(d.id);
     paintCh();   // the take STAYS — she runs the same recording through voice after voice
   };

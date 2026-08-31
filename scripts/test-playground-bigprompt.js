@@ -3,16 +3,27 @@
 // see the prompt in a bigger box as an option").
 //
 // Drives the REAL public/promptlab.html in headless Chromium and asserts:
-//   1. the button sits INSIDE the prompt box's bottom-RIGHT corner — HER CALL
-//      (2026-08-26, "put it back exactly where it was"), reversing the one-day
-//      move to bottom-left that dodged the autoscroll pill's column; the
-//      overlap with the pill at the top of an unscrolled page under a real
-//      safe-area inset is a cost she accepted, so do NOT re-add a clearance
-//      assertion or move the button without her — a rounded square at the
-//      house 6px, and a tap at its own centre reaches it (`elementFromPoint`
-//      — the only honest way to ask),
-//   2. one tap makes the SAME textarea big — over a third of the screen —
-//      with her words still in it (never a second field to sync),
+//   1. the button sits INSIDE the prompt box's bottom edge, on the RIGHT
+//      side — her call (2026-08-26, two rounds: "put it back exactly where it
+//      was", then "i was able to click it before … now i cant") — slid 56px
+//      in from the corner so it clears the injected autoscroll pill's column,
+//      because the exact corner sits under the pill's ▼ on her phone and a
+//      z-lift just kills the ▼ instead; a rounded square at the house 6px,
+//      and a tap at its own centre reaches it (`elementFromPoint` — the only
+//      honest way to ask),
+//   1b. it stays CLEAR of the pill's column with the iPhone 13's real 47px
+//      safe-area inset applied — the pill sits 33px higher without one, so a
+//      plain headless check misses the collision — and the pill's ▼ still
+//      takes its own tap,
+//   2. one tap makes the SAME textarea big, with her words still in it (never
+//      a second field to sync),
+//   2b. the big box FITS THE WORDS rather than being a flat height (2026-08-27,
+//      Sophie: "why not expand based on text, not static") — a short prompt
+//      and a long one open at DIFFERENT heights, which is the assertion a
+//      static box could never pass; it stops at the cap, shrinks back when she
+//      deletes a paragraph (the `height:auto` reset), refits when a prompt is
+//      copied BACK into the box (which fires no `input` event), and an EMPTY
+//      box still opens to the floor, because this is a field she writes IN,
 //   3. the glyph and label swap to "back to small",
 //   4. the next tap shrinks it back, even after a hand-dragged resize left an
 //      inline height behind,
@@ -77,7 +88,7 @@ const ok = (c, m) => { if (c) console.log('  ok  ' + m); else fail(m); };
     const cs = getComputedStyle(t);
     return {
       inside: bb.right <= tb.right && bb.bottom <= tb.bottom && bb.top >= tb.top,
-      nearCorner: (tb.right - bb.right) <= 12 && (tb.bottom - bb.bottom) <= 12,
+      nearCorner: bb.left > (tb.left + tb.width / 2) && (tb.bottom - bb.bottom) <= 12,
       radius: getComputedStyle(b).borderRadius,
       square: Math.round(bb.width) === Math.round(bb.height),
       reachable: !!(hit && hit.closest('#bigprompt')),
@@ -85,17 +96,53 @@ const ok = (c, m) => { if (c) console.log('  ok  ' + m); else fail(m); };
       btnH: bb.height,
     };
   });
-  ok(corner.inside && corner.nearCorner, 'it sits inside the box\'s bottom-right corner (her 2026-08-26 call)');
+  ok(corner.inside && corner.nearCorner, 'it sits inside the box\'s bottom edge, on the right side (her 2026-08-26 call)');
   ok(corner.square && corner.radius === '6px', `a rounded square at the house 6px (${corner.radius})`);
   ok(corner.reachable, 'a tap at its own centre reaches it');
   ok(corner.padBottom >= corner.btnH + 6,
     `the box reserves the button's corner with padding (${corner.padBottom}px for a ${corner.btnH}px button)`);
 
-  // There is deliberately NO pill-clearance assertion here. Bottom-right can
-  // sit under the injected autoscroll pill's fixed column on an unscrolled
-  // page with a real safe-area inset (measured 2026-08-26) — that is a cost
-  // Sophie accepted when she asked for the right corner back the same day.
-  // Re-adding the clearance check is how the button gets "fixed" left again.
+  // THE PILL OWNS THE EXACT CORNER (2026-08-26, Sophie: "i was able to click
+  // it before … now i cant"). The corner spot sits under the pill's ▼ on her
+  // phone, and a z-lift measured the other way round — the ▼'s own centre
+  // lands on this button. The inset is what makes it collide —
+  // `top: max(14px, env(safe-area-inset-top))` puts the pill at 14 in headless
+  // and at 47 on an iPhone 13 — so simulate it, and make the page scroll,
+  // since the pill is conditional and never renders on a page that doesn't.
+  console.log('CLEAR OF THE AUTOSCROLL PILL (iPhone 13 safe-area inset)');
+  await page.addStyleTag({ content: '.float{top:47px !important}' });
+  await page.evaluate(() => {
+    const tall = document.createElement('div');
+    tall.style.height = '2000px';
+    document.body.appendChild(tall);
+    if (window.__pillSync) window.__pillSync();
+  });
+  await page.waitForTimeout(300);
+  const rail = await page.evaluate(() => {
+    const f = document.querySelector('.float');
+    if (!f) return { nopill: true };
+    const b = document.getElementById('bigprompt');
+    const fb = f.getBoundingClientRect(), bb = b.getBoundingClientRect();
+    const hit = document.elementFromPoint(bb.x + bb.width / 2, bb.y + bb.height / 2);
+    const vb = document.getElementById('vbot');
+    const vbb = vb && vb.getBoundingClientRect();
+    const vhit = vbb && document.elementFromPoint(vbb.x + vbb.width / 2, vbb.y + vbb.height / 2);
+    return {
+      overlaps: !(bb.right <= fb.left || bb.left >= fb.right
+        || bb.bottom <= fb.top || bb.top >= fb.bottom),
+      reachable: !!(hit && hit.closest('#bigprompt')),
+      hit: hit ? (hit.closest('.float') ? 'the pill' : (hit.id || hit.tagName)) : 'nothing',
+      vbotOk: !!(vhit && vhit.closest('#vbot')),
+      btn: [Math.round(bb.left), Math.round(bb.top), Math.round(bb.right), Math.round(bb.bottom)],
+      pill: [Math.round(fb.left), Math.round(fb.top), Math.round(fb.right), Math.round(fb.bottom)],
+    };
+  });
+  ok(!rail.nopill, 'the pill renders once there is something to scroll');
+  ok(rail.nopill || !rail.overlaps,
+    `the button clears the pill's column (button ${rail.btn}, pill ${rail.pill})`);
+  ok(rail.nopill || rail.reachable, `a tap still reaches it, not the pill (hit: ${rail.hit})`);
+  ok(rail.nopill || rail.vbotOk, 'and the pill\'s ▼ still takes its own tap');
+  await page.evaluate(() => { window.scrollTo(0, 0); });
 
   console.log('BIG, WITH HER WORDS STILL IN IT');
   await page.fill('#prompt', 'a fox asleep on a radiator, and the whole apartment holding its breath');
@@ -106,9 +153,62 @@ const ok = (c, m) => { if (c) console.log('  ok  ' + m); else fail(m); };
     words: document.getElementById('prompt').value,
     label: document.getElementById('bigprompt').getAttribute('aria-label'),
   }));
-  ok(big.h >= 844 * 0.35, `one tap: the box is big (${Math.round(small)} → ${Math.round(big.h)}px)`);
+  ok(big.h > small, `one tap: the box is bigger (${Math.round(small)} → ${Math.round(big.h)}px)`);
   ok(/fox asleep/.test(big.words), 'the same textarea — her words are still in it');
   ok(/small/i.test(big.label), `the label now offers the way back (${big.label})`);
+
+  // THE SIZE FOLLOWS THE WORDS (2026-08-27, Sophie: "why not expand based on
+  // text, not static"). A flat height is what this replaces, so the assertion
+  // that matters is that TWO different prompts open at TWO different heights —
+  // a check against one number would pass against the old static box.
+  console.log('IT FITS THE WORDS, IT IS NOT A FIXED SIZE');
+  const CAP = Math.round(844 * 0.52), FLOOR = Math.round(844 * 0.24);
+  ok(big.h < CAP - 8, `a one-line prompt does not open at the cap (${Math.round(big.h)}px, cap ${CAP})`);
+  ok(big.h >= FLOOR - 2,
+    `and never below the floor, so the button is worth tapping on a short one (floor ${FLOOR})`);
+
+  const grown = await page.evaluate(() => {
+    const t = document.getElementById('prompt');
+    t.value = new Array(40).join('a fox asleep on a radiator, and the apartment holding its breath. ');
+    t.dispatchEvent(new Event('input'));
+    return t.getBoundingClientRect().height;
+  });
+  ok(grown > big.h, `a long dictation opens taller than a short one (${Math.round(big.h)} → ${Math.round(grown)}px)`);
+  ok(Math.abs(grown - CAP) <= 2, `and stops at the cap rather than running off the screen (${Math.round(grown)}px)`);
+
+  // The `height:auto` reset is the whole of this one: scrollHeight on a box
+  // already sized to its old height reports that height, so without the reset
+  // the box can only ever grow.
+  const shrunk = await page.evaluate(() => {
+    const t = document.getElementById('prompt');
+    t.value = 'a fox asleep on a radiator.';
+    t.dispatchEvent(new Event('input'));
+    return t.getBoundingClientRect().height;
+  });
+  ok(shrunk < grown - 20, `and it shrinks back when she deletes a paragraph (${Math.round(grown)} → ${Math.round(shrunk)}px)`);
+
+  // PUTTING A PROMPT BACK REFITS THE BOX. `copyPromptIn` sets `.value`
+  // directly, which fires no `input` event — without the explicit call the run
+  // she just copied would sit in a box fitted to whatever was there before.
+  const copied = await page.evaluate(() => {
+    const t = document.getElementById('prompt');
+    t.value = new Array(40).join('a fox asleep on a radiator, and the apartment holding its breath. ');
+    if (window.__fitBigPrompt) window.__fitBigPrompt();
+    return { h: t.getBoundingClientRect().height, hook: !!window.__fitBigPrompt };
+  });
+  ok(copied.hook, 'the fitter is exposed for copy-back (window.__fitBigPrompt)');
+  ok(Math.abs(copied.h - CAP) <= 2,
+    `a copied-back prompt refits the box, though it fires no input event (${Math.round(copied.h)}px)`);
+
+  const empty = await page.evaluate(() => {
+    const t = document.getElementById('prompt');
+    t.value = '';
+    t.dispatchEvent(new Event('input'));
+    return t.getBoundingClientRect().height;
+  });
+  ok(empty >= FLOOR - 2 && empty <= FLOOR + 2,
+    `an EMPTY box still opens to the floor — this is a field she writes in (${Math.round(empty)}px)`);
+  await page.fill('#prompt', 'a fox asleep on a radiator, and the whole apartment holding its breath');
 
   console.log('AND BACK');
   // A hand-dragged resize (desktop) leaves an inline height behind — the
