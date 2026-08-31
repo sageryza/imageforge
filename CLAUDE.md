@@ -3642,6 +3642,45 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     compare.js's own `.cmp-lb` zoom (hand-built Compare pages are FROZEN when
     posted, so changing their host risks every page already filed) and the
     public apps with their own identity (dream feed, witch).
+  - **AND THE DOORS UNDER THE PICTURE ARE SHARED TOO — `/asset-actions.js`
+    (2026-08-31, Sophie: "why the fuck different buttons in assets ex no
+    playground button").** One shared lightbox is not one view while every
+    caller types out its own `actions`. Measured that day: Meta Assets drew
+    four doors (open the chat · Playground · Shoebox · Save), the Playground
+    drew its own four, and the chat's own **Assets tab drew NONE** — so the
+    surface she reviews every picture in was the one where a picture could not
+    be sent anywhere, and getting one into the Playground meant finding it a
+    second time in Meta Assets first.
+    - **THE STANDARD SET FOR A FILED PICTURE IS `build(url, asset, opts)`** —
+      Playground · Shoebox · Save to Photos, plus **Open the chat** behind
+      `chatDoor`, which is TRUE only on a surface that mixes chats (Meta
+      Assets, the Delivered strip) and false inside a chat's own tab, where it
+      is a button back to the screen she is standing on. The icons, the
+      three-path saver and the port query moved into that file VERBATIM out of
+      assets.html, so nothing about Meta Assets' behaviour moved.
+    - **A SURFACE WITH A DOOR OF ITS OWN STILL PASSES ITS OWN ARRAY** — the
+      Playground puts the prompt back in its own box and walks to the Story
+      Room carrying a RUN id, and neither means anything on a filed record,
+      which knows no run. What it must not do is re-type these four.
+    - **The page hands in `api` and `toast`** (`init`), because assets.html
+      declares them as globals and chats.html wraps its script in an IIFE;
+      `window.*` stays the fallback so assets.html did not move.
+    - **THE ROW IS MEASURED, NOT COUNTED** — six 46px buttons with 22px gaps
+      is **386px of a 390pt phone**, and `.lbacts` does not wrap. Meta Assets
+      is at that edge now, so a SEVENTH door needs a layout answer first, not
+      another push.
+    - **The 70 `test-chats-*` harnesses hand-serve their shared files**, so a
+      new `<script src>` on chats.html 404s in every one of them — which is
+      why the call is guarded there like `/tritoggle.js` and `/filmnote.js`
+      already are. The guard is only safe because the doors are MEASURED on
+      the real page by `node scripts/test-asset-doors.js`; without that, "no
+      doors" would be the thing every harness silently passed.
+    - Test: `node scripts/test-asset-doors.js` (both real pages headless —
+      the set, the row measured, the Playground door's real url read off the
+      browser AFTER it navigates, the no-prompt picture riding as a photo
+      reference with nothing invented, the Shoebox POST the server really
+      saw, and the source pin that neither page may hand-type a door again).
+
   - **TAP TO NEXT ON THE ASSETS TAB AND ON META ASSETS (2026-08-31, Sophie:
     "add tap to next on assets like playground").** The two surfaces she
     reviews EVERY picture in were the last feeds where seeing the next one

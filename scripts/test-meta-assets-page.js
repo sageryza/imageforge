@@ -66,6 +66,7 @@ const DEEP = { chat: 'knitting', name: 'Knitting', url: 'http://127.0.0.1:PORT/i
 const votes = [];   // every vote POST the page sends, captured
 const searches = [];  // every q= the page asked the server
 const shoeboxed = [];  // every Add-to-Shoebox POST
+const servePublic = require('./lib/public-asset');
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
   if (url.pathname === '/api/gallery/assets/all') {
@@ -103,18 +104,13 @@ const server = http.createServer((req, res) => {
     });
     return;
   }
-  if (url.pathname === '/asset-lightbox.js') {
-    // THE lightbox, shared — the page has no copy of its own any more, so
-    // without this every lightbox assertion below times out on an empty overlay
-    res.writeHead(200, { 'Content-Type': 'text/javascript' });
-    return res.end(fs.readFileSync(path.join(PUB, 'asset-lightbox.js'), 'utf8'));
-  }
-  if (url.pathname === '/playground-port.js') {
-    // the real routing script — its ForgePlaygroundPort is what builds the
-    // lightbox's Playground button; without it the icon silently vanishes
-    res.writeHead(200, { 'Content-Type': 'text/javascript' });
-    return res.end(fs.readFileSync(path.join(PUB, 'playground-port.js'), 'utf8'));
-  }
+  // EVERY shared file this page links — the lightbox, the port script, the
+  // doors under the picture, the grid — served the way express.static serves
+  // them. This block used to name each one BY HAND, and the failure that
+  // brings is the quiet one public-asset.js exists to end: a file it forgot
+  // 404s, the page guards the global it could not load, and the harness
+  // renders a page missing that behaviour and passes.
+  if (servePublic(req, res)) return;
   if (url.pathname.startsWith('/i/') || url.pathname.startsWith('/api/story/thumb')) {
     res.writeHead(200, { 'Content-Type': 'image/png' });
     return res.end(PNG);
