@@ -5818,6 +5818,22 @@ const PL_GPT_STYLES = {
     noCharacter: true,
   },
 };
+// "Triangle" (2026-08-31, Sophie: "add triangle as a new playground style ·
+// w image and prompt w new equilateral") — the triangular picture cards the
+// Triset game is made of, offered as a Playground tile so she can draw one of
+// anything instead of only getting them out of a found set.
+// DERIVED FROM `dreamy`, NEVER TRANSCRIBED BESIDE IT: it is the same reference
+// image (refs/dream-mystery.jpg — "w image"), the same anti-content prefix and
+// the same tail, with dreamy's rectangular BORDER clause swapped for the
+// equilateral triangle-card one. So a reword of hers reaches this tile the day
+// she makes it, and the game and the tile can never disagree about what a card
+// is. The wording and the swap live in triangle-clause.js, the one copy shared
+// with triset.js — the "new equilateral" half of her ask is that clause,
+// including the 2026-08-31 "USE THE TRIANGLE" composition line she called
+// perfect. Her no-text toggle rides along untouched (that clause sits after
+// the border one), and the tile carries its own panels swap, because dreamy's
+// anchor is the clause this just consumed.
+PL_GPT_STYLES.triangle = require('./triangle-clause').triangleStyle(PL_GPT_STYLES.dreamy);
 // FREEFORM'S BOILERPLATE TOGGLE SENDS THIS TABLE'S OWN WORDING (2026-08-28,
 // Sophie: "the text we use for dreamy or watercolor"). Handed in rather than
 // required, because freeform.js is mounted hundreds of lines above this const
