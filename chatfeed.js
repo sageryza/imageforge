@@ -2195,6 +2195,45 @@ router.post('/pin-top', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// ── ON MY TRAY — the handful she is working on RIGHT NOW ────────────────────
+// (2026-08-31, Sophie: "add a tab in chats called 'on my tray' where i can pin
+// chats by their icons for what im working on rn — ex xi to do · review cards
+// illustrations ideas · triset · review cards".)
+//
+// The FIFTH per-chat mark, and the one that answers a question none of the
+// other four do. `starred` is close and is not it: a star lifts a chat inside
+// whatever list she is already looking at, so a starred chat still sits among
+// two hundred others. The tray is a SCREEN of its own holding three or four
+// chats and nothing else — she asked for it by their ICONS, so the tray is a
+// grid of the little drawings and the answer to "what am I on" is one look.
+//
+// `trayAt` IS THE POINT AND IS NOT DECORATION: the tray is ordered by when she
+// PUT each chat on it, oldest first, so the icons never move. Every other pile
+// in this app is sorted by newest message, which is right for an inbox and
+// exactly wrong for a dock — a tray that reshuffles whenever a chat replies is
+// one she can never build muscle memory on. The stamp is written here because
+// only the write knows the moment; deriving it later is impossible.
+//
+// Same phantom-row guard as /pin-top, /chat-bookmark and /notify: a merge-set
+// on a missing doc CREATES it, and every pile derives from the registry keys.
+router.post('/tray', async (req, res) => {
+  try {
+    const { chat, tray } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const on = tray !== false;
+    const slug = await followMoves(String(chat).slice(0, 60));
+    const snap = await db().collection(REG).doc(slug).get();
+    if (!snap.exists) return res.status(404).json({ error: 'no such chat' });
+    const del = admin.firestore.FieldValue.delete();
+    // Re-adding a chat that is ALREADY on the tray keeps its original stamp,
+    // so a stray double tap cannot send its icon to the end of the row.
+    const at = snap.get('trayAt') || new Date().toISOString();
+    await regRef(slug).set(
+      on ? { tray: true, trayAt: at } : { tray: del, trayAt: del }, { merge: true });
+    res.json({ ok: true, chat: slug, tray: on, trayAt: on ? at : null });
+  } catch (err) { fail(res, err); }
+});
+
 // SPLIT THE ARCHIVE IN TWO (Aug 2026, Sophie: "right now the archive is a
 // single list — I want to split it using the hairline pattern into two piles,
 // one of things where we built something and something was accomplished and
