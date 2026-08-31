@@ -1018,6 +1018,23 @@ router.post('/', async (req, res) => {
       reg.workingAt = admin.firestore.FieldValue.delete();
       const bumped = pinBump(mine.pinned);
       if (bumped) reg.pinned = bumped;
+      // …AND IT IS THE PROOF THAT UNPARKS THE CHAT AFTER ITS MESSAGE AGES OUT
+      // (2026-08-31, Sophie: "things get hidden in chats in multiple ways").
+      // `chatHidden` asks "did this chat write anything after I parked it?" and
+      // could only ever answer it from the LOADED feed — which carries ~260
+      // messages for ~770 chats. So a chat parked at turn start, that replied a
+      // minute later, went back into the hidden pile for good the day its reply
+      // scrolled out of that window: measured live that morning, 122 of the 125
+      // chats sitting in her hidden pile had no loaded message at all, and
+      // `come back to` showed ONE row of the 34 chats carrying the word.
+      //
+      // The registry is the only thing that survives the window, and this is
+      // the one write that knows a turn FINISHED. It must be `postedAt`, never
+      // `created`: a turn's message doc is created by its first live draft, so
+      // `created` predates the park that buried it — the exact bug the note on
+      // `unparked` in chats.html was written about. `lastSeen` beside it is
+      // `created` and is NOT a substitute for this field.
+      reg.repliedAt = doc.postedAt;
     }
     // …and it MIGHT be the moment worth a buzz: a FINISHED reply that is
     // actually ANSWERING HER (Aug 2026 — see push-gate.js for the three shapes
@@ -1679,6 +1696,65 @@ router.post('/wrapup/trim', async (req, res) => {
 //   3. A chat she never posted into is LEFT ALONE. There is nothing of hers to
 //      lift, and the chat's `asked` is the honest fallback exactly as it is on
 //      the live paths.
+// ---- STAMPING `repliedAt` ON THE CHATS THAT ARE ALREADY STUCK --------------
+// The write above only reaches a chat's NEXT finished reply, and the chats this
+// was built for are exactly the ones that have not replied in weeks — a shipped
+// fix to a write path leaves the existing records wrong (the `/wrapup/rehers`
+// lesson, re-learned rather than re-lived). Measured 2026-08-31: 125 of her 294
+// live chats sat in the hidden pile and 122 of them had no loaded message, so
+// without this pass they stay buried exactly as before.
+//
+// FREE — no model call, one collection read per chat, and dry by default like
+// every other pass in this file.
+//
+// It writes `repliedAt` and NOTHING else, from the newest FINISHED message the
+// chat itself posted (`from !== 'sophie'`, not `working`), carrying that
+// message's `postedAt`. Three refusals, each about not overreaching:
+//   • a chat with no finished reply of its own is left alone rather than
+//     stamped from her message — `repliedAt` means "the chat wrote back";
+//   • a record already carrying a NEWER `repliedAt` is left alone, so the pass
+//     can never walk a live stamp backwards;
+//   • `hiddenAt` is never touched. This pass supplies the missing EVIDENCE; it
+//     does not decide anything. A chat she parked by hand and that has said
+//     nothing since stays parked, which is what a park is for.
+router.post('/repliedat-backfill', async (req, res) => {
+  try {
+    const dry = !(req.body && req.body.dry === false);
+    const only = String((req.body || {}).chat || '').trim();
+    const snap = await db().collection(REG).get();
+    const todo = [];
+    snap.docs.forEach((d) => {
+      if (d.id === SETTINGS_DOC) return;
+      if (only && d.id !== only) return;
+      const r = d.data() || {};
+      if (r.movedTo) return;                      // a tombstone is not a chat
+      todo.push({ chat: d.id, had: r.repliedAt || '' });
+    });
+    const changed = [];
+    const noReply = [];
+    for (const t of todo) {
+      let newest = '';
+      try {
+        // One equality filter, sorted in memory — the house rule in this file.
+        const ms = await db().collection(MSGS).where('chat', '==', t.chat).get();
+        ms.docs.forEach((m) => {
+          const v = m.data() || {};
+          if (v.working) return;                  // still writing — not done yet
+          if (v.from === 'sophie') return;        // her message never unparks a chat
+          const at = v.postedAt || '';            // postedAt ONLY — see the note above
+          if (at > newest) newest = at;
+        });
+      } catch (e) { /* a chat we cannot read is a chat we leave alone */ }
+      if (!newest) { noReply.push(t.chat); continue; }
+      if (t.had && t.had >= newest) continue;     // never walk a live stamp backwards
+      changed.push({ chat: t.chat, was: t.had || null, now: newest });
+      if (!dry) await regRef(t.chat).set({ repliedAt: newest }, { merge: true });
+    }
+    res.json({ ok: true, dry, chats: todo.length, changed: changed.length,
+      noReply: noReply.length, sample: changed.slice(0, 20) });
+  } catch (err) { fail(res, err); }
+});
+
 router.post('/wrapup/rehers', async (req, res) => {
   try {
     const dry = !(req.body && req.body.dry === false);
