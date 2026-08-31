@@ -136,14 +136,15 @@ h1.tool-eyebrow{
 /* ── the kind of set: two hairline tabs ───────────────────────────────── */
 /* no pill on this page, so the row keeps no corner reserve — three tabs
    must fit a 390pt phone */
-#kinds{display:flex;margin:16px 18px 0;border-bottom:1px solid var(--line)}
-#kinds button{
+#kinds,#eds{display:flex;margin:16px 18px 0;border-bottom:1px solid var(--line)}
+#eds{margin-top:12px}
+#kinds button,#eds button{
   flex:0 0 auto;background:none;border:none;cursor:pointer;padding:8px 0 9px;
   margin-right:16px;font-family:-apple-system,system-ui,sans-serif;font-size:11px;
   letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);position:relative;
 }
-#kinds button.on{color:var(--ink)}
-#kinds button.on::after{
+#kinds button.on,#eds button.on{color:var(--ink)}
+#kinds button.on::after,#eds button.on::after{
   content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--ink);
 }
 
@@ -186,6 +187,12 @@ button.btn{
     <div id="midcut" hidden><img id="midimg" alt=""></div>
   </div>
 </div>
+
+<!-- EDITIONS — a deck within the pool (2026-08-31, "triset color edition").
+     Derived from the cards themselves: the row only exists while the pool
+     holds a card carrying `edition`, so the day before the color cards it
+     was not on screen and a pool without editions never grows a dead row. -->
+<div id="eds" hidden></div>
 
 <div id="kinds">
   <button id="k-same" class="on">All the same</button>
@@ -233,20 +240,82 @@ function hdrs(json){
 }
 function thumb(u){ return '/api/story/thumb?w=800&url=' + encodeURIComponent(u); }
 
+// A HEX CARD is a flat color, no picture — the color edition's digital form
+// ("for now the digital version just hex colors"). Drawn as an inline SVG
+// triangle: the slot's clip does the shape anyway, but the polygon carries a
+// faint ink line so a pale pastel still reads against the paper.
+function hexSrc(hex, down){
+  var pts = down ? '1,1 99,1 50,99' : '50,1 99,99 1,99';
+  var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none">'
+    + '<polygon points="' + pts + '" fill="' + hex + '" stroke="rgba(43,38,34,.22)" stroke-width="1.2"/></svg>';
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+function cardSrc(card, down){
+  if (card.hex) return hexSrc(card.hex, down != null ? down : !!card.flip);
+  return thumb(card.cut || card.url);
+}
+
 var pool = [];                 // ready cards
 var hand = { top:null, left:null, right:null };
 var kind = 'same';
 var pending = null;            // card id being drawn
 var PKEY = 'triset.pending';
 
-function poolLine(){ $('#pool').textContent = pool.length ? pool.length + ' cards' : ''; }
+// The EDITION — a deck within the pool ("triset color edition", 2026-08-31):
+// 12 color-wheel cards would never land together dealt out of 500+, so a lit
+// edition narrows the deal to its own cards. Sticky, and the lit chip is on
+// screen the whole time (never a silent filter). '' = the whole pool.
+var EKEY = 'triset.edition';
+var edition = '';
+try { edition = localStorage.getItem(EKEY) || ''; } catch(e){}
+var ED_WORDS = { color: 'Colors' };
+function edLabel(e){ return ED_WORDS[e] || (e.charAt(0).toUpperCase() + e.slice(1)); }
+function editions(){
+  var seen = [];
+  pool.forEach(function(c){ if (c.edition && seen.indexOf(c.edition) < 0) seen.push(c.edition); });
+  return seen;
+}
+function paintEds(){
+  var row = $('#eds');
+  var eds = editions();
+  if (!eds.length) { row.hidden = true; edition = ''; return; }
+  // a stored edition whose cards are gone widens rather than emptying the deal
+  if (edition && eds.indexOf(edition) < 0) edition = '';
+  row.hidden = false;
+  row.innerHTML = '';
+  var all = document.createElement('button');
+  all.textContent = 'All cards';
+  all.className = edition ? '' : 'on';
+  all.onclick = function(){ setEdition(''); };
+  row.appendChild(all);
+  eds.forEach(function(e){
+    var b = document.createElement('button');
+    b.textContent = edLabel(e);
+    b.className = edition === e ? 'on' : '';
+    b.onclick = function(){ setEdition(e); };
+    row.appendChild(b);
+  });
+}
+function setEdition(e){
+  edition = e;
+  try { if (e) localStorage.setItem(EKEY, e); else localStorage.removeItem(EKEY); } catch(err){}
+  paintEds(); poolLine(); deal();
+}
+
+function poolLine(){
+  if (edition) {
+    var n = pool.filter(function(c){ return c.edition === edition; }).length;
+    $('#pool').textContent = n + ' ' + edLabel(edition).toLowerCase();
+  }
+  else $('#pool').textContent = pool.length ? pool.length + ' cards' : '';
+}
 
 function setImg(slot, card){
   var el = $('#s-' + slot);
   var img = el.querySelector('img');
   if (card) {
-    img.src = thumb(card.cut || card.url); img.hidden = false;
-    img.classList.toggle('whole', !!card.cut);
+    img.src = cardSrc(card); img.hidden = false;
+    img.classList.toggle('whole', !!card.cut || !!card.hex);
     el.classList.toggle('down', !!card.flip);
     el.classList.toggle('up', !card.flip);
   }
@@ -258,7 +327,7 @@ function setImg(slot, card){
 // Sophie: "the upside down cards are being dealt in the wrong spot"). Where
 // they SHOULD live is her open call; until then they stay in the pool,
 // undealt.
-function dealable(){ return pool.filter(function(c){ return !c.flip; }); }
+function dealable(){ return pool.filter(function(c){ return !c.flip && (!edition || c.edition === edition); }); }
 function others(){
   var used = [hand.top, hand.left, hand.right].filter(Boolean).map(function(c){ return c.id; });
   return dealable().filter(function(c){ return used.indexOf(c.id) < 0; });
@@ -266,19 +335,24 @@ function others(){
 function randOf(list){ return list[Math.floor(Math.random() * list.length)]; }
 
 function deal(){
-  if (dealable().length < 3) { say('not enough cards in the pool yet', true); return; }
+  if (dealable().length < 3) {
+    say(edition ? ('not enough ' + edLabel(edition).toLowerCase() + ' to deal yet') : 'not enough cards in the pool yet', true);
+    return;
+  }
   var rest = dealable();
   ['top','left','right'].forEach(function(s){
     var c = randOf(rest);
     rest.splice(rest.indexOf(c), 1);
     hand[s] = c; setImg(s, c);
   });
+  costLine();
 }
 function swap(slot){
   var rest = others();
   if (!rest.length) { say('no other cards to swap in', true); return; }
   var c = randOf(rest);
   hand[slot] = c; setImg(slot, c);
+  costLine();
 }
 
 function say(t, bad){
@@ -298,7 +372,14 @@ function setKind(k){
   // auto: the model reads the cards itself — nothing to type, so the middle
   // box steps aside (three more input images ride along, hence the price)
   if (!pending && $('#midcut').hidden) $('#midwrap').hidden = (k === 'auto');
-  $('#found').querySelector('.cost').textContent = (k === 'auto') ? '~5¢' : '~2¢';
+  costLine();
+}
+
+// a hand of three hex color cards mixes in CODE — no model call, so the
+// Found button says free rather than a price that will not be charged
+function handHex(){ return !!(hand.top && hand.left && hand.right && hand.top.hex && hand.left.hex && hand.right.hex); }
+function costLine(){
+  $('#found').querySelector('.cost').textContent = handHex() ? 'free' : (kind === 'auto' ? '~5¢' : '~2¢');
 }
 
 function drawingUI(on){
@@ -346,8 +427,8 @@ function poll(){
         pending = null;
         try { localStorage.removeItem(PKEY); } catch(e){}
         drawingUI(false);
-        pool.unshift({ id:id, url:d.url, cut:d.cut, title:d.title, status:'ready', flip:true });
-        poolLine();
+        pool.unshift({ id:id, url:d.url, cut:d.cut, hex:d.hex || null, title:d.title, edition:d.edition || null, status:'ready', flip:true });
+        paintEds(); poolLine();
         showMade(d);
       } else if (d.status === 'failed' || d.error === 'not found') {
         pending = null;
@@ -368,8 +449,8 @@ function showMade(card){
   mid.classList.add('made');
   $('#midwrap').hidden = true;
   VENN.forEach(function(id){ document.getElementById(id).hidden = true; });
-  $('#midimg').src = thumb(card.cut || card.url);
-  $('#midimg').classList.toggle('whole', !!card.cut);
+  $('#midimg').src = cardSrc(card, true);
+  $('#midimg').classList.toggle('whole', !!card.cut || !!card.hex);
   $('#midcut').hidden = false;
   say('“' + (card.title || 'the new card') + '” joined the pool — tap it for the next hand');
 }
@@ -391,8 +472,8 @@ function load(){
   fetch('/api/triset/cards', { headers:hdrs() })
     .then(function(r){ return r.json(); })
     .then(function(d){
-      pool = (d.cards || []).filter(function(c){ return c.status === 'ready' && c.url; });
-      poolLine();
+      pool = (d.cards || []).filter(function(c){ return c.status === 'ready' && (c.url || c.hex); });
+      paintEds(); poolLine();
       deal();
       // pick a draw back up after a reload — paid work is never lost
       var p = null;

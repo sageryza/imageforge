@@ -167,6 +167,39 @@ function cardPrompt(content, { invent = true, invert = false, auto = false } = {
   return promptRecord({ prefix, content, suffix });
 }
 
+// A made card stays in its EDITION (2026-08-31, the color edition: 12 pastel
+// wheel cards seeded as `edition:'color'`). When all three source cards carry
+// the same edition, the venn card rides onto it — three colors mix to a
+// color, and filing the mix plain would drop it out of the deck it was found
+// in. Any disagreement, or no edition at all, files it plain; null is the
+// honest default, never a guess. Pure — the /found route feeds it the three
+// docs' values.
+function editionOf(eds) {
+  const list = (Array.isArray(eds) ? eds : []).map(e => (typeof e === 'string' ? e.trim() : ''));
+  return (list.length === 3 && list[0] && list.every(e => e === list[0])) ? list[0] : null;
+}
+
+// THREE HEX CARDS MIX IN CODE (2026-08-31, Sophie on the color edition: "for
+// now the digital version just hex colors"). A hex card is a card whose doc
+// carries `hex` and no picture, and the venn center of three colors IS their
+// blend — computed, instant, free, never a model call. The mix is the
+// per-channel GEOMETRIC MEAN in normalized sRGB: subtractive like paint (blue
+// and yellow make green, red and yellow make orange), normalized for the
+// count so three pastels stay pastel where a straight multiply goes muddy.
+function mixHex(hexes) {
+  const rgb = (h) => {
+    const m = /^#?([0-9a-f]{6})$/i.exec(String(h || '').trim());
+    if (!m) return null;
+    return [0, 2, 4].map(i => parseInt(m[1].slice(i, i + 2), 16) / 255);
+  };
+  const cs = (Array.isArray(hexes) ? hexes : []).map(rgb);
+  if (cs.length !== 3 || cs.some(c => !c)) return null;
+  return '#' + [0, 1, 2].map(ch => {
+    const g = Math.cbrt(cs[0][ch] * cs[1][ch] * cs[2][ch]);
+    return Math.round(g * 255).toString(16).padStart(2, '0');
+  }).join('');
+}
+
 // null when well-formed, else a one-line reason.
 function validFound(b) {
   if (!b || typeof b !== 'object') return 'not an object';
@@ -361,15 +394,34 @@ router.post('/found', async (req, res) => {
     const middle = clip(b.middle, MAX_WORDS);
     const sides = kind === 'each'
       ? (b.sides || []).map(s => clip(s, MAX_WORDS)).filter(Boolean) : [];
-    // An auto set attaches the three cards themselves — resolve them now, so
-    // a bad id refuses before any money moves, and render needs no re-read.
+    // Resolve the three source cards ONCE — auto needs their urls (a bad id
+    // refuses before any money moves), every kind reads edition and hex.
+    const srcDocs = [];
+    for (const id of b.cards.map(String)) {
+      const snap = await db().collection(CARDS).doc(id).get();
+      srcDocs.push(snap.exists ? { id, ...snap.data() } : { id });
+    }
+    // the made card stays in its edition — see editionOf
+    const edition = editionOf(srcDocs.map(c => c.edition || null));
+    // three hex color cards → the blend, computed and filed ready, free.
+    // auto is refused honestly: there is no picture for the model to read.
+    const hex = mixHex(srcDocs.map(c => c.hex));
+    if (hex) {
+      if (kind === 'auto') return res.status(400).json({ error: 'color cards mix by themselves — name the mix instead' });
+      const ref = db().collection(CARDS).doc();
+      await ref.set({
+        title: middle, hex, source: 'made', status: 'ready', flip: true,
+        ...(edition ? { edition } : {}),
+        from: { cards: b.cards.map(String), kind, middle, sides, urls: [] },
+        createdAt: Date.now(),
+      });
+      return res.json({ ok: true, id: ref.id, status: 'ready', hex, poll: `/api/triset/card/${ref.id}` });
+    }
     const srcCards = [];
     if (kind === 'auto') {
-      for (const id of b.cards.map(String)) {
-        const snap = await db().collection(CARDS).doc(id).get();
-        const c = snap.exists ? snap.data() : null;
-        if (!c || !c.url) return res.status(400).json({ error: 'unknown card ' + id });
-        srcCards.push({ id, title: c.title || '', url: c.url });
+      for (const c of srcDocs) {
+        if (!c.url) return res.status(400).json({ error: 'unknown card ' + c.id });
+        srcCards.push({ id: c.id, title: c.title || '', url: c.url });
       }
     }
     const content = foundContent({ kind, middle, sides });
@@ -384,6 +436,7 @@ router.post('/found', async (req, res) => {
       // down wherever it is dealt, which is also how you can tell the cards
       // the game made from the seeds.
       title, source: 'made', status: 'drawing', flip: true,
+      ...(edition ? { edition } : {}),
       from: { cards: (b.cards || []).map(String), kind, middle, sides,
         urls: srcCards.map(c => c.url) },
       model: 'gpt-image-2', quality: QUALITY, canvas: CANVAS, size: SIZE_TIER,
@@ -464,7 +517,7 @@ router.post('/seed', async (req, res) => {
 
 module.exports = {
   router, init,
-  foundContent, cardPrompt, validFound, stuckPatch, bakeCard,
+  foundContent, cardPrompt, validFound, stuckPatch, bakeCard, editionOf, mixHex,
   KINDS, STYLE, TRIANGLE_CLAUSE, triangleClause, INVENT_LINE, AUTO_RULES, STUCK_MS, COST_CENTS,
   // for scripts/seed-triset.js — the seed batch must draw through the exact
   // call a found set draws through, or the pool and the made cards drift.
