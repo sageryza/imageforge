@@ -4054,10 +4054,33 @@ before working on that module. Nothing was deleted — the moved text is verbati
     there is, and the ✕ that hides a picture is hers to cast. So a run a chat
     starts in her feed cannot be tidied away afterwards without an Admin
     write. Don't start it. Fixed recipe per style so runs stay comparable: ONE
-  image a run, 2:3, Generate is the stars icon. Seven styles: WTR (the only
-  Replicate LoRA), **Sandy mirror**, **ChatGPT**, **Dreamy**, Scarry, Pastel,
-  Hoonies (all gpt-image-2, her own scans attached as style refs, kept in
-  `PL_GPT_STYLES` in server.js).
+  image a run, 2:3, Generate is the stars icon. Eight styles: WTR (the only
+  Replicate LoRA), **Sandy mirror**, **ChatGPT**, **Dreamy**, **Triangle**,
+  Scarry, Pastel, Hoonies (all gpt-image-2, her own scans attached as style
+  refs, kept in `PL_GPT_STYLES` in server.js).
+  **TRIANGLE IS DERIVED FROM DREAMY, NOT WRITTEN BESIDE IT (2026-08-31,
+  Sophie: "add triangle as a new playground style · w image and prompt w new
+  equilateral")** — the Triset game's triangular picture cards, offered as a
+  tile so she can draw one of anything instead of only getting them out of a
+  found set. Same reference image (`refs/dream-mystery.jpg` — her "w image"),
+  same anti-content prefix, same tail, with dreamy's rectangular BORDER clause
+  swapped for the equilateral triangle-card one; her no-text toggle sits after
+  that clause and rides along untouched. **The wording and the swap live in
+  `triangle-clause.js`, the ONE copy shared with `triset.js`** — the "new
+  equilateral" half of her ask is that clause, including the 2026-08-31 "USE
+  THE TRIANGLE" composition line she called perfect, so a card she likes in
+  the game and one she draws here can never drift apart. Three things not to
+  undo: it is **built by `triangleStyle(PL_GPT_STYLES.dreamy)`**, so a reword
+  of hers reaches the tile the day she makes it; it carries **its own panels
+  swap**, because dreamy's sheet anchor is the clause this tile consumed and
+  `applySheet` no-ops on a missed anchor (a sheet run would otherwise ship
+  "NOT a grid" into a grid prompt); and the **port's evidence is the
+  equilateral clause quoted LONG** (`playground-port.js`), because a triangle
+  card carries Dreamy's filename AND Dreamy's prefix too, and longest evidence
+  wins — quote it short and every Triset card ports back as a plain Dreamy
+  picture. Test: `node scripts/test-playground-port.js` (the derivation driven
+  over the real dreamy literal, the sheet swap, the reworded-tail fallback,
+  and the one-copy pin on triset.js).
   **THE PAGE HEALS ITS OWN STALENESS (2026-08-27, Sophie: "it's not there" —
   about the back-to-top arrow, which had been live and correct for a day —
   then "self heal").** The app keeps the three recent tools alive in a ZStack,

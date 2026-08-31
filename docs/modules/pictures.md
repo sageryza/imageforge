@@ -133,7 +133,8 @@ ceiling are all in `docs/image-pipeline.md` (*The walker is the prompt*).
     `chatgpt` (Sandy mirror), which is what the unidentified history really is.
   - Test: `node scripts/test-playground-plain.js` (pure — 18 of its 22 checks
     verified failing against the pre-change tree).
-- **Six styles: WTR, Sandy mirror, ChatGPT, Scarry, Pastel, Hoonies.** **WTR**
+- **Eight styles: WTR, Sandy mirror, ChatGPT, Dreamy, Triangle, Scarry,
+  Pastel, Hoonies.** **WTR**
   (`wtr`, the watercolor LoRA — the tile is labelled WTR, but its STYLES key is
   still `watercolor`, which is what localStorage and `?style=` deep links carry)
   is the only Replicate LoRA on the picker: trigger word prepended, suffix
@@ -169,14 +170,30 @@ ceiling are all in `docs/image-pipeline.md` (*The walker is the prompt*).
   carries **no engraving vocabulary on purpose**: tested side by side, a written
   style description pulled the line finer and more modern, away from their blunt
   woodcut feel (the same finding as `docs/evan-film-style.md`). `noCharacter`.
+  **"Triangle"** (2026-08-31, Sophie: "add triangle as a new playground style
+  · w image and prompt w new equilateral") is the Triset game's triangular
+  picture cards as a tile. It is **DERIVED from `dreamy`** at load —
+  `PL_GPT_STYLES.triangle = triangleStyle(PL_GPT_STYLES.dreamy)` — so it is the
+  same reference image, the same prefix and the same tail, with dreamy's
+  rectangular border clause swapped for the equilateral triangle-card clause
+  (`triangle-clause.js`, the one copy `triset.js` also reads). Her no-text
+  toggle still works on it: that clause sits after the border one and the swap
+  never reaches it. It carries its OWN `sheet` swap — dreamy's anchor is the
+  clause it just consumed, so without one a panels run would keep "NOT a grid"
+  in a grid prompt; with it, every cell of a sheet is a triangle card.
+  `noCharacter`, like dreamy. Nothing is written twice, so a reword of hers in
+  `dreamy` reaches the tile and the game together.
   Every gpt style appends a `suffix` at the VERY END of the sent prompt, after
   her words (the no-text rule; Pastel's is the house style's longer wording).
   ChatGPT-engine styles live in `PL_GPT_STYLES` in server.js (keyed `evan` /
-  `plain` / `scarry` / `pastel` / `hoonies`; the page sends `style`,
+  `plain` / `dreamy` / `triangle` / `scarry` / `pastel` / `hoonies`; the page sends `style`,
   absent/unknown → `evan` so old pages keep working) — adding another different-reference style = drop the
   image(s) in `refs/` (or point `storageRefs` at Storage), add a
   `PL_GPT_STYLES` entry + a one-line `STYLES` entry in promptlab.html (the page
-  holds NO prompt copies anymore — see below).
+  holds NO prompt copies anymore — see below) **+ a `PORT_STYLES` entry in
+  `public/playground-port.js`**, which `scripts/test-playground-port.js` pins:
+  the three tables must hold the same keys, and a tile with no evidence can
+  never be ported back onto.
 - **Its prompt is baked in server-side** (`PL_GPT_STYLES`) and her typed words
   sit between the style's prefix and its no-text suffix verbatim — no trigger
   word, no trailing-period trim. **The "Sent as" preview line is GONE (Aug

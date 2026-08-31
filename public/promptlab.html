@@ -1582,6 +1582,13 @@
     // reach for; the server owns its bookended anti-content prompt.
     dreamy:     { model: 'gpt-image-2', label: 'Dreamy', engine: 'gptimage', gptStyle: 'dreamy',
                   noCharacter: true },
+    // Triangle = the Triset game's triangular picture cards (2026-08-31, her
+    // ask). Same reference image and same tail as Dreamy above, with the
+    // border clause swapped for the equilateral triangle-card one — the
+    // server derives the whole thing from `dreamy`, so nothing here has to
+    // know more than its id.
+    triangle:   { model: 'gpt-image-2', label: 'Triangle', engine: 'gptimage', gptStyle: 'triangle',
+                  noCharacter: true },
     scarry:     { model: 'gpt-image-2', label: 'Scarry', engine: 'gptimage', gptStyle: 'scarry',
                   noCharacter: true },
     pastel:     { model: 'gpt-image-2', label: 'Pastel', engine: 'gptimage', gptStyle: 'pastel',

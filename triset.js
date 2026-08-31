@@ -90,36 +90,16 @@ const bucket = () => admin.storage().bucket();
 const sha1 = (s) => crypto.createHash('sha1').update(String(s)).digest('hex');
 
 // ── the style, handed in (never copied) ────────────────────────────────────
-// The TRIANGLE clause — this module's one piece of style wording. It replaces
-// dreamy's border clause (the tail names a rectangular hand-drawn frame; a
-// triangle card needs a triangle). Stored in promptStyle like everything else.
-// EQUILATERAL is spelled out twice (2026-08-30, Sophie: "u didn't specify
-// equalateral so the shapes are off") — the first batch came back as steep
-// isosceles cards. And a MADE card (the venn center, the middle slot) is
-// drawn POINT DOWN (her rule: "the middle card has to be upside down") —
-// `flip` on the doc is what tells the page which way to clip it, forever.
-const TRIANGLE_UP = 'point up — the flat side on the bottom, one corner at the top';
-const TRIANGLE_DOWN = 'point down, upside down — the flat side on TOP, one corner at the bottom';
-function triangleClause(invert) {
-  // THE EQUILATERAL LINE CARRIES THE WEIGHT, AND NOTHING IS ADDED BESIDE IT
-  // (2026-08-31, Sophie: "i didn't ask you to add the triangle lines" · "add
-  // more importance to the equilateral line if anything"). A clause telling
-  // the model to compose INTO the triangle shipped for one batch and she cut
-  // it: it bent the subjects to the frame — a quilt on a line came back
-  // splayed into a triangle. So the shape rule is about the CARD, never
-  // about what is drawn on it, and the way to get better cards is to say
-  // EQUILATERAL harder, not to say more things.
-  return 'Render as ONE single illustration — NOT a grid, NOT split panels. '
-    + 'The illustration is an EQUILATERAL TRIANGLE-SHAPED CARD. THIS IS THE '
-    + 'MOST IMPORTANT THING ABOUT THE CARD: a true equilateral triangle, all '
-    + 'three sides exactly the same length and all three angles exactly 60 '
-    + 'degrees — never taller than it is wide, never wider than it is tall, '
-    + 'never a steep or a squat triangle. It is ' + (invert ? TRIANGLE_DOWN : TRIANGLE_UP)
-    + ': a triangle with a plain paper border and a hand-drawn frame line, '
-    + 'like the frames in the style reference but triangular, on a plain '
-    + 'white background, the whole composition inside the triangle. ';
-}
-const TRIANGLE_CLAUSE = triangleClause(false);
+// The TRIANGLE clause replaces dreamy's border clause (the tail names a
+// rectangular hand-drawn frame; a triangle card needs a triangle). Stored in
+// promptStyle like everything else.
+// THE WORDING LIVES IN triangle-clause.js, NOT HERE (2026-08-31) — the
+// Playground's Triangle tile draws the same card, so a copy here would mean a
+// card she likes in the game and one she draws in the Playground drifting
+// apart. A MADE card (the venn center, the middle slot) is drawn POINT DOWN
+// (her rule: "the middle card has to be upside down") — `flip` on the doc is
+// what tells the page which way to clip it, forever.
+const { triangleClause, TRIANGLE_CLAUSE, swapTail } = require('./triangle-clause');
 // The connective line for a MADE card (the venn center). Rides in the wrapper
 // prefix, so promptStyle discloses it; her words stay verbatim in the content.
 const INVENT_LINE = 'Invent ONE new subject that unites the qualities named '
@@ -146,17 +126,14 @@ function init({ gptStyles, fileCreation } = {}) {
   STYLE.refFiles = Array.isArray(st.refFiles) ? st.refFiles.slice() : [];
   let tail = String(st.suffix || '');
   STYLE.swapped = false;
-  // Border → triangle, the swap-never-argue mechanism. `sheet.from` is the
-  // tail's own border clause verbatim; when it stops matching (a reword in
-  // server.js) the triangle clause is appended instead, never lost. The
-  // orientation is per CARD, so the tail holds a placeholder cardPrompt fills.
-  const anchor = st.sheet && st.sheet.from;
-  if (anchor && tail.includes(anchor)) {
-    tail = tail.split(anchor).join('{triangle}');
-    STYLE.swapped = true;
-  } else {
-    tail = '{triangle}' + tail;
-  }
+  // Border → triangle, the swap-never-argue mechanism (triangle-clause.js's
+  // `swapTail`, shared with the Playground tile). `sheet.from` is the tail's
+  // own border clause verbatim; when it stops matching (a reword in server.js)
+  // the triangle clause is prepended instead, never lost. The orientation is
+  // per CARD, so the tail holds a placeholder cardPrompt fills.
+  const swap = swapTail(tail, st.sheet && st.sheet.from, '{triangle}');
+  tail = swap.tail;
+  STYLE.swapped = swap.swapped;
   // Her own two words: cards carry no text.
   if (st.noText && st.noText.from && tail.includes(st.noText.from)) {
     tail = tail.split(st.noText.from).join(st.noText.to);
