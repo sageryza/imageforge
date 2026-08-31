@@ -1950,8 +1950,27 @@ them off the reference sheet, not off the old filenames.
     route both her doors come through). So the tab is what has been handed to
     her and not yet dealt with, and it empties itself; a chat that delivers
     again after she wrote back comes back on its own.
+    **ANSWERED IS JUDGED ON THE FIRST HAND-OVER, NEVER `updatedAt`
+    (2026-08-31, Sophie: "deliverables don't leave when i answer them").**
+    A chat that acts on her answer re-pins the same url at the end of that very
+    turn — its checklist duty — and `record()` bumps `updatedAt`, so a row
+    judged by it was re-dated past her message every time she wrote: it could
+    never STAY answered. The leave rule compares `lastHerAt` against the doc's
+    own `at` (`firstAt` on the row), which never moves for a url; only a
+    genuinely NEW version (a new url → a fresh doc) brings the work back.
+    **AND EVERY ROW HAS HER ✕ (same message: "there's no way to swipe them
+    away").** Answering by message is not the only way she deals with a
+    delivery — a note on the paused film, a ♥, a decision made elsewhere — and
+    none of those stamp `lastHerAt`. The ✕ (`POST /api/deliverables/dismiss`,
+    a film row by its url, a pictures row by its chat) stamps a dismissal into
+    ONE map doc (`__dismissed`, carrying no `updatedAt` on purpose so the
+    orderBy queries can never surface it as a row); the rule is the answered
+    rule's shape — everything handed over before the tap is dealt with, a
+    delivery newer than the stamp shows by itself. A tap, never a swipe (the
+    house rule), and **the ✕ is HERS — a chat must never call the route to
+    tidy its own row away.**
     `deliverables-feed.js` is the whole
-    rule (pure); `GET /api/deliverables/feed` is the read, two cached queries
+    rule (pure); `GET /api/deliverables/feed` is the read, three cached queries
     and no model call.
   - **AND THE BUG PILE DOES NOT REACH INTO THE ARCHIVE (2026-08-28, Sophie:
     "archive doesn't pop out ur insane that's the point of archive").** It

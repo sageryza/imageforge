@@ -37,6 +37,9 @@
 //   GET  /api/deliverables/feed?limit= → { items } films AND picture bursts,
 //        newest first — what the Chats app's DELIVERED tab draws
 //   POST /api/deliverables             → { chat, session?, url, title, kind? }
+//   POST /api/deliverables/dismiss     → { url? | chat? } — her ✕ on a
+//        Delivered row (a film row by url, a pictures row by chat). HERS —
+//        a chat must never call it to tidy its own row away.
 //   POST /api/deliverables/backfill    → { dry? } — sweep existing registry
 //        media pins into the list (dry by default, never pushes)
 //
@@ -278,11 +281,13 @@ router.get('/feed', async (req, res) => {
     if (!req.query.fresh && feedCache && feedCache.limit === limit && Date.now() - feedAt < FEED_MS) {
       return res.json({ ...feedCache.body, cached: true });
     }
-    const [dsnap, asnap] = await Promise.all([
+    const [dsnap, asnap, xsnap] = await Promise.all([
       db().collection(COLL).orderBy('updatedAt', 'desc').limit(200).get(),
       // Records written before `created` existed are simply absent from an
       // orderBy — fine for a newest-first feed, which is all this is.
       db().collection('forge-chat-assets').orderBy('created', 'desc').limit(FEED_ASSETS).get(),
+      // Her ✕ stamps — one small map doc; see POST /dismiss.
+      db().collection(COLL).doc(DISMISS_DOC).get(),
     ]);
     let chats = {};
     try { chats = (await require('./chatfeed').registry()).chats || {}; }
@@ -291,10 +296,56 @@ router.get('/feed', async (req, res) => {
       deliverables: rowsOf(dsnap.docs.map((d) => d.data()), chats),
       assets: asnap.docs.map((d) => d.data()),
       chats,
+      dismissed: (xsnap.exists && xsnap.get('dismissed')) || {},
       limit,
     }) };
     feedCache = { limit, body }; feedAt = Date.now();
     res.json(body);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ---- her ✕ on a Delivered row (2026-08-31, Sophie: "deliverables don't
+// leave when i answer them and there's no way to swipe them away") -----------
+// Answering is not the only way she deals with a delivery — a note on the
+// paused film, a ♥, a decision made elsewhere — and none of those stamp
+// `lastHerAt`. The ✕ is the deterministic way out, and it is HERS: no chat
+// should call this to tidy its own row away.
+//
+// The stamps live in ONE map doc (`__dismissed`) in this collection, keyed by
+// deliverables-feed's dismissKey — a film row by its url (hashed: a dotted
+// field name written through set(merge) becomes a nested map), a pictures row
+// by its chat. The doc carries NO `updatedAt` and NO `url` ON PURPOSE: both
+// list queries orderBy('updatedAt'), and Firestore omits a doc missing the
+// orderBy field — the trap that hid her notes once, working FOR us here, so
+// the stamp doc can never surface as a row.
+//
+// The value is the moment of the tap, and the feed hides a row whose hand-over
+// is not newer than it — so a NEW version (a new url, a newer burst) comes
+// back by itself, exactly like the answered rule.
+const DISMISS_DOC = '__dismissed';
+const DISMISS_CAP = 600;          // newest stamps kept; older ones age out
+router.post('/dismiss', async (req, res) => {
+  try {
+    if (!firebaseUp()) return res.status(503).json({ error: 'no firebase' });
+    const { url, chat } = req.body || {};
+    const key = require('./deliverables-feed').dismissKey(
+      url ? { url: String(url) } : { kind: 'images', chat: String(chat || '') });
+    if (!key || key === 'c_') return res.status(400).json({ error: 'url or chat required' });
+    const ref = db().collection(COLL).doc(DISMISS_DOC);
+    const now = new Date().toISOString();
+    await db().runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const map = (snap.exists && snap.get('dismissed')) || {};
+      map[key] = now;
+      const keys = Object.keys(map);
+      if (keys.length > DISMISS_CAP) {
+        keys.sort((a, b) => String(map[a]).localeCompare(String(map[b])));
+        keys.slice(0, keys.length - DISMISS_CAP).forEach((k) => delete map[k]);
+      }
+      tx.set(ref, { dismissed: map });
+    });
+    feedCache = null;             // her next pull shows the row gone
+    res.json({ ok: true, key, at: now });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
