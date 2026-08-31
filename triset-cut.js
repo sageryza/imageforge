@@ -47,8 +47,9 @@ const CUT_W = 1000;
 const CUT_H = 866;              // 1000 * sqrt(3)/2 — exactly equilateral
 const NEAR_WHITE = 238;         // r,g,b all >= this reads as the paper behind the card
 const MIN_REMOVED = 0.08;       // less background than this = a full-bleed draw
-const CUT_VERSION = 'c3';       // objects are immutable — bump to re-bake past the CDN
+const CUT_VERSION = 'c4';       // objects are immutable — bump to re-bake past the CDN
                                 // c1 shape-preserving · c2 cover (cropped art) · c3 cream-bordered
+                                // c4 = c3 + the fringe erode (the white seam line)
 
 const cutPath = (id) => `triset/cuts/${id}.${CUT_VERSION}.webp`;
 
@@ -90,6 +91,36 @@ function dieCutAlpha(data, w, h) {
     }
   }
   return { removed: removed / (w * h), bbox: x1 < 0 ? null : { x0, y0, x1, y1 } };
+}
+
+// ── pure: the fringe erode ─────────────────────────────────────────────────
+// The flood fill stops at the first pixel darker than NEAR_WHITE, which
+// leaves the ANTI-ALIASED half-white boundary pixels opaque — and once the
+// card sits on the cream fill, that 1-2px fringe reads as a thin WHITE LINE
+// tracing the original wobbly cut (2026-08-31, Sophie: "the original cut
+// shows as white lines"). So the content's outer boundary is eroded a few
+// pixels before placement: the fringe goes with it, cream meets clean rim,
+// and the rim itself is ~20px deep so nothing that matters is lost. Interior
+// highlights are untouched — they have no transparent neighbours.
+const ERODE_PX = 3;
+
+function erodeAlpha(data, w, h, n = ERODE_PX) {
+  for (let pass = 0; pass < n; pass += 1) {
+    const kill = [];
+    for (let y = 0; y < h; y += 1) {
+      for (let x = 0; x < w; x += 1) {
+        const p = y * w + x;
+        if (data[p * 4 + 3] === 0) continue;
+        const clear = (x > 0 && data[(p - 1) * 4 + 3] === 0)
+          || (x < w - 1 && data[(p + 1) * 4 + 3] === 0)
+          || (y > 0 && data[(p - w) * 4 + 3] === 0)
+          || (y < h - 1 && data[(p + w) * 4 + 3] === 0)
+          || x === 0 || x === w - 1 || y === 0 || y === h - 1;
+        if (clear) kill.push(p);
+      }
+    }
+    for (const p of kill) data[p * 4 + 3] = 0;
+  }
 }
 
 // ── pure: the card's own cream, read off its rim ───────────────────────────
@@ -212,10 +243,25 @@ async function bakeCut(buf, { flip = false } = {}) {
     for (let p = 3; p < data.length; p += 4) data[p] = 255;
     cut = { removed: 0, bbox: { x0: 0, y0: 0, x1: w - 1, y1: h - 1 } };
   }
+  if (!fullBleed) erodeAlpha(data, w, h);   // the white-seam fringe comes off
   const cream = fullBleed ? { ...CREAM } : rimColor(data, w, h);
   const plan = inscribePlan(data, w, h, cut.bbox, { flip });
   const bw = cut.bbox.x1 - cut.bbox.x0 + 1;
   const bh = cut.bbox.y1 - cut.bbox.y0 + 1;
+  // FLATTEN ONTO THE CREAM BEFORE THE RESIZE (2026-08-31, Sophie: "the
+  // original cut shows as white lines"). Resizing a hard alpha edge rings —
+  // Lanczos overshoots ~1px brighter than either side, and against the cream
+  // fill that ring reads as a thin white line tracing the old flood-fill
+  // boundary. With the transparent pixels substituted by the SAME cream the
+  // canvas is filled with, the resize sees cream meeting cream and there is
+  // no edge to ring against; the ring at the art's own inner edges is
+  // ordinary image scaling, as everywhere else.
+  for (let p2 = 0; p2 < w * h; p2 += 1) {
+    if (data[p2 * 4 + 3] === 0) {
+      data[p2 * 4] = cream.r; data[p2 * 4 + 1] = cream.g; data[p2 * 4 + 2] = cream.b;
+      data[p2 * 4 + 3] = 255;
+    }
+  }
   const piece = await sharp(data, { raw: { width: w, height: h, channels: 4 } })
     .extract({ left: cut.bbox.x0, top: cut.bbox.y0, width: bw, height: bh })
     .resize(Math.max(1, Math.round(bw * plan.scale)), Math.max(1, Math.round(bh * plan.scale)), { fit: 'fill' })
@@ -238,5 +284,5 @@ async function bakeCut(buf, { flip = false } = {}) {
   return { buf: out, fullBleed };
 }
 
-module.exports = { dieCutAlpha, rimColor, inscribePlan, insetTri, bakeCut, cutPath,
+module.exports = { dieCutAlpha, erodeAlpha, rimColor, inscribePlan, insetTri, bakeCut, cutPath,
   CUT_W, CUT_H, NEAR_WHITE, MIN_REMOVED, MIN_BORDER, CREAM, CUT_VERSION };
