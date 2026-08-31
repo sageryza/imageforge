@@ -528,11 +528,15 @@
      reason: a prompt that HAS been drawn is in her feed with a copy button
      one tap from putting it back, and one that never has is the only thing
      this can lose. */
+  /* IT SAYS THE WORD (2026-08-30, Sophie: "make it say clear not an x"). It
+     shipped as a ✕ to match the per-box clears inside the panel cells; those
+     are ~118px wide and have no room for a word, and this one sits in a row
+     of controls that all say what they are — Prompt, No text, Portrait. A ✕
+     among them is the only mark on the row you have to learn. */
   #promptclear { flex: none; display: inline-flex; align-items: center; justify-content: center;
-    width: 34px; height: 34px; box-sizing: border-box; padding: 0; border: 1px solid #d8d0c4;
-    border-radius: 6px; background: #fdfcf9; color: #6f675e; cursor: pointer;
-    -webkit-tap-highlight-color: transparent; }
-  #promptclear svg { width: 16px; height: 16px; display: block; }
+    height: 34px; box-sizing: border-box; padding: 0 10px; border: 1px solid #d8d0c4;
+    border-radius: 6px; background: #fdfcf9; color: #6f675e; font: inherit; font-size: 13px;
+    cursor: pointer; -webkit-tap-highlight-color: transparent; }
   /* HER TYPED CAST (2026-08-27, Sophie: "text boxes that say character 1: add
      character, name, description … etc up to n" · "I want both. Descriptions
      as well as pictures"). The WORDS half of a cast; the picker beside the
@@ -814,7 +818,7 @@
     <button type="button" id="t-picture" class="on">Picture</button>
     <button type="button" id="t-panels">Panels</button>
   </div>
-  <div class="styles"><select id="stylepick" aria-label="Style"></select><button type="button" id="charsbtn" hidden aria-label="Character references" title="Character references"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/></svg><span id="charsn"></span></button><button type="button" id="promptclear" hidden aria-label="Clear the prompt" title="Clear the prompt"></button></div>
+  <div class="styles"><select id="stylepick" aria-label="Style"></select><button type="button" id="charsbtn" hidden aria-label="Character references" title="Character references"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/></svg><span id="charsn"></span></button><button type="button" id="promptclear" hidden title="Clear the prompt">Clear</button></div>
   <div id="charpanel">
     <div class="plabtabs chartabs" id="chartabs" hidden>
       <button type="button" data-ct="pics" class="on">Pictures</button>
@@ -991,7 +995,6 @@
   document.getElementById('medhigh').innerHTML = ICONS.oval;
   document.getElementById('photopick').innerHTML = ICONS.imagePlus;
   document.getElementById('photoclear').innerHTML = ICONS.x;
-  document.getElementById('promptclear').innerHTML = ICONS.x;
 
   // LIST (a box per run) or TILES (a wall of thumbnails). Sticky across loads.
   // Both buttons are always on screen and always labelled — the switch can
