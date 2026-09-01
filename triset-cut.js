@@ -1,29 +1,39 @@
-// Triset — the DIE-CUT (2026-08-30 "fix the cutting"; settled 2026-08-31
-// after four rounds, her words: "just recut the original").
+// Triset — the DIE-CUT (2026-08-30 "fix the cutting"; 2026-08-31 round two:
+// "original cut shud all be perfect equilateral"; 2026-08-31 round three, the
+// SETTLED rule, off her print sheets: "nope. they're cut straight to the line
+// in some spaces. they all need to have a MINIMUM border of cream space, and
+// extra on the sides if it's narrow or extra at the top if squat").
 //
-// The model draws each card — art, frame line, cream paper rim — on a plain
-// white square, at a slightly different size/steepness every time. The cut
-// is a PERFECT EQUILATERAL WINDOW INTO THAT ORIGINAL: find the drawn card,
-// choose the largest window placement that keeps every drawn pixel at least
-// MIN_BORDER inside the triangle (base-anchored, centered — a narrow card
-// gets its extra room at the sides, a squat one at the top, her rule), then
-// extract that triangular region of the original square and mask it. The
-// border around the drawn rim is the original's own paper — real pixels,
-// real grain, no seam, because nothing is synthesized and nothing is
-// composited.
+// The model draws each card WITH its own cream paper rim and frame line, on
+// white, at a slightly different size/steepness every time. Three cuts, two
+// of them history:
+//   c1 preserved the drawn shape (contain-fit at 0.96) — every cut a
+//      different triangle, compounding on a printed cut-sheet.
+//   c2 cover-fit + hard mask — a perfect equilateral, but covering means
+//      CROPPING, and the cut ran straight through art and rim on any card
+//      whose shape differed from the ideal. She rejected it on sight.
+//   c3 (this) — perfect equilateral, and the cut NEVER touches art: the
+//      drawn card is contained INSIDE the triangle with a guaranteed margin,
+//      and the whole triangle is filled with CREAM behind it — sampled from
+//      the card's own drawn rim, so the added border reads as the same
+//      paper. A narrow card sits base-anchored with extra cream at its
+//      sides; a squat card gets its extra at the top — her words exactly,
+//      and both fall out of one rule (centered, base-anchored, contained).
 //
-// The roads not taken, each shipped for a day and rejected on sight:
-//   c1 preserved the drawn shape (every cut a different triangle);
-//   c2 cover-fit (a perfect triangle that CROPPED art — "cut straight to
-//      the line");
-//   c3/c4 contained the card and filled the triangle with sampled flat
-//      cream ("did he just fill w flat color?" — yes, it was flat, and the
-//      seam against the drawn rim showed as white lines until c4 hid it).
-// Do not bring any of them back. The window IS the settled design: the one
-// picture, recut.
+//   1. Flood-fill the white background transparent from the edges (interior
+//      white highlights survive — flood, not chroma).
+//   2. rimColor: the median colour of the content's outer band — the drawn
+//      cream rim itself. Fallback CREAM for a full-bleed draw with no rim.
+//   3. inscribePlan: the LARGEST scale + placement putting every opaque
+//      pixel inside the slot triangle inset by MIN_BORDER — anchored to the
+//      base (top for a point-down card), centered.
+//   4. Fill the exact slot triangle with the rim cream, lay the card over
+//      it, mask with the exact triangle. The cut edge is the perfect
+//      equilateral and always runs through cream.
 //
-// A full-bleed draw (art to the frame's edge, no paper to give) is
-// cover-fit + mask — a guaranteed triangle with no border, honestly.
+// A full-bleed draw (no white to remove) goes through the same path — its
+// art does get inset cream around it, which is the rule: a minimum border,
+// no exceptions.
 //
 // Bakes run server-side for a made card (render(), right after the paid
 // bytes are banked) and via POST /api/triset/recut for the pool;
@@ -31,16 +41,15 @@
 // nothing like the 4K sheet cuts — no gate needed.
 //
 // Tests: node scripts/test-triset.js (dieCutAlpha + inscribePlan pure,
-// bakeCut end-to-end through real sharp, window fidelity checked against
-// the source's own pixels).
+// bakeCut end-to-end through real sharp).
 
 const CUT_W = 1000;
 const CUT_H = 866;              // 1000 * sqrt(3)/2 — exactly equilateral
 const NEAR_WHITE = 238;         // r,g,b all >= this reads as the paper behind the card
 const MIN_REMOVED = 0.08;       // less background than this = a full-bleed draw
-const CUT_VERSION = 'c5';       // objects are immutable — bump to re-bake past the CDN
-                                // c1 shape-preserving · c2 cover (cropped) · c3/c4 synthetic cream
-                                // c5 = the equilateral WINDOW into the original
+const CUT_VERSION = 'c4';       // objects are immutable — bump to re-bake past the CDN
+                                // c1 shape-preserving · c2 cover (cropped art) · c3 cream-bordered
+                                // c4 = c3 + the fringe erode (the white seam line)
 
 const cutPath = (id) => `triset/cuts/${id}.${CUT_VERSION}.webp`;
 
@@ -189,12 +198,6 @@ function inscribePlan(data, w, h, bbox, { flip = false, W = CUT_W, H = CUT_H } =
     && s1 * edge(px, py, bx, by, cx2, cy2) >= 0
     && s1 * edge(px, py, cx2, cy2, ax, ay) >= 0;
 
-  // NO hard window-inside-frame constraint: the drawn cards fill ~950 of a
-  // 1024 frame (measured on her real pool), so a border-keeping window MUST
-  // hang past the frame's edges — bakeCut continues the overhang in the
-  // frame's own measured paper colour, which against the flat white the
-  // model draws on is invisible. (A hard constraint here sent every real
-  // card to the cover fallback, silently — the c2 crop coming back.)
   const fits = (k, left, top) => {
     for (const [sx, sy] of pts) {
       const px = left + (sx - bbox.x0) * k;
@@ -223,13 +226,9 @@ function inscribePlan(data, w, h, bbox, { flip = false, W = CUT_W, H = CUT_H } =
       }
     }
   }
-  // no bordered placement exists (art to the frame's edge, or the card
-  // pressed against it) — fall back to a centered COVER window: the whole
-  // triangle still shows original pixels, just without the margin
-  const k = Math.max(W / w, H / h);
-  const left = bbox.x0 * k - (w * k - W) / 2;
-  const top = bbox.y0 * k - (h * k - H) / 2;
-  return { scale: k, left, top, cover: true };
+  // pathological content (should not happen) — center it small
+  const k = k0 * 0.3;
+  return { scale: k, left: (W - bw * k) / 2, top: (H - bh * k) / 2 };
 }
 
 // ── the bake (sharp) ───────────────────────────────────────────────────────
@@ -237,55 +236,50 @@ async function bakeCut(buf, { flip = false } = {}) {
   const sharp = require('sharp');
   const { data, info } = await sharp(buf).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const w = info.width; const h = info.height;
-  // the flood fill runs on a COPY only to FIND the drawn card — the output
-  // is cut from the untouched original
-  const probe = Buffer.from(data);
-  let cut = dieCutAlpha(probe, w, h);
+  let cut = dieCutAlpha(data, w, h);
   let fullBleed = false;
   if (!cut.bbox || cut.removed < MIN_REMOVED) {
     fullBleed = true;
+    for (let p = 3; p < data.length; p += 4) data[p] = 255;
     cut = { removed: 0, bbox: { x0: 0, y0: 0, x1: w - 1, y1: h - 1 } };
   }
-  const plan = fullBleed
-    ? (() => {                       // cover the triangle — no paper to give
-      const k = Math.max(CUT_W / w, CUT_H / h);
-      return { scale: k, left: -(w * k - CUT_W) / 2, top: -(h * k - CUT_H) / 2 };
-    })()
-    : inscribePlan(probe, w, h, cut.bbox, { flip });
-  // the frame's own paper, measured off its outer ring — the window hangs a
-  // little past the square frame (the drawn cards nearly fill it), and the
-  // overhang continues in this colour: flat against the flat white the model
-  // draws on, so the join is invisible and nothing about the look is invented
-  const paper = (() => {
-    const rs = []; const gs = []; const bs = [];
-    const take = (x, y) => { const i = (y * w + x) * 4; rs.push(data[i]); gs.push(data[i + 1]); bs.push(data[i + 2]); };
-    for (let x = 0; x < w; x += 7) { take(x, 2); take(x, h - 3); }
-    for (let y = 0; y < h; y += 7) { take(2, y); take(w - 3, y); }
-    const med = (a) => { a.sort((m, n) => m - n); return a[a.length >> 1]; };
-    return { r: med(rs), g: med(gs), b: med(bs), alpha: 1 };
-  })();
-  // the slot canvas, mapped back into the source: one rectangular window on
-  // the ORIGINAL (extended where it overhangs), resized, masked
-  const k = plan.scale;
-  const wx0 = Math.round(cut.bbox.x0 - plan.left / k);
-  const wy0 = Math.round(cut.bbox.y0 - plan.top / k);
-  const ww = Math.round(CUT_W / k);
-  const wh = Math.round(CUT_H / k);
-  const padL = Math.max(0, -wx0); const padT = Math.max(0, -wy0);
-  const padR = Math.max(0, wx0 + ww - w); const padB = Math.max(0, wy0 + wh - h);
-  const pts = flip ? `0,0 ${CUT_W},0 ${CUT_W / 2},${CUT_H}` : `${CUT_W / 2},0 ${CUT_W},${CUT_H} 0,${CUT_H}`;
-  const mask = Buffer.from(
-    `<svg width="${CUT_W}" height="${CUT_H}" xmlns="http://www.w3.org/2000/svg"><polygon points="${pts}" fill="#fff"/></svg>`);
-  // two stages: sharp runs extract BEFORE extend inside one pipeline, so the
-  // extended frame has to be materialised first
-  const extended = await sharp(buf)
-    .extend({ left: padL, top: padT, right: padR, bottom: padB, background: paper })
+  if (!fullBleed) erodeAlpha(data, w, h);   // the white-seam fringe comes off
+  const cream = fullBleed ? { ...CREAM } : rimColor(data, w, h);
+  const plan = inscribePlan(data, w, h, cut.bbox, { flip });
+  const bw = cut.bbox.x1 - cut.bbox.x0 + 1;
+  const bh = cut.bbox.y1 - cut.bbox.y0 + 1;
+  // FLATTEN ONTO THE CREAM BEFORE THE RESIZE (2026-08-31, Sophie: "the
+  // original cut shows as white lines"). Resizing a hard alpha edge rings —
+  // Lanczos overshoots ~1px brighter than either side, and against the cream
+  // fill that ring reads as a thin white line tracing the old flood-fill
+  // boundary. With the transparent pixels substituted by the SAME cream the
+  // canvas is filled with, the resize sees cream meeting cream and there is
+  // no edge to ring against; the ring at the art's own inner edges is
+  // ordinary image scaling, as everywhere else.
+  for (let p2 = 0; p2 < w * h; p2 += 1) {
+    if (data[p2 * 4 + 3] === 0) {
+      data[p2 * 4] = cream.r; data[p2 * 4 + 1] = cream.g; data[p2 * 4 + 2] = cream.b;
+      data[p2 * 4 + 3] = 255;
+    }
+  }
+  const piece = await sharp(data, { raw: { width: w, height: h, channels: 4 } })
+    .extract({ left: cut.bbox.x0, top: cut.bbox.y0, width: bw, height: bh })
+    .resize(Math.max(1, Math.round(bw * plan.scale)), Math.max(1, Math.round(bh * plan.scale)), { fit: 'fill' })
     .png().toBuffer();
-  const out = await sharp(extended)
-    .extract({ left: wx0 + padL, top: wy0 + padT, width: ww, height: wh })
-    .resize(CUT_W, CUT_H, { fit: 'fill' })
-    .ensureAlpha()
-    .composite([{ input: mask, blend: 'dest-in' }])
+  // the cream ground IS the exact slot triangle; the card lies on it and the
+  // final mask re-cuts the same triangle, so the edge is always cream
+  const pts = flip ? `0,0 ${CUT_W},0 ${CUT_W / 2},${CUT_H}` : `${CUT_W / 2},0 ${CUT_W},${CUT_H} 0,${CUT_H}`;
+  const triSvg = (fill) => Buffer.from(
+    `<svg width="${CUT_W}" height="${CUT_H}" xmlns="http://www.w3.org/2000/svg"><polygon points="${pts}" fill="${fill}"/></svg>`);
+  const creamHex = '#' + [cream.r, cream.g, cream.b].map((v) => v.toString(16).padStart(2, '0')).join('');
+  const out = await sharp({
+    create: { width: CUT_W, height: CUT_H, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+  })
+    .composite([
+      { input: triSvg(creamHex), left: 0, top: 0 },
+      { input: piece, left: Math.round(plan.left), top: Math.round(plan.top) },
+      { input: triSvg('#fff'), blend: 'dest-in' },
+    ])
     .webp({ quality: 90 }).toBuffer();
   return { buf: out, fullBleed };
 }

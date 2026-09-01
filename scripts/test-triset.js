@@ -174,11 +174,12 @@ const cut = require('../triset-cut');
   ok('an interior white highlight SURVIVES (flood fill, not a chroma key)', a(30, 42) === 255);
 }
 {
-  // inscribePlan (c5): the largest WINDOW into the original that keeps every
-  // drawn pixel MIN_BORDER inside the triangle — and the whole window inside
-  // the source frame, because the cut is an extract of the original. The
-  // synthetics are TRIANGLES like the real drawn cards: a rectangle can
-  // never satisfy both constraints, and no card is one.
+  // inscribePlan: the largest placement keeping every drawn pixel MIN_BORDER
+  // inside the slot triangle. The synthetics are TRIANGLES like the real
+  // drawn cards — a rectangle can never satisfy the constraint, and no card
+  // is one. (c5 read the same plan as a window into the original and cut
+  // through art on her real cards; c4's cream fill is what shipped — see the
+  // module header. The plan is shared, so these assertions hold for both.)
   const w = 200; const h = 200;
   const tri = (apexY, baseY, x0, x1) => {
     const buf = Buffer.alloc(w * h * 4, 0);

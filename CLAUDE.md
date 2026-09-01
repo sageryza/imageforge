@@ -7728,29 +7728,35 @@ before working on that module. Nothing was deleted — the moved text is verbati
     overlay), and carries `flip` on its doc — the page clips it point-down
     wherever it is dealt, forever, which is also how you tell the cards the
     game made from the seeds.
-  - **THE CUT IS AN EQUILATERAL WINDOW INTO THE ORIGINAL (settled 2026-08-31
-    after four rounds; her closing words: "did he just fill w flat color? be
-    honest do u not have the originals to cut from" · "the original is square
-    or triangle? just recut the original").** The model draws each card —
-    art, frame line, cream rim — on a white 1024 square. The cut
-    (`triset-cut.js`, c5, `triset/cuts/<id>.c5.webp`) finds the drawn card
-    (flood fill on a probe copy), picks the largest window placement keeping
-    every drawn pixel MIN_BORDER inside the slot triangle (`inscribePlan` —
-    base-anchored, centered: a narrow card's extra room lands at its sides, a
-    squat one's at the top), then EXTRACTS that triangular region of the
-    original and masks it. The border is the original's own paper — real
-    pixels, real grain, no seam, nothing synthesized. **The window MUST
-    overhang the square frame** (her drawn cards fill ~950 of 1024 —
-    measured, all of them) and the overhang continues in the frame's own
-    measured paper colour, flat against the flat white the model draws on.
-    **The roads not taken, each shipped for a day and rejected on sight —
-    don't bring any back:** c1 preserved the drawn shape (every cut a
-    different triangle); c2 cover-fit (cropped art, "cut straight to the
-    line"); c3/c4 contained the card and filled the triangle with sampled
-    flat cream ("did he just fill w flat color?" — yes, and the seam showed
-    as white lines). A full-bleed draw is cover-fit + mask, honestly
-    borderless. **sharp runs extract BEFORE extend in one pipeline** — the
-    extended frame is materialised first or the extract throws.
+  - **THE CUT IS A PERFECT EQUILATERAL WITH A CREAM BORDER — c4, and the
+    version she picked (2026-08-31, after five rounds: "the cards are fine as
+    is" · "the previous version · with the flat fill · to make it
+    equilateral").** The model draws each card — art, frame line, cream rim —
+    on a white 1024 square, and **it draws them too big: measured across her
+    whole nature set, ZERO of 72 squares hold a true equilateral around the
+    drawn card with any margin, and only 20 at a bare fit.** So a cut that
+    refuses to add anything must either crop the art or come out a different
+    triangle every time. `triset-cut.js` (c4,
+    `triset/cuts/<id>.c4.webp`): flood-fill the white away, **contain** the
+    drawn card inside the slot triangle inset by MIN_BORDER (`inscribePlan` —
+    base-anchored and centered, so a narrow card's extra lands at its sides
+    and a squat one's at the top, her rule), and **fill the triangle with
+    cream sampled from that card's own rim** (`rimColor`; a dark rimless edge
+    falls back to the house CREAM). The seam is invisible because the fringe
+    is eroded (`erodeAlpha`) and the card is flattened onto its cream BEFORE
+    the resize — a hard alpha edge rings ~1px brighter when scaled, which is
+    the "original cut shows as white lines" report.
+    **The added band IS flat, and she knows and accepted that** — the honest
+    trade for a perfect equilateral on every card.
+    **The roads not taken:** c1 preserved the drawn shape (every cut a
+    different triangle); c2 cover-fit (cropped art); **c5 cut a true window
+    into the original** — real paper, real grain, nothing synthesized, and it
+    cut through the art on all but 20 cards, which is why it lost. Reverting
+    to c4 was pointing every card's `cut` back at its c4 object (they are
+    immutable per version, so nothing had to be re-baked). **A redraw would
+    fix the geometry at the source** — probed 3 cards through a gpt-image-2
+    edit at medium and all three came back true equilaterals with the full
+    margin, ~6¢ each, ~$3.10 for the 52 — she declined; the cards are fine.
     **THE ONLY CREAM BORDER IS THE PAPER RIM THE MODEL DREW INTO THE PICTURE
     (2026-08-31, Sophie: "there shud be no cream border aside from the one
     built into the images").** The first cut of this put a cream `.face` mat
