@@ -644,7 +644,15 @@ worth putting in a reply.
   so a docs-only diff never needs a deploy, and the next real merge carries
   the docs out anyway. Measured: 88 of 604 pushes in two weeks (~15%) were
   docs-only. Use it ONLY when the WHOLE diff is docs/ — a mixed merge must
-  build. (Starter build minutes are $5/1,000 past the included 500; the $25
+  build. (Starter build minutes are $5/1,000 past the included **1,000** —
+  Render's own 70%-warning email, 2026-09-01, says "1000 available free
+  pipeline minutes this month"; this file said 500 until then. There is also
+  a WARNING EMAIL at 70%, which is the early notice the Aug 19 outage never
+  had: it names the workspace and says overage is auto-charged at $5/1,000
+  UNLESS a custom pipeline-minute limit is set, in which case builds PAUSE at
+  that limit until the next billing period. So a custom limit is what turns
+  a spend cap into a silent deploy outage — check that screen before raising
+  anything. The $25
   Performance tier is 16-CPU build hardware for giant compile jobs — this
   repo's build is a small npm install, so it would cost 5× for nothing.
   Don't suggest it.)
