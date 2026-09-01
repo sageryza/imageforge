@@ -509,7 +509,20 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     /page/:id/supersede`) instead of leaving a to-do standing in front of her. `deck` data is `{ items:[…], … }`;
     `grid` data is `{ groups:[{ label?, items:[…] }], … }`, and the rest —
     `states?`, `aspect?`, `start?`, `help?`, plus the DECK-VIEW fields
-    `voice?`, `browse?`, `stamp?` — is shared by both.
+    `voice?`, `browse?`, `stamp?`, `pace?` — is shared by both.
+    **`pace: 'quick'` — A QUICK-DECISION DECK (2026-09-01, Sophie: "add a
+    toggle for chats to choose if it's a quick or labored decision + note …
+    heart or x action DOES move deck forward").** On a quick deck a decisive
+    ♥/✕ (or a spread pick) steps the deck forward one card by itself, after
+    the stamp lands; maybe, a clear and a note still stay put, and the edge
+    taps and swipe still navigate. LABORED is the default (omit the field) —
+    the browse rule exactly as it was: a mark never moves the deck. Pick
+    quick for a yes/no sweep (the hoonies, a big cull); labored for anything
+    she reads, notes on, or changes her mind about. **An already-posted page
+    is flipped without re-posting** — `POST /api/chatfeed/page/:id/pace
+    {pace:'quick'|'labored'}` writes the page doc, whose field wins over the
+    frozen data (a new page id would lose her marks). Pinned by
+    `node scripts/test-judge-pace.js`.
     **The deck-view three apply to a GRID page too (2026-08-31)**, because
     every template page has a swipe half since the two views were joined:
     gating them on `template === 'deck'` was the join's leftover, the same
@@ -715,6 +728,8 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
       the edge taps and the swipe navigate. A deck with `browse:false` (and a
       hand-built judge page) has no edges to tap, so there the verdict still
       advances — that is the classic Tinder page and its only way forward.
+      **`pace:'quick'` is the sanctioned exception** (2026-09-01, her ask) —
+      see the `pace` field above: ♥/✕ advances, everything else stays put.
     - **THE PAGE IS PINNED SO IT CANNOT ZOOM ITSELF — the TYPE STAYS HER SIZE
       (Aug 2026, and she settled it twice).** iOS auto-zooms the whole page
       whenever it focuses a field under 16px, and on a one-screen deck that

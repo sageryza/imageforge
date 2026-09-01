@@ -4420,6 +4420,29 @@ router.post('/page/:id/review', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// QUICK OR LABORED, FLIPPED AFTER POSTING (2026-09-01, Sophie: "add a toggle
+// for chats to choose if it's a quick or labored decision + note … and can u
+// toggle hoonies so a decision brings the next card"). A template page's data
+// is frozen in Storage and a new page id would lose her marks — so the pace
+// lives on the PAGE DOC when set here, and GET /page/:id lets the doc's word
+// win over the frozen data. 'quick' = a ♥/✕ advances the deck; 'labored'
+// = the default browse rule (a mark never moves it).
+router.post('/page/:id/pace', async (req, res) => {
+  try {
+    const id = String(req.params.id || '').slice(0, 60);
+    if (!id) return res.status(400).json({ error: 'id required' });
+    const pace = String((req.body || {}).pace || '').toLowerCase();
+    if (pace !== 'quick' && pace !== 'labored') {
+      return res.status(400).json({ error: "pace must be 'quick' or 'labored'" });
+    }
+    const ref = db().collection(PAGES).doc(id);
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'no such page' });
+    await ref.set({ pace }, { merge: true });
+    res.json({ ok: true, id, pace });
+  } catch (err) { fail(res, err); }
+});
+
 // Put a page ON the reference shelf, or take it off (see the REFERENCE SHELF
 // note above POST /page). Same field-for-field contract as the bookmark route
 // beside it: `topic` sent alone edits ONLY the topic, so renaming what a page
@@ -4517,6 +4540,10 @@ router.get('/page/:id', async (req, res) => {
       // current stock renderer, so shared fixes reach every page ever posted
       let data = {};
       try { data = JSON.parse(buf.toString('utf8')); } catch (e) { /* renders empty */ }
+      // the doc's pace wins over the frozen data — POST /page/:id/pace above
+      const pagePace = snap.data().pace;
+      if (pagePace === 'quick') data.pace = 'quick';
+      else if (pagePace === 'labored') delete data.pace;
       let thtml = pageTemplates.renderTemplatePage({
         template: snap.data().template, title: snap.data().title || '',
         // the page's own <h1> when it differs from the name the Compare tab
