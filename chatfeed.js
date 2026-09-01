@@ -1041,10 +1041,10 @@ router.post('/', async (req, res) => {
     // that used to buzz her at the wrong moment, the loudest being a catch-up
     // post landing the instant she hits send). The gate is pure and reads only
     // fields already on the registry doc, so it costs no extra read.
-    // …and only if she has TURNED THE BELL ON for this chat (Aug 2026). The
-    // bell is the coarser question — "do I want this chat on my lock screen at
-    // all" — so it is asked before the timing one, and it is a whitelist: a
-    // chat she has never belled stays silent.
+    // …and only if she has not SILENCED this chat (bell on by default since
+    // 2026-09-01). The bell is the coarser question — "do I want this chat on
+    // my lock screen at all" — so it is asked before the timing one, and only
+    // an explicit `notify:false` of hers stops a chat here.
     const gate = chatNotifies(mine)
       ? shouldPushReply({
         working,
@@ -2208,13 +2208,22 @@ router.post('/chat-bookmark', async (req, res) => {
 // for this chat and un-click and it will turn them off — only the ones I
 // clicked the bell on will notify me").
 //
-// A WHITELIST, and the third per-chat mark beside `starred` and `bookmarked`:
+// The third per-chat mark beside `starred` and `bookmarked`:
 //   `starred`    — what she is on right now (temporary)
 //   `bookmarked` — the handful worth keeping (permanent)
-//   `notify`     — the ones allowed to buzz her phone
-// Absent = silent, so nothing pushes until she taps a bell. `push-gate.js`
-// reads it (`chatNotifies`) in front of BOTH doors — a finished reply and a
-// new Compare page.
+//   `notify`     — whether this chat may buzz her phone
+//
+// ON BY DEFAULT SINCE 2026-09-01 (Sophie: "change to readily notify on for
+// chats"). It was a whitelist — absent meant silent — and it is a BLACKLIST
+// now: absent means on, and the bell is how she turns a chat OFF. See
+// `chatNotifies` in push-gate.js for why, and for the timing gate that is what
+// actually keeps this quiet.
+//
+// SO THE WRITE IS THE OTHER WAY ROUND: OFF is STORED (`notify:false`, the only
+// thing that silences a chat) and ON DELETES the field, putting the chat back
+// to the default rather than storing a second spelling of it. `push-gate.js`
+// reads the field (`chatNotifies`) in front of BOTH doors — a finished reply
+// and a new Compare page.
 //
 // Same phantom-row guard as /chat-bookmark: a merge-set on a missing doc
 // CREATES it, and every pile derives from the registry keys.
@@ -2227,7 +2236,7 @@ router.post('/notify', async (req, res) => {
     const snap = await db().collection(REG).doc(slug).get();
     if (!snap.exists) return res.status(404).json({ error: 'no such chat' });
     await regRef(slug).set(
-      { notify: on ? true : admin.firestore.FieldValue.delete() }, { merge: true });
+      { notify: on ? admin.firestore.FieldValue.delete() : false }, { merge: true });
     res.json({ ok: true, chat: slug, notify: on });
   } catch (err) { fail(res, err); }
 });
@@ -4279,8 +4288,8 @@ router.post('/page', async (req, res) => {
     // page is posted mid-turn, so sending here buzzes her before the chat has
     // finished (see push.js, THE BUZZ WAITS FOR THE TURN TO END). A page and
     // the reply that follows it in one turn are still one buzz. And the same
-    // BELL: a chat she has not belled never reaches her lock screen, by
-    // either door.
+    // BELL: a chat she has SILENCED never reaches her lock screen, by either
+    // door.
     try {
       const { chats } = await registry();
       const reg = chats[doc.chat] || {};

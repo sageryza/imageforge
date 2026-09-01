@@ -101,31 +101,32 @@ is('a reply with no timestamp does not push',
   false);
 
 // ── THE BELL — which chats may buzz at all ──────────────────────────────────
-// Sophie's whitelist (Aug 2026): "only the ones I clicked the bell on will
-// notify me". Absent means SILENT, so every shape of missing has to read as
-// off — a chat with no registry doc, a chat that predates the bell, and the
-// two falsy-but-not-false values a hand-written POST could leave behind.
+// ON BY DEFAULT since 2026-09-01 ("change to readily notify on for chats"):
+// the whitelist is gone and only her own tap silences a chat. So every shape
+// of MISSING has to read as ON — a chat with no registry doc, a chat that
+// predates the bell, and the falsy-but-not-false values a hand-written POST
+// could leave behind — and exactly one value reads as off.
 is('a belled chat may buzz', chatNotifies({ notify: true }), true);
-is('a chat that has never been belled is silent', chatNotifies({}), false);
-is('a chat with no registry doc at all is silent', chatNotifies(undefined), false);
-is('an explicitly un-belled chat is silent', chatNotifies({ notify: false }), false);
-// `notify` is compared to true, not merely truthy — a stray string on the doc
-// must not be read as "she wants this one".
-is('a non-boolean notify does not count as belled', chatNotifies({ notify: 'yes' }), false);
-// The bell and the timing gate are INDEPENDENT: a chat can be belled and still
-// have nothing worth buzzing about, and an answer to her is still silent
-// without the bell. chatfeed.js asks the bell FIRST, so this pair is the whole
-// decision.
+is('a chat that has never been belled may buzz', chatNotifies({}), true);
+is('a chat with no registry doc at all may buzz', chatNotifies(undefined), true);
+is('an explicitly SILENCED chat is the one that cannot', chatNotifies({ notify: false }), false);
+// `notify` is compared to false, not merely falsy — a stray value on the doc
+// must not silence a chat she never turned off.
+is('a non-boolean notify does not silence a chat', chatNotifies({ notify: 0 }), true);
+is('an empty-string notify does not silence a chat', chatNotifies({ notify: '' }), true);
+// The bell and the timing gate are INDEPENDENT, and the TIMING gate is what
+// keeps default-on quiet: an unbelled chat grinding on its own still cannot
+// ring. chatfeed.js asks the bell FIRST, so this pair is the whole decision.
 {
   const answering = { working: false, replyCreated: t(34), lastHerAt: t(30), pushedAt: t(5) };
-  is('belled + answering her = the one case that buzzes',
-    chatNotifies({ notify: true }) && shouldPushReply(answering).push, true);
-  is('belled but grinding on its own is still silent',
+  is('a chat she never touched, answering her = the one case that buzzes',
+    chatNotifies({}) && shouldPushReply(answering).push, true);
+  is('unsilenced but grinding on its own is still silent',
     chatNotifies({ notify: true })
       && shouldPushReply({ working: false, replyCreated: t(48), lastHerAt: t(30), pushedAt: t(34) }).push,
     false);
-  is('answering her without the bell is silent',
-    chatNotifies({ starred: true }) && shouldPushReply(answering).push, false);
+  is('answering her in a SILENCED chat stays silent',
+    chatNotifies({ notify: false, starred: true }) && shouldPushReply(answering).push, false);
 }
 
 // ── What the buzz SAYS ──────────────────────────────────────────────────────
