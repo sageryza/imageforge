@@ -685,8 +685,19 @@ worth putting in a reply.
   skipped deploy burns ZERO build minutes. Nothing under `docs/` is served,
   so a docs-only diff never needs a deploy, and the next real merge carries
   the docs out anyway. Measured: 88 of 604 pushes in two weeks (~15%) were
-  docs-only. Use it ONLY when the WHOLE diff is docs/ — a mixed merge must
-  build. (Starter build minutes are $5/1,000 past the included **1,000** —
+  docs-only. Use it when the WHOLE diff is **docs/ or a root `*.md`**
+  (CLAUDE.md is not served either) — a mixed merge must build.
+  **AND IT IS WORKING, WHICH ALSO MEANS IT IS NOT THE LEVER (measured
+  2026-09-01 over all 1,321 merges to main since Aug 1).** 147 of them
+  changed only docs/ or a root .md — 11% of merges — and the ones that built
+  anyway burned **129 minutes, about 7% of the month's 1,780**. Compliance
+  went 0/84 in the two weeks before the rule landed to **23 skipped, 1 built**
+  in the last full week. So the minutes are spent by the sheer NUMBER of
+  merges (~43 a day, median build 78s), not by docs, and chasing docs further
+  buys almost nothing. At that rate the 1,000 free minutes last ~17 days and
+  the overage is a few dollars a month — cheap. **The thing that actually
+  hurts is a custom pipeline-minute limit**, which converts that few dollars
+  into the silent deploy outage above. (Starter build minutes are $5/1,000 past the included **1,000** —
   Render's own 70%-warning email, 2026-09-01, says "1000 available free
   pipeline minutes this month"; this file said 500 until then. There is also
   a WARNING EMAIL at 70%, which is the early notice the Aug 19 outage never

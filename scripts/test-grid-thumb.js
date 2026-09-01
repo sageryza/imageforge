@@ -51,6 +51,8 @@ const files = {
   '/judge.js': ['application/javascript', fs.readFileSync(path.join(PUB, 'judge.js'), 'utf8')],
   '/asset-lightbox.js': ['application/javascript', fs.readFileSync(path.join(PUB, 'asset-lightbox.js'), 'utf8')],
   '/asset-view.js': ['application/javascript', fs.readFileSync(path.join(PUB, 'asset-view.js'), 'utf8')],
+  '/playground-port.js': ['application/javascript', fs.readFileSync(path.join(PUB, 'playground-port.js'), 'utf8')],
+  '/asset-actions.js': ['application/javascript', fs.readFileSync(path.join(PUB, 'asset-actions.js'), 'utf8')],
   '/page-views.js': ['application/javascript', fs.readFileSync(path.join(PUB, 'page-views.js'), 'utf8')],
 };
 
