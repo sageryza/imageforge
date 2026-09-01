@@ -7889,6 +7889,29 @@ before working on that module. Nothing was deleted — the moved text is verbati
     card's own `flip`** (a set drawn but not yet made still has to nest), and
     the opponent's tiles wear a small gold **IT** in the formation's empty
     top-left corner — hers wear nothing.
+  - **HER RULESET IS IN THE SETTINGS SHEET, IN HER WORDS (2026-09-01, "add the
+    stealing to the ruleset")** — *Claiming a set* and *Challenging and
+    stealing sets*, dictated by her; don't reword them. **THAT SHEET SCROLLS
+    NOW**: it made the card taller than a phone, and a centred flex child
+    overflows in BOTH directions, so the modes and the opponent toggle at the
+    TOP of it were off screen and untappable — pinned with `elementFromPoint`,
+    since a control above the fold passes every width assertion.
+  - **NEW HAND, HARD LEFT (2026-09-01: "add a new hand button, on the left")**
+    — it calls `nextHand()`, the same door the made card's tap uses, so there
+    is one way a hand is replaced. **Only `#found` takes `margin-left:auto`**;
+    with the auto margin on every `.btn` three buttons spread out and nothing
+    is hard left. And **the outline costs nothing** (her check the same
+    message, "make sure the outline didn't make the buttons bigger"): the 1px
+    border is taken back out of the padding, so the box is exactly the size it
+    was before these went gold-outline. Pinned as `padding + border === 9/14`.
+  - **A DOUBLE TAP OR A LONG PRESS OPENS A CARD BIG (2026-09-01)** — a single
+    tap already means pick-for-swap on the board and in the hand alike, so the
+    big view rides the two gestures a single tap is not. Two things not to
+    undo: the long press **suppresses the click it would otherwise become**, or
+    opening a card also picks it; and the release that ENDS the press must not
+    read as the tap that closes the overlay it just opened under her finger —
+    that is a FLAG set by the press (`eatCardTap`), never a timing window,
+    because a clock is the same bug waiting for a slow frame.
   - **THE CHALLENGE (2026-09-01: "you can challenge your opponent, if you have
     a card in your hand that fits their rule, then you steal their set").**
     Open one of its sets big, tap Challenge, pick a card from her hand;

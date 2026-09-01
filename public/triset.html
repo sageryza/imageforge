@@ -53,6 +53,10 @@ h1.tool-eyebrow{
 #helpcard{
   position:fixed;inset:0;background:rgba(43,38,34,.36);z-index:60;
   display:flex;align-items:center;justify-content:center;padding:26px;
+  /* THE SHEET SCROLLS. Her ruleset made this card taller than a phone, and a
+     centred flex child overflows in BOTH directions — so the modes and the
+     opponent toggle at the top of it were off the screen and untappable. */
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
 }
 #modes,.modes{display:flex;flex-direction:column;gap:8px;margin:0 0 16px}
 #modes button,.modes button{
@@ -62,6 +66,7 @@ h1.tool-eyebrow{
 }
 #modes button.on,.modes button.on{color:var(--ink);border-color:var(--ink)}
 #helpcard>div{
+  margin:auto;                       /* centred while it fits, scrollable when it does not */
   background:var(--card);border:1px solid var(--line);border-radius:6px;
   padding:20px 22px;max-width:340px;font-size:15px;line-height:1.55;
 }
@@ -98,8 +103,12 @@ h1.tool-eyebrow{
   text-transform:uppercase;color:var(--gold);line-height:1;
 }
 .setcard.mine .who{display:none}          /* only the opponent's is marked */
-#setbig{position:fixed;inset:0;z-index:60;background:rgba(20,18,16,.86);
+#setbig,#cardbig{position:fixed;inset:0;z-index:60;background:rgba(20,18,16,.86);
   display:flex;align-items:center;justify-content:center;padding:20px}
+#cardbig>div{max-width:420px;width:100%;text-align:center}
+#cardform{position:relative;width:100%;aspect-ratio:1000/866;margin:0 auto}
+#cardform .sl{width:100%;height:100%;left:0;top:0}
+#cardtext{color:var(--paper);font-size:16px;line-height:1.5;margin:16px 4px 0}
 #setbig>div{max-width:420px;width:100%;text-align:center}
 #bigform{position:relative;width:100%;aspect-ratio:1000/866;margin:0 auto}
 #bigtext{color:var(--paper);font-size:16px;line-height:1.5;margin:16px 4px 0}
@@ -235,9 +244,12 @@ button.btn{
   font-family:-apple-system,system-ui,sans-serif;font-size:13px;
   letter-spacing:.10em;text-transform:uppercase;
   color:var(--gold);background:none;border:1px solid var(--gold);border-radius:6px;
-  padding:9px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;
-  margin-left:auto;
+  /* THE OUTLINE COSTS NOTHING (2026-09-01, "make sure the outline didn't make
+     the buttons bigger") — the 1px border is taken back out of the padding, so
+     the box is exactly the size it was before these went gold-outline. */
+  padding:8px 13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;
 }
+#found{margin-left:auto}          /* only the last one is hard right */
 #found svg{width:17px;height:17px;display:block}
 /* THE BARE GLYPH — no square, no fill (2026-09-01, "undo button at the top
    left - no words, just an icon that grows a redo if applicable · no square
@@ -295,6 +307,10 @@ button.btn{
 <div id="eds" hidden></div>
 
 <div id="acts">
+  <!-- NEW HAND (2026-09-01, "add a new hand button, on the left") — the deck
+       already flows through her hand a card at a time, so this is the way to
+       put the whole hand down and deal three fresh ones. -->
+  <button class="btn" id="newhand">New hand</button>
   <!-- PLAYING AGAINST THE COMPUTER (2026-09-01, "make it possible to play
        against a computer"). TURN-BASED, never a timer — she looks for as long
        as she likes and hands the turn over when she is done looking. Hidden
@@ -313,6 +329,15 @@ button.btn{
 </div>
 
 <div id="won"></div>
+
+<!-- ONE CARD, BIG (2026-09-01, "double clicking or long pressing a card
+     makes it bigger"). A single tap already means pick-for-swap on both the
+     board and the hand, so the big view rides the two gestures that a single
+     tap is not. -->
+<div id="cardbig" hidden><div>
+  <div id="cardform"></div>
+  <div id="cardtext"></div>
+</div></div>
 
 <!-- ONE SET, BIG (her ask) — and on the computer's, the CHALLENGE: a card in
      her hand that fits its rule steals the set. -->
@@ -354,7 +379,18 @@ button.btn{
     image model with the rules, and it finds the connection itself (~5¢).<br><br>
     Found a set draws a brand-new card from your qualities — the center of the
     venn diagram. It appears upside down in the middle, joins the pool, and a
-    tap on it deals the next hand. About 2¢ a card.
+    tap on it deals the next hand. About 2¢ a card.<br><br>
+
+    <!-- HER RULESET, dictated 2026-09-01 ("add the stealing to the ruleset")
+         — the words are hers; don't reword them. -->
+    <b>Claiming a set</b> — when a set is claimed, the claimer must name their
+    set explicitly. "All have a jagged line running down the middle," or
+    "red round things."<br><br>
+    <b>Challenging and stealing sets</b> — a player can choose to challenge a
+    claimed set. Ask the claimer to repeat their name. If the challenger has a
+    card in their hand that fits the definition of the set they gave, they can
+    show the card. If all players agree it fits the rule, the challenger
+    "steals" the set, and puts it on his own shelf.
   </div>
 </div>
 
@@ -811,6 +847,50 @@ function paintFound(){
   $('#found').querySelector('.cost').hidden = !go;
 }
 
+/* ── ONE CARD, BIG (2026-09-01, "double clicking or long pressing a card
+   makes it bigger") ──────────────────────────────────────────────────────
+   A single tap on a card already means pick-for-swap, on the board and in
+   the hand alike, so this rides the two gestures a single tap is not: a
+   double tap, and a long press. A long press SUPPRESSES the click it would
+   otherwise become — without that, opening the card also picks it. */
+// A LONG PRESS OPENS THE CARD UNDER HER FINGER, so the release that ends the
+// press would otherwise be read as the tap that closes it again. The press
+// says so itself rather than a clock deciding — a timing window is the same
+// bug waiting for a slow frame.
+var eatCardTap = false;
+function openCard(card){
+  if (!card) return;
+  var box = $('#cardform');
+  box.textContent = '';
+  box.appendChild(formSlot(card, card.flip ? 'p-mid' : 'p-top'));
+  $('#cardtext').textContent = card.promptContent || card.title || '';
+  $('#cardbig').hidden = false;
+}
+function closeCard(){ $('#cardbig').hidden = true; }
+// wires one element so a double tap or a long press opens `get()`'s card
+var LONG_MS = 450;
+function bigGesture(el, get){
+  var timer = null, ate = false;
+  var stop = function(){ if (timer) { clearTimeout(timer); timer = null; } };
+  el.addEventListener('pointerdown', function(){
+    ate = false;
+    stop();
+    timer = setTimeout(function(){
+      timer = null; ate = true; eatCardTap = true; openCard(get());
+    }, LONG_MS);
+  });
+  ['pointerup','pointercancel','pointerleave','pointermove'].forEach(function(ev){
+    el.addEventListener(ev, stop);
+  });
+  // the press already opened it — the tap it turns into must not also pick
+  el.addEventListener('click', function(e){
+    if (!ate) return;
+    ate = false;
+    e.stopPropagation(); e.preventDefault();
+  }, true);
+  el.addEventListener('dblclick', function(e){ e.preventDefault(); openCard(get()); });
+}
+
 /* ── the shelf, the big view, and the challenge ────────────────────────── */
 function byId(id){
   for (var i = 0; i < pool.length; i++) if (pool[i].id === id) return pool[i];
@@ -1084,7 +1164,20 @@ $('#undo').onclick = undo;
 $('#redo').onclick = redo;
 $('#found').onclick = found;
 $('#turn').onclick = itsTurn;
+$('#newhand').onclick = function(){ if (!pending) nextHand(); };   // deal() pushes its own undo
 $('#stealbtn').onclick = paintSteal;
+// the long press opens it UNDER her finger, so the release that ends the
+// press must not be read as the tap that closes it again
+$('#cardbig').onclick = function(){
+  if (eatCardTap) { eatCardTap = false; return; }   // the release that opened it
+  closeCard();
+};
+['top','left','right'].forEach(function(sl){
+  bigGesture($('#s-' + sl), function(){ return hand[sl]; });
+});
+Array.prototype.forEach.call(document.querySelectorAll('.hcard'), function(b){
+  bigGesture(b, function(){ return held[+b.dataset.h]; });
+});
 $('#setbig').onclick = function(ev){ if (ev.target === $('#setbig')) closeBig(); };
 $('#gear').onclick = function(){ $('#helpcard').hidden = false; };
 // the sheet must show the mode she is ON from the first open — `kind` has a
@@ -1103,6 +1196,7 @@ $('#midimg').onclick = nextHand;
 
 // the app's chevron closes an open layer before it leaves the tool
 window.__navBack = function(){
+  if (!$('#cardbig').hidden) { closeCard(); return true; }
   if (!$('#setbig').hidden) { closeBig(); return true; }
   if (!$('#helpcard').hidden) { $('#helpcard').hidden = true; return true; }
   if (!$('#midcut').hidden) { nextHand(); return true; }

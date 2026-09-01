@@ -395,6 +395,11 @@ ok('the paid button wears the star and the cost',
   /id="found"/.test(PAGE) && /~2¢/.test(PAGE) && /id="star"/.test(PAGE));
 ok('the title is the tool-eyebrow, once',
   (PAGE.match(/tool-eyebrow/g) || []).length >= 1 && (PAGE.match(/<h1/g) || []).length === 1);
+ok('the ruleset says how a set is claimed and how one is stolen — her words',
+  /must name their\s+set explicitly/.test(PAGE)
+  && /red round things/.test(PAGE)
+  && /Ask the claimer to repeat their name/.test(PAGE)
+  && /puts it on his own shelf/.test(PAGE));
 ok('the mid slot cannot eat card taps', /#s-mid\{pointer-events:none\}/.test(PAGE));
 
 /* ── headless half ───────────────────────────────────────────────────────── */
@@ -918,6 +923,7 @@ async function headless() {
   {
     await pg.evaluate(() => { try { localStorage.clear(); } catch (e) { /* */ } });
     await pg.goto(base + '/triset', { waitUntil: 'networkidle' });
+    const innerW = await pg.evaluate(() => innerWidth);
     const shown = () => pg.evaluate(() => {
       const b = document.getElementById('turn');
       const r = b.getBoundingClientRect();
@@ -932,6 +938,20 @@ async function headless() {
     await pg.click('#gear');
     ok('the settings sheet offers the opponent', await pg.evaluate(() =>
       document.querySelectorAll('#oppos button').length === 2));
+    /* HER RULESET MADE THIS SHEET TALLER THAN A PHONE, and a centred flex
+       child overflows in BOTH directions — so every control at the TOP of it
+       went off screen. Asked with elementFromPoint, which is the only honest
+       question: a control above the fold passes every width assertion while
+       being untappable. */
+    ok('every control in the settings sheet can actually be tapped', await pg.evaluate(() => {
+      const btns = Array.from(document.querySelectorAll('#modes button, #oppos button'));
+      return btns.every((b) => {
+        const r = b.getBoundingClientRect();
+        if (r.top < 0 || r.bottom > innerHeight) return false;
+        const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+        return hit === b || b.contains(hit);
+      });
+    }));
     await pg.click('#oppos button[data-o="1"]');
     await pg.click('#helpcard');
     ok('turning the computer on puts ITS TURN on screen', (await shown()) === true);
@@ -977,6 +997,63 @@ async function headless() {
     await pg.waitForTimeout(300);
     ok('drawing its card is still one draw', founds.length === before + 1);
     ok('…and does NOT score her a point for its set', (await score()) === '0\u20131');
+
+    /* NEW HAND, and the outline costing nothing (2026-09-01). */
+    {
+      const row = await pg.evaluate(() => Array.from(document.querySelectorAll('#acts .btn'))
+        .filter((b) => !b.hidden)
+        .map((b) => {
+          const c = getComputedStyle(b);
+          const r = b.getBoundingClientRect();
+          return { id: b.id, x: Math.round(r.x), right: Math.round(r.right),
+            padT: parseFloat(c.paddingTop) + parseFloat(c.borderTopWidth),
+            padL: parseFloat(c.paddingLeft) + parseFloat(c.borderLeftWidth) };
+        }));
+      ok('New hand is the leftmost button', row.length === 3 && row[0].id === 'newhand');
+      ok('…and Set! is still hard right', row[2].id === 'found'
+        && row[2].right > row[1].right && row[2].right >= innerW - 30);
+      // "make sure the outline didn't make the buttons bigger" — the 1px
+      // border is taken back out of the padding, so the box is what it was
+      ok('the outline did not make the buttons bigger',
+        row.every((b) => b.padT === 9 && b.padL === 14));
+    }
+    {
+      const before = await pg.evaluate(() =>
+        ['top', 'left', 'right'].map((s) => document.querySelector('#s-' + s + ' img').getAttribute('src')).join('|'));
+      await pg.click('#newhand');
+      await pg.waitForTimeout(200);
+      ok('New hand deals a fresh board', await pg.evaluate(() =>
+        ['top', 'left', 'right'].map((s) => document.querySelector('#s-' + s + ' img').getAttribute('src')).join('|')) !== before);
+    }
+
+    /* ONE CARD, BIG — a double tap and a long press, and neither may also
+       pick the card for a swap (2026-09-01). */
+    {
+      const open = () => pg.evaluate(() => !document.getElementById('cardbig').hidden);
+      const picked = () => pg.evaluate(() => !!document.querySelector('#board .slot.pick'));
+      await pg.dblclick('#s-top');
+      ok('a double tap opens the card bigger', await open());
+      ok('…and shows the card it opened', await pg.evaluate(() =>
+        document.querySelectorAll('#cardform .sl img[src]').length === 1));
+      await pg.click('#cardbig');
+      ok('tapping away closes it', (await open()) === false);
+
+      const box = await pg.evaluate(() => {
+        const r = document.getElementById('s-top').getBoundingClientRect();
+        return { x: r.x + r.width / 2, y: r.y + r.height * 0.8 };
+      });
+      await pg.mouse.move(box.x, box.y);
+      await pg.mouse.down();
+      await pg.waitForTimeout(900);
+      await pg.mouse.up();
+      ok('a long press opens it too', await open());
+      // the press opened it under her finger — that release must not close it
+      ok('…and the release that ended the press does not close it again',
+        await pg.evaluate(() => { const b = document.getElementById('cardbig'); b.click(); return !b.hidden; }));
+      await pg.click('#cardbig');
+      ok('…a real tap after that does close it', (await open()) === false);
+      ok('…and neither gesture picked the card for a swap', (await picked()) === false);
+    }
 
     /* THE SHELF, THE BIG VIEW AND THE CHALLENGE (2026-09-01). Measured: a
        tile that renders 0px, a formation missing its middle card and a steal
