@@ -7771,6 +7771,15 @@ before working on that module. Nothing was deleted — the moved text is verbati
     readies the card, the old mapping is the page fallback), `POST /recut`
     (fire-and-forget sweep, `/status` reports it), `/seed` kicks it, and
     `node scripts/triset-recut.js` runs it from a container (dry by default).
+    **HER CUT-OUT NATURE SET IS AN EDITION IN THE GAME (2026-09-01: "can u
+    put the current nature set that u cut out into the actual game").** The
+    72 nature subjects she hearted and printed carry `edition:'nature'`, so
+    the game's edition chips (built for the color edition) show a **Nature**
+    deck that narrows the deal to exactly the cards on her paper sheets — the
+    physical set and the digital one are the same 72. One card per subject,
+    the live in-pool one at the best quality; a hidden generation is never
+    tagged, since it cannot be dealt. `edLabel` falls through to the
+    capitalized slug, so the chip needed no page change.
     The objects are immutable — bump `CUT_VERSION` to re-bake past the CDN.
   - **Her words are the content half, verbatim**; the one connective line
     (INVENT_LINE) rides in the wrapper and is disclosed in `promptStyle` with
