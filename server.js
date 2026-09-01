@@ -2542,7 +2542,11 @@ app.get('/api/gallery/assets/all', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   try {
     if (!admin.apps.length) return res.json({ assets: [], total: 0, offset: 0, limit: 0 });
-    const limit = Math.min(300, Math.max(1, parseInt(req.query.limit, 10) || 150));
+    // A SEARCH may take 1000 a page (2026-09-01): the rows are already in
+    // memory and a common word is many pages — "mirror" is 1,378 — so 300 a
+    // page meant five round trips before the page could draw the last hit.
+    // The browse walk keeps 300; those pages are what the phone renders.
+    const limit = Math.min(req.query.q ? 1000 : 300, Math.max(1, parseInt(req.query.limit, 10) || 150));
     const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
     if (!metaAssetsCache || Date.now() - metaAssetsCacheAt > META_ASSETS_TTL || req.query.fresh) {
       // select() keeps the scan to the fields the union needs — no vote
