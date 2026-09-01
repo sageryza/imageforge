@@ -421,6 +421,8 @@ async function headless() {
   }));
   // phase 2 swaps in a pool that ALSO holds three hex color cards
   let cardsResp = cards;
+  const opps = [];
+  let oppReply = { ok: true, found: false, why: 'nothing here' };
   let madeHex = null; // the hex /found answered with, phase 2
   const srv = http.createServer((req, res) => {
     const u = new URL(req.url, 'http://x');
@@ -453,6 +455,16 @@ async function headless() {
       return res.end(JSON.stringify(pollCount < 2
         ? { ok: true, status: 'drawing' }
         : { ok: true, status: 'ready', title: 'the moon', flip: true, url: 'https://storage.googleapis.com/x/triset/cards/made1.webp' }));
+    }
+    if (u.pathname === '/api/triset/opponent') {
+      let body = '';
+      req.on('data', (c) => { body += c; });
+      req.on('end', () => {
+        opps.push(JSON.parse(body));
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify(oppReply));
+      });
+      return;
     }
     if (u.pathname === '/api/story/thumb') {
       res.writeHead(200, { 'content-type': 'image/webp' });
@@ -881,6 +893,78 @@ async function headless() {
     ok('the hand holds THREE cards, not two', await pg.evaluate(() =>
       Array.from(document.querySelectorAll('.hcard img'))
         .filter(i => i.getAttribute('src')).length === 3));
+  }
+
+  /* PLAYING AGAINST THE COMPUTER (2026-09-01). Every assertion is a
+     MEASUREMENT: a button that renders hidden, a score that never repaints
+     and a claim scored to the wrong player all pass any source assertion. */
+  {
+    await pg.evaluate(() => { try { localStorage.clear(); } catch (e) { /* */ } });
+    await pg.goto(base + '/triset', { waitUntil: 'networkidle' });
+    const shown = () => pg.evaluate(() => {
+      const b = document.getElementById('turn');
+      const r = b.getBoundingClientRect();
+      return !b.hidden && r.width > 0 && r.height > 0;
+    });
+    const score = () => pg.evaluate(() => {
+      const el = document.getElementById('sets');
+      return el.hidden ? '' : el.textContent;
+    });
+    ok('solitaire shows no opponent button', (await shown()) === false);
+
+    await pg.click('#gear');
+    ok('the settings sheet offers the opponent', await pg.evaluate(() =>
+      document.querySelectorAll('#oppos button').length === 2));
+    await pg.click('#oppos button[data-o="1"]');
+    await pg.click('#helpcard');
+    ok('turning the computer on puts ITS TURN on screen', (await shown()) === true);
+    ok('the score starts level', (await score()) === '0\u20130');
+
+    // it passes — the turn comes straight back, nothing is claimed, no score
+    oppReply = { ok: true, found: false, why: 'a cat and a comet' };
+    await pg.click('#turn');
+    await pg.waitForFunction(() => /passes/.test(document.getElementById('msg').textContent), null, { timeout: 5000 });
+    ok('a pass claims nothing', await pg.evaluate(() =>
+      !document.getElementById('board').classList.contains('claimed')));
+    ok('…and scores nothing', (await score()) === '0\u20130');
+    const boardIds = await pg.evaluate(() => window.__triBoard || null);
+    ok('it played from the three cards on the board',
+      (opps[opps.length - 1].cards || []).length === 3
+      && (opps[opps.length - 1].cards || []).every(Boolean)
+      && opps[opps.length - 1].kind === 'same'
+      && (!boardIds || JSON.stringify(opps[opps.length - 1].cards) === JSON.stringify(boardIds)));
+
+    // it finds one — its words land in the middle, the cards light, it scores
+    oppReply = { ok: true, found: true, middle: 'they are all made of water' };
+    await pg.click('#turn');
+    await pg.waitForFunction(() => document.getElementById('board').classList.contains('claimed'), null, { timeout: 5000 });
+    ok('its answer is typed into the middle', await pg.evaluate(() =>
+      document.getElementById('middle').value) === 'they are all made of water');
+    // MEASURED against an unclaimed slot, not against a colour typed here —
+    // a claim that changes no pixel passes every class assertion
+    ok('the cards really light gold', await pg.evaluate(() => {
+      const b = document.getElementById('board');
+      const bg = () => getComputedStyle(document.querySelector('#s-top .face')).backgroundColor;
+      const lit = bg();
+      b.classList.remove('claimed');
+      const dark = bg();
+      b.classList.add('claimed');
+      return lit !== dark;
+    }));
+    ok('it takes the point', (await score()) === '0\u20131');
+
+    // drawing ITS set must not also score HER
+    const before = founds.length;
+    await pg.click('#found');
+    await pg.waitForFunction((n) => window.__t_founds === undefined || true, before, { timeout: 2000 }).catch(() => {});
+    await pg.waitForTimeout(300);
+    ok('drawing its card is still one draw', founds.length === before + 1);
+    ok('…and does NOT score her a point for its set', (await score()) === '0\u20131');
+
+    // and it is sticky
+    await pg.reload({ waitUntil: 'networkidle' });
+    ok('the opponent and the score survive a reload',
+      (await shown()) === true && (await score()) === '0\u20131');
   }
 
   await browser.close();

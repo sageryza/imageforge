@@ -594,6 +594,80 @@ router.get('/cards', async (req, res) => {
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
 
+/* ── PLAYING AGAINST THE COMPUTER (2026-09-01, Sophie: "make it possible to
+   play against a computer") ──────────────────────────────────────────────
+   TURN-BASED, NEVER A TIMER. She looks for as long as she likes; when she is
+   done looking she taps ITS TURN and the computer answers with a set or a
+   pass. Racing her against a clock would turn a quiet game into a reflex
+   test, which is not what this is.
+
+   IT PLAYS FROM THE CARDS' OWN PROMPTS, not from the pictures — those words
+   ARE what drew each card, so it is reading the same thing she is looking at,
+   and a text call is about a tenth of a cent where a vision call is cents.
+   It never draws: a set it finds is announced and SHE decides whether to
+   spend the ~2¢ on the venn card, so the computer can never spend her money.
+
+   IT IS ALLOWED TO PASS, and that matters — an opponent that always finds
+   something is not playing, it is narrating. The prompt says a stretch is a
+   pass, and a pass is what hands the turn back. */
+const OPPONENT_SYSTEM = [
+  'You are playing Similitude, a card game. Three triangular picture cards are on the table.',
+  'You are given the prompt that drew each one — that IS the card.',
+  '',
+  'ALL THE SAME: name ONE thing all three genuinely share. Not a category so broad it fits',
+  'any three things ("they are objects", "they exist", "they are drawings", "they are round-ish").',
+  'EACH DIFFERENT: name a FOURTH thing, and say what each card separately shares with it.',
+  '',
+  'A STRETCH IS A PASS. If the three do not really connect, pass — that is a normal move and',
+  'a better one than a weak claim. Be honest rather than clever.',
+].join('\n');
+
+function opponentPrompt(cards, kind) {
+  const list = cards.map((c, i) => `${i + 1}. ${c}`).join('\n');
+  if (kind === 'each') {
+    return `${list}\n\nAnswer JSON: {"found":true,"middle":"the fourth thing",`
+      + `"sides":["what card 1 shares with it","card 2","card 3"]} or {"found":false,"why":"one short line"}.`;
+  }
+  return `${list}\n\nAnswer JSON: {"found":true,"middle":"the one thing all three share"}`
+    + ` or {"found":false,"why":"one short line"}.`;
+}
+
+// pure: what the model said, cleaned into a move — exported for the test
+function opponentMove(raw, kind) {
+  const d = raw && typeof raw === 'object' ? raw : {};
+  const middle = String(d.middle || '').trim().slice(0, MAX_WORDS);
+  const why = String(d.why || '').trim().slice(0, MAX_WORDS);
+  if (!d.found || !middle) return { found: false, why: why || 'nothing here' };
+  if (kind === 'each') {
+    const sides = Array.isArray(d.sides) ? d.sides.map(x => String(x || '').trim().slice(0, MAX_WORDS)) : [];
+    // a claim missing a side is not a claim — it passes rather than half-scoring
+    if (sides.length !== 3 || sides.some(x => !x)) return { found: false, why: why || 'nothing here' };
+    return { found: true, middle, sides };
+  }
+  return { found: true, middle };
+}
+
+// Free to open, cheap to tap: one small text call, no picture, no card written.
+router.post('/opponent', express.json({ limit: '16kb' }), async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
+    const anthropic = require('./anthropic');
+    if (!anthropic.available()) return res.status(503).json({ error: 'the opponent runs on Claude; the key is not set' });
+    const b = req.body || {};
+    const ids = Array.isArray(b.cards) ? b.cards.slice(0, 3).map(String) : [];
+    if (ids.length !== 3) return res.status(400).json({ error: 'three cards are required' });
+    const kind = KINDS.includes(b.kind) ? b.kind : 'same';
+    const docs = await Promise.all(ids.map(id => db().collection(CARDS).doc(id).get()));
+    if (docs.some(d => !d.exists)) return res.status(400).json({ error: 'card not found' });
+    const words = docs.map(d => (d.data().promptContent || d.data().title || '').trim());
+    if (words.some(w => !w)) return res.status(400).json({ error: 'a card has no words to play from' });
+    const raw = await anthropic.chatJSON({
+      system: OPPONENT_SYSTEM, user: opponentPrompt(words, kind), maxTokens: 400,
+    });
+    res.json({ ok: true, ...opponentMove(raw, kind) });
+  } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
+});
+
 // She found a set → the venn center becomes a new card. The one paid route.
 router.post('/found', async (req, res) => {
   try {
@@ -731,6 +805,7 @@ module.exports = {
   router, init,
   foundContent, cardPrompt, validFound, stuckPatch, bakeCard, editionOf, mixHex,
   syncPlan, syncHearts, slugOfUrl, bestCard, waitingPlan, adoptedFrom, writeWaiting,
+  opponentMove, opponentPrompt, OPPONENT_SYSTEM,
   KINDS, STYLE, TRIANGLE_CLAUSE, triangleClause, INVENT_LINE, AUTO_RULES, STUCK_MS, COST_CENTS,
   // for scripts/seed-triset.js — the seed batch must draw through the exact
   // call a found set draws through, or the pool and the made cards drift.

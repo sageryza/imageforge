@@ -54,13 +54,13 @@ h1.tool-eyebrow{
   position:fixed;inset:0;background:rgba(43,38,34,.36);z-index:60;
   display:flex;align-items:center;justify-content:center;padding:26px;
 }
-#modes{display:flex;flex-direction:column;gap:8px;margin:0 0 16px}
-#modes button{
+#modes,.modes{display:flex;flex-direction:column;gap:8px;margin:0 0 16px}
+#modes button,.modes button{
   font:inherit;font-size:14px;text-align:left;padding:9px 12px;cursor:pointer;
   color:var(--gold);background:none;border:1px solid var(--gold);border-radius:6px;
   letter-spacing:.06em;text-transform:uppercase;
 }
-#modes button.on{color:var(--ink);border-color:var(--ink)}
+#modes button.on,.modes button.on{color:var(--ink);border-color:var(--ink)}
 #helpcard>div{
   background:var(--card);border:1px solid var(--line);border-radius:6px;
   padding:20px 22px;max-width:340px;font-size:15px;line-height:1.55;
@@ -270,6 +270,11 @@ button.btn{
 <div id="eds" hidden></div>
 
 <div id="acts">
+  <!-- PLAYING AGAINST THE COMPUTER (2026-09-01, "make it possible to play
+       against a computer"). TURN-BASED, never a timer — she looks for as long
+       as she likes and hands the turn over when she is done looking. Hidden
+       until she turns the opponent on in settings. -->
+  <button class="btn" id="turn" hidden>Its turn <span class="cost">~0.1¢</span></button>
   <button class="btn" id="found"><span id="star" hidden></span><span id="foundword">Set!</span> <span class="cost">~2¢</span></button>
 </div>
 <!-- HER HAND — three cards under the board (2026-09-01, "make it so i get
@@ -292,6 +297,10 @@ button.btn{
       <button data-k="same">All the same</button>
       <button data-k="each">Each different</button>
       <button data-k="auto">Model finds it</button>
+    </div>
+    <div id="oppos" class="modes">
+      <button data-o="0">Solitaire</button>
+      <button data-o="1">Vs. the computer</button>
     </div>
     <b>Similitude.</b> Three triangular cards around a middle triangle.
     Say what they have in common in the middle — or tap a card to swap it
@@ -456,6 +465,23 @@ function randOf(list){ return list[Math.floor(Math.random() * list.length)]; }
 var SKEY = 'triset.table';
 var sets = 0;
 
+/* ── THE COMPUTER (2026-09-01, "make it possible to play against a computer")
+   TURN-BASED, NEVER A TIMER — she looks for as long as she likes, and ITS
+   TURN is what hands the hand over. A race against a clock would make a
+   quiet game a reflex test.
+
+   IT NEVER SPENDS HER MONEY: a set it finds is announced and typed into the
+   middle, and the ~2¢ card is still her own Draw it! tap. It scores whether
+   or not she draws it, because the point was finding the set.
+
+   `claimBy` is why a claim has an owner at all — without it, drawing the card
+   the computer found would score HER a point for its set. */
+var OKEY = 'triset.oppo';
+var oppo = false;
+try { oppo = localStorage.getItem(OKEY) === '1'; } catch(e){}
+var theirs = 0;
+var claimBy = 'me';
+
 var deck = [];                 // face-down, dealt off the END (the top)
 var discard = [];
 var held = [null,null,null];   // her hand, under the board
@@ -599,8 +625,19 @@ function restore(st){
 }
 function paintSets(){
   var el = $('#sets');
-  el.textContent = sets ? String(sets) : '';
-  el.hidden = !sets;
+  // solitaire is one number; against the computer it is the score, so the
+  // count only ever grows a second half when there is an opponent to beat
+  el.textContent = oppo ? (sets + '\u2013' + theirs) : (sets ? String(sets) : '');
+  el.hidden = !oppo && !sets;
+}
+function setOppo(on){
+  oppo = !!on;
+  try { localStorage.setItem(OKEY, oppo ? '1' : '0'); } catch(e){}
+  Array.prototype.forEach.call(document.querySelectorAll('#oppos button'), function(b){
+    b.classList.toggle('on', (b.dataset.o === '1') === oppo);
+  });
+  $('#turn').hidden = !oppo;
+  paintSets();
 }
 function saveTable(){
   try {
@@ -609,7 +646,7 @@ function saveTable(){
       held: held.map(function(c){ return c && c.id; }),
       deck: deck.map(function(c){ return c.id; }),
       discard: discard.map(function(c){ return c.id; }),
-      middle: $('#middle').value, sets: sets, kind: kind,
+      middle: $('#middle').value, sets: sets, theirs: theirs, kind: kind,
     }));
   } catch(e){}
 }
@@ -631,6 +668,7 @@ function loadTable(){
   deck = (t.deck || []).map(pick).filter(Boolean);
   discard = (t.discard || []).map(pick).filter(Boolean);
   sets = +t.sets || 0;
+  theirs = +t.theirs || 0;
   if (typeof t.middle === 'string') $('#middle').value = t.middle;
   if (t.kind) setKind(t.kind);
   clearPick(); paintHand(); paintSets(); costLine(); paintFound();
@@ -696,11 +734,14 @@ function drawingUI(on){
    star, which is the only tap that spends money. So the claim is free and
    reversible, and the paid tap is never the first one. */
 var claimed = false;
-function setClaimed(on){
+function setClaimed(on, by){
   claimed = !!on;
+  claimBy = claimed ? (by || 'me') : 'me';
   $('#board').classList.toggle('claimed', claimed);
   paintFound();
-  if (claimed && kind !== 'auto') { var m = $('#middle'); if (m && !m.hidden) m.focus(); }
+  // the computer's claim is already filled in — putting a caret in it would
+  // invite her to type over the answer she is being shown
+  if (claimed && claimBy === 'me' && kind !== 'auto') { var m = $('#middle'); if (m && !m.hidden) m.focus(); }
 }
 function readyToDraw(){
   if (!claimed) return false;
@@ -715,6 +756,37 @@ function paintFound(){
   $('#star').hidden = !go;                        // the generate star only on the paid tap
   $('#found').classList.toggle('ready', go);
   $('#found').querySelector('.cost').hidden = !go;
+}
+
+/* ITS TURN. One small text call — no picture, no card written — so the
+   opponent costs about a tenth of a cent a turn and can never spend her
+   money. A pass hands the turn straight back; a find types its answer into
+   the middle, lights the cards and takes the point. */
+var thinking = false;
+function itsTurn(){
+  if (pending || thinking) return;
+  var ids = [hand.top, hand.left, hand.right].map(function(c){ return c && c.id; });
+  window.__triBoard = ids;                      // what the test asks it played from
+  if (ids.some(function(x){ return !x; })) { say('deal three cards first', true); return; }
+  if (claimed) { say('you have already claimed this hand', true); return; }
+  thinking = true; $('#turn').disabled = true; say('thinking\u2026');
+  fetch('/api/triset/opponent', { method:'POST', headers:hdrs(true),
+    body:JSON.stringify({ cards: ids, kind: kind }) })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.error) throw new Error(d.error);
+      if (!d.found) { say('it passes \u2014 ' + (d.why || 'nothing here')); return; }
+      pushUndo();
+      $('#middle').value = d.middle;
+      if (kind === 'each' && d.sides) {
+        VENN.forEach(function(id, i){ document.getElementById(id).value = d.sides[i] || ''; });
+      }
+      setClaimed(true, 'it');
+      theirs += 1; paintSets(); saveTable();
+      say('it says: ' + d.middle + ' \u2014 its point. Draw it! makes the card.');
+    })
+    .catch(function(e){ say(String(e.message || e), true); })
+    .finally(function(){ thinking = false; $('#turn').disabled = false; paintFound(); });
 }
 
 function found(){
@@ -747,7 +819,8 @@ function found(){
     .then(function(d){
       if (!d.ok) throw new Error(d.error || 'could not start the card');
       pending = d.id;
-      sets += 1; paintSets(); setClaimed(false); saveTable();
+      if (claimBy === 'me') sets += 1;    // its set was already scored on its turn
+      paintSets(); setClaimed(false); saveTable();
       try { localStorage.setItem(PKEY, pending); } catch(e){}
       poll();
     })
@@ -842,11 +915,16 @@ Array.prototype.forEach.call(document.querySelectorAll('.hcard'), function(b){
 $('#undo').onclick = undo;
 $('#redo').onclick = redo;
 $('#found').onclick = found;
+$('#turn').onclick = itsTurn;
 $('#gear').onclick = function(){ $('#helpcard').hidden = false; };
 // the sheet must show the mode she is ON from the first open — `kind` has a
 // default and setKind was only ever called by a tap, so nothing was lit
 setKind(kind);
+setOppo(oppo);                     // same reason: the stored side must be lit
 document.getElementById('gear').innerHTML = GEAR_ICON;
+Array.prototype.forEach.call(document.querySelectorAll('#oppos button'), function(b){
+  b.onclick = function(ev){ ev.stopPropagation(); setOppo(b.dataset.o === '1'); saveTable(); };
+});
 Array.prototype.forEach.call(document.querySelectorAll('#modes button'), function(b){
   b.onclick = function(ev){ ev.stopPropagation(); setKind(b.dataset.k); };
 });
