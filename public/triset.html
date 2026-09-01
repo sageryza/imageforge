@@ -49,6 +49,22 @@ h1.tool-eyebrow{
   padding:20px 22px;max-width:340px;font-size:15px;line-height:1.55;
 }
 
+/* ── HER HAND — three cards under the board, same triangular cut ─────── */
+#hand{display:flex;justify-content:center;gap:10px;margin:14px 18px 0}
+.hcard{
+  position:relative;flex:0 0 auto;width:min(26vw,120px);aspect-ratio:1000/866;
+  padding:0;border:none;background:none;cursor:pointer;
+  clip-path:polygon(50% 0,100% 100%,0 100%);
+}
+.hcard img{position:absolute;inset:0;width:100%;height:100%;display:block}
+/* THE PICK IS SHOWN BY DIMMING THE OTHERS, never by a border: the cards are
+   clipped triangles, so a border would draw a rectangle around one. */
+#hand.picking .hcard{opacity:.42}
+#hand.picking .hcard.pick{opacity:1}
+#board.picking .slot.up{opacity:.42}
+#board.picking .slot.up.pick{opacity:1}
+.hcard:empty,.hcard.gone{visibility:hidden}
+
 /* ── the board: three cards + the middle text triangle ────────────────── */
 #board{
   position:relative;width:min(94vw,470px);aspect-ratio:1000/866;
@@ -176,9 +192,9 @@ button.btn{
 </header>
 
 <div id="board">
-  <button class="slot up" id="s-top" aria-label="swap the top card"><span class="face"></span><img alt=""></button>
-  <button class="slot up" id="s-left" aria-label="swap the left card"><span class="face"></span><img alt=""></button>
-  <button class="slot up" id="s-right" aria-label="swap the right card"><span class="face"></span><img alt=""></button>
+  <button class="slot up" id="s-top" aria-label="the top card"><span class="face"></span><img alt=""></button>
+  <button class="slot up" id="s-left" aria-label="the left card"><span class="face"></span><img alt=""></button>
+  <button class="slot up" id="s-right" aria-label="the right card"><span class="face"></span><img alt=""></button>
   <div class="slot" id="s-mid">
     <span class="face"></span>
     <div id="midwrap"><textarea id="middle" rows="3"></textarea></div>
@@ -188,6 +204,16 @@ button.btn{
     <div id="middrawing" hidden>drawing</div>
     <div id="midcut" hidden><img id="midimg" alt=""></div>
   </div>
+</div>
+
+<!-- HER HAND — three cards under the board (2026-09-01, "make it so i get
+     dealt three cards, they show under the board, i click a card on the
+     board and one in my hand, to replace it w that card. a new card from
+     the deck comes into my hand"). -->
+<div id="hand">
+  <button class="hcard" data-h="0"><img alt=""></button>
+  <button class="hcard" data-h="1"><img alt=""></button>
+  <button class="hcard" data-h="2"><img alt=""></button>
 </div>
 
 <!-- EDITIONS — a deck within the pool (2026-08-31, "triset color edition").
@@ -350,27 +376,113 @@ function others(){
 }
 function randOf(list){ return list[Math.floor(Math.random() * list.length)]; }
 
+/* ── A REAL DECK (2026-09-01, "make sure its an actual deck dealing") ─────
+   Not a random pick per slot — a shuffled deck dealt off the top, no card in
+   two places at once, replaced cards going to a discard pile, and the discard
+   shuffled back only when the deck runs dry. Six cards are on the table at a
+   time (three on the board, three in her hand), so the deck is the dealable
+   pool minus those. */
+var deck = [];                 // face-down, dealt off the END (the top)
+var discard = [];
+var held = [null,null,null];   // her hand, under the board
+
+function shuffle(a){           // Fisher-Yates
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+function newDeck(){
+  deck = shuffle(dealable().slice());
+  discard = [];
+}
+function draw(){
+  if (!deck.length) {          // the deck ran out — the discards are the deck
+    deck = shuffle(discard.slice());
+    discard = [];
+  }
+  return deck.pop() || null;
+}
+function onTable(c){
+  if (!c) return false;
+  return [hand.top, hand.left, hand.right].concat(held)
+    .some(function(x){ return x && x.id === c.id; });
+}
+// a draw that is somehow already on the table is put aside and retried, so a
+// re-shuffle can never deal the same card twice
+function drawFresh(){
+  for (var i = 0; i < deck.length + discard.length + 2; i++) {
+    var c = draw();
+    if (!c) return null;
+    if (!onTable(c)) return c;
+    discard.push(c);
+  }
+  return null;
+}
+
+function paintHand(){
+  for (var i = 0; i < 3; i++) {
+    var b = document.querySelector('.hcard[data-h="' + i + '"]');
+    var img = b.querySelector('img');
+    if (held[i]) { img.src = cardSrc(held[i]); img.hidden = false; b.classList.remove('gone'); }
+    else { img.removeAttribute('src'); img.hidden = true; b.classList.add('gone'); }
+  }
+  paintPick();
+}
+
+// THE BOARD IS DEALT FIRST AND THE HAND TAKES WHAT IS LEFT — a real deck runs
+// low honestly rather than refusing. A three-card edition fills the board and
+// leaves the hand empty, which is exactly what a deck of three would do.
 function deal(){
   if (dealable().length < 3) {
-    say(edition ? ('not enough ' + edLabel(edition).toLowerCase() + ' to deal yet') : 'not enough cards in the pool yet', true);
+    say(edition ? ('not enough ' + edLabel(edition).toLowerCase() + ' to deal yet') : 'not enough cards to deal yet', true);
     return;
   }
   pushUndo();
-  var rest = dealable();
-  ['top','left','right'].forEach(function(s){
-    var c = randOf(rest);
-    rest.splice(rest.indexOf(c), 1);
-    hand[s] = c; setImg(s, c);
-  });
-  costLine();
+  newDeck();
+  hand.top = hand.left = hand.right = null;
+  held = [null,null,null];
+  ['top','left','right'].forEach(function(s){ hand[s] = drawFresh(); setImg(s, hand[s]); });
+  for (var i = 0; i < 3; i++) held[i] = drawFresh();
+  clearPick(); paintHand(); costLine();
 }
-function swap(slot){
-  var rest = others();
-  if (!rest.length) { say('no other cards to swap in', true); return; }
+
+/* THE SWAP IS TWO TAPS — a board card and a hand card. Either order: the
+   first tap picks, the second completes. The board card goes to the DISCARD
+   (it is out of play until the deck runs dry), the hand card takes its place,
+   and the hand slot refills off the top of the deck. */
+var pickSlot = null, pickHand = null;
+function clearPick(){ pickSlot = null; pickHand = null; paintPick(); }
+function paintPick(){
+  var b = $('#board'), h = $('#hand');
+  b.classList.toggle('picking', !!pickSlot);
+  h.classList.toggle('picking', pickHand !== null);
+  ['top','left','right'].forEach(function(s){
+    $('#s-' + s).classList.toggle('pick', pickSlot === s);
+  });
+  for (var i = 0; i < 3; i++) {
+    document.querySelector('.hcard[data-h="' + i + '"]').classList.toggle('pick', pickHand === i);
+  }
+}
+function tapSlot(slot){
+  if (!hand[slot]) return;
+  if (pickHand !== null) return doSwap(slot, pickHand);
+  pickSlot = (pickSlot === slot) ? null : slot;   // tapping the lit one puts it down
+  paintPick();
+}
+function tapHand(i){
+  if (!held[i]) return;
+  if (pickSlot) return doSwap(pickSlot, i);
+  pickHand = (pickHand === i) ? null : i;
+  paintPick();
+}
+function doSwap(slot, i){
   pushUndo();
-  var c = randOf(rest);
-  hand[slot] = c; setImg(slot, c);
-  costLine();
+  discard.push(hand[slot]);
+  hand[slot] = held[i]; setImg(slot, hand[slot]);
+  held[i] = drawFresh();
+  clearPick(); paintHand(); costLine(); say('');
 }
 
 /* UNDO — put the last hand back (2026-09-01, "add an undo button").
@@ -383,9 +495,13 @@ function swap(slot){
    three is worse than a row of two. */
 var undos = [];                 // hands, oldest first
 var UNDO_MAX = 20;
+// THE WHOLE TABLE, not just the board — with a real deck, restoring three
+// board cards while the deck kept its position would deal a card that is
+// already in play. Deck and discard are snapshotted by COPY.
 function pushUndo(){
   if (!hand.top && !hand.left && !hand.right) return;   // nothing dealt yet
-  undos.push({ top: hand.top, left: hand.left, right: hand.right });
+  undos.push({ top: hand.top, left: hand.left, right: hand.right,
+    held: held.slice(), deck: deck.slice(), discard: discard.slice() });
   if (undos.length > UNDO_MAX) undos.shift();
   paintUndo();
 }
@@ -395,7 +511,10 @@ function undo(){
   var prev = undos.pop();
   if (!prev) { paintUndo(); return; }
   ['top','left','right'].forEach(function(s){ hand[s] = prev[s]; setImg(s, prev[s]); });
-  costLine(); paintUndo(); say('');
+  held = (prev.held || [null,null,null]).slice();
+  deck = (prev.deck || []).slice();
+  discard = (prev.discard || []).slice();
+  clearPick(); paintHand(); costLine(); paintUndo(); say('');
 }
 
 function say(t, bad){
@@ -530,9 +649,12 @@ function load(){
     .catch(function(){ say('could not load the cards', true); });
 }
 
-$('#s-top').onclick = function(){ swap('top'); };
-$('#s-left').onclick = function(){ swap('left'); };
-$('#s-right').onclick = function(){ swap('right'); };
+$('#s-top').onclick = function(){ tapSlot('top'); };
+$('#s-left').onclick = function(){ tapSlot('left'); };
+$('#s-right').onclick = function(){ tapSlot('right'); };
+Array.prototype.forEach.call(document.querySelectorAll('.hcard'), function(b){
+  b.onclick = function(){ tapHand(+b.dataset.h); };
+});
 $('#deal').onclick = deal;
 $('#undo').onclick = undo;
 $('#found').onclick = found;
