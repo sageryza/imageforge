@@ -16,7 +16,14 @@
 // reads and changes her mind about. Flip an already-posted page without
 // re-posting: POST /api/chatfeed/page/<id>/pace {pace:'quick'|'labored'}.
 //
-// Dry by default (prints the count and the first items). `--go` posts the page
+// TWO PAGES, split by whether the card is IN the Similitude deal (Sophie,
+// 2026-09-01: "separate to cards already in deck and not"). A pool card is in
+// the deal when it carries `edition:'nature'` and is not hidden — the one rule
+// triset.js's own sync uses, never a second definition. Everything else she
+// hearted is waiting: an alternate generation, a subject outside her nature
+// vocabulary, and every Playground picture (those live in no deal at all).
+//
+// Dry by default (prints the counts and the first items). `--go` posts the pages
 // into the chat named by --chat. Needs FIREBASE_SERVICE_ACCOUNT (Deck Factory).
 const admin = require('firebase-admin');
 const args = process.argv.slice(2);
@@ -49,7 +56,7 @@ function buildItems({ cards, votes, runs, verdicts }) {
       img: c.cut || c.url, url: c.url,
       model: c.model || 'gpt-image-2', quality: c.quality || '',
       promptContent: c.promptContent || '', promptStyle: c.promptStyle || '',
-      _at: ms(c.createdAt), _why: why,
+      _at: ms(c.createdAt), _why: why, _inDeck: c.edition === 'nature' && !c.hidden,
     });
   }
   runs.forEach(r => (r.images || []).forEach((u, i) => {
@@ -57,10 +64,28 @@ function buildItems({ cards, votes, runs, verdicts }) {
     const full = r.fullPrompt || ''; const content = r.prompt || '';
     const style = full && content && full.includes(content) ? full.replace(content, '[content]') : '';
     items.push({ id: `pl-${r.id}-${i}`, label: content, img: u, url: u, model: 'gpt-image-2',
-      quality: r.quality || '', promptContent: content, promptStyle: style, _at: ms(r.createdAt), _why: 'playground' });
+      quality: r.quality || '', promptContent: content, promptStyle: style,
+      _at: ms(r.createdAt), _why: 'playground', _inDeck: false });
   }));
   items.sort((a, b) => b._at - a._at);
   return items;
+}
+
+function pageBody(chat, title, items, help) {
+  return {
+    chat, title, template: 'deck',
+    data: {
+      items: items.map(({ _at, _why, _inDeck, ...i }) => i),
+      aspect: 'square', browse: true, stamp: false, voice: true, pace: 'quick', help,
+    },
+  };
+}
+
+async function post(body) {
+  const r = await fetch(`${BASE}/api/chatfeed/page`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
+  });
+  return r.text();
 }
 
 (async () => {
@@ -72,18 +97,17 @@ function buildItems({ cards, votes, runs, verdicts }) {
   ]);
   const rows = s => s.docs.map(d => ({ id: d.id, ...d.data() }));
   const items = buildItems({ cards: rows(cardSnap), votes: rows(voteSnap), runs: rows(runSnap), verdicts: rows(verdictSnap) });
-  const why = {}; items.forEach(i => { why[i._why] = (why[i._why] || 0) + 1; });
-  console.log(`${items.length} hearted triangle cards`, why);
-  const clean = items.map(({ _at, _why, ...i }) => i);
-  const body = {
-    chat: CHAT, title: `Triangle cards you hearted (${clean.length})`, template: 'deck',
-    data: {
-      items: clean, aspect: 'square', browse: true, stamp: false, voice: true, pace: 'quick',
-      help: 'Every triangle card you hearted, anywhere — the Similitude pool, its Compare pages, and the Playground\'s Triangle tile. '
-        + 'Tap the left or right edge to step, ✕ · ? · ♥ to re-mark, tap the picture for the prompt and the Playground button.',
-    },
-  };
-  if (!go) { console.log(JSON.stringify(clean.slice(0, 3), null, 1)); console.log('(dry — add --go to post)'); return; }
-  const r = await fetch(`${BASE}/api/chatfeed/page`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
-  console.log(await r.text());
+  const inDeck = items.filter(i => i._inDeck);
+  const waiting = items.filter(i => !i._inDeck);
+  console.log(`${items.length} hearted — ${inDeck.length} in the Similitude deal, ${waiting.length} not`);
+  const pages = [
+    pageBody(CHAT, `Hearted · in the deck (${inDeck.length})`, inDeck,
+      'The triangle cards you hearted that Similitude actually deals — the nature edition. '
+      + 'Tap the left or right edge to step; a mark moves you on. Tap the picture for the prompt.'),
+    pageBody(CHAT, `Hearted · not in the deck (${waiting.length})`, waiting,
+      'Triangle cards you hearted that Similitude does NOT deal — an alternate take, a subject outside '
+      + 'the nature set, or a Playground picture. Tap the picture for the prompt and the Playground button.'),
+  ];
+  if (!go) { console.log(JSON.stringify(pages.map(p => p.title), null, 1)); console.log('(dry — add --go to post)'); return; }
+  for (const p of pages) console.log(await post(p));
 })().catch(e => { console.error(e); process.exit(1); });
