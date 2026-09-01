@@ -7863,6 +7863,40 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - **Her words are the content half, verbatim**; the one connective line
     (INVENT_LINE) rides in the wrapper and is disclosed in `promptStyle` with
     the `[content]` seam. The whole prompt is stored on every card doc.
+  - **PLAYING AGAINST THE COMPUTER (2026-09-01, Sophie: "make it possible to
+    play against a computer").** Turned on in the settings gear; the score
+    replaces the set count. **TURN-BASED, NEVER A TIMER** — she looks for as
+    long as she likes and **ITS TURN** is what hands the hand over. A race
+    against a clock would make a quiet game a reflex test.
+    - **IT PLAYS FROM THE CARDS' OWN PROMPTS, not the pictures** — those words
+      ARE what drew each card, so it reads the same thing she is looking at,
+      and a text call is ~0.1¢ where a vision call is cents.
+    - **IT CAN NEVER SPEND HER MONEY.** A set it finds is announced, typed
+      into the middle and scored; the ~2¢ venn card is still her own Draw it!
+      tap. **`claimBy` is why a claim has an owner** — without it, drawing the
+      card the computer found would score HER a point for its set.
+    - **IT IS ALLOWED TO PASS, and that is the balance** — an opponent that
+      always finds something is narrating, not playing. `A STRETCH IS A PASS`
+      is in the prompt and pinned by the test.
+  - **THE SETS SHE HAS WON SIT AT THE BOTTOM (2026-09-01: "sets get saved at
+    the bottom, left to right, 4 to a row, in full triangle formation, new
+    card included in middle · can be clicked to see bigger · you can also
+    click to see opponents successful sets").** A tile is the BOARD at tile
+    size — **the same `.sl` geometry, one copy of the numbers**, so a saved set
+    looks exactly like the hand that won it. Stored as card IDs like the table,
+    so a re-cut card is never a stale copy. Two things not to undo: **the
+    middle of a formation is the inverted triangle BY POSITION, never by the
+    card's own `flip`** (a set drawn but not yet made still has to nest), and
+    the opponent's tiles wear a small gold **IT** in the formation's empty
+    top-left corner — hers wear nothing.
+  - **THE CHALLENGE (2026-09-01: "you can challenge your opponent, if you have
+    a card in your hand that fits their rule, then you steal their set").**
+    Open one of its sets big, tap Challenge, pick a card from her hand;
+    `POST /api/triset/challenge` asks the model whether it really fits the rule
+    it named, and a yes moves the point to her. **The referee is DELIBERATELY
+    STRICT** — a challenge that always succeeds makes the opponent pointless —
+    so the rule must be true of the card the same plain way it is true of the
+    set, and a near miss is a no. One text call, ~0.1¢, no picture.
   - **Money:** a found set draws ONE gpt-image-2 edit with the dreamy
     reference — LOW while the prompts are tuned (her call, 2026-08-30), ~1.8c,
     only on her deliberate star tap; `QUALITY` in triset.js is the one line

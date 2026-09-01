@@ -372,6 +372,11 @@ ok('an orphaned draw fails honestly', sp && sp.status === 'failed');
   ok('an adopted subject joins the deal though it is outside the vocabulary',
     dealt.length === 1 && dealt[0].patch.edition === 'nature' && dealt[0].patch.hidden === false);
 }
+ok('a referee that does not say yes is a no', triset.challengeVerdict({ fits: 'yes' }).fits === false);
+ok('a plain yes is a yes', triset.challengeVerdict({ fits: true, why: 'both are water' }).fits === true);
+ok('the referee is told to be fair, not generous', /not a generous one/.test(triset.CHALLENGE_SYSTEM));
+ok('the opponent is allowed to pass', /A STRETCH IS A PASS/.test(triset.OPPONENT_SYSTEM));
+
 ok('the waiting page is one standing doc, not a new page each sweep', /WAIT_PAGE/.test(MOD) && /dataHash/.test(MOD));
 
 ok('the sync runs off her votes collection', /forge-asset-votes/.test(MOD));
@@ -423,6 +428,8 @@ async function headless() {
   let cardsResp = cards;
   const opps = [];
   let oppReply = { ok: true, found: false, why: 'nothing here' };
+  const challenges = [];
+  let chalReply = { ok: true, fits: false, why: 'no' };
   let madeHex = null; // the hex /found answered with, phase 2
   const srv = http.createServer((req, res) => {
     const u = new URL(req.url, 'http://x');
@@ -463,6 +470,16 @@ async function headless() {
         opps.push(JSON.parse(body));
         res.writeHead(200, { 'content-type': 'application/json' });
         res.end(JSON.stringify(oppReply));
+      });
+      return;
+    }
+    if (u.pathname === '/api/triset/challenge') {
+      let body = '';
+      req.on('data', (c) => { body += c; });
+      req.on('end', () => {
+        challenges.push(JSON.parse(body));
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify(chalReply));
       });
       return;
     }
@@ -961,10 +978,70 @@ async function headless() {
     ok('drawing its card is still one draw', founds.length === before + 1);
     ok('…and does NOT score her a point for its set', (await score()) === '0\u20131');
 
+    /* THE SHELF, THE BIG VIEW AND THE CHALLENGE (2026-09-01). Measured: a
+       tile that renders 0px, a formation missing its middle card and a steal
+       that never moves the score all pass any source assertion. */
+    const tiles = () => pg.evaluate(() => Array.from(document.querySelectorAll('#won .setcard')).map((b) => {
+      const r = b.getBoundingClientRect();
+      const imgs = Array.from(b.querySelectorAll('.sl img')).filter((i) => i.getAttribute('src'));
+      return { w: Math.round(r.width), x: Math.round(r.x), y: Math.round(r.y), imgs: imgs.length,
+        mine: b.classList.contains('mine') };
+    }));
+    let t = await tiles();
+    ok('a won set is kept on the shelf', t.length === 1 && t[0].w > 20);
+    ok('…in full triangle formation, the made card in the middle', t[0].imgs === 4);
+    ok('…and its own set is marked as its own', t[0].mine === false);
+
+    // four to a row, left to right — MEASURED off the real boxes
+    await pg.evaluate(() => {
+      const w = JSON.parse(localStorage.getItem('triset.table'));
+      const one = w.wins[0];
+      w.wins = Array.from({ length: 6 }, () => JSON.parse(JSON.stringify(one)));
+      localStorage.setItem('triset.table', JSON.stringify(w));
+    });
+    await pg.reload({ waitUntil: 'networkidle' });
+    t = await tiles();
+    ok('six sets lay out four to a row', t.length === 6
+      && t[0].y === t[3].y && t[4].y > t[0].y
+      && t[0].x < t[1].x && t[1].x < t[2].x && t[2].x < t[3].x);
+
+    // tap one → the big view, with its rule
+    await pg.click('#won .setcard');
+    ok('tapping a set opens it bigger', await pg.evaluate(() => {
+      const b = document.getElementById('setbig');
+      return !b.hidden && document.getElementById('bigform').getBoundingClientRect().width
+        > document.querySelector('#won .setcard').getBoundingClientRect().width;
+    }));
+    ok('…showing the rule it was won on', await pg.evaluate(() =>
+      document.getElementById('bigtext').textContent) === 'they are all made of water');
+    ok('…and that the computer found it', await pg.evaluate(() =>
+      /its set/.test(document.getElementById('bigwho').textContent)));
+
+    // challenge it — a refused challenge changes nothing
+    chalReply = { ok: true, fits: false, why: 'a stretch' };
+    await pg.click('#stealbtn');
+    ok('the challenge offers the cards in her hand', await pg.evaluate(() =>
+      document.querySelectorAll('#stealrow .hcard').length === 3));
+    await pg.click('#stealrow .hcard');
+    await pg.waitForFunction(() => /holds/.test(document.getElementById('msg').textContent), null, { timeout: 5000 });
+    ok('a refused challenge leaves the score alone', (await score()) === '0\u20131');
+    const heldIds = await pg.evaluate(() => JSON.parse(localStorage.getItem('triset.table')).held || []);
+    const last = challenges[challenges.length - 1] || {};
+    ok('…and it judged a card from HER HAND against the rule it named',
+      heldIds.indexOf(last.card) >= 0 && last.rule === 'they are all made of water');
+
+    // …a good one steals the point
+    chalReply = { ok: true, fits: true, why: 'both are water' };
+    await pg.click('#stealrow .hcard');
+    await pg.waitForFunction(() => document.getElementById('setbig').hidden, null, { timeout: 5000 });
+    ok('a good challenge steals the set', (await score()) === '1\u20130');
+    ok('…and the tile becomes hers', (await tiles())[0].mine === true);
+
     // and it is sticky
     await pg.reload({ waitUntil: 'networkidle' });
     ok('the opponent and the score survive a reload',
-      (await shown()) === true && (await score()) === '0\u20131');
+      (await shown()) === true && (await score()) === '1\u20130');
+    ok('…and so do the sets she has won', (await tiles()).length === 6);
   }
 
   await browser.close();

@@ -83,6 +83,31 @@ h1.tool-eyebrow{
    house look for every button here now. */
 
 /* ── HER HAND — three cards under the board, same triangular cut ─────── */
+/* ── THE SETS SHE HAS WON (2026-09-01, "sets get saved at the bottom, left
+   to right, 4 to a row, in full triangle formation, new card included in
+   middle · can be clicked to see bigger · you can also click to see
+   opponents successful sets"). A tile is the BOARD at tile size — the same
+   .sl geometry, one copy of the numbers — so a saved set looks exactly like
+   the hand that won it, made card and all. */
+#won{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 18px 0;padding:0}
+#won:empty{display:none}
+.setcard{position:relative;padding:0;border:none;background:none;cursor:pointer}
+.setform{position:relative;display:block;width:100%;aspect-ratio:1000/866}
+.setcard .who{                       /* the formation's top-left corner is empty */
+  position:absolute;left:0;top:0;font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--gold);line-height:1;
+}
+.setcard.mine .who{display:none}          /* only the opponent's is marked */
+#setbig{position:fixed;inset:0;z-index:60;background:rgba(20,18,16,.86);
+  display:flex;align-items:center;justify-content:center;padding:20px}
+#setbig>div{max-width:420px;width:100%;text-align:center}
+#bigform{position:relative;width:100%;aspect-ratio:1000/866;margin:0 auto}
+#bigtext{color:var(--paper);font-size:16px;line-height:1.5;margin:16px 4px 0}
+#bigwho{color:var(--gold);font-size:12px;letter-spacing:.1em;text-transform:uppercase;margin-top:8px}
+#steal{margin-top:14px}
+#steal .hcard{width:64px;height:56px}
+#stealline{color:var(--paper);font-size:13px;margin-top:12px;opacity:.8}
+#stealrow{display:flex;justify-content:center;gap:10px;margin-top:10px}
 #hand{display:flex;justify-content:center;gap:10px;margin:14px 18px 0}
 .hcard{
   position:relative;flex:0 0 auto;width:min(26vw,120px);aspect-ratio:1000/866;
@@ -103,11 +128,11 @@ h1.tool-eyebrow{
   position:relative;width:min(94vw,470px);aspect-ratio:1000/866;
   margin:10px auto 0;
 }
-.slot{position:absolute;width:50%;height:50%;padding:0;border:none;background:none;cursor:pointer}
-#s-top{left:25%;top:0}
-#s-left{left:0;top:50%}
-#s-right{left:50%;top:50%}
-#s-mid{left:25%;top:50%;cursor:default}
+.slot,.sl{position:absolute;width:50%;height:50%;padding:0;border:none;background:none;cursor:pointer}
+#s-top,.sl.p-top{left:25%;top:0}
+#s-left,.sl.p-left{left:0;top:50%}
+#s-right,.sl.p-right{left:50%;top:50%}
+#s-mid,.sl.p-mid{left:25%;top:50%;cursor:default}
 /* NO MAT BEHIND A CARD — the only cream is the paper rim the model drew
    INTO the picture (2026-08-31, Sophie: "there shud be no cream border
    aside from the one built into the images"). The cream mat added a day
@@ -130,18 +155,18 @@ h1.tool-eyebrow{
    1/0.84, then ×0.90 = 107.143%; offsets are the mapped origin — and note
    CSS top% is in SLOT-HEIGHT units (0.866 of the width), which is where the
    first pass slipped. */
-.slot.up{clip-path:polygon(50% 0,100% 100%,0 100%)}
-.slot.down{clip-path:polygon(0 0,100% 0,50% 100%)}
-.slot img,#midimg{position:absolute;display:block;width:107.143%;height:auto;left:-3.571%}
-.slot.up img{top:-17.161%}
-.slot.down img,#midimg{top:-6.564%}
+.slot.up,.sl.up{clip-path:polygon(50% 0,100% 100%,0 100%)}
+.slot.down,.sl.down{clip-path:polygon(0 0,100% 0,50% 100%)}
+.slot img,#midimg,.sl img{position:absolute;display:block;width:107.143%;height:auto;left:-3.571%}
+.slot.up img,.sl.up img{top:-17.161%}
+.slot.down img,#midimg,.sl.down img{top:-6.564%}
 /* A card with a baked DIE-CUT (`cut` on the doc — triset-cut.js) fills the
    slot exactly: the copy is the slot's own 1000x866 canvas, the drawn card
    measured and fitted inside with transparency around it, so the cream face
    shows through as the border and the whole image plus outline fits in the
    triangle (2026-08-30, Sophie: "fix the cutting"). The fixed mapping above
    survives only as the fallback for a card whose bake failed. */
-.slot img.whole,#midimg.whole{width:100%;height:100%;left:0;top:0}
+.slot img.whole,#midimg.whole,.sl img.whole{width:100%;height:100%;left:0;top:0}
 /* the middle inverted triangle — a text box, until a made card lands in it.
    The SLOT is not clipped (the venn boxes ride its edges); the face and the
    made-card cutter carry their own triangles. */
@@ -274,7 +299,7 @@ button.btn{
        against a computer"). TURN-BASED, never a timer — she looks for as long
        as she likes and hands the turn over when she is done looking. Hidden
        until she turns the opponent on in settings. -->
-  <button class="btn" id="turn" hidden>Its turn <span class="cost">~0.1¢</span></button>
+  <button class="btn" id="turn" hidden>Its turn</button>
   <button class="btn" id="found"><span id="star" hidden></span><span id="foundword">Set!</span> <span class="cost">~2¢</span></button>
 </div>
 <!-- HER HAND — three cards under the board (2026-09-01, "make it so i get
@@ -286,6 +311,21 @@ button.btn{
   <button class="hcard" data-h="1"><img alt=""></button>
   <button class="hcard" data-h="2"><img alt=""></button>
 </div>
+
+<div id="won"></div>
+
+<!-- ONE SET, BIG (her ask) — and on the computer's, the CHALLENGE: a card in
+     her hand that fits its rule steals the set. -->
+<div id="setbig" hidden><div>
+  <div id="bigform"></div>
+  <div id="bigtext"></div>
+  <div id="bigwho"></div>
+  <div id="steal" hidden>
+    <button class="btn" id="stealbtn">Challenge <span class="cost">~0.1¢</span></button>
+    <div id="stealline" hidden>which of your cards fits it?</div>
+    <div id="stealrow" hidden></div>
+  </div>
+</div></div>
 
 <div id="msg"></div>
 
@@ -482,6 +522,15 @@ try { oppo = localStorage.getItem(OKEY) === '1'; } catch(e){}
 var theirs = 0;
 var claimBy = 'me';
 
+/* ── THE SETS SHE HAS WON (2026-09-01) ───────────────────────────────────
+   Every scored set is kept: who found it, the three cards, her rule, and the
+   made card once it is drawn. Stored as IDs like the table, so a re-cut card
+   is never a stale copy; anything the pool no longer holds simply draws
+   blank rather than stranding the shelf. */
+var wins = [];
+var drawingWin = -1;          // which win the card being drawn belongs to
+var bigAt = -1;               // which win the big view is showing
+
 var deck = [];                 // face-down, dealt off the END (the top)
 var discard = [];
 var held = [null,null,null];   // her hand, under the board
@@ -647,6 +696,9 @@ function saveTable(){
       deck: deck.map(function(c){ return c.id; }),
       discard: discard.map(function(c){ return c.id; }),
       middle: $('#middle').value, sets: sets, theirs: theirs, kind: kind,
+      wins: wins.map(function(w){
+        return { by:w.by, cards:w.cards, mid:w.mid || null, text:w.text, kind:w.kind, at:w.at, stolen:!!w.stolen };
+      }),
     }));
   } catch(e){}
 }
@@ -669,9 +721,10 @@ function loadTable(){
   discard = (t.discard || []).map(pick).filter(Boolean);
   sets = +t.sets || 0;
   theirs = +t.theirs || 0;
+  wins = Array.isArray(t.wins) ? t.wins.filter(function(w){ return w && Array.isArray(w.cards); }) : [];
   if (typeof t.middle === 'string') $('#middle').value = t.middle;
   if (t.kind) setKind(t.kind);
-  clearPick(); paintHand(); paintSets(); costLine(); paintFound();
+  clearPick(); paintHand(); paintSets(); paintWon(); costLine(); paintFound();
   return true;
 }
 
@@ -758,6 +811,110 @@ function paintFound(){
   $('#found').querySelector('.cost').hidden = !go;
 }
 
+/* ── the shelf, the big view, and the challenge ────────────────────────── */
+function byId(id){
+  for (var i = 0; i < pool.length; i++) if (pool[i].id === id) return pool[i];
+  return null;
+}
+// one triangle inside a formation — the same .sl geometry the board uses
+function formSlot(card, spot){
+  var el = document.createElement('span');
+  // the middle of a formation is the INVERTED triangle by position, never by
+  // the card's own flip — a made card is point-down and a card that is not
+  // still has to nest between the other three
+  el.className = 'sl ' + spot + ' ' + (spot === 'p-mid' ? 'down' : 'up');
+  var img = document.createElement('img');
+  img.alt = '';
+  if (card) {
+    img.src = cardSrc(card);
+    if (card.cut || card.hex) img.className = 'whole';
+  } else { img.hidden = true; }
+  el.appendChild(img);
+  return el;
+}
+function paintForm(box, w){
+  box.textContent = '';
+  var spots = ['p-top','p-left','p-right'];
+  (w.cards || []).forEach(function(id, i){ box.appendChild(formSlot(byId(id), spots[i])); });
+  box.appendChild(formSlot(w.mid ? byId(w.mid) : null, 'p-mid'));
+}
+function paintWon(){
+  var box = $('#won');
+  box.textContent = '';
+  wins.forEach(function(w, i){
+    var b = document.createElement('button');
+    b.className = 'setcard' + (w.by === 'me' ? ' mine' : '');
+    b.dataset.i = String(i);
+    b.setAttribute('aria-label', (w.by === 'me' ? 'your set: ' : 'its set: ') + (w.text || ''));
+    var f = document.createElement('span');
+    f.className = 'setform';
+    paintForm(f, w);
+    b.appendChild(f);
+    var who = document.createElement('span');
+    who.className = 'who'; who.textContent = 'it';
+    b.appendChild(who);
+    b.onclick = function(){ openBig(i); };
+    box.appendChild(b);
+  });
+}
+function openBig(i){
+  var w = wins[i];
+  if (!w) return;
+  bigAt = i;
+  paintForm($('#bigform'), w);
+  $('#bigtext').textContent = w.text || '';
+  $('#bigwho').textContent = w.by === 'me' ? 'your set' : 'its set';
+  // CHALLENGE — only its sets, and only while you are holding cards
+  $('#steal').hidden = w.by !== 'it';
+  $('#stealrow').hidden = true;
+  $('#stealline').hidden = true;
+  $('#stealbtn').hidden = false;
+  $('#stealbtn').disabled = false;
+  $('#setbig').hidden = false;
+}
+function closeBig(){ $('#setbig').hidden = true; bigAt = -1; }
+
+/* THE CHALLENGE (2026-09-01, "you can challenge your opponent, if you have a
+   card in your hand that fits their rule, then you steal their set"). She
+   picks one of the three cards in her hand; the model says whether it really
+   fits the rule the computer named. It does — the point moves to her; it does
+   not — the set stays its own. One small text call, no picture, ~0.1¢. */
+function paintSteal(){
+  var row = $('#stealrow');
+  row.textContent = '';
+  held.forEach(function(c, i){
+    if (!c) return;
+    var b = document.createElement('button');
+    b.className = 'hcard';
+    var img = document.createElement('img');
+    img.alt = ''; img.src = cardSrc(c);
+    b.appendChild(img);
+    b.onclick = function(){ steal(i); };
+    row.appendChild(b);
+  });
+  row.hidden = false;
+  $('#stealline').hidden = false;
+  $('#stealbtn').hidden = true;
+}
+function steal(i){
+  var w = wins[bigAt], c = held[i];
+  if (!w || !c || w.by !== 'it') return;
+  $('#stealrow').hidden = true;
+  say('challenging\u2026');
+  fetch('/api/triset/challenge', { method:'POST', headers:hdrs(true),
+    body:JSON.stringify({ card: c.id, rule: w.text, kind: w.kind || 'same' }) })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.error) throw new Error(d.error);
+      if (!d.fits) { say('it holds \u2014 ' + (d.why || 'that card does not fit')); $('#stealrow').hidden = false; return; }
+      w.by = 'me'; w.stolen = true;
+      theirs = Math.max(0, theirs - 1); sets += 1;
+      paintSets(); paintWon(); saveTable(); closeBig();
+      say('stolen \u2014 ' + (d.why || w.text));
+    })
+    .catch(function(e){ say(String(e.message || e), true); $('#stealrow').hidden = false; });
+}
+
 /* ITS TURN. One small text call — no picture, no card written — so the
    opponent costs about a tenth of a cent a turn and can never spend her
    money. A pass hands the turn straight back; a find types its answer into
@@ -782,7 +939,9 @@ function itsTurn(){
         VENN.forEach(function(id, i){ document.getElementById(id).value = d.sides[i] || ''; });
       }
       setClaimed(true, 'it');
-      theirs += 1; paintSets(); saveTable();
+      theirs += 1;
+      wins.push({ by:'it', cards: ids, mid: null, text: d.middle, kind: kind, at: Date.now() });
+      paintSets(); paintWon(); saveTable();
       say('it says: ' + d.middle + ' \u2014 its point. Draw it! makes the card.');
     })
     .catch(function(e){ say(String(e.message || e), true); })
@@ -819,8 +978,15 @@ function found(){
     .then(function(d){
       if (!d.ok) throw new Error(d.error || 'could not start the card');
       pending = d.id;
-      if (claimBy === 'me') sets += 1;    // its set was already scored on its turn
-      paintSets(); setClaimed(false); saveTable();
+      if (claimBy === 'me') {
+        sets += 1;                        // its set was already scored on its turn
+        wins.push({ by:'me', cards: body.cards, mid: null, text: middle, kind: kind, at: Date.now() });
+        drawingWin = wins.length - 1;
+      } else {
+        // it found this one — the card she is paying for lands in ITS tile
+        for (var wi = wins.length - 1; wi >= 0; wi--) if (!wins[wi].mid) { drawingWin = wi; break; }
+      }
+      paintSets(); paintWon(); setClaimed(false); saveTable();
       try { localStorage.setItem(PKEY, pending); } catch(e){}
       poll();
     })
@@ -839,6 +1005,8 @@ function poll(){
         try { localStorage.removeItem(PKEY); } catch(e){}
         drawingUI(false);
         pool.unshift({ id:id, url:d.url, cut:d.cut, hex:d.hex || null, title:d.title, edition:d.edition || null, status:'ready', flip:true });
+        // the made card goes in the middle of the tile for the set that won it
+        if (drawingWin >= 0 && wins[drawingWin]) { wins[drawingWin].mid = id; drawingWin = -1; paintWon(); saveTable(); }
         paintEds(); poolLine();
         showMade(d);
       } else if (d.status === 'failed' || d.error === 'not found') {
@@ -916,6 +1084,8 @@ $('#undo').onclick = undo;
 $('#redo').onclick = redo;
 $('#found').onclick = found;
 $('#turn').onclick = itsTurn;
+$('#stealbtn').onclick = paintSteal;
+$('#setbig').onclick = function(ev){ if (ev.target === $('#setbig')) closeBig(); };
 $('#gear').onclick = function(){ $('#helpcard').hidden = false; };
 // the sheet must show the mode she is ON from the first open — `kind` has a
 // default and setKind was only ever called by a tap, so nothing was lit
@@ -933,6 +1103,7 @@ $('#midimg').onclick = nextHand;
 
 // the app's chevron closes an open layer before it leaves the tool
 window.__navBack = function(){
+  if (!$('#setbig').hidden) { closeBig(); return true; }
   if (!$('#helpcard').hidden) { $('#helpcard').hidden = true; return true; }
   if (!$('#midcut').hidden) { nextHand(); return true; }
   return false;

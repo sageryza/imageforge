@@ -668,6 +668,56 @@ router.post('/opponent', express.json({ limit: '16kb' }), async (req, res) => {
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
 
+/* ── THE CHALLENGE (2026-09-01, Sophie: "you can challenge your opponent, if
+   you have a card in your hand that fits their rule, then you steal their
+   set") ─────────────────────────────────────────────────────────────────
+   She points at one card in her hand and says it fits the rule the computer
+   named. The model adjudicates — the same reading it did to make the claim,
+   asked of one card — and a yes moves the point to her.
+
+   IT IS DELIBERATELY STRICT, and that is the whole balance of the move: a
+   challenge that always succeeds makes the opponent pointless. The rule has
+   to be true of the card in the same way it is true of the three, not merely
+   arguable about it. */
+const CHALLENGE_SYSTEM = [
+  'You are the referee in a card game. A player claims one card fits a rule that was named for',
+  'three other cards. You are given the rule and the prompt that drew the card — that IS the card.',
+  '',
+  'Say yes only if the rule is true of this card in the SAME WAY it is true of a set: plainly,',
+  'without stretching the words and without a category so broad it would fit anything.',
+  'A near miss is a no. Be a fair referee, not a generous one.',
+].join('\n');
+
+// pure: what the referee said, cleaned — exported for the test
+function challengeVerdict(raw) {
+  const d = raw && typeof raw === 'object' ? raw : {};
+  const why = String(d.why || '').trim().slice(0, MAX_WORDS);
+  return { fits: d.fits === true, why };
+}
+
+router.post('/challenge', express.json({ limit: '16kb' }), async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
+    const anthropic = require('./anthropic');
+    if (!anthropic.available()) return res.status(503).json({ error: 'the referee runs on Claude; the key is not set' });
+    const b = req.body || {};
+    const rule = clip(b.rule, MAX_WORDS);
+    if (!rule) return res.status(400).json({ error: 'a rule is required' });
+    const id = String(b.card || '');
+    if (!id) return res.status(400).json({ error: 'a card is required' });
+    const doc = await db().collection(CARDS).doc(id).get();
+    if (!doc.exists) return res.status(400).json({ error: 'card not found' });
+    const words = (doc.data().promptContent || doc.data().title || '').trim();
+    if (!words) return res.status(400).json({ error: 'that card has no words to judge' });
+    const raw = await anthropic.chatJSON({
+      system: CHALLENGE_SYSTEM,
+      user: `Rule: ${rule}\nCard: ${words}\n\nAnswer JSON: {"fits":true|false,"why":"one short line"}.`,
+      maxTokens: 200,
+    });
+    res.json({ ok: true, ...challengeVerdict(raw) });
+  } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
+});
+
 // She found a set → the venn center becomes a new card. The one paid route.
 router.post('/found', async (req, res) => {
   try {
@@ -805,7 +855,7 @@ module.exports = {
   router, init,
   foundContent, cardPrompt, validFound, stuckPatch, bakeCard, editionOf, mixHex,
   syncPlan, syncHearts, slugOfUrl, bestCard, waitingPlan, adoptedFrom, writeWaiting,
-  opponentMove, opponentPrompt, OPPONENT_SYSTEM,
+  opponentMove, opponentPrompt, OPPONENT_SYSTEM, challengeVerdict, CHALLENGE_SYSTEM,
   KINDS, STYLE, TRIANGLE_CLAUSE, triangleClause, INVENT_LINE, AUTO_RULES, STUCK_MS, COST_CENTS,
   // for scripts/seed-triset.js — the seed batch must draw through the exact
   // call a found set draws through, or the pool and the made cards drift.
