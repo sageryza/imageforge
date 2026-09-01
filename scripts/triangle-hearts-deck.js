@@ -11,6 +11,11 @@
 // Deduped by card, newest first. The page's `url` is the url her heart sits
 // on, so the deck's ♥/✕ mirror back to the same vote; `img` is the game's cut.
 //
+// A QUICK deck (Sophie, 2026-09-01: "shud be quick swipe") — a ♥/✕/? steps
+// forward by itself, since this is a yes/no sweep rather than something she
+// reads and changes her mind about. Flip an already-posted page without
+// re-posting: POST /api/chatfeed/page/<id>/pace {pace:'quick'|'labored'}.
+//
 // Dry by default (prints the count and the first items). `--go` posts the page
 // into the chat named by --chat. Needs FIREBASE_SERVICE_ACCOUNT (Deck Factory).
 const admin = require('firebase-admin');
@@ -73,7 +78,7 @@ function buildItems({ cards, votes, runs, verdicts }) {
   const body = {
     chat: CHAT, title: `Triangle cards you hearted (${clean.length})`, template: 'deck',
     data: {
-      items: clean, aspect: 'square', browse: true, stamp: false, voice: true,
+      items: clean, aspect: 'square', browse: true, stamp: false, voice: true, pace: 'quick',
       help: 'Every triangle card you hearted, anywhere — the Similitude pool, its Compare pages, and the Playground\'s Triangle tile. '
         + 'Tap the left or right edge to step, ✕ · ? · ♥ to re-mark, tap the picture for the prompt and the Playground button.',
     },
