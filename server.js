@@ -930,7 +930,13 @@ app.get('/instagram', serveGated('instagram.html', { pill: true }));
 // one screen, the page never scrolls.
 app.get('/opinions', serveGated('opinions.html'));
 // Triset — triangular SET solitaire. No pill: one screen, never scrolls.
+// SIMILITUDE — her name for the game since 2026-09-01 ("rename it
+// similitude"). The DISPLAY name changed; the route, the API, the Firestore
+// collection and the storage prefix are identity and are never re-keyed (the
+// chat-rename rule), so /triset keeps working for the pin and any saved link
+// and /similitude is the same page under the name she uses.
 app.get('/triset', serveGated('triset.html'));
+app.get('/similitude', serveGated('triset.html'));
 // Desktop queue: the Mac-only tasks chats have batched into
 // docs/desktop-tasks.md, and the ones already checked off. Read-only, and
 // deliberately UNLINKED — no tile, no wrapper ("somewhere out-of-the-way",

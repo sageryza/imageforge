@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Triset</title>
+<title>Similitude</title>
 <style>
 /* The five tokens the shared pill styles itself from — kept even though this
    page opts out of the pill (one screen): it must never render one black if
@@ -158,6 +158,7 @@ button.btn{
 }
 #found{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 #found svg{width:17px;height:17px;display:block}
+#undo svg{width:16px;height:16px;display:block}
 #found[disabled]{opacity:.45}
 #found .cost{font-size:11px;color:inherit;opacity:.75}
 #msg{margin:4px 18px 18px;font-family:-apple-system,system-ui,sans-serif;font-size:13px;color:var(--ink2);min-height:18px}
@@ -168,7 +169,7 @@ button.btn{
 <body class="tool">
 
 <header class="app-header">
-  <h1 class="eyebrow tool-eyebrow">Triset</h1>
+  <h1 class="eyebrow tool-eyebrow">Similitude</h1>
   <button class="qmark" id="help" aria-label="How it works">?</button>
   <span id="pool"></span>
 </header>
@@ -202,13 +203,14 @@ button.btn{
 
 <div id="acts">
   <button class="btn" id="deal">Deal</button>
+  <button class="btn" id="undo" hidden><span id="undoicon"></span>Undo</button>
   <button class="btn" id="found"><span id="star"></span>Found a set <span class="cost">~2¢</span></button>
 </div>
 <div id="msg"></div>
 
 <div id="helpcard" hidden>
   <div>
-    <b>Triset.</b> Three triangular cards around a middle triangle.
+    <b>Similitude.</b> Three triangular cards around a middle triangle.
     Say what they have in common in the middle — or tap a card to swap it
     until you find a set.<br><br>
     <b>All the same</b> — all three share one thing; write it in the middle.<br>
@@ -230,6 +232,12 @@ button.btn{
 var TOKEN = '__STUDIO_TOKEN__';
 var STAR = '<svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg>';
 document.getElementById('star').innerHTML = STAR;
+// Lucide `undo-2` — the house line icon, stroked, no plate of its own (it
+// rides inside the .btn beside its word)
+var UNDO_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
+  + 'stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/>'
+  + '<path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>';
+document.getElementById('undoicon').innerHTML = UNDO_ICON;
 
 var $ = function(s){ return document.querySelector(s); };
 function hdrs(json){
@@ -339,6 +347,7 @@ function deal(){
     say(edition ? ('not enough ' + edLabel(edition).toLowerCase() + ' to deal yet') : 'not enough cards in the pool yet', true);
     return;
   }
+  pushUndo();
   var rest = dealable();
   ['top','left','right'].forEach(function(s){
     var c = randOf(rest);
@@ -350,9 +359,35 @@ function deal(){
 function swap(slot){
   var rest = others();
   if (!rest.length) { say('no other cards to swap in', true); return; }
+  pushUndo();
   var c = randOf(rest);
   hand[slot] = c; setImg(slot, c);
   costLine();
+}
+
+/* UNDO — put the last hand back (2026-09-01, "add an undo button").
+   Deal and swap are RANDOM, so a card swapped away is gone unless the draw
+   happens to bring it back: this is the only way to keep one she liked. It
+   restores the three CARDS and nothing else — her typed middle, the kind and
+   the edition are hers and still apply to the hand that comes back. The
+   button is hidden until there is something to undo rather than sitting
+   disabled: it is the edition row's own rule, and a dead control in a row of
+   three is worse than a row of two. */
+var undos = [];                 // hands, oldest first
+var UNDO_MAX = 20;
+function pushUndo(){
+  if (!hand.top && !hand.left && !hand.right) return;   // nothing dealt yet
+  undos.push({ top: hand.top, left: hand.left, right: hand.right });
+  if (undos.length > UNDO_MAX) undos.shift();
+  paintUndo();
+}
+function paintUndo(){ $('#undo').hidden = !undos.length || !!pending; }
+function undo(){
+  if (pending) return;
+  var prev = undos.pop();
+  if (!prev) { paintUndo(); return; }
+  ['top','left','right'].forEach(function(s){ hand[s] = prev[s]; setImg(s, prev[s]); });
+  costLine(); paintUndo(); say('');
 }
 
 function say(t, bad){
@@ -491,6 +526,7 @@ $('#s-top').onclick = function(){ swap('top'); };
 $('#s-left').onclick = function(){ swap('left'); };
 $('#s-right').onclick = function(){ swap('right'); };
 $('#deal').onclick = deal;
+$('#undo').onclick = undo;
 $('#found').onclick = found;
 $('#k-same').onclick = function(){ setKind('same'); };
 $('#k-each').onclick = function(){ setKind('each'); };
