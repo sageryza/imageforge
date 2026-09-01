@@ -24,7 +24,12 @@ body{
 [hidden]{display:none !important}
 
 /* ── header: the name once (tiny), the "?" ────────────────────────────── */
-.app-header{position:relative;display:flex;align-items:center;gap:10px;padding:var(--headtop) 18px 4px;padding-right:64px}
+/* MIN-HEIGHT IS LOAD-BEARING (2026-09-01, caught by screenshotting): every
+   child of this header is absolutely positioned or hidden — the title, the
+   count, the gear, the undo pair — so without it the header collapses to its
+   padding and the BOARD below overlaps the gear, which then cannot be
+   tapped at all. */
+.app-header{position:relative;display:flex;align-items:center;gap:10px;min-height:34px;padding:var(--headtop) 18px 4px;padding-right:64px}
 /* THE NAME SITS IN THE MIDDLE (2026-09-01, "similitude should be in the
    middle") — the house header rule, title centred top-middle. Absolute so it
    centres on the PAGE rather than on the room left beside the ? and the pool
@@ -36,7 +41,7 @@ h1.tool-eyebrow{
   top:var(--headtop);pointer-events:none;white-space:nowrap;
 }
 #sets{
-  position:absolute;right:18px;top:var(--headtop);
+  position:absolute;right:52px;top:var(--headtop);
   font-family:-apple-system,system-ui,sans-serif;font-size:13px;
   color:var(--ink2);font-variant-numeric:tabular-nums;line-height:34px;
 }
@@ -48,8 +53,20 @@ h1.tool-eyebrow{
 #helpcard{
   position:fixed;inset:0;background:rgba(43,38,34,.36);z-index:60;
   display:flex;align-items:center;justify-content:center;padding:26px;
+  /* THE SHEET SCROLLS. Her ruleset made this card taller than a phone, and a
+     centred flex child overflows in BOTH directions — so the modes and the
+     opponent toggle at the top of it were off the screen and untappable. */
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
 }
+#modes,.modes{display:flex;flex-direction:column;gap:8px;margin:0 0 16px}
+#modes button,.modes button{
+  font:inherit;font-size:14px;text-align:left;padding:9px 12px;cursor:pointer;
+  color:var(--gold);background:none;border:1px solid var(--gold);border-radius:6px;
+  letter-spacing:.06em;text-transform:uppercase;
+}
+#modes button.on,.modes button.on{color:var(--ink);border-color:var(--ink)}
 #helpcard>div{
+  margin:auto;                       /* centred while it fits, scrollable when it does not */
   background:var(--card);border:1px solid var(--line);border-radius:6px;
   padding:20px 22px;max-width:340px;font-size:15px;line-height:1.55;
 }
@@ -65,11 +82,41 @@ h1.tool-eyebrow{
    the gold somewhere to BE: the claimed card shrinks a touch inside its slot
    and the gold face behind it becomes a clean gold border on the real cut. */
 #board.claimed .slot.up .face{background:var(--gold)}
-#board.claimed .slot.up img{transform:scale(.90);transform-origin:50% 100%}
+#board.claimed .slot.up img{transform:scale(.965);transform-origin:50% 100%}
 .slot.up img{transition:transform .16s ease}
-#found.ready{background:var(--gold);border-color:var(--gold);color:var(--ink)}
+/* READY is said by the WORD and the star, not by a fill — the outline is the
+   house look for every button here now. */
 
 /* ── HER HAND — three cards under the board, same triangular cut ─────── */
+/* ── THE SETS SHE HAS WON (2026-09-01, "sets get saved at the bottom, left
+   to right, 4 to a row, in full triangle formation, new card included in
+   middle · can be clicked to see bigger · you can also click to see
+   opponents successful sets"). A tile is the BOARD at tile size — the same
+   .sl geometry, one copy of the numbers — so a saved set looks exactly like
+   the hand that won it, made card and all. */
+#won{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 18px 0;padding:0}
+#won:empty{display:none}
+.setcard{position:relative;padding:0;border:none;background:none;cursor:pointer}
+.setform{position:relative;display:block;width:100%;aspect-ratio:1000/866}
+.setcard .who{                       /* the formation's top-left corner is empty */
+  position:absolute;left:0;top:0;font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--gold);line-height:1;
+}
+.setcard.mine .who{display:none}          /* only the opponent's is marked */
+#setbig,#cardbig{position:fixed;inset:0;z-index:60;background:rgba(20,18,16,.86);
+  display:flex;align-items:center;justify-content:center;padding:20px}
+#cardbig>div{max-width:420px;width:100%;text-align:center}
+#cardform{position:relative;width:100%;aspect-ratio:1000/866;margin:0 auto}
+#cardform .sl{width:100%;height:100%;left:0;top:0}
+#cardtext{color:var(--paper);font-size:16px;line-height:1.5;margin:16px 4px 0}
+#setbig>div{max-width:420px;width:100%;text-align:center}
+#bigform{position:relative;width:100%;aspect-ratio:1000/866;margin:0 auto}
+#bigtext{color:var(--paper);font-size:16px;line-height:1.5;margin:16px 4px 0}
+#bigwho{color:var(--gold);font-size:12px;letter-spacing:.1em;text-transform:uppercase;margin-top:8px}
+#steal{margin-top:14px}
+#steal .hcard{width:64px;height:56px}
+#stealline{color:var(--paper);font-size:13px;margin-top:12px;opacity:.8}
+#stealrow{display:flex;justify-content:center;gap:10px;margin-top:10px}
 #hand{display:flex;justify-content:center;gap:10px;margin:14px 18px 0}
 .hcard{
   position:relative;flex:0 0 auto;width:min(26vw,120px);aspect-ratio:1000/866;
@@ -90,11 +137,11 @@ h1.tool-eyebrow{
   position:relative;width:min(94vw,470px);aspect-ratio:1000/866;
   margin:10px auto 0;
 }
-.slot{position:absolute;width:50%;height:50%;padding:0;border:none;background:none;cursor:pointer}
-#s-top{left:25%;top:0}
-#s-left{left:0;top:50%}
-#s-right{left:50%;top:50%}
-#s-mid{left:25%;top:50%;cursor:default}
+.slot,.sl{position:absolute;width:50%;height:50%;padding:0;border:none;background:none;cursor:pointer}
+#s-top,.sl.p-top{left:25%;top:0}
+#s-left,.sl.p-left{left:0;top:50%}
+#s-right,.sl.p-right{left:50%;top:50%}
+#s-mid,.sl.p-mid{left:25%;top:50%;cursor:default}
 /* NO MAT BEHIND A CARD — the only cream is the paper rim the model drew
    INTO the picture (2026-08-31, Sophie: "there shud be no cream border
    aside from the one built into the images"). The cream mat added a day
@@ -117,18 +164,18 @@ h1.tool-eyebrow{
    1/0.84, then ×0.90 = 107.143%; offsets are the mapped origin — and note
    CSS top% is in SLOT-HEIGHT units (0.866 of the width), which is where the
    first pass slipped. */
-.slot.up{clip-path:polygon(50% 0,100% 100%,0 100%)}
-.slot.down{clip-path:polygon(0 0,100% 0,50% 100%)}
-.slot img,#midimg{position:absolute;display:block;width:107.143%;height:auto;left:-3.571%}
-.slot.up img{top:-17.161%}
-.slot.down img,#midimg{top:-6.564%}
+.slot.up,.sl.up{clip-path:polygon(50% 0,100% 100%,0 100%)}
+.slot.down,.sl.down{clip-path:polygon(0 0,100% 0,50% 100%)}
+.slot img,#midimg,.sl img{position:absolute;display:block;width:107.143%;height:auto;left:-3.571%}
+.slot.up img,.sl.up img{top:-17.161%}
+.slot.down img,#midimg,.sl.down img{top:-6.564%}
 /* A card with a baked DIE-CUT (`cut` on the doc — triset-cut.js) fills the
    slot exactly: the copy is the slot's own 1000x866 canvas, the drawn card
    measured and fitted inside with transparency around it, so the cream face
    shows through as the border and the whole image plus outline fits in the
    triangle (2026-08-30, Sophie: "fix the cutting"). The fixed mapping above
    survives only as the fallback for a card whose bake failed. */
-.slot img.whole,#midimg.whole{width:100%;height:100%;left:0;top:0}
+.slot img.whole,#midimg.whole,.sl img.whole{width:100%;height:100%;left:0;top:0}
 /* the middle inverted triangle — a text box, until a made card lands in it.
    The SLOT is not clipped (the venn boxes ride its edges); the face and the
    made-card cutter carry their own triangles. */
@@ -188,13 +235,21 @@ h1.tool-eyebrow{
 
 
 /* ── the buttons: hug their words ─────────────────────────────────────── */
+/* THE BUTTONS ARE GOLD OUTLINE, GOLD TEXT, NO FILL, ALL CAPS (2026-09-01) —
+   and the one that is left sits ALL THE WAY RIGHT ("make the set button all
+   the way right"), which `margin-left:auto` does without knowing how many
+   buttons share the row. */
 #acts{display:flex;align-items:center;gap:12px;margin:16px 18px 8px}
 button.btn{
-  font-family:-apple-system,system-ui,sans-serif;font-size:14px;color:var(--ink);
-  background:var(--card);border:1px solid var(--line);border-radius:6px;
-  padding:9px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;
+  font-family:-apple-system,system-ui,sans-serif;font-size:13px;
+  letter-spacing:.10em;text-transform:uppercase;
+  color:var(--gold);background:none;border:1px solid var(--gold);border-radius:6px;
+  /* THE OUTLINE COSTS NOTHING (2026-09-01, "make sure the outline didn't make
+     the buttons bigger") — the 1px border is taken back out of the padding, so
+     the box is exactly the size it was before these went gold-outline. */
+  padding:8px 13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;
 }
-#found{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+#found{margin-left:auto}          /* only the last one is hard right */
 #found svg{width:17px;height:17px;display:block}
 /* THE BARE GLYPH — no square, no fill (2026-09-01, "undo button at the top
    left - no words, just an icon that grows a redo if applicable · no square
@@ -207,6 +262,7 @@ button.btn{
   flex:0 0 auto;-webkit-tap-highlight-color:transparent;
 }
 .ghost:active{color:var(--ink)}
+#gear{position:absolute;right:12px;top:var(--headtop)}
 .ghost svg{width:19px;height:19px;display:block}
 #found[disabled]{opacity:.45}
 #found .cost{font-size:11px;color:inherit;opacity:.75}
@@ -221,10 +277,12 @@ button.btn{
   <button class="ghost" id="undo" hidden aria-label="Undo"></button>
   <button class="ghost" id="redo" hidden aria-label="Redo"></button>
   <h1 class="eyebrow tool-eyebrow">Similitude</h1>
-  <button class="qmark" id="help" aria-label="How it works">?</button>
-  <!-- HOW MANY SETS SHE HAS FOUND (2026-09-01, "counts how many sets - top
-       right - number"). A number, nothing else; it persists with the table. -->
+  <!-- HOW MANY SETS SHE HAS FOUND (2026-09-01) and, beside it, the SETTINGS
+       gear that replaced the "?" (2026-09-01, "put the question mark in the
+       top right and make it a settings button so i can toggle the mode …
+       so get rid of the row"). Both live in the top-right corner. -->
   <span id="sets" hidden></span>
+  <button class="ghost" id="gear" aria-label="Settings"></button>
 </header>
 
 <div id="board">
@@ -248,14 +306,16 @@ button.btn{
      was not on screen and a pool without editions never grows a dead row. -->
 <div id="eds" hidden></div>
 
-<div id="kinds">
-  <button id="k-same" class="on">All the same</button>
-  <button id="k-each">Each different</button>
-  <button id="k-auto">Model finds it</button>
-</div>
-
 <div id="acts">
-  <button class="btn" id="deal">Deal</button>
+  <!-- NEW HAND (2026-09-01, "add a new hand button, on the left") — the deck
+       already flows through her hand a card at a time, so this is the way to
+       put the whole hand down and deal three fresh ones. -->
+  <button class="btn" id="newhand">New hand</button>
+  <!-- PLAYING AGAINST THE COMPUTER (2026-09-01, "make it possible to play
+       against a computer"). TURN-BASED, never a timer — she looks for as long
+       as she likes and hands the turn over when she is done looking. Hidden
+       until she turns the opponent on in settings. -->
+  <button class="btn" id="turn" hidden>Its turn</button>
   <button class="btn" id="found"><span id="star" hidden></span><span id="foundword">Set!</span> <span class="cost">~2¢</span></button>
 </div>
 <!-- HER HAND — three cards under the board (2026-09-01, "make it so i get
@@ -268,10 +328,45 @@ button.btn{
   <button class="hcard" data-h="2"><img alt=""></button>
 </div>
 
+<div id="won"></div>
+
+<!-- ONE CARD, BIG (2026-09-01, "double clicking or long pressing a card
+     makes it bigger"). A single tap already means pick-for-swap on both the
+     board and the hand, so the big view rides the two gestures that a single
+     tap is not. -->
+<div id="cardbig" hidden><div>
+  <div id="cardform"></div>
+  <div id="cardtext"></div>
+</div></div>
+
+<!-- ONE SET, BIG (her ask) — and on the computer's, the CHALLENGE: a card in
+     her hand that fits its rule steals the set. -->
+<div id="setbig" hidden><div>
+  <div id="bigform"></div>
+  <div id="bigtext"></div>
+  <div id="bigwho"></div>
+  <div id="steal" hidden>
+    <button class="btn" id="stealbtn">Challenge <span class="cost">~0.1¢</span></button>
+    <div id="stealline" hidden>which of your cards fits it?</div>
+    <div id="stealrow" hidden></div>
+  </div>
+</div></div>
+
 <div id="msg"></div>
 
 <div id="helpcard" hidden>
   <div>
+    <!-- THE MODES LIVE IN SETTINGS NOW (2026-09-01) — the row they used to
+         sit in is gone, so the gear is the one door to them. -->
+    <div id="modes">
+      <button data-k="same">All the same</button>
+      <button data-k="each">Each different</button>
+      <button data-k="auto">Model finds it</button>
+    </div>
+    <div id="oppos" class="modes">
+      <button data-o="0">Solitaire</button>
+      <button data-o="1">Vs. the computer</button>
+    </div>
     <b>Similitude.</b> Three triangular cards around a middle triangle.
     Say what they have in common in the middle — or tap a card to swap it
     until you find a set.<br><br>
@@ -284,7 +379,18 @@ button.btn{
     image model with the rules, and it finds the connection itself (~5¢).<br><br>
     Found a set draws a brand-new card from your qualities — the center of the
     venn diagram. It appears upside down in the middle, joins the pool, and a
-    tap on it deals the next hand. About 2¢ a card.
+    tap on it deals the next hand. About 2¢ a card.<br><br>
+
+    <!-- HER RULESET, dictated 2026-09-01 ("add the stealing to the ruleset")
+         — the words are hers; don't reword them. -->
+    <b>Claiming a set</b> — when a set is claimed, the claimer must name their
+    set explicitly. "All have a jagged line running down the middle," or
+    "red round things."<br><br>
+    <b>Challenging and stealing sets</b> — a player can choose to challenge a
+    claimed set. Ask the claimer to repeat their name. If the challenger has a
+    card in their hand that fits the definition of the set they gave, they can
+    show the card. If all players agree it fits the rule, the challenger
+    "steals" the set, and puts it on his own shelf.
   </div>
 </div>
 
@@ -303,6 +409,9 @@ var UNDO_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 var REDO_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
   + 'stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/>'
   + '<path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5v0A5.5 5.5 0 0 0 9.5 20H13"/></svg>';
+var GEAR_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
+  + 'stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/>'
+  + '<circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>';
 document.getElementById('undo').innerHTML = UNDO_ICON;
 document.getElementById('redo').innerHTML = REDO_ICON;
 
@@ -431,6 +540,32 @@ function randOf(list){ return list[Math.floor(Math.random() * list.length)]; }
    card cannot strand the game. */
 var SKEY = 'triset.table';
 var sets = 0;
+
+/* ── THE COMPUTER (2026-09-01, "make it possible to play against a computer")
+   TURN-BASED, NEVER A TIMER — she looks for as long as she likes, and ITS
+   TURN is what hands the hand over. A race against a clock would make a
+   quiet game a reflex test.
+
+   IT NEVER SPENDS HER MONEY: a set it finds is announced and typed into the
+   middle, and the ~2¢ card is still her own Draw it! tap. It scores whether
+   or not she draws it, because the point was finding the set.
+
+   `claimBy` is why a claim has an owner at all — without it, drawing the card
+   the computer found would score HER a point for its set. */
+var OKEY = 'triset.oppo';
+var oppo = false;
+try { oppo = localStorage.getItem(OKEY) === '1'; } catch(e){}
+var theirs = 0;
+var claimBy = 'me';
+
+/* ── THE SETS SHE HAS WON (2026-09-01) ───────────────────────────────────
+   Every scored set is kept: who found it, the three cards, her rule, and the
+   made card once it is drawn. Stored as IDs like the table, so a re-cut card
+   is never a stale copy; anything the pool no longer holds simply draws
+   blank rather than stranding the shelf. */
+var wins = [];
+var drawingWin = -1;          // which win the card being drawn belongs to
+var bigAt = -1;               // which win the big view is showing
 
 var deck = [];                 // face-down, dealt off the END (the top)
 var discard = [];
@@ -575,8 +710,19 @@ function restore(st){
 }
 function paintSets(){
   var el = $('#sets');
-  el.textContent = sets ? String(sets) : '';
-  el.hidden = !sets;
+  // solitaire is one number; against the computer it is the score, so the
+  // count only ever grows a second half when there is an opponent to beat
+  el.textContent = oppo ? (sets + '\u2013' + theirs) : (sets ? String(sets) : '');
+  el.hidden = !oppo && !sets;
+}
+function setOppo(on){
+  oppo = !!on;
+  try { localStorage.setItem(OKEY, oppo ? '1' : '0'); } catch(e){}
+  Array.prototype.forEach.call(document.querySelectorAll('#oppos button'), function(b){
+    b.classList.toggle('on', (b.dataset.o === '1') === oppo);
+  });
+  $('#turn').hidden = !oppo;
+  paintSets();
 }
 function saveTable(){
   try {
@@ -585,7 +731,10 @@ function saveTable(){
       held: held.map(function(c){ return c && c.id; }),
       deck: deck.map(function(c){ return c.id; }),
       discard: discard.map(function(c){ return c.id; }),
-      middle: $('#middle').value, sets: sets, kind: kind,
+      middle: $('#middle').value, sets: sets, theirs: theirs, kind: kind,
+      wins: wins.map(function(w){
+        return { by:w.by, cards:w.cards, mid:w.mid || null, text:w.text, kind:w.kind, at:w.at, stolen:!!w.stolen };
+      }),
     }));
   } catch(e){}
 }
@@ -607,9 +756,11 @@ function loadTable(){
   deck = (t.deck || []).map(pick).filter(Boolean);
   discard = (t.discard || []).map(pick).filter(Boolean);
   sets = +t.sets || 0;
+  theirs = +t.theirs || 0;
+  wins = Array.isArray(t.wins) ? t.wins.filter(function(w){ return w && Array.isArray(w.cards); }) : [];
   if (typeof t.middle === 'string') $('#middle').value = t.middle;
   if (t.kind) setKind(t.kind);
-  clearPick(); paintHand(); paintSets(); costLine(); paintFound();
+  clearPick(); paintHand(); paintSets(); paintWon(); costLine(); paintFound();
   return true;
 }
 
@@ -641,8 +792,8 @@ function say(t, bad){
 var VENN = ['v-top','v-left','v-right'];
 function setKind(k){
   kind = k;
-  ['same','each','auto'].forEach(function(x){
-    $('#k-' + x).classList.toggle('on', k === x);
+  Array.prototype.forEach.call(document.querySelectorAll('#modes button'), function(b){
+    b.classList.toggle('on', b.dataset.k === k);
   });
   $('#s-mid').classList.toggle('each', k === 'each');
   VENN.forEach(function(id){ document.getElementById(id).hidden = (k !== 'each') || !$('#midcut').hidden || !$('#middrawing').hidden; });
@@ -672,11 +823,14 @@ function drawingUI(on){
    star, which is the only tap that spends money. So the claim is free and
    reversible, and the paid tap is never the first one. */
 var claimed = false;
-function setClaimed(on){
+function setClaimed(on, by){
   claimed = !!on;
+  claimBy = claimed ? (by || 'me') : 'me';
   $('#board').classList.toggle('claimed', claimed);
   paintFound();
-  if (claimed && kind !== 'auto') { var m = $('#middle'); if (m && !m.hidden) m.focus(); }
+  // the computer's claim is already filled in — putting a caret in it would
+  // invite her to type over the answer she is being shown
+  if (claimed && claimBy === 'me' && kind !== 'auto') { var m = $('#middle'); if (m && !m.hidden) m.focus(); }
 }
 function readyToDraw(){
   if (!claimed) return false;
@@ -691,6 +845,187 @@ function paintFound(){
   $('#star').hidden = !go;                        // the generate star only on the paid tap
   $('#found').classList.toggle('ready', go);
   $('#found').querySelector('.cost').hidden = !go;
+}
+
+/* ── ONE CARD, BIG (2026-09-01, "double clicking or long pressing a card
+   makes it bigger") ──────────────────────────────────────────────────────
+   A single tap on a card already means pick-for-swap, on the board and in
+   the hand alike, so this rides the two gestures a single tap is not: a
+   double tap, and a long press. A long press SUPPRESSES the click it would
+   otherwise become — without that, opening the card also picks it. */
+// A LONG PRESS OPENS THE CARD UNDER HER FINGER, so the release that ends the
+// press would otherwise be read as the tap that closes it again. The press
+// says so itself rather than a clock deciding — a timing window is the same
+// bug waiting for a slow frame.
+var eatCardTap = false;
+function openCard(card){
+  if (!card) return;
+  var box = $('#cardform');
+  box.textContent = '';
+  box.appendChild(formSlot(card, card.flip ? 'p-mid' : 'p-top'));
+  $('#cardtext').textContent = card.promptContent || card.title || '';
+  $('#cardbig').hidden = false;
+}
+function closeCard(){ $('#cardbig').hidden = true; }
+// wires one element so a double tap or a long press opens `get()`'s card
+var LONG_MS = 450;
+function bigGesture(el, get){
+  var timer = null, ate = false;
+  var stop = function(){ if (timer) { clearTimeout(timer); timer = null; } };
+  el.addEventListener('pointerdown', function(){
+    ate = false;
+    stop();
+    timer = setTimeout(function(){
+      timer = null; ate = true; eatCardTap = true; openCard(get());
+    }, LONG_MS);
+  });
+  ['pointerup','pointercancel','pointerleave','pointermove'].forEach(function(ev){
+    el.addEventListener(ev, stop);
+  });
+  // the press already opened it — the tap it turns into must not also pick
+  el.addEventListener('click', function(e){
+    if (!ate) return;
+    ate = false;
+    e.stopPropagation(); e.preventDefault();
+  }, true);
+  el.addEventListener('dblclick', function(e){ e.preventDefault(); openCard(get()); });
+}
+
+/* ── the shelf, the big view, and the challenge ────────────────────────── */
+function byId(id){
+  for (var i = 0; i < pool.length; i++) if (pool[i].id === id) return pool[i];
+  return null;
+}
+// one triangle inside a formation — the same .sl geometry the board uses
+function formSlot(card, spot){
+  var el = document.createElement('span');
+  // the middle of a formation is the INVERTED triangle by position, never by
+  // the card's own flip — a made card is point-down and a card that is not
+  // still has to nest between the other three
+  el.className = 'sl ' + spot + ' ' + (spot === 'p-mid' ? 'down' : 'up');
+  var img = document.createElement('img');
+  img.alt = '';
+  if (card) {
+    img.src = cardSrc(card);
+    if (card.cut || card.hex) img.className = 'whole';
+  } else { img.hidden = true; }
+  el.appendChild(img);
+  return el;
+}
+function paintForm(box, w){
+  box.textContent = '';
+  var spots = ['p-top','p-left','p-right'];
+  (w.cards || []).forEach(function(id, i){ box.appendChild(formSlot(byId(id), spots[i])); });
+  box.appendChild(formSlot(w.mid ? byId(w.mid) : null, 'p-mid'));
+}
+function paintWon(){
+  var box = $('#won');
+  box.textContent = '';
+  wins.forEach(function(w, i){
+    var b = document.createElement('button');
+    b.className = 'setcard' + (w.by === 'me' ? ' mine' : '');
+    b.dataset.i = String(i);
+    b.setAttribute('aria-label', (w.by === 'me' ? 'your set: ' : 'its set: ') + (w.text || ''));
+    var f = document.createElement('span');
+    f.className = 'setform';
+    paintForm(f, w);
+    b.appendChild(f);
+    var who = document.createElement('span');
+    who.className = 'who'; who.textContent = 'it';
+    b.appendChild(who);
+    b.onclick = function(){ openBig(i); };
+    box.appendChild(b);
+  });
+}
+function openBig(i){
+  var w = wins[i];
+  if (!w) return;
+  bigAt = i;
+  paintForm($('#bigform'), w);
+  $('#bigtext').textContent = w.text || '';
+  $('#bigwho').textContent = w.by === 'me' ? 'your set' : 'its set';
+  // CHALLENGE — only its sets, and only while you are holding cards
+  $('#steal').hidden = w.by !== 'it';
+  $('#stealrow').hidden = true;
+  $('#stealline').hidden = true;
+  $('#stealbtn').hidden = false;
+  $('#stealbtn').disabled = false;
+  $('#setbig').hidden = false;
+}
+function closeBig(){ $('#setbig').hidden = true; bigAt = -1; }
+
+/* THE CHALLENGE (2026-09-01, "you can challenge your opponent, if you have a
+   card in your hand that fits their rule, then you steal their set"). She
+   picks one of the three cards in her hand; the model says whether it really
+   fits the rule the computer named. It does — the point moves to her; it does
+   not — the set stays its own. One small text call, no picture, ~0.1¢. */
+function paintSteal(){
+  var row = $('#stealrow');
+  row.textContent = '';
+  held.forEach(function(c, i){
+    if (!c) return;
+    var b = document.createElement('button');
+    b.className = 'hcard';
+    var img = document.createElement('img');
+    img.alt = ''; img.src = cardSrc(c);
+    b.appendChild(img);
+    b.onclick = function(){ steal(i); };
+    row.appendChild(b);
+  });
+  row.hidden = false;
+  $('#stealline').hidden = false;
+  $('#stealbtn').hidden = true;
+}
+function steal(i){
+  var w = wins[bigAt], c = held[i];
+  if (!w || !c || w.by !== 'it') return;
+  $('#stealrow').hidden = true;
+  say('challenging\u2026');
+  fetch('/api/triset/challenge', { method:'POST', headers:hdrs(true),
+    body:JSON.stringify({ card: c.id, rule: w.text, kind: w.kind || 'same' }) })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.error) throw new Error(d.error);
+      if (!d.fits) { say('it holds \u2014 ' + (d.why || 'that card does not fit')); $('#stealrow').hidden = false; return; }
+      w.by = 'me'; w.stolen = true;
+      theirs = Math.max(0, theirs - 1); sets += 1;
+      paintSets(); paintWon(); saveTable(); closeBig();
+      say('stolen \u2014 ' + (d.why || w.text));
+    })
+    .catch(function(e){ say(String(e.message || e), true); $('#stealrow').hidden = false; });
+}
+
+/* ITS TURN. One small text call — no picture, no card written — so the
+   opponent costs about a tenth of a cent a turn and can never spend her
+   money. A pass hands the turn straight back; a find types its answer into
+   the middle, lights the cards and takes the point. */
+var thinking = false;
+function itsTurn(){
+  if (pending || thinking) return;
+  var ids = [hand.top, hand.left, hand.right].map(function(c){ return c && c.id; });
+  window.__triBoard = ids;                      // what the test asks it played from
+  if (ids.some(function(x){ return !x; })) { say('deal three cards first', true); return; }
+  if (claimed) { say('you have already claimed this hand', true); return; }
+  thinking = true; $('#turn').disabled = true; say('thinking\u2026');
+  fetch('/api/triset/opponent', { method:'POST', headers:hdrs(true),
+    body:JSON.stringify({ cards: ids, kind: kind }) })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.error) throw new Error(d.error);
+      if (!d.found) { say('it passes \u2014 ' + (d.why || 'nothing here')); return; }
+      pushUndo();
+      $('#middle').value = d.middle;
+      if (kind === 'each' && d.sides) {
+        VENN.forEach(function(id, i){ document.getElementById(id).value = d.sides[i] || ''; });
+      }
+      setClaimed(true, 'it');
+      theirs += 1;
+      wins.push({ by:'it', cards: ids, mid: null, text: d.middle, kind: kind, at: Date.now() });
+      paintSets(); paintWon(); saveTable();
+      say('it says: ' + d.middle + ' \u2014 its point. Draw it! makes the card.');
+    })
+    .catch(function(e){ say(String(e.message || e), true); })
+    .finally(function(){ thinking = false; $('#turn').disabled = false; paintFound(); });
 }
 
 function found(){
@@ -723,7 +1058,15 @@ function found(){
     .then(function(d){
       if (!d.ok) throw new Error(d.error || 'could not start the card');
       pending = d.id;
-      sets += 1; paintSets(); setClaimed(false); saveTable();
+      if (claimBy === 'me') {
+        sets += 1;                        // its set was already scored on its turn
+        wins.push({ by:'me', cards: body.cards, mid: null, text: middle, kind: kind, at: Date.now() });
+        drawingWin = wins.length - 1;
+      } else {
+        // it found this one — the card she is paying for lands in ITS tile
+        for (var wi = wins.length - 1; wi >= 0; wi--) if (!wins[wi].mid) { drawingWin = wi; break; }
+      }
+      paintSets(); paintWon(); setClaimed(false); saveTable();
       try { localStorage.setItem(PKEY, pending); } catch(e){}
       poll();
     })
@@ -742,6 +1085,8 @@ function poll(){
         try { localStorage.removeItem(PKEY); } catch(e){}
         drawingUI(false);
         pool.unshift({ id:id, url:d.url, cut:d.cut, hex:d.hex || null, title:d.title, edition:d.edition || null, status:'ready', flip:true });
+        // the made card goes in the middle of the tile for the set that won it
+        if (drawingWin >= 0 && wins[drawingWin]) { wins[drawingWin].mid = id; drawingWin = -1; paintWon(); saveTable(); }
         paintEds(); poolLine();
         showMade(d);
       } else if (d.status === 'failed' || d.error === 'not found') {
@@ -809,7 +1154,6 @@ $('#s-right').onclick = function(){ tapSlot('right'); };
 Array.prototype.forEach.call(document.querySelectorAll('.hcard'), function(b){
   b.onclick = function(){ tapHand(+b.dataset.h); };
 });
-$('#deal').onclick = deal;
 // her words are part of her place, so typing saves too — a localStorage write
 // per keystroke is cheap and means nothing is lost to a reload mid-sentence
 ['middle'].concat(VENN).forEach(function(id){
@@ -819,15 +1163,41 @@ $('#deal').onclick = deal;
 $('#undo').onclick = undo;
 $('#redo').onclick = redo;
 $('#found').onclick = found;
-$('#k-same').onclick = function(){ setKind('same'); };
-$('#k-each').onclick = function(){ setKind('each'); };
-$('#k-auto').onclick = function(){ setKind('auto'); };
-$('#help').onclick = function(){ $('#helpcard').hidden = false; };
+$('#turn').onclick = itsTurn;
+$('#newhand').onclick = function(){ if (!pending) nextHand(); };   // deal() pushes its own undo
+$('#stealbtn').onclick = paintSteal;
+// the long press opens it UNDER her finger, so the release that ends the
+// press must not be read as the tap that closes it again
+$('#cardbig').onclick = function(){
+  if (eatCardTap) { eatCardTap = false; return; }   // the release that opened it
+  closeCard();
+};
+['top','left','right'].forEach(function(sl){
+  bigGesture($('#s-' + sl), function(){ return hand[sl]; });
+});
+Array.prototype.forEach.call(document.querySelectorAll('.hcard'), function(b){
+  bigGesture(b, function(){ return held[+b.dataset.h]; });
+});
+$('#setbig').onclick = function(ev){ if (ev.target === $('#setbig')) closeBig(); };
+$('#gear').onclick = function(){ $('#helpcard').hidden = false; };
+// the sheet must show the mode she is ON from the first open — `kind` has a
+// default and setKind was only ever called by a tap, so nothing was lit
+setKind(kind);
+setOppo(oppo);                     // same reason: the stored side must be lit
+document.getElementById('gear').innerHTML = GEAR_ICON;
+Array.prototype.forEach.call(document.querySelectorAll('#oppos button'), function(b){
+  b.onclick = function(ev){ ev.stopPropagation(); setOppo(b.dataset.o === '1'); saveTable(); };
+});
+Array.prototype.forEach.call(document.querySelectorAll('#modes button'), function(b){
+  b.onclick = function(ev){ ev.stopPropagation(); setKind(b.dataset.k); };
+});
 $('#helpcard').onclick = function(){ $('#helpcard').hidden = true; };
 $('#midimg').onclick = nextHand;
 
 // the app's chevron closes an open layer before it leaves the tool
 window.__navBack = function(){
+  if (!$('#cardbig').hidden) { closeCard(); return true; }
+  if (!$('#setbig').hidden) { closeBig(); return true; }
   if (!$('#helpcard').hidden) { $('#helpcard').hidden = true; return true; }
   if (!$('#midcut').hidden) { nextHand(); return true; }
   return false;

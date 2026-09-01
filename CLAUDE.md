@@ -194,6 +194,48 @@ OTHER CHATS* in Design rules).
   `docs/evan-film-style.md`, `docs/nde-watercolor.md`,
   `docs/dating-book/THE-SOPHIE-EXPERIMENT.md`.
 
+## SHOWING HER A CHANGE: PHOTO · SANDBOX · LIVE — ASK WHICH (2026-09-01)
+**Sophie: "help me understand the difference between deploying, and whatever
+ur doing … make this a documented choice … the screenshotting is really
+helpful … does it cost anything? … document this workflow as potential, have
+them ask which i want. give each a nickname for easy reference."** Three ways
+to put a change in front of her. **None of them costs a model call — all three
+are free** (a deploy spends Render build minutes, which are metered but not
+money until the monthly allowance runs out). Offer the choice by NAME rather
+than deploying by reflex.
+
+- **PHOTO — a screenshot of the real page, ~30 seconds, changes nothing.**
+  Run the actual page in this container against the LIVE data (a tiny local
+  server serves the page and proxies `/api/…` and the thumb service to
+  onrender), drive it with playwright and send her the pictures. Nothing is
+  published, nothing is deployed, and her live site is untouched.
+  **THIS IS THE ONE THAT CATCHES THINGS, and that is measured, not a
+  guess**: within one turn it found the "gold highlight" rendering as
+  literally nothing TWICE (a drop-shadow invisible against the cream, then a
+  face behind an opaque cut), and a header that collapsed so the board covered
+  the gear and the gear could not be tapped at all. All three would have
+  shipped. **Photograph before deploying, every round.**
+- **SANDBOX — a tappable copy in her Chats app, no deploy.** POST the page's
+  own html as a Compare page (`POST /api/chatfeed/page {chat, title, html}`).
+  The live server serves it from storage, so it needs no deploy, and because
+  it runs on the same origin its `/api/…` calls hit the real endpoints — a
+  real, playable preview. **Two `warnings` always come back for a tool-page
+  copy** (no `/compare.js`, an eyebrow above the title): they are the
+  compare-page kit's rules and do not apply to a verbatim copy of a tool page
+  — say so rather than "fixing" the page into something that is no longer what
+  she is previewing. It is FROZEN at the moment it is posted, so re-post to
+  update it, and supersede the old one.
+- **LIVE — the real deploy.** Everyone sees it, her saved place and her app
+  wrapper included. Do this when she says, or for a fix she is waiting on.
+  **Render has been ignoring pushes since 2026-09-01** (`commit_ignored` on
+  every commit, even with `autoDeploy: yes` and no build filter — its own
+  event log says so), so a merge does NOT reach the site by itself; trigger it
+  with `POST https://api.render.com/v1/services/<srv>/deploys` using
+  `RENDER_API_KEY`, which is in the environment.
+
+**The habit: PHOTO every round, SANDBOX when she wants to tap it, LIVE when
+she says.** Ask which she wants rather than assuming.
+
 ## Never block the turn on a wait — always background it
 - **Any "wait for X" step MUST run as a background task**, never a foreground
   blocking wait. This includes waiting on a Render deploy, CI, a build, a
@@ -7801,9 +7843,94 @@ before working on that module. Nothing was deleted — the moved text is verbati
     tagged, since it cannot be dealt. `edLabel` falls through to the
     capitalized slug, so the chip needed no page change.
     The objects are immutable — bump `CUT_VERSION` to re-bake past the CDN.
+    **AND HER HEARTS ARE THE DECK NOW — no chat runs anything (2026-09-01:
+    "connect it to the deck so they flow in and out automatically").** A ♥ on
+    a nature card puts it IN the deal and an ✕ takes it out, cast wherever she
+    already casts them (the Assets tab, Meta Assets, a hearts page) — one
+    votes read behind a 60s cache at the top of `GET /cards`, writing only the
+    cards whose state actually changed, so a settled deck writes nothing.
+    **THE NATURE VOCABULARY IS KEPT ON PURPOSE**: she spent a day deciding
+    what nature means and asked for a deck of exactly that, so a heart on a
+    card outside `docs/triset/nature-slugs.json` does NOT silently join the
+    deal — it is collected on the "New triangle hearts" Compare page for her
+    to add deliberately. Widening it is one line (drop the `NATURE_SLUGS`
+    test) and is hers to ask for.
+    **THE WAITING ROOM is that page — one standing Compare deck, `triset-waiting`
+    in `triset-nature-classification`** (kept the `runAutoCompare` way: fixed
+    doc id, the data hashed, rewritten only when the set really changes, so her
+    marks survive every rebuild because **an item's id is its SUBJECT SLUG**).
+    **HER ♥ THERE IS THE ADOPTION AND IS A DIFFERENT SIGNAL from the heart that
+    put the card on it** — a page mark lands on the page's own verdict doc, not
+    on the asset vote — so "I like this drawing" and "put this in my deck" stay
+    two separate answers, which is the only reason the vocabulary can hold
+    without a heart anywhere in the app silently widening her set.
+    **`hidden` AND `edition` CARRY DIFFERENT FACTS, and the sync keeps them
+    apart**: `hidden` is "not in the pool at all" (508 of 583 cards are, on
+    purpose — the alternates and the subjects she did not keep) and
+    `edition:'nature'` is "this is the card the deal shows for that subject".
+    So a ♥ never un-hides the pool wholesale, and **the incumbent wins** — a
+    newly-hearted generation does not swap the picture on her printed sheet
+    unless she crossed the dealt one out.
   - **Her words are the content half, verbatim**; the one connective line
     (INVENT_LINE) rides in the wrapper and is disclosed in `promptStyle` with
     the `[content]` seam. The whole prompt is stored on every card doc.
+  - **PLAYING AGAINST THE COMPUTER (2026-09-01, Sophie: "make it possible to
+    play against a computer").** Turned on in the settings gear; the score
+    replaces the set count. **TURN-BASED, NEVER A TIMER** — she looks for as
+    long as she likes and **ITS TURN** is what hands the hand over. A race
+    against a clock would make a quiet game a reflex test.
+    - **IT PLAYS FROM THE CARDS' OWN PROMPTS, not the pictures** — those words
+      ARE what drew each card, so it reads the same thing she is looking at,
+      and a text call is ~0.1¢ where a vision call is cents.
+    - **IT CAN NEVER SPEND HER MONEY.** A set it finds is announced, typed
+      into the middle and scored; the ~2¢ venn card is still her own Draw it!
+      tap. **`claimBy` is why a claim has an owner** — without it, drawing the
+      card the computer found would score HER a point for its set.
+    - **IT IS ALLOWED TO PASS, and that is the balance** — an opponent that
+      always finds something is narrating, not playing. `A STRETCH IS A PASS`
+      is in the prompt and pinned by the test.
+  - **THE SETS SHE HAS WON SIT AT THE BOTTOM (2026-09-01: "sets get saved at
+    the bottom, left to right, 4 to a row, in full triangle formation, new
+    card included in middle · can be clicked to see bigger · you can also
+    click to see opponents successful sets").** A tile is the BOARD at tile
+    size — **the same `.sl` geometry, one copy of the numbers**, so a saved set
+    looks exactly like the hand that won it. Stored as card IDs like the table,
+    so a re-cut card is never a stale copy. Two things not to undo: **the
+    middle of a formation is the inverted triangle BY POSITION, never by the
+    card's own `flip`** (a set drawn but not yet made still has to nest), and
+    the opponent's tiles wear a small gold **IT** in the formation's empty
+    top-left corner — hers wear nothing.
+  - **HER RULESET IS IN THE SETTINGS SHEET, IN HER WORDS (2026-09-01, "add the
+    stealing to the ruleset")** — *Claiming a set* and *Challenging and
+    stealing sets*, dictated by her; don't reword them. **THAT SHEET SCROLLS
+    NOW**: it made the card taller than a phone, and a centred flex child
+    overflows in BOTH directions, so the modes and the opponent toggle at the
+    TOP of it were off screen and untappable — pinned with `elementFromPoint`,
+    since a control above the fold passes every width assertion.
+  - **NEW HAND, HARD LEFT (2026-09-01: "add a new hand button, on the left")**
+    — it calls `nextHand()`, the same door the made card's tap uses, so there
+    is one way a hand is replaced. **Only `#found` takes `margin-left:auto`**;
+    with the auto margin on every `.btn` three buttons spread out and nothing
+    is hard left. And **the outline costs nothing** (her check the same
+    message, "make sure the outline didn't make the buttons bigger"): the 1px
+    border is taken back out of the padding, so the box is exactly the size it
+    was before these went gold-outline. Pinned as `padding + border === 9/14`.
+  - **A DOUBLE TAP OR A LONG PRESS OPENS A CARD BIG (2026-09-01)** — a single
+    tap already means pick-for-swap on the board and in the hand alike, so the
+    big view rides the two gestures a single tap is not. Two things not to
+    undo: the long press **suppresses the click it would otherwise become**, or
+    opening a card also picks it; and the release that ENDS the press must not
+    read as the tap that closes the overlay it just opened under her finger —
+    that is a FLAG set by the press (`eatCardTap`), never a timing window,
+    because a clock is the same bug waiting for a slow frame.
+  - **THE CHALLENGE (2026-09-01: "you can challenge your opponent, if you have
+    a card in your hand that fits their rule, then you steal their set").**
+    Open one of its sets big, tap Challenge, pick a card from her hand;
+    `POST /api/triset/challenge` asks the model whether it really fits the rule
+    it named, and a yes moves the point to her. **The referee is DELIBERATELY
+    STRICT** — a challenge that always succeeds makes the opponent pointless —
+    so the rule must be true of the card the same plain way it is true of the
+    set, and a near miss is a no. One text call, ~0.1¢, no picture.
   - **Money:** a found set draws ONE gpt-image-2 edit with the dreamy
     reference — LOW while the prompts are tuned (her call, 2026-08-30), ~1.8c,
     only on her deliberate star tap; `QUALITY` in triset.js is the one line
@@ -7839,6 +7966,21 @@ before working on that module. Nothing was deleted — the moved text is verbati
     longer holds is dropped on the way back in, so a hidden card cannot strand
     the game (a board that cannot be rebuilt deals fresh instead). The count
     is a bare number top-right, absent at zero. The buttons sit ABOVE the hand.
+  - **THE CHROME IS GOLD OUTLINE AND THE MODES LIVE IN SETTINGS (2026-09-01:
+    "buttons shud be gold outline gold text no fill, and all caps" · "get rid
+    of deal button" · "put the question mark in the top right and make it a
+    settings button so i can toggle the mode … so get rid of the row" · "make
+    the set button all the way right" · "outlines are too thick").** Every
+    button is a gold outline with gold text, no fill, uppercase; the one that
+    is left rides `margin-left:auto` so it sits hard right without knowing how
+    many share the row. **Deal is gone** — the deck flows through her HAND, so
+    a new board comes from swaps and from finding a set. The `?` became a
+    settings gear top right (the set count beside it) and the three modes moved
+    into its sheet, so the mode row is gone. **`setKind` is called at boot** or
+    the sheet opens with nothing lit, since `kind` has a default no tap set.
+    **THE HEADER NEEDS ITS OWN `min-height`** — every child of it is absolute
+    or hidden, so without one it collapses to its padding and the board
+    overlaps the gear, which then cannot be tapped at all (caught by PHOTO).
   - **THE RIGHT BUTTON HAS TWO STAGES (2026-09-01: "right button - 'set!' -
     highlights cards in gold · set becomes 'draw it!' w the star AFTER you
     enter text").** "Set!" CLAIMS the three cards — they light gold and the
