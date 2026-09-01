@@ -667,6 +667,13 @@
     var states = Array.isArray(opts.states) && opts.states.length >= 2
       ? opts.states.filter(function (s) { return s && s.label !== undefined; }) : null;
     var browse = !!opts.browse;
+    // pace:'quick' — A QUICK-DECISION DECK (2026-09-01, Sophie: "a toggle for
+    // chats to choose if it's a quick or labored decision + note … heart or x
+    // action DOES move deck forward"). On a quick deck a decisive ♥/✕ (or a
+    // spread pick) steps forward one card by itself; maybe, a clear and a
+    // note still stay put, and the edge taps and swipe still navigate. The
+    // default is labored — the browse rule exactly as it was.
+    var quick = opts.pace === 'quick';
     var voice = !!opts.voice;
     // ── THE GOOD / BAD STAMP (see the CSS). ON by default — it is what a
     // decided card looks like now; `stamp:false` turns it off for a deck
@@ -1072,6 +1079,24 @@
         // and the swipe navigate. (A deck with no browse mode has no edges to
         // tap, so there the verdict still advances — that is the classic
         // Tinder page and its only way forward.)
+        //
+        // …UNLESS THE DECK IS A QUICK ONE (pace:'quick', 2026-09-01 — see the
+        // option above). `stampNow` is already exactly the decisive set
+        // (♥/✕/a spread pick, and null on a clear or a maybe), so it is the
+        // gate; the move steps forward ONE card — "moves deck forward", never
+        // a jump to the first unjudged — and waits out the stamp so the card
+        // she is leaving is the one that wears it (the non-browse path's own
+        // rule). Past the end it lands on the piles, like the edge tap.
+        if (quick && stampNow) {
+          render(true);
+          var going = cur;
+          setTimeout(function () {
+            if (cur !== going || view !== 'card') return;
+            if (cur >= items.length - 1) { view = 'piles'; } else { cur += 1; }
+            render(true); savePlace();
+          }, stampOn ? 620 : 0);
+          return;
+        }
       } else if (stampNow && stampOn) {
         // A DECK WITH NO BROWSE MODE ADVANCES ON THE MARK — so without this
         // the stamp would be painted onto a card that is replaced in the same
