@@ -7835,6 +7835,17 @@ before working on that module. Nothing was deleted — the moved text is verbati
     re-shuffle can never deal a card twice; and **undo snapshots the whole
     table — deck and discard by copy** — or restoring the board while the deck
     kept its position deals a card that is already in play.
+  - **UNDO AND REDO ARE BARE GLYPHS AT THE TOP LEFT (2026-09-01: "undo button
+    at the top left - no words, just an icon that grows a redo if applicable ·
+    no square or fill around icon").** Both live in the header, left of the
+    centred title: a Lucide `undo-2`/`redo-2` pair with **no plate at all** —
+    the house rule's plateless case, since the header is the calmest strip on
+    the page — and a 34px tap target with only the paint absent. **REDO is
+    drawn only when there is something to redo**, and any NEW move drops the
+    redo stack (the future she undid ends the moment she plays a different
+    one); `pushUndo` is the one door every action comes through, so that
+    clearing has one home. `snap`/`restore` are shared by both, so the two can
+    never disagree about what a saved table is.
   - **UNDO PUTS THE LAST HAND BACK (2026-09-01: "add an undo button").** Deal
     and swap are RANDOM, so a card swapped away is gone unless the draw happens
     to return it — undo is the only way to keep one she liked. A stack of

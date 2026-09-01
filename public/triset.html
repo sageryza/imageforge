@@ -176,7 +176,18 @@ button.btn{
 }
 #found{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 #found svg{width:17px;height:17px;display:block}
-#undo svg{width:16px;height:16px;display:block}
+/* THE BARE GLYPH — no square, no fill (2026-09-01, "undo button at the top
+   left - no words, just an icon that grows a redo if applicable · no square
+   or fill around icon"). The house rule allows a plateless icon where the
+   ground behind it is calm, and the header is the calmest strip on the page.
+   The TAP TARGET is still 34px; only the paint is absent. */
+.ghost{
+  width:34px;height:34px;padding:0;border:none;background:none;cursor:pointer;
+  color:var(--ink2);display:inline-flex;align-items:center;justify-content:center;
+  flex:0 0 auto;-webkit-tap-highlight-color:transparent;
+}
+.ghost:active{color:var(--ink)}
+.ghost svg{width:19px;height:19px;display:block}
 #found[disabled]{opacity:.45}
 #found .cost{font-size:11px;color:inherit;opacity:.75}
 #msg{margin:4px 18px 18px;font-family:-apple-system,system-ui,sans-serif;font-size:13px;color:var(--ink2);min-height:18px}
@@ -187,6 +198,8 @@ button.btn{
 <body class="tool">
 
 <header class="app-header">
+  <button class="ghost" id="undo" hidden aria-label="Undo"></button>
+  <button class="ghost" id="redo" hidden aria-label="Redo"></button>
   <h1 class="eyebrow tool-eyebrow">Similitude</h1>
   <button class="qmark" id="help" aria-label="How it works">?</button>
 </header>
@@ -230,7 +243,6 @@ button.btn{
 
 <div id="acts">
   <button class="btn" id="deal">Deal</button>
-  <button class="btn" id="undo" hidden><span id="undoicon"></span>Undo</button>
   <button class="btn" id="found"><span id="star"></span>Found a set <span class="cost">~2¢</span></button>
 </div>
 <div id="msg"></div>
@@ -261,10 +273,15 @@ var STAR = '<svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d
 document.getElementById('star').innerHTML = STAR;
 // Lucide `undo-2` — the house line icon, stroked, no plate of its own (it
 // rides inside the .btn beside its word)
+// Lucide `undo-2` / `redo-2` — the house line icons, mirrored pair
 var UNDO_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
   + 'stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/>'
   + '<path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>';
-document.getElementById('undoicon').innerHTML = UNDO_ICON;
+var REDO_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
+  + 'stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/>'
+  + '<path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5v0A5.5 5.5 0 0 0 9.5 20H13"/></svg>';
+document.getElementById('undo').innerHTML = UNDO_ICON;
+document.getElementById('redo').innerHTML = REDO_ICON;
 
 var $ = function(s){ return document.querySelector(s); };
 function hdrs(json){
@@ -500,21 +517,45 @@ var UNDO_MAX = 20;
 // already in play. Deck and discard are snapshotted by COPY.
 function pushUndo(){
   if (!hand.top && !hand.left && !hand.right) return;   // nothing dealt yet
-  undos.push({ top: hand.top, left: hand.left, right: hand.right,
-    held: held.slice(), deck: deck.slice(), discard: discard.slice() });
+  undos.push(snap());
+  redos.length = 0;              // a new move ends the future she undid
   if (undos.length > UNDO_MAX) undos.shift();
   paintUndo();
 }
-function paintUndo(){ $('#undo').hidden = !undos.length || !!pending; }
+/* REDO GROWS BESIDE IT ONLY WHEN THERE IS SOMETHING TO REDO (2026-09-01,
+   "an icon that grows a redo if applicable"). Standard stack pair: undo moves
+   the present onto the redo stack, redo moves it back, and any NEW action
+   drops the redo stack — the future she undid is gone the moment she plays a
+   different one. */
+var redos = [];
+function snap(){
+  return { top: hand.top, left: hand.left, right: hand.right,
+    held: held.slice(), deck: deck.slice(), discard: discard.slice() };
+}
+function restore(st){
+  ['top','left','right'].forEach(function(s){ hand[s] = st[s]; setImg(s, st[s]); });
+  held = (st.held || [null,null,null]).slice();
+  deck = (st.deck || []).slice();
+  discard = (st.discard || []).slice();
+  clearPick(); paintHand(); costLine(); paintUndo(); say('');
+}
+function paintUndo(){
+  $('#undo').hidden = !undos.length || !!pending;
+  $('#redo').hidden = !redos.length || !!pending;
+}
 function undo(){
   if (pending) return;
   var prev = undos.pop();
   if (!prev) { paintUndo(); return; }
-  ['top','left','right'].forEach(function(s){ hand[s] = prev[s]; setImg(s, prev[s]); });
-  held = (prev.held || [null,null,null]).slice();
-  deck = (prev.deck || []).slice();
-  discard = (prev.discard || []).slice();
-  clearPick(); paintHand(); costLine(); paintUndo(); say('');
+  redos.push(snap());
+  restore(prev);
+}
+function redo(){
+  if (pending) return;
+  var next = redos.pop();
+  if (!next) { paintUndo(); return; }
+  undos.push(snap());
+  restore(next);
 }
 
 function say(t, bad){
@@ -657,6 +698,7 @@ Array.prototype.forEach.call(document.querySelectorAll('.hcard'), function(b){
 });
 $('#deal').onclick = deal;
 $('#undo').onclick = undo;
+$('#redo').onclick = redo;
 $('#found').onclick = found;
 $('#k-same').onclick = function(){ setKind('same'); };
 $('#k-each').onclick = function(){ setKind('each'); };

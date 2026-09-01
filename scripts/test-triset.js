@@ -418,6 +418,24 @@ async function headless() {
   }));
   ok('no undo button before anything has been undone', await pg.evaluate(() =>
     document.getElementById('undo').hidden === true));
+  ok('no redo either', await pg.evaluate(() => document.getElementById('redo').hidden === true));
+  // TOP LEFT, BARE GLYPH, NO WORDS (2026-09-01) — measured: a plateless icon
+  // and a bordered one are the same markup, and "top left" is a coordinate.
+  ok('undo sits in the header, left of the title', await pg.evaluate(() => {
+    const u = document.getElementById('undo').getBoundingClientRect();
+    const h = document.querySelector('h1.tool-eyebrow').getBoundingClientRect();
+    return u.top < 90 && u.left < 60 && u.right <= h.left + 1;
+  }));
+  ok('it carries an icon and NO words', await pg.evaluate(() => {
+    const u = document.getElementById('undo');
+    return !!u.querySelector('svg') && u.textContent.trim() === '';
+  }));
+  ok('…with no square or fill around it', await pg.evaluate(() => {
+    const c = getComputedStyle(document.getElementById('undo'));
+    const clear = (v) => v === 'rgba(0, 0, 0, 0)' || v === 'transparent';
+    return clear(c.backgroundColor) && c.borderTopStyle === 'none'
+      && parseFloat(c.borderTopWidth || 0) === 0;
+  }));
   {
     const shot = () => pg.evaluate(() => ['top', 'left', 'right']
       .map(s => document.querySelector('#s-' + s + ' img').getAttribute('src') || ''));
@@ -431,6 +449,19 @@ async function headless() {
     ok('…and left the other two alone', swapped[1] === before[1] && swapped[2] === before[2]);
     await tapUndo();
     ok('undo puts the exact hand back', JSON.stringify(await shot()) === JSON.stringify(before));
+    // REDO grows only once there is something to redo, and takes it forward again
+    ok('a redo appears after an undo',
+      await pg.evaluate(() => document.getElementById('redo').hidden === false));
+    await pg.click('#redo');
+    ok('redo goes forward to the undone hand',
+      JSON.stringify(await shot()) === JSON.stringify(swapped));
+    await tapUndo();
+    ok('and back again', JSON.stringify(await shot()) === JSON.stringify(before));
+    // a NEW move ends the future she undid
+    await pg.click('#deal');
+    ok('a new move drops the redo',
+      await pg.evaluate(() => document.getElementById('redo').hidden === true));
+    await tapUndo();
     ok('…and hides itself when the history runs out',
       await pg.evaluate(() => document.getElementById('undo').hidden === true));
     // her typed middle is NOT touched — it still describes the hand that came back
