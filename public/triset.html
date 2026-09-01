@@ -35,6 +35,11 @@ h1.tool-eyebrow{
   position:absolute;left:50%;transform:translateX(-50%);
   top:var(--headtop);pointer-events:none;white-space:nowrap;
 }
+#sets{
+  position:absolute;right:18px;top:var(--headtop);
+  font-family:-apple-system,system-ui,sans-serif;font-size:13px;
+  color:var(--ink2);font-variant-numeric:tabular-nums;line-height:34px;
+}
 .qmark{
   width:22px;height:22px;border-radius:50%;border:1px solid var(--line);
   background:var(--card);color:var(--gold);font-size:12px;line-height:20px;
@@ -48,6 +53,13 @@ h1.tool-eyebrow{
   background:var(--card);border:1px solid var(--line);border-radius:6px;
   padding:20px 22px;max-width:340px;font-size:15px;line-height:1.55;
 }
+
+/* SET! LIGHTS THE THREE CARDS IN GOLD (2026-09-01, "right button - 'set!' -
+   highlights cards in gold · set becomes 'draw it!' w the star AFTER you
+   enter text"). A drop-shadow rather than a border, because the cards are
+   clipped triangles and a border would draw a rectangle round one. */
+#board.claimed .slot.up img{filter:drop-shadow(0 0 0 var(--gold)) drop-shadow(0 0 6px var(--gold))}
+#found.ready{background:var(--gold);border-color:var(--gold);color:var(--ink)}
 
 /* ── HER HAND — three cards under the board, same triangular cut ─────── */
 #hand{display:flex;justify-content:center;gap:10px;margin:14px 18px 0}
@@ -202,6 +214,9 @@ button.btn{
   <button class="ghost" id="redo" hidden aria-label="Redo"></button>
   <h1 class="eyebrow tool-eyebrow">Similitude</h1>
   <button class="qmark" id="help" aria-label="How it works">?</button>
+  <!-- HOW MANY SETS SHE HAS FOUND (2026-09-01, "counts how many sets - top
+       right - number"). A number, nothing else; it persists with the table. -->
+  <span id="sets" hidden></span>
 </header>
 
 <div id="board">
@@ -219,16 +234,6 @@ button.btn{
   </div>
 </div>
 
-<!-- HER HAND — three cards under the board (2026-09-01, "make it so i get
-     dealt three cards, they show under the board, i click a card on the
-     board and one in my hand, to replace it w that card. a new card from
-     the deck comes into my hand"). -->
-<div id="hand">
-  <button class="hcard" data-h="0"><img alt=""></button>
-  <button class="hcard" data-h="1"><img alt=""></button>
-  <button class="hcard" data-h="2"><img alt=""></button>
-</div>
-
 <!-- EDITIONS — a deck within the pool (2026-08-31, "triset color edition").
      Derived from the cards themselves: the row only exists while the pool
      holds a card carrying `edition`, so the day before the color cards it
@@ -243,8 +248,18 @@ button.btn{
 
 <div id="acts">
   <button class="btn" id="deal">Deal</button>
-  <button class="btn" id="found"><span id="star"></span>Found a set <span class="cost">~2¢</span></button>
+  <button class="btn" id="found"><span id="star" hidden></span><span id="foundword">Set!</span> <span class="cost">~2¢</span></button>
 </div>
+<!-- HER HAND — three cards under the board (2026-09-01, "make it so i get
+     dealt three cards, they show under the board, i click a card on the
+     board and one in my hand, to replace it w that card. a new card from
+     the deck comes into my hand"). -->
+<div id="hand">
+  <button class="hcard" data-h="0"><img alt=""></button>
+  <button class="hcard" data-h="1"><img alt=""></button>
+  <button class="hcard" data-h="2"><img alt=""></button>
+</div>
+
 <div id="msg"></div>
 
 <div id="helpcard" hidden>
@@ -399,6 +414,16 @@ function randOf(list){ return list[Math.floor(Math.random() * list.length)]; }
    shuffled back only when the deck runs dry. Six cards are on the table at a
    time (three on the board, three in her hand), so the deck is the dealable
    pool minus those. */
+/* HER PLACE IS SAVED (2026-09-01, "saves ur place, even w deploy or reopen").
+   The whole table by card ID — board, hand, deck, discard, her typed middle
+   and the set count — so a reopen, a reload or a deploy puts her back exactly
+   where she was. IDs, not card objects: the pool is re-fetched on every load
+   and a stored copy would go stale the day a card is re-cut. Anything the
+   pool no longer holds is dropped on the way back in, so a hidden or deleted
+   card cannot strand the game. */
+var SKEY = 'triset.table';
+var sets = 0;
+
 var deck = [];                 // face-down, dealt off the END (the top)
 var discard = [];
 var held = [null,null,null];   // her hand, under the board
@@ -462,7 +487,8 @@ function deal(){
   held = [null,null,null];
   ['top','left','right'].forEach(function(s){ hand[s] = drawFresh(); setImg(s, hand[s]); });
   for (var i = 0; i < 3; i++) held[i] = drawFresh();
-  clearPick(); paintHand(); costLine();
+  setClaimed(false);
+  clearPick(); paintHand(); costLine(); saveTable();
 }
 
 /* THE SWAP IS TWO TAPS — a board card and a hand card. Either order: the
@@ -499,7 +525,7 @@ function doSwap(slot, i){
   discard.push(hand[slot]);
   hand[slot] = held[i]; setImg(slot, hand[slot]);
   held[i] = drawFresh();
-  clearPick(); paintHand(); costLine(); say('');
+  clearPick(); paintHand(); costLine(); say(''); saveTable();
 }
 
 /* UNDO — put the last hand back (2026-09-01, "add an undo button").
@@ -539,6 +565,46 @@ function restore(st){
   discard = (st.discard || []).slice();
   clearPick(); paintHand(); costLine(); paintUndo(); say('');
 }
+function paintSets(){
+  var el = $('#sets');
+  el.textContent = sets ? String(sets) : '';
+  el.hidden = !sets;
+}
+function saveTable(){
+  try {
+    localStorage.setItem(SKEY, JSON.stringify({
+      board: ['top','left','right'].map(function(s){ return hand[s] && hand[s].id; }),
+      held: held.map(function(c){ return c && c.id; }),
+      deck: deck.map(function(c){ return c.id; }),
+      discard: discard.map(function(c){ return c.id; }),
+      middle: $('#middle').value, sets: sets, kind: kind,
+    }));
+  } catch(e){}
+}
+// → true when a saved table was restored, so load() knows not to deal over it
+function loadTable(){
+  var raw = null;
+  try { raw = localStorage.getItem(SKEY); } catch(e){}
+  if (!raw) return false;
+  var t; try { t = JSON.parse(raw); } catch(e){ return false; }
+  if (!t || !Array.isArray(t.board)) return false;
+  var by = {};
+  pool.forEach(function(c){ by[c.id] = c; });
+  var pick = function(id){ return (id && by[id]) || null; };
+  var board = t.board.map(pick);
+  if (!board.every(Boolean)) return false;          // a stale board deals fresh
+  hand.top = board[0]; hand.left = board[1]; hand.right = board[2];
+  ['top','left','right'].forEach(function(s){ setImg(s, hand[s]); });
+  held = (t.held || []).map(pick); while (held.length < 3) held.push(null);
+  deck = (t.deck || []).map(pick).filter(Boolean);
+  discard = (t.discard || []).map(pick).filter(Boolean);
+  sets = +t.sets || 0;
+  if (typeof t.middle === 'string') $('#middle').value = t.middle;
+  if (t.kind) setKind(t.kind);
+  clearPick(); paintHand(); paintSets(); costLine(); paintFound();
+  return true;
+}
+
 function paintUndo(){
   $('#undo').hidden = !undos.length || !!pending;
   $('#redo').hidden = !redos.length || !!pending;
@@ -592,10 +658,46 @@ function drawingUI(on){
   $('#found').disabled = on;
 }
 
+/* THE RIGHT BUTTON HAS TWO STAGES. Tapping "Set!" CLAIMS the three cards —
+   they light gold and the middle box is where she says what they share. Once
+   there are words in it the button becomes "Draw it!" and wears the generate
+   star, which is the only tap that spends money. So the claim is free and
+   reversible, and the paid tap is never the first one. */
+var claimed = false;
+function setClaimed(on){
+  claimed = !!on;
+  $('#board').classList.toggle('claimed', claimed);
+  paintFound();
+  if (claimed && kind !== 'auto') { var m = $('#middle'); if (m && !m.hidden) m.focus(); }
+}
+function readyToDraw(){
+  if (!claimed) return false;
+  if (kind === 'auto') return true;               // the model reads the cards
+  if (!$('#middle').value.trim()) return false;
+  if (kind !== 'each') return true;
+  return VENN.every(function(id){ return document.getElementById(id).value.trim(); });
+}
+function paintFound(){
+  var go = readyToDraw();
+  $('#foundword').textContent = go ? 'Draw it!' : 'Set!';
+  $('#star').hidden = !go;                        // the generate star only on the paid tap
+  $('#found').classList.toggle('ready', go);
+  $('#found').querySelector('.cost').hidden = !go;
+}
+
 function found(){
   if (pending) return;
+  if (!claimed) {                                  // stage one: claim, free
+    if (![hand.top, hand.left, hand.right].every(Boolean)) { say('deal three cards first', true); return; }
+    setClaimed(true); say(''); return;
+  }
+  if (!readyToDraw()) {
+    say(kind === 'each'
+      ? 'write each card\u2019s connection on its side of the middle triangle'
+      : 'write what they share in the middle triangle', true);
+    return;
+  }
   var middle = $('#middle').value.trim();
-  if (kind !== 'auto' && !middle) { say('write what they share in the middle triangle', true); return; }
   var body = {
     cards: [hand.top, hand.left, hand.right].map(function(c){ return c && c.id; }),
     kind: kind,
@@ -613,6 +715,7 @@ function found(){
     .then(function(d){
       if (!d.ok) throw new Error(d.error || 'could not start the card');
       pending = d.id;
+      sets += 1; paintSets(); setClaimed(false); saveTable();
       try { localStorage.setItem(PKEY, pending); } catch(e){}
       poll();
     })
@@ -677,7 +780,9 @@ function load(){
     .then(function(d){
       pool = (d.cards || []).filter(function(c){ return c.status === 'ready' && (c.url || c.hex); });
       paintEds(); poolLine();
-      deal();
+      // her place first — only an empty or stale save deals a fresh table
+      if (!loadTable()) deal();
+      paintSets();
       // pick a draw back up after a reload — paid work is never lost
       var p = null;
       try { p = localStorage.getItem(PKEY); } catch(e){}
@@ -697,6 +802,12 @@ Array.prototype.forEach.call(document.querySelectorAll('.hcard'), function(b){
   b.onclick = function(){ tapHand(+b.dataset.h); };
 });
 $('#deal').onclick = deal;
+// her words are part of her place, so typing saves too — a localStorage write
+// per keystroke is cheap and means nothing is lost to a reload mid-sentence
+['middle'].concat(VENN).forEach(function(id){
+  var el = document.getElementById(id);
+  if (el) el.addEventListener('input', function(){ paintFound(); saveTable(); });
+});
 $('#undo').onclick = undo;
 $('#redo').onclick = redo;
 $('#found').onclick = found;
