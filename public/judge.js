@@ -669,10 +669,11 @@
     var browse = !!opts.browse;
     // pace:'quick' — A QUICK-DECISION DECK (2026-09-01, Sophie: "a toggle for
     // chats to choose if it's a quick or labored decision + note … heart or x
-    // action DOES move deck forward"). On a quick deck a decisive ♥/✕ (or a
-    // spread pick) steps forward one card by itself; maybe, a clear and a
-    // note still stay put, and the edge taps and swipe still navigate. The
-    // default is labored — the browse rule exactly as it was.
+    // action DOES move deck forward", then "maybe counts as a decision too").
+    // On a quick deck ANY verdict she gives — ♥, ✕, maybe, her own words, a
+    // spread pick — steps forward one card by itself; a CLEAR and a note stay
+    // put, and the edge taps and swipe still navigate. The default is
+    // labored — the browse rule exactly as it was.
     var quick = opts.pace === 'quick';
     var voice = !!opts.voice;
     // ── THE GOOD / BAD STAMP (see the CSS). ON by default — it is what a
@@ -1081,20 +1082,32 @@
         // Tinder page and its only way forward.)
         //
         // …UNLESS THE DECK IS A QUICK ONE (pace:'quick', 2026-09-01 — see the
-        // option above). `stampNow` is already exactly the decisive set
-        // (♥/✕/a spread pick, and null on a clear or a maybe), so it is the
-        // gate; the move steps forward ONE card — "moves deck forward", never
-        // a jump to the first unjudged — and waits out the stamp so the card
-        // she is leaving is the one that wears it (the non-browse path's own
-        // rule). Past the end it lands on the piles, like the edge tap.
-        if (quick && stampNow) {
-          render(true);
+        // option above). The move steps forward ONE card — "moves deck
+        // forward", never a jump to the first unjudged — and past the end it
+        // lands on the piles, like the edge tap.
+        //
+        // ANY VERDICT SHE GIVES IS A DECISION, MAYBE INCLUDED (2026-09-01,
+        // her follow-up: "maybe counts as a decision too"). The first cut
+        // gated on `stampNow`, which is the STAMP's question (♥/✕/a spread
+        // pick — a maybe stamps nothing, since there is no good and no bad in
+        // one) and not this one. Answering "maybe" is answering; leaving her
+        // parked on a card she has already dealt with is the labored deck by
+        // accident. So the gate is simply "a verdict was SET": `val !== null`.
+        // A CLEAR still stays put — untelling the deck what she thinks is the
+        // one mark that is not a decision, and it is also how she goes back
+        // to an unmarked card on purpose.
+        // The wait is the STAMP's, so only a stamping verdict waits: a maybe
+        // moves at once, and a ♥/✕ holds 620ms so the card she is leaving is
+        // the one that wears it (the non-browse path's own rule).
+        if (quick && val !== null) {
           var going = cur;
-          setTimeout(function () {
+          var step = function () {
             if (cur !== going || view !== 'card') return;
             if (cur >= items.length - 1) { view = 'piles'; } else { cur += 1; }
             render(true); savePlace();
-          }, stampOn ? 620 : 0);
+          };
+          if (stampNow && stampOn) { render(true); setTimeout(step, 620); }
+          else step();
           return;
         }
       } else if (stampNow && stampOn) {
