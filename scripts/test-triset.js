@@ -394,6 +394,20 @@ async function headless() {
   // assertion is a MEASUREMENT of what is on the slots: a stack that pops
   // correctly and a page that never repaints look identical to any source
   // assertion, and the whole point is the picture coming back.
+  // THE NAME IS CENTRED ON THE PAGE (2026-09-01, "similitude should be in the
+   // middle") — measured, because a title that merely sits first in a flex row
+   // and one that is centred are the same markup.
+  ok('the title is centred on the page, not left in the row', await pg.evaluate(() => {
+    const h = document.querySelector('h1.tool-eyebrow').getBoundingClientRect();
+    return Math.abs((h.left + h.right) / 2 - window.innerWidth / 2) <= 2;
+  }));
+  ok('…and does not sit on the ?', await pg.evaluate(() => {
+    const h = document.querySelector('h1.tool-eyebrow').getBoundingClientRect();
+    return ['#help'].every(sel => {
+      const r = document.querySelector(sel).getBoundingClientRect();
+      return r.right <= h.left + 1 || r.left >= h.right - 1;
+    });
+  }));
   ok('no undo button before anything has been undone', await pg.evaluate(() =>
     document.getElementById('undo').hidden === true));
   {
@@ -556,7 +570,8 @@ async function headless() {
     return !row.hidden && words.join('|') === 'All cards|Colors'
       && row.querySelector('button').classList.contains('on');
   }));
-  ok('the whole pool counts in the header', await pg.$eval('#pool', el => el.textContent) === '9 cards');
+  // the header carries NO count since 2026-09-01 ('get rid of "nature 72"')
+  ok('the header shows no card count at all', await pg.evaluate(() => !document.getElementById('pool')));
   await pg.click('#eds button:nth-child(2)');
   ok('a lit edition deals ONLY its cards, as flat SVG triangles', await pg.evaluate(() =>
     ['top', 'left', 'right'].every(s => {
@@ -564,9 +579,19 @@ async function headless() {
       return (img.getAttribute('src') || '').startsWith('data:image/svg')
         && img.classList.contains('whole');
     })));
-  ok('…and the header says so', await pg.$eval('#pool', el => el.textContent) === '3 colors');
   ok('a hand of three colors mixes FREE — the button says so',
     await pg.$eval('#found .cost', el => el.textContent) === 'free');
+  // ONE DECK NEEDS NO CHOOSER (2026-09-01, "get rid of all cards and colors"):
+  // a pool where every card is the same edition drops the row and deals that
+  // deck. The row must SURVIVE above, where un-editioned cards are a real
+  // second choice — hiding it there strands them behind no control.
+  cardsResp = cardsResp.filter(c => c.edition === 'color');
+  await pg.reload({ waitUntil: 'networkidle' });
+  ok('a pool that is ALL one edition drops the chip row and deals that deck',
+    await pg.evaluate(() => document.getElementById('eds').hidden === true
+      && ['top', 'left', 'right'].every(s =>
+        (document.querySelector('#s-' + s + ' img').getAttribute('src') || '')
+          .startsWith('data:image/svg'))));
 
   // find the mix: instant, no drawing wait, the blend lands in the middle
   await pg.fill('#middle', 'orange');
