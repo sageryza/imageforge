@@ -7817,6 +7817,25 @@ before working on that module. Nothing was deleted — the moved text is verbati
     chat-rename rule: renaming is cosmetic and re-keys nothing). `/similitude`
     is served as the same page so the new name is a real URL, and `/triset`
     keeps working for her pin and any saved link.
+  - **HER PLACE IS SAVED, AND THE SETS ARE COUNTED (2026-09-01: "saves ur
+    place, even w deploy or reopen" · "counts how many sets - top right -
+    number" · "buttons go above hand").** The whole table rides in
+    localStorage BY CARD ID — board, hand, deck, discard, her typed middle,
+    the kind and the count — so a reload, a reopen or a deploy puts her back
+    exactly where she was; typing saves too, so nothing is lost mid-sentence.
+    **Ids, not card objects**: the pool is re-fetched every load and a stored
+    copy would go stale the day a card is re-cut, and anything the pool no
+    longer holds is dropped on the way back in, so a hidden card cannot strand
+    the game (a board that cannot be rebuilt deals fresh instead). The count
+    is a bare number top-right, absent at zero. The buttons sit ABOVE the hand.
+  - **THE RIGHT BUTTON HAS TWO STAGES (2026-09-01: "right button - 'set!' -
+    highlights cards in gold · set becomes 'draw it!' w the star AFTER you
+    enter text").** "Set!" CLAIMS the three cards — they light gold and the
+    middle box takes her words — and only once there are words does it become
+    **"Draw it!"** wearing the generate star. So the claim is free and
+    reversible and **the paid tap is never the first one**. The gold is a
+    drop-shadow, never a border: the cards are clipped triangles and a border
+    would draw a rectangle round one.
   - **A REAL DECK AND A HAND (2026-09-01: "make it so i get dealt three cards,
     they show under the board, i click a card on the board and one in my hand,
     to replace it w that card. a new card from the deck comes into my hand" ·

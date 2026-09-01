@@ -486,6 +486,14 @@ async function headless() {
     ok('…all the way to where she started', JSON.stringify(await shot()) === JSON.stringify(h0));
   }
 
+  // THE BUTTONS SIT ABOVE THE HAND (2026-09-01, "buttons go above hand")
+  ok('the buttons are above the hand', await pg.evaluate(() =>
+    document.getElementById('acts').getBoundingClientRect().bottom
+    <= document.getElementById('hand').getBoundingClientRect().top + 1));
+  // THE SET COUNT, TOP RIGHT — a number, nothing else, and absent at zero
+  ok('no set count before she has found one', await pg.evaluate(() =>
+    document.getElementById('sets').hidden === true));
+
   // A REAL DECK AND A HAND (2026-09-01: dealt three, shown under the board;
   // tap a board card + a hand card to swap; the hand refills from the deck).
   // Measured on the page, because "an actual deck" is a property of what is
@@ -579,13 +587,37 @@ async function headless() {
 
   // found posts exactly what the module validates, and the new card lands IN
   // THE MIDDLE, upside down (her rule: "shud show, in the middle, when drawn")
+  // THE RIGHT BUTTON HAS TWO STAGES (2026-09-01): "Set!" claims the cards and
+  // lights them gold — free — and only once there are words does it become
+  // "Draw it!" with the star, which is the tap that spends.
+  ok('the button starts as Set! with no star', await pg.evaluate(() =>
+    document.getElementById('foundword').textContent.trim() === 'Set!'
+    && document.getElementById('star').hidden === true));
+  await pg.click('#found');
+  ok('Set! lights the three board cards in gold', await pg.evaluate(() =>
+    document.getElementById('board').classList.contains('claimed')
+    && getComputedStyle(document.querySelector('#s-top img')).filter.includes('drop-shadow')));
+  ok('…and is still not the paid tap', await pg.evaluate(() =>
+    document.getElementById('foundword').textContent.trim() === 'Set!'));
   await pg.fill('#middle', 'the moon');
   await pg.fill('#v-top', 'round');
   await pg.fill('#v-left', 'out at night');
   await pg.fill('#v-right', 'glows');
+  ok('once the words are in it becomes Draw it! and wears the star', await pg.evaluate(() =>
+    document.getElementById('foundword').textContent.trim() === 'Draw it!'
+    && document.getElementById('star').hidden === false));
   await pg.click('#found');
   await pg.waitForFunction(() => !document.getElementById('midcut').hidden, null, { timeout: 15000 });
   ok('found POSTed once', founds.length === 1);
+  // THE SET COUNT, TOP RIGHT (2026-09-01, "counts how many sets - top right -
+  // number") — a bare number, and measured as a COORDINATE: "top right" is a
+  // position, and a counter that only ever increments in memory shows nothing.
+  ok('the set count shows 1, top right', await pg.evaluate(() => {
+    const el = document.getElementById('sets');
+    if (el.hidden || el.textContent.trim() !== '1') return false;
+    const r = el.getBoundingClientRect();
+    return r.top < 90 && r.right > window.innerWidth - 60;
+  }));
   const f = founds[0] || {};
   ok('…with three different card ids', f.cards && new Set(f.cards).size === 3);
   ok('…the kind and her words', f.kind === 'each' && f.middle === 'the moon' && (f.sides || []).join('|') === 'round|out at night|glows');
@@ -669,9 +701,10 @@ async function headless() {
           .startsWith('data:image/svg'))));
 
   // find the mix: instant, no drawing wait, the blend lands in the middle
-  await pg.fill('#middle', 'orange');
   await pg.click('#k-same');
-  await pg.click('#found');
+  await pg.click('#found');            // claim
+  await pg.fill('#middle', 'orange');
+  await pg.click('#found');            // draw
   await pg.waitForFunction(() => !document.getElementById('midcut').hidden, null, { timeout: 15000 });
   const fh = founds[founds.length - 1] || {};
   ok('the hex found posted the three hex ids', (fh.cards || []).join('|') === ['h0', 'h1', 'h2'].sort().join('|')
@@ -685,6 +718,32 @@ async function headless() {
   ok('the next hand stays in the edition', await pg.evaluate(() =>
     ['top', 'left', 'right'].every(s =>
       (document.querySelector('#s-' + s + ' img').getAttribute('src') || '').startsWith('data:image/svg'))));
+
+  /* HER PLACE SURVIVES A RELOAD (2026-09-01, "saves ur place, even w deploy
+     or reopen") — measured by RELOADING and comparing the table, which is the
+     only honest question: a save that writes and never reads back looks
+     identical to one that works. */
+  {
+    cardsResp = cards;                       // the full pool again
+    await pg.goto(base + '/triset', { waitUntil: 'networkidle' });
+    const table = () => pg.evaluate(() => ({
+      board: ['top', 'left', 'right'].map(s => document.querySelector('#s-' + s + ' img').getAttribute('src') || ''),
+      held: Array.from(document.querySelectorAll('.hcard img')).map(i => i.getAttribute('src') || ''),
+    }));
+    await pg.click('#s-top');
+    await pg.click('.hcard[data-h="0"]');
+    await pg.fill('#middle', 'they all fly');
+    const was = await table();
+    await pg.reload({ waitUntil: 'networkidle' });
+    ok('a reload puts the same table back', JSON.stringify(await table()) === JSON.stringify(was));
+    ok('…her typed middle too',
+      await pg.evaluate(() => document.getElementById('middle').value) === 'they all fly');
+    ok('a fresh deal fills THREE hand cards, not two', await pg.evaluate(() => {
+      document.getElementById('deal').click();
+      return Array.from(document.querySelectorAll('.hcard img'))
+        .filter(i => i.getAttribute('src')).length === 3;
+    }));
+  }
 
   await browser.close();
   srv.close();
