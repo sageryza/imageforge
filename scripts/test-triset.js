@@ -300,32 +300,80 @@ ok('an orphaned draw fails honestly', sp && sp.status === 'failed');
     S('https://x/triset/made/abc.webp') === null && S('') === null && S(undefined) === null);
 
   const P = triset.syncPlan;
-  // 'castle' and 'hail-roof' are in her vocabulary; 'burnt-toast' is not.
-  const cards = [
-    { id: 'a', url: 'x/cards/1-castle.webp' },
-    { id: 'b', url: 'x/cards/2-hail-roof.webp', edition: 'nature' },
-    { id: 'c', url: 'x/cards/3-burnt-toast.webp' },
-    { id: 'd', url: 'x/cards/4-lemon.webp', edition: 'nature', hidden: true },
-    { id: 'e', url: 'x/cards/5-zebra.webp', edition: 'nature' },
-  ];
-  const plan = P(cards, {
-    castle: 'like', 'hail-roof': 'dislike', 'burnt-toast': 'like',
-    lemon: 'like', zebra: 'dislike',
-  });
-  const by = Object.fromEntries(plan.map(p => [p.id, p.patch]));
-  ok('a ♥ on a nature card puts it in the deck', by.a && by.a.edition === 'nature');
-  ok('an ✕ takes a card out of the deck', by.b && by.b.hidden === true);
-  ok('a ♥ OUTSIDE her nature vocabulary does not silently join the deck', !by.c);
-  ok('a ♥ un-hides a card she had crossed out', by.d && by.d.hidden === false && !('edition' in by.d));
-  ok('an ✕ on a live nature card takes it out', by.e && by.e.hidden === true);
-  ok('an ✕ on a card already out writes nothing',
-    P([{ id: 'z', url: 'x/cards/9-zebra.webp', hidden: true }], { zebra: 'dislike' }).length === 0);
+  const U = (n, s) => `x/cards/${n}-${s}.webp`;
+  // 'castle' and 'lemon' are in her vocabulary; 'burnt-toast' is not.
+  const held = { id: 'held', url: U(1, 'castle'), edition: 'nature', quality: 'low' };
+  const alt = { id: 'alt', url: U(2, 'castle'), hidden: true, quality: 'medium' };
+  const P1 = (cards, votes) => Object.fromEntries(P(cards, votes).map(p => [p.id, p.patch]));
 
-  // a settled deck writes NOTHING — the whole point of the plan being a diff
-  const settled = P([{ id: 'a', url: 'x/cards/1-castle.webp', edition: 'nature' }], { castle: 'like' });
-  ok('a settled deck writes nothing at all', settled.length === 0);
-  ok('a card she has never voted on is left alone', P(cards, {}).length === 0);
+  ok('a settled deck writes nothing at all', P([held, alt], {}).length === 0);
+  ok('a ♥ on a card whose subject is already dealt does NOT swap her printed picture',
+    P([held, alt], { [alt.url]: 'like' }).length === 0);
+
+  const swap = P1([held, alt], { [held.url]: 'dislike', [alt.url]: 'like' });
+  ok('an ✕ on the dealt picture takes it out', swap.held && swap.held.hidden === true && swap.held.edition === '');
+  ok('…and the hearted generation takes over', swap.alt && swap.alt.edition === 'nature' && swap.alt.hidden === false);
+
+  const gone = P1([held, alt], { [held.url]: 'dislike' });
+  ok('with nothing hearted behind it the subject leaves the deck',
+    gone.held && gone.held.hidden === true && !gone.alt);
+
+  const join = P1([{ id: 'n', url: U(3, 'lemon'), hidden: true, quality: 'low' }], { [U(3, 'lemon')]: 'like' });
+  ok('a ♥ deals a subject that had nothing in the deck',
+    join.n && join.n.edition === 'nature' && join.n.hidden === false);
+
+  ok('a ♥ OUTSIDE her nature vocabulary does not silently join the deck',
+    P([{ id: 'b', url: U(4, 'burnt-toast'), hidden: true }], { [U(4, 'burnt-toast')]: 'like' }).length === 0);
+
+  const two = P1([
+    { id: 'a', url: U(5, 'zebra'), edition: 'nature' },
+    { id: 'b', url: U(6, 'zebra'), edition: 'nature' },
+  ], {});
+  ok('one card per subject — a second tagged generation is untagged',
+    Object.keys(two).length === 1 && Object.values(two)[0].edition === '');
+
+  const B = triset.bestCard;
+  ok('the better quality wins a fresh pick',
+    B({ quality: 'low', createdAt: 9 }, { quality: 'medium', createdAt: 1 }).quality === 'medium');
+  ok('…and the newer wins a tie', B({ quality: 'low', createdAt: 1 }, { quality: 'low', createdAt: 9 }).createdAt === 9);
 }
+
+/* ── the waiting room ────────────────────────────────────────────────────── */
+{
+  const W = triset.waitingPlan, A = triset.adoptedFrom;
+  const U = (n, s) => `x/cards/${n}-${s}.webp`;
+  const cards = [
+    { id: 'd', url: U(1, 'castle'), edition: 'nature', promptContent: 'a castle' },
+    { id: 'd2', url: U(2, 'castle'), quality: 'medium' },              // alt of a dealt subject
+    { id: 't', url: U(3, 'burnt-toast'), quality: 'low', promptContent: 'burnt toast' },
+    { id: 't2', url: U(4, 'burnt-toast'), quality: 'medium' },
+    { id: 'u', url: U(5, 'sock-drawer') },                              // never voted on
+    { id: 'n', url: U(6, 'teacup') },
+  ];
+  const votes = { [U(2, 'castle')]: 'like', [U(3, 'burnt-toast')]: 'like',
+    [U(4, 'burnt-toast')]: 'like', [U(6, 'teacup')]: 'like' };
+  const items = W(cards, votes, {});
+  const ids = items.map(i => i.id);
+  ok('a hearted card outside the deal waits on the page', ids.includes('burnt-toast') && ids.includes('teacup'));
+  ok('a subject already dealt never waits', !ids.includes('castle'));
+  ok('a card she never hearted is not offered', !ids.includes('sock-drawer'));
+  ok('one row per subject, at its best generation',
+    ids.filter(i => i === 'burnt-toast').length === 1
+    && items.find(i => i.id === 'burnt-toast').img === U(4, 'burnt-toast'));
+  ok('the row id is the SUBJECT, so her marks survive a rebuild',
+    items.every(i => /^[a-z-]+$/.test(i.id)));
+  ok('an ✕ on the page stops a card being offered',
+    !W(cards, votes, { teacup: false }).map(i => i.id).includes('teacup'));
+
+  ok('her ♥ on the page is the adoption', A({ teacup: true, 'burnt-toast': false }).has('teacup'));
+  ok('…and an ✕ there is not', !A({ 'burnt-toast': false }).has('burnt-toast'));
+  const dealt = triset.syncPlan([{ id: 'n', url: U(6, 'teacup'), hidden: true }],
+    { [U(6, 'teacup')]: 'like' }, A({ teacup: true }));
+  ok('an adopted subject joins the deal though it is outside the vocabulary',
+    dealt.length === 1 && dealt[0].patch.edition === 'nature' && dealt[0].patch.hidden === false);
+}
+ok('the waiting page is one standing doc, not a new page each sweep', /WAIT_PAGE/.test(MOD) && /dataHash/.test(MOD));
+
 ok('the sync runs off her votes collection', /forge-asset-votes/.test(MOD));
 ok('the deck read asks the sync first', /await syncHearts\(\)/.test(MOD));
 ok('the sync is cached, so a deal is not a full collection scan', /SYNC_MS/.test(MOD));

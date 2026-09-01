@@ -7844,6 +7844,22 @@ before working on that module. Nothing was deleted — the moved text is verbati
     deal — it is collected on the "New triangle hearts" Compare page for her
     to add deliberately. Widening it is one line (drop the `NATURE_SLUGS`
     test) and is hers to ask for.
+    **THE WAITING ROOM is that page — one standing Compare deck, `triset-waiting`
+    in `triset-nature-classification`** (kept the `runAutoCompare` way: fixed
+    doc id, the data hashed, rewritten only when the set really changes, so her
+    marks survive every rebuild because **an item's id is its SUBJECT SLUG**).
+    **HER ♥ THERE IS THE ADOPTION AND IS A DIFFERENT SIGNAL from the heart that
+    put the card on it** — a page mark lands on the page's own verdict doc, not
+    on the asset vote — so "I like this drawing" and "put this in my deck" stay
+    two separate answers, which is the only reason the vocabulary can hold
+    without a heart anywhere in the app silently widening her set.
+    **`hidden` AND `edition` CARRY DIFFERENT FACTS, and the sync keeps them
+    apart**: `hidden` is "not in the pool at all" (508 of 583 cards are, on
+    purpose — the alternates and the subjects she did not keep) and
+    `edition:'nature'` is "this is the card the deal shows for that subject".
+    So a ♥ never un-hides the pool wholesale, and **the incumbent wins** — a
+    newly-hearted generation does not swap the picture on her printed sheet
+    unless she crossed the dealt one out.
   - **Her words are the content half, verbatim**; the one connective line
     (INVENT_LINE) rides in the wrapper and is disclosed in `promptStyle` with
     the `[content]` seam. The whole prompt is stored on every card doc.
