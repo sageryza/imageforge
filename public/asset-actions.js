@@ -60,6 +60,17 @@
     var t = HOST.toast || window.toast;
     if (t) t(m);
   }
+  // A door that WALKS goes through the top window: a Compare page opened in
+  // the app runs in a same-origin IFRAME, and navigating the frame would load
+  // the Playground inside the page viewer. On a page that is not framed this
+  // is exactly `location.href`, so nothing about Meta Assets or the Assets
+  // tab moved. A cross-origin parent throws on read and keeps the frame.
+  function go(href){
+    var w = window;
+    try { if (window.top && window.top !== window && window.top.location.origin === location.origin) w = window.top; }
+    catch (e) { w = window; }
+    w.location.href = href;
+  }
   function post(path, body){
     var a = HOST.api || window.api;
     if (a) return a(path, {method:'POST', body:JSON.stringify(body)});
@@ -149,7 +160,7 @@
     var acts=[];
     if(opts.chatDoor && asset.chat && !asset.app){
       acts.push({label:'Open the chat', icon:CHATICON, onClick:function(){
-        location.href='/chats?chat='+encodeURIComponent(asset.chat); }});
+        go('/chats?chat='+encodeURIComponent(asset.chat)); }});
     }
     // EVERY picture has a way to the Playground (2026-08-28, Sophie: "meta
     // assets missing its send to playground/shoebox"). With a filed prompt it
@@ -158,7 +169,7 @@
     // her own image attached, no words invented.
     var pq=playgroundQuery(asset) || 'photo='+encodeURIComponent(url);
     acts.push({label:'Open in Playground', icon:PLAYICON, onClick:function(){
-      location.href='/playground?'+pq; }});
+      go('/playground?'+pq); }});
     // ADD TO SHOEBOX — the Story Room door's twin (same share glyph, same
     // content-addressed memory, so the doors can never make twins). The label
     // she reviews by becomes the polaroid's title; the lit button is the

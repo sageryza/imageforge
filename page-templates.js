@@ -421,6 +421,14 @@ function renderTemplatePage({ template, title, heading, chat, sheet, data, clean
     // both views open THE Assets-tab lightbox on a picture (heart, note
     // thread, prompt) through the shared adapter
     + '<script src="/asset-lightbox.js"></script>\n'
+    // AND THE DOORS UNDER THE PICTURE (2026-09-01, Sophie: "why is there no
+    // playground button??? … as long as there's a prompt there should be a
+    // playground button"). The shared set — Playground · Shoebox · Save — is
+    // what every other lightbox draws; a template page's lightbox drew none.
+    // The port script is what lets the Playground door say which tile made
+    // the picture instead of guessing.
+    + '<script src="/playground-port.js"></script>\n'
+    + '<script src="/asset-actions.js"></script>\n'
     + '<script src="/asset-view.js"></script>\n'
     + '<script src="/judge.js"></script>\n'
     + '<script src="/grid.js"></script>\n'

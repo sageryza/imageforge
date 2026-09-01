@@ -93,7 +93,17 @@
       },
       open: function (it) {
         var a = assetFor(it);
-        var open = function () { window.__assetLightbox(it.full || it.img, a); };
+        var url = it.full || it.img;
+        // THE DOORS ARE THE SHARED SET (2026-09-01, Sophie: "there shud always
+        // be a playground button / as long as there's a prompt"). A template
+        // page's lightbox drew ♥/✕ and nothing else — the one surface where a
+        // picture with a filed prompt had no way to the Playground. chatDoor
+        // is false: a Compare page sits inside its chat, and the deck's piles
+        // already carry "Open the chat". Guarded like every shared script —
+        // a hand-built page that never linked /asset-actions.js still opens.
+        var doors = window.ForgeAssetActions || null;
+        if (doors) a.actions = doors.build(url, a, { chatDoor: false });
+        var open = function () { window.__assetLightbox(url, a); };
         if (a.thread) return ensureLightbox(open);
         loadNotes().then(function (map) {
           a.thread = map[it.url] || [];
