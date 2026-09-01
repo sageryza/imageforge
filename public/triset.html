@@ -24,19 +24,21 @@ body{
 [hidden]{display:none !important}
 
 /* ── header: the name once (tiny), the "?" ────────────────────────────── */
-.app-header{display:flex;align-items:center;gap:10px;padding:var(--headtop) 18px 4px;padding-right:64px}
+.app-header{position:relative;display:flex;align-items:center;gap:10px;padding:var(--headtop) 18px 4px;padding-right:64px}
+/* THE NAME SITS IN THE MIDDLE (2026-09-01, "similitude should be in the
+   middle") — the house header rule, title centred top-middle. Absolute so it
+   centres on the PAGE rather than on the room left beside the ? and the pool
+   count, and so neither of those moves it; the row's height comes from them. */
 h1.tool-eyebrow{
   margin:0;font-family:-apple-system,system-ui,sans-serif;font-size:11px;
   font-weight:400;letter-spacing:.22em;text-transform:uppercase;color:var(--ink2);
+  position:absolute;left:50%;transform:translateX(-50%);
+  top:var(--headtop);pointer-events:none;white-space:nowrap;
 }
 .qmark{
   width:22px;height:22px;border-radius:50%;border:1px solid var(--line);
   background:var(--card);color:var(--gold);font-size:12px;line-height:20px;
   text-align:center;cursor:pointer;padding:0;font-family:inherit;flex:0 0 auto;
-}
-#pool{
-  margin-left:auto;font-family:-apple-system,system-ui,sans-serif;font-size:12px;
-  color:var(--ink2);font-variant-numeric:tabular-nums;
 }
 #helpcard{
   position:fixed;inset:0;background:rgba(43,38,34,.36);z-index:60;
@@ -171,7 +173,6 @@ button.btn{
 <header class="app-header">
   <h1 class="eyebrow tool-eyebrow">Similitude</h1>
   <button class="qmark" id="help" aria-label="How it works">?</button>
-  <span id="pool"></span>
 </header>
 
 <div id="board">
@@ -289,6 +290,16 @@ function paintEds(){
   if (!eds.length) { row.hidden = true; edition = ''; return; }
   // a stored edition whose cards are gone widens rather than emptying the deal
   if (edition && eds.indexOf(edition) < 0) edition = '';
+  // ONE DECK NEEDS NO CHOOSER (2026-09-01, "get rid of all cards and colors").
+  // The row comes off only when there is genuinely nothing to choose: ONE
+  // edition AND every card in the pool belongs to it, so "All cards" and that
+  // edition are the same set. A pool that still holds un-editioned cards keeps
+  // the row — hiding it there would make those cards unreachable with nothing
+  // on screen saying why, which is the silent filter this app keeps getting
+  // burned by. A second edition brings the row straight back.
+  if (eds.length === 1 && pool.every(function(c){ return c.edition === eds[0]; })) {
+    row.hidden = true; edition = eds[0]; return;
+  }
   row.hidden = false;
   row.innerHTML = '';
   var all = document.createElement('button');
@@ -310,13 +321,10 @@ function setEdition(e){
   paintEds(); poolLine(); deal();
 }
 
-function poolLine(){
-  if (edition) {
-    var n = pool.filter(function(c){ return c.edition === edition; }).length;
-    $('#pool').textContent = n + ' ' + edLabel(edition).toLowerCase();
-  }
-  else $('#pool').textContent = pool.length ? pool.length + ' cards' : '';
-}
+// THE COUNT IS OFF THE HEADER (2026-09-01, 'get rid of "nature 72"') — with
+// one deck it said the same number every time, next to a name she chose. Kept
+// as a no-op so every caller stays wired for whenever a count is wanted again.
+function poolLine(){}
 
 function setImg(slot, card){
   var el = $('#s-' + slot);
