@@ -63,6 +63,81 @@ const { bakeCut, cutPath } = require('./triset-cut');
 
 const router = express.Router();
 const CARDS = 'forge-triset-cards';
+const VOTES = 'forge-asset-votes';
+const NATURE_SLUGS = new Set(
+  JSON.parse(fs.readFileSync(path.join(__dirname, 'docs/triset/nature-slugs.json'), 'utf8')).slugs);
+
+/* ── HER HEARTS ARE THE DECK (2026-09-01, "connect it to the deck so they flow
+   in and out automatically") ─────────────────────────────────────────────
+   She curates by hearting: a ♥ on a nature card puts it IN the deck, an ✕
+   takes it out, wherever she casts it — the Assets tab, Meta Assets, a hearts
+   page. Nothing to run by hand and nothing for a chat to remember.
+
+   THE NATURE RULE IS KEPT ON PURPOSE. She spent a day deciding what nature
+   means and then asked for a deck of exactly that, so a heart on a card
+   OUTSIDE that vocabulary does NOT silently join her deck — it is collected
+   for her on a Compare page to add deliberately. Widening this is one line
+   (drop the NATURE_SLUGS test) and is hers to ask for.
+
+   AN ✕ HIDES THE CARD, which is how the pool already excludes things — so an
+   ✕'d card leaves the deal and, being hidden, leaves every other surface's
+   listing too. A card she un-✕s comes back by the same road.
+
+   Cheap by construction: one votes read behind a 60s cache, and it WRITES only
+   the cards whose state actually changed, so a settled deck writes nothing. */
+const SYNC_MS = 60e3;
+let syncAt = 0, syncing = null;
+
+function slugOfUrl(url) {
+  const m = String(url || '').match(/cards\/([a-z0-9]+)-(.+)\.webp$/);
+  return m ? m[2] : null;
+}
+
+// pure: what each card's edition/hidden should be, given her votes
+function syncPlan(cards, voteBySlug) {
+  const out = [];
+  for (const c of cards) {
+    const slug = slugOfUrl(c.url);
+    if (!slug || !NATURE_SLUGS.has(slug)) continue;   // her vocabulary only
+    const v = voteBySlug[slug];
+    if (v === 'like') {
+      const patch = {};
+      if (c.edition !== 'nature') patch.edition = 'nature';
+      if (c.hidden) patch.hidden = false;
+      if (Object.keys(patch).length) out.push({ id: c.id, patch });
+    } else if (v === 'dislike') {
+      if (!c.hidden) out.push({ id: c.id, patch: { hidden: true } });
+    }
+  }
+  return out;
+}
+
+async function syncHearts() {
+  if (syncing) return syncing;
+  if (Date.now() - syncAt < SYNC_MS) return [];
+  syncing = (async () => {
+    const [cardSnap, voteSnap] = await Promise.all([
+      db().collection(CARDS).get(), db().collection(VOTES).get(),
+    ]);
+    const cards = cardSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const byUrl = {};
+    cards.forEach(c => { if (c.url) byUrl[c.url] = c; });
+    const voteBySlug = {};
+    voteSnap.forEach(d => {
+      const v = d.data() || {};
+      const card = byUrl[v.url];
+      const slug = card && slugOfUrl(card.url);
+      if (!slug) return;
+      if (v.vote === 'like') voteBySlug[slug] = 'like';                 // a ♥ anywhere wins
+      else if (v.vote === 'dislike' && voteBySlug[slug] !== 'like') voteBySlug[slug] = 'dislike';
+    });
+    const plan = syncPlan(cards, voteBySlug);
+    for (const p of plan) await db().collection(CARDS).doc(p.id).set(p.patch, { merge: true });
+    syncAt = Date.now();
+    return plan;
+  })().catch(() => []).finally(() => { syncing = null; });
+  return syncing;
+}
 
 // LOW while the prompts are being perfected (2026-08-30, Sophie: "draw low
 // quality while we perfect the prompts etc") — one line to raise it back.
@@ -368,6 +443,7 @@ router.post('/recut', async (req, res) => {
 router.get('/cards', async (req, res) => {
   try {
     if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
+    await syncHearts();                 // her ♥/✕ flow the deck in and out
     const snap = await db().collection(CARDS).get();
     const cards = snap.docs.map(d => ({ id: d.id, ...d.data() }))
       .filter(c => !c.hidden)
@@ -518,6 +594,7 @@ router.post('/seed', async (req, res) => {
 module.exports = {
   router, init,
   foundContent, cardPrompt, validFound, stuckPatch, bakeCard, editionOf, mixHex,
+  syncPlan, syncHearts, slugOfUrl,
   KINDS, STYLE, TRIANGLE_CLAUSE, triangleClause, INVENT_LINE, AUTO_RULES, STUCK_MS, COST_CENTS,
   // for scripts/seed-triset.js — the seed batch must draw through the exact
   // call a found set draws through, or the pool and the made cards drift.

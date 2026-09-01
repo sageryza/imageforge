@@ -7832,6 +7832,18 @@ before working on that module. Nothing was deleted — the moved text is verbati
     tagged, since it cannot be dealt. `edLabel` falls through to the
     capitalized slug, so the chip needed no page change.
     The objects are immutable — bump `CUT_VERSION` to re-bake past the CDN.
+    **AND HER HEARTS ARE THE DECK NOW — no chat runs anything (2026-09-01:
+    "connect it to the deck so they flow in and out automatically").** A ♥ on
+    a nature card puts it IN the deal and an ✕ takes it out, cast wherever she
+    already casts them (the Assets tab, Meta Assets, a hearts page) — one
+    votes read behind a 60s cache at the top of `GET /cards`, writing only the
+    cards whose state actually changed, so a settled deck writes nothing.
+    **THE NATURE VOCABULARY IS KEPT ON PURPOSE**: she spent a day deciding
+    what nature means and asked for a deck of exactly that, so a heart on a
+    card outside `docs/triset/nature-slugs.json` does NOT silently join the
+    deal — it is collected on the "New triangle hearts" Compare page for her
+    to add deliberately. Widening it is one line (drop the `NATURE_SLUGS`
+    test) and is hers to ask for.
   - **Her words are the content half, verbatim**; the one connective line
     (INVENT_LINE) rides in the wrapper and is disclosed in `promptStyle` with
     the `[content]` seam. The whole prompt is stored on every card doc.

@@ -291,6 +291,45 @@ ok('a ready card is left alone', triset.stuckPatch({ status: 'ready', createdAt:
 const sp = triset.stuckPatch({ status: 'drawing', createdAt: now - triset.STUCK_MS - 1 }, now);
 ok('an orphaned draw fails honestly', sp && sp.status === 'failed');
 
+/* ── her hearts are the deck ─────────────────────────────────────────────── */
+{
+  const S = triset.slugOfUrl;
+  ok('a card url yields its subject slug',
+    S('https://x/triset/cards/abc123-wild-strawberries.webp') === 'wild-strawberries');
+  ok('a url with no card shape yields nothing',
+    S('https://x/triset/made/abc.webp') === null && S('') === null && S(undefined) === null);
+
+  const P = triset.syncPlan;
+  // 'castle' and 'hail-roof' are in her vocabulary; 'burnt-toast' is not.
+  const cards = [
+    { id: 'a', url: 'x/cards/1-castle.webp' },
+    { id: 'b', url: 'x/cards/2-hail-roof.webp', edition: 'nature' },
+    { id: 'c', url: 'x/cards/3-burnt-toast.webp' },
+    { id: 'd', url: 'x/cards/4-lemon.webp', edition: 'nature', hidden: true },
+    { id: 'e', url: 'x/cards/5-zebra.webp', edition: 'nature' },
+  ];
+  const plan = P(cards, {
+    castle: 'like', 'hail-roof': 'dislike', 'burnt-toast': 'like',
+    lemon: 'like', zebra: 'dislike',
+  });
+  const by = Object.fromEntries(plan.map(p => [p.id, p.patch]));
+  ok('a ♥ on a nature card puts it in the deck', by.a && by.a.edition === 'nature');
+  ok('an ✕ takes a card out of the deck', by.b && by.b.hidden === true);
+  ok('a ♥ OUTSIDE her nature vocabulary does not silently join the deck', !by.c);
+  ok('a ♥ un-hides a card she had crossed out', by.d && by.d.hidden === false && !('edition' in by.d));
+  ok('an ✕ on a live nature card takes it out', by.e && by.e.hidden === true);
+  ok('an ✕ on a card already out writes nothing',
+    P([{ id: 'z', url: 'x/cards/9-zebra.webp', hidden: true }], { zebra: 'dislike' }).length === 0);
+
+  // a settled deck writes NOTHING — the whole point of the plan being a diff
+  const settled = P([{ id: 'a', url: 'x/cards/1-castle.webp', edition: 'nature' }], { castle: 'like' });
+  ok('a settled deck writes nothing at all', settled.length === 0);
+  ok('a card she has never voted on is left alone', P(cards, {}).length === 0);
+}
+ok('the sync runs off her votes collection', /forge-asset-votes/.test(MOD));
+ok('the deck read asks the sync first', /await syncHearts\(\)/.test(MOD));
+ok('the sync is cached, so a deal is not a full collection scan', /SYNC_MS/.test(MOD));
+
 /* ── page source pins ────────────────────────────────────────────────────── */
 ok('the middle box ships EMPTY — no placeholder, no content',
   /<textarea id="middle" rows="3"><\/textarea>/.test(PAGE) && !/id="middle"[^>]*placeholder/.test(PAGE));
