@@ -2189,6 +2189,69 @@
       onNo: function () { applyGrid(pick); },
     });
   });
+
+  // ── SEEDING THE BOXES FROM A LINK (2026-09-01, Sophie, handing six written
+  //    prompts to a chat: "seed them to panels first 6 1k i want to change the
+  //    style prompt"). Retyping six dictated scenes into six boxes is the one
+  //    part of a panels run nobody should do by hand, and it is exactly the
+  //    part the chat already has in front of it. The link fills the boxes and
+  //    STOPS there — the style prompt, the tier and Generate stay hers, which
+  //    is the whole reason she asked for a seed rather than a batch.
+  //
+  //      ?panels=<json array of strings>[&grid=<n>]
+  //
+  //    The grid is DERIVED from how many prompts arrive when the link does not
+  //    name one, because the count is the layout she means; a count no grid
+  //    matches is refused outright rather than reshaped into one that would
+  //    silently drop a prompt. `?res=` and `?style=` are the existing ports and
+  //    are untouched, so a seed can arrive on any tile at any tier.
+  function seedPanelsFromLink() {
+    var q = new URLSearchParams(location.search);
+    var raw = q.get('panels');
+    if (!raw || !PANELS_CFG) return;
+    var want = parseInt(q.get('grid'), 10);
+    // Spend the link (the Story Room trip's rule): a reload must not seed a
+    // second time over words she has since edited. Only these two params go —
+    // the rest of the query belongs to blocks that have already read it.
+    try {
+      q.delete('panels'); q.delete('grid');
+      var s = q.toString();
+      history.replaceState(history.state, '', location.pathname + (s ? '?' + s : ''));
+    } catch (e) { /* no history */ }
+    var rows = null;
+    try { rows = JSON.parse(raw); } catch (e) { rows = null; }
+    if (!Array.isArray(rows)) return;
+    rows = rows.map(function (x) { return String(x == null ? '' : x).trim(); });
+    if (!anyWords(rows)) return;
+    var g = PANELS_CFG.grids[want] ? want
+      : (PANELS_CFG.grids[rows.length] ? rows.length : 0);
+    if (!g) return;
+    var meta = PANELS_CFG.grids[g];
+    var next = [];
+    for (var i = 0; i < meta.count; i++) next.push(rows[i] || '');
+    function land() {
+      savePanelTexts(g, next);
+      setTab('panels');        // the boxes are no use on the tab that hides them
+      applyGrid(g);            // GRIDKEY, the fold open, and the repaint
+    }
+    // Never over unseen work — the carry's own question, for the same reason:
+    // a draft that was DRAWN is in her feed with its prompt one tap from
+    // copying back, and one that never was exists only here.
+    var had = panelTexts(g);
+    if (!anyWords(had) || sameWords(had, next) || sameWords(had, panelsDrawn(g))) { land(); return; }
+    var n = had.filter(function (x) { return String(x || '').trim(); }).length;
+    askOpen({
+      msg: 'The ' + g + '-panel grid already has words.',
+      fine: n + (n === 1 ? ' panel there was' : ' panels there were') + ' never drawn.'
+        + ' The link’s prompts would replace them.',
+      no: 'Keep what’s there', yes: 'Use the link’s',
+      onYes: land,
+      // "Keep what's there" still takes her to the grid the link named — she
+      // tapped it to go there; the only question was whose words it holds.
+      onNo: function () { setTab('panels'); applyGrid(g); },
+    });
+  }
+
   // GENERATE on the Panels tab: every box must hold words — the error names
   // how many are still empty rather than a generic refusal. One sheet, one
   // run; the pending card holds N breathing placeholders in the cell shape.
@@ -3020,6 +3083,10 @@
       // The Panels tab's geometry — grids, cell names, derived sheet
       // canvases — all computed server-side by sheet-grid.js.
       PANELS_CFG = d.panels || null;
+      // The grids arrive with this response, so a ?panels= link can only be
+      // read once it lands — and it must land BEFORE the first paint, or the
+      // boxes render empty and fill in under her.
+      seedPanelsFromLink();
       paintPromptPanel(); syncControls(); paintRes();
       syncTab();
     })

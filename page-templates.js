@@ -285,6 +285,17 @@ function validateTemplate(template, data) {
   if (data.stamp === false) out.stamp = false;
   // browse is the deck's whole point — on unless a page turns it off
   out.browse = data.browse === false ? false : true;
+  // QUICK OR LABORED (2026-09-01, Sophie: "a toggle for chats to choose if
+  // it's a quick or labored decision + note … heart or x action DOES move
+  // deck forward"). pace:'quick' makes a decisive ♥/✕ (or a spread pick)
+  // advance the deck one card by itself — a yes/no deck like the hoonies,
+  // where lingering is the exception. Labored is the DEFAULT and is the
+  // browse rule exactly as it was: a mark never moves the deck, she leaves
+  // when she is ready. Maybe, a clear and a note never advance either way,
+  // and the edge taps and swipe still navigate on both. An already-posted
+  // page is flipped with POST /page/:id/pace (the page doc's field wins over
+  // this frozen one), so nothing needs re-posting.
+  if (data.pace === 'quick') out.pace = 'quick';
 
   if (template === 'deck') {
     if (!Array.isArray(data.items) || !data.items.length) {
