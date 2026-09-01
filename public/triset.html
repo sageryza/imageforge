@@ -24,7 +24,12 @@ body{
 [hidden]{display:none !important}
 
 /* ── header: the name once (tiny), the "?" ────────────────────────────── */
-.app-header{position:relative;display:flex;align-items:center;gap:10px;padding:var(--headtop) 18px 4px;padding-right:64px}
+/* MIN-HEIGHT IS LOAD-BEARING (2026-09-01, caught by screenshotting): every
+   child of this header is absolutely positioned or hidden — the title, the
+   count, the gear, the undo pair — so without it the header collapses to its
+   padding and the BOARD below overlaps the gear, which then cannot be
+   tapped at all. */
+.app-header{position:relative;display:flex;align-items:center;gap:10px;min-height:34px;padding:var(--headtop) 18px 4px;padding-right:64px}
 /* THE NAME SITS IN THE MIDDLE (2026-09-01, "similitude should be in the
    middle") — the house header rule, title centred top-middle. Absolute so it
    centres on the PAGE rather than on the room left beside the ? and the pool
@@ -36,7 +41,7 @@ h1.tool-eyebrow{
   top:var(--headtop);pointer-events:none;white-space:nowrap;
 }
 #sets{
-  position:absolute;right:18px;top:var(--headtop);
+  position:absolute;right:52px;top:var(--headtop);
   font-family:-apple-system,system-ui,sans-serif;font-size:13px;
   color:var(--ink2);font-variant-numeric:tabular-nums;line-height:34px;
 }
@@ -49,6 +54,13 @@ h1.tool-eyebrow{
   position:fixed;inset:0;background:rgba(43,38,34,.36);z-index:60;
   display:flex;align-items:center;justify-content:center;padding:26px;
 }
+#modes{display:flex;flex-direction:column;gap:8px;margin:0 0 16px}
+#modes button{
+  font:inherit;font-size:14px;text-align:left;padding:9px 12px;cursor:pointer;
+  color:var(--gold);background:none;border:1px solid var(--gold);border-radius:6px;
+  letter-spacing:.06em;text-transform:uppercase;
+}
+#modes button.on{color:var(--ink);border-color:var(--ink)}
 #helpcard>div{
   background:var(--card);border:1px solid var(--line);border-radius:6px;
   padding:20px 22px;max-width:340px;font-size:15px;line-height:1.55;
@@ -65,9 +77,10 @@ h1.tool-eyebrow{
    the gold somewhere to BE: the claimed card shrinks a touch inside its slot
    and the gold face behind it becomes a clean gold border on the real cut. */
 #board.claimed .slot.up .face{background:var(--gold)}
-#board.claimed .slot.up img{transform:scale(.90);transform-origin:50% 100%}
+#board.claimed .slot.up img{transform:scale(.965);transform-origin:50% 100%}
 .slot.up img{transition:transform .16s ease}
-#found.ready{background:var(--gold);border-color:var(--gold);color:var(--ink)}
+/* READY is said by the WORD and the star, not by a fill — the outline is the
+   house look for every button here now. */
 
 /* ── HER HAND — three cards under the board, same triangular cut ─────── */
 #hand{display:flex;justify-content:center;gap:10px;margin:14px 18px 0}
@@ -188,13 +201,18 @@ h1.tool-eyebrow{
 
 
 /* ── the buttons: hug their words ─────────────────────────────────────── */
+/* THE BUTTONS ARE GOLD OUTLINE, GOLD TEXT, NO FILL, ALL CAPS (2026-09-01) —
+   and the one that is left sits ALL THE WAY RIGHT ("make the set button all
+   the way right"), which `margin-left:auto` does without knowing how many
+   buttons share the row. */
 #acts{display:flex;align-items:center;gap:12px;margin:16px 18px 8px}
 button.btn{
-  font-family:-apple-system,system-ui,sans-serif;font-size:14px;color:var(--ink);
-  background:var(--card);border:1px solid var(--line);border-radius:6px;
+  font-family:-apple-system,system-ui,sans-serif;font-size:13px;
+  letter-spacing:.10em;text-transform:uppercase;
+  color:var(--gold);background:none;border:1px solid var(--gold);border-radius:6px;
   padding:9px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;
+  margin-left:auto;
 }
-#found{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 #found svg{width:17px;height:17px;display:block}
 /* THE BARE GLYPH — no square, no fill (2026-09-01, "undo button at the top
    left - no words, just an icon that grows a redo if applicable · no square
@@ -207,6 +225,7 @@ button.btn{
   flex:0 0 auto;-webkit-tap-highlight-color:transparent;
 }
 .ghost:active{color:var(--ink)}
+#gear{position:absolute;right:12px;top:var(--headtop)}
 .ghost svg{width:19px;height:19px;display:block}
 #found[disabled]{opacity:.45}
 #found .cost{font-size:11px;color:inherit;opacity:.75}
@@ -221,10 +240,12 @@ button.btn{
   <button class="ghost" id="undo" hidden aria-label="Undo"></button>
   <button class="ghost" id="redo" hidden aria-label="Redo"></button>
   <h1 class="eyebrow tool-eyebrow">Similitude</h1>
-  <button class="qmark" id="help" aria-label="How it works">?</button>
-  <!-- HOW MANY SETS SHE HAS FOUND (2026-09-01, "counts how many sets - top
-       right - number"). A number, nothing else; it persists with the table. -->
+  <!-- HOW MANY SETS SHE HAS FOUND (2026-09-01) and, beside it, the SETTINGS
+       gear that replaced the "?" (2026-09-01, "put the question mark in the
+       top right and make it a settings button so i can toggle the mode …
+       so get rid of the row"). Both live in the top-right corner. -->
   <span id="sets" hidden></span>
+  <button class="ghost" id="gear" aria-label="Settings"></button>
 </header>
 
 <div id="board">
@@ -248,14 +269,7 @@ button.btn{
      was not on screen and a pool without editions never grows a dead row. -->
 <div id="eds" hidden></div>
 
-<div id="kinds">
-  <button id="k-same" class="on">All the same</button>
-  <button id="k-each">Each different</button>
-  <button id="k-auto">Model finds it</button>
-</div>
-
 <div id="acts">
-  <button class="btn" id="deal">Deal</button>
   <button class="btn" id="found"><span id="star" hidden></span><span id="foundword">Set!</span> <span class="cost">~2¢</span></button>
 </div>
 <!-- HER HAND — three cards under the board (2026-09-01, "make it so i get
@@ -272,6 +286,13 @@ button.btn{
 
 <div id="helpcard" hidden>
   <div>
+    <!-- THE MODES LIVE IN SETTINGS NOW (2026-09-01) — the row they used to
+         sit in is gone, so the gear is the one door to them. -->
+    <div id="modes">
+      <button data-k="same">All the same</button>
+      <button data-k="each">Each different</button>
+      <button data-k="auto">Model finds it</button>
+    </div>
     <b>Similitude.</b> Three triangular cards around a middle triangle.
     Say what they have in common in the middle — or tap a card to swap it
     until you find a set.<br><br>
@@ -303,6 +324,9 @@ var UNDO_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 var REDO_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
   + 'stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/>'
   + '<path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5v0A5.5 5.5 0 0 0 9.5 20H13"/></svg>';
+var GEAR_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
+  + 'stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/>'
+  + '<circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>';
 document.getElementById('undo').innerHTML = UNDO_ICON;
 document.getElementById('redo').innerHTML = REDO_ICON;
 
@@ -641,8 +665,8 @@ function say(t, bad){
 var VENN = ['v-top','v-left','v-right'];
 function setKind(k){
   kind = k;
-  ['same','each','auto'].forEach(function(x){
-    $('#k-' + x).classList.toggle('on', k === x);
+  Array.prototype.forEach.call(document.querySelectorAll('#modes button'), function(b){
+    b.classList.toggle('on', b.dataset.k === k);
   });
   $('#s-mid').classList.toggle('each', k === 'each');
   VENN.forEach(function(id){ document.getElementById(id).hidden = (k !== 'each') || !$('#midcut').hidden || !$('#middrawing').hidden; });
@@ -809,7 +833,6 @@ $('#s-right').onclick = function(){ tapSlot('right'); };
 Array.prototype.forEach.call(document.querySelectorAll('.hcard'), function(b){
   b.onclick = function(){ tapHand(+b.dataset.h); };
 });
-$('#deal').onclick = deal;
 // her words are part of her place, so typing saves too — a localStorage write
 // per keystroke is cheap and means nothing is lost to a reload mid-sentence
 ['middle'].concat(VENN).forEach(function(id){
@@ -819,10 +842,14 @@ $('#deal').onclick = deal;
 $('#undo').onclick = undo;
 $('#redo').onclick = redo;
 $('#found').onclick = found;
-$('#k-same').onclick = function(){ setKind('same'); };
-$('#k-each').onclick = function(){ setKind('each'); };
-$('#k-auto').onclick = function(){ setKind('auto'); };
-$('#help').onclick = function(){ $('#helpcard').hidden = false; };
+$('#gear').onclick = function(){ $('#helpcard').hidden = false; };
+// the sheet must show the mode she is ON from the first open — `kind` has a
+// default and setKind was only ever called by a tap, so nothing was lit
+setKind(kind);
+document.getElementById('gear').innerHTML = GEAR_ICON;
+Array.prototype.forEach.call(document.querySelectorAll('#modes button'), function(b){
+  b.onclick = function(ev){ ev.stopPropagation(); setKind(b.dataset.k); };
+});
 $('#helpcard').onclick = function(){ $('#helpcard').hidden = true; };
 $('#midimg').onclick = nextHand;
 

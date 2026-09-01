@@ -194,6 +194,48 @@ OTHER CHATS* in Design rules).
   `docs/evan-film-style.md`, `docs/nde-watercolor.md`,
   `docs/dating-book/THE-SOPHIE-EXPERIMENT.md`.
 
+## SHOWING HER A CHANGE: PHOTO · SANDBOX · LIVE — ASK WHICH (2026-09-01)
+**Sophie: "help me understand the difference between deploying, and whatever
+ur doing … make this a documented choice … the screenshotting is really
+helpful … does it cost anything? … document this workflow as potential, have
+them ask which i want. give each a nickname for easy reference."** Three ways
+to put a change in front of her. **None of them costs a model call — all three
+are free** (a deploy spends Render build minutes, which are metered but not
+money until the monthly allowance runs out). Offer the choice by NAME rather
+than deploying by reflex.
+
+- **PHOTO — a screenshot of the real page, ~30 seconds, changes nothing.**
+  Run the actual page in this container against the LIVE data (a tiny local
+  server serves the page and proxies `/api/…` and the thumb service to
+  onrender), drive it with playwright and send her the pictures. Nothing is
+  published, nothing is deployed, and her live site is untouched.
+  **THIS IS THE ONE THAT CATCHES THINGS, and that is measured, not a
+  guess**: within one turn it found the "gold highlight" rendering as
+  literally nothing TWICE (a drop-shadow invisible against the cream, then a
+  face behind an opaque cut), and a header that collapsed so the board covered
+  the gear and the gear could not be tapped at all. All three would have
+  shipped. **Photograph before deploying, every round.**
+- **SANDBOX — a tappable copy in her Chats app, no deploy.** POST the page's
+  own html as a Compare page (`POST /api/chatfeed/page {chat, title, html}`).
+  The live server serves it from storage, so it needs no deploy, and because
+  it runs on the same origin its `/api/…` calls hit the real endpoints — a
+  real, playable preview. **Two `warnings` always come back for a tool-page
+  copy** (no `/compare.js`, an eyebrow above the title): they are the
+  compare-page kit's rules and do not apply to a verbatim copy of a tool page
+  — say so rather than "fixing" the page into something that is no longer what
+  she is previewing. It is FROZEN at the moment it is posted, so re-post to
+  update it, and supersede the old one.
+- **LIVE — the real deploy.** Everyone sees it, her saved place and her app
+  wrapper included. Do this when she says, or for a fix she is waiting on.
+  **Render has been ignoring pushes since 2026-09-01** (`commit_ignored` on
+  every commit, even with `autoDeploy: yes` and no build filter — its own
+  event log says so), so a merge does NOT reach the site by itself; trigger it
+  with `POST https://api.render.com/v1/services/<srv>/deploys` using
+  `RENDER_API_KEY`, which is in the environment.
+
+**The habit: PHOTO every round, SANDBOX when she wants to tap it, LIVE when
+she says.** Ask which she wants rather than assuming.
+
 ## Never block the turn on a wait — always background it
 - **Any "wait for X" step MUST run as a background task**, never a foreground
   blocking wait. This includes waiting on a Render deploy, CI, a build, a
@@ -7828,6 +7870,21 @@ before working on that module. Nothing was deleted — the moved text is verbati
     longer holds is dropped on the way back in, so a hidden card cannot strand
     the game (a board that cannot be rebuilt deals fresh instead). The count
     is a bare number top-right, absent at zero. The buttons sit ABOVE the hand.
+  - **THE CHROME IS GOLD OUTLINE AND THE MODES LIVE IN SETTINGS (2026-09-01:
+    "buttons shud be gold outline gold text no fill, and all caps" · "get rid
+    of deal button" · "put the question mark in the top right and make it a
+    settings button so i can toggle the mode … so get rid of the row" · "make
+    the set button all the way right" · "outlines are too thick").** Every
+    button is a gold outline with gold text, no fill, uppercase; the one that
+    is left rides `margin-left:auto` so it sits hard right without knowing how
+    many share the row. **Deal is gone** — the deck flows through her HAND, so
+    a new board comes from swaps and from finding a set. The `?` became a
+    settings gear top right (the set count beside it) and the three modes moved
+    into its sheet, so the mode row is gone. **`setKind` is called at boot** or
+    the sheet opens with nothing lit, since `kind` has a default no tap set.
+    **THE HEADER NEEDS ITS OWN `min-height`** — every child of it is absolute
+    or hidden, so without one it collapses to its padding and the board
+    overlaps the gear, which then cannot be tapped at all (caught by PHOTO).
   - **THE RIGHT BUTTON HAS TWO STAGES (2026-09-01: "right button - 'set!' -
     highlights cards in gold · set becomes 'draw it!' w the star AFTER you
     enter text").** "Set!" CLAIMS the three cards — they light gold and the

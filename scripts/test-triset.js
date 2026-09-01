@@ -390,6 +390,16 @@ async function headless() {
   ok('a card with a die-cut shows the CUT, not the original', dealt.every(s => s.includes('cuts%2F')));
   // the cut copy fills the slot exactly — no legacy overscan mapping — so the
   // cream face shows through the copy's transparency as the border
+  // Deal is gone from the UI (2026-09-01) — the deck flows through her HAND,
+  // so a fresh state is made the way she really makes one: a swap.
+  let swapN = 0;
+  const doSwap = async () => {
+    const slot = ['#s-top', '#s-left', '#s-right'][swapN % 3];
+    await pg.click(slot);
+    await pg.click('.hcard[data-h="' + (swapN % 3) + '"]');
+    swapN += 1;
+  };
+
   // clicking a HIDDEN undo throws a playwright timeout, which crashes the run
   // before the failure list prints — so a broken undo reads as a stack trace
   // instead of a named ✗. Skip the click and let the assertions talk.
@@ -409,12 +419,42 @@ async function headless() {
     const h = document.querySelector('h1.tool-eyebrow').getBoundingClientRect();
     return Math.abs((h.left + h.right) / 2 - window.innerWidth / 2) <= 2;
   }));
-  ok('…and does not sit on the ?', await pg.evaluate(() => {
+  ok('…and does not sit on the gear', await pg.evaluate(() => {
     const h = document.querySelector('h1.tool-eyebrow').getBoundingClientRect();
-    return ['#help'].every(sel => {
-      const r = document.querySelector(sel).getBoundingClientRect();
-      return r.right <= h.left + 1 || r.left >= h.right - 1;
-    });
+    const r = document.getElementById('gear').getBoundingClientRect();
+    return r.right <= h.left + 1 || r.left >= h.right - 1;
+  }));
+  // 2026-09-01: the gear replaced the "?", top right, and the modes moved
+  // into it — the row they sat in is gone. The header MUST reserve its own
+  // height or the board covers the gear (caught by screenshotting).
+  ok('the settings gear is top right and really tappable', await pg.evaluate(() => {
+    const g = document.getElementById('gear').getBoundingClientRect();
+    const mid = document.elementFromPoint((g.left + g.right) / 2, (g.top + g.bottom) / 2);
+    return g.top < 90 && g.right > window.innerWidth - 60
+      && !!mid && (mid.id === 'gear' || mid.closest('#gear'));
+  }));
+  ok('the mode row and the Deal button are gone', await pg.evaluate(() =>
+    !document.getElementById('kinds') && !document.getElementById('deal')));
+  ok('the modes live in settings instead', await pg.evaluate(() => {
+    document.getElementById('gear').click();
+    const on = document.querySelector('#modes button.on');
+    return !document.getElementById('helpcard').hidden
+      && document.querySelectorAll('#modes button').length === 3 && !!on;
+  }));
+  await pg.click('#helpcard');
+  // GOLD OUTLINE, GOLD TEXT, NO FILL, ALL CAPS — and all the way right
+  ok('the button is gold outline with gold text and no fill', await pg.evaluate(() => {
+    const c = getComputedStyle(document.getElementById('found'));
+    const warm = (v) => { const m = /rgba?\((\d+), (\d+), (\d+)/.exec(v);
+      return m && +m[1] > 130 && +m[1] > +m[3] + 40; };
+    const clearBg = c.backgroundColor === 'rgba(0, 0, 0, 0)' || c.backgroundColor === 'transparent';
+    return warm(c.color) && warm(c.borderTopColor) && clearBg
+      && c.textTransform === 'uppercase';
+  }));
+  ok('…and sits all the way right', await pg.evaluate(() => {
+    const b = document.getElementById('found').getBoundingClientRect();
+    const row = document.getElementById('acts').getBoundingClientRect();
+    return Math.abs(b.right - row.right) <= 2;
   }));
   ok('no undo button before anything has been undone', await pg.evaluate(() =>
     document.getElementById('undo').hidden === true));
@@ -458,7 +498,7 @@ async function headless() {
     await tapUndo();
     ok('and back again', JSON.stringify(await shot()) === JSON.stringify(before));
     // a NEW move ends the future she undid
-    await pg.click('#deal');
+    await doSwap();
     ok('a new move drops the redo',
       await pg.evaluate(() => document.getElementById('redo').hidden === true));
     await tapUndo();
@@ -466,7 +506,7 @@ async function headless() {
       await pg.evaluate(() => document.getElementById('undo').hidden === true));
     // her typed middle is NOT touched — it still describes the hand that came back
     await pg.fill('#middle', 'they all fly');
-    await pg.click('#deal');
+    await doSwap();
     // named, so a deal that forgot to push fails HERE rather than as a click
     // timing out on a hidden button
     ok('a deal is undoable too', await pg.evaluate(() => document.getElementById('undo').hidden === false));
@@ -476,8 +516,8 @@ async function headless() {
     await pg.fill('#middle', '');
     // several steps back, in order
     const h0 = await shot();
-    await pg.click('#deal'); const h1 = await shot();
-    await pg.click('#deal');
+    await doSwap(); const h1 = await shot();
+    await doSwap();
     ok('two deals leave two steps of history',
       await pg.evaluate(() => document.getElementById('undo').hidden === false));
     await tapUndo();
@@ -579,7 +619,7 @@ async function headless() {
 
   // the kind toggle shows the three venn boxes on the middle triangle's sides
   ok('venn boxes hidden in same mode', await pg.$eval('#v-top', el => el.hidden));
-  await pg.click('#k-each');
+  await pg.click('#gear'); await pg.click('#modes button[data-k="each"]'); await pg.click('#helpcard');
   ok('each mode shows the three venn boxes', await pg.evaluate(() =>
     ['v-top', 'v-left', 'v-right'].every(id => !document.getElementById(id).hidden)));
   ok('the venn boxes are empty', await pg.evaluate(() =>
@@ -714,7 +754,7 @@ async function headless() {
           .startsWith('data:image/svg'))));
 
   // find the mix: instant, no drawing wait, the blend lands in the middle
-  await pg.click('#k-same');
+  await pg.click('#gear'); await pg.click('#modes button[data-k="same"]'); await pg.click('#helpcard');
   await pg.click('#found');            // claim
   await pg.fill('#middle', 'orange');
   await pg.click('#found');            // draw
@@ -751,11 +791,9 @@ async function headless() {
     ok('a reload puts the same table back', JSON.stringify(await table()) === JSON.stringify(was));
     ok('…her typed middle too',
       await pg.evaluate(() => document.getElementById('middle').value) === 'they all fly');
-    ok('a fresh deal fills THREE hand cards, not two', await pg.evaluate(() => {
-      document.getElementById('deal').click();
-      return Array.from(document.querySelectorAll('.hcard img'))
-        .filter(i => i.getAttribute('src')).length === 3;
-    }));
+    ok('the hand holds THREE cards, not two', await pg.evaluate(() =>
+      Array.from(document.querySelectorAll('.hcard img'))
+        .filter(i => i.getAttribute('src')).length === 3));
   }
 
   await browser.close();
