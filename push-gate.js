@@ -52,10 +52,29 @@
 //
 // The gate above answers "is this reply the ANSWER to her?"; the bell answers
 // "does she want this chat on her lock screen at all?", and it is the coarser
-// question, so it is asked first. It is a WHITELIST: `notify` is absent on
-// every chat until she taps the bell, and absent means silent. That is her
-// sentence read literally, and it is also the safe direction — a chat that
-// forgets to pass the flag goes quiet rather than buzzing her.
+// question, so it is asked first.
+//
+// ── IT IS ON BY DEFAULT NOW (2026-09-01, Sophie: "change to readily notify on
+// for chats"). It shipped as a WHITELIST — `notify` absent meant silent, so
+// nothing buzzed until she tapped a bell — and that reading of her original
+// sentence is HISTORY, not a rule. What the whitelist cost her is measurable
+// in the same shape the self-belling rule already named: 48 chats set a `need`
+// in two days and 6 of them were belled, i.e. 42 asks she could only find by
+// opening the app. Under a whitelist a chat she has never thought about is
+// silent forever, and the chats worth hearing from are exactly the ones she
+// has not yet had a reason to open.
+//
+// So the field is a BLACKLIST: absent means ON, and only an explicit
+// `notify:false` — her own tap on a lit bell — silences a chat. Two things
+// follow, and both matter:
+//   • THE TIMING GATE IS WHAT KEEPS THIS QUIET. `shouldPushReply` already
+//     needs HER to have spoken since the last buzz and needs the reply to
+//     post-date her message, so a chat grinding on its own still cannot ring.
+//     Default-on means "the chats I talk to answer me on my lock screen", not
+//     "260 chats buzz".
+//   • ONLY A STORED `false` IS OFF. A chat with no registry doc at all reads
+//     as on, which is the same direction as absent and keeps one rule rather
+//     than two.
 //
 // One field on the registry doc, like `starred` and `bookmarked`, so it rides
 // the feed read the app already makes and costs nothing extra.
@@ -64,7 +83,7 @@
  * @returns {boolean} whether this chat is allowed to send a push at all
  */
 function chatNotifies(reg) {
-  return !!(reg && reg.notify === true);
+  return !(reg && reg.notify === false);
 }
 
 /**

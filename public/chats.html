@@ -5427,11 +5427,14 @@ function chatStar(name){ return !!(chats[name]&&chats[name].starred); }
 // stay forever", against a star for "a chat I'm currently working on"). It is
 // what fills the Bookmarks pile's CHATS tab; the star no longer does.
 function chatKept(name){ return !!(chats[name]&&chats[name].bookmarked); }
-// BELLED — allowed to push to her phone (Aug 2026). A WHITELIST: absent means
-// silent, so this is `=== true` in spirit, not "not explicitly off". The bell
-// in the thread header is the only control; the server reads the same field
-// (`push-gate.js` → `chatNotifies`) in front of every push.
-function chatNotify(name){ return !!(chats[name]&&chats[name].notify); }
+// BELLED — allowed to push to her phone. ON BY DEFAULT since 2026-09-01
+// ("change to readily notify on for chats"): it was a whitelist (absent =
+// silent) and it is a BLACKLIST now — absent means ON, and only her own
+// `notify:false` silences a chat, so this is `!== false` and never a
+// truthiness test. The server reads the SAME field the same way
+// (`push-gate.js` → `chatNotifies`) in front of every push; keep the two
+// spellings identical or the lit bell and the buzz disagree.
+function chatNotify(name){ return !(chats[name]&&chats[name].notify===false); }
 // Seeds + every name she has ever created (kept on the __settings doc) + every
 // name actually in use. The middle one is why an EMPTY folder still shows: she
 // made a category, nothing happened to be picked at the time, and it vanished
@@ -9205,9 +9208,10 @@ function mkOrgMarks(name, close){
     svg:function(){ return STAR; },
     on:'Star this chat', off:'Unstar this chat',
     toastOn:'Starred', toastOff:'Unstarred'}));
-  // THE BELL — a WHITELIST, which is the half worth remembering: absent means
-  // silent, so a chat she has never belled never reaches her lock screen
-  // (`chatNotifies` in push-gate.js asks it before the timing gate).
+  // THE BELL — ON BY DEFAULT since 2026-09-01, which is the half worth
+  // remembering: the bell is how she turns a chat OFF, and only that tap
+  // silences one (`chatNotifies` in push-gate.js asks it before the timing
+  // gate, which is what keeps default-on from being a drumroll).
   row.appendChild(toggle({cls:'bellbtn mk-bell', field:'notify', url:'/api/chatfeed/notify',
     word:'Notify', get:function(){ return chatNotify(name); },
     svg:function(){ return BELL_SVG; },

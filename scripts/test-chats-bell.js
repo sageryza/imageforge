@@ -43,6 +43,7 @@ const MSGS = [
   { id: 'm1', chat: 'no-bell', from: 'claude', text: 'quiet chat', tldr: 'quiet', created: iso(T0 - 1000), postedAt: iso(T0 - 1000) },
   { id: 'm2', chat: 'belled', from: 'claude', text: 'loud chat', tldr: 'loud', created: iso(T0 - 2000), postedAt: iso(T0 - 2000) },
   { id: 'm3', chat: 'parked', from: 'claude', text: 'in the hidden pile', tldr: 'parked', created: iso(T0 - 3000), postedAt: iso(T0 - 3000) },
+  { id: 'm4', chat: 'fresh', from: 'claude', text: 'never touched', tldr: 'fresh', created: iso(T0 - 4000), postedAt: iso(T0 - 4000) },
 ];
 // What the page POSTed, in order, so the test can assert the wire and not just
 // the paint.
@@ -62,7 +63,12 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ build: 'test', settings: {}, truncated: [], messages: MSGS, delta: false,
       chats: {
-        'no-bell': { lastSeen: MSGS[0].created },
+        // SILENCED — the only shape that draws an unlit bell since 2026-09-01
+        // ("change to readily notify on for chats"): the field is a blacklist
+        // now, so `notify:false` is her own tap on a lit bell and everything
+        // else reads as on. `fresh` below is the chat she has never touched.
+        'no-bell': { lastSeen: MSGS[0].created, notify: false },
+        fresh: { lastSeen: MSGS[3].created },
         // Belled, and hidden LONG ago so it still reads as live (hiddenAt older
         // than its newest message is how the page decides it came back).
         belled: { lastSeen: MSGS[1].created, notify: true },
@@ -118,7 +124,7 @@ const ok = () => { checks++; };
     if (hit !== 'ok') fail(what + ' is buried under ' + hit); else ok();
   };
 
-  // ── 1. off by default, and next to the star ───────────────────────────────
+  // ── 1. drawn unlit only where SHE turned it off, and next to the star ─────
   await open('no-bell');
   if (!await page.$('.askwrap .orgmarks .bellbtn')) fail('no bell in the Organize sheet');
   else ok();
@@ -127,7 +133,7 @@ const ok = () => { checks++; };
   const iBell = order.findIndex((c) => /bellbtn/.test(c));
   if (iStar < 0 || iBell !== iStar + 1) fail('the bell is not beside the star: ' + JSON.stringify(order));
   else ok();
-  if (await page.$('.askwrap .orgmarks .bellbtn.on')) fail('an unbelled chat drew a lit bell');
+  if (await page.$('.askwrap .orgmarks .bellbtn.on')) fail('a SILENCED chat drew a lit bell');
   else ok();
 
   // ── 6/7. the two picture buttons, and no words left behind ────────────────
@@ -208,6 +214,36 @@ const ok = () => { checks++; };
     fail('the lit bell does not read as a yellow: ' + lit);
   } else ok();
 
+  // ── 2b. A CHAT SHE HAS NEVER TOUCHED ARRIVES LIT (2026-09-01, "change to
+  // readily notify on for chats"). This is the whole change, and it is the one
+  // assertion a source check cannot make: `notify` is simply not on the doc,
+  // so only the painted bell says which way the default reads. Both copies —
+  // the sheet's chip and the header's bare glyph — because they read the same
+  // `chatNotify` and a wrong spelling in one of them shows up nowhere else.
+  await open('fresh');
+  if (!await page.$('.askwrap .orgmarks .bellbtn.on')) fail('a chat with no notify field drew an UNLIT bell — the default is still a whitelist');
+  else ok();
+  await page.click('.askwrap .askx, .askwrap .askbg').catch(() => {});
+  await page.goto(base + '/chats');
+  await page.waitForSelector('#grid .crow[data-chat="fresh"]');
+  await page.click('#grid .crow[data-chat="fresh"]');
+  await page.waitForSelector('#thread header .no .bellbtn', { timeout: 4000 });
+  if (!await page.$('#thread header .no .bellbtn.on')) fail('the header bell is unlit on a chat with no notify field');
+  else ok();
+  // …and her tap there is what SILENCES it: the write goes the other way now.
+  {
+    const n0 = posted.length;
+    await page.click('#thread header .no .bellbtn');
+    await page.waitForFunction(() => !document.querySelector('#thread header .no .bellbtn.on'), null, { timeout: 2000 })
+      .catch(() => fail('tapping a lit bell on a default-on chat did not turn it off'));
+    ok();
+    await page.waitForTimeout(200);
+    const last = posted[posted.length - 1];
+    if (posted.length <= n0 || !last || last.chat !== 'fresh' || last.notify !== false) {
+      fail('silencing a default-on chat did not POST notify:false — ' + JSON.stringify(last || null));
+    } else ok();
+  }
+
   // ── 5. a failed POST rolls the light back ─────────────────────────────────
   notifyFails = true;
   await open('no-bell');
@@ -264,7 +300,7 @@ const ok = () => { checks++; };
   else ok();
   if (!/rgba\(0,\s*0,\s*0,\s*0\)|transparent/.test(boxed.bg)) fail('the header bell drew a filled plate: ' + boxed.bg);
   else ok();
-  if (await page.$('#thread header .no .bellbtn.on')) fail('an unbelled chat drew a lit header bell');
+  if (await page.$('#thread header .no .bellbtn.on')) fail('a SILENCED chat drew a lit header bell');
   else ok();
   await hitTest('#thread header .no .bellbtn', 'the header bell');
   // Tapping it lights and POSTs.

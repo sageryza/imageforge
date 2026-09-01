@@ -128,12 +128,12 @@ to-do list. Act on them, then answer on the image itself. **Never on a timer.**
   your wake doorbell (2026-08-28), so a note landing mid-turn can reach you,
   but the re-read is what catches one that lands while you are still writing
   the reply.
-- **A QUICK-QUESTION chat SETS ITS OWN BELL** (Sophie, 2026-08-27: "a 'quick
-  question' chat shud set its own bell as true"). If she is using you for
-  quick questions — she says "quick question mode", or `quick question` is in
-  your `labels` on `GET /api/chatfeed/status` — `POST /api/chatfeed/notify
-  {chat, notify:true}` once, so the answer buzzes her phone. Turning a bell
-  OFF stays hers alone.
+- **THE BELL IS ON BY DEFAULT (2026-09-01, Sophie: "change to readily notify
+  on for chats") — so there is NOTHING for you to set.** Every chat may buzz
+  her unless she has silenced it herself; the timing gate (a reply that
+  answers a message of hers) is what keeps that quiet. The old quick-question
+  self-bell is a no-op now, and **turning a bell OFF stays hers alone** — a
+  chat must never POST `{notify:false}`.
 
 **While you work**
 - **BUILDING OR POSTING A PAGE? THE RULES FIRST — this is the thing that
@@ -8684,20 +8684,32 @@ before working on that module. Nothing was deleted — the moved text is verbati
   said. It is `[.banner, .list]` and deliberately NOT `.sound` — the buzz is
   what carries a lock-screen push across the room, and in her hand the banner
   has already done that. Do not "fix" this back to `[]`.
-  **THE BELL IS A WHITELIST — no bell, no buzz (`chatNotifies` in
-  `push-gate.js`, Aug 2026, Sophie: "only the ones I clicked the bell on will
-  notify me").** One field, `notify`, on the chat's registry doc beside
-  `starred`/`bookmarked`, set by the bell in a chat's thread header
-  (`POST /api/chatfeed/notify {chat, notify}`). **Absent means silent**, so
-  nothing pushes until she taps one. It is asked BEFORE the timing gate below
-  and in front of BOTH doors (a finished reply and a new Compare page), and it
-  compares `notify === true` rather than truthiness — silence is the safe
-  direction for an opt-in.
-  **ONE exception she asked for (2026-08-27): a QUICK-QUESTION chat sets its
-  own bell ON** ("a 'quick question' chat shud set its own bell as true") —
-  she says "quick question mode" or the chat wears the `quick question` label,
-  the chat POSTs `{chat, notify:true}` itself, once. A chat never turns a bell
-  OFF; that stays hers alone.
+  **THE BELL IS ON BY DEFAULT — she taps it to turn a chat OFF (`chatNotifies`
+  in `push-gate.js`, 2026-09-01, Sophie: "change to readily notify on for
+  chats").** One field, `notify`, on the chat's registry doc beside
+  `starred`/`bookmarked`, flipped by the bell in a chat's thread header and in
+  its Organize sheet (`POST /api/chatfeed/notify {chat, notify}`). **Absent
+  means ON**, and only an explicit `notify:false` of hers silences a chat — so
+  the reader compares `notify === false` rather than truthiness, and the write
+  goes the other way round from every other mark: OFF is stored, ON deletes
+  the field. It is asked BEFORE the timing gate below and in front of BOTH
+  doors (a finished reply and a new Compare page).
+  - **IT SHIPPED AS A WHITELIST AND THAT IS HISTORY, NOT A RULE** (Aug 2026,
+    "only the ones I clicked the bell on will notify me" — read literally,
+    absent meant silent). What it cost is the same measurement the self-belling
+    rule is built on: **48 chats set a `need` in two days and 6 of them were
+    belled**, i.e. 42 asks she could only find by opening the app. A chat she
+    has never thought about was silent forever, and those are exactly the ones
+    worth hearing from. Don't put the whitelist back without her.
+  - **THE TIMING GATE IS WHAT KEEPS THIS QUIET, not the bell.** A push still
+    needs her to have spoken since the last one AND the reply to post-date her
+    message, so a chat grinding on its own cannot ring however many are
+    unsilenced. Default-on means "the chats I talk to answer me on my lock
+    screen", never "260 chats buzz".
+  - **THE QUICK-QUESTION SELF-BELL IS NOW A NO-OP** (2026-08-27, "a 'quick
+    question' chat shud set its own bell as true") — a quick-question chat is
+    already on, so there is nothing to set. Harmless if a chat still POSTs it.
+    **A chat still never turns a bell OFF; that stays hers alone.**
   **A REPLY ONLY BUZZES WHEN IT IS ANSWERING HER (`push-gate.js`, Aug 2026,
   Sophie: "I don't need a notification when I send a message. I need a
   notification when they respond to my message").** Two comparisons against
@@ -8714,18 +8726,18 @@ before working on that module. Nothing was deleted — the moved text is verbati
   later; her message is the gate now. A chat that has never lifted one of her
   messages keeps the old behaviour rather than going quiet.
   **A CHAT BELLS ITSELF WHEN IT IS BLOCKED ON HER (2026-08-28, Sophie: "can u
-  make chats bell themselves based on importance").** The bell is a whitelist
-  she taps, which is what keeps 260 live chats off her lock screen — and the
-  gap it leaves is the one case where the CHAT, not she, knows something
-  matters: it has stopped and is waiting on her. Measured that day: **48 chats
-  set a `need` in two days and only 6 of them were belled** — 42 asks she could
-  only find by opening the app. So a finished reply whose `need` is NEW buzzes
-  her whatever the bell says (`needEscalates` in `push-gate.js`).
+  make chats bell themselves based on importance").** Written while the bell
+  was a whitelist — its 48-asks-to-6-bells measurement is the same one that
+  later retired the whitelist outright — and it still earns its keep: a finished
+  reply whose `need` is NEW buzzes her **whatever the bell says**, so it reaches
+  a chat she has deliberately SILENCED as well. That is the one case where the
+  CHAT, not she, knows something matters: it has stopped and is waiting on her
+  (`needEscalates` in `push-gate.js`).
   - **IT IS NOT A FLIP OF HER BELL.** A self-set bell sticks (only she turns
-    one off), so every chat that ever had one important moment would be belled
-    forever and the whitelist would quietly become everything. **Importance is
-    a property of the MOMENT, not of the chat** — this escalates ONE reply and
-    changes no stored flag of hers. Making it sticky is hers to ask for.
+    one off), so a chat she silenced would be un-silenced forever by one
+    important moment. **Importance is a property of the MOMENT, not of the
+    chat** — this escalates ONE reply and changes no stored flag of hers.
+    Making it sticky is hers to ask for.
   - **IT IS NOT "a need exists".** A chat re-states its need at the end of
     every turn, so that would buzz her on a loop for one ask. `POST /status`
     stamps **`needSetAt` only when the text CHANGED** (read off the doc, not
