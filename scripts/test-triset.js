@@ -594,9 +594,22 @@ async function headless() {
     document.getElementById('foundword').textContent.trim() === 'Set!'
     && document.getElementById('star').hidden === true));
   await pg.click('#found');
-  ok('Set! lights the three board cards in gold', await pg.evaluate(() =>
-    document.getElementById('board').classList.contains('claimed')
-    && getComputedStyle(document.querySelector('#s-top img')).filter.includes('drop-shadow')));
+  // the gold is MEASURED off what renders: the face behind the card is gold
+  // and the card shrinks onto it, which is the only version of this that was
+  // actually visible (a drop-shadow and a face alone both showed nothing)
+  ok('Set! lights the three board cards in gold', await pg.evaluate(() => {
+    if (!document.getElementById('board').classList.contains('claimed')) return false;
+    return ['top', 'left', 'right'].every(s => {
+      const el = document.getElementById('s-' + s);
+      const face = getComputedStyle(el.querySelector('.face')).backgroundColor;
+      const m = /rgba?\((\d+), (\d+), (\d+)/.exec(face);
+      if (!m) return false;
+      const [r, g, b] = [+m[1], +m[2], +m[3]];
+      const gold = r > 130 && r > b + 40 && g > b;          // warm, not grey
+      const shrunk = getComputedStyle(el.querySelector('img')).transform !== 'none';
+      return gold && shrunk;
+    });
+  }));
   ok('…and is still not the paid tap', await pg.evaluate(() =>
     document.getElementById('foundword').textContent.trim() === 'Set!'));
   await pg.fill('#middle', 'the moon');

@@ -58,7 +58,15 @@ h1.tool-eyebrow{
    highlights cards in gold · set becomes 'draw it!' w the star AFTER you
    enter text"). A drop-shadow rather than a border, because the cards are
    clipped triangles and a border would draw a rectangle round one. */
-#board.claimed .slot.up img{filter:drop-shadow(0 0 0 var(--gold)) drop-shadow(0 0 6px var(--gold))}
+/* MEASURED, TWICE. A drop-shadow read as nothing against the cream (the
+   die-cut's own paper rim is already warm), and painting the slot's face gold
+   showed nothing either — the c4 cut fills its whole triangle opaquely, so
+   there is no transparency for a face to show through. What works is giving
+   the gold somewhere to BE: the claimed card shrinks a touch inside its slot
+   and the gold face behind it becomes a clean gold border on the real cut. */
+#board.claimed .slot.up .face{background:var(--gold)}
+#board.claimed .slot.up img{transform:scale(.90);transform-origin:50% 100%}
+.slot.up img{transition:transform .16s ease}
 #found.ready{background:var(--gold);border-color:var(--gold);color:var(--ink)}
 
 /* ── HER HAND — three cards under the board, same triangular cut ─────── */
