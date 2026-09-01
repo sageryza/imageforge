@@ -7710,7 +7710,8 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - **The PLAYGROUND ITSELF, which has never serialized** — its ladders fire
     `Promise.all` and `runPromptLabGptJob` is fired without `await`, so
     nothing queues server-side either.
-- **Triset** (`triset.js`, `/api/triset`, page at `/triset`, no iOS tile yet) —
+- **Similitude** (`triset.js`, `/api/triset`, pages at `/similitude` and
+  `/triset`, no iOS tile yet) —
   triangular SET solitaire (Sophie's concept, 2026-08-30). A pool of
   triangular picture cards; three are dealt around a middle inverted triangle
   that is a TEXT BOX. She writes what they have in common — or taps a card to
@@ -7809,6 +7810,23 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - Firestore `forge-triset-cards`, one doc per card; seeds content-addressed
     sha1(url) so re-seeding dedupes; made cards carry `from` (which three
     cards, which kind, her words). Nothing deleted — `hidden` is the verb.
+  - **SHE CALLS IT SIMILITUDE (2026-09-01: "rename it similitude").** The
+    DISPLAY name only — the `<title>`, the header, the help card. The route,
+    `/api/triset`, `forge-triset-cards`, the `triset/` storage prefix and the
+    `triset.*` localStorage keys are IDENTITY and are never re-keyed (the
+    chat-rename rule: renaming is cosmetic and re-keys nothing). `/similitude`
+    is served as the same page so the new name is a real URL, and `/triset`
+    keeps working for her pin and any saved link.
+  - **UNDO PUTS THE LAST HAND BACK (2026-09-01: "add an undo button").** Deal
+    and swap are RANDOM, so a card swapped away is gone unless the draw happens
+    to return it — undo is the only way to keep one she liked. A stack of
+    hands (`undos`, capped 20), pushed by deal and swap, popped by the button.
+    Three things not to undo: it restores the three CARDS and nothing else —
+    her typed middle, the kind and the edition are hers and still describe the
+    hand that comes back; the button is **hidden** when there is nothing to go
+    back to (the edition row's own rule — a dead control in a row of three is
+    worse than a row of two); and it is off while a card is `pending`, since
+    the draw is already paid for.
   - The page is one screen, NO pill; the mid slot is `pointer-events:none`
     (its rectangle overlaps the two lower cards) — only the textarea takes
     taps. Made cards land in My Creations via the handed-in fileCreation.

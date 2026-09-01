@@ -390,6 +390,54 @@ async function headless() {
   ok('a card with a die-cut shows the CUT, not the original', dealt.every(s => s.includes('cuts%2F')));
   // the cut copy fills the slot exactly — no legacy overscan mapping — so the
   // cream face shows through the copy's transparency as the border
+  // UNDO — put the last hand back (2026-09-01, "add an undo button"). Every
+  // assertion is a MEASUREMENT of what is on the slots: a stack that pops
+  // correctly and a page that never repaints look identical to any source
+  // assertion, and the whole point is the picture coming back.
+  ok('no undo button before anything has been undone', await pg.evaluate(() =>
+    document.getElementById('undo').hidden === true));
+  {
+    const shot = () => pg.evaluate(() => ['top', 'left', 'right']
+      .map(s => document.querySelector('#s-' + s + ' img').getAttribute('src') || ''));
+    // clicking a HIDDEN undo throws a playwright timeout, which crashes the
+    // run before the failure list prints — so a broken undo reads as a stack
+    // trace instead of a named ✗. Skip the click and let the assertions talk.
+    const tapUndo = async () => {
+      if (await pg.evaluate(() => document.getElementById('undo').hidden)) return false;
+      await pg.click('#undo'); return true;
+    };
+    const before = await shot();
+    await pg.click('#s-top');                       // swap one card
+    ok('the undo button appears once there is a hand to go back to',
+      await pg.evaluate(() => document.getElementById('undo').hidden === false));
+    const swapped = await shot();
+    ok('the swap really changed the top card', swapped[0] !== before[0]);
+    ok('…and left the other two alone', swapped[1] === before[1] && swapped[2] === before[2]);
+    await tapUndo();
+    ok('undo puts the exact hand back', JSON.stringify(await shot()) === JSON.stringify(before));
+    ok('…and hides itself when the history runs out',
+      await pg.evaluate(() => document.getElementById('undo').hidden === true));
+    // her typed middle is NOT touched — it still describes the hand that came back
+    await pg.fill('#middle', 'they all fly');
+    await pg.click('#deal');
+    // named, so a deal that forgot to push fails HERE rather than as a click
+    // timing out on a hidden button
+    ok('a deal is undoable too', await pg.evaluate(() => document.getElementById('undo').hidden === false));
+    await tapUndo();
+    ok('undo leaves her typed middle alone',
+      await pg.evaluate(() => document.getElementById('middle').value) === 'they all fly');
+    await pg.fill('#middle', '');
+    // several steps back, in order
+    const h0 = await shot();
+    await pg.click('#deal'); const h1 = await shot();
+    await pg.click('#deal');
+    ok('two deals leave two steps of history',
+      await pg.evaluate(() => document.getElementById('undo').hidden === false));
+    await tapUndo();
+    ok('undo steps back one hand at a time', JSON.stringify(await shot()) === JSON.stringify(h1));
+    await tapUndo();
+    ok('…all the way to where she started', JSON.stringify(await shot()) === JSON.stringify(h0));
+  }
   ok('the cut fills the slot, measured', await pg.evaluate(() => {
     return ['top', 'left', 'right'].every(s => {
       const el = document.getElementById('s-' + s);
