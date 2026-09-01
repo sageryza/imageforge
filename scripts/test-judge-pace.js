@@ -8,9 +8,11 @@
  * The contract, on a BROWSE deck (what every template deck is):
  *   1. QUICK: a ♥ advances to the NEXT card — one step forward, never a jump
  *      — after the stamp has had its moment on the card she is leaving
- *   2. QUICK: maybe stays put (she said heart or x, and maybe is neither)
+ *   2. QUICK: MAYBE advances too ("maybe counts as a decision too", her
+ *      follow-up the same day) — and at once, because a maybe stamps nothing
+ *      and so has no animation to wait out
  *   3. QUICK: tapping the lit mark again is a CLEAR and stays put
- *   4. QUICK: a ✕ on the LAST card lands on the piles, like the edge tap
+ *   4. QUICK: a decision on the LAST card lands on the piles, like the edge tap
  *   5. LABORED (the default — no pace field): a ♥ never moves the deck,
  *      byte-for-byte the rule as it was
  *
@@ -75,6 +77,8 @@ window.addEventListener('error', function(e){
     { id:'a', label:'first', img:IMG },
     { id:'b', label:'second', img:IMG },
     { id:'c', label:'third', img:IMG },
+    { id:'d', label:'fourth', img:IMG },
+    { id:'e', label:'fifth', img:IMG },
   ]});
   // the LABORED deck — same cards, NO pace field: the default must not move
   window.__judge({ chat:'t', sheet:'s2', browse:true, look:'mom', mount:'#judge2', items:[
@@ -92,36 +96,32 @@ window.addEventListener('error', function(e){
     },
     function(next){
       ok(who(q)==='second', 'QUICK: a heart moves the deck forward one card');
-      // 2 — maybe is neither heart nor x, so it stays
+      // 2 — MAYBE COUNTS TOO ("maybe counts as a decision too"), and at once:
+      // it stamps nothing, so there is no animation to wait out. Asked in the
+      // SAME tick, which is what tells an immediate step from a delayed one.
       tap(q,'[data-act="maybe"]');
-      setTimeout(next, 900);
-    },
-    function(next){
-      ok(who(q)==='second', 'QUICK: maybe stays put');
-      // 3 — a clear (tapping the lit mark) stays put too
-      tap(q,'[data-act="maybe"]');   // clear the maybe so ✕ below is a fresh mark
-      tap(q,'[data-act="no"]');
-      setTimeout(next, 900);
-    },
-    function(next){
-      ok(who(q)==='third', 'QUICK: an x moves the deck forward too');
-      tap(q,'[data-act="prev"]');     // walk back — edges still navigate
+      ok(who(q)==='third', 'QUICK: maybe moves the deck forward, with no wait');
+      // walk back to the maybe card — the edges still navigate
+      tap(q,'[data-act="prev"]');
       ok(who(q)==='second', 'QUICK: the edge taps still navigate');
-      tap(q,'[data-act="no"]');       // ✕ was its mark — this is a CLEAR
-      setTimeout(next, 900);
-    },
-    function(next){
+      // 3 — tapping the LIT maybe again is a clear, and a clear stays put
+      tap(q,'[data-act="maybe"]');
       ok(who(q)==='second', 'QUICK: clearing the lit mark stays put');
-      tap(q,'[data-act="no"]');       // fresh ✕ → forward to third (already judged)
-      setTimeout(next, 900);
-    },
-    function(next){
+      tap(q,'[data-act="maybe"]');   // fresh maybe → forward again
       ok(who(q)==='third', 'QUICK: forward is ONE step, judged or not');
-      // 4 — a decision on the LAST card lands on the piles
-      tap(q,'[data-act="no"]');
+      tap(q,'[data-act="no"]');      // an x waits out its stamp
+      ok(who(q)==='third', 'QUICK: an x holds while its stamp lands');
       setTimeout(next, 900);
     },
     function(next){
+      ok(who(q)==='fourth', 'QUICK: an x moves the deck forward too');
+      tap(q,'[data-act="yes"]');
+      setTimeout(next, 900);
+    },
+    function(next){
+      // 4 — a decision on the LAST card lands on the piles
+      ok(who(q)==='fifth', 'QUICK: the deck reaches its last card');
+      tap(q,'[data-act="maybe"]');
       ok(!!q.querySelector('.jg-piles'), 'QUICK: a decision on the last card lands on the piles');
       // 5 — the labored deck (no pace) never moves on a mark
       ok(who(lab)==='first', 'labored deck opens on the first card');
@@ -130,6 +130,11 @@ window.addEventListener('error', function(e){
     },
     function(next){
       ok(who(lab)==='first', 'LABORED (default): a heart never moves the deck');
+      tap(lab,'[data-act="maybe"]');
+      setTimeout(next, 900);
+    },
+    function(next){
+      ok(who(lab)==='first', 'LABORED (default): a maybe never moves the deck either');
       next();
     },
   ];

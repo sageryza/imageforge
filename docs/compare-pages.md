@@ -512,10 +512,19 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     `voice?`, `browse?`, `stamp?`, `pace?` — is shared by both.
     **`pace: 'quick'` — A QUICK-DECISION DECK (2026-09-01, Sophie: "add a
     toggle for chats to choose if it's a quick or labored decision + note …
-    heart or x action DOES move deck forward").** On a quick deck a decisive
-    ♥/✕ (or a spread pick) steps the deck forward one card by itself, after
-    the stamp lands; maybe, a clear and a note still stay put, and the edge
-    taps and swipe still navigate. LABORED is the default (omit the field) —
+    heart or x action DOES move deck forward").** On a quick deck a verdict
+    steps the deck forward one card by itself; a CLEAR and a note stay put,
+    and the edge taps and swipe still navigate.
+    **ANY VERDICT COUNTS, MAYBE INCLUDED** (her follow-up the same day:
+    "maybe counts as a decision too"). The first cut gated on the STAMP,
+    which is a different question — a maybe stamps nothing, since there is no
+    good and no bad in one — and that left her parked on a card she had
+    already dealt with, i.e. the labored deck by accident. So the gate is
+    simply *a verdict was set*: ♥, ✕, maybe, a page's own `states` word, a
+    spread pick. Only a clear stays put, which is also how she goes back to
+    an unmarked card on purpose. **The WAIT is the stamp's**, so a maybe
+    moves at once and a ♥/✕ holds 620ms, leaving the card she is stepping off
+    long enough to wear its stamp. LABORED is the default (omit the field) —
     the browse rule exactly as it was: a mark never moves the deck. Pick
     quick for a yes/no sweep (the hoonies, a big cull); labored for anything
     she reads, notes on, or changes her mind about. **An already-posted page
