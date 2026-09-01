@@ -7817,6 +7817,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
     chat-rename rule: renaming is cosmetic and re-keys nothing). `/similitude`
     is served as the same page so the new name is a real URL, and `/triset`
     keeps working for her pin and any saved link.
+  - **A REAL DECK AND A HAND (2026-09-01: "make it so i get dealt three cards,
+    they show under the board, i click a card on the board and one in my hand,
+    to replace it w that card. a new card from the deck comes into my hand" ·
+    "make sure its an actual deck dealing").** Not a random pick per slot: a
+    SHUFFLED deck (Fisher-Yates) dealt off the top, six cards on the table at a
+    time (three on the board, three in her hand under it), no card in two
+    places, a replaced board card going to the DISCARD, and the discard
+    shuffled back only when the deck runs dry. A swap is TWO TAPS — a board
+    card and a hand card, either order — and the emptied hand slot refills off
+    the top. Four things not to undo: **the board is dealt first and the hand
+    takes what is left**, so a three-card edition fills the board and leaves
+    the hand empty rather than refusing to deal (a real deck runs low
+    honestly); **the pick is shown by DIMMING the others**, never a border,
+    since the cards are clipped triangles and a border would draw a rectangle
+    round one; **`drawFresh` puts aside anything already on the table**, so a
+    re-shuffle can never deal a card twice; and **undo snapshots the whole
+    table — deck and discard by copy** — or restoring the board while the deck
+    kept its position deals a card that is already in play.
   - **UNDO PUTS THE LAST HAND BACK (2026-09-01: "add an undo button").** Deal
     and swap are RANDOM, so a card swapped away is gone unless the draw happens
     to return it — undo is the only way to keep one she liked. A stack of

@@ -327,7 +327,7 @@ const PIXEL = Buffer.from('UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA==', 'b
 async function headless() {
   const founds = [];
   let pollCount = 0;
-  const cards = Array.from({ length: 6 }, (_, i) => ({
+  const cards = Array.from({ length: 10 }, (_, i) => ({
     id: 'c' + i, title: 'card ' + i, status: 'ready',
     url: 'https://storage.googleapis.com/x/triset/cards/c' + i + '.webp',
     cut: 'https://storage.googleapis.com/x/triset/cuts/c' + i + '.c1.webp', createdAt: i,
@@ -390,6 +390,14 @@ async function headless() {
   ok('a card with a die-cut shows the CUT, not the original', dealt.every(s => s.includes('cuts%2F')));
   // the cut copy fills the slot exactly — no legacy overscan mapping — so the
   // cream face shows through the copy's transparency as the border
+  // clicking a HIDDEN undo throws a playwright timeout, which crashes the run
+  // before the failure list prints — so a broken undo reads as a stack trace
+  // instead of a named ✗. Skip the click and let the assertions talk.
+  const tapUndo = async () => {
+    if (await pg.evaluate(() => document.getElementById('undo').hidden)) return false;
+    await pg.click('#undo'); return true;
+  };
+
   // UNDO — put the last hand back (2026-09-01, "add an undo button"). Every
   // assertion is a MEASUREMENT of what is on the slots: a stack that pops
   // correctly and a page that never repaints look identical to any source
@@ -413,15 +421,9 @@ async function headless() {
   {
     const shot = () => pg.evaluate(() => ['top', 'left', 'right']
       .map(s => document.querySelector('#s-' + s + ' img').getAttribute('src') || ''));
-    // clicking a HIDDEN undo throws a playwright timeout, which crashes the
-    // run before the failure list prints — so a broken undo reads as a stack
-    // trace instead of a named ✗. Skip the click and let the assertions talk.
-    const tapUndo = async () => {
-      if (await pg.evaluate(() => document.getElementById('undo').hidden)) return false;
-      await pg.click('#undo'); return true;
-    };
     const before = await shot();
-    await pg.click('#s-top');                       // swap one card
+    await pg.click('#s-top');                       // swap one card: two taps
+    await pg.click('.hcard[data-h="0"]');
     ok('the undo button appears once there is a hand to go back to',
       await pg.evaluate(() => document.getElementById('undo').hidden === false));
     const swapped = await shot();
@@ -452,6 +454,48 @@ async function headless() {
     await tapUndo();
     ok('…all the way to where she started', JSON.stringify(await shot()) === JSON.stringify(h0));
   }
+
+  // A REAL DECK AND A HAND (2026-09-01: dealt three, shown under the board;
+  // tap a board card + a hand card to swap; the hand refills from the deck).
+  // Measured on the page, because "an actual deck" is a property of what is
+  // on the table over time, which no source assertion can see.
+  {
+    const table = () => pg.evaluate(() => ({
+      board: ['top', 'left', 'right'].map(s => document.querySelector('#s-' + s + ' img').getAttribute('src') || ''),
+      held: Array.from(document.querySelectorAll('.hcard img')).map(i => i.getAttribute('src') || ''),
+    }));
+    const t0 = await table();
+    ok('three cards sit in her hand under the board', t0.held.filter(Boolean).length === 3);
+    ok('the hand is BELOW the board', await pg.evaluate(() =>
+      document.getElementById('hand').getBoundingClientRect().top
+      >= document.getElementById('board').getBoundingClientRect().bottom - 1));
+    ok('no card is in two places at once',
+      new Set(t0.board.concat(t0.held)).size === 6);
+    // tap a board card, then a hand card
+    await pg.click('#s-top');
+    await pg.click('.hcard[data-h="0"]');
+    const t1 = await table();
+    ok('the hand card took the board slot', t1.board[0] === t0.held[0]);
+    ok('…the other board cards are untouched',
+      t1.board[1] === t0.board[1] && t1.board[2] === t0.board[2]);
+    ok('…a NEW card came into her hand from the deck',
+      t1.held[0] && t1.held[0] !== t0.held[0]);
+    ok('…and the table still holds six different cards',
+      new Set(t1.board.concat(t1.held)).size === 6);
+    ok('the replaced board card is OUT of play (discarded, not re-dealt)',
+      !t1.board.concat(t1.held).includes(t0.board[0]));
+    // the other tap order works too
+    await pg.click('.hcard[data-h="1"]');
+    await pg.click('#s-left');
+    const t2 = await table();
+    ok('picking the hand card first works the same', t2.board[1] === t1.held[1]);
+    // undo restores the whole table, deck included
+    await tapUndo();
+    const t3 = await table();
+    ok('undo puts the table back, hand and all',
+      JSON.stringify(t3) === JSON.stringify(t1));
+  }
+
   ok('the cut fills the slot, measured', await pg.evaluate(() => {
     return ['top', 'left', 'right'].every(s => {
       const el = document.getElementById('s-' + s);
@@ -478,11 +522,11 @@ async function headless() {
   // tap a card → it swaps (six cards, three dealt, a swap always changes the id)
   const before = await pg.$eval('#s-top img', el => el.src);
   let after = before;
-  for (let i = 0; i < 4 && after === before; i++) {
-    await pg.click('#s-top', { position: { x: 90, y: 120 } });
-    after = await pg.$eval('#s-top img', el => el.src);
-  }
-  ok('tapping a card swaps it', after !== before);
+  // a swap is TWO taps since 2026-09-01 — a board card and a hand card
+  await pg.click('#s-top', { position: { x: 90, y: 120 } });
+  await pg.click('.hcard[data-h="0"]');
+  after = await pg.$eval('#s-top img', el => el.src);
+  ok('tapping a board card then a hand card swaps it', after !== before);
 
   // the mid rectangle overlaps the lower cards — a tap on a lower card's inner
   // corner must reach the CARD (elementFromPoint is the only honest question)
