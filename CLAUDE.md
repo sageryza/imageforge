@@ -8177,15 +8177,29 @@ before working on that module. Nothing was deleted — the moved text is verbati
     second after she started it), and the position is accumulated in JS —
     `scrollTop += 0.37` snaps to the same integer every frame and moved the
     card exactly 0px.
-  - **A DECIDED CARD WEARS A GOOD / BAD STAMP (Aug 2026, her own "Decision
-    Deck v3" canvas: "a little good/bad stamp that stamps the ones that you
-    pick or don't pick").** Red rubber, tilted, the one just decided slamming
-    on — in at 2.5x and blurred, invisible until it is nearly down, an
-    overshoot, then settled in 560ms. The ink is rough rather than printed: an
+  - **THE GOOD / BAD STAMP LANDS AND LEAVES — IT IS NOT SOMETHING A CARD WEARS
+    (Aug 2026, her own "Decision Deck v3" canvas: "a little good/bad stamp that
+    stamps the ones that you pick or don't pick"; 2026-09-01: "the stamp shud
+    only stay for a second and then leave").** Red rubber, tilted, slamming on
+    the card she just decided — in at 2.5x and blurred, invisible until it is
+    nearly down, an overshoot, then settled in 560ms — then ~1s on the paper
+    and out over a 280ms fade. The ink is rough rather than printed: an
     feTurbulence displacement chews the edges and a mask of radial holes lifts
     the worn spots out of the middle; two filters and two hole patterns so the
     halves of a spread never stamp identically. Values are the artboard's
     (`docs/decision-deck/`).
+    - **IT USED TO BE A STATE, AND THAT IS WHAT SHE RETIRED.** Every card
+      carrying a yes/no was stamped on every paint, so a pile she came back to
+      — her re-swipe, or a deck built out of her hearts — arrived with GOOD
+      IDEA across every picture. `stamp:false` existed to escape exactly that
+      and is still there, but it is no longer the answer: **the stamp is the
+      ACT of deciding; where a card ENDED UP is what the piles are for.** So
+      `paintStamp` returns unless the card is `stampNow` — nothing else is
+      ever stamped, and a card revisited later wears none.
+    - The fade is on the WRAPPER, not the mark, so it composes with whichever
+      landing animation is still running underneath instead of fighting it for
+      the same property. A re-render takes the node with it and the pending
+      timer then finds nothing, which is why none of them is cancelled.
     - **The SPREAD is the case it is named for** — picking one of two pictures
       stamps GOOD on the winner and BAD on the other. A ♥ or ✕ anywhere else
       stamps the whole card.
@@ -8200,7 +8214,42 @@ before working on that module. Nothing was deleted — the moved text is verbati
       the ♥ underneath it — measured with `elementFromPoint`, the only honest
       way to ask. `stamp:false` turns it off; `goodWord` / `badWord` are hers
       to change, because her artboard made them fields.
-    - Test: `node scripts/test-judge-stamp.js`.
+    - Tests: `node scripts/test-judge-stamp.js` (it lands) and
+      `node scripts/test-judge-piles.js` (it leaves, and an already-marked
+      card arrives with none).
+  - **EACH PILE FOLDS AND RE-SWIPES ITSELF, AND THE PILES AUTOSCROLL
+    (2026-09-01, Sophie: "right now the auto scroll doesn't work in piles" ·
+    "add a good/bad/maybe button to each pile to re-swipe just those" · "also
+    make the good bad maybe collapsible in piles" · "change the template not
+    just this one").** Three asks on one screen, all in `judge.js`, so every
+    template page ever posted has them the day it deploys.
+    - **Swipe these** on a pile walks JUST that pile's cards in the card view,
+      with her ✕ · ? · ♥ — the way a pile gets re-decided without going
+      through the whole deck. It is a **LANE** (`lane` = the pile's ids) that
+      every move reads through `laneStep`, never a filter on `items`: the
+      piles, the counts and every id-keyed lookup still see the whole deck,
+      which is what keeps this one rule rather than a second deck to keep in
+      step. The lane ends when the card view does — running off the end,
+      tapping Piles, or opening one card off the piles (`toPiles()` /
+      `data-open` clear it), because a lane that outlived its screen would
+      silently shorten the next walk.
+    - **The fold is per pile and per VISIT**, in memory — it is how she is
+      reading this screen right now, not a setting. The heading IS the fold
+      (the whole name and count, not a caret to hit) and **Swipe these is a
+      SIBLING of it**, never nested: a button in a button is invalid and the
+      tap would fold the pile she was trying to re-open.
+    - **The mini autoscroll now asks `.jg-piles` too.** It only ever looked at
+      the card selectors, so on the one screen in the deck that is genuinely
+      long it hid itself. Whether a box really scrolls is read off the
+      COMPUTED overflow, never assumed: content taller than a box that does
+      not scroll reports the same `scrollHeight`, and driving one of those
+      moves nothing. A deck that is not one of hers has no height cap on its
+      piles, so there the fallback drives the WINDOW — card view is
+      deliberately left out of that, since there the card is the answer.
+    - Test: `node scripts/test-judge-piles.js` (the real page headless —
+      every assertion a MEASUREMENT: the fold is its tiles gone from the
+      layout, the autoscroll is `scrollTop` really moving, the lane is how
+      many cards the pass actually steps through; verified failing 5 pre-fix).
   - **THE ✕ AND ♥ ARE DRAWN BY HAND (Aug 2026, Sophie, pointing at the ✕
     inside one of her own cards: "can you make this X that I gave as a
     screenshot, and make the heart actually kind of a handwriting look?").**

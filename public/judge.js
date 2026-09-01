@@ -442,6 +442,27 @@
     '.jg-mombg .jg-mini{border-color:#DDD3C0;background:#FFFDF8;color:#262016;}' +
     '.jg-piles h2{margin-top:22px;}' +
 
+    // ── A PILE FOLDS, AND RE-SWIPES ITSELF (2026-09-01, Sophie: "add a
+    // good/bad/maybe button to each pile to re-swipe just those" · "also make
+    // the good bad maybe collapsible in piles"). Two controls on one header
+    // row, and they are SIBLINGS — the caret is the heading's own button and
+    // "Swipe these" sits beside it, never inside it: a button in a button is
+    // invalid and the tap would fold the pile she was trying to re-open.
+    '.jg-pilehd{display:flex;align-items:center;gap:10px;margin-top:22px;}' +
+    '.jg-piles .jg-pilehd h2{margin:0;flex:1;min-width:0;}' +
+    // the heading IS the fold — the whole name and count is the tap target,
+    // not a caret she has to hit
+    '.jg-pilefold{flex:1;min-width:0;display:flex;align-items:center;gap:7px;' +
+    ' border:0;background:none;padding:0;text-align:left;color:inherit;}' +
+    '.jg-cav{flex:none;width:11px;height:11px;transition:transform 150ms ease;}' +
+    '.jg-cav svg{width:11px;height:11px;display:block;fill:currentColor;}' +
+    '.jg-pilefold.shut .jg-cav{transform:rotate(-90deg);}' +
+    // the same rounded rectangle the piles footer uses — it hugs its words
+    '.jg-again{flex:none;border:1px solid var(--line);border-radius:6px;' +
+    ' background:var(--surface);color:var(--ink);' +
+    ' font:600 12px/1 -apple-system,sans-serif;padding:7px 10px;}' +
+    '.jg.mom .jg-again{border-color:#DDD3C0;background:#FFFDF8;color:#262016;}' +
+
     // ── THE NOTE SURVEY (2026-08-31, Sophie: "add note survey to piles").
     // Every note she left on this deck, read back in one place. It leads the
     // piles because it is the one thing on this screen that is HERS — the
@@ -514,8 +535,13 @@
 
     // ── THE GOOD / BAD STAMP (Aug 2026, Sophie's own "Decision Deck v3"
     // canvas: "a little good/bad stamp that stamps the ones that you pick or
-    // don't pick"). A decided card wears a red rubber stamp; the one just
-    // decided SLAMS on. Ported from her artboard, values hers:
+    // don't pick"). The card she just decided gets a red rubber stamp that
+    // SLAMS on — and then LEAVES (2026-09-01: "the stamp shud only stay for a
+    // second and then leave"). It used to be a state a decided card wore
+    // forever, which is why a pile she came back to arrived with a GOOD IDEA
+    // across every picture — the mark of the moment had become a label over
+    // the art. It is the ACT of deciding now, not the record of it: the piles
+    // are the record. Ported from her artboard, values hers:
     //   · it comes in at 2.5x and blurred, invisible until 38% — so what she
     //     sees is the moment of contact, not the approach — then overshoots
     //     and settles at 1x, tilted, in ~560ms.
@@ -549,6 +575,11 @@
     ' 38%{opacity:0}52%{transform:scale(.9) rotate(6.5deg);opacity:.9;filter:url(#jgInk2)}' +
     ' 64%{transform:scale(1.07) rotate(6.5deg)}78%{transform:scale(.985) rotate(6.5deg)}' +
     ' 100%{transform:scale(1) rotate(6.5deg);opacity:.9}}' +
+    // …and then it goes. The fade is on the WRAPPER rather than on the mark,
+    // so it composes with whichever landing animation is still finishing
+    // underneath instead of fighting it for the same property.
+    '.jg-stamp{transition:opacity 280ms ease;}' +
+    '.jg-stamp.gone{opacity:0;}' +
     // the card takes the hit — a small jolt under the stamp landing
     '.jg-jolt{animation:jgjolt 560ms cubic-bezier(.2,.8,.3,1) both;}' +
     '@keyframes jgjolt{0%,100%{transform:translateY(0)}30%{transform:translateY(3px)}' +
@@ -640,6 +671,9 @@
     undo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg>',
     grid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
     mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>',
+    // the pile fold's caret — the same solid ⌄ the Chats app's expanders use,
+    // rotated by CSS when the pile is shut
+    caret: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9.5 12 16l6-6.5z"/></svg>',
   };
   var DEFAULT_PILES = [
     { key: true,    name: 'Loved' },
@@ -683,9 +717,9 @@
     var stampOn = opts.stamp !== false;
     var GOOD_WORD = opts.goodWord || 'GOOD';
     var BAD_WORD = opts.badWord || 'BAD';
-    // the item whose stamp should ANIMATE on the next paint — set by judge(),
-    // consumed by the paint. A card revisited later still WEARS its stamp; it
-    // just does not slam on a second time.
+    // the item whose stamp lands on the next paint — set by judge(), consumed
+    // by the paint. Nothing else is ever stamped: the mark is the act of
+    // deciding and it leaves a second later (see paintStamp).
     var stampNow = null;
     var piles = (states
       ? states.map(function (s) { return { key: s.key, name: s.label }; })
@@ -693,6 +727,16 @@
 
     var verdicts = {}, notes = {}, undoStack = [], cur = 0, view = 'card';
     var noteTimer = null, momNote = null;
+    // ── RE-SWIPING ONE PILE (2026-09-01). `lane` is the ids of the pile she
+    // tapped "Swipe these" on, or null for the whole deck; every move goes
+    // through laneStep, so the pass walks THOSE cards and ends on the piles.
+    // It is not a filter on `items` — the piles view, the counts and every
+    // id-keyed lookup still see the whole deck, which is what keeps this one
+    // added rule rather than a second deck to keep in step.
+    var lane = null;
+    // per-visit fold state (what is shut right now, not a setting), and the
+    // ids behind each pile's two buttons, rebuilt on every piles paint
+    var folded = {}, pileLanes = {};
 
     // ── THE REVIEW QUEUE'S DOOR (Aug 2026). `?clean=1` is how the queue opens
     // a deck — no title, straight onto the cards — so it is also how this page
@@ -1053,8 +1097,35 @@
       for (var i = 0; i < items.length; i++) if (items[i].id === id) return i;
       return -1;   // the card has gone — fall through to the old rule
     }
+    // ── THE LANE — every move reads it, so a re-swipe of one pile needs no
+    // second copy of the navigation. With no lane it is the whole deck, which
+    // is what makes these three the only place the feature touches movement.
+    function inLane(i) {
+      return !lane || lane.indexOf(items[i].id) >= 0;
+    }
+    function laneStep(from, dir) {
+      for (var i = from + dir; i >= 0 && i < items.length; i += dir) if (inLane(i)) return i;
+      return -1;   // the end of the lane — the caller lands on the piles
+    }
+    function laneCount() {
+      if (!lane) return items.length;
+      var n = 0;
+      for (var i = 0; i < items.length; i++) if (inLane(i)) n += 1;
+      return n;
+    }
+    function lanePos(i) {          // 0-based place of `i` within the lane
+      var n = 0;
+      for (var j = 0; j < i && j < items.length; j++) if (inLane(j)) n += 1;
+      return n;
+    }
+    // leaving the card view ends the pass — the piles are always the whole
+    // deck, and a lane that outlived its own screen would silently shorten
+    // the next walk through the cards
+    function toPiles() { lane = null; view = 'piles'; }
     function firstUnjudged() {
-      for (var i = 0; i < items.length; i++) if (verdicts[items[i].id] === undefined) return i;
+      for (var i = 0; i < items.length; i++) {
+        if (inLane(i) && verdicts[items[i].id] === undefined) return i;
+      }
       return -1;
     }
     function judge(val) {
@@ -1103,7 +1174,8 @@
           var going = cur;
           var step = function () {
             if (cur !== going || view !== 'card') return;
-            if (cur >= items.length - 1) { view = 'piles'; } else { cur += 1; }
+            var n = laneStep(cur, 1);
+            if (n === -1) { toPiles(); } else { cur = n; }
             render(true); savePlace();
           };
           if (stampNow && stampOn) { render(true); setTimeout(step, 620); }
@@ -1121,20 +1193,22 @@
         setTimeout(function () {
           if (cur !== leaving || view !== 'card') return;
           var n = firstUnjudged();
-          if (n === -1) { view = 'piles'; } else { cur = n; }
+          if (n === -1) { toPiles(); } else { cur = n; }
           render(true); savePlace();
         }, 620);
         return;
       } else {
         var next = firstUnjudged();
-        if (next === -1) { view = 'piles'; } else { cur = next; }
+        if (next === -1) { toPiles(); } else { cur = next; }
       }
       render(true); savePlace();
     }
     function nav(step) {
-      var to = cur + step;
-      if (to < 0) return;
-      if (to > items.length - 1) { view = 'piles'; render(true); return; }
+      var to = laneStep(cur, step < 0 ? -1 : 1);
+      if (to === -1) {
+        if (step < 0) return;            // the front of the lane — stay put
+        toPiles(); render(true); return; // past the end — land on the piles
+      }
       cur = to; view = 'card'; render(true); savePlace();
     }
     function undo() {
@@ -1301,11 +1375,17 @@
     }
 
     /** ── PAINTING THE STAMP ──
-     *  A card that carries a yes/no verdict wears the mark; the one just
-     *  decided gets `live` and slams on. It is added to the DOM after the
-     *  card is written rather than built into the card's HTML string, because
-     *  the two render paths (her moment card returns early) would otherwise
-     *  each need their own copy of it.
+     *  ONLY the card she just decided is stamped, and the stamp LEAVES about a
+     *  second later (2026-09-01, Sophie: "the stamp shud only stay for a second
+     *  and then leave"). It used to be painted on every card carrying a
+     *  yes/no verdict, on every paint — so a pile of cards she had already
+     *  marked (her re-swipe, or a deck built out of her hearts) came up with
+     *  GOOD IDEA covering every picture. A stamp is the moment of deciding;
+     *  where a card ENDED UP is what the piles are for.
+     *
+     *  It is added to the DOM after the card is written rather than built into
+     *  the card's HTML string, because the two render paths (her moment card
+     *  returns early) would otherwise each need their own copy of it.
      *
      *  Which mark:
      *   · a SPREAD she picked a winner on → the winner takes GOOD, the other
@@ -1316,15 +1396,33 @@
      *     no bad in "sort this one later", and a red stamp would invent a
      *     verdict she did not give.
      */
-    function stampHtml(word, side, live) {
-      return '<div class="jg-stamp' + (side === 'b' ? ' b' : '')
-        + (live ? ' live' : '') + '" aria-hidden="true">'
+    // every stamp that is painted at all is a fresh one now, so it always
+    // slams on — `live` stopped being a question when the mark stopped being
+    // a state a card wears
+    function stampHtml(word, side) {
+      return '<div class="jg-stamp live' + (side === 'b' ? ' b' : '')
+        + '" aria-hidden="true">'
         + '<span class="jg-stampmark">' + esc(word) + '</span></div>';
+    }
+    // ~1s on the paper, then out over the fade above. Timed from the paint, so
+    // a spread's second stamp (200ms behind the first) leaves with it rather
+    // than lingering alone. A re-render takes the node with it and the timer
+    // then finds nothing — which is exactly right, and is why nothing has to
+    // be cancelled.
+    var STAMP_HOLD = 1000, STAMP_FADE = 300;
+    function stampFades(el) {
+      setTimeout(function () {
+        if (!el || !el.parentNode) return;
+        el.classList.add('gone');
+        setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, STAMP_FADE);
+      }, STAMP_HOLD);
     }
     function paintStamp(it) {
       if (!stampOn || !it) return;
       var v = verdicts[it.id];
-      var live = stampNow === it.id;
+      // ONLY the card just decided — see the note above. A card revisited
+      // later, or arriving already marked, wears nothing.
+      if (stampNow !== it.id) { stampNow = null; return; }
       stampNow = null;
       var spread = mount.querySelector('.jg-spread');
       if (spread && isPick(it, v)) {
@@ -1333,17 +1431,19 @@
           if (!btn) return;
           var won = btn.getAttribute('data-pick') === v;
           fig.insertAdjacentHTML('beforeend',
-            stampHtml(won ? GOOD_WORD : BAD_WORD, won ? 'a' : 'b', live));
+            stampHtml(won ? GOOD_WORD : BAD_WORD, won ? 'a' : 'b'));
+          stampFades(fig.lastChild);
         });
-        if (live) joltCard();
+        joltCard();
         return;
       }
       if (v !== true && v !== false) return;
       var wrap = mount.querySelector('.jg-cardwrap');
       if (!wrap) return;
       wrap.insertAdjacentHTML('beforeend',
-        stampHtml(v === true ? GOOD_WORD : BAD_WORD, 'a', live));
-      if (live) joltCard();
+        stampHtml(v === true ? GOOD_WORD : BAD_WORD, 'a'));
+      stampFades(wrap.lastChild);
+      joltCard();
     }
     // the paper takes the hit — one small jolt, removed when it finishes so a
     // later re-render never inherits a spent animation
@@ -1380,7 +1480,7 @@
         // her chrome: the thin progress line (position through the deck, like
         // the mockup), then Piles + ? — the name that lived on this row sits
         // lower now, centred on the card (her ask)
-        var pct = Math.round(((view === 'piles' ? items.length : cur) / items.length) * 100);
+        var pct = Math.round(((view === 'piles' ? laneCount() : lanePos(cur)) / laneCount()) * 100);
         top = '<div class="jg-prog"><i style="width:' + pct + '%"></i></div>'
           + '<div class="jg-momtop">' + back
           + '<button class="jg-pilesbtn" data-act="piles">Piles</button>'
@@ -1395,7 +1495,7 @@
       } else {
         top = '<div class="jg-top">' + back + '<span class="jg-count">'
           + (view === 'piles' ? judged + ' of ' + items.length + ' sorted'
-                              : (cur + 1) + ' of ' + items.length) + '</span>'
+                              : (lanePos(cur) + 1) + ' of ' + laneCount()) + '</span>'
           + '<button class="jg-ic" data-act="undo" aria-label="Undo">' + I.undo + '</button>'
           + '<button class="jg-ic" data-act="piles" aria-label="Piles">' + I.grid + '</button>'
           + '<button class="jg-ic txt" data-act="help" aria-label="What the icons mean">?</button></div>';
@@ -1428,12 +1528,30 @@
           });
           if (legacy.length) shown = piles.slice(0, -1).concat(legacy, piles.slice(-1));
         }
-        var sections = shown.map(function (p) {
+        // ── EACH PILE FOLDS AND RE-SWIPES ITSELF (2026-09-01, Sophie: "add a
+        // good/bad/maybe button to each pile to re-swipe just those" · "also
+        // make the good bad maybe collapsible in piles"). Swipe these = go
+        // back through JUST this pile's cards, in the card view, with her
+        // ✕ · ? · ♥ — which is how a pile gets re-decided without walking the
+        // whole deck again. The fold is per pile and lives for the visit: it
+        // is how she is reading the screen right now, not a setting.
+        pileLanes = {};
+        var sections = shown.map(function (p, pi) {
           var members = items.filter(function (it) {
             return p.match ? p.match(verdicts[it.id], it) : verdicts[it.id] === p.key;
           });
           if (!members.length) return '';
-          return '<h2>' + p.name + ' · ' + members.length + '</h2><div class="jg-grid">'
+          var key = 'p' + pi + ':' + p.name;
+          pileLanes[key] = members.map(function (it) { return it.id; });
+          var shut = folded[key] === true;
+          return '<div class="jg-pilehd">'
+            + '<button class="jg-pilefold' + (shut ? ' shut' : '') + '" data-fold="'
+            + esc(key) + '" aria-expanded="' + (shut ? 'false' : 'true') + '">'
+            + '<span class="jg-cav">' + I.caret + '</span>'
+            + '<h2>' + esc(p.name) + ' · ' + members.length + '</h2></button>'
+            + '<button class="jg-again" data-swipe="' + esc(key) + '">Swipe these</button>'
+            + '</div>'
+            + (shut ? '' : '<div class="jg-grid">'
             + members.map(function (it) {
               if (it.card || (it.text && !it.img && !it.pair) || (isMoment(it) && !it.img)) {
                 return '<button class="txt" data-open="' + esc(it.id) + '">'
@@ -1442,7 +1560,7 @@
               var src = it.pair ? it.pair[0].img : it.img;
               return '<button data-open="' + esc(it.id) + '"><img src="' + esc(src)
                 + '" alt="' + esc(it.label || '') + '"></button>';
-            }).join('') + '</div>';
+            }).join('') + '</div>');
         }).join('');
         // THE PILES FOOTER — the chat this deck came from, and the two ways
         // off her review pile (Aug 2026, Sophie: "offer a link back to the
@@ -1745,10 +1863,29 @@
       }
       var pk = e.target && e.target.closest ? e.target.closest('[data-pick]') : null;
       if (pk) { judge(pk.getAttribute('data-pick')); return; }
-      var b = e.target && e.target.closest ? e.target.closest('[data-act],[data-open],[data-state]') : null;
+      var b = e.target && e.target.closest
+        ? e.target.closest('[data-act],[data-open],[data-state],[data-fold],[data-swipe]') : null;
       if (!b) return;
+      // ── A PILE FOLDS (2026-09-01, her ask). Per visit, in memory: it is how
+      // she is reading this screen right now, not a setting to remember.
+      var fold = b.getAttribute('data-fold');
+      if (fold) { folded[fold] = !folded[fold]; render(); return; }
+      // ── …AND RE-SWIPES ITSELF. The lane is the pile's ids, so the pass
+      // walks exactly those cards and ends back on the piles.
+      var sw = b.getAttribute('data-swipe');
+      if (sw) {
+        var ids = pileLanes[sw] || [];
+        if (!ids.length) return;
+        lane = ids;
+        cur = indexOfId(ids[0]);
+        if (cur < 0) { lane = null; return; }
+        view = 'card'; render(true); savePlace(); return;
+      }
       var open = b.getAttribute('data-open');
       if (open !== null && open !== undefined && open !== '') {
+        // opening one card off the piles is the WHOLE deck again — she is
+        // going to that card, not through a pile
+        lane = null;
         cur = items.findIndex(function (it) { return it.id === open; });
         if (cur < 0) cur = 0;
         view = 'card'; render(true); savePlace(); return;
@@ -1772,7 +1909,7 @@
       else if (act === 'back') backToQueue();
       else if (act === 'skip') stampReview({ hidden: true }, 'Skipped — it’s off the queue.');
       else if (act === 'done') stampReview({ done: true }, 'Marked done.');
-      else if (act === 'piles') { view = view === 'piles' ? 'card' : 'piles'; render(); }
+      else if (act === 'piles') { if (view === 'piles') { view = 'card'; } else { toPiles(); } render(); }
     });
 
     // ── THE MINI AUTOSCROLL — conditional, small, on the side of the screen
@@ -1783,11 +1920,36 @@
     /** The scroller in front of her, only if it actually overflows — that IS
      *  the "only appears when the text is very long" condition, measured
      *  rather than guessed from a character count (the .long class is a
-     *  layout rule; this is about what genuinely does not fit). */
+     *  layout rule; this is about what genuinely does not fit).
+     *
+     *  THE PILES ARE A SCROLLER TOO (2026-09-01, Sophie: "right now the auto
+     *  scroll doesn't work in piles"). They scroll inside their own box, like
+     *  a long card — the list just was not on this list, so the one screen in
+     *  the deck that is genuinely long had no way to creep. It is asked LAST,
+     *  because in the card view the card is the answer.
+     *
+     *  Whether a box really scrolls is asked of the computed style, never
+     *  assumed from the class: content taller than a box that does not scroll
+     *  also reports scrollHeight > clientHeight, and driving one of those
+     *  moves nothing at all. */
+    function scrolls(el) {
+      if (!el || el.scrollHeight <= el.clientHeight + 4) return false;
+      var ov = getComputedStyle(el).overflowY;
+      return ov === 'auto' || ov === 'scroll' || ov === 'overlay';
+    }
     function cardScroller() {
-      var els = mount.querySelectorAll('.jg-card.momcard, .jg.mom .jg-card, .jg-cardtext');
+      var els = mount.querySelectorAll(
+        '.jg-card.momcard, .jg.mom .jg-card, .jg-cardtext, .jg-piles');
       for (var i = 0; i < els.length; i += 1) {
-        if (els[i].scrollHeight > els[i].clientHeight + 4) return els[i];
+        if (scrolls(els[i])) return els[i];
+      }
+      // A deck that is not one of hers has no height cap on its piles, so the
+      // long list there scrolls the WINDOW instead of a box — and this page
+      // hides the house pill, so that screen had nothing to creep it either.
+      // Card view is deliberately left out: there the card is the answer.
+      if (view === 'piles') {
+        var doc = document.scrollingElement || document.documentElement;
+        if (doc && doc.scrollHeight > doc.clientHeight + 4) return doc;
       }
       return null;
     }
