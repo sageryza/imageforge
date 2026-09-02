@@ -8,16 +8,15 @@
  * re-pointing the old one, and supersede the page it replaces.
  *
  * The cards are read LIVE off /api/triset/cards (edition 'nature' — the 84 she
- * hearted and printed), so the suits are always her real deck. names.json is
- * the one short name per card, in that collection's own order; if the deck
- * grows, the extra cards fall back to their title's first words.
+ * hearted and printed), so the game is always her real deck. cards.json is the
+ * name and the TAGS for each, in that collection's own order — the tags are
+ * what the computer can see, and a card without them can only ever be played
+ * by her.
  */
 const fs = require('fs'), path = require('path');
 const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
 const CUTS = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cuts/';
-const START = [82, 78, 77, 83, 10, 40, 59];   // sunflower · full moon · ladybug ·
-                                              // mountain · poppies · northern lights · peacock
-const TITLE = 'Similitude Dominoes v1';
+const TITLE = 'Similitude Dominoes v2';
 const CHAT = 'triset-dominoes-game';
 
 const STOP = new Set(('a an the one two of in on at with over under from to and its only above ' +
@@ -32,11 +31,20 @@ const short = (t) => {
 (async () => {
   const r = await fetch(BASE + '/api/triset/cards');
   const cards = (await r.json()).cards.filter(c => c.edition === 'nature' && c.cut);
-  const names = JSON.parse(fs.readFileSync(path.join(__dirname, 'names.json'), 'utf8'));
-  const deck = cards.map((c, i) => ({ k: c.cut.replace(CUTS, ''), n: names[i] || short(c.title) }));
+  const meta = JSON.parse(fs.readFileSync(path.join(__dirname, 'cards.json'), 'utf8'));
+  if (meta.length !== cards.length) {
+    // the tags are per card IN THIS ORDER, so a deck that has grown must be
+    // re-tagged rather than silently played with the wrong words
+    console.error('WARNING: ' + cards.length + ' cards but ' + meta.length
+      + ' tagged — re-tag cards.json before trusting the links');
+  }
+  const deck = cards.map((c, i) => ({
+    k: c.cut.replace(CUTS, ''),
+    n: (meta[i] && meta[i].n) || short(c.title),
+    t: (meta[i] && meta[i].t) || [],
+  }));
   const html = fs.readFileSync(path.join(__dirname, 'dominoes.tpl.html'), 'utf8')
-    .replace('__DECK__', JSON.stringify(deck))
-    .replace('__SUITS__', JSON.stringify(START));
+    .replace('__DECK__', JSON.stringify(deck));
   const out = process.env.OUT || '/tmp/dominoes.html';
   fs.writeFileSync(out, html);
   console.log(deck.length + ' cards → ' + out + ' (' + html.length + ' bytes)');
