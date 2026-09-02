@@ -89,7 +89,7 @@ on its shot with a new offset), `anchorToShot` ("ride this shot"),
 reads back ("kid horrified earlier (now at 8.4s, was 32.1s)"). Tests:
 `node scripts/test-cut-model.js` (48 checks, the ant movie as the fixture).
 
-### Phase 1 — the server can render the ant movie (1 agent, parallel with 2)
+### Phase 1 — the server can render the ant movie (DONE 2026-09-02, agent A)
 `filmeditor.js`:
 - still pieces through Assembly's own recipe (`-loop 1 -t hold`), proxied as
   a 60s baked mp4 so the player treats it as video; trim = hold.
@@ -109,7 +109,7 @@ render of a 3-piece fixture (2 clips + 1 still, 2 tracks, one anchored) with
 WebM fixtures the way `test-filmeditor-page.js` does, asserting the shot
 boundaries and that the anchored track lands on its shot after a reorder.
 
-### Phase 2 — the page can show and edit it (1 agent, parallel with 1)
+### Phase 2 — the page can show and edit it (DONE 2026-09-02, agent B)
 `public/filmeditor.html`:
 - a still in the strip (poster tile, its hold as its length); upload accepts
   images; **Add from the Dump** (Assembly's door, ported); a still's trim
@@ -132,7 +132,7 @@ boundaries and that the anchored track lands on its shot after a reorder.
 Tests: `test-filmeditor-page.js` grows a still, two tracks, a level change,
 and the base-conflict path; every assertion a measurement on the real page.
 
-### Phase 3 — the chat side (this chat, after 1+2 merge)
+### Phase 3 — the chat side (DONE 2026-09-02, this chat)
 - `POST /` takes `chat` + `session` so the cut knows its chat. **No doorbell**
   (her call): when she next messages the chat, its sweep reads `/diff` since
   its last render, the way it reads asset notes.
@@ -152,7 +152,7 @@ and the base-conflict path; every assertion a measurement on the real page.
   (shot boundaries from `film-shots-detect`, sound by listening). That render
   is the acceptance test, and it is free — ffmpeg on our box.
 
-### Phase 4 — the loop, live (this chat)
+### Phase 4 — the loop, live (this chat — the next thing)
 Chat's draft → her edit → her message → chat reads the diff → does its half
 → saves with `base` → renders → pins with the cut id → her editor shows the
 new version. Then the
@@ -188,3 +188,29 @@ migration reuses the beds already banked.
 Nothing blocks the start (she said go for the clear parts, 2026-09-02). One
 call she can make later: whether a chat rendering outside the doc is ever
 acceptable once this exists.
+
+## What the migration measured (2026-09-02)
+
+The Ant Farm rendered from its cut doc against v7, in this container:
+- **Picture:** every one of the 16 shots' middle frame within 3.2 grey levels
+  of v7's (re-encode noise; 0 = identical) — the shot map is the cut.
+- **Sound, first pass:** the voice-only stretches correlated 1.000 with v7 and
+  sat exactly 3.0 dB UNDER it. Her voice memo is MONO, and
+  `aformat=channel_layouts=stereo` upmixes a centre channel into L and R at
+  1/√2 each (astats: −18.06 dB mono → −21.07 per channel; `pan=stereo|c0=c0|
+  c1=c0` and `-ac 2` both keep −18.06). The render probes each sound's
+  channels now and sends a mono one through `pan` first. **This would have put
+  her voice 3 dB under every bed on every film cut here** — the acceptance
+  test paid for itself on its first run.
+- **Sound, second pass:** rms identical to v7 in every 10s window (0.0848 vs
+  0.0848 …), correlation 1.000 everywhere except the last 18 seconds (0.90 /
+  0.95), which is the `god` clip: v7's cut list held it 5.28s but the source
+  is 5.209s, so everything after it — the cello ending anchored to god-close
+  included — sits ~70ms earlier than in v7. That is the doc being truer than
+  the film.
+- The last still's Playground original is GONE from Storage (403 public, 404
+  via the Admin SDK); the frame v7 holds at 103s is banked as
+  `ant-story/stills/theater-punchline.png` and the cut references that.
+- The cut is `the-ant-farm` (`forge-film-edits`), owned by
+  `ant-movie-sound-redesign`; its first render is by the chat, with the
+  snapshot; `scripts/migrate-ant-cut.js` is the whole procedure.
