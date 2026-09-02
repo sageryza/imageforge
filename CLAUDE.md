@@ -3425,6 +3425,27 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     can't-get-back-up rules: it never grew a back-to-top at all, and a press at
     an END of the page did nothing rather than turning around. Both are fixed
     and both stand.
+  - **AND IT NOW FOLLOWS WHATEVER IS ACTUALLY SCROLLING INSIDE THE FRAME
+    (2026-09-02, Sophie: "why does autos roll not work in piles").** The third
+    of the shared pill's rules this copy had missed: `mkPagePill` asked the
+    frame's WINDOW for everything, so a page whose content scrolls inside its
+    own box could not be moved by the pill she taps in the app — and a DECK's
+    piles view is exactly that box (`flex:1; overflow-y:auto`). Measured at her
+    viewport on the real rendered deck: **672px of piles below the fold, the
+    frame's own document with NOTHING to scroll, and a tap on play moving the
+    piles 0px.** The 2026-09-01 piles autoscroll reached judge.js's own little
+    side-button only, which works — and is not the control she reaches for.
+    It is `pill.py`'s own rule ported (`boxOK`/`findBox`/`tgt`): the window
+    while the page itself has room, else the nearly-full-screen box under the
+    middle of the frame (80% wide, 60% tall, so a note list or a filter drawer
+    can never steal the pill from the page behind it), re-validated each call
+    rather than hunted every frame. Play, the end-of-page flip, the
+    back-to-top and its lit state all ask the same target. `openPage` also
+    wires a **capture-phase** `scroll` listener on the frame's document —
+    `scroll` does not bubble, so the window listener can never hear an inner
+    box move and the back-to-top would stay dark. Test:
+    `node scripts/test-page-viewer-piles.js` (the real `mkPagePill` over the
+    real rendered deck template in a real iframe; verified failing 3 pre-fix).
   - **A RESUME GOES DOWN — SHE REVERTED THE `dir` VERSION (2026-08-26, Sophie:
     "it used to go down after I stopped it even if it was going up before. now
     it doesn't seem to do that" → "can you just revert that one change for the
@@ -8480,8 +8501,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
       (the whole name and count, not a caret to hit) and **Swipe these is a
       SIBLING of it**, never nested: a button in a button is invalid and the
       tap would fold the pile she was trying to re-open.
-    - **The mini autoscroll now asks `.jg-piles` too.** It only ever looked at
-      the card selectors, so on the one screen in the deck that is genuinely
+    - **The mini autoscroll now asks `.jg-piles` too** — and the pill she taps
+      INSIDE THE APP is a different control that needed its own fix a day
+      later (*AND IT NOW FOLLOWS WHATEVER IS ACTUALLY SCROLLING INSIDE THE
+      FRAME* in the design rules); this half is the page's own little
+      side-button. It only ever looked at the card selectors, so on the one screen in the deck that is genuinely
       long it hid itself. Whether a box really scrolls is read off the
       COMPUTED overflow, never assumed: content taller than a box that does
       not scroll reports the same `scrollHeight`, and driving one of those

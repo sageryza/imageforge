@@ -8659,6 +8659,70 @@ function focusMessage(name, id, noFetch){
 function mkPagePill(getWin){
   var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Faster',3.2],['Fastest',5.2]];
   var playing=false, raf=null, last=null, si=2, dir=1, acc=0;
+  // ── THE PILL FOLLOWS WHATEVER IS ACTUALLY SCROLLING INSIDE THE FRAME
+  // (2026-09-02, Sophie: "why does autos roll not work in piles"). Every check
+  // here used to ask the frame's WINDOW, so a page whose content scrolls
+  // inside its own box could not be moved by the pill she actually taps in the
+  // app — and a deck's PILES view is exactly that box (`flex:1;
+  // overflow-y:auto`), the one screen in a deck that is genuinely long.
+  // Measured before the fix, at her viewport: 685px of piles below the fold,
+  // and a tap on play walked the frame's document 31px and stopped, leaving
+  // the piles at 0. The 2026-09-01 fix reached judge.js's own little
+  // side-button and could not reach this copy at all.
+  //
+  // The shared pill learned this rule on 2026-08-24 (the Story Room's shelf);
+  // this parent-page copy never got it — the same drift the back-to-top had.
+  // ONLY A NEARLY-FULL-SCREEN BOX IS ADOPTED (80% of the frame's width, 60% of
+  // its height), or a note list or a filter drawer would steal the pill from
+  // the page behind it. The box is cached and re-validated rather than hunted
+  // every frame, and the frame's own window scrolling puts it down again.
+  var _box=null, _found=0;
+  function boxOK(el,w){
+    if(!el || !w) return false;
+    var d; try{ d=w.document; }catch(_){ return false; }
+    if(!d || el===d || el===d.body || el===d.documentElement) return false;
+    if(!el.getBoundingClientRect || el.scrollHeight - el.clientHeight <= 4) return false;
+    var r=el.getBoundingClientRect();
+    return r.width >= w.innerWidth*0.8 && r.height >= w.innerHeight*0.6;
+  }
+  // `elementsFromPoint` walks the stack at ONE point — O(depth) — where
+  // scanning the frame for scrollers is a query over every node it holds.
+  function findBox(w){
+    var d=w.document;
+    if(!d || !d.elementsFromPoint) return null;
+    var els=d.elementsFromPoint(w.innerWidth/2, w.innerHeight/2)||[];
+    for(var i=0;i<els.length;i++){
+      if(boxOK(els[i],w) && /auto|scroll/.test(w.getComputedStyle(els[i]).overflowY)) return els[i];
+    }
+    return null;
+  }
+  /** What this pill drives right now: the frame's window while the page itself
+   *  has room, else the full-screen box inside it. Null when there is no frame
+   *  or it is cross-origin — every caller reads that as "nothing to do". */
+  function tgt(){
+    var w=getWin(), d=null;
+    if(!w) return null;
+    try{ d=w.document; }catch(_){ return null; }
+    if(!d) return null;
+    var winCan=false;
+    try{ winCan = d.documentElement.scrollHeight > w.innerHeight+4; }catch(_){}
+    if(_box && !boxOK(_box,w)) _box=null;
+    if(winCan) _box=null;
+    else if(!_box && Date.now()-_found>300){
+      _found=Date.now(); try{ _box=findBox(w); }catch(_){ _box=null; }
+    }
+    var b=_box;
+    if(b) return { top:function(){ return b.scrollTop; },
+                   by:function(n){ b.scrollTop+=n; },
+                   view:function(){ return b.clientHeight; },
+                   full:function(){ return b.scrollHeight; },
+                   home:function(){ try{ b.scrollTo({top:0,behavior:'smooth'}); }catch(_){ b.scrollTop=0; } } };
+    return { top:function(){ return w.scrollY; },
+             by:function(n){ try{ w.scrollBy(0,n); }catch(_){} },
+             view:function(){ return w.innerHeight; },
+             full:function(){ try{ return d.documentElement.scrollHeight; }catch(_){ return 0; } },
+             home:function(){ try{ w.scrollTo({top:0,behavior:'smooth'}); }catch(_){ try{ w.scrollTo(0,0); }catch(__){} } } };
+  }
   var I={
     up:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
     down:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
@@ -8688,19 +8752,19 @@ function mkPagePill(getWin){
   }
   function step(ts){
     if(!playing) return;
-    var w=getWin();
-    if(w && last!=null){
+    var t=tgt();
+    if(t && last!=null){
       acc+=dir*(ts-last)/1000*42*SPEEDS[si][1];
       var move=acc>0?Math.floor(acc):Math.ceil(acc);
-      if(move){ try{ w.scrollBy(0,move); }catch(_){} acc-=move; }
-      try{ var d=w.document.documentElement, atEnd=dir>0?(w.innerHeight+w.scrollY>=d.scrollHeight-4):(w.scrollY<=2); if(atEnd) stop(); }catch(_){}
+      if(move){ try{ t.by(move); }catch(_){} acc-=move; }
+      try{ var atEnd=dir>0?(t.top()+t.view()>=t.full()-4):(t.top()<=2); if(atEnd) stop(); }catch(_){}
     }
     last=ts; raf=requestAnimationFrame(step);
   }
   // Same end-of-page rule as the shared pill: a direction with no room flips
   // to the one that has room, so a press is never a dead press.
-  function canGo(d){ var w=getWin(); if(!w) return true;
-    try{ return d>0 ? (w.innerHeight+w.scrollY < w.document.documentElement.scrollHeight-4) : (w.scrollY>2); }catch(_){ return true; } }
+  function canGo(d){ var t=tgt(); if(!t) return true;
+    try{ return d>0 ? (t.top()+t.view() < t.full()-4) : (t.top()>2); }catch(_){ return true; } }
   function start(d){ if(!canGo(d) && canGo(-d)) d=-d;
     dir=d; playing=true; last=null; acc=0; paint(); raf=requestAnimationFrame(step); }
   function stop(){ playing=false; if(raf) cancelAnimationFrame(raf); raf=null; paint(); }
@@ -8717,11 +8781,10 @@ function mkPagePill(getWin){
   vm.onclick=function(){ playing? stop() : start(1); };
   // the jump home: stop first, or the running scroll walks the page back down
   // under the animation (the shared pill's own rule)
-  pt.onclick=function(){ stop(); var w=getWin(); if(!w) return;
-    try{ w.scrollTo({top:0, behavior:'smooth'}); }catch(_){ try{ w.scrollTo(0,0); }catch(__){} } };
-  function syncTop(){ var w=getWin(); if(!w){ pt.classList.remove('on'); return; }
-    try{ var d=w.document.documentElement;
-      pt.classList.toggle('on', w.scrollY > 150 && d.scrollHeight > w.innerHeight+4);
+  pt.onclick=function(){ stop(); var t=tgt(); if(t) t.home(); };
+  // PTOP_AT is 150 here as in pill.py — pinned by test-back-to-top.js.
+  function syncTop(){ var t=tgt(); if(!t){ pt.classList.remove('on'); return; }
+    try{ pt.classList.toggle('on', t.top() > 150 && t.full() > t.view()+4);
     }catch(_){ pt.classList.remove('on'); } }
   paint(); syncTop(); pill._stop=stop;
   pill._playing=function(){ return playing; };
@@ -8864,6 +8927,10 @@ function openPage(p){
       if(w && pill._topSync){
         w.addEventListener('scroll', pill._topSync, {passive:true});
         w.addEventListener('resize', pill._topSync, {passive:true});
+        // `scroll` does not bubble but it DOES capture, so this is what hears
+        // a box INSIDE the page scrolling — a deck's piles, a full-screen
+        // sheet — which the window listener above can never see.
+        if(doc) doc.addEventListener('scroll', pill._topSync, true);
         pill._topSync(); setTimeout(pill._topSync, 700);
       }
       // THE SKIP LIST IS ASKED AT POINTERDOWN, WHILE THE TARGET IS STILL IN THE
