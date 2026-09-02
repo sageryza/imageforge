@@ -82,11 +82,6 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .dvchat{flex:none; background:none; border:none; padding:4px 0 4px 4px; margin-top:1px;
   color:var(--ink2); cursor:pointer; display:flex; -webkit-tap-highlight-color:transparent;}
 .dvchat svg{display:block;}
-/* Her ✕ — put a delivery away. Quiet like the chat button beside it; a mark,
-   not a plate (the no-circles rule). */
-.dvx{flex:none; background:none; border:none; padding:4px 2px 4px 6px; margin-top:1px;
-  color:var(--ink2); cursor:pointer; font-size:13px; line-height:1;
-  -webkit-tap-highlight-color:transparent;}
 .dvhead{display:flex; gap:9px; align-items:flex-start; flex:1; min-width:0; text-align:left;
   background:none; border:none; padding:0; cursor:pointer; color:inherit; font:inherit;
   -webkit-tap-highlight-color:transparent;}
@@ -178,31 +173,7 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
   background:var(--chg); color:var(--paper); font-size:9px; font-weight:700;
   letter-spacing:0;}
 .state{font-style:italic; color:var(--ink2); text-align:center; padding:4em 0;}
-/* The archive count under a lit tag's pile — a footnote, not an empty
-   state, so it does not take a screen's worth of padding. */
-.state.catarch{padding:1.6em 0 2.4em; font-size:13px;}
 #chatgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:20px 14px;}
-/* ON MY TRAY (2026-08-31) — FOUR across where the tile wall is three, because
-   she asked for the icons and nothing else: no status line, no timestamp, so a
-   tray tile is a picture and a name and four of them fit a phone row. Her
-   whole tray is then one glance rather than a scroll, which is the point of a
-   tray. Same `.tile` type underneath, so the icon, the blank-letter fallback
-   and the unread dot are the ONE implementation. */
-#traygrid{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px 10px;}
-/* TWO LINES. Her own examples run long ("xi to do — review cards
-   illustrations ideas") and at three lines the words are taller than the
-   drawing they are captioning, which is backwards on a screen she asked for
-   by the icons. The ICON is the identifier here; the name only has to settle
-   which of two similar drawings this is. */
-#traygrid .t-name{font-size:.98em; margin-top:6px;
-  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
-/* A TRAY TILE HAS NOTHING ON ITS CORNER (2026-08-31, Sophie: "get rid of the
-   tray icon per chat · too wash to click"). The lit mark that used to sit
-   there washed out the drawing underneath it, and at 26px on a 4-across tile
-   it was under the tap target anything here should have. The Organize sheet's
-   mark is the one door on and off, and it toggles both ways. `.traybtn` is
-   now the SHEET's class alone — it needs no `position`, which is also what
-   made the old rule here have to be scoped. */
 .tile{display:flex; flex-direction:column; gap:0; background:none; border:none; padding:0; cursor:pointer;
   color:var(--ink); font-family:'EBGaramond',Georgia,serif; text-align:center; min-width:0;}
 .tile:focus-visible{outline:2px solid var(--rose); border-radius:4px;}
@@ -253,11 +224,6 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .pinned .pl{width:30px; height:30px; border-radius:6px; flex:none; display:flex; align-items:center;
   justify-content:center; border:1.5px solid var(--chg); color:var(--chg);}
 .pinned .ti{flex:1; min-width:0; font-size:.95em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-/* the pinned row + its Film Editor door, measured against the pill as ONE row */
-.pinrow{display:flex; align-items:center; gap:8px; margin:0 0 .7em; width:calc(100% - var(--pillgap, 0px));}
-.pinrow .pinned{flex:1; min-width:0; margin:0; width:auto;}
-.pindoor{flex:none; width:38px; height:50px; border:1px solid var(--line); border-radius:6px; background:var(--barbg);
-  color:var(--chg); display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0;}
 /* "current" — the pin was updated in the chat's last finished turn. Plain
    letter-spaced sans in rose, the masthead's own voice: a chip here would be a
    pill, and this is a state, not a control. */
@@ -308,17 +274,19 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .seticon{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em; text-transform:uppercase;
   background:none; border:none; color:var(--ink2); cursor:pointer; padding:4px 0; display:block; margin:-2px 0 0;}
 .msg{padding:14px 0; border-bottom:1px solid var(--line); transition:background-color .3s;}
-/* THE DRIBBLE FOLD (2026-09-02). A chat that backgrounded a watcher or is
+/* THE DRIBBLE MERGE (2026-09-02). A chat that backgrounded a watcher or is
    subscribed to its own PR wakes once per event, and every wake is a turn
    the hook posts — so four short replies in ten minutes with nothing from
    her between them. They stay four DOCS (a doc is keyed by session+turn,
    and a silent turn is indistinguishable from a broken hook); the thread
-   just shows the newest and puts the rest behind the house underlined
-   opener. Hidden by CLASS, not inline style, so the search filter can lift
-   the fold and put it back without fighting the rows' own display. */
-.msg.fold-hid{display:none;}
-.foldrow{padding:9px 0 11px; border-bottom:1px solid var(--line);}
-.foldmore{font-size:14px;}
+   draws the run as ONE message, its parts in the order they were written,
+   oldest first, each under its own small time — nothing hidden, nothing to
+   open (her correction to the first cut, which folded them: "i need the
+   messages combined into one message, so i can read them in the right
+   order, not separated and hidden"). */
+.m-count{font-family:-apple-system,sans-serif; font-size:10px; color:var(--ink2);}
+.m-part+.m-part{margin-top:16px; padding-top:12px; border-top:1px solid var(--line);}
+.m-partt{font-family:-apple-system,sans-serif; font-size:10px; color:var(--ink2); margin-bottom:6px;}
 .msg.flash{background:color-mix(in srgb, var(--rose) 16%, var(--paper)); border-radius:8px;}
 .m-head{display:flex; gap:8px; align-items:baseline;}
 .m-chat{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink2);}
@@ -619,24 +587,6 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .dayrule::after{content:''; flex:1; height:1px; background:var(--line);}
 .clist > .dayrule:first-child, #chatgrid > .dayrule:first-child{margin-top:0;}
 #chatgrid > .dayrule{grid-column:1/-1;}
-/* PINNED FOLDS (2026-09-02, Sophie: "make the pinned panel collapsible in chat
-   app"). Measured on her live list at 390x844 before anything was built: the
-   PINNED block ran 282→740, so her pinned chats filled the whole first screen
-   and TODAY started below the fold — with the HIDDEN bar sitting right above
-   them already folding, and this block, the taller of the two, with no way to
-   put it away.
-   THE HEADING IS THE FOLD — the whole row, not a caret to hit (judge.js's piles
-   rule) — so it is a <button> wearing `.dayrule`, which keeps it looking like
-   every other heading: this is the same furniture, not a new control. No box,
-   no fill; a rose bar here would read as a second HIDDEN pile. */
-button.dayrule{border:none; background:none; padding:0; cursor:pointer;
-  -webkit-tap-highlight-color:transparent; font-weight:inherit;}
-.dayrule .dr-chev{width:13px; height:13px; flex:none; display:block; order:3;
-  transition:transform .16s ease; transform:rotate(180deg);}
-.dayrule.shut .dr-chev{transform:none;}
-/* The count only shows SHUT — open, the rows are right there, and saying it
-   twice is the archive summary's own lesson. */
-.dayrule .dr-n{letter-spacing:.04em; opacity:.75;}
 .crow{display:flex; align-items:center; gap:11px; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:9px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
 .bmknote{flex:1 0 100%; margin:8px 0 0;}
 .bmknote input{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:15px;
@@ -748,26 +698,6 @@ button.dayrule{border:none; background:none; padding:0; cursor:pointer;
 .orgbtn{flex:none; background:none; border:none; padding:6px 4px; cursor:pointer; color:var(--ink2);
   display:flex; align-items:center; -webkit-tap-highlight-color:transparent;}
 .orgbtn svg{width:16px; height:16px; display:block;}
-/* THE PROJECT — every chat on the same thing, behind one tap (2026-09-02,
-   Sophie: "all the triset chats … from a single icon button on that chat page
-   header · probably 3-4 stacked square cards"). Quiet ink like Organize
-   beside it: it opens a page, it is not a state. Drawn ONLY when the chat has
-   siblings — a group of one is a dead control. */
-.projbtn{flex:none; background:none; border:none; padding:6px 4px; cursor:pointer; color:var(--ink2);
-  display:flex; align-items:center; -webkit-tap-highlight-color:transparent;}
-.projbtn svg{width:17px; height:17px; display:block;}
-/* The project page: a hairline ICONS · LIST row (the account row's own
-   `.acctabs`, so the underline measures itself), a one-line count under it,
-   and then the tile wall or the list exactly as the home screen draws them.
-   An archived sibling is IN (that is the history she is going back for) and
-   reads as put away: the cover dims, the name does not. */
-.projrow{margin-top:0;}
-.projcount{font-family:'EBGaramond',Georgia,serif; font-style:italic; color:var(--ink2); font-size:13px;
-  margin:0 0 12px;}
-#chatgrid .projtile .t-name{display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
-.projchips{margin:0 0 10px;}
-.tile.archd .t-cover{opacity:.5;}
-.crow.archd .cr-ic, .crow.archd .cr-name{opacity:.55;}
 /* HIDE and DELETE as PICTURES (Aug 2026, Sophie: "make the delete button a
    picture of a trash can and the hide button a picture of an eye that's
    crossed out if it's hidden").
@@ -1472,14 +1402,6 @@ button.sthead{-webkit-appearance:none; appearance:none; background:none; border:
 /* HIDDEN is a state, so the crossed eye arrives with the red rather than the
    quiet grey — the same pairing the header button had. */
 .orgmarks .markchip.mk-eye.hid{border-color:var(--chg); color:var(--chg);}
-/* THE TRAY IS NEVER FILLED, and that was measured rather than reasoned: it
-   shipped filled for one screenshot, like the star and the bookmark beside it,
-   and came out a RED BLOB. Those two get away with a fill because their
-   silhouette IS the shape; a tray's shape is its OPENING, so filling the body
-   closes the mouth and there is no tray left. Same finding as the bell's, one
-   glyph over. `.on` is the red stroke and the red box, exactly as it is for the
-   crossed eye — and on a tray tile the mark is always lit anyway, so the state
-   is carrying nothing there and only the picture has to read. */
 /* DELETE STAYS QUIET AT REST, like every other mark in here — the red on this
    screen means a STATE ("this chat is parked", "this chat may buzz me"), and a
    button that is red before it has done anything spends that meaning on a
@@ -1991,17 +1913,6 @@ body.newspick > .float{display:none !important;}
          opens to find out what happened. `.acctabs` verbatim, so the sliding
          line measures itself and nothing here declares a tab count. -->
     <div id="listrow" class="acctabs" data-on="all" hidden>
-      <!-- ON MY TRAY leads the row: it is the narrowest pile and the one about
-           RIGHT NOW, so the row reads most-focused to broadest left to right.
-           It is not the stored default — a tray she has not filled yet would
-           open the app on an empty screen. The row measures its own underline,
-           so a fourth tab costs no layout work.
-           THE WORD IS "My tray", NOT HER WHOLE PHRASE — the same call the PWC
-           tab made. A fourth tab narrows every one of them, and "On my tray"
-           MEASURES 69.5px against the ~64px a tab has at 320pt, so it wrapped
-           to two lines and made this row 10px taller than every other hairline
-           row in the app. "My tray" is 47.6px and keeps her possessive. -->
-      <button class="acctab" data-list="tray">My tray</button>
       <button class="acctab" data-list="all">All</button>
       <button class="acctab" data-list="delivered">Delivered</button>
       <button class="acctab" data-list="bugs">Bug fixes</button>
@@ -2018,16 +1929,8 @@ body.newspick > .float{display:none !important;}
 </div>
 <div id="toast"></div>
 <div id="clightbox"></div>
-<script src="/playground-port.js"></script>
-<script src="/sheet-grid.js"></script>
-<script src="/asset-actions.js"></script>
 <script src="/asset-lightbox.js"></script>
 <script src="/filmnote.js"></script>
-<!-- WHICH PROJECT A CHAT IS ON (2026-09-02) — the stacked-cards button in a
-     thread's header and the page behind it. One rule, shared with the server
-     (chat-sort.js) so a project the sorter files is spelled the way this page
-     groups. Guarded like every other shared script here. -->
-<script src="/project-words.js"></script>
 <script>
 (function(){
 var TOKEN='__STUDIO_TOKEN__';
@@ -2376,42 +2279,10 @@ function chatDayKey(name, last){
   if(chatPinTop(name)) return 'pin';
   return last? dayKey(last.created) : '';
 }
-// THE PINNED HEADING FOLDS; every date heading is a plain rule (2026-09-02).
-// `pinShut` is remembered, unlike judge.js's per-visit piles: this is a list she
-// comes back to all day, and re-opening a block she deliberately put away every
-// time she reloads is the fold not working. Default OPEN — pinned chats exist
-// to lead the list ("they never disappeared to the bottom if I don't look at
-// them for a while"), so folded has to be a state she chose.
-var pinShut = (function(){ try{ return localStorage.getItem('chats.pinshut')==='1'; }catch(e){ return false; } })();
-function setPinShut(v){
-  pinShut=!!v;
-  try{ localStorage.setItem('chats.pinshut', pinShut?'1':'0'); }catch(e){}
-}
-// How many chats sit behind the fold — the pile it is folding, never her whole
-// `pinTop` set: the archive, the ★ chip and the hidden pile each carry their own
-// pinned chats, and a heading saying 32 over a block of three is a lie about the
-// screen she is looking at.
-function pinCount(names){
-  var n=0; (names||[]).forEach(function(x){ if(chatPinTop(x)) n++; });
-  return n;
-}
-function mkDayRule(key, n){
-  if(key!=='pin'){
-    var d=document.createElement('div'); d.className='dayrule';
-    d.innerHTML='<span>'+esc(dayLabel(key))+'</span>';
-    return d;
-  }
-  var b=document.createElement('button');
-  b.className='dayrule pinrule'+(pinShut?' shut':'');
-  b.setAttribute('aria-expanded', pinShut?'false':'true');
-  b.innerHTML='<span>'+esc(dayLabel(key))
-    +(pinShut&&n? '<span class="dr-n"> &middot; '+n+'</span>':'')+'</span>'
-    +CHEV.replace('hb-chev','dr-chev');
-  // The tapped heading is put back exactly where it was on screen — this block
-  // is at the TOP of a long list, so closing it collapses the page under her
-  // thumb otherwise (the `repaintKeepingBar` lesson, earned by the MORE fold).
-  b.onclick=function(){ setPinShut(!pinShut); repaintKeepingBar('.pinrule'); };
-  return b;
+function mkDayRule(key){
+  var d=document.createElement('div'); d.className='dayrule';
+  d.innerHTML='<span>'+esc(dayLabel(key))+'</span>';
+  return d;
 }
 
 
@@ -2495,7 +2366,7 @@ window.addEventListener('pagehide',scrollStop);
     if(window.__scrollStop) window.__scrollStop();
     try{ window.scrollTo({top:0, behavior:'smooth'}); }catch(_){ window.scrollTo(0,0); }
   };
-  function sync(){ b.classList.toggle('on', window.scrollY > 150); }
+  function sync(){ b.classList.toggle('on', window.scrollY > window.innerHeight); }
   window.__pillTopSync=sync;
   window.addEventListener('scroll',sync,{passive:true});
   window.addEventListener('resize',sync,{passive:true});
@@ -2940,36 +2811,6 @@ function trashNames(){
 // same tap clears it. `pinTop` on the registry, NOT `pinned` (that one holds
 // the pinned link/film object).
 function chatPinTop(name){ return !!(chats[name]&&chats[name].pinTop); }
-// ON MY TRAY (2026-08-31, Sophie: "add a tab in chats called 'on my tray'
-// where i can pin chats by their icons for what im working on rn"). The fifth
-// per-chat mark and the only one with a SCREEN of its own: `starred` lifts a
-// chat inside a list of two hundred, where the tray IS the list — three or
-// four icons and nothing else.
-//
-// ORDERED BY WHEN SHE PUT IT THERE, OLDEST FIRST — the one pile in this app
-// that does not come through `sortedChatNames`, deliberately. Everything else
-// is newest-message-first, which is right for an inbox and exactly wrong for a
-// dock: icons that reshuffle whenever a chat replies are icons she can never
-// learn the position of. `trayAt` is written by the server on the way in.
-//
-// It IGNORES the account filter, the way the ★ pile ignores `archived`. The
-// account row is not even on screen while the lists row is (they take turns),
-// so a hand-picked chat vanishing because it belongs to the other account
-// would be the silent filter this app keeps getting burned by — she picked
-// these five, and that IS the filter.
-function chatTray(name){ return !!(chats[name]&&chats[name].tray); }
-function trayNames(){
-  // Archived and deleted are out: she put those away on purpose, and a pile
-  // that hands an archived chat back is the archive not working. The MARK is
-  // left on the doc, so un-archiving puts it back on the tray where it was.
-  return Object.keys(chats).filter(function(n){
-    return chatTray(n) && !chatDeleted(n) && !(chats[n]&&chats[n].archived);
-  }).sort(function(a,b){
-    var x=(chats[a].trayAt||''), y=(chats[b].trayAt||'');
-    if(x!==y) return x<y ? -1 : 1;             // oldest first — the tray grows at the end
-    return dispName(a).localeCompare(dispName(b));
-  });
-}
 function sortedChatNames(g){
   // both views: most recent activity first (chats with no messages sink)
   var names=Object.keys(g);
@@ -3014,14 +2855,7 @@ function statusFor(list){
 // bookmarked message across all chats, and STATUS (what's waiting on her /
 // working / just delivered). `homeView` survives opening a chat and coming
 // back, so she returns to the list she was reading.
-var homeView='live';   // 'live' | 'archive' | 'bookmarks' | 'status' | 'todo' | 'news' | 'project'
-// THE PROJECT PAGE (2026-09-02). `projectKey` is the word the page groups on,
-// `projectFrom` the chat she came from (its OTHER project words are offered
-// as chips, so a chat on two things is one tap from either group), and
-// `projView` is ICONS or LIST — sticky, opening on icons three across.
-var projectKey='', projectFrom='';
-var projView='icons';
-try{ projView=localStorage.getItem('chats-project-view')==='list' ? 'list' : 'icons'; }catch(e){}
+var homeView='live';   // 'live' | 'archive' | 'bookmarks' | 'status' | 'todo' | 'news'
 // …restored ONLY across a reload the page did to itself (a new build landed —
 // see checkBuild). A launch she started still opens on the chat list; being
 // carried out of the Update tab by a deploy is the app interrupting her, and
@@ -3049,8 +2883,7 @@ function paintHomeChrome(){
   document.getElementById('htxt').textContent = inHidden ? 'Hidden'
     : homeView==='archive' ? 'Archive' : homeView==='bookmarks' ? 'Bookmarks'
     : homeView==='status' ? 'Status' : homeView==='todo' ? 'To do'
-    : homeView==='news' ? 'Update' : homeView==='trash' ? 'Trash'
-    : homeView==='project' ? projectTitle(projectKey) : 'Chats';
+    : homeView==='news' ? 'Update' : homeView==='trash' ? 'Trash' : 'Chats';
   t.classList.toggle('hid', inHidden);
   t.classList.toggle('arch', homeView==='archive');
   // The trash wears the same red as the hidden bar — it is the one place on
@@ -3165,7 +2998,7 @@ function otherView(){
   // and account tabs mean nothing in there, so it folds its chrome away like
   // the other non-list views.
   return homeView==='bookmarks'||homeView==='status'||homeView==='todo'
-      ||homeView==='news'||homeView==='trash'||homeView==='project';
+      ||homeView==='news'||homeView==='trash';
 }
 function paintSearch(){
   var row=document.getElementById('searchrow'), btn=document.getElementById('searchbtn'),
@@ -4945,7 +4778,7 @@ var starOnly=false;
 // THE BUG PILE IS ONE STATE UNDER TWO DOORS. The header's bug button
 // (2026-08-27) and this row's third tab write the same `listTab`, so they can
 // never disagree about which pile she is looking at — the pushpin's rule.
-var LIST_TABS=['tray','all','delivered','bugs'];
+var LIST_TABS=['all','delivered','bugs'];
 function stickyOne(key, vals, dflt){
   try{ var v=localStorage.getItem(key); return vals.indexOf(v)>-1 ? v : dflt; }
   catch(e){ return dflt; }
@@ -4961,7 +4794,6 @@ function setRowMode(m){ rowMode=m; stickySet('forge.chats.rowmode', m); }
 // account row, so a mode that hid it would take away the only way in.
 function listsOn(){ return rowMode==='lists' && homeView==='live'; }
 function bugPile(){ return listsOn() && listTab==='bugs'; }
-function trayPile(){ return listsOn() && listTab==='tray'; }
 // The glyph on #rowtog is what the tap GIVES her, never what she is looking
 // at — a door, not a state.
 var ICON_ACCTABS='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
@@ -5055,28 +4887,6 @@ function paintDelivered(el, items){
     toChat.title='Open '+(it.chatName||it.chat);
     toChat.onclick=function(e){ e.stopPropagation(); openChat(it.chat); };
     top.appendChild(toChat);
-    // HER ✕ — PUT THE ROW AWAY (2026-08-31, Sophie: "deliverables don't leave
-    // when i answer them and there's no way to swipe them away"). Answering by
-    // message is not the only way she deals with a delivery — a note on the
-    // paused film, a ♥, a decision made elsewhere — so the ✕ is the
-    // deterministic way out. A tap, never a swipe (the house rule: everything
-    // is a tap, nothing drags). Its own <button>, a sibling, never nested.
-    // A newer delivery from the same chat comes back by itself — the stamp
-    // only covers what was handed over before the tap.
-    var x=document.createElement('button'); x.className='dvx';
-    x.textContent='✕';
-    x.setAttribute('aria-label','Put this delivery away');
-    x.title='Put away';
-    x.onclick=function(e){
-      e.stopPropagation();
-      // Optimistic: the row goes now; the stamp makes it stick.
-      delivCache=(delivCache||[]).filter(function(o){ return o!==it; });
-      paintDelivered(el, delivCache);
-      api('/api/deliverables/dismiss', {method:'POST',
-        body: JSON.stringify(it.kind==='images' ? {chat:it.chat} : {url:it.url})
-      }).catch(function(){});
-    };
-    top.appendChild(x);
     row.appendChild(top);
     if(it.kind==='images' && it.images && it.images.length){
       var strip=document.createElement('div'); strip.className='dvpics';
@@ -5089,7 +4899,7 @@ function paintDelivered(el, items){
         b.appendChild(im);
         // The shared lightbox (/asset-lightbox.js) — the one copy, so a ♥ or a
         // note left here lands in the Assets tab like everywhere else.
-        b.onclick=function(){ lightbox(p.url, { url:p.url, description:p.label, prompt:p.caption, chat:it.chat, _chatDoor:true }); };
+        b.onclick=function(){ lightbox(p.url, { url:p.url, description:p.label, prompt:p.caption, chat:it.chat }); };
         strip.appendChild(b);
       });
       row.appendChild(strip);
@@ -5526,14 +5336,11 @@ function chatStar(name){ return !!(chats[name]&&chats[name].starred); }
 // stay forever", against a star for "a chat I'm currently working on"). It is
 // what fills the Bookmarks pile's CHATS tab; the star no longer does.
 function chatKept(name){ return !!(chats[name]&&chats[name].bookmarked); }
-// BELLED — allowed to push to her phone. ON BY DEFAULT since 2026-09-01
-// ("change to readily notify on for chats"): it was a whitelist (absent =
-// silent) and it is a BLACKLIST now — absent means ON, and only her own
-// `notify:false` silences a chat, so this is `!== false` and never a
-// truthiness test. The server reads the SAME field the same way
-// (`push-gate.js` → `chatNotifies`) in front of every push; keep the two
-// spellings identical or the lit bell and the buzz disagree.
-function chatNotify(name){ return !(chats[name]&&chats[name].notify===false); }
+// BELLED — allowed to push to her phone (Aug 2026). A WHITELIST: absent means
+// silent, so this is `=== true` in spirit, not "not explicitly off". The bell
+// in the thread header is the only control; the server reads the same field
+// (`push-gate.js` → `chatNotifies`) in front of every push.
+function chatNotify(name){ return !!(chats[name]&&chats[name].notify); }
 // Seeds + every name she has ever created (kept on the __settings doc) + every
 // name actually in use. The middle one is why an EMPTY folder still shows: she
 // made a category, nothing happened to be picked at the time, and it vanished
@@ -5675,7 +5482,7 @@ function paintCatRow(g){
   var sb=document.createElement('button');
   sb.className='catchip starchip'+(starOnly?' on':'');
   sb.innerHTML=STAR; sb.setAttribute('aria-label','Starred chats');
-  sb.onclick=function(){ starOnly=!starOnly; if(starOnly){ cat=''; if(bugPile()||trayPile()) setListTab('all'); } renderHome(); window.scrollTo(0,0); };
+  sb.onclick=function(){ starOnly=!starOnly; if(starOnly){ cat=''; if(bugPile()) setListTab('all'); } renderHome(); window.scrollTo(0,0); };
   row.appendChild(sb);
   // Counted BEFORE anything is painted, because the TAGS button needs the sum
   // of them while the chips themselves are away.
@@ -5723,7 +5530,7 @@ function paintCatRow(g){
     // not hers, and two numbers on a chip read as noise.
     b.innerHTML=esc(catLabel(c))+(fresh?'<span class="cc-new">'+fresh+'</span>':'');
     b.setAttribute('aria-label', catLabel(c)+(fresh? ' — '+fresh+' answered you' : ''));
-    b.onclick=function(){ cat=(cat===c?'':c); starOnly=false; if(bugPile()||trayPile()) setListTab('all'); renderHome(); window.scrollTo(0,0); };
+    b.onclick=function(){ cat=(cat===c?'':c); starOnly=false; if(bugPile()) setListTab('all'); renderHome(); window.scrollTo(0,0); };
     row.appendChild(b);
   };
   // TASK words first, in workflow order (TASK_LABELS), then the categories —
@@ -6073,81 +5880,6 @@ function renderHome(){
   // filed under `witch` is still a chat she had. The ARCHIVE and the TRASH stay
   // their own rooms — she put those away deliberately — and the hidden pile is
   // folded in rather than split off, because "all" is the whole answer.
-  // ON MY TRAY — her hand-picked handful, as their icons, in the order she
-  // built it. It runs BEFORE `all` is used for anything: this is the one pile
-  // that reads `trayNames()` rather than the account-filtered list, because
-  // the account row is not on screen while the lists row is and a pinned chat
-  // silently missing because it belongs to the other account is exactly the
-  // filter she cannot see. She picked these — that IS the filter.
-  if(trayPile()){
-    var tr=trayNames();
-    paintHomeChrome(); paintAcctTabs(g); paintListTabs(); paintCatRow(g);
-    document.getElementById('selbtn').classList.toggle('on', selMode);
-    paintSelBar();
-    if(!tr.length){
-      // Name the way in. The tray is filled from inside a chat, so an empty
-      // one with no instruction is a screen she can only leave.
-      el.innerHTML='<div class="state">Nothing on your tray yet — open a chat, tap the tag icon in its header, and tap the tray.</div>';
-      return;
-    }
-    renderTray(el,g,tr);
-    return;
-  }
-  // ---- A LIT TAG IS ITS OWN PILE, AND IT SHOWS EVERYTHING WEARING THE WORD
-  // (2026-08-31, Sophie: "things get hidden in chats in multiple ways" · "come
-  // back to shud show allll not just ones not on another list" · "any tag shud
-  // show all") ---------------------------------------------------------------
-  // A chip used to NARROW whichever list she was standing on, so every filter
-  // that list already applied went on applying — and they stack. Measured
-  // against her live feed the morning she asked: `come back to` is on 34 chats,
-  // and the lit chip rendered ONE row. The four that ate the other 33:
-  //
-  //   • the HIDDEN pile — 23 of the 28 live ones, nearly all of them stuck
-  //     there by the aged-out-park bug (see repliedSince);
-  //   • the ACCOUNT tabs — the survivors were 10/9/8 across accounts 1/2/3, so
-  //     no single tab could ever show her the pile;
-  //   • the BUG-FIX carve-out on ALL, which drops a chat wearing both words;
-  //   • the seven-day MORE fold under the live list.
-  //
-  // So a lit chip is a PLACE SHE WENT, like ★ and the tray and the bug tab —
-  // it replaces the list rather than narrowing it, and none of the four apply.
-  // It reaches ACROSS THE ACCOUNTS for the tray's own reason: the account row
-  // is not even on screen while the lists row is, and a hand-picked pile
-  // silently missing two thirds of itself is exactly the filter she cannot see.
-  // She picked the word — that IS the filter.
-  //
-  // THE ARCHIVE STILL DOES NOT POP OUT, and that is her rule, not an oversight
-  // (2026-08-28: "archive doesn't pop out ur insane that's the point of
-  // archive"). It has its own filter row, so a word is still findable in there.
-  // What is new is that the count is NAMED under the list — silently dropping
-  // 6 of 34 is the thing this whole change is about.
-  //
-  // DELIVERED is left alone above: its rows are films and pictures, not chats,
-  // so there is nothing for a chat tag to narrow.
-  if(cat && homeView==='live' && !(listsOn() && listTab==='delivered')){
-    var pool=everyone.filter(function(n){ return chatInCat(n,cat) && !chatDeleted(n); });
-    var pl=pool.filter(function(n){ return !(chats[n]&&chats[n].archived); });
-    var plArch=pool.length-pl.length;
-    paintHomeChrome(); paintAcctTabs(g); paintListTabs(); paintCatRow(g);
-    document.getElementById('selbtn').classList.toggle('on', selMode);
-    paintSelBar();
-    if(!pl.length){
-      el.innerHTML='<div class="state">Nothing under '+esc(catLabel(cat))
-        +(plArch? ' except '+plArch+' in the Archive.' : ' yet — tap the checkbox to file some chats.')+'</div>';
-      return;
-    }
-    if(view==='list') renderList(el,g,pl); else renderTiles(el,g,pl);
-    // Nothing is dropped without a number saying so — the same reason the
-    // hidden bar names what is behind it.
-    if(plArch){
-      var an=document.createElement('div');
-      an.className='state catarch';
-      an.textContent=plArch+(plArch===1?' more is':' more are')+' in the Archive.';
-      el.appendChild(an);
-    }
-    if(window.__jumpsRecheck) window.__jumpsRecheck();
-    return;
-  }
   if(listsOn() && listTab==='all'){
     // A LIT CHIP STILL NARROWS IT. The category row is on screen here, and a
     // filter she can see that does nothing is the silent-filter failure this
@@ -6163,12 +5895,6 @@ function renderHome(){
     // `bugfix` are ARCHIVE_PROGRESS words and are not offered as chips on this
     // row; `bug`/`bugs`, her own dictated spellings, are — so the carve-out is
     // reachable from a real tap, and stays true if the others ever join it.
-    // …AND A LIT CHIP NEVER REACHES HERE ANY MORE (2026-08-31): it is its own
-    // pile above, which is what took the carve-out off it — a chat wearing
-    // `story` AND `bug fix` was dropped from `story`, which is exactly the
-    // "not just ones not on another list" she was pointing at. The carve-out
-    // below is now only ever the UNFILTERED tab's, and `catIsBug` is what
-    // keeps that true if the guard above is ever narrowed.
     var catIsBug = cat && TAG_MARKS[0].labels.indexOf(cat)>-1;
     var every=all.filter(function(n){
       if(chatDeleted(n) || (chats[n]&&chats[n].archived)) return false;
@@ -6256,9 +5982,6 @@ function renderHome(){
   // UNFILED = carries no PILE word (chatFiled). Plain tags leave a chat exactly
   // where it was — Sophie, the day after the merge: "tagging shouldn't hide
   // everything … whereas other ones shouldn't take it off the main feed".
-  // On `live` a lit chip is handled by its own pile above, so this only ever
-  // runs unfiltered here — the `cat` arm still stands for the OTHER views that
-  // fall through to this branch (the archive reads `arch` below).
   live=live.filter(function(n){
     return cat ? chatInCat(n,cat) : (!chatFiled(n) || chatBack(n, lastOf(g,n)));
   });
@@ -6277,7 +6000,6 @@ function renderHome(){
   document.getElementById('selbtn').classList.toggle('on', selMode);
   paintSelBar();
   if(homeView==='trash'){ renderTrash(el); return; }
-  if(homeView==='project'){ renderProject(el,g); return; }
   if(homeView==='news'){ renderNews(el); return; }
   if(homeView==='todo'){ renderTodo(el); return; }
   if(homeView==='bookmarks'){ renderBookmarks(el); return; }
@@ -6368,30 +6090,6 @@ function unparked(stamp,last){
   if(last.working) return false;             // still writing — not done yet
   return (last.postedAt||last.created||'') > stamp;
 }
-// …AND THE LOADED FEED IS NOT THE WHOLE STORY — THE REGISTRY OUTLIVES IT
-// (2026-08-31, Sophie: "things get hidden in chats in multiple ways").
-// `unparked` above can only answer from the messages this page has, and one
-// feed read carries ~260 messages for ~770 chats. So a chat parked at turn
-// start, that replied a minute later, fell back into the hidden pile the day
-// its reply scrolled out of that window — and stayed there forever, because
-// nothing was ever going to load it again.
-//
-// MEASURED THE MORNING THIS SHIPPED, against her live feed: 125 of her 294
-// live chats were sitting in the hidden pile, and 122 of those had no loaded
-// message AT ALL. `come back to` carries 34 chats; the lit chip rendered ONE
-// row. That is the biggest of the "multiple ways", and none of it was a filing
-// decision she made.
-//
-// `repliedAt` is stamped by chatfeed.js in the one write that knows a turn
-// FINISHED, carrying that reply's `postedAt` — so it satisfies both rules
-// `unparked` enforces by construction: it is monotonic (never `created`, which
-// predates the park), and a live draft never writes it. It is only ever
-// consulted when the feed has NOTHING to say, so a loaded message always wins
-// and nothing about the rule above moved.
-function repliedSince(name,stamp){
-  var r=chats[name]||{};
-  return !!r.repliedAt && r.repliedAt > stamp;
-}
 // THE LEASH (Aug 2026, Sophie: "three hours is way too long to wait", then
 // "could it just be like three minutes"). An AUTOMATIC park promises a reply:
 // the turn-start ping and her answered message both tuck the chat away
@@ -6422,12 +6120,7 @@ function parkTripped(name,last){
 }
 function chatHidden(name,last){
   var a=(chats[name]&&chats[name].hiddenAt)||'';
-  if(!a) return false;
-  // The registry fallback is asked ONLY when this page holds no message for the
-  // chat — see repliedSince. With a message loaded, `unparked` is the whole
-  // rule exactly as it always was.
-  if(!last && repliedSince(name,a)) return false;
-  return !unparked(a,last) && !parkTripped(name,last);
+  return !!a && !unparked(a,last) && !parkTripped(name,last);
 }
 // A chat counts as WORKING on either of two signals, and it needs both:
 //
@@ -6608,30 +6301,6 @@ function mkPinTop(name){
   };
   return b;
 }
-// ON THE TRAY — one write, two doors: the mark in the Organize sheet puts a
-// chat there, and the same mark on its tray tile takes it off. Optimistic with
-// rollback, and a FULL repaint either way, because the tray is a list this
-// changes the membership of — the tile has to appear or go, not just relight.
-//
-// The tray's ORDER is the server's (`trayAt`, written on the way in), so the
-// optimistic copy stamps one too: without it a chat added on this page sorts
-// under the empty string and jumps to the FRONT of the tray until the next
-// feed read moves it to the end.
-function setTray(name, on){
-  var was=chatTray(name), wasAt=(chats[name]&&chats[name].trayAt)||null;
-  chats[name]=chats[name]||{};
-  chats[name].tray=on;
-  chats[name].trayAt = on ? (wasAt || new Date().toISOString()) : null;
-  renderHome();
-  toast(on?'On your tray':'Off your tray');
-  api('/api/chatfeed/tray',{method:'POST',body:JSON.stringify({chat:name, tray:on})})
-    .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0;
-      if(d.trayAt) chats[name].trayAt=d.trayAt; })
-    .catch(function(){
-      chats[name].tray=was; chats[name].trayAt=wasAt;
-      renderHome(); toast('Couldn\u2019t save that');
-    });
-}
 // A CROSSED-OUT EYE, in BOTH states (Aug 2026, Sophie: "can you make it an eye
 // that's crossed out" — no condition attached, unlike her thread-header ask,
 // which was "an eye that's crossed out IF it's hidden"). So this button is the
@@ -6676,7 +6345,7 @@ function toggleMark(name,last,container){
 }
 function renderTiles(el,g,names){
   var grid=document.createElement('div'); grid.id='chatgrid'; el.appendChild(grid);
-  var curDay=null, nPin=pinCount(names);
+  var curDay=null;
   names.forEach(function(name){
     var list=g[name]||[];
     var last=list.length? list[list.length-1] : null;
@@ -6684,8 +6353,7 @@ function renderTiles(el,g,names){
     // of the two views and not the other is a bug, not restraint. The rule
     // spans the grid (grid-column:1/-1) so the row under it starts clean.
     var dk=chatDayKey(name,last);
-    if(dk!==curDay){ curDay=dk; grid.appendChild(mkDayRule(dk,nPin)); }
-    if(dk==='pin'&&pinShut) return;   // folded — the heading stands alone
+    if(dk!==curDay){ curDay=dk; grid.appendChild(mkDayRule(dk)); }
     var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
     var status=statusFor(list);
     var about=(chats[name]&&chats[name].about)||'';
@@ -6707,177 +6375,6 @@ function renderTiles(el,g,names){
     var cov=b.querySelector('.t-cover'); cov.appendChild(mkPinTop(name)); cov.appendChild(mkHide(name,last));
     if(selMode){ b.classList.toggle('picked', !!picked[name]); cov.appendChild(mkPick(name)); }
     b.onclick=function(){ if(selMode) togglePick(name,b); else openChat(name); };
-    grid.appendChild(b);
-  });
-}
-// ── ON MY TRAY — the icons, and nothing else ────────────────────────────────
-// (2026-08-31, Sophie: "add a tab in chats called 'on my tray' where i can pin
-// chats by their icons for what im working on rn — ex xi to do · review cards
-// illustrations ideas · triset · review cards".)
-//
-// SHE ASKED FOR THE ICONS, so the icons are what this draws: four across
-// instead of the tile wall's three, the name under each, and NOTHING else — no
-// status line, no timestamp, no about. The tray answers "what am I on", which
-// is a question you answer by looking rather than by reading; the tile wall
-// next door already answers "what happened". Four across also means her whole
-// tray is one glance on a phone rather than a scroll.
-//
-// NO DATE HEADINGS, and that is not an oversight — every other pile gets them
-// from `mkDayRule` because every other pile is in timing order. This one is in
-// the order she built it, so a date rule here would be a heading over a
-// grouping that does not exist.
-//
-// A TILE CARRIES NO CONTROL AT ALL (2026-08-31, Sophie: "get rid of the tray
-// icon per chat · too wash to click"). It shipped with a lit tray mark on the
-// corner of every icon — the way off the tray without opening the chat — and
-// two things were wrong with it at the size it really renders. It sat ON the
-// drawing, washing out the one thing this screen is made of; and a 26px box on
-// a 4-across tile is under the tap target anything here should have, so the
-// control she was offered was one she could not reliably hit.
-//
-// So the ORGANIZE SHEET's mark is the only door, and it already toggles both
-// ways: open the chat, tag icon, tray. Three taps to take a chat off against
-// one — and the tray is three or four chats she changes a couple of times a
-// day, so the tap is cheap and the clean icons are not. Do not put it back.
-// A tile carries no pushpin and no hide eye either: those are list controls,
-// and the tray is not a list she is triaging.
-function renderTray(el,g,names){
-  var grid=document.createElement('div'); grid.id='traygrid'; el.appendChild(grid);
-  names.forEach(function(name){
-    var last=lastOf(g,name);
-    var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
-    var b=document.createElement('button');
-    b.className='tile traytile'+(chatWorking(name,last)?' live':'');
-    b.dataset.chat=name;
-    b.innerHTML='<span class="t-cover">'+iconHtml(name,'',true)+(unread?'<span class="t-new"></span>':'')+'</span>'
-      +'<span class="t-name">'+waitMarkHtml(name)+tagMarkHtml(name)+esc(dispName(name))+'</span>';
-    b.onclick=function(){ openChat(name); };
-    grid.appendChild(b);
-  });
-}
-// ── THE PROJECT PAGE — every chat on the same thing, newest first ────────────
-// (2026-09-02, Sophie: "i'd like it so projects could auto group themselves,
-// like all the triset chats, grouped in reverse chronological order, so i can
-// go back and see all the triset chats from a single icon button on that chat
-// page header · probably 3-4 stacked square cards · opens a page w hairline
-// icon or list view · default icon, 3-up".)
-//
-// WHICH CHATS: /project-words.js decides — the ONE rule, shared with the
-// server. A chat belongs to the project word its slug leads with (the harness
-// names branches subject-first: `triset-…`, `playground-…`), to a project the
-// auto-sorter filed on it (`project` on the registry doc, for the chats whose
-// slug says nothing), and to an established project a later word of its slug
-// or her display name names. Nothing is stored for the page itself: it is
-// derived on every paint out of the registry the feed already carries.
-//
-// THE PILE IGNORES EVERY OTHER FILTER, like the tray and a lit tag: not the
-// account tabs (the row is not even on screen here), not the hidden pile, and
-// NOT THE ARCHIVE — "go back and see all the triset chats" is exactly what
-// the archive holds, so an archived sibling is drawn, dimmed, and counted
-// under the tabs. The trash stays its own room.
-//
-// THE ORDER IS THE HOUSE ORDER — `sortedChatNames`, newest message first, so
-// the date headings and the pinned tier come for free — and the two views
-// are the home screen's own renderers: `renderTiles` IS the three-across
-// icon wall she asked for, `renderList` the list. Nothing here is a third
-// way of drawing a chat.
-function projectTitle(k){
-  var v=projectVocab();
-  var sp=(v&&v[k]&&v[k].spell)||k||'';
-  return sp ? sp.charAt(0).toUpperCase()+sp.slice(1) : 'Project';
-}
-// Recomputed per paint — 800 chats tokenise in a millisecond, and a cache
-// here would go stale the moment the poll landed a renamed chat.
-function projectVocab(){
-  var PW=window.__projectWords; if(!PW) return null;
-  return PW.vocab(chats);
-}
-function projectsFor(name){
-  var PW=window.__projectWords; if(!PW) return [];
-  return PW.projectsWithGroups(name, chats, projectVocab());
-}
-function openProject(key, from){
-  projectKey=key; projectFrom=from||projectFrom;
-  homeView='project'; homeY=0;
-  if(cur) goHome(true); else { renderHome(); }
-  window.scrollTo(0,0);
-}
-function renderProject(el,g){
-  var PW=window.__projectWords;
-  if(!PW || !projectKey){ el.innerHTML='<div class="state">No project picked.</div>'; return; }
-  var v=projectVocab();
-  // Her way to the OTHER groups this chat is on — `triangle-playground-style`
-  // is a triangle chat first and a playground chat second. Chips only when
-  // there is a choice; one word is a heading, not a control.
-  var mine=projectFrom ? PW.projectsWithGroups(projectFrom, chats, v) : [];
-  if(mine.length>1){
-    var row=document.createElement('div'); row.className='catrow projchips';
-    mine.forEach(function(p){
-      var b=document.createElement('button');
-      b.className='catchip'+(p.key===projectKey?' on':'');
-      b.dataset.project=p.key;
-      b.textContent=projectTitle(p.key)+' · '+p.chats.length;
-      b.onclick=function(){ if(p.key===projectKey) return; projectKey=p.key; renderHome(); window.scrollTo(0,0); };
-      row.appendChild(b);
-    });
-    el.appendChild(row);
-  }
-  // ICONS · LIST — the hairline row. Sticky; opens on icons.
-  var tabs=document.createElement('div'); tabs.className='acctabs projrow'; tabs.id='projtabs';
-  [['icons','Icons'],['list','List']].forEach(function(t){
-    var b=document.createElement('button');
-    b.className='acctab'+(projView===t[0]?' on':''); b.dataset.pv=t[0]; b.textContent=t[1];
-    b.onclick=function(){
-      if(projView===t[0]) return;
-      projView=t[0];
-      try{ localStorage.setItem('chats-project-view', projView); }catch(e){}
-      renderHome();
-    };
-    tabs.appendChild(b);
-  });
-  el.appendChild(tabs);
-  var names=sortedChatNames(g).filter(function(n){
-    return PW.projectsOf(n, chats[n]||{}, v).indexOf(projectKey)>-1;
-  });
-  var nArch=names.filter(function(n){ return chats[n]&&chats[n].archived; }).length;
-  var count=document.createElement('div'); count.className='projcount'; count.id='projcount';
-  count.textContent=names.length+(names.length===1?' chat':' chats')+(nArch?' · '+nArch+' archived':'');
-  el.appendChild(count);
-  if(!names.length){
-    // Appended, never `innerHTML+=` — that re-serialises the tabs above and
-    // silently drops their taps.
-    el.appendChild(Object.assign(document.createElement('div'),{className:'state', textContent:'Nothing on this project.'}));
-    return;
-  }
-  if(projView==='list'){ renderList(el,g,names); paintWrapUps(el); }
-  else renderProjectIcons(el,g,names);
-  // An archived sibling reads as put away without leaving the pile.
-  names.forEach(function(n){
-    if(!(chats[n]&&chats[n].archived)) return;
-    var node=el.querySelector('[data-chat="'+n.replace(/"/g,'\\"')+'"]');
-    if(node) node.classList.add('archd');
-  });
-}
-// THE ICON WALL OF A PROJECT — three across, NO day headings (PHOTO'd against
-// her live triset chats before shipping: four chats on three different days
-// drew as a COLUMN of one tile each, because every day's rule spans the grid
-// and starts a fresh row — the tile wall's headings undo the 3-up she asked
-// for on any pile smaller than a screen). The order is still newest first;
-// the date rides under each name instead, since "go back and see" is a
-// question about when. Icon, name, date — no status line and no controls
-// (the tray's rule: those are list controls, and the LIST tab has them).
-function renderProjectIcons(el,g,names){
-  var grid=document.createElement('div'); grid.id='chatgrid'; el.appendChild(grid);
-  names.forEach(function(name){
-    var last=lastOf(g,name);
-    var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
-    var b=document.createElement('button');
-    b.className='tile projtile'+(chatWorking(name,last)?' live':'');
-    b.dataset.chat=name;
-    b.innerHTML='<span class="t-cover">'+iconHtml(name,'',true)+(unread?'<span class="t-new"></span>':'')+'</span>'
-      +'<span class="t-name">'+waitMarkHtml(name)+tagMarkHtml(name)+esc(dispName(name))+'</span>'
-      +'<span class="t-meta">'+(last? ago(last.created) : (chats[name]&&chats[name].archived ? 'archived' : 'no messages'))+'</span>';
-    b.onclick=function(){ openChat(name); };
     grid.appendChild(b);
   });
 }
@@ -7225,17 +6722,15 @@ function paintWrapUps(el){
 
 function renderList(el,g,names){
   var wrap=document.createElement('div'); wrap.className='clist'; el.appendChild(wrap);
-  var curDay=null, nPin=pinCount(names);
+  var curDay=null;
   names.forEach(function(name){
     var list=g[name]||[];
     var last=list.length? list[list.length-1] : null;
     // SEPARATED BY DATE (2026-08-28). The list is already in the right order —
     // this only names where one day stops. Every pile comes through here (live,
-    // ALL, ★, bug fix, the archive), so they all get it from one place — which
-    // is also why the pinned fold below needs no per-pile wiring.
+    // ALL, ★, bug fix, the archive), so they all get it from one place.
     var dk=chatDayKey(name,last);
-    if(dk!==curDay){ curDay=dk; wrap.appendChild(mkDayRule(dk,nPin)); }
-    if(dk==='pin'&&pinShut) return;   // folded — the heading stands alone
+    if(dk!==curDay){ curDay=dk; wrap.appendChild(mkDayRule(dk)); }
     var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
     var row=document.createElement('button'); row.className='crow'+(chatMuted(name,last)?' done':'')+(chatWorking(name,last)?' live':'');
     row.dataset.chat=name;
@@ -7264,26 +6759,27 @@ function renderList(el,g,names){
   });
 }
 
-// ---- THE DRIBBLE FOLD -------------------------------------------------------
+// ---- THE DRIBBLE MERGE ------------------------------------------------------
 // `rendered` is NEWEST FIRST. A RUN is consecutive replies from the chat with
-// nothing from her between them, each within FOLD_MS of the one above it, not
-// crossing a chapter heading (a heading names the block under it, and a fold
-// reaching across one would hide the block's own first row). The newest of a
-// run stays on screen and LEADS; the rest fold under an opener that says how
-// many. Three rows never fold, on purpose:
+// nothing from her between them, each within MERGE_MS of the one above it, not
+// crossing a chapter heading (a heading names the block under it). A run is
+// drawn as ONE message: the newest LEADS (its id, its time, its Play, its
+// bookmark) and the whole run is its body, oldest first, so it reads in the
+// order it was written. Three rows never join a run, on purpose:
 //   - anything from HER — her message is what ends a run, so the chat's
-//     answer to it always shows;
-//   - a live draft (`working`) — she is watching it write; the reply it is
-//     answering is the one thing she wants under it;
-//   - a message she BOOKMARKED — she kept it on purpose, it is not clutter.
-// FOLD_MS is the dial: the dribble this was built for ran 3-10 minutes apart
+//     answer to it is always the top of the next one;
+//   - a live draft (`working`) — she is watching it write; it is its own row
+//     until it finishes and the next rebuild joins it;
+//   - a message she BOOKMARKED — she kept it on purpose, and a bookmark on a
+//     merged row would point at the wrong turn.
+// MERGE_MS is the dial: the dribble this was built for ran 3-10 minutes apart
 // (four watcher wakes after one merge, 2026-09-02); an hourly check-in that
-// posts a line still folds; a chat that genuinely worked for two hours between
+// posts a line still joins; a chat that genuinely worked for two hours between
 // replies does not, because those are two things, not a dribble. Nothing here
 // touches the data, the home list, the Update tab, the Questions view or the
-// counts — a folded reply is still a reply everywhere but this one scroll.
-var FOLD_MS=60*60*1000;
-function foldPlan(rendered, plan){
+// counts — a merged reply is still its own doc everywhere but this one scroll.
+var MERGE_MS=60*60*1000;
+function mergePlan(rendered, plan){
   var lead={}, hid={};
   function foldable(m){ return !!m && m.from!=='sophie' && !m.working && !m.bookmarked; }
   var i=0, n=rendered.length;
@@ -7291,7 +6787,7 @@ function foldPlan(rendered, plan){
     if(!foldable(rendered[i])){ i++; continue; }
     var j=i+1, count=0;
     while(j<n && !plan[j] && foldable(rendered[j])
-      && (Date.parse(rendered[j-1].created)-Date.parse(rendered[j].created))<=FOLD_MS){
+      && (Date.parse(rendered[j-1].created)-Date.parse(rendered[j].created))<=MERGE_MS){
       hid[j]=true; count++; j++;
     }
     if(count) lead[i]=count;
@@ -7301,13 +6797,24 @@ function foldPlan(rendered, plan){
 }
 function renderMsg(m){
   var row=document.createElement('div'); row.className='msg'; if(m.id) row.dataset.mid=m.id;
-  var firstLine=plain((m.tldr||m.text||'').split('\n')[0]).slice(0,140);
+  // A merged run (`parts`, oldest first — see mergePlan): the row is the
+  // newest's, the preview is where the READING starts (the oldest part), and
+  // the body is every part in order under its own small time. `data-mids`
+  // carries every id so a jump to any one of them still finds the row.
+  var parts=(m.parts&&m.parts.length>1)?m.parts:null;
+  if(parts){ row.dataset.mids=parts.map(function(p){ return p.id; }).join(' '); row._parts=parts; }
+  var first=parts?parts[0]:m;
+  var firstLine=plain((first.tldr||first.text||'').split('\n')[0]).slice(0,140);
+  var body=parts
+    ? parts.map(function(p){ return '<div class="m-part" data-mid="'+esc(String(p.id||''))+'"><div class="m-partt">'+ago(p.created)+'</div>'+foldBody(p.text, p.head, p.tail)+'</div>'; }).join('')
+    : foldBody(m.text, m.head, m.tail);
   row.innerHTML='<div class="m-head"><span class="m-chat'+(m.from==='sophie'?' sophie':'')+'">'
     +(m.from==='sophie'?'me':'claude')+'</span><span class="m-time">'+ago(m.created)+'</span>'
+    +(parts?'<span class="m-count">'+parts.length+' replies</span>':'')
     +(m.working?'<span class="m-working">still writing…</span>':'')
     +'<span class="m-close">close &#9650;</span></div>'
-    +'<div class="m-preview">'+esc(firstLine)+((m.text||'').length>140?'\u2026':'')+'</div>'
-    +'<div class="m-full">'+foldBody(m.text, m.head, m.tail)+'</div>';
+    +'<div class="m-preview">'+esc(firstLine)+((parts||(m.text||'').length>140)?'\u2026':'')+'</div>'
+    +'<div class="m-full">'+body+'</div>';
   // Wire the "working details" fold toggles (a message can have several).
   // Stops propagation so a tap doesn't also trigger the reading-aid autoscroll.
   row.querySelectorAll('.foldtog').forEach(function(ft){
@@ -7606,17 +7113,9 @@ var BELL_SVG='<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d
 // as a bare stick (the teardrop got away with fill-only because its outline
 // was the whole silhouette; this one's isn't).
 var PIN_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle class="pinhead" cx="12" cy="6.6" r="4.4"/><path d="M12 11V21.6"/></svg>';
-// THE TRAY — Lucide `inbox`, exact path. A shallow open-topped tray, which is
-// the object she named; deliberately NOT a second pin (the pushpin above is
-// already "keep this at the top of the list", and two pins in one sheet would
-// read as one control drawn twice).
-var TRAY_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>';
 // ORGANIZE — Lucide `tag`, the icon on the button that opens the folder + tag
 // sheet (`askOrganize`). A luggage-tag silhouette with its eyelet: it says
 // "label this" without a word, which the row has no space for.
-// Three stacked square cards, Lucide weight — the front one whole, the two
-// behind it as offset edges. Her own picture of the button.
-var PROJ_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="12" height="12" rx="1.6"/><path d="M6.5 6H17a1.5 1.5 0 0 1 1.5 1.5V18"/><path d="M10 3h8.5A2.5 2.5 0 0 1 21 5.5V14"/></svg>';
 var TAG_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>';
 var EYE_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>';
 var EYE_OFF_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>';
@@ -7887,24 +7386,6 @@ function openChat(name, keepScroll, focusId, noFetch){
       if(isLink){ window.open(pin.url,'_blank','noopener'); return; }
       openPinned(pin, name);
     };
-    // A film rendered from a Film Editor CUT carries the cut's id (2026-09-02,
-    // "edit in unison"), and that earns the row a second door: open the same
-    // cut the chat is editing, in the editor. A SIBLING button, never nested
-    // (a button in a button is invalid and the tap would bubble into the
-    // player); the two share one wrapper so the pill measurement shortens the
-    // pair as one row. A film cut any other way draws the row exactly as
-    // before.
-    if(pin.cut&&/^[\w-]{1,40}$/.test(pin.cut)){
-      var wrap=document.createElement('div'); wrap.className='pinrow';
-      var d=document.createElement('button'); d.className='pindoor';
-      d.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg>';
-      d.setAttribute('aria-label','Open this cut in the Film Editor'); d.title='Open in the Film Editor';
-      d.onclick=function(ev){ ev.stopPropagation(); window.open('/filmeditor?c='+encodeURIComponent(pin.cut),'_blank','noopener'); };
-      wrap.appendChild(b); wrap.appendChild(d);
-      head.appendChild(wrap);
-      pillRows.push(wrap);
-      return;
-    }
     head.appendChild(b);
     pillRows.push(b);
   })();
@@ -8031,22 +7512,6 @@ function openChat(name, keepScroll, focusId, noFetch){
     ob.setAttribute('aria-label','Organize — file and tag this chat');
     ob.onclick=function(){ askOrganize(name); };
     head.querySelector('.no').appendChild(ob);
-  })();
-  // THE PROJECT — three stacked cards (2026-09-02, Sophie). Only drawn when
-  // the chat has siblings; a chat on two things opens on its FIRST project
-  // (the slug's own lead word, or the filed one) and the page offers the rest
-  // as chips. See renderProject.
-  (function(){
-    var ps=projectsFor(name);
-    if(!ps.length) return;
-    var pb=document.createElement('button');
-    pb.className='projbtn';
-    pb.innerHTML=PROJ_SVG;
-    pb.dataset.project=ps[0].key;
-    pb.setAttribute('aria-label','Every chat on '+projectTitle(ps[0].key)+' — '+ps[0].chats.length+' chats');
-    pb.title=projectTitle(ps[0].key)+' · '+ps[0].chats.length;
-    pb.onclick=function(){ openProject(ps[0].key, name); };
-    head.querySelector('.no').appendChild(pb);
   })();
   var curl=claudeUrlFor(name, list); openUrl=curl;   // renderMsg reads openUrl
   sec.appendChild(head);
@@ -8361,18 +7826,11 @@ function openChat(name, keepScroll, focusId, noFetch){
   var chaprows=[];
   var rendered=list.slice().reverse();
   var plan=chapterPlan(rendered, ((chats[name]||{}).chapters)||[]);
-  // The dribble fold (see foldPlan). A group is the opener line plus the rows
-  // it hides; `paintFold` is the ONE writer of that state, and the search
-  // filter calls it with `narrowing` so a hit inside a fold always shows.
-  var fold=foldPlan(rendered, plan);
-  var folds=[], curFold=null;
-  function foldWord(g){ return g.n===1?'reply':'replies'; }
-  function paintFold(g, narrowing){
-    g.line.style.display=narrowing?'none':'';
-    g.btn.textContent=g.open ? 'hide the earlier '+foldWord(g) : g.n+' earlier '+foldWord(g);
-    g.rows.forEach(function(r){ r.classList.toggle('fold-hid', !narrowing && !g.open); });
-  }
+  // The dribble merge (see mergePlan): a run of replies is ONE row, drawn
+  // from the newest with the whole run as its parts, oldest first.
+  var merge=mergePlan(rendered, plan);
   rendered.forEach(function(m,i){
+    if(merge.hid[i]) return;   // drawn inside the row that leads its run
     if(plan[i]){
       var h=document.createElement('div');
       h.className='chapdiv';
@@ -8380,32 +7838,14 @@ function openChat(name, keepScroll, focusId, noFetch){
       mlist.appendChild(h);
       chaprows.push(h);
     }
-    var row=renderMsg(m);
-    if(m.id&&wasOpen[m.id]) row.classList.add('open');
+    var parts=merge.lead[i] ? rendered.slice(i, i+merge.lead[i]+1).reverse() : [m];
+    var row=renderMsg(parts.length>1 ? Object.assign({}, m, {parts:parts}) : m);
+    // a run stays open if ANY of its turns was open before the rebuild
+    if(parts.some(function(p){ return p.id&&wasOpen[p.id]; })) row.classList.add('open');
     mrows.push({row:row, who:(m.from==='sophie'?'me':'claude'),
-      hay:((m.tldr||'')+' '+(m.text||'')+' '+(m.from==='sophie'?'me':'claude')).toLowerCase()});
+      hay:(parts.map(function(p){ return (p.tldr||'')+' '+(p.text||''); }).join(' ')+' '+(m.from==='sophie'?'me':'claude')).toLowerCase()});
     mlist.appendChild(row);
-    if(fold.lead[i]){
-      // This row leads a run: the opener goes right under it, and the folded
-      // rows land after it, hidden, on the next iterations.
-      var g={n:fold.lead[i], rows:[], open:false, line:document.createElement('div'),
-        btn:document.createElement('button')};
-      g.line.className='foldrow';
-      g.btn.className='wrapmore foldmore'; g.btn.type='button';
-      g.btn.onclick=function(e){ e.stopPropagation(); g.open=!g.open; paintFold(g,false); };
-      // a jump INTO a folded row (a search hit, the keep-pile) opens the fold
-      g.show=function(){ if(!g.open){ g.open=true; paintFold(g,false); } };
-      g.line.appendChild(g.btn);
-      mlist.appendChild(g.line);
-      folds.push(g); curFold=g;
-    } else if(fold.hid[i] && curFold){
-      curFold.rows.push(row); row._fold=curFold;
-      // a row she had open before a rebuild keeps its fold open too, or the
-      // rebuild would hide the thing she was reading
-      if(row.classList.contains('open')) curFold.open=true;
-    } else curFold=null;
   });
-  folds.forEach(function(g){ paintFold(g,false); });
   function applyMsgFilter(){
     var q=(sinp.value||'').trim().toLowerCase();
     sclr.style.display=q?'':'none';
@@ -8417,10 +7857,6 @@ function openChat(name, keepScroll, focusId, noFetch){
     // filtered list — the messages it named are mostly gone. Hide them while
     // she is searching and bring them back when she clears the box.
     chaprows.forEach(function(h){ h.style.display=narrowing?'none':''; });
-    // A search lifts every fold (a hit inside one has to show, and a filter she
-    // can see returning nothing is the silent-filter failure this app keeps
-    // getting burned by); clearing it puts them back as they were.
-    folds.forEach(function(g){ paintFold(g, narrowing); });
     if(!narrowing){
       mrows.forEach(function(r){ r.row.style.display=''; });
       scount.style.display='none';
@@ -8689,66 +8125,8 @@ function openChat(name, keepScroll, focusId, noFetch){
           paint();
           cell.appendChild(hb); cell.appendChild(xb); cell.appendChild(nb);
         }
-        // ── TAP TO NEXT — step tile to tile without leaving the lightbox ──
-        // (2026-08-31, Sophie: "add tap to next on assets like playground").
-        // The zones themselves are the shared file's `nav` hook, so nothing
-        // about the lightbox is copied here — all this surface owes it is
-        // WHAT COMES NEXT.
-        //
-        // THE ORDER IS READ OFF THE GRID SHE IS LOOKING AT — the tiles still
-        // on screen, in DOCUMENT order — the Playground's settled rule. So
-        // the ♥/New/Hide ✕ filter, the search and a dead image narrow the
-        // walk by THEMSELVES, and there is no second copy of applyFilter's
-        // rules to drift from it. Document order rather than the `cells`
-        // array, because a tile can be inserted rather than appended.
-        var lbIt=null;
-        function aSeq(){
-          return Array.prototype.filter.call(grid.querySelectorAll('.acell'), function(c){
-            return c._it && c.style.display!=='none';
-          });
-        }
-        function aAt(seq, it){
-          for(var k=0;k<seq.length;k++) if(seq[k]._it===it) return k;
-          return -1;
-        }
-        function aStep(d){
-          var seq=aSeq(), at=aAt(seq, lbIt);
-          if(at<0) return;
-          var nx=seq[at+d];
-          if(nx) openAsset(nx._it, false);
-        }
-        function openAsset(it, fresh){
-          // THE PROMPT DOOR'S STATE RIDES A STEP AND DIES WITH A FRESH OPEN
-          // (the shared file's rule: "the half she picked rides along as she
-          // steps … a fresh open always starts on content"). Comparing a style
-          // across two pictures is exactly why she would switch it, so the
-          // side is carried off the picture she is LEAVING — and a fresh open
-          // has to CLEAR what her last visit to this same tile left behind,
-          // because unlike the Playground these are long-lived item objects
-          // the lightbox writes onto rather than a rebuilt asset.
-          var carry = (!fresh && lbIt && lbIt!==it)
-            ? { side: lbIt.promptSide, open: lbIt.promptOpen } : null;
-          if(fresh){ delete it.promptSide; delete it.promptOpen; }
-          // The tile she is stepping off keeps a mirror pointed at ♥/✕ buttons
-          // that are no longer in the box; the new open replaces it.
-          if(lbIt && lbIt!==it) lbIt._lbPaint=null;
-          lbIt=it;
-          var seq=aSeq(), at=aAt(seq, it);
-          // A null side draws NO zone, so at the ends of the grid a tap there
-          // closes like any other dead space.
-          it.nav={
-            prev: at>0 ? function(){ aStep(-1); } : null,
-            next: (at>=0 && at<seq.length-1) ? function(){ aStep(1); } : null
-          };
-          it.onClose=function(){ lbIt=null; };
-          // Both halves, always — carrying only a set one would leave the
-          // arriving picture wearing whatever an EARLIER visit left on it.
-          if(carry){ it.promptSide=carry.side; it.promptOpen=carry.open; }
-          lightbox(it.url, it);
-        }
         function addTiles(list){ list.forEach(function(it){
           var cell=document.createElement('div'); cell.className='acell';
-          cell._it=it;   // the step walk reads the grid, not the cells array
           var b=document.createElement('button');
           // What the image IS, when the chat filed one — else the generic "from <chat>"
           var cap=it.description||it.prompt||'';
@@ -8767,7 +8145,7 @@ function openChat(name, keepScroll, focusId, noFetch){
             if(!triedFb && it.thumb){ triedFb=true; img.src=fb; return; }
             it._broken=true; cell.style.display='none'; if(it._lbPaint) it._lbPaint();
           };
-          b.onclick=function(){ openAsset(it, true); };
+          b.onclick=function(){ lightbox(it.url, it); };
           cell.appendChild(b); voteBtns(cell,it);
           if(io) io.observe(img);
           cells.push({cell:cell, it:it});
@@ -8968,11 +8346,13 @@ function openChat(name, keepScroll, focusId, noFetch){
 // not in the loaded tail, pull the chat's full history once, rebuild, then
 // scroll to it. Expands the message and flashes it so it's easy to spot.
 function focusMessage(name, id, noFetch){
-  var row=document.querySelector('#thread .msg[data-mid="'+String(id).replace(/"/g,'')+'"]');
+  var sid=String(id).replace(/"/g,'');
+  var row=document.querySelector('#thread .msg[data-mid="'+sid+'"]')
+    || document.querySelector('#thread .msg[data-mids~="'+sid+'"]');   // a turn drawn inside a merged run
   if(row){
-    if(row._fold) row._fold.show();   // a folded row is a hidden one — open its fold first
     row.classList.add('open');
-    row.scrollIntoView({block:'center'});
+    var part=row.dataset.mid!==sid && row.querySelector('.m-part[data-mid="'+sid+'"]');
+    if(part) part.scrollIntoView({block:'center'}); else row.scrollIntoView({block:'center'});
     row.classList.add('flash');
     setTimeout(function(){ row.classList.remove('flash'); }, 2400);
     return;
@@ -8996,70 +8376,6 @@ function focusMessage(name, id, noFetch){
 function mkPagePill(getWin){
   var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Faster',3.2],['Fastest',5.2]];
   var playing=false, raf=null, last=null, si=2, dir=1, acc=0;
-  // ── THE PILL FOLLOWS WHATEVER IS ACTUALLY SCROLLING INSIDE THE FRAME
-  // (2026-09-02, Sophie: "why does autos roll not work in piles"). Every check
-  // here used to ask the frame's WINDOW, so a page whose content scrolls
-  // inside its own box could not be moved by the pill she actually taps in the
-  // app — and a deck's PILES view is exactly that box (`flex:1;
-  // overflow-y:auto`), the one screen in a deck that is genuinely long.
-  // Measured before the fix, at her viewport: 685px of piles below the fold,
-  // and a tap on play walked the frame's document 31px and stopped, leaving
-  // the piles at 0. The 2026-09-01 fix reached judge.js's own little
-  // side-button and could not reach this copy at all.
-  //
-  // The shared pill learned this rule on 2026-08-24 (the Story Room's shelf);
-  // this parent-page copy never got it — the same drift the back-to-top had.
-  // ONLY A NEARLY-FULL-SCREEN BOX IS ADOPTED (80% of the frame's width, 60% of
-  // its height), or a note list or a filter drawer would steal the pill from
-  // the page behind it. The box is cached and re-validated rather than hunted
-  // every frame, and the frame's own window scrolling puts it down again.
-  var _box=null, _found=0;
-  function boxOK(el,w){
-    if(!el || !w) return false;
-    var d; try{ d=w.document; }catch(_){ return false; }
-    if(!d || el===d || el===d.body || el===d.documentElement) return false;
-    if(!el.getBoundingClientRect || el.scrollHeight - el.clientHeight <= 4) return false;
-    var r=el.getBoundingClientRect();
-    return r.width >= w.innerWidth*0.8 && r.height >= w.innerHeight*0.6;
-  }
-  // `elementsFromPoint` walks the stack at ONE point — O(depth) — where
-  // scanning the frame for scrollers is a query over every node it holds.
-  function findBox(w){
-    var d=w.document;
-    if(!d || !d.elementsFromPoint) return null;
-    var els=d.elementsFromPoint(w.innerWidth/2, w.innerHeight/2)||[];
-    for(var i=0;i<els.length;i++){
-      if(boxOK(els[i],w) && /auto|scroll/.test(w.getComputedStyle(els[i]).overflowY)) return els[i];
-    }
-    return null;
-  }
-  /** What this pill drives right now: the frame's window while the page itself
-   *  has room, else the full-screen box inside it. Null when there is no frame
-   *  or it is cross-origin — every caller reads that as "nothing to do". */
-  function tgt(){
-    var w=getWin(), d=null;
-    if(!w) return null;
-    try{ d=w.document; }catch(_){ return null; }
-    if(!d) return null;
-    var winCan=false;
-    try{ winCan = d.documentElement.scrollHeight > w.innerHeight+4; }catch(_){}
-    if(_box && !boxOK(_box,w)) _box=null;
-    if(winCan) _box=null;
-    else if(!_box && Date.now()-_found>300){
-      _found=Date.now(); try{ _box=findBox(w); }catch(_){ _box=null; }
-    }
-    var b=_box;
-    if(b) return { top:function(){ return b.scrollTop; },
-                   by:function(n){ b.scrollTop+=n; },
-                   view:function(){ return b.clientHeight; },
-                   full:function(){ return b.scrollHeight; },
-                   home:function(){ try{ b.scrollTo({top:0,behavior:'smooth'}); }catch(_){ b.scrollTop=0; } } };
-    return { top:function(){ return w.scrollY; },
-             by:function(n){ try{ w.scrollBy(0,n); }catch(_){} },
-             view:function(){ return w.innerHeight; },
-             full:function(){ try{ return d.documentElement.scrollHeight; }catch(_){ return 0; } },
-             home:function(){ try{ w.scrollTo({top:0,behavior:'smooth'}); }catch(_){ try{ w.scrollTo(0,0); }catch(__){} } } };
-  }
   var I={
     up:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
     down:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
@@ -9089,19 +8405,19 @@ function mkPagePill(getWin){
   }
   function step(ts){
     if(!playing) return;
-    var t=tgt();
-    if(t && last!=null){
+    var w=getWin();
+    if(w && last!=null){
       acc+=dir*(ts-last)/1000*42*SPEEDS[si][1];
       var move=acc>0?Math.floor(acc):Math.ceil(acc);
-      if(move){ try{ t.by(move); }catch(_){} acc-=move; }
-      try{ var atEnd=dir>0?(t.top()+t.view()>=t.full()-4):(t.top()<=2); if(atEnd) stop(); }catch(_){}
+      if(move){ try{ w.scrollBy(0,move); }catch(_){} acc-=move; }
+      try{ var d=w.document.documentElement, atEnd=dir>0?(w.innerHeight+w.scrollY>=d.scrollHeight-4):(w.scrollY<=2); if(atEnd) stop(); }catch(_){}
     }
     last=ts; raf=requestAnimationFrame(step);
   }
   // Same end-of-page rule as the shared pill: a direction with no room flips
   // to the one that has room, so a press is never a dead press.
-  function canGo(d){ var t=tgt(); if(!t) return true;
-    try{ return d>0 ? (t.top()+t.view() < t.full()-4) : (t.top()>2); }catch(_){ return true; } }
+  function canGo(d){ var w=getWin(); if(!w) return true;
+    try{ return d>0 ? (w.innerHeight+w.scrollY < w.document.documentElement.scrollHeight-4) : (w.scrollY>2); }catch(_){ return true; } }
   function start(d){ if(!canGo(d) && canGo(-d)) d=-d;
     dir=d; playing=true; last=null; acc=0; paint(); raf=requestAnimationFrame(step); }
   function stop(){ playing=false; if(raf) cancelAnimationFrame(raf); raf=null; paint(); }
@@ -9118,10 +8434,11 @@ function mkPagePill(getWin){
   vm.onclick=function(){ playing? stop() : start(1); };
   // the jump home: stop first, or the running scroll walks the page back down
   // under the animation (the shared pill's own rule)
-  pt.onclick=function(){ stop(); var t=tgt(); if(t) t.home(); };
-  // PTOP_AT is 150 here as in pill.py — pinned by test-back-to-top.js.
-  function syncTop(){ var t=tgt(); if(!t){ pt.classList.remove('on'); return; }
-    try{ pt.classList.toggle('on', t.top() > 150 && t.full() > t.view()+4);
+  pt.onclick=function(){ stop(); var w=getWin(); if(!w) return;
+    try{ w.scrollTo({top:0, behavior:'smooth'}); }catch(_){ try{ w.scrollTo(0,0); }catch(__){} } };
+  function syncTop(){ var w=getWin(); if(!w){ pt.classList.remove('on'); return; }
+    try{ var d=w.document.documentElement;
+      pt.classList.toggle('on', w.scrollY > w.innerHeight && d.scrollHeight > w.innerHeight+4);
     }catch(_){ pt.classList.remove('on'); } }
   paint(); syncTop(); pill._stop=stop;
   pill._playing=function(){ return playing; };
@@ -9264,10 +8581,6 @@ function openPage(p){
       if(w && pill._topSync){
         w.addEventListener('scroll', pill._topSync, {passive:true});
         w.addEventListener('resize', pill._topSync, {passive:true});
-        // `scroll` does not bubble but it DOES capture, so this is what hears
-        // a box INSIDE the page scrolling — a deck's piles, a full-screen
-        // sheet — which the window listener above can never see.
-        if(doc) doc.addEventListener('scroll', pill._topSync, true);
         pill._topSync(); setTimeout(pill._topSync, 700);
       }
       // THE SKIP LIST IS ASKED AT POINTERDOWN, WHILE THE TARGET IS STILL IN THE
@@ -9612,10 +8925,9 @@ function mkOrgMarks(name, close){
     svg:function(){ return STAR; },
     on:'Star this chat', off:'Unstar this chat',
     toastOn:'Starred', toastOff:'Unstarred'}));
-  // THE BELL — ON BY DEFAULT since 2026-09-01, which is the half worth
-  // remembering: the bell is how she turns a chat OFF, and only that tap
-  // silences one (`chatNotifies` in push-gate.js asks it before the timing
-  // gate, which is what keeps default-on from being a drumroll).
+  // THE BELL — a WHITELIST, which is the half worth remembering: absent means
+  // silent, so a chat she has never belled never reaches her lock screen
+  // (`chatNotifies` in push-gate.js asks it before the timing gate).
   row.appendChild(toggle({cls:'bellbtn mk-bell', field:'notify', url:'/api/chatfeed/notify',
     word:'Notify', get:function(){ return chatNotify(name); },
     svg:function(){ return BELL_SVG; },
@@ -9644,28 +8956,6 @@ function mkOrgMarks(name, close){
     on:'Pin this chat to the top', off:'Pinned to the top — unpin this chat',
     toastOn:'Pinned to the top', toastOff:'Unpinned',
     after:function(){ renderHome(); }}));
-  // ON MY TRAY — the sixth mark, and the way a chat GETS on the tray tab
-  // (2026-08-31, her ask). It is beside the pushpin because the two are the
-  // pair worth telling apart: the pin says "keep this at the top of the list",
-  // the tray says "this is one of the three things I am doing right now" and
-  // gives it a screen with nothing else on it. It does NOT go through
-  // `toggle()` — the tray stamps `trayAt` on the way in, so both doors share
-  // `setTray` instead of two copies of one write.
-  (function(){
-    var b=document.createElement('button'); b.type='button';
-    b.className='markchip traybtn mk-tray';
-    function paint(){
-      var on=chatTray(name);
-      b.classList.toggle('on', on);
-      b.innerHTML=TRAY_SVG;
-      b.title='Tray';
-      b.setAttribute('aria-pressed', on?'true':'false');
-      b.setAttribute('aria-label', on? 'Take this chat off your tray' : 'Put this chat on your tray');
-    }
-    paint();
-    b.onclick=function(e){ e.stopPropagation(); setTray(name, !chatTray(name)); paint(); };
-    row.appendChild(b);
-  })();
   // HIDE — "not now", the sibling of Archive's "away for good". An open eye
   // while the chat is on the list, crossed out while it is parked, so the
   // glyph carries the state and nothing has to say it in words.
@@ -10104,29 +9394,7 @@ function askArchive(name, cb){
 // to what happens when I open the image in assets… just port that exact code").
 // One copy on purpose — a second hand copy had already drifted once.
 window.scrollStop = scrollStop;   // the shared lightbox pauses our autoscroll
-// AND THE DOORS UNDER THE PICTURE ARE THE SHARED SET TOO (2026-08-31, Sophie:
-// "why the fuck different buttons in assets ex no playground button"). One
-// shared lightbox is not one view while every caller types out its own
-// `actions`: this tab — the surface she reviews EVERY picture in — passed
-// none at all, so a picture she wanted in the Playground had to be found a
-// second time in Meta Assets first. /asset-actions.js is the one set.
-//
-// chatDoor is FALSE here and only here: "Open the chat" would be a button
-// back to the screen she is already standing on.
-//
-// `api` and `toast` live inside this file's IIFE, so they are handed in
-// rather than leaked onto window.
-// GUARDED like every other shared script this page links (/tritoggle.js,
-// /filmnote.js): a page whose shared file 404s must still render. The doors
-// are MEASURED on the real page by test-asset-doors.js, so the guard cannot
-// quietly become "there are no doors" — that is the one thing it is allowed
-// to hide, and something else is watching it.
-var DOORS = window.ForgeAssetActions || null;
-if(DOORS) DOORS.init({ api: api, toast: toast });
-function lightbox(url, asset){
-  if(asset && DOORS) asset.actions=DOORS.build(url, asset, {chatDoor:!!asset._chatDoor});
-  window.__assetLightbox(url, asset);
-}
+function lightbox(url, asset){ window.__assetLightbox(url, asset); }
 // THE SEARCH SURVIVES A BACK-OUT (Aug 2026, Sophie: "when I search something
 // and then I click on one of the options if it's not the one I want when I go
 // back I want that to still be active"). A search is a LIST SHE IS WORKING
@@ -10877,10 +10145,11 @@ document.getElementById('newbar').onclick=function(){
 function refreshDraft(m){
   var row=document.querySelector('#thread .msg[data-mid="'+String(m.id).replace(/"/g,'')+'"]');
   if(!row) return;
+  // A merged run keeps its parts across the swap, with the changed doc in
+  // its own slot — or the refresh would shrink the row to one turn.
+  if(row._parts) m=Object.assign({}, m, {parts: row._parts.map(function(p){ return p.id===m.id? m : p; })});
   var nr=renderMsg(m);
   if(row.classList.contains('open')) nr.classList.add('open');
-  if(row.classList.contains('fold-hid')) nr.classList.add('fold-hid');
-  if(row._fold){ nr._fold=row._fold; var k=row._fold.rows.indexOf(row); if(k>=0) row._fold.rows[k]=nr; }
   row.parentNode.replaceChild(nr,row);
 }
 function poll(){

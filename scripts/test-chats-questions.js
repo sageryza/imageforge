@@ -51,8 +51,8 @@ const THE_A2 = 'Six cents at medium.';
 const CHATS = { 'chat-a': { lastSeen: iso(T0 - 2e5), sophieNote: 'questions, formatting' } };
 // enough messages that the thread actually scrolls — spaced TWO HOURS apart,
 // because consecutive replies with nothing from her between them and less
-// than FOLD_MS apart fold behind one opener (the dribble fold, 2026-09-02),
-// and a folded thread neither scrolls nor "shows its messages".
+// than FOLD_MS apart merge into one row (the dribble merge, 2026-09-02),
+// and a merged thread neither scrolls nor "shows its messages".
 const MSGS = [];
 for (let i = 0; i < 30; i++) {
   const t = T0 - (30 - i) * 2 * 3600 * 1000;

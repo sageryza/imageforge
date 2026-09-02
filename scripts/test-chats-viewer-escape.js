@@ -29,7 +29,7 @@ const iso = (ms) => new Date(ms).toISOString();
 const CHATS = { 'chat-a': { lastSeen: iso(T0 - 2e5) }, 'chat-b': { lastSeen: iso(T0 - 3e5) } };
 // The filler is spaced TWO HOURS apart: consecutive replies with nothing from
 // her between them and less than FOLD_MS apart fold behind one opener (the
-// dribble fold, 2026-09-02), and a folded thread is too short to scroll —
+// dribble fold, 2026-09-02), and a merged thread is too short to scroll —
 // which is exactly what the "pill starts a scroll" checks below need.
 const MSGS = [];
 for (let i = 0; i < 30; i++) {
