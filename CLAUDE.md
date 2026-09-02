@@ -3853,6 +3853,21 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
       browser AFTER it navigates, the no-prompt picture riding as a photo
       reference with nothing invented, the Shoebox POST the server really
       saw, and the source pin that neither page may hand-type a door again).
+    - **IT WAS "FIXED" TWICE AND SHE STILL FOUND A PICTURE WITH NO PLAYGROUND
+      BUTTON (2026-09-01, on a Compare page's swipe card: "i thought we had
+      fixed this").** The 08-28 pass unified the lightbox FILE, and the 08-31
+      pass built this shared row — but it SURVEYED by hand the pages she had
+      named plus the Playground, and pinned exactly those two files. The
+      Compare/deck pages (`asset-view.js`) and Freeform are callers of the
+      very same lightbox and were never measured, so both went on drawing ♥/✕
+      and nothing else. **A fix to a shared thing is measured against every
+      CALLER of the shared thing, found by grep, never against the list of
+      surfaces in the ask** — the pin in `test-asset-doors.js` is DERIVED
+      from `__assetLightbox(` across `public/` now, with a named reason for
+      each exemption (the Playground's own run-id row, the Story Room's
+      picker, the Character page's bare open). A new caller fails it until it
+      builds the row or names its reason. `scripts/test-template-doors.js`
+      drives the Compare page's doors for real, iframe case included.
 
   - **TAP TO NEXT ON THE ASSETS TAB AND ON META ASSETS (2026-08-31, Sophie:
     "add tap to next on assets like playground").** The two surfaces she
