@@ -3165,6 +3165,53 @@ function statusLine(v) {
   const sp = cut.lastIndexOf(' ');
   return (sp > 60 ? cut.slice(0, sp) : cut).replace(/[,;:.\-\s]+$/, '') + '…';
 }
+// ---- A CHAT FILES ITSELF (2026-09-01, Sophie: "chats choose their own" ·
+// "have them check in periodically in case the subject changes") -------------
+// `POST /selffile { chat, session, labels }` — the chat names its own folder
+// on the turn it already knows what it is about, for free, and the paid
+// server-side sorter becomes the fallback for the chats that stay quiet. The
+// whole decision table is `chatSort.selfFilePlan` (pure, no network), so the
+// guardrails are enforced in CODE rather than in a rule a chat could forget:
+// her filing is final, triage words are off limits, an unknown word is dropped
+// rather than invented, and "none" is a normal answer.
+//
+// **"NONE" STAMPS `catTriedAt` AND NOTHING ELSE.** That is what rests the paid
+// sorter for a day (`shouldAutoSort`'s cooling-off), so a chat that looked and
+// honestly found no folder does not then bill her for the server asking the
+// same question. It deliberately does NOT write `catNone` — that field is her
+// "leave it unfiled", a decision the sorter may never revisit, and a chat must
+// not be able to spend it on her behalf.
+//
+// **RE-FILING IS THE POINT, not an edge case.** A chat that starts as research
+// and becomes a request is a different folder, so its own earlier answer never
+// locks it out — only hers does. Chats re-check at wrap-up and whenever the
+// work changes shape; see the checklist in CLAUDE.md.
+router.post('/selffile', async (req, res) => {
+  try {
+    const { chat, session, labels } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const resolved = await resolveChat(chat, String(session || '').slice(0, 120));
+    const reg = await registry();
+    const mine = reg.chats[resolved];
+    if (!mine) return res.status(404).json({ error: 'no such chat', chat: resolved });
+    const cats = chatSort.sortableCategories(reg.settings, reg.chats);
+    const plan = chatSort.selfFilePlan({ reg: mine, cats, labels });
+    if (!plan.ok) return res.json({ ok: false, chat: resolved, why: plan.why });
+    const ref = regRef(resolved);
+    if (!plan.labels.length) {
+      // The honest no: rest the paid sorter, change no folder of hers.
+      await ref.set({ catTriedAt: new Date().toISOString() }, { merge: true });
+      return res.json({ ok: true, chat: resolved, why: 'none', labels: [], dropped: plan.dropped });
+    }
+    await rememberLabels(plan.labels);
+    await ref.set({
+      ...labelPatch(plan.labels, { by: 'chat' }),
+      catSortedAt: new Date().toISOString(),
+    }, { merge: true });
+    res.json({ ok: true, chat: resolved, why: 'filed', labels: plan.labels, dropped: plan.dropped });
+  } catch (err) { fail(res, err); }
+});
+
 router.post('/status', async (req, res) => {
   try {
     const { chat, session, need, doing } = req.body || {};

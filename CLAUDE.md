@@ -16,6 +16,12 @@ The numbers are measured, not guessed.
 3. **Spent real money this turn? Say how much.** ONLY then — a reply that
    reports "$0" or "nothing spent" is noise she has to read (Sophie,
    2026-08-15: "they should just tell me if they DID spend something").
+3y. **FILE YOURSELF — `POST /api/chatfeed/selffile {chat, session, labels}`.**
+   Name your own folder in her own words once you know what the chat is, and
+   re-file whenever the subject changes (research that became a request). Only
+   words already in her vocabulary; `look at` / `come back to` are hers; no
+   labels is a fine answer. Full rules: *YOU FILE YOURSELF* in the Chats app
+   section.
 3z. **A MEASUREMENT SHE DID NOT ASK FOR STAYS OUT OF THE REPLY** (Sophie,
    2026-08-28: "why r u telling me that" · "every chat tells me that like 70
    times"). Token counts, what a reference costs, how long a call took, what
@@ -2394,25 +2400,41 @@ them off the reference sheet, not off the old filenames.
     rule, pure, no network) and `node scripts/test-chats-questions.js` (the
     real page, headless — including the pill collision, verified failing 2
     against the pre-fix page).
-- **CHATS SORT THEMSELVES INTO HER FOLDERS — and there is NOTHING for you to
-  do (Aug 2026, Sophie: "I've been manually sorting all my chats, but they
-  could sort themselves").** Do NOT post a category, and do not add one to
-  your status card: the server files a chat at the end of its turn by reading
-  the thread it already stores (`chat-sort.js`), because a chat-posted
-  category would be filed by the same ~7% that ever post an Update card.
-  **THAT 7% IS STALE — REMEASURED 2026-09-01 IT IS 98% (229 of the 234 chats
-  active in seven days had posted BOTH a status card and an Update card; 46%
-  had left a wrap-up).** The checklist at the top of this file and the hook's
-  per-turn reminder are what changed it, and the whole reason the sorter is a
-  server-side model call rather than one line in a chat's own turn no longer
-  holds — a chat could name its folder for free while it is already reading its
-  own thread, with the paid call left as the fallback for the chats that say
-  nothing. NOT BUILT, and it is Sophie's to approve: it would reverse the
-  do-NOT-post-a-category rule above for every chat at once. Until she says so,
-  the rule stands exactly as written. (The sorter's own call, measured the same
-  day: ~2,400 tokens in and ~200 out, so ~0.7c on claude-sonnet-5 and ~1.7c if
-  it were moved to Opus.)
-  The three rules it obeys: **anything SHE filed is never touched** (`catBy`),
+- **YOU FILE YOURSELF — `POST /api/chatfeed/selffile {chat, session, labels}`
+  (2026-09-01, Sophie: "chats choose their own" · "have them check in
+  periodically in case the subject changes").** Name your own folder once you
+  know what the chat is about, and **re-file yourself whenever the subject
+  really changes** — her own example: something she asked you to RESEARCH
+  becomes a REQUEST, and the folder that was right on turn one is wrong by
+  turn ten. Re-check at wrap-up and whenever the work changes shape; a re-post
+  is free and replaces your last answer.
+  - **THIS REVERSES THE do-NOT-POST-A-CATEGORY RULE that stood from Aug 2026**,
+    and the reversal is a measurement rather than a change of mind. That rule
+    rested on one number — a chat-posted folder would come from "the same ~7%
+    that ever post an Update card" — and **remeasured 2026-09-01 it is 98%**
+    (229 of the 234 chats active in seven days had posted BOTH a status card
+    and an Update card; 46% had left a wrap-up). The checklist at the top of
+    this file and the hook's per-turn reminder are what closed that gap. You
+    are already reading your own thread when you write those cards, so naming
+    the folder there is free and better informed than the server's pick, which
+    is a paid model call over a digest of your first two and last four
+    messages (~2,400 tokens in, ~200 out — about 0.7c on claude-sonnet-5).
+  - **THE PAID SORTER IS THE FALLBACK, not gone.** It still files any chat that
+    says nothing, and it stands down the moment you file yourself
+    (`catBy:'chat'` → `shouldAutoSort` answers `chat-filed`).
+  - **WHAT THE WORK IS BEATS WHERE IT HAPPENED** — the rule below applies to
+    you exactly as it applied to the sorter: a bug fix in the Story Room is
+    `bug fix`, not `story`.
+  - **The guardrails are enforced in CODE (`chatSort.selfFilePlan`), so a
+    refusal is an answer and never a silent wrong write.** Read the `why` back:
+    her filing is final (`catBy:'sophie'` and her `catNone` both refuse), an
+    unknown word is DROPPED and named in `dropped` rather than invented, triage
+    words are off limits (`look at` · `come back to` · `waiting for a response`
+    · `to be reviewed`), and **"none" is a normal answer** — filing hides a chat
+    from her main list, so a wrong folder costs her real work. Sending no labels
+    rests the paid sorter for a day and changes no folder of hers.
+  - Test: `node scripts/test-self-file.js` (the whole decision table, pure).
+  The three rules the server-side sorter obeys, unchanged: **anything SHE filed is never touched** (`catBy`),
   **"none" is a normal answer** (filing hides a chat from her main list, so a
   wrong folder costs her real work), and **it never invents a folder** — her
   vocabulary is read live and taught by her own filing. Her two WHEN folders,

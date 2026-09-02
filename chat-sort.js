@@ -245,6 +245,10 @@ function shouldAutoSort(reg, { now = Date.now(), messages = 0, enabled = true } 
   // having been asked.
   if (r.catNone) return { sort: false, why: 'hers-unfiled' };
   if (r.category) {
+    // A CHAT-FILED chat skips the paid call — that is the whole saving. It is
+    // not locked the way hers is: the CHAT re-files itself when the subject
+    // changes, so nothing here has to re-ask on its behalf.
+    if (r.catBy === 'chat') return { sort: false, why: 'chat-filed' };
     if (r.catBy !== 'auto') return { sort: false, why: 'hers' };  // rule 1 — one tap locks it
     // Its own earlier answer, revisited — see the RESORT_* block above. The
     // rest period is checked FIRST and reads only the registry, so the caller
@@ -484,11 +488,56 @@ function pickCategory(out, cats) {
   return oneFolder(o.category, cats);
 }
 
+// ---- A CHAT FILES ITSELF (2026-09-01, Sophie: "chats choose their own" ·
+// "have them check in periodically in case the subject changes") -------------
+// This REVERSES the do-NOT-post-a-category rule chats carried since Aug 2026.
+// That rule rested on one measurement — a chat-posted folder would come from
+// "the same ~7% that ever post an Update card" — and remeasured 2026-09-01 it
+// is 98% (229 of the 234 chats active in seven days had posted both a status
+// card and an Update card). The chat is already reading its own thread when it
+// writes those, so naming the folder there costs nothing, where the server's
+// own pick is a paid model call over a digest of the first two and last four
+// messages. The paid call stays as the FALLBACK for a chat that says nothing.
+//
+// Every guardrail the sorter obeys is enforced here too, in code rather than
+// in a rule a chat could forget — the sorter's own lesson (`kind` in its own
+// field, because a prompt instruction is a hope):
+//
+//   1. HER FILING IS FINAL. `catBy: 'sophie'` refuses outright, and so does
+//      her `catNone` ("leave it unfiled" is a decision, not an absence).
+//   2. IT NEVER INVENTS A FOLDER. A word outside her live vocabulary is
+//      DROPPED and named in the answer, never written.
+//   3. TRIAGE IS OFF LIMITS — `look at` / `come back to` are hers to apply,
+//      and `waiting for a response` / `to be reviewed` carry manual rules.
+//   4. "NONE" IS A NORMAL ANSWER. An empty set leaves the chat unfiled and
+//      stamps `catTriedAt`, which rests the paid sorter for a day — a chat
+//      that has looked and found nothing must not bill her for the same no.
+//
+// A chat may re-file itself as often as the subject really changes (research
+// that became a request), which is why its own earlier answer never locks it
+// out; only hers does.
+function selfFilePlan({ reg, cats, labels } = {}) {
+  const r = reg || {};
+  if (r.deletedAt) return { ok: false, why: 'deleted' };
+  if (r.catBy === 'sophie') return { ok: false, why: 'hers' };
+  if (r.catNone) return { ok: false, why: 'hers-unfiled' };
+  const known = (cats || []).filter((c) => !isTriage(c));
+  const asked = [].concat(labels == null ? [] : labels)
+    .map((c) => String(c || '').trim()).filter(Boolean);
+  const keep = [], dropped = [];
+  asked.forEach((c) => {
+    const hit = known.find((k) => norm(k) === norm(c));
+    if (!hit) { dropped.push(c); return; }
+    if (!keep.some((k) => norm(k) === norm(hit))) keep.push(hit);
+  });
+  return { ok: true, why: keep.length ? 'filed' : 'none', labels: keep, dropped };
+}
+
 module.exports = {
   regLabels,
   TRIAGE, WORK_KINDS, MIN_MESSAGES, RETRY_MS, BEFORE_EVERYTHING, SORT_SYS,
   RESORT_MIN_NEW,
   isWorkKind, workKinds,
   sortableCategories, examplesFor, shouldAutoSort, filedStamp, archiveHint, pickState, pendingAsk,
-  digestOf, buildSortPrompt, pickCategory,
+  digestOf, buildSortPrompt, pickCategory, selfFilePlan,
 };
