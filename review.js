@@ -69,6 +69,12 @@
 //   POST /hide { id, hidden } → stamps reviewHidden (the queue's own ↩; the
 //     deck's Skip/Done go to chatfeed's POST /page/:id/review, which is
 //     reachable under the same gate as the verdicts it is already saving)
+//   GET  /widget?limit=4  → { ok, count, items, decks } — the top of the
+//     waiting pile as ICONS, for the home-screen widget (2026-09-02, Sophie:
+//     "the widget / make it 4 icons / decks to swipe / currently / the dream
+//     factory deck / the wallpapers"). Same rows, same 60s cache, same order
+//     as the page — the widget is the top of the queue and nothing else, so
+//     the two can never disagree about what is waiting.
 //
 // Tests: node scripts/test-review.js (the whole decision table, pure fixtures;
 // plus the real page headless when playwright is around).
@@ -275,6 +281,65 @@ function buildQueue({ pages, items, verdicts, chats }) {
 }
 
 // ---------------------------------------------------------------------------
+// THE WIDGET'S FOUR ICONS (2026-09-02, Sophie: "the widget / make it 4 icons /
+// decks to swipe / currently / the dream factory deck / the wallpapers").
+//
+// The home-screen widget stopped being a count and became the top of THIS
+// pile: four decks she has not swiped, as pictures, each one a tap into that
+// deck. So this route hands back the same `waiting` rows the page draws, in
+// the same order, off the same 60s cache — the widget is a window onto the
+// queue and never a second ranking, so the two can never disagree about what
+// is waiting or which deck leads.
+//
+// THE FACE IS A LADDER, and the middle rung is the point: the deck's own
+// first picture, else THE CHAT'S ICON (chaticons.js draws one for every chat
+// — a real little drawing, already made, already the thing she recognises a
+// chat by), else nothing and the widget draws the first card's words. Twelve
+// of fifteen queued pages had no picture at all when the queue shipped —
+// text decks are the common case here, and a smear of prose at 64pt is not an
+// icon, where her chat drawing is.
+//
+// Every face rides the DERIVED thumb service, never the original: a deck's
+// first picture is routinely a 1-3MB lossless webp and a widget process is
+// killed for far less. Same rule, same helper shape, as feedkit's `thumbFor`.
+const WIDGET_W = 240;                       // ~2x the biggest icon it draws
+const GOOGLE_IMG = /^https:\/\/(storage|firebasestorage)\.googleapis\.com\//;
+
+function thumbUrl(u, w) {
+  const s = String(u || '');
+  if (!s) return '';
+  return GOOGLE_IMG.test(s)
+    ? `/api/story/thumb?w=${w || WIDGET_W}&url=${encodeURIComponent(s)}`
+    : s;
+}
+
+/** The widget's rows, out of a built queue. Pure — fixtures, no network. */
+function widgetDecks({ waiting, chats, limit }) {
+  const n = Math.min(6, Math.max(1, parseInt(limit, 10) || 4));
+  return (waiting || []).slice(0, n).map((r) => {
+    const reg = (chats || {})[r.chat] || {};
+    return {
+      id: r.id,
+      chat: r.chat,
+      // the chat's name is what she calls the pile; the page's title is what
+      // this particular deck is. The widget has room for one of them per
+      // icon, so it gets both and picks by size.
+      name: r.name,
+      title: r.title,
+      url: r.url,
+      total: r.total,
+      decided: r.decided,
+      left: Math.max(0, r.total - r.decided),
+      icon: thumbUrl(r.thumb || reg.icon || ''),
+      // NOT the same thing as a missing icon: a picture deck whose Storage
+      // object is gone still has words, and the widget would rather draw
+      // them than an empty square.
+      peek: r.peek,
+    };
+  });
+}
+
+// ---------------------------------------------------------------------------
 // The router
 // ---------------------------------------------------------------------------
 
@@ -327,36 +392,64 @@ router.get('/status', (req, res) => {
 });
 
 let cache = null;
+let cacheChats = null;   // the registry map the same build read — the widget's
+                         // icon ladder needs it, and re-reading would be a
+                         // second answer to a question already answered
 let cacheAt = 0;
 const CACHE_MS = 60 * 1000;
+
+/** The whole queue, behind the 60s hold. Shared by the page and the widget so
+ *  neither can show a pile the other doesn't have. */
+async function loadQueue(fresh) {
+  if (!fresh && cache && Date.now() - cacheAt < CACHE_MS) {
+    return { body: cache, chats: cacheChats || {}, cached: true };
+  }
+  // ONE equality-ish filter, sorted in memory — no composite index (the
+  // reference-shelf pattern). Template pages are few; the cap is a guard.
+  const snap = await db().collection(PAGES).where('template', 'in', ['deck', 'grid']).get();
+  const pages = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => ms(b.created) - ms(a.created))
+    .slice(0, SCAN_PAGES);
+  const live = pages.filter((p) => !p.superseded);
+  const [items, reg, vsnaps] = await Promise.all([
+    loadItems(live),
+    chatfeed.registry(),
+    live.length
+      ? db().getAll(...live.map((p) => db().collection(VERDICTS).doc(`${p.chat}__page-${p.id}`)))
+      : [],
+  ]);
+  const verdicts = {};
+  vsnaps.forEach((d) => { if (d.exists) verdicts[d.id] = d.data(); });
+  const chats = reg.chats || {};
+  const body = buildQueue({ pages, items, verdicts, chats });
+  body.generatedAt = new Date().toISOString();
+  cache = body;
+  cacheChats = chats;
+  cacheAt = Date.now();
+  return { body, chats, cached: false };
+}
 
 router.get('/', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
-    if (!req.query.fresh && cache && Date.now() - cacheAt < CACHE_MS) {
-      return res.json({ ...cache, cached: true });
-    }
-    // ONE equality-ish filter, sorted in memory — no composite index (the
-    // reference-shelf pattern). Template pages are few; the cap is a guard.
-    const snap = await db().collection(PAGES).where('template', 'in', ['deck', 'grid']).get();
-    const pages = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-      .sort((a, b) => ms(b.created) - ms(a.created))
-      .slice(0, SCAN_PAGES);
-    const live = pages.filter((p) => !p.superseded);
-    const [items, reg, vsnaps] = await Promise.all([
-      loadItems(live),
-      chatfeed.registry(),
-      live.length
-        ? db().getAll(...live.map((p) => db().collection(VERDICTS).doc(`${p.chat}__page-${p.id}`)))
-        : [],
-    ]);
-    const verdicts = {};
-    vsnaps.forEach((d) => { if (d.exists) verdicts[d.id] = d.data(); });
-    const body = buildQueue({ pages, items, verdicts, chats: reg.chats || {} });
-    body.generatedAt = new Date().toISOString();
-    cache = body;
-    cacheAt = Date.now();
-    res.json(body);
+    const { body, cached } = await loadQueue(Boolean(req.query.fresh));
+    res.json(cached ? { ...body, cached: true } : body);
+  } catch (err) { fail(res, err); }
+});
+
+// The widget's four icons. Same rows, same order, same cache as the page.
+router.get('/widget', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const { body, chats } = await loadQueue(Boolean(req.query.fresh));
+    res.json({
+      ok: true,
+      // the headline the page shows, so the widget can say how deep the pile
+      // is behind the four it drew
+      count: body.counts.pages,
+      items: body.counts.items,
+      decks: widgetDecks({ waiting: body.waiting, chats, limit: req.query.limit }),
+    });
   } catch (err) { fail(res, err); }
 });
 
@@ -377,4 +470,4 @@ router.post('/hide', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
-module.exports = { router, buildQueue, pageItems, pageProgress, pageSpreads, itemWords };
+module.exports = { router, buildQueue, widgetDecks, pageItems, pageProgress, pageSpreads, itemWords };

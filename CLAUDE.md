@@ -8841,8 +8841,20 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **LIVE since Aug 2026 (measured 2026-08-27: `GET /api/push/status` answers
   `configured:true, devices:1`)** — the APNs key is in Render's secret files.
   This line used to say "dormant until the key exists"; that is history.
-  **The home-screen widget** reads one small JSON (`GET /api/chatfeed/widget`) and
-  must NEVER pull the real feed. **Full details: `docs/modules/inbox-and-misc.md`.**
+  **THE HOME-SCREEN WIDGET IS FOUR DECKS TO SWIPE (2026-09-02, Sophie: "the
+  widget / make it 4 icons / decks to swipe / currently / the dream factory
+  deck / the wallpapers")** — the top four decks still waiting in the Review
+  Queue, as pictures, each a tap into that deck's cards
+  (`deckfactory://review?deck=<page id>`). It reads
+  `GET /api/review/widget?limit=4` — the SAME waiting rows the `/review` page
+  draws, in the same order, off the same 60s cache, so the two can never
+  disagree — and must NEVER pull the real feed. **The face is a ladder** (the
+  deck's own first picture → the CHAT'S icon → its first card's words) and
+  **every face rides the derived thumb service**: a deck's first picture is
+  routinely a 1-3MB lossless webp and a widget process is killed for less.
+  **The widget KIND is unchanged on purpose** — iOS remembers a placed widget
+  by it. It used to be the Update count; that is history, not a rule.
+  **Full details: `docs/modules/inbox-and-misc.md`.**
 - **THE DELIVERABLES LIST** (`deliverables.js`, `/api/deliverables`, page at
   `/deliverables` — Aug 2026, Sophie: "is there a running list of deliverables?
   … can you make one, and have the notification go off when a new deliverable

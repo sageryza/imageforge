@@ -196,14 +196,59 @@ The generic phone inbox, the APNs doorbell, and the Google Drawing extractor.
     on every deploy, forever. Pinned by `test-chats-build-reload.js`. TestFlight rides the
   PRODUCTION APNs host. Apple-managed CI signing registers the push
   capability on the App ID automatically (same as the App Group did).
-- **THE HOME-SCREEN WIDGET (Aug 2026, Sophie: "I'd like the widget")** —
-  `ios/ForgeWidget/`, a WidgetKit extension: the Update count big, plus the
-  newest chats (names at small, name + line at medium), tap opens
-  `deckfactory://chats`. Flat paper palette, no gradients.
-  - It reads **`GET /api/chatfeed/widget?limit=`** — one small JSON — and
-    must NEVER pull the real feed (~500KB on a refresh timer). Cost is the
-    cached registry + one capped message read, nothing per-chat.
-  - **Its floor is `notifSeenAt`, and OPENING A CHAT NOW WRITES THAT STAMP
+- **THE HOME-SCREEN WIDGET IS FOUR DECKS TO SWIPE (2026-09-02, Sophie: "the
+  widget / make it 4 icons / decks to swipe / currently / the dream factory
+  deck / the wallpapers")** — `ios/ForgeWidget/`, a WidgetKit extension: the
+  top four decks still waiting in the **Review Queue**, as pictures, each one
+  a tap into that deck's cards. Flat paper palette, no gradients.
+  - **It used to be the Update COUNT** (Aug 2026, "I'd like the widget") and
+    that is history rather than a rule: the number is still on the Update tab
+    and the push still carries "right now", where four faces are the
+    difference between *there are things waiting* and *here is the one I'll
+    do*. The old `GET /api/chatfeed/widget` route is untouched and still
+    tested — nothing reads it now.
+  - **THE KIND IS UNCHANGED (`ForgeUpdateWidget`) ON PURPOSE.** iOS remembers
+    a placed widget by its kind, so renaming it would orphan the one on her
+    home screen and she would have to place a new one. Same widget, different
+    subject.
+  - It reads **`GET /api/review/widget?limit=4`** — the SAME waiting rows the
+    `/review` page draws, in the same order, off the same 60s cache, so the
+    widget and the page can never disagree about what is waiting or which
+    deck leads. `count` is the FULL pile, so four icons never imply four
+    decks.
+  - **THE FACE IS A LADDER, and the middle rung is the point:** the deck's own
+    first picture → **the chat's icon** (chaticons.js already draws one for
+    every chat — the little drawing she recognises a chat by) → its first
+    card's words. Twelve of fifteen queued pages had no picture when the queue
+    shipped: text decks are the common case here, and prose at 64pt is not an
+    icon where her chat drawing is.
+  - **EVERY FACE RIDES THE DERIVED THUMB SERVICE, never the original** — a
+    deck's first picture is routinely a 1-3MB lossless webp and a widget
+    process is killed for less. The server hands back `/api/story/thumb` urls;
+    a test fails if a raw Storage url ever reaches the widget.
+  - **SMALL HAS EXACTLY ONE TAP TARGET, and that is why the two layouts
+    differ.** iOS gives a `systemSmall` widget a single `widgetURL` and
+    ignores any `Link` inside it, so the little one is a 2×2 of icons opening
+    the queue, and the medium one is a row of four, each its own `Link` into
+    its own deck.
+  - **A tap opens THAT DECK — `deckfactory://review?deck=<page id>`.** RootView
+    carries the query onto `PushDelegate.pendingDeck` and posts
+    `.forgeOpenDeck`; ReviewQueueView bumps its reload key and its URL builder
+    consumes the flag, loading `/api/chatfeed/page/<id>?clean=1` — the exact
+    url a queue tile opens, so a widget-opened deck is identical to a
+    tapped-row one, chevron and all (judge.js's `__navBack` steps history and
+    falls back to `/review`). The NOTIFICATION is the load-bearing half: the
+    app keeps three tools alive in a ZStack, so arriving at a tool it is
+    already holding runs no `makeUIView` and the deck would never open. The
+    flag is one-shot, so a later reload cannot drag her back into a deck she
+    has walked out of.
+  - **Pictures are fetched in the PROVIDER**, never the view — a widget view
+    cannot load a URL — and a timeline entry is archived to disk, which is the
+    other reason the faces must be derived thumbs.
+  - Tests: `node scripts/test-review-widget.js` (the real route against a
+    stubbed Firestore and Storage) and the widget block in
+    `node scripts/test-review.js` (the icon ladder and the caps, pure).
+  - **Its old floor was `notifSeenAt`, and OPENING A CHAT WRITES THAT STAMP
     TOO** (`markSeen` POSTs `/notif-seen`, Aug 2026). Without it the widget
     counted everything-since-the-✓ while the tab counted
     everything-since-she-last-looked — measured live the hour it shipped:
@@ -227,10 +272,11 @@ The generic phone inbox, the APNs doorbell, and the Google Drawing extractor.
     `com.sageryza.imageforge.widget` in the developer portal ONCE, then add
     the entitlements file back — the Swift side already reads the group, so
     there is no code change.
-  - A failed fetch says "can't reach the feed" rather than showing 0:
-    "nothing new" and "couldn't ask" must never look the same.
-  - Tests: `node scripts/test-widget-feed.js` (drives the real route against
-    a stubbed Firestore).
+  - A failed fetch says "can't reach the queue" rather than showing an empty
+    pile: "nothing waiting" and "couldn't ask" must never look the same.
+  - The old count route still has its own test:
+    `node scripts/test-widget-feed.js` (drives it against a stubbed
+    Firestore).
 - **A dead token self-heals**: 410/`Unregistered` deletes the device doc.
   Tests: `node scripts/test-push.js` (key-paste shapes, verifiable ES256
   JWT, wire format against a local h2c server; Apple itself is only
