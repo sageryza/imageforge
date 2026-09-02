@@ -2399,8 +2399,20 @@ them off the reference sheet, not off the old filenames.
   could sort themselves").** Do NOT post a category, and do not add one to
   your status card: the server files a chat at the end of its turn by reading
   the thread it already stores (`chat-sort.js`), because a chat-posted
-  category would be filed by the same ~7% that ever post an Update card. The
-  three rules it obeys: **anything SHE filed is never touched** (`catBy`),
+  category would be filed by the same ~7% that ever post an Update card.
+  **THAT 7% IS STALE — REMEASURED 2026-09-01 IT IS 98% (229 of the 234 chats
+  active in seven days had posted BOTH a status card and an Update card; 46%
+  had left a wrap-up).** The checklist at the top of this file and the hook's
+  per-turn reminder are what changed it, and the whole reason the sorter is a
+  server-side model call rather than one line in a chat's own turn no longer
+  holds — a chat could name its folder for free while it is already reading its
+  own thread, with the paid call left as the fallback for the chats that say
+  nothing. NOT BUILT, and it is Sophie's to approve: it would reverse the
+  do-NOT-post-a-category rule above for every chat at once. Until she says so,
+  the rule stands exactly as written. (The sorter's own call, measured the same
+  day: ~2,400 tokens in and ~200 out, so ~0.7c on claude-sonnet-5 and ~1.7c if
+  it were moved to Opus.)
+  The three rules it obeys: **anything SHE filed is never touched** (`catBy`),
   **"none" is a normal answer** (filing hides a chat from her main list, so a
   wrong folder costs her real work), and **it never invents a folder** — her
   vocabulary is read live and taught by her own filing. Her two WHEN folders,
