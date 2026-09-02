@@ -308,6 +308,16 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
         c.cell.style.display=show?'':'none';
         if(show) shown++;
       });
+      // THE EMPTY STATE TELLS THE TRUTH ABOUT THE SEARCH (2026-09-01,
+      // Sophie's screenshot: "mirror" → "No images match that." over a list
+      // that held 1,378 hits). The client filter answers instantly over the
+      // 150 tiles on screen, the server's answer lands seconds later — and a
+      // server call that fails leaves the page saying nothing matched, for
+      // good. So while the server is being asked the line says so, and a
+      // failed ask says THAT, never "no images".
+      if(q&&searching) none.textContent='Searching\u2026';
+      else if(q&&searchErr) none.textContent='Search couldn\u2019t reach the server \u2014 press Return to try again.';
+      else none.textContent='No images match that.';
       none.style.display=(shown||(!cells.length&&!q))?'none':'';
     }
     var seg=document.createElement('div'); seg.className='afilter';
@@ -335,28 +345,41 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
     // screen, and a beat later the server answers over the WHOLE list
     // (same grammar, matched in meta-assets.js) and the grid becomes those
     // results. Clearing the box puts the browse walk back exactly as it was.
-    var searchSeq=0, searchTimer=null;
+    var searchSeq=0, searchTimer=null, searching=false, searchErr=false;
     function serverSearch(){
       var seq=++searchSeq, want=q;
-      if(!want){ renderList(browseItems); more.style.display='none'; watchTail(); return; }
-      var got=[];
+      if(!want){ searching=false; searchErr=false; renderList(browseItems); more.style.display='none'; watchTail(); return; }
+      searching=true; searchErr=false; applyFilter();
+      // THE FIRST PAGE PAINTS AS IT LANDS (2026-09-01). A common word is many
+      // pages — "mirror" is 1,378 rows — and waiting for the last page before
+      // drawing the first left her looking at an empty grid for the whole walk.
+      var got=[], first=true;
       (function pageIn(off){
-        api('/api/gallery/assets/all?q='+encodeURIComponent(want)+'&limit=300&offset='+off)
-          .then(function(r){return r.json()})
+        api('/api/gallery/assets/all?q='+encodeURIComponent(want)+'&limit=1000&offset='+off)
+          .then(function(r){ if(!r.ok) throw new Error('search '+r.status); return r.json(); })
           .then(function(p){
             if(seq!==searchSeq) return;
-            var list=(p&&p.assets)||[];
-            got=got.concat(canon(list));
+            var list=canon((p&&p.assets)||[]);
+            got=got.concat(list);
+            if(first){ renderList(got); first=false; }
+            else { addTiles(list); applyFilter(); }
             var tot=(p&&p.total)||got.length;
             if(list.length && got.length<tot && got.length<3000){ pageIn(off+list.length); return; }
-            renderList(got);
+            searching=false; applyFilter();
           })
-          .catch(function(){ /* keep the client-filtered view */ });
+          .catch(function(){
+            if(seq!==searchSeq) return;
+            // the client-filtered view stays, and the line says why it may be short
+            searching=false; searchErr=true; applyFilter();
+          });
       })(0);
     }
     function readSearch(){
       q=(si.value||'').trim().toLowerCase();
       sx.style.display=q?'':'none';
+      // the server is about to be asked (after the debounce) — say so from
+      // the first keystroke, not only once the request is in flight
+      searching=!!q; searchErr=false;
       applyFilter();
       clearTimeout(searchTimer);
       searchTimer=setTimeout(serverSearch, 350);

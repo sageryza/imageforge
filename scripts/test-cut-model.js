@@ -33,6 +33,20 @@ eq(M.starts(clips).map((s) => s.start), [0, 5.2, 8.4, 13.6, 32.1], 'starts');
 eq(M.shotAt(clips, 33).key, 'horror', 'shot under a second');
 eq(M.shotAt(clips, 32.1).key, 'horror', 'boundary belongs to the next shot');
 
+// ── splitting a piece (the one copy of the rule, for the server AND the page) ──
+{
+  const clip = { key: 'a', kind: 'video', url: U('y.mp4'), title: 't', poster: null, seconds: 10, in: 2, out: 8, mute: false, gain: 0 };
+  const pair = M.splitPiece(clip, 2.5, 'newkey');
+  ok(pair && pair[0].out === 4.5 && pair[1].in === 4.5, 'a clip splits where the two halves meet exactly at the cut');
+  eq([pair[0].key, pair[1].key, pair[0].url === pair[1].url], ['a', 'newkey', true], 'the second half gets the new key; both reference ONE source');
+  ok(Math.abs(M.pieceSeconds(pair[0]) + M.pieceSeconds(pair[1]) - M.pieceSeconds(clip)) < 1e-9, 'nothing is lost across a split');
+  eq(M.splitPiece(clip, 0.05, 'k'), null, 'a split at the very start is refused');
+  eq(M.splitPiece(clip, 5.95, 'k'), null, 'a split at the very end is refused');
+  const still = M.cleanPiece({ key: 's', kind: 'image', url: U('s.webp'), out: 6 });
+  const sp2 = M.splitPiece(still, 2, 's2');
+  eq([sp2[0].in, sp2[0].out, sp2[1].in, sp2[1].out, sp2[1].kind], [0, 2, 0, 4, 'image'], 'a still splits into two stills whose holds add up, in stays 0');
+}
+
 // ── sounds ────────────────────────────────────────────────────────────────
 const sounds = M.cleanSounds([
   { key: 'voice', url: U('voice.m4a'), name: 'voice', seconds: 108.1 },

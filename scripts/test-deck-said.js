@@ -67,7 +67,7 @@ if (!chrome) {
 
 // ---- 2. the real page ------------------------------------------------------
 const files = ['compare.css', 'compare.js', 'judge.js', 'grid.js', 'asset-lightbox.js',
-  'asset-view.js', 'page-views.js'].reduce((m, f) => {
+  'asset-view.js', 'playground-port.js', 'asset-actions.js', 'page-views.js'].reduce((m, f) => {
   m['/' + f] = [f.endsWith('.css') ? 'text/css' : 'application/javascript',
     fs.readFileSync(path.join(PUB, f), 'utf8')];
   return m;

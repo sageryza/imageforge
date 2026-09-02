@@ -590,6 +590,17 @@ struct RootView: View {
                 return
             }
         }
+        // AND THE SAME FOR ONE DECK (2026-09-02, the widget's four icons):
+        // deckfactory://review?deck=<page id> opens THAT deck's cards rather
+        // than the queue. Same one-shot pending flag, same reason — and the
+        // notification is what reaches the tool when it is already alive in
+        // the ZStack, where nothing would otherwise rebuild its web view.
+        if dest == "review", let deck = q.first(where: { $0.name == "deck" })?.value, !deck.isEmpty {
+            PushDelegate.pendingDeck = deck
+            go(dest)
+            NotificationCenter.default.post(name: .forgeOpenDeck, object: nil)
+            return
+        }
         go(dest)
     }
 

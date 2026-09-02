@@ -178,6 +178,9 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
   background:var(--chg); color:var(--paper); font-size:9px; font-weight:700;
   letter-spacing:0;}
 .state{font-style:italic; color:var(--ink2); text-align:center; padding:4em 0;}
+/* The archive count under a lit tag's pile — a footnote, not an empty
+   state, so it does not take a screen's worth of padding. */
+.state.catarch{padding:1.6em 0 2.4em; font-size:13px;}
 #chatgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:20px 14px;}
 /* ON MY TRAY (2026-08-31) — FOUR across where the tile wall is three, because
    she asked for the icons and nothing else: no status line, no timestamp, so a
@@ -600,6 +603,24 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .dayrule::after{content:''; flex:1; height:1px; background:var(--line);}
 .clist > .dayrule:first-child, #chatgrid > .dayrule:first-child{margin-top:0;}
 #chatgrid > .dayrule{grid-column:1/-1;}
+/* PINNED FOLDS (2026-09-02, Sophie: "make the pinned panel collapsible in chat
+   app"). Measured on her live list at 390x844 before anything was built: the
+   PINNED block ran 282→740, so her pinned chats filled the whole first screen
+   and TODAY started below the fold — with the HIDDEN bar sitting right above
+   them already folding, and this block, the taller of the two, with no way to
+   put it away.
+   THE HEADING IS THE FOLD — the whole row, not a caret to hit (judge.js's piles
+   rule) — so it is a <button> wearing `.dayrule`, which keeps it looking like
+   every other heading: this is the same furniture, not a new control. No box,
+   no fill; a rose bar here would read as a second HIDDEN pile. */
+button.dayrule{border:none; background:none; padding:0; cursor:pointer;
+  -webkit-tap-highlight-color:transparent; font-weight:inherit;}
+.dayrule .dr-chev{width:13px; height:13px; flex:none; display:block; order:3;
+  transition:transform .16s ease; transform:rotate(180deg);}
+.dayrule.shut .dr-chev{transform:none;}
+/* The count only shows SHUT — open, the rows are right there, and saying it
+   twice is the archive summary's own lesson. */
+.dayrule .dr-n{letter-spacing:.04em; opacity:.75;}
 .crow{display:flex; align-items:center; gap:11px; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:9px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
 .bmknote{flex:1 0 100%; margin:8px 0 0;}
 .bmknote input{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:15px;
@@ -711,6 +732,26 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .orgbtn{flex:none; background:none; border:none; padding:6px 4px; cursor:pointer; color:var(--ink2);
   display:flex; align-items:center; -webkit-tap-highlight-color:transparent;}
 .orgbtn svg{width:16px; height:16px; display:block;}
+/* THE PROJECT — every chat on the same thing, behind one tap (2026-09-02,
+   Sophie: "all the triset chats … from a single icon button on that chat page
+   header · probably 3-4 stacked square cards"). Quiet ink like Organize
+   beside it: it opens a page, it is not a state. Drawn ONLY when the chat has
+   siblings — a group of one is a dead control. */
+.projbtn{flex:none; background:none; border:none; padding:6px 4px; cursor:pointer; color:var(--ink2);
+  display:flex; align-items:center; -webkit-tap-highlight-color:transparent;}
+.projbtn svg{width:17px; height:17px; display:block;}
+/* The project page: a hairline ICONS · LIST row (the account row's own
+   `.acctabs`, so the underline measures itself), a one-line count under it,
+   and then the tile wall or the list exactly as the home screen draws them.
+   An archived sibling is IN (that is the history she is going back for) and
+   reads as put away: the cover dims, the name does not. */
+.projrow{margin-top:0;}
+.projcount{font-family:'EBGaramond',Georgia,serif; font-style:italic; color:var(--ink2); font-size:13px;
+  margin:0 0 12px;}
+#chatgrid .projtile .t-name{display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+.projchips{margin:0 0 10px;}
+.tile.archd .t-cover{opacity:.5;}
+.crow.archd .cr-ic, .crow.archd .cr-name{opacity:.55;}
 /* HIDE and DELETE as PICTURES (Aug 2026, Sophie: "make the delete button a
    picture of a trash can and the hide button a picture of an eye that's
    crossed out if it's hidden").
@@ -1966,6 +2007,11 @@ body.newspick > .float{display:none !important;}
 <script src="/asset-actions.js"></script>
 <script src="/asset-lightbox.js"></script>
 <script src="/filmnote.js"></script>
+<!-- WHICH PROJECT A CHAT IS ON (2026-09-02) — the stacked-cards button in a
+     thread's header and the page behind it. One rule, shared with the server
+     (chat-sort.js) so a project the sorter files is spelled the way this page
+     groups. Guarded like every other shared script here. -->
+<script src="/project-words.js"></script>
 <script>
 (function(){
 var TOKEN='__STUDIO_TOKEN__';
@@ -2314,10 +2360,42 @@ function chatDayKey(name, last){
   if(chatPinTop(name)) return 'pin';
   return last? dayKey(last.created) : '';
 }
-function mkDayRule(key){
-  var d=document.createElement('div'); d.className='dayrule';
-  d.innerHTML='<span>'+esc(dayLabel(key))+'</span>';
-  return d;
+// THE PINNED HEADING FOLDS; every date heading is a plain rule (2026-09-02).
+// `pinShut` is remembered, unlike judge.js's per-visit piles: this is a list she
+// comes back to all day, and re-opening a block she deliberately put away every
+// time she reloads is the fold not working. Default OPEN — pinned chats exist
+// to lead the list ("they never disappeared to the bottom if I don't look at
+// them for a while"), so folded has to be a state she chose.
+var pinShut = (function(){ try{ return localStorage.getItem('chats.pinshut')==='1'; }catch(e){ return false; } })();
+function setPinShut(v){
+  pinShut=!!v;
+  try{ localStorage.setItem('chats.pinshut', pinShut?'1':'0'); }catch(e){}
+}
+// How many chats sit behind the fold — the pile it is folding, never her whole
+// `pinTop` set: the archive, the ★ chip and the hidden pile each carry their own
+// pinned chats, and a heading saying 32 over a block of three is a lie about the
+// screen she is looking at.
+function pinCount(names){
+  var n=0; (names||[]).forEach(function(x){ if(chatPinTop(x)) n++; });
+  return n;
+}
+function mkDayRule(key, n){
+  if(key!=='pin'){
+    var d=document.createElement('div'); d.className='dayrule';
+    d.innerHTML='<span>'+esc(dayLabel(key))+'</span>';
+    return d;
+  }
+  var b=document.createElement('button');
+  b.className='dayrule pinrule'+(pinShut?' shut':'');
+  b.setAttribute('aria-expanded', pinShut?'false':'true');
+  b.innerHTML='<span>'+esc(dayLabel(key))
+    +(pinShut&&n? '<span class="dr-n"> &middot; '+n+'</span>':'')+'</span>'
+    +CHEV.replace('hb-chev','dr-chev');
+  // The tapped heading is put back exactly where it was on screen — this block
+  // is at the TOP of a long list, so closing it collapses the page under her
+  // thumb otherwise (the `repaintKeepingBar` lesson, earned by the MORE fold).
+  b.onclick=function(){ setPinShut(!pinShut); repaintKeepingBar('.pinrule'); };
+  return b;
 }
 
 
@@ -2920,7 +2998,14 @@ function statusFor(list){
 // bookmarked message across all chats, and STATUS (what's waiting on her /
 // working / just delivered). `homeView` survives opening a chat and coming
 // back, so she returns to the list she was reading.
-var homeView='live';   // 'live' | 'archive' | 'bookmarks' | 'status' | 'todo' | 'news'
+var homeView='live';   // 'live' | 'archive' | 'bookmarks' | 'status' | 'todo' | 'news' | 'project'
+// THE PROJECT PAGE (2026-09-02). `projectKey` is the word the page groups on,
+// `projectFrom` the chat she came from (its OTHER project words are offered
+// as chips, so a chat on two things is one tap from either group), and
+// `projView` is ICONS or LIST — sticky, opening on icons three across.
+var projectKey='', projectFrom='';
+var projView='icons';
+try{ projView=localStorage.getItem('chats-project-view')==='list' ? 'list' : 'icons'; }catch(e){}
 // …restored ONLY across a reload the page did to itself (a new build landed —
 // see checkBuild). A launch she started still opens on the chat list; being
 // carried out of the Update tab by a deploy is the app interrupting her, and
@@ -2948,7 +3033,8 @@ function paintHomeChrome(){
   document.getElementById('htxt').textContent = inHidden ? 'Hidden'
     : homeView==='archive' ? 'Archive' : homeView==='bookmarks' ? 'Bookmarks'
     : homeView==='status' ? 'Status' : homeView==='todo' ? 'To do'
-    : homeView==='news' ? 'Update' : homeView==='trash' ? 'Trash' : 'Chats';
+    : homeView==='news' ? 'Update' : homeView==='trash' ? 'Trash'
+    : homeView==='project' ? projectTitle(projectKey) : 'Chats';
   t.classList.toggle('hid', inHidden);
   t.classList.toggle('arch', homeView==='archive');
   // The trash wears the same red as the hidden bar — it is the one place on
@@ -3063,7 +3149,7 @@ function otherView(){
   // and account tabs mean nothing in there, so it folds its chrome away like
   // the other non-list views.
   return homeView==='bookmarks'||homeView==='status'||homeView==='todo'
-      ||homeView==='news'||homeView==='trash';
+      ||homeView==='news'||homeView==='trash'||homeView==='project';
 }
 function paintSearch(){
   var row=document.getElementById('searchrow'), btn=document.getElementById('searchbtn'),
@@ -5424,11 +5510,14 @@ function chatStar(name){ return !!(chats[name]&&chats[name].starred); }
 // stay forever", against a star for "a chat I'm currently working on"). It is
 // what fills the Bookmarks pile's CHATS tab; the star no longer does.
 function chatKept(name){ return !!(chats[name]&&chats[name].bookmarked); }
-// BELLED — allowed to push to her phone (Aug 2026). A WHITELIST: absent means
-// silent, so this is `=== true` in spirit, not "not explicitly off". The bell
-// in the thread header is the only control; the server reads the same field
-// (`push-gate.js` → `chatNotifies`) in front of every push.
-function chatNotify(name){ return !!(chats[name]&&chats[name].notify); }
+// BELLED — allowed to push to her phone. ON BY DEFAULT since 2026-09-01
+// ("change to readily notify on for chats"): it was a whitelist (absent =
+// silent) and it is a BLACKLIST now — absent means ON, and only her own
+// `notify:false` silences a chat, so this is `!== false` and never a
+// truthiness test. The server reads the SAME field the same way
+// (`push-gate.js` → `chatNotifies`) in front of every push; keep the two
+// spellings identical or the lit bell and the buzz disagree.
+function chatNotify(name){ return !(chats[name]&&chats[name].notify===false); }
 // Seeds + every name she has ever created (kept on the __settings doc) + every
 // name actually in use. The middle one is why an EMPTY folder still shows: she
 // made a category, nothing happened to be picked at the time, and it vanished
@@ -5988,6 +6077,61 @@ function renderHome(){
     renderTray(el,g,tr);
     return;
   }
+  // ---- A LIT TAG IS ITS OWN PILE, AND IT SHOWS EVERYTHING WEARING THE WORD
+  // (2026-08-31, Sophie: "things get hidden in chats in multiple ways" · "come
+  // back to shud show allll not just ones not on another list" · "any tag shud
+  // show all") ---------------------------------------------------------------
+  // A chip used to NARROW whichever list she was standing on, so every filter
+  // that list already applied went on applying — and they stack. Measured
+  // against her live feed the morning she asked: `come back to` is on 34 chats,
+  // and the lit chip rendered ONE row. The four that ate the other 33:
+  //
+  //   • the HIDDEN pile — 23 of the 28 live ones, nearly all of them stuck
+  //     there by the aged-out-park bug (see repliedSince);
+  //   • the ACCOUNT tabs — the survivors were 10/9/8 across accounts 1/2/3, so
+  //     no single tab could ever show her the pile;
+  //   • the BUG-FIX carve-out on ALL, which drops a chat wearing both words;
+  //   • the seven-day MORE fold under the live list.
+  //
+  // So a lit chip is a PLACE SHE WENT, like ★ and the tray and the bug tab —
+  // it replaces the list rather than narrowing it, and none of the four apply.
+  // It reaches ACROSS THE ACCOUNTS for the tray's own reason: the account row
+  // is not even on screen while the lists row is, and a hand-picked pile
+  // silently missing two thirds of itself is exactly the filter she cannot see.
+  // She picked the word — that IS the filter.
+  //
+  // THE ARCHIVE STILL DOES NOT POP OUT, and that is her rule, not an oversight
+  // (2026-08-28: "archive doesn't pop out ur insane that's the point of
+  // archive"). It has its own filter row, so a word is still findable in there.
+  // What is new is that the count is NAMED under the list — silently dropping
+  // 6 of 34 is the thing this whole change is about.
+  //
+  // DELIVERED is left alone above: its rows are films and pictures, not chats,
+  // so there is nothing for a chat tag to narrow.
+  if(cat && homeView==='live' && !(listsOn() && listTab==='delivered')){
+    var pool=everyone.filter(function(n){ return chatInCat(n,cat) && !chatDeleted(n); });
+    var pl=pool.filter(function(n){ return !(chats[n]&&chats[n].archived); });
+    var plArch=pool.length-pl.length;
+    paintHomeChrome(); paintAcctTabs(g); paintListTabs(); paintCatRow(g);
+    document.getElementById('selbtn').classList.toggle('on', selMode);
+    paintSelBar();
+    if(!pl.length){
+      el.innerHTML='<div class="state">Nothing under '+esc(catLabel(cat))
+        +(plArch? ' except '+plArch+' in the Archive.' : ' yet — tap the checkbox to file some chats.')+'</div>';
+      return;
+    }
+    if(view==='list') renderList(el,g,pl); else renderTiles(el,g,pl);
+    // Nothing is dropped without a number saying so — the same reason the
+    // hidden bar names what is behind it.
+    if(plArch){
+      var an=document.createElement('div');
+      an.className='state catarch';
+      an.textContent=plArch+(plArch===1?' more is':' more are')+' in the Archive.';
+      el.appendChild(an);
+    }
+    if(window.__jumpsRecheck) window.__jumpsRecheck();
+    return;
+  }
   if(listsOn() && listTab==='all'){
     // A LIT CHIP STILL NARROWS IT. The category row is on screen here, and a
     // filter she can see that does nothing is the silent-filter failure this
@@ -6003,6 +6147,12 @@ function renderHome(){
     // `bugfix` are ARCHIVE_PROGRESS words and are not offered as chips on this
     // row; `bug`/`bugs`, her own dictated spellings, are — so the carve-out is
     // reachable from a real tap, and stays true if the others ever join it.
+    // …AND A LIT CHIP NEVER REACHES HERE ANY MORE (2026-08-31): it is its own
+    // pile above, which is what took the carve-out off it — a chat wearing
+    // `story` AND `bug fix` was dropped from `story`, which is exactly the
+    // "not just ones not on another list" she was pointing at. The carve-out
+    // below is now only ever the UNFILTERED tab's, and `catIsBug` is what
+    // keeps that true if the guard above is ever narrowed.
     var catIsBug = cat && TAG_MARKS[0].labels.indexOf(cat)>-1;
     var every=all.filter(function(n){
       if(chatDeleted(n) || (chats[n]&&chats[n].archived)) return false;
@@ -6090,6 +6240,9 @@ function renderHome(){
   // UNFILED = carries no PILE word (chatFiled). Plain tags leave a chat exactly
   // where it was — Sophie, the day after the merge: "tagging shouldn't hide
   // everything … whereas other ones shouldn't take it off the main feed".
+  // On `live` a lit chip is handled by its own pile above, so this only ever
+  // runs unfiltered here — the `cat` arm still stands for the OTHER views that
+  // fall through to this branch (the archive reads `arch` below).
   live=live.filter(function(n){
     return cat ? chatInCat(n,cat) : (!chatFiled(n) || chatBack(n, lastOf(g,n)));
   });
@@ -6108,6 +6261,7 @@ function renderHome(){
   document.getElementById('selbtn').classList.toggle('on', selMode);
   paintSelBar();
   if(homeView==='trash'){ renderTrash(el); return; }
+  if(homeView==='project'){ renderProject(el,g); return; }
   if(homeView==='news'){ renderNews(el); return; }
   if(homeView==='todo'){ renderTodo(el); return; }
   if(homeView==='bookmarks'){ renderBookmarks(el); return; }
@@ -6198,6 +6352,30 @@ function unparked(stamp,last){
   if(last.working) return false;             // still writing — not done yet
   return (last.postedAt||last.created||'') > stamp;
 }
+// …AND THE LOADED FEED IS NOT THE WHOLE STORY — THE REGISTRY OUTLIVES IT
+// (2026-08-31, Sophie: "things get hidden in chats in multiple ways").
+// `unparked` above can only answer from the messages this page has, and one
+// feed read carries ~260 messages for ~770 chats. So a chat parked at turn
+// start, that replied a minute later, fell back into the hidden pile the day
+// its reply scrolled out of that window — and stayed there forever, because
+// nothing was ever going to load it again.
+//
+// MEASURED THE MORNING THIS SHIPPED, against her live feed: 125 of her 294
+// live chats were sitting in the hidden pile, and 122 of those had no loaded
+// message AT ALL. `come back to` carries 34 chats; the lit chip rendered ONE
+// row. That is the biggest of the "multiple ways", and none of it was a filing
+// decision she made.
+//
+// `repliedAt` is stamped by chatfeed.js in the one write that knows a turn
+// FINISHED, carrying that reply's `postedAt` — so it satisfies both rules
+// `unparked` enforces by construction: it is monotonic (never `created`, which
+// predates the park), and a live draft never writes it. It is only ever
+// consulted when the feed has NOTHING to say, so a loaded message always wins
+// and nothing about the rule above moved.
+function repliedSince(name,stamp){
+  var r=chats[name]||{};
+  return !!r.repliedAt && r.repliedAt > stamp;
+}
 // THE LEASH (Aug 2026, Sophie: "three hours is way too long to wait", then
 // "could it just be like three minutes"). An AUTOMATIC park promises a reply:
 // the turn-start ping and her answered message both tuck the chat away
@@ -6228,7 +6406,12 @@ function parkTripped(name,last){
 }
 function chatHidden(name,last){
   var a=(chats[name]&&chats[name].hiddenAt)||'';
-  return !!a && !unparked(a,last) && !parkTripped(name,last);
+  if(!a) return false;
+  // The registry fallback is asked ONLY when this page holds no message for the
+  // chat — see repliedSince. With a message loaded, `unparked` is the whole
+  // rule exactly as it always was.
+  if(!last && repliedSince(name,a)) return false;
+  return !unparked(a,last) && !parkTripped(name,last);
 }
 // A chat counts as WORKING on either of two signals, and it needs both:
 //
@@ -6477,7 +6660,7 @@ function toggleMark(name,last,container){
 }
 function renderTiles(el,g,names){
   var grid=document.createElement('div'); grid.id='chatgrid'; el.appendChild(grid);
-  var curDay=null;
+  var curDay=null, nPin=pinCount(names);
   names.forEach(function(name){
     var list=g[name]||[];
     var last=list.length? list[list.length-1] : null;
@@ -6485,7 +6668,8 @@ function renderTiles(el,g,names){
     // of the two views and not the other is a bug, not restraint. The rule
     // spans the grid (grid-column:1/-1) so the row under it starts clean.
     var dk=chatDayKey(name,last);
-    if(dk!==curDay){ curDay=dk; grid.appendChild(mkDayRule(dk)); }
+    if(dk!==curDay){ curDay=dk; grid.appendChild(mkDayRule(dk,nPin)); }
+    if(dk==='pin'&&pinShut) return;   // folded — the heading stands alone
     var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
     var status=statusFor(list);
     var about=(chats[name]&&chats[name].about)||'';
@@ -6551,6 +6735,132 @@ function renderTray(el,g,names){
     b.dataset.chat=name;
     b.innerHTML='<span class="t-cover">'+iconHtml(name,'',true)+(unread?'<span class="t-new"></span>':'')+'</span>'
       +'<span class="t-name">'+waitMarkHtml(name)+tagMarkHtml(name)+esc(dispName(name))+'</span>';
+    b.onclick=function(){ openChat(name); };
+    grid.appendChild(b);
+  });
+}
+// ── THE PROJECT PAGE — every chat on the same thing, newest first ────────────
+// (2026-09-02, Sophie: "i'd like it so projects could auto group themselves,
+// like all the triset chats, grouped in reverse chronological order, so i can
+// go back and see all the triset chats from a single icon button on that chat
+// page header · probably 3-4 stacked square cards · opens a page w hairline
+// icon or list view · default icon, 3-up".)
+//
+// WHICH CHATS: /project-words.js decides — the ONE rule, shared with the
+// server. A chat belongs to the project word its slug leads with (the harness
+// names branches subject-first: `triset-…`, `playground-…`), to a project the
+// auto-sorter filed on it (`project` on the registry doc, for the chats whose
+// slug says nothing), and to an established project a later word of its slug
+// or her display name names. Nothing is stored for the page itself: it is
+// derived on every paint out of the registry the feed already carries.
+//
+// THE PILE IGNORES EVERY OTHER FILTER, like the tray and a lit tag: not the
+// account tabs (the row is not even on screen here), not the hidden pile, and
+// NOT THE ARCHIVE — "go back and see all the triset chats" is exactly what
+// the archive holds, so an archived sibling is drawn, dimmed, and counted
+// under the tabs. The trash stays its own room.
+//
+// THE ORDER IS THE HOUSE ORDER — `sortedChatNames`, newest message first, so
+// the date headings and the pinned tier come for free — and the two views
+// are the home screen's own renderers: `renderTiles` IS the three-across
+// icon wall she asked for, `renderList` the list. Nothing here is a third
+// way of drawing a chat.
+function projectTitle(k){
+  var v=projectVocab();
+  var sp=(v&&v[k]&&v[k].spell)||k||'';
+  return sp ? sp.charAt(0).toUpperCase()+sp.slice(1) : 'Project';
+}
+// Recomputed per paint — 800 chats tokenise in a millisecond, and a cache
+// here would go stale the moment the poll landed a renamed chat.
+function projectVocab(){
+  var PW=window.__projectWords; if(!PW) return null;
+  return PW.vocab(chats);
+}
+function projectsFor(name){
+  var PW=window.__projectWords; if(!PW) return [];
+  return PW.projectsWithGroups(name, chats, projectVocab());
+}
+function openProject(key, from){
+  projectKey=key; projectFrom=from||projectFrom;
+  homeView='project'; homeY=0;
+  if(cur) goHome(true); else { renderHome(); }
+  window.scrollTo(0,0);
+}
+function renderProject(el,g){
+  var PW=window.__projectWords;
+  if(!PW || !projectKey){ el.innerHTML='<div class="state">No project picked.</div>'; return; }
+  var v=projectVocab();
+  // Her way to the OTHER groups this chat is on — `triangle-playground-style`
+  // is a triangle chat first and a playground chat second. Chips only when
+  // there is a choice; one word is a heading, not a control.
+  var mine=projectFrom ? PW.projectsWithGroups(projectFrom, chats, v) : [];
+  if(mine.length>1){
+    var row=document.createElement('div'); row.className='catrow projchips';
+    mine.forEach(function(p){
+      var b=document.createElement('button');
+      b.className='catchip'+(p.key===projectKey?' on':'');
+      b.dataset.project=p.key;
+      b.textContent=projectTitle(p.key)+' · '+p.chats.length;
+      b.onclick=function(){ if(p.key===projectKey) return; projectKey=p.key; renderHome(); window.scrollTo(0,0); };
+      row.appendChild(b);
+    });
+    el.appendChild(row);
+  }
+  // ICONS · LIST — the hairline row. Sticky; opens on icons.
+  var tabs=document.createElement('div'); tabs.className='acctabs projrow'; tabs.id='projtabs';
+  [['icons','Icons'],['list','List']].forEach(function(t){
+    var b=document.createElement('button');
+    b.className='acctab'+(projView===t[0]?' on':''); b.dataset.pv=t[0]; b.textContent=t[1];
+    b.onclick=function(){
+      if(projView===t[0]) return;
+      projView=t[0];
+      try{ localStorage.setItem('chats-project-view', projView); }catch(e){}
+      renderHome();
+    };
+    tabs.appendChild(b);
+  });
+  el.appendChild(tabs);
+  var names=sortedChatNames(g).filter(function(n){
+    return PW.projectsOf(n, chats[n]||{}, v).indexOf(projectKey)>-1;
+  });
+  var nArch=names.filter(function(n){ return chats[n]&&chats[n].archived; }).length;
+  var count=document.createElement('div'); count.className='projcount'; count.id='projcount';
+  count.textContent=names.length+(names.length===1?' chat':' chats')+(nArch?' · '+nArch+' archived':'');
+  el.appendChild(count);
+  if(!names.length){
+    // Appended, never `innerHTML+=` — that re-serialises the tabs above and
+    // silently drops their taps.
+    el.appendChild(Object.assign(document.createElement('div'),{className:'state', textContent:'Nothing on this project.'}));
+    return;
+  }
+  if(projView==='list'){ renderList(el,g,names); paintWrapUps(el); }
+  else renderProjectIcons(el,g,names);
+  // An archived sibling reads as put away without leaving the pile.
+  names.forEach(function(n){
+    if(!(chats[n]&&chats[n].archived)) return;
+    var node=el.querySelector('[data-chat="'+n.replace(/"/g,'\\"')+'"]');
+    if(node) node.classList.add('archd');
+  });
+}
+// THE ICON WALL OF A PROJECT — three across, NO day headings (PHOTO'd against
+// her live triset chats before shipping: four chats on three different days
+// drew as a COLUMN of one tile each, because every day's rule spans the grid
+// and starts a fresh row — the tile wall's headings undo the 3-up she asked
+// for on any pile smaller than a screen). The order is still newest first;
+// the date rides under each name instead, since "go back and see" is a
+// question about when. Icon, name, date — no status line and no controls
+// (the tray's rule: those are list controls, and the LIST tab has them).
+function renderProjectIcons(el,g,names){
+  var grid=document.createElement('div'); grid.id='chatgrid'; el.appendChild(grid);
+  names.forEach(function(name){
+    var last=lastOf(g,name);
+    var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
+    var b=document.createElement('button');
+    b.className='tile projtile'+(chatWorking(name,last)?' live':'');
+    b.dataset.chat=name;
+    b.innerHTML='<span class="t-cover">'+iconHtml(name,'',true)+(unread?'<span class="t-new"></span>':'')+'</span>'
+      +'<span class="t-name">'+waitMarkHtml(name)+tagMarkHtml(name)+esc(dispName(name))+'</span>'
+      +'<span class="t-meta">'+(last? ago(last.created) : (chats[name]&&chats[name].archived ? 'archived' : 'no messages'))+'</span>';
     b.onclick=function(){ openChat(name); };
     grid.appendChild(b);
   });
@@ -6899,15 +7209,17 @@ function paintWrapUps(el){
 
 function renderList(el,g,names){
   var wrap=document.createElement('div'); wrap.className='clist'; el.appendChild(wrap);
-  var curDay=null;
+  var curDay=null, nPin=pinCount(names);
   names.forEach(function(name){
     var list=g[name]||[];
     var last=list.length? list[list.length-1] : null;
     // SEPARATED BY DATE (2026-08-28). The list is already in the right order —
     // this only names where one day stops. Every pile comes through here (live,
-    // ALL, ★, bug fix, the archive), so they all get it from one place.
+    // ALL, ★, bug fix, the archive), so they all get it from one place — which
+    // is also why the pinned fold below needs no per-pile wiring.
     var dk=chatDayKey(name,last);
-    if(dk!==curDay){ curDay=dk; wrap.appendChild(mkDayRule(dk)); }
+    if(dk!==curDay){ curDay=dk; wrap.appendChild(mkDayRule(dk,nPin)); }
+    if(dk==='pin'&&pinShut) return;   // folded — the heading stands alone
     var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
     var row=document.createElement('button'); row.className='crow'+(chatMuted(name,last)?' done':'')+(chatWorking(name,last)?' live':'');
     row.dataset.chat=name;
@@ -7251,6 +7563,9 @@ var TRAY_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
 // ORGANIZE — Lucide `tag`, the icon on the button that opens the folder + tag
 // sheet (`askOrganize`). A luggage-tag silhouette with its eyelet: it says
 // "label this" without a word, which the row has no space for.
+// Three stacked square cards, Lucide weight — the front one whole, the two
+// behind it as offset edges. Her own picture of the button.
+var PROJ_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="12" height="12" rx="1.6"/><path d="M6.5 6H17a1.5 1.5 0 0 1 1.5 1.5V18"/><path d="M10 3h8.5A2.5 2.5 0 0 1 21 5.5V14"/></svg>';
 var TAG_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>';
 var EYE_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>';
 var EYE_OFF_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>';
@@ -7647,6 +7962,22 @@ function openChat(name, keepScroll, focusId, noFetch){
     ob.setAttribute('aria-label','Organize — file and tag this chat');
     ob.onclick=function(){ askOrganize(name); };
     head.querySelector('.no').appendChild(ob);
+  })();
+  // THE PROJECT — three stacked cards (2026-09-02, Sophie). Only drawn when
+  // the chat has siblings; a chat on two things opens on its FIRST project
+  // (the slug's own lead word, or the filed one) and the page offers the rest
+  // as chips. See renderProject.
+  (function(){
+    var ps=projectsFor(name);
+    if(!ps.length) return;
+    var pb=document.createElement('button');
+    pb.className='projbtn';
+    pb.innerHTML=PROJ_SVG;
+    pb.dataset.project=ps[0].key;
+    pb.setAttribute('aria-label','Every chat on '+projectTitle(ps[0].key)+' — '+ps[0].chats.length+' chats');
+    pb.title=projectTitle(ps[0].key)+' · '+ps[0].chats.length;
+    pb.onclick=function(){ openProject(ps[0].key, name); };
+    head.querySelector('.no').appendChild(pb);
   })();
   var curl=claudeUrlFor(name, list); openUrl=curl;   // renderMsg reads openUrl
   sec.appendChild(head);
@@ -8560,6 +8891,70 @@ function focusMessage(name, id, noFetch){
 function mkPagePill(getWin){
   var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Faster',3.2],['Fastest',5.2]];
   var playing=false, raf=null, last=null, si=2, dir=1, acc=0;
+  // ── THE PILL FOLLOWS WHATEVER IS ACTUALLY SCROLLING INSIDE THE FRAME
+  // (2026-09-02, Sophie: "why does autos roll not work in piles"). Every check
+  // here used to ask the frame's WINDOW, so a page whose content scrolls
+  // inside its own box could not be moved by the pill she actually taps in the
+  // app — and a deck's PILES view is exactly that box (`flex:1;
+  // overflow-y:auto`), the one screen in a deck that is genuinely long.
+  // Measured before the fix, at her viewport: 685px of piles below the fold,
+  // and a tap on play walked the frame's document 31px and stopped, leaving
+  // the piles at 0. The 2026-09-01 fix reached judge.js's own little
+  // side-button and could not reach this copy at all.
+  //
+  // The shared pill learned this rule on 2026-08-24 (the Story Room's shelf);
+  // this parent-page copy never got it — the same drift the back-to-top had.
+  // ONLY A NEARLY-FULL-SCREEN BOX IS ADOPTED (80% of the frame's width, 60% of
+  // its height), or a note list or a filter drawer would steal the pill from
+  // the page behind it. The box is cached and re-validated rather than hunted
+  // every frame, and the frame's own window scrolling puts it down again.
+  var _box=null, _found=0;
+  function boxOK(el,w){
+    if(!el || !w) return false;
+    var d; try{ d=w.document; }catch(_){ return false; }
+    if(!d || el===d || el===d.body || el===d.documentElement) return false;
+    if(!el.getBoundingClientRect || el.scrollHeight - el.clientHeight <= 4) return false;
+    var r=el.getBoundingClientRect();
+    return r.width >= w.innerWidth*0.8 && r.height >= w.innerHeight*0.6;
+  }
+  // `elementsFromPoint` walks the stack at ONE point — O(depth) — where
+  // scanning the frame for scrollers is a query over every node it holds.
+  function findBox(w){
+    var d=w.document;
+    if(!d || !d.elementsFromPoint) return null;
+    var els=d.elementsFromPoint(w.innerWidth/2, w.innerHeight/2)||[];
+    for(var i=0;i<els.length;i++){
+      if(boxOK(els[i],w) && /auto|scroll/.test(w.getComputedStyle(els[i]).overflowY)) return els[i];
+    }
+    return null;
+  }
+  /** What this pill drives right now: the frame's window while the page itself
+   *  has room, else the full-screen box inside it. Null when there is no frame
+   *  or it is cross-origin — every caller reads that as "nothing to do". */
+  function tgt(){
+    var w=getWin(), d=null;
+    if(!w) return null;
+    try{ d=w.document; }catch(_){ return null; }
+    if(!d) return null;
+    var winCan=false;
+    try{ winCan = d.documentElement.scrollHeight > w.innerHeight+4; }catch(_){}
+    if(_box && !boxOK(_box,w)) _box=null;
+    if(winCan) _box=null;
+    else if(!_box && Date.now()-_found>300){
+      _found=Date.now(); try{ _box=findBox(w); }catch(_){ _box=null; }
+    }
+    var b=_box;
+    if(b) return { top:function(){ return b.scrollTop; },
+                   by:function(n){ b.scrollTop+=n; },
+                   view:function(){ return b.clientHeight; },
+                   full:function(){ return b.scrollHeight; },
+                   home:function(){ try{ b.scrollTo({top:0,behavior:'smooth'}); }catch(_){ b.scrollTop=0; } } };
+    return { top:function(){ return w.scrollY; },
+             by:function(n){ try{ w.scrollBy(0,n); }catch(_){} },
+             view:function(){ return w.innerHeight; },
+             full:function(){ try{ return d.documentElement.scrollHeight; }catch(_){ return 0; } },
+             home:function(){ try{ w.scrollTo({top:0,behavior:'smooth'}); }catch(_){ try{ w.scrollTo(0,0); }catch(__){} } } };
+  }
   var I={
     up:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
     down:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
@@ -8589,19 +8984,19 @@ function mkPagePill(getWin){
   }
   function step(ts){
     if(!playing) return;
-    var w=getWin();
-    if(w && last!=null){
+    var t=tgt();
+    if(t && last!=null){
       acc+=dir*(ts-last)/1000*42*SPEEDS[si][1];
       var move=acc>0?Math.floor(acc):Math.ceil(acc);
-      if(move){ try{ w.scrollBy(0,move); }catch(_){} acc-=move; }
-      try{ var d=w.document.documentElement, atEnd=dir>0?(w.innerHeight+w.scrollY>=d.scrollHeight-4):(w.scrollY<=2); if(atEnd) stop(); }catch(_){}
+      if(move){ try{ t.by(move); }catch(_){} acc-=move; }
+      try{ var atEnd=dir>0?(t.top()+t.view()>=t.full()-4):(t.top()<=2); if(atEnd) stop(); }catch(_){}
     }
     last=ts; raf=requestAnimationFrame(step);
   }
   // Same end-of-page rule as the shared pill: a direction with no room flips
   // to the one that has room, so a press is never a dead press.
-  function canGo(d){ var w=getWin(); if(!w) return true;
-    try{ return d>0 ? (w.innerHeight+w.scrollY < w.document.documentElement.scrollHeight-4) : (w.scrollY>2); }catch(_){ return true; } }
+  function canGo(d){ var t=tgt(); if(!t) return true;
+    try{ return d>0 ? (t.top()+t.view() < t.full()-4) : (t.top()>2); }catch(_){ return true; } }
   function start(d){ if(!canGo(d) && canGo(-d)) d=-d;
     dir=d; playing=true; last=null; acc=0; paint(); raf=requestAnimationFrame(step); }
   function stop(){ playing=false; if(raf) cancelAnimationFrame(raf); raf=null; paint(); }
@@ -8618,11 +9013,10 @@ function mkPagePill(getWin){
   vm.onclick=function(){ playing? stop() : start(1); };
   // the jump home: stop first, or the running scroll walks the page back down
   // under the animation (the shared pill's own rule)
-  pt.onclick=function(){ stop(); var w=getWin(); if(!w) return;
-    try{ w.scrollTo({top:0, behavior:'smooth'}); }catch(_){ try{ w.scrollTo(0,0); }catch(__){} } };
-  function syncTop(){ var w=getWin(); if(!w){ pt.classList.remove('on'); return; }
-    try{ var d=w.document.documentElement;
-      pt.classList.toggle('on', w.scrollY > 150 && d.scrollHeight > w.innerHeight+4);
+  pt.onclick=function(){ stop(); var t=tgt(); if(t) t.home(); };
+  // PTOP_AT is 150 here as in pill.py — pinned by test-back-to-top.js.
+  function syncTop(){ var t=tgt(); if(!t){ pt.classList.remove('on'); return; }
+    try{ pt.classList.toggle('on', t.top() > 150 && t.full() > t.view()+4);
     }catch(_){ pt.classList.remove('on'); } }
   paint(); syncTop(); pill._stop=stop;
   pill._playing=function(){ return playing; };
@@ -8765,6 +9159,10 @@ function openPage(p){
       if(w && pill._topSync){
         w.addEventListener('scroll', pill._topSync, {passive:true});
         w.addEventListener('resize', pill._topSync, {passive:true});
+        // `scroll` does not bubble but it DOES capture, so this is what hears
+        // a box INSIDE the page scrolling — a deck's piles, a full-screen
+        // sheet — which the window listener above can never see.
+        if(doc) doc.addEventListener('scroll', pill._topSync, true);
         pill._topSync(); setTimeout(pill._topSync, 700);
       }
       // THE SKIP LIST IS ASKED AT POINTERDOWN, WHILE THE TARGET IS STILL IN THE
@@ -9109,9 +9507,10 @@ function mkOrgMarks(name, close){
     svg:function(){ return STAR; },
     on:'Star this chat', off:'Unstar this chat',
     toastOn:'Starred', toastOff:'Unstarred'}));
-  // THE BELL — a WHITELIST, which is the half worth remembering: absent means
-  // silent, so a chat she has never belled never reaches her lock screen
-  // (`chatNotifies` in push-gate.js asks it before the timing gate).
+  // THE BELL — ON BY DEFAULT since 2026-09-01, which is the half worth
+  // remembering: the bell is how she turns a chat OFF, and only that tap
+  // silences one (`chatNotifies` in push-gate.js asks it before the timing
+  // gate, which is what keeps default-on from being a drumroll).
   row.appendChild(toggle({cls:'bellbtn mk-bell', field:'notify', url:'/api/chatfeed/notify',
     word:'Notify', get:function(){ return chatNotify(name); },
     svg:function(){ return BELL_SVG; },

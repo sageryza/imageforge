@@ -107,6 +107,28 @@
     for (var i = 0; i < ss.length; i++) if (t < ss[i].start + ss[i].dur - 1e-4) return ss[i];
     return ss[ss.length - 1] || null;
   }
+  // Split a piece at `offset` seconds into ITS span → two references into the
+  // same source, or null when the cut would leave a sliver. A STILL splits
+  // into two stills whose holds add up (in stays 0 — a picture has no source
+  // time); a clip's second half starts where the first ends. The server and
+  // the page used to keep a copy each of this rule (filmeditor.js /
+  // filmeditor.html); this is the one.
+  function splitPiece(piece, offset, newKey) {
+    var dur = pieceSeconds(piece);
+    if (!(offset >= MIN_PIECE && offset <= dur - MIN_PIECE)) return null;
+    var a = {}, b = {}, k;
+    for (k in piece) { a[k] = piece[k]; b[k] = piece[k]; }
+    b.key = str(newKey, 40);
+    if (piece.kind === 'image') {
+      a.out = r3(offset);
+      b.in = 0; b.out = r3(dur - offset);
+      return [a, b];
+    }
+    var cut = r3(piece.in + offset);
+    a.out = cut;
+    b.in = cut;
+    return [a, b];
+  }
 
   // ── SOUND lane ───────────────────────────────────────────────────────────
   function cleanAnchor(a) {
@@ -281,7 +303,7 @@
     STILL_DEFAULT: STILL_DEFAULT, STILL_MIN: STILL_MIN, STILL_MAX: STILL_MAX,
     GAIN_MIN: GAIN_MIN, GAIN_MAX: GAIN_MAX, FADE_MAX: FADE_MAX, MOVE_EPS: MOVE_EPS,
     cleanPiece: cleanPiece, cleanPieces: cleanPieces, pieceSeconds: pieceSeconds,
-    starts: starts, totalSeconds: totalSeconds, shotAt: shotAt,
+    starts: starts, totalSeconds: totalSeconds, shotAt: shotAt, splitPiece: splitPiece,
     cleanSound: cleanSound, cleanSounds: cleanSounds, soundSeconds: soundSeconds,
     soundStart: soundStart, normalize: normalize, moveSound: moveSound,
     anchorToShot: anchorToShot, splitSound: splitSound,

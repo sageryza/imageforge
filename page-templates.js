@@ -285,6 +285,17 @@ function validateTemplate(template, data) {
   if (data.stamp === false) out.stamp = false;
   // browse is the deck's whole point — on unless a page turns it off
   out.browse = data.browse === false ? false : true;
+  // QUICK OR LABORED (2026-09-01, Sophie: "a toggle for chats to choose if
+  // it's a quick or labored decision + note … heart or x action DOES move
+  // deck forward"). pace:'quick' makes a decisive ♥/✕ (or a spread pick)
+  // advance the deck one card by itself — a yes/no deck like the hoonies,
+  // where lingering is the exception. Labored is the DEFAULT and is the
+  // browse rule exactly as it was: a mark never moves the deck, she leaves
+  // when she is ready. Maybe, a clear and a note never advance either way,
+  // and the edge taps and swipe still navigate on both. An already-posted
+  // page is flipped with POST /page/:id/pace (the page doc's field wins over
+  // this frozen one), so nothing needs re-posting.
+  if (data.pace === 'quick') out.pace = 'quick';
 
   if (template === 'deck') {
     if (!Array.isArray(data.items) || !data.items.length) {
@@ -410,6 +421,14 @@ function renderTemplatePage({ template, title, heading, chat, sheet, data, clean
     // both views open THE Assets-tab lightbox on a picture (heart, note
     // thread, prompt) through the shared adapter
     + '<script src="/asset-lightbox.js"></script>\n'
+    // AND THE DOORS UNDER THE PICTURE (2026-09-01, Sophie: "why is there no
+    // playground button??? … as long as there's a prompt there should be a
+    // playground button"). The shared set — Playground · Shoebox · Save — is
+    // what every other lightbox draws; a template page's lightbox drew none.
+    // The port script is what lets the Playground door say which tile made
+    // the picture instead of guessing.
+    + '<script src="/playground-port.js"></script>\n'
+    + '<script src="/asset-actions.js"></script>\n'
     + '<script src="/asset-view.js"></script>\n'
     + '<script src="/judge.js"></script>\n'
     + '<script src="/grid.js"></script>\n'

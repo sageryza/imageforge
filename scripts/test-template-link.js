@@ -117,11 +117,56 @@ const page = renderTemplatePage({
   template: 'deck', title: 'link test', chat: 'test-chat', sheet: 'link-test', data: v.data,
 }) + PROBE;
 
+
+// THE APP'S PAGE VIEWER (2026-09-02, Sophie on the archive deck: "the chat
+// links don't work"). Inside the Chats app a template page runs in a
+// same-origin IFRAME, its link is target=_blank, and the viewer's own click
+// interceptor leaves _blank links alone — so a tap reached nothing. This host
+// is that viewer reduced to the one thing the page needs from it: the
+// __openThread bridge, recording what the page hands it. A real click is
+// dispatched on the anchor in BOTH views and the host reads back which chat
+// arrived and whether the default (a new tab) was cancelled.
+const HOST = `<!doctype html><pre id="hostprobe">pending</pre>
+<iframe id="f" src="/" style="width:390px;height:700px"></iframe>
+<script>
+(function(){
+  var out = [];
+  window.__openThread = function (name) { out.push('opened=' + name); return name === 'dating-book'; };
+  var f = document.getElementById('f');
+  function anchorIn(doc){
+    var live = Array.prototype.slice.call(doc.querySelectorAll('#judge, #grid'))
+      .filter(function(el){ return el.offsetParent !== null || el.getClientRects().length; })[0];
+    return live && live.querySelector('.jg-momlink a, .gd-link a');
+  }
+  function tap(doc, view){
+    var a = anchorIn(doc);
+    if (!a) { out.push(view + ':none'); return; }
+    var ev = new doc.defaultView.MouseEvent('click', { bubbles: true, cancelable: true, view: doc.defaultView });
+    var went = a.dispatchEvent(ev);
+    out.push(view + ':default=' + (went ? 'followed' : 'cancelled'));
+  }
+  f.addEventListener('load', function(){
+    setTimeout(function(){
+      var doc = f.contentDocument;
+      tap(doc, 'swipe');
+      var tab = Array.prototype.slice.call(doc.querySelectorAll('button'))
+        .filter(function(b){ return /compare/i.test(b.textContent || ''); })[0];
+      if (tab) tab.click();
+      setTimeout(function(){
+        tap(doc, 'compare');
+        document.getElementById('hostprobe').textContent = out.join('\\n');
+      }, 400);
+    }, 900);
+  });
+})();
+</script>`;
+
 const pub = path.join(__dirname, '..', 'public');
 const TYPES = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html' };
 const server = http.createServer((req, res) => {
   const url = req.url.split('?')[0];
   if (url === '/') { res.setHeader('content-type', 'text/html'); return res.end(page); }
+  if (url === '/host') { res.setHeader('content-type', 'text/html'); return res.end(HOST); }
   const f = path.join(pub, url.replace(/^\/+/, ''));
   if (!f.startsWith(pub) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) {
     res.statusCode = 404; return res.end('no');
@@ -147,14 +192,38 @@ server.listen(0, '127.0.0.1', () => {
       '--window-size=390,844', '--virtual-time-budget=6000',
     '--dump-dom', `http://127.0.0.1:${port}/`,
   ], { encoding: 'utf8', timeout: 90000, maxBuffer: 32 * 1024 * 1024 }, (err, stdout) => {
-    server.close();
     if (err && !stdout) {
+      server.close();
       console.error('chromium failed: ' + err.message);
       process.exit(1);
     }
     check(stdout);
+    execFile(CHROME, [
+        '--headless=new', '--disable-gpu', '--no-sandbox', '--hide-scrollbars',
+        '--no-proxy-server', '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1',
+        '--window-size=390,844', '--virtual-time-budget=8000',
+      '--dump-dom', `http://127.0.0.1:${port}/host`,
+    ], { encoding: 'utf8', timeout: 90000, maxBuffer: 32 * 1024 * 1024 }, (err2, dom2) => {
+      server.close();
+      if (err2 && !dom2) { console.error('chromium failed (host): ' + err2.message); process.exit(1); }
+      checkHost(dom2);
+    });
   });
 });
+
+function checkHost(dom) {
+  const m = /<pre id="hostprobe">([\s\S]*?)<\/pre>/.exec(dom);
+  const report = m ? m[1].trim() : '(no probe)';
+  const lines = report.split('\n');
+  const has = (k) => lines.filter((l) => l === k).length;
+  is('in the app: the swipe card hands the chat to __openThread', has('opened=dating-book') >= 1, true);
+  is('in the app: the swipe tap is cancelled (no new tab)', lines.includes('swipe:default=cancelled'), true);
+  is('in the app: the compare tile hands the chat over too', has('opened=dating-book'), 2);
+  is('in the app: the compare tap is cancelled as well', lines.includes('compare:default=cancelled'), true);
+  fails.forEach((f) => console.log('FAIL: ' + f));
+  console.log(`${pass} checks passed, ${fails.length} failed`);
+  if (fails.length) { console.log('\nhost probe said:\n' + report); process.exit(1); }
+}
 
 function check(dom) {
   const m = /<pre id="probe">([\s\S]*?)<\/pre>/.exec(dom);
@@ -168,8 +237,5 @@ function check(dom) {
   is('swipe: exactly one anchor across the deck', line('swipe:anchors='), '1');
   is('compare: the same link survives the view switch', line('compare:href='), CHAT_LINK);
   is('compare: the tap reaches it there too', line('compare:'), 'anchor');
-
-  fails.forEach((f) => console.log('FAIL: ' + f));
-  console.log(`${pass} checks passed, ${fails.length} failed`);
-  if (fails.length) { console.log('\nprobe said:\n' + report); process.exit(1); }
+  if (fails.length) { fails.forEach((f) => console.log('FAIL: ' + f)); console.log('\nprobe said:\n' + report); process.exit(1); }
 }

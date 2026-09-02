@@ -60,9 +60,220 @@ const fs = require('fs');
 const path = require('path');
 const { promptRecord, promptFields } = require('./prompt-record');
 const { bakeCut, cutPath } = require('./triset-cut');
+const pageTemplates = require('./page-templates');
 
 const router = express.Router();
 const CARDS = 'forge-triset-cards';
+const VOTES = 'forge-asset-votes';
+const PAGES = 'forge-chat-pages';
+const VERDICTS = 'forge-chat-verdicts';
+// The chat whose Compare tab holds the standing page. Fixed on purpose: the
+// page is one place she comes back to, and a moving slug would orphan the
+// verdicts her ♥ marks live under.
+const HOME_CHAT = 'triset-nature-classification';
+const WAIT_PAGE = 'triset-waiting';
+const NATURE_SLUGS = new Set(
+  JSON.parse(fs.readFileSync(path.join(__dirname, 'docs/triset/nature-slugs.json'), 'utf8')).slugs);
+
+/* ── HER HEARTS ARE THE DECK (2026-09-01, "connect it to the deck so they flow
+   in and out automatically") ─────────────────────────────────────────────
+   She curates by hearting: a ♥ on a nature card puts it IN the deck, an ✕
+   takes it out, wherever she casts it — the Assets tab, Meta Assets, a hearts
+   page. Nothing to run by hand and nothing for a chat to remember.
+
+   THE NATURE RULE IS KEPT ON PURPOSE. She spent a day deciding what nature
+   means and then asked for a deck of exactly that, so a heart on a card
+   OUTSIDE that vocabulary does NOT silently join her deck — it is collected
+   for her on a Compare page to add deliberately. Widening this is one line
+   (drop the NATURE_SLUGS test) and is hers to ask for.
+
+   AN ✕ HIDES THE CARD, which is how the pool already excludes things — so an
+   ✕'d card leaves the deal and, being hidden, leaves every other surface's
+   listing too. A card she un-✕s comes back by the same road.
+
+   Cheap by construction: one votes read behind a 60s cache, and it WRITES only
+   the cards whose state actually changed, so a settled deck writes nothing. */
+const SYNC_MS = 60e3;
+let syncAt = 0, syncing = null;
+
+function slugOfUrl(url) {
+  const m = String(url || '').match(/cards\/([a-z0-9]+)-(.+)\.webp$/);
+  return m ? m[2] : null;
+}
+
+// pure: which cards should be IN the deal, given her votes.
+//
+// Two fields carry two different facts and this rule keeps them apart:
+// `hidden` is "not in the pool at all" (508 of the 583 cards are, on purpose
+// — the alternates and the subjects she did not keep) and `edition:'nature'`
+// is "this is the card the deal shows for this subject".
+//
+// The votes are per PICTURE, deliberately: the hearts pages pair a subject's
+// low and medium generations and ask her to pick BETWEEN them, so an ✕ there
+// means "not this drawing", never "not this subject".
+//
+//   ♥ on a nature subject with nothing in the deal → that card joins it
+//   ✕ on the card in the deal                     → it leaves; the next
+//                                                    hearted generation of
+//                                                    that subject takes over,
+//                                                    and with none the
+//                                                    subject leaves too
+//
+// It touches NOTHING else — a heart on a card whose subject is already dealt
+// does not swap her printed picture, and a card she has never voted on is
+// never moved. So a settled deck writes nothing at all.
+const QRANK = { high: 3, medium: 2, low: 1 };
+function bestCard(a, b) {
+  const q = (QRANK[b.quality] || 0) - (QRANK[a.quality] || 0);
+  if (q) return q < 0 ? a : b;
+  return (b.createdAt || 0) > (a.createdAt || 0) ? b : a;
+}
+function syncPlan(cards, voteByUrl, adopted) {
+  const IN = slug => NATURE_SLUGS.has(slug) || (adopted && adopted.has(slug));
+  const patch = new Map();
+  const put = (c, k, v) => {
+    // most cards carry no `hidden` field at all, so compare it as a truth
+    // value — or a settled deck rewrites every doc it reads
+    if (k === 'hidden' ? !!c[k] === !!v : (c[k] || '') === v) return;
+    const p = patch.get(c.id) || {}; p[k] = v; patch.set(c.id, p);
+  };
+  const bySlug = new Map();
+  for (const c of cards) {
+    const slug = slugOfUrl(c.url);
+    if (!slug || !IN(slug)) continue;   // her vocabulary, plus what she adopted
+    if (!bySlug.has(slug)) bySlug.set(slug, []);
+    bySlug.get(slug).push(c);
+  }
+  for (const [, group] of bySlug) {
+    const out = group.filter(c => c.edition === 'nature' && !c.hidden
+      && voteByUrl[c.url] === 'dislike');
+    // the incumbent, unless she crossed it out
+    let held = group.find(c => c.edition === 'nature' && !c.hidden
+      && voteByUrl[c.url] !== 'dislike');
+    if (!held) {
+      const up = group.filter(c => voteByUrl[c.url] === 'like');
+      if (up.length) held = up.reduce(bestCard);
+    }
+    for (const c of out) { put(c, 'hidden', true); if (c !== held) put(c, 'edition', ''); }
+    if (held) { put(held, 'edition', 'nature'); put(held, 'hidden', false); }
+    // one card per subject: the page deals every nature-tagged card, so a
+    // second tagged generation would deal the same subject twice
+    for (const c of group) {
+      if (c !== held && c.edition === 'nature' && !c.hidden) put(c, 'edition', '');
+    }
+  }
+  return [...patch].map(([id, p]) => ({ id, patch: p }));
+}
+
+/* ── THE WAITING ROOM (2026-09-01, Sophie: "make a compare page that auto
+   adds new triangle hearts from elsewhere / and add them") ────────────────
+   A standing Compare page in her Similitude chat holding every triangle card
+   she has hearted that is NOT in the deal — the 38 subjects outside her
+   nature vocabulary, plus any new one she hearts anywhere.
+
+   HER ♥ ON THAT PAGE IS THE ADOPTION, and it is a DIFFERENT signal from the
+   heart that put the card on the page: a page mark lands on the page's own
+   verdict doc, not on the asset vote, so "I like this drawing" and "put this
+   in my deck" stay two separate answers. That is what lets the nature
+   vocabulary hold without a heart anywhere in the app silently widening her
+   set. An ✕ there says no and the card stops being offered.
+
+   It is kept the way runAutoCompare keeps its standing grids: one fixed doc
+   id, the data hashed, rewritten only when the set really changes — so her
+   marks survive every rebuild, because an item's id is its SUBJECT SLUG. */
+function waitingPlan(cards, voteByUrl, verdicts) {
+  const dealt = new Set();
+  const best = new Map();
+  for (const c of cards) {
+    const slug = slugOfUrl(c.url);
+    if (!slug) continue;
+    if (c.edition === 'nature' && !c.hidden) { dealt.add(slug); continue; }
+    if (voteByUrl[c.url] !== 'like') continue;
+    if (verdicts[slug] === false) continue;          // she said no on the page
+    const cur = best.get(slug);
+    best.set(slug, cur ? bestCard(cur, c) : c);
+  }
+  const items = [];
+  for (const [slug, c] of [...best].sort((a, b) => a[0] < b[0] ? -1 : 1)) {
+    if (dealt.has(slug)) continue;
+    items.push({
+      id: slug,
+      img: c.url,
+      label: c.promptContent || slug.replace(/-/g, ' '),
+      url: c.url,
+      model: c.model || '',
+      quality: c.quality || '',
+    });
+  }
+  return items;
+}
+
+// Which subjects she has ADOPTED on the page — read back so the sync can deal
+// them in even though they sit outside the nature vocabulary.
+function adoptedFrom(verdicts) {
+  return new Set(Object.keys(verdicts || {}).filter(k => verdicts[k] === true));
+}
+
+// The standing page itself, kept the runAutoCompare way: fixed doc id, the
+// data hashed, rewritten only when the set really changes. It is a DECK
+// (swipe), because the question is one card at a time — in or out.
+async function writeWaiting(items) {
+  const data = {
+    template: 'deck', items,
+    help: 'Triangle cards you hearted that are not in the Similitude deck yet. '
+      + '♥ adds one to the deal; ✕ stops it being offered. New hearts arrive here on their own.',
+    browse: true, stamp: false, voice: true,
+  };
+  const v = pageTemplates.validateTemplate('deck', data);
+  if (!v.ok) return { ok: false, error: v.error };
+  const title = `New triangle hearts (${items.length})`;
+  const json = JSON.stringify(v.data);
+  const hash = crypto.createHash('sha1').update(`${title}\n${json}`).digest('hex');
+  const ref = db().collection(PAGES).doc(WAIT_PAGE);
+  const snap = await ref.get();
+  if (snap.exists && snap.data().dataHash === hash) return { ok: true, unchanged: true };
+  if (!items.length && !snap.exists) return { ok: true, empty: true };
+  const file = admin.storage().bucket().file(`chat-pages/${WAIT_PAGE}.json`);
+  await file.save(Buffer.from(json, 'utf8'), { contentType: 'application/json', resumable: false });
+  const stamp = new Date().toISOString();
+  const base = { title, dataHash: hash, updated: stamp };
+  if (snap.exists) await ref.set(base, { merge: true });
+  else {
+    await ref.set({
+      ...base, chat: HOME_CHAT, heading: '', created: stamp,
+      template: 'deck', path: file.name,
+    });
+  }
+  return { ok: true, count: items.length, created: !snap.exists };
+}
+
+async function syncHearts() {
+  if (syncing) return syncing;
+  if (Date.now() - syncAt < SYNC_MS) return [];
+  syncing = (async () => {
+    const [cardSnap, voteSnap] = await Promise.all([
+      db().collection(CARDS).get(), db().collection(VOTES).get(),
+    ]);
+    const cards = cardSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const voteByUrl = {};
+    voteSnap.forEach(d => {
+      const v = d.data() || {};
+      if (v.url && (v.vote === 'like' || v.vote === 'dislike')) voteByUrl[v.url] = v.vote;
+    });
+    const vsnap = await db().collection(VERDICTS)
+      .doc(`${HOME_CHAT}__page-${WAIT_PAGE}`).get().catch(() => null);
+    const verdicts = (vsnap && vsnap.exists && vsnap.data().items) || {};
+    const plan = syncPlan(cards, voteByUrl, adoptedFrom(verdicts));
+    for (const p of plan) await db().collection(CARDS).doc(p.id).set(p.patch, { merge: true });
+    // the page is rebuilt AFTER the deal, so a card adopted this pass has
+    // already left the waiting room by the time she opens it
+    const after = cards.map(c => ({ ...c, ...(plan.find(p => p.id === c.id) || {}).patch }));
+    await writeWaiting(waitingPlan(after, voteByUrl, verdicts)).catch(() => {});
+    syncAt = Date.now();
+    return plan;
+  })().catch(() => []).finally(() => { syncing = null; });
+  return syncing;
+}
 
 // LOW while the prompts are being perfected (2026-08-30, Sophie: "draw low
 // quality while we perfect the prompts etc") — one line to raise it back.
@@ -368,6 +579,7 @@ router.post('/recut', async (req, res) => {
 router.get('/cards', async (req, res) => {
   try {
     if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
+    await syncHearts();                 // her ♥/✕ flow the deck in and out
     const snap = await db().collection(CARDS).get();
     const cards = snap.docs.map(d => ({ id: d.id, ...d.data() }))
       .filter(c => !c.hidden)
@@ -379,6 +591,130 @@ router.get('/cards', async (req, res) => {
       await db().collection(CARDS).doc(c.id).set(patch, { merge: true }).catch(() => {});
     }));
     res.json({ ok: true, cards });
+  } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
+});
+
+/* ── PLAYING AGAINST THE COMPUTER (2026-09-01, Sophie: "make it possible to
+   play against a computer") ──────────────────────────────────────────────
+   TURN-BASED, NEVER A TIMER. She looks for as long as she likes; when she is
+   done looking she taps ITS TURN and the computer answers with a set or a
+   pass. Racing her against a clock would turn a quiet game into a reflex
+   test, which is not what this is.
+
+   IT PLAYS FROM THE CARDS' OWN PROMPTS, not from the pictures — those words
+   ARE what drew each card, so it is reading the same thing she is looking at,
+   and a text call is about a tenth of a cent where a vision call is cents.
+   It never draws: a set it finds is announced and SHE decides whether to
+   spend the ~2¢ on the venn card, so the computer can never spend her money.
+
+   IT IS ALLOWED TO PASS, and that matters — an opponent that always finds
+   something is not playing, it is narrating. The prompt says a stretch is a
+   pass, and a pass is what hands the turn back. */
+const OPPONENT_SYSTEM = [
+  'You are playing Similitude, a card game. Three triangular picture cards are on the table.',
+  'You are given the prompt that drew each one — that IS the card.',
+  '',
+  'ALL THE SAME: name ONE thing all three genuinely share. Not a category so broad it fits',
+  'any three things ("they are objects", "they exist", "they are drawings", "they are round-ish").',
+  'EACH DIFFERENT: name a FOURTH thing, and say what each card separately shares with it.',
+  '',
+  'A STRETCH IS A PASS. If the three do not really connect, pass — that is a normal move and',
+  'a better one than a weak claim. Be honest rather than clever.',
+].join('\n');
+
+function opponentPrompt(cards, kind) {
+  const list = cards.map((c, i) => `${i + 1}. ${c}`).join('\n');
+  if (kind === 'each') {
+    return `${list}\n\nAnswer JSON: {"found":true,"middle":"the fourth thing",`
+      + `"sides":["what card 1 shares with it","card 2","card 3"]} or {"found":false,"why":"one short line"}.`;
+  }
+  return `${list}\n\nAnswer JSON: {"found":true,"middle":"the one thing all three share"}`
+    + ` or {"found":false,"why":"one short line"}.`;
+}
+
+// pure: what the model said, cleaned into a move — exported for the test
+function opponentMove(raw, kind) {
+  const d = raw && typeof raw === 'object' ? raw : {};
+  const middle = String(d.middle || '').trim().slice(0, MAX_WORDS);
+  const why = String(d.why || '').trim().slice(0, MAX_WORDS);
+  if (!d.found || !middle) return { found: false, why: why || 'nothing here' };
+  if (kind === 'each') {
+    const sides = Array.isArray(d.sides) ? d.sides.map(x => String(x || '').trim().slice(0, MAX_WORDS)) : [];
+    // a claim missing a side is not a claim — it passes rather than half-scoring
+    if (sides.length !== 3 || sides.some(x => !x)) return { found: false, why: why || 'nothing here' };
+    return { found: true, middle, sides };
+  }
+  return { found: true, middle };
+}
+
+// Free to open, cheap to tap: one small text call, no picture, no card written.
+router.post('/opponent', express.json({ limit: '16kb' }), async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
+    const anthropic = require('./anthropic');
+    if (!anthropic.available()) return res.status(503).json({ error: 'the opponent runs on Claude; the key is not set' });
+    const b = req.body || {};
+    const ids = Array.isArray(b.cards) ? b.cards.slice(0, 3).map(String) : [];
+    if (ids.length !== 3) return res.status(400).json({ error: 'three cards are required' });
+    const kind = KINDS.includes(b.kind) ? b.kind : 'same';
+    const docs = await Promise.all(ids.map(id => db().collection(CARDS).doc(id).get()));
+    if (docs.some(d => !d.exists)) return res.status(400).json({ error: 'card not found' });
+    const words = docs.map(d => (d.data().promptContent || d.data().title || '').trim());
+    if (words.some(w => !w)) return res.status(400).json({ error: 'a card has no words to play from' });
+    const raw = await anthropic.chatJSON({
+      system: OPPONENT_SYSTEM, user: opponentPrompt(words, kind), maxTokens: 400,
+    });
+    res.json({ ok: true, ...opponentMove(raw, kind) });
+  } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
+});
+
+/* ── THE CHALLENGE (2026-09-01, Sophie: "you can challenge your opponent, if
+   you have a card in your hand that fits their rule, then you steal their
+   set") ─────────────────────────────────────────────────────────────────
+   She points at one card in her hand and says it fits the rule the computer
+   named. The model adjudicates — the same reading it did to make the claim,
+   asked of one card — and a yes moves the point to her.
+
+   IT IS DELIBERATELY STRICT, and that is the whole balance of the move: a
+   challenge that always succeeds makes the opponent pointless. The rule has
+   to be true of the card in the same way it is true of the three, not merely
+   arguable about it. */
+const CHALLENGE_SYSTEM = [
+  'You are the referee in a card game. A player claims one card fits a rule that was named for',
+  'three other cards. You are given the rule and the prompt that drew the card — that IS the card.',
+  '',
+  'Say yes only if the rule is true of this card in the SAME WAY it is true of a set: plainly,',
+  'without stretching the words and without a category so broad it would fit anything.',
+  'A near miss is a no. Be a fair referee, not a generous one.',
+].join('\n');
+
+// pure: what the referee said, cleaned — exported for the test
+function challengeVerdict(raw) {
+  const d = raw && typeof raw === 'object' ? raw : {};
+  const why = String(d.why || '').trim().slice(0, MAX_WORDS);
+  return { fits: d.fits === true, why };
+}
+
+router.post('/challenge', express.json({ limit: '16kb' }), async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
+    const anthropic = require('./anthropic');
+    if (!anthropic.available()) return res.status(503).json({ error: 'the referee runs on Claude; the key is not set' });
+    const b = req.body || {};
+    const rule = clip(b.rule, MAX_WORDS);
+    if (!rule) return res.status(400).json({ error: 'a rule is required' });
+    const id = String(b.card || '');
+    if (!id) return res.status(400).json({ error: 'a card is required' });
+    const doc = await db().collection(CARDS).doc(id).get();
+    if (!doc.exists) return res.status(400).json({ error: 'card not found' });
+    const words = (doc.data().promptContent || doc.data().title || '').trim();
+    if (!words) return res.status(400).json({ error: 'that card has no words to judge' });
+    const raw = await anthropic.chatJSON({
+      system: CHALLENGE_SYSTEM,
+      user: `Rule: ${rule}\nCard: ${words}\n\nAnswer JSON: {"fits":true|false,"why":"one short line"}.`,
+      maxTokens: 200,
+    });
+    res.json({ ok: true, ...challengeVerdict(raw) });
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
 
@@ -518,6 +854,8 @@ router.post('/seed', async (req, res) => {
 module.exports = {
   router, init,
   foundContent, cardPrompt, validFound, stuckPatch, bakeCard, editionOf, mixHex,
+  syncPlan, syncHearts, slugOfUrl, bestCard, waitingPlan, adoptedFrom, writeWaiting,
+  opponentMove, opponentPrompt, OPPONENT_SYSTEM, challengeVerdict, CHALLENGE_SYSTEM,
   KINDS, STYLE, TRIANGLE_CLAUSE, triangleClause, INVENT_LINE, AUTO_RULES, STUCK_MS, COST_CENTS,
   // for scripts/seed-triset.js — the seed batch must draw through the exact
   // call a found set draws through, or the pool and the made cards drift.

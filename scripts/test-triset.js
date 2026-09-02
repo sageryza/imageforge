@@ -174,32 +174,46 @@ const cut = require('../triset-cut');
   ok('an interior white highlight SURVIVES (flood fill, not a chroma key)', a(30, 42) === 255);
 }
 {
-  // inscribePlan: the largest card INSIDE the bordered triangle (2026-08-31,
-  // round three, off her print sheets: "they're cut straight to the line in
-  // some spaces. they all need to have a MINIMUM border of cream space" —
-  // c2's cover-fit cropped art, and is history).
-  const w = 100; const h = 100;
-  const solid = Buffer.alloc(w * h * 4, 255);
-  const bbox = { x0: 0, y0: 0, x1: 99, y1: 99 };
-  const plan = cut.inscribePlan(solid, w, h, bbox);
+  // inscribePlan: the largest placement keeping every drawn pixel MIN_BORDER
+  // inside the slot triangle. The synthetics are TRIANGLES like the real
+  // drawn cards — a rectangle can never satisfy the constraint, and no card
+  // is one. (c5 read the same plan as a window into the original and cut
+  // through art on her real cards; c4's cream fill is what shipped — see the
+  // module header. The plan is shared, so these assertions hold for both.)
+  const w = 200; const h = 200;
+  const tri = (apexY, baseY, x0, x1) => {
+    const buf = Buffer.alloc(w * h * 4, 0);
+    const cx0 = (x0 + x1) / 2;
+    for (let y = apexY; y <= baseY; y += 1) {
+      const f = (y - apexY) / (baseY - apexY);
+      const half = ((x1 - x0) / 2) * f;
+      for (let x = Math.ceil(cx0 - half); x <= Math.floor(cx0 + half); x += 1) buf[(y * w + x) * 4 + 3] = 255;
+    }
+    return buf;
+  };
+  const card = tri(16, 180, 14, 186);
+  const bbox = { x0: 14, y0: 16, x1: 186, y1: 180 };
+  const plan = cut.inscribePlan(card, w, h, bbox);
+  ok('a drawn card gets a real (non-fallback) window', !plan.cover);
+  const k = plan.scale;
+  // NO window-inside-frame assertion: her real cards fill ~950 of a 1024
+  // frame, so the border-keeping window MUST overhang — bakeCut continues
+  // the overhang in the frame's own measured paper colour.
   const [[ax, ay], [bx, by], [cx, cy]] = cut.insetTri(false);
-  const edge = (px, py, x0, y0, x1, y1) => (x1 - x0) * (py - y0) - (y1 - y0) * (px - x0);
+  const edge = (px, py, xa, ya, xb, yb) => (xb - xa) * (py - ya) - (yb - ya) * (px - xa);
   const sgn = edge(cx, cy, ax, ay, bx, by) >= 0 ? 1 : -1;
-  const inside = (px, py) => sgn * edge(px, py, ax, ay, bx, by) >= -1
-    && sgn * edge(px, py, bx, by, cx, cy) >= -1 && sgn * edge(px, py, cx, cy, ax, ay) >= -1;
-  const corners = [
-    [plan.left, plan.top], [plan.left + 99 * plan.scale, plan.top],
-    [plan.left, plan.top + 99 * plan.scale], [plan.left + 99 * plan.scale, plan.top + 99 * plan.scale]];
-  ok('an opaque square lands entirely inside the inset triangle',
-    corners.every(([x, y]) => inside(x, y)));
-  ok('…as large as that allows (not shrunk to nothing)', 99 * plan.scale > 300);
+  const inside = (px, py) => sgn * edge(px, py, ax, ay, bx, by) >= -2
+    && sgn * edge(px, py, bx, by, cx, cy) >= -2 && sgn * edge(px, py, cx, cy, ax, ay) >= -2;
+  const cardPts = [[100, 16], [14, 180], [186, 180], [100, 100]];
+  ok('every drawn pixel lands inside the inset triangle',
+    cardPts.every(([x, y]) => inside(plan.left + (x - bbox.x0) * k, plan.top + (y - bbox.y0) * k)));
   // a squat drawing anchors to the base — the extra room is at the TOP
-  const squat = Buffer.alloc(w * h * 4, 0);
-  for (let y = 60; y < 95; y += 1) for (let x = 10; x < 90; x += 1) squat[(y * w + x) * 4 + 3] = 255;
-  const qb = { x0: 10, y0: 60, x1: 89, y1: 94 };
-  const qp = cut.inscribePlan(squat, w, h, qb);
-  const bottom = qp.top + 35 * qp.scale;
-  ok('a squat card sits at the base, extra cream above it', bottom > 866 - cut.MIN_BORDER - 60);
+  const squat = tri(120, 184, 12, 188);
+  const qp = cut.inscribePlan(squat, w, h, { x0: 12, y0: 120, x1: 188, y1: 184 });
+  ok('a squat card sits at the base, extra room above it',
+    !qp.cover && qp.top + 64 * qp.scale > 866 - cut.MIN_BORDER - 80);
+  // (a full-bleed frame never reaches inscribePlan — bakeCut routes it to
+  // the cover path first, tested end-to-end below)
 }
 ok('render banks the paid bytes BEFORE the cut, and a failed bake still readies the card',
   /await ref\.set\(\{ url \}, \{ merge: true \}\)/.test(MOD)
@@ -235,12 +249,32 @@ async function bakeChecks() {
     }
   }
   ok('the interior white patch is opaque in the bake', highlight);
-  // THE CUT IS THE PERFECT EQUILATERAL AND ITS EDGE IS CREAM (2026-08-31
-  // round three): the triangle fills to its corners — with the rim's own
-  // cream, never with art, so a scissor line can never touch the drawing.
-  const creamAt = (x, y) => { const [r, g, b, al] = px(x, y); return al === 255 && r > 180 && g > 160 && b > 120; };
-  ok('the cut fills the triangle to its corners, in cream',
-    creamAt(500, 20) && creamAt(40, 850) && creamAt(960, 850));
+  // THE CUT IS A WINDOW INTO THE ORIGINAL (2026-08-31, Sophie: "just recut
+  // the original") — the border around the drawn rim is the source's own
+  // paper, so the triangle's corners hold LIGHT original pixels (the
+  // synthetic's paper is white) and nothing dark sits near the cut edge.
+  const lightAt = (x, y) => { const [r, g, b, al] = px(x, y); return al === 255 && r > 200 && g > 200 && b > 180; };
+  ok('the triangle fills to its corners with the original\'s own paper',
+    lightAt(500, 30) && lightAt(50, 850) && lightAt(950, 850));
+  {
+    // MIN_BORDER: walk just inside each edge of the triangle — every pixel
+    // there is paper or rim, never art (a scissor line cannot touch the
+    // drawing). Sampled 10px inside the exact edges.
+    let dark = 0;
+    for (let t = 0.06; t < 0.94; t += 0.02) {
+      const spots = [
+        [500 + (1000 - 500) * t, 0 + 866 * t],            // right edge apex→base-right
+        [500 - 500 * t, 866 * t],                         // left edge
+        [60 + 880 * t, 856],                              // base, 10px up
+      ];
+      for (const [x, y] of spots) {
+        const px2 = Math.round(x + (x < 500 ? 10 : -10)); const py2 = Math.round(Math.min(856, y));
+        const [r, , , al] = px(px2, py2);
+        if (al === 255 && r < 150) dark += 1;
+      }
+    }
+    ok('nothing dark within the border band along the cut edges', dark === 0);
+  }
   // a full-bleed draw (no white paper) falls back to the ideal triangle mask
   const solid = await sharp({ create: { width: 120, height: 120, channels: 3, background: '#7a4a2b' } }).png().toBuffer();
   const fb = await cut.bakeCut(solid);
@@ -257,6 +291,98 @@ ok('a ready card is left alone', triset.stuckPatch({ status: 'ready', createdAt:
 const sp = triset.stuckPatch({ status: 'drawing', createdAt: now - triset.STUCK_MS - 1 }, now);
 ok('an orphaned draw fails honestly', sp && sp.status === 'failed');
 
+/* ── her hearts are the deck ─────────────────────────────────────────────── */
+{
+  const S = triset.slugOfUrl;
+  ok('a card url yields its subject slug',
+    S('https://x/triset/cards/abc123-wild-strawberries.webp') === 'wild-strawberries');
+  ok('a url with no card shape yields nothing',
+    S('https://x/triset/made/abc.webp') === null && S('') === null && S(undefined) === null);
+
+  const P = triset.syncPlan;
+  const U = (n, s) => `x/cards/${n}-${s}.webp`;
+  // 'castle' and 'lemon' are in her vocabulary; 'burnt-toast' is not.
+  const held = { id: 'held', url: U(1, 'castle'), edition: 'nature', quality: 'low' };
+  const alt = { id: 'alt', url: U(2, 'castle'), hidden: true, quality: 'medium' };
+  const P1 = (cards, votes) => Object.fromEntries(P(cards, votes).map(p => [p.id, p.patch]));
+
+  ok('a settled deck writes nothing at all', P([held, alt], {}).length === 0);
+  ok('a ♥ on a card whose subject is already dealt does NOT swap her printed picture',
+    P([held, alt], { [alt.url]: 'like' }).length === 0);
+
+  const swap = P1([held, alt], { [held.url]: 'dislike', [alt.url]: 'like' });
+  ok('an ✕ on the dealt picture takes it out', swap.held && swap.held.hidden === true && swap.held.edition === '');
+  ok('…and the hearted generation takes over', swap.alt && swap.alt.edition === 'nature' && swap.alt.hidden === false);
+
+  const gone = P1([held, alt], { [held.url]: 'dislike' });
+  ok('with nothing hearted behind it the subject leaves the deck',
+    gone.held && gone.held.hidden === true && !gone.alt);
+
+  const join = P1([{ id: 'n', url: U(3, 'lemon'), hidden: true, quality: 'low' }], { [U(3, 'lemon')]: 'like' });
+  ok('a ♥ deals a subject that had nothing in the deck',
+    join.n && join.n.edition === 'nature' && join.n.hidden === false);
+
+  ok('a ♥ OUTSIDE her nature vocabulary does not silently join the deck',
+    P([{ id: 'b', url: U(4, 'burnt-toast'), hidden: true }], { [U(4, 'burnt-toast')]: 'like' }).length === 0);
+
+  const two = P1([
+    { id: 'a', url: U(5, 'zebra'), edition: 'nature' },
+    { id: 'b', url: U(6, 'zebra'), edition: 'nature' },
+  ], {});
+  ok('one card per subject — a second tagged generation is untagged',
+    Object.keys(two).length === 1 && Object.values(two)[0].edition === '');
+
+  const B = triset.bestCard;
+  ok('the better quality wins a fresh pick',
+    B({ quality: 'low', createdAt: 9 }, { quality: 'medium', createdAt: 1 }).quality === 'medium');
+  ok('…and the newer wins a tie', B({ quality: 'low', createdAt: 1 }, { quality: 'low', createdAt: 9 }).createdAt === 9);
+}
+
+/* ── the waiting room ────────────────────────────────────────────────────── */
+{
+  const W = triset.waitingPlan, A = triset.adoptedFrom;
+  const U = (n, s) => `x/cards/${n}-${s}.webp`;
+  const cards = [
+    { id: 'd', url: U(1, 'castle'), edition: 'nature', promptContent: 'a castle' },
+    { id: 'd2', url: U(2, 'castle'), quality: 'medium' },              // alt of a dealt subject
+    { id: 't', url: U(3, 'burnt-toast'), quality: 'low', promptContent: 'burnt toast' },
+    { id: 't2', url: U(4, 'burnt-toast'), quality: 'medium' },
+    { id: 'u', url: U(5, 'sock-drawer') },                              // never voted on
+    { id: 'n', url: U(6, 'teacup') },
+  ];
+  const votes = { [U(2, 'castle')]: 'like', [U(3, 'burnt-toast')]: 'like',
+    [U(4, 'burnt-toast')]: 'like', [U(6, 'teacup')]: 'like' };
+  const items = W(cards, votes, {});
+  const ids = items.map(i => i.id);
+  ok('a hearted card outside the deal waits on the page', ids.includes('burnt-toast') && ids.includes('teacup'));
+  ok('a subject already dealt never waits', !ids.includes('castle'));
+  ok('a card she never hearted is not offered', !ids.includes('sock-drawer'));
+  ok('one row per subject, at its best generation',
+    ids.filter(i => i === 'burnt-toast').length === 1
+    && items.find(i => i.id === 'burnt-toast').img === U(4, 'burnt-toast'));
+  ok('the row id is the SUBJECT, so her marks survive a rebuild',
+    items.every(i => /^[a-z-]+$/.test(i.id)));
+  ok('an ✕ on the page stops a card being offered',
+    !W(cards, votes, { teacup: false }).map(i => i.id).includes('teacup'));
+
+  ok('her ♥ on the page is the adoption', A({ teacup: true, 'burnt-toast': false }).has('teacup'));
+  ok('…and an ✕ there is not', !A({ 'burnt-toast': false }).has('burnt-toast'));
+  const dealt = triset.syncPlan([{ id: 'n', url: U(6, 'teacup'), hidden: true }],
+    { [U(6, 'teacup')]: 'like' }, A({ teacup: true }));
+  ok('an adopted subject joins the deal though it is outside the vocabulary',
+    dealt.length === 1 && dealt[0].patch.edition === 'nature' && dealt[0].patch.hidden === false);
+}
+ok('a referee that does not say yes is a no', triset.challengeVerdict({ fits: 'yes' }).fits === false);
+ok('a plain yes is a yes', triset.challengeVerdict({ fits: true, why: 'both are water' }).fits === true);
+ok('the referee is told to be fair, not generous', /not a generous one/.test(triset.CHALLENGE_SYSTEM));
+ok('the opponent is allowed to pass', /A STRETCH IS A PASS/.test(triset.OPPONENT_SYSTEM));
+
+ok('the waiting page is one standing doc, not a new page each sweep', /WAIT_PAGE/.test(MOD) && /dataHash/.test(MOD));
+
+ok('the sync runs off her votes collection', /forge-asset-votes/.test(MOD));
+ok('the deck read asks the sync first', /await syncHearts\(\)/.test(MOD));
+ok('the sync is cached, so a deal is not a full collection scan', /SYNC_MS/.test(MOD));
+
 /* ── page source pins ────────────────────────────────────────────────────── */
 ok('the middle box ships EMPTY — no placeholder, no content',
   /<textarea id="middle" rows="3"><\/textarea>/.test(PAGE) && !/id="middle"[^>]*placeholder/.test(PAGE));
@@ -269,6 +395,11 @@ ok('the paid button wears the star and the cost',
   /id="found"/.test(PAGE) && /~2¢/.test(PAGE) && /id="star"/.test(PAGE));
 ok('the title is the tool-eyebrow, once',
   (PAGE.match(/tool-eyebrow/g) || []).length >= 1 && (PAGE.match(/<h1/g) || []).length === 1);
+ok('the ruleset says how a set is claimed and how one is stolen — her words',
+  /must name their\s+set explicitly/.test(PAGE)
+  && /red round things/.test(PAGE)
+  && /Ask the claimer to repeat their name/.test(PAGE)
+  && /puts it on his own shelf/.test(PAGE));
 ok('the mid slot cannot eat card taps', /#s-mid\{pointer-events:none\}/.test(PAGE));
 
 /* ── headless half ───────────────────────────────────────────────────────── */
@@ -293,13 +424,17 @@ const PIXEL = Buffer.from('UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA==', 'b
 async function headless() {
   const founds = [];
   let pollCount = 0;
-  const cards = Array.from({ length: 6 }, (_, i) => ({
+  const cards = Array.from({ length: 10 }, (_, i) => ({
     id: 'c' + i, title: 'card ' + i, status: 'ready',
     url: 'https://storage.googleapis.com/x/triset/cards/c' + i + '.webp',
     cut: 'https://storage.googleapis.com/x/triset/cuts/c' + i + '.c1.webp', createdAt: i,
   }));
   // phase 2 swaps in a pool that ALSO holds three hex color cards
   let cardsResp = cards;
+  const opps = [];
+  let oppReply = { ok: true, found: false, why: 'nothing here' };
+  const challenges = [];
+  let chalReply = { ok: true, fits: false, why: 'no' };
   let madeHex = null; // the hex /found answered with, phase 2
   const srv = http.createServer((req, res) => {
     const u = new URL(req.url, 'http://x');
@@ -333,6 +468,26 @@ async function headless() {
         ? { ok: true, status: 'drawing' }
         : { ok: true, status: 'ready', title: 'the moon', flip: true, url: 'https://storage.googleapis.com/x/triset/cards/made1.webp' }));
     }
+    if (u.pathname === '/api/triset/opponent') {
+      let body = '';
+      req.on('data', (c) => { body += c; });
+      req.on('end', () => {
+        opps.push(JSON.parse(body));
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify(oppReply));
+      });
+      return;
+    }
+    if (u.pathname === '/api/triset/challenge') {
+      let body = '';
+      req.on('data', (c) => { body += c; });
+      req.on('end', () => {
+        challenges.push(JSON.parse(body));
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify(chalReply));
+      });
+      return;
+    }
     if (u.pathname === '/api/story/thumb') {
       res.writeHead(200, { 'content-type': 'image/webp' });
       return res.end(PIXEL);
@@ -356,6 +511,191 @@ async function headless() {
   ok('a card with a die-cut shows the CUT, not the original', dealt.every(s => s.includes('cuts%2F')));
   // the cut copy fills the slot exactly — no legacy overscan mapping — so the
   // cream face shows through the copy's transparency as the border
+  // Deal is gone from the UI (2026-09-01) — the deck flows through her HAND,
+  // so a fresh state is made the way she really makes one: a swap.
+  let swapN = 0;
+  const doSwap = async () => {
+    const slot = ['#s-top', '#s-left', '#s-right'][swapN % 3];
+    await pg.click(slot);
+    await pg.click('.hcard[data-h="' + (swapN % 3) + '"]');
+    swapN += 1;
+  };
+
+  // clicking a HIDDEN undo throws a playwright timeout, which crashes the run
+  // before the failure list prints — so a broken undo reads as a stack trace
+  // instead of a named ✗. Skip the click and let the assertions talk.
+  const tapUndo = async () => {
+    if (await pg.evaluate(() => document.getElementById('undo').hidden)) return false;
+    await pg.click('#undo'); return true;
+  };
+
+  // UNDO — put the last hand back (2026-09-01, "add an undo button"). Every
+  // assertion is a MEASUREMENT of what is on the slots: a stack that pops
+  // correctly and a page that never repaints look identical to any source
+  // assertion, and the whole point is the picture coming back.
+  // THE NAME IS CENTRED ON THE PAGE (2026-09-01, "similitude should be in the
+   // middle") — measured, because a title that merely sits first in a flex row
+   // and one that is centred are the same markup.
+  ok('the title is centred on the page, not left in the row', await pg.evaluate(() => {
+    const h = document.querySelector('h1.tool-eyebrow').getBoundingClientRect();
+    return Math.abs((h.left + h.right) / 2 - window.innerWidth / 2) <= 2;
+  }));
+  ok('…and does not sit on the gear', await pg.evaluate(() => {
+    const h = document.querySelector('h1.tool-eyebrow').getBoundingClientRect();
+    const r = document.getElementById('gear').getBoundingClientRect();
+    return r.right <= h.left + 1 || r.left >= h.right - 1;
+  }));
+  // 2026-09-01: the gear replaced the "?", top right, and the modes moved
+  // into it — the row they sat in is gone. The header MUST reserve its own
+  // height or the board covers the gear (caught by screenshotting).
+  ok('the settings gear is top right and really tappable', await pg.evaluate(() => {
+    const g = document.getElementById('gear').getBoundingClientRect();
+    const mid = document.elementFromPoint((g.left + g.right) / 2, (g.top + g.bottom) / 2);
+    return g.top < 90 && g.right > window.innerWidth - 60
+      && !!mid && (mid.id === 'gear' || mid.closest('#gear'));
+  }));
+  ok('the mode row and the Deal button are gone', await pg.evaluate(() =>
+    !document.getElementById('kinds') && !document.getElementById('deal')));
+  ok('the modes live in settings instead', await pg.evaluate(() => {
+    document.getElementById('gear').click();
+    const on = document.querySelector('#modes button.on');
+    return !document.getElementById('helpcard').hidden
+      && document.querySelectorAll('#modes button').length === 3 && !!on;
+  }));
+  await pg.click('#helpcard');
+  // GOLD OUTLINE, GOLD TEXT, NO FILL, ALL CAPS — and all the way right
+  ok('the button is gold outline with gold text and no fill', await pg.evaluate(() => {
+    const c = getComputedStyle(document.getElementById('found'));
+    const warm = (v) => { const m = /rgba?\((\d+), (\d+), (\d+)/.exec(v);
+      return m && +m[1] > 130 && +m[1] > +m[3] + 40; };
+    const clearBg = c.backgroundColor === 'rgba(0, 0, 0, 0)' || c.backgroundColor === 'transparent';
+    return warm(c.color) && warm(c.borderTopColor) && clearBg
+      && c.textTransform === 'uppercase';
+  }));
+  ok('…and sits all the way right', await pg.evaluate(() => {
+    const b = document.getElementById('found').getBoundingClientRect();
+    const row = document.getElementById('acts').getBoundingClientRect();
+    return Math.abs(b.right - row.right) <= 2;
+  }));
+  ok('no undo button before anything has been undone', await pg.evaluate(() =>
+    document.getElementById('undo').hidden === true));
+  ok('no redo either', await pg.evaluate(() => document.getElementById('redo').hidden === true));
+  // TOP LEFT, BARE GLYPH, NO WORDS (2026-09-01) — measured: a plateless icon
+  // and a bordered one are the same markup, and "top left" is a coordinate.
+  ok('undo sits in the header, left of the title', await pg.evaluate(() => {
+    const u = document.getElementById('undo').getBoundingClientRect();
+    const h = document.querySelector('h1.tool-eyebrow').getBoundingClientRect();
+    return u.top < 90 && u.left < 60 && u.right <= h.left + 1;
+  }));
+  ok('it carries an icon and NO words', await pg.evaluate(() => {
+    const u = document.getElementById('undo');
+    return !!u.querySelector('svg') && u.textContent.trim() === '';
+  }));
+  ok('…with no square or fill around it', await pg.evaluate(() => {
+    const c = getComputedStyle(document.getElementById('undo'));
+    const clear = (v) => v === 'rgba(0, 0, 0, 0)' || v === 'transparent';
+    return clear(c.backgroundColor) && c.borderTopStyle === 'none'
+      && parseFloat(c.borderTopWidth || 0) === 0;
+  }));
+  {
+    const shot = () => pg.evaluate(() => ['top', 'left', 'right']
+      .map(s => document.querySelector('#s-' + s + ' img').getAttribute('src') || ''));
+    const before = await shot();
+    await pg.click('#s-top');                       // swap one card: two taps
+    await pg.click('.hcard[data-h="0"]');
+    ok('the undo button appears once there is a hand to go back to',
+      await pg.evaluate(() => document.getElementById('undo').hidden === false));
+    const swapped = await shot();
+    ok('the swap really changed the top card', swapped[0] !== before[0]);
+    ok('…and left the other two alone', swapped[1] === before[1] && swapped[2] === before[2]);
+    await tapUndo();
+    ok('undo puts the exact hand back', JSON.stringify(await shot()) === JSON.stringify(before));
+    // REDO grows only once there is something to redo, and takes it forward again
+    ok('a redo appears after an undo',
+      await pg.evaluate(() => document.getElementById('redo').hidden === false));
+    await pg.click('#redo');
+    ok('redo goes forward to the undone hand',
+      JSON.stringify(await shot()) === JSON.stringify(swapped));
+    await tapUndo();
+    ok('and back again', JSON.stringify(await shot()) === JSON.stringify(before));
+    // a NEW move ends the future she undid
+    await doSwap();
+    ok('a new move drops the redo',
+      await pg.evaluate(() => document.getElementById('redo').hidden === true));
+    await tapUndo();
+    ok('…and hides itself when the history runs out',
+      await pg.evaluate(() => document.getElementById('undo').hidden === true));
+    // her typed middle is NOT touched — it still describes the hand that came back
+    await pg.fill('#middle', 'they all fly');
+    await doSwap();
+    // named, so a deal that forgot to push fails HERE rather than as a click
+    // timing out on a hidden button
+    ok('a deal is undoable too', await pg.evaluate(() => document.getElementById('undo').hidden === false));
+    await tapUndo();
+    ok('undo leaves her typed middle alone',
+      await pg.evaluate(() => document.getElementById('middle').value) === 'they all fly');
+    await pg.fill('#middle', '');
+    // several steps back, in order
+    const h0 = await shot();
+    await doSwap(); const h1 = await shot();
+    await doSwap();
+    ok('two deals leave two steps of history',
+      await pg.evaluate(() => document.getElementById('undo').hidden === false));
+    await tapUndo();
+    ok('undo steps back one hand at a time', JSON.stringify(await shot()) === JSON.stringify(h1));
+    await tapUndo();
+    ok('…all the way to where she started', JSON.stringify(await shot()) === JSON.stringify(h0));
+  }
+
+  // THE BUTTONS SIT ABOVE THE HAND (2026-09-01, "buttons go above hand")
+  ok('the buttons are above the hand', await pg.evaluate(() =>
+    document.getElementById('acts').getBoundingClientRect().bottom
+    <= document.getElementById('hand').getBoundingClientRect().top + 1));
+  // THE SET COUNT, TOP RIGHT — a number, nothing else, and absent at zero
+  ok('no set count before she has found one', await pg.evaluate(() =>
+    document.getElementById('sets').hidden === true));
+
+  // A REAL DECK AND A HAND (2026-09-01: dealt three, shown under the board;
+  // tap a board card + a hand card to swap; the hand refills from the deck).
+  // Measured on the page, because "an actual deck" is a property of what is
+  // on the table over time, which no source assertion can see.
+  {
+    const table = () => pg.evaluate(() => ({
+      board: ['top', 'left', 'right'].map(s => document.querySelector('#s-' + s + ' img').getAttribute('src') || ''),
+      held: Array.from(document.querySelectorAll('.hcard img')).map(i => i.getAttribute('src') || ''),
+    }));
+    const t0 = await table();
+    ok('three cards sit in her hand under the board', t0.held.filter(Boolean).length === 3);
+    ok('the hand is BELOW the board', await pg.evaluate(() =>
+      document.getElementById('hand').getBoundingClientRect().top
+      >= document.getElementById('board').getBoundingClientRect().bottom - 1));
+    ok('no card is in two places at once',
+      new Set(t0.board.concat(t0.held)).size === 6);
+    // tap a board card, then a hand card
+    await pg.click('#s-top');
+    await pg.click('.hcard[data-h="0"]');
+    const t1 = await table();
+    ok('the hand card took the board slot', t1.board[0] === t0.held[0]);
+    ok('…the other board cards are untouched',
+      t1.board[1] === t0.board[1] && t1.board[2] === t0.board[2]);
+    ok('…a NEW card came into her hand from the deck',
+      t1.held[0] && t1.held[0] !== t0.held[0]);
+    ok('…and the table still holds six different cards',
+      new Set(t1.board.concat(t1.held)).size === 6);
+    ok('the replaced board card is OUT of play (discarded, not re-dealt)',
+      !t1.board.concat(t1.held).includes(t0.board[0]));
+    // the other tap order works too
+    await pg.click('.hcard[data-h="1"]');
+    await pg.click('#s-left');
+    const t2 = await table();
+    ok('picking the hand card first works the same', t2.board[1] === t1.held[1]);
+    // undo restores the whole table, deck included
+    await tapUndo();
+    const t3 = await table();
+    ok('undo puts the table back, hand and all',
+      JSON.stringify(t3) === JSON.stringify(t1));
+  }
+
   ok('the cut fills the slot, measured', await pg.evaluate(() => {
     return ['top', 'left', 'right'].every(s => {
       const el = document.getElementById('s-' + s);
@@ -382,11 +722,11 @@ async function headless() {
   // tap a card → it swaps (six cards, three dealt, a swap always changes the id)
   const before = await pg.$eval('#s-top img', el => el.src);
   let after = before;
-  for (let i = 0; i < 4 && after === before; i++) {
-    await pg.click('#s-top', { position: { x: 90, y: 120 } });
-    after = await pg.$eval('#s-top img', el => el.src);
-  }
-  ok('tapping a card swaps it', after !== before);
+  // a swap is TWO taps since 2026-09-01 — a board card and a hand card
+  await pg.click('#s-top', { position: { x: 90, y: 120 } });
+  await pg.click('.hcard[data-h="0"]');
+  after = await pg.$eval('#s-top img', el => el.src);
+  ok('tapping a board card then a hand card swaps it', after !== before);
 
   // the mid rectangle overlaps the lower cards — a tap on a lower card's inner
   // corner must reach the CARD (elementFromPoint is the only honest question)
@@ -400,7 +740,7 @@ async function headless() {
 
   // the kind toggle shows the three venn boxes on the middle triangle's sides
   ok('venn boxes hidden in same mode', await pg.$eval('#v-top', el => el.hidden));
-  await pg.click('#k-each');
+  await pg.click('#gear'); await pg.click('#modes button[data-k="each"]'); await pg.click('#helpcard');
   ok('each mode shows the three venn boxes', await pg.evaluate(() =>
     ['v-top', 'v-left', 'v-right'].every(id => !document.getElementById(id).hidden)));
   ok('the venn boxes are empty', await pg.evaluate(() =>
@@ -408,13 +748,50 @@ async function headless() {
 
   // found posts exactly what the module validates, and the new card lands IN
   // THE MIDDLE, upside down (her rule: "shud show, in the middle, when drawn")
+  // THE RIGHT BUTTON HAS TWO STAGES (2026-09-01): "Set!" claims the cards and
+  // lights them gold — free — and only once there are words does it become
+  // "Draw it!" with the star, which is the tap that spends.
+  ok('the button starts as Set! with no star', await pg.evaluate(() =>
+    document.getElementById('foundword').textContent.trim() === 'Set!'
+    && document.getElementById('star').hidden === true));
+  await pg.click('#found');
+  // the gold is MEASURED off what renders: the face behind the card is gold
+  // and the card shrinks onto it, which is the only version of this that was
+  // actually visible (a drop-shadow and a face alone both showed nothing)
+  ok('Set! lights the three board cards in gold', await pg.evaluate(() => {
+    if (!document.getElementById('board').classList.contains('claimed')) return false;
+    return ['top', 'left', 'right'].every(s => {
+      const el = document.getElementById('s-' + s);
+      const face = getComputedStyle(el.querySelector('.face')).backgroundColor;
+      const m = /rgba?\((\d+), (\d+), (\d+)/.exec(face);
+      if (!m) return false;
+      const [r, g, b] = [+m[1], +m[2], +m[3]];
+      const gold = r > 130 && r > b + 40 && g > b;          // warm, not grey
+      const shrunk = getComputedStyle(el.querySelector('img')).transform !== 'none';
+      return gold && shrunk;
+    });
+  }));
+  ok('…and is still not the paid tap', await pg.evaluate(() =>
+    document.getElementById('foundword').textContent.trim() === 'Set!'));
   await pg.fill('#middle', 'the moon');
   await pg.fill('#v-top', 'round');
   await pg.fill('#v-left', 'out at night');
   await pg.fill('#v-right', 'glows');
+  ok('once the words are in it becomes Draw it! and wears the star', await pg.evaluate(() =>
+    document.getElementById('foundword').textContent.trim() === 'Draw it!'
+    && document.getElementById('star').hidden === false));
   await pg.click('#found');
   await pg.waitForFunction(() => !document.getElementById('midcut').hidden, null, { timeout: 15000 });
   ok('found POSTed once', founds.length === 1);
+  // THE SET COUNT, TOP RIGHT (2026-09-01, "counts how many sets - top right -
+  // number") — a bare number, and measured as a COORDINATE: "top right" is a
+  // position, and a counter that only ever increments in memory shows nothing.
+  ok('the set count shows 1, top right', await pg.evaluate(() => {
+    const el = document.getElementById('sets');
+    if (el.hidden || el.textContent.trim() !== '1') return false;
+    const r = el.getBoundingClientRect();
+    return r.top < 90 && r.right > window.innerWidth - 60;
+  }));
   const f = founds[0] || {};
   ok('…with three different card ids', f.cards && new Set(f.cards).size === 3);
   ok('…the kind and her words', f.kind === 'each' && f.middle === 'the moon' && (f.sides || []).join('|') === 'round|out at night|glows');
@@ -474,7 +851,8 @@ async function headless() {
     return !row.hidden && words.join('|') === 'All cards|Colors'
       && row.querySelector('button').classList.contains('on');
   }));
-  ok('the whole pool counts in the header', await pg.$eval('#pool', el => el.textContent) === '9 cards');
+  // the header carries NO count since 2026-09-01 ('get rid of "nature 72"')
+  ok('the header shows no card count at all', await pg.evaluate(() => !document.getElementById('pool')));
   await pg.click('#eds button:nth-child(2)');
   ok('a lit edition deals ONLY its cards, as flat SVG triangles', await pg.evaluate(() =>
     ['top', 'left', 'right'].every(s => {
@@ -482,14 +860,25 @@ async function headless() {
       return (img.getAttribute('src') || '').startsWith('data:image/svg')
         && img.classList.contains('whole');
     })));
-  ok('…and the header says so', await pg.$eval('#pool', el => el.textContent) === '3 colors');
   ok('a hand of three colors mixes FREE — the button says so',
     await pg.$eval('#found .cost', el => el.textContent) === 'free');
+  // ONE DECK NEEDS NO CHOOSER (2026-09-01, "get rid of all cards and colors"):
+  // a pool where every card is the same edition drops the row and deals that
+  // deck. The row must SURVIVE above, where un-editioned cards are a real
+  // second choice — hiding it there strands them behind no control.
+  cardsResp = cardsResp.filter(c => c.edition === 'color');
+  await pg.reload({ waitUntil: 'networkidle' });
+  ok('a pool that is ALL one edition drops the chip row and deals that deck',
+    await pg.evaluate(() => document.getElementById('eds').hidden === true
+      && ['top', 'left', 'right'].every(s =>
+        (document.querySelector('#s-' + s + ' img').getAttribute('src') || '')
+          .startsWith('data:image/svg'))));
 
   // find the mix: instant, no drawing wait, the blend lands in the middle
+  await pg.click('#gear'); await pg.click('#modes button[data-k="same"]'); await pg.click('#helpcard');
+  await pg.click('#found');            // claim
   await pg.fill('#middle', 'orange');
-  await pg.click('#k-same');
-  await pg.click('#found');
+  await pg.click('#found');            // draw
   await pg.waitForFunction(() => !document.getElementById('midcut').hidden, null, { timeout: 15000 });
   const fh = founds[founds.length - 1] || {};
   ok('the hex found posted the three hex ids', (fh.cards || []).join('|') === ['h0', 'h1', 'h2'].sort().join('|')
@@ -503,6 +892,234 @@ async function headless() {
   ok('the next hand stays in the edition', await pg.evaluate(() =>
     ['top', 'left', 'right'].every(s =>
       (document.querySelector('#s-' + s + ' img').getAttribute('src') || '').startsWith('data:image/svg'))));
+
+  /* HER PLACE SURVIVES A RELOAD (2026-09-01, "saves ur place, even w deploy
+     or reopen") — measured by RELOADING and comparing the table, which is the
+     only honest question: a save that writes and never reads back looks
+     identical to one that works. */
+  {
+    cardsResp = cards;                       // the full pool again
+    await pg.goto(base + '/triset', { waitUntil: 'networkidle' });
+    const table = () => pg.evaluate(() => ({
+      board: ['top', 'left', 'right'].map(s => document.querySelector('#s-' + s + ' img').getAttribute('src') || ''),
+      held: Array.from(document.querySelectorAll('.hcard img')).map(i => i.getAttribute('src') || ''),
+    }));
+    await pg.click('#s-top');
+    await pg.click('.hcard[data-h="0"]');
+    await pg.fill('#middle', 'they all fly');
+    const was = await table();
+    await pg.reload({ waitUntil: 'networkidle' });
+    ok('a reload puts the same table back', JSON.stringify(await table()) === JSON.stringify(was));
+    ok('…her typed middle too',
+      await pg.evaluate(() => document.getElementById('middle').value) === 'they all fly');
+    ok('the hand holds THREE cards, not two', await pg.evaluate(() =>
+      Array.from(document.querySelectorAll('.hcard img'))
+        .filter(i => i.getAttribute('src')).length === 3));
+  }
+
+  /* PLAYING AGAINST THE COMPUTER (2026-09-01). Every assertion is a
+     MEASUREMENT: a button that renders hidden, a score that never repaints
+     and a claim scored to the wrong player all pass any source assertion. */
+  {
+    await pg.evaluate(() => { try { localStorage.clear(); } catch (e) { /* */ } });
+    await pg.goto(base + '/triset', { waitUntil: 'networkidle' });
+    const innerW = await pg.evaluate(() => innerWidth);
+    const shown = () => pg.evaluate(() => {
+      const b = document.getElementById('turn');
+      const r = b.getBoundingClientRect();
+      return !b.hidden && r.width > 0 && r.height > 0;
+    });
+    const score = () => pg.evaluate(() => {
+      const el = document.getElementById('sets');
+      return el.hidden ? '' : el.textContent;
+    });
+    ok('solitaire shows no opponent button', (await shown()) === false);
+
+    await pg.click('#gear');
+    ok('the settings sheet offers the opponent', await pg.evaluate(() =>
+      document.querySelectorAll('#oppos button').length === 2));
+    /* HER RULESET MADE THIS SHEET TALLER THAN A PHONE, and a centred flex
+       child overflows in BOTH directions — so every control at the TOP of it
+       went off screen. Asked with elementFromPoint, which is the only honest
+       question: a control above the fold passes every width assertion while
+       being untappable. */
+    ok('every control in the settings sheet can actually be tapped', await pg.evaluate(() => {
+      const btns = Array.from(document.querySelectorAll('#modes button, #oppos button'));
+      return btns.every((b) => {
+        const r = b.getBoundingClientRect();
+        if (r.top < 0 || r.bottom > innerHeight) return false;
+        const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+        return hit === b || b.contains(hit);
+      });
+    }));
+    await pg.click('#oppos button[data-o="1"]');
+    await pg.click('#helpcard');
+    ok('turning the computer on puts ITS TURN on screen', (await shown()) === true);
+    ok('the score starts level', (await score()) === '0\u20130');
+
+    // it passes — the turn comes straight back, nothing is claimed, no score
+    oppReply = { ok: true, found: false, why: 'a cat and a comet' };
+    await pg.click('#turn');
+    await pg.waitForFunction(() => /passes/.test(document.getElementById('msg').textContent), null, { timeout: 5000 });
+    ok('a pass claims nothing', await pg.evaluate(() =>
+      !document.getElementById('board').classList.contains('claimed')));
+    ok('…and scores nothing', (await score()) === '0\u20130');
+    const boardIds = await pg.evaluate(() => window.__triBoard || null);
+    ok('it played from the three cards on the board',
+      (opps[opps.length - 1].cards || []).length === 3
+      && (opps[opps.length - 1].cards || []).every(Boolean)
+      && opps[opps.length - 1].kind === 'same'
+      && (!boardIds || JSON.stringify(opps[opps.length - 1].cards) === JSON.stringify(boardIds)));
+
+    // it finds one — its words land in the middle, the cards light, it scores
+    oppReply = { ok: true, found: true, middle: 'they are all made of water' };
+    await pg.click('#turn');
+    await pg.waitForFunction(() => document.getElementById('board').classList.contains('claimed'), null, { timeout: 5000 });
+    ok('its answer is typed into the middle', await pg.evaluate(() =>
+      document.getElementById('middle').value) === 'they are all made of water');
+    // MEASURED against an unclaimed slot, not against a colour typed here —
+    // a claim that changes no pixel passes every class assertion
+    ok('the cards really light gold', await pg.evaluate(() => {
+      const b = document.getElementById('board');
+      const bg = () => getComputedStyle(document.querySelector('#s-top .face')).backgroundColor;
+      const lit = bg();
+      b.classList.remove('claimed');
+      const dark = bg();
+      b.classList.add('claimed');
+      return lit !== dark;
+    }));
+    ok('it takes the point', (await score()) === '0\u20131');
+
+    // drawing ITS set must not also score HER
+    const before = founds.length;
+    await pg.click('#found');
+    await pg.waitForFunction((n) => window.__t_founds === undefined || true, before, { timeout: 2000 }).catch(() => {});
+    await pg.waitForTimeout(300);
+    ok('drawing its card is still one draw', founds.length === before + 1);
+    ok('…and does NOT score her a point for its set', (await score()) === '0\u20131');
+
+    /* NEW HAND, and the outline costing nothing (2026-09-01). */
+    {
+      const row = await pg.evaluate(() => Array.from(document.querySelectorAll('#acts .btn'))
+        .filter((b) => !b.hidden)
+        .map((b) => {
+          const c = getComputedStyle(b);
+          const r = b.getBoundingClientRect();
+          return { id: b.id, x: Math.round(r.x), right: Math.round(r.right),
+            padT: parseFloat(c.paddingTop) + parseFloat(c.borderTopWidth),
+            padL: parseFloat(c.paddingLeft) + parseFloat(c.borderLeftWidth) };
+        }));
+      ok('New hand is the leftmost button', row.length === 3 && row[0].id === 'newhand');
+      ok('…and Set! is still hard right', row[2].id === 'found'
+        && row[2].right > row[1].right && row[2].right >= innerW - 30);
+      // "make sure the outline didn't make the buttons bigger" — the 1px
+      // border is taken back out of the padding, so the box is what it was
+      ok('the outline did not make the buttons bigger',
+        row.every((b) => b.padT === 9 && b.padL === 14));
+    }
+    {
+      const before = await pg.evaluate(() =>
+        ['top', 'left', 'right'].map((s) => document.querySelector('#s-' + s + ' img').getAttribute('src')).join('|'));
+      await pg.click('#newhand');
+      await pg.waitForTimeout(200);
+      ok('New hand deals a fresh board', await pg.evaluate(() =>
+        ['top', 'left', 'right'].map((s) => document.querySelector('#s-' + s + ' img').getAttribute('src')).join('|')) !== before);
+    }
+
+    /* ONE CARD, BIG — a double tap and a long press, and neither may also
+       pick the card for a swap (2026-09-01). */
+    {
+      const open = () => pg.evaluate(() => !document.getElementById('cardbig').hidden);
+      const picked = () => pg.evaluate(() => !!document.querySelector('#board .slot.pick'));
+      await pg.dblclick('#s-top');
+      ok('a double tap opens the card bigger', await open());
+      ok('…and shows the card it opened', await pg.evaluate(() =>
+        document.querySelectorAll('#cardform .sl img[src]').length === 1));
+      await pg.click('#cardbig');
+      ok('tapping away closes it', (await open()) === false);
+
+      const box = await pg.evaluate(() => {
+        const r = document.getElementById('s-top').getBoundingClientRect();
+        return { x: r.x + r.width / 2, y: r.y + r.height * 0.8 };
+      });
+      await pg.mouse.move(box.x, box.y);
+      await pg.mouse.down();
+      await pg.waitForTimeout(900);
+      await pg.mouse.up();
+      ok('a long press opens it too', await open());
+      // the press opened it under her finger — that release must not close it
+      ok('…and the release that ended the press does not close it again',
+        await pg.evaluate(() => { const b = document.getElementById('cardbig'); b.click(); return !b.hidden; }));
+      await pg.click('#cardbig');
+      ok('…a real tap after that does close it', (await open()) === false);
+      ok('…and neither gesture picked the card for a swap', (await picked()) === false);
+    }
+
+    /* THE SHELF, THE BIG VIEW AND THE CHALLENGE (2026-09-01). Measured: a
+       tile that renders 0px, a formation missing its middle card and a steal
+       that never moves the score all pass any source assertion. */
+    const tiles = () => pg.evaluate(() => Array.from(document.querySelectorAll('#won .setcard')).map((b) => {
+      const r = b.getBoundingClientRect();
+      const imgs = Array.from(b.querySelectorAll('.sl img')).filter((i) => i.getAttribute('src'));
+      return { w: Math.round(r.width), x: Math.round(r.x), y: Math.round(r.y), imgs: imgs.length,
+        mine: b.classList.contains('mine') };
+    }));
+    let t = await tiles();
+    ok('a won set is kept on the shelf', t.length === 1 && t[0].w > 20);
+    ok('…in full triangle formation, the made card in the middle', t[0].imgs === 4);
+    ok('…and its own set is marked as its own', t[0].mine === false);
+
+    // four to a row, left to right — MEASURED off the real boxes
+    await pg.evaluate(() => {
+      const w = JSON.parse(localStorage.getItem('triset.table'));
+      const one = w.wins[0];
+      w.wins = Array.from({ length: 6 }, () => JSON.parse(JSON.stringify(one)));
+      localStorage.setItem('triset.table', JSON.stringify(w));
+    });
+    await pg.reload({ waitUntil: 'networkidle' });
+    t = await tiles();
+    ok('six sets lay out four to a row', t.length === 6
+      && t[0].y === t[3].y && t[4].y > t[0].y
+      && t[0].x < t[1].x && t[1].x < t[2].x && t[2].x < t[3].x);
+
+    // tap one → the big view, with its rule
+    await pg.click('#won .setcard');
+    ok('tapping a set opens it bigger', await pg.evaluate(() => {
+      const b = document.getElementById('setbig');
+      return !b.hidden && document.getElementById('bigform').getBoundingClientRect().width
+        > document.querySelector('#won .setcard').getBoundingClientRect().width;
+    }));
+    ok('…showing the rule it was won on', await pg.evaluate(() =>
+      document.getElementById('bigtext').textContent) === 'they are all made of water');
+    ok('…and that the computer found it', await pg.evaluate(() =>
+      /its set/.test(document.getElementById('bigwho').textContent)));
+
+    // challenge it — a refused challenge changes nothing
+    chalReply = { ok: true, fits: false, why: 'a stretch' };
+    await pg.click('#stealbtn');
+    ok('the challenge offers the cards in her hand', await pg.evaluate(() =>
+      document.querySelectorAll('#stealrow .hcard').length === 3));
+    await pg.click('#stealrow .hcard');
+    await pg.waitForFunction(() => /holds/.test(document.getElementById('msg').textContent), null, { timeout: 5000 });
+    ok('a refused challenge leaves the score alone', (await score()) === '0\u20131');
+    const heldIds = await pg.evaluate(() => JSON.parse(localStorage.getItem('triset.table')).held || []);
+    const last = challenges[challenges.length - 1] || {};
+    ok('…and it judged a card from HER HAND against the rule it named',
+      heldIds.indexOf(last.card) >= 0 && last.rule === 'they are all made of water');
+
+    // …a good one steals the point
+    chalReply = { ok: true, fits: true, why: 'both are water' };
+    await pg.click('#stealrow .hcard');
+    await pg.waitForFunction(() => document.getElementById('setbig').hidden, null, { timeout: 5000 });
+    ok('a good challenge steals the set', (await score()) === '1\u20130');
+    ok('…and the tile becomes hers', (await tiles())[0].mine === true);
+
+    // and it is sticky
+    await pg.reload({ waitUntil: 'networkidle' });
+    ok('the opponent and the score survive a reload',
+      (await shown()) === true && (await score()) === '1\u20130');
+    ok('…and so do the sets she has won', (await tiles()).length === 6);
+  }
 
   await browser.close();
   srv.close();

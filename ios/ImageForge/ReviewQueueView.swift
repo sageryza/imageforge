@@ -58,6 +58,16 @@ struct ReviewQueueView: View {
             }
         }
         .background(Self.paper.ignoresSafeArea())
+        // A WIDGET ICON OPENS ITS OWN DECK (2026-09-02). Bumping the key
+        // recreates the web view, whose URL builder consumes the pending id —
+        // the same shape ChatFeedView uses for a tapped push, and for the same
+        // reason: the app keeps three tools alive, so arriving at a tool it is
+        // already holding runs no makeUIView. Covers a cold start too, where
+        // the flag is set before this view first builds.
+        .onReceive(NotificationCenter.default.publisher(for: .forgeOpenDeck)) { _ in
+            loadFailed = false
+            reloadKey += 1
+        }
         .forgeWebToolBar("Review Queue", paper: Self.paper, failed: loadFailed, back: navBack)
     }
 
@@ -99,7 +109,19 @@ private struct ReviewWebView: UIViewRepresentable {
         // the gesture she'll reach for and the chevron already agrees with it.
         web.allowsBackForwardNavigationGestures = true
         webRef.web = web
-        if let url = URL(string: MovieService.serverURL + "/review?embed=1") {
+        // A pending deck (a home-screen widget icon) opens THAT deck's cards
+        // instead of the queue — the same url a queue tile opens, so a deck
+        // reached from the widget is identical to one reached by tapping its
+        // row, chevron and all: judge.js's `__navBack` steps history and falls
+        // back to /review, so the way out lands on the queue either way. The
+        // flag is one-shot; nothing may drag her back into it on a reload.
+        var path = "/review?embed=1"
+        if let deck = PushDelegate.pendingDeck, !deck.isEmpty {
+            PushDelegate.pendingDeck = nil
+            let id = deck.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? deck
+            path = "/api/chatfeed/page/" + id + "?clean=1"
+        }
+        if let url = URL(string: MovieService.serverURL + path) {
             web.load(URLRequest(url: url, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 30))
         }
         context.coordinator.stopMediaOnScreenChange(web)

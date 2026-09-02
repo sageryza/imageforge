@@ -39,9 +39,14 @@ every video that uses it ("this is the beginner move, not the end goal").
 From her 2026-07-29 dictation and the card prototype she reviewed:
 
 1. **~1 inch big**, small enough to never compete with the scene.
-2. **Appears when its concept becomes active, HOLDS while it applies, clears
-   when it stops.** The *change* is the attention cue — a slide/snap in, not a
-   fade that nobody notices.
+2. **Appears when its concept becomes active — then LEAVES once it has been
+   digested (2026-08-31, her correction, and it supersedes "holds while it
+   applies"):** the motif slides in with a satisfying transition and a soft
+   sound effect (ElevenLabs SFX), sits about two seconds — long enough to
+   register subconsciously — and slips out. It never lingers on screen. The
+   *change* is the attention cue. (The old hold-while-active behaviour is
+   what the card prototype and proof v1 did; video builds use the
+   appear-digest-disappear rule.)
 3. **Empty corners are the normal state.** A corner with something in it means
    something specific is in play right now.
 4. **Labeled** — the card prototype wrote "metaphor" / "diagram" under each
@@ -82,6 +87,12 @@ Base: `https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witc
   road map, the path ahead: the intro's opening shot ("this is what I'm going
   to be doing"). POV matters — a third-person version changed the meaning and
   she rejected it.
+- **copied brackets** (drawn 2026-08-31, dreamy, in the metaphor-learning-method
+  chat's Assets tab — `panels/cuts/1788222336861-9qv23i.webp`) — a solid
+  bracket pair and a dashed copy: **relationship extrapolation**, the move in
+  her cat/god dream script where the relationship between one pair (cat→us)
+  is copied and pasted onto another (us→?). Debuts in "The Cat Becomes Us";
+  recurring from then on. Its arrival sound is a photocopy-thunk.
 
 Every motif's exact prompt is filed on its asset (imprint Assets tab, PROMPT
 button). The style family: bold black ink outlines, flat limited palette, no
