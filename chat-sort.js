@@ -51,6 +51,8 @@
 // The question detector is shared with the Questions button, so a chat asking
 // her something reads the same to both surfaces.
 const { sentences } = require('./questions');
+// The project vocabulary and the fold — one rule with the Chats app's page.
+const projectWords = require('./project-words');
 
 // Her WHEN folders — see above. Matched case-insensitively.
 // The two RULE words joined them in Aug 2026 (Sophie: "i think i'll have to do
@@ -392,7 +394,7 @@ function pendingAsk(msgs, { fallbackChars = 800 } = {}) {
 
 const SORT_SYS = `You file one of Sophie's Claude chats into one of HER OWN folders, or you leave it alone, and you say whether the work in it finished.
 
-Return JSON: {"category": "...", "kind": "...", "why": "...", "state": "...", "stateWhy": "..."}
+Return JSON: {"category": "...", "kind": "...", "why": "...", "state": "...", "stateWhy": "...", "project": "..."}
 
 "category": EXACTLY one of the folder names you are given, copied character for character, or "none". This is the SUBJECT — what the chat is about.
 "kind": EXACTLY one of the folders MARKED "what the work IS", or "none". This is what the chat DID, whatever it was about.
@@ -407,6 +409,7 @@ Answer "kind": "none" when the chat's work is the subject itself — writing the
   "mid" — it stopped in the middle of something: a half-built feature, a plan nobody carried out, work still clearly in flight.
   "blocked" — it stopped because something could not be done: a limit nobody could get past, a tool that does not exist, an approach that failed and was not replaced.
 "stateWhy": under 90 characters, what was finished or what it stopped on. Concrete — name the thing, not "the work".
+"project": the PROJECT the chat is work on — the tool, game, film, app, story or piece it is about — in one or two lowercase words, or "none". This is NOT a folder and it is not filed anywhere she looks; it only groups chats about the same thing on one page. Reuse a name from the "projects so far" list whenever the chat is about that same thing, spelled exactly as listed (the Similitude game is the triset project; the Story Room is "story"); coin a new one only for a thing not on the list. The word is the THING, never the kind of work: a bug fix in the Playground is project "playground". "none" only when the chat is about nothing in particular.
 
 The folders are hers. You are matching a chat to how SHE already uses them — the chats she has filed in each one are the definition, not the words in the name. Never invent a folder, never merge two, never answer with a name that is not on the list.
 
@@ -416,7 +419,7 @@ Answer "none" whenever it is not clear. Filing a chat takes it off the main list
  * The call, as text. Split out from the network so the whole decision is
  * testable without a key.
  */
-function buildSortPrompt({ name, reg, msgs, cats, examples }) {
+function buildSortPrompt({ name, reg, msgs, cats, examples, projects }) {
   const r = reg || {};
   const ex = examples || {};
   const folders = (cats || []).map((c) => {
@@ -439,7 +442,12 @@ function buildSortPrompt({ name, reg, msgs, cats, examples }) {
   if (r.statusDoing) bits.push('What it says it is doing: ' + String(r.statusDoing).slice(0, 200));
   if (r.statusNeed) bits.push('What it says it needs: ' + String(r.statusNeed).slice(0, 200));
   if (r.wrapLine) bits.push('Its wrap-up line: ' + String(r.wrapLine).slice(0, 200));
+  // The projects the page already groups by — project-words.js's vocabulary,
+  // most used first — so the model spells a project the way the button and
+  // the page will look for it. A hint, never a limit.
+  const proj = (projects || []).slice(0, 60);
   const user = 'Sophie\'s folders, and the chats she filed in each:\n' + folders
+    + (proj.length ? '\n\nProjects so far (most chats first): ' + proj.join(', ') : '')
     + '\n\n---\n\n' + bits.join('\n')
     + '\n\nThe conversation:\n\n' + digestOf(msgs);
   return { system: SORT_SYS, user };
@@ -484,7 +492,20 @@ function pickCategory(out, cats) {
   return oneFolder(o.category, cats);
 }
 
+/**
+ * The project this chat is about, as the KEY the page groups on — or '' for
+ * none. Folded through project-words.js so "Playground" / "the playground" /
+ * "playground chats" are one key, and never written over a project she set
+ * by hand (`projectBy:'sophie'`, the `catBy` rule again).
+ */
+function pickProject(out, reg) {
+  const o = out && typeof out === 'object' ? out : {};
+  if (reg && reg.projectBy === 'sophie') return '';
+  return projectWords.keyOf(o.project);
+}
+
 module.exports = {
+  pickProject,
   regLabels,
   TRIAGE, WORK_KINDS, MIN_MESSAGES, RETRY_MS, BEFORE_EVERYTHING, SORT_SYS,
   RESORT_MIN_NEW,
