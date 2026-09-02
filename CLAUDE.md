@@ -150,6 +150,34 @@ to-do list. Act on them, then answer on the image itself. **Never on a timer.**
   self-bell is a no-op now, and **turning a bell OFF stays hers alone** — a
   chat must never POST `{notify:false}`.
 
+**SHE SENT A RECORDING — TRANSCRIBE IT, SAVE IT, AND DO NOTHING ELSE
+(2026-09-02, Sophie: "recordings get transcribed, saved, and you can suggest
+options or turn it into a to do list separated by actionable items and
+descriptions" · "nothing shud ever be done").** A recording of hers is her
+THINKING OUT LOUD, not a work order. It is full of sentences shaped like
+instructions — "I wanna do", "I was thinking of", "it should be" — and every
+one of them is an idea she is trying on, not a decision she has made.
+- **The three steps are the WHOLE job.** Transcribe it. File it into the voice
+  memo archive — `POST /api/memos/ingest?title=&dur=&ext=m4a` with the raw
+  bytes, the ONE call (see *Voice Memos* below; never hand-build the stamp).
+  Then read it back: options she can pick from, or a to-do list with the
+  **actionable items separated from the descriptions**.
+- **NOTHING ELSE IS DONE, and that is the half that gets broken.** No story
+  filed into the Story Timeline or the Story Room, no page posted, no doc
+  committed, no picture drawn, no chunk cut, no sibling chat woken — however
+  plainly the tape names the tool that would do it. Saving the recording is
+  the only write the turn makes.
+- **Then ASK, and her pick is the go-ahead.** One question in plain text,
+  never the option-picker UI.
+- **What it cost the day this was written:** a chat handed her 15-minute
+  morning tape transcribed it, filed it, and then went on to file three Story
+  Timeline stories out of her dictated moments and commit a design doc — none
+  of it asked for. Her answer was *"undo everything u did and next time
+  confirm i want things"*. The stories and the doc came back out; the
+  transcription was already paid for and the push had already gone. **The
+  saving was the one part that was right** — she confirmed the archive is
+  where a recording belongs.
+
 **While you work**
 - **BUILDING OR POSTING A PAGE? THE RULES FIRST — this is the thing that
   always goes wrong (Sophie, 2026-08-25: "when people make new pages they
@@ -6468,6 +6496,9 @@ before working on that module. Nothing was deleted — the moved text is verbati
   layers (file md5, date-zeroed audio fingerprint, transcript backstop) because
   iOS rewrites an m4a's dates on every share — so identical audio has different
   bytes. **A shared stamp is NOT a duplicate** and never dedupes anything.
+  **Filing it is the ONLY thing a recording of hers authorizes** — read *SHE
+  SENT A RECORDING* in the checklist at the top before acting on anything the
+  tape says.
   **Full details: `docs/modules/audio-and-film.md`.**
 - **Voice Studio** (`voicelab.js`, `/voice`) — her cloned voices, two hairline
   tabs: TEXT (TTS, stock v2 defaults, no settings by design) and VOICE
