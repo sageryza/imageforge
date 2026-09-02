@@ -296,6 +296,29 @@ than deploying by reflex.
 **The habit: PHOTO every round, SANDBOX when she wants to tap it, LIVE when
 she says.** Ask which she wants rather than assuming.
 
+**ASK BEFORE YOU DEPLOY — AND "DON'T DEPLOY" IS NOT "DON'T MERGE" (2026-09-02,
+Sophie: "i said don't deploy not don't merge" · "from now on, ask to
+deploy").** A chat that reads "don't deploy" as "park the branch" leaves the
+work unmerged, where the next chat re-does it or main drifts under it. The two
+are separate steps and both are cheap:
+- **MERGE as usual** — CI green, merge your own PR (the standing permission is
+  unchanged), so the work is on main where every other chat can see it.
+- **PUT `[skip render]` IN THE SQUASH-MERGE TITLE** and Render skips the deploy
+  entirely — zero build minutes, nothing on her live site moves. It is the same
+  marker the docs-only rule uses; nothing about it is docs-specific, and it is
+  the ONE way to merge without deploying now that a merge is a deploy again.
+- **THEN ASK.** Say the change is merged and not live, and deploy only when she
+  says. `node scripts/render-deploy.js` is the deploy (its `--dry` says what is
+  in flight); the next ordinary merge by any chat also carries it out, so say
+  that too — "not deployed" means *not by me*, never *frozen*.
+- **NAME WHAT RIDES ALONG (her third ask the same message: "when u merge make
+  sure ur aware of what goes with it").** Before merging, read
+  `git log HEAD..origin/main` (what landed under you) and
+  `git diff origin/main --stat` (what your merge really changes — a diff that is
+  mostly DELETIONS in a file you did not mean to shrink is #2048's erasure
+  happening again). Before deploying, say what else is going out with it: a
+  deploy ships **everything merged since the last one**, not just your change.
+
 ## Never block the turn on a wait — always background it
 - **Any "wait for X" step MUST run as a background task**, never a foreground
   blocking wait. This includes waiting on a Render deploy, CI, a build, a
@@ -8790,6 +8813,18 @@ before working on that module. Nothing was deleted — the moved text is verbati
     - **A field that parses to NO message makes no row**, and a deck she has
       written nothing on shows no survey at all — the common case, and
       byte-for-byte the view that was there before.
+    - **AND THE WHOLE `Notes · N` HEADING FOLDS (2026-09-02, Sophie: "notes
+      shud also collapse").** The piles grew their fold the day before and
+      this did not — and it LEADS them, so on a deck she has written a lot on
+      the survey pushed every pile off the first screen with no way to put the
+      words away (measured at 390x844 on a five-card fixture: the first pile
+      sits at y=399 open and y=160 shut). It is the piles' own control, the
+      same per-visit `folded` map and the same one handler, so nothing new is
+      stored and a fold behaves the same wherever she taps one. Two things not
+      to undo: **no "Swipe these" beside it** — the survey is READ-BACK and its
+      rows come from every pile at once, so there is no lane to walk; and the
+      **count shows open AND shut**, unlike the chats app's pinned fold, because
+      the rows underneath are her NOTES rather than the chats the count names.
     Test: `node scripts/test-judge-note-survey.js` (the real page headless, at
     both looks — every assertion a MEASUREMENT, since a survey *below* the
     piles is still "present" and a folded thread and an open one carry the

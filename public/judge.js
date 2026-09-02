@@ -472,7 +472,10 @@
     // re-open that card), because a survey of her notes IS a pile of what she
     // said. It is READ-BACK only: the note box lives on the card, one tap
     // away — the keep-pile's own rule ("the pile is where a note is READ
-    // BACK; the keeping tap is where it is WRITTEN").
+    // BACK; the keeping tap is where it is WRITTEN"). AND IT FOLDS, on the
+    // pile heading's own control (2026-09-02, "notes shud also collapse") —
+    // it leads the piles, so on a deck she has written a lot on it was the
+    // one block on this screen with no way to put it away.
     '.jg-nrow{display:flex;gap:10px;align-items:flex-start;' +
     ' padding:10px 0;border-top:1px solid var(--line);}' +
     '.jg-nrow:first-child{border-top:0;padding-top:2px;}' +
@@ -1586,8 +1589,22 @@
         var noted = items.map(function (it) {
           return { it: it, msgs: noteMsgs(notes[it.id]) };
         }).filter(function (n) { return n.msgs.length; });
+        // AND IT FOLDS, like every pile under it (2026-09-02, Sophie: "notes
+        // shud also collapse"). The piles grew a fold the day before and the
+        // survey did not — and it LEADS them, so a deck she has written a lot
+        // on pushed every pile off the first screen with no way to put the
+        // words away. Same heading control, same per-visit `folded` map, one
+        // handler: the whole `Notes · N` row is the tap target. No "Swipe
+        // these" beside it — the survey is READ-BACK, and its rows are cards
+        // from every pile at once, so there is no lane to walk.
+        var nshut = folded.notes === true;
         var survey = noted.length
-          ? '<h2>Notes · ' + noted.length + '</h2><div class="jg-notes">'
+          ? '<div class="jg-pilehd">'
+            + '<button class="jg-pilefold' + (nshut ? ' shut' : '') + '" data-fold="notes"'
+            + ' aria-expanded="' + (nshut ? 'false' : 'true') + '">'
+            + '<span class="jg-cav">' + I.caret + '</span>'
+            + '<h2>Notes · ' + noted.length + '</h2></button></div>'
+            + (nshut ? '' : '<div class="jg-notes">'
             + noted.map(function (n) {
               var src = n.it.pair ? n.it.pair[0].img : n.it.img;
               return '<div class="jg-nrow">'
@@ -1604,13 +1621,13 @@
                 + '<div class="cmp-note"><div class="cmp-note-text"></div>'
                 + '<button type="button" class="cmp-note-more"></button></div>'
                 + '</div></div>';
-            }).join('') + '</div>'
+            }).join('') + '</div>')
           : '';
         mount.innerHTML = '<div class="jg' + momCls + '" data-nostop>' + top + '<div class="jg-piles">'
           + survey
           + (sections || (survey ? '' : '<p class="mini">Nothing here yet.</p>'))
           + foot + '</div></div>';
-        paintSurvey(noted);
+        if (!nshut) paintSurvey(noted);
       } else {
         var it = items[cur];
         var v = verdicts[it.id];
