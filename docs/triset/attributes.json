@@ -1,0 +1,877 @@
+{
+ "_what": "The Similitude / Triset VISUAL INVENTORY (2026-09-02, Sophie: 'take an inventory, and start tagging them by their attributes … primarily visual attributes'). Every tag is something you can SEE on the card — a shape, an arrangement, a colour, a texture, a mark — never the subject's category alone ('both trees' is not a match: redwood and peaches share nothing here on purpose). Two cards CONNECT when they share at least one tag. Her rules: none connects to everything, none connects to nothing, and they need not all have the same number. cards.json is the list this tags; scripts/gen-triset-inventory.js turns both into the Compare sheet and the counts. Tag by looking at the picture, not the title.",
+ "judged": "2026-09-02",
+ "tags": {
+  "jagged-line": {
+   "label": "a jagged line running through it",
+   "cards": [
+    "sidewalk-sprout",
+    "lightning-field",
+    "mountain",
+    "salt-flat",
+    "broken-bottle"
+   ]
+  },
+  "wavy-line-middle": {
+   "label": "a wavy line down the middle",
+   "cards": [
+    "made-wavy-line",
+    "braided-river",
+    "canyon",
+    "made-cave",
+    "hot-spring",
+    "deer-stream"
+   ]
+  },
+  "column-down-middle": {
+   "label": "one tall column up the middle",
+   "cards": [
+    "redwood",
+    "dust-devil",
+    "vine-falls",
+    "frozen-falls",
+    "candle-stub",
+    "burnt-toast",
+    "sunflower"
+   ]
+  },
+  "peaks": {
+   "label": "mountainous peaks",
+   "cards": [
+    "mountain",
+    "mountain-goat",
+    "train-bridge",
+    "comet",
+    "dust-devil",
+    "canyon",
+    "salt-flat"
+   ]
+  },
+  "stepping-stones": {
+   "label": "stepping stones — things in a climbing sequence",
+   "cards": [
+    "turkey-tail",
+    "made-stepping-up",
+    "treehouse",
+    "dominoes",
+    "stacked-chairs-medium",
+    "stacked-chairs-low",
+    "measuring-spoons"
+   ]
+  },
+  "trail": {
+   "label": "a trail of things in a line",
+   "cards": [
+    "ants-lollipop",
+    "first-footprints",
+    "geese-v",
+    "dominoes",
+    "clothesline-bat",
+    "castle"
+   ]
+  },
+  "ring": {
+   "label": "a ring around something",
+   "cards": [
+    "toadstool-ring",
+    "spotted-egg",
+    "pigeons-crumb",
+    "black-sheep",
+    "candle-stub",
+    "cat-fishbowl"
+   ]
+  },
+  "radial-burst": {
+   "label": "bursting out from a centre",
+   "cards": [
+    "sunflower",
+    "dandelion-seeds",
+    "dew-web",
+    "tide-pool",
+    "peacock-feather",
+    "hail-roof"
+   ]
+  },
+  "many-round-things": {
+   "label": "many round things",
+   "cards": [
+    "peaches",
+    "grapevine",
+    "hail-roof",
+    "bubble-wand",
+    "soap-lather",
+    "jellyfish",
+    "wild-strawberries",
+    "poppy-field"
+   ]
+  },
+  "spots": {
+   "label": "spots and dots",
+   "cards": [
+    "ladybug",
+    "spotted-egg",
+    "cat-fishbowl",
+    "dominoes",
+    "deer-stream",
+    "toadstool-ring",
+    "moth-bark",
+    "black-sheep"
+   ]
+  },
+  "rainbow": {
+   "label": "a rainbow / bands of colour",
+   "cards": [
+    "bathroom-rainbows-low",
+    "bathroom-rainbows-low-b",
+    "soap-lather",
+    "bubble-wand",
+    "hot-air-balloon",
+    "aurora",
+    "crayon-dump"
+   ]
+  },
+  "checkered": {
+   "label": "checkered / tiles / a grid",
+   "cards": [
+    "bee-jam",
+    "soap-lather",
+    "bathroom-rainbows-low",
+    "bathroom-rainbows-low-b",
+    "luna-moth",
+    "gecko",
+    "patchwork-hills",
+    "salt-flat",
+    "cat-fishbowl"
+   ]
+  },
+  "stripes": {
+   "label": "stripes",
+   "cards": [
+    "hot-air-balloon",
+    "bee-jam",
+    "bee-flower",
+    "clothesline-bat",
+    "hail-roof",
+    "canyon",
+    "aurora"
+   ]
+  },
+  "patchwork": {
+   "label": "a patchwork of fields",
+   "cards": [
+    "patchwork-hills",
+    "hot-air-balloon",
+    "plane-map",
+    "poppy-field",
+    "lightning-field"
+   ]
+  },
+  "from-above": {
+   "label": "seen from straight above",
+   "cards": [
+    "plane-map",
+    "braided-river",
+    "tide-pool",
+    "ants-lollipop",
+    "crayon-dump",
+    "measuring-spoons",
+    "seashell-pile",
+    "hose-tangle"
+   ]
+  },
+  "moon": {
+   "label": "a moon",
+   "cards": [
+    "moon-in-lake",
+    "curtains-moon",
+    "daytime-moon",
+    "fence-cat",
+    "bat",
+    "whale",
+    "gecko",
+    "clothesline-bat",
+    "luna-moth"
+   ]
+  },
+  "stars": {
+   "label": "a starry sky",
+   "cards": [
+    "firefly-jar",
+    "star-puddle",
+    "whale",
+    "comet",
+    "aurora",
+    "bubble-wand",
+    "luna-moth",
+    "bat",
+    "gecko"
+   ]
+  },
+  "dark-background": {
+   "label": "mostly black",
+   "cards": [
+    "candle-stub",
+    "burrow-eyes",
+    "jellyfish",
+    "caterpillar",
+    "made-cave",
+    "firefly-jar",
+    "bubble-wand",
+    "bat",
+    "luna-moth"
+   ]
+  },
+  "little-lights": {
+   "label": "little lights glowing in the dark",
+   "cards": [
+    "firefly-jar",
+    "firefly-meadow",
+    "star-puddle",
+    "dew-web",
+    "candle-stub",
+    "fence-cat",
+    "clothesline-bat"
+   ]
+  },
+  "reflection": {
+   "label": "a reflection in water",
+   "cards": [
+    "moon-in-lake",
+    "star-puddle",
+    "salt-flat",
+    "sea-cave",
+    "deer-stream"
+   ]
+  },
+  "waves": {
+   "label": "sea and waves",
+   "cards": [
+    "wave-sandcastle",
+    "whale",
+    "sea-cave",
+    "low-tide",
+    "tide-pool",
+    "jellyfish",
+    "goldfish-leap"
+   ]
+  },
+  "waterfall": {
+   "label": "a waterfall",
+   "cards": [
+    "frozen-falls",
+    "vine-falls",
+    "hot-spring"
+   ]
+  },
+  "winding-river": {
+   "label": "a river winding away",
+   "cards": [
+    "braided-river",
+    "canyon",
+    "deer-stream",
+    "plane-map",
+    "made-cave",
+    "sea-cave"
+   ]
+  },
+  "splash": {
+   "label": "splashes and drops",
+   "cards": [
+    "goldfish-leap",
+    "hail-roof",
+    "dew-web",
+    "whale",
+    "bee-jam",
+    "hot-spring"
+   ]
+  },
+  "eyes": {
+   "label": "eyes looking at you",
+   "cards": [
+    "burrow-eyes",
+    "alligator",
+    "made-eyes",
+    "cloud-face",
+    "made-wavy-line",
+    "peacock-feather",
+    "black-sheep",
+    "pigeons-crumb",
+    "curtains-moon",
+    "rabbit-brush"
+   ]
+  },
+  "smoke": {
+   "label": "a curl of smoke, steam or fog",
+   "cards": [
+    "burnt-toast",
+    "candle-stub",
+    "train-bridge",
+    "hot-spring",
+    "dust-devil",
+    "pine-fog"
+   ]
+  },
+  "upside-down": {
+   "label": "upside down",
+   "cards": [
+    "turtle-back",
+    "bat",
+    "clothesline-bat",
+    "dominoes"
+   ]
+  },
+  "hanging": {
+   "label": "hanging from above",
+   "cards": [
+    "beehive",
+    "bat",
+    "clothesline-bat",
+    "daytime-moon",
+    "grapevine",
+    "peaches"
+   ]
+  },
+  "hidden": {
+   "label": "hiding / camouflaged",
+   "cards": [
+    "moth-bark",
+    "rabbit-brush",
+    "grasshopper",
+    "alligator",
+    "burrow-eyes",
+    "caterpillar",
+    "cloud-face"
+   ]
+  },
+  "odd-one-out": {
+   "label": "one small thing in an empty field",
+   "cards": [
+    "snow-shoot",
+    "sidewalk-sprout",
+    "first-footprints",
+    "black-sheep",
+    "pigeons-crumb",
+    "peacock-feather",
+    "stacked-chairs-medium",
+    "stacked-chairs-low",
+    "coat-chair"
+   ]
+  },
+  "green-shoot": {
+   "label": "a single green shoot",
+   "cards": [
+    "sidewalk-sprout",
+    "snow-shoot",
+    "dandelion-seeds"
+   ]
+  },
+  "bee": {
+   "label": "a bee",
+   "cards": [
+    "bee-jam",
+    "bee-flower",
+    "beehive"
+   ]
+  },
+  "wings": {
+   "label": "big patterned wings",
+   "cards": [
+    "moth-bark",
+    "luna-moth",
+    "bat",
+    "peacock-feather",
+    "hummingbird"
+   ]
+  },
+  "bug-on-leaf": {
+   "label": "a bug on a leaf",
+   "cards": [
+    "ladybug",
+    "caterpillar",
+    "grasshopper",
+    "bee-flower",
+    "garden-snake"
+   ]
+  },
+  "bird": {
+   "label": "a bird",
+   "cards": [
+    "toucan",
+    "geese-v",
+    "hummingbird",
+    "pigeons-crumb",
+    "fence-chicken",
+    "spotted-egg"
+   ]
+  },
+  "cat": {
+   "label": "a cat",
+   "cards": [
+    "cat-fishbowl",
+    "fence-cat",
+    "daytime-moon"
+   ]
+  },
+  "goldfish": {
+   "label": "a goldfish",
+   "cards": [
+    "goldfish-leap",
+    "cat-fishbowl"
+   ]
+  },
+  "jar": {
+   "label": "a glass jar, bowl or bottle",
+   "cards": [
+    "bee-jam",
+    "goldfish-leap",
+    "cat-fishbowl",
+    "firefly-jar",
+    "bubble-wand",
+    "broken-bottle",
+    "deflated-balloon",
+    "bathroom-rainbows-low-b"
+   ]
+  },
+  "cracked": {
+   "label": "cracked or shattered",
+   "cards": [
+    "sidewalk-sprout",
+    "salt-flat",
+    "broken-bottle",
+    "wave-sandcastle"
+   ]
+  },
+  "aftermath": {
+   "label": "the aftermath — something spent, spilled or fallen",
+   "cards": [
+    "broken-bottle",
+    "deflated-balloon",
+    "burnt-toast",
+    "candle-stub",
+    "crayon-dump",
+    "turtle-back",
+    "hose-tangle",
+    "dominoes"
+   ]
+  },
+  "tangle": {
+   "label": "coils and tangles",
+   "cards": [
+    "hose-tangle",
+    "garden-snake",
+    "jellyfish",
+    "grapevine",
+    "braided-river",
+    "vine-falls",
+    "made-wavy-line"
+   ]
+  },
+  "heap": {
+   "label": "a heap of the same thing",
+   "cards": [
+    "seashell-pile",
+    "low-tide",
+    "crayon-dump",
+    "pigeons-crumb",
+    "black-sheep",
+    "grapevine",
+    "wild-strawberries",
+    "poppy-field",
+    "peaches"
+   ]
+  },
+  "strata": {
+   "label": "layered bands, shelves, strata",
+   "cards": [
+    "canyon",
+    "turkey-tail",
+    "patchwork-hills",
+    "hail-roof",
+    "geese-v",
+    "aurora",
+    "measuring-spoons",
+    "stacked-chairs-medium",
+    "stacked-chairs-low"
+   ]
+  },
+  "opening": {
+   "label": "a doorway, gap or opening",
+   "cards": [
+    "garden-gate",
+    "sea-cave",
+    "made-cave",
+    "burrow-eyes",
+    "curtains-moon",
+    "firefly-jar",
+    "fence-chicken",
+    "treehouse",
+    "beehive"
+   ]
+  },
+  "window": {
+   "label": "a window",
+   "cards": [
+    "gecko",
+    "luna-moth",
+    "bathroom-rainbows-low",
+    "bathroom-rainbows-low-b",
+    "treehouse",
+    "daytime-moon"
+   ]
+  },
+  "fence": {
+   "label": "a fence",
+   "cards": [
+    "fence-cat",
+    "fence-chicken",
+    "stacked-chairs-medium",
+    "garden-gate"
+   ]
+  },
+  "pines": {
+   "label": "a row of pine trees",
+   "cards": [
+    "aurora",
+    "pine-fog",
+    "mountain",
+    "train-bridge",
+    "hot-spring",
+    "redwood",
+    "firefly-meadow",
+    "made-stepping-up",
+    "deer-stream"
+   ]
+  },
+  "orange": {
+   "label": "orange and red",
+   "cards": [
+    "poppy-field",
+    "peaches",
+    "goldfish-leap",
+    "tide-pool",
+    "toucan",
+    "geese-v",
+    "fence-cat",
+    "ladybug"
+   ]
+  },
+  "yellow": {
+   "label": "yellow",
+   "cards": [
+    "sunflower",
+    "lemon",
+    "beehive",
+    "lightning-field",
+    "cat-fishbowl",
+    "firefly-jar",
+    "firefly-meadow",
+    "curtains-moon"
+   ]
+  },
+  "clouds": {
+   "label": "puffy clouds",
+   "cards": [
+    "cloud-face",
+    "salt-flat",
+    "hot-air-balloon",
+    "plane-map",
+    "mountain-goat",
+    "dust-devil",
+    "turtle-back",
+    "geese-v"
+   ]
+  },
+  "storm": {
+   "label": "a storm cloud",
+   "cards": [
+    "lightning-field",
+    "hail-roof",
+    "burnt-toast",
+    "wave-sandcastle"
+   ]
+  },
+  "field-to-horizon": {
+   "label": "a field running to the horizon",
+   "cards": [
+    "hot-air-balloon",
+    "patchwork-hills",
+    "poppy-field",
+    "lightning-field",
+    "firefly-meadow",
+    "first-footprints",
+    "salt-flat",
+    "low-tide",
+    "turtle-back"
+   ]
+  },
+  "snow": {
+   "label": "snow",
+   "cards": [
+    "first-footprints",
+    "snow-shoot",
+    "frozen-falls",
+    "hot-spring",
+    "mountain",
+    "mountain-goat",
+    "train-bridge"
+   ]
+  },
+  "mostly-white": {
+   "label": "mostly white",
+   "cards": [
+    "first-footprints",
+    "snow-shoot",
+    "black-sheep",
+    "stacked-chairs-medium",
+    "stacked-chairs-low",
+    "frozen-falls",
+    "salt-flat",
+    "pine-fog"
+   ]
+  },
+  "bark": {
+   "label": "tree bark and trunks",
+   "cards": [
+    "redwood",
+    "moth-bark",
+    "turkey-tail",
+    "grapevine",
+    "treehouse",
+    "bat",
+    "toucan"
+   ]
+  },
+  "fruit": {
+   "label": "fruit",
+   "cards": [
+    "lemon",
+    "peaches",
+    "grapevine",
+    "wild-strawberries",
+    "bee-jam"
+   ]
+  },
+  "food": {
+   "label": "food",
+   "cards": [
+    "burnt-toast",
+    "ants-lollipop",
+    "pigeons-crumb",
+    "measuring-spoons",
+    "bee-jam",
+    "beehive"
+   ]
+  },
+  "big-bloom": {
+   "label": "one big flower",
+   "cards": [
+    "sunflower",
+    "bee-flower",
+    "hummingbird",
+    "poppy-field"
+   ]
+  },
+  "wildflowers": {
+   "label": "wildflowers",
+   "cards": [
+    "garden-snake",
+    "firefly-meadow",
+    "garden-gate",
+    "wild-strawberries",
+    "made-wavy-line",
+    "grasshopper",
+    "ants-lollipop"
+   ]
+  },
+  "leaves-closeup": {
+   "label": "close up among big leaves",
+   "cards": [
+    "ladybug",
+    "caterpillar",
+    "rabbit-brush",
+    "grasshopper",
+    "lemon",
+    "sunflower",
+    "hummingbird",
+    "toucan",
+    "peaches"
+   ]
+  },
+  "eaten": {
+   "label": "bitten, burnt or half gone",
+   "cards": [
+    "caterpillar",
+    "burnt-toast",
+    "candle-stub",
+    "pigeons-crumb",
+    "deflated-balloon"
+   ]
+  },
+  "castle": {
+   "label": "a castle",
+   "cards": [
+    "castle",
+    "wave-sandcastle",
+    "goldfish-leap",
+    "cat-fishbowl"
+   ]
+  },
+  "rooftops": {
+   "label": "little houses and rooftops",
+   "cards": [
+    "fence-cat",
+    "clothesline-bat",
+    "daytime-moon",
+    "hail-roof",
+    "treehouse",
+    "hot-spring"
+   ]
+  },
+  "indoors": {
+   "label": "indoors — a floor and a wall",
+   "cards": [
+    "cat-fishbowl",
+    "crayon-dump",
+    "deflated-balloon",
+    "coat-chair",
+    "candle-stub",
+    "broken-bottle",
+    "bathroom-rainbows-low",
+    "bathroom-rainbows-low-b",
+    "soap-lather"
+   ]
+  },
+  "scattered-floor": {
+   "label": "stuff scattered on the ground",
+   "cards": [
+    "crayon-dump",
+    "deflated-balloon",
+    "broken-bottle",
+    "low-tide",
+    "ants-lollipop",
+    "seashell-pile",
+    "measuring-spoons"
+   ]
+  },
+  "nobody-home": {
+   "label": "something left behind, nobody there",
+   "cards": [
+    "coat-chair",
+    "deflated-balloon",
+    "candle-stub",
+    "first-footprints",
+    "stacked-chairs-medium",
+    "stacked-chairs-low",
+    "garden-gate",
+    "burnt-toast"
+   ]
+  },
+  "balloon-shape": {
+   "label": "a balloon or bubble shape",
+   "cards": [
+    "hot-air-balloon",
+    "deflated-balloon",
+    "jellyfish",
+    "bubble-wand",
+    "soap-lather"
+   ]
+  },
+  "diagonal-streak": {
+   "label": "a streak across the sky",
+   "cards": [
+    "comet",
+    "lightning-field",
+    "goldfish-leap",
+    "geese-v",
+    "plane-map"
+   ]
+  },
+  "symmetry": {
+   "label": "mirror symmetry",
+   "cards": [
+    "moth-bark",
+    "made-wavy-line",
+    "luna-moth",
+    "dew-web",
+    "sunflower",
+    "toadstool-ring",
+    "made-eyes"
+   ]
+  },
+  "path": {
+   "label": "a path winding into the distance",
+   "cards": [
+    "castle",
+    "first-footprints",
+    "garden-gate",
+    "canyon",
+    "made-cave",
+    "braided-river",
+    "train-bridge",
+    "made-stepping-up"
+   ]
+  },
+  "rock": {
+   "label": "rock and stone",
+   "cards": [
+    "mountain-goat",
+    "canyon",
+    "sea-cave",
+    "made-cave",
+    "frozen-falls",
+    "deer-stream",
+    "turtle-back",
+    "star-puddle",
+    "braided-river"
+   ]
+  },
+  "steps-ladder": {
+   "label": "steps or a ladder",
+   "cards": [
+    "treehouse",
+    "made-stepping-up",
+    "daytime-moon",
+    "train-bridge"
+   ]
+  },
+  "iridescent": {
+   "label": "iridescent shimmer",
+   "cards": [
+    "soap-lather",
+    "bubble-wand",
+    "peacock-feather",
+    "dew-web",
+    "bathroom-rainbows-low",
+    "bathroom-rainbows-low-b"
+   ]
+  }
+ },
+ "people": {
+  "_what": "Her rule: none of them have people. These deck cards break it and are the first cull to confirm.",
+  "cards": [
+   "curtains-moon",
+   "daytime-moon",
+   "made-stepping-up",
+   "made-wavy-line"
+  ]
+ },
+ "faces": {
+  "_what": "A face but not a person — hers to call.",
+  "cards": [
+   "cloud-face"
+  ]
+ },
+ "duplicates": {
+  "_what": "Two hearted versions of one subject — pick one.",
+  "pairs": [
+   [
+    "stacked-chairs-medium",
+    "stacked-chairs-low"
+   ],
+   [
+    "bathroom-rainbows-low",
+    "bathroom-rainbows-low-b"
+   ]
+  ]
+ }
+}
