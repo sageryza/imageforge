@@ -253,6 +253,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .pinned .pl{width:30px; height:30px; border-radius:6px; flex:none; display:flex; align-items:center;
   justify-content:center; border:1.5px solid var(--chg); color:var(--chg);}
 .pinned .ti{flex:1; min-width:0; font-size:.95em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+/* the pinned row + its Film Editor door, measured against the pill as ONE row */
+.pinrow{display:flex; align-items:center; gap:8px; margin:0 0 .7em; width:calc(100% - var(--pillgap, 0px));}
+.pinrow .pinned{flex:1; min-width:0; margin:0; width:auto;}
+.pindoor{flex:none; width:38px; height:50px; border:1px solid var(--line); border-radius:6px; background:var(--barbg);
+  color:var(--chg); display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0;}
 /* "current" — the pin was updated in the chat's last finished turn. Plain
    letter-spaced sans in rose, the masthead's own voice: a chip here would be a
    pill, and this is a state, not a control. */
@@ -7836,6 +7841,24 @@ function openChat(name, keepScroll, focusId, noFetch){
       if(isLink){ window.open(pin.url,'_blank','noopener'); return; }
       openPinned(pin, name);
     };
+    // A film rendered from a Film Editor CUT carries the cut's id (2026-09-02,
+    // "edit in unison"), and that earns the row a second door: open the same
+    // cut the chat is editing, in the editor. A SIBLING button, never nested
+    // (a button in a button is invalid and the tap would bubble into the
+    // player); the two share one wrapper so the pill measurement shortens the
+    // pair as one row. A film cut any other way draws the row exactly as
+    // before.
+    if(pin.cut&&/^[\w-]{1,40}$/.test(pin.cut)){
+      var wrap=document.createElement('div'); wrap.className='pinrow';
+      var d=document.createElement('button'); d.className='pindoor';
+      d.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg>';
+      d.setAttribute('aria-label','Open this cut in the Film Editor'); d.title='Open in the Film Editor';
+      d.onclick=function(ev){ ev.stopPropagation(); window.open('/filmeditor?c='+encodeURIComponent(pin.cut),'_blank','noopener'); };
+      wrap.appendChild(b); wrap.appendChild(d);
+      head.appendChild(wrap);
+      pillRows.push(wrap);
+      return;
+    }
     head.appendChild(b);
     pillRows.push(b);
   })();

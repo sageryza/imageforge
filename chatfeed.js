@@ -3688,18 +3688,24 @@ function pinBump(pinned) {
 }
 router.post('/pin', async (req, res) => {
   try {
-    const { chat, session, title, url, kind } = req.body || {};
+    const { chat, session, title, url, kind, cut } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
     const target = await resolveChat(chat, session);
     const del = admin.firestore.FieldValue.delete();
     const u = String(url || '').trim();
     if (u && !/^https:\/\//.test(u)) return res.status(400).json({ error: 'url must be https' });
+    // `cut` = the Film Editor cut doc this film was rendered from (2026-09-02,
+    // "edit in unison"): it is what puts the editor door on the pinned row,
+    // so she can open the same cut the chat is working in. Optional; a film
+    // cut any other way pins exactly as before.
+    const cutId = /^[\w-]{1,40}$/.test(String(cut || '')) ? String(cut) : '';
     const pinned = u ? {
       url: u,
       title: String(title || '').replace(/\s+/g, ' ').trim().slice(0, 120),
       kind: pinKind(kind, u),
       at: new Date().toISOString(),
       turns: 0,
+      ...(cutId ? { cut: cutId } : {}),
     } : del;
     await regRef(target).set({ pinned }, { merge: true });
     // A MEDIA pin is a deliverable being handed over (a film, an audio cut) —
@@ -3708,7 +3714,7 @@ router.post('/pin', async (req, res) => {
     // 2026-08-27). Fire-and-forget: the list can never fail a pin.
     if (u && require('./deliverables').pinDeliverable(pinned)) {
       require('./deliverables')
-        .record({ chat: target, url: u, title: pinned.title, kind: pinned.kind, source: 'pin' })
+        .record({ chat: target, url: u, title: pinned.title, kind: pinned.kind, source: 'pin', cut: pinned.cut || '' })
         .catch((e) => console.warn('deliverables: pin record failed', e.message));
     }
     res.json({ ok: true, chat: target, pinned: u ? pinned : null });

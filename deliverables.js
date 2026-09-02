@@ -93,6 +93,7 @@ const idFor = (url) => crypto.createHash('sha1').update(String(url)).digest('hex
 // The one decision: what lands on the doc, and whether this is a NEW row
 // (→ push) or an update of one already listed (→ silent). Pure so the test
 // can drive it without Firestore.
+const cutIdOf = (v) => (/^[\w-]{1,40}$/.test(String(v || '')) ? String(v) : '');
 function decideRecord(existing, input, nowIso) {
   const title = String(input.title || '').replace(/\s+/g, ' ').trim().slice(0, 140);
   if (!existing) {
@@ -107,11 +108,15 @@ function decideRecord(existing, input, nowIso) {
         at: input.at || nowIso,
         updatedAt: input.at || nowIso,
         versions: 1,
+        // the Film Editor cut this film was rendered from, when there is one
+        // (2026-09-02): the row's door into the same cut the chat edits
+        ...(cutIdOf(input.cut) ? { cut: cutIdOf(input.cut) } : {}),
       },
     };
   }
   const patch = { updatedAt: nowIso, versions: (existing.versions || 1) + 1 };
   if (title) patch.title = title;           // a re-post may correct the title
+  if (cutIdOf(input.cut)) patch.cut = cutIdOf(input.cut);
   return { isNew: false, doc: patch };
 }
 
@@ -365,13 +370,13 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { chat, session, url, title, kind } = req.body || {};
+    const { chat, session, url, title, kind, cut } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
     // Session-first resolution, same contract as every other chat-keyed post.
     let slug = chat;
     try { slug = await require('./chatfeed').resolveChat(chat, session); }
     catch (e) { /* resolution down — file under the given slug */ }
-    const out = await record({ chat: slug, url, title, kind, source: 'post' });
+    const out = await record({ chat: slug, url, title, kind, source: 'post', cut });
     if (!out.ok) return res.status(400).json(out);
     res.json(out);
   } catch (err) { res.status(500).json({ error: err.message }); }
