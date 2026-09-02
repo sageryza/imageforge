@@ -6,7 +6,7 @@ play w the computer · no render · just compare artifact" — so it is a **Comp
 page in her chat's Compare tab**, not a tool: nothing was added to `server.js`,
 nothing deploys, and opening it spends nothing.
 
-Live (v4): <https://imageforge-q125.onrender.com/api/chatfeed/page/P9iiTPEj0eG4WpCqiivy> (older versions superseded, kept as history)
+Live (v4.1): the newest page in the chat's Compare tab (older versions superseded, kept as history). Records keep the sheet name `dominoes-v4` across 4.x so her games accumulate in one place.
 
 ## The game (v4)
 
@@ -84,6 +84,18 @@ history, not options.
   lands the card on the space to the pixel — no clip-path (v2's bug was a
   clip that rotated with the image), no bare corners. The four MADE cards,
   cut point-down by design, stay out of the deck (`build.js` drops `flip`).
+- **HER FIRST RECORDED GAME (mtkjswef, 2026-09-02) IS THE TAGGING BRIEF.** Her
+  twelve links were all shape and moment — "a trail" (candle smoke, jellyfish
+  tentacles), "about to fall", "surrounded", "around something", "staggered",
+  "collection over time", "light in the dark", "white with a little black" —
+  and not one was a category. The computer's the same game were "animal",
+  "glass", "water", "leaves", "moon". So: her words went onto the cards she
+  said them about, the same eye was carried across the deck (`about to fall`
+  on the goat on the cliff edge, `a trail` on the comet, `surrounded` on the
+  egg in its nest…), and a `weak` list in `cards.json` names the category
+  words the computer may never make a link on. Measured after: 39% of card
+  pairs have a strong link, so it still plays most turns and passes honestly
+  on the rest.
 - **THE TAGS ARE VISUAL.** The first pass tagged from the titles ("hummingbird",
   "trumpet flower"); she asked for visual cues, so every card was viewed and
   tagged by what is in the picture — `dark`, `round`, `glowing`, `many`,

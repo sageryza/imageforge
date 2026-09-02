@@ -1,4 +1,5 @@
-[
+{
+"cards": [
 {
 "n": "steps",
 "t": []
@@ -27,7 +28,11 @@
 "warm light",
 "cold",
 "pale",
-"winter"
+"winter",
+"a trail",
+"light in the dark",
+"reflection",
+"mist or smoke"
 ]
 },
 {
@@ -41,7 +46,8 @@
 "hovering",
 "close-up",
 "green",
-"tiny"
+"tiny",
+"on a branch"
 ]
 },
 {
@@ -55,7 +61,10 @@
 "curve",
 "sand",
 "pale",
-"winding"
+"winding",
+"sand and water",
+"a trail",
+"zigzag"
 ]
 },
 {
@@ -69,7 +78,11 @@
 "mountain",
 "grey",
 "alone",
-"balance"
+"balance",
+"about to fall",
+"one small thing",
+"looking up",
+"caught mid-motion"
 ]
 },
 {
@@ -82,7 +95,8 @@
 "forest",
 "green",
 "mushrooms",
-"ring"
+"ring",
+"surrounded"
 ]
 },
 {
@@ -96,7 +110,9 @@
 "garden",
 "made thing",
 "vertical",
-"cozy"
+"cozy",
+"surrounded",
+"looking through"
 ]
 },
 {
@@ -122,7 +138,11 @@
 "lines",
 "moving",
 "grey",
-"train"
+"train",
+"a trail",
+"staggered",
+"zigzag",
+"mist or smoke"
 ]
 },
 {
@@ -136,7 +156,10 @@
 "pink",
 "many",
 "formation",
-"moving"
+"moving",
+"stripes",
+"looking up",
+"caught mid-motion"
 ]
 },
 {
@@ -150,7 +173,8 @@
 "green",
 "leaves",
 "close-up",
-"beak"
+"beak",
+"on a branch"
 ]
 },
 {
@@ -163,7 +187,10 @@
 "white",
 "hidden",
 "vertical",
-"curtain"
+"curtain",
+"spiral",
+"hanging down",
+"mist or smoke"
 ]
 },
 {
@@ -177,7 +204,10 @@
 "vertical",
 "rock",
 "winter",
-"frozen"
+"frozen",
+"one big thing",
+"zigzag",
+"hanging down"
 ]
 },
 {
@@ -190,7 +220,10 @@
 "layers",
 "wood",
 "curve",
-"close-up"
+"close-up",
+"collection over time",
+"staggered",
+"spiral"
 ]
 },
 {
@@ -204,7 +237,11 @@
 "tan",
 "moving",
 "sky",
-"alone"
+"alone",
+"a trail",
+"one big thing",
+"mist or smoke",
+"caught mid-motion"
 ]
 },
 {
@@ -217,7 +254,8 @@
 "watching",
 "dark",
 "reeds",
-"still"
+"still",
+"surrounded"
 ]
 },
 {
@@ -230,7 +268,9 @@
 "water",
 "pale",
 "horizon",
-"beach"
+"beach",
+"collection over time",
+"from above"
 ]
 },
 {
@@ -243,7 +283,10 @@
 "red",
 "forest",
 "bark",
-"big"
+"big",
+"staggered",
+"one big thing",
+"looking up"
 ]
 },
 {
@@ -256,7 +299,10 @@
 "dark",
 "opening",
 "cave",
-"light"
+"light",
+"surrounded",
+"light in the dark",
+"looking through"
 ]
 },
 {
@@ -270,7 +316,9 @@
 "river",
 "far away",
 "height",
-"blue"
+"blue",
+"staggered",
+"zigzag"
 ]
 },
 {
@@ -285,7 +333,9 @@
 "pale",
 "empty",
 "still",
-"flat"
+"flat",
+"mostly white",
+"from above"
 ]
 },
 {
@@ -299,7 +349,8 @@
 "dark",
 "many",
 "star",
-"flower"
+"flower",
+"light in the dark"
 ]
 },
 {
@@ -313,7 +364,13 @@
 "rain",
 "made thing",
 "bouncing",
-"weather"
+"weather",
+"about to fall",
+"mostly white",
+"mist or smoke",
+"stripes",
+"a little funny",
+"caught mid-motion"
 ]
 },
 {
@@ -327,7 +384,12 @@
 "dark",
 "tiny",
 "star",
-"pale"
+"pale",
+"surrounded",
+"light in the dark",
+"one small thing",
+"looking through",
+"on a branch"
 ]
 },
 {
@@ -341,7 +403,10 @@
 "leaves",
 "green",
 "hanging",
-"heavy"
+"heavy",
+"circle",
+"collection over time",
+"hanging down"
 ]
 },
 {
@@ -354,7 +419,9 @@
 "leaves",
 "branch",
 "hanging",
-"warm"
+"warm",
+"collection over time",
+"hanging down"
 ]
 },
 {
@@ -368,7 +435,9 @@
 "misty",
 "pale",
 "quiet",
-"hills"
+"hills",
+"mostly white",
+"mist or smoke"
 ]
 },
 {
@@ -382,7 +451,11 @@
 "pale",
 "moon",
 "screen",
-"alone"
+"alone",
+"surrounded",
+"light in the dark",
+"looking through",
+"on a branch"
 ]
 },
 {
@@ -396,7 +469,11 @@
 "streak",
 "cactus",
 "dark",
-"pale"
+"pale",
+"a trail",
+"light in the dark",
+"one small thing",
+"looking up"
 ]
 },
 {
@@ -410,7 +487,10 @@
 "tentacles",
 "lines",
 "deep",
-"alone"
+"alone",
+"a trail",
+"spiral",
+"hanging down"
 ]
 },
 {
@@ -425,7 +505,10 @@
 "blue",
 "splash",
 "sea",
-"animal"
+"animal",
+"light in the dark",
+"mostly white",
+"one big thing"
 ]
 },
 {
@@ -439,7 +522,10 @@
 "alone",
 "pale",
 "cold",
-"beginning"
+"beginning",
+"collection over time",
+"mostly white",
+"one small thing"
 ]
 },
 {
@@ -454,7 +540,11 @@
 "leaves",
 "wings",
 "spooky",
-"animal"
+"animal",
+"on a branch",
+"light in the dark",
+"hanging down",
+"a little funny"
 ]
 },
 {
@@ -496,7 +586,12 @@
 "grey",
 "morning",
 "delicate",
-"pale"
+"pale",
+"around something",
+"circle",
+"surrounded",
+"collection over time",
+"spiral"
 ]
 },
 {
@@ -509,7 +604,10 @@
 "close-up",
 "dark",
 "stripes",
-"holes"
+"holes",
+"staggered",
+"zigzag",
+"on a branch"
 ]
 },
 {
@@ -523,7 +621,9 @@
 "tree",
 "dark",
 "curtain",
-"star"
+"star",
+"light in the dark",
+"looking up"
 ]
 },
 {
@@ -536,7 +636,8 @@
 "green",
 "white flower",
 "dots",
-"garden"
+"garden",
+"collection over time"
 ]
 },
 {
@@ -549,7 +650,9 @@
 "close-up",
 "yellow",
 "inside",
-"black"
+"black",
+"surrounded",
+"on a branch"
 ]
 },
 {
@@ -563,7 +666,9 @@
 "zigzag",
 "wheat",
 "gold",
-"sudden"
+"sudden",
+"light in the dark",
+"caught mid-motion"
 ]
 },
 {
@@ -577,7 +682,11 @@
 "leaves",
 "height",
 "climbing",
-"cozy"
+"cozy",
+"staggered",
+"hanging down",
+"looking through",
+"looking up"
 ]
 },
 {
@@ -591,7 +700,10 @@
 "fields",
 "far away",
 "patchwork",
-"cloud"
+"cloud",
+"circle",
+"one big thing",
+"looking up"
 ]
 },
 {
@@ -605,7 +717,10 @@
 "person",
 "looking up",
 "pale",
-"round"
+"round",
+"circle",
+"one small thing",
+"reflection"
 ]
 },
 {
@@ -619,7 +734,10 @@
 "eyes",
 "pale",
 "soft",
-"hidden"
+"hidden",
+"surrounded",
+"mostly white",
+"looking through"
 ]
 },
 {
@@ -633,7 +751,9 @@
 "round",
 "many",
 "pale",
-"delicate"
+"delicate",
+"circle",
+"mostly white"
 ]
 },
 {
@@ -662,7 +782,11 @@
 "houses",
 "pink",
 "funny",
-"animal"
+"animal",
+"light in the dark",
+"hanging down",
+"on a branch",
+"a little funny"
 ]
 },
 {
@@ -689,7 +813,9 @@
 "white",
 "garden",
 "funny",
-"made thing"
+"made thing",
+"on a branch",
+"a little funny"
 ]
 },
 {
@@ -703,7 +829,12 @@
 "bowl",
 "alone",
 "ending",
-"glowing"
+"glowing",
+"a trail",
+"circle",
+"light in the dark",
+"one small thing",
+"mist or smoke"
 ]
 },
 {
@@ -717,7 +848,13 @@
 "falling",
 "crashing",
 "foam",
-"ending"
+"ending",
+"about to fall",
+"around something",
+"sand and water",
+"surrounded",
+"one big thing",
+"caught mid-motion"
 ]
 },
 {
@@ -730,7 +867,11 @@
 "black",
 "odd one out",
 "wool",
-"round"
+"round",
+"white with a little black",
+"surrounded",
+"mostly white",
+"stripes"
 ]
 },
 {
@@ -743,7 +884,10 @@
 "grey",
 "funny",
 "indoors",
-"ending"
+"ending",
+"a trail",
+"mist or smoke",
+"a little funny"
 ]
 },
 {
@@ -757,7 +901,14 @@
 "cold",
 "alone",
 "horizon",
-"path"
+"path",
+"white with a little black",
+"a trail",
+"collection over time",
+"mostly white",
+"one small thing",
+"stripes",
+"from above"
 ]
 },
 {
@@ -771,7 +922,9 @@
 "alone",
 "made thing",
 "brown",
-"still"
+"still",
+"hanging down",
+"looking through"
 ]
 },
 {
@@ -798,7 +951,9 @@
 "blue",
 "round",
 "rock",
-"glowing"
+"glowing",
+"circle",
+"light in the dark"
 ]
 },
 {
@@ -810,7 +965,9 @@
 "curve",
 "made thing",
 "loops",
-"messy"
+"messy",
+"spiral",
+"from above"
 ]
 },
 {
@@ -824,7 +981,9 @@
 "balance",
 "silhouette",
 "dusk",
-"animal"
+"animal",
+"about to fall",
+"caught mid-motion"
 ]
 },
 {
@@ -838,7 +997,9 @@
 "pale",
 "funny",
 "alone",
-"sky"
+"sky",
+"one small thing",
+"a little funny"
 ]
 },
 {
@@ -851,7 +1012,8 @@
 "bark",
 "wings",
 "hidden",
-"close-up"
+"close-up",
+"on a branch"
 ]
 },
 {
@@ -865,7 +1027,8 @@
 "yellow",
 "dark",
 "grass",
-"made thing"
+"made thing",
+"light in the dark"
 ]
 },
 {
@@ -879,7 +1042,11 @@
 "red",
 "dots",
 "pale",
-"marching"
+"marching",
+"a trail",
+"staggered",
+"one small thing",
+"from above"
 ]
 },
 {
@@ -893,7 +1060,8 @@
 "made thing",
 "messy",
 "ending",
-"sad"
+"sad",
+"a little funny"
 ]
 },
 {
@@ -906,7 +1074,8 @@
 "concrete",
 "tiny",
 "alone",
-"beginning"
+"beginning",
+"one small thing"
 ]
 },
 {
@@ -919,7 +1088,8 @@
 "messy",
 "sticks",
 "lines",
-"rainbow"
+"rainbow",
+"from above"
 ]
 },
 {
@@ -934,7 +1104,12 @@
 "watching",
 "indoors",
 "round",
-"animal"
+"animal",
+"surrounded",
+"circle",
+"reflection",
+"looking through",
+"a little funny"
 ]
 },
 {
@@ -947,7 +1122,13 @@
 "falling",
 "line",
 "chain",
-"pale"
+"pale",
+"staggered",
+"about to fall",
+"mostly white",
+"zigzag",
+"stripes",
+"caught mid-motion"
 ]
 },
 {
@@ -962,7 +1143,11 @@
 "leaping",
 "between",
 "blue",
-"animal"
+"animal",
+"circle",
+"reflection",
+"a little funny",
+"caught mid-motion"
 ]
 },
 {
@@ -976,7 +1161,9 @@
 "checkered",
 "sweet",
 "made thing",
-"round"
+"round",
+"circle",
+"stripes"
 ]
 },
 {
@@ -990,7 +1177,13 @@
 "hands",
 "window",
 "closing",
-"made thing"
+"made thing",
+"surrounded",
+"light in the dark",
+"spiral",
+"hanging down",
+"looking through",
+"a little funny"
 ]
 },
 {
@@ -1004,7 +1197,10 @@
 "towers",
 "path",
 "far away",
-"tall"
+"tall",
+"staggered",
+"one big thing",
+"looking up"
 ]
 },
 {
@@ -1018,7 +1214,10 @@
 "insect",
 "hanging",
 "leaves",
-"round"
+"round",
+"circle",
+"collection over time",
+"hanging down"
 ]
 },
 {
@@ -1031,7 +1230,9 @@
 "leaf",
 "close-up",
 "tiny",
-"black"
+"black",
+"one small thing",
+"on a branch"
 ]
 },
 {
@@ -1045,7 +1246,10 @@
 "dark",
 "tree",
 "star",
-"glowing"
+"glowing",
+"circle",
+"light in the dark",
+"one big thing"
 ]
 },
 {
@@ -1058,7 +1262,8 @@
 "white flower",
 "close-up",
 "alone",
-"bright"
+"bright",
+"circle"
 ]
 },
 {
@@ -1072,7 +1277,10 @@
 "twigs",
 "alone",
 "dark",
-"beginning"
+"beginning",
+"surrounded",
+"circle",
+"one small thing"
 ]
 },
 {
@@ -1086,7 +1294,9 @@
 "yellow flower",
 "hidden",
 "lines",
-"animal"
+"animal",
+"zigzag",
+"spiral"
 ]
 },
 {
@@ -1101,7 +1311,9 @@
 "tall",
 "alone",
 "bright",
-"sun"
+"sun",
+"circle",
+"one big thing"
 ]
 },
 {
@@ -1116,7 +1328,66 @@
 "blue",
 "sun",
 "big",
-"far away"
+"far away",
+"circle",
+"one big thing",
+"looking up"
 ]
 }
+],
+"weak": [
+"animal",
+"bird",
+"insect",
+"fish",
+"cat",
+"made thing",
+"water",
+"sky",
+"tree",
+"leaves",
+"leaf",
+"plant",
+"fruit",
+"flower",
+"rock",
+"green",
+"brown",
+"grey",
+"blue",
+"many",
+"small",
+"big",
+"indoors",
+"garden",
+"forest",
+"sea",
+"field",
+"wood",
+"glass",
+"window",
+"pale",
+"tiny",
+"close-up",
+"still",
+"moving",
+"hidden",
+"round",
+"dots",
+"lines",
+"pattern",
+"far away",
+"height",
+"vertical",
+"sand",
+"snow",
+"ice",
+"cold",
+"light",
+"star",
+"moon",
+"cloud",
+"wings",
+"eyes"
 ]
+}

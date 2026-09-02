@@ -141,10 +141,16 @@ button.b.quiet { color: var(--ink2); }
   };
   var norm = function (s) { return String(s || '').trim().toLowerCase().replace(/\s+/g, ' '); };
 
+  // WHAT COUNTS AS SEEING. Her own game (2026-09-02) linked on shape and
+  // moment — "a trail", "about to fall", "surrounded", "staggered",
+  // "collection over time" — while the computer took "animal", "glass",
+  // "water", "leaves". So the broad category words are WEAK: they stay on the
+  // cards but the computer may never name one. A link is a rare, visual tag.
+  var WEAK = {}; __WEAK__.forEach(function (w) { WEAK[w] = 1; });
   var RARITY = {};
   DECK.forEach(function (c) { c.t.forEach(function (t) { RARITY[t] = (RARITY[t] || 0) + 1; }); });
   function shared(a, b) {
-    return DECK[a].t.filter(function (t) { return DECK[b].t.indexOf(t) >= 0; })
+    return DECK[a].t.filter(function (t) { return !WEAK[t] && DECK[b].t.indexOf(t) >= 0; })
       .sort(function (x, y) { return RARITY[x] - RARITY[y]; });
   }
   var name = function (card) { return DECK[card].n; };
