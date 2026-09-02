@@ -1,0 +1,378 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Similitude Dominoes v1</title>
+<link rel="stylesheet" href="/compare.css">
+<style>
+/* One screen, never scrolls — so the page owns its own height and the
+   compare.css page padding comes off. Palette tokens stay compare.css's. */
+html, body { height: 100%; overflow: hidden; }
+body { padding: 0; }
+.wrap { max-width: 680px; height: 100dvh; height: 100vh;
+        display: flex; flex-direction: column; padding: 14px 12px 8px; gap: 6px; }
+@supports (height: 100dvh) { .wrap { height: 100dvh; } }
+
+.wrap > h1 { font-size: 22px; margin: 0; padding-right: 56px; }
+
+/* the score strip — hers, its, the boneyard, and its hand as face-down backs */
+.top { display: flex; align-items: center; gap: 10px; flex: none;
+       font: 600 12px/1 -apple-system, 'Helvetica Neue', sans-serif;
+       letter-spacing: .08em; text-transform: uppercase; color: var(--ink2);
+       padding-right: 64px; }
+.top b { color: var(--ink); font-weight: 700; }
+button.b.end { display: flex; align-items: center; gap: 5px; padding: 5px 10px; }
+button.b.end img { width: 30px; height: 26px; object-fit: contain; display: block; }
+.backs { display: flex; gap: 2px; margin-left: auto; }
+.back { width: 7px; height: 15px; border: 1px solid var(--line); border-radius: 2px;
+        background: var(--surface2); }
+
+/* the chain — the only thing that gives when the note grows */
+.board { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto;
+         display: flex; align-items: center;
+         border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+         padding: 8px 0; -webkit-overflow-scrolling: touch; }
+.chain { display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+         align-content: center; gap: 4px 2px; margin: auto; padding: 0 6px; width: 100%; }
+.empty { color: var(--ink2); font: italic 15px/1 Georgia, serif; margin: auto; }
+
+/* a domino: two triangular cards on one cream tile. A DOUBLE lies crosswise,
+   the way it does on a real table — flex-direction is the whole of it. */
+.tile { --h: 52px; display: flex; gap: 3px; padding: 3px; flex: none;
+        border: 1px solid var(--ink); border-radius: 6px; background: var(--surface); }
+.tile .half { width: var(--h); height: var(--h); flex: none;
+              display: flex; align-items: center; justify-content: center; }
+.tile .half img { max-width: 100%; max-height: 100%; display: block; }
+.tile .half + .half { border-left: 1px solid var(--line); padding-left: 3px; }
+.tile.dbl { flex-direction: column; }
+.tile.dbl .half + .half { border-left: 0; border-top: 1px solid var(--line);
+                          padding-left: 0; padding-top: 3px; }
+.tile.lit { box-shadow: 0 0 0 2px var(--chg); }
+.half.endlit { box-shadow: 0 0 0 2px var(--chg); border-radius: 4px; }
+
+.msg { flex: none; font: 15px/1.3 Georgia, serif; color: var(--ink2); min-height: 20px; }
+
+.acts { flex: none; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+button.b { font: 600 13px/1 -apple-system, 'Helvetica Neue', sans-serif;
+           padding: 9px 12px; border: 1px solid var(--line); border-radius: 6px;
+           background: var(--surface); color: var(--ink); cursor: pointer; }
+button.b.go { border-color: var(--ink); }
+button.b.quiet { color: var(--ink2); }
+#bRound { margin-left: auto; }
+button.b:disabled { opacity: .4; cursor: default; }
+
+.hand { flex: none; display: flex; gap: 6px; overflow-x: auto; overflow-y: hidden;
+        padding: 4px 0 6px; -webkit-overflow-scrolling: touch; }
+.hand .tile { --h: 44px; cursor: pointer; }
+.hand .tile.dbl { flex-direction: row; }
+.hand .tile.dbl .half + .half { border-left: 1px solid var(--line); border-top: 0;
+                                padding-left: 3px; padding-top: 0; }
+.hand .tile.dead { opacity: .38; }
+
+/* the note lives here, so a written one takes its room off the chain */
+.notehost { flex: none; position: relative; min-height: 30px; }
+</style>
+
+<div class="wrap" data-nostop>
+  <h1>Similitude Dominoes</h1>
+
+  <div class="top">
+    <span>You <b id="sYou">0</b></span>
+    <span>It <b id="sIt">0</b></span>
+    <span>Pile <b id="sPile">0</b></span>
+    <span class="backs" id="backs"></span>
+  </div>
+
+  <div class="board" id="board"><div class="chain" id="chain"></div></div>
+
+  <div class="msg" id="msg"></div>
+
+  <div class="acts" id="acts">
+    <button class="b go" id="bDraw" type="button">Draw</button>
+    <button class="b" id="bPass" type="button" hidden>Pass</button>
+    <button class="b end" id="bLeft" type="button" hidden>◀<img id="eL" alt=""></button>
+    <button class="b end" id="bRight" type="button" hidden><img id="eR" alt="">▶</button>
+    <button class="b quiet" id="bRound" type="button">New round</button>
+    <button class="b quiet" id="bSuits" type="button">New suits</button>
+  </div>
+
+  <div class="hand" id="hand"></div>
+  <div class="notehost" data-item="dominoes-v1"></div>
+</div>
+
+<script src="/compare.js"></script>
+<script>
+(function () {
+  var DECK = __DECK__;                 // her 84 nature cards: {k: cut path, n: name}
+  var CUTS = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cuts/';
+  var START = __SUITS__;               // the seven she opens on
+
+  var N = 7;                           // seven suits → 28 dominoes, double-six shaped
+  var suits = START.slice();
+  var $ = function (id) { return document.getElementById(id); };
+  var S = null;                        // the round
+  var score = { you: 0, it: 0 };
+  var sel = -1;                        // the tile she has picked up
+
+  function img(v) {
+    var c = DECK[suits[v]];
+    var e = document.createElement('img');
+    e.src = CUTS + c.k; e.alt = c.n; e.loading = 'eager';
+    return e;
+  }
+  function name(v) { return DECK[suits[v]].n; }
+
+  // ── the round ────────────────────────────────────────────────────────────
+  function deal() {
+    var all = [];
+    for (var a = 0; a < N; a++) for (var b = a; b < N; b++) all.push([a, b]);
+    for (var i = all.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1)); var t = all[i]; all[i] = all[j]; all[j] = t;
+    }
+    S = { you: all.slice(0, 7), it: all.slice(7, 14), pile: all.slice(14),
+          chain: [], turn: 'you', passes: 0, over: false, itShort: {}, lastSide: 'R' };
+    sel = -1;
+
+    // opening: the highest double leads, else the highest tile — and whoever
+    // holds it starts, which is why it is played here rather than waited for
+    var best = null;
+    ['you', 'it'].forEach(function (who) {
+      S[who].forEach(function (t, k) {
+        var dbl = t[0] === t[1];
+        var rank = (dbl ? 1000 : 0) + t[0] + t[1];
+        if (!best || rank > best.rank) best = { rank: rank, who: who, k: k, t: t };
+      });
+    });
+    S[best.who].splice(best.k, 1);
+    S.chain.push({ a: best.t[0], b: best.t[1] });
+    S.turn = best.who === 'you' ? 'it' : 'you';
+    say(best.who === 'you' ? 'You opened with the ' + name(best.t[0]) + '.'
+                           : 'It opened with the ' + name(best.t[0]) + '.');
+    paint();
+    if (S.turn === 'it') setTimeout(itMoves, 800);
+  }
+
+  function ends() { return [S.chain[0].a, S.chain[S.chain.length - 1].b]; }
+  function fits(t, side) {
+    var e = ends()[side === 'L' ? 0 : 1];
+    return t[0] === e || t[1] === e;
+  }
+  function moves(hand) {
+    var out = [];
+    hand.forEach(function (t, k) {
+      if (fits(t, 'L')) out.push({ k: k, t: t, side: 'L' });
+      if (fits(t, 'R')) out.push({ k: k, t: t, side: 'R' });
+    });
+    return out;
+  }
+  function place(hand, k, side) {
+    var t = hand.splice(k, 1)[0];
+    var e = ends()[side === 'L' ? 0 : 1];
+    if (side === 'L') S.chain.unshift(t[1] === e ? { a: t[0], b: t[1] } : { a: t[1], b: t[0] });
+    else S.chain.push(t[0] === e ? { a: t[0], b: t[1] } : { a: t[1], b: t[0] });
+    return t;
+  }
+
+  // ── it plays ─────────────────────────────────────────────────────────────
+  // No model call and no server: a plain heuristic. Keep the ends on suits it
+  // still holds, dump doubles early, and remember what she could not play on.
+  function itMoves() {
+    if (S.over) return;
+    var m = moves(S.it);
+    while (!m.length && S.pile.length) { S.it.push(S.pile.pop()); m = moves(S.it); paint(); }
+    if (!m.length) {
+      S.passes++;
+      say('It passed.');
+      S.turn = 'you';
+      if (S.passes >= 2) return blocked();
+      return paint();
+    }
+    S.passes = 0;
+    var best = null;
+    m.forEach(function (mv) {
+      var t = mv.t, e = ends(), keep = mv.side === 'L' ? e[1] : e[0];
+      var open = t[0] === (mv.side === 'L' ? e[0] : e[1]) ? t[1] : t[0];
+      var flex = 0;
+      S.it.forEach(function (o, k) {
+        if (k === mv.k) return;
+        if (o[0] === open || o[1] === open) flex++;
+        if (o[0] === keep || o[1] === keep) flex++;
+      });
+      var s = flex * 10 + (t[0] === t[1] ? 15 : 0)
+            + (S.itShort[open] ? 12 : 0) + (S.itShort[keep] ? 6 : 0)
+            + Math.random() * 4;
+      if (!best || s > best.s) best = { s: s, mv: mv };
+    });
+    var hit = ends()[best.mv.side === 'L' ? 0 : 1];
+    place(S.it, best.mv.k, best.mv.side);
+    S.lastSide = best.mv.side;
+    say('It laid one on the ' + name(hit) + ', ' +
+        (best.mv.side === 'L' ? 'left end.' : 'right end.'));
+    if (!S.it.length) return won('it');
+    S.turn = 'you';
+    paint();
+  }
+
+  // ── the round ends ───────────────────────────────────────────────────────
+  function won(who) {
+    S.over = true;
+    var left = who === 'you' ? S.it.length : S.you.length;
+    score[who] += left;
+    say(who === 'you' ? 'You went out — ' + left + ' to you.'
+                      : 'It went out — ' + left + ' to it.');
+    paint();
+  }
+  function blocked() {
+    S.over = true;
+    if (S.you.length === S.it.length) say('Blocked, and dead even.');
+    else {
+      var w = S.you.length < S.it.length ? 'you' : 'it';
+      var d = Math.abs(S.you.length - S.it.length);
+      score[w] += d;
+      say('Blocked — ' + (w === 'you' ? 'you hold' : 'it holds') + ' fewer, ' + d + ' to ' + (w === 'you' ? 'you' : 'it') + '.');
+    }
+    paint();
+  }
+
+  // ── painting: keyed, so a placed picture is never re-created ─────────────
+  var nodes = {}, hnodes = {};         // key → the tile element already built
+  function key(t) { return t[0] + '-' + t[1]; }
+  function build(t) {
+    var el = document.createElement('div');
+    el.className = 'tile' + (t[0] === t[1] ? ' dbl' : '');
+    var h1 = document.createElement('span'); h1.className = 'half'; h1.appendChild(img(t[0]));
+    var h2 = document.createElement('span'); h2.className = 'half'; h2.appendChild(img(t[1]));
+    el.appendChild(h1); el.appendChild(h2);
+    return el;
+  }
+  function tileEl(t) { var k = key(t); return nodes[k] || (nodes[k] = build(t)); }
+  function handEl(t) { var k = key(t); return hnodes[k] || (hnodes[k] = build(t)); }
+  // reorder the children of `host` to be exactly `want`, moving the elements
+  // that are already there — never wiping, because a recreated <img> decodes
+  // async on iOS and the whole row strobes blank on every move
+  function reorder(host, want) {
+    want.forEach(function (el, i) {
+      if (host.children[i] !== el) host.insertBefore(el, host.children[i] || null);
+    });
+    while (host.children.length > want.length) host.removeChild(host.lastChild);
+  }
+
+  function say(t) { $('msg').textContent = t; }
+
+  function paint() {
+    var chain = $('chain');
+    var want = S.chain.map(function (p) { return tileEl([p.a, p.b]); });
+    // reorder in place rather than wiping — a recreated <img> decodes blank on
+    // iOS, so the whole chain would strobe on every move
+    want.forEach(function (el) {
+      el.children[0].className = 'half';
+      el.children[1].className = 'half';
+    });
+    reorder(chain, want);
+
+    // light the two open ends
+    if (chain.firstChild) {
+      chain.firstChild.children[0].classList.add('endlit');
+      chain.lastChild.children[1].classList.add('endlit');
+    }
+
+    // her hand — same keyed reorder, and the index rides on the node rather
+    // than in a closure, so a repaint never re-creates a listener either
+    var hand = $('hand');
+    reorder(hand, S.you.map(function (t, k) {
+      var el = handEl(t);
+      el.dataset.k = k;
+      el.className = 'tile' + (t[0] === t[1] ? ' dbl' : '')
+                   + (sel === k ? ' lit' : '')
+                   + (!S.over && (fits(t, 'L') || fits(t, 'R')) ? '' : ' dead');
+      return el;
+    }));
+
+    // the strip
+    $('sYou').textContent = score.you;
+    $('sIt').textContent = score.it;
+    $('sPile').textContent = S.pile.length;
+    var e = ends();
+    $('eL').src = CUTS + DECK[suits[e[0]]].k;
+    $('eR').src = CUTS + DECK[suits[e[1]]].k;
+    var backs = $('backs'); backs.innerHTML = '';
+    for (var i = 0; i < S.it.length; i++) {
+      var b = document.createElement('span'); b.className = 'back'; backs.appendChild(b);
+    }
+
+    var mine = !S.over && S.turn === 'you';
+    var m = mine ? moves(S.you) : [];
+    $('bDraw').hidden = !(mine && !m.length && S.pile.length);
+    $('bPass').hidden = !(mine && !m.length && !S.pile.length);
+    var two = sel >= 0 && mine && fits(S.you[sel], 'L') && fits(S.you[sel], 'R');
+    $('bLeft').hidden = !two; $('bRight').hidden = !two;
+
+    // keep the end she just played in view — the chain wraps, so this is the
+    // top of the block for a left play and the bottom for a right one
+    var bd = $('board');
+    bd.scrollTop = S.lastSide === 'L' ? 0 : bd.scrollHeight;
+  }
+
+  // ── her turn ─────────────────────────────────────────────────────────────
+  function pick(k) {
+    if (S.over || S.turn !== 'you') return;
+    var t = S.you[k];
+    var L = fits(t, 'L'), R = fits(t, 'R');
+    if (!L && !R) { sel = -1; say('That one does not match either end.'); return paint(); }
+    if (L && R) { sel = k; say('Left or right?'); return paint(); }
+    play(k, L ? 'L' : 'R');
+  }
+  function play(k, side) {
+    place(S.you, k, side);
+    S.lastSide = side;
+    sel = -1; S.passes = 0;
+    if (!S.you.length) return won('you');
+    S.turn = 'it';
+    say('');
+    paint();
+    setTimeout(itMoves, 800);
+  }
+
+  $('bLeft').addEventListener('click', function () { if (sel >= 0) play(sel, 'L'); });
+  $('bRight').addEventListener('click', function () { if (sel >= 0) play(sel, 'R'); });
+  $('bDraw').addEventListener('click', function () {
+    if (!S.pile.length) return;
+    var e = ends(); S.itShort[e[0]] = 1; S.itShort[e[1]] = 1;
+    var t = S.pile.pop(); S.you.push(t);
+    say('You drew the ' + name(t[0]) + (t[0] === t[1] ? ' double.' : ' and the ' + name(t[1]) + '.'));
+    paint();
+  });
+  $('bPass').addEventListener('click', function () {
+    var e = ends(); S.itShort[e[0]] = 1; S.itShort[e[1]] = 1;
+    S.passes++; say('You passed.');
+    if (S.passes >= 2) return blocked();
+    S.turn = 'it'; paint(); setTimeout(itMoves, 700);
+  });
+  $('hand').addEventListener('click', function (ev) {
+    var el = ev.target.closest ? ev.target.closest('.tile') : null;
+    if (el && el.dataset.k !== undefined) pick(+el.dataset.k);
+  });
+
+  $('bRound').addEventListener('click', function () { nodes = {}; hnodes = {}; deal(); });
+  $('bSuits').addEventListener('click', function () {
+    var pool = [], i;
+    for (i = 0; i < DECK.length; i++) pool.push(i);
+    for (i = pool.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1)); var t = pool[i]; pool[i] = pool[j]; pool[j] = t;
+    }
+    suits = pool.slice(0, N);
+    nodes = {}; hnodes = {}; score.you = 0; score.it = 0;
+    deal();
+  });
+
+  deal();
+
+  window.__compareNotes({ chat: 'triset-dominoes-game', sheet: 'dominoes-v1' });
+  window.__compareHelp({ html:
+      '<b>Seven of your cards are the seven suits.</b> Twenty-eight dominoes, '
+    + 'every pair of them, doubles included. Tap one in your hand to lay it on '
+    + 'a matching end — if it fits both ends you get to pick. No move, draw '
+    + 'from the pile; no pile, pass. Go out and you score the cards left in '
+    + 'its hand.<br><br><b>New suits</b> re-deals seven fresh cards out of all '
+    + DECK.length + ' in the nature deck.' });
+})();
+</script>
