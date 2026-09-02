@@ -946,28 +946,34 @@ them off the reference sheet, not off the old filenames.
   moves a mis-filed message/asset span between chats, re-keys votes, and
   plants the tombstone (`--dry-run` first; the Imprint repair is its header
   example).
-- **A RUN OF REPLIES WITH NOTHING FROM HER BETWEEN THEM FOLDS IN THE THREAD
-  (2026-09-02, Sophie, looking at four CLAUDE rows in ten minutes: "why do
-  these all show as separate messages").** They are separate TURNS: a chat
-  that backgrounded a deploy watcher and subscribed to its own PR wakes once
-  per event, each wake is a turn, and the hook posts one message per turn.
-  **The data is untouched, on purpose** — a doc is keyed by session+turn, and
-  a turn that stays silent is indistinguishable from a crashed hook (the
-  2026-08-28 silence). The THREAD folds instead: `foldPlan` in `chats.html`
-  keeps the newest reply of a run on screen and puts the rest behind the house
-  underlined opener ("3 earlier replies"). `FOLD_MS` (60 min) is the dial.
-  Never folded: anything from her (her message is what ends a run), a live
-  draft (she is watching it write), a bookmarked message. A chapter heading
-  ends a run. The thread SEARCH lifts every fold and clearing it puts them
-  back; a jump into a folded row (`focusMessage`) opens its fold first. The
-  home list, the Update tab, the Questions view and every count are untouched.
-  **A test fixture that stacks filler replies seconds apart now folds** —
-  three fixtures were re-spaced two hours apart (`test-chats-jump-message`,
-  `test-chats-questions`, `test-chats-viewer-escape`); a new one needs the
-  same, or a message from her between the fillers. Test:
-  `node scripts/test-chats-dribble-fold.js` (every assertion an `offsetParent`
-  measurement, because a hidden row and a missing row count the same;
-  verified failing 3 pre-fix).
+- **A RUN OF REPLIES WITH NOTHING FROM HER BETWEEN THEM IS ONE MESSAGE IN
+  THE THREAD (2026-09-02, Sophie, looking at four CLAUDE rows in ten minutes:
+  "why do these all show as separate messages").** They are separate TURNS: a
+  chat that backgrounded a deploy watcher and subscribed to its own PR wakes
+  once per event, each wake is a turn, and the hook posts one message per
+  turn. **The data is untouched, on purpose** — a doc is keyed by
+  session+turn, and a turn that stays silent is indistinguishable from a
+  crashed hook (the 2026-08-28 silence). The THREAD merges instead:
+  `mergePlan` in `chats.html` draws a run as ONE row — the newest's id, time,
+  Play and bookmark, with the whole run as its body **oldest first, each part
+  under its own small time**, and "4 replies" in the head. **It shipped first
+  as a FOLD (newest shown, the rest hidden behind "3 earlier replies") and she
+  corrected it the same hour: "i need the messages combined into one message,
+  so i can read them in the right order, not separated and hidden."** Nothing
+  is hidden and there is nothing to open. `MERGE_MS` (60 min) is the dial.
+  Never merged: anything from her (her message is what ends a run), a live
+  draft (its own row until the next rebuild), a bookmarked message (a bookmark
+  on a merged row would point at the wrong turn). A chapter heading ends a
+  run. The thread search matches the whole run's text; a jump into any turn
+  of a run (`focusMessage`, via `data-mids`) opens the row and scrolls to that
+  part; `refreshDraft` keeps the parts across a node swap. The home list, the
+  Update tab, the Questions view and every count are untouched.
+  **A test fixture that stacks filler replies seconds apart now merges** into
+  one short row — three fixtures were re-spaced two hours apart
+  (`test-chats-jump-message`, `test-chats-questions`,
+  `test-chats-viewer-escape`); a new one needs the same, or a message from her
+  between the fillers. Test: `node scripts/test-chats-dribble-merge.js`
+  (verified failing against the pre-merge page).
 - **A REPLY CAN BE BLOCKED BY THE SANDBOX EGRESS FILTER, and the symptom is a
   reply stuck as its partial draft (found live 2026-08-10).** The cloud
   environment's proxy scores outbound POST bodies and answered one with a 403

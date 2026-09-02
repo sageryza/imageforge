@@ -33,13 +33,16 @@ const T0 = Date.now();
 const iso = (ms) => new Date(ms).toISOString();
 
 // One chat, three messages: the rare word and the common word share exactly
-// one of them.
+// one of them. Spaced TWO HOURS apart: three replies with nothing from her
+// between them and under an hour apart draw as ONE row (the dribble merge,
+// 2026-09-02), and this test counts rows.
+const H = 3600 * 1000;
 const MSGS = [
-  { id: 'm1', chat: 'live-one', from: 'claude', created: iso(T0 - 1000), postedAt: iso(T0 - 1000),
+  { id: 'm1', chat: 'live-one', from: 'claude', created: iso(T0 - 1 * H), postedAt: iso(T0 - 1 * H),
     tldr: 'both', text: 'The prompt overlay opens on content — a woman in a yellow raincoat.' },
-  { id: 'm2', chat: 'live-one', from: 'claude', created: iso(T0 - 2000), postedAt: iso(T0 - 2000),
+  { id: 'm2', chat: 'live-one', from: 'claude', created: iso(T0 - 3 * H), postedAt: iso(T0 - 3 * H),
     tldr: 'common only', text: 'Filed the prompt for every image in the batch.' },
-  { id: 'm3', chat: 'live-one', from: 'claude', created: iso(T0 - 3000), postedAt: iso(T0 - 3000),
+  { id: 'm3', chat: 'live-one', from: 'claude', created: iso(T0 - 5 * H), postedAt: iso(T0 - 5 * H),
     tldr: 'rare only', text: 'A yellow raincoat, feeding crows on a bench.' },
 ];
 // The snippet the bold rule is measured on: `red` as a real word-START hit
