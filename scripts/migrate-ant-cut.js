@@ -115,7 +115,8 @@ function wav(file, out) { ff(['-v', 'error', '-y', '-i', file, '-ac', '1', '-ar'
   fs.writeFileSync(path.join(dir, 'cut.json'), JSON.stringify({ clips: doc.clips, sounds: doc.sounds }, null, 1));
 
   const t0 = Date.now();
-  const r = await fe.renderCut(doc, { dir: path.join(dir, 'render'), progress: async (d, t, l) => process.stderr.write(`  ${d}/${t} ${l}\r`) });
+  const rdir = path.join(dir, 'render'); fs.mkdirSync(rdir, { recursive: true });   // renderCut wants an existing dir
+  const r = await fe.renderCut(doc, { dir: rdir, progress: async (d, t, l) => process.stderr.write(`  ${d}/${t} ${l}\r`) });
   const out = r.file;
   console.log(`\nrendered in ${Math.round((Date.now() - t0) / 1000)}s → ${out}`);
 
