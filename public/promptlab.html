@@ -285,12 +285,29 @@
      /editor do the same at 5): at 20 the bar's paper background painted over
      the pill's top button. Full-screen overlays (lightbox, ask, toast) stay
      ABOVE 9 — they are meant to cover the pill. */
-  .feedbar { position: sticky; top: 0; z-index: 5; display: flex; padding: 8px 56px 8px 0; background: #faf7f2; }
+  /* THE STICKY BLOCK, not the row: the row is `.feedbar` and the mode bar is
+     its second line, and both have to pin together or the actions scroll off
+     the moment she starts picking. `.feedbar` keeps its own class and its own
+     padding — everything measured against it still measures the same box. */
+  .feedstick { position: sticky; top: 0; z-index: 5; background: #faf7f2; }
+  /* IT WRAPS ONLY WHERE IT CANNOT FIT, which at 390pt — her phone — is never:
+     MEASURED with the select chip added, the search field holds 90px of room
+     on the picture tab and 56 on PANELS against the 51 its placeholder needs,
+     so the row is one line on both. The wrap and the `min-width` below are for
+     a 320pt screen, where this row has been over budget since the columns
+     segment landed and the field was measured at EIGHT pixels wide: there the
+     search drops to its own line whole rather than collapsing to nothing. That
+     is a fallback for a width nothing here is designed at, not the second row
+     she cut (2026-08-28, "I specifically asked for it to stay where it is") —
+     at the width she reads on, the box has not moved. */
+  .feedbar { display: flex; flex-wrap: wrap; padding: 8px 56px 8px 0; background: #faf7f2; }
   .viewtog { display: flex; border: 1px solid #d8d0c4; border-radius: 6px; overflow: hidden; background: #fdfcf9; }
-  /* 11px side padding, not the old 15 — the row gained the columns segment
-     (2026-08-25) and the search box's own placeholder is what pays for any
-     slack here; measured at 390pt, 15px clipped "Search" to a third. */
-  .viewtog button { border: 0; background: none; font: inherit; font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: #6f675e; padding: 7px 11px; }
+  /* 8px side padding, and each cut was bought by a control the row gained:
+     15 -> 11 when the columns segment landed (2026-08-25), 11 -> 8 when the
+     SELECT chip did (2026-09-02). The search box's own placeholder is what
+     pays for any slack here, and it is MEASURED at 390pt on both tabs — the
+     PANELS tab carries a fourth chip and is the tight one. */
+  .viewtog button { border: 0; background: none; font: inherit; font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: #6f675e; padding: 7px 8px; }
   .viewtog button + button { border-left: 1px solid #d8d0c4; }
   .viewtog button.on { background: #2b2622; color: #faf7f2; font-weight: 600; }
   /* THE TWO MARK FILTERS, one segmented box beside the view switch — neither
@@ -320,6 +337,60 @@
      (what the cells ARE), not a like/dislike filter, and three chips in one
      box lighting two colours would read as three of one kind. */
   .sheetfilt.on { background: #2b2622; color: #fff; }
+  /* SELECT — the fourth chip, and the only one that is not about which
+     pictures show: lit, a tap PICKS a picture instead of opening it, and the
+     mode bar under the row marks every picked one at once (2026-09-02,
+     Sophie: "add a select button to playground so i can x a bunch of things
+     at once"). Lit in INK like the sheets chip, never the rose or the grey —
+     those two are the marks themselves, and this is the mode you cast them
+     from.
+       IT SHARES THE FILTER BOX, and that is what pays for it. The row
+     reserves 56px for the injected autoscroll pill, and MEASURED at 390pt the
+     PANELS tab (where the sheets chip is out) had 78px of room in the search
+     field against the 51 its own placeholder needs — a chip in a box of its
+     own costs 42 of that and clips "Search" again, which is the exact bug the
+     two mark filters were put in one box to end. Sharing the border costs 34,
+     and the view switch's 11px -> 8px pays back another 12. */
+  .selfilt.on { background: #2b2622; color: #fff; }
+  /* THE MODE BAR — the second line of the sticky block, and it exists ONLY
+     while she is picking, so an ordinary feed is byte-for-byte the row it was.
+     It reserves the pill's 56px like the row above it: this block is sticky,
+     so unlike ordinary content it sits inside that corner permanently and
+     anything tappable in those pixels is covered for good. */
+  .selbar { display: flex; align-items: center; gap: 8px; padding: 0 56px 8px 0; }
+  .selbar[hidden] { display: none; }
+  .selcount { flex: 1; min-width: 0; font-size: 12px; letter-spacing: .06em;
+    text-transform: uppercase; color: #6f675e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .selword { flex: none; border: 1px solid #d8d0c4; background: #fdfcf9; color: #6f675e;
+    font: inherit; font-size: 12px; letter-spacing: .07em; text-transform: uppercase;
+    border-radius: 6px; padding: 6px 9px; }
+  /* Rounded squares at the house 6px, never circles. Both marks are the same
+     34px box the filter chips are, so the bar reads as one family with the row
+     above it. */
+  .selact { flex: none; display: flex; align-items: center; justify-content: center;
+    width: 34px; height: 30px; border: 1px solid #d8d0c4; background: #fdfcf9;
+    color: #6f675e; border-radius: 6px; padding: 0; }
+  .selact svg { width: 16px; height: 16px; }
+  .selact[disabled], .selword[disabled] { opacity: .4; }
+  /* A PICKED PICTURE — a ring in the ink, and a check on the corner.
+     THE RING IS A LAYER OVER THE CELL, NOT A SHADOW ON THE PICTURE, and that
+     is measured rather than reasoned: `box-shadow: inset` on an <img> paints
+     UNDERNEATH the decoded image, so the first cut rendered as literally
+     nothing — a photograph of the real page is the only thing that catches
+     that (the "gold highlight" lesson, same failure, same corner of the app).
+     A pseudo-element over the cell also keeps it off the layout: a border
+     would move the picture inside its cell and the whole wall would shift a
+     pixel as she picks. */
+  .cell.picked::after { content: ''; position: absolute; inset: 0; border-radius: 6px;
+    box-shadow: inset 0 0 0 3px #2b2622; pointer-events: none; }
+  .cell .pick { position: absolute; left: 5px; top: 5px; width: 20px; height: 20px;
+    border-radius: 6px; background: #2b2622; color: #fff; display: flex;
+    align-items: center; justify-content: center; }
+  .cell .pick svg { width: 13px; height: 13px; }
+  /* While she is picking, a tap on a picture is a PICK — so nothing on a cell
+     may swallow it. The vote badge is a mark, not a control, and sits on the
+     opposite corner from the check. */
+  body.selmode .cell img { cursor: pointer; }
   /* The story box: one tall field, never a grid cell's shape. */
   #panelgrid textarea[data-story] { aspect-ratio: auto; min-height: 120px; }
   /* THE SEARCH BOX FILLS THE GAP THE ROW ALREADY HAD (Aug 2026, Sophie: "a
@@ -332,7 +403,7 @@
      that zoom ignores `user-scalable=no` (which this page sets), and pinching
      back out is then blocked — one tap would leave the whole page stuck
      zoomed (found live on her phone on /assets, Aug 2026). */
-  .feedsearch { flex: 1; min-width: 0; margin-left: 8px; position: relative; display: flex; }
+  .feedsearch { flex: 1; min-width: 74px; margin-left: 8px; position: relative; display: flex; }
   /* THE ✕ IS ON THE LEFT (2026-08-28, Sophie: "put x on other side") — the
      right end of this box is the end the injected pill's column reaches
      toward, and it is also where her caret sits and where the text she is
@@ -871,6 +942,7 @@
   <div class="err" id="err" hidden></div>
 </div>
 
+<div class="feedstick">
 <div class="feedbar">
   <div class="viewtog">
     <button id="v-list">List</button><button id="v-tiles">Tiles</button><button class="colseg" id="v-cols"></button>
@@ -879,12 +951,21 @@
     <button class="likefilt" id="v-liked" aria-label="Show only the ones you hearted" title="Hearts only"></button>
     <button class="likefilt xfilt" id="v-hidex" aria-label="Hide the ones you have crossed out" title="Hide the &times;'d"></button>
     <button class="likefilt sheetfilt" id="v-sheets" hidden aria-label="Just the finished sheets, uncut" title="Just the finished sheets, uncut"></button>
+    <button class="likefilt selfilt" id="v-select" aria-label="Pick several at once" title="Pick several at once"></button>
   </div>
   <div class="feedsearch">
     <input id="q" type="search" placeholder="Search" aria-label="Search your runs"
            autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="search">
     <button class="qclear" id="qclear" aria-label="Clear search" hidden>&times;</button>
   </div>
+</div>
+<div class="selbar" id="selbar" hidden>
+  <button type="button" id="sel-all" class="selword">All</button>
+  <span class="selcount" id="selcount">Nothing picked</span>
+  <button type="button" id="sel-x" class="selact" aria-label="Cross out the picked ones" title="Cross them out"></button>
+  <button type="button" id="sel-heart" class="selact" aria-label="Heart the picked ones" title="Heart them"></button>
+  <button type="button" id="sel-done" class="selword">Done</button>
+</div>
 </div>
 <div id="pendings"></div>
 <div id="runs"></div>
@@ -940,6 +1021,13 @@
   var ICONS = {
     heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
     x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+    // PICK SEVERAL — Lucide `square-check`, a rounded square with a tick in
+    // it: the house shape for a chosen thing (never a circle), and the same
+    // mark the picked cells wear on their corner, so the chip is a picture of
+    // what the mode does.
+    pick: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 12 2 2 4-4"/></svg>',
+    // The tick alone, for the corner of a picked cell — Lucide `check`.
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
     // The bigger-prompt-box toggle — Lucide `maximize-2` / `minimize-2`.
     maximize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
     minimize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
@@ -1014,6 +1102,7 @@
     // Coming back to the list: anything drawn while it was hidden measured 0/0
     // and is still undecided, so measure it now that it has a box.
     else resyncClamps();
+    if (selMode) paintSel();          // "All" means the view she is now in
   }
   function setView(v) { localStorage.setItem('promptlab_view', v); applyView(); }
   document.getElementById('v-list').addEventListener('click', function () { setView('list'); });
@@ -1074,6 +1163,128 @@
     paintFiltRow();
     renderFeed();
   });
+
+  /* ── PICK SEVERAL AT ONCE (2026-09-02, Sophie: "add a select button to
+     playground so i can x a bunch of things at once") ─────────────────────
+     Crossing a batch out one picture at a time is a tap into the lightbox, a
+     tap on the ✕ and a tap back out, times twenty — and on the PANELS tab,
+     where a sheet arrives as nine panels she keeps two of, that is the
+     ordinary case rather than the rare one.
+
+     LIT, A TAP PICKS INSTEAD OF OPENING. Same in both views, because a pick
+     is keyed by the picture (`runId|i`), which is exactly what the list's
+     cells and the wall's tiles both carry — the same key the lightbox walk
+     reads. So nothing about either renderer moved.
+
+     THE MARK BUTTONS OBEY THE SINGLE-PICTURE RULE — tap again to clear. If
+     every picked picture already wears that mark the button CLEARS it, which
+     is what makes a bulk ✕ undoable with one tap and is why the picks are
+     KEPT after a mark rather than dropped. (With "hide the ✕'d" lit the
+     pictures go with the mark; the count still says how many are held, and
+     tapping ✕ again brings them back.)
+
+     THE MODE IS IN MEMORY, NOT localStorage. The view, the filters and the
+     columns are settings; this is a thing she is in the middle of doing, and
+     coming back to the tool tomorrow already picking is nobody's idea of
+     where she left off. Same call the bigger-prompt-box toggle makes. ── */
+  var selMode = false;
+  var sel = {};                                  // 'runId|i' -> true
+  function selKey(id, i) { return id + '|' + i; }
+  function selKeyOf(img) { return selKey(img.getAttribute('data-run'), img.getAttribute('data-i')); }
+  function selCount() { return Object.keys(sel).length; }
+  // Every picture on the page right now, in the view she is in — the same
+  // "read it off what she is looking at" rule the lightbox walk follows, so
+  // the filters and the search box narrow ALL by themselves and there is no
+  // second copy of their rules to drift.
+  function selVisible() {
+    var box = document.getElementById(curView() === 'tiles' ? 'tiles' : 'runs');
+    return Array.prototype.slice.call(box.querySelectorAll('img[data-run]'));
+  }
+  document.getElementById('v-select').innerHTML = ICONS.pick;
+  document.getElementById('sel-x').innerHTML = ICONS.x;
+  document.getElementById('sel-heart').innerHTML = ICONS.heart;
+  function paintSel() {
+    var n = selCount();
+    document.body.classList.toggle('selmode', selMode);
+    document.getElementById('v-select').classList.toggle('on', selMode);
+    document.getElementById('selbar').hidden = !selMode;
+    document.getElementById('selcount').textContent = n ? n + ' picked' : 'Tap the ones you want';
+    ['sel-x', 'sel-heart'].forEach(function (id) { document.getElementById(id).disabled = !n; });
+    var vis = selVisible();
+    var allOn = vis.length > 0 && vis.every(function (im) { return sel[selKeyOf(im)]; });
+    document.getElementById('sel-all').textContent = allOn ? 'None' : 'All';
+    document.getElementById('sel-all').disabled = !vis.length;
+  }
+  // The ring and the check are painted straight onto the tapped cell as well
+  // as reconciled in updateCell: a whole re-render on every tap would decode
+  // nothing new but would still walk the entire wall for one picture.
+  function paintCell(img) {
+    var cell = img.parentElement;
+    if (!cell) return;
+    var on = !!sel[selKeyOf(img)];
+    cell.classList.toggle('picked', on);
+    var tick = cell.querySelector('.pick');
+    if (on && !tick) {
+      tick = document.createElement('span');
+      tick.className = 'pick';
+      tick.innerHTML = ICONS.check;
+      cell.appendChild(tick);
+    } else if (!on && tick) tick.remove();
+  }
+  function setPicked(img, on) {
+    var k = selKeyOf(img);
+    if (on) sel[k] = true; else delete sel[k];
+    paintCell(img);
+  }
+  function selExit() { selMode = false; sel = {}; paintSel(); renderFeed(); }
+  document.getElementById('v-select').addEventListener('click', function () {
+    if (selMode) { selExit(); return; }
+    selMode = true;
+    paintSel();
+  });
+  document.getElementById('sel-done').addEventListener('click', selExit);
+  document.getElementById('sel-all').addEventListener('click', function () {
+    var vis = selVisible();
+    var allOn = vis.length > 0 && vis.every(function (im) { return sel[selKeyOf(im)]; });
+    vis.forEach(function (im) { setPicked(im, !allOn); });
+    paintSel();
+  });
+  document.getElementById('sel-x').addEventListener('click', function () { applyMarks('dislike'); });
+  document.getElementById('sel-heart').addEventListener('click', function () { applyMarks('like'); });
+
+  // ONE REQUEST, whatever she picked. Twenty separate /vote posts would each
+  // re-read the run doc and sweep the Assets tab for that picture; the batch
+  // route groups them by run and does one write per run.
+  function applyMarks(kind) {
+    var keys = Object.keys(sel);
+    if (!keys.length) return;
+    var items = [], allSame = true;
+    keys.forEach(function (k) {
+      var at = k.lastIndexOf('|');
+      var id = k.slice(0, at), i = k.slice(at + 1);
+      var r = runsById[id];
+      if (!r) return;                             // paged away since she picked it
+      if (((r.votes || {})[i] || '') !== kind) allSame = false;
+      items.push({ run: id, image: Number(i) });
+    });
+    if (!items.length) return;
+    var next = allSame ? '' : kind;               // all already marked -> clear
+    // Optimistic, exactly as the lightbox's own cast is: her tap shows on the
+    // page in the same frame, and loadRuns reconciles behind it.
+    items.forEach(function (it) {
+      var r = runsById[it.run];
+      var votes = r.votes = r.votes || {};
+      if (next) votes[it.image] = next; else delete votes[it.image];
+    });
+    renderFeed();
+    paintSel();
+    var word = next === 'like' ? 'hearted' : next === 'dislike' ? 'crossed out' : 'put back';
+    toast(items.length + ' ' + word + (next ? ' · tap again to undo' : ''));
+    fetch('/api/promptlab/votes', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ vote: next, items: items }),
+    }).then(function () { loadRuns(); }).catch(function () {});
+  }
 
   // THE BIGGER PROMPT BOX (2026-08-25, Sophie: "can you put a button so I can
   // see the prompt in a bigger box as an option"). One textarea, two sizes —
@@ -4049,6 +4260,9 @@
     if (img.getAttribute('src') !== it.src) img.setAttribute('src', it.src);
     if (img.getAttribute('data-run') !== it.runId) img.setAttribute('data-run', it.runId);
     if (img.getAttribute('data-i') !== it.i) img.setAttribute('data-i', it.i);
+    // Her picks are reconciled here as well as painted on the tap, or a poll
+    // landing mid-pick would repaint the wall with every ring wiped off.
+    paintCell(img);
     var badge = el.querySelector('.badge');
     var have = badge ? (badge.classList.contains('like') ? 'like' : 'dislike') : '';
     if (have !== it.vote) {
@@ -4395,6 +4609,10 @@
       // already-loaded picture is never refetched.
       if (lbCur && lbIsOpen()) showLB(lbCur.id, lbCur.i);
       renderMoreBtn();
+      // The All/None word and the count are read off what is RENDERED, so they
+      // are repainted whenever the feed is — a filter or a search that changes
+      // what is on screen changes what "All" means.
+      if (selMode) paintSel();
   }
 
   // "Older" sits under BOTH views (it is the way further back in either one).
@@ -4465,22 +4683,26 @@
     else syncChildren(box, items, makeCell, updateCell);
   }
 
-  // One delegated handler for every tile.
+  // One delegated handler for every tile. WHILE SHE IS PICKING a tap on a
+  // picture is a pick and never an open — the mode bar is on screen saying so,
+  // and a lightbox opening over a batch she is halfway through choosing is the
+  // opposite of what the mode is for.
+  function tileTap(e) {
+    var img = e.target.closest('img[data-run]');
+    if (!img) return false;
+    if (selMode) { setPicked(img, !sel[selKeyOf(img)]); paintSel(); return true; }
+    openLB(img.getAttribute('data-run'), Number(img.getAttribute('data-i')));
+    return true;
+  }
   document.getElementById('runs').addEventListener('click', function (e) {
     var cp = e.target.closest('[data-copy]');
     if (cp) {
       copyRunIn(runsById[cp.getAttribute('data-copy')]);
       return;
     }
-    var img = e.target.closest('img[data-run]');
-    if (!img) return;
-    openLB(img.getAttribute('data-run'), Number(img.getAttribute('data-i')));
+    tileTap(e);
   });
-  document.getElementById('tiles').addEventListener('click', function (e) {
-    var img = e.target.closest('img[data-run]');
-    if (!img) return;
-    openLB(img.getAttribute('data-run'), Number(img.getAttribute('data-i')));
-  });
+  document.getElementById('tiles').addEventListener('click', tileTap);
 
   // The "…" opener for a prompt the two-line cap really cut. Added after layout
   // (scrollHeight vs clientHeight is the only honest test) and as a SIBLING of

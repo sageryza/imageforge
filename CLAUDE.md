@@ -134,12 +134,12 @@ to-do list. Act on them, then answer on the image itself. **Never on a timer.**
   your wake doorbell (2026-08-28), so a note landing mid-turn can reach you,
   but the re-read is what catches one that lands while you are still writing
   the reply.
-- **A QUICK-QUESTION chat SETS ITS OWN BELL** (Sophie, 2026-08-27: "a 'quick
-  question' chat shud set its own bell as true"). If she is using you for
-  quick questions — she says "quick question mode", or `quick question` is in
-  your `labels` on `GET /api/chatfeed/status` — `POST /api/chatfeed/notify
-  {chat, notify:true}` once, so the answer buzzes her phone. Turning a bell
-  OFF stays hers alone.
+- **THE BELL IS ON BY DEFAULT (2026-09-01, Sophie: "change to readily notify
+  on for chats") — so there is NOTHING for you to set.** Every chat may buzz
+  her unless she has silenced it herself; the timing gate (a reply that
+  answers a message of hers) is what keeps that quiet. The old quick-question
+  self-bell is a no-op now, and **turning a bell OFF stays hers alone** — a
+  chat must never POST `{notify:false}`.
 
 **While you work**
 - **BUILDING OR POSTING A PAGE? THE RULES FIRST — this is the thing that
@@ -236,8 +236,15 @@ than deploying by reflex.
   **Render has been ignoring pushes since 2026-09-01** (`commit_ignored` on
   every commit, even with `autoDeploy: yes` and no build filter — its own
   event log says so), so a merge does NOT reach the site by itself; trigger it
-  with `POST https://api.render.com/v1/services/<srv>/deploys` using
-  `RENDER_API_KEY`, which is in the environment.
+  with **`node scripts/render-deploy.js`** (`RENDER_API_KEY` is in the
+  environment). **NEVER the raw `POST …/deploys` any more (2026-09-02,
+  Sophie: "i thought there was a check in place not to restart the server if
+  things were being drawn? there shud be!!!!!!").** The script reads
+  `GET /api/promptlab/inflight` — the exact set of runs the live process is
+  drawing and cutting — and waits until it is empty before it deploys (`--dry`
+  to look, `--max <min>` past the default 30, `--now` only when it must ship
+  and you say so). A deploy kills the old instance mid-request, and a draw is
+  a request that runs 20s to 14 minutes.
 
 **The habit: PHOTO every round, SANDBOX when she wants to tap it, LIVE when
 she says.** Ask which she wants rather than assuming.
@@ -1780,6 +1787,42 @@ them off the reference sheet, not off the old filenames.
     deliberately SLOW stub so the OPTIMISTIC order is what renders; verified
     catching a recency sort, a lost stamp, a three-wide grid, a refilled glyph,
     a control growing back on a tile, and a sheet mark that can only add).
+- **A PROJECT GROUPS ITSELF — THE STACKED CARDS IN A THREAD'S HEADER
+  (2026-09-02, Sophie: "projects could auto group themselves, like all the
+  triset chats, grouped in reverse chronological order, so i can go back and
+  see all the triset chats from a single icon button on that chat page header
+  · probably 3-4 stacked square cards · opens a page w hairline icon or list
+  view · default icon, 3-up").** Three stacked cards beside the tag icon,
+  drawn ONLY when the chat has siblings; the page is a home view
+  (`homeView='project'`, `renderProject` in chats.html) titled by the project,
+  a hairline ICONS · LIST row (sticky, opening on icons three across, no day
+  headings — PHOTO'd: four chats on three days drew as a column under them),
+  newest first, the archived siblings IN and dimmed and counted, across the
+  accounts. Nothing is stored for the page.
+  - **WHICH CHATS IS ONE RULE, `project-words.js`, shared with the server and
+    MEASURED, not reasoned.** The harness names a branch from her first message
+    SUBJECT FIRST (over her 788 live chats: `story-…` leads 42, `playground-…`
+    37, `triset-…` 4), where a raw token count is noise (`button` 30, `new`
+    25). So a project word is one that LEADS two or more slugs, minus the
+    verbs and fillers the harness sometimes leads with (`remove-…`,
+    `missing-…`, the `STOP` list); a chat is on its own lead word, on a
+    `project` the auto-sorter FILED on it, and on any ESTABLISHED project
+    (leading 3+) a later word of its slug or her display name carries. A chat
+    on two things opens on its first and the page offers the rest as chips.
+    Plurals fold (`panels`/`panel`). Measured the day it shipped: 615 of 761
+    live chats carry the button, triset is exactly its 4.
+  - **THE SORTER FILES `project` NOW, AS A TOP-UP** — one more field in the
+    same end-of-turn call (`chat-sort.js`, `pickProject`; `projectBy:'auto'`,
+    never over `projectBy:'sophie'`), offered the page's own vocabulary so it
+    spells a project the way the page groups. It is NOT a folder: it files the
+    chat nowhere she looks, so it is written whatever the category answer
+    was. It reaches the chats whose slug says nothing (29 fallback slugs) and
+    the ones renamed since (Similitude is the triset project). Chats asleep
+    before this never get one and the word rule still covers them.
+  - Tests: `node scripts/test-project-words.js` (the rule, pure, on a fixture
+    shaped like her registry) and `node scripts/test-chats-project.js` (the
+    real page headless — the button and its absence, the pile, three across
+    MEASURED, the sticky view, back from a tile, the chips, the pill).
 - **ORGANIZE — a chat can be filed and tagged from INSIDE it (Aug 2026,
   Sophie: "an ability to tag or categorize something from within the chat
   itself … an icon that says organize and then it pulls up the ability to tag
@@ -1952,8 +1995,10 @@ them off the reference sheet, not off the old filenames.
     FINISHED, carrying that reply's `postedAt`. It satisfies both rules
     `unparked` enforces by construction: monotonic (never `created`, which
     predates the park — the bug the note on `unparked` was written about), and a
-    live draft never writes it. **`lastSeen` beside it IS `created` and is not a
-    substitute.**
+    live draft never writes it. **`lastSeen` beside it is rewritten on every
+    post — it is the chat's NEWEST message (measured 2026-09-02 on twelve real
+    threads: newest on all twelve, first on none) and is not a substitute.**
+    This line used to call it `created`; that was wrong.
   - **The loaded message always wins.** `repliedSince` is consulted ONLY when
     the page holds nothing for that chat, so the rule above did not move: a live
     draft still keeps a chat parked, and a reply loaded from before the park
@@ -2024,6 +2069,43 @@ them off the reference sheet, not off the old filenames.
   - Test: `node scripts/test-chats-day-rules.js` (the real page headless, with
     an INDEPENDENT copy of the 5am rule in the test rather than the page's own
     arithmetic read back to itself; verified failing 10 pre-fix).
+- **AND THE PINNED HEADING FOLDS (2026-09-02, Sophie: "make the pinned panel
+  collapsible in chat app").** Her pushpin lifts a chat above the sort so it
+  always shows first — and she has pinned **32**, so the block that was meant to
+  be a shortcut had become the screen. PHOTO'd on her live list at 390x844
+  before anything was built: **PINNED at y=282, TODAY at y=741**, i.e. her
+  pinned chats filled the entire first screen and the current ones started below
+  the fold — with the HIDDEN bar sitting directly above them already folding,
+  and this block, the taller of the two, with no way to put it away. Folded,
+  TODAY moves to **y=314**.
+  - **THE HEADING IS THE FOLD** — the whole row, not a caret to hit (judge.js's
+    piles rule) — so it is a `<button>` still wearing `.dayrule`: the same
+    furniture, not a new control. No box and no fill; a rose bar here would read
+    as a second HIDDEN pile one row under the real one.
+  - **IT OPENS OPEN AND IS REMEMBERED** (`chats.pinshut` in localStorage).
+    Default open because pinned chats exist to lead the list — her own ask, "they
+    never disappeared to the bottom if I don't look at them for a while" — so
+    folded has to be a state she chose; remembered because this is a list she
+    comes back to all day, where judge.js's per-visit piles are a screen she
+    passes through.
+  - **THE COUNT SHOWS ONLY WHILE IT IS SHUT** (the archive summary's
+    don't-say-it-twice rule — open, the rows are right there), and it is the
+    count of the PILE she is looking at, never her whole `pinTop` set: the
+    archive, the ★ chip and the hidden pile each carry their own pinned chats,
+    and a heading saying 32 over a block of three is a lie about the screen.
+  - **It rides `mkDayRule`, so every pile got it from one place** — live, ALL,
+    ★, bug fix, the hidden pile, the archive — and both renderers skip the rows
+    rather than hiding them, so a folded block is really out of the layout.
+    The tap goes through `repaintKeepingBar('.pinrule')`: this block is at the
+    TOP of a long list, so a plain `renderHome` would collapse the page under
+    her thumb (the MORE fold's own lesson).
+  - Test: `node scripts/test-chats-pin-fold.js` (the real page headless — the
+    rows COUNTED off the rendered list rather than asserted in source, since a
+    row hidden with CSS and a row that never rendered look identical to any
+    source assertion; the tap asked with `elementFromPoint` at the heading's own
+    centre; the lift, the count, the memory across a reload and the heading's
+    viewport position all MEASURED. Verified failing pre-fix, where there is no
+    `.pinrule` at all).
 - **THE CHAT AREA IS THREE LISTS, AND THE ROW TAKES TURNS WITH THE ACCOUNTS
   (2026-08-28, Sophie: "i'm thinking about restructuring chat area based on bug
   fixes and deliverables, so they're on two separate lists" · "one tab ALL
@@ -3459,6 +3541,27 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     can't-get-back-up rules: it never grew a back-to-top at all, and a press at
     an END of the page did nothing rather than turning around. Both are fixed
     and both stand.
+  - **AND IT NOW FOLLOWS WHATEVER IS ACTUALLY SCROLLING INSIDE THE FRAME
+    (2026-09-02, Sophie: "why does autos roll not work in piles").** The third
+    of the shared pill's rules this copy had missed: `mkPagePill` asked the
+    frame's WINDOW for everything, so a page whose content scrolls inside its
+    own box could not be moved by the pill she taps in the app — and a DECK's
+    piles view is exactly that box (`flex:1; overflow-y:auto`). Measured at her
+    viewport on the real rendered deck: **672px of piles below the fold, the
+    frame's own document with NOTHING to scroll, and a tap on play moving the
+    piles 0px.** The 2026-09-01 piles autoscroll reached judge.js's own little
+    side-button only, which works — and is not the control she reaches for.
+    It is `pill.py`'s own rule ported (`boxOK`/`findBox`/`tgt`): the window
+    while the page itself has room, else the nearly-full-screen box under the
+    middle of the frame (80% wide, 60% tall, so a note list or a filter drawer
+    can never steal the pill from the page behind it), re-validated each call
+    rather than hunted every frame. Play, the end-of-page flip, the
+    back-to-top and its lit state all ask the same target. `openPage` also
+    wires a **capture-phase** `scroll` listener on the frame's document —
+    `scroll` does not bubble, so the window listener can never hear an inner
+    box move and the back-to-top would stay dark. Test:
+    `node scripts/test-page-viewer-piles.js` (the real `mkPagePill` over the
+    real rendered deck template in a real iframe; verified failing 3 pre-fix).
   - **A RESUME GOES DOWN — SHE REVERTED THE `dir` VERSION (2026-08-26, Sophie:
     "it used to go down after I stopped it even if it was going up before. now
     it doesn't seem to do that" → "can you just revert that one change for the
@@ -3866,6 +3969,21 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
       browser AFTER it navigates, the no-prompt picture riding as a photo
       reference with nothing invented, the Shoebox POST the server really
       saw, and the source pin that neither page may hand-type a door again).
+    - **IT WAS "FIXED" TWICE AND SHE STILL FOUND A PICTURE WITH NO PLAYGROUND
+      BUTTON (2026-09-01, on a Compare page's swipe card: "i thought we had
+      fixed this").** The 08-28 pass unified the lightbox FILE, and the 08-31
+      pass built this shared row — but it SURVEYED by hand the pages she had
+      named plus the Playground, and pinned exactly those two files. The
+      Compare/deck pages (`asset-view.js`) and Freeform are callers of the
+      very same lightbox and were never measured, so both went on drawing ♥/✕
+      and nothing else. **A fix to a shared thing is measured against every
+      CALLER of the shared thing, found by grep, never against the list of
+      surfaces in the ask** — the pin in `test-asset-doors.js` is DERIVED
+      from `__assetLightbox(` across `public/` now, with a named reason for
+      each exemption (the Playground's own run-id row, the Story Room's
+      picker, the Character page's bare open). A new caller fails it until it
+      builds the row or names its reason. `scripts/test-template-doors.js`
+      drives the Compare page's doors for real, iframe case included.
 
   - **TAP TO NEXT ON THE ASSETS TAB AND ON META ASSETS (2026-08-31, Sophie:
     "add tap to next on assets like playground").** The two surfaces she
@@ -4262,20 +4380,32 @@ before working on that module. Nothing was deleted — the moved text is verbati
   of hers reaches the tile the day she makes it; it carries **its own panels
   swap**, because dreamy's sheet anchor is the clause this tile consumed and
   `applySheet` no-ops on a missed anchor (a sheet run would otherwise ship
-  "NOT a grid" into a grid prompt); and the **port's evidence is the
-  equilateral clause quoted LONG** (`playground-port.js`), because a triangle
-  card carries Dreamy's filename AND Dreamy's prefix too, and longest evidence
-  wins — quote it short and every Triset card ports back as a plain Dreamy
-  picture. **THAT WENT STALE WITHIN A DAY AND IS THE THING TO WATCH**
-  (2026-08-31): her reword put a sentence between the two halves the port was
-  quoting, so it matched nothing and every triangle card ported back as a plain
-  Dreamy picture — the exact failure the note above predicts, arriving by a
-  reword rather than by a short quote. The test catches it (it is a VERBATIM
-  check against the real clause), so **a reworded clause is a red
-  `test-playground-port.js` and a one-line re-quote**, never a mystery.
+  "NOT a grid" into a grid prompt); and the **port's evidence is a SHORT
+  DURABLE STEM PLUS EVERY PAST WORDING, and Triangle out-ranks Dreamy by
+  DECLARATION** (`playground-port.js`) — a triangle card carries Dreamy's
+  filename AND Dreamy's prefix by construction, so the two always match
+  together and the only question is which wins.
+  **QUOTING THE CLAUSE LONG WAS THE OLD ANSWER AND IT WENT STALE TWICE, THE
+  SECOND TIME SILENTLY (2026-09-02, Sophie: "triangle cards are not being
+  identified as triangle").** Longest-evidence-wins meant the port had to
+  out-reach Dreamy's 49 characters, so every reword shortened the fragment
+  below the bar and handed her cards back to Dreamy with nothing on screen
+  saying so. **Measured over all 715 of her filed triangle cards: 565 were
+  porting back as plain Dreamy pictures** — four generations of the wording
+  are on file and only the newest one matched. Two changes, and the second is
+  what ends the class of bug: the evidence is now the stem
+  `triangle-shaped card` (the three words every generation has held) with the
+  older wordings listed beside it, **only ever GROWING, exactly the way `refs`
+  lists old reference FILENAMES — a reword never rewrites the thousands of
+  style halves already filed**; and `beats:['dreamy']` names the derivation, so
+  a short quote wins anyway. **A wrong route is invisible from inside the
+  Playground** (the picture still draws, on the wrong reference), so it is
+  measured against her real library rather than reasoned about.
   Test: `node scripts/test-playground-port.js` (the derivation driven
   over the real dreamy literal, the sheet swap, the reworded-tail fallback,
-  and the one-copy pin on triset.js).
+  the one-copy pin on triset.js, and — the durable half — TODAY's real
+  triangle style half driven through the matcher plus one fixture per past
+  wording, verbatim off her cards; verified failing 9 pre-fix).
   **AND THE TILE PINS THE CANVAS TO SQUARE (2026-08-31, Sophie: "triangle mode
   shud auto switch to square in playground")** — a Triset card is square
   (`triset.js` draws every one at 1024x1024), and the canvas toggle is
@@ -4430,8 +4560,9 @@ before working on that module. Nothing was deleted — the moved text is verbati
   pure decision). One more sheet's cost, capped at 2 redraws (deploys land in
   bursts), `redrawnAt` restarts the staleness clock so the next tick cannot
   kill the draw the last one started, and her feed position is kept. A
-  SINGLE run killed mid-draw still fails — its cfg is not rebuilt from the
-  doc yet. Test: `node scripts/test-promptlab-sweep.js`. **AND DRAWING AND CUTTING ARE PACED
+  SINGLE run is redrawn the same way since 2026-09-02 (`singleCfgOf` —
+  the OOM kill under her first bracket batch; a photo ref that will not
+  re-fetch fails it honestly). Test: `node scripts/test-promptlab-sweep.js`. **AND DRAWING AND CUTTING ARE PACED
   SEPARATELY** — fire the whole sheet batch AT ONCE (the draw is on OpenAI's
   hardware), while the CUT is queued one at a time by the server itself
   (`gateCut`), so a chat never staggers its own launches (Sophie,
@@ -5476,6 +5607,48 @@ before working on that module. Nothing was deleted — the moved text is verbati
   `node scripts/test-playground-hide-x.js` (headless — including the
   placeholder measured against the room the input actually has, because a
   clipped field passes both `isVisible()` and a width assertion).
+  **PICK SEVERAL AT ONCE — THE SELECT CHIP (2026-09-02, Sophie: "add a select
+  button to playground so i can x a bunch of things at once").** A fourth chip
+  in the filter box; lit, a tap on a picture PICKS it instead of opening it,
+  and a mode bar under the row marks everything picked at once — All/None, the
+  count, ✕, ♥, Done. Crossing a batch out one at a time is a tap into the
+  lightbox, a tap on the ✕ and a tap back out, times twenty, and on the PANELS
+  tab — a sheet arriving as nine panels she keeps two of — that is the ordinary
+  case rather than the rare one. Five things not to undo:
+  - **THE MARK BUTTONS OBEY THE SINGLE-PICTURE RULE — tap again to clear.**
+    If every picked picture already wears that mark the button CLEARS it, which
+    is what makes a bulk ✕ **undoable with one tap** — and it is why the picks
+    are KEPT after a mark rather than dropped. (With "hide the ✕'d" lit the
+    pictures go with the mark; the count still says how many are held.)
+  - **ALL READS THE VIEW SHE IS LOOKING AT** — the pictures rendered right now,
+    in either view — so the ♥/✕ filters, the sheets chip and the search box
+    narrow it by themselves and there is no second copy of their rules to
+    drift. The Playground's own tap-to-next rule, one screen over.
+  - **THE MODE IS IN MEMORY, NEVER localStorage.** The view, the filters and
+    the columns are settings; this is something she is in the middle of doing,
+    and coming back to the tool tomorrow already picking is nobody's idea of
+    where she left off. Same call the bigger-prompt-box toggle makes.
+  - **ONE REQUEST — `POST /api/promptlab/votes`**, grouped by run (one write
+    per run) with the Assets-tab sync five at a time. Twenty separate `/vote`
+    posts would each re-read the run doc and sweep the Assets tab for one
+    picture. Registered ABOVE the per-run routes so `votes` can never be read
+    as a run id.
+  - **IT SHARES THE FILTER BOX, AND THAT IS WHAT PAYS FOR IT.** MEASURED at
+    390pt: the PANELS tab (four chips) had **78px** of room in the search field
+    against the **51** its placeholder needs, and a chip in a box of its own
+    costs 42 of that — the exact "Searc" clipping the two mark filters were put
+    in one box to end. Sharing the border costs 34 and the view switch's 11px →
+    8px paid back 12, leaving 56 on panels and 90 on the picture tab. **A fifth
+    chip needs a layout answer first, not another push.** (At 320pt this row has
+    been over budget since the columns segment landed — the field measured
+    EIGHT pixels — so `.feedbar` now wraps and the search drops to its own line
+    whole rather than collapsing. That is a fallback for a width nothing here is
+    designed at, not the second row she cut: at 390 the box has not moved.)
+  Test: `node scripts/test-playground-select.js` (the real page headless —
+  every assertion a MEASUREMENT or a reading of what the server really
+  received, since a `.picked` class whose CSS never landed, a tap that picked
+  AND opened the lightbox, and a batch carrying the wrong indices all look fine
+  in markup; verified failing against the pre-fix page).
   **EVERY TILE WEARS ITS OWN PICTURE'S SHAPE (Aug 2026, Sophie: "i kind of
   want the playground to show portrait aspect ratios to match my 2:3
   pictures").** The wall forced `aspect-ratio: 1 / 1` and `object-fit: cover`
@@ -7767,6 +7940,27 @@ before working on that module. Nothing was deleted — the moved text is verbati
     in flight: billed, no bytes, unrecoverable at any concurrency. A run
     whose sheet was BANKED recovers free (the 2026-08-27 sweep, and
     `POST /api/promptlab/:id/recut`).
+  - **Broke it: 4 concurrent LOW SINGLE edits on a box already at 427MB
+    (2026-09-02, 9:58pm Pacific — Sophie's first `{curly-bracket}` run;
+    Render's event: `oomKilled {memoryLimit: 512Mi}`, two seconds after the
+    batch started).** Not the sheets' shape at all: each edit carried the
+    8.5MB `sage-sandy-mirror.png` reference in its body, and the BASELINE
+    was the killer — a fresh boot idles at ~190MB and this instance had
+    crept to 427MB over 35 minutes with nothing running (Render memory
+    metrics, 30s resolution). Two things came of it, both in code:
+    **`draw-gate.js` admits a gpt-image draw by the memory left** (any
+    number while there is room, one at a time as it fills, never zero — the
+    Playground's own bracket batch goes serial on a full box instead of
+    dying; `node scripts/test-draw-gate.js`), and **the sweep REDRAWS a
+    single run killed mid-draw** exactly as it already did for panels
+    (`singleCfgOf` in `promptlab-sweep.js`, capped at 2; a photo reference
+    that will not re-fetch fails it honestly). `GET /api/promptlab/inflight`
+    is the read — the in-process draw/cut sets plus `process.memoryUsage()`,
+    so the creep is measurable from a chat. **THE CREEP ITSELF IS NOT FOUND
+    (190 → 427MB idle in 35 minutes; peaks of 480+ most evenings on the
+    metrics).** Whoever measures it next: read `/inflight` `memory` at boot
+    and every few minutes against what the process is doing — a leak in a
+    cache, not a burst, is the shape.
   - **Broke it: 8** concurrent 4K panels SHEETS (2026-08-28, ~6:04pm Pacific,
     another chat's shoebox batches — the box restarted with NO deploy in
     flight, so the concurrency alone did it; 5 of the 8 died mid-generation.
@@ -8514,8 +8708,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
       (the whole name and count, not a caret to hit) and **Swipe these is a
       SIBLING of it**, never nested: a button in a button is invalid and the
       tap would fold the pile she was trying to re-open.
-    - **The mini autoscroll now asks `.jg-piles` too.** It only ever looked at
-      the card selectors, so on the one screen in the deck that is genuinely
+    - **The mini autoscroll now asks `.jg-piles` too** — and the pill she taps
+      INSIDE THE APP is a different control that needed its own fix a day
+      later (*AND IT NOW FOLLOWS WHATEVER IS ACTUALLY SCROLLING INSIDE THE
+      FRAME* in the design rules); this half is the page's own little
+      side-button. It only ever looked at the card selectors, so on the one screen in the deck that is genuinely
       long it hid itself. Whether a box really scrolls is read off the
       COMPUTED overflow, never assumed: content taller than a box that does
       not scroll reports the same `scrollHeight`, and driving one of those
@@ -8575,6 +8772,23 @@ before working on that module. Nothing was deleted — the moved text is verbati
     from inside its own deck now. The label still takes a chat off her main
     list in the Chats app — that half is unchanged, and `REVIEW_LABEL` still
     lives in `chatfeed.js` for it.
+  - **THE SAME PICTURES SPLIT ACROSS PAGES GET COMBINED — `scripts/combine-decks.js`
+    (2026-09-02, Sophie: "combine dream factory pics").** A set cut in two
+    batches, or posted into two chats so both could see it, shows here as
+    several rows of one thing — the dream factory panels were **three rows, 69
+    pictures, one of them an exact duplicate she would have had to swipe
+    again**. The script unions the decks into one page, carries every verdict,
+    note and place across, and SUPERSEDES the sources. Dry by default.
+    - **AN ITEM'S ID IS ITS IDENTITY**, so the union dedupes by id and a mark
+      follows its picture with nothing to re-map. Two pages carrying one id
+      with DIFFERENT pictures is the one thing it refuses — a silent join
+      there lands her verdict on the wrong picture forever.
+    - **Later source wins a contested mark** (pass them oldest first), and a
+      mark whose card is not in the combined deck is dropped AND NAMED.
+    - **NOTHING IS DESTROYED** — the sources are superseded, keeping their own
+      verdict docs, so undoing a wrong join is one
+      `POST /page/:id/supersede {superseded:false}` per source.
+    - Test: `node scripts/test-combine-decks.js` (the union rules, pure).
   - **Hand-built HTML pages are OUT by design** — their items live in markup,
     and a guessed total is a wrong number in front of her.
   - **Not every deck is a review** (the template demos, a browse deck): SKIP
@@ -8718,20 +8932,32 @@ before working on that module. Nothing was deleted — the moved text is verbati
   said. It is `[.banner, .list]` and deliberately NOT `.sound` — the buzz is
   what carries a lock-screen push across the room, and in her hand the banner
   has already done that. Do not "fix" this back to `[]`.
-  **THE BELL IS A WHITELIST — no bell, no buzz (`chatNotifies` in
-  `push-gate.js`, Aug 2026, Sophie: "only the ones I clicked the bell on will
-  notify me").** One field, `notify`, on the chat's registry doc beside
-  `starred`/`bookmarked`, set by the bell in a chat's thread header
-  (`POST /api/chatfeed/notify {chat, notify}`). **Absent means silent**, so
-  nothing pushes until she taps one. It is asked BEFORE the timing gate below
-  and in front of BOTH doors (a finished reply and a new Compare page), and it
-  compares `notify === true` rather than truthiness — silence is the safe
-  direction for an opt-in.
-  **ONE exception she asked for (2026-08-27): a QUICK-QUESTION chat sets its
-  own bell ON** ("a 'quick question' chat shud set its own bell as true") —
-  she says "quick question mode" or the chat wears the `quick question` label,
-  the chat POSTs `{chat, notify:true}` itself, once. A chat never turns a bell
-  OFF; that stays hers alone.
+  **THE BELL IS ON BY DEFAULT — she taps it to turn a chat OFF (`chatNotifies`
+  in `push-gate.js`, 2026-09-01, Sophie: "change to readily notify on for
+  chats").** One field, `notify`, on the chat's registry doc beside
+  `starred`/`bookmarked`, flipped by the bell in a chat's thread header and in
+  its Organize sheet (`POST /api/chatfeed/notify {chat, notify}`). **Absent
+  means ON**, and only an explicit `notify:false` of hers silences a chat — so
+  the reader compares `notify === false` rather than truthiness, and the write
+  goes the other way round from every other mark: OFF is stored, ON deletes
+  the field. It is asked BEFORE the timing gate below and in front of BOTH
+  doors (a finished reply and a new Compare page).
+  - **IT SHIPPED AS A WHITELIST AND THAT IS HISTORY, NOT A RULE** (Aug 2026,
+    "only the ones I clicked the bell on will notify me" — read literally,
+    absent meant silent). What it cost is the same measurement the self-belling
+    rule is built on: **48 chats set a `need` in two days and 6 of them were
+    belled**, i.e. 42 asks she could only find by opening the app. A chat she
+    has never thought about was silent forever, and those are exactly the ones
+    worth hearing from. Don't put the whitelist back without her.
+  - **THE TIMING GATE IS WHAT KEEPS THIS QUIET, not the bell.** A push still
+    needs her to have spoken since the last one AND the reply to post-date her
+    message, so a chat grinding on its own cannot ring however many are
+    unsilenced. Default-on means "the chats I talk to answer me on my lock
+    screen", never "260 chats buzz".
+  - **THE QUICK-QUESTION SELF-BELL IS NOW A NO-OP** (2026-08-27, "a 'quick
+    question' chat shud set its own bell as true") — a quick-question chat is
+    already on, so there is nothing to set. Harmless if a chat still POSTs it.
+    **A chat still never turns a bell OFF; that stays hers alone.**
   **A REPLY ONLY BUZZES WHEN IT IS ANSWERING HER (`push-gate.js`, Aug 2026,
   Sophie: "I don't need a notification when I send a message. I need a
   notification when they respond to my message").** Two comparisons against
@@ -8748,18 +8974,18 @@ before working on that module. Nothing was deleted — the moved text is verbati
   later; her message is the gate now. A chat that has never lifted one of her
   messages keeps the old behaviour rather than going quiet.
   **A CHAT BELLS ITSELF WHEN IT IS BLOCKED ON HER (2026-08-28, Sophie: "can u
-  make chats bell themselves based on importance").** The bell is a whitelist
-  she taps, which is what keeps 260 live chats off her lock screen — and the
-  gap it leaves is the one case where the CHAT, not she, knows something
-  matters: it has stopped and is waiting on her. Measured that day: **48 chats
-  set a `need` in two days and only 6 of them were belled** — 42 asks she could
-  only find by opening the app. So a finished reply whose `need` is NEW buzzes
-  her whatever the bell says (`needEscalates` in `push-gate.js`).
+  make chats bell themselves based on importance").** Written while the bell
+  was a whitelist — its 48-asks-to-6-bells measurement is the same one that
+  later retired the whitelist outright — and it still earns its keep: a finished
+  reply whose `need` is NEW buzzes her **whatever the bell says**, so it reaches
+  a chat she has deliberately SILENCED as well. That is the one case where the
+  CHAT, not she, knows something matters: it has stopped and is waiting on her
+  (`needEscalates` in `push-gate.js`).
   - **IT IS NOT A FLIP OF HER BELL.** A self-set bell sticks (only she turns
-    one off), so every chat that ever had one important moment would be belled
-    forever and the whitelist would quietly become everything. **Importance is
-    a property of the MOMENT, not of the chat** — this escalates ONE reply and
-    changes no stored flag of hers. Making it sticky is hers to ask for.
+    one off), so a chat she silenced would be un-silenced forever by one
+    important moment. **Importance is a property of the MOMENT, not of the
+    chat** — this escalates ONE reply and changes no stored flag of hers.
+    Making it sticky is hers to ask for.
   - **IT IS NOT "a need exists".** A chat re-states its need at the end of
     every turn, so that would buzz her on a loop for one ask. `POST /status`
     stamps **`needSetAt` only when the text CHANGED** (read off the doc, not
@@ -8827,8 +9053,46 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **LIVE since Aug 2026 (measured 2026-08-27: `GET /api/push/status` answers
   `configured:true, devices:1`)** — the APNs key is in Render's secret files.
   This line used to say "dormant until the key exists"; that is history.
-  **The home-screen widget** reads one small JSON (`GET /api/chatfeed/widget`) and
-  must NEVER pull the real feed. **Full details: `docs/modules/inbox-and-misc.md`.**
+  **THE HOME-SCREEN WIDGET IS FOUR DECKS TO SWIPE (2026-09-02, Sophie: "the
+  widget / make it 4 icons / decks to swipe / currently / the dream factory
+  deck / the wallpapers")** — the top four decks still waiting in the Review
+  Queue, as pictures, each a tap into that deck's cards
+  (`deckfactory://review?deck=<page id>`). It reads
+  `GET /api/review/widget?limit=4` — the SAME waiting rows the `/review` page
+  draws, in the same order, off the same 60s cache, so the two can never
+  disagree — and must NEVER pull the real feed. **The face is a ladder** (the
+  deck's own first picture → the CHAT'S icon → its first card's words) and
+  **every face rides the derived thumb service**: a deck's first picture is
+  routinely a 1-3MB lossless webp and a widget process is killed for less.
+  **The widget KIND is unchanged on purpose** — iOS remembers a placed widget
+  by it. It used to be the Update count; that is history, not a rule.
+  **Full details: `docs/modules/inbox-and-misc.md`.**
+- **THE WORK LOG** (`GET /api/chatfeed/worklog`, page at `/worklog`, no
+  iOS tile — 2026-09-02, Sophie: "i want to make a timeline of what i worked
+  on chronological"). One row per chat under the day it BEGAN, oldest first,
+  a dot per day on a left rail, month rules, her own sentence as the line
+  (the archive summary's ladder: `wrapAsked` when hers, then the Update card's
+  `asked`, then a paraphrase, then `wrapLine`, her note, `statusDoing`); a
+  chat that ran on says "→ Aug 30". A row opens the chat. Read-only, no model
+  call — a projection of the registry cache.
+  - **`startedAt` IS A NEW REGISTRY FIELD, because nothing on the doc held
+    when a chat began.** `lastSeen` is the newest message (measured — see the
+    unpark bullet). Stamped on a chat's FIRST post only (a doc with no
+    `lastSeen` yet); `POST /api/chatfeed/startedat-backfill` (dry by default)
+    and `node scripts/backfill-started-at.js --go` fill the rest from the
+    oldest `created` on the thread, hers included, and a stamp only ever
+    walks BACKWARDS. Run 2026-09-02: 754 of 770 stamped; 16 had no messages.
+    A row with no stamp falls back to its newest message and says so
+    (`atFrom:'last'`), never pretends.
+  - The day turns over at 5am Pacific (the Chats app's own cut); the page
+    keeps its own copy of `dayKey` because chats.html's is not a shared file,
+    and the test holds an INDEPENDENT copy so the two cannot drift.
+  - **`.row` is tool.css's flex row** — a page on tool.css that names a class
+    `.row` gets `display:flex; flex-wrap:wrap` and its labels sit beside its
+    text (PHOTO'd). This page's row is `.wl`.
+  - Test: `node scripts/test-worklog-page.js` (the rows pure, then the real
+    page headless — the 5am cut, her italic line as a computed style, the
+    span, the iframe bridge).
 - **THE DELIVERABLES LIST** (`deliverables.js`, `/api/deliverables`, page at
   `/deliverables` — Aug 2026, Sophie: "is there a running list of deliverables?
   … can you make one, and have the notification go off when a new deliverable

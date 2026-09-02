@@ -182,6 +182,40 @@
       window.scrollTo(0, 0);
     }
 
+    // A CARD'S LINK TO A CHAT OPENS THE THREAD IN THE APP (2026-09-02, Sophie
+    // on the archive deck: "the chat links don't work"). Both views render an
+    // item's `link` as a target=_blank anchor — right for a browser, where a
+    // new tab is the honest answer — but inside the Chats app the page runs
+    // in the page viewer's IFRAME, and that viewer's click interceptor
+    // deliberately leaves _blank links alone, so the tap reached nothing at
+    // all. The morning brief solved the same trip with the parent's
+    // __openThread bridge (close the viewer, open the thread, push the way
+    // back); this is that bridge for every template page, in the one host
+    // both views share. Capture phase, so it runs before either view's own
+    // handlers. The href stays as it is: in a browser, or for a chat the
+    // registry does not know (the bridge answers false), the link does its
+    // ordinary job.
+    host.addEventListener('click', function (e) {
+      var a = e.target && e.target.closest ? e.target.closest('.jg-momlink a, .gd-link a') : null;
+      if (!a) return;
+      var chat = null;
+      try {
+        var u = new URL(a.href);
+        // by PATH, not origin: a script posts the deck with the absolute
+        // onrender url, and the app's registry is the only judge of whether
+        // that chat is one of ours (the bridge answers false otherwise)
+        if (/^\/chats\/?$/.test(u.pathname)) chat = u.searchParams.get('chat');
+      } catch (_) { return; }
+      if (!chat) return;
+      try {
+        if (window.parent && window.parent !== window
+            && typeof window.parent.__openThread === 'function'
+            && window.parent.__openThread(chat) === true) {
+          e.preventDefault(); e.stopPropagation();
+        }
+      } catch (_) { /* cross-origin host — let the link do its job */ }
+    }, true);
+
     bSwipe.addEventListener('click', function () { show('swipe'); });
     bGrid.addEventListener('click', function () { show('compare'); });
     window.addEventListener('resize', line, { passive: true });

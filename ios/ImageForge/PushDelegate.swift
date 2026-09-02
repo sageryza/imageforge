@@ -49,6 +49,16 @@ final class PushDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCen
     static var pendingChat: String?
     static var pendingUpdateTab = false
 
+    /// THE WIDGET'S DECK (2026-09-02, Sophie: "make it 4 icons / decks to
+    /// swipe"). A tap on one of the home-screen widget's icons arrives as
+    /// `deckfactory://review?deck=<page id>`; RootView drops the id here and
+    /// ReviewQueueView's web view opens that deck instead of the queue. It
+    /// lives beside the push's own pending flags because it is the same
+    /// mechanism and not a second one: ONE-SHOT — the view that honours it
+    /// clears it, so a later reload can never drag her back into a deck she
+    /// has walked out of.
+    static var pendingDeck: String?
+
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
@@ -111,4 +121,12 @@ extension Notification.Name {
     /// A push was tapped — RootView switches to the Chats screen, ChatFeedView
     /// reloads onto the Update tab.
     static let forgePushOpenUpdate = Notification.Name("forgePushOpenUpdate")
+
+    /// A widget icon was tapped — RootView switches to the Review Queue and
+    /// ReviewQueueView recreates its web view, whose URL builder consumes
+    /// `PushDelegate.pendingDeck`. The notification is what reaches the tool
+    /// when it is ALREADY ALIVE: the app keeps three tools in a ZStack, so
+    /// arriving at one it is already holding runs no `makeUIView` and the
+    /// deck would otherwise never open.
+    static let forgeOpenDeck = Notification.Name("forgeOpenDeck")
 }

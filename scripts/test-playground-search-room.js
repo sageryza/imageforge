@@ -110,7 +110,27 @@ const ok = (c, m) => { if (c) console.log('  ok  ' + m); else fail(m); };
   // 2 ── and it runs into the pill's column
   ok(s.search.right >= s.barRight - 1,
      'it runs to the edge of the page, into the pill\'s column (her ask)');
-  ok(rest >= 120, 'so it is wider than the row alone would leave it (' + rest + 'px)');
+  // DERIVED, never a magic number: the field has to hold its own placeholder
+  // AND the 56px column it borrows back from the pill — that is what "wider
+  // than the row alone would leave it" means. (It was a hardcoded 120 until
+  // 2026-09-02, which is the same measurement written down on a day the row
+  // had one chip fewer; the SELECT chip took the field to 110 and the number
+  // failed while nothing about the field's job had changed.)
+  const need = await page.evaluate(() => {
+    const el = document.getElementById('q');
+    const cs = getComputedStyle(el);
+    const c = document.createElement('canvas').getContext('2d');
+    c.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+    return c.measureText(el.placeholder).width +
+      parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) +
+      parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
+  });
+  ok(rest >= need,
+     'and it holds its own placeholder (' + Math.round(rest) + 'px box, needs ' +
+     Math.round(need) + ')');
+  ok(rest - 56 < need,
+     'which the BORROWED column is what pays for — the row alone leaves it ' +
+     Math.round(rest - 56) + 'px, under the ' + Math.round(need) + ' it needs');
 
   // 3 ── the controls keep the reservation, and everything still takes a tap
   ok(s.view.shown && s.filt.shown, 'the view switch and the filters are still on the row');

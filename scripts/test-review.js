@@ -16,10 +16,14 @@
 //   • the queue is DECKS AND ONLY DECKS: a chat carrying `to be reviewed` is
 //     NOT a row here any more (same day — the chat is reached from inside its
 //     own deck instead)
+//   • THE WIDGET'S FOUR ICONS come off the same waiting rows in the same
+//     order (2026-09-02), and the face is a LADDER — the deck's own first
+//     picture, else the CHAT'S icon, else its words — every picture through
+//     the derived thumb service and never the original
 //
 //   node scripts/test-review.js
 
-const { buildQueue, pageItems, pageProgress } = require('../review');
+const { buildQueue, widgetDecks, pageItems, pageProgress } = require('../review');
 
 let pass = 0; const fails = [];
 function is(name, got, want) {
@@ -243,6 +247,56 @@ const deck = (ids, extra) => ({
   const q = buildQueue({ pages: [], items: {}, verdicts: {}, chats: {} });
   is('empty queue', [q.waiting.length, q.done.length, q.hidden.length], [0, 0, 0]);
   is('empty counts', q.counts, { pages: 0, items: 0, auto: 0, autoItems: 0, done: 0 });
+}
+
+
+// ── THE WIDGET'S FOUR ICONS ────────────────────────────────────────────────
+{
+  const rows = [
+    { id: 'p1', chat: 'dream', name: 'Dream factory', title: 'Two more sheets — 18 panels',
+      url: '/api/chatfeed/page/p1?clean=1', total: 18, decided: 4,
+      thumb: 'https://storage.googleapis.com/b/dream-factory/p01.png', peek: 'Up all night again' },
+    { id: 'p2', chat: 'dates', name: 'Portland dates', title: 'Moments — first five dates',
+      url: '/api/chatfeed/page/p2?clean=1', total: 31, decided: 8,
+      thumb: '', peek: 'He ordered for both of us' },
+    { id: 'p3', chat: 'plain', name: 'plain', title: 'Nothing to look at',
+      url: '/api/chatfeed/page/p3?clean=1', total: 3, decided: 0, thumb: '', peek: '' },
+    { id: 'p4', chat: 'far', name: 'Far away', title: 'Somewhere else',
+      url: '/api/chatfeed/page/p4?clean=1', total: 2, decided: 0,
+      thumb: 'https://cdn.example.com/x.png', peek: 'x' },
+    { id: 'p5', chat: 'fifth', name: 'Fifth', title: 'Fifth deck',
+      url: '/api/chatfeed/page/p5?clean=1', total: 1, decided: 0, thumb: '', peek: 'five' },
+  ];
+  const chats = {
+    dates: { icon: 'https://storage.googleapis.com/b/chat-feed/icons/dates.png?v=1' },
+    dream: { icon: 'https://storage.googleapis.com/b/chat-feed/icons/dream.png?v=1' },
+  };
+
+  const four = widgetDecks({ waiting: rows, chats });
+  is('four by default', four.length, 4);
+  is('the queue\'s own order, unchanged', four.map((d) => d.id), ['p1', 'p2', 'p3', 'p4']);
+  is('left is what she has not swiped', four.map((d) => d.left), [14, 23, 3, 2]);
+
+  ok('a deck with a picture wears its own first picture, through the thumb service',
+    four[0].icon === '/api/story/thumb?w=240&url='
+      + encodeURIComponent('https://storage.googleapis.com/b/dream-factory/p01.png'));
+  ok('a picture deck NEVER hands over the original',
+    !four.some((d) => /^https:\/\/storage\.googleapis\.com/.test(d.icon)));
+  ok('a text deck falls to its CHAT\'s icon, also derived',
+    four[1].icon === '/api/story/thumb?w=240&url='
+      + encodeURIComponent('https://storage.googleapis.com/b/chat-feed/icons/dates.png?v=1'));
+  is('a deck with neither draws no icon at all', four[2].icon, '');
+  is('and its words ride along so the widget has something to draw', four[1].peek,
+    'He ordered for both of us');
+  is('a picture somewhere else is passed through untouched', four[3].icon,
+    'https://cdn.example.com/x.png');
+
+  is('limit is honoured', widgetDecks({ waiting: rows, chats, limit: 2 }).map((d) => d.id),
+    ['p1', 'p2']);
+  is('and capped', widgetDecks({ waiting: rows, chats, limit: 99 }).length, 5);
+  is('a nonsense limit lands on four', widgetDecks({ waiting: rows, chats, limit: 'x' }).length, 4);
+  is('an empty pile is an empty widget', widgetDecks({ waiting: [], chats: {} }), []);
+  is('each icon carries the deck\'s own door', four[0].url, '/api/chatfeed/page/p1?clean=1');
 }
 
 if (fails.length) {

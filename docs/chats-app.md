@@ -1785,19 +1785,25 @@
   bell on will notify me. Also, can you make the delete button a picture of a
   trash can and the hide button a picture of an eye that's crossed out if it's
   hidden").** Three changes to `#thread header .no`, one row:
-  - **The bell is a WHITELIST, and that is the load-bearing half.** `notify`
-    on the registry doc, `POST /api/chatfeed/notify {chat, notify}` (404s on a
-    chat that doesn't exist — the phantom-row guard), read server-side by
-    `chatNotifies` in `push-gate.js` in front of BOTH push doors: a finished
-    reply and a new Compare page. **Absent means silent** — nothing pushes
-    until she taps a bell, which is her sentence read literally and also the
-    safe failure direction (a caller that forgets the flag goes quiet rather
-    than buzzing her). It compares `notify === true`, never truthiness.
-    **One exception she asked for (2026-08-27): a quick-question chat sets its
-    own bell ON** ("a 'quick question' chat shud set its own bell as true") —
-    when she runs a chat in quick-question mode, or it wears the `quick
-    question` label, the chat POSTs `{chat, notify:true}` itself. Never OFF;
-    that stays hers.
+  - **The bell is ON BY DEFAULT since 2026-09-01 ("change to readily notify on
+    for chats"), and that is the load-bearing half.** `notify` on the registry
+    doc, `POST /api/chatfeed/notify {chat, notify}` (404s on a chat that
+    doesn't exist — the phantom-row guard), read server-side by `chatNotifies`
+    in `push-gate.js` in front of BOTH push doors: a finished reply and a new
+    Compare page. **Absent means ON** — the bell is how she turns a chat OFF —
+    so the reader compares `notify === false`, never falsiness, and the WRITE
+    is the other way round from every other mark: OFF is stored, ON deletes
+    the field so the chat sits back on the default.
+    - **It shipped as a whitelist (absent = silent, `notify === true`) and
+      that is history, not a rule.** Her original sentence read literally left
+      every chat she had never thought about silent forever — measured on the
+      self-belling day, 48 chats set a `need` in two days and 6 of them were
+      belled. Don't put it back without her.
+    - **The timing gate is what keeps default-on quiet**, not the bell: a push
+      still needs her to have spoken since the last one and needs the reply to
+      post-date her message.
+    - **The 2026-08-27 quick-question self-bell is a no-op now** (such a chat
+      is already on). A chat still never turns a bell OFF; that stays hers.
   - **The bell is FILLED, GOLD when lit, and NOT Lucide's** (Sophie's second
     pass, same week: "change the bell colour to yellow and make it filled in
     rather than just the outline"). It shipped stroked, with a comment here
