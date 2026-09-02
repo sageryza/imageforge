@@ -230,8 +230,15 @@ than deploying by reflex.
   **Render has been ignoring pushes since 2026-09-01** (`commit_ignored` on
   every commit, even with `autoDeploy: yes` and no build filter — its own
   event log says so), so a merge does NOT reach the site by itself; trigger it
-  with `POST https://api.render.com/v1/services/<srv>/deploys` using
-  `RENDER_API_KEY`, which is in the environment.
+  with **`node scripts/render-deploy.js`** (`RENDER_API_KEY` is in the
+  environment). **NEVER the raw `POST …/deploys` any more (2026-09-02,
+  Sophie: "i thought there was a check in place not to restart the server if
+  things were being drawn? there shud be!!!!!!").** The script reads
+  `GET /api/promptlab/inflight` — the exact set of runs the live process is
+  drawing and cutting — and waits until it is empty before it deploys (`--dry`
+  to look, `--max <min>` past the default 30, `--now` only when it must ship
+  and you say so). A deploy kills the old instance mid-request, and a draw is
+  a request that runs 20s to 14 minutes.
 
 **The habit: PHOTO every round, SANDBOX when she wants to tap it, LIVE when
 she says.** Ask which she wants rather than assuming.
@@ -4519,8 +4526,9 @@ before working on that module. Nothing was deleted — the moved text is verbati
   pure decision). One more sheet's cost, capped at 2 redraws (deploys land in
   bursts), `redrawnAt` restarts the staleness clock so the next tick cannot
   kill the draw the last one started, and her feed position is kept. A
-  SINGLE run killed mid-draw still fails — its cfg is not rebuilt from the
-  doc yet. Test: `node scripts/test-promptlab-sweep.js`. **AND DRAWING AND CUTTING ARE PACED
+  SINGLE run is redrawn the same way since 2026-09-02 (`singleCfgOf` —
+  the OOM kill under her first bracket batch; a photo ref that will not
+  re-fetch fails it honestly). Test: `node scripts/test-promptlab-sweep.js`. **AND DRAWING AND CUTTING ARE PACED
   SEPARATELY** — fire the whole sheet batch AT ONCE (the draw is on OpenAI's
   hardware), while the CUT is queued one at a time by the server itself
   (`gateCut`), so a chat never staggers its own launches (Sophie,
@@ -7898,6 +7906,27 @@ before working on that module. Nothing was deleted — the moved text is verbati
     in flight: billed, no bytes, unrecoverable at any concurrency. A run
     whose sheet was BANKED recovers free (the 2026-08-27 sweep, and
     `POST /api/promptlab/:id/recut`).
+  - **Broke it: 4 concurrent LOW SINGLE edits on a box already at 427MB
+    (2026-09-02, 9:58pm Pacific — Sophie's first `{curly-bracket}` run;
+    Render's event: `oomKilled {memoryLimit: 512Mi}`, two seconds after the
+    batch started).** Not the sheets' shape at all: each edit carried the
+    8.5MB `sage-sandy-mirror.png` reference in its body, and the BASELINE
+    was the killer — a fresh boot idles at ~190MB and this instance had
+    crept to 427MB over 35 minutes with nothing running (Render memory
+    metrics, 30s resolution). Two things came of it, both in code:
+    **`draw-gate.js` admits a gpt-image draw by the memory left** (any
+    number while there is room, one at a time as it fills, never zero — the
+    Playground's own bracket batch goes serial on a full box instead of
+    dying; `node scripts/test-draw-gate.js`), and **the sweep REDRAWS a
+    single run killed mid-draw** exactly as it already did for panels
+    (`singleCfgOf` in `promptlab-sweep.js`, capped at 2; a photo reference
+    that will not re-fetch fails it honestly). `GET /api/promptlab/inflight`
+    is the read — the in-process draw/cut sets plus `process.memoryUsage()`,
+    so the creep is measurable from a chat. **THE CREEP ITSELF IS NOT FOUND
+    (190 → 427MB idle in 35 minutes; peaks of 480+ most evenings on the
+    metrics).** Whoever measures it next: read `/inflight` `memory` at boot
+    and every few minutes against what the process is doing — a leak in a
+    cache, not a burst, is the shape.
   - **Broke it: 8** concurrent 4K panels SHEETS (2026-08-28, ~6:04pm Pacific,
     another chat's shoebox batches — the box restarted with NO deploy in
     flight, so the concurrency alone did it; 5 of the 8 died mid-generation.
