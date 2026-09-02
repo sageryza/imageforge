@@ -24,7 +24,7 @@ function held(c) {
   const r = [];
   if (c.pinTop) r.push('pinned');
   if (c.starred) r.push('starred');
-  if (c.tray) r.push('tray');
+  if (c.tray || (c.trayDays && Object.keys(c.trayDays).length)) r.push('tray');   // any day's tray (per-day since 2026-09-02)
   if (c.statusNeed) r.push('need');
   if (c.waitingFor) r.push('waiting');
   if (c.pendingAsk) r.push('open ask');
