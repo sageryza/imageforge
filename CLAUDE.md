@@ -266,7 +266,23 @@ than deploying by reflex.
   merge waits for her pictures by itself, for every chat, with nothing to
   remember. Waiting costs pipeline minutes at $5/1,000 — cents. A server
   with no `/inflight` (an old build, a box mid-restart) does not hold it.
-  Test: `node scripts/test-deploy-guard.js`.
+  **AND IT PAUSES BEFORE IT LETS GO (her design, the same night: "instead of
+  straight to deploy, chat sends to the queue. if it's clean, it deploys, but
+  also pauses image generation with an explanatory note").** Clean alone has
+  a hole — a tap in the last second before the swap starts a draw the old
+  instance dies holding — so once clean the guard `POST /api/promptlab/pause`s
+  the live server (240s, self-expiring), reads it once more (something that
+  snuck in lifts the pause and the wait resumes), then lets the deploy go.
+  **A tap during the pause is QUEUED, never refused**: the run doc is written
+  `status:'queued'` with the note, the Playground's toast and the waiting
+  card say *"Paused for a server update — this will draw on its own in about
+  a minute"*, and `startQueuedRuns` on the NEW instance draws it seconds
+  after boot (rebuilt with the sweep's own `singleCfgOf`/`panelsCfgOf`). So
+  the queue is the merge itself; nothing about the flow is a chat's to
+  remember. Tests: `node scripts/test-deploy-guard.js` (the guard's whole
+  walk with a fake server, the pause POSTs recorded) and `node
+  scripts/test-deploy-pause.js` (a source pin: every gpt run shape writes
+  `queuedFields()`, every job start is behind `pausedNow()`).
 
 **The habit: PHOTO every round, SANDBOX when she wants to tap it, LIVE when
 she says.** Ask which she wants rather than assuming.

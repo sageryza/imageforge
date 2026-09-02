@@ -1653,7 +1653,10 @@
   // about to type the next one. So the tap is confirmed with a toast and the
   // window is left exactly where she put it. A scroll on Generate is HISTORY,
   // not a rule; don't bring it back.
-  function confirmStarted() { toast('Drawing…'); }
+  // A tap during the deploy pause is QUEUED, not refused (2026-09-02): the
+  // server answers `queued` with the note, the toast says it, and the card
+  // wears it until the new instance picks the run up.
+  function confirmStarted(d) { toast(d && d.queued ? (d.note || 'Paused for a server update') : 'Drawing…'); }
 
   // The copy button beside a run's words: puts that prompt back into the box.
   function copyPromptIn(text) {
@@ -2525,9 +2528,9 @@
         // N placeholders in the CELL's shape — the wall must not re-flow
         // when the cut panels land.
         count: (PANELS_CFG.grids[g] || {}).count || g, quality: quality,
-        ar: cellAr(g), grid: g,
+        ar: cellAr(g), grid: g, queued: d.queued ? (d.note || 'paused for a server update') : '',
       });
-      setPending(list); renderPendings(); startPolling(); confirmStarted();
+      setPending(list); renderPendings(); startPolling(); confirmStarted(d);
     });
   }
   // A story run is a single picture on the sheet's own canvas — the toggle's
@@ -2554,7 +2557,8 @@
         count: 1, quality: quality,
         ar: canvas === 'square' ? '1:1' : '2:3', grid: 'story',
       });
-      setPending(list); renderPendings(); startPolling(); confirmStarted();
+      if (d.queued) list[list.length - 1].queued = d.note || 'paused for a server update';
+      setPending(list); renderPendings(); startPolling(); confirmStarted(d);
     });
   }
   function setTab(t) {
@@ -3797,7 +3801,8 @@
         // `ar` rides along so the waiting slots hold the shape the picture is
         // about to be — the wall must not re-flow when it lands.
         ? { id: d.id, prompt: prompt, style: S.label, engine: 'gptimage', count: OUTPUTS, quality: qual,
-            ar: (RES && RES[canvas] && RES[canvas].aspectRatio) || '2:3' }
+            ar: (RES && RES[canvas] && RES[canvas].aspectRatio) || '2:3',
+            queued: d.queued ? (d.note || 'paused for a server update') : '' }
         // `key` rides along so a second tap can see this one is already on its
         // way, before it has any images to be recognised by.
         : { id: d.id, prompt: prompt, scale: scale, style: S.label, engine: 'replicate', count: OUTPUTS, seed: seed, key: key, ar: '2:3' });
@@ -3810,7 +3815,7 @@
       savePromptDrawn(promptText != null
         ? document.getElementById('prompt').value.trim() : prompt);
       renderPendings(); startPolling();
-      confirmStarted();
+      confirmStarted(d);
     });
   }
 
@@ -4041,7 +4046,7 @@
         '<span class="p clamp">' + esc(p.prompt || '') + '</span>' +
         '<button class="copybtn" data-copy="' + p.id + '" aria-label="Put this prompt back in the box">' + ICONS.copy + '</button>' +
         tags.filter(Boolean).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') +
-        '<span class="tag waiting">drawing…</span>' + kill + '</div>' +
+        '<span class="tag waiting">' + esc(p.queued || 'drawing…') + '</span>' + kill + '</div>' +
         '<div class="grid">' + cells + '</div></div>';
     }).join('');
     // Rebuilt only when it actually changed — the poll calls this on every
@@ -4142,6 +4147,13 @@
         // enough; a tap before it lands leaves the photo alone, which is the
         // "no record" answer restorePhoto is built to give.
         if (d.id) runsById[d.id] = d;
+        // A queued run the new instance has picked up: the card says
+        // "drawing…" again from here (a source assertion cannot see this; the
+        // note is on the pending ENTRY, which is the page's own record).
+        if (p.queued && d.status === 'running') {
+          setPending(pendingList().map(function (x) { return x.id === p.id ? Object.assign({}, x, { queued: '' }) : x; }));
+          renderPendings();
+        }
         if (d.status === 'ready' || d.status === 'done' || d.status === 'failed' || d.status === 'cancelled') {
           setPending(pendingList().filter(function (x) { return x.id !== p.id; }));
           // 'ready' = the first images are in, the rest still landing: the swap

@@ -5941,6 +5941,65 @@ const plSweep = require('./promptlab-sweep');
 // sweep must never judge.
 const drawGate = require('./draw-gate').makeGate();
 const drawingNow = new Set();
+// THE PAUSE BEFORE A DEPLOY (2026-09-02, Sophie: "instead of straight to
+// deploy, chat sends to the queue. if it's clean, it deploys, but also pauses
+// image generation with an explanatory note"). The deploy guard
+// (scripts/deploy-guard.js, Render's pre-deploy command) waits until nothing
+// is drawing, then PAUSES new draws here for the minute the swap takes, so a
+// tap in that window cannot start a draw the old instance would die holding.
+// A paused tap is not refused: its run doc is written `queued` with the note,
+// the page shows the note on its card, and `startQueuedRuns` on the NEW
+// instance draws it the moment it boots. Self-expiring (PAUSE_MAX_S) so a
+// deploy that fails after pausing cannot leave the old box paused for good.
+const PAUSE_MAX_S = 300;
+const PAUSE_NOTE = 'Paused for a server update — this will draw on its own in about a minute.';
+const drawPause = { until: 0, note: '' };
+const pausedNow = () => drawPause.until > Date.now();
+const queuedReply = () => (pausedNow() ? { queued: true, note: drawPause.note || PAUSE_NOTE } : {});
+function queuedFields() {
+  return pausedNow()
+    ? { status: 'queued', queuedNote: drawPause.note || PAUSE_NOTE, queuedAt: admin.firestore.Timestamp.now() }
+    : { status: 'running' };
+}
+// The NEW instance picks up what the old one queued (and the old one, when a
+// pause simply expired). Boots early and ticks often — a queued tap is a
+// picture she is waiting on. The cfg builders are the sweep's own, so a
+// queued run is rebuilt exactly as a killed one would be.
+let startingQueued = false;
+async function startQueuedRuns() {
+  if (startingQueued || pausedNow() || !admin.apps.length) return;
+  startingQueued = true;
+  try {
+    const snap = await admin.firestore().collection(PROMPTLAB).where('status', '==', 'queued').get();
+    for (const d of snap.docs) {
+      const r = d.data();
+      let cfg = null;
+      if (r.panels) { cfg = plSweep.panelsCfgOf(r); if (cfg) cfg.chars = r.characters || []; }
+      else cfg = plSweep.singleCfgOf(r);
+      if (!cfg) {
+        await d.ref.update({ status: 'failed', error: 'queued for a server update and could not be rebuilt' });
+        continue;
+      }
+      if (cfg.photoUrl) {
+        try {
+          const pr = await fetch(cfg.photoUrl);
+          if (!pr.ok) throw new Error(`photo ref ${pr.status}`);
+          cfg.photoBuf = Buffer.from(await pr.arrayBuffer());
+        } catch (e) {
+          await d.ref.update({ status: 'failed', error: `queued for a server update; its photo reference could not be re-read (${e.message})` });
+          continue;
+        }
+      }
+      await d.ref.update({ status: 'running', resumedAt: admin.firestore.Timestamp.now(),
+        queuedNote: admin.firestore.FieldValue.delete() });
+      if (r.panels) runPromptLabPanelsJob(d.ref, cfg); else runPromptLabGptJob(d.ref, cfg);
+      console.log(`promptlab: started queued run ${d.id}`);
+    }
+  } catch (e) { console.warn('promptlab queued runs:', e.message); }
+  finally { startingQueued = false; }
+}
+setTimeout(startQueuedRuns, 8 * 1000);
+setInterval(startQueuedRuns, 45 * 1000);
 async function sweepStuckPromptlabRuns() {
   try {
     if (!admin.apps.length) return;
@@ -6894,7 +6953,7 @@ app.post('/api/promptlab', async (req, res) => {
         const sheetPrompt = `${sheetHead}${sheetHead ? '\n\n' : ''}${sheetBody}${sheetTail ? `\n\n${sheetTail}` : ''}`;
         const docRef = admin.firestore().collection(PROMPTLAB).doc();
         await docRef.set({
-          id: docRef.id, status: 'running', engine: 'gptimage', prompt: typed,
+          id: docRef.id, ...queuedFields(), engine: 'gptimage', prompt: typed,
           fullPrompt: sheetPrompt, model: PL_GPT.id, gptStyle: styleId, quality,
           // `size` is the SHEET; `aspectRatio` is the CELL's — it is what
           // each finished picture is, and what the feed renders cells with.
@@ -6911,11 +6970,11 @@ app.post('/api/promptlab', async (req, res) => {
           ...(pickedChars.length ? { characters: pickedChars } : {}),
           createdAt: admin.firestore.Timestamp.now(),
         });
-        runPromptLabPanelsJob(docRef, {
+        if (!pausedNow()) runPromptLabPanelsJob(docRef, {
           fullPrompt: sheetPrompt, head: sheetHead, tail: sheetTail,
           quality, prompt: typed, styleId, panels, plan, chars: pickedChars,
         });
-        return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
+        return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}`, ...queuedReply() });
       }
 
       // A STORY SHEET (2026-08-27, Sophie: "a sheet where i give instructions
@@ -6948,7 +7007,7 @@ app.post('/api/promptlab', async (req, res) => {
         const storyPrompt = `${storyHead}\n\n${typed}${sheetTail ? `\n\n${sheetTail}` : ''}`;
         const docRef = admin.firestore().collection(PROMPTLAB).doc();
         await docRef.set({
-          id: docRef.id, status: 'running', engine: 'gptimage', prompt: typed,
+          id: docRef.id, ...queuedFields(), engine: 'gptimage', prompt: typed,
           fullPrompt: storyPrompt, model: PL_GPT.id, gptStyle: styleId, quality,
           size: canvas.size, aspectRatio: canvas.aspectRatio, res: resId,
           promptEdited: edited, noText, storySheet: true,
@@ -6959,17 +7018,17 @@ app.post('/api/promptlab', async (req, res) => {
           createdAt: admin.firestore.Timestamp.now(),
           ...(padTarget ? { padTarget } : {}),
         });
-        runPromptLabGptJob(docRef, {
+        if (!pausedNow()) runPromptLabGptJob(docRef, {
           fullPrompt: storyPrompt, head: storyHead, tail: sheetTail, outputs: 1,
           quality, prompt: typed, character: false, styleId,
           size: canvas.size, photoBuf: null, chars: pickedChars, padTarget,
         });
-        return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
+        return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}`, ...queuedReply() });
       }
 
       const docRef = admin.firestore().collection(PROMPTLAB).doc();
       await docRef.set({
-        id: docRef.id, status: 'running', engine: 'gptimage', prompt: typed, fullPrompt,
+        id: docRef.id, ...queuedFields(), engine: 'gptimage', prompt: typed, fullPrompt,
         model: PL_GPT.id, gptStyle: styleId, quality, size: canvas.size,
         aspectRatio: canvas.aspectRatio, res: resId, promptEdited: edited, noText,
         styleRef: (st.refFiles || []).concat(st.storageRefs || []).join(','), outputs,
@@ -6991,8 +7050,8 @@ app.post('/api/promptlab', async (req, res) => {
       // her words on this run — her prefix/suffix override if she made one,
       // the character line and the photo line only when they were really
       // attached — rather than the style's baked default.
-      runPromptLabGptJob(docRef, { fullPrompt, head, tail, outputs, quality, prompt: typed, character, styleId, size: canvas.size, photoBuf, chars: pickedChars, padTarget });
-      return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
+      if (!pausedNow()) runPromptLabGptJob(docRef, { fullPrompt, head, tail, outputs, quality, prompt: typed, character, styleId, size: canvas.size, photoBuf, chars: pickedChars, padTarget });
+      return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}`, ...queuedReply() });
     }
 
     const content = typed.replace(/\.+$/, '');
@@ -7164,11 +7223,35 @@ app.get('/api/promptlab/build', (req, res) => {
 // box had crept to 427MB with nothing running, and nothing anywhere could
 // read that without the Render dashboard. Free; no-store; MUST stay above
 // `/api/promptlab/:id`.
+// The deploy guard's two calls: pause new draws for the swap, and lift it if
+// the swap is called off. `seconds` is capped — a pause is a minute, never a
+// state. Unauthenticated on purpose (STUDIO_TOKEN is off on the live server
+// and the guard runs on Render's own build box with no secret to hand it):
+// the worst a stranger can do is queue her taps for five minutes, and they
+// still draw.
+app.post('/api/promptlab/pause', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const on = req.body && req.body.on !== false;
+  if (on) {
+    const secs = Math.min(Math.max(Number(req.body.seconds) || 240, 10), PAUSE_MAX_S);
+    drawPause.until = Date.now() + secs * 1000;
+    drawPause.note = String(req.body.note || '').slice(0, 200) || PAUSE_NOTE;
+    console.log(`promptlab: draws paused ${secs}s — ${drawPause.note}`);
+  } else {
+    drawPause.until = 0; drawPause.note = '';
+    console.log('promptlab: draw pause lifted');
+    startQueuedRuns();
+  }
+  res.json({ paused: pausedNow(), until: drawPause.until, note: drawPause.note,
+    drawing: drawingNow.size, cutting: cuttingNow.size });
+});
+
 app.get('/api/promptlab/inflight', (req, res) => {
   res.set('Cache-Control', 'no-store');
   const m = process.memoryUsage();
   res.json({
     drawing: Array.from(drawingNow), cutting: Array.from(cuttingNow),
+    paused: pausedNow() ? { until: drawPause.until, note: drawPause.note } : null,
     slots: drawGate.slots(), waiting: drawGate.waiting(),
     memory: { rss: m.rss, heapUsed: m.heapUsed, external: m.external, limit: 512 * 1048576 },
     uptime: Math.round(process.uptime()),

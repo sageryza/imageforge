@@ -16,12 +16,35 @@
 // minutes, so the cap sits under it. Waiting costs pipeline minutes at
 // $5/1,000 — a 14-minute sheet is 7¢ of waiting against a $1 sheet redrawn.
 //
+// AND IT PAUSES BEFORE IT LETS GO (Sophie, the same night: "if it's clean,
+// it deploys, but also pauses image generation with an explanatory note").
+// Clean is not enough on its own — a tap in the last second before the swap
+// would start a draw the old instance dies holding. So once the box is clean
+// the guard PAUSES new draws on the live server (POST /api/promptlab/pause —
+// a tap during the pause is queued with the note and drawn by the new
+// instance), reads the box once more, and only then lets the deploy go on.
+// Something that started in between lifts the pause and the wait resumes;
+// a refused deploy lifts it too. The pause self-expires on the server, so a
+// deploy that dies after this point cannot leave the old box paused.
+//
 // It is DEFENSIVE about the server it talks to: an old build with no
 // /inflight, or a box mid-restart, answers with nothing readable, and that
 // means nothing to wait for — the deploy goes on. Only a real "busy" holds.
 const BASE = process.env.RENDER_EXTERNAL_URL || process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
 const CAP_MS = Number(process.env.DEPLOY_GUARD_CAP_MIN || 25) * 60 * 1000;
 const TICK_MS = 10 * 1000;
+const PAUSE_S = 240;   // outlasts the new instance's boot + Render's 60s swap
+const NOTE = 'Paused for a server update — this will draw on its own in about a minute.';
+
+async function setPause(fetchFn, on) {
+  try {
+    const r = await fetchFn(`${BASE}/api/promptlab/pause`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(on ? { on: true, seconds: PAUSE_S, note: NOTE } : { on: false }),
+    });
+    return r.ok;
+  } catch (e) { return false; }
+}
 
 // -> { busy, drawing, cutting, unreadable }
 async function readState(fetchFn) {
@@ -60,12 +83,24 @@ async function waitForClear(o) {
     unreadableRuns = 0;
     if (!st.busy) {
       const mem = st.rss ? ` · rss ${Math.round(st.rss / 1048576)}MB` : '';
-      log(`deploy-guard: nothing drawing or cutting${mem} — clear to deploy`);
-      return { ok: true, waited: now() - t0, reason: 'clear' };
+      // Clean: pause new draws, then look once more — a tap can land between
+      // the read and the pause, and that draw must not be the one the old
+      // instance dies holding.
+      const paused = await setPause(fetchFn, true);
+      const again = await readState(fetchFn);
+      if (again.busy) {
+        log(`deploy-guard: ${again.busy} started while pausing — lifting the pause and waiting`);
+        await setPause(fetchFn, false);
+        await wait(o.tickMs || TICK_MS);
+        continue;
+      }
+      log(`deploy-guard: nothing drawing or cutting${mem}${paused ? ' · new draws paused with the note' : ' · (pause route unavailable)'} — clear to deploy`);
+      return { ok: true, waited: now() - t0, reason: 'clear', paused };
     }
     const waited = now() - t0;
     if (waited >= cap) {
       log(`deploy-guard: still ${st.busy} in flight after ${Math.round(cap / 60000)} minutes — NOT deploying; the next merge will carry this change`);
+      await setPause(fetchFn, false);
       return { ok: false, waited, reason: 'busy' };
     }
     log(`deploy-guard: ${st.drawing} drawing, ${st.cutting} cutting — holding the deploy (${Math.round(waited / 1000)}s)`);
