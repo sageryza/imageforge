@@ -308,6 +308,17 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .seticon{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em; text-transform:uppercase;
   background:none; border:none; color:var(--ink2); cursor:pointer; padding:4px 0; display:block; margin:-2px 0 0;}
 .msg{padding:14px 0; border-bottom:1px solid var(--line); transition:background-color .3s;}
+/* THE DRIBBLE FOLD (2026-09-02). A chat that backgrounded a watcher or is
+   subscribed to its own PR wakes once per event, and every wake is a turn
+   the hook posts — so four short replies in ten minutes with nothing from
+   her between them. They stay four DOCS (a doc is keyed by session+turn,
+   and a silent turn is indistinguishable from a broken hook); the thread
+   just shows the newest and puts the rest behind the house underlined
+   opener. Hidden by CLASS, not inline style, so the search filter can lift
+   the fold and put it back without fighting the rows' own display. */
+.msg.fold-hid{display:none;}
+.foldrow{padding:9px 0 11px; border-bottom:1px solid var(--line);}
+.foldmore{font-size:14px;}
 .msg.flash{background:color-mix(in srgb, var(--rose) 16%, var(--paper)); border-radius:8px;}
 .m-head{display:flex; gap:8px; align-items:baseline;}
 .m-chat{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink2);}
@@ -7253,6 +7264,41 @@ function renderList(el,g,names){
   });
 }
 
+// ---- THE DRIBBLE FOLD -------------------------------------------------------
+// `rendered` is NEWEST FIRST. A RUN is consecutive replies from the chat with
+// nothing from her between them, each within FOLD_MS of the one above it, not
+// crossing a chapter heading (a heading names the block under it, and a fold
+// reaching across one would hide the block's own first row). The newest of a
+// run stays on screen and LEADS; the rest fold under an opener that says how
+// many. Three rows never fold, on purpose:
+//   - anything from HER — her message is what ends a run, so the chat's
+//     answer to it always shows;
+//   - a live draft (`working`) — she is watching it write; the reply it is
+//     answering is the one thing she wants under it;
+//   - a message she BOOKMARKED — she kept it on purpose, it is not clutter.
+// FOLD_MS is the dial: the dribble this was built for ran 3-10 minutes apart
+// (four watcher wakes after one merge, 2026-09-02); an hourly check-in that
+// posts a line still folds; a chat that genuinely worked for two hours between
+// replies does not, because those are two things, not a dribble. Nothing here
+// touches the data, the home list, the Update tab, the Questions view or the
+// counts — a folded reply is still a reply everywhere but this one scroll.
+var FOLD_MS=60*60*1000;
+function foldPlan(rendered, plan){
+  var lead={}, hid={};
+  function foldable(m){ return !!m && m.from!=='sophie' && !m.working && !m.bookmarked; }
+  var i=0, n=rendered.length;
+  while(i<n){
+    if(!foldable(rendered[i])){ i++; continue; }
+    var j=i+1, count=0;
+    while(j<n && !plan[j] && foldable(rendered[j])
+      && (Date.parse(rendered[j-1].created)-Date.parse(rendered[j].created))<=FOLD_MS){
+      hid[j]=true; count++; j++;
+    }
+    if(count) lead[i]=count;
+    i=j;
+  }
+  return {lead:lead, hid:hid};
+}
 function renderMsg(m){
   var row=document.createElement('div'); row.className='msg'; if(m.id) row.dataset.mid=m.id;
   var firstLine=plain((m.tldr||m.text||'').split('\n')[0]).slice(0,140);
@@ -8315,6 +8361,17 @@ function openChat(name, keepScroll, focusId, noFetch){
   var chaprows=[];
   var rendered=list.slice().reverse();
   var plan=chapterPlan(rendered, ((chats[name]||{}).chapters)||[]);
+  // The dribble fold (see foldPlan). A group is the opener line plus the rows
+  // it hides; `paintFold` is the ONE writer of that state, and the search
+  // filter calls it with `narrowing` so a hit inside a fold always shows.
+  var fold=foldPlan(rendered, plan);
+  var folds=[], curFold=null;
+  function foldWord(g){ return g.n===1?'reply':'replies'; }
+  function paintFold(g, narrowing){
+    g.line.style.display=narrowing?'none':'';
+    g.btn.textContent=g.open ? 'hide the earlier '+foldWord(g) : g.n+' earlier '+foldWord(g);
+    g.rows.forEach(function(r){ r.classList.toggle('fold-hid', !narrowing && !g.open); });
+  }
   rendered.forEach(function(m,i){
     if(plan[i]){
       var h=document.createElement('div');
@@ -8328,7 +8385,27 @@ function openChat(name, keepScroll, focusId, noFetch){
     mrows.push({row:row, who:(m.from==='sophie'?'me':'claude'),
       hay:((m.tldr||'')+' '+(m.text||'')+' '+(m.from==='sophie'?'me':'claude')).toLowerCase()});
     mlist.appendChild(row);
+    if(fold.lead[i]){
+      // This row leads a run: the opener goes right under it, and the folded
+      // rows land after it, hidden, on the next iterations.
+      var g={n:fold.lead[i], rows:[], open:false, line:document.createElement('div'),
+        btn:document.createElement('button')};
+      g.line.className='foldrow';
+      g.btn.className='wrapmore foldmore'; g.btn.type='button';
+      g.btn.onclick=function(e){ e.stopPropagation(); g.open=!g.open; paintFold(g,false); };
+      // a jump INTO a folded row (a search hit, the keep-pile) opens the fold
+      g.show=function(){ if(!g.open){ g.open=true; paintFold(g,false); } };
+      g.line.appendChild(g.btn);
+      mlist.appendChild(g.line);
+      folds.push(g); curFold=g;
+    } else if(fold.hid[i] && curFold){
+      curFold.rows.push(row); row._fold=curFold;
+      // a row she had open before a rebuild keeps its fold open too, or the
+      // rebuild would hide the thing she was reading
+      if(row.classList.contains('open')) curFold.open=true;
+    } else curFold=null;
   });
+  folds.forEach(function(g){ paintFold(g,false); });
   function applyMsgFilter(){
     var q=(sinp.value||'').trim().toLowerCase();
     sclr.style.display=q?'':'none';
@@ -8340,6 +8417,10 @@ function openChat(name, keepScroll, focusId, noFetch){
     // filtered list — the messages it named are mostly gone. Hide them while
     // she is searching and bring them back when she clears the box.
     chaprows.forEach(function(h){ h.style.display=narrowing?'none':''; });
+    // A search lifts every fold (a hit inside one has to show, and a filter she
+    // can see returning nothing is the silent-filter failure this app keeps
+    // getting burned by); clearing it puts them back as they were.
+    folds.forEach(function(g){ paintFold(g, narrowing); });
     if(!narrowing){
       mrows.forEach(function(r){ r.row.style.display=''; });
       scount.style.display='none';
@@ -8889,6 +8970,7 @@ function openChat(name, keepScroll, focusId, noFetch){
 function focusMessage(name, id, noFetch){
   var row=document.querySelector('#thread .msg[data-mid="'+String(id).replace(/"/g,'')+'"]');
   if(row){
+    if(row._fold) row._fold.show();   // a folded row is a hidden one — open its fold first
     row.classList.add('open');
     row.scrollIntoView({block:'center'});
     row.classList.add('flash');
@@ -10797,6 +10879,8 @@ function refreshDraft(m){
   if(!row) return;
   var nr=renderMsg(m);
   if(row.classList.contains('open')) nr.classList.add('open');
+  if(row.classList.contains('fold-hid')) nr.classList.add('fold-hid');
+  if(row._fold){ nr._fold=row._fold; var k=row._fold.rows.indexOf(row); if(k>=0) row._fold.rows[k]=nr; }
   row.parentNode.replaceChild(nr,row);
 }
 function poll(){

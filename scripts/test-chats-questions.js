@@ -49,11 +49,15 @@ const HER_Q2 = 'What did the render cost?';
 const THE_A2 = 'Six cents at medium.';
 
 const CHATS = { 'chat-a': { lastSeen: iso(T0 - 2e5), sophieNote: 'questions, formatting' } };
-// enough messages that the thread actually scrolls
+// enough messages that the thread actually scrolls — spaced TWO HOURS apart,
+// because consecutive replies with nothing from her between them and less
+// than FOLD_MS apart fold behind one opener (the dribble fold, 2026-09-02),
+// and a folded thread neither scrolls nor "shows its messages".
 const MSGS = [];
 for (let i = 0; i < 30; i++) {
-  MSGS.push({ id: 'f' + i, chat: 'chat-a', from: 'claude', created: iso(T0 - 9e5 + i * 1000),
-    postedAt: iso(T0 - 9e5 + i * 1000), text: 'filler reply ' + i + '\n\n' + 'x'.repeat(400), tldr: 'filler ' + i });
+  const t = T0 - (30 - i) * 2 * 3600 * 1000;
+  MSGS.push({ id: 'f' + i, chat: 'chat-a', from: 'claude', created: iso(t),
+    postedAt: iso(t), text: 'filler reply ' + i + '\n\n' + 'x'.repeat(400), tldr: 'filler ' + i });
 }
 const asked = [];                    // every /questions request the page made
 

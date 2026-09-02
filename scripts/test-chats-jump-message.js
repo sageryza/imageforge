@@ -44,8 +44,13 @@ const LONG = Array.from({ length: 60 }, (_, i) => 'Paragraph ' + (i + 1) + ' of 
 // the url is what gives a message its Open-in-Claude button — the very thing
 // the floating arrows must not land on
 const MSGS = [{ id: 'long', chat: 'reader', from: 'claude', text: LONG, tldr: 'a long one', url: 'https://claude.ai/code/session_test', created: iso(T0), postedAt: iso(T0) }];
+// The tails are spaced TWO HOURS apart, not a second: consecutive replies with
+// nothing from her between them and less than FOLD_MS apart fold behind one
+// opener (the dribble fold, 2026-09-02), which would shrink the page this
+// fixture exists to make long.
 for (let i = 0; i < 30; i++) {
-  MSGS.push({ id: 'tail' + i, chat: 'reader', from: 'claude', text: 'Short follow-up ' + i, tldr: 'short ' + i, created: iso(T0 - 60000 - i * 1000), postedAt: iso(T0 - 60000 - i * 1000) });
+  const t = T0 - (i + 1) * 2 * 3600 * 1000;
+  MSGS.push({ id: 'tail' + i, chat: 'reader', from: 'claude', text: 'Short follow-up ' + i, tldr: 'short ' + i, created: iso(t), postedAt: iso(t) });
 }
 
 const server = http.createServer((req, res) => {
