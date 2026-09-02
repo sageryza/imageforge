@@ -85,3 +85,36 @@ seller-only, and the sorting problem is a buyer problem.
 - TradeManager: https://activity.alibaba.com/ggs/TradeManager.html
 - Open API reference (503 on 2026-09-02): https://openapi.alibaba.com/doc/api.htm
 - The spreadsheet workaround: https://medium.com/@cituation/improve-your-supplier-communications-on-alibaba-f763354d9dfd
+
+## What was built (2026-09-02, same day) — the sorting half
+
+She is the **buyer** ("i need help sorting various quotations from different
+vendors"), and she will **not** be screenshotting quotes ("whoa i'm not
+screenshot king") — so the door IN is still open; the sorting itself is built
+and proven:
+
+- **`alibaba-quotes.js`** — `extractQuote` reads ONE quote (a screenshot OR
+  pasted text) into one fixed shape with `claude-opus-5` (only what the quote
+  says, nulls never guesses, plus `flags`, `missing` and a draft `reply`);
+  `rankQuotes` (pure) ranks by unit price at her quantity, landed per unit when
+  shipping was priced, unknowns last, lower MOQ breaking a tie; `buildDeck`
+  (pure) makes the stock `deck` template — a ranking card first, one card per
+  vendor with the draft reply as the caption.
+- **`scripts/alibaba-quotes.js`** — the CLI: `--album` (a Dump album),
+  `--image`, `--text` (blocks separated by `---`), `--qty`, `--product`,
+  `--chat`, `--out`/`--from` (save / re-post free), `--dry`. ~3¢ a quote.
+- **`scripts/test-alibaba-quotes.js`** — 25 pure checks through the REAL
+  `validateTemplate`; `--live` renders `scripts/fixtures/alibaba-quote.html`
+  and reads it for real. **Measured 2026-09-02: every number exact** (three
+  tiers, MOQ 300, lead 15 days as the upper bound of 12-15, DHL $58, sample
+  $45, the PayPal surcharge and the excluded mold fee as flags, a usable
+  reply).
+
+**The open half is how her quotes reach it without screenshots.** Candidates,
+none measured yet: (1) copy-paste — long-press a message in the Alibaba app,
+Copy, paste into the chat (the module already takes text); (2) if the quotes
+came through an **RFQ**, Alibaba's own RFQ page already compares them side by
+side (rfq.alibaba.com) — worth asking before building anything; (3) the
+notification email, IF it carries the message body (still unmeasured — read
+one real email). Nothing more gets built until she says which shape the
+quotes are in.
