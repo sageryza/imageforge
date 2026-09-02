@@ -8030,15 +8030,21 @@ before working on that module. Nothing was deleted — the moved text is verbati
     on glibc is the known shape of that (fragmentation across malloc arenas;
     sharp's own docs say to set `MALLOC_ARENA_MAX=2`), and every thumbnail
     the app serves goes through sharp. **`MALLOC_ARENA_MAX=2` IS SET AND IT
-    WORKED — measured the same night on the same idle box, 30s samples:**
-    the three boots before it went 200-220MB → 298-317MB by five minutes of
-    uptime; the first boot with it went 220 → **195-216MB across the whole
-    first eight minutes**, the JS heap flat at 77-94 either way. A ~100MB
-    swing at idle with one env var. Set in render.yaml AND by API (an API
-    env-var change does NOT trigger a deploy by itself — it rode the next
-    merge). If a creep shows up again under real load, the next suspects are
-    sharp's own cache (only `cutSheet` turns it off) and grpc's buffers under
-    the Firestore SDK; `/inflight` every 30s is the measurement.
+    HELPED — A PLATEAU, NOT A CURE (measured the same night on the same box,
+    30s samples over 35 minutes):** the boots before it went 200-220MB →
+    298-317MB by five minutes and 427MB by 35; the first boot with it held
+    195-216MB for eight minutes, then settled into a **250-310MB band from
+    ten minutes to 35 with no climb inside it** (267 · 289 · 268 · 265 · 266
+    · 258 · 296 · 266 at three-minute steps). So ~120MB more headroom at the
+    35-minute mark than the night's crash had, and the growth that remains
+    is a step up under traffic rather than a ramp. The JS heap runs 100-125
+    in that band (77-94 at boot), so part of the step is real use. An
+    earlier line here said "gone" — this is the honest shape. Set in
+    render.yaml AND by API (an API env-var change does NOT trigger a deploy
+    by itself — it rode the next merge). Next suspects for the band, if it
+    ever climbs again: sharp's own cache (only `cutSheet` turns it off) and
+    grpc's buffers under the Firestore SDK; `/inflight` every 30s is the
+    measurement.
   - **Broke it: 8** concurrent 4K panels SHEETS (2026-08-28, ~6:04pm Pacific,
     another chat's shoebox batches — the box restarted with NO deploy in
     flight, so the concurrency alone did it; 5 of the 8 died mid-generation.
