@@ -67,6 +67,32 @@ console.log('the matcher');
   ['refs/dream-mystery.jpg — copy its drawing style but do NOT copy its content. '
     + require(path.join(ROOT, 'triangle-clause.js')).TRIANGLE_CLAUSE,
   'triangle', true, 'a triangle card → Triangle, not Dreamy underneath it'],
+  // EVERY WORDING THE CLAUSE HAS EVER HAD, verbatim off her filed cards
+  // (measured 2026-09-02 over all 715 of them). A reword never rewrites the
+  // style halves already on file, so these are permanent fixtures — the same
+  // rule the old reference FILENAMES follow — and they are what caught the
+  // live bug: 565 of the 715 were porting back as plain Dreamy pictures.
+  ['The FIRST attached image is a STYLE reference — copy its drawing style but do NOT '
+    + 'copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single '
+    + 'illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL '
+    + 'TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up',
+  'triangle', true, 'the wording 537 of her cards carry (gen 1) → Triangle'],
+  ['copy its drawing style but do NOT copy its content, subjects, or composition.'
+    + '\n\n[content]\n\nThe illustration is a TRIANGLE-SHAPED CARD, point up: a triangle '
+    + 'with a plain paper border and a hand-drawn frame line',
+  'triangle', true, 'the earliest triset wording (gen 0) → Triangle'],
+  ['The attached image is a STYLE reference — copy its style but do NOT copy its '
+    + 'content, subjects, or composition.\n\ncenter the content of the image in an '
+    + 'equilateral triangle with a hand drawn border, like the reference photo. do not '
+    + 'draw multiple panels. no text.\n\n[content]\n\nno text.',
+  'triangle', true, 'the hand-written wording, before the tile existed → Triangle'],
+  ['After the style reference, the three attached images are three triangular picture '
+    + 'cards from a matching game. Play the game: either find ONE quality all three '
+    + "cards share, or invent a fourth thing.\n\n[content]\n\nEQUILATERAL TRIANGLE-SHAPED CARD",
+  'triangle', true, "an 'auto' venn card → Triangle"],
+  // …and the tile it is DERIVED from still answers for itself.
+  ['refs/dream-mystery.jpg — copy its drawing style but do NOT copy its content.',
+    'dreamy', true, 'a plain Dreamy picture is still Dreamy'],
   ['', 'chatgpt', false, 'nothing filed → fallback, and honest about it'],
 ].forEach(([style, wantStyle, wantMatched, what]) => {
   const m = port.matchStyle(style, '');
@@ -213,6 +239,34 @@ ok(/require\('\.\/triangle-clause'\)/.test(trisetSrc)
   && trisetSrc.indexOf('EQUILATERAL TRIANGLE-SHAPED CARD') < 0,
   'triset.js reads the clause from triangle-clause.js and keeps no copy');
 
+// THE PORT'S EVIDENCE IS CHECKED AS BEHAVIOUR, NOT AS A QUOTE (2026-09-02).
+// It was a 150-character transcript of the clause, and it went stale twice —
+// the second time silently handing 565 of her 715 filed triangle cards back
+// to Dreamy. So what is asserted is that the REAL text this tile sends today
+// routes to Triangle, which a reword cannot quietly break: it either still
+// says "triangle-shaped card" and passes, or it fails here loudly.
+const triHalf = triangle.prefix + '\n\n[content]\n\n' + triangle.suffix;
+ok(port.matchStyle(triHalf, '').style === 'triangle',
+  "today's real Triangle style half routes to the Triangle tile");
+ok(port.PORT_STYLES.find((s2) => s2.key === 'triangle').prefixes
+  .some((f) => triHalf.toLowerCase().indexOf(f.toLowerCase()) >= 0),
+  'at least one listed fragment is verbatim in the clause as it stands now');
+// A PAST WORDING IS NEVER DROPPED — a reword does not rewrite the thousands of
+// style halves already filed, exactly as with the old reference filenames. The
+// list may only grow; these are the ones her library actually holds.
+['triangle-shaped card', 'equilateral triangle with a hand drawn border',
+  'triangular picture cards from a matching game'].forEach((f) => {
+  ok(port.PORT_STYLES.find((s2) => s2.key === 'triangle').prefixes.indexOf(f) >= 0,
+    'the wording "' + f.slice(0, 34) + '…" is still listed');
+});
+// The relationship, not a length race: Triangle IS dreamy with one clause
+// swapped, so both always match and Triangle must win however short its quote.
+ok((port.PORT_STYLES.find((s2) => s2.key === 'triangle').beats || []).indexOf('dreamy') >= 0,
+  'Triangle is declared to out-rank the tile it is derived from');
+ok(port.matchStyle('copy its drawing style but do NOT copy its content, subjects, '
+  + 'or composition. A TRIANGLE-SHAPED CARD.', '').style === 'triangle',
+  "…so a SHORT triangle quote still beats Dreamy's longer one");
+
 // Every `prefixes` fragment must be a verbatim substring of that style's REAL
 // baked wording in server.js — otherwise it is a vibe, not evidence.
 const GPT_ID = { chatgpt: 'evan', dreamy: 'dreamy', pastel: 'pastel', scarry: 'scarry',
@@ -224,8 +278,12 @@ port.PORT_STYLES.forEach((s) => {
     // the TAIL, not the prefix — the clause triangle-clause.js swaps in, which
     // is exactly the text that reaches the model.
     if (!id) {
-      ok(s.key === 'triangle' && tri.TRIANGLE_CLAUSE.indexOf(frag) >= 0,
-        s.key + ': "' + frag.slice(0, 40) + '…" is verbatim in the real triangle clause');
+      // The Triangle tile has no literal block in server.js, and its list
+      // holds PAST wordings on purpose (see its comment) — a fragment that is
+      // not in today's clause is a historical alias, and the fixtures above
+      // are what prove each one still earns its place. What must hold here is
+      // that TODAY's clause is covered; that is asserted once, below.
+      ok(s.key === 'triangle', s.key + ': the only table with no server literal');
       return;
     }
     const block = serverSrc.slice(serverSrc.indexOf('\n  ' + id + ': {'));
