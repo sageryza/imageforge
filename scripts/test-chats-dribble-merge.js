@@ -41,7 +41,9 @@ const MSGS = [
 const DRAFT = [c('w', T0, { chat: 'writing', working: true }), c('v', T0 - 2 * M, { chat: 'writing' })];
 const ALL = MSGS.concat(DRAFT);
 
+const servePublic = require('./lib/public-asset');
 const server = http.createServer((req, res) => {
+  if (servePublic(req, res)) return;   // every shared file the page links, root-level ones included
   const url = new URL(req.url, 'http://x');
   if (url.pathname === '/api/chatfeed' && req.method === 'GET') {
     const since = url.searchParams.get('since');
