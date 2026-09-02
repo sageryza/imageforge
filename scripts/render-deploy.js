@@ -68,6 +68,8 @@ async function main() {
   });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) { console.error('deploy refused:', r.status, JSON.stringify(j).slice(0, 300)); process.exit(1); }
-  console.log(`deploy started: ${j.id || '?'} — https://dashboard.render.com/web/${SRV}/deploys`);
+  // Render answers the deploy object itself; older API shapes nested it.
+  const dep = j.deploy || j;
+  console.log(`deploy started: ${dep.id || '?'} — https://dashboard.render.com/web/${SRV}/deploys`);
 }
 main().catch((e) => { console.error(e.message); process.exit(1); });
