@@ -320,8 +320,12 @@ console.log('the page contracts (static):');
     'a late frame nudges the playhead, never flings it');
   ok(!/var cur = segAt\(playhead\)/.test(html),
     'the strip finds the current piece in its OWN array (the invisible playhead)');
-  ok(/at >= 0 && a\.getAttribute\('data-src'\) === audSrc\(\)/.test(html),
-    'the audio track starts when the playhead crosses its offset mid-play');
+  // TWO LANES (2026-09-02): one <audio> per sound, the one-track discipline
+  // run per element — a sound starts the moment the playhead crosses ITS
+  // start, and stops past its end.
+  ok(/function soundTick/.test(html) && /p\.at < 0 \|\| a\.getAttribute\('data-src'\) !== audSrc\(s\)\) return;/.test(html)
+    && /if \(a\.paused \|\| a\.__priming\) \{\s*\n\s*startSound\(s, a, p\.at\);/.test(html),
+    'a sound starts when the playhead crosses its start mid-play (per element)');
   // Her "fine for a while, then choppy at 3/4" (2026-08-23): joint holds
   // accumulate as music drift, and the old hard >0.5s reseek yanked the
   // track backward once the film had enough joints behind it. Paced now.
@@ -363,7 +367,7 @@ console.log('the page contracts (static):');
     'a refused no-gesture prime retries on her next tap');
   ok(/audEntry/.test(html) && /addEventListener\('playing'/.test(html),
     'the track re-aligns the moment it actually STARTS sounding (entry, never a joint)');
-  ok(/if \(!\$\('audEl'\)\.seeking\) \{\s*\n\s*audEntry = true;/.test(html),
+  ok(/if \(!a\.seeking\) \{\s*\n\s*a\.__audEntry = true;/.test(html),
     'a seek\'s own waiting echo never arms the entry realign (pacing owns a rolling track)');
   ok(/a\.seeking \|\| a\.readyState < 3/.test(html),
     'a stalled clock is not drift — pacing and the 2s resync skip a buffering track');
