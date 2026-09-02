@@ -7264,6 +7264,71 @@ app.post('/api/promptlab/:id/recut', async (req, res) => {
   }
 });
 
+// A BATCH OF MARKS — one request for everything she picked (2026-09-02,
+// Sophie: "add a select button to playground so i can x a bunch of things at
+// once"). Twenty separate /vote posts would each re-read the run doc and
+// sweep the Assets tab for one picture; this groups them by run and does ONE
+// write per run, then syncs the pictures a few at a time.
+//
+// ONE VOTE FOR ALL OF THEM, which is what the mode bar's buttons are: one
+// button, one mark, everything picked. An empty `vote` CLEARS them — that is
+// the single-picture "tap again to clear" rule scaled up, and it is what makes
+// a bulk ✕ undoable.
+//
+// Registered ABOVE the per-run routes so `votes` can never be read as a run id.
+app.post('/api/promptlab/votes', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
+    const vote = ['like', 'dislike'].includes(req.body.vote) ? req.body.vote : null;
+    const items = Array.isArray(req.body.items) ? req.body.items.slice(0, 200) : [];
+    // Same index rule as the single route: -1 is the banked uncut sheet, 0-24
+    // are a run's images (a panels run's cut panels go to 9 today, 25 when the
+    // 5x5 grid lands). Anything else is dropped rather than failing the batch —
+    // one bad entry must not lose the other nineteen marks.
+    const byRun = new Map();
+    for (const it of items) {
+      const id = String((it && it.run) || '').slice(0, 200);
+      const i = Number(it && it.image);
+      if (!id || !Number.isInteger(i) || i < -1 || i > 24) continue;
+      if (!byRun.has(id)) byRun.set(id, new Set());
+      byRun.get(id).add(i);
+    }
+    if (!byRun.size) return res.status(400).json({ error: 'items: [{run, image}] required' });
+    const col = admin.firestore().collection(PROMPTLAB);
+    const urls = [];
+    let marked = 0;
+    for (const [id, idxs] of byRun) {
+      const ref = col.doc(id);
+      const patch = {};
+      idxs.forEach((i) => {
+        patch[`votes.${i}`] = vote === null ? admin.firestore.FieldValue.delete() : vote;
+      });
+      try {
+        await ref.update(patch);
+        marked += idxs.size;
+        const run = (await ref.get()).data() || {};
+        idxs.forEach((i) => {
+          const u = i === -1 ? run.sheetUrl : (run.images || [])[i];
+          if (u) urls.push(u);
+        });
+      } catch (e) { /* a run that has gone must not lose the rest of the batch */ }
+    }
+    // Carry every mark onto the Assets-tab records, so the two surfaces agree
+    // exactly as they do after a single tap. A few at a time: sequential is
+    // seconds on a batch of fifty, and all-at-once is fifty Firestore sweeps
+    // landing on the 512MB box together.
+    for (let k = 0; k < urls.length; k += 5) {
+      await Promise.all(urls.slice(k, k + 5).map((u) => syncVoteToAssets(u, vote).catch(() => {})));
+    }
+    res.json({ ok: true, marked, vote });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/promptlab/:id/vote', async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
     return res.status(401).json({ error: 'unauthorized' });
