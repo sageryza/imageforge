@@ -8707,6 +8707,23 @@ before working on that module. Nothing was deleted — the moved text is verbati
     from inside its own deck now. The label still takes a chat off her main
     list in the Chats app — that half is unchanged, and `REVIEW_LABEL` still
     lives in `chatfeed.js` for it.
+  - **THE SAME PICTURES SPLIT ACROSS PAGES GET COMBINED — `scripts/combine-decks.js`
+    (2026-09-02, Sophie: "combine dream factory pics").** A set cut in two
+    batches, or posted into two chats so both could see it, shows here as
+    several rows of one thing — the dream factory panels were **three rows, 69
+    pictures, one of them an exact duplicate she would have had to swipe
+    again**. The script unions the decks into one page, carries every verdict,
+    note and place across, and SUPERSEDES the sources. Dry by default.
+    - **AN ITEM'S ID IS ITS IDENTITY**, so the union dedupes by id and a mark
+      follows its picture with nothing to re-map. Two pages carrying one id
+      with DIFFERENT pictures is the one thing it refuses — a silent join
+      there lands her verdict on the wrong picture forever.
+    - **Later source wins a contested mark** (pass them oldest first), and a
+      mark whose card is not in the combined deck is dropped AND NAMED.
+    - **NOTHING IS DESTROYED** — the sources are superseded, keeping their own
+      verdict docs, so undoing a wrong join is one
+      `POST /page/:id/supersede {superseded:false}` per source.
+    - Test: `node scripts/test-combine-decks.js` (the union rules, pure).
   - **Hand-built HTML pages are OUT by design** — their items live in markup,
     and a guessed total is a wrong number in front of her.
   - **Not every deck is a review** (the template demos, a browse deck): SKIP
