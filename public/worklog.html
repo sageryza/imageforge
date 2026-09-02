@@ -1,0 +1,189 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Work log</title>
+<!--
+  worklog.html — a timeline of what Sophie worked on, in the order it began
+  (her ask, 2026-09-02: "i want to make a timeline of what i worked on
+  chronological").
+
+  ONE ROW PER CHAT under the day it STARTED, oldest first, each carrying her
+  own words for what it was (the archive summary's ladder — her sentence when
+  the chat has one, the Update card's "what you asked" otherwise). A chat that
+  ran on past its first day says so at the end of the row ("→ Aug 30"). The
+  day turns over at 5am Pacific, the same cut the Chats app's list keeps.
+
+  READ-ONLY and free: GET /api/chatfeed/worklog is a projection of the registry
+  the app already reads. Tapping a row opens that chat.
+
+  The day-cut arithmetic is a copy of chats.html's dayKey (the app's is not a
+  shared file); the test keeps an independent copy so the two cannot drift.
+-->
+<link rel="stylesheet" href="/tool.css">
+<style>
+  .wrap{ max-width:640px; margin:0 auto; padding:6px 14px 40px 12px; }
+  /* The rail: one hairline down the left, a dot at every day. */
+  .tl{ position:relative; padding-left:22px; }
+  .tl:before{ content:''; position:absolute; left:6px; top:8px; bottom:8px; width:1px; background:var(--border); }
+  .mo{ margin:22px 0 6px; font-size:12px; font-weight:600; letter-spacing:2.5px; text-transform:uppercase; color:var(--dim); }
+  .mo:first-child{ margin-top:10px; }
+  .day{ position:relative; display:flex; align-items:baseline; gap:8px; margin:14px 0 6px;
+    font-size:13px; font-weight:600; color:var(--ink); }
+  .day .n{ font-weight:400; color:var(--dim); font-size:12px; }
+  .day:before{ content:''; position:absolute; left:-20px; top:4px; width:9px; height:9px; border-radius:50%;
+    background:var(--accent); }
+  .wl{ display:block; text-decoration:none; color:var(--ink); background:var(--surface);
+    border:1px solid var(--border); border-radius:var(--r); padding:9px 12px; margin:0 0 6px;
+    -webkit-tap-highlight-color:transparent; }
+  .wl .nm{ display:block; font-size:14px; font-weight:600; line-height:1.3; }
+  /* Her own sentence reads like her own notes — italic, never bold, never pink. */
+  .wl .ln{ display:block; font-size:13px; line-height:1.4; color:var(--dim); margin-top:3px; }
+  .wl .ln.hers{ font-style:italic; color:var(--ink); }
+  .wl .tm{ display:block; font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--dim); margin-top:5px; }
+  .wl .tm .to{ color:var(--accent); }
+  .wl.arch .nm{ font-weight:500; }
+  .empty{ color:var(--dim); font-size:14px; padding:14px 2px; }
+</style>
+<body class="tool">
+<div class="head">
+  <span class="eyebrow tool-eyebrow">WORK LOG</span>
+  <button id="help" type="button" aria-label="What this is">?</button>
+</div>
+<div class="helpcard" id="helpcard" hidden>
+  <b>Everything you worked on, oldest first.</b> One row per chat, under the day
+  it began, in your own words where the chat has them. A row that ran on past
+  its first day says when it ended. Tap a row to open that chat. The day turns
+  over at 5am.
+</div>
+
+<main class="wrap">
+  <div id="list" class="tl"><div class="empty">Reading the log&hellip;</div></div>
+</main>
+
+<script>
+/* IIFE: the injected autoscroll pill runs in global scope and declares its own
+   `var raf`/`var I`, so a page-level `let` of the same name kills its script at
+   parse time. Nothing of this page's leaks out. */
+(function(){
+  'use strict';
+  var listEl = document.getElementById('list');
+  var TZ = 'America/Los_Angeles', CUT_H = 5, _fmt = null;
+
+  function esc(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+  function pad2(n){ return (n < 10 ? '0' : '') + n; }
+  /* The working day an instant falls in, 'YYYY-MM-DD', read through the IANA
+     zone (never a fixed -8 — she says PST and it is PDT half the year). Before
+     5am carries back to the day before: the Chats app's own rule. */
+  function laStamp(iso){
+    var d = new Date(iso); if (!iso || isNaN(d.getTime())) return null;
+    try {
+      if (!_fmt) _fmt = new Intl.DateTimeFormat('en-CA', { timeZone: TZ,
+        year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', hourCycle:'h23' });
+      var p = {}; _fmt.formatToParts(d).forEach(function(x){ p[x.type] = x.value; });
+      return { y:+p.year, m:+p.month, d:+p.day, h:(+p.hour) % 24 };
+    } catch (e) { return { y:d.getFullYear(), m:d.getMonth()+1, d:d.getDate(), h:d.getHours() }; }
+  }
+  function dayKey(iso){
+    var p = laStamp(iso); if (!p) return '';
+    var t = Date.UTC(p.y, p.m - 1, p.d);
+    if (p.h < CUT_H) t -= 86400000;
+    var q = new Date(t);
+    return q.getUTCFullYear() + '-' + pad2(q.getUTCMonth() + 1) + '-' + pad2(q.getUTCDate());
+  }
+  function keyDate(key){ return new Date(Date.UTC(+key.slice(0,4), +key.slice(5,7) - 1, +key.slice(8,10))); }
+  function dayLabel(key){
+    var today = dayKey(new Date().toISOString());
+    if (key === today) return 'Today';
+    var y = new Date(keyDate(today).getTime() - 86400000);
+    if (key === y.getUTCFullYear() + '-' + pad2(y.getUTCMonth() + 1) + '-' + pad2(y.getUTCDate())) return 'Yesterday';
+    var opt = { timeZone:'UTC', weekday:'short', month:'short', day:'numeric' };
+    if (key.slice(0,4) !== today.slice(0,4)) opt.year = 'numeric';
+    try { return new Intl.DateTimeFormat('en-US', opt).format(keyDate(key)); } catch (e) { return key; }
+  }
+  function monthLabel(key){
+    try { return new Intl.DateTimeFormat('en-US', { timeZone:'UTC', month:'long', year:'numeric' }).format(keyDate(key)); }
+    catch (e) { return key.slice(0,7); }
+  }
+  function shortDay(key){
+    try { return new Intl.DateTimeFormat('en-US', { timeZone:'UTC', month:'short', day:'numeric' }).format(keyDate(key)); }
+    catch (e) { return key; }
+  }
+  /* A slug with no display name still reads as words. */
+  function nameOf(r){
+    if (r.name) return r.name;
+    var s = String(r.chat || '').replace(/-[0-9a-z]{6}$/, '').replace(/-/g, ' ');
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  function row(r, day){
+    var lastDay = r.last ? dayKey(r.last) : '';
+    var tm = [];
+    if (lastDay && lastDay !== day && r.atFrom === 'start') tm.push('<span class="to">→ ' + esc(shortDay(lastDay)) + '</span>');
+    if (r.labels && r.labels.length) tm.push(esc(r.labels.join(' · ')));
+    return '<a class="wl' + (r.archived ? ' arch' : '') + '" href="/chats?chat=' + encodeURIComponent(r.chat) + '" data-chat="' + esc(r.chat) + '">' +
+      '<span class="nm">' + esc(nameOf(r)) + '</span>' +
+      (r.line ? '<span class="ln' + (r.hers ? ' hers' : '') + '">' + esc(r.line) + '</span>' : '') +
+      (tm.length ? '<span class="tm">' + tm.join(' · ') + '</span>' : '') +
+    '</a>';
+  }
+
+  /* Oldest first — a timeline. Month rules, then a dot per day with how many
+     chats began that day. The rows arrive already sorted by start. */
+  function render(rows){
+    if (!rows.length) { listEl.innerHTML = '<div class="empty">Nothing on the log yet.</div>'; return; }
+    var out = [], mo = '', day = '', dayRows = [];
+    function flushDay(){
+      if (!day) return;
+      out.push('<div class="day" data-day="' + day + '">' + esc(dayLabel(day)) +
+        '<span class="n">' + dayRows.length + '</span></div>');
+      out.push(dayRows.join(''));
+      dayRows = [];
+    }
+    rows.forEach(function(r){
+      var k = dayKey(r.at); if (!k) return;
+      if (k !== day) {
+        flushDay();
+        if (k.slice(0,7) !== mo) { mo = k.slice(0,7); out.push('<h2 class="mo">' + esc(monthLabel(k)) + '</h2>'); }
+        day = k;
+      }
+      dayRows.push(row(r, k));
+    });
+    flushDay();
+    listEl.innerHTML = out.join('');
+  }
+
+  /* Inside the Chats app a page runs in an IFRAME; a plain link there loads
+     the whole app inside the viewer. The parent's bridge opens the thread
+     instead; a browser, and the native tool, follow the href. */
+  listEl.addEventListener('click', function(e){
+    var a = e.target.closest && e.target.closest('a.wl');
+    if (!a) return;
+    try {
+      if (window.parent && window.parent !== window
+          && typeof window.parent.__openThread === 'function'
+          && window.parent.__openThread(a.getAttribute('data-chat')) === true) {
+        e.preventDefault();
+      }
+    } catch (err) { /* cross-origin parent — the href stands */ }
+  });
+
+  var help = document.getElementById('help'), card = document.getElementById('helpcard');
+  help.onclick = function(){ card.hidden = !card.hidden; };
+  card.onclick = function(){ card.hidden = true; };
+
+  /* A SANDBOX copy posted into the Chats app carries its rows baked in (a
+     posted page is frozen anyway); the served page asks the live route. */
+  var baked = window.__worklogRows;
+  (baked ? Promise.resolve({ ok: true, rows: baked })
+    : fetch('/api/chatfeed/worklog').then(function(r){ return r.json(); })).then(function(j){
+    if (!j || !j.ok) throw new Error((j && j.error) || 'no answer');
+    render(j.rows || []);
+  }).catch(function(err){
+    listEl.innerHTML = '<div class="empty">Couldn’t read the log — ' + esc(String(err.message || err)) + '</div>';
+  });
+})();
+</script>
+</body>

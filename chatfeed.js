@@ -1010,6 +1010,16 @@ router.post('/', async (req, res) => {
     // back here is current.
     let mine = {};
     try { mine = (await registry()).chats[doc.chat] || {}; } catch (e) { /* best effort */ }
+    // WHEN THE CHAT BEGAN (2026-09-02, the work log). `lastSeen` above is
+    // rewritten on EVERY post, so it is the chat's newest message — measured
+    // on twelve real threads, it matched the LAST message on all twelve and
+    // the first on none. A timeline of what she worked on needs the day a
+    // chat STARTED, and nothing on the doc carried it. Stamped once, on the
+    // first post only (a doc with no `lastSeen` yet is a chat that has never
+    // posted); POST /startedat-backfill fills the chats from before this
+    // shipped and only ever walks a stamp BACKWARDS, so a wrong later stamp
+    // (a failed registry read above making `mine` empty) is corrected by it.
+    if (!mine.startedAt && !mine.lastSeen) reg.startedAt = doc.created;
     // A FINAL reply ends the turn: clear the turn-start mark the hook stamped
     // at UserPromptSubmit (see POST /working), so the app's pink tint drops
     // the moment the reply lands. A growing draft is still mid-turn.
@@ -1753,6 +1763,105 @@ router.post('/repliedat-backfill', async (req, res) => {
     }
     res.json({ ok: true, dry, chats: todo.length, changed: changed.length,
       noReply: noReply.length, sample: changed.slice(0, 20) });
+  } catch (err) { fail(res, err); }
+});
+
+// ---- THE WORK LOG (2026-09-02, Sophie: "i want to make a timeline of what
+// i worked on chronological") ------------------------------------------------
+// One row per chat, in the order the chats BEGAN, carrying her own words for
+// what it was. Everything here is already on the registry doc — nothing new is
+// written, no model call — so the read rides the 5-minute registry cache and
+// costs nothing. The page is /worklog.
+//
+// The line for a chat is the SAME ladder the archive summary reads by, her own
+// sentence first: `wrapAsked` when it is hers verbatim, then the Update card's
+// `asked`, then a chat's paraphrase, then the wrap-up line, then her note,
+// then what the chat said it was doing. A chat with none of them still lists —
+// it is a thing she worked on, even nameless.
+function worklogLine(r) {
+  const s = (v) => String(v || '').trim();
+  if (r.wrapAskedHers === true && s(r.wrapAsked)) return { line: s(r.wrapAsked), hers: true };
+  if (s(r.updAsked)) return { line: s(r.updAsked), hers: false };
+  if (s(r.wrapAsked)) return { line: s(r.wrapAsked), hers: false };
+  if (s(r.wrapLine)) return { line: s(r.wrapLine), hers: false };
+  if (s(r.sophieNote)) return { line: s(r.sophieNote), hers: true };
+  if (s(r.statusDoing)) return { line: s(r.statusDoing), hers: false };
+  return { line: '', hers: false };
+}
+// Pure: registry chats → rows, oldest start first. Exported for the test.
+function worklogRows(chats) {
+  const rows = [];
+  Object.keys(chats || {}).forEach((slug) => {
+    const r = chats[slug] || {};
+    if (slug.startsWith('__')) return;                 // settings, probes
+    if (r.movedTo || r.deletedAt) return;              // tombstones, the trash
+    const started = r.startedAt || '';
+    const last = r.lastSeen || r.repliedAt || '';
+    if (!started && !last) return;                     // never posted
+    const w = worklogLine(r);
+    rows.push({
+      chat: slug,
+      name: r.displayName || '',
+      // `at` is when the chat BEGAN; a chat from before the stamp existed
+      // falls back to its newest message and SAYS SO (`atFrom`), rather than
+      // pretending — the backfill turns those into real starts.
+      at: started || last,
+      atFrom: started ? 'start' : 'last',
+      last,
+      line: w.line,
+      hers: w.hers,
+      archived: !!r.archived,
+      labels: labelsOf(r).slice(0, 3),
+      account: r.account ? String(r.account) : '',
+    });
+  });
+  rows.sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : a.chat < b.chat ? -1 : 1));
+  return rows;
+}
+router.get('/worklog', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const reg = await registry();
+    res.json({ ok: true, rows: worklogRows(reg.chats) });
+  } catch (err) { fail(res, err); }
+});
+// The chats from before `startedAt` existed get theirs from their own thread:
+// the OLDEST `created` on any message of the chat, hers included (her message
+// is the real start, and it is stamped with her send time). Dry by default,
+// `{chat}` for one, and a stamp only ever moves BACKWARDS — a start that is
+// already earlier than the messages say is left alone (the messages may have
+// been trimmed by a repair; the earlier stamp is the safer fact).
+router.post('/startedat-backfill', async (req, res) => {
+  try {
+    const dry = !(req.body && req.body.dry === false);
+    const only = String((req.body || {}).chat || '').trim();
+    const snap = await db().collection(REG).get();
+    const todo = [];
+    snap.docs.forEach((d) => {
+      if (d.id === SETTINGS_DOC) return;
+      if (only && d.id !== only) return;
+      const r = d.data() || {};
+      if (r.movedTo) return;
+      todo.push({ chat: d.id, had: r.startedAt || '' });
+    });
+    const changed = [];
+    const noMsgs = [];
+    for (const t of todo) {
+      let oldest = '';
+      try {
+        const ms = await db().collection(MSGS).where('chat', '==', t.chat).select('created').get();
+        ms.docs.forEach((m) => {
+          const at = (m.data() || {}).created || '';
+          if (at && (!oldest || at < oldest)) oldest = at;
+        });
+      } catch (e) { /* a chat we cannot read is a chat we leave alone */ }
+      if (!oldest) { noMsgs.push(t.chat); continue; }
+      if (t.had && t.had <= oldest) continue;
+      changed.push({ chat: t.chat, was: t.had || null, now: oldest });
+      if (!dry) await regRef(t.chat).set({ startedAt: oldest }, { merge: true });
+    }
+    res.json({ ok: true, dry, chats: todo.length, changed: changed.length,
+      noMsgs: noMsgs.length, sample: changed.slice(0, 20) });
   } catch (err) { fail(res, err); }
 });
 
@@ -5124,7 +5233,7 @@ require('./chat-wake').mount(router, { db, regRef, registry, followMoves, resolv
   // `regRef` is exported for chaticons.js — it is the ONE write path that
   // invalidates the registry cache, so a sweep must not reach the collection
   // around it.
-module.exports = { router, regRef, pillInject, archiveActionFor, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry, pickFilm,
+module.exports = { router, regRef, worklogRows, worklogLine, pillInject, archiveActionFor, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry, pickFilm,
   rankGroups, phraseRegex, phraseRank, bestPerChat, snippetWindows, snippetOf,
   SEARCH_WHO, whoOf, whoParam, whoMatches,
   SEARCH_ARCH, archParam, archMatches, pickOne, pickNameRows, NAME_ROWS,
