@@ -6,23 +6,22 @@ play w the computer · no render · just compare artifact" — so it is a **Comp
 page in her chat's Compare tab**, not a tool: nothing was added to `server.js`,
 nothing deploys, and opening it spends nothing.
 
-Live (v3): <https://imageforge-q125.onrender.com/api/chatfeed/page/2MfQCBXvu6uRN17ZRvtQ>
+Live (v4): <https://imageforge-q125.onrender.com/api/chatfeed/page/P9iiTPEj0eG4WpCqiivy> (older versions superseded, kept as history)
 
-## The game (v3, after her playtest)
+## The game (v4)
 
-**One card is one tile, only one of each, every card upright.** Cards sit in
-the point-UP spaces and every point-DOWN space between them is a **middle** —
-the inverted triangle three cards sit around in her own Similitude game, where
-what they share is written. A card has three sides, so it faces three middles,
-and through them touches the cards on the far side of each.
+**One card is one tile, only one of each, edge to edge.** A card in a
+point-down space is **turned 60°, never upside down** — a 60° turn of a
+point-up triangle IS the point-down triangle, so the picture tilts a little and
+lands exactly on the space with nothing to clip. A card has three sides, so it
+touches up to three cards; tap one on the table to read its links back.
 
 - **Three in hand; draw one after each lay.** 24 cards a round.
-- **She says what she sees every turn** — one box per card touched. Her words
-  land in the middle and can be read back with a tap.
+- **She says what she sees every turn** — one box per card touched.
 - **A point per card touched.** Two may each share something different with
-  it; when a middle fills to three, its cards share the SAME thing or each a
-  DIFFERENT one — the two kinds of Similitude set, never two-and-one. The page
-  refuses a 2+1 with the rule on screen.
+  it; three share the SAME thing or each a DIFFERENT one — the two kinds of
+  Similitude set, never two-and-one. The page refuses a 2+1 with the rule on
+  screen.
 - **Pass = swap any of your cards** (tap the ones to swap), or keep them all.
 - The round ends when every card is down, or when the pile is empty and both
   pass in a row. Higher score wins.
@@ -52,6 +51,10 @@ history, not options.
    composition and mood — `cards.json`); **ask what they share every turn**;
    the **scoring** above; **three in hand, draw each turn, pass swaps any
    number**; **record each game**.
+5. **v3 read as broken** — the middles looked like "an imaginary card between",
+   and she clarified the rotation ask: "just rotate 30 or 60 degrees not upside
+   down". So v4 is edge to edge again with the down cards turned 60°. The
+   middles are history; the words live on the cards (tap to read).
 
 ## Things that are decided, not incidental
 
@@ -75,13 +78,12 @@ history, not options.
 - **THE TABLE ZOOMS OUT AS IT GROWS**, to a floor of 0.55, and is centred with
   `margin:auto` inside a flex board — the one centring that also lets it be
   scrolled to once it outgrows the box.
-- **NOTHING EVER POINTS DOWN.** An upright triangle cannot be turned point-down
-  without tilting it (any isometry that does so inverts the picture), and she
-  vetoed the tilt. So the four MADE cards — cut point-down by design — are out
-  of the deck (`build.js` drops `flip`), and every point-down space is a
-  middle, not a card. That is her own board (three cards around an inverted
-  middle) tiled across a table, which is why it reads as the right answer
-  rather than a workaround.
+- **A DOWN SPACE IS A 60° TURN, and the transform is exact.** `rotate(60)`
+  about the up card's centroid (50, 57.73) puts its three corners on the
+  point-down triangle 28.87 units lower, so `translate(0,-28.87)` after it
+  lands the card on the space to the pixel — no clip-path (v2's bug was a
+  clip that rotated with the image), no bare corners. The four MADE cards,
+  cut point-down by design, stay out of the deck (`build.js` drops `flip`).
 - **THE TAGS ARE VISUAL.** The first pass tagged from the titles ("hummingbird",
   "trumpet flower"); she asked for visual cues, so every card was viewed and
   tagged by what is in the picture — `dark`, `round`, `glowing`, `many`,
@@ -100,7 +102,7 @@ history, not options.
 Every game writes to this page's verdict doc — no server change, the same
 route the note box uses:
 
-    GET /api/chatfeed/verdict?chat=triset-dominoes-game&sheet=dominoes-v3
+    GET /api/chatfeed/verdict?chat=triset-dominoes-game&sheet=dominoes-v4
 
 `texts` holds one JSON string per item: `g<game>` is the header (`cards` at
 the open, `you`/`it`/`done` when it ends) and `g<game>-<n>-you` /

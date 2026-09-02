@@ -1,7 +1,7 @@
 <!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Similitude Dominoes v3</title>
+<title>Similitude Dominoes v4</title>
 <link rel="stylesheet" href="/compare.css">
 <style>
 html, body { height: 100%; overflow: hidden; }
@@ -34,7 +34,6 @@ body { padding: 0; }
 .felt > span { position: absolute; pointer-events: none; }
 .felt svg { pointer-events: none; }
 .felt svg polygon[data-hit] { pointer-events: all; cursor: pointer; }
-.felt text { font: italic 8.5px Georgia, serif; fill: var(--ink2); }
 
 .msg { flex: none; font: 15px/1.3 Georgia, serif; color: var(--ink2); min-height: 20px; }
 .msg b { color: var(--ink); font-weight: 400; font-style: italic; }
@@ -97,7 +96,7 @@ button.b.quiet { color: var(--ink2); }
   </div>
 
   <div class="hand" id="hand"></div>
-  <div class="notehost" data-item="dominoes-v3"></div>
+  <div class="notehost" data-item="dominoes-v4"></div>
 </div>
 
 <script src="/compare.js"></script>
@@ -105,42 +104,40 @@ button.b.quiet { color: var(--ink2); }
 (function () {
   var DECK = __DECK__;                 // her nature cards: {k cut, id, n name, t visual tags}
   var CUTS = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cuts/';
-  var CHAT = 'triset-dominoes-game', SHEET = 'dominoes-v3';
+  var CHAT = 'triset-dominoes-game', SHEET = 'dominoes-v4';
 
-  /* ONE CARD IS ONE TILE, only one of each, every card upright.
+  /* ONE CARD IS ONE TILE, only one of each, edge to edge.
 
-     NO POINT-DOWN CARDS (her call, after v2 turned them 180°). A triangle can
-     only sit point-up, so the table is her own Similitude board tiled: cards
-     go in the point-UP spaces, and every point-DOWN space between them is a
-     MIDDLE — the inverted triangle three cards sit around, where what they
-     share is written. A card has three sides, so it faces three middles, and
-     through them it touches the cards on the other side of each.
+     A POINT-DOWN SPACE TURNS ITS CARD 60°, NEVER 180° (her call, after v2's
+     upside-down cards and v3's empty middles — "there's an imaginary card
+     between … just rotate 30 or 60 degrees not upside down"). A 60° turn of a
+     point-up triangle IS the point-down triangle, so the picture tilts a
+     little and lands exactly on the space: nothing to clip, no bare corners.
 
-     THE GRID. Cell (r,c) points up when r+c is even; those hold cards. An up
-     cell's three middles are (r,c-1), (r,c+1) and (r+1,c). A middle's three
-     cards are (r,c-1), (r,c+1) and (r-1,c). Two cards share at most one
-     middle, so nothing is ever counted twice.
+     THE GRID. Cell (r,c) points up when r+c is even. Its three neighbours are
+     always (r,c-1) left, (r,c+1) right, and across the flat side — (r+1,c)
+     below an up card, (r-1,c) above a down one. A card has three sides, so it
+     touches up to three cards.
 
-     HER SCORING. A point per card the laid card touches. Two cards may each
-     share something different with it; when a middle fills to three, its
-     three cards share the SAME thing or each a DIFFERENT one — the two kinds
-     of Similitude set, and never two-and-one.
+     HER SCORING. A point per card the laid card touches. Two may each share
+     something different with it; three share the SAME thing or each a
+     DIFFERENT one — the two kinds of Similitude set, never two-and-one.
 
-     SHE SAYS WHAT SHE SEES EVERY TURN (her call): one box per card touched.
-     The tags are the computer's eyes only — it may lay a card only where it
-     can see a link to every card it would touch, and it passes rather than
-     stretching. Her eye is not bound by them. */
+     SHE SAYS WHAT SHE SEES EVERY TURN (her call): one box per card touched;
+     tap a card on the table to read its links back. The tags are the
+     computer's eyes only — it lays a card only where it can see a link to
+     every card it would touch, and passes rather than stretching. */
   var HAND = 3, ROUND = 24;
   var $ = function (id) { return document.getElementById(id); };
   var S = null, score = { you: 0, it: 0 }, sel = -1, pend = null, swapping = false;
   var game = null, moveN = 0;
 
   var up = function (r, c) { return (((r + c) % 2) + 2) % 2 === 0; };
+  var isUp = function (u) { var p = u.split(','); return up(+p[0], +p[1]); };
   var id = function (r, c) { return r + ',' + c; };
-  var midsOf = function (r, c) { return [id(r, c - 1), id(r, c + 1), id(r + 1, c)]; };
-  var cardsOf = function (mid) {
-    var p = mid.split(','), r = +p[0], c = +p[1];
-    return [id(r, c - 1), id(r, c + 1), id(r - 1, c)];
+  var nbs = function (u) {
+    var p = u.split(','), r = +p[0], c = +p[1];
+    return [id(r, c - 1), id(r, c + 1), up(r, c) ? id(r + 1, c) : id(r - 1, c)];
   };
   var norm = function (s) { return String(s || '').trim().toLowerCase().replace(/\s+/g, ' '); };
 
@@ -153,88 +150,57 @@ button.b.quiet { color: var(--ink2); }
   var name = function (card) { return DECK[card].n; };
 
   // ── the table's geometry ─────────────────────────────────────────────────
-  // who a card at u would touch, middle by middle: [{mid, others:[cellId]}]
-  function touchesAt(u) {
-    var p = u.split(','), r = +p[0], c = +p[1];
-    return midsOf(r, c).map(function (m) {
-      return { mid: m, others: cardsOf(m).filter(function (k) { return k !== u && S.cells[k]; }) };
-    }).filter(function (t) { return t.others.length; });
-  }
+  function touched(u) { return nbs(u).filter(function (k) { return S.cells[k]; }); }
   function frontier() {
     var seen = {}, out = [];
     Object.keys(S.cells).forEach(function (k) {
-      var p = k.split(','), r = +p[0], c = +p[1];
-      midsOf(r, c).forEach(function (m) {
-        cardsOf(m).forEach(function (u) {
-          if (S.cells[u] || seen[u]) return;
-          seen[u] = 1; out.push(u);
-        });
+      nbs(k).forEach(function (u) {
+        if (S.cells[u] || seen[u]) return;
+        seen[u] = 1; out.push(u);
       });
     });
     return out;
   }
-  // the statement already between two cards in a middle, if any
-  function between(mid, a, b) {
-    var list = S.mids[mid] || [];
-    for (var i = 0; i < list.length; i++) {
-      if ((list[i].a === a && list[i].b === b) || (list[i].a === b && list[i].b === a)) return list[i].why;
-    }
-    return null;
-  }
-  // HER RULE, checked middle by middle: a middle filling to three holds one
-  // thing said three ways the same, or three different things — never 2+1
-  function setRuleOk(u, whys) {
-    return touchesAt(u).every(function (t) {
-      if (t.others.length < 2) return true;
-      var s0 = norm(between(t.mid, t.others[0], t.others[1]));
-      var s1 = norm(whys[t.others[0]]), s2 = norm(whys[t.others[1]]);
-      var same = s0 === s1 && s1 === s2;
-      var diff = s0 !== s1 && s1 !== s2 && s0 !== s2;
-      return same || diff;
-    });
+  // HER RULE: three cards touched share one thing said three times, or three
+  // different things — never two and one
+  function setRuleOk(whys) {
+    var v = Object.keys(whys).map(function (o) { return norm(whys[o]); });
+    if (v.length < 3) return true;
+    var same = v.every(function (x) { return x === v[0]; });
+    var diff = v[0] !== v[1] && v[1] !== v[2] && v[0] !== v[2];
+    return same || diff;
   }
   function commit(u, card, whys) {
     S.cells[u] = { card: card };
-    touchesAt(u).forEach(function (t) {
-      S.mids[t.mid] = S.mids[t.mid] || [];
-      t.others.forEach(function (o) { S.mids[t.mid].push({ a: u, b: o, why: whys[o] }); });
-    });
+    S.links[u] = Object.keys(whys).map(function (o) { return { o: o, why: whys[o] }; });
     S.last = u;
-    var pts = 0; Object.keys(whys).forEach(function () { pts++; });
-    return pts;
+    return Object.keys(whys).length;
+  }
+  // every link a card on the table is part of, from either side
+  function linksOf(u) {
+    var out = (S.links[u] || []).map(function (l) { return { o: l.o, why: l.why }; });
+    Object.keys(S.links).forEach(function (k) {
+      if (k === u) return;
+      S.links[k].forEach(function (l) { if (l.o === u) out.push({ o: k, why: l.why }); });
+    });
+    return out;
   }
 
   // ── the computer's eyes ──────────────────────────────────────────────────
   // what the tags can say for this card at u: {cellId: word} or null
   function tagLinks(card, u) {
-    var whys = {}, ok = true;
-    touchesAt(u).forEach(function (t) {
-      if (!ok) return;
-      var o = t.others;
-      if (o.length === 1) {
-        var s = shared(card, S.cells[o[0]].card);
-        if (!s.length) { ok = false; return; }
-        whys[o[0]] = s[0];
-        return;
-      }
-      var a = o[0], b = o[1], s0 = norm(between(t.mid, a, b));
-      var sa = shared(card, S.cells[a].card), sb = shared(card, S.cells[b].card);
-      // all the same: one tag shared by all three, and it is what the two already say
-      var same = sa.filter(function (x) { return sb.indexOf(x) >= 0 && norm(x) === s0; })[0];
-      if (same) { whys[a] = same; whys[b] = same; return; }
-      // each different: two tags, unlike each other and unlike what is already there
-      var found = null;
-      sa.some(function (x) {
-        if (norm(x) === s0) return false;
-        return sb.some(function (y) {
-          if (norm(y) === s0 || norm(y) === norm(x)) return false;
-          found = [x, y]; return true;
-        });
-      });
-      if (!found) { ok = false; return; }
-      whys[a] = found[0]; whys[b] = found[1];
-    });
-    return ok ? whys : null;
+    var os = touched(u), per = os.map(function (o) { return shared(card, S.cells[o].card); });
+    if (per.some(function (x) { return !x.length; })) return null;
+    var whys = {};
+    if (os.length < 3) { os.forEach(function (o, i) { whys[o] = per[i][0]; }); return whys; }
+    // three: one tag all three share, else three tags unlike each other
+    var same = per[0].filter(function (x) { return per[1].indexOf(x) >= 0 && per[2].indexOf(x) >= 0; })[0];
+    if (same) { os.forEach(function (o) { whys[o] = same; }); return whys; }
+    for (var a = 0; a < per[0].length; a++) for (var b = 0; b < per[1].length; b++) for (var c = 0; c < per[2].length; c++) {
+      var x = per[0][a], y = per[1][b], z = per[2][c];
+      if (x !== y && y !== z && x !== z) { whys[os[0]] = x; whys[os[1]] = y; whys[os[2]] = z; return whys; }
+    }
+    return null;
   }
   function itMovesList() {
     var fr = frontier(), out = [];
@@ -256,7 +222,7 @@ button.b.quiet { color: var(--ink2); }
     }
     var use = pool.slice(0, ROUND);
     S = { you: use.slice(0, HAND), it: use.slice(HAND, HAND * 2), pile: use.slice(HAND * 2),
-          cells: {}, mids: {}, turn: 'you', passes: 0, over: false, last: '0,0' };
+          cells: {}, links: {}, turn: 'you', passes: 0, over: false, last: '0,0' };
     sel = -1; pend = null; swapping = false;
     S.cells['0,0'] = { card: S.pile.pop() };
     game = Date.now().toString(36); moveN = 0;
@@ -338,42 +304,31 @@ button.b.quiet { color: var(--ink2); }
   // ── drawing ──────────────────────────────────────────────────────────────
   var BW = 104, HW = 116;
   var UP = '50,0 100,86.6 0,86.6', DN = '0,0 100,0 50,86.6';
-  function cardSvg(card, W, cls) {
-    var H = W * 0.866;
-    return '<svg width="' + W + '" height="' + H + '" viewBox="0 0 100 86.6" class="' + (cls || '') + '">'
-      + '<polygon points="' + UP + '" fill="var(--surface)"/>'
-      + '<image href="' + CUTS + DECK[card].k + '" x="0" y="0" width="100" height="86.6"/>'
-      + '<polygon points="' + UP + '" fill="none" stroke="var(--ink)" stroke-width="1.2"'
-      + ' stroke-linejoin="round"/></svg>';
+  // rotate(60) about the up card's centroid lands its three corners exactly on
+  // the point-down triangle 28.87 units lower — so translate back up by that
+  var TURN = 'translate(0,-28.87) rotate(60 50 57.73)';
+  function cardSvg(card, W, down, hit) {
+    var H = W * 0.866, pts = down ? DN : UP;
+    return '<svg width="' + W + '" height="' + H + '" viewBox="0 0 100 86.6">'
+      + '<polygon points="' + pts + '" fill="var(--surface)"/>'
+      + '<image href="' + CUTS + DECK[card].k + '" x="0" y="0" width="100" height="86.6"'
+      + (down ? ' transform="' + TURN + '"' : '') + '/>'
+      + '<polygon' + (hit ? ' data-hit' : '') + ' points="' + pts + '" fill="none"'
+      + ' stroke="var(--ink)" stroke-width="1.2" stroke-linejoin="round"/></svg>';
   }
-  function slotSvg(W) {
+  function slotSvg(W, down) {
     return '<svg width="' + W + '" height="' + (W * 0.866) + '" viewBox="0 0 100 86.6">'
-      + '<polygon data-hit points="' + UP + '" fill="none" stroke="var(--chg)" stroke-width="1.8"'
-      + ' stroke-dasharray="5 4" stroke-linejoin="round"/></svg>';
-  }
-  // a middle carries what its cards share, in the wide top of the triangle
-  function midSvg(W, lines) {
-    var H = W * 0.866, out = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 100 86.6">'
-      + '<polygon data-hit points="' + DN + '" fill="var(--surface2)"/>';
-    lines.slice(0, 3).forEach(function (l, i) {
-      out += '<text x="50" y="' + (16 + i * 11) + '" text-anchor="middle">' + esc(l.slice(0, 18)) + '</text>';
-    });
-    return out + '</svg>';
+      + '<polygon data-hit points="' + (down ? DN : UP) + '" fill="none" stroke="var(--chg)"'
+      + ' stroke-width="1.8" stroke-dasharray="5 4" stroke-linejoin="round"/></svg>';
   }
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
-  function midLines(mid) {
-    var list = S.mids[mid] || [], seen = {}, out = [];
-    list.forEach(function (x) { var k = norm(x.why); if (!seen[k]) { seen[k] = 1; out.push(x.why); } });
-    return out;
-  }
   function say(t) { $('msg').innerHTML = t; }
 
   function paint() {
     var mine = !S.over && S.turn === 'you' && !swapping && !pend;
     var fr = mine && sel >= 0 ? frontier() : [];
     var keys = Object.keys(S.cells);
-    var mids = Object.keys(S.mids).filter(function (m) { return (S.mids[m] || []).length; });
-    var all = keys.concat(fr).concat(mids).map(function (k) { var p = k.split(','); return { r: +p[0], c: +p[1] }; });
+    var all = keys.concat(fr).map(function (k) { var p = k.split(','); return { r: +p[0], c: +p[1] }; });
     var rs = all.map(function (p) { return p.r; }), cs = all.map(function (p) { return p.c; });
     var minR = Math.min.apply(null, rs), maxR = Math.max.apply(null, rs);
     var minC = Math.min.apply(null, cs), maxC = Math.max.apply(null, cs);
@@ -386,19 +341,17 @@ button.b.quiet { color: var(--ink2); }
       var p = k.split(','), r = +p[0], c = +p[1];
       return 'left:' + ((c - minC) * BW / 2) + 'px;top:' + ((r - minR) * H) + 'px';
     };
-    felt.innerHTML = mids.map(function (m) {
-      return '<span data-mid="' + m + '" style="' + at(m) + '">' + midSvg(BW, midLines(m)) + '</span>';
-    }).join('') + keys.map(function (k) {
-      return '<span style="' + at(k) + '">' + cardSvg(S.cells[k].card, BW) + '</span>';
+    felt.innerHTML = keys.map(function (k) {
+      return '<span data-card="' + k + '" style="' + at(k) + '">' + cardSvg(S.cells[k].card, BW, !isUp(k), true) + '</span>';
     }).join('') + fr.map(function (u) {
-      return '<span data-slot="' + u + '" style="' + at(u) + '">' + slotSvg(BW) + '</span>';
+      return '<span data-slot="' + u + '" style="' + at(u) + '">' + slotSvg(BW, !isUp(u)) + '</span>';
     }).join('');
 
     var hand = $('hand');
     hand.className = 'hand' + (sel >= 0 ? ' picking' : '') + (swapping ? ' swapping' : '');
     hand.innerHTML = S.you.map(function (card, k) {
       var cls = (sel === k ? 'lit' : '') + (swapping && S.mark[k] ? ' mark' : '');
-      return '<span data-k="' + k + '" class="' + cls + '">' + cardSvg(card, HW) + '</span>';
+      return '<span data-k="' + k + '" class="' + cls + '">' + cardSvg(card, HW, false, false) + '</span>';
     }).join('');
 
     $('sYou').textContent = score.you; $('sIt').textContent = score.it;
@@ -436,20 +389,19 @@ button.b.quiet { color: var(--ink2); }
     paint();
   });
   $('felt').addEventListener('click', function (ev) {
-    var mid = ev.target.closest ? ev.target.closest('[data-mid]') : null;
-    if (mid && !pend) {
-      // reading a middle back
-      var list = S.mids[mid.dataset.mid] || [];
-      say(list.map(function (x) {
-        return name(S.cells[x.a].card) + ' & ' + name(S.cells[x.b].card) + ' — <b>' + esc(x.why) + '</b>';
-      }).join(' · '));
+    var cardEl = ev.target.closest ? ev.target.closest('[data-card]') : null;
+    if (cardEl && !pend) {
+      // reading a card's links back
+      var k0 = cardEl.dataset.card, list = linksOf(k0);
+      say(list.length ? name(S.cells[k0].card) + ' — ' + list.map(function (x) {
+        return name(S.cells[x.o].card) + ': <b>' + esc(x.why) + '</b>';
+      }).join(' · ') : 'The ' + name(S.cells[k0].card) + ' opened the table.');
       return;
     }
     var el = ev.target.closest ? ev.target.closest('[data-slot]') : null;
     if (!el || sel < 0 || pend) return;
     var u = el.dataset.slot, card = S.you[sel];
-    var others = [];
-    touchesAt(u).forEach(function (t) { t.others.forEach(function (o) { if (others.indexOf(o) < 0) others.push(o); }); });
+    var others = touched(u);
     pend = { k: sel, u: u, others: others };
     var say_ = $('say');
     say_.innerHTML = others.map(function (o, i) {
@@ -476,8 +428,8 @@ button.b.quiet { color: var(--ink2); }
       whys[ins[i].dataset.o] = v;
     }
     if (missing) { missing.focus(); return say('Say something for each one.'); }
-    if (!setRuleOk(pend.u, whys)) {
-      return say('With three around a middle it is the <b>same thing</b> for all, or <b>different</b> for all.');
+    if (!setRuleOk(whys)) {
+      return say('Touching three, it is the <b>same thing</b> for all, or <b>different</b> for all.');
     }
     var k = pend.k, u = pend.u, card = S.you[k];
     pend = null; sel = -1; S.passes = 0;
@@ -527,15 +479,14 @@ button.b.quiet { color: var(--ink2); }
 
   window.__compareNotes({ chat: CHAT, sheet: SHEET });
   window.__compareHelp({ html:
-      '<b>One card is one tile; only one of each; every card upright.</b> Cards '
-    + 'sit in the point-up spaces and every point-down space between them is a '
-    + 'middle — what its cards share is written there. Tap a card, tap a space, '
-    + 'then say what it shares with each card it touches. <b>A point per card '
-    + 'touched.</b> Two may each share something different with it; when a '
-    + 'middle fills to three, its cards share the same thing or each a '
-    + 'different one — never two and one. Three in hand, draw one after each '
-    + 'lay. <b>Pass</b> lets you swap any of your cards. Tap a middle to read '
-    + 'it back. It plays only links it can see, and passes rather than '
+      '<b>One card is one tile, only one of each, edge to edge</b> — a card in a '
+    + 'point-down space is turned a little, never upside down. Tap a card in '
+    + 'your hand, tap a space, then say what it shares with each card it '
+    + 'touches. <b>A point per card touched.</b> Two may each share something '
+    + 'different with it; three share the same thing or each a different one — '
+    + 'never two and one. Three in hand, draw one after each lay. <b>Pass</b> '
+    + 'lets you swap any of your cards. Tap a card on the table to read its '
+    + 'links back. It plays only links it can see, and passes rather than '
     + 'stretching.' });
 })();
 </script>

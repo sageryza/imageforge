@@ -16,7 +16,7 @@
 const fs = require('fs'), path = require('path');
 const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
 const CUTS = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cuts/';
-const TITLE = 'Similitude Dominoes v3';
+const TITLE = 'Similitude Dominoes v4';
 const CHAT = 'triset-dominoes-game';
 
 const STOP = new Set(('a an the one two of in on at with over under from to and its only above ' +
