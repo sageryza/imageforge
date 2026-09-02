@@ -26,6 +26,16 @@ services:
     # sync from reverting it.
     maxShutdownDelaySeconds: 300
     envVars:
+      # THE MEMORY CREEP (2026-09-02). Measured on the live box through
+      # GET /api/promptlab/inflight: a fresh boot idles at ~200MB rss and is
+      # at ~300 within 90 seconds while the JS heap moves ~25MB — the growth
+      # is NATIVE. sharp/libvips on glibc is the known shape (its own docs:
+      # "set MALLOC_ARENA_MAX=2 … to reduce memory fragmentation"), and every
+      # thumbnail this app serves goes through sharp. Two arenas instead of
+      # eight per core. Also set live by API the same night; this line keeps
+      # a Blueprint sync from dropping it.
+      - key: MALLOC_ARENA_MAX
+        value: "2"
       # Set the values in the Render dashboard — never commit real keys.
       - key: OPENAI_API_KEY
         sync: false

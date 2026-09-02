@@ -7994,11 +7994,17 @@ before working on that module. Nothing was deleted — the moved text is verbati
     (`singleCfgOf` in `promptlab-sweep.js`, capped at 2; a photo reference
     that will not re-fetch fails it honestly). `GET /api/promptlab/inflight`
     is the read — the in-process draw/cut sets plus `process.memoryUsage()`,
-    so the creep is measurable from a chat. **THE CREEP ITSELF IS NOT FOUND
-    (190 → 427MB idle in 35 minutes; peaks of 480+ most evenings on the
-    metrics).** Whoever measures it next: read `/inflight` `memory` at boot
-    and every few minutes against what the process is doing — a leak in a
-    cache, not a burst, is the shape.
+    so the creep is measurable from a chat. **THE CREEP IS NATIVE, NOT THE
+    JS HEAP — measured the same night through `/inflight` every 30s:** a
+    fresh boot idles at rss ~200MB / heap ~87MB, and 90 seconds later rss is
+    ~300 while the heap is ~110 — the growth sits outside V8. sharp/libvips
+    on glibc is the known shape of that (fragmentation across malloc arenas;
+    sharp's own docs say to set `MALLOC_ARENA_MAX=2`), and every thumbnail
+    the app serves goes through sharp. **`MALLOC_ARENA_MAX=2` is set on the
+    service (render.yaml + API, 2026-09-02) — compare the boot→+5min rss
+    against those numbers before believing it worked.** If it still creeps,
+    the next suspects are sharp's own cache (only `cutSheet` turns it off)
+    and grpc's buffers under the Firestore SDK.
   - **Broke it: 8** concurrent 4K panels SHEETS (2026-08-28, ~6:04pm Pacific,
     another chat's shoebox batches — the box restarted with NO deploy in
     flight, so the concurrency alone did it; 5 of the 8 died mid-generation.
