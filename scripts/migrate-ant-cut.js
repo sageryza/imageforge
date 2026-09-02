@@ -116,7 +116,7 @@ function wav(file, out) { ff(['-v', 'error', '-y', '-i', file, '-ac', '1', '-ar'
 
   const t0 = Date.now();
   const r = await fe.renderCut(doc, { dir: path.join(dir, 'render'), progress: async (d, t, l) => process.stderr.write(`  ${d}/${t} ${l}\r`) });
-  const out = r.file || r.out || r;
+  const out = r.file;
   console.log(`\nrendered in ${Math.round((Date.now() - t0) / 1000)}s → ${out}`);
 
   // ── picture: every shot's middle frame against v7's ──
@@ -149,9 +149,9 @@ for i in range(0,n,22050*10):
   const editor = require('../editor');
   const seconds = probeSeconds(out);
   const url = await editor.uploadPublic(out, `filmeditor/${CUT_ID}/film-1.mp4`, 'video/mp4');
-  const render = { url, at: Date.now(), by: 'chat', seconds: Math.round(seconds * 10) / 10, pieces: doc.clips.length, sounds: doc.sounds.length, width: r.width || null, height: r.height || null, cut: { clips: doc.clips, sounds: doc.sounds } };
+  const render = { url, at: Date.now(), by: 'chat', seconds: r.seconds || Math.round(seconds * 10) / 10, pieces: r.clips.length, sounds: r.mixed, audio: r.mixed > 0, width: r.width, height: r.height, cut: { clips: r.clips, sounds: r.sounds } };
   doc.renders = [render];
   await admin.firestore().collection(fe.COL || 'forge-film-edits').doc(CUT_ID).set(doc);
-  try { await require('../filmshots').record({ chat: CHAT, url, seconds: render.seconds, shots: fe.shotsFromCut(doc), source: 'filmeditor' }); } catch (e) { console.warn('shot map:', e.message); }
+  try { await require('../filmshots').record({ chat: CHAT, url, seconds: render.seconds, shots: fe.shotsFromCut(r.clips), source: 'filmeditor' }); } catch (e) { console.warn('shot map:', e.message); }
   console.log(`written: ${CUT_ID}\n${url}\nhttps://imageforge-q125.onrender.com/filmeditor?c=${CUT_ID}`);
 })().catch((e) => { console.error(e); process.exit(1); });
