@@ -948,6 +948,11 @@ app.get('/desktop', serveGated('desktop.html', { pill: true }));
 // Auto-fed by media pins + POST /api/deliverables; a new entry pushes past
 // the per-chat bell. Served WITH the pill: a list that scrolls.
 app.get('/deliverables', serveGated('deliverables.html', { pill: true }));
+// Work log: a timeline of what she worked on, oldest first — one row per chat
+// under the day it began, in her own words (Sophie's ask, 2026-09-02). A
+// projection of the chat registry; read-only, no model call. Served WITH the
+// pill: a long list that scrolls.
+app.get('/worklog', serveGated('worklog.html', { pill: true }));
 // The Sophie character card, for the pad's draw-here toggle (refs/ is not
 // web-served, so this one file is exposed deliberately — it's her own
 // hearted render, and the page behind the gate is the only thing asking).

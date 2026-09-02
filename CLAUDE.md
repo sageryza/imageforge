@@ -1982,8 +1982,10 @@ them off the reference sheet, not off the old filenames.
     FINISHED, carrying that reply's `postedAt`. It satisfies both rules
     `unparked` enforces by construction: monotonic (never `created`, which
     predates the park — the bug the note on `unparked` was written about), and a
-    live draft never writes it. **`lastSeen` beside it IS `created` and is not a
-    substitute.**
+    live draft never writes it. **`lastSeen` beside it is rewritten on every
+    post — it is the chat's NEWEST message (measured 2026-09-02 on twelve real
+    threads: newest on all twelve, first on none) and is not a substitute.**
+    This line used to call it `created`; that was wrong.
   - **The loaded message always wins.** `repliedSince` is consulted ONLY when
     the page holds nothing for that chat, so the rule above did not move: a live
     draft still keeps a chat parked, and a reply loaded from before the park
@@ -9002,6 +9004,32 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **The widget KIND is unchanged on purpose** — iOS remembers a placed widget
   by it. It used to be the Update count; that is history, not a rule.
   **Full details: `docs/modules/inbox-and-misc.md`.**
+- **THE WORK LOG** (`GET /api/chatfeed/worklog`, page at `/worklog`, no
+  iOS tile — 2026-09-02, Sophie: "i want to make a timeline of what i worked
+  on chronological"). One row per chat under the day it BEGAN, oldest first,
+  a dot per day on a left rail, month rules, her own sentence as the line
+  (the archive summary's ladder: `wrapAsked` when hers, then the Update card's
+  `asked`, then a paraphrase, then `wrapLine`, her note, `statusDoing`); a
+  chat that ran on says "→ Aug 30". A row opens the chat. Read-only, no model
+  call — a projection of the registry cache.
+  - **`startedAt` IS A NEW REGISTRY FIELD, because nothing on the doc held
+    when a chat began.** `lastSeen` is the newest message (measured — see the
+    unpark bullet). Stamped on a chat's FIRST post only (a doc with no
+    `lastSeen` yet); `POST /api/chatfeed/startedat-backfill` (dry by default)
+    and `node scripts/backfill-started-at.js --go` fill the rest from the
+    oldest `created` on the thread, hers included, and a stamp only ever
+    walks BACKWARDS. Run 2026-09-02: 754 of 770 stamped; 16 had no messages.
+    A row with no stamp falls back to its newest message and says so
+    (`atFrom:'last'`), never pretends.
+  - The day turns over at 5am Pacific (the Chats app's own cut); the page
+    keeps its own copy of `dayKey` because chats.html's is not a shared file,
+    and the test holds an INDEPENDENT copy so the two cannot drift.
+  - **`.row` is tool.css's flex row** — a page on tool.css that names a class
+    `.row` gets `display:flex; flex-wrap:wrap` and its labels sit beside its
+    text (PHOTO'd). This page's row is `.wl`.
+  - Test: `node scripts/test-worklog-page.js` (the rows pure, then the real
+    page headless — the 5am cut, her italic line as a computed style, the
+    span, the iframe bridge).
 - **THE DELIVERABLES LIST** (`deliverables.js`, `/api/deliverables`, page at
   `/deliverables` — Aug 2026, Sophie: "is there a running list of deliverables?
   … can you make one, and have the notification go off when a new deliverable
