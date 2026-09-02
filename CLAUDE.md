@@ -4732,6 +4732,39 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (promptlab.html, the picker) and `PORT_STYLES` (playground-port.js, the
   routing) — pinned equal by `node scripts/test-playground-port.js`, which also
   checks every prefix fragment is verbatim in the real prefix.
+  **AND THAT DOOR LEAVES A WAY BACK — IT USED TO EAT THE TOOL IT WAS TAPPED IN
+  (2026-09-02, Sophie: "playground from assets · now i'm stuck").** "Open in
+  Playground" is a `location.href` inside the tool's OWN web view, and the app
+  keeps a tool's page alive for the whole app process — so the walk parked Meta
+  Assets (or Freeform, or the CHATS app when the tap came from a Compare page,
+  whose lightbox navigates the top window) on `/playground`, and every later tap
+  on that tile opened the Playground again until a force-quit. The Story Room's
+  send trip learned this on 2026-08-26; this is the identical bug at the door
+  she uses most.
+  - **The walk names the page it is leaving** (`backCrumb` in
+    `asset-actions.js` → `&back=<path>`), same-origin path only, and it is read
+    off the window that really navigates, so a framed Compare page hands back
+    `/chats` rather than its own url.
+  - **TWO HALVES, AND THE CHIP IS ONLY THE FIRST.** The chip walks her back;
+    `armTripRestore` (lifted from `scratchpad.html`, wrapping `__forgeLeave`) is
+    what puts the eaten web view back when she leaves the tool the ordinary way
+    — the only thing that helps a kept-alive page she returns to later. **The
+    Story Room's own room→Playground walk arms it now too**, which it never did.
+  - **The chip is SEATED IN THE HEADER ROW beside the app's chevron**, never
+    left floating at top-left where pagehead.js draws that chevron — measured,
+    it was landing on it. An old native build hides the row and keeps the fixed
+    corner rather than dropping the only way back.
+  - **The query is spent on arrival** (`replaceState`), deferred one tick
+    because the blocks below it read the ported prompt off `location.search`.
+  - **STILL OPEN, deliberately: the "Open the chat" door does the same thing** —
+    it walks Meta Assets or Freeform to `/chats` with no crumb read at the other
+    end. `backCrumb` is exported and ready; chats.html has to seat a chip and
+    arm the restore.
+  - Test: `node scripts/test-playground-back-trip.js` (the crumb pure, then the
+    real page headless with the REAL injected chevron — the chip asked with
+    `elementFromPoint`, and the restore measured as where the window really ends
+    up after an app exit; verified failing 14 pre-fix).
+
   **THREE OR FOUR ACROSS IS HERS TO TAP, AND IT IS THE THIRD SEGMENT OF THE
   VIEW SWITCH (2026-08-25, Sophie: "the 3/4 switch button is in a weird place.
   It should not be in the auto scroll roll row").** List · Tiles · **3** — one

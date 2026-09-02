@@ -552,11 +552,17 @@
      house rule that anything added to her words is disclosed word for word. */
   #promptpanel .added { font-size: 12px; color: #6f675e; line-height: 1.4;
     border-left: 2px solid #2b2622; padding: 2px 0 2px 8px; margin: 4px 0 0; }
-  /* Arrived from the Scratch Pad (?from=scratchpad): a way back, top-left. */
+  /* A way back to the tool this page was walked into from (?from=scratchpad,
+     or ?back=<path> from a picture's "Open in Playground"). It is SEATED in
+     the header row beside the app's chevron whenever that row is on screen —
+     see seatBackChip; the fixed corner is the fallback for an old native
+     build, which hides the row entirely. */
   #backchip { display: none; position: fixed; top: 12px; left: 12px; z-index: 80; align-items: center;
     font-size: 13px; color: #2b2622; text-decoration: none; background: #faf7f2; border: 1px solid #d8d0c4;
     border-radius: 6px; padding: 7px 11px; }
   #backchip.on { display: flex; }
+  #backchip.seated { position: static; top: auto; left: auto; flex: 0 0 auto; margin: 0 6px 0 0;
+    padding: 6px 9px; }
   /* Arrived from a Story Room BEAT: what a run made here is going to do
      (?pad=&beat=). A status line — the landing is a side effect and a side
      effect she cannot see is a trap — and, since 2026-08-28, the way to END
@@ -2888,11 +2894,88 @@
     var tag = document.getElementById('beattag');
     if (tag) { tag.classList.remove('on'); tag.textContent = ''; }
   }
+  /* ── A WALK IN FROM ANOTHER TOOL LEAVES A WAY BACK (2026-09-02, Sophie:
+     "playground from assets / now i'm stuck").
+
+     A picture's "Open in Playground" is a location.href inside the tool's own
+     web view, so this page ATE the screen she tapped it on — Meta Assets,
+     Freeform, or the Chats app when the tap came from a Compare page (whose
+     lightbox navigates the top window). The iOS app keeps a tool's page alive
+     for the whole app process, so every later tap on that tile opened the
+     Playground again, until a force-quit. That is the whole of "stuck", and it
+     is the Story Room's own send-trip bug (2026-08-26) arriving at the door
+     she uses most often.
+
+     TWO HALVES, AND THE CHIP IS ONLY THE FIRST. Tapping the chip walks back;
+     but she is at least as likely to leave the Playground the ordinary way,
+     and only armTripRestore helps a kept-alive page she returns to later.
+
+     THE CHIP IS SEATED IN THE HEADER ROW, never left floating in the corner:
+     pagehead.js puts the app's chevron at top-left, and a fixed chip at
+     top:12/left:12 lands on top of it. Seating it after the chevron is also
+     what fixes the Story Room's own trip chip, which has been sharing that
+     corner all along. */
+  function backName(path) {
+    var p = String(path || '').split('?')[0];
+    return ({ '/assets': 'Meta Assets', '/chats': 'Chats', '/freeform': 'Freeform',
+              '/scratchpad': 'Story Room', '/storyroom': 'Story Room',
+              '/review': 'Review Queue', '/gallery': 'Gallery' })[p] || 'Back';
+  }
+  /* The header row owns the top-left in the app; a row that is genuinely not
+     displayed (an old native build, which hides .app-header) keeps the chip
+     where it has always been rather than dropping the only way back. */
+  function seatBackChip() {
+    var chip = document.getElementById('backchip');
+    var row = document.querySelector('.app-header');
+    if (!chip || !row) return;
+    if (getComputedStyle(row).display === 'none') return;
+    var chev = document.getElementById('forgeback');
+    if (chev && chev.parentNode === row) row.insertBefore(chip, chev.nextSibling);
+    else row.insertBefore(chip, row.firstChild);
+    chip.classList.add('seated');
+  }
+  /* AND THE TRIP MUST NOT STRAND THE TOOL IT RODE IN ON — the Story Room's own
+     armTripRestore, in the other direction. Wrapping __forgeLeave catches both
+     exits (pagehead's chevron chain and the app's own) with one hook; the
+     replace runs shortly after the native exit has hidden the view, so nothing
+     flashes on the way out. Safari has no __forgeLeave and keeps real history,
+     so nothing changes there. */
+  function armTripRestore(home) {
+    if (!window.__forgeLeave) return;
+    var realLeave = window.__forgeLeave;
+    window.__forgeLeave = function () {
+      realLeave();
+      setTimeout(function () { location.replace(home); }, 250);
+    };
+  }
+  (function () {
+    var back = new URLSearchParams(location.search).get('back') || '';
+    if (!/^\/[^/]/.test(back)) return;               // same-origin path only
+    if (back.split('?')[0] === '/playground') return; // already home
+    var chip = document.getElementById('backchip');
+    chip.href = back;
+    chip.textContent = '\u2039 ' + backName(back);
+    chip.classList.add('on');
+    seatBackChip();
+    armTripRestore(back);
+    // Spend it, like the Story Room trip: a reload lands on a plain Playground
+    // rather than re-arming a walk she has already finished. DEFERRED — the
+    // blocks below read location.search for the ported prompt this very link
+    // carries.
+    setTimeout(function () { try { history.replaceState(null, '', '/playground'); } catch (e) {} }, 0);
+  })();
+
   (function () {
     var q = new URLSearchParams(location.search);
     if (!/[?&]from=scratchpad\b/.test(location.search)) return;
     var chip = document.getElementById('backchip');
     chip.classList.add('on');
+    seatBackChip();
+    // The room's own web view was eaten by this walk, exactly as a picture's
+    // door eats Meta Assets — so leaving the tool puts it back on the shelf.
+    // ARMED BEFORE the beat check below, which returns early for a walk that
+    // came from the room rather than from one beat.
+    armTripRestore('/scratchpad');
     var pad = q.get('pad'), beat = q.get('beat');
     if (!pad || !beat) return;    // came from the room, not from one beat
     padBack = { pad: pad, beat: beat, style: q.get('padstyle') || 'watercolor' };
