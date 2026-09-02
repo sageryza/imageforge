@@ -56,7 +56,11 @@ const SHOTS = [ // v7's shot map, read live 2026-09-02
   [74.6, 83.9, 'ant-story/stills/spoons-kitchen-wide.png', 'spoon bender, kitchen'],
   [83.9, 93.2, 'ant-story/stills/spoons-close.png', 'spoon bender, close'],
   [93.2, 98.26, 'ant-story/clips/god-close.mp4', 'God watching us come out of the theater'],
-  [98.26, 108, 'promptlab/1788144520610-98aary.webp', 'the theater, the punchline'],
+  // The Playground original of the last still is GONE from Storage (measured
+  // 2026-09-02: 403 public, 404 via the Admin SDK), so the still is the frame
+  // v7 itself holds at 103s, banked as a PNG — a derived copy, the best that
+  // exists; the render caps the long edge at 1280 so nothing is lost by it.
+  [98.26, 108, 'ant-story/stills/theater-punchline.png', 'the theater, the punchline'],
 ];
 const keyOf = (p) => path.basename(p).replace(/\.[^.]+$/, '').replace(/^\d+-/, '').slice(0, 24);
 const clips = SHOTS.map(([at, end, p, title]) => {
