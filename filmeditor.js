@@ -246,10 +246,22 @@ function proxyNeeded(probe, bytes) {
 }
 // Pure: the exact bake. CRF with a maxrate ceiling, both edges capped, moov
 // up front so it streams from the first byte.
+// EVERY ENCODE HERE IS CAPPED IN MEMORY — the box is 512MB and idles at
+// 190-270MB (measured 2026-09-02, the same night the first cut's proxies
+// OOM-killed it a minute after a deploy). Peak RSS of one ffmpeg, measured on
+// a 784x1168 23Mbps MJ clip and a 3.8MB 4K PNG: a clip proxy 127MB as it was
+// → 90MB with `-threads 2` + rc-lookahead=10:ref=1; a still proxy 183MB →
+// 129MB; a render segment (1280 cap) 228MB → 146MB with `-threads 1`. x264's
+// memory is threads × lookahead × reference frames, and none of the three is
+// worth anything on a preview or on a 5-second segment. The proxies keep two
+// threads because she is waiting on them; the render is sequential and
+// nobody watches it, so it takes one.
+const PROXY_CAP = ['-threads', '2', '-x264-params', 'rc-lookahead=10:ref=1'];
+const RENDER_CAP = ['-threads', '1', '-x264-params', 'rc-lookahead=10:ref=1'];
 function proxyArgs(src, out, hasAudio) {
-  return ['-y', '-i', src,
+  return ['-y', '-threads', '2', '-i', src,
     '-vf', `scale=${PROXY_EDGE}:${PROXY_EDGE}:force_original_aspect_ratio=decrease:force_divisible_by=2`,
-    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '25',
+    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '25', ...PROXY_CAP,
     '-maxrate', '3M', '-bufsize', '6M', '-pix_fmt', 'yuv420p',
     ...(hasAudio ? ['-c:a', 'aac', '-b:a', '96k'] : ['-an']),
     '-movflags', '+faststart', out];
@@ -259,9 +271,9 @@ function proxyArgs(src, out, hasAudio) {
 // then treats a still exactly like any video source: seek to `in`, play to
 // `out`. -tune stillimage is what keeps 60s of one frame at ~78KB.
 function stillProxyArgs(src, out) {
-  return ['-y', '-loop', '1', '-t', String(CutModel.STILL_MAX), '-i', src,
+  return ['-y', '-threads', '2', '-loop', '1', '-t', String(CutModel.STILL_MAX), '-i', src,
     '-vf', `scale=${PROXY_EDGE}:${PROXY_EDGE}:force_original_aspect_ratio=decrease:force_divisible_by=2,fps=${assembly.FPS},format=yuv420p`,
-    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '25', '-tune', 'stillimage',
+    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '25', '-tune', 'stillimage', ...PROXY_CAP,
     '-an', '-movflags', '+faststart', out];
 }
 
@@ -369,7 +381,9 @@ async function proxyStates(urls, mayEnqueue, kind) {
     const snap = await d.collection(PROXY_COL).doc(idFor(url)).get();
     const v = snap.exists ? snap.data() : null;
     const age = v ? Date.now() - (v.at || 0) : 0;
-    const retry = v && ((v.status === 'making' && age > 20 * 60 * 1000)
+    // A 'making' older than five minutes is a bake the process died holding
+    // (a bake is 10-30s; after an OOM every 'making' doc is a lie) — re-bake.
+    const retry = v && ((v.status === 'making' && age > 5 * 60 * 1000)
       || (v.status === 'error' && age > 10 * 60 * 1000));
     if (mayEnqueue && (!v || retry)) {
       await d.collection(PROXY_COL).doc(idFor(url)).set(
@@ -687,7 +701,7 @@ async function renderCut(doc, opts) {
       // segment filters — one canvas, one fps, its own encode.
       await run(FFMPEG, ['-y', '-loop', '1', '-t', Number(p.out).toFixed(3), '-i', src.file,
         '-vf', assembly.segmentFilters(target), '-an',
-        '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20',
+        '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', ...RENDER_CAP,
         '-movflags', '+faststart', seg], 900000);
     } else {
       // The kept span decoded accurately (-ss/-to as INPUT options = source
@@ -699,7 +713,7 @@ async function renderCut(doc, opts) {
       if (tOut - tIn < MIN_PIECE / 2) throw new Error(`"${p.title || 'a piece'}" trims to nothing`);
       await run(FFMPEG, ['-y', '-ss', tIn.toFixed(3), '-to', tOut.toFixed(3), '-i', src.file,
         '-vf', assembly.segmentFilters(target), '-an',
-        '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20',
+        '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', ...RENDER_CAP,
         '-movflags', '+faststart', seg], 900000);
     }
 

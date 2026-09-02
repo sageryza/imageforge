@@ -260,7 +260,11 @@ console.log('preview proxies:');
   ok(fe.proxyArgs('/in', '/o', false).join(' ').indexOf('-an') !== -1,
     'a silent source bakes a silent proxy');
   // a still's proxy: the picture looped as long as a hold can be, silent
+  // every encode is capped in memory (the 512MB box; measured 2026-09-02)
+  ok(/-threads 2 .*rc-lookahead=10:ref=1/.test(args), 'a clip proxy caps threads and lookahead');
   const sargs = fe.stillProxyArgs('/pic.png', '/o.mp4');
+  ok(/-threads 2 .*rc-lookahead=10:ref=1/.test(sargs.join(' ')), 'a still proxy caps threads and lookahead');
+  ok(/'-threads', '1', '-x264-params', 'rc-lookahead=10:ref=1'/.test(require('fs').readFileSync(__dirname + '/../filmeditor.js', 'utf8')), 'the render segment encodes on one thread');
   ok(sargs.indexOf('-loop') !== -1 && sargs[sargs.indexOf('-loop') + 1] === '1'
     && sargs[sargs.indexOf('-t') + 1] === String(CutModel.STILL_MAX) && sargs.indexOf('-loop') < sargs.indexOf('-i'),
     'a still bakes as a -loop 1 input held STILL_MAX seconds (the input options come before -i)');
