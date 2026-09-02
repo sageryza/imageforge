@@ -1012,3 +1012,36 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
   NEW episode (never appends — the new-version rule); a chat asked to "put
   these in an episode" should call the same route rather than hand-building
   episode docs. Tests: `node scripts/test-cut-picker.js`.
+
+## Her place on a long page — scroll memory and the chapter bar (2026-09-02)
+
+Sophie, on the Similitude visual inventory (97 cards under 75 headings):
+"long scroll pages like the inventory triset a chat just made need to have
+place saving mechanisms — 1 save scroll position 2 chapter titles quick click
+to". Both live in `compare.js` as `window.__pagePlace`, so every page that
+links `/compare.js` has them today, nothing re-posted.
+
+- **Scroll memory.** Where she was is filed in localStorage under the page's
+  own path (the page id) and restored on the next open — in the app too, since
+  a Compare page is an iframe on the app's origin. It is anchored to the
+  chapter she was under plus an offset, not a pixel count, because the lazy
+  pictures above her place have not laid out yet on a fresh open.
+- **The chapter bar.** One sticky row: `31/75 · A RAINBOW / BANDS OF COLOUR`.
+  Tap it for the whole list (the current one lit and in view); tap a title to
+  land its heading under the bar. Progressive expansion — one line until she
+  asks. It draws only on a page that is genuinely long (2+ chapters, more than
+  1.5 screens), so a two-row comparison sheet is untouched.
+- **A template GRID page needs nothing** — its group labels are the chapters
+  (grid.js wires it). Name your groups: an unlabeled group is not a chapter.
+- **A hand-built page needs nothing either** — its `<h2>`s are the chapters.
+  Want different anchors? Call it yourself after `/compare.js`:
+  `window.__pagePlace({ chapters: '.my-heading' })` or
+  `{ chapters: () => [{ el, label }, …], mount }`. It mounts once; a second
+  call replaces the first.
+- **The deck never overwrites the grid's place** — the save waits until the
+  chapters are on screen, and Compare restores it when she comes back from
+  Swipe.
+- Not the chapters-shell: `chapters.js` is a catalog page OF a chat; this is
+  the way around any long page.
+- Test: `node scripts/test-page-place.js`.
+
