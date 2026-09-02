@@ -3769,6 +3769,33 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     floating at the bottom-right, written before the shared arrow existed, so
     it had two back-to-tops in two corners doing one job (and a round plate,
     which the icon rule retired). Removed; `#ptop` is the one.
+- **A LONG PAGE KEEPS HER PLACE AND NAMES ITS CHAPTERS (2026-09-02, Sophie,
+  on the Similitude inventory — 97 cards under 75 headings: "long scroll pages
+  like the inventory triset a chat just made need to have place saving
+  mechanisms — 1 save scroll position 2 chapter titles quick click to").**
+  `window.__pagePlace` in `compare.js`, so every Compare page ever posted has
+  it with nothing re-posted. Two halves: **where she was is restored on the
+  next open** (localStorage under the page's own path, anchored to a CHAPTER
+  plus an offset — a bare pixel count drifts a screen while the lazy
+  pictures above her place land — re-asserted for a few seconds while the
+  layout settles and never after her own gesture), and **one sticky row
+  names the chapter she is in with its count** (`31/75 · a rainbow / bands
+  of colour`); a tap opens the whole list, a tap on a title jumps to it.
+  The GRID template's group labels are the chapters (grid.js hands them
+  in); a hand-built page gets its `<h2>`s by default. Three things not to
+  undo: it draws **only when the page is genuinely long** (2+ chapters and
+  more than 1.5 screens, re-measured as pictures land — a short page carries
+  no dead control); **a save never runs while the grid is hidden behind the
+  swipe view** (it would file y=0 over her place) nor while a restore is
+  settling (the first restore is clamped to a page that has not got its
+  height yet, and filing THAT spot made every reopen land 7px short); and
+  the lit title is brought into the list's view by hand, never
+  `scrollIntoView`, which walks every scrollable ancestor and moves the page
+  she is standing on. The 64px on its right is the app pill's column. Not
+  the chapters-shell (`chapters.js`), which is a catalog page of a chat.
+  Test: `node scripts/test-page-place.js` (every assertion a measurement —
+  the stick, the jump, the reopen judged against her chapter, the swipe
+  round trip, her own scroll standing against the re-asserts).
 - **TRUNCATED TEXT OPENS WITH AN UNDERLINED WORD, NEVER A BUTTON (Aug 2026,
   Sophie: "the ... button for longer than two line prompt is huge … truncated
   text shud always just be a ...with a line under it that links to open

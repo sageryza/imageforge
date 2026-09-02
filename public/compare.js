@@ -763,6 +763,314 @@
   window.addEventListener('resize', fitTitle);
   window.addEventListener('orientationchange', fitSoon);
 
+  /* 5 — HER PLACE ON A LONG PAGE (2026-09-02, Sophie: "long scroll pages
+     like the inventory triset a chat just made need to have place saving
+     mechanisms — 1 save scroll position 2 chapter titles quick click to").
+
+     The visual inventory is 97 cards under 77 headings; every open of it
+     started at the top, and reaching heading 60 meant scrolling past 59.
+
+       window.__pagePlace({ chapters, mount?, key?, min? })
+
+     `chapters` — a selector ('h2') or a function answering
+     [{ el, label }] in page order. The GRID template hands in its group
+     labels (grid.js); a hand-built page gets its <h2>s by default, below.
+
+     TWO HALVES, one file:
+     • SCROLL MEMORY — where she was, saved in localStorage under the page's
+       own path (the page id), restored on the next open. Anchored to a
+       CHAPTER plus an offset, not a bare pixel count: the tiles above her
+       place are lazy pictures whose heights land late, so a raw scrollY
+       drifts by a screen while they load. Re-asserted for a few seconds
+       while the layout settles — and never after SHE scrolls, which is what
+       `hers` records.
+     • THE CHAPTER BAR — one sticky row naming the chapter she is IN, with
+       the count; a tap opens the whole list and a tap on a title jumps to
+       it. Progressive expansion: the row is one line until she asks for
+       the list. It draws only when the page is genuinely long (2+
+       chapters and more than 1.5 screens of content, re-measured as the
+       page loads), so a short page carries no dead control.
+
+     The scroll memory works whether or not the bar is drawn. Inside the
+     app a Compare page is an iframe on this origin, so localStorage here
+     IS the app's; the app's own pill (mkPagePill in chats.html) scrolls the
+     frame's window, which is the scroller both halves read. The 64px on
+     the bar's right is that pill's column. */
+  (function () {
+    var placeCss = document.createElement('style');
+    placeCss.textContent =
+      '.pp{position:sticky;top:0;z-index:6;background:var(--paper);'
+      + 'padding:6px 64px 6px 0;margin:0 0 10px;border-bottom:1px solid var(--line);}'
+      + '.pp[hidden]{display:none !important;}'
+      + '.pp-cur{display:flex;align-items:center;gap:8px;width:100%;min-width:0;'
+      + 'padding:7px 9px;border:1px solid var(--line);border-radius:6px;'
+      + 'background:var(--surface);color:var(--ink);text-align:left;cursor:pointer;'
+      + 'font:700 11px/1.3 -apple-system,"Helvetica Neue",sans-serif;'
+      + 'letter-spacing:.06em;text-transform:uppercase;-webkit-tap-highlight-color:transparent;}'
+      + '.pp-n{flex:none;color:var(--ink2);font-weight:600;letter-spacing:0;font-variant-numeric:tabular-nums;}'
+      + '.pp-t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}'
+      + '.pp-cur svg{flex:none;width:14px;height:14px;transition:transform .15s;}'
+      + '.pp.open .pp-cur svg{transform:rotate(180deg);}'
+      + '.pp-list{position:absolute;left:0;right:64px;top:100%;margin-top:4px;'
+      + 'max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch;'
+      + 'background:var(--surface);border:1px solid var(--line);border-radius:6px;'
+      + 'box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:7;}'
+      + '.pp-list[hidden]{display:none !important;}'
+      + '.pp-it{display:flex;gap:8px;width:100%;padding:9px 10px;border:none;'
+      + 'border-bottom:1px solid var(--line);background:none;color:var(--ink);text-align:left;'
+      + 'font:400 14px/1.3 -apple-system,"Helvetica Neue",sans-serif;cursor:pointer;}'
+      + '.pp-it:last-child{border-bottom:none;}'
+      + '.pp-it.on{color:var(--gold);font-weight:700;}'
+      + '.pp-it .n{flex:none;color:var(--ink2);min-width:2.2em;font-variant-numeric:tabular-nums;}';
+    document.head.appendChild(placeCss);
+
+    var CHEV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+      + 'stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
+    var inst = null;
+
+    function escT(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+    function readSaved(key) {
+      try { var v = JSON.parse(localStorage.getItem(key) || 'null'); return v && typeof v.y === 'number' ? v : null; }
+      catch (_) { return null; }
+    }
+    function writeSaved(key, v) {
+      try { localStorage.setItem(key, JSON.stringify(v)); } catch (_) { /* private mode */ }
+    }
+    function docTop(el) { return el.getBoundingClientRect().top + window.scrollY; }
+    function maxY() {
+      return Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+    }
+
+    window.__pagePlace = function (opts) {
+      opts = opts || {};
+      if (inst) inst.destroy();
+      var key = 'pageplace:' + (opts.key || location.pathname);
+      var min = opts.min || 2;
+      var getChapters = typeof opts.chapters === 'function' ? opts.chapters
+        : function () {
+          return Array.prototype.map.call(document.querySelectorAll(opts.chapters || 'h2'), function (el) {
+            return { el: el, label: (el.textContent || '').trim() };
+          });
+        };
+      var chapters = getChapters().filter(function (c) { return c && c.el && c.label; });
+      var bar = null, cur = null, list = null, curI = -1;
+      var hers = false, alive = true;
+      var barH = function () { return bar && !bar.hidden ? bar.offsetHeight : 0; };
+      // the grid's mount is hidden behind the swipe view: a save then would
+      // file y=0 over her real place, and a restore would measure hidden
+      // headings at 0 — so both wait until the chapters are on screen
+      function onScreen() {
+        var el = opts.mount || (chapters[0] && chapters[0].el);
+        return !el || el.getClientRects().length > 0;
+      }
+
+      // ── the bar ──
+      if (chapters.length >= min) {
+        bar = document.createElement('div');
+        bar.className = 'pp';
+        bar.hidden = true;                       // until the page measures long
+        bar.innerHTML = '<button type="button" class="pp-cur" aria-expanded="false" '
+          + 'aria-label="Chapters"><span class="pp-n"></span><span class="pp-t"></span>' + CHEV + '</button>'
+          + '<div class="pp-list" hidden></div>';
+        cur = bar.querySelector('.pp-cur');
+        list = bar.querySelector('.pp-list');
+        list.innerHTML = chapters.map(function (c, i) {
+          return '<button type="button" class="pp-it" data-i="' + i + '">'
+            + '<span class="n">' + (i + 1) + '</span><span class="t">' + escT(c.label) + '</span></button>';
+        }).join('');
+        var mount = opts.mount || null;
+        if (mount) mount.insertBefore(bar, mount.firstChild);
+        else chapters[0].el.parentNode.insertBefore(bar, chapters[0].el);
+      }
+
+      function setOpen(on) {
+        if (!bar) return;
+        bar.classList.toggle('open', !!on);
+        list.hidden = !on;
+        cur.setAttribute('aria-expanded', on ? 'true' : 'false');
+        if (on) {
+          // the lit title is brought into the LIST's view by hand — never
+          // scrollIntoView, which walks every scrollable ancestor and would
+          // move the page she is standing on
+          var it = list.querySelector('.pp-it.on');
+          if (it) list.scrollTop = Math.max(0, it.offsetTop - list.clientHeight / 2 + it.offsetHeight / 2);
+        }
+      }
+      // which chapter is under the bar right now: the last one whose top has
+      // passed the bar's bottom edge (or the first, above them all)
+      function current() {
+        var line = barH() + 8;
+        var i = 0;
+        for (var k = 0; k < chapters.length; k += 1) {
+          if (chapters[k].el.getBoundingClientRect().top <= line) i = k; else break;
+        }
+        return i;
+      }
+      function paint() {
+        if (!bar) return;
+        var i = current();
+        if (i === curI) return;
+        curI = i;
+        bar.querySelector('.pp-n').textContent = (i + 1) + '/' + chapters.length;
+        bar.querySelector('.pp-t').textContent = chapters[i].label;
+        var its = list.querySelectorAll('.pp-it');
+        for (var k = 0; k < its.length; k += 1) its[k].classList.toggle('on', k === i);
+      }
+      // long enough to earn the bar? re-asked as pictures land
+      function gate() {
+        if (!bar || !onScreen()) return;
+        var long = document.documentElement.scrollHeight > window.innerHeight * 1.5;
+        if (bar.hidden === !long) return;
+        bar.hidden = !long;
+        curI = -1; paint();
+      }
+      function jump(i) {
+        var c = chapters[i]; if (!c) return;
+        hers = true;                       // a jump is her own move
+        if (window.__scrollStop) window.__scrollStop();
+        setOpen(false);
+        window.scrollTo(0, Math.max(0, Math.min(maxY(), docTop(c.el) - barH() - 4)));
+        curI = -1; paint(); save();
+      }
+
+      // ── the memory ──
+      function save() {
+        if (!onScreen()) return;
+        // NOT WHILE A RESTORE IS SETTLING. The first restore runs before the
+        // layout has its full height and is clamped to the page's bottom of
+        // that moment; the scroll event it raises would file that clamped
+        // spot as her place, and every later re-assert would then faithfully
+        // restore the wrong number (measured: 7px short on every reopen).
+        // Her own gesture ends the settling at once.
+        if (settling && !hers && Date.now() - settleFrom < 4000) return;
+        var y = window.scrollY;
+        var i = -1, off = 0;
+        for (var k = 0; k < chapters.length; k += 1) {
+          var t = docTop(chapters[k].el);
+          if (t <= y + barH() + 8) { i = k; off = y - t; } else break;
+        }
+        writeSaved(key, { y: y, i: i, off: off, label: i >= 0 ? chapters[i].label : '', t: Date.now() });
+      }
+      var settling = false;
+      function restore() {
+        if (!alive || !onScreen()) return false;
+        var s = readSaved(key);
+        if (!s || s.y < 40) return false;
+        settling = true;
+        var y = s.y;
+        // the chapter anchor beats the pixel count — the same heading, the
+        // same distance under it, whatever the pictures above did meanwhile
+        if (s.i >= 0 && chapters[s.i] && chapters[s.i].label === s.label) {
+          y = docTop(chapters[s.i].el) + s.off;
+        }
+        y = Math.max(0, Math.min(maxY(), Math.round(y)));
+        if (Math.abs(window.scrollY - y) < 2) return true;
+        window.scrollTo(0, y);
+        curI = -1; paint();
+        return true;
+      }
+      // re-assert while the layout settles, and stop the moment she moves
+      var settleFrom = Date.now();
+      function reassert() {
+        if (!alive || hers) return;
+        if (Date.now() - settleFrom > 4000) return;   // the layout has settled
+        restore();
+      }
+      var timers = [0, 250, 900, 2200].map(function (ms) { return setTimeout(reassert, ms); });
+      var onLoad = function () { setTimeout(reassert, 50); gate(); };
+      window.addEventListener('load', onLoad);
+
+      // HERS is a gesture, never a scroll event: a lazy picture landing above
+      // the fold makes Chrome re-anchor the window by a few pixels, and that
+      // arrives as a scroll event too — reading it as her finger stopped the
+      // re-asserts and left the restore a chapter short (measured: 7px off
+      // on the first cut). A finger, a wheel, a key or the pill's tap all
+      // begin with one of these four.
+      var onHers = function () { hers = true; };
+      ['pointerdown', 'touchstart', 'wheel', 'keydown'].forEach(function (ev) {
+        document.addEventListener(ev, onHers, { capture: true, passive: true });
+      });
+      var raf = 0;
+      var onScroll = function () {
+        if (raf) return;
+        raf = requestAnimationFrame(function () { raf = 0; paint(); save(); });
+      };
+      window.addEventListener('scroll', onScroll, { passive: true });
+      var onHide = function () { save(); };
+      window.addEventListener('pagehide', onHide);
+      document.addEventListener('visibilitychange', onHide);
+
+      var ro = null;
+      try {
+        ro = new ResizeObserver(function () { gate(); reassert(); curI = -1; paint(); });
+        ro.observe(document.body);
+      } catch (_) { /* no ResizeObserver — the load event still gates */ }
+      window.addEventListener('resize', gate);
+
+      var onDocClick = null, onKey = null;
+      if (bar) {
+        cur.addEventListener('click', function () { setOpen(list.hidden); });
+        list.addEventListener('click', function (e) {
+          var b = e.target && e.target.closest ? e.target.closest('.pp-it') : null;
+          if (b) jump(Number(b.getAttribute('data-i')));
+        });
+        onDocClick = function (e) {
+          if (list.hidden) return;
+          if (e.target && e.target.closest && e.target.closest('.pp')) return;
+          setOpen(false);
+        };
+        document.addEventListener('click', onDocClick);
+        onKey = function (e) { if (e.key === 'Escape') setOpen(false); };
+        document.addEventListener('keydown', onKey);
+        gate(); paint();
+      }
+
+      inst = {
+        restore: function () { hers = false; settleFrom = Date.now(); return restore(); },
+        jump: jump,
+        save: save,
+        chapters: function () { return chapters.slice(); },
+        bar: bar,
+        destroy: function () {
+          alive = false;
+          timers.forEach(clearTimeout);
+          window.removeEventListener('load', onLoad);
+          window.removeEventListener('scroll', onScroll);
+          ['pointerdown', 'touchstart', 'wheel', 'keydown'].forEach(function (ev) {
+            document.removeEventListener(ev, onHers, { capture: true });
+          });
+          window.removeEventListener('pagehide', onHide);
+          document.removeEventListener('visibilitychange', onHide);
+          window.removeEventListener('resize', gate);
+          if (ro) ro.disconnect();
+          if (onDocClick) document.removeEventListener('click', onDocClick);
+          if (onKey) document.removeEventListener('keydown', onKey);
+          if (bar && bar.parentNode) bar.parentNode.removeChild(bar);
+          if (inst === this) inst = null;
+        },
+      };
+      return inst;
+    };
+
+    // A HAND-BUILT PAGE GETS IT FROM ITS <h2>s, with nothing to add: every
+    // Compare page ever posted links this file, so the long ones already out
+    // there grow the bar and the memory today. Deferred a tick so a page that
+    // mounts its own (the grid template) is not mounted twice; skipped on a
+    // one-screen deck and on a page that drives its own scrolling.
+    setTimeout(function () {
+      if (inst) return;
+      if (document.body.classList.contains('jg-mombg')) return;
+      if (document.body.hasAttribute('data-nopill')) return;
+      if (document.querySelector('meta[name="forge-pill"][content="off"]')) return;
+      if (document.querySelectorAll('h2').length < 2) return;
+      window.__pagePlace({ chapters: 'h2' });
+    }, 0);
+  })();
+
   // a half-typed note must survive leaving the page
   window.addEventListener('pagehide', function () {
     if (!noteCfg) return;

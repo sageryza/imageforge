@@ -362,6 +362,23 @@
     }).join('');
     mount.innerHTML = html;
 
+    // HER PLACE (2026-09-02, Sophie: "long scroll pages like the inventory
+    // triset … 1 save scroll position 2 chapter titles quick click to"). The
+    // group labels ARE the chapters — the one sticky row names the group she
+    // is in and opens the list of all of them; where she was is restored on
+    // the next open. compare.js owns the whole mechanism (__pagePlace); this
+    // is the wiring. A grid of unlabeled groups (a deck seen as a grid) has
+    // no chapters and draws no bar.
+    var place = window.__pagePlace ? window.__pagePlace({
+      mount: mount,
+      chapters: function () {
+        return Array.prototype.map.call(mount.querySelectorAll('.gd-group'), function (g) {
+          var t = g.querySelector('.gd-glabel .t');
+          return { el: g, label: t ? (t.textContent || '').trim() : '' };
+        });
+      },
+    }) : null;
+
     // ── the PROMPT overlay — the Assets tab's, to the letter ──
     // …plus one thing the Assets tab can't do: on the STYLE side, the lines
     // this variant does NOT share with the row's other variants show in rose
@@ -610,6 +627,7 @@
 
     // the handle the two-view page holds: a mark she made while swiping shows
     // on these tiles when she switches back (both views write the same doc)
-    return { refresh: function () { return loadVerdicts(); } };
+    // …and `place` is what the view switch restores her scroll through
+    return { refresh: function () { return loadVerdicts(); }, place: place };
   };
 })();
