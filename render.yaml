@@ -10,6 +10,13 @@ services:
     plan: starter
     buildCommand: npm install
     startCommand: npm start
+    # A DEPLOY MUST NOT KILL A DRAW (2026-09-02). Render sends the old
+    # instance SIGTERM 60s after the new one is up and SIGKILL after this
+    # many seconds; server.js holds on SIGTERM while anything is drawing or
+    # cutting (shutdown-hold.js). 300 is Render's maximum without a support
+    # ticket. Also set live by API the same night — this keeps a Blueprint
+    # sync from reverting it.
+    maxShutdownDelaySeconds: 300
     envVars:
       # Set the values in the Render dashboard — never commit real keys.
       - key: OPENAI_API_KEY

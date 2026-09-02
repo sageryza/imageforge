@@ -8037,6 +8037,23 @@ process.on('unhandledRejection', (err) => {
 
 app.listen(PORT, () => console.log(`Server v11 running on http://localhost:${PORT}`));
 
+// A DEPLOY MUST NOT KILL A DRAW (2026-09-02, Sophie: "why would a run ever
+// be killed"). Every merge to main is a deploy and a deploy restarts this
+// process: Render brings the new instance up, sends the old one SIGTERM 60s
+// later and SIGKILL after the service's shutdown delay — 30s by default,
+// 300s now (render.yaml `maxShutdownDelaySeconds`, also set by API). Node
+// exits on SIGTERM at once unless told otherwise, so every draw and cut the
+// old instance was holding died with it, billed and never received. Now it
+// holds: the process stays up until nothing is drawing or cutting, or the
+// cap (shutdown-hold.js), and only then exits. New requests are already
+// going to the new instance by the time this fires, so nothing is refused.
+process.on('SIGTERM', () => {
+  require('./shutdown-hold').holdUntilClear({
+    busy: () => drawingNow.size + cuttingNow.size,
+    log: (m) => console.log(`shutdown: ${m}`),
+  }).then(() => process.exit(0), () => process.exit(0));
+});
+
 // ─── Keep-awake ─────────────────────────────────────────────────────
 // Free-tier hosts spin the server down after ~15 min with no inbound
 // traffic, causing slow cold starts / "Load failed" on the next visit.

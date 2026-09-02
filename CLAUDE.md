@@ -233,18 +233,28 @@ than deploying by reflex.
   update it, and supersede the old one.
 - **LIVE — the real deploy.** Everyone sees it, her saved place and her app
   wrapper included. Do this when she says, or for a fix she is waiting on.
-  **Render has been ignoring pushes since 2026-09-01** (`commit_ignored` on
-  every commit, even with `autoDeploy: yes` and no build filter — its own
-  event log says so), so a merge does NOT reach the site by itself; trigger it
-  with **`node scripts/render-deploy.js`** (`RENDER_API_KEY` is in the
-  environment). **NEVER the raw `POST …/deploys` any more (2026-09-02,
-  Sophie: "i thought there was a check in place not to restart the server if
-  things were being drawn? there shud be!!!!!!").** The script reads
-  `GET /api/promptlab/inflight` — the exact set of runs the live process is
-  drawing and cutting — and waits until it is empty before it deploys (`--dry`
-  to look, `--max <min>` past the default 30, `--now` only when it must ship
-  and you say so). A deploy kills the old instance mid-request, and a draw is
-  a request that runs 20s to 14 minutes.
+  **A MERGE IS A DEPLOY AGAIN — measured 2026-09-02, 10:25pm and 10:27pm
+  Pacific: two merges, two `deploy_started` events each carrying the merge as
+  `newCommit`.** The 2026-09-01 note that Render was ignoring pushes
+  (`commit_ignored` on every commit) was true that day and is not true now;
+  do NOT also trigger a deploy after a merge — that is two restarts for one
+  change. `node scripts/render-deploy.js` is for the case a push really is
+  ignored (its `--dry` says what is in flight and it waits for it); never the
+  raw `POST …/deploys`.
+  **AND A DEPLOY MUST NOT KILL A DRAW (2026-09-02, Sophie: "i thought there
+  was a check in place not to restart the server if things were being drawn?
+  there shud be!!!!!!" · "why would a run ever be killed").** There was not.
+  Render brings the new instance up, sends the old one SIGTERM 60s later and
+  SIGKILL after the service's shutdown delay — 30s by default — and Node
+  exits on SIGTERM at once, so every draw the old instance held died with it,
+  billed and never received. Two things now: the delay is **300s** (Render's
+  maximum without a support ticket; `maxShutdownDelaySeconds` in render.yaml
+  AND set live by API), and **server.js holds on SIGTERM** until nothing is
+  drawing or cutting, or 290s (`shutdown-hold.js`; `node
+  scripts/test-shutdown-hold.js`). So a single draw and most sheets survive a
+  merge; a 14-minute 4K sheet still cannot, and the sweep's redraw is the
+  fallback for that one, at a second draw's price. `GET
+  /api/promptlab/inflight` is the read.
 
 **The habit: PHOTO every round, SANDBOX when she wants to tap it, LIVE when
 she says.** Ask which she wants rather than assuming.
