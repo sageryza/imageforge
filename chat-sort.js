@@ -51,6 +51,8 @@
 // The question detector is shared with the Questions button, so a chat asking
 // her something reads the same to both surfaces.
 const { sentences } = require('./questions');
+// The project vocabulary and the fold — one rule with the Chats app's page.
+const projectWords = require('./project-words');
 
 // Her WHEN folders — see above. Matched case-insensitively.
 // The two RULE words joined them in Aug 2026 (Sophie: "i think i'll have to do
@@ -245,6 +247,10 @@ function shouldAutoSort(reg, { now = Date.now(), messages = 0, enabled = true } 
   // having been asked.
   if (r.catNone) return { sort: false, why: 'hers-unfiled' };
   if (r.category) {
+    // A CHAT-FILED chat skips the paid call — that is the whole saving. It is
+    // not locked the way hers is: the CHAT re-files itself when the subject
+    // changes, so nothing here has to re-ask on its behalf.
+    if (r.catBy === 'chat') return { sort: false, why: 'chat-filed' };
     if (r.catBy !== 'auto') return { sort: false, why: 'hers' };  // rule 1 — one tap locks it
     // Its own earlier answer, revisited — see the RESORT_* block above. The
     // rest period is checked FIRST and reads only the registry, so the caller
@@ -392,7 +398,7 @@ function pendingAsk(msgs, { fallbackChars = 800 } = {}) {
 
 const SORT_SYS = `You file one of Sophie's Claude chats into one of HER OWN folders, or you leave it alone, and you say whether the work in it finished.
 
-Return JSON: {"category": "...", "kind": "...", "why": "...", "state": "...", "stateWhy": "..."}
+Return JSON: {"category": "...", "kind": "...", "why": "...", "state": "...", "stateWhy": "...", "project": "..."}
 
 "category": EXACTLY one of the folder names you are given, copied character for character, or "none". This is the SUBJECT — what the chat is about.
 "kind": EXACTLY one of the folders MARKED "what the work IS", or "none". This is what the chat DID, whatever it was about.
@@ -407,6 +413,7 @@ Answer "kind": "none" when the chat's work is the subject itself — writing the
   "mid" — it stopped in the middle of something: a half-built feature, a plan nobody carried out, work still clearly in flight.
   "blocked" — it stopped because something could not be done: a limit nobody could get past, a tool that does not exist, an approach that failed and was not replaced.
 "stateWhy": under 90 characters, what was finished or what it stopped on. Concrete — name the thing, not "the work".
+"project": the PROJECT the chat is work on — the tool, game, film, app, story or piece it is about — in one or two lowercase words, or "none". This is NOT a folder and it is not filed anywhere she looks; it only groups chats about the same thing on one page. Reuse a name from the "projects so far" list whenever the chat is about that same thing, spelled exactly as listed (the Similitude game is the triset project; the Story Room is "story"); coin a new one only for a thing not on the list. The word is the THING, never the kind of work: a bug fix in the Playground is project "playground". "none" only when the chat is about nothing in particular.
 
 The folders are hers. You are matching a chat to how SHE already uses them — the chats she has filed in each one are the definition, not the words in the name. Never invent a folder, never merge two, never answer with a name that is not on the list.
 
@@ -416,7 +423,7 @@ Answer "none" whenever it is not clear. Filing a chat takes it off the main list
  * The call, as text. Split out from the network so the whole decision is
  * testable without a key.
  */
-function buildSortPrompt({ name, reg, msgs, cats, examples }) {
+function buildSortPrompt({ name, reg, msgs, cats, examples, projects }) {
   const r = reg || {};
   const ex = examples || {};
   const folders = (cats || []).map((c) => {
@@ -439,7 +446,12 @@ function buildSortPrompt({ name, reg, msgs, cats, examples }) {
   if (r.statusDoing) bits.push('What it says it is doing: ' + String(r.statusDoing).slice(0, 200));
   if (r.statusNeed) bits.push('What it says it needs: ' + String(r.statusNeed).slice(0, 200));
   if (r.wrapLine) bits.push('Its wrap-up line: ' + String(r.wrapLine).slice(0, 200));
+  // The projects the page already groups by — project-words.js's vocabulary,
+  // most used first — so the model spells a project the way the button and
+  // the page will look for it. A hint, never a limit.
+  const proj = (projects || []).slice(0, 60);
   const user = 'Sophie\'s folders, and the chats she filed in each:\n' + folders
+    + (proj.length ? '\n\nProjects so far (most chats first): ' + proj.join(', ') : '')
     + '\n\n---\n\n' + bits.join('\n')
     + '\n\nThe conversation:\n\n' + digestOf(msgs);
   return { system: SORT_SYS, user };
@@ -484,11 +496,69 @@ function pickCategory(out, cats) {
   return oneFolder(o.category, cats);
 }
 
+// ---- A CHAT FILES ITSELF (2026-09-01, Sophie: "chats choose their own" ·
+// "have them check in periodically in case the subject changes") -------------
+// This REVERSES the do-NOT-post-a-category rule chats carried since Aug 2026.
+// That rule rested on one measurement — a chat-posted folder would come from
+// "the same ~7% that ever post an Update card" — and remeasured 2026-09-01 it
+// is 98% (229 of the 234 chats active in seven days had posted both a status
+// card and an Update card). The chat is already reading its own thread when it
+// writes those, so naming the folder there costs nothing, where the server's
+// own pick is a paid model call over a digest of the first two and last four
+// messages. The paid call stays as the FALLBACK for a chat that says nothing.
+//
+// Every guardrail the sorter obeys is enforced here too, in code rather than
+// in a rule a chat could forget — the sorter's own lesson (`kind` in its own
+// field, because a prompt instruction is a hope):
+//
+//   1. HER FILING IS FINAL. `catBy: 'sophie'` refuses outright, and so does
+//      her `catNone` ("leave it unfiled" is a decision, not an absence).
+//   2. IT NEVER INVENTS A FOLDER. A word outside her live vocabulary is
+//      DROPPED and named in the answer, never written.
+//   3. TRIAGE IS OFF LIMITS — `look at` / `come back to` are hers to apply,
+//      and `waiting for a response` / `to be reviewed` carry manual rules.
+//   4. "NONE" IS A NORMAL ANSWER. An empty set leaves the chat unfiled and
+//      stamps `catTriedAt`, which rests the paid sorter for a day — a chat
+//      that has looked and found nothing must not bill her for the same no.
+//
+// A chat may re-file itself as often as the subject really changes (research
+// that became a request), which is why its own earlier answer never locks it
+// out; only hers does.
+function selfFilePlan({ reg, cats, labels } = {}) {
+  const r = reg || {};
+  if (r.deletedAt) return { ok: false, why: 'deleted' };
+  if (r.catBy === 'sophie') return { ok: false, why: 'hers' };
+  if (r.catNone) return { ok: false, why: 'hers-unfiled' };
+  const known = (cats || []).filter((c) => !isTriage(c));
+  const asked = [].concat(labels == null ? [] : labels)
+    .map((c) => String(c || '').trim()).filter(Boolean);
+  const keep = [], dropped = [];
+  asked.forEach((c) => {
+    const hit = known.find((k) => norm(k) === norm(c));
+    if (!hit) { dropped.push(c); return; }
+    if (!keep.some((k) => norm(k) === norm(hit))) keep.push(hit);
+  });
+  return { ok: true, why: keep.length ? 'filed' : 'none', labels: keep, dropped };
+}
+
+/**
+ * The project this chat is about, as the KEY the page groups on — or '' for
+ * none. Folded through project-words.js so "Playground" / "the playground" /
+ * "playground chats" are one key, and never written over a project she set
+ * by hand (`projectBy:'sophie'`, the `catBy` rule again).
+ */
+function pickProject(out, reg) {
+  const o = out && typeof out === 'object' ? out : {};
+  if (reg && reg.projectBy === 'sophie') return '';
+  return projectWords.keyOf(o.project);
+}
+
 module.exports = {
+  pickProject,
   regLabels,
   TRIAGE, WORK_KINDS, MIN_MESSAGES, RETRY_MS, BEFORE_EVERYTHING, SORT_SYS,
   RESORT_MIN_NEW,
   isWorkKind, workKinds,
   sortableCategories, examplesFor, shouldAutoSort, filedStamp, archiveHint, pickState, pendingAsk,
-  digestOf, buildSortPrompt, pickCategory,
+  digestOf, buildSortPrompt, pickCategory, selfFilePlan,
 };

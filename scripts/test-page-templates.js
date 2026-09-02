@@ -655,4 +655,43 @@ ok('archiveMapOf survives junk without throwing', () => {
   assert.deepStrictEqual(archiveMapOf({ applyArchive: true }), {});
 });
 
+ok('the deck-view fields reach a GRID page too — every page has a swipe half', () => {
+  // A grid page of pictures she has already hearted is exactly where
+  // stamp:false is needed, and until 2026-08-31 the grid branch dropped it.
+  const v = validateTemplate('grid', {
+    groups: [{ label: 'castle', items: [{ text: 'a', id: 'one' }, { text: 'b', id: 'two' }] }],
+    stamp: false, voice: true, start: 'swipe',
+  });
+  assert.strictEqual(v.ok, true);
+  assert.strictEqual(v.data.stamp, false, 'a grid page must be able to turn the stamp off');
+  assert.strictEqual(v.data.voice, true, 'the mic rides the swipe half of a grid page');
+  assert.strictEqual(v.data.browse, true, 'browse is the deck view\'s default on either template');
+  assert.strictEqual(v.data.start, 'swipe');
+});
+
+ok('the deck-view fields keep their deck behaviour', () => {
+  const on = validateTemplate('deck', { items: [{ text: 'a' }] });
+  assert.strictEqual(on.data.browse, true);
+  assert.strictEqual('stamp' in on.data, false, 'the stamp stays on unless a page says otherwise');
+  assert.strictEqual('voice' in on.data, false);
+  const off = validateTemplate('deck', { items: [{ text: 'a' }], browse: false, stamp: false });
+  assert.strictEqual(off.data.browse, false);
+  assert.strictEqual(off.data.stamp, false);
+});
+
+ok("pace: 'quick' rides the data; labored is the absent default", () => {
+  // 2026-09-01, Sophie: "a toggle for chats to choose if it's a quick or
+  // labored decision + note … heart or x action DOES move deck forward"
+  const q = validateTemplate('deck', { items: [{ text: 'a' }], pace: 'quick' });
+  assert.strictEqual(q.data.pace, 'quick');
+  const lab = validateTemplate('deck', { items: [{ text: 'a' }] });
+  assert.strictEqual('pace' in lab.data, false, 'labored stores nothing — the default');
+  const junk = validateTemplate('grid', {
+    groups: [{ items: [{ text: 'a' }] }], pace: 'sprint',
+  });
+  assert.strictEqual('pace' in junk.data, false, 'an unknown pace is dropped, never stored');
+  const g = validateTemplate('grid', { groups: [{ items: [{ text: 'a' }] }], pace: 'quick' });
+  assert.strictEqual(g.data.pace, 'quick', 'a grid page has a swipe half, so it can be quick too');
+});
+
 console.log(`all ${n} checks passed`);

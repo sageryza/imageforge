@@ -96,5 +96,45 @@ is(/r\.redrawnAt\?\.toMillis\?\.\(\) \|\| r\.createdAt/.test(src), true,
 is(!/function panelsCfgOf\(/.test(src), true,
   'server.js keeps no second panelsCfgOf — it lives in promptlab-sweep.js');
 
+
+// --- a SINGLE run killed mid-draw is redrawn, not failed (2026-09-02) ------
+// The OOM kill under Sophie's first {curly-bracket} batch: four low draws,
+// billed, never received. The doc carries everything the job takes.
+const { singleCfgOf } = require('../promptlab-sweep');
+const single = (over, extra) => ({
+  id: 'r1', status: 'running', engine: 'gptimage', createdAt: ago(over), images: [],
+  prompt: 'a paper bag of beer hidden behind a drainpipe',
+  fullPrompt: 'Use only the style of the attached style reference.\n\na paper bag of beer hidden behind a drainpipe\n\nDo not include any text in the image.',
+  gptStyle: 'evan', quality: 'low', size: '1024x1024', ...extra,
+});
+is(act(single(11 * MIN)), 'redraw', 'a single gpt run past the cutoff is redrawn');
+is(act(single(3 * MIN)), null, 'a three-minute single draw is still legitimate');
+is(act(single(11 * MIN, { redraws: REDRAW_CAP })), 'fail', 'a single run at the cap fails honestly');
+is(act(single(11 * MIN, { redraws: REDRAW_CAP - 1 })), 'redraw', 'one under the cap still redraws');
+is(act(single(11 * MIN, { engine: 'replicate' })), 'fail', 'a Replicate run is not redrawn (re-tapping it is free)');
+is(act(single(11 * MIN, { fullPrompt: '' })), 'fail', 'a doc with no fullPrompt is not rebuildable');
+is(act(single(11 * MIN, { images: ['https://x/p.webp'] })), 'fail', 'a run holding a picture is not redrawn');
+// the rebuilt cfg is what runPromptLabGptJob takes
+const c = singleCfgOf(single(0, { character: true, photoRef: 'https://x/photo.jpg', characters: [{ id: 'c1', name: 'Mason' }], padTarget: { pad: 'p', beat: 'b' } }));
+is(c.head, 'Use only the style of the attached style reference.', 'the head is recovered from the stored text');
+is(c.tail, 'Do not include any text in the image.', 'the tail is recovered from the stored text');
+is(c.prompt, 'a paper bag of beer hidden behind a drainpipe', 'her words are the prompt');
+is(c.styleId, 'evan', 'the style is the stored one');
+is(c.quality, 'low', 'the quality is the stored one');
+is(c.size, '1024x1024', 'the canvas is the stored one');
+is(c.character, true, 'the Sophie card toggle rides');
+is(c.photoUrl, 'https://x/photo.jpg', 'her photo is named by url for the caller to fetch');
+is(c.photoBuf, null, 'the photo bytes are NOT invented');
+is(c.chars.length, 1, 'her picked cast rides');
+is(c.padTarget && c.padTarget.beat, 'b', 'the story-beat landing rides');
+// a plain run (no wrapper): her words lead and the seam is honest
+const plain = singleCfgOf(single(0, { fullPrompt: 'a paper bag of beer hidden behind a drainpipe', gptStyle: 'plain' }));
+is(plain.head, '', 'a plain run has no head');
+is(plain.tail, '', 'a plain run has no tail');
+// a stored text that no longer holds her words: empty halves, never a guess
+const odd = singleCfgOf(single(0, { fullPrompt: 'something else entirely' }));
+is(odd.head + odd.tail, '', 'a seam that cannot be found yields empty halves');
+is(singleCfgOf(single(0, { panels: ['a'] })), null, 'a panels run is not a single');
+
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

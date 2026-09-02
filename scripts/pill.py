@@ -302,9 +302,14 @@ if(window.MutationObserver && document.body){
     attributeFilter:['hidden','class','style']});
 }
 
-// The back-to-top button. Appears past one full screen; a tap stops any
-// running autoscroll FIRST (otherwise the scroll keeps walking the page back
-// down under the animation) and then jumps.
+// The back-to-top button. Appears a LITTLE way down — 150px, not a full
+// screen (2026-08-29, Sophie: "maybe make the arrow appear as soon as i
+// scroll down a little"; it shipped at one full viewport and that is
+// history, not a rule). A tap stops any running autoscroll FIRST (otherwise
+// the scroll keeps walking the page back down under the animation) and then
+// jumps. PTOP_AT is the one number — the five baked copies and mkPagePill
+// carry the same 150, pinned by test-back-to-top.js.
+var PTOP_AT=150;
 var _ptop=document.getElementById('ptop');
 if(_ptop){
   _ptop.innerHTML='<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" '+
@@ -317,7 +322,7 @@ if(_ptop){
 }
 function syncPtop(){
   if(!_ptop) return;
-  _ptop.classList.toggle('on', sTop() > sView() && pageScrolls());
+  _ptop.classList.toggle('on', sTop() > PTOP_AT && pageScrolls());
 }
 window.__pillTopSync=syncPtop;
 window.addEventListener('scroll',syncPtop,{passive:true});

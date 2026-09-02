@@ -147,6 +147,14 @@ function ctForName(name) {
   if (n.endsWith('.caf')) return 'audio/x-caf';
   if (n.endsWith('.flac')) return 'audio/flac';
   if (/\.(ogg|oga|opus)$/.test(n)) return 'audio/ogg';
+  // NOT ONLY MEDIA (2026-08-31, found live): a PDF filed into the Dump fell
+  // through to image/png here AND in extFor, so the print sheets Sophie was
+  // handed downloaded as "….png" and would not open. The image/png fallback
+  // itself stays — the Dump is a photo box and an extension-less iOS export
+  // really is usually a picture — but a file that SAYS what it is must never
+  // be costumed as one.
+  if (n.endsWith('.pdf')) return 'application/pdf';
+  if (n.endsWith('.zip')) return 'application/zip';
   return 'image/png';
 }
 function extFor(ct) {
@@ -168,6 +176,8 @@ function extFor(ct) {
   if (c.includes('webp')) return 'webp';
   if (c.includes('jpeg') || c.includes('jpg')) return 'jpg';
   if (c.includes('heic') || c.includes('heif')) return 'heic';
+  if (c.includes('pdf')) return 'pdf';
+  if (c.includes('zip')) return 'zip';
   return 'png';
 }
 const isVideoCT = (ct) => /^video\//i.test(String(ct || ''));

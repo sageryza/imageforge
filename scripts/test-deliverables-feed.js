@@ -18,7 +18,7 @@
 //      labels every image it hands over, which is what tells a hand-over from
 //      the hook's background catch (a chat icon, a film's cover frame).
 const assert = require('assert');
-const { buildFeed, burstsFor } = require('../deliverables-feed');
+const { buildFeed, burstsFor, dismissKey } = require('../deliverables-feed');
 
 const T = Date.parse('2026-08-28T20:00:00Z');
 const MIN = 60 * 1000, HOUR = 60 * MIN;
@@ -130,6 +130,49 @@ t('…and it comes back when the chat delivers again', () => {
     filmy: { lastHerAt: at(20 * MIN) },   // she wrote BEFORE the film landed
   }) });
   assert.ok(again.items.some((i) => i.kind === 'video'));
+});
+
+// ── 2026-08-31, Sophie: "deliverables don't leave when i answer them and
+// there's no way to swipe them away" ────────────────────────────────────────
+t('a same-url re-pin cannot un-answer a row — answered is judged on firstAt', () => {
+  // handed over at 60m ago, she answered at 30m, the chat's next turn
+  // re-pinned the same url at 5m (record() bumps updatedAt). Pre-fix the row
+  // came back forever; the re-post of a url is an update, never a new
+  // hand-over. VERIFIED FAILING against the pre-fix filter.
+  const repinned = [{ kind: 'video', chat: 'filmy', title: 'Evan v20', url: 'https://s/f.mp4',
+    at: at(60 * MIN), updatedAt: at(5 * MIN), versions: 3, older: [] }];
+  const out = buildFeed({ deliverables: repinned, assets: [], chats: {
+    filmy: { lastHerAt: at(30 * MIN) },
+  } });
+  assert.ok(!out.items.some((i) => i.kind === 'video'), 'the re-pinned row she answered is back');
+});
+
+t('…while a genuinely NEW version (a new url, a fresh at) returns the work', () => {
+  const newCut = [{ kind: 'video', chat: 'filmy', title: 'Evan v21', url: 'https://s/g.mp4',
+    at: at(5 * MIN), updatedAt: at(5 * MIN), versions: 1, older: [] }];
+  const out = buildFeed({ deliverables: newCut, assets: [], chats: {
+    filmy: { lastHerAt: at(30 * MIN) },
+  } });
+  assert.ok(out.items.some((i) => i.kind === 'video'));
+});
+
+t('her ✕ puts a film row away, and a same-url re-pin cannot bring it back', () => {
+  const repinned = [{ kind: 'video', chat: 'filmy', title: 'Evan v20', url: 'https://s/f.mp4',
+    at: at(60 * MIN), updatedAt: at(5 * MIN), versions: 3, older: [] }];
+  const dismissed = { [dismissKey({ url: 'https://s/f.mp4' })]: at(30 * MIN) };
+  const out = buildFeed({ deliverables: repinned, assets: [], chats: {}, dismissed });
+  assert.ok(!out.items.some((i) => i.kind === 'video'));
+});
+
+t('her ✕ puts a picture row away, and a NEWER burst shows by itself', () => {
+  // dismissed 2h ago — this morning's burst (30m ago) is newer than the stamp
+  const dismissed = { [dismissKey({ kind: 'images', chat: 'panels' })]: at(2 * HOUR) };
+  const out = buildFeed({ deliverables: [], assets, chats, dismissed });
+  assert.ok(out.items.some((i) => i.kind === 'images'), 'a burst newer than her ✕ should show');
+  // dismissed just now — everything handed over so far is dealt with
+  const now = { [dismissKey({ kind: 'images', chat: 'panels' })]: at(0) };
+  const gone = buildFeed({ deliverables: [], assets, chats, dismissed: now });
+  assert.ok(!gone.items.some((i) => i.kind === 'images'), 'her ✕ did not put the row away');
 });
 
 t('an unlabeled picture is not a delivery', () => {

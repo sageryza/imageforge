@@ -372,9 +372,18 @@ loadConfig().then(() => {
   const cropperMod = require('./cropper');
   cropperMod.init({ membryDb: storyDb });
   app.use('/api/crop', cropperMod.router);
+  // Shoebox — the polaroids in her Memory Library, viewable inside the app.
+  // Read-only over membry; the membry handle is handed in like its siblings'.
+  const shoeboxMod = require('./shoebox');
+  shoeboxMod.init({ membryDb: storyDb });
+  app.use('/api/shoebox', shoeboxMod.router);
   // Freeform — your own reference images + your own words, sent verbatim. The
   // one image surface that adds NOTHING to a prompt (no style prefix/suffix).
   app.use('/api/freeform', require('./freeform').router);
+  // Triset — triangular SET solitaire: a pool of triangular picture cards,
+  // find a set, and the named qualities draw a NEW card (the venn center).
+  // Mounted here so config-loader has hydrated OPENAI_API_KEY first.
+  app.use('/api/triset', require('./triset').router);
   // Vector Studio — described drawings → a pastel sheet → cut-outs → SVG. The
   // one surface whose output is resolution-free, so a drawing can go on a
   // poster, a shirt or a die-cut sticker. Mounted here so config-loader has
@@ -891,6 +900,9 @@ app.get('/freeform', serveGated('freeform.html', { pill: true }));
 app.get('/vector', serveGated('vector.html', { pill: true }));
 // One screen, never scrolls — so no autoscroll pill, like /opinions.
 app.get('/crop', serveGated('crop.html'));
+// Shoebox: the polaroids in her Memory Library, on one shelf in the app. The
+// front for /api/shoebox; read-only over her memories.
+app.get('/shoebox', serveGated('shoebox.html', { pill: true }));
 // Story Timeline: dictated moments -> cards you can order, join into
 // sequences, edit, divide and delete. The front for /api/timeline.
 app.get('/timeline', serveGated('timeline.html', { pill: true }));
@@ -917,6 +929,14 @@ app.get('/instagram', serveGated('instagram.html', { pill: true }));
 // from opinions-feed.json + /api/opinions extras. Served WITHOUT the pill:
 // one screen, the page never scrolls.
 app.get('/opinions', serveGated('opinions.html'));
+// Triset — triangular SET solitaire. No pill: one screen, never scrolls.
+// SIMILITUDE — her name for the game since 2026-09-01 ("rename it
+// similitude"). The DISPLAY name changed; the route, the API, the Firestore
+// collection and the storage prefix are identity and are never re-keyed (the
+// chat-rename rule), so /triset keeps working for the pin and any saved link
+// and /similitude is the same page under the name she uses.
+app.get('/triset', serveGated('triset.html'));
+app.get('/similitude', serveGated('triset.html'));
 // Desktop queue: the Mac-only tasks chats have batched into
 // docs/desktop-tasks.md, and the ones already checked off. Read-only, and
 // deliberately UNLINKED — no tile, no wrapper ("somewhere out-of-the-way",
@@ -928,6 +948,11 @@ app.get('/desktop', serveGated('desktop.html', { pill: true }));
 // Auto-fed by media pins + POST /api/deliverables; a new entry pushes past
 // the per-chat bell. Served WITH the pill: a list that scrolls.
 app.get('/deliverables', serveGated('deliverables.html', { pill: true }));
+// Work log: a timeline of what she worked on, oldest first — one row per chat
+// under the day it began, in her own words (Sophie's ask, 2026-09-02). A
+// projection of the chat registry; read-only, no model call. Served WITH the
+// pill: a long list that scrolls.
+app.get('/worklog', serveGated('worklog.html', { pill: true }));
 // The Sophie character card, for the pad's draw-here toggle (refs/ is not
 // web-served, so this one file is exposed deliberately — it's her own
 // hearted render, and the page behind the gate is the only thing asking).
@@ -2522,7 +2547,11 @@ app.get('/api/gallery/assets/all', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   try {
     if (!admin.apps.length) return res.json({ assets: [], total: 0, offset: 0, limit: 0 });
-    const limit = Math.min(300, Math.max(1, parseInt(req.query.limit, 10) || 150));
+    // A SEARCH may take 1000 a page (2026-09-01): the rows are already in
+    // memory and a common word is many pages — "mirror" is 1,378 — so 300 a
+    // page meant five round trips before the page could draw the last hit.
+    // The browse walk keeps 300; those pages are what the phone renders.
+    const limit = Math.min(req.query.q ? 1000 : 300, Math.max(1, parseInt(req.query.limit, 10) || 150));
     const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
     if (!metaAssetsCache || Date.now() - metaAssetsCacheAt > META_ASSETS_TTL || req.query.fresh) {
       // select() keeps the scan to the fields the union needs — no vote
@@ -3412,11 +3441,30 @@ app.get('/size-tier.js', (req, res) => {
 // same way — so the Playground's Prompt panel prints the REAL characters
 // clause her typed cast will send (sheetGrid.castBlock), rather than keeping
 // a second copy of the wording that drifts the day the clause is reworded.
+// Which PROJECT a chat belongs to, shared the same way (2026-09-02): the Chats
+// app's stacked-cards button and the page behind it group chats by the ONE
+// rule chat-sort.js offers the model its vocabulary from, so a project the
+// sorter files is spelled the way the page already groups.
+app.get('/project-words.js', (req, res) => {
+  res.type('application/javascript');
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/project-words.js');
+});
 app.get('/sheet-grid.js', (req, res) => {
   res.type('application/javascript');
   res.set('Cache-Control', 'no-cache, must-revalidate');
   res.sendFile(__dirname + '/sheet-grid.js');
 });
+
+// The one shape of a Film Editor cut (2026-09-02): the page validates,
+// resolves and diffs the SAME two lanes the server renders, so a still's
+// hold, a sound's anchor and the move rules cannot drift between them.
+app.get('/cut-model.js', (req, res) => {
+  res.type('application/javascript');
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/cut-model.js');
+});
+
 // Chunking: the clip library — a shelf of every short self-contained piece the
 // app has made, four to a row, with search as the whole interface. Engine is
 // /api/clips (clips.js). `/clips` is the honest alias; `/chunking` is the name
@@ -5804,12 +5852,31 @@ const PL_GPT_STYLES = {
     noCharacter: true,
   },
 };
+// "Triangle" (2026-08-31, Sophie: "add triangle as a new playground style ·
+// w image and prompt w new equilateral") — the triangular picture cards the
+// Triset game is made of, offered as a Playground tile so she can draw one of
+// anything instead of only getting them out of a found set.
+// DERIVED FROM `dreamy`, NEVER TRANSCRIBED BESIDE IT: it is the same reference
+// image (refs/dream-mystery.jpg — "w image"), the same anti-content prefix and
+// the same tail, with dreamy's rectangular BORDER clause swapped for the
+// equilateral triangle-card one. So a reword of hers reaches this tile the day
+// she makes it, and the game and the tile can never disagree about what a card
+// is. The wording and the swap live in triangle-clause.js, the one copy shared
+// with triset.js — the "new equilateral" half of her ask is that clause,
+// including the 2026-08-31 "USE THE TRIANGLE" composition line she called
+// perfect. Her no-text toggle rides along untouched (that clause sits after
+// the border one), and the tile carries its own panels swap, because dreamy's
+// anchor is the clause this just consumed.
+PL_GPT_STYLES.triangle = require('./triangle-clause').triangleStyle(PL_GPT_STYLES.dreamy);
 // FREEFORM'S BOILERPLATE TOGGLE SENDS THIS TABLE'S OWN WORDING (2026-08-28,
 // Sophie: "the text we use for dreamy or watercolor"). Handed in rather than
 // required, because freeform.js is mounted hundreds of lines above this const
 // and a require would read it before it exists. server.js stays the one owner
 // of what is actually sent.
 require('./freeform').init({ gptStyles: PL_GPT_STYLES, fileCreation: fileCreationDoc });
+// Triset draws its cards in the Dreamy recipe with a triangle-card clause
+// swapped in — handed in for the same reason as freeform's boiler above.
+require('./triset').init({ gptStyles: PL_GPT_STYLES, fileCreation: fileCreationDoc });
 // The no-text switch on a style's tail. It SWAPS the style's own text clause
 // where that clause is there to swap, so the sent prompt says one thing about
 // text instead of two contradicting things; if she has edited the tail and her
@@ -5871,6 +5938,78 @@ const plCancelled = new Set();
 // A PANELS run parked on 'ready' with its sheet banked is a DIFFERENT loss and
 // is on a much shorter clock — see promptlab-sweep.js, which owns both rules.
 const plSweep = require('./promptlab-sweep');
+// A DRAW IS ADMITTED BY THE MEMORY THE BOX HAS LEFT (2026-09-02 — the OOM
+// kill under Sophie's first {curly-bracket} batch: four low edits at once,
+// each carrying the 8.5MB Sandy mirror reference, on a box idling at 427MB
+// of 512; Render's event says `oomKilled`). draw-gate.js is the rule: any
+// number while there is room, one at a time as it fills, never zero. The
+// gate wraps the request-to-upload span of a render, which is where the
+// transient lives; the wait on OpenAI itself is inside that span because the
+// body is held for its whole life.
+// `drawingNow` is the exact set of runs THIS process is drawing — what
+// scripts/render-deploy.js reads before it restarts the box, and what the
+// sweep must never judge.
+const drawGate = require('./draw-gate').makeGate();
+const drawingNow = new Set();
+// THE PAUSE BEFORE A DEPLOY (2026-09-02, Sophie: "instead of straight to
+// deploy, chat sends to the queue. if it's clean, it deploys, but also pauses
+// image generation with an explanatory note"). The deploy guard
+// (scripts/deploy-guard.js, Render's pre-deploy command) waits until nothing
+// is drawing, then PAUSES new draws here for the minute the swap takes, so a
+// tap in that window cannot start a draw the old instance would die holding.
+// A paused tap is not refused: its run doc is written `queued` with the note,
+// the page shows the note on its card, and `startQueuedRuns` on the NEW
+// instance draws it the moment it boots. Self-expiring (PAUSE_MAX_S) so a
+// deploy that fails after pausing cannot leave the old box paused for good.
+const PAUSE_MAX_S = 300;
+const PAUSE_NOTE = 'Paused for a server update — this will draw on its own in about a minute.';
+const drawPause = { until: 0, note: '' };
+const pausedNow = () => drawPause.until > Date.now();
+const queuedReply = () => (pausedNow() ? { queued: true, note: drawPause.note || PAUSE_NOTE } : {});
+function queuedFields() {
+  return pausedNow()
+    ? { status: 'queued', queuedNote: drawPause.note || PAUSE_NOTE, queuedAt: admin.firestore.Timestamp.now() }
+    : { status: 'running' };
+}
+// The NEW instance picks up what the old one queued (and the old one, when a
+// pause simply expired). Boots early and ticks often — a queued tap is a
+// picture she is waiting on. The cfg builders are the sweep's own, so a
+// queued run is rebuilt exactly as a killed one would be.
+let startingQueued = false;
+async function startQueuedRuns() {
+  if (startingQueued || pausedNow() || !admin.apps.length) return;
+  startingQueued = true;
+  try {
+    const snap = await admin.firestore().collection(PROMPTLAB).where('status', '==', 'queued').get();
+    for (const d of snap.docs) {
+      const r = d.data();
+      let cfg = null;
+      if (r.panels) { cfg = plSweep.panelsCfgOf(r); if (cfg) cfg.chars = r.characters || []; }
+      else cfg = plSweep.singleCfgOf(r);
+      if (!cfg) {
+        await d.ref.update({ status: 'failed', error: 'queued for a server update and could not be rebuilt' });
+        continue;
+      }
+      if (cfg.photoUrl) {
+        try {
+          const pr = await fetch(cfg.photoUrl);
+          if (!pr.ok) throw new Error(`photo ref ${pr.status}`);
+          cfg.photoBuf = Buffer.from(await pr.arrayBuffer());
+        } catch (e) {
+          await d.ref.update({ status: 'failed', error: `queued for a server update; its photo reference could not be re-read (${e.message})` });
+          continue;
+        }
+      }
+      await d.ref.update({ status: 'running', resumedAt: admin.firestore.Timestamp.now(),
+        queuedNote: admin.firestore.FieldValue.delete() });
+      if (r.panels) runPromptLabPanelsJob(d.ref, cfg); else runPromptLabGptJob(d.ref, cfg);
+      console.log(`promptlab: started queued run ${d.id}`);
+    }
+  } catch (e) { console.warn('promptlab queued runs:', e.message); }
+  finally { startingQueued = false; }
+}
+setTimeout(startQueuedRuns, 8 * 1000);
+setInterval(startQueuedRuns, 45 * 1000);
 async function sweepStuckPromptlabRuns() {
   try {
     if (!admin.apps.length) return;
@@ -5893,6 +6032,10 @@ async function sweepStuckPromptlabRuns() {
       // next tick would fail the very draw the last one started (a 4K sheet
       // can draw 14 minutes).
       const at = r.redrawnAt?.toMillis?.() || r.createdAt?.toMillis?.() || 0;
+      // A run THIS process is still drawing is alive whatever the clock says
+      // — a 4K sheet can draw 14 minutes, and the gate can hold one behind
+      // others for a while longer.
+      if (drawingNow.has(d.id)) continue;
       const act = plSweep.sweepAction({ ...r, id: d.id, createdAt: at }, { now, cutting: cuttingNow });
       if (!act) continue;
       // A PANELS run whose sheet was already banked lost only the FREE half
@@ -5918,12 +6061,35 @@ async function sweepStuckPromptlabRuns() {
       // storm cannot re-bill forever; her feed position (createdAt) is kept.
       if (act === 'redraw') {
         const n = (r.redraws || 0) + 1;
+        if (r.panels) {
+          await d.ref.update({ redraws: n, redrawnAt: admin.firestore.Timestamp.now(),
+            status: 'running', error: admin.firestore.FieldValue.delete() });
+          const cfg = plSweep.panelsCfgOf(r);
+          cfg.chars = r.characters || [];
+          runPromptLabPanelsJob(d.ref, cfg);
+          console.log(`promptlab sweep: redrawing orphaned panels run ${d.id} (attempt ${n} of ${plSweep.REDRAW_CAP})`);
+          continue;
+        }
+        // A SINGLE run killed mid-draw (2026-09-02, the OOM kill under her
+        // first bracket batch) — same rule. Her photo reference is the one
+        // thing the doc holds only by url; a photo that will not fetch fails
+        // the redraw honestly, because drawing without it is a different
+        // picture under this record.
+        const cfg = plSweep.singleCfgOf(r);
+        if (cfg.photoUrl) {
+          try {
+            const pr = await fetch(cfg.photoUrl);
+            if (!pr.ok) throw new Error(`photo ref ${pr.status}`);
+            cfg.photoBuf = Buffer.from(await pr.arrayBuffer());
+          } catch (e) {
+            await d.ref.update({ status: 'failed', error: `interrupted by a server restart; its photo reference could not be re-read (${e.message})` });
+            continue;
+          }
+        }
         await d.ref.update({ redraws: n, redrawnAt: admin.firestore.Timestamp.now(),
           status: 'running', error: admin.firestore.FieldValue.delete() });
-        const cfg = plSweep.panelsCfgOf(r);
-        cfg.chars = r.characters || [];
-        runPromptLabPanelsJob(d.ref, cfg);
-        console.log(`promptlab sweep: redrawing orphaned panels run ${d.id} (attempt ${n} of ${plSweep.REDRAW_CAP})`);
+        runPromptLabGptJob(d.ref, cfg);
+        console.log(`promptlab sweep: redrawing killed run ${d.id} (attempt ${n} of ${plSweep.REDRAW_CAP})`);
         continue;
       }
       await d.ref.update({ status: 'failed', error: 'interrupted by a server restart' });
@@ -6182,6 +6348,7 @@ async function landOnBeat(target, images, runId, meta) {
 // every image here is billed the moment it's requested. Nothing in the flow
 // pretends otherwise — the page shows no X on these runs.
 async function runPromptLabGptJob(docRef, cfg) {
+  drawingNow.add(docRef.id);
   try {
     // Style refs first; the Sophie character card rides LAST when toggled on
     // (each style's characterLine points at it that way).
@@ -6221,15 +6388,15 @@ async function runPromptLabGptJob(docRef, cfg) {
         // openaiImageEditRefs), same webp bytes back, so everything below this
         // line is unchanged. A photo reference SHE attached is an image like
         // any other, so a plain run carrying one is back on edits.
-        const data = refs.length
-          ? await openaiImageEditRefs(cfg.fullPrompt, refs, {
+        const data = await drawGate.run(docRef.id, () => (refs.length
+          ? openaiImageEditRefs(cfg.fullPrompt, refs, {
             quality: cfg.quality, size: cfg.size || PL_GPT.size, timeout: 300000,
           })
-          : await openaiImage({
+          : openaiImage({
             model: PL_GPT.id, prompt: cfg.fullPrompt, n: 1,
             size: cfg.size || PL_GPT.size, quality: cfg.quality,
             output_format: 'webp', moderation: 'low',
-          }, 2, 300000);
+          }, 2, 300000)));
         if (data.error) throw new Error(data.error.message || 'gpt-image-2 error');
         const b64 = data.data?.[0]?.b64_json;
         if (!b64) throw new Error('gpt-image-2 returned no image');
@@ -6284,7 +6451,7 @@ async function runPromptLabGptJob(docRef, cfg) {
   } catch (err) {
     console.warn('promptlab gpt job failed:', err.message);
     await docRef.update({ status: 'failed', error: err.message }).catch(() => {});
-  }
+  } finally { drawingNow.delete(docRef.id); }
 }
 
 // The shape WORD a run's cell ratio is searchable by — keep in step with the
@@ -6484,6 +6651,7 @@ async function recutPanelsRun(docRef, d) {
 
 async function runPromptLabPanelsJob(docRef, cfg) {
   const plan = cfg.plan;
+  drawingNow.add(docRef.id);
   try {
     const st = PL_GPT_STYLES[cfg.styleId] || PL_GPT_STYLES.evan;
     const refs = await playgroundRefs(st);
@@ -6492,15 +6660,15 @@ async function runPromptLabPanelsJob(docRef, cfg) {
     // fetch fails the run rather than quietly drawing a stranger (the Story
     // Room's rule, and playgroundCharRefs is where it lives).
     for (const b of await playgroundCharRefs(cfg.chars)) refs.push(b);
-    const data = refs.length
-      ? await openaiImageEditRefs(cfg.fullPrompt, refs, {
+    const data = await drawGate.run(docRef.id, () => (refs.length
+      ? openaiImageEditRefs(cfg.fullPrompt, refs, {
         quality: cfg.quality, size: plan.sheet, timeout: 300000,
       })
-      : await openaiImage({
+      : openaiImage({
         model: PL_GPT.id, prompt: cfg.fullPrompt, n: 1,
         size: plan.sheet, quality: cfg.quality,
         output_format: 'webp', moderation: 'low',
-      }, 2, 300000);
+      }, 2, 300000)));
     if (data.error) throw new Error(data.error.message || 'gpt-image-2 error');
     const b64 = data.data?.[0]?.b64_json;
     if (!b64) throw new Error('gpt-image-2 returned no image');
@@ -6525,7 +6693,7 @@ async function runPromptLabPanelsJob(docRef, cfg) {
   } catch (err) {
     console.warn('promptlab panels job failed:', err.message);
     await docRef.update({ status: 'failed', error: err.message }).catch(() => {});
-  }
+  } finally { drawingNow.delete(docRef.id); }
 }
 
 async function runPromptLabJob(docRef, cfg) {
@@ -6795,7 +6963,7 @@ app.post('/api/promptlab', async (req, res) => {
         const sheetPrompt = `${sheetHead}${sheetHead ? '\n\n' : ''}${sheetBody}${sheetTail ? `\n\n${sheetTail}` : ''}`;
         const docRef = admin.firestore().collection(PROMPTLAB).doc();
         await docRef.set({
-          id: docRef.id, status: 'running', engine: 'gptimage', prompt: typed,
+          id: docRef.id, ...queuedFields(), engine: 'gptimage', prompt: typed,
           fullPrompt: sheetPrompt, model: PL_GPT.id, gptStyle: styleId, quality,
           // `size` is the SHEET; `aspectRatio` is the CELL's — it is what
           // each finished picture is, and what the feed renders cells with.
@@ -6812,11 +6980,11 @@ app.post('/api/promptlab', async (req, res) => {
           ...(pickedChars.length ? { characters: pickedChars } : {}),
           createdAt: admin.firestore.Timestamp.now(),
         });
-        runPromptLabPanelsJob(docRef, {
+        if (!pausedNow()) runPromptLabPanelsJob(docRef, {
           fullPrompt: sheetPrompt, head: sheetHead, tail: sheetTail,
           quality, prompt: typed, styleId, panels, plan, chars: pickedChars,
         });
-        return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
+        return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}`, ...queuedReply() });
       }
 
       // A STORY SHEET (2026-08-27, Sophie: "a sheet where i give instructions
@@ -6849,7 +7017,7 @@ app.post('/api/promptlab', async (req, res) => {
         const storyPrompt = `${storyHead}\n\n${typed}${sheetTail ? `\n\n${sheetTail}` : ''}`;
         const docRef = admin.firestore().collection(PROMPTLAB).doc();
         await docRef.set({
-          id: docRef.id, status: 'running', engine: 'gptimage', prompt: typed,
+          id: docRef.id, ...queuedFields(), engine: 'gptimage', prompt: typed,
           fullPrompt: storyPrompt, model: PL_GPT.id, gptStyle: styleId, quality,
           size: canvas.size, aspectRatio: canvas.aspectRatio, res: resId,
           promptEdited: edited, noText, storySheet: true,
@@ -6860,17 +7028,17 @@ app.post('/api/promptlab', async (req, res) => {
           createdAt: admin.firestore.Timestamp.now(),
           ...(padTarget ? { padTarget } : {}),
         });
-        runPromptLabGptJob(docRef, {
+        if (!pausedNow()) runPromptLabGptJob(docRef, {
           fullPrompt: storyPrompt, head: storyHead, tail: sheetTail, outputs: 1,
           quality, prompt: typed, character: false, styleId,
           size: canvas.size, photoBuf: null, chars: pickedChars, padTarget,
         });
-        return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
+        return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}`, ...queuedReply() });
       }
 
       const docRef = admin.firestore().collection(PROMPTLAB).doc();
       await docRef.set({
-        id: docRef.id, status: 'running', engine: 'gptimage', prompt: typed, fullPrompt,
+        id: docRef.id, ...queuedFields(), engine: 'gptimage', prompt: typed, fullPrompt,
         model: PL_GPT.id, gptStyle: styleId, quality, size: canvas.size,
         aspectRatio: canvas.aspectRatio, res: resId, promptEdited: edited, noText,
         styleRef: (st.refFiles || []).concat(st.storageRefs || []).join(','), outputs,
@@ -6892,8 +7060,8 @@ app.post('/api/promptlab', async (req, res) => {
       // her words on this run — her prefix/suffix override if she made one,
       // the character line and the photo line only when they were really
       // attached — rather than the style's baked default.
-      runPromptLabGptJob(docRef, { fullPrompt, head, tail, outputs, quality, prompt: typed, character, styleId, size: canvas.size, photoBuf, chars: pickedChars, padTarget });
-      return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
+      if (!pausedNow()) runPromptLabGptJob(docRef, { fullPrompt, head, tail, outputs, quality, prompt: typed, character, styleId, size: canvas.size, photoBuf, chars: pickedChars, padTarget });
+      return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}`, ...queuedReply() });
     }
 
     const content = typed.replace(/\.+$/, '');
@@ -7057,6 +7225,49 @@ app.get('/api/promptlab/build', (req, res) => {
   res.json({ build: pageBuildId('promptlab.html', true) });
 });
 
+// WHAT THIS PROCESS IS DRAWING AND CUTTING RIGHT NOW, and how much of the box
+// is left (2026-09-02). Exact — the two in-process sets, not a Firestore
+// count, which is what a deploy has to know before it kills this instance
+// (scripts/render-deploy.js waits on it). `memory` is here because the OOM
+// that produced this was a BASELINE problem: a fresh boot is ~190MB and the
+// box had crept to 427MB with nothing running, and nothing anywhere could
+// read that without the Render dashboard. Free; no-store; MUST stay above
+// `/api/promptlab/:id`.
+// The deploy guard's two calls: pause new draws for the swap, and lift it if
+// the swap is called off. `seconds` is capped — a pause is a minute, never a
+// state. Unauthenticated on purpose (STUDIO_TOKEN is off on the live server
+// and the guard runs on Render's own build box with no secret to hand it):
+// the worst a stranger can do is queue her taps for five minutes, and they
+// still draw.
+app.post('/api/promptlab/pause', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const on = req.body && req.body.on !== false;
+  if (on) {
+    const secs = Math.min(Math.max(Number(req.body.seconds) || 240, 10), PAUSE_MAX_S);
+    drawPause.until = Date.now() + secs * 1000;
+    drawPause.note = String(req.body.note || '').slice(0, 200) || PAUSE_NOTE;
+    console.log(`promptlab: draws paused ${secs}s — ${drawPause.note}`);
+  } else {
+    drawPause.until = 0; drawPause.note = '';
+    console.log('promptlab: draw pause lifted');
+    startQueuedRuns();
+  }
+  res.json({ paused: pausedNow(), until: drawPause.until, note: drawPause.note,
+    drawing: drawingNow.size, cutting: cuttingNow.size });
+});
+
+app.get('/api/promptlab/inflight', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const m = process.memoryUsage();
+  res.json({
+    drawing: Array.from(drawingNow), cutting: Array.from(cuttingNow),
+    paused: pausedNow() ? { until: drawPause.until, note: drawPause.note } : null,
+    slots: drawGate.slots(), waiting: drawGate.waiting(),
+    memory: { rss: m.rss, heapUsed: m.heapUsed, external: m.external, limit: 512 * 1048576 },
+    uptime: Math.round(process.uptime()),
+  });
+});
+
 // THE ARROW'S OWN ACCOUNT (2026-08-29, Sophie's THIRD back-to-top report:
 // "it's still not there and i reload it like every hour … there was one, it's
 // gone"). Measured that hour: the served page and every vintage back to Aug 24
@@ -7207,6 +7418,71 @@ app.post('/api/promptlab/:id/recut', async (req, res) => {
     }
     const images = await recutPanelsRun(ref, d);
     res.json({ ok: true, id: req.params.id, images });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// A BATCH OF MARKS — one request for everything she picked (2026-09-02,
+// Sophie: "add a select button to playground so i can x a bunch of things at
+// once"). Twenty separate /vote posts would each re-read the run doc and
+// sweep the Assets tab for one picture; this groups them by run and does ONE
+// write per run, then syncs the pictures a few at a time.
+//
+// ONE VOTE FOR ALL OF THEM, which is what the mode bar's buttons are: one
+// button, one mark, everything picked. An empty `vote` CLEARS them — that is
+// the single-picture "tap again to clear" rule scaled up, and it is what makes
+// a bulk ✕ undoable.
+//
+// Registered ABOVE the per-run routes so `votes` can never be read as a run id.
+app.post('/api/promptlab/votes', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
+    const vote = ['like', 'dislike'].includes(req.body.vote) ? req.body.vote : null;
+    const items = Array.isArray(req.body.items) ? req.body.items.slice(0, 200) : [];
+    // Same index rule as the single route: -1 is the banked uncut sheet, 0-24
+    // are a run's images (a panels run's cut panels go to 9 today, 25 when the
+    // 5x5 grid lands). Anything else is dropped rather than failing the batch —
+    // one bad entry must not lose the other nineteen marks.
+    const byRun = new Map();
+    for (const it of items) {
+      const id = String((it && it.run) || '').slice(0, 200);
+      const i = Number(it && it.image);
+      if (!id || !Number.isInteger(i) || i < -1 || i > 24) continue;
+      if (!byRun.has(id)) byRun.set(id, new Set());
+      byRun.get(id).add(i);
+    }
+    if (!byRun.size) return res.status(400).json({ error: 'items: [{run, image}] required' });
+    const col = admin.firestore().collection(PROMPTLAB);
+    const urls = [];
+    let marked = 0;
+    for (const [id, idxs] of byRun) {
+      const ref = col.doc(id);
+      const patch = {};
+      idxs.forEach((i) => {
+        patch[`votes.${i}`] = vote === null ? admin.firestore.FieldValue.delete() : vote;
+      });
+      try {
+        await ref.update(patch);
+        marked += idxs.size;
+        const run = (await ref.get()).data() || {};
+        idxs.forEach((i) => {
+          const u = i === -1 ? run.sheetUrl : (run.images || [])[i];
+          if (u) urls.push(u);
+        });
+      } catch (e) { /* a run that has gone must not lose the rest of the batch */ }
+    }
+    // Carry every mark onto the Assets-tab records, so the two surfaces agree
+    // exactly as they do after a single tap. A few at a time: sequential is
+    // seconds on a batch of fifty, and all-at-once is fifty Firestore sweeps
+    // landing on the 512MB box together.
+    for (let k = 0; k < urls.length; k += 5) {
+      await Promise.all(urls.slice(k, k + 5).map((u) => syncVoteToAssets(u, vote).catch(() => {})));
+    }
+    res.json({ ok: true, marked, vote });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -7853,6 +8129,23 @@ process.on('unhandledRejection', (err) => {
 });
 
 app.listen(PORT, () => console.log(`Server v11 running on http://localhost:${PORT}`));
+
+// A DEPLOY MUST NOT KILL A DRAW (2026-09-02, Sophie: "why would a run ever
+// be killed"). Every merge to main is a deploy and a deploy restarts this
+// process: Render brings the new instance up, sends the old one SIGTERM 60s
+// later and SIGKILL after the service's shutdown delay — 30s by default,
+// 300s now (render.yaml `maxShutdownDelaySeconds`, also set by API). Node
+// exits on SIGTERM at once unless told otherwise, so every draw and cut the
+// old instance was holding died with it, billed and never received. Now it
+// holds: the process stays up until nothing is drawing or cutting, or the
+// cap (shutdown-hold.js), and only then exits. New requests are already
+// going to the new instance by the time this fires, so nothing is refused.
+process.on('SIGTERM', () => {
+  require('./shutdown-hold').holdUntilClear({
+    busy: () => drawingNow.size + cuttingNow.size,
+    log: (m) => console.log(`shutdown: ${m}`),
+  }).then(() => process.exit(0), () => process.exit(0));
+});
 
 // ─── Keep-awake ─────────────────────────────────────────────────────
 // Free-tier hosts spin the server down after ~15 min with no inbound

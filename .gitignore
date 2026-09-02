@@ -51,3 +51,7 @@ docs/marla/
 # Her unpublished stories — same reason as docs/marla/. Banked to membry
 # Storage at storybooks/ instead.
 docs/storybooks/
+.seed-triset*/
+
+# agent worktrees the harness parks inside the checkout — never project files
+.claude/worktrees/

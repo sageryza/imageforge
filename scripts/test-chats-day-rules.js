@@ -169,7 +169,7 @@ let checks = 0; const ok = () => { checks++; };
   // rule's geometry is MEASURED on the real grid's own CSS.
   const src = fs.readFileSync(path.join(PUB, 'chats.html'), 'utf8');
   const tilesFn = src.slice(src.indexOf('function renderTiles('), src.indexOf('function renderTiles(') + 1800);
-  if (!/chatDayKey\(name,\s*last\)/.test(tilesFn) || !/mkDayRule\(dk\)/.test(tilesFn)) {
+  if (!/chatDayKey\(name,\s*last\)/.test(tilesFn) || !/mkDayRule\(dk\b/.test(tilesFn)) {
     fail('renderTiles draws no date headings — a marker that works in one of the two views and not the other is a bug');
   } else ok();
   const span = await page.evaluate(() => {

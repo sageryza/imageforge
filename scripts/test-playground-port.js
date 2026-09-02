@@ -12,8 +12,9 @@
  *      point: the port's whole claim is "this tile carries the same reference
  *      and prompt", and it becomes a lie the moment a table drifts.
  * The SECOND drives the real promptlab.html in headless Chromium and asserts
- * the indicator says the right one of its three things — and keeps saying the
- * right one after she taps a different tile.
+ * the port indicator is really gone from the page (2026-08-31, "delete the
+ * red" ×2) — including after she taps a different tile, which used to repaint
+ * it and would now throw if a call to the deleted painter were left behind.
  *
  *   node scripts/test-playground-port.js
  *   (headless half needs: npm install playwright --no-save)
@@ -59,6 +60,39 @@ console.log('the matcher');
   // the retired Replicate LoRA is a different engine from the Hoonies tile
   ['HOONIE, [content], linocut relief print, white background (flux-dev)',
     'chatgpt', false, 'the HOONIE LoRA is not the Hoonies tile'],
+  // The Triangle tile (2026-08-31) attaches the SAME reference file as Dreamy
+  // and quotes the same prefix, so a triangle card carries BOTH tiles'
+  // evidence — the equilateral clause has to out-reach them, or every card the
+  // Triset game ever drew ports back as a plain Dreamy picture.
+  ['refs/dream-mystery.jpg — copy its drawing style but do NOT copy its content. '
+    + require(path.join(ROOT, 'triangle-clause.js')).TRIANGLE_CLAUSE,
+  'triangle', true, 'a triangle card → Triangle, not Dreamy underneath it'],
+  // EVERY WORDING THE CLAUSE HAS EVER HAD, verbatim off her filed cards
+  // (measured 2026-09-02 over all 715 of them). A reword never rewrites the
+  // style halves already on file, so these are permanent fixtures — the same
+  // rule the old reference FILENAMES follow — and they are what caught the
+  // live bug: 565 of the 715 were porting back as plain Dreamy pictures.
+  ['The FIRST attached image is a STYLE reference — copy its drawing style but do NOT '
+    + 'copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single '
+    + 'illustration — NOT a grid, NOT split panels. The illustration is an EQUILATERAL '
+    + 'TRIANGLE-SHAPED CARD, all three sides exactly the same length, point up',
+  'triangle', true, 'the wording 537 of her cards carry (gen 1) → Triangle'],
+  ['copy its drawing style but do NOT copy its content, subjects, or composition.'
+    + '\n\n[content]\n\nThe illustration is a TRIANGLE-SHAPED CARD, point up: a triangle '
+    + 'with a plain paper border and a hand-drawn frame line',
+  'triangle', true, 'the earliest triset wording (gen 0) → Triangle'],
+  ['The attached image is a STYLE reference — copy its style but do NOT copy its '
+    + 'content, subjects, or composition.\n\ncenter the content of the image in an '
+    + 'equilateral triangle with a hand drawn border, like the reference photo. do not '
+    + 'draw multiple panels. no text.\n\n[content]\n\nno text.',
+  'triangle', true, 'the hand-written wording, before the tile existed → Triangle'],
+  ['After the style reference, the three attached images are three triangular picture '
+    + 'cards from a matching game. Play the game: either find ONE quality all three '
+    + "cards share, or invent a fourth thing.\n\n[content]\n\nEQUILATERAL TRIANGLE-SHAPED CARD",
+  'triangle', true, "an 'auto' venn card → Triangle"],
+  // …and the tile it is DERIVED from still answers for itself.
+  ['refs/dream-mystery.jpg — copy its drawing style but do NOT copy its content.',
+    'dreamy', true, 'a plain Dreamy picture is still Dreamy'],
   ['', 'chatgpt', false, 'nothing filed → fallback, and honest about it'],
 ].forEach(([style, wantStyle, wantMatched, what]) => {
   const m = port.matchStyle(style, '');
@@ -135,23 +169,123 @@ ok(/STYLE reference only/.test(dream.suffix) && /do not draw its content/.test(d
 ok(/hand-drawn border/i.test(dream.suffix), 'the sent suffix asks for a hand-drawn border');
 ok(!/no border|without a border/i.test(dream.suffix), 'and never bans one');
 ok(!/caption box/i.test(dream.suffix), 'and does not ban caption boxes (her ask — the reference has them)');
-// "Minimal text only." until 2026-08-22, a flat "no text." in her own rewrite.
-// The No-text TOGGLE swaps this exact clause, so test-playground-notext.js
-// pins it against dreamy.noText.from — this only checks the tail still has one.
-ok(/no text\./i.test(dream.suffix), 'it says "no text.", her 2026-08-22 wording');
+// "Minimal text only." until 2026-08-22, a flat "no text." in her own rewrite
+// — and back to "minimal text." on 2026-08-27, when she made the two options
+// the TOGGLE's two words ("just two options minimal and none and it should
+// just be those words"). So the baked tail says `minimal text.` and `no text.`
+// is what the switch sends; this line asserted the switch's word for four
+// days and failed on main the whole time. The No-text TOGGLE swaps this exact
+// clause, so test-playground-notext.js pins it against dreamy.noText.from —
+// this only checks the tail still has one.
+ok(/minimal text\./i.test(dream.suffix), 'it says "minimal text.", her 2026-08-27 default');
 // The canvas toggles now, so the prompt must not name a shape.
 ok(!/vertical|portrait|square/i.test(dream.prefix + dream.suffix),
   'and it names no orientation, because the canvas toggles');
 ok(dream.noCharacter === true,
   'no Sophie character card on Dreamy (hers is the watercolor look)');
 
+// THE TRIANGLE TILE IS DERIVED, NOT A LITERAL (2026-08-31, Sophie: "add
+// triangle as a new playground style · w image and prompt w new equilateral").
+// server.js builds it out of the dreamy entry above with triangle-clause.js's
+// own builder, so the honest check is to run that REAL builder over the REAL
+// dreamy literal and assert on what comes out — the same rule as the block
+// above, one step further along.
+const tri = require(path.join(ROOT, 'triangle-clause.js'));
+const triangle = tri.triangleStyle(dream);
+ok(serverSrc.indexOf("PL_GPT_STYLES.triangle = require('./triangle-clause').triangleStyle(PL_GPT_STYLES.dreamy)") >= 0,
+  'server.js derives the Triangle tile from dreamy, rather than transcribing it');
+ok(triangle.swapped === true,
+  "dreamy's border clause was found to swap (the anchor still matches)");
+ok(triangle.refFiles[0] === 'dream-mystery.jpg',
+  'Triangle attaches the SAME reference image as Dreamy — her "w image"');
+ok(triangle.prefix === dream.prefix, "and Dreamy's prefix, byte for byte");
+ok(/EQUILATERAL TRIANGLE-SHAPED CARD/.test(triangle.suffix)
+  && /all three sides exactly the same length/.test(triangle.suffix),
+  'the tail asks for an EQUILATERAL triangle card — her "new equilateral"');
+// NOTHING IS ADDED BESIDE THE EQUILATERAL LINE (2026-08-31, Sophie: "i didn't
+// ask you to add the triangle lines" · "add more importance to the equilateral
+// line if anything"). A clause telling the model to compose INTO the triangle
+// shipped for one batch and she cut it — it bent the subjects to the frame — so
+// this pins its ABSENCE. It used to pin its presence; that is history.
+ok(!/Compose the subject to USE the triangle/i.test(triangle.suffix),
+  'and the composition line she cut is not back');
+ok(!/hand-drawn border, like the frames in the style reference\. minimal/.test(triangle.suffix),
+  "and dreamy's rectangular border clause is GONE, not argued with");
+ok(/do not draw its content/i.test(triangle.suffix)
+  && /green tank top/i.test(triangle.suffix),
+  "the rest of dreamy's tail rides along — the anti-content bookend and the ban");
+// Her no-text toggle sits AFTER the border clause, so the swap must not eat it.
+ok(triangle.noText && triangle.noText.from === dream.noText.from
+  && triangle.suffix.includes(triangle.noText.from),
+  'her no-text toggle still has its clause to swap on this tile');
+// Every gpt tile offers Panels. Dreamy's sheet anchor is the clause this tile
+// just consumed, so it needs its own or a sheet run ships "NOT a grid".
+const sheetTail = require(path.join(ROOT, 'sheet-grid.js'))
+  .applySheet(triangle.suffix, triangle.sheet, 'a 2x2 grid');
+ok(sheetTail.includes('a 2x2 grid') && !/NOT a grid/.test(sheetTail),
+  'a panels run swaps the anti-grid sentence out, and keeps the triangle');
+ok(/each one is an EQUILATERAL TRIANGLE-SHAPED CARD/.test(sheetTail),
+  'so every cell of a sheet is still a triangle card');
+// A reworded tail (anchor gone) PREPENDS the clause rather than losing it.
+const reworded = tri.triangleStyle({ ...dream, suffix: 'A reworded tail.',
+  sheet: { from: 'nope', to: '' } });
+ok(reworded.swapped === false && /TRIANGLE-SHAPED CARD/.test(reworded.suffix)
+  && reworded.suffix.includes('A reworded tail.'),
+  'a reworded dreamy tail keeps both the triangle clause and her words');
+// ONE COPY OF THE WORDING: triset.js draws the same card and must not carry a
+// transcript of it.
+const trisetSrc = fs.readFileSync(path.join(ROOT, 'triset.js'), 'utf8');
+ok(/require\('\.\/triangle-clause'\)/.test(trisetSrc)
+  && trisetSrc.indexOf('EQUILATERAL TRIANGLE-SHAPED CARD') < 0,
+  'triset.js reads the clause from triangle-clause.js and keeps no copy');
+
+// THE PORT'S EVIDENCE IS CHECKED AS BEHAVIOUR, NOT AS A QUOTE (2026-09-02).
+// It was a 150-character transcript of the clause, and it went stale twice —
+// the second time silently handing 565 of her 715 filed triangle cards back
+// to Dreamy. So what is asserted is that the REAL text this tile sends today
+// routes to Triangle, which a reword cannot quietly break: it either still
+// says "triangle-shaped card" and passes, or it fails here loudly.
+const triHalf = triangle.prefix + '\n\n[content]\n\n' + triangle.suffix;
+ok(port.matchStyle(triHalf, '').style === 'triangle',
+  "today's real Triangle style half routes to the Triangle tile");
+ok(port.PORT_STYLES.find((s2) => s2.key === 'triangle').prefixes
+  .some((f) => triHalf.toLowerCase().indexOf(f.toLowerCase()) >= 0),
+  'at least one listed fragment is verbatim in the clause as it stands now');
+// A PAST WORDING IS NEVER DROPPED — a reword does not rewrite the thousands of
+// style halves already filed, exactly as with the old reference filenames. The
+// list may only grow; these are the ones her library actually holds.
+['triangle-shaped card', 'equilateral triangle with a hand drawn border',
+  'triangular picture cards from a matching game'].forEach((f) => {
+  ok(port.PORT_STYLES.find((s2) => s2.key === 'triangle').prefixes.indexOf(f) >= 0,
+    'the wording "' + f.slice(0, 34) + '…" is still listed');
+});
+// The relationship, not a length race: Triangle IS dreamy with one clause
+// swapped, so both always match and Triangle must win however short its quote.
+ok((port.PORT_STYLES.find((s2) => s2.key === 'triangle').beats || []).indexOf('dreamy') >= 0,
+  'Triangle is declared to out-rank the tile it is derived from');
+ok(port.matchStyle('copy its drawing style but do NOT copy its content, subjects, '
+  + 'or composition. A TRIANGLE-SHAPED CARD.', '').style === 'triangle',
+  "…so a SHORT triangle quote still beats Dreamy's longer one");
+
 // Every `prefixes` fragment must be a verbatim substring of that style's REAL
-// baked prefix in server.js — otherwise it is a vibe, not evidence.
+// baked wording in server.js — otherwise it is a vibe, not evidence.
 const GPT_ID = { chatgpt: 'evan', dreamy: 'dreamy', pastel: 'pastel', scarry: 'scarry',
   hoonies: 'hoonies', plain: 'plain' };
 port.PORT_STYLES.forEach((s) => {
   (s.prefixes || []).forEach((frag) => {
     const id = GPT_ID[s.key];
+    // The Triangle tile has no literal block to read and its evidence is in
+    // the TAIL, not the prefix — the clause triangle-clause.js swaps in, which
+    // is exactly the text that reaches the model.
+    if (!id) {
+      // The Triangle tile has no literal block in server.js, and its list
+      // holds PAST wordings on purpose (see its comment) — a fragment that is
+      // not in today's clause is a historical alias, and the fixtures above
+      // are what prove each one still earns its place. What must hold here is
+      // that TODAY's clause is covered; that is asserted once, below.
+      ok(s.key === 'triangle', s.key + ': the only table with no server literal');
+      return;
+    }
     const block = serverSrc.slice(serverSrc.indexOf('\n  ' + id + ': {'));
     let one = block.slice(0, block.indexOf('\n  },') + 4);
     // `evan` writes `prefix: PL_GPT.prefix` — the words live on the PL_GPT
@@ -278,43 +412,35 @@ catch {
   try { browser = await chromium.launch(); }
   catch { browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }); }
   const page = await browser.newPage();
-  const tag = () => page.evaluate(() => {
-    const el = document.getElementById('reftag');
-    return { cls: el.className, text: el.textContent };
-  });
-
-  console.log('the indicator');
-  // Arrived from a picture we could identify → the tile IS the picture's.
+  // ── THE INDICATOR IS GONE (2026-08-31) ──────────────────────────────
+  // Sophie scribbled it out twice — first the same-tile sentence, then, on the
+  // build that shipped without it, the one naming the tile she had moved off:
+  // "delete the red" · "still there". So the whole row went, and the sender's
+  // `sameref` flag (asserted live in the matcher above, and in
+  // test-asset-doors.js) is simply no longer read by this page.
+  console.log('the indicator is gone');
   await page.goto(base + '/playground?prompt=a%20cat&style=dreamy&sameref=1');
-  let t = await tag();
-  ok(/\bon\b/.test(t.cls) && /same/.test(t.cls), 'matched port: the line shows, marked same');
-  ok(/Dreamy/.test(t.text) && /reference and style prompt/.test(t.text),
-    'and names the tile + what it carries');
-  ok(await page.inputValue('#prompt') === 'a cat', 'the content half landed in the box');
+  await page.waitForSelector('#prompt');
+  ok(await page.$('#reftag') === null, 'no indicator on a matched port');
+  ok(await page.inputValue('#prompt') === 'a cat', 'and the content half still landed in the box');
 
-  // She taps a different tile — the claim must stop being "this picture's".
+  // The two branches that used to speak: switching tile, and a port nothing
+  // identified. Neither may draw anything now, and neither may throw — the
+  // painter is deleted, so a leftover call would take the whole script down
+  // and every assertion after it with it.
   await page.selectOption('#stylepick', 'pastel');
-  t = await tag();
-  ok(/\bon\b/.test(t.cls) && !/same/.test(t.cls), 'after switching tile: no longer "same"');
-  ok(/Pastel/.test(t.text) && /Dreamy/.test(t.text),
-    'and it names both where she is and where the picture came from');
-
-  // Nothing identified the picture → say so, do not let the fallback imply it.
+  ok(await page.$('#reftag') === null, 'nothing after switching tile');
+  ok(await page.inputValue('#prompt') === 'a cat',
+    'and the style tap did not throw — her words are still there');
   await page.goto(base + '/playground?prompt=a%20cat&style=chatgpt&sameref=0');
-  t = await tag();
-  ok(/\bon\b/.test(t.cls) && !/same/.test(t.cls), 'unmatched port: the line shows, not "same"');
-  ok(/not the one behind it/.test(t.text), 'and admits the reference is not the picture\'s');
-
-  // A plain visit is not a port — the line must stay silent.
-  await page.goto(base + '/playground');
-  t = await tag();
-  ok(t.cls === '' && t.text === '', 'a plain visit shows no indicator at all');
-
-  // A LoRA carries no reference, so it must not claim one.
-  await page.goto(base + '/playground?prompt=a%20cat&style=watercolor&sameref=1');
-  t = await tag();
-  ok(/style prompt/.test(t.text) && !/reference/.test(t.text),
-    'WTR says "style prompt" only — it attaches no reference');
+  await page.waitForSelector('#prompt');
+  ok(await page.$('#reftag') === null, 'nothing on an unmatched port either');
+  // innerText, never textContent: the latter includes the <script>, where a
+  // comment about the deleted row lives, so it would fail on the prose
+  // explaining the deletion. The honest question is what RENDERS.
+  const shown = await page.evaluate(() => document.body.innerText);
+  ok(!/reference and style prompt|not the one behind it|This picture was made on/.test(shown),
+    'and none of the three sentences renders anywhere on the page');
 
   // ── the PROMPT button ───────────────────────────────────────────────
   console.log('the prompt button');

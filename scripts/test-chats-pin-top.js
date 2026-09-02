@@ -239,9 +239,14 @@ const RED = /rgb\(179,\s*68,\s*63\)/;
     h: Math.round(n.getBoundingClientRect().height),
     box: getComputedStyle(n).borderTopWidth + '/' + getComputedStyle(n).borderTopLeftRadius,
   })));
-  const want = ['mk-star', 'mk-bell', 'mk-bmk', 'mk-pin', 'mk-eye', 'mk-del'];
+  // THE TRAY joined the row 2026-08-31 (her ask), directly after the pushpin —
+  // the two are the pair worth telling apart: the pin keeps a chat at the top
+  // of a list, the tray gives it a screen of its own. Its own behaviour is
+  // `test-chats-tray.js`; here it only has to be in the row, in that slot,
+  // wearing the same box as the marks it sits between.
+  const want = ['mk-star', 'mk-bell', 'mk-bmk', 'mk-pin', 'mk-tray', 'mk-eye', 'mk-del'];
   if (JSON.stringify(marks.map((m) => want.find((w) => m.cls.includes(w)))) !== JSON.stringify(want)) {
-    fail('the marks row is not star · bell · keep · pin · hide · delete — ' + JSON.stringify(marks.map((m) => m.cls)));
+    fail('the marks row is not star · bell · keep · pin · tray · hide · delete — ' + JSON.stringify(marks.map((m) => m.cls)));
   } else ok();
   // JUST THE GLYPH, IN THE BOX (Aug 2026, Sophie: "the top (pin, star, bell
   // etc) of tagging chats shud be just the icon not text"). The word moved to

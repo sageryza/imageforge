@@ -66,10 +66,13 @@ const DEEP = { chat: 'knitting', name: 'Knitting', url: 'http://127.0.0.1:PORT/i
 const votes = [];   // every vote POST the page sends, captured
 const searches = [];  // every q= the page asked the server
 const shoeboxed = [];  // every Add-to-Shoebox POST
+const freshes = [];  // every fresh=1 the page asked (the refresh button's mark)
+const servePublic = require('./lib/public-asset');
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
   if (url.pathname === '/api/gallery/assets/all') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
+    if (url.searchParams.get('fresh')) freshes.push(url.search);
     const q = (url.searchParams.get('q') || '').trim().toLowerCase();
     if (q) {
       // server-side search sees the WHOLE list, DEEP included
@@ -103,18 +106,13 @@ const server = http.createServer((req, res) => {
     });
     return;
   }
-  if (url.pathname === '/asset-lightbox.js') {
-    // THE lightbox, shared — the page has no copy of its own any more, so
-    // without this every lightbox assertion below times out on an empty overlay
-    res.writeHead(200, { 'Content-Type': 'text/javascript' });
-    return res.end(fs.readFileSync(path.join(PUB, 'asset-lightbox.js'), 'utf8'));
-  }
-  if (url.pathname === '/playground-port.js') {
-    // the real routing script — its ForgePlaygroundPort is what builds the
-    // lightbox's Playground button; without it the icon silently vanishes
-    res.writeHead(200, { 'Content-Type': 'text/javascript' });
-    return res.end(fs.readFileSync(path.join(PUB, 'playground-port.js'), 'utf8'));
-  }
+  // EVERY shared file this page links — the lightbox, the port script, the
+  // doors under the picture, the grid — served the way express.static serves
+  // them. This block used to name each one BY HAND, and the failure that
+  // brings is the quiet one public-asset.js exists to end: a file it forgot
+  // 404s, the page guards the global it could not load, and the harness
+  // renders a page missing that behaviour and passes.
+  if (servePublic(req, res)) return;
   if (url.pathname.startsWith('/i/') || url.pathname.startsWith('/api/story/thumb')) {
     res.writeHead(200, { 'Content-Type': 'image/png' });
     return res.end(PNG);
@@ -435,7 +433,13 @@ const server = http.createServer((req, res) => {
     // …and the three things that must NOT close: her picture, the note box,
     // and the prompt overlay covering the picture.
     await opened();
-    await page.click('#clightbox img');
+    // The picture is asked by DISPATCH rather than by a point: this fixture is
+    // a 1×1 PNG, so since tap-to-next (2026-08-31) the two 28%-wide step zones
+    // over the picture cover the whole of it and playwright's centre-point
+    // click lands on a zone. The close rule is about the tap's TARGET anyway
+    // (`t.closest('…img…')`), which is exactly what this asks.
+    await page.evaluate(() => document.querySelector('#clightbox img')
+      .dispatchEvent(new MouseEvent('click', { bubbles: true })));
     await page.click('#clightbox .lbnote input');
     await page.click('.promptbtn');
     await page.click('.lbptext');
@@ -450,7 +454,43 @@ const server = http.createServer((req, res) => {
     });
     if (!reachable) fail('the lightbox wiped its content inside the close handler');
 
-    console.log('test-meta-assets-page: all good — order, sync-to-origin-chat, filters, lightbox contract, getting out of it, action icons, pill tap rules, 16px inputs');
+    // 12 — THE REFRESH BUTTON (2026-08-31, Sophie: "add a refresh button to
+    // meta assets"): her tap asks the server PAST its 60s cache (fresh=1) and
+    // a picture filed since the page loaded lands at the TOP of the grid.
+    // Asked with elementFromPoint first — the injected pill owns the fixed
+    // top-right corner, and a covered button passes every markup assertion.
+    await page.evaluate(() => window.scrollTo(0, 0));
+    const rbState = await page.evaluate(() => {
+      const b = document.getElementById('refreshbtn');
+      if (!b) return 'missing';
+      const r = b.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      if (!hit || !hit.closest('#refreshbtn')) {
+        return 'covered by ' + (hit ? (hit.id || hit.className || hit.tagName) : 'nothing');
+      }
+      if (getComputedStyle(b).borderRadius.indexOf('50%') >= 0) return 'a circle';
+      return 'ok';
+    });
+    if (rbState !== 'ok') fail('refresh button ' + rbState);
+    ASSETS.unshift({ chat: 'evan-film', name: 'Evan',
+      url: `http://127.0.0.1:${port}/i/brandnew.png`,
+      description: 'Evan — the new dawn shot', created: iso(Date.now()) });
+    await page.click('#refreshbtn');
+    await page.waitForFunction(() => {
+      const l = document.querySelector('.assetgrid .acell .lbl');
+      return l && l.textContent === 'Evan — the new dawn shot';
+    });
+    if (!freshes.length) fail('the refresh button never sent fresh=1 to the server');
+    let toastMsg = await page.$eval('#toast', (e) => e.textContent);
+    if (toastMsg !== '1 new picture') fail('refresh toast wrong: ' + toastMsg);
+    // …and a refresh that finds nothing SAYS so — a button that sometimes
+    // visibly does nothing reads as broken
+    await page.click('#refreshbtn');
+    await page.waitForFunction(
+      () => document.getElementById('toast').textContent === 'Nothing new',
+      null, { timeout: 3000 }).catch(() => fail('empty refresh did not say "Nothing new"'));
+
+    console.log('test-meta-assets-page: all good — order, sync-to-origin-chat, filters, lightbox contract, getting out of it, action icons, pill tap rules, 16px inputs, refresh button');
   } finally {
     await browser.close();
     server.close();

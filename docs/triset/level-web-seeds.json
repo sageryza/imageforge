@@ -1,0 +1,55 @@
+{
+  "_what": "Triset seed batch 'web1' — deceptively simple SCENES engineered to match at three levels (Sophie's ask, 2026-08-31). Level 1 = tangible (colors/shapes/textures), level 2 = subject (what it depicts), level 3 = concept (the vague idea lurking in the scene). Each card's partners differ per level ON PURPOSE — the obvious visual match is never the same card as the concept match. The batch also interlocks with the existing seed pool (snake coil, ladybug dots, teacup steam, beehive drips, mountain triangle, sleeping fox, spotted egg, lighthouse).",
+  "_run": "node scripts/seed-triset.js --file docs/triset/level-web-seeds.json --ver web1 --chat triset-multilevel-patterns --go",
+  "_threads": {
+    "L1": {
+      "red round": ["balloon-cactus", "bee-jam", "+ ladybug", "+ watermelon"],
+      "spirals/coils": ["burnt-toast (smoke)", "umbrella (handle)", "kite-in-tree (string)", "+ teacup steam", "+ garden snake"],
+      "yellow": ["overflowing-tub (duck)", "mousetrap (cheese)", "bee-jam (stripes)", "+ sunflower", "+ lemon"],
+      "green spikes": ["balloon-cactus", "kite-in-tree (branches)", "+ watermelon rind"],
+      "dots/spots": ["dominoes", "+ ladybug", "+ spotted egg"],
+      "triangles/wedges": ["paper-boat", "mousetrap (cheese)", "kite-in-tree", "+ mountain"],
+      "water": ["overflowing-tub", "cat-fishbowl", "goldfish-leap", "paper-boat", "+ moon in lake"],
+      "drips/melt": ["melting-snowman", "overflowing-tub", "+ beehive honey"]
+    },
+    "L2": {
+      "kitchen/food": ["mousetrap", "burnt-toast", "bee-jam"],
+      "pets/animals": ["cat-fishbowl", "goldfish-leap", "mousetrap", "+ fox", "+ snake", "+ ladybug"],
+      "weather/outdoors": ["melting-snowman", "umbrella", "kite-in-tree", "paper-boat"],
+      "toys/play": ["balloon-cactus", "overflowing-tub (duck)", "kite-in-tree", "dominoes", "paper-boat"]
+    },
+    "L3": {
+      "accident waiting to happen": ["balloon-cactus", "mousetrap", "cat-fishbowl", "paper-boat", "+ lighthouse (warning)"],
+      "already went wrong / too late": ["burnt-toast", "kite-in-tree", "umbrella", "overflowing-tub", "dominoes"],
+      "unaware of being watched": ["cat-fishbowl (the fish)", "bee-jam (the picnic)", "+ sleeping fox"],
+      "running out of time": ["melting-snowman", "dominoes", "+ spotted egg (about to hatch)"],
+      "mid-leap / in between": ["goldfish-leap", "balloon-cactus (drifting)", "kite-in-tree (was flying)"]
+    }
+  },
+  "cards": [
+    { "slug": "balloon-cactus", "title": "a red balloon drifting toward a cactus",
+      "levels": { "l1": "red circle, green spikes", "l2": "party, plants", "l3": "accident waiting to happen" } },
+    { "slug": "mousetrap", "title": "a mouse reaching for cheese on a mousetrap",
+      "levels": { "l1": "yellow wedge, whiskers", "l2": "animals, kitchen", "l3": "temptation, about to go wrong" } },
+    { "slug": "cat-fishbowl", "title": "a cat watching a goldfish bowl",
+      "levels": { "l1": "orange fish, round glass, water", "l2": "pets, indoors", "l3": "unaware of being watched" } },
+    { "slug": "melting-snowman", "title": "a snowman melting in the sun",
+      "levels": { "l1": "white circles, orange cone, drips", "l2": "winter, outdoors", "l3": "running out of time" } },
+    { "slug": "overflowing-tub", "title": "an overflowing bathtub with a rubber duck",
+      "levels": { "l1": "yellow duck, round bubbles, spilling water", "l2": "bathroom, home", "l3": "somebody forgot" } },
+    { "slug": "burnt-toast", "title": "burnt toast popping from a toaster, smoke curling up",
+      "levels": { "l1": "smoke spiral, black squares", "l2": "kitchen, breakfast", "l3": "too late" } },
+    { "slug": "kite-in-tree", "title": "a kite tangled in a bare tree",
+      "levels": { "l1": "diamond shape, string coils, spiky branches", "l2": "outdoors, wind, play", "l3": "got too close, stuck" } },
+    { "slug": "dominoes", "title": "a line of dominoes mid-fall",
+      "levels": { "l1": "white rectangles, black dots, tilt", "l2": "game, table", "l3": "chain reaction, can't stop it now" } },
+    { "slug": "paper-boat", "title": "a paper boat sailing toward a storm drain",
+      "levels": { "l1": "white triangles, grey street, rain water", "l2": "street, rain, toy", "l3": "heading for trouble, small vs big" } },
+    { "slug": "umbrella", "title": "an umbrella blown inside out in the wind",
+      "levels": { "l1": "spokes, curved handle coil", "l2": "weather, street", "l3": "not going as planned" } },
+    { "slug": "bee-jam", "title": "a bee hovering over an open jam jar",
+      "levels": { "l1": "yellow-black stripes, red jam, round jar", "l2": "picnic, food, insects", "l3": "uninvited guest" } },
+    { "slug": "goldfish-leap", "title": "a goldfish leaping between two bowls",
+      "levels": { "l1": "orange fish, two round bowls, water arc", "l2": "pets, water", "l3": "mid-leap, escape" } }
+  ]
+}

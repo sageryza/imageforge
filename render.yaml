@@ -10,7 +10,32 @@ services:
     plan: starter
     buildCommand: npm install
     startCommand: npm start
+    # THE STOP GUARD BEFORE A DEPLOY (2026-09-02, Sophie: "why can't there be
+    # a stop guard before a deploy that asks if anything's drawing"). Runs
+    # after the build and BEFORE the new instance starts, while the old one
+    # is still serving: it asks the live server what is drawing and cutting
+    # and holds the deploy until nothing is (up to 25 minutes, then the
+    # deploy FAILS rather than kill a draw — the next merge carries it).
+    # Also set live by API the same night.
+    preDeployCommand: node scripts/deploy-guard.js
+    # A DEPLOY MUST NOT KILL A DRAW (2026-09-02). Render sends the old
+    # instance SIGTERM 60s after the new one is up and SIGKILL after this
+    # many seconds; server.js holds on SIGTERM while anything is drawing or
+    # cutting (shutdown-hold.js). 300 is Render's maximum without a support
+    # ticket. Also set live by API the same night — this keeps a Blueprint
+    # sync from reverting it.
+    maxShutdownDelaySeconds: 300
     envVars:
+      # THE MEMORY CREEP (2026-09-02). Measured on the live box through
+      # GET /api/promptlab/inflight: a fresh boot idles at ~200MB rss and is
+      # at ~300 within 90 seconds while the JS heap moves ~25MB — the growth
+      # is NATIVE. sharp/libvips on glibc is the known shape (its own docs:
+      # "set MALLOC_ARENA_MAX=2 … to reduce memory fragmentation"), and every
+      # thumbnail this app serves goes through sharp. Two arenas instead of
+      # eight per core. Also set live by API the same night; this line keeps
+      # a Blueprint sync from dropping it.
+      - key: MALLOC_ARENA_MAX
+        value: "2"
       # Set the values in the Render dashboard — never commit real keys.
       - key: OPENAI_API_KEY
         sync: false

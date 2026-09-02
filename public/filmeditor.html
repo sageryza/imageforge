@@ -3,10 +3,19 @@
 <head>
 <!-- Film Editor — Sophie's tap-only phone film editor, her own Claude Design
      canvas (docs/film-editor-design/) built for real. The one surface that
-     CUTS video: split, trim in/out, reorder, delete, one audio track — all
-     taps, nothing drags. A piece is a REFERENCE into a source file (url +
-     in/out), so every tool is non-destructive metadata; the render is the
-     only moment anything is actually cut (ffmpeg on our own box, free).
+     CUTS video: split, trim in/out, reorder, delete — all taps, nothing
+     drags. A piece is a REFERENCE into a source file (url + in/out), so
+     every tool is non-destructive metadata; the render is the only moment
+     anything is actually cut (ffmpeg on our own box, free).
+     TWO LANES SINCE 2026-09-02 (Sophie: "i need to be able to move the sound
+     around. that's literally what i can't describe to the chat"): the
+     PICTURE lane — clips and held STILLS — and a SOUND lane under it, any
+     number of sounds, free to overlap, each one edited with the SAME tool
+     row (split / trim / earlier / later / start here / delete) plus a level,
+     fades, mute and "ride" (anchor to the shot under it). The shape of a cut
+     is /cut-model.js, shared with the server so the two cannot drift, and
+     the chat edits the same doc: a save carries `base`, a stale one is
+     refused with the current doc and the page reloads from it.
      TWO LEVELS, one page: the shelf of cuts, and one open (the assembly
      pattern; window.__navBack walks open → shelf).
      Fixes carried in from the gaps file (docs/film-editor-design/README.md):
@@ -51,11 +60,12 @@ body.tool{ background:var(--bg); color:var(--ink); overflow:hidden; }
   stroke-linecap:round; stroke-linejoin:round; }
 .arow .t{ font-family:Georgia,'Times New Roman',serif; font-size:16px; }
 .arow .m{ font-size:12px; color:var(--dim); margin-top:2px; }
+.arow:disabled{ opacity:.5; }
 
 /* level 2 — one cut open: her editor screen, one column, no page scroll */
 #lvOpen{ display:flex; flex-direction:column; height:calc(100dvh - 56px);
   max-width:640px; margin:0 auto; }
-#toprow{ display:flex; align-items:center; gap:8px; padding:4px 14px 2px; }
+#toprow{ display:flex; align-items:center; gap:6px; padding:4px 14px 2px; }
 #filmsBtn{ position:relative; width:40px; height:40px; border-radius:10px; border:0;
   background:none; color:var(--dim); display:flex; align-items:center; justify-content:center;
   cursor:pointer; padding:0; flex:0 0 auto; }
@@ -67,11 +77,12 @@ body.tool{ background:var(--bg); color:var(--ink); overflow:hidden; }
 #ttl{ flex:1; min-width:0; border:0; background:transparent; text-align:center;
   font:600 13px -apple-system,system-ui,sans-serif; letter-spacing:.02em; color:var(--ink); padding:4px 0; }
 #ttl:focus{ outline:none; border-bottom:1px solid var(--border); }
-#addBtn{ width:40px; height:40px; border-radius:10px; border:0; background:var(--surface);
+#addBtn, #dumpBtn{ width:40px; height:40px; border-radius:10px; border:0; background:var(--surface);
   color:var(--ink); display:flex; align-items:center; justify-content:center; cursor:pointer;
   padding:0; flex:0 0 auto; }
-#addBtn svg{ width:19px; height:19px; stroke:currentColor; stroke-width:1.75; fill:none;
+#addBtn svg, #dumpBtn svg{ width:19px; height:19px; stroke:currentColor; stroke-width:1.75; fill:none;
   stroke-linecap:round; stroke-linejoin:round; }
+#dumpBtn{ background:none; color:var(--dim); }
 
 /* empty state */
 #emptyBox{ flex:1; display:flex; flex-direction:column; align-items:center;
@@ -79,17 +90,22 @@ body.tool{ background:var(--bg); color:var(--ink); overflow:hidden; }
 #emptyBox svg{ width:40px; height:40px; stroke:#c9c0ab; stroke-width:1.6; fill:none;
   stroke-linecap:round; stroke-linejoin:round; }
 #emptyBox .t{ font-size:14px; color:var(--dim); text-align:center; line-height:1.5; }
+#emptyBox .row{ margin-top:0; justify-content:center; }
 
 /* the preview — her dark canvas with the timecode chip */
 #stage{ flex:1; min-height:0; margin:4px 14px 0; border-radius:14px; overflow:hidden;
   position:relative; background:#111; }
 #stage video{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain;
   background:#000; }
+/* a STILL with no baked proxy yet paints its own picture over the stage — a
+   fresh photo must never be a black hole while its 60s proxy bakes */
+#still{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain;
+  background:#000; z-index:2; }
 #tc{ position:absolute; bottom:10px; left:12px; font:500 11px ui-monospace,monospace;
-  color:var(--ink); background:rgba(251,249,244,.85); padding:3px 8px; border-radius:6px; }
+  color:var(--ink); background:rgba(251,249,244,.85); padding:3px 8px; border-radius:6px; z-index:3; }
 
 /* transport — «  ‹  ▶  ›  » with the tiny labels under it */
-#trans{ display:flex; justify-content:center; align-items:center; gap:8px; padding:12px 0 0; }
+#trans{ display:flex; justify-content:center; align-items:center; gap:8px; padding:10px 0 0; }
 #trans button{ width:48px; height:44px; border-radius:10px; background:var(--surface);
   border:0; color:var(--ink2); display:flex; align-items:center; justify-content:center;
   cursor:pointer; padding:0; }
@@ -101,39 +117,56 @@ body.tool{ background:var(--bg); color:var(--ink); overflow:hidden; }
   font-size:9px; color:#a39a86; }
 #translbl span:nth-child(3){ width:24px; }
 
-/* the timeline — proportional widths, REAL poster frames, and it SCROLLS */
-#strip{ display:flex; gap:4px; padding:10px 14px 0; overflow-x:auto;
-  -webkit-overflow-scrolling:touch; flex:0 0 auto; }
-.seg{ position:relative; flex:1 1 0; min-width:34px; height:52px; border-radius:8px;
+/* the timeline — TWO LANES in ONE scroller, so the sound bars stay under the
+   shots they sit beneath when a long cut scrolls sideways. Proportional
+   widths, REAL poster frames, and it SCROLLS instead of running off the screen. */
+#tlwrap{ position:relative; overflow-x:auto; -webkit-overflow-scrolling:touch;
+  padding:8px 14px 0; flex:0 0 auto; }
+#strip{ display:flex; gap:4px; min-width:100%; }
+.seg{ position:relative; flex:1 1 0; min-width:34px; height:50px; border-radius:8px;
   overflow:hidden; border:1px solid rgba(38,34,28,.08); background:var(--surface2);
   background-size:cover; background-position:center; padding:0; cursor:pointer; }
 .seg.sel{ outline:2px solid var(--chg); outline-offset:1px; }
 .seg .lbl{ position:absolute; left:6px; bottom:4px; font:9px ui-monospace,monospace;
   color:var(--ink); background:rgba(251,249,244,.8); border-radius:3px; padding:0 3px; }
 .seg .ph{ position:absolute; top:0; bottom:0; width:2px; background:var(--chg); }
+/* a STILL wears a small picture mark in its corner, so a held photo reads as
+   one beside the clips */
+.seg .kd{ position:absolute; top:3px; right:3px; width:14px; height:14px; border-radius:3px;
+  background:rgba(251,249,244,.8); color:var(--ink); display:flex; align-items:center;
+  justify-content:center; }
+.seg .kd svg{ width:9px; height:9px; stroke:currentColor; stroke-width:2; fill:none;
+  stroke-linecap:round; stroke-linejoin:round; }
 
-/* audio track row */
-#audrow{ display:flex; align-items:center; gap:6px; padding:8px 14px 0; flex:0 0 auto; }
-#audrow > svg{ width:14px; height:14px; stroke:#9a8f77; stroke-width:1.8; fill:none;
-  stroke-linecap:round; stroke-linejoin:round; flex:0 0 auto; }
-#audon{ flex:1; min-width:0; height:26px; border-radius:6px; background:#efe9db;
-  display:flex; align-items:center; padding:0 8px; gap:8px; }
-#audon .nm{ font:9px ui-monospace,monospace; color:#a39a86; overflow:hidden;
-  text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0; }
-#audon .sync{ font-size:9px; color:var(--chg); display:flex; align-items:center; gap:3px;
-  flex:0 0 auto; }
-#audon .sync svg{ width:10px; height:10px; stroke:currentColor; stroke-width:2; fill:none; }
-#audon .rm{ border:0; background:none; color:#a39a86; font-size:11px; cursor:pointer;
-  padding:2px 4px; flex:0 0 auto; }
-#audoff{ flex:1; height:26px; border-radius:6px; border:1px dashed #cfc6b0; background:none;
+/* the SOUND lane — every sound a bar at its resolved start, its length as
+   its width, overlapping sounds on rows; the selected one outlined like a
+   piece. Positions are measured off the shots' real boxes (laneMeasure), so
+   a sound starting at a shot's boundary sits on that tile's edge. */
+#lane{ position:relative; margin-top:5px; min-width:100%; min-height:22px; }
+#lane .lph{ position:absolute; top:0; bottom:0; width:2px; background:var(--chg);
+  pointer-events:none; z-index:2; }
+.snd{ position:absolute; height:18px; border-radius:6px; background:#e3d9c2;
+  border:1px solid rgba(38,34,28,.14); padding:0; cursor:pointer; overflow:hidden;
+  text-align:left; font:9px ui-monospace,monospace; color:var(--ink); }
+.snd.sel{ outline:2px solid var(--chg); outline-offset:1px; z-index:1; }
+.snd.mute{ opacity:.4; }
+.snd.open{ border-right:1px dashed #a39a86; }   /* length unknown yet — runs to the end */
+.snd .fi, .snd .fo{ position:absolute; top:0; bottom:0; background:rgba(251,249,244,.6);
+  pointer-events:none; }   /* a fade is a flat lighter block, one colour */
+.snd .fi{ left:0; } .snd .fo{ right:0; }
+.snd .nm{ position:absolute; left:5px; right:4px; top:0; line-height:16px; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; }
+.snd .nm svg{ width:9px; height:9px; vertical-align:-1px; stroke:currentColor;
+  stroke-width:2.2; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+#laneoff{ width:100%; height:22px; border-radius:6px; border:1px dashed #cfc6b0; background:none;
   display:flex; align-items:center; justify-content:center; gap:6px; cursor:pointer;
   font-size:10px; color:#9a8f77; }
-#audoff svg{ width:11px; height:11px; stroke:currentColor; stroke-width:2; fill:none;
+#laneoff svg{ width:11px; height:11px; stroke:currentColor; stroke-width:2; fill:none;
   stroke-linecap:round; stroke-linejoin:round; }
 
 /* the seven tools — her row, with inert dimming (never a tappable ghost) */
-#tools{ display:flex; justify-content:center; gap:6px; padding:10px 8px 4px; flex:0 0 auto; }
-#tools button{ width:46px; height:52px; border-radius:10px; background:var(--surface);
+#tools{ display:flex; justify-content:center; gap:6px; padding:8px 8px 0; flex:0 0 auto; }
+#tools button{ width:46px; height:50px; border-radius:10px; background:var(--surface);
   border:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
   gap:3px; cursor:pointer; padding:0; color:var(--ink); }
 #tools button.off{ opacity:.35; pointer-events:none; }
@@ -142,23 +175,39 @@ body.tool{ background:var(--bg); color:var(--ink); overflow:hidden; }
 #tools .w{ font-size:8px; color:var(--ink2); }
 #tools #syncBtn svg{ color:var(--chg); }
 
+/* the SOUND tools — two short rows, only while a sound is selected: level
+   (1 dB a tap, the number shown), mute, ride; then the fade-in and fade-out
+   chips. Rounded rectangles, never pills; the lit one is filled ink. */
+#sndtools{ display:flex; flex-direction:column; gap:4px; padding:6px 10px 0; flex:0 0 auto; }
+#sndtools .r{ display:flex; align-items:center; justify-content:center; gap:4px; flex-wrap:wrap; }
+#sndtools button{ height:26px; min-width:24px; border-radius:6px; border:1px solid var(--border);
+  background:var(--surface); color:var(--ink); font:inherit; font-size:10px; padding:0 5px;
+  display:inline-flex; align-items:center; justify-content:center; gap:4px; cursor:pointer; }
+#sndtools button.on{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+#sndtools button svg{ width:13px; height:13px; stroke:currentColor; stroke-width:1.9; fill:none;
+  stroke-linecap:round; stroke-linejoin:round; }
+#sndtools .lv{ min-width:52px; text-align:center; font:500 10px ui-monospace,monospace; }
+#sndtools .lb{ font-size:9px; color:var(--ink2); margin:0 2px 0 6px; }
+#sndtools .lb:first-child{ margin-left:0; }
+
 /* one quiet line for refusals and progress — a refused tap says why */
 #msg{ text-align:center; font-size:11.5px; color:var(--dim); min-height:16px;
-  padding:2px 16px calc(8px + env(safe-area-inset-bottom)); flex:0 0 auto; }
+  padding:2px 16px calc(6px + env(safe-area-inset-bottom)); flex:0 0 auto; }
 
-/* the films sheet — renders + the Render button */
+/* the sheets — the films sheet (renders + Render), the Dump's albums */
 .sheet{ position:fixed; inset:0; z-index:40; background:rgba(251,249,244,.985); overflow-y:auto; }
 .sheet .wrap{ max-width:640px; margin:0 auto; padding:14px 16px calc(40px + env(safe-area-inset-bottom)); }
 .sheet .x{ position:sticky; top:10px; z-index:2; margin-left:auto; display:flex; width:36px;
-  height:36px; border-radius:50%; background:var(--surface); border:1px solid var(--border);
+  height:36px; border-radius:6px; background:var(--surface); border:1px solid var(--border);
   color:var(--ink); align-items:center; justify-content:center; cursor:pointer; padding:0; }
 .sheet .x svg{ width:16px; height:16px; stroke:currentColor; stroke-width:1.8; fill:none;
   stroke-linecap:round; stroke-linejoin:round; }
 #films{ margin-top:6px; }
 #films button{ display:flex; align-items:center; gap:8px; background:none; border:0;
-  padding:8px 0; font:inherit; font-size:13.5px; color:var(--ink); cursor:pointer; }
+  padding:8px 0; font:inherit; font-size:13.5px; color:var(--ink); cursor:pointer; text-align:left; }
 #films svg{ width:15px; height:15px; fill:currentColor; stroke:none; flex:0 0 auto; }
 #films .m{ color:var(--dim); }
+#films .new{ color:var(--chg); }
 #jobline{ font-size:12.5px; color:var(--dim); margin-top:10px; }
 
 /* the player overlay — freezes the page behind it */
@@ -167,7 +216,7 @@ body.tool{ background:var(--bg); color:var(--ink); overflow:hidden; }
 #lb video{ width:100%; max-height:78vh; background:#000; display:block; object-fit:contain; }
 #lb .cap{ color:#e8e2d6; font-size:13px; padding:10px 16px; text-align:center; }
 #lb .x{ position:absolute; top:calc(12px + env(safe-area-inset-top)); right:14px; width:36px;
-  height:36px; border-radius:50%; background:rgba(251,249,244,.14); border:0; color:#f2ece0;
+  height:36px; border-radius:6px; background:rgba(251,249,244,.14); border:0; color:#f2ece0;
   display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; }
 #lb .x svg{ width:16px; height:16px; stroke:currentColor; stroke-width:1.8; fill:none;
   stroke-linecap:round; stroke-linejoin:round; }
@@ -182,18 +231,27 @@ body.tool{ background:var(--bg); color:var(--ink); overflow:hidden; }
 </div>
 <div class="helpcard" id="helpcard" hidden>
   <b>Cut a film with taps.</b> Open a cut (or start one), tap <b>+</b> to
-  upload videos from your phone, and they line up on the timeline. Play, or
-  step with the arrows — <b>‹ ›</b> move one frame, <b>« »</b> one second.
-  The piece under the playhead is always the selected one.<br><br>
+  upload videos or photos from your phone — or the tray icon to bring in a
+  whole Dump album — and they line up on the timeline. A photo is a still,
+  held for four seconds. Play, or step with the arrows — <b>‹ ›</b> move one
+  frame, <b>« »</b> one second. The piece under the playhead is always the
+  selected one.<br><br>
   The tools work at the playhead: <b>split</b> cuts the piece in two,
-  <b>trim in</b>/<b>trim out</b> move its start or end to where you are,
-  <b>earlier</b>/<b>later</b> swap it with its neighbour, <b>delete</b> takes
-  it off. Nothing touches the original footage — a trim can always be trimmed
-  back out.<br><br>
-  <b>sync</b> lays one audio track under the film, starting at the selected
-  piece (or from the top). The film icon top-left holds your finished films:
-  <b>Render</b> bakes the cut into one real mp4 — free, on our own box — and
-  every render is kept.
+  <b>trim in</b>/<b>trim out</b> move its start or end to where you are (on
+  a still, that is how long it holds), <b>earlier</b>/<b>later</b> swap it
+  with its neighbour, <b>delete</b> takes it off. Nothing touches the
+  original footage — a trim can always be trimmed back out.<br><br>
+  <b>Sound is its own lane</b> under the pictures. <b>add sound</b> lays a
+  file under the film starting at the playhead; tap a sound bar and the same
+  tools work on it — split, trim, nudge <b>earlier</b>/<b>later</b> by half
+  a second, <b>start here</b> moves it to the playhead, delete. A selected
+  sound also gets its level (<b>−</b>/<b>+</b>, a decibel a tap), fade in
+  and out, <b>mute</b>, and <b>ride</b> — it rides the shot under its start,
+  so it follows that shot wherever you move it. Tap the bar again to go back
+  to the pictures.<br><br>
+  The film icon top-left holds your finished films: <b>Render</b> bakes the
+  cut into one real mp4 — free, on our own box — and every render is kept,
+  yours and the chat's, newest first.
 </div>
 
 <!-- level 1: the shelf of cuts -->
@@ -211,23 +269,27 @@ body.tool{ background:var(--bg); color:var(--ink); overflow:hidden; }
       <span class="dot" id="filmsDot" hidden></span>
     </button>
     <input id="ttl" aria-label="Cut name">
-    <button id="addBtn" aria-label="Upload clips">
+    <button id="dumpBtn" aria-label="Add from the Dump">
+      <svg viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+    </button>
+    <button id="addBtn" aria-label="Upload clips or photos">
       <svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
     </button>
-    <input id="upFile" type="file" multiple accept="video/*" hidden>
+    <input id="upFile" type="file" multiple accept="video/*,image/*" hidden>
     <input id="audFile" type="file" accept="audio/*" hidden>
   </div>
 
   <div id="emptyBox" hidden>
     <svg viewBox="0 0 24 24"><path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.4Z"/><path d="m6.2 5.3 3.1 3.9"/><path d="m12.4 3.4 3.1 4"/><path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>
-    <div class="t">No clips yet.<br>Tap + to upload videos from your phone.</div>
-    <button class="btn" id="emptyUp">Upload clips</button>
+    <div class="t">No pieces yet.<br>Tap + to upload videos or photos from your phone.</div>
+    <div class="row"><button class="btn" id="emptyUp">Upload</button><button class="btn ghost" id="emptyDump">From the Dump</button></div>
   </div>
 
   <div id="editBox" hidden style="display:flex;flex-direction:column;flex:1;min-height:0">
     <div id="stage">
       <video id="vA" playsinline preload="auto"></video>
       <video id="vB" playsinline preload="auto" hidden></video>
+      <img id="still" alt="" hidden>
       <span id="tc">00:00.00 / 00:00.00</span>
     </div>
     <div id="trans">
@@ -242,18 +304,16 @@ body.tool{ background:var(--bg); color:var(--ink); overflow:hidden; }
     </div>
     <div id="translbl"><span>−1s</span><span>−1 frame</span><span></span><span>+1 frame</span><span>+1s</span></div>
 
-    <div id="strip"></div>
-
-    <div id="audrow">
-      <svg viewBox="0 0 24 24"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg>
-      <div id="audon" hidden>
-        <span class="nm" id="audName"></span>
-        <span class="sync" id="audSync"><svg viewBox="0 0 24 24"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg><span id="audSyncT"></span></span>
-        <button class="rm" id="audRm" aria-label="Remove the audio track">✕</button>
+    <div id="tlwrap">
+      <div id="strip"></div>
+      <div id="lane">
+        <span class="lph" id="lph" hidden></span>
+        <button id="laneoff" hidden><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg>add a sound</button>
       </div>
-      <button id="audoff" hidden><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg>add audio track</button>
-      <audio id="audEl" preload="auto"></audio>
     </div>
+    <!-- one <audio> per sound lives here (bankEnsure) — an element without
+         controls has no box, so the bank takes no room -->
+    <div id="audbank"></div>
 
     <div id="tools">
       <button id="splitBtn"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg><span class="w">split</span></button>
@@ -261,8 +321,24 @@ body.tool{ background:var(--bg); color:var(--ink); overflow:hidden; }
       <button id="trimOutBtn"><svg viewBox="0 0 24 24"><path d="M17 12H3"/><path d="m11 18 6-6-6-6"/><path d="M21 5v14"/></svg><span class="w">trim out</span></button>
       <button id="moveL"><svg viewBox="0 0 24 24"><path d="M6 8L2 12L6 16"/><path d="M2 12H22"/></svg><span class="w">earlier</span></button>
       <button id="moveR"><svg viewBox="0 0 24 24"><path d="M18 8L22 12L18 16"/><path d="M2 12H22"/></svg><span class="w">later</span></button>
-      <button id="syncBtn"><svg viewBox="0 0 24 24"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg><span class="w">sync</span></button>
+      <button id="syncBtn">
+        <svg id="syncIcoAdd" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        <svg id="syncIcoAt" viewBox="0 0 24 24" hidden><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg>
+        <span class="w">add sound</span>
+      </button>
       <button id="delBtn"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg><span class="w">delete</span></button>
+    </div>
+
+    <div id="sndtools" hidden>
+      <div class="r">
+        <span class="lb">level</span>
+        <button id="lvDn" aria-label="Level down 1 dB"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+        <span class="lv" id="lvl">0 dB</span>
+        <button id="lvUp" aria-label="Level up 1 dB"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
+        <button id="muteBtn" aria-label="Mute this sound"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>mute</button>
+        <button id="rideBtn" aria-label="Ride the shot under this sound"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="3"/><line x1="12" y1="22" x2="12" y2="8"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/></svg>ride</button>
+      </div>
+      <div class="r" id="fades"></div>
     </div>
   </div>
   <!-- OUTSIDE #editBox on purpose: the very first upload happens while the
@@ -282,12 +358,27 @@ body.tool{ background:var(--bg); color:var(--ink); overflow:hidden; }
   </div>
 </div>
 
+<!-- the Dump's albums — Assembly's door, ported: tap an album and the whole
+     of it (photos as stills, clips as clips, audio skipped) joins the picture
+     lane in album order, nothing re-uploaded -->
+<div id="dumpSheet" class="sheet" hidden>
+  <div class="wrap">
+    <button class="x" id="dumpClose"><svg viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+    <div id="dumpList"></div>
+    <div class="note" id="dumpNote" hidden></div>
+  </div>
+</div>
+
 <div id="lb">
   <button class="x" id="lbClose"><svg viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
   <video id="lbVideo" controls playsinline preload="metadata"></video>
   <div class="cap" id="lbCap"></div>
 </div>
 
+<!-- THE ONE SHAPE OF A CUT — shared with the server (cut-model.js at the
+     repo root, served by server.js like pause-plan.js). Loaded before the
+     page script; the page keeps no mirror of it. -->
+<script src="/cut-model.js"></script>
 <script>
 (function () {   /* IIFE — never collide with injected globals */
 'use strict';
@@ -296,7 +387,11 @@ var TOK = STUDIO_TOKEN.indexOf('__') === 0 ? '' : STUDIO_TOKEN;
 var $ = function (id) { return document.getElementById(id); };
 var B = '/api/filmeditor';
 var FPS = 30;
-var MIN_PIECE = 0.1;
+var CM = window.CutModel;
+if (!CM) { $('msg').textContent = 'the cut model didn’t load — reload the page'; return; }
+var MIN_PIECE = CM.MIN_PIECE;
+var NUDGE = 0.5;                  // earlier / later on a sound: half a second a tap
+var FADE_STOPS = [0, 0.5, 1, 2, 4];
 if (window.__nativeNavBar) document.body.classList.add('native');
 
 function api(path, opts) {
@@ -309,7 +404,13 @@ function api(path, opts) {
   return fetch(path, opts).then(function (r) {
     return r.text().then(function (t) {
       var b; try { b = JSON.parse(t); } catch (e) { b = t; }
-      if (!r.ok) throw new Error((b && b.error) || ('HTTP ' + r.status));
+      if (!r.ok) {
+        // the status and the body ride the error: a 409 carries the doc the
+        // chat wrote, and the save path reloads from it
+        var err = new Error((b && b.error) || ('HTTP ' + r.status));
+        err.status = r.status; err.body = b;
+        throw err;
+      }
       return b;
     });
   });
@@ -319,6 +420,7 @@ function esc(s) {
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
   });
 }
+function r3(x) { return Math.round(x * 1000) / 1000; }
 function fmtDur(s) {
   if (s == null) return '';
   var t = Math.round(s);
@@ -329,34 +431,44 @@ function fmt(t) {
   var m = Math.floor(t / 60), s = Math.floor(t % 60), f = Math.floor((t % 1) * FPS);
   return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0') + '.' + String(f).padStart(2, '0');
 }
-function keyGen() { return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function fmtDb(g) {
+  g = Number(g) || 0;
+  return (g > 0 ? '+' : (g < 0 ? '−' : '')) + Math.abs(g) + ' dB';
+}
+function keyGen(p) { return (p || 'p') + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 var FILM_ICON = '<svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/>'
   + '<path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/>'
   + '<path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></svg>';
+var IMG_ICON = '<svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/>'
+  + '<circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>';
+var RIDE_ICON = '<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="3"/><line x1="12" y1="22" x2="12" y2="8"/>'
+  + '<path d="M5 12H2a10 10 0 0 0 20 0h-3"/></svg>';
 
 /* ── state ── */
-var BUILD = 'fe-2026-08-23d';   // rides the telemetry — settles "which page is her phone actually running"
-var A = null;                 // the open cut doc {id,title,clips,audio,renders,job}
+var BUILD = 'fe-2026-09-02a';   // rides the telemetry — settles "which page is her phone actually running"
+var A = null;                 // the open cut doc {id,title,clips,sounds,renders,job,updatedAt}
 var playhead = 0;
 var playing = false;
-var selKey = null;            // the selected piece — FOLLOWS the playhead
+var selKey = null;            // the selected PIECE — FOLLOWS the playhead
+var selSnd = null;            // the selected SOUND (its key) — hers, by a tap; null = the picture lane
 var raf = null, saveT = null, jobT = null;
 var upSession = '', uploading = false;
+var chatNewAt = 0;            // the chat's newest render, when it is newer than her last visit here
 
 /* ── preview proxies: the editor PLAYS a light baked copy of each source
    (~40x smaller — her Midjourney exports are 19 Mbps and stall the player),
-   while the render always cuts the ORIGINAL. A freshly ready proxy is
-   adopted only between plays, so the clock's element can never change under
-   a running tick. ── */
+   while the render always cuts the ORIGINAL. A STILL's proxy is a 60s
+   silent mp4 of the picture, so the two-video player never learns what a
+   still is. A freshly ready proxy is adopted only between plays, so the
+   clock's element can never change under a running tick. ── */
 var PROXY = {};        // url → proxy url, live
 var PROXY_NEXT = {};   // ready but waiting for playback to stop
-var PROXY_AUD = {};    // the music track's audio-only copy — her real track
-var PROXY_AUD_NEXT = {};   // was a 13.9MB 480p VIDEO mp4 (measured 2026-08-23)
+var PROXY_AUD = {};    // a sound's audio-only copy — her real track was a
+var PROXY_AUD_NEXT = {};   // 13.9MB 480p VIDEO mp4 (measured 2026-08-23)
 var proxyT = null;
 function srcOf(c) { return (c && PROXY[c.url]) || (c && c.url) || ''; }
-function audSrc() {
-  return (A && A.audio && (PROXY_AUD[A.audio.url] || A.audio.url)) || '';
-}
+function audSrc(s) { return (s && (PROXY_AUD[s.url] || s.url)) || ''; }
+function stillNoProxy(c) { return Boolean(c && c.kind === 'image' && !PROXY[c.url]); }
 function adoptProxies() {
   if (playing) return;
   for (var u in PROXY_NEXT) PROXY[u] = PROXY_NEXT[u];
@@ -370,7 +482,10 @@ function askProxies(post) {
   ((A && A.clips) || []).forEach(function (c) {
     if (c.url && urls.indexOf(c.url) === -1) urls.push(c.url);
   });
-  var audio = (A && A.audio && A.audio.url) ? [A.audio.url] : [];
+  var audio = [];
+  ((A && A.sounds) || []).forEach(function (s) {
+    if (s.url && audio.indexOf(s.url) === -1) audio.push(s.url);
+  });
   if (!urls.length && !audio.length) return;
   var req = post
     ? api(B + '/proxies', { method: 'POST', body: { urls: urls, audio: audio } })
@@ -394,17 +509,12 @@ function askProxies(post) {
   }).catch(function () {});
 }
 
-/* mirrors filmeditor.js */
-function pieceSeconds(c) { return Math.max(0, (Number(c && c.out) || 0) - (Number(c && c.in) || 0)); }
+/* the shape of a cut is cut-model.js; segs() is CutModel.starts in the
+   page's own {c,start,dur} dress */
 function segs() {
-  var t = 0;
-  return ((A && A.clips) || []).map(function (c) {
-    var s = { c: c, start: t, dur: pieceSeconds(c) };
-    t += s.dur;
-    return s;
-  });
+  return CM.starts((A && A.clips) || []).map(function (s) { return { c: s.piece, start: s.start, dur: s.dur }; });
 }
-function total() { return segs().reduce(function (a, s) { return a + s.dur; }, 0); }
+function total() { return CM.totalSeconds((A && A.clips) || []); }
 function segAt(t) {
   var ss = segs();
   for (var i = 0; i < ss.length; i++) { if (t < ss[i].start + ss[i].dur - 1e-4) return ss[i]; }
@@ -415,13 +525,32 @@ function selSeg() {
   for (var i = 0; i < ss.length; i++) { if (ss[i].c.key === selKey) return ss[i]; }
   return null;
 }
+function selSound() {
+  if (!selSnd || !A) return null;
+  var ss = A.sounds || [];
+  for (var i = 0; i < ss.length; i++) { if (ss[i].key === selSnd) return ss[i]; }
+  return null;
+}
+function soundByKey(k) {
+  var ss = (A && A.sounds) || [];
+  for (var i = 0; i < ss.length; i++) { if (ss[i].key === k) return ss[i]; }
+  return null;
+}
+// a split: two references into one file — or, on a still, two holds
 function splitPiece(piece, offset, newKey) {
-  var dur = pieceSeconds(piece);
+  var dur = CM.pieceSeconds(piece);
   if (!(offset >= MIN_PIECE && offset <= dur - MIN_PIECE)) return null;
-  var cut = Math.round((piece.in + offset) * 1000) / 1000;
+  if (piece.kind === 'image') {
+    return [Object.assign({}, piece, { out: r3(offset) }),
+      Object.assign({}, piece, { key: newKey, out: r3(dur - offset) })];
+  }
+  var cut = r3(piece.in + offset);
   var a = Object.assign({}, piece, { out: cut });
   var b = Object.assign({}, piece, { key: newKey, in: cut });
   return [a, b];
+}
+function stillThumb(c) {
+  return c.poster || ('/api/story/thumb?w=160&url=' + encodeURIComponent(c.url));
 }
 
 /* ── two levels, one page ── */
@@ -442,7 +571,8 @@ window.__navBack = function () {
 };
 function toShelf() {
   stopPlayback();
-  A = null; selKey = null; clearInterval(jobT);
+  A = null; selKey = null; selSnd = null; clearInterval(jobT);
+  bankSync();
   show('shelf'); shelfPaint();
 }
 function leaveOpen() {
@@ -468,7 +598,7 @@ function shelfPaint() {
         + '<span><span class="t">' + esc(a.title) + '</span>'
         + '<span class="m">' + a.pieces + (a.pieces === 1 ? ' piece' : ' pieces')
         + (a.seconds ? ' · ' + fmtDur(a.seconds) : '')
-        + (a.hasAudio ? ' · audio' : '')
+        + (a.sounds ? ' · ' + a.sounds + (a.sounds === 1 ? ' sound' : ' sounds') : (a.hasAudio ? ' · audio' : ''))
         + (a.renders ? ' · ' + a.renders + (a.renders === 1 ? ' film' : ' films') : '')
         + (a.job ? ' · rendering…' : '') + '</span></span>';
       b.onclick = function () { open(a.id); };
@@ -487,23 +617,60 @@ $('newBtn').onclick = function () {
 };
 
 /* ── level 2: one cut open ── */
+// what a doc holds, whichever shape it was written in — an old doc with only
+// `audio` opens with that track as its first sound
+function adopt(doc, id) {
+  var m = CM.readDoc(doc);
+  A = doc || {}; A.id = id;
+  A.clips = m.clips; A.sounds = m.sounds;
+  delete A.audio;   // never sent back — the server keeps its own legacy mirror
+  A.renders = Array.isArray(A.renders) ? A.renders : [];
+}
+function renderAt(r) {
+  var v = r && r.at;
+  if (typeof v === 'number') return v;
+  var t = Date.parse(String(v || ''));
+  return Number.isFinite(t) ? t : 0;
+}
+function seenKey(id) { return 'forge.fe.seen.' + id; }
 function open(id, fromHistory) {
   api(B + '/' + encodeURIComponent(id)).then(function (doc) {
-    A = doc; A.id = id;
-    playhead = 0; playing = false; selKey = null;
+    adopt(doc, id);
+    playhead = 0; playing = false; selKey = null; selSnd = null;
     $('ttl').value = A.title || '';
     if (!fromHistory) {
       try { history.pushState({ c: id }, '', aUrl(id)); } catch (_) {}
     }
+    // the chat's newest render, newer than her last visit: said once in the
+    // quiet line, and marked in the films sheet for the length of this visit
+    var seen = 0;
+    try { seen = Number(localStorage.getItem(seenKey(id))) || 0; } catch (e) { /* no storage */ }
+    var newest = A.renders[0];
+    chatNewAt = (newest && newest.by === 'chat' && renderAt(newest) > seen) ? renderAt(newest) : 0;
+    try { localStorage.setItem(seenKey(id), String(Date.now())); } catch (e) { /* no storage */ }
     show('open');
     paint();
     syncSelection();
     seekVideo(false);
     askProxies(true);   // preview copies: start any missing bakes right away
+    if (chatNewAt) say('the chat rendered a new version since you were here — it’s in the films');
     if (A.job && A.job.status === 'running') { openFilms(); pollJob(); }
   }).catch(function (e) {
     $('shelfNote').hidden = false; $('shelfNote').textContent = String(e.message || e);
   });
+}
+// the chat changed this cut under her (a stale save): the doc it wrote takes
+// the screen, her playhead stays where it can, nothing is re-sent
+function reloadFrom(doc) {
+  if (playing) stopPlayback();
+  var id = A.id, title = A.title;
+  adopt(doc, id);
+  if (!A.title) A.title = title;
+  $('ttl').value = A.title || '';
+  playhead = Math.min(Math.max(0, playhead), Math.max(0, total() - 0.001));
+  if (selSnd && !soundByKey(selSnd)) selSnd = null;
+  syncSelection(); paint(); seekVideo(false);
+  askProxies(false);
 }
 $('ttl').addEventListener('change', function () {
   if (!A) return;
@@ -514,14 +681,35 @@ $('ttl').addEventListener('change', function () {
 });
 
 var lastEditAt = 0;   // the self-heal reload must never race an in-flight save
-function save() {
-  lastEditAt = Date.now();
+var lastTouchAt = 0;  // her last tap anywhere on the page
+// `quiet`: a save that is not her edit — a sound learning its own length —
+// so it never holds the self-heal back (a reload re-learns it for free)
+function save(quiet) {
+  if (!quiet) lastEditAt = Date.now();
   clearTimeout(saveT);
-  saveT = setTimeout(function () {
-    if (!A) return;
-    api(B + '/' + A.id + '/pieces', { method: 'POST', body: { clips: A.clips || [], audio: A.audio || null } })
-      .catch(function (e) { say('Couldn’t save — ' + String(e.message || e)); });
-  }, 600);
+  saveT = setTimeout(function () { putPieces().catch(function () {}); }, 600);
+}
+// ONE save shape: both lanes, whole, with `base` — the updatedAt the page
+// opened on. The server refuses a stale base with 409 + its current doc, and
+// the page reloads from that rather than merging or re-sending. Resolves
+// 'saved' | 'stale'; rejects only on a real failure.
+function putPieces() {
+  if (!A) return Promise.resolve('saved');
+  A.sounds = CM.normalize(A.clips || [], A.sounds || []);
+  var id = A.id;
+  var body = { clips: A.clips || [], sounds: A.sounds, base: A.updatedAt || null, by: 'sophie' };
+  return api(B + '/' + id + '/pieces', { method: 'POST', body: body }).then(function (r) {
+    if (A && A.id === id && r && r.updatedAt) A.updatedAt = r.updatedAt;
+    return 'saved';
+  }).catch(function (e) {
+    if (e && e.status === 409 && e.body && e.body.doc && A && A.id === id) {
+      reloadFrom(e.body.doc);
+      say('the chat changed this cut — reloaded');
+      return 'stale';
+    }
+    say('Couldn’t save — ' + String(e.message || e));
+    throw e;
+  });
 }
 var msgT = null;
 function say(t) {
@@ -590,6 +778,19 @@ function armFrameWatch(el) {
   };
   el.requestVideoFrameCallback(loop);
 }
+// run `fn` once the element has a PRESENTED frame of its current load (the
+// same rule activate() reveals on) — never on canplay where rVFC exists, and
+// never wedged behind a dead source
+function whenPainted(el, fn) {
+  var done = false;
+  var go = function () { if (done) return; done = true; fn(); };
+  if (el.readyState >= 2 && (el.__frameAt || !el.__rvfc)) go();
+  else {
+    if (el.__rvfc) el.requestVideoFrameCallback(function () { go(); });
+    else el.addEventListener('canplay', go, { once: true });
+    setTimeout(go, 1500);
+  }
+}
 var actToken = 0;
 function activate(el) {
   if (actEl === el) { el.hidden = false; return; }
@@ -623,15 +824,24 @@ function activate(el) {
     setTimeout(reveal, 1500);   // never wedge behind a dead source
   }
 }
+/* a still with no proxy yet: the picture itself, over the stage */
+function showStill(url) {
+  var im = $('still');
+  if (im.getAttribute('src') !== url) im.src = url;
+  im.hidden = false;
+}
+function hideStill() { $('still').hidden = true; }
 /* ── play-session telemetry: what her phone ACTUALLY did (2026-08-23, round
    three — every fix so far was verified in headless Chromium, which kept
    passing while her device kept failing; this is the measure-never-reason
    rule pointed at the one environment no chat can open). One small JSON per
    play session, sent when playback stops, read back with
    GET /api/filmeditor/telemetry?cut=. No UI, no cost, nothing personal
-   beyond the browser's user-agent line. ── */
+   beyond the browser's user-agent line. `aud` speaks for the FIRST sound —
+   the one track's slot, kept in shape. ── */
 var TEL = null;
 function telStart() {
+  var s0 = A && A.sounds && A.sounds[0];
   TEL = {
     at: Date.now(), cut: A && A.id, build: BUILD,
     ua: String(navigator.userAgent || '').slice(0, 160),
@@ -639,8 +849,9 @@ function telStart() {
     joints: 0, black: [], vholdMs: 0, choldMs: 0, revealT0: 0,
     rvfc0: [($('vA').__rvfcN || 0), ($('vB').__rvfcN || 0)], rvfc: [0, 0],
     playT0: performance.now(),
-    aud: A && A.audio ? {
-      src: audSrc().indexOf('/proxy/') >= 0 ? 'proxy' : 'raw',
+    aud: s0 ? {
+      src: audSrc(s0).indexOf('/proxy/') >= 0 ? 'proxy' : 'raw',
+      n: (A.sounds || []).length,
       playAt: 0, startMs: null, entries: [], resync: 0, paceOn: 0, waits: 0,
     } : null,
   };
@@ -670,16 +881,45 @@ function stopPlayback() {
   lastTs = null;   // a stale clock made the next play leap seconds ahead
   $('vA').pause();   // BOTH elements — the idle one may be priming muted
   $('vB').pause();
-  $('audEl').pause();
-  $('audEl').playbackRate = 1;   // never leave a pacing lean behind
-  audPacing = false;
-  audEntry = false;   // a stale entry mark must not re-seek the next session
+  bankEls().forEach(function (a) {
+    a.pause();
+    a.playbackRate = 1;   // never leave a pacing lean behind
+    a.__pacing = false;
+    a.__audEntry = false;   // a stale entry mark must not re-seek the next session
+  });
   paintPlayBtn();
   adoptProxies();   // a proxy that finished baking mid-play takes over now
 }
+// warm the piece behind the NEXT joint that needs a swap or a jump — a
+// contiguous same-source joint rolls through with no work at all, and a still
+// with no proxy yet needs no element (its picture covers the stage), so the
+// warm reaches past it to the video after.
+// (Find the piece by KEY — segAt builds fresh objects, so indexOf(seg)
+// against a second segs() call is always -1: this file's own oldest lesson.)
+function warmAfter(seg) {
+  var ss = segs();
+  var idx = 0;
+  for (var i2 = 0; i2 < ss.length; i2++) { if (ss[i2].c.key === seg.c.key) { idx = i2; break; } }
+  for (var j = idx + 1; j < ss.length; j++) {
+    var back = ss[j - 1].c, fwd = ss[j].c;
+    if (stillNoProxy(fwd)) continue;
+    if (srcOf(fwd) === srcOf(back) && Math.abs(fwd.in - back.out) < 0.05) continue;
+    warmNext(otherEl(), srcOf(fwd), fwd.in);
+    break;
+  }
+}
 function seekVideo(playIt) {
   var seg = segAt(playhead);
-  if (!seg) { if (actEl) { actEl.pause(); actEl.removeAttribute('data-src'); actEl.removeAttribute('src'); } return; }
+  if (!seg) { hideStill(); if (actEl) { actEl.pause(); actEl.removeAttribute('data-src'); actEl.removeAttribute('src'); } return; }
+  if (stillNoProxy(seg.c)) {
+    // the picture itself, held for its hold; the video under it is left as it
+    // was, paused — the tick walks a proxyless still on the wall clock
+    showStill(seg.c.url);
+    if (actEl && !actEl.paused) actEl.pause();
+    warmAfter(seg);
+    syncAudio(playIt);
+    return;
+  }
   var want = srcOf(seg.c);
   var target = seg.c.in + (playhead - seg.start);
   // pick the element already sitting NEAREST the wanted frame — warmNext may
@@ -695,6 +935,7 @@ function seekVideo(playIt) {
     : (offBy(a) < Infinity ? a : (offBy(b) < Infinity ? b : a));
   ensureSrc(el, want);
   activate(el);
+  if (!$('still').hidden) whenPainted(el, hideStill);   // the still gives way once the video has painted
   var setPos = function () {
     el.onloadedmetadata = null;   // fire once — never against a later load
     el.muted = false;             // warmNext parks its element muted
@@ -710,20 +951,87 @@ function seekVideo(playIt) {
     else if (!el.paused) el.pause();   // a priming warm element must not roll under a paused film
   };
   if (el.readyState >= 1) setPos(); else el.onloadedmetadata = setPos;
-  // warm the piece behind the NEXT joint that needs a swap or a jump — a
-  // contiguous same-source joint rolls through with no work at all.
-  // (Find the piece by KEY — segAt builds fresh objects, so indexOf(seg)
-  // against a second segs() call is always -1: this file's own oldest lesson.)
-  var ss = segs();
-  var idx = 0;
-  for (var i2 = 0; i2 < ss.length; i2++) { if (ss[i2].c.key === seg.c.key) { idx = i2; break; } }
-  for (var j = idx + 1; j < ss.length; j++) {
-    var back = ss[j - 1].c, fwd = ss[j].c;
-    if (srcOf(fwd) === srcOf(back) && Math.abs(fwd.in - back.out) < 0.05) continue;
-    warmNext(otherEl(), srcOf(fwd), fwd.in);
-    break;
-  }
+  warmAfter(seg);
   syncAudio(playIt);
+}
+
+/* ── THE SOUND BANK: one <audio> per sound, created and removed as the lane
+   changes. Every element carries its sound's key and its own priming /
+   pacing / entry marks, so the one-track discipline below runs per element
+   with no second copy of it. ── */
+function bankEls() { return [].slice.call($('audbank').querySelectorAll('audio')); }
+function sndEl(s) { return s ? $('aud-' + s.key) : null; }
+function bankSync() {
+  var want = {};
+  ((A && A.sounds) || []).forEach(function (s) { want[s.key] = true; });
+  bankEls().forEach(function (a) {
+    if (!want[a.__key]) { a.pause(); a.removeAttribute('src'); a.load(); a.remove(); }
+  });
+  ((A && A.sounds) || []).forEach(function (s) {
+    if ($('aud-' + s.key)) return;
+    var a = document.createElement('audio');
+    a.id = 'aud-' + s.key;
+    a.preload = 'auto';
+    a.__key = s.key;
+    a.__primed = ''; a.__priming = false; a.__primeT = null;
+    a.__pacing = false; a.__audEntry = false;
+    // a sound whose length nobody knew learns it from its own metadata, once
+    a.addEventListener('loadedmetadata', function () {
+      var s2 = soundByKey(a.__key);
+      if (s2 && s2.seconds == null && Number.isFinite(a.duration) && a.duration > 0) {
+        s2.seconds = r3(a.duration);
+        paintLane(); save(true);
+      }
+    });
+    // a 'waiting' fired mid-SEEK is the seek's own echo, not a buffer running
+    // dry — arming on it would turn any seek into a second seek
+    a.addEventListener('waiting', function () {
+      if (!a.seeking) {
+        a.__audEntry = true;
+        if (playing && TEL && TEL.aud) TEL.aud.waits++;
+      }
+    });
+    // The track re-aligns the moment it actually STARTS sounding — the first
+    // play, and the resume after a buffering stall. Before this, a track that
+    // came in late kept its whole song shifted behind the picture for the
+    // rest of the film (the 4% pacing lean needs ~25s to absorb one late
+    // second), and a stall came back permanently behind. This is an ENTRY
+    // correction, never a joint touch — it acts ONLY when `__audEntry` is armed
+    // (our own play() call, or a genuine 'waiting' stall), so a seek's own
+    // 'playing' echo — including the pacing engine's 2s hard resync — never
+    // triggers a second seek on a rolling track.
+    a.addEventListener('playing', function () {
+      if (!playing || !A) return;
+      var s2 = soundByKey(a.__key);
+      if (!s2) return;
+      if (TEL && TEL.aud && TEL.aud.startMs == null) {
+        TEL.aud.startMs = Math.round(performance.now() - (TEL.aud.playAt || TEL.playT0));
+      }
+      if (!a.__audEntry) return;
+      a.__audEntry = false;
+      var at = playhead - CM.soundStart(s2, A.clips);
+      if (at < 0 || a.getAttribute('data-src') !== audSrc(s2)) return;
+      var off = (a.currentTime || 0) - (s2.in + at);
+      if (Math.abs(off) > 0.35) {
+        if (TEL && TEL.aud && TEL.aud.entries.length < 20) TEL.aud.entries.push(Math.round(off * 100) / 100);
+        try { a.currentTime = s2.in + at; } catch (e) { /* not seekable yet */ }
+      }
+    });
+    $('audbank').appendChild(a);
+  });
+}
+// what a sound is playing at `at` seconds into it: its level, ramped through
+// its fades. A fade is a straight ramp in time, not a curve she drags. Note the
+// element's volume tops out at 1, so a POSITIVE gain previews at unity — the
+// render applies it for real.
+function setVol(s, a, at) {
+  var lin = CM.db2lin(s.gain);
+  var f = 1;
+  var dur = CM.soundSeconds(s);
+  if (s.fadeIn > 0 && at < s.fadeIn) f = Math.max(0, at) / s.fadeIn;
+  if (dur != null && s.fadeOut > 0 && dur - at < s.fadeOut) f = Math.min(f, Math.max(0, dur - at) / s.fadeOut);
+  var v = Math.max(0, Math.min(1, lin * f));
+  if (Math.abs(a.volume - v) > 0.002) a.volume = v;
 }
 // The audio twin of warmNext (Sophie, 2026-08-23: the music "starts late" and
 // "keeps pausing about 3/4 of the way through"). iOS treats preload=auto as a
@@ -732,110 +1040,95 @@ function seekVideo(playIt) {
 // start — and the buffer ran dry mid-film — the pause. A muted prime-play
 // forces real buffering, then parks the track at its spot with the sound back
 // on. A programmatic play() with no gesture may be refused; the catch clears
-// the mark so the next pointerdown (a gesture) primes instead.
-var audPrimed = '', audPriming = false, audPrimeT = null;
+// the mark so the next pointerdown (a gesture) primes instead. Per element.
 function primeAudio() {
-  var a = $('audEl');
-  if (playing || !A || !A.audio) return;
-  var want = audSrc();
-  if (!want || audPrimed === want) return;
-  audPrimed = want;
+  if (playing || !A) return;
+  (A.sounds || []).forEach(function (s) {
+    var a = sndEl(s);
+    if (a) primeOne(s, a);
+  });
+}
+function primeOne(s, a) {
+  var want = audSrc(s);
+  if (!want || a.__primed === want) return;
+  a.__primed = want;
   if (a.getAttribute('data-src') !== want) {
     a.setAttribute('data-src', want);
     a.preload = 'auto';
     a.src = want;
   }
   a.muted = true;
-  audPriming = true;
+  a.__priming = true;
   var park = function () {
     a.removeEventListener('canplaythrough', park);
-    clearTimeout(audPrimeT);
-    audPriming = false;
+    clearTimeout(a.__primeT);
+    a.__priming = false;
     if (playing) { a.muted = false; return; }   // she started meanwhile — the start path owns it
     a.pause();
-    try { a.currentTime = Math.max(0, playhead - ((A && A.audio && A.audio.offset) || 0)); } catch (e) {}
+    var s2 = soundByKey(a.__key) || s;
+    try { a.currentTime = s2.in + Math.max(0, playhead - CM.soundStart(s2, A ? A.clips : [])); } catch (e) {}
     a.muted = false;
   };
   a.addEventListener('canplaythrough', park);
-  audPrimeT = setTimeout(park, 4000);   // iOS can withhold canplaythrough on a stream — park anyway
+  a.__primeT = setTimeout(park, 4000);   // iOS can withhold canplaythrough on a stream — park anyway
   a.play().catch(function () {
     a.removeEventListener('canplaythrough', park);
-    clearTimeout(audPrimeT);
-    audPriming = false;
+    clearTimeout(a.__primeT);
+    a.__priming = false;
     a.muted = false;
-    audPrimed = '';
+    a.__primed = '';
   });
 }
-document.addEventListener('pointerdown', function () { primeAudio(); }, true);
-// The track re-aligns the moment it actually STARTS sounding — the first play,
-// and the resume after a buffering stall. Before this, a track that came in
-// late kept its whole song shifted behind the picture for the rest of the film
-// (the 4% pacing lean needs ~25s to absorb one late second), and a stall came
-// back permanently behind. This is an ENTRY correction, never a joint touch —
-// it acts ONLY when `audEntry` is armed (our own play() call, or a genuine
-// 'waiting' stall), so a seek's own 'playing' echo — including the pacing
-// engine's 2s hard resync — never triggers a second seek on a rolling track.
-var audEntry = false;
-$('audEl').addEventListener('waiting', function () {
-  // a 'waiting' fired mid-SEEK is the seek's own echo, not a buffer running
-  // dry — arming on it would turn any seek into a second seek
-  if (!$('audEl').seeking) {
-    audEntry = true;
-    if (playing && TEL && TEL.aud) TEL.aud.waits++;
-  }
-});
-$('audEl').addEventListener('playing', function () {
-  if (!playing || !A || !A.audio) return;
-  if (TEL && TEL.aud && TEL.aud.startMs == null) {
-    TEL.aud.startMs = Math.round(performance.now() - (TEL.aud.playAt || TEL.playT0));
-  }
-  if (!audEntry) return;
-  audEntry = false;
-  var a = $('audEl');
-  var at = playhead - (A.audio.offset || 0);
-  if (at < 0 || a.getAttribute('data-src') !== audSrc()) return;
-  var off = (a.currentTime || 0) - at;
-  if (Math.abs(off) > 0.35) {
-    if (TEL && TEL.aud && TEL.aud.entries.length < 20) TEL.aud.entries.push(Math.round(off * 100) / 100);
-    try { a.currentTime = at; } catch (e) { /* not seekable yet */ }
-  }
-});
+document.addEventListener('pointerdown', function () { primeAudio(); lastTouchAt = Date.now(); }, true);
+// where a sound stands against the playhead: its resolved start, its length,
+// and whether it is sounding right now
+function soundPos(s) {
+  var st = CM.soundStart(s, (A && A.clips) || []);
+  var dur = CM.soundSeconds(s);
+  var at = playhead - st;
+  return { st: st, dur: dur, at: at, live: !s.mute && at >= 0 && (dur == null || at < dur - 0.02) };
+}
+function startSound(s, a, at) {
+  a.__priming = false; clearTimeout(a.__primeT);
+  a.playbackRate = 1; a.__pacing = false;
+  try { a.currentTime = s.in + at; } catch (e) { /* not seekable yet */ }
+  a.__audEntry = true;   // when sound actually lands, re-align to the playhead
+  if (TEL && TEL.aud && !TEL.aud.playAt) TEL.aud.playAt = performance.now();
+  a.play().catch(function () {});
+}
 function syncAudio(playIt) {
-  var a = $('audEl');
-  if (!A || !A.audio) { a.pause(); a.removeAttribute('src'); a.removeAttribute('data-src'); audPrimed = ''; return; }
-  var wantA = audSrc();   // the audio-only baked copy when one exists
-  if (a.getAttribute('data-src') !== wantA) {
-    a.setAttribute('data-src', wantA);
-    a.preload = 'auto';       // buffered before the first play, not during it
-    a.src = wantA;
-  }
-  var at = playhead - (A.audio.offset || 0);
-  if (playIt) a.muted = false;   // a prime may have left the element muted
-  if (playIt && at >= 0) {
-    // THE TRACK ROLLS CONTINUOUSLY — a RUNNING track is NEVER touched from a
-    // joint. The old guard here compared the music against the PLAYHEAD, and
-    // on the phone the playhead lagged whole beats behind real time (the
-    // batched frame counter, see the tick) — so every joint read as ">0.35s
-    // of drift" and yanked the music backward: the stop-start chop at every
-    // cut, same-source cuts included (her report, 2026-08-23). This path
-    // only STARTS a paused track; a genuine drift is PACED away in the tick,
-    // against a playhead that is now honest. A track still mid-PRIME counts
-    // as paused here — it was rolling muted to force the fetch, not sounding,
-    // so seeking it to the playhead chops nothing audible.
-    if (a.paused || audPriming) {
-      audPriming = false; clearTimeout(audPrimeT);
-      a.playbackRate = 1; audPacing = false;
-      try { a.currentTime = at; } catch (e) { /* not seekable yet */ }
-      audEntry = true;   // when sound actually lands, re-align to the playhead
-      if (TEL && TEL.aud && !TEL.aud.playAt) TEL.aud.playAt = performance.now();
-      a.play().catch(function () {});
+  ((A && A.sounds) || []).forEach(function (s) {
+    var a = sndEl(s);
+    if (!a) return;
+    var wantA = audSrc(s);   // the audio-only baked copy when one exists
+    if (a.getAttribute('data-src') !== wantA) {
+      a.setAttribute('data-src', wantA);
+      a.preload = 'auto';       // buffered before the first play, not during it
+      a.src = wantA;
     }
-  } else if (playIt) {
-    a.pause();   // still before the track's offset — the tick starts it there
-  } else {
-    a.pause();
-    if (at >= 0) { try { a.currentTime = at; } catch (e) {} }
-  }
+    var p = soundPos(s);
+    if (playIt) a.muted = false;   // a prime may have left the element muted
+    if (playIt && p.live) {
+      // A RUNNING sound is NEVER touched from a joint. The old guard here
+      // compared the music against the PLAYHEAD, and on the phone the playhead
+      // lagged whole beats behind real time (the batched frame counter, see
+      // the tick) — so every joint read as ">0.35s of drift" and yanked the
+      // music backward: the stop-start chop at every cut, same-source cuts
+      // included (her report, 2026-08-23). This path only STARTS a paused
+      // sound; a genuine drift is PACED away in the tick, against a playhead
+      // that is now honest. A sound still mid-PRIME counts as paused here — it
+      // was rolling muted to force the fetch, not sounding, so seeking it to
+      // the playhead chops nothing audible.
+      if (a.paused || a.__priming) startSound(s, a, p.at);
+      setVol(s, a, p.at);
+    } else if (playIt) {
+      a.pause();   // before its start, past its end, or muted — the tick starts it when its moment comes
+    } else {
+      a.pause();
+      if (p.at >= 0) { try { a.currentTime = s.in + p.at; } catch (e) {} }
+      setVol(s, a, Math.max(0, p.at));
+    }
+  });
 }
 function seekTo(t) {
   if (playing) stopPlayback();
@@ -862,10 +1155,48 @@ var frameEl = null, frameCount = -1, frameAt = 0;
 // rate 4% against a moderate drift instead of seeking — with hysteresis, so
 // the correction runs until the two genuinely meet (start past 0.3s, stop
 // under 0.12s) rather than flapping at one threshold. Pure, for the tests.
-var audPacing = false;
 function audioPace(drift, correcting) {
   var on = Math.abs(drift) > (correcting ? 0.12 : 0.3);
   return { rate: on ? (drift > 0 ? 0.96 : 1.04) : 1, correcting: on };
+}
+// one sound, one tick: it starts the moment the playhead crosses its start,
+// stops past its end, and a RUNNING one is PACED back into step, never
+// yanked. Drift is not only stalls: every source-swap joint holds the
+// playhead a beat while the next piece paints its first frame, and the music
+// rolls on through it — so drift ACCUMULATES joint by joint. Her 17.9s cut
+// crossed the old 0.5s hard-reseek threshold around the 12s mark, and from
+// there the tick repeatedly yanked the music backward: "fine for a while,
+// then choppy at about 3/4 of the way through" (2026-08-23). A gentle 4% rate
+// lean is inaudible on a music bed and converges without a single seek; only
+// a drift past 2s — a genuinely broken state — is hard-resynced.
+function soundTick(s, a) {
+  var p = soundPos(s);
+  if (!p.live) { if (!a.paused && !a.__priming) a.pause(); return; }
+  if (p.at < 0 || a.getAttribute('data-src') !== audSrc(s)) return;
+  if (a.muted) a.muted = false;   // a prime must never mute the film
+  setVol(s, a, p.at);
+  if (a.paused || a.__priming) {
+    startSound(s, a, p.at);
+  } else if (a.seeking || a.readyState < 3) {
+    // stalled or mid-seek: a frozen clock is not drift (the picture-is-
+    // the-truth rule, for sound). Pacing a stall does nothing, and the
+    // 2s hard resync below would seek INTO the unbuffered region it is
+    // stalled on — the repeated mid-film pause (her 3/4 report). The
+    // 'playing' handler re-enters the track in sync when data arrives.
+    a.playbackRate = 1; a.__pacing = false;
+  } else {
+    var dr = (a.currentTime || 0) - (s.in + p.at);
+    if (Math.abs(dr) > 2) {
+      if (TEL && TEL.aud) TEL.aud.resync++;
+      try { a.currentTime = s.in + p.at; } catch (e) { /* broken state — resync */ }
+      a.playbackRate = 1; a.__pacing = false;
+    } else {
+      var pace = audioPace(dr, a.__pacing);
+      if (TEL && TEL.aud && pace.correcting && !a.__pacing) TEL.aud.paceOn++;
+      a.__pacing = pace.correcting;
+      if (a.playbackRate !== pace.rate) a.playbackRate = pace.rate;
+    }
+  }
 }
 function tick(ts) {
   if (!playing) return;
@@ -876,7 +1207,8 @@ function tick(ts) {
   var seg = segAt(playhead);
   if (!seg) { stopPlayback(); return; }
   var t;
-  var el = actEl && actEl.getAttribute('data-src') === srcOf(seg.c) ? actEl : null;
+  // a still with no proxy yet has no element — it is walked on the wall clock
+  var el = !stillNoProxy(seg.c) && actEl && actEl.getAttribute('data-src') === srcOf(seg.c) ? actEl : null;
   if (el && el.readyState >= 1) {
     // the VIDEO is the clock. A buffering stall freezes currentTime, so the
     // playhead freezes WITH the picture — the wall-clock fallback here is
@@ -928,7 +1260,7 @@ function tick(ts) {
   } else if (el) {
     t = playhead;         // matching element still loading — hold, don't drift
   } else {
-    t = playhead + dt;    // between sources for a frame or two, at most
+    t = playhead + dt;    // between sources for a frame or two, at most — or a held still
   }
   var segEnd = seg.start + seg.dur;
   if (t >= segEnd - 0.03) {
@@ -946,55 +1278,18 @@ function tick(ts) {
     syncSelection();
     seekVideo(true);
   } else playhead = t;
-  // the track starts the moment the playhead crosses its offset, and a
-  // RUNNING track is PACED back into step, never yanked. Drift is not only
-  // stalls: every source-swap joint holds the playhead a beat while the next
-  // piece paints its first frame, and the music rolls on through it — so
-  // drift ACCUMULATES joint by joint. Her 17.9s cut crossed the old 0.5s
-  // hard-reseek threshold around the 12s mark, and from there the tick
-  // repeatedly yanked the music backward: "fine for a while, then choppy at
-  // about 3/4 of the way through" (2026-08-23). A gentle 4% rate lean is
-  // inaudible on a music bed and converges without a single seek; only a
-  // drift past 2s — a genuinely broken state — is hard-resynced.
-  if (A && A.audio) {
-    var a = $('audEl');
-    var at = playhead - (A.audio.offset || 0);
-    if (at >= 0 && a.getAttribute('data-src') === audSrc()) {
-      if (a.muted) a.muted = false;   // a prime must never mute the film
-      if (a.paused || audPriming) {
-        audPriming = false; clearTimeout(audPrimeT);
-        a.playbackRate = 1; audPacing = false;
-        try { a.currentTime = at; } catch (e) { /* not seekable yet */ }
-        audEntry = true;   // when sound actually lands, re-align to the playhead
-        if (TEL && TEL.aud && !TEL.aud.playAt) TEL.aud.playAt = performance.now();
-        a.play().catch(function () {});
-      } else if (a.seeking || a.readyState < 3) {
-        // stalled or mid-seek: a frozen clock is not drift (the picture-is-
-        // the-truth rule, for sound). Pacing a stall does nothing, and the
-        // 2s hard resync below would seek INTO the unbuffered region it is
-        // stalled on — the repeated mid-film pause (her 3/4 report). The
-        // 'playing' handler re-enters the track in sync when data arrives.
-        a.playbackRate = 1; audPacing = false;
-      } else {
-        var dr = (a.currentTime || 0) - at;
-        if (Math.abs(dr) > 2) {
-          if (TEL && TEL.aud) TEL.aud.resync++;
-          try { a.currentTime = at; } catch (e) { /* broken state — resync */ }
-          a.playbackRate = 1; audPacing = false;
-        } else {
-          var pace = audioPace(dr, audPacing);
-          if (TEL && TEL.aud && pace.correcting && !audPacing) TEL.aud.paceOn++;
-          audPacing = pace.correcting;
-          if (a.playbackRate !== pace.rate) a.playbackRate = pace.rate;
-        }
-      }
-    }
-  }
+  // every sound, against the honest playhead
+  ((A && A.sounds) || []).forEach(function (s) {
+    var a = sndEl(s);
+    if (a) soundTick(s, a);
+  });
   paintStrip(); paintTc();
   raf = requestAnimationFrame(tick);
 }
-/* the selection FOLLOWS the playhead — the prototype's worst bug, fixed:
-   split/trim always act on the piece she is looking at */
+/* the PIECE selection FOLLOWS the playhead — the prototype's worst bug, fixed:
+   split/trim always act on the piece she is looking at. A SOUND selection is
+   hers and is left alone here: she steps to find the exact moment, then taps
+   start here. */
 function syncSelection() {
   var seg = segAt(playhead);
   selKey = seg ? seg.c.key : null;
@@ -1019,64 +1314,193 @@ function paintPlayBtn() {
   }
 }
 
-/* ── the tools — at the playhead, on the selected piece ── */
+/* ── the tools — at the playhead, on whichever lane is selected ── */
 function mustSel() {
   var seg = selSeg();
   if (!seg) say('nothing selected — tap a piece or press play');
   return seg;
 }
+function mustSnd() {
+  var s = selSound();
+  if (!s) selSnd = null;
+  return s;
+}
+function selectSound(key) {
+  selSnd = (selSnd === key) ? null : key;
+  if (!selSnd) syncSelection();
+  paint();
+}
+function replaceSound(key, list) {
+  var i = -1;
+  for (var k = 0; k < A.sounds.length; k++) { if (A.sounds[k].key === key) { i = k; break; } }
+  if (i < 0) return;
+  A.sounds.splice.apply(A.sounds, [i, 1].concat(list));
+}
+function afterSoundEdit(msg) {
+  A.sounds = CM.normalize(A.clips || [], A.sounds || []);
+  paint(); save();
+  if (!playing) syncAudio(false);
+  if (msg) say(msg);
+}
 $('splitBtn').onclick = function () {
+  var s = mustSnd();
+  if (s) {
+    var p = soundPos(s);
+    if (p.dur == null) { say('this sound’s length isn’t known yet — a moment'); return; }
+    var pair = CM.splitSound(s, p.at, keyGen('s'));
+    if (!pair) { say('too close to the edge to split — step into the sound first'); return; }
+    replaceSound(s.key, pair);
+    selSnd = pair[1].key;   // the half that starts at the playhead, like a piece
+    afterSoundEdit();
+    return;
+  }
   var seg = mustSel(); if (!seg) return;
   var off = playhead - seg.start;
-  var pair = splitPiece(seg.c, off, keyGen());
-  if (!pair) { say('too close to the edge to split — step into the piece first'); return; }
+  var pp = splitPiece(seg.c, off, keyGen());
+  if (!pp) { say('too close to the edge to split — step into the piece first'); return; }
   var i = A.clips.indexOf(seg.c);
-  A.clips.splice(i, 1, pair[0], pair[1]);
+  A.clips.splice(i, 1, pp[0], pp[1]);
   syncSelection(); paint(); save();
 };
 $('trimInBtn').onclick = function () {
+  var s = mustSnd();
+  if (s) {
+    var p = soundPos(s);
+    if (p.at <= 0 || (p.dur != null && p.at >= p.dur - MIN_PIECE)) { say('step inside the sound to trim its start here'); return; }
+    var n = CM.moveSound(s, A.clips, p.st + p.at);
+    n.in = r3(s.in + p.at);
+    replaceSound(s.key, [n]);
+    afterSoundEdit();
+    return;
+  }
   var seg = mustSel(); if (!seg) return;
   var off = playhead - seg.start;
   if (off <= 0 || off >= seg.dur - MIN_PIECE) { say('step inside the piece to trim its start here'); return; }
-  seg.c.in = Math.round((seg.c.in + off) * 1000) / 1000;
+  if (seg.c.kind === 'image') seg.c.out = r3(seg.c.out - off);   // a still's start is always 0 — its HOLD shortens
+  else seg.c.in = r3(seg.c.in + off);
   playhead = seg.start;   // the piece now starts here
   syncSelection(); paint(); save(); seekVideo(false);
 };
 $('trimOutBtn').onclick = function () {
+  var s = mustSnd();
+  if (s) {
+    var p = soundPos(s);
+    if (p.at <= MIN_PIECE || (p.dur != null && p.at >= p.dur)) { say('step inside the sound to trim its end here'); return; }
+    s.out = r3(s.in + p.at);
+    afterSoundEdit();
+    return;
+  }
   var seg = mustSel(); if (!seg) return;
   var off = playhead - seg.start;
   if (off <= MIN_PIECE || off >= seg.dur) { say('step inside the piece to trim its end here'); return; }
-  seg.c.out = Math.round((seg.c.in + off) * 1000) / 1000;
+  seg.c.out = r3(seg.c.in + off);
   syncSelection(); paint(); save();
 };
 function move(dir) {
+  var s = mustSnd();
+  if (s) {
+    // a sound has no order, only a position — earlier / later nudge it
+    var st = CM.soundStart(s, A.clips);
+    if (dir < 0 && st <= 0) { say('already at the top'); return; }
+    replaceSound(s.key, [CM.moveSound(s, A.clips, Math.max(0, st + dir * NUDGE))]);
+    afterSoundEdit();
+    return;
+  }
   var seg = mustSel(); if (!seg) return;
   var i = A.clips.indexOf(seg.c), j = i + dir;
   if (j < 0 || j >= A.clips.length) { say(dir < 0 ? 'already first' : 'already last'); return; }
   A.clips.splice(i, 1);
   A.clips.splice(j, 0, seg.c);
   // keep the playhead on the moved piece
-  var ns = segs().filter(function (s) { return s.c.key === seg.c.key; })[0];
+  var ns = segs().filter(function (x) { return x.c.key === seg.c.key; })[0];
   if (ns) playhead = ns.start;
   syncSelection(); paint(); save(); seekVideo(false);
 }
 $('moveL').onclick = function () { move(-1); };
 $('moveR').onclick = function () { move(1); };
 $('delBtn').onclick = function () {
+  var s = mustSnd();
+  if (s) {
+    replaceSound(s.key, []);
+    selSnd = null;
+    syncSelection();
+    afterSoundEdit();
+    return;
+  }
   var seg = mustSel(); if (!seg) return;
   var i = A.clips.indexOf(seg.c);
   A.clips.splice(i, 1);
   playhead = Math.min(playhead, Math.max(0, total() - 0.001));
   syncSelection(); paint(); save(); seekVideo(false);
 };
+// sync: on the picture lane, ADD a sound (it lands at the playhead); on a
+// selected sound, START IT HERE — "move the sound around" (Sophie, 2026-09-02)
 $('syncBtn').onclick = function () {
   if (!A) return;
-  if (!A.audio) { $('audFile').click(); return; }
-  var seg = selSeg();
-  A.audio.offset = seg ? Math.round(seg.start * 1000) / 1000 : 0;
-  paint(); save(); syncAudio(false);
-  say(seg ? 'audio starts at this piece' : 'audio starts from the top');
+  var s = mustSnd();
+  if (s) {
+    replaceSound(s.key, [CM.moveSound(s, A.clips, playhead)]);
+    afterSoundEdit('sound starts here' + (s.anchor ? ' — still riding its shot' : ''));
+    return;
+  }
+  $('audFile').click();
 };
+$('laneoff').onclick = function () { if (A) $('audFile').click(); };
+
+/* the sound tools — only while a sound is selected */
+function level(d) {
+  var s = mustSnd(); if (!s) return;
+  s.gain = Math.round(Math.max(CM.GAIN_MIN, Math.min(CM.GAIN_MAX, (Number(s.gain) || 0) + d)) * 10) / 10;
+  var a = sndEl(s);
+  if (a) setVol(s, a, Math.max(0, soundPos(s).at));
+  afterSoundEdit();
+}
+$('lvDn').onclick = function () { level(-1); };
+$('lvUp').onclick = function () { level(1); };
+$('muteBtn').onclick = function () {
+  var s = mustSnd(); if (!s) return;
+  s.mute = !s.mute;
+  afterSoundEdit(s.mute ? 'muted — it stays in the cut' : '');
+};
+$('rideBtn').onclick = function () {
+  var s = mustSnd(); if (!s) return;
+  if (s.anchor) {
+    s.anchor = null;   // `at` already holds the resolved second — it stays put
+    afterSoundEdit('no longer rides a shot');
+    return;
+  }
+  var n = CM.anchorToShot(s, A.clips);
+  if (!n.anchor) { say('no shot under this sound to ride'); return; }
+  replaceSound(s.key, [n]);
+  var ss = segs();
+  var idx = -1;
+  for (var i = 0; i < ss.length; i++) { if (ss[i].c.key === n.anchor.piece) { idx = i; break; } }
+  afterSoundEdit('rides piece ' + String(idx + 1).padStart(2, '0') + ' — moves with it');
+};
+function setFade(side, v) {
+  var s = mustSnd(); if (!s) return;
+  s[side] = Math.max(0, Math.min(CM.FADE_MAX, Number(v) || 0));
+  afterSoundEdit();
+}
+function buildFades() {
+  var box = $('fades'); box.innerHTML = '';
+  ['fadeIn', 'fadeOut'].forEach(function (side) {
+    var lb = document.createElement('span');
+    lb.className = 'lb'; lb.id = side + 'Lbl';
+    lb.textContent = side === 'fadeIn' ? 'in' : 'out';
+    box.appendChild(lb);
+    FADE_STOPS.forEach(function (v) {
+      var b = document.createElement('button');
+      b.setAttribute('data-side', side);
+      b.setAttribute('data-v', String(v));
+      b.setAttribute('aria-label', (side === 'fadeIn' ? 'fade in ' : 'fade out ') + v + ' seconds');
+      b.textContent = v === 0.5 ? '½' : String(v);
+      b.onclick = function () { setFade(side, v); };
+      box.appendChild(b);
+    });
+  });
+}
+buildFades();
 
 /* ── painting ── */
 function paintTc() { $('tc').textContent = fmt(playhead) + ' / ' + fmt(total()); }
@@ -1096,14 +1520,20 @@ function paintStrip() {
       var b = document.createElement('button');
       b.className = 'seg';
       b.setAttribute('data-key', s.c.key);
-      if (s.c.poster) b.style.backgroundImage = 'url("' + s.c.poster.replace(/"/g, '%22') + '")';
-      b.innerHTML = '<span class="lbl"></span><span class="ph" hidden></span>';
+      var still = s.c.kind === 'image';
+      var bg = still ? stillThumb(s.c) : s.c.poster;
+      if (bg) b.style.backgroundImage = 'url("' + bg.replace(/"/g, '%22') + '")';
+      b.innerHTML = (still ? '<span class="kd">' + IMG_ICON + '</span>' : '')
+        + '<span class="lbl"></span><span class="ph" hidden></span>';
       b.onclick = function () {
         var now = segs().filter(function (x) { return x.c.key === s.c.key; })[0];
+        selSnd = null;   // a tap on a piece is the way back to the picture lane
         if (now) seekTo(now.start + 0.001);
+        paint();
       };
       strip.appendChild(b);
     });
+    laneGeo = null;
   }
   // the current piece must come from THIS ss array — segAt builds fresh
   // objects, so `cur === s` against a second call never matched and the
@@ -1116,38 +1546,119 @@ function paintStrip() {
   ss.forEach(function (s, i) {
     var el = kids[i];
     if (!el) return;
-    el.style.flexGrow = Math.max(0.5, s.dur);
-    el.classList.toggle('sel', s.c.key === selKey);
+    var grow = Math.max(0.5, s.dur);
+    if (el.__grow !== grow) { el.style.flexGrow = grow; el.__grow = grow; laneGeo = null; }
+    el.classList.toggle('sel', !selSnd && s.c.key === selKey);
     el.querySelector('.lbl').textContent = String(i + 1).padStart(2, '0') + ' · ' + fmt(s.dur);
     var ph = el.querySelector('.ph');
     var inSeg = cur === s;
     ph.hidden = !inSeg;
     if (inSeg) ph.style.left = Math.min(99, (playhead - s.start) / (s.dur || 1) * 100).toFixed(2) + '%';
   });
+  paintLanePh();
 }
-function paintAudio() {
-  var has = Boolean(A && A.audio);
-  $('audon').hidden = !has;
-  $('audoff').hidden = has;
-  if (has) {
-    $('audName').textContent = A.audio.name || 'audio track';
-    // offset ~0 is "from start", FULL STOP — piece 1 also starts at 0, so the
-    // old piece-matching loop labeled a fresh untouched track "synced to
-    // piece 1" and read as something she never did (Sophie, 2026-08-22)
-    var off = A.audio.offset || 0;
-    var label = 'from start';
-    if (off >= 0.05) {
-      label = 'from ' + fmt(off);
-      var ss = segs();
-      for (var i = 0; i < ss.length; i++) {
-        if (ss[i].start >= 0.05 && Math.abs(ss[i].start - off) < 0.05) {
-          label = 'starts at piece ' + (i + 1);
-          break;
-        }
-      }
-    }
-    $('audSyncT').textContent = label;
+/* the lane's geometry is MEASURED off the shots' real boxes, so a sound at a
+   shot's boundary sits on that tile's edge; cached until the strip changes
+   (an edit or a resize), because the tick asks it every frame */
+var laneGeo = null;
+function laneMeasure() {
+  var lr = $('lane').getBoundingClientRect();
+  var kids = $('strip').children;
+  var ss = segs();
+  var g = [];
+  for (var i = 0; i < ss.length && i < kids.length; i++) {
+    var r = kids[i].getBoundingClientRect();
+    g.push({ start: ss[i].start, dur: ss[i].dur, left: r.left - lr.left, width: r.width });
   }
+  var last = g[g.length - 1];
+  var tot = total();
+  g.end = last ? last.left + last.width : 0;
+  g.pps = last && tot > 0 ? g.end / tot : 40;   // px per second past the picture's end
+  laneGeo = g;
+  return g;
+}
+function xOfTime(t) {
+  var g = laneGeo || laneMeasure();
+  for (var i = 0; i < g.length; i++) {
+    var end = g[i].start + g[i].dur;
+    if (t < end - 1e-4 || (i === g.length - 1 && t <= end)) {
+      return g[i].left + (g[i].dur ? (t - g[i].start) / g[i].dur : 0) * g[i].width;
+    }
+  }
+  return g.end + Math.max(0, t - total()) * g.pps;
+}
+function paintLanePh() {
+  var ph = $('lph');
+  if (!segs().length) { ph.hidden = true; return; }
+  ph.hidden = false;
+  ph.style.left = xOfTime(playhead).toFixed(1) + 'px';
+}
+var ROW_H = 21;   // 18px bar + 3px gap
+function paintLane() {
+  var lane = $('lane');
+  var sounds = (A && A.sounds) || [];
+  laneMeasure();
+  [].slice.call(lane.querySelectorAll('.snd')).forEach(function (n) { n.remove(); });
+  $('laneoff').hidden = sounds.length > 0;
+  if (!sounds.length) { lane.style.height = ''; lane.style.width = ''; paintLanePh(); return; }
+  // each sound's span in lane px, then rows: first-fit over sounds sorted by start
+  var bars = sounds.map(function (s) {
+    var st = CM.soundStart(s, A.clips), dur = CM.soundSeconds(s);
+    var x0 = xOfTime(st);
+    var x1 = dur != null ? xOfTime(st + dur) : Math.max(xOfTime(Math.max(total(), st)), x0 + 40);
+    return { s: s, st: st, dur: dur, x0: x0, x1: Math.max(x1, x0 + 24) };
+  }).sort(function (a, b) { return a.st - b.st || String(a.s.key).localeCompare(String(b.s.key)); });
+  var rows = [];   // each row's right edge, in px
+  var far = 0;
+  bars.forEach(function (b) {
+    var row = -1;
+    for (var r = 0; r < rows.length; r++) { if (rows[r] <= b.x0 + 0.5) { row = r; break; } }
+    if (row < 0) { row = rows.length; rows.push(0); }
+    rows[row] = b.x1 + 3;
+    far = Math.max(far, b.x1);
+    var s = b.s;
+    var el = document.createElement('button');
+    el.className = 'snd' + (s.mute ? ' mute' : '') + (s.key === selSnd ? ' sel' : '') + (b.dur == null ? ' open' : '');
+    el.setAttribute('data-key', s.key);
+    el.setAttribute('aria-label', (s.name || 'sound') + ' at ' + fmt(b.st));
+    el.style.left = b.x0.toFixed(1) + 'px';
+    el.style.width = (b.x1 - b.x0).toFixed(1) + 'px';
+    el.style.top = (row * ROW_H) + 'px';
+    var fi = s.fadeIn > 0 ? Math.min(b.x1 - b.x0, xOfTime(b.st + s.fadeIn) - b.x0) : 0;
+    var fo = (s.fadeOut > 0 && b.dur != null) ? Math.min(b.x1 - b.x0, b.x1 - xOfTime(b.st + b.dur - s.fadeOut)) : 0;
+    el.innerHTML = '<span class="fi" style="width:' + fi.toFixed(1) + 'px"></span>'
+      + '<span class="fo" style="width:' + fo.toFixed(1) + 'px"></span>'
+      + '<span class="nm">' + (s.anchor ? RIDE_ICON + ' ' : '') + esc(s.name || 'sound')
+      + (s.gain ? ' ' + fmtDb(s.gain) : '') + (s.mute ? ' · mute' : '') + '</span>';
+    el.onclick = function () { selectSound(s.key); };
+    lane.appendChild(el);
+  });
+  lane.style.height = (rows.length * ROW_H - 3) + 'px';
+  lane.style.width = Math.max(laneGeo.end, far + 2).toFixed(0) + 'px';
+  paintLanePh();
+}
+function paintTools() {
+  var s = selSound();
+  var snd = Boolean(s);
+  $('syncBtn').querySelector('.w').textContent = snd ? 'start here' : 'add sound';
+  $('syncIcoAdd').toggleAttribute('hidden', snd);   // SVG: the attribute, never the .hidden property
+  $('syncIcoAt').toggleAttribute('hidden', !snd);
+  $('moveL').title = snd ? 'nudge earlier by half a second' : 'swap with the piece before';
+  $('moveR').title = snd ? 'nudge later by half a second' : 'swap with the piece after';
+  $('sndtools').hidden = !snd;
+  if (!snd) return;
+  $('lvl').textContent = fmtDb(s.gain);
+  $('muteBtn').classList.toggle('on', Boolean(s.mute));
+  $('rideBtn').classList.toggle('on', Boolean(s.anchor));
+  $('rideBtn').title = s.anchor ? 'riding a shot — tap to let go' : 'ride the shot under this sound';
+  ['fadeIn', 'fadeOut'].forEach(function (side) {
+    var v = Number(s[side]) || 0;
+    var onChip = FADE_STOPS.indexOf(v) >= 0;
+    $(side + 'Lbl').textContent = (side === 'fadeIn' ? 'in' : 'out') + (onChip ? '' : ' ' + v + 's');
+    [].slice.call($('fades').querySelectorAll('button[data-side="' + side + '"]')).forEach(function (b) {
+      b.classList.toggle('on', Number(b.getAttribute('data-v')) === v);
+    });
+  });
 }
 function paintFilms() {
   var renders = (A && A.renders) || [];
@@ -1155,9 +1666,14 @@ function paintFilms() {
   renders.forEach(function (r, i) {
     var b = document.createElement('button');
     var name = 'Film v' + (renders.length - i);
+    var pieces = (r.cut && Array.isArray(r.cut.clips)) ? r.cut.clips.length : r.pieces;
+    var who = r.by === 'chat' ? 'by the chat' : (r.by === 'sophie' ? 'by you' : '');
+    var fresh = i === 0 && r.by === 'chat' && chatNewAt && renderAt(r) >= chatNewAt;
     b.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span>' + name + '</span>'
-      + '<span class="m">· ' + fmtDur(r.seconds) + ' · ' + r.pieces + ' pieces'
-      + (i === 0 ? ' · newest' : '') + '</span>';
+      + '<span class="m">· ' + fmtDur(r.seconds) + (pieces != null ? ' · ' + pieces + ' pieces' : '')
+      + (who ? ' · ' + who : '')
+      + (i === 0 ? ' · newest' : '') + '</span>'
+      + (fresh ? '<span class="new">· new from the chat</span>' : '');
     b.onclick = function () { playUrl(r.url, name + ' · ' + fmtDur(r.seconds)); };
     box.appendChild(b);
   });
@@ -1169,19 +1685,23 @@ function paintFilms() {
 }
 function paint() {
   var has = Boolean(A && (A.clips || []).length);
+  if (A) A.sounds = CM.normalize(A.clips || [], A.sounds || []);   // anchors re-resolve after any picture edit
   $('emptyBox').hidden = has;
   $('editBox').hidden = !has;
   var toolsOff = !has;
   ['splitBtn', 'trimInBtn', 'trimOutBtn', 'moveL', 'moveR', 'delBtn'].forEach(function (id) {
     $(id).classList.toggle('off', toolsOff);
   });
-  if (has) { paintStrip(); paintTc(); }
-  paintAudio(); paintFilms(); paintPlayBtn();
+  bankSync();
+  if (has) { paintStrip(); paintTc(); paintLane(); }
+  paintTools(); paintFilms(); paintPlayBtn();
 }
+window.addEventListener('resize', function () { laneGeo = null; if (A && (A.clips || []).length) paintLane(); });
 
 /* ── uploads: the Dump's machinery, then metadata read CLIENT-side so a
    piece always knows its length before it joins the timeline. A file the
-   browser can't read reports itself instead of vanishing. ── */
+   browser can't read reports itself instead of vanishing. A PHOTO lands as a
+   still, held STILL_DEFAULT seconds. ── */
 $('addBtn').onclick = function () { $('upFile').click(); };
 $('emptyUp').onclick = function () { $('upFile').click(); };
 $('upFile').addEventListener('change', function () {
@@ -1200,6 +1720,39 @@ function probeSeconds(url) {
     };
     v.onerror = function () { resolve(null); };
     v.src = url;
+  });
+}
+function probeAudioSeconds(url) {
+  return new Promise(function (resolve) {
+    var a = document.createElement('audio');
+    a.preload = 'metadata';
+    a.onloadedmetadata = function () {
+      resolve(Number.isFinite(a.duration) && a.duration > 0 ? a.duration : null);
+      a.removeAttribute('src'); a.load();
+    };
+    a.onerror = function () { resolve(null); };
+    a.src = url;
+  });
+}
+// a Dump file (an upload's answer, or an album's row) → a piece, or null for
+// a video the browser can't read
+function pieceFromDrop(f, fallbackTitle) {
+  var image = (f.media || 'image') !== 'video';
+  var title = String(f.name || fallbackTitle || 'clip').slice(0, 200);
+  if (image) {
+    return Promise.resolve({
+      key: keyGen(), kind: 'image', url: f.url, title: title,
+      poster: '/api/story/thumb?w=160&url=' + encodeURIComponent(f.url),
+      seconds: null, in: 0, out: CM.STILL_DEFAULT, mute: true, gain: 0,
+    });
+  }
+  return probeSeconds(f.url).then(function (secs) {
+    if (!secs) return null;
+    return {
+      key: keyGen(), kind: 'video', url: f.url, title: title,
+      poster: f.posterUrl || null,
+      seconds: r3(secs), in: 0, out: r3(secs), mute: false, gain: 0,
+    };
   });
 }
 function uploadBatch(files) {
@@ -1223,15 +1776,11 @@ function uploadBatch(files) {
       .then(function (r) {
         if (!r || !r.item || !r.item.url) throw new Error((r && r.error) || 'upload failed');
         upSession = r.session || upSession;
-        return probeSeconds(r.item.url).then(function (secs) {
-          if (!secs) { failed++; return; }
-          A.clips = (A.clips || []).concat([{
-            key: keyGen(), url: r.item.url,
-            title: String(r.item.name || f.name || 'clip').slice(0, 200),
-            poster: r.item.posterUrl || null,
-            seconds: Math.round(secs * 1000) / 1000,
-            in: 0, out: Math.round(secs * 1000) / 1000,
-          }]);
+        var item = Object.assign({}, r.item);
+        if (!item.media) item.media = /^image\//.test(f.type || '') ? 'image' : 'video';
+        return pieceFromDrop(item, f.name).then(function (piece) {
+          if (!piece) { failed++; return; }
+          A.clips = (A.clips || []).concat([piece]);
           done++;
           syncSelection(); paint(); seekVideo(false);
           askProxies(true);   // its preview copy starts baking immediately
@@ -1243,8 +1792,26 @@ function uploadBatch(files) {
   next();
 }
 
-/* the audio track: one file, through the audio library's upload (md5 dedupe) */
-$('audoff').onclick = function () { $('audFile').click(); };
+/* a sound: one file through the audio library's upload (md5 dedupe), landing
+   at the playhead as a new sound on the lane — never replacing another */
+function addSound(item, fallbackName) {
+  var name = String(item.name || fallbackName || 'sound').slice(0, 200);
+  var secs = Number(item.seconds);
+  var known = Number.isFinite(secs) && secs > 0 ? Promise.resolve(secs) : probeAudioSeconds(item.url);
+  return known.then(function (sec) {
+    var s = CM.cleanSound({
+      key: keyGen('s'), url: item.url, name: name,
+      seconds: sec != null ? r3(sec) : null, in: 0, out: null,
+      at: r3(playhead), gain: 0, fadeIn: 0, fadeOut: 0, mute: false, anchor: null,
+    });
+    A.sounds = (A.sounds || []).concat([s]);
+    selSnd = s.key;   // hers to adjust straight away
+    paint(); save();
+    askProxies(true);
+    syncAudio(false);
+    say('sound added at ' + fmt(playhead) + ' — tap the tools to move or trim it');
+  });
+}
 $('audFile').addEventListener('change', function () {
   var f = ($('audFile').files || [])[0];
   $('audFile').value = '';
@@ -1258,18 +1825,91 @@ $('audFile').addEventListener('change', function () {
     .then(function (r) { return r.json(); })
     .then(function (r) {
       if (!r || !r.item || !r.item.url) throw new Error((r && r.error) || 'upload failed');
-      A.audio = { url: r.item.url, name: r.item.name || f.name || 'audio track', offset: 0 };
-      say('');
-      paint(); save();
+      return addSound(r.item, (f.name || 'audio').replace(/\.[a-z0-9]+$/i, ''));
     })
     .catch(function (e) { say('Audio didn’t upload — ' + String(e.message || e)); });
 });
-$('audRm').onclick = function () {
+
+/* ── Add from the Dump — Assembly's door, ported: a whole album onto the
+   picture lane in album order, photos as stills, clips as clips, audio
+   skipped, nothing re-uploaded and nothing already here doubled. The albums
+   come from Assembly's own listing; the files from the Dump itself. ── */
+function openDump() {
   if (!A) return;
-  A.audio = null;
-  $('audEl').pause(); $('audEl').removeAttribute('src'); $('audEl').removeAttribute('data-src');
-  paint(); save();
-};
+  $('dumpSheet').hidden = false;
+  document.body.style.overflow = 'hidden';
+  var note = $('dumpNote');
+  note.hidden = false; note.textContent = 'Reading the Dump…';
+  $('dumpList').innerHTML = '';
+  api('/api/assembly/sources').then(function (r) {
+    var albums = r.albums || [];
+    note.hidden = albums.length > 0;
+    note.textContent = 'Nothing in the Dump yet.';
+    albums.forEach(function (a) {
+      var b = document.createElement('button');
+      b.className = 'arow';
+      var parts = [];
+      if (a.images) parts.push(a.images + (a.images === 1 ? ' photo' : ' photos'));
+      if (a.videos) parts.push(a.videos + (a.videos === 1 ? ' clip' : ' clips'));
+      b.innerHTML = '<span class="ph">' + (a.cover ? '<img loading="lazy" src="' + esc(a.cover) + '" alt="">' : FILM_ICON) + '</span>'
+        + '<span><span class="t">' + esc(a.name) + '</span>'
+        + '<span class="m">' + parts.join(' · ') + '</span></span>';
+      b.onclick = function () { importAlbum(a, b); };
+      $('dumpList').appendChild(b);
+    });
+  }).catch(function (e) {
+    note.hidden = false; note.textContent = String(e.message || e);
+  });
+}
+function closeDump() {
+  $('dumpSheet').hidden = true;
+  document.body.style.overflow = '';
+}
+function importAlbum(a, rowEl) {
+  rowEl.disabled = true;
+  var note = $('dumpNote');
+  note.hidden = false; note.textContent = 'Adding “' + a.name + '”…';
+  var id = A.id;
+  api('/api/drop/items?bundle=' + encodeURIComponent(a.album)).then(function (r) {
+    var files = (r.items || []).filter(function (f) {
+      return f && /^https:\/\//.test(String(f.url || '')) && (f.media || 'image') !== 'audio';
+    }).sort(function (x, y) { return (Number(x.photoIndex) || 0) - (Number(y.photoIndex) || 0); });
+    var have = {};
+    (A.clips || []).forEach(function (c) { have[c.url] = true; });
+    var fresh = files.filter(function (f) { return !have[f.url]; });
+    var room = Math.max(0, CM.MAX_PIECES - (A.clips || []).length);
+    var take = fresh.slice(0, room);
+    var added = 0, unread = 0, i = 0;
+    function next() {
+      if (i >= take.length || !A || A.id !== id) return Promise.resolve();
+      var f = take[i]; i++;
+      note.textContent = 'Adding ' + i + ' of ' + take.length + ' from “' + a.name + '”…';
+      return pieceFromDrop(f, a.name + ' · ' + i).then(function (piece) {
+        if (!piece) { unread++; return next(); }
+        A.clips = (A.clips || []).concat([piece]);
+        added++;
+        return next();
+      });
+    }
+    return next().then(function () {
+      if (!A || A.id !== id) return;
+      closeDump();
+      syncSelection(); paint(); save(); seekVideo(false); askProxies(true);
+      say('Added ' + added + ' from “' + a.name + '”'
+        + (files.length - fresh.length ? ' — ' + (files.length - fresh.length) + ' already here' : '')
+        + (unread ? ' — ' + unread + ' couldn’t be read' : '')
+        + (fresh.length - take.length ? ' — ' + (fresh.length - take.length) + ' didn’t fit' : '')
+        + '.');
+    });
+  }).catch(function (e) {
+    rowEl.disabled = false;
+    note.hidden = false; note.textContent = String(e.message || e);
+  });
+}
+$('dumpBtn').onclick = openDump;
+$('emptyDump').onclick = openDump;
+$('dumpClose').onclick = closeDump;
+$('dumpSheet').addEventListener('click', function (e) { if (e.target === $('dumpSheet')) closeDump(); });
 
 /* ── render + the films sheet ── */
 function openFilms() {
@@ -1287,11 +1927,13 @@ $('filmsSheet').addEventListener('click', function (e) { if (e.target === $('fil
 $('renderBtn').onclick = function () {
   if (!A || !(A.clips || []).length) return;
   clearTimeout(saveT);
-  api(B + '/' + A.id + '/pieces', { method: 'POST', body: { clips: A.clips || [], audio: A.audio || null } })
-    .then(function () { return api(B + '/' + A.id + '/render', { method: 'POST', body: {} }); })
-    .then(function () {
-      A.job = { status: 'running', label: 'starting' };
-      paintFilms(); pollJob();
+  putPieces()
+    .then(function (state) {
+      if (state === 'stale') { closeFilms(); return null; }   // the chat's doc is on screen now — look before rendering
+      return api(B + '/' + A.id + '/render', { method: 'POST', body: { by: 'sophie' } }).then(function () {
+        A.job = { status: 'running', label: 'starting' };
+        paintFilms(); pollJob();
+      });
     })
     .catch(function (e) {
       $('jobline').hidden = false;
@@ -1356,14 +1998,19 @@ document.addEventListener('click', function (e) {
    all day, because no deploy can reach a page that never reloads. Every five
    minutes the page asks which build is current and, when it is stale AND the
    editor is idle — not playing, not uploading, no save in the last 10s, no
-   films sheet open — reloads itself in place (the ?c= in the url puts her
-   back inside the same cut). Exposed as window.__buildCheck for the tests. ── */
+   sheet open, no sound she is in the middle of editing (a selected sound is
+   a state the ?c= reload cannot put back, so it holds while she is still
+   touching the page: two minutes since her last tap) — reloads itself in
+   place (the ?c= in the url puts her back inside the same cut). Exposed as
+   window.__buildCheck for the tests. ── */
 function buildCheck() {
   return api(B + '/build').then(function (r) {
     if (!r || !r.build || r.build === BUILD) return false;
     if (playing || uploading) return false;
     if (Date.now() - lastEditAt < 10000) return false;
     if (!$('filmsSheet').hidden) return false;
+    if (!$('dumpSheet').hidden) return false;
+    if (selSnd && Date.now() - lastTouchAt < 120000) return false;
     location.reload();
     return true;
   }).catch(function () { return false; });

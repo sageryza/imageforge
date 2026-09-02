@@ -23,6 +23,9 @@
      rung a picture was drawn on. See /size-tier.js. -->
 <script src="/size-tier.js"></script>
 <script src="/asset-lightbox.js"></script>
+<!-- Midjourney's curly brackets: `a {red, blue} bird` is two prompts. ONE
+     copy of the expansion rule, shared with the pure test. -->
+<script src="/permute.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   [hidden] { display: none !important; }
@@ -212,6 +215,9 @@
   button.go svg { width: 21px; height: 21px; display: block; }
   button.go:disabled { opacity: .5; }
   .err { font-size: 12.5px; color: #a33; margin-top: 8px; }
+  /* The {curly brackets} count — shown only while the prompt really expands,
+     so a plain prompt's card is byte-for-byte what it always was. */
+  .permline { font-size: 12.5px; color: #6f675e; margin-top: 8px; }
   /* One box per run, so a prompt is unmistakably attached to its own pictures. */
   .run { margin-bottom: 14px; background: #fff; border: 1px solid #e3dcd1; border-radius: 6px; padding: 10px; }
   .runhead { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
@@ -279,12 +285,29 @@
      /editor do the same at 5): at 20 the bar's paper background painted over
      the pill's top button. Full-screen overlays (lightbox, ask, toast) stay
      ABOVE 9 — they are meant to cover the pill. */
-  .feedbar { position: sticky; top: 0; z-index: 5; display: flex; padding: 8px 56px 8px 0; background: #faf7f2; }
+  /* THE STICKY BLOCK, not the row: the row is `.feedbar` and the mode bar is
+     its second line, and both have to pin together or the actions scroll off
+     the moment she starts picking. `.feedbar` keeps its own class and its own
+     padding — everything measured against it still measures the same box. */
+  .feedstick { position: sticky; top: 0; z-index: 5; background: #faf7f2; }
+  /* IT WRAPS ONLY WHERE IT CANNOT FIT, which at 390pt — her phone — is never:
+     MEASURED with the select chip added, the search field holds 90px of room
+     on the picture tab and 56 on PANELS against the 51 its placeholder needs,
+     so the row is one line on both. The wrap and the `min-width` below are for
+     a 320pt screen, where this row has been over budget since the columns
+     segment landed and the field was measured at EIGHT pixels wide: there the
+     search drops to its own line whole rather than collapsing to nothing. That
+     is a fallback for a width nothing here is designed at, not the second row
+     she cut (2026-08-28, "I specifically asked for it to stay where it is") —
+     at the width she reads on, the box has not moved. */
+  .feedbar { display: flex; flex-wrap: wrap; padding: 8px 56px 8px 0; background: #faf7f2; }
   .viewtog { display: flex; border: 1px solid #d8d0c4; border-radius: 6px; overflow: hidden; background: #fdfcf9; }
-  /* 11px side padding, not the old 15 — the row gained the columns segment
-     (2026-08-25) and the search box's own placeholder is what pays for any
-     slack here; measured at 390pt, 15px clipped "Search" to a third. */
-  .viewtog button { border: 0; background: none; font: inherit; font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: #6f675e; padding: 7px 11px; }
+  /* 8px side padding, and each cut was bought by a control the row gained:
+     15 -> 11 when the columns segment landed (2026-08-25), 11 -> 8 when the
+     SELECT chip did (2026-09-02). The search box's own placeholder is what
+     pays for any slack here, and it is MEASURED at 390pt on both tabs — the
+     PANELS tab carries a fourth chip and is the tight one. */
+  .viewtog button { border: 0; background: none; font: inherit; font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: #6f675e; padding: 7px 8px; }
   .viewtog button + button { border-left: 1px solid #d8d0c4; }
   .viewtog button.on { background: #2b2622; color: #faf7f2; font-weight: 600; }
   /* THE TWO MARK FILTERS, one segmented box beside the view switch — neither
@@ -314,6 +337,60 @@
      (what the cells ARE), not a like/dislike filter, and three chips in one
      box lighting two colours would read as three of one kind. */
   .sheetfilt.on { background: #2b2622; color: #fff; }
+  /* SELECT — the fourth chip, and the only one that is not about which
+     pictures show: lit, a tap PICKS a picture instead of opening it, and the
+     mode bar under the row marks every picked one at once (2026-09-02,
+     Sophie: "add a select button to playground so i can x a bunch of things
+     at once"). Lit in INK like the sheets chip, never the rose or the grey —
+     those two are the marks themselves, and this is the mode you cast them
+     from.
+       IT SHARES THE FILTER BOX, and that is what pays for it. The row
+     reserves 56px for the injected autoscroll pill, and MEASURED at 390pt the
+     PANELS tab (where the sheets chip is out) had 78px of room in the search
+     field against the 51 its own placeholder needs — a chip in a box of its
+     own costs 42 of that and clips "Search" again, which is the exact bug the
+     two mark filters were put in one box to end. Sharing the border costs 34,
+     and the view switch's 11px -> 8px pays back another 12. */
+  .selfilt.on { background: #2b2622; color: #fff; }
+  /* THE MODE BAR — the second line of the sticky block, and it exists ONLY
+     while she is picking, so an ordinary feed is byte-for-byte the row it was.
+     It reserves the pill's 56px like the row above it: this block is sticky,
+     so unlike ordinary content it sits inside that corner permanently and
+     anything tappable in those pixels is covered for good. */
+  .selbar { display: flex; align-items: center; gap: 8px; padding: 0 56px 8px 0; }
+  .selbar[hidden] { display: none; }
+  .selcount { flex: 1; min-width: 0; font-size: 12px; letter-spacing: .06em;
+    text-transform: uppercase; color: #6f675e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .selword { flex: none; border: 1px solid #d8d0c4; background: #fdfcf9; color: #6f675e;
+    font: inherit; font-size: 12px; letter-spacing: .07em; text-transform: uppercase;
+    border-radius: 6px; padding: 6px 9px; }
+  /* Rounded squares at the house 6px, never circles. Both marks are the same
+     34px box the filter chips are, so the bar reads as one family with the row
+     above it. */
+  .selact { flex: none; display: flex; align-items: center; justify-content: center;
+    width: 34px; height: 30px; border: 1px solid #d8d0c4; background: #fdfcf9;
+    color: #6f675e; border-radius: 6px; padding: 0; }
+  .selact svg { width: 16px; height: 16px; }
+  .selact[disabled], .selword[disabled] { opacity: .4; }
+  /* A PICKED PICTURE — a ring in the ink, and a check on the corner.
+     THE RING IS A LAYER OVER THE CELL, NOT A SHADOW ON THE PICTURE, and that
+     is measured rather than reasoned: `box-shadow: inset` on an <img> paints
+     UNDERNEATH the decoded image, so the first cut rendered as literally
+     nothing — a photograph of the real page is the only thing that catches
+     that (the "gold highlight" lesson, same failure, same corner of the app).
+     A pseudo-element over the cell also keeps it off the layout: a border
+     would move the picture inside its cell and the whole wall would shift a
+     pixel as she picks. */
+  .cell.picked::after { content: ''; position: absolute; inset: 0; border-radius: 6px;
+    box-shadow: inset 0 0 0 3px #2b2622; pointer-events: none; }
+  .cell .pick { position: absolute; left: 5px; top: 5px; width: 20px; height: 20px;
+    border-radius: 6px; background: #2b2622; color: #fff; display: flex;
+    align-items: center; justify-content: center; }
+  .cell .pick svg { width: 13px; height: 13px; }
+  /* While she is picking, a tap on a picture is a PICK — so nothing on a cell
+     may swallow it. The vote badge is a mark, not a control, and sits on the
+     opposite corner from the check. */
+  body.selmode .cell img { cursor: pointer; }
   /* The story box: one tall field, never a grid cell's shape. */
   #panelgrid textarea[data-story] { aspect-ratio: auto; min-height: 120px; }
   /* THE SEARCH BOX FILLS THE GAP THE ROW ALREADY HAD (Aug 2026, Sophie: "a
@@ -326,7 +403,7 @@
      that zoom ignores `user-scalable=no` (which this page sets), and pinching
      back out is then blocked — one tap would leave the whole page stuck
      zoomed (found live on her phone on /assets, Aug 2026). */
-  .feedsearch { flex: 1; min-width: 0; margin-left: 8px; position: relative; display: flex; }
+  .feedsearch { flex: 1; min-width: 74px; margin-left: 8px; position: relative; display: flex; }
   /* THE ✕ IS ON THE LEFT (2026-08-28, Sophie: "put x on other side") — the
      right end of this box is the end the injected pill's column reaches
      toward, and it is also where her caret sits and where the text she is
@@ -480,17 +557,6 @@
     font-size: 13px; color: #2b2622; text-decoration: none; background: #faf7f2; border: 1px solid #d8d0c4;
     border-radius: 6px; padding: 7px 11px; }
   #backchip.on { display: flex; }
-  /* Arrived from an image's "open in the Playground": whether this tile really
-     carries the reference and style prompt that picture was made with. Flat,
-     no gradient, 6px like every other box on the page. It is NOT a text field
-     — a status line the page writes, so it says something rather than naming a
-     box. Repainted on every style tap: the claim is about the tile SHE is on
-     now, not the one she arrived on. */
-  #reftag { display: none; margin: 0 0 8px; font-size: 12px; line-height: 1.35;
-    border: 1px solid #d8d0c4; border-radius: 6px; padding: 7px 10px;
-    background: #fdfcf9; color: #6f675e; }
-  #reftag.on { display: block; }
-  #reftag.same { border-color: #2b2622; color: #2b2622; }
   /* Arrived from a Story Room BEAT: what a run made here is going to do
      (?pad=&beat=). A status line — the landing is a side effect and a side
      effect she cannot see is a trap — and, since 2026-08-28, the way to END
@@ -519,6 +585,29 @@
     border-radius: 6px; background: #fdfcf9; color: #2b2622; font: inherit; font-size: 13px;
     cursor: pointer; }
   #charsbtn svg { width: 17px; height: 17px; display: block; }
+  /* THE PROMPT'S OWN CLEAR (2026-08-29, Sophie, circling the empty space next
+     to the character button: "add clear button red circle"). The panel boxes
+     each got one; the ONE box on the Picture tab had none, so wiping a long
+     dictation meant selecting it by hand on a phone. It sits where she
+     circled — in `.styles`, straight after the character button — at that
+     row's own 34px, and it is PAPER with the pale line rather than the
+     picker's ink: the two controls that decide the run are the heavy ones,
+     and this one only empties a box. It is drawn ONLY while that box is on
+     screen with words in it, so it is never a dead control and never offers
+     to clear the box the Panels tab has put away. It asks first over words
+     that were never DRAWN — the panels Clear's own question, for the same
+     reason: a prompt that HAS been drawn is in her feed with a copy button
+     one tap from putting it back, and one that never has is the only thing
+     this can lose. */
+  /* IT SAYS THE WORD (2026-08-30, Sophie: "make it say clear not an x"). It
+     shipped as a ✕ to match the per-box clears inside the panel cells; those
+     are ~118px wide and have no room for a word, and this one sits in a row
+     of controls that all say what they are — Prompt, No text, Portrait. A ✕
+     among them is the only mark on the row you have to learn. */
+  #promptclear { flex: none; display: inline-flex; align-items: center; justify-content: center;
+    height: 34px; box-sizing: border-box; padding: 0 10px; border: 1px solid #d8d0c4;
+    border-radius: 6px; background: #fdfcf9; color: #6f675e; font: inherit; font-size: 13px;
+    cursor: pointer; -webkit-tap-highlight-color: transparent; }
   /* HER TYPED CAST (2026-08-27, Sophie: "text boxes that say character 1: add
      character, name, description … etc up to n" · "I want both. Descriptions
      as well as pictures"). The WORDS half of a cast; the picker beside the
@@ -649,6 +738,29 @@
   #promptpanel textarea { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px;
     line-height: 1.4; color: #2b2622; background: #fff; border: 1px solid #d8d0c4;
     border-radius: 6px; padding: 8px; resize: vertical; min-height: 66px; }
+  /* EITHER HALF OPENS BIGGER (2026-08-31, Sophie: "add extend textbox button to
+     both halves of style prompt playground"). #prompt.big's answer lifted in
+     SHAPE, never a second field: ONE textarea, two sizes, a corner button that
+     swaps its own glyph — so there is nothing to keep in sync and `stash`
+     still reads the same box.
+       Both bounds are CSS, so the browser clamps the fitted height and no `vh`
+     is re-derived in script (#prompt.big's own lesson). The box RESERVES the
+     corner with padding-bottom, or her last line is typed under the button —
+     which is why the compact box is taller here than the 66px it was: 92px
+     keeps the same two lines of text visible above the reserved band.
+       56px in from the right rather than the exact corner, because the
+     injected pill owns that fixed column on this page and a z-lift just steals
+     the pill's own ▼ — the same dodge #bigprompt makes, on the same card.
+       `display:block` on the textarea kills the inline-block baseline gap,
+     which would otherwise sit between the box's real bottom and the wrapper's
+     padding box and float the button below the box it belongs to. */
+  #promptpanel .pwrap { position: relative; margin: 0 0 6px; }
+  #promptpanel .pwrap textarea { display: block; padding-bottom: 34px; min-height: 92px; }
+  #promptpanel .pwrap textarea.big { min-height: 24vh; max-height: 46vh; }
+  #promptpanel .pbig { position: absolute; right: 56px; bottom: 6px; width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center; padding: 0; margin: 0;
+    border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #6f675e; cursor: pointer; }
+  #promptpanel .pbig svg { width: 14px; height: 14px; }
   #promptpanel .yours { font-size: 12px; color: #6f675e; font-style: italic;
     border-left: 2px solid #d8d0c4; padding: 2px 0 2px 8px; margin: 4px 0 0; }
   #promptpanel .prow { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
@@ -777,7 +889,7 @@
     <button type="button" id="t-picture" class="on">Picture</button>
     <button type="button" id="t-panels">Panels</button>
   </div>
-  <div class="styles"><select id="stylepick" aria-label="Style"></select><button type="button" id="charsbtn" hidden aria-label="Character references" title="Character references"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/></svg><span id="charsn"></span></button></div>
+  <div class="styles"><select id="stylepick" aria-label="Style"></select><button type="button" id="charsbtn" hidden aria-label="Character references" title="Character references"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/></svg><span id="charsn"></span></button><button type="button" id="promptclear" hidden title="Clear the prompt">Clear</button></div>
   <div id="charpanel">
     <div class="plabtabs chartabs" id="chartabs" hidden>
       <button type="button" data-ct="pics" class="on">Pictures</button>
@@ -799,7 +911,6 @@
     </div>
     <div id="charsays" hidden><div class="plab">Added to your prompt</div><div class="added" id="charsaystxt"></div></div>
   </div>
-  <div id="reftag"></div>
   <div id="beattag"></div>
   <div id="promptpanel"></div>
   <div class="promptwrap"><textarea id="prompt"></textarea><button type="button" id="bigprompt" aria-label="Bigger box" title="Bigger box"></button></div>
@@ -827,9 +938,11 @@
       <button class="go" id="go" onclick="go()" aria-label="Generate" title="Generate"></button>
     </div>
   </div>
+  <div class="permline" id="permline" hidden></div>
   <div class="err" id="err" hidden></div>
 </div>
 
+<div class="feedstick">
 <div class="feedbar">
   <div class="viewtog">
     <button id="v-list">List</button><button id="v-tiles">Tiles</button><button class="colseg" id="v-cols"></button>
@@ -838,12 +951,21 @@
     <button class="likefilt" id="v-liked" aria-label="Show only the ones you hearted" title="Hearts only"></button>
     <button class="likefilt xfilt" id="v-hidex" aria-label="Hide the ones you have crossed out" title="Hide the &times;'d"></button>
     <button class="likefilt sheetfilt" id="v-sheets" hidden aria-label="Just the finished sheets, uncut" title="Just the finished sheets, uncut"></button>
+    <button class="likefilt selfilt" id="v-select" aria-label="Pick several at once" title="Pick several at once"></button>
   </div>
   <div class="feedsearch">
     <input id="q" type="search" placeholder="Search" aria-label="Search your runs"
            autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="search">
     <button class="qclear" id="qclear" aria-label="Clear search" hidden>&times;</button>
   </div>
+</div>
+<div class="selbar" id="selbar" hidden>
+  <button type="button" id="sel-all" class="selword">All</button>
+  <span class="selcount" id="selcount">Nothing picked</span>
+  <button type="button" id="sel-x" class="selact" aria-label="Cross out the picked ones" title="Cross them out"></button>
+  <button type="button" id="sel-heart" class="selact" aria-label="Heart the picked ones" title="Heart them"></button>
+  <button type="button" id="sel-done" class="selword">Done</button>
+</div>
 </div>
 <div id="pendings"></div>
 <div id="runs"></div>
@@ -899,6 +1021,13 @@
   var ICONS = {
     heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
     x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+    // PICK SEVERAL — Lucide `square-check`, a rounded square with a tick in
+    // it: the house shape for a chosen thing (never a circle), and the same
+    // mark the picked cells wear on their corner, so the chip is a picture of
+    // what the mode does.
+    pick: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 12 2 2 4-4"/></svg>',
+    // The tick alone, for the corner of a picked cell — Lucide `check`.
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
     // The bigger-prompt-box toggle — Lucide `maximize-2` / `minimize-2`.
     maximize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
     minimize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
@@ -973,6 +1102,7 @@
     // Coming back to the list: anything drawn while it was hidden measured 0/0
     // and is still undecided, so measure it now that it has a box.
     else resyncClamps();
+    if (selMode) paintSel();          // "All" means the view she is now in
   }
   function setView(v) { localStorage.setItem('promptlab_view', v); applyView(); }
   document.getElementById('v-list').addEventListener('click', function () { setView('list'); });
@@ -1033,6 +1163,128 @@
     paintFiltRow();
     renderFeed();
   });
+
+  /* ── PICK SEVERAL AT ONCE (2026-09-02, Sophie: "add a select button to
+     playground so i can x a bunch of things at once") ─────────────────────
+     Crossing a batch out one picture at a time is a tap into the lightbox, a
+     tap on the ✕ and a tap back out, times twenty — and on the PANELS tab,
+     where a sheet arrives as nine panels she keeps two of, that is the
+     ordinary case rather than the rare one.
+
+     LIT, A TAP PICKS INSTEAD OF OPENING. Same in both views, because a pick
+     is keyed by the picture (`runId|i`), which is exactly what the list's
+     cells and the wall's tiles both carry — the same key the lightbox walk
+     reads. So nothing about either renderer moved.
+
+     THE MARK BUTTONS OBEY THE SINGLE-PICTURE RULE — tap again to clear. If
+     every picked picture already wears that mark the button CLEARS it, which
+     is what makes a bulk ✕ undoable with one tap and is why the picks are
+     KEPT after a mark rather than dropped. (With "hide the ✕'d" lit the
+     pictures go with the mark; the count still says how many are held, and
+     tapping ✕ again brings them back.)
+
+     THE MODE IS IN MEMORY, NOT localStorage. The view, the filters and the
+     columns are settings; this is a thing she is in the middle of doing, and
+     coming back to the tool tomorrow already picking is nobody's idea of
+     where she left off. Same call the bigger-prompt-box toggle makes. ── */
+  var selMode = false;
+  var sel = {};                                  // 'runId|i' -> true
+  function selKey(id, i) { return id + '|' + i; }
+  function selKeyOf(img) { return selKey(img.getAttribute('data-run'), img.getAttribute('data-i')); }
+  function selCount() { return Object.keys(sel).length; }
+  // Every picture on the page right now, in the view she is in — the same
+  // "read it off what she is looking at" rule the lightbox walk follows, so
+  // the filters and the search box narrow ALL by themselves and there is no
+  // second copy of their rules to drift.
+  function selVisible() {
+    var box = document.getElementById(curView() === 'tiles' ? 'tiles' : 'runs');
+    return Array.prototype.slice.call(box.querySelectorAll('img[data-run]'));
+  }
+  document.getElementById('v-select').innerHTML = ICONS.pick;
+  document.getElementById('sel-x').innerHTML = ICONS.x;
+  document.getElementById('sel-heart').innerHTML = ICONS.heart;
+  function paintSel() {
+    var n = selCount();
+    document.body.classList.toggle('selmode', selMode);
+    document.getElementById('v-select').classList.toggle('on', selMode);
+    document.getElementById('selbar').hidden = !selMode;
+    document.getElementById('selcount').textContent = n ? n + ' picked' : 'Tap the ones you want';
+    ['sel-x', 'sel-heart'].forEach(function (id) { document.getElementById(id).disabled = !n; });
+    var vis = selVisible();
+    var allOn = vis.length > 0 && vis.every(function (im) { return sel[selKeyOf(im)]; });
+    document.getElementById('sel-all').textContent = allOn ? 'None' : 'All';
+    document.getElementById('sel-all').disabled = !vis.length;
+  }
+  // The ring and the check are painted straight onto the tapped cell as well
+  // as reconciled in updateCell: a whole re-render on every tap would decode
+  // nothing new but would still walk the entire wall for one picture.
+  function paintCell(img) {
+    var cell = img.parentElement;
+    if (!cell) return;
+    var on = !!sel[selKeyOf(img)];
+    cell.classList.toggle('picked', on);
+    var tick = cell.querySelector('.pick');
+    if (on && !tick) {
+      tick = document.createElement('span');
+      tick.className = 'pick';
+      tick.innerHTML = ICONS.check;
+      cell.appendChild(tick);
+    } else if (!on && tick) tick.remove();
+  }
+  function setPicked(img, on) {
+    var k = selKeyOf(img);
+    if (on) sel[k] = true; else delete sel[k];
+    paintCell(img);
+  }
+  function selExit() { selMode = false; sel = {}; paintSel(); renderFeed(); }
+  document.getElementById('v-select').addEventListener('click', function () {
+    if (selMode) { selExit(); return; }
+    selMode = true;
+    paintSel();
+  });
+  document.getElementById('sel-done').addEventListener('click', selExit);
+  document.getElementById('sel-all').addEventListener('click', function () {
+    var vis = selVisible();
+    var allOn = vis.length > 0 && vis.every(function (im) { return sel[selKeyOf(im)]; });
+    vis.forEach(function (im) { setPicked(im, !allOn); });
+    paintSel();
+  });
+  document.getElementById('sel-x').addEventListener('click', function () { applyMarks('dislike'); });
+  document.getElementById('sel-heart').addEventListener('click', function () { applyMarks('like'); });
+
+  // ONE REQUEST, whatever she picked. Twenty separate /vote posts would each
+  // re-read the run doc and sweep the Assets tab for that picture; the batch
+  // route groups them by run and does one write per run.
+  function applyMarks(kind) {
+    var keys = Object.keys(sel);
+    if (!keys.length) return;
+    var items = [], allSame = true;
+    keys.forEach(function (k) {
+      var at = k.lastIndexOf('|');
+      var id = k.slice(0, at), i = k.slice(at + 1);
+      var r = runsById[id];
+      if (!r) return;                             // paged away since she picked it
+      if (((r.votes || {})[i] || '') !== kind) allSame = false;
+      items.push({ run: id, image: Number(i) });
+    });
+    if (!items.length) return;
+    var next = allSame ? '' : kind;               // all already marked -> clear
+    // Optimistic, exactly as the lightbox's own cast is: her tap shows on the
+    // page in the same frame, and loadRuns reconciles behind it.
+    items.forEach(function (it) {
+      var r = runsById[it.run];
+      var votes = r.votes = r.votes || {};
+      if (next) votes[it.image] = next; else delete votes[it.image];
+    });
+    renderFeed();
+    paintSel();
+    var word = next === 'like' ? 'hearted' : next === 'dislike' ? 'crossed out' : 'put back';
+    toast(items.length + ' ' + word + (next ? ' · tap again to undo' : ''));
+    fetch('/api/promptlab/votes', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ vote: next, items: items }),
+    }).then(function () { loadRuns(); }).catch(function () {});
+  }
 
   // THE BIGGER PROMPT BOX (2026-08-25, Sophie: "can you put a button so I can
   // see the prompt in a bigger box as an option"). One textarea, two sizes —
@@ -1401,7 +1653,10 @@
   // about to type the next one. So the tap is confirmed with a toast and the
   // window is left exactly where she put it. A scroll on Generate is HISTORY,
   // not a rule; don't bring it back.
-  function confirmStarted() { toast('Drawing…'); }
+  // A tap during the deploy pause is QUEUED, not refused (2026-09-02): the
+  // server answers `queued` with the note, the toast says it, and the card
+  // wears it until the new instance picks the run up.
+  function confirmStarted(d) { toast(d && d.queued ? (d.note || 'Paused for a server update') : 'Drawing…'); }
 
   // The copy button beside a run's words: puts that prompt back into the box.
   function copyPromptIn(text) {
@@ -1409,6 +1664,10 @@
     box.value = text || '';
     // Setting `.value` fires no `input` event, so the big box has to be told.
     if (window.__fitBigPrompt) window.__fitBigPrompt();
+    // A prompt put back IS a drawn one — it came off a run — so clearing it
+    // asks nothing, exactly as the panels copy-back stamps its grid.
+    savePromptDrawn(String(text || '').trim());
+    paintPromptClear();
     updateShape();
     scrollToPrompt();
     toast('Prompt is back in the box');
@@ -1535,6 +1794,16 @@
     // reach for; the server owns its bookended anti-content prompt.
     dreamy:     { model: 'gpt-image-2', label: 'Dreamy', engine: 'gptimage', gptStyle: 'dreamy',
                   noCharacter: true },
+    // Triangle = the Triset game's triangular picture cards (2026-08-31, her
+    // ask). Same reference image and same tail as Dreamy above, with the
+    // border clause swapped for the equilateral triangle-card one — the
+    // server derives the whole thing from `dreamy`, so nothing here has to
+    // know more than its id. It PINS the canvas to square (2026-08-31, Sophie:
+    // "triangle mode shud auto switch to square") — a Triset card is square
+    // (triset.js draws every one at 1024x1024), so a portrait triangle is the
+    // wrong shape for the one thing this tile exists to make.
+    triangle:   { model: 'gpt-image-2', label: 'Triangle', engine: 'gptimage', gptStyle: 'triangle',
+                  noCharacter: true, canvasPin: 'square' },
     scarry:     { model: 'gpt-image-2', label: 'Scarry', engine: 'gptimage', gptStyle: 'scarry',
                   noCharacter: true },
     pastel:     { model: 'gpt-image-2', label: 'Pastel', engine: 'gptimage', gptStyle: 'pastel',
@@ -1548,6 +1817,13 @@
   var styleKey = localStorage.getItem('promptlab_style');
   if (!STYLES[styleKey]) styleKey = 'watercolor';
   function isGpt(k) { return STYLES[k] && STYLES[k].engine === 'gptimage'; }
+  // A style may PIN the canvas — a shape its pictures are always drawn on.
+  // A SWITCH, NOT A LOCK: the toggle stays on screen and her next tap wins,
+  // and nothing puts the shape back when she leaves the style (the canvas is
+  // remembered, and a shape springing back on its own is the opposite of the
+  // rule she asked for). A table rather than an `if k === 'triangle'`, so the
+  // next pinned style is one field.
+  function canvasPin(k) { return (STYLES[k] && STYLES[k].canvasPin) || ''; }
 
   // ── PICTURE · PANELS (Aug 2026, Sophie: "we make a picture and cut it into
   // panels … describe each panel individually. It's a way of saving money on
@@ -2127,6 +2403,69 @@
       onNo: function () { applyGrid(pick); },
     });
   });
+
+  // ── SEEDING THE BOXES FROM A LINK (2026-09-01, Sophie, handing six written
+  //    prompts to a chat: "seed them to panels first 6 1k i want to change the
+  //    style prompt"). Retyping six dictated scenes into six boxes is the one
+  //    part of a panels run nobody should do by hand, and it is exactly the
+  //    part the chat already has in front of it. The link fills the boxes and
+  //    STOPS there — the style prompt, the tier and Generate stay hers, which
+  //    is the whole reason she asked for a seed rather than a batch.
+  //
+  //      ?panels=<json array of strings>[&grid=<n>]
+  //
+  //    The grid is DERIVED from how many prompts arrive when the link does not
+  //    name one, because the count is the layout she means; a count no grid
+  //    matches is refused outright rather than reshaped into one that would
+  //    silently drop a prompt. `?res=` and `?style=` are the existing ports and
+  //    are untouched, so a seed can arrive on any tile at any tier.
+  function seedPanelsFromLink() {
+    var q = new URLSearchParams(location.search);
+    var raw = q.get('panels');
+    if (!raw || !PANELS_CFG) return;
+    var want = parseInt(q.get('grid'), 10);
+    // Spend the link (the Story Room trip's rule): a reload must not seed a
+    // second time over words she has since edited. Only these two params go —
+    // the rest of the query belongs to blocks that have already read it.
+    try {
+      q.delete('panels'); q.delete('grid');
+      var s = q.toString();
+      history.replaceState(history.state, '', location.pathname + (s ? '?' + s : ''));
+    } catch (e) { /* no history */ }
+    var rows = null;
+    try { rows = JSON.parse(raw); } catch (e) { rows = null; }
+    if (!Array.isArray(rows)) return;
+    rows = rows.map(function (x) { return String(x == null ? '' : x).trim(); });
+    if (!anyWords(rows)) return;
+    var g = PANELS_CFG.grids[want] ? want
+      : (PANELS_CFG.grids[rows.length] ? rows.length : 0);
+    if (!g) return;
+    var meta = PANELS_CFG.grids[g];
+    var next = [];
+    for (var i = 0; i < meta.count; i++) next.push(rows[i] || '');
+    function land() {
+      savePanelTexts(g, next);
+      setTab('panels');        // the boxes are no use on the tab that hides them
+      applyGrid(g);            // GRIDKEY, the fold open, and the repaint
+    }
+    // Never over unseen work — the carry's own question, for the same reason:
+    // a draft that was DRAWN is in her feed with its prompt one tap from
+    // copying back, and one that never was exists only here.
+    var had = panelTexts(g);
+    if (!anyWords(had) || sameWords(had, next) || sameWords(had, panelsDrawn(g))) { land(); return; }
+    var n = had.filter(function (x) { return String(x || '').trim(); }).length;
+    askOpen({
+      msg: 'The ' + g + '-panel grid already has words.',
+      fine: n + (n === 1 ? ' panel there was' : ' panels there were') + ' never drawn.'
+        + ' The link’s prompts would replace them.',
+      no: 'Keep what’s there', yes: 'Use the link’s',
+      onYes: land,
+      // "Keep what's there" still takes her to the grid the link named — she
+      // tapped it to go there; the only question was whose words it holds.
+      onNo: function () { setTab('panels'); applyGrid(g); },
+    });
+  }
+
   // GENERATE on the Panels tab: every box must hold words — the error names
   // how many are still empty rather than a generic refusal. One sheet, one
   // run; the pending card holds N breathing placeholders in the cell shape.
@@ -2189,9 +2528,9 @@
         // N placeholders in the CELL's shape — the wall must not re-flow
         // when the cut panels land.
         count: (PANELS_CFG.grids[g] || {}).count || g, quality: quality,
-        ar: cellAr(g), grid: g,
+        ar: cellAr(g), grid: g, queued: d.queued ? (d.note || 'paused for a server update') : '',
       });
-      setPending(list); renderPendings(); startPolling(); confirmStarted();
+      setPending(list); renderPendings(); startPolling(); confirmStarted(d);
     });
   }
   // A story run is a single picture on the sheet's own canvas — the toggle's
@@ -2218,7 +2557,8 @@
         count: 1, quality: quality,
         ar: canvas === 'square' ? '1:1' : '2:3', grid: 'story',
       });
-      setPending(list); renderPendings(); startPolling(); confirmStarted();
+      if (d.queued) list[list.length - 1].queued = d.note || 'paused for a server update';
+      setPending(list); renderPendings(); startPolling(); confirmStarted(d);
     });
   }
   function setTab(t) {
@@ -2588,14 +2928,14 @@
   // style is current. Everything lands prefilled so she can re-run it as-is or
   // nudge one thing.
   //
-  // `sameref` is the honesty flag (Sophie, Aug 2026: "some sort of indicator
-  // saying whether it's using the reference and prompt or not"). The sender
-  // (/playground-port.js) sets it to 1 only when the picture's filed style
-  // half NAMES this tile's own reference or quotes its own baked prompt. It is
-  // NOT re-derived here — the Playground never sees the filed prompt, only the
-  // content half — so the flag travels with the link.
-  var portedFrom = null;   // the tile the picture was actually made on, or null
-  var portedCast = 0;      // how many character descriptions rode the link in
+  // `sameref` STILL RIDES THE LINK AND THIS PAGE NO LONGER READS IT
+  // (2026-08-31, Sophie: "delete the red", twice — the second time over a
+  // different sentence from the same box, then "still there"). It fed one
+  // indicator under the style picker saying whether this tile really carries
+  // the reference and style prompt the picture was made with. Every version of
+  // that sentence is gone; the sender (/playground-port.js) still sets the
+  // flag, so nothing on the other side of the link had to change and a future
+  // reader can pick it back up.
   (function () {
     var q = new URLSearchParams(location.search);
     if (!q.get('prompt') && !q.get('style')) return;
@@ -2613,13 +2953,15 @@
     try { localStorage.setItem(TABKEY, 'picture'); } catch (e) { /* private mode */ }
     var st = q.get('style');
     if (st && STYLES[st]) setStyle(st);
-    if (q.get('prompt')) document.getElementById('prompt').value = q.get('prompt');
+    if (q.get('prompt')) {
+      document.getElementById('prompt').value = q.get('prompt');
+      paintPromptClear();               // ported words arrive with no `input` event
+    }
     var qq = q.get('quality');
     if (qq && QUALITIES.indexOf(qq) >= 0) { quality = qq; paintQuality(); }
     if (q.get('character') === '1' && isGpt(styleKey) && !STYLES[styleKey].noCharacter) { charOn = true; document.getElementById('charpick').classList.add('on'); }
     var sc = parseFloat(q.get('scale'));
     if (!isNaN(sc)) document.getElementById('scale').value = sc;
-    if (q.get('sameref') !== null) portedFrom = (q.get('sameref') === '1' && st && STYLES[st]) ? st : '';
     // ?cast=<json rows> — the character descriptions the picture was made
     // with (2026-08-29, Sophie: "can it auto add the character description
     // from the original multi sheet"). A cut panel's filed STYLE half carries
@@ -2631,47 +2973,10 @@
     if (cj) {
       var rows = null;
       try { rows = JSON.parse(cj); } catch (e) { rows = null; }
-      if (Array.isArray(rows)) portedCast = restoreCast(rows);
+      if (Array.isArray(rows)) restoreCast(rows);
     }
-    paintRefTag();
     updateShape();
   })();
-
-  // The indicator. Three things it can say, and it only ever speaks when she
-  // arrived from a picture:
-  //   • she is on the tile that made it   — same reference, same style prompt
-  //   • she moved off that tile           — name what she left, so switching
-  //                                         back is obvious
-  //   • nothing identified the picture    — say so plainly rather than letting
-  //                                         the fallback tile imply a match
-  // A LoRA has no reference to attach, so it says "style prompt" alone.
-  function paintRefTag() {
-    var el = document.getElementById('reftag');
-    if (portedFrom === null) { el.className = ''; el.textContent = ''; return; }
-    var here = STYLES[styleKey] ? STYLES[styleKey].label : styleKey;
-    var carries = isGpt(styleKey) ? 'reference and style prompt' : 'style prompt';
-    if (portedFrom === '') {
-      el.className = 'on';
-      el.textContent = 'Nothing on this picture’s record says how it was made, so '
-        + here + '’s ' + carries + ' is attached — not the one behind it.';
-    } else if (portedFrom === styleKey) {
-      el.className = 'on same';
-      el.textContent = 'Carrying ' + here + '’s ' + carries + ' — the ones this picture was made with.';
-    } else {
-      el.className = 'on';
-      el.textContent = 'On ' + here + '. This picture was made on '
-        + (STYLES[portedFrom] ? STYLES[portedFrom].label : portedFrom) + '.';
-    }
-    // WHO CAME WITH IT (2026-08-29). The descriptions ride the next run's
-    // prompt, so the one line that already speaks on arrival says how many
-    // landed — an ingredient added by a link must never be silent, and the
-    // sheet behind the character icon is where she reads or removes them.
-    if (portedCast) {
-      el.textContent += ' ' + (portedCast === 1
-        ? 'Its character description came too.'
-        : 'Its ' + portedCast + ' character descriptions came too.');
-    }
-  }
 
   // ── THE PROMPT BUTTON — see what is wrapped around her words, and change it
   //    (Aug 2026, Sophie: "add a prompt button so you can see what's being
@@ -2697,6 +3002,15 @@
   var PHOTO_LINE_CHARS = '';         // …and the same one re-anchored when characters ride behind it
   var promptOpen = false;
   var OVERKEY = 'promptlab_prompt_';  // + gptStyle id
+  // WHICH HALVES ARE OPEN BIGGER (see `field()` in paintPromptPanel). Held in
+  // memory only — never localStorage, never on a run — so it is a moment of
+  // reading one wrapper rather than a setting: closing the panel or changing
+  // style puts both halves back small, exactly as #prompt.big and the cast
+  // row's own toggle are "not the default, so not sticky either". It exists
+  // only so a REPAINT of the panel she is standing on cannot shut a box she is
+  // in the middle of reading.
+  var panelBig = {};
+  var panelBigFor = '';
 
   // Where a style's edit is stored. A gpt style is keyed by its SERVER id
   // (shared by every tile pointing at it); a LoRA has no gptStyle, so it is
@@ -2781,16 +3095,72 @@
     // Every style with a wrapper gets the panel — a LoRA has one too (its
     // trigger and its tail), and gating this on isGpt is what left the tile
     // the page opens on with no way to see its style prompt at all.
-    if (!promptOpen || !bakedFor(styleKey)) { el.className = ''; el.innerHTML = ''; return; }
+    if (!promptOpen || !bakedFor(styleKey)) {
+      panelBig = {}; panelBigFor = '';
+      el.className = ''; el.innerHTML = ''; return;
+    }
+    // A different style is a different wrapper, so both halves open compact.
+    if (panelBigFor !== styleKey) { panelBig = {}; panelBigFor = styleKey; }
     var p = sentParts(styleKey);
     el.className = 'on';
     if (!p) { el.innerHTML = '<div class="plab">Prompt</div><div class="yours">Loading…</div>'; return; }
     el.innerHTML = '';
     function field(label, val, name) {
       var l = document.createElement('div'); l.className = 'plab'; l.textContent = label;
+      // EITHER HALF OPENS BIGGER (2026-08-31, Sophie: "add extend textbox
+      // button to both halves of style prompt playground"). The style prefix
+      // and the tail are the longest text on this page — Dreamy's tail is a
+      // paragraph — and the compact box showed about two lines of it, so the
+      // half she reads most was the one with no way to see what was in it.
+      // #prompt.big's answer lifted in SHAPE, not copied: one textarea, two
+      // sizes, both bounds in CSS, and the same two measuring lessons below.
+      var w = document.createElement('div'); w.className = 'pwrap';
       var t = document.createElement('textarea'); t.value = val; t.setAttribute('data-part', name);
       t.addEventListener('input', stash);
-      el.appendChild(l); el.appendChild(t);
+      var big = document.createElement('button');
+      big.type = 'button'; big.className = 'pbig';
+      //   `height:auto` FIRST or the box can only ever grow — scrollHeight of a
+      // box already sized to its old height reports that height back. The
+      // border is added on because the box is border-box and scrollHeight
+      // excludes it. Both are #prompt.big's, learned there first.
+      function fitBig() {
+        if (!t.classList.contains('big')) { t.style.height = ''; return; }
+        t.style.height = 'auto';
+        t.style.height = (t.scrollHeight + (t.offsetHeight - t.clientHeight)) + 'px';
+      }
+      function paintBig() {
+        var on = t.classList.contains('big');
+        big.innerHTML = on ? ICONS.minimize : ICONS.maximize;
+        var word = (on ? 'Back to the small box' : 'Bigger box') + ' — ' + label.toLowerCase();
+        big.setAttribute('aria-label', word); big.title = word;
+        big.setAttribute('aria-expanded', on ? 'true' : 'false');
+      }
+      big.addEventListener('click', function () {
+        t.classList.toggle('big');
+        // A hand-dragged resize (desktop) leaves an inline height behind, so
+        // "back to the small box" would not shrink anything without this.
+        t.style.height = '';
+        panelBig[name] = t.classList.contains('big');
+        fitBig(); paintBig();
+        if (t.classList.contains('big')) t.focus();
+      });
+      t.addEventListener('input', fitBig);
+      t.__fit = fitBig;
+      // A REPAINT OF THE PANEL SHE IS STANDING ON DOES NOT SHUT THE BOX. The
+      // panel is rebuilt whole whenever anything it prints changes — attaching
+      // a photo, picking a character, typing in the cast sheet — and springing
+      // an expanded box back to compact under her is the Story Room caption's
+      // own complaint ("the caption keeps reopening after I close it").
+      // `panelBig` is NOT sticky: nothing is stored, and closing the panel or
+      // changing style puts both halves back small.
+      if (panelBig[name]) t.classList.add('big');
+      paintBig();
+      w.appendChild(t); w.appendChild(big);
+      el.appendChild(l); el.appendChild(w);
+      // Fitted after the box is in the document — scrollHeight on a detached
+      // node is 0, so a restored `.big` would open at the CSS floor and only
+      // find its real height on her next keystroke.
+      fitBig();
     }
     // A LoRA's trigger word is what SELECTS the model, so it is shown as an
     // added line rather than as an editable half — editing it would quietly
@@ -2909,6 +3279,14 @@
   document.getElementById('promptbtn').addEventListener('click', function () {
     promptOpen = !promptOpen; paintPromptPanel();
   });
+  // A rotation changes what `vh` means, so an open half refits. ONE handler for
+  // the panel rather than one per rebuilt box — the boxes come and go with
+  // every repaint, and a listener added per box would pile up behind them.
+  window.addEventListener('resize', function () {
+    Array.prototype.forEach.call(
+      document.querySelectorAll('#promptpanel textarea.big'),
+      function (t) { if (t.__fit) t.__fit(); });
+  });
   fetch('/api/promptlab/styles').then(function (r) { return r.json(); })
     .then(function (d) {
       BAKED = d.styles || {}; PHOTO_LINE = d.photoLine || '';
@@ -2920,6 +3298,10 @@
       // The Panels tab's geometry — grids, cell names, derived sheet
       // canvases — all computed server-side by sheet-grid.js.
       PANELS_CFG = d.panels || null;
+      // The grids arrive with this response, so a ?panels= link can only be
+      // read once it lands — and it must land BEFORE the first paint, or the
+      // boxes render empty and fill in under her.
+      seedPanelsFromLink();
       paintPromptPanel(); syncControls(); paintRes();
       syncTab();
     })
@@ -3049,6 +3431,18 @@
   var CANVASES = ['portrait', 'square'];
   var canvas = CANVASES.indexOf(localStorage.getItem('promptlab_canvas')) >= 0
     ? localStorage.getItem('promptlab_canvas') : 'square';
+  function storeCanvas(shape) {
+    canvas = shape;
+    // Written on the TAP, not on the run — the shape she is looking at is the
+    // one she comes back to, whether or not she generated anything with it.
+    try { localStorage.setItem('promptlab_canvas', shape); } catch (e) { /* private mode */ }
+  }
+  // A pinned style applies its shape on ARRIVAL, and opening the page on one
+  // is an arrival — otherwise a stored portrait would draw the first triangle
+  // card of the session on the wrong canvas. It runs here rather than in
+  // setStyle for the deep-link case: a ported ?style= is read hundreds of
+  // lines above this, where `canvas` is still hoisted-undefined.
+  if (canvasPin(styleKey)) storeCanvas(canvasPin(styleKey));
   function paintCanvas() {
     document.getElementById('c-portrait').classList.toggle('on', canvas === 'portrait');
     document.getElementById('c-square').classList.toggle('on', canvas === 'square');
@@ -3065,10 +3459,7 @@
     document.getElementById('c-square').title = 'Square 1024x1024 — low 0.6\u00A2 \u00B7 medium 5.3\u00A2 \u00B7 high 21.1\u00A2 (dearer than portrait)';
   }
   function pickCanvas(shape) {
-    canvas = shape;
-    // Written on the TAP, not on the run — the shape she is looking at is the
-    // one she comes back to, whether or not she generated anything with it.
-    try { localStorage.setItem('promptlab_canvas', shape); } catch (e) { /* private mode */ }
+    storeCanvas(shape);
     paintCanvas();
     // The panel boxes wear the cell's shape, so they follow the toggle.
     buildPanelGrid();
@@ -3172,7 +3563,12 @@
   function setStyle(k) {
     styleKey = k;
     localStorage.setItem('promptlab_style', k);
-    renderStyles(); updateShape(); syncControls(); paintRefTag(); paintPromptPanel();
+    // Arriving at a pinned style takes its shape. `canvas &&` because a ported
+    // ?style= calls this partway down the script, before the toggle exists —
+    // boot applies the pin itself a moment later, so nothing is lost there.
+    var pin = canvasPin(k);
+    if (pin && canvas && pin !== canvas) pickCanvas(pin);
+    renderStyles(); updateShape(); syncControls(); paintPromptPanel();
   }
   // LoRA scale, ×3 and the seed are Replicate-only knobs — gpt-image-2 has no
   // equivalent, so they come off the panel for that style rather than sitting
@@ -3225,6 +3621,7 @@
     // SAME prompt at several qualities, which on a sheet is several sheets.
     var panels = onPanels();
     document.querySelector('.promptwrap').hidden = panels;
+    paintPromptClear();        // the box she cannot see must not offer a clear
     document.getElementById('charpick').hidden = !gpt || panels || !!STYLES[styleKey].noCharacter;
     // HER CAST rides gpt-image-2's edits call like the photo does, so the LoRA
     // — which takes a trigger word and has no attachment slot at all — shows
@@ -3320,8 +3717,45 @@
 
   // `q` overrides the quality dropdown for one run — the low·low·medium button
   // draws its own ladder without touching what the dropdown says.
-  function startRun(scale, q) {
-    var prompt = document.getElementById('prompt').value.trim();
+  // THE PROMPT'S OWN CLEAR — the CSS note above #promptclear has the shape and
+  // the reasoning. It empties the one box on the Picture tab and nothing else
+  // (the Panels tab has its own row Clear and its per-box ones).
+  var PROMPTDRAWNKEY = 'promptlab_prompt_drawn';
+  function promptDrawn() {
+    try { return localStorage.getItem(PROMPTDRAWNKEY) || ''; } catch (e) { return ''; }
+  }
+  function savePromptDrawn(t) {
+    try { localStorage.setItem(PROMPTDRAWNKEY, t || ''); } catch (e) { /* private mode */ }
+  }
+  function paintPromptClear() {
+    var box = document.getElementById('prompt');
+    var wrap = document.querySelector('.promptwrap');
+    document.getElementById('promptclear').hidden = wrap.hidden || !box.value.trim();
+  }
+  function wipePrompt() {
+    var box = document.getElementById('prompt');
+    box.value = '';
+    if (window.__fitBigPrompt) window.__fitBigPrompt();
+    paintPromptClear();
+    box.focus();                       // she taps it in order to write the next one
+  }
+  document.getElementById('prompt').addEventListener('input', paintPromptClear);
+  document.getElementById('promptclear').addEventListener('click', function () {
+    var words = document.getElementById('prompt').value.trim();
+    if (!words) return;
+    if (words === promptDrawn()) { wipePrompt(); return; }
+    askOpen({
+      msg: 'Clear the prompt?',
+      fine: 'These words were never drawn.',
+      no: 'Keep them', yes: 'Clear',
+      onYes: wipePrompt,
+    });
+  });
+  // `promptText` overrides the box for one run — a {curly brackets} tap starts
+  // one run per expansion, and each run's doc carries ITS prompt, not the
+  // braces (the stored prompt must be the text actually sent).
+  function startRun(scale, q, promptText) {
+    var prompt = promptText != null ? promptText : document.getElementById('prompt').value.trim();
     var S = STYLES[styleKey];
     var gpt = S.engine === 'gptimage';
     var seed = curSeed();
@@ -3367,13 +3801,21 @@
         // `ar` rides along so the waiting slots hold the shape the picture is
         // about to be — the wall must not re-flow when it lands.
         ? { id: d.id, prompt: prompt, style: S.label, engine: 'gptimage', count: OUTPUTS, quality: qual,
-            ar: (RES && RES[canvas] && RES[canvas].aspectRatio) || '2:3' }
+            ar: (RES && RES[canvas] && RES[canvas].aspectRatio) || '2:3',
+            queued: d.queued ? (d.note || 'paused for a server update') : '' }
         // `key` rides along so a second tap can see this one is already on its
         // way, before it has any images to be recognised by.
         : { id: d.id, prompt: prompt, scale: scale, style: S.label, engine: 'replicate', count: OUTPUTS, seed: seed, key: key, ar: '2:3' });
       setPending(list);
+      // HAS THIS PROMPT BEEN DRAWN? — the panels stamp's twin, for the one
+      // box. The EXACT words that were sent, so editing them afterwards makes
+      // the box undrawn again: what is sitting there is not what was drawn.
+      // A {curly brackets} run stamps the BOX's braces — that is what she
+      // drew from, so its Clear asks nothing after a permutation tap either.
+      savePromptDrawn(promptText != null
+        ? document.getElementById('prompt').value.trim() : prompt);
       renderPendings(); startPolling();
-      confirmStarted();
+      confirmStarted(d);
     });
   }
 
@@ -3410,36 +3852,107 @@
     err.textContent = m || 'Network error — try again.'; err.hidden = false;
   }
 
+  // ─── {curly brackets} — Midjourney's permutation prompts (Aug 2026) ──────
+  // `a {red, blue} bird` runs as two prompts, separate groups multiply, and
+  // every starter (Generate, ×3, both ladders) goes through the same
+  // expansion, so the braces mean one thing everywhere. The rule itself is
+  // /permute.js — ONE copy, shared with the pure test.
+  //
+  // The cap is TOTAL RUNS PER TAP, not options: 12 keeps the box under the
+  // measured concurrent-output ceiling that has restarted the server
+  // (CLAUDE.md: 16 buffered outputs, 2026-08-19), and it is checked against
+  // prompts × tiers so a ladder on a big set is refused rather than fired.
+  var PERM_CAP = 12;
+  function expandBox() {
+    var text = document.getElementById('prompt').value.trim();
+    if (window.permutePrompt) return window.permutePrompt(text);
+    // Stale cache with no /permute.js: braces go through literally, as before.
+    return { prompts: [text], clipped: false };
+  }
+  function permGuard(ex, tiers) {
+    var n = ex.prompts.length * tiers;
+    if (!ex.clipped && n <= PERM_CAP) return true;
+    var err = document.getElementById('err');
+    err.textContent = ex.clipped
+      ? 'Those brackets expand past 50 prompts — that can’t be one tap.'
+      : 'That’s ' + n + ' runs in one tap — the cap is ' + PERM_CAP
+        + '. Fewer {options}, or run them in smaller taps.';
+    err.hidden = false;
+    return false;
+  }
+  // The count line under the controls: shown only while the prompt really
+  // expands, priced from the SERVED cents (never a copy in the page). Polled,
+  // not event-wired — iOS dictation fills the box without firing `input`.
+  function permLine() {
+    var el = document.getElementById('permline');
+    var ex = expandBox();
+    var n = ex.prompts.length;
+    if (n < 2 && !ex.clipped) { el.hidden = true; return; }
+    if (ex.clipped) { el.textContent = '{…} over 50 prompts — too many'; el.hidden = false; return; }
+    var line = '{…} ' + n + ' prompts — Generate draws all ' + n;
+    var S = STYLES[styleKey];
+    if (S && S.engine === 'gptimage' && RES && RES[canvas]) {
+      var t = RES[canvas].tiers[resTier];
+      var c = t && t.cents && t.cents[quality];
+      if (c) {
+        var total = c * n;
+        line += ' · ~' + (total >= 100 ? '$' + (total / 100).toFixed(2) : Math.round(total * 10) / 10 + '¢')
+          + ' at ' + quality;
+      }
+    }
+    el.textContent = line; el.hidden = false;
+  }
+  setInterval(permLine, 700);
+
   function go() {
     if (onPanels()) { goPanels(); return; }
     if (!checkPrompt()) return;
     var scale = parseFloat(document.getElementById('scale').value) || 1;
-    var prompt = document.getElementById('prompt').value.trim();
-    if (alreadyRun(plannedKey(STYLES[styleKey], prompt, scale, curSeed()))) {
-      toast('You already have that one — tap the sprout for a new seed');
+    var ex = expandBox();
+    if (!permGuard(ex, 1)) return;
+    var S = STYLES[styleKey], seed = curSeed();
+    // The LoRA dedupe runs per expanded prompt — a set re-tapped after one
+    // rung landed only draws what is missing (ChatGPT is never deduped).
+    var todo = ex.prompts.filter(function (p) {
+      return !alreadyRun(plannedKey(S, p, scale, seed));
+    });
+    if (!todo.length) {
+      toast(ex.prompts.length > 1
+        ? 'You already have all of those — tap the sprout for a new seed'
+        : 'You already have that one — tap the sprout for a new seed');
       return;
+    }
+    if (todo.length < ex.prompts.length) {
+      toast('Drawing ' + todo.length + ' — you already have the other '
+        + (ex.prompts.length - todo.length));
     }
     var btn = document.getElementById('go');
     btn.disabled = true;
-    startRun(scale).catch(showErr).finally(function () { btn.disabled = false; });
+    Promise.all(todo.map(function (p) { return startRun(scale, null, p).catch(showErr); }))
+      .finally(function () { btn.disabled = false; });
   }
 
   // ×3: the strength ladder in one tap — same prompt and seed at 1 / 1.2 / 1.4.
   // Whichever rungs she already has are skipped, so running ×3 after a single
-  // scale-1 run only draws the two that are missing.
+  // scale-1 run only draws the two that are missing. With {curly brackets} the
+  // ladder runs per expanded prompt — 2 prompts is 6 runs, still one tap.
   document.getElementById('xthree').addEventListener('click', function () {
     if (!checkPrompt()) return;
-    var prompt = document.getElementById('prompt').value.trim();
+    var ex = expandBox();
+    if (!permGuard(ex, 3)) return;
     var S = STYLES[styleKey], seed = curSeed();
-    var todo = [], have = [];
-    [1, 1.2, 1.4].forEach(function (s) {
-      (alreadyRun(plannedKey(S, prompt, s, seed)) ? have : todo).push(s);
+    var todo = [], have = 0;
+    ex.prompts.forEach(function (p) {
+      [1, 1.2, 1.4].forEach(function (s) {
+        if (alreadyRun(plannedKey(S, p, s, seed))) have++;
+        else todo.push({ p: p, s: s });
+      });
     });
-    if (!todo.length) { toast('You already have all three — tap the sprout for a new seed'); return; }
-    if (have.length) toast('Drawing scale ' + todo.join(' and ') + ' — you already have ' + have.join(' and '));
+    if (!todo.length) { toast('You already have all of those — tap the sprout for a new seed'); return; }
+    if (have) toast('Drawing ' + todo.length + ' — you already have ' + have);
     var btn = document.getElementById('xthree');
     btn.disabled = true;
-    Promise.all(todo.map(function (s) { return startRun(s).catch(showErr); }))
+    Promise.all(todo.map(function (r) { return startRun(r.s, null, r.p).catch(showErr); }))
       .finally(function () { btn.disabled = false; });
   });
 
@@ -3469,9 +3982,14 @@
   // the tier. `startRun`'s own `q` overrides the toggle for that run only, so
   // neither ladder moves what the knob says.
   function ladder(btn, tiers) {
+    var ex = expandBox();
+    if (!permGuard(ex, tiers.length)) return;
     btn.disabled = true;
-    Promise.all(tiers.map(function (q) { return startRun(1, q).catch(showErr); }))
-      .finally(function () { btn.disabled = false; });
+    var runs = [];
+    ex.prompts.forEach(function (p) {
+      tiers.forEach(function (q) { runs.push(startRun(1, q, p).catch(showErr)); });
+    });
+    Promise.all(runs).finally(function () { btn.disabled = false; });
   }
 
   // Tapping Generate twice on the same prompt is ONE job as far as she's
@@ -3528,7 +4046,7 @@
         '<span class="p clamp">' + esc(p.prompt || '') + '</span>' +
         '<button class="copybtn" data-copy="' + p.id + '" aria-label="Put this prompt back in the box">' + ICONS.copy + '</button>' +
         tags.filter(Boolean).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') +
-        '<span class="tag waiting">drawing…</span>' + kill + '</div>' +
+        '<span class="tag waiting">' + esc(p.queued || 'drawing…') + '</span>' + kill + '</div>' +
         '<div class="grid">' + cells + '</div></div>';
     }).join('');
     // Rebuilt only when it actually changed — the poll calls this on every
@@ -3629,6 +4147,13 @@
         // enough; a tap before it lands leaves the photo alone, which is the
         // "no record" answer restorePhoto is built to give.
         if (d.id) runsById[d.id] = d;
+        // A queued run the new instance has picked up: the card says
+        // "drawing…" again from here (a source assertion cannot see this; the
+        // note is on the pending ENTRY, which is the page's own record).
+        if (p.queued && d.status === 'running') {
+          setPending(pendingList().map(function (x) { return x.id === p.id ? Object.assign({}, x, { queued: '' }) : x; }));
+          renderPendings();
+        }
         if (d.status === 'ready' || d.status === 'done' || d.status === 'failed' || d.status === 'cancelled') {
           setPending(pendingList().filter(function (x) { return x.id !== p.id; }));
           // 'ready' = the first images are in, the rest still landing: the swap
@@ -3747,6 +4272,9 @@
     if (img.getAttribute('src') !== it.src) img.setAttribute('src', it.src);
     if (img.getAttribute('data-run') !== it.runId) img.setAttribute('data-run', it.runId);
     if (img.getAttribute('data-i') !== it.i) img.setAttribute('data-i', it.i);
+    // Her picks are reconciled here as well as painted on the tap, or a poll
+    // landing mid-pick would repaint the wall with every ring wiped off.
+    paintCell(img);
     var badge = el.querySelector('.badge');
     var have = badge ? (badge.classList.contains('like') ? 'like' : 'dislike') : '';
     if (have !== it.vote) {
@@ -4093,6 +4621,10 @@
       // already-loaded picture is never refetched.
       if (lbCur && lbIsOpen()) showLB(lbCur.id, lbCur.i);
       renderMoreBtn();
+      // The All/None word and the count are read off what is RENDERED, so they
+      // are repainted whenever the feed is — a filter or a search that changes
+      // what is on screen changes what "All" means.
+      if (selMode) paintSel();
   }
 
   // "Older" sits under BOTH views (it is the way further back in either one).
@@ -4163,22 +4695,26 @@
     else syncChildren(box, items, makeCell, updateCell);
   }
 
-  // One delegated handler for every tile.
+  // One delegated handler for every tile. WHILE SHE IS PICKING a tap on a
+  // picture is a pick and never an open — the mode bar is on screen saying so,
+  // and a lightbox opening over a batch she is halfway through choosing is the
+  // opposite of what the mode is for.
+  function tileTap(e) {
+    var img = e.target.closest('img[data-run]');
+    if (!img) return false;
+    if (selMode) { setPicked(img, !sel[selKeyOf(img)]); paintSel(); return true; }
+    openLB(img.getAttribute('data-run'), Number(img.getAttribute('data-i')));
+    return true;
+  }
   document.getElementById('runs').addEventListener('click', function (e) {
     var cp = e.target.closest('[data-copy]');
     if (cp) {
       copyRunIn(runsById[cp.getAttribute('data-copy')]);
       return;
     }
-    var img = e.target.closest('img[data-run]');
-    if (!img) return;
-    openLB(img.getAttribute('data-run'), Number(img.getAttribute('data-i')));
+    tileTap(e);
   });
-  document.getElementById('tiles').addEventListener('click', function (e) {
-    var img = e.target.closest('img[data-run]');
-    if (!img) return;
-    openLB(img.getAttribute('data-run'), Number(img.getAttribute('data-i')));
-  });
+  document.getElementById('tiles').addEventListener('click', tileTap);
 
   // The "…" opener for a prompt the two-line cap really cut. Added after layout
   // (scrollHeight vs clientHeight is the only honest test) and as a SIBLING of

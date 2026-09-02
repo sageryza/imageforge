@@ -81,6 +81,47 @@
       prefixes: ['copy its drawing style but do NOT copy its content'],
     },
     {
+      key: 'triangle', label: 'Triangle',
+      // The Triset game's triangular cards, and the Playground tile that
+      // draws them (2026-08-31). It attaches the SAME reference file as
+      // Dreamy, so a filename can never tell the two apart — the evidence is
+      // the triangle-card clause the tile swaps into the tail.
+      refs: [],
+      // A DERIVED TILE OUT-RANKS THE ONE IT IS DERIVED FROM — see `beats`.
+      // Every triangle card carries Dreamy's prefix by construction
+      // (`triangleStyle(dreamy)` in triangle-clause.js IS the dreamy recipe
+      // with one clause swapped), so the two ALWAYS match together and the
+      // only question is which wins. It used to be whichever quote was
+      // longer, which is why this went stale twice: a reword shortens the
+      // fragment, Dreamy's 49 characters out-reach it, and every card ports
+      // back as a plain Dreamy picture with nothing on screen saying so.
+      //
+      // MEASURED 2026-09-02 over her 715 filed triangle cards: 565 of them
+      // were routing to Dreamy. Four generations of the wording are on file
+      // and only the newest one matched.
+      //
+      // So the quote is a STEM now, not a transcript — the three words every
+      // generation has held — and old wordings are listed beside it exactly
+      // the way `refs` lists old reference filenames: a reword never rewrites
+      // the thousands of style halves already filed, so this list only ever
+      // GROWS. scripts/test-playground-port.js drives the real clause out of
+      // triangle-clause.js through the matcher, so it fails on behaviour
+      // rather than on a quote going out of date.
+      prefixes: [
+        // Gens 1-4 and counting: "EQUILATERAL TRIANGLE-SHAPED CARD…" (687 of
+        // the 715), plus the earliest "TRIANGLE-SHAPED CARD, point up:".
+        'triangle-shaped card',
+        // The hand-written wording, before the tile or triset.js existed (10
+        // rows, my-creations, no reference filename and no baked prefix — so
+        // without this they fall through to the fallback as unknown).
+        'equilateral triangle with a hand drawn border',
+        // The venn card an `auto` set draws: triset.js's AUTO_RULES, which
+        // names the cards rather than the shape.
+        'triangular picture cards from a matching game',
+      ],
+      beats: ['dreamy'],
+    },
+    {
       key: 'pastel', label: 'Pastel',
       // sophie snake / sophie animals. Old names style-1.png / style-2.png,
       // which is why the witch-school/ path is kept on the alias: hoonies'
@@ -137,17 +178,35 @@
    */
   function matchStyle(promptStyle, caption) {
     const hay = norm(promptStyle) + ' ' + norm(caption);
-    // Longest evidence wins, across BOTH kinds. That is what keeps the
+    // Every tile whose evidence appears, carrying its LONGEST hit.
+    const hits = [];
+    PORT_STYLES.forEach((st) => {
+      let by = '';
+      [].concat(st.refs || [], st.prefixes || []).forEach((sig) => {
+        if (hay.indexOf(norm(sig)) < 0) return;
+        if (sig.length > by.length) by = sig;
+      });
+      if (by) hits.push({ st, by });
+    });
+    // A DERIVED TILE OUT-RANKS THE ONE IT IS DERIVED FROM, whatever the
+    // lengths (2026-09-02). Triangle IS the dreamy recipe with one clause
+    // swapped, so a triangle card carries dreamy's prefix verbatim and the
+    // two always match together — that is a fact of how the tile is built
+    // (`triangleStyle(dreamy)`), not a preference. Deciding it on quote
+    // length meant a reword of the swapped clause silently handed 565 of her
+    // 715 triangle cards back to Dreamy. `beats` names the relationship
+    // instead, so the evidence can stay a short durable stem.
+    const beaten = {};
+    hits.forEach((h) => (h.st.beats || []).forEach((k) => { beaten[k] = true; }));
+    const live = hits.filter((h) => !beaten[h.st.key]);
+    // Longest evidence wins among the survivors. That is what keeps the
     // ambiguous stems apart: `hoonies/refs/style-1` and
     // `witch-school/refs/style-1` both end in the same six characters, and
     // only the directory tells them apart — so a shorter alias must never be
     // able to claim a string a longer one also matches.
     let best = null;
-    PORT_STYLES.forEach((st) => {
-      [].concat(st.refs || [], st.prefixes || []).forEach((sig) => {
-        if (hay.indexOf(norm(sig)) < 0) return;
-        if (!best || sig.length > best.by.length) best = { st, by: sig };
-      });
+    (live.length ? live : hits).forEach((h) => {
+      if (!best || h.by.length > best.by.length) best = h;
     });
     if (best) return { style: best.st.key, matched: true, label: best.st.label, by: best.by };
     // Nothing named. A LoRA attaches no reference and bakes no prefix, so its

@@ -47,9 +47,16 @@ function lift(name) {
 // `chats` is the page's registry map; the lifted functions close over it.
 let chats = {};
 const scope = { chats: () => chats };
-const src = 'var PARK_LEASH=3*60*1000;\n'
-  + lift('unparked') + '\n' + lift('parkTripped') + '\n' + lift('chatHidden') + '\n' + lift('chatBack')
-  + '\nreturn { unparked: unparked, parkTripped: parkTripped, chatHidden: chatHidden, chatBack: chatBack };';
+// `reviewHeld` is the Update tab's dismissal hold — a different feature, and
+// the only thing chatBack reaches for that is not part of the parking rule. It
+// is stubbed rather than lifted so this file stays a test OF THE PARK; without
+// it every chatBack assertion below dies on a ReferenceError (it did, on main,
+// silently swallowing four of them).
+const src = 'var PARK_LEASH=3*60*1000;\nfunction reviewHeld(){ return false; }\n'
+  + lift('unparked') + '\n' + lift('repliedSince') + '\n' + lift('parkTripped')
+  + '\n' + lift('chatHidden') + '\n' + lift('chatBack')
+  + '\nreturn { unparked: unparked, repliedSince: repliedSince, parkTripped: parkTripped,'
+  + ' chatHidden: chatHidden, chatBack: chatBack };';
 // eslint-disable-next-line no-new-func
 const api = new Function('getChats', 'var chats; ' + src.replace(/\bchats\b(?=\s*&&|\s*\[)/g, 'getChats()'))(scope.chats);
 
@@ -82,6 +89,46 @@ console.log('parking still works');
     api.chatHidden('c', hers) === true,
     'postedAt=' + hers.postedAt + ' park=' + PARK);
   ok('an unparked chat is not hidden at all', api.chatHidden('nope', before) === false);
+}
+
+console.log('the registry outlives the loaded feed (2026-08-31)');
+{
+  // THE BUG: one feed read carries ~260 messages for ~770 chats, so a chat
+  // parked at turn start that replied a minute later fell back into the hidden
+  // pile the day its reply scrolled out of the window — and stayed there.
+  // Measured against her live feed: 122 of the 125 chats in the hidden pile had
+  // no loaded message at all.
+  const AFTER = '2026-08-14T04:50:00.000Z';
+  const BEFOREP = '2026-08-14T04:40:00.000Z';
+  chats = { c: { hiddenAt: PARK, repliedAt: AFTER } };
+  ok('a park whose reply has aged out of the feed is released by the registry',
+    api.chatHidden('c', null) === false, 'repliedAt=' + AFTER + ' park=' + PARK);
+  chats = { c: { hiddenAt: PARK, repliedAt: BEFOREP } };
+  ok('…but only when that reply landed AFTER the park',
+    api.chatHidden('c', null) === true, 'repliedAt=' + BEFOREP + ' park=' + PARK);
+  chats = { c: { hiddenAt: PARK } };
+  ok('a chat that has genuinely said nothing since stays parked',
+    api.chatHidden('c', null) === true);
+
+  // THE LOADED MESSAGE ALWAYS WINS. The fallback exists for the gap in this
+  // page's knowledge, never to overrule what it can actually see — otherwise a
+  // stale stamp would un-park a chat that is mid-turn right now.
+  chats = { c: { hiddenAt: PARK, repliedAt: AFTER } };
+  ok('a live draft still keeps the chat parked, stamp or no stamp',
+    api.chatHidden('c', draft) === true);
+  ok('a reply loaded from BEFORE the park still keeps it parked',
+    api.chatHidden('c', older) === true, 'the message on hand beats the registry');
+  const hersLoaded = { from: 'sophie', created: '2026-08-14T04:48:18.000Z',
+    postedAt: '2026-08-14T04:48:18.400Z' };
+  ok('her own loaded message does not let the stamp through either',
+    api.chatHidden('c', hersLoaded) === true);
+
+  // repliedSince on its own — a chat with no stamp at all is the common case
+  // until the backfill has run over it, and it must never throw or guess.
+  chats = { c: { hiddenAt: PARK } };
+  ok('repliedSince is false when nothing is stamped', api.repliedSince('c', PARK) === false);
+  ok('repliedSince is false for a chat that does not exist',
+    api.repliedSince('ghost', PARK) === false);
 }
 
 console.log('only when it is FINISHED (her call)');

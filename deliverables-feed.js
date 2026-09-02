@@ -55,10 +55,29 @@
 //     empties itself. A chat that delivers again after she wrote back comes
 //     back, because the new delivery is newer than her message.
 //
+//     A FILM ROW IS ANSWERED AGAINST ITS FIRST HAND-OVER, NEVER ITS updatedAt
+//     (2026-08-31, Sophie: "deliverables don't leave when i answer them").
+//     Measured live: a chat that acts on her answer re-pins the same url at
+//     the end of its turn (the checklist tells it to), record() bumps
+//     `updatedAt`, and the row she had already dealt with came back — newer
+//     than her message again, forever, however many times she wrote. The
+//     re-post of a url is an UPDATE of the row ("updates the row silently" —
+//     checklist 3c), so it must not un-answer it; only a genuinely NEW version
+//     (a new url → a new doc with a fresh `at`) brings the work back.
+//
+//   • …AND SO IS HER ✕ (2026-08-31, the same message: "there's no way to swipe
+//     them away"). Answering is not the only way she deals with a delivery —
+//     a note on the paused film, a ♥, a decision made in another chat — and
+//     none of those stamp `lastHerAt`. The row's ✕ stamps a dismissal
+//     (`__dismissed` on the collection, one small map doc), and the rule is
+//     the same shape as answering: everything handed over up to that moment is
+//     dealt with, and a delivery newer than the stamp shows by itself.
+//
 // Pure — no Firestore, no network, no clock of its own. deliverables.js does
 // the reading; this decides what the list says.
 // Tests: node scripts/test-deliverables-feed.js
 
+const crypto = require('crypto');
 const { sourceLibraryPrefix, derivedPrefix } = require('./asset-guard');
 
 // A hand-over is a sitting. Measured against her real filing: a panels batch
@@ -81,6 +100,18 @@ const ms = (v) => {
   return isNaN(t) ? 0 : t;
 };
 const clean = (s, n) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim().slice(0, n);
+
+// The key a dismissal is stored under, and the ONE definition of it — the
+// write route and the feed's filter both call this, so they cannot drift.
+// A film/audio/link row is its URL (hashed: a url has dots, and a dotted
+// Firestore field name written through set(merge) becomes a nested map); a
+// pictures row has no url of its own, so it is its CHAT — which is also the
+// row's identity after the newest-replaces-oldest collapse.
+function dismissKey(row) {
+  if (row.kind === 'images') return 'c_' + String(row.chat || '').replace(/[^A-Za-z0-9_-]/g, '_');
+  if (!row.url) return '';
+  return 'u_' + crypto.createHash('sha1').update(String(row.url)).digest('hex').slice(0, 24);
+}
 
 /** Is this asset record a picture a chat HANDED her? */
 function deliverablePicture(a) {
@@ -131,9 +162,10 @@ function burstsFor(list) {
  * @param {object[]} input.deliverables rows as /api/deliverables serves them
  * @param {object[]} input.assets       `forge-chat-assets` docs
  * @param {object}   input.chats        the registry, for display names
+ * @param {object}   input.dismissed    { dismissKey → ISO } — her ✕ stamps
  * @param {number}   input.limit        rows back
  */
-function buildFeed({ deliverables, assets, chats, limit = 60 } = {}) {
+function buildFeed({ deliverables, assets, chats, dismissed, limit = 60 } = {}) {
   const reg = chats || {};
   const nameOf = (c) => clean((reg[c] && reg[c].displayName) || c, 80);
 
@@ -144,6 +176,11 @@ function buildFeed({ deliverables, assets, chats, limit = 60 } = {}) {
     rows.push({
       kind: d.kind === 'audio' ? 'audio' : d.kind === 'link' ? 'link' : 'video',
       at: new Date(ms(d.updatedAt || d.at) || 0).toISOString(),
+      // When this version was FIRST handed over — what "answered" is measured
+      // against. `updatedAt` moves on every same-url re-pin (a chat's checklist
+      // duty at the end of the very turn that acts on her answer), so a row
+      // judged by it could never stay answered. `at` never moves for a url.
+      firstAt: new Date(ms(d.at || d.updatedAt) || 0).toISOString(),
       chat: d.chat || '',
       chatName: d.chatName || nameOf(d.chat || ''),
       title: clean(d.title, 160) || 'Untitled',
@@ -181,9 +218,19 @@ function buildFeed({ deliverables, assets, chats, limit = 60 } = {}) {
   rows.sort((a, b) => ms(b.at) - ms(a.at));
 
   // ANSWERED IS DONE — her own message since the hand-over takes the row off.
+  // Judged against the FIRST hand-over of this version (`firstAt`), never the
+  // re-pin-bumped `updatedAt` — see the header. A pictures row's `at` IS its
+  // newest picture's own time, so it is its own firstAt.
+  // …AND SO IS HER ✕ — a dismissal stamp covers everything handed over up to
+  // that moment; a delivery newer than the stamp shows by itself.
+  const dis = dismissed || {};
   const live = rows.filter((r) => {
+    const born = ms(r.firstAt || r.at);
     const her = reg[r.chat] && reg[r.chat].lastHerAt;
-    return !(her && ms(her) > ms(r.at));
+    if (her && ms(her) > born) return false;
+    const x = dis[dismissKey(r)];
+    if (x && ms(x) >= born) return false;
+    return true;
   });
 
   // NEWEST REPLACES OLDEST. The films arrive already collapsed by work; the
@@ -202,4 +249,4 @@ function buildFeed({ deliverables, assets, chats, limit = 60 } = {}) {
   return { items: out.slice(0, limit) };
 }
 
-module.exports = { buildFeed, burstsFor, deliverablePicture, BURST_MS, IMAGES_PER_ROW };
+module.exports = { buildFeed, burstsFor, deliverablePicture, dismissKey, BURST_MS, IMAGES_PER_ROW };

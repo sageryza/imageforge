@@ -1762,6 +1762,10 @@
     - **`pinTop`** = stays at the top of every list. The PUSHPIN, added Aug
       2026 — see *The pushpin* below. It is the one mark whose control is
       **not** in the thread header: it lives on the home row, at her ask.
+    - **`tray`** (+ **`trayAt`**) = one of the three or four things she is
+      working on RIGHT NOW. The TRAY, added 2026-08-31 — see *On my tray*
+      below. The one mark with a SCREEN of its own rather than a position in
+      a list, and the only one that stores a MOMENT beside its boolean.
     - **Three of the marks sit side by side in the thread header** — the
       bookmark, the star, then the bell — so the difference is a choice she
       makes in one place. The keep button is `.bmk.chatbmk`, written that way
@@ -1781,19 +1785,25 @@
   bell on will notify me. Also, can you make the delete button a picture of a
   trash can and the hide button a picture of an eye that's crossed out if it's
   hidden").** Three changes to `#thread header .no`, one row:
-  - **The bell is a WHITELIST, and that is the load-bearing half.** `notify`
-    on the registry doc, `POST /api/chatfeed/notify {chat, notify}` (404s on a
-    chat that doesn't exist — the phantom-row guard), read server-side by
-    `chatNotifies` in `push-gate.js` in front of BOTH push doors: a finished
-    reply and a new Compare page. **Absent means silent** — nothing pushes
-    until she taps a bell, which is her sentence read literally and also the
-    safe failure direction (a caller that forgets the flag goes quiet rather
-    than buzzing her). It compares `notify === true`, never truthiness.
-    **One exception she asked for (2026-08-27): a quick-question chat sets its
-    own bell ON** ("a 'quick question' chat shud set its own bell as true") —
-    when she runs a chat in quick-question mode, or it wears the `quick
-    question` label, the chat POSTs `{chat, notify:true}` itself. Never OFF;
-    that stays hers.
+  - **The bell is ON BY DEFAULT since 2026-09-01 ("change to readily notify on
+    for chats"), and that is the load-bearing half.** `notify` on the registry
+    doc, `POST /api/chatfeed/notify {chat, notify}` (404s on a chat that
+    doesn't exist — the phantom-row guard), read server-side by `chatNotifies`
+    in `push-gate.js` in front of BOTH push doors: a finished reply and a new
+    Compare page. **Absent means ON** — the bell is how she turns a chat OFF —
+    so the reader compares `notify === false`, never falsiness, and the WRITE
+    is the other way round from every other mark: OFF is stored, ON deletes
+    the field so the chat sits back on the default.
+    - **It shipped as a whitelist (absent = silent, `notify === true`) and
+      that is history, not a rule.** Her original sentence read literally left
+      every chat she had never thought about silent forever — measured on the
+      self-belling day, 48 chats set a `need` in two days and 6 of them were
+      belled. Don't put it back without her.
+    - **The timing gate is what keeps default-on quiet**, not the bell: a push
+      still needs her to have spoken since the last one and needs the reply to
+      post-date her message.
+    - **The 2026-08-27 quick-question self-bell is a no-op now** (such a chat
+      is already on). A chat still never turns a bell OFF; that stays hers.
   - **The bell is FILLED, GOLD when lit, and NOT Lucide's** (Sophie's second
     pass, same week: "change the bell colour to yellow and make it filled in
     rather than just the outline"). It shipped stroked, with a comment here
@@ -1929,6 +1939,83 @@
     being a straight line rather than an arc, and the COMPUTED fills proving
     the head is red while the spike is not). Verified failing with the sort
     tier removed.
+
+### On my tray
+
+2026-08-31, Sophie: *"add a tab in chats called 'on my tray' where i can pin
+chats by their icons for what im working on rn — ex xi to do · review cards
+illustrations ideas · triset · review cards"*.
+
+The fourth tab on the lists row, leading it, and a screen of nothing but the
+little chat drawings.
+
+- **Why it is not the star.** `starred` is the nearest thing that already
+  existed and it answers a different question: a star LIFTS a chat inside
+  whatever list she is already looking at, so a starred chat still sits among
+  two hundred others. The tray IS the list — three or four chats, four across,
+  and nothing else on screen.
+- **`tray` + `trayAt`, `POST /api/chatfeed/tray {chat, tray}`.** Same phantom-
+  row guard as `/pin-top`, `/chat-bookmark` and `/notify`: a merge-set on a
+  missing doc CREATES it, and every pile derives from the registry keys. Both
+  fields are DELETED when she takes a chat off, so nothing accumulates.
+- **`trayAt` is the design, not bookkeeping.** The tray is the one pile that
+  does not come through `sortedChatNames`. Every other list here is
+  newest-message-first — right for an inbox, exactly wrong for a dock, because
+  icons that move whenever a chat replies are icons she can never learn the
+  position of. The order is when she PUT each chat there, oldest first, so the
+  tray grows at the end and nothing already on it moves.
+  - The SERVER stamps it (only the write knows the moment).
+  - The optimistic copy on the page stamps one too, or a chat added while the
+    request is in flight sorts under `''` and jumps to the FRONT of the tray
+    until the answer lands.
+  - **Re-adding a chat that is already on the tray keeps its ORIGINAL stamp**,
+    so a stray double tap cannot send its icon to the end.
+- **One door, one write (`setTray` in chats.html).** The mark in the Organize
+  sheet puts a chat on and, tapped again while lit, takes it off. It repaints
+  the whole home, because this changes a list's membership rather than a row's
+  look.
+- **A tile carries NO control at all** (2026-08-31, Sophie: *"get rid of the
+  tray icon per chat · too wash to click"*). It shipped with a lit tray mark on
+  the corner of every icon — the way off the tray without opening the chat —
+  and two things were wrong with it at the size it really renders: it sat ON
+  the drawing, washing out the one thing this screen is made of, and 26px on a
+  4-across tile is under the tap target anything here should have. Taking a
+  chat off is three taps now (open it, tag icon, tray) against one, and that is
+  the right trade: the tray is three or four chats she changes a couple of
+  times a day, so the tap is cheap and the clean icons are not. Don't put it
+  back.
+- **What the tile carries, and what it deliberately does not.** The icon (or
+  the blank-letter fallback), the unread dot, the wait/bug marks, and the name
+  clamped to two lines. NO status line, no timestamp, no about — that question
+  is the ALL tab's. NO pushpin and no hide eye either: those are list controls
+  and the tray is not a list she is triaging. Tapping it opens the chat, which
+  is its whole job.
+- **No date headings.** The one pile without them, because it is the one pile
+  not in timing order — `mkDayRule` over an order she arranged by hand would be
+  a heading over a grouping that does not exist.
+- **It ignores the account filter**, the way the ★ pile ignores `archived`. The
+  account row is not even on screen while the lists row is, so a hand-picked
+  chat vanishing because it belongs to the other account would be a filter she
+  cannot see. A lit CATEGORY chip leaves the tray onto ALL, exactly as it
+  leaves the bug pile.
+- **Archived and deleted chats are not drawn, and the mark is left alone** —
+  un-archiving puts the chat back on the tray where it was. Archiving never
+  silently clears a pin of hers.
+- **The glyph is Lucide `inbox` and is NEVER filled.** It shipped filled when
+  lit, like the star and the bookmark beside it, and rendered as a red BLOB:
+  those two get away with a fill because their silhouette IS the shape, where a
+  tray's shape is its OPENING. `.on` is the red stroke and the red box, as it
+  is for the crossed eye.
+- **The tab says "My tray", not her whole phrase** — "On my tray" measures
+  69.5px against the ~64px a tab has at 320pt with four tabs, so it wrapped and
+  made the row 10px taller than every other hairline row. The PWC tab's call.
+- Test: `node scripts/test-chats-tray.js` (the real page headless — four across
+  MEASURED off the real cells, the order proved against a fixture whose
+  first-added chat has the OLDEST message, and the add driven through a
+  deliberately SLOW stub so the OPTIMISTIC order is what renders). Verified
+  catching a recency sort, a lost optimistic stamp, a three-wide grid, a
+  refilled glyph, a control growing back on a tile, and a sheet mark that can
+  only ever add.
 
   **ORGANIZE — filing and tagging from inside a chat (Aug 2026, Sophie: "an
   ability to tag or categorize something from within the chat itself, for

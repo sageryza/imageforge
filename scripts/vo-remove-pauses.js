@@ -2,7 +2,7 @@
 // vo-remove-pauses.js — remove NOISY pauses from voice-memo narration.
 //
 //   node scripts/vo-remove-pauses.js in.mp3 out.mp3 [--script script.txt]
-//                                    [--edits edits.json] [--keep 0.28]
+//                                    [--edits edits.json] [--keep 0.60]
 //
 // Why this exists (Aug 2026, learned on the Tolle shorts): breath/mouth/room
 // noise in a phone recording sits at ~-20dB RMS after loudnorm — only 4-7dB
@@ -22,7 +22,9 @@
 //     bin in the would-be cut is within 5dB of that peak
 // Pass 2 — room-tone runs: floor = 8th percentile of all 20ms bins; any run
 //   >= 0.45s within 4dB of the floor is a residual gap.
-// Both passes COMPRESS a pause to ~KEEP seconds (default 0.28) — never delete.
+// Both passes COMPRESS a pause to ~KEEP seconds (default 0.60) — never delete.
+// KEEP was 0.28 until 2026-08-31 — Sophie: "change the rules so long pauses cut
+// to longer - they're too short". 0.60 is a natural beat; don't shrink it back.
 // Verification (with --script): chunked re-transcription word-ratio >= 0.93 or
 // the run FAILS. Machine verification, never by ear.
 //
@@ -47,10 +49,10 @@ const FFMPEG = process.env.FFMPEG_PATH || (() => { try { return require('ffmpeg-
 const args = process.argv.slice(2);
 const flag = (n, d = null) => { const i = args.indexOf('--' + n); return i === -1 ? d : args[i + 1]; };
 const [IN, OUT] = args.filter(a => !a.startsWith('--') && args[args.indexOf(a) - 1] !== '--script' && args[args.indexOf(a) - 1] !== '--edits' && args[args.indexOf(a) - 1] !== '--keep');
-const KEEP = Number(flag('keep', '0.28'));
+const KEEP = Number(flag('keep', '0.60'));
 const SCRIPT = flag('script');
 const EDITS = flag('edits');
-if (!IN || !OUT) { console.error('usage: vo-remove-pauses.js in.mp3 out.mp3 [--script t.txt] [--edits e.json] [--keep 0.28]'); process.exit(1); }
+if (!IN || !OUT) { console.error('usage: vo-remove-pauses.js in.mp3 out.mp3 [--script t.txt] [--edits e.json] [--keep 0.60]'); process.exit(1); }
 if (!process.env.OPENAI_API_KEY) { console.error('OPENAI_API_KEY required'); process.exit(1); }
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'vorp-'));
 

@@ -57,6 +57,8 @@ const files = {
   '/grid.js': ['application/javascript', fs.readFileSync(path.join(PUB, 'grid.js'), 'utf8')],
   '/asset-lightbox.js': ['application/javascript', fs.readFileSync(path.join(PUB, 'asset-lightbox.js'), 'utf8')],
   '/asset-view.js': ['application/javascript', fs.readFileSync(path.join(PUB, 'asset-view.js'), 'utf8')],
+  '/playground-port.js': ['application/javascript', fs.readFileSync(path.join(PUB, 'playground-port.js'), 'utf8')],
+  '/asset-actions.js': ['application/javascript', fs.readFileSync(path.join(PUB, 'asset-actions.js'), 'utf8')],
   '/page-views.js': ['application/javascript', fs.readFileSync(path.join(PUB, 'page-views.js'), 'utf8')],
 };
 const pill = fs.readFileSync(path.join(PUB, 'pill-inject.html'), 'utf8');
