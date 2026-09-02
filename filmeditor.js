@@ -48,7 +48,9 @@
 //
 // THE SOUNDS ARE MIXED AT THE MUX, ONE GRAPH (mixGraph — pure, exported):
 // every non-muted sound is one input, trimmed with -ss/-to as input options,
-// then aformat 44100 stereo → volume=<gain>dB → afade in / afade out (the
+// then (a MONO file first through pan=stereo|c0=c0|c1=c0 — aformat's own
+// upmix would lose 3.0 dB, measured; her voice memos are mono) aformat 44100
+// stereo → volume=<gain>dB → afade in / afade out (the
 // out fade placed from the TRIMMED length, probed when the doc does not know
 // it) → adelay to its RESOLVED start (CutModel.soundStart — an anchored sound
 // lands on its shot wherever the shot moved) → amix with the picture lane's
@@ -418,11 +420,21 @@ function segmentAudioFilter(piece) {
 // Inputs: 0 = the silent concat video, 1 = the picture lane's PCM, 2.. = the
 // active sounds in order. '' when nothing is active — the caller then muxes
 // the PCM straight, no graph.
-function mixGraph(sounds, clipsNow, lens) {
+// A MONO sound must not go through aformat's own upmix: swresample's default
+// matrix puts a centre channel into L and R at 1/√2 each, so a mono file
+// arrives in the stereo mix 3.0 dB DOWN (measured 2026-09-02 with astats:
+// −18.06 dB mono → −21.07 dB per channel after aformat; `pan` keeps −18.06;
+// so does `-ac 2`). Her voice memos are mono — this is the difference
+// between "her voice at unity" and her voice 3 dB under every bed. `chans`
+// is what the render probed per sound key; with nothing known a sound is
+// treated as stereo, which is the smaller error.
+const MONO_UP = 'pan=stereo|c0=c0|c1=c0';
+function mixGraph(sounds, clipsNow, lens, chans) {
   const active = activeSounds(sounds, lens);
   if (!active.length) return '';
   const parts = active.map((s, i) => {
-    const chain = [AFORMAT];
+    const mono = chans && Number(chans[s.key]) === 1;
+    const chain = mono ? [MONO_UP, AFORMAT] : [AFORMAT];
     if (s.gain) chain.push(`volume=${s.gain}dB`);
     if (s.fadeIn > 0) chain.push(`afade=t=in:st=0:d=${s.fadeIn}`);
     const len = soundLength(s, lens);
@@ -589,7 +601,7 @@ async function downloadSource(url, file) {
 async function probeFile(file) {
   if (!FFPROBE) return { seconds: 0, width: null, height: null, hasVideo: true, hasAudio: true, image: false };
   const { stdout } = await run(FFPROBE, ['-v', 'error', '-show_entries',
-    'format=duration,format_name:stream=codec_type,width,height', '-of', 'json', file], 120000);
+    'format=duration,format_name:stream=codec_type,width,height,channels', '-of', 'json', file], 120000);
   const info = JSON.parse(stdout || '{}');
   const d = parseFloat((info.format || {}).duration || '0');
   const vs = (info.streams || []).find((s) => s.codec_type === 'video');
@@ -612,6 +624,7 @@ async function probeFile(file) {
     width, height,
     hasVideo: Boolean(vs),
     hasAudio: (info.streams || []).some((s) => s.codec_type === 'audio'),
+    channels: Number(((info.streams || []).find((s) => s.codec_type === 'audio') || {}).channels) || 0,
     image,
   };
 }
@@ -711,6 +724,7 @@ async function renderCut(doc, opts) {
   // The sounds: each downloaded once, probed for the length the doc does
   // not know (an open `out`), refused honestly when it carries no audio.
   const lens = {};
+  const chans = {};
   for (let i = 0; i < wanted.length; i++) {
     const s = wanted[i];
     await progress(pieces.length + i, total, `sound ${i + 1} of ${wanted.length} — ${s.name || 'untitled'}`.slice(0, 80));
@@ -718,6 +732,7 @@ async function renderCut(doc, opts) {
     if (!src.probe.hasAudio) throw new Error(`"${s.name || 'a sound'}" has no audio`);
     const known = CutModel.soundSeconds(s);
     lens[s.key] = known != null ? known : r3(Math.max(0, (src.probe.seconds || 0) - (s.in || 0)));
+    chans[s.key] = src.probe.channels || 0;
   }
   const active = activeSounds(sounds, lens);
   // sources are only safe to drop once every piece is cut (shared urls) —
@@ -741,7 +756,7 @@ async function renderCut(doc, opts) {
     const inputs = [];
     for (const s of active) inputs.push(...soundInputArgs(s, sources.get(s.url).file));
     await run(FFMPEG, ['-y', '-i', silent, '-i', track, ...inputs,
-      '-filter_complex', mixGraph(sounds, pieces, lens),
+      '-filter_complex', mixGraph(sounds, pieces, lens, chans),
       '-map', '0:v', '-map', '[a]', '-c:v', 'copy',
       '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', out], 600000);
   } else {

@@ -168,6 +168,11 @@ console.log('mixGraph:');
     'normalize=0 — amix must not halve every voice; duration=first — a long bed never lengthens the film');
   ok(fe.activeSounds(sounds, {}).map((s) => s.key).join() === 'free,ride', 'the inputs are the active sounds in lane order — what the render feeds as -i');
   // reorder the picture: the anchored sound moves, the free one does not
+  // a MONO sound is upmixed at unity (pan), never through aformat's −3 dB matrix
+  const gm = fe.mixGraph(sounds, clips, {}, { [sounds[0].key]: 1 });
+  ok(gm.indexOf('[2:a]pan=stereo|c0=c0|c1=c0,aformat=') !== -1, 'a mono sound goes through pan before aformat');
+  ok(fe.mixGraph(sounds, clips, {}, { [sounds[0].key]: 2 }).indexOf('pan=stereo') === -1, 'a stereo sound does not');
+  ok(fe.mixGraph(sounds, clips, {}).indexOf('pan=stereo') === -1, 'unknown channels → treated as stereo');
   const g2 = fe.mixGraph(sounds, [clips[1], clips[0]], {});
   ok(g2.indexOf('[3:a]aformat=sample_rates=44100:channel_layouts=stereo,adelay=0|0[s1]') !== -1
     && g2.indexOf('adelay=1000|1000[s0]') !== -1,
