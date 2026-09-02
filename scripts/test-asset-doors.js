@@ -270,13 +270,30 @@ function ok(cond, name) {
   // page that types out one more icon looks completely fine until she opens
   // the other one.
   console.log('\n── the shared set ──');
-  ['chats.html', 'assets.html'].forEach((f) => {
+  // THE LIST IS DERIVED, NOT TYPED (2026-09-01). This pin named chats.html and
+  // assets.html by hand — the two pages the 2026-08-31 survey had looked at —
+  // and the Compare/deck pages' adapter (asset-view.js) and Freeform, both
+  // callers of the same lightbox, went on drawing ♥/✕ and nothing else until
+  // Sophie tapped a hot tub and asked why there was no Playground button. So
+  // every caller of the shared lightbox in public/ is swept: it builds its
+  // doors from the shared set, or it is on the EXEMPT list with its reason.
+  const EXEMPT = {
+    'asset-lightbox.js': 'the lightbox itself',
+    'promptlab.html': 'its own row — put the prompt back and the Story Room walk carry a RUN id',
+    'scratchpad.html': 'a picker over a beat\'s past pictures; the beat popup carries its own Playground walk',
+    'character.html': 'a bare open of a face — nothing filed, no prompt, nothing to port',
+  };
+  const callers = fs.readdirSync(PUB).filter((f) => /\.(html|js)$/.test(f))
+    .filter((f) => /__assetLightbox\(/.test(fs.readFileSync(path.join(PUB, f), 'utf8')));
+  ok(callers.length >= 8, 'the sweep found the lightbox\'s callers (' + callers.length + '): ' + callers.join(', '));
+  callers.filter((f) => !EXEMPT[f]).forEach((f) => {
     const src = fs.readFileSync(path.join(PUB, f), 'utf8');
-    ok(/<script src="\/asset-actions\.js"><\/script>/.test(src), f + ' loads /asset-actions.js');
-    // chats.html reads the global into `DOORS` (guarded, like every other
-    // shared script it links), so the pin is on the shared object arriving —
-    // by either spelling — and on `.build(` being what makes the row.
-    ok(/ForgeAssetActions/.test(src) && /\.build\(url, asset/.test(src),
+    const rendered = /\.js$/.test(f);   // a shared script is linked by the page that renders it
+    if (!rendered) ok(/<script src="\/asset-actions\.js"><\/script>/.test(src), f + ' loads /asset-actions.js');
+    // the page reads the global into a guarded local (like every other shared
+    // script it links), so the pin is on the shared object arriving and on
+    // `.build(` being what makes the row.
+    ok(/ForgeAssetActions/.test(src) && /\.build\(/.test(src),
       f + ' builds its doors from the shared set');
     for (const own of ["label:'Open in Playground'", "label:'Add to Shoebox'",
       "label:'Save to Photos'", "label:'Open the chat'"]) {
@@ -285,8 +302,15 @@ function ok(cond, name) {
     // The port script is what makes the Playground door honest about whether
     // it knows the style — without it every picture would fall through to the
     // photo reference, silently.
-    ok(/<script src="\/playground-port\.js"><\/script>/.test(src), f + ' loads /playground-port.js');
+    if (!rendered) ok(/<script src="\/playground-port\.js"><\/script>/.test(src), f + ' loads /playground-port.js');
   });
+  // the template pages render their scripts server-side — page-templates.js
+  // is the "page" for asset-view.js
+  {
+    const tpl = fs.readFileSync(path.join(__dirname, '..', 'page-templates.js'), 'utf8');
+    ok(/asset-actions\.js/.test(tpl) && /playground-port\.js/.test(tpl),
+      'page-templates.js links /asset-actions.js and /playground-port.js for the Compare/deck pages');
+  }
 
   await browser.close();
   server.close();

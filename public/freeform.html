@@ -148,6 +148,11 @@
 <div class="toast" id="toast"></div>
 
 <script src="/asset-lightbox.js"></script>
+<!-- the doors under the picture — the SHARED set (2026-09-01, Sophie: "as long as
+     there's a prompt there should be a playground button"); the port script is
+     what lets the Playground door say which tile made a picture -->
+<script src="/playground-port.js"></script>
+<script src="/asset-actions.js"></script>
 <script>
 var TOKEN = '__STUDIO_TOKEN__';
 if (TOKEN.indexOf('__') === 0) TOKEN = '';
@@ -331,16 +336,25 @@ function openLb(src) {
 function openRunImage(run, i) {
   if (window.__scrollStop) window.__scrollStop();
   var imgs = run.images || [];
-  window.__assetLightbox(imgs[i], {
+  var content = run.promptContent || run.promptSent || run.prompt || '';
+  var asset = {
     prompt: [run.model || 'gpt-image-2', run.quality, run.size,
              run.boiler ? 'boilerplate style' : ''].filter(Boolean).join(' · '),
-    promptContent: run.promptContent || run.promptSent || run.prompt || '',
+    // her words ARE the label here — the Shoebox door titles the polaroid by it
+    description: content,
+    promptContent: content,
     promptStyle: run.promptStyle || '',
     nav: {
       prev: i > 0 ? function () { openRunImage(run, i - 1); } : null,
       next: i < imgs.length - 1 ? function () { openRunImage(run, i + 1); } : null,
     },
-  });
+  };
+  // THE DOORS ARE THE SHARED SET (2026-09-01) — an output here has a prompt,
+  // so it has a Playground door; this page drew none. Guarded like every
+  // shared script, so a harness that never served the file still opens it.
+  var doors = window.ForgeAssetActions || null;
+  if (doors) asset.actions = doors.build(imgs[i], asset, { chatDoor: false });
+  window.__assetLightbox(imgs[i], asset);
 }
 
 function updateCost() {
