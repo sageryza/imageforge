@@ -78,6 +78,7 @@ const pageTemplates = require('./page-templates');
 const assetUnion = require('./asset-union');
 
 const router = express.Router();
+const workday = require('./workday.js');
 const MSGS = 'forge-chat-feed';
 const REG = 'forge-chat-registry';
 
@@ -1818,11 +1819,46 @@ function worklogRows(chats) {
   rows.sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : a.chat < b.chat ? -1 : 1));
   return rows;
 }
+// WHICH DAYS EACH CHAT WAS WORKED ON — the lumps (2026-09-02 v2, Sophie: "more
+// visual · colors per project · rounded lumps showing how long i worked on it
+// · some of them start and stop"). One projected scan of the feed
+// (`chat` + `created`, 12,735 docs in ~2.8s measured), held ten minutes; a
+// message counts on the 5am-Pacific working day it was sent (workday.js).
+let daysCache = null;
+let daysCacheAt = 0;
+const DAYS_TTL_MS = 10 * 60 * 1000;
+async function activeDays() {
+  if (daysCache && Date.now() - daysCacheAt < DAYS_TTL_MS) return daysCache;
+  const snap = await db().collection(MSGS).select('chat', 'created').get();
+  const days = {};
+  snap.docs.forEach((d) => {
+    const v = d.data() || {};
+    if (!v.chat || !v.created) return;
+    const k = workday.dayKey(v.created);
+    if (!k) return;
+    const o = days[v.chat] || (days[v.chat] = {});
+    o[k] = (o[k] || 0) + 1;
+  });
+  daysCache = days;
+  daysCacheAt = Date.now();
+  return days;
+}
 router.get('/worklog', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
-    const reg = await registry();
-    res.json({ ok: true, rows: worklogRows(reg.chats) });
+    const [reg, days] = await Promise.all([registry(), activeDays()]);
+    const rows = worklogRows(reg.chats);
+    // Each row carries its days and its projects (project-words.js — the same
+    // rule that groups a thread's header button), most specific first; the
+    // page draws one lane per first project. `vocab` is how each is spelled.
+    const v = projectWords.vocab(reg.chats);
+    const vocab = {};
+    rows.forEach((r) => {
+      r.days = days[r.chat] || {};
+      r.projects = projectWords.projectsWithGroups(r.chat, reg.chats, v).map((p) => p.key);
+      r.projects.forEach((k) => { vocab[k] = (v[k] && v[k].spell) || k; });
+    });
+    res.json({ ok: true, rows, vocab, today: workday.today() });
   } catch (err) { fail(res, err); }
 });
 // The chats from before `startedAt` existed get theirs from their own thread:

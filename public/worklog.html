@@ -3,46 +3,86 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Work log</title>
 <!--
-  worklog.html — a timeline of what Sophie worked on, in the order it began
-  (her ask, 2026-09-02: "i want to make a timeline of what i worked on
-  chronological").
+  worklog.html — a timeline of what Sophie worked on.
 
-  ONE ROW PER CHAT under the day it STARTED, oldest first, each carrying her
-  own words for what it was (the archive summary's ladder — her sentence when
-  the chat has one, the Update card's "what you asked" otherwise). A chat that
-  ran on past its first day says so at the end of the row ("→ Aug 30"). The
-  day turns over at 5am Pacific, the same cut the Chats app's list keeps.
+  TWO VIEWS behind hairline tabs, the same rows behind both:
+
+  TIMELINE (2026-09-02 v2, Sophie: "more visual · colors per project · rounded
+  lumps showing how long i worked on it · some of them start and stop ·
+  horizontal scroll"). One LANE per project (project-words.js — the same rule
+  that groups a thread's header button), in its own flat colour, in the order
+  the projects began; time runs LEFT TO RIGHT at a fixed width per day, so the
+  board scrolls sideways under a sticky day axis with the names pinned left.
+  A LUMP is one stretch of days the project was worked on — a day off does not
+  end it, two do (workday.js `runsOf`) — and its thickness on each day is how
+  much was said that day. Tapping a lane opens the chats inside it, each a
+  thinner lump of its own, each a link to that chat. Chats on no project share
+  one grey lane at the end.
+
+  LIST (v1, kept as the record): one row per chat under the day it began,
+  oldest first, her own words as the line, "→ Aug 30" when it ran on.
 
   READ-ONLY and free: GET /api/chatfeed/worklog is a projection of the registry
-  the app already reads. Tapping a row opens that chat.
-
-  The day-cut arithmetic is a copy of chats.html's dayKey (the app's is not a
-  shared file); the test keeps an independent copy so the two cannot drift.
+  plus one cached scan of the feed's dates. Nothing here spends money.
+  The day turns over at 5am Pacific — /workday.js, ONE copy shared with the
+  server; the test holds an independent copy so nothing can drift.
 -->
 <link rel="stylesheet" href="/tool.css">
 <style>
+  :root{ --px:14px; --namew:124px; --laneh:36px; --subh:22px; }
+  .acctabs{ display:flex; border-bottom:1px solid var(--border); margin:0 0 0; padding:0 56px 0 4px; position:relative; }
+  .acctabs button{ flex:1; background:none; border:none; padding:11px 0 10px; font-size:12px; letter-spacing:.04em;
+    text-transform:uppercase; color:var(--dim); font-weight:400; font-family:inherit; -webkit-tap-highlight-color:transparent; }
+  .acctabs button.on{ color:var(--ink); }
+  .acctabs .tline{ position:absolute; bottom:-1px; left:0; width:var(--tw,0); height:2px; background:var(--ink); transform:translateX(var(--tx,0)); }
+  .acctabs.tl .tline{ transition:transform .18s, width .18s; }
+
+  /* THE BOARD — a nearly-full-screen scroller on BOTH axes, so the axis can
+     stick to its top and the names to its left while the days run off the
+     right edge. The injected pill adopts a scroller this size by itself. */
+  .board{ overflow:auto; -webkit-overflow-scrolling:touch; position:relative; background:var(--bg); }
+  .wkgrid{ position:relative; width:max-content; min-width:100%; }
+  .axis{ position:sticky; top:0; z-index:4; display:flex; height:34px; background:var(--bg); border-bottom:1px solid var(--border); }
+  .axis .corner{ position:sticky; left:0; z-index:5; width:var(--namew); flex:none; background:var(--bg); border-right:1px solid var(--border); }
+  .axis .days{ position:relative; flex:none; height:100%; }
+  .axis .mo{ position:absolute; top:3px; font-size:11px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:var(--ink); white-space:nowrap; }
+  .axis .dn{ position:absolute; bottom:3px; font-size:10px; color:var(--dim); transform:translateX(-50%); }
+  .axis .tk{ position:absolute; bottom:0; width:1px; height:6px; background:var(--border); }
+  .lane{ display:flex; align-items:center; height:var(--laneh); border-bottom:1px solid var(--border); cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .lane .nm{ position:sticky; left:0; z-index:3; width:var(--namew); flex:none; height:100%; display:flex; align-items:center;
+    padding:0 8px 0 12px; font-size:12px; font-weight:600; line-height:1.15; background:var(--bg); border-right:1px solid var(--border);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lane .nm .cnt{ font-weight:400; color:var(--dim); margin-left:5px; font-size:11px; }
+  .lane .trk{ flex:none; display:block; height:100%; }
+  .lane.sub{ height:var(--subh); cursor:default; }
+  .lane.sub .nm{ font-weight:400; font-size:11px; color:var(--ink); letter-spacing:-.01em; }
+  .lane.sub .nm a{ color:inherit; text-decoration:none; }
+  .lane.open .nm{ background:var(--surface); }
+  .lane.sub .nm{ background:var(--surface); padding-left:18px; }
+  .lane.sub{ background:var(--surface); }
+  .vline{ position:absolute; top:0; bottom:0; width:1px; background:var(--border); pointer-events:none; }
+  .vline.now{ background:var(--accent); width:2px; }
+  .lump{ stroke:none; }
+  .lane.sub .lump{ opacity:.6; }
+
+  /* the list (v1) */
   .wrap{ max-width:640px; margin:0 auto; padding:6px 14px 40px 12px; }
-  /* The rail: one hairline down the left, a dot at every day. */
   .tl{ position:relative; padding-left:22px; }
   .tl:before{ content:''; position:absolute; left:6px; top:8px; bottom:8px; width:1px; background:var(--border); }
-  .mo{ margin:22px 0 6px; font-size:12px; font-weight:600; letter-spacing:2.5px; text-transform:uppercase; color:var(--dim); }
-  .mo:first-child{ margin-top:10px; }
-  .day{ position:relative; display:flex; align-items:baseline; gap:8px; margin:14px 0 6px;
-    font-size:13px; font-weight:600; color:var(--ink); }
+  .lmo{ margin:22px 0 6px; font-size:12px; font-weight:600; letter-spacing:2.5px; text-transform:uppercase; color:var(--dim); }
+  .lmo:first-child{ margin-top:10px; }
+  .day{ position:relative; display:flex; align-items:baseline; gap:8px; margin:14px 0 6px; font-size:13px; font-weight:600; color:var(--ink); }
   .day .n{ font-weight:400; color:var(--dim); font-size:12px; }
-  .day:before{ content:''; position:absolute; left:-20px; top:4px; width:9px; height:9px; border-radius:50%;
-    background:var(--accent); }
-  .wl{ display:block; text-decoration:none; color:var(--ink); background:var(--surface);
-    border:1px solid var(--border); border-radius:var(--r); padding:9px 12px; margin:0 0 6px;
-    -webkit-tap-highlight-color:transparent; }
+  .day:before{ content:''; position:absolute; left:-20px; top:4px; width:9px; height:9px; border-radius:50%; background:var(--accent); }
+  .wl{ display:block; text-decoration:none; color:var(--ink); background:var(--surface); border:1px solid var(--border); border-radius:var(--r);
+    padding:9px 12px; margin:0 0 6px; -webkit-tap-highlight-color:transparent; }
   .wl .nm{ display:block; font-size:14px; font-weight:600; line-height:1.3; }
-  /* Her own sentence reads like her own notes — italic, never bold, never pink. */
   .wl .ln{ display:block; font-size:13px; line-height:1.4; color:var(--dim); margin-top:3px; }
   .wl .ln.hers{ font-style:italic; color:var(--ink); }
   .wl .tm{ display:block; font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--dim); margin-top:5px; }
   .wl .tm .to{ color:var(--accent); }
-  .wl.arch .nm{ font-weight:500; }
-  .empty{ color:var(--dim); font-size:14px; padding:14px 2px; }
+  .wl .dot{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+  .empty{ color:var(--dim); font-size:14px; padding:14px 12px; }
 </style>
 <body class="tool">
 <div class="head">
@@ -50,103 +90,189 @@
   <button id="help" type="button" aria-label="What this is">?</button>
 </div>
 <div class="helpcard" id="helpcard" hidden>
-  <b>Everything you worked on, oldest first.</b> One row per chat, under the day
-  it began, in your own words where the chat has them. A row that ran on past
-  its first day says when it ended. Tap a row to open that chat. The day turns
-  over at 5am.
+  <b>Timeline:</b> one lane per project, its own colour, days running left to
+  right. A lump is a stretch you worked on it — thicker where more was said —
+  and a gap is where it stopped. Tap a lane to open the chats inside it.
+  <b>List:</b> one row per chat under the day it began, oldest first. Tap a
+  row to open that chat. The day turns over at 5am.
+</div>
+<div class="acctabs" id="tabs">
+  <button type="button" class="on" data-v="time">Timeline</button>
+  <button type="button" data-v="list">List</button>
+  <span class="tline"></span>
 </div>
 
-<main class="wrap">
-  <div id="list" class="tl"><div class="empty">Reading the log&hellip;</div></div>
-</main>
+<div id="time" class="board"><div class="empty">Reading the log&hellip;</div></div>
+<main id="list" class="wrap" hidden><div class="tl"></div></main>
 
+<script src="/workday.js"></script>
 <script>
 /* IIFE: the injected autoscroll pill runs in global scope and declares its own
    `var raf`/`var I`, so a page-level `let` of the same name kills its script at
    parse time. Nothing of this page's leaks out. */
 (function(){
   'use strict';
-  var listEl = document.getElementById('list');
-  var TZ = 'America/Los_Angeles', CUT_H = 5, _fmt = null;
+  var WD = window.__workday;
+  var board = document.getElementById('time');
+  var listEl = document.querySelector('#list .tl');
+  var PX = 14, NAMEW = 124, LANEH = 36, SUBH = 22, PILLW = 64;   /* 64: the injected pill's column, reserved past the last day */
+  /* Flat, distinct on cream, no two neighbours alike. Never a gradient. */
+  var PALETTE = ['#c85a54','#d98a3a','#b9962a','#6f9a3c','#3d8f7a','#3f86b8','#6b6fc4','#9a5fb5','#c4629a','#8a6f4e','#5a7d8c','#b4472f','#4f9d69','#a07a2a'];
+  var GREY = '#9a948a';
 
   function esc(s){
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-      .replace(/"/g,'&quot;');
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
-  function pad2(n){ return (n < 10 ? '0' : '') + n; }
-  /* The working day an instant falls in, 'YYYY-MM-DD', read through the IANA
-     zone (never a fixed -8 — she says PST and it is PDT half the year). Before
-     5am carries back to the day before: the Chats app's own rule. */
-  function laStamp(iso){
-    var d = new Date(iso); if (!iso || isNaN(d.getTime())) return null;
-    try {
-      if (!_fmt) _fmt = new Intl.DateTimeFormat('en-CA', { timeZone: TZ,
-        year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', hourCycle:'h23' });
-      var p = {}; _fmt.formatToParts(d).forEach(function(x){ p[x.type] = x.value; });
-      return { y:+p.year, m:+p.month, d:+p.day, h:(+p.hour) % 24 };
-    } catch (e) { return { y:d.getFullYear(), m:d.getMonth()+1, d:d.getDate(), h:d.getHours() }; }
-  }
-  function dayKey(iso){
-    var p = laStamp(iso); if (!p) return '';
-    var t = Date.UTC(p.y, p.m - 1, p.d);
-    if (p.h < CUT_H) t -= 86400000;
-    var q = new Date(t);
-    return q.getUTCFullYear() + '-' + pad2(q.getUTCMonth() + 1) + '-' + pad2(q.getUTCDate());
-  }
-  function keyDate(key){ return new Date(Date.UTC(+key.slice(0,4), +key.slice(5,7) - 1, +key.slice(8,10))); }
-  function dayLabel(key){
-    var today = dayKey(new Date().toISOString());
-    if (key === today) return 'Today';
-    var y = new Date(keyDate(today).getTime() - 86400000);
-    if (key === y.getUTCFullYear() + '-' + pad2(y.getUTCMonth() + 1) + '-' + pad2(y.getUTCDate())) return 'Yesterday';
-    var opt = { timeZone:'UTC', weekday:'short', month:'short', day:'numeric' };
-    if (key.slice(0,4) !== today.slice(0,4)) opt.year = 'numeric';
-    try { return new Intl.DateTimeFormat('en-US', opt).format(keyDate(key)); } catch (e) { return key; }
-  }
-  function monthLabel(key){
-    try { return new Intl.DateTimeFormat('en-US', { timeZone:'UTC', month:'long', year:'numeric' }).format(keyDate(key)); }
-    catch (e) { return key.slice(0,7); }
-  }
-  function shortDay(key){
-    try { return new Intl.DateTimeFormat('en-US', { timeZone:'UTC', month:'short', day:'numeric' }).format(keyDate(key)); }
-    catch (e) { return key; }
-  }
-  /* A slug with no display name still reads as words. */
   function nameOf(r){
     if (r.name) return r.name;
     var s = String(r.chat || '').replace(/-[0-9a-z]{6}$/, '').replace(/-/g, ' ');
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
+  function cap(s){ s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); }
+  function firstDay(days){ var ks = Object.keys(days || {}).sort(); return ks[0] || ''; }
 
+  /* ---- TIMELINE ------------------------------------------------------- */
+  /* Lanes: one per FIRST project of a chat, ordered by the day the project
+     began; the chats on no project share one grey lane at the end. */
+  function lanesOf(rows, vocab){
+    var by = {}, order = [];
+    rows.forEach(function(r){
+      var k = (r.projects && r.projects[0]) || '';
+      if (!by[k]) { by[k] = { key:k, label: k ? cap(vocab[k] || k) : 'One-offs', chats:[], days:{} }; order.push(k); }
+      by[k].chats.push(r);
+      Object.keys(r.days || {}).forEach(function(d){ by[k].days[d] = (by[k].days[d] || 0) + r.days[d]; });
+    });
+    var lanes = order.map(function(k){ return by[k]; });
+    lanes.forEach(function(l){ l.first = firstDay(l.days); l.chats.sort(function(a,b){ return firstDay(a.days) < firstDay(b.days) ? -1 : 1; }); });
+    lanes.sort(function(a,b){ if (!a.key) return 1; if (!b.key) return -1; return a.first < b.first ? -1 : a.first > b.first ? 1 : 0; });
+    lanes.forEach(function(l, i){ l.color = l.key ? PALETTE[i % PALETTE.length] : GREY; });
+    return lanes;
+  }
+  /* Catmull-Rom through the points, as cubic beziers. */
+  function smooth(pts){
+    if (pts.length < 2) return '';
+    var d = '';
+    for (var i = 0; i < pts.length - 1; i++) {
+      var p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+      var c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
+      var c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
+      d += 'C' + c1x.toFixed(1) + ' ' + c1y.toFixed(1) + ' ' + c2x.toFixed(1) + ' ' + c2y.toFixed(1) + ' ' + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1);
+    }
+    return d;
+  }
+  /* One lump: a rounded blob over the run's days, its half-thickness on each
+     day growing with how much was said (sqrt, so a busy day is thick but a
+     silent-ish one still reads), capped inside the lane. */
+  function lumpPath(run, days, x0day, H, thin){
+    var mid = H / 2, cap_ = mid - 2, base = thin ? 2.5 : 4, gain = thin ? 1.6 : 3.2;
+    var top = [], bot = [];
+    for (var d = run.from; ; d = WD.addDays(d, 1)) {
+      var i = WD.daysBetween(x0day, d), n = days[d] || 0;
+      var h = n ? Math.min(cap_, base + gain * Math.sqrt(n)) : Math.max(1.5, base * 0.6);
+      var x = (i + 0.5) * PX;
+      top.push([x, mid - h]); bot.push([x, mid + h]);
+      if (d === run.to) break;
+    }
+    var l = top[0][0] - PX * 0.48, r = top[top.length - 1][0] + PX * 0.48;
+    var f = top[0], g = top[top.length - 1], fb = bot[0], gb = bot[bot.length - 1];
+    var d0 = 'M' + l.toFixed(1) + ' ' + mid.toFixed(1)
+      + 'C' + l.toFixed(1) + ' ' + f[1].toFixed(1) + ' ' + f[0].toFixed(1) + ' ' + f[1].toFixed(1) + ' ' + f[0].toFixed(1) + ' ' + f[1].toFixed(1)
+      + smooth(top)
+      + 'C' + r.toFixed(1) + ' ' + g[1].toFixed(1) + ' ' + r.toFixed(1) + ' ' + gb[1].toFixed(1) + ' ' + r.toFixed(1) + ' ' + mid.toFixed(1)
+      + 'C' + r.toFixed(1) + ' ' + gb[1].toFixed(1) + ' ' + gb[0].toFixed(1) + ' ' + gb[1].toFixed(1) + ' ' + gb[0].toFixed(1) + ' ' + gb[1].toFixed(1)
+      + smooth(bot.slice().reverse())
+      + 'C' + l.toFixed(1) + ' ' + fb[1].toFixed(1) + ' ' + l.toFixed(1) + ' ' + fb[1].toFixed(1) + ' ' + l.toFixed(1) + ' ' + mid.toFixed(1) + 'Z';
+    return d0;
+  }
+  function track(days, x0day, ndays, H, color, thin){
+    var runs = WD.runsOf(Object.keys(days || {}));
+    var w = ndays * PX;
+    return '<svg class="trk" width="' + w + '" height="' + H + '" viewBox="0 0 ' + w + ' ' + H + '">' +
+      runs.map(function(run){ return '<path class="lump" fill="' + color + '" d="' + lumpPath(run, days, x0day, H, thin) + '"><title>' + esc(WD.shortDay(run.from) + (run.to !== run.from ? ' → ' + WD.shortDay(run.to) : '') + ' · ' + run.days.length + (run.days.length === 1 ? ' day' : ' days')) + '</title></path>'; }).join('') +
+    '</svg>';
+  }
+  function axis(x0day, ndays){
+    var out = '<div class="axis"><div class="corner"></div><div class="days" style="width:' + (ndays * PX) + 'px">';
+    for (var i = 0; i < ndays; i++) {
+      var d = WD.addDays(x0day, i), x = i * PX;
+      if (d.slice(8) === '01' || i === 0) out += '<span class="mo" style="left:' + (x + 2) + 'px">' + esc(WD.monthShort(d)) + '</span>';
+      if (i % 7 === 0) out += '<span class="dn" style="left:' + (x + PX / 2) + 'px">' + (+d.slice(8)) + '</span>';
+      out += '<span class="tk" style="left:' + x + 'px"></span>';
+    }
+    return out + '</div></div>';
+  }
+  var lanesData = [];
+  function renderTime(rows, vocab, today){
+    if (!rows.length) { board.innerHTML = '<div class="empty">Nothing on the log yet.</div>'; return; }
+    var lanes = lanesOf(rows, vocab); lanesData = lanes;
+    var x0 = ''; lanes.forEach(function(l){ if (l.first && (!x0 || l.first < x0)) x0 = l.first; });
+    if (!x0) { board.innerHTML = '<div class="empty">Nothing on the log yet.</div>'; return; }
+    var ndays = WD.daysBetween(x0, today) + 1;
+    /* The grid runs PILLW past the last day, so today clears the pill's fixed
+       corner when the board is scrolled all the way right. */
+    var out = ['<div class="wkgrid" style="width:' + (NAMEW + ndays * PX + PILLW) + 'px">', axis(x0, ndays)];
+    /* week lines and today's, drawn once behind every lane */
+    for (var i = 0; i < ndays; i += 7) out.push('<span class="vline" style="left:' + (NAMEW + i * PX) + 'px"></span>');
+    out.push('<span class="vline now" style="left:' + (NAMEW + (ndays - 0.5) * PX) + 'px"></span>');
+    lanes.forEach(function(l, li){
+      out.push('<div class="lane" data-lane="' + li + '" style="color:' + l.color + '">' +
+        '<div class="nm"><span>' + esc(l.label) + '</span><span class="cnt">' + l.chats.length + '</span></div>' +
+        track(l.days, x0, ndays, LANEH, l.color, false) + '</div>');
+      out.push('<div class="subs" data-for="' + li + '" hidden>' + l.chats.map(function(r){
+        return '<div class="lane sub" style="color:' + l.color + '">' +
+          '<div class="nm"><a href="/chats?chat=' + encodeURIComponent(r.chat) + '" data-chat="' + esc(r.chat) + '" title="' + esc(r.line || '') + '">' + esc(nameOf(r)) + '</a></div>' +
+          track(r.days, x0, ndays, SUBH, l.color, true) + '</div>';
+      }).join('') + '</div>');
+    });
+    out.push('</div>');
+    board.innerHTML = out.join('');
+    board.scrollLeft = board.scrollWidth;      // open on today, the right end
+  }
+  board.addEventListener('click', function(e){
+    var a = e.target.closest && e.target.closest('a[data-chat]');
+    if (a) { openChat(e, a); return; }
+    var lane = e.target.closest && e.target.closest('.lane:not(.sub)');
+    if (!lane) return;
+    var subs = board.querySelector('.subs[data-for="' + lane.dataset.lane + '"]');
+    if (!subs) return;
+    subs.hidden = !subs.hidden;
+    lane.classList.toggle('open', !subs.hidden);
+  });
+  /* The board fills the screen under the tabs, so it scrolls both ways. */
+  function fitBoard(){
+    var top = board.getBoundingClientRect().top + window.scrollY;
+    board.style.height = Math.max(200, window.innerHeight - top) + 'px';
+  }
+  window.addEventListener('resize', fitBoard);
+
+  /* ---- LIST (v1, the record) ------------------------------------------- */
+  var colorOf = {};
   function row(r, day){
-    var lastDay = r.last ? dayKey(r.last) : '';
+    var lastDay = r.last ? WD.dayKey(r.last) : '';
     var tm = [];
-    if (lastDay && lastDay !== day && r.atFrom === 'start') tm.push('<span class="to">→ ' + esc(shortDay(lastDay)) + '</span>');
+    if (lastDay && lastDay !== day && r.atFrom === 'start') tm.push('<span class="to">→ ' + esc(WD.shortDay(lastDay)) + '</span>');
     if (r.labels && r.labels.length) tm.push(esc(r.labels.join(' · ')));
+    var c = colorOf[(r.projects && r.projects[0]) || ''] || GREY;
     return '<a class="wl' + (r.archived ? ' arch' : '') + '" href="/chats?chat=' + encodeURIComponent(r.chat) + '" data-chat="' + esc(r.chat) + '">' +
-      '<span class="nm">' + esc(nameOf(r)) + '</span>' +
+      '<span class="nm"><span class="dot" style="background:' + c + '"></span>' + esc(nameOf(r)) + '</span>' +
       (r.line ? '<span class="ln' + (r.hers ? ' hers' : '') + '">' + esc(r.line) + '</span>' : '') +
       (tm.length ? '<span class="tm">' + tm.join(' · ') + '</span>' : '') +
     '</a>';
   }
-
-  /* Oldest first — a timeline. Month rules, then a dot per day with how many
-     chats began that day. The rows arrive already sorted by start. */
-  function render(rows){
+  function renderList(rows){
     if (!rows.length) { listEl.innerHTML = '<div class="empty">Nothing on the log yet.</div>'; return; }
+    lanesData.forEach(function(l){ colorOf[l.key] = l.color; });
     var out = [], mo = '', day = '', dayRows = [];
     function flushDay(){
       if (!day) return;
-      out.push('<div class="day" data-day="' + day + '">' + esc(dayLabel(day)) +
-        '<span class="n">' + dayRows.length + '</span></div>');
-      out.push(dayRows.join(''));
-      dayRows = [];
+      out.push('<div class="day" data-day="' + day + '">' + esc(WD.dayLabel(day)) + '<span class="n">' + dayRows.length + '</span></div>');
+      out.push(dayRows.join('')); dayRows = [];
     }
     rows.forEach(function(r){
-      var k = dayKey(r.at); if (!k) return;
+      var k = WD.dayKey(r.at); if (!k) return;
       if (k !== day) {
         flushDay();
-        if (k.slice(0,7) !== mo) { mo = k.slice(0,7); out.push('<h2 class="mo">' + esc(monthLabel(k)) + '</h2>'); }
+        if (k.slice(0,7) !== mo) { mo = k.slice(0,7); out.push('<h2 class="lmo">' + esc(WD.monthLabel(k)) + '</h2>'); }
         day = k;
       }
       dayRows.push(row(r, k));
@@ -154,13 +280,10 @@
     flushDay();
     listEl.innerHTML = out.join('');
   }
-
   /* Inside the Chats app a page runs in an IFRAME; a plain link there loads
      the whole app inside the viewer. The parent's bridge opens the thread
      instead; a browser, and the native tool, follow the href. */
-  listEl.addEventListener('click', function(e){
-    var a = e.target.closest && e.target.closest('a.wl');
-    if (!a) return;
+  function openChat(e, a){
     try {
       if (window.parent && window.parent !== window
           && typeof window.parent.__openThread === 'function'
@@ -168,21 +291,58 @@
         e.preventDefault();
       }
     } catch (err) { /* cross-origin parent — the href stands */ }
+  }
+  listEl.addEventListener('click', function(e){
+    var a = e.target.closest && e.target.closest('a.wl');
+    if (a) openChat(e, a);
   });
+
+  /* ---- tabs ------------------------------------------------------------ */
+  var tabs = document.getElementById('tabs');
+  function tabLine(){
+    var on = tabs.querySelector('button.on'), line = tabs.querySelector('.tline');
+    if (!on || !line) return;
+    var r = tabs.getBoundingClientRect(), t = on.getBoundingClientRect();
+    if (!t.width) return;
+    tabs.style.setProperty('--tw', t.width + 'px');
+    tabs.style.setProperty('--tx', (t.left - r.left - tabs.clientLeft) + 'px');
+    if (!tabs.__tl) { tabs.__tl = 1; requestAnimationFrame(function(){ tabs.classList.add('tl'); }); }
+  }
+  function showView(v){
+    tabs.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', b.dataset.v === v); });
+    board.hidden = v !== 'time';
+    document.getElementById('list').hidden = v !== 'list';
+    try { localStorage.setItem('worklog.view', v); } catch (e) { /* private mode */ }
+    tabLine();
+    if (v === 'time') fitBoard();
+    if (window.__pillSync) window.__pillSync();
+  }
+  tabs.addEventListener('click', function(e){
+    var b = e.target.closest && e.target.closest('button[data-v]');
+    if (b) showView(b.dataset.v);
+  });
+  window.addEventListener('resize', tabLine);
+  var startView = 'time';
+  try { startView = localStorage.getItem('worklog.view') || 'time'; } catch (e) { /* private mode */ }
+  if (startView !== 'list') startView = 'time';
 
   var help = document.getElementById('help'), card = document.getElementById('helpcard');
   help.onclick = function(){ card.hidden = !card.hidden; };
   card.onclick = function(){ card.hidden = true; };
 
-  /* A SANDBOX copy posted into the Chats app carries its rows baked in (a
+  /* A SANDBOX copy posted into the Chats app carries its answer baked in (a
      posted page is frozen anyway); the served page asks the live route. */
-  var baked = window.__worklogRows;
-  (baked ? Promise.resolve({ ok: true, rows: baked })
+  var baked = window.__worklogData;
+  (baked ? Promise.resolve(baked)
     : fetch('/api/chatfeed/worklog').then(function(r){ return r.json(); })).then(function(j){
     if (!j || !j.ok) throw new Error((j && j.error) || 'no answer');
-    render(j.rows || []);
+    var rows = j.rows || [];
+    renderTime(rows, j.vocab || {}, j.today || WD.today());
+    renderList(rows);
+    showView(startView);
   }).catch(function(err){
-    listEl.innerHTML = '<div class="empty">Couldn’t read the log — ' + esc(String(err.message || err)) + '</div>';
+    board.innerHTML = '<div class="empty">Couldn’t read the log — ' + esc(String(err.message || err)) + '</div>';
+    showView(startView);
   });
 })();
 </script>

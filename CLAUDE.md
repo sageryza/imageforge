@@ -9006,12 +9006,35 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **Full details: `docs/modules/inbox-and-misc.md`.**
 - **THE WORK LOG** (`GET /api/chatfeed/worklog`, page at `/worklog`, no
   iOS tile — 2026-09-02, Sophie: "i want to make a timeline of what i worked
-  on chronological"). One row per chat under the day it BEGAN, oldest first,
-  a dot per day on a left rail, month rules, her own sentence as the line
-  (the archive summary's ladder: `wrapAsked` when hers, then the Update card's
-  `asked`, then a paraphrase, then `wrapLine`, her note, `statusDoing`); a
-  chat that ran on says "→ Aug 30". A row opens the chat. Read-only, no model
-  call — a projection of the registry cache.
+  on chronological"). Two hairline tabs over the same rows. **TIMELINE**
+  (v2 the same day: "more visual · colors per project · rounded lumps
+  showing how long i worked on it · some of them start and stop · horizontal
+  scroll"): one LANE per project — `project-words.js`, the rule that groups
+  a thread's header button, a chat's FIRST project — in its own flat colour
+  (a 14-colour palette in lane order; the chats on no project share one grey
+  lane at the end), lanes in the order the projects began, days running left
+  to right at 14px a day so the board scrolls sideways under a sticky axis
+  with the names pinned left; it opens on today. A LUMP is one stretch of
+  days the project was worked on, its thickness on each day sqrt of how much
+  was said; tapping a lane opens its chats as thinner lumps of their own,
+  each a link. **LIST** (v1, kept as the record): one row per chat under the
+  day it BEGAN, oldest first, a dot per day on a left rail, month rules, her
+  own sentence as the line (the archive summary's ladder: `wrapAsked` when
+  hers, then the Update card's `asked`, then a paraphrase, then `wrapLine`,
+  her note, `statusDoing`); a chat that ran on says "→ Aug 30". Read-only, no
+  model call — the registry cache plus ONE projected scan of the feed's
+  `chat`+`created` (12,735 docs in ~2.8s, measured), held ten minutes.
+  - **`workday.js` IS THE ONE COPY of the 5am-Pacific day and of `runsOf`**
+    (a run = consecutive working days with at most ONE quiet day inside; two
+    quiet days end it — that is "some of them start and stop"). Loaded by
+    chatfeed.js and served at `/workday.js`, the pause-plan.js pattern.
+    chats.html still carries its own `dayKey`; the test drives both over the
+    same instants against an independent copy so none can drift.
+  - **THE BOARD IS A NEARLY-FULL-SCREEN SCROLLER ON BOTH AXES** (`fitBoard`)
+    — that is what lets the axis stick top and the names stick left, and what
+    lets the injected pill adopt it (the window itself has nothing to scroll;
+    a test pins that). The grid runs 64px past the last day so today clears
+    the pill's column at the right end (PHOTO'd under it before that).
   - **`startedAt` IS A NEW REGISTRY FIELD, because nothing on the doc held
     when a chat began.** `lastSeen` is the newest message (measured — see the
     unpark bullet). Stamped on a chat's FIRST post only (a doc with no
@@ -9024,11 +9047,16 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - The day turns over at 5am Pacific (the Chats app's own cut); the page
     keeps its own copy of `dayKey` because chats.html's is not a shared file,
     and the test holds an INDEPENDENT copy so the two cannot drift.
-  - **`.row` is tool.css's flex row** — a page on tool.css that names a class
-    `.row` gets `display:flex; flex-wrap:wrap` and its labels sit beside its
-    text (PHOTO'd). This page's row is `.wl`.
-  - Test: `node scripts/test-worklog-page.js` (the rows pure, then the real
-    page headless — the 5am cut, her italic line as a computed style, the
+  - **`.row` AND `.grid` ARE tool.css's** — a page on tool.css that names a
+    class `.row` gets `display:flex; flex-wrap:wrap` and its labels sit beside
+    its text; one that names `.grid` gets a CSS grid and its lanes tile two to
+    a row (both PHOTO'd, one day apart). This page's row is `.wl` and its
+    board `.wkgrid`; grep tool.css before naming a class on a tool page.
+  - Test: `node scripts/test-worklog-page.js` (workday.js and the rows pure,
+    then the real page headless — the lanes and their colours read off the
+    real paths, two lumps for a broken run and one for a one-day gap, the
+    names measured before and after a sideways scroll, the sticky axis, today
+    clear of the pill, the 5am cut, her italic line as a computed style, the
     span, the iframe bridge).
 - **THE DELIVERABLES LIST** (`deliverables.js`, `/api/deliverables`, page at
   `/deliverables` — Aug 2026, Sophie: "is there a running list of deliverables?

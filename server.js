@@ -3445,6 +3445,12 @@ app.get('/size-tier.js', (req, res) => {
 // app's stacked-cards button and the page behind it group chats by the ONE
 // rule chat-sort.js offers the model its vocabulary from, so a project the
 // sorter files is spelled the way the page already groups.
+// workday.js — the 5am-Pacific working day and the runs of days a piece of
+// work spans, shared with /worklog (the pause-plan.js pattern).
+app.get('/workday.js', (req, res) => {
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/workday.js');
+});
 app.get('/project-words.js', (req, res) => {
   res.type('application/javascript');
   res.set('Cache-Control', 'no-cache, must-revalidate');
