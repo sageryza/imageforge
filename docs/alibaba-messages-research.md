@@ -118,3 +118,36 @@ side (rfq.alibaba.com) — worth asking before building anything; (3) the
 notification email, IF it carries the message body (still unmeasured — read
 one real email). Nothing more gets built until she says which shape the
 quotes are in.
+
+## How other buyers deal with it (researched 2026-09-02, after "other ppl must've had this problem")
+
+Nobody has solved the Alibaba-inbox half. What people actually do, best-documented first:
+
+1. **A spreadsheet, by hand.** The documented norm for sourcing pros: a Google Sheet
+   per product tracking each supplier's quote, samples and status, filled by
+   copy-paste. The recurring complaint is "three hours of spreadsheet work" per
+   round. No tool reads Alibaba's message centre for them.
+2. **Alibaba's own RFQ page.** A buying request posted through RFQ gets its
+   quotations lined up on one comparison page (My Alibaba → Buying Request Hub);
+   Alibaba's pitch is literally "no spreadsheets". Only works for quotes that
+   came through an RFQ, not for quotes typed into chat.
+3. **Get the quote OUT of the chat as a document.** Procurement people don't read
+   chats, they collect quotation sheets: ask each vendor for their formal
+   quotation / proforma as a PDF or Excel (every factory has one, and it carries
+   price tiers, MOQ, lead time, terms on one sheet). A PDF is a file she can
+   share into a chat from her phone with no screenshot — and it is what every
+   quote-extraction tool eats.
+4. **Move suppliers to email or WhatsApp.** Suppliers push for it anyway (they
+   treat Alibaba as a lead source). Once quotes are emails, the general-purpose
+   parsers work: Airparser / Parseur (forward to a mailbox, it parses to a
+   Sheet), ImageToTable (upload PDFs, photos or email screenshots, get one Excel
+   with aligned columns; free 3/day). None is Alibaba-specific and none reaches
+   inside Alibaba.
+5. **There is no export.** TradeManager's message-history export was the retired
+   desktop app; the web Message Center keeps 365 days with no export, no API for
+   buyers, no Zapier. So the walled-garden half is what makes this problem
+   different from every other vendor-quote problem.
+
+The build here (`alibaba-quotes.js`) already takes text and images; adding
+**PDF** as an input is the one change that lines it up with road 3 — the way
+that costs her one message per vendor and no screenshots.
