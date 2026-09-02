@@ -27,12 +27,17 @@ const T0 = Date.now();
 const iso = (ms) => new Date(ms).toISOString();
 
 const CHATS = { 'chat-a': { lastSeen: iso(T0 - 2e5) }, 'chat-b': { lastSeen: iso(T0 - 3e5) } };
+// The filler is spaced TWO HOURS apart: consecutive replies with nothing from
+// her between them and less than FOLD_MS apart fold behind one opener (the
+// dribble fold, 2026-09-02), and a folded thread is too short to scroll —
+// which is exactly what the "pill starts a scroll" checks below need.
 const MSGS = [];
 for (let i = 0; i < 30; i++) {
-  MSGS.push({ id: 'fa' + i, chat: 'chat-a', from: i % 5 === 0 ? 'sophie' : 'claude', created: iso(T0 - 9e5 + i * 1000),
-    postedAt: iso(T0 - 9e5 + i * 1000), text: 'filler reply ' + i + '\n\n' + 'x'.repeat(400), tldr: 'filler ' + i });
-  MSGS.push({ id: 'fb' + i, chat: 'chat-b', from: 'claude', created: iso(T0 - 8e5 + i * 1000),
-    postedAt: iso(T0 - 8e5 + i * 1000), text: 'other chat reply ' + i + '\n\n' + 'y'.repeat(400), tldr: 'other ' + i });
+  const ta = T0 - 9e5 - (30 - i) * 2 * 3600 * 1000, tb = T0 - 8e5 - (30 - i) * 2 * 3600 * 1000;
+  MSGS.push({ id: 'fa' + i, chat: 'chat-a', from: i % 5 === 0 ? 'sophie' : 'claude', created: iso(ta),
+    postedAt: iso(ta), text: 'filler reply ' + i + '\n\n' + 'x'.repeat(400), tldr: 'filler ' + i });
+  MSGS.push({ id: 'fb' + i, chat: 'chat-b', from: 'claude', created: iso(tb),
+    postedAt: iso(tb), text: 'other chat reply ' + i + '\n\n' + 'y'.repeat(400), tldr: 'other ' + i });
 }
 // One reply in chat-a carries a link to chat-b — "asking a chat to give me a
 // bunch of other chats that I need to look at" (2026-08-27). __HOST__ is

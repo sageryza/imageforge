@@ -946,6 +946,28 @@ them off the reference sheet, not off the old filenames.
   moves a mis-filed message/asset span between chats, re-keys votes, and
   plants the tombstone (`--dry-run` first; the Imprint repair is its header
   example).
+- **A RUN OF REPLIES WITH NOTHING FROM HER BETWEEN THEM FOLDS IN THE THREAD
+  (2026-09-02, Sophie, looking at four CLAUDE rows in ten minutes: "why do
+  these all show as separate messages").** They are separate TURNS: a chat
+  that backgrounded a deploy watcher and subscribed to its own PR wakes once
+  per event, each wake is a turn, and the hook posts one message per turn.
+  **The data is untouched, on purpose** — a doc is keyed by session+turn, and
+  a turn that stays silent is indistinguishable from a crashed hook (the
+  2026-08-28 silence). The THREAD folds instead: `foldPlan` in `chats.html`
+  keeps the newest reply of a run on screen and puts the rest behind the house
+  underlined opener ("3 earlier replies"). `FOLD_MS` (60 min) is the dial.
+  Never folded: anything from her (her message is what ends a run), a live
+  draft (she is watching it write), a bookmarked message. A chapter heading
+  ends a run. The thread SEARCH lifts every fold and clearing it puts them
+  back; a jump into a folded row (`focusMessage`) opens its fold first. The
+  home list, the Update tab, the Questions view and every count are untouched.
+  **A test fixture that stacks filler replies seconds apart now folds** —
+  three fixtures were re-spaced two hours apart (`test-chats-jump-message`,
+  `test-chats-questions`, `test-chats-viewer-escape`); a new one needs the
+  same, or a message from her between the fillers. Test:
+  `node scripts/test-chats-dribble-fold.js` (every assertion an `offsetParent`
+  measurement, because a hidden row and a missing row count the same;
+  verified failing 3 pre-fix).
 - **A REPLY CAN BE BLOCKED BY THE SANDBOX EGRESS FILTER, and the symptom is a
   reply stuck as its partial draft (found live 2026-08-10).** The cloud
   environment's proxy scores outbound POST bodies and answered one with a 403
