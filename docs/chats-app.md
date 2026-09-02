@@ -1940,6 +1940,31 @@
     the head is red while the spike is not). Verified failing with the sort
     tier removed.
 
+### The page heals itself
+
+2026-09-02, Sophie: *"build self heal"* — after #2048's stale merge put a
+clobbered `chats.html` live for two hours and her phone kept it past the
+repair (the app holds the Chats web view for the whole app process).
+
+- **`GET /api/chatfeed/build`** → `{build}`, `pageBuildId('chats.html',
+  false)` (no pill in the hash: this page bakes its own). serveGated stamps
+  the same hash as `window.__forgeBuild`, APPENDED after the page — so
+  `chBuild()` reads it lazily; a const read at parse time is empty forever.
+- **`chBuildCheck`** runs on `visibilitychange`→visible (the moment a stale
+  page is about to be used) and every five minutes (the fallback). A
+  different build → `location.replace(chReloadTo())`, where the target is the
+  open thread's `?chat=<slug>` or the bare home — never a stale `?chat=` from
+  a link she walked away from.
+- **`chHolding` is the whole point**: words in any textarea / search / text
+  box, a focused field, `.askwrap` (any sheet), `.pageview` (a Compare page
+  or deck — the pill is what she is using there), a populated `#clightbox`,
+  `selMode`, `playing` (the autoscroll), a playing `<audio>`/`<video>`, or a
+  tap/key in the last ten seconds → wait, ask again later.
+- The page script is ONE IIFE (2047 → the end), so the block lives inside it
+  and `window.__chHeal` is the test's only door to the closure.
+- Test: `node scripts/test-chats-selfheal.js` — every guard driven held AND
+  released, because a check that never reloads passes every "holds" assertion.
+
 ### On my tray
 
 2026-08-31, Sophie: *"add a tab in chats called 'on my tray' where i can pin

@@ -1090,6 +1090,23 @@ them off the reference sheet, not off the old filenames.
   moves a mis-filed message/asset span between chats, re-keys votes, and
   plants the tombstone (`--dry-run` first; the Imprint repair is its header
   example).
+- **THE CHATS PAGE HEALS ITS OWN STALENESS (2026-09-02, Sophie: "build self
+  heal").** The Playground's rule (`plBuildCheck`) ported to the page she has
+  open most: `GET /api/chatfeed/build` answers `pageBuildId('chats.html')`,
+  serveGated stamps the same hash on the page, and `chBuildCheck` (chats.html)
+  compares them on `visibilitychange`→visible and every five minutes, reading
+  the stamp LAZILY (it is appended after the page). **It reloads ONLY when
+  nothing would be lost** — `chHolding`: words in any composer/note/search box,
+  a focused field, an open sheet (`.askwrap`), an open Compare page or deck
+  (`.pageview` — the pill is exactly what she is using there), an open picture,
+  Select mode, a running autoscroll, a playing voice, or a tap in the last ten
+  seconds. From inside a thread it reloads onto `?chat=<slug>` (the door a
+  tapped push uses) and never onto a `?chat=` left over from a link. Why: #2048
+  put a clobbered page live for two hours and the app kept it on her phone
+  past the repair. Test: `node scripts/test-chats-selfheal.js` (the real page,
+  every guard driven BOTH ways — held, then released and reloading — so a
+  broken check cannot pass as a cautious one; the page script is ONE IIFE, so
+  `window.__chHeal` is the test's hands on the closure).
 - **A RUN OF REPLIES WITH NOTHING FROM HER BETWEEN THEM IS ONE MESSAGE IN
   THE THREAD (2026-09-02, Sophie, looking at four CLAUDE rows in ten minutes:
   "why do these all show as separate messages").** They are separate TURNS: a
@@ -9400,5 +9417,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
   yours arriving.** Resolve a conflict in a hand-maintained file (chats.html
   above all) by re-applying your change onto MAIN's copy — restore the file
   from main and `git apply --3way` your own commit's diff — never by keeping
-  yours. The repair here was exactly that, the same day (the per-day tray PR).
+  yours. The repair here was exactly that, the same day (#2050). The chat that
+  merged #2048 was `separate-messages-display` (session
+  `019GGYMSZMyw4MNguQ9KqeDe`) — not malice, a conflict resolved the wrong way.
+  **AND A FIX CANNOT REACH A PHONE THAT LOADED THE BROKEN PAGE** — the app
+  keeps the Chats web view for the whole app process, so she reported the
+  deck-piles autoscroll "back" an hour after the repair was live. The Chats
+  page SELF-HEALS since 2026-09-02 (below), which is what closes that hole.
 
