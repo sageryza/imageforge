@@ -37,12 +37,23 @@ const CHAT = process.env.FORGE_CHAT || 'work-timeline-chronological';
 const SESSION = String(process.env.CLAUDE_CODE_REMOTE_SESSION_ID || '').replace(/^cse_/, '');
 const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
 const SUPERSEDE = (() => { const i = args.indexOf('--supersede'); return i >= 0 ? args[i + 1] : ''; })();
+// v4 (2026-09-02, Sophie: "spread out much longer timeline w auto scroll three
+// speeds"): --px widens a day (14 is the compact line, 40 the long one) and
+// --auto adds the sideways autoscroll with its three-way speed toggle.
+// v5 ("add in things like specific movies: ant, language, time, moon milk ·
+// nyt puzzle website"): --named <json> adds the projects the slug rule cannot
+// see, each its own lane, its chats pulled out of wherever the rule put them.
+const PX = (() => { const i = args.indexOf('--px'); return i >= 0 ? +args[i + 1] || 14 : 14; })();
+const AUTO = args.includes('--auto');
+const NAMED = (() => { const i = args.indexOf('--named'); if (i < 0) return null; const f = args[i + 1] && !args[i + 1].startsWith('--') ? args[i + 1] : path.join(__dirname, '..', 'docs', 'worklog', 'named-projects.json'); const j = JSON.parse(fs.readFileSync(f, 'utf8')); delete j._; return j; })();
+const VER = (() => { const i = args.indexOf('--ver'); return i >= 0 ? args[i + 1] : (NAMED ? 'v5, named projects' : AUTO ? 'v4, the long line' : 'v3, one line'); })();
 
-const PX = 14, PAD = 64, BAND = 210, GREYH = 44, AXIS = 30;
+const PAD = 64, BAND = 210, GREYH = 44, AXIS = 30;
 // Flat, distinct on cream, no gradients. Translucent on the line so overlaps
 // show both — the multiply blend keeps them readable on the paper.
 const PALETTE = ['#c85a54', '#d98a3a', '#b9962a', '#6f9a3c', '#3d8f7a', '#3f86b8', '#6b6fc4', '#9a5fb5', '#c4629a', '#8a6f4e',
-  '#5a7d8c', '#b4472f', '#4f9d69', '#a07a2a', '#2f7f9e', '#7f5f9e', '#c07040', '#5f8f3f', '#a04f7f', '#6a8f8f'];
+  '#5a7d8c', '#b4472f', '#4f9d69', '#a07a2a', '#2f7f9e', '#7f5f9e', '#c07040', '#5f8f3f', '#a04f7f', '#6a8f8f',
+  '#8c5a3c', '#3c7a5a', '#7a3c5a', '#5a3c7a', '#3c5a7a'];
 const GREY = '#9a948a';
 
 function get(url) {
@@ -96,8 +107,28 @@ function build(chats, days, top) {
     by[k].chats.push(r);
     Object.keys(r.days).forEach((d) => { by[k].days[d] = (by[k].days[d] || 0) + r.days[d]; });
   });
-  const all = Object.values(by).filter((p) => p.key).sort((a, b) => b.chats.length - a.chats.length || a.key.localeCompare(b.key));
-  const lanes = all.slice(0, top);
+  // Named projects (v5): pulled out of whatever lane the word rule put them
+  // in — a chat is in ONE lane — and always on the line, ahead of the count.
+  const named = [];
+  if (NAMED) {
+    Object.keys(NAMED).forEach((label) => {
+      const slugs = NAMED[label];
+      const p = { key: 'named:' + label, label, chats: [], days: {}, named: true };
+      slugs.forEach((slug) => {
+        Object.values(by).forEach((lane) => {
+          const i = lane.chats.findIndex((r) => r.chat === slug);
+          if (i < 0) return;
+          const r = lane.chats.splice(i, 1)[0];
+          Object.keys(r.days).forEach((d) => { lane.days[d] -= r.days[d]; if (lane.days[d] <= 0) delete lane.days[d]; });
+          p.chats.push(r);
+          Object.keys(r.days).forEach((d) => { p.days[d] = (p.days[d] || 0) + r.days[d]; });
+        });
+      });
+      if (p.chats.length) named.push(p); else console.warn('named project with no chats on file:', label, slugs.join(','));
+    });
+  }
+  const all = Object.values(by).filter((p) => p.key && p.chats.length).sort((a, b) => b.chats.length - a.chats.length || a.key.localeCompare(b.key));
+  const lanes = named.concat(all.slice(0, top));
   // …ordered by when each began, so the colours read left to right
   lanes.forEach((p) => { p.first = Object.keys(p.days).sort()[0]; p.chats.sort((a, b) => (Object.keys(a.days).sort()[0] < Object.keys(b.days).sort()[0] ? -1 : 1)); });
   lanes.sort((a, b) => (a.first < b.first ? -1 : a.first > b.first ? 1 : 0));
@@ -154,6 +185,10 @@ function html(D) {
     if (i % 7 === 0) {
       svg += `<text class="dn" x="${x + PX / 2}" y="26" text-anchor="middle">${+d.slice(8)}</text>`;
       svg += `<line class="wk" x1="${x}" y1="${AXIS}" x2="${x}" y2="${H}"/>`;
+    } else if (PX >= 28) {
+      // spread out, every day earns a number and a hairline
+      svg += `<text class="dn dd" x="${x + PX / 2}" y="26" text-anchor="middle">${+d.slice(8)}</text>`;
+      svg += `<line class="wk dd" x1="${x}" y1="${AXIS}" x2="${x}" y2="${AXIS + 6}"/>`;
     }
   }
   svg += `<line class="mid" x1="0" y1="${bandMid}" x2="${D.ndays * PX}" y2="${bandMid}"/>`;
@@ -223,7 +258,17 @@ function html(D) {
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>The work line</title>
 <link rel="stylesheet" href="/compare.css">
+${AUTO ? '<link rel="stylesheet" href="/tritoggle.css">' : ''}
 <style>
+  .line .dn.dd{ fill:var(--line2, #c9c2b6); }
+  /* the sideways autoscroll: play/pause, and the house three-way toggle for
+     the speed (never a cycle — a tap lands on the stop under it) */
+  .auto{ display:flex; align-items:center; gap:12px; margin:8px 0 0; }
+  .auto .play{ width:34px; height:34px; border-radius:6px; border:1px solid var(--ink); background:transparent; color:var(--ink);
+    display:inline-flex; align-items:center; justify-content:center; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .auto .play svg{ width:16px; height:16px; }
+  .auto .tri{ --tri-track:#efe9dd; --tri-line:var(--ink); --tri-fill:transparent; --tri-knob:var(--ink); --tri-ink:var(--paper); --tri-w:78px; --tri-k:22px; }
+  .auto .spd{ font-size:12px; color:var(--ink2); letter-spacing:.04em; text-transform:uppercase; }
   .board{ overflow-x:auto; -webkit-overflow-scrolling:touch; margin:6px -14px 0; padding:0 0 4px 14px; }
   .line{ display:block; }
   .line .mo{ font:600 11px/1 -apple-system,system-ui,sans-serif; letter-spacing:2px; fill:var(--ink); }
@@ -251,11 +296,17 @@ function html(D) {
 </style>
 <div class="wrap">
   <h1>The work line</h1>
+  ${AUTO ? `<div class="auto" id="auto" data-nostop>
+    <button class="play" id="play" type="button" aria-label="Scroll along the line"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4l14 8-14 8z"/></svg></button>
+    <button class="tri" id="spd" type="button" data-n="1" data-i="M" aria-label="Speed"></button>
+    <span class="spd" id="spdw">Medium</span>
+  </div>` : ''}
   <div class="board" id="board" data-nostop>${svg}</div>
   <div class="key" id="key"></div>
   <div class="open" id="open" hidden></div>
 </div>
 <script src="/compare.js"></script>
+${AUTO ? '<script src="/tritoggle.js"></script>' : ''}
 <script>
 (function(){
   var D = ${JSON.stringify(data).replace(/</g, '\\u003c')};
@@ -291,7 +342,29 @@ function html(D) {
           && window.parent.__openThread(a.getAttribute('data-chat')) === true) e.preventDefault();
     } catch (err) { /* cross-origin parent — the href stands */ }
   });
-  board.scrollLeft = board.scrollWidth;   // open on today
+  board.scrollLeft = ${AUTO ? '0' : 'board.scrollWidth'};   // ${AUTO ? 'the long line opens at the start and rolls toward today' : 'open on today'}
+  ${AUTO ? `(function(){
+    var play = document.getElementById('play'), spd = document.getElementById('spd'), spdw = document.getElementById('spdw');
+    var SPEEDS = [[0.7,'S','Slow'],[1.8,'M','Medium'],[4,'F','Fast']], n = 1, on = false, raf = 0;
+    var PLAY = play.innerHTML, PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+    function setSpeed(k){ n = k; spd.dataset.n = String(k); spd.dataset.i = SPEEDS[k][1]; spdw.textContent = SPEEDS[k][2]; }
+    function step(){
+      if (!on) return;
+      if (board.scrollLeft >= board.scrollWidth - board.clientWidth - 1) { stop(); return; }   // the end stops it
+      board.scrollLeft += SPEEDS[n][0];
+      raf = requestAnimationFrame(step);
+    }
+    function start(){ if (board.scrollLeft >= board.scrollWidth - board.clientWidth - 1) board.scrollLeft = 0; on = true; play.innerHTML = PAUSE; raf = requestAnimationFrame(step); }
+    function stop(){ on = false; play.innerHTML = PLAY; cancelAnimationFrame(raf); }
+    play.addEventListener('click', function(){ on ? stop() : start(); });
+    spd.addEventListener('click', function(e){
+      var next = window.triNext ? window.triNext(spd, 3, e, n) : (n + 1) % 3;   // the aim rule, cycle only as a floor
+      if (next !== n) setSpeed(next);
+    });
+    // her finger on the board pauses it; a tap on a lump still opens it
+    board.addEventListener('pointerdown', function(){ if (on) stop(); }, true);
+    setSpeed(1);
+  })();` : ''}
   if (window.__compareHelp) window.__compareHelp({ html: '<b>One line, every project on it.</b> Days run left to right — scroll sideways. '
     + 'Each colour is a project; a lump is a stretch you worked on it, thicker where more was said, and a gap is where it stopped. '
     + 'Where two overlap you see both. Tap a lump for the chats inside that stretch. The top ' + D.lanes.length + ' projects are on the line; everything else is the grey band underneath. '
@@ -310,7 +383,7 @@ function html(D) {
   fs.writeFileSync(OUT, page);
   console.log(`wrote ${OUT}: ${D.lanes.length} projects on the line, ${D.rest.chats.length} chats in the grey band, ${D.ndays} days, ${page.length} bytes`);
   if (!POST) { process.exit(0); }
-  const title = `The work line — ${WD.shortDay(D.today)} (v3, one line)`;
+  const title = `The work line — ${WD.shortDay(D.today)} (${VER})`;
   const r = await post(BASE + '/api/chatfeed/page', { chat: CHAT, session: SESSION, title, html: page });
   console.log('posted', r.ok, r.id, r.url, (r.warnings || []).join(' | '));
   if (SUPERSEDE && r.ok) console.log('supersede', JSON.stringify(await post(BASE + '/api/chatfeed/page/' + SUPERSEDE + '/supersede', { chat: CHAT, session: SESSION })));

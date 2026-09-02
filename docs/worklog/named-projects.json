@@ -1,0 +1,8 @@
+{
+  "_": "Projects the slug rule cannot see — named by Sophie (2026-09-02: 'add in things like specific movies: ant, language, time, moon milk · nyt puzzle website'). Each is its own lane on the work line, its chats pulled out of whatever lane the word rule had put them in. Add a line here and re-run scripts/worklog-line.js --named.",
+  "Ant (movie)": ["ant-movie-sound-redesign", "transcribe-illustrate-scenes"],
+  "Language (movie)": ["illustrated-cannon-passage"],
+  "Time (movie)": ["dolores-cannon-time"],
+  "Moon milk": ["deck-factory-movies", "moon-milk-meta"],
+  "NYT puzzle site": ["nyt-puzzle-website"]
+}
