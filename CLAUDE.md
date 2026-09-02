@@ -4249,20 +4249,32 @@ before working on that module. Nothing was deleted — the moved text is verbati
   of hers reaches the tile the day she makes it; it carries **its own panels
   swap**, because dreamy's sheet anchor is the clause this tile consumed and
   `applySheet` no-ops on a missed anchor (a sheet run would otherwise ship
-  "NOT a grid" into a grid prompt); and the **port's evidence is the
-  equilateral clause quoted LONG** (`playground-port.js`), because a triangle
-  card carries Dreamy's filename AND Dreamy's prefix too, and longest evidence
-  wins — quote it short and every Triset card ports back as a plain Dreamy
-  picture. **THAT WENT STALE WITHIN A DAY AND IS THE THING TO WATCH**
-  (2026-08-31): her reword put a sentence between the two halves the port was
-  quoting, so it matched nothing and every triangle card ported back as a plain
-  Dreamy picture — the exact failure the note above predicts, arriving by a
-  reword rather than by a short quote. The test catches it (it is a VERBATIM
-  check against the real clause), so **a reworded clause is a red
-  `test-playground-port.js` and a one-line re-quote**, never a mystery.
+  "NOT a grid" into a grid prompt); and the **port's evidence is a SHORT
+  DURABLE STEM PLUS EVERY PAST WORDING, and Triangle out-ranks Dreamy by
+  DECLARATION** (`playground-port.js`) — a triangle card carries Dreamy's
+  filename AND Dreamy's prefix by construction, so the two always match
+  together and the only question is which wins.
+  **QUOTING THE CLAUSE LONG WAS THE OLD ANSWER AND IT WENT STALE TWICE, THE
+  SECOND TIME SILENTLY (2026-09-02, Sophie: "triangle cards are not being
+  identified as triangle").** Longest-evidence-wins meant the port had to
+  out-reach Dreamy's 49 characters, so every reword shortened the fragment
+  below the bar and handed her cards back to Dreamy with nothing on screen
+  saying so. **Measured over all 715 of her filed triangle cards: 565 were
+  porting back as plain Dreamy pictures** — four generations of the wording
+  are on file and only the newest one matched. Two changes, and the second is
+  what ends the class of bug: the evidence is now the stem
+  `triangle-shaped card` (the three words every generation has held) with the
+  older wordings listed beside it, **only ever GROWING, exactly the way `refs`
+  lists old reference FILENAMES — a reword never rewrites the thousands of
+  style halves already filed**; and `beats:['dreamy']` names the derivation, so
+  a short quote wins anyway. **A wrong route is invisible from inside the
+  Playground** (the picture still draws, on the wrong reference), so it is
+  measured against her real library rather than reasoned about.
   Test: `node scripts/test-playground-port.js` (the derivation driven
   over the real dreamy literal, the sheet swap, the reworded-tail fallback,
-  and the one-copy pin on triset.js).
+  the one-copy pin on triset.js, and — the durable half — TODAY's real
+  triangle style half driven through the matcher plus one fixture per past
+  wording, verbatim off her cards; verified failing 9 pre-fix).
   **AND THE TILE PINS THE CANVAS TO SQUARE (2026-08-31, Sophie: "triangle mode
   shud auto switch to square in playground")** — a Triset card is square
   (`triset.js` draws every one at 1024x1024), and the canvas toggle is
