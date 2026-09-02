@@ -27,6 +27,8 @@
  *   8. a deck she has written nothing on shows no survey at all
  *   9. and on one of HER decks (look:'mom') it is there too, in her cream —
  *      the rows carry a second palette and only a measurement can see it
+ *  10. the whole `Notes · N` heading FOLDS (2026-09-02, "notes shud also
+ *      collapse") — shut, the rows leave the layout and the piles move up
  *
  * Headless Chromium; skips with exit 0 if none is available.
  */
@@ -199,8 +201,39 @@ window.addEventListener('unhandledrejection', function(e){
       var c = q('.jg-count');
       ok(!q('.jg-piles') && c && c.textContent === '1 of 5',
          'the picture opens that card too (got "' + (c && c.textContent) + '")');
-      return fetch('/result?r=' + encodeURIComponent(L.join(' | ')))
-        .then(function(){ location.href = '/?pass=2'; });
+      tap('[data-act="piles"]');
+      return wait(60);
+    }).then(function(){
+      // 10. AND THE SURVEY FOLDS (2026-09-02, Sophie: "notes shud also
+      // collapse"). Counted off the RENDERED page and measured against where
+      // the first pile lands, because a block hidden with CSS and a block
+      // that never rendered look identical to any source assertion — and the
+      // whole point of the fold is the piles moving up onto the screen.
+      var before = all('.jg-notes .jg-nrow').length;
+      var pileTopOpen = all('.jg-piles .jg-pilehd h2')[1].getBoundingClientRect().top;
+      ok(!!q('.jg-pilefold[data-fold="notes"]'), 'the Notes heading is a fold');
+      tap('.jg-pilefold[data-fold="notes"]');
+      return wait(60).then(function(){
+        ok(before === 3 && all('.jg-nrow').length === 0,
+           'shut, the notes really leave the layout (was ' + before + ')');
+        var hd = q('.jg-pilefold[data-fold="notes"] h2');
+        ok(hd && hd.textContent === 'Notes · 3',
+           'and the heading still says how many (got "' + (hd && hd.textContent) + '")');
+        var pileTopShut = all('.jg-piles .jg-pilehd h2')[1].getBoundingClientRect().top;
+        ok(pileTopShut < pileTopOpen - 40,
+           'the piles move up onto the screen (' + Math.round(pileTopOpen) + ' → '
+           + Math.round(pileTopShut) + ')');
+        ok(!!q('.jg-piles'), 'and folding never leaves the piles');
+        tap('.jg-pilefold[data-fold="notes"]');
+        return wait(60);
+      }).then(function(){
+        ok(all('.jg-notes .jg-nrow').length === 3, 'tapping again opens it');
+        var t = q('.jg-notes .cmp-note-text');
+        ok(shown(t) && /the coat is the wrong green/.test(t.textContent),
+           'and the threads are painted again');
+        return fetch('/result?r=' + encodeURIComponent(L.join(' | ')))
+          .then(function(){ location.href = '/?pass=2'; });
+      });
     });
   });
 })();

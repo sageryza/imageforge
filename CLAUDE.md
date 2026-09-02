@@ -8790,6 +8790,18 @@ before working on that module. Nothing was deleted — the moved text is verbati
     - **A field that parses to NO message makes no row**, and a deck she has
       written nothing on shows no survey at all — the common case, and
       byte-for-byte the view that was there before.
+    - **AND THE WHOLE `Notes · N` HEADING FOLDS (2026-09-02, Sophie: "notes
+      shud also collapse").** The piles grew their fold the day before and
+      this did not — and it LEADS them, so on a deck she has written a lot on
+      the survey pushed every pile off the first screen with no way to put the
+      words away (measured at 390x844 on a five-card fixture: the first pile
+      sits at y=399 open and y=160 shut). It is the piles' own control, the
+      same per-visit `folded` map and the same one handler, so nothing new is
+      stored and a fold behaves the same wherever she taps one. Two things not
+      to undo: **no "Swipe these" beside it** — the survey is READ-BACK and its
+      rows come from every pile at once, so there is no lane to walk; and the
+      **count shows open AND shut**, unlike the chats app's pinned fold, because
+      the rows underneath are her NOTES rather than the chats the count names.
     Test: `node scripts/test-judge-note-survey.js` (the real page headless, at
     both looks — every assertion a MEASUREMENT, since a survey *below* the
     piles is still "present" and a folded thread and an open one carry the
