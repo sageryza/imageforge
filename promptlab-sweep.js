@@ -2,8 +2,8 @@
 // WHAT THE STUCK-RUN SWEEP SHOULD DO WITH ONE PLAYGROUND RUN — pure, so the
 // rules have a test that needs no Firestore.
 //
-// A deploy (or a crash) restarts the server mid-run and leaves the doc behind.
-// Two shapes, and they are NOT the same loss:
+// A deploy (or a crash — an OOM kill, 2026-09-02) restarts the server mid-run
+// and leaves the doc behind. Two shapes, and they are NOT the same loss:
 //
 //   * no banked sheet -> the paid draw died with the process. Nothing to
 //     recover; the doc is a zombie "drawing…" pinned to the top of her feed
@@ -76,6 +76,42 @@ function panelsCfgOf(d) {
   };
 }
 
+// A SINGLE-PICTURE RUN IS REBUILDABLE FROM ITS DOC TOO (2026-09-02, the OOM
+// kill under Sophie's first {curly-bracket} batch: four low draws billed and
+// never received, and her question — "i thought there was a check in place
+// not to restart the server if things were being drawn?"). The doc carries
+// the literal fullPrompt, the style, the quality, the canvas, the character
+// toggle, her photo's url and her picked cast — everything runPromptLabGptJob
+// takes except the photo BYTES, which the caller fetches from `photoRef`
+// (and a photo that will not fetch FAILS the redraw: drawing without it would
+// be a different picture under the same record). The head/tail seam is
+// recovered by finding her own words inside the stored text; where it no
+// longer matches, empty halves are the honest fallback, as for panels.
+function singleCfgOf(d) {
+  if (!d || d.panels || !d.fullPrompt || !d.prompt) return null;
+  const full = String(d.fullPrompt);
+  const typed = String(d.prompt);
+  const sep = `\n\n${typed}`;
+  let at = full.indexOf(sep);
+  let head = '';
+  let tail = '';
+  if (at >= 0) {
+    head = full.slice(0, at).trim();
+    tail = full.slice(at + sep.length).trim();
+  } else if (full.startsWith(typed)) {
+    at = 0;
+    tail = full.slice(typed.length).trim();
+  }
+  return {
+    fullPrompt: full, head, tail, prompt: typed,
+    outputs: Number(d.outputs) || 1, quality: d.quality || 'low',
+    character: Boolean(d.character), styleId: d.gptStyle || 'evan',
+    size: d.size || '', photoBuf: null, photoUrl: String(d.photoRef || ''),
+    chars: Array.isArray(d.characters) ? d.characters : [],
+    padTarget: d.padTarget || null,
+  };
+}
+
 // -> 'recut' | 'redraw' | 'fail' | null (leave it alone). `now` and
 // `createdAt` are ms — the caller passes redrawnAt as the clock when a
 // redraw has already restarted it.
@@ -97,7 +133,14 @@ function sweepAction(r, opts) {
   if (r && r.panels && !r.sheetUrl && (r.redraws || 0) < REDRAW_CAP && panelsCfgOf(r)) {
     return 'redraw';
   }
+  // A single run killed mid-draw (2026-09-02): same rule, same cap. Only a
+  // gpt-image run — a Replicate run is deduped by seed and re-tapping it is
+  // free, and its doc does not carry what the job takes.
+  if (r && !r.panels && r.engine === 'gptimage' && !((r.images || []).length)
+    && (r.redraws || 0) < REDRAW_CAP && singleCfgOf(r)) {
+    return 'redraw';
+  }
   return 'fail';
 }
 
-module.exports = { sweepAction, isOrphanedSheet, panelsCfgOf, STUCK_MS, ORPHAN_CUT_MS, REDRAW_CAP };
+module.exports = { sweepAction, isOrphanedSheet, panelsCfgOf, singleCfgOf, STUCK_MS, ORPHAN_CUT_MS, REDRAW_CAP };

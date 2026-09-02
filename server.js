@@ -5923,6 +5923,19 @@ const plCancelled = new Set();
 // A PANELS run parked on 'ready' with its sheet banked is a DIFFERENT loss and
 // is on a much shorter clock — see promptlab-sweep.js, which owns both rules.
 const plSweep = require('./promptlab-sweep');
+// A DRAW IS ADMITTED BY THE MEMORY THE BOX HAS LEFT (2026-09-02 — the OOM
+// kill under Sophie's first {curly-bracket} batch: four low edits at once,
+// each carrying the 8.5MB Sandy mirror reference, on a box idling at 427MB
+// of 512; Render's event says `oomKilled`). draw-gate.js is the rule: any
+// number while there is room, one at a time as it fills, never zero. The
+// gate wraps the request-to-upload span of a render, which is where the
+// transient lives; the wait on OpenAI itself is inside that span because the
+// body is held for its whole life.
+// `drawingNow` is the exact set of runs THIS process is drawing — what
+// scripts/render-deploy.js reads before it restarts the box, and what the
+// sweep must never judge.
+const drawGate = require('./draw-gate').makeGate();
+const drawingNow = new Set();
 async function sweepStuckPromptlabRuns() {
   try {
     if (!admin.apps.length) return;
@@ -5945,6 +5958,10 @@ async function sweepStuckPromptlabRuns() {
       // next tick would fail the very draw the last one started (a 4K sheet
       // can draw 14 minutes).
       const at = r.redrawnAt?.toMillis?.() || r.createdAt?.toMillis?.() || 0;
+      // A run THIS process is still drawing is alive whatever the clock says
+      // — a 4K sheet can draw 14 minutes, and the gate can hold one behind
+      // others for a while longer.
+      if (drawingNow.has(d.id)) continue;
       const act = plSweep.sweepAction({ ...r, id: d.id, createdAt: at }, { now, cutting: cuttingNow });
       if (!act) continue;
       // A PANELS run whose sheet was already banked lost only the FREE half
@@ -5970,12 +5987,35 @@ async function sweepStuckPromptlabRuns() {
       // storm cannot re-bill forever; her feed position (createdAt) is kept.
       if (act === 'redraw') {
         const n = (r.redraws || 0) + 1;
+        if (r.panels) {
+          await d.ref.update({ redraws: n, redrawnAt: admin.firestore.Timestamp.now(),
+            status: 'running', error: admin.firestore.FieldValue.delete() });
+          const cfg = plSweep.panelsCfgOf(r);
+          cfg.chars = r.characters || [];
+          runPromptLabPanelsJob(d.ref, cfg);
+          console.log(`promptlab sweep: redrawing orphaned panels run ${d.id} (attempt ${n} of ${plSweep.REDRAW_CAP})`);
+          continue;
+        }
+        // A SINGLE run killed mid-draw (2026-09-02, the OOM kill under her
+        // first bracket batch) — same rule. Her photo reference is the one
+        // thing the doc holds only by url; a photo that will not fetch fails
+        // the redraw honestly, because drawing without it is a different
+        // picture under this record.
+        const cfg = plSweep.singleCfgOf(r);
+        if (cfg.photoUrl) {
+          try {
+            const pr = await fetch(cfg.photoUrl);
+            if (!pr.ok) throw new Error(`photo ref ${pr.status}`);
+            cfg.photoBuf = Buffer.from(await pr.arrayBuffer());
+          } catch (e) {
+            await d.ref.update({ status: 'failed', error: `interrupted by a server restart; its photo reference could not be re-read (${e.message})` });
+            continue;
+          }
+        }
         await d.ref.update({ redraws: n, redrawnAt: admin.firestore.Timestamp.now(),
           status: 'running', error: admin.firestore.FieldValue.delete() });
-        const cfg = plSweep.panelsCfgOf(r);
-        cfg.chars = r.characters || [];
-        runPromptLabPanelsJob(d.ref, cfg);
-        console.log(`promptlab sweep: redrawing orphaned panels run ${d.id} (attempt ${n} of ${plSweep.REDRAW_CAP})`);
+        runPromptLabGptJob(d.ref, cfg);
+        console.log(`promptlab sweep: redrawing killed run ${d.id} (attempt ${n} of ${plSweep.REDRAW_CAP})`);
         continue;
       }
       await d.ref.update({ status: 'failed', error: 'interrupted by a server restart' });
@@ -6234,6 +6274,7 @@ async function landOnBeat(target, images, runId, meta) {
 // every image here is billed the moment it's requested. Nothing in the flow
 // pretends otherwise — the page shows no X on these runs.
 async function runPromptLabGptJob(docRef, cfg) {
+  drawingNow.add(docRef.id);
   try {
     // Style refs first; the Sophie character card rides LAST when toggled on
     // (each style's characterLine points at it that way).
@@ -6273,15 +6314,15 @@ async function runPromptLabGptJob(docRef, cfg) {
         // openaiImageEditRefs), same webp bytes back, so everything below this
         // line is unchanged. A photo reference SHE attached is an image like
         // any other, so a plain run carrying one is back on edits.
-        const data = refs.length
-          ? await openaiImageEditRefs(cfg.fullPrompt, refs, {
+        const data = await drawGate.run(docRef.id, () => (refs.length
+          ? openaiImageEditRefs(cfg.fullPrompt, refs, {
             quality: cfg.quality, size: cfg.size || PL_GPT.size, timeout: 300000,
           })
-          : await openaiImage({
+          : openaiImage({
             model: PL_GPT.id, prompt: cfg.fullPrompt, n: 1,
             size: cfg.size || PL_GPT.size, quality: cfg.quality,
             output_format: 'webp', moderation: 'low',
-          }, 2, 300000);
+          }, 2, 300000)));
         if (data.error) throw new Error(data.error.message || 'gpt-image-2 error');
         const b64 = data.data?.[0]?.b64_json;
         if (!b64) throw new Error('gpt-image-2 returned no image');
@@ -6336,7 +6377,7 @@ async function runPromptLabGptJob(docRef, cfg) {
   } catch (err) {
     console.warn('promptlab gpt job failed:', err.message);
     await docRef.update({ status: 'failed', error: err.message }).catch(() => {});
-  }
+  } finally { drawingNow.delete(docRef.id); }
 }
 
 // The shape WORD a run's cell ratio is searchable by — keep in step with the
@@ -6536,6 +6577,7 @@ async function recutPanelsRun(docRef, d) {
 
 async function runPromptLabPanelsJob(docRef, cfg) {
   const plan = cfg.plan;
+  drawingNow.add(docRef.id);
   try {
     const st = PL_GPT_STYLES[cfg.styleId] || PL_GPT_STYLES.evan;
     const refs = await playgroundRefs(st);
@@ -6544,15 +6586,15 @@ async function runPromptLabPanelsJob(docRef, cfg) {
     // fetch fails the run rather than quietly drawing a stranger (the Story
     // Room's rule, and playgroundCharRefs is where it lives).
     for (const b of await playgroundCharRefs(cfg.chars)) refs.push(b);
-    const data = refs.length
-      ? await openaiImageEditRefs(cfg.fullPrompt, refs, {
+    const data = await drawGate.run(docRef.id, () => (refs.length
+      ? openaiImageEditRefs(cfg.fullPrompt, refs, {
         quality: cfg.quality, size: plan.sheet, timeout: 300000,
       })
-      : await openaiImage({
+      : openaiImage({
         model: PL_GPT.id, prompt: cfg.fullPrompt, n: 1,
         size: plan.sheet, quality: cfg.quality,
         output_format: 'webp', moderation: 'low',
-      }, 2, 300000);
+      }, 2, 300000)));
     if (data.error) throw new Error(data.error.message || 'gpt-image-2 error');
     const b64 = data.data?.[0]?.b64_json;
     if (!b64) throw new Error('gpt-image-2 returned no image');
@@ -6577,7 +6619,7 @@ async function runPromptLabPanelsJob(docRef, cfg) {
   } catch (err) {
     console.warn('promptlab panels job failed:', err.message);
     await docRef.update({ status: 'failed', error: err.message }).catch(() => {});
-  }
+  } finally { drawingNow.delete(docRef.id); }
 }
 
 async function runPromptLabJob(docRef, cfg) {
@@ -7107,6 +7149,25 @@ app.get('/api/promptlab/build', (req, res) => {
   // no-store, or the very cache this route exists to defeat answers it.
   res.set('Cache-Control', 'no-store');
   res.json({ build: pageBuildId('promptlab.html', true) });
+});
+
+// WHAT THIS PROCESS IS DRAWING AND CUTTING RIGHT NOW, and how much of the box
+// is left (2026-09-02). Exact — the two in-process sets, not a Firestore
+// count, which is what a deploy has to know before it kills this instance
+// (scripts/render-deploy.js waits on it). `memory` is here because the OOM
+// that produced this was a BASELINE problem: a fresh boot is ~190MB and the
+// box had crept to 427MB with nothing running, and nothing anywhere could
+// read that without the Render dashboard. Free; no-store; MUST stay above
+// `/api/promptlab/:id`.
+app.get('/api/promptlab/inflight', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const m = process.memoryUsage();
+  res.json({
+    drawing: Array.from(drawingNow), cutting: Array.from(cuttingNow),
+    slots: drawGate.slots(), waiting: drawGate.waiting(),
+    memory: { rss: m.rss, heapUsed: m.heapUsed, external: m.external, limit: 512 * 1048576 },
+    uptime: Math.round(process.uptime()),
+  });
 });
 
 // THE ARROW'S OWN ACCOUNT (2026-08-29, Sophie's THIRD back-to-top report:
