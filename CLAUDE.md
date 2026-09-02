@@ -8031,6 +8031,54 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - The page is one screen, NO pill; the mid slot is `pointer-events:none`
     (its rectangle overlaps the two lower cards) — only the textarea takes
     taps. Made cards land in My Creations via the handed-in fileCreation.
+  - **THE JOURNAL EDITION — HER OWN DRAWINGS, AS A COMPARE PAGE (2026-09-01,
+    Sophie: "find my drawings in set theory in the journal app and seed them
+    into a separate version of the triangle set game · exact code copy, but
+    different cards · no render deploy, just a compare page").** The deck is
+    the JournalReader app's **Set → Drawings** pool — membry Firestore
+    `sagediagram`, 316 hand-drawn journal cutouts, ink on white, already one
+    object to a square. The game is `public/triset.html` BYTE FOR BYTE,
+    posted as a Compare page.
+    - **THE SEPARATION IS ONE FIELD: the journal cards are seeded
+      `hidden:true`.** `GET /api/triset/cards` is the ONLY route that filters
+      hidden, so her live /similitude never deals one and its edition row —
+      hidden today because every visible card is `nature` — does not appear;
+      while `/found`, `/opponent`, `/challenge` and `/card/:id` read cards BY
+      DOC ID with no hidden filter, so the copy keeps every server feature
+      with no deploy. Measured before and after seeding: 86 visible, all
+      nature, unchanged. **0 of the 316 can match `slugOfUrl`**, so
+      `syncHearts` cannot see them either.
+    - **THE PRELUDE OWNS WHERE THE CARDS COME FROM AND NOTHING ELSE.** It
+      also NAMESPACES localStorage (`triset.*` → `journalset.*`): a Compare
+      page shares an origin with /similitude, so without it the two games
+      would clobber each other's place, sets, opponent and edition every
+      time she opened one. Proved by measurement, not by reading: play the
+      copy, reload the live game, `triset.table` is byte-identical.
+    - **A CARD THE COPY MAKES IS REMEMBERED AND HIDDEN.** A Compare page is
+      frozen the day it is posted, so a found set's card id is kept in the
+      page's own localStorage and hydrated from `/card/:id` on the next open
+      — the game still feeds itself — and it is PATCHed `hidden:true` the
+      moment it is made so it never turns up in her live deck.
+    - **`bakeCut` IS USED UNCHANGED** and it suits a loose drawing exactly:
+      the flood fill finds the ink, `inscribePlan` fits it inside the
+      equilateral slot, and the `paper` it samples off the source's outer
+      ring is her own white — so the window is her drawing on her own paper,
+      nothing synthesized. A centroid-anchored variant was rendered and
+      rejected: the centroid of an equilateral is at 2/3 height, so it moves
+      almost nothing, and base-anchored is her settled rule.
+    - **THE TITLE IS HER CAPTION OR THE PAGE IT CAME OFF** — 40 of the 316
+      carry one she wrote in the journal app; the rest read "April · 004",
+      which says nothing the drawing doesn't. Re-running the seed REFRESHES
+      titles, so captioning more in the journal app and re-running is how the
+      names fill in. **The computer opponent plays from titles**, so it is
+      weaker on the 276 unnamed ones.
+    - **A found set still draws a DREAMY card**, not one in her ink line —
+      the style is handed to `/found` server-side, so matching it would be a
+      deploy.
+    - Scripts: `node scripts/seed-triset-journal.js` (dry; `--go`, and
+      `--unhide` puts them in the live pool as a real edition — HER call) and
+      `node scripts/triset-journal-page.js` (dry; `--go` posts it), then
+      `node scripts/triset-recut.js --go` for the die-cuts.
   - Tests: `node scripts/test-triset.js` (pure + headless page half; reads
     the real dreamy wording out of server.js via
     `scripts/lib/dreamy-style.js`).
