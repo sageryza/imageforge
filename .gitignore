@@ -52,3 +52,6 @@ docs/marla/
 # Storage at storybooks/ instead.
 docs/storybooks/
 .seed-triset*/
+
+# agent worktrees the harness parks inside the checkout — never project files
+.claude/worktrees/
