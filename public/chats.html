@@ -714,6 +714,26 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .orgbtn{flex:none; background:none; border:none; padding:6px 4px; cursor:pointer; color:var(--ink2);
   display:flex; align-items:center; -webkit-tap-highlight-color:transparent;}
 .orgbtn svg{width:16px; height:16px; display:block;}
+/* THE PROJECT — every chat on the same thing, behind one tap (2026-09-02,
+   Sophie: "all the triset chats … from a single icon button on that chat page
+   header · probably 3-4 stacked square cards"). Quiet ink like Organize
+   beside it: it opens a page, it is not a state. Drawn ONLY when the chat has
+   siblings — a group of one is a dead control. */
+.projbtn{flex:none; background:none; border:none; padding:6px 4px; cursor:pointer; color:var(--ink2);
+  display:flex; align-items:center; -webkit-tap-highlight-color:transparent;}
+.projbtn svg{width:17px; height:17px; display:block;}
+/* The project page: a hairline ICONS · LIST row (the account row's own
+   `.acctabs`, so the underline measures itself), a one-line count under it,
+   and then the tile wall or the list exactly as the home screen draws them.
+   An archived sibling is IN (that is the history she is going back for) and
+   reads as put away: the cover dims, the name does not. */
+.projrow{margin-top:0;}
+.projcount{font-family:'EBGaramond',Georgia,serif; font-style:italic; color:var(--ink2); font-size:13px;
+  margin:0 0 12px;}
+#chatgrid .projtile .t-name{display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+.projchips{margin:0 0 10px;}
+.tile.archd .t-cover{opacity:.5;}
+.crow.archd .cr-ic, .crow.archd .cr-name{opacity:.55;}
 /* HIDE and DELETE as PICTURES (Aug 2026, Sophie: "make the delete button a
    picture of a trash can and the hide button a picture of an eye that's
    crossed out if it's hidden").
@@ -1969,6 +1989,11 @@ body.newspick > .float{display:none !important;}
 <script src="/asset-actions.js"></script>
 <script src="/asset-lightbox.js"></script>
 <script src="/filmnote.js"></script>
+<!-- WHICH PROJECT A CHAT IS ON (2026-09-02) — the stacked-cards button in a
+     thread's header and the page behind it. One rule, shared with the server
+     (chat-sort.js) so a project the sorter files is spelled the way this page
+     groups. Guarded like every other shared script here. -->
+<script src="/project-words.js"></script>
 <script>
 (function(){
 var TOKEN='__STUDIO_TOKEN__';
@@ -2923,7 +2948,14 @@ function statusFor(list){
 // bookmarked message across all chats, and STATUS (what's waiting on her /
 // working / just delivered). `homeView` survives opening a chat and coming
 // back, so she returns to the list she was reading.
-var homeView='live';   // 'live' | 'archive' | 'bookmarks' | 'status' | 'todo' | 'news'
+var homeView='live';   // 'live' | 'archive' | 'bookmarks' | 'status' | 'todo' | 'news' | 'project'
+// THE PROJECT PAGE (2026-09-02). `projectKey` is the word the page groups on,
+// `projectFrom` the chat she came from (its OTHER project words are offered
+// as chips, so a chat on two things is one tap from either group), and
+// `projView` is ICONS or LIST — sticky, opening on icons three across.
+var projectKey='', projectFrom='';
+var projView='icons';
+try{ projView=localStorage.getItem('chats-project-view')==='list' ? 'list' : 'icons'; }catch(e){}
 // …restored ONLY across a reload the page did to itself (a new build landed —
 // see checkBuild). A launch she started still opens on the chat list; being
 // carried out of the Update tab by a deploy is the app interrupting her, and
@@ -2951,7 +2983,8 @@ function paintHomeChrome(){
   document.getElementById('htxt').textContent = inHidden ? 'Hidden'
     : homeView==='archive' ? 'Archive' : homeView==='bookmarks' ? 'Bookmarks'
     : homeView==='status' ? 'Status' : homeView==='todo' ? 'To do'
-    : homeView==='news' ? 'Update' : homeView==='trash' ? 'Trash' : 'Chats';
+    : homeView==='news' ? 'Update' : homeView==='trash' ? 'Trash'
+    : homeView==='project' ? projectTitle(projectKey) : 'Chats';
   t.classList.toggle('hid', inHidden);
   t.classList.toggle('arch', homeView==='archive');
   // The trash wears the same red as the hidden bar — it is the one place on
@@ -3066,7 +3099,7 @@ function otherView(){
   // and account tabs mean nothing in there, so it folds its chrome away like
   // the other non-list views.
   return homeView==='bookmarks'||homeView==='status'||homeView==='todo'
-      ||homeView==='news'||homeView==='trash';
+      ||homeView==='news'||homeView==='trash'||homeView==='project';
 }
 function paintSearch(){
   var row=document.getElementById('searchrow'), btn=document.getElementById('searchbtn'),
@@ -6178,6 +6211,7 @@ function renderHome(){
   document.getElementById('selbtn').classList.toggle('on', selMode);
   paintSelBar();
   if(homeView==='trash'){ renderTrash(el); return; }
+  if(homeView==='project'){ renderProject(el,g); return; }
   if(homeView==='news'){ renderNews(el); return; }
   if(homeView==='todo'){ renderTodo(el); return; }
   if(homeView==='bookmarks'){ renderBookmarks(el); return; }
@@ -6650,6 +6684,132 @@ function renderTray(el,g,names){
     b.dataset.chat=name;
     b.innerHTML='<span class="t-cover">'+iconHtml(name,'',true)+(unread?'<span class="t-new"></span>':'')+'</span>'
       +'<span class="t-name">'+waitMarkHtml(name)+tagMarkHtml(name)+esc(dispName(name))+'</span>';
+    b.onclick=function(){ openChat(name); };
+    grid.appendChild(b);
+  });
+}
+// ── THE PROJECT PAGE — every chat on the same thing, newest first ────────────
+// (2026-09-02, Sophie: "i'd like it so projects could auto group themselves,
+// like all the triset chats, grouped in reverse chronological order, so i can
+// go back and see all the triset chats from a single icon button on that chat
+// page header · probably 3-4 stacked square cards · opens a page w hairline
+// icon or list view · default icon, 3-up".)
+//
+// WHICH CHATS: /project-words.js decides — the ONE rule, shared with the
+// server. A chat belongs to the project word its slug leads with (the harness
+// names branches subject-first: `triset-…`, `playground-…`), to a project the
+// auto-sorter filed on it (`project` on the registry doc, for the chats whose
+// slug says nothing), and to an established project a later word of its slug
+// or her display name names. Nothing is stored for the page itself: it is
+// derived on every paint out of the registry the feed already carries.
+//
+// THE PILE IGNORES EVERY OTHER FILTER, like the tray and a lit tag: not the
+// account tabs (the row is not even on screen here), not the hidden pile, and
+// NOT THE ARCHIVE — "go back and see all the triset chats" is exactly what
+// the archive holds, so an archived sibling is drawn, dimmed, and counted
+// under the tabs. The trash stays its own room.
+//
+// THE ORDER IS THE HOUSE ORDER — `sortedChatNames`, newest message first, so
+// the date headings and the pinned tier come for free — and the two views
+// are the home screen's own renderers: `renderTiles` IS the three-across
+// icon wall she asked for, `renderList` the list. Nothing here is a third
+// way of drawing a chat.
+function projectTitle(k){
+  var v=projectVocab();
+  var sp=(v&&v[k]&&v[k].spell)||k||'';
+  return sp ? sp.charAt(0).toUpperCase()+sp.slice(1) : 'Project';
+}
+// Recomputed per paint — 800 chats tokenise in a millisecond, and a cache
+// here would go stale the moment the poll landed a renamed chat.
+function projectVocab(){
+  var PW=window.__projectWords; if(!PW) return null;
+  return PW.vocab(chats);
+}
+function projectsFor(name){
+  var PW=window.__projectWords; if(!PW) return [];
+  return PW.projectsWithGroups(name, chats, projectVocab());
+}
+function openProject(key, from){
+  projectKey=key; projectFrom=from||projectFrom;
+  homeView='project'; homeY=0;
+  if(cur) goHome(true); else { renderHome(); }
+  window.scrollTo(0,0);
+}
+function renderProject(el,g){
+  var PW=window.__projectWords;
+  if(!PW || !projectKey){ el.innerHTML='<div class="state">No project picked.</div>'; return; }
+  var v=projectVocab();
+  // Her way to the OTHER groups this chat is on — `triangle-playground-style`
+  // is a triangle chat first and a playground chat second. Chips only when
+  // there is a choice; one word is a heading, not a control.
+  var mine=projectFrom ? PW.projectsWithGroups(projectFrom, chats, v) : [];
+  if(mine.length>1){
+    var row=document.createElement('div'); row.className='catrow projchips';
+    mine.forEach(function(p){
+      var b=document.createElement('button');
+      b.className='catchip'+(p.key===projectKey?' on':'');
+      b.dataset.project=p.key;
+      b.textContent=projectTitle(p.key)+' · '+p.chats.length;
+      b.onclick=function(){ if(p.key===projectKey) return; projectKey=p.key; renderHome(); window.scrollTo(0,0); };
+      row.appendChild(b);
+    });
+    el.appendChild(row);
+  }
+  // ICONS · LIST — the hairline row. Sticky; opens on icons.
+  var tabs=document.createElement('div'); tabs.className='acctabs projrow'; tabs.id='projtabs';
+  [['icons','Icons'],['list','List']].forEach(function(t){
+    var b=document.createElement('button');
+    b.className='acctab'+(projView===t[0]?' on':''); b.dataset.pv=t[0]; b.textContent=t[1];
+    b.onclick=function(){
+      if(projView===t[0]) return;
+      projView=t[0];
+      try{ localStorage.setItem('chats-project-view', projView); }catch(e){}
+      renderHome();
+    };
+    tabs.appendChild(b);
+  });
+  el.appendChild(tabs);
+  var names=sortedChatNames(g).filter(function(n){
+    return PW.projectsOf(n, chats[n]||{}, v).indexOf(projectKey)>-1;
+  });
+  var nArch=names.filter(function(n){ return chats[n]&&chats[n].archived; }).length;
+  var count=document.createElement('div'); count.className='projcount'; count.id='projcount';
+  count.textContent=names.length+(names.length===1?' chat':' chats')+(nArch?' · '+nArch+' archived':'');
+  el.appendChild(count);
+  if(!names.length){
+    // Appended, never `innerHTML+=` — that re-serialises the tabs above and
+    // silently drops their taps.
+    el.appendChild(Object.assign(document.createElement('div'),{className:'state', textContent:'Nothing on this project.'}));
+    return;
+  }
+  if(projView==='list'){ renderList(el,g,names); paintWrapUps(el); }
+  else renderProjectIcons(el,g,names);
+  // An archived sibling reads as put away without leaving the pile.
+  names.forEach(function(n){
+    if(!(chats[n]&&chats[n].archived)) return;
+    var node=el.querySelector('[data-chat="'+n.replace(/"/g,'\\"')+'"]');
+    if(node) node.classList.add('archd');
+  });
+}
+// THE ICON WALL OF A PROJECT — three across, NO day headings (PHOTO'd against
+// her live triset chats before shipping: four chats on three different days
+// drew as a COLUMN of one tile each, because every day's rule spans the grid
+// and starts a fresh row — the tile wall's headings undo the 3-up she asked
+// for on any pile smaller than a screen). The order is still newest first;
+// the date rides under each name instead, since "go back and see" is a
+// question about when. Icon, name, date — no status line and no controls
+// (the tray's rule: those are list controls, and the LIST tab has them).
+function renderProjectIcons(el,g,names){
+  var grid=document.createElement('div'); grid.id='chatgrid'; el.appendChild(grid);
+  names.forEach(function(name){
+    var last=lastOf(g,name);
+    var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
+    var b=document.createElement('button');
+    b.className='tile projtile'+(chatWorking(name,last)?' live':'');
+    b.dataset.chat=name;
+    b.innerHTML='<span class="t-cover">'+iconHtml(name,'',true)+(unread?'<span class="t-new"></span>':'')+'</span>'
+      +'<span class="t-name">'+waitMarkHtml(name)+tagMarkHtml(name)+esc(dispName(name))+'</span>'
+      +'<span class="t-meta">'+(last? ago(last.created) : (chats[name]&&chats[name].archived ? 'archived' : 'no messages'))+'</span>';
     b.onclick=function(){ openChat(name); };
     grid.appendChild(b);
   });
@@ -7350,6 +7510,9 @@ var TRAY_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
 // ORGANIZE — Lucide `tag`, the icon on the button that opens the folder + tag
 // sheet (`askOrganize`). A luggage-tag silhouette with its eyelet: it says
 // "label this" without a word, which the row has no space for.
+// Three stacked square cards, Lucide weight — the front one whole, the two
+// behind it as offset edges. Her own picture of the button.
+var PROJ_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="12" height="12" rx="1.6"/><path d="M6.5 6H17a1.5 1.5 0 0 1 1.5 1.5V18"/><path d="M10 3h8.5A2.5 2.5 0 0 1 21 5.5V14"/></svg>';
 var TAG_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>';
 var EYE_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>';
 var EYE_OFF_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>';
@@ -7746,6 +7909,22 @@ function openChat(name, keepScroll, focusId, noFetch){
     ob.setAttribute('aria-label','Organize — file and tag this chat');
     ob.onclick=function(){ askOrganize(name); };
     head.querySelector('.no').appendChild(ob);
+  })();
+  // THE PROJECT — three stacked cards (2026-09-02, Sophie). Only drawn when
+  // the chat has siblings; a chat on two things opens on its FIRST project
+  // (the slug's own lead word, or the filed one) and the page offers the rest
+  // as chips. See renderProject.
+  (function(){
+    var ps=projectsFor(name);
+    if(!ps.length) return;
+    var pb=document.createElement('button');
+    pb.className='projbtn';
+    pb.innerHTML=PROJ_SVG;
+    pb.dataset.project=ps[0].key;
+    pb.setAttribute('aria-label','Every chat on '+projectTitle(ps[0].key)+' — '+ps[0].chats.length+' chats');
+    pb.title=projectTitle(ps[0].key)+' · '+ps[0].chats.length;
+    pb.onclick=function(){ openProject(ps[0].key, name); };
+    head.querySelector('.no').appendChild(pb);
   })();
   var curl=claudeUrlFor(name, list); openUrl=curl;   // renderMsg reads openUrl
   sec.appendChild(head);

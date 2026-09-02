@@ -1774,6 +1774,42 @@ them off the reference sheet, not off the old filenames.
     deliberately SLOW stub so the OPTIMISTIC order is what renders; verified
     catching a recency sort, a lost stamp, a three-wide grid, a refilled glyph,
     a control growing back on a tile, and a sheet mark that can only add).
+- **A PROJECT GROUPS ITSELF — THE STACKED CARDS IN A THREAD'S HEADER
+  (2026-09-02, Sophie: "projects could auto group themselves, like all the
+  triset chats, grouped in reverse chronological order, so i can go back and
+  see all the triset chats from a single icon button on that chat page header
+  · probably 3-4 stacked square cards · opens a page w hairline icon or list
+  view · default icon, 3-up").** Three stacked cards beside the tag icon,
+  drawn ONLY when the chat has siblings; the page is a home view
+  (`homeView='project'`, `renderProject` in chats.html) titled by the project,
+  a hairline ICONS · LIST row (sticky, opening on icons three across, no day
+  headings — PHOTO'd: four chats on three days drew as a column under them),
+  newest first, the archived siblings IN and dimmed and counted, across the
+  accounts. Nothing is stored for the page.
+  - **WHICH CHATS IS ONE RULE, `project-words.js`, shared with the server and
+    MEASURED, not reasoned.** The harness names a branch from her first message
+    SUBJECT FIRST (over her 788 live chats: `story-…` leads 42, `playground-…`
+    37, `triset-…` 4), where a raw token count is noise (`button` 30, `new`
+    25). So a project word is one that LEADS two or more slugs, minus the
+    verbs and fillers the harness sometimes leads with (`remove-…`,
+    `missing-…`, the `STOP` list); a chat is on its own lead word, on a
+    `project` the auto-sorter FILED on it, and on any ESTABLISHED project
+    (leading 3+) a later word of its slug or her display name carries. A chat
+    on two things opens on its first and the page offers the rest as chips.
+    Plurals fold (`panels`/`panel`). Measured the day it shipped: 615 of 761
+    live chats carry the button, triset is exactly its 4.
+  - **THE SORTER FILES `project` NOW, AS A TOP-UP** — one more field in the
+    same end-of-turn call (`chat-sort.js`, `pickProject`; `projectBy:'auto'`,
+    never over `projectBy:'sophie'`), offered the page's own vocabulary so it
+    spells a project the way the page groups. It is NOT a folder: it files the
+    chat nowhere she looks, so it is written whatever the category answer
+    was. It reaches the chats whose slug says nothing (29 fallback slugs) and
+    the ones renamed since (Similitude is the triset project). Chats asleep
+    before this never get one and the word rule still covers them.
+  - Tests: `node scripts/test-project-words.js` (the rule, pure, on a fixture
+    shaped like her registry) and `node scripts/test-chats-project.js` (the
+    real page headless — the button and its absence, the pile, three across
+    MEASURED, the sticky view, back from a tile, the chips, the pill).
 - **ORGANIZE — a chat can be filed and tagged from INSIDE it (Aug 2026,
   Sophie: "an ability to tag or categorize something from within the chat
   itself … an icon that says organize and then it pulls up the ability to tag

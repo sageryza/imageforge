@@ -3436,6 +3436,15 @@ app.get('/size-tier.js', (req, res) => {
 // same way — so the Playground's Prompt panel prints the REAL characters
 // clause her typed cast will send (sheetGrid.castBlock), rather than keeping
 // a second copy of the wording that drifts the day the clause is reworded.
+// Which PROJECT a chat belongs to, shared the same way (2026-09-02): the Chats
+// app's stacked-cards button and the page behind it group chats by the ONE
+// rule chat-sort.js offers the model its vocabulary from, so a project the
+// sorter files is spelled the way the page already groups.
+app.get('/project-words.js', (req, res) => {
+  res.type('application/javascript');
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/project-words.js');
+});
 app.get('/sheet-grid.js', (req, res) => {
   res.type('application/javascript');
   res.set('Cache-Control', 'no-cache, must-revalidate');

@@ -73,6 +73,7 @@ const { buildQuestions, answeredOnly, isCompacted } = require('./questions');
 const { parseQuery } = require('./search-grammar');
 const { shouldPushReply, chatNotifies, needEscalates, pushAlert, pushBody } = require('./push-gate');
 const chatSort = require('./chat-sort');
+const projectWords = require('./project-words');
 const pageTemplates = require('./page-templates');
 const assetUnion = require('./asset-union');
 
@@ -2952,7 +2953,10 @@ async function sortChat(chat, { force = false, dry = false, stampNow = false } =
   if (!gate.sort) return { chat: target, sorted: false, why: gate.why };
 
   const examples = chatSort.examplesFor(reg.chats, cats);
-  const { system, user } = chatSort.buildSortPrompt({ name: target, reg: mine, msgs, cats, examples });
+  // The project names the page already groups by (project-words.js), so the
+  // sorter's answer lands in a group that exists rather than beside it.
+  const projects = projectWords.knownProjects(reg.chats);
+  const { system, user } = chatSort.buildSortPrompt({ name: target, reg: mine, msgs, cats, examples, projects });
   // RUN THE CALL RAW so a truncated answer can still be rescued — the same
   // failure the archive summary already had, repeated here the moment the
   // output grew a second half: 300 tokens fitted {category, why} and cut
@@ -2972,6 +2976,11 @@ async function sortChat(chat, { force = false, dry = false, stampNow = false } =
   } catch (err) { return { chat: target, sorted: false, why: 'model-error', error: String(err.message || err) }; }
   const pick = chatSort.pickCategory(out, cats);
   const why = String((out && out.why) || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+  // THE PROJECT (2026-09-02, Sophie: "projects could auto group themselves").
+  // Not a folder — it files the chat nowhere she looks, it only groups it with
+  // its siblings on the stacked-cards page — so it is written whatever the
+  // category answer was, and even when that is "none". Never over one she set.
+  const project = chatSort.pickProject(out, mine);
   // IS IT FINISHED? — the model judges whether the work landed; the question she
   // forgot to answer is COUNTED, not judged (chat-sort.js, archiveHint). An
   // unanswered question is a fact about the transcript, so the flag can name one
@@ -2984,7 +2993,7 @@ async function sortChat(chat, { force = false, dry = false, stampNow = false } =
   // chat to find out what she owes it.
   const finished = { state, stateWhy, hint, pendingAsk: ask };
   if (dry) {
-    return { chat: target, sorted: false, why: 'dry-run', category: pick || null, reason: why, ...finished };
+    return { chat: target, sorted: false, why: 'dry-run', category: pick || null, project: project || null, reason: why, ...finished };
   }
 
   const now = new Date().toISOString();
@@ -2995,6 +3004,7 @@ async function sortChat(chat, { force = false, dry = false, stampNow = false } =
   // unsure is a reason not to move a chat, never a reason to pull one out of a
   // folder she may have been finding it in for weeks.
   const patch = { catTriedAt: now, archiveHint: hint, archiveWhy: stateWhy, pendingAsk: ask };
+  if (project) { patch.project = project; patch.projectBy = 'auto'; patch.projectAt = now; }
   if (pick) {
     // The label set, and its two mirrors — `labelPatch`'s fields written by
     // hand because this one stamps `catBy:'auto'` and its own `filedAt` rule
@@ -3016,8 +3026,8 @@ async function sortChat(chat, { force = false, dry = false, stampNow = false } =
     patch.filedAt = stampNow ? now : chatSort.filedStamp(mine);
   }
   await regRef(target).set(patch, { merge: true });
-  return { chat: target, sorted: Boolean(pick), category: pick || null, why: pick ? 'sorted' : 'none',
-    reason: why, ...finished };
+  return { chat: target, sorted: Boolean(pick), category: pick || null, project: project || null,
+    why: pick ? 'sorted' : 'none', reason: why, ...finished };
 }
 
 // "LEAVE IT UNFILED" — her third answer on the review page, and the one the
