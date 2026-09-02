@@ -603,6 +603,24 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .dayrule::after{content:''; flex:1; height:1px; background:var(--line);}
 .clist > .dayrule:first-child, #chatgrid > .dayrule:first-child{margin-top:0;}
 #chatgrid > .dayrule{grid-column:1/-1;}
+/* PINNED FOLDS (2026-09-02, Sophie: "make the pinned panel collapsible in chat
+   app"). Measured on her live list at 390x844 before anything was built: the
+   PINNED block ran 282→740, so her pinned chats filled the whole first screen
+   and TODAY started below the fold — with the HIDDEN bar sitting right above
+   them already folding, and this block, the taller of the two, with no way to
+   put it away.
+   THE HEADING IS THE FOLD — the whole row, not a caret to hit (judge.js's piles
+   rule) — so it is a <button> wearing `.dayrule`, which keeps it looking like
+   every other heading: this is the same furniture, not a new control. No box,
+   no fill; a rose bar here would read as a second HIDDEN pile. */
+button.dayrule{border:none; background:none; padding:0; cursor:pointer;
+  -webkit-tap-highlight-color:transparent; font-weight:inherit;}
+.dayrule .dr-chev{width:13px; height:13px; flex:none; display:block; order:3;
+  transition:transform .16s ease; transform:rotate(180deg);}
+.dayrule.shut .dr-chev{transform:none;}
+/* The count only shows SHUT — open, the rows are right there, and saying it
+   twice is the archive summary's own lesson. */
+.dayrule .dr-n{letter-spacing:.04em; opacity:.75;}
 .crow{display:flex; align-items:center; gap:11px; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:9px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
 .bmknote{flex:1 0 100%; margin:8px 0 0;}
 .bmknote input{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:15px;
@@ -2342,10 +2360,42 @@ function chatDayKey(name, last){
   if(chatPinTop(name)) return 'pin';
   return last? dayKey(last.created) : '';
 }
-function mkDayRule(key){
-  var d=document.createElement('div'); d.className='dayrule';
-  d.innerHTML='<span>'+esc(dayLabel(key))+'</span>';
-  return d;
+// THE PINNED HEADING FOLDS; every date heading is a plain rule (2026-09-02).
+// `pinShut` is remembered, unlike judge.js's per-visit piles: this is a list she
+// comes back to all day, and re-opening a block she deliberately put away every
+// time she reloads is the fold not working. Default OPEN — pinned chats exist
+// to lead the list ("they never disappeared to the bottom if I don't look at
+// them for a while"), so folded has to be a state she chose.
+var pinShut = (function(){ try{ return localStorage.getItem('chats.pinshut')==='1'; }catch(e){ return false; } })();
+function setPinShut(v){
+  pinShut=!!v;
+  try{ localStorage.setItem('chats.pinshut', pinShut?'1':'0'); }catch(e){}
+}
+// How many chats sit behind the fold — the pile it is folding, never her whole
+// `pinTop` set: the archive, the ★ chip and the hidden pile each carry their own
+// pinned chats, and a heading saying 32 over a block of three is a lie about the
+// screen she is looking at.
+function pinCount(names){
+  var n=0; (names||[]).forEach(function(x){ if(chatPinTop(x)) n++; });
+  return n;
+}
+function mkDayRule(key, n){
+  if(key!=='pin'){
+    var d=document.createElement('div'); d.className='dayrule';
+    d.innerHTML='<span>'+esc(dayLabel(key))+'</span>';
+    return d;
+  }
+  var b=document.createElement('button');
+  b.className='dayrule pinrule'+(pinShut?' shut':'');
+  b.setAttribute('aria-expanded', pinShut?'false':'true');
+  b.innerHTML='<span>'+esc(dayLabel(key))
+    +(pinShut&&n? '<span class="dr-n"> &middot; '+n+'</span>':'')+'</span>'
+    +CHEV.replace('hb-chev','dr-chev');
+  // The tapped heading is put back exactly where it was on screen — this block
+  // is at the TOP of a long list, so closing it collapses the page under her
+  // thumb otherwise (the `repaintKeepingBar` lesson, earned by the MORE fold).
+  b.onclick=function(){ setPinShut(!pinShut); repaintKeepingBar('.pinrule'); };
+  return b;
 }
 
 
@@ -6610,7 +6660,7 @@ function toggleMark(name,last,container){
 }
 function renderTiles(el,g,names){
   var grid=document.createElement('div'); grid.id='chatgrid'; el.appendChild(grid);
-  var curDay=null;
+  var curDay=null, nPin=pinCount(names);
   names.forEach(function(name){
     var list=g[name]||[];
     var last=list.length? list[list.length-1] : null;
@@ -6618,7 +6668,8 @@ function renderTiles(el,g,names){
     // of the two views and not the other is a bug, not restraint. The rule
     // spans the grid (grid-column:1/-1) so the row under it starts clean.
     var dk=chatDayKey(name,last);
-    if(dk!==curDay){ curDay=dk; grid.appendChild(mkDayRule(dk)); }
+    if(dk!==curDay){ curDay=dk; grid.appendChild(mkDayRule(dk,nPin)); }
+    if(dk==='pin'&&pinShut) return;   // folded — the heading stands alone
     var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
     var status=statusFor(list);
     var about=(chats[name]&&chats[name].about)||'';
@@ -7158,15 +7209,17 @@ function paintWrapUps(el){
 
 function renderList(el,g,names){
   var wrap=document.createElement('div'); wrap.className='clist'; el.appendChild(wrap);
-  var curDay=null;
+  var curDay=null, nPin=pinCount(names);
   names.forEach(function(name){
     var list=g[name]||[];
     var last=list.length? list[list.length-1] : null;
     // SEPARATED BY DATE (2026-08-28). The list is already in the right order —
     // this only names where one day stops. Every pile comes through here (live,
-    // ALL, ★, bug fix, the archive), so they all get it from one place.
+    // ALL, ★, bug fix, the archive), so they all get it from one place — which
+    // is also why the pinned fold below needs no per-pile wiring.
     var dk=chatDayKey(name,last);
-    if(dk!==curDay){ curDay=dk; wrap.appendChild(mkDayRule(dk)); }
+    if(dk!==curDay){ curDay=dk; wrap.appendChild(mkDayRule(dk,nPin)); }
+    if(dk==='pin'&&pinShut) return;   // folded — the heading stands alone
     var unread=last && last.from!=='sophie' && (seen[name]||'')<(last.created||'');
     var row=document.createElement('button'); row.className='crow'+(chatMuted(name,last)?' done':'')+(chatWorking(name,last)?' live':'');
     row.dataset.chat=name;

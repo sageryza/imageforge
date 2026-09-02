@@ -2054,6 +2054,43 @@ them off the reference sheet, not off the old filenames.
   - Test: `node scripts/test-chats-day-rules.js` (the real page headless, with
     an INDEPENDENT copy of the 5am rule in the test rather than the page's own
     arithmetic read back to itself; verified failing 10 pre-fix).
+- **AND THE PINNED HEADING FOLDS (2026-09-02, Sophie: "make the pinned panel
+  collapsible in chat app").** Her pushpin lifts a chat above the sort so it
+  always shows first — and she has pinned **32**, so the block that was meant to
+  be a shortcut had become the screen. PHOTO'd on her live list at 390x844
+  before anything was built: **PINNED at y=282, TODAY at y=741**, i.e. her
+  pinned chats filled the entire first screen and the current ones started below
+  the fold — with the HIDDEN bar sitting directly above them already folding,
+  and this block, the taller of the two, with no way to put it away. Folded,
+  TODAY moves to **y=314**.
+  - **THE HEADING IS THE FOLD** — the whole row, not a caret to hit (judge.js's
+    piles rule) — so it is a `<button>` still wearing `.dayrule`: the same
+    furniture, not a new control. No box and no fill; a rose bar here would read
+    as a second HIDDEN pile one row under the real one.
+  - **IT OPENS OPEN AND IS REMEMBERED** (`chats.pinshut` in localStorage).
+    Default open because pinned chats exist to lead the list — her own ask, "they
+    never disappeared to the bottom if I don't look at them for a while" — so
+    folded has to be a state she chose; remembered because this is a list she
+    comes back to all day, where judge.js's per-visit piles are a screen she
+    passes through.
+  - **THE COUNT SHOWS ONLY WHILE IT IS SHUT** (the archive summary's
+    don't-say-it-twice rule — open, the rows are right there), and it is the
+    count of the PILE she is looking at, never her whole `pinTop` set: the
+    archive, the ★ chip and the hidden pile each carry their own pinned chats,
+    and a heading saying 32 over a block of three is a lie about the screen.
+  - **It rides `mkDayRule`, so every pile got it from one place** — live, ALL,
+    ★, bug fix, the hidden pile, the archive — and both renderers skip the rows
+    rather than hiding them, so a folded block is really out of the layout.
+    The tap goes through `repaintKeepingBar('.pinrule')`: this block is at the
+    TOP of a long list, so a plain `renderHome` would collapse the page under
+    her thumb (the MORE fold's own lesson).
+  - Test: `node scripts/test-chats-pin-fold.js` (the real page headless — the
+    rows COUNTED off the rendered list rather than asserted in source, since a
+    row hidden with CSS and a row that never rendered look identical to any
+    source assertion; the tap asked with `elementFromPoint` at the heading's own
+    centre; the lift, the count, the memory across a reload and the heading's
+    viewport position all MEASURED. Verified failing pre-fix, where there is no
+    `.pinrule` at all).
 - **THE CHAT AREA IS THREE LISTS, AND THE ROW TAKES TURNS WITH THE ACCOUNTS
   (2026-08-28, Sophie: "i'm thinking about restructuring chat area based on bug
   fixes and deliverables, so they're on two separate lists" · "one tab ALL
