@@ -5475,6 +5475,48 @@ before working on that module. Nothing was deleted — the moved text is verbati
   `node scripts/test-playground-hide-x.js` (headless — including the
   placeholder measured against the room the input actually has, because a
   clipped field passes both `isVisible()` and a width assertion).
+  **PICK SEVERAL AT ONCE — THE SELECT CHIP (2026-09-02, Sophie: "add a select
+  button to playground so i can x a bunch of things at once").** A fourth chip
+  in the filter box; lit, a tap on a picture PICKS it instead of opening it,
+  and a mode bar under the row marks everything picked at once — All/None, the
+  count, ✕, ♥, Done. Crossing a batch out one at a time is a tap into the
+  lightbox, a tap on the ✕ and a tap back out, times twenty, and on the PANELS
+  tab — a sheet arriving as nine panels she keeps two of — that is the ordinary
+  case rather than the rare one. Five things not to undo:
+  - **THE MARK BUTTONS OBEY THE SINGLE-PICTURE RULE — tap again to clear.**
+    If every picked picture already wears that mark the button CLEARS it, which
+    is what makes a bulk ✕ **undoable with one tap** — and it is why the picks
+    are KEPT after a mark rather than dropped. (With "hide the ✕'d" lit the
+    pictures go with the mark; the count still says how many are held.)
+  - **ALL READS THE VIEW SHE IS LOOKING AT** — the pictures rendered right now,
+    in either view — so the ♥/✕ filters, the sheets chip and the search box
+    narrow it by themselves and there is no second copy of their rules to
+    drift. The Playground's own tap-to-next rule, one screen over.
+  - **THE MODE IS IN MEMORY, NEVER localStorage.** The view, the filters and
+    the columns are settings; this is something she is in the middle of doing,
+    and coming back to the tool tomorrow already picking is nobody's idea of
+    where she left off. Same call the bigger-prompt-box toggle makes.
+  - **ONE REQUEST — `POST /api/promptlab/votes`**, grouped by run (one write
+    per run) with the Assets-tab sync five at a time. Twenty separate `/vote`
+    posts would each re-read the run doc and sweep the Assets tab for one
+    picture. Registered ABOVE the per-run routes so `votes` can never be read
+    as a run id.
+  - **IT SHARES THE FILTER BOX, AND THAT IS WHAT PAYS FOR IT.** MEASURED at
+    390pt: the PANELS tab (four chips) had **78px** of room in the search field
+    against the **51** its placeholder needs, and a chip in a box of its own
+    costs 42 of that — the exact "Searc" clipping the two mark filters were put
+    in one box to end. Sharing the border costs 34 and the view switch's 11px →
+    8px paid back 12, leaving 56 on panels and 90 on the picture tab. **A fifth
+    chip needs a layout answer first, not another push.** (At 320pt this row has
+    been over budget since the columns segment landed — the field measured
+    EIGHT pixels — so `.feedbar` now wraps and the search drops to its own line
+    whole rather than collapsing. That is a fallback for a width nothing here is
+    designed at, not the second row she cut: at 390 the box has not moved.)
+  Test: `node scripts/test-playground-select.js` (the real page headless —
+  every assertion a MEASUREMENT or a reading of what the server really
+  received, since a `.picked` class whose CSS never landed, a tap that picked
+  AND opened the lightbox, and a batch carrying the wrong indices all look fine
+  in markup; verified failing against the pre-fix page).
   **EVERY TILE WEARS ITS OWN PICTURE'S SHAPE (Aug 2026, Sophie: "i kind of
   want the playground to show portrait aspect ratios to match my 2:3
   pictures").** The wall forced `aspect-ratio: 1 / 1` and `object-fit: cover`
