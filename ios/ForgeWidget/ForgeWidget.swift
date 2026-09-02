@@ -293,10 +293,17 @@ struct ForgeWidgetView: View {
     private func cell(_ d: ForgeDeck, side: CGFloat) -> some View {
         VStack(spacing: 3) {
             DeckIcon(deck: d, side: side)
-            Text(d.name.uppercased())
+            // TWO LINES, AND THE HYPHENS COME OUT — measured against the live
+            // queue the hour this shipped: most chats have no displayName, so
+            // the name IS the slug ("triangle-cards-compare"), and one line at
+            // 64pt fits about twelve characters. A slug clipped to
+            // "TRIANGLE-CAR…" names nothing; broken at its own words it does.
+            // The picture is still what she recognises it by.
+            Text(d.name.replacingOccurrences(of: "-", with: " ").uppercased())
                 .font(.system(size: 8.5)).tracking(0.3)
                 .foregroundColor(.forgeInk)
-                .lineLimit(1)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
                 .frame(width: side)
         }
     }
