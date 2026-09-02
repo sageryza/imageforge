@@ -8000,11 +8000,16 @@ before working on that module. Nothing was deleted — the moved text is verbati
     ~300 while the heap is ~110 — the growth sits outside V8. sharp/libvips
     on glibc is the known shape of that (fragmentation across malloc arenas;
     sharp's own docs say to set `MALLOC_ARENA_MAX=2`), and every thumbnail
-    the app serves goes through sharp. **`MALLOC_ARENA_MAX=2` is set on the
-    service (render.yaml + API, 2026-09-02) — compare the boot→+5min rss
-    against those numbers before believing it worked.** If it still creeps,
-    the next suspects are sharp's own cache (only `cutSheet` turns it off)
-    and grpc's buffers under the Firestore SDK.
+    the app serves goes through sharp. **`MALLOC_ARENA_MAX=2` IS SET AND IT
+    WORKED — measured the same night on the same idle box, 30s samples:**
+    the three boots before it went 200-220MB → 298-317MB by five minutes of
+    uptime; the first boot with it went 220 → **195-216MB across the whole
+    first eight minutes**, the JS heap flat at 77-94 either way. A ~100MB
+    swing at idle with one env var. Set in render.yaml AND by API (an API
+    env-var change does NOT trigger a deploy by itself — it rode the next
+    merge). If a creep shows up again under real load, the next suspects are
+    sharp's own cache (only `cutSheet` turns it off) and grpc's buffers under
+    the Firestore SDK; `/inflight` every 30s is the measurement.
   - **Broke it: 8** concurrent 4K panels SHEETS (2026-08-28, ~6:04pm Pacific,
     another chat's shoebox batches — the box restarted with NO deploy in
     flight, so the concurrency alone did it; 5 of the 8 died mid-generation.
