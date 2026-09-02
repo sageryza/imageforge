@@ -68,7 +68,12 @@ const ok = (c, m) => { if (c) console.log('  ok  ' + m); else fail(m); };
 (async () => {
   await new Promise((r) => server.listen(0, r));
   const port = server.address().port;
-  const b = await chromium.launch();
+  // The container's browser is at a fixed path and the bundled headless shell
+  // is not installed here — the same fallback every other harness in this repo
+  // carries, so this one can actually run.
+  let b;
+  try { b = await chromium.launch(); }
+  catch { b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }); }
   const page = await b.newPage({ viewport: { width: 390, height: 844 } });
   // The iPhone 13's safe-area inset is 47px and headless Chromium's is 0 —
   // the pill's top rides it, so without this the collision cannot be judged.
@@ -94,7 +99,10 @@ const ok = (c, m) => { if (c) console.log('  ok  ' + m); else fail(m); };
     const br = bar.getBoundingClientRect();
     return {
       barRight: Math.round(br.right), barTop: Math.round(br.top),
-      view: box('.viewtog'), filt: box('.filttog'), search: box('.feedsearch'),
+      // The ♥/✕ pair moved into the filters drawer (2026-09-02, Sophie: "you
+      // can put the heart x thing within the toggle"), so the chip that opens
+      // it is what stands on the row where `.filttog` used to.
+      view: box('.viewtog'), filt: box('#feedfilters .filtchip'), search: box('.feedsearch'),
       lines: new Set(Array.from(bar.children).filter((c) => c.getBoundingClientRect().width)
         .map((c) => Math.round(c.getBoundingClientRect().top))).size,
     };
@@ -116,17 +124,19 @@ const ok = (c, m) => { if (c) console.log('  ok  ' + m); else fail(m); };
   ok(s.view.shown && s.filt.shown, 'the view switch and the filters are still on the row');
   const ctrlClear = await page.evaluate((pill) => {
     const bar = document.querySelector('.feedbar').getBoundingClientRect();
-    return ['.viewtog', '.filttog'].every((sel) => {
+    return ['.viewtog', '#feedfilters .filtchip'].every((sel) => {
       const r = document.querySelector(sel).getBoundingClientRect();
       return r.right <= bar.right - pill + 1;
     });
   }, PILL);
   ok(ctrlClear, 'the CONTROLS still stop before the pill column — every one is a tap target');
-  const reachable = () => page.evaluate(() => ['v-list', 'v-tiles', 'v-liked', 'v-hidex'].every((id) => {
-    const r = document.getElementById(id).getBoundingClientRect();
-    const e = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
-    return !!(e && e.closest('#' + id));
-  }));
+  const reachable = () => page.evaluate(() => ['#v-list', '#v-tiles', '#feedfilters .filtchip']
+    .every((sel) => {
+      const el = document.querySelector(sel);
+      const r = el.getBoundingClientRect();
+      const e = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+      return !!(e && (e === el || el.contains(e)));
+    }));
   ok(await reachable(), 'and every one of them really takes a tap there (elementFromPoint)');
   const pillTap = await page.evaluate(() => {
     const f = document.querySelector('body > .float');

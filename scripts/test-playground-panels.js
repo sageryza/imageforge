@@ -862,7 +862,11 @@ function panelsPayload() {
     'the nine cut panels are folded to the one sheet');
   ok((await page.$$eval('#runs img[data-run="rs"]', (i) => i.length)) === 1,
     'a story sheet shows as itself — it IS its sheet');
-  ok(await page.isVisible('#v-liked') && await page.isVisible('#v-hidex'),
+  // The ♥/✕ chips moved INSIDE the filters drawer (2026-09-02) — they still
+  // stay while the sheets view is on, because a banked sheet carries its own
+  // vote at the virtual index -1.
+  ok((await page.$$eval('#feedfilters .filtcbtn[data-v="like"], #feedfilters .filtcbtn[data-v="nox"]',
+      (b) => b.length)) === 2,
     'the ♥/✕ chips STAY — a sheet carries its own vote now');
   await page.click('#runs img[data-run="r9"][data-i="-1"]');
   await page.waitForFunction(() => {
@@ -900,7 +904,8 @@ function panelsPayload() {
   await page.evaluate(() => { if (window.__assetLightboxClose) window.__assetLightboxClose(); });
   await page.click('#v-sheets');
   await page.waitForFunction(() => document.querySelectorAll('#runs img[data-run="r9"][data-i="-1"]').length === 0);
-  ok(await page.isVisible('#v-liked'), 'off again — the chips are unchanged');
+  ok((await page.$$eval('#feedfilters .filtcbtn[data-v="like"]', (b) => b.length)) === 1,
+    'off again — the chips are unchanged');
 
   console.log('arriving with a ported prompt');
   // The tab is STICKY, and a panel image is exactly the picture she is on the

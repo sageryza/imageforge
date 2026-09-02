@@ -2814,17 +2814,87 @@ them off the reference sheet, not off the old filenames.
     closing a thread's search takes the filter off with the words — a thread
     reopened later silently missing half its messages, with no box on screen
     saying why, is the failure to avoid.
-  - **ONE BUILDER for both boxes** — `buildFilters(mount, keys, onChange)` +
-    the `FILTERS` table in `chats.html`. The next filter is a row in that
-    table (values, words, and the query-string `param` kept together so a
-    caller cannot send it under a name the server does not read). **A filter
-    that needs the whole history goes to the server like these two; one the
-    loaded page can answer honestly may stay client-side — say which you
-    built.**
+  - **ONE BUILDER for every box IN THE HOUSE now — `/searchfilters.js`
+    (2026-09-02; see the next bullet).** It used to be `buildFilters` inside
+    `chats.html`, which is exactly why no other page could open one. What
+    stays in `chats.html` is the `FILTERS` table — which filters THIS page
+    has. The next filter is a row in that table (values, words, and the
+    query-string `param` kept together so a caller cannot send it under a name
+    the server does not read). **A filter that needs the whole history goes to
+    the server like these two; one the loaded page can answer honestly may
+    stay client-side — say which you built.**
   - Test: `node scripts/test-search-filters.js` (the decision tables and the
     name-row cap pure, then the real page headless — opt-in, both toggles
     reaching the server, the chip wearing the state, and the controls' right
-    edge measured against the pill's column).
+    edge measured against the pill's column). Its harness now calls
+    `scripts/lib/public-asset.js` rather than hand-listing what it serves — it
+    had been 404ing `/sheet-grid.js` to a `<script>` tag and failing forever on
+    "page errors: Unexpected token ':'", which had nothing to do with filters.
+- **THE ADVANCED SEARCH DRAWER — `/searchfilters.js` + `/searchfilters.css`,
+  the ONE shell, on every page (2026-09-02, Sophie: "can u add settings - a
+  toggle open advanced search in all pages - reusable shell - playground meta
+  assets etc · search by low medium high, by date · you can put the heart x
+  thing within the toggle").** The Chats drawer above WAS the design; it just
+  lived inside `chats.html` where nothing could reach it, so the Playground and
+  Meta Assets each grew their own loose row of chips instead — on bars already
+  fighting the injected pill for width, with nowhere to put "only the high
+  ones". Same story as `/tritoggle.css`, same answer.
+  - **WHAT THE SHELL OWNS: the shape.** The chip; the drawer SHUT until she
+    taps it; the chip WEARING the state while it is shut ("♥ only · High") and
+    staying lit either way; the aimed three-way toggle and the word that
+    clears it; the neutral rules; that an unknown value WIDENS rather than
+    emptying the list. **WHAT A PAGE OWNS: which filters it has** — values,
+    words, the query-string `param` when the answer has to reach a server, and
+    its own `get`/`set` when a filter is meant to survive a reload, so **no
+    localStorage key lives in the shared file** and the Playground's existing
+    `promptlab_liked`/`promptlab_hidex` keep meaning what they always meant.
+  - **TWO KINDS OF ROW, and which one a filter gets is decided by whether it
+    has an OFF state to spare.** `kind:'tri'` is the house three-way toggle
+    (everything plus the two OPPOSITE narrowings — "whose messages", "the
+    archive"). `kind:'chips'` is a row of chips, none lit = everything, and it
+    is what quality and date NEED: **low · medium · high is three options, but
+    a filter needs a fourth answer — "all of them" — and there is nowhere on a
+    three-way track to put it.** Chips also let her say low AND high, which is
+    what comparing a ladder actually looks like. Tapping the lit chip clears
+    it, so no row needs a second "off" control.
+  - **WHERE IT IS: the Playground, Meta Assets, a chat's own Assets tab, and
+    the Chats search (both boxes).** Three rows on the picture surfaces —
+    **Marks** (the ♥/✕ pair, or New · ♥ · Hide ✕ where those three were
+    already exclusive), **Quality**, **When** (Today · This week · This month,
+    days back from now — "since Sunday" would cut a working night in half).
+  - **QUALITY IS READ OFF THE FILED MODEL · QUALITY · SIZE CAPTION** on an
+    asset, because that is the only place a record carries it — which is also
+    why filing that caption matters more, not less. **A picture whose caption
+    never said does not pass "high"**: she asked for the high ones, and "we
+    don't know" is not one of them. `qualityOf` is pinned against
+    `playground-port.js`'s near-twin by the test so a reword of one cannot
+    leave the other reading a different ladder.
+  - **STICKY WHERE ITS NEIGHBOURS WERE, AND NOWHERE ELSE.** The Playground's
+    marks were already sticky, so quality and date are too (the keys are
+    `promptlab_filt_*` — a key named for quality alone would read as the
+    GENERATE knob, which is deliberately NOT persisted because a remembered
+    `high` is 16.5-21.1¢ a tap arriving unasked). Meta Assets and the Assets
+    tab keep nothing: those are places she arrives to look at everything, and a
+    filter left on from last week silently hiding most of her library is what
+    the chip's state-wearing exists to stop.
+  - **THE DRAWER HANGS off a STICKY bar (the Playground) and sits IN FLOW
+    everywhere else** — measured: an absolute panel over the Assets row covers
+    the search box and the first row of pictures, and `elementFromPoint` says
+    neither can be tapped. On the Playground there is nothing under the bar to
+    push, and its own z-index 5 keeps the drawer under the pill's 9.
+  - **THE `--fsf-*` TOKENS GO ON THE MOUNT, never on the drawer** — the chip is
+    the drawer's SIBLING, so tokens set there never reached it and it drew with
+    no box at all. Caught by a screenshot, not by any assertion; PHOTOGRAPH
+    EVERY ROUND.
+  - **The two mark buttons came OFF the Playground's feed bar**, which is what
+    paid for the chip: the row is the same width it was.
+  - Tests: `node scripts/test-search-filters-shell.js` (the decision table
+    pure, then the real Playground and the real Meta Assets headless — opt-in,
+    the three rows, the quality and date chips really hiding runs and tiles,
+    low AND high together, the shut chip wearing it, sticky where it should be
+    and not where it should not, and the open drawer measured against the
+    search box and the first tile; verified failing against the pre-fix pages)
+    and `node scripts/test-search-filters.js` for the Chats copy.
 - **EVERY CHAT HAS A LITTLE DRAWING BESIDE ITS NAME, AND IT SWEEPS ITSELF
   (`chaticons.js`, `/api/chaticons`, Aug 2026, Sophie: "the icons that just
   have big letters next to each chat and the update tab — I'd like to replace

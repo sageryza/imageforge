@@ -29,6 +29,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const servePublic = require('./lib/public-asset');
 const {
   whoOf, whoParam, whoMatches, SEARCH_WHO,
   archParam, archMatches, SEARCH_ARCH,
@@ -205,14 +206,12 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/html' });
     return res.end(fs.readFileSync(path.join(PUB, 'chats.html'), 'utf8'));
   }
-  const asset = path.join(PUB, url.pathname.replace(/^\/+/, ''));
-  if (/\.(js|css|svg|png|webp)$/.test(url.pathname) && asset.startsWith(PUB) && fs.existsSync(asset)) {
-    const type = url.pathname.endsWith('.js') ? 'text/javascript'
-      : url.pathname.endsWith('.css') ? 'text/css'
-      : url.pathname.endsWith('.svg') ? 'image/svg+xml' : 'application/octet-stream';
-    res.writeHead(200, { 'Content-Type': type });
-    return res.end(fs.readFileSync(asset));
-  }
+  // The shared files the page links — public/ AND the root-level ones the real
+  // server routes by hand (`/sheet-grid.js`). Hand-listing them is what left
+  // this harness answering the catch-all's JSON to a <script> tag, i.e. a
+  // permanent "page errors: Unexpected token ':'" that had nothing to do with
+  // the filters. One call, and the next shared file needs no change here.
+  if (servePublic(req, res)) return;
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ ok: true, messages: [], todos: [], bookmarks: [] }));
 });

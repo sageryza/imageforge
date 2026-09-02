@@ -9,6 +9,14 @@
      the keyed reconcile, the derived display copy and the toast. ONE copy,
      so a second feed can never hand-copy them. -->
 <script src="/feedkit.js"></script>
+<!-- THE ADVANCED SEARCH DRAWER — the ONE shell (2026-09-02, Sophie: "a toggle
+     open advanced search in all pages - reusable shell - playground meta
+     assets etc · search by low medium high, by date · you can put the heart x
+     thing within the toggle"). The chip lives on the feed bar where the ♥/✕
+     pair used to; those two moved inside it, which is what made room for
+     quality and date on a row that was already fighting the pill for width. -->
+<link rel="stylesheet" href="/searchfilters.css">
+<script src="/searchfilters.js"></script>
 <!-- The character-reference rules — the SAME file the server draws with and
      the Story Room draws with, so the sentence the picked characters add to
      her words is written down exactly once. See /pad-characters.js. -->
@@ -310,12 +318,39 @@
      rose. Two identical-looking filters read as two of the same thing. */
   .filttog { margin-left: 8px; display: flex; flex: none; border: 1px solid #d8d0c4;
     border-radius: 6px; overflow: hidden; background: #fdfcf9; }
+  /* `[hidden]` loses to any author `display` rule (the house rule). */
+  .filttog[hidden] { display: none !important; }
   .likefilt { display: flex; align-items: center; justify-content: center; width: 34px;
     border: 0; background: none; color: #6f675e; padding: 0; }
   .likefilt + .likefilt { border-left: 1px solid #d8d0c4; }
   .likefilt svg { width: 16px; height: 16px; }
   .likefilt.on { background: #c25a72; color: #fff; }
   .xfilt.on { background: #9a938a; color: #fff; }
+  /* THE FILTERS CHIP AND ITS DRAWER (/searchfilters.js + .css) — the ♥ and
+     the ✕ live inside it now, beside quality and date. It sits where that
+     pair sat, so the row is the same width it was: the two 34px buttons it
+     replaced paid for it almost exactly.
+     THE DRAWER HANGS UNDER THE BAR rather than pushing the feed down: this
+     row is `position: sticky`, so it is already a containing block, and an
+     absolute panel under it stays put while she scrolls. It deliberately does
+     NOT lift itself above the bar's own z-index 5 — the injected pill owns 9
+     and must keep taking its own taps — and it stops 56px short of the right
+     edge for the same reason. */
+  /* The tokens go on the MOUNT so they reach the chip as well as the drawer.
+     This page is ink on paper, not rose on cream. */
+  .feedfilters { flex: none; margin-left: 8px; min-width: 0;
+    --fsf-ink: #2b2622; --fsf-ink2: #6f675e; --fsf-line: #d8d0c4;
+    --fsf-paper: #fdfcf9; --fsf-on: #c25a72; }
+  .feedbar .filtdrawer { position: absolute; top: 100%; left: 0; right: 56px; margin: 0;
+    background: #faf7f2; border: 1px solid #d8d0c4; border-radius: 6px;
+    padding: 11px 12px 12px; }
+  /* LIT, THE ✕ MUST NOT MATCH THE ♥ — the same rule the two loose buttons
+     followed: one keeps what it names and the other drops it. */
+  .feedbar .filtcbtn.dropfilt.on { background: #9a938a; border-color: #9a938a; }
+  /* The chip has to give the search box its width back when she narrows
+     something, so it truncates rather than pushing: the words are on the rows
+     under it the moment she opens the drawer. */
+  .feedbar .filtchip { max-width: 148px; }
   /* The sheets view lit in INK, not the rose and not the grey — it is a mode
      (what the cells ARE), not a like/dislike filter, and three chips in one
      box lighting two colours would read as three of one kind. */
@@ -875,11 +910,13 @@
   <div class="viewtog">
     <button id="v-list">List</button><button id="v-tiles">Tiles</button><button class="colseg" id="v-cols"></button>
   </div>
-  <div class="filttog" role="group" aria-label="Filters">
-    <button class="likefilt" id="v-liked" aria-label="Show only the ones you hearted" title="Hearts only"></button>
-    <button class="likefilt xfilt" id="v-hidex" aria-label="Hide the ones you have crossed out" title="Hide the &times;'d"></button>
+  <!-- The SHEETS chip stays on the row: it is a MODE (what the cells ARE on
+       the Panels tab), not a filter over them, and it is the one thing here
+       that changes what a run even looks like. -->
+  <div class="filttog" role="group" aria-label="View">
     <button class="likefilt sheetfilt" id="v-sheets" hidden aria-label="Just the finished sheets, uncut" title="Just the finished sheets, uncut"></button>
   </div>
+  <div class="feedfilters" id="feedfilters"></div>
   <div class="feedsearch">
     <input id="q" type="search" placeholder="Search" aria-label="Search your runs"
            autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="search">
@@ -1019,37 +1056,73 @@
   document.getElementById('v-list').addEventListener('click', function () { setView('list'); });
   document.getElementById('v-tiles').addEventListener('click', function () { setView('tiles'); });
 
-  // HEARTS ONLY (Aug 2026, Sophie) — a filter that rides on top of whichever
-  // view she is in, not a view of its own. It hides every picture she hasn't
-  // hearted; a run left with nothing showing drops out of the list entirely.
-  // Sticky, same as the view, so a reload keeps it.
-  document.getElementById('v-liked').innerHTML = ICONS.heart;
+  // ─── THE ADVANCED SEARCH DRAWER (2026-09-02, Sophie: "a toggle open
+  // advanced search in all pages - reusable shell - playground meta assets
+  // etc · search by low medium high, by date · you can put the heart x thing
+  // within the toggle") ───────────────────────────────────────────────────
+  //
+  // The shape is /searchfilters.js — the chip, the drawer shut until she taps
+  // it, the chip wearing the state while it is shut. WHAT LIVES HERE is which
+  // filters this page has, and what each one actually hides.
+  //
+  // THE MARKS ARE STILL STICKY AND STILL THE SAME TWO KEYS. `promptlab_liked`
+  // and `promptlab_hidex` are read by `likedOnly()`/`hideX()` all over this
+  // page, so the spec carries its own get/set onto exactly those — moving the
+  // buttons inside a drawer must not reset a filter she left on, and no
+  // localStorage key belongs in the shared shell.
+  //
+  // QUALITY AND DATE FILTER RUNS, NOT PICTURES, because a run is what has one
+  // quality and one moment; the ♥ and the ✕ are marks on individual pictures
+  // and go on filtering those. That is why they are separate rows rather than
+  // one list of chips.
+  //
+  // THE KEYS SAY `filt`, AND THAT IS NOT COSMETIC. A key named for quality
+  // alone would read as the GENERATE knob, which is deliberately NOT
+  // persisted (a test pins that rule by grepping this page for the name) — a
+  // remembered `high` is 16.5-21.1¢ a tap arriving unasked. This is a filter
+  // over what she is LOOKING at, which costs nothing, so it is sticky like the
+  // ♥ and the ✕ beside it. A test pins the generate knob's rule by name.
+  //
+  // NOT A THREE-WAY TOGGLE, and quality is the case that shows why: low ·
+  // medium · high IS three options, but a filter needs a fourth answer — "all
+  // of them" — and there is nowhere on a three-way track to put it. Chips also
+  // let her say low AND high, which is what looking at a ladder is.
   function likedOnly() { return localStorage.getItem('promptlab_liked') === '1'; }
-  function applyLiked(repaint) {
-    document.getElementById('v-liked').classList.toggle('on', likedOnly());
-    if (repaint) renderFeed();
-  }
-  document.getElementById('v-liked').addEventListener('click', function () {
-    localStorage.setItem('promptlab_liked', likedOnly() ? '' : '1');
-    applyLiked(true);
-  });
-
-  // HIDE THE ✕'d (Aug 2026, Sophie: "can u also add a button next to the
-  // heart that hides anything i've 'exed'"). The heart's opposite and its
-  // twin: a filter over pictures, in whichever view she is in, sticky. A run
-  // left with nothing showing drops out of the list, exactly as with the
-  // heart. The two stack without arguing — hearts-only has already dropped
-  // every ✕'d picture, so this one simply finds nothing more to do.
-  document.getElementById('v-hidex').innerHTML = ICONS.x;
   function hideX() { return localStorage.getItem('promptlab_hidex') === '1'; }
-  function applyHideX(repaint) {
-    document.getElementById('v-hidex').classList.toggle('on', hideX());
-    if (repaint) renderFeed();
+  var SF = window.ForgeSearchFilters;
+  var FILT = SF.build(document.getElementById('feedfilters'), [
+    { key: 'marks', kind: 'chips', multi: true, label: 'Marks',
+      vals: ['like', 'nox'], words: ['\u2665 only', 'No \u2715'],
+      icons: [ICONS.heart, ICONS.x], classes: ['', 'dropfilt'],
+      get: function () {
+        var v = []; if (likedOnly()) v.push('like'); if (hideX()) v.push('nox'); return v;
+      },
+      set: function (v) {
+        localStorage.setItem('promptlab_liked', v.indexOf('like') >= 0 ? '1' : '');
+        localStorage.setItem('promptlab_hidex', v.indexOf('nox') >= 0 ? '1' : '');
+      } },
+    { key: 'quality', kind: 'chips', multi: true, label: SF.QUALITY.label,
+      vals: SF.QUALITY.vals, words: SF.QUALITY.words,
+      get: function () { return readList('promptlab_filt_quality'); },
+      set: function (v) { localStorage.setItem('promptlab_filt_quality', v.join(',')); } },
+    { key: 'when', kind: 'chips', label: SF.WHEN.label,
+      vals: SF.WHEN.vals, words: SF.WHEN.words,
+      get: function () { return localStorage.getItem('promptlab_filt_when') || ''; },
+      set: function (v) { localStorage.setItem('promptlab_filt_when', v || ''); } },
+  ], function () { renderPendings(); renderFeed(); }, { label: 'Filters' });
+  function readList(k) {
+    return (localStorage.getItem(k) || '').split(',').filter(Boolean);
   }
-  document.getElementById('v-hidex').addEventListener('click', function () {
-    localStorage.setItem('promptlab_hidex', hideX() ? '' : '1');
-    applyHideX(true);
-  });
+  // Does this RUN survive the quality and date chips? A run with no quality at
+  // all (a LoRA run, which has no ladder) does not pass "high" — she asked for
+  // the high ones, and "we don't know" is not one of them.
+  function runPassesFilt(r) {
+    var qs = FILT.get('quality') || [];
+    if (qs.length && qs.indexOf(String(r.quality || '').toLowerCase()) < 0) return false;
+    var since = SF.sinceMs(FILT.get('when'));
+    if (since && !((r.createdAt || 0) >= since)) return false;
+    return true;
+  }
 
   // JUST THE FINISHED SHEETS, UNCUT (2026-08-27, Sophie: "add a section to
   // see just the finished sheets, uncut, by themselves"). A third chip in the
@@ -1066,8 +1139,12 @@
   function sheetsMode() { return onPanels() && sheetsOnly(); }
   function paintFiltRow() {
     var sm = sheetsMode();
-    document.getElementById('v-sheets').hidden = !onPanels();
-    document.getElementById('v-sheets').classList.toggle('on', sm);
+    var b = document.getElementById('v-sheets');
+    b.hidden = !onPanels();
+    // …and the segmented BOX with it, or the Picture tab draws an empty 1px
+    // outline where the ♥/✕ pair used to be.
+    if (b.parentNode) b.parentNode.hidden = !onPanels();
+    b.classList.toggle('on', sm);
   }
   document.getElementById('v-sheets').addEventListener('click', function () {
     localStorage.setItem('promptlab_sheets', sheetsOnly() ? '' : '1');
@@ -1232,7 +1309,10 @@
   // from before a tab switch can land, and it must not leak the other
   // gallery's runs into this one.
   function visibleRuns() {
-    var mine = (qGroups.length && hits ? hits : feed).filter(tabKeepsRun);
+    // The drawer's QUALITY and DATE chips narrow runs wherever they came from
+    // — the loaded feed or the server's search hits — because they are facts
+    // about the run rather than about the words she typed.
+    var mine = (qGroups.length && hits ? hits : feed).filter(tabKeepsRun).filter(runPassesFilt);
     if (!qGroups.length) return mine;
     if (hits) return mine;
     return mine.filter(function (r) { return qmatch(runHay(r), qGroups); });
@@ -1240,6 +1320,11 @@
   function emptyNote() {
     if (qGroups.length) return '<div class="emptynote">Nothing matches that</div>';
     if (sheetsMode()) return '<div class="emptynote">No sheets yet</div>';
+    // An emptied list SAYS WHICH FILTER emptied it — a drawer she has shut is
+    // exactly the thing she cannot see, so "nothing here" would read as a lost
+    // history rather than as a filter doing its job.
+    if ((FILT.get('quality') || []).length) return '<div class="emptynote">Nothing at that quality</div>';
+    if (FILT.get('when')) return '<div class="emptynote">Nothing that recent</div>';
     if (likedOnly()) return '<div class="emptynote">Nothing hearted yet</div>';
     if (hideX()) return '<div class="emptynote">Everything here is crossed out</div>';
     return onPanels() ? '<div class="emptynote">No panels yet</div>' : '';
@@ -5049,7 +5134,7 @@
   setInterval(ptopWatch, 4000);
 
   if (window.__nativeNavBar) document.body.classList.add('native');
-  renderStyles(); updateShape(); syncControls(); syncTab(); applyLiked(false); applyHideX(false); applyView(); loadRuns();
+  renderStyles(); updateShape(); syncControls(); syncTab(); applyView(); loadRuns();
   if (pendingList().length) { renderPendings(); startPolling(); }
 </script>
 </body></html>

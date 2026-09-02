@@ -188,7 +188,9 @@ const OLD = { id: 'r9', prompt: 'a horse nobody has scrolled back to', engine: '
   const box = await page.evaluate(() => {
     const r = (s) => { const e = document.querySelector(s); return e && e.getBoundingClientRect(); };
     const bar = r('.feedbar');
-    return { bar, tog: r('.viewtog'), heart: r('.likefilt'), search: r('.feedsearch'),
+    // The ♥/✕ pair moved into the filters drawer (2026-09-02); the chip that
+    // opens it is what stands on the row in their place.
+    return { bar, tog: r('.viewtog'), heart: r('#feedfilters .filtchip'), search: r('.feedsearch'),
       input: r('.feedsearch input'),
       pad: parseFloat(getComputedStyle(document.querySelector('.feedbar')).paddingRight),
       fs: parseFloat(getComputedStyle(document.querySelector('.feedsearch input')).fontSize) };
@@ -223,12 +225,17 @@ const OLD = { id: 'r9', prompt: 'a horse nobody has scrolled back to', engine: '
     'and a run behind the paged feed comes back — the Assets tab lesson');
 
   console.log('\nthe heart still stacks with it');
-  await page.click('#v-liked');
+  // The heart moved inside the filters drawer (2026-09-02) — /searchfilters.js.
+  const HEART = '#feedfilters .filtcbtn[data-v="like"]';
+  await page.click('#feedfilters .filtchip');
+  await page.waitForSelector('#feedfilters .filtdrawer:not([hidden])');
+  await page.click(HEART);
   await page.waitForFunction(() => /Nothing hearted yet|Nothing matches/.test(
     document.getElementById('runs').textContent));
   ok(/Nothing hearted yet|Nothing matches/.test(await page.textContent('#runs')),
     'hearts-only over a search says so rather than showing everything');
-  await page.click('#v-liked');
+  await page.click(HEART);
+  await page.click('#feedfilters .filtchip');
 
   console.log('\ntiles');
   await page.click('#v-tiles');

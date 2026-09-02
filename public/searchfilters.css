@@ -1,0 +1,78 @@
+/* searchfilters.css — the paint for the advanced-search drawer
+ * (/searchfilters.js). One rule set, linked by every page that opens one,
+ * for the reason /tritoggle.css exists: the Chats app's drawer had been the
+ * only copy and no other page could reach it.
+ *
+ * EVERY COLOUR IS A TOKEN WITH A FALLBACK, so a page with its own palette
+ * (the Playground is ink on paper; Chats is rose on cream) sets the tokens on
+ * its own mount and changes nothing else. Nothing here is baked.
+ *
+ * NOTHING COUNTS THE ROWS OR THE CHIPS — a new filter is one spec in the page.
+ */
+/* THE TOKENS LIVE ON THE MOUNT, not on the drawer — the chip is the drawer's
+   SIBLING, so tokens set on the drawer never reached it and it drew with
+   whatever the page happened to define, which on a page defining none of them
+   was no box at all. A page sets its palette on its own mount element. */
+.filtmount {
+  --fsf-ink: var(--ink, #2b2622);
+  --fsf-ink2: var(--ink2, #6f675e);
+  --fsf-line: var(--line, #d8d0c4);
+  --fsf-paper: var(--paper, #fdfcf9);
+  --fsf-on: var(--chg, #c25a72);
+}
+.filtdrawer { display: flex; flex-direction: column; gap: 9px; margin: 9px 0 2px; }
+/* `[hidden]` loses to any author `display` rule (the house rule), and this one
+   declares `flex`, so the override is not optional. SHUT is the resting state
+   — that is what "opt in" means here. */
+.filtdrawer[hidden] { display: none !important; }
+
+/* ONE FILTER. A tri row is the toggle and the value it is showing, spelled
+   out; a chips row is its question and the answers under it. */
+.filtrow { display: flex; align-items: center; gap: 10px; }
+.filtrow-chips { flex-wrap: wrap; gap: 6px 10px; }
+.filtval, .filtlab {
+  font-family: -apple-system, sans-serif; font-size: 11px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--fsf-ink2);
+}
+.filtval { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.filtrow.on .filtval { color: var(--fsf-on); }
+/* THE TOGGLE'S WIDTH IS THE PLAYGROUND'S, NOT THE ACCOUNT SWITCHER'S, and it
+   is measured rather than picked: at 48px the three stops are 11px apart,
+   which the account switcher's own note calls the floor — and it can afford
+   the floor because a toast names the account after every tap. Here the stops
+   carry meaning she has to READ off the control. Two sizes in the house, not
+   three. */
+.filtrow .tri { --tri-track: var(--fsf-ink2); --tri-w: 78px; --tri-k: 26px; }
+.filtrow.on .tri { --tri-track: var(--fsf-on); }
+.filtlab { flex: none; min-width: 52px; }
+
+/* The chips. A rounded RECTANGLE at the house 6px — never a pill; the toggle
+   is the one sanctioned exception and a chip is a text button. */
+.filtchips { display: flex; flex-wrap: wrap; gap: 6px; }
+.filtcbtn {
+  font-family: -apple-system, sans-serif; font-size: 11px; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--fsf-ink2);
+  background: var(--fsf-paper); border: 1px solid var(--fsf-line); border-radius: 6px;
+  padding: 5px 9px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  display: inline-flex; align-items: center; justify-content: center; min-height: 26px;
+}
+.filtcbtn svg { width: 14px; height: 14px; }
+/* Lit = this chip is narrowing what she can see. TAPPING THE LIT ONE CLEARS
+   IT, so nothing here needs a second "off" control. */
+.filtcbtn.on { background: var(--fsf-on); border-color: var(--fsf-on); color: #fff; }
+/* THE ✕ FILTER MUST NOT LOOK LIKE THE ♥ (the Playground's own rule): the
+   heart keeps only what it names and the ✕ drops it, so two identical-looking
+   lit chips would read as two of the same thing. */
+.filtcbtn.dropfilt.on { background: var(--fsf-ink2); border-color: var(--fsf-ink2); }
+
+/* THE CHIP. It wears the state while the drawer is shut and stays LIT either
+   way. A page passes its own extra class (`.catchip` on Chats) when it has a
+   chip look of its own; this is the floor. */
+.filtchip {
+  font-family: -apple-system, sans-serif; font-size: 11px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--fsf-ink2);
+  background: transparent; border: 1px solid var(--fsf-line); border-radius: 6px;
+  padding: 5px 10px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.filtchip.on { color: var(--fsf-on); border-color: var(--fsf-on); }
