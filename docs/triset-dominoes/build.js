@@ -16,7 +16,7 @@
 const fs = require('fs'), path = require('path');
 const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
 const CUTS = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cuts/';
-const TITLE = 'Similitude Dominoes v2';
+const TITLE = 'Similitude Dominoes v3';
 const CHAT = 'triset-dominoes-game';
 
 const STOP = new Set(('a an the one two of in on at with over under from to and its only above ' +
@@ -38,11 +38,15 @@ const short = (t) => {
     console.error('WARNING: ' + cards.length + ' cards but ' + meta.length
       + ' tagged — re-tag cards.json before trusting the links');
   }
+  // NO POINT-DOWN CARDS (her call, 2026-09-02): the made cards are cut point
+  // down and every space on this table points up
   const deck = cards.map((c, i) => ({
     k: c.cut.replace(CUTS, ''),
+    id: c.id.slice(0, 8),
     n: (meta[i] && meta[i].n) || short(c.title),
     t: (meta[i] && meta[i].t) || [],
-  }));
+    flip: !!c.flip,
+  })).filter(c => !c.flip).map(c => { delete c.flip; return c; });
   const html = fs.readFileSync(path.join(__dirname, 'dominoes.tpl.html'), 'utf8')
     .replace('__DECK__', JSON.stringify(deck));
   const out = process.env.OUT || '/tmp/dominoes.html';

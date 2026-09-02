@@ -6,17 +6,29 @@ play w the computer · no render · just compare artifact" — so it is a **Comp
 page in her chat's Compare tab**, not a tool: nothing was added to `server.js`,
 nothing deploys, and opening it spends nothing.
 
-Live (v2): <https://imageforge-q125.onrender.com/api/chatfeed/page/fCfdW4XnRtkUJ3fluH2x>
+Live (v3): <https://imageforge-q125.onrender.com/api/chatfeed/page/2MfQCBXvu6uRN17ZRvtQ>
 
-## The game
+## The game (v3, after her playtest)
 
-**One card is one tile, and there is only one of each.** A triangle has three
-sides, so a card can be joined on three — and what joins two cards is **what
-they have in common**. Twenty-four cards a round, seven each, the rest the pile.
-Tap a card in your hand, then tap a space. Go out and you score the cards left
-in its hand.
+**One card is one tile, only one of each, every card upright.** Cards sit in
+the point-UP spaces and every point-DOWN space between them is a **middle** —
+the inverted triangle three cards sit around in her own Similitude game, where
+what they share is written. A card has three sides, so it faces three middles,
+and through them touches the cards on the far side of each.
 
-## The three things she corrected, in order
+- **Three in hand; draw one after each lay.** 24 cards a round.
+- **She says what she sees every turn** — one box per card touched. Her words
+  land in the middle and can be read back with a tap.
+- **A point per card touched.** Two may each share something different with
+  it; when a middle fills to three, its cards share the SAME thing or each a
+  DIFFERENT one — the two kinds of Similitude set, never two-and-one. The page
+  refuses a 2+1 with the rule on screen.
+- **Pass = swap any of your cards** (tap the ones to swap), or keep them all.
+- The round ends when every card is down, or when the pile is empty and both
+  pass in a row. Higher score wins.
+- **Every game is recorded** — see *Reading her games* below.
+
+## What she corrected, in order
 
 Each one is why the build looks the way it does; the earlier readings are
 history, not options.
@@ -29,6 +41,17 @@ history, not options.
    is a judgement.
 3. **Only one of each card** — so a tile is not a set of pips drawn from a small
    vocabulary. A tile is one picture.
+4. **After the v2 playtest** ("this is much closer to what i envisioned. and:
+   it's actually really fun"): white triangles in the corners of some cards
+   (v2 rotated a point-up cut 180° inside a point-down clip, and SVG transforms
+   the clip along with the image — a hexagon, corners bare); **no 180°, choose
+   a different way** → then **"don't include point down ones"**, which settled
+   it: no card ever points down, and the point-down spaces became the middles;
+   a **pause** for the computer to think; **match on visual cues** (all 84
+   cards were LOOKED at on contact sheets and re-tagged by colour, light, shape,
+   composition and mood — `cards.json`); **ask what they share every turn**;
+   the **scoring** above; **three in hand, draw each turn, pass swaps any
+   number**; **record each game**.
 
 ## Things that are decided, not incidental
 
@@ -52,10 +75,18 @@ history, not options.
 - **THE TABLE ZOOMS OUT AS IT GROWS**, to a floor of 0.55, and is centred with
   `margin:auto` inside a flex board — the one centring that also lets it be
   scrolled to once it outgrows the box.
-- **A CARD IS CUT POINT-UP, so a point-down space turns it 180°.** That is what
-  a tessellation costs, and a triangular tile is read from whichever side you
-  are sitting on. Photographed before shipping: it reads as a quilt, not as a
-  mistake. Hers to veto.
+- **NOTHING EVER POINTS DOWN.** An upright triangle cannot be turned point-down
+  without tilting it (any isometry that does so inverts the picture), and she
+  vetoed the tilt. So the four MADE cards — cut point-down by design — are out
+  of the deck (`build.js` drops `flip`), and every point-down space is a
+  middle, not a card. That is her own board (three cards around an inverted
+  middle) tiled across a table, which is why it reads as the right answer
+  rather than a workaround.
+- **THE TAGS ARE VISUAL.** The first pass tagged from the titles ("hummingbird",
+  "trumpet flower"); she asked for visual cues, so every card was viewed and
+  tagged by what is in the picture — `dark`, `round`, `glowing`, `many`,
+  `alone`, `close-up`, `pale`. The computer names the rarest shared tag, so
+  "both dark" beats "outdoors".
 - **The whole page is `data-nostop`** — every tap here is gameplay and must
   never start the autoscroll.
 - **The top row reserves 64px** for the injected pill, and the say-what-you-see
@@ -63,6 +94,21 @@ history, not options.
   placeholder would be the same question twice, and `POST /page` warns on one).
 - The display name is **Similitude** (her rename, 2026-09-01); `triset` stays
   the identity everywhere in code.
+
+## Reading her games
+
+Every game writes to this page's verdict doc — no server change, the same
+route the note box uses:
+
+    GET /api/chatfeed/verdict?chat=triset-dominoes-game&sheet=dominoes-v3
+
+`texts` holds one JSON string per item: `g<game>` is the header (`cards` at
+the open, `you`/`it`/`done` when it ends) and `g<game>-<n>-you` /
+`g<game>-<n>-it` is each move — `{card, at, pts, links:[[otherCard, why]…]}`
+or `{pass:true, swap:n}`. Card ids are the first 8 chars of the triset card
+id. **Her `links` are the examples she said to learn the tagging from** — the
+v2 playtest's were lost because v2 kept them in memory, which is why this
+exists.
 
 ## Rebuilding
 
