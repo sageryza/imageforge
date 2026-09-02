@@ -242,6 +242,12 @@ The generic phone inbox, the APNs doorbell, and the Google Drawing extractor.
     already holding runs no `makeUIView` and the deck would never open. The
     flag is one-shot, so a later reload cannot drag her back into a deck she
     has walked out of.
+  - **The name under a medium icon is TWO LINES with its hyphens taken out**
+    — measured against the live queue the hour it shipped: most chats carry
+    no `displayName`, so the name IS the slug (`triangle-cards-compare`), and
+    one line at 64pt fits about twelve characters. "TRIANGLE-CAR…" names
+    nothing; broken at its own words it does. The picture is still what she
+    recognises a deck by.
   - **Pictures are fetched in the PROVIDER**, never the view — a widget view
     cannot load a URL — and a timeline entry is archived to disk, which is the
     other reason the faces must be derived thumbs.
