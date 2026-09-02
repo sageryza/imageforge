@@ -1,0 +1,101 @@
+{
+  "_what": "Similitude (the triset dominoes) — commercial concepts, 2026-09-02. Posted as a deck to the similitude-commercial-design chat's Compare tab for ♥/✕. Each card is one commercial; the last cards are tagline options.",
+  "items": [
+    {
+      "id": "you-tell-us",
+      "who": "You tell us",
+      "eyebrow": "the question ad · 20s",
+      "text": "Three triangle cards land on a wood table: a comet, a mountain goat, a salt flat. A voice asks: what do these have in common? Nothing happens. A hand turns one card. Then, off screen: \"they all have peaks.\" The middle triangle fills in and a brand-new card is drawn on the spot — the thing that unites them.",
+      "sections": [
+        {"label": "Tagline", "text": "Similitude. Dominoes for creative people."},
+        {"label": "Why it works", "text": "The silence IS the pitch. Regular dominoes never make you wait; this one makes you think, and the payoff is a card nobody has ever seen."}
+      ]
+    },
+    {
+      "id": "two-answers",
+      "who": "Two answers, both right",
+      "eyebrow": "the creative-people ad · 25s",
+      "text": "Same three cards, two different tables. Table one: \"jagged line running through them.\" Table two: \"they're all cold.\" Both tables get a new card, and the two new cards are completely different. Split screen at the end: two decks that came from the same start and don't look alike.",
+      "sections": [
+        {"label": "Tagline", "text": "Nothing is spelled out."},
+        {"label": "Why it works", "text": "This is the whole difference from dominoes in one image: the game is what YOU see, so your deck ends up being a portrait of how you think."}
+      ]
+    },
+    {
+      "id": "domino-table",
+      "who": "The other domino table",
+      "eyebrow": "before / after · 20s",
+      "text": "BEFORE: a beige room, four people matching dots. \"Four.\" \"...four.\" A clock. AFTER: same four people, Similitude on the table, everyone talking at once — \"burnt toast and a REDWOOD?\" \"column up the middle!\" \"...ok fine.\" A new card gets drawn while they argue.",
+      "sections": [
+        {"label": "Tagline", "text": "Dominoes with a twist."},
+        {"label": "Why it works", "text": "The same before/after shape as the boys ad — the joke does the selling. The dots are the villain."}
+      ]
+    },
+    {
+      "id": "the-deck-grows",
+      "who": "The deck that grows",
+      "eyebrow": "time-lapse · 15s",
+      "text": "One table, one evening, sped up. The deck starts as a small stack. Every set found makes a card appear, drawn in. By the end the table is tiled edge to edge in triangles and the stack is twice the size. Last frame holds on the tessellation.",
+      "sections": [
+        {"label": "Tagline", "text": "The deck you finish with is bigger than the one you started with."},
+        {"label": "Why it works", "text": "The made card is the feature no other game has. It also just looks beautiful when the triangles tile."}
+      ]
+    },
+    {
+      "id": "slices-of-life",
+      "who": "Little slices of life",
+      "eyebrow": "the illustration ad · 30s, no dialogue",
+      "text": "Slow. Macro on the cards one at a time — braided river, hot spring, frozen falls, redwood, comet — each one a small window. The camera pulls back and they're all one table. Then a hand slides two together along a shared edge and the wavy line in one continues into the other.",
+      "sections": [
+        {"label": "Tagline", "text": "Little slices of life. Find the seam."},
+        {"label": "Why it works", "text": "The art is a reason to buy on its own. This one sells the fractal/nature angle and could double as the product page video."}
+      ]
+    },
+    {
+      "id": "overheard",
+      "who": "Overheard",
+      "eyebrow": "the justification comedy · 20s",
+      "text": "No product shots until the end — just the audio of a table trying to convince each other. \"A candle stub and a sunflower.\" \"One column, straight up.\" \"That's a stretch.\" \"Look at it!\" Cut to the two cards. Oh. It IS a column. New card drawn.",
+      "sections": [
+        {"label": "Tagline", "text": "Expands your mind."},
+        {"label": "Why it works", "text": "The social half: there are no wrong answers but you still have to convince the table. That's what makes it a game and not a puzzle."}
+      ]
+    },
+    {
+      "id": "tag-dots",
+      "who": "Tagline: the dots",
+      "eyebrow": "tagline option",
+      "text": "Dominoes, but you make up the dots.",
+      "sections": [
+        {"label": "The idea", "text": "Dominoes tell you the match with pips. Similitude has none — the connection is yours to invent. This one names that in one line and keeps your dominoes hook."}
+      ]
+    },
+    {
+      "id": "tag-creative",
+      "who": "Tagline: yours",
+      "eyebrow": "tagline option",
+      "text": "Dominoes for creative people.",
+      "sections": [
+        {"label": "The idea", "text": "Your line as given. Names the audience straight out — the person who buys it wants to be that person."}
+      ]
+    },
+    {
+      "id": "tag-spelled",
+      "who": "Tagline: nothing spelled out",
+      "eyebrow": "tagline option",
+      "text": "Nothing is spelled out.",
+      "sections": [
+        {"label": "The idea", "text": "Doubles as a description of the cards (no words, no numbers) and of the game (you name the match). Pairs well with the name — Similitude is a word you have to think about too."}
+      ]
+    },
+    {
+      "id": "tag-common",
+      "who": "Tagline: the question",
+      "eyebrow": "tagline option",
+      "text": "What do a comet and a canyon have in common? You tell us.",
+      "sections": [
+        {"label": "The idea", "text": "The game as a question. Swap the two things every time it runs — every poster is a different pair."}
+      ]
+    }
+  ]
+}
