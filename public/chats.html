@@ -11071,5 +11071,85 @@ setInterval(function(){
 }, 20000);
 // Coming back to the app should feel instant rather than waiting out the timer.
 document.addEventListener('visibilitychange', function(){ if(!document.hidden) poll(); });
+/* ── THE PAGE HEALS ITS OWN STALENESS (2026-09-02, Sophie: "build self heal").
+   The Playground's rule (promptlab.html, `plBuildCheck`) arriving at the page
+   she has open most. WHY: #2048's stale merge put a clobbered chats.html live
+   from 12:46 to 2:42pm, and every phone that loaded it in that window KEPT it
+   — the app holds the Chats web view for the whole app process, so the repair
+   that went live at 2:42 could not reach her, and "the auto scroll bug in
+   tinder template is back" was that stale copy an hour after the fix.
+
+   A HASH, NOT A CONST: `window.__forgeBuild` is stamped by serveGated from
+   the page bytes (page-build.js); GET /api/chatfeed/build answers the same.
+   READ LAZILY — the stamp is APPENDED after the page, so it does not exist
+   while this script parses; caching it here would disable the heal forever
+   and every "same build" assertion would still pass, vacuously.
+
+   IT RELOADS ONLY WHEN NOTHING WOULD BE LOST. This page holds real unsaved
+   things: a message half-typed in a composer, a note in a box, words in a
+   search, an open sheet (Organize, archive, the waiting-for box), an open
+   Compare page or deck (the pill is exactly what she is using there), an open
+   picture, Select mode, a running autoscroll, a playing voice, and anything
+   under her thumb in the last ten seconds. Any of those → wait and ask again.
+   Everything else already survives a reload: the tab, the view, her place in
+   a thread (a reload from inside a thread lands back on `?chat=<slug>`, the
+   same door a tapped push opens), the sticky filters.
+
+   THE VISIBILITY CHECK IS THE ONE THAT MATTERS: coming back to the app is the
+   moment a stale page is about to be used; the five-minute timer is only the
+   fallback for a page left open. Exposed as window.__chBuildCheck for the
+   test (scripts/test-chats-selfheal.js). ── */
+function chBuild(){ return window.__forgeBuild || ''; }
+var chTouchedAt=0;
+['pointerdown','keydown'].forEach(function(ev){
+  document.addEventListener(ev, function(){ chTouchedAt=Date.now(); }, true);
+});
+function chHolding(){
+  if(Date.now()-chTouchedAt<10000) return true;                        // under her thumb
+  var el=document.activeElement;
+  if(el && (el.tagName==='TEXTAREA' || el.tagName==='INPUT')) return true;
+  var boxes=document.querySelectorAll('textarea, input[type="search"], input[type="text"]');
+  for(var i=0;i<boxes.length;i++){ if((boxes[i].value||'').trim()) return true; }   // words she typed
+  if(document.querySelector('.askwrap')) return true;                  // a sheet is open
+  if(document.querySelector('.pageview')) return true;                 // a Compare page / deck is open
+  var lb=document.getElementById('clightbox'); if(lb && lb.children.length) return true;
+  if(selMode) return true;
+  if(playing) return true;                                             // the autoscroll is running
+  var au=document.querySelectorAll('audio,video');
+  for(var j=0;j<au.length;j++){ if(!au[j].paused && !au[j].ended) return true; }
+  return false;
+}
+// Where a fresh load should land: the thread she is in (the `?chat=` door the
+// app itself uses), else the home — and never a `?chat=` left over from a link
+// she has since walked away from.
+function chReloadTo(){
+  var u=new URL(location.href);
+  ['chat','view'].forEach(function(k){ u.searchParams.delete(k); });
+  if(cur) u.searchParams.set('chat', cur);
+  return u.pathname+(u.search||'');
+}
+function chBuildCheck(){
+  var mine=chBuild();
+  if(!mine) return Promise.resolve(false);          // older server, nothing to compare
+  return fetch('/api/chatfeed/build',{cache:'no-store'})
+    .then(function(r){ return r.json(); })
+    .then(function(r){
+      if(!r || !r.build || r.build===mine) return false;
+      if(chHolding()) return false;
+      location.replace(chReloadTo());
+      return true;
+    }).catch(function(){ return false; });
+}
+window.__chBuildCheck=chBuildCheck;
+// The test's hands on the closure — this script is one IIFE, so nothing here
+// is reachable from outside without them.
+window.__chHeal={ check:chBuildCheck, holding:chHolding, reloadTo:chReloadTo,
+  cur:function(){ return cur; }, touch:function(ms){ chTouchedAt=ms; },
+  set:function(k,v){ if(k==='selMode') selMode=v; else if(k==='playing') playing=v; } };
+setInterval(chBuildCheck, 5*60*1000);
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState==='visible') chBuildCheck();
+});
 })();
+
 </script>
