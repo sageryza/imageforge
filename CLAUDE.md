@@ -255,6 +255,18 @@ than deploying by reflex.
   merge; a 14-minute 4K sheet still cannot, and the sweep's redraw is the
   fallback for that one, at a second draw's price. `GET
   /api/promptlab/inflight` is the read.
+  **AND THERE IS A STOP GUARD IN FRONT OF EVERY DEPLOY (same night, Sophie:
+  "why can't there be a stop guard before a deploy that asks if anything's
+  drawing").** Render's pre-deploy command (`preDeployCommand` in render.yaml,
+  set live by API too) runs `scripts/deploy-guard.js` after the build and
+  BEFORE the new instance starts, while the old one is still serving: it
+  reads `/inflight` and holds the deploy until nothing is drawing or cutting
+  — up to 25 minutes, then the deploy FAILS on purpose rather than kill a
+  draw (nothing shipped, nothing killed; the next merge carries it). So a
+  merge waits for her pictures by itself, for every chat, with nothing to
+  remember. Waiting costs pipeline minutes at $5/1,000 — cents. A server
+  with no `/inflight` (an old build, a box mid-restart) does not hold it.
+  Test: `node scripts/test-deploy-guard.js`.
 
 **The habit: PHOTO every round, SANDBOX when she wants to tap it, LIVE when
 she says.** Ask which she wants rather than assuming.
