@@ -3455,6 +3455,16 @@ app.get('/sheet-grid.js', (req, res) => {
   res.set('Cache-Control', 'no-cache, must-revalidate');
   res.sendFile(__dirname + '/sheet-grid.js');
 });
+
+// The one shape of a Film Editor cut (2026-09-02): the page validates,
+// resolves and diffs the SAME two lanes the server renders, so a still's
+// hold, a sound's anchor and the move rules cannot drift between them.
+app.get('/cut-model.js', (req, res) => {
+  res.type('application/javascript');
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/cut-model.js');
+});
+
 // Chunking: the clip library — a shelf of every short self-contained piece the
 // app has made, four to a row, with search as the whole interface. Engine is
 // /api/clips (clips.js). `/clips` is the honest alias; `/chunking` is the name

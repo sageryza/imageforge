@@ -55,6 +55,15 @@ The numbers are measured, not guessed.
    metadata. Full procedure: *THE CLEAN EXPORT* in
    `docs/modules/audio-and-film.md`. (Images: not built yet, hers to ask.)
 
+3g. **CUTTING A FILM OF CLIPS, STILLS AND SOUND? IT IS A FILM EDITOR CUT DOC,
+   NOT A LIST IN YOUR HEAD (2026-09-02, Sophie: "clips laid out exactly the
+   same so we can both edit in parallel … i need to be able to move the sound
+   around").** Build the two lanes in the doc, render THROUGH it, pin the
+   render with `cut:<id>` — `node scripts/filmcut.js create · set · render ·
+   pin`. When she next messages you, `diff` first: it says what she moved.
+   Read the `film-cut` skill BEFORE cutting. Full design:
+   `docs/film-editor-parallel-editing-plan.md`.
+
 3f. **Handed her a FILM MADE OF PICTURES? FILE ITS SHOT MAP** —
    `POST /api/filmshots {chat, session, url, seconds, shots:[{at, url}]}`,
    one entry per picture with the second it comes on screen. It is what puts
@@ -6402,6 +6411,26 @@ before working on that module. Nothing was deleted — the moved text is verbati
   HTMLElement-only and `.hidden =` on an SVG is a dead expando (the
   pause-button-that-never-was). The progress line (`#msg`) lives OUTSIDE
   `#editBox`, because the first upload happens while the empty state shows.
+  **TWO LANES, BOTH HERS, AND THE DOC IS THE FILM (2026-09-02, Sophie:
+  "clips laid out exactly the same so we can both edit in parallel … i need to
+  be able to move the sound around. that's literally what i can't describe to
+  the chat").** `cut-model.js` is the ONE shape (served at `/cut-model.js`,
+  validated by the server and the page): a PICTURE lane of clips and stills
+  and a SOUND lane of any number of overlapping sounds, each with in/out, a
+  start second, a level in dB, fades, mute, and an optional ANCHOR to a shot
+  (screams ride the horror clip wherever she moves it). A gain ride is the bed
+  split into sound pieces with their own levels — the same split/trim/move
+  tools on both lanes, never a curve to drag. A chat and Sophie edit ONE doc:
+  a save carries `base` (the `updatedAt` it loaded) and a stale save is
+  refused with her current doc, never merged or silently overwritten; every
+  render carries `by` and a snapshot, and `GET /:id/diff` says in words what
+  moved since. **No doorbell** — her message is the wake (her call): the chat
+  runs `node scripts/filmcut.js diff` when she next writes. The pinned row
+  and the deliverables list carry a door into the cut (`cut:<id>` on the
+  pin). Plan: `docs/film-editor-parallel-editing-plan.md`; the chat's
+  ritual: the `film-cut` skill. Tests: `node scripts/test-cut-model.js`,
+  `node scripts/test-filmeditor-render.js` (a real render of stills + an
+  anchored sound following a reorder).
   Tests: `node scripts/test-filmeditor.js` (pure + the static page
   contracts, no network) and `node scripts/test-filmeditor-page.js`
   (headless Chromium PLAYS real generated videos through the real page —
