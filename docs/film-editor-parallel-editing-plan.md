@@ -12,6 +12,22 @@ render of it.** Two copies kept in step is the Story Link lesson (a live
 two-way sync silently rearranges someone's work); one source of truth is how
 the Story Room and the Playground already share a picture.
 
+**Her corrections the same day, which this plan now follows:**
+- *"i need to be able to move the sound around. that's literally what i can't
+  describe to the chat."* — so the SOUND lane is hers exactly as the picture
+  lane is: every sound is a piece she can move, split, trim, level, fade, mute
+  and delete with the SAME tools. A gain ride is not a curve she has to drag;
+  it is the bed split into pieces with their own levels and fades.
+- *"they don't need to wake up automatically because i'll know what i want
+  them to do next."* — so there is NO doorbell on her save. Her loop is: the
+  chat gives a draft → she edits in the Film Editor → she sends a message →
+  the chat reads what she changed off the doc and does its half → renders →
+  she edits again. Her message is the wake, as it is everywhere else in this
+  house; the chat's sweep reads the cut's diff the way it reads asset notes.
+- *"the captions and stills im not so worried about"* — stills stay in the
+  plan because The Ant Farm is 60% stills and Assembly's recipe makes them
+  cheap; text overlays are out.
+
 ## The acceptance test — The Ant Farm
 
 The plan is done when **The Ant Farm v7** (chat `ant-movie-sound-redesign`,
@@ -50,35 +66,37 @@ design is what that chat is for.
 
 ## Phases
 
-### Phase 0 — the schema, in one pure file (½ turn, this chat)
-`cut-model.js`, dependency-free, served to the page like `pause-plan.js`, so
-the server and the page validate one shape and cannot drift (the page mirrors
-`cleanPieces` by hand today).
+### Phase 0 — the schema, in one pure file (DONE 2026-09-02, this chat)
+`cut-model.js`, dependency-free, served at `/cut-model.js` like
+`pause-plan.js`, so the server and the page validate one shape and cannot
+drift (the page mirrored `cleanPieces` by hand before this). TWO LANES:
 
 ```
 piece  { key, kind:'video'|'image', url, title, poster, seconds, in, out,
-         hold?      // image only — seconds on screen
-         mute?      // drop this clip's own sound
-         gain? }    // dB on this clip's own sound
-track  { key, url, name, offset, gain (dB), fadeIn, fadeOut, mute,
-         anchor?: { piece: <key>, at: seconds }   // rides a SHOT, not a clock
-         points?: [{ at, db }] }                  // the gain ride, chat-authored
-doc    { …, clips:[piece], tracks:[track], audio: <legacy mirror of tracks[0]>,
-         chat, session, by, base:updatedAt,
-         renders:[{ url, at, by, seconds, cut:<snapshot of clips+tracks> }] }
+         mute, gain }          // a still: in 0, out = its hold, muted
+sound  { key, url, name, seconds, in, out (null = to the end), at, gain (dB),
+         fadeIn, fadeOut, mute,
+         anchor: { piece: <key>, offset } | null }   // rides a SHOT
+doc    { …, clips:[piece], sounds:[sound], audio: <legacy mirror of sounds[0]>,
+         chat, session, updatedAt,
+         renders:[{ url, at, by, seconds, cut:{clips, sounds} }] }
 ```
-`audio` stays written as a mirror of the first track for the page cached on
-her phone. Tests: `scripts/test-cut-model.js` — every field's clean/refuse
-table, the anchor resolving to a timeline second, the legacy read.
+Rules the file owns: `soundStart` (anchor wins when its shot exists, else
+`at`), `normalize` (rewrites `at` to the resolved second on every save, drops
+an anchor to a missing shot), `moveSound` (her move keeps an anchored sound
+on its shot with a new offset), `anchorToShot` ("ride this shot"),
+`splitSound`, the legacy `audio` read/mirror, and `diffCut` → words the chat
+reads back ("kid horrified earlier (now at 8.4s, was 32.1s)"). Tests:
+`node scripts/test-cut-model.js` (48 checks, the ant movie as the fixture).
 
 ### Phase 1 — the server can render the ant movie (1 agent, parallel with 2)
 `filmeditor.js`:
 - still pieces through Assembly's own recipe (`-loop 1 -t hold`), proxied as
   a 60s baked mp4 so the player treats it as video; trim = hold.
-- `mixGraph` generalized: N tracks → adelay per track (anchor resolved against
-  the pieces' timeline positions at render time), `volume` per track, `afade`
-  in/out, `points` rendered as a `volume` expression interpolated over `t`,
-  `amix normalize=0` (the house rule — amix's default halves every voice).
+- `mixGraph` generalized: N sounds → each trimmed (`-ss in -to out`), delayed
+  to its RESOLVED start (`CutModel.soundStart`), `volume` in dB, `afade`
+  in/out, then `amix normalize=0` (the house rule — amix's default halves
+  every voice). No curve type: a ride is sound pieces.
 - piece `mute`/`gain` on the per-segment PCM.
 - `POST /:id/pieces` takes `base` — a stale write is refused WITH the current
   doc, never merged, never silently overwritten (last-writer-wins is the bug
@@ -96,13 +114,17 @@ boundaries and that the anchored track lands on its shot after a reorder.
 - a still in the strip (poster tile, its hold as its length); upload accepts
   images; **Add from the Dump** (Assembly's door, ported); a still's trim
   in/out edits its hold through the SAME tools — no new controls.
-- the audio row becomes a LIST: name · sync (offset, already there) · a −/+
-  level · mute · ✕ · and "rides: <shot>" when anchored. The gain ride is
-  drawn as a small read-only line: her levers are louder, quieter, out; the
-  curve stays the chat's (Sophie decides if she wants to drag points later).
-- preview: one `<audio>` per track, each primed and paced the way the one
-  track is today (`primeAudio`/`audioPace` become per-element). This is the
-  riskiest piece of the plan and gets the measured-on-the-real-page test.
+- a SOUND LANE under the picture strip: every sound drawn as a bar at its
+  resolved start, overlapping sounds stacked. Tap a sound and the SAME tool
+  row works on it — split at the playhead, trim in/out, earlier/later
+  (nudge), sync (start it AT the playhead — that is "move the sound around"),
+  delete — plus a level −/+ (1 dB a tap), fade in/out chips, mute, and "ride
+  this shot" (anchor to the shot under its start). Adding a sound: upload
+  (already there) or the audio library.
+- preview: one `<audio>` per sound, each primed and paced the way the one
+  track is today (`primeAudio`/`audioPace` become per-element), volume from
+  `CutModel.db2lin`, fades ramped. This is the riskiest piece of the plan and
+  gets the measured-on-the-real-page test.
 - versions: the films sheet lists renders with WHO made each and a "newest
   from the chat" mark; opening the cut after a chat render says so.
 - a stale save (refused `base`) reloads the doc and re-applies her last tap,
@@ -111,8 +133,9 @@ Tests: `test-filmeditor-page.js` grows a still, two tracks, a level change,
 and the base-conflict path; every assertion a measurement on the real page.
 
 ### Phase 3 — the chat side (this chat, after 1+2 merge)
-- `POST /` takes `chat` + `session`; her save rings `chat-wake.ring(chat)`;
-  the chat's sweep reads `/diff` since its last render.
+- `POST /` takes `chat` + `session` so the cut knows its chat. **No doorbell**
+  (her call): when she next messages the chat, its sweep reads `/diff` since
+  its last render, the way it reads asset notes.
 - `POST /pin` and `/api/deliverables` take `cut:<id>`; the pinned-film row in
   the Chats app grows an **Open in the editor** door; filmshots is written
   from the doc at render time (still pieces → shots).
@@ -130,8 +153,9 @@ and the base-conflict path; every assertion a measurement on the real page.
   is the acceptance test, and it is free — ffmpeg on our box.
 
 ### Phase 4 — the loop, live (this chat)
-Her edit → doorbell → chat reads the diff → does its half → saves with `base`
-→ renders → pins with the cut id → her editor shows the new version. Then the
+Chat's draft → her edit → her message → chat reads the diff → does its half
+→ saves with `base` → renders → pins with the cut id → her editor shows the
+new version. Then the
 same loop run once on the ant movie with her actually tapping, and whatever
 breaks in her hand fixed before this is called done.
 
@@ -140,8 +164,9 @@ breaks in her hand fixed before this is called done.
   title card is a still piece. A text piece is a later addition if a film
   needs live text.
 - **Transitions, speed, crops.** None in the ant movie; hard cuts only.
-- **Dragging the gain-ride points on the phone.** Her lever is per-track
-  level/fade/mute; the curve is authored by the chat.
+- **A gain curve.** A ride is sound pieces with levels and fades — one
+  vocabulary on both lanes, and every part of it hers to move.
+- **An automatic wake on her save.** Her message is the wake.
 - **A second copy of the cut anywhere.** No EDL in a chat's head, no JSON in
   a scratchpad — the doc or nothing.
 
@@ -160,6 +185,6 @@ Nothing here spends money: renders are ffmpeg on our own box, and the ant
 migration reuses the beds already banked.
 
 ## What she decides
-Nothing blocks the start. Two calls she can make later: whether she wants to
-drag the gain-ride points herself (not built), and whether a chat rendering
-outside the doc is ever acceptable once this exists.
+Nothing blocks the start (she said go for the clear parts, 2026-09-02). One
+call she can make later: whether a chat rendering outside the doc is ever
+acceptable once this exists.
