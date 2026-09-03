@@ -709,9 +709,13 @@
     // action DOES move deck forward", then "maybe counts as a decision too").
     // On a quick deck ANY verdict she gives — ♥, ✕, maybe, her own words, a
     // spread pick — steps forward one card by itself; a CLEAR and a note stay
-    // put, and the edge taps and swipe still navigate. The default is
-    // labored — the browse rule exactly as it was.
-    var quick = opts.pace === 'quick';
+    // put, and the edge taps and swipe still navigate.
+    // QUICK IS THE DEFAULT SINCE 2026-09-03 (Sophie, on the Playground-hearts
+    // page: "it shud be quick toggle. set that as the default") — a deck with
+    // no pace field moves on a verdict; only an explicit pace:'labored' keeps
+    // the old browse rule (a mark never moves it). Labored was the default
+    // for two days and she flipped it.
+    var quick = opts.pace !== 'labored';
     var voice = !!opts.voice;
     // ── THE GOOD / BAD STAMP (see the CSS). ON by default — it is what a
     // decided card looks like now; `stamp:false` turns it off for a deck

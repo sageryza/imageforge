@@ -4757,8 +4757,9 @@ router.get('/page/:id', async (req, res) => {
       try { data = JSON.parse(buf.toString('utf8')); } catch (e) { /* renders empty */ }
       // the doc's pace wins over the frozen data — POST /page/:id/pace above
       const pagePace = snap.data().pace;
-      if (pagePace === 'quick') data.pace = 'quick';
-      else if (pagePace === 'labored') delete data.pace;
+      // (quick is the default since 2026-09-03, so labored is the word that
+      // has to be carried, not deleted)
+      if (pagePace === 'quick' || pagePace === 'labored') data.pace = pagePace;
       let thtml = pageTemplates.renderTemplatePage({
         template: snap.data().template, title: snap.data().title || '',
         // the page's own <h1> when it differs from the name the Compare tab
