@@ -6012,6 +6012,37 @@ before working on that module. Nothing was deleted — the moved text is verbati
   and both house helpers (`liveInput`, `enterSubmits`) are wired, and the box
   is deliberately NOT sticky, unlike the view and the heart. Test:
   `node scripts/test-playground-search.js`.
+  **AND THE SEARCH DECIDES MEMBERSHIP AND ORDER, NEVER WHAT A RUN SAYS
+  (2026-09-03, Sophie: "hearts…", with two screenshots a second apart — the
+  tile wall showing hearts on two patchwork triangles, and the lightbox on one
+  of those same pictures showing no heart at all).** `hits` is the ARRAY OF
+  OBJECTS the search answered with, and it was the one store on the page
+  nothing ever refreshed: `castLB` mutates `runsById[id]`, and `mergeRuns` —
+  which every vote reaches through `loadRuns` — REPLACES `runsById[id]` with a
+  fresh doc, so the identity the two shared at search time broke on the first
+  refresh. From then on, **for as long as her query stood, the wall painted the
+  votes the search had frozen**: a ♥ she cast never appeared and one she
+  CLEARED never came off. Measured against her real data that afternoon — four
+  taps in ninety seconds, two likes and two clears, and the wall showed the
+  opposite of all four while the lightbox was right, which is exactly the pair
+  of screenshots. `visibleRuns()` resolves every hit through `runsById` now:
+  ONE live doc per run. **Nothing was lost** — the server had her real answer
+  the whole time; only the badges lied. Test:
+  `node scripts/test-playground-search-vote.js` (verified failing 2 pre-fix;
+  every assertion a MEASUREMENT of the rendered badge against what the stub
+  server really received, because the wall and the lightbox read the same
+  expression off two different objects and the source cannot tell them apart).
+  **AND `.filttog` HID THE SELECT CHIP ON THE PICTURE TAB, silently
+  (2026-09-03, found by the same sweep).** `paintFiltRow` hid the whole
+  segmented box with `!onPanels()` — right when the sheets chip was the only
+  thing in it, and wrong the moment #2058 moved the ♥/✕ pair into the filters
+  drawer and left `#v-select` alone in there: **"pick several at once" (#2030,
+  her own ask) had no door at all on the tab she draws in.** The box is hidden
+  only when every child is, derived from the children, so the next chip added
+  there needs nothing. `node scripts/test-playground-select.js` had been RED on
+  main since #2058 for the same reason (it still tapped `#v-liked`/`#v-hidex`,
+  which that PR replaced) — a test left behind by a move is how a regression
+  gets to sit on main unnoticed.
   **{CURLY BRACKETS} ARE MIDJOURNEY'S PERMUTATION PROMPTS (Aug 2026, Sophie:
   "u know in midjourney using curly brackets to do multiple prompts" →
   "yes :)").** `a {red, blue} bird` is two prompts, separate groups multiply,

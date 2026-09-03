@@ -130,6 +130,19 @@ const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
         ':' + (b.classList.contains('like') ? 'like' : 'dislike');
     }));
   const count = () => page.locator('#selcount').textContent();
+  // THE TWO MARKS LIVE INSIDE THE FILTERS DRAWER SINCE #2058 (/searchfilters.js),
+  // so a tap on either is: open the drawer, then tap the chip.
+  const HEART = '#feedfilters .filtcbtn[data-v="like"]';
+  const NOX = '#feedfilters .filtcbtn[data-v="nox"]';
+  // A tap OUTSIDE the drawer closes it since #2062, so it is re-opened before
+  // every chip rather than once at the top.
+  const tapFilt = async (sel) => {
+    if (!(await page.locator('#feedfilters .filtdrawer').isVisible())) {
+      await page.click('#feedfilters .filtchip');
+      await page.waitForSelector('#feedfilters .filtdrawer:not([hidden])');
+    }
+    await page.click(sel);
+  };
 
   console.log('OFF — nothing moved');
   ok(!(await lbOpen()), 'the lightbox starts shut');
@@ -157,8 +170,8 @@ const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
   // The heart filter drops both picked cells out of the DOM and puts them
   // back — the hardest repaint there is, since the nodes are rebuilt from
   // scratch rather than updated in place.
-  await page.click('#v-liked'); await page.waitForTimeout(100);
-  await page.click('#v-liked'); await page.waitForTimeout(100);
+  await tapFilt(HEART); await page.waitForTimeout(100);
+  await tapFilt(HEART); await page.waitForTimeout(100);
   ok(same(await picked(), ['run1#0', 'run2#1']), 'a repaint that rebuilds the cells keeps her picks');
 
   console.log('THE MARK');
@@ -189,11 +202,11 @@ const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
   ok(await page.locator('#sel-all').textContent() === 'None', 'and the word becomes None');
   await page.click('#sel-all');
   ok((await picked()).length === 0, 'None puts them all back');
-  await page.click('#v-liked');                      // hearts only
+  await tapFilt(HEART);                              // hearts only
   await page.waitForTimeout(100);
   await page.click('#sel-all');
   ok(same(await picked(), ['run0#0']), 'with the heart lit All picks only what is on screen');
-  await page.click('#v-liked');
+  await tapFilt(HEART);
   await page.waitForTimeout(100);
 
   console.log('DONE');
@@ -224,7 +237,14 @@ const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
         tops: [r('.viewtog').top, r('.filttog').top, r('.feedsearch').top],
         barH: r('.feedbar').height,
         selW: r('#v-select').width,
-        heartW: r('#v-liked').width,
+        selH: r('#v-select').height,
+        // Its neighbour on the ROW since #2058 moved the marks into the
+        // drawer — the sifter chip. The select chip must read as one of the
+        // row's boxes, not as a stray of its own size. It sits INSIDE
+        // `.filttog`, which carries the 1px outline the sifter carries on
+        // itself, so the two agree to within that border.
+        heartW: r('#feedfilters .filtchip').width,
+        heartH: r('#feedfilters .filtchip').height,
       };
     });
     ok(m.have >= m.need,
@@ -232,8 +252,9 @@ const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
     ok(m.tops.every(t => Math.abs(t - m.tops[0]) < 1), `${tab}: the three groups share one line`);
     ok(m.chips.every(t => Math.abs(t - m.chips[0]) < 1), `${tab}: every chip shares the filter box`);
     ok(m.barH < 60, `${tab}: the row is still one line tall (${Math.round(m.barH)}px)`);
-    ok(Math.abs(m.selW - m.heartW) < 1,
-      `${tab}: the select chip is the same box as the heart (${Math.round(m.selW)}px)`);
+    ok(Math.abs(m.selW - m.heartW) <= 2 && Math.abs(m.selH - m.heartH) <= 2,
+      `${tab}: the select chip is the sifter's box (${Math.round(m.selW)}x${Math.round(m.selH)}`
+      + ` vs ${Math.round(m.heartW)}x${Math.round(m.heartH)})`);
   }
   // Lit, it is INK — not the heart's rose and not the ✕'s grey. It is a mode,
   // not a mark, and three colours in one box would read as three of a kind.
@@ -245,7 +266,15 @@ const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
       if (!on) e.classList.remove('on');
       return c;
     };
-    return [g('v-liked', false), g('v-hidex', false), g('v-select', false)];
+    const gs = (sel) => {
+      const e = document.querySelector(sel);
+      e.classList.add('on');
+      const c = getComputedStyle(e).backgroundColor;
+      e.classList.remove('on');
+      return c;
+    };
+    return [gs('#feedfilters .filtcbtn[data-v="like"]'),
+      gs('#feedfilters .filtcbtn[data-v="nox"]'), g('v-select', false)];
   });
   ok(lit[2] !== lit[0] && lit[2] !== lit[1],
     `lit, select is told apart from both marks (${lit.join(' vs ')})`);
