@@ -53,9 +53,48 @@ final class PhotoSaver {
     private static func acceptableBytes(data: Data?, image: UIImage?) -> (Data, String)? {
         if let data, let ext = nativeExtension(of: data) { return (data, ext) }
         guard let image else { return nil }
+        // THE PROMPT RIDES INSIDE THE FILE (2026-09-03, Sophie: "could the
+        // prompt it was made from be filed as metadata w pictures"). The
+        // server writes a picture's whole prompt + MODEL · QUALITY · SIZE into
+        // the webp as an XMP packet (image-meta.js). `pngData()` would throw
+        // it away with every other chunk, so the re-encode goes through
+        // ImageIO with the packet attached — Photos then shows her words as
+        // the picture's Caption. A webp with no packet re-encodes as before.
+        if let data, let xmp = xmpPacket(inWebP: data), let png = pngData(image, xmp: xmp) { return (png, "png") }
         if let png = image.pngData() { return (png, "png") }
         if let jpg = image.jpegData(compressionQuality: 0.95) { return (jpg, "jpg") }
         return nil
+    }
+
+    /// The `XMP ` chunk out of a RIFF/WEBP container, or nil. A plain chunk
+    /// walk — ImageIO's own webp reader does not surface XMP reliably.
+    private static func xmpPacket(inWebP data: Data) -> Data? {
+        let b = [UInt8](data)
+        guard b.count > 12, String(bytes: b[0..<4], encoding: .ascii) == "RIFF",
+              String(bytes: b[8..<12], encoding: .ascii) == "WEBP" else { return nil }
+        var p = 12
+        while p + 8 <= b.count {
+            let id = String(bytes: b[p..<p + 4], encoding: .ascii) ?? ""
+            let size = Int(b[p + 4]) | Int(b[p + 5]) << 8 | Int(b[p + 6]) << 16 | Int(b[p + 7]) << 24
+            let end = p + 8 + size
+            guard end <= b.count else { return nil }
+            if id == "XMP " { return Data(b[(p + 8)..<end]) }
+            p = end + (size & 1)
+        }
+        return nil
+    }
+
+    /// A PNG of the decoded picture carrying the XMP packet (as the standard
+    /// `XML:com.adobe.xmp` text chunk ImageIO writes). nil on any failure so
+    /// the caller falls back to the plain re-encode.
+    private static func pngData(_ image: UIImage, xmp: Data) -> Data? {
+        guard let cg = image.cgImage,
+              let meta = CGImageMetadataCreateFromXMPData(xmp as CFData) else { return nil }
+        let out = NSMutableData()
+        guard let dest = CGImageDestinationCreateWithData(out, "public.png" as CFString, 1, nil) else { return nil }
+        CGImageDestinationAddImageAndMetadata(dest, cg, meta, nil)
+        guard CGImageDestinationFinalize(dest) else { return nil }
+        return out as Data
     }
 
     /// Sniff the container from its magic bytes — the URL's extension lies often

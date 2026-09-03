@@ -1793,8 +1793,11 @@ body.selecting .ckbtn,body.selecting .hidebtn,body.selecting .pinrow{display:non
 .msgsearch.open{display:block;}
 .msgcount{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.06em;
   text-transform:uppercase; color:var(--ink2); margin:-6px 0 12px;}
-/* The New/♥/Hide ✕ segment moved INSIDE the filters drawer (2026-09-02) —
-   /searchfilters.css paints its chips now. */
+.afilter{display:flex; border:1.5px solid var(--line); border-radius:999px; overflow:hidden; background:var(--barbg); flex:none;}
+.afilter button{border:none; background:transparent; color:var(--ink2); font-family:-apple-system,sans-serif; font-size:11px;
+  letter-spacing:.08em; text-transform:uppercase; padding:7px 13px; cursor:pointer;}
+.afilter button+button{border-left:1px solid var(--line);}
+.afilter button.on{background:var(--rose); color:#fff;}
 /* THE DRAWER IS IN FLOW HERE, not a panel hanging over the page — the row it
    opens from sits directly on top of the search box and the tiles, and a
    floating panel covers both: measured, the search box and the first row of
@@ -8728,7 +8731,7 @@ function openChat(name, keepScroll, focusId, noFetch){
         // all pages ... you can put the heart x thing within the toggle").
         // Tapping the lit chip turns that filter off again, so the ✕'d tiles
         // stay reachable to un-reject.
-        var cells=[], q='';
+        var cells=[], filter=null, q='';
         // Everything written about an image is searchable: its label, the
         // model/quality caption, both halves of the prompt, and the whole note
         // thread — so "yellow raincoat" finds it by what's in the picture and
@@ -8761,7 +8764,6 @@ function openChat(name, keepScroll, focusId, noFetch){
         }
         function applyFilter(){
           var shown=0, groups=q?qparse(q):[];
-          var filter=afilt.get('marks');
           cells.forEach(function(c){
             var v=c.it.vote||null, show=true;
             if(filter==='new') show=!v;
@@ -8775,24 +8777,33 @@ function openChat(name, keepScroll, focusId, noFetch){
           });
           none.style.display=(shown||!cells.length)?'none':'';
         }
-        // The drawer is the SHARED shell (/searchfilters.js), guarded like
-        // every other shared file this page links. MARKS stay exclusive —
-        // three answers to one question about a picture's mark — and quality
-        // is multi, because "low and high" is what looking at a ladder is.
-        // Not sticky: this tab is a place she arrives to look at everything,
-        // and a filter left on from last week silently hiding most of it is
-        // exactly what the chip's state-wearing exists to stop.
+        // THE MARK SEGMENT IS BACK EXACTLY WHERE IT WAS (2026-09-02, Sophie:
+        // "actually put the heart x thing exactly where it was") — it rode
+        // inside the filters drawer for a day and she put it back.
+        var seg=document.createElement('div'); seg.className='afilter';
+        [['new','New'],['like','♥'],['nox','Hide ✕']].forEach(function(m){
+          var sb=document.createElement('button'); sb.textContent=m[1]; sb.dataset.f=m[0];
+          sb.onclick=function(){
+            filter = filter===m[0] ? null : m[0];
+            seg.querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', x.dataset.f===filter); });
+            applyFilter();
+          };
+          seg.appendChild(sb);
+        });
+        // The drawer beside it is the SHARED shell (/searchfilters.js),
+        // guarded like every other shared file this page links, and it keeps
+        // QUALITY and DATE — the two things about a picture that have nowhere
+        // else on this tab to live. Not sticky: this is a place she arrives to
+        // look at everything, and a filter left on from last week silently
+        // hiding most of it is exactly what the chip's counting exists to stop.
         var arow=document.createElement('div'); arow.className='arow';
         var fmount=document.createElement('div'); fmount.className='afilters';
-        arow.appendChild(fmount);
+        arow.appendChild(seg); arow.appendChild(fmount);
         assetsPanel.appendChild(arow);
         // The tab is rebuilt on every open, so the last drawer's tap-out
         // listener is taken down before a new one goes up.
         if(window.__assetFilt && window.__assetFilt.destroy) window.__assetFilt.destroy();
         var afilt = window.__assetFilt = SF ? SF.build(fmount, [
-          { key:'marks', kind:'chips', label:'Marks',
-            vals:['new','like','nox'], words:['New','\u2665','Hide \u2715'],
-            classes:['','','dropfilt'] },
           { key:'quality', kind:'chips', multi:true, label:SF.QUALITY.label,
             vals:SF.QUALITY.vals, words:SF.QUALITY.words },
           { key:'when', kind:'chips', label:SF.WHEN.label,

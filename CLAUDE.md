@@ -145,6 +145,13 @@ The numbers are measured, not guessed.
    knows. Say the quality as a word in the reply too, not "the default".
 6. **Post the EXACT prompt**, split style / content — never a paraphrase. No
    exact text on hand? File nothing.
+6a. **THE PROMPT RIDES INSIDE THE FILE (2026-09-03, Sophie: "could the prompt
+   it was made from be filed as metadata w pictures").** Every picture the
+   SERVER draws is stamped at birth by itself. A picture you draw in YOUR
+   OWN CONTAINER is stamped by `scripts/post-to-gallery.js --file` on the way
+   up, or by `node scripts/stamp-prompt.js <file> --full "…" --content "…"
+   --model … --quality … --size …` BEFORE any other upload. Exact text only.
+   Full rule: *THE PROMPT RIDES INSIDE THE PICTURE FILE* in Design rules.
 7. **If you added ANYTHING to a prompt she gave you, say so, word for word.**
 8. Run `node scripts/sweep-asset-captions.js --chat <your slug>` before you
    finish. It is read-only and it names what you missed.
@@ -3146,10 +3153,24 @@ them off the reference sheet, not off the old filenames.
     what comparing a ladder actually looks like. Tapping the lit chip clears
     it, so no row needs a second "off" control.
   - **WHERE IT IS: the Playground, Meta Assets, a chat's own Assets tab, and
-    the Chats search (both boxes).** Three rows on the picture surfaces —
-    **Marks** (the ♥/✕ pair, or New · ♥ · Hide ✕ where those three were
-    already exclusive), **Quality**, **When** (Today · This week · This month,
-    days back from now — "since Sunday" would cut a working night in half).
+    the Chats search (both boxes).** Two rows on the picture surfaces —
+    **Quality** and **When** (Today · This week · This month, days back from
+    now; "since Sunday" would cut a working night in half).
+  - **THE ♥ AND THE ✕ ARE NOT IN IT, AND THAT IS HER SECOND WORD ON IT
+    (2026-09-02: "you can put the heart x thing within the toggle" → "actually
+    put the heart x thing exactly where it was").** They rode inside the drawer
+    for a day. They are marks she CASTS on a picture, and the row above the
+    pictures is where she casts them; the drawer keeps the two things that are
+    facts about a RUN and have no other home. **Don't move them in again.**
+  - **AND ON THE PLAYGROUND THE DOOR IS ON THE CONTROLS ROW, NOT THE FEED BAR
+    (2026-09-02, she marked the spot in a screenshot: "put the filter button
+    where the pink mark was").** It drops into the gap `.gogroup`'s
+    `margin-left:auto` already makes, so Generate stays hard right and the row
+    is the width it was. **The drawer there is ABSOLUTE against `.controls`,
+    at z-index 6** — in flow the mount stretched to the drawer's width and
+    broke the row into three lines with Generate in the bottom corner
+    (PHOTOGRAPHED), and 6 is one above the feed bar's sticky 5 or the bar
+    paints over it.
   - **QUALITY IS READ OFF THE FILED MODEL · QUALITY · SIZE CAPTION** on an
     asset, because that is the only place a record carries it — which is also
     why filing that caption matters more, not less. **A picture whose caption
@@ -3524,6 +3545,60 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     required third slot could never appear however well the builder handled it;
     `style` was asked for but only read as a fallback, so it was fetched and
     dropped. When you add a field, add it to the read as well as the write.
+- **THE PROMPT RIDES INSIDE THE PICTURE FILE — `image-meta.js` (2026-09-03,
+  Sophie: "could the prompt it was made from be filed as metadata w pictures"
+  · "would this help our recurring prompt issue?").** The whole-prompt rule
+  above stores the text on a DOC, joined to the picture by url, filename or
+  md5 — and every one of those joins breaks the moment the bytes travel (a
+  re-encoded copy, a download, a Save to Photos, a file pasted into another
+  chat). So the same fields are now written INTO the file as an XMP packet:
+  `fullPrompt` · `promptStyle` · `promptContent` · `model` · `quality` ·
+  `size` · `canvas`, plus `dc:description` = her words, which is the field
+  Photos shows as a picture's Caption.
+  - **PURE BYTE SURGERY, NEVER A RE-ENCODE.** The packet is spliced into the
+    container (a webp `XMP ` chunk behind a VP8X header, a PNG `iTXt` ahead
+    of IDAT, a JPEG APP1) and the pixel data is byte-for-byte what the model
+    returned — measured through sharp: identical raw pixels on every
+    container, ~1KB added. A lossless re-encode would have kept the pixels
+    too and cost a 4K encode on the 512MB box for nothing. Stdlib only, so
+    the test needs no node_modules. **A stamp can never fail a save**: a
+    foreign or truncated file comes back as the same buffer.
+  - **WHERE IT IS WRITTEN: every save of a picture this server draws.**
+    `saveBufferToFirebase` / `saveToFirebase` take the fields as a last
+    argument and the Playground (single, sheet, every cut panel, the LoRA
+    copies), the four `/api/generate/*` routes, Freeform, Similitude and
+    `scripts/post-to-gallery.js --file` all pass them. `node
+    scripts/test-image-meta.js` pins every site by source, so a new save
+    site fails there until it stamps. A chat drawing in ITS OWN CONTAINER
+    stamps before any other upload with `scripts/stamp-prompt.js`
+    (`--read` prints what a file carries).
+  - **WHERE IT IS READ: `POST /api/gallery`, both doors.** A filing that
+    brings no prompt reads the file's own — a ranged read of the TAIL (webp,
+    png) or the HEAD (jpeg), never the whole object, and inline bytes are
+    read in hand — and fills the Assets halves and the MODEL · QUALITY · SIZE
+    caption from it. So the hook's `claude-deliveries` copy, a renamed copy,
+    and a re-encoded copy that KEPT its metadata all arrive already knowing
+    what they are. **Only ever a fallback**: a prompt the caller sent wins,
+    and the hook's generic `from <chat>` caption loses to the file's real one
+    (`captionUpgrade`'s own rule). **It does not fix the case nothing wrote
+    at birth** — an unstamped file reads as nothing, honestly, so the file-it-
+    when-you-make-it rules above stand exactly as they were.
+  - **THE PHONE CARRIES IT THROUGH (a TestFlight build).** `PhotoSaver`
+    re-encodes a webp to PNG for Photos and `pngData()` throws every chunk
+    away — it now lifts the `XMP ` chunk out of the RIFF and writes the PNG
+    through ImageIO with the packet attached, so a saved picture's Caption in
+    Photos is her prompt. A browser download keeps the webp as-is. **Nobody
+    has looked at a saved picture on a real phone yet** — the ImageIO half is
+    written, not measured; Sophie checking one picture's Caption in Photos
+    after the build is the measurement.
+  - **NOT BACKFILLED.** A Storage object is immutable behind a year-long CDN
+    cache, so stamping an older picture means a new object at a new url —
+    hers to ask for. Pictures made before this carry nothing, exactly as
+    their captions do.
+  - Test: `node scripts/test-image-meta.js` (the three containers by hand,
+    the pixel bytes located untouched inside the stamped file, the re-stamp
+    that replaces rather than stacks, the ranged reader against a server
+    that ignores Range, and the source pins).
 - **POST THE PROMPT for every image you deliver**, split into style + content —
   `POST /api/gallery/assets/prompt`. It's what the PROMPT overlay in the Assets
   tab reads. **The EXACT text sent to the model — NEVER PARAPHRASE**; no exact
@@ -3780,6 +3855,9 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   running autoscroll first. Source is `scripts/pill.py` (re-run
   `python3 scripts/gen-pill-inject.py` after editing); full rules in
   `docs/design-rules.md`, pinned by `node scripts/test-back-to-top.js`.
+  **Its twin, TO THE BOTTOM, sits under it since 2026-09-03** (Sophie: "add a
+  scroll to bottom arrow playground") — `#pbot`, lit while there is page
+  below, injected pill only; `node scripts/test-scroll-to-bottom.js`.
   - **"IT'S NOT THERE" CAN MEAN THE PAGE IS OLD, NOT THAT THE ARROW IS
     MISSING (2026-08-27, Sophie about the Playground, twice).** Measured that
     hour before changing anything: the bytes Render answers with carry the

@@ -58,7 +58,10 @@ PILL_CSS = """
    never reads as a fourth pill segment, and it is NOT the pill's ▲ (which
    walks up gradually) — the glyph is arrow-up-TO-LINE, a jump.
    Shown only past one full screen of scrolling, so a page she can nearly see
-   the end of does not grow a control. */
+   the end of does not grow a control.
+   TO THE BOTTOM (2026-09-03, Sophie: "add a scroll to bottom arrow
+   playground") is its twin — same class, same size, arrow-down-TO-LINE, under
+   it in the rail, shown while there is more than a little page left below. */
 .ptop{box-sizing:border-box; width:38px; height:38px; border:1.5px solid var(--ink, #26221c); border-radius:50%;
   background:var(--paper, #f6f2e9); color:var(--ink, #26221c); padding:0; margin:0; cursor:pointer;
   display:none; align-items:center; justify-content:center; box-shadow:0 2px 10px rgba(0,0,0,.09);
@@ -86,6 +89,7 @@ PILL_HTML = """
   </div>
   <span id="spd">Fast</span>
   <button id="ptop" class="ptop" aria-label="Back to the top" title="Back to the top"></button>
+  <button id="pbot" class="ptop" aria-label="To the bottom" title="To the bottom"></button>
 </div>
 """
 
@@ -165,6 +169,11 @@ function sBy(px){ if(_box) _box.scrollTop += px; else window.scrollBy(0,px); }
 function sHome(){
   if(_box){ try{ _box.scrollTo({top:0, behavior:'smooth'}); }catch(_){ _box.scrollTop=0; } return; }
   try{ window.scrollTo({top:0, behavior:'smooth'}); }catch(_){ window.scrollTo(0,0); }
+}
+function sEnd(){
+  var end=sHeight();
+  if(_box){ try{ _box.scrollTo({top:end, behavior:'smooth'}); }catch(_){ _box.scrollTop=end; } return; }
+  try{ window.scrollTo({top:end, behavior:'smooth'}); }catch(_){ window.scrollTo(0,end); }
 }
 var vtop=document.getElementById('vtop'), vmid=document.getElementById('vmid'), vbot=document.getElementById('vbot');
 var I={
@@ -320,9 +329,26 @@ if(_ptop){
     sHome();
   };
 }
+// TO THE BOTTOM (2026-09-03, Sophie: "add a scroll to bottom arrow
+// playground") — the mirror of the one above, in the same rail, under it.
+// Not the pill's ▼ (which walks down at the autoscroll speed): a jump. It
+// shows while more than PTOP_AT of page is still below the fold, so at the
+// very end it goes away exactly as the top one does at the very top. Same
+// stop-first rule — a running scroll would keep walking under the animation.
+var _pbot=document.getElementById('pbot');
+if(_pbot){
+  _pbot.innerHTML='<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" '+
+    'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+
+    '<path d="M12 4v12"/><path d="m6 10 6 6 6-6"/><path d="M5 20h14"/></svg>';
+  _pbot.onclick=function(){
+    scrollStop();
+    sEnd();
+  };
+}
 function syncPtop(){
-  if(!_ptop) return;
-  _ptop.classList.toggle('on', sTop() > PTOP_AT && pageScrolls());
+  var can=pageScrolls();
+  if(_ptop) _ptop.classList.toggle('on', sTop() > PTOP_AT && can);
+  if(_pbot) _pbot.classList.toggle('on', sHeight() - (sTop()+sView()) > PTOP_AT && can);
 }
 window.__pillTopSync=syncPtop;
 window.addEventListener('scroll',syncPtop,{passive:true});

@@ -67,8 +67,11 @@ body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--i
 .state.more{padding:1.4em 0;}
 /* ── the Assets tab's own widgets, verbatim from chats.html ─────────────── */
 .arow{display:flex; align-items:center; gap:10px; margin:0 0 10px;}
-/* The New/♥/Hide ✕ segment moved INSIDE the filters drawer (2026-09-02) —
-   /searchfilters.css paints its chips now. */
+.afilter{display:flex; border:1.5px solid var(--line); border-radius:999px; overflow:hidden; background:var(--barbg); flex:none;}
+.afilter button{border:none; background:transparent; color:var(--ink2); font-family:-apple-system,sans-serif; font-size:11px;
+  letter-spacing:.08em; text-transform:uppercase; padding:7px 13px; cursor:pointer;}
+.afilter button+button{border-left:1px solid var(--line);}
+.afilter button.on{background:var(--rose); color:#fff;}
 /* THE DRAWER IS IN FLOW HERE, not a panel hanging over the page — the row it
    opens from sits directly on top of the search box and the tiles, and a
    floating panel covers both: measured, the search box and the first row of
@@ -290,7 +293,7 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
     var a=(d&&d.assets)||[];
     content.innerHTML='';
     if(!a.length){ content.appendChild(Object.assign(document.createElement('div'),{className:'state',textContent:'No images filed anywhere yet.'})); return; }
-    var cells=[], q='';
+    var cells=[], filter=null, q='';
     // ONE object per chat+url, however it arrives (a browse page, a server
     // search, a catch-up refresh) — so a ♥ cast anywhere is the same object
     // everywhere and re-rendering never forks the state.
@@ -340,7 +343,7 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
     function applyFilter(){
       var shown=0, groups=q?qparse(q):[];
       cells.forEach(function(c){
-        var v=c.it.vote||null, show=true, filter=FILT.get('marks');
+        var v=c.it.vote||null, show=true;
         if(filter==='new') show=!v;
         else if(filter==='like') show=(v==='like');
         else if(filter==='nox') show=(v!=='dislike');
@@ -362,36 +365,41 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
       else none.textContent='No images match that.';
       none.style.display=(shown||(!cells.length&&!q))?'none':'';
     }
+    // THE MARK SEGMENT IS BACK EXACTLY WHERE IT WAS (2026-09-02, Sophie:
+    // "actually put the heart x thing exactly where it was"). New · ♥ · Hide ✕
+    // rode inside the filters drawer for a day and she put it back: they are
+    // three answers to one question about a picture's mark, and this row is
+    // where she answers it.
+    var seg=document.createElement('div'); seg.className='afilter';
+    [['new','New'],['like','♥'],['nox','Hide ✕']].forEach(function(m){
+      var sb=document.createElement('button'); sb.textContent=m[1]; sb.dataset.f=m[0];
+      sb.onclick=function(){
+        filter = filter===m[0] ? null : m[0];
+        seg.querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', x.dataset.f===filter); });
+        applyFilter();
+      };
+      seg.appendChild(sb);
+    });
     // ─── THE ADVANCED SEARCH DRAWER (2026-09-02, Sophie: "a toggle open
-    // advanced search in all pages - reusable shell ... you can put the heart
-    // x thing within the toggle") ─────────────────────────────────────────
+    // advanced search in all pages - reusable shell") ─────────────────────
     // The shape is /searchfilters.js — opt in, shut until she taps the chip,
-    // the chip wearing the state while it is shut. WHAT LIVES HERE is which
-    // filters this page has.
-    //
-    // MARKS STAY EXCLUSIVE, exactly as the old segment was: New, ♥ and Hide ✕
-    // are three answers to one question about a picture's mark, and two of
-    // them at once means nothing. Quality is MULTI, because "low and high"
-    // is what looking at a ladder is.
+    // the chip counting what is narrowed. WHAT LIVES HERE is which filters
+    // this page has, and after her correction that is QUALITY and DATE only:
+    // the marks have their own segment beside the door.
     //
     // NOT STICKY on this page, deliberately — the chat's Assets tab and this
     // one are both surfaces she arrives at to look at everything, and a
     // filter left on from last week silently hiding most of her library is the
-    // thing the chip's own state-wearing exists to stop. The Playground's ♥/✕
-    // ARE sticky because they were already, and moving them must not reset a
-    // filter she left on.
+    // thing the chip's own state-wearing exists to stop.
     var arow=document.createElement('div'); arow.className='arow';
     var fmount=document.createElement('div'); fmount.className='afilters';
-    arow.appendChild(fmount);
+    arow.appendChild(seg); arow.appendChild(fmount);
     content.appendChild(arow);
     var SF=window.ForgeSearchFilters;
     // If this surface is ever rebuilt, the last drawer's tap-out listener goes
     // down with it.
     if(window.__metaFilt && window.__metaFilt.destroy) window.__metaFilt.destroy();
     var FILT=window.__metaFilt=SF.build(fmount, [
-      { key:'marks', kind:'chips', label:'Marks',
-        vals:['new','like','nox'], words:['New','\u2665','Hide \u2715'],
-        classes:['','','dropfilt'] },
       { key:'quality', kind:'chips', multi:true, label:SF.QUALITY.label,
         vals:SF.QUALITY.vals, words:SF.QUALITY.words },
       { key:'when', kind:'chips', label:SF.WHEN.label,

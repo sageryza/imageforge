@@ -3,6 +3,11 @@ const express = require('express');
 // THE WHOLE PROMPT, one builder — see prompt-record.js (Sophie's hard rule,
 // 2026-08-24: anytime an image is made anywhere, the whole prompt is stored).
 const promptRecord = require('./prompt-record');
+// THE PROMPT RIDES INSIDE THE FILE (2026-09-03). Every save of a picture
+// this server made carries its whole prompt + MODEL · QUALITY · SIZE as an
+// XMP packet in the bytes themselves, and POST /api/gallery reads it back off
+// a file that arrives with nothing filed. See image-meta.js.
+const imageMeta = require('./image-meta');
 // The panel sheet's geometry — derived canvases, the grid sentence, the cut
 // rects and the style-tail sheet swap. See sheet-grid.js.
 const sheetGrid = require('./sheet-grid');
@@ -514,7 +519,7 @@ loadConfig().then(() => {
 }).catch(err => console.error('Pipeline bootstrap failed:', err.message));
 
 // Download image from URL and upload to Firebase, return permanent URL
-async function saveToFirebase(imageUrl, folder = 'images') {
+async function saveToFirebase(imageUrl, folder = 'images', stamp) {
   if (!bucket || !imageUrl) return imageUrl;
   try {
     console.log('Saving to Firebase:', folder, 'from', imageUrl.slice(0, 80));
@@ -523,7 +528,10 @@ async function saveToFirebase(imageUrl, folder = 'images') {
       console.warn('Firebase: fetch failed with status', res.status);
       return imageUrl;
     }
-    const buffer = await res.buffer();
+    // `stamp` = the prompt fields to write INTO the file (image-meta.js) —
+    // pure byte surgery, the pixels untouched; absent for anything that is
+    // not a picture this server drew.
+    const buffer = stamp ? imageMeta.stamp(await res.buffer(), stamp) : await res.buffer();
     const contentType = res.headers.get('content-type') || '';
     let ext = 'png';
     if (contentType.includes('webp') || imageUrl.includes('.webp')) ext = 'webp';
@@ -547,7 +555,11 @@ async function saveToFirebase(imageUrl, folder = 'images') {
 // Save a raw image buffer (e.g. gpt-image-1 base64 output) to Firebase and
 // return a permanent URL. Falls back to a data URL when Firebase isn't
 // configured, so the image still renders without any credentials set up.
-async function saveBufferToFirebase(buffer, contentType, folder = 'images') {
+async function saveBufferToFirebase(buffer, contentType, folder = 'images', stamp) {
+  // `stamp` = the prompt fields written INTO the file (image-meta.js). A
+  // stamp can never fail a save: an unknown container or a malformed file
+  // comes back as the same buffer.
+  if (stamp) buffer = imageMeta.stamp(buffer, stamp);
   const ext = contentType.includes('webp') ? 'webp'
     : contentType.includes('jpeg') || contentType.includes('jpg') ? 'jpg'
     : contentType.includes('mpeg') || contentType.includes('mp3') ? 'mp3'
@@ -2185,6 +2197,16 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
         if (nextCap) patch.prompt = nextCap.slice(0, 500);
         if (description && description !== existing.data().description) patch.description = description;
         if (kind && !existing.data().kind) patch.kind = kind;
+        // A record with no prompt on file, for a picture that carries its own
+        // (image-meta.js): the file fills the halves and the caption.
+        if (!existing.data().promptContent && !existing.data().promptStyle && kind !== 'audio') {
+          const meta = await imageMeta.readRemote(wipUrl);
+          if (meta) {
+            Object.assign(patch, imageMeta.promptHalves(meta));
+            const cap = assetGuard.captionUpgrade(nextCap || existing.data().prompt, imageMeta.caption(meta));
+            if (cap) patch.prompt = cap.slice(0, 500);
+          }
+        }
         // An older record filed before content-joining existed: give it its
         // md5 now, so it can collapse with the copy that arrives under a
         // different filename.
@@ -2230,6 +2252,18 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
       if (wipMd5 === null) wipMd5 = await assetMd5(wipUrl);
       if (wipMd5) wipDoc.md5 = wipMd5;
       if (kind) wipDoc.kind = kind;
+      // A background catch of a picture that carries its own prompt
+      // (image-meta.js) arrives KNOWING what it is — halves and caption
+      // filed from the file, never guessed. The hook's generic "from <chat>"
+      // line loses to the file's real caption (captionUpgrade's own rule).
+      if (kind !== 'audio') {
+        const meta = await imageMeta.readRemote(wipUrl);
+        if (meta) {
+          Object.assign(wipDoc, imageMeta.promptHalves(meta));
+          const cap = assetGuard.captionUpgrade(wipDoc.prompt, imageMeta.caption(meta));
+          if (cap) wipDoc.prompt = cap.slice(0, 500);
+        }
+      }
       if (description || autoDescription) wipDoc.description = description || autoDescription;
       await acol.add(wipDoc);
       const curatedCap = String(prompt || '').trim();
@@ -2250,11 +2284,26 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
       ? String(url) : null;
     let bytesHash = null;
     let assetDoc = null;
+    // THE FILE'S OWN PROMPT (image-meta.js, 2026-09-03). A picture stamped
+    // at birth carries its whole prompt and caption inside; a filing that
+    // brings none is filled from the file, so a copy a chat merely sent
+    // arrives knowing what it is. Best-effort and only ever a FALLBACK: a
+    // prompt the caller sent wins.
+    let fileMeta = null;
     if (!finalUrl && image) {
       const m = String(image).match(/^data:(image\/[\w.+-]+);base64,(.+)$/);
       if (!m) return res.status(400).json({ error: 'image must be a data URL' });
-      const buf = Buffer.from(m[2], 'base64');
+      let buf = Buffer.from(m[2], 'base64');
       bytesHash = require('crypto').createHash('sha256').update(buf).digest('hex');
+      // A file that already carries its prompt (a chat stamped it in its own
+      // container) hands it over; one that does not gets the record's, when
+      // the caller sent one. Stamping never changes the hash the dedupe keys
+      // on — that is the SOURCE bytes, the same both times a chat sends them.
+      fileMeta = imageMeta.read(buf);
+      if (!fileMeta && fullPrompt) buf = imageMeta.stamp(buf, {
+        ...promptRecord.promptRecord({ full: fullPrompt, content: prompt, prefix: promptPrefix, suffix: promptSuffix }),
+        chat: chatName,
+      });
       // Same bytes already filed for this chat (e.g. posted as a link earlier)?
       // Reuse that image instead of uploading a second copy of it.
       assetDoc = await findChatAsset(chatName, { hash: bytesHash });
@@ -2270,6 +2319,11 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
       }
     }
     if (!finalUrl) return res.status(400).json({ error: 'url (Firebase Storage) or image (data URL) required' });
+    // (a picture only — a film or a voice note has no packet to go looking for)
+    if (!fileMeta && !fullPrompt && !/\.(mp4|mov|webm|m4a|mp3|wav|aac|opus|flac)(\?|$)/i.test(finalUrl)) {
+      fileMeta = await imageMeta.readRemote(finalUrl);
+    }
+    const metaHalves = fileMeta ? imageMeta.promptHalves(fileMeta) : null;
     // Per-chat asset record (deckfactory, where forge-chat-* live) — powers the
     // Assets tab inside each chat. Independent of the iOS-gallery de-dupe below.
     let assetDeduped = false;
@@ -2296,6 +2350,8 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
           if (bytesHash && !cur.hash) patch.hash = bytesHash;
           if (!cur.urlKey) patch.urlKey = canonicalAssetUrl(cur.url);
           if (cur.wip) patch.wip = false;   // it's a finished deliverable now
+          if (metaHalves && !cur.promptContent && !cur.promptStyle) Object.assign(patch, metaHalves);
+          if (fileMeta) { const cap = assetGuard.captionUpgrade(cur.prompt, imageMeta.caption(fileMeta)); if (cap) patch.prompt = cap; }
           if (!cur.md5) {
             const md5 = await assetMd5(cur.url || finalUrl);
             if (md5) patch.md5 = md5;
@@ -2309,6 +2365,8 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
           };
           if (description) aDoc.description = description;
           if (bytesHash) aDoc.hash = bytesHash;
+          if (metaHalves) Object.assign(aDoc, metaHalves);
+          if (fileMeta && imageMeta.caption(fileMeta) && !String(prompt || '').trim()) aDoc.prompt = imageMeta.caption(fileMeta);
           // The Storage object's own md5 (metadata only, no download) — what
           // lets this record collapse with the same bytes filed under any
           // other filename. See asset-union.js.
@@ -2340,6 +2398,12 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
     Object.assign(doc, promptRecord.promptFields({
       full: fullPrompt, content: prompt, prefix: promptPrefix, suffix: promptSuffix,
     }));
+    // …and when the caller sent none, the file's own (never over a sent one).
+    if (!doc.fullPrompt && fileMeta) {
+      Object.assign(doc, promptRecord.promptFields({ fullPrompt: fileMeta.fullPrompt || '',
+        promptStyle: fileMeta.promptStyle || '', promptContent: fileMeta.promptContent || '' }));
+      for (const k of ['model', 'quality', 'size', 'canvas']) if (fileMeta[k] && !doc[k]) doc[k] = fileMeta[k];
+    }
     const ref = await col.add(doc);
     res.json({ ok: true, id: ref.id, url: finalUrl, description, assetDeduped });
   } catch (err) {
@@ -5202,7 +5266,9 @@ app.post('/api/generate/dalle', async (req, res) => {
     });
     const data = await response.json();
     if (data.error) return res.status(400).json({ error: data.error.message });
-    const permanentUrl = await saveToFirebase(data.data[0].url, 'dalle');
+    const permanentUrl = await saveToFirebase(data.data[0].url, 'dalle',
+      { fullPrompt: prompt, promptContent: prompt, model: 'dall-e-3', quality, canvas: size,
+        size: require('./size-tier').captionSize(size) });
     // What WE sent is the record; DALL·E's own rewrite rides the style slot so
     // neither text is lost and neither is filed as the other.
     await fileGenerateRoute({ url: permanentUrl, prompt, full: prompt,
@@ -5224,7 +5290,9 @@ app.post('/api/generate/gptimage', async (req, res) => {
     if (data.error) return res.status(400).json({ error: data.error.message });
     const b64 = data.data?.[0]?.b64_json;
     if (!b64) return res.status(400).json({ error: 'gpt-image-2 returned no image' });
-    const url = await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/webp', 'openai');
+    const url = await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/webp', 'openai',
+      { fullPrompt: prompt, promptContent: prompt, model: 'gpt-image-2', quality, canvas: size,
+        size: require('./size-tier').captionSize(size) });
     // Verbatim surface — her words go through untouched, so there is no style
     // half to file and the full prompt IS the content.
     await fileGenerateRoute({ url, prompt, full: prompt,
@@ -5341,7 +5409,10 @@ app.post('/api/generate/housestyle', async (req, res) => {
     if (!b64) return res.status(400).json({ error: 'gpt-image-2 returned no image' });
     let buf = Buffer.from(b64, 'base64');
     if (style.whiten) { try { buf = await whitenBackground(buf); } catch (e) { console.warn('house whiten failed:', e.message); } }
-    const url = await saveBufferToFirebase(buf, 'image/webp', 'housestyle');
+    const url = await saveBufferToFirebase(buf, 'image/webp', 'housestyle', {
+      ...promptRecord.promptRecord({ full, prefix: style.stylePrompt || '', content: prompt, suffix: style.end || '' }),
+      model: 'gpt-image-2', quality, canvas: '1024x1024', size: '1K', style: style.name || styleId,
+    });
     // `full` is the literal string handed to the edits call two lines up; the
     // style's own prompt and tail are the wrapper around her words.
     await fileGenerateRoute({ url, prompt, full,
@@ -6347,6 +6418,21 @@ async function landOnBeat(target, images, runId, meta) {
 // NOT cancellable, by nature: OpenAI has no cancel for image generation, so
 // every image here is billed the moment it's requested. Nothing in the flow
 // pretends otherwise — the page shows no X on these runs.
+// What a Playground picture carries INSIDE its file (image-meta.js): the
+// same fields fileRunToCreations files, so the bytes and the record agree.
+function plStamp(cfg, st, extra) {
+  const canvas = cfg.size || PL_GPT.size;
+  return Object.assign({
+    ...promptRecord.promptRecord({
+      full: cfg.fullPrompt, content: cfg.prompt,
+      prefix: cfg.head != null ? cfg.head : st.prefix,
+      suffix: cfg.tail != null ? cfg.tail : st.suffix,
+    }),
+    model: PL_GPT.id, quality: cfg.quality, canvas,
+    size: require('./size-tier').captionSize(canvas), style: st.label, engine: 'gptimage',
+  }, extra || {});
+}
+
 async function runPromptLabGptJob(docRef, cfg) {
   drawingNow.add(docRef.id);
   try {
@@ -6405,7 +6491,7 @@ async function runPromptLabGptJob(docRef, cfg) {
         // same flood-fill whiten the house style does. Best-effort: a failed
         // whiten keeps the picture rather than losing a paid render.
         if (st.whiten) { try { buf = await whitenBackground(buf); } catch (e) { console.warn('promptlab whiten failed:', e.message); } }
-        images.push(await saveBufferToFirebase(buf, 'image/webp', 'promptlab'));
+        images.push(await saveBufferToFirebase(buf, 'image/webp', 'promptlab', plStamp(cfg, st)));
         // WHAT IT ACTUALLY COST, kept (2026-08-24). The API returns `usage`
         // on every call and this route was throwing it away, so the only way
         // to answer "what does attaching THIS reference cost" was to spend
@@ -6473,7 +6559,7 @@ const PL_SHAPE_WORD = { '2:3': 'portrait', '1:1': 'square', '3:2': 'landscape' }
 // cache on are how a batch of extracts balloons. Lossless webp on every
 // panel: the model's own pixels are the source and nothing lossy may stand
 // between them and the cut (the house no-generation-compression rule).
-async function cutSheet(sheetBuf, plan) {
+async function cutSheet(sheetBuf, plan, stampFor) {
   const sharp = require('sharp');
   sharp.cache(false);
   const { data, info } = await sharp(sheetBuf).ensureAlpha().raw()
@@ -6501,7 +6587,9 @@ async function cutSheet(sheetBuf, plan) {
   for (const r of rects) {
     const buf = await sharp(data, { raw }).extract(r)
       .webp({ lossless: true }).toBuffer();
-    urls.push(await saveBufferToFirebase(buf, 'image/webp', 'promptlab'));
+    // each panel carries ITS OWN words and seam inside the file (image-meta.js)
+    urls.push(await saveBufferToFirebase(buf, 'image/webp', 'promptlab',
+      stampFor ? stampFor(urls.length, r) : undefined));
   }
   return { urls, rects };
 }
@@ -6566,9 +6654,27 @@ async function finishPanelsCutInner(docRef, cfg, sheetBuf, sheetUrl) {
   // only when nothing matched (never expected for a run this job drew).
   const sheetSeam = sheetGrid.sheetSeam(cfg.fullPrompt, cfg.panels)
     || { prefix: cfg.head, content: cfg.prompt, suffix: cfg.tail };
+  // A panel's style half is everything around ITS words in the sent text —
+  // the panel line sits verbatim in fullPrompt, so the seam is real.
+  const seamFor = (text) => {
+    const i = cfg.fullPrompt.indexOf(text);
+    if (i < 0) return { prefix: cfg.head, suffix: cfg.tail };
+    return {
+      prefix: cfg.fullPrompt.slice(0, i).trim(),
+      suffix: cfg.fullPrompt.slice(i + text.length).trim(),
+    };
+  };
+  const cut = sizeTier.cutSize(plan.sheet, plan.count);
+  // what each cut panel carries inside its own file (image-meta.js) — the
+  // same fields its creation doc gets below
+  const panelStamp = (i, r) => ({
+    ...promptRecord.promptRecord({ full: cfg.fullPrompt, content: cfg.panels[i], ...seamFor(cfg.panels[i]) }),
+    model: PL_GPT.id, quality: cfg.quality, size: cut,
+    canvas: r ? `${r.width}x${r.height}` : plan.cell, style: st.label, engine: 'gptimage',
+  });
   let images, rects;
   try {
-    ({ urls: images, rects } = await cutSheet(sheetBuf, plan));
+    ({ urls: images, rects } = await cutSheet(sheetBuf, plan, panelStamp));
   } catch (err) {
     // The cut failed (a resized answer, a sharp hiccup): the run is still
     // DONE — the sheet is the picture, misdrawn ratio and all, and the doc
@@ -6600,23 +6706,12 @@ async function finishPanelsCutInner(docRef, cfg, sheetBuf, sheetUrl) {
   // description and the '1/9 (4K)' size slot — a cut panel's own pixels
   // land on a lower rung and would read as an ordinary small picture
   // (size-tier.js cutSize; fileCreationDoc's sizeSlot exists for this).
-  const cut = sizeTier.cutSize(plan.sheet, plan.count);
   fileCreationDoc({
     url: sheetUrl, prompt: `the sheet — ${plan.count} panels`,
     promptContent: sheetSeam.content, style, model: PL_GPT.id, quality: cfg.quality,
     canvas: plan.sheet, fullPrompt: cfg.fullPrompt,
     promptPrefix: sheetSeam.prefix, promptSuffix: sheetSeam.suffix, source: 'playground',
   });
-  // A panel's style half is everything around ITS words in the sent text —
-  // the panel line sits verbatim in fullPrompt, so the seam is real.
-  const seamFor = (text) => {
-    const i = cfg.fullPrompt.indexOf(text);
-    if (i < 0) return { prefix: cfg.head, suffix: cfg.tail };
-    return {
-      prefix: cfg.fullPrompt.slice(0, i).trim(),
-      suffix: cfg.fullPrompt.slice(i + text.length).trim(),
-    };
-  };
   images.forEach((url, i) => {
     const seam = seamFor(cfg.panels[i]);
     // The panel's REAL canvas — the seams move to the gutters, so a panel
@@ -6679,7 +6774,14 @@ async function runPromptLabPanelsJob(docRef, cfg) {
     // THE PAID SHEET IS BANKED BEFORE THE CUT — a failed cut must never lose
     // a picture that has already been billed, and the banked url is also what
     // makes a deploy restart recoverable (the sweep recuts from it).
-    const sheetUrl = await saveBufferToFirebase(sheetBuf, 'image/webp', 'promptlab');
+    const sheetSeam = sheetGrid.sheetSeam(cfg.fullPrompt, cfg.panels)
+      || { prefix: cfg.head, content: cfg.prompt, suffix: cfg.tail };
+    const sheetUrl = await saveBufferToFirebase(sheetBuf, 'image/webp', 'promptlab', {
+      ...promptRecord.promptRecord({ full: cfg.fullPrompt, ...sheetSeam }),
+      model: PL_GPT.id, quality: cfg.quality, canvas: plan.sheet,
+      size: require('./size-tier').captionSize(plan.sheet), style: st.label, engine: 'gptimage',
+      label: `the sheet — ${plan.count} panels`,
+    });
     // THE SHEET SHOWS THE MOMENT IT IS PAID FOR (2026-08-27, Sophie: "the
     // uncut sheet shud show before it's cut as soon as it's done (in
     // panels"). The run parks on 'ready' with the banked sheet and no images
@@ -6737,7 +6839,10 @@ async function runPromptLabJob(docRef, cfg) {
     // permanent urls in. Replicate deletes API outputs after ~1hr, so the
     // copies are what keep the run history browsable.
     await docRef.update({ status: 'ready', tempImages: urls, predictTime: prediction.metrics?.predict_time || null });
-    const images = await Promise.all(urls.map(u => saveToFirebase(u, 'promptlab')));
+    const images = await Promise.all(urls.map(u => saveToFirebase(u, 'promptlab', {
+      ...promptRecord.promptRecord({ full: cfg.fullPrompt, content: cfg.prompt, prefix: cfg.prefix, suffix: cfg.suffix }),
+      model: cfg.styleLabel, style: cfg.styleLabel, engine: 'replicate',
+    })));
     plCancelled.delete(docRef.id);
     await docRef.update({ status: 'done', images });
     await landOnBeat(cfg.padTarget, images, docRef.id,

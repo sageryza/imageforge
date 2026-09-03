@@ -31,6 +31,19 @@ The house rules that only bite when you are actually building a page, an iOS scr
     copy that leans only on `window.__scrollStop`. Re-generating those pages
     is its own job (see the stale-generator warning in `CLAUDE.md`).
   - Pinned by `node scripts/test-back-to-top.js`.
+  - **AND ITS TWIN GOES TO THE BOTTOM (2026-09-03, Sophie: "add a scroll to
+    bottom arrow playground").** `#pbot`, the same `.ptop` class and size,
+    directly under the top arrow in the rail, arrow-down-TO-LINE — a jump,
+    not the pill's ▼. Lit while more than 150px of page is still below the
+    fold (so at the very end it goes out exactly as the top one does at the
+    very top); a tap stops any running autoscroll first, then smooth-scrolls
+    to the end of whatever is scrolling (the window, or an adopted sheet —
+    `sEnd()` beside `sHome()`). Both arrows are re-derived by the one
+    `syncPtop` / `window.__pillTopSync`. **Injected pill only so far** — it
+    reaches the Playground and every `{ pill: true }` page; the five baked
+    copies and `mkPagePill` do not carry it yet. Pinned by
+    `node scripts/test-scroll-to-bottom.js` (the real Playground included,
+    the tap asked with `elementFromPoint`).
   - **IT FOLLOWS WHATEVER IS ACTUALLY SCROLLING (2026-08-24, Sophie: "some
     surfaces scroll but have no to top arrow. like story room shelf").** A
     full-screen sheet (`position:fixed; inset:0; overflow-y:auto` — the Story

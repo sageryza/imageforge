@@ -151,7 +151,9 @@ router.use((req, res, next) => {
 // Reference images arrive as data URLs, so the body can be large.
 router.use(express.json({ limit: '60mb' }));
 
-async function put(buf, path, contentType) {
+async function put(buf, path, contentType, stamp) {
+  // `stamp` = the prompt fields written INTO the file (image-meta.js)
+  if (stamp) buf = require('./image-meta').stamp(buf, stamp);
   const file = bucket().file(path);
   await file.save(buf, { metadata: { contentType, cacheControl: 'public, max-age=31536000, immutable' }, resumable: false });
   await file.makePublic();
@@ -241,7 +243,7 @@ async function fileRunImages(id) {
 // Fire-and-forget: the request has already been answered by the time this runs.
 // Each output lands on the doc as it finishes, so the grid fills in as they
 // arrive and one failed call costs its image, not the run.
-async function render(id, { prompt, refUrls, quality, size, outputs }) {
+async function render(id, { prompt, refUrls, quality, size, outputs, stamp }) {
   const doc = db().collection(RUNS).doc(id);
   try {
     const buffers = [];
@@ -251,7 +253,7 @@ async function render(id, { prompt, refUrls, quality, size, outputs }) {
     await Promise.all(Array.from({ length: outputs }, (_, i) => (async () => {
       try {
         const buf = await draw(prompt, buffers, { quality, size });
-        const url = await put(buf, `freeform/out/${id}-${i + 1}.webp`, 'image/webp');
+        const url = await put(buf, `freeform/out/${id}-${i + 1}.webp`, 'image/webp', stamp);
         images.push(url);
         await doc.set({ images, status: 'ready' }, { merge: true });
       } catch (e) { firstErr = firstErr || e; }
@@ -396,7 +398,11 @@ router.post('/run', async (req, res) => {
       model: 'gpt-image-2', status: 'drawing', images: [], createdAt: Date.now(),
     };
     await ref.set(doc);
-    render(ref.id, { prompt: sent, refUrls, quality, size, outputs });   // deliberately not awaited
+    render(ref.id, { prompt: sent, refUrls, quality, size, outputs, stamp: {
+      fullPrompt: promptRec.fullPrompt || sent, promptStyle: promptRec.promptStyle || '',
+      promptContent: promptRec.promptContent || prompt, model: 'gpt-image-2', quality, canvas: size,
+      size: require('./size-tier').captionSize(size),
+    } });   // deliberately not awaited
     res.json({ ok: true, id: ref.id, status: 'drawing', poll: `/api/freeform/run/${ref.id}` });
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
