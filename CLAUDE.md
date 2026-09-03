@@ -8820,6 +8820,38 @@ before working on that module. Nothing was deleted — the moved text is verbati
     stored and every page already posted gets it. **A one-card spread gets NO
     key**: its card's mark IS the mark, and a second heart for the same
     picture would be two answers to one question.
+    - **BUT THE SWIPE VIEW DEFAULTS TO ONE CARD AT A TIME — A GROUP OF 4+
+      SPLITS (2026-09-03, Sophie, on "Playground triangle hearts v1 (19)": "as
+      a rule tinder compare shud default to 1 unless they're comparing
+      something specific").** Every group used to become ONE swipe card
+      holding all of it side by side, which is right for the two-up picker it
+      was built for and falls apart the moment a group is a LISTING:
+      `.jg-spread` is `flex:1 1 0` with no wrap, so her 19-card group drew
+      11px-wide pictures under a row of "this one" buttons overlapping into an
+      unreadable stack. **`SPREAD_MAX` in `page-views.js` is 3, and it is
+      MEASURED on the real page at her 390pt viewport**: 2 across → 169px
+      pictures with the button fitting easily, 3 → 110px, 4 → 81px against a
+      72px button with no slack left, 5 → 63px, 9 → 31px pictures (16px TALL)
+      with the buttons OVERFLOWING, 19 → 11px. So 3 is the last size where a
+      picture is big enough to compare and every control still fits its
+      column. Measured over her 30 most recent template pages the same day the
+      group sizes are **1×60, 2×1, 3×40, 4-10×72, 19×1** — so this splits the
+      inventory buckets (attributes, hearts, panels) and leaves the quality
+      ladders and the three-proposal sets exactly as they were.
+      - **COMPARE IS DELIBERATELY UNTOUCHED** — `spreadsOf` still hands the
+        grid its groups, so the label, the ruled-off row and the `s:` key are
+        all still there in the view a big group reads correctly in. A split
+        group's spread mark therefore lives in compare only, and **no verdict
+        is lost either way**: review.js counts CARD ids, and a spread mark
+        already decides every card under it.
+      - **A split card is COPIED**, never the grid's own object — an eyebrow
+        written onto one would show up in the other view too — and it wears
+        the group's name as its eyebrow, so she still knows which pile it came
+        out of, the way the grid's heading tells her.
+      - Test: `node scripts/test-swipe-one-at-a-time.js` (the real page
+        headless at 390pt — every assertion a MEASUREMENT, since a card
+        drawing nineteen 11px pictures and a card drawing one are the same
+        markup to any source assertion; verified failing 6 pre-fix).
     - In the COMPARE view the spread's ♥/✕ sit at the end of its name row
       (with the pill's 64px column reserved, because the page scrolls and a
       row passes through that band on its way up), and its note is the shared

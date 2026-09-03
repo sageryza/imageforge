@@ -98,16 +98,59 @@
     });
   }
 
-  /** the deck's cards: a spread of one is its picture; a spread of several is
-   *  ONE card holding them side by side — which is also the two-up picker she
-   *  asked for ("comparing two different images to each other, and picking
-   *  between them"), falling out of the same shape rather than being a third
-   *  thing to build. */
+  /* ── ONE CARD AT A TIME IS THE DEFAULT (2026-09-03, Sophie, on "Playground
+     triangle hearts v1 (19)": "as a rule tinder compare shud default to 1
+     unless they're comparing something specific") ────────────────────────────
+     Every group used to become ONE swipe card holding all of it side by side,
+     which is right for the two-up picker it was built for and falls apart the
+     moment a group is a LISTING rather than a comparison. `.jg-spread` is
+     `flex:1 1 0` with no wrap, so the pictures just divide the card between
+     them — her 19-card group drew 11px-wide pictures under a row of "this one"
+     buttons overlapping each other into an unreadable stack.
+
+     SPREAD_MAX IS MEASURED, NOT CHOSEN — the real page at her 390pt viewport:
+       2 across → 169px pictures, the "this one" button fits with slack
+       3 across → 110px, fits
+       4 across →  81px against a 72px button, no slack left
+       5 across →  63px, the button squeezed to its own text
+       9 across →  31px pictures (16px TALL) and the buttons OVERFLOW
+      19 across →  11px, the screenshot she sent
+     So 3 is the last size where a picture is big enough to compare and every
+     control still fits its column, and 4+ is a listing wearing a comparison's
+     clothes. Measured over her 30 most recent template pages the same day, the
+     group sizes are 1×60, 2×1, 3×40, 4-10×72, 19×1 — so this splits the
+     inventory buckets (attributes, hearts, panels) and leaves the quality
+     ladders and the three-proposal sets exactly as they were.
+
+     THE SPREAD IS UNTOUCHED IN THE OTHER VIEW, deliberately: `spreadsOf` still
+     hands the grid its groups, so the label, the ruled-off row and the `s:`
+     key are all still there in COMPARE, which is the view a big group reads
+     correctly in. A split group's spread mark therefore lives in compare only
+     — no verdict is lost either way, because review.js counts CARD ids and a
+     spread mark already decides every card under it.
+
+     Splitting must never CHANGE the cards, so each one is copied and the
+     group's name rides as its eyebrow — she still knows which pile a card came
+     out of, the way the grid's heading tells her. */
+  var SPREAD_MAX = 3;
+
   function itemsOf(data) {
-    return spreadsOf(data).map(function (sp) {
-      if (!sp.id) return sp.items[0];
-      return { id: sp.id, label: sp.label, cards: sp.items };
+    var out = [];
+    spreadsOf(data).forEach(function (sp) {
+      if (!sp.id) { out.push(sp.items[0]); return; }
+      if (sp.items.length <= SPREAD_MAX) {
+        out.push({ id: sp.id, label: sp.label, cards: sp.items });
+        return;
+      }
+      sp.items.forEach(function (c) {
+        // copy — these are the GRID's own objects, and an eyebrow written onto
+        // one would show up in the other view too
+        out.push(sp.label && !(c && c.eyebrow)
+          ? Object.assign({}, c, { eyebrow: sp.label })
+          : c);
+      });
     });
+    return out;
   }
 
   window.__pageViews = function (opts) {
