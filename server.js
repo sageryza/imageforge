@@ -7470,6 +7470,7 @@ app.post('/api/promptlab/votes', async (req, res) => {
     const col = admin.firestore().collection(PROMPTLAB);
     const urls = [];
     let marked = 0;
+    let triangleMarked = false;   // → rebuild her standing Playground-hearts page, once for the batch
     for (const [id, idxs] of byRun) {
       const ref = col.doc(id);
       const patch = {};
@@ -7484,6 +7485,7 @@ app.post('/api/promptlab/votes', async (req, res) => {
           const u = i === -1 ? run.sheetUrl : (run.images || [])[i];
           if (u) urls.push(u);
         });
+        if (run.gptStyle === 'triangle') triangleMarked = true;
       } catch (e) { /* a run that has gone must not lose the rest of the batch */ }
     }
     // Carry every mark onto the Assets-tab records, so the two surfaces agree
@@ -7493,6 +7495,7 @@ app.post('/api/promptlab/votes', async (req, res) => {
     for (let k = 0; k < urls.length; k += 5) {
       await Promise.all(urls.slice(k, k + 5).map((u) => syncVoteToAssets(u, vote).catch(() => {})));
     }
+    if (triangleMarked) require('./triset').pokeLikes();
     res.json({ ok: true, marked, vote });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -7527,6 +7530,10 @@ app.post('/api/promptlab/:id/vote', async (req, res) => {
       const run = (await ref.get()).data() || {};
       const url = i === -1 ? run.sheetUrl : (run.images || [])[i];
       if (url) await syncVoteToAssets(url, vote);
+      // A heart on a TRIANGLE run rebuilds her standing Playground-hearts page
+      // (2026-09-03, "auto update as i add new cards"). Fire-and-forget and
+      // debounced inside triset.js: a mark must never wait on a page rewrite.
+      if (run.gptStyle === 'triangle') require('./triset').pokeLikes();
     } catch (e) { /* best-effort */ }
     res.json({ ok: true, image: i, vote });
   } catch (err) {

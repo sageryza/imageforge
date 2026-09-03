@@ -181,5 +181,51 @@
    "error": null,
    "picked": false
   }
- ]
+ ],
+ "redrawNoText": {
+  "at": "2026-09-03T00:46:43.274Z",
+  "_what": "her 8 picks again with noText:true — the first pass sent the tile default (minimal text) and they came back with words; the 22 unpicked ideas were drawn by mistake (she hearts what she wants drawn) and are NOT redrawn",
+  "runs": [
+   {
+    "prompt": "a set of nesting dolls in a row",
+    "id": "8jXiKpNQ6Xz98zRrkjBI",
+    "error": null
+   },
+   {
+    "prompt": "a snail crossing a windowpane",
+    "id": "ZKeDLNsRxOnqWrRzWbbE",
+    "error": null
+   },
+   {
+    "prompt": "a chessboard mid-game",
+    "id": "7gGSlkPlCDQF7PQiP7Sa",
+    "error": null
+   },
+   {
+    "prompt": "the inside of an abalone shell",
+    "id": "nq4SY49K18geFjn9VKtF",
+    "error": null
+   },
+   {
+    "prompt": "a giraffe's neck among the leaves",
+    "id": "19xI6R1qAZjM5yt8XUmj",
+    "error": null
+   },
+   {
+    "prompt": "a stone skipping across a pond",
+    "id": "ydiBKwaZqLRnN2TIOBzo",
+    "error": null
+   },
+   {
+    "prompt": "a house of cards",
+    "id": "gkVZcR9UsnGjnYJZ6ex6",
+    "error": null
+   },
+   {
+    "prompt": "a hedge maze from above",
+    "id": "USuytOhNqD6nzkiNeHoJ",
+    "error": null
+   }
+  ]
+ }
 }

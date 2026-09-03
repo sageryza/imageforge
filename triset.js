@@ -72,6 +72,21 @@ const VERDICTS = 'forge-chat-verdicts';
 // verdicts her ♥ marks live under.
 const HOME_CHAT = 'triset-nature-classification';
 const WAIT_PAGE = 'triset-waiting';
+const RUNS = 'forge-promptlab';
+// HER PLAYGROUND TRIANGLE HEARTS, AS A STANDING PAGE (2026-09-03, Sophie:
+// "upgrade ur playground hearts page to auto update as i add new cards,
+// showing newest first"). It lived as a script that re-posted a frozen page
+// (scripts/gen-triset-playground-likes.js, now retired); a posted page's data
+// is frozen in Storage, so "auto update" has to mean a page the SERVER
+// rewrites — the waiting room's own machinery, one fixed doc id, the data
+// hashed, rewritten only when the set really changes, so her marks survive
+// every rebuild. It sits in the chat she has been reading it in.
+const LIKES_PAGE = 'triset-pl-likes';
+const LIKES_CHAT = 'triset-card-inventory';
+// The hike run — she hearted it and then said so herself: "hike one was an
+// accident", and it has people, which no card may. One id, named rather than
+// silently filtered; un-hearting it in the Playground is the other way out.
+const LIKES_SKIP = new Set(['bom9yqioA7NshqaC9X9p']);
 const NATURE_SLUGS = new Set(
   JSON.parse(fs.readFileSync(path.join(__dirname, 'docs/triset/nature-slugs.json'), 'utf8')).slugs);
 
@@ -247,6 +262,104 @@ async function writeWaiting(items) {
   return { ok: true, count: items.length, created: !snap.exists };
 }
 
+// pure: her hearted Playground triangles as page items, NEWEST FIRST (her
+// ask). One item per hearted IMAGE, not per run — a run can hold several and
+// she hearts them one at a time.
+//
+// THE ITEM ID IS THE RUN AND THE INDEX, so it is stable across every rebuild:
+// a mark she leaves on this page lives under that id in the verdict doc, and
+// an id that moved with the ordering would re-point her answers at other
+// pictures the first time she hearted something new.
+function likesPlan(runs) {
+  const out = [];
+  for (const r of runs) {
+    if (r.gptStyle !== 'triangle' || LIKES_SKIP.has(r.id)) continue;
+    const votes = r.votes || {};
+    (r.images || []).forEach((im, i) => {
+      if (votes[i] !== 'like') return;
+      const url = typeof im === 'string' ? im : (im && im.url);
+      if (!url) return;
+      const words = String((r.panels && r.panels[i]) || r.prompt || '').trim();
+      const full = String(r.fullPrompt || '');
+      out.push({
+        id: `${r.id}-${i}`, img: url, url,
+        label: words.split('\n')[0].slice(0, 200) || 'untitled',
+        model: 'gpt-image-2', quality: r.quality || '',
+        promptContent: words,
+        promptStyle: words && full.includes(words) ? full.replace(words, '[content]') : '',
+        at: r.createdAt || 0,
+      });
+    });
+  }
+  out.sort((a, b) => (b.at - a.at) || (a.id < b.id ? -1 : 1));
+  return out.map(({ at, ...it }) => it);
+}
+
+// The standing page. A GRID with one item per group — that is the 1-up she
+// asked for (2026-09-03, "1 up compare playground hearts"), one picture a row,
+// and the swipe half of the same page is there behind the view switch.
+async function writeLikes(items) {
+  const data = {
+    groups: items.map(it => ({ items: [it] })),
+    help: 'Every triangle you hearted in the Playground, newest first. It fills itself in — '
+      + 'heart one there and it arrives here. Tap a picture for its prompt.',
+    start: 'compare', stamp: false, voice: true,
+  };
+  const v = pageTemplates.validateTemplate('grid', data);
+  if (!v.ok) return { ok: false, error: v.error };
+  const title = `Playground triangle hearts (${items.length})`;
+  const json = JSON.stringify(v.data);
+  const hash = crypto.createHash('sha1').update(`${title}\n${json}`).digest('hex');
+  const ref = db().collection(PAGES).doc(LIKES_PAGE);
+  const snap = await ref.get();
+  if (snap.exists && snap.data().dataHash === hash) return { ok: true, unchanged: true };
+  if (!items.length && !snap.exists) return { ok: true, empty: true };
+  const file = admin.storage().bucket().file(`chat-pages/${LIKES_PAGE}.json`);
+  await file.save(Buffer.from(json, 'utf8'), { contentType: 'application/json', resumable: false });
+  const stamp = new Date().toISOString();
+  const base = { title, dataHash: hash, updated: stamp };
+  if (snap.exists) await ref.set(base, { merge: true });
+  else {
+    await ref.set({
+      ...base, chat: LIKES_CHAT, heading: '', created: stamp,
+      template: 'grid', path: file.name,
+    });
+  }
+  return { ok: true, count: items.length, created: !snap.exists };
+}
+
+// Read the triangle runs and rewrite the page. One equality query, no orderBy
+// (the house no-composite-index rule — the sort is in memory), and only the
+// fields the items need.
+async function syncLikes() {
+  const snap = await db().collection(RUNS).where('gptStyle', '==', 'triangle')
+    .select('gptStyle', 'votes', 'images', 'prompt', 'panels', 'fullPrompt', 'quality', 'createdAt').get();
+  const runs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  return writeLikes(likesPlan(runs));
+}
+
+/* THE POKE — a heart in the PLAYGROUND rebuilds the page (runAutoCompare's own
+   shape: a leading run so the page is right within a second, and a trailing
+   one so a batch of marks coalesces into a single rewrite). server.js calls it
+   fire-and-forget from both vote routes, and only for a triangle run.
+
+   The leading half is what makes it survive a deploy: the trailing timer lives
+   in this process and a restart inside the window would drop it with nothing
+   to re-run it. Rewriting twice costs nothing — no model call anywhere, and
+   an unchanged set writes nothing at all. */
+const LIKES_DEBOUNCE = 45e3;
+let likesTimer = null, likesAt = 0;
+function pokeLikes() {
+  if (!admin.apps.length) return;
+  const now = Date.now();
+  if (now - likesAt > LIKES_DEBOUNCE) { likesAt = now; syncLikes().catch(() => {}); }
+  if (likesTimer) clearTimeout(likesTimer);
+  likesTimer = setTimeout(() => {
+    likesTimer = null; likesAt = Date.now(); syncLikes().catch(() => {});
+  }, LIKES_DEBOUNCE);
+  if (likesTimer.unref) likesTimer.unref();
+}
+
 async function syncHearts() {
   if (syncing) return syncing;
   if (Date.now() - syncAt < SYNC_MS) return [];
@@ -263,6 +376,9 @@ async function syncHearts() {
     const vsnap = await db().collection(VERDICTS)
       .doc(`${HOME_CHAT}__page-${WAIT_PAGE}`).get().catch(() => null);
     const verdicts = (vsnap && vsnap.exists && vsnap.data().items) || {};
+    // her Playground hearts page rides the same sweep, so opening the game
+    // refreshes it even if the vote poke was lost to a restart
+    syncLikes().catch(() => {});
     const plan = syncPlan(cards, voteByUrl, adoptedFrom(verdicts));
     for (const p of plan) await db().collection(CARDS).doc(p.id).set(p.patch, { merge: true });
     // the page is rebuilt AFTER the deal, so a card adopted this pass has
@@ -855,6 +971,7 @@ module.exports = {
   router, init,
   foundContent, cardPrompt, validFound, stuckPatch, bakeCard, editionOf, mixHex,
   syncPlan, syncHearts, slugOfUrl, bestCard, waitingPlan, adoptedFrom, writeWaiting,
+  likesPlan, writeLikes, syncLikes, pokeLikes, LIKES_PAGE, LIKES_CHAT, LIKES_SKIP,
   opponentMove, opponentPrompt, OPPONENT_SYSTEM, challengeVerdict, CHALLENGE_SYSTEM,
   KINDS, STYLE, TRIANGLE_CLAUSE, triangleClause, INVENT_LINE, AUTO_RULES, STUCK_MS, COST_CENTS,
   // for scripts/seed-triset.js — the seed batch must draw through the exact
