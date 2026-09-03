@@ -8588,11 +8588,18 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - Tests: `node scripts/test-triset.js` (pure + headless page half; reads
     the real dreamy wording out of server.js via
     `scripts/lib/dreamy-style.js`).
-  - **GATHERING EVERY TRIANGLE CARD SHE HAS HEARTED —
-    `scripts/triangle-hearts-deck.js` (dry by default, `--go` posts a deck
-    page; 2026-09-03, Sophie: "gather all the triangle cards i've hearted
-    everywhere · be thorough").** It costs nothing — reads only, no model
-    call. Three doors a heart comes through, all swept: an Assets-tab / Meta
+  - **GATHERING EVERY TRIANGLE CARD SHE HAS HEARTED — TWO SURFACES, ONE
+    GATHER (2026-09-03, Sophie: "gather all the triangle cards i've hearted
+    everywhere i[n] ur assets tab and 1 up tinder quick toggle w good/bad ·
+    be thorough").** `scripts/lib/triangle-hearts.js` is the gather;
+    `triangle-hearts-deck.js` posts the swipe deck and
+    `triangle-hearts-file.js` files the same set into the chat's Assets tab
+    with the full ritual (a real label, the MODEL · QUALITY · SIZE caption,
+    both exact prompt halves — measured, all 166 carry all three, so nothing
+    files short). **ONE gather, so the tab and the deck can never disagree
+    about what the set is**, and both mark the SAME url, so a ♥ in either
+    shows in the other. Both are dry by default and cost nothing — reads
+    only, no model call. Three doors a heart comes through, all swept: an Assets-tab / Meta
     Assets ♥ (`forge-asset-votes`), a ♥ or a "this one" pick on **any**
     Compare page (`forge-chat-verdicts`), and a per-image ♥ on a Playground
     run (`forge-promptlab`). Live 2026-09-03: **162 distinct cards** — 127
@@ -8624,6 +8631,14 @@ before working on that module. Nothing was deleted — the moved text is verbati
       malformed" on one of her liked urls and took the whole sweep with it.
       Every decode here is guarded; a key that cannot be decoded is still a
       usable key undecoded.
+    - **THE TAB IS NOT PRE-HEARTED, on purpose.** An asset vote is keyed
+      chat+url, so the hearts that put a card in this pile live in the chats
+      it came from — and filling this tab with 166 ♥ of its own would be the
+      2026-08-31 "they all have good on them covering the image" complaint in
+      tile form, leaving the ♥ here meaning nothing. Empty marks make it a
+      fresh re-triage, exactly like the deck.
+    - **The prompt route answers `results`, not `items`** — reading the wrong
+      key made a batch that fully succeeded print "0 ok".
 - **The Dump** (`dropbox.js`, `/api/drop`, sort page at `/dump`, iOS tile with
   SEND and SORT tabs) — **dump first, label afterwards**. Dropping asks no
   questions; only the bundle (a Photos album) and the session are captured,
