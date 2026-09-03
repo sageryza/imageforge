@@ -32,7 +32,8 @@ const STATE = path.join(__dirname, '../docs/triset/playground-likes-page.json');
   const title = `Playground triangle hearts v${(fs.existsSync(STATE) ? JSON.parse(fs.readFileSync(STATE, 'utf8')).version + 1 : 1)} (${items.length})`;
   console.log(title); items.forEach(i => console.log(' ', i.quality, i.label));
   if (!process.argv.includes('--post')) process.exit(0);
-  const data = { groups: [{ items }], help: 'Every triangle you hearted in the Playground, oldest first. Tap a picture for its prompt.', start: 'compare', stamp: false, voice: true };
+  const data = { groups: items.map(it => ({ items: [it] })),   // 1-up: one picture per row (2026-09-03, "1 up compare playground hearts")
+  help: 'Every triangle you hearted in the Playground, oldest first. Tap a picture for its prompt.', start: 'compare', stamp: false, voice: true };
   const r = await fetch(BASE + '/api/chatfeed/page', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat: CHAT, session: SESSION, title, template: 'grid', data }) });
   const j = await r.json(); if (!j.ok) { console.error(j); process.exit(1); }
   console.log('posted', j.id, j.warnings || '');
