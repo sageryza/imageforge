@@ -201,7 +201,8 @@ async function build() {
       sections: [{ label: 'Where it stopped', text: note }],
       link: { url: padLink(id), label: 'Open the story' },
     };
-    if (p.cover) it.img = p.cover;
+    // a cover whose url is an unexpanded template (`px-$v.png`) is no picture
+    if (p.cover && !/\$/.test(p.cover)) it.img = p.cover;
     gp.items.push(it);
   }
   group('Waiting on your Mac').items.push({
