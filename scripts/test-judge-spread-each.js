@@ -196,16 +196,12 @@ const HTML = `<!doctype html><meta charset="utf-8">
     ok('…nothing was written on the spread\'s own s: key',
       !posts.some((p) => p.path === '/api/chatfeed/verdict' && /^s:/.test(String(p.body.item))));
 
-    // the two left: add one, maybe the other → every picture decided → moves on
+    // the two left: a ▲ on one PICKS it — the card is decided and moves on,
+    // the other twin stays unmarked (2026-09-03, "another mistake")
     await page.click('#judge .jg-eb.yes[data-card="tent-1"]');
     await page.waitForTimeout(900);
     s = await shot(page);
-    is('a yes on one of two leaves the deck where it is', s.figs, ['tent-1', 'tent-3']);
-    is('…lit on that picture', s.lit, ['tent-1:yes']);
-    await page.click('#judge .jg-eb.maybe[data-card="tent-3"]');
-    await page.waitForTimeout(400);
-    s = await shot(page);
-    is('once every picture still on it is decided, the deck moves on', s.figs, []);
+    is('a ▲ on one twin decides the card and moves on', s.figs, []);
     const label = await page.evaluate(() => (document.querySelector('#judge .who') || {}).textContent || '');
     is('…to the next card', label, 'a pile of seashells');
 
@@ -213,10 +209,10 @@ const HTML = `<!doctype html><meta charset="utf-8">
     await page.click('#judge [data-act="piles"]');
     await page.waitForTimeout(300);
     const piles = await page.evaluate(() => [...document.querySelectorAll('#judge .jg-pilefold h2')].map((h) => h.textContent));
-    is('the piles are named by her words', piles, ['Add to deck · 1', 'Maybe add to deck · 1', 'No · 1', 'Unsure · 12']);
+    is('the piles are named by her words, and the unpicked twin is not in Unsure', piles, ['Add to deck · 1', 'No · 1', 'Unsure · 12']);
     const opens = await page.evaluate(() => [...document.querySelectorAll('#judge .jg-grid button')].map((b) => b.getAttribute('data-open')));
     is('…every tile opens the spread its picture sits on, or the card itself',
-      opens.slice(0, 5), ['s:circus-tent', 's:circus-tent', 's:circus-tent', 'solo-1', 'solo-2']);
+      opens.slice(0, 4), ['s:circus-tent', 's:circus-tent', 'solo-1', 'solo-2']);
     await page.click('#judge .jg-grid button');
     await page.waitForTimeout(300);
     s = await shot(page);
@@ -244,7 +240,13 @@ const HTML = `<!doctype html><meta charset="utf-8">
   {
     const { page } = await open({ items: { 'tent-1': 'maybe', 'tent-3': false, 'solo-1': true },
       texts: { 'tent-1': '— me: cbi' } });
-    const s = await shot(page);
+    let s = await shot(page);
+    // a card she already picked from does not come back on open — the deck
+    // opens on the first card still open, and one step back shows the twins
+    is('a card with a transferred pick is not where the deck opens', s.figs, []);
+    // it opens on solo-2 (solo-1 carries a transferred yes): two steps back
+    for (let k = 0; k < 2; k++) { await page.evaluate(() => document.querySelector('#judge .jg-navzone.prev').click()); await page.waitForTimeout(200); }
+    s = await shot(page);
     is('a transferred maybe and a transferred no come back on the cards', s.figs, ['tent-1', 'tent-2']);
     is('…lit', s.lit, ['tent-1:maybe']);
     const note = await page.evaluate(() => (document.querySelector('#judge .jg-cnote') || {}).textContent || '');
@@ -374,13 +376,15 @@ const HTML = `<!doctype html><meta charset="utf-8">
     const { page, posts } = await open();
     const js = (fn, arg) => page.evaluate(fn, arg);
     const tap = async (sel) => { const hit = await js((q) => { const b = document.querySelector(q); if (b) b.click(); return !!b; }, sel); ok('control present: ' + sel, hit); return hit; };
-    // ▲ on tent-1, then the big ✕ for the rest
-    await tap('#judge .jg-eb.yes[data-card="tent-1"]'); await page.waitForTimeout(150);
-    await tap('#judge .jg-mombtn[data-act="no"]'); await page.waitForTimeout(900);
+    // ✕ on tent-2 (stays), then ▲ on tent-1: the ▲ decides the card, tent-3
+    // is left unmarked, and nothing ever overwrote the ▲
+    await tap('#judge .jg-eb.no[data-card="tent-2"]'); await page.waitForTimeout(150);
+    await tap('#judge .jg-eb.yes[data-card="tent-1"]'); await page.waitForTimeout(900);
     const marks = {};
     posts.filter((p) => p.path === '/api/chatfeed/verdict' && p.body.ok !== undefined).forEach((p) => { marks[p.body.item] = p.body.ok; });
-    is('the big ✕ after a ▲ on one picture leaves that picture a yes', marks['tent-1'], true);
-    is('…and sends only the undecided ones to No', [marks['tent-2'], marks['tent-3']], [false, false]);
+    is('the ▲ stands', marks['tent-1'], true);
+    is('…the ✕ stands, and the unpicked twin was never marked', [marks['tent-2'], marks['tent-3']], [false, undefined]);
+    ok('…and the card moved on', (await shot(page)).figs.length === 0);
     // the deck moved on (every picture decided); go to the piles and open a No'd one
     await tap('#judge [data-act="piles"]'); await page.waitForTimeout(200);
     const noTile = await js(() => {
@@ -393,11 +397,8 @@ const HTML = `<!doctype html><meta charset="utf-8">
     ok('the No pile holds the picture as its own tile', !!noTile);
     await tap('#judge .jg-grid button[data-peek="tent-2"]'); await page.waitForTimeout(250);
     let s6 = await shot(page);
-    is('opening it shows the card WITH that picture on it', s6.figs, ['tent-1', 'tent-2']);
+    is('opening it shows the card WITH that picture on it', s6.figs, ['tent-1', 'tent-2', 'tent-3']);
     ok('…wearing its ✕ lit', s6.lit.includes('tent-2:no'));
-    await tap('#judge .jg-eb.no[data-card="tent-2"]'); await page.waitForTimeout(250);
-    s6 = await shot(page);
-    ok('…and one tap on that ✕ brings it back (no longer lit, still on the card)', !s6.lit.includes('tent-2:no') && s6.figs.includes('tent-2'));
     // Swipe these on the No pile walks the No'd pictures, shown
     await tap('#judge .jg-back'); await page.waitForTimeout(200);
     const swipeNo = await js(() => {
@@ -409,6 +410,9 @@ const HTML = `<!doctype html><meta charset="utf-8">
     await page.waitForTimeout(250);
     s6 = await shot(page);
     ok('…which shows the No\'d picture on its card', s6.figs.includes('tent-3'));
+    await tap('#judge .jg-eb.no[data-card="tent-2"]'); await page.waitForTimeout(250);
+    s6 = await shot(page);
+    ok('…and one tap on that ✕ brings it back (no longer lit, still on the card)', !s6.lit.includes('tent-2:no') && s6.figs.includes('tent-2'));
     await page.close();
   }
 
