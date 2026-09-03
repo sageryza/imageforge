@@ -857,7 +857,7 @@
     var lane = null;
     // per-visit fold state (what is shut right now, not a setting), and the
     // ids behind each pile's two buttons, rebuilt on every piles paint
-    var folded = {}, pileLanes = {};
+    var folded = {}, pileLanes = {}, pileCards = {};
 
     // ── THE REVIEW QUEUE'S DOOR (Aug 2026). `?clean=1` is how the queue opens
     // a deck — no title, straight onto the cards — so it is also how this page
@@ -999,11 +999,17 @@
       return -1;
     }
     function onDeck(it) { return !!it && holderIndexOf(it) >= 0; }
-    // the cards still ON a spread — a card marked no has left it
+    // the cards still ON a spread — a card marked no has left it…
+    // …UNLESS SHE CAME LOOKING FOR IT (2026-09-03, Sophie, at the No pile:
+    // "some of the ones i had swiped yes on … just ended up on the no pile
+    // and now im not even allowed to see them"). A pile tile, or a Swipe
+    // these on a pile, names the pictures she is there to see (`peek`), and
+    // those stay on the card with their ✕ lit, so one tap brings one back.
+    var peek = {};
     function liveCards(it) {
       if (!it || !it.cards) return [];
       if (!eachCard) return it.cards;
-      return it.cards.filter(function (c) { return verdicts[c.id] !== false; });
+      return it.cards.filter(function (c) { return verdicts[c.id] !== false || peek[c.id]; });
     }
     var assetVotes = {};   // url → 'like' | 'dislike', the Assets tab's own
     var views = window.__assetViews ? window.__assetViews({
@@ -1307,7 +1313,7 @@
     // leaving the card view ends the pass — the piles are always the whole
     // deck, and a lane that outlived its own screen would silently shorten
     // the next walk through the cards
-    function toPiles() { lane = null; view = 'piles'; fromPiles = false; rememberPiles(true); }
+    function toPiles() { lane = null; peek = {}; view = 'piles'; fromPiles = false; rememberPiles(true); }
     // walking on from a card is leaving the piles behind
     function leftPiles() { fromPiles = false; rememberPiles(false); }
     function unjudged(it) {
@@ -1357,13 +1363,21 @@
     }
     function judge(val) {
       var it = items[cur];
-      // the footer on an each-card spread marks EVERY card still on it
+      // THE FOOTER ON AN EACH-CARD SPREAD MARKS THE PICTURES SHE HAS NOT
+      // DECIDED YET (2026-09-03 — it marked every picture still on the card,
+      // so "▲ on this one, then ✕ for the rest" sent the ▲'d one to No with
+      // the rest: "some of the ones i had swiped yes on … just ended up on
+      // the no pile"). Once every picture on the card carries a mark, the
+      // footer re-decides the whole card — that is the only time it can
+      // override a mark, and it is the only mark she can be making.
       if (eachCard && it.cards && it.cards.length) {
         var live = liveCards(it);
         if (!live.length) { if (browse && quick) stepOn(cur); return; }
-        var same = live.every(function (c) { return verdicts[c.id] === val; });
+        var undecided = live.filter(function (c) { return verdicts[c.id] === undefined; });
+        var targets = undecided.length ? undecided : live;
+        var same = targets.every(function (c) { return verdicts[c.id] === val; });
         var to = (browse && same) ? null : val;
-        live.forEach(function (c) {
+        targets.forEach(function (c) {
           var p = verdicts[c.id];
           undoStack.push({ i: cur, card: c.id, prev: p });
           if (to === null) delete verdicts[c.id]; else verdicts[c.id] = to;
@@ -1880,7 +1894,7 @@
         // ✕ · ? · ♥ — which is how a pile gets re-decided without walking the
         // whole deck again. The fold is per pile and lives for the visit: it
         // is how she is reading the screen right now, not a setting.
-        pileLanes = {};
+        pileLanes = {}; pileCards = {};
         // on an each-card deck a pile holds the PICTURES, each opening the
         // spread it sits on — a spread was never the thing she decided
         var units = [];
@@ -1897,6 +1911,7 @@
           var key = 'p' + pi + ':' + p.name;
           pileLanes[key] = members.map(function (u) { return u.open; })
             .filter(function (id, i, a) { return a.indexOf(id) === i; });
+          pileCards[key] = members.map(function (u) { return u.it.id; });
           var shut = folded[key] === true;
           return '<div class="jg-pilehd">'
             + '<button class="jg-pilefold' + (shut ? ' shut' : '') + '" data-fold="'
@@ -1913,7 +1928,7 @@
                   + esc(it.who || it.label || it.text || it.id) + '</button>';
               }
               var src = it.pair ? it.pair[0].img : it.img;
-              return '<button data-open="' + esc(u.open) + '"><img src="' + esc(src)
+              return '<button data-open="' + esc(u.open) + '" data-peek="' + esc(it.id) + '"><img src="' + esc(src)
                 + '" alt="' + esc(it.label || '') + '"></button>';
             }).join('') + '</div>');
         }).join('');
@@ -1962,10 +1977,10 @@
               return '<div class="jg-nrow">'
                 // the picture is a way in too, like a pile tile — a SIBLING
                 // of the body, so it never wraps the fold caret
-                + (src ? '<button class="jg-nthumb" data-open="' + esc(n.open)
+                + (src ? '<button class="jg-nthumb" data-open="' + esc(n.open) + '" data-peek="' + esc(n.it.id)
                   + '"><img src="' + esc(src) + '" alt=""></button>' : '')
                 + '<div class="jg-nbody">'
-                + '<button class="jg-nname" data-open="' + esc(n.open) + '">'
+                + '<button class="jg-nname" data-open="' + esc(n.open) + '" data-peek="' + esc(n.it.id) + '">'
                 + esc(n.it.who || n.it.label || n.it.text || n.it.id) + '</button>'
                 // the thread's own markup, painted by compare.js's ONE
                 // renderer below — so a note reads the same here as on the
@@ -2006,6 +2021,8 @@
             // only when every card still on it wears that mark
             var lv = liveCards(it);
             var all = function (k) { return lv.length && lv.every(function (c) { return verdicts[c.id] === k; }); };
+            // lit only when the whole card wears the mark — a card with an
+            // undecided picture is one the footer is still asking about
             v = all(true) ? true : all('maybe') ? 'maybe' : all(false) ? false : undefined;
           }
           row = '<button class="jg-mombtn' + (v === false ? ' on' : '') + '" data-act="no"'
@@ -2285,6 +2302,8 @@
         var ids = pileLanes[sw] || [];
         if (!ids.length) return;
         lane = ids;
+        peek = {};
+        (pileCards[sw] || []).forEach(function (id) { peek[id] = true; });
         cur = indexOfId(ids[0]);
         if (cur < 0) { lane = null; return; }
         leftPiles();
@@ -2297,6 +2316,9 @@
         lane = null;
         cur = items.findIndex(function (it) { return it.id === open; });
         if (cur < 0) cur = 0;
+        peek = {};
+        var pk2 = b.getAttribute('data-peek');
+        if (pk2) peek[pk2] = true;   // the picture she tapped, even a No'd one
         fromPiles = true;   // the chevron takes her back there
         view = 'card'; render(true); savePlace(); return;
       }
