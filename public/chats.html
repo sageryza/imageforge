@@ -5129,7 +5129,26 @@ function paintDelivered(el, items){
     row.appendChild(top);
     if(it.kind==='images' && it.images && it.images.length){
       var strip=document.createElement('div'); strip.className='dvpics';
-      it.images.forEach(function(p){
+      // TAP TO NEXT across the burst (2026-09-03, Sophie: "is tap to next
+      // everywhere"). A delivery row shows three thumbs of what can be a much
+      // bigger batch, and the walk is the row itself — `it.images` in the
+      // order it was handed to her, which is the order the strip draws.
+      function openDv(i, step){
+        var p=it.images[i]; if(!p) return;
+        var a={ url:p.url, description:p.label, prompt:p.caption, chat:it.chat, _chatDoor:true };
+        // A fresh open starts the prompt door shut and on content; these are
+        // rebuilt per open, so there is nothing to clear — the door's state
+        // simply rides the step.
+        if(step && dvSide) { a.promptSide=dvSide.side; a.promptOpen=dvSide.open; }
+        dvSide=a;
+        a.nav={
+          prev: i>0 ? function(){ openDv(i-1, true); } : null,
+          next: i<it.images.length-1 ? function(){ openDv(i+1, true); } : null
+        };
+        lightbox(p.url, a);
+      }
+      var dvSide=null;
+      it.images.forEach(function(p, i){
         var b=document.createElement('button'); b.className='dvpic';
         var im=document.createElement('img');
         im.loading='lazy'; im.alt=p.label||'';
@@ -5138,7 +5157,7 @@ function paintDelivered(el, items){
         b.appendChild(im);
         // The shared lightbox (/asset-lightbox.js) — the one copy, so a ♥ or a
         // note left here lands in the Assets tab like everywhere else.
-        b.onclick=function(){ lightbox(p.url, { url:p.url, description:p.label, prompt:p.caption, chat:it.chat, _chatDoor:true }); };
+        b.onclick=function(){ dvSide=null; openDv(i, false); };
         strip.appendChild(b);
       });
       row.appendChild(strip);
@@ -8796,7 +8815,7 @@ function openChat(name, keepScroll, focusId, noFetch){
         // walk by THEMSELVES, and there is no second copy of applyFilter's
         // rules to drift from it. Document order rather than the `cells`
         // array, because a tile can be inserted rather than appended.
-        var lbIt=null;
+        var lbIt=null, lbIdx=-1;
         function aSeq(){
           return Array.prototype.filter.call(grid.querySelectorAll('.acell'), function(c){
             return c._it && c.style.display!=='none';
@@ -8806,10 +8825,21 @@ function openChat(name, keepScroll, focusId, noFetch){
           for(var k=0;k<seq.length;k++) if(seq[k]._it===it) return k;
           return -1;
         }
+        // A MARK CAST FROM THE LIGHTBOX CAN TAKE THE PICTURE SHE IS LOOKING AT
+        // OFF THE GRID, AND THE WALK HAS TO SURVIVE IT (found 2026-09-03).
+        // Every vote re-runs applyFilter, so with New or ♥ or Hide ✕ lit —
+        // which is the whole of reviewing a tab — hearting the open picture
+        // hides its tile, `aAt` answers -1, and BOTH zones go dead while still
+        // drawn: she is stuck on that picture with only the way out working.
+        // Her PLACE is still meaningful, so it is the fallback: the list closed
+        // up over the gap, so whatever now stands at the index she held IS the
+        // next one, and the one before it is still the previous one. It heals
+        // itself the moment the picture is back on screen (un-hearting it), and
+        // it can only ever be one tile out, because the only thing that
+        // re-filters while the box is open is a mark she just cast.
         function aStep(d){
           var seq=aSeq(), at=aAt(seq, lbIt);
-          if(at<0) return;
-          var nx=seq[at+d];
+          var nx = at>=0 ? seq[at+d] : seq[d>0 ? lbIdx : lbIdx-1];
           if(nx) openAsset(nx._it, false);
         }
         function openAsset(it, fresh){
@@ -8829,6 +8859,7 @@ function openChat(name, keepScroll, focusId, noFetch){
           if(lbIt && lbIt!==it) lbIt._lbPaint=null;
           lbIt=it;
           var seq=aSeq(), at=aAt(seq, it);
+          lbIdx=at;   // her place, for a mark that takes this tile off the grid
           // A null side draws NO zone, so at the ends of the grid a tap there
           // closes like any other dead space.
           it.nav={
@@ -8839,7 +8870,36 @@ function openChat(name, keepScroll, focusId, noFetch){
           // Both halves, always — carrying only a set one would leave the
           // arriving picture wearing whatever an EARLIER visit left on it.
           if(carry){ it.promptSide=carry.side; it.promptOpen=carry.open; }
-          lightbox(it.url, it);
+          // THE CACHED THUMB PAINTS FIRST, THE ORIGINAL SWAPS IN BEHIND IT
+          // (the Playground's rule, 2026-08-26: "it seems like it takes quite
+          // a while to load the images in light box view"). The tile she just
+          // tapped is already decoded in the browser, so it lands in the same
+          // frame; the original is 1-3MB at the 2K and 4K tiers, and painting
+          // it straight left the box EMPTY for the whole download — on every
+          // step, which is what tap-to-next turned from a one-off into a
+          // rhythm. One download either way: setting src to a url a preloader
+          // already has hits the cache.
+          var th=tileSrc(it);
+          lightbox(it.url, it, th);
+          if(th!==it.url){
+            var pre=new Image();
+            pre.onload=function(){
+              if(lbIt!==it) return;                    // she stepped on while it flew
+              var el=document.querySelector('#clightbox .clwrap img');
+              if(el && el.getAttribute('src')===th) el.src=it.url;
+            };
+            pre.src=it.url;
+          }
+        }
+        // What the TILE is showing right now — already decoded, and already
+        // past the direct-thumb→/api/story/thumb fallback, so it can never
+        // paint the 404 the tile itself walked away from. A tile whose lazy
+        // src has not been swapped in yet falls back to the url we would ask
+        // for anyway.
+        function tileSrc(it){
+          var im=it._img;
+          var s=(im && !im.dataset.src) ? im.getAttribute('src') : '';
+          return s || it.thumb || assetThumb(it.url);
         }
         function addTiles(list){ list.forEach(function(it){
           var cell=document.createElement('div'); cell.className='acell';
@@ -8855,6 +8915,7 @@ function openChat(name, keepScroll, focusId, noFetch){
           var srcAttr = io ? 'data-src' : 'src';
           b.innerHTML='<img alt="" decoding="async" '+srcAttr+'="'+esc(thumb)+'">'+lbl;
           var img=b.querySelector('img'), triedFb=false;
+          it._img=img;   // the lightbox paints this decoded copy first (tileSrc)
           // Two-stage error: direct thumb → /api/story/thumb → if BOTH fail the
           // underlying image is gone (deleted / not public), so hide the tile
           // instead of showing a broken "?" box.
@@ -10234,9 +10295,13 @@ window.scrollStop = scrollStop;   // the shared lightbox pauses our autoscroll
 // to hide, and something else is watching it.
 var DOORS = window.ForgeAssetActions || null;
 if(DOORS) DOORS.init({ api: api, toast: toast });
-function lightbox(url, asset){
+// `shown` is what is PAINTED — the tile's own cached thumb, so a step lands a
+// picture in the same frame instead of a blank box while a 1-3MB original
+// downloads (the Playground's rule). The doors and the notes always run off
+// the real `url`; the original swaps in behind the thumb (see openAsset).
+function lightbox(url, asset, shown){
   if(asset && DOORS) asset.actions=DOORS.build(url, asset, {chatDoor:!!asset._chatDoor});
-  window.__assetLightbox(url, asset);
+  window.__assetLightbox(shown||url, asset);
 }
 // THE SEARCH SURVIVES A BACK-OUT (Aug 2026, Sophie: "when I search something
 // and then I click on one of the options if it's not the one I want when I go

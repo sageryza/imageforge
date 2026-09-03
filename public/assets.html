@@ -266,7 +266,11 @@ function whoLabel(it){ return it.name || it.chat || ''; }
 //    grown are the reason nobody migrated it, so the shared file grew two
 //    hooks for them instead. Votes and notes still go to it.chat, which IS
 //    the sync with that chat's own Assets tab.
-function lightbox(url, asset){
+// `shown` is what is PAINTED — the tile's own cached thumb, so a step lands a
+// picture in the same frame instead of a blank box while a 1-3MB original
+// downloads (the Playground's rule). The doors run off the real `url`; the
+// original swaps in behind the thumb (see openAsset).
+function lightbox(url, asset, shown){
   if(asset){
     // The four doors are /asset-actions.js's — ONE set, so this page and the
     // chat's own Assets tab can never offer different ones again. chatDoor is
@@ -274,7 +278,7 @@ function lightbox(url, asset){
     asset.actions=window.ForgeAssetActions.build(url, asset, {chatDoor:true});
     asset.who=whoLabel(asset);
   }
-  window.__assetLightbox(url, asset);
+  window.__assetLightbox(shown||url, asset);
 }
 
 // ── The page: one grid over every chat, paged as she scrolls ──────────────
@@ -531,7 +535,7 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
     // is load-bearing HERE rather than merely tidy: a newly-arrived page is
     // insertBefore'd at the FRONT of the grid while `cells` still pushes it
     // on the end, so the array and the screen genuinely disagree.
-    var lbIt=null;
+    var lbIt=null, lbIdx=-1;
     function aSeq(){
       return Array.prototype.filter.call(grid.querySelectorAll('.acell'), function(c){
         return c._it && c.style.display!=='none';
@@ -541,10 +545,15 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
       for(var k=0;k<seq.length;k++) if(seq[k]._it===it) return k;
       return -1;
     }
+    // A MARK CAST FROM THE LIGHTBOX CAN TAKE THE PICTURE OFF THE GRID, AND THE
+    // WALK HAS TO SURVIVE IT (2026-09-03) — the Assets tab's own note, same
+    // cause: every vote re-runs applyFilter, so with New or ♥ or Hide ✕ lit
+    // the tile under her leaves as she marks it and both zones go dead while
+    // still drawn. Her PLACE is the fallback: the list closed up over the gap,
+    // so what now stands at the index she held IS the next one.
     function aStep(d){
       var seq=aSeq(), at=aAt(seq, lbIt);
-      if(at<0) return;
-      var nx=seq[at+d];
+      var nx = at>=0 ? seq[at+d] : seq[d>0 ? lbIdx : lbIdx-1];
       if(nx) openAsset(nx._it, false);
     }
     function openAsset(it, fresh){
@@ -558,6 +567,7 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
       if(lbIt && lbIt!==it) lbIt._lbPaint=null;   // its ♥/✕ are out of the box
       lbIt=it;
       var seq=aSeq(), at=aAt(seq, it);
+      lbIdx=at;   // her place, for a mark that takes this tile off the grid
       it.nav={
         prev: at>0 ? function(){ aStep(-1); } : null,
         next: (at>=0 && at<seq.length-1) ? function(){ aStep(1); } : null
@@ -566,7 +576,29 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
       // Both halves, always — carrying only a set one would leave the arriving
       // picture wearing whatever an EARLIER visit left on it.
       if(carry){ it.promptSide=carry.side; it.promptOpen=carry.open; }
-      lightbox(it.url, it);
+      // The cached thumb paints first and the original swaps in behind it —
+      // the Playground's rule; a step used to leave the box EMPTY for a whole
+      // 1-3MB download. One download either way (the preloader warms the cache
+      // the swap then reads). See the Assets tab's own note.
+      var th=tileSrc(it);
+      lightbox(it.url, it, th);
+      if(th!==it.url){
+        var pre=new Image();
+        pre.onload=function(){
+          if(lbIt!==it) return;                    // she stepped on while it flew
+          var el=document.querySelector('#clightbox .clwrap img');
+          if(el && el.getAttribute('src')===th) el.src=it.url;
+        };
+        pre.src=it.url;
+      }
+    }
+    // What the TILE is showing right now — decoded, and already past the
+    // direct-thumb→/api/story/thumb fallback, so it can never paint the 404
+    // the tile itself walked away from.
+    function tileSrc(it){
+      var im=it._img;
+      var s=(im && !im.dataset.src) ? im.getAttribute('src') : '';
+      return s || it.thumb || assetThumb(it.url);
     }
     function addTiles(list, anchor){ list.forEach(function(it){
       var cell=document.createElement('div'); cell.className='acell';
@@ -582,6 +614,7 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
       var srcAttr = io ? 'data-src' : 'src';
       b.innerHTML='<img alt="" decoding="async" '+srcAttr+'="'+esc(thumb)+'">'+lbl+wl;
       var img=b.querySelector('img'), triedFb=false;
+      it._img=img;   // the lightbox paints this decoded copy first (tileSrc)
       img.onerror=function(){
         if(!triedFb && it.thumb){ triedFb=true; img.src=fb; return; }
         it._broken=true; cell.style.display='none'; if(it._lbPaint) it._lbPaint();

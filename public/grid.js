@@ -232,6 +232,16 @@
     // thing this tile does.
     var views = window.__assetViews({
       chat: chat,
+      // TAP TO NEXT — the pictures ON THE PAGE, in document order, so a
+      // spread's two ride side by side in the walk exactly as they do on
+      // screen. Only asset-backed pictures carry data-lb (a plain picture
+      // keeps compare.js's own zoom), which is the same set that opens this
+      // lightbox at all.
+      seq: function () {
+        return Array.prototype.map.call(mount.querySelectorAll('img[data-lb]'), function (im) {
+          return byId[im.getAttribute('data-lb')];
+        }).filter(Boolean);
+      },
       voteOf: function (it) {
         return verdicts[it.id] === true ? 'like'
           : verdicts[it.id] === false ? 'dislike' : null;
