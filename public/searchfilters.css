@@ -65,14 +65,25 @@
    lit chips would read as two of the same thing. */
 .filtcbtn.dropfilt.on { background: var(--fsf-ink2); border-color: var(--fsf-ink2); }
 
-/* THE CHIP. It wears the state while the drawer is shut and stays LIT either
-   way. A page passes its own extra class (`.catchip` on Chats) when it has a
-   chip look of its own; this is the floor. */
+/* THE CHIP IS THE SIFTER (2026-09-02, Sophie: "make it the button an icon of a
+   flour filter") — Lucide `funnel`, drawn by /searchfilters.js. A rounded
+   SQUARE at the house 6px, never a circle and never a pill. It wears the state
+   while the drawer is shut — the words ride BESIDE the glyph — and stays LIT
+   either way, which with the word gone is the only thing saying something is
+   narrowed once the drawer is open. A page passes its own extra class
+   (`.catchip` on Chats) when it has a chip look of its own; this is the floor. */
 .filtchip {
+  display: inline-flex; align-items: center; gap: 6px;
   font-family: -apple-system, sans-serif; font-size: 11px; letter-spacing: .08em;
   text-transform: uppercase; color: var(--fsf-ink2);
   background: transparent; border: 1px solid var(--fsf-line); border-radius: 6px;
-  padding: 5px 10px; cursor: pointer; -webkit-tap-highlight-color: transparent;
-  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  padding: 5px 8px; min-height: 26px; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; max-width: 100%;
 }
+.filtchip svg { width: 16px; height: 16px; flex: none; }
+/* The state beside the glyph: it TRUNCATES rather than pushing, because on a
+   feed bar the search box has to keep its width — and the words are on the
+   rows the moment she opens the drawer. */
+.filtchip .filtchipw { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filtchip .filtchipw[hidden] { display: none !important; }
 .filtchip.on { color: var(--fsf-on); border-color: var(--fsf-on); }

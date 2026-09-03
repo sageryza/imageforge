@@ -65,6 +65,13 @@
     return ((cur | 0) + 1 + count) % count;
   }
 
+  // Lucide `funnel` — the sifter. House stroke 1.8, `currentColor`, inlined
+  // rather than fetched (CSP, and one request fewer).
+  var FUNNEL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+    + ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"'
+    + ' aria-hidden="true"><path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0'
+    + ' 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"/></svg>';
+
   function isMulti(s) { return s.kind === 'chips' && !!s.multi; }
   function neutralOf(s) {
     if (s.kind === 'tri') return s.neutral;
@@ -118,6 +125,15 @@
     chip.type = 'button';
     chip.className = 'filtchip' + (opts.chipClass ? ' ' + opts.chipClass : '');
     chip.setAttribute('aria-expanded', 'false');
+    // THE DOOR IS THE SIFTER, NOT THE WORD (2026-09-02, Sophie: "make it the
+    // button an icon of a flour filter"). Lucide `funnel` — the kitchen sifter
+    // shape — at the house 1.8 stroke, the same line set as every other icon
+    // in the app. The WORD is gone; what the chip still has to say is WHICH
+    // filters are on, and that rides beside the glyph while the drawer is shut.
+    chip.innerHTML = FUNNEL + '<span class="filtchipw"></span>';
+    chip.setAttribute('aria-label', opts.label || 'Filters');
+    chip.title = opts.label || 'Filters';
+    var chipWords = chip.querySelector('.filtchipw');
     mount.appendChild(chip);
     var drawer = document.createElement('div');
     drawer.className = 'filtdrawer';
@@ -213,7 +229,18 @@
       var on = narrowedKeys();
       var words = [];
       specs.forEach(function (s) { words = words.concat(wordsOf(s, state[s.key])); });
-      chip.textContent = (on.length && drawer.hidden) ? words.join(' · ') : (opts.label || 'Filters');
+      // THE CHIP CARRIES THE STATE ONLY WHILE THE DRAWER IS SHUT. Open, the
+      // rows below already say "Mine" and "Archive only" in full, and
+      // repeating them in the heaviest treatment on the screen is the same
+      // answer twice. It stays LIT either way, because lit is the part that is
+      // never redundant: it says something is narrowed even when the words are
+      // elsewhere — and with the word gone from the button, the lit glyph is
+      // the ONLY thing saying so once the drawer is open.
+      var say = (on.length && drawer.hidden) ? words.join(' · ') : '';
+      chipWords.textContent = say;
+      chipWords.hidden = !say;
+      chip.setAttribute('aria-label',
+        (opts.label || 'Filters') + (on.length ? ' — ' + words.join(', ') : ''));
       chip.classList.toggle('on', !!on.length);
     }
 

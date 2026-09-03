@@ -156,7 +156,11 @@ const server = http.createServer((req, res) => {
 
     // OPT IN — shut is the resting state.
     ok(!(await drawerShown()), 'the drawer is SHUT until she taps the chip');
-    is('and the chip says its word', (await page.textContent(chip)).trim(), 'Filters');
+    // THE CHIP IS THE SIFTER GLYPH — no word at rest, just the funnel.
+    is('and it says nothing while nothing is narrowed', (await page.textContent(chip)).trim(), '');
+    ok(await page.$(chip + ' svg') !== null, 'the door is the sifter glyph, not a word');
+    is('and it still names itself to a screen reader',
+      await page.$eval(chip, (n) => n.getAttribute('aria-label')), 'Filters');
     await page.click(chip);
     ok(await drawerShown(), 'tapping it opens the drawer');
 
@@ -254,8 +258,8 @@ const server = http.createServer((req, res) => {
     await page.reload();
     await page.waitForFunction(() => document.querySelectorAll('.assetgrid .acell').length === 3);
     is('a reload opens on the whole library', await shown(), 3);
-    is('and the chip is back to its word',
-      (await page.textContent(chip)).trim(), 'Filters');
+    is('and the chip is back to saying nothing',
+      (await page.textContent(chip)).trim(), '');
 
     // The drawer is IN FLOW here, so it can never cover the search box or the
     // first row of pictures — measured with elementFromPoint, which is the

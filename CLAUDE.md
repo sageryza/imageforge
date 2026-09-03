@@ -2839,11 +2839,20 @@ them off the reference sheet, not off the old filenames.
   Meta Assets each grew their own loose row of chips instead — on bars already
   fighting the injected pill for width, with nowhere to put "only the high
   ones". Same story as `/tritoggle.css`, same answer.
+  - **THE DOOR IS A SIFTER, NOT A WORD (2026-09-02, Sophie: "make it the
+    button an icon of a flour filter").** Lucide `funnel` at the house 1.8
+    stroke, in a rounded square at the house 6px — never a circle, never a
+    pill. **The state still rides BESIDE the glyph while the drawer is shut**
+    ("♥ only · High"), because a filter she cannot see must never be one she
+    has forgotten she set; the chip stays LIT either way, which with the word
+    gone is the only thing saying something is narrowed once the drawer is
+    open. The name lives on the `aria-label` and the `title`, so nothing is
+    lost to a screen reader.
   - **WHAT THE SHELL OWNS: the shape.** The chip; the drawer SHUT until she
-    taps it; the chip WEARING the state while it is shut ("♥ only · High") and
-    staying lit either way; the aimed three-way toggle and the word that
-    clears it; the neutral rules; that an unknown value WIDENS rather than
-    emptying the list. **WHAT A PAGE OWNS: which filters it has** — values,
+    taps it; the chip WEARING the state while it is shut and staying lit
+    either way; the aimed three-way toggle and the word that clears it; the
+    neutral rules; that an unknown value WIDENS rather than emptying the
+    list. **WHAT A PAGE OWNS: which filters it has** — values,
     words, the query-string `param` when the answer has to reach a server, and
     its own `get`/`set` when a filter is meant to survive a reload, so **no
     localStorage key lives in the shared file** and the Playground's existing

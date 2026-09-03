@@ -234,7 +234,10 @@ const server = http.createServer((req, res) => {
   // these controls reads as named failures and not an uncaught selector error.
   const shown = (sel) => page.$eval(sel, (n) => getComputedStyle(n).display !== 'none'
     && n.getBoundingClientRect().height > 0).catch(() => false);
+  // THE CHIP IS THE SIFTER GLYPH (2026-09-02) — what it SAYS is the state
+  // riding beside it, so "nothing narrowed" is an empty string, not a word.
   const chipText = () => page.$eval('#searchfilters .filtchip', (n) => n.textContent.trim()).catch(() => null);
+  const chipGlyph = () => page.$eval('#searchfilters .filtchip svg', () => true).catch(() => false);
   const chipLit = () => page.$eval('#searchfilters .filtchip', (n) => n.classList.contains('on')).catch(() => false);
   const words = () => page.$$eval('#searchfilters .filtval', (n) => n.map((v) => v.textContent.trim()));
   const stops = () => page.$$eval('#searchfilters .filtrow .tri', (n) => n.map((v) => v.getAttribute('data-n')));
@@ -261,7 +264,10 @@ const server = http.createServer((req, res) => {
   // ---- OPT IN: shut until she asks (her ask, in those words) --------------
   if (!await shown('#searchfilters')) fail('opening the search bar did not bring the Filters chip');
   if (await shown('#searchfilters .filtdrawer')) fail('the filters are open by default — they are supposed to be opt in');
-  is('the chip says what it is while nothing is narrowed', await chipText(), 'Filters');
+  is('the chip says NOTHING while nothing is narrowed — it is the sifter alone', await chipText(), '');
+  if (!await chipGlyph()) fail('the chip is not the sifter glyph');
+  is('and it still names itself to a screen reader',
+    await page.$eval('#searchfilters .filtchip', (n) => n.getAttribute('aria-label')), 'Filters');
   is('and is unlit', await chipLit(), false);
 
   // ---- ALL sends nothing at all -------------------------------------------
@@ -299,7 +305,7 @@ const server = http.createServer((req, res) => {
   is('her two messages, and no chat-name row above them', await results(), 2);
   // THE CHIP IS LIT THE MOMENT ANYTHING IS NARROWED — but while the drawer is
   // OPEN it does not repeat the words the rows below already spell out.
-  is('open, the chip does not say the same thing twice', await chipText(), 'Filters');
+  is('open, the chip does not say the same thing twice', await chipText(), '');
   is('but it is lit, which is the part that is not redundant', await chipLit(), true);
   // …and SHUT it carries the state, because that is when nothing else does.
   await page.click('#searchfilters .filtchip');
@@ -376,7 +382,7 @@ const server = http.createServer((req, res) => {
   await page.click('#searchbtn');
   await page.waitForFunction(() => (document.getElementById('qsearch') || {}).value === '',
     null, { timeout: 4000 }).catch(() => fail('the glass did not clear the words'));
-  is('a new search opens on everything again', await chipText(), 'Filters');
+  is('a new search opens on everything again', await chipText(), '');
   is('with both toggles back on the neutral middle', await stops(), ['1', '1']);
   if (await shown('#searchfilters .filtdrawer')) fail('the glass left the drawer open');
   await page.click('#qclear');
@@ -424,7 +430,7 @@ const server = http.createServer((req, res) => {
   await page.click('.threadsearch');
   await page.waitForSelector('.msgsearch.open input');
   is('and the filter is back to everyone',
-    await page.$eval('.msgfilters .filtchip', (n) => n.textContent.trim()), 'Filters');
+    await page.$eval('.msgfilters .filtchip', (n) => n.textContent.trim()), '');
 
   if (errors.length) fail('page errors: ' + errors.join(' | '));
 
