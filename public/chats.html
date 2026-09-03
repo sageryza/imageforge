@@ -9410,7 +9410,7 @@ function openPage(p){
   v.__close=function(){
     if(pill._stop) pill._stop(); v.remove();
     document.body.style.overflow=''; document.body.classList.remove('ontop');
-    window.__closePage=null;
+    window.__closePage=null; window.__pagePill=null;
     window.scrollTo(0,pvY); };
   // the page's own chevron (judge.js backToQueue) asks the viewer to close —
   // set while this viewer is open, cleared by __close so a stale hook can
@@ -9418,6 +9418,20 @@ function openPage(p){
   window.__closePage=function(){
     if(!document.body.contains(v)) return false;
     if(v.__close) v.__close();
+    return true;
+  };
+  // …and the page can stand this pill down (2026-09-03, Sophie: "spacing is
+  // weird"). A DECK is one fixed screen: the pill scrolls nothing on a card,
+  // and it sits in the corner the deck's own top row uses — measured at
+  // 390x844 with her 47px inset, elementFromPoint on the deck's "?" answers
+  // the pill's play button, so the button cannot be tapped at all. judge.js
+  // asks for it back on the PILES, which is the one screen in a deck that
+  // really scrolls (2026-09-01). Cleared by __close, so a stale hook can never
+  // answer for a viewer that is gone.
+  window.__pagePill=function(show){
+    if(!document.body.contains(v)) return false;
+    if(!show && pill._stop) pill._stop();
+    pill.style.display=show?'':'none';
     return true;
   };
   if(bar) bar.querySelector('.pv-back').onclick=function(){

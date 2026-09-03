@@ -8811,6 +8811,35 @@ before working on that module. Nothing was deleted — the moved text is verbati
       sizes off 100% of its mount, so `#pageviews` is a full-height flex
       column and `#judge` takes what the switch does not. Without that the
       card floats at the top of a half-height box.
+    - **AND SO IS THE TITLE, AND SO IS THE APP'S PILL (2026-09-03, Sophie:
+      "spacing is weird / identity issues").** The pill rule above was the
+      first of a family and the other two were still keyed off the POSTED
+      template, which since this change only decides which view a page OPENS
+      on. So the swipe view of a GRID-posted page was a second, worse deck:
+      page-templates drops the `<h1>` for a `deck` only, so her deck chrome
+      came up under a 26px serif title — the same name the app viewer's bar
+      was already showing — and page-views' `.jg-mombg .float{display:none}`
+      hides the INJECTED pill, where a page in the app runs in an IFRAME and
+      the pill she taps lives in the PARENT (`mkPagePill`). Measured at
+      390x844 with her 47px inset: bar 0-55, h1 55-78, the deck's top row
+      130-174 under a pill spanning 47-239, and `elementFromPoint` on the
+      deck's "?" answering the pill's play button — **not merely covered,
+      untappable**. Now: `.jg-mombg .wrap>h1{display:none}` (hidden per view,
+      never dropped, so the compare half keeps its heading and compare.js its
+      "?" mount, and every page already posted gets it), and judge.js asks
+      `window.parent.__pagePill(view === 'piles')` — down on a card, which
+      scrolls nothing, BACK on the piles, which is the autoscroll she asked
+      for on 2026-09-01 and the reason this cannot simply hide the pill.
+      Test: `node scripts/test-page-viewer-deck-pill.js` (verified failing 4).
+    - **A CARD'S NAME IS CLAMPED TO TWO LINES (same report).** `.who` is her
+      date deck's line for a person's NAME and a picture card feeds it the
+      item's LABEL, which on a filed Playground picture is the prompt —
+      measured on her live hearts page: 19 labels, 6 to 116 characters,
+      drawing 52 · 79 · 105 · **157px** tall, so the card's whole shape
+      depended on how long a prompt was and her ✕/♥ ended up on top of the
+      picture. `isLong` counts the card's own WORDS and never the name, so
+      the small top-left treatment could not fire either. The words are one
+      tap away behind the picture's own PROMPT door.
   - **A PAGE IS SPREADS HOLDING CARDS, AND A MARK LANDS ON EITHER (Aug 2026
     v4, Sophie: "so I can leave a note per card, or per spread. same w
     heart").** A spread of 2+ carries a key of its own — derived in
