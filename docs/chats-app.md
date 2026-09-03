@@ -1762,7 +1762,7 @@
     - **`pinTop`** = stays at the top of every list. The PUSHPIN, added Aug
       2026 — see *The pushpin* below. It is the one mark whose control is
       **not** in the thread header: it lives on the home row, at her ask.
-    - **`tray`** (+ **`trayAt`**) = one of the three or four things she is
+    - **`trayDays`** (`{day: iso}`; the old `tray`+`trayAt` pair reads as one day) = one of the three or four things she is
       working on RIGHT NOW. The TRAY, added 2026-08-31 — see *On my tray*
       below. The one mark with a SCREEN of its own rather than a position in
       a list, and the only one that stores a MOMENT beside its boolean.
@@ -1940,6 +1940,31 @@
     the head is red while the spike is not). Verified failing with the sort
     tier removed.
 
+### The page heals itself
+
+2026-09-02, Sophie: *"build self heal"* — after #2048's stale merge put a
+clobbered `chats.html` live for two hours and her phone kept it past the
+repair (the app holds the Chats web view for the whole app process).
+
+- **`GET /api/chatfeed/build`** → `{build}`, `pageBuildId('chats.html',
+  false)` (no pill in the hash: this page bakes its own). serveGated stamps
+  the same hash as `window.__forgeBuild`, APPENDED after the page — so
+  `chBuild()` reads it lazily; a const read at parse time is empty forever.
+- **`chBuildCheck`** runs on `visibilitychange`→visible (the moment a stale
+  page is about to be used) and every five minutes (the fallback). A
+  different build → `location.replace(chReloadTo())`, where the target is the
+  open thread's `?chat=<slug>` or the bare home — never a stale `?chat=` from
+  a link she walked away from.
+- **`chHolding` is the whole point**: words in any textarea / search / text
+  box, a focused field, `.askwrap` (any sheet), `.pageview` (a Compare page
+  or deck — the pill is what she is using there), a populated `#clightbox`,
+  `selMode`, `playing` (the autoscroll), a playing `<audio>`/`<video>`, or a
+  tap/key in the last ten seconds → wait, ask again later.
+- The page script is ONE IIFE (2047 → the end), so the block lives inside it
+  and `window.__chHeal` is the test's only door to the closure.
+- Test: `node scripts/test-chats-selfheal.js` — every guard driven held AND
+  released, because a check that never reloads passes every "holds" assertion.
+
 ### On my tray
 
 2026-08-31, Sophie: *"add a tab in chats called 'on my tray' where i can pin
@@ -1954,11 +1979,35 @@ little chat drawings.
   whatever list she is already looking at, so a starred chat still sits among
   two hundred others. The tray IS the list — three or four chats, four across,
   and nothing else on screen.
-- **`tray` + `trayAt`, `POST /api/chatfeed/tray {chat, tray}`.** Same phantom-
-  row guard as `/pin-top`, `/chat-bookmark` and `/notify`: a merge-set on a
-  missing doc CREATES it, and every pile derives from the registry keys. Both
-  fields are DELETED when she takes a chat off, so nothing accumulates.
-- **`trayAt` is the design, not bookkeeping.** The tray is the one pile that
+- **PER DAY SINCE 2026-09-02** (Sophie: *"make the 'on my tray' feature be
+  per day — so it starts fresh, and i can go back w arrow to other days"*).
+  The store is **`trayDays: { 'YYYY-MM-DD': <iso she put it there> }`** on the
+  registry doc, one key per working day the chat was on the tray — the day
+  is the 5am Pacific cut the date headings already draw by, and the server
+  now has the same rule in `day-cut.js` (pinned to fixed instants by
+  `test-day-cut.js`; the page's `dayKey` is pinned to the same rule by
+  `test-chats-day-rules.js`). `POST /api/chatfeed/tray {chat, tray}` writes
+  TODAY's key (keeping today's original stamp on a re-add) or deletes TODAY's
+  key and nothing else — yesterday's tray is history and a tap today cannot
+  rewrite it. Same phantom-row guard as `/pin-top`, `/chat-bookmark` and
+  `/notify`: a merge-set on a missing doc CREATES it.
+  - **The screen opens on TODAY, empty until she fills it.** A `‹ Today ›`
+    row leads the tray (left-hugging, so it never sits in the pill's corner);
+    ‹ walks to the DAYS THAT HAVE A TRAY, not the calendar — a week she made
+    no tray in is one tap — and › walks forward, out on today. `trayDay` on
+    the page is the shown day and is NEVER sticky: a reload or a re-open of
+    the tab is today's, and re-tapping the tray tab from a past day returns
+    to today. A write (`setTray`) also snaps the tab back to today, because
+    the write is about today's tray.
+  - **`chatTray(name)` means "on today's tray"** — the Organize sheet's mark
+    lights for today and writes today. A chat can be on several days' trays.
+  - **The old single `tray`/`trayAt` mark is READ as the day it was set**
+    (`trayDaysOf` on the page, the route's fold on the server), so the tray
+    she had before this shipped is that day's tray, and today started fresh
+    the moment it deployed. The route deletes the pair on the first write.
+  - Archived and deleted chats fall out of every day; a past day that empties
+    that way stops being a day the arrows know, and the tab falls to today.
+- **The stamp is the design, not bookkeeping.** The tray is the one pile that
   does not come through `sortedChatNames`. Every other list here is
   newest-message-first — right for an inbox, exactly wrong for a dock, because
   icons that move whenever a chat replies are icons she can never learn the

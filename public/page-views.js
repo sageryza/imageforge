@@ -180,6 +180,11 @@
       if (pill) pill.style.display = swiping ? 'none' : '';
       line();
       window.scrollTo(0, 0);
+      // …and the GRID puts her back where she was (compare.js __pagePlace):
+      // a swipe round trip, or a fresh open of a long page, lands on the
+      // chapter she left rather than at the top. The deck is one screen and
+      // keeps its own place on its verdict doc.
+      if (!swiping && started.compare && started.compare.place) started.compare.place.restore();
     }
 
     // A CARD'S LINK TO A CHAT OPENS THE THREAD IN THE APP (2026-09-02, Sophie

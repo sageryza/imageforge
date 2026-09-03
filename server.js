@@ -7224,6 +7224,17 @@ app.get('/api/promptlab/build', (req, res) => {
   res.set('Cache-Control', 'no-store');
   res.json({ build: pageBuildId('promptlab.html', true) });
 });
+// THE CHATS PAGE HEALS ITSELF TOO (2026-09-02, Sophie: "build self heal").
+// #2048's stale merge put a broken chats.html live for two hours, and every
+// phone that loaded it in that window kept it: the app holds the Chats web
+// view for the whole app process, so the repair could not reach her without a
+// force-quit. Same stamp (serveGated appends it; chats.html bakes its own pill,
+// so the hash is the page alone), same lazy read, and the page's own guards
+// decide when a reload would lose nothing — see `chBuildCheck` in chats.html.
+app.get('/api/chatfeed/build', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({ build: pageBuildId('chats.html', false) });
+});
 
 // WHAT THIS PROCESS IS DRAWING AND CUTTING RIGHT NOW, and how much of the box
 // is left (2026-09-02). Exact — the two in-process sets, not a Firestore

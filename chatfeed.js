@@ -76,6 +76,7 @@ const chatSort = require('./chat-sort');
 const projectWords = require('./project-words');
 const pageTemplates = require('./page-templates');
 const assetUnion = require('./asset-union');
+const dayCut = require('./day-cut');
 
 const router = express.Router();
 const MSGS = 'forge-chat-feed';
@@ -2390,10 +2391,12 @@ router.post('/pin-top', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
-// ── ON MY TRAY — the handful she is working on RIGHT NOW ────────────────────
+// ── ON MY TRAY — the handful she is working on RIGHT NOW, PER DAY ───────────
 // (2026-08-31, Sophie: "add a tab in chats called 'on my tray' where i can pin
 // chats by their icons for what im working on rn — ex xi to do · review cards
-// illustrations ideas · triset · review cards".)
+// illustrations ideas · triset · review cards". 2026-09-02: "make the 'on my
+// tray' feature be per day — so it starts fresh, and i can go back w arrow to
+// other days".)
 //
 // The FIFTH per-chat mark, and the one that answers a question none of the
 // other four do. `starred` is close and is not it: a star lifts a chat inside
@@ -2402,15 +2405,39 @@ router.post('/pin-top', async (req, res) => {
 // chats and nothing else — she asked for it by their ICONS, so the tray is a
 // grid of the little drawings and the answer to "what am I on" is one look.
 //
-// `trayAt` IS THE POINT AND IS NOT DECORATION: the tray is ordered by when she
+// PER DAY SINCE 2026-09-02: the tray is a DAY's tray. Every working day (5am
+// Pacific cut — `day-cut.js`, the same rule the date headings draw by) opens
+// on an empty tray, and the days before it are kept, one behind the other, so
+// the arrows on the tab walk back to what she was on yesterday. The store is
+// `trayDays: { 'YYYY-MM-DD': <iso she put it there> }` on the registry doc —
+// ONE map, a key per day the chat was on the tray. Putting a chat on writes
+// TODAY's key, taking it off deletes TODAY's key and nothing else: yesterday's
+// tray is history and a tap today cannot rewrite it. The old `tray`/`trayAt`
+// pair (one tray, no days) is folded into the map on the first write and read
+// as `trayDays[dayKey(trayAt)]` until then, so what she had on the tray before
+// this shipped is the tray of the day she built it — nothing was lost, and
+// today starts fresh, which is the ask.
+//
+// THE STAMP IS THE ORDER, NOT DECORATION: a day's tray is ordered by when she
 // PUT each chat on it, oldest first, so the icons never move. Every other pile
 // in this app is sorted by newest message, which is right for an inbox and
 // exactly wrong for a dock — a tray that reshuffles whenever a chat replies is
 // one she can never build muscle memory on. The stamp is written here because
-// only the write knows the moment; deriving it later is impossible.
+// only the write knows the moment; deriving it later is impossible. Re-adding
+// a chat already on today's tray keeps today's original stamp, so a stray
+// double tap cannot send its icon to the end of the row.
 //
 // Same phantom-row guard as /pin-top, /chat-bookmark and /notify: a merge-set
 // on a missing doc CREATES it, and every pile derives from the registry keys.
+function trayDaysOf(doc) {
+  // The map, with the pre-2026-09-02 single mark folded in as its own day.
+  const days = Object.assign({}, doc.trayDays || {});
+  if (doc.tray && doc.trayAt && !Object.keys(days).length) {
+    const k = dayCut.dayKey(doc.trayAt);
+    if (k) days[k] = doc.trayAt;
+  }
+  return days;
+}
 router.post('/tray', async (req, res) => {
   try {
     const { chat, tray } = req.body || {};
@@ -2420,12 +2447,19 @@ router.post('/tray', async (req, res) => {
     const snap = await db().collection(REG).doc(slug).get();
     if (!snap.exists) return res.status(404).json({ error: 'no such chat' });
     const del = admin.firestore.FieldValue.delete();
-    // Re-adding a chat that is ALREADY on the tray keeps its original stamp,
-    // so a stray double tap cannot send its icon to the end of the row.
-    const at = snap.get('trayAt') || new Date().toISOString();
-    await regRef(slug).set(
-      on ? { tray: true, trayAt: at } : { tray: del, trayAt: del }, { merge: true });
-    res.json({ ok: true, chat: slug, tray: on, trayAt: on ? at : null });
+    const now = new Date().toISOString();
+    const day = dayCut.today(now);
+    const had = trayDaysOf(snap.data() || {});
+    const at = had[day] || now;
+    // Write the WHOLE folded map (a merge-set merges map keys, so the days
+    // already stored are untouched either way) and retire the single mark —
+    // two spellings of one fact must not persist side by side.
+    const days = Object.assign({}, had);
+    if (on) days[day] = at; else delete days[day];
+    const patch = { trayDays: Object.assign({}, days), tray: del, trayAt: del };
+    if (!on) patch.trayDays[day] = del;   // the merge needs an explicit delete to drop a key
+    await regRef(slug).set(patch, { merge: true });
+    res.json({ ok: true, chat: slug, tray: on, day, trayAt: on ? at : null, trayDays: days });
   } catch (err) { fail(res, err); }
 });
 

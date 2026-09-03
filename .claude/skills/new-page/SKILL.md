@@ -188,6 +188,16 @@ Read her answers back with `GET /api/chatfeed/verdict?chat=&sheet=`.
 Item shape: `{id, label, img}` or `{id, label, pair:[{img,label},{img,label}]}`.
 Test: `node scripts/test-judge.js`.
 
+## A long page keeps her place by itself — name your chapters
+
+`/compare.js` restores where she was on the next open and draws a sticky
+chapter bar (current chapter + count, tap for the list, tap a title to jump)
+on any page longer than 1.5 screens with 2+ chapters. A grid template's
+GROUP LABELS are its chapters; a hand-built page's `<h2>`s are. So: label
+every group, use `<h2>` for sections, and never hand-roll a jump menu or a
+scroll memory of your own. Full contract: *Her place on a long page* in
+`docs/compare-pages.md`.
+
 ## The autoscroll pill contract (BOTH page kinds — this is where pages break)
 
 The pill is ONE shared implementation, `scripts/pill.py`, injected by the

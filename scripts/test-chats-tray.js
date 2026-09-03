@@ -7,6 +7,20 @@
 //   1. the tab is in the lists row, named in her words, LEADING it,
 //   2. …and no tab word wraps — a fourth tab narrows every one of them, and a
 //      wrapped label makes that row 10px taller than its neighbours' one line,
+//  PER DAY (2026-09-02, Sophie: "make the 'on my tray' feature be per day — so
+//  it starts fresh, and i can go back w arrow to other days"):
+//  14. the tab opens on TODAY's tray and only TODAY's chats are on it — a chat
+//      she put there yesterday is not (that is "starts fresh"),
+//  15. a ‹ day › row leads the screen: it reads "Today", › is out (no
+//      tomorrow), ‹ walks back to YESTERDAY's tray in ITS order — and the old
+//      single `tray`/`trayAt` mark reads as the day it was set,
+//  16. › walks forward to today again; the day row hugs the LEFT, clear of
+//      the pill's corner,
+//  17. a reload lands on today — the day is never sticky,
+//  18. taking a chat off today's tray deletes TODAY's key alone: yesterday's
+//      tray still holds it,
+//  19. an emptied today still offers ‹, and yesterday is intact behind it.
+//
 //   3. the tray draws the chats she marked and ONLY those, as ICONS, four
 //      across (MEASURED off the real cells — a wrong `--cols`-style rule and a
 //      wrong `repeat()` both render a plausible grid),
@@ -40,9 +54,19 @@ catch { try { ({ chromium } = require('playwright-core')); }
   catch { console.log('SKIP: playwright not installed'); process.exit(0); } }
 
 const PUB = path.join(__dirname, '..', 'public');
+const dayCut = require('../day-cut');   // the server's copy of the 5am Pacific cut (test-day-cut.js pins it)
 const T0 = Date.now();
 const HOUR = 3600 * 1000;
 const iso = (ms) => new Date(ms).toISOString();
+// TODAY and YESTERDAY by HER clock: yesterday is the first working day before
+// today, found by walking back an hour at a time (the key decides the day, so
+// the instant only has to land inside it).
+const TODAY = dayCut.today(iso(T0));
+let ydAt = null;
+for (let k = 1; k <= 60 && !ydAt; k++) if (dayCut.dayKey(iso(T0 - k * HOUR)) !== TODAY) ydAt = T0 - k * HOUR;
+const YDAY = dayCut.dayKey(iso(ydAt));
+const td = (n) => iso(T0 - 60 * 1000 - n * 1000);   // today's stamps, ordered by n
+const yd = (n) => iso(ydAt - n * 1000);              // yesterday's stamps, ordered by n
 
 // The three she named, plus the ones that must NOT show.
 const MSGS = [
@@ -56,21 +80,30 @@ const MSGS = [
   { id: 'm5', chat: 'shelved', from: 'claude', text: 'archived',        tldr: 'shelved', created: iso(T0 - 3 * HOUR), postedAt: iso(T0 - 3 * HOUR) },
   { id: 'm6', chat: 'binned', from: 'claude', text: 'deleted',          tldr: 'binned',  created: iso(T0 - 4 * HOUR), postedAt: iso(T0 - 4 * HOUR) },
   { id: 'm7', chat: 'acct2',  from: 'claude', text: 'other account',    tldr: 'acct2',   created: iso(T0 - 6 * HOUR), postedAt: iso(T0 - 6 * HOUR) },
+  { id: 'm8', chat: 'yday',   from: 'claude', text: 'yesterday only',   tldr: 'yday',    created: iso(T0 - 7 * HOUR), postedAt: iso(T0 - 7 * HOUR) },
+  { id: 'm9', chat: 'legacy', from: 'claude', text: 'old single mark',  tldr: 'legacy',  created: iso(T0 - 8 * HOUR), postedAt: iso(T0 - 8 * HOUR) },
 ];
 
 const CHATS = {
-  triset:  { lastSeen: MSGS[0].created, tray: true, trayAt: iso(T0 - 50 * HOUR) },
-  xitodo:  { lastSeen: MSGS[1].created, tray: true, trayAt: iso(T0 - 40 * HOUR), displayName: 'Xi to do' },
-  cards:   { lastSeen: MSGS[2].created, tray: true, trayAt: iso(T0 - 30 * HOUR), displayName: 'Review cards' },
+  // `triset` is on BOTH days — a chat can be what she is on two days running.
+  triset:  { lastSeen: MSGS[0].created, trayDays: { [TODAY]: td(50), [YDAY]: yd(10) } },
+  xitodo:  { lastSeen: MSGS[1].created, trayDays: { [TODAY]: td(40) }, displayName: 'Xi to do' },
+  cards:   { lastSeen: MSGS[2].created, trayDays: { [TODAY]: td(30) }, displayName: 'Review cards' },
   // on the tray, on the OTHER account — must still show (assertion 6)
-  acct2:   { lastSeen: MSGS[6].created, tray: true, trayAt: iso(T0 - 20 * HOUR), account: '2' },
+  acct2:   { lastSeen: MSGS[6].created, trayDays: { [TODAY]: td(20) }, account: '2' },
   other:   { lastSeen: MSGS[3].created },
-  shelved: { lastSeen: MSGS[4].created, tray: true, trayAt: iso(T0 - 45 * HOUR), archived: true },
-  binned:  { lastSeen: MSGS[5].created, tray: true, trayAt: iso(T0 - 44 * HOUR), deletedAt: iso(T0 - 44 * HOUR) },
+  shelved: { lastSeen: MSGS[4].created, trayDays: { [TODAY]: td(45) }, archived: true },
+  binned:  { lastSeen: MSGS[5].created, trayDays: { [TODAY]: td(44) }, deletedAt: iso(T0 - 44 * HOUR) },
+  // YESTERDAY only — must NOT be on today's tray
+  yday:    { lastSeen: MSGS[7].created, trayDays: { [YDAY]: yd(20) } },
+  // the PRE-2026-09-02 shape: one mark, no days. Reads as the day it was set.
+  legacy:  { lastSeen: MSGS[8].created, tray: true, trayAt: yd(30) },
 };
 
 const posted = [];
+const servePublic = require('./lib/public-asset');
 const server = http.createServer((req, res) => {
+  if (servePublic(req, res)) return;   // every shared file the page links, root-level ones included
   const url = new URL(req.url, 'http://x');
   if (url.pathname === '/api/chatfeed' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -86,10 +119,15 @@ const server = http.createServer((req, res) => {
       // The stub KEEPS the write, the way the real route does — otherwise a
       // reload would silently undo everything this test just did.
       const on = j.tray !== false;
-      const at = on ? ((CHATS[j.chat] && CHATS[j.chat].trayAt) || new Date().toISOString()) : null;
-      CHATS[j.chat] = CHATS[j.chat] || {};
-      if (on) { CHATS[j.chat].tray = true; CHATS[j.chat].trayAt = at; }
-      else { delete CHATS[j.chat].tray; delete CHATS[j.chat].trayAt; }
+      const c = CHATS[j.chat] = CHATS[j.chat] || {};
+      // The real route: fold the old single mark into its day, then write or
+      // delete TODAY's key and nothing else.
+      const days = Object.assign({}, c.trayDays || {});
+      if (c.tray && c.trayAt && !Object.keys(days).length) days[dayCut.dayKey(c.trayAt)] = c.trayAt;
+      const day = dayCut.today();
+      const at = on ? (days[day] || new Date().toISOString()) : null;
+      if (on) days[day] = at; else delete days[day];
+      c.trayDays = days; delete c.tray; delete c.trayAt;
       // ANSWERED SLOWLY ON PURPOSE (600ms — a phone on cell). Without the
       // delay the server's `trayAt` is already in hand by the time she walks
       // to the tray, and the OPTIMISTIC order — the thing assertion 7 is
@@ -99,7 +137,7 @@ const server = http.createServer((req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         // The real route stamps the moment it lands — NOW, i.e. after every
         // fixture stamp, which is what puts a fresh add at the END of the tray.
-        res.end(JSON.stringify({ ok: true, chat: j.chat, tray: on, trayAt: at }));
+        res.end(JSON.stringify({ ok: true, chat: j.chat, tray: on, day, trayAt: at, trayDays: CHATS[j.chat].trayDays }));
       }, 600);
     });
   }
@@ -225,6 +263,60 @@ const ok = () => { checks++; };
     fail('a tray chat on the other account is missing — the account row is not even on screen here');
   else ok();
 
+  // ── 14. TODAY'S TRAY ONLY — it starts fresh ───────────────────────────────
+  if (names.indexOf('yday') > -1 || names.indexOf('legacy') > -1)
+    fail('a chat from YESTERDAY\'s tray is on today\'s — the tray does not start fresh: ' + names.join(','));
+  else ok();
+  const dayLabel = () => page.$eval('#grid .trayday .td-label', (e) => e.textContent.trim()).catch(() => '');
+  if (await dayLabel() !== 'Today') fail('the day row does not read Today — ' + JSON.stringify(await dayLabel()));
+  else ok();
+  const arrows = async () => page.$eval('#grid .trayday', (r) => ({
+    prev: !r.querySelector('.td-prev').disabled, next: !r.querySelector('.td-next').disabled,
+    right: r.getBoundingClientRect().right, top: r.getBoundingClientRect().top }));
+  let ar = await arrows();
+  if (ar.next) fail('the › arrow is live on today — there is no tomorrow\'s tray');
+  else ok();
+  if (!ar.prev) fail('the ‹ arrow is out on today although yesterday has a tray');
+  else ok();
+  // ── 16. the day row hugs the left, clear of the pill's corner ─────────────
+  if (ar.right > 334 && ar.top < 192) fail('the day row runs into the autoscroll pill\'s column (right ' + Math.round(ar.right) + ')');
+  else ok();
+
+  // ── 15. ‹ walks back to yesterday, in ITS order, the old mark included ────
+  await page.click('#grid .trayday .td-prev');
+  await page.waitForTimeout(160);
+  if (await dayLabel() !== 'Yesterday') fail('‹ did not land on Yesterday — ' + JSON.stringify(await dayLabel()));
+  else ok();
+  const yNames = await trayOrder();
+  if (yNames.join(',') !== 'legacy,yday,triset')
+    fail('yesterday\'s tray is wrong — ' + yNames.join(',') + ' (expected legacy,yday,triset: the old single mark reads as its day, and the order is that day\'s stamps)');
+  else ok();
+  ar = await arrows();
+  if (!ar.next) fail('the › arrow is out on yesterday — there is a today to walk back to');
+  else ok();
+  if (ar.prev) fail('the ‹ arrow is live with no earlier tray behind yesterday');
+  else ok();
+  // Its tiles are the same tiles — icons, tap opens the chat.
+  const yIconed = await page.$$eval('#traygrid .traytile', (n) => n.every((x) => !!x.querySelector('.t-cover img, .t-cover .t-blank')));
+  if (!yIconed) fail('a past day\'s tile draws no icon');
+  else ok();
+
+  // ── 16. › walks forward to today ──────────────────────────────────────────
+  await page.click('#grid .trayday .td-next');
+  await page.waitForTimeout(160);
+  if (await dayLabel() !== 'Today') fail('› did not come back to Today — ' + JSON.stringify(await dayLabel()));
+  else ok();
+  if ((await trayOrder()).join(',') !== 'triset,xitodo,cards,acct2') fail('today\'s tray changed on the walk back — ' + (await trayOrder()).join(','));
+  else ok();
+
+  // ── 17. the day is never sticky ───────────────────────────────────────────
+  await page.click('#grid .trayday .td-prev');
+  await page.waitForTimeout(120);
+  await page.reload();
+  await page.waitForTimeout(500);
+  if (await dayLabel() !== 'Today') fail('a reload resumed a past day — the tray tab is today\'s');
+  else ok();
+
   // ── 12. a lit chip leaves the tray (before we start writing) ──────────────
   await page.click('#catrow .tagsbtn');
   await page.waitForTimeout(120);
@@ -342,6 +434,18 @@ const ok = () => { checks++; };
   if ((await trayOrder()).length !== before - 1) fail('the tray count did not drop by one');
   else ok();
 
+  // ── 18. taking a chat off today leaves YESTERDAY's tray alone ─────────────
+  await takeOff('triset');
+  if (await page.$('#traygrid .traytile[data-chat="triset"]')) fail('triset is still on today\'s tray after taking it off');
+  else ok();
+  await page.click('#grid .trayday .td-prev');
+  await page.waitForTimeout(160);
+  if ((await trayOrder()).indexOf('triset') < 0)
+    fail('taking triset off TODAY took it off YESTERDAY too — a tap today rewrote history: ' + (await trayOrder()).join(','));
+  else ok();
+  await page.click('#grid .trayday .td-next');
+  await page.waitForTimeout(160);
+
   // ── 11. sticky across a reload ────────────────────────────────────────────
   await page.reload();
   await page.waitForTimeout(500);
@@ -361,6 +465,16 @@ const ok = () => { checks++; };
   const state = await page.$eval('#grid .state', (e) => e.textContent).catch(() => '');
   if (!/tray/i.test(state) || !/tag/i.test(state))
     fail('an empty tray does not name the way in — it reads: ' + JSON.stringify(state));
+  else ok();
+
+  // ── 19. an emptied today still has yesterday behind it ────────────────────
+  ar = await arrows();
+  if (!ar.prev) fail('today emptied and the ‹ arrow went with it — yesterday\'s tray is unreachable');
+  else ok();
+  await page.click('#grid .trayday .td-prev');
+  await page.waitForTimeout(160);
+  if ((await trayOrder()).join(',') !== 'legacy,yday,triset')
+    fail('yesterday\'s tray is not intact after today was emptied — ' + (await trayOrder()).join(','));
   else ok();
 
   await browser.close();

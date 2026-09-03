@@ -71,6 +71,34 @@
     catch (e) { w = window; }
     w.location.href = href;
   }
+  /* ── WHERE THE WALK STARTED — the crumb the Playground hands back
+   *    (2026-09-02, Sophie: "playground from assets / now i'm stuck").
+   *
+   * `go` walks the TOOL'S OWN WEB VIEW to another tool's page, and the iOS app
+   * keeps a tool's page alive for the whole app process — so this door ATE the
+   * screen it was tapped on: Meta Assets, Freeform, or the Chats app when the
+   * tap came from a Compare page's lightbox (which navigates the top window).
+   * Every later tap on that tile opened the Playground again, until a
+   * force-quit. Exactly the Story Room's send-trip bug (2026-08-26, "I still
+   * can't get out of the story room and back into the playground"), arriving
+   * at the door she uses most.
+   *
+   * So the walk names the page it is leaving and the Playground carries it:
+   * a chip back, and — the half a chip cannot cover — an app exit that puts
+   * this web view back on the page the walk ate. See promptlab.html's
+   * armTripRestore.
+   *
+   * SAME-ORIGIN PATH ONLY: it must start with one slash and not two, so a
+   * hand-made link can never point the chip at another host. */
+  function backCrumb(){
+    var w = window;
+    try { if (window.top && window.top !== window && window.top.location.origin === location.origin) w = window.top; }
+    catch (e) { w = window; }
+    var path = w.location.pathname || '';
+    if (!/^\/[^/]/.test(path)) return '';        // the hub — nothing to hand back
+    if (path === '/playground') return '';       // already home
+    return (path + (w.location.search || '')).slice(0, 300);
+  }
   function post(path, body){
     var a = HOST.api || window.api;
     if (a) return a(path, {method:'POST', body:JSON.stringify(body)});
@@ -169,7 +197,8 @@
     // her own image attached, no words invented.
     var pq=playgroundQuery(asset) || 'photo='+encodeURIComponent(url);
     acts.push({label:'Open in Playground', icon:PLAYICON, onClick:function(){
-      go('/playground?'+pq); }});
+      var back=backCrumb();
+      go('/playground?'+pq+(back?'&back='+encodeURIComponent(back):'')); }});
     // ADD TO SHOEBOX — the Story Room door's twin (same share glyph, same
     // content-addressed memory, so the doors can never make twins). The label
     // she reviews by becomes the polaroid's title; the lit button is the
@@ -195,6 +224,7 @@
     prefetch: prefetchBlob,
     save: saveImage,
     playgroundQuery: playgroundQuery,
+    backCrumb: backCrumb,
     ICONS: { chat:CHATICON, play:PLAYICON, shoebox:SHOEICON, save:SAVEICON, heart:HEART },
   };
 })();
