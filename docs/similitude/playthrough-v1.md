@@ -39,3 +39,14 @@ Her verdicts on the concept deck the same day: the before/after domino-table ad 
 - `commercials/similitude/screenrec-v1/similitude-screenrec-b-each-different-v1.mp4` (0:21) — comet · poppies · lightning, swap the poppies for the candle, "the sun" in the middle, "a tail of light" / "a flame" / "from the sky" on the sides, Set!
 
 Silent on purpose — she is laying the voiceover in ChatGPT. A different hand is three card ids in the recording script's `table(...)` call.
+
+## THE DOMINOES ONE — the prototype she meant (2026-09-02, "no the dominoes one · find that chat")
+
+The prototype is the **Similitude Dominoes v4.1** Compare page in the `triset-dominoes-game` chat (page `pysinXWpDe5DgRWyM2q3`), not `/triset`. One card is one triangular tile, edge to edge; three in hand; you lay a card on a space touching the table and SAY what it shares with each card it touches; the computer plays back with its own words; a point per card touched. **The two `/triset` recordings above are the wrong game for this** and stay only as history.
+
+Recording: `scripts/similitude/record-dominoes.js` against `scripts/similitude/dominoes-local.js` (the page html saved from the live route, images proxied, the verdict POST stubbed so nothing lands in her recorded games). Seed 21, three of her turns:
+1. hot spring opens · she lays the **comet** — "a trail" · it lays the candle — "glowing"
+2. she lays the **dandelion** — "white" · it lays the braided river — "a trail"
+3. she lays the **ants** on the river — "from above" · it lays the daytime moon on the hot spring — "reflection"
+
+`commercials/similitude/screenrec-v1/similitude-dominoes-screenrec-v1.mp4` (0:36, 1080x2340, silent). Pinned on the chat. A different game is another seed; the move chooser types the rarest honest shared word, so the words on screen are the deck's own tags.
