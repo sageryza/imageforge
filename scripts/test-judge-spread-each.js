@@ -320,6 +320,53 @@ const HTML = `<!doctype html><meta charset="utf-8">
     await page.close();
   }
 
+  // ── 5. A CARD OPENED OFF THE PILES GOES BACK TO THE PILES, folds intact,
+  // and the piles survive a reopen (2026-09-03, "the back arrow takes me all
+  // the way out to the review queue, not back to piles")
+  {
+    const { page } = await open();
+    const js = (fn, arg) => page.evaluate(fn, arg);
+    // a missing control is a FAILURE with a name, never a crash
+    const tap = async (sel) => { const hit = await page.evaluate((q) => { const b = document.querySelector(q); if (b) b.click(); return !!b; }, sel); ok('control present: ' + sel, hit); return hit; };
+    // one yes first, so the piles hold two piles to fold and to open from
+    await tap('#judge .jg-eb.yes[data-card="tent-1"]');
+    await page.waitForTimeout(150);
+    await tap('#judge [data-act="piles"]');
+    await page.waitForTimeout(200);
+    // fold the first pile, then open a tile from the second
+    const firstFold = await js(() => document.querySelector('#judge .jg-pilefold').getAttribute('data-fold'));
+    await tap('#judge [data-fold="' + firstFold + '"]');
+    await page.waitForTimeout(150);
+    await tap('#judge .jg-grid button');
+    await page.waitForTimeout(250);
+    const chev = await js(() => { const b = document.querySelector('#judge .jg-back'); return b ? b.getAttribute('data-act') : null; });
+    is('a card opened off the piles draws a chevron back to the piles', chev, 'topiles');
+    await tap('#judge .jg-back');
+    await page.waitForTimeout(250);
+    const back = await js((k) => ({
+      piles: !!document.querySelector('#judge .jg-piles'),
+      stillShut: document.querySelector('#judge [data-fold="' + k + '"]').getAttribute('aria-expanded') === 'false',
+      chevron: !!document.querySelector('#judge .jg-back[data-act="topiles"]'),
+    }), firstFold);
+    ok('…and it lands back on the piles', back.piles);
+    ok('…with the pile she folded still folded', back.stillShut);
+    ok('…and no piles-chevron on the piles themselves', !back.chevron);
+    // walking on from a pile-opened card ends the way back
+    await tap('#judge .jg-grid button');
+    await page.waitForTimeout(150);
+    await tap('#judge .jg-navzone.next');
+    await page.waitForTimeout(150);
+    const gone = await js(() => !!document.querySelector('#judge .jg-back[data-act="topiles"]'));
+    ok('stepping on from that card ends the way back to the piles', !gone);
+    // the piles are remembered across a reopen
+    await tap('#judge [data-act="piles"]');
+    await page.waitForTimeout(150);
+    await page.reload(); await page.waitForTimeout(700);
+    for (let i = 0; i < 8; i++) { if (!(await page.$('.cmp-tour'))) break; await page.mouse.click(195, 780); await page.waitForTimeout(120); }
+    ok('a reopen while she was on the piles comes back on the piles', await js(() => !!document.querySelector('#judge .jg-piles')));
+    await page.close();
+  }
+
   await browser.close();
   console.log(`judge spread-each: ${pass} passed, ${fails.length} failed`);
   fails.forEach((f) => console.log('  ✗ ' + f));

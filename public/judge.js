@@ -871,6 +871,28 @@
     // the piles view, which are the queue's verbs and not the Compare tab's.
     // Both show the chevron; only clean=1 claims the queue.
     var wantBack = fromQueue || /[?&]back=1/.test(location.search);
+    // ── A CARD OPENED OFF THE PILES GOES BACK TO THE PILES (2026-09-03,
+    // Sophie: "when i go to piles and pick a card, the state is not saved,
+    // and the back arrow takes me all the way out to the review queue, not
+    // back to piles as i'd expect"). The chevron in the top row was the way
+    // OUT of the deck and nothing else, so from a card she had opened off a
+    // pile it left the whole page. `fromPiles` is set by that tap and lives
+    // until she walks on (an edge tap, a quick step, Swipe these) — while it
+    // holds, the chevron is "back to the piles", and the folds she had set
+    // are still in `folded`, so the screen comes back as she left it.
+    // AND THE PILES ARE REMEMBERED ACROSS A REOPEN — a page the app keeps
+    // alive, or one she reopens, comes back on the piles if that is where she
+    // was (localStorage, per sheet); her place in the cards is still the
+    // verdict doc's `at`.
+    var fromPiles = false;
+    var PILES_KEY = 'jg.piles.' + sheet;
+    function rememberPiles(on) {
+      try { if (on) localStorage.setItem(PILES_KEY, '1'); else localStorage.removeItem(PILES_KEY); }
+      catch (_) { /* private mode — nothing to remember with */ }
+    }
+    function onPilesLast() {
+      try { return localStorage.getItem(PILES_KEY) === '1'; } catch (_) { return false; }
+    }
     // the page doc's id, out of the sheet the template renderer set
     var pageId = /^page-(.+)$/.test(sheet || '') ? String(sheet).slice(5) : '';
 
@@ -1285,7 +1307,9 @@
     // leaving the card view ends the pass — the piles are always the whole
     // deck, and a lane that outlived its own screen would silently shorten
     // the next walk through the cards
-    function toPiles() { lane = null; view = 'piles'; }
+    function toPiles() { lane = null; view = 'piles'; fromPiles = false; rememberPiles(true); }
+    // walking on from a card is leaving the piles behind
+    function leftPiles() { fromPiles = false; rememberPiles(false); }
     function unjudged(it) {
       if (eachCard && it.cards && it.cards.length) {
         return liveCards(it).some(function (c) { return verdicts[c.id] === undefined; });
@@ -1301,6 +1325,7 @@
     // quick pace: one card forward, the piles past the end
     function stepOn(going) {
       if (cur !== going || view !== 'card') return;
+      leftPiles();
       var n = laneStep(cur, 1);
       if (n === -1) { toPiles(); } else { cur = n; }
       render(true); savePlace();
@@ -1430,6 +1455,7 @@
       render(true); savePlace();
     }
     function nav(step) {
+      leftPiles();
       var to = laneStep(cur, step < 0 ? -1 : 1);
       if (to === -1) {
         if (step < 0) return;            // the front of the lane — stay put
@@ -1787,9 +1813,13 @@
       // reserved so they never sit on the art
       if (momDeck && view === 'card' && items[cur] && isPicCard(items[cur])) momCls += ' pic';
       // the way back to the Review Queue, when that is where she came from
-      var back = wantBack
-        ? '<button class="jg-back" data-act="back" aria-label="Back">'
-          + I.back + '</button>' : '';
+      var toPilesBack = view === 'card' && fromPiles;
+      var back = toPilesBack
+        ? '<button class="jg-back" data-act="topiles" aria-label="Back to the piles">'
+          + I.back + '</button>'
+        : wantBack
+          ? '<button class="jg-back" data-act="back" aria-label="Back">'
+            + I.back + '</button>' : '';
       var top;
       if (momDeck) {
         // her chrome: the thin progress line (position through the deck, like
@@ -2257,6 +2287,7 @@
         lane = ids;
         cur = indexOfId(ids[0]);
         if (cur < 0) { lane = null; return; }
+        leftPiles();
         view = 'card'; render(true); savePlace(); return;
       }
       var open = b.getAttribute('data-open');
@@ -2266,6 +2297,7 @@
         lane = null;
         cur = items.findIndex(function (it) { return it.id === open; });
         if (cur < 0) cur = 0;
+        fromPiles = true;   // the chevron takes her back there
         view = 'card'; render(true); savePlace(); return;
       }
       var st = b.getAttribute('data-state');
@@ -2285,9 +2317,10 @@
       else if (act === 'undo') undo();
       else if (act === 'help') showHelp();
       else if (act === 'back') backToQueue();
+      else if (act === 'topiles') { toPiles(); render(); }
       else if (act === 'skip') stampReview({ hidden: true }, 'Skipped — it’s off the queue.');
       else if (act === 'done') stampReview({ done: true }, 'Marked done.');
-      else if (act === 'piles') { if (view === 'piles') { view = 'card'; } else { toPiles(); } render(); }
+      else if (act === 'piles') { if (view === 'piles') { view = 'card'; leftPiles(); } else { toPiles(); } render(); }
     });
 
     // ── THE MINI AUTOSCROLL — conditional, small, on the side of the screen
@@ -2471,6 +2504,8 @@
             if (next === -1) { view = 'piles'; placeAt = d && d.at ? d.at : null; }
             else if (save >= 0) { cur = save; placeAt = d.at; placeRestored = true; }
             else cur = next;
+            // she was on the piles when this page was last on screen
+            if (view !== 'piles' && onPilesLast()) { view = 'piles'; placeRestored = true; }
           }
           render();
           return loadAssetVotes(move);
