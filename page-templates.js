@@ -341,6 +341,11 @@ function validateTemplate(template, data) {
   // decision, so i can compare the leftovers in peace"). judge.js is the
   // whole of it; this only lets a page say so.
   if (data.spreadEach === true) out.spreadEach = true;
+  // spreadAll — a group of ANY size stays one swipe card, never split at
+  // three (2026-09-03, Sophie, after a twin set of four was dealt as two
+  // cards: "has to be all no cap"). judge.js lays four as 2x2, more as 3
+  // across.
+  if (data.spreadAll === true) out.spreadAll = true;
 
   if (template === 'deck') {
     if (!Array.isArray(data.items) || !data.items.length) {

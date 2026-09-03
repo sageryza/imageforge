@@ -95,6 +95,7 @@ const DATA = {
   browse: true,
   note: 'small',
   spreadEach: true,
+  spreadAll: true,
   voice: true,
   buttons: { yes: { label: 'Add to deck', icon: 'triangle' },
     maybe: { label: 'Maybe add to deck', icon: 'maybe' }, no: { label: 'No', icon: 'x' } },
@@ -103,6 +104,8 @@ const DATA = {
       card('tent-2', 'animals hiding in a circus tent'), card('tent-3', 'animals hiding in a circus tent')] },
     { label: '', items: [card('solo-1', 'a pile of seashells')] },
     { label: '', items: [card('solo-2', 'a hedge maze from above')] },
+    { label: 'soap lather', items: [card('soap-1', 'soap'), card('soap-2', 'soap'), card('soap-3', 'soap'), card('soap-4', 'soap')] },
+    { label: 'crows', items: [1, 2, 3, 4, 5, 6].map((n) => card('crow-' + n, 'crows ' + n)) },
   ],
 };
 
@@ -208,10 +211,10 @@ const HTML = `<!doctype html><meta charset="utf-8">
     await page.click('#judge [data-act="piles"]');
     await page.waitForTimeout(300);
     const piles = await page.evaluate(() => [...document.querySelectorAll('#judge .jg-pilefold h2')].map((h) => h.textContent));
-    is('the piles are named by her words', piles, ['Add to deck · 1', 'Maybe add to deck · 1', 'No · 1', 'Unsure · 2']);
+    is('the piles are named by her words', piles, ['Add to deck · 1', 'Maybe add to deck · 1', 'No · 1', 'Unsure · 12']);
     const opens = await page.evaluate(() => [...document.querySelectorAll('#judge .jg-grid button')].map((b) => b.getAttribute('data-open')));
     is('…every tile opens the spread its picture sits on, or the card itself',
-      opens, ['s:circus-tent', 's:circus-tent', 's:circus-tent', 'solo-1', 'solo-2']);
+      opens.slice(0, 5), ['s:circus-tent', 's:circus-tent', 's:circus-tent', 'solo-1', 'solo-2']);
     await page.click('#judge .jg-grid button');
     await page.waitForTimeout(300);
     s = await shot(page);
@@ -258,6 +261,44 @@ const HTML = `<!doctype html><meta charset="utf-8">
     if (likeBtn) { await likeBtn.click(); await page.waitForTimeout(400); }
     const yes = posts.filter((p) => p.path === '/api/chatfeed/verdict' && p.body.ok === true).map((p) => p.body.item);
     is('…its ♥ marks the picture she stepped to, by its own id', yes, ['tent-3']);
+    await page.close();
+  }
+
+  // ── 4. a twin set of any size is ONE card — four as 2x2, six as 3 across ─
+  {
+    const { page } = await open();
+    const walk = async () => { await page.evaluate(() => document.querySelector('#judge .jg-navzone.next').click()); await page.waitForTimeout(120); };
+    for (let i = 0; i < 6; i++) { if ((await shot(page)).figs.length === 4) break; await walk(); }
+    const four = await page.evaluate(() => {
+      const figs = [...document.querySelectorAll('#judge .jg-spread figure')];
+      const r = figs.map((f) => f.getBoundingClientRect());
+      const w = r.map((b) => Math.round(b.width));
+      const rows = new Set(r.map((b) => Math.round(b.top))).size;
+      const btn = document.querySelector('#judge .jg-each');
+      const pic = document.querySelector('#judge .jg-spread figure img').getBoundingClientRect();
+      return { n: figs.length, w: Math.min(...w), rows, btnFits: btn && btn.scrollWidth <= btn.clientWidth + 1, picW: Math.round(pic.width), overflow: document.querySelector('#judge .jg-card').scrollHeight > document.querySelector('#judge .jg-card').clientHeight + 1 };
+    });
+    is('a twin set of four is ONE card', four.n, 4);
+    is('…laid two across', four.rows, 2);
+    ok('…each picture at least 150px wide (' + four.picW + ')', four.picW >= 150);
+    ok('…its three buttons fit their column', four.btnFits);
+    ok('…and the card does not overflow the screen', !four.overflow);
+    for (let i = 0; i < 6; i++) { if ((await shot(page)).figs.length === 6) break; await walk(); }
+    const six = await page.evaluate(() => {
+      const figs = [...document.querySelectorAll('#judge .jg-spread figure')];
+      const r = figs.map((b) => b.getBoundingClientRect());
+      const card = document.querySelector('#judge .jg-card');
+      return { n: figs.length, rows: new Set(r.map((b) => Math.round(b.top))).size, cols: new Set(r.map((b) => Math.round(b.left))).size,
+        overflow: card.scrollHeight > card.clientHeight + 1, picW: Math.round(document.querySelector('#judge .jg-spread figure img').getBoundingClientRect().width) };
+    });
+    is('a twin set of six is one card, three across', [six.n, six.cols, six.rows], [6, 3, 2]);
+    ok('…pictures still over 100px (' + six.picW + ') and no overflow', six.picW >= 100 && !six.overflow);
+    // a NO under one of the four leaves three, side by side
+    for (let i = 0; i < 12; i++) { if ((await shot(page)).figs.length === 4) break; await page.evaluate(() => document.querySelector('#judge .jg-navzone.prev').click()); await page.waitForTimeout(120); }
+    await page.click('#judge .jg-eb.no[data-card="soap-2"]');
+    await page.waitForTimeout(300);
+    const three = await page.evaluate(() => [...document.querySelectorAll('#judge .jg-spread figure')].map((f) => f.getAttribute('data-card')));
+    is('a NO under one of four leaves the other three on the card', three, ['soap-1', 'soap-3', 'soap-4']);
     await page.close();
   }
 

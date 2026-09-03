@@ -152,7 +152,9 @@
     var out = [];
     spreadsOf(data).forEach(function (sp) {
       if (!sp.id) { out.push(sp.items[0]); return; }
-      if (sp.items.length <= SPREAD_MAX) {
+      // spreadAll — a twin set of any size stays ONE card (2026-09-03,
+      // "has to be all no cap"); judge.js wraps it into a grid past three
+      if (sp.items.length <= SPREAD_MAX || data.spreadAll) {
         out.push({ id: sp.id, label: sp.label, cards: sp.items });
         return;
       }

@@ -30,9 +30,25 @@
 // under the same ids (the gather's ids are stable), as HER marks — her own
 // decisions moved, never a chat's.
 //
+// A TWIN SET OF ANY SIZE IS ONE CARD (her second pass, 2026-09-03, after the
+// soap lather four were dealt as two cards of two: "i messed up and couldn't
+// pick it cause i didn't know there were more · four is fine · has to be all
+// no cap") — `spreadAll` on the page, and judge.js lays four as 2x2 and more
+// as three across. The twin rule loosened one notch the same pass: a prompt
+// whose words are all inside another's ("flock of crows" / "flock of crows
+// with crumpled up bills") is the same card, and so are two that share most
+// of a short prompt ("cakes in a bakery case" / "baked goods in a bakery
+// case"). A loose pair now costs nothing — each picture is its own decision
+// — where a split set cost her a pick.
+//
 // Dry by default. `--go` files the Assets tab, posts the page, carries the
 // marks. Needs FIREBASE_SERVICE_ACCOUNT (Deck Factory).
 //   node scripts/triangle-deck-review.js --chat <slug> --from <chat> <pageId> [--go]
+// RE-DEALING A PAGE ALREADY POSTED — the same cards on a new page, EVERY mark
+// and note on the old one carried (not only yes/maybe: this is her live
+// work, not yesterday's review), her place kept, the old page superseded;
+// `--reset <id,id,…>` clears the marks on a set she wants to pick again:
+//   node scripts/triangle-deck-review.js --chat <slug> --redeal <pageId> [--reset a,b] [--go]
 'use strict';
 const fs = require('fs');
 const admin = require('firebase-admin');
@@ -45,6 +61,8 @@ const CHAT = flag('--chat', 'tinder-compare-assets');
 const FROM_CHAT = flag('--from', 'triangle-cards-tinder-toggle');
 const FROM_PAGE = (args.indexOf('--from') >= 0 && args[args.indexOf('--from') + 2]) || 'DufB53EHp4TG2AHSe0FS';
 const OUT = flag('--out', '');
+const REDEAL = flag('--redeal', '');
+const RESET = new Set((flag('--reset', '') || '').split(',').filter(Boolean));
 const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
 
 const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
@@ -73,38 +91,43 @@ function words(s) {
   return new Set(String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/)
     .filter((w) => w.length > 1 && !STOP.has(w)).map(stem));
 }
-/** the same card twice? the same words, or nearly all of them shared */
+/** the same card twice? the same words, one prompt inside the other, or
+ *  most of a short prompt shared */
 function twins(a, b) {
   const A = words(a), B = words(b);
   if (!A.size || !B.size) return false;
   let inter = 0; A.forEach((w) => { if (B.has(w)) inter += 1; });
   const union = A.size + B.size - inter;
+  const min = Math.min(A.size, B.size);
   if (inter === union) return true;                                   // the same words
-  return inter >= 3 && (inter / union >= 0.6 || inter / Math.min(A.size, B.size) >= 0.8);
+  if (inter >= 2 && inter === min) return true;                       // one inside the other
+  if (inter >= 3 && (inter / union >= 0.6 || inter / min >= 0.8)) return true;
+  return inter >= 2 && inter / min >= 0.66 && inter / union >= 0.4;   // most of a short one
 }
 function cluster(list) {
   const out = []; const seen = new Set();
   list.forEach((a, i) => {
     if (seen.has(i)) return;
     const c = [a]; seen.add(i);
-    list.forEach((b, j) => {
-      if (j <= i || seen.has(j)) return;
-      if (c.some((x) => twins(x.promptContent || x.label, b.promptContent || b.label))) { c.push(b); seen.add(j); }
-    });
+    // until nothing more joins — a twin of a twin is a twin, whichever order
+    // the list happens to be in ("flock of crows" joins the bills ones, and
+    // the shiny-coins one joins through it)
+    let grew = true;
+    while (grew) {
+      grew = false;
+      list.forEach((b, j) => {
+        if (j <= i || seen.has(j)) return;
+        if (c.some((x) => twins(x.promptContent || x.label, b.promptContent || b.label))) { c.push(b); seen.add(j); grew = true; }
+      });
+    }
     out.push(c);
   });
   return out;
 }
-/** a twin set over three is dealt as equal-sized spreads of 2-3, the
- *  identical prompts kept together where they can be */
+/** a twin set is ONE card whatever its size ("has to be all no cap") — the
+ *  identical prompts sit next to each other on it */
 function deal(c) {
-  if (c.length <= 3) return [c];
-  const n = Math.ceil(c.length / 3);
-  const size = Math.ceil(c.length / n);
-  const sorted = c.slice().sort((a, b) => String(a.promptContent || a.label).localeCompare(String(b.promptContent || b.label)));
-  const out = [];
-  for (let i = 0; i < sorted.length; i += size) out.push(sorted.slice(i, i + size));
-  return out;
+  return [c.slice().sort((a, b) => String(a.promptContent || a.label).localeCompare(String(b.promptContent || b.label)))];
 }
 const shortest = (c) => c.map((x) => x.promptContent || x.label).sort((a, b) => a.length - b.length)[0];
 
@@ -120,7 +143,18 @@ const shortest = (c) => c.map((x) => x.promptContent || x.label).sort((a, b) => 
 
   const { items, stats } = await gather({ db, bucket });
   const idOf = (c) => c.id.slice(0, 60);
+  let redealIds = null, redealMarks = {}, redealTexts = {}, redealAt = '';
+  if (REDEAL) {
+    const [rb] = await bucket.file(`chat-pages/${REDEAL}.json`).download();
+    const rp = JSON.parse(rb.toString());
+    redealIds = new Set((rp.items || []).concat(...(rp.groups || []).map((g) => g.items || [])).map((i) => i.id));
+    const rd = await db.collection('forge-chat-verdicts').doc(`${CHAT}__page-${REDEAL}`).get();
+    const rv = rd.exists ? rd.data() : {};
+    redealMarks = rv.items || {}; redealTexts = rv.texts || {}; redealAt = rv.at || '';
+    console.log(`re-dealing ${redealIds.size} cards of page ${REDEAL}: ${Object.keys(redealMarks).length} marks, ${Object.keys(redealTexts).length} notes on it now; resetting ${RESET.size}`);
+  }
   const keep = items.filter((c) => {
+    if (redealIds) return redealIds.has(idOf(c));
     const id = idOf(c);
     if (!oldIds.has(id)) return true;                      // hearted since — new
     return marks[id] === true || marks[id] === 'maybe';    // her yes and her maybe
@@ -154,6 +188,13 @@ const shortest = (c) => c.map((x) => x.promptContent || x.label).sort((a, b) => 
   const carried = {}; const carriedTexts = {};
   keep.forEach((c) => {
     const id = idOf(c);
+    if (redealIds) {
+      if (RESET.has(id)) return;
+      const m = redealMarks[id];
+      if (m !== undefined && m !== null) carried[id] = m;
+      if (redealTexts[id]) carriedTexts[id] = redealTexts[id];
+      return;
+    }
     if (marks[id] === true || marks[id] === 'maybe') carried[id] = marks[id];
     if (texts[id]) carriedTexts[id] = texts[id];
   });
@@ -165,7 +206,7 @@ const shortest = (c) => c.map((x) => x.promptContent || x.label).sort((a, b) => 
     template: 'grid',
     data: {
       groups, aspect: 'square', start: 'swipe', browse: true, pace: 'quick', voice: true,
-      note: 'small', spreadEach: true,
+      note: 'small', spreadEach: true, spreadAll: true,
       buttons: { yes: { label: 'Add to deck', icon: 'triangle' },
         maybe: { label: 'Maybe add to deck', icon: 'maybe' }, no: { label: 'No', icon: 'x' } },
       goodWord: 'ADDED', badWord: 'NO',
@@ -181,11 +222,12 @@ const shortest = (c) => c.map((x) => x.promptContent || x.label).sort((a, b) => 
   if (!go) { console.log(`(dry — add --go to file ${keep.length} into "${CHAT}", post the page and carry the marks)`); return; }
 
   // ── 1. the Assets tab: label, MODEL · QUALITY · SIZE, both exact halves ──
-  const filed = await pool(keep, 5, (it) => post('/api/gallery', {
+  // (a re-deal is the same cards, already filed — nothing to file again)
+  const filed = REDEAL ? [] : await pool(keep, 5, (it) => post('/api/gallery', {
     assetsOnly: true, chat: CHAT, url: it.url, description: it.label, prompt: captionOf(it),
   }).catch((e) => ({ ok: false, err: String(e) })));
   console.log('assets filed ok:', filed.filter((r) => r && r.ok).length, 'of', keep.length);
-  const withPrompt = keep.filter((i) => i.promptContent || i.promptStyle);
+  const withPrompt = REDEAL ? [] : keep.filter((i) => i.promptContent || i.promptStyle);
   for (let i = 0; i < withPrompt.length; i += 40) {
     const chunk = withPrompt.slice(i, i + 40);
     const r = await post('/api/gallery/assets/prompt', {
@@ -205,11 +247,19 @@ const shortest = (c) => c.map((x) => x.promptContent || x.label).sort((a, b) => 
   const newIds = new Set((np.items || []).concat(...(np.groups || []).map((g) => g.items || [])).map((i) => i.id));
   const lost = Object.keys(carried).filter((id) => !newIds.has(id));
   if (lost.length) throw new Error('ids moved on the way through the template: ' + lost.join(','));
-  await db.collection('forge-chat-verdicts').doc(`${CHAT}__page-${r.id}`).set({
-    chat: CHAT, sheet: `page-${r.id}`, items: carried, texts: carriedTexts, updatedAt: new Date().toISOString(),
-  }, { merge: true });
+  const vpatch = { chat: CHAT, sheet: `page-${r.id}`, items: carried, texts: carriedTexts, updatedAt: new Date().toISOString() };
+  if (redealAt && newIds.has(redealAt)) vpatch.at = redealAt;   // her place, kept
+  await db.collection('forge-chat-verdicts').doc(`${CHAT}__page-${r.id}`).set(vpatch, { merge: true });
+  if (REDEAL) {
+    // a new version is a NEW page; the old one is superseded, never deleted
+    const sp = await post(`/api/chatfeed/page/${REDEAL}/supersede`, { superseded: true, by: r.id });
+    console.log('superseded', REDEAL, JSON.stringify(sp).slice(0, 120));
+    // a reset card's Assets-tab heart goes with its mark
+    const reset = keep.filter((c) => RESET.has(idOf(c)) && (redealMarks[idOf(c)] === true || redealMarks[idOf(c)] === false));
+    await pool(reset, 5, (c) => post('/api/gallery/assets/vote', { chat: CHAT, url: c.url, vote: null }));
+  }
   // …and the yes marks reach this chat's Assets tab too (the deck's own mirror)
-  const yes = keep.filter((c) => carried[idOf(c)] === true);
+  const yes = keep.filter((c) => carried[idOf(c)] === true && (!REDEAL || false));
   const voted = await pool(yes, 5, (c) => post('/api/gallery/assets/vote', { chat: CHAT, url: c.url, vote: 'like' }));
   console.log(`carried ${Object.keys(carried).length} marks, ${Object.keys(carriedTexts).length} notes; ${voted.filter((v) => v && v.ok).length} hearts mirrored to the Assets tab`);
   console.log(`https://imageforge-q125.onrender.com/api/chatfeed/page/${r.id}`);

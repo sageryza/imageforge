@@ -258,6 +258,16 @@
     // it would eat the edge tap across the whole card (PHOTO'd — the zone's
     // centre was the figure). Its own three sit centred, inside the middle.
     '.jg-spread.lone{z-index:1;}' +
+    // A TWIN SET OF ANY SIZE ON ONE CARD (2026-09-03, Sophie, after the soap
+    // lather twins were dealt as two cards of two: "the soap was in two piles
+    // not four together so i messed up and couldn't pick it cause i didn't
+    // know there were more" · "four is fine · has to be all no cap"). Past
+    // three the spread becomes a GRID — two across for four, three across
+    // after that — and each picture's height is its row's share, so a card of
+    // nine is three rows of three that still fit one screen.
+    '.jg-spread.wrap{display:grid;grid-template-columns:repeat(var(--cols,3),minmax(0,1fr));' +
+    ' gap:8px 6px;align-items:start;}' +
+    '.jg-spread.wrap figure img{max-height:calc(62vh / var(--rows,1));}' +
     // position:relative so a spread's own GOOD / BAD stamp lands on the
     // picture it judges rather than on the pair
     '.jg-spread figure{flex:1 1 0;min-width:0;align-self:stretch;'
@@ -1512,7 +1522,12 @@
         if (eachCard && !shown.length) {
           out += '<p class="jg-allout">Every card here went to ' + esc(BTN.no.label) + '.</p>';
         }
-        out += '<div class="jg-spread' + (eachCard && shown.length === 1 ? ' lone' : '') + '">' + shown.map(function (c) {
+        var cols = shown.length <= 3 ? shown.length : (shown.length === 4 ? 2 : 3);
+        var rows = Math.ceil(shown.length / cols);
+        out += '<div class="jg-spread' + (eachCard && shown.length === 1 ? ' lone' : '')
+          + (shown.length > 3 ? ' wrap' : '') + '"'
+          + (shown.length > 3 ? ' style="--cols:' + cols + ';--rows:' + rows + '"' : '')
+          + '>' + shown.map(function (c) {
           var cn = eachCard ? noteMsgs(notes[c.id]) : [];
           return '<figure class="hug"' + (eachCard ? ' data-card="' + esc(c.id) + '"' : '') + '>'
             + '<img' + (views ? ' data-zoom="' + esc(c.id) + '"' : ' class="zoom"')
