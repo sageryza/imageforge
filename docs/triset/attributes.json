@@ -1,15 +1,13 @@
 {
  "_what": "The Similitude / Triset VISUAL INVENTORY (2026-09-02, Sophie: 'take an inventory, and start tagging them by their attributes … primarily visual attributes'). Every tag is something you can SEE on the card — a shape, an arrangement, a colour, a texture, a mark — never the subject's category alone ('both trees' is not a match: redwood and peaches share nothing here on purpose). Two cards CONNECT when they share at least one tag. Her rules: none connects to everything, none connects to nothing, and they need not all have the same number. cards.json is the list this tags; scripts/gen-triset-inventory.js turns both into the Compare sheet and the counts. Tag by looking at the picture, not the title.",
- "judged": "2026-09-02",
+ "judged": "2026-09-03 (v1 marks applied)",
  "tags": {
   "jagged-line": {
    "label": "a jagged line running through it",
    "cards": [
     "sidewalk-sprout",
     "lightning-field",
-    "mountain",
-    "salt-flat",
-    "broken-bottle"
+    "mountain"
    ]
   },
   "wavy-line-middle": {
@@ -75,10 +73,7 @@
    "cards": [
     "toadstool-ring",
     "spotted-egg",
-    "pigeons-crumb",
-    "black-sheep",
-    "candle-stub",
-    "cat-fishbowl"
+    "pigeons-crumb"
    ]
   },
   "radial-burst": {
@@ -87,9 +82,7 @@
     "sunflower",
     "dandelion-seeds",
     "dew-web",
-    "tide-pool",
-    "peacock-feather",
-    "hail-roof"
+    "peacock-feather"
    ]
   },
   "many-round-things": {
@@ -151,9 +144,7 @@
     "bee-jam",
     "bee-flower",
     "clothesline-bat",
-    "hail-roof",
-    "canyon",
-    "aurora"
+    "canyon"
    ]
   },
   "patchwork": {
@@ -162,7 +153,6 @@
     "patchwork-hills",
     "hot-air-balloon",
     "plane-map",
-    "poppy-field",
     "lightning-field"
    ]
   },
@@ -227,9 +217,6 @@
     "firefly-jar",
     "firefly-meadow",
     "star-puddle",
-    "dew-web",
-    "candle-stub",
-    "fence-cat",
     "clothesline-bat"
    ]
   },
@@ -238,9 +225,7 @@
    "cards": [
     "moon-in-lake",
     "star-puddle",
-    "salt-flat",
-    "sea-cave",
-    "deer-stream"
+    "salt-flat"
    ]
   },
   "waves": {
@@ -280,9 +265,7 @@
     "goldfish-leap",
     "hail-roof",
     "dew-web",
-    "whale",
-    "bee-jam",
-    "hot-spring"
+    "whale"
    ]
   },
   "eyes": {
@@ -290,9 +273,6 @@
    "cards": [
     "burrow-eyes",
     "alligator",
-    "made-eyes",
-    "cloud-face",
-    "made-wavy-line",
     "peacock-feather",
     "black-sheep",
     "pigeons-crumb",
@@ -307,8 +287,7 @@
     "candle-stub",
     "train-bridge",
     "hot-spring",
-    "dust-devil",
-    "pine-fog"
+    "dust-devil"
    ]
   },
   "upside-down": {
@@ -316,8 +295,7 @@
    "cards": [
     "turtle-back",
     "bat",
-    "clothesline-bat",
-    "dominoes"
+    "clothesline-bat"
    ]
   },
   "hanging": {
@@ -389,8 +367,7 @@
     "ladybug",
     "caterpillar",
     "grasshopper",
-    "bee-flower",
-    "garden-snake"
+    "bee-flower"
    ]
   },
   "bird": {
@@ -437,8 +414,7 @@
    "cards": [
     "sidewalk-sprout",
     "salt-flat",
-    "broken-bottle",
-    "wave-sandcastle"
+    "broken-bottle"
    ]
   },
   "aftermath": {
@@ -502,7 +478,6 @@
     "made-cave",
     "burrow-eyes",
     "curtains-moon",
-    "firefly-jar",
     "fence-chicken",
     "treehouse",
     "beehive"
@@ -595,7 +570,6 @@
    "cards": [
     "hot-air-balloon",
     "patchwork-hills",
-    "poppy-field",
     "lightning-field",
     "firefly-meadow",
     "first-footprints",
@@ -624,7 +598,6 @@
     "black-sheep",
     "stacked-chairs-medium",
     "stacked-chairs-low",
-    "frozen-falls",
     "salt-flat",
     "pine-fog"
    ]
@@ -753,19 +726,6 @@
     "measuring-spoons"
    ]
   },
-  "nobody-home": {
-   "label": "something left behind, nobody there",
-   "cards": [
-    "coat-chair",
-    "deflated-balloon",
-    "candle-stub",
-    "first-footprints",
-    "stacked-chairs-medium",
-    "stacked-chairs-low",
-    "garden-gate",
-    "burnt-toast"
-   ]
-  },
   "balloon-shape": {
    "label": "a balloon or bubble shape",
    "cards": [
@@ -792,10 +752,7 @@
     "moth-bark",
     "made-wavy-line",
     "luna-moth",
-    "dew-web",
-    "sunflower",
-    "toadstool-ring",
-    "made-eyes"
+    "dew-web"
    ]
   },
   "path": {
@@ -872,6 +829,34 @@
     "bathroom-rainbows-low",
     "bathroom-rainbows-low-b"
    ]
+  ]
+ },
+ "approvedRows": {
+  "_what": "Rows she hearted on the v1 sheet, 2026-09-03 — attributes she agrees are real.",
+  "tags": [
+   "from-above",
+   "spots",
+   "mostly-white",
+   "path",
+   "column-down-middle",
+   "stepping-stones",
+   "rainbow",
+   "stripes",
+   "hidden",
+   "scattered-floor",
+   "symmetry",
+   "trail",
+   "ring",
+   "radial-burst",
+   "splash",
+   "smoke",
+   "hanging",
+   "window",
+   "iridescent",
+   "jagged-line",
+   "patchwork",
+   "reflection",
+   "upside-down"
   ]
  }
 }
