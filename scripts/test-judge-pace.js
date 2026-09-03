@@ -13,8 +13,10 @@
  *      and so has no animation to wait out
  *   3. QUICK: tapping the lit mark again is a CLEAR and stays put
  *   4. QUICK: a decision on the LAST card lands on the piles, like the edge tap
- *   5. LABORED (the default — no pace field): a ♥ never moves the deck,
- *      byte-for-byte the rule as it was
+ *   5. LABORED (an explicit pace:'labored'): a ♥ never moves the deck,
+ *      byte-for-byte the browse rule as it was
+ *   6. NO PACE FIELD IS QUICK (2026-09-03, Sophie: "it shud be quick toggle.
+ *      set that as the default") — a deck that says nothing moves on a ♥
  *
  * Timing is the test's whole subject, so every assertion WAITS past the
  * stamp's 620ms rather than asking in the same frame — a quick deck and a
@@ -54,6 +56,7 @@ const PAGE = `<!doctype html><meta charset="utf-8"><title>pace test</title>
 <div class="wrap">
   <div id="judge"></div>
   <div id="judge2"></div>
+  <div id="judge3"></div>
 </div>
 <script src="/compare.js"></script>
 <script src="/judge.js"></script>
@@ -69,6 +72,7 @@ window.addEventListener('error', function(e){
   var IMG="${IMG}";
   var q=document.getElementById('judge');
   var lab=document.getElementById('judge2');
+  var def=document.getElementById("judge3");
   function who(m){ var w=m.querySelector('.who'); return w ? w.textContent : ''; }
   function tap(m,sel){ var b=m.querySelector(sel); if(b) b.click(); return !!b; }
 
@@ -80,8 +84,13 @@ window.addEventListener('error', function(e){
     { id:'d', label:'fourth', img:IMG },
     { id:'e', label:'fifth', img:IMG },
   ]});
-  // the LABORED deck — same cards, NO pace field: the default must not move
-  window.__judge({ chat:'t', sheet:'s2', browse:true, look:'mom', mount:'#judge2', items:[
+  // the LABORED deck — same cards, an EXPLICIT pace:'labored': must not move
+  window.__judge({ chat:'t', sheet:'s2', browse:true, pace:'labored', look:'mom', mount:'#judge2', items:[
+    { id:'a', label:'first', img:IMG },
+    { id:'b', label:'second', img:IMG },
+  ]});
+  // the DEFAULT deck — NO pace field at all: quick is the default (2026-09-03)
+  window.__judge({ chat:'t', sheet:'s3', browse:true, look:'mom', mount:'#judge3', items:[
     { id:'a', label:'first', img:IMG },
     { id:'b', label:'second', img:IMG },
   ]});
@@ -129,12 +138,19 @@ window.addEventListener('error', function(e){
       setTimeout(next, 900);
     },
     function(next){
-      ok(who(lab)==='first', 'LABORED (default): a heart never moves the deck');
+      ok(who(lab)==='first', 'LABORED: a heart never moves the deck');
       tap(lab,'[data-act="maybe"]');
       setTimeout(next, 900);
     },
     function(next){
-      ok(who(lab)==='first', 'LABORED (default): a maybe never moves the deck either');
+      ok(who(lab)==='first', 'LABORED: a maybe never moves the deck either');
+      // 6 — no pace field at all: the default is QUICK
+      ok(who(def)==='first', 'DEFAULT (no pace): opens on the first card');
+      tap(def,'[data-act="yes"]');
+      setTimeout(next, 900);
+    },
+    function(next){
+      ok(who(def)==='second', 'DEFAULT (no pace): a heart moves the deck — quick is the default');
       next();
     },
   ];

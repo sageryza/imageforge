@@ -524,10 +524,14 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     spread pick. Only a clear stays put, which is also how she goes back to
     an unmarked card on purpose. **The WAIT is the stamp's**, so a maybe
     moves at once and a ♥/✕ holds 620ms, leaving the card she is stepping off
-    long enough to wear its stamp. LABORED is the default (omit the field) —
-    the browse rule exactly as it was: a mark never moves the deck. Pick
-    quick for a yes/no sweep (the hoonies, a big cull); labored for anything
-    she reads, notes on, or changes her mind about. **An already-posted page
+    long enough to wear its stamp. **QUICK IS THE DEFAULT SINCE 2026-09-03**
+    (Sophie, on the Playground-hearts page: "it shud be quick toggle. set
+    that as the default") — a page that omits the field moves on a verdict,
+    and `judge.js` reads `pace !== 'labored'`, so every template page ever
+    posted without the field is quick now too. `pace:'labored'` is the
+    explicit opt-out — the browse rule exactly as it was: a mark never moves
+    the deck. Pick labored for anything she reads, notes on, or changes her
+    mind about. (Labored was the default for two days, 09-01 to 09-03.) **An already-posted page
     is flipped without re-posting** — `POST /api/chatfeed/page/:id/pace
     {pace:'quick'|'labored'}` writes the page doc, whose field wins over the
     frozen data (a new page id would lose her marks). Pinned by
