@@ -343,40 +343,38 @@
   .likefilt svg { width: 16px; height: 16px; }
   .likefilt.on { background: #c25a72; color: #fff; }
   .xfilt.on { background: #9a938a; color: #fff; }
-  /* THE FILTERS CHIP AND ITS DRAWER (/searchfilters.js + .css) — the ♥ and
-     the ✕ live inside it now, beside quality and date. It sits where that
-     pair sat, so the row is the same width it was: the two 34px buttons it
-     replaced paid for it almost exactly.
-     THE DRAWER HANGS UNDER THE BAR rather than pushing the feed down: this
-     row is `position: sticky`, so it is already a containing block, and an
-     absolute panel under it stays put while she scrolls. It deliberately does
-     NOT lift itself above the bar's own z-index 5 — the injected pill owns 9
-     and must keep taking its own taps — and it stops 56px short of the right
-     edge for the same reason. */
-  /* The tokens go on the MOUNT so they reach the chip as well as the drawer.
-     This page is ink on paper, not rose on cream. */
-  .feedfilters { flex: none; margin-left: 8px; min-width: 0;
+  /* THE FILTERS CHIP AND ITS DRAWER (/searchfilters.js + .css) LIVE ON THE
+     CONTROLS ROW (2026-09-02, Sophie marked the spot in a screenshot: "put
+     the filter button where the pink mark was"). That gap is made by
+     `.gogroup`'s `margin-left:auto`, so the chip drops into it and the
+     Generate cluster stays hard right; the feed bar got its ♥/✕ back in the
+     same breath.
+       THE DRAWER IS IN FLOW HERE — the card simply grows. It is not the feed
+     bar, so there is nothing sticky to hang off and nothing underneath that a
+     floating panel would cover.
+       THE TOKENS GO ON THE MOUNT so they reach the chip as well as the
+     drawer. This page is ink on paper, not rose on cream. */
+  .feedfilters { display: flex; align-items: center; flex: none;
     --fsf-ink: #2b2622; --fsf-ink2: #6f675e; --fsf-line: #d8d0c4;
     --fsf-paper: #fdfcf9; --fsf-on: #c25a72; }
-  .feedbar .filtdrawer { position: absolute; top: 100%; left: 0; right: 56px; margin: 0;
-    background: #faf7f2; border: 1px solid #d8d0c4; border-radius: 6px;
-    padding: 11px 12px 12px; }
-  /* LIT, THE ✕ MUST NOT MATCH THE ♥ — the same rule the two loose buttons
-     followed: one keeps what it names and the other drops it. */
-  .feedbar .filtcbtn.dropfilt.on { background: #9a938a; border-color: #9a938a; }
   /* THE DOOR IS THE HEIGHT OF THE ROW IT STANDS ON, measured rather than
      picked (2026-09-02, Sophie: "how the fuck did u decide the button
-     sizes"). This bar's family is 32px — the view switch, the search field —
-     so the chip STRETCHES to whatever the row is instead of carrying a number
-     of its own, and the bar stays one 48px line. (The drawer's chips keep the
-     shared 34px, which is the height of the three-way toggles they sit beside
-     inside it.) */
-  .feedfilters { display: flex; align-items: stretch; }
-  .feedbar .filtchip { min-height: 0; }
-  /* The chip has to give the search box its width back when she narrows
-     something, so it truncates rather than pushing: the words are on the rows
-     under it the moment she opens the drawer. */
-  .feedbar .filtchip { max-width: 148px; }
+     sizes"). The controls row declares its own `--ctl-h`, so the chip takes
+     that instead of carrying a number of its own. */
+  .controls .filtchip { min-height: var(--ctl-h); }
+  /* THE DRAWER HANGS UNDER THE WHOLE ROW, absolutely — it must NOT be a flex
+     item here. In flow the mount stretched to the drawer's width and broke the
+     row apart: Prompt alone on one line, the sifter on another, Generate
+     pushed to the bottom corner (PHOTOGRAPHED). Absolute against `.controls`
+     it changes no other control's position at all.
+     z-index 6, one above the feed bar's sticky 5, or the bar paints over it. */
+  .controls { position: relative; }
+  .controls .filtdrawer { position: absolute; top: calc(100% + 8px); left: 0; right: 0;
+    z-index: 6; margin: 0; background: #faf7f2; border: 1px solid #d8d0c4;
+    border-radius: 6px; padding: 11px 12px 12px; }
+  /* LIT, THE ✕ MUST NOT MATCH THE ♥ — the same rule the two mark buttons on
+     the bar follow: one keeps what it names and the other drops it. */
+  .controls .filtcbtn.dropfilt.on { background: #9a938a; border-color: #9a938a; }
   /* The sheets view lit in INK, not the rose and not the grey — it is a mode
      (what the cells ARE), not a like/dislike filter, and three chips in one
      box lighting two colours would read as three of one kind. */
@@ -982,6 +980,11 @@
     </div>
     <button type="button" id="rpick" class="tri" aria-label="Resolution"></button>
     <button type="button" id="qpick" class="tri" aria-label="Quality"></button>
+    <!-- THE FILTER DOOR SITS IN THE GAP THIS ROW ALREADY HAD (2026-09-02,
+         Sophie marked the spot: "put the filter button where the pink mark
+         was"). `.gogroup`'s `margin-left:auto` is what makes that gap, so the
+         chip drops into it and the Generate cluster stays hard right. -->
+    <div class="feedfilters" id="feedfilters"></div>
     <div class="gogroup">
       <button class="stepbtn" id="lowmed" hidden aria-label="Two low and one medium" title="Two low and one medium"></button>
       <button class="stepbtn" id="medhigh" hidden aria-label="One medium and one high" title="One medium and one high"></button>
@@ -1000,11 +1003,17 @@
   <!-- The SHEETS chip stays on the row: it is a MODE (what the cells ARE on
        the Panels tab), not a filter over them, and it is the one thing here
        that changes what a run even looks like. -->
-  <div class="filttog" role="group" aria-label="View">
+  <!-- THE ♥ AND THE ✕ ARE BACK EXACTLY WHERE THEY WERE (2026-09-02, Sophie:
+       "actually put the heart x thing exactly where it was"). They rode inside
+       the filters drawer for a day; they are marks she casts on a picture, and
+       this is the bar she casts them from. The DRAWER keeps quality and date,
+       which are facts about a run and have nowhere else to live. -->
+  <div class="filttog" role="group" aria-label="Filters">
+    <button class="likefilt" id="v-liked" aria-label="Show only the ones you hearted" title="Hearts only"></button>
+    <button class="likefilt xfilt" id="v-hidex" aria-label="Hide the ones you have crossed out" title="Hide the &times;'d"></button>
     <button class="likefilt sheetfilt" id="v-sheets" hidden aria-label="Just the finished sheets, uncut" title="Just the finished sheets, uncut"></button>
     <button class="likefilt selfilt" id="v-select" aria-label="Pick several at once" title="Pick several at once"></button>
   </div>
-  <div class="feedfilters" id="feedfilters"></div>
   <div class="feedsearch">
     <input id="q" type="search" placeholder="Search" aria-label="Search your runs"
            autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="search">
@@ -1169,16 +1178,13 @@
   // it, the chip wearing the state while it is shut. WHAT LIVES HERE is which
   // filters this page has, and what each one actually hides.
   //
-  // THE MARKS ARE STILL STICKY AND STILL THE SAME TWO KEYS. `promptlab_liked`
-  // and `promptlab_hidex` are read by `likedOnly()`/`hideX()` all over this
-  // page, so the spec carries its own get/set onto exactly those — moving the
-  // buttons inside a drawer must not reset a filter she left on, and no
-  // localStorage key belongs in the shared shell.
-  //
-  // QUALITY AND DATE FILTER RUNS, NOT PICTURES, because a run is what has one
-  // quality and one moment; the ♥ and the ✕ are marks on individual pictures
-  // and go on filtering those. That is why they are separate rows rather than
-  // one list of chips.
+  // THE ♥ AND THE ✕ ARE NOT IN HERE (2026-09-02, Sophie: "actually put the
+  // heart x thing exactly where it was"). They rode inside this drawer for a
+  // day — her own earlier "you can put the heart x thing within the toggle" —
+  // and she put them back on the feed bar. That is HISTORY, not a rule: don't
+  // move them in again. What the drawer keeps is QUALITY and DATE, which are
+  // facts about a RUN (one quality, one moment) and have no other home, where
+  // the marks are cast on individual pictures from the bar above them.
   //
   // THE KEYS SAY `filt`, AND THAT IS NOT COSMETIC. A key named for quality
   // alone would read as the GENERATE knob, which is deliberately NOT
@@ -1191,20 +1197,39 @@
   // medium · high IS three options, but a filter needs a fourth answer — "all
   // of them" — and there is nowhere on a three-way track to put it. Chips also
   // let her say low AND high, which is what looking at a ladder is.
+  // HEARTS ONLY (Aug 2026, Sophie) — a filter that rides on top of whichever
+  // view she is in, not a view of its own. It hides every picture she hasn't
+  // hearted; a run left with nothing showing drops out of the list entirely.
+  // Sticky, same as the view, so a reload keeps it.
+  document.getElementById('v-liked').innerHTML = ICONS.heart;
   function likedOnly() { return localStorage.getItem('promptlab_liked') === '1'; }
+  function applyLiked(repaint) {
+    document.getElementById('v-liked').classList.toggle('on', likedOnly());
+    if (repaint) renderFeed();
+  }
+  document.getElementById('v-liked').addEventListener('click', function () {
+    localStorage.setItem('promptlab_liked', likedOnly() ? '' : '1');
+    applyLiked(true);
+  });
+
+  // HIDE THE ✕'d (Aug 2026, Sophie: "can u also add a button next to the
+  // heart that hides anything i've 'exed'"). The heart's opposite and its
+  // twin: a filter over pictures, in whichever view she is in, sticky. The two
+  // stack without arguing — hearts-only has already dropped every ✕'d picture,
+  // so this one simply finds nothing more to do.
+  document.getElementById('v-hidex').innerHTML = ICONS.x;
   function hideX() { return localStorage.getItem('promptlab_hidex') === '1'; }
+  function applyHideX(repaint) {
+    document.getElementById('v-hidex').classList.toggle('on', hideX());
+    if (repaint) renderFeed();
+  }
+  document.getElementById('v-hidex').addEventListener('click', function () {
+    localStorage.setItem('promptlab_hidex', hideX() ? '' : '1');
+    applyHideX(true);
+  });
+
   var SF = window.ForgeSearchFilters;
   var FILT = SF.build(document.getElementById('feedfilters'), [
-    { key: 'marks', kind: 'chips', multi: true, label: 'Marks',
-      vals: ['like', 'nox'], words: ['\u2665 only', 'No \u2715'],
-      icons: [ICONS.heart, ICONS.x], classes: ['', 'dropfilt'],
-      get: function () {
-        var v = []; if (likedOnly()) v.push('like'); if (hideX()) v.push('nox'); return v;
-      },
-      set: function (v) {
-        localStorage.setItem('promptlab_liked', v.indexOf('like') >= 0 ? '1' : '');
-        localStorage.setItem('promptlab_hidex', v.indexOf('nox') >= 0 ? '1' : '');
-      } },
     { key: 'quality', kind: 'chips', multi: true, label: SF.QUALITY.label,
       vals: SF.QUALITY.vals, words: SF.QUALITY.words,
       get: function () { return readList('promptlab_filt_quality'); },
@@ -5486,7 +5511,7 @@
   setInterval(ptopWatch, 4000);
 
   if (window.__nativeNavBar) document.body.classList.add('native');
-  renderStyles(); updateShape(); syncControls(); syncTab(); applyView(); loadRuns();
+  renderStyles(); updateShape(); syncControls(); syncTab(); applyLiked(false); applyHideX(false); applyView(); loadRuns();
   if (pendingList().length) { renderPendings(); startPolling(); }
 </script>
 </body></html>

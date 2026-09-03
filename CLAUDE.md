@@ -3153,10 +3153,24 @@ them off the reference sheet, not off the old filenames.
     what comparing a ladder actually looks like. Tapping the lit chip clears
     it, so no row needs a second "off" control.
   - **WHERE IT IS: the Playground, Meta Assets, a chat's own Assets tab, and
-    the Chats search (both boxes).** Three rows on the picture surfaces —
-    **Marks** (the ♥/✕ pair, or New · ♥ · Hide ✕ where those three were
-    already exclusive), **Quality**, **When** (Today · This week · This month,
-    days back from now — "since Sunday" would cut a working night in half).
+    the Chats search (both boxes).** Two rows on the picture surfaces —
+    **Quality** and **When** (Today · This week · This month, days back from
+    now; "since Sunday" would cut a working night in half).
+  - **THE ♥ AND THE ✕ ARE NOT IN IT, AND THAT IS HER SECOND WORD ON IT
+    (2026-09-02: "you can put the heart x thing within the toggle" → "actually
+    put the heart x thing exactly where it was").** They rode inside the drawer
+    for a day. They are marks she CASTS on a picture, and the row above the
+    pictures is where she casts them; the drawer keeps the two things that are
+    facts about a RUN and have no other home. **Don't move them in again.**
+  - **AND ON THE PLAYGROUND THE DOOR IS ON THE CONTROLS ROW, NOT THE FEED BAR
+    (2026-09-02, she marked the spot in a screenshot: "put the filter button
+    where the pink mark was").** It drops into the gap `.gogroup`'s
+    `margin-left:auto` already makes, so Generate stays hard right and the row
+    is the width it was. **The drawer there is ABSOLUTE against `.controls`,
+    at z-index 6** — in flow the mount stretched to the drawer's width and
+    broke the row into three lines with Generate in the bottom corner
+    (PHOTOGRAPHED), and 6 is one above the feed bar's sticky 5 or the bar
+    paints over it.
   - **QUALITY IS READ OFF THE FILED MODEL · QUALITY · SIZE CAPTION** on an
     asset, because that is the only place a record carries it — which is also
     why filing that caption matters more, not less. **A picture whose caption

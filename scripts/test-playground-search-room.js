@@ -99,10 +99,7 @@ const ok = (c, m) => { if (c) console.log('  ok  ' + m); else fail(m); };
     const br = bar.getBoundingClientRect();
     return {
       barRight: Math.round(br.right), barTop: Math.round(br.top),
-      // The ♥/✕ pair moved into the filters drawer (2026-09-02, Sophie: "you
-      // can put the heart x thing within the toggle"), so the chip that opens
-      // it is what stands on the row where `.filttog` used to.
-      view: box('.viewtog'), filt: box('#feedfilters .filtchip'), search: box('.feedsearch'),
+      view: box('.viewtog'), filt: box('.filttog'), search: box('.feedsearch'),
       lines: new Set(Array.from(bar.children).filter((c) => c.getBoundingClientRect().width)
         .map((c) => Math.round(c.getBoundingClientRect().top))).size,
     };
@@ -136,22 +133,26 @@ const ok = (c, m) => { if (c) console.log('  ok  ' + m); else fail(m); };
   ok(rest >= need,
      'and it holds its own placeholder (' + Math.round(rest) + 'px box, needs ' +
      Math.round(need) + ')');
-  // AND THE BORROW IS ASKED AT THE NARROWEST PHONE, because that is where it
-  // still has to pay for itself. At 390pt the drawer's one sifter chip
-  // replaced the two loose ♥/✕ buttons (2026-09-02), so the row alone now
-  // leaves the field enough for its own placeholder — measuring the borrow's
-  // necessity there would only be measuring how much slack a wide screen has.
-  // At 320 it is the difference between a readable field and a clipped one.
+  // WHAT THE BORROW BUYS, measured as the borrow itself rather than as
+  // scarcity. This used to assert that without the column the field would be
+  // too narrow for its own placeholder — a justification, not a behaviour, and
+  // it flipped twice in one day as chips moved on and off this row (the sifter
+  // arrived, then left for the controls row; the ♥/✕ pair left, then came
+  // back). What is actually true whatever the row holds: the field really does
+  // run 56px past where the row alone would end, and it holds its placeholder.
+  const borrowed = await page.evaluate(() => {
+    const f = document.querySelector('.feedsearch');
+    return -parseFloat(getComputedStyle(f).marginRight);
+  });
+  ok(Math.round(borrowed) === 56,
+     'the field borrows the pill\'s whole 56px column (' + Math.round(borrowed) + 'px)');
   await page.setViewportSize({ width: 320, height: 844 });
   await page.waitForTimeout(150);
   const narrow = await page.evaluate(() =>
     document.querySelector('.feedsearch').getBoundingClientRect().width);
-  ok(narrow - 56 < need,
-     'which the BORROWED column is what pays for at 320pt — the row alone leaves it ' +
-     Math.round(narrow - 56) + 'px, under the ' + Math.round(need) + ' it needs');
   ok(narrow >= need,
-     'and with the column it still holds its placeholder there (' +
-     Math.round(narrow) + 'px)');
+     'and it still holds its placeholder at the narrowest phone (' +
+     Math.round(narrow) + 'px box, needs ' + Math.round(need) + ')');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(150);
 
@@ -159,13 +160,13 @@ const ok = (c, m) => { if (c) console.log('  ok  ' + m); else fail(m); };
   ok(s.view.shown && s.filt.shown, 'the view switch and the filters are still on the row');
   const ctrlClear = await page.evaluate((pill) => {
     const bar = document.querySelector('.feedbar').getBoundingClientRect();
-    return ['.viewtog', '#feedfilters .filtchip'].every((sel) => {
+    return ['.viewtog', '.filttog'].every((sel) => {
       const r = document.querySelector(sel).getBoundingClientRect();
       return r.right <= bar.right - pill + 1;
     });
   }, PILL);
   ok(ctrlClear, 'the CONTROLS still stop before the pill column — every one is a tap target');
-  const reachable = () => page.evaluate(() => ['#v-list', '#v-tiles', '#feedfilters .filtchip']
+  const reachable = () => page.evaluate(() => ['#v-list', '#v-tiles', '#v-liked', '#v-hidex']
     .every((sel) => {
       const el = document.querySelector(sel);
       const r = el.getBoundingClientRect();

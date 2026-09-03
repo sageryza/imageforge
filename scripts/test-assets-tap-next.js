@@ -300,11 +300,7 @@ function ok(cond, name) {
     await closeLb();
 
     // 3. the ORDER is what is on screen — light ♥ and the walk skips the rest
-    // The ♥ lives inside the filters drawer on BOTH pages since 2026-09-02
-    // (/searchfilters.js) — open it, tap the chip.
-    await page.click('.arow .filtchip');
-    await page.waitForSelector('.arow .filtdrawer:not([hidden])');
-    await page.click('.arow .filtcbtn[data-v="like"]');
+    await page.click('.afilter button[data-f="like"]');
     const lit = await shownCaps();
     ok(lit.length === 2 && lit[0] === 'two — the corridor',
       label + ': the ♥ filter leaves two tiles on screen');
@@ -346,11 +342,7 @@ function ok(cond, name) {
     //    while a 1-3MB original downloads (the Playground's rule). The tile she
     //    tapped is already decoded, so it lands in the same frame; the original
     //    swaps in behind it.
-    // the drawer shuts on a tap out (2026-09-02), so re-open it to clear
-    await page.click('.arow .filtchip');
-    await page.waitForSelector('.arow .filtdrawer:not([hidden])');
-    await page.click('.arow .filtcbtn[data-v="like"]');   // clear the filter
-    await page.click('.arow .filtchip');                  // and shut it again
+    await page.click('.afilter button[data-f="like"]');   // clear the filter
     await page.waitForTimeout(100);
     const painted = () => page.$eval('#clightbox .clwrap img', (n) => n.getAttribute('src'));
     await openTile(2);
