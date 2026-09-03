@@ -1845,19 +1845,31 @@
     // of explanation, tap to step. Replayable from the "?" forever.
     function tourSteps() {
       var steps = [];
+      // THE TOUR HAS TO SAY WHICH PACE THIS DECK IS (2026-09-03). Both of
+      // these lines were written for the LABORED deck and hardcoded — "that is
+      // the only thing that moves you", "marking one never moves you on" —
+      // and quick became the DEFAULT on 2026-09-03, so every deck was
+      // teaching her the opposite of what its own buttons do, on first open.
       if (browse) {
-        steps.push({ sel: '.jg-card', text: 'One card at a time. Tap the left or right '
+        steps.push({ sel: '.jg-card', text: quick
+          ? 'One card at a time. Tap the left or right edge of the card (or swipe) to '
+            + 'move through the deck — and a mark moves you on by itself, so a yes or a '
+            + 'no is one tap. Tap an edge to come back.'
+          : 'One card at a time. Tap the left or right '
           + 'edge of the card (or swipe) to move through the deck — that is the only '
           + 'thing that moves you, so marking a card never carries you off it.' });
       }
       steps.push({ sel: momDeck && !states ? '.jg-momfoot' : '.jg-row', text: states
         ? 'Mark a card with one of these — tap the same one again to unmark it.'
         : momDeck
-          ? '♥ yes, ? maybe, ✕ no — marking one never moves you on, so you can '
-            + 'change your mind. Maybe gets a pile of its own. The box under '
+          ? '♥ yes, ? maybe, ✕ no — ' + (quick
+            ? 'any of the three marks the card and moves you on. '
+            : 'marking one never moves you on, so you can change your mind. ')
+            + 'Maybe gets a pile of its own. The box under '
             + 'them is a note for this card, saved as you type.'
           : '♥ love it, ✕ pass, the dashed circle is maybe, the arrow means sort it later. '
-          + 'Each one saves the moment you tap it.' });
+          + (quick ? 'Each one saves the moment you tap it and moves you on.'
+            : 'Each one saves the moment you tap it.') });
       if (voice) {
         steps.push({ sel: '.jg-mic', text: 'The mic: tap to start talking, tap again to '
           + 'stop. Stay on one card and the note lands there — or keep talking while you '
@@ -1905,7 +1917,7 @@
       h.innerHTML = '<div>' + said + (opts.help ? '<div>' + opts.help + '</div><br>' : '')
         + '<b>THE BUTTONS</b><br>' + keys + '<br>'
         + (browse ? 'Tap the card’s left/right edge (or swipe) to move through'
-          + ' — nothing has to be marked. ' : '')
+          + (quick ? ' — and a mark moves you on by itself. ' : ' — nothing has to be marked. ') : '')
         + (voice && !momDeck ? 'The mic records a voice note: tap to start, tap to stop. Stay on one'
           + ' card and it lands there — or keep talking WHILE you swipe, and each'
           + ' sentence lands on the card you were looking at when you started it. ' : '')

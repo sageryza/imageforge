@@ -8619,6 +8619,42 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - Tests: `node scripts/test-triset.js` (pure + headless page half; reads
     the real dreamy wording out of server.js via
     `scripts/lib/dreamy-style.js`).
+  - **GATHERING EVERY TRIANGLE CARD SHE HAS HEARTED —
+    `scripts/triangle-hearts-deck.js` (dry by default, `--go` posts a deck
+    page; 2026-09-03, Sophie: "gather all the triangle cards i've hearted
+    everywhere · be thorough").** It costs nothing — reads only, no model
+    call. Three doors a heart comes through, all swept: an Assets-tab / Meta
+    Assets ♥ (`forge-asset-votes`), a ♥ or a "this one" pick on **any**
+    Compare page (`forge-chat-verdicts`), and a per-image ♥ on a Playground
+    run (`forge-promptlab`). Live 2026-09-03: **162 distinct cards** — 127
+    pool cards (70 of them in the Similitude deal) and 35 Playground pictures.
+    - **A COMPARE PAGE'S ITEM IDS CANNOT BE GUESSED — READ THE PAGE'S OWN
+      JSON.** The first version (2026-09-01) resolved them by guessing a
+      card's url stem or a `subject` field; measured, **`subject` exists on
+      none of the 902 card docs**, and across all 131 verdict docs exactly
+      **one** of her 300 `true` marks resolved. Her pages carry at least six
+      id shapes (a slugified title, a subject slug, a card stem, a 12-char
+      card-id prefix, `pl-<run>-<i>`, `<run>-<i>`), because each page was
+      built by a different chat. `chat-pages/<id>.json` in Storage IS the
+      dictionary — id → url, whatever the ids are called — and it is the only
+      reading that cannot go stale the next time a chat invents a shape.
+    - **WHAT COUNTS AS A TRIANGLE CARD IS EVIDENCE, never a path guess:** a
+      pool card, a Playground run declared on the Triangle tile **or** whose
+      own `fullPrompt` matches the clause (10 runs predate the tile and
+      declare nothing), or a filed asset whose stored style half matches —
+      `matchStyle` in `playground-port.js`, the one rule.
+    - **ONE CARD IS ONE ITEM.** A heart can land on the pool card, its
+      current cut, an OLDER cut (`triset/cuts/<card doc id>.c1.webp`), a
+      thumb-service link, or a re-encoded copy — joined by url, by the cut's
+      stem, and by the Assets tab's own **md5** union.
+    - **HER MARK LANDS ON THE CARD'S OWN URL for a pool card**, never the old
+      cut the heart happened to sit on: `syncHearts` reads the whole vote
+      collection keyed by URL and ignores the chat, so a ♥/✕ in the gathered
+      deck really does put the card into the deal or take it out.
+    - **A LONE `%` IN A REAL URL THROWS** — `decodeURIComponent` raised "URI
+      malformed" on one of her liked urls and took the whole sweep with it.
+      Every decode here is guarded; a key that cannot be decoded is still a
+      usable key undecoded.
 - **The Dump** (`dropbox.js`, `/api/drop`, sort page at `/dump`, iOS tile with
   SEND and SORT tabs) — **dump first, label afterwards**. Dropping asks no
   questions; only the bundle (a Photos album) and the session are captured,
@@ -9140,6 +9176,22 @@ before working on that module. Nothing was deleted — the moved text is verbati
     - Tests: `node scripts/test-judge-stamp.js` (it lands) and
       `node scripts/test-judge-piles.js` (it leaves, and an already-marked
       card arrives with none).
+  - **THE TOUR AND THE HELP CARD HAVE TO SAY WHICH PACE THE DECK IS
+    (2026-09-03).** Both lines were written for the LABORED deck and
+    HARDCODED — *"that is the only thing that moves you"*, *"marking one never
+    moves you on"* — and **quick became the default on 2026-09-03**, so every
+    deck was teaching her the opposite of what its own buttons do, on the
+    first open, before she has touched anything. They read `quick` now, in
+    `tourSteps()` and in the help card, both of which already sit in that
+    closure. **Found by PHOTOGRAPHING a real posted deck**: the tour is the
+    first thing on screen and no test had ever read a word of it — a whole
+    surface can be wrong for days while every assertion about the page passes.
+    Test: `node scripts/test-judge-pace-copy.js` (the real tour stepped
+    through at BOTH paces, asserting on MEANING rather than wording — each
+    pace never claims the other's behaviour — so a reword is free; verified
+    failing 3 pre-fix). One trap in the test itself, worth keeping: *"never
+    moves you on"* CONTAINS *"moves you on"*, so the denials come out of the
+    text before it asks whether anything promises the move.
   - **EACH PILE FOLDS AND RE-SWIPES ITSELF, AND THE PILES AUTOSCROLL
     (2026-09-01, Sophie: "right now the auto scroll doesn't work in piles" ·
     "add a good/bad/maybe button to each pile to re-swipe just those" · "also
