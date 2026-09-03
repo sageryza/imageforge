@@ -1245,9 +1245,17 @@
     var sm = sheetsMode();
     var b = document.getElementById('v-sheets');
     b.hidden = !onPanels();
-    // …and the segmented BOX with it, or the Picture tab draws an empty 1px
-    // outline where the ♥/✕ pair used to be.
-    if (b.parentNode) b.parentNode.hidden = !onPanels();
+    // …and the segmented BOX with it, but ONLY WHEN NOTHING IS LEFT IN IT
+    // (2026-09-03). That line used to read `!onPanels()` flat, from when the
+    // sheets chip was the only thing here — and #2058 moved the ♥/✕ pair into
+    // the filters drawer, which left `#v-select` alone in this box and
+    // therefore HIDDEN on the Picture tab: "pick several at once" (#2030, her
+    // own ask) had no door at all on the tab she draws in. Derived from the
+    // children, so the next chip added here needs nothing.
+    if (b.parentNode) {
+      b.parentNode.hidden = !Array.prototype.some.call(
+        b.parentNode.children, function (c) { return !c.hidden; });
+    }
     b.classList.toggle('on', sm);
   }
   document.getElementById('v-sheets').addEventListener('click', function () {
@@ -1535,10 +1543,28 @@
   // from before a tab switch can land, and it must not leak the other
   // gallery's runs into this one.
   function visibleRuns() {
+    // A SEARCH DECIDES MEMBERSHIP AND ORDER, NEVER WHAT A RUN SAYS (2026-09-03,
+    // Sophie: "hearts…", with a screenshot of hearts on two pictures beside a
+    // lightbox saying one of them was not hearted at all).
+    //   `hits` is the ARRAY OF OBJECTS the search answered with, and it is the
+    // only store on this page nothing ever refreshes: `castLB` mutates
+    // `runsById[id]`, and `mergeRuns` — which every vote runs through, via
+    // loadRuns — REPLACES `runsById[id]` with a fresh doc, so the identity the
+    // two shared at search time is broken by the first refresh. From then on
+    // the wall painted the votes the search had frozen, for as long as the
+    // query stood: a ♥ she cast never appeared and one she CLEARED never came
+    // off. Measured on her patchwork triangles that afternoon — four taps in
+    // ninety seconds, two clears and two likes, and the wall showed the exact
+    // opposite of all four while the lightbox (which reads runsById) was right.
+    //   So every hit is resolved through `runsById`: ONE live doc per run, and
+    // the search says only WHICH runs and in what order. Nothing else moves —
+    // a hit the feed has never paged in is still in runsById, because
+    // runSearch puts it there.
+    var live = function (r) { return runsById[r.id] || r; };
     // The drawer's QUALITY and DATE chips narrow runs wherever they came from
     // — the loaded feed or the server's search hits — because they are facts
     // about the run rather than about the words she typed.
-    var mine = (qGroups.length && hits ? hits : feed).filter(tabKeepsRun).filter(runPassesFilt);
+    var mine = (qGroups.length && hits ? hits.map(live) : feed).filter(tabKeepsRun).filter(runPassesFilt);
     if (!qGroups.length) return mine;
     if (hits) return mine;
     return mine.filter(function (r) { return qmatch(runHay(r), qGroups); });

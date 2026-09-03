@@ -3922,6 +3922,25 @@ router.post('/bookmark', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// THE LIST TICK (2026-09-03, Sophie: "could message lists automatically have
+// a tick in the app"). A list inside a reply — a markdown list, or a run of
+// bold-led paragraphs — draws a tick box on every item, and this is where a
+// tick is kept: `ticks` on the MESSAGE doc, a map keyed by a hash of the
+// item's own words (the page's `tickKey`), so it survives a re-render and
+// rides the thread read with no extra query. One key per call; `on:false`
+// deletes the key rather than storing false, so a clean message carries no
+// map at all. A merged run's part saves onto its own doc.
+router.post('/tick', async (req, res) => {
+  try {
+    const { id, key, on } = req.body || {};
+    if (!id) return res.status(400).json({ error: 'id required' });
+    if (!/^[a-z0-9]{1,24}$/.test(String(key || ''))) return res.status(400).json({ error: 'key required' });
+    const patch = { ticks: { [key]: on ? true : admin.firestore.FieldValue.delete() } };
+    await db().collection(MSGS).doc(String(id)).set(patch, { merge: true });
+    res.json({ ok: true, id: String(id), key, on: !!on });
+  } catch (err) { fail(res, err); }
+});
+
 // Every bookmarked message, across every chat — the BOOKMARKS view on the home
 // screen. Until this existed a bookmark could only be seen by scrolling to that
 // exact message inside its own thread, which made the button close to useless.

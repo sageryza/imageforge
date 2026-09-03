@@ -220,10 +220,24 @@ const server = http.createServer((req, res) => {
     // see must never be one she has forgotten she set.
     await page.click(chip);
     ok(!(await drawerShown()), 'tapping the chip again shuts it');
+    // THE CHIP COUNTS, it does not spell (2026-09-02, Sophie: "change to # of
+    // filters" — two spelled-out filters wrapped it onto a line of its own and
+    // pushed the search box down).
     const worn = (await page.textContent(chip)).trim();
-    ok(/High/.test(worn) && /Today/.test(worn),
-      'and the shut chip WEARS what is narrowed — got ' + JSON.stringify(worn));
+    is('and the chip says HOW MANY are on', worn, '2');
     ok(await page.$eval(chip, (n) => n.classList.contains('on')), 'lit, too');
+    // NOT RED (her ask the same message): the rose belongs to the marks inside
+    // the drawer, not to the door. Measured off what really renders, because a
+    // class name says nothing about the colour.
+    const lit = await page.evaluate(() => {
+      const c = getComputedStyle(document.querySelector('#feedfilters .filtchip'));
+      const m = getComputedStyle(document.querySelector('#feedfilters .filtcbtn[data-v="high"]'));
+      return { chip: c.borderTopColor + '|' + c.color, mark: m.backgroundColor };
+    });
+    ok(!/194, 90, 114/.test(lit.chip),
+      'the lit door is not the rose — got ' + lit.chip);
+    ok(/194, 90, 114/.test(lit.mark),
+      '…while a lit ♥ chip inside still is — got ' + lit.mark);
 
     // Tapping the lit chip clears that filter — no second "off" control.
     await page.click(chip);
@@ -241,7 +255,7 @@ const server = http.createServer((req, res) => {
     await page.waitForFunction(() => document.querySelectorAll('#runs .run').length === 2);
     is('a reload comes back still narrowed', await runs(), 2);
     ok(!(await drawerShown()), '…with the drawer shut, and the chip saying so');
-    ok(/High/.test((await page.textContent(chip)).trim()), 'the chip says High after the reload');
+    is('and the chip counts it after the reload', (await page.textContent(chip)).trim(), '1');
 
     // The emptied list says WHICH filter emptied it.
     await page.click(chip);

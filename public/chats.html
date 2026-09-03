@@ -683,6 +683,20 @@ button.dayrule{border:none; background:none; padding:0; cursor:pointer;
    hard white — on the dark theme a white tick on that rose is the only bright
    white on the screen */
 .bmkchk.on svg{visibility:visible; color:var(--paper);}
+/* A LIST IN A MESSAGE WEARS A TICK ON EVERY ITEM (2026-09-03, Sophie: "could
+   message lists automatically have a tick in the app"). The same box as the
+   read box above — a rounded square, grey outline, red with the check once
+   she ticks it — riding INLINE at the head of the item, because a message
+   body is pre-wrapped prose and the item is a line of it. Hers to tick;
+   nothing derives it. A ticked item's words go quiet (never struck through:
+   the tick is the mark, and a paragraph struck through is unreadable). */
+.mtick{display:inline-flex; vertical-align:-3px; margin:0 7px 0 0; width:19px; height:19px; padding:0; cursor:pointer;
+  border:1.5px solid var(--line); border-radius:6px; background:transparent;
+  align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent;}
+.mtick svg{width:12px; height:12px; display:block; visibility:hidden;}
+.mtick.on{border-color:var(--chg); background:var(--chg);}
+.mtick.on svg{visibility:visible; color:var(--paper);}
+.mtitem.done{color:var(--ink2);}
 /* The note and the tags travel together — one node, so un-keeping a thing
    takes its whole editor with it and a row can never keep half of it. */
 .bmkedit{flex:1 0 100%; min-width:0;}
@@ -2234,7 +2248,11 @@ function tabLines(){
 // Light markdown for the full message view: escape FIRST (safe), then style.
 // Bold/italics/inline code render for real; fenced code becomes a quiet <pre>;
 // heading marks become bold lines. Everything else stays plain text.
-function md(t){
+// THE LIST TICK (2026-09-03). `m` is the message the text belongs to; with
+// one, every list item gets a tick box keyed by its own words, lit from
+// m.ticks. Called with no message (the Questions view) nothing is added — a
+// tick with nowhere to save is a dead control.
+function md(t,m){
   var s=esc(t);
   s=s.replace(/```[a-z]*\n?([\s\S]*?)```/g, function(_,c){ return '<div class="codebox"><pre>'+c.replace(/\s+$/,'')+'</pre><button class="codecopy" aria-label="Copy code" title="Copy">'+COPY_ICON+'</button></div>'; });
   s=s.replace(/\*\*([^*\n][^*]*?)\*\*/g,'<b>$1</b>');
@@ -2247,9 +2265,67 @@ function md(t){
     if(part.lastIndexOf('<div class="codebox">',0)===0||part.lastIndexOf('<code>',0)===0) return part;
     part=part.replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
     part=part.replace(/(^|[^"'>])(https?:\/\/[^\s<)\]]+[^\s<)\].,!?:;'"])/g,'$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+    if(m&&m.id) part=tickList(part, m);
     return part;
   }).join('');
   return s;
+}
+// WHICH LINES ARE A LIST — two shapes, decided per run of lines, never per
+// line: a markdown list (`- `, `* `, `•`, `1.`), two or more items; or a
+// run of THREE or more paragraphs that each OPEN in bold with nothing but
+// blank lines between them — the shape her chats write a list of named things
+// in ("**The train.** How did I get…"), which is exactly the message she asked
+// this on. A plain paragraph ends a bold run, so a reply's TLDR line and the
+// paragraph under it never get a box. The key is a hash of the item's own
+// words (`tickKey`), so it survives a re-render and a re-post of the same
+// text, and a marker bullet is REPLACED by the box (a number is kept).
+var LIST_MARK=/^(\s*)(?:[-*\u2022]|\d{1,2}[.)])\s+(\S.*)$/;
+var BOLD_LEAD=/^<b>[^<]+<\/b>/;
+function tickKey(html){
+  var t=String(html).replace(/<[^>]+>/g,'').replace(/&[a-z#0-9]+;/g,' ').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().slice(0,200);
+  var h=5381; for(var i=0;i<t.length;i++) h=((h*33)^t.charCodeAt(i))>>>0;
+  return h.toString(36)+t.length.toString(36);
+}
+function tickList(part, m){
+  var lines=part.split('\n'), kind=[], i;
+  for(i=0;i<lines.length;i++){
+    var l=lines[i];
+    kind[i] = LIST_MARK.test(l) ? 'b' : BOLD_LEAD.test(l) ? 'p' : l.trim()==='' ? '' : 'x';
+    // A CONTINUATION (2026-09-03, Sophie on a numbered list whose every item
+    // carried its body on the line right under the number: "no checkboxes on
+    // ur message why?"). A plain line DIRECTLY under an item — no blank line
+    // between — is the rest of that item (markdown's own lazy continuation),
+    // so it rides the run instead of ending it. A blank line and then a
+    // plain paragraph still ends the run, which is what keeps a TLDR line and
+    // the paragraph under it boxless.
+    if(kind[i]==='x' && i>0 && /^[bpc]$/.test(kind[i-1]||'')) kind[i]='c';
+  }
+  // Runs: items of one kind with only blank lines between them.
+  var runs=[], cur=null;
+  for(i=0;i<lines.length;i++){
+    var k=kind[i];
+    if(k===''){ continue; }
+    if(k==='c'){ continue; }  // rides the run it follows, counted with no box of its own
+    if(cur && cur.kind===k){ cur.idx.push(i); continue; }
+    cur={kind:k, idx:[i]}; runs.push(cur);
+  }
+  var ticks=(m&&m.ticks)||{};
+  runs.forEach(function(r){
+    if(r.kind==='x') return;
+    if(r.idx.length < (r.kind==='b'?2:3)) return;
+    r.idx.forEach(function(n){
+      var l=lines[n], head='', body=l;
+      if(r.kind==='b'){
+        var mm=LIST_MARK.exec(l); body=mm[2];
+        var mark=l.slice(mm[1].length, l.length-body.length).trim();
+        head=mm[1]+(/^\d/.test(mark)? mark+' ' : '');
+      }
+      var key=tickKey(body), on=!!ticks[key];
+      lines[n]=head+'<button type="button" class="mtick'+(on?' on':'')+'" data-key="'+key+'" aria-label="Tick this" title="Tick this">'+CHECK_SVG+'</button>'
+        +'<span class="mtitem'+(on?' done':'')+'">'+body+'</span>';
+    });
+  });
+  return lines.join('\n');
 }
 // small cached thumbnails for the Assets grid (server resizes + caches)
 // ── THE WORKING FOLD IS STRUCTURAL, NEVER A GUESS ABOUT WORDING (Aug 2026,
@@ -2284,16 +2360,16 @@ function md(t){
 // Fenced code is skipped when looking for bold: a `**` inside a code block is
 // not a line meant for her, and cutting inside a fence would leave it
 // unbalanced and break the rendering of everything after it.
-function foldBody(text, head, tail){
+function foldBody(text, head, tail, m){
   var s=String(text||'');
   var h=Number(head), t=Number(tail);
-  if(!isFinite(h)||!isFinite(t)) return md(s);
+  if(!isFinite(h)||!isFinite(t)) return md(s,m);
   h=Math.max(0,Math.min(s.length,h));
   t=Math.max(h,Math.min(s.length,t));
   var mid=s.slice(h,t).trim();
   // A short middle isn't worth a button — a fold that hides two lines is the
   // clutter this is meant to remove.
-  if(mid.length<200) return md(s);
+  if(mid.length<200) return md(s,m);
   // Cut the middle into runs: a run carrying bold is hers and shows, the rest
   // is narration and folds. With no bold in there at all this is ONE run and
   // the result is exactly what it has always been.
@@ -2306,20 +2382,20 @@ function foldBody(text, head, tail){
     segs[segs.length-1].lines.push(l);
   });
   var top=s.slice(0,h).trim(), bot=s.slice(t).trim(), parts=[];
-  if(top) parts.push(md(top));
+  if(top) parts.push(md(top,m));
   segs.forEach(function(g){
     var body=g.lines.join('\n').trim();
     if(!body) return;
     // Hers, or too little narration to be worth a button in front of it.
-    if(g.hers || body.length<200){ parts.push(md(body)); return; }
+    if(g.hers || body.length<200){ parts.push(md(body,m)); return; }
     parts.push('<div class="fold"><button type="button" class="foldtog" aria-expanded="false">··· working details</button>'
-      + '<div class="foldbody" hidden>'+md(body)+'</div></div>');
+      + '<div class="foldbody" hidden>'+md(body,m)+'</div></div>');
   });
-  if(bot) parts.push(md(bot));
+  if(bot) parts.push(md(bot,m));
   var out=parts.join('\n');
   // Every run was hers or too short, so nothing folded — show the message whole
   // rather than repainting it identically in pieces.
-  if(out.indexOf('foldtog')<0) return md(s);
+  if(out.indexOf('foldtog')<0) return md(s,m);
   return out;
 }
 function assetThumb(u){ return '/api/story/thumb?w=480&url='+encodeURIComponent(u); }
@@ -5129,7 +5205,26 @@ function paintDelivered(el, items){
     row.appendChild(top);
     if(it.kind==='images' && it.images && it.images.length){
       var strip=document.createElement('div'); strip.className='dvpics';
-      it.images.forEach(function(p){
+      // TAP TO NEXT across the burst (2026-09-03, Sophie: "is tap to next
+      // everywhere"). A delivery row shows three thumbs of what can be a much
+      // bigger batch, and the walk is the row itself — `it.images` in the
+      // order it was handed to her, which is the order the strip draws.
+      function openDv(i, step){
+        var p=it.images[i]; if(!p) return;
+        var a={ url:p.url, description:p.label, prompt:p.caption, chat:it.chat, _chatDoor:true };
+        // A fresh open starts the prompt door shut and on content; these are
+        // rebuilt per open, so there is nothing to clear — the door's state
+        // simply rides the step.
+        if(step && dvSide) { a.promptSide=dvSide.side; a.promptOpen=dvSide.open; }
+        dvSide=a;
+        a.nav={
+          prev: i>0 ? function(){ openDv(i-1, true); } : null,
+          next: i<it.images.length-1 ? function(){ openDv(i+1, true); } : null
+        };
+        lightbox(p.url, a);
+      }
+      var dvSide=null;
+      it.images.forEach(function(p, i){
         var b=document.createElement('button'); b.className='dvpic';
         var im=document.createElement('img');
         im.loading='lazy'; im.alt=p.label||'';
@@ -5138,7 +5233,7 @@ function paintDelivered(el, items){
         b.appendChild(im);
         // The shared lightbox (/asset-lightbox.js) — the one copy, so a ♥ or a
         // note left here lands in the Assets tab like everywhere else.
-        b.onclick=function(){ lightbox(p.url, { url:p.url, description:p.label, prompt:p.caption, chat:it.chat, _chatDoor:true }); };
+        b.onclick=function(){ dvSide=null; openDv(i, false); };
         strip.appendChild(b);
       });
       row.appendChild(strip);
@@ -7391,8 +7486,8 @@ function renderMsg(m){
   var first=parts?parts[0]:m;
   var firstLine=plain((first.tldr||first.text||'').split('\n')[0]).slice(0,140);
   var body=parts
-    ? parts.map(function(p){ return '<div class="m-part" data-mid="'+esc(String(p.id||''))+'"><div class="m-partt">'+ago(p.created)+'</div>'+foldBody(p.text, p.head, p.tail)+'</div>'; }).join('')
-    : foldBody(m.text, m.head, m.tail);
+    ? parts.map(function(p){ return '<div class="m-part" data-mid="'+esc(String(p.id||''))+'"><div class="m-partt">'+ago(p.created)+'</div>'+foldBody(p.text, p.head, p.tail, p)+'</div>'; }).join('')
+    : foldBody(m.text, m.head, m.tail, m);
   row.innerHTML='<div class="m-head"><span class="m-chat'+(m.from==='sophie'?' sophie':'')+'">'
     +(m.from==='sophie'?'me':'claude')+'</span><span class="m-time">'+ago(m.created)+'</span>'
     +(parts?'<span class="m-count">'+parts.length+' replies</span>':'')
@@ -7407,6 +7502,27 @@ function renderMsg(m){
       var body=ft.nextElementSibling, open=body.hasAttribute('hidden');
       if(open){ body.removeAttribute('hidden'); ft.setAttribute('aria-expanded','true'); ft.classList.add('open'); }
       else { body.setAttribute('hidden',''); ft.setAttribute('aria-expanded','false'); ft.classList.remove('open'); }
+    };
+  });
+  // The list ticks: hers, saved on the message doc (`ticks`, keyed by the
+  // item's words) so they come back on every phone and every reload. A part
+  // of a merged run saves onto ITS OWN doc. Optimistic — the box lights on the
+  // tap and the write follows; a refused write puts it back.
+  row.querySelectorAll('.mtick').forEach(function(tk){
+    tk.onclick=function(e){ e.stopPropagation();
+      var partEl=tk.closest('.m-part');
+      var owner=partEl && parts ? (parts.filter(function(p){ return String(p.id)===partEl.dataset.mid; })[0]||m) : m;
+      var key=tk.dataset.key, on=!tk.classList.contains('on');
+      tk.classList.toggle('on', on);
+      var item=tk.nextElementSibling; if(item&&item.classList.contains('mtitem')) item.classList.toggle('done', on);
+      owner.ticks=owner.ticks||{}; if(on) owner.ticks[key]=true; else delete owner.ticks[key];
+      api('/api/chatfeed/tick',{method:'POST',body:JSON.stringify({id:owner.id, key:key, on:on})})
+        .then(function(r){ if(!r.ok) throw 0; })
+        .catch(function(){
+          tk.classList.toggle('on', !on); if(item) item.classList.toggle('done', !on);
+          if(on) delete owner.ticks[key]; else owner.ticks[key]=true;
+          toast('Couldn\u2019t save that tick');
+        });
     };
   });
   var tools=document.createElement('div'); tools.className='m-tools';
@@ -8796,7 +8912,7 @@ function openChat(name, keepScroll, focusId, noFetch){
         // walk by THEMSELVES, and there is no second copy of applyFilter's
         // rules to drift from it. Document order rather than the `cells`
         // array, because a tile can be inserted rather than appended.
-        var lbIt=null;
+        var lbIt=null, lbIdx=-1;
         function aSeq(){
           return Array.prototype.filter.call(grid.querySelectorAll('.acell'), function(c){
             return c._it && c.style.display!=='none';
@@ -8806,10 +8922,21 @@ function openChat(name, keepScroll, focusId, noFetch){
           for(var k=0;k<seq.length;k++) if(seq[k]._it===it) return k;
           return -1;
         }
+        // A MARK CAST FROM THE LIGHTBOX CAN TAKE THE PICTURE SHE IS LOOKING AT
+        // OFF THE GRID, AND THE WALK HAS TO SURVIVE IT (found 2026-09-03).
+        // Every vote re-runs applyFilter, so with New or ♥ or Hide ✕ lit —
+        // which is the whole of reviewing a tab — hearting the open picture
+        // hides its tile, `aAt` answers -1, and BOTH zones go dead while still
+        // drawn: she is stuck on that picture with only the way out working.
+        // Her PLACE is still meaningful, so it is the fallback: the list closed
+        // up over the gap, so whatever now stands at the index she held IS the
+        // next one, and the one before it is still the previous one. It heals
+        // itself the moment the picture is back on screen (un-hearting it), and
+        // it can only ever be one tile out, because the only thing that
+        // re-filters while the box is open is a mark she just cast.
         function aStep(d){
           var seq=aSeq(), at=aAt(seq, lbIt);
-          if(at<0) return;
-          var nx=seq[at+d];
+          var nx = at>=0 ? seq[at+d] : seq[d>0 ? lbIdx : lbIdx-1];
           if(nx) openAsset(nx._it, false);
         }
         function openAsset(it, fresh){
@@ -8829,6 +8956,7 @@ function openChat(name, keepScroll, focusId, noFetch){
           if(lbIt && lbIt!==it) lbIt._lbPaint=null;
           lbIt=it;
           var seq=aSeq(), at=aAt(seq, it);
+          lbIdx=at;   // her place, for a mark that takes this tile off the grid
           // A null side draws NO zone, so at the ends of the grid a tap there
           // closes like any other dead space.
           it.nav={
@@ -8839,7 +8967,36 @@ function openChat(name, keepScroll, focusId, noFetch){
           // Both halves, always — carrying only a set one would leave the
           // arriving picture wearing whatever an EARLIER visit left on it.
           if(carry){ it.promptSide=carry.side; it.promptOpen=carry.open; }
-          lightbox(it.url, it);
+          // THE CACHED THUMB PAINTS FIRST, THE ORIGINAL SWAPS IN BEHIND IT
+          // (the Playground's rule, 2026-08-26: "it seems like it takes quite
+          // a while to load the images in light box view"). The tile she just
+          // tapped is already decoded in the browser, so it lands in the same
+          // frame; the original is 1-3MB at the 2K and 4K tiers, and painting
+          // it straight left the box EMPTY for the whole download — on every
+          // step, which is what tap-to-next turned from a one-off into a
+          // rhythm. One download either way: setting src to a url a preloader
+          // already has hits the cache.
+          var th=tileSrc(it);
+          lightbox(it.url, it, th);
+          if(th!==it.url){
+            var pre=new Image();
+            pre.onload=function(){
+              if(lbIt!==it) return;                    // she stepped on while it flew
+              var el=document.querySelector('#clightbox .clwrap img');
+              if(el && el.getAttribute('src')===th) el.src=it.url;
+            };
+            pre.src=it.url;
+          }
+        }
+        // What the TILE is showing right now — already decoded, and already
+        // past the direct-thumb→/api/story/thumb fallback, so it can never
+        // paint the 404 the tile itself walked away from. A tile whose lazy
+        // src has not been swapped in yet falls back to the url we would ask
+        // for anyway.
+        function tileSrc(it){
+          var im=it._img;
+          var s=(im && !im.dataset.src) ? im.getAttribute('src') : '';
+          return s || it.thumb || assetThumb(it.url);
         }
         function addTiles(list){ list.forEach(function(it){
           var cell=document.createElement('div'); cell.className='acell';
@@ -8855,6 +9012,7 @@ function openChat(name, keepScroll, focusId, noFetch){
           var srcAttr = io ? 'data-src' : 'src';
           b.innerHTML='<img alt="" decoding="async" '+srcAttr+'="'+esc(thumb)+'">'+lbl;
           var img=b.querySelector('img'), triedFb=false;
+          it._img=img;   // the lightbox paints this decoded copy first (tileSrc)
           // Two-stage error: direct thumb → /api/story/thumb → if BOTH fail the
           // underlying image is gone (deleted / not public), so hide the tile
           // instead of showing a broken "?" box.
@@ -9262,6 +9420,14 @@ function openPage(p){
   // vertical space at all. A scrolling page (a grid, a hand-built one) keeps
   // the bar: it has no such row to put a chevron in.
   var oneScreen = p.template === 'deck';
+  // A TEMPLATE PAGE ALWAYS CARRIES ITS OWN WAY BACK (2026-09-03, Sophie:
+  // "back button ok but header unnecessary - takes space. push it down").
+  // The bar is per VIEW now — page-views asks it down while the DECK shows,
+  // which is one screen and cannot spare 94px of it — so the deck has to have
+  // a chevron of its own in the top row it already has, on a GRID-posted page
+  // too. `back=1` is what draws it (judge.js wantBack); it costs nothing on a
+  // page whose bar never goes.
+  var isTemplate = oneScreen || p.template === 'grid';
   var bar=null;
   if(!oneScreen){
     bar=document.createElement('div'); bar.className='pv-bar';
@@ -9269,7 +9435,7 @@ function openPage(p){
   }
   var frame=document.createElement('iframe'); frame.className='pv-frame';
   frame.src='/api/chatfeed/page/'+encodeURIComponent(p.id)+'?embed=1'
-    +(oneScreen?'&back=1':'')+(TOKEN?'&token='+encodeURIComponent(TOKEN):'');
+    +(isTemplate?'&back=1':'')+(TOKEN?'&token='+encodeURIComponent(TOKEN):'');
   if(bar) v.appendChild(bar); v.appendChild(frame);
   var pill=mkPagePill(function(){ try{ return frame.contentWindow; }catch(_){ return null; } });
   v.appendChild(pill);
@@ -9278,6 +9444,10 @@ function openPage(p){
   // <summary> toggle, link, button, form field, media control — is the page's
   // own, so we ignore it entirely (same skip list as the injected pill).
   frame.addEventListener('load', function(){
+    // the notch, before anything paints: a page with NO bar (a deck) owes it
+    // from the first frame, and one with a bar gets 0 until page-views takes
+    // the bar away
+    frameTop(!bar);
     try{
       var w=frame.contentWindow, doc=frame.contentDocument;
       // A SAME-ORIGIN LINK CAN NAVIGATE THIS IFRAME OFF THE PAGE (2026-08-26,
@@ -9413,7 +9583,7 @@ function openPage(p){
   v.__close=function(){
     if(pill._stop) pill._stop(); v.remove();
     document.body.style.overflow=''; document.body.classList.remove('ontop');
-    window.__closePage=null; window.__pagePill=null;
+    window.__closePage=null; window.__pagePill=null; window.__pageChrome=null;
     window.scrollTo(0,pvY); };
   // the page's own chevron (judge.js backToQueue) asks the viewer to close —
   // set while this viewer is open, cleared by __close so a stale hook can
@@ -9431,6 +9601,36 @@ function openPage(p){
   // asks for it back on the PILES, which is the one screen in a deck that
   // really scrolls (2026-09-01). Cleared by __close, so a stale hook can never
   // answer for a viewer that is gone.
+  // THE NOTCH IS THE PARENT'S TO MEASURE. `env(safe-area-inset-top)` is 0 in a
+  // nested browsing context, so a page inside this frame cannot see it — while
+  // the bar was there that never mattered (the bar cleared it). The moment the
+  // bar goes, the deck's own top row would sit under her status bar, so the
+  // viewer measures the inset here, where it resolves, and hands it down as
+  // `--forgetop`.
+  function insetTop(){
+    var el=document.createElement('div');
+    el.style.cssText='position:fixed;top:0;left:0;width:0;'
+      +'height:env(safe-area-inset-top,0px);pointer-events:none;visibility:hidden;';
+    document.body.appendChild(el);
+    var n=el.getBoundingClientRect().height; el.remove();
+    return Math.round(n)||0;
+  }
+  function frameTop(owed){
+    try{
+      var d=frame.contentDocument;
+      if(d&&d.documentElement) d.documentElement.style.setProperty('--forgetop',(owed?insetTop():0)+'px');
+    }catch(_){}
+  }
+  // …and the bar itself is per VIEW (2026-09-03, Sophie: "headers unnecessary
+  // - takes space"). A deck is one fixed screen and the bar shows the same
+  // title the page is already carrying; page-views asks it down while the deck
+  // shows and back the moment the grid — which scrolls — does.
+  window.__pageChrome=function(show){
+    if(!document.body.contains(v)) return false;
+    if(bar) bar.style.display=show?'':'none';
+    frameTop(!(bar&&show));
+    return true;
+  };
   window.__pagePill=function(show){
     if(!document.body.contains(v)) return false;
     if(!show && pill._stop) pill._stop();
@@ -10234,9 +10434,13 @@ window.scrollStop = scrollStop;   // the shared lightbox pauses our autoscroll
 // to hide, and something else is watching it.
 var DOORS = window.ForgeAssetActions || null;
 if(DOORS) DOORS.init({ api: api, toast: toast });
-function lightbox(url, asset){
+// `shown` is what is PAINTED — the tile's own cached thumb, so a step lands a
+// picture in the same frame instead of a blank box while a 1-3MB original
+// downloads (the Playground's rule). The doors and the notes always run off
+// the real `url`; the original swaps in behind the thumb (see openAsset).
+function lightbox(url, asset, shown){
   if(asset && DOORS) asset.actions=DOORS.build(url, asset, {chatDoor:!!asset._chatDoor});
-  window.__assetLightbox(url, asset);
+  window.__assetLightbox(shown||url, asset);
 }
 // THE SEARCH SURVIVES A BACK-OUT (Aug 2026, Sophie: "when I search something
 // and then I click on one of the options if it's not the one I want when I go

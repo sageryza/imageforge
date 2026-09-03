@@ -454,8 +454,22 @@
   // file every surface shares.
   function bindZoom() { document.querySelectorAll('.cell img, .portrait').forEach(im => im.onclick = () => openLb(im.src)); }
   $('portrait').onclick = () => openLb($('portrait').src);
+  // TAP TO NEXT (2026-09-03, Sophie: "is tap to next everywhere") — the shared
+  // lightbox's `nav` hook. The walk is the SHEET she is looking at, in document
+  // order, so the search narrows it by itself; a face opened from anywhere else
+  // (the big portrait) is in no sheet and simply opens alone.
+  function sheetSeq() {
+    return Array.prototype.map.call(document.querySelectorAll('.cell img'),
+      (im) => im.getAttribute('src')).filter(Boolean);
+  }
   function openLb(src) {
     if (window.__scrollStop) window.__scrollStop();
-    window.__assetLightbox(src, null);
+    const seq = sheetSeq(), at = seq.indexOf(src);
+    window.__assetLightbox(src, {
+      nav: {
+        prev: at > 0 ? () => openLb(seq[at - 1]) : null,
+        next: (at >= 0 && at < seq.length - 1) ? () => openLb(seq[at + 1]) : null,
+      },
+    });
   }
 </script>

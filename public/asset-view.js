@@ -82,6 +82,49 @@
       return a;
     }
 
+    // TAP TO NEXT (2026-09-03, Sophie: "is tap to next everywhere") — the
+    // shared lightbox's own `nav` hook, so nothing about the zones is written
+    // here; all a caller owes is `seq()`, the pictures on screen in the order
+    // she is looking at them (the Playground's settled rule — read the page,
+    // never a second copy of whatever narrowed it). A caller that hands over
+    // no seq draws no zones and is byte-for-byte what it was.
+    var lbIt = null;
+    function openIt(it, step) {
+      var a = assetFor(it);
+      var url = it.full || it.img;
+      // THE DOORS ARE THE SHARED SET (2026-09-01, Sophie: "there shud always
+      // be a playground button / as long as there's a prompt"). A template
+      // page's lightbox drew ♥/✕ and nothing else — the one surface where a
+      // picture with a filed prompt had no way to the Playground. chatDoor
+      // is false: a Compare page sits inside its chat, and the deck's piles
+      // already carry "Open the chat". Guarded like every shared script —
+      // a hand-built page that never linked /asset-actions.js still opens.
+      var doors = window.ForgeAssetActions || null;
+      if (doors) a.actions = doors.build(url, a, { chatDoor: false });
+      // The prompt door's state rides a STEP and dies with a FRESH open (the
+      // shared file's rule). These asset views are CACHED per item and the
+      // lightbox writes onto them, so a fresh open has to clear what her last
+      // visit to this same picture left there — the Assets tab's own trap.
+      var prev = (step && lbIt && lbIt !== it) ? cache[lbIt.id] : null;
+      if (!step) { delete a.promptSide; delete a.promptOpen; }
+      if (prev) { a.promptSide = prev.promptSide; a.promptOpen = prev.promptOpen; }
+      if (lbIt && lbIt !== it) { var pa = cache[lbIt.id]; if (pa) pa._lbPaint = null; }
+      lbIt = it;
+      var seq = (opts.seq ? opts.seq() : null) || [];
+      var at = seq.indexOf(it);
+      a.nav = {
+        prev: at > 0 ? function () { openIt(seq[at - 1], true); } : null,
+        next: (at >= 0 && at < seq.length - 1) ? function () { openIt(seq[at + 1], true); } : null,
+      };
+      a.onClose = function () { lbIt = null; };
+      var open = function () { window.__assetLightbox(url, a); };
+      if (a.thread) return ensureLightbox(open);
+      loadNotes().then(function (map) {
+        a.thread = map[it.url] || [];
+        ensureLightbox(open);
+      });
+    }
+
     return {
       asset: assetFor,
       /** repaint an OPEN lightbox after the page changed the vote under it */
@@ -91,25 +134,7 @@
         a.vote = vote;
         if (a._lbPaint) a._lbPaint();
       },
-      open: function (it) {
-        var a = assetFor(it);
-        var url = it.full || it.img;
-        // THE DOORS ARE THE SHARED SET (2026-09-01, Sophie: "there shud always
-        // be a playground button / as long as there's a prompt"). A template
-        // page's lightbox drew ♥/✕ and nothing else — the one surface where a
-        // picture with a filed prompt had no way to the Playground. chatDoor
-        // is false: a Compare page sits inside its chat, and the deck's piles
-        // already carry "Open the chat". Guarded like every shared script —
-        // a hand-built page that never linked /asset-actions.js still opens.
-        var doors = window.ForgeAssetActions || null;
-        if (doors) a.actions = doors.build(url, a, { chatDoor: false });
-        var open = function () { window.__assetLightbox(url, a); };
-        if (a.thread) return ensureLightbox(open);
-        loadNotes().then(function (map) {
-          a.thread = map[it.url] || [];
-          ensureLightbox(open);
-        });
-      },
+      open: function (it) { openIt(it, false); },
     };
   };
 })();

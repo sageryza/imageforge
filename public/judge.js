@@ -297,6 +297,25 @@
     // last thing in the stack, so reserving the buttons' height under it
     // lifts it clear whether the card is centred or top-aligned.
     '.jg-card.momcard.linkroom{padding-bottom:58px;}' +
+    // A PICTURE CARD IS THE PICTURE (2026-09-03, Sophie: "the main thing is
+    // too much extra on screen pushing the picture down so the buttons
+    // overlap it unnecessarily" · "titles too big/too long"). Two rules, both
+    // about the same card:
+    //   • its NAME is a caption, not a name. The big rust display line is her
+    //     date deck's `who` — a PERSON — and a picture card feeds it the
+    //     item's LABEL, which on a filed Playground picture is the prompt.
+    //     Measured on her hearts page at 390pt: 19 labels drawing 52-157px
+    //     tall in the display size, 26-36 at this one. The words stay one tap
+    //     away behind the picture's own PROMPT door.
+    //   • it RESERVES the floating buttons' band, exactly as `.long` and
+    //     `.linkroom` do. The ✕/♥ float on the content's bottom corners, and
+    //     on a card whose content fills it that means they float on the
+    //     PICTURE — which is what she was pointing at.
+    // A card carrying any of her own parts (who, words, sections, a caption)
+    // is untouched: there the big centred name IS the design.
+    '.jg.mom.pic>.who{padding:8px 0 2px;font-size:13px;line-height:1.3;' +
+    ' letter-spacing:.1em;}' +
+    '.jg.mom.pic .jg-card.momcard{padding-bottom:58px;}' +
     // the piles view scrolls inside its own box on a moment deck, so the
     // page still never scrolls
     '.jg.mom .jg-piles{flex:1;min-height:0;overflow-y:auto;}' +
@@ -1275,6 +1294,12 @@
     // that sit comfortably on one screen are under ~200, so the line is drawn
     // between them. A card with a picture is long the moment it has much to
     // say at all, because the picture is already taking the height.
+    /** a card that is nothing but a picture — see the `.pic` rules */
+    function isPicCard(it) {
+      if (!it || !isMoment(it)) return false;
+      if (!(it.img || (it.cards && it.cards.length))) return false;
+      return !(it.who || it.text || it.caption || (it.sections && it.sections.length));
+    }
     function isLong(it) {
       if (!it || !isMoment(it)) return false;
       var n = String(it.text || '').length + String(it.caption || '').length;
@@ -1510,6 +1535,10 @@
       // a long card drops the big centred title for a small top-left one and
       // reserves room under its words for the floating ✕/♥ (see the CSS)
       if (momDeck && view === 'card' && items[cur] && isLong(items[cur])) momCls += ' long';
+      // …and a card that is only a picture gives the picture the room (see the
+      // `.pic` rules): a caption-sized name, and the floating buttons' band
+      // reserved so they never sit on the art
+      if (momDeck && view === 'card' && items[cur] && isPicCard(items[cur])) momCls += ' pic';
       // the way back to the Review Queue, when that is where she came from
       var back = wantBack
         ? '<button class="jg-back" data-act="back" aria-label="Back">'
