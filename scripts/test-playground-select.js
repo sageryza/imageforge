@@ -130,19 +130,13 @@ const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
         ':' + (b.classList.contains('like') ? 'like' : 'dislike');
     }));
   const count = () => page.locator('#selcount').textContent();
-  // THE TWO MARKS LIVE INSIDE THE FILTERS DRAWER SINCE #2058 (/searchfilters.js),
-  // so a tap on either is: open the drawer, then tap the chip.
-  const HEART = '#feedfilters .filtcbtn[data-v="like"]';
-  const NOX = '#feedfilters .filtcbtn[data-v="nox"]';
-  // A tap OUTSIDE the drawer closes it since #2062, so it is re-opened before
-  // every chip rather than once at the top.
-  const tapFilt = async (sel) => {
-    if (!(await page.locator('#feedfilters .filtdrawer').isVisible())) {
-      await page.click('#feedfilters .filtchip');
-      await page.waitForSelector('#feedfilters .filtdrawer:not([hidden])');
-    }
-    await page.click(sel);
-  };
+  // THE MARKS ARE BACK ON THE FEED BAR (2026-09-02, Sophie: "actually put the
+  // heart x thing exactly where it was") — they rode inside the filters drawer
+  // for a day, and the drawer moved up to the controls row with only quality
+  // and date in it.
+  const HEART = '#v-liked';
+  const NOX = '#v-hidex';
+  const tapFilt = async (sel) => { await page.click(sel); };
 
   console.log('OFF — nothing moved');
   ok(!(await lbOpen()), 'the lightbox starts shut');
@@ -238,13 +232,12 @@ const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
         barH: r('.feedbar').height,
         selW: r('#v-select').width,
         selH: r('#v-select').height,
-        // Its neighbour on the ROW since #2058 moved the marks into the
-        // drawer — the sifter chip. The select chip must read as one of the
-        // row's boxes, not as a stray of its own size. It sits INSIDE
-        // `.filttog`, which carries the 1px outline the sifter carries on
-        // itself, so the two agree to within that border.
-        heartW: r('#feedfilters .filtchip').width,
-        heartH: r('#feedfilters .filtchip').height,
+        // Its neighbours in the same box — the ♥ (2026-09-02: the marks came
+        // back to the bar and the sifter went up to the controls row). The
+        // select chip must read as one of the box's buttons, not as a stray of
+        // its own size.
+        heartW: r('#v-liked').width,
+        heartH: r('#v-liked').height,
       };
     });
     ok(m.have >= m.need,
@@ -253,7 +246,7 @@ const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
     ok(m.chips.every(t => Math.abs(t - m.chips[0]) < 1), `${tab}: every chip shares the filter box`);
     ok(m.barH < 60, `${tab}: the row is still one line tall (${Math.round(m.barH)}px)`);
     ok(Math.abs(m.selW - m.heartW) <= 2 && Math.abs(m.selH - m.heartH) <= 2,
-      `${tab}: the select chip is the sifter's box (${Math.round(m.selW)}x${Math.round(m.selH)}`
+      `${tab}: the select chip is the heart's box (${Math.round(m.selW)}x${Math.round(m.selH)}`
       + ` vs ${Math.round(m.heartW)}x${Math.round(m.heartH)})`);
   }
   // Lit, it is INK — not the heart's rose and not the ✕'s grey. It is a mode,
@@ -273,8 +266,7 @@ const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
       e.classList.remove('on');
       return c;
     };
-    return [gs('#feedfilters .filtcbtn[data-v="like"]'),
-      gs('#feedfilters .filtcbtn[data-v="nox"]'), g('v-select', false)];
+    return [g('v-liked', false), g('v-hidex', false), g('v-select', false)];
   });
   ok(lit[2] !== lit[0] && lit[2] !== lit[1],
     `lit, select is told apart from both marks (${lit.join(' vs ')})`);
