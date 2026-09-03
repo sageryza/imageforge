@@ -562,7 +562,9 @@ router.use((req, res, next) => {
 router.use(express.json({ limit: '2mb' }));
 
 // ── drawing ────────────────────────────────────────────────────────────────
-async function put(buf, p) {
+async function put(buf, p, stamp) {
+  // `stamp` = the prompt fields written INTO the file (image-meta.js)
+  if (stamp) buf = require('./image-meta').stamp(buf, stamp);
   const file = bucket().file(p);
   await file.save(buf, { metadata: { contentType: 'image/webp', cacheControl: 'public, max-age=31536000, immutable' }, resumable: false });
   await file.makePublic();
@@ -619,7 +621,10 @@ async function render(id) {
     }
     const buf = await draw(card.fullPrompt, refs);
     // bank the paid bytes FIRST (still 'drawing' — the poll waits for ready)
-    const url = await put(buf, `triset/cards/${id}.webp`);
+    const url = await put(buf, `triset/cards/${id}.webp`, {
+      fullPrompt: card.fullPrompt, promptStyle: card.promptStyle, promptContent: card.promptContent,
+      model: 'gpt-image-2', quality: QUALITY, canvas: CANVAS, size: SIZE_TIER, label: card.title,
+    });
     await ref.set({ url }, { merge: true });
     // the die-cut is a derived display copy and best-effort: a bake failure
     // must never fail a paid card — the page falls back to the fixed mapping

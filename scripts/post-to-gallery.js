@@ -92,12 +92,16 @@ function initAdmin() {
 
 // Upload a local file to membry Storage under claude-deliveries/, make it
 // public, and return its URL. Lets `--file` be a one-step generate→post.
-async function uploadFile(file, createdMs) {
+// `stamp` = the prompt fields written INTO the file on the way up
+// (image-meta.js) — so the picture carries its own prompt and caption into
+// Photos, a download, or any copy of it. Never fails an upload.
+async function uploadFile(file, createdMs, stamp) {
   const bucket = admin.storage().bucket();
   const ext = path.extname(file) || '.png';
   const dest = `claude-deliveries/${createdMs}-${Math.random().toString(36).slice(2, 8)}${ext}`;
   const contentType = ext === '.webp' ? 'image/webp' : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'image/png';
-  await bucket.upload(file, { destination: dest, metadata: { contentType } });
+  const bytes = require('../image-meta').stamp(fs.readFileSync(file), stamp || {});
+  await bucket.file(dest).save(bytes, { metadata: { contentType }, resumable: false });
   await bucket.file(dest).makePublic();
   return `https://storage.googleapis.com/${bucket.name}/${dest}`;
 }
@@ -142,7 +146,9 @@ async function main() {
   const createdMs = Number(arg('created', String(Date.now())));
 
   initAdmin();
-  if (file) url = await uploadFile(file, createdMs);
+  if (file) url = await uploadFile(file, createdMs, {
+    ...promptWrap, model, quality, size, canvas, style, madeAt: new Date(createdMs).toISOString(),
+  });
   const db = admin.firestore();
   const doc = {
     type,
