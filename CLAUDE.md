@@ -9060,10 +9060,35 @@ before working on that module. Nothing was deleted — the moved text is verbati
       rows come from every pile at once, so there is no lane to walk; and the
       **count shows open AND shut**, unlike the chats app's pinned fold, because
       the rows underneath are her NOTES rather than the chats the count names.
+    - **AND EVERY SECTION STARTS SHUT — THE PILES TOO (2026-09-03, Sophie:
+      "collapse by default" · "they all default collapsed").** The piles view
+      opens as its own TABLE OF CONTENTS — `Notes · 3` · `Unsure · 3` ·
+      `Yes · 2` · `Maybe · 1` · `No · 1`, each with its own *Swipe these* —
+      and she taps the one she came for instead of scrolling past the ones she
+      did not. PHOTO'd at 390x844: the whole thing is five lines in the top
+      third of the screen. **`shutPile(key)` is the one reader of that rule**,
+      shared by the paint and the fold handler — the handler used to flip
+      `folded[key]` by negating it, which on a key that is undefined-but-shut
+      writes `true` and makes the FIRST tap on every section do nothing at
+      all. `folded` still means only "what she has done to it this visit", so
+      an open survives a re-render: tapping a row or a tile to read that card
+      must not shut the section behind her. **Three tests reach for tiles and
+      had to open a fold first** (`test-judge`, `test-judge-piles`,
+      `test-judge-note-survey`) — a new one on this screen must too.
     Test: `node scripts/test-judge-note-survey.js` (the real page headless, at
     both looks — every assertion a MEASUREMENT, since a survey *below* the
-    piles is still "present" and a folded thread and an open one carry the
-    same markup; verified failing 15 pre-fix).
+    piles is still "present", a shut section is not in the DOM at all, and a
+    folded thread and an open one carry the same markup; verified failing 15
+    against the page before the survey and 23 against the open-by-default one).
+  - **THE UNMARKED PILE LEADS THE PILES (2026-09-03, Sophie: "unsure at
+    top" · "unswiped is first then yes maybe no").** `Unsure` on her decks,
+    `Unsorted` on the house look, and it used to sit LAST — the one pile with
+    something still to do in it, under everything she had already decided.
+    Her order is the whole rule: unswiped, then Yes · Maybe · No. A legacy pile (`Later`, `Picked`) is
+    appended at the END now: the old splice put it "before Unsorted, which
+    stays last", which with Unsure leading would land it at the very top.
+    `test-judge-piles.js` walked the FIRST pile with a hardcoded 30-step cap
+    and that pile is the big one now — the cap is the deck's length.
   - **THE MINI AUTOSCROLL — conditional, small, on the side (Aug 2026,
     Sophie: "ideally you would add a conditional auto scroll thing, but only
     appears when the text is very long and is smaller than the normal one and

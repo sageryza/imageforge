@@ -4,7 +4,9 @@
  *
  *   node scripts/test-judge-note-survey.js
  *
- * Every note she left on a deck, read back in one place, leading the piles.
+ * Every note she left on a deck, read back in one place, leading the piles and
+ * SHUT when she gets there (2026-09-03, "collapse by default"); the UNMARKED
+ * pile leads them the same day ("unsure at top").
  * It cuts ACROSS them — a note is a note whether the card ended in Yes or sits
  * unmarked — so it is its own section rather than a mark on a tile.
  *
@@ -15,7 +17,10 @@
  * instead of unfolding — all invisible to a source assertion.
  *
  * Checks:
+ *   0. it is SHUT on arrival, and the FIRST tap on the heading opens it
  *   1. the survey LEADS the piles, and says how many notes there are
+ *   0b. the UNMARKED pile leads the piles, on both looks, and every section
+ *       arrives collapsed ("they all default collapsed")
  *   2. her words really render, through compare.js's own thread renderer
  *   3. an unmarked card's note is in it (the survey cuts across the piles)
  *   4. a field that parses to no message makes NO row (a name with no words
@@ -117,9 +122,13 @@ window.addEventListener('unhandledrejection', function(e){
 
     if (PASS === 3) {
       // 9. her own deck: the same survey, wearing her cream
+      ok(heads[0] === 'Notes · 3', 'and it leads her piles (got "' + heads[0] + '")');
+      ok(heads[1] === 'Unsure · 3',
+         'the unmarked pile leads her piles (got "' + heads[1] + '")');
+      ok(all('.jg-notes .jg-nrow').length === 0, 'shut on her deck too');
+      tap('.jg-pilefold[data-fold="notes"]');
       var rows3 = all('.jg-notes .jg-nrow');
       ok(rows3.length === 3, 'her own deck surveys her notes too (got ' + rows3.length + ')');
-      ok(heads[0] === 'Notes · 3', 'and it leads her piles (got "' + heads[0] + '")');
       ok(!!q('.jg.mom'), 'this really is her look');
       // the row's rule is hers, not the house line — measured, because a
       // class name says nothing about what renders
@@ -133,7 +142,9 @@ window.addEventListener('unhandledrejection', function(e){
       ok(!q('.jg-notes'), 'a deck with no notes shows no survey');
       ok(heads.every(function(h){ return h.indexOf('Notes') !== 0; }),
          'and no Notes heading');
-      ok(heads.length > 0, 'the piles themselves are still there');
+      ok(heads[0] === 'Unsorted · 3',
+         'with no survey the unmarked pile is the first thing on the screen (got "'
+         + heads[0] + '")');
       return fetch('/result?r=' + encodeURIComponent(L.join(' | ')))
         .then(function(){ location.href = '/?pass=3'; });
     }
@@ -141,14 +152,36 @@ window.addEventListener('unhandledrejection', function(e){
     // Every lookup below is guarded: on a page with no survey at all each
     // check has to REPORT what is missing, not throw on the first null and
     // leave the rest of the deck untested.
-    var rows = all('.jg-notes .jg-nrow');
     function nameOf(r){ var n = r && r.querySelector('.jg-nname'); return n ? n.textContent : ''; }
+
+    // 0. SHUT WHEN SHE GETS THERE (2026-09-03, "collapse by default").
+    // Counted off the RENDERED page: the rows are not in the DOM at all when
+    // it is shut, which no source assertion can tell from a hidden box.
+    ok(heads[0] === 'Notes · 3', 'the survey leads the piles and counts them (got "' + heads[0] + '")');
+    var nfold = q('.jg-pilefold[data-fold="notes"]');
+    ok(all('.jg-notes .jg-nrow').length === 0, 'it is collapsed by default');
+    ok(!!nfold && nfold.getAttribute('aria-expanded') === 'false', 'and says so');
+    // …and so does every pile ("they all default collapsed"), so the screen
+    // arrives as its own table of contents: headings, no tiles.
+    ok(heads[1] === 'Unsorted · 3', 'the unmarked pile leads the piles (got "' + heads[1] + '")');
+    ok(heads.join('|') === 'Notes · 3|Unsorted · 3|Loved · 1|Passed · 1',
+       'her order — unswiped first, then the marks (got "' + heads.join('|') + '")');
+    ok(all('.jg-grid button').length === 0, 'every pile arrives collapsed too');
+    ok(all('.jg-pilefold[aria-expanded="false"]').length === heads.length,
+       'and every heading says so');
+
+    // …and the FIRST tap opens it. This is the assertion that catches the
+    // shut-by-default toggle bug: a handler that flips folded[key] by
+    // negating it writes true on a key that is undefined-but-shut, so the
+    // first tap does nothing at all.
+    if (nfold) nfold.click();
+    var rows = all('.jg-notes .jg-nrow');
     var names = rows.map(nameOf);
     function rowFor(n){ return rows[names.indexOf(n)] || null; }
-
-    // 1. it leads the piles, and says how many
-    ok(heads[0] === 'Notes · 3', 'the survey leads the piles and counts them (got "' + heads[0] + '")');
     ok(rows.length === 3, 'one row per note (got ' + rows.length + ')');
+    ok(!!q('.jg-pilefold[data-fold="notes"]')
+       && q('.jg-pilefold[data-fold="notes"]').getAttribute('aria-expanded') === 'true',
+       'and the heading says it is open');
     var box = q('.jg-notes');
     ok(!!box && heads.length > 1
        && box.getBoundingClientRect().top < all('.jg-piles h2')[1].getBoundingClientRect().top,
@@ -193,6 +226,8 @@ window.addEventListener('unhandledrejection', function(e){
       tap('[data-act="piles"]');
       return wait(60);
     }).then(function(){
+      ok(all('.jg-notes .jg-nrow').length === 3,
+         'reading a card and coming back leaves the survey open');
       var pics = all('.jg-notes .jg-nthumb');
       ok(pics.length === 3, 'each row carries its picture');
       if (pics[0]) pics[0].click();

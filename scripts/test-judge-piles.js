@@ -122,21 +122,34 @@ window.addEventListener('error', function(e){
         ok(false, 'the piles carry a fold and a Swipe these — neither is here');
         fetch('/result?r=' + encodeURIComponent(L.join(' | '))); return;
       }
+      // EVERY PILE STARTS SHUT since 2026-09-03 (Sophie: "they all default
+      // collapsed"), so the fold is measured the other way round: the screen
+      // arrives as headings only, one tap brings a pile's tiles in, and the
+      // next tap takes exactly those away again.
       var firstKey=q('.jg-pilefold').getAttribute('data-fold');
-      var before=m.querySelectorAll('.jg-grid button').length;
       var yesN=parseInt(heads[0].split('·')[1],10);
+      ok(m.querySelectorAll('.jg-grid button').length===0,
+         'the piles all arrive collapsed — no tiles on screen');
+      ok(q('.jg-pilefold[data-fold="'+firstKey+'"]').getAttribute('aria-expanded')==='false',
+         'and every heading says so');
+      tap('[data-fold="'+firstKey+'"]');
+      var before=m.querySelectorAll('.jg-grid button').length;
+      ok(before===yesN, 'opening one brings exactly its tiles in ('
+         +before+' of a pile of '+yesN+')');
       tap('[data-fold="'+firstKey+'"]');
       var after=m.querySelectorAll('.jg-grid button').length;
-      ok(after===before-yesN, 'folding a pile takes exactly its tiles off the screen ('
-         +before+'→'+after+', pile of '+yesN+')');
-      ok(q('.jg-pilefold[data-fold="'+firstKey+'"]').getAttribute('aria-expanded')==='false',
-         'and it says so');
+      ok(after===0, 'folding it takes exactly those away again ('
+         +before+'→'+after+')');
       tap('[data-fold="'+firstKey+'"]');
       ok(m.querySelectorAll('.jg-grid button').length===before, 'tapping again opens it');
 
       // 1 — THE AUTOSCROLL really moves the piles box. miniSync runs on the
       // next animation frame (render schedules it), so the question can only
       // be asked a frame later — the same beat her thumb arrives on.
+      // …and the box only overflows once something is open, so open them all
+      // (re-query between clicks — each fold re-renders the view)
+      var guard=0, fb;
+      while ((fb=q('.jg-pilefold[aria-expanded="false"]')) && guard++ < 12) fb.click();
       setTimeout(function(){
       var box2=q('.jg-piles');
       ok(box2.scrollHeight > box2.clientHeight + 4, 'the piles really do overflow ('
@@ -162,8 +175,13 @@ window.addEventListener('error', function(e){
         var lab=q('.jg-momname, .jg-cardtext, .jg-mom .who');
         ok(count().indexOf('prog')>=0 || true, '');   // her deck shows a bar, not a count
         // step to the end of the LANE: the pile's length, not the deck's
+        // the cap is the DECK, not a guessed 30: the unmarked pile leads the
+        // piles since 2026-09-03, so the first pile here is the 35-card one
+        // and a 30-step cap ended the walk before the lane did (the
+        // assertion below still compares against the pile's real length, so
+        // the cap can only ever bound a runaway loop)
         var steps=0;
-        while (q('.jg-card') && steps < 30) { tap('[data-act="next"]'); steps++; }
+        while (q('.jg-card') && steps < its.length + 2) { tap('[data-act="next"]'); steps++; }
         ok(steps===pile.length, 'the pass is exactly that pile long ('
            +steps+' of a '+its.length+'-card deck, pile of '+pile.length+')');
         ok(!!q('.jg-piles'), 'and it lands back on the piles');

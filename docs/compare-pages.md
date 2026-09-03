@@ -602,7 +602,11 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     add a maybe option in the Tinder checklist template?"): a drawn `?`
     (`MOM_MAYBE`, the same filled-ribbon pen as the other two, never Lucide's
     dashed circle) centred over the card's bottom edge, with a pile of its own,
-    so the piles read Yes/Maybe/No/Unsure. `later` is legacy — still listed
+    so the piles read Unsure/Yes/Maybe/No — **the UNMARKED pile LEADS them
+    since 2026-09-03** (Sophie: "unsure at top" · "unswiped is first then yes
+    maybe no"; it is the one with something still to do in it and it used to
+    sit under everything she had already decided). A legacy pile is appended at the END now, since the old splice
+    put it "before Unsorted, which stays last". `later` is legacy — still listed
     when an old mark is in it, never castable here. A maybe stamps nothing and
     clears the asset vote. **A card carrying a `link` reserves the buttons'
     58px (`linkroom`)**: the ✕ and ♥ hug the corners, but a centred link and a
@@ -747,11 +751,26 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
         than no row.
       - **A deck she has written nothing on shows no survey at all**, which is
         the common case and byte-for-byte the view that was there before.
+      - **IT STARTS SHUT, AND SO DOES EVERY PILE (2026-09-03, Sophie:
+        "collapse by default" · "they all default collapsed").** The piles
+        view opens as its own TABLE OF CONTENTS — `Notes · 3` · `Unsure · 3` ·
+        `Yes · 2` · `Maybe · 1` · `No · 1`, each with its own *Swipe these* —
+        so she taps the one she came for instead of scrolling past the ones
+        she did not. **`shutPile(key)` is the one reader of that rule**,
+        shared by the paint and the fold handler: the handler used to flip
+        `folded[key]` by negating it, which on a key that is
+        undefined-but-shut writes `true` and makes the FIRST tap on every
+        section a no-op. `folded` still means only "what she has done to it
+        this visit", so an open survives a re-render — tapping a row or a tile
+        to read that card must not shut the section behind her. A test that
+        reaches for a TILE has to open its fold first.
       Test: `node scripts/test-judge-note-survey.js` (the real page headless,
       at both looks — every assertion a MEASUREMENT, since a survey *below*
-      the piles is still "present", a folded thread and an open one carry the
-      same markup, and a nested caret opens the card while passing every
-      markup assertion ever written about it; verified failing 15 pre-fix).
+      the piles is still "present", a shut section is not in the DOM at all,
+      a folded thread and an open one carry the same markup, and a nested
+      caret opens the card while passing every markup assertion ever written
+      about it; verified failing 15 against the page before the survey and 23
+      against the open-by-default one).
     - **A MARK NEVER MOVES THE DECK** (Aug 2026, Sophie, on her date deck:
       "hearting, heart or exing should not move the moment, only tapping on
       the sides should go to the next moment"). In BROWSE mode — which every

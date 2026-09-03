@@ -121,6 +121,11 @@ window.addEventListener('error', function(e){
       ok(count()==='4 of 4 sorted'
          && heads.join('|')==='Loved · 2|Maybe · 1|Passed · 1',
          'all judged opens the piles view, grouped with counts');
+      // every pile starts SHUT since 2026-09-03 ("they all default
+      // collapsed"), so the tiles are only in the DOM once a heading is
+      // tapped. Re-query between clicks: each fold re-renders the view.
+      var guard=0, fb;
+      while ((fb=m.querySelector('.jg-pilefold[aria-expanded="false"]')) && guard++ < 12) fb.click();
       var ttile=m.querySelector('.jg-grid button.txt');
       ok(ttile && ttile.textContent==='a text card' && ttile.getAttribute('data-open')==='d',
          'a card item shows as a text tile named by its label');
