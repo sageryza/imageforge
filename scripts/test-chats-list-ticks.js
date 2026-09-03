@@ -63,6 +63,10 @@ const BULLETS = ['Three things:', '', '- the first', '- the second', '- the thir
 const TWO = ['**TLDR** — two bold paragraphs are not a list.', '', '**Next** — so neither of these gets a box.'].join('\n');
 const CODE = ['Paste this:', '', '```', '- not a list', '- still not', '```', '', 'done.'].join('\n');
 const ONE = ['A reply with', '- a single bullet', 'is not a list either.'].join('\n');
+// The sketches reply (2026-09-03): every item's body on the line right under
+// its number, a blank line between items. A plain line directly under an item
+// is that item's continuation, not the end of the run.
+const CONT = ['Fourteen more.', '', '1. **Citrine**', 'YOU: "Citrine. Abundance." / pause / "Same numbers."', '', '2. **Selenite**', 'YOU: "Your file says you can\'t get wet."', '', '3. **The candle**', '"It has not gone out."', '', 'Nothing spent this turn.'].join('\n');
 
 const msg = (id, chat, at, text, extra) => Object.assign({ id, chat, from: 'claude', text, tldr: text.split('\n')[0], created: iso(at), postedAt: iso(at) }, extra || {});
 const ALL = [
@@ -71,6 +75,7 @@ const ALL = [
   msg('two', 'games', T0 - 6 * H, TWO),
   msg('code', 'games', T0 - 9 * H, CODE),
   msg('one', 'games', T0 - 12 * H, ONE),
+  msg('cont', 'games', T0 - 15 * H, CONT),
   // a merged run: two replies three minutes apart, each with its own list
   msg('r2', 'run', T0, ['Later:', '- b1', '- b2'].join('\n')),
   msg('r1', 'run', T0 - 3 * M, ['First:', '- a1', '- a2'].join('\n')),
@@ -152,6 +157,14 @@ const items = (page, mid) => page.$$eval('#thread .msg[data-mid="' + mid + '"] .
     const n = (await items(page, mid)).length;
     if (n === 0) ok('no box on ' + why); else fail(why + ': ' + n + ' boxes');
   }
+
+  // 3b. an item whose body sits on the line right under it: the body rides the
+  //     item, the run holds, and the closing plain paragraph (after a blank)
+  //     still gets no box
+  await page.click('#thread .msg[data-mid="cont"] .m-preview');
+  it = await items(page, 'cont');
+  if (same(it.map((x) => x.text), ['Citrine', 'Selenite', 'The candle'])) ok('a numbered list with each body on the next line wears a box per item, and the closing paragraph none');
+  else fail('cont items: ' + JSON.stringify(it.map((x) => x.text)));
 
   // 4. a tap lights it, saves onto THIS message under the item's key, and a
   //    second tap clears it; the tap never starts the autoscroll
