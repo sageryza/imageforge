@@ -4463,6 +4463,9 @@ router.post('/page', async (req, res) => {
         const map = pageTemplates.archiveMapOf(v.data);
         if (Object.keys(map).length) { tdoc.applyArchive = true; tdoc.archiveMap = map; }
       }
+      // a deck whose ▲ adds to the Similitude deal — on the DOC, so the
+      // game's sync can find every such page with one query
+      if (v.data.addsTo) tdoc.addsTo = v.data.addsTo;
       const tref = db().collection(PAGES).doc();
       const tfile = admin.storage().bucket().file(`chat-pages/${tref.id}.json`);
       await tfile.save(Buffer.from(JSON.stringify(v.data), 'utf8'), {
@@ -5307,6 +5310,10 @@ router.post('/verdict', express.json({ limit: '64kb' }), async (req, res) => {
     if (ok !== undefined && item !== undefined) {
       try { archived = await applyPageVerdict(String(sheet), String(item), ok); }
       catch (e) { /* her mark is saved either way — never fail the tap */ }
+      // A ▲ ON A DECK THAT ADDS TO SIMILITUDE REACHES THE DEAL NOW, not at
+      // the next game open (2026-09-03). Fire-and-forget, debounced in
+      // triset; her mark is saved whatever the game does with it.
+      try { require('./triset').pokeReview(String(sheet)); } catch (e) { /* not mounted */ }
     }
     res.json({ ok: true, archived });
   } catch (err) {

@@ -220,6 +220,146 @@ function syncPlan(cards, voteByUrl, adopted) {
   return [...patch].map(([id, p]) => ({ id, patch: p }));
 }
 
+/* ── A REVIEW DECK'S ▲ ADDS TO THE DEAL (2026-09-03, Sophie, on the triangle
+   review deck: "just find the ones i marked add and add them" · "why was
+   that so hard" · "why was that hard how r u that retarded") ──────────────
+   The deck's button said ADD TO DECK and only hearted the picture in the
+   chat's Assets tab; the deal read hearts on pool cards inside her
+   vocabulary and nothing else, so a Playground picture had no road in at
+   all and 17 of her 61 were added by hand. Now a page posted with
+   `addsTo:'similitude'` (page-templates.js) is read HERE, by the sync that
+   already runs on every game open and is poked by every verdict on it:
+     ▲ (true) on a pool card         → into its edition, un-hidden
+     ▲ on a Playground picture       → a NEW pool card: the bytes copied to
+                                       triset/cards/pl-<slug>.webp, the doc
+                                       written with its prompts, in everyday,
+                                       the die-cut baked
+     ✕ (false) on either             → out of the deal (hidden), the imported
+                                       card found by the picture it came from
+     ? / unmarked                     → nothing
+   `reviewPlan` is pure and tested; `syncReviewDecks` only applies it. */
+const slugify = (t) => String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '');
+function reviewPlan(cards, pageItems, verdicts, adopted) {
+  const byUrl = new Map(); const byFrom = new Map(); const taken = new Set();
+  for (const c of cards) {
+    if (c.url) byUrl.set(c.url, c);
+    if (c.from && c.from.url) byFrom.set(c.from.url, c);
+    const sl = slugOfUrl(c.url); if (sl) taken.add(sl);
+  }
+  const out = { adopt: [], import: [], hide: [] };
+  for (const it of pageItems) {
+    const mark = verdicts[it.id];
+    if (mark !== true && mark !== false) continue;
+    const pool = it.url && byUrl.get(it.url);
+    const made = !pool && it.url && byFrom.get(it.url);
+    if (mark === true) {
+      if (pool) {
+        const ed = editionForSlug(slugOfUrl(pool.url), adopted) || ADOPT_EDITION;
+        if (pool.edition !== ed || pool.hidden) out.adopt.push({ id: pool.id, patch: { edition: ed, hidden: false } });
+      } else if (made) {
+        if (made.hidden || !made.edition) out.adopt.push({ id: made.id, patch: { edition: made.edition || ADOPT_EDITION, hidden: false } });
+      } else if (it.url) {
+        let slug = slugify(it.label || it.promptContent) || ('card-' + String(it.id).slice(-6));
+        const base = slug; let n = 2;
+        while (taken.has(slug)) { slug = base + '-' + n; n += 1; }
+        taken.add(slug);
+        out.import.push({ slug, item: it });
+      }
+    } else {
+      const c = pool || made;
+      if (c && !c.hidden && c.edition) out.hide.push({ id: c.id, patch: { hidden: true } });
+    }
+  }
+  return out;
+}
+
+const pageItemCache = new Map();   // page id → its frozen items (never change)
+async function pageItemsOf(id) {
+  if (pageItemCache.has(id)) return pageItemCache.get(id);
+  let items = [];
+  try {
+    const [buf] = await bucket().file(`chat-pages/${id}.json`).download();
+    const j = JSON.parse(buf.toString());
+    items = (j.items || []).concat(...(j.groups || []).map(g => g.items || []));
+  } catch (e) { items = null; }
+  if (items) pageItemCache.set(id, items);
+  return items || [];
+}
+async function importCard(slug, it, edition) {
+  const src = String(it.url || '');
+  const m = src.match(/^https:\/\/storage\.googleapis\.com\/[^/]+\/(.+)$/);
+  if (!m) throw new Error('not a storage url');
+  const p = `triset/cards/pl-${slug}.webp`;
+  await bucket().file(decodeURIComponent(m[1].split('?')[0])).copy(bucket().file(p));
+  await bucket().file(p).setMetadata({ contentType: 'image/webp', cacheControl: 'public, max-age=31536000, immutable' });
+  await bucket().file(p).makePublic();
+  const url = `https://storage.googleapis.com/${bucket().name}/${p}`;
+  const id = crypto.createHash('sha1').update(url).digest('hex');
+  let run = {};
+  const rm = String(it.id || '').match(/^pl-(.+)-\d+$/);
+  if (rm) { try { run = (await db().collection('forge-promptlab').doc(rm[1]).get()).data() || {}; } catch (e) { run = {}; } }
+  await db().collection(CARDS).doc(id).set({
+    title: it.label || it.promptContent || slug, url, source: 'playground', status: 'ready',
+    edition, hidden: false,
+    model: it.model || 'gpt-image-2', quality: it.quality || run.quality || '',
+    canvas: run.canvas || CANVAS, size: run.res || SIZE_TIER,
+    fullPrompt: run.fullPrompt || '', promptStyle: it.promptStyle || '', promptContent: it.promptContent || it.label || '',
+    createdAt: run.createdAt || Date.now(), from: { playground: rm ? rm[1] : '', url: src },
+  }, { merge: true });
+  // the die-cut, best-effort (the page falls back to the fixed mapping)
+  try {
+    const r = await fetch(url);
+    const { buf } = await bakeCut(Buffer.from(await r.arrayBuffer()), {});
+    const cp = cutPath(id); const f = bucket().file(cp);
+    await f.save(buf, { metadata: { contentType: 'image/webp', cacheControl: 'public, max-age=31536000, immutable' }, resumable: false });
+    await f.makePublic();
+    await db().collection(CARDS).doc(id).set({ cut: `https://storage.googleapis.com/${bucket().name}/${cp}` }, { merge: true });
+  } catch (e) { /* the card is dealt either way */ }
+  return id;
+}
+async function syncReviewDecks(cards, adopted) {
+  const snap = await db().collection(PAGES).where('addsTo', '==', 'similitude').get().catch(() => null);
+  if (!snap || snap.empty) return { adopt: 0, import: 0, hide: 0 };
+  const n = { adopt: 0, import: 0, hide: 0 };
+  for (const d of snap.docs) {
+    const pg = d.data() || {};
+    if (pg.superseded) continue;
+    const items = await pageItemsOf(d.id);
+    if (!items.length) continue;
+    const vs = await db().collection(VERDICTS).doc(`${pg.chat}__page-${d.id}`).get().catch(() => null);
+    const verdicts = (vs && vs.exists && vs.data().items) || {};
+    const plan = reviewPlan(cards, items, verdicts, adopted);
+    for (const a of plan.adopt) { await db().collection(CARDS).doc(a.id).set(a.patch, { merge: true }); n.adopt++; }
+    for (const h of plan.hide) { await db().collection(CARDS).doc(h.id).set(h.patch, { merge: true }); n.hide++; }
+    for (const im of plan.import) {
+      try { const id = await importCard(im.slug, im.item, ADOPT_EDITION); cards.push({ id, url: '', from: { url: im.item.url }, edition: ADOPT_EDITION }); n.import++; }
+      catch (e) { /* next sync tries again */ }
+    }
+  }
+  return n;
+}
+// a verdict on such a page pokes the sync — leading edge, then a trailing
+// pass, so a burst of taps costs two syncs rather than one per tap
+let reviewTimer = null; let reviewBusy = false;
+function pokeReview(sheet) {
+  const id = String(sheet || '').replace(/^page-/, '');
+  if (!id) return;
+  const go = async () => {
+    if (reviewBusy) return;
+    reviewBusy = true;
+    try {
+      const pg = await db().collection(PAGES).doc(id).get();
+      if (!pg.exists || pg.data().addsTo !== 'similitude') return;
+      syncAt = 0;           // let the next syncHearts run at once
+      await syncHearts();
+    } catch (e) { /* the game's next open runs it */ } finally { reviewBusy = false; }
+  };
+  go();
+  clearTimeout(reviewTimer);
+  reviewTimer = setTimeout(go, 20e3);
+}
+
 /* ── THE WAITING ROOM (2026-09-01, Sophie: "make a compare page that auto
    adds new triangle hearts from elsewhere / and add them") ────────────────
    A standing Compare page in her Similitude chat holding every triangle card
@@ -421,7 +561,10 @@ async function syncHearts() {
     // her Playground hearts page rides the same sweep, so opening the game
     // refreshes it even if the vote poke was lost to a restart
     syncLikes().catch(() => {});
-    const plan = syncPlan(cards, voteByUrl, adoptedFrom(verdicts));
+    // …and every review deck whose ▲ adds to the deal (reviewPlan above)
+    const adoptedSet = adoptedFrom(verdicts);
+    await syncReviewDecks(cards, adoptedSet).catch(() => null);
+    const plan = syncPlan(cards, voteByUrl, adoptedSet);
     for (const p of plan) await db().collection(CARDS).doc(p.id).set(p.patch, { merge: true });
     // the page is rebuilt AFTER the deal, so a card adopted this pass has
     // already left the waiting room by the time she opens it
@@ -1015,6 +1158,7 @@ router.post('/seed', async (req, res) => {
 });
 
 module.exports = {
+  reviewPlan, syncReviewDecks, pokeReview, slugify,
   router, init,
   foundContent, cardPrompt, validFound, stuckPatch, bakeCard, editionOf, mixHex,
   syncPlan, syncHearts, slugOfUrl, bestCard, waitingPlan, adoptedFrom, writeWaiting,

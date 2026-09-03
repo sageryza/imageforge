@@ -3335,7 +3335,11 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   `spreadAll: true` (a twin set of any size stays ONE card — "has to be all
   no cap" — 2x2 for four, three across after) and `note: 'small'`. Full
   contract in `docs/compare-pages.md`; `scripts/triangle-deck-review.js` is
-  the worked example.
+  the worked example. **AND `addsTo: 'similitude'` MAKES THE ▲ DO WHAT IT
+  SAYS** (2026-09-03, "why was that so hard"): a yes puts the card into the
+  Similitude deal — a Playground picture becomes a pool card — and a no takes
+  it out, through `triset.js reviewPlan`. A verb on a button the page cannot
+  perform is the archive-deck lesson again.
   **WORDS ON A CARD — a date, a moment, a scene — GO IN HER DATE-CARD DESIGN,
   and it is automatic (Aug 2026, her own "Decision Deck v2", built for the
   dating book).** Give a deck item any of `who` (the name — her rust, centred
