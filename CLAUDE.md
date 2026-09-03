@@ -74,6 +74,29 @@ The numbers are measured, not guessed.
    `node scripts/film-shots-detect.js --film <url> --chat <slug>` (dry; add
    `--go`). Full rules: *THE PROMPT ON A PAUSED FILM* in the Chats section.
 
+3h. **FIXED A BUG? LINK HER TO WHERE SHE CAN SEE IT — EXAMPLES, NOT A PR
+   (2026-09-03, Sophie: "link me to examples that showcase changes · make this
+   a rule for bug fixes").** A bug fix is described in words and checked with
+   her eyes, so the reply that reports one ends with the **exact surface the
+   fix shows on**, full clickable url — the page, the chat's tab, the deck,
+   the tool — and one short line per link saying what to look at ("the header
+   is gone on the swipe view"). On her phone an ordinary page url opens the
+   app on that tool, so nothing about the link has to look special.
+   - **REAL, CURRENT EXAMPLES, and more than one when the fix touches a
+     shared thing.** A fix to a shared page kit reaches every page built on
+     it, so link two or three she actually uses (the one she reported FIRST),
+     read live rather than remembered — a link to a superseded page or a
+     deleted deck is worse than no link.
+   - **SAY WHETHER IT IS LIVE.** A link to an undeployed fix shows her the
+     OLD thing, which reads as the fix not working. Deploy first when she has
+     said to, or write in one line that the link shows the change once it is
+     deployed (the *ASK BEFORE YOU DEPLOY* rule is unchanged).
+   - **THE PR IS NOT THE LINK.** It is the record and it still goes at the
+     bottom; it is not a place she can see anything.
+   - **Nothing to point at?** Say so plainly — a fix to a script, a hook or a
+     server rule may have no surface, and inventing one is worse than the
+     sentence.
+
 **When the work WRAPS UP (not every turn)**
 3b. **Leave a WRAP-UP** — `POST /api/chatfeed/wrapup {chat, session, line,
    asked, did, next}`. It is **her three questions, ONE SENTENCE EACH** (Aug
@@ -180,6 +203,8 @@ on its own line and answer under it — otherwise never echo a question back**
 question, short answer · **asking HER something? plain text, never the
 questions/option-picker UI** (2026-08-28, her rule) · full clickable links · no markdown tables · times in 12-hour
 Pacific · files and images LAST · working links at the very bottom ·
+**fixed a bug? the last thing in the reply is a link to the surface it shows
+on** (3h) ·
 **briefing her on OTHER chats? every chat you name gets a
 `/chats?chat=<slug>` link back to it at the bottom** (see *BRIEFING HER ON
 OTHER CHATS* in Design rules).
