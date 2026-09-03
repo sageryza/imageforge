@@ -229,16 +229,21 @@
       var on = narrowedKeys();
       var words = [];
       specs.forEach(function (s) { words = words.concat(wordsOf(s, state[s.key])); });
-      // THE CHIP CARRIES THE STATE ONLY WHILE THE DRAWER IS SHUT. Open, the
-      // rows below already say "Mine" and "Archive only" in full, and
-      // repeating them in the heaviest treatment on the screen is the same
-      // answer twice. It stays LIT either way, because lit is the part that is
-      // never redundant: it says something is narrowed even when the words are
-      // elsewhere — and with the word gone from the button, the lit glyph is
-      // the ONLY thing saying so once the drawer is open.
-      var say = (on.length && drawer.hidden) ? words.join(' · ') : '';
-      chipWords.textContent = say;
-      chipWords.hidden = !say;
+      // THE CHIP SAYS HOW MANY, NOT WHICH (2026-09-02, Sophie, looking at
+      // "NO ✕ · ♥ ONLY" wrapped onto a line of its own: "this looks awk" ·
+      // "change to # of filters"). Spelling the filters out grows the button
+      // by however long her words happen to be — two of them pushed the search
+      // box onto a second row — and the words are one tap away on the rows
+      // below. A digit is a fixed width and says the one thing the shut drawer
+      // cannot: that something is on, and how much.
+      //
+      // AND IT SHOWS OPEN AS WELL AS SHUT. The old rule took the words off
+      // while the drawer was open, because repeating whole sentences in the
+      // heaviest treatment on the screen is the same answer twice — a count is
+      // not that, and a button whose label appears and disappears as she opens
+      // it is jumpier than one that does not.
+      chipWords.textContent = on.length ? String(on.length) : '';
+      chipWords.hidden = !on.length;
       chip.setAttribute('aria-label',
         (opts.label || 'Filters') + (on.length ? ' — ' + words.join(', ') : ''));
       chip.classList.toggle('on', !!on.length);

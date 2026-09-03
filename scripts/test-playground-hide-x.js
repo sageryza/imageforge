@@ -127,9 +127,9 @@ const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
   // AND THE CHIP WEARS IT WITH THE DRAWER SHUT — a filter she cannot see must
   // never be one she has forgotten she set.
   await page.click('#feedfilters .filtchip');
-  ok(/No/.test(await page.$eval('#feedfilters .filtchip', n => n.textContent))
+  ok(/^1$/.test((await page.$eval('#feedfilters .filtchip', n => n.textContent)).trim())
     && await page.$eval('#feedfilters .filtchip', n => n.classList.contains('on')),
-    'and the shut chip says it too, lit');
+    'and the shut chip counts it, lit');
 
   console.log('WITH THE HEART');
   await openFilt();
