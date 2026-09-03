@@ -381,7 +381,10 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
     arow.appendChild(fmount);
     content.appendChild(arow);
     var SF=window.ForgeSearchFilters;
-    var FILT=SF.build(fmount, [
+    // If this surface is ever rebuilt, the last drawer's tap-out listener goes
+    // down with it.
+    if(window.__metaFilt && window.__metaFilt.destroy) window.__metaFilt.destroy();
+    var FILT=window.__metaFilt=SF.build(fmount, [
       { key:'marks', kind:'chips', label:'Marks',
         vals:['new','like','nox'], words:['New','\u2665','Hide \u2715'],
         classes:['','','dropfilt'] },

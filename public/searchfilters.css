@@ -49,12 +49,22 @@
 /* The chips. A rounded RECTANGLE at the house 6px — never a pill; the toggle
    is the one sanctioned exception and a chip is a text button. */
 .filtchips { display: flex; flex-wrap: wrap; gap: 6px; }
+/* 34px IS THE HOUSE CONTROL HEIGHT, and it is measured rather than picked
+   (2026-09-02, Sophie: "how the fuck did u decide the button sizes" — fair:
+   the first cut was 26px, eyeballed off the Chats drawer's 11px type, and it
+   sat under every neighbour it shares a row with). The Playground's whole
+   control row is `--ctl-h: 34px`, the Organize sheet's marks are 34px squares
+   for exactly this reason ("26px … is under the tap target anything here
+   should have"), and the view switch this chip stands beside measures 34.
+   So: 34, everywhere, and the padding is what is left over rather than a
+   number of its own. */
 .filtcbtn {
   font-family: -apple-system, sans-serif; font-size: 11px; letter-spacing: .07em;
   text-transform: uppercase; color: var(--fsf-ink2);
   background: var(--fsf-paper); border: 1px solid var(--fsf-line); border-radius: 6px;
-  padding: 5px 9px; cursor: pointer; -webkit-tap-highlight-color: transparent;
-  display: inline-flex; align-items: center; justify-content: center; min-height: 26px;
+  padding: 0 11px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 34px; box-sizing: border-box;
 }
 .filtcbtn svg { width: 14px; height: 14px; }
 /* Lit = this chip is narrowing what she can see. TAPPING THE LIT ONE CLEARS
@@ -77,7 +87,8 @@
   font-family: -apple-system, sans-serif; font-size: 11px; letter-spacing: .08em;
   text-transform: uppercase; color: var(--fsf-ink2);
   background: transparent; border: 1px solid var(--fsf-line); border-radius: 6px;
-  padding: 5px 8px; min-height: 26px; cursor: pointer;
+  padding: 0 9px; min-height: 34px; min-width: 34px; box-sizing: border-box;
+  justify-content: center; cursor: pointer;
   -webkit-tap-highlight-color: transparent; max-width: 100%;
 }
 .filtchip svg { width: 16px; height: 16px; flex: none; }

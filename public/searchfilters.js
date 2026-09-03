@@ -250,6 +250,36 @@
       paint();   // the chip's WORDS depend on whether the drawer is shut
     }
     chip.onclick = function () { setOpen(drawer.hidden); };
+
+    // TAPPING OUT CLOSES IT (2026-09-02, Sophie: "tapping out shud close").
+    // A drawer with only one way out is one more tap on every filter she sets
+    // — and on the Playground it hangs OVER the feed, so the natural gesture
+    // is to tap the thing underneath it and expect it gone.
+    //
+    // CLICK, NOT POINTERDOWN — and that is measured, not a preference. On the
+    // two Assets surfaces the drawer is IN FLOW, so closing it at POINTERDOWN
+    // moves the grid up between her finger going down and the tap being
+    // delivered, and the tap then lands on whatever slid into that spot: the
+    // picture she aimed at never opens. (Caught by test-assets-tap-next, which
+    // simply stopped being able to open a tile.) A click fires after the tap
+    // has landed, so the page moves only once the tap has done its job.
+    //
+    // CAPTURE, though, so this runs BEFORE the host's own click handlers —
+    // some of them close or rebuild what was tapped, and a bubbling listener
+    // would then be asking `contains` about a node whose parents are already
+    // gone (the detached-subtree bug asset-lightbox.js earned the hard way).
+    //
+    // IT ONLY EVER CLOSES. Nothing is swallowed and no overlay is put in front
+    // of the page, so the tap goes on to do whatever it was going to do —
+    // tapping a picture opens that picture AND puts the drawer away.
+    function outside(ev) {
+      if (drawer.hidden) return;
+      var t = ev.target;
+      if (t && mount.contains(t)) return;     // the chip, and every row in it
+      setOpen(false);
+    }
+    document.addEventListener('click', outside, true);
+
     paint();
 
     return {
@@ -291,6 +321,9 @@
         setOpen(narrowedKeys().length > 0); paint();
       },
       paint: paint,
+      // A page that REBUILDS its drawer (the Assets tab does, on every open)
+      // calls this first, or every rebuild leaves another listener behind.
+      destroy: function () { document.removeEventListener('click', outside, true); },
     };
   }
 

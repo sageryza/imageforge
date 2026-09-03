@@ -3141,6 +3141,26 @@ them off the reference sheet, not off the old filenames.
     the drawer's SIBLING, so tokens set there never reached it and it drew with
     no box at all. Caught by a screenshot, not by any assertion; PHOTOGRAPH
     EVERY ROUND.
+  - **TAPPING OUT CLOSES IT (2026-09-02, Sophie: "tapping out shud close").**
+    A drawer with only one way out costs a tap on every filter she sets, and on
+    the Playground it hangs OVER the feed, so the natural gesture is to tap
+    what is underneath and expect it gone. **On the CLICK, never on
+    pointerdown, and that is measured**: the two Assets drawers are IN FLOW, so
+    closing at pointerdown moves the grid between her finger going down and the
+    tap being delivered, and the tap lands on whatever slid into that spot —
+    `test-assets-tap-next.js` simply stopped being able to open a tile. In the
+    CAPTURE phase, so it runs before a host handler that rebuilds what was
+    tapped (the detached-subtree bug `asset-lightbox.js` earned). It only ever
+    CLOSES — nothing is swallowed, so the tap still opens the picture.
+  - **THE SIZES ARE THE ROW'S, NOT A NUMBER OF THEIR OWN (2026-09-02, Sophie:
+    "how the fuck did u decide the button sizes" — fair; the first cut was
+    26px, eyeballed off the Chats drawer's 11px type, and sat under every
+    neighbour).** The door STRETCHES to the row it stands on (the Playground's
+    feed bar is a 32px family — the view switch, the search field — so the bar
+    is still one 48px line), and the chips INSIDE the drawer are 34px, which is
+    the height of the three-way toggles they sit beside there. The test asserts
+    it as an EQUALITY against the neighbours rather than against a constant, so
+    it survives the row changing.
   - **The two mark buttons came OFF the Playground's feed bar**, which is what
     paid for the chip: the row is the same width it was.
   - Tests: `node scripts/test-search-filters-shell.js` (the decision table

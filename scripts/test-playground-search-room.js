@@ -136,9 +136,24 @@ const ok = (c, m) => { if (c) console.log('  ok  ' + m); else fail(m); };
   ok(rest >= need,
      'and it holds its own placeholder (' + Math.round(rest) + 'px box, needs ' +
      Math.round(need) + ')');
-  ok(rest - 56 < need,
-     'which the BORROWED column is what pays for — the row alone leaves it ' +
-     Math.round(rest - 56) + 'px, under the ' + Math.round(need) + ' it needs');
+  // AND THE BORROW IS ASKED AT THE NARROWEST PHONE, because that is where it
+  // still has to pay for itself. At 390pt the drawer's one sifter chip
+  // replaced the two loose ♥/✕ buttons (2026-09-02), so the row alone now
+  // leaves the field enough for its own placeholder — measuring the borrow's
+  // necessity there would only be measuring how much slack a wide screen has.
+  // At 320 it is the difference between a readable field and a clipped one.
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.waitForTimeout(150);
+  const narrow = await page.evaluate(() =>
+    document.querySelector('.feedsearch').getBoundingClientRect().width);
+  ok(narrow - 56 < need,
+     'which the BORROWED column is what pays for at 320pt — the row alone leaves it ' +
+     Math.round(narrow - 56) + 'px, under the ' + Math.round(need) + ' it needs');
+  ok(narrow >= need,
+     'and with the column it still holds its placeholder there (' +
+     Math.round(narrow) + 'px)');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(150);
 
   // 3 ── the controls keep the reservation, and everything still takes a tap
   ok(s.view.shown && s.filt.shown, 'the view switch and the filters are still on the row');
