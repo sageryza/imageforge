@@ -588,7 +588,13 @@
     ' letter-spacing:.12em;text-transform:uppercase;color:var(--gold);' +
     ' font-style:normal;margin-bottom:2px;}' +
     '.jg-help b{color:var(--gold);font-family:-apple-system,sans-serif;font-size:13px;}' +
-    '.jg-flash{animation:jgf .18s;}@keyframes jgf{from{opacity:.35}to{opacity:1}}' +
+    // NO DIM ON A STEP (2026-09-03, Sophie: "why does it fucking flash every
+    // time i tap right left"). `.jg-flash` used to fade the whole card in from
+    // 35% on every move — on a deck of pictures that reads as the picture
+    // flashing, on top of the blank frame a re-created <img> already costs.
+    // The card changing IS the feedback (the tap-highlight rule, one screen
+    // over). The class stays as a hook; it paints nothing.
+    '.jg-flash{}' +
 
     // ── THE GOOD / BAD STAMP (Aug 2026, Sophie's own "Decision Deck v3"
     // canvas: "a little good/bad stamp that stamps the ones that you pick or
@@ -1703,7 +1709,26 @@
       setTimeout(function () { card.classList.remove('jg-jolt'); }, 600);
     }
 
+    // THE NEIGHBOURS ARE FETCHED AHEAD (same report). A step re-creates the
+    // card's <img>, and on a phone the next picture was not even requested
+    // until then — so every step showed a blank frame while it loaded. After
+    // each paint the pictures one step either side (a spread's, all of them)
+    // are asked for, so they are in the cache before her thumb gets there.
+    var warmed = {};
+    function warmNeighbours() {
+      if (view !== 'card') return;
+      [laneStep(cur, 1), laneStep(cur, -1)].forEach(function (i) {
+        if (i < 0 || !items[i]) return;
+        var pics = items[i].cards ? liveCards(items[i]) : [items[i]];
+        pics.forEach(function (p) {
+          if (!p.img || warmed[p.img]) return;
+          warmed[p.img] = true;
+          var im = new Image(); im.decoding = 'async'; im.src = p.img;
+        });
+      });
+    }
     function render(flash) {
+      setTimeout(warmNeighbours, 0);
       // the mini autoscroll asks "does this card overflow?" a frame later, so
       // it measures the DOM this call is about to write — scheduled here, at
       // the top, because both branches below end in their own way (the moment

@@ -83,7 +83,8 @@ const PIC = 'data:image/svg+xml;base64,' + Buffer.from(
   '<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">'
   + '<rect width="1024" height="1024" fill="#cbb"/></svg>').toString('base64');
 const U = (n) => 'https://storage.googleapis.com/x/triangle/' + n + '.webp';
-const card = (id, label) => ({ id, label, img: PIC, url: U(id), promptContent: label,
+// the FACE is an http url served by the stub, so a request for it is countable
+const card = (id, label) => ({ id, label, img: '/pic/' + id + '.svg', url: U(id), promptContent: label,
   promptStyle: 'triangle [content]', model: 'gpt-image-2', quality: 'medium' });
 
 const DATA = {
@@ -123,12 +124,13 @@ const HTML = `<!doctype html><meta charset="utf-8">
 
   async function open(verdict) {
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
-    const posts = [];
+    const posts = []; const gets = [];
     await page.route('**/*', async (route) => {
       const req = route.request();
       const p = new URL(req.url()).pathname;
       const json = (o) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(o) });
       if (p === '/page') return route.fulfill({ contentType: 'text/html', body: HTML });
+      if (p.startsWith('/pic/')) { gets.push(p); return route.fulfill({ contentType: 'image/svg+xml', body: Buffer.from(PIC.split(',')[1], 'base64') }); }
       if (req.method() === 'POST') {
         posts.push({ path: p, body: JSON.parse(req.postData() || '{}') });
         return json({ ok: true });
@@ -147,7 +149,7 @@ const HTML = `<!doctype html><meta charset="utf-8">
       await page.mouse.click(195, 780);
       await page.waitForTimeout(120);
     }
-    return { page, posts };
+    return { page, posts, gets };
   }
   const shot = (page) => page.evaluate(() => {
     const q = (s) => document.querySelector(s);
@@ -216,6 +218,22 @@ const HTML = `<!doctype html><meta charset="utf-8">
     await page.waitForTimeout(300);
     s = await shot(page);
     is('opening a tile lands on the spread with the ✕\'d one still off it', s.figs, ['tent-1', 'tent-3']);
+    await page.close();
+  }
+
+  // ── 1b. NO FLASH ON A STEP (2026-09-03, "why does it fucking flash every
+  // time i tap right left"): the card wears no opacity animation after a
+  // move, and the next card's picture was fetched BEFORE she stepped to it
+  {
+    const { page, gets } = await open();
+    await page.waitForTimeout(300);
+    ok('the next card\'s picture is fetched ahead of the step', gets.some((g) => g === '/pic/solo-1.svg'));
+    await page.evaluate(() => document.querySelector('#judge .jg-navzone.next').click());
+    await page.waitForTimeout(50);
+    const anim = await page.evaluate(() => getComputedStyle(document.querySelector('#judge .jg-card')).animationName);
+    is('…and the card wears no animation after a move', anim, 'none');
+    await page.waitForTimeout(300);
+    ok('…the one after that is fetched too', gets.some((g) => g === '/pic/solo-2.svg'));
     await page.close();
   }
 
