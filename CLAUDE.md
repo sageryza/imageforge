@@ -3113,12 +3113,20 @@ them off the reference sheet, not off the old filenames.
   - **THE DOOR IS A SIFTER, NOT A WORD (2026-09-02, Sophie: "make it the
     button an icon of a flour filter").** Lucide `funnel` at the house 1.8
     stroke, in a rounded square at the house 6px — never a circle, never a
-    pill. **The state still rides BESIDE the glyph while the drawer is shut**
-    ("♥ only · High"), because a filter she cannot see must never be one she
-    has forgotten she set; the chip stays LIT either way, which with the word
-    gone is the only thing saying something is narrowed once the drawer is
-    open. The name lives on the `aria-label` and the `title`, so nothing is
+    pill. The name lives on the `aria-label` and the `title`, so nothing is
     lost to a screen reader.
+  - **AND IT COUNTS, IT DOES NOT SPELL (2026-09-02, her next screenshot of
+    "NO ✕ · ♥ ONLY" wrapped onto a line of its own: "this looks awk" ·
+    "change to # of filters" · "not red").** A digit beside the glyph — open
+    AND shut, so the button is a fixed width and never appears and disappears
+    under her. Spelling the filters out grew the door by however long her
+    words happened to be, and two of them pushed the search box onto a second
+    row; the words are one tap away on the rows below. **LIT IS THE INK, NOT
+    THE ACCENT** — the rose belongs to the chips INSIDE that really are her ♥
+    and her picks; this is a door, and dark against the row's grey says
+    "something is on" without shouting it from the calmest strip on the page.
+    Pinned by a MEASUREMENT of what really renders (a class name says nothing
+    about a colour).
   - **WHAT THE SHELL OWNS: the shape.** The chip; the drawer SHUT until she
     taps it; the chip WEARING the state while it is shut and staying lit
     either way; the aimed three-way toggle and the word that clears it; the
