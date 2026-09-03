@@ -3937,6 +3937,17 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   Test: `node scripts/test-page-place.js` (every assertion a measurement —
   the stick, the jump, the reopen judged against her chapter, the swipe
   round trip, her own scroll standing against the re-asserts).
+- **A 1-UP GRID PAGE IS NOT A COMPARISON, AND ITS TOUR MUST NOT SAY IT IS
+  (2026-09-03).** `grid.js`'s tour opened with a hardcoded "each row is one
+  comparison — the things on it differ by exactly one thing", which is a
+  sentence about a page she is not looking at whenever every group holds ONE
+  item (the 1-up shape her standing Playground-hearts page uses). `oneUp` is
+  DERIVED from the real groups rather than passed as a flag, so any
+  one-per-row page gets the right words with nothing to remember. **Found by
+  PHOTOgraphing the live page** — nothing else would have shown it, since the
+  page renders perfectly either way. Test:
+  `node scripts/test-grid-oneup-tour.js` (the real grid.js, the tour opened,
+  the words read off the screen; verified failing 2 pre-fix).
 - **TRUNCATED TEXT OPENS WITH AN UNDERLINED WORD, NEVER A BUTTON (Aug 2026,
   Sophie: "the ... button for longer than two line prompt is huge … truncated
   text shud always just be a ...with a line under it that links to open
@@ -8526,6 +8537,27 @@ before working on that module. Nothing was deleted — the moved text is verbati
     So a ♥ never un-hides the pool wholesale, and **the incumbent wins** — a
     newly-hearted generation does not swap the picture on her printed sheet
     unless she crossed the dealt one out.
+  - **HER PLAYGROUND TRIANGLE HEARTS ARE A STANDING PAGE TOO, REWRITTEN BY THE
+    SERVER (2026-09-03, Sophie: "upgrade ur playground hearts page to auto
+    update as i add new cards, showing newest first").** It began as a script
+    that re-posted a frozen page, which is the thing a posted Compare page
+    cannot escape — its data is written to Storage at post time — so "auto
+    update" has to mean the waiting room's own machinery: one fixed doc id
+    (`triset-pl-likes`, in `triset-card-inventory`), the data hashed, rewritten
+    only when the set really changes. `likesPlan`/`writeLikes`/`syncLikes` in
+    `triset.js`; the retired script was `scripts/gen-triset-playground-likes.js`.
+    **A HEART IN THE PLAYGROUND REBUILDS IT** — both promptlab vote routes call
+    `triset.pokeLikes()` fire-and-forget when the run is a `triangle` one,
+    leading + trailing like `runAutoCompare` (the leading half is what survives
+    a deploy inside the debounce window), and the game's own `/cards` sweep
+    rebuilds it as well, so a poke lost to a restart is picked up the next time
+    she opens Similitude. **THE ITEM ID IS `<run>-<index>`**, which is the whole
+    reason the page can be rewritten under her — an id that moved with the
+    ordering would re-point her marks at other pictures the first time she
+    hearted something new. Newest first, her ask; one item per hearted IMAGE,
+    since a panels run holds several; a hearted index with no url is dropped
+    rather than drawn empty; the hike run is skipped by id ("hike one was an
+    accident", and it has people). Test: `node scripts/test-triset-likes.js`.
   - **Her words are the content half, verbatim**; the one connective line
     (INVENT_LINE) rides in the wrapper and is disclosed in `promptStyle` with
     the `[content]` seam. The whole prompt is stored on every card doc.
