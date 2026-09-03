@@ -9323,6 +9323,14 @@ function openPage(p){
   // vertical space at all. A scrolling page (a grid, a hand-built one) keeps
   // the bar: it has no such row to put a chevron in.
   var oneScreen = p.template === 'deck';
+  // A TEMPLATE PAGE ALWAYS CARRIES ITS OWN WAY BACK (2026-09-03, Sophie:
+  // "back button ok but header unnecessary - takes space. push it down").
+  // The bar is per VIEW now — page-views asks it down while the DECK shows,
+  // which is one screen and cannot spare 94px of it — so the deck has to have
+  // a chevron of its own in the top row it already has, on a GRID-posted page
+  // too. `back=1` is what draws it (judge.js wantBack); it costs nothing on a
+  // page whose bar never goes.
+  var isTemplate = oneScreen || p.template === 'grid';
   var bar=null;
   if(!oneScreen){
     bar=document.createElement('div'); bar.className='pv-bar';
@@ -9330,7 +9338,7 @@ function openPage(p){
   }
   var frame=document.createElement('iframe'); frame.className='pv-frame';
   frame.src='/api/chatfeed/page/'+encodeURIComponent(p.id)+'?embed=1'
-    +(oneScreen?'&back=1':'')+(TOKEN?'&token='+encodeURIComponent(TOKEN):'');
+    +(isTemplate?'&back=1':'')+(TOKEN?'&token='+encodeURIComponent(TOKEN):'');
   if(bar) v.appendChild(bar); v.appendChild(frame);
   var pill=mkPagePill(function(){ try{ return frame.contentWindow; }catch(_){ return null; } });
   v.appendChild(pill);
@@ -9339,6 +9347,10 @@ function openPage(p){
   // <summary> toggle, link, button, form field, media control — is the page's
   // own, so we ignore it entirely (same skip list as the injected pill).
   frame.addEventListener('load', function(){
+    // the notch, before anything paints: a page with NO bar (a deck) owes it
+    // from the first frame, and one with a bar gets 0 until page-views takes
+    // the bar away
+    frameTop(!bar);
     try{
       var w=frame.contentWindow, doc=frame.contentDocument;
       // A SAME-ORIGIN LINK CAN NAVIGATE THIS IFRAME OFF THE PAGE (2026-08-26,
@@ -9474,7 +9486,7 @@ function openPage(p){
   v.__close=function(){
     if(pill._stop) pill._stop(); v.remove();
     document.body.style.overflow=''; document.body.classList.remove('ontop');
-    window.__closePage=null; window.__pagePill=null;
+    window.__closePage=null; window.__pagePill=null; window.__pageChrome=null;
     window.scrollTo(0,pvY); };
   // the page's own chevron (judge.js backToQueue) asks the viewer to close —
   // set while this viewer is open, cleared by __close so a stale hook can
@@ -9492,6 +9504,36 @@ function openPage(p){
   // asks for it back on the PILES, which is the one screen in a deck that
   // really scrolls (2026-09-01). Cleared by __close, so a stale hook can never
   // answer for a viewer that is gone.
+  // THE NOTCH IS THE PARENT'S TO MEASURE. `env(safe-area-inset-top)` is 0 in a
+  // nested browsing context, so a page inside this frame cannot see it — while
+  // the bar was there that never mattered (the bar cleared it). The moment the
+  // bar goes, the deck's own top row would sit under her status bar, so the
+  // viewer measures the inset here, where it resolves, and hands it down as
+  // `--forgetop`.
+  function insetTop(){
+    var el=document.createElement('div');
+    el.style.cssText='position:fixed;top:0;left:0;width:0;'
+      +'height:env(safe-area-inset-top,0px);pointer-events:none;visibility:hidden;';
+    document.body.appendChild(el);
+    var n=el.getBoundingClientRect().height; el.remove();
+    return Math.round(n)||0;
+  }
+  function frameTop(owed){
+    try{
+      var d=frame.contentDocument;
+      if(d&&d.documentElement) d.documentElement.style.setProperty('--forgetop',(owed?insetTop():0)+'px');
+    }catch(_){}
+  }
+  // …and the bar itself is per VIEW (2026-09-03, Sophie: "headers unnecessary
+  // - takes space"). A deck is one fixed screen and the bar shows the same
+  // title the page is already carrying; page-views asks it down while the deck
+  // shows and back the moment the grid — which scrolls — does.
+  window.__pageChrome=function(show){
+    if(!document.body.contains(v)) return false;
+    if(bar) bar.style.display=show?'':'none';
+    frameTop(!(bar&&show));
+    return true;
+  };
   window.__pagePill=function(show){
     if(!document.body.contains(v)) return false;
     if(!show && pill._stop) pill._stop();

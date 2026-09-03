@@ -39,15 +39,24 @@ const chats = fs.readFileSync(path.join(PUB, 'chats.html'), 'utf8');
 // BOTH halves lifted out of the real page — never a copy.
 const mk = chats.match(/function mkPagePill\(getWin\)\{[\s\S]*?\n  return pill;\n\}/);
 const hook = chats.match(/window\.__pagePill=function\(show\)\{[\s\S]*?\n  \};/);
+// the notch + the per-view bar, the same way: lifted, never retyped
+const chrome = chats.match(/function insetTop\(\)\{[\s\S]*?window\.__pageChrome=function\(show\)\{[\s\S]*?\n  \};/);
 if (!mk) { console.log('FAIL could not find mkPagePill in chats.html'); process.exit(1); }
 if (!hook) { console.log('FAIL could not find __pagePill in chats.html'); process.exit(1); }
+if (!chrome) { console.log('FAIL could not find __pageChrome in chats.html'); process.exit(1); }
 
 let bad = 0;
 const ok = (c, msg) => { console.log((c ? 'PASS: ' : 'FAIL: ') + msg); if (!c) bad += 1; };
 
-const IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Crect width='60' height='60' fill='%23c99'/%3E%3C/svg%3E";
+// a REAL-SIZED portrait picture, because the whole question is whether the floating
+// ✕/♥ land on a picture that fills the card — a 60px fixture never reaches
+// down there and would pass against the bug
+const IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1000' height='1500'%3E%3Crect width='1000' height='1500' fill='%23c99'/%3E%3C/svg%3E";
 const items = [];
 for (let i = 0; i < 40; i += 1) items.push({ id: 'c' + i, label: 'card ' + i, img: IMG });
+// her worst real one: a 116-character prompt in the slot built for a NAME
+items[0].label = 'makeup, spilled out on the tiled bathroom counter, lipstick, '
+  + 'eyeshadow, compact mirror etc, eye pencil, mascara wand';
 
 // A GRID-posted page, which is what she was looking at: its swipe view is the
 // same deck, and its <h1> is the one page-views now hides per view.
@@ -76,15 +85,20 @@ const host = `<!doctype html><meta charset=utf-8>
 .float{position:fixed;top:47px;right:14px;z-index:9;display:flex;flex-direction:column;gap:8px;align-items:center}
 .vseg{display:flex;flex-direction:column;width:48px;border:1.5px solid #26221c;border-radius:999px;overflow:hidden;background:#FFFDF8}
 .vseg button{border:none;background:transparent;width:48px;height:52px}
-.ptop{display:none}.ptop.on{display:flex}</style>
-<div class="pageview"><div class="pv-bar">Hearts v2 (40)</div><iframe class="pv-frame" id="f" src="/page"></iframe></div>
+.ptop{display:none}.ptop.on{display:flex}
+/* her iPhone 13's inset, which is 0 in headless — insetTop() measures a probe
+   sized by env(), so this is what gives it something to measure */
+[style*="safe-area-inset-top"]{height:47px !important}</style>
+<div class="pageview"><div class="pv-bar">Hearts v2 (40)</div><iframe class="pv-frame" id="f" src="/page?back=1"></iframe></div>
 <script>
 ${mk[0]}
 var v=document.querySelector('.pageview');
 var frame=document.getElementById('f');
+var bar=document.querySelector('.pv-bar');
 var pill=mkPagePill(function(){ try{ return frame.contentWindow; }catch(_){ return null; } });
 v.appendChild(pill);
 ${hook[0]}
+${chrome[0]}
 frame.addEventListener('load', function(){
   try{
     var w=frame.contentWindow, doc=frame.contentDocument;
@@ -121,7 +135,50 @@ server.listen(0, '127.0.0.1', async () => {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await page.goto(base);
   await page.waitForTimeout(2200);
-  const fr = page.frames().find((f) => f.url().endsWith('/page'));
+  const fr = page.frames().find((f) => f.url().indexOf('/page') > 0);
+
+  // 0 — the CARD view: no header, and the way back is the deck's own
+  const chrome = await page.evaluate(() => {
+    const f = document.querySelector('#f'); const d = f.contentDocument;
+    const bar = document.querySelector('.pv-bar');
+    const pv = d.querySelector('.pv');
+    return {
+      bar: getComputedStyle(bar).display,
+      back: !!d.querySelector('.jg-momtop .jg-back'),
+      top: d.documentElement.style.getPropertyValue('--forgetop').trim(),
+      pvTop: Math.round(parseFloat(getComputedStyle(pv).paddingTop)),
+      deckTop: Math.round(d.querySelector('.jg-momtop').getBoundingClientRect().top
+        + f.getBoundingClientRect().top),
+    };
+  });
+  ok(chrome.bar === 'none', `the viewer's header is off the deck (display ${chrome.bar})`);
+  ok(chrome.back, 'and the deck draws its own chevron in the row it already has');
+  ok(chrome.top === '47px', `the notch is handed down (--forgetop ${chrome.top || 'unset'}) — `
+    + 'env() is 0 inside a frame, so only the parent can measure it');
+  ok(chrome.pvTop === 47, `and the switch row clears it (padding-top ${chrome.pvTop})`);
+  ok(chrome.deckTop < 130, `her top row starts at ${chrome.deckTop} — it was 130 under the header`);
+
+  // 0b — a picture card is the picture: a caption-sized name, and the
+  // floating ✕/♥ off the art
+  const pic = await fr.evaluate(() => {
+    const col = document.querySelector('.jg.mom');
+    const who = document.querySelector('.jg.mom>.who');
+    const img = document.querySelector('.jg-card.momcard img');
+    const yes = document.querySelector('.jg-mombtn.yes');
+    const r = (e) => (e ? e.getBoundingClientRect() : null);
+    const ri = r(img); const ry = r(yes);
+    return {
+      cls: col ? col.className : '',
+      whoH: who ? Math.round(who.getBoundingClientRect().height) : -1,
+      font: who ? Math.round(parseFloat(getComputedStyle(who).fontSize)) : -1,
+      overlap: ri && ry ? Math.round(Math.min(ri.bottom, ry.bottom) - Math.max(ri.top, ry.top)) : -1,
+    };
+  });
+  ok(pic.cls.indexOf(' pic') > 0, `a picture-only card knows it is one (${pic.cls})`);
+  ok(pic.font <= 14, `its name is a caption, not a display line (${pic.font}px)`);
+  ok(pic.whoH > 0 && pic.whoH <= 48,
+    `a 116-character prompt draws ${pic.whoH}px — it drew 157 in the display size`);
+  ok(pic.overlap <= 0, `and the ♥ does not sit on the picture (overlap ${pic.overlap}px)`);
 
   // 1 — the CARD view: the pill is down, and the deck's "?" takes its own tap
   const card = await page.evaluate(() => {
@@ -175,6 +232,15 @@ server.listen(0, '127.0.0.1', async () => {
   });
   ok(cmp.pill !== 'none', `the compare view gets the pill back (display ${cmp.pill})`);
   ok(cmp.h1w > 100, `and its own heading (h1 width ${cmp.h1w})`);
+  const back = await page.evaluate(() => {
+    const d = document.querySelector('#f').contentDocument;
+    return {
+      bar: getComputedStyle(document.querySelector('.pv-bar')).display,
+      top: d.documentElement.style.getPropertyValue('--forgetop').trim(),
+    };
+  });
+  ok(back.bar !== 'none', `…and the header back with it (display ${back.bar})`);
+  ok(back.top === '0px', `and the notch handed back to the bar (--forgetop ${back.top})`);
 
   console.log(bad ? `\n${bad} failure(s)` : '\nall checks passed');
   await browser.close(); server.close(); process.exit(bad ? 1 : 0);

@@ -8963,6 +8963,29 @@ before working on that module. Nothing was deleted — the moved text is verbati
       scrolls nothing, BACK on the piles, which is the autoscroll she asked
       for on 2026-09-01 and the reason this cannot simply hide the pill.
       Test: `node scripts/test-page-viewer-deck-pill.js` (verified failing 4).
+    - **AND THE VIEWER'S HEADER IS THE DECK'S TO SPEND (2026-09-03, Sophie:
+      "the main thing is too much extra on screen pushing the picture down so
+      the buttons overlap it unnecessarily" · "headers unnecessary - takes
+      space. push it down").** `openPage` decided the bar from the posted
+      template too, so a grid-posted page's deck wore a bar showing the same
+      title the page already carries — 94px of a screen the deck fills
+      exactly. It is per VIEW now (`window.__pageChrome`, page-views' own
+      call), and the chevron is not lost: every TEMPLATE page is opened with
+      `back=1`, so the deck draws one in the top row it already has.
+      **THE NOTCH IS THE PARENT'S TO MEASURE** — `env(safe-area-inset-top)`
+      is 0 in a nested browsing context, so the moment the bar goes the
+      deck's top row would sit under her status bar; the viewer measures the
+      inset where it resolves and hands it down as `--forgetop`, which the
+      switch row pads by. Measured at 390x844 with her 47px inset: her top
+      row 130 → 96, the card 253 → 183.
+    - **A PICTURE CARD IS THE PICTURE (same report).** `.jg.mom.pic` — a card
+      carrying a picture and none of her own parts (no `who`, words, sections
+      or caption) — gets a caption-sized name and RESERVES the floating
+      buttons' band, the way `.long` and `.linkroom` already do. The ✕/♥
+      float on the content's bottom corners, so on a card whose picture fills
+      it they float on the PICTURE: measured on a portrait fixture, 36px of
+      the ♥ sat on the art. A card carrying any of her own parts is
+      untouched — there the big centred name IS the design.
     - **A CARD'S NAME IS CLAMPED TO TWO LINES (same report).** `.who` is her
       date deck's line for a person's NAME and a picture card feeds it the
       item's LABEL, which on a filed Playground picture is the prompt —
