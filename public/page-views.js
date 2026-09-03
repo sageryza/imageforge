@@ -57,6 +57,16 @@
     + '.jg-mombg #judge{flex:1;min-height:0;}'
     // one screen: no pill over a deck, whatever the host injected
     + '.jg-mombg .float{display:none !important;}'
+    // AND NO PAGE TITLE OVER A DECK (2026-09-03, Sophie: "spacing is weird").
+    // The <h1> is a per-PAGE decision (page-templates drops it for a `deck`)
+    // and the deck is a per-VIEW one — so the swipe view of a GRID-posted page
+    // drew the title in 26px serif above her chrome, under the app viewer's
+    // own bar, which is the same name a THIRD time. Measured at 390x844 with
+    // her 47px inset: bar 0-55, h1 55-78, and the card starting 119px down a
+    // screen her design fills. Hidden per view rather than dropped, so the
+    // compare half keeps its heading (and compare.js's "?" its mount) and
+    // every page already posted gets this with nothing re-posted.
+    + '.jg-mombg .wrap>h1{display:none;}'
     + '[hidden]{display:none !important;}';
   document.head.appendChild(css);
 
@@ -178,6 +188,15 @@
       // reached that rule on her phone cannot keep the pill on screen.
       var pill = document.querySelector('.float');
       if (pill) pill.style.display = swiping ? 'none' : '';
+      // …and the APP's pill, which lives in the parent (see judge.js's own
+      // note): the deck asks it down per inner view, so all this half has to
+      // do is give it back the moment the grid — which really scrolls — shows.
+      try {
+        if (!swiping && window.parent && window.parent !== window
+            && typeof window.parent.__pagePill === 'function') {
+          window.parent.__pagePill(true);
+        }
+      } catch (_) { /* cross-origin host — leave its chrome alone */ }
       line();
       window.scrollTo(0, 0);
       // …and the GRID puts her back where she was (compare.js __pagePlace):

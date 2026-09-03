@@ -182,9 +182,19 @@
     // CAPS at her ask — and caps in the sans bring the house rule with them
     // (design-rules.md: the sans is caps, NOT bold, with a little tracking,
     // because caps set solid read as a block)
+    // TWO LINES, AND THAT IS A CAP (2026-09-03, Sophie: "spacing is weird",
+    // with a picture card whose name ran SIX lines of rust caps and pushed her
+    // ✕/♥ down onto the picture). This line is her date deck's `who` — a
+    // person's NAME — and a picture card feeds it the item's LABEL, which on a
+    // filed Playground picture is the prompt. Measured on her live hearts page
+    // at 390pt: 19 labels, 6 to 116 characters, drawing 52 · 79 · 105 · 157px
+    // tall — so the card's whole shape depended on how long a prompt was. The
+    // full words are never lost: they are one tap away behind the picture's
+    // own PROMPT door, where the exact prompt already lives.
     '.jg.mom>.who,.jg-mom .who{text-align:center;padding:22px 0 4px;' +
     ' font:500 21px/1.25 -apple-system,\'Helvetica Neue\',sans-serif;color:#C25E4C;' +
-    ' text-transform:uppercase;letter-spacing:.04em;}' +
+    ' text-transform:uppercase;letter-spacing:.04em;display:-webkit-box;' +
+    ' -webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}' +
     // A LONG CARD PUTS ITS TITLE IN THE TOP-LEFT CORNER (Aug 2026, Sophie:
     // "if the text is really long have the title just go in the top left
     // corner instead of in the middle. I really don't like scrolling"). The
@@ -1463,6 +1473,28 @@
       // the top, because both branches below end in their own way (the moment
       // branch returns early) and this is the one place that covers all of it
       requestAnimationFrame(miniSync);
+      // THE APP'S PILL BELONGS TO A SCREEN THAT SCROLLS (2026-09-03, Sophie:
+      // "spacing is weird", with the viewer's pill sitting on this deck's top
+      // row). A Compare page in the app runs in an IFRAME and the pill she
+      // taps lives in the PARENT (chats.html mkPagePill), so page-views'
+      // `.jg-mombg .float{display:none}` — which hides the INJECTED one —
+      // could never reach it. Measured at 390x844 with her 47px inset: the
+      // pill spans y 47-239 over a top row at 130-174, and elementFromPoint on
+      // this deck's "?" answers the pill's play button — the button is not
+      // merely covered, it cannot be tapped at all.
+      // A CARD VIEW HAS NOTHING TO SCROLL (the body is a fixed one-screen box),
+      // so the pill is asked to stand down there and to come BACK on the
+      // PILES, which is the one screen in a deck that is genuinely long and
+      // the exact autoscroll she asked for on 2026-09-01. Guarded: a page
+      // opened in a browser has no parent hook and nothing changes.
+      if (momDeck) {
+        try {
+          if (window.parent && window.parent !== window
+              && typeof window.parent.__pagePill === 'function') {
+            window.parent.__pagePill(view === 'piles');
+          }
+        } catch (_) { /* cross-origin host — leave its chrome alone */ }
+      }
       // hands-free: while the mic runs, every card change is logged so the
       // recording can be split back onto the cards afterwards
       if (mrec && recTimeline && view === 'card' && items[cur]
