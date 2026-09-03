@@ -2291,12 +2291,21 @@ function tickList(part, m){
   for(i=0;i<lines.length;i++){
     var l=lines[i];
     kind[i] = LIST_MARK.test(l) ? 'b' : BOLD_LEAD.test(l) ? 'p' : l.trim()==='' ? '' : 'x';
+    // A CONTINUATION (2026-09-03, Sophie on a numbered list whose every item
+    // carried its body on the line right under the number: "no checkboxes on
+    // ur message why?"). A plain line DIRECTLY under an item — no blank line
+    // between — is the rest of that item (markdown's own lazy continuation),
+    // so it rides the run instead of ending it. A blank line and then a
+    // plain paragraph still ends the run, which is what keeps a TLDR line and
+    // the paragraph under it boxless.
+    if(kind[i]==='x' && i>0 && /^[bpc]$/.test(kind[i-1]||'')) kind[i]='c';
   }
   // Runs: items of one kind with only blank lines between them.
   var runs=[], cur=null;
   for(i=0;i<lines.length;i++){
     var k=kind[i];
     if(k===''){ continue; }
+    if(k==='c'){ continue; }  // rides the run it follows, counted with no box of its own
     if(cur && cur.kind===k){ cur.idx.push(i); continue; }
     cur={kind:k, idx:[i]}; runs.push(cur);
   }
