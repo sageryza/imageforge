@@ -99,6 +99,10 @@ window.addEventListener('unhandledrejection', function(e){
   var cfg = { chat:'t', sheet:'s'+(PASS===3?1:PASS), browse:true,
     items: ${JSON.stringify(ITEMS)}.map(function(x){ x.img=IMG; return x; }) };
   if (PASS === 3) cfg.look = 'mom';   // her Decision Deck chrome
+  // pass 3 reuses pass 1's sheet, and a deck left on its piles is REMEMBERED
+  // per sheet (2026-09-03) — so the memory of the earlier pass is cleared, or
+  // this deck opens on the piles and the tap below toggles them away
+  try { localStorage.removeItem('jg.piles.' + cfg.sheet); } catch (e) {}
   window.__judge(cfg);
   var m=document.getElementById('judge');
   function q(s){ return m.querySelector(s); }
