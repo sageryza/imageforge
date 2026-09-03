@@ -1316,8 +1316,17 @@
     function toPiles() { lane = null; peek = {}; view = 'piles'; fromPiles = false; rememberPiles(true); }
     // walking on from a card is leaving the piles behind
     function leftPiles() { fromPiles = false; rememberPiles(false); }
+    // A ▲ OR A ? ON ONE TWIN DECIDES THE CARD (2026-09-03, Sophie, on a
+    // three-twin card with one ▲ and two blanks, still being asked: "another
+    // mistake"). The twins are ONE card drawn several times, so picking one
+    // is the decision; the unpicked ones stay unmarked and are not held
+    // against her. A card with only ✕'s and blanks is still open.
+    function picked(it) {
+      return liveCards(it).some(function (c) { return verdicts[c.id] === true || verdicts[c.id] === 'maybe'; });
+    }
     function unjudged(it) {
       if (eachCard && it.cards && it.cards.length) {
+        if (picked(it)) return false;
         return liveCards(it).some(function (c) { return verdicts[c.id] === undefined; });
       }
       return verdicts[it.id] === undefined;
@@ -1351,8 +1360,7 @@
       // a yes stamps its own picture; a no simply leaves — that IS the mark
       stampNow = val === true ? c.id : null;
       var it = items[cur];
-      var live = liveCards(it);
-      var decided = !live.length || live.every(function (x) { return verdicts[x.id] !== undefined; });
+      var decided = !unjudged(it);
       if (browse && quick && val !== null && decided) {
         var going = cur;
         if (stampNow && stampOn) { render(true); setTimeout(function () { stepOn(going); }, 620); }
@@ -1905,6 +1913,13 @@
         });
         var sections = shown.map(function (p, pi) {
           var members = units.filter(function (u) {
+            // an unmarked twin of a card she already picked from is not
+            // unsorted — the pick settled it
+            if (p.key === undefined && eachCard && u.it.id !== u.open && verdicts[u.it.id] === undefined) {
+              var holder = null;
+              items.forEach(function (x) { if (x.id === u.open) holder = x; });
+              if (holder && picked(holder)) return false;
+            }
             return p.match ? p.match(verdicts[u.it.id], u.it) : verdicts[u.it.id] === p.key;
           });
           if (!members.length) return '';
