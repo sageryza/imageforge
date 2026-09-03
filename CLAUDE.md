@@ -3841,6 +3841,9 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   running autoscroll first. Source is `scripts/pill.py` (re-run
   `python3 scripts/gen-pill-inject.py` after editing); full rules in
   `docs/design-rules.md`, pinned by `node scripts/test-back-to-top.js`.
+  **Its twin, TO THE BOTTOM, sits under it since 2026-09-03** (Sophie: "add a
+  scroll to bottom arrow playground") — `#pbot`, lit while there is page
+  below, injected pill only; `node scripts/test-scroll-to-bottom.js`.
   - **"IT'S NOT THERE" CAN MEAN THE PAGE IS OLD, NOT THAT THE ARROW IS
     MISSING (2026-08-27, Sophie about the Playground, twice).** Measured that
     hour before changing anything: the bytes Render answers with carry the
