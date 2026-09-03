@@ -367,6 +367,51 @@ const HTML = `<!doctype html><meta charset="utf-8">
     await page.close();
   }
 
+  // ── 6. THE FOOTER MARKS ONLY THE UNDECIDED, AND A NO'D PICTURE CAN BE SEEN
+  // AGAIN (2026-09-03, Sophie: "some of the ones i had swiped yes on … just
+  // ended up on the no pile and now im not even allowed to see them")
+  {
+    const { page, posts } = await open();
+    const js = (fn, arg) => page.evaluate(fn, arg);
+    const tap = async (sel) => { const hit = await js((q) => { const b = document.querySelector(q); if (b) b.click(); return !!b; }, sel); ok('control present: ' + sel, hit); return hit; };
+    // ▲ on tent-1, then the big ✕ for the rest
+    await tap('#judge .jg-eb.yes[data-card="tent-1"]'); await page.waitForTimeout(150);
+    await tap('#judge .jg-mombtn[data-act="no"]'); await page.waitForTimeout(900);
+    const marks = {};
+    posts.filter((p) => p.path === '/api/chatfeed/verdict' && p.body.ok !== undefined).forEach((p) => { marks[p.body.item] = p.body.ok; });
+    is('the big ✕ after a ▲ on one picture leaves that picture a yes', marks['tent-1'], true);
+    is('…and sends only the undecided ones to No', [marks['tent-2'], marks['tent-3']], [false, false]);
+    // the deck moved on (every picture decided); go to the piles and open a No'd one
+    await tap('#judge [data-act="piles"]'); await page.waitForTimeout(200);
+    const noTile = await js(() => {
+      const heads = [...document.querySelectorAll('#judge .jg-pilehd')];
+      const h = heads.find((x) => /^No ·/.test(x.querySelector('h2').textContent));
+      const grid = h && h.nextElementSibling;
+      const b = grid && grid.querySelector('button[data-peek="tent-2"]');
+      return b ? { open: b.getAttribute('data-open'), peek: b.getAttribute('data-peek') } : null;
+    });
+    ok('the No pile holds the picture as its own tile', !!noTile);
+    await tap('#judge .jg-grid button[data-peek="tent-2"]'); await page.waitForTimeout(250);
+    let s6 = await shot(page);
+    is('opening it shows the card WITH that picture on it', s6.figs, ['tent-1', 'tent-2']);
+    ok('…wearing its ✕ lit', s6.lit.includes('tent-2:no'));
+    await tap('#judge .jg-eb.no[data-card="tent-2"]'); await page.waitForTimeout(250);
+    s6 = await shot(page);
+    ok('…and one tap on that ✕ brings it back (no longer lit, still on the card)', !s6.lit.includes('tent-2:no') && s6.figs.includes('tent-2'));
+    // Swipe these on the No pile walks the No'd pictures, shown
+    await tap('#judge .jg-back'); await page.waitForTimeout(200);
+    const swipeNo = await js(() => {
+      const heads = [...document.querySelectorAll('#judge .jg-pilehd')];
+      const h = heads.find((x) => /^No ·/.test(x.querySelector('h2').textContent));
+      const b = h && h.querySelector('.jg-again'); if (b) b.click(); return !!b;
+    });
+    ok('the No pile has its Swipe these', swipeNo);
+    await page.waitForTimeout(250);
+    s6 = await shot(page);
+    ok('…which shows the No\'d picture on its card', s6.figs.includes('tent-3'));
+    await page.close();
+  }
+
   await browser.close();
   console.log(`judge spread-each: ${pass} passed, ${fails.length} failed`);
   fails.forEach((f) => console.log('  ✗ ' + f));
