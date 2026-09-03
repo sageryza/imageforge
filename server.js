@@ -1972,6 +1972,15 @@ app.get('/api/story/thumb', async (req, res) => {
     // Overloaded? Serve the original rather than queueing another decode —
     // a slow tile beats an OOM'd server (see the gate above).
     if (!thumbHot.has(url + '|' + w) && thumbWaiters.length > 12) return res.redirect(302, url);
+    // THE REDIRECT IS CACHED (2026-09-03, Sophie, stepping through a deck:
+    // "why does it fucking flash every time i tap right left · cach?"). A
+    // made thumb is content-addressed and never changes, but the 302 that
+    // points at it carried no Cache-Control — so every page that re-created
+    // an <img src=thumb-url> (a deck rebuilds its card on every step) paid a
+    // round trip to this box before the cached webp could paint: a blank
+    // frame, then the picture. The two fallbacks above stay uncached — they
+    // point at the original and may become a thumb later.
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
     res.redirect(302, await makeThumb(url, w));
   } catch (err) {
     console.error('thumb failed:', err.message);
