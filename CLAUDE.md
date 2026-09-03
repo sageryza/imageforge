@@ -4290,13 +4290,58 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
       finding the door still open was a live bug on both pages before this.)
     - **A tap PAST the end lands on the picture, which never closes** — the
       shared close contract, unchanged; only the zone that exists is drawn.
-    - Test: `node scripts/test-assets-tap-next.js` (both real pages headless,
-      one sweep — the zones at the ends, a step that really changes the
-      picture, the ♥ filter skipping the tile in between, the ♥ after a step
-      posting the stepped-TO url, and the door's two rules; verified failing
-      against both pre-fix pages). `test-meta-assets-page.js` asks the picture
-      by DISPATCH now: its fixture is a 1×1 PNG, so the two 28% zones cover
-      the whole of it and a centre-point click lands on a zone.
+    - **A MARK CAST FROM THE LIGHTBOX CAN TAKE THE PICTURE OFF THE GRID, AND
+      THE WALK HAS TO SURVIVE IT (2026-09-03, her "i know one bug").** Every
+      vote re-runs `applyFilter`, so with New or ♥ or Hide ✕ lit — which IS
+      reviewing a tab — hearting the open picture hides its tile, the walk
+      asked "where am I" and got -1, and **both zones went dead while still
+      drawn**: stuck on that picture with only the way out working, on the
+      loop (heart · next · heart · next) the feature exists for. Her PLACE is
+      the fallback: the list closed up over the gap, so what now stands at the
+      index she held IS the next one. It heals the moment the picture is back
+      on screen, and it can only ever be one tile out, because the only thing
+      that re-filters while the box is open is a mark she just cast.
+      **The Playground has the same shape and is NOT fixed here** — its own
+      `lbAt()` returns -1 the same way once `loadRuns` re-filters under it.
+    - **THE CACHED THUMB PAINTS FIRST, the original swaps in behind it** (the
+      Playground's 2026-08-26 rule, which these two never had). They painted
+      `it.url` — 1-3MB at the 2K and 4K tiers — so the box sat EMPTY through
+      the whole download, on every step. `tileSrc(it)` is what the TILE is
+      showing: already decoded, and already past the direct-thumb →
+      `/api/story/thumb` fallback, so it can never paint the 404 the tile
+      itself walked away from. One download either way — the preloader warms
+      the cache the swap then reads — and the doors and notes still run off
+      the real url (`lightbox(url, asset, shown)`).
+    - Test: `node scripts/test-assets-tap-next.js` (all three feeds headless
+      in one sweep; verified failing against each pre-fix page). **The stub
+      serves the ORIGINAL slowly on purpose**: locally the thumb and the
+      original land inside one tick, so a page painting the original looks
+      identical to one that doesn't. `test-meta-assets-page.js` asks the
+      picture by DISPATCH now: its fixture is a 1×1 PNG, so the two 28% zones
+      cover the whole of it and a centre-point click lands on a zone.
+  - **IS IT EVERYWHERE? IT IS NOW — AND THREE SURFACES WERE MISSING IT
+    (2026-09-03, Sophie: "is tap to next everywhere").** Five stepped and
+    three did not, and every gap was invisible from inside its own file:
+    - **Compare GRID pages** — the fix is in **`asset-view.js`**, the shared
+      adapter, which takes a `seq()` and builds the `nav` itself; `grid.js`
+      hands it `img[data-lb]` in document order (only asset-backed pictures
+      carry it, which is the same set that opens this lightbox at all). So a
+      spread's two ride side by side in the walk exactly as they do on screen.
+      The adapter caches its asset per item, so it needed the Assets tab's own
+      prompt-door rule — clear on a fresh open, carry on a step.
+    - **The DELIVERED tab's picture strip** — the walk is `it.images`, the
+      burst as it was handed to her, so the row's three thumbs open onto the
+      whole batch.
+    - **The CHARACTER sheet** — the walk is `.cell img` in document order, so
+      the search narrows it by itself; the big portrait is in no sheet and
+      opens alone.
+    - **A DECK CARD (judge.js) DELIBERATELY DOES NOT STEP** — it goes through
+      the same adapter but hands over no `seq`, so no zones are drawn: a card
+      already has its own left/right gesture for the DECK, and a second one
+      inside it that steps something else is hers to ask for.
+    - `node scripts/test-asset-lightbox.js` carries the sweep: every surface
+      that opens a feed hands over a nav hook, and a new picture surface joins
+      it by linking the shared file.
 - **THE BOTTOM BAR'S THREE ARE PERMANENT — Story Room · Story Timeline ·
   Playground (2026-08-26, Sophie: "right now the bottom real icons switch off
   can you change it so they're permanent I want the story room, the story
@@ -8680,6 +8725,55 @@ before working on that module. Nothing was deleted — the moved text is verbati
       malformed" on one of her liked urls and took the whole sweep with it.
       Every decode here is guarded; a key that cannot be decoded is still a
       usable key undecoded.
+- **HEAD GAMES** (`docs/headgames/`, a Compare page in the
+  `mental-games-instrumental-beliefs` chat — no route, no module, no iOS tile;
+  2026-09-03, Sophie: "little games we play in our head all the time …
+  organizing ur mind — stray bits of info that normally float around, now,
+  structured in a format that makes sense … diagnose mental processes,
+  represent, no value judgement" · "can we build a hub, each game an icon" ·
+  "make it off render so we don't have to deploy every time — a compare page
+  maybe"). Five games behind five hand-drawn line icons, three to a row:
+  **the scale** (hers: pros and cons, she decides how many blocks each reason
+  weighs, taps them on one at a time, the line names the block that tipped
+  it), **the jars** (questions she never looked up, the lid comes off with the
+  answer, the shelf counts the shut ones and the longest-shut), **the train**
+  (how did I get to thinking about this — cars coupled backwards to the
+  station), **the tower** (why she believes a thing — pull a block, does it
+  still stand, the load-bearing ones turn rose) and **luggage tags** (who
+  handed her each opinion, grouped by name). Nothing judges anything; each
+  shape only says what is in it. **It costs nothing** — no model call, no
+  route, and a new version needs NO DEPLOY.
+  - **THE PAGE IS POSTED, NOT SERVED.** `node scripts/headgames-page.js --go`
+    builds `headgames.tpl.html` + `rules.js` (inlined) and posts it with
+    `POST /api/chatfeed/page`; `--supersede <id>` retires the old one. The
+    version comes off `docs/headgames/VERSIONS`, a ledger the script appends
+    to, so the title is always `Head Games vN`. A change to the page is:
+    edit the template, run the tests, post, supersede, merge with
+    `[skip render]`. Don't turn it into a `public/*.html` route — that is
+    exactly the deploy-per-change she asked to be rid of.
+  - **HER STATE LIVES OFF THE PAGE, on verdict docs** — one per game
+    (`hg-scale` · `hg-jar` · `hg-train` · `hg-tower` · `hg-tag`, under the
+    chat above), one JSON text per item, through the `/api/chatfeed/verdict`
+    the live server already has. So every version opens on the same jars and
+    towers, and a page is frozen the day it is posted while her games are
+    not. A verdict text holds 2000 chars; an item over ~1900 is refused with
+    "This one is full" rather than truncated. Nothing is deleted — "Put it
+    away" sets `hidden`.
+  - **FOUR THINGS THE PHOTO CAUGHT, worth not re-earning:** a CSS `width`
+    on `.blk` (the tower's HTML block) reached the scale's SVG `rect.blk`
+    and drew every weight as a bar across the drawing (the SVG blocks are
+    `.bk`); a placed reason wearing `.on` picked up compare.css's
+    `button.on` white-on-gold and read as blank (`.placed`); a pulled tower
+    block at 38% slid off a 390pt phone (blocks are 70% wide, the slide 20%,
+    and `.wrap` never scrolls sideways); and the "A jar" button was
+    right-aligned into the pill's corner. And **three lists sharing one
+    `#lnew` id gave only the first a handler** — they are `.lnew`, scoped
+    per list.
+  - Tests: `node scripts/test-headgames.js` (the rules, pure — the scale's
+    deciding block, the shelf order, the route, load-bearing, the grouping —
+    and the built page against the page-kit warnings) and
+    `node scripts/test-headgames-page.js` (the real page headless, every
+    game walked against a stubbed verdict store; every check a measurement).
 - **The Dump** (`dropbox.js`, `/api/drop`, sort page at `/dump`, iOS tile with
   SEND and SORT tabs) — **dump first, label afterwards**. Dropping asks no
   questions; only the bundle (a Photos album) and the session are captured,
