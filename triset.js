@@ -87,8 +87,44 @@ const LIKES_CHAT = 'triset-card-inventory';
 // accident", and it has people, which no card may. One id, named rather than
 // silently filtered; un-hearting it in the Playground is the other way out.
 const LIKES_SKIP = new Set(['bom9yqioA7NshqaC9X9p']);
-const NATURE_SLUGS = new Set(
-  JSON.parse(fs.readFileSync(path.join(__dirname, 'docs/triset/nature-slugs.json'), 'utf8')).slugs);
+/* ── THE EDITIONS — a deck within the pool, and there are TWO now
+   (2026-09-03, Sophie: "do the second edition") ───────────────────────────
+   `edition` was a single hand-decided vocabulary, NATURE, and everything
+   outside it could never be dealt however much she liked it. Measured that
+   day: of the 902 cards, 816 sat hidden, and **27 subjects she had HEARTED
+   were hidden for no reason but not being nature** — the shattered plate she
+   asked after among them.
+
+   Widening the nature list was the wrong fix: she spent a day deciding what
+   nature means ("they did a bad job of deciding what's nature and what's
+   not. redo"), and stretching it to fit a teacup would undo that. So the
+   vocabulary became a TABLE, one entry per edition, and the game's edition
+   chips do the rest — the page derives them from the pool and `edLabel`
+   capitalises an unknown slug, so a third edition needs no page change at all.
+
+   ADOPTION LANDS IN `ADOPT_EDITION`, NOT IN NATURE, and that is a real
+   behaviour change: her ♥ on the waiting-room page used to deal a non-nature
+   subject INTO the nature edition, i.e. the one thing this table exists to
+   prevent. Nature is closed and hers; everyday is where anything she adopts
+   goes.
+
+   A slug removed from a list deletes nothing — the sync simply stops dealing
+   it, and `hidden` is still the verb. */
+const EDITIONS = [
+  ['nature', 'docs/triset/nature-slugs.json'],
+  ['everyday', 'docs/triset/everyday-slugs.json'],
+].map(([key, file]) => ({
+  key,
+  slugs: new Set(JSON.parse(fs.readFileSync(path.join(__dirname, file), 'utf8')).slugs),
+}));
+const ADOPT_EDITION = 'everyday';
+
+// which edition a subject belongs to — null means "not dealt anywhere", which
+// is what keeps a pool of 900 from dealing itself
+function editionForSlug(slug, adopted) {
+  for (const e of EDITIONS) if (e.slugs.has(slug)) return e.key;
+  return (adopted && adopted.has(slug)) ? ADOPT_EDITION : null;
+}
 
 /* ── HER HEARTS ARE THE DECK (2026-09-01, "connect it to the deck so they flow
    in and out automatically") ─────────────────────────────────────────────
@@ -144,7 +180,6 @@ function bestCard(a, b) {
   return (b.createdAt || 0) > (a.createdAt || 0) ? b : a;
 }
 function syncPlan(cards, voteByUrl, adopted) {
-  const IN = slug => NATURE_SLUGS.has(slug) || (adopted && adopted.has(slug));
   const patch = new Map();
   const put = (c, k, v) => {
     // most cards carry no `hidden` field at all, so compare it as a truth
@@ -155,26 +190,31 @@ function syncPlan(cards, voteByUrl, adopted) {
   const bySlug = new Map();
   for (const c of cards) {
     const slug = slugOfUrl(c.url);
-    if (!slug || !IN(slug)) continue;   // her vocabulary, plus what she adopted
-    if (!bySlug.has(slug)) bySlug.set(slug, []);
-    bySlug.get(slug).push(c);
+    if (!slug) continue;
+    // her vocabularies, plus what she adopted. A subject in no edition is
+    // simply not dealt — that is what `hidden` on 816 of 902 cards means.
+    const ed = editionForSlug(slug, adopted);
+    if (!ed) continue;
+    if (!bySlug.has(slug)) bySlug.set(slug, { ed, group: [] });
+    bySlug.get(slug).group.push(c);
   }
-  for (const [, group] of bySlug) {
-    const out = group.filter(c => c.edition === 'nature' && !c.hidden
-      && voteByUrl[c.url] === 'dislike');
+  for (const [, { ed, group }] of bySlug) {
+    // IN THIS SUBJECT'S OWN EDITION — the rules below were written against a
+    // hardcoded 'nature' and are otherwise unchanged
+    const dealt = c => c.edition === ed && !c.hidden;
+    const out = group.filter(c => dealt(c) && voteByUrl[c.url] === 'dislike');
     // the incumbent, unless she crossed it out
-    let held = group.find(c => c.edition === 'nature' && !c.hidden
-      && voteByUrl[c.url] !== 'dislike');
+    let held = group.find(c => dealt(c) && voteByUrl[c.url] !== 'dislike');
     if (!held) {
       const up = group.filter(c => voteByUrl[c.url] === 'like');
       if (up.length) held = up.reduce(bestCard);
     }
     for (const c of out) { put(c, 'hidden', true); if (c !== held) put(c, 'edition', ''); }
-    if (held) { put(held, 'edition', 'nature'); put(held, 'hidden', false); }
-    // one card per subject: the page deals every nature-tagged card, so a
-    // second tagged generation would deal the same subject twice
+    if (held) { put(held, 'edition', ed); put(held, 'hidden', false); }
+    // one card per subject: the page deals every tagged card, so a second
+    // tagged generation would deal the same subject twice
     for (const c of group) {
-      if (c !== held && c.edition === 'nature' && !c.hidden) put(c, 'edition', '');
+      if (c !== held && dealt(c)) put(c, 'edition', '');
     }
   }
   return [...patch].map(([id, p]) => ({ id, patch: p }));
@@ -202,7 +242,9 @@ function waitingPlan(cards, voteByUrl, verdicts) {
   for (const c of cards) {
     const slug = slugOfUrl(c.url);
     if (!slug) continue;
-    if (c.edition === 'nature' && !c.hidden) { dealt.add(slug); continue; }
+    // dealt in ANY edition — this used to name 'nature' alone, which after
+    // the second edition would have gone on offering her cards already dealt
+    if (c.edition && !c.hidden) { dealt.add(slug); continue; }
     if (voteByUrl[c.url] !== 'like') continue;
     if (verdicts[slug] === false) continue;          // she said no on the page
     const cur = best.get(slug);
@@ -971,6 +1013,7 @@ module.exports = {
   router, init,
   foundContent, cardPrompt, validFound, stuckPatch, bakeCard, editionOf, mixHex,
   syncPlan, syncHearts, slugOfUrl, bestCard, waitingPlan, adoptedFrom, writeWaiting,
+  EDITIONS, ADOPT_EDITION, editionForSlug,
   likesPlan, writeLikes, syncLikes, pokeLikes, LIKES_PAGE, LIKES_CHAT, LIKES_SKIP,
   opponentMove, opponentPrompt, OPPONENT_SYSTEM, challengeVerdict, CHALLENGE_SYSTEM,
   KINDS, STYLE, TRIANGLE_CLAUSE, triangleClause, INVENT_LINE, AUTO_RULES, STUCK_MS, COST_CENTS,

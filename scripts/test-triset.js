@@ -367,10 +367,62 @@ ok('an orphaned draw fails honestly', sp && sp.status === 'failed');
 
   ok('her ♥ on the page is the adoption', A({ teacup: true, 'burnt-toast': false }).has('teacup'));
   ok('…and an ✕ there is not', !A({ 'burnt-toast': false }).has('burnt-toast'));
-  const dealt = triset.syncPlan([{ id: 'n', url: U(6, 'teacup'), hidden: true }],
-    { [U(6, 'teacup')]: 'like' }, A({ teacup: true }));
-  ok('an adopted subject joins the deal though it is outside the vocabulary',
-    dealt.length === 1 && dealt[0].patch.edition === 'nature' && dealt[0].patch.hidden === false);
+  // AN ADOPTION LANDS IN THE SECOND EDITION, NOT IN NATURE (2026-09-03) —
+  // this asserted 'nature' until the second edition existed, which was the one
+  // thing that could silently widen the vocabulary she spent a day deciding.
+  const dealt = triset.syncPlan([{ id: 'n', url: U(6, 'burnt-toast'), hidden: true }],
+    { [U(6, 'burnt-toast')]: 'like' }, A({ 'burnt-toast': true }));
+  ok('an adopted subject joins the deal though it is outside every vocabulary',
+    dealt.length === 1 && dealt[0].patch.hidden === false
+    && dealt[0].patch.edition === triset.ADOPT_EDITION);
+  ok('…and it lands in the adopt edition rather than widening nature',
+    triset.ADOPT_EDITION !== 'nature');
+}
+
+/* ── the SECOND EDITION (2026-09-03, Sophie: "do the second edition") ─────── */
+{
+  const P = triset.syncPlan;
+  const U = (n, s) => `x/cards/${n}-${s}.webp`;
+  const E = triset.editionForSlug;
+
+  ok('two editions, each its own vocabulary',
+    triset.EDITIONS.length >= 2 && triset.EDITIONS.every(e => e.key && e.slugs.size));
+  ok('the vocabularies do not overlap — a subject has ONE edition',
+    triset.EDITIONS.every((a, i) => triset.EDITIONS.every((b, j) =>
+      i === j || ![...a.slugs].some(x => b.slugs.has(x)))));
+  ok('a nature subject still reads nature', E('lemon') === 'nature');
+  ok('the shattered plate she asked after is in the second edition',
+    E('shattered-plate') === 'everyday');
+  ok('a subject in no vocabulary is dealt nowhere', E('burnt-toast', null) === null);
+
+  // the whole nature rule, run against the second edition
+  const p1 = Object.fromEntries(
+    P([{ id: 'p', url: U(1, 'shattered-plate'), hidden: true, quality: 'low' }],
+      { [U(1, 'shattered-plate')]: 'like' }).map(x => [x.id, x.patch]));
+  ok('a ♥ deals a second-edition subject that had nothing in the deck',
+    p1.p && p1.p.edition === 'everyday' && p1.p.hidden === false);
+
+  const p2 = Object.fromEntries(
+    P([{ id: 'a', url: U(1, 'teacup'), edition: 'everyday', quality: 'low' },
+      { id: 'b', url: U(2, 'teacup'), hidden: true, quality: 'medium' }],
+    { [U(1, 'teacup')]: 'dislike', [U(2, 'teacup')]: 'like' }).map(x => [x.id, x.patch]));
+  ok('an ✕ swaps the second edition’s picture exactly as it does nature’s',
+    p2.a && p2.a.hidden === true && p2.b && p2.b.edition === 'everyday' && p2.b.hidden === false);
+
+  ok('a settled second edition writes nothing',
+    P([{ id: 'a', url: U(1, 'teacup'), edition: 'everyday' }], {}).length === 0);
+
+  // and the two editions never reach into each other
+  const p3 = P([{ id: 'n', url: U(1, 'lemon'), edition: 'everyday', hidden: false }], {});
+  ok('a card tagged the WRONG edition for its subject is not left dealt there',
+    p3.length === 0 || p3.every(x => x.patch.edition !== 'everyday'));
+
+  // the waiting room must not go on offering a card the second edition deals
+  const wait = triset.waitingPlan(
+    [{ id: 'p', url: U(1, 'shattered-plate'), edition: 'everyday' }],
+    { [U(1, 'shattered-plate')]: 'like' }, {});
+  ok('a subject dealt in ANY edition stops waiting on the page',
+    !wait.map(i => i.id).includes('shattered-plate'));
 }
 ok('a referee that does not say yes is a no', triset.challengeVerdict({ fits: 'yes' }).fits === false);
 ok('a plain yes is a yes', triset.challengeVerdict({ fits: true, why: 'both are water' }).fits === true);

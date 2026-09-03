@@ -8517,6 +8517,36 @@ before working on that module. Nothing was deleted — the moved text is verbati
     tagged, since it cannot be dealt. `edLabel` falls through to the
     capitalized slug, so the chip needed no page change.
     The objects are immutable — bump `CUT_VERSION` to re-bake past the CDN.
+    **AND THERE IS A SECOND EDITION SINCE 2026-09-03 — EVERYDAY (Sophie, after
+    asking why her shattered-plate card was hidden: "do the second edition").**
+    Measured that day: 816 of the 902 cards were hidden, and **27 subjects she
+    had HEARTED were hidden for no reason but not being nature** — the plate
+    among them. **Widening the nature list was the wrong fix** and is the thing
+    not to do: she spent a day deciding what nature means ("they did a bad job
+    of deciding what's nature and what's not. redo"), and stretching it to fit
+    a teacup undoes that. So the vocabulary is a TABLE now — `EDITIONS` in
+    `triset.js`, one entry per edition over its own slugs file
+    (`docs/triset/nature-slugs.json`, `docs/triset/everyday-slugs.json`) — and
+    `syncPlan` runs its whole rule per edition instead of against a hardcoded
+    `'nature'`. **The page needed NO change**: it derives the chips from the
+    pool and `edLabel` capitalizes an unknown slug, so a THIRD edition is one
+    file plus one line in that table. Three things not to undo:
+    - **ADOPTION LANDS IN `ADOPT_EDITION`, NOT IN NATURE** — and that is a real
+      behaviour change, not a tidy-up. Her ♥ on the waiting-room page used to
+      deal a non-nature subject straight INTO the nature edition, which is the
+      one thing the closed vocabulary exists to prevent; measured, **10
+      subjects were already sitting in nature that way** (burnt-toast,
+      dominoes, coat-chair…) and the switch moved them to everyday. Nature is
+      closed and hers; everyday is where anything she adopts goes.
+    - **`waitingPlan` counts a subject dealt in ANY edition**, not in nature —
+      it named `'nature'` alone, and after the second edition it would have
+      gone on offering her cards the game already deals.
+    - **The two vocabularies must not overlap** (a subject has ONE edition) —
+      a test asserts it, because `editionForSlug` takes the first hit and a
+      subject in both would silently belong to whichever file is listed first.
+    Live after the first sync: **Nature 71, Everyday 37**. Two subjects in
+    everyday read as NATURE and are named in that file's `_open` —
+    `blackberries` and `peacock-fan`; moving them is one line and is hers.
     **AND HER HEARTS ARE THE DECK NOW — no chat runs anything (2026-09-01:
     "connect it to the deck so they flow in and out automatically").** A ♥ on
     a nature card puts it IN the deal and an ✕ takes it out, cast wherever she
