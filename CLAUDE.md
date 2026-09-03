@@ -4265,13 +4265,58 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
       finding the door still open was a live bug on both pages before this.)
     - **A tap PAST the end lands on the picture, which never closes** — the
       shared close contract, unchanged; only the zone that exists is drawn.
-    - Test: `node scripts/test-assets-tap-next.js` (both real pages headless,
-      one sweep — the zones at the ends, a step that really changes the
-      picture, the ♥ filter skipping the tile in between, the ♥ after a step
-      posting the stepped-TO url, and the door's two rules; verified failing
-      against both pre-fix pages). `test-meta-assets-page.js` asks the picture
-      by DISPATCH now: its fixture is a 1×1 PNG, so the two 28% zones cover
-      the whole of it and a centre-point click lands on a zone.
+    - **A MARK CAST FROM THE LIGHTBOX CAN TAKE THE PICTURE OFF THE GRID, AND
+      THE WALK HAS TO SURVIVE IT (2026-09-03, her "i know one bug").** Every
+      vote re-runs `applyFilter`, so with New or ♥ or Hide ✕ lit — which IS
+      reviewing a tab — hearting the open picture hides its tile, the walk
+      asked "where am I" and got -1, and **both zones went dead while still
+      drawn**: stuck on that picture with only the way out working, on the
+      loop (heart · next · heart · next) the feature exists for. Her PLACE is
+      the fallback: the list closed up over the gap, so what now stands at the
+      index she held IS the next one. It heals the moment the picture is back
+      on screen, and it can only ever be one tile out, because the only thing
+      that re-filters while the box is open is a mark she just cast.
+      **The Playground has the same shape and is NOT fixed here** — its own
+      `lbAt()` returns -1 the same way once `loadRuns` re-filters under it.
+    - **THE CACHED THUMB PAINTS FIRST, the original swaps in behind it** (the
+      Playground's 2026-08-26 rule, which these two never had). They painted
+      `it.url` — 1-3MB at the 2K and 4K tiers — so the box sat EMPTY through
+      the whole download, on every step. `tileSrc(it)` is what the TILE is
+      showing: already decoded, and already past the direct-thumb →
+      `/api/story/thumb` fallback, so it can never paint the 404 the tile
+      itself walked away from. One download either way — the preloader warms
+      the cache the swap then reads — and the doors and notes still run off
+      the real url (`lightbox(url, asset, shown)`).
+    - Test: `node scripts/test-assets-tap-next.js` (all three feeds headless
+      in one sweep; verified failing against each pre-fix page). **The stub
+      serves the ORIGINAL slowly on purpose**: locally the thumb and the
+      original land inside one tick, so a page painting the original looks
+      identical to one that doesn't. `test-meta-assets-page.js` asks the
+      picture by DISPATCH now: its fixture is a 1×1 PNG, so the two 28% zones
+      cover the whole of it and a centre-point click lands on a zone.
+  - **IS IT EVERYWHERE? IT IS NOW — AND THREE SURFACES WERE MISSING IT
+    (2026-09-03, Sophie: "is tap to next everywhere").** Five stepped and
+    three did not, and every gap was invisible from inside its own file:
+    - **Compare GRID pages** — the fix is in **`asset-view.js`**, the shared
+      adapter, which takes a `seq()` and builds the `nav` itself; `grid.js`
+      hands it `img[data-lb]` in document order (only asset-backed pictures
+      carry it, which is the same set that opens this lightbox at all). So a
+      spread's two ride side by side in the walk exactly as they do on screen.
+      The adapter caches its asset per item, so it needed the Assets tab's own
+      prompt-door rule — clear on a fresh open, carry on a step.
+    - **The DELIVERED tab's picture strip** — the walk is `it.images`, the
+      burst as it was handed to her, so the row's three thumbs open onto the
+      whole batch.
+    - **The CHARACTER sheet** — the walk is `.cell img` in document order, so
+      the search narrows it by itself; the big portrait is in no sheet and
+      opens alone.
+    - **A DECK CARD (judge.js) DELIBERATELY DOES NOT STEP** — it goes through
+      the same adapter but hands over no `seq`, so no zones are drawn: a card
+      already has its own left/right gesture for the DECK, and a second one
+      inside it that steps something else is hers to ask for.
+    - `node scripts/test-asset-lightbox.js` carries the sweep: every surface
+      that opens a feed hands over a nav hook, and a new picture surface joins
+      it by linking the shared file.
 - **THE BOTTOM BAR'S THREE ARE PERMANENT — Story Room · Story Timeline ·
   Playground (2026-08-26, Sophie: "right now the bottom real icons switch off
   can you change it so they're permanent I want the story room, the story
