@@ -3327,6 +3327,15 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   Near-variant prompts (a line changed) are still only FLAGGED
   (`GET /api/gallery/assets/variants?chat=`) — filing those is the chat's
   call. Full contract in `docs/compare-pages.md` (THE STOCK TEMPLATES).
+  **PICKING BETWEEN NEAR-TWIN PICTURES? FOUR MORE PAGE FIELDS (2026-09-03,
+  Sophie's triangle review deck):** `buttons` (her words + a mark on the
+  footer's three — `x` · `heart` · `maybe` · `triangle`; the keys never
+  move), `spreadEach: true` (every picture on a spread is its own decision
+  and a no takes it OFF the spread so the rest can be compared),
+  `spreadAll: true` (a twin set of any size stays ONE card — "has to be all
+  no cap" — 2x2 for four, three across after) and `note: 'small'`. Full
+  contract in `docs/compare-pages.md`; `scripts/triangle-deck-review.js` is
+  the worked example.
   **WORDS ON A CARD — a date, a moment, a scene — GO IN HER DATE-CARD DESIGN,
   and it is automatic (Aug 2026, her own "Decision Deck v2", built for the
   dating book).** Give a deck item any of `who` (the name — her rust, centred

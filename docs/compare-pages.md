@@ -510,6 +510,31 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     `grid` data is `{ groups:[{ label?, items:[…] }], … }`, and the rest —
     `states?`, `aspect?`, `start?`, `help?`, plus the DECK-VIEW fields
     `voice?`, `browse?`, `stamp?`, `pace?` — is shared by both.
+    **A DECK OF PICTURES TO PICK BETWEEN — FOUR MORE PAGE FIELDS, ALL
+    OPTIONAL (2026-09-03, Sophie's triangle review deck: "new buttons add to
+    deck / maybe add to deck / no · compare similar prompts to each other ·
+    when i x one it disappears from the compare · four is fine, has to be all
+    no cap"). Ask for them when posting; nothing about a stock deck changed.**
+    - `buttons: { yes:{label, icon}, maybe:{…}, no:{…} }` — the footer's
+      three in her words, with a mark by name (`x` · `heart` · `maybe` ·
+      `triangle`). The KEYS never move (true / 'maybe' / false), so the
+      lightbox ♥/✕, the Assets mirror, the stamp, the pace and the review
+      queue all still work; only the picture on the button and the pile's
+      name change. `goodWord` / `badWord` change the stamp's words.
+    - `spreadEach: true` — every picture on a spread is its own decision:
+      each wears the three buttons, each mark lands on THAT card's id, and a
+      picture marked no LEAVES the spread so the rest can be compared; the
+      footer's three mark every picture still on it. The piles hold the
+      pictures, each opening its spread. Put near-twin prompts (the same
+      subject drawn twice) in one group for this.
+    - `spreadAll: true` — a group of ANY size stays one swipe card (the
+      default splits a group past three): four is laid 2x2, more is three
+      across. Without it a set of four twins is dealt as two cards and she
+      cannot see they are four.
+    - `note: 'small'` — a two-line note box under a picture card.
+    `scripts/triangle-deck-review.js` is the worked example (the gather, the
+    twin rule, the marks carried onto a re-post, `--redeal`); the test is
+    `scripts/test-judge-spread-each.js`.
     **`pace: 'quick'` — A QUICK-DECISION DECK (2026-09-01, Sophie: "add a
     toggle for chats to choose if it's a quick or labored decision + note …
     heart or x action DOES move deck forward").** On a quick deck a verdict
