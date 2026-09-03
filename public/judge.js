@@ -253,6 +253,11 @@
     // and below still page, and the swipe always did.
     '.jg-spread{display:flex;gap:8px;align-items:flex-start;justify-content:center;'
     + 'position:relative;z-index:3;}' +
+    // A LONE PICTURE LEFT ON AN EACH-CARD SPREAD sits UNDER the zones like a
+    // single card: full width, its centre is nowhere near an edge, and lifted
+    // it would eat the edge tap across the whole card (PHOTO'd — the zone's
+    // centre was the figure). Its own three sit centred, inside the middle.
+    '.jg-spread.lone{z-index:1;}' +
     // position:relative so a spread's own GOOD / BAD stamp lands on the
     // picture it judges rather than on the pair
     '.jg-spread figure{flex:1 1 0;min-width:0;align-self:stretch;'
@@ -265,6 +270,24 @@
     + 'background:#FFFDF8;color:#262016;font:600 12px/1 -apple-system,sans-serif;'
     + 'padding:8px 12px;-webkit-tap-highlight-color:transparent;}' +
     '.jg-pick.on{background:#262016;border-color:#262016;color:#F7F2E8;}' +
+    // EACH PICTURE'S OWN THREE on an each-card spread (spreadEach) — the
+    // footer's marks at a third the size. 30px + 5px gaps fits the 110px
+    // column a three-across spread has at 390pt (the page-views measurement).
+    // the row spans the figure but only its buttons take a tap — the spread
+    // sits above the browse zones, and a full-width row would eat the edge
+    // tap at that height (PHOTO'd: the zone's own centre landed on it)
+    '.jg-each{display:flex;justify-content:center;gap:5px;padding-top:6px;pointer-events:none;}' +
+    '.jg-eb{pointer-events:auto;}' +
+    '.jg-eb{width:30px;height:30px;border-radius:7px;border:1.5px solid #C9BFAA;' +
+    ' background:#FFFDF8;color:#262016;padding:0;display:flex;align-items:center;' +
+    ' justify-content:center;-webkit-tap-highlight-color:transparent;}' +
+    '.jg-eb svg{width:15px;height:15px;fill:currentColor;stroke:none;display:block;}' +
+    '.jg-eb.on{background:#262016;border-color:#262016;color:#F7F2E8;}' +
+    // her note on one card of a spread, under its caption
+    '.jg-cnote{font:italic 400 11px/1.3 Georgia,serif;color:#5C5347;text-align:center;' +
+    ' padding-top:3px;}' +
+    '.jg-allout{font:italic 400 14px/1.4 Georgia,serif;color:#8A7F6E;text-align:center;' +
+    ' padding:24px 12px;}' +
     // THE FOOTER — TWO ASKS, ONE STACK (Aug 2026, back to back). First: "the
     // note box is just too small — it should be bigger so I can see more of my
     // words in it, and the heart and the ex can go a little above it and maybe
@@ -351,6 +374,8 @@
     // too big… I don't need pinch zoom." Do NOT raise this to dodge the zoom.
     ' font:400 13px/1.45 -apple-system,sans-serif;color:#262016;outline:none;resize:none;}' +
     '.jg-momnote::placeholder{color:#A99E8B;}' +
+    // note:'small' — two lines (2026-09-03, "note section can be smaller")
+    '.jg-momnote.small{height:56px;padding:8px 14px;}' +
     '.jg-cardtext.sq{width:100%;display:flex;align-items:center;' +
     ' justify-content:center;text-align:center;padding:10%;box-sizing:border-box;' +
     ' max-height:none;overflow-y:auto;}' +
@@ -692,6 +717,24 @@
     + '<path d="M11.2 18.45 C12.45 18.15 13.75 18.85 13.7 20.05 C13.65 21.05 12.6 21.75'
     + ' 11.55 21.4 C10.5 21.05 10.05 19.85 10.65 19 Z"/></svg>';
 
+  // ── ADD TO DECK — a triangle card (2026-09-03, Sophie, on the triangle
+  // review deck: "new buttons — add to deck · maybe add to deck · no · choose
+  // icons for buttons"). The deck these decide about is Similitude's, whose
+  // cards ARE triangles, so the mark is the card itself: one filled
+  // equilateral, point up, drawn the way the ✕ and the ♥ are — a pen shape
+  // with a slight lean, not a geometric glyph.
+  var MOM_TRI = '<svg viewBox="0 0 24 24" aria-hidden="true">'
+    + '<path d="M12.3 3.1 C12.9 3.4 13.2 4.1 13.6 4.8 L21.1 18.3 C21.6 19.2 21.3 20.2 20.3 20.4'
+    + ' C17.6 20.9 6.6 20.9 3.7 20.4 C2.7 20.2 2.3 19.2 2.8 18.3 L10.4 4.7 C10.9 3.8 11.5 2.7 12.3 3.1 Z"/>'
+    + '</svg>';
+  // THE FOOTER'S THREE CAN WEAR OTHER WORDS AND OTHER MARKS — `buttons` on the
+  // page: { yes:{label, icon}, maybe:{…}, no:{…} }. The KEYS never move (true /
+  // 'maybe' / false), which is what keeps the lightbox's ♥/✕, the Assets-tab
+  // mirror, the stamp, the pace and the review queue all working under a
+  // renamed button; only the picture on it and the pile's name change. An
+  // icon is one of these by name.
+  var MOM_ICONS = { x: MOM_X, heart: MOM_HEART, maybe: MOM_MAYBE, triangle: MOM_TRI };
+
   var I = {
     back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>',
     play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.4v13.2L18.6 12z"/></svg>',
@@ -757,6 +800,32 @@
     // by the paint. Nothing else is ever stamped: the mark is the act of
     // deciding and it leaves a second later (see paintStamp).
     var stampNow = null;
+    // her three buttons — see MOM_ICONS. A page that says nothing gets ♥ · ? · ✕
+    var btnOpt = (opts.buttons && typeof opts.buttons === 'object') ? opts.buttons : {};
+    function btnOf(k, label, icon) {
+      var b = btnOpt[k] || {};
+      return { label: b.label ? String(b.label).slice(0, 24) : label,
+        icon: MOM_ICONS[b.icon] || icon };
+    }
+    var BTN = { yes: btnOf('yes', 'Yes', MOM_HEART), maybe: btnOf('maybe', 'Maybe', MOM_MAYBE),
+      no: btnOf('no', 'No', MOM_X) };
+    var renamed = !!(btnOpt.yes || btnOpt.maybe || btnOpt.no);
+    // note:'small' — a two-line note box (2026-09-03, Sophie, on a deck of
+    // pictures: "note section can be smaller"). A word or two is the usual
+    // note on a picture; four lines of box under a square card cost the card.
+    var smallNote = opts.note === 'small';
+    // ── EACH PICTURE ON A SPREAD IS ITS OWN DECISION — `spreadEach` (2026-09-03,
+    // Sophie: "compare similar prompts to each other. ex circus tent. some say
+    // peeking, some hiding. both are the same card · AND when i x one, it
+    // disappears from the compare (into the no pile) but gone from that
+    // particular card decision, so i can compare the leftovers in peace").
+    // The stock spread is a PICKER: one verdict on the spread, "this one"
+    // under each picture. Here the spread is a shortlist of near-duplicates:
+    // every picture wears the three buttons, each mark lands on THAT card's
+    // own id (so the piles, the Assets tab and the queue count cards, never
+    // spreads), and a card marked no LEAVES the spread — the ones still on
+    // it are the comparison. The footer's three mark every card still on it.
+    var eachCard = !!opts.spreadEach;
     var piles = (states
       ? states.map(function (s) { return { key: s.key, name: s.label }; })
       : DEFAULT_PILES).concat([{ key: undefined, name: 'Unsorted' }]);
@@ -800,8 +869,8 @@
       // the piles speak the mockup's words — ♥, ? and ✕ (Aug 2026: maybe
       // joined the two she started with). 'Unsure' is the UNMARKED pile and
       // stays last; Maybe is a mark she gave, so it sits with the others.
-      piles = [{ key: true, name: 'Yes' }, { key: 'maybe', name: 'Maybe' },
-        { key: false, name: 'No' }, { key: undefined, name: 'Unsure' }];
+      piles = [{ key: true, name: BTN.yes.label }, { key: 'maybe', name: BTN.maybe.label },
+        { key: false, name: BTN.no.label }, { key: undefined, name: 'Unsure' }];
     }
     if (momDeck) {
       document.body.classList.add('jg-mombg');
@@ -877,8 +946,26 @@
     // the spread's, which never match, so her tap fell on the floor and
     // NOTHING was written anywhere. A picture's own mark is the asset vote,
     // exactly what the grid's tile casts on an own-states page.
-    function onDeck(it) {
-      return !!it && items.some(function (x) { return x.id === it.id; });
+    function topIndexOf(it) {
+      for (var i = 0; i < items.length; i++) if (items[i].id === it.id) return i;
+      return -1;
+    }
+    // the index of the item CARRYING this picture — itself, or the spread
+    // it sits on (only an each-card spread's pictures are the deck's own)
+    function holderIndexOf(it) {
+      var i = topIndexOf(it);
+      if (i >= 0 || !eachCard) return i;
+      for (var j = 0; j < items.length; j++) {
+        if ((items[j].cards || []).some(function (c) { return c.id === it.id; })) return j;
+      }
+      return -1;
+    }
+    function onDeck(it) { return !!it && holderIndexOf(it) >= 0; }
+    // the cards still ON a spread — a card marked no has left it
+    function liveCards(it) {
+      if (!it || !it.cards) return [];
+      if (!eachCard) return it.cards;
+      return it.cards.filter(function (c) { return verdicts[c.id] !== false; });
     }
     var assetVotes = {};   // url → 'like' | 'dislike', the Assets tab's own
     var views = window.__assetViews ? window.__assetViews({
@@ -889,13 +976,38 @@
           : verdicts[it.id] === false ? 'dislike' : null;
       },
       // the lightbox's ♥/✕ is the CARD's mark when she is on that card —
-      // one verdict, reachable from either surface, never two that disagree
+      // one verdict, reachable from either surface, never two that disagree.
+      // THE LIGHTBOX STEPS NOW (2026-09-03, Sophie: "make sure lightbox …
+      // includes all 5 buttons and left right tap"), so the picture under
+      // her ♥ may belong to a card OTHER than the one behind the box: the
+      // deck moves to that card first, and the mark lands where she is
+      // looking.
       cast: function (it, v, a) {
-        if (onDeck(it)) { judge(v === 'like'); return; }
+        var hi = holderIndexOf(it);
+        if (hi >= 0) {
+          if (hi !== cur || view !== 'card') { cur = hi; view = 'card'; render(); savePlace(); }
+          if (topIndexOf(it) >= 0) judge(v === 'like');
+          else judgeCard(it, v === 'like');
+          return;
+        }
         a.vote = a.vote === v ? null : v;
         if (a.vote) assetVotes[it.url] = a.vote; else delete assetVotes[it.url];
         mirrorVote(it, a.vote === 'like' ? true : a.vote === 'dislike' ? false : null);
         if (a._lbPaint) a._lbPaint();
+      },
+      // LEFT / RIGHT TAP IN THE LIGHTBOX — the pictures in the order she is
+      // walking them: the lane, a spread's cards where they sit on it (an
+      // each-card spread only the ones still on it). A deck card used to hand
+      // over no seq at all ("a card already has its own left/right gesture");
+      // her ask above retires that.
+      seq: function () {
+        var s = [];
+        items.forEach(function (x, i) {
+          if (!inLane(i)) return;
+          if (x.cards && x.cards.length) liveCards(x).forEach(function (c) { s.push(c); });
+          else if (x.img) s.push(x);
+        });
+        return s;
       },
     }) : null;
 
@@ -1158,14 +1270,76 @@
     // deck, and a lane that outlived its own screen would silently shorten
     // the next walk through the cards
     function toPiles() { lane = null; view = 'piles'; }
+    function unjudged(it) {
+      if (eachCard && it.cards && it.cards.length) {
+        return liveCards(it).some(function (c) { return verdicts[c.id] === undefined; });
+      }
+      return verdicts[it.id] === undefined;
+    }
     function firstUnjudged() {
       for (var i = 0; i < items.length; i++) {
-        if (inLane(i) && verdicts[items[i].id] === undefined) return i;
+        if (inLane(i) && unjudged(items[i])) return i;
       }
       return -1;
     }
+    // quick pace: one card forward, the piles past the end
+    function stepOn(going) {
+      if (cur !== going || view !== 'card') return;
+      var n = laneStep(cur, 1);
+      if (n === -1) { toPiles(); } else { cur = n; }
+      render(true); savePlace();
+    }
+    // ── ONE PICTURE ON AN EACH-CARD SPREAD. Its own id, its own verdict, its
+    // own Assets-tab vote; a NO takes it off the spread. It never moves the
+    // deck by itself — she is comparing the ones left — until every card
+    // still on the spread is decided, and then a quick deck moves on.
+    function judgeCard(c, val) {
+      var prev = verdicts[c.id];
+      if (prev === val) val = null;   // the lit one again clears it
+      undoStack.push({ i: cur, card: c.id, prev: prev });
+      if (val === null) delete verdicts[c.id]; else verdicts[c.id] = val;
+      post({ item: c.id, ok: val });
+      if (val === true || val === false || prev === true || prev === false) mirrorVote(c, val);
+      if (views) views.sync(c, val === true ? 'like' : val === false ? 'dislike' : null);
+      // a yes stamps its own picture; a no simply leaves — that IS the mark
+      stampNow = val === true ? c.id : null;
+      var it = items[cur];
+      var live = liveCards(it);
+      var decided = !live.length || live.every(function (x) { return verdicts[x.id] !== undefined; });
+      if (browse && quick && val !== null && decided) {
+        var going = cur;
+        if (stampNow && stampOn) { render(true); setTimeout(function () { stepOn(going); }, 620); }
+        else stepOn(going);
+        return;
+      }
+      render(true);
+    }
     function judge(val) {
       var it = items[cur];
+      // the footer on an each-card spread marks EVERY card still on it
+      if (eachCard && it.cards && it.cards.length) {
+        var live = liveCards(it);
+        if (!live.length) { if (browse && quick) stepOn(cur); return; }
+        var same = live.every(function (c) { return verdicts[c.id] === val; });
+        var to = (browse && same) ? null : val;
+        live.forEach(function (c) {
+          var p = verdicts[c.id];
+          undoStack.push({ i: cur, card: c.id, prev: p });
+          if (to === null) delete verdicts[c.id]; else verdicts[c.id] = to;
+          post({ item: c.id, ok: to });
+          if (to === true || to === false || p === true || p === false) mirrorVote(c, to);
+          if (views) views.sync(c, to === true ? 'like' : to === false ? 'dislike' : null);
+        });
+        stampNow = (to === true || to === false) ? it.id : null;
+        if (browse && quick && to !== null) {
+          var g = cur;
+          if (stampNow && stampOn) { render(true); setTimeout(function () { stepOn(g); }, 620); }
+          else stepOn(g);
+          return;
+        }
+        render(true); savePlace();
+        return;
+      }
       var prev = verdicts[it.id];
       // in browse mode the lit verdict is visible, so tapping it again clears
       if (browse && prev === val) val = null;
@@ -1251,6 +1425,9 @@
       var u = undoStack.pop();
       if (!u) return;
       var it = items[u.i];
+      if (u.card) {   // one picture of an each-card spread
+        (it.cards || []).forEach(function (c) { if (c.id === u.card) it = c; });
+      }
       var was = verdicts[it.id];
       if (u.prev === undefined) { delete verdicts[it.id]; post({ item: it.id, ok: null }); }
       else { verdicts[it.id] = u.prev; post({ item: it.id, ok: u.prev }); }
@@ -1331,12 +1508,30 @@
       // two-up picker — it falls out of the shape rather than being a third
       // thing to build.
       if (it.cards && it.cards.length) {
-        out += '<div class="jg-spread">' + it.cards.map(function (c) {
-          return '<figure class="hug">'
+        var shown = liveCards(it);
+        if (eachCard && !shown.length) {
+          out += '<p class="jg-allout">Every card here went to ' + esc(BTN.no.label) + '.</p>';
+        }
+        out += '<div class="jg-spread' + (eachCard && shown.length === 1 ? ' lone' : '') + '">' + shown.map(function (c) {
+          var cn = eachCard ? noteMsgs(notes[c.id]) : [];
+          return '<figure class="hug"' + (eachCard ? ' data-card="' + esc(c.id) + '"' : '') + '>'
             + '<img' + (views ? ' data-zoom="' + esc(c.id) + '"' : ' class="zoom"')
             + ' src="' + esc(c.img) + '" alt="' + esc(c.label || '') + '"'
             + (c.full ? ' data-full="' + esc(c.full) + '"' : '') + '>'
             + (c.label ? '<figcaption>' + esc(c.label) + '</figcaption>' : '')
+            // her note on THIS card rides under its caption — the transferred
+            // ones and the ones she writes in the lightbox
+            + (cn.length ? '<div class="jg-cnote">' + esc(cn[cn.length - 1].text) + '</div>' : '')
+            // EACH PICTURE ITS OWN THREE (spreadEach) — the footer's marks at
+            // a third the size, on THAT card's id
+            + (eachCard ? '<div class="jg-each">'
+              + '<button type="button" class="jg-eb no' + (verdicts[c.id] === false ? ' on' : '')
+              + '" data-each="no" data-card="' + esc(c.id) + '" aria-label="' + esc(BTN.no.label) + '">' + BTN.no.icon + '</button>'
+              + '<button type="button" class="jg-eb maybe' + (verdicts[c.id] === 'maybe' ? ' on' : '')
+              + '" data-each="maybe" data-card="' + esc(c.id) + '" aria-label="' + esc(BTN.maybe.label) + '">' + BTN.maybe.icon + '</button>'
+              + '<button type="button" class="jg-eb yes' + (verdicts[c.id] === true ? ' on' : '')
+              + '" data-each="yes" data-card="' + esc(c.id) + '" aria-label="' + esc(BTN.yes.label) + '">' + BTN.yes.icon + '</button>'
+              + '</div>' : '')
             // PICKING ONE OF THEM (Aug 2026, Sophie: "is there a way to pick
             // one or the other if I'm choosing between them? Maybe best is to
             // just have a 'this one' small button underneath each one"). The
@@ -1344,9 +1539,9 @@
             // recorded is "silkscreen won this spread", not "she liked a
             // card". ♥/✕ below still answer the spread as a whole (both, or
             // neither), and tapping the lit pick clears it.
-            + '<button type="button" class="jg-pick'
+            + (eachCard ? '' : '<button type="button" class="jg-pick'
             + (verdicts[it.id] === c.id ? ' on' : '') + '" data-pick="' + esc(c.id)
-            + '">this one</button>'
+            + '">this one</button>')
             + '</figure>';
         }).join('') + '</div>';
       }
@@ -1464,7 +1659,19 @@
       var v = verdicts[it.id];
       // ONLY the card just decided — see the note above. A card revisited
       // later, or arriving already marked, wears nothing.
-      if (stampNow !== it.id) { stampNow = null; return; }
+      if (stampNow !== it.id) {
+        // one picture of an each-card spread wears its own mark
+        var fig = stampNow && eachCard ? mount.querySelector('.jg-spread figure[data-card="'
+          + String(stampNow).replace(/"/g, '') + '"]') : null;
+        var cv = stampNow ? verdicts[stampNow] : undefined;
+        stampNow = null;
+        if (fig && (cv === true || cv === false)) {
+          fig.insertAdjacentHTML('beforeend', stampHtml(cv === true ? GOOD_WORD : BAD_WORD, 'a'));
+          stampFades(fig.lastChild);
+          joltCard();
+        }
+        return;
+      }
       stampNow = null;
       var spread = mount.querySelector('.jg-spread');
       if (spread && isPick(it, v)) {
@@ -1604,13 +1811,22 @@
         // whole deck again. The fold is per pile and lives for the visit: it
         // is how she is reading the screen right now, not a setting.
         pileLanes = {};
+        // on an each-card deck a pile holds the PICTURES, each opening the
+        // spread it sits on — a spread was never the thing she decided
+        var units = [];
+        items.forEach(function (it) {
+          if (eachCard && it.cards && it.cards.length) {
+            it.cards.forEach(function (c) { units.push({ it: c, open: it.id }); });
+          } else units.push({ it: it, open: it.id });
+        });
         var sections = shown.map(function (p, pi) {
-          var members = items.filter(function (it) {
-            return p.match ? p.match(verdicts[it.id], it) : verdicts[it.id] === p.key;
+          var members = units.filter(function (u) {
+            return p.match ? p.match(verdicts[u.it.id], u.it) : verdicts[u.it.id] === p.key;
           });
           if (!members.length) return '';
           var key = 'p' + pi + ':' + p.name;
-          pileLanes[key] = members.map(function (it) { return it.id; });
+          pileLanes[key] = members.map(function (u) { return u.open; })
+            .filter(function (id, i, a) { return a.indexOf(id) === i; });
           var shut = folded[key] === true;
           return '<div class="jg-pilehd">'
             + '<button class="jg-pilefold' + (shut ? ' shut' : '') + '" data-fold="'
@@ -1620,13 +1836,14 @@
             + '<button class="jg-again" data-swipe="' + esc(key) + '">Swipe these</button>'
             + '</div>'
             + (shut ? '' : '<div class="jg-grid">'
-            + members.map(function (it) {
+            + members.map(function (u) {
+              var it = u.it;
               if (it.card || (it.text && !it.img && !it.pair) || (isMoment(it) && !it.img)) {
-                return '<button class="txt" data-open="' + esc(it.id) + '">'
+                return '<button class="txt" data-open="' + esc(u.open) + '">'
                   + esc(it.who || it.label || it.text || it.id) + '</button>';
               }
               var src = it.pair ? it.pair[0].img : it.img;
-              return '<button data-open="' + esc(it.id) + '"><img src="' + esc(src)
+              return '<button data-open="' + esc(u.open) + '"><img src="' + esc(src)
                 + '" alt="' + esc(it.label || '') + '"></button>';
             }).join('') + '</div>');
         }).join('');
@@ -1651,8 +1868,8 @@
         // card ended up in Yes or in Unsure — so it is its own section rather
         // than a mark on a tile. Nothing here when she has written nothing,
         // which is the common case and byte-for-byte the view she had.
-        var noted = items.map(function (it) {
-          return { it: it, msgs: noteMsgs(notes[it.id]) };
+        var noted = units.map(function (u) {
+          return { it: u.it, open: u.open, msgs: noteMsgs(notes[u.it.id]) };
         }).filter(function (n) { return n.msgs.length; });
         // AND IT FOLDS, like every pile under it (2026-09-02, Sophie: "notes
         // shud also collapse"). The piles grew a fold the day before and the
@@ -1675,10 +1892,10 @@
               return '<div class="jg-nrow">'
                 // the picture is a way in too, like a pile tile — a SIBLING
                 // of the body, so it never wraps the fold caret
-                + (src ? '<button class="jg-nthumb" data-open="' + esc(n.it.id)
+                + (src ? '<button class="jg-nthumb" data-open="' + esc(n.open)
                   + '"><img src="' + esc(src) + '" alt=""></button>' : '')
                 + '<div class="jg-nbody">'
-                + '<button class="jg-nname" data-open="' + esc(n.it.id) + '">'
+                + '<button class="jg-nname" data-open="' + esc(n.open) + '">'
                 + esc(n.it.who || n.it.label || n.it.text || n.it.id) + '</button>'
                 // the thread's own markup, painted by compare.js's ONE
                 // renderer below — so a note reads the same here as on the
@@ -1714,8 +1931,15 @@
           // space between the note and the content"), with her bigger note box
           // as the row itself underneath. A decided card paints its button
           // dark, like the mockup.
+          if (eachCard && it.cards && it.cards.length) {
+            // the footer on an each-card spread reads its cards, so it lights
+            // only when every card still on it wears that mark
+            var lv = liveCards(it);
+            var all = function (k) { return lv.length && lv.every(function (c) { return verdicts[c.id] === k; }); };
+            v = all(true) ? true : all('maybe') ? 'maybe' : all(false) ? false : undefined;
+          }
           row = '<button class="jg-mombtn' + (v === false ? ' on' : '') + '" data-act="no"'
-            + ' aria-label="No">' + MOM_X + '</button>'
+            + ' aria-label="' + esc(BTN.no.label) + '">' + BTN.no.icon + '</button>'
             // MAYBE, between them (Aug 2026, Sophie: "can you add a maybe
             // option in the Tinder checklist template?"). It is a real
             // verdict with a pile of its own, not a way of skipping: it rides
@@ -1723,10 +1947,11 @@
             // the way un-marking does, and stamps NOTHING — there is no good
             // and no bad in "maybe", the rule paintStamp already keeps.
             + '<button class="jg-mombtn maybe' + (v === 'maybe' ? ' on' : '') + '"'
-            + ' data-act="maybe" aria-label="Maybe">' + MOM_MAYBE + '</button>'
+            + ' data-act="maybe" aria-label="' + esc(BTN.maybe.label) + '">' + BTN.maybe.icon + '</button>'
             + '<button class="jg-mombtn yes' + (v === true ? ' on' : '') + '" data-act="yes"'
-            + ' aria-label="Yes">' + MOM_HEART + '</button>'
-            + '<textarea class="jg-momnote" rows="4" placeholder="Note for Claude…"></textarea>'
+            + ' aria-label="' + esc(BTN.yes.label) + '">' + BTN.yes.icon + '</button>'
+            + '<textarea class="jg-momnote' + (smallNote ? ' small' : '') + '" rows="'
+            + (smallNote ? 2 : 4) + '" placeholder="Note for Claude…"></textarea>'
             // THE MIC SURVIVED THE MOVE (Aug 2026 v3). Her date decks never had
             // one, but every live picture deck is posted with voice:true —
             // measured, all five — so folding them into her look would have
@@ -1862,7 +2087,7 @@
       steps.push({ sel: momDeck && !states ? '.jg-momfoot' : '.jg-row', text: states
         ? 'Mark a card with one of these — tap the same one again to unmark it.'
         : momDeck
-          ? '♥ yes, ? maybe, ✕ no — ' + (quick
+          ? btnKey(', ') + ' — ' + (quick
             ? 'any of the three marks the card and moves you on. '
             : 'marking one never moves you on, so you can change your mind. ')
             + 'Maybe gets a pile of its own. The box under '
@@ -1884,6 +2109,12 @@
         + 'and “show me around” in there replays this tour.' });
       return steps;
     }
+    // the footer's three, in her words when the page renamed them
+    function btnKey(sep) {
+      return (renamed ? '' : '♥ ') + BTN.yes.label.toLowerCase() + sep
+        + (renamed ? '' : '? ') + BTN.maybe.label.toLowerCase() + sep
+        + (renamed ? '' : '✕ ') + BTN.no.label.toLowerCase();
+    }
     function startTour(auto) {
       if (!window.__compareTour) return;
       window.__compareTour({ key: 'deck', auto: !!auto, steps: tourSteps() });
@@ -1899,8 +2130,13 @@
       var keys = states
         ? 'Tap a word under the card to mark it; tap it again to unmark.'
         : momDeck
-          ? '♥ yes · ? maybe (its own pile) · ✕ no — none of them moves you on '
+          ? btnKey(' · ') + ' (maybe is its own pile) — '
+            + (quick ? 'each one moves you on ' : 'none of them moves you on ')
             + '· the box under them is a note that saves as you type.'
+            + (eachCard ? ' On a card holding several near-twins, each picture has the '
+              + 'same three under it: a ' + BTN.no.label.toLowerCase()
+              + ' takes that one off the card so you can compare the rest; the big '
+              + 'buttons mark every picture still on it.' : '')
           : '♥ love it · ✕ pass · dashed circle = maybe (its own pile) · arrow = sort it later.';
       // WHAT SHE SAID ABOUT THIS CARD LEADS (Aug 2026, Sophie: "everything I
       // personally said about them behind a question button"). It is about the
@@ -1957,6 +2193,14 @@
       }
       var pk = e.target && e.target.closest ? e.target.closest('[data-pick]') : null;
       if (pk) { judge(pk.getAttribute('data-pick')); return; }
+      var eb = e.target && e.target.closest ? e.target.closest('[data-each]') : null;
+      if (eb) {
+        var cid = eb.getAttribute('data-card'), each = eb.getAttribute('data-each');
+        var cc = null;
+        (items[cur] && items[cur].cards || []).forEach(function (c) { if (c.id === cid) cc = c; });
+        if (cc) judgeCard(cc, each === 'yes' ? true : each === 'no' ? false : 'maybe');
+        return;
+      }
       var b = e.target && e.target.closest
         ? e.target.closest('[data-act],[data-open],[data-state],[data-fold],[data-swipe]') : null;
       if (!b) return;
@@ -2168,10 +2412,14 @@
         .catch(function () { return {}; })
         .then(function (d) {
           var iv = (d && d.items) || {}, tx = (d && d.texts) || {};
-          items.forEach(function (it) {
+          var take = function (it) {
             if (iv[it.id] !== undefined && iv[it.id] !== null) verdicts[it.id] = iv[it.id];
             else delete verdicts[it.id];       // cleared in the other view
             if (tx[it.id]) notes[it.id] = tx[it.id];
+          };
+          items.forEach(function (it) {
+            take(it);
+            if (eachCard) (it.cards || []).forEach(take);
           });
           if (move) {
             // WHERE SHE LEFT OFF WINS OVER THE FIRST UNMARKED CARD — that is

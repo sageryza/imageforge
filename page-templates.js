@@ -229,6 +229,24 @@ function cleanStates(raw) {
   return out.length >= 2 ? out : null;
 }
 
+// the marks a renamed footer button may wear — judge.js's MOM_ICONS, by name
+const BUTTON_ICONS = ['x', 'heart', 'maybe', 'triangle'];
+function cleanButtons(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const out = {};
+  for (const k of ['yes', 'maybe', 'no']) {
+    const b = raw[k];
+    if (!b || typeof b !== 'object') continue;
+    const label = STR(b.label, 24);
+    const icon = BUTTON_ICONS.includes(b.icon) ? b.icon : '';
+    if (!label && !icon) continue;
+    out[k] = {};
+    if (label) out[k].label = label;
+    if (icon) out[k].icon = icon;
+  }
+  return Object.keys(out).length ? out : null;
+}
+
 // validateTemplate('deck'|'grid', data) → { ok:true, data } | { ok:false, error }
 function validateTemplate(template, data) {
   if (!TEMPLATES.includes(template)) {
@@ -300,6 +318,29 @@ function validateTemplate(template, data) {
   // `pace !== 'labored'`, so every page ever posted without the field is
   // quick now too.
   if (data.pace === 'quick' || data.pace === 'labored') out.pace = data.pace;
+  // ── THE THREE BUTTONS IN HER OWN WORDS, WITH THEIR OWN MARKS (2026-09-03,
+  // Sophie, on the triangle review deck: "new buttons — add to deck · maybe
+  // add to deck · no · choose icons for buttons"). `buttons: { yes:{label,
+  // icon}, maybe:{…}, no:{…} }` — the KEYS never move (true / 'maybe' /
+  // false), so the lightbox's ♥/✕, the Assets-tab mirror, the stamp, the pace
+  // and the review queue all still work under a renamed button; only its
+  // picture and its pile's name change. An icon is one of BUTTON_ICONS by
+  // name (judge.js's MOM_ICONS — pinned equal by the test); an unknown one
+  // is dropped rather than refused, so the stock mark stays.
+  const buttons = cleanButtons(data.buttons);
+  if (buttons) out.buttons = buttons;
+  // the GOOD / BAD stamp words are hers to change (judge.js has always read
+  // them; the template just never passed them through)
+  for (const k of ['goodWord', 'badWord']) { const v = STR(data[k], 16); if (v) out[k] = v; }
+  // note:'small' — a two-line note box under a picture card (2026-09-03,
+  // "note section can be smaller — modify template if necessary")
+  if (data.note === 'small') out.note = 'small';
+  // spreadEach — every picture on a spread is its own decision, and a picture
+  // marked no leaves the spread (2026-09-03, "when i x one, it disappears from
+  // the compare, into the no pile, but gone from that particular card
+  // decision, so i can compare the leftovers in peace"). judge.js is the
+  // whole of it; this only lets a page say so.
+  if (data.spreadEach === true) out.spreadEach = true;
 
   if (template === 'deck') {
     if (!Array.isArray(data.items) || !data.items.length) {
@@ -977,6 +1018,7 @@ function archiveMapOf(data) {
 }
 
 module.exports = {
+  BUTTON_ICONS,
   TEMPLATES, ASPECTS, validateTemplate, archiveMapOf, renderTemplatePage, groupAssetVariants,
   planAutoPages, parseCaption, normContent, assignVoiceSegments, isMomentDeck,
 };
