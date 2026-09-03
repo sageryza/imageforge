@@ -3859,7 +3859,8 @@ function openLbAt(i){
   window.__assetLightbox(url,{
     nav:{
       prev: i>0 ? function(){ openLbAt(lbAt-1); } : null,
-      next: i<lbVers.length-1 ? function(){ openLbAt(lbAt+1); } : null
+      next: i<lbVers.length-1 ? function(){ openLbAt(lbAt+1); } : null,
+      warm: [lbVers[i-1], lbVers[i+1]].filter(Boolean)   // fetched ahead of the step
     },
     cta: pick ? { label:'Use this one', onClick:function(e){ usePick(pick, e.currentTarget); } } : null,
     onClose:function(){ lbAt=-1; if(popBeat)lock(true); }

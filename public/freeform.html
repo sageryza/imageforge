@@ -354,6 +354,8 @@ function openRunImage(run, i) {
   // shared script, so a harness that never served the file still opens it.
   var doors = window.ForgeAssetActions || null;
   if (doors) asset.actions = doors.build(imgs[i], asset, { chatDoor: false });
+  // the pictures one step either side are fetched ahead (asset-lightbox.js)
+  asset.nav.warm = [imgs[i - 1], imgs[i + 1]].filter(Boolean);
   window.__assetLightbox(imgs[i], asset);
 }
 
