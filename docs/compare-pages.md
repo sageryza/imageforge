@@ -524,10 +524,14 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     spread pick. Only a clear stays put, which is also how she goes back to
     an unmarked card on purpose. **The WAIT is the stamp's**, so a maybe
     moves at once and a ♥/✕ holds 620ms, leaving the card she is stepping off
-    long enough to wear its stamp. LABORED is the default (omit the field) —
-    the browse rule exactly as it was: a mark never moves the deck. Pick
-    quick for a yes/no sweep (the hoonies, a big cull); labored for anything
-    she reads, notes on, or changes her mind about. **An already-posted page
+    long enough to wear its stamp. **QUICK IS THE DEFAULT SINCE 2026-09-03**
+    (Sophie, on the Playground-hearts page: "it shud be quick toggle. set
+    that as the default") — a page that omits the field moves on a verdict,
+    and `judge.js` reads `pace !== 'labored'`, so every template page ever
+    posted without the field is quick now too. `pace:'labored'` is the
+    explicit opt-out — the browse rule exactly as it was: a mark never moves
+    the deck. Pick labored for anything she reads, notes on, or changes her
+    mind about. (Labored was the default for two days, 09-01 to 09-03.) **An already-posted page
     is flipped without re-posting** — `POST /api/chatfeed/page/:id/pace
     {pace:'quick'|'labored'}` writes the page doc, whose field wins over the
     frozen data (a new page id would lose her marks). Pinned by
@@ -652,9 +656,28 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
       (page-views.js) and rides the same verdict doc; a one-card spread gets
       none, because its card's mark is the mark. Compare view: the spread's
       ♥/✕ at the end of its name row (the pill's 64px column reserved) and the
-      shared note +. Swipe view: the spread is ONE card, its pictures side by
-      side, the card's marks being the spread's and each picture opening its
-      own lightbox — which is also the two-up picker.
+      shared note +. Swipe view: a spread of **2 or 3** is ONE card, its
+      pictures side by side, the card's marks being the spread's and each
+      picture opening its own lightbox — which is also the two-up picker.
+    - **BUT THE SWIPE VIEW DEFAULTS TO ONE CARD AT A TIME (2026-09-03, Sophie,
+      on "Playground triangle hearts v1 (19)": "as a rule tinder compare shud
+      default to 1 unless they're comparing something specific").** A group of
+      **4 or more splits into one card each** in SWIPE — `.jg-spread` is
+      `flex:1 1 0` with no wrap, so a big group just divided the card between
+      its pictures. `SPREAD_MAX` is MEASURED on the real page at 390pt: 2
+      across → 169px pictures, 3 → 110px, 4 → 81px against a 72px "this one"
+      button with no slack, 5 → 63px, 9 → 31px with the buttons OVERFLOWING,
+      19 → 11px (the screenshot she sent). Measured over her 30 most recent
+      template pages the same day the group sizes are 1×60, 2×1, 3×40, 4-10×72,
+      19×1 — so this splits the inventory buckets and leaves the quality
+      ladders and three-proposal sets exactly as they were. **COMPARE is
+      untouched**: the group, its heading and its `s:` key are all still there
+      in the view a big group reads correctly in, so a split group's spread
+      mark simply lives in compare only. No verdict is lost either way —
+      review.js counts CARD ids, and a spread mark already decides every card
+      under it. A split card is COPIED (never the grid's own object) and wears
+      the group's name as its eyebrow, so she still knows which pile it came
+      out of. Test: `node scripts/test-swipe-one-at-a-time.js`.
     - **ONE PAGE, TWO VIEWS (Aug 2026 v4).** A template page carries the deck
       AND the grid behind one hairline switch (`page-views.js`); `template`
       only picks the opening view, and the missing half of the data is derived

@@ -194,12 +194,16 @@ const server = http.createServer((req, res) => {
       fail('vote did not carry the origin chat: ' + JSON.stringify(votes));
     }
 
-    // 4 — the ♥ filter narrows to hearted tiles…
-    await page.click('.afilter button[data-f="like"]');
+    // 4 — the ♥ filter narrows to hearted tiles… (it lives inside the filters
+    //     drawer since 2026-09-02 — /searchfilters.js)
+    await page.click('.arow .filtchip');
+    await page.waitForSelector('.arow .filtdrawer:not([hidden])');
+    await page.click('.arow .filtcbtn[data-v="like"]');
     const visible = await page.$$eval('.assetgrid .acell',
       (es) => es.filter((e) => e.style.display !== 'none').length);
     if (visible !== 2) fail('♥ filter shows ' + visible + ' tiles, wanted 2');
-    await page.click('.afilter button[data-f="like"]');   // filter off again
+    await page.click('.arow .filtcbtn[data-v="like"]');   // filter off again
+    await page.click('.arow .filtchip');                  // and the drawer shut
     // …and search finds by the origin chat's name
     await page.fill('.asearch input', 'witch');
     await page.waitForFunction(() => {

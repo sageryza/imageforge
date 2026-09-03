@@ -95,9 +95,22 @@ const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
   const wall = () => shot('#tiles .cell:not(.ph) img');
   const boxes = () => page.locator('#runs .run').count();
 
+  // THE TWO MARKS LIVE INSIDE THE FILTERS DRAWER NOW (2026-09-02, Sophie: "you
+  // can put the heart x thing within the toggle") — /searchfilters.js. So a tap
+  // on either is: open the drawer, tap the chip. `openFilt` is idempotent; the
+  // drawer stays open across the whole run, which is also how she uses it.
+  const HEART = '#feedfilters .filtcbtn[data-v="like"]';
+  const NOX = '#feedfilters .filtcbtn[data-v="nox"]';
+  const openFilt = async () => {
+    if (await page.locator('#feedfilters .filtdrawer').isVisible()) return;
+    await page.click('#feedfilters .filtchip');
+    await page.waitForSelector('#feedfilters .filtdrawer:not([hidden])');
+  };
+
   console.log('THE FILTER');
   ok(same(await list(), ALL_SIX), 'off, every picture is on the page');
-  await page.click('#v-hidex');
+  await openFilt();
+  await page.click(NOX);
   ok(same(await list(), NO_X), 'lit, the ✕\'d ones are gone from the list');
   ok(await boxes() === 2, 'the run with both pictures ✕\'d dropped out of the list too');
   await page.click('#v-tiles');
@@ -108,20 +121,29 @@ const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
   await page.reload();
   await page.waitForFunction(() => document.querySelectorAll('#tiles .cell img').length > 0);
   ok(same(await wall(), NO_X), 'a reload comes back with it still lit');
-  ok(await page.locator('#v-hidex').evaluate(e => e.classList.contains('on')),
-    'and the button says so');
+  await openFilt();
+  ok(await page.locator(NOX).evaluate(e => e.classList.contains('on')),
+    'and the chip says so');
+  // AND THE CHIP WEARS IT WITH THE DRAWER SHUT — a filter she cannot see must
+  // never be one she has forgotten she set.
+  await page.click('#feedfilters .filtchip');
+  ok(/No/.test(await page.$eval('#feedfilters .filtchip', n => n.textContent))
+    && await page.$eval('#feedfilters .filtchip', n => n.classList.contains('on')),
+    'and the shut chip says it too, lit');
 
   console.log('WITH THE HEART');
-  await page.click('#v-liked');
+  await openFilt();
+  await page.click(HEART);
   ok(same(await wall(), HEARTS), 'both lit: hearts only, no argument');
-  await page.click('#v-hidex');
+  await page.click(NOX);
   ok(same(await wall(), HEARTS), 'the heart alone is unchanged by turning it off');
-  await page.click('#v-liked');
+  await page.click(HEART);
   ok(same(await wall(), ALL_SIX), 'and both off is the whole feed back');
 
   console.log('THE LOOK, AND THE ROW');
   const colors = await page.evaluate(() => {
-    const h = document.getElementById('v-liked'), x = document.getElementById('v-hidex');
+    const h = document.querySelector('#feedfilters .filtcbtn[data-v="like"]');
+    const x = document.querySelector('#feedfilters .filtcbtn[data-v="nox"]');
     h.classList.add('on'); x.classList.add('on');
     const lit = [getComputedStyle(h).backgroundColor, getComputedStyle(x).backgroundColor];
     h.classList.remove('on'); x.classList.remove('on');
@@ -129,20 +151,23 @@ const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
   });
   ok(colors[0] !== colors[1], `lit, the two filters are told apart (${colors.join(' vs ')})`);
 
+  await openFilt();
   const row = await page.evaluate(() => {
     const r = (el) => { const b = el.getBoundingClientRect(); return { top: b.top, w: b.width, h: b.height }; };
     return {
       bar: r(document.querySelector('.feedbar')),
       view: r(document.querySelector('.viewtog')),
-      filt: r(document.querySelector('.filttog')),
-      heart: r(document.getElementById('v-liked')),
-      x: r(document.getElementById('v-hidex')),
+      filt: r(document.querySelector('#feedfilters .filtchip')),
+      heart: r(document.querySelector('#feedfilters .filtcbtn[data-v="like"]')),
+      x: r(document.querySelector('#feedfilters .filtcbtn[data-v="nox"]')),
       search: r(document.querySelector('.feedsearch')),
     };
   });
   const tops = [row.view.top, row.filt.top, row.search.top];
   ok(tops.every(t => Math.abs(t - tops[0]) < 1), 'the three groups share one line');
-  ok(Math.abs(row.heart.top - row.x.top) < 1, 'the heart and the ✕ share their box');
+  ok(Math.abs(row.heart.top - row.x.top) < 1, 'the heart and the ✕ share their row');
+  // The bar is still ONE ROW even with the drawer open — it hangs UNDER the
+  // bar rather than pushing the feed down.
   ok(row.bar.h < 60, `the bar is still one row tall (${Math.round(row.bar.h)}px)`);
   ok(Math.abs(row.x.w - row.heart.w) < 1 && Math.abs(row.x.h - row.heart.h) < 1,
     `the ✕ is the same box as the heart (${Math.round(row.x.w)}x${Math.round(row.x.h)})`);
