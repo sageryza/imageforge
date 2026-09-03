@@ -4829,6 +4829,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   the one-copy pin on triset.js, and — the durable half — TODAY's real
   triangle style half driven through the matcher plus one fixture per past
   wording, verbatim off her cards; verified failing 9 pre-fix).
+  **TRIANGLE v2 IS HER OWN HAND-EDITED WORDING, BANKED AS A TILE (2026-09-03,
+  Sophie: "i modified the triangle prompt in triangle … save it as a new option
+  (triangle v2)").** The Prompt panel's edit lives ONLY in her phone's
+  localStorage, per style key — so switching tiles never loses it (Dreamy shows
+  Dreamy's text, Triangle shows her edit again), but no server and no other
+  device can see it. It was recovered off her runs' stored `fullPrompt` (one
+  wording across all 100 triangle runs, every one with the no-text toggle ON)
+  and written VERBATIM as `PL_GPT_STYLES.triangle2` in server.js — NOT derived
+  from dreamy/triangle, because a banked version must not move when the house
+  wording does. The tail bakes `minimal text.` and the toggle swaps it, so with
+  the toggle on the sent text is byte-for-byte her runs'. No sheet swap (her
+  anti-grid sentence is in the PREFIX, which `applySheet` never touches), so
+  Panels on v2 sends her prefix unchanged — the original Triangle tile is the
+  one that swaps for a sheet. Port evidence is her own sentence
+  (`playground-port.js`, `beats: ['dreamy','triangle']`); the port test's
+  literal-block check reads a `PL_GPT_STYLES.<id> = {` block as well as the
+  in-table shape. Banking the NEXT version she edits is the same three rows
+  (server.js, `STYLES` in promptlab.html, `PORT_STYLES`) plus a fixture.
   **AND THE TILE PINS THE CANVAS TO SQUARE (2026-08-31, Sophie: "triangle mode
   shud auto switch to square in playground")** — a Triset card is square
   (`triset.js` draws every one at 1024x1024), and the canvas toggle is

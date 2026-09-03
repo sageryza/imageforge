@@ -5939,6 +5939,37 @@ const PL_GPT_STYLES = {
 // the border one), and the tile carries its own panels swap, because dreamy's
 // anchor is the clause this just consumed.
 PL_GPT_STYLES.triangle = require('./triangle-clause').triangleStyle(PL_GPT_STYLES.dreamy);
+// "Triangle v2" (2026-09-03, Sophie: "i modified the triangle prompt in
+// triangle … can u view the current version, and save it as a new option
+// (triangle v2)"). HER OWN WORDING, VERBATIM — recovered off her runs' stored
+// `fullPrompt` (one wording across all 100 triangle runs of 2026-09-02/03,
+// every one with the no-text toggle ON), because the Prompt panel's edit
+// lives only in her phone's localStorage and the server never sees it.
+// NOT derived from dreamy or triangle: she rewrote both halves by hand (the
+// prefix carries the whole triangle ask now — "copy its style", the
+// equilateral rule as its own paragraph — and the tail keeps only the
+// anti-content bookend), so a reword of the house wording must NOT reach
+// this tile; that is the point of banking a version. The tail is baked with
+// `minimal text.` and the toggle swaps it to `no text.` (the house shape), so
+// with the toggle on — the way she ran every one of them — the sent text is
+// byte-for-byte what her runs carry. No sheet swap: the anti-grid sentence is
+// in her PREFIX, which applySheet never touches, so a Panels run on this tile
+// sends her prefix unchanged — the original Triangle tile is the one that
+// swaps for a sheet.
+PL_GPT_STYLES.triangle2 = {
+  label: 'Triangle v2',
+  refFiles: PL_GPT_STYLES.dreamy.refFiles.slice(),
+  prefix: 'The FIRST attached image is a STYLE reference — copy its style but do ' +
+    'NOT copy its content, subjects, or composition.\n\n' +
+    'render as one single illustration, not split panels. render the ' +
+    'illustration in an equilateral triangle, with a hand drawn border. \n\n' +
+    'it must be an equilateral triangle - all sides the same length, including ' +
+    'the bottom. each angle - 60 degrees',
+  suffix: 'Again: the attached image is a STYLE reference only — do not draw its ' +
+    'content, its subjects or its composition. minimal text.',
+  noText: { from: 'minimal text.', to: 'no text.' },
+  noCharacter: true,
+};
 // FREEFORM'S BOILERPLATE TOGGLE SENDS THIS TABLE'S OWN WORDING (2026-08-28,
 // Sophie: "the text we use for dreamy or watercolor"). Handed in rather than
 // required, because freeform.js is mounted hundreds of lines above this const
