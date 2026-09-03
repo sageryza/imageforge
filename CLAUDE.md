@@ -3120,12 +3120,20 @@ them off the reference sheet, not off the old filenames.
   - **THE DOOR IS A SIFTER, NOT A WORD (2026-09-02, Sophie: "make it the
     button an icon of a flour filter").** Lucide `funnel` at the house 1.8
     stroke, in a rounded square at the house 6px — never a circle, never a
-    pill. **The state still rides BESIDE the glyph while the drawer is shut**
-    ("♥ only · High"), because a filter she cannot see must never be one she
-    has forgotten she set; the chip stays LIT either way, which with the word
-    gone is the only thing saying something is narrowed once the drawer is
-    open. The name lives on the `aria-label` and the `title`, so nothing is
+    pill. The name lives on the `aria-label` and the `title`, so nothing is
     lost to a screen reader.
+  - **AND IT COUNTS, IT DOES NOT SPELL (2026-09-02, her next screenshot of
+    "NO ✕ · ♥ ONLY" wrapped onto a line of its own: "this looks awk" ·
+    "change to # of filters" · "not red").** A digit beside the glyph — open
+    AND shut, so the button is a fixed width and never appears and disappears
+    under her. Spelling the filters out grew the door by however long her
+    words happened to be, and two of them pushed the search box onto a second
+    row; the words are one tap away on the rows below. **LIT IS THE INK, NOT
+    THE ACCENT** — the rose belongs to the chips INSIDE that really are her ♥
+    and her picks; this is a door, and dark against the row's grey says
+    "something is on" without shouting it from the calmest strip on the page.
+    Pinned by a MEASUREMENT of what really renders (a class name says nothing
+    about a colour).
   - **WHAT THE SHELL OWNS: the shape.** The chip; the drawer SHUT until she
     taps it; the chip WEARING the state while it is shut and staying lit
     either way; the aimed three-way toggle and the word that clears it; the
@@ -3998,6 +4006,17 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   Test: `node scripts/test-page-place.js` (every assertion a measurement —
   the stick, the jump, the reopen judged against her chapter, the swipe
   round trip, her own scroll standing against the re-asserts).
+- **A 1-UP GRID PAGE IS NOT A COMPARISON, AND ITS TOUR MUST NOT SAY IT IS
+  (2026-09-03).** `grid.js`'s tour opened with a hardcoded "each row is one
+  comparison — the things on it differ by exactly one thing", which is a
+  sentence about a page she is not looking at whenever every group holds ONE
+  item (the 1-up shape her standing Playground-hearts page uses). `oneUp` is
+  DERIVED from the real groups rather than passed as a flag, so any
+  one-per-row page gets the right words with nothing to remember. **Found by
+  PHOTOgraphing the live page** — nothing else would have shown it, since the
+  page renders perfectly either way. Test:
+  `node scripts/test-grid-oneup-tour.js` (the real grid.js, the tour opened,
+  the words read off the screen; verified failing 2 pre-fix).
 - **TRUNCATED TEXT OPENS WITH AN UNDERLINED WORD, NEVER A BUTTON (Aug 2026,
   Sophie: "the ... button for longer than two line prompt is huge … truncated
   text shud always just be a ...with a line under it that links to open
@@ -8587,6 +8606,27 @@ before working on that module. Nothing was deleted — the moved text is verbati
     So a ♥ never un-hides the pool wholesale, and **the incumbent wins** — a
     newly-hearted generation does not swap the picture on her printed sheet
     unless she crossed the dealt one out.
+  - **HER PLAYGROUND TRIANGLE HEARTS ARE A STANDING PAGE TOO, REWRITTEN BY THE
+    SERVER (2026-09-03, Sophie: "upgrade ur playground hearts page to auto
+    update as i add new cards, showing newest first").** It began as a script
+    that re-posted a frozen page, which is the thing a posted Compare page
+    cannot escape — its data is written to Storage at post time — so "auto
+    update" has to mean the waiting room's own machinery: one fixed doc id
+    (`triset-pl-likes`, in `triset-card-inventory`), the data hashed, rewritten
+    only when the set really changes. `likesPlan`/`writeLikes`/`syncLikes` in
+    `triset.js`; the retired script was `scripts/gen-triset-playground-likes.js`.
+    **A HEART IN THE PLAYGROUND REBUILDS IT** — both promptlab vote routes call
+    `triset.pokeLikes()` fire-and-forget when the run is a `triangle` one,
+    leading + trailing like `runAutoCompare` (the leading half is what survives
+    a deploy inside the debounce window), and the game's own `/cards` sweep
+    rebuilds it as well, so a poke lost to a restart is picked up the next time
+    she opens Similitude. **THE ITEM ID IS `<run>-<index>`**, which is the whole
+    reason the page can be rewritten under her — an id that moved with the
+    ordering would re-point her marks at other pictures the first time she
+    hearted something new. Newest first, her ask; one item per hearted IMAGE,
+    since a panels run holds several; a hearted index with no url is dropped
+    rather than drawn empty; the hike run is skipped by id ("hike one was an
+    accident", and it has people). Test: `node scripts/test-triset-likes.js`.
   - **Her words are the content half, verbatim**; the one connective line
     (INVENT_LINE) rides in the wrapper and is disclosed in `promptStyle` with
     the `[content]` seam. The whole prompt is stored on every card doc.
@@ -8750,11 +8790,18 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - Tests: `node scripts/test-triset.js` (pure + headless page half; reads
     the real dreamy wording out of server.js via
     `scripts/lib/dreamy-style.js`).
-  - **GATHERING EVERY TRIANGLE CARD SHE HAS HEARTED —
-    `scripts/triangle-hearts-deck.js` (dry by default, `--go` posts a deck
-    page; 2026-09-03, Sophie: "gather all the triangle cards i've hearted
-    everywhere · be thorough").** It costs nothing — reads only, no model
-    call. Three doors a heart comes through, all swept: an Assets-tab / Meta
+  - **GATHERING EVERY TRIANGLE CARD SHE HAS HEARTED — TWO SURFACES, ONE
+    GATHER (2026-09-03, Sophie: "gather all the triangle cards i've hearted
+    everywhere i[n] ur assets tab and 1 up tinder quick toggle w good/bad ·
+    be thorough").** `scripts/lib/triangle-hearts.js` is the gather;
+    `triangle-hearts-deck.js` posts the swipe deck and
+    `triangle-hearts-file.js` files the same set into the chat's Assets tab
+    with the full ritual (a real label, the MODEL · QUALITY · SIZE caption,
+    both exact prompt halves — measured, all 166 carry all three, so nothing
+    files short). **ONE gather, so the tab and the deck can never disagree
+    about what the set is**, and both mark the SAME url, so a ♥ in either
+    shows in the other. Both are dry by default and cost nothing — reads
+    only, no model call. Three doors a heart comes through, all swept: an Assets-tab / Meta
     Assets ♥ (`forge-asset-votes`), a ♥ or a "this one" pick on **any**
     Compare page (`forge-chat-verdicts`), and a per-image ♥ on a Playground
     run (`forge-promptlab`). Live 2026-09-03: **162 distinct cards** — 127
@@ -8786,6 +8833,14 @@ before working on that module. Nothing was deleted — the moved text is verbati
       malformed" on one of her liked urls and took the whole sweep with it.
       Every decode here is guarded; a key that cannot be decoded is still a
       usable key undecoded.
+    - **THE TAB IS NOT PRE-HEARTED, on purpose.** An asset vote is keyed
+      chat+url, so the hearts that put a card in this pile live in the chats
+      it came from — and filling this tab with 166 ♥ of its own would be the
+      2026-08-31 "they all have good on them covering the image" complaint in
+      tile form, leaving the ♥ here meaning nothing. Empty marks make it a
+      fresh re-triage, exactly like the deck.
+    - **The prompt route answers `results`, not `items`** — reading the wrong
+      key made a batch that fully succeeded print "0 ok".
 - **HEAD GAMES** (`docs/headgames/`, a Compare page in the
   `mental-games-instrumental-beliefs` chat — no route, no module, no iOS tile;
   2026-09-03, Sophie: "little games we play in our head all the time …
