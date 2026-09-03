@@ -39,6 +39,15 @@ const ok = (cond, what) => {
 console.log('the matcher');
 [
   // the new tile, and the OLD filename that outnumbers the current one 174:84
+  // her own hand-edited triangle wording, banked as the Triangle v2 tile
+  // (2026-09-03) — verbatim off her runs; it quotes neither house fragment
+  ['The FIRST attached image is a STYLE reference — copy its style but do NOT copy its '
+    + 'content, subjects, or composition.\n\nrender as one single illustration, not split '
+    + 'panels. render the illustration in an equilateral triangle, with a hand drawn border. '
+    + '\n\nit must be an equilateral triangle - all sides the same length, including the '
+    + 'bottom. each angle - 60 degrees\n\n[content]\n\nAgain: the attached image is a STYLE '
+    + 'reference only — do not draw its content, its subjects or its composition. no text.',
+  'triangle2', true, 'her v2 wording → Triangle v2, not Dreamy and not Triangle'],
   ['Attached: refs/movie-style.jpg', 'dreamy', true, 'old dream ref name → Dreamy'],
   ['refs/dream-mystery.jpg', 'dreamy', true, 'current dream ref name → Dreamy'],
   // the LoRA has no reference, so its trigger is the evidence
@@ -270,7 +279,7 @@ ok(port.matchStyle('copy its drawing style but do NOT copy its content, subjects
 // Every `prefixes` fragment must be a verbatim substring of that style's REAL
 // baked wording in server.js — otherwise it is a vibe, not evidence.
 const GPT_ID = { chatgpt: 'evan', dreamy: 'dreamy', pastel: 'pastel', scarry: 'scarry',
-  hoonies: 'hoonies', plain: 'plain' };
+  hoonies: 'hoonies', plain: 'plain', triangle2: 'triangle2' };
 port.PORT_STYLES.forEach((s) => {
   (s.prefixes || []).forEach((frag) => {
     const id = GPT_ID[s.key];
@@ -286,8 +295,18 @@ port.PORT_STYLES.forEach((s) => {
       ok(s.key === 'triangle', s.key + ': the only table with no server literal');
       return;
     }
-    const block = serverSrc.slice(serverSrc.indexOf('\n  ' + id + ': {'));
-    let one = block.slice(0, block.indexOf('\n  },') + 4);
+    // A style written INSIDE the table is `\n  id: {` … `\n  },`; one banked
+    // after it (Triangle v2, her own wording assigned onto the table) is
+    // `PL_GPT_STYLES.id = {` … `\n};`.
+    let block; let one;
+    if (serverSrc.indexOf('\n  ' + id + ': {') >= 0) {
+      block = serverSrc.slice(serverSrc.indexOf('\n  ' + id + ': {'));
+      one = block.slice(0, block.indexOf('\n  },') + 4);
+    } else {
+      block = serverSrc.slice(serverSrc.indexOf('PL_GPT_STYLES.' + id + ' = {'));
+      one = block.slice(0, block.indexOf('\n};') + 3);
+      ok(one.length > 20, s.key + ': has a literal block on the server');
+    }
     // `evan` writes `prefix: PL_GPT.prefix` — the words live on the PL_GPT
     // const above it, so pull that in rather than let the check pass vacuously.
     if (/prefix:\s*PL_GPT\.prefix/.test(one)) {
