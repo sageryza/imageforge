@@ -346,6 +346,13 @@ function validateTemplate(template, data) {
   // cards: "has to be all no cap"). judge.js lays four as 2x2, more as 3
   // across.
   if (data.spreadAll === true) out.spreadAll = true;
+  // addsTo:'similitude' — a ▲ on this page ADDS the card to the Similitude
+  // deal itself (2026-09-03, Sophie: "just find the ones i marked add and
+  // add them" · "why was that so hard" — the button said add to deck and
+  // only hearted a picture). triset.js reads the page's verdicts: a yes on
+  // a pool card puts it in its edition, a yes on a Playground picture makes
+  // it a pool card, a no on either takes it out.
+  if (data.addsTo === 'similitude') out.addsTo = 'similitude';
 
   if (template === 'deck') {
     if (!Array.isArray(data.items) || !data.items.length) {

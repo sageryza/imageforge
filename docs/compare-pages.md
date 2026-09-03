@@ -532,6 +532,13 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
       across. Without it a set of four twins is dealt as two cards and she
       cannot see they are four.
     - `note: 'small'` — a two-line note box under a picture card.
+    - `addsTo: 'similitude'` — a ▲ on this page ADDS the card to the
+      Similitude deal itself (a pool card into its edition, a Playground
+      picture made into a pool card with its cut and prompts, in everyday)
+      and a ✕ takes it out; `triset.js reviewPlan` is the rule, poked by
+      every verdict on the page and run on every game open. A button that
+      says "add to deck" must do this, or it is a heart wearing a verb
+      (2026-09-03: "why was that so hard").
     `scripts/triangle-deck-review.js` is the worked example (the gather, the
     twin rule, the marks carried onto a re-post, `--redeal`); the test is
     `scripts/test-judge-spread-each.js`.
