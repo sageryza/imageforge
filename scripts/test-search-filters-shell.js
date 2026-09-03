@@ -185,6 +185,37 @@ const server = http.createServer((req, res) => {
     await page.waitForFunction(() => document.querySelectorAll('#runs .run').length === 1);
     is('and "Today" over it leaves the one high run from today', await runs(), 1);
 
+    // ---- THE SIZES ARE THE ROW'S, MEASURED (2026-09-02, Sophie: "how the
+    // fuck did u decide the button sizes"). Every control in this drawer is
+    // the house 34px, and the chip matches the view switch it stands beside —
+    // which is the only honest way to answer that question.
+    const sizes = await page.evaluate(() => {
+      const h = (sel) => Math.round(document.querySelector(sel).getBoundingClientRect().height);
+      return { chip: h('#feedfilters .filtchip'), pick: h('#feedfilters .filtcbtn'),
+        view: h('.feedbar .viewtog'), search: h('.feedsearch input'),
+        tri: h('.feedbar') };
+    });
+    // THE DOOR TAKES ITS ROW'S HEIGHT, whatever that is — no number of its own,
+    // so it can never be the one control on the bar that is a size nothing
+    // else is. Asserted as an EQUALITY against its neighbours rather than
+    // against a constant, which is what makes it survive the row changing.
+    ok(sizes.chip === sizes.view && sizes.chip === sizes.search,
+      'the door is exactly its neighbours\' height — chip ' + sizes.chip +
+      ', view ' + sizes.view + ', search ' + sizes.search);
+    ok(sizes.tri <= 48, 'and the bar is still one line (' + sizes.tri + 'px)');
+    // Inside the drawer the chips are the house 34 — the height of the
+    // three-way toggles they sit beside there.
+    ok(sizes.pick === 34, 'a filter chip in the drawer is 34px — got ' + sizes.pick);
+
+    // ---- TAPPING OUT CLOSES IT (her ask) — and the tap still does its own
+    // job, because nothing is swallowed and no overlay is put in the way.
+    ok(await drawerShown(), 'still open before the tap-out');
+    await page.mouse.click(20, 700);
+    await page.waitForTimeout(150);
+    ok(!(await drawerShown()), 'a tap on the feed closes the drawer');
+    await page.click(chip);
+    ok(await drawerShown(), 'and the chip still opens it again');
+
     // THE CHIP WEARS THE STATE while the drawer is shut — a filter she cannot
     // see must never be one she has forgotten she set.
     await page.click(chip);
@@ -243,9 +274,31 @@ const server = http.createServer((req, res) => {
     await page.click('.arow .filtcbtn[data-v="today"]');
     is('and Today over it leaves the one from today', await shown(), 1);
 
-    // MARKS STAY EXCLUSIVE — three answers to one question.
+    // TAPPING OUT CLOSES IT HERE TOO — and here the drawer is IN FLOW, so the
+    // close MOVES the grid. That is why it closes on the CLICK rather than on
+    // pointerdown: the tap has to land on what she aimed at first, and the
+    // page may only move once it has. (The pointerdown version is caught by
+    // `test-assets-tap-next.js`, which simply stops being able to open a tile
+    // once the ♥ filter has narrowed the grid — verified. This assertion is
+    // the behaviour; that one is the regression.)
+    // …with the filters cleared first, so the tile she aims at is on screen.
     await page.click('.arow .filtcbtn[data-v="today"]');
     await page.click('.arow .filtcbtn[data-v="high"]');
+    is('everything back', await shown(), 3);
+    ok(await page.locator('.arow .filtdrawer').isVisible(), 'open before the tap-out');
+    await page.click('.assetgrid .acell:nth-child(1) > button:not(.vote)');
+    await page.waitForSelector('#clightbox .clwrap img');
+    ok(!(await page.locator('.arow .filtdrawer').isVisible()),
+      'a tap outside closes the drawer');
+    // The picture ITSELF, not the caption: the whole risk is opening the WRONG
+    // one because the grid moved under the tap.
+    ok(/a1\.png/.test(await page.$eval('#clightbox .clwrap img', (n) => n.src)),
+      '…and the tap still opened the picture she aimed at, not whatever slid up');
+    await page.evaluate(() => window.__assetLightboxClose && window.__assetLightboxClose());
+    await page.waitForTimeout(150);
+    await page.click(chip);
+
+    // MARKS STAY EXCLUSIVE — three answers to one question.
     await page.click('.arow .filtcbtn[data-v="new"]');
     await page.click('.arow .filtcbtn[data-v="like"]');
     const lit = await page.$$eval('.arow .filtcbtn.on', (es) => es.map((e) => e.dataset.v));

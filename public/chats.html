@@ -8670,7 +8670,10 @@ function openChat(name, keepScroll, focusId, noFetch){
         var fmount=document.createElement('div'); fmount.className='afilters';
         arow.appendChild(fmount);
         assetsPanel.appendChild(arow);
-        var afilt = SF ? SF.build(fmount, [
+        // The tab is rebuilt on every open, so the last drawer's tap-out
+        // listener is taken down before a new one goes up.
+        if(window.__assetFilt && window.__assetFilt.destroy) window.__assetFilt.destroy();
+        var afilt = window.__assetFilt = SF ? SF.build(fmount, [
           { key:'marks', kind:'chips', label:'Marks',
             vals:['new','like','nox'], words:['New','\u2665','Hide \u2715'],
             classes:['','','dropfilt'] },

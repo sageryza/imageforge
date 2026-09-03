@@ -364,6 +364,15 @@
   /* LIT, THE ✕ MUST NOT MATCH THE ♥ — the same rule the two loose buttons
      followed: one keeps what it names and the other drops it. */
   .feedbar .filtcbtn.dropfilt.on { background: #9a938a; border-color: #9a938a; }
+  /* THE DOOR IS THE HEIGHT OF THE ROW IT STANDS ON, measured rather than
+     picked (2026-09-02, Sophie: "how the fuck did u decide the button
+     sizes"). This bar's family is 32px — the view switch, the search field —
+     so the chip STRETCHES to whatever the row is instead of carrying a number
+     of its own, and the bar stays one 48px line. (The drawer's chips keep the
+     shared 34px, which is the height of the three-way toggles they sit beside
+     inside it.) */
+  .feedfilters { display: flex; align-items: stretch; }
+  .feedbar .filtchip { min-height: 0; }
   /* The chip has to give the search box its width back when she narrows
      something, so it truncates rather than pushing: the words are on the rows
      under it the moment she opens the drawer. */
