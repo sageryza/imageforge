@@ -92,6 +92,12 @@
     function openIt(it, step) {
       var a = assetFor(it);
       var url = it.full || it.img;
+      // what PAINTS is the tile's own thumb (already in the cache — it is the
+      // picture she just tapped, or the one warmed a step ago); the original
+      // swaps in behind it inside the lightbox (asset.full). The doors and the
+      // notes always run off the real url.
+      var painted = it.img || url;
+      a.full = url;
       // THE DOORS ARE THE SHARED SET (2026-09-01, Sophie: "there shud always
       // be a playground button / as long as there's a prompt"). A template
       // page's lightbox drew ♥/✕ and nothing else — the one surface where a
@@ -115,9 +121,10 @@
       a.nav = {
         prev: at > 0 ? function () { openIt(seq[at - 1], true); } : null,
         next: (at >= 0 && at < seq.length - 1) ? function () { openIt(seq[at + 1], true); } : null,
+        warm: [seq[at - 1], seq[at + 1]].filter(Boolean).map(function (n) { return n.img || n.full; }),
       };
       a.onClose = function () { lbIt = null; };
-      var open = function () { window.__assetLightbox(url, a); };
+      var open = function () { window.__assetLightbox(painted, a); };
       if (a.thread) return ensureLightbox(open);
       loadNotes().then(function (map) {
         a.thread = map[it.url] || [];

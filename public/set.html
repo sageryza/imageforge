@@ -66,7 +66,8 @@
     border:1px solid var(--line);border-radius:6px;overflow:hidden;
     display:flex;align-items:center;justify-content:center}
   .cell.top .slot{border-color:var(--accent)}
-  .slot img{width:100%;height:100%;object-fit:cover;display:block;animation:fade .4s ease}
+  /* no fade on a re-dealt slot (2026-09-03, "why does it fucking flash") */
+  .slot img{width:100%;height:100%;object-fit:cover;display:block}
   @keyframes fade{from{opacity:0}to{opacity:1}}
   .slot.tappable{cursor:pointer}
   .regen{position:absolute;bottom:6px;right:6px;width:28px;height:28px;border-radius:50%;

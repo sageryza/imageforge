@@ -303,6 +303,7 @@
     + '#clightbox.hascta img{max-height:78vh;}\n';
   document.head.appendChild(css);
 
+  var warmed = {};   // urls already asked for ahead of a step
   var HEART = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>';
   var XMARK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
 
@@ -335,6 +336,32 @@
     // Marking the element is the fix that reaches every host, not just chats.
     lb.setAttribute('data-nostop', '');
     lb.innerHTML = '<div class="clwrap"><img alt="" src="' + url.replace(/"/g, '&quot;') + '"></div>';
+    // THE ORIGINAL SWAPS IN BEHIND WHAT IS PAINTED, AND THE NEIGHBOURS ARE
+    // FETCHED AHEAD — in this ONE file (2026-09-03, Sophie, stepping through a
+    // deck: "why does it fucking flash every time i tap right left" · "do a
+    // very broad search and fix this everywhere"). Two callers (the Playground,
+    // the Assets tab) had each built their own thumb-first swap and their own
+    // preloader; the grid and deck pages, Freeform and the Story Room opened
+    // the 1-3MB ORIGINAL cold on every step — a blank box, then the picture.
+    //   asset.full      the original; `url` is what paints first (a cached
+    //                   thumb). When it lands it replaces the picture in place
+    //                   — only if this is still the picture on screen.
+    //   asset.nav.warm  urls one step either side, asked for now so the next
+    //                   step finds them in the cache.
+    var full = asset && asset.full;
+    if (full && full !== url) {
+      var fim = new Image(); fim.decoding = 'async';
+      fim.onload = function () {
+        var cur = lb.querySelector('.clwrap img');
+        if (cur && cur.getAttribute('src') === url) cur.src = full;
+      };
+      fim.src = full;
+    }
+    ((asset && asset.nav && asset.nav.warm) || []).forEach(function (u) {
+      if (!u || warmed[u]) return;
+      warmed[u] = true;
+      var wim = new Image(); wim.decoding = 'async'; wim.src = u;
+    });
     lb.classList.remove('hastalk');   // last image's thread must not shrink this one
     lb.classList.remove('hasmsgs');   // ...nor whether that thread had letters in it
     lb.classList.remove('hasacts');   // ...nor its actions row
