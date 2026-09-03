@@ -29,6 +29,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Meta Assets</title>
+<!-- THE ADVANCED SEARCH DRAWER — the ONE shell (2026-09-02, Sophie: "a toggle
+     open advanced search in all pages - reusable shell - playground meta
+     assets etc · search by low medium high, by date · you can put the heart x
+     thing within the toggle"). The New/♥/Hide ✕ segment moved inside it, which
+     is what made room for quality and date. The stylesheet is linked ABOVE
+     this page's own <style> so anything it wants to say for itself still
+     wins. -->
+<link rel="stylesheet" href="/searchfilters.css">
+<script src="/searchfilters.js"></script>
 <style>
 :root{ --paper:#f6f2e9; --ink:#26221c; --ink2:#8a8377; --line:#d9d2c2; --rose:#a5586a; --chg:#b3443f; --barbg:#fffdf7; }
 @media (prefers-color-scheme: dark){:root{--paper:#191713; --ink:#e8e2d6; --ink2:#97907f; --line:#37322a; --rose:#c98a99; --chg:#e08b84; --barbg:#211e19;}}
@@ -58,11 +67,23 @@ body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--i
 .state.more{padding:1.4em 0;}
 /* ── the Assets tab's own widgets, verbatim from chats.html ─────────────── */
 .arow{display:flex; align-items:center; gap:10px; margin:0 0 10px;}
-.afilter{display:flex; border:1.5px solid var(--line); border-radius:999px; overflow:hidden; background:var(--barbg); flex:none;}
-.afilter button{border:none; background:transparent; color:var(--ink2); font-family:-apple-system,sans-serif; font-size:11px;
-  letter-spacing:.04em; padding:7px 12px; margin:0; cursor:pointer;}
-.afilter button+button{border-left:1px solid var(--line);}
-.afilter button.on{background:var(--rose); color:#fff;}
+/* The New/♥/Hide ✕ segment moved INSIDE the filters drawer (2026-09-02) —
+   /searchfilters.css paints its chips now. */
+/* THE DRAWER IS IN FLOW HERE, not a panel hanging over the page — the row it
+   opens from sits directly on top of the search box and the tiles, and a
+   floating panel covers both: measured, the search box and the first row of
+   pictures were under it and could not be tapped at all. Opening it moves the
+   grid down a little, which is honest and is what the Chats search drawer
+   already does. (The Playground's copy IS absolute, because its bar is
+   `position: sticky` and there is nothing under it to push.) */
+.arow{align-items:flex-start;}
+/* The tokens go on the MOUNT so they reach the chip as well as the drawer. */
+.afilters{flex:1; min-width:0; --fsf-ink:var(--ink); --fsf-ink2:var(--ink2);
+  --fsf-line:var(--line); --fsf-paper:var(--barbg); --fsf-on:var(--rose);}
+.arow .filtchip{background:var(--barbg);}
+/* Lit, the ✕ must not match the ♥ — one keeps what it names, the other drops
+   it (the Playground's own rule). */
+.arow .filtcbtn.dropfilt.on{background:var(--ink2); border-color:var(--ink2);}
 .asearch{position:relative; margin:0 0 12px;}
 /* 16px MINIMUM on every input on this page (found live 2026-08-18 on Sophie's
    phone): iOS auto-zooms when an input under 16px gets focus, that zoom
@@ -245,7 +266,11 @@ function whoLabel(it){ return it.name || it.chat || ''; }
 //    grown are the reason nobody migrated it, so the shared file grew two
 //    hooks for them instead. Votes and notes still go to it.chat, which IS
 //    the sync with that chat's own Assets tab.
-function lightbox(url, asset){
+// `shown` is what is PAINTED — the tile's own cached thumb, so a step lands a
+// picture in the same frame instead of a blank box while a 1-3MB original
+// downloads (the Playground's rule). The doors run off the real `url`; the
+// original swaps in behind the thumb (see openAsset).
+function lightbox(url, asset, shown){
   if(asset){
     // The four doors are /asset-actions.js's — ONE set, so this page and the
     // chat's own Assets tab can never offer different ones again. chatDoor is
@@ -253,7 +278,7 @@ function lightbox(url, asset){
     asset.actions=window.ForgeAssetActions.build(url, asset, {chatDoor:true});
     asset.who=whoLabel(asset);
   }
-  window.__assetLightbox(url, asset);
+  window.__assetLightbox(shown||url, asset);
 }
 
 // ── The page: one grid over every chat, paged as she scrolls ──────────────
@@ -265,7 +290,7 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
     var a=(d&&d.assets)||[];
     content.innerHTML='';
     if(!a.length){ content.appendChild(Object.assign(document.createElement('div'),{className:'state',textContent:'No images filed anywhere yet.'})); return; }
-    var cells=[], filter=null, q='';
+    var cells=[], q='';
     // ONE object per chat+url, however it arrives (a browse page, a server
     // search, a catch-up refresh) — so a ♥ cast anywhere is the same object
     // everywhere and re-rendering never forks the state.
@@ -296,13 +321,30 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
       }
       return it._hay;
     }
+    // QUALITY comes off the filed MODEL · QUALITY · SIZE caption, which is
+    // where it lives on an asset record — nothing here carries it as a field.
+    // A picture whose caption never said (1,938 of them, measured Aug 2026)
+    // does not pass "high": she asked for the high ones, and "we don't know"
+    // is not one of them.
+    function assetQuality(it){
+      if(it._q==null) it._q = SF.qualityOf([it.prompt, it.promptStyle].filter(Boolean).join(' '));
+      return it._q;
+    }
+    function filtPasses(it){
+      var qs=FILT.get('quality')||[];
+      if(qs.length && qs.indexOf(assetQuality(it))<0) return false;
+      var since=SF.sinceMs(FILT.get('when'));
+      if(since && !(Date.parse(it.created||'')>=since)) return false;
+      return true;
+    }
     function applyFilter(){
       var shown=0, groups=q?qparse(q):[];
       cells.forEach(function(c){
-        var v=c.it.vote||null, show=true;
+        var v=c.it.vote||null, show=true, filter=FILT.get('marks');
         if(filter==='new') show=!v;
         else if(filter==='like') show=(v==='like');
         else if(filter==='nox') show=(v!=='dislike');
+        if(show) show=filtPasses(c.it);
         if(show && groups.length) show=qmatch(haystack(c.it), groups);
         if(c.it._broken) show=false;
         c.cell.style.display=show?'':'none';
@@ -320,19 +362,41 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
       else none.textContent='No images match that.';
       none.style.display=(shown||(!cells.length&&!q))?'none':'';
     }
-    var seg=document.createElement('div'); seg.className='afilter';
-    [['new','New'],['like','♥'],['nox','Hide ✕']].forEach(function(m){
-      var sb=document.createElement('button'); sb.textContent=m[1]; sb.dataset.f=m[0];
-      sb.onclick=function(){
-        filter = filter===m[0] ? null : m[0];
-        seg.querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', x.dataset.f===filter); });
-        applyFilter();
-      };
-      seg.appendChild(sb);
-    });
+    // ─── THE ADVANCED SEARCH DRAWER (2026-09-02, Sophie: "a toggle open
+    // advanced search in all pages - reusable shell ... you can put the heart
+    // x thing within the toggle") ─────────────────────────────────────────
+    // The shape is /searchfilters.js — opt in, shut until she taps the chip,
+    // the chip wearing the state while it is shut. WHAT LIVES HERE is which
+    // filters this page has.
+    //
+    // MARKS STAY EXCLUSIVE, exactly as the old segment was: New, ♥ and Hide ✕
+    // are three answers to one question about a picture's mark, and two of
+    // them at once means nothing. Quality is MULTI, because "low and high"
+    // is what looking at a ladder is.
+    //
+    // NOT STICKY on this page, deliberately — the chat's Assets tab and this
+    // one are both surfaces she arrives at to look at everything, and a
+    // filter left on from last week silently hiding most of her library is the
+    // thing the chip's own state-wearing exists to stop. The Playground's ♥/✕
+    // ARE sticky because they were already, and moving them must not reset a
+    // filter she left on.
     var arow=document.createElement('div'); arow.className='arow';
-    arow.appendChild(seg);
+    var fmount=document.createElement('div'); fmount.className='afilters';
+    arow.appendChild(fmount);
     content.appendChild(arow);
+    var SF=window.ForgeSearchFilters;
+    // If this surface is ever rebuilt, the last drawer's tap-out listener goes
+    // down with it.
+    if(window.__metaFilt && window.__metaFilt.destroy) window.__metaFilt.destroy();
+    var FILT=window.__metaFilt=SF.build(fmount, [
+      { key:'marks', kind:'chips', label:'Marks',
+        vals:['new','like','nox'], words:['New','\u2665','Hide \u2715'],
+        classes:['','','dropfilt'] },
+      { key:'quality', kind:'chips', multi:true, label:SF.QUALITY.label,
+        vals:SF.QUALITY.vals, words:SF.QUALITY.words },
+      { key:'when', kind:'chips', label:SF.WHEN.label,
+        vals:SF.WHEN.vals, words:SF.WHEN.words },
+    ], function(){ applyFilter(); });
     var srow=document.createElement('div'); srow.className='asearch';
     var si=document.createElement('input'); si.type='search';
     si.autocapitalize='none'; si.autocorrect='off';
@@ -471,7 +535,7 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
     // is load-bearing HERE rather than merely tidy: a newly-arrived page is
     // insertBefore'd at the FRONT of the grid while `cells` still pushes it
     // on the end, so the array and the screen genuinely disagree.
-    var lbIt=null;
+    var lbIt=null, lbIdx=-1;
     function aSeq(){
       return Array.prototype.filter.call(grid.querySelectorAll('.acell'), function(c){
         return c._it && c.style.display!=='none';
@@ -481,10 +545,15 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
       for(var k=0;k<seq.length;k++) if(seq[k]._it===it) return k;
       return -1;
     }
+    // A MARK CAST FROM THE LIGHTBOX CAN TAKE THE PICTURE OFF THE GRID, AND THE
+    // WALK HAS TO SURVIVE IT (2026-09-03) — the Assets tab's own note, same
+    // cause: every vote re-runs applyFilter, so with New or ♥ or Hide ✕ lit
+    // the tile under her leaves as she marks it and both zones go dead while
+    // still drawn. Her PLACE is the fallback: the list closed up over the gap,
+    // so what now stands at the index she held IS the next one.
     function aStep(d){
       var seq=aSeq(), at=aAt(seq, lbIt);
-      if(at<0) return;
-      var nx=seq[at+d];
+      var nx = at>=0 ? seq[at+d] : seq[d>0 ? lbIdx : lbIdx-1];
       if(nx) openAsset(nx._it, false);
     }
     function openAsset(it, fresh){
@@ -498,6 +567,7 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
       if(lbIt && lbIt!==it) lbIt._lbPaint=null;   // its ♥/✕ are out of the box
       lbIt=it;
       var seq=aSeq(), at=aAt(seq, it);
+      lbIdx=at;   // her place, for a mark that takes this tile off the grid
       it.nav={
         prev: at>0 ? function(){ aStep(-1); } : null,
         next: (at>=0 && at<seq.length-1) ? function(){ aStep(1); } : null
@@ -506,7 +576,29 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
       // Both halves, always — carrying only a set one would leave the arriving
       // picture wearing whatever an EARLIER visit left on it.
       if(carry){ it.promptSide=carry.side; it.promptOpen=carry.open; }
-      lightbox(it.url, it);
+      // The cached thumb paints first and the original swaps in behind it —
+      // the Playground's rule; a step used to leave the box EMPTY for a whole
+      // 1-3MB download. One download either way (the preloader warms the cache
+      // the swap then reads). See the Assets tab's own note.
+      var th=tileSrc(it);
+      lightbox(it.url, it, th);
+      if(th!==it.url){
+        var pre=new Image();
+        pre.onload=function(){
+          if(lbIt!==it) return;                    // she stepped on while it flew
+          var el=document.querySelector('#clightbox .clwrap img');
+          if(el && el.getAttribute('src')===th) el.src=it.url;
+        };
+        pre.src=it.url;
+      }
+    }
+    // What the TILE is showing right now — decoded, and already past the
+    // direct-thumb→/api/story/thumb fallback, so it can never paint the 404
+    // the tile itself walked away from.
+    function tileSrc(it){
+      var im=it._img;
+      var s=(im && !im.dataset.src) ? im.getAttribute('src') : '';
+      return s || it.thumb || assetThumb(it.url);
     }
     function addTiles(list, anchor){ list.forEach(function(it){
       var cell=document.createElement('div'); cell.className='acell';
@@ -522,6 +614,7 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
       var srcAttr = io ? 'data-src' : 'src';
       b.innerHTML='<img alt="" decoding="async" '+srcAttr+'="'+esc(thumb)+'">'+lbl+wl;
       var img=b.querySelector('img'), triedFb=false;
+      it._img=img;   // the lightbox paints this decoded copy first (tileSrc)
       img.onerror=function(){
         if(!triedFb && it.thumb){ triedFb=true; img.src=fb; return; }
         it._broken=true; cell.style.display='none'; if(it._lbPaint) it._lbPaint();

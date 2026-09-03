@@ -43,7 +43,11 @@
     + 'transition:transform .2s ease,width .2s ease;}'
     // ON THE DECK the switch rides in her own chrome: her cream, her rule,
     // and inside the 22px gutter every other row there shares
-    + '.jg-mombg .pv{border-bottom-color:#E7DECF;margin:0;padding:0 22px;flex:none;}'
+    // …and it owes the NOTCH when the viewer's bar is gone (2026-09-03): the
+    // parent hands the inset down as `--forgetop`, because env() is 0 in a
+    // nested browsing context and this row is the topmost thing on screen
+    + '.jg-mombg .pv{border-bottom-color:#E7DECF;margin:0;flex:none;'
+    + 'padding:var(--forgetop,0px) 22px 0;}'
     + '.jg-mombg .pv button{color:#8A7F6E;}'
     + '.jg-mombg .pv button.on{color:#262016;}'
     + '.jg-mombg .pv::after{background:#C25E4C;}'
@@ -57,6 +61,16 @@
     + '.jg-mombg #judge{flex:1;min-height:0;}'
     // one screen: no pill over a deck, whatever the host injected
     + '.jg-mombg .float{display:none !important;}'
+    // AND NO PAGE TITLE OVER A DECK (2026-09-03, Sophie: "spacing is weird").
+    // The <h1> is a per-PAGE decision (page-templates drops it for a `deck`)
+    // and the deck is a per-VIEW one — so the swipe view of a GRID-posted page
+    // drew the title in 26px serif above her chrome, under the app viewer's
+    // own bar, which is the same name a THIRD time. Measured at 390x844 with
+    // her 47px inset: bar 0-55, h1 55-78, and the card starting 119px down a
+    // screen her design fills. Hidden per view rather than dropped, so the
+    // compare half keeps its heading (and compare.js's "?" its mount) and
+    // every page already posted gets this with nothing re-posted.
+    + '.jg-mombg .wrap>h1{display:none;}'
     + '[hidden]{display:none !important;}';
   document.head.appendChild(css);
 
@@ -98,16 +112,59 @@
     });
   }
 
-  /** the deck's cards: a spread of one is its picture; a spread of several is
-   *  ONE card holding them side by side — which is also the two-up picker she
-   *  asked for ("comparing two different images to each other, and picking
-   *  between them"), falling out of the same shape rather than being a third
-   *  thing to build. */
+  /* ── ONE CARD AT A TIME IS THE DEFAULT (2026-09-03, Sophie, on "Playground
+     triangle hearts v1 (19)": "as a rule tinder compare shud default to 1
+     unless they're comparing something specific") ────────────────────────────
+     Every group used to become ONE swipe card holding all of it side by side,
+     which is right for the two-up picker it was built for and falls apart the
+     moment a group is a LISTING rather than a comparison. `.jg-spread` is
+     `flex:1 1 0` with no wrap, so the pictures just divide the card between
+     them — her 19-card group drew 11px-wide pictures under a row of "this one"
+     buttons overlapping each other into an unreadable stack.
+
+     SPREAD_MAX IS MEASURED, NOT CHOSEN — the real page at her 390pt viewport:
+       2 across → 169px pictures, the "this one" button fits with slack
+       3 across → 110px, fits
+       4 across →  81px against a 72px button, no slack left
+       5 across →  63px, the button squeezed to its own text
+       9 across →  31px pictures (16px TALL) and the buttons OVERFLOW
+      19 across →  11px, the screenshot she sent
+     So 3 is the last size where a picture is big enough to compare and every
+     control still fits its column, and 4+ is a listing wearing a comparison's
+     clothes. Measured over her 30 most recent template pages the same day, the
+     group sizes are 1×60, 2×1, 3×40, 4-10×72, 19×1 — so this splits the
+     inventory buckets (attributes, hearts, panels) and leaves the quality
+     ladders and the three-proposal sets exactly as they were.
+
+     THE SPREAD IS UNTOUCHED IN THE OTHER VIEW, deliberately: `spreadsOf` still
+     hands the grid its groups, so the label, the ruled-off row and the `s:`
+     key are all still there in COMPARE, which is the view a big group reads
+     correctly in. A split group's spread mark therefore lives in compare only
+     — no verdict is lost either way, because review.js counts CARD ids and a
+     spread mark already decides every card under it.
+
+     Splitting must never CHANGE the cards, so each one is copied and the
+     group's name rides as its eyebrow — she still knows which pile a card came
+     out of, the way the grid's heading tells her. */
+  var SPREAD_MAX = 3;
+
   function itemsOf(data) {
-    return spreadsOf(data).map(function (sp) {
-      if (!sp.id) return sp.items[0];
-      return { id: sp.id, label: sp.label, cards: sp.items };
+    var out = [];
+    spreadsOf(data).forEach(function (sp) {
+      if (!sp.id) { out.push(sp.items[0]); return; }
+      if (sp.items.length <= SPREAD_MAX) {
+        out.push({ id: sp.id, label: sp.label, cards: sp.items });
+        return;
+      }
+      sp.items.forEach(function (c) {
+        // copy — these are the GRID's own objects, and an eyebrow written onto
+        // one would show up in the other view too
+        out.push(sp.label && !(c && c.eyebrow)
+          ? Object.assign({}, c, { eyebrow: sp.label })
+          : c);
+      });
     });
+    return out;
   }
 
   window.__pageViews = function (opts) {
@@ -170,6 +227,18 @@
       // the body class is the DECK's — the grid could not scroll with it on,
       // and the deck would scroll without it
       document.body.classList.toggle('jg-mombg', swiping);
+      // THE VIEWER'S BAR IS THE DECK'S TO SPEND (2026-09-03, Sophie: "headers
+      // unnecessary - takes space. push it down"). It shows the same title
+      // the page carries and costs ~94px of a screen the deck fills exactly;
+      // the grid, which scrolls, keeps it. The chevron is not lost — a
+      // template page is opened with `back=1`, so the deck draws one in the
+      // top row it already has.
+      try {
+        if (window.parent && window.parent !== window
+            && typeof window.parent.__pageChrome === 'function') {
+          window.parent.__pageChrome(!swiping);
+        }
+      } catch (_) { /* cross-origin host — leave its chrome alone */ }
       // …and the pill is taken off the DECK by hand as well as by the CSS
       // rule above (Aug 2026, Sophie: "why is the pill there tho it doesn't
       // work" — with a screenshot of it over the swipe view, which the rule
@@ -178,6 +247,15 @@
       // reached that rule on her phone cannot keep the pill on screen.
       var pill = document.querySelector('.float');
       if (pill) pill.style.display = swiping ? 'none' : '';
+      // …and the APP's pill, which lives in the parent (see judge.js's own
+      // note): the deck asks it down per inner view, so all this half has to
+      // do is give it back the moment the grid — which really scrolls — shows.
+      try {
+        if (!swiping && window.parent && window.parent !== window
+            && typeof window.parent.__pagePill === 'function') {
+          window.parent.__pagePill(true);
+        }
+      } catch (_) { /* cross-origin host — leave its chrome alone */ }
       line();
       window.scrollTo(0, 0);
       // …and the GRID puts her back where she was (compare.js __pagePlace):

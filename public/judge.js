@@ -182,9 +182,19 @@
     // CAPS at her ask — and caps in the sans bring the house rule with them
     // (design-rules.md: the sans is caps, NOT bold, with a little tracking,
     // because caps set solid read as a block)
+    // TWO LINES, AND THAT IS A CAP (2026-09-03, Sophie: "spacing is weird",
+    // with a picture card whose name ran SIX lines of rust caps and pushed her
+    // ✕/♥ down onto the picture). This line is her date deck's `who` — a
+    // person's NAME — and a picture card feeds it the item's LABEL, which on a
+    // filed Playground picture is the prompt. Measured on her live hearts page
+    // at 390pt: 19 labels, 6 to 116 characters, drawing 52 · 79 · 105 · 157px
+    // tall — so the card's whole shape depended on how long a prompt was. The
+    // full words are never lost: they are one tap away behind the picture's
+    // own PROMPT door, where the exact prompt already lives.
     '.jg.mom>.who,.jg-mom .who{text-align:center;padding:22px 0 4px;' +
     ' font:500 21px/1.25 -apple-system,\'Helvetica Neue\',sans-serif;color:#C25E4C;' +
-    ' text-transform:uppercase;letter-spacing:.04em;}' +
+    ' text-transform:uppercase;letter-spacing:.04em;display:-webkit-box;' +
+    ' -webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}' +
     // A LONG CARD PUTS ITS TITLE IN THE TOP-LEFT CORNER (Aug 2026, Sophie:
     // "if the text is really long have the title just go in the top left
     // corner instead of in the middle. I really don't like scrolling"). The
@@ -287,6 +297,25 @@
     // last thing in the stack, so reserving the buttons' height under it
     // lifts it clear whether the card is centred or top-aligned.
     '.jg-card.momcard.linkroom{padding-bottom:58px;}' +
+    // A PICTURE CARD IS THE PICTURE (2026-09-03, Sophie: "the main thing is
+    // too much extra on screen pushing the picture down so the buttons
+    // overlap it unnecessarily" · "titles too big/too long"). Two rules, both
+    // about the same card:
+    //   • its NAME is a caption, not a name. The big rust display line is her
+    //     date deck's `who` — a PERSON — and a picture card feeds it the
+    //     item's LABEL, which on a filed Playground picture is the prompt.
+    //     Measured on her hearts page at 390pt: 19 labels drawing 52-157px
+    //     tall in the display size, 26-36 at this one. The words stay one tap
+    //     away behind the picture's own PROMPT door.
+    //   • it RESERVES the floating buttons' band, exactly as `.long` and
+    //     `.linkroom` do. The ✕/♥ float on the content's bottom corners, and
+    //     on a card whose content fills it that means they float on the
+    //     PICTURE — which is what she was pointing at.
+    // A card carrying any of her own parts (who, words, sections, a caption)
+    // is untouched: there the big centred name IS the design.
+    '.jg.mom.pic>.who{padding:8px 0 2px;font-size:13px;line-height:1.3;' +
+    ' letter-spacing:.1em;}' +
+    '.jg.mom.pic .jg-card.momcard{padding-bottom:58px;}' +
     // the piles view scrolls inside its own box on a moment deck, so the
     // page still never scrolls
     '.jg.mom .jg-piles{flex:1;min-height:0;overflow-y:auto;}' +
@@ -1265,6 +1294,12 @@
     // that sit comfortably on one screen are under ~200, so the line is drawn
     // between them. A card with a picture is long the moment it has much to
     // say at all, because the picture is already taking the height.
+    /** a card that is nothing but a picture — see the `.pic` rules */
+    function isPicCard(it) {
+      if (!it || !isMoment(it)) return false;
+      if (!(it.img || (it.cards && it.cards.length))) return false;
+      return !(it.who || it.text || it.caption || (it.sections && it.sections.length));
+    }
     function isLong(it) {
       if (!it || !isMoment(it)) return false;
       var n = String(it.text || '').length + String(it.caption || '').length;
@@ -1467,6 +1502,28 @@
       // the top, because both branches below end in their own way (the moment
       // branch returns early) and this is the one place that covers all of it
       requestAnimationFrame(miniSync);
+      // THE APP'S PILL BELONGS TO A SCREEN THAT SCROLLS (2026-09-03, Sophie:
+      // "spacing is weird", with the viewer's pill sitting on this deck's top
+      // row). A Compare page in the app runs in an IFRAME and the pill she
+      // taps lives in the PARENT (chats.html mkPagePill), so page-views'
+      // `.jg-mombg .float{display:none}` — which hides the INJECTED one —
+      // could never reach it. Measured at 390x844 with her 47px inset: the
+      // pill spans y 47-239 over a top row at 130-174, and elementFromPoint on
+      // this deck's "?" answers the pill's play button — the button is not
+      // merely covered, it cannot be tapped at all.
+      // A CARD VIEW HAS NOTHING TO SCROLL (the body is a fixed one-screen box),
+      // so the pill is asked to stand down there and to come BACK on the
+      // PILES, which is the one screen in a deck that is genuinely long and
+      // the exact autoscroll she asked for on 2026-09-01. Guarded: a page
+      // opened in a browser has no parent hook and nothing changes.
+      if (momDeck) {
+        try {
+          if (window.parent && window.parent !== window
+              && typeof window.parent.__pagePill === 'function') {
+            window.parent.__pagePill(view === 'piles');
+          }
+        } catch (_) { /* cross-origin host — leave its chrome alone */ }
+      }
       // hands-free: while the mic runs, every card change is logged so the
       // recording can be split back onto the cards afterwards
       if (mrec && recTimeline && view === 'card' && items[cur]
@@ -1478,6 +1535,10 @@
       // a long card drops the big centred title for a small top-left one and
       // reserves room under its words for the floating ✕/♥ (see the CSS)
       if (momDeck && view === 'card' && items[cur] && isLong(items[cur])) momCls += ' long';
+      // …and a card that is only a picture gives the picture the room (see the
+      // `.pic` rules): a caption-sized name, and the floating buttons' band
+      // reserved so they never sit on the art
+      if (momDeck && view === 'card' && items[cur] && isPicCard(items[cur])) momCls += ' pic';
       // the way back to the Review Queue, when that is where she came from
       var back = wantBack
         ? '<button class="jg-back" data-act="back" aria-label="Back">'
@@ -1784,19 +1845,31 @@
     // of explanation, tap to step. Replayable from the "?" forever.
     function tourSteps() {
       var steps = [];
+      // THE TOUR HAS TO SAY WHICH PACE THIS DECK IS (2026-09-03). Both of
+      // these lines were written for the LABORED deck and hardcoded — "that is
+      // the only thing that moves you", "marking one never moves you on" —
+      // and quick became the DEFAULT on 2026-09-03, so every deck was
+      // teaching her the opposite of what its own buttons do, on first open.
       if (browse) {
-        steps.push({ sel: '.jg-card', text: 'One card at a time. Tap the left or right '
+        steps.push({ sel: '.jg-card', text: quick
+          ? 'One card at a time. Tap the left or right edge of the card (or swipe) to '
+            + 'move through the deck — and a mark moves you on by itself, so a yes or a '
+            + 'no is one tap. Tap an edge to come back.'
+          : 'One card at a time. Tap the left or right '
           + 'edge of the card (or swipe) to move through the deck — that is the only '
           + 'thing that moves you, so marking a card never carries you off it.' });
       }
       steps.push({ sel: momDeck && !states ? '.jg-momfoot' : '.jg-row', text: states
         ? 'Mark a card with one of these — tap the same one again to unmark it.'
         : momDeck
-          ? '♥ yes, ? maybe, ✕ no — marking one never moves you on, so you can '
-            + 'change your mind. Maybe gets a pile of its own. The box under '
+          ? '♥ yes, ? maybe, ✕ no — ' + (quick
+            ? 'any of the three marks the card and moves you on. '
+            : 'marking one never moves you on, so you can change your mind. ')
+            + 'Maybe gets a pile of its own. The box under '
             + 'them is a note for this card, saved as you type.'
           : '♥ love it, ✕ pass, the dashed circle is maybe, the arrow means sort it later. '
-          + 'Each one saves the moment you tap it.' });
+          + (quick ? 'Each one saves the moment you tap it and moves you on.'
+            : 'Each one saves the moment you tap it.') });
       if (voice) {
         steps.push({ sel: '.jg-mic', text: 'The mic: tap to start talking, tap again to '
           + 'stop. Stay on one card and the note lands there — or keep talking while you '
@@ -1844,7 +1917,7 @@
       h.innerHTML = '<div>' + said + (opts.help ? '<div>' + opts.help + '</div><br>' : '')
         + '<b>THE BUTTONS</b><br>' + keys + '<br>'
         + (browse ? 'Tap the card’s left/right edge (or swipe) to move through'
-          + ' — nothing has to be marked. ' : '')
+          + (quick ? ' — and a mark moves you on by itself. ' : ' — nothing has to be marked. ') : '')
         + (voice && !momDeck ? 'The mic records a voice note: tap to start, tap to stop. Stay on one'
           + ' card and it lands there — or keep talking WHILE you swipe, and each'
           + ' sentence lands on the card you were looking at when you started it. ' : '')
