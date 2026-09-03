@@ -30,3 +30,12 @@ Her verdicts on the concept deck the same day: the before/after domino-table ad 
 8. **Play-through 8 — Each different: comet, candle, lightning around the sun**  
    VO: Or play it the other way. A comet, a candle, a lightning bolt. Each one shares something different with the sun. Similitude. Dominoes for creative people.  
    https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/similitude/playthrough-v1/08-venn.png
+
+## Screen recordings (2026-09-02, her ask: "can't you do a screen record video")
+
+**Making cards is OUT — the commercial is for the PHYSICAL game** (Sophie, the same hour). So the recordings end on the Set! claim (the gold outline) and never tap Draw it; the button's `~2¢` and the generate star are hidden by injected CSS for the recording, and the word is held at "Set!". Two clips, Playwright `recordVideo` against the local mirror, viewport 1080x2340 with `document.documentElement.style.zoom` = 1080/390 so the phone layout renders crisp at 1080 wide (Chromium's standardized zoom: `getBoundingClientRect` and `clientX` are already in viewport pixels, so taps are NOT multiplied — the first take multiplied them and every tap landed off-page). A tap ripple is injected on `pointerdown`; typing is `keyboard.type` at 75ms a character. Cropped to 1080x1920 from the top (the page's lower 40% is empty cream), 30fps H.264.
+
+- `commercials/similitude/screenrec-v1/similitude-screenrec-a-all-the-same-v1.mp4` (0:16) — sunflower · jam · candle, swap the jam for the redwood, type "one tall thing up the middle", Set!
+- `commercials/similitude/screenrec-v1/similitude-screenrec-b-each-different-v1.mp4` (0:21) — comet · poppies · lightning, swap the poppies for the candle, "the sun" in the middle, "a tail of light" / "a flame" / "from the sky" on the sides, Set!
+
+Silent on purpose — she is laying the voiceover in ChatGPT. A different hand is three card ids in the recording script's `table(...)` call.
