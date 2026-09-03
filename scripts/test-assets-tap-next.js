@@ -251,7 +251,11 @@ function ok(cond, name) {
     await closeLb();
 
     // 3. the ORDER is what is on screen — light ♥ and the walk skips the rest
-    await page.click('.assetgrid ~ * .afilter button:nth-child(2), .afilter button:nth-child(2)');
+    // The ♥ lives inside the filters drawer on BOTH pages since 2026-09-02
+    // (/searchfilters.js) — open it, tap the chip.
+    await page.click('.arow .filtchip');
+    await page.waitForSelector('.arow .filtdrawer:not([hidden])');
+    await page.click('.arow .filtcbtn[data-v="like"]');
     const lit = await shownCaps();
     ok(lit.length === 2 && lit[0] === 'two — the corridor',
       label + ': the ♥ filter leaves two tiles on screen');

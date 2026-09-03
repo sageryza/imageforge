@@ -103,17 +103,28 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   await page.goto(base + '/playground');
   await page.waitForFunction(() => document.querySelectorAll('#tiles .cell').length > 0);
 
-  const heart = page.locator('#v-liked');
+  // THE HEART LIVES INSIDE THE FILTERS DRAWER SINCE 2026-09-02 (Sophie: "you
+  // can put the heart x thing within the toggle") — /searchfilters.js. The
+  // drawer is opened once and left open, which is also how she uses it.
+  const openFilt = async () => {
+    if (await page.locator('#feedfilters .filtdrawer').isVisible()) return;
+    await page.click('#feedfilters .filtchip');
+    await page.waitForSelector('#feedfilters .filtdrawer:not([hidden])');
+  };
+  await openFilt();
+  const heart = page.locator('#feedfilters .filtcbtn[data-v="like"]');
   const wall = () => page.locator('#tiles .cell:not(.ph) img').evaluateAll(
     els => els.map(e => e.getAttribute('data-run') + '#' + e.getAttribute('data-i')));
   const listWall = () => page.locator('#runs .cell img').evaluateAll(
     els => els.map(e => e.getAttribute('data-run') + '#' + e.getAttribute('data-i')));
 
-  // The heart is beside the view switch, in the same bar.
-  if (await heart.count() !== 1) fail('no heart button in the feed bar');
-  const [bar, hbox] = await Promise.all([
-    page.locator('.feedbar .viewtog').boundingBox(), heart.boundingBox()]);
-  if (!(hbox.x > bar.x + bar.width - 2)) fail('the heart is not beside the List/Tiles switch');
+  // The heart is in the drawer that hangs off the feed bar, and the chip that
+  // opens it is beside the view switch — where the loose heart used to be.
+  if (await heart.count() !== 1) fail('no heart chip in the filters drawer');
+  const [bar, cbox] = await Promise.all([
+    page.locator('.feedbar .viewtog').boundingBox(),
+    page.locator('#feedfilters .filtchip').boundingBox()]);
+  if (!(cbox.x > bar.x + bar.width - 2)) fail('the filters chip is not beside the List/Tiles switch');
 
   // 1 — unlit, everything shows.
   if ((await wall()).length !== 8) fail(`unfiltered wall shows ${(await wall()).length} pictures, expected 8`);
@@ -137,6 +148,7 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   // 2 — sticky across a reload.
   await page.reload();
   await page.waitForFunction(() => document.querySelectorAll('#runs .cell img').length === 3);
+  await openFilt();
   if (!(await heart.evaluate(el => el.classList.contains('on')))) fail('the heart filter did not survive a reload');
   await page.locator('#v-list').click();   // the init script re-pins tiles on every load
 
