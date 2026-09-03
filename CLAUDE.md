@@ -8700,6 +8700,55 @@ before working on that module. Nothing was deleted — the moved text is verbati
       malformed" on one of her liked urls and took the whole sweep with it.
       Every decode here is guarded; a key that cannot be decoded is still a
       usable key undecoded.
+- **HEAD GAMES** (`docs/headgames/`, a Compare page in the
+  `mental-games-instrumental-beliefs` chat — no route, no module, no iOS tile;
+  2026-09-03, Sophie: "little games we play in our head all the time …
+  organizing ur mind — stray bits of info that normally float around, now,
+  structured in a format that makes sense … diagnose mental processes,
+  represent, no value judgement" · "can we build a hub, each game an icon" ·
+  "make it off render so we don't have to deploy every time — a compare page
+  maybe"). Five games behind five hand-drawn line icons, three to a row:
+  **the scale** (hers: pros and cons, she decides how many blocks each reason
+  weighs, taps them on one at a time, the line names the block that tipped
+  it), **the jars** (questions she never looked up, the lid comes off with the
+  answer, the shelf counts the shut ones and the longest-shut), **the train**
+  (how did I get to thinking about this — cars coupled backwards to the
+  station), **the tower** (why she believes a thing — pull a block, does it
+  still stand, the load-bearing ones turn rose) and **luggage tags** (who
+  handed her each opinion, grouped by name). Nothing judges anything; each
+  shape only says what is in it. **It costs nothing** — no model call, no
+  route, and a new version needs NO DEPLOY.
+  - **THE PAGE IS POSTED, NOT SERVED.** `node scripts/headgames-page.js --go`
+    builds `headgames.tpl.html` + `rules.js` (inlined) and posts it with
+    `POST /api/chatfeed/page`; `--supersede <id>` retires the old one. The
+    version comes off `docs/headgames/VERSIONS`, a ledger the script appends
+    to, so the title is always `Head Games vN`. A change to the page is:
+    edit the template, run the tests, post, supersede, merge with
+    `[skip render]`. Don't turn it into a `public/*.html` route — that is
+    exactly the deploy-per-change she asked to be rid of.
+  - **HER STATE LIVES OFF THE PAGE, on verdict docs** — one per game
+    (`hg-scale` · `hg-jar` · `hg-train` · `hg-tower` · `hg-tag`, under the
+    chat above), one JSON text per item, through the `/api/chatfeed/verdict`
+    the live server already has. So every version opens on the same jars and
+    towers, and a page is frozen the day it is posted while her games are
+    not. A verdict text holds 2000 chars; an item over ~1900 is refused with
+    "This one is full" rather than truncated. Nothing is deleted — "Put it
+    away" sets `hidden`.
+  - **FOUR THINGS THE PHOTO CAUGHT, worth not re-earning:** a CSS `width`
+    on `.blk` (the tower's HTML block) reached the scale's SVG `rect.blk`
+    and drew every weight as a bar across the drawing (the SVG blocks are
+    `.bk`); a placed reason wearing `.on` picked up compare.css's
+    `button.on` white-on-gold and read as blank (`.placed`); a pulled tower
+    block at 38% slid off a 390pt phone (blocks are 70% wide, the slide 20%,
+    and `.wrap` never scrolls sideways); and the "A jar" button was
+    right-aligned into the pill's corner. And **three lists sharing one
+    `#lnew` id gave only the first a handler** — they are `.lnew`, scoped
+    per list.
+  - Tests: `node scripts/test-headgames.js` (the rules, pure — the scale's
+    deciding block, the shelf order, the route, load-bearing, the grouping —
+    and the built page against the page-kit warnings) and
+    `node scripts/test-headgames-page.js` (the real page headless, every
+    game walked against a stubbed verdict store; every check a measurement).
 - **The Dump** (`dropbox.js`, `/api/drop`, sort page at `/dump`, iOS tile with
   SEND and SORT tabs) — **dump first, label afterwards**. Dropping asks no
   questions; only the bundle (a Photos album) and the session are captured,
