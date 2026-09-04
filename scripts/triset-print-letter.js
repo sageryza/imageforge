@@ -91,7 +91,7 @@ async function buildHtml(deck, srcOf, opts) {
   const body = pages.map((cards, p) =>
     `<section class="page"><div class="grid">`
     + cards.map(c => cardSvg(g, srcs.get(c), c.n, opts.outline)).join('')
-    + `</div><footer>Similitude · ${deck.length} cards · ${p + 1} / ${pages.length}</footer></section>`).join('\n');
+    + `</div><footer>${esc(opts.footer || 'Similitude')} · ${deck.length} cards · ${p + 1} / ${pages.length}</footer></section>`).join('\n');
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Similitude — 61 cards, letter</title>
 <style>
 @page { size: letter; margin: ${L.margin}in; }
@@ -166,5 +166,5 @@ async function main() {
   }
 }
 
-module.exports = { geometry, layout, buildHtml, cardSvg };
+module.exports = { geometry, layout, buildHtml, cardSvg, renderPdf, upload, fileData };
 if (require.main === module) main().catch(e => { console.error(e.message); process.exit(1); });
