@@ -89,7 +89,8 @@ ok('mixHex refuses a short or malformed list',
   triset.mixHex(['#e67774', '#efcb52']) === null && triset.mixHex(['x', '#efcb52', '#ee975d']) === null);
 ok('/found answers a hex set READY with no render (nothing drawn, nothing billed)',
   /const hex = mixHex\(srcDocs\.map\(c => c\.hex\)\)/.test(MOD)
-  && /return res\.json\(\{ ok: true, id: ref\.id, status: 'ready', hex,/.test(MOD));
+  && /return \{ ok: true, id: ref\.id, status: 'ready', hex,/.test(MOD)
+  && /router\.post\('\/found', async \(req, res\) => \{\s*try \{ res\.json\(await startFound\(req\.body\)\); \}/.test(MOD));
 ok('a hex set refuses auto honestly (no picture for the model to read)',
   /color cards mix by themselves/.test(MOD));
 ok('the page renders a hex card as a flat SVG triangle',
