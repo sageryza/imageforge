@@ -50,8 +50,11 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
   7¢ / 15¢; `wan-2.7-i2v` 10¢ / 15¢ (2-15s); `kling-v2.1` 5¢ / 9¢ (5s
   floor, so 25¢ / 45¢ minimum — the 55¢ pro figure above is stale);
   `wan-2.2-i2v-fast` is per CLIP, 5s floor, 6¢. Seedance 2.0 defaults
-  `generate_audio:true` and its schema floor is unstated (`-1` = the model
-  picks); 1.5-pro defaults audio OFF. **APIFRAME's Seedance floors at 4s**
+  `generate_audio:true`, and **its floor is 4s, measured**: the schema says
+  only `-1` = the model picks, and a 3s request to `seedance-2.0-mini` was
+  refused at validation — "Duration must be between 4 and 15 seconds" —
+  before it was billed, so a 3s Seedance clip means a 1.x model. 1.5-pro
+  defaults audio OFF. **APIFRAME's Seedance floors at 4s**
   (`seedance-2-mini` 4-11 credits/s, `-2-fast` 7-18, `-2.5` 13-35, `-2` 8-209,
   `-1.5-pro` flat 6-180 at [4,8,12]; a credit is ~1¢ on the Basic plan) —
   and **the `APIFRAME_KEY` in the cloud environment answered "Invalid or
