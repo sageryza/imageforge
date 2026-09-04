@@ -39,10 +39,16 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
 - **SEEDANCE, AND WHAT A 3-SECOND CLIP COSTS PER MODEL (measured 2026-09-04
   off Replicate's own billing tiers and APIFRAME's catalogue, Sophie's ask:
   "needs about 3 seconds. how much does that cost each model").** Replicate
-  bills Seedance PER SECOND of output, by resolution — and **the 1.x models
-  take any duration from 2s** (`seedance-1-pro`, `-1-pro-fast`, `-1.5-pro`;
-  `-1-lite` floors at 4), so 3s is a real option there and "5 is the
-  minimum" is only true of wan-2.2 (81 frames) and kling (5/10). Per second:
+  bills Seedance PER SECOND of output, by resolution — and **THE SCHEMA'S
+  DURATION RANGE IS A LIE: no Seedance takes 3s.** Replicate's schema says
+  2-12 for the 1.x models, but the request goes upstream and ByteDance
+  refuses it — measured 2026-09-04, `seedance-1.5-pro` at 3s: "the specified
+  duration is not supported for model seedance-1-5-pro" (its real steps are
+  4 / 8 / 12, as APIFRAME's catalogue says); `seedance-1-pro` and `-1-lite`
+  describe themselves as 5s or 10s. So "5 is the minimum" is true of kling
+  and wan-2.2 (81 frames), 4 of every Seedance, and a 3s clip is **wan-2.7
+  or wan-3 (both take 2-15s+), or a 4s Seedance trimmed in ffmpeg** — a
+  refusal costs nothing (under a second, no output, unbilled). Per second:
   `seedance-1-pro-fast` 1.5¢ / 2.5¢ / 6¢ (480p / 720p / 1080p);
   `seedance-1-lite` 1.8¢ / 3.6¢ / 7.2¢; `seedance-1-pro` 3¢ / 6¢ / 15¢;
   `seedance-1.5-pro` 1.3¢ / 2.6¢ / 6¢ without audio and 2.5¢ / 5.2¢ / 12¢ with;
