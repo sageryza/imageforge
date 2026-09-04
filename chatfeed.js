@@ -3930,14 +3930,33 @@ router.post('/bookmark', async (req, res) => {
 // rides the thread read with no extra query. One key per call; `on:false`
 // deletes the key rather than storing false, so a clean message carries no
 // map at all. A merged run's part saves onto its own doc.
+//
+// THREE STOPS SINCE 2026-09-04 (Sophie: "do a three way toggle so two press
+// is an x three press is a note option that brings up a text box … maybe a
+// toggle default to for claude but also can set to 'just for me'"). `state`
+// is '' | 'tick' | 'x' | 'note' — `on` still works as the old two-state
+// call from a cached page. A note's WORDS ride `ticknotes[key]` = {text, to,
+// at}, a SEPARATE map: cycling the box past the note stop never deletes a
+// sentence she wrote, and `note:''` is the one thing that does. `to` is
+// 'claude' or 'me'; the page is what posts a for-Claude note into the thread
+// (through /reply, so it parks and rings exactly like the composer) — this
+// route only files it on the item.
+const TICK_STATES = ['', 'tick', 'x', 'note'];
 router.post('/tick', async (req, res) => {
   try {
-    const { id, key, on } = req.body || {};
+    const { id, key, on, note, to } = req.body || {};
     if (!id) return res.status(400).json({ error: 'id required' });
     if (!/^[a-z0-9]{1,24}$/.test(String(key || ''))) return res.status(400).json({ error: 'key required' });
-    const patch = { ticks: { [key]: on ? true : admin.firestore.FieldValue.delete() } };
+    let state = req.body && req.body.state != null ? String(req.body.state) : (on ? 'tick' : '');
+    if (!TICK_STATES.includes(state)) return res.status(400).json({ error: 'state must be one of ' + TICK_STATES.join('|') });
+    const del = admin.firestore.FieldValue.delete();
+    const patch = { ticks: { [key]: state === 'tick' ? true : state ? state : del } };
+    if (typeof note === 'string') {
+      const text = note.trim().slice(0, 2000);
+      patch.ticknotes = { [key]: text ? { text, to: to === 'me' ? 'me' : 'claude', at: new Date().toISOString() } : del };
+    }
     await db().collection(MSGS).doc(String(id)).set(patch, { merge: true });
-    res.json({ ok: true, id: String(id), key, on: !!on });
+    res.json({ ok: true, id: String(id), key, state, on: state === 'tick', note: patch.ticknotes ? patch.ticknotes[key] : undefined });
   } catch (err) { fail(res, err); }
 });
 
