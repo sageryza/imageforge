@@ -158,8 +158,9 @@ The numbers are measured, not guessed.
    → the `deliver-images` skill walks the whole ritual.
 
 **When she messages you** — check what is waiting, in one sweep: asset ♥/✕ and
-notes (`GET /api/gallery/assets/notes?chat=`), Writing Room notes, the running
-to-do list. Act on them, then answer on the image itself. **Never on a timer.**
+notes (`GET /api/gallery/assets/notes?chat=` — **it also lists her notes on
+LIST ITEMS in your replies, `kind:'item'`; answer those with `POST
+/api/chatfeed/tick/reply`**), Writing Room notes, the running to-do list. Act on them, then answer on the image itself. **Never on a timer.**
 - **AND SWEEP THE NOTES AGAIN BEFORE YOU SAY YOU ARE DONE — HER NOTES ARRIVE
   AFTER THE MESSAGE THAT ANNOUNCES THEM.** Measured 2026-08-28: she wrote
   "added some notes … i suggested 3 examples in the notes" at **23:17:29** and
@@ -1750,9 +1751,19 @@ them off the reference sheet, not off the old filenames.
     nobody. A saved note reads back under its item in her italic with who it
     was for; tapping it reopens the box holding her words (prefilling with
     her own saved value is not pre-written text).
+  - **AND IT IS IN THE ONE NOTES INBOX EVERY CHAT SWEEPS — `GET
+    /api/gallery/assets/notes?chat=` lists it as `kind:'item'` (2026-09-04,
+    the same hour: a chat swept that read, answered "none reached me", and six
+    of her notes sat in its thread — "if they weren't in an obvious place at
+    first, that's on you").** The row carries the item's own words as its
+    `description`, her note as the thread, `waiting:'chat'` until answered,
+    and `msgId` + `key`. **Answer it ON THE NOTE**, the picture-note rule:
+    `POST /api/chatfeed/tick/reply {id: msgId, key, text}` — it reads back
+    under her note in the app. A just-for-me note is in no inbox.
   - **The words live in `ticknotes[key]`, a SEPARATE map**, so cycling the box
     past the note stop never deletes a sentence she wrote; the box ships
-    EMPTY. Test: `node scripts/test-chats-list-ticks.js` (the real page
+    EMPTY. `forge-item-notes` is the inbox's copy (`node
+    scripts/test-item-notes.js`). Test: `node scripts/test-chats-list-ticks.js` (the real page
     headless — the three colours MEASURED, and what the stub really received
     on /reply, /wake and /tick, in order).
 - **THE PINNED LINK — if your work lives at a URL, PIN IT (Aug 2026, Sophie:

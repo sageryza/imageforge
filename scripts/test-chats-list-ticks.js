@@ -238,7 +238,7 @@ const items = (page, mid) => page.$$eval('#thread .msg[data-mid="' + mid + '"] .
   else fail('replies: ' + JSON.stringify(replies));
   if (wakes.length === 0) ok('…and does NOT ring the doorbell (her rule: the chat sees it when it is next up)'); else fail('wakes: ' + JSON.stringify(wakes));
   const noteSave = posts.filter((p) => p.state === 'note');
-  if (noteSave.length === 1 && noteSave[0].key === PIG_KEY && noteSave[0].note === 'one hole per person is too many' && noteSave[0].to === 'claude') ok('…and files {state:note, note, to:claude} on the item');
+  if (noteSave.length === 1 && noteSave[0].key === PIG_KEY && noteSave[0].note === 'one hole per person is too many' && noteSave[0].to === 'claude' && /^Pigeonholes\. The "oh, I have to tell X" bits/.test(noteSave[0].item)) ok('…and files {state:note, note, to:claude, item} on the item — the words the notes inbox lists it by');
   else fail('note posts: ' + JSON.stringify(posts));
   const pig5 = (await items(page, 'lst')).filter((x) => x.key === PIG_KEY)[0];
   if (pig5.state === 'note' && /for Claude/.test(pig5.note) && /one hole per person is too many/.test(pig5.note) && !(await page.$(pig + ' ~ .mtnote'))) ok('the note reads back under the item and the box closes'); else fail('after send: ' + JSON.stringify(pig5));

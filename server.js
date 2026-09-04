@@ -3188,6 +3188,11 @@ app.get('/api/gallery/assets/notes', async (req, res) => {
       if (v.done) o.done = true;
       notes.push(o);
     });
+    // A note on a LIST ITEM in a reply (the Chats app's tick box, 2026-09-04)
+    // rides this same read, as `kind:'item'` with the item's words as its
+    // description — so ONE sweep finds every note she has left this chat.
+    // Answer it with POST /api/chatfeed/tick/reply {id: msgId, key, text}.
+    try { (await require('./chatfeed').itemNotes(chat)).forEach((n) => notes.push(n)); } catch (e) { /* best-effort: a missing collection must not hide the picture notes */ }
     // The ones waiting on a chat first, then most recently written.
     const lastAt = (n) => Date.parse(n.thread[n.thread.length - 1].at || '') || 0;
     notes.sort((a, b) => {
