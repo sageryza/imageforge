@@ -335,6 +335,20 @@ function validateTemplate(template, data) {
   // note:'small' — a two-line note box under a picture card (2026-09-03,
   // "note section can be smaller — modify template if necessary")
   if (data.note === 'small') out.note = 'small';
+  // asks — questions the deck puts to her on every card, answered in their
+  // own boxes and saved under `<item>:q:<key>` (2026-09-03, Sophie: "modify
+  // tinder compare w those two questions so i answer them"). judge.js draws
+  // and saves them; this only lets a page ask.
+  if (Array.isArray(data.asks)) {
+    const asks = [];
+    data.asks.forEach((a) => {
+      if (!a || typeof a !== 'object' || asks.length >= 4) return;
+      const key = String(a.key || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 24);
+      const label = STR(a.label, 60);
+      if (key && label) asks.push({ key, label });
+    });
+    if (asks.length) out.asks = asks;
+  }
   // spreadEach — every picture on a spread is its own decision, and a picture
   // marked no leaves the spread (2026-09-03, "when i x one, it disappears from
   // the compare, into the no pile, but gone from that particular card
