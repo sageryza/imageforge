@@ -77,7 +77,10 @@ async function rep(url, opts = {}) {
   // 2. The schema decides the keys.
   const m = await rep(`/models/${model}`);
   const props = m.latest_version.openapi_schema.components.schemas.Input.properties;
-  const want = { image: imageUrl, prompt, duration: secs, resolution: res, aspect_ratio: ar, generate_audio: audio };
+  // enable_prompt_expansion is the model rewriting her words before it draws
+  // (wan-2.7 and wan-3 default it ON); off wherever the schema offers it —
+  // nothing stands between the prompt and the model.
+  const want = { image: imageUrl, prompt, duration: secs, resolution: res, aspect_ratio: ar, generate_audio: audio, enable_prompt_expansion: false };
   const input = {};
   for (const [k, v] of Object.entries(want)) if (k in props) input[k] = v; else console.log('schema has no', k, '— not sent');
   console.log('input:', JSON.stringify({ ...input, image: '<still>' }));
