@@ -6542,6 +6542,26 @@ before working on that module. Nothing was deleted — the moved text is verbati
   is what a covered control passes every width assertion while failing).
   Test: `node scripts/test-freeform-boiler.js` (it reads the real table out of
   server.js, so a stale style id or a pasted copy fails there).
+  **♥ / ✕ AND THE BIGGER BOX (2026-09-04, Sophie: "freeform has no heart x?" ·
+  "that and an expand textbox button").** Measured before the fix: nothing in
+  Freeform could be marked at all — no vote field, no route, no `_cast` wired
+  into the shared lightbox, so it drew no ♥/✕ there either. Now the
+  Playground's pattern whole: one mark per PICTURE on the run doc
+  (`votes.{i}`, `POST /api/freeform/run/:id/vote`), the Assets tab's own two
+  marks on each picture's top corners on the card AND in the lightbox (one
+  reader, `runsById`, so a mark cast anywhere shows everywhere), tapping the
+  lit one clears it, and the ♥-only / hide-✕'d pair over the feed, sticky
+  (`freeform_liked` / `freeform_hidex`). **Both directions with the Assets
+  tab**: the route calls server.js's `syncVoteToAssets` (handed in at init —
+  a Freeform output is a My Creations picture, so the my-creations rule reaches
+  `/freeform/out/` too) and the Assets vote route calls `freeform.voteFromAssets`
+  back. The lightbox's note box lands on the picture's my-creations thread,
+  the Playground's wiring. `#bigprompt` is the Playground's corner toggle in
+  shape — `.big` cap over floor in CSS, `fitBig` measuring the words, 56px in
+  from the right for the pill's column, not sticky; `applyRunIn` refits it.
+  Test: `node scripts/test-freeform-votes.js` (the server half by source, then
+  the real page headless against a stub that RECORDS every vote and note the
+  page really POSTs).
   **Full details: `docs/modules/pictures.md`.**
 - **Vector pipeline** (`vector.js`, `/api/vector`, page at `/vector`, iOS tile
   under the PICTURES filter) — describe 1-25 drawings -> ONE gpt-image-2 sheet in

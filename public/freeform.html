@@ -30,6 +30,22 @@
   textarea{width:100%;min-height:110px;border:1px solid #d8cfc0;border-radius:6px;padding:9px;
            font:16px/1.4 -apple-system,Georgia,serif;background:#fdfbf7;color:#2b2620;resize:vertical}
   textarea:focus,select:focus,input:focus{outline:none;border-color:#a89a80}
+  /* THE BIGGER-BOX TOGGLE (2026-09-04, Sophie: "an expand textbox button") —
+     the Playground's #bigprompt lifted in SHAPE, never a second field: one
+     textarea, two sizes, the corner button toggles `.big` and swaps its glyph.
+     The compact box RESERVES the corner with padding-bottom so her last line
+     is never typed under the button; `.big` is a CAP over a FLOOR, both in
+     CSS, and fitBig() measures the words into the height between them. 56px
+     in from the right, not the corner: the injected pill owns that fixed
+     column on every page here, and a z-lift steals the pill's own ▼. Not
+     sticky — the compact box is the page's shape. */
+  .promptwrap{position:relative}
+  .promptwrap textarea{display:block;padding-bottom:34px}
+  #prompt.big{min-height:24vh;max-height:52vh}
+  #bigprompt{position:absolute;right:56px;bottom:6px;width:26px;height:26px;display:flex;
+             align-items:center;justify-content:center;padding:0;margin:0;border:1px solid #d8cfc0;
+             border-radius:6px;background:#fdfbf7;color:#6f675e}
+  #bigprompt svg{width:14px;height:14px}
   .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   select{border:1px solid #d8cfc0;border-radius:6px;padding:7px 8px;background:#fdfbf7;
          font:15px -apple-system,Georgia,serif;color:#2b2620}
@@ -83,7 +99,34 @@
   .copybtn svg{width:14px;height:14px}
   .tags{font-size:11px;color:#9a8f7d;margin-bottom:8px}
   .outs{display:flex;gap:7px;flex-wrap:wrap}
-  .outs img{width:calc(50% - 4px);border-radius:4px;display:block;background:#f1ece2}
+  .outs .cell{position:relative;width:calc(50% - 4px)}
+  .outs .cell img{width:100%;border-radius:4px;display:block;background:#f1ece2}
+  /* ♥ / ✕ ON EVERY PICTURE (2026-09-04, Sophie: "freeform has no heart x?") —
+     the Assets tab's own two marks on the picture's top corners, the shared
+     lightbox's colours, tapping the lit one clears it. A ✕'d picture dims on
+     the card exactly as an Assets tile does. */
+  .outs .vote{position:absolute;top:5px;width:29px;height:29px;border-radius:50%;border:none;
+              display:flex;align-items:center;justify-content:center;padding:0;
+              background:rgba(250,247,240,.82);color:#6b6357}
+  .outs .vote svg{width:15px;height:15px;display:block}
+  .outs .vote.heart{left:5px}
+  .outs .vote.nope{right:5px}
+  .outs .vote.heart.on{background:#c96a5e;color:#fff}
+  .outs .vote.nope.on{background:#3a3530;color:#fff}
+  .outs .cell.nay img{opacity:.35;filter:grayscale(60%)}
+  /* THE TWO FILTERS over the feed — the Playground's segmented pair: ♥ keeps
+     only what it names, ✕ drops only what it names, they stack, both sticky.
+     Lit, the ✕ takes the quiet grey and never the rose: two identical-looking
+     filters read as two of the same thing. */
+  .feedbar{display:flex;align-items:center;gap:8px;margin:0 0 10px}
+  .filttog{display:flex;flex:none;border:1px solid #d8cfc0;border-radius:6px;overflow:hidden;background:#fdfbf7}
+  .likefilt{display:flex;align-items:center;justify-content:center;width:34px;height:32px;
+            border:0;border-radius:0;background:none;color:#6f675e;padding:0}
+  .likefilt+.likefilt{border-left:1px solid #d8cfc0}
+  .likefilt svg{width:16px;height:16px}
+  .likefilt.on{background:#c25a72;color:#fff}
+  .xfilt.on{background:#9a938a;color:#fff}
+  .emptynote{color:#9a8f7d;font-size:13px;padding:6px 2px}
   .ph{width:calc(50% - 4px);aspect-ratio:2/3;border-radius:4px;background:#f1ece2;animation:br 1.6s ease-in-out infinite}
   @keyframes br{0%,100%{opacity:.5}50%{opacity:1}}
   .err{color:#a0402a;font-size:13px}
@@ -115,7 +158,7 @@
 
 <div class="panel">
   <div class="lab">Prompt</div>
-  <textarea id="prompt"></textarea>
+  <div class="promptwrap"><textarea id="prompt"></textarea><button type="button" id="bigprompt" aria-label="Bigger box" title="Bigger box"></button></div>
   <div class="row" style="margin-top:9px">
     <select id="quality">
       <option value="low">low</option>
@@ -143,6 +186,14 @@
   <div class="boilertext" id="boilertext" hidden></div>
 </div>
 
+<!-- shown once there is a run to filter; a row of controls over nothing is
+     a dead control -->
+<div class="feedbar" id="feedbar" hidden>
+  <div class="filttog" role="group" aria-label="Filters">
+    <button type="button" class="likefilt" id="v-liked" aria-label="Show only the ones you hearted" title="Hearts only"></button>
+    <button type="button" class="likefilt xfilt" id="v-hidex" aria-label="Hide the ones you have crossed out" title="Hide the &times;'d"></button>
+  </div>
+</div>
 <div id="feed"></div>
 
 <div class="toast" id="toast"></div>
@@ -160,6 +211,15 @@ var API = '/api/freeform';
 var COST = { low: 0.02, medium: 0.06, high: 0.25 };
 var picked = {};      // ref id -> true
 var polling = {};     // run id -> timer
+var runsById = {};    // run id -> the newest doc the page holds (votes live here)
+
+// Lucide, house stroke 1.8 — the same four paths the Playground draws.
+var ICONS = {
+  heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
+  x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+  maximize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
+  minimize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
+};
 
 function hdr(extra) {
   var h = extra || {};
@@ -333,17 +393,45 @@ function openLb(src) {
   if (window.__scrollStop) window.__scrollStop();
   window.__assetLightbox(src, null);
 }
+// The note under a picture lands on its own thread in my-creations, where every
+// Freeform output is filed (the Playground's wiring, verbatim) — the shared
+// lightbox draws the note box beside the ♥/✕, so it has to have somewhere to
+// send. The thread is one doc read, asked for after the picture is up.
+var NOTE_CHAT = 'my-creations';
+var noteCache = {};     // url -> thread
+var lbKey = null;       // which picture the lightbox is showing, run|i
 function openRunImage(run, i) {
   if (window.__scrollStop) window.__scrollStop();
+  run = runsById[run.id] || run;   // the newest doc, so the ♥ it shows is current
   var imgs = run.images || [];
+  var src = imgs[i];
   var content = run.promptContent || run.promptSent || run.prompt || '';
+  lbKey = run.id + '|' + i;
   var asset = {
+    thread: noteCache[src] || [],
+    _noteSend: function (text, cb) {
+      fetch('/api/gallery/assets/note', {
+        method: 'POST', headers: hdr({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ chat: NOTE_CHAT, url: src, text: text, from: 'sophie' }),
+      }).then(function (res) { return res.json(); })
+        .then(function (j) { if (j && j.thread) noteCache[src] = j.thread; cb(!(j && j.error)); })
+        .catch(function () { cb(false); });
+    },
     prompt: [run.model || 'gpt-image-2', run.quality, run.size,
              run.boiler ? 'boilerplate style' : ''].filter(Boolean).join(' · '),
     // her words ARE the label here — the Shoebox door titles the polaroid by it
     description: content,
     promptContent: content,
     promptStyle: run.promptStyle || '',
+    // ♥/✕ — the shared lightbox draws them only when a caller wires _cast;
+    // this run doc's own vote route, tap again to clear, and the card's marks
+    // repaint from the same doc so the two can never disagree.
+    vote: voteOf(run, i),
+    _cast: function (kind) {
+      castVote(run.id, i, kind);
+      asset.vote = voteOf(runsById[run.id] || run, i);
+      if (asset._lbPaint) asset._lbPaint();
+    },
     nav: {
       prev: i > 0 ? function () { openRunImage(run, i - 1); } : null,
       next: i < imgs.length - 1 ? function () { openRunImage(run, i + 1); } : null,
@@ -356,8 +444,130 @@ function openRunImage(run, i) {
   if (doors) asset.actions = doors.build(imgs[i], asset, { chatDoor: false });
   // the pictures one step either side are fetched ahead (asset-lightbox.js)
   asset.nav.warm = [imgs[i - 1], imgs[i + 1]].filter(Boolean);
-  window.__assetLightbox(imgs[i], asset);
+  window.__assetLightbox(src, asset);
+  if (noteCache[src]) return;
+  fetch('/api/gallery/assets/note?chat=' + encodeURIComponent(NOTE_CHAT) + '&url=' + encodeURIComponent(src), { headers: hdr() })
+    .then(function (res) { return res.json(); })
+    .then(function (j) {
+      if (!j || j.error || !j.thread || !j.thread.length) return;
+      noteCache[src] = j.thread;
+      // only repaint the picture she is still looking at
+      var el = document.getElementById('clightbox');
+      if (lbKey !== run.id + '|' + i || !el || el.style.display !== 'flex') return;
+      window.__assetLightbox(src, Object.assign(asset, { thread: j.thread }));
+    })
+    .catch(function () {});
 }
+
+// ── ♥ / ✕ and the two filters (2026-09-04) ──────────────────────────────────
+// One mark per PICTURE, on the run's own doc (`votes.{i}`, the Playground's
+// shape). Tapping the lit one clears it. The card's buttons, the lightbox's
+// pair and the filters all read `runsById`, so a mark cast anywhere shows
+// everywhere on the page at once; the server carries it onto the Assets tab.
+function voteOf(run, i) { return ((run && run.votes) || {})[i] || ''; }
+function castVote(id, i, kind) {
+  var r = runsById[id]; if (!r) return;
+  var votes = r.votes = r.votes || {};
+  var next = votes[i] === kind ? '' : kind;
+  if (next) votes[i] = next; else delete votes[i];
+  paintVotes(id);
+  applyFilt();
+  api('/run/' + id + '/vote', { method: 'POST', body: JSON.stringify({ image: i, vote: next }) })
+    .catch(function () {});
+}
+// Repaint one card's marks from the doc, in place — never a rebuild, which
+// would recreate every picture on the card for one tap.
+function paintVotes(id) {
+  var el = document.getElementById('run-' + id), r = runsById[id];
+  if (!el || !r) return;
+  el.querySelectorAll('.cell').forEach(function (cell) {
+    var v = voteOf(r, Number(cell.dataset.i));
+    cell.dataset.vote = v;
+    cell.classList.toggle('nay', v === 'dislike');
+    var hb = cell.querySelector('.vote.heart'), xb = cell.querySelector('.vote.nope');
+    if (hb) { hb.classList.toggle('on', v === 'like'); hb.setAttribute('aria-pressed', v === 'like' ? 'true' : 'false'); }
+    if (xb) { xb.classList.toggle('on', v === 'dislike'); xb.setAttribute('aria-pressed', v === 'dislike' ? 'true' : 'false'); }
+  });
+}
+function likedOnly() { try { return localStorage.getItem('freeform_liked') === '1'; } catch (e) { return false; } }
+function hideX() { try { return localStorage.getItem('freeform_hidex') === '1'; } catch (e) { return false; } }
+function paintFilt() {
+  var lk = document.getElementById('v-liked'), hx = document.getElementById('v-hidex');
+  lk.classList.toggle('on', likedOnly()); lk.setAttribute('aria-pressed', likedOnly() ? 'true' : 'false');
+  hx.classList.toggle('on', hideX()); hx.setAttribute('aria-pressed', hideX() ? 'true' : 'false');
+}
+// A picture is HIDDEN, never removed — the poll repaints it in place and it
+// comes straight back when she clears the filter. Hearts-only keeps only the
+// hearted pictures and drops a run with none showing (a still-drawing run has
+// nothing to have hearted yet); hide-the-✕'d drops only a ✕, so a run leaves
+// only once every picture it has is crossed out.
+function applyFilt() {
+  var lk = likedOnly(), hx = hideX();
+  var feed = document.getElementById('feed');
+  var runs = feed.querySelectorAll('.run'), shown = 0;
+  document.getElementById('feedbar').hidden = !runs.length;
+  runs.forEach(function (el) {
+    var cells = el.querySelectorAll('.cell'), vis = 0;
+    cells.forEach(function (cell) {
+      var v = cell.dataset.vote || '';
+      var out = (lk && v !== 'like') || (hx && v === 'dislike');
+      cell.hidden = !!out;
+      if (!out) vis += 1;
+    });
+    var out = (lk && !vis) || (hx && cells.length && !vis);
+    el.hidden = !!out;
+    if (!out) shown += 1;
+  });
+  var note = feed.querySelector('.emptynote');
+  if (runs.length && !shown) {
+    if (!note) { note = document.createElement('div'); note.className = 'emptynote'; feed.appendChild(note); }
+    note.textContent = lk ? 'Nothing hearted yet' : 'Everything here is crossed out';
+  } else if (note) note.remove();
+}
+document.getElementById('v-liked').innerHTML = ICONS.heart;
+document.getElementById('v-hidex').innerHTML = ICONS.x;
+paintFilt();
+document.getElementById('v-liked').addEventListener('click', function () {
+  try { localStorage.setItem('freeform_liked', likedOnly() ? '' : '1'); } catch (e) {}
+  paintFilt(); applyFilt();
+});
+document.getElementById('v-hidex').addEventListener('click', function () {
+  try { localStorage.setItem('freeform_hidex', hideX() ? '' : '1'); } catch (e) {}
+  paintFilt(); applyFilt();
+});
+
+// ── THE BIGGER BOX (2026-09-04, Sophie: "an expand textbox button") ─────────
+// The Playground's #bigprompt in shape: `.big` is the cap over a floor, both
+// in CSS, and fitBig measures the words into the height between them — on
+// the tap, on every keystroke while it is open, and on a resize. `height:auto`
+// FIRST or the box can only ever grow; the border is added back because the
+// box is border-box and scrollHeight excludes it. The toggle clears any
+// hand-dragged inline height so "back to small" really shrinks. Not sticky.
+(function () {
+  var btn = document.getElementById('bigprompt');
+  var box = document.getElementById('prompt');
+  function fitBig() {
+    if (!box.classList.contains('big')) return;
+    box.style.height = 'auto';
+    box.style.height = (box.scrollHeight + (box.offsetHeight - box.clientHeight)) + 'px';
+  }
+  function paint() {
+    var big = box.classList.contains('big');
+    btn.innerHTML = big ? ICONS.minimize : ICONS.maximize;
+    btn.setAttribute('aria-label', big ? 'Back to the small box' : 'Bigger box');
+    btn.title = big ? 'Back to the small box' : 'Bigger box';
+  }
+  btn.addEventListener('click', function () {
+    box.classList.toggle('big');
+    box.style.height = '';
+    fitBig();
+    paint();
+  });
+  box.addEventListener('input', fitBig);
+  window.addEventListener('resize', fitBig);
+  window.__fitBigPrompt = fitBig;
+  paint();
+})();
 
 function updateCost() {
   var q = document.getElementById('quality').value;
@@ -502,6 +712,8 @@ function copyRunIn(run) {
 function applyRunIn(run) {
   var box = document.getElementById('prompt');
   box.value = run.prompt || '';
+  // setting .value fires no input event, so an open big box refits by hand
+  if (window.__fitBigPrompt) window.__fitBigPrompt();
   // Only change what the record knows: a run with references re-attaches
   // exactly those, and a run drawn with NONE clears whatever is attached —
   // leaving one on would put an ingredient into the next run that this one
@@ -527,6 +739,7 @@ function applyRunIn(run) {
 
 // ── Runs ────────────────────────────────────────────────────────────────────
 function runCard(run) {
+  runsById[run.id] = run;
   var el = document.getElementById('run-' + run.id);
   if (!el) {
     el = document.createElement('div');
@@ -542,7 +755,16 @@ function runCard(run) {
     'title="Put this prompt and its references back">' + ICON_COPY + '</button></div>' +
     '<div class="tags">' + tags + '</div>';
   html += '<div class="outs">';
-  (run.images || []).forEach(function (u, i) { html += '<img src="' + u + '" alt="" data-full="' + u + '" data-i="' + i + '">'; });
+  (run.images || []).forEach(function (u, i) {
+    var v = voteOf(run, i);
+    html += '<div class="cell' + (v === 'dislike' ? ' nay' : '') + '" data-i="' + i + '" data-vote="' + v + '">' +
+      '<img src="' + u + '" alt="" data-full="' + u + '" data-i="' + i + '">' +
+      '<button type="button" class="vote heart' + (v === 'like' ? ' on' : '') + '" data-vote="like" data-i="' + i + '"' +
+      ' aria-label="Heart this picture" aria-pressed="' + (v === 'like') + '" title="Heart this picture">' + ICONS.heart + '</button>' +
+      '<button type="button" class="vote nope' + (v === 'dislike' ? ' on' : '') + '" data-vote="dislike" data-i="' + i + '"' +
+      ' aria-label="Cross this picture out" aria-pressed="' + (v === 'dislike') + '" title="Cross this picture out">' + ICONS.x + '</button>' +
+      '</div>';
+  });
   if (run.status === 'drawing' || run.status === 'ready') {
     var missing = Math.max((run.outputs || 1) - (run.images || []).length, 0);
     for (var i = 0; i < missing; i++) html += '<div class="ph"></div>';
@@ -566,11 +788,18 @@ function runCard(run) {
      drawing. The signature is the exact HTML plus the prompt (which is set
      as textContent below, outside the HTML string). */
   var sig = html + '' + (run.prompt || '');
-  if (el.__sig === sig) return;
+  if (el.__sig === sig) { applyFilt(); return; }
   el.__sig = sig;
   el.innerHTML = html;
   el.querySelector('.p').textContent = run.prompt || '';
   el.querySelector('.copybtn').addEventListener('click', function () { copyRunIn(run); });
+  el.querySelectorAll('.vote').forEach(function (b) {
+    b.addEventListener('click', function (e) {
+      e.stopPropagation();   // the picture under it opens the lightbox; the mark must not
+      castVote(run.id, Number(b.dataset.i), b.dataset.vote);
+    });
+  });
+  applyFilt();
   var again = el.querySelector('.again');
   if (again) again.addEventListener('click', function () { startRun(retryBody(run), again); });
   el.querySelectorAll('img[data-full]').forEach(function (im) {
