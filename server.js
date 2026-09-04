@@ -501,6 +501,7 @@ loadConfig().then(() => {
   app.use('/api/fruit', require('./fruit').router); // favorite-fruit poll: a swipe deck per person → the fridge chart
   require('./sms').init({ membryDb: storyDb });             // Twilio keys live in membry's config/twilio (the Xi chats put them there)
   app.use('/api/dominoes', require('./dominoes').router); // Similitude Dominoes for two people on two phones — public, anyone's table
+  app.use('/api/similitude', require('./similitude-two').router); // Similitude for two phones — the same table, the dominoes deck, the draw capped at $1 a seat
   // Witch-video pipeline: Theo's ideas → draft cuts → the review room at
   // /witchvideo (tap the video to pause + leave a note; ♥/✕). Notes ring the
   // owning chat's wake doorbell. Nothing here generates or spends.
@@ -653,6 +654,13 @@ app.get('/screening', (req, res) => { res.sendFile(__dirname + '/public/screenin
 app.get('/dominoes', (req, res) => {
   res.set('Cache-Control', 'no-cache, must-revalidate');
   res.sendFile(__dirname + '/public/dominoes.html');
+});
+// Similitude for two phones (similitude-two.js) — the triangle game over the
+// same table, PUBLIC like dominoes: the link is the login, no studio gate,
+// so a friend with no token can sit down. /similitude itself stays gated.
+app.get('/similitude/play', (req, res) => {
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/public/similitude-two.html');
 });
 
 app.get('/fruit', (req, res) => {

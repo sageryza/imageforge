@@ -8939,6 +8939,59 @@ before working on that module. Nothing was deleted — the moved text is verbati
   lists them. Test: `node scripts/test-dominoes.js` (the gate, the text plan and
   the view pure, then the REAL page on two headless phones over the real router
   with an in-memory Firestore).
+- **SIMILITUDE FOR TWO PHONES** (`similitude-two.js`, `/api/similitude`,
+  page at `/similitude/play` — PUBLIC, no tile; 2026-09-04, Sophie: "how can
+  we make this multiplayer" → "same cards as the dominoes deck. turns. just
+  cap the drawing at like a dollar per person"). The triangle game played by
+  two people from their own phones, over the SAME two-seat table as the
+  dominoes game.
+  - **`table.js` IS THE ONE TABLE.** The seats, the invite, the turn gate, the
+    your-turn text and the per-player view were lifted out of dominoes.js
+    into a factory (`makeTable({collection, page, title})`) the day this
+    shipped; dominoes.js is a thin call now and its test is byte-for-byte
+    green. A game adds its own routes to the returned router and may ride
+    server-owned fields on the read (`extendView`, and async `enrich` — how a
+    drawing card becomes its picture on the way past). **A third two-phone
+    game is one `makeTable` call**, never a copy of the seat code.
+  - **THE DECK IS THE DOMINOES DECK BY CONSTRUCTION** — the 61 ids are read
+    out of `public/dominoes.html`'s own `DECK` constant at first use (a
+    bracket-depth walk; the line ends in a comment), resolved to each card's
+    CURRENT cut and words, served public at `GET /deck` and cached 60s. No
+    second list anywhere, and a test fails if one appears.
+  - **TURNS, NEVER A RACE** (her word, and her own rule from the computer
+    opponent: a clock makes a quiet game a reflex test). A turn is ONE thing:
+    swap a hand card onto the board, pass, **Set!** + the words (claims and
+    scores the set, the three leave play for the tile, the board refills off
+    the deck), or **Challenge** a set the other found with a card from your
+    hand — win or lose, the challenge was your turn. Only the player on turn
+    writes; the other phone polls and adopts (dominoes' page pattern). Both
+    hands ride the state as dominoes' do; the page shows only yours.
+  - **THE DOLLAR IS SERVER-SIDE AND PER SEAT.** `POST /rooms/:id/draw` is the
+    one paid tap — triset.js's own `startFound` (lifted out of `/found` for
+    this, with `judgeChallenge` out of `/challenge`, so a made card is the
+    same made card wherever the set was found). The room doc carries `spent:
+    {a,b}` in cents; the route RESERVES the cost in a transaction before the
+    card is started (two taps cannot both fit under the cap by reading one
+    balance), refunds a start that failed, and refuses past `CAP_CENTS`
+    (100) with 402 — the page greys the button and says "your dollar is
+    spent". Only the finder may draw their set, once per set, and a draw is
+    keyed by GAME + win index, or a new game's tile would inherit last
+    game's card. The made card lands in the winning tile's middle; **it does
+    not join the 61** — that is a follow-up, hers to ask for.
+  - **The page** (`public/similitude-two.html`) is the dominoes lobby (name,
+    optional phone, invite link, your tables remembered on the phone) over
+    the Similitude board, hand and shelf — triset.html's geometry number for
+    number, its gold-outline buttons, its Set!/Claim/Draw it! stages. The
+    score is two numbers in the corner, mine first, because a score with
+    names in it ran into the centred title at 390pt; the names live on the
+    turn line and under the shelf tiles. Boxes ship empty.
+  - Tests: `node scripts/test-similitude-two.js` — the deck's single source,
+    drawGate's decision table and the cap pure; then the REAL page on two
+    headless phones over the real router with an in-memory Firestore and
+    the model doors stubbed: start, invite, sit down, deal, swap, the gate,
+    pass, Set!+words, Draw it! reserving the cents and the card landing in
+    the tile, the 402 past the dollar, a challenge stealing a set, and no
+    token or phone ever crossing seats.
 - **HEAD GAMES** (`docs/headgames/`, a Compare page in the
   `mental-games-instrumental-beliefs` chat — no route, no module, no iOS tile;
   2026-09-03, Sophie: "little games we play in our head all the time …

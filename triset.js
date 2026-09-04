@@ -587,6 +587,9 @@ const CANVAS = '1024x1024';
 const SIZE_TIER = '1K';
 // square 1K output (docs/modules/pictures.md) + ~1.2c of dreamy reference input
 const COST_CENTS = { low: 1.8, medium: 6.5, high: 22.3 }[QUALITY];
+// an auto set attaches the three cards behind the style reference — three
+// more pictures of input tokens, which is where the page's ~5c comes from
+const AUTO_COST_CENTS = Math.round((COST_CENTS + 3.2) * 10) / 10;
 
 // 'auto' (2026-08-30, Sophie: "a prompt explaining the rules of set and have
 // the image model come up w something that shares each one") — the three
@@ -597,8 +600,13 @@ const COST_CENTS = { low: 1.8, medium: 6.5, high: 22.3 }[QUALITY];
 const KINDS = ['same', 'each', 'auto'];
 const MAX_WORDS = 300; // per quality field — she dictates, but a paragraph is not a quality
 
-const db = () => admin.firestore();
-const bucket = () => admin.storage().bucket();
+// `init({ db, bucket })` may hand these in (the two-phone test hands in an
+// in-memory Firestore and a no-op bucket); without them the module reads the
+// app's own, like every sibling.
+let _db = null; let _bucket = null;
+const db = () => _db || admin.firestore();
+const bucket = () => _bucket || admin.storage().bucket();
+const live = () => !!(_db || admin.apps.length);
 const sha1 = (s) => crypto.createHash('sha1').update(String(s)).digest('hex');
 
 // ── the style, handed in (never copied) ────────────────────────────────────
@@ -629,8 +637,10 @@ const STYLE = { id: 'dreamy', label: '', prefix: '', suffix: '', refFiles: [], s
 let fileCreationFn = null;
 
 // Called by server.js once PL_GPT_STYLES exists (defined long after the mount).
-function init({ gptStyles, fileCreation } = {}) {
+function init({ gptStyles, fileCreation, db: dbIn, bucket: bucketIn } = {}) {
   if (typeof fileCreation === 'function') fileCreationFn = fileCreation;
+  if (dbIn) _db = dbIn;
+  if (bucketIn) _bucket = bucketIn;
   const st = gptStyles && gptStyles.dreamy;
   if (!st) return;
   STYLE.label = st.label || 'Dreamy';
@@ -1001,94 +1011,106 @@ function challengeVerdict(raw) {
   return { fits: d.fits === true, why };
 }
 
+// The referee, callable by any table: one card's words against one rule.
+// Throws with a `code` the caller turns into a status. ~0.1c, no picture.
+async function judgeChallenge(cardId, ruleText) {
+  const anthropic = require('./anthropic');
+  if (!live()) throw Object.assign(new Error('firestore unavailable'), { code: 503 });
+  if (!anthropic.available()) throw Object.assign(new Error('the referee runs on Claude; the key is not set'), { code: 503 });
+  const rule = clip(ruleText, MAX_WORDS);
+  if (!rule) throw Object.assign(new Error('a rule is required'), { code: 400 });
+  const id = String(cardId || '');
+  if (!id) throw Object.assign(new Error('a card is required'), { code: 400 });
+  const doc = await db().collection(CARDS).doc(id).get();
+  if (!doc.exists) throw Object.assign(new Error('card not found'), { code: 400 });
+  const words = (doc.data().promptContent || doc.data().title || '').trim();
+  if (!words) throw Object.assign(new Error('that card has no words to judge'), { code: 400 });
+  const raw = await anthropic.chatJSON({
+    system: CHALLENGE_SYSTEM,
+    user: `Rule: ${rule}\nCard: ${words}\n\nAnswer JSON: {"fits":true|false,"why":"one short line"}.`,
+    maxTokens: 200,
+  });
+  return challengeVerdict(raw);
+}
+
 router.post('/challenge', express.json({ limit: '16kb' }), async (req, res) => {
   try {
-    if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
-    const anthropic = require('./anthropic');
-    if (!anthropic.available()) return res.status(503).json({ error: 'the referee runs on Claude; the key is not set' });
     const b = req.body || {};
-    const rule = clip(b.rule, MAX_WORDS);
-    if (!rule) return res.status(400).json({ error: 'a rule is required' });
-    const id = String(b.card || '');
-    if (!id) return res.status(400).json({ error: 'a card is required' });
-    const doc = await db().collection(CARDS).doc(id).get();
-    if (!doc.exists) return res.status(400).json({ error: 'card not found' });
-    const words = (doc.data().promptContent || doc.data().title || '').trim();
-    if (!words) return res.status(400).json({ error: 'that card has no words to judge' });
-    const raw = await anthropic.chatJSON({
-      system: CHALLENGE_SYSTEM,
-      user: `Rule: ${rule}\nCard: ${words}\n\nAnswer JSON: {"fits":true|false,"why":"one short line"}.`,
-      maxTokens: 200,
-    });
-    res.json({ ok: true, ...challengeVerdict(raw) });
-  } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
+    res.json({ ok: true, ...(await judgeChallenge(b.card, b.rule)) });
+  } catch (e) { res.status(e.code || 500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
 
-// She found a set → the venn center becomes a new card. The one paid route.
-router.post('/found', async (req, res) => {
-  try {
-    if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
-    if (!process.env.OPENAI_API_KEY) return res.status(503).json({ error: 'image generation unavailable' });
-    const b = req.body || {};
-    const bad = validFound(b);
-    if (bad) return res.status(400).json({ error: bad });
-    const kind = b.kind;
-    const middle = clip(b.middle, MAX_WORDS);
-    const sides = kind === 'each'
-      ? (b.sides || []).map(s => clip(s, MAX_WORDS)).filter(Boolean) : [];
-    // Resolve the three source cards ONCE — auto needs their urls (a bad id
-    // refuses before any money moves), every kind reads edition and hex.
-    const srcDocs = [];
-    for (const id of b.cards.map(String)) {
-      const snap = await db().collection(CARDS).doc(id).get();
-      srcDocs.push(snap.exists ? { id, ...snap.data() } : { id });
-    }
-    // the made card stays in its edition — see editionOf
-    const edition = editionOf(srcDocs.map(c => c.edition || null));
-    // three hex color cards → the blend, computed and filed ready, free.
-    // auto is refused honestly: there is no picture for the model to read.
-    const hex = mixHex(srcDocs.map(c => c.hex));
-    if (hex) {
-      if (kind === 'auto') return res.status(400).json({ error: 'color cards mix by themselves — name the mix instead' });
-      const ref = db().collection(CARDS).doc();
-      await ref.set({
-        title: middle, hex, source: 'made', status: 'ready', flip: true,
-        ...(edition ? { edition } : {}),
-        from: { cards: b.cards.map(String), kind, middle, sides, urls: [] },
-        createdAt: Date.now(),
-      });
-      return res.json({ ok: true, id: ref.id, status: 'ready', hex, poll: `/api/triset/card/${ref.id}` });
-    }
-    const srcCards = [];
-    if (kind === 'auto') {
-      for (const c of srcDocs) {
-        if (!c.url) return res.status(400).json({ error: 'unknown card ' + c.id });
-        srcCards.push({ id: c.id, title: c.title || '', url: c.url });
-      }
-    }
-    const content = foundContent({ kind, middle, sides });
-    const rec = cardPrompt(content, { invent: kind !== 'auto', invert: true, auto: kind === 'auto' });
-    // The model finds the connection, so nobody typed a name — the honest
-    // title is the three cards it read.
-    const title = kind === 'auto'
-      ? srcCards.map(c => c.title).filter(Boolean).join(' + ') : middle;
+// She found a set → the venn center becomes a new card. The one paid path,
+// callable by the page's route below AND by a two-phone table
+// (similitude-two.js), so a made card is the same made card wherever the set
+// was found. Throws with a `code`; answers the route's own body.
+async function startFound(b) {
+  if (!live()) throw Object.assign(new Error('firestore unavailable'), { code: 503 });
+  if (!process.env.OPENAI_API_KEY) throw Object.assign(new Error('image generation unavailable'), { code: 503 });
+  b = b || {};
+  const bad = validFound(b);
+  if (bad) throw Object.assign(new Error(bad), { code: 400 });
+  const kind = b.kind;
+  const middle = clip(b.middle, MAX_WORDS);
+  const sides = kind === 'each'
+    ? (b.sides || []).map(s => clip(s, MAX_WORDS)).filter(Boolean) : [];
+  // Resolve the three source cards ONCE — auto needs their urls (a bad id
+  // refuses before any money moves), every kind reads edition and hex.
+  const srcDocs = [];
+  for (const id of b.cards.map(String)) {
+    const snap = await db().collection(CARDS).doc(id).get();
+    srcDocs.push(snap.exists ? { id, ...snap.data() } : { id });
+  }
+  // the made card stays in its edition — see editionOf
+  const edition = editionOf(srcDocs.map(c => c.edition || null));
+  // three hex color cards → the blend, computed and filed ready, free.
+  // auto is refused honestly: there is no picture for the model to read.
+  const hex = mixHex(srcDocs.map(c => c.hex));
+  if (hex) {
+    if (kind === 'auto') throw Object.assign(new Error('color cards mix by themselves — name the mix instead'), { code: 400 });
     const ref = db().collection(CARDS).doc();
-    const doc = {
-      // flip: a made card is upside down for life — the page clips it point
-      // down wherever it is dealt, which is also how you can tell the cards
-      // the game made from the seeds.
-      title, source: 'made', status: 'drawing', flip: true,
+    await ref.set({
+      title: middle, hex, source: 'made', status: 'ready', flip: true,
       ...(edition ? { edition } : {}),
-      from: { cards: (b.cards || []).map(String), kind, middle, sides,
-        urls: srcCards.map(c => c.url) },
-      model: 'gpt-image-2', quality: QUALITY, canvas: CANVAS, size: SIZE_TIER,
-      ...promptFields(rec),
+      from: { cards: b.cards.map(String), kind, middle, sides, urls: [] },
       createdAt: Date.now(),
-    };
-    await ref.set(doc);
-    render(ref.id); // deliberately not awaited
-    res.json({ ok: true, id: ref.id, status: 'drawing', poll: `/api/triset/card/${ref.id}` });
-  } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
+    });
+    return { ok: true, id: ref.id, status: 'ready', hex, poll: `/api/triset/card/${ref.id}`, free: true };
+  }
+  const srcCards = [];
+  if (kind === 'auto') {
+    for (const c of srcDocs) {
+      if (!c.url) throw Object.assign(new Error('unknown card ' + c.id), { code: 400 });
+      srcCards.push({ id: c.id, title: c.title || '', url: c.url });
+    }
+  }
+  const content = foundContent({ kind, middle, sides });
+  const rec = cardPrompt(content, { invent: kind !== 'auto', invert: true, auto: kind === 'auto' });
+  // The model finds the connection, so nobody typed a name — the honest
+  // title is the three cards it read.
+  const title = kind === 'auto'
+    ? srcCards.map(c => c.title).filter(Boolean).join(' + ') : middle;
+  const ref = db().collection(CARDS).doc();
+  const doc = {
+    // flip: a made card is upside down for life — the page clips it point
+    // down wherever it is dealt, which is also how you can tell the cards
+    // the game made from the seeds.
+    title, source: 'made', status: 'drawing', flip: true,
+    ...(edition ? { edition } : {}),
+    from: { cards: (b.cards || []).map(String), kind, middle, sides,
+      urls: srcCards.map(c => c.url) },
+    model: 'gpt-image-2', quality: QUALITY, canvas: CANVAS, size: SIZE_TIER,
+    ...promptFields(rec),
+    createdAt: Date.now(),
+  };
+  await ref.set(doc);
+  render(ref.id); // deliberately not awaited
+  return { ok: true, id: ref.id, status: 'drawing', poll: `/api/triset/card/${ref.id}` };
+}
+
+router.post('/found', async (req, res) => {
+  try { res.json(await startFound(req.body)); }
+  catch (e) { res.status(e.code || 500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
 
 router.get('/card/:id', async (req, res) => {
@@ -1161,6 +1183,7 @@ module.exports = {
   reviewPlan, syncReviewDecks, pokeReview, slugify,
   router, init,
   foundContent, cardPrompt, validFound, stuckPatch, bakeCard, editionOf, mixHex,
+  startFound, judgeChallenge, AUTO_COST_CENTS,
   syncPlan, syncHearts, slugOfUrl, bestCard, waitingPlan, adoptedFrom, writeWaiting,
   EDITIONS, ADOPT_EDITION, editionForSlug,
   likesPlan, writeLikes, syncLikes, pokeLikes, LIKES_PAGE, LIKES_CHAT, LIKES_SKIP,
