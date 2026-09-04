@@ -6377,8 +6377,9 @@ before working on that module. Nothing was deleted — the moved text is verbati
     memory's words, tags, caption and source (never the url) — and
     `shoeboxPut` now keeps a >140-char title's full text in `content` on
     first filing, so a Playground prompt survives whole; the hand is
-    **Patrick Hand** (she asked for a different one — "darb?" matched no
-    font in any repo, so this is the stand-in until she names it); **no
+    **Indie Flower with the chin in CAPS at 13px** (her 2026-09-04 pick off
+    the shoebox-fonts-v2 Compare sheet — Darb, the font she found, lost;
+    its woff stays committed at `public/fonts/darb.woff`, harmless); **no
     date on the chin**; the finale is **v3** ported verbatim from
     memory-library-react #354 (five-point stars, dashes not dots, 3s
     twinkle, polaroids fade to a ghost); and **▶ Play opens ON the first

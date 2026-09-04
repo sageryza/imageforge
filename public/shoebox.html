@@ -23,10 +23,10 @@
   the dream feed / witch app rule.
 -->
 <link rel="stylesheet" href="/tool.css">
-<!-- Handwriting face for the chins (Patrick Hand — 2026-08-29, Sophie asked
-     for a different hand than the first one). A <link> so a failed fetch degrades to
-     the cursive fallback instead of failing the page. -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap">
+<!-- Handwriting face for the chins (Indie Flower — 2026-09-04, Sophie's pick
+     off the v2 font sheet: "k indie flower / caps"). A <link> so a failed
+     fetch degrades to the cursive fallback instead of failing the page. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap">
 <style>
   /* The page owns one screen: header + tabs fixed, the stage filling the
      rest. The library scrolls INSIDE the stage (the injected pill adopts a
@@ -61,13 +61,15 @@
   .sb-photo img{ width:100%; height:100%; object-fit:cover; display:block; -webkit-user-drag:none; }
   .sb-undev{ width:100%; height:100%; display:flex; align-items:center; justify-content:center;
     padding:9%; box-sizing:border-box; }
-  .sb-undev span{ font-family:'Patrick Hand',cursive; font-size:17px; line-height:1.25; color:#efe9d6;
+  .sb-undev span{ font-family:'Indie Flower',cursive; font-size:17px; line-height:1.25; color:#efe9d6;
     text-align:center; display:-webkit-box; -webkit-line-clamp:7; -webkit-box-orient:vertical; overflow:hidden; }
   .sb-chin{ flex:1; min-height:0; display:flex; flex-direction:column; align-items:center;
     justify-content:center; gap:1px; padding:2% 3%; overflow:hidden; }
-  /* No date on the chin (2026-08-29, Sophie: "get rid of the date") — the
-     writing is the whole caption, so it gets the chin's full height. */
-  .sb-chintitle{ font-family:'Patrick Hand',cursive; font-size:17px; font-weight:600; line-height:1.1;
+  /* No date on the chin (2026-08-29), and the writing is CAPS at a smaller
+     size (2026-09-04, her pick off the v2 sheet: Indie Flower, caps) — the
+     sheet's own caps treatment, verbatim. */
+  .sb-chintitle{ font-family:'Indie Flower',cursive; font-size:13px; font-weight:600; line-height:1.15;
+    text-transform:uppercase; letter-spacing:.03em;
     color:#3a332a; text-align:center; display:-webkit-box; -webkit-line-clamp:3;
     -webkit-box-orient:vertical; overflow:hidden; }
 
@@ -140,7 +142,7 @@
   .sb-detail{ max-width:380px; width:100%; max-height:100%; overflow-y:auto; display:flex;
     flex-direction:column; align-items:center; gap:14px; }
   .sb-bigcard{ width:min(78vw,320px); }
-  .sb-bigcard .sb-chintitle{ font-size:21px; }
+  .sb-bigcard .sb-chintitle{ font-size:16px; }
   .sb-bigcard .sb-undev span{ font-size:21px; }
   .sb-paper{ background:#fffdf3; border:1px solid #d6d0c0; border-radius:6px; padding:12px 14px;
     font-size:15.5px; line-height:1.45; max-height:30vh; overflow-y:auto; width:100%; box-sizing:border-box; }
