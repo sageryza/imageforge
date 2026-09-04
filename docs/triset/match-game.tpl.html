@@ -1,0 +1,248 @@
+<!doctype html>
+<!-- THE MATCH TEST — her chosen 61 cards, one at a time: the anchor card at
+     the top, every other card under it, tap the ones that match. Built from
+     compare-shell.html. Her answers live OFF the page on a verdict doc (sheet
+     __SHEET__ under __CHAT__), one JSON list per anchor, so a re-post of the
+     page opens on the same answers. Posted by scripts/triset-match-game.js. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Match test</title>
+<link rel="stylesheet" href="/compare.css">
+<style>
+/* the hairline tabs — the house idiom (fruitchart.html's copy); the row
+   reserves the pill's column because its right tab is a tap target */
+.acctabs{position:relative;display:flex;border-bottom:1px solid var(--line);margin:0 0 14px;padding-right:64px}
+.acctab{flex:1 1 0;min-width:0;padding:7px 4px 9px;border:none;background:none;cursor:pointer;
+  font-family:-apple-system,system-ui,sans-serif;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+.acctab.on{color:var(--ink)}
+.acctabs::after{content:'';position:absolute;left:0;bottom:-1px;height:2px;width:var(--tw,0);background:var(--ink);transform:translateX(var(--tx,0))}
+.acctabs.tl::after{transition:transform .2s ease,width .2s ease}
+
+/* a card is a point-up triangle — the clip is the scissors, so the image
+   underneath can be any square cut (triset.html's rule) */
+.tri{position:relative;aspect-ratio:1000/866;clip-path:polygon(50% 0,100% 100%,0 100%)}
+.tri img{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+#anchor{display:flex;flex-direction:column;align-items:center;margin:2px 0 10px}
+#anchor .tri{width:min(52vw,220px)}
+#aname{font-size:17px;margin-top:8px;text-align:center}
+#arow{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:8px}
+#arow .btn{min-width:38px}
+#acount{color:var(--ink2);font-size:13px;text-align:center;margin-top:6px;min-height:18px}
+
+/* the others: four across, the name small under each */
+#others{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 8px;margin-top:6px}
+.oc{padding:0;border:none;background:none;cursor:pointer;display:block;width:100%;-webkit-tap-highlight-color:transparent}
+.oc .hold{display:block}
+.oc .tri{display:block;width:100%}
+.oc .nm{display:block;font-size:10px;line-height:1.2;color:var(--ink2);text-align:center;margin-top:3px;
+  font-family:-apple-system,system-ui,sans-serif;letter-spacing:.02em;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+/* the pick is a gold glow, never a border — a border would draw a rectangle
+   round a clipped triangle (triset's own rule); the glow needs room, so the
+   triangle sits in an unclipped wrapper that carries the filter */
+.oc .hold{filter:none;transition:filter .15s ease,transform .15s ease}
+.oc.on .hold{filter:drop-shadow(0 0 3px var(--gold)) drop-shadow(0 0 10px var(--gold));transform:scale(1.05)}
+.oc.on .nm{color:var(--gold);font-weight:600}
+#none{margin-top:14px;text-align:center}
+
+/* the tally */
+/* the tally's rows pass under the injected pill's fixed corner on the way up,
+   and the count sits at their right end — so the whole list reserves the column */
+#tally{padding-right:64px}
+#sumline{color:var(--ink2);font-size:14px;margin:0 0 10px}
+.trow{display:grid;grid-template-columns:110px 1fr 44px;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--line)}
+.trow .tn{font-size:14px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.trow .bars{position:relative;height:16px}
+.trow .bar{position:absolute;left:0;top:2px;height:12px;background:var(--gold);border-radius:2px}
+.trow .mbar{position:absolute;left:0;top:6px;height:4px;background:var(--line);border-radius:2px}
+.trow .tc{font-size:13px;color:var(--ink2);text-align:right;font-variant-numeric:tabular-nums}
+.trow.todo .tn,.trow.todo .tc{color:#b9b3a8}
+#tkey{font-size:12px;color:var(--ink2);margin-top:12px}
+#tkey i{display:inline-block;width:14px;height:8px;vertical-align:middle;margin-right:4px;border-radius:2px}
+.big{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Match test</h1>
+  <div class="acctabs" id="tabs">
+    <button class="acctab on" data-v="match">Match</button>
+    <button class="acctab" data-v="tally">Tally</button>
+  </div>
+
+  <div id="match">
+    <div id="anchor">
+      <div class="tri" id="atri"><img id="aimg" alt=""></div>
+      <div id="aname"></div>
+      <div id="arow">
+        <button class="btn" id="prev" aria-label="previous card">‹</button>
+        <span id="apos"></span>
+        <button class="btn" id="next" aria-label="next card">›</button>
+      </div>
+      <div id="acount"></div>
+    </div>
+    <div id="others"></div>
+    <div id="none"><button class="btn" id="nonebtn">None of these</button></div>
+  </div>
+
+  <div id="tally" hidden>
+    <div id="sumline"></div>
+    <div id="trows"></div>
+    <div id="tkey"><i style="background:var(--gold)"></i>yours &nbsp; <i style="background:var(--line)"></i>the game's tag count</div>
+  </div>
+</div>
+<img class="zoom big" id="bigimg" alt="">
+
+<script src="/compare.js"></script>
+<script>__RULES__</script>
+<script>
+(function () {
+  var CHAT = '__CHAT__', SHEET = '__SHEET__';
+  var DECK = __DECK__;           // [{id, n, url, machine}] — the 61, in deck order
+  var MACHINE = DECK.map(function (c) { return c.machine; });
+  var R = window.__matchRules;
+  var $ = function (id) { return document.getElementById(id); };
+
+  var texts = {};                // anchorId → json list, as stored
+  var cur = 0;                   // the anchor's index in DECK
+  var idx = {}; DECK.forEach(function (c, i) { idx[c.id] = i; });
+
+  function hdrs() { return { 'Content-Type': 'application/json' }; }
+  function load() {
+    return fetch('/api/chatfeed/verdict?chat=' + encodeURIComponent(CHAT) + '&sheet=' + encodeURIComponent(SHEET))
+      .then(function (r) { return r.json(); })
+      .then(function (d) { texts = (d && d.texts) || {}; })
+      .catch(function () { texts = {}; });
+  }
+  var timers = {};
+  function save(anchorId, list) {
+    texts[anchorId] = JSON.stringify(list);
+    clearTimeout(timers[anchorId]);
+    timers[anchorId] = setTimeout(function () {
+      fetch('/api/chatfeed/verdict', { method: 'POST', headers: hdrs(),
+        body: JSON.stringify({ chat: CHAT, sheet: SHEET, item: anchorId, text: texts[anchorId] }) }).catch(function () {});
+    }, 350);
+  }
+  function matches(anchorId) { return R.parseMatches(texts[anchorId]) || []; }
+
+  /* ── the match view ─────────────────────────────────────────────────── */
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+  function paintAnchor() {
+    var c = DECK[cur];
+    $('aimg').src = c.url; $('aimg').alt = c.n;
+    $('aname').textContent = c.n;
+    $('apos').textContent = (cur + 1) + ' / ' + DECK.length;
+    var m = matches(c.id), done = R.judged(texts);
+    $('acount').textContent = done[c.id]
+      ? (m.length ? m.length + ' matched' : 'none matched')
+      : Object.keys(done).length + ' of ' + DECK.length + ' cards judged';
+  }
+  function paintOthers() {
+    var c = DECK[cur], m = matches(c.id);
+    var lit = {}; m.forEach(function (id) { lit[id] = 1; });
+    $('others').innerHTML = DECK.filter(function (o) { return o.id !== c.id; }).map(function (o) {
+      return '<button class="oc' + (lit[o.id] ? ' on' : '') + '" data-id="' + o.id + '" aria-pressed="' + (lit[o.id] ? 'true' : 'false') + '">'
+        + '<span class="hold"><span class="tri"><img src="' + o.url + '" alt="' + esc(o.n) + '" loading="lazy"></span></span>'
+        + '<span class="nm">' + esc(o.n) + '</span></button>';
+    }).join('');
+  }
+  function paint() { paintAnchor(); paintOthers(); }
+  function go(i) { cur = (i + DECK.length) % DECK.length; paint(); window.scrollTo(0, 0); }
+
+  var pressT = null, eatTap = false;
+  $('others').addEventListener('click', function (e) {
+    var b = e.target.closest('.oc'); if (!b) return;
+    if (eatTap) { eatTap = false; return; }
+    var id = b.dataset.id, c = DECK[cur], m = matches(c.id);
+    var at = m.indexOf(id);
+    if (at >= 0) m.splice(at, 1); else m.push(id);
+    b.classList.toggle('on', at < 0);
+    b.setAttribute('aria-pressed', at < 0 ? 'true' : 'false');
+    save(c.id, m);
+    paintAnchor();
+  });
+  // a long press opens the card big through the house lightbox (compare.js
+  // opens any img.zoom on a click); the click the press would become is eaten
+  // so opening a card never also picks it
+  function pressStart(e) {
+    var b = e.target.closest('.oc'); if (!b) return;
+    clearTimeout(pressT);
+    pressT = setTimeout(function () {
+      eatTap = true;
+      var img = b.querySelector('img');
+      $('bigimg').src = img.src; $('bigimg').alt = img.alt;
+      $('bigimg').click();
+    }, 450);
+  }
+  function pressEnd() { clearTimeout(pressT); }
+  $('others').addEventListener('pointerdown', pressStart);
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) { $('others').addEventListener(ev, pressEnd); });
+  $('others').addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+  $('prev').addEventListener('click', function () { go(cur - 1); });
+  $('next').addEventListener('click', function () { go(R.nextUnjudged(DECK, texts, cur)); });
+  $('nonebtn').addEventListener('click', function () {
+    var c = DECK[cur];
+    save(c.id, []);
+    paint();
+  });
+
+  /* ── the tally ──────────────────────────────────────────────────────── */
+  function paintTally() {
+    var rows = R.tally(DECK, texts, MACHINE), s = R.summary(rows);
+    var maxv = Math.max(1, Math.max.apply(null, rows.map(function (r) { return Math.max(r.mine || 0, r.machine || 0); })));
+    $('sumline').textContent = s.judged
+      ? s.judged + ' of ' + s.total + ' judged · your matches per card run ' + s.min + ' to ' + s.max + ', average ' + s.avg
+      : 'Nothing judged yet';
+    $('trows').innerHTML = rows.map(function (r) {
+      var mine = r.mine === null ? 0 : r.mine;
+      return '<div class="trow' + (r.mine === null ? ' todo' : '') + '" data-id="' + r.id + '" data-mine="' + (r.mine === null ? '' : r.mine) + '">'
+        + '<span class="tn">' + esc(r.n) + '</span>'
+        + '<span class="bars"><span class="mbar" style="width:' + (100 * (r.machine || 0) / maxv).toFixed(1) + '%"></span>'
+        + (r.mine === null ? '' : '<span class="bar" style="width:' + (100 * mine / maxv).toFixed(1) + '%"></span>') + '</span>'
+        + '<span class="tc">' + (r.mine === null ? '–' : r.mine) + '</span></div>';
+    }).join('');
+  }
+  $('trows').addEventListener('click', function (e) {
+    var row = e.target.closest('.trow'); if (!row) return;
+    showTab('match'); go(idx[row.dataset.id]);
+  });
+
+  /* ── the tabs ───────────────────────────────────────────────────────── */
+  function tabLine(row) {
+    var on = row.querySelector('.acctab.on'); if (!on) return;
+    var r = row.getBoundingClientRect(), t = on.getBoundingClientRect();
+    if (!t.width) return;
+    row.style.setProperty('--tw', t.width + 'px');
+    row.style.setProperty('--tx', (t.left - r.left - row.clientLeft) + 'px');
+  }
+  var tabs = $('tabs');
+  function showTab(v) {
+    [].forEach.call(tabs.children, function (c) { c.classList.toggle('on', c.dataset.v === v); });
+    $('match').hidden = v !== 'match';
+    $('tally').hidden = v !== 'tally';
+    if (v === 'tally') paintTally();
+    tabs.classList.add('tl');
+    tabLine(tabs);
+  }
+  tabs.addEventListener('click', function (e) {
+    var b = e.target.closest('.acctab'); if (!b) return;
+    showTab(b.dataset.v);
+  });
+  window.addEventListener('resize', function () { tabLine(tabs); });
+
+  window.__compareHelp({ html: '<b>One card at a time.</b> The card at the top is the one you are matching. Tap every card under it that goes with it; tap again to take it back. <b>None of these</b> counts as an answer. › jumps to the next card you have not done; ‹ steps back. Hold a card to see it big.<br><br><b>Tally</b> lines the cards up by how many matches you gave each one, with the game\'s own tag count as the thin grey bar — that is the even-or-not answer.' });
+
+  load().then(function () {
+    cur = R.nextUnjudged(DECK, texts, DECK.length - 1);
+    paint();
+    tabLine(tabs);
+    requestAnimationFrame(function () { tabLine(tabs); });
+  });
+  window.__matchTest = { go: go, tally: paintTally, showTab: showTab, texts: function () { return texts; } };
+}());
+</script>
+</body>
+</html>
