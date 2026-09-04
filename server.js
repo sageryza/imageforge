@@ -2866,7 +2866,8 @@ async function syncVoteToAssets(url, vote) {
     // chat also delivered it. Measured 2026-08-22: 21 of 22 hearted
     // Playground pictures had ONLY that row, so a record-only sync wrote
     // nothing at all.
-    if (/\/promptlab\//.test(String(url))) chats.add('my-creations');
+    // A Freeform output files into My Creations the same way (2026-09-04).
+    if (/\/promptlab\/|\/freeform\/out\//.test(String(url))) chats.add('my-creations');
     for (const q of queries) {
       try {
         (await q.limit(20).get()).docs.forEach((d) => {
@@ -3028,6 +3029,8 @@ app.post('/api/gallery/assets/vote', express.json(), async (req, res) => {
       // reasoning as the Playground: a ♥ means the same thing wherever it is
       // tapped, and a clear here must not leave a stuck heart there.
       await require('./voicelab').voteFromAssets(url, vote);
+      // …and onto its Freeform run, for a picture drawn there (2026-09-04).
+      await require('./freeform').voteFromAssets(url, vote);
     }
     res.json({ ok: true });
   } catch (err) {
@@ -6027,7 +6030,9 @@ PL_GPT_STYLES.triangle2 = {
 // required, because freeform.js is mounted hundreds of lines above this const
 // and a require would read it before it exists. server.js stays the one owner
 // of what is actually sent.
-require('./freeform').init({ gptStyles: PL_GPT_STYLES, fileCreation: fileCreationDoc });
+require('./freeform').init({ gptStyles: PL_GPT_STYLES, fileCreation: fileCreationDoc,
+  // its ♥/✕ land on the Assets record too (2026-09-04, "freeform has no heart x?")
+  syncVoteToAssets });
 // Triset draws its cards in the Dreamy recipe with a triangle-card clause
 // swapped in — handed in for the same reason as freeform's boiler above.
 require('./triset').init({ gptStyles: PL_GPT_STYLES, fileCreation: fileCreationDoc });
