@@ -74,6 +74,8 @@ const UP = { url: '/px.png?up', kind: 'image', title: 'raincoat photo off my pho
 // stay away from rather than sit there matching nothing.
 let wordless = false;
 
+const posts = [];
+const metaQs = [];
 const server = http.createServer((req, res) => {
   // Anything the page links out of public/ — /feedkit.js, /tritoggle.*, …
   if (servePublic(req, res)) return;
@@ -82,7 +84,20 @@ const server = http.createServer((req, res) => {
   if (req.method === 'POST') {
     let body = '';
     req.on('data', (d) => { body += d; });
-    return req.on('end', () => json({ ok: true, beats: [] }));
+    return req.on('end', () => {
+      posts.push({ path: url.pathname, body });
+      json({ ok: true, beats: [] });
+    });
+  }
+  // EVERYTHING SHE HAS EVER MADE — the server side of the box (2026-08-29).
+  // Answers one picture for 'snake', which no inbox item carries.
+  if (url.pathname === '/api/gallery/assets/all') {
+    const q = url.searchParams.get('q') || '';
+    metaQs.push(q);
+    return json(/snake/i.test(q)
+      ? { total: 1, assets: [{ chat: 'my-creations', url: '/px.png?meta', thumb: '/px.png?meta',
+        description: 'a green snake in the grass', promptContent: 'a green snake in the grass' }] }
+      : { total: 0, assets: [] });
   }
   if (url.pathname === '/api/scratchpad/inbox') {
     return json(wordless
@@ -199,15 +214,40 @@ function ok(cond, name) {
   await page.click('#picq');
   ok(await page.$eval('#inbox', (el) => !el.hidden), 'tapping the box does not close the sheet');
 
-  // A STORY WHOSE ART CARRIES NO WORDS: a box that could never match anything
-  // is a dead control, so it is not drawn at all.
+  // EVERYTHING SHE HAS EVER MADE (2026-08-29, Sophie: "i can never find any
+  // of my pictures" — 'snake' had 423 Meta Assets matches this box could not
+  // see). A query the inbox cannot answer asks the server and renders the
+  // hits in their own section; picking one places it like any inbox picture,
+  // carrying its own words as src.
+  await page.fill('#picq', 'snake');
+  await page.waitForFunction(() => {
+    const g = document.getElementById('inboxgrid');
+    return g && g.textContent.includes('Everything you');
+  });
+  ok(metaQs.some((q) => q === 'snake'), 'the server was asked with her words');
+  ok((await tiles()).includes('meta'), 'the server hit renders as a tile');
+  ok(await page.$eval('#inboxempty', (el) => el.hidden),
+    'no "nothing matches" while the server section has answers');
+  await page.click('#inboxgrid button img[src*="meta"]');
+  await page.waitForFunction(() => document.querySelector('#sendband, .placeband, body'));
+  // the pick armed placing — tap the first gap/target the page offers
+  const armed = await page.evaluate(() => Boolean(window.pending || document.querySelector('#inbox[hidden]')));
+  ok(armed, 'picking a server hit closes the sheet with the picture in hand');
+
+  // A STORY WHOSE OWN ART CARRIES NO WORDS: the box used to hide as a dead
+  // control; since the server search there is ALWAYS something to search, so
+  // it stays. (The old rule is retired, not forgotten — this pins the new one.)
   wordless = true;
-  await page.click('#inboxclose');
-  await page.evaluate(() => { window.inboxItems = []; });
+  await page.mouse.click(200, 600);   // put the picked picture down (the document-level cancel)
+  await page.evaluate(() => {
+    const b = document.getElementById('picq'); if (b) b.value = '';
+    window.picQ = ''; window.picGroups = []; window.metaHits = [];
+    window.inboxItems = [];
+  });
   await page.click('#inboxbtn');
   await page.waitForFunction(() => document.querySelectorAll('#inboxgrid button').length === 2);
-  ok(await page.$eval('#picq', (el) => el.hidden),
-    'no box at all when nothing in the inbox carries a word');
+  ok(await page.$eval('#picq', (el) => !el.hidden),
+    'the box stays even when nothing local carries a word — the server side always has something to search');
 
   await browser.close();
   server.close();

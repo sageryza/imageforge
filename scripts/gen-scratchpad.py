@@ -2659,6 +2659,29 @@ function rmMark(url){
    the opposite reason (its shelf is a library this page never loads whole).
    The GRAMMAR and both live-box helpers are /feedkit.js, never a copy. */
 var picQ='', picGroups=[];
+/* ── AND EVERYTHING SHE HAS EVER MADE (2026-08-29, Sophie: "i can never
+   find any of my pictures" — her "snake" had 423 matches in Meta Assets and
+   this box could only see its own 31-item inbox). While she is searching, the
+   server is asked too — GET /api/gallery/assets/all?q=, the whole Meta
+   Assets list, the same read the /assets page makes — and the hits render in
+   their own section under the inbox tiles. Picking one places it exactly like
+   an inbox picture. The CLIPS tab next door has always searched the server
+   for the same reason: the library is never loaded whole. */
+var metaHits=[], metaSeq=0, metaBusy=false;
+function fetchMeta(){
+  var q=picQ, seq=++metaSeq;
+  if(!q){ metaHits=[]; metaBusy=false; return; }
+  metaBusy=true;
+  var h={}; if(TOKEN) h['x-studio-token']=TOKEN;
+  fetch('/api/gallery/assets/all?limit=60&q='+encodeURIComponent(q),{headers:h})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(seq!==metaSeq) return;            // a stale answer never lands
+      metaHits=(d.assets||[]).filter(function(a){return a&&a.url&&a.kind!=='audio';});
+      metaBusy=false; renderInboxGrid();
+    })
+    .catch(function(){ if(seq===metaSeq){ metaBusy=false; renderInboxGrid(); } });
+}
 /* A picture is found by the words that MADE it — its prompt first, then the
    recipe (style, model, engine, quality) — and an upload by the name it came
    off her phone with. Nothing here reads the url: a Storage filename is a
@@ -2678,7 +2701,11 @@ function picMatch(it){
 function paintPicSearch(all){
   var box=document.getElementById('picq');
   if(!box) return;
-  box.hidden=!(picQ||all.some(function(it){ return picHay(it); }));
+  /* The dead-control rule that used to hide this box no longer applies:
+     since the server search below, there is ALWAYS something to search —
+     every picture she has ever made — whatever this story's own items
+     carry. `all` stays a parameter so the call sites did not move. */
+  box.hidden=false;
 }
 (function(){
   var box=document.getElementById('picq');
@@ -2687,7 +2714,8 @@ function paintPicSearch(all){
   function run(){
     picQ=box.value.trim();
     picGroups=FeedKit.qparse(picQ);
-    renderInboxGrid();
+    renderInboxGrid();     // the inbox narrows instantly…
+    fetchMeta();           // …and everything else answers when it lands
   }
   FeedKit.liveInput(box, run);
   FeedKit.enterSubmits(box, run);
@@ -2720,7 +2748,7 @@ function renderInboxGrid(){
     g.appendChild(el);
   });
   var em=document.getElementById('inboxempty');
-  em.hidden=Boolean(items.length||ups.length);
+  em.hidden=Boolean(items.length||ups.length||(picQ&&(metaHits.length||metaBusy)));
   em.textContent=(picQ&&!items.length&&!ups.length)
     ? 'No pictures match that.'
     : 'Nothing hearted in the Playground yet.';
@@ -2733,6 +2761,33 @@ function renderInboxGrid(){
     el.appendChild(rmMark(it.url));
     g.appendChild(el);
   });
+  /* Everything she has ever made, under the inbox — only while she is
+     searching (with no query this sheet is the inbox it has always been).
+     A url already on screen or on the pad is not repeated; the tile loads
+     the server's derived thumb, never a 1-3MB original; and there is no ✕,
+     because these are not inbox items to remove. Picking one carries its
+     own words as src, so the placement files with them (fileBeatArt). */
+  if(picQ&&(metaHits.length||metaBusy)){
+    var seen={}; ups.concat(items).forEach(function(x){ seen[x.url]=1; });
+    var extra=metaHits.filter(function(a){ return !seen[a.url]&&!onPad[a.url]&&!gone[a.url]; });
+    var hd=document.createElement('div');
+    hd.className='inbsec'; hd.style.gridColumn='1 / -1';
+    hd.style.cssText+=';font:600 11px/1.4 -apple-system,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#8a8378;margin:10px 0 2px;';
+    hd.textContent=metaBusy&&!extra.length ? 'Searching everything you\u2019ve made\u2026' : 'Everything you\u2019ve made';
+    if(metaBusy&&!extra.length||extra.length) g.appendChild(hd);
+    extra.forEach(function(a){
+      var el=document.createElement('button');
+      var im=document.createElement('img'); im.src=a.thumb||thumbOf(a.url); im.alt=''; im.loading='lazy';
+      el.appendChild(im);
+      if(a.description) el.title=a.description;
+      el.onclick=function(ev){
+        ev.stopPropagation();
+        var words=a.promptContent||a.description||'';
+        pick({url:a.url, src: words?{prompt:words}:null});
+      };
+      g.appendChild(el);
+    });
+  }
 }
 function openInbox(){
   var sh=document.getElementById('inbox');
