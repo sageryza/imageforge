@@ -34,14 +34,17 @@
    Reopening the page resumes WHERE SHE LEFT OFF (the `at` field on the same
    doc — see savePlace), falling back to the first unjudged item when there is
    no place on file or the card it names has gone; when everything is
-   judged it opens on the PILES view — Loved / Maybe / Later / Passed — where
-   tapping any tile re-opens that item to re-judge it.
+   judged it opens on the PILES view — the UNMARKED pile first (2026-09-03,
+   Sophie: "unsure at top" · "unswiped is first then yes maybe no"), then
+   Loved / Maybe / Later / Passed, EVERY SECTION SHUT ("they all default
+   collapsed") so the screen is its own table of contents; opening one and
+   tapping a tile re-opens that item to re-judge it.
 
    THE PILES VIEW ALSO SURVEYS HER NOTES (2026-08-31, Sophie: "add note survey
    to piles") — every card she wrote on, read back in one place, leading the
-   piles. It cuts across them: a note is a note whether the card ended in Yes
-   or in Unsure. Read-back only, the keep-pile's rule — the note box is on the
-   card, one tap away down the row's own name or picture.
+   piles and shut like them. It cuts across them: a note is a note whether the
+   card ended in Yes or in Unsure. Read-back only, the keep-pile's rule — the
+   note box is on the card, one tap away down the row's own name or picture.
 
    Style: minimal, cream, the Chats-app look — compare.css provides the tokens
    (which also keep the injected pill styled right). Icon-first controls, so
@@ -871,9 +874,13 @@
     // spreads), and a card marked no LEAVES the spread — the ones still on
     // it are the comparison. The footer's three mark every card still on it.
     var eachCard = !!opts.spreadEach;
-    var piles = (states
+    // THE UNMARKED PILE LEADS (2026-09-03, Sophie: "unsure at top" ·
+    // "unswiped is first then yes maybe no"). It used to sit last, under
+    // everything she had already decided — which put the one pile with
+    // something still to do in it at the bottom of the screen.
+    var piles = [{ key: undefined, name: 'Unsorted' }].concat(states
       ? states.map(function (s) { return { key: s.key, name: s.label }; })
-      : DEFAULT_PILES).concat([{ key: undefined, name: 'Unsorted' }]);
+      : DEFAULT_PILES);
 
     var verdicts = {}, notes = {}, undoStack = [], cur = 0, view = 'card';
     var noteTimer = null, momNote = null;
@@ -887,6 +894,22 @@
     // per-visit fold state (what is shut right now, not a setting), and the
     // ids behind each pile's two buttons, rebuilt on every piles paint
     var folded = {}, pileLanes = {}, pileCards = {};
+    /** Is that section shut right now? EVERY one of them starts SHUT
+     *  (2026-09-03, Sophie: "collapse by default" · "they all default
+     *  collapsed"), so the piles view opens as its own table of contents —
+     *  `Unsure · 12`, `Yes · 5`, `Notes · 3` — and she taps the one she came
+     *  for instead of scrolling past the ones she did not.
+     *
+     *  `!== false` rather than `=== true`, and ONE reader shared by the paint
+     *  and the fold handler: a handler that flips `folded[key]` by negating
+     *  it writes `true` on a key that is undefined-but-shut, so the first tap
+     *  on every section would have done nothing at all. `folded` still means
+     *  only "what she has done to it this visit", so an open survives a
+     *  re-render — tapping a row or a tile to read that card must not shut
+     *  the section behind her. */
+    function shutPile(key) {
+      return folded[key] !== false;
+    }
 
     // ── THE REVIEW QUEUE'S DOOR (Aug 2026). `?clean=1` is how the queue opens
     // a deck — no title, straight onto the cards — so it is also how this page
@@ -935,9 +958,12 @@
     if (momDeck && !states) {
       // the piles speak the mockup's words — ♥, ? and ✕ (Aug 2026: maybe
       // joined the two she started with). 'Unsure' is the UNMARKED pile and
-      // stays last; Maybe is a mark she gave, so it sits with the others.
-      piles = [{ key: true, name: BTN.yes.label }, { key: 'maybe', name: BTN.maybe.label },
-        { key: false, name: BTN.no.label }, { key: undefined, name: 'Unsure' }];
+      // LEADS them (2026-09-03, Sophie: "unswiped is first then yes maybe
+      // no") — it is the one with something still to do in it. Maybe is a
+      // mark she gave, so it sits with the others.
+      piles = [{ key: undefined, name: 'Unsure' },
+        { key: true, name: BTN.yes.label }, { key: 'maybe', name: BTN.maybe.label },
+        { key: false, name: BTN.no.label }];
     }
     if (momDeck) {
       document.body.classList.add('jg-mombg');
@@ -1901,12 +1927,13 @@
       // parent pill + its tap-to-toggle gesture on this document). A judge
       // page has nothing to scroll, so no tap here may ever START the scroll.
       if (view === 'piles') {
-        // HER PILES ARE Yes / Maybe / No / Unsure — but a card marked before
-        // this deck became hers may hold 'later', and a pile list that cannot
-        // name it would drop those cards off the screen entirely. So a legacy
-        // pile is added only when something is actually in it, and it sits
-        // before Unsorted, which stays last. ('maybe' left this list in Aug
-        // 2026 when she asked for the button — it is a pile of its own now.)
+        // HER PILES ARE Unsure / Yes / Maybe / No — her own order, dictated
+        // 2026-09-03 ("unswiped is first then yes maybe no") — but a card
+        // marked before this deck became hers may hold 'later', and a pile
+        // list that cannot name it would drop those cards off the screen
+        // entirely. So a legacy pile is added only when something is actually
+        // in it, at the END. ('maybe' left this list in Aug 2026 when she
+        // asked for the button — it is a pile of its own now.)
         var shown = piles;
         if (momDeck && !states) {
           var legacy = [];
@@ -1922,7 +1949,10 @@
               legacy.push({ key: p[0], name: p[1] });
             }
           });
-          if (legacy.length) shown = piles.slice(0, -1).concat(legacy, piles.slice(-1));
+          // AT THE END now — the unmarked pile leads (2026-09-03), so the old
+          // "before Unsorted, which stays last" splice would have put a legacy
+          // pile at the very top of the screen.
+          if (legacy.length) shown = piles.concat(legacy);
         }
         // ── EACH PILE FOLDS AND RE-SWIPES ITSELF (2026-09-01, Sophie: "add a
         // good/bad/maybe button to each pile to re-swipe just those" · "also
@@ -1956,7 +1986,7 @@
           pileLanes[key] = members.map(function (u) { return u.open; })
             .filter(function (id, i, a) { return a.indexOf(id) === i; });
           pileCards[key] = members.map(function (u) { return u.it.id; });
-          var shut = folded[key] === true;
+          var shut = shutPile(key);
           return '<div class="jg-pilehd">'
             + '<button class="jg-pilefold' + (shut ? ' shut' : '') + '" data-fold="'
             + esc(key) + '" aria-expanded="' + (shut ? 'false' : 'true') + '">'
@@ -2008,7 +2038,10 @@
         // handler: the whole `Notes · N` row is the tap target. No "Swipe
         // these" beside it — the survey is READ-BACK, and its rows are cards
         // from every pile at once, so there is no lane to walk.
-        var nshut = folded.notes === true;
+        // SHUT WHEN SHE GETS THERE, like every pile under it (2026-09-03,
+        // Sophie: "collapse by default" · "they all default collapsed").
+        // `shutPile` is the ONE reader of that rule — see its own note.
+        var nshut = shutPile('notes');
         var survey = noted.length
           ? '<div class="jg-pilehd">'
             + '<button class="jg-pilefold' + (nshut ? ' shut' : '') + '" data-fold="notes"'
@@ -2312,7 +2345,7 @@
         // the survey is only named when there is one, so the help never
         // points her at a section that is not on the screen
         + (items.some(function (x) { return noteMsgs(notes[x.id]).length; })
-          ? ' Every note you’ve left is at the top of it.' : '')
+          ? ' Tap <b>Notes</b> at the top of it to read every note you’ve left.' : '')
         + '<br><br>'
         + '<button type="button" class="jg-tourgo">SHOW ME AROUND</button></div>';
       h.addEventListener('click', function (e) {
@@ -2356,7 +2389,7 @@
       // ── A PILE FOLDS (2026-09-01, her ask). Per visit, in memory: it is how
       // she is reading this screen right now, not a setting to remember.
       var fold = b.getAttribute('data-fold');
-      if (fold) { folded[fold] = !folded[fold]; render(); return; }
+      if (fold) { folded[fold] = !shutPile(fold); render(); return; }
       // ── …AND RE-SWIPES ITSELF. The lane is the pile's ids, so the pass
       // walks exactly those cards and ends back on the piles.
       var sw = b.getAttribute('data-swipe');
