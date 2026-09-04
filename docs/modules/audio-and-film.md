@@ -57,6 +57,15 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
   and **the `APIFRAME_KEY` in the cloud environment answered "Invalid or
   expired token" on `GET /v2/me` that day**, so the banked credits are not
   reachable from a session until she re-pastes a key.
+  **THE COLLECTION PAGE UNDER-LISTS — PROBE THE MODEL NAMES (same day,
+  Sophie: "why did u skip 2.5 etc").** Replicate's image-to-video collection
+  page showed six Seedance models; `GET /v1/models/bytedance/<name>`
+  answered 200 for three more it never listed. Per second, image in:
+  `seedance-2.5` 10.3¢ / 23.1¢ (480p / 720p; up to 30s, audio on by
+  default), `seedance-2.0-mini` 4¢ / 9¢ (the cheapest 2.x; up to 15s), and
+  `alibaba/wan-3` 2.5¢ / 5¢ / 10¢ (480p / 720p / 1080p, 2-30s). Probed and
+  absent: 2.5-fast, 2.5-lite, 2.5-pro, 2.0-lite, 2.0-pro, 1.5-lite. A
+  catalogue page is a hint; the model endpoint is the measurement.
 - **A model's INPUT KEYS ride its `shape`, never its tier name** — `wan22`
   (`image`/`last_image`, counts frames), `wan27` (`first_frame`/`last_frame`,
   counts seconds), `kling` (`start_image`/`end_image`, fixed 5s). One builder,
