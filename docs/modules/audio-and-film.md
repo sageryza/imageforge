@@ -72,7 +72,12 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
   answered 200 for three more it never listed. Per second, image in:
   `seedance-2.5` 10.3¢ / 23.1¢ (480p / 720p; up to 30s, audio on by
   default), `seedance-2.0-mini` 4¢ / 9¢ (the cheapest 2.x; up to 15s), and
-  `alibaba/wan-3` 2.5¢ / 5¢ / 10¢ (480p / 720p / 1080p, 2-30s). Probed and
+  `alibaba/wan-3` 2.5¢ / 5¢ / 10¢ (480p / 720p / 1080p, 2-30s) — **BUT ITS
+  REPLICATE WRAPPER IGNORES THE IMAGE (measured 2026-09-04)**: a public
+  png url in `image` was recorded on the prediction's input and the log
+  still read "Creating Wan 3.0 T2V task"; it drew a different man in a
+  different room, 16:9 from a portrait still, and billed 15¢. Text-to-video
+  only until that changes; `wan-2.7-i2v` is the proven 3s image route. Probed and
   absent: 2.5-fast, 2.5-lite, 2.5-pro, 2.0-lite, 2.0-pro, 1.5-lite. A
   catalogue page is a hint; the model endpoint is the measurement.
 - **A model's INPUT KEYS ride its `shape`, never its tier name** — `wan22`
