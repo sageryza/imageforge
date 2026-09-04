@@ -43,6 +43,8 @@ const MANAGED_KEYS = [
   // a clear job error rather than silently dropping out of the episode.
   'ELEVENLABS_API_KEY',
   'BREVO_API_KEY', 'BREVO_FROM_EMAIL', 'BREVO_FROM_NAME',
+  // Twilio — a text when it is your turn (dominoes.js, via sms.js).
+  'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_FROM',
   // APIFRAME (Midjourney deck art + Seedance video) — was env-only, which left
   // the live server unconfigured; manage it so the Firestore doc can carry it.
   'APIFRAME_KEY',

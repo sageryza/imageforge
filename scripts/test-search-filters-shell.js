@@ -151,6 +151,9 @@ const server = http.createServer((req, res) => {
     await page.goto(base + '/playground');
     await page.waitForFunction(() => document.querySelectorAll('#runs .run').length === 3);
     const runs = () => page.$$eval('#runs .run', (es) => es.length);
+    // THE DOOR IS ON THE CONTROLS ROW (2026-09-02, Sophie marked the spot:
+    // "put the filter button where the pink mark was") — not the feed bar,
+    // which got its ♥/✕ pair back in the same breath.
     const chip = '#feedfilters .filtchip';
     const drawerShown = () => page.locator('#feedfilters .filtdrawer').isVisible();
 
@@ -166,8 +169,26 @@ const server = http.createServer((req, res) => {
 
     // The three rows she asked for, in one drawer.
     const rows = await page.$$eval('#feedfilters .filtrow .filtlab', (es) => es.map((e) => e.textContent));
-    ok(rows.join('|') === 'Marks|Quality|When',
-      'three rows: the marks, the quality ladder, the date — got ' + rows.join('|'));
+    ok(rows.join('|') === 'Quality|When',
+      'two rows: the quality ladder and the date — got ' + rows.join('|'));
+    // THE MARKS ARE NOT IN HERE — they are back on the feed bar, as loose
+    // buttons, which is where she put them.
+    ok((await page.$$('#feedfilters .filtcbtn[data-v="like"]')).length === 0,
+      'and the ♥ is NOT in the drawer');
+    ok(await page.isVisible('#v-liked') && await page.isVisible('#v-hidex'),
+      '…it is on the feed bar with the ✕, where it was');
+    // The door sits in the CONTROLS card, in the gap she marked, and the
+    // Generate cluster is still hard right of it.
+    const spot = await page.evaluate(() => {
+      const c = document.querySelector('#feedfilters .filtchip').getBoundingClientRect();
+      const g = document.querySelector('.gogroup').getBoundingClientRect();
+      return { inCard: !!document.querySelector('.controls #feedfilters'),
+        beforeGo: c.right <= g.left + 1,
+        sameLine: Math.abs(c.top - g.top) < 2 };
+    });
+    ok(spot.inCard, 'the door is on the CONTROLS row, not the feed bar');
+    ok(spot.beforeGo && spot.sameLine,
+      'and it sits in the gap this row already had, left of Generate');
 
     // QUALITY really hides runs, and it is a MEASUREMENT of the feed.
     is('all three runs to start', await runs(), 3);
@@ -192,17 +213,18 @@ const server = http.createServer((req, res) => {
     const sizes = await page.evaluate(() => {
       const h = (sel) => Math.round(document.querySelector(sel).getBoundingClientRect().height);
       return { chip: h('#feedfilters .filtchip'), pick: h('#feedfilters .filtcbtn'),
-        view: h('.feedbar .viewtog'), search: h('.feedsearch input'),
-        tri: h('.feedbar') };
+        // `#qpick` is a gpt-only control and this fixture opens on the LoRA
+        // tile, so the neighbours asked are the two that are always on the row.
+        prompt: h('#promptbtn'), go: h('.gogroup .go'), tri: h('.feedbar') };
     });
-    // THE DOOR TAKES ITS ROW'S HEIGHT, whatever that is — no number of its own,
-    // so it can never be the one control on the bar that is a size nothing
-    // else is. Asserted as an EQUALITY against its neighbours rather than
-    // against a constant, which is what makes it survive the row changing.
-    ok(sizes.chip === sizes.view && sizes.chip === sizes.search,
+    // THE DOOR TAKES ITS ROW'S HEIGHT, whatever that is — no number of its
+    // own, so it can never be the one control on the row that is a size
+    // nothing else is. Asserted as an EQUALITY against its neighbours rather
+    // than against a constant, which is what makes it survive the row moving.
+    ok(sizes.chip === sizes.prompt && sizes.chip === sizes.go,
       'the door is exactly its neighbours\' height — chip ' + sizes.chip +
-      ', view ' + sizes.view + ', search ' + sizes.search);
-    ok(sizes.tri <= 48, 'and the bar is still one line (' + sizes.tri + 'px)');
+      ', Prompt ' + sizes.prompt + ', generate ' + sizes.go);
+    ok(sizes.tri <= 48, 'and the feed bar is still one line (' + sizes.tri + 'px)');
     // Inside the drawer the chips are the house 34 — the height of the
     // three-way toggles they sit beside there.
     ok(sizes.pick === 34, 'a filter chip in the drawer is 34px — got ' + sizes.pick);
@@ -220,10 +242,24 @@ const server = http.createServer((req, res) => {
     // see must never be one she has forgotten she set.
     await page.click(chip);
     ok(!(await drawerShown()), 'tapping the chip again shuts it');
+    // THE CHIP COUNTS, it does not spell (2026-09-02, Sophie: "change to # of
+    // filters" — two spelled-out filters wrapped it onto a line of its own and
+    // pushed the search box down).
     const worn = (await page.textContent(chip)).trim();
-    ok(/High/.test(worn) && /Today/.test(worn),
-      'and the shut chip WEARS what is narrowed — got ' + JSON.stringify(worn));
+    is('and the chip says HOW MANY are on', worn, '2');
     ok(await page.$eval(chip, (n) => n.classList.contains('on')), 'lit, too');
+    // NOT RED (her ask the same message): the rose belongs to the marks inside
+    // the drawer, not to the door. Measured off what really renders, because a
+    // class name says nothing about the colour.
+    const lit = await page.evaluate(() => {
+      const c = getComputedStyle(document.querySelector('#feedfilters .filtchip'));
+      const m = getComputedStyle(document.querySelector('#feedfilters .filtcbtn[data-v="high"]'));
+      return { chip: c.borderTopColor + '|' + c.color, mark: m.backgroundColor };
+    });
+    ok(!/194, 90, 114/.test(lit.chip),
+      'the lit door is not the rose — got ' + lit.chip);
+    ok(/194, 90, 114/.test(lit.mark),
+      '…while a lit ♥ chip inside still is — got ' + lit.mark);
 
     // Tapping the lit chip clears that filter — no second "off" control.
     await page.click(chip);
@@ -241,7 +277,7 @@ const server = http.createServer((req, res) => {
     await page.waitForFunction(() => document.querySelectorAll('#runs .run').length === 2);
     is('a reload comes back still narrowed', await runs(), 2);
     ok(!(await drawerShown()), '…with the drawer shut, and the chip saying so');
-    ok(/High/.test((await page.textContent(chip)).trim()), 'the chip says High after the reload');
+    is('and the chip counts it after the reload', (await page.textContent(chip)).trim(), '1');
 
     // The emptied list says WHICH filter emptied it.
     await page.click(chip);
@@ -266,7 +302,10 @@ const server = http.createServer((req, res) => {
     ok(!(await page.locator('.arow .filtdrawer').isVisible()), 'the drawer is SHUT here too');
     await page.click(chip);
     const rows = await page.$$eval('.arow .filtrow .filtlab', (es) => es.map((e) => e.textContent));
-    ok(rows.join('|') === 'Marks|Quality|When', 'the same three rows — got ' + rows.join('|'));
+    ok(rows.join('|') === 'Quality|When', 'the same two rows — got ' + rows.join('|'));
+    // …and the New · ♥ · Hide ✕ segment is back beside the door, where it was.
+    ok((await page.$$('.arow .afilter button')).length === 3,
+      'the mark segment is back on the row, not in the drawer');
 
     is('all three pictures to start', await shown(), 3);
     await page.click('.arow .filtcbtn[data-v="high"]');
@@ -298,12 +337,14 @@ const server = http.createServer((req, res) => {
     await page.waitForTimeout(150);
     await page.click(chip);
 
-    // MARKS STAY EXCLUSIVE — three answers to one question.
-    await page.click('.arow .filtcbtn[data-v="new"]');
-    await page.click('.arow .filtcbtn[data-v="like"]');
-    const lit = await page.$$eval('.arow .filtcbtn.on', (es) => es.map((e) => e.dataset.v));
+    // MARKS STAY EXCLUSIVE — three answers to one question, in their own
+    // segment on the row.
+    await page.click('.afilter button[data-f="new"]');
+    await page.click('.afilter button[data-f="like"]');
+    const lit = await page.$$eval('.afilter button.on', (es) => es.map((e) => e.dataset.f));
     ok(lit.length === 1 && lit[0] === 'like',
       'picking a second mark REPLACES the first — got ' + lit.join(','));
+    await page.click('.afilter button[data-f="like"]');
 
     // NOT STICKY here, deliberately: this is a place she arrives to look at
     // everything, and a filter left on from last week silently hiding most of

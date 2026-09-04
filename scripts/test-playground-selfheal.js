@@ -214,8 +214,10 @@ const server = http.createServer((req, res) => {
     () => { document.getElementById('prompt').value = 'meat raining from the ceiling'; },
     () => { document.getElementById('prompt').value = ''; });
   await held('an attached photo reference',
-    () => { window.photoRef = { data: 'x', name: 'p.png' }; },
-    () => { window.photoRef = null; });
+    // (2026-09-04: several photos — the list is `photoRefs`, the first is
+    // read-only under the old name.)
+    () => { window.photoRefs = [{ data: 'x', name: 'p.png' }]; },
+    () => { window.photoRefs = []; });
   await held('a picked character',
     () => { window.pickedChars.push('c1'); },
     () => { window.pickedChars.length = 0; });

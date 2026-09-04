@@ -3,6 +3,11 @@ const express = require('express');
 // THE WHOLE PROMPT, one builder — see prompt-record.js (Sophie's hard rule,
 // 2026-08-24: anytime an image is made anywhere, the whole prompt is stored).
 const promptRecord = require('./prompt-record');
+// THE PROMPT RIDES INSIDE THE FILE (2026-09-03). Every save of a picture
+// this server made carries its whole prompt + MODEL · QUALITY · SIZE as an
+// XMP packet in the bytes themselves, and POST /api/gallery reads it back off
+// a file that arrives with nothing filed. See image-meta.js.
+const imageMeta = require('./image-meta');
 // The panel sheet's geometry — derived canvases, the grid sentence, the cut
 // rects and the style-tail sheet swap. See sheet-grid.js.
 const sheetGrid = require('./sheet-grid');
@@ -494,6 +499,9 @@ loadConfig().then(() => {
   // in/out, reorder, one audio track. Render is ffmpeg on our own box; free.
   app.use('/api/filmeditor', require('./filmeditor').router);
   app.use('/api/fruit', require('./fruit').router); // favorite-fruit poll: a swipe deck per person → the fridge chart
+  require('./sms').init({ membryDb: storyDb });             // Twilio keys live in membry's config/twilio (the Xi chats put them there)
+  app.use('/api/dominoes', require('./dominoes').router); // Similitude Dominoes for two people on two phones — public, anyone's table
+  app.use('/api/similitude', require('./similitude-two').router); // Similitude for two phones — the same table, the dominoes deck, the draw capped at $1 a seat
   // Witch-video pipeline: Theo's ideas → draft cuts → the review room at
   // /witchvideo (tap the video to pause + leave a note; ♥/✕). Notes ring the
   // owning chat's wake doorbell. Nothing here generates or spends.
@@ -514,7 +522,7 @@ loadConfig().then(() => {
 }).catch(err => console.error('Pipeline bootstrap failed:', err.message));
 
 // Download image from URL and upload to Firebase, return permanent URL
-async function saveToFirebase(imageUrl, folder = 'images') {
+async function saveToFirebase(imageUrl, folder = 'images', stamp) {
   if (!bucket || !imageUrl) return imageUrl;
   try {
     console.log('Saving to Firebase:', folder, 'from', imageUrl.slice(0, 80));
@@ -523,7 +531,10 @@ async function saveToFirebase(imageUrl, folder = 'images') {
       console.warn('Firebase: fetch failed with status', res.status);
       return imageUrl;
     }
-    const buffer = await res.buffer();
+    // `stamp` = the prompt fields to write INTO the file (image-meta.js) —
+    // pure byte surgery, the pixels untouched; absent for anything that is
+    // not a picture this server drew.
+    const buffer = stamp ? imageMeta.stamp(await res.buffer(), stamp) : await res.buffer();
     const contentType = res.headers.get('content-type') || '';
     let ext = 'png';
     if (contentType.includes('webp') || imageUrl.includes('.webp')) ext = 'webp';
@@ -547,7 +558,11 @@ async function saveToFirebase(imageUrl, folder = 'images') {
 // Save a raw image buffer (e.g. gpt-image-1 base64 output) to Firebase and
 // return a permanent URL. Falls back to a data URL when Firebase isn't
 // configured, so the image still renders without any credentials set up.
-async function saveBufferToFirebase(buffer, contentType, folder = 'images') {
+async function saveBufferToFirebase(buffer, contentType, folder = 'images', stamp) {
+  // `stamp` = the prompt fields written INTO the file (image-meta.js). A
+  // stamp can never fail a save: an unknown container or a malformed file
+  // comes back as the same buffer.
+  if (stamp) buffer = imageMeta.stamp(buffer, stamp);
   const ext = contentType.includes('webp') ? 'webp'
     : contentType.includes('jpeg') || contentType.includes('jpg') ? 'jpg'
     : contentType.includes('mpeg') || contentType.includes('mp3') ? 'mp3'
@@ -634,6 +649,20 @@ app.get('/screening', (req, res) => { res.sendFile(__dirname + '/public/screenin
 // never will, and the person id in the link is the only identity there is.
 // no-cache for the same reason every other page here has it — a cached deck
 // would keep showing fruit that has since been re-drawn.
+// Similitude Dominoes — two people, two phones, anyone's (dominoes.js). Public
+// like /fruit: the link is the seat. One screen, never scrolls, no pill.
+app.get('/dominoes', (req, res) => {
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/public/dominoes.html');
+});
+// Similitude for two phones (similitude-two.js) — the triangle game over the
+// same table, PUBLIC like dominoes: the link is the login, no studio gate,
+// so a friend with no token can sit down. /similitude itself stays gated.
+app.get('/similitude/play', (req, res) => {
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/public/similitude-two.html');
+});
+
 app.get('/fruit', (req, res) => {
   res.set('Cache-Control', 'no-cache, must-revalidate');
   res.sendFile(__dirname + '/public/fruit.html');
@@ -1960,6 +1989,15 @@ app.get('/api/story/thumb', async (req, res) => {
     // Overloaded? Serve the original rather than queueing another decode —
     // a slow tile beats an OOM'd server (see the gate above).
     if (!thumbHot.has(url + '|' + w) && thumbWaiters.length > 12) return res.redirect(302, url);
+    // THE REDIRECT IS CACHED (2026-09-03, Sophie, stepping through a deck:
+    // "why does it fucking flash every time i tap right left · cach?"). A
+    // made thumb is content-addressed and never changes, but the 302 that
+    // points at it carried no Cache-Control — so every page that re-created
+    // an <img src=thumb-url> (a deck rebuilds its card on every step) paid a
+    // round trip to this box before the cached webp could paint: a blank
+    // frame, then the picture. The two fallbacks above stay uncached — they
+    // point at the original and may become a thumb later.
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
     res.redirect(302, await makeThumb(url, w));
   } catch (err) {
     console.error('thumb failed:', err.message);
@@ -2185,6 +2223,16 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
         if (nextCap) patch.prompt = nextCap.slice(0, 500);
         if (description && description !== existing.data().description) patch.description = description;
         if (kind && !existing.data().kind) patch.kind = kind;
+        // A record with no prompt on file, for a picture that carries its own
+        // (image-meta.js): the file fills the halves and the caption.
+        if (!existing.data().promptContent && !existing.data().promptStyle && kind !== 'audio') {
+          const meta = await imageMeta.readRemote(wipUrl);
+          if (meta) {
+            Object.assign(patch, imageMeta.promptHalves(meta));
+            const cap = assetGuard.captionUpgrade(nextCap || existing.data().prompt, imageMeta.caption(meta));
+            if (cap) patch.prompt = cap.slice(0, 500);
+          }
+        }
         // An older record filed before content-joining existed: give it its
         // md5 now, so it can collapse with the copy that arrives under a
         // different filename.
@@ -2230,6 +2278,18 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
       if (wipMd5 === null) wipMd5 = await assetMd5(wipUrl);
       if (wipMd5) wipDoc.md5 = wipMd5;
       if (kind) wipDoc.kind = kind;
+      // A background catch of a picture that carries its own prompt
+      // (image-meta.js) arrives KNOWING what it is — halves and caption
+      // filed from the file, never guessed. The hook's generic "from <chat>"
+      // line loses to the file's real caption (captionUpgrade's own rule).
+      if (kind !== 'audio') {
+        const meta = await imageMeta.readRemote(wipUrl);
+        if (meta) {
+          Object.assign(wipDoc, imageMeta.promptHalves(meta));
+          const cap = assetGuard.captionUpgrade(wipDoc.prompt, imageMeta.caption(meta));
+          if (cap) wipDoc.prompt = cap.slice(0, 500);
+        }
+      }
       if (description || autoDescription) wipDoc.description = description || autoDescription;
       await acol.add(wipDoc);
       const curatedCap = String(prompt || '').trim();
@@ -2250,11 +2310,26 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
       ? String(url) : null;
     let bytesHash = null;
     let assetDoc = null;
+    // THE FILE'S OWN PROMPT (image-meta.js, 2026-09-03). A picture stamped
+    // at birth carries its whole prompt and caption inside; a filing that
+    // brings none is filled from the file, so a copy a chat merely sent
+    // arrives knowing what it is. Best-effort and only ever a FALLBACK: a
+    // prompt the caller sent wins.
+    let fileMeta = null;
     if (!finalUrl && image) {
       const m = String(image).match(/^data:(image\/[\w.+-]+);base64,(.+)$/);
       if (!m) return res.status(400).json({ error: 'image must be a data URL' });
-      const buf = Buffer.from(m[2], 'base64');
+      let buf = Buffer.from(m[2], 'base64');
       bytesHash = require('crypto').createHash('sha256').update(buf).digest('hex');
+      // A file that already carries its prompt (a chat stamped it in its own
+      // container) hands it over; one that does not gets the record's, when
+      // the caller sent one. Stamping never changes the hash the dedupe keys
+      // on — that is the SOURCE bytes, the same both times a chat sends them.
+      fileMeta = imageMeta.read(buf);
+      if (!fileMeta && fullPrompt) buf = imageMeta.stamp(buf, {
+        ...promptRecord.promptRecord({ full: fullPrompt, content: prompt, prefix: promptPrefix, suffix: promptSuffix }),
+        chat: chatName,
+      });
       // Same bytes already filed for this chat (e.g. posted as a link earlier)?
       // Reuse that image instead of uploading a second copy of it.
       assetDoc = await findChatAsset(chatName, { hash: bytesHash });
@@ -2270,6 +2345,11 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
       }
     }
     if (!finalUrl) return res.status(400).json({ error: 'url (Firebase Storage) or image (data URL) required' });
+    // (a picture only — a film or a voice note has no packet to go looking for)
+    if (!fileMeta && !fullPrompt && !/\.(mp4|mov|webm|m4a|mp3|wav|aac|opus|flac)(\?|$)/i.test(finalUrl)) {
+      fileMeta = await imageMeta.readRemote(finalUrl);
+    }
+    const metaHalves = fileMeta ? imageMeta.promptHalves(fileMeta) : null;
     // Per-chat asset record (deckfactory, where forge-chat-* live) — powers the
     // Assets tab inside each chat. Independent of the iOS-gallery de-dupe below.
     let assetDeduped = false;
@@ -2296,6 +2376,8 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
           if (bytesHash && !cur.hash) patch.hash = bytesHash;
           if (!cur.urlKey) patch.urlKey = canonicalAssetUrl(cur.url);
           if (cur.wip) patch.wip = false;   // it's a finished deliverable now
+          if (metaHalves && !cur.promptContent && !cur.promptStyle) Object.assign(patch, metaHalves);
+          if (fileMeta) { const cap = assetGuard.captionUpgrade(cur.prompt, imageMeta.caption(fileMeta)); if (cap) patch.prompt = cap; }
           if (!cur.md5) {
             const md5 = await assetMd5(cur.url || finalUrl);
             if (md5) patch.md5 = md5;
@@ -2309,6 +2391,8 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
           };
           if (description) aDoc.description = description;
           if (bytesHash) aDoc.hash = bytesHash;
+          if (metaHalves) Object.assign(aDoc, metaHalves);
+          if (fileMeta && imageMeta.caption(fileMeta) && !String(prompt || '').trim()) aDoc.prompt = imageMeta.caption(fileMeta);
           // The Storage object's own md5 (metadata only, no download) — what
           // lets this record collapse with the same bytes filed under any
           // other filename. See asset-union.js.
@@ -2340,6 +2424,12 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
     Object.assign(doc, promptRecord.promptFields({
       full: fullPrompt, content: prompt, prefix: promptPrefix, suffix: promptSuffix,
     }));
+    // …and when the caller sent none, the file's own (never over a sent one).
+    if (!doc.fullPrompt && fileMeta) {
+      Object.assign(doc, promptRecord.promptFields({ fullPrompt: fileMeta.fullPrompt || '',
+        promptStyle: fileMeta.promptStyle || '', promptContent: fileMeta.promptContent || '' }));
+      for (const k of ['model', 'quality', 'size', 'canvas']) if (fileMeta[k] && !doc[k]) doc[k] = fileMeta[k];
+    }
     const ref = await col.add(doc);
     res.json({ ok: true, id: ref.id, url: finalUrl, description, assetDeduped });
   } catch (err) {
@@ -2776,7 +2866,8 @@ async function syncVoteToAssets(url, vote) {
     // chat also delivered it. Measured 2026-08-22: 21 of 22 hearted
     // Playground pictures had ONLY that row, so a record-only sync wrote
     // nothing at all.
-    if (/\/promptlab\//.test(String(url))) chats.add('my-creations');
+    // A Freeform output files into My Creations the same way (2026-09-04).
+    if (/\/promptlab\/|\/freeform\/out\//.test(String(url))) chats.add('my-creations');
     for (const q of queries) {
       try {
         (await q.limit(20).get()).docs.forEach((d) => {
@@ -2938,6 +3029,8 @@ app.post('/api/gallery/assets/vote', express.json(), async (req, res) => {
       // reasoning as the Playground: a ♥ means the same thing wherever it is
       // tapped, and a clear here must not leave a stuck heart there.
       await require('./voicelab').voteFromAssets(url, vote);
+      // …and onto its Freeform run, for a picture drawn there (2026-09-04).
+      await require('./freeform').voteFromAssets(url, vote);
     }
     res.json({ ok: true });
   } catch (err) {
@@ -5202,7 +5295,9 @@ app.post('/api/generate/dalle', async (req, res) => {
     });
     const data = await response.json();
     if (data.error) return res.status(400).json({ error: data.error.message });
-    const permanentUrl = await saveToFirebase(data.data[0].url, 'dalle');
+    const permanentUrl = await saveToFirebase(data.data[0].url, 'dalle',
+      { fullPrompt: prompt, promptContent: prompt, model: 'dall-e-3', quality, canvas: size,
+        size: require('./size-tier').captionSize(size) });
     // What WE sent is the record; DALL·E's own rewrite rides the style slot so
     // neither text is lost and neither is filed as the other.
     await fileGenerateRoute({ url: permanentUrl, prompt, full: prompt,
@@ -5224,7 +5319,9 @@ app.post('/api/generate/gptimage', async (req, res) => {
     if (data.error) return res.status(400).json({ error: data.error.message });
     const b64 = data.data?.[0]?.b64_json;
     if (!b64) return res.status(400).json({ error: 'gpt-image-2 returned no image' });
-    const url = await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/webp', 'openai');
+    const url = await saveBufferToFirebase(Buffer.from(b64, 'base64'), 'image/webp', 'openai',
+      { fullPrompt: prompt, promptContent: prompt, model: 'gpt-image-2', quality, canvas: size,
+        size: require('./size-tier').captionSize(size) });
     // Verbatim surface — her words go through untouched, so there is no style
     // half to file and the full prompt IS the content.
     await fileGenerateRoute({ url, prompt, full: prompt,
@@ -5341,7 +5438,10 @@ app.post('/api/generate/housestyle', async (req, res) => {
     if (!b64) return res.status(400).json({ error: 'gpt-image-2 returned no image' });
     let buf = Buffer.from(b64, 'base64');
     if (style.whiten) { try { buf = await whitenBackground(buf); } catch (e) { console.warn('house whiten failed:', e.message); } }
-    const url = await saveBufferToFirebase(buf, 'image/webp', 'housestyle');
+    const url = await saveBufferToFirebase(buf, 'image/webp', 'housestyle', {
+      ...promptRecord.promptRecord({ full, prefix: style.stylePrompt || '', content: prompt, suffix: style.end || '' }),
+      model: 'gpt-image-2', quality, canvas: '1024x1024', size: '1K', style: style.name || styleId,
+    });
     // `full` is the literal string handed to the edits call two lines up; the
     // style's own prompt and tail are the wrapper around her words.
     await fileGenerateRoute({ url, prompt, full,
@@ -5619,7 +5719,27 @@ const PL_GPT = {
     'reference(s) at the end is a photo reference: use it for the subject ' +
     'described below — the person, place or object in it — and NOT for the ' +
     'drawing style, which comes from the style reference above.',
+  // SEVERAL PHOTOS (2026-09-04, Sophie: "add a second reference photo to the
+  // playground … make a way to add a second or third etc photo"). The same
+  // two sentences with the count in them — `{n}` is the number of photos,
+  // written as a word by photoWords() — sent INSTEAD of the singular pair
+  // whenever more than one photo rides. One photo still sends the singular
+  // line byte for byte, so every run before this is unchanged. The photos
+  // attach in the order she added them, after the style references and the
+  // Sophie card, before her cast — the same seat the one photo has.
+  photoLineMany: ' The LAST {n} attached images are photo references: use them ' +
+    'for the subject described below — the people, places or objects in them ' +
+    '— and NOT for the drawing style, which comes from the style reference above.',
+  photoLineManyWithChars: ' The {n} attached images just before the character ' +
+    'reference(s) at the end are photo references: use them for the subject ' +
+    'described below — the people, places or objects in them — and NOT for ' +
+    'the drawing style, which comes from the style reference above.',
 };
+// "two", "three" … for the plural photo lines; past ten the digit is honest.
+// The page keeps a twin (photoWords in promptlab.html) for its Prompt panel —
+// scripts/test-playground-photo-refs.js pins the two equal.
+const PHOTO_WORDS = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+function photoWords(n) { return PHOTO_WORDS[n] || String(n); }
 // The ChatGPT engine's selectable styles (Aug 2026). Each is the same recipe
 // — gpt-image-2 edits, refs attached as pure STYLE references, quality/size
 // from PL_GPT — differing only in which ref images ride along and the prefix
@@ -5671,6 +5791,12 @@ const PL_GPT_STYLES = {
     photoLineWithChars: 'The attached image just before the character ' +
       'reference(s) at the end is a photo reference: use it for the subject ' +
       'described below — the person, place or object in it.',
+    // And the same pair for several photos — see PL_GPT.photoLineMany.
+    photoLineMany: 'The {n} attached images are photo references: use them for ' +
+      'the subject described below — the people, places or objects in them.',
+    photoLineManyWithChars: 'The {n} attached images just before the character ' +
+      'reference(s) at the end are photo references: use them for the subject ' +
+      'described below — the people, places or objects in them.',
     // NO Sophie character card — see below. Character references SHE picks
     // are a different thing entirely (her own cast, not a style by another
     // name) and ride here exactly as they do on every other tile.
@@ -5868,12 +5994,45 @@ const PL_GPT_STYLES = {
 // the border one), and the tile carries its own panels swap, because dreamy's
 // anchor is the clause this just consumed.
 PL_GPT_STYLES.triangle = require('./triangle-clause').triangleStyle(PL_GPT_STYLES.dreamy);
+// "Triangle v2" (2026-09-03, Sophie: "i modified the triangle prompt in
+// triangle … can u view the current version, and save it as a new option
+// (triangle v2)"). HER OWN WORDING, VERBATIM — recovered off her runs' stored
+// `fullPrompt` (one wording across all 100 triangle runs of 2026-09-02/03,
+// every one with the no-text toggle ON), because the Prompt panel's edit
+// lives only in her phone's localStorage and the server never sees it.
+// NOT derived from dreamy or triangle: she rewrote both halves by hand (the
+// prefix carries the whole triangle ask now — "copy its style", the
+// equilateral rule as its own paragraph — and the tail keeps only the
+// anti-content bookend), so a reword of the house wording must NOT reach
+// this tile; that is the point of banking a version. The tail is baked with
+// `minimal text.` and the toggle swaps it to `no text.` (the house shape), so
+// with the toggle on — the way she ran every one of them — the sent text is
+// byte-for-byte what her runs carry. No sheet swap: the anti-grid sentence is
+// in her PREFIX, which applySheet never touches, so a Panels run on this tile
+// sends her prefix unchanged — the original Triangle tile is the one that
+// swaps for a sheet.
+PL_GPT_STYLES.triangle2 = {
+  label: 'Triangle v2',
+  refFiles: PL_GPT_STYLES.dreamy.refFiles.slice(),
+  prefix: 'The FIRST attached image is a STYLE reference — copy its style but do ' +
+    'NOT copy its content, subjects, or composition.\n\n' +
+    'render as one single illustration, not split panels. render the ' +
+    'illustration in an equilateral triangle, with a hand drawn border. \n\n' +
+    'it must be an equilateral triangle - all sides the same length, including ' +
+    'the bottom. each angle - 60 degrees',
+  suffix: 'Again: the attached image is a STYLE reference only — do not draw its ' +
+    'content, its subjects or its composition. minimal text.',
+  noText: { from: 'minimal text.', to: 'no text.' },
+  noCharacter: true,
+};
 // FREEFORM'S BOILERPLATE TOGGLE SENDS THIS TABLE'S OWN WORDING (2026-08-28,
 // Sophie: "the text we use for dreamy or watercolor"). Handed in rather than
 // required, because freeform.js is mounted hundreds of lines above this const
 // and a require would read it before it exists. server.js stays the one owner
 // of what is actually sent.
-require('./freeform').init({ gptStyles: PL_GPT_STYLES, fileCreation: fileCreationDoc });
+require('./freeform').init({ gptStyles: PL_GPT_STYLES, fileCreation: fileCreationDoc,
+  // its ♥/✕ land on the Assets record too (2026-09-04, "freeform has no heart x?")
+  syncVoteToAssets });
 // Triset draws its cards in the Dreamy recipe with a triangle-card clause
 // swapped in — handed in for the same reason as freeform's boiler above.
 require('./triset').init({ gptStyles: PL_GPT_STYLES, fileCreation: fileCreationDoc });
@@ -5992,9 +6151,7 @@ async function startQueuedRuns() {
       }
       if (cfg.photoUrl) {
         try {
-          const pr = await fetch(cfg.photoUrl);
-          if (!pr.ok) throw new Error(`photo ref ${pr.status}`);
-          cfg.photoBuf = Buffer.from(await pr.arrayBuffer());
+          await refetchPhotoRefs(cfg);
         } catch (e) {
           await d.ref.update({ status: 'failed', error: `queued for a server update; its photo reference could not be re-read (${e.message})` });
           continue;
@@ -6078,9 +6235,7 @@ async function sweepStuckPromptlabRuns() {
         const cfg = plSweep.singleCfgOf(r);
         if (cfg.photoUrl) {
           try {
-            const pr = await fetch(cfg.photoUrl);
-            if (!pr.ok) throw new Error(`photo ref ${pr.status}`);
-            cfg.photoBuf = Buffer.from(await pr.arrayBuffer());
+            await refetchPhotoRefs(cfg);
           } catch (e) {
             await d.ref.update({ status: 'failed', error: `interrupted by a server restart; its photo reference could not be re-read (${e.message})` });
             continue;
@@ -6347,6 +6502,40 @@ async function landOnBeat(target, images, runId, meta) {
 // NOT cancellable, by nature: OpenAI has no cancel for image generation, so
 // every image here is billed the moment it's requested. Nothing in the flow
 // pretends otherwise — the page shows no X on these runs.
+// What a Playground picture carries INSIDE its file (image-meta.js): the
+// same fields fileRunToCreations files, so the bytes and the record agree.
+function plStamp(cfg, st, extra) {
+  const canvas = cfg.size || PL_GPT.size;
+  return Object.assign({
+    ...promptRecord.promptRecord({
+      full: cfg.fullPrompt, content: cfg.prompt,
+      prefix: cfg.head != null ? cfg.head : st.prefix,
+      suffix: cfg.tail != null ? cfg.tail : st.suffix,
+    }),
+    model: PL_GPT.id, quality: cfg.quality, canvas,
+    size: require('./size-tier').captionSize(canvas), style: st.label, engine: 'gptimage',
+  }, extra || {});
+}
+
+// How many photos may ride one run (2026-09-04). Each is a separate image
+// input billed by its own tokens, and the model reads a handful well; past
+// that the extra references stop meaning anything.
+const PL_PHOTO_MAX = 6;
+// A queued or interrupted run holds its photos only by url — read them all
+// back into bytes, in order. `photoUrls` is the list (promptlab-sweep.js),
+// `photoUrl` its first for the older shape; one that will not fetch fails the
+// redraw, because drawing without it is a different picture under this record.
+async function refetchPhotoRefs(cfg) {
+  const urls = (cfg.photoUrls && cfg.photoUrls.length) ? cfg.photoUrls : [cfg.photoUrl];
+  cfg.photoBufs = [];
+  for (const u of urls) {
+    const pr = await fetch(u);
+    if (!pr.ok) throw new Error(`photo ref ${pr.status}`);
+    cfg.photoBufs.push(Buffer.from(await pr.arrayBuffer()));
+  }
+  cfg.photoBuf = cfg.photoBufs[0] || null;
+}
+
 async function runPromptLabGptJob(docRef, cfg) {
   drawingNow.add(docRef.id);
   try {
@@ -6358,6 +6547,10 @@ async function runPromptLabGptJob(docRef, cfg) {
     // Her uploaded photo rides after those — see PL_GPT.photoLine for why the
     // order matters (the character line names "the second attached image").
     if (cfg.photoBuf) refs.push(cfg.photoBuf);
+    // A SECOND (third …) photo rides right behind the first, in her order
+    // (2026-09-04) — `photoBufs` is the whole list and `photoBuf` its first,
+    // kept so every older caller of this job is untouched.
+    for (const b of (cfg.photoBufs || []).slice(1)) refs.push(b);
     // HER OWN CAST RIDES AT THE VERY END (2026-08-27, Sophie's character
     // picker). charLine() names them "the last attached image(s)", which is
     // the same wording the Story Room sends, so they must genuinely be last —
@@ -6405,7 +6598,7 @@ async function runPromptLabGptJob(docRef, cfg) {
         // same flood-fill whiten the house style does. Best-effort: a failed
         // whiten keeps the picture rather than losing a paid render.
         if (st.whiten) { try { buf = await whitenBackground(buf); } catch (e) { console.warn('promptlab whiten failed:', e.message); } }
-        images.push(await saveBufferToFirebase(buf, 'image/webp', 'promptlab'));
+        images.push(await saveBufferToFirebase(buf, 'image/webp', 'promptlab', plStamp(cfg, st)));
         // WHAT IT ACTUALLY COST, kept (2026-08-24). The API returns `usage`
         // on every call and this route was throwing it away, so the only way
         // to answer "what does attaching THIS reference cost" was to spend
@@ -6473,7 +6666,7 @@ const PL_SHAPE_WORD = { '2:3': 'portrait', '1:1': 'square', '3:2': 'landscape' }
 // cache on are how a batch of extracts balloons. Lossless webp on every
 // panel: the model's own pixels are the source and nothing lossy may stand
 // between them and the cut (the house no-generation-compression rule).
-async function cutSheet(sheetBuf, plan) {
+async function cutSheet(sheetBuf, plan, stampFor) {
   const sharp = require('sharp');
   sharp.cache(false);
   const { data, info } = await sharp(sheetBuf).ensureAlpha().raw()
@@ -6501,7 +6694,9 @@ async function cutSheet(sheetBuf, plan) {
   for (const r of rects) {
     const buf = await sharp(data, { raw }).extract(r)
       .webp({ lossless: true }).toBuffer();
-    urls.push(await saveBufferToFirebase(buf, 'image/webp', 'promptlab'));
+    // each panel carries ITS OWN words and seam inside the file (image-meta.js)
+    urls.push(await saveBufferToFirebase(buf, 'image/webp', 'promptlab',
+      stampFor ? stampFor(urls.length, r) : undefined));
   }
   return { urls, rects };
 }
@@ -6566,9 +6761,27 @@ async function finishPanelsCutInner(docRef, cfg, sheetBuf, sheetUrl) {
   // only when nothing matched (never expected for a run this job drew).
   const sheetSeam = sheetGrid.sheetSeam(cfg.fullPrompt, cfg.panels)
     || { prefix: cfg.head, content: cfg.prompt, suffix: cfg.tail };
+  // A panel's style half is everything around ITS words in the sent text —
+  // the panel line sits verbatim in fullPrompt, so the seam is real.
+  const seamFor = (text) => {
+    const i = cfg.fullPrompt.indexOf(text);
+    if (i < 0) return { prefix: cfg.head, suffix: cfg.tail };
+    return {
+      prefix: cfg.fullPrompt.slice(0, i).trim(),
+      suffix: cfg.fullPrompt.slice(i + text.length).trim(),
+    };
+  };
+  const cut = sizeTier.cutSize(plan.sheet, plan.count);
+  // what each cut panel carries inside its own file (image-meta.js) — the
+  // same fields its creation doc gets below
+  const panelStamp = (i, r) => ({
+    ...promptRecord.promptRecord({ full: cfg.fullPrompt, content: cfg.panels[i], ...seamFor(cfg.panels[i]) }),
+    model: PL_GPT.id, quality: cfg.quality, size: cut,
+    canvas: r ? `${r.width}x${r.height}` : plan.cell, style: st.label, engine: 'gptimage',
+  });
   let images, rects;
   try {
-    ({ urls: images, rects } = await cutSheet(sheetBuf, plan));
+    ({ urls: images, rects } = await cutSheet(sheetBuf, plan, panelStamp));
   } catch (err) {
     // The cut failed (a resized answer, a sharp hiccup): the run is still
     // DONE — the sheet is the picture, misdrawn ratio and all, and the doc
@@ -6600,23 +6813,12 @@ async function finishPanelsCutInner(docRef, cfg, sheetBuf, sheetUrl) {
   // description and the '1/9 (4K)' size slot — a cut panel's own pixels
   // land on a lower rung and would read as an ordinary small picture
   // (size-tier.js cutSize; fileCreationDoc's sizeSlot exists for this).
-  const cut = sizeTier.cutSize(plan.sheet, plan.count);
   fileCreationDoc({
     url: sheetUrl, prompt: `the sheet — ${plan.count} panels`,
     promptContent: sheetSeam.content, style, model: PL_GPT.id, quality: cfg.quality,
     canvas: plan.sheet, fullPrompt: cfg.fullPrompt,
     promptPrefix: sheetSeam.prefix, promptSuffix: sheetSeam.suffix, source: 'playground',
   });
-  // A panel's style half is everything around ITS words in the sent text —
-  // the panel line sits verbatim in fullPrompt, so the seam is real.
-  const seamFor = (text) => {
-    const i = cfg.fullPrompt.indexOf(text);
-    if (i < 0) return { prefix: cfg.head, suffix: cfg.tail };
-    return {
-      prefix: cfg.fullPrompt.slice(0, i).trim(),
-      suffix: cfg.fullPrompt.slice(i + text.length).trim(),
-    };
-  };
   images.forEach((url, i) => {
     const seam = seamFor(cfg.panels[i]);
     // The panel's REAL canvas — the seams move to the gutters, so a panel
@@ -6679,7 +6881,14 @@ async function runPromptLabPanelsJob(docRef, cfg) {
     // THE PAID SHEET IS BANKED BEFORE THE CUT — a failed cut must never lose
     // a picture that has already been billed, and the banked url is also what
     // makes a deploy restart recoverable (the sweep recuts from it).
-    const sheetUrl = await saveBufferToFirebase(sheetBuf, 'image/webp', 'promptlab');
+    const sheetSeam = sheetGrid.sheetSeam(cfg.fullPrompt, cfg.panels)
+      || { prefix: cfg.head, content: cfg.prompt, suffix: cfg.tail };
+    const sheetUrl = await saveBufferToFirebase(sheetBuf, 'image/webp', 'promptlab', {
+      ...promptRecord.promptRecord({ full: cfg.fullPrompt, ...sheetSeam }),
+      model: PL_GPT.id, quality: cfg.quality, canvas: plan.sheet,
+      size: require('./size-tier').captionSize(plan.sheet), style: st.label, engine: 'gptimage',
+      label: `the sheet — ${plan.count} panels`,
+    });
     // THE SHEET SHOWS THE MOMENT IT IS PAID FOR (2026-08-27, Sophie: "the
     // uncut sheet shud show before it's cut as soon as it's done (in
     // panels"). The run parks on 'ready' with the banked sheet and no images
@@ -6737,7 +6946,10 @@ async function runPromptLabJob(docRef, cfg) {
     // permanent urls in. Replicate deletes API outputs after ~1hr, so the
     // copies are what keep the run history browsable.
     await docRef.update({ status: 'ready', tempImages: urls, predictTime: prediction.metrics?.predict_time || null });
-    const images = await Promise.all(urls.map(u => saveToFirebase(u, 'promptlab')));
+    const images = await Promise.all(urls.map(u => saveToFirebase(u, 'promptlab', {
+      ...promptRecord.promptRecord({ full: cfg.fullPrompt, content: cfg.prompt, prefix: cfg.prefix, suffix: cfg.suffix }),
+      model: cfg.styleLabel, style: cfg.styleLabel, engine: 'replicate',
+    })));
     plCancelled.delete(docRef.id);
     await docRef.update({ status: 'done', images });
     await landOnBeat(cfg.padTarget, images, docRef.id,
@@ -6820,20 +7032,31 @@ app.post('/api/promptlab', async (req, res) => {
       // Her own photo reference, uploaded with this run (Aug 2026). The bytes
       // go straight to the job so a failed Storage write costs the record, not
       // the picture; the url is only what the run's doc remembers it by.
-      let photoBuf = null;
-      let photoUrl = '';
-      const photoIn = String(req.body.photo || '');
-      const pm = photoIn.match(/^data:(image\/[a-z.+-]+);base64,(.+)$/i);
-      if (pm) {
-        photoBuf = Buffer.from(pm[2], 'base64');
-        const up = await saveBufferToFirebase(photoBuf, pm[1], 'promptlab/photorefs');
-        if (/^https?:\/\//.test(up)) photoUrl = up;
-      } else if (/^https?:\/\//.test(photoIn)) {
-        try {
-          const r = await fetch(photoIn);
-          if (r.ok) { photoBuf = Buffer.from(await r.arrayBuffer()); photoUrl = photoIn; }
-        } catch (e) { console.warn('promptlab photo ref fetch failed:', e.message); }
+      // SEVERAL PHOTOS (2026-09-04): `photos` is the list, in her order;
+      // `photo` is what every older page sends and is read as a list of one.
+      // Each is a dataURL (uploaded to Storage so the run doc can name it) or
+      // an https url (a picture already in Storage — a copy-back, or Meta
+      // Assets' door). One that will not read is dropped, best-effort, exactly
+      // as the single photo always was.
+      const photoBufs = [];
+      const photoUrls = [];
+      const photoIns = (Array.isArray(req.body.photos) && req.body.photos.length
+        ? req.body.photos : [req.body.photo]).map((x) => String(x || '')).filter(Boolean).slice(0, PL_PHOTO_MAX);
+      for (const photoIn of photoIns) {
+        const pm = photoIn.match(/^data:(image\/[a-z.+-]+);base64,(.+)$/i);
+        if (pm) {
+          const buf = Buffer.from(pm[2], 'base64');
+          const up = await saveBufferToFirebase(buf, pm[1], 'promptlab/photorefs');
+          if (/^https?:\/\//.test(up)) { photoBufs.push(buf); photoUrls.push(up); }
+        } else if (/^https?:\/\//.test(photoIn)) {
+          try {
+            const r = await fetch(photoIn);
+            if (r.ok) { photoBufs.push(Buffer.from(await r.arrayBuffer())); photoUrls.push(photoIn); }
+          } catch (e) { console.warn('promptlab photo ref fetch failed:', e.message); }
+        }
       }
+      const photoBuf = photoBufs[0] || null;
+      const photoUrl = photoUrls[0] || '';
       // The no-text toggle is NOT an edit of hers — it is a switch on the
       // house tail, so it is applied AFTER the override and left out of
       // `edited`. A style with no `noText` never offers it.
@@ -6869,9 +7092,16 @@ app.post('/api/promptlab', async (req, res) => {
       const charsLine = padChars.charLine(pickedChars);
       // The photo's sentence is re-anchored when characters ride behind it —
       // "the LAST attached image" is one of them by then.
-      const photoLine = pickedChars.length
+      const photoLine1 = pickedChars.length
         ? (st.photoLineWithChars ? ` ${st.photoLineWithChars}` : PL_GPT.photoLineWithChars)
         : (st.photoLine ? ` ${st.photoLine}` : PL_GPT.photoLine);
+      // Several photos → the plural pair, with the count written in
+      // (2026-09-04). One photo sends the singular line exactly as before.
+      const photoLineN = pickedChars.length
+        ? (st.photoLineManyWithChars ? ` ${st.photoLineManyWithChars}` : PL_GPT.photoLineManyWithChars)
+        : (st.photoLineMany ? ` ${st.photoLineMany}` : PL_GPT.photoLineMany);
+      const photoLine = photoBufs.length > 1
+        ? photoLineN.replace('{n}', photoWords(photoBufs.length)) : photoLine1;
       // HER TYPED CAST RIDES A SINGLE PICTURE TOO (2026-08-29, Sophie:
       // "panels adds a character / if i import solo to playground / can it
       // auto add the character description from the original multi sheet /
@@ -7043,6 +7273,10 @@ app.post('/api/promptlab', async (req, res) => {
         aspectRatio: canvas.aspectRatio, res: resId, promptEdited: edited, noText,
         styleRef: (st.refFiles || []).concat(st.storageRefs || []).join(','), outputs,
         character, photoRef: photoUrl, images: [], createdAt: admin.firestore.Timestamp.now(),
+        // Every photo that rode, in order (2026-09-04) — `photoRef` above is
+        // the first, for every reader that knows one. Written only when there
+        // is more than one, so an ordinary run's doc is what it always was.
+        ...(photoUrls.length > 1 ? { photoRefs: photoUrls } : {}),
         // WHICH characters rode this run, by id and name — the provenance the
         // pad's own draws keep, so a picture can say who is in it.
         ...(pickedChars.length ? { characters: pickedChars } : {}),
@@ -7060,7 +7294,7 @@ app.post('/api/promptlab', async (req, res) => {
       // her words on this run — her prefix/suffix override if she made one,
       // the character line and the photo line only when they were really
       // attached — rather than the style's baked default.
-      if (!pausedNow()) runPromptLabGptJob(docRef, { fullPrompt, head, tail, outputs, quality, prompt: typed, character, styleId, size: canvas.size, photoBuf, chars: pickedChars, padTarget });
+      if (!pausedNow()) runPromptLabGptJob(docRef, { fullPrompt, head, tail, outputs, quality, prompt: typed, character, styleId, size: canvas.size, photoBuf, photoBufs, chars: pickedChars, padTarget });
       return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}`, ...queuedReply() });
     }
 
@@ -7124,6 +7358,9 @@ app.get('/api/promptlab/styles', (req, res) => {
       // And the one it sends INSTEAD when character references ride behind
       // the photo — same sentence, re-anchored. Absent = the house one.
       photoLineWithChars: st.photoLineWithChars || '',
+      // The plural pair, for several photos (2026-09-04). Absent = the house ones.
+      photoLineMany: st.photoLineMany || '',
+      photoLineManyWithChars: st.photoLineManyWithChars || '',
       // The sheet swap a panels run would apply to this style's tail, or null
       // — served so the Prompt panel can print the tail that is really sent
       // on a sheet, the same disclosure rule as everything above.
@@ -7177,7 +7414,9 @@ app.get('/api/promptlab/styles', (req, res) => {
   // on her phone reads it, and this endpoint is the only thing that serves it.
   res.json({ styles: out, sizes: PL_GPT.sizes, res: PL_GPT.res, resDefault: PL_GPT.resDefault,
     max: PL_GPT.promptMax, photoLine: PL_GPT.photoLine,
-    photoLineWithChars: PL_GPT.photoLineWithChars, maxChars: padChars.MAX_PICKED, panels });
+    photoLineWithChars: PL_GPT.photoLineWithChars,
+    photoLineMany: PL_GPT.photoLineMany, photoLineManyWithChars: PL_GPT.photoLineManyWithChars,
+    maxPhotos: PL_PHOTO_MAX, maxChars: padChars.MAX_PICKED, panels });
 });
 
 // HER CAST, FOR THE PICKER (2026-08-27, Sophie: "a little button … with a
@@ -7470,6 +7709,7 @@ app.post('/api/promptlab/votes', async (req, res) => {
     const col = admin.firestore().collection(PROMPTLAB);
     const urls = [];
     let marked = 0;
+    let triangleMarked = false;   // → rebuild her standing Playground-hearts page, once for the batch
     for (const [id, idxs] of byRun) {
       const ref = col.doc(id);
       const patch = {};
@@ -7484,6 +7724,7 @@ app.post('/api/promptlab/votes', async (req, res) => {
           const u = i === -1 ? run.sheetUrl : (run.images || [])[i];
           if (u) urls.push(u);
         });
+        if (run.gptStyle === 'triangle') triangleMarked = true;
       } catch (e) { /* a run that has gone must not lose the rest of the batch */ }
     }
     // Carry every mark onto the Assets-tab records, so the two surfaces agree
@@ -7493,6 +7734,7 @@ app.post('/api/promptlab/votes', async (req, res) => {
     for (let k = 0; k < urls.length; k += 5) {
       await Promise.all(urls.slice(k, k + 5).map((u) => syncVoteToAssets(u, vote).catch(() => {})));
     }
+    if (triangleMarked) require('./triset').pokeLikes();
     res.json({ ok: true, marked, vote });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -7527,6 +7769,10 @@ app.post('/api/promptlab/:id/vote', async (req, res) => {
       const run = (await ref.get()).data() || {};
       const url = i === -1 ? run.sheetUrl : (run.images || [])[i];
       if (url) await syncVoteToAssets(url, vote);
+      // A heart on a TRIANGLE run rebuilds her standing Playground-hearts page
+      // (2026-09-03, "auto update as i add new cards"). Fire-and-forget and
+      // debounced inside triset.js: a mark must never wait on a page rewrite.
+      if (run.gptStyle === 'triangle') require('./triset').pokeLikes();
     } catch (e) { /* best-effort */ }
     res.json({ ok: true, image: i, vote });
   } catch (err) {

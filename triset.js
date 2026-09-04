@@ -72,8 +72,59 @@ const VERDICTS = 'forge-chat-verdicts';
 // verdicts her ♥ marks live under.
 const HOME_CHAT = 'triset-nature-classification';
 const WAIT_PAGE = 'triset-waiting';
-const NATURE_SLUGS = new Set(
-  JSON.parse(fs.readFileSync(path.join(__dirname, 'docs/triset/nature-slugs.json'), 'utf8')).slugs);
+const RUNS = 'forge-promptlab';
+// HER PLAYGROUND TRIANGLE HEARTS, AS A STANDING PAGE (2026-09-03, Sophie:
+// "upgrade ur playground hearts page to auto update as i add new cards,
+// showing newest first"). It lived as a script that re-posted a frozen page
+// (scripts/gen-triset-playground-likes.js, now retired); a posted page's data
+// is frozen in Storage, so "auto update" has to mean a page the SERVER
+// rewrites — the waiting room's own machinery, one fixed doc id, the data
+// hashed, rewritten only when the set really changes, so her marks survive
+// every rebuild. It sits in the chat she has been reading it in.
+const LIKES_PAGE = 'triset-pl-likes';
+const LIKES_CHAT = 'triset-card-inventory';
+// The hike run — she hearted it and then said so herself: "hike one was an
+// accident", and it has people, which no card may. One id, named rather than
+// silently filtered; un-hearting it in the Playground is the other way out.
+const LIKES_SKIP = new Set(['bom9yqioA7NshqaC9X9p']);
+/* ── THE EDITIONS — a deck within the pool, and there are TWO now
+   (2026-09-03, Sophie: "do the second edition") ───────────────────────────
+   `edition` was a single hand-decided vocabulary, NATURE, and everything
+   outside it could never be dealt however much she liked it. Measured that
+   day: of the 902 cards, 816 sat hidden, and **27 subjects she had HEARTED
+   were hidden for no reason but not being nature** — the shattered plate she
+   asked after among them.
+
+   Widening the nature list was the wrong fix: she spent a day deciding what
+   nature means ("they did a bad job of deciding what's nature and what's
+   not. redo"), and stretching it to fit a teacup would undo that. So the
+   vocabulary became a TABLE, one entry per edition, and the game's edition
+   chips do the rest — the page derives them from the pool and `edLabel`
+   capitalises an unknown slug, so a third edition needs no page change at all.
+
+   ADOPTION LANDS IN `ADOPT_EDITION`, NOT IN NATURE, and that is a real
+   behaviour change: her ♥ on the waiting-room page used to deal a non-nature
+   subject INTO the nature edition, i.e. the one thing this table exists to
+   prevent. Nature is closed and hers; everyday is where anything she adopts
+   goes.
+
+   A slug removed from a list deletes nothing — the sync simply stops dealing
+   it, and `hidden` is still the verb. */
+const EDITIONS = [
+  ['nature', 'docs/triset/nature-slugs.json'],
+  ['everyday', 'docs/triset/everyday-slugs.json'],
+].map(([key, file]) => ({
+  key,
+  slugs: new Set(JSON.parse(fs.readFileSync(path.join(__dirname, file), 'utf8')).slugs),
+}));
+const ADOPT_EDITION = 'everyday';
+
+// which edition a subject belongs to — null means "not dealt anywhere", which
+// is what keeps a pool of 900 from dealing itself
+function editionForSlug(slug, adopted) {
+  for (const e of EDITIONS) if (e.slugs.has(slug)) return e.key;
+  return (adopted && adopted.has(slug)) ? ADOPT_EDITION : null;
+}
 
 /* ── HER HEARTS ARE THE DECK (2026-09-01, "connect it to the deck so they flow
    in and out automatically") ─────────────────────────────────────────────
@@ -129,7 +180,6 @@ function bestCard(a, b) {
   return (b.createdAt || 0) > (a.createdAt || 0) ? b : a;
 }
 function syncPlan(cards, voteByUrl, adopted) {
-  const IN = slug => NATURE_SLUGS.has(slug) || (adopted && adopted.has(slug));
   const patch = new Map();
   const put = (c, k, v) => {
     // most cards carry no `hidden` field at all, so compare it as a truth
@@ -140,29 +190,174 @@ function syncPlan(cards, voteByUrl, adopted) {
   const bySlug = new Map();
   for (const c of cards) {
     const slug = slugOfUrl(c.url);
-    if (!slug || !IN(slug)) continue;   // her vocabulary, plus what she adopted
-    if (!bySlug.has(slug)) bySlug.set(slug, []);
-    bySlug.get(slug).push(c);
+    if (!slug) continue;
+    // her vocabularies, plus what she adopted. A subject in no edition is
+    // simply not dealt — that is what `hidden` on 816 of 902 cards means.
+    const ed = editionForSlug(slug, adopted);
+    if (!ed) continue;
+    if (!bySlug.has(slug)) bySlug.set(slug, { ed, group: [] });
+    bySlug.get(slug).group.push(c);
   }
-  for (const [, group] of bySlug) {
-    const out = group.filter(c => c.edition === 'nature' && !c.hidden
-      && voteByUrl[c.url] === 'dislike');
+  for (const [, { ed, group }] of bySlug) {
+    // IN THIS SUBJECT'S OWN EDITION — the rules below were written against a
+    // hardcoded 'nature' and are otherwise unchanged
+    const dealt = c => c.edition === ed && !c.hidden;
+    const out = group.filter(c => dealt(c) && voteByUrl[c.url] === 'dislike');
     // the incumbent, unless she crossed it out
-    let held = group.find(c => c.edition === 'nature' && !c.hidden
-      && voteByUrl[c.url] !== 'dislike');
+    let held = group.find(c => dealt(c) && voteByUrl[c.url] !== 'dislike');
     if (!held) {
       const up = group.filter(c => voteByUrl[c.url] === 'like');
       if (up.length) held = up.reduce(bestCard);
     }
     for (const c of out) { put(c, 'hidden', true); if (c !== held) put(c, 'edition', ''); }
-    if (held) { put(held, 'edition', 'nature'); put(held, 'hidden', false); }
-    // one card per subject: the page deals every nature-tagged card, so a
-    // second tagged generation would deal the same subject twice
+    if (held) { put(held, 'edition', ed); put(held, 'hidden', false); }
+    // one card per subject: the page deals every tagged card, so a second
+    // tagged generation would deal the same subject twice
     for (const c of group) {
-      if (c !== held && c.edition === 'nature' && !c.hidden) put(c, 'edition', '');
+      if (c !== held && dealt(c)) put(c, 'edition', '');
     }
   }
   return [...patch].map(([id, p]) => ({ id, patch: p }));
+}
+
+/* ── A REVIEW DECK'S ▲ ADDS TO THE DEAL (2026-09-03, Sophie, on the triangle
+   review deck: "just find the ones i marked add and add them" · "why was
+   that so hard" · "why was that hard how r u that retarded") ──────────────
+   The deck's button said ADD TO DECK and only hearted the picture in the
+   chat's Assets tab; the deal read hearts on pool cards inside her
+   vocabulary and nothing else, so a Playground picture had no road in at
+   all and 17 of her 61 were added by hand. Now a page posted with
+   `addsTo:'similitude'` (page-templates.js) is read HERE, by the sync that
+   already runs on every game open and is poked by every verdict on it:
+     ▲ (true) on a pool card         → into its edition, un-hidden
+     ▲ on a Playground picture       → a NEW pool card: the bytes copied to
+                                       triset/cards/pl-<slug>.webp, the doc
+                                       written with its prompts, in everyday,
+                                       the die-cut baked
+     ✕ (false) on either             → out of the deal (hidden), the imported
+                                       card found by the picture it came from
+     ? / unmarked                     → nothing
+   `reviewPlan` is pure and tested; `syncReviewDecks` only applies it. */
+const slugify = (t) => String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '');
+function reviewPlan(cards, pageItems, verdicts, adopted) {
+  const byUrl = new Map(); const byFrom = new Map(); const taken = new Set();
+  for (const c of cards) {
+    if (c.url) byUrl.set(c.url, c);
+    if (c.from && c.from.url) byFrom.set(c.from.url, c);
+    const sl = slugOfUrl(c.url); if (sl) taken.add(sl);
+  }
+  const out = { adopt: [], import: [], hide: [] };
+  for (const it of pageItems) {
+    const mark = verdicts[it.id];
+    if (mark !== true && mark !== false) continue;
+    const pool = it.url && byUrl.get(it.url);
+    const made = !pool && it.url && byFrom.get(it.url);
+    if (mark === true) {
+      if (pool) {
+        const ed = editionForSlug(slugOfUrl(pool.url), adopted) || ADOPT_EDITION;
+        if (pool.edition !== ed || pool.hidden) out.adopt.push({ id: pool.id, patch: { edition: ed, hidden: false } });
+      } else if (made) {
+        if (made.hidden || !made.edition) out.adopt.push({ id: made.id, patch: { edition: made.edition || ADOPT_EDITION, hidden: false } });
+      } else if (it.url) {
+        let slug = slugify(it.label || it.promptContent) || ('card-' + String(it.id).slice(-6));
+        const base = slug; let n = 2;
+        while (taken.has(slug)) { slug = base + '-' + n; n += 1; }
+        taken.add(slug);
+        out.import.push({ slug, item: it });
+      }
+    } else {
+      const c = pool || made;
+      if (c && !c.hidden && c.edition) out.hide.push({ id: c.id, patch: { hidden: true } });
+    }
+  }
+  return out;
+}
+
+const pageItemCache = new Map();   // page id → its frozen items (never change)
+async function pageItemsOf(id) {
+  if (pageItemCache.has(id)) return pageItemCache.get(id);
+  let items = [];
+  try {
+    const [buf] = await bucket().file(`chat-pages/${id}.json`).download();
+    const j = JSON.parse(buf.toString());
+    items = (j.items || []).concat(...(j.groups || []).map(g => g.items || []));
+  } catch (e) { items = null; }
+  if (items) pageItemCache.set(id, items);
+  return items || [];
+}
+async function importCard(slug, it, edition) {
+  const src = String(it.url || '');
+  const m = src.match(/^https:\/\/storage\.googleapis\.com\/[^/]+\/(.+)$/);
+  if (!m) throw new Error('not a storage url');
+  const p = `triset/cards/pl-${slug}.webp`;
+  await bucket().file(decodeURIComponent(m[1].split('?')[0])).copy(bucket().file(p));
+  await bucket().file(p).setMetadata({ contentType: 'image/webp', cacheControl: 'public, max-age=31536000, immutable' });
+  await bucket().file(p).makePublic();
+  const url = `https://storage.googleapis.com/${bucket().name}/${p}`;
+  const id = crypto.createHash('sha1').update(url).digest('hex');
+  let run = {};
+  const rm = String(it.id || '').match(/^pl-(.+)-\d+$/);
+  if (rm) { try { run = (await db().collection('forge-promptlab').doc(rm[1]).get()).data() || {}; } catch (e) { run = {}; } }
+  await db().collection(CARDS).doc(id).set({
+    title: it.label || it.promptContent || slug, url, source: 'playground', status: 'ready',
+    edition, hidden: false,
+    model: it.model || 'gpt-image-2', quality: it.quality || run.quality || '',
+    canvas: run.canvas || CANVAS, size: run.res || SIZE_TIER,
+    fullPrompt: run.fullPrompt || '', promptStyle: it.promptStyle || '', promptContent: it.promptContent || it.label || '',
+    createdAt: run.createdAt || Date.now(), from: { playground: rm ? rm[1] : '', url: src },
+  }, { merge: true });
+  // the die-cut, best-effort (the page falls back to the fixed mapping)
+  try {
+    const r = await fetch(url);
+    const { buf } = await bakeCut(Buffer.from(await r.arrayBuffer()), {});
+    const cp = cutPath(id); const f = bucket().file(cp);
+    await f.save(buf, { metadata: { contentType: 'image/webp', cacheControl: 'public, max-age=31536000, immutable' }, resumable: false });
+    await f.makePublic();
+    await db().collection(CARDS).doc(id).set({ cut: `https://storage.googleapis.com/${bucket().name}/${cp}` }, { merge: true });
+  } catch (e) { /* the card is dealt either way */ }
+  return id;
+}
+async function syncReviewDecks(cards, adopted) {
+  const snap = await db().collection(PAGES).where('addsTo', '==', 'similitude').get().catch(() => null);
+  if (!snap || snap.empty) return { adopt: 0, import: 0, hide: 0 };
+  const n = { adopt: 0, import: 0, hide: 0 };
+  for (const d of snap.docs) {
+    const pg = d.data() || {};
+    if (pg.superseded) continue;
+    const items = await pageItemsOf(d.id);
+    if (!items.length) continue;
+    const vs = await db().collection(VERDICTS).doc(`${pg.chat}__page-${d.id}`).get().catch(() => null);
+    const verdicts = (vs && vs.exists && vs.data().items) || {};
+    const plan = reviewPlan(cards, items, verdicts, adopted);
+    for (const a of plan.adopt) { await db().collection(CARDS).doc(a.id).set(a.patch, { merge: true }); n.adopt++; }
+    for (const h of plan.hide) { await db().collection(CARDS).doc(h.id).set(h.patch, { merge: true }); n.hide++; }
+    for (const im of plan.import) {
+      try { const id = await importCard(im.slug, im.item, ADOPT_EDITION); cards.push({ id, url: '', from: { url: im.item.url }, edition: ADOPT_EDITION }); n.import++; }
+      catch (e) { /* next sync tries again */ }
+    }
+  }
+  return n;
+}
+// a verdict on such a page pokes the sync — leading edge, then a trailing
+// pass, so a burst of taps costs two syncs rather than one per tap
+let reviewTimer = null; let reviewBusy = false;
+function pokeReview(sheet) {
+  const id = String(sheet || '').replace(/^page-/, '');
+  if (!id) return;
+  const go = async () => {
+    if (reviewBusy) return;
+    reviewBusy = true;
+    try {
+      const pg = await db().collection(PAGES).doc(id).get();
+      if (!pg.exists || pg.data().addsTo !== 'similitude') return;
+      syncAt = 0;           // let the next syncHearts run at once
+      await syncHearts();
+    } catch (e) { /* the game's next open runs it */ } finally { reviewBusy = false; }
+  };
+  go();
+  clearTimeout(reviewTimer);
+  reviewTimer = setTimeout(go, 20e3);
 }
 
 /* ── THE WAITING ROOM (2026-09-01, Sophie: "make a compare page that auto
@@ -187,7 +382,9 @@ function waitingPlan(cards, voteByUrl, verdicts) {
   for (const c of cards) {
     const slug = slugOfUrl(c.url);
     if (!slug) continue;
-    if (c.edition === 'nature' && !c.hidden) { dealt.add(slug); continue; }
+    // dealt in ANY edition — this used to name 'nature' alone, which after
+    // the second edition would have gone on offering her cards already dealt
+    if (c.edition && !c.hidden) { dealt.add(slug); continue; }
     if (voteByUrl[c.url] !== 'like') continue;
     if (verdicts[slug] === false) continue;          // she said no on the page
     const cur = best.get(slug);
@@ -247,6 +444,104 @@ async function writeWaiting(items) {
   return { ok: true, count: items.length, created: !snap.exists };
 }
 
+// pure: her hearted Playground triangles as page items, NEWEST FIRST (her
+// ask). One item per hearted IMAGE, not per run — a run can hold several and
+// she hearts them one at a time.
+//
+// THE ITEM ID IS THE RUN AND THE INDEX, so it is stable across every rebuild:
+// a mark she leaves on this page lives under that id in the verdict doc, and
+// an id that moved with the ordering would re-point her answers at other
+// pictures the first time she hearted something new.
+function likesPlan(runs) {
+  const out = [];
+  for (const r of runs) {
+    if (r.gptStyle !== 'triangle' || LIKES_SKIP.has(r.id)) continue;
+    const votes = r.votes || {};
+    (r.images || []).forEach((im, i) => {
+      if (votes[i] !== 'like') return;
+      const url = typeof im === 'string' ? im : (im && im.url);
+      if (!url) return;
+      const words = String((r.panels && r.panels[i]) || r.prompt || '').trim();
+      const full = String(r.fullPrompt || '');
+      out.push({
+        id: `${r.id}-${i}`, img: url, url,
+        label: words.split('\n')[0].slice(0, 200) || 'untitled',
+        model: 'gpt-image-2', quality: r.quality || '',
+        promptContent: words,
+        promptStyle: words && full.includes(words) ? full.replace(words, '[content]') : '',
+        at: r.createdAt || 0,
+      });
+    });
+  }
+  out.sort((a, b) => (b.at - a.at) || (a.id < b.id ? -1 : 1));
+  return out.map(({ at, ...it }) => it);
+}
+
+// The standing page. A GRID with one item per group — that is the 1-up she
+// asked for (2026-09-03, "1 up compare playground hearts"), one picture a row,
+// and the swipe half of the same page is there behind the view switch.
+async function writeLikes(items) {
+  const data = {
+    groups: items.map(it => ({ items: [it] })),
+    help: 'Every triangle you hearted in the Playground, newest first. It fills itself in — '
+      + 'heart one there and it arrives here. Tap a picture for its prompt.',
+    start: 'compare', stamp: false, voice: true,
+  };
+  const v = pageTemplates.validateTemplate('grid', data);
+  if (!v.ok) return { ok: false, error: v.error };
+  const title = `Playground triangle hearts (${items.length})`;
+  const json = JSON.stringify(v.data);
+  const hash = crypto.createHash('sha1').update(`${title}\n${json}`).digest('hex');
+  const ref = db().collection(PAGES).doc(LIKES_PAGE);
+  const snap = await ref.get();
+  if (snap.exists && snap.data().dataHash === hash) return { ok: true, unchanged: true };
+  if (!items.length && !snap.exists) return { ok: true, empty: true };
+  const file = admin.storage().bucket().file(`chat-pages/${LIKES_PAGE}.json`);
+  await file.save(Buffer.from(json, 'utf8'), { contentType: 'application/json', resumable: false });
+  const stamp = new Date().toISOString();
+  const base = { title, dataHash: hash, updated: stamp };
+  if (snap.exists) await ref.set(base, { merge: true });
+  else {
+    await ref.set({
+      ...base, chat: LIKES_CHAT, heading: '', created: stamp,
+      template: 'grid', path: file.name,
+    });
+  }
+  return { ok: true, count: items.length, created: !snap.exists };
+}
+
+// Read the triangle runs and rewrite the page. One equality query, no orderBy
+// (the house no-composite-index rule — the sort is in memory), and only the
+// fields the items need.
+async function syncLikes() {
+  const snap = await db().collection(RUNS).where('gptStyle', '==', 'triangle')
+    .select('gptStyle', 'votes', 'images', 'prompt', 'panels', 'fullPrompt', 'quality', 'createdAt').get();
+  const runs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  return writeLikes(likesPlan(runs));
+}
+
+/* THE POKE — a heart in the PLAYGROUND rebuilds the page (runAutoCompare's own
+   shape: a leading run so the page is right within a second, and a trailing
+   one so a batch of marks coalesces into a single rewrite). server.js calls it
+   fire-and-forget from both vote routes, and only for a triangle run.
+
+   The leading half is what makes it survive a deploy: the trailing timer lives
+   in this process and a restart inside the window would drop it with nothing
+   to re-run it. Rewriting twice costs nothing — no model call anywhere, and
+   an unchanged set writes nothing at all. */
+const LIKES_DEBOUNCE = 45e3;
+let likesTimer = null, likesAt = 0;
+function pokeLikes() {
+  if (!admin.apps.length) return;
+  const now = Date.now();
+  if (now - likesAt > LIKES_DEBOUNCE) { likesAt = now; syncLikes().catch(() => {}); }
+  if (likesTimer) clearTimeout(likesTimer);
+  likesTimer = setTimeout(() => {
+    likesTimer = null; likesAt = Date.now(); syncLikes().catch(() => {});
+  }, LIKES_DEBOUNCE);
+  if (likesTimer.unref) likesTimer.unref();
+}
+
 async function syncHearts() {
   if (syncing) return syncing;
   if (Date.now() - syncAt < SYNC_MS) return [];
@@ -263,7 +558,13 @@ async function syncHearts() {
     const vsnap = await db().collection(VERDICTS)
       .doc(`${HOME_CHAT}__page-${WAIT_PAGE}`).get().catch(() => null);
     const verdicts = (vsnap && vsnap.exists && vsnap.data().items) || {};
-    const plan = syncPlan(cards, voteByUrl, adoptedFrom(verdicts));
+    // her Playground hearts page rides the same sweep, so opening the game
+    // refreshes it even if the vote poke was lost to a restart
+    syncLikes().catch(() => {});
+    // …and every review deck whose ▲ adds to the deal (reviewPlan above)
+    const adoptedSet = adoptedFrom(verdicts);
+    await syncReviewDecks(cards, adoptedSet).catch(() => null);
+    const plan = syncPlan(cards, voteByUrl, adoptedSet);
     for (const p of plan) await db().collection(CARDS).doc(p.id).set(p.patch, { merge: true });
     // the page is rebuilt AFTER the deal, so a card adopted this pass has
     // already left the waiting room by the time she opens it
@@ -286,6 +587,9 @@ const CANVAS = '1024x1024';
 const SIZE_TIER = '1K';
 // square 1K output (docs/modules/pictures.md) + ~1.2c of dreamy reference input
 const COST_CENTS = { low: 1.8, medium: 6.5, high: 22.3 }[QUALITY];
+// an auto set attaches the three cards behind the style reference — three
+// more pictures of input tokens, which is where the page's ~5c comes from
+const AUTO_COST_CENTS = Math.round((COST_CENTS + 3.2) * 10) / 10;
 
 // 'auto' (2026-08-30, Sophie: "a prompt explaining the rules of set and have
 // the image model come up w something that shares each one") — the three
@@ -296,8 +600,13 @@ const COST_CENTS = { low: 1.8, medium: 6.5, high: 22.3 }[QUALITY];
 const KINDS = ['same', 'each', 'auto'];
 const MAX_WORDS = 300; // per quality field — she dictates, but a paragraph is not a quality
 
-const db = () => admin.firestore();
-const bucket = () => admin.storage().bucket();
+// `init({ db, bucket })` may hand these in (the two-phone test hands in an
+// in-memory Firestore and a no-op bucket); without them the module reads the
+// app's own, like every sibling.
+let _db = null; let _bucket = null;
+const db = () => _db || admin.firestore();
+const bucket = () => _bucket || admin.storage().bucket();
+const live = () => !!(_db || admin.apps.length);
 const sha1 = (s) => crypto.createHash('sha1').update(String(s)).digest('hex');
 
 // ── the style, handed in (never copied) ────────────────────────────────────
@@ -328,8 +637,10 @@ const STYLE = { id: 'dreamy', label: '', prefix: '', suffix: '', refFiles: [], s
 let fileCreationFn = null;
 
 // Called by server.js once PL_GPT_STYLES exists (defined long after the mount).
-function init({ gptStyles, fileCreation } = {}) {
+function init({ gptStyles, fileCreation, db: dbIn, bucket: bucketIn } = {}) {
   if (typeof fileCreation === 'function') fileCreationFn = fileCreation;
+  if (dbIn) _db = dbIn;
+  if (bucketIn) _bucket = bucketIn;
   const st = gptStyles && gptStyles.dreamy;
   if (!st) return;
   STYLE.label = st.label || 'Dreamy';
@@ -446,7 +757,9 @@ router.use((req, res, next) => {
 router.use(express.json({ limit: '2mb' }));
 
 // ── drawing ────────────────────────────────────────────────────────────────
-async function put(buf, p) {
+async function put(buf, p, stamp) {
+  // `stamp` = the prompt fields written INTO the file (image-meta.js)
+  if (stamp) buf = require('./image-meta').stamp(buf, stamp);
   const file = bucket().file(p);
   await file.save(buf, { metadata: { contentType: 'image/webp', cacheControl: 'public, max-age=31536000, immutable' }, resumable: false });
   await file.makePublic();
@@ -503,7 +816,10 @@ async function render(id) {
     }
     const buf = await draw(card.fullPrompt, refs);
     // bank the paid bytes FIRST (still 'drawing' — the poll waits for ready)
-    const url = await put(buf, `triset/cards/${id}.webp`);
+    const url = await put(buf, `triset/cards/${id}.webp`, {
+      fullPrompt: card.fullPrompt, promptStyle: card.promptStyle, promptContent: card.promptContent,
+      model: 'gpt-image-2', quality: QUALITY, canvas: CANVAS, size: SIZE_TIER, label: card.title,
+    });
     await ref.set({ url }, { merge: true });
     // the die-cut is a derived display copy and best-effort: a bake failure
     // must never fail a paid card — the page falls back to the fixed mapping
@@ -695,94 +1011,106 @@ function challengeVerdict(raw) {
   return { fits: d.fits === true, why };
 }
 
+// The referee, callable by any table: one card's words against one rule.
+// Throws with a `code` the caller turns into a status. ~0.1c, no picture.
+async function judgeChallenge(cardId, ruleText) {
+  const anthropic = require('./anthropic');
+  if (!live()) throw Object.assign(new Error('firestore unavailable'), { code: 503 });
+  if (!anthropic.available()) throw Object.assign(new Error('the referee runs on Claude; the key is not set'), { code: 503 });
+  const rule = clip(ruleText, MAX_WORDS);
+  if (!rule) throw Object.assign(new Error('a rule is required'), { code: 400 });
+  const id = String(cardId || '');
+  if (!id) throw Object.assign(new Error('a card is required'), { code: 400 });
+  const doc = await db().collection(CARDS).doc(id).get();
+  if (!doc.exists) throw Object.assign(new Error('card not found'), { code: 400 });
+  const words = (doc.data().promptContent || doc.data().title || '').trim();
+  if (!words) throw Object.assign(new Error('that card has no words to judge'), { code: 400 });
+  const raw = await anthropic.chatJSON({
+    system: CHALLENGE_SYSTEM,
+    user: `Rule: ${rule}\nCard: ${words}\n\nAnswer JSON: {"fits":true|false,"why":"one short line"}.`,
+    maxTokens: 200,
+  });
+  return challengeVerdict(raw);
+}
+
 router.post('/challenge', express.json({ limit: '16kb' }), async (req, res) => {
   try {
-    if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
-    const anthropic = require('./anthropic');
-    if (!anthropic.available()) return res.status(503).json({ error: 'the referee runs on Claude; the key is not set' });
     const b = req.body || {};
-    const rule = clip(b.rule, MAX_WORDS);
-    if (!rule) return res.status(400).json({ error: 'a rule is required' });
-    const id = String(b.card || '');
-    if (!id) return res.status(400).json({ error: 'a card is required' });
-    const doc = await db().collection(CARDS).doc(id).get();
-    if (!doc.exists) return res.status(400).json({ error: 'card not found' });
-    const words = (doc.data().promptContent || doc.data().title || '').trim();
-    if (!words) return res.status(400).json({ error: 'that card has no words to judge' });
-    const raw = await anthropic.chatJSON({
-      system: CHALLENGE_SYSTEM,
-      user: `Rule: ${rule}\nCard: ${words}\n\nAnswer JSON: {"fits":true|false,"why":"one short line"}.`,
-      maxTokens: 200,
-    });
-    res.json({ ok: true, ...challengeVerdict(raw) });
-  } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
+    res.json({ ok: true, ...(await judgeChallenge(b.card, b.rule)) });
+  } catch (e) { res.status(e.code || 500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
 
-// She found a set → the venn center becomes a new card. The one paid route.
-router.post('/found', async (req, res) => {
-  try {
-    if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
-    if (!process.env.OPENAI_API_KEY) return res.status(503).json({ error: 'image generation unavailable' });
-    const b = req.body || {};
-    const bad = validFound(b);
-    if (bad) return res.status(400).json({ error: bad });
-    const kind = b.kind;
-    const middle = clip(b.middle, MAX_WORDS);
-    const sides = kind === 'each'
-      ? (b.sides || []).map(s => clip(s, MAX_WORDS)).filter(Boolean) : [];
-    // Resolve the three source cards ONCE — auto needs their urls (a bad id
-    // refuses before any money moves), every kind reads edition and hex.
-    const srcDocs = [];
-    for (const id of b.cards.map(String)) {
-      const snap = await db().collection(CARDS).doc(id).get();
-      srcDocs.push(snap.exists ? { id, ...snap.data() } : { id });
-    }
-    // the made card stays in its edition — see editionOf
-    const edition = editionOf(srcDocs.map(c => c.edition || null));
-    // three hex color cards → the blend, computed and filed ready, free.
-    // auto is refused honestly: there is no picture for the model to read.
-    const hex = mixHex(srcDocs.map(c => c.hex));
-    if (hex) {
-      if (kind === 'auto') return res.status(400).json({ error: 'color cards mix by themselves — name the mix instead' });
-      const ref = db().collection(CARDS).doc();
-      await ref.set({
-        title: middle, hex, source: 'made', status: 'ready', flip: true,
-        ...(edition ? { edition } : {}),
-        from: { cards: b.cards.map(String), kind, middle, sides, urls: [] },
-        createdAt: Date.now(),
-      });
-      return res.json({ ok: true, id: ref.id, status: 'ready', hex, poll: `/api/triset/card/${ref.id}` });
-    }
-    const srcCards = [];
-    if (kind === 'auto') {
-      for (const c of srcDocs) {
-        if (!c.url) return res.status(400).json({ error: 'unknown card ' + c.id });
-        srcCards.push({ id: c.id, title: c.title || '', url: c.url });
-      }
-    }
-    const content = foundContent({ kind, middle, sides });
-    const rec = cardPrompt(content, { invent: kind !== 'auto', invert: true, auto: kind === 'auto' });
-    // The model finds the connection, so nobody typed a name — the honest
-    // title is the three cards it read.
-    const title = kind === 'auto'
-      ? srcCards.map(c => c.title).filter(Boolean).join(' + ') : middle;
+// She found a set → the venn center becomes a new card. The one paid path,
+// callable by the page's route below AND by a two-phone table
+// (similitude-two.js), so a made card is the same made card wherever the set
+// was found. Throws with a `code`; answers the route's own body.
+async function startFound(b) {
+  if (!live()) throw Object.assign(new Error('firestore unavailable'), { code: 503 });
+  if (!process.env.OPENAI_API_KEY) throw Object.assign(new Error('image generation unavailable'), { code: 503 });
+  b = b || {};
+  const bad = validFound(b);
+  if (bad) throw Object.assign(new Error(bad), { code: 400 });
+  const kind = b.kind;
+  const middle = clip(b.middle, MAX_WORDS);
+  const sides = kind === 'each'
+    ? (b.sides || []).map(s => clip(s, MAX_WORDS)).filter(Boolean) : [];
+  // Resolve the three source cards ONCE — auto needs their urls (a bad id
+  // refuses before any money moves), every kind reads edition and hex.
+  const srcDocs = [];
+  for (const id of b.cards.map(String)) {
+    const snap = await db().collection(CARDS).doc(id).get();
+    srcDocs.push(snap.exists ? { id, ...snap.data() } : { id });
+  }
+  // the made card stays in its edition — see editionOf
+  const edition = editionOf(srcDocs.map(c => c.edition || null));
+  // three hex color cards → the blend, computed and filed ready, free.
+  // auto is refused honestly: there is no picture for the model to read.
+  const hex = mixHex(srcDocs.map(c => c.hex));
+  if (hex) {
+    if (kind === 'auto') throw Object.assign(new Error('color cards mix by themselves — name the mix instead'), { code: 400 });
     const ref = db().collection(CARDS).doc();
-    const doc = {
-      // flip: a made card is upside down for life — the page clips it point
-      // down wherever it is dealt, which is also how you can tell the cards
-      // the game made from the seeds.
-      title, source: 'made', status: 'drawing', flip: true,
+    await ref.set({
+      title: middle, hex, source: 'made', status: 'ready', flip: true,
       ...(edition ? { edition } : {}),
-      from: { cards: (b.cards || []).map(String), kind, middle, sides,
-        urls: srcCards.map(c => c.url) },
-      model: 'gpt-image-2', quality: QUALITY, canvas: CANVAS, size: SIZE_TIER,
-      ...promptFields(rec),
+      from: { cards: b.cards.map(String), kind, middle, sides, urls: [] },
       createdAt: Date.now(),
-    };
-    await ref.set(doc);
-    render(ref.id); // deliberately not awaited
-    res.json({ ok: true, id: ref.id, status: 'drawing', poll: `/api/triset/card/${ref.id}` });
-  } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
+    });
+    return { ok: true, id: ref.id, status: 'ready', hex, poll: `/api/triset/card/${ref.id}`, free: true };
+  }
+  const srcCards = [];
+  if (kind === 'auto') {
+    for (const c of srcDocs) {
+      if (!c.url) throw Object.assign(new Error('unknown card ' + c.id), { code: 400 });
+      srcCards.push({ id: c.id, title: c.title || '', url: c.url });
+    }
+  }
+  const content = foundContent({ kind, middle, sides });
+  const rec = cardPrompt(content, { invent: kind !== 'auto', invert: true, auto: kind === 'auto' });
+  // The model finds the connection, so nobody typed a name — the honest
+  // title is the three cards it read.
+  const title = kind === 'auto'
+    ? srcCards.map(c => c.title).filter(Boolean).join(' + ') : middle;
+  const ref = db().collection(CARDS).doc();
+  const doc = {
+    // flip: a made card is upside down for life — the page clips it point
+    // down wherever it is dealt, which is also how you can tell the cards
+    // the game made from the seeds.
+    title, source: 'made', status: 'drawing', flip: true,
+    ...(edition ? { edition } : {}),
+    from: { cards: (b.cards || []).map(String), kind, middle, sides,
+      urls: srcCards.map(c => c.url) },
+    model: 'gpt-image-2', quality: QUALITY, canvas: CANVAS, size: SIZE_TIER,
+    ...promptFields(rec),
+    createdAt: Date.now(),
+  };
+  await ref.set(doc);
+  render(ref.id); // deliberately not awaited
+  return { ok: true, id: ref.id, status: 'drawing', poll: `/api/triset/card/${ref.id}` };
+}
+
+router.post('/found', async (req, res) => {
+  try { res.json(await startFound(req.body)); }
+  catch (e) { res.status(e.code || 500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
 
 router.get('/card/:id', async (req, res) => {
@@ -852,9 +1180,13 @@ router.post('/seed', async (req, res) => {
 });
 
 module.exports = {
+  reviewPlan, syncReviewDecks, pokeReview, slugify,
   router, init,
   foundContent, cardPrompt, validFound, stuckPatch, bakeCard, editionOf, mixHex,
+  startFound, judgeChallenge, AUTO_COST_CENTS,
   syncPlan, syncHearts, slugOfUrl, bestCard, waitingPlan, adoptedFrom, writeWaiting,
+  EDITIONS, ADOPT_EDITION, editionForSlug,
+  likesPlan, writeLikes, syncLikes, pokeLikes, LIKES_PAGE, LIKES_CHAT, LIKES_SKIP,
   opponentMove, opponentPrompt, OPPONENT_SYSTEM, challengeVerdict, CHALLENGE_SYSTEM,
   KINDS, STYLE, TRIANGLE_CLAUSE, triangleClause, INVENT_LINE, AUTO_RULES, STUCK_MS, COST_CENTS,
   // for scripts/seed-triset.js — the seed batch must draw through the exact

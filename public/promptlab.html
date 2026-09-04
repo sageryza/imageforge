@@ -343,40 +343,38 @@
   .likefilt svg { width: 16px; height: 16px; }
   .likefilt.on { background: #c25a72; color: #fff; }
   .xfilt.on { background: #9a938a; color: #fff; }
-  /* THE FILTERS CHIP AND ITS DRAWER (/searchfilters.js + .css) — the ♥ and
-     the ✕ live inside it now, beside quality and date. It sits where that
-     pair sat, so the row is the same width it was: the two 34px buttons it
-     replaced paid for it almost exactly.
-     THE DRAWER HANGS UNDER THE BAR rather than pushing the feed down: this
-     row is `position: sticky`, so it is already a containing block, and an
-     absolute panel under it stays put while she scrolls. It deliberately does
-     NOT lift itself above the bar's own z-index 5 — the injected pill owns 9
-     and must keep taking its own taps — and it stops 56px short of the right
-     edge for the same reason. */
-  /* The tokens go on the MOUNT so they reach the chip as well as the drawer.
-     This page is ink on paper, not rose on cream. */
-  .feedfilters { flex: none; margin-left: 8px; min-width: 0;
+  /* THE FILTERS CHIP AND ITS DRAWER (/searchfilters.js + .css) LIVE ON THE
+     CONTROLS ROW (2026-09-02, Sophie marked the spot in a screenshot: "put
+     the filter button where the pink mark was"). That gap is made by
+     `.gogroup`'s `margin-left:auto`, so the chip drops into it and the
+     Generate cluster stays hard right; the feed bar got its ♥/✕ back in the
+     same breath.
+       THE DRAWER IS IN FLOW HERE — the card simply grows. It is not the feed
+     bar, so there is nothing sticky to hang off and nothing underneath that a
+     floating panel would cover.
+       THE TOKENS GO ON THE MOUNT so they reach the chip as well as the
+     drawer. This page is ink on paper, not rose on cream. */
+  .feedfilters { display: flex; align-items: center; flex: none;
     --fsf-ink: #2b2622; --fsf-ink2: #6f675e; --fsf-line: #d8d0c4;
     --fsf-paper: #fdfcf9; --fsf-on: #c25a72; }
-  .feedbar .filtdrawer { position: absolute; top: 100%; left: 0; right: 56px; margin: 0;
-    background: #faf7f2; border: 1px solid #d8d0c4; border-radius: 6px;
-    padding: 11px 12px 12px; }
-  /* LIT, THE ✕ MUST NOT MATCH THE ♥ — the same rule the two loose buttons
-     followed: one keeps what it names and the other drops it. */
-  .feedbar .filtcbtn.dropfilt.on { background: #9a938a; border-color: #9a938a; }
   /* THE DOOR IS THE HEIGHT OF THE ROW IT STANDS ON, measured rather than
      picked (2026-09-02, Sophie: "how the fuck did u decide the button
-     sizes"). This bar's family is 32px — the view switch, the search field —
-     so the chip STRETCHES to whatever the row is instead of carrying a number
-     of its own, and the bar stays one 48px line. (The drawer's chips keep the
-     shared 34px, which is the height of the three-way toggles they sit beside
-     inside it.) */
-  .feedfilters { display: flex; align-items: stretch; }
-  .feedbar .filtchip { min-height: 0; }
-  /* The chip has to give the search box its width back when she narrows
-     something, so it truncates rather than pushing: the words are on the rows
-     under it the moment she opens the drawer. */
-  .feedbar .filtchip { max-width: 148px; }
+     sizes"). The controls row declares its own `--ctl-h`, so the chip takes
+     that instead of carrying a number of its own. */
+  .controls .filtchip { min-height: var(--ctl-h); }
+  /* THE DRAWER HANGS UNDER THE WHOLE ROW, absolutely — it must NOT be a flex
+     item here. In flow the mount stretched to the drawer's width and broke the
+     row apart: Prompt alone on one line, the sifter on another, Generate
+     pushed to the bottom corner (PHOTOGRAPHED). Absolute against `.controls`
+     it changes no other control's position at all.
+     z-index 6, one above the feed bar's sticky 5, or the bar paints over it. */
+  .controls { position: relative; }
+  .controls .filtdrawer { position: absolute; top: calc(100% + 8px); left: 0; right: 0;
+    z-index: 6; margin: 0; background: #faf7f2; border: 1px solid #d8d0c4;
+    border-radius: 6px; padding: 11px 12px 12px; }
+  /* LIT, THE ✕ MUST NOT MATCH THE ♥ — the same rule the two mark buttons on
+     the bar follow: one keeps what it names and the other drops it. */
+  .controls .filtcbtn.dropfilt.on { background: #9a938a; border-color: #9a938a; }
   /* The sheets view lit in INK, not the rose and not the grey — it is a mode
      (what the cells ARE), not a like/dislike filter, and three chips in one
      box lighting two colours would read as three of one kind. */
@@ -581,8 +579,27 @@
      ONE photo per run, not a library — the Playground's recipe is fixed per
      style so a run stays comparable to the last one. */
   #photowrap { position: relative; flex: none; display: none; }
-  #photowrap.on { display: block; }
-  #photopick { display: block; width: var(--ctl-h); padding: 0; border: 1.5px solid #d8d0c4;
+  #photowrap.on { display: flex; gap: 8px; align-items: center; }
+  /* SEVERAL PHOTOS (2026-09-04, Sophie: "add a second reference photo … make a
+     way to add a second or third etc photo"). The first photo is the button
+     above, as it always was; every further one is its own thumb with its own
+     x, in the order she added them (the order they attach), and the plus
+     after them adds another. The row stops at #photoadd — six photos is the
+     server's cap (PL_PHOTO_MAX), served as `maxPhotos`. */
+  #photomore { display: contents; }
+  .photothumb { position: relative; flex: none; width: var(--ctl-h); height: var(--ctl-h); }
+  .photothumb img { width: 100%; height: 100%; object-fit: cover; display: block;
+    border: 1.5px solid #2b2622; border-radius: 6px; box-sizing: border-box; }
+  .photothumb .photox { position: absolute; top: -6px; right: -6px; width: 17px; height: 17px;
+    padding: 0; border: 1px solid #d8d0c4; border-radius: 50%; background: #faf7f2; color: #2b2622;
+    cursor: pointer; }
+  .photothumb .photox svg { width: 11px; height: 11px; display: block; margin: 0 auto; }
+  #photoadd { display: none; flex: none; width: var(--ctl-h); height: var(--ctl-h); padding: 0; border: 1.5px dashed #d8d0c4;
+    border-radius: 6px; background: #fdfcf9; color: #6f675e; cursor: pointer; }
+  #photoadd svg { width: 17px; height: 17px; display: block; margin: 0 auto; }
+  #photowrap.has #photoadd { display: block; }
+  #photowrap.full #photoadd { display: none; }
+  #photopick { display: block; flex: none; width: var(--ctl-h); padding: 0; border: 1.5px solid #d8d0c4;
     border-radius: 6px; overflow: hidden; background: #fdfcf9; color: #6f675e; cursor: pointer; }
   #photopick svg { width: 17px; height: 17px; display: block; margin: 0 auto; }
   #photopick img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -592,6 +609,9 @@
     cursor: pointer; }
   #photoclear svg { width: 11px; height: 11px; display: block; margin: 0 auto; }
   #photowrap.has #photoclear { display: block; }
+  #photopick { position: relative; }
+  #photowrap.has #photoclear { top: -6px; }
+  #photoslot { position: relative; flex: none; }
   /* What the photo adds to the prompt, shown whenever one is attached — the
      house rule that anything added to her words is disclosed word for word. */
   #promptpanel .added { font-size: 12px; color: #6f675e; line-height: 1.4;
@@ -973,8 +993,8 @@
     <button class="seedbtn" id="seedbtn" aria-label="Next seed"></button>
     <span class="seedtag" id="seedtag"></span>
     <button id="charpick" hidden aria-label="Draw Sophie from her reference" title="Sophie character reference"><img src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1785884140714-d37oym.webp" alt="Sophie"></button>
-    <span id="photowrap"><button id="photopick" type="button" aria-label="Attach a photo reference" title="Attach a photo reference"></button><button id="photoclear" type="button" aria-label="Take the photo reference off" title="Take the photo reference off"></button></span>
-    <input type="file" id="photofile" accept="image/*" hidden>
+    <span id="photowrap"><span id="photoslot"><button id="photopick" type="button" aria-label="Attach a photo reference" title="Attach a photo reference"></button><button id="photoclear" type="button" aria-label="Take the photo reference off" title="Take the photo reference off"></button></span><span id="photomore"></span><button id="photoadd" type="button" aria-label="Attach another photo reference" title="Attach another photo reference"></button></span>
+    <input type="file" id="photofile" accept="image/*" multiple hidden>
     <button class="stylebtn" id="promptbtn" title="What is wrapped around your words">Prompt</button>
     <button class="stylebtn notextbtn" id="notextbtn" hidden aria-pressed="false" title="Text: minimal by default — press for none">No text</button>
     <div class="canvastog" id="canvastog" role="group" aria-label="Canvas shape">
@@ -982,6 +1002,11 @@
     </div>
     <button type="button" id="rpick" class="tri" aria-label="Resolution"></button>
     <button type="button" id="qpick" class="tri" aria-label="Quality"></button>
+    <!-- THE FILTER DOOR SITS IN THE GAP THIS ROW ALREADY HAD (2026-09-02,
+         Sophie marked the spot: "put the filter button where the pink mark
+         was"). `.gogroup`'s `margin-left:auto` is what makes that gap, so the
+         chip drops into it and the Generate cluster stays hard right. -->
+    <div class="feedfilters" id="feedfilters"></div>
     <div class="gogroup">
       <button class="stepbtn" id="lowmed" hidden aria-label="Two low and one medium" title="Two low and one medium"></button>
       <button class="stepbtn" id="medhigh" hidden aria-label="One medium and one high" title="One medium and one high"></button>
@@ -1000,11 +1025,17 @@
   <!-- The SHEETS chip stays on the row: it is a MODE (what the cells ARE on
        the Panels tab), not a filter over them, and it is the one thing here
        that changes what a run even looks like. -->
-  <div class="filttog" role="group" aria-label="View">
+  <!-- THE ♥ AND THE ✕ ARE BACK EXACTLY WHERE THEY WERE (2026-09-02, Sophie:
+       "actually put the heart x thing exactly where it was"). They rode inside
+       the filters drawer for a day; they are marks she casts on a picture, and
+       this is the bar she casts them from. The DRAWER keeps quality and date,
+       which are facts about a run and have nowhere else to live. -->
+  <div class="filttog" role="group" aria-label="Filters">
+    <button class="likefilt" id="v-liked" aria-label="Show only the ones you hearted" title="Hearts only"></button>
+    <button class="likefilt xfilt" id="v-hidex" aria-label="Hide the ones you have crossed out" title="Hide the &times;'d"></button>
     <button class="likefilt sheetfilt" id="v-sheets" hidden aria-label="Just the finished sheets, uncut" title="Just the finished sheets, uncut"></button>
     <button class="likefilt selfilt" id="v-select" aria-label="Pick several at once" title="Pick several at once"></button>
   </div>
-  <div class="feedfilters" id="feedfilters"></div>
   <div class="feedsearch">
     <input id="q" type="search" placeholder="Search" aria-label="Search your runs"
            autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="search">
@@ -1169,16 +1200,13 @@
   // it, the chip wearing the state while it is shut. WHAT LIVES HERE is which
   // filters this page has, and what each one actually hides.
   //
-  // THE MARKS ARE STILL STICKY AND STILL THE SAME TWO KEYS. `promptlab_liked`
-  // and `promptlab_hidex` are read by `likedOnly()`/`hideX()` all over this
-  // page, so the spec carries its own get/set onto exactly those — moving the
-  // buttons inside a drawer must not reset a filter she left on, and no
-  // localStorage key belongs in the shared shell.
-  //
-  // QUALITY AND DATE FILTER RUNS, NOT PICTURES, because a run is what has one
-  // quality and one moment; the ♥ and the ✕ are marks on individual pictures
-  // and go on filtering those. That is why they are separate rows rather than
-  // one list of chips.
+  // THE ♥ AND THE ✕ ARE NOT IN HERE (2026-09-02, Sophie: "actually put the
+  // heart x thing exactly where it was"). They rode inside this drawer for a
+  // day — her own earlier "you can put the heart x thing within the toggle" —
+  // and she put them back on the feed bar. That is HISTORY, not a rule: don't
+  // move them in again. What the drawer keeps is QUALITY and DATE, which are
+  // facts about a RUN (one quality, one moment) and have no other home, where
+  // the marks are cast on individual pictures from the bar above them.
   //
   // THE KEYS SAY `filt`, AND THAT IS NOT COSMETIC. A key named for quality
   // alone would read as the GENERATE knob, which is deliberately NOT
@@ -1191,20 +1219,39 @@
   // medium · high IS three options, but a filter needs a fourth answer — "all
   // of them" — and there is nowhere on a three-way track to put it. Chips also
   // let her say low AND high, which is what looking at a ladder is.
+  // HEARTS ONLY (Aug 2026, Sophie) — a filter that rides on top of whichever
+  // view she is in, not a view of its own. It hides every picture she hasn't
+  // hearted; a run left with nothing showing drops out of the list entirely.
+  // Sticky, same as the view, so a reload keeps it.
+  document.getElementById('v-liked').innerHTML = ICONS.heart;
   function likedOnly() { return localStorage.getItem('promptlab_liked') === '1'; }
+  function applyLiked(repaint) {
+    document.getElementById('v-liked').classList.toggle('on', likedOnly());
+    if (repaint) renderFeed();
+  }
+  document.getElementById('v-liked').addEventListener('click', function () {
+    localStorage.setItem('promptlab_liked', likedOnly() ? '' : '1');
+    applyLiked(true);
+  });
+
+  // HIDE THE ✕'d (Aug 2026, Sophie: "can u also add a button next to the
+  // heart that hides anything i've 'exed'"). The heart's opposite and its
+  // twin: a filter over pictures, in whichever view she is in, sticky. The two
+  // stack without arguing — hearts-only has already dropped every ✕'d picture,
+  // so this one simply finds nothing more to do.
+  document.getElementById('v-hidex').innerHTML = ICONS.x;
   function hideX() { return localStorage.getItem('promptlab_hidex') === '1'; }
+  function applyHideX(repaint) {
+    document.getElementById('v-hidex').classList.toggle('on', hideX());
+    if (repaint) renderFeed();
+  }
+  document.getElementById('v-hidex').addEventListener('click', function () {
+    localStorage.setItem('promptlab_hidex', hideX() ? '' : '1');
+    applyHideX(true);
+  });
+
   var SF = window.ForgeSearchFilters;
   var FILT = SF.build(document.getElementById('feedfilters'), [
-    { key: 'marks', kind: 'chips', multi: true, label: 'Marks',
-      vals: ['like', 'nox'], words: ['\u2665 only', 'No \u2715'],
-      icons: [ICONS.heart, ICONS.x], classes: ['', 'dropfilt'],
-      get: function () {
-        var v = []; if (likedOnly()) v.push('like'); if (hideX()) v.push('nox'); return v;
-      },
-      set: function (v) {
-        localStorage.setItem('promptlab_liked', v.indexOf('like') >= 0 ? '1' : '');
-        localStorage.setItem('promptlab_hidex', v.indexOf('nox') >= 0 ? '1' : '');
-      } },
     { key: 'quality', kind: 'chips', multi: true, label: SF.QUALITY.label,
       vals: SF.QUALITY.vals, words: SF.QUALITY.words,
       get: function () { return readList('promptlab_filt_quality'); },
@@ -1662,18 +1709,24 @@
   // ingredient the Prompt panel exists to prevent. Her tap on a copy button
   // is the opposite of silent — the thumbnail appears in the row as she does
   // it, and the Prompt panel's photo line comes back with it.
+  // SEVERAL PHOTOS (2026-09-04): a run doc carries `photoRefs` (every photo,
+  // in order) beside `photoRef` (the first); a record naming several puts
+  // them all back, in that order.
   function restorePhoto(r) {
     if (!r) return;                                   // nothing known — leave it
-    var url = r.photoRef ? String(r.photoRef) : '';
-    if (!/^https?:\/\//.test(url)) {
-      if (!photoRef) return;
-      photoRef = null;
+    var urls = (Array.isArray(r.photoRefs) && r.photoRefs.length ? r.photoRefs : [r.photoRef])
+      .map(function (u) { return u ? String(u) : ''; })
+      .filter(function (u) { return /^https?:\/\//.test(u); });
+    if (!urls.length) {
+      if (!photoRefs.length) return;
+      photoRefs = [];
       document.getElementById('photofile').value = '';
       paintPhoto();
       return;
     }
-    if (photoRef && photoRef.data === url) return;    // already the one
-    photoRef = { data: url, name: (url.split('/').pop() || '').split('?')[0] };
+    var same = urls.length === photoRefs.length && urls.every(function (u, i) { return photoRefs[i].data === u; });
+    if (same) return;                                 // already the ones
+    photoRefs = urls.map(function (url) { return { data: url, name: (url.split('/').pop() || '').split('?')[0] }; });
     document.getElementById('photofile').value = '';
     paintPhoto();
   }
@@ -1929,6 +1982,11 @@
     // (triset.js draws every one at 1024x1024), so a portrait triangle is the
     // wrong shape for the one thing this tile exists to make.
     triangle:   { model: 'gpt-image-2', label: 'Triangle', engine: 'gptimage', gptStyle: 'triangle',
+                  noCharacter: true, canvasPin: 'square' },
+    // Triangle v2 = her own hand-edited triangle wording, banked as a tile
+    // (2026-09-03, her ask: "save it as a new option (triangle v2)"). The
+    // server owns the words; same square pin, same reference, no Sophie card.
+    triangle2:  { model: 'gpt-image-2', label: 'Triangle v2', engine: 'gptimage', gptStyle: 'triangle2',
                   noCharacter: true, canvasPin: 'square' },
     scarry:     { model: 'gpt-image-2', label: 'Scarry', engine: 'gptimage', gptStyle: 'scarry',
                   noCharacter: true },
@@ -3203,6 +3261,12 @@
   var BAKED = null;                  // {gptStyleId: {label, prefix, suffix, refs}}
   var PHOTO_LINE = '';               // the line server.js adds when a photo is attached
   var PHOTO_LINE_CHARS = '';         // …and the same one re-anchored when characters ride behind it
+  var PHOTO_LINE_MANY = '';          // the plural pair, for several photos ({n} = how many)
+  var PHOTO_LINE_MANY_CHARS = '';
+  var PHOTO_MAX = 6;                 // how many may ride one run — served as maxPhotos
+  // "two", "three" … — server.js's photoWords, kept equal by the test.
+  var PHOTO_WORDS = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+  function photoWords(n) { return PHOTO_WORDS[n] || String(n); }
   var promptOpen = false;
   var OVERKEY = 'promptlab_prompt_';  // + gptStyle id
   // WHICH HALVES ARE OPEN BIGGER (see `field()` in paintPromptPanel). Held in
@@ -3395,10 +3459,18 @@
     // character cards attach at the very end, so "the LAST attached image" is
     // no longer the photo. Both halves are served, never written here.
     var cline = charsLine();
-    if (photoRef && !onPanels()) {
+    if (photoRefs.length && !onPanels()) {
       var pl = cline
         ? ((p.baked && p.baked.photoLineWithChars) || PHOTO_LINE_CHARS)
         : ((p.baked && p.baked.photoLine) || PHOTO_LINE);
+      // Several photos: the plural pair, the count written in — the same
+      // substitution server.js makes, so the panel prints the sentence sent.
+      if (photoRefs.length > 1) {
+        var pln = cline
+          ? ((p.baked && p.baked.photoLineManyWithChars) || PHOTO_LINE_MANY_CHARS)
+          : ((p.baked && p.baked.photoLineMany) || PHOTO_LINE_MANY);
+        if (pln) pl = pln.replace('{n}', photoWords(photoRefs.length));
+      }
       if (pl) extras.push(pl);
     }
     if (cline) extras.push(cline);
@@ -3494,6 +3566,9 @@
     .then(function (d) {
       BAKED = d.styles || {}; PHOTO_LINE = d.photoLine || '';
       PHOTO_LINE_CHARS = d.photoLineWithChars || PHOTO_LINE;
+      PHOTO_LINE_MANY = d.photoLineMany || '';
+      PHOTO_LINE_MANY_CHARS = d.photoLineManyWithChars || PHOTO_LINE_MANY;
+      if (d.maxPhotos) PHOTO_MAX = d.maxPhotos;
       if (d.maxChars) charMax = d.maxChars;
       RES = d.res || null; RES_DEFAULT = d.resDefault || '1k';
       if (RES && !RES[canvas]) canvas = 'portrait';
@@ -3530,22 +3605,54 @@
   // riding today's run is exactly the kind of hidden ingredient the panel
   // exists to prevent. It DOES survive between runs in one sitting, so a
   // re-roll is one tap.
-  var photoRef = null;              // { data: <dataURL>, name } — one per run
+  // SEVERAL PHOTOS SINCE 2026-09-04 (Sophie: "add a second reference photo to
+  // the playground … make a way to add a second or third etc photo"). The
+  // list is the truth, in the order she added them, which is the order they
+  // attach and the order the plural photo line counts them. `photoRef` is
+  // the FIRST of them, read-only, for every reader that knew one photo.
+  var photoRefs = [];               // [{ data: <dataURL|url>, name }] — per run
+  Object.defineProperty(window, 'photoRef', { get: function () { return photoRefs[0] || null; }, configurable: true });
+  var photoPickMode = 'swap';       // what the next picked file does: swap the first, or add
   var PHOTO_MAX_EDGE = 1600;        // gpt-image-2 works from ~1024; this is headroom
   var PHOTO_SEND_MAX = 9e6;         // ~9MB of base64, well under the server's 25mb body
 
   function paintPhoto() {
     var wrap = document.getElementById('photowrap');
     var btn = document.getElementById('photopick');
-    wrap.classList.toggle('has', !!photoRef);
-    if (photoRef) {
+    var first = photoRefs[0] || null;
+    wrap.classList.toggle('has', !!first);
+    wrap.classList.toggle('full', photoRefs.length >= PHOTO_MAX);
+    if (first) {
       btn.innerHTML = '<img alt="Photo reference">';
-      btn.querySelector('img').src = photoRef.data;
-      btn.title = 'Photo reference: ' + (photoRef.name || 'attached') + ' — tap to swap it';
+      btn.querySelector('img').src = first.data;
+      btn.title = 'Photo reference: ' + (first.name || 'attached') + ' — tap to swap it';
     } else {
       btn.innerHTML = ICONS.imagePlus;
       btn.title = 'Attach a photo reference';
     }
+    // The second photo on — each its own thumb with its own x.
+    var more = document.getElementById('photomore');
+    more.innerHTML = '';
+    photoRefs.slice(1).forEach(function (ph, i) {
+      var t = document.createElement('span');
+      t.className = 'photothumb';
+      var im = document.createElement('img');
+      im.alt = 'Photo reference ' + (i + 2);
+      im.src = ph.data;
+      im.title = 'Photo reference ' + (i + 2) + ': ' + (ph.name || 'attached');
+      var x = document.createElement('button');
+      x.type = 'button'; x.className = 'photox';
+      x.setAttribute('aria-label', 'Take photo reference ' + (i + 2) + ' off');
+      x.title = x.getAttribute('aria-label');
+      x.innerHTML = ICONS.x;
+      x.addEventListener('click', function () {
+        photoRefs.splice(i + 1, 1);
+        document.getElementById('photofile').value = '';
+        paintPhoto();
+      });
+      t.appendChild(im); t.appendChild(x);
+      more.appendChild(t);
+    });
     if (promptOpen) paintPromptPanel();
   }
   // A phone photo is 4-12MB and often HEIC, which the model will not take, so
@@ -3570,28 +3677,53 @@
     img.onerror = function () { cb(null); };
     img.src = dataUrl;
   }
+  document.getElementById('photoadd').innerHTML = ICONS.imagePlus;
+  // The first button swaps the first photo (or attaches the first); the plus
+  // after the row ADDS — one picker, two modes, and a picker that hands back
+  // several files adds them all in order.
   document.getElementById('photopick').addEventListener('click', function () {
+    photoPickMode = photoRefs.length ? 'swap' : 'add';
+    document.getElementById('photofile').click();
+  });
+  document.getElementById('photoadd').addEventListener('click', function () {
+    photoPickMode = 'add';
     document.getElementById('photofile').click();
   });
   document.getElementById('photoclear').addEventListener('click', function () {
-    photoRef = null;
+    photoRefs.shift();
     document.getElementById('photofile').value = '';
     paintPhoto();
   });
   document.getElementById('photofile').addEventListener('change', function (e) {
-    var f = e.target.files && e.target.files[0];
-    if (!f) return;
-    var rd = new FileReader();
-    rd.onload = function () {
-      prepPhoto(String(rd.result || ''), function (data) {
-        var err = document.getElementById('err');
-        if (!data) { err.textContent = 'That file could not be read as a picture.'; err.hidden = false; return; }
-        photoRef = { data: data, name: f.name || '' };
+    var files = Array.prototype.slice.call((e.target.files || []), 0);
+    if (!files.length) return;
+    var mode = photoPickMode;
+    var err = document.getElementById('err');
+    var picked = [];
+    // Read them all, in order, then land them at once so the row never
+    // repaints half-way through a batch.
+    (function next(i) {
+      if (i >= files.length) {
+        if (!picked.length) return;
+        if (mode === 'swap' && photoRefs.length) photoRefs.splice(0, 1, picked[0]);
+        else photoRefs = photoRefs.concat(picked).slice(0, PHOTO_MAX);
+        if (mode === 'swap' && picked.length > 1) photoRefs = photoRefs.concat(picked.slice(1)).slice(0, PHOTO_MAX);
         err.hidden = true;
         paintPhoto();
-      });
-    };
-    rd.readAsDataURL(f);
+        return;
+      }
+      var f = files[i];
+      var rd = new FileReader();
+      rd.onload = function () {
+        prepPhoto(String(rd.result || ''), function (data) {
+          if (!data) { err.textContent = 'That file could not be read as a picture.'; err.hidden = false; }
+          else picked.push({ data: data, name: f.name || '' });
+          next(i + 1);
+        });
+      };
+      rd.onerror = function () { next(i + 1); };
+      rd.readAsDataURL(f);
+    })(0);
   });
   paintPhoto();
 
@@ -3602,7 +3734,7 @@
   // instead — her own image attached, no words invented. Same rules as the
   // copy-back restore: https only, disclosed by the thumbnail in the row and
   // the Prompt panel's photo line, never persisted across loads. This block
-  // MUST run after `var photoRef` above — earlier, that declaration would
+  // MUST run after `var photoRefs` above — earlier, that declaration would
   // wipe the restore back to null (the ported-prompt block's own lesson).
   (function () {
     var p = new URLSearchParams(location.search).get('photo');
@@ -3970,7 +4102,11 @@
           character: charOn && !S.noCharacter, canvas: canvas, res: resTier,
           // Her uploaded photo reference, when there is one. Absent otherwise,
           // so an ordinary run is byte-for-byte what it always was.
-          photo: photoRef ? photoRef.data : undefined,
+          photo: photoRefs.length ? photoRefs[0].data : undefined,
+          // Every photo when more than one rides (2026-09-04) — the server
+          // reads `photos` first and `photo` as a list of one, so an older
+          // cached page still sends exactly what it always sent.
+          photos: photoRefs.length > 1 ? photoRefs.map(function (p) { return p.data; }) : undefined,
           // The cast she picked, by id, in her pick order — which is the
           // order they attach in and the order charLine() names them. Absent
           // when she picked none, so an ordinary run is unchanged.
@@ -4561,7 +4697,7 @@
       if (cuttingSheet(r)) parts.push('sheet — cutting…');
       // A run made with a photo attached says so on its card — otherwise two
       // runs of the same words look identical and only one had the photo.
-      if (r.photoRef) parts.push('photo ref');
+      if (r.photoRef) parts.push(Array.isArray(r.photoRefs) && r.photoRefs.length > 1 ? r.photoRefs.length + ' photo refs' : 'photo ref');
     } else {
       parts.push('scale ' + r.loraScale);
       if (r.seed != null) parts.push('seed ' + r.seed);
@@ -5403,7 +5539,7 @@
     var el = document.activeElement;
     if (el && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')) return true;
     if (document.getElementById('prompt').value.trim()) return true;
-    if (photoRef) return true;
+    if (photoRefs.length) return true;
     if (pickedChars.length) return true;
     if (quality !== plQ0 || resTier !== plR0) return true;
     var q = document.getElementById('q');
@@ -5486,7 +5622,7 @@
   setInterval(ptopWatch, 4000);
 
   if (window.__nativeNavBar) document.body.classList.add('native');
-  renderStyles(); updateShape(); syncControls(); syncTab(); applyView(); loadRuns();
+  renderStyles(); updateShape(); syncControls(); syncTab(); applyLiked(false); applyHideX(false); applyView(); loadRuns();
   if (pendingList().length) { renderPendings(); startPolling(); }
 </script>
 </body></html>

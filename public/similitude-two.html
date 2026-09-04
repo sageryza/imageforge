@@ -1,0 +1,784 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Similitude for two</title>
+<style>
+/* SIMILITUDE FOR TWO PHONES (2026-09-04, Sophie: "how can we make this
+   multiplayer" → "same cards as the dominoes deck. turns. just cap the
+   drawing at like a dollar per person"). The triangle game — the board, the
+   hand, the shelf of won sets — played by two people from their own phones
+   over the dominoes table (table.js): a public page, the link is the login.
+
+   The five tokens the shared pill styles itself from — kept even though the
+   page is served without it (dominoes' pattern): it must never render one
+   black if ever served with it. NO GRADIENTS (house rule). */
+:root{
+  --paper:#f7f3ec; --card:#fffdf9; --ink:#2b2622; --ink2:#8a7f72;
+  --line:#e5ddd0; --rose:#c4566d; --chg:#c4566d; --gold:#b08434;
+  --cream:#f3e7c9; --headtop:calc(env(safe-area-inset-top) + 4px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:Georgia,'Times New Roman',serif;
+  min-height:100dvh; padding-bottom:env(safe-area-inset-bottom);
+}
+[hidden]{display:none !important}
+
+/* ── header: the name once, the score, the "?" ─────────────────────────── */
+.app-header{position:relative;display:flex;align-items:center;gap:10px;min-height:34px;padding:var(--headtop) 18px 4px;padding-right:64px}
+h1.tool-eyebrow{
+  margin:0;font-family:-apple-system,system-ui,sans-serif;font-size:11px;
+  font-weight:400;letter-spacing:.22em;text-transform:uppercase;color:var(--ink2);
+  position:absolute;left:50%;transform:translateX(-50%);
+  top:var(--headtop);pointer-events:none;white-space:nowrap;line-height:34px;
+}
+/* THE SCORE IS TWO NUMBERS IN THE CORNER, MINE FIRST — the title is centred
+   on the page (house rule) and a score with names in it ran into it at 390pt,
+   so the names live on the turn line and the shelf instead */
+#score{
+  position:absolute;right:52px;top:var(--headtop);
+  font-family:-apple-system,system-ui,sans-serif;font-size:13px;color:var(--ink2);
+  font-variant-numeric:tabular-nums;line-height:34px;white-space:nowrap;
+}
+#score b{color:var(--ink);font-weight:600}
+.qmark{
+  position:absolute;right:16px;top:var(--headtop);width:26px;height:26px;margin-top:4px;
+  border-radius:50%;border:1px solid var(--line);
+  background:var(--card);color:var(--gold);font-size:13px;line-height:24px;
+  text-align:center;cursor:pointer;padding:0;font-family:inherit;
+}
+
+/* ── the lobby and the invite (the dominoes page's own shapes) ──────────── */
+.lobby,.invite{display:flex;flex-direction:column;gap:12px;padding:10px 18px 0}
+.lede{margin:0;font-size:15px;line-height:1.45;color:var(--ink2)}
+.form{display:flex;flex-direction:column;gap:10px}
+.form label{display:flex;flex-direction:column;gap:4px;
+  font:600 11px/1 -apple-system,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+.form input,.invite input{font:16px/1.3 Georgia,serif;padding:9px 10px;border:1px solid var(--ink);border-radius:6px;background:var(--card);color:var(--ink);min-width:0}
+.form button.btn{align-self:flex-start}
+.hint{font:13px/1.4 -apple-system,system-ui,sans-serif;color:var(--ink2);min-height:16px}
+.invite .row{display:flex;gap:8px;align-items:center}
+.invite .row input{flex:1}
+.mine{display:flex;flex-direction:column;gap:6px}
+.mine a{font-size:15px;color:var(--ink)}
+
+/* ── the board: three cards + the middle text triangle ────────────────── */
+/* THE GEOMETRY IS triset.html's, NUMBER FOR NUMBER — the slot is an exact
+   equilateral triangle (1000:866), the die-cut fills it, the middle
+   inverted triangle is the writing surface. Change one, change both. */
+#turnline{
+  margin:6px 18px 0;text-align:center;font-family:-apple-system,system-ui,sans-serif;
+  font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);min-height:16px;
+}
+#turnline.on{color:var(--gold)}
+#board{position:relative;width:min(94vw,470px);aspect-ratio:1000/866;margin:8px auto 0}
+.slot,.sl{position:absolute;width:50%;height:50%;padding:0;border:none;background:none;cursor:pointer}
+#s-top,.sl.p-top{left:25%;top:0}
+#s-left,.sl.p-left{left:0;top:50%}
+#s-right,.sl.p-right{left:50%;top:50%}
+#s-mid,.sl.p-mid{left:25%;top:50%;cursor:default}
+.face{position:absolute;inset:0}
+.slot.up,.sl.up{clip-path:polygon(50% 0,100% 100%,0 100%)}
+.slot.down,.sl.down{clip-path:polygon(0 0,100% 0,50% 100%)}
+.slot img,.sl img{position:absolute;display:block;width:100%;height:100%;left:0;top:0}
+#s-mid .face{clip-path:polygon(0 0,100% 0,50% 100%);background:var(--cream)}
+#midwrap{position:absolute;left:24%;right:24%;top:6%;height:44%;display:flex}
+#middle{
+  flex:1;background:none;border:none;resize:none;text-align:center;
+  font-family:Georgia,serif;font-size:15px;line-height:1.35;color:var(--ink);outline:none;padding:0;
+}
+#middle:disabled{color:var(--ink);opacity:1;-webkit-text-fill-color:var(--ink)}
+.venn{
+  position:absolute;width:50%;height:24px;background:none;border:none;
+  text-align:center;font-family:Georgia,serif;font-size:12px;color:var(--ink);
+  outline:none;padding:0;pointer-events:auto;
+}
+#v-top{left:25%;top:2.5%}
+#v-left{left:6.9%;top:calc(45.4% - 12px);transform:rotate(60deg)}
+#v-right{left:43.1%;top:calc(45.4% - 12px);transform:rotate(-60deg)}
+#s-mid.each #midwrap{left:31%;right:31%;top:25%;height:32%}
+#s-mid.each #middle{font-size:13px}
+/* the mid slot's RECTANGLE overlaps the two lower cards — only the boxes
+   may take taps, or the cards' inner corners go dead */
+#s-mid{pointer-events:none}
+#s-mid #middle,#s-mid .venn{pointer-events:auto}
+/* SET! LIGHTS THE THREE CARDS IN GOLD — the card shrinks a touch and the
+   gold face behind it becomes a clean border on the real cut (triset.html's
+   measured answer; a drop-shadow read as nothing against the cream rim) */
+#board.claimed .slot.up .face{background:var(--gold)}
+#board.claimed .slot.up img{transform:scale(.965);transform-origin:50% 100%}
+.slot.up img{transition:transform .16s ease}
+/* THE PICK IS SHOWN BY DIMMING THE OTHERS, never by a border: the cards are
+   clipped triangles, so a border would draw a rectangle around one. */
+#board.picking .slot.up{opacity:.42}
+#board.picking .slot.up.pick{opacity:1}
+#board.idle .slot{cursor:default}
+
+/* ── the kind of set: three hairline tabs, only while claiming ─────────── */
+#kinds{display:flex;margin:14px 18px 0;border-bottom:1px solid var(--line)}
+#kinds button{
+  flex:0 0 auto;background:none;border:none;cursor:pointer;padding:8px 0 9px;
+  margin-right:16px;font-family:-apple-system,system-ui,sans-serif;font-size:11px;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);position:relative;
+}
+#kinds button.on{color:var(--ink)}
+#kinds button.on::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--ink)}
+
+/* ── the buttons: gold outline, gold text, no fill, all caps (her rule) ── */
+#acts{display:flex;align-items:center;gap:10px;margin:14px 18px 8px;flex-wrap:wrap}
+button.btn{
+  font-family:-apple-system,system-ui,sans-serif;font-size:13px;
+  letter-spacing:.10em;text-transform:uppercase;
+  color:var(--gold);background:none;border:1px solid var(--gold);border-radius:6px;
+  padding:8px 13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;
+}
+button.btn.quiet{color:var(--ink2);border-color:var(--line)}
+button.btn[disabled]{opacity:.45}
+#found{margin-left:auto}
+#found svg,#drawit svg{width:17px;height:17px;display:block}
+.cost{font-size:11px;color:inherit;opacity:.75}
+
+/* ── my hand — three cards under the board, the same triangular cut ───── */
+#hand{display:flex;justify-content:center;gap:10px;margin:12px 18px 0}
+.hcard{
+  position:relative;flex:0 0 auto;width:min(26vw,120px);aspect-ratio:1000/866;
+  padding:0;border:none;background:none;cursor:pointer;
+  clip-path:polygon(50% 0,100% 100%,0 100%);
+}
+.hcard img{position:absolute;inset:0;width:100%;height:100%;display:block}
+#hand.picking .hcard{opacity:.42}
+#hand.picking .hcard.pick{opacity:1}
+.hcard:empty,.hcard.gone{visibility:hidden}
+#theirs{
+  text-align:center;margin:8px 18px 0;font-family:-apple-system,system-ui,sans-serif;
+  font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);
+}
+#msg{margin:8px 18px 14px;font-family:-apple-system,system-ui,sans-serif;font-size:13px;color:var(--ink2);min-height:18px;text-align:center}
+#msg.bad{color:var(--rose)}
+
+/* ── the sets won — both players', 4 to a row, in formation ──────────── */
+#won{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:6px 18px 24px;padding:0}
+#won:empty{display:none}
+.setcard{position:relative;padding:0;border:none;background:none;cursor:pointer}
+.setform{position:relative;display:block;width:100%;aspect-ratio:1000/866}
+/* WHOSE SET, UNDER THE TILE — triset.html puts its two-letter "it" in the
+   formation's empty corner; a NAME does not fit there at tile size and ran
+   across the left card. Only the other player's tiles are marked. */
+.setcard .who{display:block;margin-top:4px;text-align:center;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);line-height:1;font-family:-apple-system,system-ui,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.setcard.mine .who{visibility:hidden}
+#setbig,#cardbig,#helpcard{position:fixed;inset:0;z-index:60;background:rgba(20,18,16,.86);
+  display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+#setbig>div,#cardbig>div{max-width:420px;width:100%;text-align:center;margin:auto}
+#bigform,#cardform{position:relative;width:100%;aspect-ratio:1000/866;margin:0 auto}
+#cardform .sl{width:100%;height:100%;left:0;top:0}
+#bigtext,#cardtext{color:var(--paper);font-size:16px;line-height:1.5;margin:16px 4px 0}
+#bigwho{color:var(--gold);font-size:12px;letter-spacing:.1em;text-transform:uppercase;margin-top:8px;font-family:-apple-system,system-ui,sans-serif}
+#steal{margin-top:14px}
+#steal .hcard{width:64px;height:56px}
+#stealline{color:var(--paper);font-size:13px;margin-top:12px;opacity:.8}
+#stealrow{display:flex;justify-content:center;gap:10px;margin-top:10px}
+#helpcard{background:rgba(43,38,34,.36)}
+#helpcard>div{margin:auto;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:20px 22px;max-width:340px;font-size:15px;line-height:1.55}
+</style>
+</head>
+<body class="tool">
+
+<header class="app-header">
+  <h1 class="eyebrow tool-eyebrow">Similitude</h1>
+  <span id="score"></span>
+  <button class="qmark" id="help" aria-label="How it works">?</button>
+</header>
+
+<!-- THE LOBBY — start a table, sit down at one, or come back to yours.
+     Every box ships EMPTY (house rule): the label names it, nothing fills it. -->
+<div class="lobby" id="lobby" hidden>
+  <p class="lede">Three triangle cards and a fourth to find. Take turns from your own phones: swap a card, or say what the three share and claim the set.</p>
+  <div class="form" id="startForm">
+    <label>Your name<input id="fName" type="text" autocomplete="name" maxlength="24"></label>
+    <label>Phone, for a text when it is your turn<input id="fPhone" type="tel" autocomplete="tel" inputmode="tel"></label>
+    <button class="btn" id="bStart" type="button">Start a table</button>
+    <div class="hint" id="startHint"></div>
+  </div>
+  <div class="form" id="joinForm" hidden>
+    <p class="lede" id="joinLede"></p>
+    <label>Your name<input id="jName" type="text" autocomplete="name" maxlength="24"></label>
+    <label>Phone, for a text when it is your turn<input id="jPhone" type="tel" autocomplete="tel" inputmode="tel"></label>
+    <button class="btn" id="bJoin" type="button">Sit down</button>
+    <div class="hint" id="joinHint"></div>
+  </div>
+  <div class="mine" id="mine" hidden></div>
+</div>
+
+<div class="invite" id="invite" hidden>
+  <p class="lede">Send this link to the person you want to play. Their seat is theirs the moment they open it.</p>
+  <div class="row"><input id="inviteUrl" type="text" readonly><button class="btn" id="bShare" type="button">Share</button><button class="btn" id="bCopy" type="button">Copy</button></div>
+  <div class="hint" id="inviteHint">Waiting for them to sit down…</div>
+</div>
+
+<div id="game" hidden>
+  <div id="turnline"></div>
+  <div id="board">
+    <button class="slot up" id="s-top" aria-label="the top card"><span class="face"></span><img alt=""></button>
+    <button class="slot up" id="s-left" aria-label="the left card"><span class="face"></span><img alt=""></button>
+    <button class="slot up" id="s-right" aria-label="the right card"><span class="face"></span><img alt=""></button>
+    <div class="slot" id="s-mid">
+      <span class="face"></span>
+      <div id="midwrap"><textarea id="middle" rows="3"></textarea></div>
+      <input id="v-top" class="venn" hidden>
+      <input id="v-left" class="venn" hidden>
+      <input id="v-right" class="venn" hidden>
+    </div>
+  </div>
+  <div id="kinds" hidden>
+    <button data-k="same" class="on">All the same</button>
+    <button data-k="each">Each different</button>
+    <button data-k="auto">Model finds it</button>
+  </div>
+  <div id="acts">
+    <button class="btn quiet" id="newgame" hidden>New game</button>
+    <button class="btn quiet" id="pass" hidden>Pass</button>
+    <button class="btn" id="drawit" hidden><span class="dstar"></span>Draw it! <span class="cost" id="drawcost"></span></button>
+    <button class="btn" id="found" hidden><span id="foundword">Set!</span></button>
+  </div>
+  <div id="hand">
+    <button class="hcard" data-h="0"><img alt=""></button>
+    <button class="hcard" data-h="1"><img alt=""></button>
+    <button class="hcard" data-h="2"><img alt=""></button>
+  </div>
+  <div id="theirs"></div>
+  <div id="msg"></div>
+  <div id="won"></div>
+</div>
+
+<div id="cardbig" hidden><div>
+  <div id="cardform"></div>
+  <div id="cardtext"></div>
+</div></div>
+
+<div id="setbig" hidden><div>
+  <div id="bigform"></div>
+  <div id="bigtext"></div>
+  <div id="bigwho"></div>
+  <div id="steal" hidden>
+    <button class="btn" id="stealbtn">Challenge <span class="cost">~0.1¢</span></button>
+    <div id="stealline" hidden>which of your cards fits it?</div>
+    <div id="stealrow" hidden></div>
+  </div>
+</div></div>
+
+<div id="helpcard" hidden>
+  <div>
+    <b>Similitude, for two.</b> Three triangle cards around a middle triangle,
+    three more in your hand. On your turn: <b>swap</b> one card from your hand
+    onto the board (tap a board card, then a hand card), <b>pass</b>, or tap
+    <b>Set!</b> and say what the three share — that claims the set and scores
+    it.<br><br>
+    <b>All the same</b> — one thing all three share, written in the middle.<br>
+    <b>Each different</b> — a fourth thing in the middle, and each card's own
+    connection to it on the side it touches.<br>
+    <b>Model finds it</b> — nothing to write; the model reads the three cards
+    and draws the thing that connects them.<br><br>
+    <b>Draw it!</b> makes a new card from a set you found — the picture that
+    unites them — and lands it in that set's tile. About 2¢ a card, up to a
+    dollar per person at a table. <b>Challenge</b> a set the other player
+    found: if a card in your hand fits their rule, the set is yours. The other
+    phone sees each move a few seconds later, and a text goes out when it is
+    your turn if you gave a number.
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var API = '/api/similitude';
+var PAGE = '/similitude/play';
+var STAR = '<svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg>';
+document.querySelector('#drawit .dstar').innerHTML = STAR;
+
+var $ = function(s){ return document.querySelector(s); };
+var esc = function(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); };
+function hexSrc(hex, down){
+  var pts = down ? '0,0 1000,0 500,866' : '500,0 1000,866 0,866';
+  return 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 866"><polygon points="' + pts + '" fill="' + hex + '"/></svg>');
+}
+function cardSrc(c, down){ return c.hex ? hexSrc(c.hex, down) : (c.cut || c.url); }
+
+// ── the deck: the 61 the dominoes page deals, by id ──────────────────────
+var CARDS = {};                 // id → card
+var ORDER = [];                 // the 61 ids
+function byId(id){ return CARDS[id] || null; }
+
+// ── the table (the room on the server) ───────────────────────────────────
+var ROOM = null, TOKEN = null, ME = null, THEM = null, V = null, S = null;
+var NAMES = { a: '', b: '' };
+var DRAWS = [], SPENT = { a: 0, b: 0 }, CAP = 100;
+function other(p){ return p === 'a' ? 'b' : 'a'; }
+function myTurn(){ return !!(S && !S.over && S.turn === ME); }
+
+function post(path, body){
+  return fetch(API + path, { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify(body) })
+    .then(function(r){ return r.json().then(function(j){ if (!r.ok) { var e = new Error(j.error || r.status); e.body = j; throw e; } return j; }); });
+}
+// moves go out one at a time, in order; a refused one (the table moved on)
+// is dropped and the phone catches up
+var q = [], flushing = false;
+function put(body, done){ q.push({ body:body, done:done }); flush(); }
+function flush(){
+  if (flushing || !q.length) return;
+  flushing = true; var w = q[0];
+  post('/rooms/' + ROOM + '/move', w.body)
+    .then(function(){ q.shift(); flushing = false; if (w.done) w.done(); flush(); })
+    .catch(function(e){
+      flushing = false;
+      if (/turn|stale|over|seated/.test(e.message)) { q.shift(); say('The table moved on — catching up.'); poll(true); return flush(); }
+      say('Not reaching the table — retrying…'); setTimeout(flush, 2500);
+    });
+}
+function share(line, done){
+  S.n = (S.n || 0) + 1; S.by = ME; S.line = line;
+  put({ token: TOKEN, state: S, line: line }, done);
+  say(line); paint();
+}
+var polling = false;
+function poll(force){
+  if (!ROOM || !TOKEN) return;
+  if (polling || (!force && (q.length || document.hidden))) return;
+  polling = true;
+  fetch(API + '/rooms/' + ROOM + '?token=' + encodeURIComponent(TOKEN) + '&x=' + Date.now())
+    .then(function(r){ return r.json(); })
+    .then(function(v){
+      polling = false;
+      if (!v || !v.ok) { if (v && /seat/.test(v.error || '')) say(v.error, true); return; }
+      V = v; ME = v.you; THEM = other(ME);
+      NAMES.a = v.a ? v.a.name : ''; NAMES.b = v.b ? v.b.name : '';
+      DRAWS = v.draws || []; SPENT = v.spent || { a:0, b:0 }; CAP = v.cap || 100;
+      paintInvite();
+      if (!v.state) { S = null; paint(); say(v.b ? (v.line || '') : ''); return; }
+      // the draws and the spend are server-owned and ride every read; the
+      // STATE is adopted only when it is newer than what this phone holds
+      if (S && v.state.game === S.game && (v.n || 0) <= (S.n || 0)) { paint(); return; }
+      S = v.state; S.line = v.line;
+      clearPick(); claiming = false;
+      say(v.line || ''); paint();
+    })
+    .catch(function(){ polling = false; });
+}
+setInterval(function(){ poll(false); }, 2500);
+document.addEventListener('visibilitychange', function(){ if (!document.hidden) poll(true); });
+
+function say(t, bad){ var m = $('#msg'); m.textContent = t || ''; m.className = bad ? 'bad' : ''; }
+function paintInvite(){
+  var open = V && ME === 'a' && !V.b;
+  $('#invite').hidden = !open;
+  $('#game').hidden = !!open;
+  if (open) $('#inviteUrl').value = V.invite || '';
+}
+
+// ── the deal: a shuffled deck of the 61, three on the board, three each ──
+function shuffle(a){ for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+function deal(){
+  var ids = shuffle(ORDER.slice());
+  S = { game: Date.now().toString(36), n: 0, turn: ME, by: ME, over: false,
+    board: ids.slice(0, 3), h: { a: ids.slice(3, 6), b: ids.slice(6, 9) },
+    deck: ids.slice(9), discard: [], gone: [],
+    score: { a: 0, b: 0 }, wins: [], line: '' };
+  claiming = false; clearPick();
+  share(NAMES[ME] + ' dealt. ' + (NAMES[ME]) + "'s turn.");
+}
+function draw(){
+  if (!S.deck.length) { S.deck = shuffle(S.discard.slice()); S.discard = []; }
+  return S.deck.pop() || null;
+}
+
+// ── painting ────────────────────────────────────────────────────────────
+var SLOTS = ['top','left','right'];
+function setImg(slot, id){
+  var el = $('#s-' + slot), img = el.querySelector('img'), c = byId(id);
+  if (c) { img.src = cardSrc(c); img.hidden = false; }
+  else { img.removeAttribute('src'); img.hidden = true; }
+}
+function paint(){
+  var game = $('#game');
+  if (!V || !V.b) { return; }
+  game.hidden = false;
+  var mine = myTurn();
+  $('#score').innerHTML = S ? ('<b>' + (S.score[ME] || 0) + '</b> – ' + (S.score[THEM] || 0)) : '';
+  $('#score').title = S ? ('you ' + (S.score[ME] || 0) + ', ' + NAMES[THEM] + ' ' + (S.score[THEM] || 0)) : '';
+  var tl = $('#turnline');
+  if (!S) { tl.textContent = ''; tl.className = ''; }
+  else if (claiming) { tl.textContent = 'say what they share'; tl.className = 'on'; }
+  else { tl.textContent = S.over ? 'the deck is done' : (mine ? 'your turn' : NAMES[THEM] + "'s turn"); tl.className = mine ? 'on' : ''; }
+  var board = $('#board');
+  board.classList.toggle('claimed', claiming);
+  board.classList.toggle('idle', !mine);
+  SLOTS.forEach(function(s, i){ setImg(s, S ? S.board[i] : null); });
+  // my hand — the other's stays a count
+  var held = S ? (S.h[ME] || []) : [];
+  for (var i = 0; i < 3; i++) {
+    var b = document.querySelector('.hcard[data-h="' + i + '"]'), img = b.querySelector('img'), c = byId(held[i]);
+    if (c) { img.src = cardSrc(c); img.hidden = false; b.classList.remove('gone'); }
+    else { img.removeAttribute('src'); img.hidden = true; b.classList.add('gone'); }
+  }
+  $('#theirs').textContent = S ? (NAMES[THEM] + ' holds ' + (S.h[THEM] || []).length) : '';
+  // the middle: the writing surface while claiming, otherwise the last rule
+  var mid = $('#middle');
+  mid.disabled = !claiming;
+  if (!claiming) { mid.value = ''; }
+  $('#s-mid').classList.toggle('each', claiming && kind === 'each');
+  $('#midwrap').hidden = claiming && kind === 'auto';
+  VENN.forEach(function(id){ document.getElementById(id).hidden = !(claiming && kind === 'each'); });
+  $('#kinds').hidden = !claiming;
+  // the buttons
+  var canDeal = V.b && (!S || S.over);
+  $('#newgame').hidden = !(canDeal || (mine && !claiming));
+  $('#pass').hidden = !(mine && S && !claiming);
+  $('#found').hidden = !(mine && S);
+  $('#foundword').textContent = claiming ? (readyToClaim() ? (kind === 'auto' ? 'Draw it!' : 'Claim') : 'Set!') : 'Set!';
+  paintDraw();
+  paintPick(); paintWon();
+}
+// the one paid tap — offered for my latest set with no card yet, while my
+// dollar lasts. The server is the real gate; this is only what is shown.
+function drawableWin(){
+  if (!S || !Array.isArray(S.wins)) return -1;
+  for (var i = S.wins.length - 1; i >= 0; i--) {
+    var w = S.wins[i];
+    if (w.by !== ME) continue;
+    if (w.kind === 'auto') continue;              // its draw happened with the claim
+    var has = DRAWS.some(function(d){ return d.game === S.game && d.win === i && d.status !== 'failed'; });
+    if (!has) return i;
+  }
+  return -1;
+}
+function drawFor(i){ return DRAWS.filter(function(d){ return S && d.game === S.game && d.win === i; }).pop() || null; }
+function centsLeft(){ return Math.max(0, Math.round((CAP - (SPENT[ME] || 0)) * 10) / 10); }
+function paintDraw(){
+  var i = drawableWin(), b = $('#drawit');
+  b.hidden = claiming || i < 0;
+  if (i < 0) return;
+  var left = centsLeft();
+  b.disabled = left < 1.8;
+  $('#drawcost').textContent = left < 1.8 ? 'your dollar is spent' : ('~2¢ · ' + Math.round(left) + '¢ left');
+}
+
+// ── the swap: a board card and a hand card, either order ─────────────────
+var pickSlot = null, pickHand = null;
+function clearPick(){ pickSlot = null; pickHand = null; paintPick(); }
+function paintPick(){
+  $('#board').classList.toggle('picking', !!pickSlot);
+  $('#hand').classList.toggle('picking', pickHand !== null);
+  SLOTS.forEach(function(s){ $('#s-' + s).classList.toggle('pick', pickSlot === s); });
+  for (var i = 0; i < 3; i++) document.querySelector('.hcard[data-h="' + i + '"]').classList.toggle('pick', pickHand === i);
+}
+function tapSlot(slot){
+  if (!myTurn() || claiming) return;
+  if (pickHand !== null) return doSwap(SLOTS.indexOf(slot), pickHand);
+  pickSlot = (pickSlot === slot) ? null : slot;
+  paintPick();
+}
+function tapHand(i){
+  if (!myTurn() || claiming || !S.h[ME][i]) return;
+  if (pickSlot) return doSwap(SLOTS.indexOf(pickSlot), i);
+  pickHand = (pickHand === i) ? null : i;
+  paintPick();
+}
+function doSwap(bi, hi){
+  var out = S.board[bi], inn = S.h[ME][hi];
+  if (!out || !inn) return;
+  S.discard.push(out);
+  S.board[bi] = inn;
+  var next = draw();
+  S.h[ME] = S.h[ME].filter(function(id, k){ return k !== hi; });
+  if (next) S.h[ME].push(next);
+  S.turn = THEM;
+  clearPick();
+  share(NAMES[ME] + ' swapped a card. ' + NAMES[THEM] + "'s turn.");
+}
+function pass(){
+  if (!myTurn() || claiming) return;
+  S.turn = THEM;
+  share(NAMES[ME] + ' passed. ' + NAMES[THEM] + "'s turn.");
+}
+
+// ── the claim: Set! lights the cards, the words score it, Draw it! pays ──
+var VENN = ['v-top','v-left','v-right'];
+var kind = 'same', claiming = false;
+function setKind(k){
+  kind = k;
+  Array.prototype.forEach.call(document.querySelectorAll('#kinds button'), function(b){ b.classList.toggle('on', b.dataset.k === k); });
+  paint();
+}
+function readyToClaim(){
+  if (!claiming) return false;
+  if (kind === 'auto') return true;
+  if (!$('#middle').value.trim()) return false;
+  if (kind !== 'each') return true;
+  return VENN.every(function(id){ return document.getElementById(id).value.trim(); });
+}
+function found(){
+  if (!myTurn()) return;
+  if (!claiming) {
+    if (!S.board.every(Boolean)) { say('the board is not full', true); return; }
+    claiming = true; clearPick(); paint();
+    var m = $('#middle'); if (kind !== 'auto') m.focus();
+    return;
+  }
+  if (!readyToClaim()) {
+    say(kind === 'each' ? "write each card's connection on its side of the middle triangle" : 'write what they share in the middle triangle', true);
+    return;
+  }
+  var text = kind === 'auto' ? '' : $('#middle').value.trim();
+  var sides = kind === 'each' ? VENN.map(function(id){ return document.getElementById(id).value.trim(); }) : [];
+  var cards = S.board.slice();
+  var w = { by: ME, cards: cards, kind: kind, text: text, sides: sides, at: Date.now() };
+  S.wins.push(w);
+  var wi = S.wins.length - 1;
+  S.score[ME] = (S.score[ME] || 0) + 1;
+  // the three leave play for the tile; the board refills off the deck
+  S.gone = (S.gone || []).concat(cards);
+  S.board = [draw(), draw(), draw()];
+  if (S.board.some(function(x){ return !x; })) S.over = true;
+  S.turn = THEM;
+  claiming = false;
+  VENN.forEach(function(id){ document.getElementById(id).value = ''; });
+  var line = NAMES[ME] + ' found a set' + (text ? ' — “' + text + '”' : ' — the model will say') + '. ' + (S.over ? 'The deck is done.' : NAMES[THEM] + "'s turn.");
+  var auto = kind === 'auto';
+  share(line, function(){ if (auto) startDraw(wi, w); });
+}
+function startDraw(wi, w){
+  var body = { token: TOKEN, game: S.game, win: wi, cards: w.cards, kind: w.kind };
+  if (w.kind !== 'auto') body.middle = w.text;
+  if (w.kind === 'each') body.sides = w.sides;
+  $('#drawit').disabled = true;
+  say('drawing…');
+  post('/rooms/' + ROOM + '/draw', body)
+    .then(function(d){
+      SPENT = d.spent || SPENT;
+      DRAWS.push({ game: S.game, win: wi, by: ME, card: d.card, status: d.status });
+      say('the card is drawing — it lands in your set when it is ready');
+      paint();
+    })
+    .catch(function(e){
+      if (e.body && e.body.spent) SPENT = e.body.spent;
+      say(e.message, true); paint();
+    });
+}
+function drawIt(){
+  var i = drawableWin();
+  if (i < 0) return;
+  startDraw(i, S.wins[i]);
+}
+
+// ── the shelf, the big view, and the challenge ───────────────────────────
+function formSlot(card, spot){
+  var el = document.createElement('span');
+  el.className = 'sl ' + spot + ' ' + (spot === 'p-mid' ? 'down' : 'up');
+  var img = document.createElement('img'); img.alt = '';
+  if (card) img.src = cardSrc(card, spot === 'p-mid'); else img.hidden = true;
+  el.appendChild(img);
+  return el;
+}
+function madeOf(i){
+  var d = drawFor(i);
+  if (!d || d.status !== 'ready') return null;
+  return { cut: d.cut, url: d.url, hex: d.hex || null, title: d.title || '' };
+}
+function paintForm(box, w, i){
+  box.textContent = '';
+  var spots = ['p-top','p-left','p-right'];
+  (w.cards || []).forEach(function(id, k){ box.appendChild(formSlot(byId(id), spots[k])); });
+  box.appendChild(formSlot(madeOf(i), 'p-mid'));
+}
+function paintWon(){
+  var box = $('#won');
+  box.textContent = '';
+  if (!S) return;
+  (S.wins || []).forEach(function(w, i){
+    var b = document.createElement('button');
+    b.className = 'setcard' + (w.by === ME ? ' mine' : '');
+    b.setAttribute('aria-label', (w.by === ME ? 'your set: ' : NAMES[w.by] + "'s set: ") + (w.text || ''));
+    var f = document.createElement('span'); f.className = 'setform';
+    paintForm(f, w, i);
+    b.appendChild(f);
+    var who = document.createElement('span'); who.className = 'who'; who.textContent = NAMES[w.by] || '';
+    b.appendChild(who);
+    b.onclick = function(){ openBig(i); };
+    box.appendChild(b);
+  });
+}
+var bigAt = -1;
+function openBig(i){
+  var w = S && S.wins[i];
+  if (!w) return;
+  bigAt = i;
+  paintForm($('#bigform'), w, i);
+  var d = drawFor(i);
+  $('#bigtext').textContent = w.text || (d && d.title) || (w.kind === 'auto' ? 'the model found it' : '');
+  $('#bigwho').textContent = (w.by === ME ? 'your set' : NAMES[w.by] + "'s set") + (w.stolen ? ' · stolen' : '');
+  // CHALLENGE — their set, on my turn, with cards in hand
+  $('#steal').hidden = !(w.by !== ME && myTurn() && !claiming && (S.h[ME] || []).length);
+  $('#stealrow').hidden = true; $('#stealline').hidden = true;
+  $('#stealbtn').hidden = false; $('#stealbtn').disabled = false;
+  $('#setbig').hidden = false;
+}
+function closeBig(){ $('#setbig').hidden = true; bigAt = -1; }
+function paintSteal(){
+  var row = $('#stealrow'); row.textContent = '';
+  (S.h[ME] || []).forEach(function(id){
+    var c = byId(id); if (!c) return;
+    var b = document.createElement('button'); b.className = 'hcard';
+    var img = document.createElement('img'); img.alt = ''; img.src = cardSrc(c);
+    b.appendChild(img);
+    b.onclick = function(){ steal(id); };
+    row.appendChild(b);
+  });
+  row.hidden = false; $('#stealline').hidden = false; $('#stealbtn').hidden = true;
+}
+function steal(id){
+  var w = S && S.wins[bigAt];
+  if (!w || w.by === ME || !myTurn()) return;
+  $('#stealrow').hidden = true;
+  say('challenging…');
+  var rule = w.text || (drawFor(bigAt) || {}).title || '';
+  post('/rooms/' + ROOM + '/challenge', { token: TOKEN, card: id, rule: rule })
+    .then(function(d){
+      var line;
+      if (d.fits) {
+        w.by = ME; w.stolen = true;
+        S.score[THEM] = Math.max(0, (S.score[THEM] || 0) - 1);
+        S.score[ME] = (S.score[ME] || 0) + 1;
+        line = NAMES[ME] + ' challenged and took the set — ' + (d.why || rule) + '. ' + NAMES[THEM] + "'s turn.";
+      } else {
+        line = NAMES[ME] + ' challenged and it held — ' + (d.why || 'that card does not fit') + '. ' + NAMES[THEM] + "'s turn.";
+      }
+      S.turn = THEM;
+      closeBig();
+      share(line);
+    })
+    .catch(function(e){ say(e.message, true); $('#stealrow').hidden = false; });
+}
+// one card, big — a long press or a double tap (a single tap picks)
+var eatCardTap = false, LONG_MS = 450;
+function openCard(card){
+  if (!card) return;
+  var box = $('#cardform'); box.textContent = '';
+  box.appendChild(formSlot(card, 'p-top'));
+  $('#cardtext').textContent = card.words || card.title || '';
+  $('#cardbig').hidden = false;
+}
+function bigGesture(el, get){
+  var timer = null, ate = false;
+  var stop = function(){ if (timer) { clearTimeout(timer); timer = null; } };
+  el.addEventListener('pointerdown', function(){
+    ate = false; stop();
+    timer = setTimeout(function(){ timer = null; ate = true; eatCardTap = true; openCard(get()); }, LONG_MS);
+  });
+  ['pointerup','pointercancel','pointerleave','pointermove'].forEach(function(ev){ el.addEventListener(ev, stop); });
+  el.addEventListener('click', function(e){ if (!ate) return; ate = false; e.stopPropagation(); e.preventDefault(); }, true);
+  el.addEventListener('dblclick', function(e){ e.preventDefault(); openCard(get()); });
+}
+
+// ── wiring ───────────────────────────────────────────────────────────────
+SLOTS.forEach(function(s, i){
+  $('#s-' + s).onclick = function(){ tapSlot(s); };
+  bigGesture($('#s-' + s), function(){ return S && byId(S.board[i]); });
+});
+Array.prototype.forEach.call(document.querySelectorAll('#hand .hcard'), function(b){
+  b.onclick = function(){ tapHand(+b.dataset.h); };
+  bigGesture(b, function(){ return S && byId((S.h[ME] || [])[+b.dataset.h]); });
+});
+['middle'].concat(VENN).forEach(function(id){
+  document.getElementById(id).addEventListener('input', function(){
+    $('#foundword').textContent = readyToClaim() ? (kind === 'auto' ? 'Draw it!' : 'Claim') : 'Set!';
+  });
+});
+Array.prototype.forEach.call(document.querySelectorAll('#kinds button'), function(b){ b.onclick = function(){ setKind(b.dataset.k); }; });
+$('#found').onclick = found;
+$('#pass').onclick = pass;
+$('#drawit').onclick = drawIt;
+$('#newgame').onclick = function(){ if (!V || !V.b) return; if (S && !S.over && S.turn !== ME) return; deal(); };
+$('#stealbtn').onclick = paintSteal;
+$('#setbig').onclick = function(ev){ if (ev.target === $('#setbig')) closeBig(); };
+$('#cardbig').onclick = function(){ if (eatCardTap) { eatCardTap = false; return; } $('#cardbig').hidden = true; };
+$('#help').onclick = function(){ $('#helpcard').hidden = false; };
+$('#helpcard').onclick = function(){ $('#helpcard').hidden = true; };
+window.__navBack = function(){
+  if (!$('#cardbig').hidden) { $('#cardbig').hidden = true; return true; }
+  if (!$('#setbig').hidden) { closeBig(); return true; }
+  if (!$('#helpcard').hidden) { $('#helpcard').hidden = true; return true; }
+  return false;
+};
+
+// ── the door: start a table, sit down at one, or come back to yours ──────
+var qs = new URLSearchParams(location.search);
+var mem = {}; try { mem = JSON.parse(localStorage.getItem('similitude.seats') || '{}'); } catch(e){}
+function remember(room, tok, label){ mem[room] = { t: tok, label: label, at: Date.now() }; try { localStorage.setItem('similitude.seats', JSON.stringify(mem)); } catch(e){} }
+function enter(room, tok){
+  ROOM = room; TOKEN = tok;
+  history.replaceState(null, '', PAGE + '?room=' + room + '&t=' + tok);
+  $('#lobby').hidden = true;
+  poll(true);
+}
+function lobby(joinRoom, invite){
+  $('#lobby').hidden = false;
+  if (joinRoom) {
+    $('#startForm').hidden = true; $('#joinForm').hidden = false;
+    fetch(API + '/rooms/' + joinRoom + '?invite=' + encodeURIComponent(invite)).then(function(r){ return r.json(); }).then(function(v){
+      if (!v || !v.ok) { $('#joinLede').textContent = 'That invite is not for a table here.'; $('#bJoin').disabled = true; return; }
+      if (v.taken) { $('#joinLede').textContent = 'Someone already sat down at ' + v.a.name + "'s table."; $('#bJoin').disabled = true; return; }
+      $('#joinLede').textContent = v.a.name + ' is inviting you to play. Sit down with your name.';
+    });
+    $('#bJoin').onclick = function(){
+      var nm = $('#jName').value.trim(); if (!nm) return $('#jName').focus();
+      $('#bJoin').disabled = true; $('#joinHint').textContent = '';
+      post('/rooms/' + joinRoom + '/join', { invite: invite, name: nm, phone: $('#jPhone').value.trim() })
+        .then(function(j){ remember(j.room, j.token, nm + ' at a table'); enter(j.room, j.token); })
+        .catch(function(e){ $('#bJoin').disabled = false; $('#joinHint').textContent = e.message; });
+    };
+    return;
+  }
+  $('#bStart').onclick = function(){
+    var nm = $('#fName').value.trim(); if (!nm) return $('#fName').focus();
+    $('#bStart').disabled = true; $('#startHint').textContent = '';
+    post('/rooms', { name: nm, phone: $('#fPhone').value.trim() })
+      .then(function(j){ remember(j.room, j.token, nm + "'s table"); enter(j.room, j.token); })
+      .catch(function(e){ $('#bStart').disabled = false; $('#startHint').textContent = e.message; });
+  };
+  var rooms = Object.keys(mem).sort(function(x, y){ return mem[y].at - mem[x].at; }).slice(0, 6);
+  if (rooms.length) {
+    $('#mine').hidden = false;
+    $('#mine').innerHTML = '<div class="hint">Your tables</div>' + rooms.map(function(r){
+      return '<a href="' + PAGE + '?room=' + r + '&t=' + mem[r].t + '">' + esc(mem[r].label || r) + '</a>';
+    }).join('');
+  }
+}
+$('#bCopy').addEventListener('click', function(){
+  var inp = $('#inviteUrl'); inp.select();
+  var done = function(){ $('#inviteHint').textContent = 'Copied. Waiting for them to sit down…'; };
+  if (navigator.clipboard) navigator.clipboard.writeText(inp.value).then(done, done); else { try { document.execCommand('copy'); } catch(e){} done(); }
+});
+$('#bShare').addEventListener('click', function(){
+  var url = $('#inviteUrl').value;
+  if (navigator.share) navigator.share({ title: 'Similitude', text: 'Play Similitude with me', url: url }).catch(function(){});
+  else $('#bCopy').click();
+});
+if (!navigator.share) $('#bShare').hidden = true;
+
+// the deck first — nothing can be painted without it
+fetch(API + '/deck').then(function(r){ return r.json(); }).then(function(d){
+  (d.cards || []).forEach(function(c){ CARDS[c.id] = c; ORDER.push(c.id); });
+  var room = qs.get('room'), tok = qs.get('t'), inv = qs.get('join');
+  if (room && !tok && mem[room]) tok = mem[room].t;
+  if (room && tok) { remember(room, tok, (mem[room] && mem[room].label) || 'a table'); enter(room, tok); }
+  else if (room && inv) lobby(room, inv);
+  else lobby();
+}).catch(function(){ $('#lobby').hidden = false; say('could not load the cards', true); });
+})();
+</script>
+</body>
+</html>

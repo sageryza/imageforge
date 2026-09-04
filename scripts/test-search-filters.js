@@ -305,12 +305,15 @@ const server = http.createServer((req, res) => {
   is('her two messages, and no chat-name row above them', await results(), 2);
   // THE CHIP IS LIT THE MOMENT ANYTHING IS NARROWED — but while the drawer is
   // OPEN it does not repeat the words the rows below already spell out.
-  is('open, the chip does not say the same thing twice', await chipText(), '');
-  is('but it is lit, which is the part that is not redundant', await chipLit(), true);
+  // THE CHIP SAYS HOW MANY, NOT WHICH (2026-09-02, Sophie: "change to # of
+  // filters") — a digit, open or shut, so the button never grows by however
+  // long her words happen to be.
+  is('open, the chip counts what is narrowed', await chipText(), '1');
+  is('and it is lit', await chipLit(), true);
   // …and SHUT it carries the state, because that is when nothing else does.
   await page.click('#searchfilters .filtchip');
   await page.waitForTimeout(150);
-  is('shut, the chip wears what is narrowed', await chipText(), 'Mine');
+  is('shut, the chip still counts it', await chipText(), '1');
   await page.click('#searchfilters .filtchip');   // back open for the rest
 
   await tapWho(2);
@@ -354,7 +357,7 @@ const server = http.createServer((req, res) => {
   // state without opening anything.
   await page.click('#searchfilters .filtchip');
   await page.waitForTimeout(150);
-  is('shut, the chip wears both', await chipText(), 'Mine · Archive only');
+  is('shut, the chip counts both', await chipText(), '2');
   await page.click('#searchfilters .filtchip');
 
   // ---- nothing tappable may sit under the injected pill -------------------

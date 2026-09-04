@@ -97,4 +97,10 @@
    rows the moment she opens the drawer. */
 .filtchip .filtchipw { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .filtchip .filtchipw[hidden] { display: none !important; }
-.filtchip.on { color: var(--fsf-on); border-color: var(--fsf-on); }
+/* LIT IS THE INK, NOT THE ACCENT (2026-09-02, Sophie: "not red"). This is the
+   door to a drawer, not a mark she cast: the rose belongs to the chips inside
+   that really are her ♥ and her picks. Dark against the row's grey is a
+   legible "something is on" without shouting it from the calmest strip on the
+   page. */
+.filtchip.on { color: var(--fsf-ink); border-color: var(--fsf-ink); }
+.filtchip.on .filtchipw { font-weight: 600; }

@@ -1,0 +1,740 @@
+<!doctype html>
+<!-- HEAD GAMES — the hub of little games we play in our head, as ONE Compare
+     page so a new version needs no deploy (2026-09-03, Sophie: "make it off
+     render so we don't have to deploy every time — a compare page maybe").
+
+     Built by scripts/headgames-page.js from this template + rules.js (inlined
+     at the rules marker in the second script block), posted with POST /api/chatfeed/page. A new
+     version is a NEW page; the old one is superseded. Her games' state lives
+     OFF the page, on verdict docs keyed by game (`hg-<game>` sheets under the
+     __CHAT__ chat), so every version of the page opens on the same jars,
+     trains, towers, tags and scales.
+
+     Starts from compare-shell.html: /compare.css for the house look and the
+     pill's tokens, /compare.js for the tap/scroll contract and the "?". The
+     whole page is TAPPABLE UI, so .wrap carries data-nostop — a tap here
+     pauses a running autoscroll but never starts one. The script is one IIFE.
+-->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Head Games</title>
+<link rel="stylesheet" href="/compare.css">
+<style>
+/* ── the house vocabulary, plus what a game needs ──────────────────────── */
+[hidden]{display:none !important}
+body{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
+.wrap{max-width:560px;overflow-x:hidden}
+/* the title row: a back chevron (only inside a game) then the one title */
+.hd{display:flex;align-items:center;gap:8px;min-height:38px;margin-bottom:14px;padding-right:64px}
+.hd h1{margin:0;padding:0;font-size:24px}
+#back{
+  flex:0 0 auto;width:34px;height:34px;margin:0 2px 0 -4px;padding:0;
+  display:inline-flex;align-items:center;justify-content:center;
+  border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);
+}
+#back svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.sans{font-family:-apple-system,'Helvetica Neue',sans-serif}
+.line{font:14px/1.45 -apple-system,'Helvetica Neue',sans-serif;color:var(--ink2);min-height:20px;margin:8px 0 4px}
+.line.bad{color:var(--rose)}
+.count{font:600 12px/1 -apple-system,'Helvetica Neue',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--gold)}
+button.small{font-size:13px;padding:7px 10px}
+button.quiet{border-color:var(--line);color:var(--ink2)}
+button.on{background:var(--gold);color:#fff}
+button:disabled{opacity:.45}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.row.end{justify-content:flex-end}
+label.f{display:block;font:600 11px/1 -apple-system,'Helvetica Neue',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:12px 0 6px}
+input.f,textarea.f{
+  width:100%;font:16px/1.4 Georgia,'Times New Roman',serif;color:var(--ink);
+  background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:9px 10px;
+}
+textarea.f{min-height:72px;resize:vertical}
+/* ── the hub: five icons, three to a row, the name under each ───────── */
+#hub{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:4px}
+.tile{
+  display:flex;flex-direction:column;align-items:center;gap:8px;padding:0 0 10px;
+  background:none;border:none;color:var(--ink);width:auto;
+}
+.tile .ic{
+  width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+  background:var(--surface);border:1px solid var(--line);border-radius:6px;
+}
+.tile .ic svg{width:48%;height:48%;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.tile .nm{font:600 12px/1.2 -apple-system,'Helvetica Neue',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);text-align:center}
+/* ── lists (trains, towers, scales) ─────────────────────────────────── */
+.lrow{
+  display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);
+  border-radius:6px;padding:11px 12px;margin-bottom:8px;color:var(--ink);font:17px/1.35 Georgia,'Times New Roman',serif;
+}
+.lrow small{display:block;font:13px/1.3 -apple-system,'Helvetica Neue',sans-serif;color:var(--ink2);margin-top:3px}
+/* ── a sheet over the page (add / open one thing) ───────────────────── */
+.sheet{position:fixed;inset:0;z-index:50;background:rgba(43,38,34,.36);display:flex;align-items:flex-end;justify-content:center;padding:0}
+.sheet>div{
+  width:100%;max-width:560px;background:var(--paper);border:1px solid var(--line);border-radius:6px 6px 0 0;
+  padding:16px 16px calc(18px + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+}
+.sheet .q{font-size:19px;line-height:1.4;margin:0 0 6px}
+/* ── THE SCALE ───────────────────────────────────────────────────────── */
+#scalesvg{width:100%;height:auto;display:block;margin:0 auto}
+#scalesvg .beam{stroke:var(--ink);stroke-width:4;stroke-linecap:round}
+#scalesvg .post{stroke:var(--ink);stroke-width:4;stroke-linecap:round}
+#scalesvg .str{stroke:var(--ink2);stroke-width:1.5}
+#scalesvg .pan{stroke:var(--ink);stroke-width:2.5;fill:none;stroke-linecap:round}
+/* `.bk`, not `.blk`: that is the tower's HTML block, and a CSS width on it
+   reaches an SVG rect too — PHOTO'd as a bar across the whole drawing */
+#scalesvg .bk{fill:var(--gold);stroke:var(--paper);stroke-width:1}
+#scalesvg .bk.con{fill:var(--ink2)}
+#scalesvg .more{font:600 11px -apple-system,sans-serif;fill:var(--ink2)}
+#scalesvg .side{font:600 11px -apple-system,sans-serif;letter-spacing:.14em;fill:var(--gold)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.col h2{margin:0 0 6px}
+.rz{
+  display:flex;align-items:flex-start;gap:8px;width:100%;text-align:left;margin-bottom:6px;
+  background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 9px;
+  color:var(--ink);font:15px/1.3 Georgia,'Times New Roman',serif;
+}
+/* `placed`, not `on`: compare.css paints button.on white-on-gold */
+.rz.placed{border-color:var(--gold);background:#fbf3df}
+.rz:disabled{opacity:1}   /* placed, not faded: the gold border says it is on the pan */
+.rz.decided{border-color:var(--rose)}
+.rz .w{flex:0 0 auto;display:flex;gap:2px;margin-top:4px}
+.rz .w i{display:block;width:7px;height:7px;background:var(--gold);border-radius:1px}
+.rz.con .w i{background:var(--ink2)}
+.blocks{display:inline-flex;gap:4px}
+.blocks b{display:block;width:16px;height:16px;border:1px solid var(--gold);border-radius:3px;background:var(--surface)}
+.blocks b.lit{background:var(--gold)}
+.blocks button{padding:0;border:none;background:none}
+.seg{display:inline-flex;border:1.5px solid var(--gold);border-radius:6px;overflow:hidden}
+.seg button{border:none;border-radius:0;padding:8px 11px}
+.seg button.on{background:var(--gold);color:#fff}
+/* ── THE JARS ───────────────────────────────────────────────────────── */
+#jars{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:8px}
+.jar{position:relative;display:block;width:100%;padding:0;border:none;background:none;color:var(--ink);text-align:center}
+.jar svg{width:100%;height:auto;display:block;overflow:visible}
+.jar .lid{fill:var(--gold);stroke:var(--ink);stroke-width:1.5;transition:transform .35s ease}
+.jar .lid{transform-box:fill-box;transform-origin:center}
+.jar.open .lid{transform:translate(-30px,6px) rotate(-26deg)}
+.jar .glass{fill:var(--surface);stroke:var(--ink);stroke-width:1.5}
+.jar.open .glass{fill:#f6f0e4}
+.jar .qt{
+  position:absolute;left:23%;right:23%;top:33%;bottom:18%;
+  font:11px/1.3 Georgia,'Times New Roman',serif;color:var(--ink);overflow:hidden;overflow-wrap:anywhere;
+  display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;
+}
+.jar.open .qt{color:var(--ink2)}
+.jar small{display:block;font:11px/1.2 -apple-system,'Helvetica Neue',sans-serif;color:var(--ink2);margin-top:4px}
+/* ── THE TRAIN ──────────────────────────────────────────────────────── */
+#trainline{margin-top:8px}
+.car{
+  position:relative;background:var(--surface);border:1.5px solid var(--ink);border-radius:8px;
+  padding:10px 12px 12px;margin:0 22px 0 22px;font:16px/1.4 Georgia,'Times New Roman',serif;
+}
+.car:before,.car:after{content:'';position:absolute;bottom:-6px;width:9px;height:9px;border-radius:50%;background:var(--ink)}
+.car:before{left:14px}.car:after{right:14px}
+.coup{width:2px;height:16px;background:var(--ink);margin:0 auto}
+.car.last:after{background:var(--rose)}
+.station{
+  margin:0 22px 0;border-bottom:3px solid var(--ink);padding:0 0 4px;
+  font:600 11px/1 -apple-system,'Helvetica Neue',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);
+}
+.engine{position:absolute;top:-10px;left:18px;width:10px;height:12px;background:var(--ink);border-radius:2px 2px 0 0}
+/* ── THE TOWER ──────────────────────────────────────────────────────── */
+#tower{display:flex;flex-direction:column-reverse;align-items:center;margin-top:6px}
+.blk{
+  display:block;position:relative;width:min(70%,280px);text-align:left;background:var(--surface);border:1.5px solid var(--ink);
+  border-radius:4px;padding:9px 12px;margin-top:-1.5px;color:var(--ink);font:15px/1.35 Georgia,'Times New Roman',serif;
+  transition:transform .28s ease,opacity .28s ease;
+}
+.blk.pulled{transform:translateX(20%);opacity:.8}
+.blk.load{border-color:var(--rose);color:var(--rose)}
+.blk .mk{display:block;margin-top:3px;font:600 10px/1 -apple-system,sans-serif;letter-spacing:.12em;text-transform:uppercase}
+.blk.load .mk{color:var(--rose)}
+.blk.stands .mk{color:var(--green)}
+.belief{
+  width:min(70%,280px);text-align:center;font:600 13px/1.35 -apple-system,'Helvetica Neue',sans-serif;
+  letter-spacing:.04em;color:var(--gold);padding:8px 10px;border:1.5px dashed var(--gold);border-radius:6px;margin-bottom:12px;
+}
+.ground{width:min(100%,400px);border-top:3px solid var(--ink);margin-top:0}
+#ask{width:min(70%,280px);display:flex;align-items:center;gap:8px;margin:8px 0}
+#ask span{font:14px -apple-system,'Helvetica Neue',sans-serif;color:var(--ink2);flex:1}
+/* ── LUGGAGE TAGS ───────────────────────────────────────────────────── */
+.who{display:flex;align-items:baseline;gap:8px;margin:22px 0 8px}
+.who h2{margin:0}
+.who small{font:13px -apple-system,'Helvetica Neue',sans-serif;color:var(--ink2)}
+.tags{display:flex;flex-wrap:wrap;gap:8px}
+.tag{
+  position:relative;display:block;text-align:left;max-width:100%;
+  background:#fbf3df;border:1.5px solid var(--gold);color:var(--ink);
+  clip-path:polygon(0 50%,14px 0,100% 0,100% 100%,14px 100%);border-radius:0 6px 6px 0;
+  padding:8px 10px 8px 24px;font:14px/1.35 Georgia,'Times New Roman',serif;width:auto;
+}
+.tag:before{content:'';position:absolute;left:11px;top:50%;width:6px;height:6px;margin-top:-4px;border-radius:50%;background:var(--paper);border:1px solid var(--gold)}
+.names{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.names button{padding:5px 9px;font-size:12px}
+</style>
+
+<div class="wrap" data-nostop>
+  <div class="hd">
+    <button id="back" hidden aria-label="Back"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+    <h1><span id="title">Head Games</span></h1>
+  </div>
+
+  <!-- THE HUB: each game an icon. The one note box on the page rides here. -->
+  <div id="v-hub" data-item="hub">
+    <div id="hub"></div>
+  </div>
+
+  <!-- THE SCALE -->
+  <div id="v-scale" hidden>
+    <div id="scale-list"></div>
+    <div id="scale-one" hidden>
+      <svg id="scalesvg" viewBox="0 0 340 214" aria-hidden="true"></svg>
+      <div id="scale-line" class="line"></div>
+      <div class="cols">
+        <div class="col"><h2>For</h2><div id="pros"></div></div>
+        <div class="col"><h2>Against</h2><div id="cons"></div></div>
+      </div>
+      <label class="f" for="rtext">A reason</label>
+      <input class="f" id="rtext" autocomplete="off">
+      <div class="row">
+        <span class="seg" id="rside"><button data-s="pro" class="on">For</button><button data-s="con">Against</button></span>
+        <span class="blocks" id="rw"></span>
+        <button id="radd" class="small">Add it</button>
+      </div>
+      <div class="row end">
+        <button id="sreset" class="small quiet">Start over</button>
+        <button id="shide" class="small quiet">Put it away</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- THE JARS -->
+  <div id="v-jar" hidden>
+    <!-- the add button leads the row: the top-right corner is the pill's -->
+    <div class="row" style="margin-top:0"><button id="jar-add" class="small">A jar</button><span id="jar-count" class="count"></span></div>
+    <div id="jars"></div>
+  </div>
+
+  <!-- THE TRAIN -->
+  <div id="v-train" hidden>
+    <div id="train-list"></div>
+    <div id="train-one" hidden>
+      <div id="train-add">
+        <label class="f" for="ctext">Before that</label>
+        <input class="f" id="ctext" autocomplete="off">
+        <div class="row" style="padding-right:64px">
+          <button id="cadd" class="small">Couple it</button>
+          <button id="cstation" class="small quiet">This is where it left from</button>
+        </div>
+      </div>
+      <div id="trainline"></div>
+      <div id="train-line" class="line"></div>
+      <div class="row end"><button id="thide" class="small quiet">Put it away</button></div>
+    </div>
+  </div>
+
+  <!-- THE TOWER -->
+  <div id="v-tower" hidden>
+    <div id="tower-list"></div>
+    <div id="tower-one" hidden>
+      <div id="tower"></div>
+      <div id="tower-line" class="line"></div>
+      <label class="f" for="btext">A reason</label>
+      <input class="f" id="btext" autocomplete="off">
+      <div class="row"><button id="badd" class="small">Add a block</button></div>
+      <div class="row end"><button id="whide" class="small quiet">Put it away</button></div>
+    </div>
+  </div>
+
+  <!-- LUGGAGE TAGS -->
+  <div id="v-tag" hidden>
+    <label class="f" for="otext">The opinion</label>
+    <input class="f" id="otext" autocomplete="off">
+    <label class="f" for="ftext">Who handed it to you</label>
+    <input class="f" id="ftext" autocomplete="off">
+    <div class="names" id="names"></div>
+    <div class="row"><button id="tadd" class="small">Tag it</button></div>
+    <div id="tag-line" class="line"></div>
+    <div id="tagwall"></div>
+  </div>
+</div>
+
+<div class="sheet" id="sheet" hidden><div id="sheetbody"></div></div>
+
+<script src="/compare.js"></script>
+<script>
+__RULES__
+</script>
+<script>
+(function () {
+  'use strict';
+  var R = window.__headgamesRules;
+  var CHAT = '__CHAT__';
+  var $ = function (s) { return document.querySelector(s); };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var now = function () { return Date.now(); };
+  var MAX_JSON = 1900;   // a verdict text field holds 2000 chars; this is the room one item has
+
+  /* ── the five games ─────────────────────────────────────────────────── */
+  var ICON = {
+    scale: '<svg viewBox="0 0 24 24"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>',
+    jar: '<svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="3" rx="1"/><path d="M8 5.5h8v1.6c1.6 1 2.4 2.4 2.4 4.2V18a3 3 0 0 1-3 3H8.6a3 3 0 0 1-3-3v-6.7c0-1.8.8-3.2 2.4-4.2Z"/><path d="M9 13.5h6"/></svg>',
+    train: '<svg viewBox="0 0 24 24"><rect x="2" y="8" width="8.5" height="8" rx="1.5"/><rect x="13.5" y="8" width="8.5" height="8" rx="1.5"/><path d="M10.5 12h3"/><circle cx="4.5" cy="19" r="1.3"/><circle cx="8" cy="19" r="1.3"/><circle cx="16" cy="19" r="1.3"/><circle cx="19.5" cy="19" r="1.3"/><path d="M4 5h3v3"/></svg>',
+    tower: '<svg viewBox="0 0 24 24"><rect x="6" y="17" width="12" height="4"/><rect x="6" y="12" width="12" height="4"/><rect x="10" y="7" width="12" height="4"/><rect x="6" y="2" width="12" height="4"/></svg>',
+    tag: '<svg viewBox="0 0 24 24"><path d="M8 4h11a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H8l-5-6.5L8 4Z"/><circle cx="8.5" cy="10.5" r="1"/><path d="M8.2 11.6c-2 2.4-3.6 4.6-4.6 7.4"/></svg>',
+  };
+  var NAME = { scale: 'The scale', jar: 'The jars', train: 'The train', tower: 'The tower', tag: 'Luggage tags' };
+  var ORDER = ['scale', 'jar', 'train', 'tower', 'tag'];
+
+  /* ── the store: one verdict doc per game, one JSON text per item ────── */
+  var store = {};                      // game → { id → item }
+  var loaded = {};
+  function hdrs() { return { 'Content-Type': 'application/json' }; }
+  function loadGame(game) {
+    if (loaded[game]) return Promise.resolve(store[game]);
+    return fetch('/api/chatfeed/verdict?chat=' + encodeURIComponent(CHAT) + '&sheet=hg-' + game)
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var items = {};
+        var texts = (d && d.texts) || {};
+        Object.keys(texts).forEach(function (id) {
+          try { var it = JSON.parse(texts[id]); if (it && typeof it === 'object') { it.id = id; items[id] = it; } }
+          catch (e) { /* not one of ours */ }
+        });
+        store[game] = items; loaded[game] = true;
+        return items;
+      });
+  }
+  function saveItem(game, it) {
+    var copy = {}; Object.keys(it).forEach(function (k) { if (k !== 'id') copy[k] = it[k]; });
+    var text = JSON.stringify(copy);
+    if (text.length > MAX_JSON) return Promise.reject(new Error('full'));
+    store[game] = store[game] || {}; store[game][it.id] = it;
+    return fetch('/api/chatfeed/verdict', { method: 'POST', headers: hdrs(),
+      body: JSON.stringify({ chat: CHAT, sheet: 'hg-' + game, item: it.id, text: text }) })
+      .then(function (r) { if (!r.ok) throw new Error('save failed'); return r.json(); });
+  }
+  function newId(game) { return game[0] + '-' + now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function live(game) {
+    var items = store[game] || {};
+    return Object.keys(items).map(function (k) { return items[k]; }).filter(function (it) { return !it.hidden; })
+      .sort(function (a, b) { return (b.at || 0) - (a.at || 0); });
+  }
+  function say(sel, text, bad) { var el = $(sel); if (!el) return; el.textContent = text || ''; el.classList.toggle('bad', !!bad); }
+  function failed(sel, e) { say(sel, e && e.message === 'full' ? 'This one is full.' : 'Could not save that. Try again.', true); }
+
+  /* ── views ──────────────────────────────────────────────────────────── */
+  var view = 'hub';        // hub | scale | jar | train | tower | tag
+  var open = null;         // the id of the open scale / train / tower, or null
+  var VIEWS = ['hub', 'scale', 'jar', 'train', 'tower', 'tag'];
+  function show(v, id) {
+    view = v; open = id || null;
+    VIEWS.forEach(function (k) { $('#v-' + k).hidden = k !== v; });
+    $('#back').hidden = v === 'hub';
+    $('#title').textContent = v === 'hub' ? 'Head Games' : NAME[v];
+    if (v === 'scale') { $('#scale-list').hidden = !!open; $('#scale-one').hidden = !open; }
+    if (v === 'train') { $('#train-list').hidden = !!open; $('#train-one').hidden = !open; }
+    if (v === 'tower') { $('#tower-list').hidden = !!open; $('#tower-one').hidden = !open; }
+    window.scrollTo(0, 0);
+    if (v !== 'hub') loadGame(v).then(function () { paint(); }, function () { say('#' + v + '-line', 'Could not load.', true); });
+  }
+  function back() {
+    if (!$('#sheet').hidden) { closeSheet(); return true; }
+    if (view === 'hub') return false;
+    if (open) { show(view, null); return true; }
+    show('hub'); return true;
+  }
+  $('#back').onclick = function () { back(); };
+  window.__navBack = back;   // the app's chevron steps a level before it leaves
+
+  function paint() {
+    if (view === 'scale') open ? paintScale() : paintScaleList();
+    else if (view === 'jar') paintJars();
+    else if (view === 'train') open ? paintTrain() : paintTrainList();
+    else if (view === 'tower') open ? paintTower() : paintTowerList();
+    else if (view === 'tag') paintTags();
+  }
+
+  /* ── the hub ───────────────────────────────────────────────────────── */
+  $('#hub').innerHTML = ORDER.map(function (g) {
+    return '<button class="tile" data-g="' + g + '"><span class="ic">' + ICON[g] + '</span><span class="nm">' + esc(NAME[g]) + '</span></button>';
+  }).join('');
+  Array.prototype.forEach.call(document.querySelectorAll('#hub .tile'), function (b) {
+    b.onclick = function () { show(b.dataset.g); };
+  });
+
+  /* ── the sheet ─────────────────────────────────────────────────────── */
+  function openSheet(html, wire) {
+    $('#sheetbody').innerHTML = html; $('#sheet').hidden = false;
+    if (wire) wire($('#sheetbody'));
+    var f = $('#sheetbody input.f, #sheetbody textarea.f'); if (f) setTimeout(function () { f.focus(); }, 60);
+  }
+  function closeSheet() { $('#sheet').hidden = true; $('#sheetbody').innerHTML = ''; }
+  $('#sheet').onclick = function (ev) { if (ev.target === $('#sheet')) closeSheet(); };
+  // "make a new one" sheets share a shape: one field, one button
+  function askNew(label, button, done) {
+    openSheet('<label class="f" for="nf">' + esc(label) + '</label><input class="f" id="nf" autocomplete="off">'
+      + '<div class="row end"><button id="ngo" class="small">' + esc(button) + '</button></div>', function (box) {
+        var go = function () { var v = R.norm(box.querySelector('#nf').value); if (!v) return; closeSheet(); done(v); };
+        box.querySelector('#ngo').onclick = go;
+        box.querySelector('#nf').onkeydown = function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); go(); } };
+      });
+  }
+  function listButton(label) { return '<div class="row" style="margin:0 0 10px"><button class="small lnew">' + esc(label) + '</button></div>'; }
+
+  /* ═══ THE SCALE ══════════════════════════════════════════════════════ */
+  var rside = 'pro', rw = 1, tilt = 0, tiltRaf = null;
+  function paintScaleList() {
+    var rows = live('scale');
+    $('#scale-list').innerHTML = listButton('A decision') + rows.map(function (s) {
+      var rep = R.weigh(s.pros, s.cons, s.placed);
+      var sub = rep.placedCount ? (rep.leans === 'level' ? 'level' : 'tipped ' + (rep.leans === 'pro' ? 'for' : 'against'))
+        + ' · ' + rep.left + ' for, ' + rep.right + ' against' : (s.pros.length + s.cons.length) + ' reasons, not weighed';
+      return '<button class="lrow" data-id="' + s.id + '">' + esc(s.title) + '<small>' + esc(sub) + '</small></button>';
+    }).join('');
+    $('#scale-list .lnew').onclick = function () {
+      askNew('The decision', 'Start', function (title) {
+        var s = { id: newId('scale'), title: title, pros: [], cons: [], placed: [], at: now() };
+        saveItem('scale', s).then(function () { show('scale', s.id); }, function (e) { failed('#scale-line', e); });
+      });
+    };
+    Array.prototype.forEach.call(document.querySelectorAll('#scale-list .lrow'), function (b) {
+      b.onclick = function () { show('scale', b.dataset.id); };
+    });
+  }
+  function scaleDoc() { return store.scale && store.scale[open]; }
+  function paintScale() {
+    var s = scaleDoc(); if (!s) { show('scale'); return; }
+    var rep = R.weigh(s.pros, s.cons, s.placed);
+    var placedKey = {}; rep.steps.forEach(function (st, k) { placedKey[st.side + ':' + st.i] = k; });
+    var col = function (side, list) {
+      return list.map(function (r, i) {
+        var k = placedKey[side + ':' + i];
+        var on = k !== undefined;
+        var cls = 'rz ' + side + (on ? ' placed' : '') + (on && k === rep.decidedAt && rep.leans !== 'level' ? ' decided' : '');
+        var w = R.blocks(r.w), dots = ''; for (var d = 0; d < w; d++) dots += '<i></i>';
+        return '<button class="' + cls + '" data-side="' + side + '" data-i="' + i + '"' + (on ? ' disabled' : '') + '>'
+          + '<span class="w">' + dots + '</span><span>' + esc(r.text) + '</span></button>';
+      }).join('');
+    };
+    $('#pros').innerHTML = col('pro', s.pros);
+    $('#cons').innerHTML = col('con', s.cons);
+    Array.prototype.forEach.call(document.querySelectorAll('.rz:not([disabled])'), function (b) {
+      b.onclick = function () { place(b.dataset.side, Number(b.dataset.i)); };
+    });
+    say('#scale-line', R.scaleLine(rep));
+    drawScale(rep, true);
+    paintBlocks();
+    $('#sreset').disabled = !rep.placedCount;
+  }
+  function place(side, i) {
+    var s = scaleDoc(); if (!s) return;
+    s.placed = (s.placed || []).concat([{ side: side, i: i }]);
+    s.at = now();
+    saveItem('scale', s).then(paintScale, function (e) { failed('#scale-line', e); });
+    paintScale();
+  }
+  $('#sreset').onclick = function () {
+    var s = scaleDoc(); if (!s) return;
+    s.placed = []; s.at = now();
+    saveItem('scale', s).then(paintScale, function (e) { failed('#scale-line', e); });
+    paintScale();
+  };
+  $('#shide').onclick = function () {
+    var s = scaleDoc(); if (!s) return;
+    s.hidden = true; saveItem('scale', s).then(function () { show('scale'); }, function (e) { failed('#scale-line', e); });
+  };
+  function paintBlocks() {
+    var h = ''; for (var i = 1; i <= R.MAX_W; i++) h += '<button data-w="' + i + '" aria-label="' + i + '"><b' + (i <= rw ? ' class="lit"' : '') + '></b></button>';
+    $('#rw').innerHTML = h;
+    Array.prototype.forEach.call(document.querySelectorAll('#rw button'), function (b) { b.onclick = function () { rw = Number(b.dataset.w); paintBlocks(); }; });
+    Array.prototype.forEach.call(document.querySelectorAll('#rside button'), function (b) { b.classList.toggle('on', b.dataset.s === rside); });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('#rside button'), function (b) { b.onclick = function () { rside = b.dataset.s; paintBlocks(); }; });
+  function addReason() {
+    var s = scaleDoc(); if (!s) return;
+    var t = R.norm($('#rtext').value); if (!t) return;
+    var list = rside === 'pro' ? s.pros : s.cons;
+    if (list.length >= 30) { say('#scale-line', 'That side is full.', true); return; }
+    list.push({ text: t.slice(0, 160), w: rw });
+    s.at = now(); $('#rtext').value = '';
+    saveItem('scale', s).then(paintScale, function (e) { list.pop(); failed('#scale-line', e); paintScale(); });
+    paintScale();
+  }
+  $('#radd').onclick = addReason;
+  $('#rtext').onkeydown = function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); addReason(); } };
+
+  // THE DRAWING. A post, a beam that turns by the report's tilt, two pans
+  // hanging level from its ends, and the blocks she placed stacked on each
+  // pan — 8 to a row, four rows, then a count. The beam is TWEENED to the
+  // new angle so she sees it tip.
+  var PX = 170, PY = 62, HALF = 122, STR = 46, PANW = 74, B = 8, PER = 8, ROWS = 4;
+  function drawScale(rep, animate) {
+    var target = rep.tilt;
+    if (tiltRaf) cancelAnimationFrame(tiltRaf);
+    if (!animate) { tilt = target; return renderScale(rep, tilt); }
+    var from = tilt, t0 = null;
+    var step = function (ts) {
+      if (t0 === null) t0 = ts;
+      var p = Math.min(1, (ts - t0) / 520);
+      var e = 1 - Math.pow(1 - p, 3);                 // ease out
+      tilt = from + (target - from) * e;
+      renderScale(rep, tilt);
+      if (p < 1) tiltRaf = requestAnimationFrame(step); else tiltRaf = null;
+    };
+    tiltRaf = requestAnimationFrame(step);
+  }
+  function renderScale(rep, deg) {
+    var a = deg * Math.PI / 180;
+    var rx = PX + HALF * Math.cos(a), ry = PY + HALF * Math.sin(a);
+    var lx = PX - HALF * Math.cos(a), ly = PY - HALF * Math.sin(a);
+    var pan = function (cx, top, n, cls) {
+      var h = '<line class="str" x1="' + cx.toFixed(1) + '" y1="' + (top - STR).toFixed(1) + '" x2="' + cx.toFixed(1) + '" y2="' + top.toFixed(1) + '"/>';
+      h += '<path class="pan" d="M' + (cx - PANW / 2).toFixed(1) + ' ' + top.toFixed(1) + ' q ' + (PANW / 2) + ' 10 ' + PANW + ' 0"/>';
+      var shown = Math.min(n, PER * ROWS);
+      for (var k = 0; k < shown; k++) {
+        var row = Math.floor(k / PER), colk = k % PER;
+        var x = cx - PANW / 2 + 1 + colk * (B + 1.2), y = top - 2 - (row + 1) * (B + 1);
+        h += '<rect class="bk ' + cls + '" x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + B + '" height="' + B + '" rx="1"/>';
+      }
+      if (n > shown) h += '<text class="more" x="' + (cx + PANW / 2 + 4).toFixed(1) + '" y="' + (top - 4).toFixed(1) + '">+' + (n - shown) + '</text>';
+      return h;
+    };
+    var h = '<line class="post" x1="' + PX + '" y1="' + PY + '" x2="' + PX + '" y2="196"/>'
+      + '<line class="post" x1="120" y1="200" x2="220" y2="200"/>'
+      + '<line class="beam" x1="' + lx.toFixed(1) + '" y1="' + ly.toFixed(1) + '" x2="' + rx.toFixed(1) + '" y2="' + ry.toFixed(1) + '"/>'
+      + '<circle cx="' + PX + '" cy="' + PY + '" r="4" fill="var(--paper)" stroke="var(--ink)" stroke-width="2.5"/>'
+      + pan(lx, ly + STR, rep.left, 'pro') + pan(rx, ry + STR, rep.right, 'con')
+      + '<text class="side" x="' + (lx - 12).toFixed(1) + '" y="212" text-anchor="middle">FOR</text>'
+      + '<text class="side" x="' + (rx + 12).toFixed(1) + '" y="212" text-anchor="middle">AGAINST</text>';
+    $('#scalesvg').innerHTML = h;
+  }
+
+  /* ═══ THE JARS ═══════════════════════════════════════════════════════ */
+  function paintJars() {
+    var jars = R.jarOrder(live('jar'));
+    var shelf = R.jarShelf(jars, now());
+    $('#jar-count').textContent = jars.length ? (shelf.shut + ' shut' + (shelf.longest ? ' · longest ' + shelf.longestDays + 'd' : '')) : '';
+    $('#jars').innerHTML = jars.map(function (j) {
+      var days = R.jarDays(j, now());
+      var sub = j.openedAt ? 'opened' : days ? 'shut ' + days + 'd' : 'shut today';
+      return '<button class="jar' + (j.openedAt ? ' open' : '') + '" data-id="' + j.id + '">'
+        + '<svg viewBox="0 0 100 118"><path class="glass" d="M30 24h40v6c8 5 12 12 12 21v42a12 12 0 0 1-12 12H30a12 12 0 0 1-12-12V51c0-9 4-16 12-21Z"/>'
+        + '<rect class="lid" x="26" y="10" width="48" height="12" rx="3"/></svg>'
+        + '<span class="qt">' + esc(j.q) + '</span><small>' + esc(sub) + '</small></button>';
+    }).join('');
+    Array.prototype.forEach.call(document.querySelectorAll('#jars .jar'), function (b) {
+      b.onclick = function () { openJar(b.dataset.id); };
+    });
+  }
+  $('#jar-add').onclick = function () {
+    askNew('The question', 'Shut it', function (q) {
+      var j = { id: newId('jar'), q: q.slice(0, 200), shutAt: now(), openedAt: null, answer: '', at: now() };
+      saveItem('jar', j).then(paintJars, function (e) { failed('#jar-count', e); });
+      paintJars();
+    });
+  };
+  function openJar(id) {
+    var j = store.jar && store.jar[id]; if (!j) return;
+    var days = R.jarDays(j, now());
+    var when = function (ms) { return new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); };
+    var html = '<p class="q">' + esc(j.q) + '</p>';
+    if (j.openedAt) {
+      html += '<div class="line">Shut ' + when(j.shutAt) + ', opened ' + when(j.openedAt) + ' · ' + days + (days === 1 ? ' day' : ' days') + '</div>'
+        + '<p>' + esc(j.answer || '') + '</p>'
+        + '<div class="row end"><button class="small quiet" id="jput">Put it away</button></div>';
+    } else {
+      html += '<div class="line">Shut ' + when(j.shutAt) + ' · ' + days + (days === 1 ? ' day' : ' days') + '</div>'
+        + '<label class="f" for="jans">What you found out</label><textarea class="f" id="jans"></textarea>'
+        + '<div class="row end"><button class="small quiet" id="jput">Put it away</button><button class="small" id="jopen">Take the lid off</button></div>';
+    }
+    openSheet(html, function (box) {
+      var put = box.querySelector('#jput');
+      put.onclick = function () { j.hidden = true; j.at = now(); closeSheet(); saveItem('jar', j).then(paintJars, function (e) { failed('#jar-count', e); }); paintJars(); };
+      var o = box.querySelector('#jopen');
+      if (o) o.onclick = function () {
+        j.answer = R.norm(box.querySelector('#jans').value).slice(0, 600); j.openedAt = now(); j.at = now();
+        closeSheet(); saveItem('jar', j).then(paintJars, function (e) { failed('#jar-count', e); }); paintJars();
+      };
+    });
+  }
+
+  /* ═══ THE TRAIN ══════════════════════════════════════════════════════ */
+  function paintTrainList() {
+    var rows = live('train');
+    $('#train-list').innerHTML = listButton('A train') + rows.map(function (t) {
+      var r = R.trainRoute(t);
+      return '<button class="lrow" data-id="' + t.id + '">' + esc(r.end) + '<small>' + esc(r.atStation ? 'from "' + r.start + '" · ' + r.cars + ' cars' : r.cars + (r.cars === 1 ? ' car' : ' cars') + ', still walking back') + '</small></button>';
+    }).join('');
+    $('#train-list .lnew').onclick = function () {
+      askNew('Where you ended up', 'Start', function (text) {
+        var t = { id: newId('train'), cars: [text.slice(0, 160)], stationAt: null, at: now() };
+        saveItem('train', t).then(function () { show('train', t.id); }, function (e) { failed('#train-line', e); });
+      });
+    };
+    Array.prototype.forEach.call(document.querySelectorAll('#train-list .lrow'), function (b) {
+      b.onclick = function () { show('train', b.dataset.id); };
+    });
+  }
+  function trainDoc() { return store.train && store.train[open]; }
+  function paintTrain() {
+    var t = trainDoc(); if (!t) { show('train'); return; }
+    var r = R.trainRoute(t);
+    $('#train-add').hidden = r.atStation;
+    var h = '';
+    if (r.atStation) h += '<div class="station">Station</div>';
+    r.route.forEach(function (c, i) {
+      var last = i === r.route.length - 1;
+      h += (i ? '<div class="coup"></div>' : '') + '<div class="car' + (last ? ' last' : '') + '">' + (i === 0 && r.atStation ? '<span class="engine"></span>' : '') + esc(c) + '</div>';
+    });
+    $('#trainline').innerHTML = h;
+    say('#train-line', R.trainLine(t));
+  }
+  function coupleCar() {
+    var t = trainDoc(); if (!t) return;
+    var v = R.norm($('#ctext').value); if (!v) return;
+    if (t.cars.length >= 40) { say('#train-line', 'That is a long train. Start another.', true); return; }
+    t.cars.push(v.slice(0, 160)); t.at = now(); $('#ctext').value = '';
+    saveItem('train', t).then(paintTrain, function (e) { t.cars.pop(); failed('#train-line', e); paintTrain(); });
+    paintTrain();
+  }
+  $('#cadd').onclick = coupleCar;
+  $('#ctext').onkeydown = function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); coupleCar(); } };
+  $('#cstation').onclick = function () {
+    var t = trainDoc(); if (!t) return;
+    var v = R.norm($('#ctext').value);
+    if (v && t.cars.length < 40) { t.cars.push(v.slice(0, 160)); $('#ctext').value = ''; }
+    t.stationAt = now(); t.at = now();
+    saveItem('train', t).then(paintTrain, function (e) { failed('#train-line', e); });
+    paintTrain();
+  };
+  $('#thide').onclick = function () {
+    var t = trainDoc(); if (!t) return;
+    t.hidden = true; saveItem('train', t).then(function () { show('train'); }, function (e) { failed('#train-line', e); });
+  };
+
+  /* ═══ THE TOWER ══════════════════════════════════════════════════════ */
+  var asking = -1;   // the block she just pulled, waiting on "does it still stand?"
+  function paintTowerList() {
+    var rows = live('tower');
+    $('#tower-list').innerHTML = listButton('A tower') + rows.map(function (w) {
+      var rep = R.towerReport(w.blocks);
+      return '<button class="lrow" data-id="' + w.id + '">' + esc(w.belief) + '<small>' + esc(rep.total + (rep.total === 1 ? ' block' : ' blocks') + (rep.loadBearing.length ? ' · ' + rep.loadBearing.length + ' load-bearing' : '')) + '</small></button>';
+    }).join('');
+    $('#tower-list .lnew').onclick = function () {
+      askNew('The belief', 'Start', function (text) {
+        var w = { id: newId('tower'), belief: text.slice(0, 160), blocks: [], at: now() };
+        saveItem('tower', w).then(function () { show('tower', w.id); }, function (e) { failed('#tower-line', e); });
+      });
+    };
+    Array.prototype.forEach.call(document.querySelectorAll('#tower-list .lrow'), function (b) {
+      b.onclick = function () { show('tower', b.dataset.id); };
+    });
+  }
+  function towerDoc() { return store.tower && store.tower[open]; }
+  function paintTower() {
+    var w = towerDoc(); if (!w) { show('tower'); return; }
+    // column-reverse: the first block is the foundation, the newest on top
+    var h = '<div class="ground"></div>';
+    w.blocks.forEach(function (b, i) {
+      var cls = 'blk' + (b.pulled ? ' pulled' : '') + (b.stood === false ? ' load' : b.stood === true ? ' stands' : '');
+      var mk = b.stood === false ? 'load-bearing' : b.stood === true ? 'stands' : '';
+      h += '<button class="' + cls + '" data-i="' + i + '">' + esc(b.text) + (mk ? '<span class="mk">' + mk + '</span>' : '') + '</button>';
+      if (i === asking) h += '<div id="ask"><span>Does it still stand?</span><button class="small" data-a="1">Yes</button><button class="small" data-a="0">No</button></div>';
+    });
+    h += '<div class="belief">' + esc(w.belief) + '</div>';
+    $('#tower').innerHTML = h;
+    Array.prototype.forEach.call(document.querySelectorAll('#tower .blk'), function (b) {
+      b.onclick = function () { pullBlock(Number(b.dataset.i)); };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('#ask button'), function (b) {
+      b.onclick = function (ev) { ev.stopPropagation(); answerBlock(b.dataset.a === '1'); };
+    });
+    say('#tower-line', R.towerLine(w.blocks));
+  }
+  function pullBlock(i) {
+    var w = towerDoc(); if (!w) return;
+    var b = w.blocks[i]; if (!b) return;
+    if (b.pulled) { b.pulled = false; if (asking === i) asking = -1; }   // push it back in; the answer is kept
+    else { b.pulled = true; asking = i; }
+    w.at = now();
+    saveItem('tower', w).then(paintTower, function (e) { failed('#tower-line', e); });
+    paintTower();
+  }
+  function answerBlock(stood) {
+    var w = towerDoc(); if (!w || asking < 0) return;
+    var b = w.blocks[asking]; if (!b) return;
+    b.stood = stood; asking = -1; w.at = now();
+    saveItem('tower', w).then(paintTower, function (e) { failed('#tower-line', e); });
+    paintTower();
+  }
+  function addBlock() {
+    var w = towerDoc(); if (!w) return;
+    var v = R.norm($('#btext').value); if (!v) return;
+    if (w.blocks.length >= 20) { say('#tower-line', 'That tower is tall enough.', true); return; }
+    w.blocks.push({ text: v.slice(0, 160), pulled: false, stood: null }); w.at = now(); $('#btext').value = '';
+    saveItem('tower', w).then(paintTower, function (e) { w.blocks.pop(); failed('#tower-line', e); paintTower(); });
+    paintTower();
+  }
+  $('#badd').onclick = addBlock;
+  $('#btext').onkeydown = function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); addBlock(); } };
+  $('#whide').onclick = function () {
+    var w = towerDoc(); if (!w) return;
+    w.hidden = true; saveItem('tower', w).then(function () { show('tower'); }, function (e) { failed('#tower-line', e); });
+  };
+
+  /* ═══ LUGGAGE TAGS ═══════════════════════════════════════════════════ */
+  function paintTags() {
+    var tags = live('tag');
+    var groups = R.tagGroups(tags);
+    say('#tag-line', R.tagLine(tags));
+    $('#tagwall').innerHTML = groups.map(function (g) {
+      return '<div class="who"><h2>' + esc(g.name) + '</h2><small>' + g.count + '</small></div><div class="tags">'
+        + g.tags.map(function (t) { return '<button class="tag" data-id="' + t.id + '">' + esc(t.opinion) + '</button>'; }).join('') + '</div>';
+    }).join('');
+    // the names she has used before, as chips that fill the box — her own
+    // words, never an example
+    $('#names').innerHTML = groups.filter(function (g) { return g.key; }).map(function (g) {
+      return '<button class="quiet" data-n="' + esc(g.name) + '">' + esc(g.name) + '</button>';
+    }).join('');
+    Array.prototype.forEach.call(document.querySelectorAll('#names button'), function (b) {
+      b.onclick = function () { $('#ftext').value = b.dataset.n; };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('#tagwall .tag'), function (b) {
+      b.onclick = function () { openTag(b.dataset.id); };
+    });
+  }
+  function addTag() {
+    var o = R.norm($('#otext').value); if (!o) return;
+    var f = R.norm($('#ftext').value);
+    var t = { id: newId('tag'), opinion: o.slice(0, 200), from: f.slice(0, 60), at: now() };
+    $('#otext').value = '';
+    saveItem('tag', t).then(paintTags, function (e) { failed('#tag-line', e); });
+    paintTags();
+  }
+  $('#tadd').onclick = addTag;
+  $('#ftext').onkeydown = function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); addTag(); } };
+  function openTag(id) {
+    var t = store.tag && store.tag[id]; if (!t) return;
+    openSheet('<p class="q">' + esc(t.opinion) + '</p><div class="line">' + esc(t.from || 'no name') + '</div>'
+      + '<label class="f" for="tfrom">Who handed it to you</label><input class="f" id="tfrom" value="' + esc(t.from || '') + '">'
+      + '<div class="row end"><button class="small quiet" id="tput">Put it away</button><button class="small" id="tsave">Keep</button></div>', function (box) {
+        box.querySelector('#tput').onclick = function () { t.hidden = true; t.at = now(); closeSheet(); saveItem('tag', t).then(paintTags, function (e) { failed('#tag-line', e); }); paintTags(); };
+        box.querySelector('#tsave').onclick = function () { t.from = R.norm(box.querySelector('#tfrom').value).slice(0, 60); closeSheet(); saveItem('tag', t).then(paintTags, function (e) { failed('#tag-line', e); }); paintTags(); };
+      });
+  }
+
+  /* ── the "?" — the only words about the games ───────────────────────── */
+  window.__compareHelp({ html: '<b>Head Games.</b> Little games we play in our head, each one a shape for '
+    + 'stray bits that usually just float. Nothing here judges anything; the shape just shows what is in it.<br><br>'
+    + '<b>The scale</b> — pros and cons. Decide how many blocks each reason weighs, then tap them on one at a '
+    + 'time and watch it tip. The line names the block that did it.<br>'
+    + '<b>The jars</b> — things you wondered and never looked up. The question goes on the lid; the lid comes off when you find out.<br>'
+    + '<b>The train</b> — how did I get to thinking about this? Couple on each "before that" until you reach the station it left from.<br>'
+    + '<b>The tower</b> — why you believe a thing. Each reason is a block; pull one and say whether it still stands.<br>'
+    + '<b>Luggage tags</b> — where an opinion came from. Every opinion wears the name of who handed it to you.' });
+  window.__compareNotes({ chat: CHAT, sheet: 'hg-page' });
+
+  show('hub');
+})();
+</script>

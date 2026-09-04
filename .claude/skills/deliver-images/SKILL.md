@@ -138,3 +138,21 @@ are the only chat that can honestly file what it finds.
   start delivered 135 pictures ignoring every ask she had left. "No notes yet"
   means NOT YET. A note on a FILM never shows in `GET /api/gallery/assets`
   either; only `/notes` sees it.
+
+## The file carries its own prompt (2026-09-03)
+
+A picture the server draws is stamped at birth — its whole prompt, both halves
+and the MODEL · QUALITY · SIZE caption ride inside the webp as XMP, and
+`POST /api/gallery` reads them back off a file that arrives with nothing filed.
+A picture you draw in YOUR OWN CONTAINER is not, unless you do it:
+
+- `scripts/post-to-gallery.js --file … --prompt … --full … --model … --quality
+  … --size …` stamps on the way up. Nothing more to do.
+- Uploading any other way? Stamp FIRST:
+  `node scripts/stamp-prompt.js <file> --full "<exact text sent>" --content
+  "<her words>" [--style "<wrapper with [content]>"] --model gpt-image-2
+  --quality medium --size 1536x2304`. `--read` prints what a file carries.
+
+Exact text only — the packet is the same record as the doc, and a paraphrase
+in the file is worse than an empty one. This does NOT replace the filing
+ritual above; it is what makes the filing survive a copy.

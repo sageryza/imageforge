@@ -107,7 +107,7 @@ const COLOR_CLAUSE = 'You can choose your own colors rather than copying the '
 
 // Called by server.js once PL_GPT_STYLES exists (it is defined long after the
 // mount, so this cannot be a require).
-function init({ gptStyles, fileCreation } = {}) {
+function init({ gptStyles, fileCreation, syncVoteToAssets } = {}) {
   // My Creations filing (2026-08-28, Sophie: "i wanna make sure every picture
   // I've ever created can be found"). Freeform never filed its outputs at all
   // — 27 finished pictures were invisible in Meta Assets until the coverage
@@ -115,6 +115,8 @@ function init({ gptStyles, fileCreation } = {}) {
   // pattern); wired BEFORE the style check, because the boiler style being
   // unavailable must not also turn the filing off.
   if (typeof fileCreation === 'function') fileCreationFn = fileCreation;
+  // The ♥/✕ sync onto the Assets tab (see the vote route) — same reasoning.
+  if (typeof syncVoteToAssets === 'function') syncVoteToAssetsFn = syncVoteToAssets;
   const st = (gptStyles && gptStyles[BOILER_STYLE]) || null;
   if (!st) return;
   const prefix = String(st.prefix || '');
@@ -151,7 +153,9 @@ router.use((req, res, next) => {
 // Reference images arrive as data URLs, so the body can be large.
 router.use(express.json({ limit: '60mb' }));
 
-async function put(buf, path, contentType) {
+async function put(buf, path, contentType, stamp) {
+  // `stamp` = the prompt fields written INTO the file (image-meta.js)
+  if (stamp) buf = require('./image-meta').stamp(buf, stamp);
   const file = bucket().file(path);
   await file.save(buf, { metadata: { contentType, cacheControl: 'public, max-age=31536000, immutable' }, resumable: false });
   await file.makePublic();
@@ -241,7 +245,7 @@ async function fileRunImages(id) {
 // Fire-and-forget: the request has already been answered by the time this runs.
 // Each output lands on the doc as it finishes, so the grid fills in as they
 // arrive and one failed call costs its image, not the run.
-async function render(id, { prompt, refUrls, quality, size, outputs }) {
+async function render(id, { prompt, refUrls, quality, size, outputs, stamp }) {
   const doc = db().collection(RUNS).doc(id);
   try {
     const buffers = [];
@@ -251,7 +255,7 @@ async function render(id, { prompt, refUrls, quality, size, outputs }) {
     await Promise.all(Array.from({ length: outputs }, (_, i) => (async () => {
       try {
         const buf = await draw(prompt, buffers, { quality, size });
-        const url = await put(buf, `freeform/out/${id}-${i + 1}.webp`, 'image/webp');
+        const url = await put(buf, `freeform/out/${id}-${i + 1}.webp`, 'image/webp', stamp);
         images.push(url);
         await doc.set({ images, status: 'ready' }, { merge: true });
       } catch (e) { firstErr = firstErr || e; }
@@ -396,7 +400,11 @@ router.post('/run', async (req, res) => {
       model: 'gpt-image-2', status: 'drawing', images: [], createdAt: Date.now(),
     };
     await ref.set(doc);
-    render(ref.id, { prompt: sent, refUrls, quality, size, outputs });   // deliberately not awaited
+    render(ref.id, { prompt: sent, refUrls, quality, size, outputs, stamp: {
+      fullPrompt: promptRec.fullPrompt || sent, promptStyle: promptRec.promptStyle || '',
+      promptContent: promptRec.promptContent || prompt, model: 'gpt-image-2', quality, canvas: size,
+      size: require('./size-tier').captionSize(size),
+    } });   // deliberately not awaited
     res.json({ ok: true, id: ref.id, status: 'drawing', poll: `/api/freeform/run/${ref.id}` });
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
@@ -439,4 +447,59 @@ router.delete('/run/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
 
-module.exports = { router, SIZES, QUALITIES, refOrder, BOILER, boilerFields, stuckPatch, STUCK_MS, init, fileRunImages };
+// ── ♥ / ✕ (2026-09-04, Sophie: "freeform has no heart x?") ─────────────────
+// The Playground's pattern brought over whole: one mark per PICTURE, keyed by
+// its index into `images` on the run's own doc (`votes.{i}`), tapping the lit
+// one clears it, and the same three values the Assets tab uses so the two can
+// be compared without translating.
+//
+// A ♥ here ALSO lands on the picture's Assets record (Meta Assets reads every
+// Freeform output through the My Creations join), and the Assets vote route
+// calls `voteFromAssets` back the other way — one direction only would leave
+// a stuck heart on whichever surface she did not tap. Both syncs are
+// best-effort: the mark she just tapped is the thing that has to land.
+// `syncVoteToAssets` is server.js's (it owns the asset-vote docs and the
+// my-creations rule), handed in at init like the boiler style.
+function voteValue(v) {
+  return (v === 'like' || v === 'dislike') ? v : '';
+}
+let syncVoteToAssetsFn = null;
+const OUT_URL = /\/freeform\/out\//;
+
+router.post('/run/:id/vote', async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(503).json({ error: 'storage unavailable' });
+    const b = req.body || {};
+    const i = Number(b.image);
+    if (!Number.isInteger(i) || i < 0 || i >= MAX_OUTPUTS) {
+      return res.status(400).json({ error: `image index 0-${MAX_OUTPUTS - 1} required` });
+    }
+    const vote = voteValue(b.vote);
+    const ref = db().collection(RUNS).doc(String(req.params.id));
+    const snap = await ref.get();
+    if (!snap.exists) return res.status(404).json({ error: 'not found' });
+    await ref.update({ [`votes.${i}`]: vote || admin.firestore.FieldValue.delete() });
+    const url = ((snap.data() || {}).images || [])[i];
+    // Awaited so a reload straight after the tap reads the synced state.
+    if (url && syncVoteToAssetsFn) { try { await syncVoteToAssetsFn(url, vote || null); } catch (e) { /* best-effort */ } }
+    res.json({ ok: true, image: i, vote });
+  } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
+});
+
+// The Assets tab's own vote route calls this, so hearting a Freeform picture
+// there lights it here. Matched by url — the only key the two records share.
+async function voteFromAssets(url, vote) {
+  if (!url || !OUT_URL.test(String(url)) || !admin.apps.length) return;
+  try {
+    const snap = await db().collection(RUNS).where('images', 'array-contains', String(url)).limit(1).get();
+    if (snap.empty) return;
+    const doc = snap.docs[0];
+    const i = ((doc.data() || {}).images || []).indexOf(String(url));
+    if (i < 0) return;
+    const v = voteValue(vote);
+    await doc.ref.update({ [`votes.${i}`]: v || admin.firestore.FieldValue.delete() });
+  } catch (e) { /* best-effort */ }
+}
+
+module.exports = { router, SIZES, QUALITIES, refOrder, BOILER, boilerFields, stuckPatch, STUCK_MS, init,
+  fileRunImages, voteFromAssets, voteValue, OUT_URL };

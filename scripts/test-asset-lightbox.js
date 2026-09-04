@@ -105,6 +105,27 @@ window.__open = function () {
     ok(`${f} builds no lightbox of its own`,
       !/id="lightbox"|id="lb"[ >]|id="lbimg"/.test(src));
   }
+  // ── TAP TO NEXT IS EVERYWHERE A PICTURE HAS A NEXT (2026-09-03, Sophie:
+  //    "is tap to next everywhere"). It was not: five surfaces stepped and
+  //    three did not, and each gap was invisible from inside its own file.
+  //    Every surface that opens a FEED of pictures hands over the `nav` hook;
+  //    the two that open ONE picture honestly draw no zones. A new picture
+  //    surface joins this sweep by linking the file above.
+  const walks = {
+    'chats.html': true,        // the Assets tab AND the Delivered strip
+    'assets.html': true,       // Meta Assets
+    'promptlab.html': true,    // the Playground
+    'scratchpad.html': true,   // the Story Room's past pictures
+    'freeform.html': true,     // a run's outputs
+    'character.html': true,    // the sheet
+    'asset-view.js': true,     // Compare grid pages (grid.js hands it a seq)
+  };
+  for (const f of Object.keys(walks)) {
+    const src = fs.readFileSync(path.join(PUB, f), 'utf8');
+    ok(`${f} hands the lightbox a nav hook`, /\bnav\s*[:=]\s*\{/.test(src));
+  }
+  ok('grid.js tells the adapter what order the page is in', /seq:\s*function/
+    .test(fs.readFileSync(path.join(PUB, 'grid.js'), 'utf8')));
 }
 
 (async () => {

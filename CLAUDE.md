@@ -74,6 +74,29 @@ The numbers are measured, not guessed.
    `node scripts/film-shots-detect.js --film <url> --chat <slug>` (dry; add
    `--go`). Full rules: *THE PROMPT ON A PAUSED FILM* in the Chats section.
 
+3h. **FIXED A BUG? LINK HER TO WHERE SHE CAN SEE IT — EXAMPLES, NOT A PR
+   (2026-09-03, Sophie: "link me to examples that showcase changes · make this
+   a rule for bug fixes").** A bug fix is described in words and checked with
+   her eyes, so the reply that reports one ends with the **exact surface the
+   fix shows on**, full clickable url — the page, the chat's tab, the deck,
+   the tool — and one short line per link saying what to look at ("the header
+   is gone on the swipe view"). On her phone an ordinary page url opens the
+   app on that tool, so nothing about the link has to look special.
+   - **REAL, CURRENT EXAMPLES, and more than one when the fix touches a
+     shared thing.** A fix to a shared page kit reaches every page built on
+     it, so link two or three she actually uses (the one she reported FIRST),
+     read live rather than remembered — a link to a superseded page or a
+     deleted deck is worse than no link.
+   - **SAY WHETHER IT IS LIVE.** A link to an undeployed fix shows her the
+     OLD thing, which reads as the fix not working. Deploy first when she has
+     said to, or write in one line that the link shows the change once it is
+     deployed (the *ASK BEFORE YOU DEPLOY* rule is unchanged).
+   - **THE PR IS NOT THE LINK.** It is the record and it still goes at the
+     bottom; it is not a place she can see anything.
+   - **Nothing to point at?** Say so plainly — a fix to a script, a hook or a
+     server rule may have no surface, and inventing one is worse than the
+     sentence.
+
 **When the work WRAPS UP (not every turn)**
 3b. **Leave a WRAP-UP** — `POST /api/chatfeed/wrapup {chat, session, line,
    asked, did, next}`. It is **her three questions, ONE SENTENCE EACH** (Aug
@@ -122,6 +145,13 @@ The numbers are measured, not guessed.
    knows. Say the quality as a word in the reply too, not "the default".
 6. **Post the EXACT prompt**, split style / content — never a paraphrase. No
    exact text on hand? File nothing.
+6a. **THE PROMPT RIDES INSIDE THE FILE (2026-09-03, Sophie: "could the prompt
+   it was made from be filed as metadata w pictures").** Every picture the
+   SERVER draws is stamped at birth by itself. A picture you draw in YOUR
+   OWN CONTAINER is stamped by `scripts/post-to-gallery.js --file` on the way
+   up, or by `node scripts/stamp-prompt.js <file> --full "…" --content "…"
+   --model … --quality … --size …` BEFORE any other upload. Exact text only.
+   Full rule: *THE PROMPT RIDES INSIDE THE PICTURE FILE* in Design rules.
 7. **If you added ANYTHING to a prompt she gave you, say so, word for word.**
 8. Run `node scripts/sweep-asset-captions.js --chat <your slug>` before you
    finish. It is read-only and it names what you missed.
@@ -180,6 +210,8 @@ on its own line and answer under it — otherwise never echo a question back**
 question, short answer · **asking HER something? plain text, never the
 questions/option-picker UI** (2026-08-28, her rule) · full clickable links · no markdown tables · times in 12-hour
 Pacific · files and images LAST · working links at the very bottom ·
+**fixed a bug? the last thing in the reply is a link to the surface it shows
+on** (3h) ·
 **briefing her on OTHER chats? every chat you name gets a
 `/chats?chat=<slug>` link back to it at the bottom** (see *BRIEFING HER ON
 OTHER CHATS* in Design rules).
@@ -3088,12 +3120,20 @@ them off the reference sheet, not off the old filenames.
   - **THE DOOR IS A SIFTER, NOT A WORD (2026-09-02, Sophie: "make it the
     button an icon of a flour filter").** Lucide `funnel` at the house 1.8
     stroke, in a rounded square at the house 6px — never a circle, never a
-    pill. **The state still rides BESIDE the glyph while the drawer is shut**
-    ("♥ only · High"), because a filter she cannot see must never be one she
-    has forgotten she set; the chip stays LIT either way, which with the word
-    gone is the only thing saying something is narrowed once the drawer is
-    open. The name lives on the `aria-label` and the `title`, so nothing is
+    pill. The name lives on the `aria-label` and the `title`, so nothing is
     lost to a screen reader.
+  - **AND IT COUNTS, IT DOES NOT SPELL (2026-09-02, her next screenshot of
+    "NO ✕ · ♥ ONLY" wrapped onto a line of its own: "this looks awk" ·
+    "change to # of filters" · "not red").** A digit beside the glyph — open
+    AND shut, so the button is a fixed width and never appears and disappears
+    under her. Spelling the filters out grew the door by however long her
+    words happened to be, and two of them pushed the search box onto a second
+    row; the words are one tap away on the rows below. **LIT IS THE INK, NOT
+    THE ACCENT** — the rose belongs to the chips INSIDE that really are her ♥
+    and her picks; this is a door, and dark against the row's grey says
+    "something is on" without shouting it from the calmest strip on the page.
+    Pinned by a MEASUREMENT of what really renders (a class name says nothing
+    about a colour).
   - **WHAT THE SHELL OWNS: the shape.** The chip; the drawer SHUT until she
     taps it; the chip WEARING the state while it is shut and staying lit
     either way; the aimed three-way toggle and the word that clears it; the
@@ -3113,10 +3153,24 @@ them off the reference sheet, not off the old filenames.
     what comparing a ladder actually looks like. Tapping the lit chip clears
     it, so no row needs a second "off" control.
   - **WHERE IT IS: the Playground, Meta Assets, a chat's own Assets tab, and
-    the Chats search (both boxes).** Three rows on the picture surfaces —
-    **Marks** (the ♥/✕ pair, or New · ♥ · Hide ✕ where those three were
-    already exclusive), **Quality**, **When** (Today · This week · This month,
-    days back from now — "since Sunday" would cut a working night in half).
+    the Chats search (both boxes).** Two rows on the picture surfaces —
+    **Quality** and **When** (Today · This week · This month, days back from
+    now; "since Sunday" would cut a working night in half).
+  - **THE ♥ AND THE ✕ ARE NOT IN IT, AND THAT IS HER SECOND WORD ON IT
+    (2026-09-02: "you can put the heart x thing within the toggle" → "actually
+    put the heart x thing exactly where it was").** They rode inside the drawer
+    for a day. They are marks she CASTS on a picture, and the row above the
+    pictures is where she casts them; the drawer keeps the two things that are
+    facts about a RUN and have no other home. **Don't move them in again.**
+  - **AND ON THE PLAYGROUND THE DOOR IS ON THE CONTROLS ROW, NOT THE FEED BAR
+    (2026-09-02, she marked the spot in a screenshot: "put the filter button
+    where the pink mark was").** It drops into the gap `.gogroup`'s
+    `margin-left:auto` already makes, so Generate stays hard right and the row
+    is the width it was. **The drawer there is ABSOLUTE against `.controls`,
+    at z-index 6** — in flow the mount stretched to the drawer's width and
+    broke the row into three lines with Generate in the bottom corner
+    (PHOTOGRAPHED), and 6 is one above the feed bar's sticky 5 or the bar
+    paints over it.
   - **QUALITY IS READ OFF THE FILED MODEL · QUALITY · SIZE CAPTION** on an
     asset, because that is the only place a record carries it — which is also
     why filing that caption matters more, not less. **A picture whose caption
@@ -3273,6 +3327,19 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   Near-variant prompts (a line changed) are still only FLAGGED
   (`GET /api/gallery/assets/variants?chat=`) — filing those is the chat's
   call. Full contract in `docs/compare-pages.md` (THE STOCK TEMPLATES).
+  **PICKING BETWEEN NEAR-TWIN PICTURES? FOUR MORE PAGE FIELDS (2026-09-03,
+  Sophie's triangle review deck):** `buttons` (her words + a mark on the
+  footer's three — `x` · `heart` · `maybe` · `triangle`; the keys never
+  move), `spreadEach: true` (every picture on a spread is its own decision
+  and a no takes it OFF the spread so the rest can be compared),
+  `spreadAll: true` (a twin set of any size stays ONE card — "has to be all
+  no cap" — 2x2 for four, three across after) and `note: 'small'`. Full
+  contract in `docs/compare-pages.md`; `scripts/triangle-deck-review.js` is
+  the worked example. **AND `addsTo: 'similitude'` MAKES THE ▲ DO WHAT IT
+  SAYS** (2026-09-03, "why was that so hard"): a yes puts the card into the
+  Similitude deal — a Playground picture becomes a pool card — and a no takes
+  it out, through `triset.js reviewPlan`. A verb on a button the page cannot
+  perform is the archive-deck lesson again.
   **WORDS ON A CARD — a date, a moment, a scene — GO IN HER DATE-CARD DESIGN,
   and it is automatic (Aug 2026, her own "Decision Deck v2", built for the
   dating book).** Give a deck item any of `who` (the name — her rust, centred
@@ -3491,6 +3558,60 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     required third slot could never appear however well the builder handled it;
     `style` was asked for but only read as a fallback, so it was fetched and
     dropped. When you add a field, add it to the read as well as the write.
+- **THE PROMPT RIDES INSIDE THE PICTURE FILE — `image-meta.js` (2026-09-03,
+  Sophie: "could the prompt it was made from be filed as metadata w pictures"
+  · "would this help our recurring prompt issue?").** The whole-prompt rule
+  above stores the text on a DOC, joined to the picture by url, filename or
+  md5 — and every one of those joins breaks the moment the bytes travel (a
+  re-encoded copy, a download, a Save to Photos, a file pasted into another
+  chat). So the same fields are now written INTO the file as an XMP packet:
+  `fullPrompt` · `promptStyle` · `promptContent` · `model` · `quality` ·
+  `size` · `canvas`, plus `dc:description` = her words, which is the field
+  Photos shows as a picture's Caption.
+  - **PURE BYTE SURGERY, NEVER A RE-ENCODE.** The packet is spliced into the
+    container (a webp `XMP ` chunk behind a VP8X header, a PNG `iTXt` ahead
+    of IDAT, a JPEG APP1) and the pixel data is byte-for-byte what the model
+    returned — measured through sharp: identical raw pixels on every
+    container, ~1KB added. A lossless re-encode would have kept the pixels
+    too and cost a 4K encode on the 512MB box for nothing. Stdlib only, so
+    the test needs no node_modules. **A stamp can never fail a save**: a
+    foreign or truncated file comes back as the same buffer.
+  - **WHERE IT IS WRITTEN: every save of a picture this server draws.**
+    `saveBufferToFirebase` / `saveToFirebase` take the fields as a last
+    argument and the Playground (single, sheet, every cut panel, the LoRA
+    copies), the four `/api/generate/*` routes, Freeform, Similitude and
+    `scripts/post-to-gallery.js --file` all pass them. `node
+    scripts/test-image-meta.js` pins every site by source, so a new save
+    site fails there until it stamps. A chat drawing in ITS OWN CONTAINER
+    stamps before any other upload with `scripts/stamp-prompt.js`
+    (`--read` prints what a file carries).
+  - **WHERE IT IS READ: `POST /api/gallery`, both doors.** A filing that
+    brings no prompt reads the file's own — a ranged read of the TAIL (webp,
+    png) or the HEAD (jpeg), never the whole object, and inline bytes are
+    read in hand — and fills the Assets halves and the MODEL · QUALITY · SIZE
+    caption from it. So the hook's `claude-deliveries` copy, a renamed copy,
+    and a re-encoded copy that KEPT its metadata all arrive already knowing
+    what they are. **Only ever a fallback**: a prompt the caller sent wins,
+    and the hook's generic `from <chat>` caption loses to the file's real one
+    (`captionUpgrade`'s own rule). **It does not fix the case nothing wrote
+    at birth** — an unstamped file reads as nothing, honestly, so the file-it-
+    when-you-make-it rules above stand exactly as they were.
+  - **THE PHONE CARRIES IT THROUGH (a TestFlight build).** `PhotoSaver`
+    re-encodes a webp to PNG for Photos and `pngData()` throws every chunk
+    away — it now lifts the `XMP ` chunk out of the RIFF and writes the PNG
+    through ImageIO with the packet attached, so a saved picture's Caption in
+    Photos is her prompt. A browser download keeps the webp as-is. **Nobody
+    has looked at a saved picture on a real phone yet** — the ImageIO half is
+    written, not measured; Sophie checking one picture's Caption in Photos
+    after the build is the measurement.
+  - **NOT BACKFILLED.** A Storage object is immutable behind a year-long CDN
+    cache, so stamping an older picture means a new object at a new url —
+    hers to ask for. Pictures made before this carry nothing, exactly as
+    their captions do.
+  - Test: `node scripts/test-image-meta.js` (the three containers by hand,
+    the pixel bytes located untouched inside the stamped file, the re-stamp
+    that replaces rather than stacks, the ranged reader against a server
+    that ignores Range, and the source pins).
 - **POST THE PROMPT for every image you deliver**, split into style + content —
   `POST /api/gallery/assets/prompt`. It's what the PROMPT overlay in the Assets
   tab reads. **The EXACT text sent to the model — NEVER PARAPHRASE**; no exact
@@ -3747,6 +3868,9 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   running autoscroll first. Source is `scripts/pill.py` (re-run
   `python3 scripts/gen-pill-inject.py` after editing); full rules in
   `docs/design-rules.md`, pinned by `node scripts/test-back-to-top.js`.
+  **Its twin, TO THE BOTTOM, sits under it since 2026-09-03** (Sophie: "add a
+  scroll to bottom arrow playground") — `#pbot`, lit while there is page
+  below, injected pill only; `node scripts/test-scroll-to-bottom.js`.
   - **"IT'S NOT THERE" CAN MEAN THE PAGE IS OLD, NOT THAT THE ARROW IS
     MISSING (2026-08-27, Sophie about the Playground, twice).** Measured that
     hour before changing anything: the bytes Render answers with carry the
@@ -3912,6 +4036,17 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   Test: `node scripts/test-page-place.js` (every assertion a measurement —
   the stick, the jump, the reopen judged against her chapter, the swipe
   round trip, her own scroll standing against the re-asserts).
+- **A 1-UP GRID PAGE IS NOT A COMPARISON, AND ITS TOUR MUST NOT SAY IT IS
+  (2026-09-03).** `grid.js`'s tour opened with a hardcoded "each row is one
+  comparison — the things on it differ by exactly one thing", which is a
+  sentence about a page she is not looking at whenever every group holds ONE
+  item (the 1-up shape her standing Playground-hearts page uses). `oneUp` is
+  DERIVED from the real groups rather than passed as a flag, so any
+  one-per-row page gets the right words with nothing to remember. **Found by
+  PHOTOgraphing the live page** — nothing else would have shown it, since the
+  page renders perfectly either way. Test:
+  `node scripts/test-grid-oneup-tour.js` (the real grid.js, the tour opened,
+  the words read off the screen; verified failing 2 pre-fix).
 - **TRUNCATED TEXT OPENS WITH AN UNDERLINED WORD, NEVER A BUTTON (Aug 2026,
   Sophie: "the ... button for longer than two line prompt is huge … truncated
   text shud always just be a ...with a line under it that links to open
@@ -4265,13 +4400,58 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
       finding the door still open was a live bug on both pages before this.)
     - **A tap PAST the end lands on the picture, which never closes** — the
       shared close contract, unchanged; only the zone that exists is drawn.
-    - Test: `node scripts/test-assets-tap-next.js` (both real pages headless,
-      one sweep — the zones at the ends, a step that really changes the
-      picture, the ♥ filter skipping the tile in between, the ♥ after a step
-      posting the stepped-TO url, and the door's two rules; verified failing
-      against both pre-fix pages). `test-meta-assets-page.js` asks the picture
-      by DISPATCH now: its fixture is a 1×1 PNG, so the two 28% zones cover
-      the whole of it and a centre-point click lands on a zone.
+    - **A MARK CAST FROM THE LIGHTBOX CAN TAKE THE PICTURE OFF THE GRID, AND
+      THE WALK HAS TO SURVIVE IT (2026-09-03, her "i know one bug").** Every
+      vote re-runs `applyFilter`, so with New or ♥ or Hide ✕ lit — which IS
+      reviewing a tab — hearting the open picture hides its tile, the walk
+      asked "where am I" and got -1, and **both zones went dead while still
+      drawn**: stuck on that picture with only the way out working, on the
+      loop (heart · next · heart · next) the feature exists for. Her PLACE is
+      the fallback: the list closed up over the gap, so what now stands at the
+      index she held IS the next one. It heals the moment the picture is back
+      on screen, and it can only ever be one tile out, because the only thing
+      that re-filters while the box is open is a mark she just cast.
+      **The Playground has the same shape and is NOT fixed here** — its own
+      `lbAt()` returns -1 the same way once `loadRuns` re-filters under it.
+    - **THE CACHED THUMB PAINTS FIRST, the original swaps in behind it** (the
+      Playground's 2026-08-26 rule, which these two never had). They painted
+      `it.url` — 1-3MB at the 2K and 4K tiers — so the box sat EMPTY through
+      the whole download, on every step. `tileSrc(it)` is what the TILE is
+      showing: already decoded, and already past the direct-thumb →
+      `/api/story/thumb` fallback, so it can never paint the 404 the tile
+      itself walked away from. One download either way — the preloader warms
+      the cache the swap then reads — and the doors and notes still run off
+      the real url (`lightbox(url, asset, shown)`).
+    - Test: `node scripts/test-assets-tap-next.js` (all three feeds headless
+      in one sweep; verified failing against each pre-fix page). **The stub
+      serves the ORIGINAL slowly on purpose**: locally the thumb and the
+      original land inside one tick, so a page painting the original looks
+      identical to one that doesn't. `test-meta-assets-page.js` asks the
+      picture by DISPATCH now: its fixture is a 1×1 PNG, so the two 28% zones
+      cover the whole of it and a centre-point click lands on a zone.
+  - **IS IT EVERYWHERE? IT IS NOW — AND THREE SURFACES WERE MISSING IT
+    (2026-09-03, Sophie: "is tap to next everywhere").** Five stepped and
+    three did not, and every gap was invisible from inside its own file:
+    - **Compare GRID pages** — the fix is in **`asset-view.js`**, the shared
+      adapter, which takes a `seq()` and builds the `nav` itself; `grid.js`
+      hands it `img[data-lb]` in document order (only asset-backed pictures
+      carry it, which is the same set that opens this lightbox at all). So a
+      spread's two ride side by side in the walk exactly as they do on screen.
+      The adapter caches its asset per item, so it needed the Assets tab's own
+      prompt-door rule — clear on a fresh open, carry on a step.
+    - **The DELIVERED tab's picture strip** — the walk is `it.images`, the
+      burst as it was handed to her, so the row's three thumbs open onto the
+      whole batch.
+    - **The CHARACTER sheet** — the walk is `.cell img` in document order, so
+      the search narrows it by itself; the big portrait is in no sheet and
+      opens alone.
+    - **A DECK CARD (judge.js) DELIBERATELY DOES NOT STEP** — it goes through
+      the same adapter but hands over no `seq`, so no zones are drawn: a card
+      already has its own left/right gesture for the DECK, and a second one
+      inside it that steps something else is hers to ask for.
+    - `node scripts/test-asset-lightbox.js` carries the sweep: every surface
+      that opens a feed hands over a nav hook, and a new picture surface joins
+      it by linking the shared file.
 - **THE BOTTOM BAR'S THREE ARE PERMANENT — Story Room · Story Timeline ·
   Playground (2026-08-26, Sophie: "right now the bottom real icons switch off
   can you change it so they're permanent I want the story room, the story
@@ -4662,6 +4842,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   the one-copy pin on triset.js, and — the durable half — TODAY's real
   triangle style half driven through the matcher plus one fixture per past
   wording, verbatim off her cards; verified failing 9 pre-fix).
+  **TRIANGLE v2 IS HER OWN HAND-EDITED WORDING, BANKED AS A TILE (2026-09-03,
+  Sophie: "i modified the triangle prompt in triangle … save it as a new option
+  (triangle v2)").** The Prompt panel's edit lives ONLY in her phone's
+  localStorage, per style key — so switching tiles never loses it (Dreamy shows
+  Dreamy's text, Triangle shows her edit again), but no server and no other
+  device can see it. It was recovered off her runs' stored `fullPrompt` (one
+  wording across all 100 triangle runs, every one with the no-text toggle ON)
+  and written VERBATIM as `PL_GPT_STYLES.triangle2` in server.js — NOT derived
+  from dreamy/triangle, because a banked version must not move when the house
+  wording does. The tail bakes `minimal text.` and the toggle swaps it, so with
+  the toggle on the sent text is byte-for-byte her runs'. No sheet swap (her
+  anti-grid sentence is in the PREFIX, which `applySheet` never touches), so
+  Panels on v2 sends her prefix unchanged — the original Triangle tile is the
+  one that swaps for a sheet. Port evidence is her own sentence
+  (`playground-port.js`, `beats: ['dreamy','triangle']`); the port test's
+  literal-block check reads a `PL_GPT_STYLES.<id> = {` block as well as the
+  in-table shape. Banking the NEXT version she edits is the same three rows
+  (server.js, `STYLES` in promptlab.html, `PORT_STYLES`) plus a fixture.
   **AND THE TILE PINS THE CANVAS TO SQUARE (2026-08-31, Sophie: "triangle mode
   shud auto switch to square in playground")** — a Triset card is square
   (`triset.js` draws every one at 1024x1024), and the canvas toggle is
@@ -5153,6 +5351,20 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - **gpt-image-2 only.** The WTR LoRA takes a trigger word and has no
     attachment slot at all, so the button comes off there rather than sitting
     there doing nothing. Test: `node scripts/test-playground-photo-ref.js`.
+  - **SEVERAL PHOTOS SINCE 2026-09-04 (Sophie: "add a second reference photo
+    to the playground … make a way to add a second or third etc photo").** A
+    dashed plus after the first photo adds another (up to six, `PL_PHOTO_MAX`);
+    each rides as its own thumb with its own x, in the order she added them,
+    which is the order they attach — behind the style refs and the Sophie
+    card, before her cast. The POST carries `photos` (the list) beside `photo`
+    (the first, for an older cached page); the doc carries `photoRefs` beside
+    `photoRef`; a copy-back puts every photo back. **Two or more swap the
+    photo line for its PLURAL twin with the count written in** (`The LAST two
+    attached images are photo references…`, `PL_GPT.photoLineMany` /
+    `photoLineManyWithChars`, and the plain tile's own pair) — one photo still
+    sends the singular line byte for byte. The page's `photoRef` is a read-only
+    getter over `photoRefs[0]` for the tests and any older reader. Test:
+    `node scripts/test-playground-photo-refs.js`.
   - **PUTTING A PROMPT BACK PUTS ITS REFERENCE BACK (2026-08-27, Sophie:
     "playground and other image tools shud save the reference photo and reload
     when copy to prompt box").** The photo was already SAVED — `photoRef` on
@@ -6344,6 +6556,26 @@ before working on that module. Nothing was deleted — the moved text is verbati
   is what a covered control passes every width assertion while failing).
   Test: `node scripts/test-freeform-boiler.js` (it reads the real table out of
   server.js, so a stale style id or a pasted copy fails there).
+  **♥ / ✕ AND THE BIGGER BOX (2026-09-04, Sophie: "freeform has no heart x?" ·
+  "that and an expand textbox button").** Measured before the fix: nothing in
+  Freeform could be marked at all — no vote field, no route, no `_cast` wired
+  into the shared lightbox, so it drew no ♥/✕ there either. Now the
+  Playground's pattern whole: one mark per PICTURE on the run doc
+  (`votes.{i}`, `POST /api/freeform/run/:id/vote`), the Assets tab's own two
+  marks on each picture's top corners on the card AND in the lightbox (one
+  reader, `runsById`, so a mark cast anywhere shows everywhere), tapping the
+  lit one clears it, and the ♥-only / hide-✕'d pair over the feed, sticky
+  (`freeform_liked` / `freeform_hidex`). **Both directions with the Assets
+  tab**: the route calls server.js's `syncVoteToAssets` (handed in at init —
+  a Freeform output is a My Creations picture, so the my-creations rule reaches
+  `/freeform/out/` too) and the Assets vote route calls `freeform.voteFromAssets`
+  back. The lightbox's note box lands on the picture's my-creations thread,
+  the Playground's wiring. `#bigprompt` is the Playground's corner toggle in
+  shape — `.big` cap over floor in CSS, `fitBig` measuring the words, 56px in
+  from the right for the pill's column, not sticky; `applyRunIn` refits it.
+  Test: `node scripts/test-freeform-votes.js` (the server half by source, then
+  the real page headless against a stub that RECORDS every vote and note the
+  page really POSTs).
   **Full details: `docs/modules/pictures.md`.**
 - **Vector pipeline** (`vector.js`, `/api/vector`, page at `/vector`, iOS tile
   under the PICTURES filter) — describe 1-25 drawings -> ONE gpt-image-2 sheet in
@@ -8428,6 +8660,36 @@ before working on that module. Nothing was deleted — the moved text is verbati
     tagged, since it cannot be dealt. `edLabel` falls through to the
     capitalized slug, so the chip needed no page change.
     The objects are immutable — bump `CUT_VERSION` to re-bake past the CDN.
+    **AND THERE IS A SECOND EDITION SINCE 2026-09-03 — EVERYDAY (Sophie, after
+    asking why her shattered-plate card was hidden: "do the second edition").**
+    Measured that day: 816 of the 902 cards were hidden, and **27 subjects she
+    had HEARTED were hidden for no reason but not being nature** — the plate
+    among them. **Widening the nature list was the wrong fix** and is the thing
+    not to do: she spent a day deciding what nature means ("they did a bad job
+    of deciding what's nature and what's not. redo"), and stretching it to fit
+    a teacup undoes that. So the vocabulary is a TABLE now — `EDITIONS` in
+    `triset.js`, one entry per edition over its own slugs file
+    (`docs/triset/nature-slugs.json`, `docs/triset/everyday-slugs.json`) — and
+    `syncPlan` runs its whole rule per edition instead of against a hardcoded
+    `'nature'`. **The page needed NO change**: it derives the chips from the
+    pool and `edLabel` capitalizes an unknown slug, so a THIRD edition is one
+    file plus one line in that table. Three things not to undo:
+    - **ADOPTION LANDS IN `ADOPT_EDITION`, NOT IN NATURE** — and that is a real
+      behaviour change, not a tidy-up. Her ♥ on the waiting-room page used to
+      deal a non-nature subject straight INTO the nature edition, which is the
+      one thing the closed vocabulary exists to prevent; measured, **10
+      subjects were already sitting in nature that way** (burnt-toast,
+      dominoes, coat-chair…) and the switch moved them to everyday. Nature is
+      closed and hers; everyday is where anything she adopts goes.
+    - **`waitingPlan` counts a subject dealt in ANY edition**, not in nature —
+      it named `'nature'` alone, and after the second edition it would have
+      gone on offering her cards the game already deals.
+    - **The two vocabularies must not overlap** (a subject has ONE edition) —
+      a test asserts it, because `editionForSlug` takes the first hit and a
+      subject in both would silently belong to whichever file is listed first.
+    Live after the first sync: **Nature 71, Everyday 37**. Two subjects in
+    everyday read as NATURE and are named in that file's `_open` —
+    `blackberries` and `peacock-fan`; moving them is one line and is hers.
     **AND HER HEARTS ARE THE DECK NOW — no chat runs anything (2026-09-01:
     "connect it to the deck so they flow in and out automatically").** A ♥ on
     a nature card puts it IN the deal and an ✕ takes it out, cast wherever she
@@ -8456,6 +8718,27 @@ before working on that module. Nothing was deleted — the moved text is verbati
     So a ♥ never un-hides the pool wholesale, and **the incumbent wins** — a
     newly-hearted generation does not swap the picture on her printed sheet
     unless she crossed the dealt one out.
+  - **HER PLAYGROUND TRIANGLE HEARTS ARE A STANDING PAGE TOO, REWRITTEN BY THE
+    SERVER (2026-09-03, Sophie: "upgrade ur playground hearts page to auto
+    update as i add new cards, showing newest first").** It began as a script
+    that re-posted a frozen page, which is the thing a posted Compare page
+    cannot escape — its data is written to Storage at post time — so "auto
+    update" has to mean the waiting room's own machinery: one fixed doc id
+    (`triset-pl-likes`, in `triset-card-inventory`), the data hashed, rewritten
+    only when the set really changes. `likesPlan`/`writeLikes`/`syncLikes` in
+    `triset.js`; the retired script was `scripts/gen-triset-playground-likes.js`.
+    **A HEART IN THE PLAYGROUND REBUILDS IT** — both promptlab vote routes call
+    `triset.pokeLikes()` fire-and-forget when the run is a `triangle` one,
+    leading + trailing like `runAutoCompare` (the leading half is what survives
+    a deploy inside the debounce window), and the game's own `/cards` sweep
+    rebuilds it as well, so a poke lost to a restart is picked up the next time
+    she opens Similitude. **THE ITEM ID IS `<run>-<index>`**, which is the whole
+    reason the page can be rewritten under her — an id that moved with the
+    ordering would re-point her marks at other pictures the first time she
+    hearted something new. Newest first, her ask; one item per hearted IMAGE,
+    since a panels run holds several; a hearted index with no url is dropped
+    rather than drawn empty; the hike run is skipped by id ("hike one was an
+    accident", and it has people). Test: `node scripts/test-triset-likes.js`.
   - **Her words are the content half, verbatim**; the one connective line
     (INVENT_LINE) rides in the wrapper and is disclosed in `promptStyle` with
     the `[content]` seam. The whole prompt is stored on every card doc.
@@ -8619,6 +8902,179 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - Tests: `node scripts/test-triset.js` (pure + headless page half; reads
     the real dreamy wording out of server.js via
     `scripts/lib/dreamy-style.js`).
+  - **GATHERING EVERY TRIANGLE CARD SHE HAS HEARTED — TWO SURFACES, ONE
+    GATHER (2026-09-03, Sophie: "gather all the triangle cards i've hearted
+    everywhere i[n] ur assets tab and 1 up tinder quick toggle w good/bad ·
+    be thorough").** `scripts/lib/triangle-hearts.js` is the gather;
+    `triangle-hearts-deck.js` posts the swipe deck and
+    `triangle-hearts-file.js` files the same set into the chat's Assets tab
+    with the full ritual (a real label, the MODEL · QUALITY · SIZE caption,
+    both exact prompt halves — measured, all 166 carry all three, so nothing
+    files short). **ONE gather, so the tab and the deck can never disagree
+    about what the set is**, and both mark the SAME url, so a ♥ in either
+    shows in the other. Both are dry by default and cost nothing — reads
+    only, no model call. Three doors a heart comes through, all swept: an Assets-tab / Meta
+    Assets ♥ (`forge-asset-votes`), a ♥ or a "this one" pick on **any**
+    Compare page (`forge-chat-verdicts`), and a per-image ♥ on a Playground
+    run (`forge-promptlab`). Live 2026-09-03: **162 distinct cards** — 127
+    pool cards (70 of them in the Similitude deal) and 35 Playground pictures.
+    - **A COMPARE PAGE'S ITEM IDS CANNOT BE GUESSED — READ THE PAGE'S OWN
+      JSON.** The first version (2026-09-01) resolved them by guessing a
+      card's url stem or a `subject` field; measured, **`subject` exists on
+      none of the 902 card docs**, and across all 131 verdict docs exactly
+      **one** of her 300 `true` marks resolved. Her pages carry at least six
+      id shapes (a slugified title, a subject slug, a card stem, a 12-char
+      card-id prefix, `pl-<run>-<i>`, `<run>-<i>`), because each page was
+      built by a different chat. `chat-pages/<id>.json` in Storage IS the
+      dictionary — id → url, whatever the ids are called — and it is the only
+      reading that cannot go stale the next time a chat invents a shape.
+    - **WHAT COUNTS AS A TRIANGLE CARD IS EVIDENCE, never a path guess:** a
+      pool card, a Playground run declared on the Triangle tile **or** whose
+      own `fullPrompt` matches the clause (10 runs predate the tile and
+      declare nothing), or a filed asset whose stored style half matches —
+      `matchStyle` in `playground-port.js`, the one rule.
+    - **ONE CARD IS ONE ITEM.** A heart can land on the pool card, its
+      current cut, an OLDER cut (`triset/cuts/<card doc id>.c1.webp`), a
+      thumb-service link, or a re-encoded copy — joined by url, by the cut's
+      stem, and by the Assets tab's own **md5** union.
+    - **HER MARK LANDS ON THE CARD'S OWN URL for a pool card**, never the old
+      cut the heart happened to sit on: `syncHearts` reads the whole vote
+      collection keyed by URL and ignores the chat, so a ♥/✕ in the gathered
+      deck really does put the card into the deal or take it out.
+    - **A LONE `%` IN A REAL URL THROWS** — `decodeURIComponent` raised "URI
+      malformed" on one of her liked urls and took the whole sweep with it.
+      Every decode here is guarded; a key that cannot be decoded is still a
+      usable key undecoded.
+    - **THE TAB IS NOT PRE-HEARTED, on purpose.** An asset vote is keyed
+      chat+url, so the hearts that put a card in this pile live in the chats
+      it came from — and filling this tab with 166 ♥ of its own would be the
+      2026-08-31 "they all have good on them covering the image" complaint in
+      tile form, leaving the ♥ here meaning nothing. Empty marks make it a
+      fresh re-triage, exactly like the deck.
+    - **The prompt route answers `results`, not `items`** — reading the wrong
+      key made a batch that fully succeeded print "0 ok".
+- **SIMILITUDE DOMINOES FOR TWO PHONES** (`dominoes.js`, `/api/dominoes`,
+  page at `/dominoes` — PUBLIC, no tile; 2026-09-04, Sophie: "i want to play
+  against my friend miriam. no computer" → "i'm more wanting to build it for
+  anyone so i can share it on ig"). The dominoes game (the triset-dominoes-game
+  chat's page, her 61 chosen cards) as a table ANYONE can start: your name and
+  an optional phone, an invite link, the friend sits down with theirs, and the
+  two play from their own phones. **The page holds the rules and the server
+  holds the table** — the two seats (the fruit poll's `who=` pattern: each
+  player's unguessable token IS their seat, the invite token lets exactly one
+  friend in), the turn gate (a move is accepted only from the seat the stored
+  state says is on turn, in a transaction, so a stale phone can never overwrite
+  a fresher one), and the turn TEXT — when a move hands the turn over, the
+  other player gets one SMS through `sms.js` (Twilio: `TWILIO_ACCOUNT_SID` ·
+  `TWILIO_AUTH_TOKEN` · `TWILIO_FROM`, managed keys) if they gave a number,
+  deduped on the move number. A read never carries the other seat's phone or
+  token. It costs nothing but Twilio's own fraction of a cent per text. The
+  phone remembers its seats (`dominoes.seats` in localStorage) and the lobby
+  lists them. Test: `node scripts/test-dominoes.js` (the gate, the text plan and
+  the view pure, then the REAL page on two headless phones over the real router
+  with an in-memory Firestore).
+- **SIMILITUDE FOR TWO PHONES** (`similitude-two.js`, `/api/similitude`,
+  page at `/similitude/play` — PUBLIC, no tile; 2026-09-04, Sophie: "how can
+  we make this multiplayer" → "same cards as the dominoes deck. turns. just
+  cap the drawing at like a dollar per person"). The triangle game played by
+  two people from their own phones, over the SAME two-seat table as the
+  dominoes game.
+  - **`table.js` IS THE ONE TABLE.** The seats, the invite, the turn gate, the
+    your-turn text and the per-player view were lifted out of dominoes.js
+    into a factory (`makeTable({collection, page, title})`) the day this
+    shipped; dominoes.js is a thin call now and its test is byte-for-byte
+    green. A game adds its own routes to the returned router and may ride
+    server-owned fields on the read (`extendView`, and async `enrich` — how a
+    drawing card becomes its picture on the way past). **A third two-phone
+    game is one `makeTable` call**, never a copy of the seat code.
+  - **THE DECK IS THE DOMINOES DECK BY CONSTRUCTION** — the 61 ids are read
+    out of `public/dominoes.html`'s own `DECK` constant at first use (a
+    bracket-depth walk; the line ends in a comment), resolved to each card's
+    CURRENT cut and words, served public at `GET /deck` and cached 60s. No
+    second list anywhere, and a test fails if one appears.
+  - **TURNS, NEVER A RACE** (her word, and her own rule from the computer
+    opponent: a clock makes a quiet game a reflex test). A turn is ONE thing:
+    swap a hand card onto the board, pass, **Set!** + the words (claims and
+    scores the set, the three leave play for the tile, the board refills off
+    the deck), or **Challenge** a set the other found with a card from your
+    hand — win or lose, the challenge was your turn. Only the player on turn
+    writes; the other phone polls and adopts (dominoes' page pattern). Both
+    hands ride the state as dominoes' do; the page shows only yours.
+  - **THE DOLLAR IS SERVER-SIDE AND PER SEAT.** `POST /rooms/:id/draw` is the
+    one paid tap — triset.js's own `startFound` (lifted out of `/found` for
+    this, with `judgeChallenge` out of `/challenge`, so a made card is the
+    same made card wherever the set was found). The room doc carries `spent:
+    {a,b}` in cents; the route RESERVES the cost in a transaction before the
+    card is started (two taps cannot both fit under the cap by reading one
+    balance), refunds a start that failed, and refuses past `CAP_CENTS`
+    (100) with 402 — the page greys the button and says "your dollar is
+    spent". Only the finder may draw their set, once per set, and a draw is
+    keyed by GAME + win index, or a new game's tile would inherit last
+    game's card. The made card lands in the winning tile's middle; **it does
+    not join the 61** — that is a follow-up, hers to ask for.
+  - **The page** (`public/similitude-two.html`) is the dominoes lobby (name,
+    optional phone, invite link, your tables remembered on the phone) over
+    the Similitude board, hand and shelf — triset.html's geometry number for
+    number, its gold-outline buttons, its Set!/Claim/Draw it! stages. The
+    score is two numbers in the corner, mine first, because a score with
+    names in it ran into the centred title at 390pt; the names live on the
+    turn line and under the shelf tiles. Boxes ship empty.
+  - Tests: `node scripts/test-similitude-two.js` — the deck's single source,
+    drawGate's decision table and the cap pure; then the REAL page on two
+    headless phones over the real router with an in-memory Firestore and
+    the model doors stubbed: start, invite, sit down, deal, swap, the gate,
+    pass, Set!+words, Draw it! reserving the cents and the card landing in
+    the tile, the 402 past the dollar, a challenge stealing a set, and no
+    token or phone ever crossing seats.
+- **HEAD GAMES** (`docs/headgames/`, a Compare page in the
+  `mental-games-instrumental-beliefs` chat — no route, no module, no iOS tile;
+  2026-09-03, Sophie: "little games we play in our head all the time …
+  organizing ur mind — stray bits of info that normally float around, now,
+  structured in a format that makes sense … diagnose mental processes,
+  represent, no value judgement" · "can we build a hub, each game an icon" ·
+  "make it off render so we don't have to deploy every time — a compare page
+  maybe"). Five games behind five hand-drawn line icons, three to a row:
+  **the scale** (hers: pros and cons, she decides how many blocks each reason
+  weighs, taps them on one at a time, the line names the block that tipped
+  it), **the jars** (questions she never looked up, the lid comes off with the
+  answer, the shelf counts the shut ones and the longest-shut), **the train**
+  (how did I get to thinking about this — cars coupled backwards to the
+  station), **the tower** (why she believes a thing — pull a block, does it
+  still stand, the load-bearing ones turn rose) and **luggage tags** (who
+  handed her each opinion, grouped by name). Nothing judges anything; each
+  shape only says what is in it. **It costs nothing** — no model call, no
+  route, and a new version needs NO DEPLOY.
+  - **THE PAGE IS POSTED, NOT SERVED.** `node scripts/headgames-page.js --go`
+    builds `headgames.tpl.html` + `rules.js` (inlined) and posts it with
+    `POST /api/chatfeed/page`; `--supersede <id>` retires the old one. The
+    version comes off `docs/headgames/VERSIONS`, a ledger the script appends
+    to, so the title is always `Head Games vN`. A change to the page is:
+    edit the template, run the tests, post, supersede, merge with
+    `[skip render]`. Don't turn it into a `public/*.html` route — that is
+    exactly the deploy-per-change she asked to be rid of.
+  - **HER STATE LIVES OFF THE PAGE, on verdict docs** — one per game
+    (`hg-scale` · `hg-jar` · `hg-train` · `hg-tower` · `hg-tag`, under the
+    chat above), one JSON text per item, through the `/api/chatfeed/verdict`
+    the live server already has. So every version opens on the same jars and
+    towers, and a page is frozen the day it is posted while her games are
+    not. A verdict text holds 2000 chars; an item over ~1900 is refused with
+    "This one is full" rather than truncated. Nothing is deleted — "Put it
+    away" sets `hidden`.
+  - **FOUR THINGS THE PHOTO CAUGHT, worth not re-earning:** a CSS `width`
+    on `.blk` (the tower's HTML block) reached the scale's SVG `rect.blk`
+    and drew every weight as a bar across the drawing (the SVG blocks are
+    `.bk`); a placed reason wearing `.on` picked up compare.css's
+    `button.on` white-on-gold and read as blank (`.placed`); a pulled tower
+    block at 38% slid off a 390pt phone (blocks are 70% wide, the slide 20%,
+    and `.wrap` never scrolls sideways); and the "A jar" button was
+    right-aligned into the pill's corner. And **three lists sharing one
+    `#lnew` id gave only the first a handler** — they are `.lnew`, scoped
+    per list.
+  - Tests: `node scripts/test-headgames.js` (the rules, pure — the scale's
+    deciding block, the shelf order, the route, load-bearing, the grouping —
+    and the built page against the page-kit warnings) and
+    `node scripts/test-headgames-page.js` (the real page headless, every
+    game walked against a stubbed verdict store; every check a measurement).
 - **The Dump** (`dropbox.js`, `/api/drop`, sort page at `/dump`, iOS tile with
   SEND and SORT tabs) — **dump first, label afterwards**. Dropping asks no
   questions; only the bundle (a Photos album) and the session are captured,
@@ -8882,6 +9338,29 @@ before working on that module. Nothing was deleted — the moved text is verbati
       scrolls nothing, BACK on the piles, which is the autoscroll she asked
       for on 2026-09-01 and the reason this cannot simply hide the pill.
       Test: `node scripts/test-page-viewer-deck-pill.js` (verified failing 4).
+    - **AND THE VIEWER'S HEADER IS THE DECK'S TO SPEND (2026-09-03, Sophie:
+      "the main thing is too much extra on screen pushing the picture down so
+      the buttons overlap it unnecessarily" · "headers unnecessary - takes
+      space. push it down").** `openPage` decided the bar from the posted
+      template too, so a grid-posted page's deck wore a bar showing the same
+      title the page already carries — 94px of a screen the deck fills
+      exactly. It is per VIEW now (`window.__pageChrome`, page-views' own
+      call), and the chevron is not lost: every TEMPLATE page is opened with
+      `back=1`, so the deck draws one in the top row it already has.
+      **THE NOTCH IS THE PARENT'S TO MEASURE** — `env(safe-area-inset-top)`
+      is 0 in a nested browsing context, so the moment the bar goes the
+      deck's top row would sit under her status bar; the viewer measures the
+      inset where it resolves and hands it down as `--forgetop`, which the
+      switch row pads by. Measured at 390x844 with her 47px inset: her top
+      row 130 → 96, the card 253 → 183.
+    - **A PICTURE CARD IS THE PICTURE (same report).** `.jg.mom.pic` — a card
+      carrying a picture and none of her own parts (no `who`, words, sections
+      or caption) — gets a caption-sized name and RESERVES the floating
+      buttons' band, the way `.long` and `.linkroom` already do. The ✕/♥
+      float on the content's bottom corners, so on a card whose picture fills
+      it they float on the PICTURE: measured on a portrait fixture, 36px of
+      the ♥ sat on the art. A card carrying any of her own parts is
+      untouched — there the big centred name IS the design.
     - **A CARD'S NAME IS CLAMPED TO TWO LINES (same report).** `.who` is her
       date deck's line for a person's NAME and a picture card feeds it the
       item's LABEL, which on a filed Playground picture is the prompt —
@@ -9142,6 +9621,22 @@ before working on that module. Nothing was deleted — the moved text is verbati
     - Tests: `node scripts/test-judge-stamp.js` (it lands) and
       `node scripts/test-judge-piles.js` (it leaves, and an already-marked
       card arrives with none).
+  - **THE TOUR AND THE HELP CARD HAVE TO SAY WHICH PACE THE DECK IS
+    (2026-09-03).** Both lines were written for the LABORED deck and
+    HARDCODED — *"that is the only thing that moves you"*, *"marking one never
+    moves you on"* — and **quick became the default on 2026-09-03**, so every
+    deck was teaching her the opposite of what its own buttons do, on the
+    first open, before she has touched anything. They read `quick` now, in
+    `tourSteps()` and in the help card, both of which already sit in that
+    closure. **Found by PHOTOGRAPHING a real posted deck**: the tour is the
+    first thing on screen and no test had ever read a word of it — a whole
+    surface can be wrong for days while every assertion about the page passes.
+    Test: `node scripts/test-judge-pace-copy.js` (the real tour stepped
+    through at BOTH paces, asserting on MEANING rather than wording — each
+    pace never claims the other's behaviour — so a reword is free; verified
+    failing 3 pre-fix). One trap in the test itself, worth keeping: *"never
+    moves you on"* CONTAINS *"moves you on"*, so the denials come out of the
+    text before it asks whether anything promises the move.
   - **EACH PILE FOLDS AND RE-SWIPES ITSELF, AND THE PILES AUTOSCROLL
     (2026-09-01, Sophie: "right now the auto scroll doesn't work in piles" ·
     "add a good/bad/maybe button to each pile to re-swipe just those" · "also

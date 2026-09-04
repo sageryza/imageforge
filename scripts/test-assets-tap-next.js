@@ -17,10 +17,20 @@
 //   4. the picture she stepped TO is the live one — its ♥ posts that url;
 //   5. the prompt door rides a STEP and dies with a fresh open (the shared
 //      file's rule; these items are long-lived objects the lightbox writes
-//      onto, so a fresh open has to clear what the last visit left there).
+//      onto, so a fresh open has to clear what the last visit left there);
+//   6. A MARK CAST FROM THE LIGHTBOX CAN TAKE THE PICTURE OFF THE GRID
+//      (2026-09-03) — every vote re-runs the filter, so hearting the open
+//      picture with New or ♥ or Hide ✕ lit hides its tile and the walk used
+//      to go DEAD with both zones still drawn. Her place is the fallback;
+//   7. THE CACHED THUMB PAINTS FIRST, the original swaps in behind it — a
+//      step must never leave the box empty through a 1-3MB download, which
+//      is what tap-to-next turned from a one-off into a rhythm. The stub
+//      serves the original SLOWLY on purpose: locally both land in one tick
+//      and a page painting the original looks identical to one that doesn't.
 //
-// BOTH PAGES, one file, because that is exactly the drift she has caught
-// before ("it's not in meta assets?").
+// ALL THREE PICTURE FEEDS, one file — the Assets tab, Meta Assets and a real
+// Compare GRID page — because that is exactly the drift she has caught before
+// ("it's not in meta assets?", then "is tap to next everywhere").
 //
 //   node scripts/test-assets-tap-next.js
 //
@@ -31,6 +41,7 @@ const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 const servePublic = require('./lib/public-asset');
+const { validateTemplate, renderTemplatePage } = require('../page-templates');
 
 let chromium;
 try { ({ chromium } = require('playwright')); }
@@ -103,8 +114,17 @@ const server = http.createServer((req, res) => {
   if (servePublic(req, res)) return;          // /asset-lightbox.js, /feedkit.js, …
   const url = new URL(req.url, 'http://x');
   const json = (o) => { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
-  if (url.pathname === '/px.png' || url.pathname === '/api/story/thumb') {
+  // The derived THUMB is instant (it is what the tile already loaded); the
+  // ORIGINAL is deliberately SLOW, because that is the only way to ask which
+  // one a step paints — on a local server both land inside one tick and a
+  // page that paints the original looks identical to one that paints the thumb.
+  if (url.pathname === '/api/story/thumb') {
     res.writeHead(200, { 'Content-Type': 'image/png' }); return res.end(PIC);
+  }
+  if (url.pathname === '/px.png') {
+    return setTimeout(() => {
+      res.writeHead(200, { 'Content-Type': 'image/png' }); res.end(PIC);
+    }, 400);
   }
   if (url.pathname === '/api/gallery/assets/vote' && req.method === 'POST') {
     let body = ''; req.on('data', (d) => { body += d; });
@@ -131,6 +151,35 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/html' });
     return res.end(fs.readFileSync(path.join(PUB, 'assets.html'), 'utf8'));
   }
+  // A REAL Compare grid page, rendered by the real template renderer — the
+  // third picture feed. One group of two and one of one, so the walk has to
+  // cross a spread boundary the way it does on her real pages.
+  if (url.pathname === '/gridpage') {
+    const v = validateTemplate('grid', { groups: [
+      { label: 'the pair', items: [
+        { id: 'g1', label: ASSETS[0].description, img: ASSETS[0].url, url: ASSETS[0].url,
+          model: 'gpt-image-2', quality: 'medium' },
+        { id: 'g2', label: ASSETS[1].description, img: ASSETS[1].url, url: ASSETS[1].url,
+          model: 'gpt-image-2', quality: 'medium' },
+      ] },
+      { label: 'and one more', items: [
+        { id: 'g3', label: ASSETS[2].description, img: ASSETS[2].url, url: ASSETS[2].url,
+          model: 'gpt-image-2', quality: 'low' },
+      ] },
+    ] });
+    if (!v.ok) { res.writeHead(500); return res.end(v.error); }
+    const html = renderTemplatePage({ title: 'Tap to next', template: 'grid',
+      data: v.data, chat: CHAT, sheet: 'tapnext-grid' });
+    // the coach marks cover the tiles on a first visit
+    const at = html.indexOf('<script');
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    return res.end(html.slice(0, at)
+      + "<script>try{localStorage.setItem('cmp-tour-grid','1');"
+      + "localStorage.setItem('cmp-tour-deck','1');}catch(e){}</script>"
+      + html.slice(at));
+  }
+  if (url.pathname === '/api/chatfeed/verdict') return json({ ok: true, items: {}, texts: {} });
+  if (url.pathname === '/api/gallery/assets/notes') return json({ ok: true, notes: [] });
   if (req.method === 'POST') {
     let body = ''; req.on('data', () => {}); return req.on('end', () => json({ ok: true }));
   }
@@ -251,11 +300,7 @@ function ok(cond, name) {
     await closeLb();
 
     // 3. the ORDER is what is on screen — light ♥ and the walk skips the rest
-    // The ♥ lives inside the filters drawer on BOTH pages since 2026-09-02
-    // (/searchfilters.js) — open it, tap the chip.
-    await page.click('.arow .filtchip');
-    await page.waitForSelector('.arow .filtdrawer:not([hidden])');
-    await page.click('.arow .filtcbtn[data-v="like"]');
+    await page.click('.afilter button[data-f="like"]');
     const lit = await shownCaps();
     ok(lit.length === 2 && lit[0] === 'two — the corridor',
       label + ': the ♥ filter leaves two tiles on screen');
@@ -276,6 +321,42 @@ function ok(cond, name) {
     await page.waitForTimeout(150);
     ok(votes.length === 1 && /four/.test(votes[0].url || ''),
       label + ': ♥ after a step casts on the picture she stepped to');
+
+    // 6. …AND THAT ♥ JUST TOOK THE TILE OFF THE ♥-FILTERED GRID (2026-09-03).
+    //    Every vote re-runs applyFilter, so marking the open picture with a
+    //    filter lit — the whole of reviewing a tab — hides its tile, and the
+    //    walk used to answer "where am I" with -1 and go DEAD while both zones
+    //    stayed drawn. Her place is the fallback.
+    await page.waitForTimeout(150);
+    ok((await shownCaps()).length === 1,
+      label + ': clearing the ♥ takes that tile off the filtered grid');
+    ok(await capOf() === 'four — the field',
+      label + ': …and she is still looking at the picture she marked');
+    await tapZone('prev');
+    ok(await capOf() === 'two — the corridor',
+      label + ': the walk survives the picture leaving under her');
+    ok(await isOpen(), label + ': …without dropping her out of the lightbox');
+    await closeLb();
+
+    // 7. THE CACHED THUMB PAINTS FIRST — a step must never leave the box empty
+    //    while a 1-3MB original downloads (the Playground's rule). The tile she
+    //    tapped is already decoded, so it lands in the same frame; the original
+    //    swaps in behind it.
+    await page.click('.afilter button[data-f="like"]');   // clear the filter
+    await page.waitForTimeout(100);
+    const painted = () => page.$eval('#clightbox .clwrap img', (n) => n.getAttribute('src'));
+    await openTile(2);
+    ok(/\/api\/story\/thumb/.test(await painted()),
+      label + ': a fresh open paints the tile’s cached thumb, not the original');
+    await tapZone('next');
+    ok(/\/api\/story\/thumb/.test(await painted()),
+      label + ': and so does a STEP — never a blank box mid-download');
+    await page.waitForFunction(() => /px\.png/.test(
+      document.querySelector('#clightbox .clwrap img').getAttribute('src')), null, { timeout: 4000 })
+      .then(() => ok(true, label + ': the original swaps in behind it'))
+      .catch(() => ok(false, label + ': the original swaps in behind it'));
+    ok(/three/.test(await painted()),
+      label + ': …and it is the ORIGINAL of the picture she stepped to');
     await closeLb();
   }
 
@@ -291,6 +372,31 @@ function ok(cond, name) {
     await page.goto(base + '/assets');
     await page.waitForSelector('.assetgrid .acell');
   });
+
+  // ── A COMPARE GRID PAGE (2026-09-03, "is tap to next everywhere") ────────
+  // The third picture feed, and the one that had no walk at all: grid.js goes
+  // through /asset-view.js, which now takes a `seq()` — the pictures on the
+  // page in document order, spreads and all. Only asset-backed pictures carry
+  // data-lb, which is the same set that opens this lightbox at all.
+  console.log('\n── Compare grid page ──');
+  await page.goto(base + '/gridpage');
+  await page.waitForSelector('#grid .gd-it img[data-lb]');
+  const gridN = await page.$$eval('#grid img[data-lb]', (n) => n.length);
+  ok(gridN === 3, 'the grid drew three asset-backed pictures (got ' + gridN + ')');
+  await page.click('#grid img[data-lb="g2"]');
+  await page.waitForSelector('#clightbox .clwrap img');
+  let gz = await zones();
+  ok(gz.prev && gz.next, 'a middle picture draws both zones');
+  ok(await capOf() === 'two — the corridor', 'and it opened on the one she tapped');
+  await tapZone('next');
+  ok(await capOf() === 'three — the car', 'the next zone steps across the spread');
+  gz = await zones();
+  ok(gz.prev && !gz.next, 'the last picture on the page draws no next zone');
+  await tapZone('prev');
+  ok(await capOf() === 'two — the corridor', 'and prev steps back');
+  await page.evaluate(() => window.__assetLightboxClose());
+  ok(await page.$eval('#grid img[data-lb="g1"]', (n) => !!n),
+    'the page behind it is untouched');
 
   // A SOURCE PIN: neither page may grow its own zones — the walk is the
   // shared file's `nav` hook, and a page drawing its own is the fourth copy

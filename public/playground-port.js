@@ -122,6 +122,19 @@
       beats: ['dreamy'],
     },
     {
+      key: 'triangle2', label: 'Triangle v2',
+      // Her own hand-edited triangle wording, banked as a tile (2026-09-03).
+      // Same reference file as Dreamy and Triangle, so the evidence is her
+      // prefix's own sentence — she dropped "drawing" from the anti-content
+      // line and wrote the triangle ask with a comma, so NEITHER Dreamy's
+      // fragment nor Triangle's matches a v2 card; this stem is the only
+      // thing that names it. `beats` names the family anyway: a v2 card that
+      // ALSO quotes a house fragment is still a v2 card.
+      refs: [],
+      prefixes: ['render the illustration in an equilateral triangle, with a hand drawn border'],
+      beats: ['dreamy', 'triangle'],
+    },
+    {
       key: 'pastel', label: 'Pastel',
       // sophie snake / sophie animals. Old names style-1.png / style-2.png,
       // which is why the witch-school/ path is kept on the alias: hoonies'

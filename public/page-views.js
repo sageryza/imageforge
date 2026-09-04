@@ -43,7 +43,11 @@
     + 'transition:transform .2s ease,width .2s ease;}'
     // ON THE DECK the switch rides in her own chrome: her cream, her rule,
     // and inside the 22px gutter every other row there shares
-    + '.jg-mombg .pv{border-bottom-color:#E7DECF;margin:0;padding:0 22px;flex:none;}'
+    // …and it owes the NOTCH when the viewer's bar is gone (2026-09-03): the
+    // parent hands the inset down as `--forgetop`, because env() is 0 in a
+    // nested browsing context and this row is the topmost thing on screen
+    + '.jg-mombg .pv{border-bottom-color:#E7DECF;margin:0;flex:none;'
+    + 'padding:var(--forgetop,0px) 22px 0;}'
     + '.jg-mombg .pv button{color:#8A7F6E;}'
     + '.jg-mombg .pv button.on{color:#262016;}'
     + '.jg-mombg .pv::after{background:#C25E4C;}'
@@ -148,7 +152,9 @@
     var out = [];
     spreadsOf(data).forEach(function (sp) {
       if (!sp.id) { out.push(sp.items[0]); return; }
-      if (sp.items.length <= SPREAD_MAX) {
+      // spreadAll — a twin set of any size stays ONE card (2026-09-03,
+      // "has to be all no cap"); judge.js wraps it into a grid past three
+      if (sp.items.length <= SPREAD_MAX || data.spreadAll) {
         out.push({ id: sp.id, label: sp.label, cards: sp.items });
         return;
       }
@@ -223,6 +229,18 @@
       // the body class is the DECK's — the grid could not scroll with it on,
       // and the deck would scroll without it
       document.body.classList.toggle('jg-mombg', swiping);
+      // THE VIEWER'S BAR IS THE DECK'S TO SPEND (2026-09-03, Sophie: "headers
+      // unnecessary - takes space. push it down"). It shows the same title
+      // the page carries and costs ~94px of a screen the deck fills exactly;
+      // the grid, which scrolls, keeps it. The chevron is not lost — a
+      // template page is opened with `back=1`, so the deck draws one in the
+      // top row it already has.
+      try {
+        if (window.parent && window.parent !== window
+            && typeof window.parent.__pageChrome === 'function') {
+          window.parent.__pageChrome(!swiping);
+        }
+      } catch (_) { /* cross-origin host — leave its chrome alone */ }
       // …and the pill is taken off the DECK by hand as well as by the CSS
       // rule above (Aug 2026, Sophie: "why is the pill there tho it doesn't
       // work" — with a screenshot of it over the swipe view, which the rule

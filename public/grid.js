@@ -232,6 +232,16 @@
     // thing this tile does.
     var views = window.__assetViews({
       chat: chat,
+      // TAP TO NEXT — the pictures ON THE PAGE, in document order, so a
+      // spread's two ride side by side in the walk exactly as they do on
+      // screen. Only asset-backed pictures carry data-lb (a plain picture
+      // keeps compare.js's own zoom), which is the same set that opens this
+      // lightbox at all.
+      seq: function () {
+        return Array.prototype.map.call(mount.querySelectorAll('img[data-lb]'), function (im) {
+          return byId[im.getAttribute('data-lb')];
+        }).filter(Boolean);
+      },
       voteOf: function (it) {
         return verdicts[it.id] === true ? 'like'
           : verdicts[it.id] === false ? 'dislike' : null;
@@ -488,9 +498,22 @@
     // tinted, a line of explanation. Plays once on a template grid's first
     // open; replayable from the "?" forever.
     function tourSteps() {
-      var steps = [{ sel: '.gd-row', text: 'Each row is one comparison — the things on '
-        + 'it differ by exactly one thing; the line under each picture says '
-        + 'what changed on that one.' }];
+      // A 1-UP PAGE IS NOT A COMPARISON, AND THE TOUR MUST NOT SAY IT IS
+      // (2026-09-03, found by PHOTOgraphing her standing Playground-hearts
+      // page: every row holds ONE picture and step one read "each row is one
+      // comparison — the things on it differ by exactly one thing", which is
+      // a sentence about a page she is not looking at). Derived from the real
+      // groups rather than a flag, so a page that IS one-per-row gets it with
+      // nothing to pass and nothing to remember.
+      var oneUp = groups.length > 1 && groups.every(function (g) {
+        return (g.items || []).length === 1;
+      });
+      var steps = [oneUp
+        ? { sel: '.gd-row', text: 'One picture a row, newest first — the line under '
+          + 'each one is what it is.' }
+        : { sel: '.gd-row', text: 'Each row is one comparison — the things on '
+          + 'it differ by exactly one thing; the line under each picture says '
+          + 'what changed on that one.' }];
       steps.push(states
         ? { sel: '.gd-state', text: 'Mark an item with one of these — tap the same one '
           + 'again to unmark it.' }

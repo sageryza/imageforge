@@ -61,6 +61,16 @@ is('index: undeveloped has no url and keeps its words', [idx[0].url, idx[0].cont
 is('index: the caption rides', idx.find((i) => i.id === 'a').caption, 'gpt-image-2 · medium · 2K');
 is('index: promptContent is the stored text', idx.find((i) => i.id === 'a').promptContent, 'a red dress at dusk');
 
+// A door stamp is provenance, never one of her tags (2026-08-30, Sophie:
+// "why does it say meta assets") — it stays off the chips but keeps being
+// the source, and stays searchable through it.
+const doored = sb.itemOf('d1', { title: 'x', hashtags: ['meta-assets', 'snakes'],
+  illustration: { url: 'https://x/d.webp' } });
+is('a door stamp is not a tag', doored.tags, ['snakes']);
+is('…but it is still the source', doored.source, 'meta-assets');
+ok('…and still searchable', sb.matchQ(sb.hayOf({ hashtags: ['meta-assets'] }, 'd1'),
+  parseQuery('meta-assets')));
+
 // search: word-start anchoring, AND, OR, minus — and NEVER the url.
 const hayA = sb.hayOf(DOCS[1].data, 'a');
 const hayB = sb.hayOf(DOCS[2].data, 'b');
