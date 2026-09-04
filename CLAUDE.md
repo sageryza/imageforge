@@ -8897,6 +8897,23 @@ before working on that module. Nothing was deleted — the moved text is verbati
     back to (the edition row's own rule — a dead control in a row of three is
     worse than a row of two); and it is off while a card is `pending`, since
     the draw is already paid for.
+  - **EVERY MOVE IS LOGGED, PER PHONE (2026-09-04, Sophie, after Miriam's
+    game: "do u have a play by play of her game - which cards she moved etc"
+    → "yea i'd like that").** The solitaire table lives in the phone's
+    localStorage, so until this the server only ever saw a FOUND set — Miriam's
+    evening came back as nine cards and nothing between them. The page posts
+    every deal, swap, undo, redo, claim, find, edition and mode change,
+    batched a second behind the tap and flushed on pagehide, under a random
+    per-phone id (`triset.player` in localStorage — no name, no login; the
+    phone is the player), and `/found` carries that id so a made card wears
+    `player`. `POST /api/triset/moves {player, moves}` appends in a
+    transaction to one doc per player per day (`forge-triset-moves`,
+    `<player>-<yyyymmdd>`, capped 2000, a retried batch adds nothing twice);
+    `GET /api/triset/moves?player=` reads the timeline back. **A log never
+    gets in the way of the game** — nothing awaits it, a failed post rides
+    the next batch. Games played BEFORE this shipped have no moves on file,
+    only their finds. Test: `node scripts/test-triset-moves.js` (the route
+    pure, then the real page against a stub that records what really lands).
   - The page is one screen, NO pill; the mid slot is `pointer-events:none`
     (its rectangle overlaps the two lower cards) — only the textarea takes
     taps. Made cards land in My Creations via the handed-in fileCreation.
