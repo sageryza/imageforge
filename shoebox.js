@@ -76,6 +76,14 @@ async function membryDb() {
  */
 const FIELDS = ['title', 'illustration', 'createdAt', 'timestamp', 'hashtags', 'source', 'content'];
 
+// The DOOR STAMPS — shoeboxPut writes which door filed a picture into
+// `hashtags` ('playground', 'meta-assets', 'storyroom'), and they were
+// showing on her cards as if they were HER tags (2026-08-30, Sophie: "why
+// does it say meta assets"). They are provenance, not tags: kept on the doc
+// (and still searchable — `source` rides the hay), never shown as chips, and
+// re-attached on a tag save so an edit cannot strip them.
+const DOOR_TAGS = new Set(['playground', 'meta-assets', 'meta assets', 'storyroom']);
+
 const stripHtml = (s) => String(s || '')
   .replace(/<br\s*\/?>/gi, ' ')
   .replace(/<[^>]+>/g, '')
@@ -111,7 +119,8 @@ function itemOf(id, m) {
     at: atMillis(m),
     ts: String(m.timestamp || ''),
     source: String(m.source || (Array.isArray(m.hashtags) && m.hashtags[0]) || '').trim(),
-    tags: (Array.isArray(m.hashtags) ? m.hashtags : []).map((t) => String(t || '').trim()).filter(Boolean),
+    tags: (Array.isArray(m.hashtags) ? m.hashtags : []).map((t) => String(t || '').trim())
+      .filter((t) => t && !DOOR_TAGS.has(t.toLowerCase())),
     caption: captionOf(ill),
     promptContent: String(ill.prompt || '').trim(),
   };
@@ -317,8 +326,14 @@ router.post('/memory', async (req, res) => {
     const patch = {};
     if (typeof req.body.title === 'string') patch.title = req.body.title.trim().slice(0, 300);
     if (Array.isArray(req.body.tags)) {
-      patch.hashtags = req.body.tags.map((t) => String(t || '').trim().slice(0, 40))
-        .filter(Boolean).slice(0, 20);
+      // The door stamps never reach the edit field, so a tag save re-attaches
+      // the ones the doc already carries — an edit must not strip provenance.
+      const doors = (Array.isArray(snap.data().hashtags) ? snap.data().hashtags : [])
+        .filter((t) => DOOR_TAGS.has(String(t || '').toLowerCase()));
+      patch.hashtags = doors.concat(
+        req.body.tags.map((t) => String(t || '').trim().slice(0, 40))
+          .filter((t) => t && !DOOR_TAGS.has(t.toLowerCase())))
+        .slice(0, 20);
     }
     if (!Object.keys(patch).length) return res.status(400).json({ error: 'nothing to change' });
     patch.updatedAt = require('firebase-admin').firestore.FieldValue.serverTimestamp();
@@ -353,5 +368,5 @@ router.post('/square', async (req, res) => {
 module.exports = {
   router, init,
   buildIndex, itemOf, captionOf, hayOf, matchQ, atMillis, stripHtml,
-  normBoard, fromRaw, cleanPin,
+  normBoard, fromRaw, cleanPin, DOOR_TAGS,
 };
