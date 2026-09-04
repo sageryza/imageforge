@@ -726,6 +726,7 @@ button.dayrule{border:none; background:none; padding:0; cursor:pointer;
 .mtnotev{display:block; margin:2px 0 6px 26px; font-style:italic; color:var(--ink2); cursor:pointer; white-space:pre-wrap;}
 .mtnotev .mtnv-to{font-family:-apple-system,sans-serif; font-style:normal; font-size:10px; letter-spacing:.08em; text-transform:uppercase; margin-right:6px; color:var(--bell);}
 .mtnotev .mtnv-to.me{color:var(--ink2);}
+.mtnotev .mtnv-reply{display:block; margin-top:2px; color:var(--ink);}
 /* The note and the tags travel together — one node, so un-keeping a thing
    takes its whole editor with it and a row can never keep half of it. */
 .bmkedit{flex:1 0 100%; min-width:0;}
@@ -2375,7 +2376,9 @@ function tickItemClass(st){ return st==='tick' ? ' done' : st==='x' ? ' out' : '
 function tickNoteHtml(nt){
   if(!nt||!nt.text) return '';
   var me=nt.to==='me';
-  return '<span class="mtnotev" data-to="'+(me?'me':'claude')+'"><span class="mtnv-to'+(me?' me':'')+'">'+(me?'just me':'for Claude')+'</span>'+esc(nt.text)+'</span>';
+  // a chat's answer (POST /tick/reply) reads back under her note, marked claude
+  var reply=nt.reply ? '<span class="mtnv-reply"><span class="mtnv-to me">claude</span>'+esc(nt.reply)+'</span>' : '';
+  return '<span class="mtnotev" data-to="'+(me?'me':'claude')+'"><span class="mtnv-to'+(me?' me':'')+'">'+(me?'just me':'for Claude')+'</span>'+esc(nt.text)+reply+'</span>';
 }
 // small cached thumbnails for the Assets grid (server resizes + caches)
 // ── THE WORKING FOLD IS STRUCTURAL, NEVER A GUESS ABOUT WORDING (Aug 2026,
@@ -7852,12 +7855,13 @@ function tickEditorOf(tk){
   return null;
 }
 function tickSave(tk, owner, was, st, note, to){
-  var key=tk.dataset.key;
+  var key=tk.dataset.key, item=tk.nextElementSibling;
+  var itemWords=item&&item.classList.contains('mtitem') ? item.textContent.trim().replace(/\s+/g,' ').slice(0,240) : '';
   owner.ticks=owner.ticks||{};
   var prev=owner.ticks[key];
   if(st) owner.ticks[key]=(st==='tick'?true:st); else delete owner.ticks[key];
   var body={id:owner.id, key:key, state:st};
-  if(typeof note==='string'){ body.note=note; body.to=to||'claude'; owner.ticknotes=owner.ticknotes||{}; owner.ticknotes[key]={text:note, to:body.to, at:new Date().toISOString()}; }
+  if(typeof note==='string'){ body.note=note; body.to=to||'claude'; body.item=itemWords; owner.ticknotes=owner.ticknotes||{}; owner.ticknotes[key]={text:note, to:body.to, at:new Date().toISOString()}; }
   return api('/api/chatfeed/tick',{method:'POST',body:JSON.stringify(body)})
     .then(function(r){ if(!r.ok) throw 0; return true; })
     .catch(function(){

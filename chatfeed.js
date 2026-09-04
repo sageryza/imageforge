@@ -3942,21 +3942,94 @@ router.post('/bookmark', async (req, res) => {
 // (through /reply, so it parks and rings exactly like the composer) — this
 // route only files it on the item.
 const TICK_STATES = ['', 'tick', 'x', 'note'];
+// A FOR-CLAUDE NOTE IS ALSO FILED IN THE ONE INBOX EVERY CHAT SWEEPS
+// (2026-09-04, Sophie, after a chat swept `GET /api/gallery/assets/notes` and
+// answered "none reached me" while six of her notes sat in its thread: "if
+// they weren't in an obvious place at first, that's on you · what's a better
+// place for them"). The thread post was right and not enough: the notes
+// endpoint is where a chat is TOLD to look. So a for-Claude note is written
+// to `forge-item-notes` (id `<message>__<key>`, carrying the item's own words)
+// and the notes inbox lists it beside the picture and film notes — same
+// shape, same `waiting`, same sort — through `itemNotes()` below. A
+// just-for-me note, or a cleared one, deletes the doc: it tells nobody.
+const ITEM_NOTES = 'forge-item-notes';
+function itemNoteId(msgId, key) { return String(msgId).slice(0, 80) + '__' + String(key); }
+async function writeItemNote(chat, msgId, key, item, text, to) {
+  const ref = db().collection(ITEM_NOTES).doc(itemNoteId(msgId, key));
+  if (!text || to === 'me') { await ref.delete().catch(() => {}); return null; }
+  const snap = await ref.get();
+  const prev = snap.exists ? snap.data() : {};
+  const thread = (Array.isArray(prev.thread) ? prev.thread : []).filter((m) => m && m.from !== 'sophie');
+  const at = new Date().toISOString();
+  const doc = {
+    chat: String(chat || '').slice(0, 60), msgId: String(msgId), key: String(key),
+    item: String(item || '').slice(0, 240), text, at, updatedAt: at,
+    // her note LEADS the thread; a chat's earlier answer stays under it so a
+    // re-worded note reads as the conversation it is
+    thread: [{ from: 'sophie', text, at }].concat(thread),
+  };
+  await ref.set(doc);
+  return doc;
+}
+// The rows the notes inbox draws for a chat's list-item notes: the item's
+// words as the description, her note (and any answer) as the thread, and
+// `waiting:'chat'` while she spoke last. Pure over the docs, so it has a test.
+function itemNoteRows(docs) {
+  return (docs || []).map((d) => {
+    const thread = (Array.isArray(d.thread) && d.thread.length ? d.thread : [{ from: 'sophie', text: d.text, at: d.at }])
+      .filter((m) => m && String(m.text || '').trim())
+      .map((m) => ({ from: m.from === 'chat' ? 'chat' : 'sophie', text: String(m.text), at: m.at || d.at }));
+    if (!thread.length) return null;
+    return {
+      kind: 'item', msgId: d.msgId, key: d.key, description: d.item || '', thread,
+      waiting: thread[thread.length - 1].from === 'sophie' ? 'chat' : 'sophie',
+    };
+  }).filter(Boolean);
+}
+async function itemNotes(chat) {
+  const snap = await db().collection(ITEM_NOTES).where('chat', '==', String(chat || '').slice(0, 60)).get();
+  return itemNoteRows(snap.docs.map((d) => d.data()));
+}
 router.post('/tick', async (req, res) => {
   try {
-    const { id, key, on, note, to } = req.body || {};
+    const { id, key, on, note, to, item } = req.body || {};
     if (!id) return res.status(400).json({ error: 'id required' });
     if (!/^[a-z0-9]{1,24}$/.test(String(key || ''))) return res.status(400).json({ error: 'key required' });
     let state = req.body && req.body.state != null ? String(req.body.state) : (on ? 'tick' : '');
     if (!TICK_STATES.includes(state)) return res.status(400).json({ error: 'state must be one of ' + TICK_STATES.join('|') });
     const del = admin.firestore.FieldValue.delete();
     const patch = { ticks: { [key]: state === 'tick' ? true : state ? state : del } };
+    let filed;
     if (typeof note === 'string') {
       const text = note.trim().slice(0, 2000);
-      patch.ticknotes = { [key]: text ? { text, to: to === 'me' ? 'me' : 'claude', at: new Date().toISOString() } : del };
+      const who = to === 'me' ? 'me' : 'claude';
+      patch.ticknotes = { [key]: text ? { text, to: who, at: new Date().toISOString() } : del };
+      const msnap = await db().collection(MSGS).doc(String(id)).get();
+      const chat = msnap.exists ? (msnap.data().chat || '') : '';
+      filed = await writeItemNote(chat, id, key, item, text, who);
     }
     await db().collection(MSGS).doc(String(id)).set(patch, { merge: true });
-    res.json({ ok: true, id: String(id), key, state, on: state === 'tick', note: patch.ticknotes ? patch.ticknotes[key] : undefined });
+    res.json({ ok: true, id: String(id), key, state, on: state === 'tick', note: patch.ticknotes ? patch.ticknotes[key] : undefined, filed: !!filed });
+  } catch (err) { fail(res, err); }
+});
+// A CHAT ANSWERS ON THE NOTE ITSELF, the picture-note rule — `{id, key,
+// text}` appends the chat's answer to the item note's thread and mirrors it
+// onto the message doc (`ticknotes[key].reply`) so it reads back under her
+// note in the app. Her next note on the same item leads a fresh thread.
+router.post('/tick/reply', async (req, res) => {
+  try {
+    const { id, key, text } = req.body || {};
+    if (!id || !/^[a-z0-9]{1,24}$/.test(String(key || ''))) return res.status(400).json({ error: 'id and key required' });
+    const t = String(text || '').trim().slice(0, 2000);
+    if (!t) return res.status(400).json({ error: 'text required' });
+    const ref = db().collection(ITEM_NOTES).doc(itemNoteId(id, key));
+    const snap = await ref.get();
+    if (!snap.exists) return res.status(404).json({ error: 'no note on that item' });
+    const at = new Date().toISOString();
+    const msg = { from: 'chat', text: t, at };
+    await ref.set({ thread: (snap.data().thread || []).concat([msg]), updatedAt: at }, { merge: true });
+    await db().collection(MSGS).doc(String(id)).set({ ticknotes: { [key]: { reply: t, replyAt: at } } }, { merge: true });
+    res.json({ ok: true, id: String(id), key, reply: msg });
   } catch (err) { fail(res, err); }
 });
 
@@ -5374,4 +5447,4 @@ module.exports = { router, regRef, worklogRows, worklogLine, pillInject, archive
   TAGS, cleanLabels, labelsOf, labelPatch, applyLabels,
   PILE_SEEDS, REVIEW_LABEL, PIN_LABEL, pileList, isPile,
   WAIT_LABEL, WAIT_ASK, WAIT_PREFIX, WAIT_MAX, WAIT_MEMORY_MAX, waitReasons,
-  BMK_TAGS, bookmarkMarks };
+  BMK_TAGS, bookmarkMarks, itemNotes, itemNoteRows };
