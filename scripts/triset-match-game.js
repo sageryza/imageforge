@@ -18,7 +18,7 @@
 //   node scripts/triset-match-game.js --go --supersede <id>
 const fs = require('fs');
 const path = require('path');
-const { readDeck, machineCounts } = require('./lib/dominoes-deck');
+const tdeck = require('./lib/triset-deck');
 
 const ROOT = path.join(__dirname, '..');
 const DIR = path.join(ROOT, 'docs', 'triset');
@@ -27,13 +27,16 @@ const SHEET = 'match-test';
 const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
 const LEDGER = path.join(DIR, 'MATCH-VERSIONS');
 
+// `deck` is every DEALT card of the pool — both editions — with its edition on
+// it; the page's chips pick one (v3, 2026-09-04: "u didn't choose the right
+// deck" — the deck is an edition of the game's pool, never the dominoes 61)
 function build(opts) {
   opts = opts || {};
   const tpl = fs.readFileSync(path.join(DIR, 'match-game.tpl.html'), 'utf8');
   const rules = fs.readFileSync(path.join(DIR, 'match-rules.js'), 'utf8');
-  const deck = opts.deck || readDeck();
-  const machine = machineCounts(deck);
-  const cards = deck.map((c, i) => ({ id: c.id, n: c.n, url: c.url, machine: machine[i] }));
+  const deck = opts.deck;
+  if (!deck) throw new Error('build needs the deck — main() fetches it');
+  const cards = deck.map(c => ({ id: c.id, n: c.n, url: c.url, flip: !!c.flip, edition: c.edition || '' }));
   for (const m of ['__RULES__', '__DECK__', '__CHAT__', '__SHEET__']) {
     if (!tpl.includes(m)) throw new Error('template is missing ' + m);
   }
@@ -69,13 +72,15 @@ async function post(html, title, supersede) {
 }
 
 async function main() {
-  const html = build();
+  const deck = tdeck.editionDeck(await tdeck.fetchPool(BASE), 'all');
+  console.log('deck', JSON.stringify(tdeck.editions(await tdeck.fetchPool(BASE))));
+  const html = build({ deck });
   const out = process.argv.indexOf('--out');
   if (out > 0 && process.argv[out + 1]) fs.writeFileSync(process.argv[out + 1], html);
   console.log('built', (html.length / 1024).toFixed(0) + 'KB');
   if (!process.argv.includes('--go')) return;
   const v = nextVersion();
-  const title = 'Match test v' + v + ' (61 cards)';
+  const title = 'Match test v' + v + ' (' + deck.length + ' cards)';
   const sup = process.argv.indexOf('--supersede');
   const body = await post(html, title, sup > 0 ? process.argv[sup + 1] : null);
   fs.appendFileSync(LEDGER, 'v' + v + ' ' + new Date().toISOString() + ' ' + (body.id || '') + '\n');

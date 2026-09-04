@@ -94,6 +94,22 @@
     return { cards: out, height: Math.ceil(order.length / cols) * cellH, width: cols * cellW };
   }
 
+  // v1/v2 keyed her answers by the dominoes page's 8-character ids; the deck
+  // is the pool's own cards now, with whole ids. An old key (and every id in
+  // its list) is carried onto the card whose id starts with it, so nothing she
+  // did is lost; a key nothing matches is left as it was.
+  function migrate(texts, deck) {
+    var out = {}, byPrefix = {};
+    (deck || []).forEach(function (c) { byPrefix[String(c.id).slice(0, 8)] = c.id; });
+    var full = function (id) { id = String(id); return id.length <= 8 && byPrefix[id] ? byPrefix[id] : id; };
+    Object.keys(texts || {}).forEach(function (k) {
+      var m = parseMatches(texts[k]);
+      var key = full(k);
+      out[key] = m ? JSON.stringify(m.map(full)) : texts[k];
+    });
+    return out;
+  }
+
   return { parseMatches: parseMatches, judged: judged, tally: tally, summary: summary, nextUnjudged: nextUnjudged,
-    rng: rng, shuffle: shuffle, scatter: scatter };
+    rng: rng, shuffle: shuffle, scatter: scatter, migrate: migrate };
 }));
