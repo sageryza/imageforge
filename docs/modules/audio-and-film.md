@@ -39,10 +39,16 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
 - **SEEDANCE, AND WHAT A 3-SECOND CLIP COSTS PER MODEL (measured 2026-09-04
   off Replicate's own billing tiers and APIFRAME's catalogue, Sophie's ask:
   "needs about 3 seconds. how much does that cost each model").** Replicate
-  bills Seedance PER SECOND of output, by resolution — and **the 1.x models
-  take any duration from 2s** (`seedance-1-pro`, `-1-pro-fast`, `-1.5-pro`;
-  `-1-lite` floors at 4), so 3s is a real option there and "5 is the
-  minimum" is only true of wan-2.2 (81 frames) and kling (5/10). Per second:
+  bills Seedance PER SECOND of output, by resolution — and **THE SCHEMA'S
+  DURATION RANGE IS A LIE: no Seedance takes 3s.** Replicate's schema says
+  2-12 for the 1.x models, but the request goes upstream and ByteDance
+  refuses it — measured 2026-09-04, `seedance-1.5-pro` at 3s: "the specified
+  duration is not supported for model seedance-1-5-pro" (its real steps are
+  4 / 8 / 12, as APIFRAME's catalogue says); `seedance-1-pro` and `-1-lite`
+  describe themselves as 5s or 10s. So "5 is the minimum" is true of kling
+  and wan-2.2 (81 frames), 4 of every Seedance, and a 3s clip is **wan-2.7
+  or wan-3 (both take 2-15s+), or a 4s Seedance trimmed in ffmpeg** — a
+  refusal costs nothing (under a second, no output, unbilled). Per second:
   `seedance-1-pro-fast` 1.5¢ / 2.5¢ / 6¢ (480p / 720p / 1080p);
   `seedance-1-lite` 1.8¢ / 3.6¢ / 7.2¢; `seedance-1-pro` 3¢ / 6¢ / 15¢;
   `seedance-1.5-pro` 1.3¢ / 2.6¢ / 6¢ without audio and 2.5¢ / 5.2¢ / 12¢ with;
@@ -50,8 +56,11 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
   7¢ / 15¢; `wan-2.7-i2v` 10¢ / 15¢ (2-15s); `kling-v2.1` 5¢ / 9¢ (5s
   floor, so 25¢ / 45¢ minimum — the 55¢ pro figure above is stale);
   `wan-2.2-i2v-fast` is per CLIP, 5s floor, 6¢. Seedance 2.0 defaults
-  `generate_audio:true` and its schema floor is unstated (`-1` = the model
-  picks); 1.5-pro defaults audio OFF. **APIFRAME's Seedance floors at 4s**
+  `generate_audio:true`, and **its floor is 4s, measured**: the schema says
+  only `-1` = the model picks, and a 3s request to `seedance-2.0-mini` was
+  refused at validation — "Duration must be between 4 and 15 seconds" —
+  before it was billed, so a 3s Seedance clip means a 1.x model. 1.5-pro
+  defaults audio OFF. **APIFRAME's Seedance floors at 4s**
   (`seedance-2-mini` 4-11 credits/s, `-2-fast` 7-18, `-2.5` 13-35, `-2` 8-209,
   `-1.5-pro` flat 6-180 at [4,8,12]; a credit is ~1¢ on the Basic plan) —
   and **the `APIFRAME_KEY` in the cloud environment answered "Invalid or
