@@ -113,8 +113,8 @@ body { font-family: 'Newsreader', 'Liberation Serif', Georgia, serif; color: #26
 h2 { display: flex; align-items: baseline; gap: 8pt; font-size: 20pt; font-weight: 500; margin: 0 0 12pt; padding-bottom: 6pt; border-bottom: 1.5px solid #26221c; }
 h2 .c { margin-left: auto; font-family: 'Liberation Sans', Helvetica, Arial, sans-serif; font-size: 8.5pt; color: #8a8076; font-weight: 400; }
 .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0 18pt; }
-article { padding: 10pt 0 12pt; border-bottom: 1px solid #e6dfd3; break-inside: avoid; page-break-inside: avoid; }
-article img, article .noimg { display: block; width: 100%; height: 1.55in; object-fit: contain; object-position: left center; margin-bottom: 6pt; }
+article { padding: 8pt 0 10pt; border-bottom: 1px solid #e6dfd3; break-inside: avoid; page-break-inside: avoid; }
+article img, article .noimg { display: block; width: 100%; height: 1.2in; object-fit: contain; object-position: left center; margin-bottom: 6pt; }
 article .noimg { height: 0.5in; }
 .eb { font-family: 'Liberation Sans', Helvetica, Arial, sans-serif; font-size: 6.5pt; letter-spacing: .12em; text-transform: uppercase; color: #b5563a; margin-bottom: 2pt; }
 h3 { font-size: 12.5pt; font-weight: 500; margin: 0 0 3pt; line-height: 1.15; }

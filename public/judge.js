@@ -392,9 +392,13 @@
     '.jg-momask{display:block;margin:0 0 6px;}' +
     '.jg-momasklab{display:block;font:600 10px/1 -apple-system,sans-serif;letter-spacing:.08em;' +
     ' text-transform:uppercase;color:#B5563A;margin:0 0 4px 2px;}' +
-    '.jg-momaskbox{display:block;width:100%;margin:0;height:56px;box-sizing:border-box;' +
+    // one line tall until she taps into it — two asks plus the note is most of
+    // a phone's card otherwise (measured at 390x844: the card's own link
+    // landed under the floating buttons with 56px boxes)
+    '.jg-momaskbox{display:block;width:100%;margin:0;height:40px;box-sizing:border-box;transition:height .15s;' +
     ' border-radius:9px;border:1.5px solid #E7DECF;background:#FFFDF8;padding:8px 14px;' +
     ' font:400 13px/1.45 -apple-system,sans-serif;color:#262016;outline:none;resize:none;}' +
+    '.jg-momaskbox:focus,.jg-momaskbox.full{height:84px;}' +
     '.jg-cardtext.sq{width:100%;display:flex;align-items:center;' +
     ' justify-content:center;text-align:center;padding:10%;box-sizing:border-box;' +
     ' max-height:none;overflow-y:auto;}' +
@@ -2166,6 +2170,7 @@
           [].slice.call(mount.querySelectorAll('.jg-momaskbox')).forEach(function (abox) {
             var akey = askId(it.id, abox.getAttribute('data-ask'));
             abox.value = notes[akey] || '';
+            if (abox.value.trim()) abox.classList.add('full');
             var atimer = null;
             abox.addEventListener('input', function () {
               notes[akey] = abox.value;
