@@ -160,7 +160,9 @@ async function playground(browser) {
 
   // A restored url is what the RUN sends — server.js accepts an https url in
   // `photo` and fetches the bytes, so nothing is re-uploaded.
-  ok(/^https?:\\\/\\\//.test('') || /photo: photoRef \? photoRef\.data : undefined/.test(pageSrc),
+  // (2026-09-04: several photos — `photoRefs` is the list and the first
+  // still rides as `photo`.)
+  ok(/photo: photoRefs\.length \? photoRefs\[0\]\.data : undefined/.test(pageSrc),
     'the run POSTs whatever is attached, url or dataURL alike');
 
   // The across-loads rule is HERS and is untouched: a photo attached last week
