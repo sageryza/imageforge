@@ -1730,6 +1730,30 @@ them off the reference sheet, not off the old filenames.
     `POST /page/:id/bookmark`) take `note`, `tags`, `level` and `read`, and
     carry no keep-flag unless one is sent — so tagging can never un-keep a
     thing, naming one can never drop its tags, and a tick can never do either.
+- **A LIST IN A REPLY WEARS A BOX ON EVERY ITEM, AND THE BOX HAS THREE STOPS
+  (2026-09-03, Sophie: "could message lists automatically have a tick in the
+  app" · 2026-09-04: "do a three way toggle so two press is an x three press
+  is a note option that brings up a text box … a toggle default to for claude
+  but also can set to 'just for me'").** A markdown list of 2+ or a run of 3+
+  bold-led paragraphs draws a box at the head of each item (`tickList` in
+  chats.html). One press ticks (red), two crosses out (the dislike badge's
+  grey, the item struck), three opens a NOTE BOX under the item, four clears.
+  A press CYCLES here on purpose — a 19px box has nothing to aim at, unlike
+  the three-way TRACK the house rule forbids cycling on. The state is
+  `ticks[key]` on the MESSAGE doc (`true` · `'x'` · `'note'`, keyed by a hash
+  of the item's words), `POST /api/chatfeed/tick {id, key, state, note?, to?}`.
+  - **FOR CLAUDE IS THE DEFAULT.** Send posts the note into the thread as HER
+    message — `Note on "<the item's words>": <her note>` — through `/reply`
+    and rings `/wake`, exactly the composer's path, so the chat sweeps it like
+    anything she writes. **Just for me** files it on the item alone and tells
+    nobody. A saved note reads back under its item in her italic with who it
+    was for; tapping it reopens the box holding her words (prefilling with
+    her own saved value is not pre-written text).
+  - **The words live in `ticknotes[key]`, a SEPARATE map**, so cycling the box
+    past the note stop never deletes a sentence she wrote; the box ships
+    EMPTY. Test: `node scripts/test-chats-list-ticks.js` (the real page
+    headless — the three colours MEASURED, and what the stub really received
+    on /reply, /wake and /tick, in order).
 - **THE PINNED LINK — if your work lives at a URL, PIN IT (Aug 2026, Sophie:
   "I'm constantly referring to a link to a page… I just wanna make that
   pattern more clear that chats have that option and make it the expected and

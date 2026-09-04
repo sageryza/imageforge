@@ -6,6 +6,14 @@
 // — keyed by the item's own words and kept on the message doc (`ticks`).
 // Hers to tick; the Questions view gets none (nowhere to save one).
 //
+// THREE STOPS (2026-09-04, Sophie: "do a three way toggle so two press is an
+// x three press is a note option that brings up a text box … maybe a toggle
+// default to for claude but also can set to 'just for me'"): tick → cross →
+// note box → clear. A for-Claude note goes into the thread through /reply and
+// rings /wake exactly as the composer does; a just-for-me note only lands on
+// the item. Every one of those is a MEASUREMENT of what the stub really
+// received, in order.
+//
 // Every assertion is a MEASUREMENT of the rendered thread or of what the stub
 // server really received: a box that renders on the wrong lines, a tap that
 // saves onto the wrong doc (a merged run), or a tick that never lights from
@@ -58,6 +66,8 @@ const HERS = [
   'Cards refreshed. Nothing else pending on my side.',
 ].join('\n');
 const TRAIN_KEY = tickKey('The train. "How did I get to thinking about this?" Cars, coupled.');
+const TOWER_KEY = tickKey('The tower. Why you believe a thing. Each reason is a block in a stack.');
+const TAGS_KEY = tickKey('Luggage tags. Where an opinion came from.');
 
 const BULLETS = ['Three things:', '', '- the first', '- the second', '- the third', '', 'And in order:', '1. warm up', '2. sing'].join('\n');
 const TWO = ['**TLDR** — two bold paragraphs are not a list.', '', '**Next** — so neither of these gets a box.'].join('\n');
@@ -70,7 +80,7 @@ const CONT = ['Fourteen more.', '', '1. **Citrine**', 'YOU: "Citrine. Abundance.
 
 const msg = (id, chat, at, text, extra) => Object.assign({ id, chat, from: 'claude', text, tldr: text.split('\n')[0], created: iso(at), postedAt: iso(at) }, extra || {});
 const ALL = [
-  msg('lst', 'games', T0, HERS, { ticks: { [TRAIN_KEY]: true } }),
+  msg('lst', 'games', T0, HERS, { ticks: { [TRAIN_KEY]: true, [TOWER_KEY]: 'x', [TAGS_KEY]: 'note' }, ticknotes: { [TAGS_KEY]: { text: 'ask mom where hers came from', to: 'me', at: iso(T0) } } }),
   msg('bul', 'games', T0 - 3 * H, BULLETS),
   msg('two', 'games', T0 - 6 * H, TWO),
   msg('code', 'games', T0 - 9 * H, CODE),
@@ -81,11 +91,19 @@ const ALL = [
   msg('r1', 'run', T0 - 3 * M, ['First:', '- a1', '- a2'].join('\n')),
 ];
 const posts = [];
+const replies = [], wakes = [];
 
 const servePublic = require('./lib/public-asset');
 const server = http.createServer((req, res) => {
   if (servePublic(req, res)) return;
   const url = new URL(req.url, 'http://x');
+  if ((url.pathname === '/api/chatfeed/reply' || url.pathname === '/api/chatfeed/wake') && req.method === 'POST') {
+    let b = ''; req.on('data', (d) => b += d); req.on('end', () => {
+      (url.pathname.endsWith('reply') ? replies : wakes).push(JSON.parse(b));
+      res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: true, status: 'fired' }));
+    });
+    return;
+  }
   if (url.pathname === '/api/chatfeed/tick' && req.method === 'POST') {
     let b = ''; req.on('data', (d) => b += d); req.on('end', () => {
       posts.push(JSON.parse(b));
@@ -122,7 +140,8 @@ const ok = (m) => console.log('ok - ' + m);
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 // The items a row draws a box on, as the words after the box.
 const items = (page, mid) => page.$$eval('#thread .msg[data-mid="' + mid + '"] .mtick', (bs) =>
-  bs.map((b) => ({ on: b.classList.contains('on'), text: b.nextElementSibling.textContent.trim(), key: b.dataset.key, done: b.nextElementSibling.classList.contains('done') })));
+  bs.map((b) => ({ on: b.classList.contains('on'), state: b.dataset.state, text: b.nextElementSibling.textContent.trim(), key: b.dataset.key, done: b.nextElementSibling.classList.contains('done'), out: b.nextElementSibling.classList.contains('out'),
+    note: (b.nextElementSibling.nextElementSibling && b.nextElementSibling.nextElementSibling.classList.contains('mtnotev')) ? b.nextElementSibling.nextElementSibling.textContent : '' })));
 
 (async () => {
   await new Promise((r) => server.listen(0, r));
@@ -142,6 +161,17 @@ const items = (page, mid) => page.$$eval('#thread .msg[data-mid="' + mid + '"] .
   const lit = it.filter((x) => x.on);
   if (lit.length === 1 && /^The train/.test(lit[0].text) && lit[0].done) ok('the tick on file lights its item from the doc, and its words go quiet');
   else fail('lit: ' + JSON.stringify(lit));
+  const tower = it.filter((x) => /^The tower/.test(x.text))[0], tags = it.filter((x) => /^Luggage/.test(x.text))[0];
+  if (tower && tower.state === 'x' && tower.out && !tower.on) ok('a cross on file draws the ✕ stop and strikes its item'); else fail('tower: ' + JSON.stringify(tower));
+  if (tags && tags.state === 'note' && /just me/.test(tags.note) && /ask mom where hers came from/.test(tags.note)) ok('a note on file reads back under its item, marked just me'); else fail('tags: ' + JSON.stringify(tags));
+  // the glyphs really differ per stop — the same check on three colours is not three stops
+  const glyphs = await page.$$eval('#thread .msg[data-mid="lst"] .mtick', (bs) => bs.map((b) => [b.dataset.state, b.querySelector('svg path').getAttribute('d').slice(0, 8)]));
+  const byState = {}; glyphs.forEach(([st, d]) => { byState[st] = d; });
+  if (new Set(Object.values(byState)).size === 3) ok('tick, cross and note draw three different glyphs'); else fail('glyphs: ' + JSON.stringify(byState));
+  // the stops paint as three different boxes, MEASURED off the computed background
+  const bgs = await page.$$eval('#thread .msg[data-mid="lst"] .mtick', (bs) => bs.map((b) => [b.dataset.state, getComputedStyle(b).backgroundColor]));
+  const bgBy = {}; bgs.forEach(([st, c]) => { bgBy[st] = c; });
+  if (new Set([bgBy.tick, bgBy.x, bgBy.note]).size === 3 && bgBy[''] === 'rgba(0, 0, 0, 0)') ok('three lit stops are three colours and the empty box is clear'); else fail('bgs: ' + JSON.stringify(bgBy));
 
   // 2. a markdown list: the bullet is replaced by the box, a number is kept
   await page.click('#thread .msg[data-mid="bul"] .m-preview');
@@ -166,22 +196,74 @@ const items = (page, mid) => page.$$eval('#thread .msg[data-mid="' + mid + '"] .
   if (same(it.map((x) => x.text), ['Citrine', 'Selenite', 'The candle'])) ok('a numbered list with each body on the next line wears a box per item, and the closing paragraph none');
   else fail('cont items: ' + JSON.stringify(it.map((x) => x.text)));
 
-  // 4. a tap lights it, saves onto THIS message under the item's key, and a
-  //    second tap clears it; the tap never starts the autoscroll
+  // 4. one press ticks (saves state:'tick' onto THIS message under the item's
+  //    key), two crosses, three opens the note box, four clears; the taps
+  //    never start the autoscroll
   await page.click('#thread .msg[data-mid="lst"] .m-preview');
   const y0 = await page.evaluate(() => window.scrollY);
-  await page.click('#thread .msg[data-mid="lst"] .mtick[data-key]:not(.on)');
-  await page.waitForTimeout(300);
-  const after = (await items(page, 'lst')).filter((x) => x.on).map((x) => x.text.split('.')[0]);
-  if (same(after, ['Pigeonholes', 'The train'])) ok('a tap lights the box and quiets the item'); else fail('after tap: ' + JSON.stringify(after));
-  if (posts.length === 1 && posts[0].id === 'lst' && posts[0].on === true && posts[0].key === tickKey('Pigeonholes. The "oh, I have to tell X" bits. One hole per person.')) ok('the server received {id, key, on:true} for that message and that item');
+  const PIG_KEY = tickKey('Pigeonholes. The "oh, I have to tell X" bits. One hole per person.');
+  const pig = '#thread .msg[data-mid="lst"] .mtick[data-key="' + PIG_KEY + '"]';
+  await page.click(pig); await page.waitForTimeout(250);
+  let after = (await items(page, 'lst')).filter((x) => x.on).map((x) => x.text.split('.')[0]);
+  if (same(after, ['Pigeonholes', 'The train'])) ok('one press lights the box and quiets the item'); else fail('after tap: ' + JSON.stringify(after));
+  if (posts.length === 1 && posts[0].id === 'lst' && posts[0].state === 'tick' && posts[0].key === PIG_KEY) ok('the server received {id, key, state:tick} for that message and that item');
   else fail('posts: ' + JSON.stringify(posts));
-  await page.click('#thread .msg[data-mid="lst"] .mtick.on');
-  await page.waitForTimeout(300);
-  if (posts.length === 2 && posts[1].on === false && posts[1].key === posts[0].key) ok('a second tap clears it (on:false, same key)'); else fail('posts: ' + JSON.stringify(posts));
+  await page.click(pig); await page.waitForTimeout(250);
+  const pig2 = (await items(page, 'lst')).filter((x) => x.key === PIG_KEY)[0];
+  if (pig2.state === 'x' && pig2.out && !pig2.done && posts.length === 2 && posts[1].state === 'x') ok('two presses cross it out (state:x, the item struck)'); else fail('press 2: ' + JSON.stringify([pig2, posts]));
+  await page.click(pig); await page.waitForTimeout(250);
+  const box = await page.$(pig + ' ~ .mtnote');
+  const pig3 = (await items(page, 'lst')).filter((x) => x.key === PIG_KEY)[0];
+  if (box && pig3.state === 'note' && posts.length === 2) ok('three presses open the note box under the item and file nothing yet'); else fail('press 3: box=' + !!box + ' ' + JSON.stringify([pig3, posts.length]));
+  const boxEmpty = await page.$eval(pig + ' ~ .mtnote textarea', (t) => t.value === '' && t.placeholder === 'Note…');
+  if (boxEmpty) ok('the box ships empty, the placeholder names the field'); else fail('box not empty');
+  const forC = await page.$eval(pig + ' ~ .mtnote .mtto[data-to="claude"]', (b) => b.classList.contains('on'));
+  const sendWord = await page.$eval(pig + ' ~ .mtnote .mtsend', (b) => b.textContent);
+  if (forC && sendWord === 'Send') ok('For Claude is the default and the button says Send'); else fail('default: ' + forC + ' ' + sendWord);
+  await page.click(pig); await page.waitForTimeout(250);
+  const pig4 = (await items(page, 'lst')).filter((x) => x.key === PIG_KEY)[0];
+  const boxGone = !(await page.$(pig + ' ~ .mtnote'));
+  if (pig4.state === '' && !pig4.on && !pig4.out && boxGone && posts.length === 3 && posts[2].state === '') ok('four presses clear it and close the box (state:"")'); else fail('press 4: ' + JSON.stringify([pig4, boxGone, posts]));
   await page.waitForTimeout(700);
   const y1 = await page.evaluate(() => window.scrollY);
   if (y1 === y0) ok('tapping a box does not start the autoscroll'); else fail('scrolled ' + y0 + ' → ' + y1);
+
+  // 4b. a FOR-CLAUDE note: typed, sent — it posts into the thread through
+  //     /reply naming the item, rings /wake, then files state:note + the words
+  posts.length = 0;
+  await page.click(pig); await page.click(pig); await page.click(pig); await page.waitForTimeout(250);
+  await page.fill(pig + ' ~ .mtnote textarea', 'one hole per person is too many');
+  await page.click(pig + ' ~ .mtnote .mtsend'); await page.waitForTimeout(500);
+  if (replies.length === 1 && replies[0].chat === 'games' && /^Note on “Pigeonholes\./.test(replies[0].text) && /: one hole per person is too many$/.test(replies[0].text)) ok('a for-Claude note posts into the chat as her message, naming the item');
+  else fail('replies: ' + JSON.stringify(replies));
+  if (wakes.length === 1 && wakes[0].chat === 'games') ok('…and rings the doorbell'); else fail('wakes: ' + JSON.stringify(wakes));
+  const noteSave = posts.filter((p) => p.state === 'note');
+  if (noteSave.length === 1 && noteSave[0].key === PIG_KEY && noteSave[0].note === 'one hole per person is too many' && noteSave[0].to === 'claude') ok('…and files {state:note, note, to:claude} on the item');
+  else fail('note posts: ' + JSON.stringify(posts));
+  const pig5 = (await items(page, 'lst')).filter((x) => x.key === PIG_KEY)[0];
+  if (pig5.state === 'note' && /for Claude/.test(pig5.note) && /one hole per person is too many/.test(pig5.note) && !(await page.$(pig + ' ~ .mtnote'))) ok('the note reads back under the item and the box closes'); else fail('after send: ' + JSON.stringify(pig5));
+  const hers = await page.$$eval('#thread .msg .m-chat.sophie', (ns) => ns.length);
+  if (hers === 1) ok('her message shows in the thread right away'); else fail('her rows: ' + hers);
+
+  // 4c. a JUST-FOR-ME note: nothing reaches the chat, only the item
+  posts.length = 0; replies.length = 0; wakes.length = 0;
+  const SPEC_KEY = tickKey('Specimen jars. Things you wondered and never looked up.');
+  const spec = '#thread .msg[data-mid="lst"] .mtick[data-key="' + SPEC_KEY + '"]';
+  await page.click(spec); await page.click(spec); await page.click(spec); await page.waitForTimeout(250);
+  await page.click(spec + ' ~ .mtnote .mtto[data-to="me"]');
+  const saveWord = await page.$eval(spec + ' ~ .mtnote .mtsend', (b) => b.textContent);
+  if (saveWord === 'Save') ok('Just for me turns the button into Save'); else fail('save word: ' + saveWord);
+  await page.fill(spec + ' ~ .mtnote textarea', 'look up why moths');
+  await page.click(spec + ' ~ .mtnote .mtsend'); await page.waitForTimeout(400);
+  const meSave = posts.filter((p) => p.state === 'note');
+  if (replies.length === 0 && wakes.length === 0 && meSave.length === 1 && meSave[0].to === 'me' && meSave[0].note === 'look up why moths') ok('a just-for-me note files on the item and tells no chat');
+  else fail('me: ' + JSON.stringify([replies, wakes, posts]));
+  const spec2 = (await items(page, 'lst')).filter((x) => x.key === SPEC_KEY)[0];
+  if (/just me/.test(spec2.note)) ok('…and reads back marked just me'); else fail('spec note: ' + JSON.stringify(spec2));
+  // tapping the saved note reopens the box with her words in it
+  await page.click(spec + ' ~ .mtnotev'); await page.waitForTimeout(150);
+  const reopened = await page.$eval(spec + ' ~ .mtnote textarea', (t) => t.value);
+  if (reopened === 'look up why moths') ok('tapping a saved note reopens the box holding her words'); else fail('reopen: ' + JSON.stringify(reopened));
 
   // 5. a merged run: each part's boxes save onto that part's own doc
   await page.goto(base + '/chats?chat=run', { waitUntil: 'load' });
@@ -206,6 +288,8 @@ const items = (page, mid) => page.$$eval('#thread .msg[data-mid="' + mid + '"] .
   await page.waitForSelector('#thread .msg', { timeout: 6000 });
   await page.click('#thread .msg[data-mid="lst"] .m-preview');
   await page.waitForTimeout(300);
+  // …with the note box open on one item, so the photo shows all four stops
+  await page.click(pig); await page.click(pig); await page.click(pig); await page.waitForTimeout(250);
   if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT, fullPage: false });
 
   await browser.close();

@@ -697,6 +697,33 @@ button.dayrule{border:none; background:none; padding:0; cursor:pointer;
 .mtick.on{border-color:var(--chg); background:var(--chg);}
 .mtick.on svg{visibility:visible; color:var(--paper);}
 .mtitem.done{color:var(--ink2);}
+/* THE BOX HAS THREE STOPS (2026-09-04, Sophie: "do a three way toggle so two
+   press is an x three press is a note option that brings up a text box").
+   One press ticks it (red), two crosses it out (the ✕ takes the dislike
+   badge's quiet grey, never the rose — two red marks read as one thing
+   twice), three opens a note box under the item (the box wears the bell's
+   gold: a note is, by default, a message to the chat), four clears. A press
+   CYCLES here on purpose — the box is 19px with nothing to aim at, unlike the
+   three-way TRACK the house rule forbids cycling on. */
+.mtick.x{border-color:var(--ink2); background:var(--ink2);}
+.mtick.x svg{visibility:visible; color:var(--paper);}
+.mtick.note{border-color:var(--bell); background:var(--bell);}
+.mtick.note svg{visibility:visible; color:var(--paper);}
+.mtitem.out{color:var(--ink2); text-decoration:line-through; text-decoration-color:var(--line);}
+/* The note box under an item. Ships EMPTY (her rule) — the placeholder names
+   the field and nothing more. "For Claude" (default) sends the note into the
+   thread as her message and rings the doorbell, exactly as the composer
+   does; "Just for me" keeps it on the item and tells nobody. */
+.mtnote{margin:6px 0 8px 26px; padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--barbg);}
+.mtnote textarea{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px; min-height:48px; padding:7px 10px; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink); resize:vertical;}
+.mtnote textarea:focus{outline:none; border-color:var(--rose);}
+.mtnote .mtbar{display:flex; align-items:center; gap:8px; margin-top:6px; flex-wrap:wrap;}
+.mtnote .mtstat{flex:1; min-width:0; font-style:italic; font-size:.85em; color:var(--ink2);}
+/* A saved note reads back under its item in her italic, with who it was for
+   in small caps in front. Tapping it reopens the box with her words in it. */
+.mtnotev{display:block; margin:2px 0 6px 26px; font-style:italic; color:var(--ink2); cursor:pointer; white-space:pre-wrap;}
+.mtnotev .mtnv-to{font-family:-apple-system,sans-serif; font-style:normal; font-size:10px; letter-spacing:.08em; text-transform:uppercase; margin-right:6px; color:var(--bell);}
+.mtnotev .mtnv-to.me{color:var(--ink2);}
 /* The note and the tags travel together — one node, so un-keeping a thing
    takes its whole editor with it and a row can never keep half of it. */
 .bmkedit{flex:1 0 100%; min-width:0;}
@@ -2312,7 +2339,7 @@ function tickList(part, m){
     if(cur && cur.kind===k){ cur.idx.push(i); continue; }
     cur={kind:k, idx:[i]}; runs.push(cur);
   }
-  var ticks=(m&&m.ticks)||{};
+  var ticks=(m&&m.ticks)||{}, notes=(m&&m.ticknotes)||{};
   runs.forEach(function(r){
     if(r.kind==='x') return;
     if(r.idx.length < (r.kind==='b'?2:3)) return;
@@ -2323,12 +2350,30 @@ function tickList(part, m){
         var mark=l.slice(mm[1].length, l.length-body.length).trim();
         head=mm[1]+(/^\d/.test(mark)? mark+' ' : '');
       }
-      var key=tickKey(body), on=!!ticks[key];
-      lines[n]=head+'<button type="button" class="mtick'+(on?' on':'')+'" data-key="'+key+'" aria-label="Tick this" title="Tick this">'+CHECK_SVG+'</button>'
-        +'<span class="mtitem'+(on?' done':'')+'">'+body+'</span>';
+      var key=tickKey(body), st=tickState(ticks[key]);
+      lines[n]=head+tickBoxHtml(key, st)+'<span class="mtitem'+tickItemClass(st)+'">'+body+'</span>'+tickNoteHtml(notes[key]);
     });
   });
   return lines.join('\n');
+}
+// THE THREE STOPS (2026-09-04). What the doc holds under `ticks[key]`: `true`
+// is the tick it has always been, 'x' the cross, 'note' the note stop. The
+// note's WORDS live beside it in `ticknotes[key]` = {text, to, at}, a separate
+// map on purpose: cycling the box past the note stop must never delete a
+// sentence she wrote, so a note stays on file (and on screen) whatever the
+// box says. `to` is 'claude' (sent into the thread, the default) or 'me'.
+var TICK_STOPS=['','tick','x','note'];
+function tickState(v){ return v===true||v==='tick' ? 'tick' : v==='x' ? 'x' : v==='note' ? 'note' : ''; }
+function tickGlyph(st){ return st==='x' ? TICK_X_SVG : st==='note' ? TICK_NOTE_SVG : CHECK_SVG; }
+function tickBoxHtml(key, st){
+  var cls=st==='tick'?' on':st?' '+st:'';
+  return '<button type="button" class="mtick'+cls+'" data-key="'+key+'" data-state="'+st+'" aria-label="Tick this" title="Tick · cross out · note">'+tickGlyph(st)+'</button>';
+}
+function tickItemClass(st){ return st==='tick' ? ' done' : st==='x' ? ' out' : ''; }
+function tickNoteHtml(nt){
+  if(!nt||!nt.text) return '';
+  var me=nt.to==='me';
+  return '<span class="mtnotev" data-to="'+(me?'me':'claude')+'"><span class="mtnv-to'+(me?' me':'')+'">'+(me?'just me':'for Claude')+'</span>'+esc(nt.text)+'</span>';
 }
 // small cached thumbnails for the Assets grid (server resizes + caches)
 // ── THE WORKING FOLD IS STRUCTURAL, NEVER A GUESS ABOUT WORDING (Aug 2026,
@@ -7511,21 +7556,32 @@ function renderMsg(m){
   // item's words) so they come back on every phone and every reload. A part
   // of a merged run saves onto ITS OWN doc. Optimistic — the box lights on the
   // tap and the write follows; a refused write puts it back.
+  // THREE STOPS ON A PRESS (2026-09-04): tick → cross → note → clear. The
+  // third press opens the note box under the item; Send is what files the
+  // note (and, for Claude, posts it into the thread and rings the doorbell),
+  // and closing the box with nothing sent puts the mark back to clear.
   row.querySelectorAll('.mtick').forEach(function(tk){
     tk.onclick=function(e){ e.stopPropagation();
       var partEl=tk.closest('.m-part');
       var owner=partEl && parts ? (parts.filter(function(p){ return String(p.id)===partEl.dataset.mid; })[0]||m) : m;
-      var key=tk.dataset.key, on=!tk.classList.contains('on');
-      tk.classList.toggle('on', on);
-      var item=tk.nextElementSibling; if(item&&item.classList.contains('mtitem')) item.classList.toggle('done', on);
-      owner.ticks=owner.ticks||{}; if(on) owner.ticks[key]=true; else delete owner.ticks[key];
-      api('/api/chatfeed/tick',{method:'POST',body:JSON.stringify({id:owner.id, key:key, on:on})})
-        .then(function(r){ if(!r.ok) throw 0; })
-        .catch(function(){
-          tk.classList.toggle('on', !on); if(item) item.classList.toggle('done', !on);
-          if(on) delete owner.ticks[key]; else owner.ticks[key]=true;
-          toast('Couldn\u2019t save that tick');
-        });
+      var was=tk.dataset.state||'', st=TICK_STOPS[(TICK_STOPS.indexOf(was)+1)%TICK_STOPS.length];
+      tickPaint(tk, st);
+      var open=tickEditorOf(tk); if(open) open.remove();
+      if(st==='note'){ tickOpenNote(tk, owner, ''); return; }  // filed on Send, not on the press
+      tickSave(tk, owner, was, st);
+    };
+  });
+  // A saved note reopens its box with her words in it (prefilling with HER
+  // OWN saved value is not pre-written text).
+  row.querySelectorAll('.mtnotev').forEach(function(nv){
+    nv.onclick=function(e){ e.stopPropagation();
+      var item=nv.previousElementSibling, tk=item&&item.previousElementSibling;
+      if(!tk||!tk.classList.contains('mtick')) return;
+      var partEl=tk.closest('.m-part');
+      var owner=partEl && parts ? (parts.filter(function(p){ return String(p.id)===partEl.dataset.mid; })[0]||m) : m;
+      var open=tickEditorOf(tk); if(open){ open.remove(); return; }
+      var nt=(owner.ticknotes||{})[tk.dataset.key]||{};
+      tickOpenNote(tk, owner, nt.text||'', nt.to);
     };
   });
   var tools=document.createElement('div'); tools.className='m-tools';
@@ -7778,6 +7834,102 @@ function mkBmkEdit(m, kind){
   w.appendChild(mkBmkMarks(m, kind));
   return w;
 }
+// The list box's helpers (2026-09-04). tickPaint swaps the glyph and the
+// class; tickSave writes the stop (and, with a note, its words) onto the
+// message doc and puts the box back on a refused write; tickOpenNote builds
+// the box under the item — EMPTY unless her own saved note is being reopened.
+function tickPaint(tk, st){
+  tk.dataset.state=st;
+  tk.classList.toggle('on', st==='tick'); tk.classList.toggle('x', st==='x'); tk.classList.toggle('note', st==='note');
+  tk.innerHTML=tickGlyph(st);
+  var item=tk.nextElementSibling;
+  if(item&&item.classList.contains('mtitem')){ item.classList.toggle('done', st==='tick'); item.classList.toggle('out', st==='x'); }
+}
+function tickEditorOf(tk){
+  var n=tk.nextElementSibling; while(n && !n.classList.contains('mtick')){ if(n.classList.contains('mtnote')) return n; n=n.nextElementSibling; }
+  return null;
+}
+function tickSave(tk, owner, was, st, note, to){
+  var key=tk.dataset.key;
+  owner.ticks=owner.ticks||{};
+  var prev=owner.ticks[key];
+  if(st) owner.ticks[key]=(st==='tick'?true:st); else delete owner.ticks[key];
+  var body={id:owner.id, key:key, state:st};
+  if(typeof note==='string'){ body.note=note; body.to=to||'claude'; owner.ticknotes=owner.ticknotes||{}; owner.ticknotes[key]={text:note, to:body.to, at:new Date().toISOString()}; }
+  return api('/api/chatfeed/tick',{method:'POST',body:JSON.stringify(body)})
+    .then(function(r){ if(!r.ok) throw 0; return true; })
+    .catch(function(){
+      tickPaint(tk, was); if(prev==null) delete owner.ticks[key]; else owner.ticks[key]=prev;
+      toast('Couldn\u2019t save that mark'); return false;
+    });
+}
+// Sends a message of hers into a chat the way the composer does — /reply, the
+// registry mirror, then the doorbell — and answers the wake's status word.
+function postHers(chat, text, ring){
+  return api('/api/chatfeed/reply',{method:'POST',body:JSON.stringify({chat:chat, text:text})})
+    .then(function(r){return r.json()})
+    .then(function(d){ if(!d.ok) throw 0;
+      chats[chat]=chats[chat]||{}; chats[chat].archived=false; chats[chat].notifSeenAt=d.notifSeenAt||new Date().toISOString();
+      if(!ring) return 'quiet';
+      return api('/api/chatfeed/wake',{method:'POST',body:JSON.stringify({chat:chat})}).then(function(r){return r.json()}).then(function(w){ return w.status; }).catch(function(){ return 'wake-failed'; });
+    });
+}
+function wakeWords(s){
+  return s==='quiet' ? 'Sent quietly' : s==='fired' ? 'Sent — waking them' : s==='queued' ? 'Sent — a wake is on its way'
+    : s==='not-wakeable' ? 'Sent — they\u2019ll see it next time they\u2019re up' : s==='no-switchboard' ? 'Sent — waking isn\u2019t set up here' : 'Sent';
+}
+function tickOpenNote(tk, owner, text, to){
+  var key=tk.dataset.key, item=tk.nextElementSibling;
+  var itemWords=item&&item.classList.contains('mtitem') ? item.textContent.trim().replace(/\s+/g,' ').slice(0,140) : '';
+  var box=document.createElement('div'); box.className='mtnote'; box.dataset.key=key;
+  var ta=document.createElement('textarea'); ta.placeholder='Note\u2026'; ta.maxLength=2000; ta.value=text||'';
+  var bar=document.createElement('div'); bar.className='mtbar';
+  var forC=document.createElement('button'); forC.type='button'; forC.className='tbtn mtto'; forC.dataset.to='claude'; forC.textContent='For Claude';
+  var forMe=document.createElement('button'); forMe.type='button'; forMe.className='tbtn mtto'; forMe.dataset.to='me'; forMe.textContent='Just for me';
+  var stat=document.createElement('span'); stat.className='mtstat';
+  var send=document.createElement('button'); send.type='button'; send.className='tbtn mtsend';
+  var who=to==='me'?'me':'claude';
+  function paintTo(){ forC.classList.toggle('on', who==='claude'); forMe.classList.toggle('on', who==='me'); send.textContent=who==='me'?'Save':'Send'; }
+  forC.onclick=function(e){ e.stopPropagation(); who='claude'; paintTo(); };
+  forMe.onclick=function(e){ e.stopPropagation(); who='me'; paintTo(); };
+  paintTo();
+  bar.appendChild(forC); bar.appendChild(forMe); bar.appendChild(stat); bar.appendChild(send);
+  box.appendChild(ta); box.appendChild(bar);
+  box.onclick=function(e){ e.stopPropagation(); };
+  // The box sits after the item (and after a saved note, if one is showing).
+  var anchor=item||tk; if(anchor.nextElementSibling&&anchor.nextElementSibling.classList.contains('mtnotev')) anchor=anchor.nextElementSibling;
+  anchor.parentNode.insertBefore(box, anchor.nextSibling);
+  ta.focus();
+  send.onclick=function(e){ e.stopPropagation();
+    var v=ta.value.trim(); if(!v||send.disabled) return;
+    send.disabled=true; stat.textContent=who==='me'?'Saving\u2026':'Sending\u2026';
+    var was=tk.dataset.state||'';
+    var chat=owner.chat||cur||'';
+    var p = who==='claude' && chat
+      ? postHers(chat, 'Note on \u201c'+itemWords+'\u201d: '+v, true).then(function(w){
+          // her message shows in the thread right away, like the composer's
+          var mlist=tk.closest('.msg')&&tk.closest('.msg').parentNode;
+          if(mlist) mlist.appendChild(renderMsg({from:'sophie', text:'Note on \u201c'+itemWords+'\u201d: '+v, created:new Date().toISOString()}));
+          return w; })
+      : Promise.resolve(null);
+    p.then(function(w){
+      tickPaint(tk, 'note');
+      return tickSave(tk, owner, was, 'note', v, who).then(function(okd){
+        if(!okd){ send.disabled=false; stat.textContent=''; return; }
+        // the saved note reads back under the item; the box goes away
+        var old=tickEditorOf(tk); var prevv=item&&item.nextElementSibling; if(prevv&&prevv.classList.contains('mtnotev')) prevv.remove();
+        var holder=document.createElement('span'); holder.innerHTML=tickNoteHtml({text:v, to:who});
+        var nv=holder.firstChild; item.parentNode.insertBefore(nv, item.nextSibling);
+        nv.onclick=function(ev){ ev.stopPropagation(); var o=tickEditorOf(tk); if(o){ o.remove(); return; } tickOpenNote(tk, owner, v, who); };
+        if(old) old.remove();
+        if(w) toast(wakeWords(w));
+      });
+    }).catch(function(){ send.disabled=false; stat.textContent=''; toast('Couldn\u2019t send that'); });
+  };
+}
+// Lucide `x` and `pencil` for the box's other two stops.
+var TICK_X_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+var TICK_NOTE_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>';
 // The tick inside the read box — Lucide `check`, exact path.
 var CHECK_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
 // ONE bookmark glyph — a message row and a Compare page row both draw this,
