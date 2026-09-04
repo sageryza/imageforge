@@ -17,12 +17,17 @@
 //                                                       (her ask the same day: "two print versions,
 //                                                       one without outlines"); the default draws it
 //   --out <dir>                                         where the html/pdf land (default: the scratchpad)
+//   --edition everyday                                  print a Similitude EDITION off the live pool instead
+//                                                       (2026-09-04, "u didn't choose the right deck"); a card
+//                                                       drawn point-down (a made card) is left off and named,
+//                                                       since every card on the sheet is point-up
 //
 // The pictures are the CURRENT cut of every card (`k` on the deck), inlined
 // as data URIs so the PDF render needs no network. It costs nothing.
 const fs = require('fs');
 const path = require('path');
 const { readDeck } = require('./lib/dominoes-deck');
+const tdeck = require('./lib/triset-deck');
 
 const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
 const R3 = Math.sqrt(3);
@@ -139,7 +144,16 @@ async function upload(pdfFile, name) {
 }
 
 async function main() {
-  const deck = readDeck();
+  const edition = arg('edition', '');
+  let deck = readDeck(), name = 'similitude-61';
+  if (edition) {
+    const all = tdeck.editionDeck(await tdeck.fetchPool(BASE), edition);
+    const flipped = all.filter(c => c.flip);
+    deck = all.filter(c => !c.flip);
+    if (!deck.length) throw new Error('no cards in edition ' + edition + ' (have: ' + Object.keys(tdeck.editions(await tdeck.fetchPool(BASE))).join(', ') + ')');
+    if (flipped.length) console.log('left off, drawn point-down: ' + flipped.map(c => c.n).join(' · '));
+    name = 'similitude-' + edition + '-' + deck.length;
+  }
   const out = arg('out', process.env.SCRATCH || path.join(process.env.TMPDIR || '/tmp', 'triset-print'));
   fs.mkdirSync(path.join(out, 'cuts'), { recursive: true });
   // fetch each current cut once (the file is content-addressed, so a re-run is free)
@@ -152,8 +166,8 @@ async function main() {
   }
   const outline = arg('outline', 'on') !== 'off';
   const built = await buildHtml(deck, c => fileData(path.join(out, 'cuts', c.k)),
-    { side: Number(arg('side', 2.2)), border: Number(arg('border', 0.1)), outline });
-  const stem = 'similitude-61-letter' + (outline ? '' : '-no-outline');
+    { side: Number(arg('side', 2.2)), border: Number(arg('border', 0.1)), outline, footer: edition ? 'Similitude · ' + edition : 'Similitude' });
+  const stem = name + '-letter' + (outline ? '' : '-no-outline');
   const htmlFile = path.join(out, stem + '.html');
   const pdfFile = path.join(out, stem + '.pdf');
   fs.writeFileSync(htmlFile, built.html);

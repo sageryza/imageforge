@@ -13,6 +13,7 @@ const http = require('http');
 const servePublic = require('./lib/public-asset');
 const rules = require('../docs/triset/match-rules');
 const { readDeck, machineCounts, sharedTags } = require('./lib/dominoes-deck');
+const tdeck = require('./lib/triset-deck');
 const { build } = require('./triset-match-game');
 const print = require('./triset-print-letter');
 
@@ -32,6 +33,27 @@ const machine = machineCounts(deck);
 ok('the machine count is per card and never counts the card itself', machine.length === 61 && machine.every((m) => m >= 0 && m <= 60));
 is('a weak word alone makes no match', sharedTags({ t: ['green', 'water'] }, { t: ['green', 'water'] }).length, 0);
 is('a strong word does', sharedTags({ t: ['green', 'spiral'] }, { t: ['spiral'] }), ['spiral']);
+
+// the edition reader: ready, unhidden, with a picture, one edition or every dealt card
+const pool = [
+  { id: 'aaaaaaaa11', title: 'a teacup', status: 'ready', edition: 'everyday', cut: 'https://x/a.c4.webp', url: 'https://x/a.webp' },
+  { id: 'bbbbbbbb22', title: 'fog', status: 'ready', edition: 'nature', cut: 'https://x/b.c4.webp' },
+  { id: 'cccccccc33', title: 'Mess', status: 'ready', edition: 'everyday', cut: 'https://x/c.c5.webp', flip: true },
+  { id: 'dddddddd44', title: 'hidden one', status: 'ready', edition: 'everyday', cut: 'https://x/d.webp', hidden: true },
+  { id: 'eeeeeeee55', title: 'no edition', status: 'ready', cut: 'https://x/e.webp' },
+  { id: 'ffffffff66', title: 'still drawing', status: 'running', edition: 'everyday' },
+];
+is('everyday is its ready, unhidden cards', tdeck.editionDeck(pool, 'everyday').map((c) => c.id), ['aaaaaaaa11', 'cccccccc33']);
+is('the cut wins over the original', tdeck.editionDeck(pool, 'everyday')[0].url, 'https://x/a.c4.webp');
+is('a made card carries its flip', tdeck.editionDeck(pool, 'everyday')[1].flip, true);
+is('all = every dealt card, never the edition-less', tdeck.editionDeck(pool, 'all').map((c) => c.id), ['aaaaaaaa11', 'bbbbbbbb22', 'cccccccc33']);
+is('the editions and their counts', tdeck.editions(pool), { everyday: 2, nature: 1 });
+
+// the id migration: v1/v2 keys were 8-character prefixes
+is('migrate: an old key and its list land on the whole ids',
+  rules.migrate({ aaaaaaaa: '["bbbbbbbb","zzzzzzzz"]' }, tdeck.editionDeck(pool, 'all')),
+  { aaaaaaaa11: '["bbbbbbbb22","zzzzzzzz"]' });
+is('migrate: a whole key is untouched', rules.migrate({ aaaaaaaa11: '[]' }, tdeck.editionDeck(pool, 'all')), { aaaaaaaa11: '[]' });
 
 const three = [{ id: 'a', n: 'apple' }, { id: 'b', n: 'bee' }, { id: 'c', n: 'cat' }];
 is('parse: a list', rules.parseMatches('["b","c"]'), ['b', 'c']);
@@ -93,7 +115,8 @@ function exe() {
 (async () => {
   if (!chromium) { console.log('match game: page half skipped (no playwright)'); return report(); }
   const docs = {}; const writes = [];
-  const fixture = deck.slice(0, 8).map((c) => ({ ...c, url: '/cut.png' }));
+  // two editions, one made (point-down) card, one old 8-char answer to migrate
+  const fixture = deck.slice(0, 10).map((c, i) => ({ id: c.id + 'x' + i + 'yz', n: c.n, url: '/cut.png', edition: i < 7 ? 'everyday' : 'nature', flip: i === 6 }));
   const html = build({ deck: fixture });
   const pill = fs.readFileSync(path.join(__dirname, '..', 'public', 'pill-inject.html'), 'utf8');
   const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
@@ -131,22 +154,23 @@ function exe() {
   const ids = fixture.map((c) => c.id);
   const layout = () => page.$$eval('.sc', (els) => els.map((e) => e.dataset.id + '@' + e.style.left + ',' + e.style.top));
   const tapCard = async (id) => {
-    // a POSITION inside the card, not playwright's centre of a leaning box
     await page.evaluate((id) => { const b = document.querySelector('.sc[data-id="' + id + '"]'); const r = b.getBoundingClientRect(); window.__tapAt = [r.left + r.width / 2, r.top + r.height * 0.7]; }, id);
     const [x, y] = await page.evaluate(() => window.__tapAt);
     await page.mouse.click(x, y);
   };
+  // an old v2 answer on the 8-char key, to be carried over
+  docs['triset-matching-balance__match-test'] = { [ids[9].slice(0, 8)]: JSON.stringify([ids[8].slice(0, 8)]) };
 
   await page.goto(base + '/page'); await settle(600);
   is('no page errors', errors, []);
-  is('every card is on the table', await page.$$eval('.sc', (els) => els.length), 8);
+  is('the chips are the editions plus all, everyday first and lit', await page.$$eval('#eds .chip', (els) => els.map((e) => e.dataset.e + (e.classList.contains('on') ? '*' : ''))), ['everyday*', 'nature', 'all']);
+  is('the table is the everyday cards', await page.$$eval('.sc', (els) => els.length), 7);
+  ok('the made card is drawn point-down', await page.$eval('.sc[data-id="' + ids[6] + '"] .tri', (e) => e.classList.contains('dn')));
   const lay1 = await layout();
-  ok('the cards are scattered, not a grid (some card is not flush left of its cell)', lay1.some((s) => !/@0px/.test(s)));
+  ok('the cards are scattered, not a grid', lay1.some((s) => !/@0px/.test(s)));
   ok('the strip opens idle', await page.$eval('#strip', (e) => e.classList.contains('idle')));
-  // a card really has a picture the size of its cell
   const tri = await page.$eval('.sc .tri', (e) => e.getBoundingClientRect());
   ok('a card really draws at its width (' + Math.round(tri.width) + 'px)', tri.width > 60);
-  // the TALLY tab and the Done button end before the pill's column
   const hit = await page.evaluate(() => {
     const t = document.querySelector('.acctab[data-v="tally"]').getBoundingClientRect();
     const el = document.elementFromPoint(t.left + t.width - 4, t.top + t.height / 2);
@@ -154,53 +178,55 @@ function exe() {
   });
   is('the TALLY tab\'s right end is the tab, not the pill', hit, 'tab');
 
-  // pick a center
+  // pick a center: it leaves the table for the bench
   await tapCard(ids[0]); await settle(200);
-  is('the tapped card is the center', await page.$$eval('.sc.center', (els) => els.map((e) => e.dataset.id)), [ids[0]]);
+  is('the center sits on the bench', await page.$$eval('#bench .bc', (els) => els.map((e) => e.dataset.id + (e.classList.contains('center') ? '*' : ''))), [ids[0] + '*']);
+  ok('…and is gone from the table', await page.$eval('.sc[data-id="' + ids[0] + '"]', (e) => getComputedStyle(e).display === 'none'));
   is('the strip names it', await page.$eval('#sname', (e) => e.textContent), fixture[0].n);
   ok('Done ends before the pill\'s column', await page.$eval('#done', (e) => e.getBoundingClientRect().right) <= 390 - 64);
-  // chain two, in order
+  // place two next to it, in order
   await tapCard(ids[3]); await tapCard(ids[5]); await settle(700);
-  is('two chained, numbered in the order she tapped', await page.$$eval('.sc.link', (els) => els.map((e) => e.dataset.id + ':' + e.querySelector('.n').textContent).sort()), [ids[3] + ':1', ids[5] + ':2'].sort());
-  is('two lines from the center', await page.$$eval('#lines line', (els) => els.length), 2);
+  is('the bench is the center then her row, numbered', await page.$$eval('#bench .bc', (els) => els.map((e) => e.dataset.id + ':' + e.querySelector('.n').textContent)), [ids[0] + ':0', ids[3] + ':1', ids[5] + ':2']);
+  const benchGeo = await page.$$eval('#bench .bc', (els) => els.map((e) => { const r = e.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top)]; }));
+  ok('the placed cards sit beside the center on one row', benchGeo[1][0] > benchGeo[0][0] && benchGeo[1][1] === benchGeo[0][1] && benchGeo[2][0] > benchGeo[1][0]);
+  // the PHOTO showed the bench drawing thumbnails with the name beside them
+  const btri = await page.$eval('#bench .bc .tri', (e) => e.getBoundingClientRect());
+  const bnm = await page.$eval('#bench .bc .nm', (e) => e.getBoundingClientRect());
+  ok('a bench card really draws at its cell\'s width (' + Math.round(btri.width) + 'px)', btri.width > 70);
+  ok('…with its name under it, not beside it', bnm.top >= btri.bottom - 1);
+  is('the placed cards left the table', await page.$$eval('.sc.placed', (els) => els.map((e) => getComputedStyle(e).display)), ['none', 'none']);
   const last = writes[writes.length - 1];
-  is('the write is the center\'s chain, in order', [last.item, JSON.parse(last.text)], [ids[0], [ids[3], ids[5]]]);
-  // a line really runs from the center's picture to the chained card's
-  const geo = await page.evaluate(([a, b]) => {
-    const l = document.querySelector('#lines line'); const t = document.getElementById('table').getBoundingClientRect();
-    const ra = document.querySelector('.sc[data-id="' + a + '"]').getBoundingClientRect(), rb = document.querySelector('.sc[data-id="' + b + '"]').getBoundingClientRect();
-    const x1 = Number(l.getAttribute('x1')) + t.left, y1 = Number(l.getAttribute('y1')) + t.top, x2 = Number(l.getAttribute('x2')) + t.left, y2 = Number(l.getAttribute('y2')) + t.top;
-    const inside = (r, x, y) => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
-    return [inside(ra, x1, y1), inside(rb, x2, y2)];
-  }, [ids[0], ids[3]]);
-  is('the first line starts in the center and ends in card 1', geo, [true, true]);
-  // untap takes it back and renumbers
-  await tapCard(ids[3]); await settle(600);
-  is('unchained, the other renumbers to 1', await page.$$eval('.sc.link', (els) => els.map((e) => e.dataset.id + ':' + e.querySelector('.n').textContent)), [ids[5] + ':1']);
+  is('the write is the center\'s row, in order', [last.item, JSON.parse(last.text)], [ids[0], [ids[3], ids[5]]]);
+  // a tap on a placed card sends it back
+  await page.click('#bench .bc[data-id="' + ids[3] + '"]'); await settle(600);
+  is('sent back: the other renumbers to 1', await page.$$eval('#bench .bc', (els) => els.slice(1).map((e) => e.dataset.id + ':' + e.querySelector('.n').textContent)), [ids[5] + ':1']);
+  ok('…and it is on the table again', await page.$eval('.sc[data-id="' + ids[3] + '"]', (e) => getComputedStyle(e).display !== 'none'));
   is('…and the write follows', JSON.parse(writes[writes.length - 1].text), [ids[5]]);
-  // Done: saved, center cleared, a new table, the done dot
+  // Done
   await page.click('#done'); await settle(700);
   ok('Done clears the center', await page.$eval('#strip', (e) => e.classList.contains('idle')));
+  is('…and empties the bench', await page.$$eval('#bench .bc', (els) => els.length), 0);
   const lay2 = await layout();
   ok('Done deals a new table', JSON.stringify(lay2) !== JSON.stringify(lay1));
   is('the done card wears its dot', await page.$$eval('.sc.done', (els) => els.map((e) => e.dataset.id)), [ids[0]]);
-  ok('the strip counts it', /1 of 8 done/.test(await page.$eval('#sline', (e) => e.textContent)));
-  // Scatter again reshuffles without touching the answers
+  ok('the strip counts it', /1 of 7 done/.test(await page.$eval('#sline', (e) => e.textContent)));
   const before = writes.length;
   await page.click('#againbtn'); await settle(300);
   ok('Scatter again is a new table', JSON.stringify(await layout()) !== JSON.stringify(lay2));
   is('…and writes nothing', writes.length, before);
 
-  // reload keeps the dot; the tally row puts the card back in the center with its chain
+  // the other edition: a different table, the old 8-char answer carried over
+  await page.click('#eds .chip[data-e="nature"]'); await settle(300);
+  is('the nature chip deals the nature cards', await page.$$eval('.sc', (els) => els.map((e) => e.dataset.id).sort()), [ids[7], ids[8], ids[9]].sort());
+  is('a v2 answer on the short id carries over as a done dot', await page.$$eval('.sc.done', (els) => els.map((e) => e.dataset.id)), [ids[9]]);
   await page.goto(base + '/page'); await settle(600);
-  is('reload keeps the done dot', await page.$$eval('.sc.done', (els) => els.map((e) => e.dataset.id)), [ids[0]]);
+  is('the edition is remembered', await page.$eval('#eds .chip.on', (e) => e.dataset.e), 'nature');
   await page.click('.acctab[data-v="tally"]'); await settle(300);
-  is('tally: the done row leads with its count', await page.$$eval('.trow', (els) => els.slice(0, 1).map((e) => e.dataset.id + ':' + e.dataset.mine)), [ids[0] + ':1']);
-  is('tally: the rest trail', await page.$$eval('.trow.todo', (els) => els.length), 7);
+  is('tally: the carried-over row leads with its count', await page.$$eval('.trow', (els) => els.slice(0, 1).map((e) => e.dataset.id + ':' + e.dataset.mine)), [ids[9] + ':1']);
   const tc = await page.$eval('.trow .tc', (e) => e.getBoundingClientRect().right);
   ok('the tally count ends before the pill\'s column (' + Math.round(tc) + ' <= 326)', tc <= 390 - 64);
-  await page.click('.trow[data-id="' + ids[0] + '"]'); await settle(300);
-  is('a tally row restores the center and its chain', [await page.$eval('#match', (e) => e.hidden), await page.$$eval('.sc.center', (els) => els.map((e) => e.dataset.id)), await page.$$eval('.sc.link', (els) => els.map((e) => e.dataset.id))], [false, [ids[0]], [ids[5]]]);
+  await page.click('.trow[data-id="' + ids[9] + '"]'); await settle(300);
+  is('a tally row restores the center and its row on the bench', await page.$$eval('#bench .bc', (els) => els.map((e) => e.dataset.id)), [ids[9], ids[8]]);
 
   await browser.close(); server.close();
   report();
