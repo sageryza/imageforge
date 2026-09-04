@@ -71,9 +71,15 @@ const DEFAULT_ACTIVE_DAYS = 7;
  * exist. A missing LABEL is still a finding: a phone photo in an Assets tab
  * needs saying what it is as much as anything else does. The prefix list is
  * asset-guard.js's SOURCE_LIBRARY_PREFIXES — ONE copy, read here and there.
+ *
+ * The same silence covers a SCAN OF PAPER (asset-guard's PAPER_PREFIXES — her
+ * old Google Drawing pulls, the date watercolours): a photograph of a painting
+ * has no prompt and no model either, and it is a separate list because those
+ * files ARE written by a chat, so they cannot join a list whose invariant is
+ * that a chat cannot write there.
  */
 const DELIVERIES = /\/claude-deliveries\//;
-const { sourceLibraryPrefix } = require('../asset-guard');
+const { sourceLibraryPrefix, paperPrefix } = require('../asset-guard');
 
 function classifyAsset(asset) {
   const a = asset || {};
@@ -85,7 +91,7 @@ function classifyAsset(asset) {
   // Judged over every path, not just the primary one: a merged tile can carry
   // the library photo on `url` and a re-uploaded copy in `alts`, or the other
   // way round, and it is one phone photo either way.
-  const library = paths.some(p => !!sourceLibraryPrefix(p));
+  const library = paths.some(p => !!sourceLibraryPrefix(p) || !!paperPrefix(p));
 
   const noLabel = !label;
   // A middle dot is what "gpt-image-2 · medium" has and "from <chat>" hasn't.

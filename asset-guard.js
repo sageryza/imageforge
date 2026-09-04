@@ -116,6 +116,30 @@ const DERIVED_PREFIXES = ['thumbs/', 'drops/_thumb/'];
  */
 const SOURCE_LIBRARY_PREFIXES = ['drops/', 'crystals/', 'ingest/'];
 
+/* ── Paper: her own scanned artwork, where a prompt never existed ─────────
+ * A SEPARATE list from the one above on purpose. That one's test is "could a
+ * CHAT have made this file", which is what lets the guard reason about a
+ * background catch; these two areas fail that test — a chat wrote them — so
+ * folding them in would quietly weaken an invariant the guard leans on.
+ *
+ * The test here is the narrower one the caption sweep actually asks: **did a
+ * prompt ever exist for this picture?** For a photograph of paper the answer
+ * is no, so a missing prompt and a missing MODEL · QUALITY · SIZE caption were
+ * never there to file, and counting them as findings sends chats hunting text
+ * that has never existed. A missing LABEL is still a finding, exactly as it is
+ * for a Dump photo.
+ *   google-drawings/            scripts/gdrawing-extract.py — the scans pulled
+ *                               back out of her old Google Drawings, the only
+ *                               surviving copies of most of them.
+ *   dating-book/date-watercolors/
+ *                               the same paintings pulled from Drive at full
+ *                               resolution (scripts/date-illustrations.js).
+ * Note the SECOND one is deliberately narrow: `dating-book/moments/` next door
+ * IS generated art with a real prompt, and a bare `dating-book/` prefix would
+ * swallow it.
+ */
+const PAPER_PREFIXES = ['google-drawings/', 'dating-book/date-watercolors/'];
+
 /* ── Rule 3: a Dump photo gets a LABEL, never a refusal ───────────────────
  * REFUSING these was designed first, and measuring it is what killed it —
  * written down because the reasoning was good and the answer was still wrong.
@@ -164,6 +188,9 @@ const derivedPrefix = (url) => matchPrefix(url, DERIVED_PREFIXES);
 
 /** `drops/…` &c — a source library only her own upload pipelines write. */
 const sourceLibraryPrefix = (url) => matchPrefix(url, SOURCE_LIBRARY_PREFIXES);
+
+/** `google-drawings/…` &c — a scan of paper, so no prompt was ever typed. */
+const paperPrefix = (url) => matchPrefix(url, PAPER_PREFIXES);
 
 /**
  * The Dump's content-address out of a url, or null — the `hash` field on the
@@ -379,10 +406,12 @@ module.exports = {
   unresolvedUrl,
   DERIVED_PREFIXES,
   SOURCE_LIBRARY_PREFIXES,
+  PAPER_PREFIXES,
   DUMP_PREFIX,
   storagePath,
   derivedPrefix,
   sourceLibraryPrefix,
+  paperPrefix,
   dumpHash,
   dumpLookup,
   dumpLabel,
