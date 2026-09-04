@@ -1101,12 +1101,100 @@ async function startFound(b) {
       urls: srcCards.map(c => c.url) },
     model: 'gpt-image-2', quality: QUALITY, canvas: CANVAS, size: SIZE_TIER,
     ...promptFields(rec),
+    // which PHONE found it — the move log's own id, so a made card and the
+    // swaps that led to it read as one timeline (2026-09-04)
+    ...(PLAYER_RE.test(String(b.player || '')) ? { player: String(b.player) } : {}),
     createdAt: Date.now(),
   };
   await ref.set(doc);
   render(ref.id); // deliberately not awaited
   return { ok: true, id: ref.id, status: 'drawing', poll: `/api/triset/card/${ref.id}` };
 }
+
+/* THE MOVE LOG — every deal, swap, undo, claim and find, per player
+   (2026-09-04, Sophie, after Miriam's game: "do u have a play by play of her
+   game - which cards she moved etc" → "yea i'd like that"). The solitaire
+   table lives in the phone's localStorage, so until this the server only ever
+   saw a FOUND set; the swaps between finds were gone the moment they
+   happened. The page now posts each move, batched, with a random per-phone
+   `player` id (`triset.player` in localStorage — no name, no login; the id is
+   the phone), and a chat reads `GET /moves?player=` back as a timeline.
+   One doc per player per day (`forge-triset-moves`, id `<player>-<yyyymmdd>`),
+   appended in a transaction and capped, so a long evening cannot outgrow a
+   doc. Nothing here spends money and nothing here decides anything — it is a
+   record. */
+const MOVES = 'forge-triset-moves';
+const MOVE_KINDS = ['deal', 'swap', 'undo', 'redo', 'claim', 'unclaim', 'found', 'edition', 'kind', 'newhand', 'challenge'];
+const MOVES_CAP = 2000;
+const PLAYER_RE = /^[a-z0-9]{6,32}$/;
+const dayId = (ms) => new Date(ms).toISOString().slice(0, 10).replace(/-/g, '');
+// One clean entry per posted move — unknown kinds and stray fields are
+// dropped rather than stored, and every card id is cut to its 8-char prefix
+// (the page's own `id`), which is what a timeline names a card by anyway.
+function cleanMove(m, now) {
+  if (!m || typeof m !== 'object') return null;
+  const kind = String(m.k || m.kind || '');
+  if (!MOVE_KINDS.includes(kind)) return null;
+  const at = Number(m.at);
+  const out = { k: kind, at: Number.isFinite(at) && at > 0 ? Math.round(at) : now };
+  const id8 = (x) => String(x || '').slice(0, 40);
+  const ids = (xs) => (Array.isArray(xs) ? xs.slice(0, 6).map(id8) : undefined);
+  if (m.board) out.board = ids(m.board);
+  if (m.hand) out.hand = ids(m.hand);
+  if (m.slot) out.slot = String(m.slot).slice(0, 8);
+  if (m.out) out.out = id8(m.out);
+  if (m.in) out.in = id8(m.in);
+  if (m.drew) out.drew = id8(m.drew);
+  if (m.cards) out.cards = ids(m.cards);
+  if (m.card) out.card = id8(m.card);
+  if (typeof m.words === 'string') out.words = m.words.slice(0, 400);
+  if (typeof m.v === 'string') out.v = m.v.slice(0, 40);
+  if (typeof m.by === 'string') out.by = m.by.slice(0, 8);
+  if (typeof m.ok === 'boolean') out.ok = m.ok;
+  return out;
+}
+async function appendMoves(player, moves) {
+  const now = Date.now();
+  const clean = (Array.isArray(moves) ? moves : []).map(m => cleanMove(m, now)).filter(Boolean).slice(0, 200);
+  if (!clean.length) return { ok: true, added: 0 };
+  const id = `${player}-${dayId(now)}`;
+  const ref = db().collection(MOVES).doc(id);
+  let added = 0;
+  await db().runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const cur = snap.exists ? (snap.data() || {}) : {};
+    const have = Array.isArray(cur.moves) ? cur.moves : [];
+    const seen = new Set(have.map(m => m.k + ':' + m.at));
+    const fresh = clean.filter(m => !seen.has(m.k + ':' + m.at));
+    added = fresh.length;
+    let all = have.concat(fresh);
+    if (all.length > MOVES_CAP) all = all.slice(all.length - MOVES_CAP);
+    tx.set(ref, { player, day: dayId(now), moves: all, n: all.length, updatedAt: now,
+      ...(snap.exists ? {} : { createdAt: now }) }, { merge: true });
+  });
+  return { ok: true, added, doc: id };
+}
+router.post('/moves', express.json({ limit: '64kb' }), async (req, res) => {
+  try {
+    if (!live()) return res.status(503).json({ error: 'firestore unavailable' });
+    const b = req.body || {};
+    const player = String(b.player || '');
+    if (!PLAYER_RE.test(player)) return res.status(400).json({ error: 'player id required' });
+    res.json(await appendMoves(player, b.moves));
+  } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
+});
+// A chat reads a player's timeline back: every day's doc, oldest first.
+router.get('/moves', async (req, res) => {
+  try {
+    if (!live()) return res.status(503).json({ error: 'firestore unavailable' });
+    const player = String(req.query.player || '');
+    if (!PLAYER_RE.test(player)) return res.status(400).json({ error: 'player id required' });
+    const snap = await db().collection(MOVES).where('player', '==', player).get();
+    const days = snap.docs.map(d => d.data()).sort((a, b) => String(a.day).localeCompare(String(b.day)));
+    const moves = [].concat(...days.map(d => d.moves || [])).sort((a, b) => a.at - b.at);
+    res.json({ ok: true, player, days: days.map(d => d.day), n: moves.length, moves });
+  } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
+});
 
 router.post('/found', async (req, res) => {
   try { res.json(await startFound(req.body)); }
@@ -1192,4 +1280,5 @@ module.exports = {
   // for scripts/seed-triset.js — the seed batch must draw through the exact
   // call a found set draws through, or the pool and the made cards drift.
   draw, refBuffers, QUALITY, CANVAS, SIZE_TIER,
+  appendMoves, cleanMove, MOVE_KINDS, MOVES, PLAYER_RE,
 };

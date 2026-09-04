@@ -424,6 +424,41 @@ function hdrs(json){
 }
 function thumb(u){ return '/api/story/thumb?w=800&url=' + encodeURIComponent(u); }
 
+/* THE MOVE LOG (2026-09-04, "do u have a play by play of her game - which
+   cards she moved etc" → "yea i'd like that"). The table lives in THIS phone's
+   localStorage, so the server only ever saw a found set; every deal, swap,
+   undo and claim now posts as well, batched a second behind the tap and
+   flushed on pagehide, under a random per-phone id (no name, no login — the
+   phone is the player). A failed post is retried with the next batch; a log
+   must never get in the way of the game, so nothing here awaits anything. */
+var PLKEY = 'triset.player';
+var player = '';
+try { player = localStorage.getItem(PLKEY) || ''; } catch(e){}
+if (!/^[a-z0-9]{6,32}$/.test(player)) {
+  player = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+  try { localStorage.setItem(PLKEY, player); } catch(e){}
+}
+var moveQ = [], moveT = null;
+function cid(c){ return c ? c.id : null; }
+function logMove(k, m){
+  m = m || {}; m.k = k; m.at = Date.now();
+  moveQ.push(m);
+  clearTimeout(moveT); moveT = setTimeout(flushMoves, 900);
+}
+function flushMoves(){
+  clearTimeout(moveT); moveT = null;
+  if (!moveQ.length) return;
+  var batch = moveQ; moveQ = [];
+  var body = JSON.stringify({ player: player, moves: batch });
+  try {
+    fetch('/api/triset/moves', { method:'POST', headers:hdrs(true), body: body, keepalive: true })
+      .then(function(r){ if (!r.ok) throw new Error('moves ' + r.status); })
+      .catch(function(){ moveQ = batch.concat(moveQ); });
+  } catch(e) { moveQ = batch.concat(moveQ); }
+}
+window.addEventListener('pagehide', flushMoves);
+document.addEventListener('visibilitychange', function(){ if (document.hidden) flushMoves(); });
+
 // A HEX CARD is a flat color, no picture — the color edition's digital form
 // ("for now the digital version just hex colors"). Drawn as an inline SVG
 // triangle: the slot's clip does the shape anyway, but the polygon carries a
@@ -491,6 +526,7 @@ function paintEds(){
   });
 }
 function setEdition(e){
+  if (e !== edition) logMove('edition', { v: e || 'all' });
   edition = e;
   try { if (e) localStorage.setItem(EKEY, e); else localStorage.removeItem(EKEY); } catch(err){}
   paintEds(); poolLine(); deal();
@@ -632,6 +668,7 @@ function deal(){
   for (var i = 0; i < 3; i++) held[i] = drawFresh();
   setClaimed(false);
   clearPick(); paintHand(); costLine(); saveTable();
+  logMove('deal', { board: [hand.top, hand.left, hand.right].map(cid), hand: held.map(cid), v: edition || 'all' });
 }
 
 /* THE SWAP IS TWO TAPS — a board card and a hand card. Either order: the
@@ -665,10 +702,12 @@ function tapHand(i){
 }
 function doSwap(slot, i){
   pushUndo();
+  var out = hand[slot], inn = held[i];
   discard.push(hand[slot]);
   hand[slot] = held[i]; setImg(slot, hand[slot]);
   held[i] = drawFresh();
   clearPick(); paintHand(); costLine(); say(''); saveTable();
+  logMove('swap', { slot: slot, out: cid(out), in: cid(inn), drew: cid(held[i]) });
 }
 
 /* UNDO — put the last hand back (2026-09-01, "add an undo button").
@@ -774,6 +813,7 @@ function undo(){
   if (!prev) { paintUndo(); return; }
   redos.push(snap());
   restore(prev);
+  logMove('undo', { board: [hand.top, hand.left, hand.right].map(cid) });
 }
 function redo(){
   if (pending) return;
@@ -781,6 +821,7 @@ function redo(){
   if (!next) { paintUndo(); return; }
   undos.push(snap());
   restore(next);
+  logMove('redo', { board: [hand.top, hand.left, hand.right].map(cid) });
 }
 
 function say(t, bad){
@@ -791,6 +832,7 @@ function say(t, bad){
 
 var VENN = ['v-top','v-left','v-right'];
 function setKind(k){
+  if (k !== kind) logMove('kind', { v: k });
   kind = k;
   Array.prototype.forEach.call(document.querySelectorAll('#modes button'), function(b){
     b.classList.toggle('on', b.dataset.k === k);
@@ -1032,7 +1074,9 @@ function found(){
   if (pending) return;
   if (!claimed) {                                  // stage one: claim, free
     if (![hand.top, hand.left, hand.right].every(Boolean)) { say('deal three cards first', true); return; }
-    setClaimed(true); say(''); return;
+    setClaimed(true); say('');
+    logMove('claim', { cards: [hand.top, hand.left, hand.right].map(cid) });
+    return;
   }
   if (!readyToDraw()) {
     say(kind === 'each'
@@ -1046,6 +1090,7 @@ function found(){
     kind: kind,
   };
   if (kind !== 'auto') body.middle = middle;
+  body.player = player;
   if (body.cards.some(function(id){ return !id; })) { say('deal three cards first', true); return; }
   if (kind === 'each') {
     body.sides = VENN.map(function(id){ return document.getElementById(id).value.trim(); });
@@ -1058,6 +1103,7 @@ function found(){
     .then(function(d){
       if (!d.ok) throw new Error(d.error || 'could not start the card');
       pending = d.id;
+      logMove('found', { cards: body.cards, card: d.id, words: middle, v: kind, by: claimBy === 'me' ? 'me' : 'it' });
       if (claimBy === 'me') {
         sets += 1;                        // its set was already scored on its turn
         wins.push({ by:'me', cards: body.cards, mid: null, text: middle, kind: kind, at: Date.now() });
