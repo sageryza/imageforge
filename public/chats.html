@@ -712,8 +712,10 @@ button.dayrule{border:none; background:none; padding:0; cursor:pointer;
 .mtitem.out{color:var(--ink2); text-decoration:line-through; text-decoration-color:var(--line);}
 /* The note box under an item. Ships EMPTY (her rule) — the placeholder names
    the field and nothing more. "For Claude" (default) sends the note into the
-   thread as her message and rings the doorbell, exactly as the composer
-   does; "Just for me" keeps it on the item and tells nobody. */
+   thread as her message the way the composer does, QUIETLY — no doorbell
+   (2026-09-04, Sophie: "doesn't need to ring doorbell · just see it when
+   they're up by me"), so the chat reads it whenever it is next up; "Just for
+   me" keeps it on the item and tells nobody. */
 .mtnote{margin:6px 0 8px 26px; padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--barbg);}
 .mtnote textarea{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px; min-height:48px; padding:7px 10px; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink); resize:vertical;}
 .mtnote textarea:focus{outline:none; border-color:var(--rose);}
@@ -7906,7 +7908,7 @@ function tickOpenNote(tk, owner, text, to){
     var was=tk.dataset.state||'';
     var chat=owner.chat||cur||'';
     var p = who==='claude' && chat
-      ? postHers(chat, 'Note on \u201c'+itemWords+'\u201d: '+v, true).then(function(w){
+      ? postHers(chat, 'Note on \u201c'+itemWords+'\u201d: '+v, false).then(function(w){
           // her message shows in the thread right away, like the composer's
           var mlist=tk.closest('.msg')&&tk.closest('.msg').parentNode;
           if(mlist) mlist.appendChild(renderMsg({from:'sophie', text:'Note on \u201c'+itemWords+'\u201d: '+v, created:new Date().toISOString()}));
@@ -7922,7 +7924,7 @@ function tickOpenNote(tk, owner, text, to){
         var nv=holder.firstChild; item.parentNode.insertBefore(nv, item.nextSibling);
         nv.onclick=function(ev){ ev.stopPropagation(); var o=tickEditorOf(tk); if(o){ o.remove(); return; } tickOpenNote(tk, owner, v, who); };
         if(old) old.remove();
-        if(w) toast(wakeWords(w));
+        if(w) toast(w==='quiet' ? 'Sent \u2014 they\u2019ll read it next time they\u2019re up' : wakeWords(w));
       });
     }).catch(function(){ send.disabled=false; stat.textContent=''; toast('Couldn\u2019t send that'); });
   };

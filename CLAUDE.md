@@ -1743,9 +1743,10 @@ them off the reference sheet, not off the old filenames.
   `ticks[key]` on the MESSAGE doc (`true` · `'x'` · `'note'`, keyed by a hash
   of the item's words), `POST /api/chatfeed/tick {id, key, state, note?, to?}`.
   - **FOR CLAUDE IS THE DEFAULT.** Send posts the note into the thread as HER
-    message — `Note on "<the item's words>": <her note>` — through `/reply`
-    and rings `/wake`, exactly the composer's path, so the chat sweeps it like
-    anything she writes. **Just for me** files it on the item alone and tells
+    message — `Note on "<the item's words>": <her note>` — through `/reply`,
+    the composer's path, and **never rings `/wake`** (her rule the hour it
+    shipped: "doesn't need to ring doorbell · just see it when they're up by
+    me") — the chat sweeps it like anything she writes, next time it is up. **Just for me** files it on the item alone and tells
     nobody. A saved note reads back under its item in her italic with who it
     was for; tapping it reopens the box holding her words (prefilling with
     her own saved value is not pre-written text).

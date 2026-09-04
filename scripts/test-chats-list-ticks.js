@@ -9,9 +9,9 @@
 // THREE STOPS (2026-09-04, Sophie: "do a three way toggle so two press is an
 // x three press is a note option that brings up a text box … maybe a toggle
 // default to for claude but also can set to 'just for me'"): tick → cross →
-// note box → clear. A for-Claude note goes into the thread through /reply and
-// rings /wake exactly as the composer does; a just-for-me note only lands on
-// the item. Every one of those is a MEASUREMENT of what the stub really
+// note box → clear. A for-Claude note goes into the thread through /reply,
+// QUIETLY — never /wake ("doesn't need to ring doorbell · just see it when
+// they're up by me"); a just-for-me note only lands on the item. Every one of those is a MEASUREMENT of what the stub really
 // received, in order.
 //
 // Every assertion is a MEASUREMENT of the rendered thread or of what the stub
@@ -236,7 +236,7 @@ const items = (page, mid) => page.$$eval('#thread .msg[data-mid="' + mid + '"] .
   await page.click(pig + ' ~ .mtnote .mtsend'); await page.waitForTimeout(500);
   if (replies.length === 1 && replies[0].chat === 'games' && /^Note on “Pigeonholes\./.test(replies[0].text) && /: one hole per person is too many$/.test(replies[0].text)) ok('a for-Claude note posts into the chat as her message, naming the item');
   else fail('replies: ' + JSON.stringify(replies));
-  if (wakes.length === 1 && wakes[0].chat === 'games') ok('…and rings the doorbell'); else fail('wakes: ' + JSON.stringify(wakes));
+  if (wakes.length === 0) ok('…and does NOT ring the doorbell (her rule: the chat sees it when it is next up)'); else fail('wakes: ' + JSON.stringify(wakes));
   const noteSave = posts.filter((p) => p.state === 'note');
   if (noteSave.length === 1 && noteSave[0].key === PIG_KEY && noteSave[0].note === 'one hole per person is too many' && noteSave[0].to === 'claude') ok('…and files {state:note, note, to:claude} on the item');
   else fail('note posts: ' + JSON.stringify(posts));
