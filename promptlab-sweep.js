@@ -107,6 +107,9 @@ function singleCfgOf(d) {
     outputs: Number(d.outputs) || 1, quality: d.quality || 'low',
     character: Boolean(d.character), styleId: d.gptStyle || 'evan',
     size: d.size || '', photoBuf: null, photoUrl: String(d.photoRef || ''),
+    // Every photo that rode (2026-09-04); the first is `photoUrl` above.
+    photoUrls: Array.isArray(d.photoRefs) && d.photoRefs.length
+      ? d.photoRefs.map(String) : (d.photoRef ? [String(d.photoRef)] : []),
     chars: Array.isArray(d.characters) ? d.characters : [],
     padTarget: d.padTarget || null,
   };

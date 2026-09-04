@@ -5719,7 +5719,27 @@ const PL_GPT = {
     'reference(s) at the end is a photo reference: use it for the subject ' +
     'described below — the person, place or object in it — and NOT for the ' +
     'drawing style, which comes from the style reference above.',
+  // SEVERAL PHOTOS (2026-09-04, Sophie: "add a second reference photo to the
+  // playground … make a way to add a second or third etc photo"). The same
+  // two sentences with the count in them — `{n}` is the number of photos,
+  // written as a word by photoWords() — sent INSTEAD of the singular pair
+  // whenever more than one photo rides. One photo still sends the singular
+  // line byte for byte, so every run before this is unchanged. The photos
+  // attach in the order she added them, after the style references and the
+  // Sophie card, before her cast — the same seat the one photo has.
+  photoLineMany: ' The LAST {n} attached images are photo references: use them ' +
+    'for the subject described below — the people, places or objects in them ' +
+    '— and NOT for the drawing style, which comes from the style reference above.',
+  photoLineManyWithChars: ' The {n} attached images just before the character ' +
+    'reference(s) at the end are photo references: use them for the subject ' +
+    'described below — the people, places or objects in them — and NOT for ' +
+    'the drawing style, which comes from the style reference above.',
 };
+// "two", "three" … for the plural photo lines; past ten the digit is honest.
+// The page keeps a twin (photoWords in promptlab.html) for its Prompt panel —
+// scripts/test-playground-photo-refs.js pins the two equal.
+const PHOTO_WORDS = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+function photoWords(n) { return PHOTO_WORDS[n] || String(n); }
 // The ChatGPT engine's selectable styles (Aug 2026). Each is the same recipe
 // — gpt-image-2 edits, refs attached as pure STYLE references, quality/size
 // from PL_GPT — differing only in which ref images ride along and the prefix
@@ -5771,6 +5791,12 @@ const PL_GPT_STYLES = {
     photoLineWithChars: 'The attached image just before the character ' +
       'reference(s) at the end is a photo reference: use it for the subject ' +
       'described below — the person, place or object in it.',
+    // And the same pair for several photos — see PL_GPT.photoLineMany.
+    photoLineMany: 'The {n} attached images are photo references: use them for ' +
+      'the subject described below — the people, places or objects in them.',
+    photoLineManyWithChars: 'The {n} attached images just before the character ' +
+      'reference(s) at the end are photo references: use them for the subject ' +
+      'described below — the people, places or objects in them.',
     // NO Sophie character card — see below. Character references SHE picks
     // are a different thing entirely (her own cast, not a style by another
     // name) and ride here exactly as they do on every other tile.
@@ -6125,9 +6151,7 @@ async function startQueuedRuns() {
       }
       if (cfg.photoUrl) {
         try {
-          const pr = await fetch(cfg.photoUrl);
-          if (!pr.ok) throw new Error(`photo ref ${pr.status}`);
-          cfg.photoBuf = Buffer.from(await pr.arrayBuffer());
+          await refetchPhotoRefs(cfg);
         } catch (e) {
           await d.ref.update({ status: 'failed', error: `queued for a server update; its photo reference could not be re-read (${e.message})` });
           continue;
@@ -6211,9 +6235,7 @@ async function sweepStuckPromptlabRuns() {
         const cfg = plSweep.singleCfgOf(r);
         if (cfg.photoUrl) {
           try {
-            const pr = await fetch(cfg.photoUrl);
-            if (!pr.ok) throw new Error(`photo ref ${pr.status}`);
-            cfg.photoBuf = Buffer.from(await pr.arrayBuffer());
+            await refetchPhotoRefs(cfg);
           } catch (e) {
             await d.ref.update({ status: 'failed', error: `interrupted by a server restart; its photo reference could not be re-read (${e.message})` });
             continue;
@@ -6495,6 +6517,25 @@ function plStamp(cfg, st, extra) {
   }, extra || {});
 }
 
+// How many photos may ride one run (2026-09-04). Each is a separate image
+// input billed by its own tokens, and the model reads a handful well; past
+// that the extra references stop meaning anything.
+const PL_PHOTO_MAX = 6;
+// A queued or interrupted run holds its photos only by url — read them all
+// back into bytes, in order. `photoUrls` is the list (promptlab-sweep.js),
+// `photoUrl` its first for the older shape; one that will not fetch fails the
+// redraw, because drawing without it is a different picture under this record.
+async function refetchPhotoRefs(cfg) {
+  const urls = (cfg.photoUrls && cfg.photoUrls.length) ? cfg.photoUrls : [cfg.photoUrl];
+  cfg.photoBufs = [];
+  for (const u of urls) {
+    const pr = await fetch(u);
+    if (!pr.ok) throw new Error(`photo ref ${pr.status}`);
+    cfg.photoBufs.push(Buffer.from(await pr.arrayBuffer()));
+  }
+  cfg.photoBuf = cfg.photoBufs[0] || null;
+}
+
 async function runPromptLabGptJob(docRef, cfg) {
   drawingNow.add(docRef.id);
   try {
@@ -6506,6 +6547,10 @@ async function runPromptLabGptJob(docRef, cfg) {
     // Her uploaded photo rides after those — see PL_GPT.photoLine for why the
     // order matters (the character line names "the second attached image").
     if (cfg.photoBuf) refs.push(cfg.photoBuf);
+    // A SECOND (third …) photo rides right behind the first, in her order
+    // (2026-09-04) — `photoBufs` is the whole list and `photoBuf` its first,
+    // kept so every older caller of this job is untouched.
+    for (const b of (cfg.photoBufs || []).slice(1)) refs.push(b);
     // HER OWN CAST RIDES AT THE VERY END (2026-08-27, Sophie's character
     // picker). charLine() names them "the last attached image(s)", which is
     // the same wording the Story Room sends, so they must genuinely be last —
@@ -6987,20 +7032,31 @@ app.post('/api/promptlab', async (req, res) => {
       // Her own photo reference, uploaded with this run (Aug 2026). The bytes
       // go straight to the job so a failed Storage write costs the record, not
       // the picture; the url is only what the run's doc remembers it by.
-      let photoBuf = null;
-      let photoUrl = '';
-      const photoIn = String(req.body.photo || '');
-      const pm = photoIn.match(/^data:(image\/[a-z.+-]+);base64,(.+)$/i);
-      if (pm) {
-        photoBuf = Buffer.from(pm[2], 'base64');
-        const up = await saveBufferToFirebase(photoBuf, pm[1], 'promptlab/photorefs');
-        if (/^https?:\/\//.test(up)) photoUrl = up;
-      } else if (/^https?:\/\//.test(photoIn)) {
-        try {
-          const r = await fetch(photoIn);
-          if (r.ok) { photoBuf = Buffer.from(await r.arrayBuffer()); photoUrl = photoIn; }
-        } catch (e) { console.warn('promptlab photo ref fetch failed:', e.message); }
+      // SEVERAL PHOTOS (2026-09-04): `photos` is the list, in her order;
+      // `photo` is what every older page sends and is read as a list of one.
+      // Each is a dataURL (uploaded to Storage so the run doc can name it) or
+      // an https url (a picture already in Storage — a copy-back, or Meta
+      // Assets' door). One that will not read is dropped, best-effort, exactly
+      // as the single photo always was.
+      const photoBufs = [];
+      const photoUrls = [];
+      const photoIns = (Array.isArray(req.body.photos) && req.body.photos.length
+        ? req.body.photos : [req.body.photo]).map((x) => String(x || '')).filter(Boolean).slice(0, PL_PHOTO_MAX);
+      for (const photoIn of photoIns) {
+        const pm = photoIn.match(/^data:(image\/[a-z.+-]+);base64,(.+)$/i);
+        if (pm) {
+          const buf = Buffer.from(pm[2], 'base64');
+          const up = await saveBufferToFirebase(buf, pm[1], 'promptlab/photorefs');
+          if (/^https?:\/\//.test(up)) { photoBufs.push(buf); photoUrls.push(up); }
+        } else if (/^https?:\/\//.test(photoIn)) {
+          try {
+            const r = await fetch(photoIn);
+            if (r.ok) { photoBufs.push(Buffer.from(await r.arrayBuffer())); photoUrls.push(photoIn); }
+          } catch (e) { console.warn('promptlab photo ref fetch failed:', e.message); }
+        }
       }
+      const photoBuf = photoBufs[0] || null;
+      const photoUrl = photoUrls[0] || '';
       // The no-text toggle is NOT an edit of hers — it is a switch on the
       // house tail, so it is applied AFTER the override and left out of
       // `edited`. A style with no `noText` never offers it.
@@ -7036,9 +7092,16 @@ app.post('/api/promptlab', async (req, res) => {
       const charsLine = padChars.charLine(pickedChars);
       // The photo's sentence is re-anchored when characters ride behind it —
       // "the LAST attached image" is one of them by then.
-      const photoLine = pickedChars.length
+      const photoLine1 = pickedChars.length
         ? (st.photoLineWithChars ? ` ${st.photoLineWithChars}` : PL_GPT.photoLineWithChars)
         : (st.photoLine ? ` ${st.photoLine}` : PL_GPT.photoLine);
+      // Several photos → the plural pair, with the count written in
+      // (2026-09-04). One photo sends the singular line exactly as before.
+      const photoLineN = pickedChars.length
+        ? (st.photoLineManyWithChars ? ` ${st.photoLineManyWithChars}` : PL_GPT.photoLineManyWithChars)
+        : (st.photoLineMany ? ` ${st.photoLineMany}` : PL_GPT.photoLineMany);
+      const photoLine = photoBufs.length > 1
+        ? photoLineN.replace('{n}', photoWords(photoBufs.length)) : photoLine1;
       // HER TYPED CAST RIDES A SINGLE PICTURE TOO (2026-08-29, Sophie:
       // "panels adds a character / if i import solo to playground / can it
       // auto add the character description from the original multi sheet /
@@ -7210,6 +7273,10 @@ app.post('/api/promptlab', async (req, res) => {
         aspectRatio: canvas.aspectRatio, res: resId, promptEdited: edited, noText,
         styleRef: (st.refFiles || []).concat(st.storageRefs || []).join(','), outputs,
         character, photoRef: photoUrl, images: [], createdAt: admin.firestore.Timestamp.now(),
+        // Every photo that rode, in order (2026-09-04) — `photoRef` above is
+        // the first, for every reader that knows one. Written only when there
+        // is more than one, so an ordinary run's doc is what it always was.
+        ...(photoUrls.length > 1 ? { photoRefs: photoUrls } : {}),
         // WHICH characters rode this run, by id and name — the provenance the
         // pad's own draws keep, so a picture can say who is in it.
         ...(pickedChars.length ? { characters: pickedChars } : {}),
@@ -7227,7 +7294,7 @@ app.post('/api/promptlab', async (req, res) => {
       // her words on this run — her prefix/suffix override if she made one,
       // the character line and the photo line only when they were really
       // attached — rather than the style's baked default.
-      if (!pausedNow()) runPromptLabGptJob(docRef, { fullPrompt, head, tail, outputs, quality, prompt: typed, character, styleId, size: canvas.size, photoBuf, chars: pickedChars, padTarget });
+      if (!pausedNow()) runPromptLabGptJob(docRef, { fullPrompt, head, tail, outputs, quality, prompt: typed, character, styleId, size: canvas.size, photoBuf, photoBufs, chars: pickedChars, padTarget });
       return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}`, ...queuedReply() });
     }
 
@@ -7291,6 +7358,9 @@ app.get('/api/promptlab/styles', (req, res) => {
       // And the one it sends INSTEAD when character references ride behind
       // the photo — same sentence, re-anchored. Absent = the house one.
       photoLineWithChars: st.photoLineWithChars || '',
+      // The plural pair, for several photos (2026-09-04). Absent = the house ones.
+      photoLineMany: st.photoLineMany || '',
+      photoLineManyWithChars: st.photoLineManyWithChars || '',
       // The sheet swap a panels run would apply to this style's tail, or null
       // — served so the Prompt panel can print the tail that is really sent
       // on a sheet, the same disclosure rule as everything above.
@@ -7344,7 +7414,9 @@ app.get('/api/promptlab/styles', (req, res) => {
   // on her phone reads it, and this endpoint is the only thing that serves it.
   res.json({ styles: out, sizes: PL_GPT.sizes, res: PL_GPT.res, resDefault: PL_GPT.resDefault,
     max: PL_GPT.promptMax, photoLine: PL_GPT.photoLine,
-    photoLineWithChars: PL_GPT.photoLineWithChars, maxChars: padChars.MAX_PICKED, panels });
+    photoLineWithChars: PL_GPT.photoLineWithChars,
+    photoLineMany: PL_GPT.photoLineMany, photoLineManyWithChars: PL_GPT.photoLineManyWithChars,
+    maxPhotos: PL_PHOTO_MAX, maxChars: padChars.MAX_PICKED, panels });
 });
 
 // HER CAST, FOR THE PICKER (2026-08-27, Sophie: "a little button … with a

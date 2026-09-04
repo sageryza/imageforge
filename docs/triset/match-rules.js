@@ -68,5 +68,32 @@
     return (from + 1) % n;
   }
 
-  return { parseMatches: parseMatches, judged: judged, tally: tally, summary: summary, nextUnjudged: nextUnjudged };
+  // A seeded shuffle and the scatter (v2, 2026-09-04: "scatter all the cards
+  // around - a different random pattern every time"). Positions are a jittered
+  // grid — every card has its own cell, so nothing overlaps however the dice
+  // fall — with a random lean, in a shuffled order. `seed` is the page's own
+  // Date.now(), so every open is a new table and "Scatter again" is a new seed.
+  function rng(seed) {
+    var s = (seed >>> 0) || 1;
+    return function () { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+  }
+  function shuffle(list, seed) {
+    var r = rng(seed), a = list.slice();
+    for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(r() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+  }
+  function scatter(ids, seed, opts) {
+    opts = opts || {};
+    var cols = opts.cols || 4, cellW = opts.cellW || 97, cellH = opts.cellH || 92, card = opts.card || 78, lean = opts.lean || 14;
+    var r = rng(seed + 7), order = shuffle(ids, seed), out = [];
+    order.forEach(function (id, i) {
+      var c = i % cols, row = Math.floor(i / cols);
+      out.push({ id: id, x: c * cellW + Math.floor(r() * (cellW - card)), y: row * cellH + Math.floor(r() * Math.max(1, cellH - card * 0.866 - 4)),
+        rot: Math.round((r() * 2 - 1) * lean), w: card });
+    });
+    return { cards: out, height: Math.ceil(order.length / cols) * cellH, width: cols * cellW };
+  }
+
+  return { parseMatches: parseMatches, judged: judged, tally: tally, summary: summary, nextUnjudged: nextUnjudged,
+    rng: rng, shuffle: shuffle, scatter: scatter };
 }));

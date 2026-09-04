@@ -1,9 +1,11 @@
 <!doctype html>
-<!-- THE MATCH TEST — her chosen 61 cards, one at a time: the anchor card at
-     the top, every other card under it, tap the ones that match. Built from
-     compare-shell.html. Her answers live OFF the page on a verdict doc (sheet
-     __SHEET__ under __CHAT__), one JSON list per anchor, so a re-post of the
-     page opens on the same answers. Posted by scripts/triset-match-game.js. -->
+<!-- THE MATCH TEST v2 — her chosen cards scattered across a table, a fresh
+     scatter every open. She taps one to be the CENTER, then chains the others
+     to it in the order she judges them close — first is closest. Done saves
+     the chain and deals a new table. Built from compare-shell.html. Her
+     answers live OFF the page on a verdict doc (sheet __SHEET__ under
+     __CHAT__), one JSON list per center, in chain order. Posted by
+     scripts/triset-match-game.js. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -11,48 +13,46 @@
 <title>Match test</title>
 <link rel="stylesheet" href="/compare.css">
 <style>
-/* the hairline tabs — the house idiom (fruitchart.html's copy); the row
-   reserves the pill's column because its right tab is a tap target */
-.acctabs{position:relative;display:flex;border-bottom:1px solid var(--line);margin:0 0 14px;padding-right:64px}
+.acctabs{position:relative;display:flex;border-bottom:1px solid var(--line);margin:0 0 10px;padding-right:64px}
 .acctab{flex:1 1 0;min-width:0;padding:7px 4px 9px;border:none;background:none;cursor:pointer;
   font-family:-apple-system,system-ui,sans-serif;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
 .acctab.on{color:var(--ink)}
 .acctabs::after{content:'';position:absolute;left:0;bottom:-1px;height:2px;width:var(--tw,0);background:var(--ink);transform:translateX(var(--tx,0))}
 .acctabs.tl::after{transition:transform .2s ease,width .2s ease}
 
-/* a card is a point-up triangle — the clip is the scissors, so the image
-   underneath can be any square cut (triset.html's rule) */
-.tri{position:relative;aspect-ratio:1000/866;clip-path:polygon(50% 0,100% 100%,0 100%)}
+.tri{position:relative;aspect-ratio:1000/866;clip-path:polygon(50% 0,100% 100%,0 100%);display:block}
 .tri img{position:absolute;inset:0;width:100%;height:100%;display:block}
 
-#anchor{display:flex;flex-direction:column;align-items:center;margin:2px 0 10px}
-#anchor .tri{width:min(52vw,220px)}
-#aname{font-size:17px;margin-top:8px;text-align:center}
-#arow{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:8px}
-#arow .btn{min-width:38px}
-#acount{color:var(--ink2);font-size:13px;text-align:center;margin-top:6px;min-height:18px}
+/* the strip: what is in play, sticky so it rides down the table with her.
+   It reserves the pill's column — the Done button is a tap target. */
+#strip{position:sticky;top:0;z-index:3;background:var(--paper);padding:6px 64px 8px 0;margin:0 0 6px;
+  display:flex;align-items:center;gap:10px;min-height:56px;border-bottom:1px solid var(--line)}
+#strip .tri{width:54px;flex:none}
+#sname{font-size:15px;line-height:1.25;flex:1 1 auto;min-width:0}
+#sline{color:var(--ink2);font-size:12px;font-family:-apple-system,system-ui,sans-serif;margin-top:2px}
+#strip .btn{flex:none}
+#strip.idle .tri,#strip.idle #done{display:none}
 
-/* the others: four across, the name small under each */
-#others{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 8px;margin-top:6px}
-.oc{padding:0;border:none;background:none;cursor:pointer;display:block;width:100%;-webkit-tap-highlight-color:transparent}
-.oc .hold{display:block}
-.oc .tri{display:block;width:100%}
-.oc .nm{display:block;font-size:10px;line-height:1.2;color:var(--ink2);text-align:center;margin-top:3px;
-  font-family:-apple-system,system-ui,sans-serif;letter-spacing:.02em;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-/* the pick is a gold glow, never a border — a border would draw a rectangle
-   round a clipped triangle (triset's own rule); the glow needs room, so the
-   triangle sits in an unclipped wrapper that carries the filter */
-.oc .hold{filter:none;transition:filter .15s ease,transform .15s ease}
-.oc.on .hold{filter:drop-shadow(0 0 3px var(--gold)) drop-shadow(0 0 10px var(--gold));transform:scale(1.05)}
-.oc.on .nm{color:var(--gold);font-weight:600}
-#none{margin-top:14px;text-align:center}
+/* the table: absolute cards in a jittered grid, each with its own lean */
+#table{position:relative;margin:0 auto}
+.sc{position:absolute;padding:0;border:none;background:none;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  transform:rotate(var(--rot,0deg));transform-origin:50% 60%;transition:filter .15s ease}
+.sc .hold{display:block;width:100%;filter:none}
+.sc .tri{width:100%}
+.sc.center .hold{filter:drop-shadow(0 0 3px var(--gold)) drop-shadow(0 0 12px var(--gold))}
+.sc.link .hold{filter:drop-shadow(0 0 2px var(--gold)) drop-shadow(0 0 6px var(--gold))}
+#table.picking .sc:not(.center):not(.link) .hold{filter:none;opacity:.9}
+.sc .n{position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);min-width:20px;height:20px;padding:0 5px;border-radius:6px;
+  background:var(--gold);color:#fff;font:600 12px/20px -apple-system,system-ui,sans-serif;display:none}
+.sc.link .n{display:block}
+.sc.done::after{content:'';position:absolute;left:50%;top:-4px;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:var(--ink2);opacity:.55}
+#lines{position:absolute;inset:0;pointer-events:none;overflow:visible}
+#lines line{stroke:var(--gold);stroke-width:1.5;stroke-linecap:round;opacity:.75}
+#again{margin:14px 0 6px;text-align:center}
 
-/* the tally */
-/* the tally's rows pass under the injected pill's fixed corner on the way up,
-   and the count sits at their right end — so the whole list reserves the column */
-#tally{padding-right:64px}
 #sumline{color:var(--ink2);font-size:14px;margin:0 0 10px}
-.trow{display:grid;grid-template-columns:110px 1fr 44px;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--line)}
+#tally{padding-right:64px}
+.trow{display:grid;grid-template-columns:110px 1fr 44px;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--line);cursor:pointer}
 .trow .tn{font-size:14px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .trow .bars{position:relative;height:16px}
 .trow .bar{position:absolute;left:0;top:2px;height:12px;background:var(--gold);border-radius:2px}
@@ -73,18 +73,13 @@
   </div>
 
   <div id="match">
-    <div id="anchor">
-      <div class="tri" id="atri"><img id="aimg" alt=""></div>
-      <div id="aname"></div>
-      <div id="arow">
-        <button class="btn" id="prev" aria-label="previous card">‹</button>
-        <span id="apos"></span>
-        <button class="btn" id="next" aria-label="next card">›</button>
-      </div>
-      <div id="acount"></div>
+    <div id="strip" class="idle">
+      <span class="tri"><img id="simg" alt=""></span>
+      <div><div id="sname"></div><div id="sline"></div></div>
+      <button class="btn" id="done">Done</button>
     </div>
-    <div id="others"></div>
-    <div id="none"><button class="btn" id="nonebtn">None of these</button></div>
+    <div id="table"><svg id="lines"></svg></div>
+    <div id="again"><button class="btn" id="againbtn">Scatter again</button></div>
   </div>
 
   <div id="tally" hidden>
@@ -100,14 +95,17 @@
 <script>
 (function () {
   var CHAT = '__CHAT__', SHEET = '__SHEET__';
-  var DECK = __DECK__;           // [{id, n, url, machine}] — the 61, in deck order
+  var DECK = __DECK__;           // [{id, n, url, machine}]
   var MACHINE = DECK.map(function (c) { return c.machine; });
   var R = window.__matchRules;
   var $ = function (id) { return document.getElementById(id); };
+  var byId = {}; DECK.forEach(function (c) { byId[c.id] = c; });
 
-  var texts = {};                // anchorId → json list, as stored
-  var cur = 0;                   // the anchor's index in DECK
-  var idx = {}; DECK.forEach(function (c, i) { idx[c.id] = i; });
+  var texts = {};                // centerId → json list, as stored
+  var center = null;             // the card in play
+  var chain = [];                // ids, in the order she chained them
+  var seed = Date.now();
+  var pos = {};                  // id → {x,y,w,rot}
 
   function hdrs() { return { 'Content-Type': 'application/json' }; }
   function load() {
@@ -117,57 +115,96 @@
       .catch(function () { texts = {}; });
   }
   var timers = {};
-  function save(anchorId, list) {
-    texts[anchorId] = JSON.stringify(list);
-    clearTimeout(timers[anchorId]);
-    timers[anchorId] = setTimeout(function () {
+  function save(id, list) {
+    texts[id] = JSON.stringify(list);
+    clearTimeout(timers[id]);
+    timers[id] = setTimeout(function () {
       fetch('/api/chatfeed/verdict', { method: 'POST', headers: hdrs(),
-        body: JSON.stringify({ chat: CHAT, sheet: SHEET, item: anchorId, text: texts[anchorId] }) }).catch(function () {});
+        body: JSON.stringify({ chat: CHAT, sheet: SHEET, item: id, text: texts[id] }) }).catch(function () {});
     }, 350);
   }
-  function matches(anchorId) { return R.parseMatches(texts[anchorId]) || []; }
-
-  /* ── the match view ─────────────────────────────────────────────────── */
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
-  function paintAnchor() {
-    var c = DECK[cur];
-    $('aimg').src = c.url; $('aimg').alt = c.n;
-    $('aname').textContent = c.n;
-    $('apos').textContent = (cur + 1) + ' / ' + DECK.length;
-    var m = matches(c.id), done = R.judged(texts);
-    $('acount').textContent = done[c.id]
-      ? (m.length ? m.length + ' matched' : 'none matched')
-      : Object.keys(done).length + ' of ' + DECK.length + ' cards judged';
-  }
-  function paintOthers() {
-    var c = DECK[cur], m = matches(c.id);
-    var lit = {}; m.forEach(function (id) { lit[id] = 1; });
-    $('others').innerHTML = DECK.filter(function (o) { return o.id !== c.id; }).map(function (o) {
-      return '<button class="oc' + (lit[o.id] ? ' on' : '') + '" data-id="' + o.id + '" aria-pressed="' + (lit[o.id] ? 'true' : 'false') + '">'
-        + '<span class="hold"><span class="tri"><img src="' + o.url + '" alt="' + esc(o.n) + '" loading="lazy"></span></span>'
-        + '<span class="nm">' + esc(o.n) + '</span></button>';
+
+  /* ── the table ──────────────────────────────────────────────────────── */
+  function cols() { var w = $('table').parentNode.clientWidth || 360; return Math.max(3, Math.floor(w / 92)); }
+  function dealTable() {
+    var t = $('table'), n = cols(), w = t.parentNode.clientWidth || 360;
+    var cellW = Math.floor(w / n), card = Math.min(88, cellW - 10);
+    var lay = R.scatter(DECK.map(function (c) { return c.id; }), seed, { cols: n, cellW: cellW, cellH: Math.round(card * 0.866) + 22, card: card });
+    pos = {};
+    t.style.width = lay.width + 'px'; t.style.height = (lay.height + 8) + 'px';
+    var done = R.judged(texts);
+    t.innerHTML = '<svg id="lines" width="' + lay.width + '" height="' + (lay.height + 8) + '"></svg>' + lay.cards.map(function (p) {
+      pos[p.id] = p; var c = byId[p.id];
+      return '<button class="sc' + (done[p.id] ? ' done' : '') + '" data-id="' + p.id + '" style="left:' + p.x + 'px;top:' + p.y + 'px;width:' + p.w + 'px;--rot:' + p.rot + 'deg" aria-label="' + esc(c.n) + '">'
+        + '<span class="hold"><span class="tri"><img src="' + c.url + '" alt="' + esc(c.n) + '" loading="lazy"></span></span><span class="n"></span></button>';
     }).join('');
+    paintMarks();
   }
-  function paint() { paintAnchor(); paintOthers(); }
-  function go(i) { cur = (i + DECK.length) % DECK.length; paint(); window.scrollTo(0, 0); }
+  function centroid(id) { var p = pos[id]; return { x: p.x + p.w / 2, y: p.y + p.w * 0.866 * 0.6 }; }
+  function paintMarks() {
+    var t = $('table');
+    t.classList.toggle('picking', !!center);
+    [].forEach.call(t.querySelectorAll('.sc'), function (b) {
+      var id = b.dataset.id, k = chain.indexOf(id);
+      b.classList.toggle('center', id === center);
+      b.classList.toggle('link', k >= 0);
+      b.querySelector('.n').textContent = k >= 0 ? String(k + 1) : '';
+    });
+    var svg = $('lines'); svg.innerHTML = '';
+    if (center) {
+      var c0 = centroid(center);
+      chain.forEach(function (id) {
+        var c1 = centroid(id);
+        var l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        l.setAttribute('x1', c0.x); l.setAttribute('y1', c0.y); l.setAttribute('x2', c1.x); l.setAttribute('y2', c1.y);
+        svg.appendChild(l);
+      });
+    }
+    paintStrip();
+  }
+  function paintStrip() {
+    var s = $('strip'), done = R.judged(texts);
+    s.classList.toggle('idle', !center);
+    if (!center) {
+      $('sname').textContent = 'Tap a card to make it the center';
+      $('sline').textContent = Object.keys(done).length + ' of ' + DECK.length + ' done';
+      return;
+    }
+    var c = byId[center];
+    $('simg').src = c.url; $('simg').alt = c.n;
+    $('sname').textContent = c.n;
+    $('sline').textContent = chain.length ? chain.length + ' chained · first is closest' : 'tap the cards that go with it, closest first';
+  }
+  function setCenter(id, list) {
+    center = id; chain = (list || []).filter(function (x) { return byId[x] && x !== id; });
+    paintMarks();
+  }
+  function finish() {
+    if (!center) return;
+    save(center, chain.slice());
+    center = null; chain = [];
+    seed = Date.now();
+    dealTable();
+    window.scrollTo(0, 0);
+  }
 
   var pressT = null, eatTap = false;
-  $('others').addEventListener('click', function (e) {
-    var b = e.target.closest('.oc'); if (!b) return;
+  $('table').addEventListener('click', function (e) {
+    var b = e.target.closest('.sc'); if (!b) return;
     if (eatTap) { eatTap = false; return; }
-    var id = b.dataset.id, c = DECK[cur], m = matches(c.id);
-    var at = m.indexOf(id);
-    if (at >= 0) m.splice(at, 1); else m.push(id);
-    b.classList.toggle('on', at < 0);
-    b.setAttribute('aria-pressed', at < 0 ? 'true' : 'false');
-    save(c.id, m);
-    paintAnchor();
+    var id = b.dataset.id;
+    if (!center) { setCenter(id, R.parseMatches(texts[id]) || []); return; }
+    if (id === center) { if (!chain.length) { center = null; paintMarks(); } return; }
+    var k = chain.indexOf(id);
+    if (k >= 0) chain.splice(k, 1); else chain.push(id);
+    save(center, chain.slice());
+    paintMarks();
   });
-  // a long press opens the card big through the house lightbox (compare.js
-  // opens any img.zoom on a click); the click the press would become is eaten
-  // so opening a card never also picks it
+  // a long press opens the card big through the house lightbox; the click the
+  // press would become is eaten so looking never also chains
   function pressStart(e) {
-    var b = e.target.closest('.oc'); if (!b) return;
+    var b = e.target.closest('.sc'); if (!b) return;
     clearTimeout(pressT);
     pressT = setTimeout(function () {
       eatTap = true;
@@ -177,25 +214,22 @@
     }, 450);
   }
   function pressEnd() { clearTimeout(pressT); }
-  $('others').addEventListener('pointerdown', pressStart);
-  ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) { $('others').addEventListener(ev, pressEnd); });
-  $('others').addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  $('table').addEventListener('pointerdown', pressStart);
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) { $('table').addEventListener(ev, pressEnd); });
+  $('table').addEventListener('contextmenu', function (e) { e.preventDefault(); });
 
-  $('prev').addEventListener('click', function () { go(cur - 1); });
-  $('next').addEventListener('click', function () { go(R.nextUnjudged(DECK, texts, cur)); });
-  $('nonebtn').addEventListener('click', function () {
-    var c = DECK[cur];
-    save(c.id, []);
-    paint();
-  });
+  $('done').addEventListener('click', finish);
+  $('againbtn').addEventListener('click', function () { seed = Date.now(); dealTable(); });
+  var rz = null;
+  window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(function () { dealTable(); tabLine(tabs); }, 150); });
 
   /* ── the tally ──────────────────────────────────────────────────────── */
   function paintTally() {
     var rows = R.tally(DECK, texts, MACHINE), s = R.summary(rows);
     var maxv = Math.max(1, Math.max.apply(null, rows.map(function (r) { return Math.max(r.mine || 0, r.machine || 0); })));
     $('sumline').textContent = s.judged
-      ? s.judged + ' of ' + s.total + ' judged · your matches per card run ' + s.min + ' to ' + s.max + ', average ' + s.avg
-      : 'Nothing judged yet';
+      ? s.judged + ' of ' + s.total + ' done · your chains run ' + s.min + ' to ' + s.max + ' cards, average ' + s.avg
+      : 'Nothing done yet';
     $('trows').innerHTML = rows.map(function (r) {
       var mine = r.mine === null ? 0 : r.mine;
       return '<div class="trow' + (r.mine === null ? ' todo' : '') + '" data-id="' + r.id + '" data-mine="' + (r.mine === null ? '' : r.mine) + '">'
@@ -205,9 +239,13 @@
         + '<span class="tc">' + (r.mine === null ? '–' : r.mine) + '</span></div>';
     }).join('');
   }
+  // a tally row puts that card back in the center with its chain, on a fresh table
   $('trows').addEventListener('click', function (e) {
     var row = e.target.closest('.trow'); if (!row) return;
-    showTab('match'); go(idx[row.dataset.id]);
+    showTab('match');
+    seed = Date.now(); dealTable();
+    setCenter(row.dataset.id, R.parseMatches(texts[row.dataset.id]) || []);
+    window.scrollTo(0, 0);
   });
 
   /* ── the tabs ───────────────────────────────────────────────────────── */
@@ -231,17 +269,16 @@
     var b = e.target.closest('.acctab'); if (!b) return;
     showTab(b.dataset.v);
   });
-  window.addEventListener('resize', function () { tabLine(tabs); });
 
-  window.__compareHelp({ html: '<b>One card at a time.</b> The card at the top is the one you are matching. Tap every card under it that goes with it; tap again to take it back. <b>None of these</b> counts as an answer. › jumps to the next card you have not done; ‹ steps back. Hold a card to see it big.<br><br><b>Tally</b> lines the cards up by how many matches you gave each one, with the game\'s own tag count as the thin grey bar — that is the even-or-not answer.' });
+  window.__compareHelp({ html: '<b>The cards are scattered fresh every time.</b> Tap one to make it the center. Then tap the cards that go with it, closest first — each one chains to the center with its number. Tap a chained card to take it back. <b>Done</b> saves the chain and deals a new table; <b>Scatter again</b> only reshuffles. A grey dot marks a card you have already done as the center. Hold a card to see it big.<br><br><b>Tally</b> lines the cards up by how many you chained to each, with the game\'s own tag count as the thin grey bar — that is the even-or-not answer. Tap a row to put that card back in the center.' });
 
   load().then(function () {
-    cur = R.nextUnjudged(DECK, texts, DECK.length - 1);
-    paint();
+    dealTable();
     tabLine(tabs);
     requestAnimationFrame(function () { tabLine(tabs); });
   });
-  window.__matchTest = { go: go, tally: paintTally, showTab: showTab, texts: function () { return texts; } };
+  window.__matchTest = { deal: dealTable, setCenter: setCenter, finish: finish, tally: paintTally, showTab: showTab,
+    texts: function () { return texts; }, state: function () { return { center: center, chain: chain.slice(), seed: seed, pos: pos }; } };
 }());
 </script>
 </body>

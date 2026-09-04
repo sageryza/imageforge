@@ -5351,6 +5351,20 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - **gpt-image-2 only.** The WTR LoRA takes a trigger word and has no
     attachment slot at all, so the button comes off there rather than sitting
     there doing nothing. Test: `node scripts/test-playground-photo-ref.js`.
+  - **SEVERAL PHOTOS SINCE 2026-09-04 (Sophie: "add a second reference photo
+    to the playground … make a way to add a second or third etc photo").** A
+    dashed plus after the first photo adds another (up to six, `PL_PHOTO_MAX`);
+    each rides as its own thumb with its own x, in the order she added them,
+    which is the order they attach — behind the style refs and the Sophie
+    card, before her cast. The POST carries `photos` (the list) beside `photo`
+    (the first, for an older cached page); the doc carries `photoRefs` beside
+    `photoRef`; a copy-back puts every photo back. **Two or more swap the
+    photo line for its PLURAL twin with the count written in** (`The LAST two
+    attached images are photo references…`, `PL_GPT.photoLineMany` /
+    `photoLineManyWithChars`, and the plain tile's own pair) — one photo still
+    sends the singular line byte for byte. The page's `photoRef` is a read-only
+    getter over `photoRefs[0]` for the tests and any older reader. Test:
+    `node scripts/test-playground-photo-refs.js`.
   - **PUTTING A PROMPT BACK PUTS ITS REFERENCE BACK (2026-08-27, Sophie:
     "playground and other image tools shud save the reference photo and reload
     when copy to prompt box").** The photo was already SAVED — `photoRef` on
