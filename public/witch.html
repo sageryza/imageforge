@@ -1221,7 +1221,15 @@
     .wnode.now .ic { border-color: var(--gold); color: var(--gold); box-shadow: 0 0 18px rgba(156,111,51,0.45); }
     .wnode.now .nm { color: var(--gold); font-weight: 600; }
     .wnode .pct { font-size: 9.5px; letter-spacing: 1px; color: var(--gold-dim); }
-    .wpath-now { position: relative; margin: 4px 8% 22px; background: var(--surface); border: 1px solid var(--gold-dim); border-radius: 10px; padding: 16px; text-align: center; }
+     /* The trailhead card SITS ON the road mouth (negative top margin, above the
+       road's stacking context) so there is no seam between the ribbon and the
+       card; 4px under it, because the app's own bottom padding already clears
+       the nav. And #wroad-now carries scroll-margin-bottom = the fixed nav,
+       so the open-a-course scrollIntoView({block:'end'}) lands the START
+       button ABOVE the nav instead of under it (2026-09-04, Sophie's two
+       screenshots: "start is covered" / "too much space under"). */
+    #wroad-now { position: relative; z-index: 2; scroll-margin-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 12px); }
+    .wpath-now { position: relative; margin: -18px 8% 4px; background: var(--surface); border: 1px solid var(--gold-dim); border-radius: 10px; padding: 16px; text-align: center; }
     .wpath-now .t { font-family: var(--serif); font-size: 19px; color: var(--text); }
     .wpath-now .p { font-size: 12px; color: var(--text-faint); margin: 5px 0 12px; }
     .wpath-now .btn { margin: 0 auto; }
