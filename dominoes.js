@@ -120,7 +120,7 @@ router.use((req, res, next) => {
   next();
 });
 
-router.get('/status', (req, res) => res.json({ ok: true, sms: sms.configured() }));
+router.get('/status', async (req, res) => res.json({ ok: true, sms: await sms.ready() }));
 
 router.post('/rooms', async (req, res) => {
   try {
@@ -174,6 +174,7 @@ router.get('/rooms/:id', async (req, res) => {
       return res.json({ ok: true, preview: true, room: room.id, a: { name: room.a.name }, taken: !!room.b });
     }
     if (!me) return res.status(403).json({ error: 'that link is not a seat at this table' });
+    await sms.ready();                    // warm the keys so the view's `sms` is honest
     res.json(view(room, me));
   } catch (err) { res.status(502).json({ error: err.message }); }
 });

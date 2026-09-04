@@ -499,6 +499,7 @@ loadConfig().then(() => {
   // in/out, reorder, one audio track. Render is ffmpeg on our own box; free.
   app.use('/api/filmeditor', require('./filmeditor').router);
   app.use('/api/fruit', require('./fruit').router); // favorite-fruit poll: a swipe deck per person → the fridge chart
+  require('./sms').init({ membryDb: storyDb });             // Twilio keys live in membry's config/twilio (the Xi chats put them there)
   app.use('/api/dominoes', require('./dominoes').router); // Similitude Dominoes for two people on two phones — public, anyone's table
   // Witch-video pipeline: Theo's ideas → draft cuts → the review room at
   // /witchvideo (tap the video to pause + leave a note; ♥/✕). Notes ring the
