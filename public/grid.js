@@ -37,6 +37,12 @@
 (function () {
   if (window.__grid) return;
 
+  // How many tiles fit one visual line — the wrap this file has always had
+  // (the header above: "wrapping at three across"). Named because the tour
+  // reads it to tell a comparison from a catalogue; keep it in step with the
+  // `.gd-it` flex-basis below if that ever changes.
+  var PER_LINE = 3;
+
   var css = document.createElement('style');
   css.textContent =
     '.gd-group{margin:0 0 18px;}' +
@@ -508,9 +514,24 @@
       var oneUp = groups.length > 1 && groups.every(function (g) {
         return (g.items || []).length === 1;
       });
+      // NOR IS A CATALOGUE, AND THAT IS THE SAME FINDING ONE SIZE UP
+      // (2026-09-04, found by PHOTOgraphing a page of every date illustration
+      // she has — two groups of 19 and 52, and step one still opened with
+      // "each row is one comparison"). A `.gd-row` IS one group, but it wraps
+      // at three across, so a group of 52 draws as eighteen lines: the
+      // sentence is true of the element and false of the screen, which is the
+      // only place she reads it. Derived from the real groups like `oneUp`
+      // above — a group that cannot fit one line was never a row-at-a-time
+      // comparison — so a listing gets the right words with nothing to pass.
+      var listing = !oneUp && groups.some(function (g) {
+        return (g.items || []).length > PER_LINE;
+      });
       var steps = [oneUp
         ? { sel: '.gd-row', text: 'One picture a row, newest first — the line under '
           + 'each one is what it is.' }
+        : listing
+        ? { sel: '.gd-row', text: 'Each block is one group, ruled off from the '
+          + 'next — the line under each picture says what it is.' }
         : { sel: '.gd-row', text: 'Each row is one comparison — the things on '
           + 'it differ by exactly one thing; the line under each picture says '
           + 'what changed on that one.' }];
