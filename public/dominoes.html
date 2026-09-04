@@ -1,0 +1,580 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Similitude Dominoes</title>
+<link rel="stylesheet" href="/compare.css">
+<style>
+html, body { height: 100%; overflow: hidden; }
+body { padding: 0; }
+.wrap { max-width: 680px; height: 100vh; display: flex; flex-direction: column;
+        padding: 14px 12px 8px; gap: 6px; }
+@supports (height: 100dvh) { .wrap { height: 100dvh; } }
+.wrap > h1 { font-size: 22px; margin: 0; padding-right: 56px; }
+
+/* the strip — the top-right 64px belongs to the injected autoscroll pill */
+.top { display: flex; align-items: center; gap: 10px; flex: none;
+       font: 600 12px/1 -apple-system, 'Helvetica Neue', sans-serif;
+       letter-spacing: .08em; text-transform: uppercase; color: var(--ink2);
+       padding-right: 64px; }
+.top b { color: var(--ink); font-weight: 700; }
+.backs { display: flex; gap: 2px; margin-left: auto; }
+.turn { font-style: italic; color: var(--muted, #8a8078); }
+.turn.on { color: var(--chg); font-style: normal; font-weight: 700; }
+.back { width: 7px; height: 15px; border: 1px solid var(--line); border-radius: 2px;
+        background: var(--surface2); }
+
+.board { flex: 1; min-height: 0; overflow: auto; display: flex;
+         border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+         -webkit-overflow-scrolling: touch; }
+/* margin:auto inside a flex box centres the table AND still lets it be
+   scrolled to once it outgrows the board — the one centring that does both */
+.felt { position: relative; margin: auto; flex: none; }
+/* A TAP MUST LAND ON THE TRIANGLE, NOT ITS BOX. Triangles tessellate, so every
+   tile's rectangle overlaps its neighbours', and an HTML box hit-tests its
+   whole rectangle however little of it is painted. Only a polygon marked
+   data-hit takes a tap. */
+.felt > span { position: absolute; pointer-events: none; }
+.felt svg { pointer-events: none; }
+.felt svg polygon[data-hit] { pointer-events: all; cursor: pointer; }
+
+.msg { flex: none; font: 15px/1.3 Georgia, serif; color: var(--ink2); min-height: 20px; }
+.msg b { color: var(--ink); font-weight: 400; font-style: italic; }
+
+.acts { flex: none; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+button.b { font: 600 13px/1 -apple-system, 'Helvetica Neue', sans-serif;
+           padding: 9px 12px; border: 1px solid var(--line); border-radius: 6px;
+           background: var(--surface); color: var(--ink); cursor: pointer; }
+button.b.go { border-color: var(--ink); }
+button.b.quiet { color: var(--ink2); }
+#bRound { margin-left: auto; }
+
+/* she says what she sees — one box per card she is joining. The boxes ship
+   EMPTY; the card's name beside each one is the only label. */
+.say { flex: none; display: none; flex-direction: column; gap: 6px; }
+.say.on { display: flex; }
+.say label { display: flex; align-items: center; gap: 8px;
+             font: 13px/1.2 -apple-system, 'Helvetica Neue', sans-serif; color: var(--ink2); }
+.say label span { flex: none; width: 92px; text-align: right;
+                  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.say input { flex: 1; min-width: 0; font: 15px/1.3 Georgia, serif; padding: 7px 10px;
+             border: 1px solid var(--ink); border-radius: 6px; background: var(--surface);
+             color: var(--ink); }
+.say input:focus { outline: none; border-color: var(--chg); }
+.say .row { display: flex; gap: 8px; align-items: center; }
+
+.hand { flex: none; display: flex; gap: 4px; overflow-x: auto; overflow-y: hidden;
+        padding: 4px 0 6px; -webkit-overflow-scrolling: touch; }
+.hand > span { flex: none; cursor: pointer; display: block; }
+.hand.picking > span:not(.lit) { opacity: .45; }
+.hand.swapping > span.mark { opacity: .35; }
+
+.lobby, .invite { flex: none; display: flex; flex-direction: column; gap: 12px; padding-top: 6px; }
+.lede { margin: 0; font: 15px/1.4 Georgia, serif; color: var(--ink2); }
+.form { display: flex; flex-direction: column; gap: 10px; }
+.form label { display: flex; flex-direction: column; gap: 4px;
+              font: 600 11px/1 -apple-system, 'Helvetica Neue', sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--ink2); }
+.form input, .invite input { font: 16px/1.3 Georgia, serif; padding: 9px 10px; border: 1px solid var(--ink); border-radius: 6px; background: var(--surface); color: var(--ink); min-width: 0; }
+.form button.b { align-self: flex-start; }
+.hint { font: 13px/1.4 -apple-system, 'Helvetica Neue', sans-serif; color: var(--ink2); min-height: 16px; }
+.invite .row { display: flex; gap: 8px; align-items: center; }
+.invite .row input { flex: 1; }
+.mine { display: flex; flex-direction: column; gap: 6px; }
+.mine a { font: 15px/1.3 Georgia, serif; color: var(--ink); }
+.wrap.lobbying .top, .wrap.lobbying .board, .wrap.lobbying .msg, .wrap.lobbying .acts, .wrap.lobbying .hand,
+.wrap.waiting .top, .wrap.waiting .board, .wrap.waiting .msg, .wrap.waiting .acts, .wrap.waiting .hand { display: none; }
+</style>
+
+<div class="wrap" data-nostop>
+  <h1>Similitude Dominoes</h1>
+
+  <div class="lobby" id="lobby" hidden>
+    <p class="lede">A picture-dominoes game for two. Lay a card against the table and say what it shares with each card it touches — a point per card. Take turns from your own phones.</p>
+    <div class="form" id="startForm">
+      <label>Your name<input id="fName" type="text" autocomplete="name" maxlength="24"></label>
+      <label>Phone, for a text when it is your turn<input id="fPhone" type="tel" autocomplete="tel" inputmode="tel"></label>
+      <button class="b go" id="bStart" type="button">Start a table</button>
+      <div class="hint" id="startHint"></div>
+    </div>
+    <div class="form" id="joinForm" hidden>
+      <p class="lede" id="joinLede"></p>
+      <label>Your name<input id="jName" type="text" autocomplete="name" maxlength="24"></label>
+      <label>Phone, for a text when it is your turn<input id="jPhone" type="tel" autocomplete="tel" inputmode="tel"></label>
+      <button class="b go" id="bJoin" type="button">Sit down</button>
+      <div class="hint" id="joinHint"></div>
+    </div>
+    <div class="mine" id="mine" hidden></div>
+  </div>
+
+  <div class="invite" id="invite" hidden>
+    <p class="lede">Send this link to the person you want to play. Their seat is theirs the moment they open it.</p>
+    <div class="row"><input id="inviteUrl" type="text" readonly><button class="b" id="bShare" type="button">Share</button><button class="b" id="bCopy" type="button">Copy</button></div>
+    <div class="hint" id="inviteHint">Waiting for them to sit down…</div>
+  </div>
+
+  <div class="top">
+    <span><span id="lYou">You</span> <b id="sYou">0</b></span>
+    <span><span id="lIt">Them</span> <b id="sIt">0</b></span>
+    <span>Pile <b id="sPile">0</b></span>
+    <span class="turn" id="sTurn"></span>
+    <span class="backs" id="backs"></span>
+  </div>
+
+  <div class="board" id="board"><div class="felt" id="felt"></div></div>
+
+  <div class="msg" id="msg"></div>
+
+  <div class="say" id="say"></div>
+
+  <div class="acts" id="acts">
+    <button class="b go" id="bLay" type="button" hidden>Lay it</button>
+    <button class="b" id="bSame" type="button" hidden>Same for all</button>
+    <button class="b" id="bBack" type="button" hidden>Put it back</button>
+    <button class="b" id="bPass" type="button">Pass</button>
+    <button class="b go" id="bSwap" type="button" hidden>Swap</button>
+    <button class="b" id="bNoSwap" type="button" hidden>Keep them</button>
+    <button class="b quiet" id="bRound" type="button">New round</button>
+  </div>
+
+  <div class="hand" id="hand"></div>
+</div>
+
+<script src="/compare.js"></script>
+<script>
+(function () {
+  var CUTS = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/triset/cuts/';
+  var API = '/api/dominoes';
+  var DECK = [{"k":"2baf6ebbdd7ba9efd32bfb4b22683c3fcb0ca30e.c4.webp","id":"2baf6ebb","n":"lightning","t":["sky","dark","yellow","storm","field","zigzag","wheat","gold","sudden","light in the dark","caught mid-motion"]},{"k":"61ccc6cb0625fb651ac38b93dedb3d4c7f211dfa.c4.webp","id":"61ccc6cb","n":"cloud face","t":["sky","cloud","face","grey","white","eyes","pale","soft","hidden","surrounded","mostly white","looking through"]},{"k":"0fc4ea5aca6c1b00fb824d097353ae6a51244129.c4.webp","id":"0fc4ea5a","n":"poppies","t":["red","orange","flower","many","petals","field","warm"]},{"k":"843f7a6856ed87529f07df418e7ad98dbfcad09c.c4.webp","id":"843f7a68","n":"waterfall","t":["water","falling","green","leaves","white","hidden","vertical","curtain","spiral","hanging down","mist or smoke"]},{"k":"f47bf9cd92371c80e37bac65152b236e4cab35c9.c4.webp","id":"f47bf9cd","n":"blackberries","t":["purple","black","fruit","many","leaves","green","round","dots","pink","hanging","collection over time","hanging down","close-up","thorns"]},{"k":"90d665c250b23d4b844dc7b0548b93072a1146ef.c4.webp","id":"90d665c2","n":"turkey-tail","t":["brown","stripes","pattern","many","layers","wood","curve","close-up","collection over time","staggered","spiral"]},{"k":"a465b424fded987973f7a24da8ec57a60e6f7199.c4.webp","id":"a465b424","n":"dust devil","t":["spiral","wind","sand","desert","pale","tan","moving","sky","alone","a trail","one big thing","mist or smoke","caught mid-motion"]},{"k":"6d16f14416bcfff7abf5d6361bec204d27b01cc2.c4.webp","id":"6d16f144","n":"alligator","t":["eyes","water","green","hiding","watching","dark","reeds","still","surrounded"]},{"k":"d0d07a09c41c855874823142bfb6b0f41d4eac83.c4.webp","id":"d0d07a09","n":"redwood","t":["tree","tall","vertical","brown","red","forest","bark","big","staggered","one big thing","looking up"]},{"k":"4a4b69f543751e5b80668fd1013722d5688472fb.c4.webp","id":"4a4b69f5","n":"sea cave","t":["green","glowing","water","rock","dark","opening","cave","light","surrounded","light in the dark","looking through"]},{"k":"a3657a9d854a8648157609a160d25c4147316c31.c4.webp","id":"a3657a9d","n":"canyon","t":["rock","orange","layers","stripes","deep","river","far away","height","blue","staggered","zigzag"]},{"k":"e91f257915b94dd49ad2e8b0d14ea95fd49c96fd.c4.webp","id":"e91f2579","n":"grapes","t":["purple","fruit","many","round","vine","leaves","green","hanging","heavy","circle","collection over time","hanging down"]},{"k":"fba6a8625db3cd74dd7f5cbb412ea3b2d6338117.c4.webp","id":"fba6a862","n":"peaches","t":["orange","fruit","round","many","leaves","branch","hanging","warm","collection over time","hanging down"]},{"k":"94e136a20e1c74dd941693fd1451f230a8717649.c4.webp","id":"94e136a2","n":"mountain goat","t":["animal","white","rock","height","edge","mountain","grey","alone","balance","about to fall","one small thing","sky","cloud","looking through"]},{"k":"914ec25a0d35f5a3ef62e5037db3813b92f0cffd.c4.webp","id":"914ec25a","n":"fog","t":["grey","white","tree","forest","soft","misty","pale","quiet","hills","mostly white","mist or smoke"]},{"k":"a016667ce8bfc7149f75fb7b258f591f2d7508d0.c4.webp","id":"a016667c","n":"whale","t":["night","star","dark","water","moon","big","blue","splash","sea","animal","light in the dark","mostly white","one big thing"]},{"k":"bdbbb0a47c523d626f0f4c32ed99fbd963b1e89a.c4.webp","id":"bdbbb0a4","n":"tide pool","t":["orange","starfish","water","shells","rock","purple","colourful","close-up","sea"]},{"k":"717a20bdf4f576b244446f8c64c39ee5354dc354.c4.webp","id":"717a20bd","n":"spiderweb","t":["web","dots","dew","lines","pattern","grey","morning","delicate","pale","around something","circle","surrounded","collection over time","spiral"]},{"k":"eed2e1caede636b9fc45b5bf1f2a172df4be0449.c4.webp","id":"eed2e1ca","n":"caterpillar","t":["green","insect","leaf","eating","close-up","dark","stripes","holes","staggered","zigzag","on a branch"]},{"k":"c529d21aa07576454fae7471043613ee5ad22875.c4.webp","id":"c529d21a","n":"northern lights","t":["night","sky","green","purple","glowing","tree","dark","curtain","star","light in the dark","looking up"]},{"k":"055374a05bbe1a764512ee051b7424759e70f9b6.c4.webp","id":"055374a0","n":"strawberries","t":["red","fruit","many","leaves","green","white flower","dots","garden","collection over time"]},{"k":"eba13a151ba85f6728cbdecdf58903bb42dda401.c4.webp","id":"eba13a15","n":"fairy ring","t":["red","dots","circle","many","forest","green","mushrooms","ring","surrounded","night","dark","star","leaves"]},{"k":"0af6246a0ce3a94099ec10e829c8815a7418ecc1.c4.webp","id":"0af6246a","n":"train bridge","t":["made thing","arches","smoke","height","mountain","lines","moving","grey","train","a trail","staggered","mist or smoke","red","tree","water","cloud"]},{"k":"deaae4fcc97d9b56727122baa39cbcbd9e287c50.c4.webp","id":"deaae4fc","n":"dandelion","t":["seeds","white","dots","scattering","wind","round","many","pale","delicate","circle","mostly white"]},{"k":"3c6190422b342a6649e29b9a25fb2739c5ba20a0.c4.webp","id":"3c619042","n":"burrow eyes","t":["eyes","dark","hiding","watching","roots","brown","black","hole","spooky"]},{"k":"e4503fea3454e6366b24b1a35b7dde77572682ea.c4.webp","id":"e4503fea","n":"overflowing tub","t":["water","white","yellow","bowl","indoors","falling","made thing","checkered","pattern","one small thing","a little funny","funny","green","pink","messy"]},{"k":"94f67297b6a35f40fbd1caf9c97b6e33241b788a.c4.webp","id":"94f67297","n":"overflowing tub","t":["water","white","yellow","bowl","indoors","falling","made thing","checkered","pattern","one small thing","a little funny","funny","green","pink","messy","round"]},{"k":"de11becb6c65f92a93a6590eb03b5eea0ff2d769.c4.webp","id":"de11becb","n":"clothesline bat","t":["night","hanging","upside down","moon","laundry","made thing","houses","pink","funny","animal","light in the dark","hanging down","on a branch","a little funny"]},{"k":"5ffec917544622979ffaadad09f99fb176ddc5ac.c4.webp","id":"5ffec917","n":"teacup tower","t":["made thing","tall","vertical","stacked","many","colourful","about to fall","balance","pattern","dots","stripes","flower","pale","staggered","a little funny"]},{"k":"433cfa245612d4376c42449d54682db3a3267884.c4.webp","id":"433cfa24","n":"teacup tower","t":["made thing","tall","vertical","stacked","many","colourful","about to fall","balance","pattern","dots","stripes","flower","grey","staggered","a little funny"]},{"k":"ba32c10f57218b37dee1d26d0efadf557f19fe3e.c4.webp","id":"ba32c10f","n":"inside-out umbrella","t":["pink","wind","made thing","grey","lines","caught mid-motion","alone","leaves","upside down","a little funny","broken","curve","flying"]},{"k":"50de09a893c19b85c88ba8dc744f80d7bf98929c.c4.webp","id":"50de09a8","n":"chicken","t":["bird","fence","wood","squeezing","brown","white","garden","funny","made thing","on a branch","a little funny"]},{"k":"e94da6978c930795c722f8645321442ba903c4d0.c4.webp","id":"e94da697","n":"soap sliver","t":["pale","grey","alone","tiny","ending","made thing","indoors","lines","dots","one small thing","mostly white","wet"]},{"k":"d0907bcaac0c955ff43b58967a8a13bd17587e97.c4.webp","id":"d0907bca","n":"orange segments","t":["orange","fruit","round","pale","circle","opening","many","close-up","petals","bright","from above"]},{"k":"ca0d023d38fd1bfdbb8879b52f1fab574af2c593.c4.webp","id":"ca0d023d","n":"sandcastle","t":["water","blue","sand","castle","big","falling","crashing","foam","ending","about to fall","around something","sand and water","surrounded","one big thing","caught mid-motion"]},{"k":"55ca3d326f8d4d373b41953b2072fc9eab519839.c4.webp","id":"55ca3d32","n":"shattered plate","t":["broken","many","made thing","indoors","checkered","pattern","green","red","white","ending","messy","from above","flower","scattering"]},{"k":"e1824df97e7e10678d633cccbb45479541876244.c4.webp","id":"e1824df9","n":"turtle","t":["animal","upside down","stuck","shell","sand","pale","funny","alone","sky","one small thing","a little funny"]},{"k":"ec49582eea7b88d267694c595bd77b40bafb0787.c4.webp","id":"ec49582e","n":"stuck piano key","t":["black","white","lines","stripes","made thing","indoors","pale","odd one out","close-up","vertical","one small thing","mostly white","dark"]},{"k":"caa0a099a84728b930d754b8d46afab3fad5b526.c4.webp","id":"caa0a099","n":"goldfish bowl","t":["cat","orange","fish","glass","bowl","water","watching","indoors","round","animal","surrounded","circle","reflection","looking through","a little funny"]},{"k":"c7b03c64129fcc145baaeb3e76d765af8d12b81e.c4.webp","id":"c7b03c64","n":"dominoes","t":["made thing","black","white","dots","falling","line","chain","pale","staggered","about to fall","mostly white","zigzag","stripes","caught mid-motion"]},{"k":"2013c618012524b8b9bf3675322816b2a38f88c4.c4.webp","id":"2013c618","n":"goldfish","t":["orange","fish","water","glass","bowl","round","leaping","between","blue","animal","circle","reflection","a little funny","caught mid-motion"]},{"k":"3a7dc5d4c71edc3bf4cd6cbe30ab58c7ba24bdcd.c4.webp","id":"3a7dc5d4","n":"kite in a tree","t":["tree","red","yellow","green","stuck","tangled","made thing","grey","lines","alone","hanging","hanging down","a trail","looking up","bare"]},{"k":"0fe3b64369195fca74bf6fc93420e69e18fac089.c4.webp","id":"0fe3b643","n":"curtains","t":["pink","moon","face","night","curtain","hands","window","closing","made thing","surrounded","light in the dark","spiral","hanging down","looking through","a little funny"]},{"k":"af44f307b872ffe5d7fe09db7a27d05d2633615d.c4.webp","id":"af44f307","n":"castle","t":["castle","made thing","height","hill","grey","towers","path","far away","tall","staggered","one big thing","looking up"]},{"k":"cdc34f441ce1671825958c6e6a6dcdf913edbad2.c5.webp","id":"cdc34f44","n":"circus tent","t":["red","stripes","animal","many","crowd","hiding","watching","eyes","looking through","opening","curtain","night","star","tall","made thing","faces","a little funny"]},{"k":"a4432ca1ee368b063ff07385f70a269449a571dd.c5.webp","id":"a4432ca1","n":"seashells","t":["shells","many","pattern","collection over time","pale","orange","pink","spiral","round","dots","stripes","close-up","colourful","from above"]},{"k":"e7e7a398b37283d4d3567a33ccf06265c5d8c97f.c5.webp","id":"e7e7a398","n":"soap lather","t":["white","glowing","dots","round","colourful","rainbow","indoors","made thing","black","pale","many","delicate","falling","reflection","mostly white","bubbles"]},{"k":"dd4489ff69f9f772dd0d36afd879bdf60053d53a.c5.webp","id":"dd4489ff","n":"bathroom rainbows","t":["rainbow","light","indoors","glass","window","leaves","green","dots","colourful","reflection","curtain","bowl","pale","scattering","quiet","many"]},{"k":"85a5acdeeb1928a4ca65dddea6f931238e09a316.c5.webp","id":"85a5acde","n":"spilled makeup","t":["made thing","messy","red","pink","black","gold","round","mirror","indoors","from above","scattering","lines","colourful","ending","dots"]},{"k":"5edff325324cb22d666f9bb8edc6170fdb023b81.c5.webp","id":"5edff325","n":"picnic ants","t":["insect","red","checkered","pattern","many","tiny","marching","black","yellow","green","fruit","food","from above","a trail","dots","a little funny"]},{"k":"79984a8c62ae76a31a64ee306dc2a6c6822eb748.c5.webp","id":"79984a8c","n":"crows with money","t":["bird","black","many","green","pale","crowd","wings","flying","eyes","money","a little funny","caught mid-motion","messy","paper"]},{"k":"51ff061d092dfeb38d942e9f194462eef01d29ba.c5.webp","id":"51ff061d","n":"frogs from above","t":["animal","green","round","circle","water","dark","from above","many","flower","pink","star","dots","leaves","pattern","night"]},{"k":"2c6a96131fc28cc98cfbe097048f2e5787609d71.c5.webp","id":"2c6a9613","n":"giraffe neck","t":["animal","orange","green","leaves","dots","pattern","tall","vertical","hidden","looking through","surrounded","close-up","yellow","eyes","watching"]},{"k":"85fbf4a1c85435a4b03af453fb27c247cbeabd23.c5.webp","id":"85fbf4a1","n":"row of houses","t":["made thing","houses","many","colourful","grey","sky","cloud","window","pale","pattern","staggered","yellow","green","pink","red","lines","city","warm light"]},{"k":"0878eb0f5e66b856aef4645de24535017048dcd8.c5.webp","id":"0878eb0f","n":"dolls on a shelf","t":["many","faces","eyes","watching","indoors","wood","made thing","crowd","pale","grey","red","yellow","still","spooky","height","looking up","a little funny"]},{"k":"f74d6f59c45972c1dad179ed130aa6eb9dea0c1c.c5.webp","id":"f74d6f59","n":"house of cards","t":["made thing","stacked","balance","about to fall","red","black","white","pale","grey","pattern","staggered","tall","delicate","zigzag","lines","indoors","many"]},{"k":"aa10b92ab9642c55a5e2d2a3fe82f7a841fa74f3.c5.webp","id":"aa10b92a","n":"cat in monstera","t":["cat","animal","black","green","leaves","hiding","eyes","watching","yellow","surrounded","hidden","looking through","holes","dark","close-up"]},{"k":"02f4e91a7b941c06b97228b4eec7f74fe748c151.c5.webp","id":"02f4e91a","n":"patchwork hills","t":["patchwork","pattern","hills","many","curve","stripes","dots","yellow","green","pink","orange","fields","layers","colourful","staggered","far away","lines","tree"]},{"k":"4b45f18463072d8e793d2e25dd17ab4fe239f48b.c5.webp","id":"4b45f184","n":"ashtray","t":["made thing","many","grey","orange","ending","messy","bowl","round","indoors","circle","pale","black","from above","smoke","ash","collection over time"]},{"k":"e4e8a698c8a1bbf75549e17fbcb7291e153f310b.c5.webp","id":"e4e8a698","n":"stacked chairs","t":["white","stacked","made thing","many","green","garden","sky","cloud","pale","lines","staggered","tall","alone","still","empty","mostly white","a little funny"]},{"k":"e0a3d89dcec2151516084fd558aaef86bc1b3ba2.c5.webp","id":"e0a3d89d","n":"rabbit in brush","t":["animal","hiding","hidden","eyes","watching","green","leaves","grey","brown","pink","surrounded","looking through","close-up","alone","berries","quiet"]}];  // her 61 chosen cards (2026-09-03): {k cut, id, n name, t visual tags}
+
+  var HAND = 3, ROUND = 24;
+  var $ = function (id) { return document.getElementById(id); };
+  var S = null, sel = -1, pend = null, swapping = false;
+  var ROOM = null, TOKEN = null, ME = null, THEM = null, NAMES = { a: '', b: '' }, V = null;
+  var who = function (p) { return NAMES[p]; };
+  function show(line) {
+    var me = NAMES[ME];
+    return String(line || '').replace(new RegExp("\\b" + me + "'s turn"), 'your turn').replace('. your turn', '. Your turn').replace(new RegExp('^' + me + ' '), 'You ');
+  }
+  var up = function (r, c) { return (((r + c) % 2) + 2) % 2 === 0; };
+  var isUp = function (u) { var p = u.split(','); return up(+p[0], +p[1]); };
+  var id = function (r, c) { return r + ',' + c; };
+  var nbs = function (u) {
+    var p = u.split(','), r = +p[0], c = +p[1];
+    return [id(r, c - 1), id(r, c + 1), up(r, c) ? id(r + 1, c) : id(r - 1, c)];
+  };
+  var norm = function (s) { return String(s || '').trim().toLowerCase().replace(/\s+/g, ' '); };
+
+  // WHAT COUNTS AS SEEING. Her own game (2026-09-02) linked on shape and
+  // moment — "a trail", "about to fall", "surrounded", "staggered",
+  // "collection over time" — while the computer took "animal", "glass",
+  // "water", "leaves". So the broad category words are WEAK: they stay on the
+  // cards but the computer may never name one. A link is a rare, visual tag.
+  var WEAK = {}; ["animal","bird","insect","fish","cat","made thing","water","sky","tree","leaves","leaf","plant","fruit","flower","rock","green","brown","grey","blue","many","small","big","indoors","garden","forest","sea","field","wood","glass","window","pale","tiny","close-up","still","moving","hidden","round","dots","lines","pattern","far away","height","vertical","sand","snow","ice","cold","light","star","moon","cloud","wings","eyes"].forEach(function (w) { WEAK[w] = 1; });
+  var RARITY = {};
+  DECK.forEach(function (c) { c.t.forEach(function (t) { RARITY[t] = (RARITY[t] || 0) + 1; }); });
+  function shared(a, b) {
+    return DECK[a].t.filter(function (t) { return !WEAK[t] && DECK[b].t.indexOf(t) >= 0; })
+      .sort(function (x, y) { return RARITY[x] - RARITY[y]; });
+  }
+  var name = function (card) { return DECK[card].n; };
+
+  // ── the table's geometry ─────────────────────────────────────────────────
+  function touched(u) { return nbs(u).filter(function (k) { return S.cells[k]; }); }
+  function frontier() {
+    var seen = {}, out = [];
+    Object.keys(S.cells).forEach(function (k) {
+      nbs(k).forEach(function (u) {
+        if (S.cells[u] || seen[u]) return;
+        seen[u] = 1; out.push(u);
+      });
+    });
+    return out;
+  }
+  // HER RULE: three cards touched share one thing said three times, or three
+  // different things — never two and one
+  function setRuleOk(whys) {
+    var v = Object.keys(whys).map(function (o) { return norm(whys[o]); });
+    if (v.length < 3) return true;
+    var same = v.every(function (x) { return x === v[0]; });
+    var diff = v[0] !== v[1] && v[1] !== v[2] && v[0] !== v[2];
+    return same || diff;
+  }
+  function commit(u, card, whys) {
+    S.cells[u] = { card: card };
+    S.links[u] = Object.keys(whys).map(function (o) { return { o: o, why: whys[o] }; });
+    S.last = u;
+    return Object.keys(whys).length;
+  }
+  // every link a card on the table is part of, from either side
+  function linksOf(u) {
+    var out = (S.links[u] || []).map(function (l) { return { o: l.o, why: l.why }; });
+    Object.keys(S.links).forEach(function (k) {
+      if (k === u) return;
+      S.links[k].forEach(function (l) { if (l.o === u) out.push({ o: k, why: l.why }); });
+    });
+    return out;
+  }
+
+
+
+  // ── the table on the server ──────────────────────────────────────────────
+  // The room (dominoes.js) holds the seats and the turn; the page holds the
+  // rules. Only the player on turn writes, so the freshest copy is always in
+  // the hand of whoever can act; the other phone polls and adopts.
+  var q = [], flushing = false;
+  function post(path, body) {
+    return fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || r.status); return j; }); });
+  }
+  function put(body, done) { q.push({ body: body, done: done }); flush(); }
+  function flush() {
+    if (flushing || !q.length) return;
+    flushing = true; var w = q[0];
+    post('/rooms/' + ROOM + '/move', w.body)
+      .then(function () { q.shift(); flushing = false; if (w.done) w.done(); flush(); })
+      .catch(function (e) {
+        flushing = false;
+        if (/turn|stale|over|seated/.test(e.message)) { q.shift(); note('The table moved on — catching up.'); poll(true); return flush(); }
+        note('Not reaching the table — retrying…'); setTimeout(flush, 2500);
+      });
+  }
+  function pack() {
+    var cells = {}; Object.keys(S.cells).forEach(function (k) { cells[k] = S.cells[k].card; });
+    return { game: S.game, n: S.n, cells: cells, h: S.h, pile: S.pile, turn: S.turn, passes: S.passes,
+             over: S.over, last: S.last, score: S.score, by: S.by };
+  }
+  function unpack(d, links) {
+    var cells = {}; Object.keys(d.cells || {}).forEach(function (k) { cells[k] = { card: d.cells[k] }; });
+    return { game: d.game, n: d.n || 0, cells: cells, links: links || {}, h: d.h, pile: d.pile || [], turn: d.turn,
+             passes: d.passes || 0, over: !!d.over, last: d.last, score: d.score || { a: 0, b: 0 }, by: d.by || '' };
+  }
+  function share(line, linkCell) {
+    S.n++; S.by = ME;
+    var body = { token: TOKEN, state: pack(), line: line };
+    if (linkCell) { body.links = {}; body.links[linkCell] = S.links[linkCell]; }
+    put(body);
+    S.line = line; say(show(line)); paint();
+  }
+  var polling = false;
+  function poll(force) {
+    if (!ROOM || !TOKEN) return;
+    if (polling || (!force && (q.length || document.hidden))) return;
+    polling = true;
+    fetch(API + '/rooms/' + ROOM + '?token=' + encodeURIComponent(TOKEN) + '&x=' + Date.now())
+      .then(function (r) { return r.json(); })
+      .then(function (v) {
+        polling = false;
+        if (!v || !v.ok) { if (v && /seat/.test(v.error || '')) note(v.error); return; }
+        V = v; ME = v.you; THEM = ME === 'a' ? 'b' : 'a';
+        NAMES.a = v.a ? v.a.name : ''; NAMES.b = v.b ? v.b.name : '';
+        paintInvite();
+        if (!v.state) { S = null; say(v.b ? show(v.line || '') + ' Tap <b>New round</b> to deal.' : ''); return paint(); }
+        if (S && v.state.game === S.game && (v.n || 0) <= S.n) return;
+        S = unpack(v.state, v.links); S.line = v.line;
+        sel = -1; pend = null; swapping = false;
+        say(show(v.line)); paint();
+      })
+      .catch(function () { polling = false; });
+  }
+  setInterval(function () { poll(false); }, 2500);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) poll(true); });
+  function note(t) { $('msg').innerHTML = t; }
+  function paintInvite() {
+    var open = V && ME === 'a' && !V.b;
+    $('invite').hidden = !open;
+    document.querySelector('.wrap').classList.toggle('waiting', !!open);
+    if (open) { $('inviteUrl').value = V.invite || ''; }
+  }
+
+  // ── the round ────────────────────────────────────────────────────────────
+  function deal() {
+    var pool = [], i;
+    for (i = 0; i < DECK.length; i++) pool.push(i);
+    for (i = pool.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1)), t = pool[i]; pool[i] = pool[j]; pool[j] = t;
+    }
+    var use = pool.slice(0, ROUND), h = {};
+    h.a = use.slice(0, HAND); h.b = use.slice(HAND, HAND * 2);
+    S = { game: Date.now().toString(36), n: 0, h: h, pile: use.slice(HAND * 2),
+          cells: {}, links: {}, turn: ME, passes: 0, over: false, last: '0,0',
+          score: { a: 0, b: 0 }, line: '', by: ME };
+    sel = -1; pend = null; swapping = false;
+    S.cells['0,0'] = { card: S.pile.pop() };
+    share(who(ME) + ' dealt. The ' + name(S.cells['0,0'].card) + ' opens the table — ' + NAMES[S.turn] + "'s turn.");
+  }
+  function drawTo(p) { while (S.h[p].length < HAND && S.pile.length) S.h[p].push(S.pile.pop()); }
+  function verdict() {
+    var a = S.score.a, b = S.score.b;
+    if (a === b) return 'A draw.';
+    return NAMES[a > b ? 'a' : 'b'] + ' wins the round.';
+  }
+  function endIfDone(line) {
+    if (!S.pile.length && !S.h.a.length && !S.h.b.length) { S.over = true; share(line + ' All the cards are down. ' + verdict()); return true; }
+    if (S.passes >= 2 && !S.pile.length) { S.over = true; share(line + ' Neither of you can go on. ' + verdict()); return true; }
+    return false;
+  }
+  function handOver(line, linkCell) {
+    S.turn = THEM;
+    if (endIfDone(line)) return;
+    share(line + ' ' + NAMES[THEM] + "'s turn.", linkCell);
+  }
+
+  // ── drawing ──────────────────────────────────────────────────────────────
+  var BW = 104, HW = 116;
+  var UP = '50,0 100,86.6 0,86.6', DN = '0,0 100,0 50,86.6';
+  // rotate(60) about the up card's centroid lands its three corners exactly on
+  // the point-down triangle 28.87 units lower — so translate back up by that
+  var TURN = 'translate(0,-28.87) rotate(60 50 57.73)';
+  function cardSvg(card, W, down, hit) {
+    var H = W * 0.866, pts = down ? DN : UP;
+    return '<svg width="' + W + '" height="' + H + '" viewBox="0 0 100 86.6">'
+      + '<polygon points="' + pts + '" fill="var(--surface)"/>'
+      + '<image href="' + CUTS + DECK[card].k + '" x="0" y="0" width="100" height="86.6"'
+      + (down ? ' transform="' + TURN + '"' : '') + '/>'
+      + '<polygon' + (hit ? ' data-hit' : '') + ' points="' + pts + '" fill="none"'
+      + ' stroke="var(--ink)" stroke-width="1.2" stroke-linejoin="round"/></svg>';
+  }
+  function slotSvg(W, down) {
+    return '<svg width="' + W + '" height="' + (W * 0.866) + '" viewBox="0 0 100 86.6">'
+      + '<polygon data-hit points="' + (down ? DN : UP) + '" fill="none" stroke="var(--chg)"'
+      + ' stroke-width="1.8" stroke-dasharray="5 4" stroke-linejoin="round"/></svg>';
+  }
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function say(t) { $('msg').innerHTML = t; }
+
+
+
+  function paintEmpty() {
+    $('felt').innerHTML = ''; $('hand').innerHTML = '';
+    $('bPass').hidden = true; $('bLay').hidden = true; $('bBack').hidden = true; $('bSame').hidden = true;
+    $('bSwap').hidden = true; $('bNoSwap').hidden = true;
+    $('bRound').hidden = !(V && V.b);
+    $('lYou').textContent = 'You'; $('lIt').textContent = NAMES[THEM] || '…';
+    $('sYou').textContent = '0'; $('sIt').textContent = '0'; $('sPile').textContent = '0';
+    $('sTurn').textContent = ''; $('backs').innerHTML = '';
+  }
+  function paint() {
+    if (!S) return paintEmpty();
+    var mine = !S.over && S.turn === ME && !swapping && !pend;
+    var fr = mine && sel >= 0 ? frontier() : [];
+    var keys = Object.keys(S.cells);
+    var all = keys.concat(fr).map(function (k) { var p = k.split(','); return { r: +p[0], c: +p[1] }; });
+    var rs = all.map(function (p) { return p.r; }), cs = all.map(function (p) { return p.c; });
+    var minR = Math.min.apply(null, rs), maxR = Math.max.apply(null, rs);
+    var minC = Math.min.apply(null, cs), maxC = Math.max.apply(null, cs);
+    var H = BW * 0.866, felt = $('felt'), bd = $('board');
+    var fw = (maxC - minC) * BW / 2 + BW, fh = (maxR - minR + 1) * H;
+    felt.style.width = fw + 'px'; felt.style.height = fh + 'px';
+    var z = Math.max(0.55, Math.min(1, (bd.clientWidth - 4) / fw, (bd.clientHeight - 4) / fh));
+    felt.style.zoom = z;
+    var at = function (k) {
+      var p = k.split(','), r = +p[0], c = +p[1];
+      return 'left:' + ((c - minC) * BW / 2) + 'px;top:' + ((r - minR) * H) + 'px';
+    };
+    felt.innerHTML = keys.map(function (k) {
+      return '<span data-card="' + k + '" style="' + at(k) + '">' + cardSvg(S.cells[k].card, BW, !isUp(k), true) + '</span>';
+    }).join('') + fr.map(function (u) {
+      return '<span data-slot="' + u + '" style="' + at(u) + '">' + slotSvg(BW, !isUp(u)) + '</span>';
+    }).join('');
+
+    var hand = $('hand'), my = S.h[ME];
+    hand.className = 'hand' + (sel >= 0 ? ' picking' : '') + (swapping ? ' swapping' : '');
+    hand.innerHTML = my.map(function (card, k) {
+      var cls = (sel === k ? 'lit' : '') + (swapping && S.mark[k] ? ' mark' : '');
+      return '<span data-k="' + k + '" class="' + cls + '">' + cardSvg(card, HW, false, false) + '</span>';
+    }).join('');
+
+    $('lYou').textContent = 'You'; $('lIt').textContent = NAMES[THEM];
+    $('sYou').textContent = S.score[ME]; $('sIt').textContent = S.score[THEM];
+    $('sPile').textContent = S.pile.length;
+    $('sTurn').textContent = S.over ? 'over' : (S.turn === ME ? 'your turn' : NAMES[THEM] + "'s turn");
+    $('sTurn').className = 'turn' + (S.turn === ME && !S.over ? ' on' : '');
+    var backs = $('backs'); backs.innerHTML = '';
+    for (var i = 0; i < S.h[THEM].length; i++) { var b = document.createElement('span'); b.className = 'back'; backs.appendChild(b); }
+
+    var asking = !!pend;
+    $('say').className = 'say' + (asking ? ' on' : '');
+    $('bLay').hidden = !asking; $('bBack').hidden = !asking;
+    $('bSame').hidden = !(asking && pend.others.length > 1);
+    $('bPass').hidden = !mine || asking;
+    $('bSwap').hidden = !swapping; $('bNoSwap').hidden = !swapping;
+    $('bRound').hidden = !(S.over || S.turn === ME);
+    if (swapping) {
+      var n = S.mark.filter(Boolean).length;
+      $('bSwap').textContent = n ? 'Swap ' + n : 'Swap';
+      $('bSwap').disabled = !n || !S.pile.length;
+    }
+    if (S.last) {
+      var p = S.last.split(',');
+      bd.scrollLeft = ((+p[1] - minC) * BW / 2 + BW / 2) * z - bd.clientWidth / 2;
+      bd.scrollTop = ((+p[0] - minR) * H + H / 2) * z - bd.clientHeight / 2;
+    }
+  }
+
+  // ── your turn ────────────────────────────────────────────────────────────
+  var myTurn = function () { return S && !S.over && S.turn === ME && !pend; };
+  $('hand').addEventListener('click', function (ev) {
+    var el = ev.target.closest ? ev.target.closest('[data-k]') : null;
+    if (!el || !myTurn()) return;
+    var k = +el.dataset.k;
+    if (swapping) { S.mark[k] = !S.mark[k]; return paint(); }
+    sel = sel === k ? -1 : k;
+    say(sel < 0 ? '' : 'Tap a space.');
+    paint();
+  });
+  $('felt').addEventListener('click', function (ev) {
+    if (!S) return;
+    var cardEl = ev.target.closest ? ev.target.closest('[data-card]') : null;
+    if (cardEl && !pend) {
+      var k0 = cardEl.dataset.card, list = linksOf(k0);
+      say(list.length ? name(S.cells[k0].card) + ' — ' + list.map(function (x) {
+        return name(S.cells[x.o].card) + ': <b>' + esc(x.why) + '</b>';
+      }).join(' · ') : 'The ' + name(S.cells[k0].card) + ' opened the table.');
+      return;
+    }
+    var el = ev.target.closest ? ev.target.closest('[data-slot]') : null;
+    if (!el || sel < 0 || !myTurn()) return;
+    var u = el.dataset.slot, card = S.h[ME][sel];
+    var others = touched(u);
+    pend = { k: sel, u: u, others: others };
+    var say_ = $('say');
+    say_.innerHTML = others.map(function (o) {
+      return '<label><span>' + esc(name(S.cells[o].card)) + '</span>'
+        + '<input type="text" autocomplete="off" data-o="' + o + '"></label>';
+    }).join('');
+    say('What does the ' + name(card) + ' share with ' + (others.length > 1 ? 'each of them' : 'it') + '?');
+    paint();
+    var first = say_.querySelector('input'); if (first) first.focus();
+  });
+  $('bSame').addEventListener('click', function () {
+    var ins = $('say').querySelectorAll('input'), v = '';
+    for (var i = 0; i < ins.length; i++) if (ins[i].value.trim()) { v = ins[i].value.trim(); break; }
+    if (!v) return ins[0].focus();
+    for (var j = 0; j < ins.length; j++) ins[j].value = v;
+  });
+  $('bBack').addEventListener('click', function () { pend = null; sel = -1; say(''); paint(); });
+  $('bLay').addEventListener('click', function () {
+    if (!pend || S.turn !== ME || S.over) return;
+    var whys = {}, ins = $('say').querySelectorAll('input'), missing = null;
+    for (var i = 0; i < ins.length; i++) {
+      var v = ins[i].value.trim().slice(0, 90);
+      if (!v) { missing = ins[i]; break; }
+      whys[ins[i].dataset.o] = v;
+    }
+    if (missing) { missing.focus(); return say('Say something for each one.'); }
+    if (!setRuleOk(whys)) {
+      return say('Touching three, it is the <b>same thing</b> for all, or <b>different</b> for all.');
+    }
+    var k = pend.k, u = pend.u, card = S.h[ME][k];
+    pend = null; sel = -1; S.passes = 0;
+    S.h[ME].splice(k, 1);
+    var pts = commit(u, card, whys);
+    S.score[ME] += pts;
+    var said = Object.keys(whys).map(function (o) { return name(S.cells[o].card) + ' — <b>' + esc(whys[o]) + '</b>'; }).join(' · ');
+    drawTo(ME);
+    handOver(who(ME) + ' laid the ' + name(card) + ' on the ' + said + ' (' + pts + ').', u);
+  });
+  $('say').addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter') return;
+    var ins = Array.prototype.slice.call($('say').querySelectorAll('input'));
+    var i = ins.indexOf(e.target);
+    if (i >= 0 && i < ins.length - 1) ins[i + 1].focus(); else $('bLay').click();
+  });
+  $('bPass').addEventListener('click', function () {
+    if (!myTurn()) return;
+    swapping = true; sel = -1; S.mark = S.h[ME].map(function () { return false; });
+    say(S.pile.length ? 'Tap the cards to swap, or keep them.' : 'The pile is empty — pass keeps your cards.');
+    paint();
+  });
+  $('bSwap').addEventListener('click', function () {
+    if (!myTurn()) return;
+    var kept = [], out = [];
+    S.h[ME].forEach(function (c, k) { (S.mark[k] ? out : kept).push(c); });
+    S.h[ME] = kept; S.pile = out.concat(S.pile); drawTo(ME);
+    swapping = false; S.passes++;
+    handOver(who(ME) + ' swapped ' + out.length + '.');
+  });
+  $('bNoSwap').addEventListener('click', function () {
+    if (!myTurn()) return;
+    swapping = false; S.passes++;
+    handOver(who(ME) + ' passed.');
+  });
+  $('bRound').addEventListener('click', function () {
+    if (!V || !V.b) return;
+    if (S && !S.over && S.turn !== ME) return;
+    deal();
+  });
+
+  // ── the door: start a table, sit down at one, or come back to yours ──────
+  var qs = new URLSearchParams(location.search);
+  var mem = {}; try { mem = JSON.parse(localStorage.getItem('dominoes.seats') || '{}'); } catch (e) {}
+  function remember(room, tok, label) { mem[room] = { t: tok, label: label, at: Date.now() }; try { localStorage.setItem('dominoes.seats', JSON.stringify(mem)); } catch (e) {} }
+  function enter(room, tok) {
+    ROOM = room; TOKEN = tok;
+    history.replaceState(null, '', '/dominoes?room=' + room + '&t=' + tok);
+    $('lobby').hidden = true; document.querySelector('.wrap').classList.remove('lobbying');
+    poll(true);
+  }
+  function lobby(joinRoom, invite) {
+    document.querySelector('.wrap').classList.add('lobbying');
+    $('lobby').hidden = false;
+    if (joinRoom) {
+      $('startForm').hidden = true; $('joinForm').hidden = false;
+      fetch(API + '/rooms/' + joinRoom + '?invite=' + encodeURIComponent(invite)).then(function (r) { return r.json(); }).then(function (v) {
+        if (!v || !v.ok) { $('joinLede').textContent = 'That invite is not for a table here.'; $('bJoin').disabled = true; return; }
+        if (v.taken) { $('joinLede').textContent = 'Someone already sat down at ' + v.a.name + "'s table."; $('bJoin').disabled = true; return; }
+        $('joinLede').textContent = v.a.name + ' is inviting you to play. Sit down with your name.';
+      });
+      $('bJoin').onclick = function () {
+        var nm = $('jName').value.trim(); if (!nm) return $('jName').focus();
+        $('bJoin').disabled = true; $('joinHint').textContent = '';
+        post('/rooms/' + joinRoom + '/join', { invite: invite, name: nm, phone: $('jPhone').value.trim() })
+          .then(function (j) { remember(j.room, j.token, nm + ' at a table'); enter(j.room, j.token); })
+          .catch(function (e) { $('bJoin').disabled = false; $('joinHint').textContent = e.message; });
+      };
+      return;
+    }
+    $('bStart').onclick = function () {
+      var nm = $('fName').value.trim(); if (!nm) return $('fName').focus();
+      $('bStart').disabled = true; $('startHint').textContent = '';
+      post('/rooms', { name: nm, phone: $('fPhone').value.trim() })
+        .then(function (j) { remember(j.room, j.token, nm + "'s table"); enter(j.room, j.token); })
+        .catch(function (e) { $('bStart').disabled = false; $('startHint').textContent = e.message; });
+    };
+    var rooms = Object.keys(mem).sort(function (x, y) { return mem[y].at - mem[x].at; }).slice(0, 6);
+    if (rooms.length) {
+      $('mine').hidden = false;
+      $('mine').innerHTML = '<div class="hint">Your tables</div>' + rooms.map(function (r) {
+        return '<a href="/dominoes?room=' + r + '&t=' + mem[r].t + '">' + esc(mem[r].label || r) + '</a>';
+      }).join('');
+    }
+  }
+  $('bCopy').addEventListener('click', function () {
+    var inp = $('inviteUrl'); inp.select();
+    var done = function () { $('inviteHint').textContent = 'Copied. Waiting for them to sit down…'; };
+    if (navigator.clipboard) navigator.clipboard.writeText(inp.value).then(done, done); else { try { document.execCommand('copy'); } catch (e) {} done(); }
+  });
+  $('bShare').addEventListener('click', function () {
+    var url = $('inviteUrl').value;
+    if (navigator.share) navigator.share({ title: 'Similitude Dominoes', text: 'Play dominoes with me', url: url }).catch(function () {});
+    else $('bCopy').click();
+  });
+  if (!navigator.share) $('bShare').hidden = true;
+
+  var room = qs.get('room'), tok = qs.get('t'), inv = qs.get('join');
+  if (room && !tok && mem[room]) tok = mem[room].t;
+  if (room && tok) { remember(room, tok, (mem[room] && mem[room].label) || 'a table'); enter(room, tok); }
+  else if (room && inv) lobby(room, inv);
+  else lobby();
+
+  window.__compareHelp({ html:
+      '<b>One card is one tile, only one of each, edge to edge</b> — a card in a '
+    + 'point-down space is turned a little, never upside down. Tap a card in '
+    + 'your hand, tap a space, then say what it shares with each card it '
+    + 'touches. <b>A point per card touched.</b> Two may each share something '
+    + 'different with it; three share the same thing or each a different one — '
+    + 'never two and one. Three in hand, draw one after each lay. <b>Pass</b> '
+    + 'lets you swap any of your cards. Tap a card on the table to read its '
+    + 'links back. New round is dealt by whoever is on turn, or by either once a round is over. '
+    + 'The other phone sees each move a few seconds later, and a text goes out when it is your turn if you gave a number.' });
+})();
+</script>

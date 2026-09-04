@@ -499,6 +499,7 @@ loadConfig().then(() => {
   // in/out, reorder, one audio track. Render is ffmpeg on our own box; free.
   app.use('/api/filmeditor', require('./filmeditor').router);
   app.use('/api/fruit', require('./fruit').router); // favorite-fruit poll: a swipe deck per person → the fridge chart
+  app.use('/api/dominoes', require('./dominoes').router); // Similitude Dominoes for two people on two phones — public, anyone's table
   // Witch-video pipeline: Theo's ideas → draft cuts → the review room at
   // /witchvideo (tap the video to pause + leave a note; ♥/✕). Notes ring the
   // owning chat's wake doorbell. Nothing here generates or spends.
@@ -646,6 +647,13 @@ app.get('/screening', (req, res) => { res.sendFile(__dirname + '/public/screenin
 // never will, and the person id in the link is the only identity there is.
 // no-cache for the same reason every other page here has it — a cached deck
 // would keep showing fruit that has since been re-drawn.
+// Similitude Dominoes — two people, two phones, anyone's (dominoes.js). Public
+// like /fruit: the link is the seat. One screen, never scrolls, no pill.
+app.get('/dominoes', (req, res) => {
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/public/dominoes.html');
+});
+
 app.get('/fruit', (req, res) => {
   res.set('Cache-Control', 'no-cache, must-revalidate');
   res.sendFile(__dirname + '/public/fruit.html');

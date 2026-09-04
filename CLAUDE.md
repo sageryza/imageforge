@@ -8919,6 +8919,26 @@ before working on that module. Nothing was deleted — the moved text is verbati
       fresh re-triage, exactly like the deck.
     - **The prompt route answers `results`, not `items`** — reading the wrong
       key made a batch that fully succeeded print "0 ok".
+- **SIMILITUDE DOMINOES FOR TWO PHONES** (`dominoes.js`, `/api/dominoes`,
+  page at `/dominoes` — PUBLIC, no tile; 2026-09-04, Sophie: "i want to play
+  against my friend miriam. no computer" → "i'm more wanting to build it for
+  anyone so i can share it on ig"). The dominoes game (the triset-dominoes-game
+  chat's page, her 61 chosen cards) as a table ANYONE can start: your name and
+  an optional phone, an invite link, the friend sits down with theirs, and the
+  two play from their own phones. **The page holds the rules and the server
+  holds the table** — the two seats (the fruit poll's `who=` pattern: each
+  player's unguessable token IS their seat, the invite token lets exactly one
+  friend in), the turn gate (a move is accepted only from the seat the stored
+  state says is on turn, in a transaction, so a stale phone can never overwrite
+  a fresher one), and the turn TEXT — when a move hands the turn over, the
+  other player gets one SMS through `sms.js` (Twilio: `TWILIO_ACCOUNT_SID` ·
+  `TWILIO_AUTH_TOKEN` · `TWILIO_FROM`, managed keys) if they gave a number,
+  deduped on the move number. A read never carries the other seat's phone or
+  token. It costs nothing but Twilio's own fraction of a cent per text. The
+  phone remembers its seats (`dominoes.seats` in localStorage) and the lobby
+  lists them. Test: `node scripts/test-dominoes.js` (the gate, the text plan and
+  the view pure, then the REAL page on two headless phones over the real router
+  with an in-memory Firestore).
 - **HEAD GAMES** (`docs/headgames/`, a Compare page in the
   `mental-games-instrumental-beliefs` chat — no route, no module, no iOS tile;
   2026-09-03, Sophie: "little games we play in our head all the time …
