@@ -152,9 +152,13 @@ async function pageHalf() {
   ok('page links /feedkit.js', /src="\/feedkit\.js"/.test(html));
   ok('page carries the star paper', /shoebox-papers\/star-paper\.webp/.test(html));
   ok('star paper tile is committed', fs.existsSync(path.join(__dirname, '..', 'public', 'shoebox-papers', 'star-paper.webp')));
-  // Round 3 (2026-08-29): the hand is Patrick Hand, the chin carries no
-  // date, and the finale is v3 (five-point star, real dashes, 3s twinkle).
-  ok('the hand is Patrick Hand, not Caveat', /Patrick\+Hand/.test(html) && !/Caveat/.test(html));
+  // Round 3 (2026-08-29) + her font pick (2026-09-04, off the v2 sheet):
+  // the hand is Indie Flower with the chin in CAPS at the smaller size, the
+  // chin carries no date, and the finale is v3 (five-point star, real
+  // dashes, 3s twinkle).
+  ok('the hand is Indie Flower, not Patrick Hand', /Indie\+Flower/.test(html) && !/Patrick\+Hand/.test(html) && !/Caveat/.test(html));
+  const chinRule = (html.match(/\.sb-chintitle\{[^}]*\}/) || [''])[0];
+  ok('the chin is CAPS at the smaller size', /text-transform:uppercase/.test(chinRule) && /font-size:13px/.test(chinRule));
   ok('no date anywhere on a polaroid', !/chindate/.test(html));
   ok('the star has five points (finale v3)', /L39\.35 21\.89/.test(html) && !/C36 22/.test(html));
   ok('the strings are dashes, not dots', /stroke-dasharray:11 9/.test(html));
