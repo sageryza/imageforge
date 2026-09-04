@@ -231,13 +231,18 @@ async function main() {
     groups,
     pace: 'labored',
     stamp: false,
+    // the two questions she answers on every card (2026-09-03: "modify tinder
+    // compare w those two questions so i answer them") — saved under
+    // <item>:q:wrong / <item>:q:next on the page's verdict doc; the print
+    // catalog reads them back
+    asks: [{ key: 'wrong', label: 'What went wrong' }, { key: 'next', label: 'Next steps' }],
     buttons: {
       yes: { label: 'Bring it back', icon: 'heart' },
       maybe: { label: 'Later', icon: 'maybe' },
       no: { label: 'Let it go', icon: 'x' },
     },
     help: 'Every project here has been quiet a week or more, the chat spoke last, and it left something open. '
-      + 'Heart = bring it back, X = let it go, ? = later. A tap on the picture opens the chat. '
+      + 'Heart = bring it back, X = let it go, ? = later. Write what went wrong and the next steps in the two boxes — the print catalog picks them up. '
       + 'Chapters are the areas; the tools chapter is things you built and never opened.',
   };
   if (!go) { console.log('dry — pass --go to post'); return; }

@@ -24,6 +24,10 @@ const { execFileSync } = require('child_process');
 const { build } = require('./forgotten-projects');
 
 const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
+const CHAT = process.env.FORGE_CHAT || 'forgotten-projects-catalog';
+// the posted page whose verdict doc carries her answers (`--sheet page-<id>`;
+// default: the newest "Forgotten projects" page in the chat)
+const ASKS = [['wrong', 'What went wrong'], ['next', 'Next steps']];
 const OUT = process.env.OUT_DIR || path.join(process.env.TMPDIR || '/tmp', 'forgotten-projects');
 fs.mkdirSync(path.join(OUT, 'fonts'), { recursive: true });
 
@@ -52,7 +56,22 @@ async function fonts() {
 
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-function html(groups, dateLabel) {
+async function herAnswers(sheetArg) {
+  let sheet = sheetArg;
+  if (!sheet) {
+    const pages = (await get(BASE + '/api/chatfeed/pages?chat=' + encodeURIComponent(CHAT))).body;
+    let list = [];
+    try { list = JSON.parse(pages.toString()).pages || []; } catch (e) { list = []; }
+    const mine = list.filter((p) => /^Forgotten projects/.test(p.title || '') && !p.superseded)
+      .sort((a, b) => String(b.created || '').localeCompare(String(a.created || '')));
+    if (mine[0]) sheet = 'page-' + mine[0].id;
+  }
+  if (!sheet) return {};
+  const v = (await get(BASE + '/api/chatfeed/verdict?chat=' + encodeURIComponent(CHAT) + '&sheet=' + encodeURIComponent(sheet))).body;
+  try { return JSON.parse(v.toString()).texts || {}; } catch (e) { return {}; }
+}
+
+function html(groups, dateLabel, texts) {
   const n = groups.reduce((a, g) => a + g.items.length, 0);
   const faces = FONTS.map(([name, style, weight]) =>
     `@font-face{font-family:'Newsreader';font-style:${style};font-weight:${weight};src:url(/fonts/${name}.ttf) format('truetype');}`).join('\n');
@@ -60,17 +79,19 @@ function html(groups, dateLabel) {
   const body = groups.map((g, i) => `
     <section class="chap">
       <h2><span class="n">${i + 1}</span>${esc(g.label)}<span class="c">${g.items.length} ${g.items.length === 1 ? 'project' : 'projects'}</span></h2>
-      <div class="grid">${g.items.map((it) => `
+      <div class="grid">${g.items.map((it) => {
+        const parts = [];
+        (it.sections || []).forEach((sec) => parts.push([sec.label, sec.text]));
+        ASKS.forEach(([key, label]) => { const t = (texts[it.id + ':q:' + key] || '').trim(); if (t) parts.push([label, t, true]); });
+        return `
         <article>
           ${it.img ? `<img src="/img?u=${encodeURIComponent(it.img)}" alt="">` : '<div class="noimg"></div>'}
-          <div class="w">
-            <div class="eb">${esc(it.eyebrow || '')}</div>
-            <h3>${esc(it.label)}</h3>
-            <p class="what">${esc(it.text)}</p>
-            ${(it.sections || []).map((s) => `<p class="stop"><b>${esc(s.label)}</b> ${esc(s.text)}</p>`).join('')}
-            ${it.chat ? `<div class="slug">${esc(it.chat)}</div>` : (it.link && /storyroom/.test(it.link.url) ? '<div class="slug">Story Room</div>' : '')}
-          </div>
-        </article>`).join('')}</div>
+          <div class="eb">${esc(it.eyebrow || '')}</div>
+          <h3>${esc(it.label)}</h3>
+          <p class="what">${esc(it.text)}</p>
+          ${parts.map(([l, t, hers]) => `<div class="sec${hers ? ' hers' : ''}"><div class="sl">${esc(l)}</div><p>${esc(t)}</p></div>`).join('')}
+          ${it.chat ? `<div class="slug">${esc(it.chat)}</div>` : (it.link && /storyroom/.test(it.link.url) ? '<div class="slug">Story Room</div>' : '')}
+        </article>`; }).join('')}</div>
     </section>`).join('');
   return `<!doctype html><html><head><meta charset="utf-8"><title>Forgotten projects</title>
 <style>
@@ -91,15 +112,18 @@ body { font-family: 'Newsreader', 'Liberation Serif', Georgia, serif; color: #26
 .chap { page-break-before: always; }
 h2 { display: flex; align-items: baseline; gap: 8pt; font-size: 20pt; font-weight: 500; margin: 0 0 12pt; padding-bottom: 6pt; border-bottom: 1.5px solid #26221c; }
 h2 .c { margin-left: auto; font-family: 'Liberation Sans', Helvetica, Arial, sans-serif; font-size: 8.5pt; color: #8a8076; font-weight: 400; }
-.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 22pt; }
-article { display: flex; gap: 10pt; padding: 9pt 0; border-bottom: 1px solid #e6dfd3; break-inside: avoid; page-break-inside: avoid; }
-article img, article .noimg { width: 0.95in; height: 0.95in; flex: none; object-fit: contain; }
-article .w { min-width: 0; }
-.eb { font-family: 'Liberation Sans', Helvetica, Arial, sans-serif; font-size: 7pt; letter-spacing: .12em; text-transform: uppercase; color: #b5563a; margin-bottom: 2pt; }
-h3 { font-size: 13pt; font-weight: 500; margin: 0 0 3pt; line-height: 1.15; }
-.what { margin: 0 0 4pt; }
-.stop { margin: 0; font-family: 'Liberation Sans', Helvetica, Arial, sans-serif; font-size: 8.5pt; line-height: 1.4; color: #4a433c; }
-.stop b { font-weight: 700; letter-spacing: .06em; text-transform: uppercase; font-size: 7pt; color: #8a8076; margin-right: 3pt; }
+.grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0 18pt; }
+article { padding: 10pt 0 12pt; border-bottom: 1px solid #e6dfd3; break-inside: avoid; page-break-inside: avoid; }
+article img, article .noimg { display: block; width: 100%; height: 1.55in; object-fit: contain; object-position: left center; margin-bottom: 6pt; }
+article .noimg { height: 0.5in; }
+.eb { font-family: 'Liberation Sans', Helvetica, Arial, sans-serif; font-size: 6.5pt; letter-spacing: .12em; text-transform: uppercase; color: #b5563a; margin-bottom: 2pt; }
+h3 { font-size: 12.5pt; font-weight: 500; margin: 0 0 3pt; line-height: 1.15; }
+.what { margin: 0 0 5pt; font-size: 10pt; }
+.sec { margin: 4pt 0 0; }
+.sec .sl { font-family: 'Liberation Sans', Helvetica, Arial, sans-serif; font-size: 6.5pt; letter-spacing: .1em; text-transform: uppercase; color: #8a8076; margin-bottom: 1pt; }
+.sec p { margin: 0; font-family: 'Liberation Sans', Helvetica, Arial, sans-serif; font-size: 8.5pt; line-height: 1.4; color: #4a433c; }
+.sec.hers .sl { color: #b5563a; }
+.sec.hers p { font-family: 'Newsreader', serif; font-style: italic; font-size: 10pt; color: #26221c; }
 .slug { font-family: 'Liberation Mono', monospace; font-size: 7pt; color: #a59c91; margin-top: 4pt; }
 </style></head><body>
 <div class="cover">
@@ -107,18 +131,23 @@ h3 { font-size: 13pt; font-weight: 500; margin: 0 0 3pt; line-height: 1.15; }
   <h1>Forgotten<br>projects</h1>
   <div class="sub">${n} things you started, in ${groups.length} chapters</div>
   <ol>${chapters}</ol>
-  <div class="rule">Every project here has a chat that has been quiet a week or more, where the chat spoke last and left something open — plus the story pads the old Story Room left empty, and the desktop queue. The small grey line under an entry is the chat's name in the Chats app.</div>
+  <div class="rule">Every project here has a chat that has been quiet a week or more, where the chat spoke last and left something open — plus the story pads the old Story Room left empty, and the desktop queue. The small grey line under an entry is the chat's name in the Chats app. What you write in the two boxes on the swipe cards — what went wrong, next steps — prints here in italic.</div>
 </div>
 ${body}
 </body></html>`;
 }
 
 async function main() {
-  const upload = process.argv.includes('--upload');
+  const args = process.argv.slice(2);
+  const upload = args.includes('--upload');
+  const si = args.indexOf('--sheet');
   await fonts();
   const { groups } = await build();
+  const texts = await herAnswers(si >= 0 ? args[si + 1] : '');
+  const answered = Object.keys(texts).filter((k) => /:q:/.test(k) && String(texts[k]).trim()).length;
+  console.log(`her answers on file: ${answered}`);
   const dateLabel = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' });
-  const page = html(groups, dateLabel);
+  const page = html(groups, dateLabel, texts);
   fs.writeFileSync(path.join(OUT, 'catalog.html'), page);
 
   const server = http.createServer(async (req, res) => {

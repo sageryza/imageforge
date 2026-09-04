@@ -386,6 +386,15 @@
     '.jg-momnote::placeholder{color:#A99E8B;}' +
     // note:'small' — two lines (2026-09-03, "note section can be smaller")
     '.jg-momnote.small{height:56px;padding:8px 14px;}' +
+    // an ASK is a labelled box in the note's own clothes, stacked above it —
+    // the label is the question, in the eyebrow's rust, so the card reads
+    // as a form she fills rather than a note she leaves
+    '.jg-momask{display:block;margin:0 0 6px;}' +
+    '.jg-momasklab{display:block;font:600 10px/1 -apple-system,sans-serif;letter-spacing:.08em;' +
+    ' text-transform:uppercase;color:#B5563A;margin:0 0 4px 2px;}' +
+    '.jg-momaskbox{display:block;width:100%;margin:0;height:56px;box-sizing:border-box;' +
+    ' border-radius:9px;border:1.5px solid #E7DECF;background:#FFFDF8;padding:8px 14px;' +
+    ' font:400 13px/1.45 -apple-system,sans-serif;color:#262016;outline:none;resize:none;}' +
     '.jg-cardtext.sq{width:100%;display:flex;align-items:center;' +
     ' justify-content:center;text-align:center;padding:10%;box-sizing:border-box;' +
     ' max-height:none;overflow-y:auto;}' +
@@ -830,6 +839,22 @@
     // pictures: "note section can be smaller"). A word or two is the usual
     // note on a picture; four lines of box under a square card cost the card.
     var smallNote = opts.note === 'small';
+    // THE ASKS — questions the page puts to her on EVERY card (2026-09-03,
+    // Sophie, on the forgotten-projects catalog: "modify tinder compare w
+    // those two questions so i answer them"). `asks:[{key,label}]`, up to
+    // four, each its own labelled box above the note, each answer saved as
+    // its own text on the verdict doc under `<item>:q:<key>` — the cut
+    // picker's `<id>:p*` shape, so a card's ♥/✕ and note are untouched and a
+    // chat reads the answers back with GET /verdict. Her own deck's shape
+    // only (momUI); the classic card keeps its + note.
+    var asks = [];
+    (Array.isArray(opts.asks) ? opts.asks : []).forEach(function (a) {
+      if (!a || typeof a !== 'object' || asks.length >= 4) return;
+      var key = String(a.key || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 24);
+      var label = String(a.label || '').trim().slice(0, 60);
+      if (key && label) asks.push({ key: key, label: label });
+    });
+    function askId(id, key) { return id + ':q:' + key; }
     // ── EACH PICTURE ON A SPREAD IS ITS OWN DECISION — `spreadEach` (2026-09-03,
     // Sophie: "compare similar prompts to each other. ex circus tent. some say
     // peeking, some hiding. both are the same card · AND when i x one, it
@@ -942,7 +967,7 @@
           var col = mount.querySelector('.jg.mom');
           if (!col) return;
           var el = document.activeElement;
-          var typing = el && el.classList && el.classList.contains('jg-momnote');
+          var typing = el && el.classList && (el.classList.contains('jg-momnote') || el.classList.contains('jg-momaskbox'));
           // the layout viewport is the keyboard-free baseline (window.innerHeight
           // tracks the visual viewport on iOS, so it can't be the reference)
           var base = topWin.document.documentElement.clientHeight;
@@ -2052,6 +2077,10 @@
             + ' data-act="maybe" aria-label="' + esc(BTN.maybe.label) + '">' + BTN.maybe.icon + '</button>'
             + '<button class="jg-mombtn yes' + (v === true ? ' on' : '') + '" data-act="yes"'
             + ' aria-label="' + esc(BTN.yes.label) + '">' + BTN.yes.icon + '</button>'
+            + asks.map(function (a) {
+              return '<label class="jg-momask"><span class="jg-momasklab">' + esc(a.label) + '</span>'
+                + '<textarea class="jg-momaskbox" data-ask="' + esc(a.key) + '" rows="2"></textarea></label>';
+            }).join('')
             + '<textarea class="jg-momnote' + (smallNote ? ' small' : '') + '" rows="'
             + (smallNote ? 2 : 4) + '" placeholder="Note for Claude…"></textarea>'
             // THE MIC SURVIVED THE MOVE (Aug 2026 v3). Her date decks never had
@@ -2131,6 +2160,19 @@
           };
           momNote = { item: it.id, compose: mcompose };
           mbox.addEventListener('input', function () { saveNote(it.id, mcompose()); });
+          // her answers to the page's asks: prefilled from the verdict doc,
+          // saved on their own keys with their own timers (saveNote's one
+          // timer would drop the first box's words when she moves to the next)
+          [].slice.call(mount.querySelectorAll('.jg-momaskbox')).forEach(function (abox) {
+            var akey = askId(it.id, abox.getAttribute('data-ask'));
+            abox.value = notes[akey] || '';
+            var atimer = null;
+            abox.addEventListener('input', function () {
+              notes[akey] = abox.value;
+              clearTimeout(atimer);
+              atimer = setTimeout(function () { post({ item: akey, text: abox.value }); }, 700);
+            });
+          });
           mbox.addEventListener('blur', function () {
             var t = mbox.value.trim();
             if (t && t !== mdraft) { mirrorNote(it, t); mdraft = t; }
@@ -2526,6 +2568,8 @@
             if (iv[it.id] !== undefined && iv[it.id] !== null) verdicts[it.id] = iv[it.id];
             else delete verdicts[it.id];       // cleared in the other view
             if (tx[it.id]) notes[it.id] = tx[it.id];
+            // her answers to the page's asks ride the same doc, own keys
+            asks.forEach(function (a) { var k = askId(it.id, a.key); if (tx[k]) notes[k] = tx[k]; });
           };
           items.forEach(function (it) {
             take(it);
