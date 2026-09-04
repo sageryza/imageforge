@@ -280,6 +280,28 @@ t('the source-library list is the one both readers use', () => {
   assert.strictEqual(G.sourceLibraryPrefix(`${DECK}/audio/cutting-room/01-clip.m4a`), null);
 });
 
+t('a scan of paper is its own list, and it does not join the source libraries', () => {
+  assert.deepStrictEqual(G.PAPER_PREFIXES,
+    ['google-drawings/', 'dating-book/date-watercolors/']);
+  assert.strictEqual(G.paperPrefix(`${DECK}/google-drawings/dates/20.jpg`), 'google-drawings/');
+  assert.strictEqual(G.paperPrefix(`${DECK}/dating-book/date-watercolors/josie.png`),
+    'dating-book/date-watercolors/');
+  // THE BOUNDARY THAT MATTERS: `dating-book/moments/` next door is generated
+  // art with a real prompt, so a bare `dating-book/` prefix would silently
+  // stop the sweep asking for the one thing those DO owe.
+  assert.strictEqual(G.paperPrefix(`${DECK}/dating-book/moments/j-armor.webp`), null);
+  // A chat WRITES these, so they must never join the list whose invariant is
+  // that a chat cannot — the guard reasons about a background catch with it.
+  assert.strictEqual(G.sourceLibraryPrefix(`${DECK}/google-drawings/dates/20.jpg`), null);
+  assert.strictEqual(G.paperPrefix(`${DECK}/drops/_/a.jpg`), null);
+});
+
+t('the sweep asks about paper as well as the source libraries', () => {
+  const src = fs.readFileSync(path.join(__dirname, 'sweep-asset-captions.js'), 'utf8');
+  assert.ok(/paperPrefix/.test(src),
+    'the caption sweep must consult paperPrefix, or it asks a painting for a prompt');
+});
+
 t('the sweep reads the guard\'s list rather than keeping its own copy', () => {
   const src = fs.readFileSync(path.join(__dirname, 'sweep-asset-captions.js'), 'utf8');
   assert.ok(/require\(['"]\.\.\/asset-guard['"]\)/.test(src),

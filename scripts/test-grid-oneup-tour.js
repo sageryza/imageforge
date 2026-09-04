@@ -28,6 +28,10 @@ const page = (groups) => `<!doctype html><meta charset="utf-8"><title>t</title>
 const one = (n) => Array.from({ length: n }, (_, i) => ({ items: [{ id: 'a' + i, img: '/i.gif', label: 'card ' + i }] }));
 const pairs = (n) => Array.from({ length: n }, (_, i) => ({ label: 'row ' + i, items: [
   { id: 'a' + i, img: '/i.gif', label: 'left' }, { id: 'b' + i, img: '/i.gif', label: 'right' }] }));
+// A CATALOGUE: one group holding far more than the three that fit a line, so
+// what she sees is a block of many lines rather than a row of variants.
+const catalogue = () => [{ label: 'everything', items: Array.from({ length: 12 },
+  (_, i) => ({ id: 'c' + i, img: '/i.gif', label: 'person ' + i })) }];
 
 (async () => {
   let body = null;
@@ -43,7 +47,12 @@ const pairs = (n) => Array.from({ length: n }, (_, i) => ({ label: 'row ' + i, i
     if (u.startsWith('/api/')) { res.writeHead(200, { 'content-type': 'application/json' }); return res.end('{"ok":true,"items":{},"assets":[]}'); }
     res.writeHead(200, { 'content-type': 'text/html' }); res.end(body);
   }).listen(8742);
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }).catch(() => chromium.launch());
+  // the house resolver (scripts/test-back-to-top.js &c) — never a version pin
+  const preinstalled = ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+    '/opt/pw-browsers/chromium/chrome-linux/chrome']
+    .concat(process.env.CHROMIUM_PATH ? [process.env.CHROMIUM_PATH] : [])
+    .find((f) => fs.existsSync(f));
+  const b = await chromium.launch(preinstalled ? { executablePath: preinstalled } : {});
   const tourText = async (groups) => {
     body = page(groups);
     const ctx = await b.newContext({ viewport: { width: 390, height: 844 } });  // its own storage: the tour plays once per key
@@ -60,9 +69,20 @@ const pairs = (n) => Array.from({ length: n }, (_, i) => ({ label: 'row ' + i, i
   };
   const oneUpText = await tourText(one(4));
   const pairText = await tourText(pairs(3));
+  const listText = await tourText(catalogue());
   ok(/one picture a row/i.test(oneUpText), `1-up: step one says what a 1-up page is — got "${oneUpText.slice(0, 90)}"`);
   ok(!/differ by exactly one thing/i.test(oneUpText), '1-up: it does NOT claim each row is a comparison');
   ok(/differ by exactly one thing/i.test(pairText), `a real comparison page keeps its own words — got "${pairText.slice(0, 90)}"`);
+  // A group of 12 wraps onto four lines at three across, so "each row is one
+  // comparison" is true of the element and false of the screen — the same
+  // finding as the 1-up one, one size up (2026-09-04, PHOTOgraphed on the
+  // page of every date illustration: groups of 19 and 52).
+  ok(!/differ by exactly one thing/i.test(listText),
+    `a catalogue does NOT claim to be a comparison — got "${listText.slice(0, 90)}"`);
+  ok(/ruled off/i.test(listText),
+    `a catalogue says what it is — got "${listText.slice(0, 90)}"`);
+  // and it must not borrow the 1-up wording either: these rows are not one apiece
+  ok(!/one picture a row/i.test(listText), 'a catalogue is not described as one-up');
   await b.close(); srv.close();
   console.log(fail ? `\n${fail} of ${ran} FAILED` : `\nall ${ran} checks passed`);
   process.exit(fail ? 1 : 0);
