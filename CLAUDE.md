@@ -7029,6 +7029,14 @@ before working on that module. Nothing was deleted — the moved text is verbati
   HTMLElement-only and `.hidden =` on an SVG is a dead expando (the
   pause-button-that-never-was). The progress line (`#msg`) lives OUTSIDE
   `#editBox`, because the first upload happens while the empty state shows.
+  **NEVER CONNECT FOOTAGE AND VOICEOVER UNLESS IT IS ON PURPOSE (2026-09-05,
+  Sophie: "the methodology is an issue · u shud never connect footage and
+  voiceover unless its on purpose").** A narration part is anchored to the
+  shot it is ABOUT, never to a distant shot with a running offset, and the
+  picture is cut to the words — a shot is as long as the line it carries.
+  Earned the same day on the desk-sweep commercial: the one-take narration
+  rode the Matrix shot, so shortening the fridge by a second and a half slid
+  every later shot under different words. Full rule in the `film-cut` skill.
   **TWO LANES, BOTH HERS, AND THE DOC IS THE FILM (2026-09-02, Sophie:
   "clips laid out exactly the same so we can both edit in parallel … i need to
   be able to move the sound around. that's literally what i can't describe to

@@ -58,6 +58,19 @@ off the doc and do your half. The full design: `docs/film-editor-parallel-editin
 
 ## Rules
 
+- **NEVER connect footage and voiceover unless it is ON PURPOSE (2026-09-05,
+  Sophie: "the methodology is an issue · u shud never connect footage and
+  voiceover unless its on purpose").** Every narration part is anchored to
+  the SHOT it is about — never to a shot far up the timeline with a
+  cumulative offset — and the picture is cut TO the words: a shot's length is
+  decided by the line it carries, and each pairing is named in the reply
+  ("the fridge sits under *you just fill it out*"). Earned on the desk-sweep
+  commercial: the one-take narration was pinned to the Matrix shot, so
+  trimming a second and a half out of the fridge slid every later shot under
+  different words — *connect it to everything* left the neurons and the
+  science line started on top of it. A pairing that happens because of where
+  a trim landed is an accident, not a cut; when the words are one continuous
+  take, the shots between two lines must add up to the gap between them.
 - **Sounds are hers.** Don't bake a bed into another bed, don't pre-mix
   voice + music into one file: every sound she might want to move is its own
   piece on the lane. Her voice at unity, always.
