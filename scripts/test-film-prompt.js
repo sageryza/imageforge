@@ -118,7 +118,7 @@ const check = (cond, m) => (cond ? ok(m) : fail(m));
   });
 
   // A player whose playing state and position the test drives, firing the real
-  // events filmnote listens to (the autoplayed player opens PLAYING).
+  // events filmnote listens to (the player opens PAUSED and her tap starts it).
   const openPin = async (chat) => {
     await page.goto(base + '/chats');
     await page.waitForSelector(`#grid [data-chat="${chat}"]`);
@@ -137,6 +137,8 @@ const check = (cond, m) => (cond ? ok(m) : fail(m));
       Object.defineProperty(v, 'paused', { get: () => paused, configurable: true });
       v.play = function () { paused = false; v.dispatchEvent(new Event('play')); return Promise.resolve(); };
       v.pause = function () { paused = true; v.dispatchEvent(new Event('pause')); };
+      // the player waits for her tap since 2026-09-05 — this is the tap
+      v.play();
       window.__filmNote.SCRIM_MS = 0;
     });
     // the map lands one fetch later

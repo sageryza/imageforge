@@ -176,7 +176,7 @@ if (!fs.readFileSync(path.join(PUB, 'compare.js'), 'utf8').includes('cmp-vlb-x::
     await page.click('.pinned');
     await page.waitForSelector('#pinfull', { timeout: 3000 });
     // a video whose playing state the test controls, firing the real events
-    // filmnote listens to (the autoplayed player opens PLAYING)
+    // filmnote listens to (the player opens PAUSED and her tap starts it)
     await page.evaluate(() => {
       const v = document.querySelector('#pinfull video');
       Object.defineProperty(v, 'currentTime', { value: 41.4, writable: true });
@@ -187,6 +187,8 @@ if (!fs.readFileSync(path.join(PUB, 'compare.js'), 'utf8').includes('cmp-vlb-x::
       // the test taps faster than iOS's real scrim ever fades — the window is
       // off by default here and raised only by the step that tests it (1b)
       window.__filmNote.SCRIM_MS = 0;
+      // the player waits for her tap since 2026-09-05 — this is the tap
+      v.play();
     });
   };
   const tapFilm = () => page.evaluate(() => document.querySelector('#pinfull video').click());

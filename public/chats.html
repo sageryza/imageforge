@@ -8128,7 +8128,13 @@ function openPinned(pin, chatName){
   var y=window.scrollY;
   var w=document.createElement('div'); w.id='pinfull';
   var v=document.createElement(pin.kind==='audio'?'audio':'video');
-  v.src=pin.url; v.controls=true; v.autoplay=true; v.setAttribute('playsinline','');
+  // THE FILM WAITS FOR HER TAP (2026-09-05, Sophie: "make the player wait
+  // for my tap"). It used to autoplay the moment the sheet opened, so the
+  // first second ran while the player was still coming up — the FORGET
+  // SCHOOL hit at 0.65s was in the file at eight times the voice and she
+  // never heard it. Paused on its first frame; her tap (or the native play)
+  // starts it, and filmnote.js keeps its buttons down until it has played.
+  v.src=pin.url; v.controls=true; v.preload='auto'; v.setAttribute('playsinline','');
   var x=document.createElement('button'); x.className='x'; x.innerHTML='&times;';
   x.setAttribute('aria-label','Close');
   function close(){ try{ v.pause(); }catch(_){ }
