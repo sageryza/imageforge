@@ -32,6 +32,14 @@
      full-width image per row. Skeleton blocks live at the top of compare.css.
      Notes she types here must go to POST /api/chatfeed/verdict, never /reply.
 
+     COMPARING TAKES — audio (cello beds, TTS takes, effects) or films — IS A
+     COMPARE PAGE, never a list of links in the reply (2026-09-05, Sophie: "if
+     i'm comparing takes -> compare tab"). One __filmRow per take, each in a
+     [data-item] block so her ♥/✕ and note land on the take. An AUDIO url
+     (.mp3/.m4a/.wav) plays IN ITS ROW — tap plays, tap again pauses, one at
+     a time — instead of opening the video overlay; pass kind:'audio' when
+     the url has no extension.
+
      DELIVERING A FILM? It is a LINE OF TEXT WITH A PLAY BUTTON at the TOP of
      the page — never an embedded <video> (Aug 2026, Sophie: "never put a
      whole video when it's gonna be opened as a lightbox anyway… so I don't

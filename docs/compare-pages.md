@@ -1087,6 +1087,17 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
   these in an episode" should call the same route rather than hand-building
   episode docs. Tests: `node scripts/test-cut-picker.js`.
 
+## Comparing takes (audio too)
+
+Anything she chooses BETWEEN — sound-effect takes, TTS takes, music beds,
+cuts — is a Compare page, never a list of links in the reply (2026-09-05,
+Sophie: "if i'm comparing takes -> compare tab"). One `window.__filmRow`
+per take, each inside a `[data-item]` block so `__compareNotes` puts her
+♥/✕ and note on the take. An audio url (`.mp3/.m4a/.wav`, or
+`kind:'audio'`) plays in its row — tap plays, tap again stops, one at a
+time, the glyph fills while it sounds — instead of the video overlay.
+Test: `node scripts/test-compare-shell.js`.
+
 ## Her place on a long page — scroll memory and the chapter bar (2026-09-02)
 
 Sophie, on the Similitude visual inventory (97 cards under 75 headings):
