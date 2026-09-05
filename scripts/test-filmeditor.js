@@ -76,6 +76,16 @@ console.log('the stale-save rule:');
   ok(fe.staleSave(100, 200) === true, 'a base behind the doc is stale');
   ok(fe.staleSave('100', 200) === true, 'a base sent as a string is still read');
   ok(fe.staleSave(200, 200) === false, 'the base the doc carries passes');
+  // A job older than the process is a job the old process died holding.
+  {
+    const boot = 1_000_000; const now = boot + 60_000;
+    const run = (startedAt) => ({ kind: 'render', status: 'running', startedAt: new Date(startedAt).toISOString() });
+    ok(fe.jobIsDead(run(boot + 10_000), now, boot) === false, 'a job this process started a minute ago is alive');
+    ok(fe.jobIsDead(run(boot - 10_000), now, boot) === true, 'a job started before this process booted is dead — a deploy killed it');
+    ok(fe.jobIsDead(run(boot + 10_000), boot + 10_000 + 21 * 60_000, boot) === true, 'a job this process lost is dead after twenty minutes');
+    ok(fe.jobIsDead({ kind: 'render', status: 'done', startedAt: new Date(boot + 10_000).toISOString() }, now, boot) === true, 'a finished job never blocks');
+    ok(fe.jobIsDead({ kind: 'render', status: 'running' }, now, boot) === true, 'a running job with no start is dead');
+  }
   ok(fe.staleSave(undefined, 200) === false && fe.staleSave(null, 200) === false && fe.staleSave('', 200) === false,
     'no base at all (an older cached page) is let through, never refused');
   ok(fe.staleSave('nope', 200) === false, 'garbage is not a base');

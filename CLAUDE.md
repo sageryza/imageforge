@@ -128,7 +128,9 @@ asking for the LIST — the stills, the shots, the model, the size, the price
 — and the go is a separate message of hers. The chat that earned this read
 "use up the credits, pull the ant stills" as permission and had fifteen
 clips drawing before she saw a single shot. When in doubt, the page with the
-plan costs nothing; the batch is what cannot be taken back.
+plan costs nothing; the batch is what cannot be taken back. **And banked
+credits are dollars: 930 APIFRAME credits is $9.30, three times the $3
+ask line.**
 
 **Animating a still or generating a clip (Seedance, Wan, Kling, any model)**
 - **MINIMUM SECONDS UNLESS SHE SPECIFIES, and ASK BEFORE SPENDING THE
@@ -6882,7 +6884,17 @@ before working on that module. Nothing was deleted — the moved text is verbati
   the trim (source timestamps, accurate under a re-encode) and the track
   mixed at the mux with `normalize=0` (amix's default halves both voices).
   One download per unique source url — twelve pieces of one recording cost
-  one download. **It costs nothing** — ffmpeg on our own box; the only paid
+  one download. **AND EVERY PIECE IS BANKED SINCE 2026-09-05 (Sophie: "does
+  it have to rerender everything every time" — it did).** A piece's segment
+  and its PCM are keyed on url + kind + requested in/out + gain + mute + the
+  canvas + `SEG_VERSION` (`segKey`, pure) and banked in Storage under
+  `filmeditor/seg-cache/`, the Episode Editor's clip-cache shape; a hit skips
+  the download, the probe and both encodes, so a change to one shot re-cuts
+  one shot. Only the LEAD source (the canvas) is still downloaded every
+  render. Bump `SEG_VERSION` when the segment recipe changes; a cache that
+  dies never fails a render. `banked` on the render result says how many came
+  out of the bank; the progress line says "(banked)". Pinned by the cache
+  section of `node scripts/test-filmeditor-render.js`. **It costs nothing** — ffmpeg on our own box; the only paid
   side-effect is the audio library's unconditional transcription of an
   uploaded track (~$0.006/min, once ever per file). One doc per cut
   (`forge-film-edits`); arrangement + audio save WHOLE (a split changes two
