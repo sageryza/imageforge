@@ -70,6 +70,32 @@ struct QualityMenu: View {
     }
 }
 
+/// Image-model picker dropdown (GPT-Image 1 / 1.5 / 2). Compact label ("v2 ▾").
+struct ModelMenu: View {
+    @Binding var model: String
+    static func shortLabel(_ m: String) -> String {
+        switch m { case "gpt-image-1": return "v1"; case "gpt-image-1.5": return "v1.5"; default: return "v2" }
+    }
+    var body: some View {
+        Menu {
+            Button("GPT-Image 2") { model = "gpt-image-2" }
+            Button("GPT-Image 1.5") { model = "gpt-image-1.5" }
+            Button("GPT-Image 1") { model = "gpt-image-1" }
+        } label: {
+            HStack(spacing: 3) {
+                Text(Self.shortLabel(model)).font(.caption.weight(.semibold))
+                    .frame(width: 30, alignment: .leading)
+                Image(systemName: "chevron.down").font(.system(size: 8, weight: .bold))
+            }
+            .foregroundColor(Theme.text)
+            .frame(height: 50).padding(.horizontal, 10)
+            .background(Theme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
+            .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
+        }
+    }
+}
+
 /// The single generate affordance — a mauve-pink button with the three-star icon.
 struct GoButton: View {
     var busy: Bool
@@ -163,17 +189,20 @@ struct ScheduleSheet: View {
     }
 }
 
-/// One-row composer: quality menu · prompt box · go button.
+/// One-row composer: [model menu ·] quality menu · prompt box · go button.
+/// Pass `model` to show the image-model dropdown (only the sticker sheet does).
 struct Composer: View {
     @Binding var quality: String
     @Binding var text: String
     var placeholder: String
     var busy: Bool
     var focused: FocusState<Bool>.Binding
+    var model: Binding<String>? = nil
     var onGo: () -> Void
 
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
+            if let model { ModelMenu(model: model) }
             QualityMenu(quality: $quality)
             TextField(placeholder, text: $text)
                 .font(.body)
