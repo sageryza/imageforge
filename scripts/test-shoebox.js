@@ -172,6 +172,9 @@ async function pageHalf() {
     .filter((l) => l.route).map((l) => Object.keys(l.route.methods)[0] + ' ' + l.route.path);
   ['get /feed', 'post /board-state', 'post /memory', 'post /putaway', 'post /square']
     .forEach((r) => ok('router registers ' + r, routes.includes(r)));
+  // select() IS A WHITELIST — shoeboxHidden was written and never read back
+  // (2026-09-05): the flag must be in FIELDS or a put-away never shows.
+  ok('FIELDS carries shoeboxHidden', require('../shoebox').FIELDS.includes('shoeboxHidden'));
 
   ok('the polaroids fade to a ghost, not gone', /opacity:\.28/.test(html));
 

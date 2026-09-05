@@ -74,7 +74,7 @@ async function membryDb() {
  * inside it (model, quality, size, prompt); `content` because an undeveloped
  * polaroid IS its words, and the detail card shows them.
  */
-const FIELDS = ['title', 'illustration', 'createdAt', 'timestamp', 'hashtags', 'source', 'content'];
+const FIELDS = ['title', 'illustration', 'createdAt', 'timestamp', 'hashtags', 'source', 'content', 'shoeboxHidden'];
 
 // The DOOR STAMPS — shoeboxPut writes which door filed a picture into
 // `hashtags` ('playground', 'meta-assets', 'storyroom'), and they were
@@ -390,6 +390,7 @@ router.post('/square', async (req, res) => {
 });
 
 module.exports = {
+  FIELDS,
   router, init,
   buildIndex, itemOf, captionOf, hayOf, matchQ, atMillis, stripHtml,
   normBoard, fromRaw, cleanPin, DOOR_TAGS,
