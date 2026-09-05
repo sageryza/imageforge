@@ -539,9 +539,20 @@ console.log('the page contracts (static):');
   // TWO LANES (2026-09-02): one <audio> per sound, the one-track discipline
   // run per element — a sound starts the moment the playhead crosses ITS
   // start, and stops past its end.
-  ok(/function soundTick/.test(html) && /p\.at < 0 \|\| a\.getAttribute\('data-src'\) !== audSrc\(s\)\) return;/.test(html)
+  ok(/function soundTick/.test(html) && /if \(p\.at < 0\) return;/.test(html)
+    && /a\.getAttribute\('data-src'\) !== audSrc\(s\)\) return;/.test(html)
     && /if \(a\.paused \|\| a\.__priming\) \{\s*\n\s*startSound\(s, a, p\.at\);/.test(html),
     'a sound starts when the playhead crosses its start mid-play (per element)');
+  // 2026-09-05: the bank is LAZY — a sound's element opens with no src and
+  // no bytes until its moment is near; the first tap on her 17-sound cut used
+  // to start 17 fetches at once
+  ok(/a\.preload = 'none'/.test(html) && /function primeAhead/.test(html) && /PRIME_MAX = 3/.test(html),
+    'the sound bank opens preload:none and primes at most three at a time, most imminent first');
+  ok(/function applyEdits/.test(fs.readFileSync(path.join(__dirname, '..', 'cut-model.js'), 'utf8'))
+    && /CM\.applyEdits\(/.test(html) && /putPieces\(true\)/.test(html),
+    'a stale save RE-APPLIES her edit onto the chat’s doc and saves once more; only the second refusal reloads');
+  ok(/visibilitychange/.test(html) && /pagehide/.test(html) && /'freeze'/.test(html) && /function stopOnLeave/.test(html),
+    'leaving the app stops playback — the audio elements no longer sound on behind a paused screen');
   // Her "fine for a while, then choppy at 3/4" (2026-08-23): joint holds
   // accumulate as music drift, and the old hard >0.5s reseek yanked the
   // track backward once the film had enough joints behind it. Paced now.

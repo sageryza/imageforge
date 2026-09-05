@@ -18,8 +18,9 @@
 //     bar selects and the tool row relabels; sync moves the bar to the
 //     playhead's x AND the saved `at`; level −/+ moves the stored gain and the
 //     element's volume; two sounds play at once; ride anchors a sound and it
-//     follows its shot through a reorder; a 409 reloads the chat's doc and
-//     says so; the films sheet says who made each render; the Dump door; and
+//     follows its shot through a reorder; a 409 RE-APPLIES her edit onto the
+//     chat's doc and saves again, a second 409 reloads and says so
+//     (2026-09-05); the films sheet says who made each render; the Dump door; and
 //     the whole thing is ONE SCREEN at 390x700 with no scroll and no pill.
 // Run: node scripts/test-filmeditor-page.js  (skips cleanly without playwright)
 //
@@ -124,9 +125,10 @@ function ok(cond, name) {
   // two sounds overlapping — both must play at once
   const DOC7 = docOf('t7', 'Two sounds', [clip('pA', 'a.webm', 'red'), clip('pB', 'b.webm', 'teal')],
     { sounds: [sound('s1', 't.ogg', 'song'), sound('s2', 'u.ogg', 'hum', { at: 0.5 })] });
-  // the chat changes this cut under her: the first save is refused 409
+  // the chat changes this cut under her: the first save is refused 409. The
+  // chat MOVED teal first and added a third piece and a bed; she trims red.
   const DOC8 = docOf('t8', 'Contested', [clip('pA', 'a.webm', 'red'), clip('pB', 'b.webm', 'teal')]);
-  const DOC8_CHAT = docOf('t8', 'Contested', [clip('pA', 'a.webm', 'red'), clip('pB', 'b.webm', 'teal'), clip('pC', 'a.webm', 'red again')],
+  const DOC8_CHAT = docOf('t8', 'Contested', [clip('pB', 'b.webm', 'teal'), clip('pA', 'a.webm', 'red'), clip('pC', 'a.webm', 'red again')],
     { sounds: [sound('sx', 't.ogg', 'the chat’s bed')], updatedAt: 2000 });
   // versions: the chat's render is newest and newer than any visit here
   const DOC9 = docOf('t9', 'Versioned', [clip('pA', 'a.webm', 'red'), clip('pB', 'b.webm', 'teal')], {
@@ -149,7 +151,7 @@ function ok(cond, name) {
   const SAVES = {};       // every /pieces body the page posts, per cut
   const RENDERS = [];     // every /render body
   let SERVER_BUILD = 'match-me';   // what /build answers — flipped to test the self-heal
-  let STALE_ONCE = false;          // the next /pieces on t8 is refused with the chat's doc
+  let STALE_N = 0;                 // the next N /pieces on t8 are refused with the chat's doc
   let upd = 1000;
 
   // Serve media like a real server: honoring Range. A bare route.fulfill 200
@@ -226,7 +228,7 @@ function ok(cond, name) {
       if (sub === '/pieces') {
         const body = post();
         (SAVES[id] = SAVES[id] || []).push(body);
-        if (id === 't8' && STALE_ONCE) { STALE_ONCE = false; return json(route, { error: 'stale', doc: DOC8_CHAT }, 409); }
+        if (id === 't8' && STALE_N > 0) { STALE_N--; return json(route, { error: 'stale', updatedAt: 2000, doc: DOC8_CHAT }, 409); }
         upd += 1;
         return json(route, { ok: true, updatedAt: upd, doc: null });
       }
@@ -616,24 +618,48 @@ function ok(cond, name) {
   ok(lastSave('t11').sounds[0].anchor === null && Math.abs(lastSave('t11').sounds[0].at - 0.5) < 0.01,
     'tapping a lit ride lets go — the anchor drops and the sound stays where it was');
 
+  // ── HER EDIT IS KEPT (2026-09-05): the matrix chat saved v12, v13, v14
+  // inside fifteen minutes and every edit she made in that window vanished
+  // under a reload. A stale save re-applies her change onto the chat's doc
+  // and saves once more; only a second refusal reloads over her.
   console.log('the chat changed this cut under her (a stale save):');
-  STALE_ONCE = true;
+  STALE_N = 1;
   await openCut(page, 't8');
   await page.$$eval('.seg', (els) => els[0].click());
   await page.click('#fwdSec');
   await page.waitForTimeout(150);
-  await page.click('#splitBtn');
-  await page.waitForTimeout(1200);   // the save (600ms) is refused 409 with the chat's doc
+  await page.click('#trimInBtn');      // red's start moves to 1s
+  await page.waitForTimeout(1500);     // the save (600ms) is refused 409 with the chat's doc, then re-sent
   const staleState = await page.evaluate(() => ({
     keys: [...document.querySelectorAll('.seg')].map((e) => e.getAttribute('data-key')),
     snd: document.querySelectorAll('.snd').length,
     msg: document.getElementById('msg').textContent,
   }));
-  ok(staleState.keys.join(',') === 'pA,pB,pC' && staleState.snd === 1,
-    'the page reloads the CHAT’s doc — its three pieces and its sound, not her split');
-  ok(/the chat changed this cut — reloaded/.test(staleState.msg), 'and says so in the quiet line');
-  await page.waitForTimeout(900);
-  ok((SAVES.t8 || []).length === 1, 'and does NOT re-send her save (pieces POSTs: ' + (SAVES.t8 || []).length + ')');
+  const retry = lastSave('t8');
+  ok((SAVES.t8 || []).length === 2 && retry && retry.base === 2000,
+    'the refused save is re-sent ONCE, on the chat’s clock (pieces POSTs: ' + (SAVES.t8 || []).length + ', base ' + (retry && retry.base) + ')');
+  ok(retry && retry.clips.map((c) => c.key).join(',') === 'pB,pA,pC' && retry.sounds.length === 1,
+    'the retry carries the CHAT’s move, its new piece and its bed');
+  ok(retry && Math.abs(retry.clips[1].in - 1) < 0.05 && retry.clips[1].out === 2,
+    'AND her trim of red, re-applied onto it (in ' + (retry && retry.clips[1].in) + ')');
+  ok(staleState.keys.join(',') === 'pB,pA,pC' && staleState.snd === 1, 'the screen shows the merged cut');
+  ok(/the chat changed this cut — your edit was kept/.test(staleState.msg), 'and the quiet line says her edit was kept');
+  // a second refusal — the chat wrote again in the same second — reloads
+  // the chat's doc outright and says her edit could not be kept
+  STALE_N = 2;
+  await openCut(page, 't8');
+  await page.$$eval('.seg', (els) => els[0].click());
+  await page.click('#fwdSec');
+  await page.waitForTimeout(150);
+  await page.click('#trimInBtn');
+  await page.waitForTimeout(1500);
+  const stale2 = await page.evaluate(() => ({
+    keys: [...document.querySelectorAll('.seg')].map((e) => e.getAttribute('data-key')),
+    msg: document.getElementById('msg').textContent,
+  }));
+  ok((SAVES.t8 || []).length === 4 && stale2.keys.join(',') === 'pB,pA,pC',
+    'a second refusal reloads the chat’s doc and sends nothing more (pieces POSTs: ' + (SAVES.t8 || []).length + ')');
+  ok(/your edit couldn’t be kept/.test(stale2.msg), 'and says so');
 
   console.log('versions — who made each render:');
   await page.evaluate(() => { try { localStorage.removeItem('forge.fe.seen.t9'); } catch (e) {} });

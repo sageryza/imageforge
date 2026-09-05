@@ -361,6 +361,85 @@
     return (changes || []).length ? changes.map(function (c) { return c.text; }).join('\n') : 'nothing changed';
   }
 
+  // ── RE-APPLY: her edit onto a fresher doc ─────────────────────────────────
+  // A stale save (the chat wrote the doc while she was editing) used to
+  // RELOAD the chat's doc over hers, and her tap was gone (2026-09-05: the
+  // matrix chat saved v12, v13, v14 inside fifteen minutes, and every edit
+  // she made in that window vanished). The page keeps `before` — the lanes
+  // as of the last successful load or save — so her CHANGE is before → after,
+  // per key, and it can be re-applied onto `fresh` (the chat's doc):
+  //   - a key in both `after` and `fresh`: her field values are copied where
+  //     they differ from `before` (in/out/gain/mute on a piece; those plus
+  //     fadeIn/fadeOut/anchor/at on a sound)
+  //   - a key she REMOVED (in before, not in after) is dropped from fresh
+  //   - a key she ADDED (in after, not in before) is inserted after its
+  //     nearest predecessor in `after` that survives in fresh — a split's
+  //     second half lands beside its first — else at the start when it led
+  //     her list, else at the end
+  //   - when her ORDER of the common keys changed, that relative order is
+  //     applied to the keys present in both; the chat's own keys keep their
+  //     slots
+  // A sound's `seconds` is a learned fact, never an edit: hers is copied onto
+  // a fresh sound that has none, and an `out` that merely closed onto the
+  // learned length is not a trim. The result is normalized, so an anchored
+  // sound lands on its shot wherever the chat put it. Pure; the page calls it
+  // and the tests drive it.
+  var PIECE_FIELDS = ['in', 'out', 'gain', 'mute'];
+  var SOUND_FIELDS = ['in', 'gain', 'mute', 'fadeIn', 'fadeOut', 'anchor', 'at'];
+  function same(a, b) { return JSON.stringify(a === undefined ? null : a) === JSON.stringify(b === undefined ? null : b); }
+  function copy(o) { return JSON.parse(JSON.stringify(o)); }
+  function applyLane(fresh, before, after, fields, isSound) {
+    var bk = byKey(before), ak = byKey(after);
+    var out = (fresh || []).map(copy);
+    var i, k, p;
+    // her removals
+    out = out.filter(function (x) { return !(bk[x.key] && !ak[x.key]); });
+    // her field changes on keys the fresh doc still holds
+    for (i = 0; i < out.length; i++) {
+      p = out[i]; var b = bk[p.key], a = ak[p.key];
+      if (!b || !a) continue;
+      fields.forEach(function (f) { if (!same(a[f], b[f])) p[f] = copy(a[f]); });
+      if (isSound) {
+        if (a.seconds != null && p.seconds == null) p.seconds = a.seconds;
+        var learned = b.out == null && a.out != null && a.seconds != null && Math.abs(a.out - a.seconds) < 1e-6;
+        if (!same(a.out, b.out) && !learned) p.out = a.out;
+      }
+    }
+    // her additions, beside their predecessor
+    var have = byKey(out);
+    for (i = 0; i < after.length; i++) {
+      k = after[i].key;
+      if (bk[k] || have[k]) continue;
+      var at = -1;
+      for (var j = i - 1; j >= 0; j--) {
+        var pk = after[j].key;
+        for (var m = 0; m < out.length; m++) if (out[m].key === pk) { at = m; break; }
+        if (at >= 0) break;
+      }
+      var idx = at >= 0 ? at + 1 : (i === 0 ? 0 : out.length);
+      out.splice(idx, 0, copy(after[i]));
+      have[k] = true;
+    }
+    // her reorder of the common keys
+    var bOrder = before.filter(function (x) { return ak[x.key]; }).map(function (x) { return x.key; });
+    var aOrder = after.filter(function (x) { return bk[x.key]; }).map(function (x) { return x.key; });
+    if (bOrder.join('\n') !== aOrder.join('\n')) {
+      var slots = [];
+      for (i = 0; i < out.length; i++) if (bk[out[i].key] && ak[out[i].key]) slots.push(i);
+      var items = slots.map(function (n) { return out[n]; });
+      var rank = {}; aOrder.forEach(function (key, n) { rank[key] = n; });
+      items.sort(function (x, y) { return rank[x.key] - rank[y.key]; });
+      slots.forEach(function (n, s) { out[n] = items[s]; });
+    }
+    return out;
+  }
+  function applyEdits(fresh, before, after) {
+    var f = readDoc(fresh), b = readDoc(before), a = readDoc(after);
+    var clips = applyLane(f.clips, b.clips, a.clips, PIECE_FIELDS, false);
+    var sounds = applyLane(f.sounds, b.sounds, a.sounds, SOUND_FIELDS, true);
+    return readDoc({ clips: clips, sounds: sounds });
+  }
+
   return {
     MAX_PIECES: MAX_PIECES, MAX_SOUNDS: MAX_SOUNDS, MIN_PIECE: MIN_PIECE,
     STILL_DEFAULT: STILL_DEFAULT, STILL_MIN: STILL_MIN, STILL_MAX: STILL_MAX,
@@ -372,6 +451,6 @@
     anchorToShot: anchorToShot, splitSound: splitSound,
     soundsFromAudio: soundsFromAudio, audioMirror: audioMirror, readDoc: readDoc,
     carrySeconds: carrySeconds, lanesDiffer: lanesDiffer,
-    diffCut: diffCut, describeDiff: describeDiff, db2lin: db2lin,
+    diffCut: diffCut, describeDiff: describeDiff, applyEdits: applyEdits, db2lin: db2lin,
   };
 }));

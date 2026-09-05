@@ -131,4 +131,47 @@ eq(M.describeDiff([]), 'nothing changed', 'empty diff words');
   eq(M.carrySeconds(M.cleanPieces([{ key: 's1', kind: 'image', url: U('s1.webp'), out: 3 }]), clips, M.cleanPiece)[0].seconds, null, 'a still never carries a length');
 }
 
+// ── re-applying her edit onto the chat's fresher doc (a stale save) ───────
+{
+  const C = (key, url, secs, tIn, tOut) => ({ key, url: U(url), title: key, seconds: secs, in: tIn || 0, out: tOut == null ? secs : tOut });
+  const base = { clips: [C('a', 'a.mp4', 5), C('b', 'b.mp4', 5), C('c', 'c.mp4', 5)],
+    sounds: [{ key: 'v', url: U('v.m4a'), name: 'voice', seconds: 10, at: 1, gain: 0 },
+      { key: 'w', url: U('w.m4a'), name: 'whoosh', seconds: null, at: 4, gain: -6, anchor: { piece: 'b', offset: 0 } }] };
+  // the chat moved b first and added d; she trimmed a and levelled v
+  const chat = { clips: [C('b', 'b.mp4', 5), C('a', 'a.mp4', 5), C('c', 'c.mp4', 5), C('d', 'd.mp4', 3)],
+    sounds: [Object.assign({}, base.sounds[0]), Object.assign({}, base.sounds[1], { seconds: 2.5 })] };
+  const hers = { clips: [C('a', 'a.mp4', 5, 1, 4), C('b', 'b.mp4', 5), C('c', 'c.mp4', 5)],
+    sounds: [Object.assign({}, base.sounds[0], { gain: -3 }), Object.assign({}, base.sounds[1])] };
+  const r = M.applyEdits(chat, base, hers);
+  eq(r.clips.map((c) => c.key), ['b', 'a', 'c', 'd'], 'the chat’s move and its new piece are kept');
+  eq([r.clips[1].in, r.clips[1].out], [1, 4], 'and her trim of a rides onto it');
+  eq(r.sounds[0].gain, -3, 'her level on the voice is kept');
+  eq(r.sounds[1].seconds, 2.5, 'the chat’s learned length is kept where hers knew none');
+  eq(M.soundStart(r.sounds[1], r.clips), 0, 'an anchored sound follows its shot to where the chat put it');
+  // she split b and deleted c; the chat only re-levelled the voice
+  const sp2 = M.splitPiece(M.cleanPiece(base.clips[1]), 2, 'b2');
+  const hers2 = { clips: [base.clips[0], sp2[0], sp2[1]], sounds: base.sounds };
+  const chat2 = { clips: base.clips, sounds: [Object.assign({}, base.sounds[0], { gain: 4 }), base.sounds[1]] };
+  const r2 = M.applyEdits(chat2, base, hers2);
+  eq(r2.clips.map((c) => c.key), ['a', 'b', 'b2'], 'her split lands beside its first half and her delete holds');
+  eq([r2.clips[1].out, r2.clips[2].in], [2, 2], 'the split halves keep their cut point');
+  eq(r2.sounds[0].gain, 4, 'and the chat’s level, which she never touched, is kept');
+  // she reordered (c first); the chat added d at the end and deleted a
+  const hers3 = { clips: [base.clips[2], base.clips[0], base.clips[1]], sounds: base.sounds };
+  const chat3 = { clips: [C('b', 'b.mp4', 5), C('c', 'c.mp4', 5), C('d', 'd.mp4', 3)], sounds: base.sounds };
+  eq(M.applyEdits(chat3, base, hers3).clips.map((c) => c.key), ['c', 'b', 'd'], 'her relative order over the keys both still hold; the chat’s piece keeps its slot');
+  // she moved the whoosh off its shot; a learned length is not a trim
+  const hers4 = { clips: base.clips, sounds: [Object.assign({}, base.sounds[0], { seconds: 10, out: 10 }),
+    Object.assign({}, base.sounds[1], { anchor: null, at: 7.5, seconds: 2.5, out: 2.5 })] };
+  const r4 = M.applyEdits(base, base, hers4);
+  eq([r4.sounds[1].anchor, r4.sounds[1].at], [null, 7.5], 'a sound she moved off its shot stays where she put it');
+  eq(r4.sounds[1].seconds, 2.5, 'its learned length rides along');
+  const chat5 = { clips: base.clips, sounds: [Object.assign({}, base.sounds[0], { in: 0, out: 8 }), base.sounds[1]] };
+  eq(M.applyEdits(chat5, base, hers4).sounds[0].out, 8, 'an out that only closed onto the learned length is not a trim — the chat’s real trim stands');
+  const hers6 = { clips: base.clips, sounds: [Object.assign({}, base.sounds[0], { out: 6 }), base.sounds[1]] };
+  eq(M.applyEdits(chat5, base, hers6).sounds[0].out, 6, 'but a trim of hers wins over the chat’s');
+  eq(M.applyEdits(base, base, base).clips.map((c) => c.key), ['a', 'b', 'c'], 'no edit → the fresh doc, untouched');
+  eq(M.applyEdits(chat, base, base).clips.map((c) => c.key), ['b', 'a', 'c', 'd'], 'no edit of hers → exactly the chat’s doc');
+}
+
 console.log(`test-cut-model: ${n} checks passed`);
