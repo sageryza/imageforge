@@ -238,6 +238,69 @@
     return [a, b];
   }
 
+  // ── LENGTHS ARE FACTS, NOT EDITS (2026-09-05) ────────────────────────────
+  // A chat's cut.json carried every sound with `seconds:null`; on open the
+  // page learned the lengths from loadedmetadata and saved them as HER edit,
+  // which bumped updatedAt — so the chat's next save 409'd and its "same
+  // lanes?" check read the filled seconds as her change and stopped with
+  // "STALE — she changed the cut" when she had touched nothing. A length
+  // (and a poster) is a fact about the FILE; only in/out/order/level/anchor
+  // are edits. Two pure rules, shared by the server's save and filmcut.js:
+  //
+  // carrySeconds: a writer that does not know a source's length must not
+  // erase one the doc already learned (matched by key AND url — a
+  // re-pointed piece is a different file); the item is re-cleaned so its
+  // open end fills in exactly as the page's own save would have.
+  function carrySeconds(next, cur, clean) {
+    var known = {};
+    (cur || []).forEach(function (c) { if (c && c.seconds != null) known[c.key + '\n' + c.url] = c.seconds; });
+    return (next || []).map(function (n) {
+      if (!n || n.seconds != null || n.kind === 'image') return n;
+      var s = known[n.key + '\n' + n.url];
+      if (s == null) return n;
+      var m = {}; for (var k in n) m[k] = n[k];
+      m.seconds = s;
+      return clean(m);
+    });
+  }
+  // lanesDiffer: did anything MOVE between two docs, ignoring `seconds` and
+  // `poster`? An `out` that sits on its own known end against an open end
+  // (or a request at or past it) is a length that was learned, not a trim —
+  // cleanSound writes out = seconds the moment seconds is known, and
+  // cleanPiece clamps a request past the end. An anchored sound is judged by
+  // its anchor, never by the `at` derived from it.
+  function sameEnd(p, q) {
+    if (p.out == null && q.out == null) return true;
+    if (p.out != null && q.out != null && Math.abs(p.out - q.out) <= MOVE_EPS) return true;
+    var toEnd = function (x, y) {
+      return x.seconds != null && x.out != null && Math.abs(x.out - x.seconds) <= MOVE_EPS
+        && (y.out == null || y.out >= x.out - MOVE_EPS);
+    };
+    return toEnd(p, q) || toEnd(q, p);
+  }
+  function samePiece(p, q) {
+    if (p.key !== q.key || p.kind !== q.kind || p.url !== q.url || p.title !== q.title) return false;
+    if (p.mute !== q.mute || p.gain !== q.gain) return false;
+    if (Math.abs(p.in - q.in) > MOVE_EPS) return false;
+    return sameEnd(p, q);
+  }
+  function sameSound(p, q) {
+    if (p.key !== q.key || p.url !== q.url || p.name !== q.name) return false;
+    if (p.mute !== q.mute || p.gain !== q.gain || p.fadeIn !== q.fadeIn || p.fadeOut !== q.fadeOut) return false;
+    if (Boolean(p.anchor) !== Boolean(q.anchor)) return false;
+    if (p.anchor && (p.anchor.piece !== q.anchor.piece || Math.abs(p.anchor.offset - q.anchor.offset) > MOVE_EPS)) return false;
+    if (!p.anchor && Math.abs(p.at - q.at) > MOVE_EPS) return false;
+    if (Math.abs(p.in - q.in) > MOVE_EPS) return false;
+    return sameEnd(p, q);
+  }
+  function lanesDiffer(a, b) {
+    var x = readDoc(a), y = readDoc(b), i;
+    if (x.clips.length !== y.clips.length || x.sounds.length !== y.sounds.length) return true;
+    for (i = 0; i < x.clips.length; i++) if (!samePiece(x.clips[i], y.clips[i])) return true;
+    for (i = 0; i < x.sounds.length; i++) if (!sameSound(x.sounds[i], y.sounds[i])) return true;
+    return false;
+  }
+
   // ── LEGACY: the one `audio` track ────────────────────────────────────────
   function soundsFromAudio(audio) {
     if (!audio || !https(audio.url)) return [];
@@ -308,6 +371,7 @@
     soundStart: soundStart, normalize: normalize, moveSound: moveSound,
     anchorToShot: anchorToShot, splitSound: splitSound,
     soundsFromAudio: soundsFromAudio, audioMirror: audioMirror, readDoc: readDoc,
+    carrySeconds: carrySeconds, lanesDiffer: lanesDiffer,
     diffCut: diffCut, describeDiff: describeDiff, db2lin: db2lin,
   };
 }));

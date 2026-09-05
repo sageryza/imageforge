@@ -116,4 +116,19 @@ ok(/kid horrified earlier/.test(M.describeDiff(d)) && /shooting star added at 37
 eq(M.diffCut(before, before), [], 'same cut → no changes');
 eq(M.describeDiff([]), 'nothing changed', 'empty diff words');
 
+// ── lengths are facts, not edits ──────────────────────────────────────────
+{
+  const chat = { clips, sounds: [{ key: 'vo', url: U('vo.m4a'), name: 'voice', at: 0 }, ...sounds] };
+  const learned = { clips, sounds: [{ key: 'vo', url: U('vo.m4a'), name: 'voice', at: 0, seconds: 17.3 }, ...sounds] };
+  eq(M.readDoc(learned).sounds[0].out, 17.3, 'the page learning a length fills the open end (the shape the rule has to see through)');
+  eq(M.lanesDiffer(chat, learned), false, 'a learned length is not a move');
+  eq(M.lanesDiffer(chat, chat), false, 'a doc against itself');
+  eq(M.lanesDiffer(before, after), true, 'a real edit is a move');
+  eq(M.lanesDiffer(chat, { ...chat, sounds: chat.sounds.slice(1) }), true, 'a dropped sound is a move');
+  eq(M.lanesDiffer(chat, { ...chat, sounds: [{ ...chat.sounds[0], out: 9 }, ...sounds] }), true, 'a trim inside the file is a move');
+  const carried = M.carrySeconds(M.cleanSounds(chat.sounds), M.cleanSounds(learned.sounds), M.cleanSound);
+  eq(carried[0].seconds, 17.3, 'carrySeconds keeps a learned length a writer does not know');
+  eq(M.carrySeconds(M.cleanPieces([{ key: 's1', kind: 'image', url: U('s1.webp'), out: 3 }]), clips, M.cleanPiece)[0].seconds, null, 'a still never carries a length');
+}
+
 console.log(`test-cut-model: ${n} checks passed`);

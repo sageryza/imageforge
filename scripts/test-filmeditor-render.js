@@ -226,6 +226,67 @@ const ABSENT = -50;    // and one that is not reads well below it
   const r8 = await fe.renderCut({ clips: [red], sounds: [] }, { dir: dir8, download, cache: halfCache });
   ok(Math.abs(duration(r8.file) - 3) < 0.15 && r8.banked === 0, 'a miss after a partial read re-cuts cleanly');
 
+  // ── the proxy bake writes a POSTER beside the proxy ──────────────────
+  // The real bakeProxy against the fixtures, with the Firestore doc and the
+  // Storage upload stubbed: a light clip (skipped as a proxy), a wide clip
+  // (a real proxy), and a still. Every assertion is a MEASUREMENT of the file
+  // that came out — a poster field pointing at nothing is what a source
+  // assertion cannot see.
+  console.log('the proxy bake writes a poster beside the proxy:');
+  ff(['-f', 'lavfi', '-i', 'color=c=green:size=1280x720:rate=30:duration=2',
+    '-c:v', 'libx264', '-preset', 'veryfast', '-pix_fmt', 'yuv420p', '-an', path.join(fx, 'wide.mp4')]);
+  const pdocs = {};
+  const pdb = { collection() { return { doc(id) { return { async set(v) { pdocs[id] = { ...(pdocs[id] || {}), ...v }; } }; } }; } };
+  const uploads = {};
+  const upDir = path.join(root, 'uploads'); fs.mkdirSync(upDir);
+  const upload = async (file, storagePath, ct) => {
+    const dest = path.join(upDir, storagePath.replace(/\//g, '_'));
+    fs.copyFileSync(file, dest);
+    uploads[storagePath] = { dest, ct, bytes: fs.statSync(dest).size };
+    return U('up/' + storagePath);
+  };
+  const posterPathFor = (url) => `filmeditor/proxy/${fe.proxyId(url)}-poster.jpg`;
+  const imgSize = (file) => ffprobe(['-show_entries', 'stream=width,height', '-of', 'csv=p=0', file]);
+  const imgColour = (file) => {
+    const raw = execFileSync(FF, ['-loglevel', 'error', '-i', file, '-vf', 'crop=2:2:(iw/2):(ih/2),format=rgb24', '-f', 'rawvideo', '-']);
+    const r = raw[0], g = raw[1], b = raw[2]; const max = Math.max(r, g, b);
+    return max < 60 ? 'dark' : r === max ? 'red' : g === max ? 'green' : 'blue';
+  };
+  // the light clip: no proxy, but a poster all the same
+  const tP0 = Date.now();
+  await fe.bakeProxy(U('red.mp4'), { db: pdb, upload, download });
+  const tRed = Date.now() - tP0;
+  const redDoc = pdocs[fe.proxyId(U('red.mp4'))] || {};
+  ok(redDoc.status === 'skip', 'the light 320x240 clip streams as itself — no proxy (' + redDoc.status + ')');
+  const redP = uploads[posterPathFor(U('red.mp4'))];
+  ok(redP && redP.ct === 'image/jpeg' && redP.bytes > 500, 'and still gets a poster — a jpg with real bytes beside it');
+  ok(redDoc.poster === U('up/' + posterPathFor(U('red.mp4'))), 'the proxy doc carries the poster url');
+  ok(redP && imgSize(redP.dest) === '320,240', 'a small source keeps its own size, never upscaled (' + (redP && imgSize(redP.dest)) + ')');
+  ok(redP && imgColour(redP.dest) === 'red', 'the frame is the clip\'s own picture');
+  ok(tRed < 4000, `the whole download + probe + poster took ${tRed}ms — a poster is cheap`);
+  // the wide clip: a real proxy AND a poster capped at 480 wide
+  await fe.bakeProxy(U('wide.mp4'), { db: pdb, upload, download });
+  const wideDoc = pdocs[fe.proxyId(U('wide.mp4'))] || {};
+  ok(wideDoc.status === 'ready' && wideDoc.proxyUrl, 'the 1280x720 clip bakes a proxy');
+  const wideP = uploads[posterPathFor(U('wide.mp4'))];
+  ok(wideP && imgSize(wideP.dest) === '480,270', 'its poster is capped at 480 wide, aspect kept (' + (wideP && imgSize(wideP.dest)) + ')');
+  ok(wideDoc.poster === U('up/' + posterPathFor(U('wide.mp4'))) && imgColour(wideP.dest) === 'green', 'the ready doc carries it, and it is the right picture');
+  // a still: the picture itself, nothing extracted
+  await fe.bakeProxy(U('blue.png'), { db: pdb, upload, download });
+  const stillDoc = pdocs[fe.proxyId(U('blue.png'))] || {};
+  ok(stillDoc.still === true && stillDoc.poster === U('blue.png'), 'a still\'s poster is the picture itself');
+  ok(!uploads[posterPathFor(U('blue.png'))], 'and nothing is extracted for it');
+  // a poster that cannot be uploaded never fails the proxy
+  const noPosterUpload = async (file, storagePath, ct) => {
+    if (/-poster\.jpg$/.test(storagePath)) throw new Error('poster store down');
+    return upload(file, storagePath, ct);
+  };
+  const pdocs2 = {};
+  const pdb2 = { collection() { return { doc(id) { return { async set(v) { pdocs2[id] = { ...(pdocs2[id] || {}), ...v }; } }; } }; } };
+  await fe.bakeProxy(U('wide.mp4'), { db: pdb2, upload: noPosterUpload, download });
+  const wide2 = pdocs2[fe.proxyId(U('wide.mp4'))] || {};
+  ok(wide2.status === 'ready' && wide2.proxyUrl && !('poster' in wide2), 'a poster failure leaves the proxy ready and the field off — never an error, never a wrong url');
+
   server.close();
   fs.rmSync(root, { recursive: true, force: true });
   console.log('');
