@@ -13,7 +13,11 @@
 //   node scripts/filmcut.js get <id>                 → the doc, laid out (EDL + sounds + renders)
 //   node scripts/filmcut.js set <id> cut.json        → save {clips, sounds} (reads base first; a
 //                                                      409 prints HER current doc — re-read, re-apply)
-//   node scripts/filmcut.js render <id> [--no-wait]  → bake; waits and prints the newest render url
+//   node scripts/filmcut.js render <id>              → bake IN THIS CONTAINER (the default when
+//                                                      FIREBASE_SERVICE_ACCOUNT is set) and publish
+//                                                      onto the doc; prints the newest render url
+//   node scripts/filmcut.js render <id> --box [--no-wait]
+//                                                    → bake on the live box instead (her button)
 //   node scripts/filmcut.js diff <id> [--from <at>]  → what moved since the newest render, in words
 //   node scripts/filmcut.js pin <id> --chat <slug> --session <sid> --title "v8 — …"
 //                                                    → pins the newest render WITH the cut id (the
@@ -23,8 +27,18 @@
 //   { "clips":[{key,kind?,url,title,seconds?,in,out}…],
 //     "sounds":[{key,url,name,at?,in?,out?,gain?,fadeIn?,fadeOut?,mute?,anchor?:{piece,offset}}…] }
 // Every write carries by:'chat'. FORGE_BASE overrides the server; STUDIO_TOKEN
-// rides as x-studio-token when set. Costs nothing — renders are ffmpeg on our
-// own box.
+// rides as x-studio-token when set. Costs nothing — renders are ffmpeg, here or
+// on the box.
+//
+// A CHAT RENDERS HERE, NOT ON THE BOX (2026-09-05, Sophie: "why didn't u just
+// make it in ur container to begin with? … if not, write that in notes as the
+// default"). Measured that night: the 512MB box OOM-killed a 16-piece render
+// twice (Render's own `oomKilled` events) while this container rendered the
+// same cut in 61s; the box's 0.5 vCPU took 102s on a smaller one, and a merge
+// by any chat restarts it mid-render. The render is the SAME code either way —
+// filmeditor.js's renderCut + publishRender, the same segment cache in Storage
+// (a piece banked here is a hit on the box, and the other way round), the same
+// record on the same doc. `--box` is for a deliberate reason only.
 const fs = require('fs');
 const M = require('../cut-model');
 
@@ -68,6 +82,46 @@ function layout(doc) {
   lines.push(`RENDERS (${rs.length})`);
   rs.slice(0, 5).forEach((r, i) => lines.push(`  ${i === 0 ? 'newest' : '      '}  ${new Date(r.at).toISOString()}  by ${r.by || '?'}  ${secs(r.seconds || 0)}  ${r.url}`));
   return lines.join('\n');
+}
+
+// The container render: filmeditor.js's own renderCut + publishRender against
+// the live doc, with the Deck Factory service account. Same segment cache,
+// same record shape, same shot map — only the machine differs.
+async function renderHere(id) {
+  const os = require('os');
+  const path = require('path');
+  const admin = require('firebase-admin');
+  const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  if (!admin.apps.length) {
+    admin.initializeApp({ credential: admin.credential.cert(sa), storageBucket: `${sa.project_id}.firebasestorage.app` });
+  }
+  const fe = require('../filmeditor');
+  const doc = await fe.loadDoc(id);
+  if (!doc) die('no such cut');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'filmcut-'));
+  const t0 = Date.now();
+  try {
+    const r = await fe.renderCut(doc, {
+      dir, progress: async (d, t, l) => process.stderr.write(`  ${l} ${d}/${t}\n`),
+    });
+    const render = await fe.publishRender(id, doc, r, 'chat', 'container');
+    // A job the box left behind — killed mid-render by a deploy or an OOM —
+    // sits on "running" in her editor forever. Clear it ONLY when the box
+    // itself says the process that started it is gone (jobIsDead against the
+    // box's boot time); a render she really has going is left alone.
+    if (doc.job && doc.job.status === 'running') {
+      try {
+        const { json } = await call(BASE + '/api/promptlab/inflight');
+        const bootAt = Date.now() - Number(json.uptime || 0) * 1000;
+        if (json.uptime && fe.jobIsDead(doc.job, Date.now(), bootAt)) {
+          await fe.patchDoc(id, { job: { ...doc.job, status: 'done', label: 'done' } });
+        }
+      } catch { /* a job we cannot judge is left as it is */ }
+    }
+    console.log(`${render.url}\n${secs(render.seconds || 0)} · ${Math.round((Date.now() - t0) / 1000)}s · ${r.banked} of ${r.clips.length} pieces banked · rendered in this container`);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 async function loadDoc(id) {
@@ -119,6 +173,8 @@ async function loadDoc(id) {
     return;
   }
   if (cmd === 'render') {
+    if (!has('box') && process.env.FIREBASE_SERVICE_ACCOUNT) return renderHere(id);
+    if (!has('box')) console.error('no FIREBASE_SERVICE_ACCOUNT in this container — rendering on the box');
     const { status, json } = await call(`/${id}/render`, { method: 'POST', body: { by: 'chat' } });
     if (status !== 200) die(`render → ${status} ${json.error || ''}`);
     if (has('no-wait')) { console.log('rendering'); return; }

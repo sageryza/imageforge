@@ -887,8 +887,35 @@ async function renderCut(doc, opts) {
   };
 }
 
-// The render JOB: read the doc, render it, publish, file the record with its
-// snapshot, then the shot map (best-effort).
+// Publish a finished render onto its doc — the ONE writer of a render record
+// (the Storage upload, the record with its snapshot, the shot map), shared by
+// the box's job below and by a chat rendering IN ITS OWN CONTAINER
+// (`scripts/filmcut.js render`, the default for a chat since 2026-09-05 —
+// the 512MB box OOM-killed a 16-piece render twice in one night while a
+// container did the same cut in 61s). `where` names the machine on the record.
+async function publishRender(id, doc, r, by, where) {
+  const n = (doc.renders || []).length + 1;
+  const url = await editor.uploadPublic(r.file, `${STORAGE_FOLDER}/${id}/film-${n}.mp4`, 'video/mp4');
+  const render = {
+    url, at: Date.now(), by: byOf(by), seconds: r.seconds,
+    pieces: r.clips.length, sounds: r.mixed, audio: r.mixed > 0,
+    width: r.width, height: r.height,
+    cut: { clips: r.clips, sounds: r.sounds },
+  };
+  if (where) render.where = String(where);
+  await txField(id, 'renders', (cur) => [render].concat(Array.isArray(cur) ? cur : []).slice(0, MAX_RENDERS));
+  if (doc.chat) {
+    try {
+      await filmshots.record({
+        chat: doc.chat, url, shots: shotsFromCut(r.clips), seconds: r.seconds, source: 'filmeditor',
+      });
+    } catch (e) { console.warn('filmeditor: shot map not written —', e.message); }
+  }
+  return render;
+}
+
+// The render JOB: read the doc, render it, publish. This is HER tap; a chat
+// renders in its own container and publishes through the same publishRender.
 async function runRender(id, progress, by) {
   if (!FFMPEG || !FFPROBE) throw new Error('ffmpeg/ffprobe unavailable');
   const doc = await loadDoc(id);
@@ -898,23 +925,7 @@ async function runRender(id, progress, by) {
     const total = 1;
     const r = await renderCut(doc, { dir, progress });
     await progress(total, total, 'publishing');
-    const n = (doc.renders || []).length + 1;
-    const url = await editor.uploadPublic(r.file, `${STORAGE_FOLDER}/${id}/film-${n}.mp4`, 'video/mp4');
-    const render = {
-      url, at: Date.now(), by: byOf(by), seconds: r.seconds,
-      pieces: r.clips.length, sounds: r.mixed, audio: r.mixed > 0,
-      width: r.width, height: r.height,
-      cut: { clips: r.clips, sounds: r.sounds },
-    };
-    await txField(id, 'renders', (cur) => [render].concat(Array.isArray(cur) ? cur : []).slice(0, MAX_RENDERS));
-    if (doc.chat) {
-      try {
-        await filmshots.record({
-          chat: doc.chat, url, shots: shotsFromCut(r.clips), seconds: r.seconds, source: 'filmeditor',
-        });
-      } catch (e) { console.warn('filmeditor: shot map not written —', e.message); }
-    }
-    return render;
+    return await publishRender(id, doc, r, by);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
@@ -1160,7 +1171,7 @@ module.exports = {
   // the mix
   mixGraph, activeSounds, soundInputArgs, segmentAudioFilter, soundLength,
   // the render, the diff, the shot map
-  renderCut, diffSince, shotsFromCut, downloadSource, probeFile, segKey, SEG_VERSION,
+  renderCut, publishRender, loadDoc, patchDoc, diffSince, shotsFromCut, downloadSource, probeFile, segKey, SEG_VERSION,
   proxyId, proxyNeeded, proxyArgs, stillProxyArgs,
   audioProxyId, audioProxyNeeded, audioProxyArgs,
   trimmedCut, MAX_PIECES, MAX_RENDERS, MIN_PIECE, PROXY_EDGE, PAGE_BUILD,

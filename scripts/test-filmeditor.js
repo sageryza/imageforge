@@ -411,6 +411,24 @@ console.log('the page contracts (static):');
     'the progress line lives OUTSIDE the editor panel, visible on first upload');
 }
 
+console.log('one writer of a render record, and a chat renders in its own container:');
+{
+  const src = fs.readFileSync(path.join(__dirname, '..', 'filmeditor.js'), 'utf8');
+  const cut = fs.readFileSync(path.join(__dirname, 'filmcut.js'), 'utf8');
+  ok(typeof fe.publishRender === 'function' && typeof fe.loadDoc === 'function' && typeof fe.patchDoc === 'function',
+    'publishRender / loadDoc / patchDoc are exported for the container render');
+  ok((src.match(/film-\$\{n\}\.mp4/g) || []).length === 1,
+    'the film-<n> upload is written in ONE place (publishRender) — runRender goes through it');
+  ok(/return await publishRender\(id, doc, r, by\)/.test(src),
+    'the box job publishes through publishRender');
+  ok(/if \(!has\('box'\) && process\.env\.FIREBASE_SERVICE_ACCOUNT\) return renderHere\(id\)/.test(cut),
+    'filmcut.js render runs in the container by default; --box is the deliberate exception');
+  ok(/fe\.publishRender\(id, doc, r, 'chat', 'container'\)/.test(cut),
+    'and publishes through the same publishRender, marked by:chat · where:container');
+  ok(/fe\.jobIsDead\(doc\.job, Date\.now\(\), bootAt\)/.test(cut),
+    'a ghost box job is cleared only when jobIsDead says the process that started it is gone');
+}
+
 console.log('');
 console.log(pass + ' passed, ' + failCount + ' failed');
 process.exit(failCount ? 1 : 0);

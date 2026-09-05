@@ -39,8 +39,13 @@ off the doc and do your half. The full design: `docs/film-editor-parallel-editin
 2. Write `cut.json` (both lanes) and `set <id> cut.json`. It reads `base`
    first; a **409 means she edited since you read** — it prints her cut. Re-read,
    re-apply YOUR change on top of hers, save again. Never overwrite her edit.
-3. `render <id>` — waits, prints the url. Renders never overwrite; every one
-   carries `by:'chat'` and a snapshot of the cut it came from.
+3. `render <id>` — renders IN YOUR CONTAINER (the default whenever
+   `FIREBASE_SERVICE_ACCOUNT` is set) through filmeditor.js's own renderCut
+   and publishes onto the doc; prints the url. Renders never overwrite; every
+   one carries `by:'chat'` and a snapshot of the cut it came from. `--box`
+   renders on the live box instead — a deliberate exception, never the
+   default: the 512MB box OOM-killed a 16-piece render twice in one night
+   (2026-09-05) while a container did the same cut in 61s.
 4. `pin <id> --chat <slug> --session <sid> --title "The Ant Farm — v8, … (1:48)"`
    — pins the newest render WITH the cut id, which is what puts the editor
    door on the pinned row, and records the deliverable (checklist 3a + 3c).
@@ -60,9 +65,11 @@ off the doc and do your half. The full design: `docs/film-editor-parallel-editin
   are not in the vocabulary yet; if a film truly needs one, say so in the
   reply — that part cannot be edited in unison — rather than rendering it
   privately and pinning the result as if it were the doc's.
-- **Draw and bank in your own container, cut through the doc.** Stills, MJ
-  clips and beds are uploaded to Storage as usual (the Dump or the audio
-  library); the doc references them. Renders run on the box — free.
+- **Draw, bank AND render in your own container; cut through the doc.**
+  Stills, MJ clips and beds are uploaded to Storage as usual (the Dump or the
+  audio library); the doc references them. "Through the doc" means the doc is
+  the film and the render lands on it — not that the ffmpeg runs on the box.
+  The box's Render button is hers; a chat's render is free either way.
 - **An existing film** (made before this) is migrated once: read its shot map
   (`GET /api/filmshots?url=`) and its banked beds, measure the placements
   (cross-correlate each bed against the mix — `scripts/migrate-ant-cut.js`

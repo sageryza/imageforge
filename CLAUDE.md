@@ -7019,6 +7019,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   ritual: the `film-cut` skill. Tests: `node scripts/test-cut-model.js`,
   `node scripts/test-filmeditor-render.js` (a real render of stills + an
   anchored sound following a reorder).
+  **A CHAT RENDERS A CUT IN ITS OWN CONTAINER — THE DEFAULT, NOT THE EXCEPTION
+  (2026-09-05, Sophie: "why didn't u just make it in ur container to begin
+  with? is there some disadvantage? if not, write that in notes as the
+  default").** There is none. Measured that night on the desk-sweep
+  commercial: the 512MB box OOM-killed a 16-piece render TWICE (Render's own
+  `oomKilled` events, 02:54 and 03:01 Pacific-night), the editor showed the
+  dead job as "running" for 20 minutes, and this container then rendered the
+  identical cut in **61s** against the box's 102s for a smaller one — and a
+  merge by any chat restarts the box mid-render, where a container is immune.
+  `node scripts/filmcut.js render <id>` renders HERE whenever
+  `FIREBASE_SERVICE_ACCOUNT` is in the environment: filmeditor.js's own
+  `renderCut` + `publishRender` (the ONE writer of a render record, which the
+  box's job also goes through), the same segment cache in Storage (a piece
+  banked here is a hit on the box and the other way round), the same record
+  on the same doc, the same shot map. `--box` is for a deliberate reason
+  only, and the box's Render button stays HERS. Do not read "render THROUGH
+  the doc" as "render ON the box" — through the doc means the doc is the
+  film and the render lands on it, wherever the ffmpeg ran.
   Tests: `node scripts/test-filmeditor.js` (pure + the static page
   contracts, no network) and `node scripts/test-filmeditor-page.js`
   (headless Chromium PLAYS real generated videos through the real page —
