@@ -429,6 +429,20 @@ console.log('one writer of a render record, and a chat renders in its own contai
     'a ghost box job is cleared only when jobIsDead says the process that started it is gone');
 }
 
+console.log('the next film number never reuses one (the render list is capped):');
+{
+  const U = (n) => ({ url: `https://storage.googleapis.com/x/filmeditor/abc/film-${n}.mp4` });
+  ok(fe.nextRenderIndex([]) === 1 && fe.nextRenderIndex(null) === 1, 'an empty doc starts at film-1');
+  ok(fe.nextRenderIndex([U(3), U(2), U(1)]) === 4, 'one past the highest on the doc');
+  const capped = Array.from({ length: 12 }, (_, i) => U(13 - i));
+  ok(fe.nextRenderIndex(capped) === 14, 'twelve kept, highest 13 → the next is 14, never 13 again');
+  ok(fe.nextRenderIndex([U(13), U(13), U(12)]) === 14, 'two records sharing a number (the overwrite that happened) still step past it');
+  ok(fe.nextRenderIndex([{ url: 'https://elsewhere/x.mp4' }, {}]) === 3, 'records with no film number fall back to the count');
+  const src = fs.readFileSync(path.join(__dirname, '..', 'filmeditor.js'), 'utf8');
+  ok(/const n = nextRenderIndex\(doc\.renders\)/.test(src) && !/renders \|\| \[\]\)\.length \+ 1/.test(src),
+    'publishRender numbers the film through nextRenderIndex');
+}
+
 console.log('');
 console.log(pass + ' passed, ' + failCount + ' failed');
 process.exit(failCount ? 1 : 0);
