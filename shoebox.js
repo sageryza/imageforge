@@ -341,6 +341,8 @@ router.post('/memory', async (req, res) => {
     await ref.set(patch, { merge: true });
     cache = null;   // the next feed read carries the edit
     res.json({ ok: true, id });
+  } catch (e) { fail(res, e); }
+});
 
 // Put a memory AWAY — hidden from the Shoebox, never deleted (2026-09-04,
 // Sophie: "some pics were accidental like the pine forest"). One field,
@@ -362,8 +364,6 @@ router.post('/putaway', async (req, res) => {
     await ref.set({ shoeboxHidden: hidden }, { merge: true });
     cache = null;
     res.json({ ok: true, id, hidden });
-  } catch (e) { fail(res, e); }
-});
   } catch (e) { fail(res, e); }
 });
 
