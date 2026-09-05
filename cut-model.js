@@ -238,6 +238,69 @@
     return [a, b];
   }
 
+  // ── LENGTHS ARE FACTS, NOT EDITS (2026-09-05) ────────────────────────────
+  // A chat's cut.json carried every sound with `seconds:null`; on open the
+  // page learned the lengths from loadedmetadata and saved them as HER edit,
+  // which bumped updatedAt — so the chat's next save 409'd and its "same
+  // lanes?" check read the filled seconds as her change and stopped with
+  // "STALE — she changed the cut" when she had touched nothing. A length
+  // (and a poster) is a fact about the FILE; only in/out/order/level/anchor
+  // are edits. Two pure rules, shared by the server's save and filmcut.js:
+  //
+  // carrySeconds: a writer that does not know a source's length must not
+  // erase one the doc already learned (matched by key AND url — a
+  // re-pointed piece is a different file); the item is re-cleaned so its
+  // open end fills in exactly as the page's own save would have.
+  function carrySeconds(next, cur, clean) {
+    var known = {};
+    (cur || []).forEach(function (c) { if (c && c.seconds != null) known[c.key + '\n' + c.url] = c.seconds; });
+    return (next || []).map(function (n) {
+      if (!n || n.seconds != null || n.kind === 'image') return n;
+      var s = known[n.key + '\n' + n.url];
+      if (s == null) return n;
+      var m = {}; for (var k in n) m[k] = n[k];
+      m.seconds = s;
+      return clean(m);
+    });
+  }
+  // lanesDiffer: did anything MOVE between two docs, ignoring `seconds` and
+  // `poster`? An `out` that sits on its own known end against an open end
+  // (or a request at or past it) is a length that was learned, not a trim —
+  // cleanSound writes out = seconds the moment seconds is known, and
+  // cleanPiece clamps a request past the end. An anchored sound is judged by
+  // its anchor, never by the `at` derived from it.
+  function sameEnd(p, q) {
+    if (p.out == null && q.out == null) return true;
+    if (p.out != null && q.out != null && Math.abs(p.out - q.out) <= MOVE_EPS) return true;
+    var toEnd = function (x, y) {
+      return x.seconds != null && x.out != null && Math.abs(x.out - x.seconds) <= MOVE_EPS
+        && (y.out == null || y.out >= x.out - MOVE_EPS);
+    };
+    return toEnd(p, q) || toEnd(q, p);
+  }
+  function samePiece(p, q) {
+    if (p.key !== q.key || p.kind !== q.kind || p.url !== q.url || p.title !== q.title) return false;
+    if (p.mute !== q.mute || p.gain !== q.gain) return false;
+    if (Math.abs(p.in - q.in) > MOVE_EPS) return false;
+    return sameEnd(p, q);
+  }
+  function sameSound(p, q) {
+    if (p.key !== q.key || p.url !== q.url || p.name !== q.name) return false;
+    if (p.mute !== q.mute || p.gain !== q.gain || p.fadeIn !== q.fadeIn || p.fadeOut !== q.fadeOut) return false;
+    if (Boolean(p.anchor) !== Boolean(q.anchor)) return false;
+    if (p.anchor && (p.anchor.piece !== q.anchor.piece || Math.abs(p.anchor.offset - q.anchor.offset) > MOVE_EPS)) return false;
+    if (!p.anchor && Math.abs(p.at - q.at) > MOVE_EPS) return false;
+    if (Math.abs(p.in - q.in) > MOVE_EPS) return false;
+    return sameEnd(p, q);
+  }
+  function lanesDiffer(a, b) {
+    var x = readDoc(a), y = readDoc(b), i;
+    if (x.clips.length !== y.clips.length || x.sounds.length !== y.sounds.length) return true;
+    for (i = 0; i < x.clips.length; i++) if (!samePiece(x.clips[i], y.clips[i])) return true;
+    for (i = 0; i < x.sounds.length; i++) if (!sameSound(x.sounds[i], y.sounds[i])) return true;
+    return false;
+  }
+
   // ── LEGACY: the one `audio` track ────────────────────────────────────────
   function soundsFromAudio(audio) {
     if (!audio || !https(audio.url)) return [];
@@ -298,6 +361,85 @@
     return (changes || []).length ? changes.map(function (c) { return c.text; }).join('\n') : 'nothing changed';
   }
 
+  // ── RE-APPLY: her edit onto a fresher doc ─────────────────────────────────
+  // A stale save (the chat wrote the doc while she was editing) used to
+  // RELOAD the chat's doc over hers, and her tap was gone (2026-09-05: the
+  // matrix chat saved v12, v13, v14 inside fifteen minutes, and every edit
+  // she made in that window vanished). The page keeps `before` — the lanes
+  // as of the last successful load or save — so her CHANGE is before → after,
+  // per key, and it can be re-applied onto `fresh` (the chat's doc):
+  //   - a key in both `after` and `fresh`: her field values are copied where
+  //     they differ from `before` (in/out/gain/mute on a piece; those plus
+  //     fadeIn/fadeOut/anchor/at on a sound)
+  //   - a key she REMOVED (in before, not in after) is dropped from fresh
+  //   - a key she ADDED (in after, not in before) is inserted after its
+  //     nearest predecessor in `after` that survives in fresh — a split's
+  //     second half lands beside its first — else at the start when it led
+  //     her list, else at the end
+  //   - when her ORDER of the common keys changed, that relative order is
+  //     applied to the keys present in both; the chat's own keys keep their
+  //     slots
+  // A sound's `seconds` is a learned fact, never an edit: hers is copied onto
+  // a fresh sound that has none, and an `out` that merely closed onto the
+  // learned length is not a trim. The result is normalized, so an anchored
+  // sound lands on its shot wherever the chat put it. Pure; the page calls it
+  // and the tests drive it.
+  var PIECE_FIELDS = ['in', 'out', 'gain', 'mute'];
+  var SOUND_FIELDS = ['in', 'gain', 'mute', 'fadeIn', 'fadeOut', 'anchor', 'at'];
+  function same(a, b) { return JSON.stringify(a === undefined ? null : a) === JSON.stringify(b === undefined ? null : b); }
+  function copy(o) { return JSON.parse(JSON.stringify(o)); }
+  function applyLane(fresh, before, after, fields, isSound) {
+    var bk = byKey(before), ak = byKey(after);
+    var out = (fresh || []).map(copy);
+    var i, k, p;
+    // her removals
+    out = out.filter(function (x) { return !(bk[x.key] && !ak[x.key]); });
+    // her field changes on keys the fresh doc still holds
+    for (i = 0; i < out.length; i++) {
+      p = out[i]; var b = bk[p.key], a = ak[p.key];
+      if (!b || !a) continue;
+      fields.forEach(function (f) { if (!same(a[f], b[f])) p[f] = copy(a[f]); });
+      if (isSound) {
+        if (a.seconds != null && p.seconds == null) p.seconds = a.seconds;
+        var learned = b.out == null && a.out != null && a.seconds != null && Math.abs(a.out - a.seconds) < 1e-6;
+        if (!same(a.out, b.out) && !learned) p.out = a.out;
+      }
+    }
+    // her additions, beside their predecessor
+    var have = byKey(out);
+    for (i = 0; i < after.length; i++) {
+      k = after[i].key;
+      if (bk[k] || have[k]) continue;
+      var at = -1;
+      for (var j = i - 1; j >= 0; j--) {
+        var pk = after[j].key;
+        for (var m = 0; m < out.length; m++) if (out[m].key === pk) { at = m; break; }
+        if (at >= 0) break;
+      }
+      var idx = at >= 0 ? at + 1 : (i === 0 ? 0 : out.length);
+      out.splice(idx, 0, copy(after[i]));
+      have[k] = true;
+    }
+    // her reorder of the common keys
+    var bOrder = before.filter(function (x) { return ak[x.key]; }).map(function (x) { return x.key; });
+    var aOrder = after.filter(function (x) { return bk[x.key]; }).map(function (x) { return x.key; });
+    if (bOrder.join('\n') !== aOrder.join('\n')) {
+      var slots = [];
+      for (i = 0; i < out.length; i++) if (bk[out[i].key] && ak[out[i].key]) slots.push(i);
+      var items = slots.map(function (n) { return out[n]; });
+      var rank = {}; aOrder.forEach(function (key, n) { rank[key] = n; });
+      items.sort(function (x, y) { return rank[x.key] - rank[y.key]; });
+      slots.forEach(function (n, s) { out[n] = items[s]; });
+    }
+    return out;
+  }
+  function applyEdits(fresh, before, after) {
+    var f = readDoc(fresh), b = readDoc(before), a = readDoc(after);
+    var clips = applyLane(f.clips, b.clips, a.clips, PIECE_FIELDS, false);
+    var sounds = applyLane(f.sounds, b.sounds, a.sounds, SOUND_FIELDS, true);
+    return readDoc({ clips: clips, sounds: sounds });
+  }
+
   return {
     MAX_PIECES: MAX_PIECES, MAX_SOUNDS: MAX_SOUNDS, MIN_PIECE: MIN_PIECE,
     STILL_DEFAULT: STILL_DEFAULT, STILL_MIN: STILL_MIN, STILL_MAX: STILL_MAX,
@@ -308,6 +450,7 @@
     soundStart: soundStart, normalize: normalize, moveSound: moveSound,
     anchorToShot: anchorToShot, splitSound: splitSound,
     soundsFromAudio: soundsFromAudio, audioMirror: audioMirror, readDoc: readDoc,
-    diffCut: diffCut, describeDiff: describeDiff, db2lin: db2lin,
+    carrySeconds: carrySeconds, lanesDiffer: lanesDiffer,
+    diffCut: diffCut, describeDiff: describeDiff, applyEdits: applyEdits, db2lin: db2lin,
   };
 }));

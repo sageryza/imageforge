@@ -7057,6 +7057,28 @@ before working on that module. Nothing was deleted — the moved text is verbati
   ritual: the `film-cut` skill. Tests: `node scripts/test-cut-model.js`,
   `node scripts/test-filmeditor-render.js` (a real render of stills + an
   anchored sound following a reorder).
+  **A CHAT'S SAVE STARTS THE PROXIES, CARRIES A POSTER, AND KNOWS ITS
+  LENGTHS (2026-09-05, measured on her two live cuts).** Three holes on a
+  cut a chat wrote through `filmcut.js set`: no proxy bake ever started
+  until SHE opened the cut (6 of 14 matrix pieces and the ant's new voice
+  track had no proxy doc at all — she played raw sources while the bakes ran
+  one at a time), every tile was blank (`poster:null` on every chat-written
+  piece), and every sound was `seconds:null`, so the page learned the
+  lengths on open and saved them as HER edit — seventeen `updatedAt` bumps,
+  the chat's next set 409'd, and its "same lanes?" check read the filled
+  seconds as her change and stopped with "STALE" when she had touched
+  nothing. Now: `saveCut` warms `proxyStates` for every source url a save
+  INTRODUCES (fire-and-forget, never awaited, `newSourceUrls`); `bakeProxy`
+  pulls a poster frame beside the proxy (15% in, ≤480 wide, jpg, ~36ms —
+  answered as `poster` on `/proxies`, the picture itself for a still);
+  `filmcut.js set` fills `seconds` by probing (`probeUrl`) and passes a
+  Dump `poster` through. **LENGTHS ARE FACTS, NOT EDITS** — `CutModel.
+  lanesDiffer` ignores `seconds`/`poster` and both sides use it: a stale
+  save that only learned lengths is accepted and leaves `lastEditBy` alone,
+  `carrySeconds` keeps a learned length a writer does not know, and the
+  chat's 409 check retries rather than reporting her edit. Pinned by
+  `node scripts/test-filmeditor.js` (a fake store drives the real `saveCut`)
+  and the poster case in `test-filmeditor-render.js` (the jpg measured).
   **A CHAT RENDERS A CUT IN ITS OWN CONTAINER — THE DEFAULT, NOT THE EXCEPTION
   (2026-09-05, Sophie: "why didn't u just make it in ur container to begin
   with? is there some disadvantage? if not, write that in notes as the

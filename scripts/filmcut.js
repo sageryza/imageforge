@@ -24,8 +24,12 @@
 //                                                      editor door) — the checklist's 3a + 3c in one
 //
 // cut.json is the two lanes exactly as cut-model.js reads them:
-//   { "clips":[{key,kind?,url,title,seconds?,in,out}…],
+//   { "clips":[{key,kind?,url,title,poster?,seconds?,in,out}…],
 //     "sounds":[{key,url,name,at?,in?,out?,gain?,fadeIn?,fadeOut?,mute?,anchor?:{piece,offset}}…] }
+// `seconds` may be left off — `set` probes every unknown source with ffprobe
+// and fills it, so the cut arrives knowing its lengths instead of learning
+// them on her phone. `poster` is a clip's tile picture (a Dump item's
+// `posterUrl`); the server bakes one for any source without it.
 // Every write carries by:'chat'. FORGE_BASE overrides the server; STUDIO_TOKEN
 // rides as x-studio-token when set. Costs nothing — renders are ffmpeg, here or
 // on the box.
@@ -130,7 +134,36 @@ async function loadDoc(id) {
   return json;
 }
 
-(async () => {
+// Fill `seconds` on every video clip and sound that has none, by probing
+// the source (filmeditor.js's probeUrl — ffprobe at the url first, a tmp
+// download second). One probe per unique url; a probe that fails leaves
+// the item exactly as it was. Re-cleaned so an open end fills in the way
+// the server would fill it. Exported for the test (require, not a run).
+async function fillSeconds(items, clean, probe) {
+  const fe = require('../filmeditor');
+  probe = probe || fe.probeUrl;
+  const byUrl = new Map();
+  const out = [];
+  let filled = 0, missed = 0;
+  for (const it of items) {
+    if (!it || it.seconds != null || it.kind === 'image') { out.push(it); continue; }
+    if (!byUrl.has(it.url)) {
+      byUrl.set(it.url, (async () => {
+        try { const p = await probe(it.url); return p && p.seconds > 0 ? Math.round(p.seconds * 1000) / 1000 : null; }
+        catch { return null; }
+      })());
+    }
+    const secs = await byUrl.get(it.url);
+    if (secs == null) { missed++; out.push(it); continue; }
+    filled++;
+    out.push(clean({ ...it, seconds: secs }));
+  }
+  if (filled || missed) console.error(`  lengths: ${filled} probed${missed ? `, ${missed} unreadable (left unknown)` : ''}`);
+  return out;
+}
+module.exports = { fillSeconds };
+
+if (require.main === module) (async () => {
   if (cmd === 'create') {
     const body = { title: flag('title') || '', chat: flag('chat') || process.env.FORGE_CHAT || '', session: flag('session') || (process.env.CLAUDE_CODE_REMOTE_SESSION_ID || '').replace(/^cse_/, '') };
     if (!body.chat) die('--chat <slug> required (the chat that owns this cut)');
@@ -148,15 +181,28 @@ async function loadDoc(id) {
     const cut = JSON.parse(fs.readFileSync(file, 'utf8'));
     const doc = await loadDoc(id);
     const body = { by: 'chat', base: doc.updatedAt };
-    if (Array.isArray(cut.clips)) body.clips = M.cleanPieces(cut.clips);
-    if (Array.isArray(cut.sounds)) body.sounds = M.cleanSounds(cut.sounds);
+    // LENGTHS ARE FILLED HERE, NOT LEARNED ON HER PHONE (2026-09-05). A
+    // cut.json rarely knows a source's seconds, and a sound saved with none
+    // made the page learn it on open and save it as HER edit — seventeen
+    // saves on the ant cut, every one bumping updatedAt, so the chat's next
+    // set 409'd and read those seconds as her change. ffprobe each unknown
+    // source once (`probeSeconds` — best-effort, a failure leaves null
+    // exactly as before); the doc then arrives knowing its lengths. A
+    // still is never probed (its `out` IS its hold). `poster` on a clip is
+    // passed through as cleanPiece keeps it — a Dump item's `posterUrl`
+    // goes in cut.json as `poster` and lands on her timeline tile.
+    if (Array.isArray(cut.clips)) body.clips = await fillSeconds(M.cleanPieces(cut.clips), M.cleanPiece);
+    if (Array.isArray(cut.sounds)) body.sounds = await fillSeconds(M.cleanSounds(cut.sounds), M.cleanSound);
     let { status, json } = await call(`/${id}/pieces`, { method: 'POST', body });
     if (status === 409) {
       // A 409 whose lanes are the ones we read is a timestamp that moved under
-      // us (a render finishing, a mirror write) — not her edit. Re-read the base
-      // and save once more. Lanes that differ ARE her edit: print them, stop.
+      // us (a render finishing, a mirror write, the page learning a sound's
+      // length) — not her edit. Re-read the base and save once more. Lanes
+      // that MOVED are her edit: print them, stop. `lanesDiffer` ignores
+      // seconds and posters (facts about the file, never edits) — the same
+      // rule the server's save applies.
       const hers = json.doc || {};
-      const same = JSON.stringify(M.readDoc(hers)) === JSON.stringify(M.readDoc(doc));
+      const same = !M.lanesDiffer(hers, doc);
       if (same) {
         body.base = hers.updatedAt || (await loadDoc(id)).updatedAt;
         ({ status, json } = await call(`/${id}/pieces`, { method: 'POST', body }));

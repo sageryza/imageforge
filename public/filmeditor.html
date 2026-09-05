@@ -15,7 +15,9 @@
      fades, mute and "ride" (anchor to the shot under it). The shape of a cut
      is /cut-model.js, shared with the server so the two cannot drift, and
      the chat edits the same doc: a save carries `base`, a stale one is
-     refused with the current doc and the page reloads from it.
+     refused with the current doc, and the page RE-APPLIES her edit onto
+     that doc and saves again (CutModel.applyEdits) — it reloads over her
+     only when the second save is refused too (2026-09-05).
      TWO LEVELS, one page: the shelf of cuts, and one open (the assembly
      pattern; window.__navBack walks open → shelf).
      Fixes carried in from the gaps file (docs/film-editor-design/README.md):
@@ -118,18 +120,37 @@ body.tool{ background:var(--bg); color:var(--ink); overflow:hidden; }
 #translbl span:nth-child(3){ width:24px; }
 
 /* the timeline — TWO LANES in ONE scroller, so the sound bars stay under the
-   shots they sit beneath when a long cut scrolls sideways. Proportional
-   widths, REAL poster frames, and it SCROLLS instead of running off the screen. */
+   shots they sit beneath when a long cut scrolls sideways. A TRUE TIME AXIS
+   (2026-09-05, measured on her two live cuts: every tile drew at its 34px
+   min-width whatever its length, because flex-grow only shares FREE space
+   and 14 tiles of 34px already overfilled the strip — so a 4.2s sound drew
+   31px in one place and 53px in another): every tile is dur x PPS wide,
+   PPS = max(PPS_MIN, the visible width over the whole cut), so a short cut
+   fills the screen and a long one scrolls. The 24px floor is a TAP TARGET
+   only — the lane measures the tiles' real boxes (laneMeasure), so a sound
+   still lands on whatever the tile really is. The strip FOLLOWS the playhead
+   (followPlayhead) and never fights her finger on it. REAL poster frames,
+   the film glyph until one arrives. */
 #tlwrap{ position:relative; overflow-x:auto; -webkit-overflow-scrolling:touch;
-  padding:8px 14px 0; flex:0 0 auto; }
-#strip{ display:flex; gap:4px; min-width:100%; }
-.seg{ position:relative; flex:1 1 0; min-width:34px; height:50px; border-radius:8px;
+  padding:8px 14px 0; flex:0 0 auto; scrollbar-width:none; }
+#tlwrap::-webkit-scrollbar{ display:none; }   /* a strip she drags; no bar under the tiles */
+#strip{ display:flex; gap:4px; min-width:100%; width:max-content; }
+.seg{ position:relative; flex:0 0 auto; min-width:24px; height:50px; border-radius:8px;
   overflow:hidden; border:1px solid rgba(38,34,28,.08); background:var(--surface2);
-  background-size:cover; background-position:center; padding:0; cursor:pointer; }
+  background-size:cover; background-position:center; padding:0; cursor:pointer;
+  color:#b5ab96; }
 .seg.sel{ outline:2px solid var(--chg); outline-offset:1px; }
 .seg .lbl{ position:absolute; left:6px; bottom:4px; font:9px ui-monospace,monospace;
-  color:var(--ink); background:rgba(251,249,244,.8); border-radius:3px; padding:0 3px; }
+  color:var(--ink); background:rgba(251,249,244,.8); border-radius:3px; padding:0 3px;
+  white-space:nowrap; }
 .seg .ph{ position:absolute; top:0; bottom:0; width:2px; background:var(--chg); }
+/* a video tile with no poster yet wears the film glyph, centred — never a
+   blank grey box; it goes the moment a poster lands (paintPosters) */
+.seg .fg{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  pointer-events:none; }
+.seg .fg svg{ width:18px; height:18px; stroke:currentColor; stroke-width:1.6; fill:none;
+  stroke-linecap:round; stroke-linejoin:round; }
+.seg.hasbg .fg{ display:none; }
 /* a STILL wears a small picture mark in its corner, so a held photo reads as
    one beside the clips */
 .seg .kd{ position:absolute; top:3px; right:3px; width:14px; height:14px; border-radius:3px;
@@ -445,7 +466,7 @@ var RIDE_ICON = '<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="3"/><line x1
   + '<path d="M5 12H2a10 10 0 0 0 20 0h-3"/></svg>';
 
 /* ── state ── */
-var BUILD = 'fe-2026-09-02a';   // rides the telemetry — settles "which page is her phone actually running"
+var BUILD = 'fe-2026-09-05b';   // rides the telemetry — settles "which page is her phone actually running"
 var A = null;                 // the open cut doc {id,title,clips,sounds,renders,job,updatedAt}
 var playhead = 0;
 var playing = false;
@@ -465,6 +486,9 @@ var PROXY = {};        // url → proxy url, live
 var PROXY_NEXT = {};   // ready but waiting for playback to stop
 var PROXY_AUD = {};    // a sound's audio-only copy — her real track was a
 var PROXY_AUD_NEXT = {};   // 13.9MB 480p VIDEO mp4 (measured 2026-08-23)
+var POSTERS = {};      // url → poster url, learned off the proxies answer — a
+                       // chat-written piece carries poster:null, and the bake
+                       // pulls a frame for it (2026-09-05)
 var proxyT = null;
 function srcOf(c) { return (c && PROXY[c.url]) || (c && c.url) || ''; }
 function audSrc(s) { return (s && (PROXY_AUD[s.url] || s.url)) || ''; }
@@ -494,10 +518,13 @@ function askProxies(post) {
   req.then(function (r) {
     var making = false;
     var map = (r && r.proxies) || {};
+    var newPoster = false;
     for (var u in map) {
       if (map[u].status === 'ready' && map[u].proxyUrl) PROXY_NEXT[u] = map[u].proxyUrl;
       if (map[u].status === 'making') making = true;
+      if (map[u].poster && POSTERS[u] !== map[u].poster) { POSTERS[u] = map[u].poster; newPoster = true; }
     }
+    if (newPoster) paintPosters();   // onto the tiles that have none — never a rebuild
     var amap = (r && r.audio) || {};   // absent on an older server — fine
     for (var v in amap) {
       if (amap[v].status === 'ready' && amap[v].proxyUrl) PROXY_AUD_NEXT[v] = amap[v].proxyUrl;
@@ -633,10 +660,17 @@ function renderAt(r) {
   return Number.isFinite(t) ? t : 0;
 }
 function seenKey(id) { return 'forge.fe.seen.' + id; }
+// the lanes as of the last successful load or save — what her EDIT is
+// measured against when a save comes back stale (CutModel.applyEdits)
+function snapBase(lanes) {
+  if (A) A.__base = CM.readDoc({ clips: lanes.clips || [], sounds: lanes.sounds || [] });
+}
 function open(id, fromHistory) {
   api(B + '/' + encodeURIComponent(id)).then(function (doc) {
     adopt(doc, id);
+    snapBase(A);
     playhead = 0; playing = false; selKey = null; selSnd = null;
+    followPh = null; tlDragAt = 0; tlVisW = null;   // a fresh cut opens at its top
     $('ttl').value = A.title || '';
     if (!fromHistory) {
       try { history.pushState({ c: id }, '', aUrl(id)); } catch (_) {}
@@ -653,6 +687,7 @@ function open(id, fromHistory) {
     syncSelection();
     seekVideo(false);
     askProxies(true);   // preview copies: start any missing bakes right away
+    learnLengths();     // a sound with no known length is measured one at a time
     if (chatNewAt) say('the chat rendered a new version since you were here — it’s in the films');
     if (A.job && A.job.status === 'running') { openFilms(); pollJob(); }
   }).catch(function (e) {
@@ -665,12 +700,34 @@ function reloadFrom(doc) {
   if (playing) stopPlayback();
   var id = A.id, title = A.title;
   adopt(doc, id);
+  snapBase(A);
   if (!A.title) A.title = title;
   $('ttl').value = A.title || '';
   playhead = Math.min(Math.max(0, playhead), Math.max(0, total() - 0.001));
   if (selSnd && !soundByKey(selSnd)) selSnd = null;
   syncSelection(); paint(); seekVideo(false);
   askProxies(false);
+  learnLengths();
+}
+// HER EDIT IS KEPT (2026-09-05): the chat's doc takes the screen as the new
+// base — its renders, its job, its clock — and her change since the last
+// good load or save is RE-APPLIED onto its lanes by key (CutModel.applyEdits),
+// so a split, a trim, a level or a nudge she made while the chat was saving
+// v13 does not vanish under v13. Her playhead stays where it can.
+function mergeFrom(doc) {
+  if (playing) stopPlayback();
+  var id = A.id, title = A.title;
+  var mine = { clips: A.clips || [], sounds: A.sounds || [] };
+  var merged = CM.applyEdits(doc, A.__base || { clips: [], sounds: [] }, mine);
+  adopt(doc, id);
+  A.clips = merged.clips; A.sounds = merged.sounds;
+  if (!A.title) A.title = title;
+  $('ttl').value = A.title || '';
+  playhead = Math.min(Math.max(0, playhead), Math.max(0, total() - 0.001));
+  if (selSnd && !soundByKey(selSnd)) selSnd = null;
+  syncSelection(); paint(); seekVideo(false);
+  askProxies(false);
+  learnLengths();
 }
 $('ttl').addEventListener('change', function () {
   if (!A) return;
@@ -690,22 +747,38 @@ function save(quiet) {
   saveT = setTimeout(function () { putPieces().catch(function () {}); }, 600);
 }
 // ONE save shape: both lanes, whole, with `base` — the updatedAt the page
-// opened on. The server refuses a stale base with 409 + its current doc, and
-// the page reloads from that rather than merging or re-sending. Resolves
-// 'saved' | 'stale'; rejects only on a real failure.
-function putPieces() {
+// opened on. The server refuses a stale base with 409 + its current doc. A
+// stale save RE-APPLIES her edit onto that doc and saves once more with its
+// clock (mergeFrom); only a second refusal reloads the chat's doc outright
+// and says so. It used to reload on the FIRST refusal, and her tap went with
+// it (2026-09-05). The base snapshot is what was SENT, never the lanes at
+// answer time — an edit she makes while a save is in flight must still read
+// as her change on the next one. Resolves 'saved' | 'stale'; rejects only on
+// a real failure.
+function putPieces(retried) {
   if (!A) return Promise.resolve('saved');
   A.sounds = CM.normalize(A.clips || [], A.sounds || []);
   var id = A.id;
   var body = { clips: A.clips || [], sounds: A.sounds, base: A.updatedAt || null, by: 'sophie' };
+  // a COPY, taken now — the tools edit the pieces in place, and an edit made
+  // while this request is in flight must not read as already saved
+  var sent = CM.readDoc({ clips: body.clips, sounds: body.sounds });
   return api(B + '/' + id + '/pieces', { method: 'POST', body: body }).then(function (r) {
-    if (A && A.id === id && r && r.updatedAt) A.updatedAt = r.updatedAt;
+    if (A && A.id === id) {
+      if (r && r.updatedAt) A.updatedAt = r.updatedAt;
+      A.__base = sent;
+    }
     return 'saved';
   }).catch(function (e) {
     if (e && e.status === 409 && e.body && e.body.doc && A && A.id === id) {
-      reloadFrom(e.body.doc);
-      say('the chat changed this cut — reloaded');
-      return 'stale';
+      if (retried) {
+        reloadFrom(e.body.doc);
+        say('the chat changed this cut — your edit couldn’t be kept');
+        return 'stale';
+      }
+      mergeFrom(e.body.doc);
+      say('the chat changed this cut — your edit was kept');
+      return putPieces(true);
     }
     say('Couldn’t save — ' + String(e.message || e));
     throw e;
@@ -840,6 +913,13 @@ function hideStill() { $('still').hidden = true; }
    beyond the browser's user-agent line. `aud` speaks for the FIRST sound —
    the one track's slot, kept in shape. ── */
 var TEL = null;
+// a play() the browser refused mid-session — a NotAllowedError at a source
+// swap is a live suspect for the 18s freeze on her matrix cut
+function playRefused(err) {
+  if (!TEL) return;
+  TEL.playRefused++;
+  if (!TEL.refusedName) TEL.refusedName = String((err && err.name) || err || 'refused').slice(0, 40);
+}
 function telStart() {
   var s0 = A && A.sounds && A.sounds[0];
   TEL = {
@@ -849,6 +929,12 @@ function telStart() {
     joints: 0, black: [], vholdMs: 0, choldMs: 0, revealT0: 0,
     rvfc0: [($('vA').__rvfcN || 0), ($('vB').__rvfcN || 0)], rvfc: [0, 0],
     playT0: performance.now(),
+    // 2026-09-05 — the beacon on her matrix cut ran 268s with the playhead
+    // at 18s and could not say WHERE it froze, how many sounds were fighting
+    // for the pipe, or whether a play() at a joint was refused
+    n: (A && A.sounds || []).length,
+    stuckAt: 0, stuckMs: 0, holdRun: 0,
+    playRefused: 0, refusedName: '',
     aud: s0 ? {
       src: audSrc(s0).indexOf('/proxy/') >= 0 ? 'proxy' : 'raw',
       n: (A.sounds || []).length,
@@ -860,7 +946,9 @@ function telSend() {
   var t = TEL; TEL = null;
   if (!t || !t.cut) return;
   t.dur = Math.round(performance.now() - t.playT0);
-  delete t.playT0; delete t.revealT0;
+  delete t.playT0; delete t.revealT0; delete t.holdRun;
+  t.stuckAt = Math.round(t.stuckAt * 100) / 100;
+  t.stuckMs = Math.round(t.stuckMs);
   t.rvfc = [($('vA').__rvfcN || 0) - t.rvfc0[0], ($('vB').__rvfcN || 0) - t.rvfc0[1]];
   delete t.rvfc0;
   t.ph1 = Math.round(playhead * 100) / 100;
@@ -890,6 +978,16 @@ function stopPlayback() {
   paintPlayBtn();
   adoptProxies();   // a proxy that finished baking mid-play takes over now
 }
+// LEAVING THE APP STOPS THE FILM (2026-09-05, the Story Room's rule): iOS
+// pauses the videos on its own but the <audio> elements kept sounding, and
+// on her return the tick found them seconds ahead and hard-resynced every
+// one of them at once. Never on a sheet open — a sheet is still this page.
+function stopOnLeave() { if (playing) stopPlayback(); }
+document.addEventListener('visibilitychange', function () {
+  if (document.visibilityState === 'hidden') stopOnLeave();
+});
+window.addEventListener('pagehide', stopOnLeave);
+window.addEventListener('freeze', stopOnLeave);
 // warm the piece behind the NEXT joint that needs a swap or a jump — a
 // contiguous same-source joint rolls through with no work at all, and a still
 // with no proxy yet needs no element (its picture covers the stage), so the
@@ -947,7 +1045,7 @@ function seekVideo(playIt) {
     // Stepping and scrubbing (playIt false) always seek: exactness matters.
     var seekless = playIt && (drift < 0.06 || (!el.paused && drift < 0.25));
     if (!seekless) { try { el.currentTime = target; } catch (e) { /* not seekable yet */ } }
-    if (playIt) { if (el.paused) el.play().catch(function () {}); }
+    if (playIt) { if (el.paused) el.play().catch(playRefused); }
     else if (!el.paused) el.pause();   // a priming warm element must not roll under a paused film
   };
   if (el.readyState >= 1) setPos(); else el.onloadedmetadata = setPos;
@@ -971,7 +1069,7 @@ function bankSync() {
     if ($('aud-' + s.key)) return;
     var a = document.createElement('audio');
     a.id = 'aud-' + s.key;
-    a.preload = 'auto';
+    a.preload = 'none';   // no bytes until its moment is near (primeAhead)
     a.__key = s.key;
     a.__primed = ''; a.__priming = false; a.__primeT = null;
     a.__pacing = false; a.__audEntry = false;
@@ -1041,31 +1139,64 @@ function setVol(s, a, at) {
 // forces real buffering, then parks the track at its spot with the sound back
 // on. A programmatic play() with no gesture may be refused; the catch clears
 // the mark so the next pointerdown (a gesture) primes instead. Per element.
-function primeAudio() {
-  if (playing || !A) return;
-  (A.sounds || []).forEach(function (s) {
-    var a = sndEl(s);
-    if (a) primeOne(s, a);
-  });
-}
-function primeOne(s, a) {
+// ONLY WHAT IS COMING PRIMES (2026-09-05, measured on her matrix cut: 17
+// sounds, and the first pointerdown started a muted play on EVERY one of
+// them — 17 fetches competing with the video proxies at the moment she
+// tapped play; the beacon shows a session that ran 268s with the playhead
+// reaching 18s). A sound gets its src only when it is under the playhead or
+// starts within PRIME_AHEAD seconds, most imminent first, at most PRIME_MAX
+// loading at once; the tick asks again every PRIME_EVERY ms as the playhead
+// approaches the next ones. Everything else stays preload:none with no src
+// at all until its turn.
+var PRIME_AHEAD = 15, PRIME_MAX = 3, PRIME_EVERY = 2000;
+var lastPrimeAt = 0;
+function ensureAudSrc(s, a) {
   var want = audSrc(s);
-  if (!want || a.__primed === want) return;
-  a.__primed = want;
+  if (!want) return false;
   if (a.getAttribute('data-src') !== want) {
     a.setAttribute('data-src', want);
     a.preload = 'auto';
     a.src = want;
   }
+  return true;
+}
+// the sounds whose moment is near, most imminent first — live ones lead
+function upcomingSounds() {
+  return ((A && A.sounds) || []).filter(function (s) {
+    if (s.mute) return false;
+    var p = soundPos(s);
+    if (p.live) return true;
+    return p.at < 0 && -p.at <= PRIME_AHEAD;
+  }).sort(function (x, y) { return CM.soundStart(x, A.clips) - CM.soundStart(y, A.clips); });
+}
+function primeAudio() {
+  if (playing || !A) return;
+  primeAhead();
+}
+function primeAhead() {
+  if (!A) return;
+  var loading = bankEls().filter(function (a) { return a.__priming; }).length;
+  upcomingSounds().forEach(function (s) {
+    var a = sndEl(s);
+    if (!a || a.__primed === audSrc(s)) return;
+    if (loading >= PRIME_MAX) return;
+    if (primeOne(s, a)) loading++;
+  });
+}
+function primeOne(s, a) {
+  var want = audSrc(s);
+  if (!want || a.__primed === want) return false;
+  a.__primed = want;
+  ensureAudSrc(s, a);
   a.muted = true;
   a.__priming = true;
   var park = function () {
     a.removeEventListener('canplaythrough', park);
     clearTimeout(a.__primeT);
     a.__priming = false;
-    if (playing) { a.muted = false; return; }   // she started meanwhile — the start path owns it
-    a.pause();
     var s2 = soundByKey(a.__key) || s;
+    if (playing && soundPos(s2).live) { a.muted = false; return; }   // rolling under the film — the tick owns it
+    a.pause();
     try { a.currentTime = s2.in + Math.max(0, playhead - CM.soundStart(s2, A ? A.clips : [])); } catch (e) {}
     a.muted = false;
   };
@@ -1078,8 +1209,46 @@ function primeOne(s, a) {
     a.muted = false;
     a.__primed = '';
   });
+  return true;
 }
 document.addEventListener('pointerdown', function () { primeAudio(); lastTouchAt = Date.now(); }, true);
+// A sound with no known length (the matrix chat writes none) used to learn
+// it because every element loaded; with the bank lazy, the ones outside the
+// window are measured here instead — ONE at a time, metadata only, with a
+// cap so a stream that withholds it cannot wedge the walk. Never a fetch of
+// the whole file, never more than one in flight.
+var learnRun = 0;   // a new walk (another cut opened, a reload) retires the old one
+function learnLengths() {
+  if (!A) return;
+  var id = A.id, my = ++learnRun;
+  var todo = (A.sounds || []).filter(function (s) {
+    var a = sndEl(s);
+    return s.seconds == null && s.url && !(a && a.getAttribute('data-src'));
+  });
+  if (!todo.length) return;
+  var step = function () {
+    if (my !== learnRun || !A || A.id !== id) return;
+    var s = todo.shift();
+    if (!s) return;
+    var s2 = soundByKey(s.key);
+    if (!s2 || s2.seconds != null) { step(); return; }
+    var settled = false;
+    var done = function (secs) {
+      if (settled) return;
+      settled = true;
+      var s3 = A && A.id === id && soundByKey(s.key);
+      if (s3 && s3.seconds == null && secs != null && secs > 0) {
+        s3.seconds = r3(secs);
+        A.sounds = CM.normalize(A.clips || [], A.sounds || []);
+        paintLane(); save(true);
+      }
+      step();
+    };
+    probeAudioSeconds(audSrc(s2)).then(done, function () { done(null); });
+    setTimeout(function () { done(null); }, 8000);
+  };
+  step();
+}
 // where a sound stands against the playhead: its resolved start, its length,
 // and whether it is sounding right now
 function soundPos(s) {
@@ -1094,19 +1263,18 @@ function startSound(s, a, at) {
   try { a.currentTime = s.in + at; } catch (e) { /* not seekable yet */ }
   a.__audEntry = true;   // when sound actually lands, re-align to the playhead
   if (TEL && TEL.aud && !TEL.aud.playAt) TEL.aud.playAt = performance.now();
-  a.play().catch(function () {});
+  a.play().catch(playRefused);
 }
 function syncAudio(playIt) {
+  // a src is LAZY — a live sound always gets one, the near-upcoming ones get
+  // theirs through primeAhead, and the rest keep none (2026-09-05)
   ((A && A.sounds) || []).forEach(function (s) {
     var a = sndEl(s);
     if (!a) return;
-    var wantA = audSrc(s);   // the audio-only baked copy when one exists
-    if (a.getAttribute('data-src') !== wantA) {
-      a.setAttribute('data-src', wantA);
-      a.preload = 'auto';       // buffered before the first play, not during it
-      a.src = wantA;
-    }
     var p = soundPos(s);
+    if (p.live) ensureAudSrc(s, a);
+    if (!a.getAttribute('data-src')) return;   // not its turn yet
+    if (a.getAttribute('data-src') !== audSrc(s)) ensureAudSrc(s, a);   // a proxy adopted since
     if (playIt) a.muted = false;   // a prime may have left the element muted
     if (playIt && p.live) {
       // A RUNNING sound is NEVER touched from a joint. The old guard here
@@ -1136,6 +1304,7 @@ function seekTo(t) {
   syncSelection();
   seekVideo(false);
   paintStrip(); paintTc();
+  primeAhead();   // the sounds near the new spot get their bytes now
 }
 function playPause() {
   if (!segs().length) return;
@@ -1172,7 +1341,9 @@ function audioPace(drift, correcting) {
 function soundTick(s, a) {
   var p = soundPos(s);
   if (!p.live) { if (!a.paused && !a.__priming) a.pause(); return; }
-  if (p.at < 0 || a.getAttribute('data-src') !== audSrc(s)) return;
+  if (p.at < 0) return;
+  if (!a.getAttribute('data-src') && !ensureAudSrc(s, a)) return;   // its moment came before its prime — start it now
+  if (a.getAttribute('data-src') !== audSrc(s)) return;
   if (a.muted) a.muted = false;   // a prime must never mute the film
   setVol(s, a, p.at);
   if (a.paused || a.__priming) {
@@ -1255,7 +1426,7 @@ function tick(ts) {
     // blocked autoplay at a source swap) gets a nudge, at most once a second
     if (el.paused && !el.ended && ts - lastNudge > 1000) {
       lastNudge = ts;
-      el.play().catch(function () {});
+      el.play().catch(playRefused);
     }
   } else if (el) {
     t = playhead;         // matching element still loading — hold, don't drift
@@ -1277,8 +1448,20 @@ function tick(ts) {
     if (TEL) TEL.joints++;
     syncSelection();
     seekVideo(true);
-  } else playhead = t;
-  // every sound, against the honest playhead
+  } else {
+    // the longest run of ticks that moved the playhead NOWHERE, and where
+    // it stood — the beacon's answer to "where did the play freeze"
+    if (TEL) {
+      if (t === playhead) {
+        TEL.holdRun += dt * 1000;
+        if (TEL.holdRun > TEL.stuckMs) { TEL.stuckMs = TEL.holdRun; TEL.stuckAt = playhead; }
+      } else TEL.holdRun = 0;
+    }
+    playhead = t;
+  }
+  // every sound, against the honest playhead — and the ones coming up in the
+  // next stretch get their bytes now, a few at a time (primeAhead)
+  if (ts - lastPrimeAt > PRIME_EVERY) { lastPrimeAt = ts; primeAhead(); }
   ((A && A.sounds) || []).forEach(function (s) {
     var a = sndEl(s);
     if (a) soundTick(s, a);
@@ -1521,10 +1704,9 @@ function paintStrip() {
       b.className = 'seg';
       b.setAttribute('data-key', s.c.key);
       var still = s.c.kind === 'image';
-      var bg = still ? stillThumb(s.c) : s.c.poster;
-      if (bg) b.style.backgroundImage = 'url("' + bg.replace(/"/g, '%22') + '")';
-      b.innerHTML = (still ? '<span class="kd">' + IMG_ICON + '</span>' : '')
+      b.innerHTML = (still ? '<span class="kd">' + IMG_ICON + '</span>' : '<span class="fg">' + FILM_ICON + '</span>')
         + '<span class="lbl"></span><span class="ph" hidden></span>';
+      setTileBg(b, still ? stillThumb(s.c) : (s.c.poster || POSTERS[s.c.url]));
       b.onclick = function () {
         var now = segs().filter(function (x) { return x.c.key === s.c.key; })[0];
         selSnd = null;   // a tap on a piece is the way back to the picture lane
@@ -1543,19 +1725,115 @@ function paintStrip() {
     cur = ss[ci];
     if (playhead < ss[ci].start + ss[ci].dur - 1e-4) break;
   }
+  // THE TIME AXIS: a tile is its seconds times PPS, never a share of free
+  // space. Width and label are re-done only when the number changes — the
+  // tick calls this every frame.
+  var pps = ppsOf(ss.length);
+  var relabel = [];
   ss.forEach(function (s, i) {
     var el = kids[i];
     if (!el) return;
-    var grow = Math.max(0.5, s.dur);
-    if (el.__grow !== grow) { el.style.flexGrow = grow; el.__grow = grow; laneGeo = null; }
+    var w = Math.max(SEG_FLOOR, s.dur * pps);
+    var lbl = String(i + 1).padStart(2, '0') + ' · ' + fmt(s.dur);
+    if (el.__w !== w) { el.style.flex = '0 0 ' + w.toFixed(2) + 'px'; el.__w = w; laneGeo = null; }
+    if (el.__lbl !== lbl) { el.__lbl = lbl; el.querySelector('.lbl').textContent = lbl; relabel.push(el); }
+    else if (el.__lblW !== w) relabel.push(el);
     el.classList.toggle('sel', !selSnd && s.c.key === selKey);
-    el.querySelector('.lbl').textContent = String(i + 1).padStart(2, '0') + ' · ' + fmt(s.dur);
     var ph = el.querySelector('.ph');
     var inSeg = cur === s;
     ph.hidden = !inSeg;
     if (inSeg) ph.style.left = Math.min(99, (playhead - s.start) / (s.dur || 1) * 100).toFixed(2) + '%';
   });
+  // a label that does not fit its tile MEASURED (never guessed from the
+  // seconds) shows the number alone — "00:0" cut mid-timecode said nothing
+  relabel.forEach(function (el) {
+    var lb = el.querySelector('.lbl');
+    lb.textContent = el.__lbl;
+    el.__lblW = el.__w;
+    if (lb.offsetWidth + 6 + 2 > el.clientWidth) lb.textContent = el.__lbl.split(' ')[0];
+  });
   paintLanePh();
+  followPlayhead();
+}
+/* px per second: the whole cut fills at least the visible strip, and never
+   less than PPS_MIN so a one-second shot stays a real tile on a long cut.
+   The gaps between tiles are taken off the width they share. */
+var PPS_MIN = 40, SEG_FLOOR = 24, SEG_GAP = 4;
+var tlVisW = null;   // the strip's visible width, cached until a resize
+function tlVisible() {
+  if (tlVisW) return tlVisW;
+  var w = $('tlwrap');
+  var cs = getComputedStyle(w);
+  var v = w.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+  if (v > 0) tlVisW = v;
+  return v > 0 ? v : 362;
+}
+function ppsOf(n) {
+  var tot = total();
+  if (!(tot > 0)) return PPS_MIN;
+  return Math.max(PPS_MIN, (tlVisible() - SEG_GAP * Math.max(0, n - 1)) / tot);
+}
+function setTileBg(el, bg) {
+  if (!bg) return;
+  el.style.backgroundImage = 'url("' + String(bg).replace(/"/g, '%22') + '")';
+  el.classList.add('hasbg');
+}
+// a poster that arrived after the strip was built lands on its tile in place
+function paintPosters() {
+  var kids = $('strip').children;
+  var ss = segs();
+  for (var i = 0; i < ss.length && i < kids.length; i++) {
+    var c = ss[i].c;
+    if (c.kind === 'image' || kids[i].classList.contains('hasbg')) continue;
+    setTileBg(kids[i], c.poster || POSTERS[c.url]);
+  }
+}
+/* THE STRIP FOLLOWS THE PLAYHEAD (2026-09-05, measured on her 14- and
+   16-piece cuts: from about the tenth piece the playhead and the selected
+   tile were off the right of the screen during play and after every step).
+   Asked from paintStrip, and it acts ONLY when the playhead MOVED — a paint
+   for a level tap or a sound pick never scrolls. During play, once the line
+   runs off the window it comes back a third in from the left, smoothly; on a
+   seek or a step it is centred. Never against her own finger: a drag, a
+   wheel or a scroll of hers on the strip holds it off for 1.5s (a TAP on a
+   tile is not a drag — that seek still lands in view). */
+var tlDragAt = 0, tlProgUntil = 0, followPh = null, followAskedAt = 0;
+(function () {
+  var w = $('tlwrap');
+  var drag = function () { tlDragAt = Date.now(); };
+  w.addEventListener('touchmove', drag, { passive: true });
+  w.addEventListener('wheel', drag, { passive: true });
+  w.addEventListener('scroll', function () { if (Date.now() > tlProgUntil) tlDragAt = Date.now(); }, { passive: true });
+})();
+function scrollStrip(left, smooth) {
+  var w = $('tlwrap');
+  left = Math.max(0, Math.round(left));
+  if (Math.abs(w.scrollLeft - left) < 1) return;
+  tlProgUntil = Date.now() + (smooth ? 1000 : 300);   // the scroll events this raises are ours
+  if (smooth && typeof w.scrollTo === 'function') {
+    try { w.scrollTo({ left: left, behavior: 'smooth' }); return; } catch (e) { /* no options — plain below */ }
+  }
+  w.scrollLeft = left;
+}
+function followPlayhead() {
+  if (followPh === playhead) return;
+  followPh = playhead;
+  var now = Date.now();
+  if (now - tlDragAt < 1500) return;
+  var w = $('tlwrap');
+  var vis = w.clientWidth;
+  if (!vis || w.scrollWidth <= vis + 1) return;   // nothing to scroll
+  var padL = parseFloat(getComputedStyle(w).paddingLeft) || 0;
+  var px = padL + xOfTime(playhead);
+  var rel = px - w.scrollLeft;
+  if (playing) {
+    if ((rel < 0 || rel > vis - 10) && now - followAskedAt > 600) {
+      followAskedAt = now;
+      scrollStrip(px - vis / 3, true);
+    }
+  } else if (rel < 6 || rel > vis - 6) {
+    scrollStrip(px - vis / 2, false);
+  }
 }
 /* the lane's geometry is MEASURED off the shots' real boxes, so a sound at a
    shot's boundary sits on that tile's edge; cached until the strip changes
@@ -1696,7 +1974,10 @@ function paint() {
   if (has) { paintStrip(); paintTc(); paintLane(); }
   paintTools(); paintFilms(); paintPlayBtn();
 }
-window.addEventListener('resize', function () { laneGeo = null; if (A && (A.clips || []).length) paintLane(); });
+window.addEventListener('resize', function () {
+  tlVisW = null; laneGeo = null;
+  if (A && (A.clips || []).length) { paintStrip(); paintLane(); }
+});
 
 /* ── uploads: the Dump's machinery, then metadata read CLIENT-side so a
    piece always knows its length before it joins the timeline. A file the

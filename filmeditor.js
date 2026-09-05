@@ -102,14 +102,26 @@
 //   GET    /            → { cuts } — trimmed list, newest edited first
 //   POST   /            → { title?, chat?, session?, by? } → { id } — a new empty cut
 //   POST   /proxies     → { urls:[…], audio:[…] } — start/report preview bakes;
-//                         an image url in `urls` answers with still:true
-//   GET    /proxies?urls=a,b&audio=c — read only
+//                         an image url in `urls` answers with still:true.
+//                         Each entry is { status, proxyUrl, still?, poster? }:
+//                         `poster` (2026-09-05) is the source's own poster
+//                         frame — baked beside the proxy for a video, the
+//                         picture itself for a still — present only once the
+//                         doc has one ('ready' or 'skip'); the page draws its
+//                         timeline tiles from it when the piece carries none.
+//   GET    /proxies?urls=a,b&audio=c — read only, the same shape
 //   GET    /:id         → the doc, `sounds` always present (legacy audio read in)
 //   POST   /:id/pieces  → { clips?, sounds?, audio?, base?, by? } — the whole
 //                         arrangement in one save (a split changes two pieces
 //                         and the order at once). A field left out is left
 //                         alone; `audio` (legacy) counts only when `sounds` is
-//                         absent. base ≠ updatedAt → 409 { error:'stale', doc }.
+//                         absent. base ≠ updatedAt → 409 { error:'stale', doc }
+//                         — UNLESS the lanes sent differ from the stored ones
+//                         only by lengths/posters (CutModel.lanesDiffer),
+//                         which is a fact learned, never her edit: accepted,
+//                         and `lastEditBy` is left as it was. A save also
+//                         starts the preview bakes for every source url it
+//                         introduces (fire-and-forget — never awaited).
 //                         → { ok, updatedAt, pieces, doc }
 //   POST   /:id/title   → { title } → { ok, title, updatedAt }
 //   POST   /:id/render  → { by? } — bake the cut (background job on the doc)
@@ -227,9 +239,12 @@ function savePatch(doc, body) {
   const hasSounds = 'sounds' in body;
   const hasAudio = 'audio' in body;
   if (!hasClips && !hasSounds && !hasAudio) return null;
-  const nextClips = hasClips ? cleanPieces(body.clips) : cur.clips;
+  // A length the doc already knows is never erased by a writer that does not
+  // (a chat's cut.json against the page's learned seconds) — cut-model's
+  // carrySeconds, the LENGTHS ARE FACTS rule.
+  const nextClips = hasClips ? CutModel.carrySeconds(cleanPieces(body.clips), cur.clips, CutModel.cleanPiece) : cur.clips;
   let nextSounds = cur.sounds;
-  if (hasSounds) nextSounds = cleanSounds(body.sounds);
+  if (hasSounds) nextSounds = CutModel.carrySeconds(cleanSounds(body.sounds), cur.sounds, CutModel.cleanSound);
   else if (hasAudio) nextSounds = legacySounds(body.audio, cur.sounds, nextClips);
   nextSounds = CutModel.normalize(nextClips, nextSounds);
   const patch = { sounds: nextSounds, audio: CutModel.audioMirror(nextSounds) };
@@ -307,45 +322,86 @@ function audioProxyArgs(src, out) {
     '-movflags', '+faststart', out];
 }
 
+// THE POSTER RIDES THE PROXY DOC (2026-09-05). A piece a CHAT writes carries
+// `poster:null` — the Dump bakes one for its own files (dropbox.js
+// posterFrame) but no cut.json ever passed it on — so every tile on her
+// timeline drew blank. The bake already downloads and probes every source,
+// so one frame is pulled beside it: ~15% in (the Chunking shelf's own rule,
+// capped at ten seconds so a long master still opens near its start), no
+// wider than POSTER_W, a jpg at `-q:v 3` (posterFrame's recipe, under the
+// Dump's own `-poster.jpg` name), on ONE thread with `-ss` as an INPUT
+// option so ffmpeg seeks rather than decodes its way there. Measured on the
+// render test's fixtures: 30-60ms a frame and nothing beside the encode's
+// memory. A still's poster is the picture itself. A poster that fails
+// leaves the field off and never fails the proxy.
+const POSTER_W = 480;
+function posterAt(seconds) {
+  const s = Number(seconds) || 0;
+  return s > 0 ? r3(Math.min(s * 0.15, 10)) : 0;
+}
+function posterArgs(src, out, seconds) {
+  return ['-y', '-threads', '1', '-ss', posterAt(seconds).toFixed(3), '-i', src, '-frames:v', '1',
+    '-vf', `scale=w='min(${POSTER_W},iw)':h=-2`, '-q:v', '3', out];
+}
+async function bakePoster(src, probe, url, dir, upload) {
+  try {
+    const out = path.join(dir, 'poster.jpg');
+    try { await run(FFMPEG, posterArgs(src, out, probe.seconds), 120000); }
+    catch { await run(FFMPEG, posterArgs(src, out, 0), 120000); }   // a seek past a lying duration
+    if (!fs.existsSync(out) || !fs.statSync(out).size) throw new Error('empty poster');
+    return await upload(out, `${STORAGE_FOLDER}/proxy/${proxyId(url)}-poster.jpg`, 'image/jpeg');
+  } catch (err) {
+    console.warn('filmeditor: poster failed —', err.message);
+    return null;
+  }
+}
+
 // One bake at a time — the 512MB box (the Playground's serialize lesson).
 let proxyChain = Promise.resolve();
 function enqueueProxy(url, kind) {
   const fn = kind === 'audio' ? bakeAudioProxy : bakeProxy;
   proxyChain = proxyChain.then(() => fn(url)).catch(() => {});
 }
-async function bakeProxy(url) {
-  const d = db();
+// `deps` ({db, upload, download}) is for the integration test, which drives
+// the real bake against generated fixtures with no Firestore and no bucket.
+async function bakeProxy(url, deps) {
+  deps = deps || {};
+  const d = deps.db || db();
+  const upload = deps.upload || editor.uploadPublic;
+  const download = deps.download || downloadSource;
   if (!d || !FFMPEG || !FFPROBE) return;
   const ref = d.collection(PROXY_COL).doc(proxyId(url));
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'feproxy-'));
   try {
     const src = path.join(dir, 'src');
-    await downloadSource(url, src);
+    await download(url, src);
     const bytes = fs.statSync(src).size;
     const probe = await probeFile(src);
     if (probe.image) {
       // a still: always baked — the player needs a video to seek in
       const out = path.join(dir, 'proxy.mp4');
       await run(FFMPEG, stillProxyArgs(src, out), 900000);
-      const proxyUrl = await editor.uploadPublic(out,
+      const proxyUrl = await upload(out,
         `${STORAGE_FOLDER}/proxy/${proxyId(url)}.mp4`, 'video/mp4');
       await ref.set({
-        url, status: 'ready', proxyUrl, still: true,
+        url, status: 'ready', proxyUrl, still: true, poster: url,
         bytes: fs.statSync(out).size, srcBytes: bytes, at: Date.now(),
       }, { merge: true });
       return;
     }
     if (!probe.hasVideo) throw new Error('no video stream');
+    const poster = await bakePoster(src, probe, url, dir, upload);
+    const withPoster = poster ? { poster } : {};
     if (!proxyNeeded(probe, bytes)) {
-      await ref.set({ url, status: 'skip', proxyUrl: null, at: Date.now() }, { merge: true });
+      await ref.set({ url, status: 'skip', proxyUrl: null, ...withPoster, at: Date.now() }, { merge: true });
       return;
     }
     const out = path.join(dir, 'proxy.mp4');
     await run(FFMPEG, proxyArgs(src, out, probe.hasAudio), 900000);
-    const proxyUrl = await editor.uploadPublic(out,
+    const proxyUrl = await upload(out,
       `${STORAGE_FOLDER}/proxy/${proxyId(url)}.mp4`, 'video/mp4');
     await ref.set({
-      url, status: 'ready', proxyUrl,
+      url, status: 'ready', proxyUrl, ...withPoster,
       bytes: fs.statSync(out).size, srcBytes: bytes, at: Date.now(),
     }, { merge: true });
   } catch (err) {
@@ -388,9 +444,13 @@ async function bakeAudioProxy(url) {
 
 // The shared read+enqueue: answer what exists, start what doesn't. A wedged
 // 'making' older than 20 min and an 'error' older than 10 get another go.
-// A still's record answers `still:true` beside the usual pair.
-async function proxyStates(urls, mayEnqueue, kind) {
-  const d = db();
+// A still's record answers `still:true` beside the usual pair, and any
+// record carrying a poster answers `poster` (see THE POSTER RIDES THE PROXY
+// DOC). `deps` ({db, enqueue}) is for the pure test.
+async function proxyStates(urls, mayEnqueue, kind, deps) {
+  deps = deps || {};
+  const d = deps.db || db();
+  const enqueue = deps.enqueue || enqueueProxy;
   const idFor = kind === 'audio' ? audioProxyId : proxyId;
   const map = {};
   for (const url of urls) {
@@ -404,14 +464,44 @@ async function proxyStates(urls, mayEnqueue, kind) {
     if (mayEnqueue && (!v || retry)) {
       await d.collection(PROXY_COL).doc(idFor(url)).set(
         { url, ...(kind === 'audio' ? { kind: 'audio' } : {}), status: 'making', proxyUrl: null, at: Date.now() }, { merge: true });
-      enqueueProxy(url, kind);
+      enqueue(url, kind);
       map[url] = { status: 'making', proxyUrl: null };
     } else {
-      map[url] = v ? { status: v.status, proxyUrl: v.proxyUrl || null, ...(v.still ? { still: true } : {}) }
-        : { status: 'none', proxyUrl: null };
+      map[url] = v ? {
+        status: v.status, proxyUrl: v.proxyUrl || null,
+        ...(v.still ? { still: true } : {}),
+        ...(v.poster ? { poster: v.poster } : {}),
+      } : { status: 'none', proxyUrl: null };
     }
   }
   return map;
+}
+
+// A CHAT'S SAVE STARTS THE BAKES (2026-09-05). Only the page's askProxies
+// ever did, when she OPENED the cut — measured on her two live cuts that
+// day: 6 of 14 matrix pieces and the ant's new voice track had no proxy doc
+// at all, so on open she played raw sources while the bakes ran one at a
+// time behind her. Every source url a save INTRODUCES (against the doc as
+// it stood — pure, `newSourceUrls`) goes through the same proxyStates the
+// page uses, which skips a url already carrying a doc and keeps the
+// one-at-a-time chain. Fire-and-forget and swallowed: a save is never slower
+// and never fails for this.
+function newSourceUrls(before, after) {
+  const b = readDoc(before || {}), a = readDoc(after || {});
+  const had = new Set(b.clips.map((c) => c.url));
+  const hadA = new Set(b.sounds.map((s) => s.url));
+  return {
+    urls: [...new Set(a.clips.map((c) => c.url).filter((u) => !had.has(u)))],
+    audio: [...new Set(a.sounds.map((s) => s.url).filter((u) => !hadA.has(u)))],
+  };
+}
+function warmProxies(warm) {
+  const { urls, audio } = warm || {};
+  if (!db() || !FFMPEG || !FFPROBE) return;
+  (async () => {
+    if (urls && urls.length) await proxyStates(urls, true);
+    if (audio && audio.length) await proxyStates(audio, true, 'audio');
+  })().catch((err) => console.warn('filmeditor: proxy warm failed —', err.message));
 }
 
 // ── The mix (pure, exported) ───────────────────────────────────────────────
@@ -557,20 +647,42 @@ async function txField(id, field, fn) {
 }
 // The save, in a transaction so the stale check and the write are one step:
 // two writers racing cannot both pass the check.
-async function saveCut(id, body) {
-  const ref = db().collection(COL).doc(id);
-  return db().runTransaction(async (tx) => {
+//
+// A SAVE THAT ONLY LEARNED LENGTHS IS NOT AN EDIT (2026-09-05). The page
+// saves a sound's `seconds` the moment loadedmetadata knows it, as HER save
+// — so a chat's cut.json (every sound `seconds:null`) opened on her phone
+// bumped updatedAt seventeen times, the chat's next save 409'd, and the
+// chat read those seconds as her edit and stopped. Two halves, both on
+// CutModel.lanesDiffer: a stale base is refused only when the lanes sent
+// really MOVED against the stored ones (a save that changes nothing but
+// lengths or posters can lose nobody's edit, so it is let through), and
+// `lastEditBy` is written only when something moved — a learned length
+// keeps whoever really edited last. `deps` ({db, warm}) is for the pure
+// test; the default warm is the proxy chain.
+async function saveCut(id, body, deps) {
+  deps = deps || {};
+  const d = deps.db || db();
+  const warm = deps.warm || warmProxies;
+  const ref = d.collection(COL).doc(id);
+  const out = await d.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     if (!snap.exists) return { status: 404 };
     const doc = snap.data();
     const patch = savePatch(doc, body);
     if (!patch) return { status: 400 };
-    if (staleSave(body.base, doc.updatedAt)) return { status: 409, doc: withLanes(doc) };
+    const next = { ...doc, ...patch };
+    const moved = CutModel.lanesDiffer(doc, next);
+    if (moved && staleSave(body.base, doc.updatedAt)) return { status: 409, doc: withLanes(doc) };
     const updatedAt = Math.max(Date.now(), Number(doc.updatedAt || 0) + 1);
-    const fields = { ...patch, updatedAt, lastEditBy: byOf(body.by) };
+    const lastEditBy = moved ? byOf(body.by) : (doc.lastEditBy || byOf(body.by));
+    const fields = { ...patch, updatedAt, lastEditBy };
     tx.update(ref, JSON.parse(JSON.stringify(fields)));
-    return { status: 200, updatedAt, doc: withLanes({ ...doc, ...fields }) };
+    return { status: 200, updatedAt, doc: withLanes({ ...doc, ...fields }), warm: newSourceUrls(doc, next) };
   });
+  if (out.status === 200 && out.warm) {
+    try { warm(out.warm); } catch (err) { console.warn('filmeditor: proxy warm failed —', err.message); }
+  }
+  return out;
 }
 
 // Background jobs — startJob with the stale-takeover, patching FIELDS only.
@@ -673,6 +785,32 @@ async function probeFile(file) {
     channels: Number(((info.streams || []).find((s) => s.codec_type === 'audio') || {}).channels) || 0,
     image,
   };
+}
+
+// The length (and shape) of a source BY URL, best-effort — null when it
+// cannot be read. ffprobe is pointed straight at the url first: an mp4/m4a
+// is read by Range, so a 60MB master costs a few KB; a url ffprobe cannot
+// open over http (a private Storage object the SDK has to fetch) falls back
+// to a download into tmp. filmcut.js fills a chat's `seconds` through this
+// so a cut arrives knowing its lengths instead of learning them on her
+// phone (the LENGTHS ARE FACTS rule in cut-model.js).
+async function probeUrl(url) {
+  if (!FFPROBE) return null;
+  try {
+    const p = await probeFile(String(url));
+    if (p && (p.seconds > 0 || p.image)) return p;
+  } catch { /* not readable in place — download it */ }
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'feprobe-'));
+  try {
+    const src = path.join(dir, 'src');
+    await downloadSource(url, src);
+    return await probeFile(src);
+  } catch (err) {
+    console.warn('filmeditor: probe failed —', err.message);
+    return null;
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 // ─── the segment cache ──────────────────────────────────────────────
@@ -1075,10 +1213,16 @@ router.post('/telemetry', async (req, res) => {
       ph0: telNum(b.ph0, 36000), ph1: telNum(b.ph1, 36000),
       dur: telNum(b.dur, 3600000), joints: telNum(b.joints, 10000),
       vholdMs: telNum(b.vholdMs, 3600000), choldMs: telNum(b.choldMs, 3600000),
+      // where a play froze (fe-2026-09-05b): the longest run of ticks that
+      // moved the playhead nowhere, and whether a play() was refused
+      stuckAt: telNum(b.stuckAt, 36000), stuckMs: telNum(b.stuckMs, 3600000),
+      playRefused: telNum(b.playRefused, 10000),
+      refusedName: String(b.refusedName || '').slice(0, 40),
       black: (Array.isArray(b.black) ? b.black : []).slice(0, 30).map((n) => telNum(n, 60000)),
       rvfc: (Array.isArray(b.rvfc) ? b.rvfc : []).slice(0, 2).map((n) => telNum(n, 10000000)),
       aud: b.aud && typeof b.aud === 'object' ? {
         src: b.aud.src === 'proxy' ? 'proxy' : 'raw',
+        n: telNum(b.aud.n, 40),
         startMs: b.aud.startMs == null ? null : telNum(b.aud.startMs, 3600000),
         entries: (Array.isArray(b.aud.entries) ? b.aud.entries : []).slice(0, 20)
           .map((n) => Math.max(-3600, Math.min(Number(n) || 0, 3600))),
@@ -1182,12 +1326,13 @@ module.exports = {
   // the shape (cut-model.js), re-exported for the tests and older callers
   cleanPieces, cleanSounds, pieceSeconds, totalSeconds, splitPiece, readDoc, withLanes,
   // the save rules
-  staleSave, savePatch, legacySounds, byOf, jobIsDead,
+  staleSave, savePatch, legacySounds, byOf, jobIsDead, saveCut, newSourceUrls, warmProxies,
   // the mix
   mixGraph, activeSounds, soundInputArgs, segmentAudioFilter, soundLength,
   // the render, the diff, the shot map
-  renderCut, publishRender, nextRenderIndex, loadDoc, patchDoc, diffSince, shotsFromCut, downloadSource, probeFile, segKey, SEG_VERSION,
-  proxyId, proxyNeeded, proxyArgs, stillProxyArgs,
+  renderCut, publishRender, nextRenderIndex, loadDoc, patchDoc, diffSince, shotsFromCut, downloadSource, probeFile, probeUrl, segKey, SEG_VERSION,
+  proxyId, proxyNeeded, proxyArgs, stillProxyArgs, proxyStates, bakeProxy,
+  posterArgs, posterAt, POSTER_W,
   audioProxyId, audioProxyNeeded, audioProxyArgs,
-  trimmedCut, MAX_PIECES, MAX_RENDERS, MIN_PIECE, PROXY_EDGE, PAGE_BUILD,
+  trimmedCut, MAX_PIECES, MAX_RENDERS, MIN_PIECE, PROXY_EDGE, PAGE_BUILD, FFMPEG, FFPROBE,
 };

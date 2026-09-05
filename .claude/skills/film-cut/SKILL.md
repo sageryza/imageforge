@@ -22,6 +22,15 @@ off the doc and do your half. The full design: `docs/film-editor-parallel-editin
 - **PICTURE lane** `clips` — ordered. A clip is `{key, url, title, seconds, in, out}`;
   a STILL is `{key, kind:'image', url, title, out:<hold seconds>}` (in is 0).
   Pieces butt against each other; a piece's start is the sum of those before.
+  **Pass a Dump item's `posterUrl` as `poster`** — it is what her timeline
+  tile draws. Leave one off and the server bakes a frame beside the proxy;
+  a chat-written cut used to arrive with every tile blank (2026-09-05).
+- **`seconds` may be left off** — `set` probes every unknown source with
+  ffprobe and fills it before saving. A cut that arrives without lengths made
+  the page learn them on open and save them as HER edit (seventeen saves on
+  the ant cut), which 409'd the chat's next set and read as "she changed the
+  cut". Lengths are facts, not edits: the server accepts a stale save that
+  only learned them, and `set`'s 409 check ignores them (`CutModel.lanesDiffer`).
 - **SOUND lane** `sounds` — any number, overlapping. `{key, url, name, at, in,
   out|null, gain (dB), fadeIn, fadeOut, mute, anchor?:{piece, offset}}`.
   **Anchor a sound to a shot when it belongs to that shot** (screams on the

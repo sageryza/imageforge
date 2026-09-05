@@ -295,6 +295,208 @@ console.log('preview proxies:');
     'the audio bake drops the video stream and fronts the moov');
 }
 
+console.log('lengths are facts, not edits (lanesDiffer / carrySeconds):');
+{
+  const clipsA = [
+    { key: 'a', url: U('a.mp4'), title: 'a', seconds: 5, in: 0, out: 5 },
+    { key: 'b', url: U('b.mp4'), title: 'b', seconds: null, in: 0, out: 4 },
+  ];
+  const soundsA = [
+    { key: 'v', url: U('v.m4a'), name: 'voice', seconds: null, at: 0 },
+    { key: 'r', url: U('r.wav'), name: 'ride', seconds: 2, anchor: { piece: 'b', offset: 0.5 } },
+  ];
+  const chatDoc = { clips: clipsA, sounds: soundsA };
+  // the page learned the voice's length: seconds filled, and cleanSound fills out = seconds
+  const learned = { clips: clipsA, sounds: [{ ...soundsA[0], seconds: 17.3 }, soundsA[1]] };
+  ok(CutModel.lanesDiffer(chatDoc, learned) === false,
+    'a sound that only learned its length (seconds and the open end it fills) is NOT a move');
+  ok(CutModel.lanesDiffer(chatDoc, { ...chatDoc, clips: [{ ...clipsA[0] }, { ...clipsA[1], seconds: 4.2 }] }) === false,
+    'a clip that only learned its length is not a move either');
+  ok(CutModel.lanesDiffer(chatDoc, { ...chatDoc, clips: [clipsA[1], clipsA[0]] }) === true,
+    'a reorder IS a move');
+  ok(CutModel.lanesDiffer(chatDoc, { ...chatDoc, clips: [{ ...clipsA[0], out: 3 }, clipsA[1]] }) === true,
+    'a trim is a move');
+  ok(CutModel.lanesDiffer(chatDoc, { ...chatDoc, sounds: [{ ...soundsA[0], at: 2 }, soundsA[1]] }) === true,
+    'a sound moved on the clock is a move');
+  ok(CutModel.lanesDiffer(chatDoc, { ...chatDoc, sounds: [soundsA[0], { ...soundsA[1], gain: -6 }] }) === true,
+    'a level change is a move');
+  ok(CutModel.lanesDiffer(chatDoc, { ...chatDoc, sounds: [soundsA[0], { ...soundsA[1], anchor: { piece: 'a', offset: 0.5 } }] }) === true,
+    'an anchor moved to another shot is a move');
+  ok(CutModel.lanesDiffer(chatDoc, { ...chatDoc, sounds: [soundsA[0]] }) === true, 'a removed sound is a move');
+  ok(CutModel.lanesDiffer(chatDoc, { ...chatDoc, clips: [{ ...clipsA[0], poster: U('p.jpg') }, clipsA[1]] }) === false,
+    'a poster arriving on a clip is a fact about the file, not a move');
+  // carrySeconds: a writer that knows no length never erases one the doc learned
+  const carried = CutModel.carrySeconds(CutModel.cleanSounds(soundsA), CutModel.cleanSounds(learned.sounds), CutModel.cleanSound);
+  ok(carried[0].seconds === 17.3 && carried[0].out === 17.3, 'a chat re-sending seconds:null keeps the 17.3 the page learned, open end filled');
+  ok(carried[1].seconds === 2, 'a length the writer knows is untouched');
+  const rept = CutModel.carrySeconds(CutModel.cleanSounds([{ ...soundsA[0], url: U('other.m4a') }]), CutModel.cleanSounds(learned.sounds), CutModel.cleanSound);
+  ok(rept[0].seconds === null, 'a re-pointed sound (same key, new url) is a different file and carries nothing');
+  // and savePatch runs through it
+  const patch = fe.savePatch({ clips: clipsA, sounds: learned.sounds, updatedAt: 5 }, { sounds: soundsA });
+  ok(patch.sounds[0].seconds === 17.3, 'savePatch carries the learned length into the write');
+}
+
+// The three async sections below finish before the footer counts.
+const asyncSections = [];
+
+console.log('saveCut (the transaction, against a fake store):');
+{
+  // A fake Firestore: one doc, the transaction runs the callback, and every
+  // update is recorded so the test can read what really would be written.
+  function fakeDb(doc) {
+    const writes = [];
+    const ref = {};
+    return {
+      writes,
+      collection() { return { doc() { return ref; } }; },
+      async runTransaction(fn) {
+        const tx = {
+          async get() { return { exists: !!doc, data: () => JSON.parse(JSON.stringify(doc)) }; },
+          update(r, f) { writes.push(f); },
+        };
+        return fn(tx);
+      },
+    };
+  }
+  const run = async (doc, body, warm) => {
+    const d = fakeDb(doc);
+    const out = await fe.saveCut('cut1', body, { db: d, warm: warm || (() => {}) });
+    return { out, writes: d.writes };
+  };
+  const clipsA = [
+    { key: 'a', url: U('a.mp4'), title: 'a', seconds: 5, in: 0, out: 5 },
+  ];
+  const soundsA = [{ key: 'v', url: U('v.m4a'), name: 'voice', seconds: null, at: 0 }];
+  const stored = { clips: clipsA, sounds: soundsA, audio: null, updatedAt: 500, lastEditBy: 'chat' };
+  asyncSections.push((async () => {
+    // A: a save enqueues exactly the NEW source urls
+    {
+      const warmed = [];
+      const body = {
+        by: 'chat', base: 500,
+        clips: [clipsA[0], { key: 'b', url: U('b.mp4'), title: 'b', seconds: 3, in: 0, out: 3 },
+          { key: 's', kind: 'image', url: U('s.png'), title: 'still', out: 2 }],
+        sounds: [soundsA[0], { key: 'r', url: U('r.wav'), name: 'ride', seconds: 2, at: 1 }],
+      };
+      const { out } = await run(stored, body, (w) => warmed.push(w));
+      ok(out.status === 200, 'a fresh save lands');
+      ok(warmed.length === 1 && warmed[0].urls.join() === [U('b.mp4'), U('s.png')].join(),
+        'the picture lane warms exactly the NEW clip and the new still — never the one already on the doc (' + JSON.stringify(warmed[0] && warmed[0].urls) + ')');
+      ok(warmed[0].audio.join() === U('r.wav'), 'the sound lane warms exactly the new sound');
+      const { out: out2, writes } = await run(stored, body, () => { throw new Error('proxy store down'); });
+      ok(out2.status === 200 && writes.length === 1, 'a warm that throws never fails the save');
+      const same = fe.newSourceUrls(stored, stored);
+      ok(same.urls.length === 0 && same.audio.length === 0, 'a save that introduces nothing warms nothing');
+    }
+    // E + F: a stale base whose only change is a learned length is accepted, and it is not her edit
+    {
+      const body = { by: 'sophie', base: 100, sounds: [{ ...soundsA[0], seconds: 17.3 }] };
+      const { out, writes } = await run(stored, body);
+      ok(out.status === 200, 'a stale-base save that only learned a length is accepted, not 409');
+      ok(writes.length === 1 && writes[0].lastEditBy === 'chat', 'and lastEditBy stays what it was — a learned length is nobody\'s edit');
+      ok(writes.length === 1 && writes[0].sounds[0].seconds === 17.3 && writes[0].sounds[0].out === 17.3, 'the length is written');
+      ok(writes.length === 1 && writes[0].updatedAt > 500, 'the edit clock still moves (the page needs a fresh base back)');
+    }
+    // E: a stale base with a real move still 409s
+    {
+      const body = { by: 'chat', base: 100, clips: [{ ...clipsA[0], out: 3 }] };
+      const { out, writes } = await run(stored, body);
+      ok(out.status === 409 && writes.length === 0, 'a stale-base save that MOVED something is still refused');
+      ok(out.doc && out.doc.clips[0].out === 5, 'and the refusal carries her current doc');
+    }
+    // a current base with a real move writes the writer
+    {
+      const body = { by: 'sophie', base: 500, clips: [{ ...clipsA[0], out: 3 }] };
+      const { out, writes } = await run(stored, body);
+      ok(out.status === 200 && writes[0].lastEditBy === 'sophie', 'a real move on a current base writes who moved it');
+    }
+    // the carry: a chat re-sending seconds:null on a current base keeps the learned length
+    {
+      const learnedDoc = { ...stored, sounds: [{ ...soundsA[0], seconds: 17.3 }], updatedAt: 600 };
+      const body = { by: 'chat', base: 600, sounds: [soundsA[0]] };
+      const { out, writes } = await run(learnedDoc, body);
+      ok(out.status === 200 && writes[0].sounds[0].seconds === 17.3, 'a chat that knows no length cannot erase the one the doc learned');
+    }
+    // a missing doc
+    {
+      const d = fakeDb(null);
+      const out = await fe.saveCut('nope', { clips: [] }, { db: d, warm: () => {} });
+      ok(out.status === 404, 'no such cut → 404');
+    }
+  })());
+}
+
+console.log('proxyStates answers poster beside status/proxyUrl:');
+{
+  function fakeProxyDb(docs) {
+    return { collection() { return { doc(id) { return {
+      async get() { return { exists: !!docs[id], data: () => docs[id] }; },
+      async set(v) { docs[id] = { ...(docs[id] || {}), ...v }; },
+    }; } }; } };
+  }
+  const a = U('a.mp4'), b = U('b.mp4'), s = U('s.png'), n = U('new.mp4');
+  const docs = {};
+  docs[fe.proxyId(a)] = { url: a, status: 'ready', proxyUrl: U('pa.mp4'), poster: U('pa-poster.jpg'), at: Date.now() };
+  docs[fe.proxyId(b)] = { url: b, status: 'skip', proxyUrl: null, at: Date.now() };
+  docs[fe.proxyId(s)] = { url: s, status: 'ready', proxyUrl: U('ps.mp4'), still: true, poster: s, at: Date.now() };
+  const enqueued = [];
+  asyncSections.push((async () => {
+    const map = await fe.proxyStates([a, b, s, n], true, undefined, { db: fakeProxyDb(docs), enqueue: (u) => enqueued.push(u) });
+    ok(map[a].status === 'ready' && map[a].poster === U('pa-poster.jpg'), 'a ready proxy answers its poster');
+    ok(map[b].status === 'skip' && !('poster' in map[b]), 'a doc with no poster answers none — never a made-up one');
+    ok(map[s].still === true && map[s].poster === s, 'a still\'s poster is the picture itself');
+    ok(map[n].status === 'making' && enqueued.join() === n, 'a url with no doc is enqueued (through the injected enqueue) and answers making');
+  })());
+}
+
+console.log('the poster frame:');
+{
+  const args = fe.posterArgs('/src', '/poster.jpg', 20);
+  ok(args.indexOf('-ss') < args.indexOf('-i'), 'the seek is an INPUT option — ffmpeg seeks, it does not decode its way there');
+  ok(args[args.indexOf('-ss') + 1] === '3.000', 'fifteen percent in (' + args[args.indexOf('-ss') + 1] + ')');
+  ok(fe.posterAt(600) === 10, 'capped at ten seconds so a long master opens near its start');
+  ok(fe.posterAt(0) === 0 && fe.posterAt(null) === 0, 'an unknown length seeks nowhere');
+  ok(args.indexOf('-frames:v') !== -1 && args[args.indexOf('-frames:v') + 1] === '1', 'one frame');
+  ok(args.join(' ').indexOf('min(' + fe.POSTER_W + ',iw)') !== -1, 'never wider than POSTER_W, never upscaled');
+  ok(args[args.indexOf('-threads') + 1] === '1', 'on one thread — the 512MB box');
+  ok(args.indexOf('-q:v') !== -1, 'a jpg at the Dump\'s own quality');
+  const src = fs.readFileSync(path.join(__dirname, '..', 'filmeditor.js'), 'utf8');
+  ok(/proxy\/\$\{proxyId\(url\)\}-poster\.jpg/.test(src), 'uploaded beside the proxy under the Dump\'s -poster.jpg name');
+  ok(/poster: url,/.test(src.slice(src.indexOf('async function bakeProxy'))), 'a still\'s proxy doc carries the picture itself as its poster');
+}
+
+console.log('filmcut.js fills lengths and judges a 409 without them:');
+{
+  const cut = fs.readFileSync(path.join(__dirname, 'filmcut.js'), 'utf8');
+  ok(/!M\.lanesDiffer\(hers, doc\)/.test(cut), 'the "same lanes?" check is CutModel.lanesDiffer — seconds ignored');
+  ok(!/JSON\.stringify\(M\.readDoc\(hers\)\)/.test(cut), 'and the old whole-doc string compare is gone');
+  ok(/fillSeconds\(M\.cleanSounds\(cut\.sounds\)/.test(cut) && /fillSeconds\(M\.cleanPieces\(cut\.clips\)/.test(cut),
+    'set fills seconds on both lanes before saving');
+  const { fillSeconds } = require('./filmcut.js');
+  const probes = [];
+  const probe = async (url) => { probes.push(url); if (/dead/.test(url)) throw new Error('nope'); return { seconds: 17.3 }; };
+  asyncSections.push((async () => {
+    const sounds = await fillSeconds(CutModel.cleanSounds([
+      { key: 'v', url: U('v.m4a'), name: 'voice' },
+      { key: 'v2', url: U('v.m4a'), name: 'voice again', in: 2 },
+      { key: 'k', url: U('k.wav'), name: 'known', seconds: 4 },
+      { key: 'd', url: U('dead.wav'), name: 'dead' },
+    ]), CutModel.cleanSound, probe);
+    ok(sounds[0].seconds === 17.3 && sounds[0].out === 17.3, 'an unknown sound is probed and its open end filled');
+    ok(sounds[1].seconds === 17.3 && sounds[1].in === 2, 'a second reference to the same file keeps its own in-point');
+    ok(probes.filter((u) => u === U('v.m4a')).length === 1, 'one probe per unique url');
+    ok(sounds[2].seconds === 4 && !probes.includes(U('k.wav')), 'a known length is never probed');
+    ok(sounds[3].seconds === null, 'a probe that fails leaves null, exactly as before');
+    const clips = await fillSeconds(CutModel.cleanPieces([
+      { key: 'c', url: U('c.mp4'), title: 'c', in: 0, out: 30, poster: U('c-poster.jpg') },
+      { key: 's', kind: 'image', url: U('s.png'), title: 's', out: 3 },
+    ]), CutModel.cleanPiece, probe);
+    ok(clips[0].seconds === 17.3 && clips[0].out === 17.3, 'a clip asking past its end is clamped once the length is known');
+    ok(clips[0].poster === U('c-poster.jpg'), 'a Dump poster named in cut.json rides through');
+    ok(clips[1].seconds === null && !probes.includes(U('s.png')), 'a still is never probed');
+  })());
+}
+
 console.log('trimmedCut:');
 {
   const t = fe.trimmedCut({
@@ -337,9 +539,20 @@ console.log('the page contracts (static):');
   // TWO LANES (2026-09-02): one <audio> per sound, the one-track discipline
   // run per element — a sound starts the moment the playhead crosses ITS
   // start, and stops past its end.
-  ok(/function soundTick/.test(html) && /p\.at < 0 \|\| a\.getAttribute\('data-src'\) !== audSrc\(s\)\) return;/.test(html)
+  ok(/function soundTick/.test(html) && /if \(p\.at < 0\) return;/.test(html)
+    && /a\.getAttribute\('data-src'\) !== audSrc\(s\)\) return;/.test(html)
     && /if \(a\.paused \|\| a\.__priming\) \{\s*\n\s*startSound\(s, a, p\.at\);/.test(html),
     'a sound starts when the playhead crosses its start mid-play (per element)');
+  // 2026-09-05: the bank is LAZY — a sound's element opens with no src and
+  // no bytes until its moment is near; the first tap on her 17-sound cut used
+  // to start 17 fetches at once
+  ok(/a\.preload = 'none'/.test(html) && /function primeAhead/.test(html) && /PRIME_MAX = 3/.test(html),
+    'the sound bank opens preload:none and primes at most three at a time, most imminent first');
+  ok(/function applyEdits/.test(fs.readFileSync(path.join(__dirname, '..', 'cut-model.js'), 'utf8'))
+    && /CM\.applyEdits\(/.test(html) && /putPieces\(true\)/.test(html),
+    'a stale save RE-APPLIES her edit onto the chat’s doc and saves once more; only the second refusal reloads');
+  ok(/visibilitychange/.test(html) && /pagehide/.test(html) && /'freeze'/.test(html) && /function stopOnLeave/.test(html),
+    'leaving the app stops playback — the audio elements no longer sound on behind a paused screen');
   // Her "fine for a while, then choppy at 3/4" (2026-08-23): joint holds
   // accumulate as music drift, and the old hard >0.5s reseek yanked the
   // track backward once the film had enough joints behind it. Paced now.
@@ -443,6 +656,8 @@ console.log('the next film number never reuses one (the render list is capped):'
     'publishRender numbers the film through nextRenderIndex');
 }
 
-console.log('');
-console.log(pass + ' passed, ' + failCount + ' failed');
-process.exit(failCount ? 1 : 0);
+Promise.all(asyncSections).catch((e) => { failCount++; console.log('  FAIL — an async section crashed: ' + (e && e.stack || e)); }).then(() => {
+  console.log('');
+  console.log(pass + ' passed, ' + failCount + ' failed');
+  process.exit(failCount ? 1 : 0);
+});
