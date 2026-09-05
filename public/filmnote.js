@@ -37,6 +37,10 @@
  *     network allows, still queued after a reload if it hasn't gone yet.
  *     filmnote.js loads with the Chats app, so opening the app flushes
  *     anything a bad connection left behind.
+ *   - AND IT DOES NOT WAIT FOR THE TIMER (2026-09-05): a note is BEACONED the
+ *     instant the page goes to the background and the queue is flushed the
+ *     moment it comes back — see THE BEACON below. The 45s tick is only the
+ *     fallback now.
  *
  * AND THE PAUSED SCREEN ALSO ANSWERS "what drew this picture?" (2026-08-27,
  * Sophie: "in the play pause feedback pinned video tool, add a way to see
@@ -154,9 +158,15 @@
   function noteLine(t, words, voiceUrl){
     return '['+t+'] '+(words||'(voice note)')+(voiceUrl?' (voice: '+voiceUrl+')':'');
   }
-  function postText(chat, url, line){
+  // Every send of a note carries the outbox entry's own id as `noteId`: the
+  // server files one message per id, so the beacon below and the ordinary
+  // flush can both send the same note and it lands once.
+  function noteBody(e, line){
+    return JSON.stringify({ chat: e.chat, url: e.url, from:'sophie', text: line, noteId: e.id||'' });
+  }
+  function postText(e, line){
     return fetch('/api/gallery/assets/note',{ method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ chat: chat, url: url, from:'sophie', text: line }) })
+      body: noteBody(e, line) })
       .then(function(r){ return r.json(); })
       .then(function(d){ return !!(d&&d.ok); })
       .catch(function(){ return false; });
@@ -171,13 +181,13 @@
           e.voice=d.url; if(!e.text) e.text=d.transcript||'';
           e.audio='';                    // uploaded — stop carrying the bytes
           saveEntry(e);                  // progress persists: a retry starts here
-          return postText(e.chat, e.url, noteLine(e.t, e.text, e.voice));
+          return postText(e, noteLine(e.t, e.text, e.voice));
         })
         .catch(function(){ return false; });
     }
-    return postText(e.chat, e.url, noteLine(e.t, e.text, e.voice));
+    return postText(e, noteLine(e.t, e.text, e.voice));
   }
-  var flushing=false;
+  var flushing=false, myLocks={};
   function flush(){
     if(flushing) return;
     var list=outRead(), now=Date.now(), e=null;
@@ -187,10 +197,10 @@
       if(!(list[i].lock && now-list[i].lock<25000)){ e=list[i]; break; }
     }
     if(!e) return;
-    e.lock=now; saveEntry(e);
+    e.lock=now; saveEntry(e); myLocks[e.id]=1;
     flushing=true;
     sendEntry(e).then(function(ok){
-      flushing=false;
+      flushing=false; delete myLocks[e.id];
       if(ok){ outWrite(outRead().filter(function(x){ return x.id!==e.id; })); flush(); }
       else {
         e.lock=0; saveEntry(e);          // free it for the next try, wherever that runs
@@ -198,6 +208,53 @@
       }
     });
   }
+  /* THE BEACON — a note goes out the instant the app goes to the BACKGROUND
+     (2026-09-05, Sophie: she notes on the film, switches to the Claude app,
+     and the note arrived minutes late). A backgrounded page runs no timers
+     and its in-flight fetch can be cut off, so the outbox used to sit until
+     she came back and the 45s tick fired. sendBeacon is the one send a
+     browser promises to finish after the page is gone. It answers nothing,
+     so the entry STAYS in the outbox (stamped `beaconed`) and the flush on
+     the way back re-sends it — the server files one message per noteId, so
+     the re-send lands as the same note, never a second one. Only a note
+     whose words are ready can ride a beacon: a recording still waiting to be
+     uploaded needs the server's answer (the transcript) first, so it waits
+     for the flush. */
+  function beaconAll(){
+    if(!navigator.sendBeacon) return 0;
+    var list=outRead(), now=Date.now(), sent=0;
+    for(var i=0;i<list.length;i++){
+      var e=list[i];
+      if(e.audio && !e.voice) continue;          // needs a response — the flush's job
+      if(e.beaconed && now-e.beaconed<5000) continue;
+      var body;
+      try{ body=new Blob([noteBody(e, noteLine(e.t, e.text, e.voice))], { type:'application/json' }); }
+      catch(_){ continue; }
+      if(navigator.sendBeacon('/api/gallery/assets/note', body)){ e.beaconed=now; sent++; }
+    }
+    if(sent) outWrite(list);
+    return sent;
+  }
+  function onHidden(){ beaconAll(); }
+  /* …AND THE FLUSH THE MOMENT SHE IS BACK. A fetch this page had in flight
+     when it went to the background may never settle, which would leave
+     `flushing` stuck true and its lock held for 25s — so both are released
+     here first. The lock only ever guards against ANOTHER page, and this one
+     is the page. The re-send dedupes on the server, so releasing is safe. */
+  function onVisible(){
+    flushing=false;
+    var list=outRead(), touched=false;
+    for(var i=0;i<list.length;i++){ if(myLocks[list[i].id]){ list[i].lock=0; touched=true; } }
+    myLocks={};
+    if(touched) outWrite(list);
+    flush();
+  }
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState==='hidden') onHidden(); else onVisible();
+  });
+  window.addEventListener('pagehide', onHidden);
+  window.addEventListener('pageshow', onVisible);
+  window.__filmnoteOutbox = { flush: flush, beaconAll: beaconAll, read: outRead };
   function queueNote(entry){
     entry.id = Date.now()+'-'+Math.random().toString(36).slice(2,8);
     var list=outRead(); list.push(entry);
@@ -210,7 +267,7 @@
     flush();
   }
   window.addEventListener('online', flush);
-  setInterval(flush, 45000);             // no-ops on an empty queue
+  setInterval(flush, 45000);             // the fallback tick — no-ops on an empty queue
   setTimeout(flush, 1200);               // opening any page that loads this flushes stragglers
 
   // How long iOS keeps its tinted controls overlay up on a playing film
