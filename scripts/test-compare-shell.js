@@ -159,6 +159,23 @@ __PILL__
          && !v.getAttribute('src'),
          'closing restores the position and tears the video down');
 
+      // 5b. AN AUDIO TAKE PLAYS IN ITS ROW (2026-09-05, Sophie: "if i'm
+      // comparing takes -> compare tab"). No overlay, no page lock; one take
+      // at a time, and the row says which one is sounding.
+      window.__filmRow({ url: '/take1.mp3', label: 'take 1', mount: '#film' });
+      window.__filmRow({ url: '/take2.mp3', label: 'take 2', mount: '#film' });
+      var ar = document.querySelectorAll('#film .cmp-film.cmp-audio');
+      ok(ar.length === 2, 'an audio url makes an audio row (' + ar.length + ')');
+      ar[0].click();
+      ok(ar[0].classList.contains('playing') && document.querySelector('.cmp-vlb').hasAttribute('hidden')
+         && document.body.style.overflow === '',
+         'tapping a take plays it in the row — no overlay, page not locked');
+      ar[1].click();
+      ok(!ar[0].classList.contains('playing') && ar[1].classList.contains('playing'),
+         'tapping another take takes over — one at a time');
+      ar[1].click();
+      ok(!ar[1].classList.contains('playing'), 'tapping the playing take stops it');
+
       // 6. THE "?" — the one place instructions may live (Sophie, Aug 2026:
       // "they can put it behind a ? so I can tap it if I don't know what's
       // going on"). It rides on the title, clear of the pill's corner, and

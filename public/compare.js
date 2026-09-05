@@ -244,7 +244,10 @@
       + '.cmp-film .g{flex:0 0 auto; width:30px; height:30px; border-radius:50%;'
       + ' border:1.5px solid var(--ink,#2b2724); display:flex; align-items:center; justify-content:center;}'
       + '.cmp-film .t{flex:1 1 auto; font-size:15px;}'
-      + '.cmp-film .m{flex:0 0 auto; font-size:12.5px; color:var(--ink2,#7a736c);}';
+      + '.cmp-film .m{flex:0 0 auto; font-size:12.5px; color:var(--ink2,#7a736c);}'
+      // an audio row that is sounding: the glyph is filled, so a glance down a
+      // list of takes says which one is playing
+      + '.cmp-film.playing .g{background:var(--ink,#2b2724); color:var(--paper,#fff);}';
     document.head.appendChild(css);
   }
   /* TAP-TO-NOTE, when the caller says which chat the film belongs to (Aug
@@ -306,14 +309,26 @@
       else wrap.insertBefore(mount, wrap.firstChild);
     }
     ensureMediaCSS();
+    var isAudio = opts.kind === 'audio' || (opts.kind !== 'video' && AUDIO_RE.test(String(opts.url)));
     var b = document.createElement('button');
     b.className = 'cmp-film';
     b.type = 'button';
     b.innerHTML = '<span class="g"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"'
       + ' stroke="currentColor" stroke-width="1" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg></span>'
       + '<span class="t"></span><span class="m"></span>';
-    b.querySelector('.t').textContent = opts.label || 'Play the film';
+    b.querySelector('.t').textContent = opts.label || (isAudio ? 'Play' : 'Play the film');
     b.querySelector('.m').textContent = opts.meta || '';
+    if (isAudio) {
+      // AN AUDIO TAKE PLAYS IN ITS ROW (2026-09-05, Sophie: "if i'm comparing
+      // takes -> compare tab"). A six-second cello take has no picture, so the
+      // full-screen video overlay is a black slab over the page she is
+      // comparing on; the row itself is the player — tap plays, tap again
+      // pauses, one take at a time, the glyph says which is sounding.
+      b.classList.add('cmp-audio');
+      b.addEventListener('click', function () { toggleAudio(b, opts.url); });
+      mount.appendChild(b);
+      return b;
+    }
     // `chat` opts a row into tap-to-note; `noteUrl` overrides what the note
     // is filed against, for a row whose playable url is not its identity
     b.addEventListener('click', function () {
@@ -323,6 +338,34 @@
     mount.appendChild(b);
     return b;
   };
+  var AUDIO_RE = /\.(mp3|m4a|wav|aac|ogg|oga|flac)(\?|#|$)/i;
+  var aud = null, audRow = null;
+  var PLAY_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor"'
+    + ' stroke-width="1" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
+  var PAUSE_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor"'
+    + ' stroke-width="1"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+  function audioStop() {
+    if (aud) { try { aud.pause(); } catch (_) { /* fine */ } }
+    if (audRow) { audRow.classList.remove('playing'); audRow.querySelector('.g').innerHTML = PLAY_SVG; }
+    audRow = null;
+  }
+  function toggleAudio(row, url) {
+    if (audRow === row) { audioStop(); return; }
+    audioStop();
+    if (!aud) {
+      aud = new Audio();
+      aud.preload = 'auto';
+      aud.addEventListener('ended', audioStop);
+      aud.addEventListener('error', audioStop);
+    }
+    aud.src = url;
+    audRow = row;
+    row.classList.add('playing');
+    row.querySelector('.g').innerHTML = PAUSE_SVG;
+    var p = aud.play();                      // inside the tap, so iOS allows it
+    if (p && p.catch) p.catch(audioStop);
+  }
+  window.__compareShell.audioStop = audioStop;
   window.__compareShell.openVideo = openVideo;
   window.__compareShell.closeVideo = closeVideo;
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeVideo(); });

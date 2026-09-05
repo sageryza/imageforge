@@ -3888,6 +3888,16 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   typed words to make a phone photo and no model drew it, so counting those
   sent chats hunting something that never existed. A missing **label** is
   still a finding for them — and a Dump photo now arrives with one by itself.
+- **COMPARING TAKES — AUDIO TOO — IS A COMPARE PAGE, NEVER A LIST OF LINKS
+  (2026-09-05, Sophie, handed four cello takes as four mp3 links: "if i'm
+  comparing takes -> compare tab").** Anything she has to choose BETWEEN —
+  sound-effect takes, TTS takes, music beds, cuts of a film — goes into the
+  chat's Compare tab: one `__filmRow` per take, each inside a `[data-item]`
+  block so her ♥/✕ and note land on the take itself, and the title says what
+  is being compared. An AUDIO url plays IN ITS ROW (tap plays, tap again
+  stops, one at a time; `kind:'audio'` when the url has no extension) — the
+  video overlay is a black slab over a page whose whole point is listening
+  side by side. `compare-shell.html` carries the pattern.
 - **Do NOT dump image-link lists at the bottom of replies (Sophie, Aug 2026).**
   She reviews images in the Assets tab, not in chat — a stack of markdown links
   is clutter. Deliver images by filing them directly instead:
