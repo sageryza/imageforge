@@ -184,6 +184,15 @@ function tiles(name, plan, dur) {
   eq('and nothing is spliced', p.pieces.map((x) => x.type), ['audio']);
 }
 {
+  // 'cut' is a NOTE (2026-09-05): the plan lists it and renders nothing
+  const p = planEdit({ pauses: PAUSES, set: { p00: 'cut' }, added: { a3: 'cut', a1: 0.8 }, words: T, dur: DUR });
+  ok('a cut pause renders nothing — only the real add is an item', p.items.length === 1 && p.items[0].kind === 'add' && p.items[0].id === 'a1');
+  ok('and both cuts are reported, in recording order', p.cuts.length === 2 && p.cuts.every((c, i, arr) => !i || arr[i - 1].a <= c.a) && p.cuts.map((c) => c.id).sort().join() === 'a3,p00');
+  ok('a cut on a detected pause keeps its length for the chat', p.cuts.some((c) => c.id === 'p00' && Math.abs(c.was - PAUSES[0].len) < 0.001));
+  ok("clampLen('cut') is null", clampLen('cut') === null);
+}
+
+{
   const p = planEdit({ pauses: PAUSES, set: { p00: 'keep', p01: '' }, added: {}, words: T, dur: DUR });
   eq('"leave it" answers are not changes', p.items.length, 0);
 }

@@ -6771,6 +6771,13 @@ before working on that module. Nothing was deleted — the moved text is verbati
   and the page splices in the browser, so changing a length costs no round
   trip; ninety minutes decoded would be most of a gigabyte in a WKWebView.
   Transcription ~$0.006/min once ever per recording; everything else is free.
+  **"CUT PAUSE" IS A NOTE FOR THE CHAT (2026-09-05, Sophie: "the function is
+  a note for u, then u fix").** Every chip's sheet carries a red *cut pause*
+  button; it stores the word `cut` in `set`/`added` in place of a length, the
+  chip paints red and says *cut*, the tally counts "N to cut", and the plan
+  renders NOTHING for it (`cuts` on `planEdit`'s answer). A chat rendering her
+  film reads them off `GET /api/pausing/:id` and tightens those spots by
+  energy — never assume a marked pause was rendered shorter by the tool.
   Tests: `node scripts/test-pausing.js` (pure) and `node
   scripts/test-pausing-page.js` (the real page, headless, asserting on the
   SAMPLES — a pause must be quiet and NON-ZERO).

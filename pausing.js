@@ -23,6 +23,18 @@
 // See docs/audio-pipeline.md, "The three structural holes" — this is the
 // second one.
 //
+// "CUT PAUSE" IS A NOTE, NOT A LENGTH (2026-09-05, Sophie, marking the Ant
+// Farm voice: "there was no way to mark that … the function is a note for u,
+// then u fix … just add a 'cut pause' button in the pause length options").
+// The detector misses a gap that has already been compressed once, and an
+// undetected gap can only be ADDED to, never shortened — so the sheet on
+// every chip carries "cut pause", which stores the word 'cut' in `set` (a
+// detected pause) or `added` (a spot she tapped) in place of a length. The
+// plan (`pause-plan.js`) renders NOTHING for it and lists it under `cuts`;
+// the chat rendering her film reads `GET /:id` (or `/plan`) and tightens
+// those spots by energy, the way any word cut is done. Nothing here spends
+// or splices on her behalf.
+//
 // WHAT IT DELIBERATELY DOES NOT DO: cut words. The reference page had a CUT
 // mode; the Cutting Room and Cutting Blocks both do that properly, with the
 // re-listen every real word cut needs. This tool only ever touches AIR, so

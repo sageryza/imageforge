@@ -36,8 +36,17 @@
   // Her answer for one pause → a length in seconds, or null for "leave it".
   // '' and 'keep' both mean untouched; they are what the sheet stores when
   // she taps "leave it" after having changed something.
+  // 'cut' is a NOTE, not a length (2026-09-05, Sophie: "just add a 'cut
+  // pause' button in the pause length options" — "the function is a note for
+  // u, then u fix"). It marks a pause she wants SHORTER than the tool can
+  // make it; the plan leaves the audio untouched and lists it under `cuts`
+  // so the chat that renders her film reads the marks off the doc and does
+  // the cut by ear/energy. clampLen answers null for it, so nothing below
+  // ever tries to render it.
+  var CUT = 'cut';
+  function isCut(v) { return v === CUT; }
   function clampLen(v) {
-    if (v === '' || v === null || v === undefined || v === 'keep') return null;
+    if (v === '' || v === null || v === undefined || v === 'keep' || v === CUT) return null;
     var n = Number(v);
     if (!isFinite(n) || n <= 0) return null;
     return Math.round(Math.min(LEN_MAX, Math.max(LEN_MIN, n)) * 100) / 100;
@@ -67,9 +76,11 @@
     pauses.forEach(function (p) { byId[p.id] = p; });
 
     var items = [];
+    var cuts = [];
     Object.keys(set).forEach(function (id) {
       var p = byId[id];
       if (!p) return;
+      if (isCut(set[id])) { cuts.push({ id: id, a: p.a, b: p.b, was: p.len }); return; }
       var len = clampLen(set[id]);
       if (len === null) return;
       if (Math.abs(len - p.len) < SAME) return;   // no-op: don't re-cut a gap to itself
@@ -77,10 +88,12 @@
     });
     Object.keys(added).forEach(function (id) {
       var wi = parseInt(String(id).replace(/^a/, ''), 10);
-      var len = clampLen(added[id]);
-      if (len === null || !isFinite(wi)) return;
+      if (!isFinite(wi)) return;
       var at = addAt(words, wi);
       if (at === null) return;
+      if (isCut(added[id])) { cuts.push({ id: id, a: at, b: at, was: 0 }); return; }
+      var len = clampLen(added[id]);
+      if (len === null) return;
       items.push({ kind: 'add', id: id, a: at, b: at, was: 0, len: len });
     });
 
@@ -126,8 +139,11 @@
       // what the edit does to the length of the recording, which is the one
       // number worth showing her
       delta: Math.round((total - dur) * 100) / 100,
+      // her "cut pause" marks — notes for the chat, in recording order,
+      // untouched by the render above
+      cuts: cuts.sort(function (x, y) { return x.a - y.a; }),
     };
   }
 
-  return { planEdit: planEdit, clampLen: clampLen, addAt: addAt, LEN_MIN: LEN_MIN, LEN_MAX: LEN_MAX };
+  return { planEdit: planEdit, clampLen: clampLen, addAt: addAt, isCut: isCut, CUT: CUT, LEN_MIN: LEN_MIN, LEN_MAX: LEN_MAX };
 }));
