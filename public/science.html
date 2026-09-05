@@ -296,7 +296,7 @@
 
   /* ── Lesson 2 — What's Inside One ── */
   var INSIDE_CARDS = [
-    { img: 'in-01', bg: '#ffffff', kicker: 'Inside a cell', h: 'Not a bag of soup',
+    { img: 'in-01', video: 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0ddf327252744f3f3f02db726355bb06.mp4', bg: '#ffffff', kicker: 'Inside a cell', h: 'Not a bag of soup',
       body: 'A cell is not one substance. Inside its outer membrane there are separate pieces of machinery, each walled off, each doing one job — the way a kitchen has an oven and a sink and a bin rather than one all-purpose surface. They are called <b>organelles</b>, little organs.' },
     { img: 'in-02', bg: '#ffffff', kicker: 'The office', h: 'The nucleus',
       body: 'The largest thing in most of your cells is the <b>nucleus</b>, a sphere with its own double membrane holding the DNA. Nothing comes out of it but copies — instructions are transcribed inside and the copy is sent out to be used. The original never leaves the room. Lesson 4 is about what happens to those copies.' },
@@ -631,7 +631,14 @@
       $('deck-stage').innerHTML = '<div class="tcard">' +
         '<div class="deck-head"><div class="tcard-kicker">' + esc(c.kicker) + '</div>' +
         '<div class="tcard-h">' + esc(c.h) + (c.faq ? FAQ_BTN : '') + '</div></div>' +
-        '<img class="tcard-img" src="' + SCI_IMG + c.img + SCI_EXT + '" alt="">' +
+        // A card whose picture MOVES (the cell turning into the kitchen on
+        // "Not a bag of soup", 2026-09-05, Sophie: "put the cell morph into
+        // the actual lesson it belongs"): its still is the poster, the clip
+        // plays once, muted, and holds its last frame. Everything else is the
+        // still it always was.
+        (c.video
+          ? '<video class="tcard-img" src="' + c.video + '" poster="' + SCI_IMG + c.img + SCI_EXT + '" autoplay muted playsinline preload="auto"></video>'
+          : '<img class="tcard-img" src="' + SCI_IMG + c.img + SCI_EXT + '" alt="">') +
         '<div class="deck-text"><div class="tcard-body">' + c.body + '</div>' +
         (deckIdx === 0 ? TAP_HINT : '') + '</div>' +
         (c.faq ? faqPanel(c.faq) : '') + '</div>';
