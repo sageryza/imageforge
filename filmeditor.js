@@ -46,6 +46,22 @@
 // A piece's `mute` swaps its PCM for anullsrc and its `gain` rides a
 // `volume` filter on that segment's PCM.
 //
+// EVERY PIECE IS BANKED — THE SEGMENT CACHE (2026-09-05, Sophie: "does it
+// have to rerender everything every time"). It did: every render re-cut
+// every piece, so a one-shot change to a 20-piece cut cost twenty encodes
+// and a minute or two of the box. A piece's segment (the mp4) and its PCM
+// (the wav) are fully determined by the source url, the kind, the requested
+// in/out (or a still's hold), gain, mute, the canvas and the encode recipe —
+// so that is the key (`segKey`, sha1), and both files are banked in Storage
+// under `filmeditor/seg-cache/<key>.{mp4,wav}` the way the Episode Editor
+// banks clips. A hit skips the source download, the probe and both encodes;
+// a change to one shot re-cuts one shot. The key uses the REQUESTED in/out,
+// not the probe-clamped ones, so a hit needs no probe at all — the clamp is
+// deterministic per url and a Storage url is immutable. Bump SEG_VERSION
+// when the segment recipe (segmentFilters, crf, RENDER_CAP, the audio
+// filter) changes. A cache read or write can never fail a render; a render
+// with no Firebase simply encodes everything, exactly as before.
+//
 // THE SOUNDS ARE MIXED AT THE MUX, ONE GRAPH (mixGraph — pure, exported):
 // every non-muted sound is one input, trimmed with -ss/-to as input options,
 // then (a MONO file first through pan=stereo|c0=c0|c1=c0 — aformat's own
@@ -643,6 +659,55 @@ async function probeFile(file) {
   };
 }
 
+// ─── the segment cache ──────────────────────────────────────────────
+const SEG_VERSION = 'v1';
+const SEG_CACHE_FOLDER = `${STORAGE_FOLDER}/seg-cache`;
+const SEG_CRF = '20';
+
+// Pure: what a piece's banked segment is keyed on. Anything that changes the
+// bytes of the segment or its PCM is in here; anything that does not (the
+// piece's key, its title, its position in the cut) is not.
+function segKey(piece, target) {
+  const still = piece.kind === 'image';
+  const parts = [
+    SEG_VERSION, String(piece.url || ''), still ? 'still' : 'video',
+    still ? '0' : Number(piece.in || 0).toFixed(3), Number(piece.out).toFixed(3),
+    piece.mute ? 'mute' : `gain=${Number(piece.gain) || 0}`,
+    `${target.width}x${target.height}`, `crf=${SEG_CRF}`, RENDER_CAP.join(' '),
+  ];
+  return crypto.createHash('sha1').update(parts.join('|')).digest('hex');
+}
+
+// The default cache is Storage; a caller (the integration test) hands in its
+// own {get, put}. Both halves must be there for a hit — a wav without its
+// segment (a put that died between the two uploads) is a miss and re-cuts.
+const storageCache = {
+  async get(key, segFile, wavFile) {
+    let b = null;
+    try { b = admin.apps.length ? admin.storage().bucket() : null; } catch { b = null; }
+    if (!b) return false;
+    try {
+      await b.file(`${SEG_CACHE_FOLDER}/${key}.mp4`).download({ destination: segFile });
+      await b.file(`${SEG_CACHE_FOLDER}/${key}.wav`).download({ destination: wavFile });
+      return true;
+    } catch {
+      fs.rmSync(segFile, { force: true });
+      fs.rmSync(wavFile, { force: true });
+      return false;
+    }
+  },
+  async put(key, segFile, wavFile) {
+    if (!admin.apps.length) return;
+    try {
+      const cc = 'public, max-age=31536000, immutable';
+      await editor.uploadPublic(segFile, `${SEG_CACHE_FOLDER}/${key}.mp4`, 'video/mp4', cc);
+      await editor.uploadPublic(wavFile, `${SEG_CACHE_FOLDER}/${key}.wav`, 'audio/wav', cc);
+    } catch (err) {
+      console.warn('filmeditor: segment cache write failed —', err.message);
+    }
+  },
+};
+
 // ─── the render itself ──────────────────────────────────────────────
 // Takes a doc OBJECT and a working dir the caller owns; returns the finished
 // file and what it was cut from. No Firestore, no upload — runRender wraps
@@ -652,6 +717,7 @@ async function renderCut(doc, opts) {
   const dir = opts.dir;
   const progress = opts.progress || (async () => {});
   const download = opts.download || downloadSource;
+  const cache = opts.cache === undefined ? storageCache : opts.cache;
   if (!FFMPEG || !FFPROBE) throw new Error('ffmpeg/ffprobe unavailable');
   if (!dir) throw new Error('renderCut needs a dir');
   const lanes = readDoc(doc);
@@ -686,14 +752,32 @@ async function renderCut(doc, opts) {
 
   const segs = [];
   const auds = [];
+  let banked = 0;
   for (let i = 0; i < pieces.length; i++) {
     const p = pieces[i];
+    const seg = path.join(dir, `seg-${i}.mp4`);
+    const wav = path.join(dir, `aud-${i}.wav`);
+    const still = p.kind === 'image';
+
+    // Banked already? Then no download, no probe, no encode — the two files
+    // come straight out of the cache.
+    const key = segKey(p, target);
+    let hit = false;
+    if (cache) {
+      try { hit = await cache.get(key, seg, wav); } catch { hit = false; }
+    }
+    if (hit) {
+      banked++;
+      await progress(i, total, `piece ${i + 1} of ${pieces.length} — ${p.title || 'untitled'} (banked)`.slice(0, 80));
+      segs.push(seg);
+      auds.push(wav);
+      continue;
+    }
+
     await progress(i, total, `piece ${i + 1} of ${pieces.length} — ${p.title || 'untitled'}`.slice(0, 80));
     const src = await sourceFor(p.url);
-    const still = p.kind === 'image';
     if (!still && !src.probe.hasVideo) throw new Error(`"${p.title || 'a piece'}" has no video stream`);
 
-    const seg = path.join(dir, `seg-${i}.mp4`);
     let tIn = 0;
     let tOut = p.out;
     if (still) {
@@ -701,7 +785,7 @@ async function renderCut(doc, opts) {
       // segment filters — one canvas, one fps, its own encode.
       await run(FFMPEG, ['-y', '-loop', '1', '-t', Number(p.out).toFixed(3), '-i', src.file,
         '-vf', assembly.segmentFilters(target), '-an',
-        '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', ...RENDER_CAP,
+        '-c:v', 'libx264', '-preset', 'veryfast', '-crf', SEG_CRF, ...RENDER_CAP,
         '-movflags', '+faststart', seg], 900000);
     } else {
       // The kept span decoded accurately (-ss/-to as INPUT options = source
@@ -713,7 +797,7 @@ async function renderCut(doc, opts) {
       if (tOut - tIn < MIN_PIECE / 2) throw new Error(`"${p.title || 'a piece'}" trims to nothing`);
       await run(FFMPEG, ['-y', '-ss', tIn.toFixed(3), '-to', tOut.toFixed(3), '-i', src.file,
         '-vf', assembly.segmentFilters(target), '-an',
-        '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', ...RENDER_CAP,
+        '-c:v', 'libx264', '-preset', 'veryfast', '-crf', SEG_CRF, ...RENDER_CAP,
         '-movflags', '+faststart', seg], 900000);
     }
 
@@ -722,7 +806,6 @@ async function renderCut(doc, opts) {
     // muted piece and a silent source all lay down silence.
     const segDur = await editor.audioDuration(seg);
     if (!segDur) throw new Error(`"${p.title || 'a piece'}" encoded to nothing`);
-    const wav = path.join(dir, `aud-${i}.wav`);
     if (!still && !p.mute && src.probe.hasAudio) {
       await run(FFMPEG, ['-y', '-ss', tIn.toFixed(3), '-to', tOut.toFixed(3), '-i', src.file,
         '-vn', '-af', segmentAudioFilter(p), '-t', segDur.toFixed(3),
@@ -733,6 +816,9 @@ async function renderCut(doc, opts) {
     }
     segs.push(seg);
     auds.push(wav);
+    if (cache) {
+      try { await cache.put(key, seg, wav); } catch (err) { console.warn('filmeditor: segment cache put failed —', err.message); }
+    }
   }
 
   // The sounds: each downloaded once, probed for the length the doc does
@@ -781,7 +867,7 @@ async function renderCut(doc, opts) {
   return {
     file: out, seconds: Math.round(seconds * 10) / 10,
     width: target.width, height: target.height,
-    clips: pieces, sounds, mixed: active.length,
+    clips: pieces, sounds, mixed: active.length, banked,
   };
 }
 
@@ -1058,7 +1144,7 @@ module.exports = {
   // the mix
   mixGraph, activeSounds, soundInputArgs, segmentAudioFilter, soundLength,
   // the render, the diff, the shot map
-  renderCut, diffSince, shotsFromCut, downloadSource, probeFile,
+  renderCut, diffSince, shotsFromCut, downloadSource, probeFile, segKey, SEG_VERSION,
   proxyId, proxyNeeded, proxyArgs, stillProxyArgs,
   audioProxyId, audioProxyNeeded, audioProxyArgs,
   trimmedCut, MAX_PIECES, MAX_RENDERS, MIN_PIECE, PROXY_EDGE, PAGE_BUILD,

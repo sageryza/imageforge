@@ -171,6 +171,61 @@ const ABSENT = -50;    // and one that is not reads well below it
   } catch (e) { refused = e.message; }
   ok(/has no audio/.test(refused || ''), 'a sound with no audio stream fails the render honestly: ' + refused);
 
+  console.log('the segment cache — a change to one shot re-cuts one shot:');
+  // the key, pure
+  const T = { width: 320, height: 240 };
+  ok(fe.segKey(red, T) === fe.segKey({ ...red, key: 'other', title: 'renamed' }, T), 'the key ignores the piece\'s id and title');
+  ok(fe.segKey(red, T) !== fe.segKey({ ...red, out: 2 }, T), 'a trim is a new key');
+  ok(fe.segKey(red, T) !== fe.segKey({ ...red, gain: -6 }, T) && fe.segKey(red, T) !== fe.segKey({ ...red, mute: true }, T),
+    'gain and mute are in the key (they change the PCM)');
+  ok(fe.segKey(red, T) !== fe.segKey(red, { width: 640, height: 480 }), 'the canvas is in the key');
+  ok(fe.segKey(blue, T) !== fe.segKey({ ...blue, out: 1 }, T), 'a still\'s hold is in the key');
+  // an in-memory cache that records what the render asked of it
+  const bank = new Map();
+  const asked = { hits: 0, misses: 0, puts: 0 };
+  const memCache = {
+    async get(key, seg, wav) {
+      const e = bank.get(key);
+      if (!e) { asked.misses++; return false; }
+      fs.writeFileSync(seg, e.seg); fs.writeFileSync(wav, e.wav); asked.hits++; return true;
+    },
+    async put(key, seg, wav) { bank.set(key, { seg: fs.readFileSync(seg), wav: fs.readFileSync(wav) }); asked.puts++; },
+  };
+  const downloads = [];
+  const countingDownload = (url, file) => { downloads.push(url); return download(url, file); };
+  const dir5 = path.join(root, 'r5'); fs.mkdirSync(dir5);
+  const r5 = await fe.renderCut({ clips: [red, blue, green], sounds: [] }, { dir: dir5, download: countingDownload, cache: memCache });
+  ok(asked.puts === 3 && asked.hits === 0 && r5.banked === 0, `a cold render banks every piece (${asked.puts} put, ${asked.hits} hit)`);
+  downloads.length = 0;
+  const labels5 = [];
+  const dir6 = path.join(root, 'r6'); fs.mkdirSync(dir6);
+  const r6 = await fe.renderCut({ clips: [red, { ...blue, out: 1 }, green], sounds: [] }, {
+    dir: dir6, download: countingDownload, cache: memCache, progress: async (d, t, l) => { labels5.push(l); },
+  });
+  ok(asked.hits === 2 && asked.puts === 4 && r6.banked === 2, `the still's hold changed: two hits, one re-cut (${asked.hits} hit, ${asked.puts} put)`);
+  ok(!downloads.includes(U('green.mp4')) && downloads.includes(U('blue.png')),
+    'a banked piece is not even downloaded; the changed one is (' + downloads.map((u) => u.split('/').pop()).join(', ') + ')');
+  ok(labels5.some((l) => /piece 3 of 3 — green \(banked\)/.test(l)), 'progress says which pieces came out of the bank');
+  ok(Math.abs(duration(r6.file) - 7) < 0.15, `the film is 7s — 3 + a 1s hold + 3 (got ${duration(r6.file).toFixed(2)})`);
+  ok(colourAt(r6.file, 1) === 'red' && colourAt(r6.file, 3.5) === 'blue' && colourAt(r6.file, 5.5) === 'green',
+    'red at 1s, the shorter blue hold at 3.5s, green at 5.5s — banked segments join exactly as fresh ones');
+  const c220 = toneLevel(r6.file, 220, 0.1, 0.8);
+  ok(c220 > PRESENT, `the banked red clip still carries its own sound (220Hz: ${c220} dB)`);
+  // a cache that dies never fails a render
+  const dir7 = path.join(root, 'r7'); fs.mkdirSync(dir7);
+  const broken = { async get() { throw new Error('storage down'); }, async put() { throw new Error('storage down'); } };
+  const r7 = await fe.renderCut({ clips: [red], sounds: [] }, { dir: dir7, download, cache: broken });
+  ok(fs.existsSync(r7.file) && r7.banked === 0, 'a cache that throws on both sides still renders');
+  // a half-banked entry (the wav missing) is a miss, never a broken join
+  const halfKey = fe.segKey(red, T);
+  const halfCache = {
+    async get(key, seg, wav) { const e = bank.get(key); if (!e || key !== halfKey) return false; fs.writeFileSync(seg, e.seg); return false; },
+    async put() {},
+  };
+  const dir8 = path.join(root, 'r8'); fs.mkdirSync(dir8);
+  const r8 = await fe.renderCut({ clips: [red], sounds: [] }, { dir: dir8, download, cache: halfCache });
+  ok(Math.abs(duration(r8.file) - 3) < 0.15 && r8.banked === 0, 'a miss after a partial read re-cuts cleanly');
+
   server.close();
   fs.rmSync(root, { recursive: true, force: true });
   console.log('');
