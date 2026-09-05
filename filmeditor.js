@@ -1198,10 +1198,16 @@ router.post('/telemetry', async (req, res) => {
       ph0: telNum(b.ph0, 36000), ph1: telNum(b.ph1, 36000),
       dur: telNum(b.dur, 3600000), joints: telNum(b.joints, 10000),
       vholdMs: telNum(b.vholdMs, 3600000), choldMs: telNum(b.choldMs, 3600000),
+      // where a play froze (fe-2026-09-05b): the longest run of ticks that
+      // moved the playhead nowhere, and whether a play() was refused
+      stuckAt: telNum(b.stuckAt, 36000), stuckMs: telNum(b.stuckMs, 3600000),
+      playRefused: telNum(b.playRefused, 10000),
+      refusedName: String(b.refusedName || '').slice(0, 40),
       black: (Array.isArray(b.black) ? b.black : []).slice(0, 30).map((n) => telNum(n, 60000)),
       rvfc: (Array.isArray(b.rvfc) ? b.rvfc : []).slice(0, 2).map((n) => telNum(n, 10000000)),
       aud: b.aud && typeof b.aud === 'object' ? {
         src: b.aud.src === 'proxy' ? 'proxy' : 'raw',
+        n: telNum(b.aud.n, 40),
         startMs: b.aud.startMs == null ? null : telNum(b.aud.startMs, 3600000),
         entries: (Array.isArray(b.aud.entries) ? b.aud.entries : []).slice(0, 20)
           .map((n) => Math.max(-3600, Math.min(Number(n) || 0, 3600))),
