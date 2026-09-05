@@ -48,6 +48,23 @@ The numbers are measured, not guessed.
    gallery is their place). Full rules: *THE DELIVERABLES LIST* in the
    inbox-and-odds-and-ends section.
 
+3d2. **WHATEVER YOU HAND HER LIVES IN THIS CHAT — the reply carries the
+   link, and the thing sits in one of the chat's own tabs (2026-09-05,
+   Sophie, after three sound options went only to the deliverables list:
+   "it shud only ever be in THIS chat. how would i have known to look
+   there...??????").** The deliverables list is a SECOND door, never the
+   one you point her at: a film is the pin, pictures are the Assets tab,
+   options to compare are a Compare page, and a sound or a file is a
+   direct link in the reply — and it is named in the reply either way. A
+   reply that says "it's on your deliverables list" with no link in it is
+   a deliverable she cannot find; the Delivered tab also hides a row the
+   moment she writes back, so it is the one place that can be empty by the
+   time she looks. **AND A `/api/drop/file/<id>` LINK DOWNLOADS — it is the
+   SAVE link, never the way to watch or listen** (same hour: "every time u
+   give me a link, i have to download it to watch it jsyk"). Something she
+   is meant to play goes where it plays inline — the pin, a Compare page
+   with a player, the Assets tab — and the save link rides underneath for
+   keeping a copy.
 3e. **A FINAL video being exported for posting gets a CLEAN COPY** —
    metadata stripped with a stream copy (pixels byte-identical, verified by
    hash), filed into the Dump with a real filename, direct save link
