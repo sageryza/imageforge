@@ -120,6 +120,18 @@ The numbers are measured, not guessed.
    wrap-up for the archive row). Anything still open → stay live and say what
    it is. Full rule: *A BUG-FIX CHAT PUTS ITSELF AWAY* in the Chats section.
 
+**NOTHING IS DRAWN OR ANIMATED UNLESS SHE SAYS TO MAKE IT (2026-09-05,
+Sophie: "images and movies should not be made unless i specifically say
+to").** "Use up the credits" is a reason, not a go; "pull the stills" is
+gather and show, not draw. A message that names a subject and a budget is
+asking for the LIST — the stills, the shots, the model, the size, the price
+— and the go is a separate message of hers. The chat that earned this read
+"use up the credits, pull the ant stills" as permission and had fifteen
+clips drawing before she saw a single shot. When in doubt, the page with the
+plan costs nothing; the batch is what cannot be taken back. **And banked
+credits are dollars: 930 APIFRAME credits is $9.30, three times the $3
+ask line.**
+
 **Animating a still or generating a clip (Seedance, Wan, Kling, any model)**
 - **MINIMUM SECONDS UNLESS SHE SPECIFIES, and ASK BEFORE SPENDING THE
   CREDITS (2026-09-05, Sophie, after a chat drew fifteen 8-second clips for
