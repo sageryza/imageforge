@@ -2850,6 +2850,24 @@ them off the reference sheet, not off the old filenames.
       `ringChat` has exactly this shape), and it goes through `chat-wake.ring`
       with `registry` + `followMoves` so a forked or re-keyed chat still
       resolves. Pinned by `node scripts/test-asset-note-bell.js`.
+    - **A FILM NOTE LEAVES THE PHONE THE INSTANT SHE SWITCHES APPS
+      (2026-09-05, Sophie: she notes on the film, opens the Claude app, and
+      the note arrived minutes late).** `filmnote.js`'s outbox only sent
+      while the page was in front — a backgrounded page runs no timers and
+      its fetch can be cut off — so a note waited for her to come back AND
+      for the 45s tick. Now: `visibilitychange`→hidden and `pagehide` send
+      every text-ready entry by `sendBeacon` (the one send a browser
+      finishes after the page is gone), and visible/`pageshow` flushes the
+      queue at once. A beacon answers nothing, so the entry STAYS queued
+      (stamped `beaconed`) and the flush re-sends it — every send carries
+      the entry's own `noteId`, and `appendAssetMessage` files ONE message
+      per id inside its transaction (a duplicate answers `duplicate:true`
+      and never rings the bell). A recording still waiting to be uploaded
+      cannot ride a beacon (it needs the transcript back) and waits for the
+      flush. The 45s tick is only the fallback. Test: step 7b of
+      `node scripts/test-chats-film-note.js` (a REAL beacon against the stub,
+      the outbox read after the beacon and after the return, the re-send's
+      noteId; verified failing 4 pre-fix).
     - **THE BELL IS NOT A SUBSTITUTE FOR THE RE-READ.** A chat mid-turn is
       already awake, so nothing wakes it — the doorbell only helps a chat that
       has finished. The note that got ignored landed while a chat was working.
@@ -6771,6 +6789,13 @@ before working on that module. Nothing was deleted — the moved text is verbati
   and the page splices in the browser, so changing a length costs no round
   trip; ninety minutes decoded would be most of a gigabyte in a WKWebView.
   Transcription ~$0.006/min once ever per recording; everything else is free.
+  **"CUT PAUSE" IS A NOTE FOR THE CHAT (2026-09-05, Sophie: "the function is
+  a note for u, then u fix").** Every chip's sheet carries a red *cut pause*
+  button; it stores the word `cut` in `set`/`added` in place of a length, the
+  chip paints red and says *cut*, the tally counts "N to cut", and the plan
+  renders NOTHING for it (`cuts` on `planEdit`'s answer). A chat rendering her
+  film reads them off `GET /api/pausing/:id` and tightens those spots by
+  energy — never assume a marked pause was rendered shorter by the tool.
   Tests: `node scripts/test-pausing.js` (pure) and `node
   scripts/test-pausing-page.js` (the real page, headless, asserting on the
   SAMPLES — a pause must be quiet and NON-ZERO).
@@ -7004,6 +7029,14 @@ before working on that module. Nothing was deleted — the moved text is verbati
   HTMLElement-only and `.hidden =` on an SVG is a dead expando (the
   pause-button-that-never-was). The progress line (`#msg`) lives OUTSIDE
   `#editBox`, because the first upload happens while the empty state shows.
+  **NEVER CONNECT FOOTAGE AND VOICEOVER UNLESS IT IS ON PURPOSE (2026-09-05,
+  Sophie: "the methodology is an issue · u shud never connect footage and
+  voiceover unless its on purpose").** A narration part is anchored to the
+  shot it is ABOUT, never to a distant shot with a running offset, and the
+  picture is cut to the words — a shot is as long as the line it carries.
+  Earned the same day on the desk-sweep commercial: the one-take narration
+  rode the Matrix shot, so shortening the fridge by a second and a half slid
+  every later shot under different words. Full rule in the `film-cut` skill.
   **TWO LANES, BOTH HERS, AND THE DOC IS THE FILM (2026-09-02, Sophie:
   "clips laid out exactly the same so we can both edit in parallel … i need to
   be able to move the sound around. that's literally what i can't describe to

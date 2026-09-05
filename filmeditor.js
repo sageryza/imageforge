@@ -1025,6 +1025,21 @@ async function renderCut(doc, opts) {
   };
 }
 
+// The next film number. It was `renders.length + 1`, and the list is CAPPED at
+// MAX_RENDERS — so from the 13th render on, every publish was film-13 and
+// OVERWROTE the one before it in Storage (found live 2026-09-05 on the
+// desk-sweep cut: v15 landed on v14's url, and the CDN went on serving v14
+// under v15's pin). Renders never overwrite: the number is one past the
+// highest the doc has ever carried, read off the urls it still holds.
+function nextRenderIndex(renders) {
+  let max = 0;
+  for (const r of Array.isArray(renders) ? renders : []) {
+    const m = /\/film-(\d+)\.mp4(?:\?|$)/.exec(String((r && r.url) || ''));
+    if (m) max = Math.max(max, Number(m[1]));
+  }
+  return Math.max(max, Array.isArray(renders) ? renders.length : 0) + 1;
+}
+
 // Publish a finished render onto its doc — the ONE writer of a render record
 // (the Storage upload, the record with its snapshot, the shot map), shared by
 // the box's job below and by a chat rendering IN ITS OWN CONTAINER
@@ -1032,7 +1047,7 @@ async function renderCut(doc, opts) {
 // the 512MB box OOM-killed a 16-piece render twice in one night while a
 // container did the same cut in 61s). `where` names the machine on the record.
 async function publishRender(id, doc, r, by, where) {
-  const n = (doc.renders || []).length + 1;
+  const n = nextRenderIndex(doc.renders);
   const url = await editor.uploadPublic(r.file, `${STORAGE_FOLDER}/${id}/film-${n}.mp4`, 'video/mp4');
   const render = {
     url, at: Date.now(), by: byOf(by), seconds: r.seconds,
@@ -1315,7 +1330,7 @@ module.exports = {
   // the mix
   mixGraph, activeSounds, soundInputArgs, segmentAudioFilter, soundLength,
   // the render, the diff, the shot map
-  renderCut, publishRender, loadDoc, patchDoc, diffSince, shotsFromCut, downloadSource, probeFile, probeUrl, segKey, SEG_VERSION,
+  renderCut, publishRender, nextRenderIndex, loadDoc, patchDoc, diffSince, shotsFromCut, downloadSource, probeFile, probeUrl, segKey, SEG_VERSION,
   proxyId, proxyNeeded, proxyArgs, stillProxyArgs, proxyStates, bakeProxy,
   posterArgs, posterAt, POSTER_W,
   audioProxyId, audioProxyNeeded, audioProxyArgs,

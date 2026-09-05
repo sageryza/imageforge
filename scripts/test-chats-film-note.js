@@ -23,6 +23,11 @@
 //      instantly anyway, waits in localStorage, and goes out by itself on
 //      the next page load ("save them all and batch them so it doesn't have
 //      to wait to send"),
+//   7b. THE BEACON (2026-09-05): a queued note is sent by sendBeacon the
+//      instant the page goes to the BACKGROUND, stays in the outbox (a beacon
+//      answers nothing), and the moment the page is VISIBLE again the queue
+//      flushes within seconds — never waiting on the 45s tick — with the
+//      re-send carrying the same noteId, which the server files ONCE,
 //   8. an audio pin gets no Note button.
 //
 //   node scripts/test-chats-film-note.js
@@ -41,7 +46,8 @@ const MSGS = [
   { id: 'm1', chat: 'film-chat', from: 'claude', text: 'v16 is up', tldr: 'v16', created: iso(T0 - 1000), postedAt: iso(T0 - 1000) },
   { id: 'm2', chat: 'audio-chat', from: 'claude', text: 'the cut', tldr: 'cut', created: iso(T0 - 2000), postedAt: iso(T0 - 2000) },
 ];
-const notePosts = [], voicePosts = [];
+const notePosts = [], voicePosts = [], dupPosts = [];
+const seenNoteIds = new Set();            // the server's own rule: one message per noteId
 let failNotes = false;                    // step 7 flips this: the server "goes down"
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
@@ -57,7 +63,14 @@ const server = http.createServer((req, res) => {
     let body = ''; req.on('data', (d) => { body += d; });
     req.on('end', () => {
       if (failNotes) { res.writeHead(500, { 'Content-Type': 'application/json' }); return res.end('{"error":"down"}'); }
-      notePosts.push(JSON.parse(body));
+      const post = JSON.parse(body);
+      if (post.noteId && seenNoteIds.has(post.noteId)) {
+        dupPosts.push(post);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ ok: true, duplicate: true, message: { from: 'sophie' }, thread: [], waiting: 'chat' }));
+      }
+      if (post.noteId) seenNoteIds.add(post.noteId);
+      notePosts.push(post);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: true, message: { from: 'sophie' }, thread: [], waiting: 'chat' }));
     });
@@ -98,6 +111,19 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
 if (!fs.readFileSync(path.join(PUB, 'filmnote.js'), 'utf8').includes('visualViewport')) {
   fail('filmnote.js does not lift the note sheet over the iOS keyboard (visualViewport)');
 }
+// static: the server files ONE message per noteId, inside the transaction —
+// the beacon and the flush both send the note, and this is what makes that
+// safe (the page half below drives it against a stub that keeps the same rule)
+{
+  const srv = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
+  const i = srv.indexOf('async function appendAssetMessage(');
+  const fn = srv.slice(i, srv.indexOf('\n}\n', i));
+  const tx = fn.slice(fn.indexOf('runTransaction'), fn.indexOf('tx.set('));
+  if (!/noteId/.test(tx)) fail('appendAssetMessage does not dedupe by noteId INSIDE the transaction');
+  if (!/duplicate/.test(fn) || !/if \(duplicate\) return/.test(fn)) fail('a duplicate note does not return before the doorbell');
+  const route = srv.slice(srv.indexOf("app.post('/api/gallery/assets/note'"), srv.indexOf("app.post('/api/gallery/assets/note-voice'"));
+  if (!/noteId/.test(route)) fail('the note route does not pass noteId through');
+}
 // static: the Compare lightbox's ✕ carries the same near-miss hit extension
 // as #pinfull's (the page half of this test only drives the pinned player)
 if (!fs.readFileSync(path.join(PUB, 'compare.js'), 'utf8').includes('cmp-vlb-x::after')) {
@@ -130,6 +156,17 @@ if (!fs.readFileSync(path.join(PUB, 'compare.js'), 'utf8').includes('cmp-vlb-x::
     };
     navigator.mediaDevices = navigator.mediaDevices || {};
     navigator.mediaDevices.getUserMedia = () => Promise.resolve({ getTracks: () => [] });
+    // the REAL sendBeacon, wrapped only to count — the bytes still go to the
+    // stub server, which is the only honest reading of what a beacon carried
+    window.__beacons = [];
+    const origBeacon = navigator.sendBeacon.bind(navigator);
+    navigator.sendBeacon = (u, b) => { const ok = origBeacon(u, b); window.__beacons.push({ url: String(u), ok }); return ok; };
+    // the page's own idea of being backgrounded, so a test can stage it
+    window.__setVis = (v) => {
+      Object.defineProperty(document, 'visibilityState', { value: v, configurable: true });
+      Object.defineProperty(document, 'hidden', { value: v === 'hidden', configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    };
   });
   const openFilm = async () => {
     await page.goto(base + '/chats');
@@ -296,12 +333,64 @@ if (!fs.readFileSync(path.join(PUB, 'compare.js'), 'utf8').includes('cmp-vlb-x::
   const queued = await page.evaluate(() => JSON.parse(localStorage.getItem('forge.filmnotes.outbox') || '[]').length);
   if (queued !== 1) fail('the unsent note is not waiting in the outbox (got ' + queued + ')');
   failNotes = false;
+
+  // 7b. THE BEACON: the server is back but the page has not noticed — she
+  //     switches apps. Going to the background sends the queued note by
+  //     sendBeacon right then; the entry STAYS queued (a beacon answers
+  //     nothing) stamped `beaconed`; coming back flushes it within seconds,
+  //     and the re-send lands as a DUPLICATE on the server, never a second note.
+  const outboxBefore = await page.evaluate(() => JSON.parse(localStorage.getItem('forge.filmnotes.outbox') || '[]'));
+  if (!outboxBefore[0] || !outboxBefore[0].id) fail('the queued entry carries no id — nothing for the server to dedupe on');
+  await page.evaluate(() => window.__setVis('hidden'));
+  await page.waitForFunction((n) => window.__beacons.length >= n, 1, { timeout: 2000 })
+    .catch(() => fail('going to the background sent no beacon'));
+  const beacons = await page.evaluate(() => window.__beacons);
+  if (!beacons.length || !/\/api\/gallery\/assets\/note$/.test(beacons[0].url) || !beacons[0].ok) {
+    fail('the beacon did not go to the note route: ' + JSON.stringify(beacons));
+  }
+  await new Promise((r) => setTimeout(r, 600));    // the beacon's bytes reach the stub
+  const beaconed = notePosts[notePosts.length - 1];
+  if (notePosts.length !== before7 + 1 || !beaconed || !/stuck note/.test(beaconed.text)) {
+    fail('the beacon did not deliver the queued note: ' + JSON.stringify(beaconed && beaconed.text));
+  } else if (beaconed.noteId !== outboxBefore[0].id) {
+    fail('the beacon did not carry the entry\'s id as noteId: ' + JSON.stringify(beaconed.noteId));
+  }
+  const afterBeacon = await page.evaluate(() => JSON.parse(localStorage.getItem('forge.filmnotes.outbox') || '[]'));
+  if (afterBeacon.length !== 1) fail('a beacon (which answers nothing) emptied the outbox — a lost beacon would lose the note');
+  else if (!afterBeacon[0].beaconed) fail('the beaconed entry is not stamped `beaconed`');
+  // …and back: the flush must not wait for the 45s tick
+  const tVis = Date.now();
+  await page.evaluate(() => window.__setVis('visible'));
+  await page.waitForFunction(() =>
+    JSON.parse(localStorage.getItem('forge.filmnotes.outbox') || '[]').length === 0, null, { timeout: 4000 })
+    .catch(() => fail('the outbox did not empty within seconds of the page coming back'));
+  if (Date.now() - tVis > 4000) fail('the flush on visible took ' + (Date.now() - tVis) + 'ms');
+  if (notePosts.length !== before7 + 1) fail('the re-send on visible filed a SECOND note (' + (notePosts.length - before7) + ')');
+  if (dupPosts.length !== 1 || dupPosts[0].noteId !== outboxBefore[0].id) {
+    fail('the re-send did not carry the same noteId for the server to dedupe: ' + JSON.stringify(dupPosts.map((d) => d.noteId)));
+  }
+
+  // 7c. and the original road still works: queued while down, sent by the
+  //     next page load (the beacon at pagehide fails against a down server
+  //     and the fresh page's flush carries it)
+  failNotes = true;
+  await tapFilm();
+  await page.click('#pinfull .notebtn');
+  await page.waitForSelector('#pinfull .nsheet', { timeout: 2000 });
+  await page.focus('#pinfull .nsheet textarea');
+  await page.waitForFunction(() => document.querySelector('#pinfull .nsheet textarea').value.length > 0, null, { timeout: 2000 });
+  await page.fill('#pinfull .nsheet textarea', 'stuck note two');
+  await page.click('#pinfull .nsheet .send');
+  await page.waitForFunction(() => !document.querySelector('#pinfull .nsheet'), null, { timeout: 2000 });
+  await new Promise((r) => setTimeout(r, 700));
+  const before7c = notePosts.length;
+  failNotes = false;
   await openFilm();                                // a fresh page load flushes the queue
   await page.waitForFunction(() =>
     JSON.parse(localStorage.getItem('forge.filmnotes.outbox') || '[]').length === 0, null, { timeout: 6000 })
     .catch(() => fail('the outbox never emptied after the server came back'));
   const flushed = notePosts[notePosts.length - 1];
-  if (notePosts.length !== before7 + 1 || !flushed || !/stuck note/.test(flushed.text)) {
+  if (notePosts.length !== before7c + 1 || !flushed || !/stuck note two/.test(flushed.text)) {
     fail('the queued note never arrived: ' + JSON.stringify(flushed && flushed.text));
   }
 

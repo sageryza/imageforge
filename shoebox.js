@@ -74,7 +74,7 @@ async function membryDb() {
  * inside it (model, quality, size, prompt); `content` because an undeveloped
  * polaroid IS its words, and the detail card shows them.
  */
-const FIELDS = ['title', 'illustration', 'createdAt', 'timestamp', 'hashtags', 'source', 'content'];
+const FIELDS = ['title', 'illustration', 'createdAt', 'timestamp', 'hashtags', 'source', 'content', 'shoeboxHidden'];
 
 // The DOOR STAMPS — shoeboxPut writes which door filed a picture into
 // `hashtags` ('playground', 'meta-assets', 'storyroom'), and they were
@@ -341,6 +341,8 @@ router.post('/memory', async (req, res) => {
     await ref.set(patch, { merge: true });
     cache = null;   // the next feed read carries the edit
     res.json({ ok: true, id });
+  } catch (e) { fail(res, e); }
+});
 
 // Put a memory AWAY — hidden from the Shoebox, never deleted (2026-09-04,
 // Sophie: "some pics were accidental like the pine forest"). One field,
@@ -362,8 +364,6 @@ router.post('/putaway', async (req, res) => {
     await ref.set({ shoeboxHidden: hidden }, { merge: true });
     cache = null;
     res.json({ ok: true, id, hidden });
-  } catch (e) { fail(res, e); }
-});
   } catch (e) { fail(res, e); }
 });
 
@@ -390,6 +390,7 @@ router.post('/square', async (req, res) => {
 });
 
 module.exports = {
+  FIELDS,
   router, init,
   buildIndex, itemOf, captionOf, hayOf, matchQ, atMillis, stripHtml,
   normBoard, fromRaw, cleanPin, DOOR_TAGS,

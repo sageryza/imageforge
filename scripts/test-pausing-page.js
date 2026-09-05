@@ -198,7 +198,28 @@ const DRIVER = `
               q('#undo').click();
               setTimeout(function(){
                 ok(qa('.para .p').length===1, 'undo takes the added pause back out');
-                done();
+
+                // 6. CUT PAUSE — a note, not a length (2026-09-05). Tap the
+                //    chip, tap "cut pause": the chip goes red and says cut,
+                //    the tally counts it, the plan renders NOTHING for it.
+                var chip2=q('.para .p'); chip2.click();
+                setTimeout(function(){
+                  var cb=q('#sheet .undo-row button.cutp');
+                  ok(!!cb && cb.textContent==='cut pause', 'the sheet offers "cut pause"');
+                  if(cb) cb.click();
+                  setTimeout(function(){
+                    var c=q('.para .p');
+                    ok(c.classList.contains('cut') && c.querySelector('b').textContent==='cut',
+                       'the chip paints red and says cut');
+                    ok(c.querySelector('s').textContent==='1.40', 'and still shows what the gap was');
+                    ok(/to cut/.test(q('#tally').textContent), 'the tally counts it as a cut ('+q('#tally').textContent.trim()+')');
+                    ok(/cut/.test(q('#sheet .ctx').textContent), 'the sheet says it is a note for the chat');
+                    ok(q('#sheet .undo-row button.cutp').classList.contains('sel'), 'and the button reads as chosen');
+                    L.push('TALLY='+q('#tally').textContent.replace(/\\s+/g,' ').trim());
+                    L.push('CUT=1');
+                    done();
+                  }, 500);
+                }, 500);
               }, 250);
             }, 900);
           }, 900);
@@ -280,20 +301,33 @@ server.listen(0, '127.0.0.1', () => {
     const lines = verdict.split(' | ').filter(Boolean);
     let bad = 0;
     lines.forEach((l) => {
-      if (l.startsWith('TALLY=')) return;
+      if (l.startsWith('TALLY=') || l.startsWith('CUT=')) return;
       console.log(l);
       if (l.startsWith('FAIL')) bad += 1;
     });
     if (!lines.length) { console.error('no verdict — the page script never ran'); process.exit(1); }
 
     // 4. the page's own arithmetic vs the shared plan, off the state it POSTed
-    const tally = (lines.find((l) => l.startsWith('TALLY=')) || '').slice(6);
-    const p = planEdit({ pauses: PAUSES, set: saved.set, added: {}, words: WORDS, dur: DUR });
-    const want = `${p.items.length} changed · ${p.delta >= 0 ? '+' : ''}${p.delta.toFixed(1)}s`;
+    // the LAST tally the page printed, against the state it had POSTed by then
+    const tally = (lines.filter((l) => l.startsWith('TALLY=')).pop() || '').slice(6);
+    const p = planEdit({ pauses: PAUSES, set: saved.set, added: saved.added, words: WORDS, dur: DUR });
+    const want = (p.items.length ? `${p.items.length} changed · ${p.delta >= 0 ? '+' : ''}${p.delta.toFixed(1)}s` : '')
+      + (p.cuts.length ? `${p.items.length ? ' · ' : ''}${p.cuts.length} to cut` : '');
     const agree = tally.replace(/\s+/g, ' ') === want;
     console.log(`${agree ? 'PASS' : 'FAIL'}: the page's arithmetic is the shared plan's `
       + `(page "${tally}", plan "${want}")`);
     if (!agree) bad += 1;
+
+    // 6. the cut reached the server as the word 'cut', and the shared plan
+    //    renders nothing for it — it is a note for the chat
+    if (lines.includes('CUT=1')) {
+      const pc = planEdit({ pauses: PAUSES, set: saved.set, added: saved.added, words: WORDS, dur: DUR });
+      const stored = Object.values(saved.set).includes('cut');
+      const okc = stored && pc.cuts.length === 1 && pc.items.length === 0 && pc.delta === 0;
+      console.log(`${okc ? 'PASS' : 'FAIL'}: a cut is saved as the word 'cut' and the plan renders nothing for it `
+        + `(set ${JSON.stringify(saved.set)}, cuts ${pc.cuts.length}, items ${pc.items.length}, delta ${pc.delta})`);
+      if (!okc) bad += 1;
+    }
 
     if (bad) process.exit(1);
     console.log(`all ${lines.length} checks passed`);
