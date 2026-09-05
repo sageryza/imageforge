@@ -118,18 +118,37 @@ body.tool{ background:var(--bg); color:var(--ink); overflow:hidden; }
 #translbl span:nth-child(3){ width:24px; }
 
 /* the timeline — TWO LANES in ONE scroller, so the sound bars stay under the
-   shots they sit beneath when a long cut scrolls sideways. Proportional
-   widths, REAL poster frames, and it SCROLLS instead of running off the screen. */
+   shots they sit beneath when a long cut scrolls sideways. A TRUE TIME AXIS
+   (2026-09-05, measured on her two live cuts: every tile drew at its 34px
+   min-width whatever its length, because flex-grow only shares FREE space
+   and 14 tiles of 34px already overfilled the strip — so a 4.2s sound drew
+   31px in one place and 53px in another): every tile is dur x PPS wide,
+   PPS = max(PPS_MIN, the visible width over the whole cut), so a short cut
+   fills the screen and a long one scrolls. The 24px floor is a TAP TARGET
+   only — the lane measures the tiles' real boxes (laneMeasure), so a sound
+   still lands on whatever the tile really is. The strip FOLLOWS the playhead
+   (followPlayhead) and never fights her finger on it. REAL poster frames,
+   the film glyph until one arrives. */
 #tlwrap{ position:relative; overflow-x:auto; -webkit-overflow-scrolling:touch;
-  padding:8px 14px 0; flex:0 0 auto; }
-#strip{ display:flex; gap:4px; min-width:100%; }
-.seg{ position:relative; flex:1 1 0; min-width:34px; height:50px; border-radius:8px;
+  padding:8px 14px 0; flex:0 0 auto; scrollbar-width:none; }
+#tlwrap::-webkit-scrollbar{ display:none; }   /* a strip she drags; no bar under the tiles */
+#strip{ display:flex; gap:4px; min-width:100%; width:max-content; }
+.seg{ position:relative; flex:0 0 auto; min-width:24px; height:50px; border-radius:8px;
   overflow:hidden; border:1px solid rgba(38,34,28,.08); background:var(--surface2);
-  background-size:cover; background-position:center; padding:0; cursor:pointer; }
+  background-size:cover; background-position:center; padding:0; cursor:pointer;
+  color:#b5ab96; }
 .seg.sel{ outline:2px solid var(--chg); outline-offset:1px; }
 .seg .lbl{ position:absolute; left:6px; bottom:4px; font:9px ui-monospace,monospace;
-  color:var(--ink); background:rgba(251,249,244,.8); border-radius:3px; padding:0 3px; }
+  color:var(--ink); background:rgba(251,249,244,.8); border-radius:3px; padding:0 3px;
+  white-space:nowrap; }
 .seg .ph{ position:absolute; top:0; bottom:0; width:2px; background:var(--chg); }
+/* a video tile with no poster yet wears the film glyph, centred — never a
+   blank grey box; it goes the moment a poster lands (paintPosters) */
+.seg .fg{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  pointer-events:none; }
+.seg .fg svg{ width:18px; height:18px; stroke:currentColor; stroke-width:1.6; fill:none;
+  stroke-linecap:round; stroke-linejoin:round; }
+.seg.hasbg .fg{ display:none; }
 /* a STILL wears a small picture mark in its corner, so a held photo reads as
    one beside the clips */
 .seg .kd{ position:absolute; top:3px; right:3px; width:14px; height:14px; border-radius:3px;
@@ -465,6 +484,9 @@ var PROXY = {};        // url → proxy url, live
 var PROXY_NEXT = {};   // ready but waiting for playback to stop
 var PROXY_AUD = {};    // a sound's audio-only copy — her real track was a
 var PROXY_AUD_NEXT = {};   // 13.9MB 480p VIDEO mp4 (measured 2026-08-23)
+var POSTERS = {};      // url → poster url, learned off the proxies answer — a
+                       // chat-written piece carries poster:null, and the bake
+                       // pulls a frame for it (2026-09-05)
 var proxyT = null;
 function srcOf(c) { return (c && PROXY[c.url]) || (c && c.url) || ''; }
 function audSrc(s) { return (s && (PROXY_AUD[s.url] || s.url)) || ''; }
@@ -494,10 +516,13 @@ function askProxies(post) {
   req.then(function (r) {
     var making = false;
     var map = (r && r.proxies) || {};
+    var newPoster = false;
     for (var u in map) {
       if (map[u].status === 'ready' && map[u].proxyUrl) PROXY_NEXT[u] = map[u].proxyUrl;
       if (map[u].status === 'making') making = true;
+      if (map[u].poster && POSTERS[u] !== map[u].poster) { POSTERS[u] = map[u].poster; newPoster = true; }
     }
+    if (newPoster) paintPosters();   // onto the tiles that have none — never a rebuild
     var amap = (r && r.audio) || {};   // absent on an older server — fine
     for (var v in amap) {
       if (amap[v].status === 'ready' && amap[v].proxyUrl) PROXY_AUD_NEXT[v] = amap[v].proxyUrl;
@@ -637,6 +662,7 @@ function open(id, fromHistory) {
   api(B + '/' + encodeURIComponent(id)).then(function (doc) {
     adopt(doc, id);
     playhead = 0; playing = false; selKey = null; selSnd = null;
+    followPh = null; tlDragAt = 0; tlVisW = null;   // a fresh cut opens at its top
     $('ttl').value = A.title || '';
     if (!fromHistory) {
       try { history.pushState({ c: id }, '', aUrl(id)); } catch (_) {}
@@ -1521,10 +1547,9 @@ function paintStrip() {
       b.className = 'seg';
       b.setAttribute('data-key', s.c.key);
       var still = s.c.kind === 'image';
-      var bg = still ? stillThumb(s.c) : s.c.poster;
-      if (bg) b.style.backgroundImage = 'url("' + bg.replace(/"/g, '%22') + '")';
-      b.innerHTML = (still ? '<span class="kd">' + IMG_ICON + '</span>' : '')
+      b.innerHTML = (still ? '<span class="kd">' + IMG_ICON + '</span>' : '<span class="fg">' + FILM_ICON + '</span>')
         + '<span class="lbl"></span><span class="ph" hidden></span>';
+      setTileBg(b, still ? stillThumb(s.c) : (s.c.poster || POSTERS[s.c.url]));
       b.onclick = function () {
         var now = segs().filter(function (x) { return x.c.key === s.c.key; })[0];
         selSnd = null;   // a tap on a piece is the way back to the picture lane
@@ -1543,19 +1568,115 @@ function paintStrip() {
     cur = ss[ci];
     if (playhead < ss[ci].start + ss[ci].dur - 1e-4) break;
   }
+  // THE TIME AXIS: a tile is its seconds times PPS, never a share of free
+  // space. Width and label are re-done only when the number changes — the
+  // tick calls this every frame.
+  var pps = ppsOf(ss.length);
+  var relabel = [];
   ss.forEach(function (s, i) {
     var el = kids[i];
     if (!el) return;
-    var grow = Math.max(0.5, s.dur);
-    if (el.__grow !== grow) { el.style.flexGrow = grow; el.__grow = grow; laneGeo = null; }
+    var w = Math.max(SEG_FLOOR, s.dur * pps);
+    var lbl = String(i + 1).padStart(2, '0') + ' · ' + fmt(s.dur);
+    if (el.__w !== w) { el.style.flex = '0 0 ' + w.toFixed(2) + 'px'; el.__w = w; laneGeo = null; }
+    if (el.__lbl !== lbl) { el.__lbl = lbl; el.querySelector('.lbl').textContent = lbl; relabel.push(el); }
+    else if (el.__lblW !== w) relabel.push(el);
     el.classList.toggle('sel', !selSnd && s.c.key === selKey);
-    el.querySelector('.lbl').textContent = String(i + 1).padStart(2, '0') + ' · ' + fmt(s.dur);
     var ph = el.querySelector('.ph');
     var inSeg = cur === s;
     ph.hidden = !inSeg;
     if (inSeg) ph.style.left = Math.min(99, (playhead - s.start) / (s.dur || 1) * 100).toFixed(2) + '%';
   });
+  // a label that does not fit its tile MEASURED (never guessed from the
+  // seconds) shows the number alone — "00:0" cut mid-timecode said nothing
+  relabel.forEach(function (el) {
+    var lb = el.querySelector('.lbl');
+    lb.textContent = el.__lbl;
+    el.__lblW = el.__w;
+    if (lb.offsetWidth + 6 + 2 > el.clientWidth) lb.textContent = el.__lbl.split(' ')[0];
+  });
   paintLanePh();
+  followPlayhead();
+}
+/* px per second: the whole cut fills at least the visible strip, and never
+   less than PPS_MIN so a one-second shot stays a real tile on a long cut.
+   The gaps between tiles are taken off the width they share. */
+var PPS_MIN = 40, SEG_FLOOR = 24, SEG_GAP = 4;
+var tlVisW = null;   // the strip's visible width, cached until a resize
+function tlVisible() {
+  if (tlVisW) return tlVisW;
+  var w = $('tlwrap');
+  var cs = getComputedStyle(w);
+  var v = w.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+  if (v > 0) tlVisW = v;
+  return v > 0 ? v : 362;
+}
+function ppsOf(n) {
+  var tot = total();
+  if (!(tot > 0)) return PPS_MIN;
+  return Math.max(PPS_MIN, (tlVisible() - SEG_GAP * Math.max(0, n - 1)) / tot);
+}
+function setTileBg(el, bg) {
+  if (!bg) return;
+  el.style.backgroundImage = 'url("' + String(bg).replace(/"/g, '%22') + '")';
+  el.classList.add('hasbg');
+}
+// a poster that arrived after the strip was built lands on its tile in place
+function paintPosters() {
+  var kids = $('strip').children;
+  var ss = segs();
+  for (var i = 0; i < ss.length && i < kids.length; i++) {
+    var c = ss[i].c;
+    if (c.kind === 'image' || kids[i].classList.contains('hasbg')) continue;
+    setTileBg(kids[i], c.poster || POSTERS[c.url]);
+  }
+}
+/* THE STRIP FOLLOWS THE PLAYHEAD (2026-09-05, measured on her 14- and
+   16-piece cuts: from about the tenth piece the playhead and the selected
+   tile were off the right of the screen during play and after every step).
+   Asked from paintStrip, and it acts ONLY when the playhead MOVED — a paint
+   for a level tap or a sound pick never scrolls. During play, once the line
+   runs off the window it comes back a third in from the left, smoothly; on a
+   seek or a step it is centred. Never against her own finger: a drag, a
+   wheel or a scroll of hers on the strip holds it off for 1.5s (a TAP on a
+   tile is not a drag — that seek still lands in view). */
+var tlDragAt = 0, tlProgUntil = 0, followPh = null, followAskedAt = 0;
+(function () {
+  var w = $('tlwrap');
+  var drag = function () { tlDragAt = Date.now(); };
+  w.addEventListener('touchmove', drag, { passive: true });
+  w.addEventListener('wheel', drag, { passive: true });
+  w.addEventListener('scroll', function () { if (Date.now() > tlProgUntil) tlDragAt = Date.now(); }, { passive: true });
+})();
+function scrollStrip(left, smooth) {
+  var w = $('tlwrap');
+  left = Math.max(0, Math.round(left));
+  if (Math.abs(w.scrollLeft - left) < 1) return;
+  tlProgUntil = Date.now() + (smooth ? 1000 : 300);   // the scroll events this raises are ours
+  if (smooth && typeof w.scrollTo === 'function') {
+    try { w.scrollTo({ left: left, behavior: 'smooth' }); return; } catch (e) { /* no options — plain below */ }
+  }
+  w.scrollLeft = left;
+}
+function followPlayhead() {
+  if (followPh === playhead) return;
+  followPh = playhead;
+  var now = Date.now();
+  if (now - tlDragAt < 1500) return;
+  var w = $('tlwrap');
+  var vis = w.clientWidth;
+  if (!vis || w.scrollWidth <= vis + 1) return;   // nothing to scroll
+  var padL = parseFloat(getComputedStyle(w).paddingLeft) || 0;
+  var px = padL + xOfTime(playhead);
+  var rel = px - w.scrollLeft;
+  if (playing) {
+    if ((rel < 0 || rel > vis - 10) && now - followAskedAt > 600) {
+      followAskedAt = now;
+      scrollStrip(px - vis / 3, true);
+    }
+  } else if (rel < 6 || rel > vis - 6) {
+    scrollStrip(px - vis / 2, false);
+  }
 }
 /* the lane's geometry is MEASURED off the shots' real boxes, so a sound at a
    shot's boundary sits on that tile's edge; cached until the strip changes
@@ -1696,7 +1817,10 @@ function paint() {
   if (has) { paintStrip(); paintTc(); paintLane(); }
   paintTools(); paintFilms(); paintPlayBtn();
 }
-window.addEventListener('resize', function () { laneGeo = null; if (A && (A.clips || []).length) paintLane(); });
+window.addEventListener('resize', function () {
+  tlVisW = null; laneGeo = null;
+  if (A && (A.clips || []).length) { paintStrip(); paintLane(); }
+});
 
 /* ── uploads: the Dump's machinery, then metadata read CLIENT-side so a
    piece always knows its length before it joins the timeline. A file the
