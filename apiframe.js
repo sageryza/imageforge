@@ -113,6 +113,13 @@ async function job(id) {
 async function seedanceVideo(prompt, opts = {}) {
   if (!APIFRAME_KEY) throw new Error('APIFRAME_KEY not configured');
   const params = { resolution: opts.resolution || '480p' };
+  // Duration is a whole-clip choice on the flat-priced models (1.5-pro takes
+  // 4, 8 or 12 and nothing else) and the bill on the per-second ones; absent,
+  // APIFRAME picks its own. generate_audio is a toggle on every Seedance that
+  // has sound (off by default on 1.5-pro, on by default on the 2.x family).
+  if (opts.duration != null) params.duration = Number(opts.duration);
+  if (opts.generateAudio != null) params.generate_audio = Boolean(opts.generateAudio);
+  if (opts.aspectRatio) params.aspect_ratio = String(opts.aspectRatio);
   if (opts.imageUrl) params.start_image = opts.imageUrl;
   if (opts.endImageUrl) params.end_image = opts.endImageUrl;
   if (opts.cameraFixed != null) params.camera_fixed = Boolean(opts.cameraFixed);
@@ -186,9 +193,24 @@ router.get('/status', (req, res) => {
   res.json({ ok: true, configured: Boolean(APIFRAME_KEY), model: 'midjourney', video: true, base: BASE });
 });
 
+// GET /me — the account read: plan and credits left. The only balance route
+// APIFRAME has (every other billing read 404s, measured 2026-08-27), and a
+// chat's own container key can be expired while the server's is live, so
+// this is how a chat asks what is left before spending it.
+router.get('/me', async (req, res) => {
+  try {
+    const j = await api('/me');
+    res.set('Cache-Control', 'no-store');
+    res.json(j);
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message });
+  }
+});
+
 // POST /video — start a Seedance video generation (image-to-video or text-to-
 // video). Body: { prompt, imageUrl?, endImageUrl?, model?, resolution?,
-// cameraFixed?, seed? }. Defaults are the cheapest tier: seedance-1-lite, 480p.
+// duration?, generateAudio?, aspectRatio?, cameraFixed?, seed? }. Defaults are
+// the cheapest tier: seedance-1-lite, 480p.
 router.post('/video', async (req, res) => {
   try {
     const b = req.body || {};
