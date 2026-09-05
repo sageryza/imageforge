@@ -67,6 +67,18 @@ off the doc and do your half. The full design: `docs/film-editor-parallel-editin
 
 ## Rules
 
+- **EVERY CROP IS EYED AT FULL SIZE, OR MEASURED, BEFORE IT GOES IN
+  (2026-09-05, Sophie, after Morpheus and the Matrix figures each went in
+  off-center twice: "why do u keep not eyeing things? haven't u noticed
+  they're always off?").** The failure has one shape: a crop number picked
+  once for one frame and copied to the next shot, then "checked" on a
+  contact strip 130px wide, where a face a quarter of the frame off reads
+  as fine. A strip proves the shot exists; it cannot show whether it is
+  centered. So before a reframed clip is set on the doc: pull ONE frame at
+  full size and look at it, or measure the subject's center in the wide
+  frame and derive the crop from that (the Morpheus and blue-figure fixes
+  were both a measurement, and both landed first try). A crop you did not
+  look at is a crop that is off.
 - **NEVER connect footage and voiceover unless it is ON PURPOSE (2026-09-05,
   Sophie: "the methodology is an issue · u shud never connect footage and
   voiceover unless its on purpose").** Every narration part is anchored to
