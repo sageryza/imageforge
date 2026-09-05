@@ -10,6 +10,10 @@
 // picture url, laid out by triset-print-letter.js with no outline.
 //
 //   node scripts/similitude-print-all.js [--go] [--out <dir>] [--outline on]
+//   --nature                 the Nature edition too — EVERY card means every card (2026-09-05,
+//                            Sophie: "why when i said every card would i not mean that")
+//   --skip-printed <dir>     leave off any card whose cut file is already in that folder (a
+//                            print she already has), so the sheet is only what she is missing
 const fs = require('fs');
 const path = require('path');
 const { readDeck } = require('./lib/dominoes-deck');
@@ -57,6 +61,14 @@ async function main() {
     if (c.flip) { if (!seenId.has(c.id)) flipped.push(c.n); continue; }
     if (take(c)) nEv++;
   }
+  // 2b. the Nature edition's extras, the same way
+  let nNat = 0;
+  if (process.argv.includes('--nature')) {
+    for (const c of tdeck.editionDeck(pool, 'nature')) {
+      if (c.flip) { if (!seenId.has(c.id)) flipped.push(c.n); continue; }
+      if (take(c)) nNat++;
+    }
+  }
   // 3. her new Playground hearts, not already a card above
   const urls = new Set(deck.flatMap(c => [c.url, c.id].filter(Boolean)));
   pool.forEach(p => { if (seenId.has(p.id) && p.from && p.from.url) urls.add(p.from.url); });
@@ -73,8 +85,16 @@ async function main() {
     }
     if (take({ k, n: String(it.label || '').split('\n')[0].slice(0, 60), url: it.url, id: 'pl-' + it.id })) nHearts++;
   }
-  console.log(`${deck.length} cards, one of each · the 61: ${n61} · everyday extras: ${nEv} · playground hearts: ${nHearts}` + (flipped.length ? ` · left off (point-down): ${flipped.join(' · ')}` : ''));
-  for (const c of deck) {
+  console.log(`${deck.length} cards, one of each · the 61: ${n61} · everyday extras: ${nEv} · nature extras: ${nNat} · playground hearts: ${nHearts}` + (flipped.length ? ` · left off (point-down): ${flipped.join(' · ')}` : ''));
+  // only what she does not have yet
+  const printedDir = arg('skip-printed', '');
+  let deckOut = deck;
+  if (printedDir) {
+    const have = new Set(fs.readdirSync(printedDir));
+    deckOut = deck.filter(c => !have.has(c.k));
+    console.log(`${deck.length - deckOut.length} already printed · ${deckOut.length} to print`);
+  }
+  for (const c of deckOut) {
     const f = path.join(out, 'cuts', c.k);
     if (fs.existsSync(f) && fs.statSync(f).size > 0) continue;
     const r = await fetch(c.url);
@@ -82,9 +102,9 @@ async function main() {
     fs.writeFileSync(f, Buffer.from(await r.arrayBuffer()));
   }
   const outline = arg('outline', 'off') !== 'off';
-  const built = await print.buildHtml(deck, c => print.fileData(path.join(out, 'cuts', c.k)),
-    { side: Number(arg('side', 2.2)), border: Number(arg('border', 0.1)), outline, footer: 'Similitude · every card once' });
-  const stem = 'similitude-all-' + deck.length + '-letter' + (outline ? '' : '-no-outline');
+  const built = await print.buildHtml(deckOut, c => print.fileData(path.join(out, 'cuts', c.k)),
+    { side: Number(arg('side', 2.2)), border: Number(arg('border', 0.1)), outline, footer: printedDir ? 'Similitude · the rest, every card once' : 'Similitude · every card once' });
+  const stem = (printedDir ? 'similitude-rest-' : 'similitude-all-') + deckOut.length + '-letter' + (outline ? '' : '-no-outline');
   const htmlFile = path.join(out, stem + '.html');
   const pdfFile = path.join(out, stem + '.pdf');
   fs.writeFileSync(htmlFile, built.html);
