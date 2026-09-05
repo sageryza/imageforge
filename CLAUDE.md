@@ -120,6 +120,19 @@ The numbers are measured, not guessed.
    wrap-up for the archive row). Anything still open → stay live and say what
    it is. Full rule: *A BUG-FIX CHAT PUTS ITSELF AWAY* in the Chats section.
 
+**Animating a still or generating a clip (Seedance, Wan, Kling, any model)**
+- **MINIMUM SECONDS UNLESS SHE SPECIFIES, and ASK BEFORE SPENDING THE
+  CREDITS (2026-09-05, Sophie, after a chat drew fifteen 8-second clips for
+  a 20-second reel without asking: "whoa stop" · "u were supposed to ask
+  first" · "wtf why 8 seconds? this is a reel" · "ok always do min sec unless
+  i specify").** The shortest clip the model offers (4s on Seedance 1.5 Pro
+  and the APIFRAME 2.x family, 5s on Wan 2.2 / Kling / Seedance 1 Lite) is
+  the default; a longer one is hers to name. "Coverage that trims" is not a
+  reason — a reel is seconds long and the length is the bill (8s at 1080p
+  was 60 credits a clip against 30). And banked credits are still money to
+  her: name the shots, the model, the size and the count, and wait for the
+  go, exactly as the $3 rule already says for dollars.
+
 **Writing an image prompt (before any of the below)**
 - **Short, action-only, and NAME the thing rather than listing its parts** —
   "meat raining from the ceiling", never "ribs, drumsticks, etc." (Sophie,
