@@ -156,6 +156,14 @@
   .p.set i{background:var(--goldline)}
   .p.add{border-style:dashed; border-color:var(--goldline)}
   .p.add b{color:var(--goldline)}
+  /* CUT PAUSE (2026-09-05) — her note that this beat should be SHORTER than
+     the tool can make it. Red, like the marks she draws on a screenshot;
+     nothing renders it, the chat reads it off the doc and cuts. */
+  .p.cut{border-color:var(--bad); background:rgba(180,70,47,.10)}
+  .p.cut b{color:var(--bad)}
+  .p.cut i{background:var(--bad)}
+  #sheet .undo-row button.cutp{border-color:var(--bad); color:var(--bad)}
+  #sheet .undo-row button.cutp.sel{background:rgba(180,70,47,.12); font-weight:700}
   .p.on{box-shadow:0 0 0 2px rgba(199,150,51,.3)}
 
   /* ── the sheet ─────────────────────────────────────────────────────── */
@@ -348,9 +356,10 @@
     var p = plan();
     var n = p.items.length;
     var d = p.delta;
-    el('tally').innerHTML = n
+    var c = (p.cuts || []).length;
+    el('tally').innerHTML = (n
       ? '<em>' + n + '</em> changed · ' + (d >= 0 ? '+' : '') + d.toFixed(1) + 's'
-      : '';
+      : '') + (c ? (n ? ' · ' : '') + '<em>' + c + '</em> to cut' : '');
   }
 
   /* ── the edit, spliced into a decoded span ────────────────────────────
@@ -564,8 +573,16 @@
       drop.textContent = 'not here after all';
       el('sheetback').appendChild(drop);
     }
-    sheet.querySelector('.ctx').innerHTML = g.add
-      ? 'A new pause here'
+    // "cut pause" — a NOTE for the chat, not a length (Sophie, 2026-09-05:
+    // there was no way to mark a gap she wanted shorter, only to add one).
+    var cutb = document.createElement('button');
+    cutb.className = 'cutp';
+    cutb.dataset.v = PLAN.CUT;
+    cutb.textContent = 'cut pause';
+    el('sheetback').appendChild(cutb);
+    sheet.querySelector('.ctx').innerHTML = isCutChip(g)
+      ? 'Marked <em>cut</em> — the chat cuts this one shorter when it renders'
+      : g.add ? 'A new pause here'
       : ('This pause is <em>' + g.was.toFixed(2) + 's</em>');
 
     [['lens1', LENS1], ['lens2', LENS2]].forEach(function (pair) {
@@ -581,17 +598,19 @@
     });
     markSel(g);
     sheet.hidden = false;
-    preview(g, currentLen(g));
+    if (!isCutChip(g)) preview(g, currentLen(g));
   }
+  function isCutChip(g) { return PLAN.isCut(g.add ? added[g.id] : chosen[g.id]); }
   function currentLen(g) {
     if (g.add) return PLAN.clampLen(added[g.id]) || 0.8;
     var v = PLAN.clampLen(chosen[g.id]);
     return v === null ? g.was : v;
   }
   function markSel(g) {
-    var v = g.add ? String(PLAN.clampLen(added[g.id]) || 0.8)
+    var v = isCutChip(g) ? PLAN.CUT
+      : g.add ? String(PLAN.clampLen(added[g.id]) || 0.8)
       : (chosen[g.id] === undefined || chosen[g.id] === '' || chosen[g.id] === 'keep' ? 'keep' : String(PLAN.clampLen(chosen[g.id])));
-    [].forEach.call(el('sheet').querySelectorAll('.lens button'), function (b) {
+    [].forEach.call(el('sheet').querySelectorAll('.lens button, .undo-row button.cutp'), function (b) {
       b.classList.toggle('sel', b.dataset.v === v);
     });
   }
@@ -644,12 +663,20 @@
       paintChip(node2);
       save();
     });
-    if (g.add) added[g.id] = b.dataset.v === 'keep' ? 0.8 : Number(b.dataset.v);
+    if (b.dataset.v === PLAN.CUT) { if (g.add) added[g.id] = PLAN.CUT; else chosen[g.id] = PLAN.CUT; }
+    else if (g.add) added[g.id] = b.dataset.v === 'keep' ? 0.8 : Number(b.dataset.v);
     else chosen[g.id] = b.dataset.v === 'keep' ? '' : b.dataset.v;
     paintChip(cur);
-    markSel(chipData(cur));
+    var g2 = chipData(cur);
+    markSel(g2);
     save();
-    preview(chipData(cur), currentLen(chipData(cur)));
+    if (isCutChip(g2)) {
+      halt();   // a cut is a note: nothing to hear yet
+      el('sheet').querySelector('.ctx').innerHTML = 'Marked <em>cut</em> — the chat cuts this one shorter when it renders';
+    } else {
+      el('sheet').querySelector('.ctx').innerHTML = g2.add ? 'A new pause here' : ('This pause is <em>' + g2.was.toFixed(2) + 's</em>');
+      preview(g2, currentLen(g2));
+    }
   });
   el('sheet').querySelector('.close').addEventListener('click', function () {
     el('sheet').hidden = true;
@@ -670,6 +697,12 @@
     var id = b.dataset.id;
     var add = id.charAt(0) === 'a';
     var was = add ? 0 : byId[id].len;
+    if (PLAN.isCut(add ? added[id] : chosen[id])) {
+      b.className = 'p cut' + (add ? ' add' : '');
+      b.querySelector('b').textContent = 'cut';
+      b.querySelector('s').textContent = add ? '' : was.toFixed(2);
+      return;
+    }
     var v = add ? (PLAN.clampLen(added[id]) || 0.8) : PLAN.clampLen(chosen[id]);
     var shown = v === null ? was : v;
     b.className = 'p' + (shown >= 1.2 ? ' long' : shown >= 0.6 ? ' mid' : '')
