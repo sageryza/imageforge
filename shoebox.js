@@ -123,6 +123,7 @@ function itemOf(id, m) {
       .filter((t) => t && !DOOR_TAGS.has(t.toLowerCase())),
     caption: captionOf(ill),
     promptContent: String(ill.prompt || '').trim(),
+    hidden: !!m.shoeboxHidden,
   };
 }
 
@@ -340,6 +341,29 @@ router.post('/memory', async (req, res) => {
     await ref.set(patch, { merge: true });
     cache = null;   // the next feed read carries the edit
     res.json({ ok: true, id });
+
+// Put a memory AWAY — hidden from the Shoebox, never deleted (2026-09-04,
+// Sophie: "some pics were accidental like the pine forest"). One field,
+// shoeboxHidden, and nothing else on the doc is touched; the library
+// filters it out and a Bring back clears it. The memory itself — and its
+// picture — stays exactly where it lives.
+router.post('/putaway', async (req, res) => {
+  try {
+    const id = String(req.body.id || '').trim();
+    if (!id) return res.status(400).json({ error: 'a memory id is required' });
+    const mdb = await membryDb();
+    if (!mdb) return noMembry(res);
+    const { shoeboxUid } = require('./scratchpad');
+    const uid = await shoeboxUid(mdb);
+    const ref = mdb.collection('users').doc(uid).collection('memories').doc(id);
+    const snap = await ref.get();
+    if (!snap.exists) return res.status(404).json({ error: 'no memory with that id' });
+    const hidden = req.body.hidden !== false;
+    await ref.set({ shoeboxHidden: hidden }, { merge: true });
+    cache = null;
+    res.json({ ok: true, id, hidden });
+  } catch (e) { fail(res, e); }
+});
   } catch (e) { fail(res, e); }
 });
 

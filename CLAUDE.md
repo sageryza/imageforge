@@ -6449,10 +6449,15 @@ before working on that module. Nothing was deleted — the moved text is verbati
     memory's words, tags, caption and source (never the url) — and
     `shoeboxPut` now keeps a >140-char title's full text in `content` on
     first filing, so a Playground prompt survives whole; the hand is
-    **Indie Flower with the chin in CAPS at 13px** (her 2026-09-04 pick off
-    the shoebox-fonts-v2 Compare sheet — Darb, the font she found, lost;
-    its woff stays committed at `public/fonts/darb.woff`, harmless); **no
-    date on the chin**; the finale is **v3** ported verbatim from
+    **Indie Flower with the chin in CAPS at 11px** (her 2026-09-04 pick off
+    the shoebox-fonts-v2 Compare sheet, then "text shud be smaller" the same
+    day — Darb, the font she found, lost; its woff stays committed at
+    `public/fonts/darb.woff`, harmless); **no date on the chin**; **PUT
+    AWAY** (same day, "some pics were accidental like the pine forest"):
+    the detail card hides an accidental memory from the shoebox — one
+    field, `shoeboxHidden`, via `POST /api/shoebox/putaway`, nothing
+    deleted — and the dimmed put-away pile behind the underlined opener at
+    the end of the library is the way back (Bring back on its card); the finale is **v3** ported verbatim from
     memory-library-react #354 (five-point stars, dashes not dots, 3s
     twinkle, polaroids fade to a ghost); and **▶ Play opens ON the first
     card** — no whole-board shot first; the wide shot lives only at the
