@@ -5,7 +5,7 @@
 // pages as pictures, two to a row, so she can see the layout in the tab before
 // printing and leave a note on any page (the revisions she expects).
 //
-//   node scripts/storyboard-print-page.js --manifest <file> [--manifest <file>…] [--extra <json>] [--title "…"] [--go] [--supersede <pageId>]
+//   node scripts/storyboard-print-page.js --manifest <file> [--manifest <file>…] [--extra <json>] [--everything <json>] [--title "…"] [--go] [--supersede <pageId>]
 //
 // `--manifest` is what storyboard-print.js --go writes; `--extra <json>` adds
 // other PDFs already in the Dump as `[{title, url}]` (yesterday's triangle
@@ -47,8 +47,10 @@ function section(h2, title, url, meta, pageUrls, key) {
 
 // manifests: {docs:[{title, pages, pdf:{url}, pageUrls, stories:[…]}]} from
 // storyboard-print.js; extra: [{title, url, meta, pageUrls}] for PDFs already
-// in the Dump (pdf-pages.py makes their previews)
-function build(docs, extra, title, sheet) {
+// in the Dump (pdf-pages.py makes their previews); everything: one {title,
+// url, meta, pageUrls} drawn FIRST — the one PDF that holds all of it
+function build(docs, extra, title, sheet, everything) {
+  const top = everything ? section('', everything.title, everything.url, everything.meta, everything.pageUrls || [], 'everything') : '';
   const boards = docs.map((d) => section(
     d.title,
     `${d.title} — one PDF (${d.pages} ${d.pages === 1 ? 'page' : 'pages'})`,
@@ -70,6 +72,7 @@ function build(docs, extra, title, sheet) {
 </style>
 <div class="wrap">
   <h1>${esc(title)}</h1>
+  ${top}
   ${boards.join('\n  ')}
   ${extras}
 </div>
@@ -91,7 +94,8 @@ async function main() {
   const extra = arg('extra') ? JSON.parse(fs.readFileSync(arg('extra'), 'utf8')) : [];
   const title = arg('title', 'Print sheets — storyboards + Similitude');
   const sheet = slug(title);
-  const html = build(docs, extra, title, sheet);
+  const everything = arg('everything') ? JSON.parse(fs.readFileSync(arg('everything'), 'utf8')) : null;
+  const html = build(docs, extra, title, sheet, everything);
   const out = arg('out', '');
   if (out) fs.writeFileSync(out, html);
   console.log('html', html.length, 'bytes ·', docs.length, 'storyboard pdfs ·', extra.length, 'extra pdfs');
