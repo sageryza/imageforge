@@ -222,6 +222,17 @@ LIST ITEMS in your replies, `kind:'item'`; answer those with `POST
   gets APPENDED to `docs/desktop-tasks.md` (the one queue, every repo) and
   mentioned in one line — never asked for. Urgent is the only interrupt.
 - **Nothing may live only in the scratchpad.** Commit and push as you go.
+- **HER PROJECTS CACHE EVERYTHING — renders, images, cuts, downloads —
+  unless a specific reason makes it not make sense (2026-09-05, Sophie: "my
+  projects shud always cach things. renders, images etc.").** Paid or slow
+  work is banked the moment it exists and keyed by what made it, so a change
+  re-does only the piece that changed: the Episode Editor's clip cache, the
+  Film Editor's per-piece segment cache (#2123), the Playground's banked
+  sheet before the cut, the Chunking posters. A new pipeline step that
+  re-does work it already did once is wrong by default — bank it, or write
+  the reason it cannot be banked next to the code. Earned on the desk-sweep
+  commercial: every cut re-rendered all 16 pieces from scratch, twice through
+  a box restart, while she waited.
 - **Estimate the cost before a paid batch, and ASK above $3.**
 - **Merge your own PRs** when CI is green — don't park them as drafts.
 - **Measure, never reason, about other sessions or the environment.**
