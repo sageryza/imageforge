@@ -574,12 +574,28 @@ async function saveCut(id, body) {
 }
 
 // Background jobs — startJob with the stale-takeover, patching FIELDS only.
+//
+// A JOB IS IN-PROCESS, SO A JOB OLDER THAN THIS PROCESS IS DEAD (2026-09-05,
+// Sophie: "wait what? 20 minutes???"). Two deploys in four minutes restarted
+// the box under a render; the doc kept `status:'running'` and the twenty-
+// minute age rule held every new render off the cut until it lapsed. Nothing
+// but this process can be running a job on this box, so a `startedAt` before
+// BOOT_AT is a job the old process died holding — taken over at once. The
+// twenty minutes stays as the fallback for a job this process itself lost.
+const BOOT_AT = Date.now();
+const JOB_MAX_MS = 20 * 60 * 1000;
+function jobIsDead(job, now, bootAt) {
+  if (!job || job.status !== 'running') return true;
+  const started = new Date(job.startedAt || 0).getTime();
+  if (!(started > 0)) return true;
+  if (started < bootAt) return true;
+  return now - started >= JOB_MAX_MS;
+}
 async function startJob(id, kind, fn) {
   const doc = await loadDoc(id);
   if (!doc) throw new Error('no such cut');
-  if (doc.job && doc.job.status === 'running') {
-    const age = Date.now() - new Date(doc.job.startedAt || 0).getTime();
-    if (age < 20 * 60 * 1000) throw new Error(`a "${doc.job.kind}" job is already running`);
+  if (doc.job && doc.job.status === 'running' && !jobIsDead(doc.job, Date.now(), BOOT_AT)) {
+    throw new Error(`a "${doc.job.kind}" job is already running`);
   }
   const job = { kind, status: 'running', done: 0, total: 0, label: 'starting', error: null, startedAt: nowIso() };
   await patchDoc(id, { job });
@@ -1140,7 +1156,7 @@ module.exports = {
   // the shape (cut-model.js), re-exported for the tests and older callers
   cleanPieces, cleanSounds, pieceSeconds, totalSeconds, splitPiece, readDoc, withLanes,
   // the save rules
-  staleSave, savePatch, legacySounds, byOf,
+  staleSave, savePatch, legacySounds, byOf, jobIsDead,
   // the mix
   mixGraph, activeSounds, soundInputArgs, segmentAudioFilter, soundLength,
   // the render, the diff, the shot map

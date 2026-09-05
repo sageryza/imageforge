@@ -96,10 +96,23 @@ async function loadDoc(id) {
     const body = { by: 'chat', base: doc.updatedAt };
     if (Array.isArray(cut.clips)) body.clips = M.cleanPieces(cut.clips);
     if (Array.isArray(cut.sounds)) body.sounds = M.cleanSounds(cut.sounds);
-    const { status, json } = await call(`/${id}/pieces`, { method: 'POST', body });
+    let { status, json } = await call(`/${id}/pieces`, { method: 'POST', body });
     if (status === 409) {
-      console.error('STALE — she changed the cut since you read it. Her current cut:\n' + layout(json.doc || {}));
-      process.exit(2);
+      // A 409 whose lanes are the ones we read is a timestamp that moved under
+      // us (a render finishing, a mirror write) — not her edit. Re-read the base
+      // and save once more. Lanes that differ ARE her edit: print them, stop.
+      const hers = json.doc || {};
+      const same = JSON.stringify(M.readDoc(hers)) === JSON.stringify(M.readDoc(doc));
+      if (same) {
+        body.base = hers.updatedAt || (await loadDoc(id)).updatedAt;
+        ({ status, json } = await call(`/${id}/pieces`, { method: 'POST', body }));
+      }
+      if (status === 409) {
+        let shown = '';
+        try { shown = layout(json.doc || {}); } catch (e) { shown = `(could not lay her cut out: ${e.message})`; }
+        console.error('STALE — she changed the cut since you read it. Her current cut:\n' + shown);
+        process.exit(2);
+      }
     }
     if (status !== 200) die(`set → ${status} ${json.error || ''}`);
     console.log(`saved · ${json.pieces} pieces · updatedAt ${json.updatedAt}`);
