@@ -166,6 +166,13 @@ async function pageHalf() {
   ok('no date anywhere on a polaroid', !/chindate/.test(html));
   ok('the star has five points (finale v3)', /L39\.35 21\.89/.test(html) && !/C36 22/.test(html));
   ok('the strings are dashes, not dots', /stroke-dasharray:11 9/.test(html));
+  // The REAL router's route table — a route pasted inside another handler's
+  // body parses fine and never registers (the /putaway bug, 2026-09-05).
+  const routes = require('../shoebox').router.stack
+    .filter((l) => l.route).map((l) => Object.keys(l.route.methods)[0] + ' ' + l.route.path);
+  ['get /feed', 'post /board-state', 'post /memory', 'post /putaway', 'post /square']
+    .forEach((r) => ok('router registers ' + r, routes.includes(r)));
+
   ok('the polaroids fade to a ghost, not gone', /opacity:\.28/.test(html));
 
   const server = http.createServer((req, res) => {
