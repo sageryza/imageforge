@@ -108,7 +108,7 @@ async function job(id) {
 // (api.apiframe.pro/seedance-imagine) rejects `afk_` keys — v2 accounts must
 // use v2's POST /videos/generate. And v2 wants the video options NESTED under
 // `seedanceParams` (like `midjourneyParams` for MJ) — sent flat they fail
-// with "Unrecognized keys". v2 model ids use dashes ("seedance-1-5-pro").
+// with "Unrecognized keys". Model ids are the catalogue's, dots and all.
 // Cheapest tier: seedance-1-lite at 480p. Poll GET /v2/jobs/:id like MJ.
 async function seedanceVideo(prompt, opts = {}) {
   if (!APIFRAME_KEY) throw new Error('APIFRAME_KEY not configured');
@@ -126,7 +126,11 @@ async function seedanceVideo(prompt, opts = {}) {
   if (opts.seed != null) params.seed = Number(opts.seed);
   const body = {
     prompt,
-    model: String(opts.model || 'seedance-1-lite').replace(/\./g, '-'),
+    // The catalogue's own ids carry the dot (GET /v2/models: "seedance-1.5-pro",
+    // "wan-2.7") and the validator refuses "seedance-1-5-pro" outright —
+    // measured 2026-09-05, 15 refusals before anything was billed. This line
+    // used to dash the dots on a note that v2 wanted them; it does not.
+    model: String(opts.model || 'seedance-1-lite'),
     seedanceParams: params,
   };
   const r = await api('/videos/generate', { method: 'POST', body });
