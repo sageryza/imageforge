@@ -380,8 +380,12 @@
       paintPrompt();
     }
     // the buttons live on the PAUSED screen: paused and no sheet → shown
+    // …and NOT before the film has played at all: the player opens paused on
+    // its first frame since 2026-09-05 (it waits for her tap), and a NOTE on
+    // a film she has not started is a button on nothing.
+    var everPlayed = !v.paused;
     function syncBtn(){
-      var hide = !!sheet || !v.paused;
+      var hide = !!sheet || !v.paused || !everPlayed;
       nb.classList.toggle('off', hide);
       if (pbtn) pbtn.classList.toggle('off', hide || !shotWords(shotNow()));
       if (ppanel && hide) closePrompt();
@@ -409,7 +413,7 @@
     // play — her tap, or the native control — SAVES an open note ("pressing
     // play after it's been paused should trigger the note to save and
     // disappear"); pause is just the button's cue to appear
-    var onPlay=function(){ if(finishFn) finishFn(); syncBtn(); };
+    var onPlay=function(){ everPlayed = true; if(finishFn) finishFn(); syncBtn(); };
     v.addEventListener('play', onPlay);
     v.addEventListener('pause', syncBtn);
     // A TAP ANYWHERE ON THE FILM TOGGLES PAUSE/PLAY — and never the sheet.
