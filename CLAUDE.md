@@ -2850,6 +2850,24 @@ them off the reference sheet, not off the old filenames.
       `ringChat` has exactly this shape), and it goes through `chat-wake.ring`
       with `registry` + `followMoves` so a forked or re-keyed chat still
       resolves. Pinned by `node scripts/test-asset-note-bell.js`.
+    - **A FILM NOTE LEAVES THE PHONE THE INSTANT SHE SWITCHES APPS
+      (2026-09-05, Sophie: she notes on the film, opens the Claude app, and
+      the note arrived minutes late).** `filmnote.js`'s outbox only sent
+      while the page was in front — a backgrounded page runs no timers and
+      its fetch can be cut off — so a note waited for her to come back AND
+      for the 45s tick. Now: `visibilitychange`→hidden and `pagehide` send
+      every text-ready entry by `sendBeacon` (the one send a browser
+      finishes after the page is gone), and visible/`pageshow` flushes the
+      queue at once. A beacon answers nothing, so the entry STAYS queued
+      (stamped `beaconed`) and the flush re-sends it — every send carries
+      the entry's own `noteId`, and `appendAssetMessage` files ONE message
+      per id inside its transaction (a duplicate answers `duplicate:true`
+      and never rings the bell). A recording still waiting to be uploaded
+      cannot ride a beacon (it needs the transcript back) and waits for the
+      flush. The 45s tick is only the fallback. Test: step 7b of
+      `node scripts/test-chats-film-note.js` (a REAL beacon against the stub,
+      the outbox read after the beacon and after the return, the re-send's
+      noteId; verified failing 4 pre-fix).
     - **THE BELL IS NOT A SUBSTITUTE FOR THE RE-READ.** A chat mid-turn is
       already awake, so nothing wakes it — the doorbell only helps a chat that
       has finished. The note that got ignored landed while a chat was working.

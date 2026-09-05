@@ -2924,16 +2924,30 @@ function assetWaiting(thread) {
 }
 // Append one message. A transaction because Sophie can send from the app while
 // a chat is replying to the same image, and a read-modify-write would drop one.
-async function appendAssetMessage(ref, chat, url, from, text) {
+// `noteId` (2026-09-05): the phone-side outbox in filmnote.js sends a film
+// note TWICE on purpose — once as a sendBeacon the instant the app goes to
+// the background (no response, so the outbox cannot know it landed) and again
+// through the ordinary flush when the page comes back. The id rides both
+// sends, and a message already carrying it is answered as the same message
+// rather than appended a second time. Keyed inside the transaction, so the
+// two arriving together still file once. A duplicate never rings the bell.
+async function appendAssetMessage(ref, chat, url, from, text, opts) {
   const who = from === 'chat' ? 'chat' : 'sophie';
+  const noteId = opts && opts.noteId ? String(opts.noteId).slice(0, 48) : '';
   const msg = {
     id: require('crypto').randomBytes(6).toString('hex'),
     from: who, text, at: new Date().toISOString(),
   };
+  if (noteId) msg.noteId = noteId;
+  let duplicate = null;
   const thread = await admin.firestore().runTransaction(async (tx) => {
     const snap = await tx.get(ref);
-    const next = assetThread(snap.exists ? snap.data() : {})
-      .concat([msg]).slice(-ASSET_THREAD_MAX);
+    const have = assetThread(snap.exists ? snap.data() : {});
+    if (noteId) {
+      const same = have.find((m) => m && m.noteId === noteId);
+      if (same) { duplicate = same; return have; }
+    }
+    const next = have.concat([msg]).slice(-ASSET_THREAD_MAX);
     const patch = {
       chat: String(chat).slice(0, 60), url: String(url).slice(0, 500),
       thread: next, updated: msg.at,
@@ -2962,6 +2976,7 @@ async function appendAssetMessage(ref, chat, url, from, text) {
   //
   // Best-effort and never awaited: a note must land on the doc whether or not
   // anything can be woken, exactly as witchvideo.js's ringChat has it.
+  if (duplicate) return { message: duplicate, thread, duplicate: true };
   if (who === 'sophie') {
     (async () => {
       const wake = require('./chat-wake');
@@ -3047,11 +3062,13 @@ app.post('/api/gallery/assets/note', express.json(), async (req, res) => {
     return res.status(401).json({ error: 'unauthorized' });
   }
   try {
-    const { chat, url, text, from, seen } = req.body || {};
+    const { chat, url, text, from, seen, noteId } = req.body || {};
     if (!chat || !url) return res.status(400).json({ error: 'chat and url required' });
     if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
     const ref = assetVoteRef(chat, url);
     const t = String(text == null ? '' : text).trim();
+    // the outbox's own id for this note — see appendAssetMessage
+    const nid = /^[A-Za-z0-9._-]{1,48}$/.test(String(noteId || '')) ? String(noteId) : '';
     if (!t) {
       if (!seen) return res.status(400).json({ error: 'text required' });
       const at = new Date().toISOString();
@@ -3068,9 +3085,9 @@ app.post('/api/gallery/assets/note', express.json(), async (req, res) => {
         length: t.length,
       });
     }
-    const out = await appendAssetMessage(ref, chat, url, from, t);
+    const out = await appendAssetMessage(ref, chat, url, from, t, { noteId: nid });
     res.json({ ok: true, message: out.message, thread: out.thread,
-      waiting: assetWaiting(out.thread) });
+      waiting: assetWaiting(out.thread), duplicate: !!out.duplicate });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
