@@ -68,7 +68,7 @@
   /* No date on the chin (2026-08-29), and the writing is CAPS at a smaller
      size (2026-09-04, her pick off the v2 sheet: Indie Flower, caps) — the
      sheet's own caps treatment, verbatim. */
-  .sb-chintitle{ font-family:'Indie Flower',cursive; font-size:13px; font-weight:600; line-height:1.15;
+  .sb-chintitle{ font-family:'Indie Flower',cursive; font-size:11px; font-weight:600; line-height:1.2;
     text-transform:uppercase; letter-spacing:.03em;
     color:#3a332a; text-align:center; display:-webkit-box; -webkit-line-clamp:3;
     -webkit-box-orient:vertical; overflow:hidden; }
@@ -87,6 +87,13 @@
   .sbox .clr{ position:absolute; right:5px; top:50%; transform:translateY(-50%); width:22px; height:22px;
     border:0; border-radius:6px; background:none; color:#8b8171; font-size:15px; line-height:1; padding:0; cursor:pointer; }
   .sbox.hasq input{ padding-right:30px; }
+  /* PUT AWAY (2026-09-04, Sophie: "some pics were accidental like the
+     pine forest") — an accidental memory is hidden from the shoebox, never
+     deleted. The pile lives behind the house underlined opener; its tiles
+     draw dimmed so it reads as put away, not more shelf. */
+  .sb-awaybtn{ background:none; border:0; padding:0; margin:22px 0 4px;
+    font:inherit; font-size:13px; color:#6b6254; text-decoration:underline; cursor:pointer; }
+  .sb-away .sb-cell{ opacity:.55; }
   .sb-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:26px 20px; }
   .sb-cell{ position:relative; background:none; border:none; padding:0; cursor:pointer; font-family:inherit; }
   .sb-pinmark{ position:absolute; top:-5px; right:-3px; width:12px; height:12px; border-radius:50%;
@@ -142,7 +149,7 @@
   .sb-detail{ max-width:380px; width:100%; max-height:100%; overflow-y:auto; display:flex;
     flex-direction:column; align-items:center; gap:14px; }
   .sb-bigcard{ width:min(78vw,320px); }
-  .sb-bigcard .sb-chintitle{ font-size:16px; }
+  .sb-bigcard .sb-chintitle{ font-size:14px; }
   .sb-bigcard .sb-undev span{ font-size:21px; }
   .sb-paper{ background:#fffdf3; border:1px solid #d6d0c0; border-radius:6px; padding:12px 14px;
     font-size:15.5px; line-height:1.45; max-height:30vh; overflow-y:auto; width:100%; box-sizing:border-box; }
@@ -220,7 +227,9 @@
   star paper the constellations light up at the end. Boards and everything you
   do here are the same boards as the
   <a href="https://incaseofamnesia.com/shoebox" target="_blank" rel="noopener">Shoebox itself</a>.
-  <b>Square it</b> on a polaroid opens the Squaring tool.
+  <b>Square it</b> on a polaroid opens the Squaring tool. <b>Put away</b>
+  hides an accidental one from the shoebox without deleting the memory —
+  the put-away pile at the end of the library brings one back.
 </div>
 
 <div class="sb-bar">
@@ -252,6 +261,8 @@
     </div>
     <p class="sb-note" id="libnote">Opening the shoebox&hellip;</p>
     <div class="sb-grid" id="grid"></div>
+    <button class="sb-awaybtn" id="awaybtn" type="button" hidden></button>
+    <div class="sb-grid sb-away" id="awaygrid" hidden></div>
   </div>
 
   <div class="sb-boardwrap" id="boardwrap" hidden>
@@ -798,10 +809,14 @@
 
   /* ── library ───────────────────────────────────────────────────────── */
   var grid = $('grid');
-  function developed(){ return items.filter(function(m){ return m.url; }); }
+  // A put-away memory is out of the shelf, the counts and the search —
+  // it lives only in the away pile below, until Bring back.
+  function onShelf(){ return items.filter(function(m){ return !m.hidden; }); }
+  function away(){ return items.filter(function(m){ return m.hidden; }); }
+  function developed(){ return onShelf().filter(function(m){ return m.url; }); }
   function shelf(){
     var dev = developed();
-    var base = (filter === 'developed' && dev.length) ? dev : items;
+    var base = (filter === 'developed' && dev.length) ? dev : onShelf();
     if (!query) return base;
     // The WHOLE library is loaded (one request), so filtering here is the
     // full index, not a page — the truncate lesson holds. House grammar.
@@ -816,7 +831,7 @@
   }
   function paintFilters(){
     $('fDev').textContent = 'Developed (' + developed().length + ')';
-    $('fAll').textContent = 'All (' + items.length + ')';
+    $('fAll').textContent = 'All (' + onShelf().length + ')';
     $('fDev').classList.toggle('on', filter === 'developed');
     $('fAll').classList.toggle('on', filter === 'all');
   }
@@ -827,7 +842,9 @@
     var note = $('libnote');
     note.hidden = Boolean(list.length);
     if (!list.length) note.textContent = items.length ? 'Nothing matches that.' : 'No memories yet.';
-    var sig = filter + '|' + query + '|' + list.length + '|' + pins().map(function(p){ return p.id; }).join(',');
+    var hid = away();
+    var sig = filter + '|' + query + '|' + list.length + '|' + awayOpen + '|' + hid.length +
+      '|' + pins().map(function(p){ return p.id; }).join(',');
     if (sig === gridSig) return;
     gridSig = sig;
     grid.innerHTML = list.map(function(m){
@@ -836,11 +853,23 @@
         (isPinned(m.id) ? '<span class="sb-pinmark" title="On the board"></span>' : '') +
       '</button>';
     }).join('');
+    var ab = $('awaybtn'), ag = $('awaygrid');
+    ab.hidden = !hid.length;
+    ab.textContent = awayOpen ? 'close the put-away pile' : 'put away \u00b7 ' + hid.length;
+    ag.hidden = !(awayOpen && hid.length);
+    ag.innerHTML = (awayOpen && hid.length) ? hid.map(function(m){
+      return '<button class="sb-cell" type="button" data-id="' + esc(m.id) + '">' +
+        polHtml(m, tiltOf(m.id)) + '</button>';
+    }).join('') : '';
   }
-  grid.addEventListener('click', function(e){
+  var awayOpen = false;
+  $('awaybtn').onclick = function(){ awayOpen = !awayOpen; paintGrid(); };
+  function cellTap(e){
     var c = e.target.closest && e.target.closest('.sb-cell');
     if (c) openDetail(c.dataset.id);
-  });
+  }
+  grid.addEventListener('click', cellTap);
+  $('awaygrid').addEventListener('click', cellTap);
   $('fDev').onclick = function(){ filter = 'developed'; paintGrid(); };
   $('fAll').onclick = function(){ filter = 'all'; paintGrid(); };
 
@@ -885,6 +914,7 @@
               : '<button class="sb-act sb-primary" id="dPin" type="button">Pin to “' + esc(board().name) + '”</button>') +
             (m.url ? '<button class="sb-act" id="dSquare" type="button">Square it</button>' : '') +
             '<button class="sb-act" id="dEdit" type="button">Edit</button>' +
+            '<button class="sb-act" id="dAway" type="button">' + (m.hidden ? 'Bring back' : 'Put away') + '</button>' +
             '<button class="sb-act" id="dClose" type="button">Close</button>' +
           '</div>') +
     '</div>';
@@ -932,6 +962,22 @@
         }).catch(function(e2){ alert(String(e2.message || e2)); });
     };
     $('dEdit').onclick = function(){ openDetail(id, true); };
+    $('dAway').onclick = function(){
+      var btn = $('dAway');
+      btn.disabled = true;
+      var toHidden = !m.hidden;
+      fetch('/api/shoebox/putaway', { method:'POST',
+        headers:{ 'content-type':'application/json' },
+        body: JSON.stringify({ id:id, hidden: toHidden }) })
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          if (j && j.error) throw new Error(j.error);
+          m.hidden = toHidden;
+          gridSig = '';
+          closeDetail();
+        })
+        .catch(function(e2){ btn.disabled = false; alert(String(e2.message || e2)); });
+    };
     $('dClose').onclick = closeDetail;
   }
   function closeDetail(){ detailscrim.hidden = true; detailscrim.innerHTML = ''; paintGrid(); paintPins(); }

@@ -134,6 +134,9 @@ async function pageHalf() {
       at: 1000, ts: '', source: '', caption: '', promptContent: '' },
     { id: 'd', title: 'a dream with no picture', content: 'the well behind the house', url: '',
       at: 500, ts: '', source: '', caption: '', promptContent: '' },
+    // An accidental add, already put away — off the shelf, in the pile.
+    { id: 'e', title: 'fog rolling over a pine forest', content: '', url: 'https://storage.googleapis.com/bkt/e.png',
+      at: 400, ts: '', source: 'meta-assets', caption: '', promptContent: '', hidden: true },
   ];
   // Star paper + a string already tying a–b: the finale has something to light.
   const BOARD = {
@@ -145,6 +148,7 @@ async function pageHalf() {
   const posts = [];
   const squares = [];
   const edits = [];
+  const aways = [];
 
   const html = fs.readFileSync(path.join(__dirname, '..', 'public', 'shoebox.html'), 'utf8');
   const pill = fs.readFileSync(path.join(__dirname, '..', 'public', 'pill-inject.html'), 'utf8');
@@ -158,7 +162,7 @@ async function pageHalf() {
   // dashes, 3s twinkle).
   ok('the hand is Indie Flower, not Patrick Hand', /Indie\+Flower/.test(html) && !/Patrick\+Hand/.test(html) && !/Caveat/.test(html));
   const chinRule = (html.match(/\.sb-chintitle\{[^}]*\}/) || [''])[0];
-  ok('the chin is CAPS at the smaller size', /text-transform:uppercase/.test(chinRule) && /font-size:13px/.test(chinRule));
+  ok('the chin is CAPS at the smaller size', /text-transform:uppercase/.test(chinRule) && /font-size:11px/.test(chinRule));
   ok('no date anywhere on a polaroid', !/chindate/.test(html));
   ok('the star has five points (finale v3)', /L39\.35 21\.89/.test(html) && !/C36 22/.test(html));
   ok('the strings are dashes, not dots', /stroke-dasharray:11 9/.test(html));
@@ -198,6 +202,15 @@ async function pageHalf() {
         res.end('{"ok":true}');
       });
     }
+    if (u.pathname === '/api/shoebox/putaway') {
+      let body = '';
+      req.on('data', (d) => { body += d; });
+      return req.on('end', () => {
+        aways.push(JSON.parse(body || '{}'));
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end('{"ok":true}');
+      });
+    }
     if (u.pathname === '/api/shoebox/square') {
       let body = '';
       req.on('data', (d) => { body += d; });
@@ -232,9 +245,11 @@ async function pageHalf() {
   is('no page errors (the pill survives the page and back)', errors, []);
 
   /* ── the library ── */
-  is('Developed shows the three pictures', await page.locator('.sb-cell').count(), 3);
+  is('Developed shows the three pictures', await page.locator('#grid .sb-cell').count(), 3);
   await page.click('#fAll');
-  is('All shows the pictureless memory too', await page.locator('.sb-cell').count(), 4);
+  is('All shows the pictureless memory too', await page.locator('#grid .sb-cell').count(), 4);
+  ok('a put-away memory is off the shelf', !(await page.locator('#grid .sb-cell[data-id="e"]').count()));
+  ok('the filter counts leave it out', /All \(4\)/.test(await page.locator('#fAll').textContent()));
   ok('the undeveloped card carries its words', await page.evaluate(() => {
     const u = document.querySelector('.sb-undev span');
     return u && /the well behind the house/.test(u.textContent);
@@ -346,6 +361,31 @@ async function pageHalf() {
   await page.click('#dSquare');
   await page.waitForFunction(() => location.pathname === '/crop', null, { timeout: 5000 }).catch(() => {});
   is('Square it POSTed the memory id', squares, [{ id: 'b' }]);
+
+  /* ── Put away / Bring back (2026-09-04, "some pics were accidental") ── */
+  await page.goto(base + '/shoebox');
+  await page.waitForSelector('#grid .sb-cell', { state: 'attached', timeout: 5000 });
+  await page.click('#tabLib');   // the last test left the view on the board
+  await page.click('#fAll');
+  ok('the pile opener names the count', /put away \u00b7 1|put away · 1/.test(
+    await page.locator('#awaybtn').textContent()));
+  await page.click('#awaybtn');
+  await page.waitForSelector('#awaygrid .sb-cell[data-id="e"]', { timeout: 3000 });
+  ok('the pile holds the accidental one, dimmed', await page.evaluate(() =>
+    parseFloat(getComputedStyle(document.querySelector('#awaygrid .sb-cell')).opacity) < 0.8));
+  await page.click('#awaygrid .sb-cell[data-id="e"]');
+  await page.waitForSelector('#dAway', { timeout: 3000 });
+  is('a put-away memory offers Bring back', await page.locator('#dAway').textContent(), 'Bring back');
+  await page.click('#dAway');
+  await page.waitForSelector('#grid .sb-cell[data-id="e"]', { timeout: 3000 });
+  ok('bringing back rejoins the shelf', true);
+  await page.click('#grid .sb-cell[data-id="c"]');
+  await page.waitForSelector('#dAway', { timeout: 3000 });
+  is('a live memory offers Put away', await page.locator('#dAway').textContent(), 'Put away');
+  await page.click('#dAway');
+  await page.waitForFunction(() => !document.querySelector('#grid .sb-cell[data-id="c"]'), null, { timeout: 3000 });
+  is('the two taps POSTed exactly the flag', aways,
+    [{ id: 'e', hidden: false }, { id: 'c', hidden: true }]);
 
   await browser.close();
   server.close();
