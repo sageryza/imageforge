@@ -83,6 +83,26 @@ no opener at all), and `setCapText()` is the one writer of the words so every
 path that changes them re-measures. Tapping the opener shows the whole
 caption and it reads `less`. Test: step 5 of
 `node scripts/test-storyroom-caption-copy.js`.
+## The typed cast — Pictures · Descriptions behind the character button (2026-09-06)
+**Sophie: "also add the character description feature as an option that's not
+character image, like playground. u can copy the code."** The Playground's
+Descriptions half, brought to the Story Room's character sheet: a hairline
+**Pictures · Descriptions** row (`#chartabs`, the same `.acctabs` measurer as
+the inbox's tabs — measured AFTER the sheet is shown, since a hidden row has
+no width), name + one-line description rows (`#castrows`; Enter refused, a
+pasted newline collapses to a space — `castBlock` writes one character per
+line), a bigger-box toggle per description, and the clause disclosed at the
+foot from the SERVED `window.__sheetGrid.castBlock`, so the page holds no copy
+of the wording. **The cast lives on the PAD** (`pad.cast = [{name,
+description}]`, `POST /api/scratchpad/cast {pad, cast}`, whitelisted, no
+`updatedAt` bump, out of `dirtySinceFilm`) — a story's cast is the same for
+every beat, unlike the Playground's per-run cast — and the server writes the
+clause into every draw's prompt itself (`artPrompt` reads `pad.cast`; the
+page sends no cast on `/generate`). An empty cast writes NO clause. The badge
+on the button counts pictures + descriptions; the tab she left it on is
+remembered. The rows reserve the pill's 56px column. Tests:
+`node scripts/test-scratchpad-cast.js` (the clause and the routes, pure) and
+`node scripts/test-storyroom-cast.js` (the real page headless).
 
 ## Chapters (2026-09-06)
 **Sophie, on her hospital story ("nautchaug", ~50 beats): "i want the chapter

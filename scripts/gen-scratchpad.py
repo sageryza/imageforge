@@ -56,6 +56,16 @@ page = r"""<!doctype html>
      file's hooks (cta, nav) now. -->
 <script src="/asset-lightbox.js"></script>
 <script src="/size-tier.js"></script>
+<!-- THE TYPED CAST'S CLAUSE AND THE PICKED CARDS' LINE, SERVED (2026-09-06,
+     Sophie: "add the character description feature as an option that's not
+     character image, like playground"). /sheet-grid.js is the ONE builder of
+     the characters clause (castBlock) and /pad-characters.js the one sentence
+     for the picked cards (charLine) — the same files the server sends the
+     prompt through, so what the sheet prints IS what rides the draw. The
+     page holds no copy of either wording. Both are guarded: a harness that
+     cannot serve them renders the sheet without the disclosure. -->
+<script src="/sheet-grid.js"></script>
+<script src="/pad-characters.js"></script>
 <style>
 @font-face{font-family:'EBGaramond';font-weight:400 700;font-display:swap;src:url(data:font/ttf;base64,__FONT__) format('truetype');}
 :root{ --paper:#f6f2e9; --ink:#26221c; --ink2:#8a8377; --line:#d9d2c2; --barbg:#fffdf7; --gold:#a8845c;
@@ -792,6 +802,62 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 .charrow .cdel svg{width:16px; height:16px;}
 #charsline{font-style:italic; color:var(--ink2); font-size:.9em; margin-top:1em;}
 #charlist{padding-bottom:24px;}
+/* THE SHEET'S TWO HALVES — PICTURES · DESCRIPTIONS (2026-09-06, Sophie: "also
+   add the character description feature as an option that's not character
+   image, like playground. u can copy the code"). The Playground's typed cast,
+   lifted whole: the words half of the story's people behind the SAME icon as
+   the picture cards, under the house hairline row (`.acctabs`, this page's
+   own copy — the add sheet's PICTURES · CLIPS row is the same rule, and
+   tabLineOf measures the lit tab so nothing declares a tab count). The rows
+   ship EMPTY; a placeholder NAMES the field and nothing more. */
+#chartabs{margin-top:4px;}
+.casthdr{display:flex; gap:6px; padding:0 68px 0 0; margin-bottom:6px;}
+.casthdr .castlab{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--ink2);}
+.casthdr .castlab:first-child{flex:1 1 90px;}
+.casthdr .castlab:last-child{flex:3 1 160px;}
+/* The rows sit right under the pill's fixed corner, so they end before its
+   column (the house 56px), like the hairline row above them. */
+#castrows{padding-right:56px;}
+.castrow{display:flex; gap:6px; align-items:center; margin-bottom:6px;}
+.castrow input, .castrow textarea{flex:1 1 0; min-width:0; font-family:'EBGaramond',Georgia,serif;
+  font-size:16px; color:var(--ink); background:var(--paper); border:1px solid var(--line);
+  border-radius:6px; padding:6px 9px;}
+.castrow input.cnm{flex:1 1 90px; order:0;}
+/* A TEXTAREA so it can be a bigger box, but ONE LINE by contract (Enter is
+   refused, a pasted newline collapses to a space): castBlock writes a
+   character per line and castParse reads them back that way. `min-height:0`
+   beats the page-wide textarea floor, or the compact row is two lines tall
+   and "expand" starts from nowhere. */
+.castrow textarea.cds{flex:3 1 160px; order:1; box-sizing:border-box; height:34px; min-height:0;
+  resize:none; overflow:hidden; line-height:1.2;}
+.castrow .cx, .castrow .cbig{flex:none; width:30px; height:34px; padding:0; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+  border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink2);}
+.castrow .cbig{order:2;}
+.castrow .cx{order:3;}
+.castrow .cbig svg{width:13px; height:13px;}
+.castrow .cx svg{width:16px; height:16px;}
+/* THE BIGGER DESCRIPTION BOX — the Playground's answer in shape: one field,
+   two sizes, never a second box. Expanding drops the description onto its
+   OWN LINE at full width (the row wraps; `order` keeps the name, the toggle
+   and the ✕ on the line above), because on a 390pt phone a taller box three
+   columns wide is still a column. Both bounds are CSS so the browser clamps
+   fitCds's inline height, and the FLOOR keeps the button worth tapping on an
+   empty row — a field she WRITES in. */
+.castrow.big{flex-wrap:wrap;}
+.castrow.big textarea.cds{flex:1 1 100%; order:4; height:auto; min-height:18vh; max-height:44vh; overflow-y:auto;}
+#castadd{font-family:-apple-system,sans-serif; font-size:13px; padding:7px 12px; cursor:pointer;
+  border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink);}
+/* WHAT THE CAST ADDS TO HER PROMPT, said where she is standing — from the
+   SAME served rules the draw goes through (charLine / castBlock), never a
+   copy of the wording. Nothing riding draws nothing at all: an empty cast
+   adds no clause, so there is nothing to disclose. */
+#castsays{margin-top:16px; padding-bottom:24px;}
+#castsays .castlab{display:block; font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--ink2); margin-bottom:6px;}
+#castsaystxt{font-family:-apple-system,sans-serif; font-size:12px; color:var(--ink2); line-height:1.4;
+  border-left:2px solid var(--ink); padding:2px 0 2px 8px; white-space:pre-line;}
 /* QUALITY IS THE THREE-WAY TOGGLE (2026-08-26, Sophie: "can you make the
    three-way toggle for the quality instead of the drop-down"). Both copies —
    the card's own draw and the draw-them-all confirm — are `.tri` from
@@ -1150,9 +1216,24 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
       <div class="no">Characters</div>
       <button class="iconbtn" id="charsaddbtn" aria-label="Add a character card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
     </div>
-    <div id="charsline" hidden></div>
-    <div id="charlist"></div>
-    <div class="state" id="charsempty" hidden>No characters yet — the + adds a card, and its name is what a drawing prompt calls them.</div>
+    <!-- PICTURES · DESCRIPTIONS (2026-09-06): the picture cards and her typed
+         cast are the same question asked two ways, so they sit behind one
+         icon under one hairline row. -->
+    <div class="acctabs" id="chartabs">
+      <button class="acctab on" id="ctab-pics" type="button" data-ct="pics">Pictures</button>
+      <button class="acctab" id="ctab-desc" type="button" data-ct="desc">Descriptions</button>
+    </div>
+    <div id="charpics">
+      <div id="charsline" hidden></div>
+      <div id="charlist"></div>
+      <div class="state" id="charsempty" hidden>No characters yet — the + adds a card, and its name is what a drawing prompt calls them.</div>
+    </div>
+    <div id="chardesc" hidden>
+      <div class="casthdr"><span class="castlab">Name</span><span class="castlab">Description</span></div>
+      <div id="castrows"></div>
+      <button type="button" id="castadd">Add a character</button>
+    </div>
+    <div id="castsays" hidden><span class="castlab">Added to your prompt</span><div id="castsaystxt"></div></div>
   </div>
 </div>
 <input type="file" id="charfile" accept="image/*" hidden>
@@ -1319,7 +1400,10 @@ function api(p,opts){
     /* /chapter doesn't stale the film either: chapters are not cuts — the
        render is made of the beats' pictures and words and a chapter heading
        is neither (2026-09-06). */
-    if(p.indexOf('/film')!==0&&p.indexOf('/pads')!==0&&p.indexOf('/character')!==0&&p!=='/tts'&&p!=='/style'&&p!=='/upload'&&p!=='/shoebox'&&p!=='/chapter') dirtySinceFilm=true;
+    /* /cast doesn't stale the film either (2026-09-06): the typed cast is the
+       /character family's twin — who the story's people are is not on the
+       timeline; a DRAW that uses them is, and /generate marks it. */
+    if(p.indexOf('/film')!==0&&p.indexOf('/pads')!==0&&p.indexOf('/character')!==0&&p!=='/tts'&&p!=='/style'&&p!=='/upload'&&p!=='/shoebox'&&p!=='/chapter'&&p!=='/cast') dirtySinceFilm=true;
   } else if(p.indexOf('/pads')!==0){
     p+=(p.indexOf('?')>=0?'&':'?')+'pad='+encodeURIComponent(padId);
   }
@@ -2050,7 +2134,7 @@ var HELP=[
   {sel:'#arplay', nm:'Playground', what:'Opens the Playground to make its art there instead.'},
   {sel:'#arinbox', nm:'From the inbox', what:'Swaps in a picture or clip you already have.'},
   {sel:'#arshoe', nm:'Add to Shoebox', what:'Files this picture into your Memory Library, so it shows up in the Shoebox as a polaroid — pin it to a board there.'},
-  {sel:'#dchars', nm:'Character references', what:'Under Drawing prompt: pick one or more of the story’s characters to ride along with this drawing. The count on the button says how many are coming.'},
+  {sel:'#dchars', nm:'Characters', what:'Under Drawing prompt: pick one or more of the story’s character pictures to ride along with this drawing, or describe them in words on the Descriptions tab — a typed name and description is written into every draw of this story. The count on the button says how many are coming.'},
   {sel:'#dgo', nm:'Draw', what:'Under Drawing prompt: draws it, at the quality on the toggle beside it. Low is where it starts.'},
   {sel:'#speak', nm:'Hear it', what:'Reads the beat aloud in your voice.'},
   {sel:'#micbtn', nm:'Record it', what:'Records you reading it. Your own take always wins over the read-aloud, and every take is kept.'},
@@ -2509,7 +2593,10 @@ function load(){
     /* The cast is per STORY, and the picked set does not survive a story
        switch (or a reload) — a reference she picked last time must never
        silently ride a draw she is making now. */
-    padChars=d.characters||[]; pickedChars=[]; charReturn=null; paintDchars();
+    padChars=d.characters||[]; pickedChars=[]; charReturn=null;
+    /* Her typed cast is the STORY's (pad.cast) — the same people on every
+       beat — so it comes with the pad, unlike the picked set. */
+    padCast=Array.isArray(d.cast)?d.cast:[]; castSaveTimer=null; paintDchars();
     audios=d.audios||[];
     padUpdated=d.updatedAt||0; dirtySinceFilm=false;
     padDesc=d.description||''; padDescAudio=d.descriptionAudio||null;
@@ -2878,8 +2965,11 @@ function sheetPill(sheet){
    The line MEASURES the lit tab, so the tab count lives nowhere (the house
    `.acctabs` rule). */
 var inboxTab=0, shelfClips=null, clipQ='';
-function tabLine(){
-  var tabs=document.getElementById('inboxtabs');
+function tabLine(){ tabLineOf(document.getElementById('inboxtabs')); }
+/* ONE measurer for every .acctabs row on the page (the add sheet's PICTURES ·
+   CLIPS and the characters sheet's PICTURES · DESCRIPTIONS). */
+function tabLineOf(tabs){
+  if(!tabs) return;
   var on=tabs.querySelector('.acctab.on'); if(!on) return;
   var r=tabs.getBoundingClientRect(), t=on.getBoundingClientRect();
   if(!t.width) return;
@@ -2888,8 +2978,10 @@ function tabLine(){
   if(!tabs.__tl){ tabs.__tl=1; requestAnimationFrame(function(){ tabs.classList.add('tl'); }); }
 }
 window.addEventListener('resize',function(){
-  var tabs=document.getElementById('inboxtabs');
-  tabs.classList.remove('tl'); tabs.__tl=0; requestAnimationFrame(tabLine);
+  [document.getElementById('inboxtabs'),document.getElementById('chartabs')].forEach(function(tabs){
+    if(!tabs) return;
+    tabs.classList.remove('tl'); tabs.__tl=0; requestAnimationFrame(function(){ tabLineOf(tabs); });
+  });
 },{passive:true});
 function showInboxTab(i){
   inboxTab=i;
@@ -3813,12 +3905,167 @@ document.getElementById('dchar').onclick=function(ev){
    never-persist rule: a reference she picked last week must never silently
    ride today's draw. The count on the button is the disclosure. */
 var padChars=[], pickedChars=[], charPickMode=false, charReturn=null;
+/* THE COUNT IS THE WHOLE CAST — picked pictures plus typed descriptions,
+   because that is what the button opens onto and what rides the draw. A
+   person entered both ways counts twice, which is her doing and visible in
+   the sheet; a badge showing only half of it would be the misleading one. */
 function paintDchars(){
-  var n=pickedChars.length;
+  var n=pickedChars.length+castRows().length;
   document.getElementById('dchars').classList.toggle('on',n>0);
   var badge=document.getElementById('dcharsn');
   badge.hidden=!n; badge.textContent=n;
+  /* Every cast change comes through here — a pick, a typed row, a removal —
+     so the disclosure moves with the badge and cannot be forgotten. */
+  paintCastSays();
 }
+/* ── HER TYPED CAST (2026-09-06, Sophie, in the chapter chat: "also add the
+   character description feature as an option that's not character image,
+   like playground. u can copy the code"). The Playground's words half,
+   copied: name + description rows behind the same icon as the picture cards,
+   under a PICTURES · DESCRIPTIONS hairline row. Where the Playground keeps a
+   run's cast in localStorage, a STORY's cast lives on the pad (`pad.cast`,
+   POST /cast) — the same people on every beat, written once — and saves as
+   she types, debounced, flushed when she leaves the sheet.
+
+   THE CLAUSE ITSELF IS NEVER WRITTEN HERE — window.__sheetGrid.castBlock
+   builds it, the same function the server sends, so the sheet prints exactly
+   what will ride. An empty cast returns the empty string, which is her rule. */
+var padCast=[], castMax=12, castSaveTimer=null;
+function castRows(){
+  var f=window.__sheetGrid&&window.__sheetGrid.castRows;
+  return f?f(padCast):padCast.filter(function(c){return c&&((c.name||'').trim()||(c.description||'').trim());});
+}
+function castClause(){
+  var f=window.__sheetGrid&&window.__sheetGrid.castBlock;
+  return f?f(padCast,true):'';
+}
+function pickedCharRecords(){
+  return pickedChars.map(function(id){ return padChars.find(function(c){return c.id===id;}); }).filter(Boolean);
+}
+function charsLine(){
+  var f=window.__padCharacters&&window.__padCharacters.charLine;
+  return f?f(pickedCharRecords()):'';
+}
+/* The whole array is the write — the route stores what it is sent, so a row
+   she emptied is really gone and an empty cast stores []. */
+function saveCast(now){
+  clearTimeout(castSaveTimer); castSaveTimer=null;
+  var send=function(){
+    castSaveTimer=null;
+    api('/cast',{method:'POST',body:JSON.stringify({cast:padCast})}).catch(function(){});
+  };
+  if(now) send(); else castSaveTimer=setTimeout(send,400);
+}
+/* WHAT THE CAST ADDS TO HER PROMPT, printed in the sheet — both halves, the
+   picked cards' sentence and the typed clause, from the SAME served rules
+   the draw goes through (window.__padCharacters.charLine /
+   window.__sheetGrid.castBlock), never any wording written here. Nothing
+   riding → the block is not drawn at all. */
+function paintCastSays(){
+  var box=document.getElementById('castsays'); if(!box) return;
+  var parts=[]; var cl=charsLine(); if(cl) parts.push(cl.trim());
+  var ct=castClause(); if(ct) parts.push(ct);
+  var txt=parts.join('\n\n').trim();
+  box.hidden=!txt;
+  document.getElementById('castsaystxt').textContent=txt;
+}
+var CHARTABKEY='scratchpad_chartab';
+function charTab(){ return localStorage.getItem(CHARTABKEY)==='desc'?'desc':'pics'; }
+function paintCharTabs(){
+  var row=document.getElementById('chartabs'), t=charTab();
+  Array.prototype.forEach.call(row.querySelectorAll('.acctab'),function(b){
+    b.classList.toggle('on',b.getAttribute('data-ct')===t);
+  });
+  document.getElementById('charpics').hidden=t!=='pics';
+  document.getElementById('chardesc').hidden=t!=='desc';
+  /* The header's + adds a PICTURE card; on the words half the add is the
+     button under the rows, so the + stands down rather than mean two things. */
+  document.getElementById('charsaddbtn').hidden=t!=='pics';
+  tabLineOf(row);
+  if(t==='desc') buildCastBox();
+}
+document.getElementById('chartabs').onclick=function(ev){
+  ev.stopPropagation();
+  var b=ev.target.closest('.acctab'); if(!b) return;
+  try{ localStorage.setItem(CHARTABKEY,b.getAttribute('data-ct')); }catch(e){}
+  paintCharTabs();
+};
+function buildCastBox(){
+  var rows=document.getElementById('castrows'); if(!rows) return;
+  rows.innerHTML='';
+  padCast.forEach(function(c,i){
+    var d=document.createElement('div'); d.className='castrow';
+    var nm=document.createElement('input');
+    nm.type='text'; nm.className='cnm'; nm.value=c.name||'';
+    /* The placeholders NAME the field and nothing more (the house rule). */
+    nm.placeholder='Name'; nm.setAttribute('aria-label','Character '+(i+1)+' name');
+    /* A TEXTAREA, so it can be a bigger box — but still ONE LINE by contract:
+       castBlock writes a character per line and castParse reads them back the
+       same way, so a newline inside a description would cut a clause in half.
+       Enter is refused and a pasted newline collapses to a space. */
+    var ds=document.createElement('textarea');
+    ds.className='cds'; ds.rows=1; ds.value=c.description||'';
+    ds.placeholder='Description'; ds.setAttribute('aria-label','Character '+(i+1)+' description');
+    ds.addEventListener('keydown',function(e){ if(e.key==='Enter') e.preventDefault(); });
+    /* `height:auto` FIRST or the box can only ever grow; the border is added
+       on because the box is border-box and scrollHeight excludes it (both
+       lessons are fitBig's, learned on the caption box). */
+    function fitCds(){
+      if(!d.classList.contains('big')){ ds.style.height=''; return; }
+      ds.style.height='auto';
+      ds.style.height=(ds.scrollHeight+(ds.offsetHeight-ds.clientHeight))+'px';
+    }
+    function stash(){
+      if(/[\r\n]/.test(ds.value)) ds.value=ds.value.replace(/\s*[\r\n]+\s*/g,' ');
+      fitCds();
+      padCast[i]={name:nm.value,description:ds.value};
+      saveCast();
+      /* The badge is the whole cast, so it moves as she types — the row is
+         not rebuilt on input. */
+      paintDchars();
+    }
+    nm.addEventListener('input',stash);
+    ds.addEventListener('input',stash);
+    /* Deliberately NOT sticky and not stored on the row: the compact row is
+       the sheet's shape and a big box is a moment of reading or writing one
+       description — the same call the caption's bigger box makes. */
+    var big=document.createElement('button'); big.type='button'; big.className='cbig';
+    function paintCbig(){
+      var on=d.classList.contains('big');
+      big.innerHTML=on?ICON_SMALLER:ICON_BIGGER;
+      var w=(on?'Back to the small box':'Bigger box')+' for character '+(i+1);
+      big.setAttribute('aria-label',w); big.title=w; big.setAttribute('aria-expanded',on?'true':'false');
+    }
+    ds.__fit=fitCds;
+    big.onclick=function(ev){
+      ev.stopPropagation();
+      d.classList.toggle('big'); fitCds(); paintCbig();
+      if(d.classList.contains('big')) ds.focus();
+    };
+    paintCbig();
+    var x=document.createElement('button'); x.type='button'; x.className='cx';
+    x.setAttribute('aria-label','Remove character '+(i+1));
+    x.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+    x.onclick=function(ev){
+      ev.stopPropagation();
+      padCast.splice(i,1); saveCast(); buildCastBox(); paintDchars();
+    };
+    d.appendChild(nm); d.appendChild(ds); d.appendChild(big); d.appendChild(x);
+    rows.appendChild(d);
+  });
+  document.getElementById('castadd').hidden=padCast.length>=castMax;
+}
+window.addEventListener('resize',function(){
+  Array.prototype.forEach.call(document.querySelectorAll('#castrows .cds'),function(t){ if(t.__fit) t.__fit(); });
+},{passive:true});
+document.getElementById('castadd').onclick=function(ev){
+  ev.stopPropagation();
+  if(padCast.length>=castMax) return;
+  padCast.push({name:'',description:''});
+  buildCastBox();
+  var last=document.querySelectorAll('#castrows .cnm');
+  if(last.length) last[last.length-1].focus();
+};
 function renderChars(){
   var list=document.getElementById('charlist'); list.innerHTML='';
   document.getElementById('charsempty').hidden=padChars.length>0;
@@ -3877,15 +4124,20 @@ function renderChars(){
   });
 }
 function openCharSheet(pick){
-  charPickMode=Boolean(pick); renderChars();
+  charPickMode=Boolean(pick); renderChars(); paintCastSays();
   var sh=document.getElementById('charsheet');
   sh.hidden=false; sh.scrollTop=0; lock(true);
+  paintCharTabs();   // AFTER the sheet is shown — the underline is measured, and a hidden row has no width
 }
 document.getElementById('charsbtn').onclick=function(ev){
   ev.stopPropagation(); openCharSheet(false);
 };
 document.getElementById('charsclose').onclick=function(ev){
   ev.stopPropagation();
+  /* A save still waiting on the debounce lands NOW — the draw she is about to
+     make reads the pad, and a cast that had not reached it yet is a draw
+     without her people. */
+  if(castSaveTimer) saveCast(true);
   document.getElementById('charsheet').hidden=true;
   /* Came from the draw row — back to the beat she was on, like the inbox. */
   if(charReturn){ var b=charReturn; charReturn=null; openBeat(b); return; }

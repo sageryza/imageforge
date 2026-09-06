@@ -338,6 +338,10 @@ const { padSideOf, shouldReveal } = require('./pad-side');
 // (list shape, the pick, the disclosed prompt line) live in their own
 // dependency-free file so they have a test that needs no node_modules.
 const { normalizeCharacters, pickCharacters, charLine, MAX_CHARACTERS } = require('./pad-characters');
+// THE TYPED CAST (2026-09-06) — the words half of a story's characters,
+// written into every draw's prompt by the ONE clause builder the Playground
+// sends (sheetGrid.castBlock); this module never writes the wording itself.
+const sheetGrid = require('./sheet-grid');
 
 // ── Deriving the side from the picture's own run record ─────────────
 // Only for a placement that named NO side (styleNamed → null). Best-effort
@@ -599,6 +603,9 @@ async function readPad(padId) {
     // The story's CAST — character reference cards a draw can pick from
     // (2026-08-26, Sophie). See pad-characters.js and POST /character.
     characters: normalizeCharacters(v.characters),
+    // The story's typed cast — name + description rows (2026-09-06). See
+    // artPrompt and POST /cast.
+    cast: castOf(v.cast),
     updatedAt: v.updatedAt || 0,
   };
 }
@@ -1687,7 +1694,43 @@ async function patchBeat(padId, id, fn) {
 // at once with the beat marked drawing, the page polls the pad, and leaving
 // the app can't lose the picture. Superseded art is never deleted — it goes
 // to beat.imageHistory.
-async function runArtJob(padId, id, { prompt, quality, character, style, chars, shape }) {
+// ── HER TYPED CAST ON A DRAW (2026-09-06, Sophie, in the chapter chat: "also
+// add the character description feature as an option that's not character
+// image, like playground. u can copy the code"). A story's cast in WORDS —
+// name + description rows, `pad.cast` — beside the picture cards it already
+// had. Unlike the Playground's per-run cast it lives on the PAD: a story's
+// people are the same on every beat, so she writes them once.
+//
+// THE CLAUSE IS sheetGrid.castBlock(cast, true), the single-picture opening,
+// and it rides as ITS OWN PARAGRAPH after the head — exactly where the
+// Playground's solo run puts it — so castParse can read it back out of a
+// filed prompt whichever surface wrote it. AN EMPTY CAST WRITES NOTHING (her
+// rule): with no rows every string below is byte-for-byte what it always was.
+//
+// `artPrompt` is the ONE assembler for both the sent prompt and the gallery's
+// promptPrefix, pure and exported so the clause's place is pinned by a test
+// that needs no Firestore (scripts/test-scratchpad-cast.js).
+const CAST_MAX = 12;      // the Playground's caps, one row = one prompt line
+const CAST_NAME = 60;
+const CAST_DESC = 300;
+function castOf(cast) {
+  return sheetGrid.castRows(cast).slice(0, CAST_MAX).map((c) => ({
+    name: c.name.slice(0, CAST_NAME), description: c.description.slice(0, CAST_DESC),
+  }));
+}
+function artPrompt({ recipe, prompt, character, cline, cast }) {
+  const castTxt = sheetGrid.castBlock(castOf(cast), true);
+  // Watercolor's head is the pad's original run-on sentence; a recipe style's
+  // head is its own prefix. The cast is a paragraph of its own under either.
+  const headLine = recipe ? recipe.prefix : `${ART.prefix}${character ? ART.characterLine : ''}${cline || ''}`;
+  const head = [headLine, castTxt].filter(Boolean).join('\n\n');
+  const full = recipe
+    ? `${head}\n\n${prompt}\n\n${recipe.suffix}${cline || ''}`
+    : `${head}\n\n${prompt}`;
+  return { full, head, castTxt };
+}
+
+async function runArtJob(padId, id, { prompt, quality, character, style, chars, shape, cast }) {
   // The STORY's canvas, not a per-draw one (see THE STORY'S SHAPE). An
   // unknown or absent shape lands on portrait, which is what every beat drawn
   // before this used.
@@ -1716,9 +1759,10 @@ async function runArtJob(padId, id, { prompt, quality, character, style, chars, 
     // "the attached image is a STYLE reference only" and the carve-out must
     // come after that sentence, not before it.
     const cline = charLine(picked);
-    const full = recipe
-      ? `${recipe.prefix}\n\n${prompt}\n\n${recipe.suffix}${cline}`
-      : `${ART.prefix}${character ? ART.characterLine : ''}${cline}\n\n${prompt}`;
+    // The story's typed cast rides as its own paragraph after the head (see
+    // artPrompt above); with no rows this is the string it always was.
+    const castRows = castOf(cast);
+    const { full, head } = artPrompt({ recipe, prompt, character, cline, cast: castRows });
     const form = new FormData();
     form.append('model', 'gpt-image-2');
     form.append('prompt', full);
@@ -1773,6 +1817,9 @@ async function runArtJob(padId, id, { prompt, quality, character, style, chars, 
         // Provenance: WHICH characters rode this draw, by name — so a
         // picked-back version says who was in it.
         ...(picked.length ? { characters: picked.map((c) => c.name || '') } : {}),
+        // …and which typed rows: the clause is already verbatim in
+        // promptUsed; the rows are the same words in the shape she wrote them.
+        ...(castRows.length ? { cast: castRows } : {}),
       });
       slot.gen = { status: 'done', at: Date.now() };
     });
@@ -1792,7 +1839,9 @@ async function runArtJob(padId, id, { prompt, quality, character, style, chars, 
         body: JSON.stringify({ url, prompt,
           style: `Scratch Pad · ${style !== 'watercolor' ? `${style} · ` : ''}${quality}`,
           fullPrompt: full,
-          promptPrefix: recipe ? recipe.prefix : `${ART.prefix}${useCard ? ART.characterLine : ''}${cline}`,
+          // `head` carries the cast clause too, so the filed style half
+          // holds it verbatim (castParse's own contract).
+          promptPrefix: head,
           promptSuffix: recipe ? `${recipe.suffix}${cline}` : '' }),
         timeout: 30000,
       });
@@ -1971,7 +2020,8 @@ router.post('/generate', async (req, res) => {
       // Art here again un-deletes this side (see `off` above).
       delete slot.off;
     });
-    runArtJob(pid, id, { prompt, quality, character, style, chars: picked, shape: pad.shape });   // fire and forget
+    // The story's typed cast (pad.cast) rides every draw — see artPrompt.
+    runArtJob(pid, id, { prompt, quality, character, style, chars: picked, shape: pad.shape, cast: pad.cast });   // fire and forget
     res.json({ ok: true, beats });
   } catch (e) { fail(res, e); }
 });
@@ -2533,6 +2583,28 @@ router.post('/chapter', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
+// ── THE TYPED CAST ────────────────────────────────────────────────────
+// (2026-09-06, Sophie: "also add the character description feature as an
+// option that's not character image, like playground. u can copy the code".)
+// `pad.cast = [{name, description}]`, the Playground's own row shape and
+// caps (castOf), whitelisted like /text and /chapter: nothing else on the doc
+// is touched. The page saves as she types (debounced), so the whole array is
+// the write — an empty one is a real answer and stores [], which is also
+// what deletes the clause from the next draw.
+//
+// DELIBERATELY NO updatedAt BUMP — the /chapter, /style, /character family:
+// the film is made of the beats' pictures and words, and who the story's
+// people are is neither until a DRAW uses it, and /generate marks that. The
+// page's api() leaves `/cast` out of dirtySinceFilm for the same reason.
+router.post('/cast', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const cast = castOf(req.body.cast);
+    await padRef(pid).set({ cast }, { merge: true });
+    res.json({ ok: true, pad: pid, cast });
+  } catch (e) { fail(res, e); }
+});
+
 // The beat's DRAWING PROMPT — what its picture is asked for, apart from what
 // the film says. Saved automatically by the page (no save button, Sophie's
 // rule): the draw box POSTs here on blur/close/draw. A prompt that matches
@@ -2599,4 +2671,4 @@ async function attachVoiceUrl(padId, beatId, url) {
 
 // shoeboxUid is exported so shoebox.js (the Shoebox viewer) asks the SAME
 // discovery — one copy of "whose library is this", never a second guess.
-module.exports = { router, init, attachVoiceUrl, placeOnBeat, autoShapePatch, drawablePrompt, promptFor, clipsNeedingPoster, shoeboxUid };
+module.exports = { router, init, attachVoiceUrl, placeOnBeat, autoShapePatch, drawablePrompt, promptFor, clipsNeedingPoster, shoeboxUid, artPrompt, castOf };
