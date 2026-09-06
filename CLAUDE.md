@@ -8286,6 +8286,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   says. Both ends of that are pinned by `node scripts/test-timeline.js`.
   **The editor is behind a pencil and never a tap on the words** — tap-to-edit
   means every stray thumb on the way down the page opens an editor.
+  **SELECT — pick several cards and delete them together (2026-09-06, Sophie:
+  "can u add a select tool so i can mass delete", on the 172-card Mental
+  hospital story).** The Playground's SELECT chip ported: a Select button on
+  the open story's top row; lit, a tap on a card PICKS it (the pencil hides, a
+  folded middle picks rather than unfolds), and the mode bar under the row is
+  All/None · the count · Delete · Done. Delete drops every picked card out of
+  `units` exactly as the pencil's delete does — `moments` keeps the words, the
+  module's rule — then paints and saves once. Four things not to undo: **Delete
+  is TWO TAPS** (the first arms it, red, saying how many; the second deletes;
+  changing a pick disarms it) and never a browser `confirm()`, which a
+  WKWebView may swallow; **the mode is in memory only, never localStorage**
+  (the Playground's own call — it is something she is in the middle of doing);
+  the mode ends on Done, on leaving the story and on opening another; and it
+  is lit in INK, never the accent, which marks a sequence. **The number box is
+  `.tool input.no`, not `.no`** — tool.css's `.tool input[type=text]` out-
+  specifies a bare class, so its 10px padding won and every number past 9 read
+  as "1"; caught by PHOTOgraphing her live story at 390x844. Both pinned by
+  `node scripts/test-timeline.js`.
   Two bugs worth not repeating, both pinned by the test: a folded middle sets
   `white-space:nowrap`, so its grid track needs `minmax(0,1fr)` or the whole
   unit shoots off the right of the screen; and an editor that holds itself open
