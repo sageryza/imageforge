@@ -1454,8 +1454,9 @@ function fillTile(el, b){
   if(clipOf(b)) el.appendChild(filmMark(!art));
 }
 function capFor(wrap, b){
-  if(!b.text)return;
-  var cap=document.createElement('div'); cap.className='bcap'; cap.textContent=b.text;
+  var words=wordsOf(b);
+  if(!words)return;
+  var cap=document.createElement('div'); cap.className='bcap'; cap.textContent=words;
   cap.onclick=function(ev){ev.stopPropagation(); if(pending)return; speakBeat(beatById(b.id)||b, cap);};
   wrap.appendChild(cap);
 }
@@ -1478,7 +1479,7 @@ function capFor(wrap, b){
 function beatById(id){ for(var i=0;i<beats.length;i++){ if(beats[i].id===id) return beats[i]; } return null; }
 function unitSig(u){
   return u.members.map(function(m){
-    return [m.id, m.color||'', slotDrawing(m)?1:0, artOf(m)||'', clipOf(m)?1:0, m.text||''].join('\u0001');
+    return [m.id, m.color||'', slotDrawing(m)?1:0, artOf(m)||'', clipOf(m)?1:0, wordsOf(m)].join('\u0001');
   }).join('\u0002');
 }
 function padSig(units){
@@ -2062,6 +2063,15 @@ function stripSpeech(t){
 function promptOf(b){
   var p=String((b&&b.prompt)||'').trim();
   return p||stripSpeech(b&&b.text);
+}
+/* What a beat SAYS — the caption under its tile, the words on its card, its
+   line in the film: its caption, else its drawing prompt (2026-09-06,
+   Sophie: "if i put no caption, use the drawing prompt"). The server's
+   wordsFor, kept in step. A READ-time fallback: nothing here writes the
+   prompt into the caption, and the pencil still opens an EMPTY box. */
+function wordsOf(b){
+  var t=String((b&&b.text)||'').trim();
+  return t||String((b&&b.prompt)||'').trim();
 }
 function drawables(){
   // Per STYLE: a beat whose watercolor is drawn but whose pastel slot is
@@ -3197,8 +3207,9 @@ function openBeat(b){
     capBase=document.getElementById('pnote').value;
   }
   // The words are painted from the BOX, which mid-typing is ahead of the
-  // saved beat — what she reads must be what she just wrote.
-  document.getElementById('captext').textContent=document.getElementById('pnote').value;
+  // saved beat — what she reads must be what she just wrote; an empty box
+  // shows the drawing prompt (capShown), and the box itself stays empty.
+  document.getElementById('captext').textContent=capShown(b);
   document.getElementById('coverbtn').hidden=!artOf(b);
   document.getElementById('coverbtn').classList.remove('on');
   /* Add to Shoebox only exists where there is a picture to add — same rule
@@ -3260,6 +3271,10 @@ function openBeat(b){
     document.getElementById('dprompt').value=String(b.prompt||'');
     promBase=document.getElementById('dprompt').value;
   }
+  // Painted again HERE, once the prompt box holds THIS beat's prompt — the
+  // paint above ran while the box still held the last beat's, and a
+  // caption-less beat reads its words off it.
+  document.getElementById('captext').textContent=capShown(b);
   // THE FOLDS ARE HERS, AND A RE-OPEN OF THE BEAT ALREADY ON SCREEN NEVER
   // TOUCHES THEM (2026-08-26, Sophie: "the caption keeps reopening after I
   // close it on a beat"). This used to be guarded by `typing` alone, i.e.
@@ -3642,7 +3657,7 @@ document.getElementById('arplay').onclick=function(ev){
     /* t — the beat's own words, so the Playground's banner can NAME the beat
        it is aimed at rather than saying "a beat" (2026-08-28, Sophie: "this
        picture doesn't belong here"). Cut short: it is a label, not the text. */
-    var t=String(b.text||'').replace(/\s+/g,' ').trim().slice(0,60);
+    var t=wordsOf(b).replace(/\s+/g,' ').slice(0,60);
     if(t) q+='&t='+encodeURIComponent(t);
   }
   Promise.all([saveNote(),savePrompt()]).then(function(){ location.href=q; },
@@ -3685,6 +3700,17 @@ var capEditing=false;
 /* The caption's two faces: the words, and the box. Both live inside
    #capview so the pencil keeps its place either way — a control that
    disappears the moment you use it is a control you have to find again. */
+/* THE CAPTION WORDS on the card: the box's value — mid-typing it is ahead
+   of the saved beat — else the beat's drawing prompt, read LIVE off the
+   prompt box when it holds one so an edited prompt reads back at once
+   (2026-09-06, Sophie: "if i put no caption, use the drawing prompt"). What
+   is SHOWN, never what is in the editor: #pnote is seeded from b.text alone. */
+function capShown(b){
+  var v=document.getElementById('pnote').value;
+  if(v.trim())return v;
+  var p=document.getElementById('dprompt').value.trim();
+  return p||wordsOf(b||popBeat);
+}
 function paintCap(){
   var open=document.getElementById('caplab').getAttribute('aria-expanded')==='true';
   document.getElementById('capview').hidden=!open;
@@ -3787,13 +3813,13 @@ document.getElementById('capedit').onclick=function(ev){
   capEditing=!capEditing;
   paintCap();
   if(capEditing){ document.getElementById('pnote').focus(); }
-  else { document.getElementById('captext').textContent=document.getElementById('pnote').value; saveNote(); }
+  else { document.getElementById('captext').textContent=capShown(); saveNote(); }
 };
 document.getElementById('capview').onclick=function(ev){ev.stopPropagation();};
 /* Blurring SAVES but never closes the box — closing on blur reshuffles the
    card between her mousedown and mouseup and eats the tap. */
 document.getElementById('pnote').onblur=function(){
-  document.getElementById('captext').textContent=this.value;
+  document.getElementById('captext').textContent=capShown();
   saveNote();
 };
 document.getElementById('caplab').onclick=function(ev){
@@ -3811,7 +3837,7 @@ document.getElementById('promedit').onclick=function(ev){
   promEditing=!promEditing;
   paintProm();
   if(promEditing){ document.getElementById('dprompt').focus(); }
-  else { savePrompt(); }
+  else { savePrompt(); document.getElementById('captext').textContent=capShown(); }
 };
 document.getElementById('promview').onclick=function(ev){ev.stopPropagation();};
 document.getElementById('pnote').onclick=function(ev){ev.stopPropagation();};
@@ -3843,6 +3869,7 @@ function savePrompt(){
 document.getElementById('dprompt').onblur=function(){
   document.getElementById('promtext').textContent=this.value;
   savePrompt();
+  document.getElementById('captext').textContent=capShown();
 };
 /* WHAT DRAW WILL ACTUALLY SEND — one function, so the hint line and the
    Draw button can never disagree about it. Her own prompt when the box has

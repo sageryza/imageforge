@@ -97,6 +97,7 @@ const server = http.createServer((req, res) => {
       posted.push([url.pathname, b]);
       if (url.pathname === '/api/scratchpad/color') beats.forEach((x) => { if (x.id === b.id) x.color = b.color; });
       if (url.pathname === '/api/scratchpad/prompt') beats.forEach((x) => { if (x.id === b.id) x.prompt = b.prompt; });
+      if (url.pathname === '/api/scratchpad/text') beats.forEach((x) => { if (x.id === b.id) x.text = b.text; });
       json({ ok: true, beats });
     });
   }
@@ -597,6 +598,82 @@ const VW = 390, VH = 780;
     'opening a card again puts the prompt box back small');
   ok(!(await page.$eval('#pnote', (el) => el.classList.contains('big'))),
     'and the caption box with it');
+
+  // 11 — NO CAPTION → THE DRAWING PROMPT IS WHAT SHOWS (2026-09-06, Sophie:
+  // "if i put no caption, use the drawing prompt"). Her "Mental hospital"
+  // story carries 39 beats this shape — words as `prompt`, `text` empty.
+  // The fallback is what is SHOWN: the tile, the card's words, and never
+  // the editor, which still opens EMPTY (her rule: nothing pre-written in a
+  // box she writes in). Every check reads the rendered words or what the
+  // stub really received, since a fallback that lands in the wrong field
+  // renders identically to one that lands in the right one.
+  const PROMPT = 'a red door in the snow, seen from the road';
+  await page.evaluate(() => window.closeBeat());
+  await page.waitForFunction(() => document.getElementById('beatpop').hidden);
+  // Into the STUB's array as well: every save answers with the server's
+  // beats and the page adopts them, so a beat the stub never knew would
+  // vanish on the first save below.
+  beats.push({ id: 'b3', prompt: PROMPT, color: null });
+  const tilesBefore = await page.evaluate(() => document.querySelectorAll('#pad .beat').length);
+  await page.evaluate((p) => {
+    window.beats.push({ id: 'b3', prompt: p, color: null });
+    window.render();
+  }, PROMPT);
+  await page.waitForFunction((n) => document.querySelectorAll('#pad .beat').length > n, tilesBefore);
+  // The tile's caption is its SIBLING inside .beatwrap, not a child of it.
+  const tileCap = await page.evaluate(() => {
+    const wraps = document.querySelectorAll('#pad .beatwrap');
+    const c = wraps[wraps.length - 1].querySelector('.bcap');
+    return c ? c.textContent : null;
+  });
+  ok(tileCap === PROMPT, 'the TILE captions a caption-less beat with its drawing prompt');
+  await page.evaluate(() => window.openBeat(window.beats.find((x) => x.id === 'b3')));
+  await page.waitForSelector('#beatpop:not([hidden])');
+  ok(await shown('#captext'), 'the card opens on the caption WORDS');
+  ok((await page.$eval('#captext', (el) => el.textContent)) === PROMPT,
+    'and the words shown are the drawing prompt');
+  ok((await page.$eval('#pnote', (el) => el.value)) === '', 'while the caption BOX behind them is empty');
+  ok(await shown('#promtext') && (await page.$eval('#promtext', (el) => el.textContent)) === PROMPT,
+    'the drawing prompt still reads as itself beside them');
+  await page.click('#capedit');
+  ok(await shown('#pnote') && (await page.$eval('#pnote', (el) => el.value)) === '',
+    'the pencil opens an EMPTY box — the prompt is shown, never pre-written');
+  const postedBefore = posted.length;
+  await page.fill('#pnote', 'her own caption, beside it');
+  await page.evaluate(() => document.getElementById('pnote').blur());
+  await page.waitForTimeout(150);
+  ok((await page.$eval('#captext', (el) => el.textContent)) === 'her own caption, beside it',
+    'a caption she writes takes the words over from the prompt');
+  const textPost = posted.slice(postedBefore).find(([p]) => p === '/api/scratchpad/text');
+  ok(Boolean(textPost) && textPost[1].id === 'b3' && textPost[1].text === 'her own caption, beside it',
+    'and it is saved as `text` — the stub really received her caption');
+  ok(!posted.slice(postedBefore).some(([p, b]) => p === '/api/scratchpad/text' && b.text === PROMPT),
+    'the prompt was never written into `text` on the way');
+  ok(beats.find((x) => x.id === 'b3').prompt === PROMPT, 'the stored prompt is untouched');
+  // Clearing the caption again puts the fallback back — a read-time rule.
+  await page.fill('#pnote', '');
+  await page.evaluate(() => document.getElementById('pnote').blur());
+  await page.waitForTimeout(150);
+  ok((await page.$eval('#captext', (el) => el.textContent)) === PROMPT,
+    'clearing the caption shows the prompt again');
+  // The card's own paint order: a beat opened AFTER another must read ITS
+  // prompt off the prompt box, not the last card's — measured by opening b1
+  // (caption, no prompt) and then b3 again.
+  await page.evaluate(() => window.closeBeat());
+  await page.waitForFunction(() => document.getElementById('beatpop').hidden);
+  await page.evaluate(() => window.openBeat(window.beats.find((x) => x.id === 'b1')));
+  await page.waitForSelector('#beatpop:not([hidden])');
+  // b1's caption is whatever step 10 last typed into it — read it off the
+  // stub, which received the save, rather than off the fixture.
+  const b1Text = beats.find((x) => x.id === 'b1').text;
+  ok(Boolean(b1Text.trim()) && (await page.$eval('#captext', (el) => el.textContent)) === b1Text,
+    'a beat WITH a caption still shows its caption (' + JSON.stringify(b1Text) + ')');
+  await page.evaluate(() => window.closeBeat());
+  await page.waitForFunction(() => document.getElementById('beatpop').hidden);
+  await page.evaluate(() => window.openBeat(window.beats.find((x) => x.id === 'b3')));
+  await page.waitForSelector('#beatpop:not([hidden])');
+  ok((await page.$eval('#captext', (el) => el.textContent)) === PROMPT,
+    'and reopening the caption-less one shows its own prompt, not the last card\'s words');
 
   await browser.close();
   server.close();
