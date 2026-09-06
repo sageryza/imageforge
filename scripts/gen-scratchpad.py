@@ -3287,9 +3287,26 @@ function place(at, it){
     body.url=it.url; body.style=padStyle;
     if(it.runId!==undefined) body.src={runId:it.runId,i:it.i,prompt:it.prompt,model:it.model,engine:it.engine,quality:it.quality};
   }
+  /* PLACING AHEAD OF A CHAPTER'S FIRST BEAT PUTS THE NEW BEAT IN THAT
+     CHAPTER (2026-09-06, Sophie: "doesn't let me add a new beat before the
+     1st beat in my new chapter"). The marker sits on the old first beat, so
+     a beat placed at its index would fall into the chapter BEFORE — and, in
+     one-chapter view, vanish. The marker hands over to the new beat. */
+  var v=chapViewOf(), take=(v&&at===v.at&&beats[v.at])?{id:beats[v.at].id,title:beats[v.at].chapter}:null;
   api(path,{method:'POST',body:JSON.stringify(body)})
     .then(function(r){return r.json()})
-    .then(function(d){shapeFromAnswer(d);if(d.beats)beats=d.beats;render();});
+    .then(function(d){
+      shapeFromAnswer(d); if(d.beats)beats=d.beats;
+      if(take&&d.beat){
+        var nb=beats.find(function(x){return x.id===d.beat.id;}), ob=beats.find(function(x){return x.id===take.id;});
+        if(nb) nb.chapter=take.title; if(ob) delete ob.chapter;
+        lastPadSig=null;
+        api('/chapter',{method:'POST',body:JSON.stringify({id:d.beat.id,title:take.title})})
+          .then(function(){ return api('/chapter',{method:'POST',body:JSON.stringify({id:take.id,title:''})}); })
+          .then(function(r){return r.json()}).then(function(d2){ if(d2&&d2.beats){beats=d2.beats;render();} });
+      }
+      render();
+    });
   render();
 }
 /* + adds an EMPTY beat — a blank tile whose art comes later (its popup has
