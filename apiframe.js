@@ -122,6 +122,18 @@ async function seedanceVideo(prompt, opts = {}) {
   if (opts.aspectRatio) params.aspect_ratio = String(opts.aspectRatio);
   if (opts.imageUrl) params.start_image = opts.imageUrl;
   if (opts.endImageUrl) params.end_image = opts.endImageUrl;
+  // The Seedance 2.x family (2-mini, 2, 2-fast, 2.5) also takes REFERENCE
+  // LISTS — the catalogue's `reference_image_urls` (up to 9; 30 on 2.5),
+  // `reference_video_urls` and `reference_audio_urls` (3; 10 on 2.5) — which
+  // is how a whole panel sheet rides ONE clip: every panel goes in as a
+  // reference and the prompt names them in order as [Image1] … [Image9].
+  // Measured 2026-09-06 off GET /v2/models; the 1.x models have no such
+  // control, so the lists are only ever sent when a caller passes them.
+  for (const [k, key] of [['referenceImageUrls', 'reference_image_urls'],
+    ['referenceVideoUrls', 'reference_video_urls'], ['referenceAudioUrls', 'reference_audio_urls']]) {
+    const list = Array.isArray(opts[k]) ? opts[k].map(String).filter(Boolean) : null;
+    if (list && list.length) params[key] = list;
+  }
   if (opts.cameraFixed != null) params.camera_fixed = Boolean(opts.cameraFixed);
   if (opts.seed != null) params.seed = Number(opts.seed);
   const body = {
@@ -213,8 +225,11 @@ router.get('/me', async (req, res) => {
 
 // POST /video — start a Seedance video generation (image-to-video or text-to-
 // video). Body: { prompt, imageUrl?, endImageUrl?, model?, resolution?,
-// duration?, generateAudio?, aspectRatio?, cameraFixed?, seed? }. Defaults are
-// the cheapest tier: seedance-1-lite, 480p.
+// duration?, generateAudio?, aspectRatio?, cameraFixed?, seed?,
+// referenceImageUrls?, referenceVideoUrls?, referenceAudioUrls? }. Defaults are
+// the cheapest tier: seedance-1-lite, 480p. The reference lists are the
+// Seedance 2.x multi-reference door (see seedanceVideo) — a chat's nine panels
+// as one clip, spent from the server's key, so no container needs one.
 router.post('/video', async (req, res) => {
   try {
     const b = req.body || {};
