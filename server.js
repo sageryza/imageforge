@@ -11,8 +11,8 @@ const imageMeta = require('./image-meta');
 // The panel sheet's geometry — derived canvases, the grid sentence, the cut
 // rects and the style-tail sheet swap. See sheet-grid.js.
 const sheetGrid = require('./sheet-grid');
-// ✕ on a sheet is ✕ on its panels — the ONE rule, shared with the page. See
-// sheet-cascade.js.
+// A ♥/✕ on a sheet is a ♥/✕ on its panels — the ONE rule, shared with the
+// page. See sheet-cascade.js.
 const sheetCascade = require('./sheet-cascade');
 // What a failed Playground run tells her, instead of "see the server log" —
 // see render-fail.js.
@@ -2896,7 +2896,7 @@ async function syncVoteToPlayground(url, vote) {
     let i = doc ? (doc.data().images || []).indexOf(url) : -2;
     if (!doc) {
       // THE SHEET IS NOT IN `images` (2026-09-06) — a cut panels run banks it
-      // beside them, so a ✕ she casts on the sheet in Meta Assets used to
+      // beside them, so a mark she casts on the sheet in Meta Assets used to
       // reach nothing at all. It is the same picture at the Playground's own
       // virtual index -1, and going through votePatchFor means it carries its
       // panels with it here exactly as it does on the page.
@@ -3587,8 +3587,8 @@ app.get('/sheet-grid.js', (req, res) => {
   res.set('Cache-Control', 'no-cache, must-revalidate');
   res.sendFile(__dirname + '/sheet-grid.js');
 });
-// What a ✕ on a panels SHEET does to its panels (2026-09-06), shared the same
-// way: the vote routes here apply it and the Playground applies it
+// What a ♥/✕ on a panels SHEET does to its panels (2026-09-06), shared the
+// same way: the vote routes here apply it and the Playground applies it
 // optimistically, so her tap marks the panels on screen in the same frame
 // rather than twenty seconds later when the Panels tab next sweeps.
 app.get('/sheet-cascade.js', (req, res) => {
@@ -6879,11 +6879,11 @@ async function finishPanelsCutInner(docRef, cfg, sheetBuf, sheetUrl) {
       promptPrefix: seam.prefix, promptSuffix: seam.suffix, source: 'playground',
     });
   });
-  // A ✕ SHE CAST ON THE UNCUT SHEET REACHES THE PANELS THAT LAND AFTER IT
+  // A MARK SHE CAST ON THE UNCUT SHEET REACHES THE PANELS THAT LAND AFTER IT
   // (2026-09-06, Sophie: "when i x a uncut panels sheet it shud x every panel
   // in it"). The still-cutting cell is votable at -1 and the cut runs seconds
-  // behind the banked sheet, so she really can cross a sheet out before its
-  // panels exist — and panels arriving unmarked read as the rule not working.
+  // behind the banked sheet, so she really can mark a sheet before its panels
+  // exist — and panels arriving unmarked read as the rule not working.
   // The SAME plan (sheet-cascade.js), run against the doc as it stands now.
   try {
     const fresh = (await docRef.get()).data() || {};
@@ -7816,15 +7816,16 @@ app.post('/api/promptlab/votes', async (req, res) => {
 
 // ONE WRITE, AND THE CASCADE RIDES IN IT (2026-09-06, Sophie: "when i x a
 // uncut panels sheet it shud x every panel in it unless i hearted it or heart
-// it after or unex"). The rule itself is sheet-cascade.js — pure, and served
-// to the Playground so the page marks the panels on screen in the same frame.
-// Here it only becomes a patch: her tapped mark, plus whatever the sheet's
-// mark does to the panels under it, in a single update.
+// it after or unex" · "it shud work both ways - heart or x"). The rule itself
+// is sheet-cascade.js — pure, and served to the Playground so the page marks
+// the panels on screen in the same frame. Here it only becomes a patch: her
+// tapped mark, plus whatever the sheet's mark does to the panels under it, in
+// a single update.
 //
 // A DIRECT MARK ON A PANEL MAKES IT HERS. Dropping the `voteFrom` tag is what
-// answers her "or heart it after": once she has voted on a panel, un-✕'ing the
-// sheet later has no claim on it — the release only ever lifts a mark this
-// cascade wrote and nobody has touched since.
+// answers her "or heart it after": once she has voted on a panel, the sheet
+// has no claim on it — the cascade only ever moves a mark it wrote itself and
+// nobody has touched since.
 function votePatchFor(run, i, vote) {
   const del = admin.firestore.FieldValue.delete();
   const patch = { [`votes.${i}`]: vote === null ? del : vote };
