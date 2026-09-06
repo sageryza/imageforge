@@ -228,7 +228,10 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAIAAADZSiLoA
   // The block is an EDITABLE box since 2026-09-06 (her ask), so read its value.
   const added = await page.evaluate(() => { const e = document.querySelector('#promptpanel textarea[data-part="extra"]') || document.querySelector('#promptpanel .added'); return e ? (e.value != null ? e.value : e.textContent) : ''; });
   ok(added.indexOf(PHOTO_LINE.trim()) > -1, 'the Prompt panel prints the photo line on the Panels tab');
-  ok(added.indexOf('Panel 1') > -1 || added.indexOf('panel') > -1, 'beside the grid sentence');
+  // The grid sentence wraps the panel lines server-side, so it is printed
+  // read-only under its own label rather than inside her editable box.
+  const gridLine = await page.evaluate(() => [...document.querySelectorAll('#promptpanel .added')].map((e) => e.textContent).join(' '));
+  ok(gridLine.indexOf('Panel 1') > -1 || gridLine.indexOf('panel') > -1, 'beside the grid sentence');
   await page.click('#promptbtn');
 
   console.log('a grid run');
