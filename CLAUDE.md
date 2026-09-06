@@ -8247,12 +8247,14 @@ before working on that module. Nothing was deleted — the moved text is verbati
     Chat order, not story order. Do not tidy spelling, spacing or dictation.
   - **NO headers, NO sequences of yours.** Dividing the timeline is HER job
     on the page ("i'll divide it"); a chat grouping it is deciding the story.
-  - **Drop nothing inside the span.** If a line is clearly aimed at the chat
-    ("ok", "storyboard?", "~9:16") it still goes in — she deletes it in one
-    tap on the page, where a story line a chat dropped is gone until she
-    notices. The only thing left out is what is plainly a different subject
-    before or after her account (a research Q&A), and the reply names the
-    exact first and last line kept.
+  - **Drop NOTHING — not one line, first to last (her second catch the same
+    hour: "u changed ur still").** The undo still cut the research questions
+    before her account and the "zip it" asks after, and started one line
+    late — she saw it at once. If a line is aimed at the chat ("ok",
+    "storyboard?", "~9:16") or is another subject, it still goes in; she
+    deletes it in one tap on the page, where a line a chat dropped is gone
+    until she notices. A chat deciding where her story starts is the same
+    mistake as a chat deciding what her story is.
   - **Never re-POST or PUT over a story she may have touched** — read
     `updatedAt` against `createdAt` first; if she has edited, propose in the
     reply and wait.
