@@ -74,6 +74,16 @@ with both, or neither, is left alone. Test:
 `node scripts/test-storyroom-caption-copy.js` (the real page against a stub
 that records what is POSTed).
 
+## The caption shows three lines, then `… more` (2026-09-06)
+**Sophie: "caption shud default to showing, but truncated if long, tap to
+show more."** The Caption fold still opens OPEN on arriving at a beat; the
+words (`#captext`) are now clamped to three lines behind the house `.moretxt`
+opener, MEASURED (`capClamp`, the `auClamp` pattern — a short caption carries
+no opener at all), and `setCapText()` is the one writer of the words so every
+path that changes them re-measures. Tapping the opener shows the whole
+caption and it reads `less`. Test: step 5 of
+`node scripts/test-storyroom-caption-copy.js`.
+
 ## Chapters (2026-09-06)
 **Sophie, on her hospital story ("nautchaug", ~50 beats): "i want the chapter
 within a story. arrow buttons at the top, and a contents page w all the
