@@ -60,6 +60,77 @@ All 12 NDE-category stories were linked to their montage episodes on
 "NDE · all the supercuts" carries all 11). Tests:
 `node scripts/test-storyroom-listen.js`.
 
+## Chapters (2026-09-06)
+**Sophie, on her hospital story ("nautchaug", ~50 beats): "i want the chapter
+within a story. arrow buttons at the top, and a contents page w all the
+stories and thumbnails".**
+
+**The data is one string on one beat.** `beat.chapter = 'The ER'` marks the
+beat that OPENS a chapter; the chapter runs until the next beat carrying one.
+Nothing stores a chapter list — `chapterList()` in the page derives it from
+beat order on every paint — so a beat she moves takes its heading with it, a
+beat she deletes takes the heading away, a duplicate story (`dupPad` deep-
+copies beats) carries them, and there is never a second copy of the order to
+drift. `POST /api/scratchpad/chapter {pad, id, title}` sets it; `title:''`
+clears it. **No `updatedAt` bump** (the /style, /pads/pin family) and the
+page's `api()` leaves `/chapter` out of `dirtySinceFilm`: chapters are not
+cuts, the film is made of the beats' pictures and words, and naming a chapter
+must not stale a fresh render or reshuffle the shelf.
+
+**Three surfaces, none of them on the canvas** (the pad's rule — no machinery
+between the beats; a chapter is never a label on the grid):
+- **The ‹ chapter › row**, inside `#topchrome` so it is pinned with the
+  chevron and the buttons, and only drawn once the story has a chapter. ‹ and
+  › scroll the WINDOW so the previous/next chapter's first tile sits just
+  under the sticky block (instant, after `__scrollStop`); the name between
+  them is the chapter she is IN, with its place (`The Matrix 4/10`).
+  "In" is compare.js's `__pagePlace` rule — the last chapter whose first
+  tile's top has passed the block's bottom, else the first — with one
+  addition: **the aim.** A short LAST chapter can never pass under the block
+  (the page runs out first), so by the top-edge rule alone › would scroll to
+  the end and the row would keep naming the chapter before it. A jump
+  remembers where it landed (`chapAim`), and while the window still sits
+  exactly there the row names the chapter she asked for; her first scroll
+  away hands the rule back. Tiles are found by `data-beats` on each
+  `.beatwrap` (a chunk is one wrap), which cannot go stale on a kept node
+  because a node is only kept on an identical `unitSig`.
+- **The CONTENTS sheet**, behind the name: a `.sheet` like the shelf — the
+  page's own header, back chevron, no ✕, its own pill (`sheetPill`). One row
+  per chapter: the first beat's picture through `/api/story/thumb` (or the
+  first beat in it that has one), the name, `N beats`; the row she is in is
+  lit; a tap closes the sheet and jumps. On `__navBack` it is a level like
+  the About sheet.
+- **The bookmark on the Caption line** of a beat's card (`.tlabrow`). A beat
+  that opens a chapter shows its name in the header caps beside a lit,
+  filled bookmark; every other beat shows the quiet outline alone. The
+  bookmark TOGGLES a small box that ships EMPTY (its placeholder names the
+  field and nothing more — reopening shows her own saved word, which is her
+  text). Return blurs; blur SAVES; an emptied box takes the chapter off.
+  **Blur also CLOSES the box here, unlike the caption pencil**: the pencil's
+  reason is a card that reshuffles between mousedown and mouseup, and this
+  one-line slot cannot reshuffle (words and box share it, the bookmark keeps
+  its place). The one tap blur could eat is the bookmark's own, so
+  `pointerdown` on it marks the blur as the button's and the tap closes the
+  box once instead of closing and reopening it. `closeBeat` saves it like
+  the caption and the prompt.
+
+**Seeding by her words:** `node scripts/seed-story-chapters.js` (dry by
+default, `--go` writes, `--pad`/`--plan` for another story) finds each opening
+beat by a phrase in its caption OR its drawing prompt — on the hospital pad the
+words live in the prompts — first match in beat order, refuses a phrase nothing
+carries, and **refuses a story already carrying a chapter** (by then she is
+naming them herself). Her hospital story's ten were seeded 2026-09-06 as a
+starting point: Before · The ER · The ward · The Matrix · The tag guy's wife ·
+The boys · Jake · The pills · The doctors · Getting out.
+
+**Not done, on purpose:** no chapter title card in the film (the render is
+unchanged), and Charlie's and Evan's old headings from `forge-story` are not
+ported — hers to ask for. Test: `node scripts/test-storyroom-chapters.js`
+(the real page headless: the row and its pill clearance measured, › and ‹ as
+the window really moving and the tile landing under the block, the hand
+scroll renaming the row, the sheet's rows/counts/thumbnails decoding and its
+tap, the field's POSTs and that none of it stales the film).
+
 ## Scratch Pad (stage ONE of a story — before the Story Room)
 - `scratchpad.js` (`/api/scratchpad`, page at `/scratchpad`, built by
   `scripts/gen-scratchpad.py`) — thinking with pictures before the Story Room
