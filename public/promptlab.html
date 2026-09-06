@@ -1869,9 +1869,9 @@
       restoreChars(r);
       return;
     }
-    // A panels run never carries a photo (the button is off on that tab), so
-    // its record answers "none" and the restore CLEARS one that is attached —
-    // the same rule everywhere, and the honest one here.
+    // A panels run carries its photo by url like any other (since 2026-09-06),
+    // and a record with none answers "none" — the restore CLEARS one that is
+    // attached, the same only-change-what-the-record-knows rule everywhere.
     restorePhoto(r);
     restoreChars(r);     // the picked FACES rode the whole sheet
     restoreCast(r.cast); // …and so did her typed rows
@@ -2700,6 +2700,11 @@
       body: JSON.stringify({
         prompt: joined, model: S.model, style: S.gptStyle, panels: texts, grid: g,
         quality: quality, canvas: canvas, res: resTier,
+        // Her photo reference(s), the single run's own shape (2026-09-06):
+        // `photo` is the first, `photos` the whole list when several ride.
+        // Absent otherwise, so a sheet without one is the request it was.
+        photo: photoRefs.length ? photoRefs[0].data : undefined,
+        photos: photoRefs.length > 1 ? photoRefs.map(function (p) { return p.data; }) : undefined,
         // Both halves of her cast — the typed rows and the picked cards.
         // Absent when she used neither, so a run without one is the request
         // it has always been.
@@ -2735,6 +2740,8 @@
       body: JSON.stringify({
         prompt: story, model: S.model, style: S.gptStyle, story: true,
         quality: quality, canvas: canvas, res: resTier,
+        photo: photoRefs.length ? photoRefs[0].data : undefined,
+        photos: photoRefs.length > 1 ? photoRefs.map(function (p) { return p.data; }) : undefined,
         cast: castRows().length ? castRows() : undefined,
         characters: pickedChars.length ? pickedChars.slice() : undefined,
         prefix: over ? over.prefix : undefined, suffix: over ? over.suffix : undefined,
@@ -3475,9 +3482,10 @@
     // half of the prompt she edits — taking the photo off is what removes the
     // photo line, and the Sophie button is what removes the character one.
     var extras = [];
-    // The Panels tab sends neither the Sophie card nor a photo (both wordings
-    // name an attachment a sheet does not carry) — and it DOES send the grid
-    // sentence, printed here so nothing rides the prompt unannounced.
+    // The Panels tab never sends the Sophie card (its wording names an
+    // attachment a sheet does not carry) — it DOES send her photo (since
+    // 2026-09-06) and the grid sentence, both printed here so nothing rides
+    // the prompt unannounced.
     if (charOn && !onPanels() && !STYLES[styleKey].noCharacter && p.baked.characterLine) extras.push(p.baked.characterLine);
     // The style's OWN photo line wins where it has one — the house sentence
     // says the drawing style "comes from the style reference above", which is
@@ -3486,7 +3494,7 @@
     // character cards attach at the very end, so "the LAST attached image" is
     // no longer the photo. Both halves are served, never written here.
     var cline = charsLine();
-    if (photoRefs.length && !onPanels()) {
+    if (photoRefs.length) {
       var pl = cline
         ? ((p.baked && p.baked.photoLineWithChars) || PHOTO_LINE_CHARS)
         : ((p.baked && p.baked.photoLine) || PHOTO_LINE);
@@ -4006,8 +4014,13 @@
     if (charsOpen) paintCharSays();
     // The photo rides gpt-image-2's EDITS call. The WTR LoRA has no
     // attachment slot at all — it takes a trigger word and nothing else — so
-    // the button comes off rather than sitting there doing nothing.
-    document.getElementById('photowrap').classList.toggle('on', gpt && !panels);
+    // the button comes off rather than sitting there doing nothing. It stays
+    // ON for the Panels tab since 2026-09-06 (Sophie: "i can add a photo
+    // reference in playground but not in panels") — a sheet attaches it in
+    // the same seat as a single picture, and the photo line's "the LAST
+    // attached image … the subject described below" is as true over a panel
+    // block as over one picture. Only the Sophie card is still off there.
+    document.getElementById('photowrap').classList.toggle('on', gpt);
     document.getElementById('qpick').hidden = !gpt;
     if (rt) rt.hidden = !gpt;
     // Both ladders are quality ladders, so both come off the Replicate LoRA,
