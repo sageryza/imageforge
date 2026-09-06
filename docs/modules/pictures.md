@@ -409,8 +409,9 @@ panel prints the REAL `charLine()` rather than a transcription of it that
 drifts the day the sentence is reworded.
 
 **Where it is NOT.** Off on the WTR LoRA — a trigger word and no attachment
-slot at all — and off on PANELS, for the reason the photo ref is: a sheet is
-not the surface to argue "the last attached image" on. It is deliberately NOT
+slot at all. (This line used to say "and off on PANELS, for the reason the
+photo ref is" — both are ON for a sheet now: the cast since 2026-08-27, the
+photo since 2026-09-06. See *HER PHOTO RIDES A SHEET* below.) It is deliberately NOT
 gated on `noCharacter`: that flag is about the SOPHIE CARD, which is the
 watercolor look by another name, where a character Sophie picked herself is her
 own subject and belongs on every gpt tile.
@@ -608,9 +609,25 @@ panels fit under 4000 chars at ~350 each; twenty-five will not).
   `line` rides the head directly before her words (served by /styles,
   printed in the Prompt panel, landing in the filed style half), and
   `layout` fills the sheet swap so a tail's anti-grid clause is swapped
-  exactly as on a grid sheet. Sophie card, photo ref and cast are OFF, the
-  panels branch's own reasoning. `'story sheet'` is searchable in both
+  exactly as on a grid sheet. The Sophie card is OFF (the panels branch's
+  own reasoning); her cast and her photo ride it on the same terms as a grid
+  sheet. `'story sheet'` is searchable in both
   haystacks; a story run's copy button refills the story box.
+- **HER PHOTO RIDES A SHEET (2026-09-06, Sophie: "i can add a photo
+  reference in playground but not in panels").** The photo button was hidden
+  on the Panels tab and the server ignored `photo` on a panels or story run,
+  on the reasoning that keeps the Sophie card off there — "the wording names
+  the second/last attached image for ONE picture". That reasoning was wrong
+  for the photo: its line says "the LAST attached image … use it for the
+  subject described below", the same shape as `charLine()`'s, which was
+  turned on for sheets for exactly that reason. So a sheet takes her photo(s)
+  in the single run's own seat — after the style refs, before her cast, the
+  line re-anchored (`photoLineWithChars`) when cards ride behind it — the run
+  doc stores `photoRef`/`photoRefs`, `panelsCfgOf` rebuilds the urls and the
+  sweep's panels redraw re-fetches the bytes first (a sheet without its photo
+  is a different sheet, the single run's own rule), and a panels run's copy
+  button puts the photo back. The Sophie card stays off. Test:
+  `node scripts/test-playground-panels-photo.js`.
 - **THE GALLERY UNDER THE TAB IS SEPARATE PER TAB (2026-08-27, Sophie:
   "separate the gallery for playground for single pics vs panels").** The
   feed follows the PICTURE · PANELS row: each tab shows only its own runs —

@@ -6272,6 +6272,17 @@ async function sweepStuckPromptlabRuns() {
             status: 'running', error: admin.firestore.FieldValue.delete() });
           const cfg = plSweep.panelsCfgOf(r);
           cfg.chars = r.characters || [];
+          // A sheet drawn over her photo (2026-09-06) holds it only by url —
+          // the single run's rule: a photo that will not fetch fails the
+          // redraw, because a sheet without it is a different sheet.
+          if (cfg.photoUrl) {
+            try {
+              await refetchPhotoRefs(cfg);
+            } catch (e) {
+              await d.ref.update({ status: 'failed', error: `interrupted by a server restart; its photo reference could not be re-read (${e.message})` });
+              continue;
+            }
+          }
           runPromptLabPanelsJob(d.ref, cfg);
           console.log(`promptlab sweep: redrawing orphaned panels run ${d.id} (attempt ${n} of ${plSweep.REDRAW_CAP})`);
           continue;
@@ -6928,6 +6939,12 @@ async function runPromptLabPanelsJob(docRef, cfg) {
   try {
     const st = PL_GPT_STYLES[cfg.styleId] || PL_GPT_STYLES.evan;
     const refs = await playgroundRefs(st);
+    // Her photo reference(s) ride after the style refs and before her cast
+    // (2026-09-06) — the same seat as on a single run, so the photo line the
+    // head carries names the right picture. `photoBufs` is the whole list,
+    // `photoBuf` its first (an older caller's shape).
+    const photoBufs = (cfg.photoBufs && cfg.photoBufs.length) ? cfg.photoBufs : (cfg.photoBuf ? [cfg.photoBuf] : []);
+    for (const b of photoBufs) refs.push(b);
     // Her picked characters ride LAST, the order she picked them — the same
     // order charLine() names them in the head. A reference that will not
     // fetch fails the run rather than quietly drawing a stranger (the Story
@@ -7099,7 +7116,20 @@ app.post('/api/promptlab', async (req, res) => {
       const over = (v, baked) => (typeof v === 'string' ? v.trim().slice(0, PL_GPT.promptMax) : baked);
       const prefix = over(req.body.prefix, st.prefix);
       const suffix = over(req.body.suffix, st.suffix);
-      const edited = prefix !== st.prefix || suffix !== st.suffix;
+      // THE "ALSO ADDED" BLOCK IS HERS TO EDIT TOO (2026-09-06, Sophie,
+      // circling it in the Prompt panel: "why is there no way to edit
+      // this??"). Everything printed under that label — the character line,
+      // the photo line, the picked cards' sentence, her typed cast's clause,
+      // the story line — used to be read-only, on the reasoning that each is
+      // a server-owned line tied to an attachment. `extra` is that whole block
+      // as ONE string, sent only when she edited it; a string REPLACES the
+      // derived block verbatim, an absent field keeps every line as it always
+      // was. The page sends it only while the block it replaced is still
+      // what would be sent (the same cast, the same photos), so a stale edit
+      // can never ride a later run unannounced.
+      const extra = typeof req.body.extra === 'string'
+        ? req.body.extra.trim().slice(0, PL_GPT.promptMax) : null;
+      const edited = prefix !== st.prefix || suffix !== st.suffix || extra !== null;
       // Her own photo reference, uploaded with this run (Aug 2026). The bytes
       // go straight to the job so a failed Storage write costs the record, not
       // the picture; the url is only what the run's doc remembers it by.
@@ -7194,7 +7224,11 @@ app.post('/api/promptlab', async (req, res) => {
       }));
       const soloCastTxt = sheetGrid.castBlock(soloCast, true);
       const headLine = `${prefix}${character ? st.characterLine : ''}${photoBuf ? photoLine : ''}${charsLine}`.trim();
-      const head = [headLine, soloCastTxt].filter(Boolean).join('\n\n');
+      // Her edited block stands in for every derived line at once (extra
+      // above); the attachments still ride — only the words about them moved.
+      const head = extra !== null
+        ? [prefix.trim(), extra].filter(Boolean).join('\n\n')
+        : [headLine, soloCastTxt].filter(Boolean).join('\n\n');
       const fullPrompt = `${head}${head ? '\n\n' : ''}${typed}${tail ? `\n\n${tail}` : ''}`;
       const outputs = Math.min(Math.max(Number(req.body.outputs) || PL_GPT.outputs, 1), PL_GPT.maxOutputs);
       const quality = PL_GPT.qualities.includes(req.body.quality) ? req.body.quality : PL_GPT.quality;
@@ -7214,9 +7248,18 @@ app.post('/api/promptlab', async (req, res) => {
       // the cut panels so votes, the lightbox and search need nothing new.
       // The canvas toggle picks the CELL shape and the tier the sheet's
       // pixel budget; the sheet canvas itself is derived (sheet-grid.js).
-      // The SOPHIE CARD and her photo ref are deliberately OFF here — both
-      // wordings name "the second/last attached image" for ONE picture, and
-      // a sheet is not the surface to argue that on.
+      // The SOPHIE CARD is deliberately OFF here — its wording names "the
+      // second attached image" for ONE picture, and a sheet is not the
+      // surface to argue that on.
+      //
+      // HER PHOTO RIDES A SHEET SINCE 2026-09-06 (Sophie: "i can add a photo
+      // reference in playground but not in panels"). It was off on the same
+      // reasoning as the Sophie card, and that reasoning was wrong for the
+      // photo: its line says "the LAST attached image … use it for the
+      // subject described below", which is as true over a panel block as
+      // over one picture — the same argument that turned the picked cards
+      // on. Same seat as a single run: after the style refs, before her
+      // cast, the line re-anchored when cards ride behind it.
       //
       // HER CAST IS ON, BOTH HALVES (2026-08-27, Sophie: "I want both.
       // Descriptions as well as pictures: two options"). They are different
@@ -7258,9 +7301,13 @@ app.post('/api/promptlab', async (req, res) => {
         // The picked cards' sentence rides the head with the style prefix; the
         // typed cast is its own paragraph in front of the panel lines, where
         // it establishes who these people are before anything refers to them.
-        const sheetHead = `${prefix}${charsLine}`.trim();
+        const sheetHead = (extra !== null ? prefix : `${prefix}${photoBuf ? photoLine : ''}${charsLine}`).trim();
         const blockTxt = sheetGrid.panelBlock(grid, panels);
-        const sheetBody = castTxt ? `${castTxt}\n\n${blockTxt}` : blockTxt;
+        // On a grid her edited block replaces the cards' sentence and the
+        // typed cast; the grid sentence wraps the panel lines and is not hers
+        // to reword here (the panel prints it read-only for that reason).
+        const castOrExtra = extra !== null ? extra : castTxt;
+        const sheetBody = castOrExtra ? `${castOrExtra}\n\n${blockTxt}` : blockTxt;
         const sheetPrompt = `${sheetHead}${sheetHead ? '\n\n' : ''}${sheetBody}${sheetTail ? `\n\n${sheetTail}` : ''}`;
         const docRef = admin.firestore().collection(PROMPTLAB).doc();
         await docRef.set({
@@ -7271,7 +7318,10 @@ app.post('/api/promptlab', async (req, res) => {
           size: plan.sheet, aspectRatio: plan.aspectRatio, res: resId,
           promptEdited: edited, noText,
           styleRef: (st.refFiles || []).concat(st.storageRefs || []).join(','),
-          outputs: 1, character: false, photoRef: '', images: [],
+          outputs: 1, character: false, photoRef: photoUrl, images: [],
+          // Every photo that rode, in order — `photoRef` is the first, for
+          // every reader that knows one; the list only when there are several.
+          ...(photoUrls.length > 1 ? { photoRefs: photoUrls } : {}),
           panels, grid: { across: plan.across, down: plan.down, count: plan.count },
           sheet: plan.sheet, cell: plan.cell,
           // Both halves of her cast, as provenance — the typed rows and WHICH
@@ -7283,7 +7333,7 @@ app.post('/api/promptlab', async (req, res) => {
         });
         if (!pausedNow()) runPromptLabPanelsJob(docRef, {
           fullPrompt: sheetPrompt, head: sheetHead, tail: sheetTail,
-          quality, prompt: typed, styleId, panels, plan, chars: pickedChars,
+          quality, prompt: typed, styleId, panels, plan, chars: pickedChars, photoBuf, photoBufs,
         });
         return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}`, ...queuedReply() });
       }
@@ -7298,10 +7348,10 @@ app.post('/api/promptlab', async (req, res) => {
       // panels gallery and under its Sheets view. The story line is part of
       // the head, so the filed style half discloses it; the tail's anti-grid
       // clause is swapped exactly as on a grid sheet (her edited tail no-ops
-      // the swap and her wording wins). The Sophie card, her photo and the
-      // Sophie card and her photo are OFF, the panels branch's own reasoning:
-      // their wordings name "the second/last attached image" for ONE picture.
-      // HER CAST IS ON, both halves, on the same terms as a grid sheet.
+      // the swap and her wording wins). The Sophie card is OFF, the panels
+      // branch's own reasoning: its wording names "the second attached image"
+      // for ONE picture. HER CAST IS ON, both halves, and HER PHOTO IS ON
+      // (2026-09-06), on the same terms as a grid sheet.
       if (req.body.story) {
         const sheetTail = applyNoText(
           sheetGrid.applySheet(suffix, st.sheet, PL_STORY.layout), st, noText);
@@ -7313,8 +7363,12 @@ app.post('/api/promptlab', async (req, res) => {
           name: c.name.slice(0, CAST_NAME), description: c.description.slice(0, CAST_DESC),
         }));
         const castTxt = sheetGrid.castBlock(cast);
-        const p0 = `${prefix}${charsLine}`.trim();
-        const storyHead = `${p0}${p0 ? '\n\n' : ''}${castTxt ? `${castTxt}\n\n` : ''}${PL_STORY.line}`;
+        const p0 = (extra !== null ? prefix : `${prefix}${photoBuf ? photoLine : ''}${charsLine}`).trim();
+        // Her edited block replaces the cards' sentence, the typed cast AND
+        // the story line — the panel prints all three under one label.
+        const storyHead = extra !== null
+          ? [p0, extra].filter(Boolean).join('\n\n')
+          : `${p0}${p0 ? '\n\n' : ''}${castTxt ? `${castTxt}\n\n` : ''}${PL_STORY.line}`;
         const storyPrompt = `${storyHead}\n\n${typed}${sheetTail ? `\n\n${sheetTail}` : ''}`;
         const docRef = admin.firestore().collection(PROMPTLAB).doc();
         await docRef.set({
@@ -7323,7 +7377,8 @@ app.post('/api/promptlab', async (req, res) => {
           size: canvas.size, aspectRatio: canvas.aspectRatio, res: resId,
           promptEdited: edited, noText, storySheet: true,
           styleRef: (st.refFiles || []).concat(st.storageRefs || []).join(','),
-          outputs: 1, character: false, photoRef: '', images: [],
+          outputs: 1, character: false, photoRef: photoUrl, images: [],
+          ...(photoUrls.length > 1 ? { photoRefs: photoUrls } : {}),
           ...(cast.length ? { cast } : {}),
           ...(pickedChars.length ? { characters: pickedChars } : {}),
           createdAt: admin.firestore.Timestamp.now(),
@@ -7332,7 +7387,7 @@ app.post('/api/promptlab', async (req, res) => {
         if (!pausedNow()) runPromptLabGptJob(docRef, {
           fullPrompt: storyPrompt, head: storyHead, tail: sheetTail, outputs: 1,
           quality, prompt: typed, character: false, styleId,
-          size: canvas.size, photoBuf: null, chars: pickedChars, padTarget,
+          size: canvas.size, photoBuf, photoBufs, chars: pickedChars, padTarget,
         });
         return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}`, ...queuedReply() });
       }

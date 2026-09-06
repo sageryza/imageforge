@@ -2205,6 +2205,10 @@ async function runFilmJob(padId) {
     const frame = shapeOf(pad).film;
     const shots = pad.beats.filter((b) => artSlot(b, style).url);
     if (!shots.length) throw new Error('draw some art first — the film is made of the pictures and clips');
+    const segs = [];      // { file } per picture
+    const auds = [];      // { file, seconds } per shot
+    const notes = [];     // which audio each shot used — the render's receipt
+    let total = 0;
 
     // ONE TAKE OVER THE WHOLE STORY (pad-take.js). A story carrying a
     // whole-take narration — her own recording, or one continuous read —
@@ -2236,10 +2240,6 @@ async function runFilmJob(padId) {
       }
     }
 
-    const segs = [];      // { file } per picture
-    const auds = [];      // { file, seconds } per shot
-    const notes = [];     // which audio each shot used — the render's receipt
-    let total = 0;
     for (let u = 0; u < shots.length; u++) {
       stop();
       const lead = shots[u];

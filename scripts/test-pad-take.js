@@ -73,5 +73,8 @@ ok(/pad\.voiceover[\s\S]{0,80}\.url/.test(src), 'the film reads the story\'s own
 ok(/let track = takeFile;/.test(src), 'the take is the whole track');
 ok(/audio = await ttsFor\(padId, lead\)/.test(src), 'the per-beat film (TTS per line) is still there for a story with no take');
 ok(/scratchpad\/take-words\//.test(src), 'the take\'s words are banked once per url');
+// The receipt is declared BEFORE the take plan writes to it — shipped the
+// other way round once (2026-09-06: "Cannot access 'notes' before initialization").
+ok(src.indexOf('const notes = [];') < src.indexOf('notes.push(`one take:'), 'notes is declared before the take plan uses it');
 
 console.log(`test-pad-take: ${n} ok`);

@@ -199,8 +199,9 @@ const CAST = ['doug', 'sophie', 'jonathan', 'mommy', 'shayna', 'penny', 'evan', 
   await page.click('#promptbtn');
   await page.waitForTimeout(250);
   const panel = await page.evaluate(() => {
-    const el = document.querySelector('#promptpanel .added');
-    return el ? el.textContent : '';
+    // The block is an EDITABLE box since 2026-09-06 (her ask), so read its value.
+    const el = document.querySelector('#promptpanel textarea[data-part="extra"]') || document.querySelector('#promptpanel .added');
+    return el ? (el.value != null ? el.value : el.textContent) : '';
   });
   ok(panel.indexOf('doug') > -1 && panel.indexOf('Penny') > -1,
     'the Prompt panel carries the same two lines');

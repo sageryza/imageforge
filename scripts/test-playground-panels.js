@@ -59,10 +59,13 @@ console.log('the cast — both halves ride a sheet');
 // well as pictures: two options"). Neither replaces the other and a run may
 // carry either, both or neither.
 //  • PICTURES — the saved character cards, attached last, named by
-//    charLine(). The Sophie card and her photo are still OUT, and that
-//    asymmetry is the point: those two name a POSITION for ONE picture,
-//    where charLine() says "the last attached image(s)", which is as true of
-//    a sheet as of a single picture.
+//    charLine(). The Sophie card is still OUT: it names "the second attached
+//    image", a POSITION for ONE picture, where charLine() says "the last
+//    attached image(s)", which is as true of a sheet as of a single picture.
+//    HER PHOTO IS IN since 2026-09-06 (Sophie: "i can add a photo reference
+//    in playground but not in panels") — its line names the LAST attached
+//    image, the same shape as charLine()'s, and it is re-anchored when cards
+//    ride behind it. See test-playground-panels-photo.js.
 //  • DESCRIPTIONS — her typed rows, written in by sheetGrid.castBlock.
 const panelsBranch = serverSrc.slice(
   serverSrc.indexOf('if (Array.isArray(req.body.panels)'),
@@ -71,14 +74,16 @@ ok(/sheetGrid\.castRows\(req\.body\.cast\)/.test(panelsBranch),
   'the panels branch reads her typed cast');
 ok(/const castTxt = sheetGrid\.castBlock\(cast\)/.test(panelsBranch),
   'and builds the clause with the shared builder, never its own wording');
-ok(/castTxt \? `\$\{castTxt\}/.test(panelsBranch),
+// Since 2026-09-06 her EDITED block (`extra`) may stand in for the clause and
+// the cards' sentence; with no edit both read exactly as before.
+ok(/castOrExtra \? `\$\{castOrExtra\}/.test(panelsBranch) && /extra !== null \? extra : castTxt/.test(panelsBranch),
   'the clause is only in the prompt when there IS one — her rule');
-ok(/const sheetHead = `\$\{prefix\}\$\{charsLine\}`/.test(panelsBranch),
-  "the picked cards' sentence rides the head");
+ok(/const sheetHead = \(extra !== null \? prefix : `\$\{prefix\}\$\{photoBuf \? photoLine : ''\}\$\{charsLine\}`\)/.test(panelsBranch),
+  "the picked cards' sentence rides the head, behind the photo line");
 ok(/chars: pickedChars/.test(panelsBranch), 'and the cards themselves reach the job');
 ok(/character: false/.test(panelsBranch),
   'the SOPHIE card is still off — it names the second attached image');
-ok(!/photoBuf/.test(panelsBranch), 'and so is her photo, for the same reason');
+ok(/photoBuf, photoBufs/.test(panelsBranch), 'her photo is ON — it reaches the sheet job (2026-09-06)');
 const panelsJob = serverSrc.slice(serverSrc.indexOf('async function runPromptLabPanelsJob'),
   serverSrc.indexOf('async function runPromptLabPanelsJob') + 1400);
 ok(/playgroundCharRefs\(cfg\.chars\)/.test(panelsJob),
@@ -447,7 +452,7 @@ function panelsPayload() {
   ok(!(await page.isVisible('.promptwrap')), 'PANELS: the one box steps aside');
   ok(!(await page.isVisible('#lowmed')) && !(await page.isVisible('#medhigh')),
     'the ladders come off (a ladder on a sheet is several sheets)');
-  ok(!(await page.isVisible('#photowrap button')), 'the photo ref comes off');
+  ok(await page.isVisible('#photowrap button'), 'the photo ref STAYS on (2026-09-06 — a sheet takes one)');
   // The measured underline sits under the lit tab.
   const line = await page.evaluate(() => {
     const row = document.getElementById('plabtabs');
