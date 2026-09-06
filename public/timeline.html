@@ -10,6 +10,8 @@
                                        reachable from inside the open editor
        a long unit FOLDS               first and last whole, the middles one
                                        line each; tap one to open it
+       SELECT                          pick several cards, delete them together
+                                       (two taps on Delete — never a confirm())
      TWO LEVELS, one page: the shelf of stories, and one story open. The
      shelf is READ-ONLY on purpose (Sophie: "it's for chats to fill
      themselves… I just wanna see a list of stories and I can click on one"):
@@ -52,8 +54,12 @@
   .seq .mcard:first-child { border-top-left-radius:var(--r); border-top-right-radius:var(--r); margin-top:0; }
   .seq .mcard:last-child { border-bottom-left-radius:var(--r); border-bottom-right-radius:var(--r); }
 
-  /* the number — 16px or iOS zooms the page when she taps it */
-  .no { width:30px; height:28px; text-align:center; padding:0;
+  /* the number — 16px or iOS zooms the page when she taps it.
+     `.tool input.no`, NOT `.no`: tool.css's `.tool input[type=text]` rule
+     out-specifies a bare class, so its 10px padding won and left 8px for the
+     digits — every number past 9 read as "1" (PHOTO'd on the 172-card Mental
+     hospital story, 2026-09-06). */
+  .tool input.no { width:30px; height:28px; text-align:center; padding:0;
     font:700 16px/1 -apple-system,'Helvetica Neue',sans-serif;
     color:var(--dim); background:var(--surface);
     border:1px solid var(--border); border-radius:var(--r); }
@@ -105,6 +111,40 @@
   .lab { display:block; font:700 9px/1 -apple-system,'Helvetica Neue',sans-serif;
     letter-spacing:1.6px; text-transform:uppercase; color:var(--dim); padding-bottom:5px; }
   .saved { font-size:12px; color:var(--dim); }
+
+  /* SELECT — pick several cards at once and delete them together (2026-09-06,
+     Sophie: "can u add a select tool so i can mass delete"). The Playground's
+     SELECT chip, ported: lit, a tap on a card PICKS it instead of doing what
+     it does otherwise (the pencil hides, a folded middle picks rather than
+     unfolds), and the mode bar under the row acts on every picked card at
+     once. THE MODE IS IN MEMORY, NEVER localStorage — it is something she is
+     in the middle of doing, not a setting. Lit in INK, never the accent: the
+     accent marks a sequence, and this is a mode. */
+  #select.on { background:var(--ink); border-color:var(--ink); color:#fff; }
+  .selbar { display:flex; align-items:center; gap:8px; margin-top:8px; padding-right:56px; }
+  .selbar[hidden] { display:none; }
+  .selcount { flex:1; min-width:0; font-size:12px; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  /* rounded squares at the house radius, never pills */
+  .selword { flex:none; border:1px solid var(--border); background:var(--surface); color:var(--dim);
+    font:inherit; font-size:12px; letter-spacing:.07em; text-transform:uppercase;
+    border-radius:var(--r); padding:6px 9px; }
+  .selword[disabled] { opacity:.4; }
+  /* DELETE IS TWO TAPS — the first ARMS it (red, and it says how many), the
+     second deletes. Never a browser confirm(): a WKWebView may swallow it. */
+  .selword.del { color:var(--danger); border-color:#f0d2cf; }
+  .selword.del.armed { background:var(--danger); border-color:var(--danger); color:#fff; }
+  /* a picked card: a ring in the ink over the card, and a check on the corner.
+     A pseudo-element, so the ring is off the layout and the column never
+     shifts a pixel as she picks. */
+  .mcard.picked::after { content:''; position:absolute; inset:0; border-radius:inherit;
+    box-shadow:inset 0 0 0 2px var(--ink); pointer-events:none; }
+  .mcard .pick { display:none; position:absolute; right:6px; bottom:6px; z-index:2; width:20px; height:20px;
+    border-radius:var(--r); background:var(--ink); color:#fff; align-items:center; justify-content:center; }
+  .mcard .pick svg { width:13px; height:13px; }
+  .mcard.picked .pick { display:flex; }
+  body.selmode .pencil { display:none; }
+  body.selmode .mcard { cursor:pointer; }
 </style>
 
 <body class="tool">
@@ -125,6 +165,9 @@
   divide the moment at the cursor, or delete it. A unit of three or more folds
   to its first and last; tap a folded line to see the whole thing.
   <br><br>
+  <b>Select</b> picks several at once: tap the cards, then Delete — twice, the
+  first tap only arms it.
+  <br><br>
   It saves as you go, and nothing here costs money.
 </div>
 
@@ -144,6 +187,15 @@
       <button class="btn ghost" id="back">Stories</button>
       <input type="text" id="title" style="flex:1;min-width:0;margin:0">
       <span class="saved" id="saved"></span>
+      <button class="btn ghost" id="select" aria-label="Pick several at once" title="Pick several at once">Select</button>
+    </div>
+    <!-- the mode bar — only while she is picking; an ordinary story is
+         byte-for-byte the page it was -->
+    <div class="selbar" id="selbar" hidden>
+      <button type="button" id="sel-all" class="selword">All</button>
+      <span class="selcount" id="selcount"></span>
+      <button type="button" id="sel-del" class="selword del" aria-label="Delete the picked ones">Delete</button>
+      <button type="button" id="sel-done" class="selword">Done</button>
     </div>
     <ol class="tl" id="tl"></ol>
   </section>
@@ -178,6 +230,7 @@
     add: 'M12 5v14|M5 12h14',
     pencil: 'M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z',
     trash: 'M3 6h18|M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2',
+    check: 'M20 6 9 17l-5-5',
   };
   function svg(k, w) {
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + (w || 2)
@@ -228,7 +281,7 @@
     leaveStory();
     return true;
   };
-  function toShelf() { ID = null; show('shelf'); shelf(); }
+  function toShelf() { ID = null; selExit(); show('shelf'); shelf(); }
   function leaveStory() {
     // unwind the pushed state so history stays clean; popstate does the rest
     if (history.state && history.state.story) { history.back(); return; }
@@ -245,6 +298,7 @@
   function open(id, fromHistory) {
     api('/stories/' + encodeURIComponent(id)).then(function (s) {
       ID = s.id; MOM = s.moments || {}; UNITS = s.units || []; NODES = {}; opened = {};
+      selExit();
       $('title').value = s.title;
       if (!fromHistory) {
         try { history.pushState({ story: s.id }, '', storyUrl(s.id)); } catch (_) {}
@@ -262,7 +316,8 @@
     d.className = 'mcard';
     d.setAttribute('data-item', id);
     d.innerHTML = (m.label ? '<span class="lab"></span>' : '') + '<span class="say"></span>'
-      + '<button class="pencil" type="button" aria-label="change the words">' + svg('pencil', 1.8) + '</button>';
+      + '<button class="pencil" type="button" aria-label="change the words">' + svg('pencil', 1.8) + '</button>'
+      + '<span class="pick">' + svg('check', 2.4) + '</span>';
     if (m.label) d.querySelector('.lab').textContent = m.label;
     d.querySelector('.say').textContent = m.text;
     NODES[id] = d;
@@ -407,20 +462,84 @@
     paint(); save();
   }
 
-  function remove(c) {
-    var id = c.getAttribute('data-item');
+  // drop ONE card out of the arrangement — MOM keeps the words (see the module)
+  function drop(id) {
     var at = where(id);
-    if (at[0] < 0) return;
-    closeEditor(c, false);
+    if (at[0] < 0) return false;
     UNITS[at[0]].splice(at[1], 1);
     if (!UNITS[at[0]].length) UNITS.splice(at[0], 1);
-    delete NODES[id];                     // MOM keeps the words — see the module
+    delete NODES[id];
+    return true;
+  }
+  function remove(c) {
+    var id = c.getAttribute('data-item');
+    if (where(id)[0] < 0) return;
+    closeEditor(c, false);
+    drop(id);
     paint(); save();
   }
+
+  /* ---- SELECT: pick several, delete them together ----
+     The mode and the picks live HERE and nowhere else — never localStorage. */
+  var selMode = false, sel = {}, delArmed = false;
+  function selIds() { return Object.keys(sel); }
+  function allCards() { return Array.prototype.slice.call($('tl').querySelectorAll('.mcard')); }
+  function paintSel() {
+    var n = selIds().length;
+    document.body.classList.toggle('selmode', selMode);
+    $('select').classList.toggle('on', selMode);
+    $('selbar').hidden = !selMode;
+    var cards = allCards();
+    var allOn = cards.length > 0 && cards.every(function (c) { return sel[c.getAttribute('data-item')]; });
+    $('sel-all').textContent = allOn ? 'None' : 'All';
+    $('sel-all').disabled = !cards.length;
+    $('selcount').textContent = n ? n + ' picked' : 'Tap the ones to delete';
+    var del = $('sel-del');
+    del.disabled = !n;
+    del.classList.toggle('armed', delArmed);
+    del.textContent = delArmed ? 'Delete ' + n + '?' : 'Delete';
+  }
+  function setPicked(c, on) {
+    var id = c.getAttribute('data-item');
+    if (on) sel[id] = true; else delete sel[id];
+    c.classList.toggle('picked', on);
+    delArmed = false;                     // a changed pick disarms the delete
+  }
+  function selExit() {
+    selMode = false; sel = {}; delArmed = false;
+    allCards().forEach(function (c) { c.classList.remove('picked'); });
+    paintSel();
+  }
+  $('select').onclick = function () {
+    if (selMode) return selExit();
+    closeAll();
+    selMode = true; paintSel();
+  };
+  $('sel-done').onclick = selExit;
+  $('sel-all').onclick = function () {
+    var cards = allCards();
+    var allOn = cards.length > 0 && cards.every(function (c) { return sel[c.getAttribute('data-item')]; });
+    cards.forEach(function (c) { setPicked(c, !allOn); });
+    paintSel();
+  };
+  // TWO TAPS: the first arms it and says how many, the second deletes.
+  $('sel-del').onclick = function () {
+    var ids = selIds();
+    if (!ids.length) return;
+    if (!delArmed) { delArmed = true; return paintSel(); }
+    ids.forEach(drop);
+    sel = {}; delArmed = false;
+    paint(); save(); paintSel();
+  };
 
   $('tl').addEventListener('click', function (e) {
     var b = e.target.closest('button');
     var card = e.target.closest('.mcard');
+    // picking: a tap on a card picks it, whatever else the tap would have done
+    if (selMode && card && !b) {
+      setPicked(card, !sel[card.getAttribute('data-item')]);
+      return paintSel();
+    }
     if (b && b.classList.contains('addb')) { closeAll(); return addAt(+b.dataset.at); }
     if (b && b.classList.contains('joinb')) {
       closeAll();
