@@ -329,6 +329,7 @@ const slotOff = (s) => Boolean(s && s.off);
 // its own dependency-free file so it can be tested without a node_modules,
 // and so /image and a finished draw share ONE copy of the rules.
 const { swapArt, forgetArt } = require('./pad-art');
+const { alignTake } = require('./pad-take');
 // One story becomes two — fresh beat ids, no renders carried, art optional.
 const { dupPad } = require('./pad-duplicate');
 // Which side a picture belongs on when nobody said — the pure decision
@@ -2139,6 +2140,37 @@ async function clipSegment(dir, u, beat, job = null, size = FILM) {
   return { seg, wav, seconds, hasAudio };
 }
 
+// THE TAKE'S WORDS, once per recording. A story carrying a whole-take
+// narration (pad.voiceover.url) has its pictures cut TO THE WORDS (pad-take.js),
+// so the take is transcribed with word timestamps ONCE — whisper-1, ~$0.006 a
+// minute — and the words are banked in Storage keyed by the url, never on
+// the pad doc (a long take is thousands of words and the doc rides the page
+// load). A re-render of the same take costs nothing.
+async function takeWords(url, job) {
+  const key = crypto.createHash('sha1').update(String(url)).digest('hex');
+  const file = admin.storage().bucket().file(`scratchpad/take-words/${key}.json`);
+  try {
+    if ((await file.exists())[0]) {
+      const [buf] = await file.download();
+      const words = JSON.parse(buf.toString('utf8'));
+      if (Array.isArray(words) && words.length) return words;
+    }
+  } catch { /* a cache miss is just a transcription */ }
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sptake-'));
+  try {
+    const raw = await fetchTo(url, path.join(dir, 'take-raw'));
+    // Decode first (the fragmented-mp4 lesson below) and hand whisper a
+    // small mp3 rather than her 4-12MB m4a.
+    const mp3 = path.join(dir, 'take.mp3');
+    await run(FFMPEG, ['-y', '-i', raw, '-vn', '-ac', '1', '-ar', '16000', '-b:a', '48k', mp3], 300000, job);
+    const words = await require('./editor').whisperWords(mp3);
+    if (!words.length) throw new Error('the take transcribed to no words');
+    try { await file.save(JSON.stringify(words), { contentType: 'application/json' }); }
+    catch (e) { console.warn('take-words save:', e.message); }
+    return words;
+  } finally { try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* tmp */ } }
+}
+
 async function runFilmJob(padId) {
   // EVERYTHING fallible lives inside the try — measured 2026-08-24: with
   // mkdtempSync on this line, a throw here (a full disk, an unwritable tmp)
@@ -2174,6 +2206,36 @@ async function runFilmJob(padId) {
     const shots = pad.beats.filter((b) => artSlot(b, style).url);
     if (!shots.length) throw new Error('draw some art first — the film is made of the pictures and clips');
 
+    // ONE TAKE OVER THE WHOLE STORY (pad-take.js). A story carrying a
+    // whole-take narration — her own recording, or one continuous read —
+    // is ONE audio track with the pictures cut to its words, not a shot per
+    // beat held for that beat's own sound. A story with a film CLIP among
+    // its shots keeps the per-beat shape (a clip's length is its own and
+    // would walk every later picture off its line); so does a take none of
+    // whose words match the beats.
+    const take = pad.voiceover && /^https?:\/\//.test(String(pad.voiceover.url || '')) ? pad.voiceover : null;
+    const hasClip = shots.some((b) => slotClip(artSlot(b, style)));
+    let plan = null, takeFile = null;
+    if (take && !hasClip) {
+      stop();
+      await beat('reading the take');
+      let words = null;
+      try { words = await takeWords(take.url, job); }
+      catch (e) { if (e.canceled) throw e; console.warn('film take:', e.message); }
+      if (words) plan = alignTake(shots.map((b) => ({ text: b.text })), words, { closer: FILM.silent, tail: FILM.tail });
+      if (plan) {
+        const raw = await fetchTo(take.url, path.join(dir, 'take-raw'));
+        takeFile = path.join(dir, 'take.wav');
+        // Decoded to PCM, the take is delayed by any leading wordless
+        // pictures, padded, and cut to the film's length at the mux.
+        await run(FFMPEG, ['-y', '-i', raw, '-vn', '-af', `adelay=${Math.round(plan.audioAt * 1000)}|${Math.round(plan.audioAt * 1000)},apad`,
+          '-t', plan.total.toFixed(3), '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', takeFile], 300000, job);
+        notes.push(`one take: ${take.kind === 'recording' ? 'your recording' : 'the read'} ${plan.takeEnd.toFixed(1)}s, ${plan.matched} of ${shots.length} pictures on their lines`);
+      } else if (words) {
+        notes.push('the take says none of the lines — made the film shot by shot instead');
+      }
+    }
+
     const segs = [];      // { file } per picture
     const auds = [];      // { file, seconds } per shot
     const notes = [];     // which audio each shot used — the render's receipt
@@ -2193,6 +2255,14 @@ async function runFilmJob(padId) {
         await beat(`clip ${segs.length}`);
         continue;
       }
+      let seconds = FILM.silent;
+      let aFile = null;
+      if (plan) {
+        const sh = plan.shots[u];
+        seconds = Math.max(0.04, sh.hold);
+        notes.push(`shot ${u + 1}: ${sh.kind === 'line' ? 'on its line' : sh.kind} at ${sh.start.toFixed(1)}s, ${seconds.toFixed(1)}s`);
+        total += seconds;
+      } else {
       // The shot's voice: her take wins; then the line read aloud; else quiet.
       let audio = lead.voiceUrl || null;
       let audioKind = audio ? 'her voice' : 'quiet';
@@ -2201,13 +2271,12 @@ async function runFilmJob(padId) {
         catch (e) { console.warn('film tts:', e.message); }
       }
 
-      let seconds = FILM.silent;
       // The per-unit audio is PCM, not aac: concatenating aac adds a few ms of
       // encoder priming to EVERY file, and across a long story that drift
       // walks the voice out from under the pictures (measured: ~24ms per two
       // units). WAV concatenates sample-exact, and the whole track is encoded
       // once at the mux.
-      const aFile = path.join(dir, `a${u}.wav`);
+      aFile = path.join(dir, `a${u}.wav`);
       if (audio) {
         const raw = await fetchTo(audio, path.join(dir, `a${u}-raw`));
         // DECODE FIRST, MEASURE THE WAV. iOS MediaRecorder writes fragmented
@@ -2231,6 +2300,7 @@ async function runFilmJob(padId) {
       notes.push(`shot ${u + 1}: ${audioKind} ${seconds.toFixed(1)}s`);
       auds.push(aFile);
       total += seconds;
+      }
 
       // One picture per shot, held for its whole audio — the active style's.
       const pics = [{ url: slot.url }];
@@ -2278,10 +2348,15 @@ async function runFilmJob(padId) {
     const silentFilm = path.join(dir, 'v.mp4');
     await run(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', vList, '-c', 'copy', silentFilm], 600000, job);
 
-    const aList = path.join(dir, 'a.txt');
-    fs.writeFileSync(aList, auds.map((f) => `file '${f}'`).join('\n'));
-    const track = path.join(dir, 'a.wav');
-    await run(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', aList, '-c', 'copy', track], 600000, job);
+    // The track: the ONE take when the pictures were cut to it, else the
+    // per-shot wavs joined sample-exact.
+    let track = takeFile;
+    if (!track) {
+      const aList = path.join(dir, 'a.txt');
+      fs.writeFileSync(aList, auds.map((f) => `file '${f}'`).join('\n'));
+      track = path.join(dir, 'a.wav');
+      await run(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', aList, '-c', 'copy', track], 600000, job);
+    }
 
     const out = path.join(dir, 'film.mp4');
     await run(FFMPEG, ['-y', '-i', silentFilm, '-i', track, '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k',

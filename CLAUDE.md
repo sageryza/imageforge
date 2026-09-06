@@ -8211,6 +8211,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   fine and never changes shape) and `node scripts/test-image-size.js` (every
   format driven from REAL encoded files, including the sharp-refuses-webp
   measurement, so the note above cannot go stale unnoticed).
+  **ONE TAKE OVER THE WHOLE STORY — `pad-take.js` (2026-09-06, Sophie: "i
+  wanna use the words i typed as voiceover … one continuous take · i want the
+  pictures to show as a movie during that", then, on the Story Room's own
+  film button reading every line separately in the clone voice: "yes my
+  take").** A story carrying a whole-take narration — `pad.voiceover.url`,
+  her own recording or one continuous read — renders as ONE audio track with
+  the pictures CUT TO ITS WORDS: the take is transcribed once (whisper-1 word
+  times, banked in Storage under `scratchpad/take-words/<sha1(url)>`), each
+  beat's line is found in it in order, and a shot runs from its line to the
+  next. A wordless beat between lines SHARES the span of the line before it
+  (nothing later moves off its words); one after the last line is a closer;
+  one before the first delays the take. The per-beat film (her recording on
+  the beat, else the line read aloud, else quiet) is unchanged for a story
+  with no take, for a story with a film CLIP among its shots (a clip's length
+  would walk every later picture off its line), and for a take that says
+  none of the lines. Filing a take onto a story is `voiceover: {url, text,
+  kind:'recording'|'tts'}` on the pad doc — no route writes it yet. Test:
+  `node scripts/test-pad-take.js` (her real night take as the fixture).
   **THE TYPED CAST — PICTURES · DESCRIPTIONS BEHIND THE CHARACTER BUTTON
   (2026-09-06, Sophie: "add the character description feature as an option
   that's not character image, like playground").** The Playground's
