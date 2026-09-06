@@ -77,6 +77,23 @@ page's `api()` leaves `/chapter` out of `dirtySinceFilm`: chapters are not
 cuts, the film is made of the beats' pictures and words, and naming a chapter
 must not stale a fresh render or reshuffle the shelf.
 
+**The canvas shows ONE chapter at a time (2026-09-06, the same day, Sophie:
+"is there a view where i see just one chapter at a time. it's getting
+overwhelming").** `render()` filters the units to the chapter's span
+(`from`/`to` on each `chapterList()` entry — the first chapter's span starts
+at beat 0, so beats before the first marked one are shown somewhere), ‹ ›
+and a contents tap swap which chapter (`setChapView`, which re-renders and
+scrolls to the top), and `chapView` is remembered per story in localStorage
+(`scratchpad_chap_<pad>`) so reopening a story lands on the chapter she was
+reading; `openPad` resets it. A remembered chapter that has since gone (its
+beat renamed or moved) falls back to the chapter holding that beat now, never
+a blank canvas. **Whole story** is the first row of the contents sheet — the
+one way back to the scroll-through canvas, where the arrows scroll the window
+and the row names the chapter under the sticky block exactly as below. A
+placing slot at the END of a chapter view lands at `view.to`, the true index
+into `beats`, so a picture dropped after a chapter's last beat sits before the
+next chapter's first. A story with no chapters is byte-for-byte untouched.
+
 **Three surfaces, none of them on the canvas** (the pad's rule — no machinery
 between the beats; a chapter is never a label on the grid):
 - **The ‹ chapter › row**, inside `#topchrome` so it is pinned with the

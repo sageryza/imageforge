@@ -5,9 +5,11 @@
 // Chromium against a stub API and MEASURES:
 //   1. the ‹ chapter › row shows only once the story has a chapter, names the
 //      one she is in with its place (1/3), and ends before the pill's column;
-//   2. › and ‹ REALLY scroll the window — the next chapter's first tile lands
-//      just under the sticky block, and the row renames itself;
-//   3. scrolling by hand renames the row too;
+//   2. the canvas holds ONE chapter's beats; › and ‹ swap which (2026-09-06,
+//      Sophie: "is there a view where i see just one chapter at a time. it's
+//      getting overwhelming"), and the chapter is remembered per story;
+//   3. Whole story, the contents sheet's first row, puts every beat back and
+//      there the arrows scroll the window and hand-scrolling renames the row;
 //   4. the CONTENTS sheet lists every chapter with its first beat's picture as
 //      the thumbnail and its beat count, lights the one she is in, and a tap
 //      on a row closes the sheet and jumps;
@@ -144,37 +146,42 @@ const VW = 390, VH = 780;
     return w ? w.getBoundingClientRect().top : null;
   }, id);
 
-  // 1. the row
+  const wraps = () => page.evaluate(() => Array.from(document.querySelectorAll('#pad .beatwrap')).map((w) => w.getAttribute('data-beats')));
+
+  // 1. the row, and ONE chapter on the canvas
   let s = await rowState();
   ok(!s.hidden, 'the chapter row shows on a story with chapters');
   ok(s.title === 'Before' && s.n === '1/3', 'it names the first chapter and its place', s);
   ok(s.prevOff && !s.nextOff, '‹ is off at the first chapter, › is on', s);
   ok(s.right <= VW - 56 + 1, 'the row\'s last button ends before the pill\'s column', s.right);
-  const canScroll = await page.evaluate(() => document.documentElement.scrollHeight > window.innerHeight * 1.5);
-  ok(canScroll, 'the fixture is long enough to scroll');
+  let w = await wraps();
+  ok(w.length === 12 && w[0] === 'b0' && w[11] === 'b11', 'the canvas holds ONLY the first chapter\'s 12 beats', w.length);
+  const shortPage = await page.evaluate(() => document.documentElement.scrollHeight < window.innerHeight * 1.5);
+  ok(shortPage, 'twelve tiles fit without the long scroll (the fixture is 80 beats)');
 
-  // 2. › really scrolls
+  // 2. › swaps the chapter, never scrolls
   await page.click('#chapnext');
-  await page.waitForTimeout(80);
-  s = await rowState();
-  const t12 = await wrapTop('b12');
-  ok(s.y > 0, '› moved the window', s.y);
-  ok(t12 !== null && Math.abs(t12 - (s.topBottom + 6)) <= 2, 'The ER\'s first tile sits just under the sticky block', { t12, topBottom: s.topBottom });
+  await page.waitForTimeout(120);
+  s = await rowState(); w = await wraps();
+  ok(w.length === 16 && w[0] === 'b12' && w[15] === 'b27', '› puts The ER\'s 16 beats on the canvas and nothing else', { n: w.length, first: w[0], last: w[w.length - 1] });
+  ok(s.y === 0, 'the window stays at the top', s.y);
   ok(s.title === 'The ER' && s.n === '2/3' && !s.prevOff && !s.nextOff, 'the row renamed itself to The ER 2/3', s);
   await page.click('#chapnext');
-  await page.waitForTimeout(80);
-  s = await rowState();
-  ok(s.title === 'The ward' && s.n === '3/3' && s.nextOff, 'second › reaches The ward 3/3 and › goes off', s);
-  await page.click('#chapprev');
-  await page.waitForTimeout(80);
-  s = await rowState();
-  ok(s.title === 'The ER', '‹ walks back to The ER', s);
-
-  // 3. scrolling by hand renames it
-  await page.evaluate(() => window.scrollTo(0, 0));
   await page.waitForTimeout(120);
-  s = await rowState();
-  ok(s.title === 'Before' && s.y === 0, 'scrolling to the top by hand names Before again', s);
+  s = await rowState(); w = await wraps();
+  ok(s.title === 'The ward' && s.n === '3/3' && s.nextOff && w.length === 52 && w[0] === 'b28', 'second › reaches The ward 3/3 (52 beats) and › goes off', { s, n: w.length });
+  await page.click('#chapprev');
+  await page.waitForTimeout(120);
+  s = await rowState(); w = await wraps();
+  ok(s.title === 'The ER' && w[0] === 'b12', '‹ walks back to The ER', s);
+
+  // 3. the chapter is remembered per story across a reload
+  await page.reload();
+  await page.evaluate((id) => window.openPad(id), 'pad');
+  await page.waitForSelector('#pad .beatwrap');
+  await page.waitForTimeout(150);
+  s = await rowState(); w = await wraps();
+  ok(s.title === 'The ER' && w[0] === 'b12', 'reopening the story lands on the chapter she was reading', s);
 
   // 4. the contents sheet
   await page.click('#chapname');
@@ -193,20 +200,49 @@ const VW = 390, VH = 780;
     };
   });
   ok(!c.hidden && c.header === 'Contents' && !c.hasX, 'the contents sheet opens with the page\'s own header and no ✕', c.header);
-  ok(c.rows.length === 3 && c.rows.map((r) => r.nm).join('|') === 'Before|The ER|The ward', 'it lists the three chapters in order', c.rows.map((r) => r.nm));
-  ok(c.rows.map((r) => r.ct).join('|') === '12 beats|16 beats|52 beats', 'each row counts its beats', c.rows.map((r) => r.ct));
-  ok(c.rows.every((r, k) => decodeURIComponent(r.img).includes('/px.png?' + [0, 12, 28][k])), 'each thumbnail is the chapter\'s first beat\'s picture', c.rows.map((r) => r.img));
+  ok(c.rows.length === 4 && c.rows.map((r) => r.nm).join('|') === 'Whole story|Before|The ER|The ward', 'it leads with Whole story, then the three chapters in order', c.rows.map((r) => r.nm));
+  ok(c.rows.map((r) => r.ct).join('|') === '80 beats|12 beats|16 beats|52 beats', 'each row counts its beats', c.rows.map((r) => r.ct));
+  ok(c.rows.slice(1).every((r, k) => decodeURIComponent(r.img).includes('/px.png?' + [0, 12, 28][k])), 'each thumbnail is the chapter\'s first beat\'s picture', c.rows.map((r) => r.img));
   ok(c.rows.every((r) => r.w > 30), 'the thumbnails have a real box', c.rows.map((r) => r.w));
-  ok(c.rows[0].on && !c.rows[1].on, 'the chapter she is in is lit', c.rows.map((r) => r.on));
+  ok(!c.rows[0].on && !c.rows[1].on && c.rows[2].on, 'the chapter on the canvas is lit', c.rows.map((r) => r.on));
   const decoded = await page.evaluate(() => Array.from(document.querySelectorAll('#chaplist img')).every((i) => i.complete && i.naturalWidth > 0));
   ok(decoded, 'the thumbnails really decode');
-  await page.click('#chaplist .chrow:nth-child(3)');
-  await page.waitForTimeout(100);
-  s = await rowState();
-  const shHidden = await page.evaluate(() => document.getElementById('chapsheet').hidden);
-  ok(shHidden && s.title === 'The ward' && s.y > 0, 'tapping a row closes the sheet and jumps to The ward', s);
+  await page.click('#chaplist .chrow:nth-child(4)');
+  await page.waitForTimeout(120);
+  s = await rowState(); w = await wraps();
+  let shHidden = await page.evaluate(() => document.getElementById('chapsheet').hidden);
+  ok(shHidden && s.title === 'The ward' && w[0] === 'b28' && s.y === 0, 'tapping a row closes the sheet and shows The ward', s);
   const bodyFree = await page.evaluate(() => document.body.style.overflow !== 'hidden');
   ok(bodyFree, 'the page is unlocked again after the sheet');
+
+  // 4b. Whole story: every beat, and the arrows scroll the way they used to
+  await page.click('#chapname');
+  await page.waitForTimeout(120);
+  await page.click('#chaplist .chrow.chall');
+  await page.waitForTimeout(150);
+  w = await wraps(); s = await rowState();
+  ok(w.length === 80 && w[0] === 'b0' && w[79] === 'b79', 'Whole story puts all 80 beats back on the canvas', w.length);
+  ok(s.title === 'Before' && s.n === '1/3' && s.y === 0, 'and the row names Before at the top', s);
+  const canScroll = await page.evaluate(() => document.documentElement.scrollHeight > window.innerHeight * 1.5);
+  ok(canScroll, 'the whole story is long enough to scroll');
+  await page.click('#chapnext');
+  await page.waitForTimeout(80);
+  s = await rowState();
+  const t12 = await wrapTop('b12');
+  ok(s.y > 0 && t12 !== null && Math.abs(t12 - (s.topBottom + 6)) <= 2, 'on the whole story › scrolls The ER\'s first tile under the sticky block', { y: s.y, t12, topBottom: s.topBottom });
+  ok(s.title === 'The ER' && s.n === '2/3', 'and the row renames itself to The ER 2/3', s);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(120);
+  s = await rowState();
+  ok(s.title === 'Before' && s.y === 0, 'scrolling to the top by hand names Before again', s);
+  await page.click('#chapname');
+  await page.waitForTimeout(120);
+  c = await page.evaluate(() => Array.from(document.querySelectorAll('#chaplist .chrow')).map((r) => r.classList.contains('on')));
+  ok(c[0] && !c[1], 'the contents sheet lights Whole story while that is the canvas', c);
+  await page.click('#chaplist .chrow:nth-child(2)');
+  await page.waitForTimeout(150);
+  w = await wraps();
+  ok(w.length === 12, 'tapping Before goes back to one chapter at a time', w.length);
 
   // 5. the beat card's field
   await page.evaluate(() => window.scrollTo(0, 0));
