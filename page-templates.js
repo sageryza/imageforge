@@ -499,6 +499,10 @@ function renderTemplatePage({ template, title, heading, chat, sheet, data, clean
     // The port script is what lets the Playground door say which tile made
     // the picture instead of guessing.
     + '<script src="/playground-port.js"></script>\n'
+    // sheet-grid.js is what the door reads a sheet's panels and a panel's
+    // cast out of (panelParse / castParse); without it the Playground door
+    // here sent an uncut sheet as one wall of text and no cast at all.
+    + '<script src="/sheet-grid.js"></script>\n'
     + '<script src="/asset-actions.js"></script>\n'
     + '<script src="/asset-view.js"></script>\n'
     + '<script src="/judge.js"></script>\n'
