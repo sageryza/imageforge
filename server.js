@@ -11,6 +11,9 @@ const imageMeta = require('./image-meta');
 // The panel sheet's geometry — derived canvases, the grid sentence, the cut
 // rects and the style-tail sheet swap. See sheet-grid.js.
 const sheetGrid = require('./sheet-grid');
+// ✕ on a sheet is ✕ on its panels — the ONE rule, shared with the page. See
+// sheet-cascade.js.
+const sheetCascade = require('./sheet-cascade');
 // What a failed Playground run tells her, instead of "see the server log" —
 // see render-fail.js.
 const { renderFailMessage } = require('./render-fail');
@@ -2887,16 +2890,30 @@ async function syncVoteToAssets(url, vote) {
 async function syncVoteToPlayground(url, vote) {
   if (!url || !/\/promptlab\//.test(String(url)) || !admin.apps.length) return;
   try {
-    const snap = await admin.firestore().collection('forge-promptlab')
-      .where('images', 'array-contains', url).limit(1).get();
-    if (snap.empty) return;
-    const doc = snap.docs[0];
-    const i = (doc.data().images || []).indexOf(url);
-    if (i < 0) return;
-    await doc.ref.update({
-      [`votes.${i}`]: (vote === 'like' || vote === 'dislike')
-        ? vote : admin.firestore.FieldValue.delete(),
-    });
+    const col = admin.firestore().collection('forge-promptlab');
+    let snap = await col.where('images', 'array-contains', url).limit(1).get();
+    let doc = snap.empty ? null : snap.docs[0];
+    let i = doc ? (doc.data().images || []).indexOf(url) : -2;
+    if (!doc) {
+      // THE SHEET IS NOT IN `images` (2026-09-06) — a cut panels run banks it
+      // beside them, so a ✕ she casts on the sheet in Meta Assets used to
+      // reach nothing at all. It is the same picture at the Playground's own
+      // virtual index -1, and going through votePatchFor means it carries its
+      // panels with it here exactly as it does on the page.
+      snap = await col.where('sheetUrl', '==', url).limit(1).get();
+      if (snap.empty) return;
+      doc = snap.docs[0];
+      i = -1;
+    }
+    if (i < -1) return;
+    const run = doc.data() || {};
+    const next = (vote === 'like' || vote === 'dislike') ? vote : null;
+    const { patch, marks } = votePatchFor(run, i, next);
+    await doc.ref.update(patch);
+    // Only the CASCADED panels need carrying back to their own Assets records —
+    // the picture she actually voted on is the one whose record the caller is
+    // already writing.
+    await syncMarks(marks.filter((m) => m.url !== url));
   } catch (e) { /* best-effort */ }
 }
 // Legacy docs hold only a single `note` string (everything written before the
@@ -3569,6 +3586,15 @@ app.get('/sheet-grid.js', (req, res) => {
   res.type('application/javascript');
   res.set('Cache-Control', 'no-cache, must-revalidate');
   res.sendFile(__dirname + '/sheet-grid.js');
+});
+// What a ✕ on a panels SHEET does to its panels (2026-09-06), shared the same
+// way: the vote routes here apply it and the Playground applies it
+// optimistically, so her tap marks the panels on screen in the same frame
+// rather than twenty seconds later when the Panels tab next sweeps.
+app.get('/sheet-cascade.js', (req, res) => {
+  res.type('application/javascript');
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/sheet-cascade.js');
 });
 
 // The one shape of a Film Editor cut (2026-09-02): the page validates,
@@ -6853,6 +6879,27 @@ async function finishPanelsCutInner(docRef, cfg, sheetBuf, sheetUrl) {
       promptPrefix: seam.prefix, promptSuffix: seam.suffix, source: 'playground',
     });
   });
+  // A ✕ SHE CAST ON THE UNCUT SHEET REACHES THE PANELS THAT LAND AFTER IT
+  // (2026-09-06, Sophie: "when i x a uncut panels sheet it shud x every panel
+  // in it"). The still-cutting cell is votable at -1 and the cut runs seconds
+  // behind the banked sheet, so she really can cross a sheet out before its
+  // panels exist — and panels arriving unmarked read as the rule not working.
+  // The SAME plan (sheet-cascade.js), run against the doc as it stands now.
+  try {
+    const fresh = (await docRef.get()).data() || {};
+    const plan = sheetCascade.planForCut(fresh);
+    if (plan.changed.length) {
+      const patch = {};
+      plan.changed.forEach((j) => {
+        patch[`votes.${j}`] = plan.votes[j] === null
+          ? admin.firestore.FieldValue.delete() : plan.votes[j];
+        patch[`voteFrom.${j}`] = plan.from[j] === null
+          ? admin.firestore.FieldValue.delete() : plan.from[j];
+      });
+      await docRef.update(patch);
+      await syncMarks(plan.changed.map((j) => ({ url: images[j], vote: plan.votes[j] })));
+    }
+  } catch (e) { /* a mark that did not carry must never fail the cut */ }
   return images;
 }
 
@@ -7729,23 +7776,29 @@ app.post('/api/promptlab/votes', async (req, res) => {
     }
     if (!byRun.size) return res.status(400).json({ error: 'items: [{run, image}] required' });
     const col = admin.firestore().collection(PROMPTLAB);
-    const urls = [];
+    const marks = [];
     let marked = 0;
     let triangleMarked = false;   // → rebuild her standing Playground-hearts page, once for the batch
     for (const [id, idxs] of byRun) {
       const ref = col.doc(id);
-      const patch = {};
-      idxs.forEach((i) => {
-        patch[`votes.${i}`] = vote === null ? admin.firestore.FieldValue.delete() : vote;
-      });
       try {
+        // READ FIRST, for the same reason the single route does: a ✕ on the
+        // sheet carries its panels with it (sheet-cascade.js), and which panels
+        // depends on what the run says now. The panels of one run still land in
+        // ONE update — the batch's whole point.
+        const run = (await ref.get()).data() || {};
+        const patch = {};
+        // The SHEET first (-1 sorts ahead of every panel), so that a batch
+        // holding the sheet AND one of its panels ends with HER mark on that
+        // panel rather than the cascade's — the same "a direct mark is hers"
+        // rule the single route keeps, applied inside one write.
+        Array.from(idxs).sort((a, b) => a - b).forEach((i) => {
+          const one = votePatchFor(run, i, vote);
+          Object.assign(patch, one.patch);
+          one.marks.forEach((m) => marks.push(m));
+        });
         await ref.update(patch);
         marked += idxs.size;
-        const run = (await ref.get()).data() || {};
-        idxs.forEach((i) => {
-          const u = i === -1 ? run.sheetUrl : (run.images || [])[i];
-          if (u) urls.push(u);
-        });
         if (run.gptStyle === 'triangle') triangleMarked = true;
       } catch (e) { /* a run that has gone must not lose the rest of the batch */ }
     }
@@ -7753,15 +7806,60 @@ app.post('/api/promptlab/votes', async (req, res) => {
     // exactly as they do after a single tap. A few at a time: sequential is
     // seconds on a batch of fifty, and all-at-once is fifty Firestore sweeps
     // landing on the 512MB box together.
-    for (let k = 0; k < urls.length; k += 5) {
-      await Promise.all(urls.slice(k, k + 5).map((u) => syncVoteToAssets(u, vote).catch(() => {})));
-    }
+    await syncMarks(marks);
     if (triangleMarked) require('./triset').pokeLikes();
     res.json({ ok: true, marked, vote });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
+// ONE WRITE, AND THE CASCADE RIDES IN IT (2026-09-06, Sophie: "when i x a
+// uncut panels sheet it shud x every panel in it unless i hearted it or heart
+// it after or unex"). The rule itself is sheet-cascade.js — pure, and served
+// to the Playground so the page marks the panels on screen in the same frame.
+// Here it only becomes a patch: her tapped mark, plus whatever the sheet's
+// mark does to the panels under it, in a single update.
+//
+// A DIRECT MARK ON A PANEL MAKES IT HERS. Dropping the `voteFrom` tag is what
+// answers her "or heart it after": once she has voted on a panel, un-✕'ing the
+// sheet later has no claim on it — the release only ever lifts a mark this
+// cascade wrote and nobody has touched since.
+function votePatchFor(run, i, vote) {
+  const del = admin.firestore.FieldValue.delete();
+  const patch = { [`votes.${i}`]: vote === null ? del : vote };
+  const marks = [];
+  const own = i === -1 ? run.sheetUrl : (run.images || [])[i];
+  if (own) marks.push({ url: own, vote });
+  if (i === -1) {
+    const plan = sheetCascade.plan(run, vote);
+    plan.changed.forEach((j) => {
+      patch[`votes.${j}`] = plan.votes[j] === null ? del : plan.votes[j];
+      patch[`voteFrom.${j}`] = plan.from[j] === null ? del : plan.from[j];
+      const u = (run.images || [])[j];
+      if (u) marks.push({ url: u, vote: plan.votes[j] });
+    });
+    return { patch, marks, cascaded: plan.changed };
+  }
+  if (sheetCascade.at(run.voteFrom, i)) patch[`voteFrom.${i}`] = del;
+  return { patch, marks, cascaded: [] };
+}
+
+// Carry a batch of marks onto the Assets-tab records. A few at a time:
+// sequential is seconds on a nine-panel cascade, and all-at-once is nine
+// Firestore sweeps landing on the 512MB box together.
+// Deduped by url, LAST mark winning, because one picture can be named twice in
+// a batch (the cascade's ✕ and her own mark on the same panel) and the two
+// writes would otherwise race inside a chunk.
+async function syncMarks(marks) {
+  const last = new Map();
+  marks.forEach((m) => { if (m && m.url) last.set(m.url, m.vote); });
+  const list = [...last];
+  for (let k = 0; k < list.length; k += 5) {
+    await Promise.all(list.slice(k, k + 5)
+      .map(([url, vote]) => syncVoteToAssets(url, vote).catch(() => {})));
+  }
+}
 
 app.post('/api/promptlab/:id/vote', async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
@@ -7782,21 +7880,25 @@ app.post('/api/promptlab/:id/vote', async (req, res) => {
     if (!Number.isInteger(i) || i < -1 || i > 24) return res.status(400).json({ error: 'image index -1 (the sheet) or 0-24 required' });
     const vote = ['like', 'dislike'].includes(req.body.vote) ? req.body.vote : null;
     const ref = admin.firestore().collection(PROMPTLAB).doc(req.params.id);
-    await ref.update({ [`votes.${i}`]: vote === null ? admin.firestore.FieldValue.delete() : vote });
-    // Carry the ♥/✕ (or the clear) onto any Assets-tab record holding this
-    // picture, so the two surfaces agree — see syncVoteToAssets. Awaited so a
+    // READ FIRST, because the cascade is a function of what the run says NOW —
+    // which panels she has already hearted, and which ✕ a previous sheet tap
+    // put there. (It also gives the Assets sync below its urls without a
+    // second read: the old shape read the doc back after the write.)
+    const run = (await ref.get()).data() || {};
+    const { patch, marks, cascaded } = votePatchFor(run, i, vote);
+    await ref.update(patch);
+    // Carry the ♥/✕ (or the clear) onto any Assets-tab record holding these
+    // pictures, so the two surfaces agree — see syncVoteToAssets. Awaited so a
     // reload straight after the tap already reads the synced state; a sync
     // failure never fails the vote (the helper swallows its own errors).
     try {
-      const run = (await ref.get()).data() || {};
-      const url = i === -1 ? run.sheetUrl : (run.images || [])[i];
-      if (url) await syncVoteToAssets(url, vote);
+      await syncMarks(marks);
       // A heart on a TRIANGLE run rebuilds her standing Playground-hearts page
       // (2026-09-03, "auto update as i add new cards"). Fire-and-forget and
       // debounced inside triset.js: a mark must never wait on a page rewrite.
       if (run.gptStyle === 'triangle') require('./triset').pokeLikes();
     } catch (e) { /* best-effort */ }
-    res.json({ ok: true, image: i, vote });
+    res.json({ ok: true, image: i, vote, cascaded });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

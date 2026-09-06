@@ -6210,6 +6210,47 @@ before working on that module. Nothing was deleted — the moved text is verbati
     first line and nothing rendered. It calls `scripts/lib/public-asset.js`
     now, like its siblings — a harness that hand-lists shared files is one
     shared file away from a silent timeout.
+  **✕ ON A SHEET IS ✕ ON ITS PANELS (2026-09-06, Sophie: "when i x a uncut
+  panels sheet it shud x every panel in it unless i hearted it or heart it
+  after or unex").** A panels run is ONE paid picture cut into pieces, so a
+  sheet she crosses out in the Sheets view is a sheet whose pieces she has
+  crossed out — until this she had to ✕ the sheet and then ✕ every panel again
+  in the panel view, or live with a run saying two different things about
+  itself on two screens. `sheet-cascade.js` is the ONE rule (pure, served to
+  the page); the vote routes turn it into a patch through `votePatchFor`.
+  Four things not to undo:
+  - **A CASCADED ✕ IS TAGGED — `voteFrom.<i> = 'sheet'` beside the vote it
+    explains — and that is what makes "unex" possible at all.** Without it the
+    release could only be all-or-nothing and would wipe the ✕ she cast on a
+    panel herself. The release only ever lifts a mark this cascade wrote and
+    nobody has touched since.
+  - **A DIRECT MARK ON A PANEL MAKES IT HERS** — any vote at `i >= 0` DROPS
+    that tag, which is her "or heart it after": once she has decided a panel,
+    un-✕'ing the sheet later has no claim on it. A panel already ✕'d when the
+    sheet is crossed out is left as it is and never tagged, for the same
+    reason.
+  - **A ♥ ON A PANEL IS NEVER TOUCHED, and a ♥ on the sheet hearts nothing** —
+    ending the sheet's ✕ (clearing it or hearting it) RELEASES, and that is
+    all; hearting everything under a sheet is a rule she never asked for.
+  - **THE PAGE APPLIES THE SAME PLAN OPTIMISTICALLY, and it has to.** A vote
+    is followed by `loadRuns()`, which asks `kind=single` — a panels run's real
+    votes never come back from that read; they wait on the panels sweep and its
+    20s throttle. Without `markLocal` she crosses out a sheet, steps to the
+    panel view and finds the panels unmarked, which reads as the rule not
+    working.
+  It also reaches the two doors that are not the Sheets view: a sheet ✕'d while
+  it is still CUTTING marks the panels the cut lands seconds later
+  (`planForCut`, applied at the end of `finishPanelsCut`), and a ✕ cast on the
+  sheet in Meta Assets comes back through `syncVoteToPlayground`, which now
+  finds a run by `sheetUrl` as well as by `images` (the sheet is not in
+  `images`, so that door used to reach nothing at all). A cut-FAILED run IS its
+  sheet and has no panels, so it cascades to nothing by construction. Tests:
+  `node scripts/test-sheet-cascade.js` (the rule and the source pins, pure) and
+  `node scripts/test-playground-sheet-x.js` (the real page headless — every
+  assertion a MEASUREMENT of the rendered badge or a reading of what the server
+  really received, since a cascade that plans correctly and never reaches the
+  page, one that never reaches the doc, and one that wipes her ♥ all look
+  identical in markup; verified failing 2 pre-fix).
   **THE ✕ FILTER BESIDE THE HEART (Aug 2026, Sophie: "can u also add a button
   next to the heart that hides anything i've 'exed'").** The heart's opposite
   and its twin — a filter over PICTURES in whichever view she is in, sticky,
