@@ -2314,7 +2314,7 @@ function saveChapter(){
   return api('/chapter',{method:'POST',body:JSON.stringify({id:popBeat.id,title:t})})
     .then(function(r){return r.json()})
     .then(function(d){ if(d.beats){
-      var keep=popBeat; beats=d.beats; popBeat=beats.find(function(x){return x.id===keep.id;})||keep;
+      var keep=popBeat; beats=d.beats; if(keep) popBeat=beats.find(function(x){return x.id===keep.id;})||keep;   // the card may have closed while the save was in flight
       lastChapSig=''; renderChapters();
     }});
 }
@@ -4215,7 +4215,7 @@ function savePrompt(){
   return api('/prompt',{method:'POST',body:JSON.stringify({id:popBeat.id,prompt:t})})
     .then(function(r){return r.json()})
     .then(function(d){promBase=t; if(d.beats){
-      var keep=popBeat; beats=d.beats; popBeat=beats.find(function(x){return x.id===keep.id;})||keep;
+      var keep=popBeat; beats=d.beats; if(keep) popBeat=beats.find(function(x){return x.id===keep.id;})||keep;   // the card may have closed while the save was in flight
     }});
 }
 document.getElementById('dprompt').onblur=function(){
@@ -4252,7 +4252,7 @@ function saveNote(){
   return api('/text',{method:'POST',body:JSON.stringify({id:popBeat.id,text:t})})
     .then(function(r){return r.json()})
     .then(function(d){capBase=t; if(d.beats){
-      var keep=popBeat; beats=d.beats; popBeat=beats.find(function(x){return x.id===keep.id;})||keep;
+      var keep=popBeat; beats=d.beats; if(keep) popBeat=beats.find(function(x){return x.id===keep.id;})||keep;   // the card may have closed while the save was in flight
     }});
 }
 /* The speech icon: her words in her voice ("Sophie — morning"). Saves the
@@ -4448,7 +4448,24 @@ document.getElementById('delyes').onclick=function(ev){
     .catch(function(){ btn.disabled=false; });
 };
 
-function closeBeat(){stopRec(); stopPopVid(); saveNote(); savePrompt(); saveChapter(); document.getElementById('beatpop').hidden=true; popBeat=null; lock(false); render(); paintSend();}
+/* LEAVING A BEAT FILLS THE EMPTY HALF (2026-09-06, Sophie: "caption and
+   drawing prompt shud auto copy into each other if i leave the beat and one
+   exists but the other doesn't"). A beat with a drawing prompt and no
+   caption gets the prompt's words AS its caption on the way out — stored,
+   so the tile, the film's voice (ttsFor reads `text`) and the Caption box
+   all carry them. The other direction already holds by rule: an empty
+   prompt FOLLOWS the caption (promptOf, and the hint line under the box
+   says so), and the server deletes a stored prompt equal to the caption's
+   drawable form — so nothing is written for it, on purpose. */
+function fillEmptyHalf(){
+  if(!popBeat) return;
+  var cap=document.getElementById('pnote').value.trim();
+  if(cap) return;
+  var prm=document.getElementById('dprompt').value.trim()||String(popBeat.prompt||'').trim();
+  if(!prm) return;
+  document.getElementById('pnote').value=prm;   // saveNote() sees it as hers and POSTs /text
+}
+function closeBeat(){stopRec(); stopPopVid(); fillEmptyHalf(); saveNote(); savePrompt(); saveChapter(); document.getElementById('beatpop').hidden=true; popBeat=null; lock(false); render(); paintSend();}
 /* Close on the edge around the card OR on the card's own empty cream — the
    same "tap anywhere that isn't a control" contract the old scrim had. */
 document.getElementById('beatpop').onclick=function(ev){
