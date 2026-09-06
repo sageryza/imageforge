@@ -2849,7 +2849,18 @@
   // costs money. It survives between runs in one sitting, so a re-roll is one
   // tap.
   var CHAR_RECENT = 5;             // her number — the top row
-  var charList = null;             // the library, once fetched
+  var charList = null;             // the library, re-read on every open
+  // THE LIBRARY IS RE-READ EVERY TIME THE SHEET OPENS (2026-09-06, Sophie,
+  // after saving her own picture in Characters: "i uploaded but don't see my
+  // pic in character … in panels"). It was fetched ONCE per page life, and
+  // the app keeps this page alive for the whole app process — so a character
+  // she saved five minutes ago in the Character Creator could not reach the
+  // picker until a force-quit, while the server was listing it first the
+  // whole time. Same shape as the panels sweep's own latch (2026-08-29): a
+  // throttle, never a one-shot. The old list paints instantly; the fresh one
+  // repaints when it lands. One read of ~150 small docs, no model call.
+  var charsAt = 0;                 // when the library last landed
+  var CHAR_RESWEEP = 20000;        // a tap she may repeat is one query
   var charMax = (window.__padCharacters && window.__padCharacters.MAX_PICKED) || 6;
   var pickedChars = [];            // ids, in the order she picked them
   var charsOpen = false;
@@ -3008,10 +3019,11 @@
       // is the word to type.
       : 'Pick up to ' + charMax + '. The name under a face is what to write in your prompt.';
   }
-  function loadChars() {
-    if (charList) return Promise.resolve(charList);
+  function loadChars(force) {
+    if (charList && !force && Date.now() - charsAt < CHAR_RESWEEP) return Promise.resolve(charList);
     return fetch('/api/promptlab/characters').then(function (r) { return r.json(); }).then(function (d) {
       charList = (d.characters || []).filter(function (c) { return c && c.id && c.url; });
+      charsAt = Date.now();
       if (d.max) charMax = d.max;
       paintCharPanel();
       // A cast restored from a copied run is ids only until the library
@@ -3023,9 +3035,17 @@
       setTimeout(fitCharPill, 60);
       return charList;
     }).catch(function () {
-      document.getElementById('charnote').textContent = 'Could not load your characters.';
+      // A re-read that fails keeps the list she already has.
+      if (!charList) document.getElementById('charnote').textContent = 'Could not load your characters.';
+      return charList;
     });
   }
+  // Coming back to the tool with the sheet open is the moment a stale
+  // library is about to be read — ask PAST the throttle (the panels sweep's
+  // own rule, one screen over).
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && charsOpen) loadChars(true);
+  });
   charsBtn.addEventListener('click', function () {
     charsOpen = !charsOpen;
     charPanel.classList.toggle('on', charsOpen);
