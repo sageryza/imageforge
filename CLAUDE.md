@@ -5333,7 +5333,13 @@ before working on that module. Nothing was deleted — the moved text is verbati
   is what lets the Prompt panel print the REAL clause instead of keeping a
   second copy of the wording. Tests: `node scripts/test-sheet-grid.js` (the
   clause, pure) and `node scripts/test-playground-panels.js` (the wiring, and
-  that the Sophie card and the photo are still off).
+  that the Sophie card is still off). **HER PHOTO RIDES A SHEET SINCE
+  2026-09-06 (Sophie: "i can add a photo reference in playground but not in
+  panels")** — same seat as a single run, after the style refs and before her
+  cast, on a grid sheet and a story sheet; the button stays on the Panels tab
+  and the Prompt panel prints the line there. The Sophie card is the only
+  attachment still off on a sheet. Full note: *HER PHOTO RIDES A SHEET* in
+  `docs/modules/pictures.md`; test `node scripts/test-playground-panels-photo.js`.
   **THE GREEN TANK TOP — a named ban at the very end of the tail (2026-08-27,
   Sophie: "the woman w the green tank top appears nowhere. if text asks for a
   woman, invent a different woman, with different clothing").** `dream-mystery.jpg`

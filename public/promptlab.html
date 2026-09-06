@@ -930,6 +930,15 @@
     z-index: 60; aspect-ratio: auto; min-height: 30vh; max-height: 60vh;
     box-shadow: 0 12px 40px rgba(43, 38, 34, .35); }
   #panelgrid .pcell.pop .pbig { position: fixed; right: 5vw; top: calc(10vh - 34px); z-index: 61; }
+  /* THE STORY BOX EXPANDS TOO (2026-09-06, Sophie: "story panels · no extend
+     textbox"). It was the one box on the PANELS tab with no corner button —
+     a whole story dictated into 120px. Same cell, same button, same popup;
+     only the shape differs: the story cell keeps its own height (never the
+     grid's 2:3 aspect, which would draw a 120px box as a tall empty column
+     while its textarea is lifted out), and it reserves no top strip because
+     it carries no per-box ✕ (the row's Clear is its clear). */
+  #panelgrid .pcell.story textarea { padding-top: 8px; }
+  #panelgrid .pcell.story.pop { aspect-ratio: auto; min-height: 120px; }
   #panelbg { position: fixed; inset: 0; z-index: 59; border: 0; padding: 0; margin: 0;
     background: rgba(43, 38, 34, .45); }
   /* THE PER-BOX CLEAR — one panel's words, wiped where they are (2026-08-29,
@@ -1869,9 +1878,9 @@
       restoreChars(r);
       return;
     }
-    // A panels run never carries a photo (the button is off on that tab), so
-    // its record answers "none" and the restore CLEARS one that is attached —
-    // the same rule everywhere, and the honest one here.
+    // A panels run carries its photo by url like any other (since 2026-09-06),
+    // and a record with none answers "none" — the restore CLEARS one that is
+    // attached, the same only-change-what-the-record-knows rule everywhere.
     restorePhoto(r);
     restoreChars(r);     // the picked FACES rode the whole sheet
     restoreCast(r.cast); // …and so did her typed rows
@@ -2204,6 +2213,13 @@
     if (storyMode()) {
       box.setAttribute('data-mode', 'block');
       box.innerHTML = '';
+      // The story box sits in a cell like a panel does, so it carries the same
+      // corner button and the same popup (2026-09-06, Sophie: "story panels ·
+      // no extend textbox"); the cell wears `story` for its own shape — the
+      // CSS note above #panelgrid .pcell.story. No per-box ✕: the row's
+      // Clear is its clear.
+      var scell = document.createElement('div');
+      scell.className = 'pcell story';
       var st = document.createElement('textarea');
       st.setAttribute('data-story', '1');
       st.placeholder = 'The story';
@@ -2212,7 +2228,9 @@
         try { localStorage.setItem(STORYTEXTKEY, st.value); } catch (e) { /* private mode */ }
         paintPanelFold();      // the Clear appears with the first word, and leaves with the last
       });
-      box.appendChild(st);
+      scell.appendChild(st);
+      scell.appendChild(mkPanelBig(scell, st));
+      box.appendChild(scell);
       paintPanelFold();
       return;
     }
@@ -2700,6 +2718,11 @@
       body: JSON.stringify({
         prompt: joined, model: S.model, style: S.gptStyle, panels: texts, grid: g,
         quality: quality, canvas: canvas, res: resTier,
+        // Her photo reference(s), the single run's own shape (2026-09-06):
+        // `photo` is the first, `photos` the whole list when several ride.
+        // Absent otherwise, so a sheet without one is the request it was.
+        photo: photoRefs.length ? photoRefs[0].data : undefined,
+        photos: photoRefs.length > 1 ? photoRefs.map(function (p) { return p.data; }) : undefined,
         // Both halves of her cast — the typed rows and the picked cards.
         // Absent when she used neither, so a run without one is the request
         // it has always been.
@@ -2736,6 +2759,8 @@
       body: JSON.stringify({
         prompt: story, model: S.model, style: S.gptStyle, story: true,
         quality: quality, canvas: canvas, res: resTier,
+        photo: photoRefs.length ? photoRefs[0].data : undefined,
+        photos: photoRefs.length > 1 ? photoRefs.map(function (p) { return p.data; }) : undefined,
         cast: castRows().length ? castRows() : undefined,
         characters: pickedChars.length ? pickedChars.slice() : undefined,
         prefix: over ? over.prefix : undefined, suffix: over ? over.suffix : undefined,
@@ -3356,8 +3381,9 @@
   function extraBlock() {
     var b = bakedFor(styleKey) || {};
     var extras = [];
-    // The Panels tab sends neither the Sophie card nor a photo (both wordings
-    // name an attachment a sheet does not carry).
+    // The Panels tab never sends the Sophie card (its wording names an
+    // attachment a sheet does not carry) — it DOES send her photo (since
+    // 2026-09-06, #2169).
     if (charOn && !onPanels() && !(STYLES[styleKey] || {}).noCharacter && b.characterLine) extras.push(b.characterLine);
     // The style's OWN photo line wins where it has one — the house sentence
     // says the drawing style "comes from the style reference above", which is
@@ -3365,7 +3391,7 @@
     // Re-anchored when a character card rides behind it — cards attach at the
     // very end, so "the LAST attached image" is no longer the photo.
     var cline = charsLine();
-    if (photoRefs.length && !onPanels()) {
+    if (photoRefs.length) {
       var pl = cline ? (b.photoLineWithChars || PHOTO_LINE_CHARS) : (b.photoLine || PHOTO_LINE);
       // Several photos: the plural pair, the count written in — the same
       // substitution server.js makes, so the panel prints the sentence sent.
@@ -4049,8 +4075,13 @@
     if (charsOpen) paintCharSays();
     // The photo rides gpt-image-2's EDITS call. The WTR LoRA has no
     // attachment slot at all — it takes a trigger word and nothing else — so
-    // the button comes off rather than sitting there doing nothing.
-    document.getElementById('photowrap').classList.toggle('on', gpt && !panels);
+    // the button comes off rather than sitting there doing nothing. It stays
+    // ON for the Panels tab since 2026-09-06 (Sophie: "i can add a photo
+    // reference in playground but not in panels") — a sheet attaches it in
+    // the same seat as a single picture, and the photo line's "the LAST
+    // attached image … the subject described below" is as true over a panel
+    // block as over one picture. Only the Sophie card is still off there.
+    document.getElementById('photowrap').classList.toggle('on', gpt);
     document.getElementById('qpick').hidden = !gpt;
     if (rt) rt.hidden = !gpt;
     // Both ladders are quality ladders, so both come off the Replicate LoRA,

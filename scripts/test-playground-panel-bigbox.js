@@ -275,6 +275,77 @@ function panelsPayload() {
   ok(fresh.pops === 0 && !fresh.bgUp && !fresh.locked,
     'a grid rebuild closes the popup and unlocks the page — nothing stranded');
 
+  // THE STORY BOX EXPANDS TOO (2026-09-06, Sophie: "story panels · no extend
+  // textbox"). It was the one box on the tab with no corner button.
+  console.log('the story box');
+  await page.click('#gridpick button[data-grid="story"]');
+  await page.waitForFunction(() => !!document.querySelector('#panelgrid textarea[data-story]'));
+  const st0 = await page.evaluate(() => {
+    const t = document.querySelector('#panelgrid textarea[data-story]');
+    const cell = t.closest('#panelgrid .pcell');
+    const b = cell && cell.querySelector('.pbig');
+    const r = b && b.getBoundingClientRect();
+    const hit = r && document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    const tr = t.getBoundingClientRect();
+    return {
+      inCell: !!cell, hasBtn: !!b, reach: !!(hit && (hit === b || b.contains(hit))),
+      noClear: !(cell && cell.querySelector('.pclr')),
+      h: tr.height, w: tr.width, padTop: parseFloat(getComputedStyle(t).paddingTop),
+      padBot: parseFloat(getComputedStyle(t).paddingBottom),
+      cellH: cell && cell.getBoundingClientRect().height,
+    };
+  });
+  ok(st0.inCell && st0.hasBtn, 'the story box carries the same corner button');
+  ok(st0.reach, 'and the tap reaches it (elementFromPoint)');
+  ok(st0.noClear, 'no per-box ✕ — the row Clear is its clear');
+  ok(st0.padTop < 12, 'no top strip reserved (there is no ✕ to make room for)');
+  ok(st0.padBot >= 30, 'the bottom corner is reserved for the button');
+  ok(st0.h >= 110 && st0.h < 400, 'the small box keeps its own height, not the 2:3 cell shape');
+  const storyLong = 'a witch loses her cat and follows it into a dream. '.repeat(12);
+  await page.evaluate(() => document.querySelector('#panelgrid .pcell.story .pbig').click());
+  const sp = await page.evaluate(() => {
+    const t = document.querySelector('#panelgrid textarea[data-story]');
+    const cell = t.closest('.pcell');
+    const r = t.getBoundingClientRect();
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return {
+      pop: cell.classList.contains('pop'), fixed: getComputedStyle(t).position === 'fixed',
+      bgUp: !document.getElementById('panelbg').hidden, w: r.width, h: r.height, top: r.top,
+      vw: innerWidth, vh: innerHeight, midIsBox: hit === t,
+      inGrid: !!t.closest('#panelgrid'), locked: document.body.style.overflow === 'hidden',
+      cellH: cell.getBoundingClientRect().height,
+    };
+  });
+  ok(sp.pop && sp.fixed && sp.bgUp, 'the tap lifts the story box into the same fixed popup over the backdrop');
+  ok(Math.abs(sp.w - sp.vw * 0.9) < 3, 'the popup is ~the whole width');
+  ok(sp.h >= sp.vh * 0.29 && sp.h <= sp.vh * 0.61, 'between the floor and the cap');
+  ok(sp.top >= sp.vh * 0.09, 'sat below the very top');
+  ok(sp.midIsBox && sp.inGrid && sp.locked, 'the box takes the tap, never left #panelgrid, page locked');
+  ok(sp.cellH >= 110 && sp.cellH < 400, 'the cell behind keeps its own height — no 2:3 column opens up under the backdrop');
+  await page.fill('#panelgrid textarea[data-story]', storyLong);
+  const sg = await page.evaluate(() => {
+    const t = document.querySelector('#panelgrid textarea[data-story]');
+    return { h: t.getBoundingClientRect().height, vh: innerHeight };
+  });
+  ok(sg.h > sp.h + 30 && sg.h <= sg.vh * 0.61, 'typing while popped grows the box, clamped at the cap');
+  await page.evaluate(() => document.getElementById('panelbg').click());
+  const sc = await page.evaluate(() => {
+    const t = document.querySelector('#panelgrid textarea[data-story]');
+    return {
+      pop: t.closest('.pcell').classList.contains('pop'), inline: t.style.height,
+      locked: document.body.style.overflow === 'hidden', val: t.value,
+      w: t.getBoundingClientRect().width, saved: localStorage.getItem('promptlab_story'),
+    };
+  });
+  ok(!sc.pop && !sc.locked && sc.inline === '', 'a backdrop tap closes it, unlocks the page, clears the inline height');
+  ok(Math.abs(sc.w - st0.w) < 2, 'and the box is really back at its size');
+  ok(sc.val === storyLong && sc.saved === storyLong, 'her words survived the round trip and are saved as the draft');
+  posted.length = 0;
+  await page.click('#go');
+  await page.waitForTimeout(300);
+  ok(posted.length === 1 && posted[0].story === true && posted[0].prompt === storyLong.trim(),
+    'Generate sends the story from the same textarea');
+
   await page.close();
   await browser.close();
   server.close();

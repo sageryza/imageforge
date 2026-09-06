@@ -85,12 +85,25 @@ is(cfg.plan.sheet, '2336x3504', 'the rebuilt plan keeps the sheet canvas');
 is(cfg.plan.count, 6, 'and the panel count');
 is(cfg.head, 'THE HEAD', 'the head seam is recovered from the stored fullPrompt');
 is(cfg.tail, 'THE TAIL', 'and the tail');
+// A sheet drawn over her photo (2026-09-06) holds it by url, like a single
+// run — and a run with none carries an empty list, so nothing is fetched.
+is(cfg.photoUrl, '', 'a sheet with no photo carries none');
+is(cfg.photoUrls.length, 0, 'and an empty list');
+const cfgP = panelsCfgOf(deadPanels(0, { photoRef: 'https://x/p1.png', photoRefs: ['https://x/p1.png', 'https://x/p2.png'] }));
+is(cfgP.photoUrl, 'https://x/p1.png', "a sheet's photo url is rebuilt for the redraw");
+is(cfgP.photoUrls.join(','), 'https://x/p1.png,https://x/p2.png', 'and every photo that rode, in order');
 
 // --- the wiring: the redraw must restart the staleness clock ---------------
 const fs = require('fs'), path = require('path');
 const src = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
 is(/redraws: n, redrawnAt/.test(src), true,
   'a redraw restamps redrawnAt beside redraws');
+// The panels redraw re-reads the photo bytes before drawing, exactly as the
+// single run's does — a sheet without its photo is a different sheet.
+const iRedraw = src.indexOf("if (act === 'redraw')");
+const panelsRedraw = src.slice(iRedraw, src.indexOf('runPromptLabPanelsJob(d.ref, cfg)', iRedraw));
+is(/if \(cfg\.photoUrl\) \{\s*try \{\s*await refetchPhotoRefs\(cfg\)/.test(panelsRedraw), true,
+  'the panels redraw refetches her photo reference(s) first');
 is(/r\.redrawnAt\?\.toMillis\?\.\(\) \|\| r\.createdAt/.test(src), true,
   'the sweep clocks a redrawn run from redrawnAt — or the next tick kills the draw the last one started');
 is(!/function panelsCfgOf\(/.test(src), true,

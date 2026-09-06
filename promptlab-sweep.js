@@ -73,6 +73,11 @@ function panelsCfgOf(d) {
     head: at > 0 ? full.slice(0, at).trim() : '',
     tail: at >= 0 ? full.slice(at + block.length).trim() : '',
     quality: d.quality || 'medium', styleId: d.gptStyle || 'evan',
+    // Her photo reference(s), by url (2026-09-06) — the caller fetches the
+    // bytes with refetchPhotoRefs, exactly as for a single run.
+    photoBuf: null, photoUrl: String(d.photoRef || ''),
+    photoUrls: Array.isArray(d.photoRefs) && d.photoRefs.length
+      ? d.photoRefs.map(String) : (d.photoRef ? [String(d.photoRef)] : []),
   };
 }
 
