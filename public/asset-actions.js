@@ -154,8 +154,23 @@
     var port=(window.ForgePlaygroundPort||null);
     if(!port) return null;
     var m=port.matchStyle(it.promptStyle, it.prompt);
-    var q='prompt='+encodeURIComponent(it.promptContent)+'&style='+m.style
-         +'&sameref='+(m.matched?'1':'0');
+    // AN UNCUT SHEET SLOTS INTO THE PANEL BOXES (2026-09-06, Sophie, on the
+    // 3x3 in her Assets tab: "when i press copy on the original uncut grid it
+    // shud slot all 9 into panels"). The sheet's content half is all N panels,
+    // and `prompt=` put the whole wall in the single box. panelParse reads the
+    // record — the cut caption rules a panel OUT, the grid sentence or the
+    // label's own AxB says N, and the panels come apart the way they were
+    // joined (labeled lines, or a blank line) — and the Playground already
+    // takes `?panels=<json>&grid=N` (seedPanelsFromLink) onto the Panels tab.
+    // Anything short of exactly N is null and the door sends the one prompt
+    // it always did: a panel is never dropped and never padded. A CUT panel
+    // still goes to the single box, her 2026-08-27 rule.
+    var sg=window.__sheetGrid;
+    var sheet=sg&&sg.panelParse?sg.panelParse({style:it.promptStyle, content:it.promptContent,
+      label:it.description, caption:it.prompt}):null;
+    var words=sheet?'panels='+encodeURIComponent(JSON.stringify(sheet.panels))+'&grid='+sheet.count
+      :'prompt='+encodeURIComponent(it.promptContent);
+    var q=words+'&style='+m.style+'&sameref='+(m.matched?'1':'0');
     var qual=port.matchQuality(it.promptStyle, it.prompt);
     if(qual) q+='&quality='+qual;
     // THE CAST COMES TOO (2026-08-29, Sophie: "panels adds a character / if i
@@ -165,7 +180,6 @@
     // line, so the characters clause is sitting in it verbatim — castParse
     // reads the rows straight back out. Nothing is invented: no clause on the
     // record means no rows and the link is exactly what it always was.
-    var sg=window.__sheetGrid;
     var cast=sg&&sg.castParse?sg.castParse(it.promptStyle):[];
     if(cast&&cast.length) q+='&cast='+encodeURIComponent(JSON.stringify(cast));
     return q;

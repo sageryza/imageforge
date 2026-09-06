@@ -3139,8 +3139,20 @@
     // Spend it, like the Story Room trip: a reload lands on a plain Playground
     // rather than re-arming a walk she has already finished. DEFERRED — the
     // blocks below read location.search for the ported prompt this very link
-    // carries.
-    setTimeout(function () { try { history.replaceState(null, '', '/playground'); } catch (e) {} }, 0);
+    // carries. EXCEPT THE PANEL SEED (2026-09-06): `?panels=&grid=` — an
+    // uncut sheet's door — is read only once the styles fetch lands, well
+    // after one tick, so wiping the whole query here left every sheet that
+    // walked in with a crumb arriving to nine EMPTY boxes. Those two stay and
+    // seedPanelsFromLink spends them itself; everything else goes as before,
+    // so a reload is still a plain Playground.
+    setTimeout(function () {
+      try {
+        var q = new URLSearchParams(location.search), keep = new URLSearchParams();
+        ['panels', 'grid'].forEach(function (k) { if (q.has(k)) keep.set(k, q.get(k)); });
+        var s = keep.toString();
+        history.replaceState(history.state, '', '/playground' + (s ? '?' + s : ''));
+      } catch (e) {}
+    }, 0);
   })();
 
   (function () {
@@ -3211,7 +3223,12 @@
     // syncTab's painters are not all wired yet (rpick is a `var` several
     // hundred lines below, and calling it here threw before anything else in
     // this block could run). Boot's own syncTab() paints the tab at the end.
-    try { localStorage.setItem(TABKEY, 'picture'); } catch (e) { /* private mode */ }
+    // …unless the link carries PANELS: an uncut sheet's door sends
+    // `?panels=&grid=` in place of `?prompt=` (2026-09-06), and
+    // seedPanelsFromLink lands those on the Panels tab once the grids arrive.
+    if (!q.get('panels')) {
+      try { localStorage.setItem(TABKEY, 'picture'); } catch (e) { /* private mode */ }
+    }
     var st = q.get('style');
     if (st && STYLES[st]) setStyle(st);
     if (q.get('prompt')) {
