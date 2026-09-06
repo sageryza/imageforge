@@ -6262,6 +6262,23 @@ before working on that module. Nothing was deleted — the moved text is verbati
   really received, since a cascade that plans correctly and never reaches the
   page, one that never reaches the doc, and one that wipes her ♥ all look
   identical in markup; verified failing 2 pre-fix).
+  **A ♥ ON A PANEL USED TO COME OFF ON THE NEXT TAP — THE SCAN CACHE NEVER
+  HEARD ABOUT THE VOTE (2026-09-06, Sophie: "when i heart individual panels the
+  heart gets removed 😡").** The Panels tab reads its whole gallery through
+  `promptlabScan()`, the same 60s cache a search takes, and a vote wrote the run
+  DOC and never the cache — so the sweep the NEXT tap arms (pointerdown,
+  throttled 20s) handed back the run as it stood before her heart, `mergeRuns`
+  let the fresh copy win, and the mark she had just cast was gone. The page's
+  optimistic mark was right the whole time; the server was handing back the
+  past. Two halves, and both stand: **every run-vote write applies its own patch
+  to the cached copy** (`plScanApply` → `pl-scan-patch.js`, pure; the single
+  route, the batch route, the Assets→Playground sync and the cut landing — a
+  source pin counts four), and **the page shields a mark cast in the last 90s
+  from a stale read** (`recentMarks`/`shieldRun` in `mergeRuns`), for the sweep
+  already in flight when she tapped and for any cache a vote cannot reach.
+  After the shield the server's word stands, as it always did. Test:
+  `node scripts/test-playground-panel-heart.js` (the stub's kind=panels answer
+  is DELIBERATELY the pre-heart copy; verified failing 2 pre-fix).
   **THE ✕ FILTER BESIDE THE HEART (Aug 2026, Sophie: "can u also add a button
   next to the heart that hides anything i've 'exed'").** The heart's opposite
   and its twin — a filter over PICTURES in whichever view she is in, sticky,

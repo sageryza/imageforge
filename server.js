@@ -2910,6 +2910,7 @@ async function syncVoteToPlayground(url, vote) {
     const next = (vote === 'like' || vote === 'dislike') ? vote : null;
     const { patch, marks } = votePatchFor(run, i, next);
     await doc.ref.update(patch);
+    plScanApply(doc.id, patch);
     // Only the CASCADED panels need carrying back to their own Assets records —
     // the picture she actually voted on is the one whose record the caller is
     // already writing.
@@ -6897,6 +6898,7 @@ async function finishPanelsCutInner(docRef, cfg, sheetBuf, sheetUrl) {
           ? admin.firestore.FieldValue.delete() : plan.from[j];
       });
       await docRef.update(patch);
+      plScanApply(docRef.id, patch);
       await syncMarks(plan.changed.map((j) => ({ url: images[j], vote: plan.votes[j] })));
     }
   } catch (e) { /* a mark that did not carry must never fail the cut */ }
@@ -7798,6 +7800,7 @@ app.post('/api/promptlab/votes', async (req, res) => {
           one.marks.forEach((m) => marks.push(m));
         });
         await ref.update(patch);
+        plScanApply(ref.id, patch);
         marked += idxs.size;
         if (run.gptStyle === 'triangle') triangleMarked = true;
       } catch (e) { /* a run that has gone must not lose the rest of the batch */ }
@@ -7887,6 +7890,7 @@ app.post('/api/promptlab/:id/vote', async (req, res) => {
     const run = (await ref.get()).data() || {};
     const { patch, marks, cascaded } = votePatchFor(run, i, vote);
     await ref.update(patch);
+    plScanApply(ref.id, patch);
     // Carry the ♥/✕ (or the clear) onto any Assets-tab record holding these
     // pictures, so the two surfaces agree — see syncVoteToAssets. Awaited so a
     // reload straight after the tap already reads the synced state; a sync
@@ -7927,7 +7931,18 @@ const PL_SEARCH_SCAN = 1500;    // newest runs a search ever reads
 const PL_SEARCH_MAX = 300;      // matches handed back
 const PL_FILL_PASSES = 12;      // pages a kind-filtered feed read will walk to fill one
 const plFeedFill = require('./pl-feed-fill');
+const plScanPatch = require('./pl-scan-patch');
 let plScan = { at: 0, runs: null };
+// A VOTE REACHES THIS CACHE (2026-09-06, Sophie: "when i heart individual
+// panels the heart gets removed"). The Panels tab's gallery is read out of it,
+// and a vote used to write the doc and not the cache — so her next tap on the
+// tab re-read a copy frozen before her heart and put the old marks back on
+// screen. Every run-vote write goes through here; pl-scan-patch.js is the rule.
+function plScanApply(id, patch) {
+  if (!plScan.runs) return;
+  plScanPatch.applyPatch(plScan.runs, id, patch,
+    (v) => v instanceof admin.firestore.FieldValue);
+}
 async function promptlabScan() {
   if (plScan.runs && Date.now() - plScan.at < 60000) return plScan.runs;
   const snap = await admin.firestore().collection(PROMPTLAB)
