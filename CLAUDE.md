@@ -4528,8 +4528,15 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
       index she held IS the next one. It heals the moment the picture is back
       on screen, and it can only ever be one tile out, because the only thing
       that re-filters while the box is open is a mark she just cast.
-      **The Playground has the same shape and is NOT fixed here** — its own
-      `lbAt()` returns -1 the same way once `loadRuns` re-filters under it.
+      **The Playground had the same shape and is FIXED since 2026-09-05**
+      (Sophie: "tap left right doesn't always work in the playground") —
+      worse there, because its re-render REPAINTS the lightbox (`renderFeed`
+      → `showLB`) and so both zones were not merely dead but GONE. `lbIdx`
+      is her place and `lbNext` is the one reader, for the zones AND the
+      step; `node scripts/test-playground-tap-next-vote.js` (verified
+      failing 11 pre-fix, against a STATEFUL stub — the vote has to come
+      back in the next feed read or the re-render restores the picture and
+      the bug cannot be reproduced).
     - **THE CACHED THUMB PAINTS FIRST, the original swaps in behind it** (the
       Playground's 2026-08-26 rule, which these two never had). They painted
       `it.url` — 1-3MB at the 2K and 4K tiers — so the box sat EMPTY through

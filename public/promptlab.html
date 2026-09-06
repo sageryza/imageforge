@@ -1099,6 +1099,7 @@
   var feedMore = true;    // the server had more behind the last page it gave
   var paging = false;     // an Older fetch is in flight
   var lbCur = null;       // { id, i } while the lightbox is open
+  var lbIdx = -1;         // her PLACE in the walk — the fallback once a mark takes the picture off the wall
   var lbBlob = null;      // { url, blob } prefetched so Save can share instantly
   var lbSrc = '';         // the ORIGINAL url on screen — what Save and the app bridge get
   var lbObj = '';         // the object url the full picture is painted from, to revoke
@@ -5153,6 +5154,7 @@
     // background scroll itself.
     if (window.__scrollStop) window.__scrollStop();
     lbFresh = true;   // a fresh open: the door shut, content first
+    lbIdx = -1;       // a fresh open starts from the tile she tapped, never a held place
     showLB(id, i);
   }
 
@@ -5172,10 +5174,26 @@
     for (var k = 0; k < seq.length; k++) if (seq[k].id === lbCur.id && seq[k].i === lbCur.i) return k;
     return -1;
   }
+  // A MARK CAST FROM THE LIGHTBOX CAN TAKE THE PICTURE SHE IS LOOKING AT OFF
+  // THE WALL, AND THE WALK HAS TO SURVIVE IT (2026-09-05, Sophie: "tap left
+  // right doesn't always work in the playground"). A vote re-renders the feed,
+  // and with ♥-only or hide-✕ lit — which IS reviewing a batch — hearting or
+  // crossing out the open picture removes it from the wall; the re-render then
+  // repaints the lightbox (renderFeed → showLB), lbAt answers -1, and BOTH
+  // zones were dropped: tap left, tap right, nothing, and the next tap out
+  // closed the box. Exactly the heart · next · heart · next loop the zones
+  // exist for. Her PLACE (lbIdx) is still meaningful, so it is the fallback,
+  // the Assets tab's own rule: the wall closed up over the gap, so whatever
+  // now stands at the index she held IS the next one, and the one before it
+  // is still the previous one. It can only ever be one tile out, because the
+  // only thing that re-filters while the box is open is a mark she just cast.
+  function lbNext(seq, at, d) {
+    if (at >= 0) return seq[at + d] || null;
+    if (lbIdx < 0) return null;
+    return seq[d > 0 ? lbIdx : lbIdx - 1] || null;
+  }
   function lbStep(d) {
-    var seq = lbSeq(), at = lbAt();
-    if (at < 0) return;
-    var next = seq[at + d];
+    var next = lbNext(lbSeq(), lbAt(), d);
     if (next) showLB(next.id, next.i);
   }
 
@@ -5186,6 +5204,7 @@
   function closeLB() {
     if (window.__assetLightboxClose) window.__assetLightboxClose();
     lbCur = null;
+    lbIdx = -1;
   }
 
   // ── THE TWO HALVES OF THE PROMPT, AS THIS RUN REALLY SENT THEM ──────────
@@ -5317,6 +5336,10 @@
     var meta = lbCaption(r, i);
     var seq = lbSeq(), at = -1;
     for (var k = 0; k < seq.length; k++) if (seq[k].id === id && seq[k].i === i) { at = k; break; }
+    // Her place is written only while the picture is really on the wall; a
+    // repaint after a mark took it off keeps the LAST place (see lbNext), so
+    // the zones below still say which sides have somewhere to go.
+    if (at >= 0) lbIdx = at;
     var asset = {
       prompt: meta.join(' · '),
       promptStyle: h.style,
@@ -5359,9 +5382,12 @@
           })
           .catch(function () { cb(false); });
       },
+      // A null side draws NO zone (the ends of the feed close on that tap) —
+      // asked through lbNext, so a picture the wall just dropped still gets
+      // its zones from her place instead of losing both.
       nav: {
-        prev: at > 0 ? function () { lbStep(-1); } : null,
-        next: (at >= 0 && at < seq.length - 1) ? function () { lbStep(1); } : null,
+        prev: lbNext(seq, at, -1) ? function () { lbStep(-1); } : null,
+        next: lbNext(seq, at, 1) ? function () { lbStep(1); } : null,
       },
       actions: [
         // The same put-it-back-in-the-box button the list boxes have, but
