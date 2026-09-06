@@ -66,6 +66,14 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
   and **the `APIFRAME_KEY` in the cloud environment answered "Invalid or
   expired token" on `GET /v2/me` that day**, so the banked credits are not
   reachable from a session until she re-pastes a key.
+  **STILL TRUE 2026-09-06, AND IT IS A BAD COPY, NOT AN EXPIRY:** the
+  environment's key and the server's share the prefix `afk_4691` and the
+  length, the server's answers `/me` (2,681 credits), the container's 401s.
+  **So a chat spends the credits THROUGH THE SERVER — `POST
+  /api/apiframe/video` takes `referenceImageUrls` / `referenceVideoUrls` /
+  `referenceAudioUrls` now** (the Seedance 2.x multi-reference door: nine
+  panels as one clip, the prompt naming them `[Image1]`…`[Image9]`), poll
+  `GET /api/apiframe/video-job/:id`. Test: `node scripts/test-apiframe-refs.js`.
   **THE COLLECTION PAGE UNDER-LISTS — PROBE THE MODEL NAMES (same day,
   Sophie: "why did u skip 2.5 etc").** Replicate's image-to-video collection
   page showed six Seedance models; `GET /v1/models/bytedance/<name>`
