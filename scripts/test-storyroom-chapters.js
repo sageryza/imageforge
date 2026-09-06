@@ -81,6 +81,11 @@ const server = http.createServer((req, res) => {
       if (url.pathname === '/api/scratchpad/chapter') {
         beats.forEach((x) => { if (x.id === b.id) { if (b.title) x.chapter = b.title; else delete x.chapter; } });
       }
+      if (url.pathname === '/api/scratchpad/add') {
+        const nb = { id: 'new' + posted.length, url: '', text: '', color: null };
+        beats.splice(b.at, 0, nb);
+        return json({ ok: true, beat: nb, beats });
+      }
       json({ ok: true, beats });
     });
   }
@@ -299,6 +304,23 @@ const VW = 390, VH = 780;
   f = await page.evaluate(() => ({ txt: document.getElementById('chaptxt').textContent, hidden: document.getElementById('chaptxt').hidden, on: document.getElementById('chapbtn').classList.contains('on') }));
   ok(f.txt === 'The ER' && !f.hidden && f.on, 'opening The ER\'s first beat shows its chapter name', f);
   await page.evaluate(() => window.closeBeat());
+
+  // 8. placing a beat ahead of a chapter's first beat puts it IN that chapter
+  await page.evaluate(() => window.setChapView('b12'));
+  await page.waitForTimeout(100);
+  await page.click('#addbtn');
+  await page.waitForTimeout(80);
+  const firstSlotIsFirst = await page.evaluate(() => document.querySelector('#pad').firstElementChild.classList.contains('slot'));
+  ok(firstSlotIsFirst, 'with + armed, a gap sits ahead of the chapter\'s first beat');
+  const before8 = posted.length;
+  await page.evaluate(() => document.querySelector('#pad .slot').click());
+  await page.waitForTimeout(400);
+  const adds = posted.slice(before8).filter((p) => p[0] === '/api/scratchpad/add');
+  const chs = posted.slice(before8).filter((p) => p[0] === '/api/scratchpad/chapter');
+  ok(adds.length === 1 && adds[0][1].at === 12, 'the beat is added at the chapter\'s first index', adds);
+  ok(chs.length === 2 && chs[0][1].title === 'The ER' && chs[1][1].id === 'b12' && chs[1][1].title === '', 'the chapter marker hands over to the new beat', chs);
+  w = await wraps(); s = await rowState();
+  ok(s.title === 'The ER' && w.length === 17 && w[0] !== 'b12' && w[1] === 'b12', 'the new beat is the first of The ER on the canvas', { title: s.title, n: w.length, first: w[0], second: w[1] });
 
   // 7. no chapters, no row
   await page.evaluate(() => { window.beats.forEach((b) => { delete b.chapter; }); window.renderChapters(); });

@@ -605,8 +605,18 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    rule allows one where the ground behind it is this calm. */
 #capview{display:flex; align-items:flex-start; gap:8px; width:100%;}
 #captext{flex:1; min-width:0; font-family:'EBGaramond',Georgia,serif; font-size:17px;
-  line-height:1.4; color:var(--ink); white-space:pre-wrap; overflow-wrap:anywhere; padding:2px 0;}
+  line-height:1.4; color:var(--ink); white-space:pre-wrap; overflow-wrap:anywhere; padding:2px 0;
+  --lh:1.4em; --lines:3;}
 #captext:empty{min-height:22px;}
+/* A LONG CAPTION SHOWS ITS FIRST THREE LINES BEHIND THE HOUSE OPENER
+   (2026-09-06, Sophie: "caption shud default to showing, but truncated if
+   long, tap to show more"). The clamp is MEASURED (capClamp), never counted,
+   so a short caption carries no opener at all; the opener rides on the last
+   line, the descbody pattern. */
+#captext.clamp{max-height:calc(var(--lines) * var(--lh)); overflow:hidden;}
+#captext.clamp.fold::before{content:''; float:left; width:0; height:calc((var(--lines) - 1) * var(--lh));}
+#captext > .moretxt{float:right; clear:both; margin-left:8px;}
+#captext:not(.clamp) > .moretxt{float:none; margin-left:6px;}
 #capedit,#promedit{flex:none; width:30px; height:30px; display:flex; align-items:center; justify-content:center;
   padding:0; border:none; background:none; color:var(--ink2); cursor:pointer;}
 #capedit svg,#promedit svg{width:17px; height:17px;}
@@ -3287,9 +3297,26 @@ function place(at, it){
     body.url=it.url; body.style=padStyle;
     if(it.runId!==undefined) body.src={runId:it.runId,i:it.i,prompt:it.prompt,model:it.model,engine:it.engine,quality:it.quality};
   }
+  /* PLACING AHEAD OF A CHAPTER'S FIRST BEAT PUTS THE NEW BEAT IN THAT
+     CHAPTER (2026-09-06, Sophie: "doesn't let me add a new beat before the
+     1st beat in my new chapter"). The marker sits on the old first beat, so
+     a beat placed at its index would fall into the chapter BEFORE — and, in
+     one-chapter view, vanish. The marker hands over to the new beat. */
+  var v=chapViewOf(), take=(v&&at===v.at&&beats[v.at])?{id:beats[v.at].id,title:beats[v.at].chapter}:null;
   api(path,{method:'POST',body:JSON.stringify(body)})
     .then(function(r){return r.json()})
-    .then(function(d){shapeFromAnswer(d);if(d.beats)beats=d.beats;render();});
+    .then(function(d){
+      shapeFromAnswer(d); if(d.beats)beats=d.beats;
+      if(take&&d.beat){
+        var nb=beats.find(function(x){return x.id===d.beat.id;}), ob=beats.find(function(x){return x.id===take.id;});
+        if(nb) nb.chapter=take.title; if(ob) delete ob.chapter;
+        lastPadSig=null;
+        api('/chapter',{method:'POST',body:JSON.stringify({id:d.beat.id,title:take.title})})
+          .then(function(){ return api('/chapter',{method:'POST',body:JSON.stringify({id:take.id,title:''})}); })
+          .then(function(r){return r.json()}).then(function(d2){ if(d2&&d2.beats){beats=d2.beats;render();} });
+      }
+      render();
+    });
   render();
 }
 /* + adds an EMPTY beat — a blank tile whose art comes later (its popup has
@@ -3555,7 +3582,7 @@ function openBeat(b){
   paintChap();
   // The words are painted from the BOX, which mid-typing is ahead of the
   // saved beat — what she reads must be what she just wrote.
-  document.getElementById('captext').textContent=document.getElementById('pnote').value;
+  setCapText(document.getElementById('pnote').value);
   document.getElementById('coverbtn').hidden=!artOf(b);
   document.getElementById('coverbtn').classList.remove('on');
   /* Add to Shoebox only exists where there is a picture to add — same rule
@@ -4046,6 +4073,34 @@ var capEditing=false;
 /* The caption's two faces: the words, and the box. Both live inside
    #capview so the pencil keeps its place either way — a control that
    disappears the moment you use it is a control you have to find again. */
+/* The ONE writer of the caption's words: every path that used to set
+   #captext's textContent goes through here, so the clamp is re-measured
+   whenever the words change. The measurement waits a frame — the card may
+   not have layout yet on the way in. */
+function setCapText(v){
+  var el=document.getElementById('captext');
+  el.textContent=v;
+  el.classList.remove('clamp','fold');
+  if(v) el.classList.add('clamp');
+  requestAnimationFrame(capClamp);
+}
+function capClamp(){
+  var el=document.getElementById('captext');
+  if(!el.classList.contains('clamp')||el.querySelector('.moretxt')) return;
+  if(!el.clientHeight) return;
+  if(el.scrollHeight-el.clientHeight<=1){ el.classList.remove('clamp'); return; }
+  var btn=document.createElement('button');
+  btn.className='moretxt'; btn.textContent='… more';
+  btn.onclick=function(ev){
+    ev.stopPropagation();
+    var open=el.classList.toggle('clamp')===false;
+    el.classList.toggle('fold',!open);
+    btn.textContent=open?'less':'… more';
+    if(open){ el.appendChild(btn); } else { el.insertBefore(btn, el.firstChild); }
+  };
+  el.classList.add('fold');
+  el.insertBefore(btn, el.firstChild);
+}
 function paintCap(){
   var open=document.getElementById('caplab').getAttribute('aria-expanded')==='true';
   document.getElementById('capview').hidden=!open;
@@ -4148,13 +4203,13 @@ document.getElementById('capedit').onclick=function(ev){
   capEditing=!capEditing;
   paintCap();
   if(capEditing){ document.getElementById('pnote').focus(); }
-  else { document.getElementById('captext').textContent=document.getElementById('pnote').value; saveNote(); }
+  else { setCapText(document.getElementById('pnote').value); saveNote(); }
 };
 document.getElementById('capview').onclick=function(ev){ev.stopPropagation();};
 /* Blurring SAVES but never closes the box — closing on blur reshuffles the
    card between her mousedown and mouseup and eats the tap. */
 document.getElementById('pnote').onblur=function(){
-  document.getElementById('captext').textContent=this.value;
+  setCapText(this.value);
   saveNote();
 };
 document.getElementById('caplab').onclick=function(ev){

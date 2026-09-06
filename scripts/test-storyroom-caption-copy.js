@@ -8,7 +8,10 @@
 //   2. a beat with a caption and no prompt: closing it POSTs nothing — the
 //      prompt already follows the caption by rule;
 //   3. a beat with both: closing it POSTs nothing;
-//   4. a beat with neither: nothing.
+//   4. a beat with neither: nothing;
+//   5. (same day, "caption shud default to showing, but truncated if long,
+//      tap to show more") a long caption is cut to three lines behind the
+//      house opener; a short one carries none.
 //   node scripts/test-storyroom-caption-copy.js
 // (harness lifted from test-storyroom-chapters.js)
 const http = require('http');
@@ -55,6 +58,7 @@ let beats = [
   { id: 'b1', url: '/px.png?1', text: 'words of her own', prompt: '', color: null },
   { id: 'b2', url: '/px.png?2', text: 'a caption', prompt: 'a different prompt', color: null },
   { id: 'b3', url: '/px.png?3', text: '', prompt: '', color: null },
+  { id: 'b4', url: '/px.png?4', text: ('a long caption that runs on and on about the ward, the cards, the windows and the cigarettes, ').repeat(6).trim(), prompt: '', color: null },
 ];
 const posted = [];
 
@@ -152,6 +156,32 @@ function ok(cond, name, extra) {
   // 4. neither
   p = await openClose('b3');
   ok(p.length === 0, 'a beat with neither is left alone', p);
+
+  // 5. a long caption shows three lines behind the house opener; a short one carries none
+  await page.evaluate((id) => window.openBeat(window.beatById(id)), 'b4');
+  await page.waitForTimeout(150);
+  const cap = () => page.evaluate(() => {
+    const el = document.getElementById('captext');
+    const lh = parseFloat(getComputedStyle(el).lineHeight);
+    const btn = el.querySelector('.moretxt');
+    return { h: el.clientHeight, lh, sh: el.scrollHeight, clamp: el.classList.contains('clamp'), word: btn ? btn.textContent : null,
+      open: document.getElementById('caplab').getAttribute('aria-expanded') === 'true', hidden: el.hidden };
+  });
+  let c = await cap();
+  ok(c.open && !c.hidden, 'the caption shows by default (fold open, words not the box)', c);
+  ok(c.clamp && c.h <= c.lh * 3 + 5 && c.sh > c.h, 'a long caption is cut to three lines', c);
+  ok(c.word === '… more', 'with the house opener on it', c.word);
+  await page.evaluate(() => document.querySelector('#captext .moretxt').click());
+  await page.waitForTimeout(80);
+  c = await cap();
+  ok(!c.clamp && c.h > c.lh * 5 && c.word === 'less', 'tapping it shows the whole caption, the opener reads less', c);
+  await page.evaluate(() => window.closeBeat());
+  await page.waitForTimeout(150);
+  await page.evaluate((id) => window.openBeat(window.beatById(id)), 'b1');
+  await page.waitForTimeout(150);
+  c = await cap();
+  ok(!c.clamp && c.word === null, 'a short caption carries no opener at all', c);
+  await page.evaluate(() => window.closeBeat());
 
   ok(errors.length === 0, 'no page errors', errors);
   await browser.close();
