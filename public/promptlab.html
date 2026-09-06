@@ -30,10 +30,10 @@
      on this page and the one on the filed record cannot disagree about which
      rung a picture was drawn on. See /size-tier.js. -->
 <script src="/size-tier.js"></script>
-<!-- ✕ ON A SHEET IS ✕ ON ITS PANELS (2026-09-06, Sophie: "when i x a uncut
-     panels sheet it shud x every panel in it unless i hearted it or heart it
-     after or unex"). The SAME rule the vote route applies, so her tap marks
-     the panels on screen in the same frame — on the Panels tab the feed read
+<!-- A MARK ON A SHEET IS A MARK ON ITS PANELS (2026-09-06, Sophie: "when i x
+     a uncut panels sheet it shud x every panel in it unless i hearted it or
+     heart it after or unex" · "it shud work both ways - heart or x"). The SAME
+     rule the vote route applies, so her tap marks the panels in the same frame — on the Panels tab the feed read
      that follows a vote asks for kind=single, and a panels run's real votes
      only come back when its own sweep next runs. See /sheet-cascade.js. -->
 <script src="/sheet-cascade.js"></script>
@@ -5520,10 +5520,10 @@
       .catch(function () {});
   }
 
-  // ONE MARK ON THE PAGE'S OWN COPY OF A RUN — her tap, plus whatever a ✕ on
+  // ONE MARK ON THE PAGE'S OWN COPY OF A RUN — her tap, plus whatever a ♥/✕ on
   // the SHEET does to the panels under it (2026-09-06, Sophie: "when i x a
   // uncut panels sheet it shud x every panel in it unless i hearted it or
-  // heart it after or unex"). The rule is /sheet-cascade.js, the SAME file the
+  // heart it after or unex" · "it shud work both ways - heart or x"). The rule is /sheet-cascade.js, the SAME file the
   // vote route decides with, so the two can never disagree about which panels
   // a sheet's ✕ reaches.
   //
@@ -5534,8 +5534,8 @@
   // view and finds the panels unmarked, which reads as the rule not working.
   //
   // The cascade is planned BEFORE her own mark lands, because the plan asks
-  // what the sheet said a moment ago: releasing the panels is what an un-✕
-  // means, and after the write there is nothing left to say it was a ✕.
+  // what each PANEL says a moment ago — which of them are the cascade's to
+  // move and which are hers to leave alone.
   function markLocal(r, i, next) {
     if (!r) return;
     var votes = r.votes = r.votes || {};
@@ -5549,8 +5549,8 @@
         shieldMark(r.id, j, plan.votes[j], plan.from[j]);
       });
     } else if (r.voteFrom) {
-      // A direct mark on a panel makes it HERS — the tag goes, so a later
-      // un-✕ of the sheet has no claim on it ("or heart it after").
+      // A direct mark on a panel makes it HERS — the tag goes, so the sheet
+      // has no claim on it any more ("or heart it after").
       delete r.voteFrom[String(i)];
     }
     if (next === null || next === '') delete votes[i]; else votes[i] = next;

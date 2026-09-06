@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// ✕ ON A SHEET IS ✕ ON ITS PANELS — the REAL public/promptlab.html in headless
-// Chromium against a stub API (2026-09-06, Sophie: "when i x a uncut panels
-// sheet it shud x every panel in it unless i hearted it or heart it after or
-// unex").
+// A MARK ON A SHEET IS A MARK ON ITS PANELS — the REAL public/promptlab.html in
+// headless Chromium against a stub API (2026-09-06, Sophie: "when i x a uncut
+// panels sheet it shud x every panel in it unless i hearted it or heart it
+// after or unex", then "it shud work both ways - heart or x").
 //
 // EVERY ASSERTION IS A MEASUREMENT of the rendered badge or a reading of what
 // the stub server really received. None of this is visible to a source
@@ -202,6 +202,38 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   b = await badges();
   ok(same(b, { 0: 'like', 1: 'like', 2: 'dislike', 3: '' }),
     'ON THE PAGE: the release shows on the panels too, and only where it should');
+
+  console.log('\n♥ the sheet — "it shud work both ways"');
+  await page.click('#v-sheets');
+  await page.waitForFunction(() => document.querySelectorAll('#runs .cell img').length === 1);
+  await openCell('-1');
+  await page.click('#clightbox .vote.heart');
+  await page.waitForFunction(() => document.querySelector('#runs .cell .badge.like'));
+  await closeLB();
+  ok(RUN.votes[3] === 'like' && RUN.voteFrom[3] === 'sheet',
+    'the panel that had no mark takes the sheet’s ♥');
+  ok(RUN.votes[2] === 'dislike', 'and the ✕ she cast herself is still hers');
+  await sheetsOff();
+  await page.waitForFunction(() => document.querySelectorAll('#runs .cell img').length === 4);
+  b = await badges();
+  ok(same(b, { 0: 'like', 1: 'like', 2: 'dislike', 3: 'like' }),
+    'ON THE PAGE: hearting the sheet hearts its panels');
+
+  console.log('\nflipping the sheet ♥ → ✕');
+  await page.click('#v-sheets');
+  await page.waitForFunction(() => document.querySelectorAll('#runs .cell img').length === 1);
+  await openCell('-1');
+  await page.click('#clightbox .vote.nope');
+  await page.waitForFunction(() => document.querySelector('#runs .cell .badge.dislike'));
+  await closeLB();
+  ok(RUN.votes[3] === 'dislike', 'the cascade’s own panel follows the sheet across');
+  ok(RUN.votes[0] === 'like' && RUN.votes[1] === 'like' && RUN.votes[2] === 'dislike',
+    'and every mark of hers stays exactly as she left it');
+  await sheetsOff();
+  await page.waitForFunction(() => document.querySelectorAll('#runs .cell img').length === 4);
+  b = await badges();
+  ok(same(b, { 0: 'like', 1: 'like', 2: 'dislike', 3: 'dislike' }),
+    'ON THE PAGE: the flip shows on the panel it owns and on no other');
 
   await browser.close();
   server.close();
