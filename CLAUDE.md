@@ -5635,6 +5635,17 @@ before working on that module. Nothing was deleted — the moved text is verbati
       headless — the row's names, its faces really decoding, the tap that must
       still close, and the restore read off the button's count and the
       picker's lit cards; verified failing 7 pre-fix).
+  - **THE LIBRARY IS RE-READ ON EVERY OPEN (2026-09-06, Sophie, after saving
+    her own picture in Characters: "i uploaded but don't see my pic in
+    character … in panels").** It was fetched ONCE per page life, and the app
+    keeps the Playground alive for the whole app process — so a character
+    saved five minutes ago could not reach the picker until a force-quit,
+    while the server listed it first the whole time. `loadChars` is a
+    THROTTLE now (`charsAt` / `CHAR_RESWEEP`, 20s — the panels sweep's own
+    shape): the old list paints instantly, the fresh one repaints when it
+    lands, and a visibility flip with the sheet open asks past the throttle.
+    Test: `node scripts/test-playground-chars-refresh.js` (the stub's library
+    GROWS between two opens; verified failing 9 pre-fix).
   - **The sheet opens into the pill's corner**, so both card rows reserve a
     MEASURED `--charpill` column (`fitCharPill`): pre-fix the pill's own
     `Fast` label sat on the fifth recent card, and her 47px safe-area inset
