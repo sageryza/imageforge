@@ -14,6 +14,12 @@
      and a lone <input type=search> outside a <form> has nothing for RETURN to
      submit to. The picture search in the add sheet rides it. -->
 <script src="/feedkit.js"></script>
+<!-- THE CAST RULES, linked and never copied (/pad-characters.js): which
+     picked character IS Sophie, so the house card's button can say it is
+     standing down for her own (2026-09-06, "it used the watercolor
+     reference not the blue pajamas i added"). The draw's own rule is
+     houseCardRides in that file; the page only paints it. -->
+<script src="/pad-characters.js"></script>
 <!-- THE ONE SHARED LIGHTBOX (/asset-lightbox.js) — never a second copy
      (2026-08-28, Sophie: "create a single lightbox view, sync to all
      surfaces … ex assets, meta assets, story room, playground"). This page
@@ -671,6 +677,8 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 #dchar{width:34px; height:34px; flex:none; padding:0; border:1.5px solid var(--line); border-radius:6px;
   overflow:hidden; background:none; opacity:.4; cursor:pointer;}
 #dchar.on{opacity:1; border-color:var(--ink);}
+/* her OWN Sophie is picked — the house card stands down for that draw */
+#dchar.on.stood{opacity:.3; border-color:var(--line);}
 #dchar img{width:100%; height:100%; object-fit:cover; display:block;}
 /* CHARACTER REFERENCES (2026-08-26, Sophie: "attach one or more character
    references … through there I pick one or multiple of the characters that
@@ -3396,6 +3404,17 @@ function paintDchars(){
   document.getElementById('dchars').classList.toggle('on',n>0);
   var badge=document.getElementById('dcharsn');
   badge.hidden=!n; badge.textContent=n;
+  /* ONE Sophie per draw: a picked character who IS her (the shared rule,
+     never a copy of the name list) stands the house card down, and the
+     button says so rather than lying lit. The draw's own rule is
+     houseCardRides in pad-characters.js; this only paints it. */
+  var pc=window.__padCharacters;
+  var self=!!pc&&pickedChars.some(function(id){
+    var c=padChars.find(function(x){return x.id===id;}); return !!(c&&pc.isSelf(c.name));
+  });
+  var dc=document.getElementById('dchar');
+  dc.classList.toggle('stood',self);
+  dc.title=self?'Your own Sophie is picked — this card stands down for the draw':'';
 }
 function renderChars(){
   var list=document.getElementById('charlist'); list.innerHTML='';
