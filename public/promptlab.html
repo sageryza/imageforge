@@ -930,6 +930,15 @@
     z-index: 60; aspect-ratio: auto; min-height: 30vh; max-height: 60vh;
     box-shadow: 0 12px 40px rgba(43, 38, 34, .35); }
   #panelgrid .pcell.pop .pbig { position: fixed; right: 5vw; top: calc(10vh - 34px); z-index: 61; }
+  /* THE STORY BOX EXPANDS TOO (2026-09-06, Sophie: "story panels · no extend
+     textbox"). It was the one box on the PANELS tab with no corner button —
+     a whole story dictated into 120px. Same cell, same button, same popup;
+     only the shape differs: the story cell keeps its own height (never the
+     grid's 2:3 aspect, which would draw a 120px box as a tall empty column
+     while its textarea is lifted out), and it reserves no top strip because
+     it carries no per-box ✕ (the row's Clear is its clear). */
+  #panelgrid .pcell.story textarea { padding-top: 8px; }
+  #panelgrid .pcell.story.pop { aspect-ratio: auto; min-height: 120px; }
   #panelbg { position: fixed; inset: 0; z-index: 59; border: 0; padding: 0; margin: 0;
     background: rgba(43, 38, 34, .45); }
   /* THE PER-BOX CLEAR — one panel's words, wiped where they are (2026-08-29,
@@ -2204,6 +2213,13 @@
     if (storyMode()) {
       box.setAttribute('data-mode', 'block');
       box.innerHTML = '';
+      // The story box sits in a cell like a panel does, so it carries the same
+      // corner button and the same popup (2026-09-06, Sophie: "story panels ·
+      // no extend textbox"); the cell wears `story` for its own shape — the
+      // CSS note above #panelgrid .pcell.story. No per-box ✕: the row's
+      // Clear is its clear.
+      var scell = document.createElement('div');
+      scell.className = 'pcell story';
       var st = document.createElement('textarea');
       st.setAttribute('data-story', '1');
       st.placeholder = 'The story';
@@ -2212,7 +2228,9 @@
         try { localStorage.setItem(STORYTEXTKEY, st.value); } catch (e) { /* private mode */ }
         paintPanelFold();      // the Clear appears with the first word, and leaves with the last
       });
-      box.appendChild(st);
+      scell.appendChild(st);
+      scell.appendChild(mkPanelBig(scell, st));
+      box.appendChild(scell);
       paintPanelFold();
       return;
     }
