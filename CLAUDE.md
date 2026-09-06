@@ -5410,6 +5410,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
     the LIVE VALUE that will be sent, the way reopening her waiting-for box
     shows the sentence she already wrote. Her own words go in the main box,
     which still ships empty.
+  - **THE "ALSO ADDED BEFORE YOUR WORDS" BLOCK IS A THIRD BOX SINCE 2026-09-06
+    (Sophie, circling it: "why is there no way to edit this??").** It was
+    printed read-only because every line in it is DERIVED and tied to an
+    attachment — the Sophie card's line, the photo line, the picked cards'
+    sentence, her typed cast's clause, the story line. It edits like the two
+    halves now, with one rule that keeps a derived block safe to edit:
+    **her edit is stored beside the text it replaced (`extraOf`) and a run
+    sends `extra` only while the derived block is byte-for-byte that text.**
+    Change the cast or the photos and the box shows the house lines again
+    and the run sends none — an edit written for one cast never rides the
+    next run silently; the same cast again brings her edit back. Server:
+    a STRING `extra` stands in for the whole block on all three assemblies
+    (single, grid, story); absent keeps every line as it was, so an ordinary
+    run is byte-for-byte what it always was. `extraBlock()` is the one
+    derivation (the panel's box and `extraSent()` both read it). The GRID
+    sentence stays read-only under its own label — it WRAPS the panel lines
+    server-side and is not a block an edit can stand in for. Test:
+    `node scripts/test-playground-prompt-extra.js`.
   - **EITHER HALF OPENS BIGGER (2026-08-31, Sophie: "add extend textbox button
     to both halves of style prompt playground").** These two boxes hold the
     longest text on the page — Dreamy's tail is a paragraph — and the compact

@@ -43,7 +43,8 @@ console.log('the server — the panels branch');
 const panelsBranch = serverSrc.slice(
   serverSrc.indexOf('if (Array.isArray(req.body.panels)'),
   serverSrc.indexOf('// A STORY SHEET'));
-ok(/sheetHead = `\$\{prefix\}\$\{photoBuf \? photoLine : ''\}\$\{charsLine\}`/.test(panelsBranch),
+// (Since 2026-09-06 her EDITED block may stand in for the whole head — `extra`.)
+ok(/sheetHead = \(extra !== null \? prefix : `\$\{prefix\}\$\{photoBuf \? photoLine : ''\}\$\{charsLine\}`\)/.test(panelsBranch),
   'the photo line rides the sheet head, after the prefix and before the cast line — only when a photo does');
 ok(/photoRef: photoUrl/.test(panelsBranch), 'the run doc records the photo it was drawn over');
 ok(/photoUrls\.length > 1 \? \{ photoRefs: photoUrls \}/.test(panelsBranch),
@@ -57,7 +58,7 @@ const storyBranch = serverSrc.slice(
   serverSrc.indexOf('if (req.body.story) {'),
   serverSrc.indexOf('const docRef = admin.firestore().collection(PROMPTLAB).doc();',
     serverSrc.indexOf('if (req.body.story) {') + 2000));
-ok(/p0 = `\$\{prefix\}\$\{photoBuf \? photoLine : ''\}\$\{charsLine\}`/.test(storyBranch),
+ok(/p0 = \(extra !== null \? prefix : `\$\{prefix\}\$\{photoBuf \? photoLine : ''\}\$\{charsLine\}`\)/.test(storyBranch),
   'a story sheet carries the photo line the same way');
 ok(/photoRef: photoUrl/.test(storyBranch) && /photoBuf, photoBufs, chars: pickedChars/.test(storyBranch),
   'and stores + attaches the photo');
@@ -224,9 +225,13 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAIAAADZSiLoA
   console.log('the disclosure');
   await page.click('#promptbtn');
   await page.waitForTimeout(150);
-  const added = await page.evaluate(() => (document.querySelector('#promptpanel .added') || {}).textContent || '');
+  // The block is an EDITABLE box since 2026-09-06 (her ask), so read its value.
+  const added = await page.evaluate(() => { const e = document.querySelector('#promptpanel textarea[data-part="extra"]') || document.querySelector('#promptpanel .added'); return e ? (e.value != null ? e.value : e.textContent) : ''; });
   ok(added.indexOf(PHOTO_LINE.trim()) > -1, 'the Prompt panel prints the photo line on the Panels tab');
-  ok(added.indexOf('Panel 1') > -1 || added.indexOf('panel') > -1, 'beside the grid sentence');
+  // The grid sentence wraps the panel lines server-side, so it is printed
+  // read-only under its own label rather than inside her editable box.
+  const gridLine = await page.evaluate(() => [...document.querySelectorAll('#promptpanel .added')].map((e) => e.textContent).join(' '));
+  ok(gridLine.indexOf('Panel 1') > -1 || gridLine.indexOf('panel') > -1, 'beside the grid sentence');
   await page.click('#promptbtn');
 
   console.log('a grid run');

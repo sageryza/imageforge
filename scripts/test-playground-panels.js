@@ -74,9 +74,11 @@ ok(/sheetGrid\.castRows\(req\.body\.cast\)/.test(panelsBranch),
   'the panels branch reads her typed cast');
 ok(/const castTxt = sheetGrid\.castBlock\(cast\)/.test(panelsBranch),
   'and builds the clause with the shared builder, never its own wording');
-ok(/castTxt \? `\$\{castTxt\}/.test(panelsBranch),
+// Since 2026-09-06 her EDITED block (`extra`) may stand in for the clause and
+// the cards' sentence; with no edit both read exactly as before.
+ok(/castOrExtra \? `\$\{castOrExtra\}/.test(panelsBranch) && /extra !== null \? extra : castTxt/.test(panelsBranch),
   'the clause is only in the prompt when there IS one — her rule');
-ok(/const sheetHead = `\$\{prefix\}\$\{photoBuf \? photoLine : ''\}\$\{charsLine\}`/.test(panelsBranch),
+ok(/const sheetHead = \(extra !== null \? prefix : `\$\{prefix\}\$\{photoBuf \? photoLine : ''\}\$\{charsLine\}`\)/.test(panelsBranch),
   "the picked cards' sentence rides the head, behind the photo line");
 ok(/chars: pickedChars/.test(panelsBranch), 'and the cards themselves reach the job');
 ok(/character: false/.test(panelsBranch),
