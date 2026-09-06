@@ -5731,13 +5731,18 @@ const PL_GPT = {
   // file is her hearted Playground render ("girl placing her book face down",
   // run AD3NW4comO2TZYRFjZoD) banked into refs/.
   characterFile: 'sophie-book.png',
-  // Keep BOTH in sync with STYLES.chatgpt in public/promptlab.html (the page
-  // only uses its copies to PREVIEW the prompt; these are what gets sent).
+  // Keep BOTH in sync with ART in scratchpad.js (scripts/check-derived.js
+  // pins them equal); the page holds no copy — it PRINTS the served line.
+  // "or says I or me" (2026-09-06, Sophie: "i added the sophie character but
+  // it wasn't applied when i made the images"): her captions are first
+  // person, and "whenever the prompt mentions Sophie" never told the model
+  // the I in "they caught me in the library" IS the girl on the card.
   prefix: 'Use only the style of the attached style reference and ignore its ' +
     'content — do not copy anything depicted in it. You can choose your own ' +
     'colors rather than copying the colors of the style reference.',
   characterLine: ' Use the second attached image as a character reference. ' +
-    'Her name is Sophie. Whenever the prompt mentions Sophie, draw her as that girl.',
+    'Her name is Sophie. Whenever the prompt mentions Sophie, or says I or me, ' +
+    'draw her as that girl.',
   // HER OWN PHOTO REFERENCE (Aug 2026, Sophie: "Freeform has the ability to
   // upload a photo reference, but playground doesn't ... in the case of dreamy
   // or watercolor, where they already have references, it will go as the

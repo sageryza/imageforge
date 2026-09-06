@@ -138,7 +138,8 @@ const ART = {
     'content — do not copy anything depicted in it. You can choose your own ' +
     'colors rather than copying the colors of the style reference.',
   characterLine: ' Use the second attached image as a character reference. ' +
-    'Her name is Sophie. Whenever the prompt mentions Sophie, draw her as that girl.',
+    'Her name is Sophie. Whenever the prompt mentions Sophie, or says I or me, ' +
+    'draw her as that girl.',
 };
 
 // ── THE STORY'S SHAPE — portrait, or SQUARE (2026-08-28, Sophie: "add a new
@@ -331,7 +332,7 @@ const { padSideOf, shouldReveal } = require('./pad-side');
 // Character references — the story's cast, picked per draw. The pure rules
 // (list shape, the pick, the disclosed prompt line) live in their own
 // dependency-free file so they have a test that needs no node_modules.
-const { normalizeCharacters, pickCharacters, charLine, MAX_CHARACTERS } = require('./pad-characters');
+const { normalizeCharacters, pickCharacters, charLine, MAX_CHARACTERS, houseCardRides } = require('./pad-characters');
 
 // ── Deriving the side from the picture's own run record ─────────────
 // Only for a placement that named NO side (styleNamed → null). Best-effort
@@ -1698,12 +1699,16 @@ async function runArtJob(padId, id, { prompt, quality, character, style, chars, 
     // true everywhere. With none picked, every string below is
     // byte-for-byte what it always was.
     const picked = Array.isArray(chars) ? chars : [];
+    // ONE Sophie per draw (2026-09-06, Sophie: "it used the watercolor
+    // reference not the blue pajamas i added"): a picked character who IS
+    // her stands the house card down — houseCardRides in pad-characters.js.
+    const card = houseCardRides(character, picked);
     const refs = (recipe
       ? await refsFor(recipe)
       : [{ name: ART.styleFile, buf: artRef(ART.styleFile) }]
-        .concat(character ? [{ name: ART.characterFile, buf: artRef(ART.characterFile) }] : []))
+        .concat(card ? [{ name: ART.characterFile, buf: artRef(ART.characterFile) }] : []))
       .concat(await charRefs(picked));
-    const useCard = !recipe && Boolean(character);
+    const useCard = !recipe && card;
     // Where the character line rides is per style, ON PURPOSE: watercolor
     // puts it in the head beside the Sophie line (its own shape); a recipe
     // style appends it AFTER the suffix, because dreamy's suffix re-asserts
@@ -1712,7 +1717,7 @@ async function runArtJob(padId, id, { prompt, quality, character, style, chars, 
     const cline = charLine(picked);
     const full = recipe
       ? `${recipe.prefix}\n\n${prompt}\n\n${recipe.suffix}${cline}`
-      : `${ART.prefix}${character ? ART.characterLine : ''}${cline}\n\n${prompt}`;
+      : `${ART.prefix}${useCard ? ART.characterLine : ''}${cline}\n\n${prompt}`;
     const form = new FormData();
     form.append('model', 'gpt-image-2');
     form.append('prompt', full);

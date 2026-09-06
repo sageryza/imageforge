@@ -19,7 +19,7 @@
 const fs = require('fs');
 const path = require('path');
 const {
-  MAX_CHARACTERS, MAX_PICKED, normalizeCharacters, pickCharacters, charLine,
+  MAX_CHARACTERS, MAX_PICKED, normalizeCharacters, pickCharacters, charLine, houseCardRides,
 } = require('../pad-characters');
 
 let failures = 0;
@@ -46,8 +46,35 @@ ok(two.includes('2 attached images'), 'two characters: the line counts them');
 ok(two.includes('Mason, Penny'), 'and names them IN ORDER — the order they attach in');
 ok(two.includes('NOT style references'), 'plural carve-out too');
 
+// "I" IS HER (2026-09-06, Sophie: "i added the sophie character but it wasn't
+// applied when i made the images") — her captions are first person, so a
+// character who IS Sophie has to claim I/me, and Mason must not.
+ok(!/says I or me/.test(one), 'Mason does not claim "I" — a first-person caption is not about him');
+const soph = charLine([{ id: 's', name: 'sophie', url: 'https://x/s.png' }]);
+ok(/mentions sophie, or says I or me, draw them/.test(soph),
+  'a character named sophie: "I" and "me" in the caption draw as her');
+const me = charLine([{ id: 's', name: 'Me', url: 'https://x/s.png' }]);
+ok(/says I or me/.test(me), 'a character named "me" claims the first person too');
+const pair = charLine([
+  { id: 'a', name: 'Mason', url: 'https://x/a.png' },
+  { id: 's', name: 'Sophie', url: 'https://x/s.png' },
+]);
+ok(/When the prompt says I or me, that is Sophie\.$/.test(pair),
+  'in a cast, the first person is named to the one who is her');
+ok(!/says I or me/.test(two), 'and a cast without her says nothing about I');
+
 const unnamed = charLine([{ id: 'a', name: '', url: 'https://x/a.png' }]);
 ok(unnamed.includes('character 1'), 'an unnamed character gets a stable fallback, never an empty name');
+
+// ── houseCardRides — ONE Sophie per draw ─────────────────────────────
+// (2026-09-06, Sophie: "it used the watercolor reference not the blue
+// pajamas i added") — the house card rode beside her own Sophie and won.
+ok(houseCardRides(true, []) === true, 'nothing picked: the house card rides as it always has');
+ok(houseCardRides(true, [{ name: 'Mason' }]) === true, 'Mason picked: the house card still rides — he is not her');
+ok(houseCardRides(true, [{ name: 'sophie' }]) === false, 'her own sophie picked: the house card STANDS DOWN');
+ok(houseCardRides(true, [{ name: 'Mason' }, { name: 'Me' }]) === false, 'and in a cast that holds her');
+ok(houseCardRides(false, []) === false && houseCardRides(false, [{ name: 'Mason' }]) === false,
+  'a card she turned off never comes back on');
 
 // ── normalizeCharacters ─────────────────────────────────────────────
 ok(normalizeCharacters(null).length === 0, 'no list → empty, never a throw');
@@ -92,11 +119,17 @@ const srv = fs.readFileSync(path.join(__dirname, '..', 'scratchpad.js'), 'utf8')
 ok(srv.includes("require('./pad-characters')"), 'scratchpad.js reads the ONE copy of these rules');
 ok(srv.includes('characters: normalizeCharacters(v.characters)'), 'readPad serves the cast to the page');
 ok(/charLine\(picked\)/.test(srv), 'runArtJob discloses the picked characters in the sent prompt');
+ok(/const card = houseCardRides\(character, picked\)/.test(srv) && /card \? \[\{ name: ART\.characterFile/.test(srv)
+  && /useCard \? ART\.characterLine/.test(srv) && !/character \? ART\.characterLine/.test(srv),
+  'the draw attaches the house card AND its line only when houseCardRides says so — her own Sophie wins');
 ok(/\.concat\(await charRefs\(picked\)\)/.test(srv), 'and attaches them LAST, behind the style refs');
 ok(srv.includes("router.post('/character'"), 'the add/rename route exists');
 ok(srv.includes("router.post('/character/remove'"), 'and the remove route');
 
 const page = fs.readFileSync(path.join(__dirname, '..', 'public', 'scratchpad.html'), 'utf8');
+ok(page.includes('src="/pad-characters.js"'), 'the page loads the ONE copy of the cast rules, never a name list of its own');
+ok(/pc\.isSelf\(c\.name\)/.test(page) && /classList\.toggle\('stood',self\)/.test(page),
+  'and dims the house card’s button when her own Sophie is picked');
 ok(page.includes('id="dchars"'), 'the draw row carries the ONE picker button');
 ok((page.match(/id="dchars"/g) || []).length === 1, 'and only one — her rule');
 ok(page.includes('id="charsheet"'), 'the Characters sheet exists');

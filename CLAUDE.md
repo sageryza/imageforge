@@ -8215,7 +8215,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   colours are UNLABELLED everywhere but that drop-down, and no machinery
   lives on the canvas.**
   `ART.prefix`/`ART.characterLine` are COPIES of `PL_GPT.*` in server.js — keep
-  them identical. **Full details: `docs/modules/story.md`.**
+  them identical (`node scripts/check-derived.js` pins them).
+  **"I" IS HER, AND HER OWN SOPHIE BEATS THE HOUSE CARD (2026-09-06, Sophie,
+  drawing her Mental hospital beats: "i added the sophie character but it
+  wasn't applied when i made the images" · "it used the watercolor reference
+  not the blue pajamas i added").** Her captions are first person — "they
+  caught me in the library" — and every character line said only "whenever
+  the prompt mentions Sophie", so nothing told the model the I in the caption
+  IS the girl on the card and it drew the woman off the watercolor style
+  page. Both lines say `or says I or me` now: the house card's
+  (`PL_GPT.characterLine` / `ART.characterLine`) always, and the picker's
+  `charLine()` in `pad-characters.js` when a picked character's NAME reads
+  as her (`isSelf`: sophie · me · i) — Mason never claims "I". And ONE
+  SOPHIE PER DRAW: watercolor attaches the house book-girl card by default,
+  so her picked blue-pajamas Sophie rode beside it as a second "Sophie" and
+  lost; `houseCardRides` stands the house card down whenever a self-named
+  character is picked (the page dims `#dchar` to say so). A beat drawn
+  before this needs her re-draw to pick it up. Tests:
+  `node scripts/test-pad-characters.js`. **Full details: `docs/modules/story.md`.**
 - **Story Room data** (`forge-story` in membry, `/api/story/*`) — one doc per
   story; **every content field is optional**, any one of them starts a project.
   Films live ON their story. Voiceover comes in by PASTE (from iOS Voice Memos) or

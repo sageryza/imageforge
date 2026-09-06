@@ -70,22 +70,48 @@ function pickCharacters(padChars, ids) {
 // the character line must carve its images out explicitly rather than argue
 // by implication. Leading space on purpose — it appends to a prefix or a
 // suffix the way ART.characterLine always has.
+//
+// AND "I" IS HER (2026-09-06, Sophie, drawing her Mental hospital beats with
+// a character she had named sophie: "i added the sophie character but it
+// wasn't applied when i made the images"). Her captions are first person —
+// "they caught me in the library", "i was wearing three layers" — and a line
+// that only says "whenever the prompt mentions sophie" never tells the model
+// that the I in the caption IS the girl on the card, so it drew a stranger.
+// A character whose name reads as Sophie or as a first-person word carries
+// the clause; Mason and Penny do not, because "I" is not Mason.
+const SELF_NAMES = /^(sophie|me|i|myself|sophia|soph)$/i;
+function isSelf(name) { return SELF_NAMES.test(String(name || '').trim()); }
+
 function charLine(chars) {
   const list = Array.isArray(chars) ? chars.filter(Boolean) : [];
   if (!list.length) return '';
   const names = list.map((c, i) => String(c.name || '').trim() || `character ${i + 1}`);
+  const self = names.find(isSelf);
   if (list.length === 1) {
     const n = names[0];
     return ' The last attached image is NOT a style reference — it is a ' +
       `CHARACTER reference. That character is named ${n}. Whenever the ` +
-      `prompt mentions ${n}, draw them as the character shown in that ` +
-      'image, keeping their look consistent.';
+      `prompt mentions ${n}${self ? ', or says I or me,' : ','} draw them as ` +
+      'the character shown in that image, keeping their look consistent.';
   }
   return ` The last ${list.length} attached images are NOT style references — ` +
     `they are CHARACTER references, in this order: ${names.join(', ')}. ` +
     'Whenever the prompt mentions one of those names, draw that character ' +
-    'as shown in their own image, keeping their look consistent.';
+    'as shown in their own image, keeping their look consistent.' +
+    (self ? ` When the prompt says I or me, that is ${self}.` : '');
 }
 
-return { MAX_CHARACTERS, MAX_PICKED, normalizeCharacters, pickCharacters, charLine };
+// AND HER OWN SOPHIE STANDS THE HOUSE CARD DOWN (same report: "it used the
+// watercolor reference not the blue pajamas i added"). Watercolor attaches
+// the house Sophie card — the book girl — on every draw by default, so a
+// picked character who IS Sophie put TWO cards named Sophie in one request
+// and the model drew the house one. One Sophie per draw: a self-named pick
+// wins, and the house card is left off that draw. Anything else picked
+// (Mason, Penny) changes nothing about the card.
+function houseCardRides(character, picked) {
+  const list = Array.isArray(picked) ? picked.filter(Boolean) : [];
+  return Boolean(character) && !list.some((c) => isSelf(c && c.name));
+}
+
+return { MAX_CHARACTERS, MAX_PICKED, normalizeCharacters, pickCharacters, charLine, isSelf, houseCardRides };
 }));
