@@ -15,7 +15,8 @@
 //   node scripts/draw-panel-sheet.js job.json
 //
 // job.json: { shape:'portrait'|'square', grid:2|4|6|9, tier:'1k'|'2k'|'4k',
-//             quality:'low'|'medium'|'high', panels:[…], cast:[{name,description}] }
+//             quality:'low'|'medium'|'high', panels:[…], cast:[{name,description}],
+//             style?:'dreamy'|'evan'|… (a gpt style id off /api/promptlab/styles; dreamy) }
 // Writes <job>.out.json with the sheet url, the cut urls, the plan and the
 // exact full prompt — file those with the label, the MODEL · QUALITY · SIZE
 // caption and both prompt halves, per the deliver-images ritual.
@@ -84,7 +85,9 @@ async function cut(buf, plan) {
 (async () => {
   const job = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
   const styles = await (await fetch('https://imageforge-q125.onrender.com/api/promptlab/styles')).json();
-  const st = styles.styles.dreamy, res = styles.res;
+  const STYLE = job.style || 'dreamy';
+  const st = styles.styles[STYLE], res = styles.res;
+  if (!st) throw new Error(`unknown style ${STYLE}`);
   const plan = sheetGrid.sheetFor(job.shape, job.grid, job.tier, res);
   const tail = sheetGrid.applySheet(st.suffix, st.sheet, sheetGrid.layoutWords(job.grid));
   const cast = sheetGrid.castRows(job.cast);
@@ -97,7 +100,8 @@ async function cut(buf, plan) {
   const full = job.full || `${st.prefix}\n\n${body}\n\n${tail}`;
   fs.writeFileSync(`${process.argv[2]}.prompt.txt`, full);
   console.log('sheet', plan.sheet, 'cell', plan.cell);
-  const ref = fs.readFileSync(path.join(REPO, 'refs', 'dream-mystery.jpg'));
+  // the style's own reference, as served (dreamy → dream-mystery.jpg, evan → sage-sandy-mirror.png)
+  const ref = fs.readFileSync(path.join(REPO, 'refs', (st.refs && st.refs[0]) || 'dream-mystery.jpg'));
   const { buf, usage } = await edits(full, [ref], { quality: job.quality, size: plan.sheet });
   const bucket = initFb();
   const sheetUrl = await save(bucket, buf, 'panels/sheets');
@@ -121,7 +125,7 @@ async function cut(buf, plan) {
         // cells, so the pairing is exact and a trailing filler cut stays out.
         panels: job.panels, images: urls.slice(0, job.panels.length),
         grid: { across: plan.across, down: plan.down },
-        style: 'dreamy', quality: job.quality, res: job.tier,
+        style: STYLE, quality: job.quality, res: job.tier,
         size: plan.sheet, aspectRatio: job.shape === 'square' ? '1:1' : '2:3',
         sheetUrl, fullPrompt: full, cast: sheetGrid.castRows(job.cast),
         chat: job.chat || process.env.FORGE_CHAT || '',
