@@ -2706,6 +2706,7 @@
         cast: castRows().length ? castRows() : undefined,
         characters: pickedChars.length ? pickedChars.slice() : undefined,
         prefix: over ? over.prefix : undefined, suffix: over ? over.suffix : undefined,
+        extra: extraSent(),
         noText: noTextFor(styleKey),
       }),
     }).then(readJson).then(function (d) {
@@ -2738,6 +2739,7 @@
         cast: castRows().length ? castRows() : undefined,
         characters: pickedChars.length ? pickedChars.slice() : undefined,
         prefix: over ? over.prefix : undefined, suffix: over ? over.suffix : undefined,
+        extra: extraSent(),
         noText: noTextFor(styleKey),
       }),
     }).then(readJson).then(function (d) {
@@ -3344,6 +3346,57 @@
     else localStorage.removeItem(OVERKEY + key);
     syncControls();
   }
+  // THE "ALSO ADDED" BLOCK, derived — every line the server puts in front of
+  // her words besides the style prefix: the Sophie card's line, the photo
+  // line, the picked cards' sentence, her typed cast's clause, the story
+  // line. ONE reader for the panel's box and for what a run sends, so the
+  // two cannot disagree about what "that block" is. `fixed` is the grid
+  // sentence, which wraps the panel lines server-side and is printed
+  // read-only. Every wording is served, never written here.
+  function extraBlock() {
+    var b = bakedFor(styleKey) || {};
+    var extras = [];
+    // The Panels tab sends neither the Sophie card nor a photo (both wordings
+    // name an attachment a sheet does not carry).
+    if (charOn && !onPanels() && !(STYLES[styleKey] || {}).noCharacter && b.characterLine) extras.push(b.characterLine);
+    // The style's OWN photo line wins where it has one — the house sentence
+    // says the drawing style "comes from the style reference above", which is
+    // a lie on the plain ChatGPT tile where her photo is the only attachment.
+    // Re-anchored when a character card rides behind it — cards attach at the
+    // very end, so "the LAST attached image" is no longer the photo.
+    var cline = charsLine();
+    if (photoRefs.length && !onPanels()) {
+      var pl = cline ? (b.photoLineWithChars || PHOTO_LINE_CHARS) : (b.photoLine || PHOTO_LINE);
+      // Several photos: the plural pair, the count written in — the same
+      // substitution server.js makes, so the panel prints the sentence sent.
+      if (photoRefs.length > 1) {
+        var pln = cline ? (b.photoLineManyWithChars || PHOTO_LINE_MANY_CHARS) : (b.photoLineMany || PHOTO_LINE_MANY);
+        if (pln) pl = pln.replace('{n}', photoWords(photoRefs.length));
+      }
+      if (pl) extras.push(pl);
+    }
+    if (cline) extras.push(cline);
+    // Her TYPED cast — the clause is left out entirely when nobody is in it
+    // (her rule). It rides EVERY tab since 2026-08-29, with the
+    // single-picture opening on the Picture tab.
+    var ct = castClause(!onPanels());
+    if (ct) extras.push(ct);
+    var fixed = '';
+    if (onPanels() && PANELS_CFG) {
+      if (storyMode() && PANELS_CFG.story) extras.push(PANELS_CFG.story.line);
+      else if (PANELS_CFG.grids[curGrid()]) fixed = PANELS_CFG.grids[curGrid()].sentence;
+    }
+    return { edit: extras.join(' ').trim(), fixed: fixed };
+  }
+  // What a run sends for that block: her edit, ONLY while the block it
+  // replaced is still the block that would be sent. Absent otherwise, so an
+  // ordinary run is byte-for-byte the request it has always been.
+  function extraSent() {
+    var ov = overrideFor(styleKey);
+    if (!ov || typeof ov.extra !== 'string') return undefined;
+    var xb = extraBlock();
+    return xb.edit && ov.extraOf === xb.edit ? ov.extra : undefined;
+  }
   // What WILL be sent for this style — her edit if she has one, else the house
   // text. `null` while the server read is still in flight.
   function sentParts(k) {
@@ -3470,53 +3523,27 @@
     } else {
       field('Before your words', p.prefix, 'prefix');
     }
-    // Whatever else actually rides this run, printed word for word. Read-only
-    // on purpose: these are server-owned lines tied to an attachment, not a
-    // half of the prompt she edits — taking the photo off is what removes the
-    // photo line, and the Sophie button is what removes the character one.
-    var extras = [];
-    // The Panels tab sends neither the Sophie card nor a photo (both wordings
-    // name an attachment a sheet does not carry) — and it DOES send the grid
-    // sentence, printed here so nothing rides the prompt unannounced.
-    if (charOn && !onPanels() && !STYLES[styleKey].noCharacter && p.baked.characterLine) extras.push(p.baked.characterLine);
-    // The style's OWN photo line wins where it has one — the house sentence
-    // says the drawing style "comes from the style reference above", which is
-    // a lie on the plain ChatGPT tile where her photo is the only attachment.
-    // Her own cast, and the photo line RE-ANCHORED when one rides behind it —
-    // character cards attach at the very end, so "the LAST attached image" is
-    // no longer the photo. Both halves are served, never written here.
-    var cline = charsLine();
-    if (photoRefs.length && !onPanels()) {
-      var pl = cline
-        ? ((p.baked && p.baked.photoLineWithChars) || PHOTO_LINE_CHARS)
-        : ((p.baked && p.baked.photoLine) || PHOTO_LINE);
-      // Several photos: the plural pair, the count written in — the same
-      // substitution server.js makes, so the panel prints the sentence sent.
-      if (photoRefs.length > 1) {
-        var pln = cline
-          ? ((p.baked && p.baked.photoLineManyWithChars) || PHOTO_LINE_MANY_CHARS)
-          : ((p.baked && p.baked.photoLineMany) || PHOTO_LINE_MANY);
-        if (pln) pl = pln.replace('{n}', photoWords(photoRefs.length));
-      }
-      if (pl) extras.push(pl);
+    // Whatever else actually rides this run, printed word for word — AND
+    // EDITABLE SINCE 2026-09-06 (Sophie, circling the block: "why is there no
+    // way to edit this??"). It used to be read-only on the reasoning that
+    // these are server-owned lines tied to an attachment; the reasoning was
+    // true and she overruled it. `extraBlock()` is the one derivation, the
+    // box holds her edit of THAT block, and the run sends it only while the
+    // block is still what would be sent (see `extraSent`).
+    var xb = extraBlock();
+    if (xb.edit) {
+      var ov = overrideFor(styleKey);
+      var xv = (ov && typeof ov.extra === 'string' && ov.extraOf === xb.edit) ? ov.extra : xb.edit;
+      field('Also added before your words', xv, 'extra');
     }
-    if (cline) extras.push(cline);
-    // Her TYPED cast, when there is one — the clause is left out entirely
-    // when nobody is in it (her rule), so the panel says nothing either. It
-    // rides EVERY tab since 2026-08-29, with the single-picture opening on
-    // the Picture tab; both wordings are served, never written here.
-    var ct = castClause(!onPanels());
-    if (ct) extras.push(ct);
-    if (onPanels() && PANELS_CFG) {
-      // STORY mode sends the served story line; a grid sends its sentence.
-      if (storyMode() && PANELS_CFG.story) extras.push(PANELS_CFG.story.line);
-      else if (PANELS_CFG.grids[curGrid()]) extras.push(PANELS_CFG.grids[curGrid()].sentence);
-    }
-    if (extras.length) {
+    // The grid sentence WRAPS the panel lines server-side (sheetGrid.
+    // panelBlock), so it is not a block her edit can stand in for — printed
+    // read-only, so nothing rides the prompt unannounced.
+    if (xb.fixed) {
       var al = document.createElement('div'); al.className = 'plab';
-      al.textContent = 'Also added before your words';
+      al.textContent = 'Also added around your panels';
       var av = document.createElement('div'); av.className = 'added';
-      av.textContent = extras.join(' ').trim();
+      av.textContent = xb.fixed;
       el.appendChild(al); el.appendChild(av);
     }
     var y = document.createElement('div'); y.className = 'plab'; y.textContent = 'Your words';
@@ -3571,9 +3598,25 @@
       // return to the house wording.
       var pre = parts.prefix != null ? parts.prefix : b.prefix;
       var suf = parts.suffix != null ? parts.suffix : b.suffix;
-      // Back to the house text on both halves = not an edit at all, so the
+      // THE "ALSO ADDED" BOX is her edit of a DERIVED block, so it is stored
+      // beside the text it replaced (`extraOf`): a run sends it only while
+      // the derived block is byte-for-byte that text, and the box shows the
+      // house lines again the moment the cast or the photos change — an edit
+      // written for one cast must never ride the next run silently. Typed
+      // back to the derived text = no edit; the field is dropped.
+      var xb = extraBlock();
+      var xtra = parts.extra != null && parts.extra !== xb.edit ? parts.extra : null;
+      delete parts.extra;
+      var prev = overrideFor(styleKey) || {};
+      if (xtra !== null) { parts.extra = xtra; parts.extraOf = xb.edit; }
+      else if (typeof prev.extra === 'string' && prev.extraOf !== xb.edit) {
+        // A stale edit of a block that is no longer on screen is kept, not
+        // wiped, by an edit to another half — it comes back if that cast does.
+        parts.extra = prev.extra; parts.extraOf = prev.extraOf;
+      }
+      // Back to the house text on every half = not an edit at all, so the
       // override is dropped rather than stored as an identical twin.
-      if (pre === b.prefix && suf === b.suffix) saveOverride(styleKey, null);
+      if (pre === b.prefix && suf === b.suffix && parts.extra == null) saveOverride(styleKey, null);
       else saveOverride(styleKey, parts);
       note.textContent = overrideFor(styleKey) ? 'Your wording' : 'House wording';
     }
@@ -4146,6 +4189,7 @@
           // "use the house text", so a normal run is byte-for-byte what it
           // always was.
           prefix: over ? over.prefix : undefined, suffix: over ? over.suffix : undefined,
+          extra: extraSent(),
           noText: noTextFor(styleKey),
           // Absent unless she came here from a beat, so an ordinary run is
           // byte-for-byte the request it has always been.

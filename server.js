@@ -7099,7 +7099,20 @@ app.post('/api/promptlab', async (req, res) => {
       const over = (v, baked) => (typeof v === 'string' ? v.trim().slice(0, PL_GPT.promptMax) : baked);
       const prefix = over(req.body.prefix, st.prefix);
       const suffix = over(req.body.suffix, st.suffix);
-      const edited = prefix !== st.prefix || suffix !== st.suffix;
+      // THE "ALSO ADDED" BLOCK IS HERS TO EDIT TOO (2026-09-06, Sophie,
+      // circling it in the Prompt panel: "why is there no way to edit
+      // this??"). Everything printed under that label — the character line,
+      // the photo line, the picked cards' sentence, her typed cast's clause,
+      // the story line — used to be read-only, on the reasoning that each is
+      // a server-owned line tied to an attachment. `extra` is that whole block
+      // as ONE string, sent only when she edited it; a string REPLACES the
+      // derived block verbatim, an absent field keeps every line as it always
+      // was. The page sends it only while the block it replaced is still
+      // what would be sent (the same cast, the same photos), so a stale edit
+      // can never ride a later run unannounced.
+      const extra = typeof req.body.extra === 'string'
+        ? req.body.extra.trim().slice(0, PL_GPT.promptMax) : null;
+      const edited = prefix !== st.prefix || suffix !== st.suffix || extra !== null;
       // Her own photo reference, uploaded with this run (Aug 2026). The bytes
       // go straight to the job so a failed Storage write costs the record, not
       // the picture; the url is only what the run's doc remembers it by.
@@ -7194,7 +7207,11 @@ app.post('/api/promptlab', async (req, res) => {
       }));
       const soloCastTxt = sheetGrid.castBlock(soloCast, true);
       const headLine = `${prefix}${character ? st.characterLine : ''}${photoBuf ? photoLine : ''}${charsLine}`.trim();
-      const head = [headLine, soloCastTxt].filter(Boolean).join('\n\n');
+      // Her edited block stands in for every derived line at once (extra
+      // above); the attachments still ride — only the words about them moved.
+      const head = extra !== null
+        ? [prefix.trim(), extra].filter(Boolean).join('\n\n')
+        : [headLine, soloCastTxt].filter(Boolean).join('\n\n');
       const fullPrompt = `${head}${head ? '\n\n' : ''}${typed}${tail ? `\n\n${tail}` : ''}`;
       const outputs = Math.min(Math.max(Number(req.body.outputs) || PL_GPT.outputs, 1), PL_GPT.maxOutputs);
       const quality = PL_GPT.qualities.includes(req.body.quality) ? req.body.quality : PL_GPT.quality;
@@ -7258,9 +7275,13 @@ app.post('/api/promptlab', async (req, res) => {
         // The picked cards' sentence rides the head with the style prefix; the
         // typed cast is its own paragraph in front of the panel lines, where
         // it establishes who these people are before anything refers to them.
-        const sheetHead = `${prefix}${charsLine}`.trim();
+        const sheetHead = (extra !== null ? prefix : `${prefix}${charsLine}`).trim();
         const blockTxt = sheetGrid.panelBlock(grid, panels);
-        const sheetBody = castTxt ? `${castTxt}\n\n${blockTxt}` : blockTxt;
+        // On a grid her edited block replaces the cards' sentence and the
+        // typed cast; the grid sentence wraps the panel lines and is not hers
+        // to reword here (the panel prints it read-only for that reason).
+        const castOrExtra = extra !== null ? extra : castTxt;
+        const sheetBody = castOrExtra ? `${castOrExtra}\n\n${blockTxt}` : blockTxt;
         const sheetPrompt = `${sheetHead}${sheetHead ? '\n\n' : ''}${sheetBody}${sheetTail ? `\n\n${sheetTail}` : ''}`;
         const docRef = admin.firestore().collection(PROMPTLAB).doc();
         await docRef.set({
@@ -7313,8 +7334,12 @@ app.post('/api/promptlab', async (req, res) => {
           name: c.name.slice(0, CAST_NAME), description: c.description.slice(0, CAST_DESC),
         }));
         const castTxt = sheetGrid.castBlock(cast);
-        const p0 = `${prefix}${charsLine}`.trim();
-        const storyHead = `${p0}${p0 ? '\n\n' : ''}${castTxt ? `${castTxt}\n\n` : ''}${PL_STORY.line}`;
+        const p0 = (extra !== null ? prefix : `${prefix}${charsLine}`).trim();
+        // Her edited block replaces the cards' sentence, the typed cast AND
+        // the story line — the panel prints all three under one label.
+        const storyHead = extra !== null
+          ? [p0, extra].filter(Boolean).join('\n\n')
+          : `${p0}${p0 ? '\n\n' : ''}${castTxt ? `${castTxt}\n\n` : ''}${PL_STORY.line}`;
         const storyPrompt = `${storyHead}\n\n${typed}${sheetTail ? `\n\n${sheetTail}` : ''}`;
         const docRef = admin.firestore().collection(PROMPTLAB).doc();
         await docRef.set({
