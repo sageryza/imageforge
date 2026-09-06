@@ -4472,6 +4472,34 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
       already are. The guard is only safe because the doors are MEASURED on
       the real page by `node scripts/test-asset-doors.js`; without that, "no
       doors" would be the thing every harness silently passed.
+    - **AN UNCUT SHEET'S PLAYGROUND DOOR SLOTS ITS PANELS INTO THE BOXES
+      (2026-09-06, Sophie, on the 3x3 in her Assets tab: "when i press copy on
+      the original uncut grid it shud slot all 9 into panels").** The sheet's
+      content half is all N panels, and `?prompt=` put the whole wall in the
+      single box. `sheetGrid.panelParse({style, content, label, caption})`
+      reads the RECORD and the door sends `?panels=<json>&grid=N` instead
+      (seedPanelsFromLink lands them on the Panels tab); style, `sameref`,
+      quality and the cast ride exactly as before. Three markers, none of
+      them the shape of the text: a `1/9 (4K)` caption is a CUT panel and
+      goes to the single box (her 2026-08-27 rule); the grid sentence in the
+      style half (a server-filed sheet — sheetSeam puts it in the prefix) says
+      N; and for a sheet filed WITHOUT the sentence — the
+      mental-hospital-storyboard chat's shape, measured on the live records:
+      wrapper + `[content]`, the panels joined by a blank line — the label's
+      own `3x3` says N, only when that is a grid the module knows. Labeled
+      `Panel k (…):` lines or the blank-line join come apart; anything short
+      of exactly N is null and the door sends the one prompt it always did —
+      **never dropped, never padded**. The honest fix at the source is to
+      file the exact sent text, grid sentence included. **AND THE BACK-CRUMB
+      BLOCK USED TO WIPE THE SEED**: promptlab spent the WHOLE query one tick
+      after load, and the seed is read only once the styles fetch lands, so
+      every sheet that walked in with `&back=` arrived to nine empty boxes;
+      `panels`/`grid` now survive that spend and the seed spends them itself
+      (a reload is still a plain Playground). Pinned by
+      `node scripts/test-sheet-grid.js` (the parser against panelBlock) and
+      the sheet half of `test-asset-doors.js` (the REAL Playground behind the
+      door — the url read off the browser, then the nine boxes counted and
+      read; a cut panel still on the Picture tab).
     - Test: `node scripts/test-asset-doors.js` (both real pages headless —
       the set, the row measured, the Playground door's real url read off the
       browser AFTER it navigates, the no-prompt picture riding as a photo
