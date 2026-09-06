@@ -47,6 +47,12 @@
 //                          ('mustard'|'green'|'blue'|'pink'|null = back to gray)
 //   POST /text           → { id, text } — the beat's note (the popup's
 //                          three-line text box; 5000 chars max)
+//   POST /chapter        → { id, title } — this beat OPENS a chapter called
+//                          `title` ('' takes the chapter off). A chapter is a
+//                          MARKER ON A BEAT, nothing of its own: the page
+//                          derives the chapter list from beat order, so
+//                          moving a beat moves its chapter with it and
+//                          nothing is duplicated (see THE CHAPTERS below)
 //   GET  /shelf          → { clips } — the Chunking clip library (ready
 //                          clips only), newest first; ?q= speaks the house
 //                          search grammar (clips.js parses it — never a
@@ -2488,6 +2494,42 @@ router.post('/text', async (req, res) => {
       return cur;
     });
     res.json({ ok: true, beats });
+  } catch (e) { fail(res, e); }
+});
+
+// ── THE CHAPTERS ─────────────────────────────────────────────────────
+// (2026-09-06, Sophie, on her hospital story: "i want the chapter within a
+// story. arrow buttons at the top, and a contents page w all the stories and
+// thumbnails".) A chapter is a STRING ON THE BEAT THAT OPENS IT —
+// `beat.chapter = 'The ER'` — and that is the whole of the data. Nothing
+// stores a chapter list: the page walks the beats in order and every beat
+// carrying a `chapter` starts one, which runs until the next such beat. So
+// a beat she moves takes its chapter heading with it, a beat she deletes
+// takes it away, and there is never a second copy of the order to drift.
+// CLAUDE.md's "Charlie's and Evan's chapter headings have no field to live
+// in" — this is that field.
+//
+// DELIBERATELY NO updatedAt BUMP — the /style, /pads/pin family: the film is
+// made of the beats' pictures and words, and a chapter is neither (chapters
+// are not cuts), so naming one must not stale a fresh render or reshuffle the
+// shelf. The page's api() leaves `/chapter` out of dirtySinceFilm for the
+// same reason.
+router.post('/chapter', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const id = String(req.body.id || '');
+    if (!id) return res.status(400).json({ error: 'beat id required' });
+    const title = String(req.body.title ?? '').replace(/\s+/g, ' ').trim().slice(0, 120);
+    const beats = await db().runTransaction(async (tx) => {
+      const snap = await tx.get(padRef(pid));
+      const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
+      const b = cur.find((x) => x.id === id);
+      if (!b) throw new Error('no such beat');
+      if (title) b.chapter = title; else delete b.chapter;
+      tx.set(padRef(pid), { beats: cur }, { merge: true });
+      return cur;
+    });
+    res.json({ ok: true, beats, chapter: title });
   } catch (e) { fail(res, e); }
 });
 

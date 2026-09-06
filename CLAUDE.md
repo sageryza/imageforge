@@ -8211,6 +8211,33 @@ before working on that module. Nothing was deleted — the moved text is verbati
   fine and never changes shape) and `node scripts/test-image-size.js` (every
   format driven from REAL encoded files, including the sharp-refuses-webp
   measurement, so the note above cannot go stale unnoticed).
+  **CHAPTERS (2026-09-06, Sophie, on her hospital story: "i want the chapter
+  within a story. arrow buttons at the top, and a contents page w all the
+  stories and thumbnails").** A chapter is a STRING ON THE BEAT THAT OPENS IT
+  — `beat.chapter = 'The ER'`, `POST /api/scratchpad/chapter {id, title}`
+  ('' takes it off) — and nothing else is stored: the page walks the beats
+  in order and every beat carrying one starts a chapter that runs to the
+  next, so moving a beat moves its chapter and nothing is duplicated. Three
+  surfaces, NONE on the canvas: the **‹ chapter ›** row pinned in
+  `#topchrome` (shown only once the story has a chapter; the arrows scroll
+  the window to the previous/next chapter's first tile, the name is where
+  she is — compare.js's `__pagePlace` rule, the last chapter whose tile has
+  passed under the block; a jump remembers where it landed so a short last
+  chapter, which can never pass under the block, is still named); the
+  **CONTENTS** sheet behind the name (a sheet like the shelf — back chevron,
+  no ✕ — one row per chapter: its first beat's picture through the thumb
+  service, its name, its beat count; tap to jump); and the **bookmark on the
+  Caption line** of a beat's card, which swaps in an EMPTY box (Return/blur
+  saves, an emptied box clears — and here blur also CLOSES the box, unlike
+  the caption pencil, because this one-line slot cannot reshuffle the card).
+  Two things not to undo: `/chapter` bumps no `updatedAt` and is out of the
+  page's `dirtySinceFilm` (chapters are not cuts — the film is untouched);
+  and nothing is drawn between the beats. Seeding a story's chapters by her
+  words: `node scripts/seed-story-chapters.js` (dry; `--go`; refuses a story
+  already carrying one). Test: `node scripts/test-storyroom-chapters.js`
+  (the real page headless — the arrows MEASURED as the window moving and
+  the tile landing under the block, the sheet's thumbnails decoding, the
+  field's POSTs).
   **PHILOSOPHY — do not "improve" this: the pad is minimal, the frame
   colours are UNLABELLED everywhere but that drop-down, and no machinery
   lives on the canvas.**
@@ -8233,7 +8260,9 @@ before working on that module. Nothing was deleted — the moved text is verbati
     have an empty canvas with their pictures waiting unplaced and **the
     narration line that went under each picture carried nowhere**; nine pinned
     covers were lost, so the shelf derives a different face; Charlie's and
-    Evan's chapter headings have no field to live in; and Wormsicles, which had
+    Evan's chapter headings had no field to live in — **they do since
+    2026-09-06: `beat.chapter`, see CHAPTERS below** (porting theirs is still
+    hers to ask for); and Wormsicles, which had
     no voiceover to follow, had no pad at all until one was made. **The audio
     half IS fixed** — every pad carries its `description`/`descriptionAudio`/
     `voiceover` now, which is what finally lights the *About this story* button

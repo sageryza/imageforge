@@ -182,6 +182,26 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   -webkit-tap-highlight-color:transparent;}
 .stylerow .sw.on{color:var(--ink); font-weight:600;}
 .stylerow .tri{--tri-track:var(--ink); --tri-knob:var(--paper); --tri-ink:var(--ink);}
+/* THE CHAPTER ROW (2026-09-06, Sophie: "i want the chapter within a story.
+   arrow buttons at the top, and a contents page w all the stories and
+   thumbnails"). ‹ the chapter she is IN › — the house sticky-chapter idea
+   (compare.js's __pagePlace bar) on the pad. It rides INSIDE #topchrome so
+   it is pinned with the chevron and the buttons, and it exists only while
+   the story has a chapter at all: a row of dead arrows over a story with
+   none is machinery for nothing. The name between the arrows is the door to
+   the CONTENTS sheet. Right padding is the pill's column, like every row up
+   here. NOTHING is drawn on the canvas itself — a chapter is a heading in
+   this row and a row on the contents page, never a label between the beats
+   (the pad's own rule: no machinery on the canvas). */
+#chaprow{display:flex; align-items:center; gap:4px; padding:4px 56px 0 0;}
+#chaprow .iconbtn{width:30px; height:30px;}
+#chaprow .iconbtn[disabled]{opacity:.28; pointer-events:none;}
+#chapname{flex:1; min-width:0; display:flex; align-items:baseline; justify-content:center; gap:8px;
+  background:none; border:none; padding:4px 2px; cursor:pointer; color:var(--ink);
+  font-family:'EBGaramond',Georgia,serif; font-size:15px; -webkit-tap-highlight-color:transparent;}
+#chapname .chapt{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+#chapname .chapn{flex:none; font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:10px;
+  letter-spacing:.12em; color:var(--ink2);}
 /* THE SHELF (Aug 2026, the media-asset-survey prototype v5, ~15 rounds with
    Sophie): category chips + portrait tiles four across. A tile is a REAL
    picture from that story — portrait 2:3 so nothing crops the art — with the
@@ -591,6 +611,23 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   padding:0; border:none; background:none; color:var(--ink2); cursor:pointer;}
 #capedit svg,#promedit svg{width:17px; height:17px;}
 #capedit.on,#promedit.on{color:var(--ink);}
+/* THE CHAPTER FIELD, beside the caption (2026-09-06). A beat that OPENS a
+   chapter says so on the Caption line — the name in the small caps the
+   headers use, a bookmark lit beside it. The bookmark is a TOGGLE like the
+   pencil: it swaps in a small box, empty by default (a chapter is her word
+   for it, never ours), and the box never closes on its own blur. Blur and
+   Return SAVE; an emptied box takes the chapter off. Every other beat shows
+   only the quiet bookmark, so the row costs a reading beat nothing. */
+.tlabrow{display:flex; align-items:center; gap:6px; width:100%;}
+.tlabrow .tlab{align-self:center;}
+#chaptxt{flex:1; min-width:0; text-align:right; overflow:hidden; text-overflow:ellipsis; letter-spacing:.14em;}
+#pchap{flex:1; min-width:0; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:15px;
+  color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:6px; padding:5px 9px;}
+#chapbtn{flex:none; margin-left:auto; width:30px; height:30px; display:flex; align-items:center; justify-content:center;
+  padding:0; border:none; background:none; color:var(--ink2); cursor:pointer;}
+#chapbtn svg{width:17px; height:17px;}
+#chapbtn.on{color:var(--ink);}
+#chapbtn.on svg{fill:currentColor;}
 #pnote{flex:1; min-width:0; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:17px;
   line-height:1.4; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:6px;
   padding:10px 12px 34px; resize:none;}
@@ -865,6 +902,21 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 /* A control with no glyph of its own (the style toggle, tapping a beat) —
    the words carry it, so the row keeps its indent and skips the box. */
 .hrow.nogl .htxt{margin-left:46px;}
+/* THE CONTENTS SHEET — one row per chapter: its first beat's picture as the
+   thumbnail (the story's own shape), its name, how many beats it holds.
+   The whole row is the tap. The lit one is the chapter she is standing in. */
+#chaplist{margin-top:.6em; padding-right:56px;}
+.chrow{display:flex; align-items:center; gap:14px; width:100%; padding:9px 0; text-align:left;
+  background:none; border:none; border-bottom:1px solid var(--line); color:var(--ink); cursor:pointer;
+  font-family:'EBGaramond',Georgia,serif; -webkit-tap-highlight-color:transparent;}
+.chrow:first-child{border-top:1px solid var(--line);}
+.chthumb{flex:none; width:46px; aspect-ratio:var(--ar,2/3); border:1.5px solid var(--line); border-radius:4px;
+  background:var(--barbg); overflow:hidden; position:relative;}
+.chthumb img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;}
+.chtxt{flex:1; min-width:0; display:block;}
+.chnm{display:block; font-size:1.05em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.chcount{display:block; font-size:.8em; color:var(--ink2); margin-top:2px;}
+.chrow.on .chnm{font-weight:600;}
 /* The film's buttons ride the title row; this line only appears while it's
    making (or if it failed). */
 #filmrow{margin-top:.5em;}
@@ -970,6 +1022,13 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
     <button class="iconbtn" id="charsbtn" aria-label="Characters — reference cards a drawing can use"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/></svg></button>
     <button class="iconbtn" id="addbtn" aria-label="Add an empty beat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
     <button class="iconbtn" id="inboxbtn" aria-label="Hearted in the Playground"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
+  </div>
+  <!-- ‹ THE CHAPTER SHE IS IN › — see #chaprow in the CSS. Shown only while
+       the story has a chapter; the name opens the contents sheet. -->
+  <div id="chaprow" hidden>
+    <button class="iconbtn" id="chapprev" aria-label="Previous chapter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+    <button id="chapname" aria-label="Contents"><span class="chapt"></span><span class="chapn"></span></button>
+    <button class="iconbtn" id="chapnext" aria-label="Next chapter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
   </div>
   </div>
   <div class="stylerow">
@@ -1100,6 +1159,20 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   </div>
 </div>
 
+<!-- CONTENTS (2026-09-06, Sophie: "a contents page w all the stories and
+     thumbnails" — every chapter of THIS story, its first beat's picture as
+     the thumbnail, its name, how many beats it holds; tap one to go there).
+     A sheet like the shelf: the page's own header, back chevron, no ✕. -->
+<div class="sheet" id="chapsheet" hidden>
+  <div class="wrap">
+    <div class="sheethead">
+      <button class="iconbtn" id="chapclose" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+      <div class="no">Contents</div>
+    </div>
+    <div id="chaplist"></div>
+  </div>
+</div>
+
 <div id="beatpop" hidden>
   <div id="beatcard">
   <div id="cardtop">
@@ -1137,7 +1210,14 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   <div id="verrow" hidden></div>
   <div id="genstate" hidden></div>
   <div class="tbox" id="capbox">
-    <button class="tlab" id="caplab" aria-expanded="true">Caption<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+    <div class="tlabrow">
+      <button class="tlab" id="caplab" aria-expanded="true">Caption<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <!-- THE CHAPTER THIS BEAT OPENS — see .tlabrow in the CSS. The box ships
+           EMPTY: its placeholder names the field and nothing more. -->
+      <span id="chaptxt" class="no" hidden></span>
+      <input id="pchap" type="text" placeholder="Chapter" autocomplete="off" hidden>
+      <button id="chapbtn" aria-label="Chapter — this beat starts one"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg></button>
+    </div>
     <div id="capview">
       <div id="captext"></div>
       <div class="bigwrap" id="pnotewrap" hidden><textarea id="pnote" rows="3"></textarea><button type="button" class="bigbtn" id="pnotebig" aria-label="Bigger box"></button></div>
@@ -1225,7 +1305,10 @@ function api(p,opts){
        the timeline — a DRAW that uses one is, and /generate marks it. */
     /* /shoebox doesn't stale the film either: it writes into her Memory
        Library, nothing on this pad changes. */
-    if(p.indexOf('/film')!==0&&p.indexOf('/pads')!==0&&p.indexOf('/character')!==0&&p!=='/tts'&&p!=='/style'&&p!=='/upload'&&p!=='/shoebox') dirtySinceFilm=true;
+    /* /chapter doesn't stale the film either: chapters are not cuts — the
+       render is made of the beats' pictures and words and a chapter heading
+       is neither (2026-09-06). */
+    if(p.indexOf('/film')!==0&&p.indexOf('/pads')!==0&&p.indexOf('/character')!==0&&p!=='/tts'&&p!=='/style'&&p!=='/upload'&&p!=='/shoebox'&&p!=='/chapter') dirtySinceFilm=true;
   } else if(p.indexOf('/pads')!==0){
     p+=(p.indexOf('?')>=0?'&':'?')+'pad='+encodeURIComponent(padId);
   }
@@ -1493,7 +1576,7 @@ function render(){
   var sig=padSig(units);
   /* renderDrawall and paintSend watch their own inputs and repaint tiny
      boxes — they still run when the canvas itself is skipped. */
-  if(sig===lastPadSig){ renderDrawall(); paintSend(); return; }
+  if(sig===lastPadSig){ renderDrawall(); paintSend(); renderChapters(); return; }
   lastPadSig=sig;
   document.getElementById('empty').hidden=Boolean(beats.length||pending);
   var bank={};
@@ -1512,6 +1595,11 @@ function render(){
     var kept=bank[usig];
     if(kept){ delete bank[usig]; frag.appendChild(kept); return; }
     var wrap=document.createElement('div'); wrap.className='beatwrap'; wrap._usig=usig;
+    /* Which beats this tile holds — the chapter row and the contents sheet
+       scroll to a beat by finding its wrap (a chunk is one wrap). A kept
+       node is reused only on an identical unitSig, which names the members,
+       so this attribute can never go stale on it. */
+    wrap.setAttribute('data-beats', u.members.map(function(m){return m.id;}).join(' '));
     if(u.members.length===1){
       var b=u.members[0];
       var el=document.createElement('button');
@@ -1541,6 +1629,7 @@ function render(){
      armed, and placing is cancelled from anywhere (the document-level tap) —
      so it repaints with the canvas rather than at each of those call sites. */
   paintSend();
+  renderChapters();
 }
 
 function renderTitle(){
@@ -1951,6 +2040,8 @@ var HELP=[
   {sel:'#unlinkbtn', nm:'Unlink', what:'Breaks the chunk back apart.'},
   {sel:'#coverbtn', nm:'Make it the cover', what:'This picture becomes the story’s tile on the shelf.'},
   {sel:'#delbtn', nm:'Delete the beat', what:'Asks first. Its pictures stay in your galleries.'},
+  {sel:'#chapbtn', nm:'Chapter', what:'On the Caption line: marks this beat as the start of a chapter and names it. Clear the name to take the chapter off. A chapter moves with its beat.'},
+  {sel:'#chapprev', nm:'‹ chapter ›', what:'At the top, once the story has a chapter: the one you are in, and the arrows walk to the one before or after. Tap the name for the contents — every chapter with its picture and how many beats it holds.'},
 ];
 function mkHelp(){
   var box=document.getElementById('helpbody');
@@ -1982,6 +2073,204 @@ document.getElementById('helpclose').onclick=function(ev){
   ev.stopPropagation();
   document.getElementById('helpsheet').hidden=true; lock(false);
 };
+
+/* ── CHAPTERS (2026-09-06, Sophie: "i want the chapter within a story. arrow
+   buttons at the top, and a contents page w all the stories and thumbnails")
+   A chapter is a MARKER ON A BEAT — `beat.chapter`, the title of the chapter
+   that beat opens — and nothing else is stored. chapterList() walks the
+   beats in order: every beat carrying one starts a chapter that runs to the
+   next such beat. So moving a beat moves its chapter, deleting it takes the
+   chapter away, and no second copy of the order can drift.
+   Three surfaces, none of them on the canvas (the pad's rule: no machinery
+   there): the ‹ name › row pinned at the top, the CONTENTS sheet, and the
+   field beside the caption in a beat's card.
+   "THE CHAPTER SHE IS IN" is compare.js's __pagePlace rule: the last chapter
+   whose first beat's tile has passed under the sticky block, or the first. */
+function chapterList(){
+  var out=[];
+  for(var i=0;i<beats.length;i++){
+    var b=beats[i];
+    if(!b.chapter||beatOff(b)) continue;
+    out.push({title:b.chapter, id:b.id, at:i});
+  }
+  out.forEach(function(c,k){
+    var end=k+1<out.length?out[k+1].at:beats.length;
+    var n=0, art=null;
+    for(var j=c.at;j<end;j++){
+      if(beatOff(beats[j])) continue;
+      n++;
+      if(!art) art=artOf(beats[j]);   // the first beat's picture — or the first one that has one
+    }
+    c.count=n; c.art=art;
+  });
+  return out;
+}
+function chapWrap(id){
+  return document.querySelector('#pad .beatwrap[data-beats~="'+id+'"]');
+}
+function topH(){ return document.getElementById('topchrome').getBoundingClientRect().height; }
+/* Which chapter is under the sticky block right now.
+   THE AIM: a short LAST chapter can never pass under the block — the page
+   runs out before its tile reaches the top — so by the top-edge rule alone
+   › would scroll to the end and the row would go on naming the chapter
+   before it, forever. A jump remembers where it landed (chapAim), and while
+   the window still sits exactly there the row names the chapter she asked
+   for; her first scroll away lets the top-edge rule speak again. */
+var chapAim=null;
+function chapCurrent(list){
+  if(chapAim){
+    if(Math.abs(window.scrollY-chapAim.y)<2){
+      for(var a=0;a<list.length;a++){ if(list[a].id===chapAim.id) return a; }
+    }
+    chapAim=null;
+  }
+  var line=topH()+8, i=0;
+  for(var k=0;k<list.length;k++){
+    var w=chapWrap(list[k].id); if(!w) continue;
+    if(w.getBoundingClientRect().top<=line) i=k; else break;
+  }
+  return i;
+}
+var lastChapSig='';
+function renderChapters(){
+  var row=document.getElementById('chaprow');
+  var list=chapterList();
+  if(!list.length){ if(!row.hidden){ row.hidden=true; lastChapSig=''; } return; }
+  row.hidden=false;
+  var i=chapCurrent(list);
+  var sig=list.map(function(c){return c.id+'\u0001'+c.title;}).join('\u0002')+'\u0003'+i;
+  if(sig===lastChapSig) return;
+  lastChapSig=sig;
+  row.querySelector('.chapt').textContent=list[i].title;
+  row.querySelector('.chapn').textContent=(i+1)+'/'+list.length;
+  document.getElementById('chapprev').disabled=(i<=0);
+  document.getElementById('chapnext').disabled=(i>=list.length-1);
+  // the contents sheet, if it is up, follows
+  var sh=document.getElementById('chapsheet');
+  if(!sh.hidden) paintContents(list, i);
+}
+/* Scroll the WINDOW so the chapter's first tile sits just under the sticky
+   block. Instant, never smooth: the pill's autoscroll is stopped first, and a
+   smooth scroll racing it lands nowhere she can predict. */
+function jumpChapter(id){
+  var w=chapWrap(id); if(!w) return;
+  if(window.__scrollStop) window.__scrollStop();
+  var y=w.getBoundingClientRect().top+window.scrollY-topH()-6;
+  var max=Math.max(0, document.documentElement.scrollHeight-window.innerHeight);
+  window.scrollTo(0, Math.max(0, Math.min(max, y)));
+  chapAim={id:id, y:window.scrollY};
+  lastChapSig=''; renderChapters();
+}
+document.getElementById('chapprev').onclick=function(ev){
+  ev.stopPropagation();
+  var list=chapterList(); if(!list.length) return;
+  var i=chapCurrent(list);
+  jumpChapter(list[Math.max(0,i-1)].id);
+};
+document.getElementById('chapnext').onclick=function(ev){
+  ev.stopPropagation();
+  var list=chapterList(); if(!list.length) return;
+  var i=chapCurrent(list);
+  jumpChapter(list[Math.min(list.length-1,i+1)].id);
+};
+/* The row names where she is as she scrolls — one paint per frame at most. */
+(function(){
+  var raf=null;
+  function onScroll(){
+    if(raf) return;
+    raf=requestAnimationFrame(function(){ raf=null; renderChapters(); });
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', onScroll);
+})();
+/* THE CONTENTS SHEET — every chapter, its first beat's picture, its name and
+   its beat count; the row is the tap. */
+function paintContents(list, cur){
+  var box=document.getElementById('chaplist');
+  box.innerHTML='';
+  list.forEach(function(c,k){
+    var row=document.createElement('button'); row.className='chrow'+(k===cur?' on':'');
+    row.setAttribute('data-chapter', c.id);
+    var th=document.createElement('span'); th.className='chthumb';
+    if(c.art){ var im=document.createElement('img'); im.src=thumbOf(c.art); im.alt=''; im.loading='lazy'; th.appendChild(im); }
+    var tx=document.createElement('span'); tx.className='chtxt';
+    var nm=document.createElement('span'); nm.className='chnm'; nm.textContent=c.title;
+    var ct=document.createElement('span'); ct.className='chcount'; ct.textContent=c.count+(c.count===1?' beat':' beats');
+    tx.appendChild(nm); tx.appendChild(ct);
+    row.appendChild(th); row.appendChild(tx);
+    row.onclick=function(ev){
+      ev.stopPropagation();
+      closeContents();
+      jumpChapter(c.id);
+    };
+    box.appendChild(row);
+  });
+}
+function openContents(){
+  var list=chapterList(); if(!list.length) return;
+  var sh=document.getElementById('chapsheet');
+  paintContents(list, chapCurrent(list));
+  sh.hidden=false; sh.scrollTop=0; lock(true);
+  sheetPill(sh);      // a long story's contents can outrun one screen
+}
+function closeContents(){
+  var sh=document.getElementById('chapsheet');
+  if(sh._stopPill) sh._stopPill();
+  sh.hidden=true; lock(false);
+}
+document.getElementById('chapname').onclick=function(ev){ ev.stopPropagation(); openContents(); };
+document.getElementById('chapclose').onclick=function(ev){ ev.stopPropagation(); closeContents(); };
+/* THE FIELD BESIDE THE CAPTION — the bookmark toggles the box, Return blurs,
+   blur SAVES, an emptied box takes the chapter off.
+   BLUR ALSO CLOSES THE BOX HERE, which the caption pencil never does. The
+   pencil's reason is layout: a card that reshuffles between her mousedown
+   and mouseup eats the tap she was aiming at the button below. This row
+   cannot reshuffle — the words and the box take the same one-line slot and
+   the bookmark keeps its place at the right end — and a chapter name is
+   read far more often than it is typed, so it goes back to words the moment
+   she is done. The one tap blur could eat is the bookmark's own: pointerdown
+   on it marks the blur as "the button is handling this", so a tap on the
+   bookmark while typing closes the box ONCE rather than closing and
+   reopening it. */
+var chapEditing=false, chapBtnDown=false;
+function paintChap(){
+  var has=Boolean(popBeat&&popBeat.chapter);
+  var tx=document.getElementById('chaptxt');
+  tx.textContent=has?popBeat.chapter:'';
+  tx.hidden=chapEditing||!has;
+  document.getElementById('pchap').hidden=!chapEditing;
+  document.getElementById('chapbtn').classList.toggle('on',has);
+}
+function saveChapter(){
+  if(!popBeat) return Promise.resolve();
+  var t=document.getElementById('pchap').value.replace(/\s+/g,' ').trim();
+  if(t===(popBeat.chapter||'')) return Promise.resolve();
+  if(t) popBeat.chapter=t; else delete popBeat.chapter;
+  paintChap();
+  return api('/chapter',{method:'POST',body:JSON.stringify({id:popBeat.id,title:t})})
+    .then(function(r){return r.json()})
+    .then(function(d){ if(d.beats){
+      var keep=popBeat; beats=d.beats; popBeat=beats.find(function(x){return x.id===keep.id;})||keep;
+      lastChapSig=''; renderChapters();
+    }});
+}
+document.getElementById('chapbtn').addEventListener('pointerdown',function(){
+  chapBtnDown=true; setTimeout(function(){ chapBtnDown=false; }, 600);
+});
+document.getElementById('chapbtn').onclick=function(ev){
+  ev.stopPropagation();
+  chapBtnDown=false;
+  chapEditing=!chapEditing;
+  paintChap();
+  if(chapEditing){ document.getElementById('pchap').focus(); }
+  else { saveChapter(); }
+};
+document.getElementById('pchap').onclick=function(ev){ev.stopPropagation();};
+document.getElementById('pchap').onblur=function(){
+  if(!chapBtnDown){ chapEditing=false; paintChap(); }
+  saveChapter();
+};
+document.getElementById('pchap').onkeydown=function(ev){ if(ev.key==='Enter'){ ev.preventDefault(); this.blur(); } };
 
 function playFilm(){
   if(!film||!film.url)return;
@@ -3159,7 +3448,7 @@ function openBeat(b){
   var same=Boolean(popBeat && popBeat.id===b.id && !document.getElementById('beatpop').hidden);
   var typing=same&&(function(){
     var ae=document.activeElement;
-    return Boolean(ae&&(ae.id==='pnote'||ae.id==='dprompt'));
+    return Boolean(ae&&(ae.id==='pnote'||ae.id==='dprompt'||ae.id==='pchap'));
   })();
   popBeat=b;
   var im=document.getElementById('popimg'), bl=document.getElementById('popblank');
@@ -3192,11 +3481,13 @@ function openBeat(b){
   // The caption opens as WORDS with a pencil beside them; the box behind it
   // carries the same text so drawPrompt() and saveNote() read it either way.
   if(!typing){
-    capEditing=false; promEditing=false;
+    capEditing=false; promEditing=false; chapEditing=false;
     resetBig();
     document.getElementById('pnote').value=b.text||'';
     capBase=document.getElementById('pnote').value;
+    document.getElementById('pchap').value=b.chapter||'';
   }
+  paintChap();
   // The words are painted from the BOX, which mid-typing is ahead of the
   // saved beat — what she reads must be what she just wrote.
   document.getElementById('captext').textContent=document.getElementById('pnote').value;
@@ -4075,7 +4366,7 @@ document.getElementById('delyes').onclick=function(ev){
     .catch(function(){ btn.disabled=false; });
 };
 
-function closeBeat(){stopRec(); stopPopVid(); saveNote(); savePrompt(); document.getElementById('beatpop').hidden=true; popBeat=null; lock(false); render(); paintSend();}
+function closeBeat(){stopRec(); stopPopVid(); saveNote(); savePrompt(); saveChapter(); document.getElementById('beatpop').hidden=true; popBeat=null; lock(false); render(); paintSend();}
 /* Close on the edge around the card OR on the card's own empty cream — the
    same "tap anywhere that isn't a control" contract the old scrim had. */
 document.getElementById('beatpop').onclick=function(ev){
@@ -4117,6 +4408,8 @@ window.__navBack=function(){
     if(fillBeat){ var b=fillBeat; fillBeat=null; openBeat(b); } else lock(false);
     return true;
   }
+  el=document.getElementById('chapsheet');
+  if(!el.hidden){ document.getElementById('chapclose').click(); return true; }
   el=document.getElementById('ausheet');
   if(!el.hidden){ document.getElementById('auclose').click(); return true; }
   el=document.getElementById('helpsheet');
