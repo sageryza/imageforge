@@ -913,6 +913,7 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 .chthumb{flex:none; width:46px; aspect-ratio:var(--ar,2/3); border:1.5px solid var(--line); border-radius:4px;
   background:var(--barbg); overflow:hidden; position:relative;}
 .chthumb img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;}
+.chall .chthumb{border-style:dashed; background:none;}
 .chtxt{flex:1; min-width:0; display:block;}
 .chnm{display:block; font-size:1.05em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .chcount{display:block; font-size:.8em; color:var(--ink2); margin-top:2px;}
@@ -1573,7 +1574,14 @@ var lastPadSig=null;
 function render(){
   var pad=document.getElementById('pad');
   var units=padUnits();
-  var sig=padSig(units);
+  /* ONE CHAPTER AT A TIME (2026-09-06, Sophie: "is there a view where i see
+     just one chapter at a time. it's getting overwhelming"). With chapters
+     on the story the canvas holds the chapter she is in and nothing else;
+     the ‹ › row and the contents sheet swap which one. `chapView` says
+     which (or 'all' for the whole story, the contents sheet's first row). */
+  var view=chapViewOf();
+  if(view){ units=units.filter(function(u){ return u.at>=view.from&&u.at<view.to; }); }
+  var sig=(view?view.id:'')+'\u0004'+padSig(units);
   /* renderDrawall and paintSend watch their own inputs and repaint tiny
      boxes — they still run when the canvas itself is skipped. */
   if(sig===lastPadSig){ renderDrawall(); paintSend(); renderChapters(); return; }
@@ -1621,7 +1629,7 @@ function render(){
     }
     frag.appendChild(wrap);
   });
-  if(pending&&beats.length) slot(beats.length);
+  if(pending&&beats.length) slot(view?view.to:beats.length);   // the end of the chapter she is looking at
   if(pad.replaceChildren) pad.replaceChildren(frag);
   else { pad.innerHTML=''; pad.appendChild(frag); }
   renderDrawall();
@@ -2041,7 +2049,7 @@ var HELP=[
   {sel:'#coverbtn', nm:'Make it the cover', what:'This picture becomes the story’s tile on the shelf.'},
   {sel:'#delbtn', nm:'Delete the beat', what:'Asks first. Its pictures stay in your galleries.'},
   {sel:'#chapbtn', nm:'Chapter', what:'On the Caption line: marks this beat as the start of a chapter and names it. Clear the name to take the chapter off. A chapter moves with its beat.'},
-  {sel:'#chapprev', nm:'‹ chapter ›', what:'At the top, once the story has a chapter: the one you are in, and the arrows walk to the one before or after. Tap the name for the contents — every chapter with its picture and how many beats it holds.'},
+  {sel:'#chapprev', nm:'‹ chapter ›', what:'At the top, once the story has a chapter: the canvas shows one chapter at a time, and the arrows step to the one before or after. Tap the name for the contents — every chapter with its picture and how many beats it holds, and Whole story at the top to see everything at once.'},
 ];
 function mkHelp(){
   var box=document.getElementById('helpbody');
@@ -2094,9 +2102,14 @@ function chapterList(){
     out.push({title:b.chapter, id:b.id, at:i});
   }
   out.forEach(function(c,k){
-    var end=k+1<out.length?out[k+1].at:beats.length;
+    /* The span the chapter COVERS. Beats before the first marked one belong
+       to the first chapter — otherwise a chapter view could show them
+       nowhere at all. */
+    c.from=k?c.at:0;
+    c.to=k+1<out.length?out[k+1].at:beats.length;
+    var end=c.to;
     var n=0, art=null;
-    for(var j=c.at;j<end;j++){
+    for(var j=c.from;j<end;j++){
       if(beatOff(beats[j])) continue;
       n++;
       if(!art) art=artOf(beats[j]);   // the first beat's picture — or the first one that has one
@@ -2131,14 +2144,51 @@ function chapCurrent(list){
   }
   return i;
 }
+/* WHICH CHAPTER THE CANVAS SHOWS. `chapView` is a chapter's beat id, or
+   'all' for the whole story (the old scroll-through canvas, one row away in
+   the contents sheet), or null = not decided yet for this story. Remembered
+   per story in localStorage so reopening a story lands on the chapter she
+   was reading; a story with no chapters is untouched by all of this. A
+   remembered id whose chapter has since gone (she cleared that beat's
+   name, or moved it) falls back to the chapter that beat is IN now, never
+   to a blank canvas. */
+var chapView=null;
+function chapKey(){ return 'scratchpad_chap_'+padId; }
+function chapViewOf(){
+  var list=chapterList(); if(!list.length) return null;
+  if(chapView===null){ chapView=localStorage.getItem(chapKey())||list[0].id; }
+  if(chapView==='all') return null;
+  for(var k=0;k<list.length;k++){ if(list[k].id===chapView) return list[k]; }
+  // her chapter is gone — the one holding that beat now, else the first
+  var at=-1;
+  for(var j=0;j<beats.length;j++){ if(beats[j].id===chapView){ at=j; break; } }
+  var pick=list[0];
+  if(at>=0){ for(var m=0;m<list.length;m++){ if(list[m].at<=at) pick=list[m]; } }
+  chapView=pick.id; localStorage.setItem(chapKey(), chapView);
+  return pick;
+}
+function setChapView(id){
+  chapView=id; localStorage.setItem(chapKey(), id);
+  chapAim=null; lastPadSig=null; lastChapSig='';
+  render();
+  if(window.__scrollStop) window.__scrollStop();
+  window.scrollTo(0,0);
+}
+/* The index the row names: the shown chapter, or — on the whole story —
+   the one under the sticky block. */
+function chapIndex(list){
+  var v=chapViewOf();
+  if(v){ for(var k=0;k<list.length;k++){ if(list[k].id===v.id) return k; } }
+  return chapCurrent(list);
+}
 var lastChapSig='';
 function renderChapters(){
   var row=document.getElementById('chaprow');
   var list=chapterList();
   if(!list.length){ if(!row.hidden){ row.hidden=true; lastChapSig=''; } return; }
   row.hidden=false;
-  var i=chapCurrent(list);
-  var sig=list.map(function(c){return c.id+'\u0001'+c.title;}).join('\u0002')+'\u0003'+i;
+  var i=chapIndex(list);
+  var sig=list.map(function(c){return c.id+'\u0001'+c.title;}).join('\u0002')+'\u0003'+i+'\u0003'+String(chapView);
   if(sig===lastChapSig) return;
   lastChapSig=sig;
   row.querySelector('.chapt').textContent=list[i].title;
@@ -2148,11 +2198,13 @@ function renderChapters(){
   // the contents sheet, if it is up, follows
   var sh=document.getElementById('chapsheet');
   if(!sh.hidden) paintContents(list, i);
+  if(window.__pillSync) window.__pillSync();   // a one-chapter canvas may not scroll at all
 }
 /* Scroll the WINDOW so the chapter's first tile sits just under the sticky
    block. Instant, never smooth: the pill's autoscroll is stopped first, and a
    smooth scroll racing it lands nowhere she can predict. */
 function jumpChapter(id){
+  if(chapViewOf()){ setChapView(id); return; }
   var w=chapWrap(id); if(!w) return;
   if(window.__scrollStop) window.__scrollStop();
   var y=w.getBoundingClientRect().top+window.scrollY-topH()-6;
@@ -2164,13 +2216,13 @@ function jumpChapter(id){
 document.getElementById('chapprev').onclick=function(ev){
   ev.stopPropagation();
   var list=chapterList(); if(!list.length) return;
-  var i=chapCurrent(list);
+  var i=chapIndex(list);
   jumpChapter(list[Math.max(0,i-1)].id);
 };
 document.getElementById('chapnext').onclick=function(ev){
   ev.stopPropagation();
   var list=chapterList(); if(!list.length) return;
-  var i=chapCurrent(list);
+  var i=chapIndex(list);
   jumpChapter(list[Math.min(list.length-1,i+1)].id);
 };
 /* The row names where she is as she scrolls — one paint per frame at most. */
@@ -2188,8 +2240,20 @@ document.getElementById('chapnext').onclick=function(ev){
 function paintContents(list, cur){
   var box=document.getElementById('chaplist');
   box.innerHTML='';
+  /* The whole story leads the list — the one door back to the scroll-through
+     canvas, lit while that is what the canvas shows. */
+  var all=document.createElement('button'); all.className='chrow chall'+(chapView==='all'?' on':'');
+  all.setAttribute('data-chapter','all');
+  var ath=document.createElement('span'); ath.className='chthumb';
+  var atx=document.createElement('span'); atx.className='chtxt';
+  var anm=document.createElement('span'); anm.className='chnm'; anm.textContent='Whole story';
+  var total=0; list.forEach(function(c){ total+=c.count; });
+  var act=document.createElement('span'); act.className='chcount'; act.textContent=total+(total===1?' beat':' beats');
+  atx.appendChild(anm); atx.appendChild(act); all.appendChild(ath); all.appendChild(atx);
+  all.onclick=function(ev){ ev.stopPropagation(); closeContents(); setChapView('all'); };
+  box.appendChild(all);
   list.forEach(function(c,k){
-    var row=document.createElement('button'); row.className='chrow'+(k===cur?' on':'');
+    var row=document.createElement('button'); row.className='chrow'+(k===cur&&chapView!=='all'?' on':'');
     row.setAttribute('data-chapter', c.id);
     var th=document.createElement('span'); th.className='chthumb';
     if(c.art){ var im=document.createElement('img'); im.src=thumbOf(c.art); im.alt=''; im.loading='lazy'; th.appendChild(im); }
@@ -2201,7 +2265,7 @@ function paintContents(list, cur){
     row.onclick=function(ev){
       ev.stopPropagation();
       closeContents();
-      jumpChapter(c.id);
+      setChapView(c.id);   // a chapter picked from the contents is the one on the canvas, even from Whole story
     };
     box.appendChild(row);
   });
@@ -2209,7 +2273,7 @@ function paintContents(list, cur){
 function openContents(){
   var list=chapterList(); if(!list.length) return;
   var sh=document.getElementById('chapsheet');
-  paintContents(list, chapCurrent(list));
+  paintContents(list, chapIndex(list));
   sh.hidden=false; sh.scrollTop=0; lock(true);
   sheetPill(sh);      // a long story's contents can outrun one screen
 }
@@ -2749,6 +2813,7 @@ function openPad(id){
   padDesc=''; padDescAudio=null; padVoice=null; padVoiceText=''; renderAudios();
   padStyle='watercolor'; renderStyle(); padShape=SHAPES[0].key; renderShape(); uploads=[];
   closeShelf();
+  chapView=null;   // decided per story, remembered per story
   beats=[]; padTitle=''; render();
   load();
 }

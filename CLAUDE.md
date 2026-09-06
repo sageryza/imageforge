@@ -8230,9 +8230,20 @@ before working on that module. Nothing was deleted — the moved text is verbati
   Caption line** of a beat's card, which swaps in an EMPTY box (Return/blur
   saves, an emptied box clears — and here blur also CLOSES the box, unlike
   the caption pencil, because this one-line slot cannot reshuffle the card).
-  Two things not to undo: `/chapter` bumps no `updatedAt` and is out of the
-  page's `dirtySinceFilm` (chapters are not cuts — the film is untouched);
-  and nothing is drawn between the beats. Seeding a story's chapters by her
+  **AND THE CANVAS SHOWS ONE CHAPTER AT A TIME (same day, Sophie: "is there
+  a view where i see just one chapter at a time. it's getting
+  overwhelming").** With a chapter on the story the canvas holds the chapter
+  she is in and nothing else; ‹ › swap which, a contents row swaps to that
+  one, and the chapter is remembered per story (`scratchpad_chap_<pad>` in
+  localStorage) so reopening lands where she was. **Whole story** leads the
+  contents sheet and is the one door back to the scroll-through canvas,
+  where the arrows scroll and the row names the chapter under the block as
+  before. Beats before the first marked beat belong to the first chapter
+  (`from`/`to` on `chapterList()`), or a chapter view could show them
+  nowhere. A remembered chapter that has gone falls back to the one holding
+  that beat now. Two things not to undo: `/chapter` bumps no `updatedAt` and
+  is out of the page's `dirtySinceFilm` (chapters are not cuts — the film is
+  untouched); and nothing is drawn between the beats. Seeding a story's chapters by her
   words: `node scripts/seed-story-chapters.js` (dry; `--go`; refuses a story
   already carrying one). Test: `node scripts/test-storyroom-chapters.js`
   (the real page headless — the arrows MEASURED as the window moving and
