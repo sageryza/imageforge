@@ -149,6 +149,13 @@
   // This used to be four loose regexes over the style half, which sent 224
   // pictures whose prompts merely said "watercolor wash" to the WTR LoRA — a
   // different engine — with nothing on screen admitting it was a guess.
+  // AND A PICTURE WITH NO STYLE HALF AND A gpt-image CAPTION LANDS ON THE
+  // PLAIN ChatGPT TILE (2026-09-06, Sophie: "these r coming in under mirror"
+  // — her photo-real character cards, drawn with no reference, were opening
+  // on Sandy mirror and picking up her watercolour page). The port decides
+  // that; this only carries `m.style`. Anything here that ever PRINTS a
+  // picture's style must read `m.label` / `m.matched`, never look `m.style`
+  // back up in a tile table — the routed key of a guess is not a name.
   function playgroundQuery(it){
     if(!it || !it.promptContent) return null;
     var port=(window.ForgePlaygroundPort||null);

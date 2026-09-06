@@ -21,6 +21,23 @@
  *                   worse than an honest "unknown" — the same rule the
  *                   MODEL · QUALITY captions follow.
  *
+ * THE LABEL OF A GUESS IS NEVER A REAL TILE'S NAME (2026-09-06, Sophie,
+ * looking at photo-real character cards drawn by gpt-image-2 with no
+ * reference at all: "these r coming in under mirror"). The fallback used to
+ * answer `label:'Sandy mirror'` — the name of the tile the ROUTE lands on —
+ * so every picture nothing identified wore the name of her scanned
+ * ink-and-watercolour page. `style` is where the prompt LANDS and may be a
+ * guess; `label` is what the picture IS and must not be. Two honest answers:
+ *   • the style half is EMPTY and the caption says gpt-image → her words were
+ *     sent alone, which is exactly the plain ChatGPT tile's recipe (no
+ *     reference, no baked prefix — the whole-prompt rule files an empty style
+ *     half for a wrapper-less surface, so the empty half IS the record). It
+ *     lands on `plain`, wears its label, and is STILL `matched:false`: an
+ *     empty half cannot prove the wrapper was not simply never filed.
+ *   • anything else unidentified lands on FALLBACK and wears `UNKNOWN_LABEL`.
+ * A surface printing a picture's style must read `label` (and `matched`),
+ * never look the routed `style` key back up in a tile table.
+ *
  * TWO KINDS OF EVIDENCE, AND NEITHER IS A VIBE.
  *   `refs`     — the reference FILENAME, as the style half names it. Every
  *                name this repo has ever attached is listed, OLD NAMES
@@ -165,18 +182,26 @@
       // THE ONE TILE WITH NO EVIDENCE, AND THAT IS HONEST — not an oversight.
       // A plain-ChatGPT picture is her words sent alone: no reference filename
       // to name, no baked prefix to quote, no trigger word. There is by
-      // definition nothing on the record that says a picture came from here, so
-      // one never routes onto this tile — it exists so the three style tables
-      // stay in step, and so a picture ported here by hand has somewhere to
-      // land. `evidence:false` is the deliberate opt-out the test reads; do NOT
+      // definition nothing on the record that POSITIVELY says a picture came
+      // from here, so nothing ever `matched:true` routes onto it. What does
+      // route here (2026-09-06, matched:false) is the ABSENCE of a wrapper: an
+      // empty style half beside a gpt-image caption is what a wrapper-less
+      // draw files, and this is the one tile that adds nothing to her words.
+      // `evidence:false` is the deliberate opt-out the test reads; do NOT
       // invent a fragment to make it look identifiable.
       refs: [], prefixes: [], evidence: false,
     },
   ];
 
   // The tile an unidentified image lands on. Its prompt is hers either way;
-  // only the reference is wrong, and `matched:false` is what says so.
+  // only the reference is wrong, and `matched:false` is what says so. The
+  // ROUTE stays here (the Playground needs somewhere to land); the LABEL of
+  // that landing is UNKNOWN_LABEL, never this tile's own name.
   const FALLBACK = 'chatgpt';
+  const UNKNOWN_LABEL = 'unknown';
+  // A caption naming the model her words went to alone. The MODEL · QUALITY ·
+  // SIZE caption is the only place a record says which engine drew it.
+  const GPT_CAPTION = /gpt-image/;
 
   const norm = (s) => String(s == null ? '' : s).toLowerCase();
 
@@ -230,8 +255,17 @@
         if (rx.test(hay)) return { style: st.key, matched: true, label: st.label, by: String(rx) };
       }
     }
-    const fb = PORT_STYLES.find((s) => s.key === FALLBACK);
-    return { style: FALLBACK, matched: false, label: fb.label, by: '' };
+    // NOTHING IDENTIFIED IT. Two honest answers, neither wearing a real tile's
+    // name as if it were known (see the header).
+    if (!norm(promptStyle).trim() && GPT_CAPTION.test(norm(caption))) {
+      // Her words alone to gpt-image — the plain tile's own recipe. The route
+      // adds no reference and no prefix, so it can only ever be what drew it
+      // or a strict subset of it; still a guess, because an empty half cannot
+      // prove the wrapper was not simply never filed.
+      const plain = PORT_STYLES.find((s) => s.key === 'plain');
+      return { style: plain.key, matched: false, label: plain.label, by: 'no style half · ' + String(caption || '').trim() };
+    }
+    return { style: FALLBACK, matched: false, label: UNKNOWN_LABEL, by: '' };
   }
 
   // low | medium | high, when the caption or the style half says so.
@@ -240,5 +274,5 @@
     return m ? m[1] : '';
   }
 
-  return { PORT_STYLES, FALLBACK, matchStyle, matchQuality };
+  return { PORT_STYLES, FALLBACK, UNKNOWN_LABEL, matchStyle, matchQuality };
 }));

@@ -108,6 +108,62 @@ console.log('the matcher');
   ok(m.style === wantStyle && m.matched === wantMatched,
     what + ' (got ' + m.style + '/' + m.matched + ')');
 });
+
+// ── 1b. A GUESS NEVER WEARS A REAL TILE'S NAME (2026-09-06, Sophie: "these r
+// coming in under mirror" — photo-real character cards drawn by gpt-image-2
+// with no reference, style half empty, caption "gpt-image-2 · medium · 1K",
+// every one of them labelled Sandy mirror by the fallback). The ROUTE may be
+// a guess; the LABEL may not.
+console.log('the label of a guess');
+const SANDY = port.PORT_STYLES.find((s) => s.key === 'chatgpt').label;
+const PLAIN = port.PORT_STYLES.find((s) => s.key === 'plain').label;
+ok(SANDY === 'Sandy mirror' && PLAIN === 'ChatGPT', 'the two tiles this is about are still named what she named them');
+// Her real record, verbatim off the mental-hospital-storyboard chat's assets.
+const card = port.matchStyle('', 'gpt-image-2 · medium · 1K');
+ok(card.style === 'plain', 'an empty style half beside a gpt-image caption lands on the plain tile (got ' + card.style + ')');
+ok(card.matched === false, '…and is still a guess — an empty half cannot prove the wrapper was never filed');
+ok(card.label === PLAIN, '…labelled ' + PLAIN + ', the tile whose recipe it is (got ' + card.label + ')');
+ok(card.label !== SANDY, '…never ' + SANDY);
+ok(/no style half/.test(card.by), 'and `by` says why (got ' + card.by + ')');
+// the same record with a 2K / high caption — the caption's other slots do not matter
+ok(port.matchStyle('   ', 'gpt-image-2 · high · 2K').style === 'plain', 'whitespace is an empty half; the tier and quality do not matter');
+// nothing on the record at all → the routing fallback, labelled unknown
+const bare = port.matchStyle('', '');
+ok(bare.style === port.FALLBACK && bare.matched === false, 'nothing at all → the routing fallback, still a guess');
+ok(bare.label === port.UNKNOWN_LABEL && bare.label === 'unknown', 'labelled unknown (got ' + bare.label + ')');
+// a wrapper nobody recognises → the routing fallback, labelled unknown
+const odd = port.matchStyle('a style wrapper this table has never seen', 'gpt-image-2 · medium');
+ok(odd.style === port.FALLBACK && odd.matched === false && odd.label === 'unknown',
+  'an unrecognised wrapper → fallback route, unknown label (got ' + odd.style + '/' + odd.label + ')');
+// an empty half beside a NON-gpt caption is not the plain recipe — unknown
+const lora = port.matchStyle('', 'sageryza/watercolordrawings · 1K');
+ok(lora.style === port.FALLBACK && lora.label === 'unknown', 'an empty half beside a non-gpt caption is not ChatGPT → unknown');
+// and the general law: no unmatched answer may wear the name of any tile but
+// the plain one, whatever is on the record
+[['', ''], ['', 'gpt-image-2 · medium'], ['???', ''], ['watercolor wash', 'gpt-image-2 · low · 1K'],
+  ['', 'from some-chat'], ['x', 'medium']].forEach(([st, cap]) => {
+  const m = port.matchStyle(st, cap);
+  if (m.matched) return;
+  ok(m.label === 'unknown' || m.label === PLAIN,
+    'unmatched (' + JSON.stringify(st) + ', ' + JSON.stringify(cap) + ') wears ' + m.label + ', never a reference tile');
+});
+// a real Sandy mirror picture still says so — the fix is about the guess only
+const real = port.matchStyle('refs/sage-sandy-mirror.png — copy the style', 'gpt-image-2 · medium');
+ok(real.matched && real.label === SANDY, 'a picture that NAMES the reference is still Sandy mirror, matched');
+// THE DOOR SHE TAPS: asset-actions' Playground query built from that record
+// lands the prompt on the plain tile, so the Playground opens on ChatGPT.
+{
+  const vm = require('vm');
+  const win = { ForgePlaygroundPort: port, __sheetGrid: null, location: { pathname: '/assets', search: '' },
+    addEventListener() {}, document: { createElement: () => ({ style: {} }) }, navigator: {} };
+  win.window = win;
+  const src = fs.readFileSync(path.join(ROOT, 'public', 'asset-actions.js'), 'utf8');
+  vm.runInNewContext(src, Object.assign(win, { console, URL, encodeURIComponent, decodeURIComponent, JSON, fetch: () => Promise.resolve({}) }));
+  const q = win.ForgeAssetActions.playgroundQuery({ promptContent: 'andrew college freshman brown hair', promptStyle: '', prompt: 'gpt-image-2 · medium · 1K' });
+  ok(/(^|&)style=plain(&|$)/.test(q), 'the Assets door sends her card to style=plain, so the Playground opens on ChatGPT (got ' + q + ')');
+  ok(/sameref=0/.test(q), '…and still says it is a guess (sameref=0)');
+  ok(!/chatgpt/.test(q), '…never onto the Sandy mirror tile');
+}
 ok(port.matchQuality('', 'gpt-image-2 · medium') === 'medium', 'quality read off the caption');
 ok(port.matchQuality('', 'gpt-image-2') === '', 'no quality on the record → empty, never guessed');
 
