@@ -8211,6 +8211,16 @@ before working on that module. Nothing was deleted — the moved text is verbati
   fine and never changes shape) and `node scripts/test-image-size.js` (every
   format driven from REAL encoded files, including the sharp-refuses-webp
   measurement, so the note above cannot go stale unnoticed).
+  **THE TYPED CAST — PICTURES · DESCRIPTIONS BEHIND THE CHARACTER BUTTON
+  (2026-09-06, Sophie: "add the character description feature as an option
+  that's not character image, like playground").** The Playground's
+  Descriptions half on the beat card's character sheet: name + one-line
+  description rows, the clause from the served `sheetGrid.castBlock`,
+  stored on the PAD (`pad.cast`, `POST /cast`, no `updatedAt` bump, out of
+  `dirtySinceFilm`) because a story's cast is the same for every beat; the
+  SERVER writes the clause into every draw. Full rules: *The typed cast* in
+  `docs/modules/story.md`; tests `test-scratchpad-cast.js` +
+  `test-storyroom-cast.js`.
   **CHAPTERS (2026-09-06, Sophie, on her hospital story: "i want the chapter
   within a story. arrow buttons at the top, and a contents page w all the
   stories and thumbnails").** A chapter is a STRING ON THE BEAT THAT OPENS IT
