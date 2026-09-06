@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// ✕ ON A SHEET IS ✕ ON ITS PANELS (2026-09-06, Sophie: "when i x a uncut
-// panels sheet it shud x every panel in it unless i hearted it or heart it
-// after or unex").
+// A MARK ON A SHEET IS A MARK ON ITS PANELS (2026-09-06, Sophie: "when i x a
+// uncut panels sheet it shud x every panel in it unless i hearted it or heart
+// it after or unex", then "it shud work both ways - heart or x").
 //
 // The rule itself, pure — no Firestore, no browser — plus the source pins that
 // keep it ONE rule: both vote routes and the Assets-tab door go through
@@ -45,31 +45,42 @@ ok(p.votes[1] === undefined && p.from[1] === undefined, 'and nothing is written 
 
 p = C.plan(cut({ 2: 'dislike' }), 'dislike');
 ok(same(p.changed, [0, 1, 3]), 'a panel she ✕d HERSELF is left as it is');
-ok(p.from[2] === undefined, 'and is never tagged as the sheet’s — or an un-✕ would undo her mark');
+ok(p.from[2] === undefined, 'and is never tagged as the sheet’s — or a later sheet tap would move her mark');
+
+console.log('\n♥ the sheet — "it shud work both ways"');
+p = C.plan(cut(), 'like');
+ok(same(p.changed, [0, 1, 2, 3]), 'every panel is hearted');
+ok(p.votes[0] === 'like' && p.from[0] === 'sheet', 'tagged the same way, so it can be taken back');
+
+p = C.plan(cut({ 2: 'dislike' }), 'like');
+ok(same(p.changed, [0, 1, 3]), 'a panel she ✕d herself is left alone by a ♥ too');
+
+console.log('\nflipping the sheet');
+const crossed = cut({ '-1': 'dislike', 0: 'dislike', 1: 'like', 2: 'dislike', 3: 'dislike' },
+  { 0: 'sheet', 3: 'sheet' });                 // 1 hers (♥), 2 hers (✕)
+p = C.plan(crossed, 'like');
+ok(same(p.changed, [0, 3]), '✕ → ♥ carries the cascade’s own panels across');
+ok(p.votes[0] === 'like', 'they take the new mark');
+ok(p.votes[1] === undefined && p.votes[2] === undefined, 'and neither of her own marks moves');
 
 console.log('\nunex');
-const after = cut({ '-1': 'dislike', 0: 'dislike', 1: 'dislike', 2: 'dislike', 3: 'dislike' },
-  { 0: 'sheet', 1: 'sheet', 3: 'sheet' });     // panel 2 she crossed out herself
-p = C.plan(after, null);
-ok(same(p.changed, [0, 1, 3]), 'un-✕ lifts the ✕ off the panels the cascade marked');
+p = C.plan(crossed, null);
+ok(same(p.changed, [0, 3]), 'clearing the sheet lifts the mark off the panels the cascade marked');
 ok(p.votes[0] === null && p.from[0] === null, 'the mark AND its tag go');
 ok(p.votes[2] === undefined, 'her own ✕ survives it');
 
-p = C.plan(after, 'like');
-ok(same(p.changed, [0, 1, 3]), 'hearting the sheet ends the ✕ too, so it releases the same panels');
-
-const hearted = cut({ '-1': 'dislike', 0: 'like', 1: 'dislike' }, { 0: 'sheet', 1: 'sheet' });
+const hearted = cut({ '-1': 'dislike', 0: 'like', 1: 'dislike' }, { 1: 'sheet' });
 p = C.plan(hearted, null);
 ok(same(p.changed, [1]), '"or heart it after" — a panel she hearted since is not touched by the release');
 
-p = C.plan(cut(), 'like');
-ok(same(p.changed, []), 'a ♥ on a sheet that was never ✕d does nothing to the panels');
 p = C.plan(cut(), null);
-ok(same(p.changed, []), 'and neither does clearing a sheet that carried no ✕');
+ok(same(p.changed, []), 'clearing a sheet that marked nothing does nothing');
 
-console.log('\nthe panels that land after the ✕');
+console.log('\nthe panels that land after the mark');
 p = C.planForCut({ panels: ['a', 'b'], sheetUrl: 'S', images: ['p0', 'p1'], votes: { '-1': 'dislike' } });
 ok(same(p.changed, [0, 1]), 'a sheet crossed out while it was still cutting marks its new panels');
+p = C.planForCut({ panels: ['a', 'b'], sheetUrl: 'S', images: ['p0', 'p1'], votes: { '-1': 'like' } });
+ok(p.votes[0] === 'like' && p.votes[1] === 'like', 'and a hearted one hearts them');
 p = C.planForCut({ panels: ['a', 'b'], sheetUrl: 'S', images: ['p0', 'p1'], votes: {} });
 ok(same(p.changed, []), 'an unmarked sheet marks nothing');
 

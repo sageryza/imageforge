@@ -6221,38 +6221,43 @@ before working on that module. Nothing was deleted — the moved text is verbati
     first line and nothing rendered. It calls `scripts/lib/public-asset.js`
     now, like its siblings — a harness that hand-lists shared files is one
     shared file away from a silent timeout.
-  **✕ ON A SHEET IS ✕ ON ITS PANELS (2026-09-06, Sophie: "when i x a uncut
-  panels sheet it shud x every panel in it unless i hearted it or heart it
-  after or unex").** A panels run is ONE paid picture cut into pieces, so a
-  sheet she crosses out in the Sheets view is a sheet whose pieces she has
-  crossed out — until this she had to ✕ the sheet and then ✕ every panel again
-  in the panel view, or live with a run saying two different things about
-  itself on two screens. `sheet-cascade.js` is the ONE rule (pure, served to
-  the page); the vote routes turn it into a patch through `votePatchFor`.
-  Four things not to undo:
-  - **A CASCADED ✕ IS TAGGED — `voteFrom.<i> = 'sheet'` beside the vote it
+  **A MARK ON A SHEET IS A MARK ON ITS PANELS (2026-09-06, Sophie: "when i x a
+  uncut panels sheet it shud x every panel in it unless i hearted it or heart
+  it after or unex", then — looking at a hearted sheet whose panels had not
+  moved — "it shud work both ways - heart or x").** A panels run is ONE paid
+  picture cut into pieces, so a sheet she marks in the Sheets view is a sheet
+  whose pieces she has marked — until this she had to mark the sheet and then
+  mark every panel again in the panel view, or live with a run saying two
+  different things about itself on two screens. `sheet-cascade.js` is the ONE
+  rule (pure, served to the page); the vote routes turn it into a patch through
+  `votePatchFor`. **THREE CASES PER PANEL, and that is the whole of it:** the
+  cascade's own mark follows the sheet wherever it goes, a mark of HERS is
+  never touched, and a panel with no mark takes the sheet's. Four things not to
+  undo:
+  - **A CASCADED MARK IS TAGGED — `voteFrom.<i> = 'sheet'` beside the vote it
     explains — and that is what makes "unex" possible at all.** Without it the
-    release could only be all-or-nothing and would wipe the ✕ she cast on a
-    panel herself. The release only ever lifts a mark this cascade wrote and
-    nobody has touched since.
+    release could only be all-or-nothing and would wipe the mark she cast on a
+    panel herself. It is also what lets ✕ → ♥ on the sheet flip those panels
+    with it, which is her "both ways".
   - **A DIRECT MARK ON A PANEL MAKES IT HERS** — any vote at `i >= 0` DROPS
     that tag, which is her "or heart it after": once she has decided a panel,
-    un-✕'ing the sheet later has no claim on it. A panel already ✕'d when the
-    sheet is crossed out is left as it is and never tagged, for the same
-    reason.
-  - **A ♥ ON A PANEL IS NEVER TOUCHED, and a ♥ on the sheet hearts nothing** —
-    ending the sheet's ✕ (clearing it or hearting it) RELEASES, and that is
-    all; hearting everything under a sheet is a rule she never asked for.
+    the sheet has no claim on it. A panel already marked when the sheet is
+    marked is left as it is and never tagged, for the same reason.
   - **THE PAGE APPLIES THE SAME PLAN OPTIMISTICALLY, and it has to.** A vote
     is followed by `loadRuns()`, which asks `kind=single` — a panels run's real
     votes never come back from that read; they wait on the panels sweep and its
-    20s throttle. Without `markLocal` she crosses out a sheet, steps to the
-    panel view and finds the panels unmarked, which reads as the rule not
-    working.
-  It also reaches the two doors that are not the Sheets view: a sheet ✕'d while
-  it is still CUTTING marks the panels the cut lands seconds later
-  (`planForCut`, applied at the end of `finishPanelsCut`), and a ✕ cast on the
-  sheet in Meta Assets comes back through `syncVoteToPlayground`, which now
+    20s throttle. Without `markLocal` she marks a sheet, steps to the panel
+    view and finds the panels unmarked, which reads as the rule not working.
+  - **IT SHIPPED ✕-ONLY FOR AN HOUR AND SHE CAUGHT IT IN ONE LOOK.** The first
+    cut read "unless i hearted it" as *a ♥ is only ever hers*, so hearting a
+    sheet released the ✕ and did nothing else — and this file recorded that as
+    a rule ("hearting everything under a sheet is a rule she never asked for").
+    That reasoning is HISTORY: a mark is a mark, both directions, and the
+    asymmetry is the thing not to bring back.
+  It also reaches the two doors that are not the Sheets view: a sheet marked
+  while it is still CUTTING marks the panels the cut lands seconds later
+  (`planForCut`, applied at the end of `finishPanelsCut`), and a mark cast on
+  the sheet in Meta Assets comes back through `syncVoteToPlayground`, which now
   finds a run by `sheetUrl` as well as by `images` (the sheet is not in
   `images`, so that door used to reach nothing at all). A cut-FAILED run IS its
   sheet and has no panels, so it cascades to nothing by construction. Tests:
