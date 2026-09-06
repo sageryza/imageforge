@@ -4767,10 +4767,41 @@
   // Fold a page of runs into the feed. Fresh copies WIN (a vote or a status
   // moved), and the whole list is re-sorted by time — so a head refresh and an
   // Older page can arrive in any order without scrambling it.
+  // A MARK SHE JUST CAST OUTLIVES A STALE READ (2026-09-06, Sophie: "when i
+  // heart individual panels the heart gets removed"). The Panels sweep answers
+  // out of the server's 60s scan cache, and it is armed on every tap of the
+  // tab — so the tap AFTER her heart could hand back the run as it stood
+  // before it, and "fresh copies win" put the old marks back on screen. The
+  // server patches its cache on every vote now; this is the second half, for
+  // the read that was already in flight when she tapped, and for any cache a
+  // vote cannot reach: a mark cast in the last MARK_SHIELD_MS is re-applied
+  // over whatever a fresh copy says about that picture, and nothing else on
+  // the copy is touched. After that the server's word stands, as it always did.
+  var recentMarks = {};
+  var MARK_SHIELD_MS = 90000;
+  function shieldMark(id, i, vote, from) {
+    var m = recentMarks[id] = recentMarks[id] || {};
+    m[String(i)] = { vote: vote, from: from, at: Date.now() };
+  }
+  function shieldRun(r) {
+    var m = r && recentMarks[r.id];
+    if (!m) return;
+    var now = Date.now(), live = false;
+    Object.keys(m).forEach(function (i) {
+      var k = m[i];
+      if (now - k.at > MARK_SHIELD_MS) { delete m[i]; return; }
+      live = true;
+      var votes = r.votes = r.votes || {};
+      if (k.vote) votes[i] = k.vote; else delete votes[i];
+      if (k.from) { (r.voteFrom = r.voteFrom || {})[i] = k.from; }
+      else if (r.voteFrom) delete r.voteFrom[i];
+    });
+    if (!live) delete recentMarks[r.id];
+  }
   function mergeRuns(fresh) {
     var byId = {};
     feed.forEach(function (r) { byId[r.id] = r; });
-    fresh.forEach(function (r) { byId[r.id] = r; });
+    fresh.forEach(function (r) { shieldRun(r); byId[r.id] = r; });
     feed = Object.keys(byId).map(function (k) { return byId[k]; })
       .sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
     // Merged, never replaced: a search hit can be an older run this feed has
@@ -5515,6 +5546,7 @@
       plan.changed.forEach(function (j) {
         if (plan.votes[j] === null) delete votes[j]; else votes[j] = plan.votes[j];
         if (plan.from[j] === null) delete from[j]; else from[j] = plan.from[j];
+        shieldMark(r.id, j, plan.votes[j], plan.from[j]);
       });
     } else if (r.voteFrom) {
       // A direct mark on a panel makes it HERS — the tag goes, so the sheet
@@ -5522,6 +5554,7 @@
       delete r.voteFrom[String(i)];
     }
     if (next === null || next === '') delete votes[i]; else votes[i] = next;
+    shieldMark(r.id, i, next || null, null);
   }
 
   // ♥/✕ — this run doc's own vote route, tap again to clear, exactly as the
