@@ -1270,7 +1270,7 @@ router.post('/shoebox', async (req, res) => {
     const style = styleOf(req);
     const art = beat ? slotFace(artSlot(beat, style)) : null;
     if (!art || !/^https?:\/\//.test(art)) return res.status(400).json({ error: 'that beat has no picture' });
-    const out = await shoeboxPut(art, String(beat.text || ''), { source: 'storyroom', pad: pid, beat: beatId });
+    const out = await shoeboxPut(art, wordsFor(beat), { source: 'storyroom', pad: pid, beat: beatId });
     if (!out) return res.status(503).json({ error: 'the memory library credential (STORY_FIREBASE_SERVICE_ACCOUNT) is not set' });
     res.json(out);
   } catch (e) { fail(res, e); }
@@ -1461,7 +1461,7 @@ router.post('/image', async (req, res) => {
     const shapePatch = await autoShapePatch(pid, url);
     const beats = await placeOnBeat(pid, id, url, style, src, { derived: !named, shapePatch });
     const placed = (beats || []).find((b) => b.id === id);
-    fileBeatArt(url, src, (placed && placed.text) || '');
+    fileBeatArt(url, src, wordsFor(placed));
     res.json({ ok: true, beats, ...(shapePatch.shape ? { shape: shapePatch.shape } : {}) });
   } catch (e) { fail(res, e); }
 });
@@ -1879,6 +1879,18 @@ function promptFor(beat) {
   return p || drawablePrompt(beat && beat.text);
 }
 
+// What a beat SAYS — the caption under its picture, its line in the film
+// (ttsFor), the label its art is filed under: its caption, else its drawing
+// prompt (2026-09-06, Sophie: "if i put no caption, use the drawing prompt").
+// promptFor's mirror. A READ-time fallback only: the prompt is never copied
+// into `text`, so the two fields stay distinct in storage and the caption
+// pencil still opens an EMPTY box. The page's wordsOf is the same rule,
+// pinned equal by scripts/test-scratchpad-words.js.
+function wordsFor(beat) {
+  const t = String((beat && beat.text) || '').trim();
+  return t || String((beat && beat.prompt) || '').trim();
+}
+
 // The one-tap outline pass: draw every beat that has its OWN words but no
 // art. Chunk siblings without text are skipped on purpose (their art is a
 // hand decision — the literal→metaphorical pair), as is anything already
@@ -2135,7 +2147,7 @@ async function runFilmJob(padId) {
       // The shot's voice: her take wins; then the line read aloud; else quiet.
       let audio = lead.voiceUrl || null;
       let audioKind = audio ? 'her voice' : 'quiet';
-      if (!audio && String(lead.text || '').trim()) {
+      if (!audio && wordsFor(lead)) {
         try { audio = await ttsFor(padId, lead); if (audio) audioKind = 'tts'; }
         catch (e) { console.warn('film tts:', e.message); }
       }
@@ -2416,7 +2428,7 @@ router.post('/title', async (req, res) => {
 // so rendering a film costs nothing for lines that have already been heard.
 // Returns the url, or null when the beat has no words.
 async function ttsFor(padId, beat) {
-  const text = String((beat && beat.text) || '').trim();
+  const text = wordsFor(beat);
   if (!text) return null;
   if (!process.env.ELEVENLABS_API_KEY) throw new Error('ELEVENLABS_API_KEY is not set');
     // Settings ride in the cache key so a changed voice mode (Natural →
@@ -2461,7 +2473,7 @@ router.post('/tts', async (req, res) => {
     const pad = await readPad(pid);
     const beat = pad.beats.find((b) => b.id === id);
     if (!beat) return res.status(404).json({ error: 'no such beat' });
-    if (!String(beat.text || '').trim()) return res.status(400).json({ error: 'this beat has no words yet' });
+    if (!wordsFor(beat)) return res.status(400).json({ error: 'this beat has no words yet' });
     const url = await ttsFor(pid, beat);
     res.json({ ok: true, url });
   } catch (e) { fail(res, e); }
@@ -2552,4 +2564,4 @@ async function attachVoiceUrl(padId, beatId, url) {
 
 // shoeboxUid is exported so shoebox.js (the Shoebox viewer) asks the SAME
 // discovery — one copy of "whose library is this", never a second guess.
-module.exports = { router, init, attachVoiceUrl, placeOnBeat, autoShapePatch, drawablePrompt, promptFor, clipsNeedingPoster, shoeboxUid };
+module.exports = { router, init, attachVoiceUrl, placeOnBeat, autoShapePatch, drawablePrompt, promptFor, wordsFor, clipsNeedingPoster, shoeboxUid };
