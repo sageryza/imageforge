@@ -55,6 +55,7 @@ page = r"""<!doctype html>
      Playground's did; the pick button and the step zones ride the shared
      file's hooks (cta, nav) now. -->
 <script src="/asset-lightbox.js"></script>
+<script src="/size-tier.js"></script>
 <style>
 @font-face{font-family:'EBGaramond';font-weight:400 700;font-display:swap;src:url(data:font/ttf;base64,__FONT__) format('truetype');}
 :root{ --paper:#f6f2e9; --ink:#26221c; --ink2:#8a8377; --line:#d9d2c2; --barbg:#fffdf7; --gold:#a8845c;
@@ -3209,10 +3210,14 @@ function openBeat(b){
   // ringed — folded behind the stacked-squares button, which only appears
   // once a draw has actually replaced something.
   var vr=document.getElementById('verrow'); vr.innerHTML='';
-  var vers=((su.url&&!clip)?[su.url]:[]).concat((su.imageHistory||[]).slice().reverse().map(function(h){return h.url;}).filter(Boolean));
+  var hist=(su.imageHistory||[]).slice().reverse().filter(function(h){return h&&h.url;});
+  var vers=((su.url&&!clip)?[su.url]:[]).concat(hist.map(function(h){return h.url;}));
   // The same list the lightbox steps through, so the row's order and the
-  // left/right taps can never disagree.
+  // left/right taps can never disagree. Each picture's PROVENANCE rides
+  // beside it (the slot's `src`, the history entry's own `src`) — what the
+  // lightbox's Prompt door and MODEL · QUALITY · SIZE line are built from.
   lbVers=vers; lbHasCur=Boolean(su.url&&!clip);
+  lbSrcs=((su.url&&!clip)?[su.src||null]:[]).concat(hist.map(function(h){return h.src||null;}));
   var av=document.getElementById('arvers');
   // OPEN AT ONE, not at two (2026-08-28, the cull). It used to appear only
   // once a draw had replaced something, which was right while the row was
@@ -3901,33 +3906,84 @@ document.getElementById('speak').onclick=function(ev){
      the lock — `onClose` re-asserts this page's body lock, because the
        lightbox opens OVER the beat popup and the shared close clears
        body.overflow on its way out. */
-var lbVers=[], lbHasCur=false, lbAt=-1;
+var lbVers=[], lbSrcs=[], lbHasCur=false, lbAt=-1, lbAsset=null;
 function lbShowing(){
   var el=document.getElementById('clightbox');
   return !!el && el.style.display!=='' && el.style.display!=='none';
 }
-function openLbAt(i){
+/* WHAT THE PICTURE WAS MADE FROM — the Prompt door and the MODEL · QUALITY ·
+   SIZE line, exactly as the Assets tab and the Playground show them
+   (2026-09-06, Sophie: "the prompt, when things get drawn in the story room -
+   does it get attached. i don't see 'prompt' at the top w style and content,
+   nor model - it's not like the other light boxes. it shud be"). The beat had
+   stored all of it since the day the pad drew (`src`: her words, the exact
+   text that was sent, the model, the quality) and this page never handed any
+   of it to the lightbox. Built from the record and nothing else:
+     content = `src.prompt`, her words verbatim;
+     style   = the exact sent text (`promptUsed`) with her words cut out and
+               `[content]` marking the seam — the Assets overlay's convention.
+               Her words not verbatim inside it, or no sent text on file (a
+               Playground pick's src carries the run's words but not its
+               wrapper) → NO style half, which the lightbox shows as the
+               words alone. Never a reconstruction.
+     caption = model · quality · tier, each slot only when the record says
+               it; the tier is DERIVED from the recorded canvas (size-tier.js),
+               never a table here. A picture with no provenance at all (a
+               phone upload, a version banked before src was kept) gets no
+               door and no line — the Assets tab's own silence.
+     cast    = the characters that rode the draw, by name (the record keeps
+               names only, so no face is drawn beside them). */
+function lbAssetFor(src){
+  var s=src||{}; var a={};
+  var content=String(s.prompt||'').trim();
+  var full=String(s.promptUsed||'');
+  if(content){
+    a.promptContent=content;
+    var at=full?full.indexOf(content):-1;
+    if(at>=0){
+      var style=(full.slice(0,at)+'[content]'+full.slice(at+content.length)).trim();
+      if(style!=='[content]')a.promptStyle=style;
+    }
+  }
+  var parts=[];
+  if(s.model)parts.push(String(s.model));
+  if(s.quality)parts.push(String(s.quality));
+  var st=window.__sizeTier;
+  var tier=(st&&s.canvas)?st.tierOf(s.canvas):null;
+  if(tier)parts.push(tier);
+  if(parts.length)a.prompt=parts.join(' · ');
+  if(Array.isArray(s.characters)&&s.characters.length){
+    a.cast=s.characters.filter(Boolean).map(function(n){return {name:String(n),url:''};});
+  }
+  return a;
+}
+function openLbAt(i,step){
   if(i<0||i>=lbVers.length)return;
   lbAt=i;
   var url=lbVers[i];
   var pick=(i===0&&lbHasCur)?null:url;
-  window.__assetLightbox(url,{
-    nav:{
-      prev: i>0 ? function(){ openLbAt(lbAt-1); } : null,
-      next: i<lbVers.length-1 ? function(){ openLbAt(lbAt+1); } : null,
-      warm: [lbVers[i-1], lbVers[i+1]].filter(Boolean)   // fetched ahead of the step
-    },
-    cta: pick ? { label:'Use this one', onClick:function(e){ usePick(pick, e.currentTarget); } } : null,
-    onClose:function(){ lbAt=-1; if(popBeat)lock(true); }
-  });
+  var a=lbAssetFor(lbSrcs[i]);
+  // The door's state rides a STEP and dies with a fresh open (the house rule:
+  // "the half she picked rides along as she steps … a fresh open always
+  // starts on content").
+  if(step&&lbAsset){ a.promptSide=lbAsset.promptSide; a.promptOpen=lbAsset.promptOpen; }
+  a.nav={
+    prev: i>0 ? function(){ openLbAt(lbAt-1,true); } : null,
+    next: i<lbVers.length-1 ? function(){ openLbAt(lbAt+1,true); } : null,
+    warm: [lbVers[i-1], lbVers[i+1]].filter(Boolean)   // fetched ahead of the step
+  };
+  a.cta=pick ? { label:'Use this one', onClick:function(e){ usePick(pick, e.currentTarget); } } : null;
+  a.onClose=function(){ lbAt=-1; lbAsset=null; if(popBeat)lock(true); };
+  lbAsset=a;
+  window.__assetLightbox(url,a);
 }
 function openLb(url,pick){
   // Every caller goes through the list, so stepping works from the card's own
   // picture as well as from a thumbnail. A url the list has somehow lost opens
   // alone rather than not at all.
   var i=lbVers.indexOf(url);
-  if(i<0){ lbVers=[url]; lbHasCur=!pick; i=0; }
-  openLbAt(i);
+  if(i<0){ lbVers=[url]; lbSrcs=[null]; lbHasCur=!pick; i=0; }
+  openLbAt(i,false);
 }
 function closeLb(){
   if(window.__assetLightboxClose)window.__assetLightboxClose();

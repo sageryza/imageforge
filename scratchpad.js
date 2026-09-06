@@ -1759,6 +1759,11 @@ async function runArtJob(padId, id, { prompt, quality, character, style, chars, 
       swapArt(slot, url, {
         engine: 'gptimage', model: 'gpt-image-2', prompt, quality,
         character: useCard, style, promptUsed: full,
+        // The canvas it was drawn on — the MODEL · QUALITY · SIZE caption's
+        // third slot (the tier is DERIVED from it, size-tier.js). Recorded
+        // here because the story's shape can be corrected later and the
+        // picture already drawn keeps the canvas it really had.
+        canvas: canvas.size,
         // Provenance: WHICH characters rode this draw, by name — so a
         // picked-back version says who was in it.
         ...(picked.length ? { characters: picked.map((c) => c.name || '') } : {}),
