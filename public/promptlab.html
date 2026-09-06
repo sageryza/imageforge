@@ -30,6 +30,13 @@
      on this page and the one on the filed record cannot disagree about which
      rung a picture was drawn on. See /size-tier.js. -->
 <script src="/size-tier.js"></script>
+<!-- ✕ ON A SHEET IS ✕ ON ITS PANELS (2026-09-06, Sophie: "when i x a uncut
+     panels sheet it shud x every panel in it unless i hearted it or heart it
+     after or unex"). The SAME rule the vote route applies, so her tap marks
+     the panels on screen in the same frame — on the Panels tab the feed read
+     that follows a vote asks for kind=single, and a panels run's real votes
+     only come back when its own sweep next runs. See /sheet-cascade.js. -->
+<script src="/sheet-cascade.js"></script>
 <script src="/asset-lightbox.js"></script>
 <!-- Midjourney's curly brackets: `a {red, blue} bird` is two prompts. ONE
      copy of the expansion rule, shared with the pure test. -->
@@ -1418,11 +1425,11 @@
     var next = allSame ? '' : kind;               // all already marked -> clear
     // Optimistic, exactly as the lightbox's own cast is: her tap shows on the
     // page in the same frame, and loadRuns reconciles behind it.
-    items.forEach(function (it) {
-      var r = runsById[it.run];
-      var votes = r.votes = r.votes || {};
-      if (next) votes[it.image] = next; else delete votes[it.image];
-    });
+    // The SHEET first (-1 sorts ahead of every panel), so a batch holding a
+    // sheet AND one of its panels ends with HER mark on that panel rather than
+    // the cascade's — the order the batch route writes them in.
+    items.slice().sort(function (a, b) { return a.image - b.image; })
+      .forEach(function (it) { markLocal(runsById[it.run], it.image, next || null); });
     renderFeed();
     paintSel();
     var word = next === 'like' ? 'hearted' : next === 'dislike' ? 'crossed out' : 'put back';
@@ -5462,6 +5469,41 @@
       .catch(function () {});
   }
 
+  // ONE MARK ON THE PAGE'S OWN COPY OF A RUN — her tap, plus whatever a ✕ on
+  // the SHEET does to the panels under it (2026-09-06, Sophie: "when i x a
+  // uncut panels sheet it shud x every panel in it unless i hearted it or
+  // heart it after or unex"). The rule is /sheet-cascade.js, the SAME file the
+  // vote route decides with, so the two can never disagree about which panels
+  // a sheet's ✕ reaches.
+  //
+  // IT HAS TO HAPPEN HERE AND NOT ONLY ON THE SERVER: every vote is followed
+  // by loadRuns(), which asks for kind=single, so a PANELS run's real votes do
+  // not come back from that read at all — they wait on the panels sweep and
+  // its 20s throttle. Without this she crosses out a sheet, steps to the panel
+  // view and finds the panels unmarked, which reads as the rule not working.
+  //
+  // The cascade is planned BEFORE her own mark lands, because the plan asks
+  // what the sheet said a moment ago: releasing the panels is what an un-✕
+  // means, and after the write there is nothing left to say it was a ✕.
+  function markLocal(r, i, next) {
+    if (!r) return;
+    var votes = r.votes = r.votes || {};
+    var C = window.__sheetCascade;
+    if (C && String(i) === C.SHEET) {
+      var plan = C.plan(r, next);
+      var from = r.voteFrom = r.voteFrom || {};
+      plan.changed.forEach(function (j) {
+        if (plan.votes[j] === null) delete votes[j]; else votes[j] = plan.votes[j];
+        if (plan.from[j] === null) delete from[j]; else from[j] = plan.from[j];
+      });
+    } else if (r.voteFrom) {
+      // A direct mark on a panel makes it HERS — the tag goes, so a later
+      // un-✕ of the sheet has no claim on it ("or heart it after").
+      delete r.voteFrom[String(i)];
+    }
+    if (next === null || next === '') delete votes[i]; else votes[i] = next;
+  }
+
   // ♥/✕ — this run doc's own vote route, tap again to clear, exactly as the
   // old copy did; the shared lightbox repaints through _lbPaint.
   function castLB(kind) {
@@ -5469,7 +5511,7 @@
     var r = runsById[lbCur.id];
     var votes = r.votes = r.votes || {};
     var next = votes[lbCur.i] === kind ? null : kind;    // tap again to clear
-    if (next === null) delete votes[lbCur.i]; else votes[lbCur.i] = next;
+    markLocal(r, lbCur.i, next);
     lbAsset.vote = next;
     if (lbAsset._lbPaint) lbAsset._lbPaint();
     fetch('/api/promptlab/' + lbCur.id + '/vote', {
