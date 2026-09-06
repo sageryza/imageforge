@@ -60,6 +60,20 @@ All 12 NDE-category stories were linked to their montage episodes on
 "NDE · all the supercuts" carries all 11). Tests:
 `node scripts/test-storyroom-listen.js`.
 
+## Leaving a beat fills the empty half (2026-09-06)
+**Sophie: "caption and drawing prompt shud auto copy into each other if i
+leave the beat and one exists but the other doesn't."** `fillEmptyHalf()` runs
+first thing in `closeBeat()`: a beat with a drawing prompt and NO caption gets
+the prompt's words as its caption, through `saveNote()` → `POST /text`, so it
+is STORED — the tile's caption, the film's voice (`ttsFor` reads `text`) and
+the Caption box all carry the words. The other direction is deliberately NOT
+a write: an empty prompt already FOLLOWS the caption (`promptOf`, the hint
+line under the box), and `POST /prompt` deletes a stored prompt equal to the
+caption's drawable form, so copying it would be undone by the server. A beat
+with both, or neither, is left alone. Test:
+`node scripts/test-storyroom-caption-copy.js` (the real page against a stub
+that records what is POSTed).
+
 ## Chapters (2026-09-06)
 **Sophie, on her hospital story ("nautchaug", ~50 beats): "i want the chapter
 within a story. arrow buttons at the top, and a contents page w all the
