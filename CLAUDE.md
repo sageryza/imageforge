@@ -8234,6 +8234,30 @@ before working on that module. Nothing was deleted — the moved text is verbati
   the retired per-story Compare pages (`scripts/gen-story-timeline.js` and the
   `docs/story-timeline/timeline-v*.html` files are that history; her original
   story was migrated in by `scripts/seed-story-timeline.js`).
+  **HER WORDS GO ON THE TIMELINE EXACTLY AS SHE SENT THEM — NEVER ADD, DELETE,
+  SPLIT, REGROUP OR REORDER A LINE (2026-09-06, Sophie: "did u add delete or
+  change my words" · "if so undo" · "add to docs never do this").** The chat
+  that earned this filed her hospital memories with twelve ALL-CAPS sequence
+  headers of its own, put the lines into what it judged was chronological
+  order, split one long message in two, and quietly dropped eight lines it
+  read as chat noise — three of which were story ("oh his name was nicholas",
+  "cuz she was violent", a character description). She caught it in one
+  look. The rules, all of them hers:
+  - **One line of hers = one moment, verbatim, in the order she sent them.**
+    Chat order, not story order. Do not tidy spelling, spacing or dictation.
+  - **NO headers, NO sequences of yours.** Dividing the timeline is HER job
+    on the page ("i'll divide it"); a chat grouping it is deciding the story.
+  - **Drop nothing inside the span.** If a line is clearly aimed at the chat
+    ("ok", "storyboard?", "~9:16") it still goes in — she deletes it in one
+    tap on the page, where a story line a chat dropped is gone until she
+    notices. The only thing left out is what is plainly a different subject
+    before or after her account (a research Q&A), and the reply names the
+    exact first and last line kept.
+  - **Never re-POST or PUT over a story she may have touched** — read
+    `updatedAt` against `createdAt` first; if she has edited, propose in the
+    reply and wait.
+  - The fixed record is `docs/mental-hospital/` — her whole side of that
+    chat verbatim, and the exact text the timeline holds.
   **THE CARD IS THE ATOM, THE UNIT IS WHAT MOVES:** a unit is one moment or a
   run of them that travel together (her word: a SEQUENCE) and carries ONE
   number, because the number is its place in the order. `units` is an array of
