@@ -92,8 +92,11 @@ const blocks = (page, mid) => page.$$eval('#thread .msg[data-mid="' + mid + '"] 
   if (resetHidden) ok('no Reset while there is no edit to reset'); else fail('reset shown with no edit');
   // 4. Save files the edit and sends it as her message, quietly
   await page.fill(sel + ' textarea', 'she is the woman in [Video1].\n\nno voiceover.\n\n“No wait,” she says. “It’s only nine o’clock.”');
+  await page.waitForTimeout(1100);
+  // 4a. it autosaved on the pause in typing — before Done, nothing in the thread yet
+  if (edits.length === 1 && edits[0].id === 'plan' && edits[0].key === K1 && /nine o’clock/.test(edits[0].text) && replies.length === 0) ok('a pause in typing autosaves /blockedit {id, key, text}; nothing posted to the thread yet'); else fail('autosave: ' + JSON.stringify([edits, replies]));
   await page.click(sel + ' .mqsave'); await page.waitForTimeout(400);
-  if (edits.length === 1 && edits[0].id === 'plan' && edits[0].key === K1 && /nine o’clock/.test(edits[0].text)) ok('/blockedit received {id, key, text} for that message and block'); else fail('edits: ' + JSON.stringify(edits));
+  if (edits.length === 1) ok('Done files nothing new when the autosave already has it'); else fail('edits after Done: ' + JSON.stringify(edits));
   if (replies.length === 1 && replies[0].chat === 'ward' && /^Edit of “she is the woman in \[Video1\]\./.test(replies[0].text) && /nine o’clock/.test(replies[0].text)) ok('the edit went into the thread as her message, naming the block'); else fail('replies: ' + JSON.stringify(replies));
   if (wakes.length === 0) ok('no doorbell'); else fail('wake rang: ' + JSON.stringify(wakes));
   b = await blocks(page, 'plan');
@@ -109,10 +112,10 @@ const blocks = (page, mid) => page.$$eval('#thread .msg[data-mid="' + mid + '"] 
   await page.click(sel + ' .mqreset'); await page.waitForTimeout(400);
   b = await blocks(page, 'plan');
   if (edits.length === 2 && edits[1].text === '' && b[0].text === Q1 && !b[0].edited && replies.length === 2 && /put back the original/.test(replies[1].text)) ok('Reset files an empty edit, says so in the thread, and the original is back, mark gone'); else fail('reset: ' + JSON.stringify([edits[1], b[0]]));
-  // 6. Cancel changes nothing
-  await page.click(sel + ' .mqedit'); await page.fill(sel + ' textarea', 'typed and abandoned'); await page.click(sel + ' .mqcancel'); await page.waitForTimeout(150);
+  // 6. opening and closing with nothing changed files nothing and sends nothing
+  await page.click(sel + ' .mqedit'); await page.waitForTimeout(100); await page.click(sel + ' .mqsave'); await page.waitForTimeout(300);
   b = await blocks(page, 'plan');
-  if (b[0].text === Q1 && edits.length === 2 && replies.length === 2) ok('Cancel closes the box, files nothing, sends nothing'); else fail('cancel: ' + JSON.stringify([b[0], edits.length, replies.length]));
+  if (b[0].text === Q1 && edits.length === 2 && replies.length === 2) ok('Done with nothing changed files nothing, sends nothing'); else fail('no-op: ' + JSON.stringify([b[0], edits.length, replies.length]));
   // PHOTO: the block as she sees it
   await page.screenshot({ path: '/tmp/claude-0/-home-user/6c1269bd-6f12-50d1-9684-f149bf9bc01e/scratchpad/p9/script-block.png', clip: { x: 0, y: 0, width: 390, height: 844 } }).catch(() => {});
   await browser.close(); server.close();
