@@ -779,7 +779,7 @@ button.dayrule{border:none; background:none; padding:0; cursor:pointer;
 .mquote .mqedited{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--bell);}
 .mquote .mqedit{margin-left:auto; width:26px; height:26px; padding:0; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink2); cursor:pointer;}
 .mquote .mqedit svg{width:14px; height:14px;}
-.mquote textarea{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px; min-height:120px; padding:7px 10px; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink); resize:vertical;}
+.mquote textarea{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px; line-height:inherit; min-height:48px; overflow:hidden; padding:7px 10px; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink); resize:vertical;}
 .mquote textarea:focus{outline:none; border-color:var(--rose);}
 .mquote .mtbar{display:flex; align-items:center; gap:8px; margin-top:6px; flex-wrap:wrap;}
 .mquote .mtstat{flex:1; min-width:0; font-style:italic; font-size:.85em; color:var(--ink2);}
@@ -8045,6 +8045,14 @@ function quoteOpenEdit(blk, owner){
   textEl.hidden=true; foot.hidden=true;
   blk.insertBefore(ta, foot); blk.insertBefore(bar, foot);
   blk.onclick=function(e){ e.stopPropagation(); };
+  // THE BOX IS THE SIZE OF THE WORDS (2026-09-07, Sophie: "hard to edit since
+  // the text box is small. make it the same size as the text"). Fitted to its
+  // content on open and on every keystroke — height:auto first or it can only
+  // grow, the border added back on a border-box box (the Playground's
+  // bigger-box rules). No cap: a script block is read whole, so it is edited
+  // whole; the page scrolls, the box never does.
+  function fit(){ ta.style.height='auto'; ta.style.height=(ta.scrollHeight+(ta.offsetHeight-ta.clientHeight))+'px'; }
+  ta.addEventListener('input', fit); fit();
   ta.focus();
   function close(){ ta.remove(); bar.remove(); textEl.hidden=false; foot.hidden=false; }
   function paint(text){

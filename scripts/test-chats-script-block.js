@@ -81,6 +81,13 @@ const blocks = (page, mid) => page.$$eval('#thread .msg[data-mid="' + mid + '"] 
   const val = await page.$eval(sel + ' textarea', (t) => t.value);
   const hidden = await page.$eval(sel + ' .mqtext', (n) => n.hidden);
   if (val === Q1 && hidden) ok('the pencil swaps the words for a box holding exactly them'); else fail('box: ' + JSON.stringify([val, hidden]));
+  // the box is the size of its words: no inner scroll, and as tall as the words were
+  const fitted = await page.$eval(sel + ' textarea', (t) => ({ h: t.getBoundingClientRect().height, sh: t.scrollHeight, words: t.parentNode.querySelector('.mqtext').scrollHeight }));
+  if (fitted.h >= fitted.sh - 1 && fitted.h >= fitted.words * 0.9) ok('the box is fitted to the words (no inner scroll, at least as tall as the text was)'); else fail('box size: ' + JSON.stringify(fitted));
+  await page.type(sel + ' textarea', '\n\nmore lines\nand more\nand more\nand more'); await page.waitForTimeout(100);
+  const grown = await page.$eval(sel + ' textarea', (t) => ({ h: t.getBoundingClientRect().height, sh: t.scrollHeight }));
+  if (grown.h > fitted.h && grown.h >= grown.sh - 1) ok('typing more grows the box with the words'); else fail('grow: ' + JSON.stringify([fitted, grown]));
+  await page.fill(sel + ' textarea', Q1);
   const resetHidden = await page.$eval(sel + ' .mqreset', (n) => n.hidden);
   if (resetHidden) ok('no Reset while there is no edit to reset'); else fail('reset shown with no edit');
   // 4. Save files the edit and sends it as her message, quietly

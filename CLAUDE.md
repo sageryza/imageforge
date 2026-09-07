@@ -151,7 +151,8 @@ asking for the LIST — the stills, the shots, the model, the size, the price
 clips drawing before she saw a single shot. When in doubt, the page with the
 plan costs nothing; the batch is what cannot be taken back. **And banked
 credits are dollars: 930 APIFRAME credits is $9.30, three times the $3
-ask line.**
+ask line — and SAY DOLLARS, never credits, in a reply (2026-09-07, Sophie:
+"can u call it dollars not credits").**
 
 **A VIDEO CLIP IS NEVER SENT WITHOUT HER "GO" FOR THAT EXACT JOB (2026-09-07,
 Sophie: "this footage is v expensive · never run without asking · note that
