@@ -64,3 +64,9 @@ New footage — for later, not to run:
 - Sophie did not know this until 2026-09-07; the drafted scenes with a lot
   of prose (the sculptures, the town hall, the parents at the table) will
   want their lines quoted before a go.
+- **And improvised speech is often GIBBERISH, not English** (Sophie: "the
+  teacher speaks gibberish like sims") — with no words given, the audio model
+  makes the sound of talking, and a prompt naming a nationality in prose
+  ("a large Italian woman", "the beaches of Italy") pulls that noise toward
+  a pseudo-language. Quoted lines come out as real English. A line of
+  "everyone speaks English" is the belt to the quotes' braces.
