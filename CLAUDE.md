@@ -6,7 +6,11 @@ Everything below is written out properly further down; this is the short list,
 at the top, because being on line 1,400 of a long file is why these got missed.
 The numbers are measured, not guessed.
 
-**Ending a turn that changed anything**
+**Every FIVE turns, not every turn (2026-09-07, Sophie: "change the rule to
+every 5 turns")** — the hook's reminder fires on every fifth prompt of a
+session, and that is when the two cards below get refreshed; a turn that
+changes nothing she would read off the card can skip it. Wrapping up (3b) is
+still every time the work wraps up.
 1. **Refresh your STATUS CARD** — `POST /api/chatfeed/status {chat, session,
    need, doing}`. Telegraphic fragments, ~30-60 chars, the way she writes her
    own notes. `need` = what you need from her AND how big the ask is; send `""`
