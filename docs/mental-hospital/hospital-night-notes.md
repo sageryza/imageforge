@@ -116,3 +116,15 @@ reference for every scene after (it pairs with the jazz, which a 30s
 scene never can). The doctor and the assistant had to be rebuilt this way
 after the fact — see the b-roll jobs. Mayra and the white-coat nurse are
 the first to get it right.
+
+## TWO LIMITS ON EVERY JOB (2026-09-07, Sophie: "only 30s reference footage per clip · each character appearance must ride w their FIRST appearance")
+1. Reference footage totals 30s (30.2 measured) per job — videos only;
+   stills are free.
+2. Every character rides their ORIGIN clip: Sophie = the jazz (15.1s),
+   everyone else = their 4s audition. Never a copy of a copy.
+So the budget per scene is the jazz + up to three 4s characters (15 + 4 +
+4 + 4 = 27), or without Sophie, seven. A group that always appears
+together (the parents; the doctor and the assistant) auditions in ONE 4s
+clip and rides it as one. The one exception already made: the doctor and
+the assistant were born in intake A (25s), which cannot pair with the
+jazz, so their 4s b-roll off intake A stands in as their origin (1 step).
