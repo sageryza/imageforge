@@ -28,4 +28,4 @@ New footage — for later, not to run:
 
 ## Cast decisions
 - **The doctor is the one in intake A** (2026-09-07, Sophie: "that's the doctor so any other clips w him"). Reference for every later doctor clip: the intake A clip (its first 15s, `ward-intake-A-ref15.mp4` in the Dump, so it fits the 30s reference cap beside v6).
-- **The assistant changes clothes** so she doesn't match the patients: a skirt and a purple sweater, hair up (her words). Written into every clip she is in from intake B on.
+- **The assistant changes clothes** so she doesn't match the patients: a skirt and a purple sweater, hair up (her words). Not mid-scene: intake B keeps her in the blue scrubs of intake A; the skirt and sweater start with her next scene (the assistant at the doorway).
