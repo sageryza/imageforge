@@ -138,7 +138,7 @@ GALLERY="${FORGE_GALLERY_URL:-https://imageforge-q125.onrender.com/api/gallery}"
 # own instructions would be the server telling every chat what to do, which is
 # the boundary the v11 note describes. Keep it to ONE line: it is paid for by
 # every turn in every session.
-REMINDER="[chats] Before ending a turn that changed your state: refresh your status card and Update card — POST /api/chatfeed/status and /api/chatfeed/update (see CLAUDE.md 'STATUS CARDS' and 'UPDATE'). Update card: asked = what she wanted in her terms, did = what changed, next = optional; never paste your reply verbatim."
+REMINDER="[chats] Every 5 turns (this is one): refresh your status card and Update card — POST /api/chatfeed/status and /api/chatfeed/update (see CLAUDE.md 'STATUS CARDS' and 'UPDATE'). Update card: asked = what she wanted in her terms, did = what changed, next = optional; never paste your reply verbatim."
 
 transcript=$(printf '%s' "$input" | jq -r '.transcript_path // empty')
 [ -n "$transcript" ] && [ -f "$transcript" ] || exit 0
@@ -414,8 +414,17 @@ if [ "$event" = "UserPromptSubmit" ]; then
   # stdout as JSON, so anything else printed after this would corrupt it. If
   # jq is missing the substitution is empty and nothing is printed, which is
   # the pre-v13 behaviour: silence, never a broken half-line.
-  jq -nc --arg t "$REMINDER" \
-    '{hookSpecificOutput:{hookEventName:"UserPromptSubmit", additionalContext:$t}}' 2>/dev/null
+  # v20 (2026-09-07, Sophie: "change the rule to every 5 turns") — the
+  # reminder prints on every FIFTH prompt of a session, not every prompt. A
+  # per-session counter file holds the count; a missing or unreadable one
+  # starts at 0, so the first reminder of a session lands on its 5th turn.
+  nfile="$HOME/.claude/forge-prompts-${sid}.n"
+  n=$(cat "$nfile" 2>/dev/null); case "$n" in ''|*[!0-9]*) n=0;; esac
+  n=$((n+1)); printf '%s' "$n" > "$nfile" 2>/dev/null
+  if [ $((n % 5)) -eq 0 ]; then
+    jq -nc --arg t "$REMINDER" \
+      '{hookSpecificOutput:{hookEventName:"UserPromptSubmit", additionalContext:$t}}' 2>/dev/null
+  fi
 fi
 
 state="$HOME/.claude/forge-feed-${sid}.posted"
