@@ -324,6 +324,24 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    pill, and this is a state, not a control. */
 .pinned .cur{flex:none; font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:9px;
   letter-spacing:.22em; text-transform:uppercase; color:var(--rose);}
+/* THE CLIPS STRIP (2026-09-07) — every clip the chat handed over, newest
+   first, under the pinned row. A row is LIT (rose dot, bold) until she taps
+   it; the seen set is the phone's own (localStorage), so a clip stays new
+   until she looks at it, whatever the chat does. Play = the pinned player;
+   save = the Dump file, a sibling never nested. */
+.clips{margin:0 0 .7em; width:calc(100% - var(--pillgap, 0px));}
+.clips .clipshead{display:flex; align-items:center; gap:8px; width:100%; border:0; background:none; padding:4px 0; font:inherit;
+  font-size:.82em; letter-spacing:.06em; text-transform:uppercase; color:var(--muted,#8a8176); cursor:pointer; text-align:left;}
+.clips .clipshead .n{color:var(--rose); font-weight:600; letter-spacing:0; text-transform:none;}
+.cliprow{display:flex; align-items:center; gap:8px; margin:0 0 4px;}
+.cliprow .clip{flex:1; min-width:0; display:flex; align-items:center; gap:9px; border:1px solid var(--line); border-radius:6px;
+  padding:7px 10px; background:var(--barbg); text-align:left; cursor:pointer; font:inherit;}
+.cliprow .clip .dot{width:8px; height:8px; border-radius:50%; flex:none; background:transparent; border:1px solid var(--line);}
+.cliprow.new .clip .dot{background:var(--rose); border-color:var(--rose);}
+.cliprow .clip .ti{flex:1; min-width:0; font-size:.9em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.cliprow.new .clip .ti{font-weight:600;}
+.cliprow .clip .when{flex:none; font-size:.72em; color:var(--muted,#8a8176);}
+.cliprow .clipsave{flex:none; font-size:.8em; color:var(--muted,#8a8176); text-decoration:underline; padding:6px 2px;}
 #pinfull{position:fixed; inset:0; background:#000; z-index:120; display:flex; align-items:center; justify-content:center;}
 #pinfull video{width:100%; height:100%; object-fit:contain; background:#000;}
 #pinfull .x{position:absolute; top:calc(env(safe-area-inset-top,0px) + 10px); right:12px; z-index:2;
@@ -8498,6 +8516,39 @@ function openChat(name, keepScroll, focusId, noFetch){
     }
     head.appendChild(b);
     pillRows.push(b);
+  })();
+  // THE CLIPS STRIP — see the CSS note. Rides `clips` on the registry doc
+  // (POST /api/chatfeed/clips), newest first; the seen set is localStorage.
+  (function(){
+    var clips=(chats[name]&&chats[name].clips)||[];
+    if(!clips.length) return;
+    var key='chats.clipseen.'+name, seen={};
+    try{ seen=JSON.parse(localStorage.getItem(key)||'{}')||{}; }catch(e){}
+    var fresh=clips.filter(function(c){ return c&&c.url&&!seen[c.url]; }).length;
+    var wrap=document.createElement('div'); wrap.className='clips';
+    var open=true; try{ open=localStorage.getItem('chats.clipsopen.'+name)!=='0'; }catch(e){}
+    var hd=document.createElement('button'); hd.type='button'; hd.className='clipshead';
+    function paintHead(){ hd.innerHTML='<span>'+(open?'\u2304':'\u203a')+' Clips \u00b7 '+clips.length+'</span>'+(fresh?'<span class="n">'+fresh+' new</span>':''); }
+    paintHead();
+    var list=document.createElement('div'); list.hidden=!open;
+    hd.onclick=function(){ open=!open; list.hidden=!open; try{localStorage.setItem('chats.clipsopen.'+name,open?'1':'0');}catch(e){} paintHead(); };
+    clips.forEach(function(c){
+      if(!c||!c.url) return;
+      var row=document.createElement('div'); row.className='cliprow'+(seen[c.url]?'':' new');
+      var b=document.createElement('button'); b.type='button'; b.className='clip';
+      var when=''; try{ var d=new Date(c.at); when=d.toLocaleString('en-US',{timeZone:'America/Los_Angeles',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).toLowerCase(); }catch(e){}
+      b.innerHTML='<span class="dot"></span><span class="ti">'+esc(c.title||'clip')+'</span><span class="when">'+esc(when)+'</span>';
+      b.onclick=function(){
+        if(!seen[c.url]){ seen[c.url]=1; try{localStorage.setItem(key,JSON.stringify(seen));}catch(e){} row.classList.remove('new'); fresh=Math.max(0,fresh-1); paintHead(); }
+        openPinned({url:c.url,title:c.title||'',kind:'video'}, name);
+      };
+      row.appendChild(b);
+      if(c.id){ var a=document.createElement('a'); a.className='clipsave'; a.href='/api/drop/file/'+encodeURIComponent(c.id); a.textContent='save'; a.setAttribute('download',''); row.appendChild(a); }
+      list.appendChild(row);
+    });
+    wrap.appendChild(hd); wrap.appendChild(list);
+    head.appendChild(wrap);
+    pillRows.push(wrap);
   })();
   // Archive sits beside the chat's NAME, above the tab bar, and reads as plain
   // text rather than a button — it isn't a place to go, it's a thing you do
