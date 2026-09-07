@@ -153,6 +153,17 @@ plan costs nothing; the batch is what cannot be taken back. **And banked
 credits are dollars: 930 APIFRAME credits is $9.30, three times the $3
 ask line.**
 
+**A VIDEO CLIP IS NEVER SENT WITHOUT HER "GO" FOR THAT EXACT JOB (2026-09-07,
+Sophie: "this footage is v expensive · never run without asking · note that
+somewhere" · "new policy — double check before sending a job · have me
+approve the prompt and references etc").** A Seedance 2.5 clip is $3-5 each,
+and a refused one still costs a round trip. Before EVERY job: show the model,
+seconds, resolution, the exact prompt, and every reference (which video, which
+picture) — then wait for her word. "go" is her code word for send. A watcher
+that fires on its own when credits land, a retry with the prompt changed, a
+probe with made-up text: all three happened that day and all three are out.
+Read back what the API really received after sending, and say it.
+
 **Animating a still or generating a clip (Seedance, Wan, Kling, any model)**
 - **MINIMUM SECONDS UNLESS SHE SPECIFIES, and ASK BEFORE SPENDING THE
   CREDITS (2026-09-05, Sophie, after a chat drew fifteen 8-second clips for
