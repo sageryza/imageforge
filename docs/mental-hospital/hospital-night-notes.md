@@ -90,3 +90,14 @@ New footage — for later, not to run:
   close-up of his chin; "seated comfortably in a high-backed leather chair"
   → a shot from the floor up at him. Descriptive flourishes read as shot
   lists. Keep prose to the action she wants SEEN, or name the shot.
+
+## THE JAZZ IS IN EVERY CLIP WITH SOPHIE — no exceptions (2026-09-07, Sophie: "triple flag no stop any clip w her in it without the jazz reference")
+The jazz (v6, 15.1s, `apiframe-video/1788736757836-f3j8qh.mp4`) is the only
+clip of her face that is not a copy of a copy. Every job that has Sophie in
+it carries it as a reference, and the prompt names her off it ("sophie is the
+woman in [Video1]" with the jazz as Video1). The scene reference (a room, a
+nurse, the previous shot) rides as Video2 and is named for what it carries —
+never for her face. References must total ≤30.2s, so a 30s scene clip cannot
+pair with the jazz: use the jazz + stills of the room/pajamas instead, or a
+≤15s scene clip. 14 ward clips were made without it (every one at 2+ steps
+on the face-drift page); they stand as shot and are redo candidates.
