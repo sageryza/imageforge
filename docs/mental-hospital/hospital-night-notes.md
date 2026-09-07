@@ -29,3 +29,9 @@ New footage — for later, not to run:
 ## Cast decisions
 - **The doctor is the one in intake A** (2026-09-07, Sophie: "that's the doctor so any other clips w him"). Reference for every later doctor clip: the intake A clip (its first 15s, `ward-intake-A-ref15.mp4` in the Dump, so it fits the 30s reference cap beside v6).
 - **The assistant changes clothes** so she doesn't match the patients: a skirt and a purple sweater, hair up (her words). Not mid-scene: intake B keeps her in the blue scrubs of intake A; the skirt and sweater start with her next scene (the assistant at the doorway).
+
+## Notes on the ward clips (2026-09-07, for later — new footage, not to run)
+- The table: Anastasia is supposed to be a beautiful blond ballerina — she came out with the braid but not as pictured. Michael is "LITERALLY perfect", the reference for him from here.
+- The table: Sophie was supposed to slot herself in BETWEEN Anastasia and Michael for the comedy — the clip seats her across from them.
+- Music class: could have been redone with the table footage so Michael and Anastasia are in the room.
+- A 4s insert of her face while she talks at the table (the clip never cuts to her): reference the whole table clip, prompt the close-up with her line; lay it into the recut.
