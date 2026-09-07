@@ -25,3 +25,7 @@ New footage — for later, not to run:
 ## Cast notes
 - Michael (her words, 2026-09-07): he was tall, and kind of awkward. dirty sneakers. very light brown hair in no particular arrangement, just kind of plastered there. falling flat. medium build. wide, searching blue eyes. kind of a forlorn expression
 - Real photos of real people are refused as references by Seedance ("may contain real person") — Mayra's and Michael's photos, and photoreal portraits of the doctor and the assistant. People are described in words; the clip that births a face becomes the reference for the next.
+
+## Cast decisions
+- **The doctor is the one in intake A** (2026-09-07, Sophie: "that's the doctor so any other clips w him"). Reference for every later doctor clip: the intake A clip (its first 15s, `ward-intake-A-ref15.mp4` in the Dump, so it fits the 30s reference cap beside v6).
+- **The assistant changes clothes** so she doesn't match the patients: a skirt and a purple sweater, hair up (her words). Written into every clip she is in from intake B on.
