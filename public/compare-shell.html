@@ -128,6 +128,15 @@
   // NOTES — one line, and every [data-item] gets a note box that saves as she
   // types, reloads what she wrote last time, and survives leaving the page.
   // Add this to EVERY page with reviewable items (Sophie's standing rule).
+  //
+  // AN ITEM'S `text` ON THE VERDICT DOC *IS* ITS NOTE THREAD (2026-09-07).
+  // If your page stores its OWN editable text on the same doc — a scene she
+  // edits, an order, a plan — it must ride ITS OWN KEY ('<id>.t', 'ord-<id>')
+  // or its own sheet, never the data-item id. A b-roll page saved her scene
+  // edit under the item id; her "go" note replaced it, the chat sent the
+  // draft, and $1.20 went on words she had not approved. POST /page warns on
+  // the shape now; the server keeps the overwritten text one step back
+  // (`textsWas` on GET /verdict) — but do not lean on that.
   window.__compareNotes({ chat: 'CHAT NAME', sheet: 'SHEET NAME' });
 
   // THE "?" — the ONLY place instructions may live. Delete this call if the

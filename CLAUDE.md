@@ -165,6 +165,24 @@ that fires on its own when credits land, a retry with the prompt changed, a
 probe with made-up text: all three happened that day and all three are out.
 Read back what the API really received after sending, and say it.
 
+**AND EVERY CLIP'S EXACT PROMPT AND EVERY REFERENCE IS LOGGED, BY THE
+SERVER, THE MOMENT IT IS SENT (2026-09-07, Sophie: "you're saving every
+single exact prompt, including the reference … eventually we will redo all
+this footage at 1080p once it's perfect and we need the prompts and the
+references").** `POST /api/apiframe/video` files `forge-video-jobs/<jobId>`
+— the literal prompt, the model, the exact `seedanceParams` sent (duration,
+resolution, aspect, audio, every reference url), plus `chat`/`scene`/`title`
+when the caller sends them (SEND THEM — a log with no scene on it is a list
+of prompts nobody can put back on the map). The poll fills in the outcome
+and the clip's permanent url; `GET /api/apiframe/video-log?chat=` is the
+read. `video-log.js` is the shape. **A clip drawn outside the route, or made
+before this landed, is filed with `node scripts/apiframe-video-log-backfill.js
+--chat <slug> <jobId>:<scene>:<title>…` (`--file jobs.json` for a batch;
+reads the job back from APIFRAME, so nothing is reconstructed).** APIFRAME
+has no job-list endpoint, so a job id a chat did not keep is gone with its
+container — the ward chat's earlier clips are only recoverable from that
+chat's own `af-*-job.json` files. Test: `node scripts/test-video-log.js`.
+
 **Animating a still or generating a clip (Seedance, Wan, Kling, any model)**
 - **MINIMUM SECONDS UNLESS SHE SPECIFIES, and ASK BEFORE SPENDING THE
   CREDITS (2026-09-05, Sophie, after a chat drew fifteen 8-second clips for
@@ -3489,6 +3507,25 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   `window.__compareNotes({chat, sheet})`, one line. Answer her on the note
   itself; it renders as a thread. Never post to `/api/chatfeed/reply` from a
   page — the server reroutes it onto the page's verdict doc.
+- **AN ITEM'S `text` ON THE VERDICT DOC IS ITS NOTE THREAD — A PAGE'S OWN
+  TEXT NEVER SHARES THE data-item KEY (2026-09-07, Sophie: "the whole point
+  was my edit" · "audit elsewhere to see if it happens or could happen
+  anywhere else").** A b-roll page saved each scene's editable text under its
+  item id, the slot `__compareNotes` writes to; her "go" note replaced the
+  scene edit she had just made, and the chat — having read "— me: go" in the
+  slot — sent its own draft anyway, $1.20 of her money on words she had not
+  approved. Own text rides its own key (`<id>.t`, `ord-<id>`) or its own
+  sheet. Audited the same hour: every other page in the repo and all 24
+  posted pages that write their own text already do (the dominoes games,
+  the Evan running orders, the timelines, Head Games, the shoebox timing) —
+  none clashed. Three things now: `POST /page` warns on the shape (a bare
+  `item:` beside `text:` on a page that wires notes), the verdict route
+  keeps the text it writes over as `textsWas[item]` (`verdict-text.js`,
+  read back on `GET /verdict`) so this class is recoverable once, and the
+  shell says the rule. And the rule under the rule: **a "go" is a go for the
+  text SHE approved — when the slot she edited reads as anything but her
+  words, stop and ask, never send the draft.** Tests:
+  `node scripts/test-verdict-text.js`, `node scripts/test-page-kit-warnings.js`.
 - **A new VERSION is a NEW page**, never an edit of the old one, and the title
   says which version it is. Supersede the one it replaces
   (`POST /page/:id/supersede`) instead of deleting it. A verdict sheet's name

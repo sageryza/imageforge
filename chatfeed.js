@@ -70,6 +70,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const fetch = require('node-fetch');
 const { buildQuestions, answeredOnly, isCompacted } = require('./questions');
+const verdictText = require('./verdict-text');
 const { parseQuery } = require('./search-grammar');
 const { shouldPushReply, chatNotifies, needEscalates, pushAlert, pushBody } = require('./push-gate');
 const chatSort = require('./chat-sort');
@@ -4394,6 +4395,27 @@ function kitWarnings(html) {
     out.push('Example text in a box (placeholder=): text boxes ship EMPTY. '
       + 'If an example is genuinely needed, put it behind the "?" instead.');
   }
+  // A NOTE AND A PAGE'S OWN TEXT MUST NOT SHARE AN ITEM KEY (2026-09-07 — a
+  // b-roll page saved each scene's editable text under its data-item id, the
+  // same slot __compareNotes writes the note thread to, and her "go" note
+  // replaced the scene edit she had just made; the chat then sent the draft.
+  // The text field on a verdict item IS the note thread. Any other text a
+  // page stores must ride its own key ('<id>.t', 'ord-<id>') or its own
+  // sheet.) The check is a heuristic on the page's OWN inline writes — a
+  // bare `item: id` / `item: item` beside `text:` — a literal prefix in the
+  // item expression ('p:' + c.id) passes, so the pages already doing it
+  // right stay quiet.
+  if (/__compareNotes\s*\(/.test(s)) {
+    const inline = s.replace(/<script[^>]*\ssrc=[^>]*>\s*<\/script>/gi, ' ');
+    const own = [...inline.matchAll(/verdict[\s\S]{0,400}?item\s*:\s*([^,}]{1,60}),[\s\S]{0,120}?\btext\s*:/g)]
+      .map((m) => m[1].trim()).filter((e) => !/['"]/.test(e));
+    if (own.length) {
+      out.push('The page wires __compareNotes AND writes its own `text` onto verdict '
+        + 'items (item: ' + own[0] + '): an item\'s text IS its note thread, so a note she '
+        + 'writes REPLACES whatever the page stored there. Save the page\'s own text under '
+        + 'its own key (`<id>.t`) or its own sheet.');
+    }
+  }
   return out;
 }
 
@@ -5421,6 +5443,19 @@ router.post('/verdict', express.json({ limit: '64kb' }), async (req, res) => {
       };
     }
     if (text !== undefined) patch.texts = { [String(item)]: String(text || '').slice(0, 2000) };
+    // THE TEXT BEING WRITTEN OVER IS KEPT — ONE STEP BACK (2026-09-07, after
+    // her scene edit was overwritten by her own "go" note on a page that
+    // saved both under one key, and nothing anywhere held the words she had
+    // typed). A write that replaces a DIFFERENT non-empty text files the old
+    // one under `textsWas[item]` with the moment it was replaced. One read
+    // per text write, no model call; a read failure never blocks the write.
+    if (text !== undefined) {
+      try {
+        const prev = await db.collection('forge-chat-verdicts').doc(id).get();
+        const was = verdictText.keptOver(prev.exists ? prev.data() : {}, String(item), patch.texts[String(item)]);
+        if (was) patch.textsWas = { [String(item)]: was };
+      } catch (e) { /* the write still lands */ }
+    }
     // HER PLACE IN THE DECK (2026-08-29, Sophie: "does it save my place rather
     // than showing me things I've already swiped on"). One item id, on the doc
     // her verdicts already live on — so it costs no extra read, it follows her
@@ -5465,7 +5500,7 @@ router.get('/verdict', async (req, res) => {
     const id = `${String(chat).slice(0, 80)}__${String(sheet).slice(0, 80)}`;
     const doc = await admin.firestore().collection('forge-chat-verdicts').doc(id).get();
     const d = doc.exists ? doc.data() : {};
-    res.json({ ok: true, items: d.items || {}, texts: d.texts || {}, at: d.at || '' });
+    res.json({ ok: true, items: d.items || {}, texts: d.texts || {}, at: d.at || '', textsWas: d.textsWas || {} });
   } catch (err) {
     res.status(502).json({ error: err.message });
   }

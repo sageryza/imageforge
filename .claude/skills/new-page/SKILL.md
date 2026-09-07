@@ -137,6 +137,13 @@ halves and carries the rules as comments. Post with
   **Answer her on the note itself** — append `\n\n— Claude: …` to the same
   `text` field so the item holds the conversation ("otherwise I forget what
   we're talking about"), and she replies under your line.
+  **AN ITEM'S `text` IS ITS NOTE THREAD — never store anything else under
+  the data-item id (2026-09-07).** A page that keeps its own editable text on
+  the verdict doc (a scene she edits, an order, a plan) saves it under its OWN
+  key (`<id>.t`, `ord-<id>`) or its own sheet. The b-roll page that earned this
+  saved her scene edit under the item id, her "go" note replaced it, and the
+  chat sent its own draft with her money. `POST /page` warns on the shape;
+  `textsWas` on `GET /verdict` holds the overwritten text one step back.
 - Images in **rows of two** (`.imgrow`), never one full-width per row.
   Mobile first; image URLs from Firebase Storage.
 - **A VIDEO IS A LINE OF TEXT WITH A PLAY BUTTON, at the TOP — never an

@@ -16,6 +16,7 @@
 const express = require('express');
 const fetch = require('node-fetch');
 const admin = require('firebase-admin');
+const videoLog = require('./video-log');
 
 const APIFRAME_KEY = process.env.APIFRAME_KEY || process.env.APIFRAME_API_KEY || '';
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
@@ -148,8 +149,13 @@ async function seedanceVideo(prompt, opts = {}) {
   const r = await api('/videos/generate', { method: 'POST', body });
   const id = r.jobId || r.id || r.task_id;
   if (!id) throw new Error('APIFRAME gave no job id: ' + JSON.stringify(r).slice(0, 200));
+  lastSentParams.set(String(id), params);
+  if (lastSentParams.size > 200) lastSentParams.delete(lastSentParams.keys().next().value);
   return id;
 }
+// The exact seedanceParams each job was sent with, for the log — keyed by job
+// id, kept briefly (the route reads it on the very next line).
+const lastSentParams = new Map();
 
 // Pull the video URL out of a completed job — result shapes vary a little
 // between models, so check the likely fields rather than one.
@@ -235,6 +241,15 @@ router.post('/video', async (req, res) => {
     const b = req.body || {};
     if (!b.prompt) return res.status(400).json({ error: 'prompt is required' });
     const jobId = await seedanceVideo(b.prompt, b);
+    // THE LOG (video-log.js): the exact prompt and every reference of every
+    // clip, filed the moment the job is accepted. Best-effort — a log write
+    // must never fail a send that APIFRAME has already taken money for.
+    try {
+      const params = lastSentParams.get(jobId) || {};
+      await admin.firestore().collection(videoLog.COLL).doc(String(jobId))
+        .set(videoLog.sentRecord({ jobId, prompt: b.prompt, model: b.model || 'seedance-1-lite', params,
+          tag: { chat: b.chat, scene: b.scene, title: b.title, session: b.session, note: b.note } }), { merge: true });
+    } catch (e) { console.warn('[apiframe] video log write failed', e.message); }
     res.status(202).json({ ok: true, jobId, poll: `/api/apiframe/video-job/${jobId}` });
   } catch (e) {
     res.status(e.status || 500).json({ error: e.message });
@@ -250,9 +265,32 @@ router.get('/video-job/:id', async (req, res) => {
     if (j.status === 'COMPLETED' && video && req.query.save !== '0') {
       video = await saveVideoToFirebase(video);
     }
+    // The log's outcome half — only once the job has ended, only the
+    // permanent url (a ?save=0 poll leaves `video` for the saving poll).
+    try {
+      const patch = videoLog.finishPatch(j, req.query.save !== '0' ? video : null);
+      if (patch) await admin.firestore().collection(videoLog.COLL).doc(String(req.params.id)).set(patch, { merge: true });
+    } catch (e) { /* the poll answers either way */ }
     res.json({ id: req.params.id, status: j.status, video, raw: j });
   } catch (e) {
     res.status(e.status || 500).json({ error: e.message });
+  }
+});
+
+// GET /video-log?chat=&limit= — every clip's exact prompt and references, the
+// 1080p redo's reading list. Newest first; `chat` narrows to one chat's.
+router.get('/video-log', async (req, res) => {
+  try {
+    let q = admin.firestore().collection(videoLog.COLL);
+    const chat = String(req.query.chat || '').slice(0, 80);
+    if (chat) q = q.where('chat', '==', chat);
+    const snap = await q.get();
+    const jobs = snap.docs.map((d) => d.data())
+      .sort((a, b) => String(b.sentAt || '').localeCompare(String(a.sentAt || '')))
+      .slice(0, Math.min(Number(req.query.limit) || 500, 2000));
+    res.json({ ok: true, count: jobs.length, jobs });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 
