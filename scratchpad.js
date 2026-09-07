@@ -2382,7 +2382,9 @@ async function runFilmJob(padId) {
         // `style` on the record is how the page knows a watercolor render is
         // not the dreamy film — the toggle never bumps updatedAt, so this is
         // the freshness signal across a flip.
-        film: { status: 'done', url, seconds, at: Date.now(), pictures: segs.length, notes, style },
+        // `error: null` — a done record must not carry the last failed run's
+        // message (merge:true keeps it otherwise; seen live 2026-09-06).
+        film: { status: 'done', url, seconds, at: Date.now(), pictures: segs.length, notes, style, error: null },
         films: prev.concat(films).slice(0, 12),   // older cuts are kept, never overwritten
         updatedAt: Date.now(),
       }, { merge: true });

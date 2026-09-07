@@ -113,6 +113,10 @@ function lift(name) {
   }
   throw new Error('unbalanced ' + name);
 }
+// chapterPlan reads its "which chapter owns this moment" through chapterAt
+// (2026-09-06 — the name line's chapter buttons share that one reader), so
+// the lifted copy needs it in scope.
+const chapterAt = eval('(' + lift('chapterAt') + ')');
 const chapterPlan = eval('(' + lift('chapterPlan') + ')');
 
 (async () => {
