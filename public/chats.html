@@ -8034,14 +8034,13 @@ function wakeWords(s){
 // the original again. Cancel closes with nothing changed.
 function quoteOpenEdit(blk, owner){
   var key=blk.dataset.key, orig=blk.dataset.orig||'', textEl=blk.querySelector('.mqtext'), foot=blk.querySelector('.mqfoot');
-  var ed=(owner.blockedits||{})[key], cur=ed&&ed.text ? ed.text : orig;
+  var ed=(owner.blockedits||{})[key], cur=ed&&ed.text ? ed.text : orig, opened=cur;
   var ta=document.createElement('textarea'); ta.value=cur; ta.maxLength=4000;
   var bar=document.createElement('div'); bar.className='mtbar';
   var stat=document.createElement('span'); stat.className='mtstat';
-  var cancel=document.createElement('button'); cancel.type='button'; cancel.className='tbtn mqcancel'; cancel.textContent='Cancel';
   var reset=document.createElement('button'); reset.type='button'; reset.className='tbtn mqreset'; reset.textContent='Reset'; reset.hidden=!(ed&&ed.text);
-  var save=document.createElement('button'); save.type='button'; save.className='tbtn mqsave'; save.textContent='Save';
-  bar.appendChild(stat); bar.appendChild(cancel); bar.appendChild(reset); bar.appendChild(save);
+  var done=document.createElement('button'); done.type='button'; done.className='tbtn mqsave'; done.textContent='Done';
+  bar.appendChild(stat); bar.appendChild(reset); bar.appendChild(done);
   textEl.hidden=true; foot.hidden=true;
   blk.insertBefore(ta, foot); blk.insertBefore(bar, foot);
   blk.onclick=function(e){ e.stopPropagation(); };
@@ -8052,35 +8051,54 @@ function quoteOpenEdit(blk, owner){
   // bigger-box rules). No cap: a script block is read whole, so it is edited
   // whole; the page scrolls, the box never does.
   function fit(){ ta.style.height='auto'; ta.style.height=(ta.scrollHeight+(ta.offsetHeight-ta.clientHeight))+'px'; }
-  ta.addEventListener('input', fit); fit();
+  // EDITS AUTOSAVE (2026-09-07, Sophie: "could u make edits autosave?"). Every
+  // pause in typing (700ms) files the box's text on the message doc, so a
+  // page that dies mid-edit loses at most a phrase; leaving the page flushes
+  // the last one by beacon. The thread message ("Edit of …") goes ONCE, on
+  // Done, and only if the words really changed since the box opened — an
+  // autosave that posted into the thread would put twenty half-sentences in
+  // front of the chat. Reset files '' and puts the original back.
+  var saved=cur, timer=null, inflight=null;
+  function file(text){
+    saved=text; stat.textContent='Saving\u2026';
+    inflight=api('/api/chatfeed/blockedit',{method:'POST',body:JSON.stringify({id:owner.id, key:key, text:text})})
+      .then(function(r){ if(!r.ok) throw 0; paint(text); stat.textContent=text===opened?'':'Saved'; })
+      .catch(function(){ stat.textContent='Couldn\u2019t save'; })
+      .then(function(){ inflight=null; });
+    return inflight;
+  }
+  function schedule(){ clearTimeout(timer); timer=setTimeout(function(){ var v=ta.value.replace(/\s+$/,''); if(v!==saved) file(v); }, 700); }
+  function flushNow(){ clearTimeout(timer); var v=ta.value.replace(/\s+$/,''); return v!==saved ? file(v) : (inflight||Promise.resolve()); }
+  function beacon(){ var v=ta.value.replace(/\s+$/,''); if(v===saved) return; saved=v;
+    try{ navigator.sendBeacon('/api/chatfeed/blockedit', new Blob([JSON.stringify({id:owner.id, key:key, text:v})],{type:'application/json'})); }catch(e){} }
+  ta.addEventListener('input', function(){ fit(); schedule(); }); fit();
+  window.addEventListener('pagehide', beacon);
+  document.addEventListener('visibilitychange', function(){ if(document.hidden) beacon(); });
   ta.focus();
-  function close(){ ta.remove(); bar.remove(); textEl.hidden=false; foot.hidden=false; }
+  function close(){ clearTimeout(timer); window.removeEventListener('pagehide', beacon); ta.remove(); bar.remove(); textEl.hidden=false; foot.hidden=false; }
   function paint(text){
-    if(text){ owner.blockedits=owner.blockedits||{}; owner.blockedits[key]={text:text, at:new Date().toISOString()}; textEl.textContent=text; }
+    if(text && text!==orig){ owner.blockedits=owner.blockedits||{}; owner.blockedits[key]={text:text, at:new Date().toISOString()}; textEl.textContent=text; }
     else { if(owner.blockedits) delete owner.blockedits[key]; textEl.innerHTML=orig; }
     var mark=foot.querySelector('.mqedited');
-    if(text && !mark){ mark=document.createElement('span'); mark.className='mqedited'; mark.textContent='edited'; foot.insertBefore(mark, foot.firstChild); }
-    else if(!text && mark) mark.remove();
+    if(text && text!==orig && !mark){ mark=document.createElement('span'); mark.className='mqedited'; mark.textContent='edited'; foot.insertBefore(mark, foot.firstChild); }
+    else if((!text || text===orig) && mark) mark.remove();
+    reset.hidden=!(text && text!==orig);
   }
-  function file(text){
-    save.disabled=true; reset.disabled=true; stat.textContent='Saving\u2026';
-    return api('/api/chatfeed/blockedit',{method:'POST',body:JSON.stringify({id:owner.id, key:key, text:text})})
-      .then(function(r){ if(!r.ok) throw 0; })
-      .then(function(){
-        var chat=owner.chat||cur||'';
-        var head=orig.replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim().slice(0,60);
-        var line=text ? 'Edit of \u201c'+head+'\u2026\u201d: '+text : 'Edit of \u201c'+head+'\u2026\u201d: put back the original';
-        var mlist=blk.closest('.msg')&&blk.closest('.msg').parentNode;
-        return chat ? postHers(chat, line, false).then(function(){
-          if(mlist) mlist.appendChild(renderMsg({from:'sophie', text:line, created:new Date().toISOString()}));
-        }) : null;
-      })
-      .then(function(){ paint(text); close(); toast(text?'Saved \u2014 sent to the chat':'Original is back'); })
-      .catch(function(){ save.disabled=false; reset.disabled=false; stat.textContent=''; toast('Couldn\u2019t save that edit'); });
+  function tell(text){
+    var chat=owner.chat||cur||'';
+    if(!chat || (text||orig)===opened) return Promise.resolve();   // Done with the words as they were opened says nothing
+    var head=orig.replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim().slice(0,60);
+    var line=text ? 'Edit of \u201c'+head+'\u2026\u201d: '+text : 'Edit of \u201c'+head+'\u2026\u201d: put back the original';
+    var mlist=blk.closest('.msg')&&blk.closest('.msg').parentNode;
+    return postHers(chat, line, false).then(function(){
+      if(mlist) mlist.appendChild(renderMsg({from:'sophie', text:line, created:new Date().toISOString()}));
+    }).catch(function(){});
   }
-  cancel.onclick=function(e){ e.stopPropagation(); close(); };
-  reset.onclick=function(e){ e.stopPropagation(); file(''); };
-  save.onclick=function(e){ e.stopPropagation(); var v=ta.value.replace(/\s+$/,''); if(!v.trim()) return; if(v===cur){ close(); return; } file(v); };
+  reset.onclick=function(e){ e.stopPropagation(); done.disabled=true; ta.value=''; file('').then(function(){ return tell(''); }).then(function(){ close(); toast('Original is back'); }); };
+  done.onclick=function(e){ e.stopPropagation(); done.disabled=true;
+    var v=ta.value.replace(/\s+$/,''); if(!v.trim()){ done.disabled=false; return; }
+    flushNow().then(function(){ return tell(v===orig?'':v); }).then(function(){ close(); if(v!==opened) toast('Saved \u2014 sent to the chat'); });
+  };
 }
 function tickOpenNote(tk, owner, text, to){
   var key=tk.dataset.key, item=tk.nextElementSibling;
