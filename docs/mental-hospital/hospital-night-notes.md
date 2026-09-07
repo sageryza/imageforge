@@ -50,3 +50,17 @@ New footage — for later, not to run:
   "assistant in tow" is in Sophie's own text and is hers to cut), Sophie
   should talk faster, and the too-long pajama pants came out weird (the
   "rolled up but have fallen down somewhat" line is what drew them).
+
+## Seedance and dialogue (2026-09-07, measured on the music class)
+- **Words in quotes are spoken as written. Everything in prose is a licence
+  to improvise.** "a song she is making up on the spot" → the model wrote the
+  song; "informing her that she will be allowed back…" → the model wrote its
+  own speech for the teacher; a long clip with people in it and no quoted
+  lines → it fills the time with talk. Not a bug — how it fills seconds.
+- So for every scene: put anything that must be said in quotes, keep the
+  prose to what is VISIBLE, and describe each person's clothes in their own
+  line (the music class put the "normal clothes" on Yolanda, not the teacher,
+  because the prose left it open).
+- Sophie did not know this until 2026-09-07; the drafted scenes with a lot
+  of prose (the sculptures, the town hall, the parents at the table) will
+  want their lines quoted before a go.
