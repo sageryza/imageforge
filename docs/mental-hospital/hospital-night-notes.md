@@ -85,3 +85,8 @@ New footage — for later, not to run:
   a video-extension task and refuses any fixed ratio: "`ratio` must be
   `adaptive` … the output ratio follows the input video". Refused = refunded.
   `runaf3.py` takes `AR=adaptive` for it.
+- **THE CAMERA SHOOTS WHATEVER NOUN THE PROSE LANDS ON (climax 2a).** "as
+  though he could get into her mind if he angles his hairy neck right" → a
+  close-up of his chin; "seated comfortably in a high-backed leather chair"
+  → a shot from the floor up at him. Descriptive flourishes read as shot
+  lists. Keep prose to the action she wants SEEN, or name the shot.
