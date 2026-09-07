@@ -101,3 +101,9 @@ never for her face. References must total ≤30.2s, so a 30s scene clip cannot
 pair with the jazz: use the jazz + stills of the room/pajamas instead, or a
 ≤15s scene clip. 14 ward clips were made without it (every one at 2+ steps
 on the face-drift page); they stand as shot and are redo candidates.
+
+## NEVER DESCRIBE WHAT EXISTS AS A PICTURE (2026-09-07, Sophie: "u added a description of the pajamas. no! never describe what exists as a picture")
+When a reference image carries the thing, the prompt POINTS at it ("the
+blue hospital pajamas in [Image1]") and says nothing else about it. Words
+beside a picture give the model a second, competing source and it draws the
+words. Describe only what no reference shows.
