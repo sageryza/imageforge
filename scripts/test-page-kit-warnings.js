@@ -305,6 +305,9 @@ const TEXT_ONLY = `<!doctype html><meta charset="utf-8"><title>A read-through</t
     const keyed = await postPage({ chat: 'a-chat', title: 'keyed', html: OWN_WRITE("n+'.t'") });
     ok('the same write under its own key (<id>.t) is clean',
       !(keyed.out.json.warnings || []).some((w) => /note thread/.test(w)), JSON.stringify(keyed.out.json.warnings));
+    const helper = await postPage({ chat: 'a-chat', title: 'helper', html: OWN_WRITE('key(n)').replace('function file(n,t){', "function key(n){ return n+'.t'; }\n      function file(n,t){") });
+    ok('…and a key helper carrying the .t suffix is clean',
+      !(helper.out.json.warnings || []).some((w) => /note thread/.test(w)), JSON.stringify(helper.out.json.warnings));
     const prefixed = await postPage({ chat: 'a-chat', title: 'prefixed', html: OWN_WRITE("'ord-'+n") });
     ok('…and a literal prefix is clean too',
       !(prefixed.out.json.warnings || []).some((w) => /note thread/.test(w)), JSON.stringify(prefixed.out.json.warnings));

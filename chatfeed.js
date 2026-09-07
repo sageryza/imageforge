@@ -4382,7 +4382,11 @@ function kitWarnings(html) {
     const inline = s.replace(/<script[^>]*\ssrc=[^>]*>\s*<\/script>/gi, ' ');
     const own = [...inline.matchAll(/verdict[\s\S]{0,400}?item\s*:\s*([^,}]{1,60}),[\s\S]{0,120}?\btext\s*:/g)]
       .map((m) => m[1].trim()).filter((e) => !/['"]/.test(e));
-    if (own.length) {
+    // A page that builds its keys through a helper carrying the `.t` suffix
+    // (`function key(n,i){ return n+'.t'+… }`) is doing it right; the
+    // expression at the write is `key(n,i)` and says nothing on its own.
+    const keyed = /\+\s*['"]\.t['"]/.test(inline);
+    if (own.length && !keyed) {
       out.push('The page wires __compareNotes AND writes its own `text` onto verdict '
         + 'items (item: ' + own[0] + '): an item\'s text IS its note thread, so a note she '
         + 'writes REPLACES whatever the page stored there. Save the page\'s own text under '
