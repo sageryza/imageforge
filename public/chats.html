@@ -763,6 +763,26 @@ button.dayrule{border:none; background:none; padding:0; cursor:pointer;
 /* A saved note reads back under its item in her italic, with who it was for
    in small caps in front. Tapping it reopens the box with her words in it. */
 .mtnotev{display:block; margin:2px 0 6px 26px; font-style:italic; color:var(--ink2); cursor:pointer; white-space:pre-wrap;}
+/* A SCRIPT BLOCK — a `>` quote in a reply — IS EDITABLE IN PLACE (2026-09-07,
+   Sophie: "can u make it possible to edit the script blocks right in
+   message"). The words are the thing she is approving, so a pencil at the
+   block's foot opens the SAME block as a box holding the live text (her own
+   saved edit when there is one — prefilling with her value is not
+   pre-written text); Save files it on the message doc (`blockedits[key]`)
+   and sends it into the thread as HER message, quietly, so the chat reads the
+   edit next time it is up. The block then shows her version with a small
+   "edited" mark; the chat's original is kept under it and one tap on Reset
+   puts it back. */
+.mquote{margin:8px 0 10px; padding:8px 12px 6px; border-left:2px solid var(--line); background:var(--barbg); border-radius:0 6px 6px 0;}
+.mquote .mqtext{white-space:pre-wrap;}
+.mquote .mqfoot{display:flex; align-items:center; gap:8px; margin-top:4px;}
+.mquote .mqedited{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--bell);}
+.mquote .mqedit{margin-left:auto; width:26px; height:26px; padding:0; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink2); cursor:pointer;}
+.mquote .mqedit svg{width:14px; height:14px;}
+.mquote textarea{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px; min-height:120px; padding:7px 10px; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink); resize:vertical;}
+.mquote textarea:focus{outline:none; border-color:var(--rose);}
+.mquote .mtbar{display:flex; align-items:center; gap:8px; margin-top:6px; flex-wrap:wrap;}
+.mquote .mtstat{flex:1; min-width:0; font-style:italic; font-size:.85em; color:var(--ink2);}
 .mtnotev .mtnv-to{font-family:-apple-system,sans-serif; font-style:normal; font-size:10px; letter-spacing:.08em; text-transform:uppercase; margin-right:6px; color:var(--bell);}
 .mtnotev .mtnv-to.me{color:var(--ink2);}
 .mtnotev .mtnv-reply{display:block; margin-top:2px; color:var(--ink);}
@@ -2337,6 +2357,7 @@ function md(t,m){
     if(part.lastIndexOf('<div class="codebox">',0)===0||part.lastIndexOf('<code>',0)===0) return part;
     part=part.replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
     part=part.replace(/(^|[^"'>])(https?:\/\/[^\s<)\]]+[^\s<)\].,!?:;'"])/g,'$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+    if(m&&m.id) part=quoteBlocks(part, m);
     if(m&&m.id) part=tickList(part, m);
     return part;
   }).join('');
@@ -2357,6 +2378,24 @@ function tickKey(html){
   var t=String(html).replace(/<[^>]+>/g,'').replace(/&[a-z#0-9]+;/g,' ').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().slice(0,200);
   var h=5381; for(var i=0;i<t.length;i++) h=((h*33)^t.charCodeAt(i))>>>0;
   return h.toString(36)+t.length.toString(36);
+}
+// A RUN OF `> ` LINES IS ONE SCRIPT BLOCK (2026-09-07). Consecutive quoted
+// lines — a bare `>` between them keeps the run, a blank line ends it — become
+// one editable block keyed by a hash of the ORIGINAL words (tickKey), so her
+// edit survives a re-render. `m.blockedits[key]` = {text, at} is her version
+// and is what the block shows; the chat's original rides `data-orig` for the
+// Reset. Called only with a message that can save (m.id), like tickList.
+function quoteBlocks(part, m){
+  var lines=part.split('\n'), out=[], i=0, edits=(m&&m.blockedits)||{};
+  while(i<lines.length){
+    if(!/^&gt;( |$)/.test(lines[i])){ out.push(lines[i]); i++; continue; }
+    var q=[]; while(i<lines.length && /^&gt;( |$)/.test(lines[i])){ q.push(lines[i].replace(/^&gt; ?/,'')); i++; }
+    var orig=q.join('\n').replace(/^\n+|\n+$/g,''), key=tickKey(orig), ed=edits[key];
+    var shown=ed&&ed.text ? esc(ed.text) : orig;
+    out.push('<div class="mquote" data-key="'+key+'" data-orig="'+orig.replace(/"/g,'&quot;')+'"><div class="mqtext">'+shown+'</div>'
+      +'<div class="mqfoot">'+(ed&&ed.text?'<span class="mqedited">edited</span>':'')+'<button type="button" class="mqedit" aria-label="Edit this block" title="Edit">'+TICK_NOTE_SVG+'</button></div></div>');
+  }
+  return out.join('\n');
 }
 function tickList(part, m){
   var lines=part.split('\n'), kind=[], i;
@@ -7667,6 +7706,16 @@ function renderMsg(m){
       tickSave(tk, owner, was, st);
     };
   });
+  // The script blocks' pencils (quoteBlocks): the block becomes a box holding
+  // its live text; Save files the edit and sends it into the thread as hers.
+  row.querySelectorAll('.mqedit').forEach(function(bt){
+    bt.onclick=function(e){ e.stopPropagation();
+      var blk=bt.closest('.mquote'); if(!blk||blk.querySelector('textarea')) return;
+      var partEl=blk.closest('.m-part');
+      var owner=partEl && parts ? (parts.filter(function(p){ return String(p.id)===partEl.dataset.mid; })[0]||m) : m;
+      quoteOpenEdit(blk, owner);
+    };
+  });
   // A saved note reopens its box with her words in it (prefilling with HER
   // OWN saved value is not pre-written text).
   row.querySelectorAll('.mtnotev').forEach(function(nv){
@@ -7974,6 +8023,56 @@ function postHers(chat, text, ring){
 function wakeWords(s){
   return s==='quiet' ? 'Sent quietly' : s==='fired' ? 'Sent — waking them' : s==='queued' ? 'Sent — a wake is on its way'
     : s==='not-wakeable' ? 'Sent — they\u2019ll see it next time they\u2019re up' : s==='no-switchboard' ? 'Sent — waking isn\u2019t set up here' : 'Sent';
+}
+// THE SCRIPT BLOCK'S EDITOR (2026-09-07). One box in place of the words —
+// never a second copy to keep in step — holding the text the block shows
+// right now (her saved edit, else the chat's original). Save: POST
+// /api/chatfeed/blockedit {id, key, text} files `blockedits[key]` on the
+// message doc, then the edit goes into the thread as HER message through
+// /reply, quietly (no doorbell — the list-note rule), so the chat reads the
+// new words next time it is up. Reset sends '' (deletes the edit) and shows
+// the original again. Cancel closes with nothing changed.
+function quoteOpenEdit(blk, owner){
+  var key=blk.dataset.key, orig=blk.dataset.orig||'', textEl=blk.querySelector('.mqtext'), foot=blk.querySelector('.mqfoot');
+  var ed=(owner.blockedits||{})[key], cur=ed&&ed.text ? ed.text : orig;
+  var ta=document.createElement('textarea'); ta.value=cur; ta.maxLength=4000;
+  var bar=document.createElement('div'); bar.className='mtbar';
+  var stat=document.createElement('span'); stat.className='mtstat';
+  var cancel=document.createElement('button'); cancel.type='button'; cancel.className='tbtn mqcancel'; cancel.textContent='Cancel';
+  var reset=document.createElement('button'); reset.type='button'; reset.className='tbtn mqreset'; reset.textContent='Reset'; reset.hidden=!(ed&&ed.text);
+  var save=document.createElement('button'); save.type='button'; save.className='tbtn mqsave'; save.textContent='Save';
+  bar.appendChild(stat); bar.appendChild(cancel); bar.appendChild(reset); bar.appendChild(save);
+  textEl.hidden=true; foot.hidden=true;
+  blk.insertBefore(ta, foot); blk.insertBefore(bar, foot);
+  blk.onclick=function(e){ e.stopPropagation(); };
+  ta.focus();
+  function close(){ ta.remove(); bar.remove(); textEl.hidden=false; foot.hidden=false; }
+  function paint(text){
+    if(text){ owner.blockedits=owner.blockedits||{}; owner.blockedits[key]={text:text, at:new Date().toISOString()}; textEl.textContent=text; }
+    else { if(owner.blockedits) delete owner.blockedits[key]; textEl.innerHTML=orig; }
+    var mark=foot.querySelector('.mqedited');
+    if(text && !mark){ mark=document.createElement('span'); mark.className='mqedited'; mark.textContent='edited'; foot.insertBefore(mark, foot.firstChild); }
+    else if(!text && mark) mark.remove();
+  }
+  function file(text){
+    save.disabled=true; reset.disabled=true; stat.textContent='Saving\u2026';
+    return api('/api/chatfeed/blockedit',{method:'POST',body:JSON.stringify({id:owner.id, key:key, text:text})})
+      .then(function(r){ if(!r.ok) throw 0; })
+      .then(function(){
+        var chat=owner.chat||cur||'';
+        var head=orig.replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim().slice(0,60);
+        var line=text ? 'Edit of \u201c'+head+'\u2026\u201d: '+text : 'Edit of \u201c'+head+'\u2026\u201d: put back the original';
+        var mlist=blk.closest('.msg')&&blk.closest('.msg').parentNode;
+        return chat ? postHers(chat, line, false).then(function(){
+          if(mlist) mlist.appendChild(renderMsg({from:'sophie', text:line, created:new Date().toISOString()}));
+        }) : null;
+      })
+      .then(function(){ paint(text); close(); toast(text?'Saved \u2014 sent to the chat':'Original is back'); })
+      .catch(function(){ save.disabled=false; reset.disabled=false; stat.textContent=''; toast('Couldn\u2019t save that edit'); });
+  }
+  cancel.onclick=function(e){ e.stopPropagation(); close(); };
+  reset.onclick=function(e){ e.stopPropagation(); file(''); };
+  save.onclick=function(e){ e.stopPropagation(); var v=ta.value.replace(/\s+$/,''); if(!v.trim()) return; if(v===cur){ close(); return; } file(v); };
 }
 function tickOpenNote(tk, owner, text, to){
   var key=tk.dataset.key, item=tk.nextElementSibling;
