@@ -80,3 +80,8 @@ New footage — for later, not to run:
   herself, a nurse spontaneously coming up and rolling up her pajamas.
 - The cafeteria is a POSSIBLE redo, not a hard one: the plan is a 4s
   close-up of Sophie talking (8b on the page) to splice in.
+- **AN EXTENSION MUST BE SENT WITH `aspectRatio: "adaptive"` (measured
+  2026-09-07).** Seedance classifies a prompt beginning "continue [Video1]" as
+  a video-extension task and refuses any fixed ratio: "`ratio` must be
+  `adaptive` … the output ratio follows the input video". Refused = refunded.
+  `runaf3.py` takes `AR=adaptive` for it.
