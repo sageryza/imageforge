@@ -4012,6 +4012,25 @@ router.post('/tick', async (req, res) => {
     res.json({ ok: true, id: String(id), key, state, on: state === 'tick', note: patch.ticknotes ? patch.ticknotes[key] : undefined, filed: !!filed });
   } catch (err) { fail(res, err); }
 });
+// A SCRIPT BLOCK EDITED IN PLACE (2026-09-07, Sophie: "make it possible to
+// edit the script blocks right in message"). `{id, key, text}` files her
+// version of a `>` quote block under `blockedits[key]` on the message doc
+// (key = the page's tickKey of the ORIGINAL words, so it survives a re-render);
+// '' deletes it. The page also posts the edit into the thread as her message
+// through /reply, so nothing here rings or files a note — the words reach the
+// chat the way anything she writes does.
+router.post('/blockedit', async (req, res) => {
+  try {
+    const { id, key, text } = req.body || {};
+    if (!id) return res.status(400).json({ error: 'id required' });
+    if (!/^[a-z0-9]{1,24}$/.test(String(key || ''))) return res.status(400).json({ error: 'key required' });
+    const t = String(text == null ? '' : text).replace(/\s+$/, '').slice(0, 4000);
+    const del = admin.firestore.FieldValue.delete();
+    const at = new Date().toISOString();
+    await db().collection(MSGS).doc(String(id)).set({ blockedits: { [key]: t ? { text: t, at } : del } }, { merge: true });
+    res.json({ ok: true, id: String(id), key, text: t, at: t ? at : null });
+  } catch (err) { fail(res, err); }
+});
 // A CHAT ANSWERS ON THE NOTE ITSELF, the picture-note rule — `{id, key,
 // text}` appends the chat's answer to the item note's thread and mirrors it
 // onto the message doc (`ticknotes[key].reply`) so it reads back under her
