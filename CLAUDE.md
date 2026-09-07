@@ -3489,6 +3489,25 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   `window.__compareNotes({chat, sheet})`, one line. Answer her on the note
   itself; it renders as a thread. Never post to `/api/chatfeed/reply` from a
   page — the server reroutes it onto the page's verdict doc.
+- **AN ITEM'S `text` ON THE VERDICT DOC IS ITS NOTE THREAD — A PAGE'S OWN
+  TEXT NEVER SHARES THE data-item KEY (2026-09-07, Sophie: "the whole point
+  was my edit" · "audit elsewhere to see if it happens or could happen
+  anywhere else").** A b-roll page saved each scene's editable text under its
+  item id, the slot `__compareNotes` writes to; her "go" note replaced the
+  scene edit she had just made, and the chat — having read "— me: go" in the
+  slot — sent its own draft anyway, $1.20 of her money on words she had not
+  approved. Own text rides its own key (`<id>.t`, `ord-<id>`) or its own
+  sheet. Audited the same hour: every other page in the repo and all 24
+  posted pages that write their own text already do (the dominoes games,
+  the Evan running orders, the timelines, Head Games, the shoebox timing) —
+  none clashed. Three things now: `POST /page` warns on the shape (a bare
+  `item:` beside `text:` on a page that wires notes), the verdict route
+  keeps the text it writes over as `textsWas[item]` (`verdict-text.js`,
+  read back on `GET /verdict`) so this class is recoverable once, and the
+  shell says the rule. And the rule under the rule: **a "go" is a go for the
+  text SHE approved — when the slot she edited reads as anything but her
+  words, stop and ask, never send the draft.** Tests:
+  `node scripts/test-verdict-text.js`, `node scripts/test-page-kit-warnings.js`.
 - **A new VERSION is a NEW page**, never an edit of the old one, and the title
   says which version it is. Supersede the one it replaces
   (`POST /page/:id/supersede`) instead of deleting it. A verdict sheet's name
