@@ -45,3 +45,8 @@ New footage — for later, not to run:
 - Roommate 1 landed with the right Sophie (short curls) and a good Annie; the
   rerun plan (waking-up clip as Video1 for the room, roommate 1 as Video2 for
   Annie, her fuller Annie line) is drafted and waits for go.
+- **Climax 1 v2 (the walk to his office, pajamas) — notes for a redo, not run:**
+  the assistant was not supposed to be in it (drop her line from the header;
+  "assistant in tow" is in Sophie's own text and is hers to cut), Sophie
+  should talk faster, and the too-long pajama pants came out weird (the
+  "rolled up but have fallen down somewhat" line is what drew them).
