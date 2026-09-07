@@ -107,3 +107,12 @@ When a reference image carries the thing, the prompt POINTS at it ("the
 blue hospital pajamas in [Image1]") and says nothing else about it. Words
 beside a picture give the model a second, competing source and it draws the
 words. Describe only what no reference shows.
+
+## A CHARACTER'S FIRST APPEARANCE IS A 4s CLIP, NEVER A 30s SCENE (2026-09-07, Sophie: "any character first scene can't be 30s! … if we decide new character it's only 4s")
+The first time anyone new is on screen, they get a 4s audition clip (60¢)
+before their scene: if the model draws the wrong person, a redraw costs
+60¢, not $4.50, and the clip that lands becomes that character's ≤15s
+reference for every scene after (it pairs with the jazz, which a 30s
+scene never can). The doctor and the assistant had to be rebuilt this way
+after the fact — see the b-roll jobs. Mayra and the white-coat nurse are
+the first to get it right.
