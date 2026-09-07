@@ -70,3 +70,13 @@ New footage — for later, not to run:
   ("a large Italian woman", "the beaches of Italy") pulls that noise toward
   a pseudo-language. Quoted lines come out as real English. A line of
   "everyone speaks English" is the belt to the quotes' braces.
+- **THE NURSES ARE MEAN (Sophie, 2026-09-07: "i keep forgetting to say
+  that … it's part of the plot and gets addressed later, the meeting/fishbowl
+  scene").** A line — "the nurses are mean." — goes on every clip that has a
+  nurse in it from here (added to the drafted scenes 27, 36, 37, 39, 43, 44,
+  49 on the script page). The music teacher's fix is "very short hair, not
+  the frail blonde", not bald.
+- B-roll idea of hers, on the page as 9b: Sophie walking the halls by
+  herself, a nurse spontaneously coming up and rolling up her pajamas.
+- The cafeteria is a POSSIBLE redo, not a hard one: the plan is a 4s
+  close-up of Sophie talking (8b on the page) to splice in.
