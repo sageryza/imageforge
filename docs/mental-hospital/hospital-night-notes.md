@@ -35,3 +35,13 @@ New footage — for later, not to run:
 - The table: Sophie was supposed to slot herself in BETWEEN Anastasia and Michael for the comedy — the clip seats her across from them.
 - Music class: could have been redone with the table footage so Michael and Anastasia are in the room.
 - A 4s insert of her face while she talks at the table (the clip never cuts to her): reference the whole table clip, prompt the close-up with her line; lay it into the recut.
+
+## Which Sophie is Sophie (2026-09-07)
+- **The braid is the wrong person.** The cafeteria/table clip and the hallway walk
+  (both born off the table clip) drew her with a long braid; the real Sophie is
+  the short-brown-curls woman from v6 / the waking-up clip / intake A + B /
+  roommate 1. Both braid clips need redoing — hers to schedule. Michael in them
+  is right ("LITERALLY perfect") and the table clip stays the reference for HIM.
+- Roommate 1 landed with the right Sophie (short curls) and a good Annie; the
+  rerun plan (waking-up clip as Video1 for the room, roommate 1 as Video2 for
+  Annie, her fuller Annie line) is drafted and waits for go.
