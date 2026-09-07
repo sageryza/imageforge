@@ -3756,6 +3756,33 @@ router.post('/pin', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// THE CLIPS STRIP — every clip a chat has handed over, newest first, under the
+// pinned row (2026-09-07, Sophie: "a list with all the clips I could download
+// as a video most recent first and lights up when there's a new one until I
+// click it"). The pin holds ONE thing; a shoot hands over dozens. Stored on
+// the registry doc so it rides the feed read the page already makes; the
+// "new" light is the PHONE's (localStorage), never the doc's, so a clip stays
+// lit until she taps it. `id` is the Dump file id (the save link).
+router.post('/clips', async (req, res) => {
+  try {
+    const { chat, session, url, title, id } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const u = String(url || '').trim();
+    if (!/^https:\/\//.test(u)) return res.status(400).json({ error: 'url must be https' });
+    const target = await resolveChat(chat, session);
+    const ref = regRef(target);
+    await db().runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const cur = (snap.exists && Array.isArray(snap.data().clips)) ? snap.data().clips : [];
+      const row = { url: u, title: String(title || '').replace(/\s+/g, ' ').trim().slice(0, 120),
+        id: /^[\w-]{1,40}$/.test(String(id || '')) ? String(id) : '', at: new Date().toISOString() };
+      const next = [row].concat(cur.filter((c) => c && c.url !== u)).slice(0, 60);
+      tx.set(ref, { clips: next }, { merge: true });
+    });
+    res.json({ ok: true, chat: target });
+  } catch (err) { fail(res, err); }
+});
+
 // A chat reads its own card + her note (pass session for session-first
 // resolution, same contract as GET /name).
 router.get('/status', async (req, res) => {
