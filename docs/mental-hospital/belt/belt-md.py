@@ -11,7 +11,8 @@ def vlen(u): return '15s' if u.endswith('f3j8qh.mp4') else '25s' if 'a59ab8' in 
 secs=[]
 for n,j in enumerate(jobs,1):
     k=j['key']; vids=[v for v in j['videos'] if v[1]]; pend=[v for v in j['videos'] if not v[1]]
-    s=tx.get(k+'.s') or str(j['secs']); p=tx.get(k+'.p') or j['text']
+    s=tx.get(k+'.s') or str(j['secs']); p=tx.get(k+'.p') or j['text']; pre=tx.get(k+'.pre') or j.get('pre') or ''
+    prebox=('<details class="text" open><summary>what came before (yours, sent first)</summary><textarea class="p" data-key="%s" data-field="pre" spellcheck="false">%s</textarea><div class="saved" id="sv-%s-pre"></div></details>'%(k,H.escape(pre),k)) if pre else ''
     sends=' · '.join(['Seedance 2.5','480p','3:4','audio on']+['Video%d = %s'%(i+1,H.escape(v[0])) for i,v in enumerate(j['videos'])]+['Image%d = %s'%(i+1,H.escape(im[0])) for i,im in enumerate(j['images'])])
     films=''.join('<p class="vid">Video%d — <a href="%s" target="_blank">%s</a> · %s</p>'%(i+1,H.escape(v[1]),H.escape(v[0]),vlen(v[1])) for i,v in enumerate(vids))
     pending=''.join('<p class="pend">Video%d — %s — NOT MADE YET</p>'%(j['videos'].index(v)+1,H.escape(v[0])) for v in pend)
@@ -20,7 +21,7 @@ for n,j in enumerate(jobs,1):
     note=('<p class="mine">%s</p>'%H.escape(j['note'])) if j['note'] else ''
     secs.append('''<section class="card" id="j-%(k)s" data-key="%(k)s" data-item="%(k)s">
 <h2>%(n)d · %(t)s<span class="st">%(st)s</span></h2>
-<details class="text" open><summary>your words</summary>
+%(prebox)s<details class="text" open><summary>your words</summary>
 <textarea class="p" data-key="%(k)s" spellcheck="false">%(p)s</textarea><div class="saved" id="sv-%(k)s"></div></details>
 <div class="attached">
 <div class="row"><label>seconds <input class="secs" data-key="%(k)s" value="%(s)s" inputmode="numeric"></label><span class="cost" data-key="%(k)s"></span></div>
@@ -28,7 +29,7 @@ for n,j in enumerate(jobs,1):
 %(films)s%(pending)s
 <div class="refs">%(stills)s</div>
 %(mine)s%(note)s
-</div></section>'''%dict(k=k,n=n,t=H.escape(j['title']),st=H.escape(j['status']),p=H.escape(p),s=H.escape(s),sends=sends,films=films,pending=pending,stills=stills,mine=mine,note=note))
+</div></section>'''%dict(prebox=prebox,k=k,n=n,t=H.escape(j['title']),st=H.escape(j['status']),p=H.escape(p),s=H.escape(s),sends=sends,films=films,pending=pending,stills=stills,mine=mine,note=note))
 TOC=' · '.join('<a href="#j-%s">%d %s</a>'%(j['key'],i+1,H.escape(j['title'].split(' — ')[1] if ' — ' in j['title'] else j['title'])) for i,j in enumerate(jobs))
 page='''<meta charset="utf-8"><link rel="stylesheet" href="/compare.css"><script src="/compare.js"></script>
 <style>
@@ -55,10 +56,10 @@ p.mine{font-size:12px;color:#8a8176;margin:6px 0 0} pre.mine{font:inherit;font-s
 var CHAT='__CHAT__', SHEET='__SHEET__';
 function post(body){ return fetch('/api/chatfeed/verdict',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}); }
 function cost(k){ var s=parseInt(document.querySelector('.secs[data-key="'+k+'"]').value)||0; document.querySelector('.cost[data-key="'+k+'"]').textContent='$'+(s*0.15).toFixed(2)+' at 15¢/s'; }
-document.querySelectorAll('.p[data-key]').forEach(function(ta){ var k=ta.getAttribute('data-key'), sv=document.getElementById('sv-'+k), timer=null;
+document.querySelectorAll('.p[data-key]').forEach(function(ta){ var k=ta.getAttribute('data-key'), f=ta.getAttribute('data-field')||'p', sv=document.getElementById('sv-'+k+(f==='pre'?'-pre':'')), timer=null;
   function fit(){ta.style.height='auto'; ta.style.height=(ta.scrollHeight+2)+'px';} fit(); ta.closest('details').addEventListener('toggle',fit);
-  ta.addEventListener('input',function(){ fit(); var t=ta.value; sv.textContent='…'; clearTimeout(timer); timer=setTimeout(function(){ post({chat:CHAT,sheet:SHEET,item:k+'.p',text:t.slice(0,1900)}).then(function(){sv.textContent='saved';}).catch(function(){sv.textContent='not saved';}); },700); });
-  window.addEventListener('pagehide',function(){ if(!timer) return; clearTimeout(timer); timer=null; try{ navigator.sendBeacon('/api/chatfeed/verdict', new Blob([JSON.stringify({chat:CHAT,sheet:SHEET,item:k+'.p',text:ta.value.slice(0,1900)})],{type:'application/json'})); }catch(e){} });
+  ta.addEventListener('input',function(){ fit(); var t=ta.value; sv.textContent='…'; clearTimeout(timer); timer=setTimeout(function(){ post({chat:CHAT,sheet:SHEET,item:k+'.'+f,text:t.slice(0,1900)}).then(function(){sv.textContent='saved';}).catch(function(){sv.textContent='not saved';}); },700); });
+  window.addEventListener('pagehide',function(){ if(!timer) return; clearTimeout(timer); timer=null; try{ navigator.sendBeacon('/api/chatfeed/verdict', new Blob([JSON.stringify({chat:CHAT,sheet:SHEET,item:k+'.'+f,text:ta.value.slice(0,1900)})],{type:'application/json'})); }catch(e){} });
 });
 document.querySelectorAll('.secs').forEach(function(inp){ var k=inp.getAttribute('data-key'); cost(k); inp.addEventListener('input',function(){ cost(k); post({chat:CHAT,sheet:SHEET,item:k+'.s',text:inp.value}); }); });
 var deck=document.getElementById('deck'), cards=[].slice.call(deck.children), pos=document.getElementById('pos');
