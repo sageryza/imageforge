@@ -335,6 +335,16 @@ function validateTemplate(template, data) {
   // note:'small' — a two-line note box under a picture card (2026-09-03,
   // "note section can be smaller — modify template if necessary")
   if (data.note === 'small') out.note = 'small';
+  // intro — the tour's FIRST sentence, when the page's own shape cannot be
+  // derived (2026-09-08, found by PHOTOgraphing a page of three ranked STILLS
+  // per clip: grid.js already derives `oneUp` and `listing` from the real
+  // groups, but three candidates for one shot and three one-variable variants
+  // are structurally identical, so the stock line — "the things on it differ
+  // by exactly one thing" — was a sentence about a page she is not looking
+  // at). Derivation stays the default and every other step is untouched; this
+  // only lets a page that KNOWS say so. Same family as the two findings in
+  // grid.js's tourSteps().
+  { const v = STR(data.intro, 200); if (v) out.intro = v; }
   // asks — questions the deck puts to her on every card, answered in their
   // own boxes and saved under `<item>:q:<key>` (2026-09-03, Sophie: "modify
   // tinder compare w those two questions so i answer them"). judge.js draws

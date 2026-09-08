@@ -1826,6 +1826,25 @@ them off the reference sheet, not off the old filenames.
     `POST /page/:id/bookmark`) take `note`, `tags`, `level` and `read`, and
     carry no keep-flag unless one is sent — so tagging can never un-keep a
     thing, naming one can never drop its tags, and a tick can never do either.
+- **A BLOCK IN THE THREAD THAT COST NO OUTPUT TOKENS — `node
+  scripts/chat-block.js post --chat <slug> --file scene.txt` (2026-09-08,
+  Sophie: "could chats put an editable text block inserted into their chat,
+  but NOT as output tokens").** A run of `> ` lines in a message is already
+  ONE editable block with a pencil (`quoteBlocks`, 2026-09-07; her edit lives
+  on the message doc under `blockedits[key]`, 4000 chars, autosaved). What was
+  missing was putting one there without the model WRITING it. The script
+  reads a FILE — a scene from the repo, a prompt, her own words back to her —
+  quotes it and POSTs it through the ordinary feed route, so the bytes go disk
+  → server and never through the model: nothing to post, verbatim by
+  construction. `read --chat <slug>` prints every block with her edit where
+  she made one (`--out file` writes the newest), which is how a chat gets her
+  version back for the cheap input price. Three things: it is its OWN message
+  (a separate doc, never inside the hook's reply — a run of the chat's rows
+  merges on the page, so it still reads in place); a blank line rides as a
+  bare `>` so the scene stays one block; and a file over the edit cap is
+  REFUSED rather than posted as a block she could not save whole (split it,
+  or post a Compare page). The key it prints is the page's own `tickKey`,
+  pinned equal by `node scripts/test-chat-block.js`.
 - **A LIST IN A REPLY WEARS A BOX ON EVERY ITEM, AND THE BOX HAS THREE STOPS
   (2026-09-03, Sophie: "could message lists automatically have a tick in the
   app" · 2026-09-04: "do a three way toggle so two press is an x three press
@@ -2837,10 +2856,32 @@ them off the reference sheet, not off the old filenames.
 - **Naming a chat: the Chats app is the source of truth (July 2026).** Sophie
   renames a chat with the pencil in its thread header; that writes `displayName`
   on the registry doc and is the name she sees everywhere. **The Claude app's own
-  session title cannot be synced** — nothing exposes a session's title to the
-  outside and nothing can push a rename back into claude.ai (checked July 2026,
-  no API and no MCP tool for it), so the two names are separate by necessity and
-  hers wins. A chat reads what she calls it with
+  session title CAN BE READ, one direction only — the July 2026 claim that
+  "nothing exposes a session's title" is STALE (re-measured 2026-09-08:
+  `list_sessions` answers a `title` per session, and her renames are in it).
+  So a rename she makes in the Claude app CAN be mirrored into Deck Factory;
+  nothing can push one the other way, and hers wins either way.
+  **Mirroring one: `list_sessions {mine:true, limit:100}` → id + title, join to
+  the registry through each chat's `url` (`session_…`), and rename with
+  `POST /api/chatfeed/rename {chat, name}`. TWO RULES.** (1) **Most titles are
+  the HARNESS's auto-title, not a rename** — it writes one from her first
+  message, so it near-twins the branch slug ("playground-back-to-top" →
+  "Back to top button in Playground"). Measured 2026-09-08 over 96 account-3
+  chats: 74 titles differ from the Deck Factory name and only **5** share no
+  words with the slug. Word overlap against the slug is the tell — a rename of
+  hers is short, lowercase and unrelated ("tape montage", "ms o hara",
+  "stills"); mirroring all 74 would rename her whole app with machine
+  sentences. (2) **A session's title is only listable from its OWN account** —
+  an account-3 chat cannot read an account-1 session — so a sweep covers one
+  account and must say so. (3) **NEVER write over a `displayName` she already
+  set, and judge "recent" by `startedAt`, not by `lastSeen`** (2026-09-08,
+  Sophie: "oops no just from today · undo others"). Two registry docs can
+  point at ONE session — a re-bound or forked thread — so a title lands on
+  both, and the older doc is the one carrying a name of hers: the sweep
+  renamed a chat started two days earlier from her own `seedance` to today's
+  title. Rename only the docs whose `startedAt` is inside the window you were
+  asked for, leave a doc that already has her name alone, and name it in the
+  reply instead. A chat reads what she calls it with
   `GET /api/chatfeed/name?chat=<slug>&session=<your session id>` →
   `{ chat, displayName, name }` — ALWAYS pass `session` (the
   `CLAUDE_CODE_REMOTE_SESSION_ID` without `cse_`): the returned `chat` is your
@@ -2848,6 +2889,22 @@ them off the reference sheet, not off the old filenames.
   the branch slug), and that's the slug to use for pages, asset prompts,
   notes, and any other chat-keyed POST. Renaming is cosmetic and never re-keys
   a chat's history.
+- **THE OPEN BUTTON'S LINK IS THE OWNER'S, AND IT WAS NOT GUARDED (2026-09-08,
+  Sophie: "that's a bug, right?").** `sessionId` on a registry doc is the
+  chat's OWNER and `resolveChat` guards it; `url` — the orange Open button —
+  was written from whatever posted, unchecked, so the two could disagree and
+  the button opened SOMEONE ELSE'S Claude session. Found live on
+  `severance-api-multiple-frames`: all 872 of its messages are from session
+  `018fYFNh…` while its url pointed at `01XwF5s…`. **Scope measured before
+  anything was changed: 1 of 870 chats** — repaired by hand (there is no route
+  that writes `url`, so a repair needs the Admin SDK). `keepsDeepLink` in
+  `chatfeed.js` is the rule now — an unowned chat takes the poster's link, an
+  owner keeps its own, and a post naming no session may not move one. The
+  shape that does it is a post that skips session-first resolution (an
+  explicit `FORGE_CHAT`, or a draft whose final post re-patched its `chat` and
+  left the crumb behind). **`reg.account` has the same unguarded shape and was
+  deliberately left alone** — a wrong account is a filing label, not a broken
+  door. Test: `node scripts/test-chat-deeplink-owner.js`.
 - **Assets curation (♥/✕ + notes, July 2026):** Sophie hearts/rejects images
   in a chat's Assets tab (tiles AND the lightbox), and the lightbox has a note
   box (under the image) she can send per image. Votes + notes live in
