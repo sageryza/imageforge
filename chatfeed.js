@@ -5424,6 +5424,43 @@ async function applyPageVerdict(sheet, item, ok) {
   return { chat, archived: on };
 }
 
+// THE SCRIPT BOX — one long text per chat, scenes separated by the word
+// "cut" (2026-09-08, Sophie: "where can i put multiple scenes w only the word
+// cut to separate them"). A verdict text caps at 2,000 characters, which is
+// one scene; a script is many. One doc per chat in `forge-chat-scripts`,
+// `text` up to 200,000 characters, the previous text kept whole under
+// `was` so a paste that replaces a script is one write from undone. Free —
+// no model call. The belt's Script card is the writer; a chat reads it with
+// GET and splits on /^\s*cut\s*$/m itself.
+const SCRIPT_MAX = 200000;
+router.get('/script', async (req, res) => {
+  try {
+    const chat = String(req.query.chat || '').slice(0, 80);
+    if (!chat) return res.status(400).json({ error: 'chat is required' });
+    const snap = await admin.firestore().collection('forge-chat-scripts').doc(chat).get();
+    const d = snap.exists ? snap.data() : {};
+    res.json({ ok: true, chat, text: d.text || '', updatedAt: d.updatedAt || null, by: d.by || null });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+router.post('/script', express.json({ limit: '1mb' }), async (req, res) => {
+  try {
+    const { chat, text, by } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat is required' });
+    if (typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
+    const ref = admin.firestore().collection('forge-chat-scripts').doc(String(chat).slice(0, 80));
+    const t = text.slice(0, SCRIPT_MAX);
+    const now = new Date().toISOString();
+    await admin.firestore().runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const prev = snap.exists ? snap.data() : {};
+      const patch = { chat: String(chat).slice(0, 80), text: t, updatedAt: now, by: by === 'chat' ? 'chat' : 'sophie' };
+      if (prev.text && prev.text !== t) patch.was = { text: prev.text, at: prev.updatedAt || now };
+      tx.set(ref, patch, { merge: true });
+    });
+    res.json({ ok: true, chars: t.length, truncated: text.length > SCRIPT_MAX });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 router.post('/verdict', express.json({ limit: '64kb' }), async (req, res) => {
   try {
     const { chat, sheet, item, ok, text, at } = req.body || {};
