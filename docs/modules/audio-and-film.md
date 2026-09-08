@@ -160,6 +160,11 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
   A trimmed clip is therefore never a 2.5 reference — cut the SHOT LENGTH
   with the prompt, or send the whole clip. Failed at validation, before
   drawing.
+  The same job with BOTH untouched clips (jazz 15.1s + doctor 15.0s =
+  30.1s of reference, job `3a4f22c9`, 10s, ~$1.30) was accepted and drawn,
+  so 2.5's reference budget is at least 30s and the clips together are
+  fine; and it is her — the short hair, the red tank top, the beige grippy
+  socks — where three mini runs (trimmed, 15s, uncut) each drew a stranger.
   **THE COLLECTION PAGE UNDER-LISTS — PROBE THE MODEL NAMES (same day,
   Sophie: "why did u skip 2.5 etc").** Replicate's image-to-video collection
   page showed six Seedance models; `GET /v1/models/bytedance/<name>`
