@@ -1,4 +1,4 @@
-sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]
+sophie is the woman in [Video1] and the patient in [Video2].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]
 
 Nurse Edna: the nurse in [Video2].
 
