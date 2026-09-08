@@ -20,7 +20,11 @@ ok('the log params carry every reference by kind', JSON.stringify(r.params.refer
 ok('the log params read like APIFRAME\'s seedanceParams', r.params.duration === 4 && r.params.resolution === '480p' && r.params.aspect_ratio === '3:4' && r.params.generate_audio === true);
 
 const v = o.buildRequest({ ...base, referenceVideoUrls: ['https://x/v.mp4'] });
-ok('A REFERENCE VIDEO IS REFUSED and the answer names APIFRAME', v.error && v.refused === 'video' && v.error.includes(o.APIFRAME_ROUTE));
+ok('A REFERENCE VIDEO RIDES AS video_url, after the pictures and before the audio (ByteDance decides — a person-free clip passes, measured)',
+  !v.error && JSON.stringify(v.body.input_references.map((x) => x.type)) === '["image_url","image_url","video_url","audio_url"]'
+  && v.body.input_references[2].video_url.url === 'https://x/v.mp4' && v.params.reference_video_urls[0] === 'https://x/v.mp4');
+const srcRoute = fs.readFileSync(__dirname + '/../openrouter.js', 'utf8');
+ok('a content refusal names APIFRAME as the door for a person', /hint = kind === 'content'[^\n]*APIFRAME_ROUTE/.test(srcRoute));
 ok('an empty prompt is refused', o.buildRequest({ prompt: '  ' }).error === 'prompt is required');
 ok('no references → no input_references key', !('input_references' in o.buildRequest({ prompt: 'p' }).body));
 ok('audio off is honoured', o.buildRequest({ prompt: 'p', generateAudio: false }).body.generate_audio === false);

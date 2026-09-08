@@ -259,6 +259,31 @@
      link this file and none of them asks for notes, so they must not pay for
      it. A page that does ask gets it on the first tap; the module is idempotent
      and no-ops if the page loaded it itself. */
+  /* THE CARET STAYS VISIBLE WHILE SHE TYPES — loaded on the first focus of a
+     text box, never up front (2026-09-08, Sophie on the belt: "when i edit
+     the text, the scroll position moves, so the cursor is under the
+     textbox"). Every Compare page ever posted links THIS file, so the fix
+     reaches the pages already out there — the belts, the scene boxes, the
+     note boxes — with nothing re-posted. A page with nothing to type in pays
+     one nothing. The full reasoning is in caretkeep.js. */
+  var caretTried = false;
+  document.addEventListener('focusin', function (e) {
+    var t = e.target;
+    if (!t || !t.tagName) return;
+    if (t.tagName !== 'TEXTAREA' && t.tagName !== 'INPUT') return;
+    if (window.__caretKeep) { window.__caretKeep.focus(t); return; }
+    if (caretTried) return;
+    caretTried = true;
+    var sc = document.createElement('script');
+    sc.src = '/caretkeep.js';
+    sc.addEventListener('load', function () {
+      // she is still in the box the fetch was started for
+      if (window.__caretKeep && document.activeElement === t) window.__caretKeep.focus(t);
+    }, { once: true });
+    sc.addEventListener('error', function () { /* the box still types */ }, { once: true });
+    (document.head || document.documentElement).appendChild(sc);
+  }, true);
+
   var fnote = null;
   function loadFilmNote(cb) {
     if (window.__filmNote) return cb();
