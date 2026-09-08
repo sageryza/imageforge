@@ -3202,7 +3202,10 @@ resolves session-first like any reply. The model never writes the words, so
 the block costs no output tokens and is verbatim by construction. Her edits
 autosave onto the message doc (`blockedits[key]`, `POST /blockedit`, 4000
 chars); `node scripts/chat-block.js read --chat <slug> [--id <msgId>] [--out
-file]` prints every block with her version where she edited it. The key is
+file]` prints every block with her version where she edited it. When she
+taps Done, the thread gets one line as her message (`Block <id>/<key> "…"
+was edited`), never the words — the block is not part of the conversation;
+the chat reads it back only when it asks. The key is
 the page's `tickKey` over the original words; the test extracts that function
 out of `chats.html` and pins the two equal. A file over 4000 characters is
 refused before anything is posted. Test: `node scripts/test-chat-block.js`.
