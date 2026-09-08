@@ -1838,7 +1838,12 @@ them off the reference sheet, not off the old filenames.
   → server and never through the model: nothing to post, verbatim by
   construction. `read --chat <slug>` prints every block with her edit where
   she made one (`--out file` writes the newest), which is how a chat gets her
-  version back for the cheap input price. Three things: it is its OWN message
+  version back for the cheap input price. **THE BLOCK IS NOT PART OF THE
+  CONVERSATION — that is the whole point (her words, the same hour: "so they
+  don't have to read it back every turn").** When she edits one, the thread
+  gets ONE LINE as her message, `Block <msgId>/<key> "…" was edited`, never
+  the text; a chat that sees that line runs `read --id <msgId> --key <key>`
+  and reads the words once, when it wants them. Three things: it is its OWN message
   (a separate doc, never inside the hook's reply — a run of the chat's rows
   merges on the page, so it still reads in place); a blank line rides as a
   bare `>` so the scene stays one block; and a file over the edit cap is

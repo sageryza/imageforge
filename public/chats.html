@@ -8089,10 +8089,12 @@ function wakeWords(s){
 // never a second copy to keep in step — holding the text the block shows
 // right now (her saved edit, else the chat's original). Save: POST
 // /api/chatfeed/blockedit {id, key, text} files `blockedits[key]` on the
-// message doc, then the edit goes into the thread as HER message through
-// /reply, quietly (no doorbell — the list-note rule), so the chat reads the
-// new words next time it is up. Reset sends '' (deletes the edit) and shows
-// the original again. Cancel closes with nothing changed.
+// message doc, then ONE LINE goes into the thread as HER message through
+// /reply, quietly (no doorbell — the list-note rule): "Block <id>/<key> …
+// was edited" — never the words themselves (2026-09-08, her rule: the block
+// is not part of the conversation, so the chat reads it back only when it
+// asks, with scripts/chat-block.js read). Reset sends '' (deletes the edit)
+// and shows the original again. Cancel closes with nothing changed.
 function quoteOpenEdit(blk, owner){
   var key=blk.dataset.key, orig=blk.dataset.orig||'', textEl=blk.querySelector('.mqtext'), foot=blk.querySelector('.mqfoot');
   var ed=(owner.blockedits||{})[key], cur=ed&&ed.text ? ed.text : orig, opened=cur;
@@ -8148,8 +8150,13 @@ function quoteOpenEdit(blk, owner){
   function tell(text){
     var chat=owner.chat||cur||'';
     if(!chat || (text||orig)===opened) return Promise.resolve();   // Done with the words as they were opened says nothing
-    var head=orig.replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim().slice(0,60);
-    var line=text ? 'Edit of \u201c'+head+'\u2026\u201d: '+text : 'Edit of \u201c'+head+'\u2026\u201d: put back the original';
+    // ONE LINE, NEVER THE WORDS (2026-09-08, Sophie: "the intent is that it's
+    // not part of the conversation so they don't have to read it back every
+    // turn … message could be one line: [block id] was edited"). The text
+    // lives on the doc; the chat fetches it when it wants it
+    // (scripts/chat-block.js read --id <msg> --key <key>).
+    var head=orig.replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim().slice(0,40);
+    var line='Block '+owner.id+'/'+key+' \u201c'+head+'\u2026\u201d '+(text ? 'was edited' : 'was put back to the original');
     var mlist=blk.closest('.msg')&&blk.closest('.msg').parentNode;
     return postHers(chat, line, false).then(function(){
       if(mlist) mlist.appendChild(renderMsg({from:'sophie', text:line, created:new Date().toISOString()}));
@@ -8158,7 +8165,7 @@ function quoteOpenEdit(blk, owner){
   reset.onclick=function(e){ e.stopPropagation(); done.disabled=true; ta.value=''; file('').then(function(){ return tell(''); }).then(function(){ close(); toast('Original is back'); }); };
   done.onclick=function(e){ e.stopPropagation(); done.disabled=true;
     var v=ta.value.replace(/\s+$/,''); if(!v.trim()){ done.disabled=false; return; }
-    flushNow().then(function(){ return tell(v===orig?'':v); }).then(function(){ close(); if(v!==opened) toast('Saved \u2014 sent to the chat'); });
+    flushNow().then(function(){ return tell(v===orig?'':v); }).then(function(){ close(); if(v!==opened) toast('Saved \u2014 the chat is told'); });
   };
 }
 // THE CODE BLOCK'S EDITOR (2026-09-08, Sophie: "make blocks editable if
