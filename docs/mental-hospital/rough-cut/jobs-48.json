@@ -1,0 +1,34 @@
+[
+ {
+  "key": "48",
+  "title": "The end of the hallway — take the pill / don't take the pill",
+  "secs": 20,
+  "status": "ready — the door with no handle (a possible ending)",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "text": "She sits at the end of the hallway, next to the hallway which patients go in as they choose. It’s never been locked so long as she’s been there but there is no handle on the inside of the door. mulling over the matter of whether or not to take the pill she’s been prescribed. “Take the pill,” she mutters, clenching her fists tightly, then releasing, and the antithesis: “Don’t take the pill,” she clenches her fists again. She repeats these two phrases eleven times in a row before screwing up her eyes in concentration as though the decision were laid out in front of her and she has just to interpret it in order to know what to do. She gives up and resorts to clenching her fists again, muttering those words over and over so it sounds like a mantra.",
+  "mine": [
+   "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]",
+   "setting: mental hospital."
+  ],
+  "note": "scene 48 of the script, as it sits on the full belt — nothing wired, nothing sent"
+ }
+]
