@@ -5,7 +5,8 @@
 // list price (480p 2.5 ≈ 10.9¢/s all in against APIFRAME's 13¢), but
 // ByteDance's own filter refuses reference VIDEOS with people that APIFRAME
 // accepts (measured 2026-09-08), so this door takes text, pictures and audio
-// only and REFUSES a --video outright.
+// only; a --video rides as `video_url` and ByteDance refuses a person in it
+// for free (that job is APIFRAME's).
 //
 //   OPENROUTER_API_KEY=… node scripts/openrouter-video.js \
 //     --prompt-file scene.txt --seconds 4 --res 480p --ratio 3:4 \
@@ -41,7 +42,9 @@ for (let i = 0; i < args.length; i++) {
   else if (a === '--dry') opt.dry = true;
   else { console.error('unknown arg', a); process.exit(2); }
 }
-if (opt.video.length) { console.error('REFUSED: a reference video goes through APIFRAME (POST /api/apiframe/video), not this door — see CLAUDE.md.'); process.exit(2); }
+// A reference video rides as `video_url`; ByteDance refuses one with a
+// person in it for free before drawing (that job is APIFRAME's), and a
+// person-free clip passes (measured 2026-09-08, the socks B-roll).
 if (!opt.prompt) { console.error('--prompt-file or --prompt required'); process.exit(2); }
 const KEY = process.env.OPENROUTER_API_KEY;
 if (!KEY && !opt.dry) { console.error('OPENROUTER_API_KEY not set'); process.exit(2); }
@@ -52,6 +55,7 @@ const body = {
 };
 const refs = [
   ...opt.img.map((url) => ({ type: 'image_url', image_url: { url } })),
+  ...opt.video.map((url) => ({ type: 'video_url', video_url: { url } })),
   ...opt.audio.map((url) => ({ type: 'audio_url', audio_url: { url } })),
 ];
 if (refs.length) body.input_references = refs;
