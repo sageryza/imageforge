@@ -180,6 +180,23 @@ function sidTail(session) {
 // id owned the pretty slug — sidTail("session_…") is literally "sessio").
 // Every comparison and every write below goes through this, so a chat posting
 // its status card with the url spelling lands on the same thread as its hook.
+// WHOSE DEEP LINK THE REGISTRY KEEPS (2026-09-08, Sophie: "that's a bug,
+// right?"). `sessionId` is the chat's OWNER and is guarded by resolveChat;
+// `url` — the orange Open button — was written by whatever posted, with no
+// such check, so the two could disagree and the button opened SOMEONE ELSE'S
+// Claude session. Found live on `severance-api-multiple-frames`: every one of
+// its 872 messages is from session 018fYFNh…, and its url pointed at
+// 01XwF5s… (1 of 870 chats, repaired by hand). The shape that does it is a
+// post that skips session-first resolution — an explicit FORGE_CHAT, or a
+// draft whose final post re-patched its `chat` and left this crumb behind.
+// So: a chat with no owner yet takes the poster's link, an owner keeps its
+// own, and a post that names no session may not move one.
+function keepsDeepLink(ownerSid, postingSid) {
+  const own = bareSid(ownerSid);
+  if (!own) return true;
+  const post = bareSid(postingSid);
+  return !!post && post === own;
+}
 function bareSid(session) {
   return String(session || '').replace(/^(session_|cse_)/, '').slice(0, 120);
 }
@@ -1001,7 +1018,6 @@ router.post('/', async (req, res) => {
       msgId = ref.id;
     }
     const reg = { lastSeen: doc.created };
-    if (doc.url) reg.url = doc.url; // keep the chat's deep link on its registry tile
     // Which Claude account this chat's sessions run under (the hook posts the
     // environment's FORGE_ACCOUNT). Open buttons route app-vs-browser off it.
     if (account) reg.account = String(account).slice(0, 20);
@@ -1012,6 +1028,9 @@ router.post('/', async (req, res) => {
     // back here is current.
     let mine = {};
     try { mine = (await registry()).chats[doc.chat] || {}; } catch (e) { /* best effort */ }
+    // keep the chat's deep link on its registry tile — but only the OWNER's;
+    // see keepsDeepLink above for the live bug this closes.
+    if (doc.url && keepsDeepLink(mine.sessionId, skey)) reg.url = doc.url;
     // WHEN THE CHAT BEGAN (2026-09-02, the work log). `lastSeen` above is
     // rewritten on EVERY post, so it is the chat's newest message — measured
     // on twelve real threads, it matched the LAST message on all twelve and
@@ -5565,7 +5584,7 @@ require('./chat-wake').mount(router, { db, regRef, registry, followMoves, resolv
   // `regRef` is exported for chaticons.js — it is the ONE write path that
   // invalidates the registry cache, so a sweep must not reach the collection
   // around it.
-module.exports = { router, regRef, worklogRows, worklogLine, pillInject, archiveActionFor, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry, pickFilm,
+module.exports = { router, regRef, keepsDeepLink, worklogRows, worklogLine, pillInject, archiveActionFor, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry, pickFilm,
   rankGroups, phraseRegex, phraseRank, bestPerChat, snippetWindows, snippetOf,
   SEARCH_WHO, whoOf, whoParam, whoMatches,
   SEARCH_ARCH, archParam, archMatches, pickOne, pickNameRows, NAME_ROWS,

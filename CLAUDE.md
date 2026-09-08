@@ -2870,6 +2870,22 @@ them off the reference sheet, not off the old filenames.
   the branch slug), and that's the slug to use for pages, asset prompts,
   notes, and any other chat-keyed POST. Renaming is cosmetic and never re-keys
   a chat's history.
+- **THE OPEN BUTTON'S LINK IS THE OWNER'S, AND IT WAS NOT GUARDED (2026-09-08,
+  Sophie: "that's a bug, right?").** `sessionId` on a registry doc is the
+  chat's OWNER and `resolveChat` guards it; `url` — the orange Open button —
+  was written from whatever posted, unchecked, so the two could disagree and
+  the button opened SOMEONE ELSE'S Claude session. Found live on
+  `severance-api-multiple-frames`: all 872 of its messages are from session
+  `018fYFNh…` while its url pointed at `01XwF5s…`. **Scope measured before
+  anything was changed: 1 of 870 chats** — repaired by hand (there is no route
+  that writes `url`, so a repair needs the Admin SDK). `keepsDeepLink` in
+  `chatfeed.js` is the rule now — an unowned chat takes the poster's link, an
+  owner keeps its own, and a post naming no session may not move one. The
+  shape that does it is a post that skips session-first resolution (an
+  explicit `FORGE_CHAT`, or a draft whose final post re-patched its `chat` and
+  left the crumb behind). **`reg.account` has the same unguarded shape and was
+  deliberately left alone** — a wrong account is a filing label, not a broken
+  door. Test: `node scripts/test-chat-deeplink-owner.js`.
 - **Assets curation (♥/✕ + notes, July 2026):** Sophie hearts/rejects images
   in a chat's Assets tab (tiles AND the lightbox), and the lightbox has a note
   box (under the image) she can send per image. Votes + notes live in
