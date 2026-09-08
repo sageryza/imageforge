@@ -1,0 +1,26 @@
+{
+ "ok": true,
+ "jobId": "i0z3UXSFaZNwXyv1x889",
+ "poll": "/api/openrouter/video-job/i0z3UXSFaZNwXyv1x889",
+ "sent": {
+  "model": "bytedance/seedance-2.0-mini",
+  "prompt": "sophie is the woman in [Image1]. she wears the pajamas in [Image1]. the cup is one of the cups in [Image2].\n\na close up of sophie drinking the water",
+  "resolution": "480p",
+  "generate_audio": true,
+  "aspect_ratio": "3:4",
+  "input_references": [
+   {
+    "type": "image_url",
+    "image_url": {
+     "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/643c7e9ca285cc3f2b5c116828bf9280.png"
+    }
+   },
+   {
+    "type": "image_url",
+    "image_url": {
+     "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/d812dad4607c6b5365d5d05fcd948e69.png"
+    }
+   }
+  ]
+ }
+}

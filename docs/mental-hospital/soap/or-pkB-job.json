@@ -1,0 +1,20 @@
+{
+ "ok": true,
+ "jobId": "45vfFrAD8QnbdTXLGgUR",
+ "poll": "/api/openrouter/video-job/45vfFrAD8QnbdTXLGgUR",
+ "sent": {
+  "model": "bytedance/seedance-2.0-mini",
+  "prompt": "the two cups in [Image1].\n\na closer up of her putting the two cups together",
+  "resolution": "480p",
+  "generate_audio": true,
+  "aspect_ratio": "3:4",
+  "input_references": [
+   {
+    "type": "image_url",
+    "image_url": {
+     "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/d812dad4607c6b5365d5d05fcd948e69.png"
+    }
+   }
+  ]
+ }
+}

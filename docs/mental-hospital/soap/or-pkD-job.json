@@ -1,0 +1,20 @@
+{
+ "ok": true,
+ "jobId": "Ic7ZjPH7fOoDPnxyfW5w",
+ "poll": "/api/openrouter/video-job/Ic7ZjPH7fOoDPnxyfW5w",
+ "sent": {
+  "model": "bytedance/seedance-2.0-mini",
+  "prompt": "the cup is one of the cups in [Image1].\n\nclose up of the water cup: the half pill sitting at the bottom of the cup, barely dissolved, in flakes and chunks",
+  "resolution": "480p",
+  "generate_audio": true,
+  "aspect_ratio": "3:4",
+  "input_references": [
+   {
+    "type": "image_url",
+    "image_url": {
+     "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/d812dad4607c6b5365d5d05fcd948e69.png"
+    }
+   }
+  ]
+ }
+}
