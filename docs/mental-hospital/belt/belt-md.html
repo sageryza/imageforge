@@ -247,7 +247,7 @@ the assistant: the woman with the clipboard in [Video2].
 setting: mental hospital.</pre><p class="mine">201 words — might want a split at &quot;just like i always wanted&quot;</p>
 </div></section></div>
 <script>
-var CHAT='severance-api-multiple-frames', SHEET='belt-md';
+var CHAT='hospital-night-film', SHEET='belt-md';
 function post(body){ return fetch('/api/chatfeed/verdict',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}); }
 function cost(k){ var s=parseInt(document.querySelector('.secs[data-key="'+k+'"]').value)||0; document.querySelector('.cost[data-key="'+k+'"]').textContent='$'+(s*0.15).toFixed(2)+' at 15¢/s'; }
 document.querySelectorAll('.p[data-key]').forEach(function(ta){ var k=ta.getAttribute('data-key'), f=ta.getAttribute('data-field')||'p', sv=document.getElementById('sv-'+k+(f==='pre'?'-pre':'')), timer=null;
