@@ -1,8 +1,44 @@
 [
  {
-  "key": "md-23a",
-  "title": "The montage — the tray, the pockets, the tape sculptures",
-  "secs": 15,
+  "key": "md-23a1",
+  "title": "The montage — the tray and the pockets",
+  "secs": 10,
+  "status": "ready",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ],
+   [
+    "the dining room — ceiling and wall, no people",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/1c9795c66026ee3374ab37bc6eb54b58.png"
+   ]
+  ],
+  "text": "sophie uses the materials she finds at the mental hospital to make sculptures in her room. \n\nmontage showing sophie participating in various activities - 1. hiding things from her meal time tray in her shirt pockets (ex. little salt packets, empty half and half containers and butter pats (wrapped in gold foil)  - 2. pushing the actual food away - (she doesn't eat anything) she pushes the tray away from her, all the food fully intact, but suspiciously devoid of the little containers and things.",
+  "mine": [
+   "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]",
+   "setting: mental hospital. the dining room in [Image4]."
+  ],
+  "note": "your rewrite, split where you wrote \"split here\" — part 1"
+ },
+ {
+  "key": "md-23a2",
+  "title": "The montage — the tape sculptures at night",
+  "secs": 10,
   "status": "ready",
   "videos": [
    [
@@ -26,18 +62,14 @@
    [
     "her room, face blurred",
     "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/a26b474c31334b9e2b32d1d10b6ec5bc.png"
-   ],
-   [
-    "the dining room — ceiling and wall, no people",
-    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/1c9795c66026ee3374ab37bc6eb54b58.png"
    ]
   ],
-  "text": "montage: showing sophie participating in various activities - hiding things from her meal time tray in her shirt pockets (ex. little salt packets, plastic silverware) she doesn't eat anything though (she pushes the tray away from her, all the food fully intact, but suspiciously devoid of certain serving utensils etc. (separate shot?)\n\nAt night she uses the masking tape (see pocket shot) to construct elaborate sculptures and adhere them to the wall with haphazard contraptions formed only from all the things that come on her cart during meals.",
+  "text": "At night she uses the masking tape [image ?] to construct elaborate sculptures and adhere them to the wall with haphazard contraptions formed only from all the things that come on her cart during meals.\n\nthe sculptures/contraptions are held together by little pieces of masking tape, that she rips from the roll, ripping a few at a time, and keeping them on her fingers so she has them handy to attach.",
   "mine": [
    "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]",
-   "setting: mental hospital. her room in [Image4]. the dining room in [Image5]."
+   "setting: mental hospital. her room in [Image4]."
   ],
-  "note": "your text with the Michael sentence cut, as you said"
+  "note": "part 2 — your \"[image ?]\" is still your words; my proposal is [Image3], the tape pocket. Not changed until you say."
  },
  {
   "key": "md-23b",
@@ -234,7 +266,8 @@
    "the assistant: the woman with the clipboard in [Video2].",
    "setting: mental hospital. her room in [Image4]."
   ],
-  "note": "two settings in one clip: the hall, then her room"
+  "note": "two settings in one clip: the hall, then her room",
+  "pre": "what came before:\nsophie is a patient at a mental hospital who has just been told she might never be allowed to leave. her intense terror and panic have forced her into a dissociative state, represented as the physical presence of a separate entity - her soul, or a ghost version of her, that follows her around, perceiving the situation from outside of herself, so she can remain detached and unemotional.\n\ncurrent scene:"
  },
  {
   "key": "md-33",
