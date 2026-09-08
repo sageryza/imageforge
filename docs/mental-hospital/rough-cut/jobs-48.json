@@ -3,7 +3,7 @@
   "key": "ohara-aud",
   "title": "Ms. O'Hara + her two nurses — the audition",
   "secs": 4,
-  "status": "ready — 4s, 60¢",
+  "status": "sent 4s — her edited block, verbatim (one slot fix: [Image1] and [Image2])",
   "videos": [],
   "images": [
    [
@@ -15,13 +15,9 @@
     "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
    ]
   ],
-  "text": "Ms. O'Hara: an older woman who has short mousy brown hair in a wild mess at the top of her head. She is adorned in the blue pajamas that all of the patients wear and she is holding her arms perfectly straight and still at her side while two nurses, one on either side, buckle the straps to the stretcher they are wheeling her on. On her head she wears a metal helmet with many little wires hanging off of it. The wires are red and blue and gold.\n\nthe two nurses: a male nurse and a female nurse, in navy nurse's scrubs.",
-  "mine": [
-   "setting: mental hospital. a hallway outside a patient's room.",
-   "the woman is lying strapped to the stretcher, the nurses on either side of it. no one speaks.",
-   "she wears the blue hospital pajamas in [Image1] and [Image2]."
-  ],
-  "note": "the audition: your script's description of her, with 'mousy brown' as you said. the two pajama stills are the FACE-FREE ones (the headless crop and the tape pocket), so nothing of Sophie can land on her. the nurses' line is mine."
+  "text": "setting: a hallway in a mental hospital\n\nMs. O'Hara: an older woman who has short mousy brown hair in a wild mess at the top of her head. white as a ghost, and trying not to panic. small boned, with a sweet face. She is adorned in the blue pajamas in [Image1] and [Image2] that all of the patients wear and she is holding her arms perfectly straight and still at her side while two nurses, one on either side, buckle the straps to the stretcher they are wheeling her on. On her head she wears a metal helmet with many little wires hanging off of it. The wires are red and blue and gold.\n\nthe two nurses: a male nurse, asian man, mid thirties, wearing a white coat over navy nurses scrubs and a female nurse, jamaican, big boned.",
+  "mine": [],
+  "note": "her rewrite from the message block, whole. the one change of mine: '[Image1 and Image2]' → '[Image1] and [Image2]', the slot syntax Seedance reads."
  },
  {
   "key": "36a",
