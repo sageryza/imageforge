@@ -60,6 +60,9 @@ console.log('decideRecord — new url pushes, same url updates silently');
   ok('…a re-post can correct the title', c.doc.title === 'Evan — the long cut v1 (4:54)');
   const d = decideRecord(a.doc, { url: 'https://x/film-v1.mp4', title: '', chat: 'evan-film' }, later);
   ok('…an empty re-post title leaves the old one alone', d.doc.title === undefined);
+  const e = decideRecord(a.doc, { url: 'https://x/film-v1.mp4', title: '', chat: 'hospital-night-film' }, later);
+  ok('…a re-post under another chat moves the row there', e.doc.chat === 'hospital-night-film');
+  ok('…and the same chat again writes no chat', d.doc.chat === undefined);
 
   const pin = decideRecord(null, { url: 'https://x/p.mp4', title: 't', chat: 'c', source: 'pin', at: '2026-08-01T00:00:00.000Z' }, now);
   ok('a backdated record keeps its own at', pin.doc.at === '2026-08-01T00:00:00.000Z');
