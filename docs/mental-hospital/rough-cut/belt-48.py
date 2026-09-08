@@ -12,16 +12,18 @@ secs=[]
 for n,j in enumerate(jobs,1):
     k=j['key']; vids=[v for v in j['videos'] if v[1]]; pend=[v for v in j['videos'] if not v[1]]
     s=tx.get(k+'.s') or str(j['secs']); p=tx.get(k+'.p') or j['text']; pre=tx.get(k+'.pre') or j.get('pre') or ''
+    minetxt=tx.get(k+'.mine') if (k+'.mine') in tx else '\n\n'.join(j['mine'])
+    minebox='<details class="text"><summary>reference lines — mine, sent before your words (tap to edit)</summary><textarea class="p" data-key="%s" data-field="mine" spellcheck="false">%s</textarea><div class="saved" id="sv-%s-mine"></div></details>'%(k,H.escape(minetxt),k)
     prebox=('<details class="text" open><summary>what came before (yours, sent first)</summary><textarea class="p" data-key="%s" data-field="pre" spellcheck="false">%s</textarea><div class="saved" id="sv-%s-pre"></div></details>'%(k,H.escape(pre),k)) if pre else ''
     sends=' · '.join(['Seedance 2.5','480p','3:4','audio on']+['Video%d = %s'%(i+1,H.escape(v[0])) for i,v in enumerate(j['videos'])]+['Image%d = %s'%(i+1,H.escape(im[0])) for i,im in enumerate(j['images'])])
     films=''.join('<p class="vid">Video%d — <a href="%s" target="_blank">%s</a> · %s</p>'%(i+1,H.escape(v[1]),H.escape(v[0]),vlen(v[1])) for i,v in enumerate(vids))
     pending=''.join('<p class="pend">Video%d — %s — NOT MADE YET</p>'%(j['videos'].index(v)+1,H.escape(v[0])) for v in pend)
     stills=''.join('<figure><img loading="lazy" src="%s"><figcaption>Image%d — %s</figcaption></figure>'%(H.escape(im[1]),i+1,H.escape(im[0])) for i,im in enumerate(j['images']))
-    mine=('<p class="mine">mine, sent before your words:</p><pre class="mine">%s</pre>'%H.escape('\n\n'.join(j['mine']))) if j['mine'] else '<p class="mine">mine: nothing</p>'
+    mine=''
     note=('<p class="mine">%s</p>'%H.escape(j['note'])) if j['note'] else ''
     secs.append('''<section class="card" id="j-%(k)s" data-key="%(k)s" data-item="%(k)s">
 <h2>%(n)d · %(t)s<span class="st">%(st)s</span></h2>
-%(prebox)s<details class="text" open><summary>your words</summary>
+%(minebox)s%(prebox)s<details class="text" open><summary>your words</summary>
 <textarea class="p" data-key="%(k)s" spellcheck="false">%(p)s</textarea><div class="saved" id="sv-%(k)s"></div></details>
 <div class="attached">
 <div class="row"><label>seconds <input class="secs" data-key="%(k)s" value="%(s)s" inputmode="numeric"></label><span class="cost" data-key="%(k)s"></span></div>
@@ -29,7 +31,7 @@ for n,j in enumerate(jobs,1):
 %(films)s%(pending)s
 <div class="refs">%(stills)s</div>
 %(mine)s%(note)s
-</div></section>'''%dict(prebox=prebox,k=k,n=n,t=H.escape(j['title']),st=H.escape(j['status']),p=H.escape(p),s=H.escape(s),sends=sends,films=films,pending=pending,stills=stills,mine=mine,note=note))
+</div></section>'''%dict(minebox=minebox,prebox=prebox,k=k,n=n,t=H.escape(j['title']),st=H.escape(j['status']),p=H.escape(p),s=H.escape(s),sends=sends,films=films,pending=pending,stills=stills,mine=mine,note=note))
 TOC=' · '.join('<a href="#j-%s">%d %s</a>'%(j['key'],i+1,H.escape(j['title'].split(' — ')[1] if ' — ' in j['title'] else j['title'])) for i,j in enumerate(jobs))
 page='''<meta charset="utf-8"><link rel="stylesheet" href="/compare.css"><script src="/compare.js"></script>
 <style>
@@ -56,7 +58,7 @@ p.mine{font-size:12px;color:#8a8176;margin:6px 0 0} pre.mine{font:inherit;font-s
 var CHAT='__CHAT__', SHEET='__SHEET__';
 function post(body){ return fetch('/api/chatfeed/verdict',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}); }
 function cost(k){ var s=parseInt(document.querySelector('.secs[data-key="'+k+'"]').value)||0; document.querySelector('.cost[data-key="'+k+'"]').textContent='$'+(s*0.15).toFixed(2)+' at 15¢/s'; }
-document.querySelectorAll('.p[data-key]').forEach(function(ta){ var k=ta.getAttribute('data-key'), f=ta.getAttribute('data-field')||'p', sv=document.getElementById('sv-'+k+(f==='pre'?'-pre':'')), timer=null;
+document.querySelectorAll('.p[data-key]').forEach(function(ta){ var k=ta.getAttribute('data-key'), f=ta.getAttribute('data-field')||'p', sv=document.getElementById('sv-'+k+(f==='p'?'':'-'+f)), timer=null;
   function fit(){ta.style.height='auto'; ta.style.height=(ta.scrollHeight+2)+'px';} fit(); ta.closest('details').addEventListener('toggle',fit);
   function pieces(t){ var n=t.split(/\r?\n/).filter(function(l){return /^[ \t]*cut[ \t.!:]*$/i.test(l);}).length; return n?(' · '+(n+1)+' pieces'):''; }
   ta.addEventListener('input',function(){ fit(); var t=ta.value; sv.textContent='…'+pieces(t); clearTimeout(timer); timer=setTimeout(function(){ post({chat:CHAT,sheet:SHEET,item:k+'.'+f,text:t.slice(0,1900)}).then(function(){sv.textContent='saved'+pieces(t);}).catch(function(){sv.textContent='not saved';}); },700); });
@@ -72,7 +74,7 @@ document.getElementById('prev').onclick=function(){go(at()-1);}; document.getEle
 var h=(location.hash||'').replace('#j-',''); var start=cards.findIndex(function(c){return c.getAttribute('data-key')===h;}); if(start<0){ try{start=parseInt(localStorage.getItem('belt48.at'))||0;}catch(e){start=0;} }
 setTimeout(function(){ deck.scrollLeft=start*deck.clientWidth; paintPos(); window.scrollTo(0,0); },50);
 window.__compareNotes({chat:CHAT,sheet:'belt-48-notes'});
-window.__compareHelp({html:'<p class="toc">__TOC__</p><p>Two cards, scenes 36 and 48 of your script, your words verbatim. Type <b>cut</b> on a line of its own to split a scene where you want; the count under the box says how many pieces in the box (fold it with the underlined word). Under the line is what would go with it: seconds, the videos (playable), the stills, and the lines of mine that would be sent before your words. Nothing on this page is sent or wired until you say so.</p>'});
+window.__compareHelp({html:'<p class="toc">__TOC__</p><p>Two cards, scenes 36 and 48 of your script, your words verbatim in the box. Type <b>cut</b> on a line of its own to split a scene; the line under the box counts the pieces. Fold the box (fold it with the underlined word). Above your words, folded: the reference lines of mine that go in front of them — open the fold to edit them. Under the line is what would go with it: seconds, the videos (playable), the stills. Nothing on this page is sent or wired until you say so.</p>'});
 </script>
 '''
 page=page.replace('__CHAT__',CHAT).replace('__SHEET__',SHEET).replace('__TOC__',TOC).replace('__SECS__','\n'.join(secs))
