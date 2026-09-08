@@ -2,7 +2,7 @@ sophie is the woman in [Video1] and the patient in [Video2].  she wears the blue
 
 Nurse Edna: the nurse in [Video2].
 
-setting: nighttime, same room as [Image4], but at night
+setting: nighttime, same room as [Image4], but at night. window is dark. fluorescent light from ceiling
 
 nurse edna walks in through the doorway of sophie's room. sophie is standing there, waiting for her, pretending she isn't. nurse edna is smiling, and carrying two small white cups - one with a single blue pill and no water, the other with a little bit of water.
 
