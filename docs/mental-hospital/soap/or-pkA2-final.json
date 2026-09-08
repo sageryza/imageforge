@@ -1,0 +1,22 @@
+{
+ "id": "ZRhQS5srcPjJ3IsG0HIk",
+ "status": "completed",
+ "video": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/openrouter-video/1788908381290-5347qy.mp4",
+ "usage": {
+  "cost": 0.0696654,
+  "is_byok": false
+ },
+ "raw": {
+  "id": "ZRhQS5srcPjJ3IsG0HIk",
+  "generation_id": "gen-vid-1788908293-PrnvA5ndqzgaUWPgTnAU",
+  "polling_url": "https://openrouter.ai/api/v1/videos/ZRhQS5srcPjJ3IsG0HIk",
+  "status": "completed",
+  "unsigned_urls": [
+   "https://openrouter.ai/api/v1/videos/ZRhQS5srcPjJ3IsG0HIk/content?index=0"
+  ],
+  "usage": {
+   "cost": 0.0696654,
+   "is_byok": false
+  }
+ }
+}
