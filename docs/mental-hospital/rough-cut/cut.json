@@ -1,0 +1,663 @@
+{
+ "clips": [
+  {
+   "key": "c1",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4",
+   "title": "Cut 1 \u2014 Seedance v6 (words only)",
+   "poster": null,
+   "seconds": 15.104,
+   "in": 0,
+   "out": 15.104,
+   "mute": true,
+   "gain": 0
+  },
+  {
+   "key": "c3",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/dee520165d3cc9aaa40b143a4b16da75.mp4",
+   "title": "v7 \u2014 Seedance 2.5 extension",
+   "poster": null,
+   "seconds": 8,
+   "in": 0,
+   "out": 8,
+   "mute": true,
+   "gain": 0
+  },
+  {
+   "key": "c4",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/74fa5948ef1777c1a9e3e71c4df4bdf5.mp4",
+   "title": "Part 2 A \u2014 the spinning (Seedance 2.5)",
+   "poster": null,
+   "seconds": 15.042,
+   "in": 0,
+   "out": 15.042,
+   "mute": true,
+   "gain": 0
+  },
+  {
+   "key": "c5",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/fe455b89abf0f219f3f341ed093b2c1b.mp4",
+   "title": "Part 2 B \u2014 the woman call v3 (Seedance 2.5, its own sound)",
+   "poster": null,
+   "seconds": 15.042,
+   "in": 0,
+   "out": 15.042,
+   "mute": false,
+   "gain": 0
+  },
+  {
+   "key": "c9",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/373492726e22f51f3aa6bdbbb73620b4.mp4",
+   "title": "Part 3 \u2014 the ambulance (Seedance 2.5, its own sound)",
+   "poster": null,
+   "seconds": 15.042,
+   "in": 0,
+   "out": 15.042,
+   "mute": false,
+   "gain": 0
+  },
+  {
+   "key": "c10",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3d4f2766032129e838491049c3df8b7b.mp4",
+   "title": "Part 3 \u2014 the questions v2 (Seedance 2.5, its own sound)",
+   "poster": null,
+   "seconds": 12.042,
+   "in": 0,
+   "out": 12.042,
+   "mute": false,
+   "gain": 0
+  },
+  {
+   "key": "c8",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/e7b1b2cf6a94e6e8e2d9718b0aaefacd.mp4",
+   "title": "Part 3 \u2014 the doctor (Seedance 2.5, its own sound)",
+   "poster": null,
+   "seconds": 15.042,
+   "in": 2,
+   "out": 15.042,
+   "mute": false,
+   "gain": 0
+  },
+  {
+   "key": "c7",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/060d46557753725caba29f2399a07673.mp4",
+   "title": "Part 3 \u2014 the tranquilizer (Seedance 2.5, its own sound)",
+   "poster": null,
+   "seconds": 15.042,
+   "in": 0,
+   "out": 15.042,
+   "mute": false,
+   "gain": 0
+  },
+  {
+   "key": "c11",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/8b3d8ae5ae4e7870752fc5f616081084.mp4",
+   "title": "Part 3 \u2014 the black (Seedance 2.5, its own sound)",
+   "poster": null,
+   "seconds": 15.042,
+   "in": 5,
+   "out": 15.042,
+   "mute": false,
+   "gain": 0
+  },
+  {
+   "key": "c12",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/e430d88f60649f5f08c171600337f9dd.mp4",
+   "title": "Part 3 \u2014 waking up, three days (Seedance 2.5, its own sound)",
+   "poster": null,
+   "seconds": 15.042,
+   "in": 0,
+   "out": 15.042,
+   "mute": true,
+   "gain": 0
+  },
+  {
+   "key": "s6",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/a59ab8130c2303616ed573c598bff00e.mp4",
+   "title": "6 \u00b7 Intake A \u2014 the doctor's questions",
+   "in": 0,
+   "seconds": 30.042,
+   "out": 30.042
+  },
+  {
+   "key": "s7",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/404215846ffe69a95a8d748bf0264e2b.mp4",
+   "title": "7 \u00b7 Intake B",
+   "in": 0,
+   "seconds": 30.08,
+   "out": 30.08
+  },
+  {
+   "key": "s8broll",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/4800304956a2c4e5ee5b7e76e2ed9a49.mp4",
+   "title": "8\u00b7b-roll \u00b7 Pudding cups (b-roll B2)",
+   "in": 0,
+   "seconds": 4.042,
+   "out": 4.042
+  },
+  {
+   "key": "s8",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0486bbb4b8d57fd7bfe0ab616167b3c1.mp4",
+   "title": "8 \u00b7 The dining room \u2014 Michael and Anastasia (braid Sophie, redo candidate)",
+   "in": 0,
+   "seconds": 30.042,
+   "out": 30.042
+  },
+  {
+   "key": "s9",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/55544f47ab3f2f654e3bc32961408db4.mp4",
+   "title": "9 \u00b7 The hallway walk v2",
+   "in": 0,
+   "seconds": 30.042,
+   "out": 30.042
+  },
+  {
+   "key": "s9broll",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/f899742c87d62493f9bad9f60bc7a677.mp4",
+   "title": "9\u00b7b-roll \u00b7 Socks on the linoleum (b-roll B1 v2)",
+   "in": 0,
+   "seconds": 4.042,
+   "out": 4.042
+  },
+  {
+   "key": "s10",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/860c4b880c3fd591f8dacc6cbfea6394.mp4",
+   "title": "10 \u00b7 Roommate 1 \u2014 Annie flounces v2",
+   "in": 0,
+   "seconds": 10.042,
+   "out": 10.042
+  },
+  {
+   "key": "s11",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/91b57d090225ba8e998a8f99e29013ea.mp4",
+   "title": "11 \u00b7 Roommate 2 \u2014 the light and the peels",
+   "in": 0,
+   "seconds": 25.042,
+   "out": 25.042
+  },
+  {
+   "key": "s12",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/d014933454572e59fea39c67161a8f5e.mp4",
+   "title": "12 \u00b7 Roommate 3 \u2014 the nurse",
+   "in": 0,
+   "seconds": 15.042,
+   "out": 15.042
+  },
+  {
+   "key": "s13",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/37d01bc7779c7216a3f41015f90d6761.mp4",
+   "title": "13 \u00b7 Morning meds \u2014 the jolly nurse",
+   "in": 0,
+   "seconds": 15.042,
+   "out": 15.042
+  },
+  {
+   "key": "s13b",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/f6138a818f436df0ce0cf4591c62f434.mp4",
+   "title": "13b \u00b7 Morning meds \u2014 the tail",
+   "in": 0,
+   "seconds": 4.0,
+   "out": 4.0
+  },
+  {
+   "key": "s14",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/5d39cde4c324500a9da9aefdff9a3459.mp4",
+   "title": "14 \u00b7 Art class",
+   "in": 0,
+   "seconds": 30.042,
+   "out": 30.042
+  },
+  {
+   "key": "s15",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/d4c51b293abd07700307190f85de9ac0.png",
+   "title": "15 \u00b7 not shot yet \u2014 Dinner with Michael \u2014 the mashed potatoes, the saved butter",
+   "out": 1
+  },
+  {
+   "key": "s16",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/dfaabdff5a54fc992c8f6e8f4ab652e5.png",
+   "title": "16 \u00b7 not shot yet \u2014 The snack table",
+   "out": 1
+  },
+  {
+   "key": "s17",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/dfafdd077801e491230d981b03c4013c.png",
+   "title": "17 \u00b7 not shot yet \u2014 The poem, and the walk after",
+   "out": 1
+  },
+  {
+   "key": "s18",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2457f4d94f48fb4a69eb140a731026b3.mp4",
+   "title": "18 \u00b7 Music class \u2014 Yolanda (teacher speaks gibberish, redo candidate)",
+   "in": 0,
+   "seconds": 30.042,
+   "out": 30.042
+  },
+  {
+   "key": "s19",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/8fc2e0feab1faf7e92a7b8c8df528275.mp4",
+   "title": "19 \u00b7 Metaphor Machine 1 \u2014 building it",
+   "in": 0,
+   "seconds": 15.042,
+   "out": 15.042
+  },
+  {
+   "key": "s20",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/dfdfa2a1c16f9a34b05622dd8c6119fa.mp4",
+   "title": "20 \u00b7 Metaphor Machine 2 \u2014 the nurses",
+   "in": 0,
+   "seconds": 30.042,
+   "out": 30.042
+  },
+  {
+   "key": "s21",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/985dfa530f28d96dbfc591a60d5f279f.png",
+   "title": "21 \u00b7 not shot yet \u2014 \"It just made me sluggish\" \u2014 the pill on the desk, peeling the orange",
+   "out": 1
+  },
+  {
+   "key": "s22",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/1b385770e078a507379b9a2afe8dbebd.png",
+   "title": "22 \u00b7 not shot yet \u2014 The assistant: \"we're going to release you\" \u2014 Debra backs out",
+   "out": 1
+  },
+  {
+   "key": "s23",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/eef21fb845130f89ff8919ae4079df10.png",
+   "title": "23 \u00b7 not shot yet \u2014 The montage \u00b7 the sculptures gone from the wall \u2014 Mary and Juanita",
+   "out": 1
+  },
+  {
+   "key": "s24",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/d19712eb499c0adb31959f479b44d06a.png",
+   "title": "24 \u00b7 not shot yet \u2014 Yolanda and the young male nurse",
+   "out": 1
+  },
+  {
+   "key": "s25",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/07362b5a2c692c46e8e4f7621b301657.mp4",
+   "title": "25 \u00b7 Stealing the scissors A \u2014 art class v2",
+   "in": 0,
+   "seconds": 10.042,
+   "out": 10.042
+  },
+  {
+   "key": "s26",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/bc5d82d4863bfd3cb4e683531ca80f06.png",
+   "title": "26 \u00b7 not shot yet \u2014 Stealing the scissors B \u2014 the hall, the drawer",
+   "out": 1
+  },
+  {
+   "key": "s27",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/15639ea3b22f655f04bf8270861f9472.png",
+   "title": "27 \u00b7 not shot yet \u2014 The nurse finds the scissors",
+   "out": 1
+  },
+  {
+   "key": "s28",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2240ca2e52da4cb110c705e5269e63b1.mp4",
+   "title": "28 \u00b7 Climax 1 \u2014 the walk to his office v2",
+   "in": 0,
+   "seconds": 30.08,
+   "out": 30.08
+  },
+  {
+   "key": "s29",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2cf3ba15623df19cfc1201d03ce8f702.mp4",
+   "title": "29 \u00b7 Climax 2a \u2014 the office: \"cut my hand off?\"",
+   "in": 0,
+   "seconds": 20.064,
+   "out": 20.064
+  },
+  {
+   "key": "s30",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/962709d92d6afd741f16020f526eaf32.mp4",
+   "title": "30 \u00b7 Climax 2b \u2014 \"when can I leave?\" \u00b7 the assistant arrives",
+   "in": 0,
+   "seconds": 30.08,
+   "out": 30.08
+  },
+  {
+   "key": "s31",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/21f0784aa9641950876d3b9786e3c34f.png",
+   "title": "31 \u00b7 not shot yet \u2014 Climax 3 \u2014 Tomorrow? \u2192 the judge \u00b7 the grin, the ghost, You can go now",
+   "out": 1
+  },
+  {
+   "key": "s32",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c792a02523076b38d6e3d7da5898080b.png",
+   "title": "32 \u00b7 not shot yet \u2014 Climax 4 \u2014 the hall float, the mirror",
+   "out": 1
+  },
+  {
+   "key": "s33",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/fca411b3572bd9d2f9bd892aa7ddc865.png",
+   "title": "33 \u00b7 not shot yet \u2014 Climax 5 \u2014 the speech at the mirror",
+   "out": 1
+  },
+  {
+   "key": "s34",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/a89dfc413807173fc95fc326a3becba5.png",
+   "title": "34 \u00b7 not shot yet \u2014 Climax 6 \u2014 the hall breakdown",
+   "out": 1
+  },
+  {
+   "key": "s35",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/720798029d07cbaafe8fb1aba5a7ce2a.png",
+   "title": "35 \u00b7 not shot yet \u2014 Climax 7 \u2014 the phone \u00b7 \"hi daddy\"",
+   "out": 1
+  },
+  {
+   "key": "s36",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/4c2da1e679dfb9a3a999dc0ad8bd7ee0.png",
+   "title": "36 \u00b7 not shot yet \u2014 Ms. O'Hara \u2014 the shock-treatment stretcher, the wire helmet",
+   "out": 1
+  },
+  {
+   "key": "s37",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/182338e60f15f00a181dc8639ab03027.png",
+   "title": "37 \u00b7 not shot yet \u2014 Walking beside the stretcher",
+   "out": 1
+  },
+  {
+   "key": "s38",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/b73a3c1dc7c7c8ee08e4b3f70c4fb9fe.png",
+   "title": "38 \u00b7 not shot yet \u2014 First meal in four days \u00b7 the shower",
+   "out": 1
+  },
+  {
+   "key": "s39a",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/1bd83e9447d37465d3cacf4873e2c30d.mp4",
+   "title": "39a \u00b7 Parents arrive \u2014 part 1: the knock, the stride, the hug",
+   "in": 0,
+   "seconds": 10.042,
+   "out": 10.042
+  },
+  {
+   "key": "s39b",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/663a880a9de95cb6bd6024ec9075eb02.png",
+   "title": "39b \u00b7 not shot yet \u2014 \"Your parents are here\" \u2014 part 2: Mommy Daddy, the nurse breaks it up",
+   "out": 1
+  },
+  {
+   "key": "s40",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/9310b52f69054b8b84dd87eb6a148a4f.png",
+   "title": "40 \u00b7 not shot yet \u2014 Parents at the dining table \u00b7 Yolanda \u00b7 \"you sounded so upset\"",
+   "out": 1
+  },
+  {
+   "key": "s41",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/ce4703449fd17e08a20560ac77d148ce.png",
+   "title": "41 \u00b7 not shot yet \u2014 The office with the parents \u2014 \"your daughter is very unwell\"",
+   "out": 1
+  },
+  {
+   "key": "s42",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/19087ed3b8dee37f87a7899397de2ba1.png",
+   "title": "42 \u00b7 not shot yet \u2014 The hallway goodbye \u2014 \"take any pills they give you\"",
+   "out": 1
+  },
+  {
+   "key": "s43",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/994165fd4f2162a38d61427d5544c679.png",
+   "title": "43 \u00b7 not shot yet \u2014 The tall nurse \u00b7 half a pill \u00b7 the window over New York",
+   "out": 1
+  },
+  {
+   "key": "s44",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c7e9a78c223cfc3daa0718f4ceaf0c19.png",
+   "title": "44 \u00b7 not shot yet \u2014 The town hall \u2014 Anastasia's question, Sophie's hand up",
+   "out": 1
+  },
+  {
+   "key": "s45",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/53cb52497491ffdd7e8eaa9f564da497.png",
+   "title": "45 \u00b7 not shot yet \u2014 The scale \u2014 Mayra weighed, 98 pounds \u00b7 the headstand",
+   "out": 1
+  },
+  {
+   "key": "s46",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/35423e9d4c1750ce8cd87b89c5f5c580.png",
+   "title": "46 \u00b7 not shot yet \u2014 \"We're going to let you go\" \u2014 the conditions, Los Angeles",
+   "out": 1
+  },
+  {
+   "key": "s47",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/b18040e513868b778cbe76fbbc996466.png",
+   "title": "47 \u00b7 not shot yet \u2014 The pill-cup sculpture \u00b7 \"Sage, that's a nice name\"",
+   "out": 1
+  },
+  {
+   "key": "s48",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/201fb1caff3da4fffb9c771d45ead6c4.png",
+   "title": "48 \u00b7 not shot yet \u2014 The end of the hallway \u2014 the door patients go through",
+   "out": 1
+  },
+  {
+   "key": "s49",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/850fbc230e3fd874953dd896dd4fb8ed.png",
+   "title": "49 \u00b7 not shot yet \u2014 The nurses' meeting about her room",
+   "out": 1
+  },
+  {
+   "key": "s50",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/b8340cb28c60a274af9194cd806e15ca.png",
+   "title": "50 \u00b7 not shot yet \u2014 The marble steps \u2014 the run for it",
+   "out": 1
+  },
+  {
+   "key": "s51",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/9a0a831a6596e3353a6738b27aa65373.png",
+   "title": "51 \u00b7 not shot yet \u2014 Grandma's apartment \u2014 \"what a figure\"",
+   "out": 1
+  },
+  {
+   "key": "s52",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/4cbaf3481ee847b79f013cb118585c28.png",
+   "title": "52 \u00b7 not shot yet \u2014 \"Pulling out your hair\" \u2014 videos in the mirror",
+   "out": 1
+  },
+  {
+   "key": "s53",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/07508df36c6e1e32d3bdcedcad57a98f.png",
+   "title": "53 \u00b7 not shot yet \u2014 Bed \u2014 the boots, the belt \u00b7 \"even so\"",
+   "out": 1
+  },
+  {
+   "key": "s54",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/466d884a8bdafc32e7337f50833868b3.png",
+   "title": "54 \u00b7 not shot yet \u2014 The escape \u2014 the suitcase, the bellhop, \"the door was locked\"",
+   "out": 1
+  },
+  {
+   "key": "s55",
+   "kind": "image",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/ae8b49dea9649e1ac4f1cf1631572b0f.png",
+   "title": "55 \u00b7 not shot yet \u2014 The taxi to the airport \u2014 the banana and the croissant \u00b7 the gate",
+   "out": 1
+  }
+ ],
+ "sounds": [
+  {
+   "key": "vo",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/74718feefd645658e06cbe80fc823f0c.m4a",
+   "name": "Sophie \u2014 VO 1 (half beat, \"i was\" at 0:09)",
+   "seconds": 14.938,
+   "in": 0,
+   "out": 14.938,
+   "at": 4,
+   "gain": 0,
+   "fadeIn": 0,
+   "fadeOut": 0,
+   "mute": false,
+   "anchor": {
+    "piece": "c1",
+    "offset": 4
+   }
+  },
+  {
+   "key": "vo2a",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/8606e4b82ba19cf41498e965eee95b58.m4a",
+   "name": "Sophie \u2014 you know that game (at 0:19, one breath)",
+   "seconds": 3.96,
+   "in": 0,
+   "out": 3.96,
+   "at": 19.004,
+   "gain": 0,
+   "fadeIn": 0,
+   "fadeOut": 0,
+   "mute": false,
+   "anchor": {
+    "piece": "c3",
+    "offset": 3.9
+   }
+  },
+  {
+   "key": "vo2b",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/80e9019ab89fd7480f81a98ede3d5039.m4a",
+   "name": "Sophie \u2014 it was warm\u2026 (at 0:31)",
+   "seconds": 10.655,
+   "in": 0,
+   "out": 10.655,
+   "at": 31.004,
+   "gain": 0,
+   "fadeIn": 0,
+   "fadeOut": 0,
+   "mute": false,
+   "anchor": {
+    "piece": "c4",
+    "offset": 7.9
+   }
+  },
+  {
+   "key": "jazz",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/439758f894bb676f99f0de84dc934a44.m4a",
+   "name": "jazz (v6, once, out by 0:17.5 \u2014 before the footsteps)",
+   "seconds": 23.1,
+   "in": 0,
+   "out": 17.5,
+   "at": 0,
+   "gain": -10,
+   "fadeIn": 0,
+   "fadeOut": 3.5,
+   "mute": false,
+   "anchor": {
+    "piece": "c1",
+    "offset": 0
+   }
+  },
+  {
+   "key": "thunk",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/c047c9bc237d649d15e076b9b8e700b4.m4a",
+   "name": "kerthunk (from B v2)",
+   "seconds": 1.1,
+   "in": 0,
+   "out": 1.1,
+   "at": 41.346,
+   "gain": 0,
+   "fadeIn": 0,
+   "fadeOut": 0,
+   "mute": false,
+   "anchor": {
+    "piece": "c5",
+    "offset": 3.2
+   }
+  },
+  {
+   "key": "wakea",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/5d6943d01008e0aea5095416522d83c3.m4a",
+   "name": "waking up \u2014 its own sound, first half",
+   "seconds": 11.3,
+   "in": 0,
+   "out": 11.3,
+   "at": 118.398,
+   "gain": 0,
+   "fadeIn": 0,
+   "fadeOut": 0,
+   "mute": false,
+   "anchor": {
+    "piece": "c12",
+    "offset": 0
+   }
+  },
+  {
+   "key": "wakeb",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/58a9a90e2be4ad110cc5ee1aa5a88d88.m4a",
+   "name": "waking up \u2014 \"Do you know where you are\", after a beat",
+   "seconds": 3.676,
+   "in": 0,
+   "out": 3.676,
+   "at": 130.298,
+   "gain": 0,
+   "fadeIn": 0,
+   "fadeOut": 0,
+   "mute": false,
+   "anchor": {
+    "piece": "c12",
+    "offset": 11.9
+   }
+  }
+ ]
+}
