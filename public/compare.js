@@ -842,7 +842,21 @@
   (function () {
     var placeCss = document.createElement('style');
     placeCss.textContent =
+      // THE BAR MUST NOT WIDEN WHAT IT SITS IN (2026-09-08, Sophie's
+      // screenshot of a scene page: every line of card 1 ran off the right
+      // of her phone). The bar is inserted before the first <h2>, and on that
+      // page the <h2> sits inside a FLEX ITEM (a horizontal card deck). A
+      // flex item's min-width is auto, i.e. its min-content — and WebKit
+      // counts the bar's nowrap chapter title as that min-content, so the
+      // one card holding the bar came out 494px wide in a 362px deck
+      // (measured in WebKit; Chromium clamps and never showed it). Every
+      // other card was fine, which is why it read as the page's own bug.
+      // `contain:inline-size` makes the bar's intrinsic width zero whatever
+      // it holds; `width:0;min-width:100%` is the same promise for an
+      // engine without containment. The bar is always block-level and full
+      // width, so nothing about how it draws changes.
       '.pp{position:sticky;top:0;z-index:6;background:var(--paper);'
+      + 'contain:inline-size;width:0;min-width:100%;'
       + 'padding:6px 64px 6px 0;margin:0 0 10px;border-bottom:1px solid var(--line);}'
       + '.pp[hidden]{display:none !important;}'
       + '.pp-cur{display:flex;align-items:center;gap:8px;width:100%;min-width:0;'
