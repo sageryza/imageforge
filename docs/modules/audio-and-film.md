@@ -143,6 +143,12 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
   four beats crammed into 4s with the character lock lost. Whether that is
   mini, the trim, or the 4s is unmeasured. OpenRouter with a trimmed clip is
   still untested (`OPENROUTER_API_KEY` was not in that container).
+  Second data point the same hour: the identical job at 15s failed once
+  at 52% with ByteDance's OUTPUT filter ("the output video may be related to
+  copyright restrictions" — a stochastic verdict on what it was drawing, not
+  on the references) and completed on the next send (job `fc38565c`, ~60¢)
+  — again with none of the three references followed. Two for two: mini
+  does not lock a character off a reference video the way 2.5 does.
   **THE COLLECTION PAGE UNDER-LISTS — PROBE THE MODEL NAMES (same day,
   Sophie: "why did u skip 2.5 etc").** Replicate's image-to-video collection
   page showed six Seedance models; `GET /v1/models/bytedance/<name>`
