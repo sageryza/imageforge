@@ -151,6 +151,14 @@ Her words verbatim; each is a new job and waits for her "go" with the card
   Anastasia has no audition yet (`super-aud` is "needs your words"); Michael's
   existing 4s clip (`michaelAud2`) she called useless, so this is a new one.
 
+- **The soap pill scene, card 1 (`43a`, Nurse Edna and the half pill — the
+  8s clip that landed 2026-09-08, in the `soap-pill-scene` chat).** Her redo
+  notes, verbatim: "night time" · "sophie is cousins" · "doesn't show her
+  chewing the pill or close up on her mouth" · "pill is in water cup" ·
+  "speech is mangled" · "plaque granson" · "she's laying in bed". They also
+  sit on the card itself (the belt's *redo notes (yours)* box, sheet
+  `belt-soap`, key `43a.redo`), which is where she edits them.
+
 ## WHY SEEDANCE REFUSES REAL PEOPLE (researched 2026-09-08, Sophie: "research why the dance keeps refusing real people since I assume that's in every other person's workflow")
 - **It is ByteDance's own input filter, not APIFRAME's.** ModelArk answers
   HTTP 400 `InputImageSensitiveContentDetected.PrivacyInformation` — "the

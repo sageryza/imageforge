@@ -12,6 +12,8 @@ secs=[]
 for n,j in enumerate(jobs,1):
     k=j['key']; vids=[v for v in j['videos'] if v[1]]; pend=[v for v in j['videos'] if not v[1]]
     s=tx.get(k+'.s') or str(j['secs'] or ''); p=tx.get(k+'.p') or j['text']; pre=tx.get(k+'.pre') or j.get('pre') or ''
+    redotxt=tx.get(k+'.redo') if (k+'.redo') in tx else (j.get('redo') or '')
+    redobox='<details class="text"%s><summary>redo notes (yours)</summary><textarea class="p" data-key="%s" data-field="redo" spellcheck="false">%s</textarea><div class="saved" id="sv-%s-redo"></div></details>'%(' open' if redotxt else '',k,H.escape(redotxt),k)
     minetxt=tx.get(k+'.mine') if (k+'.mine') in tx else '\n\n'.join(j['mine'])
     minebox='<details class="text"><summary>reference lines — mine, sent before your words (tap to edit)</summary><textarea class="p" data-key="%s" data-field="mine" spellcheck="false">%s</textarea><div class="saved" id="sv-%s-mine"></div></details>'%(k,H.escape(minetxt),k)
     prebox=('<details class="text" open><summary>what came before (yours, sent first)</summary><textarea class="p" data-key="%s" data-field="pre" spellcheck="false">%s</textarea><div class="saved" id="sv-%s-pre"></div></details>'%(k,H.escape(pre),k)) if pre else ''
@@ -25,13 +27,13 @@ for n,j in enumerate(jobs,1):
 <h2>%(n)d · %(t)s<span class="st">%(st)s</span></h2>
 %(minebox)s%(prebox)s<details class="text" open><summary>your words</summary>
 <textarea class="p" data-key="%(k)s" spellcheck="false">%(p)s</textarea><div class="saved" id="sv-%(k)s"></div></details>
-<div class="attached">
+%(redobox)s<div class="attached">
 <div class="row"><label>seconds <input class="secs" data-key="%(k)s" value="%(s)s" inputmode="numeric" placeholder="model's pick"></label><span class="cost" data-key="%(k)s"></span></div>
 <p class="sends">%(sends)s</p>
 %(films)s%(pending)s
 <div class="refs">%(stills)s</div>
 %(mine)s%(note)s
-</div></section>'''%dict(minebox=minebox,prebox=prebox,k=k,n=n,t=H.escape(j['title']),st=H.escape(j['status']),p=H.escape(p),s=H.escape(s),sends=sends,films=films,pending=pending,stills=stills,mine=mine,note=note))
+</div></section>'''%dict(minebox=minebox,prebox=prebox,redobox=redobox,k=k,n=n,t=H.escape(j['title']),st=H.escape(j['status']),p=H.escape(p),s=H.escape(s),sends=sends,films=films,pending=pending,stills=stills,mine=mine,note=note))
 TOC=' · '.join('<a href="#j-%s">%d %s</a>'%(j['key'],i+1,H.escape(j['title'].split(' — ')[1] if ' — ' in j['title'] else j['title'])) for i,j in enumerate(jobs))
 page='''<meta charset="utf-8"><link rel="stylesheet" href="/compare.css"><script src="/compare.js"></script>
 <style>
