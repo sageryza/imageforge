@@ -112,14 +112,26 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     after a plain remux) explains APIFRAME's own trim refusals but NOT this:
     the signed, untouched clips were refused here.
   - **SO: text-only, picture and audio references → OpenRouter; any reference
-    video → APIFRAME.** `node scripts/openrouter-video.js` sends one job from
-    a container (`OPENROUTER_API_KEY` in the environment — never in the repo;
-    a real refusal or a shape error stops it, it never retries with the
-    prompt changed, and it refuses a `--video` outright). It prints the exact
-    body before sending and the job's usage after. **NO server door and no
-    video-log entry yet** — a chat that sends one files the prompt and
-    references by hand in its own reply until `POST /api/openrouter/video`
-    exists (the apiframe.js shape, `forge-video-jobs` logging included).
+    video → APIFRAME.** The door is **`openrouter.js`, `POST
+    /api/openrouter/video`** (Sophie, the same day: "logs yes"): the APIFRAME
+    route's body word for word, a 202 carrying `sent` (the literal body
+    OpenRouter received), `GET /video-job/:id` to poll (the clip is behind the
+    key, so the poll downloads it WITH the bearer, mirrors it to
+    `openrouter-video/` once — the log doc is read first — and writes the
+    permanent url and the job's real `cost`), and **the same
+    `forge-video-jobs` doc APIFRAME's route files**, stamped
+    `provider:'openrouter'`, with OpenRouter's statuses mapped onto the log's
+    vocabulary (`apiframeStatus`). A `referenceVideoUrls` list answers 400
+    `{refused:'video'}` naming the APIFRAME route; a ByteDance content
+    refusal answers 400 `{refusal:'content'}` and nothing is billed or
+    logged; a short model name (`seedance-2.0-mini`, `2.5`) maps onto
+    OpenRouter's id and an unknown one is refused, never guessed. `GET
+    /credits` is the balance in dollars, `GET /models` the served SKUs.
+    `OPENROUTER_API_KEY` is a managed key (config-loader). Test: `node
+    scripts/test-openrouter-video.js`. From a container with no server,
+    `node scripts/openrouter-video.js` sends one job the same way (prints the
+    exact body first, never retries or reshapes, refuses `--video`) — but it
+    files NO log, so a clip drawn that way is written up by hand in the reply.
   - **A probe that went wrong, so it is not repeated:** the first probe
     script treated every 400 as a shape error and, after ByteDance's real
     refusal, tried a passthrough envelope that dropped the videos silently;

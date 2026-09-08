@@ -178,10 +178,17 @@ the three pajama pictures on the same job passed. OpenRouter forwards to
 ByteDance directly, so BytePlus direct would refuse the same; APIFRAME is
 running with something looser (unmeasured — its own backend or ByteDance's
 paid "advanced creation rights"). So the rule is by REFERENCE SHAPE:
-- **text only, pictures, or audio as references → OpenRouter**
-  (`scripts/openrouter-video.js`, from a container, `OPENROUTER_API_KEY` in
-  the environment; the request shape is `input_references` typed
-  `image_url` / `audio_url` / `video_url`).
+- **text only, pictures, or audio as references → OpenRouter**: `POST
+  /api/openrouter/video` (`openrouter.js`) takes the APIFRAME route's exact
+  body (`prompt, model?, duration, resolution, aspectRatio, generateAudio,
+  referenceImageUrls, referenceAudioUrls, chat, scene, title, session`),
+  answers 202 `{jobId, poll, sent}` — `sent` is the literal body OpenRouter
+  received, the read-back her rule asks for — poll `GET
+  /api/openrouter/video-job/:id`, and **files the SAME `forge-video-jobs`
+  log** stamped `provider:'openrouter'`, so `GET /api/apiframe/video-log`
+  reads both doors. `GET /api/openrouter/credits` is the balance in
+  dollars. A `referenceVideoUrls` list is refused with a 400 naming
+  APIFRAME. From a container with no server: `scripts/openrouter-video.js`.
 - **any reference VIDEO → APIFRAME**, exactly as before.
 - A face in a reference PICTURE is refused on both (the watercolor parents,
   the doctor and assistant portraits); a blurred or turned-away face passes.
