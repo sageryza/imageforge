@@ -1,6 +1,22 @@
 {
- "edna-uniform-faceblur": {"id": "wJBl2hqsgfIB8Uf4ediH", "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0ec30ea27eb1132b476756cf5f3b9386.png"},
- "two-cups-hands": {"id": "MPiGtYRZtB8ggsJm4oNG", "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/24ce813bce0c942df3791cbfb9e41a16.png"},
- "sophie-eyesblur": {"id": "dw20sM1WSQ99w106NiVa", "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/643c7e9ca285cc3f2b5c116828bf9280.png"},
- "sophie-faceblur": {"id": "KYwczn5DqVpYTWj7JLAv", "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/13ef22602789ab72c81fdfc8334d4b92.png"}
+ "edna-uniform-faceblur": {
+  "id": "wJBl2hqsgfIB8Uf4ediH",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0ec30ea27eb1132b476756cf5f3b9386.png"
+ },
+ "two-cups-hands": {
+  "id": "MPiGtYRZtB8ggsJm4oNG",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/24ce813bce0c942df3791cbfb9e41a16.png"
+ },
+ "sophie-eyesblur": {
+  "id": "dw20sM1WSQ99w106NiVa",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/643c7e9ca285cc3f2b5c116828bf9280.png"
+ },
+ "sophie-faceblur": {
+  "id": "KYwczn5DqVpYTWj7JLAv",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/13ef22602789ab72c81fdfc8334d4b92.png"
+ },
+ "edna-full-frame-facesblur": {
+  "id": "QKWbsV2lAW2uh1VR3khd",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/5f7da297cd81c312738028ed14b86642.png"
+ }
 }
