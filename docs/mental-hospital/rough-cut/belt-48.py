@@ -49,7 +49,7 @@ p.mine{font-size:12px;color:#8a8176;margin:6px 0 0} pre.mine{font:inherit;font-s
 .nav{display:flex;align-items:center;justify-content:space-between;padding:6px 0 8px;margin-right:64px;font-size:13px}
 .nav button{font:inherit;border:1px solid #cfc6b6;border-radius:6px;background:#fff;padding:6px 12px}
 </style>
-<h1>The door with no handle</h1>
+<h1>Two scenes — the shock treatment, the door</h1>
 <div class="nav"><button id="prev" type="button">‹ back</button><span id="pos"></span><button id="next" type="button">next ›</button></div>
 <div class="deck" id="deck">__SECS__</div>
 <script>
@@ -58,7 +58,8 @@ function post(body){ return fetch('/api/chatfeed/verdict',{method:'POST',headers
 function cost(k){ var s=parseInt(document.querySelector('.secs[data-key="'+k+'"]').value)||0; document.querySelector('.cost[data-key="'+k+'"]').textContent='$'+(s*0.15).toFixed(2)+' at 15¢/s'; }
 document.querySelectorAll('.p[data-key]').forEach(function(ta){ var k=ta.getAttribute('data-key'), f=ta.getAttribute('data-field')||'p', sv=document.getElementById('sv-'+k+(f==='pre'?'-pre':'')), timer=null;
   function fit(){ta.style.height='auto'; ta.style.height=(ta.scrollHeight+2)+'px';} fit(); ta.closest('details').addEventListener('toggle',fit);
-  ta.addEventListener('input',function(){ fit(); var t=ta.value; sv.textContent='…'; clearTimeout(timer); timer=setTimeout(function(){ post({chat:CHAT,sheet:SHEET,item:k+'.'+f,text:t.slice(0,1900)}).then(function(){sv.textContent='saved';}).catch(function(){sv.textContent='not saved';}); },700); });
+  function pieces(t){ var n=t.split(/\r?\n/).filter(function(l){return /^[ \t]*cut[ \t.!:]*$/i.test(l);}).length; return n?(' · '+(n+1)+' pieces'):''; }
+  ta.addEventListener('input',function(){ fit(); var t=ta.value; sv.textContent='…'+pieces(t); clearTimeout(timer); timer=setTimeout(function(){ post({chat:CHAT,sheet:SHEET,item:k+'.'+f,text:t.slice(0,1900)}).then(function(){sv.textContent='saved'+pieces(t);}).catch(function(){sv.textContent='not saved';}); },700); });
   window.addEventListener('pagehide',function(){ if(!timer) return; clearTimeout(timer); timer=null; try{ navigator.sendBeacon('/api/chatfeed/verdict', new Blob([JSON.stringify({chat:CHAT,sheet:SHEET,item:k+'.'+f,text:ta.value.slice(0,1900)})],{type:'application/json'})); }catch(e){} });
 });
 document.querySelectorAll('.secs').forEach(function(inp){ var k=inp.getAttribute('data-key'); cost(k); inp.addEventListener('input',function(){ cost(k); post({chat:CHAT,sheet:SHEET,item:k+'.s',text:inp.value}); }); });
@@ -71,11 +72,11 @@ document.getElementById('prev').onclick=function(){go(at()-1);}; document.getEle
 var h=(location.hash||'').replace('#j-',''); var start=cards.findIndex(function(c){return c.getAttribute('data-key')===h;}); if(start<0){ try{start=parseInt(localStorage.getItem('belt48.at'))||0;}catch(e){start=0;} }
 setTimeout(function(){ deck.scrollLeft=start*deck.clientWidth; paintPos(); window.scrollTo(0,0); },50);
 window.__compareNotes({chat:CHAT,sheet:'belt-48-notes'});
-window.__compareHelp({html:'<p class="toc">__TOC__</p><p>One card, scene 48 of your script, your words verbatim in the box (fold it with the underlined word). Under the line is what would go with it: seconds, the videos (playable), the stills, and the lines of mine that would be sent before your words. Nothing on this page is sent or wired until you say so.</p>'});
+window.__compareHelp({html:'<p class="toc">__TOC__</p><p>Two cards, scenes 36 and 48 of your script, your words verbatim. Type <b>cut</b> on a line of its own to split a scene where you want; the count under the box says how many pieces in the box (fold it with the underlined word). Under the line is what would go with it: seconds, the videos (playable), the stills, and the lines of mine that would be sent before your words. Nothing on this page is sent or wired until you say so.</p>'});
 </script>
 '''
 page=page.replace('__CHAT__',CHAT).replace('__SHEET__',SHEET).replace('__TOC__',TOC).replace('__SECS__','\n'.join(secs))
 open('belt-48.html','w').write(page)
-d=post('page',{'chat':CHAT,'title':'The door with no handle — scene 48 v%d'%ver,'html':page}); print(d.get('id'),d.get('warnings'))
+d=post('page',{'chat':CHAT,'title':'Two scenes — the shock treatment, the door v%d'%ver,'html':page}); print(d.get('id'),d.get('warnings'))
 for old in state.get('ids',[]): post('page/'+old+'/supersede',{'superseded':True})
 json.dump({'ver':ver,'ids':[d['id']]},open('belt-48-state.json','w'))
