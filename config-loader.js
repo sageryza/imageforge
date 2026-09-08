@@ -48,6 +48,9 @@ const MANAGED_KEYS = [
   // APIFRAME (Midjourney deck art + Seedance video) — was env-only, which left
   // the live server unconfigured; manage it so the Firestore doc can carry it.
   'APIFRAME_KEY',
+  // OpenRouter — the second Seedance door (openrouter.js): ByteDance's own
+  // price for jobs with no video reference.
+  'OPENROUTER_API_KEY',
   'GOOGLE_DRIVE_CLIENT_ID', 'GOOGLE_DRIVE_CLIENT_SECRET', 'GOOGLE_DRIVE_REDIRECT_URI',
   'YOUTUBE_API_KEY',
   'STRIPE_SECRET_KEY', 'STRIPE_PRICE_ID', 'STRIPE_WEBHOOK_SECRET', 'STRIPE_TRIAL_DAYS',
