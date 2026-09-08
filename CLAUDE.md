@@ -197,9 +197,18 @@ line is the PERSON, not the video:
 - **any reference with a FACE or a PERSON in it, still or video → APIFRAME.**
   ByteDance's refusal is free and comes back before drawing as 400
   `{refusal:'content'}` with a `hint` naming APIFRAME — so sending a doubtful
-  job to OpenRouter first costs nothing. A face in a reference PICTURE is
-  refused on both doors (the watercolor parents, the doctor and assistant
-  portraits); a blurred or turned-away face passes.
+  job to OpenRouter first costs nothing. **AN ILLUSTRATED FACE PASSES
+  (measured the same night, Sophie: "would it take an illustration face?
+  make varying degrees"): three Sandy-mirror ink-and-wash portraits — the
+  loosest, a finished painting, the most rendered — each sent as the only
+  reference, all three accepted and drawn (5.4¢ each, Mini 1:1), while the
+  photoreal frame of a Seedance clip was refused.** So the line is
+  PHOTOREAL: a drawn face rides, a photographic one (real or generated) does
+  not. Two things about the drawn face: it also sets the LOOK of the clip
+  (the loosest reference drew an illustrated clip, the most rendered a
+  photoreal one), and the watercolor parents were refused on both doors
+  earlier — a drawn face is likelier to pass, not certain to; the refusal is
+  free, so try it. A blurred or turned-away face passes.
 - **WHY APIFRAME IS LOOSER, from ByteDance's own docs:** a face is only ever
   allowed as a `asset://` from its trusted asset library — a VIRTUAL portrait
   (a drawn or AI-made character that "must not resemble any real human
