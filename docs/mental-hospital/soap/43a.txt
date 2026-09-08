@@ -2,7 +2,6 @@ sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1
 
 Nurse Edna: the nurse in [Video2].
 
-<<<<<<< HEAD
 setting: nighttime, same room as [Image4], but at night
 
 nurse edna walks in through the doorway of sophie's room. sophie is standing there, waiting for her, pretending she isn't. nurse edna is smiling, and carrying two small white cups - one with a single blue pill and no water, the other with a little bit of water.
@@ -13,12 +12,5 @@ nurse edna walks in through the doorway of sophie's room. sophie is standing the
 she mimes holding a heavy cup full of pills
 
 Sophie takes the pill out of the cup and stares at it for a second. Then she puts the pill to her mouth but as she’s doing so, breaks off half of it in her hand. She swallows half of the pill and surrepititiously places the other half in her water cup.
-=======
-setting: mental hospital. her room in [Image4], but lit by fluorescent lights from above, not the lamp.
-
-That night Nurse Edna, the nurse in [Video2], walks into her room smiling and carrying the two cups: one with a pill, one with the water. “You’re lucky,” she says, continuing to smile at her though it’s now unmistakeable from a grimace. “Dr. Grayson haz onley geeven yo wan peel. Sahm of de oder patients take a whole cap full,” she mimes holding a heavy cup full of pills belonging to one of the other patients.
-
-Sophie pulls the pill out of it’s resting place in the cup and stares at it for a lengthy pause. Then she puts the pill to her mouth but as she’s doing so, breaks off half of it in her hand. She swallows half of the pill and surrepititiously places the other half in her water cup.
->>>>>>> origin/main
 
 “Veery Goood” says the nurse, smiling proudly, and Sophie beams back at her. The nurse takes both cups back and puts one inside the other.
