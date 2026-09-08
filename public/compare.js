@@ -910,7 +910,13 @@
       var getChapters = typeof opts.chapters === 'function' ? opts.chapters
         : function () {
           return Array.prototype.map.call(document.querySelectorAll(opts.chapters || 'h2'), function (el) {
-            return { el: el, label: (el.textContent || '').trim() };
+            // innerText, not textContent: a heading carrying a block-level
+            // status span ("…the judge<span>ready</span>") read as
+            // "the judgeready" on the bar (2026-09-08, the belt page).
+            // innerText keeps the line break; the collapse turns it into
+            // the one space the eye expects.
+            var t = (el.innerText != null ? el.innerText : el.textContent) || '';
+            return { el: el, label: t.replace(/\s+/g, ' ').trim() };
           });
         };
       var chapters = getChapters().filter(function (c) { return c && c.el && c.label; });
@@ -1118,13 +1124,39 @@
     // there grow the bar and the memory today. Deferred a tick so a page that
     // mounts its own (the grid template) is not mounted twice; skipped on a
     // one-screen deck and on a page that drives its own scrolling.
-    setTimeout(function () {
+    // WAIT FOR THE BODY (2026-09-08). A page that links this file in its
+    // <head> — before its first body element — runs this timer while
+    // document.body is still null: `document.body.classList` threw, the
+    // whole auto-mount died silently, and the same page got the bar in
+    // Safari and no bar in Chromium depending on which fired first. The
+    // shell puts the script at the end of the body; a hand-built page does
+    // not always.
+    function autoMount() {
       if (inst) return;
       if (document.body.classList.contains('jg-mombg')) return;
       if (document.body.hasAttribute('data-nopill')) return;
       if (document.querySelector('meta[name="forge-pill"][content="off"]')) return;
-      if (document.querySelectorAll('h2').length < 2) return;
+      var hs = document.querySelectorAll('h2');
+      if (hs.length < 2) return;
+      // CHAPTERS HAVE TO STACK (2026-09-08, the belt page: eight scene <h2>s
+      // in a HORIZONTAL card deck, one card on screen at a time). Every
+      // heading sat at the same height, so the bar said "1/8" forever,
+      // duplicated the page's own pager, and its jump list scrolled the
+      // window to a y every chapter shared — a chapter list over chapters
+      // that are not below one another. A page like that pages itself, so
+      // it gets neither the bar nor the scroll memory (which would fight the
+      // page's own place-keeping). An explicit __pagePlace call still mounts.
+      var lastTop = -Infinity;
+      for (var i = 0; i < hs.length; i += 1) {
+        var top = hs[i].getBoundingClientRect().top;
+        if (top <= lastTop) return;
+        lastTop = top;
+      }
       window.__pagePlace({ chapters: 'h2' });
+    }
+    setTimeout(function () {
+      if (document.body && document.readyState !== 'loading') return autoMount();
+      document.addEventListener('DOMContentLoaded', autoMount);
     }, 0);
   })();
 
