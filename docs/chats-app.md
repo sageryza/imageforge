@@ -3192,3 +3192,17 @@ little chat drawings.
       mic faked — the button follows the controls' rhythm and never raises
       the sheet from a video tap, mic-first Done resumes immediately and
       files hold-then-text, the box edit path, Cancel, films-only).
+
+### A block from a file — no output tokens
+
+`node scripts/chat-block.js post --chat <slug> --file scene.txt [--lead "…"]`
+posts the file as one `>` script block (the editable-in-place block from
+2026-09-07) through `POST /api/chatfeed`, under the chat's session so it
+resolves session-first like any reply. The model never writes the words, so
+the block costs no output tokens and is verbatim by construction. Her edits
+autosave onto the message doc (`blockedits[key]`, `POST /blockedit`, 4000
+chars); `node scripts/chat-block.js read --chat <slug> [--id <msgId>] [--out
+file]` prints every block with her version where she edited it. The key is
+the page's `tickKey` over the original words; the test extracts that function
+out of `chats.html` and pins the two equal. A file over 4000 characters is
+refused before anything is posted. Test: `node scripts/test-chat-block.js`.

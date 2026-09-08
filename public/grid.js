@@ -526,7 +526,13 @@
       var listing = !oneUp && groups.some(function (g) {
         return (g.items || []).length > PER_LINE;
       });
-      var steps = [oneUp
+      // A PAGE MAY NAME ITS OWN FIRST LINE — `intro` (2026-09-08). The two
+      // derivations above read SHAPE, and shape cannot tell three ranked
+      // candidates for one shot from three one-variable variants; a page that
+      // knows what its rows are says so, and derivation stays the default.
+      var steps = [opts.intro
+        ? { sel: '.gd-row', text: String(opts.intro) }
+        : oneUp
         ? { sel: '.gd-row', text: 'One picture a row, newest first — the line under '
           + 'each one is what it is.' }
         : listing
