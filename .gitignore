@@ -55,3 +55,6 @@ docs/storybooks/
 
 # agent worktrees the harness parks inside the checkout — never project files
 .claude/worktrees/
+docs/mental-hospital/soap/*.mp4
+docs/mental-hospital/soap/run-af-*.log
+docs/mental-hospital/soap/af-*-final.json
