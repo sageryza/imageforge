@@ -1,7 +1,7 @@
 # Her scenes — the belt (severance-api-multiple-frames)
 
 `her-scenes-the-belt-v3.html` is the page posted 2026-09-08 (id
-`3weobo2TwGyZFmJMnnIF`, superseding v2 `WwxZVtbu2GhVi2L0XXGr`). Built from v2
+`yvLzYzgH2Cx9h9zgs2hE`, superseding v2 `WwxZVtbu2GhVi2L0XXGr`). Built from v2
 by the page-stress-testing chat at Sophie's ask: "make the preamble w
 references etc its own separate collapsible text block".
 
@@ -17,6 +17,7 @@ What changed against v2:
   before") was split on the server into `md-32b.pre` + `md-32b.p` the same
   hour; `belt-md-verdict-before-split-2026-09-08.json` is the verdict doc as it
   stood before that write, verbatim.
+- Every card carries the setup fold, empty where the file had none, so a "what came before" can be added on any scene.
 - `.card{min-width:0}` — the flex trap that let compare.js's chapter bar widen
   card 1 in WebKit (#2185).
 
