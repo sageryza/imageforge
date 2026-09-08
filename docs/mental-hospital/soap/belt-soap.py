@@ -11,7 +11,7 @@ def vlen(u): return '15s' if u.endswith('f3j8qh.mp4') else '25s' if 'a59ab8' in 
 secs=[]
 for n,j in enumerate(jobs,1):
     k=j['key']; vids=[v for v in j['videos'] if v[1]]; pend=[v for v in j['videos'] if not v[1]]
-    s=tx.get(k+'.s') or str(j['secs']); p=tx.get(k+'.p') or j['text']; pre=tx.get(k+'.pre') or j.get('pre') or ''
+    s=tx.get(k+'.s') or str(j['secs'] or ''); p=tx.get(k+'.p') or j['text']; pre=tx.get(k+'.pre') or j.get('pre') or ''
     minetxt=tx.get(k+'.mine') if (k+'.mine') in tx else '\n\n'.join(j['mine'])
     minebox='<details class="text"><summary>reference lines — mine, sent before your words (tap to edit)</summary><textarea class="p" data-key="%s" data-field="mine" spellcheck="false">%s</textarea><div class="saved" id="sv-%s-mine"></div></details>'%(k,H.escape(minetxt),k)
     prebox=('<details class="text" open><summary>what came before (yours, sent first)</summary><textarea class="p" data-key="%s" data-field="pre" spellcheck="false">%s</textarea><div class="saved" id="sv-%s-pre"></div></details>'%(k,H.escape(pre),k)) if pre else ''
@@ -26,7 +26,7 @@ for n,j in enumerate(jobs,1):
 %(minebox)s%(prebox)s<details class="text" open><summary>your words</summary>
 <textarea class="p" data-key="%(k)s" spellcheck="false">%(p)s</textarea><div class="saved" id="sv-%(k)s"></div></details>
 <div class="attached">
-<div class="row"><label>seconds <input class="secs" data-key="%(k)s" value="%(s)s" inputmode="numeric"></label><span class="cost" data-key="%(k)s"></span></div>
+<div class="row"><label>seconds <input class="secs" data-key="%(k)s" value="%(s)s" inputmode="numeric" placeholder="model's pick"></label><span class="cost" data-key="%(k)s"></span></div>
 <p class="sends">%(sends)s</p>
 %(films)s%(pending)s
 <div class="refs">%(stills)s</div>
@@ -57,7 +57,7 @@ p.mine{font-size:12px;color:#8a8176;margin:6px 0 0} pre.mine{font:inherit;font-s
 <script>
 var CHAT='__CHAT__', SHEET='__SHEET__', LIMIT=8000;
 function post(body){ return fetch('/api/chatfeed/verdict',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}); }
-function cost(k){ var s=parseInt(document.querySelector('.secs[data-key="'+k+'"]').value)||0; document.querySelector('.cost[data-key="'+k+'"]').textContent='$'+(s*0.15).toFixed(2)+' at 15¢/s'; }
+function cost(k){ var s=parseInt(document.querySelector('.secs[data-key="'+k+'"]').value)||0; document.querySelector('.cost[data-key="'+k+'"]').textContent=s?('$'+(s*0.15).toFixed(2)+' at 15¢/s'):'the model picks the length · 15¢ a second, read back when it lands'; }
 document.querySelectorAll('.p[data-key]').forEach(function(ta){ var k=ta.getAttribute('data-key'), f=ta.getAttribute('data-field')||'p', sv=document.getElementById('sv-'+k+(f==='p'?'':'-'+f)), timer=null;
   function fit(){ta.style.height='auto'; ta.style.height=(ta.scrollHeight+2)+'px';} fit(); ta.closest('details').addEventListener('toggle',fit);
   function pieces(t){ var n=t.split(/\\r?\\n/).filter(function(l){return /^[ \\t]*cut[ \\t.!:]*$/i.test(l);}).length; return n?(' · '+(n+1)+' pieces'):''; }
