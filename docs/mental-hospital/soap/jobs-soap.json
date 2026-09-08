@@ -34,7 +34,7 @@
   ],
   "text": "setting: nighttime, same room as [Image4], but at night\n\nnurse edna walks in through the doorway of sophie's room. sophie is standing there, waiting for her, pretending she isn't. nurse edna is smiling, and carrying two small white cups - one with a single blue pill and no water, the other with a little bit of water.\n\n“You’re lucky,” she says, continuing to smile at her though it’s now unmistakeable from a grimace. “Dr. Grayson has only given you one pill. Some of the other patients take a whole cup full,\"\n\n\nshe mimes holding a heavy cup full of pills\n\nSophie takes the pill out of the cup and stares at it for a second. Then she puts the pill to her mouth but as she’s doing so, breaks off half of it in her hand. She swallows half of the pill and surrepititiously places the other half in her water cup.\n\n“Veery Goood” says the nurse, smiling proudly, and Sophie beams back at her. The nurse takes both cups back and puts one inside the other.",
   "mine": [
-   "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]",
+   "sophie is the woman in [Video1] and the patient in [Video2].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]",
    "Nurse Edna: the nurse in [Video2]."
   ],
   "pre": "",
