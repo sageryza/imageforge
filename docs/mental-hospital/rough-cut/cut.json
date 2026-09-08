@@ -391,17 +391,13 @@
   },
   {
    "key": "s36",
-   "kind": "image",
-   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/4c2da1e679dfb9a3a999dc0ad8bd7ee0.png",
-   "title": "36 \u00b7 not shot yet \u2014 Ms. O'Hara \u2014 the shock-treatment stretcher, the wire helmet",
-   "out": 1
-  },
-  {
-   "key": "s37",
-   "kind": "image",
-   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/182338e60f15f00a181dc8639ab03027.png",
-   "title": "37 \u00b7 not shot yet \u2014 Walking beside the stretcher",
-   "out": 1
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/eaee97a08b4281525676ee585e1c0dcb.mp4",
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/eaee97a08b4281525676ee585e1c0dcb-poster.jpg",
+   "title": "36\u201337 \u00b7 Sophie's LumaFusion cut v1 \u2014 Ms. O'Hara, the treatment, back to your room",
+   "seconds": 38.625,
+   "in": 0,
+   "out": 38.625
   },
   {
    "key": "s38",

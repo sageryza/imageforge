@@ -1,9 +1,29 @@
 [
  {
-  "key": "36a",
-  "title": "Ms. O'Hara — strapping, the helmet, shock treatment again",
-  "secs": 25,
-  "status": "waits for: Ms. O'Hara's audition (needs your words for her and the two nurses)",
+  "key": "ohara-aud",
+  "title": "Ms. O'Hara + her two nurses — the audition",
+  "secs": 4,
+  "status": "sent 4s — her edited block, verbatim (one slot fix: [Image1] and [Image2])",
+  "videos": [],
+  "images": [
+   [
+    "the pajamas, headless — no face",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/d0470544456526eedcc911e5a03ff93b.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "text": "setting: a hallway in a mental hospital\n\nMs. O'Hara: an older woman who has short mousy brown hair in a wild mess at the top of her head. white as a ghost, and trying not to panic. small boned, with a sweet face. She is adorned in the blue pajamas in [Image1] and [Image2] that all of the patients wear and she is holding her arms perfectly straight and still at her side while two nurses, one on either side, buckle the straps to the stretcher they are wheeling her on. On her head she wears a metal helmet with many little wires hanging off of it. The wires are red and blue and gold.\n\nthe two nurses: a male nurse, asian man, mid thirties, wearing a white coat over navy nurses scrubs and a female nurse, jamaican, big boned.",
+  "mine": [],
+  "note": "her rewrite from the message block, whole. the one change of mine: '[Image1 and Image2]' → '[Image1] and [Image2]', the slot syntax Seedance reads."
+ },
+ {
+  "key": "36a1",
+  "title": "Ms. O'Hara — the straps, \"where are they taking you?\"",
+  "secs": 15,
+  "status": "made — 15s, landed 06:41",
   "videos": [
    [
     "the jazz",
@@ -11,7 +31,7 @@
    ],
    [
     "Ms. O'Hara's audition",
-    null
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3c1e96d9f2034fc6a6a496b25926746a.mp4"
    ]
   ],
   "images": [
@@ -28,13 +48,125 @@
     "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
    ]
   ],
-  "text": "Sophie peeks through the doorway in her room, pausing to watch the commotion outside her door. \n\nThere is an older woman who has short brown hair in a wild mess at the top of her head. She is adorned in the blue pajamas that all of the patients wear and she is holding her arms perfectly straight and still at her side while two nurses, one on either side, buckle the straps to the stretcher they are wheeling her on. On her head she wears a metal helmet with many little wires hanging off of it. The wires are red and blue and gold. \n\n“They say I have to get shock treatment again,” she says to no one in particular. \n\"I don’t mind the treatment, I’m just worried about what it will do to my memory. \n\n\nThe doctor said I might not remember everything once I’ve had it,” she says, looking worried indeed. She points her face up at one of the nurses so he is forced to make eye contact with her. “Yees.” he says encouragingly, “To help your miiind Ms. O’Hara. To help you stop having those visions.” he draws out the word mind as if she might not quite undersand if he doesn’t.",
+  "text": "Sophie steps out of the doorway of her room and watches as the two nurses buckle the straps around her wrists.\n\n\"where are they taking you?\" says sophie\n\n“They say I have to get shock treatment.\" says ms o hara\n\"I don’t mind the treatment, I’m just worried about what it will do to my memory.\n\n\nThe doctor said I might not remember everything once I’ve had it,” she says, looking worried indeed.",
   "mine": [
    "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]",
-   "Ms. O'Hara: the woman on the stretcher in [Video2]. the two nurses: the nurses in [Video2].",
-   "setting: mental hospital."
+   "Ms. O'Hara: the woman on the stretcher in [Video2]. the two nurses: the nurses in [Video2]. sophie is NOT a nurse.",
+   "setting: mental hospital. the hallway in [Video2]."
   ],
-  "note": "cut as the original belt cut it — part 1 of 3"
+  "note": "your cut, part 1. no nurse speaks here, so the nurse line is out of the header."
+ },
+ {
+  "key": "36aA",
+  "title": "Ms. O'Hara — clip A: the stretcher passes, \"where are they taking you\", her memory",
+  "secs": 30,
+  "status": "made — 30s, landed",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "Ms. O'Hara's audition",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3c1e96d9f2034fc6a6a496b25926746a.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "text": "sophie sees ms o hara, a patient she's never seen before, being wheeled down the hallway past her room, on her way to get shock treatment.\n\nshe starts biting her nail as she sees the stretcher pass, getting increasingly agitated, then, against her better judgement, follows the stretcher down the hall at a slight distance, trailing uselessly behind, as the two nurses, having already strapped in her chest, fuss with the small buckles that strap down her wrist.\n\nin a small voice, without really excepting her to answer, sophie asks, in spite of herself: \"where are they taking you,\" slight panic and mounting apprehension making their way into her voice.\n\n\"i have to get shock treatment,\" says ms o hara, in a flat voice, with sheer terror just below the surface. sophie can tell she is trying to be brave, and tries not to show how much this bothers her.\n\n\"i don't mind the treatment so much,\" says ms o hara, wincing as they tighten the straps around her wrist. \"i just don't like what it does to my memory,\" she says limply, her eyes looking off into some far off place, as though imagining the memory loss, her face blank, expressionless, her eyes hollow and distant. panic sitting just below the surface, as she struggles to keep her composure.\n\nsophie winces, and continues to bite one of the nails of her fingers.",
+  "mine": [
+   "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]",
+   "Ms. O'Hara: the woman on the stretcher in [Video2]. the two nurses: the nurses in [Video2]. sophie is NOT a nurse.",
+   "setting: mental hospital. the hallway in [Video2]."
+  ],
+  "note": "your rewrite off the message block, up to your first cut? — clip A. the wince and the nurse's lines wait."
+ },
+ {
+  "key": "36aA2",
+  "title": "Ms. O'Hara — clip A v2: the same, no nail bite at the end",
+  "secs": 30,
+  "status": "made — 30s, landed",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "Ms. O'Hara's audition",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3c1e96d9f2034fc6a6a496b25926746a.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "text": "sophie sees ms o hara, a patient she's never seen before, being wheeled down the hallway past her room, on her way to get shock treatment.\n\nshe starts biting her nail as she sees the stretcher pass, getting increasingly agitated, then, against her better judgement, follows the stretcher down the hall at a slight distance, trailing uselessly behind, as the two nurses, having already strapped in her chest, fuss with the small buckles that strap down her wrist.\n\nin a small voice, without really excepting her to answer, sophie asks, in spite of herself: \"where are they taking you,\" slight panic and mounting apprehension making their way into her voice.\n\n\"i have to get shock treatment,\" says ms o hara, in a flat voice, with sheer terror just below the surface. sophie can tell she is trying to be brave, and tries not to show how much this bothers her.\n\n\"i don't mind the treatment so much,\" says ms o hara, wincing as they tighten the straps around her wrist. \"i just don't like what it does to my memory,\" she says limply, her eyes looking off into some far off place, as though imagining the memory loss, her face blank, expressionless, her eyes hollow and distant. panic sitting just below the surface, as she struggles to keep her composure.",
+  "mine": [
+   "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]",
+   "Ms. O'Hara: the woman on the stretcher in [Video2]. the two nurses: the nurses in [Video2]. sophie is NOT a nurse.",
+   "setting: mental hospital. the hallway in [Video2]."
+  ],
+  "note": "clip A again, byte for byte, minus the last paragraph (the wince)."
+ },
+ {
+  "key": "36a2",
+  "title": "Ms. O'Hara — \"to help your miiind\", wheeled away, the hand reach",
+  "secs": 15,
+  "status": "part 2 — waits for go",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "Ms. O'Hara's audition",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/3c1e96d9f2034fc6a6a496b25926746a.mp4"
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "text": "She points her face up at one of the nurses so he is forced to make eye contact with her. “Yees.” he says encouragingly, “To help your miiind Ms. O’Hara. To help you stop having those visions.” he draws out the word mind as if she might not quite undersand if he doesn’t.\n\nAs they begin wheeling her away, Sophie follows, reaching her hand out like she wants to help but can't.",
+  "mine": [
+   "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]",
+   "Ms. O'Hara: the woman on the stretcher in [Video2]. the two nurses: the nurses in [Video2]. sophie is NOT a nurse.",
+   "setting: mental hospital. the hallway in [Video2].",
+   "the nurse who speaks is the asian male nurse in the white coat."
+  ],
+  "note": "your cut, part 2. the asian nurse speaks here, so the header names him."
  },
  {
   "key": "36b",
