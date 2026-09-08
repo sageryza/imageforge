@@ -138,7 +138,14 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     the eyes (`sharp` extract → blur(14) → composite; mouth, hair, skin
     untouched) — ACCEPTED and drawn (`aY9LbIGMe9T5lEcA984a`). All three
     rounds drew O'Hara, because the prompt describes O'Hara; a likeness test
-    needs "the woman in [Image1]" wording. Every job is in `forge-video-jobs`
+    needs "the woman in [Image1]" wording — and (4) that wording over the same
+    eyes-blurred photo, card 45a's scale scene, DREW HER LIKENESS
+    (`OudXGDf91uEk1um3pZUt`, Mini 3:4, 5.6¢). (5) The video half of the
+    trick FAILS: the scale audition clip with every face's eyes blurred on
+    every frame (`scratchpad blur-eyes-video.py`: YuNet landmarks → a
+    Gaussian band per face, `drops/_/6c88c11a…mp4`) was refused
+    `InputVideoSensitiveContentDetected.PrivacyInformation` — a video is
+    screened for a person, not a face. Every job is in `forge-video-jobs`
     under `provider:'openrouter'`, chat `openrouter-vs-apiframe`; the clips
     and stills are on that chat's Compare pages.
   - **SO: text, pictures, audio and person-free videos → OpenRouter; any
