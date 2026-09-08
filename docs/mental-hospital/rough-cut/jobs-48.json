@@ -1,8 +1,8 @@
 [
  {
-  "key": "36",
-  "title": "Ms. O'Hara — the shock treatment, and walking beside the stretcher",
-  "secs": 25,
+  "key": "36a",
+  "title": "Ms. O'Hara — the stretcher, the helmet, ready to be wheeled",
+  "secs": 30,
   "status": "waits for: Ms. O'Hara's audition (needs your words for her and the two nurses)",
   "videos": [
    [
@@ -28,13 +28,50 @@
     "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
    ]
   ],
-  "text": "Sophie peeks through the doorway in her room, pausing to watch the commotion outside her door. There is an older woman who has short brown hair in a wild mess at the top of her head. She is adorned in the blue pajamas that all of the patients wear and she is holding her arms perfectly straight and still at her side while two nurses, one on either side, buckle the straps to the stretcher they are wheeling her on. On her head she wears a metal helmet with many little wires hanging off of it. The wires are red and blue and gold. “They say I have to get shock treatment again,” she says to no one in particular. “I don’t mind the treatment, I’m just worried about what it will do to my memory. The doctor said I might not remember everything once I’ve had it,” she says, looking worried indeed. She points her face up at one of the nurses so he is forced to make eye contact with her. “Yees.” he says encouragingly, “To help your miiind Ms. O’Hara. To help you stop having those visions.” he draws out the word mind as if she might not quite undersand if he doesn’t.\n\n“Oh yes,” she says, her face still screwed up with dread. “The world is a very dismal place, isn’t it? There are all these ghosts and goblins” she says, and her speech begins to waver and get faster at the same time, “and they’re always trying to get me!”\n\n“Shh Shh Ms. O’Hara. After your treatment, you’ll feel muuch better.” says the same male nurse. “Now we’ll just wheel you to the treatment room. Are you ready to be wheeled, Ms. O’Hara?” The woman nods, closing her eyes as they well with tears. She moves her hand to brush them away but it’s now fully strapped to the gurney and it simply falls limp at her side.\n\nSophie leaves her room as they begin wheeling her down the hallway, walking next to the stretcher as they wheel it down the hallway, turning her head sideways so she can look at the face of the woman which is screwed up in fear, a tear burrowing its way down the side of her face. “What are they doing to you?” says Sophie in a slight whisper, and the woman looks up in surprise.\n\n“Sophie! Be a good girl and go back to your room. There’s no use being in other people’s business,” says the female nurse who has yet to speak. Sophie stops walking next to the stretcher, looking onsadly as it disapears through the double doors at the end of the hallway.",
+  "text": "Sophie peeks through the doorway in her room, pausing to watch the commotion outside her door. \n\nThere is an older woman who has short brown hair in a wild mess at the top of her head. She is adorned in the blue pajamas that all of the patients wear and she is holding her arms perfectly straight and still at her side while two nurses, one on either side, buckle the straps to the stretcher they are wheeling her on. On her head she wears a metal helmet with many little wires hanging off of it. The wires are red and blue and gold. \n\n“They say I have to get shock treatment again,” she says to no one in particular. \n\"I don’t mind the treatment, I’m just worried about what it will do to my memory. \n\n\nThe doctor said I might not remember everything once I’ve had it,” she says, looking worried indeed. She points her face up at one of the nurses so he is forced to make eye contact with her. “Yees.” he says encouragingly, “To help your miiind Ms. O’Hara. To help you stop having those visions.” he draws out the word mind as if she might not quite undersand if he doesn’t.\n\n“Oh yes,” she says, her face still screwed up with dread. “The world is a very dismal place, isn’t it? There are all these ghosts and goblins” she says, and her speech begins to waver and get faster at the same time, “and they’re always trying to get me!”\n\n“Shh Shh Ms. O’Hara. After your treatment, you’ll feel muuch better.” says the same male nurse. “Now we’ll just wheel you to the treatment room. \n\nAre you ready to be wheeled, Ms. O’Hara?” \nThe woman nods, closing her eyes as they well with tears. She moves her hand to brush them away but it’s now fully strapped to the gurney and it simply falls limp at her side.",
   "mine": [
    "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]",
    "Ms. O'Hara: the woman on the stretcher in [Video2]. the two nurses: the nurses in [Video2].",
    "setting: mental hospital."
   ],
-  "note": "one card for the whole scene as you wrote it (three on the full belt: 25s · 25s · 15s). type cut on its own line to split it."
+  "note": "part 1 of your cut — your edits (the line breaks) kept. 323 words, 76 of them spoken: 30s is tight; the full belt cut this once more after \"if he doesn't.\""
+ },
+ {
+  "key": "36b",
+  "title": "Walking beside the stretcher — be a good girl and go back to your room",
+  "secs": 15,
+  "status": "waits for: Ms. O'Hara's audition (needs your words for her and the two nurses)",
+  "videos": [
+   [
+    "the jazz",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
+   ],
+   [
+    "Ms. O'Hara's audition",
+    null
+   ]
+  ],
+  "images": [
+   [
+    "A — Sophie alone",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/52a036179b0e90785fc918e6f95520ec.png"
+   ],
+   [
+    "C — teacher cropped out",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/12c13654fcb9fb3fc3c30b463acdb562.png"
+   ],
+   [
+    "the tape pocket",
+    "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/418f17e802ee8e01e0b55afedb0fc483.png"
+   ]
+  ],
+  "text": "Sophie leaves her room as they begin wheeling her down the hallway, walking next to the stretcher as they wheel it down the hallway, turning her head sideways so she can look at the face of the woman which is screwed up in fear, a tear burrowing its way down the side of her face. “What are they doing to you?” says Sophie in a slight whisper, and the woman looks up in surprise.\n\n“Sophie! Be a good girl and go back to your room. There’s no use being in other people’s business,” says the female nurse who has yet to speak. Sophie stops walking next to the stretcher, looking onsadly as it disapears through the double doors at the end of the hallway.",
+  "mine": [
+   "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]",
+   "Ms. O'Hara: the woman on the stretcher in [Video2]. the two nurses: the nurses in [Video2].",
+   "setting: mental hospital."
+  ],
+  "note": "part 2 of your cut. the box on v5 capped at 1900 characters and lost the end of this half on save; restored here from the script, word for word."
  },
  {
   "key": "48",
