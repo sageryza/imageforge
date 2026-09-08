@@ -46,7 +46,7 @@ h2{font-size:16px;margin:0 0 6px} .st{display:block;font-size:11px;font-weight:4
 .row{display:flex;align-items:center;gap:12px;font-size:13px;margin:8px 0 6px} .row input{width:56px;font-family:inherit;font-size:16px;padding:4px 6px;border:1px solid #cfc6b6;border-radius:6px;background:#fff} .cost{color:#6b6257}
 textarea.p{width:100%;box-sizing:border-box;font-family:inherit;font-size:16px;line-height:1.5;padding:10px;border:1px solid #cfc6b6;border-radius:6px;background:#fff;resize:none;min-height:100px}
 .before{font-size:13px;line-height:1.5;color:#6b6257;margin:6px 0} .before summary{cursor:pointer;font-size:12px;text-decoration:underline} .before div{padding:6px 0 0;white-space:normal}
-.saved{font-size:11px;color:#8a8176;min-height:14px;margin-top:3px} .mine{font-size:12px;color:#8a8176;margin:4px 0 0}
+.saved{font-size:11px;color:#8a8176;min-height:14px;margin-top:3px} .saved.bad{color:#b5473c;font-weight:600} .mine{font-size:12px;color:#8a8176;margin:4px 0 0}
 .nav{display:flex;align-items:center;justify-content:space-between;padding:6px 0 8px;margin-right:64px;font-size:13px}
 .nav button{font:inherit;border:1px solid #cfc6b6;border-radius:6px;background:#fff;padding:6px 12px}
 </style>
@@ -58,13 +58,21 @@ textarea.p{width:100%;box-sizing:border-box;font-family:inherit;font-size:16px;l
 <textarea class="p" id="script" spellcheck="false"></textarea><div class="saved" id="sv-script"></div>
 </section>__SECS__</div>
 <script>
-var CHAT='severance-api-multiple-frames', SHEET='conveyor';
+var CHAT='severance-api-multiple-frames', SHEET='conveyor', LIMIT=8000;
 function post(body){ return fetch('/api/chatfeed/verdict',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}); }
 function cost(k){ var s=parseInt(document.querySelector('.secs[data-key="'+k+'"]').value)||0; document.querySelector('.cost[data-key="'+k+'"]').textContent='$'+(s*0.15).toFixed(2)+' at 15¢/s'; }
 document.querySelectorAll('.p[data-key]').forEach(function(ta){ var k=ta.getAttribute('data-key'), sv=document.getElementById('sv-'+k), timer=null;
   function fit(){ta.style.height='auto'; ta.style.height=(ta.scrollHeight+2)+'px';} fit();
-  ta.addEventListener('input',function(){ fit(); var t=ta.value; sv.textContent='…'; clearTimeout(timer); timer=setTimeout(function(){ post({chat:CHAT,sheet:SHEET,item:k+'.p',text:t.slice(0,1900)}).then(function(){sv.textContent='saved';}).catch(function(){sv.textContent='not saved';}); },700); });
-  window.addEventListener('pagehide',function(){ if(!timer) return; clearTimeout(timer); timer=null; try{ navigator.sendBeacon('/api/chatfeed/verdict', new Blob([JSON.stringify({chat:CHAT,sheet:SHEET,item:k+'.p',text:ta.value.slice(0,1900)})],{type:'application/json'})); }catch(e){} });
+  function pieces(t){ var n=t.split(/\\r?\\n/).filter(function(l){return /^[ \\t]*cut[ \\t.!:]*$/i.test(l);}).length; return n?(' · '+(n+1)+' pieces'):''; }
+  // A SAVE IS READ BACK, NEVER TRUSTED (2026-09-08, Sophie, after a 2,343-character scene lost its tail to a silent slice: "a stupid error that's gonna lose my edits"). Nothing is cut on the way out; over LIMIT the box refuses and says by how much; after every save the sheet is re-read and the box says so if the server kept less than it was sent.
+  function bad(m){ sv.textContent=m; sv.classList.add('bad'); } function good(m){ sv.textContent=m; sv.classList.remove('bad'); }
+  function save(t){ if(t.length>LIMIT){ bad('NOT SAVED — '+(t.length-LIMIT)+' characters over the box limit of '+LIMIT); return; }
+    post({chat:CHAT,sheet:SHEET,item:k+'.p',text:t}).then(function(r){return r.json();}).then(function(j){ if(j.chars!=null && j.chars<t.length) throw new Error('short');
+      return fetch('/api/chatfeed/verdict?chat='+encodeURIComponent(CHAT)+'&sheet='+encodeURIComponent(SHEET)).then(function(r){return r.json();}).then(function(d){ var kept=(d.texts||{})[k+'.p']; if(typeof kept==='string' && kept.length<t.length) throw new Error('short'); good('saved'+pieces(t)); });
+    }).catch(function(e){ bad(e && e.message==='short' ? 'NOT SAVED WHOLE — the server kept less than you typed; copy your text somewhere safe' : 'not saved'); }); }
+  ta.addEventListener('input',function(){ fit(); var t=ta.value; sv.textContent='…'+pieces(t); clearTimeout(timer); timer=setTimeout(function(){ save(t); },700); });
+  window.addEventListener('pagehide',function(){ if(!timer) return; clearTimeout(timer); timer=null; try{ navigator.sendBeacon('/api/chatfeed/verdict', new Blob([JSON.stringify({chat:CHAT,sheet:SHEET,item:k+'.p',text:ta.value.slice(0,LIMIT)})],{type:'application/json'})); }catch(e){} });
+  window.addEventListener('pagehide',function(){ if(!timer) return; clearTimeout(timer); timer=null; try{ navigator.sendBeacon('/api/chatfeed/verdict', new Blob([JSON.stringify({chat:CHAT,sheet:SHEET,item:k+'.p',text:ta.value.slice(0,LIMIT)})],{type:'application/json'})); }catch(e){} });
 });
 document.querySelectorAll('.secs').forEach(function(inp){ var k=inp.getAttribute('data-key'); cost(k); inp.addEventListener('input',function(){ cost(k); post({chat:CHAT,sheet:SHEET,item:k+'.s',text:inp.value}); }); });
 (function(){ var ta=document.getElementById('script'), sv=document.getElementById('sv-script'), timer=null;
