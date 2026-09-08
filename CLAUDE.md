@@ -1826,6 +1826,25 @@ them off the reference sheet, not off the old filenames.
     `POST /page/:id/bookmark`) take `note`, `tags`, `level` and `read`, and
     carry no keep-flag unless one is sent — so tagging can never un-keep a
     thing, naming one can never drop its tags, and a tick can never do either.
+- **A BLOCK IN THE THREAD THAT COST NO OUTPUT TOKENS — `node
+  scripts/chat-block.js post --chat <slug> --file scene.txt` (2026-09-08,
+  Sophie: "could chats put an editable text block inserted into their chat,
+  but NOT as output tokens").** A run of `> ` lines in a message is already
+  ONE editable block with a pencil (`quoteBlocks`, 2026-09-07; her edit lives
+  on the message doc under `blockedits[key]`, 4000 chars, autosaved). What was
+  missing was putting one there without the model WRITING it. The script
+  reads a FILE — a scene from the repo, a prompt, her own words back to her —
+  quotes it and POSTs it through the ordinary feed route, so the bytes go disk
+  → server and never through the model: nothing to post, verbatim by
+  construction. `read --chat <slug>` prints every block with her edit where
+  she made one (`--out file` writes the newest), which is how a chat gets her
+  version back for the cheap input price. Three things: it is its OWN message
+  (a separate doc, never inside the hook's reply — a run of the chat's rows
+  merges on the page, so it still reads in place); a blank line rides as a
+  bare `>` so the scene stays one block; and a file over the edit cap is
+  REFUSED rather than posted as a block she could not save whole (split it,
+  or post a Compare page). The key it prints is the page's own `tickKey`,
+  pinned equal by `node scripts/test-chat-block.js`.
 - **A LIST IN A REPLY WEARS A BOX ON EVERY ITEM, AND THE BOX HAS THREE STOPS
   (2026-09-03, Sophie: "could message lists automatically have a tick in the
   app" · 2026-09-04: "do a three way toggle so two press is an x three press
