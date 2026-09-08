@@ -33,6 +33,18 @@ chat needs. Her rules first — they are all hers, all in force.
 - **One page:** the belt (a swipe deck, film order). Too many compare pages
   confuse her. Pin = the newest clip (`kind:video`); never pin a page.
 
+- **CONTINUITY IS A REFERENCE, EVERY CARD (2026-09-08, Sophie, after
+  esta es basura went out with no picture of the sculptures it is about:
+  "this continuity stuff is real important — we need u claudes considering
+  it more").** Before the send sheet, ask of every card: what in this scene
+  already EXISTS on film — a thing (the sculptures), a room, a character —
+  and wire the clip that shows it as a Video reference inside the 30s budget
+  (the jazz 15.1s + a 10s clip fits; a 4s clip on top still fits), with one
+  named line of mine pointing at it ("her sculptures are the ones in
+  [Video2]."). The card 3 redo is the worked example. A scene that
+  continues the last clip carries the last clip. Propose it on the sheet;
+  she still says go.
+
 ## Where things are (all in `docs/mental-hospital/belt/`)
 - `jobs.json` — the full belt (76 cards, film order, every prompt + refs).
 - `jobs-md.json` — **"Her scenes — the belt"** (8 cards, her latest md rewrites
