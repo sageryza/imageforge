@@ -418,6 +418,25 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .codecopy{position:absolute; top:6px; right:6px; display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; background:var(--barbg); border:1px solid var(--line); border-radius:6px; color:var(--ink2); cursor:pointer; padding:0; -webkit-tap-highlight-color:transparent;}
 .codecopy svg{width:15px; height:15px;}
 .codecopy.done{color:var(--ink);}
+/* THE HOUSE OPENER FOR TRUNCATED TEXT — an underlined word, never a button.
+   Same declarations as every other copy (docs/design-rules.md); this page's
+   older `.wrapmore` is the same paint under a bold field label. */
+.moretxt{display:inline; border:0; background:none; margin:0; padding:0;
+  font:inherit; font-size:.8em; color:var(--ink2); text-decoration:underline;
+  -webkit-tap-highlight-color:transparent; cursor:pointer;}
+/* A CODE BLOCK IN A CLAUDE REPLY IS EDITABLE (2026-09-08, Sophie: "make
+   blocks editable if they're in ur message"). The `edit` opener sits under
+   the block; tapping it swaps the block for a box holding its live text, Send
+   posts the box into the thread as HER message (`edited block:` + her text,
+   verbatim, quietly — no doorbell), Cancel puts the block back untouched. The
+   box is 16px or iOS zooms the page on focus (the note input's floor). */
+.codebox .codeedit{display:inline-block; margin:2px 0 0 2px; line-height:1.4;}
+/* the three the editor stands in for — their own display rules beat a bare [hidden] */
+.codebox pre[hidden], .codebox .codecopy[hidden], .codebox .codeedit[hidden]{display:none !important;}
+.codebox textarea{display:block; width:100%; box-sizing:border-box; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:16px; line-height:1.45; min-height:48px; overflow:hidden; padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink); resize:vertical;}
+.codebox textarea:focus{outline:none; border-color:var(--rose);}
+.codebox .mtbar{display:flex; align-items:center; gap:8px; margin-top:6px; flex-wrap:wrap;}
+.codebox .mtstat{flex:1; min-width:0; font-style:italic; font-size:.85em; color:var(--ink2);}
 .m-full code{background:var(--barbg); border:1px solid var(--line); border-radius:4px; padding:0 4px; font-size:14px;}
 /* The folded technical middle of a message — collapsed to a tap. */
 .fold{margin:8px 0;}
@@ -2364,20 +2383,34 @@ function tabLines(){
 // tick with nowhere to save is a dead control.
 function md(t,m){
   var s=esc(t);
-  s=s.replace(/```[a-z]*\n?([\s\S]*?)```/g, function(_,c){ return '<div class="codebox"><pre>'+c.replace(/\s+$/,'')+'</pre><button class="codecopy" aria-label="Copy code" title="Copy">'+COPY_ICON+'</button></div>'; });
-  s=s.replace(/\*\*([^*\n][^*]*?)\*\*/g,'<b>$1</b>');
-  s=s.replace(/(^|[\s(“"'>])\*([^*\n]+)\*/g,'$1<i>$2</i>');
-  s=s.replace(/`([^`\n]+)`/g,'<code>$1</code>');
-  s=s.replace(/^#{1,4}\s+(.+)$/gm,'<b>$1</b>');
-  // Clickable links, added last so pre/code blocks stay untouched:
-  // markdown [text](url) first, then bare https:// URLs.
-  s=s.split(/(<div class="codebox">[\s\S]*?<\/div>|<code>[^<]*?<\/code>)/g).map(function(part){
-    if(part.lastIndexOf('<div class="codebox">',0)===0||part.lastIndexOf('<code>',0)===0) return part;
-    part=part.replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
-    part=part.replace(/(^|[^"'>])(https?:\/\/[^\s<)\]]+[^\s<)\].,!?:;'"])/g,'$1<a href="$2" target="_blank" rel="noopener">$2</a>');
-    if(m&&m.id) part=quoteBlocks(part, m);
-    if(m&&m.id) part=tickList(part, m);
-    return part;
+  // THE EDIT OPENER (2026-09-08) rides only on a block in a CLAUDE reply that
+  // can be answered (m.id, not hers, not a live draft) — the box under it
+  // posts into the thread as her message, so a block with nowhere to send to
+  // gets no opener. It sits inside .codebox so the split below leaves it be.
+  var editable=!!(m&&m.id&&m.from!=='sophie'&&!m.working);
+  s=s.replace(/```[a-z]*\n?([\s\S]*?)```/g, function(_,c){ return '<div class="codebox"><pre>'+c.replace(/\s+$/,'')+'</pre><button class="codecopy" aria-label="Copy code" title="Copy">'+COPY_ICON+'</button>'+(editable?'<button type="button" class="moretxt codeedit" aria-label="Edit this block">edit</button>':'')+'</div>'; });
+  // STYLING NEVER REACHES INSIDE A CODE BLOCK (2026-09-08, found by the
+  // editor, whose box must hold the block's EXACT text): the four inline
+  // styles used to run over the whole string, so a shell comment `# …` on a
+  // block's last line became a bold heading that swallowed the copy button,
+  // and `**`/`*`/backticks inside code were styled away. They run on the
+  // parts between code blocks now; outside a block nothing changed.
+  s=s.split(/(<div class="codebox">[\s\S]*?<\/div>)/g).map(function(part){
+    if(part.lastIndexOf('<div class="codebox">',0)===0) return part;
+    part=part.replace(/\*\*([^*\n][^*]*?)\*\*/g,'<b>$1</b>');
+    part=part.replace(/(^|[\s(“"'>])\*([^*\n]+)\*/g,'$1<i>$2</i>');
+    part=part.replace(/`([^`\n]+)`/g,'<code>$1</code>');
+    part=part.replace(/^#{1,4}\s+(.+)$/gm,'<b>$1</b>');
+    // Clickable links, added last so inline code stays untouched:
+    // markdown [text](url) first, then bare https:// URLs.
+    return part.split(/(<code>[^<]*?<\/code>)/g).map(function(p){
+      if(p.lastIndexOf('<code>',0)===0) return p;
+      p=p.replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+      p=p.replace(/(^|[^"'>])(https?:\/\/[^\s<)\]]+[^\s<)\].,!?:;'"])/g,'$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+      if(m&&m.id) p=quoteBlocks(p, m);
+      if(m&&m.id) p=tickList(p, m);
+      return p;
+    }).join('');
   }).join('');
   return s;
 }
@@ -7734,6 +7767,16 @@ function renderMsg(m){
       quoteOpenEdit(blk, owner);
     };
   });
+  // The code blocks' `edit` openers (md): the block becomes a box holding
+  // its live text; Send posts it into the thread as hers, quietly.
+  row.querySelectorAll('.codeedit').forEach(function(bt){
+    bt.onclick=function(e){ e.stopPropagation();
+      var box=bt.closest('.codebox'); if(!box||box.querySelector('textarea')) return;
+      var partEl=box.closest('.m-part');
+      var owner=partEl && parts ? (parts.filter(function(p){ return String(p.id)===partEl.dataset.mid; })[0]||m) : m;
+      codeOpenEdit(box, owner);
+    };
+  });
   // A saved note reopens its box with her words in it (prefilling with HER
   // OWN saved value is not pre-written text).
   row.querySelectorAll('.mtnotev').forEach(function(nv){
@@ -8046,10 +8089,12 @@ function wakeWords(s){
 // never a second copy to keep in step — holding the text the block shows
 // right now (her saved edit, else the chat's original). Save: POST
 // /api/chatfeed/blockedit {id, key, text} files `blockedits[key]` on the
-// message doc, then the edit goes into the thread as HER message through
-// /reply, quietly (no doorbell — the list-note rule), so the chat reads the
-// new words next time it is up. Reset sends '' (deletes the edit) and shows
-// the original again. Cancel closes with nothing changed.
+// message doc, then ONE LINE goes into the thread as HER message through
+// /reply, quietly (no doorbell — the list-note rule): "Block <id>/<key> …
+// was edited" — never the words themselves (2026-09-08, her rule: the block
+// is not part of the conversation, so the chat reads it back only when it
+// asks, with scripts/chat-block.js read). Reset sends '' (deletes the edit)
+// and shows the original again. Cancel closes with nothing changed.
 function quoteOpenEdit(blk, owner){
   var key=blk.dataset.key, orig=blk.dataset.orig||'', textEl=blk.querySelector('.mqtext'), foot=blk.querySelector('.mqfoot');
   var ed=(owner.blockedits||{})[key], cur=ed&&ed.text ? ed.text : orig, opened=cur;
@@ -8105,8 +8150,13 @@ function quoteOpenEdit(blk, owner){
   function tell(text){
     var chat=owner.chat||cur||'';
     if(!chat || (text||orig)===opened) return Promise.resolve();   // Done with the words as they were opened says nothing
-    var head=orig.replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim().slice(0,60);
-    var line=text ? 'Edit of \u201c'+head+'\u2026\u201d: '+text : 'Edit of \u201c'+head+'\u2026\u201d: put back the original';
+    // ONE LINE, NEVER THE WORDS (2026-09-08, Sophie: "the intent is that it's
+    // not part of the conversation so they don't have to read it back every
+    // turn … message could be one line: [block id] was edited"). The text
+    // lives on the doc; the chat fetches it when it wants it
+    // (scripts/chat-block.js read --id <msg> --key <key>).
+    var head=orig.replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim().slice(0,40);
+    var line='Block '+owner.id+'/'+key+' \u201c'+head+'\u2026\u201d '+(text ? 'was edited' : 'was put back to the original');
     var mlist=blk.closest('.msg')&&blk.closest('.msg').parentNode;
     return postHers(chat, line, false).then(function(){
       if(mlist) mlist.appendChild(renderMsg({from:'sophie', text:line, created:new Date().toISOString()}));
@@ -8115,7 +8165,53 @@ function quoteOpenEdit(blk, owner){
   reset.onclick=function(e){ e.stopPropagation(); done.disabled=true; ta.value=''; file('').then(function(){ return tell(''); }).then(function(){ close(); toast('Original is back'); }); };
   done.onclick=function(e){ e.stopPropagation(); done.disabled=true;
     var v=ta.value.replace(/\s+$/,''); if(!v.trim()){ done.disabled=false; return; }
-    flushNow().then(function(){ return tell(v===orig?'':v); }).then(function(){ close(); if(v!==opened) toast('Saved \u2014 sent to the chat'); });
+    flushNow().then(function(){ return tell(v===orig?'':v); }).then(function(){ close(); if(v!==opened) toast('Saved \u2014 the chat is told'); });
+  };
+}
+// THE CODE BLOCK'S EDITOR (2026-09-08, Sophie: "make blocks editable if
+// they're in ur message"). The box holds the block's LIVE text — what the
+// block shows right now, which after a send is her own last edit — never
+// pre-written text (the Prompt panel's rule). Send posts `edited block:` and
+// her text VERBATIM (no trim, no rewording) into the thread as HER message
+// through /reply, QUIETLY — no doorbell, the list-note rule: the chat sweeps
+// it when it is next up. Nothing is filed on the message doc: the thread
+// message IS the record, and the block on screen shows what was sent. Cancel
+// closes with nothing changed.
+function codeOpenEdit(box, owner){
+  var pre=box.querySelector('pre'), copy=box.querySelector('.codecopy'), opener=box.querySelector('.codeedit');
+  if(!pre) return;
+  var orig=pre.textContent;
+  var ed=document.createElement('div'); ed.className='codeeditor';
+  var ta=document.createElement('textarea'); ta.value=orig; ta.maxLength=8000; ta.setAttribute('aria-label','Edit this block');
+  var bar=document.createElement('div'); bar.className='mtbar';
+  var stat=document.createElement('span'); stat.className='mtstat';
+  var cancel=document.createElement('button'); cancel.type='button'; cancel.className='tbtn codecancel'; cancel.textContent='Cancel';
+  var send=document.createElement('button'); send.type='button'; send.className='tbtn codesend'; send.textContent='Send';
+  bar.appendChild(stat); bar.appendChild(cancel); bar.appendChild(send);
+  ed.appendChild(ta); ed.appendChild(bar);
+  ed.onclick=function(e){ e.stopPropagation(); };   // a tap in the box is not the reading-aid toggle
+  pre.hidden=true; if(copy) copy.hidden=true; if(opener) opener.hidden=true;
+  box.appendChild(ed);
+  // The box is the size of the words — height:auto first or it can only grow,
+  // the border added back on a border-box box (the script block's own rule).
+  function fit(){ ta.style.height='auto'; ta.style.height=(ta.scrollHeight+(ta.offsetHeight-ta.clientHeight))+'px'; }
+  ta.addEventListener('input', fit); fit();
+  ta.focus();
+  function close(){ ed.remove(); pre.hidden=false; if(copy) copy.hidden=false; if(opener) opener.hidden=false; }
+  cancel.onclick=function(e){ e.stopPropagation(); close(); };
+  send.onclick=function(e){ e.stopPropagation();
+    var v=ta.value; if(!v.trim()||send.disabled) return;   // an empty box is nothing to send; the words themselves are never trimmed
+    var chat=owner.chat||cur||'';
+    if(!chat){ toast('Couldn\u2019t tell which chat to send to'); return; }
+    var line='edited block:\n'+v;
+    send.disabled=true; cancel.disabled=true; stat.textContent='Sending\u2026';
+    postHers(chat, line, false).then(function(){
+      // her message shows in the thread right away, like the composer's
+      var mlist=box.closest('.msg')&&box.closest('.msg').parentNode;
+      if(mlist) mlist.appendChild(renderMsg({from:'sophie', text:line, created:new Date().toISOString()}));
+      pre.textContent=v;   // the read state shows what was sent
+      close(); toast('Sent quietly');
+    }).catch(function(){ send.disabled=false; cancel.disabled=false; stat.textContent=''; toast('Couldn\u2019t send that'); });
   };
 }
 function tickOpenNote(tk, owner, text, to){

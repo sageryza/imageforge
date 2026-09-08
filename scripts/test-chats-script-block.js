@@ -3,7 +3,7 @@
 // make it possible to edit the script blocks right in message"). A run of `>`
 // lines renders as ONE block with a pencil; the pencil turns the block into a
 // box holding its live text; Save files {id, key, text} on /blockedit AND
-// sends the edit into the thread as her message through /reply, QUIETLY (no
+// sends ONE LINE naming the block into the thread as her message through /reply, QUIETLY (no
 // /wake); the block then shows her words with an "edited" mark; an edit on
 // file paints on load; Reset sends '' and the original is back. Every
 // assertion is a MEASUREMENT of the rendered thread or of what the stub really
@@ -97,13 +97,13 @@ const blocks = (page, mid) => page.$$eval('#thread .msg[data-mid="' + mid + '"] 
   if (edits.length === 1 && edits[0].id === 'plan' && edits[0].key === K1 && /nine o’clock/.test(edits[0].text) && replies.length === 0) ok('a pause in typing autosaves /blockedit {id, key, text}; nothing posted to the thread yet'); else fail('autosave: ' + JSON.stringify([edits, replies]));
   await page.click(sel + ' .mqsave'); await page.waitForTimeout(400);
   if (edits.length === 1) ok('Done files nothing new when the autosave already has it'); else fail('edits after Done: ' + JSON.stringify(edits));
-  if (replies.length === 1 && replies[0].chat === 'ward' && /^Edit of “she is the woman in \[Video1\]\./.test(replies[0].text) && /nine o’clock/.test(replies[0].text)) ok('the edit went into the thread as her message, naming the block'); else fail('replies: ' + JSON.stringify(replies));
+  if (replies.length === 1 && replies[0].chat === 'ward' && /^Block plan\/[a-z0-9]+ “she is the woman in \[Video1\]\./.test(replies[0].text) && /was edited$/.test(replies[0].text) && !/nine o’clock/.test(replies[0].text) && replies[0].text.length < 120) ok('one line went into the thread naming the block — never the words (2026-09-08)'); else fail('replies: ' + JSON.stringify(replies));
   if (wakes.length === 0) ok('no doorbell'); else fail('wake rang: ' + JSON.stringify(wakes));
   b = await blocks(page, 'plan');
   if (b[0] && /nine o’clock/.test(b[0].text) && b[0].edited && !b[0].box) ok('the block now shows her words with the edited mark, box gone'); else fail('after save: ' + JSON.stringify(b[0]));
   const y1 = await page.evaluate(() => window.scrollY);
   if (Math.abs(y1 - y0) < 2) ok('the taps moved the page 0px'); else fail('page moved ' + (y1 - y0));
-  const hers = await page.$$eval('#thread .msg', (ms) => ms.filter((m) => /Edit of/.test(m.textContent)).length);
+  const hers = await page.$$eval('#thread .msg', (ms) => ms.filter((m) => /^Block plan\//.test(m.textContent.replace(/^(me|claude)\s*[^B]*/, '')) || /Block plan\/[a-z0-9]+ .*was edited/.test(m.textContent)).length);
   if (hers >= 1) ok('her message shows in the thread right away'); else fail('her message not drawn');
   // 5. Reset sends '' and the original comes back
   await page.click(sel + ' .mqedit'); await page.waitForTimeout(150);
@@ -111,7 +111,7 @@ const blocks = (page, mid) => page.$$eval('#thread .msg[data-mid="' + mid + '"] 
   if (!rh) ok('Reset appears once an edit exists'); else fail('no Reset after edit');
   await page.click(sel + ' .mqreset'); await page.waitForTimeout(400);
   b = await blocks(page, 'plan');
-  if (edits.length === 2 && edits[1].text === '' && b[0].text === Q1 && !b[0].edited && replies.length === 2 && /put back the original/.test(replies[1].text)) ok('Reset files an empty edit, says so in the thread, and the original is back, mark gone'); else fail('reset: ' + JSON.stringify([edits[1], b[0]]));
+  if (edits.length === 2 && edits[1].text === '' && b[0].text === Q1 && !b[0].edited && replies.length === 2 && /^Block plan\/[a-z0-9]+ .*was put back to the original$/.test(replies[1].text)) ok('Reset files an empty edit, says so in one line, and the original is back, mark gone'); else fail('reset: ' + JSON.stringify([edits[1], b[0]]));
   // 6. opening and closing with nothing changed files nothing and sends nothing
   await page.click(sel + ' .mqedit'); await page.waitForTimeout(100); await page.click(sel + ' .mqsave'); await page.waitForTimeout(300);
   b = await blocks(page, 'plan');

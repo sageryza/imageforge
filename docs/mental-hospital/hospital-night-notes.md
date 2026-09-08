@@ -128,3 +128,67 @@ together (the parents; the doctor and the assistant) auditions in ONE 4s
 clip and rides it as one. The one exception already made: the doctor and
 the assistant were born in intake A (25s), which cannot pair with the
 jazz, so their 4s b-roll off intake A stands in as their origin (1 step).
+
+## Redo notes (2026-09-08, Sophie, in the `video-editing-notes` chat) — document, don't act
+Her words verbatim; each is a new job and waits for her "go" with the card
+(model · seconds · resolution · exact prompt · every reference) shown first.
+- **The doctor bump (pre-ward, `c8` in the rough cut — "Part 3 — the doctor,
+  v1").** "That part is fine, but we need to bring that energy before of her
+  laughing and I want shot of her smiling we can use the clip right before it
+  where she falls onto the gutter and just extend it until she smiles." → an
+  EXTENSION of the clip before it, run until she smiles (an extension is
+  `continue [Video1]` + `AR=adaptive`, see above). In the cut as it stands the
+  clip before `c8` is `c10` (Part 3 — the questions in the ambulance, v2);
+  confirm with her that `c10` is the fall she means before wiring anything.
+- **The art room (`s14` Art class, key `art`, Mrs. Norbert).** "the sound
+  effects need to change and that needs to be cut cause it was too long" ·
+  "Ideally, the paper would change too, and the character would look a little
+  younger and less kindly" (the art teacher). The sound and the length are cut
+  work (free, container); the paper and the teacher are a redo.
+- **Auditions: "I wanna do a shot of Anastasia on mini and a shot of Michael
+  also."** Read as the two 4s audition clips on **Seedance 2.0 Mini** (the
+  APIFRAME 2.x family is 2-mini · 2 · 2-fast · 2.5; `model` on the route).
+  Anastasia has no audition yet (`super-aud` is "needs your words"); Michael's
+  existing 4s clip (`michaelAud2`) she called useless, so this is a new one.
+
+## WHY SEEDANCE REFUSES REAL PEOPLE (researched 2026-09-08, Sophie: "research why the dance keeps refusing real people since I assume that's in every other person's workflow")
+- **It is ByteDance's own input filter, not APIFRAME's.** ModelArk answers
+  HTTP 400 `InputImageSensitiveContentDetected.PrivacyInformation` — "the
+  input image may contain a real person" — from a face classifier that runs on
+  every reference image/video BEFORE generation; a score over a threshold is a
+  refusal. It applies to the whole 2.x family and 2.5 (BytePlus's own Dreamina
+  Seedance 2.5 tutorial: reference images or videos containing real human
+  faces are not supported for direct upload). A refusal is refunded.
+- **It is a LIKENESS policy, enforced on the pixels.** ByteDance blocks any
+  recognizable real person (public or private), and the classifier flags
+  "looks like a photograph of a person" rather than "is a known person" — so
+  photoreal AI portraits (gpt-image, Flux) are refused too, which is exactly
+  what happened to the photoreal doctor/assistant portraits here. Cropping,
+  sunglasses, blur and drawn-over faces "mostly fail" — the detector is
+  multi-pass. (Our blurred `still-room3` passed once; a pass, not a rule.)
+- **So it is NOT in everyone else's workflow — everyone routes around it the
+  same three ways:**
+  1. **The model's own outputs are trusted.** A face-bearing video Seedance
+     2.x/2.5 generated on your own account (its last frame, and Seedream
+     images) can be fed back as a reference — ModelArk documents 30 days,
+     same account, same platform. This IS the house rule already in force:
+     the jazz clip was born from words and every Sophie clip references it.
+  2. **A DRAWN character instead of a photo.** Illustrated / stylized
+     portraits pass the filter outright ("stylized or illustrated faces
+     already pass"). For Michael, Mayra, Anastasia: draw the face from her
+     words in a non-photoreal style (a Playground card, a Seedream portrait)
+     and reference THAT — never the photo, never a photoreal render.
+  3. **Consented real people = `asset://<id>`.** ByteDance takes a signed
+     release / life-rights paperwork through enterprise channels and files
+     the person as a pre-cleared asset. Not self-service, not on APIFRAME.
+- **Two things the blogs sell that are not for us:** third-party "portrait
+  tier" platforms that claim to accept real photos (their own relay, their own
+  filter layer, unverified), and the "character-sheet trick" (a red cross over
+  one eye + a "CHARACTER SHEET REFERENCE" banner) — it only helps a GENERATED
+  portrait the classifier misreads as a photo, never a real photograph.
+- Sources: BytePlus ModelArk docs (Dreamina Seedance 2.5 tutorial),
+  yingtu.ai "Seedance 2.0 'Input Image May Contain a Real Person'",
+  clipdance.ai "Seedance 2.0 face limit: the 3 legit workarounds",
+  viraltwin.app "pass Seedance face filter", Comfy-Org workflow_templates
+  issue #822, apiframe.ai's Seedance 2.5 page (refund on failure; no
+  real-person clause of its own).

@@ -165,6 +165,37 @@ that fires on its own when credits land, a retry with the prompt changed, a
 probe with made-up text: all three happened that day and all three are out.
 Read back what the API really received after sending, and say it.
 
+**A SEEDANCE JOB WITH NO VIDEO REFERENCE GOES THROUGH OPENROUTER, NOT
+APIFRAME (2026-09-08, Sophie: "make a note so any reference w no video uses
+open router instead").** OpenRouter bills ByteDance's list price plus a 5%
+top-up fee — 480p Seedance 2.5 is 10.9¢/s all in against APIFRAME's 13¢, a
+4s clip 44¢ against 52¢. **BUT BYTEDANCE'S OWN DOOR REFUSES REFERENCE VIDEOS
+WITH PEOPLE THAT APIFRAME ACCEPTS (measured 2026-09-08, scene 36a1 of the
+ward film):** the two untouched Seedance clips APIFRAME drew that scene from
+came back from OpenRouter as `InputVideoSensitiveContentDetected.
+PrivacyInformation` — "may contain real person" — before anything drew, while
+the three pajama pictures on the same job passed. OpenRouter forwards to
+ByteDance directly, so BytePlus direct would refuse the same; APIFRAME is
+running with something looser (unmeasured — its own backend or ByteDance's
+paid "advanced creation rights"). So the rule is by REFERENCE SHAPE:
+- **text only, pictures, or audio as references → OpenRouter**: `POST
+  /api/openrouter/video` (`openrouter.js`) takes the APIFRAME route's exact
+  body (`prompt, model?, duration, resolution, aspectRatio, generateAudio,
+  referenceImageUrls, referenceAudioUrls, chat, scene, title, session`),
+  answers 202 `{jobId, poll, sent}` — `sent` is the literal body OpenRouter
+  received, the read-back her rule asks for — poll `GET
+  /api/openrouter/video-job/:id`, and **files the SAME `forge-video-jobs`
+  log** stamped `provider:'openrouter'`, so `GET /api/apiframe/video-log`
+  reads both doors. `GET /api/openrouter/credits` is the balance in
+  dollars. A `referenceVideoUrls` list is refused with a 400 naming
+  APIFRAME. From a container with no server: `scripts/openrouter-video.js`.
+- **any reference VIDEO → APIFRAME**, exactly as before.
+- A face in a reference PICTURE is refused on both (the watercolor parents,
+  the doctor and assistant portraits); a blurred or turned-away face passes.
+The "go" rule above applies to both doors word for word. A no-video job
+sent to APIFRAME is not wrong, it is 16% dearer. Full note: *OpenRouter for
+Seedance* in `docs/modules/audio-and-film.md`.
+
 **AND A REFERENCE IS NEVER DESCRIBED IN THE PROMPT (2026-09-08, Sophie:
 "never describe what's in an image").** A person or thing that rides as a
 reference is named by its slot and nothing more — `her mother is the woman in
@@ -1838,7 +1869,12 @@ them off the reference sheet, not off the old filenames.
   → server and never through the model: nothing to post, verbatim by
   construction. `read --chat <slug>` prints every block with her edit where
   she made one (`--out file` writes the newest), which is how a chat gets her
-  version back for the cheap input price. Three things: it is its OWN message
+  version back for the cheap input price. **THE BLOCK IS NOT PART OF THE
+  CONVERSATION — that is the whole point (her words, the same hour: "so they
+  don't have to read it back every turn").** When she edits one, the thread
+  gets ONE LINE as her message, `Block <msgId>/<key> "…" was edited`, never
+  the text; a chat that sees that line runs `read --id <msgId> --key <key>`
+  and reads the words once, when it wants them. Three things: it is its OWN message
   (a separate doc, never inside the hook's reply — a run of the chat's rows
   merges on the page, so it still reads in place); a blank line rides as a
   bare `>` so the scene stays one block; and a file over the edit cap is

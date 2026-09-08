@@ -15,7 +15,12 @@
 // the source and the output).
 //
 //   node scripts/chat-block.js post --chat <slug> --file scene.txt [--lead "one line above it"]
-//   node scripts/chat-block.js read --chat <slug> [--id <msgId>] [--out file.txt]
+//   node scripts/chat-block.js read --chat <slug> [--id <msgId>] [--key <key>] [--out file.txt]
+//
+// WHEN SHE EDITS ONE, THE THREAD GETS ONE LINE — "Block <id>/<key> … was
+// edited" — never the words (2026-09-08, Sophie: "the intent is that it's not
+// part of the conversation so they don't have to read it back every turn").
+// That line is the cue to run `read --id <id> --key <key>`.
 //
 // `post` answers the message id and the block's KEY (the page's own tickKey
 // over the original words — pinned equal by the test) and refuses a file over
@@ -103,8 +108,8 @@ async function main() {
     if (!chat) { console.error('usage: chat-block.js read --chat <slug> [--id <msgId>] [--out file]'); process.exit(2); }
     const { status, json } = await call(BASE + '/api/chatfeed/thread?chat=' + encodeURIComponent(chat));
     if (status !== 200 || !json) { console.error('read failed', status); process.exit(1); }
-    const id = flag('id');
-    const blocks = (json.messages || []).filter((m) => !id || String(m.id) === id).flatMap(blocksOf);
+    const id = flag('id'), wantKey = flag('key');
+    const blocks = (json.messages || []).filter((m) => !id || String(m.id) === id).flatMap(blocksOf).filter((b) => !wantKey || b.key === wantKey);
     if (has('out') && blocks.length) { fs.writeFileSync(flag('out'), blocks[blocks.length - 1].text + '\n'); }
     if (has('json')) { console.log(JSON.stringify(blocks, null, 1)); return; }
     for (const b of blocks) {
