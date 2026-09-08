@@ -76,15 +76,11 @@
   "key": "md-23b",
   "title": "The sculptures gone — esta es basura",
   "secs": 15,
-  "status": "waits for: Nurse Mary + Juanita's audition",
+  "status": "ready — no reference clip for Juanita, your call",
   "videos": [
    [
     "the jazz",
     "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apiframe-video/1788736757836-f3j8qh.mp4"
-   ],
-   [
-    "Nurse Mary + Juanita's audition",
-    null
    ]
   ],
   "images": [
@@ -108,7 +104,6 @@
   "text": "linked from last  \n  \n  \nOne day she walks into her room and notices her sculptures missing from the wall.   \nshe rushes into the hall where there is a trash can, piled high with her sculptures. intermingled with actual trash - plastic wrappers, crushed styrofoam cups, things like that.   \n“Where did all my sculptures go!?” asks sophie, in a panic.   \nthere is a mexican cleaning lady, standing by the trash can with a mop, avoiding eye contact, pretending to be intent on her task.  \n\"esta es basura” says the lady.  \n\t“They’re *not *trash. They’re *art.\" *  \n*\"*And you’re a horrible person for throwing them away without telling me.” Sophie turns on her heel and marches back to her room.",
   "mine": [
    "sophie is the woman in [Video1].  she wears the blue hospital pajamas in [Image1], [Image2] and [Image3], NOT the dress in [Video1]",
-   "Juanita the cleaning lady: the woman with the mop in [Video2].",
    "setting: mental hospital. her room in [Image4]."
   ],
   "note": "\"linked from last\" = follows the montage"
