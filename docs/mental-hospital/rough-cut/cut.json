@@ -390,10 +390,19 @@
    "out": 1
   },
   {
-   "key": "s36",
+   "key": "s36a",
+   "kind": "video",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/aa3952b325a75554e0c13e850bbbe3a0.mp4",
+   "title": "36a \u00b7 Ms. O'Hara \u2014 strapping, the helmet, shock treatment again",
+   "in": 0,
+   "seconds": 25.042,
+   "out": 25.042
+  },
+  {
+   "key": "s36b",
    "kind": "image",
-   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/4c2da1e679dfb9a3a999dc0ad8bd7ee0.png",
-   "title": "36 \u00b7 not shot yet \u2014 Ms. O'Hara \u2014 the shock-treatment stretcher, the wire helmet",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/dc8f8b5c6a631a95a0a83f311d4d787a.png",
+   "title": "36b \u00b7 not shot yet \u2014 Ms. O'Hara \u2014 ghosts and goblins, ready to be wheeled",
    "out": 1
   },
   {
