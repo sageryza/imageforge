@@ -306,5 +306,17 @@
  "wake2": {
   "id": "r0Ri4rW7tGEnwL0H2B4p",
   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/e430d88f60649f5f08c171600337f9dd.mp4"
+ },
+ "still-dining-wide1": {
+  "id": "XAcvrppGMgjJiKJ6Ml3x",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/46b0241b6343501606bdbaad0ef4f6a6.png"
+ },
+ "still-dining-wide2": {
+  "id": "QKInrj9mUim9oF2VVopl",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/d3d48663c5560b7893364ff736ad2859.png"
+ },
+ "still-dining-door": {
+  "id": "y1tcvGjrGp55NSTeneD3",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/2c3882d7bf327e3cfe7c1ca62200992a.png"
  }
 }
