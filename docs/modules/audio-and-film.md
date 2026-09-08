@@ -149,6 +149,17 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
   on the references) and completed on the next send (job `fc38565c`, ~60¢)
   — again with none of the three references followed. Two for two: mini
   does not lock a character off a reference video the way 2.5 does.
+  **AND 2.5 REFUSES THE SAME TRIMS THAT MINI ACCEPTED (job `f2b50e05`,
+  the identical references on `seedance-2.5` 10s, ~10 minutes later):**
+  "the input video 'content[2]' may contain real person" — ByteDance's own
+  wording, the one OpenRouter gave for the UNTOUCHED clips. So on APIFRAME
+  the picture is: 2.5 runs the real-person check and an untouched Seedance
+  clip (C2PA intact) passes it while a stream-copy trim (C2PA gone) does
+  not; mini does not run the check at all and does not follow the reference
+  either. That is the signature theory holding for 2.5 exactly, measured.
+  A trimmed clip is therefore never a 2.5 reference — cut the SHOT LENGTH
+  with the prompt, or send the whole clip. Failed at validation, before
+  drawing.
   **THE COLLECTION PAGE UNDER-LISTS — PROBE THE MODEL NAMES (same day,
   Sophie: "why did u skip 2.5 etc").** Replicate's image-to-video collection
   page showed six Seedance models; `GET /v1/models/bytedance/<name>`
