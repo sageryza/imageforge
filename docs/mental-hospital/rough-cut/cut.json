@@ -390,27 +390,14 @@
    "out": 1
   },
   {
-   "key": "s36a",
+   "key": "s36",
    "kind": "video",
-   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/aa3952b325a75554e0c13e850bbbe3a0.mp4",
-   "title": "36a \u00b7 Ms. O'Hara \u2014 strapping, the helmet, shock treatment again",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/eaee97a08b4281525676ee585e1c0dcb.mp4",
+   "poster": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/eaee97a08b4281525676ee585e1c0dcb-poster.jpg",
+   "title": "36\u201337 \u00b7 Sophie's LumaFusion cut v1 \u2014 Ms. O'Hara, the treatment, back to your room",
+   "seconds": 38.625,
    "in": 0,
-   "seconds": 25.042,
-   "out": 25.042
-  },
-  {
-   "key": "s36b",
-   "kind": "image",
-   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/dc8f8b5c6a631a95a0a83f311d4d787a.png",
-   "title": "36b \u00b7 not shot yet \u2014 Ms. O'Hara \u2014 ghosts and goblins, ready to be wheeled",
-   "out": 1
-  },
-  {
-   "key": "s37",
-   "kind": "image",
-   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/182338e60f15f00a181dc8639ab03027.png",
-   "title": "37 \u00b7 not shot yet \u2014 Walking beside the stretcher",
-   "out": 1
+   "out": 38.625
   },
   {
    "key": "s38",
