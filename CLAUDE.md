@@ -217,8 +217,17 @@ line is the PERSON, not the video:
   not a face check — the mouth, the hair, the skin all rode through. It
   drew O'Hara, not her, because the prompt describes O'Hara; a likeness
   from a real photo needs the "the woman in [Image1]" wording and is
-  untested. A turned-away face is assumed to pass on the same logic and is
-  unmeasured.
+  untested. **THE STILL TRICK DOES NOT CARRY TO VIDEO (same night, Sophie:
+  "also try blur eyes in a movie"):** the scale audition clip with every
+  face's eyes blurred on every frame (YuNet face landmarks → a Gaussian band
+  over the eyes, `blur-eyes-video.py`) was still refused,
+  `InputVideoSensitiveContentDetected.PrivacyInformation`. So a video is
+  screened for a PERSON, not a face; a person video goes through APIFRAME
+  whatever is done to its eyes. **And the likeness half is measured too:**
+  card 45a's words with "Mayra is the woman in [Image1]" over the
+  eyes-blurred photo drew HER (job `OudXGDf91uEk1um3pZUt`, Mini 3:4, 5.6¢) —
+  the eyes are the filter's key and not the model's; the likeness rides on
+  the rest of the face. Mini has no 2:3; its portrait shapes are 3:4 and 9:16.
 - **WHY APIFRAME IS LOOSER, from ByteDance's own docs:** a face is only ever
   allowed as a `asset://` from its trusted asset library — a VIRTUAL portrait
   (a drawn or AI-made character that "must not resemble any real human
