@@ -165,6 +165,14 @@ that fires on its own when credits land, a retry with the prompt changed, a
 probe with made-up text: all three happened that day and all three are out.
 Read back what the API really received after sending, and say it.
 
+**AND A REFERENCE IS NEVER DESCRIBED IN THE PROMPT (2026-09-08, Sophie:
+"never describe what's in an image").** A person or thing that rides as a
+reference is named by its slot and nothing more — `her mother is the woman in
+[Image1].` — no hair, no clothes, no age. The words argue with the picture
+and the picture is the point. Describe only what NO reference carries. And
+the shot is named plainly: `camera at eye level` when she wants a normal shot
+(her words: "not from the bottom").
+
 **AND EVERY CLIP'S EXACT PROMPT AND EVERY REFERENCE IS LOGGED, BY THE
 SERVER, THE MOMENT IT IS SENT (2026-09-07, Sophie: "you're saving every
 single exact prompt, including the reference … eventually we will redo all
