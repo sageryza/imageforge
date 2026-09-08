@@ -1,5 +1,5 @@
 import json,urllib.request,os,html as H
-B='https://imageforge-q125.onrender.com'; CHAT='severance-api-multiple-frames'; SHEET='belt-md'
+B='https://imageforge-q125.onrender.com'; CHAT='hospital-night-film'; SHEET='belt-md'
 def post(path,body):
     r=urllib.request.Request(B+'/api/chatfeed/'+path,data=json.dumps(body).encode(),headers={'Content-Type':'application/json'})
     return json.load(urllib.request.urlopen(r))

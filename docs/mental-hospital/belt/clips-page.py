@@ -15,10 +15,10 @@ page='''<meta charset="utf-8"><link rel="stylesheet" href="/compare.css"><script
 '''+body+'''
 <script>
 document.querySelectorAll('.film').forEach(function(el){ if(window.__filmRow) window.__filmRow({url:el.getAttribute('data-url'),label:el.getAttribute('data-label'),mount:el}); });
-window.__compareNotes({chat:'severance-api-multiple-frames',sheet:'clips-notes'});
+window.__compareNotes({chat:'hospital-night-film',sheet:'clips-notes'});
 window.__compareHelp({html:'<p>Every clip that has landed, newest at the top. Tap a row to play it here; "save" underneath downloads the file. A new clip is added the moment it lands.</p>'});
 </script>'''
 os.environ['TZ']='America/Los_Angeles'; time.tzset()
-d=post('page',{'chat':'severance-api-multiple-frames','title':'The clips v%d'%ver,'html':page}); print('clips page',d.get('id'),d.get('warnings'))
+d=post('page',{'chat':'hospital-night-film','title':'The clips v%d'%ver,'html':page}); print('clips page',d.get('id'),d.get('warnings'))
 for old in st['ids']: post('page/'+old+'/supersede',{'superseded':True})
 json.dump({'ver':ver,'ids':[d['id']]},open('clips-state.json','w'))
