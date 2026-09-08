@@ -125,6 +125,22 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     account with business verification; entry tier free, paid tiers
     $1,400/mo+ (docs 2377608 · 2333565 · 2333589 · 2275638). That is what
     APIFRAME evidently holds.
+  - **THE LINE IS PHOTOREAL EYES, measured in two more rounds the same
+    night (all Mini 480p 1:1 4s, the O'Hara audition prompt, one reference
+    each, ~5.4¢ an accepted job, a refusal free).** (1) Three Sandy-mirror
+    portraits of an invented older woman — loose ink, a finished painting,
+    near-photographic — ALL accepted and drawn (jobs `O6ALzDiy8gHXMkHUn2vq`
+    · `H0xjmpXRVCe97LhOWR0s` · `uSG0ZN2yLFlr6rF1EytL`); the looseness of the
+    reference set the LOOK of the clip. (2) Two drawn portraits of a REAL
+    person (Mayra) — loose ink and most rendered — both accepted
+    (`uRmoqfuAZVxGYHlKPhAD` · `kxsivm8ZJgtzuCZrJ592`), while her real photo
+    was refused whole. (3) Her real photo with ONLY a soft-blurred band over
+    the eyes (`sharp` extract → blur(14) → composite; mouth, hair, skin
+    untouched) — ACCEPTED and drawn (`aY9LbIGMe9T5lEcA984a`). All three
+    rounds drew O'Hara, because the prompt describes O'Hara; a likeness test
+    needs "the woman in [Image1]" wording. Every job is in `forge-video-jobs`
+    under `provider:'openrouter'`, chat `openrouter-vs-apiframe`; the clips
+    and stills are on that chat's Compare pages.
   - **SO: text, pictures, audio and person-free videos → OpenRouter; any
     reference with a person in it → APIFRAME.** A reference video rides
     through as `video_url` and ByteDance decides; a content refusal answers

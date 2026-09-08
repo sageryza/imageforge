@@ -208,7 +208,17 @@ line is the PERSON, not the video:
   (the loosest reference drew an illustrated clip, the most rendered a
   photoreal one), and the watercolor parents were refused on both doors
   earlier — a drawn face is likelier to pass, not certain to; the refusal is
-  free, so try it. A blurred or turned-away face passes.
+  free, so try it. **AND A REAL PHOTO WITH ONLY THE EYES BLURRED PASSES
+  (measured the same night, Sophie: "blue just the eyes / real still"):**
+  Mayra's real portrait was refused whole, and the identical photo with one
+  soft-blurred band over the eyes (`sharp` extract → blur(14) → composite,
+  everything else untouched) was accepted and drawn (job
+  `aY9LbIGMe9T5lEcA984a`, 5.4¢, Mini 1:1). So the filter is an EYES check,
+  not a face check — the mouth, the hair, the skin all rode through. It
+  drew O'Hara, not her, because the prompt describes O'Hara; a likeness
+  from a real photo needs the "the woman in [Image1]" wording and is
+  untested. A turned-away face is assumed to pass on the same logic and is
+  unmeasured.
 - **WHY APIFRAME IS LOOSER, from ByteDance's own docs:** a face is only ever
   allowed as a `asset://` from its trusted asset library — a VIRTUAL portrait
   (a drawn or AI-made character that "must not resemble any real human
