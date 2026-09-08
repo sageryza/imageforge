@@ -2837,10 +2837,24 @@ them off the reference sheet, not off the old filenames.
 - **Naming a chat: the Chats app is the source of truth (July 2026).** Sophie
   renames a chat with the pencil in its thread header; that writes `displayName`
   on the registry doc and is the name she sees everywhere. **The Claude app's own
-  session title cannot be synced** — nothing exposes a session's title to the
-  outside and nothing can push a rename back into claude.ai (checked July 2026,
-  no API and no MCP tool for it), so the two names are separate by necessity and
-  hers wins. A chat reads what she calls it with
+  session title CAN BE READ, one direction only — the July 2026 claim that
+  "nothing exposes a session's title" is STALE (re-measured 2026-09-08:
+  `list_sessions` answers a `title` per session, and her renames are in it).
+  So a rename she makes in the Claude app CAN be mirrored into Deck Factory;
+  nothing can push one the other way, and hers wins either way.
+  **Mirroring one: `list_sessions {mine:true, limit:100}` → id + title, join to
+  the registry through each chat's `url` (`session_…`), and rename with
+  `POST /api/chatfeed/rename {chat, name}`. TWO RULES.** (1) **Most titles are
+  the HARNESS's auto-title, not a rename** — it writes one from her first
+  message, so it near-twins the branch slug ("playground-back-to-top" →
+  "Back to top button in Playground"). Measured 2026-09-08 over 96 account-3
+  chats: 74 titles differ from the Deck Factory name and only **5** share no
+  words with the slug. Word overlap against the slug is the tell — a rename of
+  hers is short, lowercase and unrelated ("tape montage", "ms o hara",
+  "stills"); mirroring all 74 would rename her whole app with machine
+  sentences. (2) **A session's title is only listable from its OWN account** —
+  an account-3 chat cannot read an account-1 session — so a sweep covers one
+  account and must say so. A chat reads what she calls it with
   `GET /api/chatfeed/name?chat=<slug>&session=<your session id>` →
   `{ chat, displayName, name }` — ALWAYS pass `session` (the
   `CLAUDE_CODE_REMOTE_SESSION_ID` without `cse_`): the returned `chat` is your
