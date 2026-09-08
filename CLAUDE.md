@@ -2854,7 +2854,15 @@ them off the reference sheet, not off the old filenames.
   "stills"); mirroring all 74 would rename her whole app with machine
   sentences. (2) **A session's title is only listable from its OWN account** —
   an account-3 chat cannot read an account-1 session — so a sweep covers one
-  account and must say so. A chat reads what she calls it with
+  account and must say so. (3) **NEVER write over a `displayName` she already
+  set, and judge "recent" by `startedAt`, not by `lastSeen`** (2026-09-08,
+  Sophie: "oops no just from today · undo others"). Two registry docs can
+  point at ONE session — a re-bound or forked thread — so a title lands on
+  both, and the older doc is the one carrying a name of hers: the sweep
+  renamed a chat started two days earlier from her own `seedance` to today's
+  title. Rename only the docs whose `startedAt` is inside the window you were
+  asked for, leave a doc that already has her name alone, and name it in the
+  reply instead. A chat reads what she calls it with
   `GET /api/chatfeed/name?chat=<slug>&session=<your session id>` →
   `{ chat, displayName, name }` — ALWAYS pass `session` (the
   `CLAUDE_CODE_REMOTE_SESSION_ID` without `cse_`): the returned `chat` is your
