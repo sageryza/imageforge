@@ -111,8 +111,24 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     the dress clip: 18 `c2pa` markers whole, 0 after a stream-copy trim, 0
     after a plain remux) explains APIFRAME's own trim refusals but NOT this:
     the signed, untouched clips were refused here.
-  - **SO: text-only, picture and audio references → OpenRouter; any reference
-    video → APIFRAME.** The door is **`openrouter.js`, `POST
+  - **AND THE LINE IS THE PERSON, NOT THE VIDEO (measured the same night on
+    the cheapest Mini 4s jobs — a refusal is free, an accepted one ~5¢):** a
+    PERSON-FREE reference video (the socks B-roll, a Seedance output,
+    `drops/_/f899742c…mp4`) passed and drew for 6.5¢ (job
+    `9afVS72Yq3S5Ss4BRo07`), and an AI-generated face STILL (a frame of the
+    Mini clip itself) was refused `InputImageSensitiveContentDetected.
+    PrivacyInformation` — so "AI faces pass" (every third-party blog) is
+    false for a photoreal generated face. ByteDance's own docs say why: a
+    face is only allowed as an `asset://` from the trusted asset library —
+    a virtual portrait ("must not resemble any real human person", signed
+    commitment letter) or a face-verified real person — behind a BytePlus
+    account with business verification; entry tier free, paid tiers
+    $1,400/mo+ (docs 2377608 · 2333565 · 2333589 · 2275638). That is what
+    APIFRAME evidently holds.
+  - **SO: text, pictures, audio and person-free videos → OpenRouter; any
+    reference with a person in it → APIFRAME.** A reference video rides
+    through as `video_url` and ByteDance decides; a content refusal answers
+    400 `{refusal:'content', hint}` naming APIFRAME. The door is **`openrouter.js`, `POST
     /api/openrouter/video`** (Sophie, the same day: "logs yes"): the APIFRAME
     route's body word for word, a 202 carrying `sent` (the literal body
     OpenRouter received), `GET /video-job/:id` to poll (the clip is behind the
@@ -121,16 +137,14 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     permanent url and the job's real `cost`), and **the same
     `forge-video-jobs` doc APIFRAME's route files**, stamped
     `provider:'openrouter'`, with OpenRouter's statuses mapped onto the log's
-    vocabulary (`apiframeStatus`). A `referenceVideoUrls` list answers 400
-    `{refused:'video'}` naming the APIFRAME route; a ByteDance content
-    refusal answers 400 `{refusal:'content'}` and nothing is billed or
-    logged; a short model name (`seedance-2.0-mini`, `2.5`) maps onto
+    vocabulary (`apiframeStatus`). A ByteDance content refusal answers 400
+    `{refusal:'content'}` and nothing is billed or logged; a short model name (`seedance-2.0-mini`, `2.5`) maps onto
     OpenRouter's id and an unknown one is refused, never guessed. `GET
     /credits` is the balance in dollars, `GET /models` the served SKUs.
     `OPENROUTER_API_KEY` is a managed key (config-loader). Test: `node
     scripts/test-openrouter-video.js`. From a container with no server,
     `node scripts/openrouter-video.js` sends one job the same way (prints the
-    exact body first, never retries or reshapes, refuses `--video`) — but it
+    exact body first, never retries or reshapes, `--video` rides through) — but it
     files NO log, so a clip drawn that way is written up by hand in the reply.
   - **A probe that went wrong, so it is not repeated:** the first probe
     script treated every 400 as a shape error and, after ByteDance's real

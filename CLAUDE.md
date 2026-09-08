@@ -177,21 +177,38 @@ PrivacyInformation` — "may contain real person" — before anything drew, whil
 the three pajama pictures on the same job passed. OpenRouter forwards to
 ByteDance directly, so BytePlus direct would refuse the same; APIFRAME is
 running with something looser (unmeasured — its own backend or ByteDance's
-paid "advanced creation rights"). So the rule is by REFERENCE SHAPE:
-- **text only, pictures, or audio as references → OpenRouter**: `POST
+paid "advanced creation rights"). **MEASURED THE SAME NIGHT ON THE
+CHEAPEST MINI JOB (refusals are free, an accepted one ~5¢): a PERSON-FREE
+reference video — the socks B-roll, a Seedance output — PASSED and drew
+(6.5¢), and an AI-GENERATED face STILL (a frame of the Mini clip itself) was
+REFUSED (`InputImageSensitiveContentDetected.PrivacyInformation`).** So the
+line is the PERSON, not the video:
+- **text, pictures, audio, and person-free videos → OpenRouter**: `POST
   /api/openrouter/video` (`openrouter.js`) takes the APIFRAME route's exact
   body (`prompt, model?, duration, resolution, aspectRatio, generateAudio,
-  referenceImageUrls, referenceAudioUrls, chat, scene, title, session`),
-  answers 202 `{jobId, poll, sent}` — `sent` is the literal body OpenRouter
-  received, the read-back her rule asks for — poll `GET
-  /api/openrouter/video-job/:id`, and **files the SAME `forge-video-jobs`
-  log** stamped `provider:'openrouter'`, so `GET /api/apiframe/video-log`
-  reads both doors. `GET /api/openrouter/credits` is the balance in
-  dollars. A `referenceVideoUrls` list is refused with a 400 naming
-  APIFRAME. From a container with no server: `scripts/openrouter-video.js`.
-- **any reference VIDEO → APIFRAME**, exactly as before.
-- A face in a reference PICTURE is refused on both (the watercolor parents,
-  the doctor and assistant portraits); a blurred or turned-away face passes.
+  referenceImageUrls, referenceVideoUrls, referenceAudioUrls, chat, scene,
+  title, session`), answers 202 `{jobId, poll, sent}` — `sent` is the
+  literal body OpenRouter received, the read-back her rule asks for — poll
+  `GET /api/openrouter/video-job/:id`, and **files the SAME
+  `forge-video-jobs` log** stamped `provider:'openrouter'`, so `GET
+  /api/apiframe/video-log` reads both doors. `GET /api/openrouter/credits`
+  is the balance in dollars. From a container with no server:
+  `scripts/openrouter-video.js`.
+- **any reference with a FACE or a PERSON in it, still or video → APIFRAME.**
+  ByteDance's refusal is free and comes back before drawing as 400
+  `{refusal:'content'}` with a `hint` naming APIFRAME — so sending a doubtful
+  job to OpenRouter first costs nothing. A face in a reference PICTURE is
+  refused on both doors (the watercolor parents, the doctor and assistant
+  portraits); a blurred or turned-away face passes.
+- **WHY APIFRAME IS LOOSER, from ByteDance's own docs:** a face is only ever
+  allowed as a `asset://` from its trusted asset library — a VIRTUAL portrait
+  (a drawn or AI-made character that "must not resemble any real human
+  person", uploaded once under a signed commitment letter) or a REAL person
+  who face-verifies on their phone, every upload face-matched to that check.
+  Both need a BytePlus account with BUSINESS verification (a corporate
+  registration certificate); the entry tier is free (50 assets), the paid
+  tiers $1,400/mo and up. The ChatGPT-character workflow is exactly the
+  virtual-portrait door. NOT BUILT — hers to decide (Cod God Inc?).
 The "go" rule above applies to both doors word for word. A no-video job
 sent to APIFRAME is not wrong, it is 16% dearer. Full note: *OpenRouter for
 Seedance* in `docs/modules/audio-and-film.md`.

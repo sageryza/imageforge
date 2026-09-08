@@ -11,10 +11,14 @@
 // filter refuses reference VIDEOS with people that APIFRAME accepts —
 // measured 2026-09-08 on scene 36a1: the two untouched Seedance clips APIFRAME
 // drew that scene from came back `InputVideoSensitiveContentDetected.
-// PrivacyInformation` before drawing, while the three pictures passed. So:
-//   text, pictures and audio as references → HERE
-//   any reference video                    → POST /api/apiframe/video
-// and a `referenceVideoUrls` list is REFUSED with a 400 naming that route.
+// PrivacyInformation` before drawing, while the three pictures passed — and
+// the same hour a PERSON-FREE reference video (the socks B-roll) passed and
+// drew for 6.5¢, while a generated face STILL was refused. So the line is
+// the PERSON, not the video:
+//   text, pictures, audio, and person-free videos → HERE
+//   any reference with a face or a person         → POST /api/apiframe/video
+// A reference video rides through as `video_url`; ByteDance's refusal is
+// free and terminal (see below), so letting it decide costs nothing.
 //
 // THE LOG IS SHARED. Every accepted job files the same `forge-video-jobs`
 // doc APIFRAME's route files (video-log.js — the literal prompt, the model,
@@ -102,13 +106,16 @@ function buildRequest(b) {
   b = b || {};
   const prompt = String(b.prompt == null ? '' : b.prompt);
   if (!prompt.trim()) return { error: 'prompt is required' };
-  // No start/end frame here either (`imageUrl` / `endImageUrl` are ignored):
-  // the keyframe door is APIFRAME's, and a reference video is refused outright.
-  const vids = Array.isArray(b.referenceVideoUrls) ? b.referenceVideoUrls.filter(Boolean) : [];
-  if (vids.length) return { error: `a reference video goes through APIFRAME (${APIFRAME_ROUTE}), not OpenRouter — ByteDance's own door refuses reference videos with people (measured 2026-09-08)`, refused: 'video' };
+  // No start/end frame here (`imageUrl` / `endImageUrl` are ignored): the
+  // keyframe door is APIFRAME's. A reference VIDEO rides as `video_url` and
+  // ByteDance decides: a person-free clip passes (measured 2026-09-08, the
+  // socks B-roll, 6.5¢), a clip with a person is refused for free before
+  // anything draws — that refusal comes back as { refusal:'content' } and
+  // names APIFRAME, the door that accepts it.
   const model = modelIdOf(b.model);
   if (!model) return { error: `unknown model "${b.model}" — one of ${MODELS.join(', ')}` };
   const imgs = (Array.isArray(b.referenceImageUrls) ? b.referenceImageUrls : []).map(String).filter(Boolean);
+  const vids = (Array.isArray(b.referenceVideoUrls) ? b.referenceVideoUrls : []).map(String).filter(Boolean);
   const auds = (Array.isArray(b.referenceAudioUrls) ? b.referenceAudioUrls : []).map(String).filter(Boolean);
   const params = { resolution: String(b.resolution || '480p') };
   if (b.duration != null) params.duration = Number(b.duration);
@@ -116,6 +123,7 @@ function buildRequest(b) {
   params.generate_audio = b.generateAudio == null ? true : Boolean(b.generateAudio);
   if (b.seed != null) params.seed = Number(b.seed);
   if (imgs.length) params.reference_image_urls = imgs;
+  if (vids.length) params.reference_video_urls = vids;
   if (auds.length) params.reference_audio_urls = auds;
   const body = { model, prompt, resolution: params.resolution, generate_audio: params.generate_audio };
   if (params.duration != null) body.duration = params.duration;
@@ -123,6 +131,7 @@ function buildRequest(b) {
   if (params.seed != null) body.seed = params.seed;
   const refs = [
     ...imgs.map((url) => ({ type: 'image_url', image_url: { url } })),
+    ...vids.map((url) => ({ type: 'video_url', video_url: { url } })),
     ...auds.map((url) => ({ type: 'audio_url', audio_url: { url } })),
   ];
   if (refs.length) body.input_references = refs;
@@ -193,7 +202,7 @@ router.use((req, res, next) => {
 
 router.get('/status', (req, res) => {
   res.json({ ok: true, configured: Boolean(KEY), firebase: Boolean(bucketOrNull()), models: MODELS, base: BASE,
-    rule: `no video references here — a reference video goes through ${APIFRAME_ROUTE}` });
+    rule: `a reference with a person in it (still or video) is refused by ByteDance — that job goes through ${APIFRAME_ROUTE}` });
 });
 
 // GET /credits — the balance, in dollars: what was bought, what is spent,
@@ -220,8 +229,8 @@ router.get('/models', async (req, res) => {
 
 // POST /video — start a Seedance job. Body: the APIFRAME route's fields —
 // { prompt, model?, duration?, resolution?, aspectRatio?, generateAudio?,
-// seed?, referenceImageUrls?, referenceAudioUrls?, chat?, scene?, title?,
-// session?, note? }. `referenceVideoUrls` is refused (400). Answers 202
+// seed?, referenceImageUrls?, referenceVideoUrls?, referenceAudioUrls?,
+// chat?, scene?, title?, session?, note? }. Answers 202
 // { ok, jobId, poll, sent } — `sent` is the exact body OpenRouter received,
 // for the read-back her rule asks for. A ByteDance refusal answers 400
 // { error, refusal:'content' } and nothing is billed or logged.
@@ -236,7 +245,8 @@ router.post('/video', async (req, res) => {
       r = await api('/videos', { method: 'POST', body: built.body });
     } catch (e) {
       const kind = refusalKind(e.body);
-      return res.status(e.status || 502).json({ error: e.message, refusal: kind });
+      const hint = kind === 'content' ? `ByteDance refused a reference (a face or a person) — that job goes through ${APIFRAME_ROUTE}` : undefined;
+      return res.status(e.status || 502).json({ error: e.message, refusal: kind, hint });
     }
     const jobId = r.id;
     if (!jobId) return res.status(502).json({ error: 'OpenRouter gave no job id: ' + JSON.stringify(r).slice(0, 200) });
