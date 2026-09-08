@@ -127,6 +127,22 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     41¢ for a clip she never approved. A content refusal (`…SensitiveContent…`)
     is terminal; only a ZodError from OpenRouter's own validator is a shape
     error.
+  **A STREAM-COPY TRIM PASSES ON APIFRAME — MEASURED 2026-09-08 (Sophie:
+  "try trimming it to see if it passes w mini").** Two keyframe-aligned
+  `-c copy` cuts of untouched Seedance 2.5 clips (the jazz clip's two face
+  stretches joined, 6.0s; the doctor clip's hallway + doorway joined, 5.1s —
+  both with every `c2pa` marker gone, 18 → 0) plus the socks product photo
+  went through `seedance-2-mini` on APIFRAME (job `e758a7ad`, 4s, 480p) and
+  COMPLETED in 82s, ~20¢. So "APIFRAME refuses trimmed clips" (the line
+  above about its "own trim refusals") is not true of a lossless trim on
+  mini; no chat's feed records a measured APIFRAME trim refusal at all, so
+  treat that line as a hypothesis until someone reproduces one — a
+  RE-ENCODED trim, or 2.5 rather than mini, are the untested differences.
+  What the probe did NOT do is follow the references: a different woman
+  (long hair, grey top, shorts), a doctor in a white coat, rainbow socks —
+  four beats crammed into 4s with the character lock lost. Whether that is
+  mini, the trim, or the 4s is unmeasured. OpenRouter with a trimmed clip is
+  still untested (`OPENROUTER_API_KEY` was not in that container).
   **THE COLLECTION PAGE UNDER-LISTS — PROBE THE MODEL NAMES (same day,
   Sophie: "why did u skip 2.5 etc").** Replicate's image-to-video collection
   page showed six Seedance models; `GET /v1/models/bytedance/<name>`
