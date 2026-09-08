@@ -166,7 +166,7 @@ async function main() {
   Object.assign(doc, promptWrap);
 
   const ref = await db.collection('users').doc(uid).collection('creations').add(doc);
-  console.log(`gallery doc ${ref.id} → users/${uid}/creations  @ ${new Date(createdMs).toISOString()}`);
+  console.log(`gallery doc ${ref.id} → users/${uid}/creations  @ ${new Date(createdMs).toISOString()}\n${url}`);
   process.exit(0);
 }
 
