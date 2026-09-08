@@ -1,4 +1,8 @@
 'use strict';
+// The most a verdict text holds. 8000 since 2026-09-08 (a belt scene box is one
+// item, and the longest scene on the hospital belt is ~2,400 characters; 2000
+// was a note's size and cut her scene mid-word).
+const TEXT_MAX = 8000;
 // THE TEXT A VERDICT WRITE REPLACES IS KEPT ONE STEP BACK (2026-09-07).
 //
 // Why: an item's `text` on a verdict doc is the note thread (__compareNotes
@@ -20,6 +24,6 @@ function keptOver(doc, item, incoming) {
   const was = String(old);
   if (!was.trim()) return null;
   if (was === String(incoming == null ? '' : incoming)) return null;
-  return { text: was.slice(0, 2000), at: new Date().toISOString() };
+  return { text: was.slice(0, TEXT_MAX), at: new Date().toISOString() };
 }
-module.exports = { keptOver };
+module.exports = { keptOver, TEXT_MAX };
