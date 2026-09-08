@@ -6,7 +6,7 @@
 h2{font-size:16px;margin:0 0 6px} .st{display:block;font-size:11px;font-weight:400;color:#8a8176;text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
 .text summary{cursor:pointer;font-size:12px;text-decoration:underline;color:#6b6257;margin-bottom:6px}
 textarea.p{width:100%;box-sizing:border-box;font-family:inherit;font-size:16px;line-height:1.5;padding:10px;border:1px solid #cfc6b6;border-radius:6px;background:#fff;resize:none;min-height:100px}
-.saved{font-size:11px;color:#8a8176;min-height:14px;margin-top:3px}
+.saved{font-size:11px;color:#8a8176;min-height:14px;margin-top:3px} .saved.bad{color:#b5473c;font-weight:600}
 .attached{margin-top:14px;padding-top:10px;border-top:1px solid #e3dccd}
 .row{display:flex;align-items:center;gap:12px;font-size:13px;margin:0 0 8px} .row input{width:56px;font-family:inherit;font-size:16px;padding:4px 6px;border:1px solid #cfc6b6;border-radius:6px;background:#fff} .cost{color:#6b6257}
 .sends{font-size:12px;color:#6b6257;line-height:1.5;margin:0 0 8px}
@@ -29,11 +29,13 @@ setting: mental hospital.</textarea><div class="saved" id="sv-36a-mine"></div></
 
 There is an older woman who has short brown hair in a wild mess at the top of her head. She is adorned in the blue pajamas that all of the patients wear and she is holding her arms perfectly straight and still at her side while two nurses, one on either side, buckle the straps to the stretcher they are wheeling her on. On her head she wears a metal helmet with many little wires hanging off of it. The wires are red and blue and gold. 
 
-“They say I have to get shock treatment again,” she says to no one in particular. 
-&quot;I don’t mind the treatment, I’m just worried about what it will do to my memory. 
+“They say I have to get shock treatment again,” she says, to no one in particular. 
+&quot;I don’t mind the treatment, I’m just worried about what it will do to my memory.&quot;
 
 
-The doctor said I might not remember everything once I’ve had it,” she says, looking worried indeed. She points her face up at one of the nurses so he is forced to make eye contact with her. “Yees.” he says encouragingly, “To help your miiind Ms. O’Hara. To help you stop having those visions.” he draws out the word mind as if she might not quite undersand if he doesn’t.
+&quot;The doctor said I might not remember everything once I’ve had it,” she says, looking worried indeed. She points her face up at one of the nurses so he is forced to make eye contact with her. “Yees.” he says encouragingly, “To help your miiind Ms. O’Hara. To help you stop having those visions.” he draws out the word mind as if she might not quite undersand if he doesn’t.
+
+cut
 
 “Oh yes,” she says, her face still screwed up with dread. “The world is a very dismal place, isn’t it? There are all these ghosts and goblins” she says, and her speech begins to waver and get faster at the same time, “and they’re always trying to get me!”
 
@@ -79,14 +81,20 @@ setting: mental hospital.</textarea><div class="saved" id="sv-48-mine"></div></d
 <p class="mine">scene 48 of the script, as it sits on the full belt — nothing wired, nothing sent</p>
 </div></section></div>
 <script>
-var CHAT='hospital-severance-rough-cut', SHEET='belt-48';
+var CHAT='hospital-severance-rough-cut', SHEET='belt-48', LIMIT=8000;
 function post(body){ return fetch('/api/chatfeed/verdict',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}); }
 function cost(k){ var s=parseInt(document.querySelector('.secs[data-key="'+k+'"]').value)||0; document.querySelector('.cost[data-key="'+k+'"]').textContent='$'+(s*0.15).toFixed(2)+' at 15¢/s'; }
 document.querySelectorAll('.p[data-key]').forEach(function(ta){ var k=ta.getAttribute('data-key'), f=ta.getAttribute('data-field')||'p', sv=document.getElementById('sv-'+k+(f==='p'?'':'-'+f)), timer=null;
   function fit(){ta.style.height='auto'; ta.style.height=(ta.scrollHeight+2)+'px';} fit(); ta.closest('details').addEventListener('toggle',fit);
   function pieces(t){ var n=t.split(/\r?\n/).filter(function(l){return /^[ \t]*cut[ \t.!:]*$/i.test(l);}).length; return n?(' · '+(n+1)+' pieces'):''; }
-  ta.addEventListener('input',function(){ fit(); var t=ta.value; sv.textContent='…'+pieces(t); clearTimeout(timer); timer=setTimeout(function(){ post({chat:CHAT,sheet:SHEET,item:k+'.'+f,text:t.slice(0,1900)}).then(function(){sv.textContent='saved'+pieces(t);}).catch(function(){sv.textContent='not saved';}); },700); });
-  window.addEventListener('pagehide',function(){ if(!timer) return; clearTimeout(timer); timer=null; try{ navigator.sendBeacon('/api/chatfeed/verdict', new Blob([JSON.stringify({chat:CHAT,sheet:SHEET,item:k+'.'+f,text:ta.value.slice(0,1900)})],{type:'application/json'})); }catch(e){} });
+  // A SAVE IS READ BACK, NEVER TRUSTED (2026-09-08, Sophie, after a 2,343-character scene lost its tail to a silent slice: "a stupid error that's gonna lose my edits"). Nothing is cut on the way out; over LIMIT the box refuses and says by how much; after every save the sheet is re-read and the box says so if the server kept less than it was sent.
+  function bad(m){ sv.textContent=m; sv.classList.add('bad'); } function good(m){ sv.textContent=m; sv.classList.remove('bad'); }
+  function save(t){ if(t.length>LIMIT){ bad('NOT SAVED — '+(t.length-LIMIT)+' characters over the box limit of '+LIMIT); return; }
+    post({chat:CHAT,sheet:SHEET,item:k+'.'+f,text:t}).then(function(r){return r.json();}).then(function(j){ if(j.chars!=null && j.chars<t.length) throw new Error('short');
+      return fetch('/api/chatfeed/verdict?chat='+encodeURIComponent(CHAT)+'&sheet='+encodeURIComponent(SHEET)).then(function(r){return r.json();}).then(function(d){ var kept=(d.texts||{})[k+'.'+f]; if(typeof kept==='string' && kept.length<t.length) throw new Error('short'); good('saved'+pieces(t)); });
+    }).catch(function(e){ bad(e && e.message==='short' ? 'NOT SAVED WHOLE — the server kept less than you typed; copy your text somewhere safe' : 'not saved'); }); }
+  ta.addEventListener('input',function(){ fit(); var t=ta.value; sv.textContent='…'+pieces(t); clearTimeout(timer); timer=setTimeout(function(){ save(t); },700); });
+  window.addEventListener('pagehide',function(){ if(!timer) return; clearTimeout(timer); timer=null; try{ navigator.sendBeacon('/api/chatfeed/verdict', new Blob([JSON.stringify({chat:CHAT,sheet:SHEET,item:k+'.'+f,text:ta.value.slice(0,LIMIT)})],{type:'application/json'})); }catch(e){} });
 });
 document.querySelectorAll('.secs').forEach(function(inp){ var k=inp.getAttribute('data-key'); cost(k); inp.addEventListener('input',function(){ cost(k); post({chat:CHAT,sheet:SHEET,item:k+'.s',text:inp.value}); }); });
 var deck=document.getElementById('deck'), cards=[].slice.call(deck.children), pos=document.getElementById('pos');

@@ -5479,7 +5479,13 @@ router.post('/verdict', express.json({ limit: '64kb' }), async (req, res) => {
           : typeof ok === 'string' ? String(ok).slice(0, 24) : !!ok,
       };
     }
-    if (text !== undefined) patch.texts = { [String(item)]: String(text || '').slice(0, 2000) };
+    // A SCENE IS LONGER THAN A NOTE — the cap is 8000, not 2000 (2026-09-08,
+    // Sophie, after a 2,343-character scene box on the hospital belt lost its
+    // tail mid-word on her first edit: "a stupid error that's gonna lose my
+    // edits"). The belt pages save a whole scene under one item; 2000 was a
+    // note's size. `chars` rides the answer so a page can SAY when the server
+    // kept less than it sent, never silently.
+    if (text !== undefined) patch.texts = { [String(item)]: String(text || '').slice(0, verdictText.TEXT_MAX) };
     // THE TEXT BEING WRITTEN OVER IS KEPT — ONE STEP BACK (2026-09-07, after
     // her scene edit was overwritten by her own "go" note on a page that
     // saved both under one key, and nothing anywhere held the words she had
@@ -5525,7 +5531,9 @@ router.post('/verdict', express.json({ limit: '64kb' }), async (req, res) => {
       // triset; her mark is saved whatever the game does with it.
       try { require('./triset').pokeReview(String(sheet)); } catch (e) { /* not mounted */ }
     }
-    res.json({ ok: true, archived });
+    // `chars` = how much of the text landed, so a page can compare it to what it
+    // sent and say so instead of trusting the write.
+    res.json({ ok: true, archived, chars: text !== undefined ? patch.texts[String(item)].length : undefined });
   } catch (err) {
     res.status(502).json({ error: err.message });
   }
