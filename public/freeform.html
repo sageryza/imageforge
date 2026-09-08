@@ -198,6 +198,11 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- THE CARET STAYS WHERE SHE CAN SEE IT (2026-09-08) — a box fitted to its
+     own words never scrolls itself, so the line she is typing can end up under
+     the keyboard. The module wires itself to every text box and needs no call.
+     Full reasoning in caretkeep.js. -->
+<script src="/caretkeep.js"></script>
 <script src="/asset-lightbox.js"></script>
 <!-- the doors under the picture — the SHARED set (2026-09-01, Sophie: "as long as
      there's a prompt there should be a playground button"); the port script is

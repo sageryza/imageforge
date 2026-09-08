@@ -4,6 +4,11 @@
 <link rel="stylesheet" href="/tritoggle.css">
 <!-- The toggle's BEHAVIOUR is shared too since 2026-08-24 — a tap lands on the
      stop under the thumb rather than cycling. See /tritoggle.js. -->
+<!-- THE CARET STAYS WHERE SHE CAN SEE IT (2026-09-08) — a box fitted to its
+     own words never scrolls itself, so the line she is typing can end up under
+     the keyboard. The module wires itself to every text box and needs no call.
+     Full reasoning in caretkeep.js. -->
+<script src="/caretkeep.js"></script>
 <script src="/tritoggle.js"></script>
 <!-- The feed's own shared pieces — the search grammar, liveInput/enterSubmits,
      the keyed reconcile, the derived display copy and the toast. ONE copy,

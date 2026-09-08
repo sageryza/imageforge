@@ -3634,6 +3634,32 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   re-points her saved answers at different content.
 - **`POST /page` answers `warnings`** when a page skips the kit. If yours comes
   back with one, fix the page and re-post before you finish the turn.
+- **A FIX TO A PAGE BUILDER REACHES NOTHING ALREADY POSTED — SWEEP THE LIVE
+  PAGES (2026-09-08, Sophie: "are chats importing wrong versions · check every
+  version · see maybe some even have additional features i asked for that
+  didn't reach all of them").** A posted page is FROZEN, and a builder is
+  COPIED by the next chat that wants one — so a fix lands in one copy and the
+  other four go on shipping the bug. Measured that morning across her five
+  live belt pages: the read-back saver written the day before ("a stupid error
+  that's gonna lose my edits") was on two of them, and **three pages she types
+  her scenes into were still slicing every save to 1,900 characters** — the
+  main belt among them. The whole drift matrix, feature by feature, is in
+  `docs/mental-hospital/belt/VERSIONS.md`.
+  - **REPAIR THE LIVE PAGE, DON'T REBUILD IT.** Rebuilding from the repo
+    loses whatever the owning chat has in its own container: measured against
+    the live belt v9, a rebuild dropped 9 stills, a video and seven of her
+    reference-line edits. `scripts/fix-belt-truncation.js` patches the POSTED
+    html — byte for byte, only the saver swapped — re-posts it as the next
+    version and supersedes the old (dry by default; `--file` does a committed
+    snapshot in place). Her edits live on the verdict sheet and never move.
+  - **NOTHING MAY CUT HER WORDS ON THE WAY OUT**, ever: over the limit the box
+    REFUSES and says by how much, and every save is read back off the sheet.
+    `node scripts/test-belt-save-guard.js` sweeps every page builder in the
+    repo and fails on a truncating save, so the next copy cannot lose the fix
+    quietly.
+  - **The features a patch cannot carry** (a box that is not in the markup —
+    the redo-notes fold, the model's-pick seconds) stay for the owning chat's
+    next build. Name them rather than half-porting them.
 - **Picking spans of a recording is `public/picker-shell.html` +
   `window.__cutPicker`** — required, not optional. Four chats hand-rolled their
   own in one week and each re-shipped the same bugs.
@@ -4318,6 +4344,38 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   page renders perfectly either way. Test:
   `node scripts/test-grid-oneup-tour.js` (the real grid.js, the tour opened,
   the words read off the screen; verified failing 2 pre-fix).
+- **THE CARET STAYS WHERE SHE CAN SEE IT — `/caretkeep.js`, ONE FILE, EVERY
+  PAGE (2026-09-08, Sophie editing a scene on the soap belt: "when i edit the
+  text, the scroll position moves, so the cursor is under the textbox").**
+  Every box she writes in is fitted to its own words and never scrolls itself
+  (the Playground's bigger box, the belt's `fit`, the Chats app's script-block
+  editor) — which is right for reading and is exactly what loses the caret: a
+  2,000-character scene is a 1,500px-tall textarea, so WebKit scrolls the TOP
+  of the box into view and the line she is typing sits under the keyboard,
+  with nothing on screen saying why. Measured on her real soap page at 390x844
+  with an iPhone 13's keyboard: the caret at the end of the scene sat at y=805
+  under a keyboard starting at 430; with the keeper it lands at 380-404, just
+  above it.
+  - **IT ONLY EVER CORRECTS** — a caret already in the band moves nothing, and
+    it never fires on a scroll event (that is her finger).
+  - **THE WINDOW, NEVER `scrollIntoView`** — that walks every scrollable
+    ancestor, and a belt card lives in a horizontally snapping deck, so one
+    call would page her to another scene. The nearest box that really scrolls
+    wins, else the window; a fixed sheet with nothing scrollable is left alone.
+  - **THE CARET IS MEASURED**, in a hidden mirror wearing the box's own font,
+    padding, border and width — counting characters is wrong on the first
+    wrapped line.
+  - **AT THE END OF A SCENE THE PAGE BORROWS THE ROOM IT IS SHORT OF**
+    (padding on the scrolling element, given back when the keyboard goes):
+    below the last line there is only the card's padding, so without it the
+    one place she types most cannot be lifted over the keyboard at all.
+  - **compare.js loads it on the first focus**, so every Compare page ever
+    posted has it with nothing re-posted; chats.html, the Playground, the
+    Story Room, Freeform, Voice Studio and the Story Timeline link it. A new
+    page with a box she writes in adds the one line. `data-nocaret` opts a box
+    out. Test: `node scripts/test-caret-keep.js` (the real belt shape headless
+    — the caret measured against a stubbed keyboard, the deck proved not to
+    have moved, and a caret already in view proved to move nothing).
 - **TRUNCATED TEXT OPENS WITH AN UNDERLINED WORD, NEVER A BUTTON (Aug 2026,
   Sophie: "the ... button for longer than two line prompt is huge … truncated
   text shud always just be a ...with a line under it that links to open

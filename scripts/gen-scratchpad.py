@@ -41,6 +41,11 @@ page = r"""<!doctype html>
      copied — see tritoggle.css's header; /tritoggle.js is the aim rule, a
      tap landing on the stop under the thumb rather than cycling. -->
 <link rel="stylesheet" href="/tritoggle.css">
+<!-- THE CARET STAYS WHERE SHE CAN SEE IT (2026-09-08) — a box fitted to its
+     own words never scrolls itself, so the line she is typing can end up under
+     the keyboard. The module wires itself to every text box and needs no call.
+     Full reasoning in caretkeep.js. -->
+<script src="/caretkeep.js"></script>
 <script src="/tritoggle.js"></script>
 <!-- THE HOUSE SEARCH, linked and never copied (/feedkit.js): the grammar the
      Chats app and the Playground speak, plus the two helpers every live box

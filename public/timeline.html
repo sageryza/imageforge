@@ -20,6 +20,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Story Timeline</title>
+<!-- THE CARET STAYS WHERE SHE CAN SEE IT (2026-09-08) — a box fitted to its
+     own words never scrolls itself, so the line she is typing can end up under
+     the keyboard. The module wires itself to every text box and needs no call.
+     Full reasoning in caretkeep.js. -->
+<script src="/caretkeep.js"></script>
 <link rel="stylesheet" href="/tool.css">
 <style>
   /* ---- the shelf ---- */

@@ -2177,6 +2177,13 @@ body.newspick > .float{display:none !important;}
 <script src="/asset-actions.js"></script>
 <script src="/asset-lightbox.js"></script>
 <script src="/filmnote.js"></script>
+<!-- THE CARET STAYS WHERE SHE CAN SEE IT (2026-09-08) — every box in this
+     page grows to the size of its words and never scrolls itself, so the
+     line she is typing can end up under the keyboard: the script block's
+     editor, a code block, a note on a list item, the composer. The module
+     wires itself to every text box and needs no call, so a harness that does
+     not serve it changes nothing. Full reasoning in caretkeep.js. -->
+<script src="/caretkeep.js"></script>
 <!-- WHICH PROJECT A CHAT IS ON (2026-09-02) — the stacked-cards button in a
      thread's header and the page behind it. One rule, shared with the server
      (chat-sort.js) so a project the sorter files is spelled the way this page
