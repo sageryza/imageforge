@@ -74,6 +74,59 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
   `referenceAudioUrls` now** (the Seedance 2.x multi-reference door: nine
   panels as one clip, the prompt naming them `[Image1]`…`[Image9]`), poll
   `GET /api/apiframe/video-job/:id`. Test: `node scripts/test-apiframe-refs.js`.
+  **OPENROUTER FOR SEEDANCE — THE SECOND DOOR, FOR JOBS WITH NO VIDEO
+  REFERENCE (2026-09-08, Sophie: "make a note so any reference w no video
+  uses open router instead").** OpenRouter added video generation
+  2026-04-15 and carries Seedance 2.0 Mini / 2.0 Fast / 2.0 / 2.5 at
+  ByteDance's own list price with no markup on the clip; the only fee is
+  ~5% when credit is bought ($2.52 on $50, measured). Billing is per VIDEO
+  TOKEN: `(width × height × 24 × seconds) / 1024` tokens, 2.5 at $10.70/M
+  ($6.40/M when a reference video rides), so **480p 2.5 is 10.3¢/s and 720p
+  23.1¢/s before the fee; APIFRAME's own page says 29¢/s at 720p**. 2.5 on
+  OpenRouter tops out at 720p (4-30s); 2.0 goes to 1080p/4K at 37¢/s for
+  1080p. Mini's 1.3¢/s is a 60% promo over a $3.50/M list.
+  - **THE REQUEST SHAPE (undocumented, measured):** `POST
+    https://openrouter.ai/api/v1/videos` `{model:"bytedance/seedance-2.5",
+    prompt, duration, resolution:"480p", aspect_ratio:"3:4",
+    generate_audio:true, input_references:[{type:"image_url",
+    image_url:{url}}, {type:"video_url", video_url:{url}}, {type:"audio_url",
+    audio_url:{url}}]}` — the validator names exactly those three types.
+    Poll `GET /api/v1/videos/:id` (pending → in_progress → completed),
+    download `GET /api/v1/videos/:id/content?index=0` with the key. There is
+    NO cancel (POST …/cancel and DELETE both 404), and the charge lands the
+    moment a job is accepted. References are named `[Image1]` / `[Video1]`
+    in the prompt exactly as on APIFRAME.
+  - **THE CATCH, AND WHY THIS IS A SECOND DOOR RATHER THAN THE DOOR:
+    ByteDance's own filter refuses reference VIDEOS with people that
+    APIFRAME accepts.** Scene 36a1's two untouched Seedance clips (the dress
+    clip, the stretcher hallway) — which APIFRAME drew that scene from hours
+    earlier — came back `InputVideoSensitiveContentDetected.PrivacyInformation`
+    "may contain real person" at validation, unbilled, while the three pajama
+    PICTURES on the same job passed. OpenRouter forwards to ByteDance directly
+    (one provider, no routing), so BytePlus direct is the same door. What
+    APIFRAME has that lets those clips through is unmeasured (its own
+    backend, or ByteDance's paid "Dreamina Seedance Advanced Creation Rights").
+    The C2PA-signature idea from the same day (every Seedance output carries
+    a signed `uuid` box that any ffmpeg trim or remux strips — measured on
+    the dress clip: 18 `c2pa` markers whole, 0 after a stream-copy trim, 0
+    after a plain remux) explains APIFRAME's own trim refusals but NOT this:
+    the signed, untouched clips were refused here.
+  - **SO: text-only, picture and audio references → OpenRouter; any reference
+    video → APIFRAME.** `node scripts/openrouter-video.js` sends one job from
+    a container (`OPENROUTER_API_KEY` in the environment — never in the repo;
+    a real refusal or a shape error stops it, it never retries with the
+    prompt changed, and it refuses a `--video` outright). It prints the exact
+    body before sending and the job's usage after. **NO server door and no
+    video-log entry yet** — a chat that sends one files the prompt and
+    references by hand in its own reply until `POST /api/openrouter/video`
+    exists (the apiframe.js shape, `forge-video-jobs` logging included).
+  - **A probe that went wrong, so it is not repeated:** the first probe
+    script treated every 400 as a shape error and, after ByteDance's real
+    refusal, tried a passthrough envelope that dropped the videos silently;
+    ByteDance accepted THAT one and drew the scene from the pictures alone —
+    41¢ for a clip she never approved. A content refusal (`…SensitiveContent…`)
+    is terminal; only a ZodError from OpenRouter's own validator is a shape
+    error.
   **THE COLLECTION PAGE UNDER-LISTS — PROBE THE MODEL NAMES (same day,
   Sophie: "why did u skip 2.5 etc").** Replicate's image-to-video collection
   page showed six Seedance models; `GET /v1/models/bytedance/<name>`

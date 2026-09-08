@@ -165,6 +165,30 @@ that fires on its own when credits land, a retry with the prompt changed, a
 probe with made-up text: all three happened that day and all three are out.
 Read back what the API really received after sending, and say it.
 
+**A SEEDANCE JOB WITH NO VIDEO REFERENCE GOES THROUGH OPENROUTER, NOT
+APIFRAME (2026-09-08, Sophie: "make a note so any reference w no video uses
+open router instead").** OpenRouter bills ByteDance's list price plus a 5%
+top-up fee — 480p Seedance 2.5 is 10.9¢/s all in against APIFRAME's 13¢, a
+4s clip 44¢ against 52¢. **BUT BYTEDANCE'S OWN DOOR REFUSES REFERENCE VIDEOS
+WITH PEOPLE THAT APIFRAME ACCEPTS (measured 2026-09-08, scene 36a1 of the
+ward film):** the two untouched Seedance clips APIFRAME drew that scene from
+came back from OpenRouter as `InputVideoSensitiveContentDetected.
+PrivacyInformation` — "may contain real person" — before anything drew, while
+the three pajama pictures on the same job passed. OpenRouter forwards to
+ByteDance directly, so BytePlus direct would refuse the same; APIFRAME is
+running with something looser (unmeasured — its own backend or ByteDance's
+paid "advanced creation rights"). So the rule is by REFERENCE SHAPE:
+- **text only, pictures, or audio as references → OpenRouter**
+  (`scripts/openrouter-video.js`, from a container, `OPENROUTER_API_KEY` in
+  the environment; the request shape is `input_references` typed
+  `image_url` / `audio_url` / `video_url`).
+- **any reference VIDEO → APIFRAME**, exactly as before.
+- A face in a reference PICTURE is refused on both (the watercolor parents,
+  the doctor and assistant portraits); a blurred or turned-away face passes.
+The "go" rule above applies to both doors word for word. A no-video job
+sent to APIFRAME is not wrong, it is 16% dearer. Full note: *OpenRouter for
+Seedance* in `docs/modules/audio-and-film.md`.
+
 **AND A REFERENCE IS NEVER DESCRIBED IN THE PROMPT (2026-09-08, Sophie:
 "never describe what's in an image").** A person or thing that rides as a
 reference is named by its slot and nothing more — `her mother is the woman in
