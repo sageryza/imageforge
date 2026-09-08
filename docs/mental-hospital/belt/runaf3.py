@@ -7,7 +7,7 @@ V6="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/apifram
 WAKE=None
 imgs=None
 # wait for the top-up to land (450 credits needed)
-body={"prompt":open(pfile).read().rstrip('\n'),"model":"seedance-2.5","resolution":"480p","duration":int(os.environ.get("DUR","30")),"generateAudio":True,"aspectRatio":os.environ.get("AR","3:4"),"referenceVideoUrls":json.loads(os.environ.get("REFS","[]")),"referenceImageUrls":json.loads(os.environ.get("IMGS","[]")),"chat":CHAT,"scene":key,"title":title,"session":S}
+body={"prompt":open(pfile).read().rstrip('\n'),"model":"seedance-2.5","resolution":"480p",**({"duration":int(os.environ["DUR"])} if os.environ.get("DUR") else {}),"generateAudio":True,"aspectRatio":os.environ.get("AR","3:4"),"referenceVideoUrls":json.loads(os.environ.get("REFS","[]")),"referenceImageUrls":json.loads(os.environ.get("IMGS","[]")),"chat":CHAT,"scene":key,"title":title,"session":S}
 print("BODY",json.dumps(body,ensure_ascii=False)[:400],flush=True)
 req=urllib.request.Request(B+"/api/apiframe/video",data=json.dumps(body).encode(),headers={"content-type":"application/json"})
 try: d=json.load(urllib.request.urlopen(req))
