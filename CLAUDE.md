@@ -255,7 +255,28 @@ line is the PERSON, not the video:
   or the branded premiere step-and-repeat filling the background. The cheap
   next test is the same bar on a tight crop of the face with no backdrop in
   frame: it still fails on copyright → the likeness; it draws → the
-  backdrop. Hers to say go.
+  backdrop. **MEASURED THE SAME HOUR AND IT IS THE FACE:** the identical bar
+  on a tight crop of his face with the branded backdrop cropped OUT was
+  accepted, drew for a full minute, and failed with the same copyright line
+  (job `YMyKELvY54v87oTEhVG8`). So the output gate is reading HIM, not the
+  step-and-repeat behind him. **WHY IT EXISTS, from the public record:**
+  Seedance 2.0 took a Disney cease-and-desist on 2026-02-13 ("a virtual
+  smash-and-grab") with Paramount Skydance, Netflix, Warner Bros. Discovery,
+  Sony and Universal behind it, and ByteDance said on 02-15 it would stop
+  generating realistic human faces and IP-protected characters — this gate is
+  that promise. Three things worth knowing before designing around it: every
+  published guide documents the INPUT face filter and barely mentions an
+  output check, and the output-copyright error they DO document is about
+  AUDIO (we sent `generate_audio:false`, so that reading is ruled out here);
+  the filters are described as PROBABILISTIC rather than binary, so one job
+  is not a measurement and a near-threshold input can pass once and fail
+  next; and a failed generation is not billed, which matches our own two
+  blocked jobs leaving no `generation_id` record. **WHERE THE LINE SITS
+  BETWEEN FAMOUS AND NOT IS UNMEASURED AND IS THE OBVIOUS NEXT PASS** (Sophie's
+  own idea, 2026-09-09: "you could use progressively less famous people to
+  see where the bar is") — nobody has published one. Both ends are already
+  on file: Radcliffe blocked, Mayra drawn. Hold the bar constant on every
+  rung, since it is what reaches the output gate at all.
 - **WHY APIFRAME IS LOOSER, from ByteDance's own docs:** a face is only ever
   allowed as a `asset://` from its trusted asset library — a VIRTUAL portrait
   (a drawn or AI-made character that "must not resemble any real human
