@@ -269,21 +269,62 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     reproduces openings, so one number across a film would give every clip the
     same family resemblance at the start. Test:
     `node scripts/test-video-seed.js`.
-  - **`return_last_frame` DOES NOTHING — measured 2026-09-09, do not wire it.**
-    Mini's model card lists it as an allowed passthrough, and a job sent with
-    `return_last_frame: true` is ACCEPTED (202, no shape error) — but the
-    completed job answers one `unsigned_urls` entry and `content?index=1`
-    replies `Video index 1 out of range (1 videos available)`. Nothing extra
-    comes back anywhere in the response. So it is a no-op on this door and
-    wiring it would ship a dead flag. **ffmpeg is the way to get a last
-    frame**, and two things are worth knowing when you do: the video is
-    `yuv420p`, so a decoded frame already has a quarter of the colour detail,
-    and the LAST frame specifically is a **P-frame, never a keyframe** (read
-    off a real clip) — the end of a prediction chain at the tail where the
-    encoder spends fewest bits, i.e. the worst frame in the file to lift. Fine
-    for looking at; it compounds if you chain clips by feeding each last frame
-    in as the next first frame. Cost of finding this out: one 5.6¢ probe (the
-    first attempt failed free on the random audio-copyright filter).
+  - **`return_last_frame` IS A NO-OP ON OPENROUTER AND WORKS ON ATLAS — BOTH
+    MEASURED, AND IT IS FREE (2026-09-08 and 2026-09-09).** The flag is on
+    Mini's card and both doors ACCEPT it with no shape error; what comes back
+    is where they differ, so the door decides whether it is worth sending.
+    - **OpenRouter: nothing.** The completed job answers one `unsigned_urls`
+      entry and `content?index=1` replies *"Video index 1 out of range (1
+      videos available)"*. Cost of finding out: one 5.6¢ probe.
+    - **Atlas Cloud: a SECOND OUTPUT, and it is the real frame.** Job
+      `83d5d715da794a58ad3c1334e690dd33` (Mini, 480p 16:9, 4s, no references)
+      came back with `outputs` holding the mp4 **and**
+      `…_last-frame.png` — 864x496 RGB, the same canvas as the clip.
+    - **IT COSTS NOTHING EXTRA.** Atlas billed **40,594 tokens** and the
+      video-only formula is `864 × 496 × 97 / 1024 = 40,594.5` — the clip's
+      own price to the token, so the PNG rides free.
+    - **AND IT IS BETTER THAN A DECODE, MEASURED AGAINST THE SAME FRAME.**
+      The PNG vs the ffmpeg-decoded frame 96 of that clip: **PSNR 38.6 dB**
+      (the same picture, genuinely different data), **1.18x the sharpness**
+      (variance of Laplacian 67.8 against 57.5), **35,125 unique colours
+      against 26,661**, and the one that settles it — **horizontal chroma
+      detail 0.1421 against 0.0012, a factor of 118.** The decoded frame's
+      chroma is flat between adjacent column pairs, which is exactly what
+      4:2:0 does; the PNG has real per-pixel chroma, so it is rendered
+      BEFORE the h264 encode rather than pulled out of it.
+    - **It is the LAST frame, not a nearby one** — PSNR against the decoded
+      tail climbs 19.9 · 21.4 · 23.7 · 27.0 · **38.6** over frames 92-96.
+    - **Wired 2026-09-09, OFF by default** (`returnLastFrame: true` on
+      `POST /api/atlascloud/video`): the PNG is mirrored to Storage under
+      `atlascloud-lastframe/` and filed on the job's log as `lastFrame`. The
+      two outputs are told apart **by name, never by position** — the signed
+      url carries `.mp4` and `.png` inside its own query string, so a naive
+      extension test matches the clip too. Test:
+      `node scripts/test-atlas-lastframe.js`.
+  - **THE "LAST FRAME IS THE WORST FRAME" RULE WAS HALF WRONG — MEASURED ON
+    SIX OF HER REAL WARD CLIPS (2026-09-09).** The note that stood here said
+    the last frame is a P-frame at the tail of a prediction chain "where the
+    encoder spends fewest bits". The first half is true and the second is
+    false, and it matters because it was the argument against chaining.
+    - **Every one of the six ends on a P-frame** — true, and the gap back to
+      the last keyframe runs 1 to 199 frames.
+    - **The bits claim is FALSE.** The final packet is at or ABOVE the clip's
+      median on four of the six (annie2 28,361 against a 11,306 median;
+      intakeB3 23,563 / 10,130; s39a3 20,916 / 17,747; ext at the median),
+      and only meaningfully below it on one (doc 14,250 / 16,759). A P-frame
+      after motion is often one of the biggest frames in the file.
+    - **What is real is CONTENT, about one clip in six.** Sharpness of the
+      last frame as a share of the best frame in the last 25: **100% · 100% ·
+      94.8% · 91.4% · 88.9%** — and then **27.5%** (intakeB3), a smooth
+      monotone decay over the last eight frames (17.2 → 4.7) with brightness
+      flat at 109, i.e. **the shot itself going soft**, not an encode
+      artifact. A clip that ends mid-move or ends on a light change is the
+      same story (annie2's tail brightens 30 → 55).
+    - **So the rule is not "never chain the last frame", it is "never chain
+      it blind".** Score the last half-second and take the crispest frame —
+      `ward-pullstills.py` already does exactly this scoring — which costs
+      nothing and turns the one bad case into a frame eight frames earlier.
+      On Atlas, ask for the PNG instead and the question mostly goes away.
   - **NO SEED IS EVER RETURNED, so the seeds of clips already made are gone.**
     APIFRAME echoes back only the `seedanceParams` that were SENT (a job sent
     without one has none) and OpenRouter's completed response carries id,
@@ -303,8 +344,8 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     `last_frame` keyframes** — APIFRAME's route already wires them
     (`imageUrl` → `start_image`, `endImageUrl` → `end_image`), the OpenRouter
     route deliberately does not, and forcing a clip to END on the next clip's
-    first frame is the continuity tool this film keeps needing (`return_last_frame`
-    is NOT one of these — it is a measured no-op, see the bullet above);
+    first frame is the continuity tool this film keeps needing
+    (`return_last_frame` is measured and wired — see the bullet above);
     **`camera_fixed`** (`cameraFixed`
     on the APIFRAME route) locks the camera off. And **a job carrying a
     reference VIDEO is billed at a LOWER rate** —

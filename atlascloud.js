@@ -141,14 +141,31 @@ function buildRequest(b) {
   if (imgs.length) params.reference_image_urls = imgs;
   if (vids.length) params.reference_video_urls = vids;
   if (auds.length) params.reference_audio_urls = auds;
+  // RETURN_LAST_FRAME WORKS ON THIS DOOR AND IS FREE — measured 2026-09-09
+  // (see the header). Off by default so no existing caller's answer changes;
+  // `returnLastFrame: true` asks for it.
+  params.return_last_frame = Boolean(b.returnLastFrame);
   const body = { model, prompt, resolution: params.resolution, generate_audio: params.generate_audio,
-    seed: params.seed, bitrate_mode: 'standard', watermark: false, return_last_frame: false };
+    seed: params.seed, bitrate_mode: 'standard', watermark: false,
+    return_last_frame: params.return_last_frame };
   if (params.duration != null) body.duration = params.duration;
   if (params.aspect_ratio) body.ratio = params.aspect_ratio;
   if (imgs.length) body.reference_images = imgs;
   if (vids.length) body.reference_videos = vids;
   if (auds.length) body.reference_audios = auds;
   return { body, params, model };
+}
+
+// Atlas's `outputs` → { video, lastFrame }. With `return_last_frame` the
+// array carries the clip AND a `…_last-frame.png`; matched by NAME (the
+// query string is stripped first — the url is signed and carries `.mp4` and
+// `.png` inside its own parameters), never by position, so an output order
+// that changes cannot hand a PNG back as the clip.
+function splitOutputs(out) {
+  const list = (Array.isArray(out) ? out : []).filter(Boolean).map(String);
+  const path = (u) => { try { return new URL(u).pathname; } catch { return u.split('?')[0]; } };
+  const isFrame = (u) => /_last-frame\.(png|jpe?g|webp)$/i.test(path(u));
+  return { video: list.find((u) => !isFrame(u)) || null, lastFrame: list.find(isFrame) || null };
 }
 
 // Atlas's prediction statuses → the APIFRAME-shaped ones video-log.finishPatch
@@ -187,16 +204,17 @@ async function api(path, { method = 'GET', body } = {}) {
 // The finished clip is a plain url on Atlas's CDN; mirror it to Storage so
 // the log's url is permanent. Falls back to Atlas's own url when Storage is
 // absent or the download fails. The key is NOT sent to the CDN host.
-async function saveContentToFirebase(src, folder = 'atlascloud-video') {
+async function saveContentToFirebase(src, folder = 'atlascloud-video', kind = 'mp4') {
   const bucket = bucketOrNull();
   if (!bucket || !src) return src;
+  const TYPES = { mp4: 'video/mp4', png: 'image/png' };
   try {
     const r = await fetch(src, { agent: proxyAgent || undefined });
     if (!r.ok) return src;
     const buf = await r.buffer();
-    const filename = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.mp4`;
+    const filename = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${kind}`;
     const file = bucket.file(filename);
-    await file.save(buf, { metadata: { contentType: 'video/mp4' } });
+    await file.save(buf, { metadata: { contentType: TYPES[kind] || 'application/octet-stream' } });
     await file.makePublic();
     return `https://storage.googleapis.com/${bucket.name}/${filename}`;
   } catch { return src; }
@@ -261,10 +279,17 @@ async function pollVideo(id) {
   const d = (j && j.data) || {};
   const status = apiframeStatus(d.status);
   const out = Array.isArray(d.outputs) ? d.outputs.filter(Boolean) : [];
-  let video = null;
+  // `return_last_frame` adds a SECOND output — the true final frame as a PNG,
+  // named `…_last-frame.png`. Told apart by its name, never by its position.
+  const { video: videoSrc, lastFrame: lastSrc } = splitOutputs(out);
+  let video = null, lastFrame = null;
   if (status === 'COMPLETED') {
-    try { const s = await logDoc(id).get(); video = s.exists && s.data().video ? s.data().video : null; } catch { /* no log */ }
-    if (!video) video = await saveContentToFirebase(out[0] || null);
+    try {
+      const s = await logDoc(id).get();
+      if (s.exists) { video = s.data().video || null; lastFrame = s.data().lastFrame || null; }
+    } catch { /* no log */ }
+    if (!video) video = await saveContentToFirebase(videoSrc);
+    if (!lastFrame && lastSrc) lastFrame = await saveContentToFirebase(lastSrc, 'atlascloud-lastframe', 'png');
   }
   const tokens = d.completion_tokens != null || d.total_tokens != null
     ? { completion: d.completion_tokens != null ? Number(d.completion_tokens) : null, total: d.total_tokens != null ? Number(d.total_tokens) : null }
@@ -274,11 +299,12 @@ async function pollVideo(id) {
     patch = videoLog.finishPatch({ status, error: d.error }, video);
     if (patch) {
       if (tokens) patch.tokens = tokens;   // Atlas bills in tokens; no dollar figure is invented
+      if (lastFrame) patch.lastFrame = lastFrame;
       if (status === 'FAILED' && refusalKind(d.error) === 'content') patch.refusal = 'content';
       await logDoc(id).set(patch, { merge: true });
     }
   } catch { /* the poll answers either way */ }
-  return { id, status: String(d.status || '').toLowerCase(), video, tokens, raw: d, patch };
+  return { id, status: String(d.status || '').toLowerCase(), video, lastFrame, tokens, raw: d, patch };
 }
 
 // POST /video — start a Seedance job. Body: the APIFRAME route's fields —
@@ -310,7 +336,7 @@ router.get('/video-job/:id', async (req, res) => {
 module.exports = {
   router,
   configured: () => Boolean(KEY),
-  buildRequest, modelIdOf, apiframeStatus, refusalKind,
+  buildRequest, modelIdOf, apiframeStatus, refusalKind, splitOutputs,
   api, startVideo, pollVideo,
   MODELS, DEFAULT_MODEL, RESOLUTIONS, RATIOS, APIFRAME_ROUTE,
 };

@@ -158,42 +158,36 @@ Three pieces, all riding the belt and the `forge-video-jobs` ledger that
 already exist. Nothing here sends a clip without her "go"; every step is a
 card she approves.
 
-**1. Chain the last frame — free, first.** The ledger grows two fields:
-`lastFrame` (the approved clip's final frame, pulled with ffmpeg in the
-container — free, and needs nothing from the door) and `chainFrom` (which
-card it came from).
+**1. Chain the last frame — free, first, and the door hands it over.** The
+ledger grows two fields: `lastFrame` (the approved clip's final frame — asked
+for on the job on Atlas, scored out of the tail with ffmpeg anywhere else) and
+`chainFrom` (which card it came from).
 
-**`return_last_frame` IS NOT THE WAY IN — MEASURED 2026-09-08 ON OPENROUTER
-AND IT IS A NO-OP.** The flag is on Mini's card, a job sent with it `true` is
-ACCEPTED with no shape error, and the completed job answers exactly one video
-and nothing else (`content?index=1` → *"Video index 1 out of range (1 videos
-available)"*). Cost of finding out: one 5.6¢ probe. **Atlas has the same field
-and `atlascloud.js` hardcodes it `false`; whether Atlas really answers with a
-frame is UNMEASURED** — its poll already reads `outputs` as an array, so if it
-does, the frame would arrive as a second entry with no new plumbing. One ~4¢
-Mini clip on her go settles it; ffmpeg is the fallback either way and costs
-nothing.
+**`return_last_frame` IS THE WAY IN ON ATLAS — MEASURED 2026-09-09, AND IT IS
+FREE.** The 2026-09-08 probe that called it a no-op was measuring OPENROUTER,
+where it really does return nothing. On Atlas the same flag adds a SECOND
+output, `…_last-frame.png`, and it is not a decode of the clip: against the
+ffmpeg-decoded frame 96 of the same job it is **1.18x sharper**, carries
+**35,125 unique colours against 26,661**, and has **118x the horizontal chroma
+detail** (0.1421 against 0.0012 — the decode's chroma is flat between column
+pairs, which is exactly 4:2:0). So it is rendered before the h264 encode.
+**Atlas billed 40,594 tokens against the video-only formula's 40,594.5** — the
+clip's own price to the token, so the frame rides free. Wired the same day,
+OFF by default (`returnLastFrame: true`), mirrored to Storage, filed on the log
+as `lastFrame`. Full numbers: *`return_last_frame`* in
+`docs/modules/audio-and-film.md`.
 
-**AND THE LAST FRAME IS THE WORST FRAME IN THE FILE — the same night's
-finding, and it is the real limit on chaining.** The video is `yuv420p`, so any
-decoded frame already carries a quarter of the colour detail, and the LAST
-frame specifically is a **P-frame, never a keyframe** (read off a real clip):
-the tail of a prediction chain, where the encoder spends fewest bits. Fine to
-look at; it COMPOUNDS if every clip starts on the previous clip's softest
-frame. Three ways to not eat that, in order of preference:
-- **chain a frame that is not the last one** — pick the best nearby keyframe
-  or the crispest face in the last half-second (`ward-pullstills.py` already
-  scores exactly this), and let the join be a cut rather than a splice;
-- **chain a still, not a frame** — piece 2's approved opening frame is drawn
-  clean at full quality and is the better thing to carry forward;
-- **use it as a REFERENCE, not as `start_image`** — a soft frame in an image
-  slot informs the room and the wardrobe without the model having to reproduce
-  its exact pixels. When she approves shot N, shot
-N+1's card gets that frame in its first image slot with one line of ours,
-NAMED as ours: `the shot begins on [Image1]` — never a description. A card
-she re-orders re-chains; a card with no approved predecessor chains nothing.
-This is the "same person, same room, one clip into the next" work for the
-15-second shots, and it costs nothing.
+**AND THE "LAST FRAME IS THE WORST FRAME" WARNING WAS HALF WRONG — measured on
+six of her real ward clips the same day.** All six do end on a P-frame, but the
+"encoder spends fewest bits there" half is false: the final packet is at or
+above the clip's median on four of the six. What is real is CONTENT, about one
+clip in six — the last frame's sharpness as a share of the best frame in the
+last 25 runs **100% · 100% · 94.8% · 91.4% · 88.9%** and then **27.5%**, and
+that one is a shot going soft over its last eight frames, not an encode
+artifact. So the rule is **never chain it BLIND**, not never chain it: score
+the last half-second and take the crispest frame (`ward-pullstills.py` already
+scores exactly this, and it costs nothing), or ask Atlas for the PNG and skip
+the question.
 
 **2. Stills first — the frame before the clip.** Every main shot gets a
 FRAME step on its belt card before its CLIP step: draw the opening frame,
