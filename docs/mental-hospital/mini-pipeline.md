@@ -348,6 +348,39 @@ its frame — changing how much of the picture her face fills — was accepted
 every time. **It is the individual face, not its size, and there is no way to
 predict which is which except by sending it.** Which is free, so send it.
 
+### Which treatment gets closer to the real person — measured
+
+Scored with SFace face embeddings (`scripts/ward-likeness.py`): cosine
+similarity between the face in the generated clip and the face in the ORIGINAL
+unbarred still, averaged over the clip. Higher is closer; 0.363 is OpenCV's
+same-identity threshold. Sanity checks first — two different frames of Sophie
+score 0.87, Sophie against the nurse scores 0.03 — so the instrument separates
+faces properly before it is trusted on anything subtle.
+
+**Sophie — same face, same prompt, only the treatment differs:**
+
+| treatment | bar | mean | best | worst |
+|---|---|---|---|---|
+| big blur (0.34/0.30) | 354×75 | 0.7594 | 0.9324 | 0.5961 |
+| **small black bar (0.12/0.10)** | **265×26** | **0.8029** | **0.9420** | **0.6706** |
+
+**Michael — solid both times, only the SIZE differs:**
+
+| bar | mean |
+|---|---|
+| solid 0.34/0.30 (81×17) | 0.6858 |
+| **solid 0.12/0.10 (79×7)** | **0.7378** |
+
+**The small black bar wins on both faces, and it wins on the WORST frame by
+more than on the mean** (+0.075 on Sophie) — so it is not just closer on
+average, it is steadier across the clip. Two independent comparisons agree: a
+smaller, harder bar beats a bigger, softer one.
+
+That is the practical payoff of the height finding. The bar has to be tall
+enough to kill the eye and nothing more; every pixel beyond that costs
+likeness. **So: solid, at the height floor, is the best treatment on both
+counts — it passes where blur cannot, and it draws closer when both pass.**
+
 ### The other chat found the same thing independently
 
 `mom-character-clip` is doing the same work on her parents and converged on the

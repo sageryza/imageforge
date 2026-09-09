@@ -774,5 +774,27 @@
   "narrowest accepted": "66px wide",
   "conclusion": "height is the whole constraint; width is not a constraint"
  },
- "faceSize": "does not predict anything \u2014 640px and 90px faces pass a blur, 119px and 159px refuse it; recropping to 80/62/48 percent of frame changed nothing"
+ "faceSize": "does not predict anything \u2014 640px and 90px faces pass a blur, 119px and 159px refuse it; recropping to 80/62/48 percent of frame changed nothing",
+ "likeness": {
+  "method": "SFace cosine similarity, clip face vs the original unbarred still (scripts/ward-likeness.py)",
+  "sanity": {
+   "Sophie vs Sophie": 0.8659,
+   "Sophie vs the nurse": 0.0259
+  },
+  "sophie": {
+   "big blur 354x75": {
+    "mean": 0.7594,
+    "worst": 0.5961
+   },
+   "small black 265x26": {
+    "mean": 0.8029,
+    "worst": 0.6706
+   }
+  },
+  "michael": {
+   "solid 81x17": 0.6858,
+   "solid 79x7": 0.7378
+  },
+  "verdict": "the small black bar wins on both faces, and by more on the worst frame than on the mean"
+ }
 }
