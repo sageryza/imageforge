@@ -317,16 +317,19 @@ pass split the axes:
 
 - **Shortest accepted: 6px tall** (height_frac 0.10). The floor sits between
   0.08 (refused) and 0.10 (accepted).
-- **Narrowest accepted: 66px wide** — the eye span exactly, `width_pad` 0.00,
-  no padding beyond the eyes themselves. **No width floor was ever found**: it
-  never refused however far the width came in.
+- **Narrowest accepted: 59px wide.** The floor is between 46px (refused) and
+  59px (accepted), and the meaning is plain: **the bar must reach BOTH EYES.**
+  The eye span on that face is 66px, so a bar that stops short of covering
+  both is refused however tall it is.
 
 So the bar only has to be tall enough to cover the eye vertically; sideways it
 need only reach from one eye to the other. **A 66×7px solid sliver passes on
 the face whose 122×51 BLUR was refused.**
 
-**The floor was found in ONE direction, not both** — height has a bracket
-(0.08 no, 0.10 yes), width has only a floor-not-reached at zero padding.
+**Both floors are now bracketed** (Sophie, 2026-09-09: "if u never hit a
+limit, then r u done?" — no; the earlier pass had bottomed out at the
+parameter's own limit, not at a refusal). Height: 0.09 refused, 0.10 accepted.
+Width: 46px refused, 59px accepted — the bar has to span both eyes.
 
 **Michael has TWO views** (her ask) — `michael-view1` head-on from table f0284,
 `michael-view2` looking off from f0704 — both accepted, both on model.
@@ -380,6 +383,43 @@ That is the practical payoff of the height finding. The bar has to be tall
 enough to kill the eye and nothing more; every pixel beyond that costs
 likeness. **So: solid, at the height floor, is the best treatment on both
 counts — it passes where blur cannot, and it draws closer when both pass.**
+
+### The real rule: the least-covering mask that passes wins
+
+Every accepted mask, both faces, ranked by how many pixels it covers:
+
+| face | mask | covered | likeness |
+|---|---|---|---|
+| Michael | **two dots, r=5** | **157 px** | **0.8292** |
+| Michael | bar 59×7 | 413 px | 0.8093 |
+| Michael | bar 79×7 | 553 px | 0.7378 |
+| Michael | two dots, r=11 | 760 px | 0.7753 |
+| Michael | bar 81×17 | 1,377 px | 0.6858 |
+| Sophie | **black bar 265×26** | **6,890 px** | **0.8029** |
+| Sophie | two dots, r=55 | 19,006 px | 0.7888 |
+| Sophie | big blur 354×75 | 26,550 px | 0.7594 |
+
+**Covered area predicts likeness, near-monotonically** — perfectly on Sophie,
+with one inversion on Michael. It is not "dots beat bars" or "bars beat
+blurs": those are proxies. **The rule is minimum covered area, and which
+SHAPE achieves it is face-specific.**
+
+- On **Michael** two dots pass at r=5, covering 157px — dots win easily.
+- On **Sophie** the dots had to grow to r=55 before they passed, covering
+  19,006px against her bar's 6,890 — so on her face the bar wins.
+
+**So ladder both shapes and take whichever passes while covering less.** That
+is a free search: every refusal along the way costs nothing.
+
+### A mask can be non-monotonic, and the filter is deterministic
+
+Two dots at r=7 are REFUSED on Michael while r=5 — smaller — is ACCEPTED. That
+is not noise: the same image resent four times refused four times, and the
+height-0.09 refusal repeated four times too. **The filter is deterministic on
+identical input.** No mechanism is offered here for why a smaller dot passes
+where a larger one fails; it is recorded as observed. The practical
+consequence is that **you cannot extrapolate a ladder** — test the
+configuration you intend to use.
 
 ### The other chat found the same thing independently
 

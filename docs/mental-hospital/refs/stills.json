@@ -768,11 +768,11 @@
   "finding": "converged independently on black/solid bars; its newest probe is Solid bar probe E (0.26/0.22), accepted"
  },
  "axisSplit": {
-  "height floor": "between 0.08 (REFUSED) and 0.10 (ACCEPTED)",
-  "width floor": "none found \u2014 0.00 padding (bar = the eye span, 66px) still ACCEPTED",
+  "height floor": "0.09 REFUSED, 0.10 ACCEPTED",
+  "width floor": "46px REFUSED, 59px ACCEPTED \u2014 the bar must span BOTH eyes (eye span on that face is 66px)",
   "shortest accepted": "6px tall",
   "narrowest accepted": "66px wide",
-  "conclusion": "height is the whole constraint; width is not a constraint"
+  "conclusion": "both floors bracketed; height must kill the eye vertically, width must reach both eyes"
  },
  "faceSize": "does not predict anything \u2014 640px and 90px faces pass a blur, 119px and 159px refuse it; recropping to 80/62/48 percent of frame changed nothing",
  "likeness": {
@@ -796,5 +796,21 @@
    "solid 79x7": 0.7378
   },
   "verdict": "the small black bar wins on both faces, and by more on the worst frame than on the mean"
- }
+ },
+ "maskRule": {
+  "rule": "the least-covering mask that passes gives the best likeness; which SHAPE achieves that is face-specific",
+  "michael": {
+   "two dots r=5 (157px)": 0.8292,
+   "bar 59x7 (413px)": 0.8093,
+   "bar 79x7 (553px)": 0.7378,
+   "two dots r=11 (760px)": 0.7753,
+   "bar 81x17 (1377px)": 0.6858
+  },
+  "sophie": {
+   "black bar 265x26 (6890px)": 0.8029,
+   "two dots r=55 (19006px)": 0.7888,
+   "big blur 354x75 (26550px)": 0.7594
+  }
+ },
+ "determinism": "the filter is deterministic \u2014 an identical image resent 4x refused 4x, twice over; but a mask ladder is NOT monotonic (dots r=7 refused, r=5 accepted), so test the exact configuration you intend to use"
 }

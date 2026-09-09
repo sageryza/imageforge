@@ -80,7 +80,7 @@ def eyebar(src, dst, height_frac=0.34, width_pad=0.30, blur_k=0.55, mode='blur',
         cx, cy = (re_[0] + le[0]) / 2.0, (re_[1] + le[1]) / 2.0
         d = float(np.hypot(le[0] - re_[0], le[1] - re_[1])) or float(fa[2]) * 0.4
         ang = float(np.degrees(np.arctan2(le[1] - re_[1], le[0] - re_[0])))
-        bw, bh = d * (1 + 2 * width_pad), d * height_frac
+        bw, bh = max(4.0, d * (1 + 2 * width_pad)), max(2.0, d * height_frac)
         k = int(blur) if blur is not None else max(3, int(d * blur_k))
         k = max(3, k | 1)
         if mode == 'blur':
@@ -120,6 +120,28 @@ def eyebar(src, dst, height_frac=0.34, width_pad=0.30, blur_k=0.55, mode='blur',
     return {'src': src, 'dst': dst, 'w': w, 'h': h, 'bars': boxes, 'mode': mode,
             'height_frac': height_frac, 'width_pad': width_pad, 'blur_k': blur_k,
             'feather_k': feather_k}
+
+
+def eyedots(src, dst, r_frac=0.18, mode='solid'):
+    """Two solid discs on the pupils instead of one bar — the logical endpoint
+    of 'smaller draws closer'. r_frac is the radius in units of the inter-eye
+    distance."""
+    img = cv2.imread(src)
+    if img is None: raise SystemExit('cannot read ' + src)
+    h, w = img.shape[:2]
+    det = detector(w, h, 0.5)
+    _, faces = det.detect(img)
+    if faces is None or not len(faces): raise SystemExit('no face found in ' + src)
+    out = img.copy(); spots = []
+    for fa in faces:
+        re_, le = (float(fa[4]), float(fa[5])), (float(fa[6]), float(fa[7]))
+        d = float(np.hypot(le[0] - re_[0], le[1] - re_[1])) or float(fa[2]) * 0.4
+        r = max(2, int(d * r_frac))
+        for (ex, ey) in (re_, le):
+            cv2.circle(out, (int(ex), int(ey)), r, (0, 0, 0), -1)
+            spots.append([int(ex), int(ey), r])
+    cv2.imwrite(dst, out)
+    return {'src': src, 'dst': dst, 'spots': spots, 'r_frac': r_frac}
 
 if __name__ == '__main__':
     cmd = sys.argv[1]
