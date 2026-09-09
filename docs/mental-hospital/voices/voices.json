@@ -1,18 +1,62 @@
 {
+ "sophie-voice": {
+  "id": "yZeZ6Yr7cgPUKjvEo823",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0c7b8db098c756cef65970aca19dbd67.mp3",
+  "from": "climax-dissociation-accounts md-31a (20s)",
+  "span": [
+   0.5,
+   5.85
+  ],
+  "why": "her three questions; the doctor is silent throughout"
+ },
+ "grayson-voice": {
+  "id": "CDpy6vQSiPOUXHwrYkzo",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/014c98508e388e889f81f7fae7adacb0.mp3",
+  "from": "climax-dissociation-accounts md-31a (20s)",
+  "span": [
+   8.75,
+   14.6
+  ],
+  "why": "his whole speech; Sophie is silent throughout"
+ },
+ "assistant-voice": {
+  "id": "Hl1QBCjNSBk0vA3j9veB",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/d51243ff0c9c8afc57105d39f0928dfe.mp3",
+  "from": "climax-dissociation-accounts md-32b (15s)",
+  "span": [
+   5.1,
+   9.55
+  ],
+  "why": "\"Are you ok?\" twice; Sophie is dissociated and silent"
+ },
  "edna-voice": {
-  "id": "6Z372Ugov6kDx1lmmwws",
-  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/d84149294f111068eb02dc0d9b7e1616.mp3"
+  "id": "gxlB6aqySfukYNIMl26k",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/fbcfe9c33fa3ff66e283b5f335c82ec3.mp3",
+  "from": "soap-pill-scene 43a v3 (25s)",
+  "span": [
+   4.75,
+   9.8
+  ],
+  "why": "hers are the only lines in card 43a"
  },
  "edna-voice-alt": {
-  "id": "iINirDlnmQ5ZQrLVvOF5",
-  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/5b406221ef41a6f1d1b12d8cf9484d7f.mp3"
+  "id": "vD3G6LZHqnzozNemwd1U",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/980f9831b1ceb3a31220d4ba1e2618fa.mp3",
+  "from": "soap-pill-scene 43a v2 (8s)",
+  "span": [
+   1.75,
+   4.3
+  ],
+  "why": "hers are the only lines in card 43a"
  },
  "mom-voice": {
   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/parents-voice/mom-voice.mp3",
-  "from": "mom-character-clip"
+  "from": "the parents' audition",
+  "pulledBy": "mom-character-clip"
  },
  "dad-voice": {
   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/parents-voice/dad-voice.mp3",
-  "from": "mom-character-clip"
+  "from": "the parents' audition",
+  "pulledBy": "mom-character-clip"
  }
 }

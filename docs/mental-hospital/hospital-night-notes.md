@@ -201,30 +201,58 @@ Her words verbatim; each is a new job and waits for her "go" with the card
   issue #822, apiframe.ai's Seedance 2.5 page (refund on failure; no
   real-person clause of its own).
 
-## Character voices — an mp3 per character, and it works on the cheap door
+## Character voices — an mp3 per character
 
-**Measured 2026-09-09.** A character's voice can ride a Seedance job as
+**Measured 2026-09-09.** A character's voice rides a Seedance job as
 `referenceAudioUrls`, and the prompt names it by slot exactly like a picture:
 
     her mother is the woman in [Image1] and her voice is in [Audio1].
 
-`mom-character-clip` sent both parents' voices with two stills through
-**OpenRouter on `bytedance/seedance-2.0-mini`** and it completed for 5.6¢ — the
-person filter did not trip on the audio. So a voice reference is cheap, works on
-the cheap door, and is how a character stops sounding like a different person in
-every clip.
+**It costs nothing extra.** `mom-character-clip` sent both parents' voices with
+two stills on `bytedance/seedance-2.0-mini` through OpenRouter: **5.6¢**, the
+same as the identical job with no audio at all. Seedance charges by the second
+of output and nothing for what it reads, and the person filter does not trip on
+a voice the way it does on a face. Mini at 480p 3:4, measured: **4s $0.0558 ·
+5s $0.0697 · 8s $0.1111**, about 1.4¢ a second.
 
-**Pulling one is free** — ffmpeg in the container, no model call, nothing sent:
-`docs/mental-hospital/voices/pull-voice.py <name> <clip-url> <start> <end>`. It
-cuts the span, files the mp3 in the Dump under "Ward → voices" and records the
-url in `voices/voices.json`.
+### 32 kHz is the ceiling — there is no hi-fi original
 
-**Cut only a stretch where that character alone speaks.** Read the card's script
-and confirm nobody else has a line inside the span — a voice built on the wrong
-speaker poisons every clip that references it, and nothing on screen says so.
+Every clip in this film comes back **32000 Hz stereo AAC at ~130 kbps**, on both
+doors identically: Seedance 2.5 through APIFRAME and 2.0 Mini through
+OpenRouter. So a voice cut is as good as its clip and no better, and there is
+nothing higher-fidelity to go back to. Cut at the native 32 kHz in stereo so the
+only loss is the one re-encode. Nor is any of it dry — the floor under Edna's
+lines sits ~28 dB below her peaks, the ward's own bed in there with her.
 
-On file: **Edna** (soap 43a, hers are the only lines in that card) and the two
-**parents**. Missing: **Sophie, Dr. Grayson, the assistant** — no clip with any
-of them speaking has been shot yet, since every belt card with dialogue is still
-`ready` rather than shot. `mom-character-clip` has those three named as its own
-next job, so check with it before pulling them twice.
+### Cut only a stretch where that character alone speaks
+
+Read the card's script and confirm nobody else has a line inside the span. A
+voice built on the wrong speaker poisons every clip that references it, and
+nothing on screen ever says so. `voices/pull-voice.py` does the cut, files the
+mp3 in the Dump and records the url in `voices/voices.json`. Free — ffmpeg in
+the container, no model call.
+
+### On file
+
+Sophie, Dr. Grayson, the assistant, Nurse Edna, and both parents. The first
+three came out of `climax-dissociation-accounts`, which had already shot the
+office and hall scenes: **md-31a** gives Sophie (her three questions, the doctor
+silent) and Grayson (his whole speech, Sophie silent), **md-32b** gives the
+assistant ("Are you ok?" twice, Sophie dissociated and silent). Edna is ours,
+out of soap 43a, where hers are the only lines in the card.
+
+**Sophie's is thin** — 1.2s of speech inside 5.4, since her lines there are three
+one-word questions. Real, and the best that exists; the next scene where she
+talks at length gives us a better one.
+
+Nobody yet: Nurse Mary, Juanita, Yolanda, Mrs. Norbert, Ms. O'Hara, Michael, the
+Superintendent, Anastasia, Grandma. Ms. O'Hara and her nurses are already shot in
+`hospital-severance-rough-cut` (cards 36a, 36b, 37).
+
+### md-32b already covers the top of the mirror
+
+`climax-dissociation-accounts` shot the hall float **and** Sophie reaching the
+mirror and whispering "I don't know who I am anymore" — the opening beat of our
+card 33a. What it does not have is the assistant's answer ("You're having a
+psychotic episode. This is *very* normal."), so 33a is still worth shooting for
+that half; check with that chat before shooting the whole thing again.

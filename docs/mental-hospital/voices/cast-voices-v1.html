@@ -1,0 +1,70 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The cast’s voices v1</title>
+<link rel="stylesheet" href="/compare.css">
+<style>
+  .card { margin-bottom: 18px; }
+  .s { font-size: 13px; opacity: .62; margin: 6px 0 0; }
+  .n { font-size: 13px; opacity: .78; margin: 6px 0 0; }
+</style>
+
+<div class="wrap">
+  <h1>The cast’s voices v1</h1>
+  <div class="card" data-item="sophie">
+    <h2>Sophie</h2>
+    <div id="f-sophie"></div>
+    <p class="s">climax 3 — "Tomorrow?" "the next day?" "The day after that?"</p><p class="n">Thin — 1.2s of actual speech. Her lines there are three one-word questions with the doctor silent between them. Her real voice, and the best that exists today.</p>
+  </div>
+  <div class="card" data-item="grayson">
+    <h2>Dr. Grayson</h2>
+    <div id="f-grayson"></div>
+    <p class="s">climax 3 — "You’re going to be here a little longer than that I’m afraid…"</p>
+  </div>
+  <div class="card" data-item="assistant">
+    <h2>The assistant</h2>
+    <div id="f-assistant"></div>
+    <p class="s">climax 4 — "Are you ok?" twice, in the hall</p>
+  </div>
+  <div class="card" data-item="edna">
+    <h2>Nurse Edna</h2>
+    <div id="f-edna"></div>
+    <p class="s">soap 43a — "You’re lucky… Dr. Grayson has only given you one pill"</p>
+  </div>
+  <div class="card" data-item="edna-alt">
+    <h2>Nurse Edna — the shorter take</h2>
+    <div id="f-edna-alt"></div>
+    <p class="s">soap 43a v2</p>
+  </div>
+  <div class="card" data-item="mom">
+    <h2>Her mother</h2>
+    <div id="f-mom"></div>
+    <p class="s">the parents’ audition</p><p class="n">Pulled by mom-character-clip.</p>
+  </div>
+  <div class="card" data-item="dad">
+    <h2>Her father</h2>
+    <div id="f-dad"></div>
+    <p class="s">the parents’ audition</p><p class="n">Pulled by mom-character-clip.</p>
+  </div>
+</div>
+
+<script src="/compare.js"></script>
+<script>
+(function () {
+  var rows = [
+    ['sophie', "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/0c7b8db098c756cef65970aca19dbd67.mp3", "5.4s"],
+    ['grayson', "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/014c98508e388e889f81f7fae7adacb0.mp3", "5.9s"],
+    ['assistant', "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/d51243ff0c9c8afc57105d39f0928dfe.mp3", "4.5s"],
+    ['edna', "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/fbcfe9c33fa3ff66e283b5f335c82ec3.mp3", "5.1s"],
+    ['edna-alt', "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/drops/_/980f9831b1ceb3a31220d4ba1e2618fa.mp3", "2.6s"],
+    ['mom', "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/parents-voice/mom-voice.mp3", "8.1s"],
+    ['dad', "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/parents-voice/dad-voice.mp3", "4.1s"]
+  ];
+  rows.forEach(function (r) {
+    window.__filmRow({ url: r[1], label: 'Play', meta: r[2], kind: 'audio', mount: '#f-' + r[0] });
+  });
+  window.__compareNotes({ chat: 'soap-pill-scene', sheet: 'cast-voices-v1' });
+  window.__compareHelp({ html: '<p>One mp3 per character, cut out of a clip already shot, from a stretch where the script says only that person speaks.</p>'
+    + '<p>It rides a Seedance job as a voice reference and the prompt names it by slot: <em>her voice is in [Audio1]</em>. Measured: it costs nothing extra and works on the cheap door.</p>'
+    + '<p>32 kHz is the ceiling \u2014 every clip in the film comes back at that rate, so a voice cut is as good as its clip and no better.</p>' });
+})();
+</script>
