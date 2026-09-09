@@ -113,6 +113,55 @@ The three missing voices can be pulled out of belt clips that already exist
 Storage step the parents' voices used. The nurse needs an audition of her own,
 or she rides as words only.
 
+## What the `seedance-reference-stills` chat measured (2026-09-09)
+
+That chat ran the eye-bar ladder properly and its findings supersede the
+hand-placed bands used for the parent auditions. Its doc is
+`docs/mental-hospital/mini-pipeline.md` on branch
+`claude/seedance-reference-stills-faqg6e`; the still library is
+`docs/mental-hospital/refs/stills.json`.
+
+- **The setting is D-narrower — `height_frac 0.34`, `width_pad 0.30`,
+  `blur_k 0.55`, all in units of the inter-eye distance** (`scripts/ward-facetool.py`).
+  Measured, not guessed: the identical still with **no** bar was refused in the
+  same minute, so the accepts are the bar working rather than a permissive
+  filter. Dropping either axis one step bounces (height 0.30 refused, width 0.15
+  refused, and a wide-but-short 0.26/0.60 refused), so **both dimensions have a
+  floor and neither trades for the other** — D sits in the corner.
+- **The band must be rotated onto the eye line.** An axis-aligned bar left the
+  doctor's right eye half covered on an 11° head tilt and the card was refused.
+- **The blur radius has to scale with the face.** A fixed radius is a smudge on
+  a 400px face and a censor slab on a 56px one.
+- **The model draws the eyes back in** — the bar is a key that opens the door,
+  not a hole in the reference. So every millimetre it gives back is likeness.
+- **A barred still already exists, at D, for Sophie (7 of them), the doctor,
+  the assistant, the white-coat nurse, Mayra and the office.** That closes most
+  of the stills column in the table above; only the parent scenes' own nurse and
+  Yolanda are still missing.
+- Their belt costing agrees with this one: ~1.4¢ a second, $23 for the
+  remaining 1,627 seconds against $244 on 2.5. **The ByteDance sale ends
+  Oct 7 2026**, after which Mini goes back up about 2.5x.
+
+### One thing this chat measured that theirs did not
+
+Their ladder was run in **blur** mode. The parent stills that passed here were
+**solid black**, and the mom's band measures roughly `height 0.26 / width 0.65`
+of her inter-eye distance — which is their P4 rung (0.26 / 0.60), and that rung
+was **refused** as a blur. So a solid band may pass shorter than a blurred one
+does. One probe would settle it; until then D-narrower is the safe setting for
+both modes.
+
+### What that changes here
+
+1. **Re-bar the mom and dad at D** with `ward-facetool.py` rather than the
+   hand-placed bands. Narrower and rotated onto the eye line, so more of each
+   face rides through — which is the whole reason the likeness held on the og
+   stills and drifted on the clip frames.
+2. `parents-A` in their library is the **old** mom. For every card in this list
+   the pair to use is the og portrait plus the og hall-walk frame, re-barred.
+3. The stills gap is closed for Sophie, the doctor and the assistant. **The
+   voices are still the open item**, plus the nurse.
+
 ## Filing
 
 Every clip goes to the Dump under **Mom auditions**, pins to the chat as the
