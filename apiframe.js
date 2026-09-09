@@ -17,6 +17,7 @@ const express = require('express');
 const fetch = require('node-fetch');
 const admin = require('firebase-admin');
 const videoLog = require('./video-log');
+const videoSeed = require('./video-seed');
 
 const APIFRAME_KEY = process.env.APIFRAME_KEY || process.env.APIFRAME_API_KEY || '';
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
@@ -136,7 +137,12 @@ async function seedanceVideo(prompt, opts = {}) {
     if (list && list.length) params[key] = list;
   }
   if (opts.cameraFixed != null) params.camera_fixed = Boolean(opts.cameraFixed);
-  if (opts.seed != null) params.seed = Number(opts.seed);
+  // EVERY 2.x CLIP CARRIES A SEED, minted when the caller did not pass one
+  // (video-seed.js). Scoped to the 2.x family on purpose: the 1.x models
+  // have no seed control and APIFRAME refuses an unknown param rather
+  // than ignoring it, so a 1-lite job is left exactly as it was.
+  if (videoSeed.takesSeed(opts.model)) params.seed = videoSeed.seedFor(opts.seed);
+  else if (opts.seed != null) params.seed = Number(opts.seed);
   const body = {
     prompt,
     // The catalogue's own ids carry the dot (GET /v2/models: "seedance-1.5-pro",
@@ -245,12 +251,16 @@ router.post('/video', async (req, res) => {
     // clip, filed the moment the job is accepted. Best-effort — a log write
     // must never fail a send that APIFRAME has already taken money for.
     try {
-      const params = lastSentParams.get(jobId) || {};
+      const params = lastSentParams.get(String(jobId)) || {};   // set under String(id) — a numeric jobId used to miss and log empty params
       await admin.firestore().collection(videoLog.COLL).doc(String(jobId))
         .set(videoLog.sentRecord({ jobId, prompt: b.prompt, model: b.model || 'seedance-1-lite', params,
           tag: { chat: b.chat, scene: b.scene, title: b.title, session: b.session, note: b.note } }), { merge: true });
     } catch (e) { console.warn('[apiframe] video log write failed', e.message); }
-    res.status(202).json({ ok: true, jobId, poll: `/api/apiframe/video-job/${jobId}` });
+    // The seed rides back so a chat can report the number it was actually
+    // sent with — it is minted here when the caller did not pass one, and
+    // nothing downstream ever hands a seed back (video-seed.js).
+    const sentParams = lastSentParams.get(String(jobId)) || {};
+    res.status(202).json({ ok: true, jobId, poll: `/api/apiframe/video-job/${jobId}`, seed: sentParams.seed, sent: sentParams });
   } catch (e) {
     res.status(e.status || 500).json({ error: e.message });
   }

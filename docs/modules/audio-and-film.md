@@ -182,6 +182,35 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     a seed** (an A/B needs several takes a side and a judgement over the set),
     and **you cannot block a shot cheaply at 480p and re-render the keeper at
     720p** — that is a fresh take, not the same shot larger.
+  - **EVERY 2.x CLIP CARRIES A SEED NOW, MINTED IF THE CALLER DID NOT PASS ONE
+    (2026-09-09, Sophie: "random seed yes but make it enforced and
+    widespread").** `video-seed.js` is the ONE rule, used by both doors:
+    `seedFor(given)` keeps a caller's usable seed and mints a fresh
+    `randomSeed()` (1…2^31-1, never 0 — several APIs read 0 as "unset")
+    otherwise, and `takesSeed(model)` scopes it to the **2.x family only** —
+    the 1.x models have no seed control and APIFRAME refuses an unknown param
+    rather than ignoring it, so a `seedance-1-lite` job is untouched. The seed
+    rides `params`, so it lands in `forge-video-jobs` by itself, and
+    APIFRAME's 202 now answers `seed` (and `sent`) so a chat can report the
+    number. **A FRESH ONE PER CLIP, never a house constant** — a fixed seed
+    reproduces openings, so one number across a film would give every clip the
+    same family resemblance at the start. Test:
+    `node scripts/test-video-seed.js`.
+  - **`return_last_frame` DOES NOTHING — measured 2026-09-09, do not wire it.**
+    Mini's model card lists it as an allowed passthrough, and a job sent with
+    `return_last_frame: true` is ACCEPTED (202, no shape error) — but the
+    completed job answers one `unsigned_urls` entry and `content?index=1`
+    replies `Video index 1 out of range (1 videos available)`. Nothing extra
+    comes back anywhere in the response. So it is a no-op on this door and
+    wiring it would ship a dead flag. **ffmpeg is the way to get a last
+    frame**, and two things are worth knowing when you do: the video is
+    `yuv420p`, so a decoded frame already has a quarter of the colour detail,
+    and the LAST frame specifically is a **P-frame, never a keyframe** (read
+    off a real clip) — the end of a prediction chain at the tail where the
+    encoder spends fewest bits, i.e. the worst frame in the file to lift. Fine
+    for looking at; it compounds if you chain clips by feeding each last frame
+    in as the next first frame. Cost of finding this out: one 5.6¢ probe (the
+    first attempt failed free on the random audio-copyright filter).
   - **NO SEED IS EVER RETURNED, so the seeds of clips already made are gone.**
     APIFRAME echoes back only the `seedanceParams` that were SENT (a job sent
     without one has none) and OpenRouter's completed response carries id,
