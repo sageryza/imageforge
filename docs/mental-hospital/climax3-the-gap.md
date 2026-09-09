@@ -159,8 +159,11 @@ read off two low-resolution tile strips by eye. Measured properly with
 | L1 vs L2 | same (7) | one sentence differs | 16.8 dB (first 2s: 18.6) |
 | A vs B | none | different | 16.1 dB |
 
-So: **the same seed with the identical prompt still draws a different take** —
-same framing, same wardrobe, same room, different performance frame by frame.
+So: **the same seed with the identical prompt still draws a different take** by
+the END — but it opens nearly identical and drifts. Per 0.5s window the
+same-seed pair runs 33.2 dB at t=0 down to 24.5 at t=3.5; the different-seed
+pair runs 29.7 down to 18.8. Sophie read that off the clips before the numbers
+did. A whole-clip average buries it.
 The seed narrows the spread by about 5.7 dB when nothing else moves, and the
 moment the prompt changes by one sentence its effect is gone into the noise
 (16.8 against an uncontrolled 16.1).

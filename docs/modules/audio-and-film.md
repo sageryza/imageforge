@@ -167,9 +167,18 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     **same seed + same prompt 27.1 dB · different seed + same prompt 21.5 dB ·
     same seed + ONE sentence changed 16.8 dB · no seed + different prompts
     16.1 dB · same seed + same prompt at 720p instead of 480p 16.2 dB.**
-    So it narrows the spread ~5.7 dB when nothing else moves, its effect is
-    gone the moment the prompt changes at all, and it does not survive a
-    resolution change. Consequences: **you cannot isolate one prompt line with
+    **BUT A WHOLE-CLIP AVERAGE HIDES THE STRUCTURE, and Sophie read the clips
+    better than the number did (2026-09-09: "the same seeds are identical,
+    other markedly different").** Measured per 0.5s window, the same-seed pair
+    starts at **33.2 dB and decays to 24.5** by 4s, while the different-seed
+    pair starts already apart at **29.7 and decays to 18.8**. At frame 0 the
+    same-seed pair really is near-identical to the eye and the different-seed
+    one is visibly another take. **So the seed reproduces the OPENING and then
+    drifts** — it is worth more than the average says, and it is worth most on
+    a SHORT clip. A changed sentence at the same seed opens at 27.1 dB, i.e.
+    between the two: the seed still helps at the start, but the prompt change
+    breaks it early, which is why a difference appearing 7 seconds in (the
+    pill-bottle insert) still cannot be attributed to a changed line. Consequences: **you cannot isolate one prompt line with
     a seed** (an A/B needs several takes a side and a judgement over the set),
     and **you cannot block a shot cheaply at 480p and re-render the keeper at
     720p** — that is a fresh take, not the same shot larger.
