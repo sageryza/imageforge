@@ -65,3 +65,8 @@ https://storage.googleapis.com/membry-df528.firebasestorage.app/claude-deliverie
 ```
 the little things off a hospital meal tray, laid out on a white bedsheet: half-and-half cups, butter pats, salt, pepper and sugar packets, a plastic-wrapped spoon, a torn menu. photograph from above, daylight.
 ```
+
+## hers2 at MEDIUM (her heart, 2026-09-09) — The sculpture wall — your words (the night montage line, the tape on her fingers) · medium
+https://storage.googleapis.com/membry-df528.firebasestorage.app/claude-deliveries/1788995877604-2sb8ds.webp
+
+Same prompt as hers2 above, quality medium, 1152x1536. Page: low beside medium.
