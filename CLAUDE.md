@@ -320,12 +320,21 @@ line is the PERSON, not the video:
   **PRICED THE SAME DAY (Sophie: "check on the pricing compared to
   OpenRouter, APIFRAME and ByteDance itself"), one 4s 480p 3:4 clip, no
   reference video, off each vendor's own price page:** BytePlus direct and
-  OpenRouter are the SAME list (OpenRouter's `orTok` IS ByteDance's per-token
-  SKU; OpenRouter adds ~5% when credit is bought) — Mini 14¢ · Fast 17¢ · 2.0
-  28¢ · 2.5 ~43¢ (2.0/Fast/2.5 canvases unmeasured). Atlas Cloud is per
-  second of output and was passing on a BIGGER sale than ByteDance's own
-  campaign: Mini 1.1¢/s (4.4¢ a clip, "-80%"), Fast 2.7¢/s, 2.0 9¢/s — same
-  face filter, so only for person-free jobs. APIFRAME: Mini ~16¢ · Fast 28¢
+  OpenRouter share ByteDance's per-token list (OpenRouter's `orTok` IS the
+  SKU) — Mini 14¢ · Fast 17¢ · 2.0 28¢ · 2.5 ~43¢ (2.0/Fast/2.5 canvases
+  unmeasured) — **but OpenRouter is NOT the same price: its card fee is 5.5%
+  ($0.80 minimum) on every top-up, 5% by crypto, so a job costs list × 1.055
+  (Sophie's correction, 2026-09-09; this line first said "~5%" and "the same
+  list").** Measured the same hour: OpenRouter's `pricing.discount` on every
+  Seedance model reads **0**, and both of the day's `/footage` Mini jobs
+  billed $0.1396 — full list. **Atlas Cloud's "-80%" Mini banner is
+  UNVERIFIED and probably stale**: its own deal pages date the Seedance sale
+  window to "May 7, 2026, 23:59 UTC" and "June 15", its June Mini post says
+  $0.056/s with no sale, and its lowest-price page stacks a TOP-UP bonus
+  (up to +30% credit at $50,000) into the headline. At its undiscounted
+  $0.056/s Atlas is 22¢ for the 4s Mini clip — DEARER than OpenRouter — and
+  only 4.4¢ if the banner is real; a real charge needs an account and is
+  hers. Same face filter either way. APIFRAME: Mini ~16¢ · Fast 28¢
   · 2.0 32¢ · 2.5 52¢. The doors that take a real photo are all dearer:
   PiAPI less-restriction Mini 31¢ · 2.0 44¢ · 2.5 66¢ (a +10% markup, AND
   the face still has to go through its asset library with the person
@@ -333,8 +342,9 @@ line is the PERSON, not the video:
   2.0 37¢ · Fast 30¢ (no Mini); Runway Mini 64¢ (16¢/s with a 64-credit
   minimum) · 2.0 $1.44 · 2.5 80¢ minimum (20¢/s plus 10¢ per second of input
   video). So APIFRAME stays the cheapest door for a reference with a person
-  in it by 2-4x, and Atlas Cloud undercuts everything for a person-free Mini
-  job while its sale lasts.
+  in it by 2-4x; for a person-free job OpenRouter at list + 5.5% is the
+  measured floor, and Atlas Cloud only beats it if its banner discount is
+  real.
 The "go" rule above applies to both doors word for word. A no-video job
 sent to APIFRAME is not wrong, it is 16% dearer. Full note: *OpenRouter for
 Seedance* in `docs/modules/audio-and-film.md`.
