@@ -371,14 +371,23 @@ line is the PERSON, not the video:
   DOOR IS BUILT FOR THAT TEST (2026-09-09, her API reference):
   `atlascloud.js` at `/api/atlascloud` — the same body and the same
   `forge-video-jobs` log as the other two doors, `provider:'atlascloud'`,
-  `ATLASCLOUD_API_KEY` a managed key that is NOT set yet; nothing has been
-  sent, so price, canvas, slot word (`@image1` there, not `[Image1]`) and
-  the filter are all unmeasured. **It is on the Footage tile as a MODEL ROW,
-  "2.0 Mini · Atlas" (same day, her "did you add it to the footage tile?")
-  — the door row is gone, so the row is the door; priced "about" off
-  Atlas's published rate until a job measures it.** Full note: *ATLAS CLOUD
-  — THE THIRD DOOR* in `docs/modules/audio-and-film.md`. The "go" rule
-  applies word for word.** Likeliest
+  `ATLASCLOUD_API_KEY` set on Render by API (live on the next deploy).
+  **MEASURED THE SAME NIGHT — ATLAS TAKES A PERSON VIDEO (Sophie: "try the
+  hardest thing first · try the video reference with a person"):** the
+  O'Hara stretcher clip, three people in frame, the very clip OpenRouter
+  refused, went through as the only reference on Mini · 4s · 480p · 16:9
+  and DREW HER — accepted on the POST, done in 80s, 864x496 (job
+  `2b0b451548d84902988d01faf8bbcf99`). So Atlas is a second door for a
+  person reference, and **the 80% Mini sale is REAL**: its own `GET /models`
+  says Mini is 1.1¢/s (list 5.6¢) — 4.4¢ for that clip against ~16¢ on
+  APIFRAME — 2.5 13.4¢/s, 2.0 9¢/s, Fast 2.7¢/s; `footage.js` reads it live
+  (`atlasPrices()`). A real PHOTO there is still unmeasured (her ladder
+  stopped at the first rung), the console is the only billing read (no API),
+  and Atlas's slot word is `video 1` / `image 1`. **It is on the Footage
+  tile as a MODEL ROW, "2.0 Mini · Atlas" (same day, her "did you add it to
+  the footage tile?") — the door row is gone, so the row is the door.** Full
+  note: *ATLAS CLOUD — THE THIRD DOOR* in `docs/modules/audio-and-film.md`.
+  The "go" rule applies word for word.** Likeliest
   reading of APIFRAME's looseness is a Runway-style backend rather than a
   ByteDance key — unmeasured; APIFRAME calls itself an "official partner"
   and says nothing about faces. Whether any of those doors also skip the

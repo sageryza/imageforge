@@ -64,7 +64,7 @@ function report() {
   ok('the plain Mini row never goes to Atlas on its own', F.doorFor({ model: 'mini', door: 'auto', resolution: '480p' }, three).door === 'openrouter');
   ok('pinning Atlas on a row that is not there is refused', /not on Atlas Cloud/.test(F.doorFor({ model: 'mini', door: 'atlascloud', resolution: '480p' }, three).error || ''));
   const at = F.estimate({ model: 'mini-atlas', resolution: '480p', ratio: '3:4', seconds: 4, door: 'auto' }, three);
-  ok('an Atlas price is per second off its published rate and ALWAYS "about" — nothing has gone through it', at.door === 'atlascloud' && at.about === true && at.cents === 22.4);
+  ok('an Atlas price with no live read is per second off its LIST rate and "about"', at.door === 'atlascloud' && at.about === true && at.cents === 22.4);
   ok('publicModels flags the Atlas row for the page', F.publicModels().some((m) => m.id === 'mini-atlas' && m.atlascloud && !m.openrouter && !m.apiframe));
   ok('cardOf reads an Atlas job back onto its row', (() => { const c = F.cardOf('x', { prompt: 'p', model: 'bytedance/seedance-2.0-mini/reference-to-video', provider: 'atlascloud', params: { duration: 4 }, status: 'completed' }); return c.model === 'mini-atlas' && c.door === 'atlascloud'; })());
   ok('a pinned OpenRouter door is what the page always sends, and it is obeyed',
@@ -300,6 +300,16 @@ async function pillSweep(pg, where) {
 }
 
 (async () => {
+  {
+    // Atlas's price, read live off its own model list (a stub door here)
+    const F = require('../footage');
+    const three = { openrouter: true, apiframe: true, atlascloud: true };
+    F.init({ atlascloud: { configured: () => true, api: async (p) => (p === '/models' ? { data: [{ model: 'bytedance/seedance-2.0-mini/reference-to-video', price: { discount: '20', actual: { base_price: '0.011' }, origin: { base_price: '0.056' } } }] } : null) } });
+    await F.atlasPrices();
+    const atLive = F.estimate({ model: 'mini-atlas', resolution: '480p', ratio: '16:9', seconds: 4, door: 'auto' }, three);
+    ok('with the live read the Atlas price is the SALE rate per second (1.1¢/s × 4s), still "about"', atLive.door === 'atlascloud' && atLive.about === true && atLive.cents === 4.4);
+    ok('publicModels carries the live per-second rate for the "?" card', F.publicModels().some((m) => m.id === 'mini-atlas' && m.atlasPerSec === 0.011 && m.atlasPays === 20));
+  }
   // `await` is not legal in the pure block above, so the one asynchronous
   // pure check rides here: a read that cannot happen answers 0 — full list —
   // rather than throwing or leaving a sale in place.
