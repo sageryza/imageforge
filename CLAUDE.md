@@ -7086,8 +7086,16 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (each wearing its slot name — tap `[Image1]` and it lands in the prompt, so
   a reference is named by its slot and never described), model · seconds ·
   resolution · shape · sound, the DOOR (Auto · OpenRouter · APIFRAME), the
-  "about N¢" line, and **the star is her own "go"** — nothing on the page
-  spends until she taps it. **Auto is the filter rule made automatic**:
+  "about N¢" line, and **PLAN BEFORE GO (her word the same hour: "plan
+  before go")** — the first button only opens THE PLAN under the controls
+  (her words verbatim, every reference by its slot, model · seconds ·
+  resolution · shape · sound · the door it will really take, "This tap:
+  about N¢"), and **Go, the star, is the one tap that spends**. The plan is
+  built from the live state when Plan is tapped and takes itself down the
+  moment anything in it changes (a word, a control, a reference), so Go can
+  never send a plan she is not looking at. Never a native confirm(). (A
+  second chat built the same tool as `/motion` the same hour — PR #2231,
+  tag `motion-page-3f0fce9` — and it was NOT merged: one ask, one tile.) **Auto is the filter rule made automatic**:
   OpenRouter first (ByteDance's price), and a content refusal — free, before
   anything draws — sends the identical job through APIFRAME with the reason on
   the card. 1.5 Pro is APIFRAME only. **One log**: both doors are called in

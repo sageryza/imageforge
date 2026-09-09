@@ -97,7 +97,7 @@ function report() {
   ok('both doors export startVideo and pollVideo for the in-process send', /startVideo, pollVideo/.test(or) && /startVideo, pollVideo/.test(af));
   const page = fs.readFileSync(path.join(PUB, 'footage.html'), 'utf8');
   ok('the page holds no price figure of its own (it asks /estimate)', !/\d+\.\d+e-6|afCents\s*:\s*\{/.test(page) && /\/estimate/.test(page));
-  ok('the page wears the house star on the one spend button', /gostar/.test(page) && /M 55\.8 31\.9/.test(page));
+  ok('the page wears the house star on the one spend button — GO in the plan, never the Plan button', /id="planGo"[^>]*><span id="gostar">/.test(page) && /M 55\.8 31\.9/.test(page) && !/id="go"[^>]*><span id="gostar"/.test(page));
   ok('text boxes ship empty — no placeholder anywhere', !/placeholder=/.test(page) && /<textarea id="prompt"><\/textarea>/.test(page));
   ok('the page script is one IIFE (the injected pill\'s globals are safe)', /<script>\n\(function \(\) \{/.test(page));
 }
@@ -180,7 +180,7 @@ const server = http.createServer((req, res) => {
   ok('the name appears once (one h1, no .sub, no eyebrow line above it)', await page.$$eval('h1', (h) => h.length) === 1);
   ok('the prompt box is empty', (await page.$eval('#prompt', (t) => t.value)) === '');
   const goBox = await page.$eval('#go', (b) => b.getBoundingClientRect().width);
-  ok('the star button hugs its words (under 150px)', goBox < 150);
+  ok('the Plan button hugs its words (under 150px)', goBox < 150);
   const helpHidden = await page.$eval('#helpcard', (e) => e.hidden);
   ok('the explanation is behind the ? and shut', helpHidden);
   await page.click('#help');
@@ -224,10 +224,34 @@ const server = http.createServer((req, res) => {
 
   // the star: what really left the phone (seconds went 5 → 4 with the 1.5 Pro round trip above — a model change re-clamps)
   await page.click('#ratios button[data-ratio="9:16"]');
+  await page.waitForFunction(() => /OpenRouter$/.test(document.getElementById('cost').textContent));
+  // PLAN BEFORE GO (2026-09-09, Sophie): the Plan button sends NOTHING
   await page.click('#go');
+  await page.waitForSelector('#plan:not([hidden])');
+  ok('Plan opens the read-back and posts nothing', !posted.find((p) => p.prompt) && (await page.$eval('#go', (b) => b.hidden)));
+  const planText = await page.evaluate(() => ({ p: document.getElementById('planprompt').textContent, refs: document.getElementById('planrefs').textContent,
+    line: document.getElementById('planline').textContent, price: document.getElementById('planprice').textContent }));
+  ok('the plan reads her words verbatim', planText.p === 'her mother is the woman in [Image1]');
+  ok('the plan names the reference by its slot', /\[Image1\]/.test(planText.refs), planText.refs);
+  ok('the plan says model · seconds · resolution · shape · sound · door: ' + planText.line, /2\.0 Mini · 4s · 480p · 9:16 · with sound · through OpenRouter \(Auto\)/.test(planText.line));
+  ok('the plan says the price of the tap: ' + planText.price, /^This tap: about \d+(\.\d)?¢$/.test(planText.price));
+  await page.click('#planNo');
+  ok('Not yet puts the plan away and the Plan button back', (await page.$eval('#plan', (e) => e.hidden)) && !(await page.$eval('#go', (b) => b.hidden)));
+  await page.click('#go'); await page.waitForSelector('#plan:not([hidden])');
+  await page.click('#secup'); await page.evaluate(() => new Promise((r) => setTimeout(r, 60)));
+  ok('changing a control takes a stale plan down', await page.$eval('#plan', (e) => e.hidden));
+  await page.click('#secdn');
+  await page.click('#go'); await page.waitForSelector('#plan:not([hidden])');
+  await page.type('#prompt', ' '); await page.evaluate(() => new Promise((r) => setTimeout(r, 60)));
+  ok('typing takes it down too', await page.$eval('#plan', (e) => e.hidden));
+  await page.fill('#prompt', 'her mother is the woman in [Image1]');
+  await page.click('#go'); await page.waitForSelector('#plan:not([hidden])');
+  ok('still nothing posted before Go', !posted.find((p) => p.prompt));
+  if (process.env.FOOTAGE_SHOT) { await page.evaluate(() => window.scrollTo(0, 0)); await page.screenshot({ path: process.env.FOOTAGE_SHOT, fullPage: true }); }
+  await page.click('#planGo');
   await page.waitForSelector('#job-new1');
   const sent = posted.find((p) => p.prompt);
-  ok('the star POSTs the prompt, the reference with its kind, the model, seconds, resolution, shape, sound and door',
+  ok('GO POSTs the prompt, the reference with its kind, the model, seconds, resolution, shape, sound and door',
     sent && sent.prompt === 'her mother is the woman in [Image1]' && sent.refs.length === 1 && sent.refs[0].kind === 'image' && /ref\.png$/.test(sent.refs[0].url)
     && sent.model === 'mini' && sent.seconds === 4 && sent.resolution === '480p' && sent.ratio === '9:16' && sent.sound === true && sent.door === 'auto');
   ok('the new card is on top, drawing', await page.$eval('#feed', (f) => f.firstElementChild.id === 'job-new1' && /drawing/.test(f.firstElementChild.textContent)));
