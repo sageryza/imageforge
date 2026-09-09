@@ -157,6 +157,106 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     OpenRouter received), `GET /video-job/:id` to poll (the clip is behind the
     key, so the poll downloads it WITH the bearer, mirrors it to
     `openrouter-video/` once — the log doc is read first — and writes the
+  - **THE SEED IS A NUDGE, NOT A PIN — MEASURED 2026-09-09 on 2.0 Mini, and
+    ByteDance says the same.** Both doors pass `seed` (`buildRequest` in
+    `openrouter.js`; `apiframe.js` hands the whole body to `seedanceVideo`,
+    which reads `opts.seed`) and all four Seedance models declare seed
+    support — but the same seed with the IDENTICAL prompt still draws a
+    different take. Four 4s clips, `ffmpeg psnr` on the luma (identical video
+    would be infinite, and every md5 differed):
+    **same seed + same prompt 27.1 dB · different seed + same prompt 21.5 dB ·
+    same seed + ONE sentence changed 16.8 dB · no seed + different prompts
+    16.1 dB · same seed + same prompt at 720p instead of 480p 16.2 dB.**
+    **BUT A WHOLE-CLIP AVERAGE HIDES THE STRUCTURE, and Sophie read the clips
+    better than the number did (2026-09-09: "the same seeds are identical,
+    other markedly different").** Measured per 0.5s window, the same-seed pair
+    starts at **33.2 dB and decays to 24.5** by 4s, while the different-seed
+    pair starts already apart at **29.7 and decays to 18.8**. At frame 0 the
+    same-seed pair really is near-identical to the eye and the different-seed
+    one is visibly another take. **So the seed reproduces the OPENING and then
+    drifts** — it is worth more than the average says, and it is worth most on
+    a SHORT clip. A changed sentence at the same seed opens at 27.1 dB, i.e.
+    between the two: the seed still helps at the start, but the prompt change
+    breaks it early, which is why a difference appearing 7 seconds in (the
+    pill-bottle insert) still cannot be attributed to a changed line. Consequences: **you cannot isolate one prompt line with
+    a seed** (an A/B needs several takes a side and a judgement over the set),
+    and **you cannot block a shot cheaply at 480p and re-render the keeper at
+    720p** — that is a fresh take, not the same shot larger.
+  - **EVERY 2.x CLIP CARRIES A SEED NOW, MINTED IF THE CALLER DID NOT PASS ONE
+    (2026-09-09, Sophie: "random seed yes but make it enforced and
+    widespread").** `video-seed.js` is the ONE rule, used by both doors:
+    `seedFor(given)` keeps a caller's usable seed and mints a fresh
+    `randomSeed()` (1…2^31-1, never 0 — several APIs read 0 as "unset")
+    otherwise, and `takesSeed(model)` scopes it to the **2.x family only** —
+    the 1.x models have no seed control and APIFRAME refuses an unknown param
+    rather than ignoring it, so a `seedance-1-lite` job is untouched. The seed
+    rides `params`, so it lands in `forge-video-jobs` by itself, and
+    APIFRAME's 202 now answers `seed` (and `sent`) so a chat can report the
+    number. **A FRESH ONE PER CLIP, never a house constant** — a fixed seed
+    reproduces openings, so one number across a film would give every clip the
+    same family resemblance at the start. Test:
+    `node scripts/test-video-seed.js`.
+  - **`return_last_frame` DOES NOTHING — measured 2026-09-09, do not wire it.**
+    Mini's model card lists it as an allowed passthrough, and a job sent with
+    `return_last_frame: true` is ACCEPTED (202, no shape error) — but the
+    completed job answers one `unsigned_urls` entry and `content?index=1`
+    replies `Video index 1 out of range (1 videos available)`. Nothing extra
+    comes back anywhere in the response. So it is a no-op on this door and
+    wiring it would ship a dead flag. **ffmpeg is the way to get a last
+    frame**, and two things are worth knowing when you do: the video is
+    `yuv420p`, so a decoded frame already has a quarter of the colour detail,
+    and the LAST frame specifically is a **P-frame, never a keyframe** (read
+    off a real clip) — the end of a prediction chain at the tail where the
+    encoder spends fewest bits, i.e. the worst frame in the file to lift. Fine
+    for looking at; it compounds if you chain clips by feeding each last frame
+    in as the next first frame. Cost of finding this out: one 5.6¢ probe (the
+    first attempt failed free on the random audio-copyright filter).
+  - **NO SEED IS EVER RETURNED, so the seeds of clips already made are gone.**
+    APIFRAME echoes back only the `seedanceParams` that were SENT (a job sent
+    without one has none) and OpenRouter's completed response carries id,
+    status and usage and nothing else. Passing a seed and recording it costs
+    nothing and is worth doing — it is the only handle that exists and a later
+    model may honour it better — but do not promise it gets a clip back.
+  - **READ `usage.cost` OFF THE JOB, NEVER THE BALANCE DELTA.** OpenRouter's
+    completed job carries its own exact price, and the account balance is
+    shared: a delta measured while another chat was spending gave 0.93¢/s when
+    the true figure was 1.39¢/s. **Measured exactly, 2.0 Mini 3:4: 480p =
+    1.39¢/s (560x752), 720p = 3.07¢/s (834x1112, 2.20x the pixels).**
+  - **THE AUDIO PATH DOES NOT CHANGE WITH RESOLUTION OR MODEL** — 480p Mini,
+    720p Mini and 2.5 all come back 32kHz stereo AAC at ~128 kb/s. So 720p
+    buys picture only; it is very unlikely to clean up dialogue.
+  - **FEATURES ON EVERY SEEDANCE 2.x THAT NOTHING HERE USES YET** (off the
+    served model cards, `GET /api/openrouter/models`): **`first_frame` /
+    `last_frame` keyframes** — APIFRAME's route already wires them
+    (`imageUrl` → `start_image`, `endImageUrl` → `end_image`), the OpenRouter
+    route deliberately does not, and forcing a clip to END on the next clip's
+    first frame is the continuity tool this film keeps needing;
+    **`return_last_frame`** (a Mini passthrough) hands the last frame back so
+    the next clip can start exactly there; **`camera_fixed`** (`cameraFixed`
+    on the APIFRAME route) locks the camera off. And **a job carrying a
+    reference VIDEO is billed at a LOWER rate** —
+    `video_tokens_with_video_input` is $2.10/M against $3.50/M on Mini and
+    $6.40/M against $10.70/M on 2.5.
+  - **THE 1080p REDO IS AN UPSCALE PASS, NOT A RE-SHOOT (2026-09-09).** The
+    standing plan — "eventually we will redo all this footage at 1080p once
+    it's perfect" — would DESTROY the takes: measured the same night, the same
+    prompt and seed at 720p instead of 480p is a different performance
+    (16.2 dB), so re-generating throws away every shot she picked. What
+    studios do with AI footage is upscale in post. Topaz Video AI is the
+    standard tool and is on Replicate pay-per-use (no $299/yr subscription);
+    for AI-generated footage specifically, SeedVR2 is now preferred over the
+    older CNN upscalers, and the rule of thumb is 2x at a time rather than one
+    4x jump on a low-res source. **Her 480p 3:4 is 560x752, so a single 2x
+    pass is 1120x1504 — already past 1080p on the short edge.** So the whole
+    plan is one post pass over clips that already exist, and the prompts and
+    references are worth keeping for re-cuts and pickups rather than for a
+    wholesale redraw. Price not yet measured — run one of her clips through
+    and read it off the prediction.
+  - **2.5 CANNOT DO 1080p OR 4K — only `seedance-2.0` can.** The served cards:
+    2.5 is 480p/720p and 4-30s; 2.0 is 480p/720p/1080p/4K but 4-15s; Mini and
+    2.0-fast are 480p/720p, 4-15s. So the eventual 1080p redo of the ward film
+    is a different MODEL, not a bigger setting on the one it was shot with —
+    worth knowing before more footage is locked.
     permanent url and the job's real `cost`), and **the same
     `forge-video-jobs` doc APIFRAME's route files**, stamped
     `provider:'openrouter'`, with OpenRouter's statuses mapped onto the log's

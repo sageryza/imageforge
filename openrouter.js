@@ -62,6 +62,7 @@ const express = require('express');
 const fetch = require('node-fetch');
 const admin = require('firebase-admin');
 const videoLog = require('./video-log');
+const videoSeed = require('./video-seed');
 
 const KEY = process.env.OPENROUTER_API_KEY || '';
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
@@ -121,7 +122,12 @@ function buildRequest(b) {
   if (b.duration != null) params.duration = Number(b.duration);
   if (b.aspectRatio) params.aspect_ratio = String(b.aspectRatio);
   params.generate_audio = b.generateAudio == null ? true : Boolean(b.generateAudio);
-  if (b.seed != null) params.seed = Number(b.seed);
+  // EVERY CLIP CARRIES A SEED, minted when the caller did not pass one
+  // (video-seed.js — what it does and does not buy is measured there).
+  // Nothing ever hands a seed back, so a job sent without one has none
+  // forever; the mint costs nothing and rides `params` into the log.
+  if (videoSeed.takesSeed(model)) params.seed = videoSeed.seedFor(b.seed);
+  else if (b.seed != null) params.seed = Number(b.seed);
   if (imgs.length) params.reference_image_urls = imgs;
   if (vids.length) params.reference_video_urls = vids;
   if (auds.length) params.reference_audio_urls = auds;
