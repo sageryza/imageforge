@@ -310,6 +310,7 @@ loadConfig().then(() => {
   const mpcUpload = require('./mpc-upload');
   const apiframe = require('./apiframe');
   const openrouter = require('./openrouter');
+  const atlascloud = require('./atlascloud');
   const ingest = require('./ingest');
   const crystals = require('./crystals');
   const dropbox = require('./dropbox');
@@ -363,6 +364,7 @@ loadConfig().then(() => {
   app.use('/api/mpc-upload', mpcUpload.router); // full auto-upload (stops at cart)
   app.use('/api/apiframe', apiframe.router); // Midjourney deck-art generator
   app.use('/api/openrouter', openrouter.router); // Seedance at ByteDance's price, no video references (the second door)
+  app.use('/api/atlascloud', atlascloud.router); // Seedance through Atlas Cloud's reference-to-video (the third door; unmeasured)
   app.use('/api/footage', require('./footage').router); // Footage: she makes Seedance clips herself — both doors, one log
   app.use('/api/ingest', ingest.router); // import externally-made art (bring-your-own-MJ)
   app.use('/api/crystals', crystals.router); // crystal drop box (photos + metadata → Etsy listings)
