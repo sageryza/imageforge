@@ -207,5 +207,6 @@ demonstrated; the pair is uncontrolled.
 
 Pages: "Climax 3 redo — three shapes v1" (`lWkWRlZC37pAmsOK3EkQ`) and
 "Context line — yours vs mine v2" (`xJrgMSzIPF9xIrWKrHD9`, sheet
-`context-line`) and "The seed tests v1" (`ih83XmjyCPm00xKNMhKf`, sheet
-`seed-tests`).
+`context-line`) "The seed tests v1" (`ih83XmjyCPm00xKNMhKf`, sheet `seed-tests`) and
+"Every run tonight v1" (`n63V3yZQtBMnOqSXPkAy`, sheet `all-runs`) — all twelve
+clips with the settings and the real cost each was billed.
