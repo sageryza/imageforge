@@ -7078,6 +7078,34 @@ before working on that module. Nothing was deleted — the moved text is verbati
   session. **Full details: `docs/modules/pictures.md`.**
 
 ### Audio & film
+- **Footage** (`footage.js`, `/api/footage`, page at `/footage`, iOS tile
+  under the FILM filter's pictures stage — 2026-09-09, Sophie: "the next step
+  is to build a point so I can just make things on my own time by describing
+  them or uploading references") — **she sends a Seedance clip herself.** The
+  chat ritual as a page: her words in the box, references through the Dump
+  (each wearing its slot name — tap `[Image1]` and it lands in the prompt, so
+  a reference is named by its slot and never described), model · seconds ·
+  resolution · shape · sound, the DOOR (Auto · OpenRouter · APIFRAME), the
+  "about N¢" line, and **the star is her own "go"** — nothing on the page
+  spends until she taps it. **Auto is the filter rule made automatic**:
+  OpenRouter first (ByteDance's price), and a content refusal — free, before
+  anything draws — sends the identical job through APIFRAME with the reason on
+  the card. 1.5 Pro is APIFRAME only. **One log**: both doors are called in
+  process (`startVideo`/`pollVideo`, exported from `openrouter.js` and
+  `apiframe.js`) and file the same `forge-video-jobs` doc, `chat:'footage'`,
+  so the 1080p redo reads it like any chat's. The server polls the unfinished
+  jobs itself (12s throttle per job) and bakes a poster, so the feed resumes
+  from any phone. **The price is SERVED** (`GET /estimate`, the model table on
+  `GET /status`) — the page holds no cost figure; the OpenRouter estimate is
+  video tokens × the published SKU × the measured sale factor × the 5% fee,
+  and the real cost replaces it on the card when OpenRouter reports it
+  (APIFRAME does not, so its cards keep "about"). Seconds and resolution open
+  at the minimum on every load; model, shape, door and sound are remembered.
+  Nothing is deleted — ♥/✕ marks, `hidden` is the verb. **A chat's clips do
+  NOT go here** — this is her feed, the Playground's rule; a chat's clips are
+  tagged with the chat's own slug. Test: `node scripts/test-footage.js`.
+  Full note: *FOOTAGE* under the OpenRouter note in
+  `docs/modules/audio-and-film.md`.
 - **Movies** (`movies.js`, `/api/movies`, iOS Movies tab — no web page) — story ->
   ~8-12 self-contained scenes -> gpt-image-2 panels -> Replicate image-to-video ->
   ffmpeg stitch, ~$1.35 for a 12-scene film.
