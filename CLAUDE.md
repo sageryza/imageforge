@@ -381,9 +381,15 @@ line is the PERSON, not the video:
   person reference, and **the 80% Mini sale is REAL**: its own `GET /models`
   says Mini is 1.1¢/s (list 5.6¢) — 4.4¢ for that clip against ~16¢ on
   APIFRAME — 2.5 13.4¢/s, 2.0 9¢/s, Fast 2.7¢/s; `footage.js` reads it live
-  (`atlasPrices()`). A real PHOTO there is still unmeasured (her ladder
-  stopped at the first rung), the console is the only billing read (no API),
-  and Atlas's slot word is `video 1` / `image 1`. **It is on the Footage
+  (`atlasPrices()`). **AND A REAL UNTOUCHED PHOTO PASSES — Mayra's real
+  portrait, the one OpenRouter refused whole, drew her near-exactly (job
+  `1341e19bf73f44bd9e038c9b15c35286`, ~4¢); a reference image is not even
+  billed as tokens (a reference video is). Radcliffe is refused on the POST,
+  free, as COPYRIGHT — with the black bar too: Atlas's gate is a famous-face
+  check that sees through the bar, not a real-person check.** So Atlas takes
+  every person reference the film has except a public figure. The console is
+  the only billing read (no API), and Atlas's slot word is `video 1` /
+  `image 1`. **It is on the Footage
   tile as a MODEL ROW, "2.0 Mini · Atlas" (same day, her "did you add it to
   the footage tile?") — the door row is gone, so the row is the door.** Full
   note: *ATLAS CLOUD — THE THIRD DOOR* in `docs/modules/audio-and-film.md`.
