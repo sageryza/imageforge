@@ -58,6 +58,21 @@
       padding:9px 14px 9px 11px;font-size:16px;margin-left:auto}
   .go svg{width:20px;height:20px;display:block}
   .err{color:#a0402a;font-size:13px;margin-top:8px}
+  /* THE PLAN BEFORE THE GO (2026-09-09, Sophie: "plan before go") — the chat
+     ritual's read-back on her own page: the first button only opens the plan
+     (her words verbatim, every reference by slot, model · seconds · resolution
+     · shape · sound · door, the price of the tap) and GO, wearing the star, is
+     the one tap that spends. A card in flow, never a native confirm(). */
+  .plan{margin-top:10px;border:1px solid #2b2620;border-radius:6px;padding:11px;background:#fdfbf7}
+  .plan .pp{font-size:15px;white-space:pre-wrap;margin-bottom:8px}
+  .plan .prefs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  .plan .pref{display:flex;align-items:center;gap:5px;font-size:12px;color:#6f675e}
+  .plan .pref .pk{width:36px;height:36px;border-radius:6px;overflow:hidden;border:1px solid #d8cfc0;background:#2b2620;color:#f6f2ea;
+                  display:flex;align-items:center;justify-content:center}
+  .plan .pref .pk img{width:100%;height:100%;object-fit:cover;display:block}
+  .plan .pref .pk svg{width:16px;height:16px}
+  .plan .pl{font-size:13px;margin-bottom:8px;line-height:1.5}
+  .plan .price{font-size:15px;margin-bottom:9px}
   /* The references she has attached — thumb, slot name, ✕. Tapping the slot
      name drops it into the prompt at the caret, so [Image1] is never typed. */
   .refs{display:flex;gap:8px;flex-wrap:wrap}
@@ -177,7 +192,15 @@
   <div class="row" style="margin-top:12px">
     <span class="cost" id="cost"></span>
     <span class="bal" id="bal"></span>
-    <button class="go" id="go" type="button"><span id="gostar"></span>Draw it</button>
+    <button id="go" type="button">Plan</button>
+  </div>
+  <div class="plan" id="plan" hidden>
+    <div class="lab">The plan</div>
+    <div class="pp" id="planprompt"></div>
+    <div class="prefs" id="planrefs"></div>
+    <div class="pl" id="planline"></div>
+    <div class="price" id="planprice"></div>
+    <div class="row"><button class="go" id="planGo" type="button"><span id="gostar"></span>Go</button><button id="planNo" type="button">Not yet</button></div>
   </div>
   <div class="err" id="err" hidden></div>
 </div>
@@ -457,14 +480,57 @@ function paintRecent() {
   paint();
 })();
 
-// ── The star ──────────────────────────────────────────────────────────────
-$('go').addEventListener('click', function () {
-  var prompt = $('prompt').value;
-  $('err').hidden = true;
-  if (!prompt.trim()) return toast('Say what the clip is first');
-  var body = { prompt: prompt, model: S.model, seconds: S.seconds, resolution: S.res, ratio: S.ratio,
+// ── PLAN BEFORE GO (2026-09-09, Sophie: "plan before go") ─────────────────
+// The Plan button never sends. It opens the read-back — her words verbatim,
+// every reference with the slot it answers to, model · seconds · resolution ·
+// shape · sound · door, and the price of the tap — built from the live state
+// at that moment. GO, the star, is the one tap that spends. The plan takes
+// itself down the moment anything in it changes (a word, a control, a
+// reference — every control change comes through paintControls), so Go can
+// never send a plan she is not looking at.
+var plan = null;
+function planBody() {
+  return { prompt: $('prompt').value, model: S.model, seconds: S.seconds, resolution: S.res, ratio: S.ratio,
     sound: S.sound, door: S.door, refs: orderedRefs() };
-  var btn = $('go'); btn.disabled = true;
+}
+function doorName(d) { return d === 'openrouter' ? 'OpenRouter' : d === 'apiframe' ? 'APIFRAME' : 'Auto'; }
+function showPlan() {
+  var b = planBody();
+  $('err').hidden = true;
+  if (!b.prompt.trim()) return toast('Say what the clip is first');
+  plan = b;
+  $('planprompt').textContent = b.prompt;
+  var slots = slotsOf(b.refs);
+  $('planrefs').innerHTML = b.refs.map(function (r, i) {
+    return '<span class="pref"><span class="pk">' + thumbHtml(r) + '</span><b>' + esc(slots[i]) + '</b></span>';
+  }).join('');
+  $('planrefs').hidden = !b.refs.length;
+  var m = modelOf(b.model);
+  var costEl = $('cost');
+  var door = costEl.dataset.door ? doorName(costEl.dataset.door) : doorName(b.door);
+  $('planline').innerHTML = '<b>' + esc(m ? m.label : b.model) + '</b> · ' + b.seconds + 's · ' + esc(b.resolution) + ' · ' + esc(b.ratio) +
+    ' · ' + (b.sound ? 'with sound' : 'silent') + ' · through ' + esc(door) + (b.door === 'auto' && door !== 'Auto' ? ' (Auto)' : '') +
+    (b.refs.length ? '' : ' · no references');
+  var c = Number(costEl.dataset.cents);
+  $('planprice').textContent = c ? 'This tap: about ' + cents(c) : 'Price unknown';
+  $('plan').hidden = false;
+  $('go').hidden = true;
+  $('plan').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+function hidePlan() { if (!plan && $('plan').hidden) return; plan = null; $('plan').hidden = true; $('go').hidden = false; }
+window.__footagePlan = function () { return plan; };
+$('go').addEventListener('click', showPlan);
+$('planNo').addEventListener('click', hidePlan);
+$('prompt').addEventListener('input', hidePlan);
+var paintControlsPlain = paintControls;
+paintControls = function () { paintControlsPlain(); if (plan && JSON.stringify(plan) !== JSON.stringify(planBody())) hidePlan(); };
+
+// ── The star: GO ──────────────────────────────────────────────────────────
+$('planGo').addEventListener('click', function () {
+  if (!plan) return;
+  var body = plan, prompt = body.prompt;
+  hidePlan();
+  var btn = $('planGo'); btn.disabled = true;
   api('/jobs', { method: 'POST', body: JSON.stringify(body) }).then(function (d) {
     btn.disabled = false;
     if (!d || !d.jobId) {
