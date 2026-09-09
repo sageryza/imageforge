@@ -199,6 +199,21 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     reference VIDEO is billed at a LOWER rate** —
     `video_tokens_with_video_input` is $2.10/M against $3.50/M on Mini and
     $6.40/M against $10.70/M on 2.5.
+  - **THE 1080p REDO IS AN UPSCALE PASS, NOT A RE-SHOOT (2026-09-09).** The
+    standing plan — "eventually we will redo all this footage at 1080p once
+    it's perfect" — would DESTROY the takes: measured the same night, the same
+    prompt and seed at 720p instead of 480p is a different performance
+    (16.2 dB), so re-generating throws away every shot she picked. What
+    studios do with AI footage is upscale in post. Topaz Video AI is the
+    standard tool and is on Replicate pay-per-use (no $299/yr subscription);
+    for AI-generated footage specifically, SeedVR2 is now preferred over the
+    older CNN upscalers, and the rule of thumb is 2x at a time rather than one
+    4x jump on a low-res source. **Her 480p 3:4 is 560x752, so a single 2x
+    pass is 1120x1504 — already past 1080p on the short edge.** So the whole
+    plan is one post pass over clips that already exist, and the prompts and
+    references are worth keeping for re-cuts and pickups rather than for a
+    wholesale redraw. Price not yet measured — run one of her clips through
+    and read it off the prediction.
   - **2.5 CANNOT DO 1080p OR 4K — only `seedance-2.0` can.** The served cards:
     2.5 is 480p/720p and 4-30s; 2.0 is 480p/720p/1080p/4K but 4-15s; Mini and
     2.0-fast are 480p/720p, 4-15s. So the eventual 1080p redo of the ward film
