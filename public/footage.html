@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Footage</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  [hidden]{display:none !important}
+  body{background:#f6f2ea;color:#2b2620;font:16px/1.45 -apple-system,BlinkMacSystemFont,Georgia,serif;
+       padding:14px 12px 40px;-webkit-text-size-adjust:100%}
+  /* THE PAGE OWNS ITS HEADER (Freeform's row): one line, caps, the pill's
+     corner reserved; pagehead.js seats the chevron in it on the new build and
+     ?embed=1 hides it on the old one — never two titles. */
+  .app-header{display:flex;align-items:center;min-height:34px;padding-right:64px;margin:0 0 8px;gap:10px}
+  .app-header h1{font:400 11px/1 -apple-system,'Helvetica Neue',sans-serif;letter-spacing:.34em;
+                 text-transform:uppercase;color:#6f675e;margin:0;flex:1}
+  #help{width:26px;height:26px;border-radius:6px;border:1px solid #c9a96a;background:#fff;color:#a0803a;
+        font:600 14px -apple-system,sans-serif;padding:0;flex:none}
+  .helpcard{position:fixed;left:12px;right:12px;top:80px;z-index:60;background:#fff;border:1px solid #e0d8ca;
+            border-radius:6px;padding:14px;font-size:14px;line-height:1.5;box-shadow:0 8px 30px rgba(0,0,0,.12)}
+  .helpcard p{margin:0 0 8px}
+  .helpcard b{font-weight:600}
+  .panel{background:#fff;border:1px solid #e0d8ca;border-radius:6px;padding:12px;margin-bottom:14px;
+         margin-right:var(--pillgap,0px);margin-top:var(--pilltop,0px)}
+  .lab{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#9a8f7d;margin:10px 0 7px}
+  .lab:first-child{margin-top:0}
+  textarea{width:100%;min-height:96px;border:1px solid #d8cfc0;border-radius:6px;padding:9px;
+           font:16px/1.4 -apple-system,Georgia,serif;background:#fdfbf7;color:#2b2620;resize:vertical}
+  textarea:focus,input:focus{outline:none;border-color:#a89a80}
+  .promptwrap{position:relative}
+  .promptwrap textarea{display:block;padding-bottom:34px}
+  #prompt.big{min-height:24vh;max-height:52vh}
+  #bigprompt{position:absolute;right:56px;bottom:6px;width:26px;height:26px;display:flex;
+             align-items:center;justify-content:center;padding:0;margin:0;border:1px solid #d8cfc0;
+             border-radius:6px;background:#fdfbf7;color:#6f675e}
+  #bigprompt svg{width:14px;height:14px}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  button{border:1px solid #d8cfc0;border-radius:6px;background:#fff;color:#2b2620;
+         font:15px -apple-system,Georgia,serif;padding:7px 11px}
+  button[disabled]{opacity:.45}
+  /* Chips: one lit per row. A lit chip is INK on paper, the picker's own
+     family; the star is the only filled thing on the panel. */
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chips button{padding:6px 10px;font-size:14px;background:#fdfbf7}
+  .chips button.on{background:#2b2620;border-color:#2b2620;color:#f6f2ea}
+  .chips button.off{opacity:.35}
+  .step{display:inline-flex;align-items:center;border:1px solid #d8cfc0;border-radius:6px;overflow:hidden;background:#fdfbf7}
+  .step button{border:0;border-radius:0;width:34px;height:34px;padding:0;font-size:18px;line-height:1;background:none}
+  .step button+button{border-left:1px solid #d8cfc0}
+  .step .n{min-width:44px;text-align:center;font-size:15px;border-left:1px solid #d8cfc0;border-right:1px solid #d8cfc0;height:34px;line-height:34px}
+  #sound.on{background:#2b2620;border-color:#2b2620;color:#f6f2ea}
+  .cost{color:#6f675e;font-size:13px}
+  .bal{color:#9a8f7d;font-size:12px}
+  /* THE STAR IS THE ONE THING THAT SPENDS — the house generate glyph in a
+     filled ink square, the word beside it. */
+  .go{display:inline-flex;align-items:center;gap:8px;background:#2b2620;color:#f6f2ea;border-color:#2b2620;
+      padding:9px 14px 9px 11px;font-size:16px;margin-left:auto}
+  .go svg{width:20px;height:20px;display:block}
+  .err{color:#a0402a;font-size:13px;margin-top:8px}
+  /* The references she has attached — thumb, slot name, ✕. Tapping the slot
+     name drops it into the prompt at the caret, so [Image1] is never typed. */
+  .refs{display:flex;gap:8px;flex-wrap:wrap}
+  .ref{position:relative;width:72px}
+  .ref .im{width:72px;height:72px;border:1px solid #e0d8ca;border-radius:6px;overflow:hidden;background:#2b2620;
+           display:flex;align-items:center;justify-content:center;color:#f6f2ea}
+  .ref .im img{width:100%;height:100%;object-fit:cover;display:block}
+  .ref .im svg{width:26px;height:26px}
+  .ref .slot{display:block;width:100%;margin-top:4px;padding:3px 0;font-size:11px;letter-spacing:.04em;background:#fdfbf7}
+  .ref .x{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:6px;padding:0;
+          background:#fff;border:1px solid #d8cfc0;font-size:12px;line-height:20px;text-align:center}
+  .up{position:relative;overflow:hidden}
+  .up input{position:absolute;inset:0;opacity:0;font-size:0}
+  #recent{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+  #recent .rc{width:52px;height:52px;border:1px solid #e0d8ca;border-radius:6px;overflow:hidden;padding:0;background:#2b2620;color:#f6f2ea;
+              display:flex;align-items:center;justify-content:center}
+  #recent .rc img{width:100%;height:100%;object-fit:cover;display:block}
+  #recent .rc svg{width:20px;height:20px}
+  #rectog.on{border-color:#2b2620}
+  /* Feed */
+  .feedbar{display:flex;align-items:center;gap:8px;margin:0 0 10px}
+  .filttog{display:flex;flex:none;border:1px solid #d8cfc0;border-radius:6px;overflow:hidden;background:#fdfbf7}
+  .likefilt{display:flex;align-items:center;justify-content:center;width:34px;height:32px;
+            border:0;border-radius:0;background:none;color:#6f675e;padding:0}
+  .likefilt+.likefilt{border-left:1px solid #d8cfc0}
+  .likefilt svg{width:16px;height:16px}
+  .likefilt.on{background:#c25a72;color:#fff}
+  .xfilt.on{background:#9a938a;color:#fff}
+  .job{background:#fff;border:1px solid #e0d8ca;border-radius:6px;padding:10px;margin-bottom:11px}
+  .job.nay{opacity:.45}
+  .jobrow{display:flex;gap:10px;align-items:flex-start}
+  .thumb{flex:none;width:96px;aspect-ratio:3/4;border-radius:6px;overflow:hidden;background:#2b2620;padding:0;border:0;
+         display:flex;align-items:center;justify-content:center;color:#f6f2ea;position:relative}
+  .thumb[data-ar="1:1"]{aspect-ratio:1}
+  .thumb[data-ar="9:16"]{aspect-ratio:9/16}
+  .thumb[data-ar="16:9"],.thumb[data-ar="21:9"]{aspect-ratio:16/9;width:128px}
+  .thumb[data-ar="4:3"]{aspect-ratio:4/3;width:112px}
+  .thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .thumb svg{width:28px;height:28px;position:relative;filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))}
+  .thumb.drawing{background:#e6dfd2;color:#9a8f7d;animation:br 1.6s ease-in-out infinite}
+  @keyframes br{0%,100%{opacity:.55}50%{opacity:1}}
+  .jobmain{flex:1;min-width:0}
+  .p{font-size:15px;white-space:pre-wrap;overflow-wrap:anywhere}
+  /* TRUNCATED TEXT OPENS WITH AN UNDERLINED WORD, on the last line, never a
+     button with a box (the house .moretxt). */
+  .pwrap{position:relative}
+  .p.clamp{max-height:calc(1.45em * 4);overflow:hidden}
+  .moretxt{position:absolute;right:0;bottom:0;border:0;background:#fff;padding:0 0 0 8px;margin:0;font:inherit;color:#6f675e;text-decoration:underline;line-height:1.45}
+  .tags{font-size:11px;color:#9a8f7d;margin-top:5px;line-height:1.5}
+  .st{font-size:12px;color:#6f675e;margin-top:3px}
+  .st.bad{color:#a0402a}
+  .usedrefs{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}
+  .usedrefs .ur{width:34px;text-align:center;font-size:9px;color:#9a8f7d;line-height:1.2}
+  .usedrefs .ur div{width:34px;height:34px;border-radius:4px;border:1px solid #e0d8ca;background:#2b2620;overflow:hidden;
+                     display:flex;align-items:center;justify-content:center;color:#f6f2ea}
+  .usedrefs .ur img{width:100%;height:100%;object-fit:cover;display:block}
+  .usedrefs .ur svg{width:14px;height:14px}
+  .acts{display:flex;gap:6px;margin-top:8px;align-items:center}
+  .acts button{width:32px;height:32px;padding:0;display:inline-flex;align-items:center;justify-content:center;
+               background:#fdfbf7;color:#6f675e}
+  .acts button svg{width:15px;height:15px}
+  .acts .heart.on{background:#c96a5e;border-color:#c96a5e;color:#fff}
+  .acts .nope.on{background:#3a3530;border-color:#3a3530;color:#fff}
+  .acts a{font-size:12px;color:#6f675e;margin-left:auto}
+  .again{padding:5px 10px;font-size:13px}
+  .emptynote{color:#9a8f7d;font-size:13px;padding:6px 2px}
+  /* The player: the clip over the page, tap out to close. Page locked and the
+     scroll position restored on close (the lightbox contract). */
+  #player{position:fixed;inset:0;background:rgba(20,17,14,.94);z-index:80;display:flex;align-items:center;justify-content:center}
+  #player video{max-width:100%;max-height:100%;display:block;background:#000}
+  #player .pclose{position:absolute;top:14px;left:14px;width:34px;height:34px;padding:0;border-radius:6px;
+                  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);color:#fff}
+  #player .pclose svg{width:16px;height:16px}
+  .toast{position:fixed;left:12px;bottom:12px;background:#2b2620;color:#f6f2ea;font-size:13px;
+         border-radius:6px;padding:7px 11px;opacity:0;transition:opacity .25s;z-index:90;max-width:80%}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header class="app-header"><h1>Footage</h1><button id="help" type="button" aria-label="How this works" title="How this works">?</button></header>
+<div class="helpcard" id="helpcard" hidden>
+  <p><b>Say what the clip is.</b> Add references — a picture, a clip, a sound — and name each one in the prompt by its slot: <b>[Image1]</b>, <b>[Video1]</b>, <b>[Audio1]</b>. Tap a slot name to drop it into the box. Never describe what a reference shows; the picture is the point.</p>
+  <p><b>Nothing draws until the star.</b> The line beside it says about what the clip will cost. The real cost lands on the card when it finishes.</p>
+  <p><b>Door.</b> Auto sends through OpenRouter (ByteDance's own price) and, if ByteDance refuses a reference for having a person in it, sends the same job through APIFRAME and says so. A real photo passes with only the eyes blurred; a drawn face passes as it is; a video with a person in it always goes through APIFRAME. 1.5 Pro is APIFRAME only.</p>
+  <p><b>Shortest first.</b> Seconds open at the model's minimum — the length is the bill.</p>
+</div>
+
+<div class="panel">
+  <div class="promptwrap"><textarea id="prompt"></textarea><button type="button" id="bigprompt" aria-label="Bigger box" title="Bigger box"></button></div>
+
+  <div class="lab">References</div>
+  <div class="refs" id="refs"></div>
+  <div class="row" style="margin-top:8px">
+    <button class="up" type="button">Add<input type="file" accept="image/*,video/*,audio/*" multiple id="file"></button>
+    <button id="rectog" type="button" aria-expanded="false" hidden>Recent</button>
+  </div>
+  <div id="recent" hidden></div>
+
+  <div class="lab">Model</div>
+  <div class="chips" id="models"></div>
+  <div class="lab">Seconds</div>
+  <div class="row">
+    <div class="step"><button type="button" id="secdn" aria-label="Fewer seconds">−</button><span class="n" id="secs">4</span><button type="button" id="secup" aria-label="More seconds">+</button></div>
+    <div class="chips" id="reses"></div>
+  </div>
+  <div class="lab">Shape</div>
+  <div class="chips" id="ratios"></div>
+  <div class="lab">Door</div>
+  <div class="row">
+    <div class="chips" id="doors">
+      <button type="button" data-door="auto">Auto</button>
+      <button type="button" data-door="openrouter">OpenRouter</button>
+      <button type="button" data-door="apiframe">APIFRAME</button>
+    </div>
+    <button type="button" id="sound" aria-pressed="true">Sound</button>
+  </div>
+  <div class="row" style="margin-top:12px">
+    <span class="cost" id="cost"></span>
+    <span class="bal" id="bal"></span>
+    <button class="go" id="go" type="button"><span id="gostar"></span>Draw it</button>
+  </div>
+  <div class="err" id="err" hidden></div>
+</div>
+
+<div class="feedbar" id="feedbar" hidden>
+  <div class="filttog" role="group" aria-label="Filters">
+    <button type="button" class="likefilt" id="v-liked" aria-label="Show only the ones you hearted" title="Hearts only"></button>
+    <button type="button" class="likefilt xfilt" id="v-hidex" aria-label="Hide the ones you have crossed out" title="Hide the &times;'d"></button>
+  </div>
+</div>
+<div id="feed"></div>
+<div class="emptynote" id="feedempty" hidden>Nothing made here yet.</div>
+
+<div id="player" hidden><button class="pclose" type="button" aria-label="Close"></button></div>
+<div class="toast" id="toast"></div>
+
+<script src="/caretkeep.js"></script>
+<script>
+(function () {
+var TOKEN = '__STUDIO_TOKEN__';
+if (TOKEN.indexOf('__') === 0) TOKEN = '';
+var API = '/api/footage';
+
+var ICONS = {
+  heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
+  x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+  copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>',
+  play: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"/></svg>',
+  film: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></svg>',
+  audio: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg>',
+  maximize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
+  minimize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
+  // THE ONE GENERATE GLYPH — the hand-fitted star every spend button wears.
+  star: '<svg viewBox="0 0 100 100" fill="currentColor" stroke="none" aria-hidden="true"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg>',
+};
+var $ = function (id) { return document.getElementById(id); };
+$('gostar').innerHTML = ICONS.star;
+$('v-liked').innerHTML = ICONS.heart; $('v-hidex').innerHTML = ICONS.x;
+document.querySelector('#player .pclose').innerHTML = ICONS.x;
+
+function hdr(extra) { var h = extra || {}; if (TOKEN) h['x-studio-token'] = TOKEN; return h; }
+function api(path, opts) {
+  opts = opts || {};
+  opts.headers = hdr(opts.body ? { 'Content-Type': 'application/json' } : {});
+  return fetch(API + path, opts).then(function (r) { return r.json(); });
+}
+var toastEl = $('toast'), toastT = null;
+function toast(msg) { toastEl.textContent = msg; toastEl.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(function () { toastEl.classList.remove('show'); }, 2800); }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+// ── the "?" card: tap to show, any tap hides ──────────────────────────────
+$('help').addEventListener('click', function (e) { e.stopPropagation(); $('helpcard').hidden = !$('helpcard').hidden; });
+document.addEventListener('click', function () { if (!$('helpcard').hidden) $('helpcard').hidden = true; });
+
+// ── State ─────────────────────────────────────────────────────────────────
+var CFG = null;                      // GET /status
+var S = { model: 'mini', seconds: 4, res: '480p', ratio: '3:4', door: 'auto', sound: true };
+var refs = [];                       // [{url, kind, poster, name}]
+var jobsById = {};
+var pollT = null;
+function loadCtl() {
+  try {
+    var c = JSON.parse(localStorage.getItem('footage_ctl') || '{}');
+    // model, shape, door and sound are remembered; seconds and resolution
+    // are NOT — the length and the size are the bill, and a remembered 15s
+    // at 720p arriving unasked is the Playground's quality rule again
+    if (c.model) S.model = c.model; if (c.ratio) S.ratio = c.ratio; if (c.door) S.door = c.door; if (c.sound != null) S.sound = !!c.sound;
+    var d = JSON.parse(localStorage.getItem('footage_draft') || '{}');
+    if (d.prompt) $('prompt').value = d.prompt;
+    if (Array.isArray(d.refs)) refs = d.refs;
+  } catch (e) {}
+}
+function saveCtl() { try { localStorage.setItem('footage_ctl', JSON.stringify({ model: S.model, ratio: S.ratio, door: S.door, sound: S.sound })); } catch (e) {} }
+function saveDraft() { try { localStorage.setItem('footage_draft', JSON.stringify({ prompt: $('prompt').value, refs: refs })); } catch (e) {} }
+function modelOf(id) { return CFG && CFG.models.filter(function (m) { return m.id === id; })[0]; }
+function minSec(m) { return m ? m.secs[0] : 4; }
+function secList(m) { return m && m.id === '1.5' ? m.secs : null; }
+
+// ── The controls ──────────────────────────────────────────────────────────
+function chipRow(el, items, cur, key, onPick) {
+  el.innerHTML = '';
+  items.forEach(function (it) {
+    var b = document.createElement('button'); b.type = 'button';
+    b.textContent = it.label; b.dataset[key] = it.id;
+    if (it.id === cur) b.classList.add('on');
+    if (it.off) b.classList.add('off');
+    b.addEventListener('click', function () { onPick(it.id); });
+    el.appendChild(b);
+  });
+}
+function paintControls() {
+  if (!CFG) return;
+  var m = modelOf(S.model) || CFG.models[0]; S.model = m.id;
+  chipRow($('models'), CFG.models.map(function (x) { return { id: x.id, label: x.label }; }), S.model, 'model', function (id) {
+    S.model = id; var mm = modelOf(id);
+    if (!mm.res.includes(S.res)) S.res = mm.res[0];
+    var list = secList(mm);
+    if (list) { if (!list.includes(S.seconds)) S.seconds = list[0]; }
+    else if (S.seconds < mm.secs[0] || S.seconds > mm.secs[1]) S.seconds = mm.secs[0];
+    if (!mm.openrouter && S.door === 'openrouter') S.door = 'auto';
+    saveCtl(); paintControls();
+  });
+  chipRow($('reses'), m.res.map(function (r) { return { id: r, label: r, off: S.door === 'apiframe' && (!m.afCents || m.afCents[r] == null) }; }), S.res, 'res', function (id) { S.res = id; paintControls(); });
+  chipRow($('ratios'), CFG.ratios.map(function (r) { return { id: r, label: r }; }), S.ratio, 'ratio', function (id) { S.ratio = id; saveCtl(); paintControls(); });
+  $('secs').textContent = S.seconds;
+  document.querySelectorAll('#doors button').forEach(function (b) {
+    var d = b.dataset.door;
+    b.classList.toggle('on', d === S.door);
+    var off = (d === 'openrouter' && (!m.openrouter || !CFG.doors.openrouter)) || (d === 'apiframe' && !CFG.doors.apiframe);
+    b.classList.toggle('off', off);
+  });
+  $('sound').classList.toggle('on', S.sound);
+  $('sound').setAttribute('aria-pressed', S.sound ? 'true' : 'false');
+  paintRefs();
+  updateCost();
+}
+$('secdn').addEventListener('click', function () { stepSec(-1); });
+$('secup').addEventListener('click', function () { stepSec(1); });
+function stepSec(dir) {
+  var m = modelOf(S.model); if (!m) return;
+  var list = secList(m);
+  if (list) { var i = Math.max(0, Math.min(list.length - 1, list.indexOf(S.seconds) + dir)); S.seconds = list[i]; }
+  else S.seconds = Math.max(m.secs[0], Math.min(m.secs[1], S.seconds + dir));
+  paintControls();
+}
+document.querySelectorAll('#doors button').forEach(function (b) {
+  b.addEventListener('click', function () { S.door = b.dataset.door; saveCtl(); paintControls(); });
+});
+$('sound').addEventListener('click', function () { S.sound = !S.sound; saveCtl(); paintControls(); });
+
+// The price is ASKED, never computed here — the server holds the one table.
+var costSeq = 0;
+function updateCost() {
+  var seq = ++costSeq;
+  var hasVideo = refs.some(function (r) { return r.kind === 'video'; });
+  var q = '?model=' + S.model + '&res=' + S.res + '&ratio=' + encodeURIComponent(S.ratio) + '&seconds=' + S.seconds + '&video=' + (hasVideo ? 1 : 0) + '&door=' + S.door;
+  api('/estimate' + q).then(function (d) {
+    if (seq !== costSeq) return;
+    if (!d || d.error) { $('cost').textContent = (d && d.error) || ''; $('cost').dataset.cents = ''; return; }
+    var c = d.cents;
+    $('cost').textContent = 'about ' + (c >= 100 ? '$' + (c / 100).toFixed(2) : c + '¢') + ' · ' + (d.door === 'openrouter' ? 'OpenRouter' : 'APIFRAME');
+    $('cost').dataset.cents = c; $('cost').dataset.door = d.door;
+  }).catch(function () {});
+}
+function paintBal() {
+  var b = CFG && CFG.balances; if (!b) return;
+  var parts = [];
+  if (b.openrouter && b.openrouter.left != null) parts.push('OpenRouter $' + b.openrouter.left.toFixed(2) + ' left');
+  if (b.apiframe && b.apiframe.credits != null) parts.push('APIFRAME $' + (b.apiframe.credits / 100).toFixed(2) + ' left');
+  $('bal').textContent = parts.join(' · ');
+}
+
+// ── References ────────────────────────────────────────────────────────────
+function slotsOf(list) {
+  var n = { image: 0, video: 0, audio: 0 };
+  return list.map(function (r) { n[r.kind] += 1; return '[' + (r.kind === 'image' ? 'Image' : r.kind === 'video' ? 'Video' : 'Audio') + n[r.kind] + ']'; });
+}
+// the doors attach images, then videos, then audio — so the strip is shown
+// in that order, whatever order she added them in
+function orderedRefs() {
+  var o = { image: 0, video: 1, audio: 2 };
+  return refs.slice().sort(function (a, b) { return o[a.kind] - o[b.kind]; });
+}
+function thumbHtml(r, cls) {
+  var src = r.kind === 'image' ? r.url : (r.poster || '');
+  if (src) return '<img src="' + esc(src) + '" alt="">';
+  return r.kind === 'audio' ? ICONS.audio : ICONS.film;
+}
+function paintRefs() {
+  var el = $('refs');
+  var list = orderedRefs(); refs = list;
+  var slots = slotsOf(list);
+  var sig = list.map(function (r) { return r.url; }).join('|');
+  if (el.__sig === sig) return;
+  el.__sig = sig;
+  el.innerHTML = '';
+  list.forEach(function (r, i) {
+    var d = document.createElement('div'); d.className = 'ref';
+    d.innerHTML = '<div class="im">' + thumbHtml(r) + '</div>' +
+      '<button type="button" class="slot" title="Put this name in the prompt">' + esc(slots[i]) + '</button>' +
+      '<button type="button" class="x" aria-label="Take this reference off">✕</button>';
+    d.querySelector('.slot').addEventListener('click', function () { insertAtCaret(slots[i]); });
+    d.querySelector('.x').addEventListener('click', function () { refs = refs.filter(function (x) { return x !== r; }); saveDraft(); paintControls(); });
+    el.appendChild(d);
+  });
+}
+function insertAtCaret(text) {
+  var box = $('prompt');
+  var s = box.selectionStart || box.value.length, e = box.selectionEnd || s;
+  var before = box.value.slice(0, s), after = box.value.slice(e);
+  var pad = before && !/\s$/.test(before) ? ' ' : '';
+  box.value = before + pad + text + after;
+  var at = (before + pad + text).length;
+  box.focus(); box.setSelectionRange(at, at);
+  saveDraft();
+  if (window.__fitBigPrompt) window.__fitBigPrompt();
+}
+function kindOfFile(f) {
+  var t = String(f.type || '');
+  if (t.indexOf('video/') === 0) return 'video';
+  if (t.indexOf('audio/') === 0) return 'audio';
+  if (t.indexOf('image/') === 0) return 'image';
+  var n = String(f.name || '').toLowerCase();
+  if (/\.(mp4|mov|webm|m4v)$/.test(n)) return 'video';
+  if (/\.(m4a|mp3|wav|aac|ogg)$/.test(n)) return 'audio';
+  return 'image';
+}
+// Uploads go through the DUMP (md5-deduped, video posters baked there), so
+// a reference is never stored twice and a re-upload of the same file is free.
+$('file').addEventListener('change', function (e) {
+  var files = Array.prototype.slice.call(e.target.files || []);
+  if (!files.length) return;
+  e.target.value = '';
+  var n = 0;
+  toast('Uploading ' + files.length + (files.length === 1 ? ' file…' : ' files…'));
+  files.reduce(function (p, f) {
+    return p.then(function () {
+      var q = '?bundle=Footage&filename=' + encodeURIComponent(f.name || 'reference');
+      return fetch('/api/drop/upload-file' + q, { method: 'POST', headers: hdr({ 'Content-Type': f.type || 'application/octet-stream' }), body: f })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          var it = j && j.item;
+          if (!it || !it.url) { toast('Could not upload ' + (f.name || 'that')); return; }
+          if (!refs.some(function (r) { return r.url === it.url; })) refs.push({ url: it.url, kind: kindOfFile(f), poster: it.posterUrl || '', name: f.name || '' });
+          n++;
+          saveDraft(); paintControls();
+        }).catch(function () { toast('Could not upload ' + (f.name || 'that')); });
+    });
+  }, Promise.resolve()).then(function () { if (n) toast(n === 1 ? 'Attached' : 'Attached ' + n); });
+});
+// Recently used — the references on earlier cards, newest first, one tap to
+// attach again. Derived from the feed; nothing is stored for it.
+var recentOpen = false;
+$('rectog').addEventListener('click', function () { recentOpen = !recentOpen; paintRecent(); });
+function recentRefs() {
+  var seen = {}, out = [];
+  Object.keys(jobsById).map(function (k) { return jobsById[k]; })
+    .sort(function (a, b) { return String(b.sentAt).localeCompare(String(a.sentAt)); })
+    .forEach(function (j) { (j.refs || []).forEach(function (r) { if (r.url && !seen[r.url]) { seen[r.url] = 1; out.push(r); } }); });
+  return out.slice(0, 24);
+}
+function paintRecent() {
+  var list = recentRefs();
+  $('rectog').hidden = !list.length;
+  $('rectog').classList.toggle('on', recentOpen);
+  $('rectog').setAttribute('aria-expanded', recentOpen ? 'true' : 'false');
+  var el = $('recent');
+  el.hidden = !(recentOpen && list.length);
+  var sig = list.map(function (r) { return r.url; }).join('|');
+  if (el.__sig === sig) return;
+  el.__sig = sig;
+  el.innerHTML = '';
+  list.forEach(function (r) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'rc'; b.title = 'Attach again';
+    b.innerHTML = thumbHtml(r);
+    b.addEventListener('click', function () {
+      if (!refs.some(function (x) { return x.url === r.url; })) refs.push({ url: r.url, kind: r.kind, poster: r.poster || '', name: r.name || '' });
+      saveDraft(); paintControls(); toast('Attached');
+    });
+    el.appendChild(b);
+  });
+}
+
+// ── The bigger box (the Playground's corner toggle, in shape) ──────────────
+(function () {
+  var box = $('prompt'), btn = $('bigprompt'), big = false;
+  function fitBig() {
+    if (!big) return;
+    box.style.height = 'auto';
+    box.style.height = (box.scrollHeight + (box.offsetHeight - box.clientHeight)) + 'px';
+  }
+  function paint() { btn.innerHTML = big ? ICONS.minimize : ICONS.maximize; btn.title = btn.getAttribute('aria-label'); box.classList.toggle('big', big); if (!big) box.style.height = ''; fitBig(); }
+  btn.addEventListener('click', function () { big = !big; btn.setAttribute('aria-label', big ? 'Smaller box' : 'Bigger box'); paint(); });
+  box.addEventListener('input', function () { fitBig(); saveDraft(); });
+  window.addEventListener('resize', fitBig);
+  window.__fitBigPrompt = fitBig;
+  paint();
+})();
+
+// ── The star ──────────────────────────────────────────────────────────────
+$('go').addEventListener('click', function () {
+  var prompt = $('prompt').value;
+  $('err').hidden = true;
+  if (!prompt.trim()) return toast('Say what the clip is first');
+  var body = { prompt: prompt, model: S.model, seconds: S.seconds, resolution: S.res, ratio: S.ratio,
+    sound: S.sound, door: S.door, refs: orderedRefs() };
+  var btn = $('go'); btn.disabled = true;
+  api('/jobs', { method: 'POST', body: JSON.stringify(body) }).then(function (d) {
+    btn.disabled = false;
+    if (!d || !d.jobId) {
+      var msg = (d && d.error) || 'Could not start';
+      if (d && d.hint) msg += ' — ' + d.hint;
+      $('err').textContent = msg; $('err').hidden = false;
+      return;
+    }
+    var m = modelOf(S.model);
+    jobCard({ id: d.jobId, prompt: prompt, model: S.model, modelLabel: m ? m.label : S.model, door: d.door, seconds: S.seconds,
+      resolution: S.res, ratio: S.ratio, sound: S.sound, refs: body.refs, status: 'drawing', estimate: d.estimate,
+      sentAt: new Date().toISOString(), note: d.fellBack ? d.note : '', video: '', poster: '', vote: '' });
+    toast(d.fellBack ? 'Drawing — through APIFRAME (ByteDance refused a reference)' : 'Drawing…');
+    try { localStorage.removeItem('footage_draft'); } catch (e) {}
+    schedulePoll(true);
+    loadStatus();
+  }).catch(function () { btn.disabled = false; toast('Could not start'); });
+});
+
+// ── The feed ──────────────────────────────────────────────────────────────
+function likedOnly() { try { return localStorage.getItem('footage_liked') === '1'; } catch (e) { return false; } }
+function hideX() { try { return localStorage.getItem('footage_hidex') === '1'; } catch (e) { return false; } }
+function paintFilt() {
+  $('v-liked').classList.toggle('on', likedOnly()); $('v-liked').setAttribute('aria-pressed', likedOnly() ? 'true' : 'false');
+  $('v-hidex').classList.toggle('on', hideX()); $('v-hidex').setAttribute('aria-pressed', hideX() ? 'true' : 'false');
+}
+function applyFilt() {
+  var any = false;
+  document.querySelectorAll('.job').forEach(function (el) {
+    var j = jobsById[el.dataset.id] || {};
+    var show = !j.hidden && !(likedOnly() && j.vote !== 'like') && !(hideX() && j.vote === 'dislike');
+    el.hidden = !show; if (show) any = true;
+  });
+  var n = Object.keys(jobsById).length;
+  $('feedbar').hidden = !n;
+  $('feedempty').hidden = !!any;
+  $('feedempty').textContent = n ? (likedOnly() ? 'Nothing hearted yet.' : 'Everything here is crossed out.') : 'Nothing made here yet.';
+}
+$('v-liked').addEventListener('click', function () { try { localStorage.setItem('footage_liked', likedOnly() ? '' : '1'); } catch (e) {} paintFilt(); applyFilt(); });
+$('v-hidex').addEventListener('click', function () { try { localStorage.setItem('footage_hidex', hideX() ? '' : '1'); } catch (e) {} paintFilt(); applyFilt(); });
+
+function cents(c) { return c == null ? '' : (c >= 100 ? '$' + (c / 100).toFixed(2) : (Math.round(c * 10) / 10) + '¢'); }
+function ago(iso) {
+  var s = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
+  return s < 60 ? s + 's' : Math.floor(s / 60) + 'm ' + (s % 60) + 's';
+}
+function jobCard(j) {
+  jobsById[j.id] = j;
+  var feed = $('feed');
+  var el = document.getElementById('job-' + j.id);
+  if (!el) {
+    el = document.createElement('div'); el.className = 'job'; el.id = 'job-' + j.id; el.dataset.id = j.id;
+    // newest first — an existing card stays where it is
+    var before = null;
+    Array.prototype.some.call(feed.children, function (c) { var o = jobsById[c.dataset.id]; if (o && String(o.sentAt) < String(j.sentAt)) { before = c; return true; } return false; });
+    feed.insertBefore(el, before);
+  }
+  el.classList.toggle('nay', j.vote === 'dislike');
+  var tags = [j.modelLabel || j.model, j.seconds != null ? j.seconds + 's' : '', j.resolution, j.ratio, j.sound ? 'sound' : 'silent',
+    j.door === 'openrouter' ? 'OpenRouter' : 'APIFRAME',
+    j.cost != null ? cents(j.cost) : (j.estimate != null ? 'about ' + cents(j.estimate) : '')].filter(Boolean).join(' · ');
+  var thumbInner = j.poster ? '<img src="' + esc(j.poster) + '" alt="">' + ICONS.play : (j.status === 'done' ? ICONS.play : (j.status === 'failed' ? ICONS.x : ''));
+  var html = '<div class="jobrow">' +
+    '<button type="button" class="thumb' + (j.status === 'drawing' ? ' drawing' : '') + '" data-ar="' + esc(j.ratio || '') + '" aria-label="Play">' + thumbInner + '</button>' +
+    '<div class="jobmain"><div class="pwrap"><div class="p clamp"></div></div>' +
+    '<div class="tags">' + esc(tags) + '</div>' +
+    (j.note ? '<div class="st">' + esc(j.note) + '</div>' : '') +
+    '<div class="st' + (j.status === 'failed' ? ' bad' : '') + '" data-st>' + (j.status === 'failed' ? esc(j.error || 'failed') : '') + '</div>';
+  if ((j.refs || []).length) {
+    html += '<div class="usedrefs">';
+    slotsOf(j.refs).forEach(function (slot, i) { var r = j.refs[i]; html += '<div class="ur"><div>' + thumbHtml(r) + '</div>' + esc(slot.replace(/[\[\]]/g, '')) + '</div>'; });
+    html += '</div>';
+  }
+  html += '<div class="acts">' +
+    '<button type="button" class="heart' + (j.vote === 'like' ? ' on' : '') + '" data-vote="like" aria-label="Heart this clip" title="Heart">' + ICONS.heart + '</button>' +
+    '<button type="button" class="nope' + (j.vote === 'dislike' ? ' on' : '') + '" data-vote="dislike" aria-label="Cross this clip out" title="Cross out">' + ICONS.x + '</button>' +
+    '<button type="button" class="copy" aria-label="Put this prompt and its references back" title="Put it back in the box">' + ICONS.copy + '</button>' +
+    (j.status === 'failed' && j.prompt ? '<button type="button" class="again">Try again</button>' : '') +
+    (j.video ? '<a href="' + esc(j.video) + '" target="_blank" rel="noopener">save</a>' : '') +
+    '</div></div></div>';
+  var sig = html + ' ' + (j.prompt || '');
+  if (el.__sig !== sig) {
+    el.__sig = sig;
+    el.innerHTML = html;
+    var p = el.querySelector('.p'); p.textContent = j.prompt || '';
+    clampMore(p);
+    el.querySelector('.thumb').addEventListener('click', function () { if (j.video) openPlayer(j.video); });
+    el.querySelectorAll('[data-vote]').forEach(function (b) { b.addEventListener('click', function () { castVote(j.id, b.dataset.vote); }); });
+    el.querySelector('.copy').addEventListener('click', function () { copyBack(j); });
+    var again = el.querySelector('.again');
+    if (again) again.addEventListener('click', function () { copyBack(j); $('go').click(); });
+  }
+  var st = el.querySelector('[data-st]');
+  if (j.status === 'drawing') st.textContent = 'drawing… ' + ago(j.sentAt);
+  applyFilt();
+}
+// the opener is added only where the words are really cut (measured), on the
+// last line, underlined — never a boxed button
+function clampMore(p) {
+  requestAnimationFrame(function () {
+    if (p.scrollHeight <= p.clientHeight + 2) return;
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'moretxt'; b.textContent = '… more';
+    b.addEventListener('click', function () { p.classList.remove('clamp'); b.remove(); });
+    p.parentNode.insertBefore(b, p.nextSibling);
+  });
+}
+function castVote(id, kind) {
+  var j = jobsById[id]; if (!j) return;
+  j.vote = j.vote === kind ? '' : kind;
+  jobCard(j);
+  api('/jobs/' + encodeURIComponent(id) + '/vote', { method: 'POST', body: JSON.stringify({ vote: j.vote }) }).catch(function () {});
+}
+// PUTTING A PROMPT BACK PUTS ITS REFERENCES AND ITS SETTINGS BACK — only
+// what the record knows: a card with no references clears the strip.
+function copyBack(j) {
+  $('prompt').value = j.prompt || '';
+  refs = (j.refs || []).map(function (r) { return { url: r.url, kind: r.kind, poster: r.poster || '', name: r.name || '' }; });
+  if (j.model && modelOf(j.model)) S.model = j.model;
+  if (j.seconds) S.seconds = j.seconds;
+  if (j.resolution) S.res = j.resolution;
+  if (j.ratio) S.ratio = j.ratio;
+  S.sound = j.sound !== false;
+  saveCtl(); saveDraft(); paintControls();
+  if (window.__fitBigPrompt) window.__fitBigPrompt();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  toast(refs.length ? 'Prompt and its references are back' : 'Prompt is back in the box');
+}
+
+// ── Loading and polling ───────────────────────────────────────────────────
+function loadStatus() {
+  return api('/status').then(function (d) {
+    if (!d || !d.models) return;
+    CFG = d;
+    paintControls(); paintBal();
+  }).catch(function () {});
+}
+function loadJobs() {
+  return api('/jobs?limit=40').then(function (d) {
+    var jobs = (d && d.jobs) || [];
+    jobs.slice().reverse().forEach(jobCard);
+    paintRecent();
+    schedulePoll(false);
+  }).catch(function () {});
+}
+function anyDrawing() { return Object.keys(jobsById).some(function (k) { return jobsById[k].status === 'drawing'; }); }
+function schedulePoll(soon) {
+  clearTimeout(pollT);
+  if (!anyDrawing()) return;
+  pollT = setTimeout(loadJobs, soon ? 4000 : 7000);
+}
+// the "drawing… 42s" clock, once a second, without touching the card
+setInterval(function () {
+  Object.keys(jobsById).forEach(function (k) {
+    var j = jobsById[k]; if (j.status !== 'drawing') return;
+    var el = document.querySelector('#job-' + CSS.escape(k) + ' [data-st]');
+    if (el) el.textContent = 'drawing… ' + ago(j.sentAt);
+  });
+}, 1000);
+document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') { loadJobs(); loadStatus(); } });
+
+// ── The player (the lightbox contract: page frozen, position restored) ────
+var savedY = 0;
+function openPlayer(url) {
+  var pl = $('player');
+  if (window.__scrollStop) window.__scrollStop();
+  savedY = window.scrollY || 0;
+  document.body.style.overflow = 'hidden';
+  var v = document.createElement('video');
+  v.src = url; v.controls = true; v.playsInline = true; v.autoplay = true; v.setAttribute('playsinline', '');
+  pl.appendChild(v);
+  pl.hidden = false;
+  v.play().catch(function () {});
+}
+function closePlayer() {
+  var pl = $('player');
+  pl.querySelectorAll('video').forEach(function (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch (e) {} v.remove(); });
+  pl.hidden = true;
+  document.body.style.overflow = '';
+  window.scrollTo(0, savedY);
+}
+$('player').addEventListener('click', function (e) { if (e.target.tagName !== 'VIDEO') closePlayer(); });
+window.__navBack = function () { if (!$('player').hidden) { closePlayer(); return true; } return false; };
+
+// ── The pill's corner (Freeform's measured reserve, verbatim in shape) ────
+function setGap(el, name, v) { if (el.style.getPropertyValue(name) === v) return; el.style.setProperty(name, v); }
+function fitPillGap() {
+  var panels = document.querySelectorAll('.panel');
+  var pill = document.querySelector('body > .float');
+  var p = (pill && pill.getClientRects().length) ? pill.getBoundingClientRect() : null;
+  var y = window.scrollY || 0, i;
+  for (i = 0; i < panels.length; i++) { setGap(panels[i], '--pillgap', '0px'); setGap(panels[i], '--pilltop', '0px'); }
+  if (!p) return;
+  var nat = [];
+  for (i = 0; i < panels.length; i++) nat.push(panels[i].getBoundingClientRect());
+  for (i = 0; i < panels.length; i++) {
+    var el = panels[i], r = nat[i], top = r.top + y, bot = r.bottom + y;
+    if (bot <= p.top || top >= p.bottom) continue;
+    var clear = Math.ceil(p.bottom - top) + 8;
+    if (clear > 56) setGap(el, '--pillgap', Math.max(0, Math.ceil(r.right - p.left) + 8) + 'px');
+    else setGap(el, '--pilltop', (14 + clear) + 'px');
+  }
+}
+window.__fitPillGap = fitPillGap;
+(function () {
+  var q = false;
+  function soon() { if (q) return; q = true; requestAnimationFrame(function () { q = false; fitPillGap(); }); }
+  window.addEventListener('resize', soon, { passive: true });
+  window.addEventListener('load', soon);
+  setTimeout(soon, 400); setTimeout(soon, 1500);
+  if (window.ResizeObserver) { var ro = new ResizeObserver(soon); ro.observe(document.documentElement); if (document.body) ro.observe(document.body); }
+  (function waitForPill(tries) {
+    var f = document.querySelector('body > .float');
+    if (f) { if (window.ResizeObserver) new ResizeObserver(soon).observe(f); soon(); return; }
+    if (tries > 0) setTimeout(function () { waitForPill(tries - 1); }, 120);
+  })(20);
+  soon();
+})();
+
+loadCtl();
+paintFilt();
+loadStatus().then(loadJobs);
+})();
+</script>
+</body>
+</html>

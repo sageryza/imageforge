@@ -176,6 +176,27 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     41¢ for a clip she never approved. A content refusal (`…SensitiveContent…`)
     is terminal; only a ZodError from OpenRouter's own validator is a shape
     error.
+  - **FOOTAGE — SHE SENDS THROUGH BOTH DOORS HERSELF (2026-09-09, Sophie:
+    "the next step is to build a point so I can just make things on my own
+    time by describing them or uploading references").** `footage.js` +
+    `public/footage.html` at `/footage` (the film tab's pictures stage in the
+    app): a prompt box, references uploaded through the Dump (`bundle=
+    Footage`, md5-deduped, each shown with its slot name — tapping `[Image1]`
+    drops it into the prompt so a reference is named, never described), the
+    model / seconds / resolution / shape / sound chips, the DOOR (Auto ·
+    OpenRouter · APIFRAME), an "about N¢" line asked from `GET
+    /api/footage/estimate` on every change, and the star as her own "go".
+    AUTO sends through OpenRouter and, on a content refusal, the identical
+    job through APIFRAME, saying so on the card. Both doors are called IN
+    PROCESS (`startVideo` / `pollVideo`, exported from openrouter.js and
+    apiframe.js the same day; the routes are thin calls now) and file the
+    SAME `forge-video-jobs` doc tagged `chat:'footage'`, so the 1080p redo
+    list covers what she makes here. `GET /api/footage/jobs` polls the
+    unfinished ones itself, throttled 12s per job, and bakes a poster frame
+    into `footage/posters/` on completion — so the feed resumes from any
+    phone with nothing in localStorage. Seconds and resolution open at the
+    minimum on every load (the length is the bill); model, shape, door and
+    sound are remembered. Test: `node scripts/test-footage.js`.
   **THE COLLECTION PAGE UNDER-LISTS — PROBE THE MODEL NAMES (same day,
   Sophie: "why did u skip 2.5 etc").** Replicate's image-to-video collection
   page showed six Seedance models; `GET /v1/models/bytedance/<name>`
