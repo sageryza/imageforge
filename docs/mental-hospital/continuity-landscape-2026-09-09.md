@@ -151,3 +151,46 @@ first frame as a picture, approve it, then animate it; (2) last-frame
 chaining through the ledger (`return_last_frame` on Mini already hands the
 frame back); (3) a finishing pass on the 720p redo. None of it replaces the
 "go" rule.
+
+## The plan (2026-09-09, on Sophie's ask; upscaling left out at her word)
+
+Three pieces, all riding the belt and the `forge-video-jobs` ledger that
+already exist. Nothing here sends a clip without her "go"; every step is a
+card she approves.
+
+**1. Chain the last frame — free, first.** The ledger grows two fields:
+`lastFrame` (the approved clip's final frame, pulled with ffmpeg in the
+container — free, and needs nothing from the door; Atlas's
+`return_last_frame` flag exists and is off, unmeasured whether it answers)
+and `chainFrom` (which card it came from). When she approves shot N, shot
+N+1's card gets that frame in its first image slot with one line of ours,
+NAMED as ours: `the shot begins on [Image1]` — never a description. A card
+she re-orders re-chains; a card with no approved predecessor chains nothing.
+This is the "same person, same room, one clip into the next" work for the
+15-second shots, and it costs nothing.
+
+**2. Stills first — the frame before the clip.** Every main shot gets a
+FRAME step on its belt card before its CLIP step: draw the opening frame,
+she approves it (or re-rolls, cents), then it rides as the first image of
+the real clip. Two ways to draw it, and the pick is hers:
+- **on Mini itself** — a 4s Mini clip on Atlas at ~4¢ is 97 frames drawn by
+  the same model, through the same filter, with the same references; pull the
+  best frame (the `ward-pullstills.py` scorer already ranks faces). Measured
+  cheap, same look as the film. My pick.
+- **on gpt-image-2** — 0.5-5¢ at low/medium, but the likeness of a real
+  person from an eyes-barred photo is UNMEASURED there, and its look is not
+  Seedance's.
+Either way the still is filed with its exact prompt and references (the
+image ritual), so the 720p redo replays the frame too.
+
+**3. A finishing pass, without the upscale.** Two free ffmpeg passes on the
+assembled cut, on the 720p redo not the draft: a grade match across shots
+(match each clip's levels and white balance to the shot before it — measured
+on the desk-sweep commercial's shape, the seam between two Seedance clips is
+mostly colour) and, if she wants it, a face-restore pass on frames (GFPGAN /
+CodeFormer, local, unmeasured on her footage). Upscaling is out until she
+says.
+
+**Order:** 1 → 2 → 3. Piece 1 is plumbing with no spend; piece 2 changes how
+she works the belt and adds ~4¢ a shot (~35 main shots ≈ $1.50); piece 3
+waits for the redo.
