@@ -670,5 +670,17 @@
    "id": "UFSplMuiXv8XFCDzRso4",
    "probe": "refused"
   }
- ]
+ ],
+ "round2": {
+  "P2-h30": "REFUSED (height 0.30/width 0.30)",
+  "P3-thinwidth": "REFUSED (height 0.34/width 0.15)",
+  "P4-Eheightwide": "REFUSED (height 0.26/width 0.60)",
+  "P1-smallface": "ACCEPTED \u2014 parents-A, bands 42x9 and 50x11, job FfeXRVjY4pmSHnTUeUwB"
+ },
+ "conclusion": "Both axes have a floor and neither trades for the other. D-narrower (0.34/0.30) is close to the minimum and holds from a 640px face down to ~90px faces.",
+ "spent": {
+  "accepted": 2,
+  "refused": 5,
+  "totalUsd": 0.1117
+ }
 }

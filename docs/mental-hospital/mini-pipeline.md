@@ -118,16 +118,29 @@ whatever the threshold turns out to be.
 still with no bar was refused on the same face at the same second — so the
 accepts are the bar working, not a filter in a permissive mood.
 
-**The boundary is between `height_frac` 0.26 and 0.34.** Both axes moved
-together down the ladder, so which of the two the filter actually reads is
-still unknown; a run holding `width_pad` and moving only `height_frac` would
-separate them, at 5.6¢ a rung.
+### Both axes have a floor, and D-narrower sits just inside the corner
 
-**This is one face at one size.** The filter may well read absolute pixels
-rather than the face-relative fraction, in which case a small face (the
-parents' 42×9 band) could still be refused at D. That self-corrects for free —
-a refusal costs nothing and comes back before anything draws — so the rule is
-*send at D, widen only the ones that bounce*.
+A second round on her go (2026-09-09) — three more refusals, free, and one
+accept:
+
+| probe | bar | result | what it settles |
+|---|---|---|---|
+| P2 — height 0.30, width 0.30 | 354×66 | REFUSED | the height floor is **between 0.30 and 0.34** |
+| P3 — height 0.34, width **0.15** | 288×75 | REFUSED | **width has its own floor** — D's height alone is not enough |
+| P4 — height **0.26**, width 0.60 | 488×58 | REFUSED | a wide band does **not** buy back a short one |
+| P1 — small face at D | 42×9 and 50×11 | **ACCEPTED** | D works at the small end too |
+
+So the filter reads **both** dimensions and neither can be traded for the
+other. D-narrower (0.34 / 0.30) is not merely a rung that happened to work —
+**it is close to the minimum**, since dropping either axis one step is refused.
+That is the setting.
+
+**And it holds across the whole face-size range in this film.** D was accepted
+on the biggest face in the library (`sophie-face-A`, a 640px face, 354×75 band)
+and on the smallest (`parents-A`, ~90px faces, a **42×9** band) — so the
+face-relative fraction is the right unit and the 14 stills ship as they are.
+The parents clip came back with both faces intact and on-model, and brighter
+than the very dark source.
 
 ### What the clip showed — the bar is not a limit on the output
 
